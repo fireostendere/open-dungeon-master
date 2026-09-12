@@ -7,6 +7,8 @@ import { shellHost } from "@/lib/shell-host";
 import { ui } from "@/lib/ui";
 import { PageSection } from "@/components/PageShell";
 import { AdminInvitesSection } from "@/app/admin/AdminInvitesSection";
+import { LlmWizard } from "@/app/admin/LlmWizard";
+import { ComfyTestPanel } from "@/app/admin/ComfyTestPanel";
 
 type MaskedConfig = {
   signupsEnabled: boolean;
@@ -136,6 +138,7 @@ export function AdminSettingsPanel() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
+  const [wizardOpen, setWizardOpen] = useState(false);
   // Server-computed, because the announced-address fallback chain ends at the
   // bind address, which never reaches this panel. Reflects the SAVED config.
   const [voiceUnroutable, setVoiceUnroutable] = useState(false);
@@ -335,6 +338,31 @@ export function AdminSettingsPanel() {
           Defaults for new campaigns and fallbacks when a campaign leaves a field empty. Each
           campaign&apos;s own Text Model settings still win.
         </p>
+        <div className="mb-3 flex flex-wrap items-center gap-3">
+          <button type="button" className={ui.btnPrimary} onClick={() => setWizardOpen(true)}>
+            Мастер подключения модели
+          </button>
+          {config && !config.text.provider && !config.text.customBaseUrl && !env?.customBaseUrl && (
+            <span className="text-xs text-yellow-300">
+              Модель не подключена — запустите мастер: он проверит не только соединение, но и
+              реальный tool calling, необходимый для управления игрой.
+            </span>
+          )}
+        </div>
+        {wizardOpen && (
+          <LlmWizard
+            onClose={() => setWizardOpen(false)}
+            onSaved={() => {
+              // Refresh so an applied profile's global defaults show up.
+              fetch("/api/admin/settings")
+                .then((response) => (response.ok ? response.json() : null))
+                .then((data) => {
+                  if (data?.config) setConfig(data.config);
+                })
+                .catch(() => {});
+            }}
+          />
+        )}
         <div className="grid gap-3 sm:grid-cols-2">
           <Field label="Default provider">
             <select
@@ -533,6 +561,19 @@ export function AdminSettingsPanel() {
                 placeholder="CyberRealisticXLPlay_V6.0.safetensors"
               />
             </Field>
+          )}
+          {phoneWorld ? null : (
+            <div className="sm:col-span-2">
+              <ComfyTestPanel
+                comfyUrl={config.images.comfyUrl}
+                onUseCheckpoint={(name) =>
+                  setConfig({
+                    ...config,
+                    images: { ...config.images, comfyCheckpoint: name },
+                  })
+                }
+              />
+            </div>
           )}
           {phoneWorld ? null : (
             <Field label="FLUX worker URL" hint={`Env: ${env.fluxWorkerUrl}`}>
