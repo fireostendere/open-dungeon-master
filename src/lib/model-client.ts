@@ -493,7 +493,14 @@ export async function requestCustomMessage(
     ...(caps.allowTemplateKwargs && options.thinking
       ? { chat_template_kwargs: { enable_thinking: true } }
       : {}),
-    ...(onDelta ? { stream: true } : {}),
+    // Always stream, even when the caller passes no onDelta. Node's fetch
+    // (undici) enforces a ~300s headersTimeout: a non-streaming request to a
+    // slow local model that needs longer than that to produce the WHOLE
+    // reply (story arcs, chapter summaries, world setup) dies as a
+    // misleading "could not reach the backend" while the server is still
+    // generating. With stream:true the headers land immediately and the
+    // per-chunk idle timeout below governs stalls instead.
+    stream: true,
   };
 
   // The output cap, under whichever name this backend takes. Dropping
@@ -620,16 +627,20 @@ export async function requestCustomMessage(
     };
   }
 
-  if (onDelta && upstream.body) {
+  if (upstream.body) {
     // OpenAI-compatible SSE: "data: {...}" lines carrying content and
-    // tool-call fragments, terminated by "data: [DONE]".
+    // tool-call fragments, terminated by "data: [DONE]". A backend that
+    // ignores stream:true and answers one JSON document is handled by the
+    // rawAll fallback at the end of this block.
     const contentParts: string[] = [];
     const toolCalls: Array<StreamedToolCall | undefined> = [];
     let upstreamError = "";
+    let rawAll = "";
 
     try {
       await forEachStreamLine(upstream, timeoutMs, requestTimeout.abortNow, (line) => {
         if (!line.startsWith("data:")) {
+          rawAll += line;
           return;
         }
         const payload = line.slice(5).trim();
@@ -656,7 +667,9 @@ export async function requestCustomMessage(
         const delta = record.choices?.[0]?.delta;
         if (typeof delta?.content === "string" && delta.content) {
           contentParts.push(delta.content);
-          onDelta(delta.content);
+          if (onDelta) {
+            onDelta(delta.content);
+          }
         }
         if (Array.isArray(delta?.tool_calls)) {
           for (const call of delta.tool_calls) {
@@ -708,6 +721,20 @@ export async function requestCustomMessage(
     }
 
     const completedToolCalls = toolCalls.filter(Boolean) as StreamedToolCall[];
+    if (!contentParts.length && !completedToolCalls.length && !upstreamError && rawAll) {
+      // The backend answered a plain JSON document instead of an SSE stream.
+      try {
+        const data = JSON.parse(rawAll) as {
+          choices?: Array<{ message?: UpstreamChatMessage }>;
+        };
+        const message = data.choices?.[0]?.message;
+        if (message) {
+          return { message };
+        }
+      } catch {
+        // Not JSON either; fall through to the (empty) assembled result.
+      }
+    }
     return {
       message: {
         content: contentParts.join(""),
