@@ -52,7 +52,7 @@ const PRESETS = {
   openrouter: { baseUrl: "https://openrouter.ai/api/v1", protocol: "openai-compatible" as const, authMode: "api-key" as const, kind: "cloud-preset" as const },
   openai: { baseUrl: "https://api.openai.com/v1", protocol: "openai-compatible" as const, authMode: "api-key" as const, kind: "cloud-preset" as const },
   deepseek: { baseUrl: "https://api.deepseek.com/v1", protocol: "openai-compatible" as const, authMode: "api-key" as const, kind: "cloud-preset" as const },
-  dashscope: { baseUrl: "https://dashscope.aliyuncs.com/compatible-mode/v1", protocol: "openai-compatible" as const, authMode: "api-key" as const, kind: "cloud-preset" as const },
+  dashscope: { baseUrl: "https://dashscope-intl.aliyuncs.com/compatible-mode/v1", protocol: "openai-compatible" as const, authMode: "api-key" as const, kind: "cloud-preset" as const },
   ollama: { baseUrl: "http://127.0.0.1:11434/v1", protocol: "openai-compatible" as const, authMode: "none" as const, kind: "local-runtime" as const },
   llamacpp: { baseUrl: "http://127.0.0.1:8080/v1", protocol: "openai-compatible" as const, authMode: "none" as const, kind: "local-runtime" as const },
   lmstudio: { baseUrl: "http://127.0.0.1:1234/v1", protocol: "openai-compatible" as const, authMode: "none" as const, kind: "local-runtime" as const },
