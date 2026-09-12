@@ -16,20 +16,34 @@ const DEFAULT_BASE_URL = "https://api.openai.com/v1";
 const DEFAULT_MODEL = "gpt-image-1";
 const GENERATE_TIMEOUT_MS = 4 * 60 * 1000;
 
-function resolveConfig() {
+// Per-campaign overrides for the OpenAI image backend. Empty strings fall
+// through to global config/env, matching the text provider pattern.
+export type OpenAiImageOverrides = {
+  baseUrl?: string;
+  model?: string;
+  apiKey?: string;
+};
+
+// Resolve the OpenAI image configuration. Precedence: non-empty override >
+// global config > env > defaults. Testable with throwaway DB + saveGlobalConfig.
+export function resolveOpenAiImageConfig(overrides?: OpenAiImageOverrides): {
+  baseUrl: string;
+  model: string;
+  apiKey: string;
+} {
   const images = getGlobalConfig().images;
+  const globalBaseUrl = configValue(images.openaiBaseUrl, "OPENAI_IMAGE_BASE_URL", DEFAULT_BASE_URL);
+  const globalModel = configValue(images.openaiModel, "OPENAI_IMAGE_MODEL", DEFAULT_MODEL);
+  const globalApiKey =
+    images.openaiApiKey.trim() ||
+    serverEnv("OPENAI_IMAGE_API_KEY") ||
+    serverEnv("OPENAI_API_KEY");
+
   return {
-    baseUrl: configValue(images.openaiBaseUrl, "OPENAI_IMAGE_BASE_URL", DEFAULT_BASE_URL).replace(
-      /\/+$/,
-      "",
-    ),
-    model: configValue(images.openaiModel, "OPENAI_IMAGE_MODEL", DEFAULT_MODEL),
-    // OPENAI_API_KEY as the last fallback because it is the name every other
-    // tool trains people to set.
-    apiKey:
-      images.openaiApiKey.trim() ||
-      serverEnv("OPENAI_IMAGE_API_KEY") ||
-      serverEnv("OPENAI_API_KEY"),
+    // Non-empty override wins; otherwise global/env, then default.
+    baseUrl: (overrides?.baseUrl?.trim() || globalBaseUrl).replace(/\/+$/, ""),
+    model: overrides?.model?.trim() || globalModel,
+    apiKey: overrides?.apiKey?.trim() || globalApiKey,
   };
 }
 
@@ -37,7 +51,7 @@ function resolveConfig() {
 // dispatcher checks this before enqueueing, so a backend selected without a
 // key degrades to "request recorded" like the FLUX backends do.
 export function openAiImagesConfigured(): boolean {
-  return resolveConfig().apiKey !== "";
+  return resolveOpenAiImageConfig().apiKey !== "";
 }
 
 // gpt-image-1 sizes; dall-e-3 uses its own pair for the non-square shapes.
@@ -66,13 +80,16 @@ function promptSlug(prompt: string) {
   );
 }
 
-export async function generateOpenAiImage(options: {
-  prompt: string;
-  mode: ImageMode;
-  aspect: AspectPreset;
-  hasReferences?: boolean;
-}): Promise<GeneratedImage> {
-  const { baseUrl, model, apiKey } = resolveConfig();
+export async function generateOpenAiImage(
+  options: {
+    prompt: string;
+    mode: ImageMode;
+    aspect: AspectPreset;
+    hasReferences?: boolean;
+  },
+  overrides?: OpenAiImageOverrides,
+): Promise<GeneratedImage> {
+  const { baseUrl, model, apiKey } = resolveOpenAiImageConfig(overrides);
   if (!apiKey) {
     throw new Error(
       "The OpenAI image backend has no API key. Add one in Admin > Image generation.",

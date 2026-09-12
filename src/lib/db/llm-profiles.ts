@@ -151,15 +151,15 @@ export function applyLlmProfileToGlobal(profileId: string): boolean {
   return true;
 }
 
-// Apply profile to a campaign's story settings.
-export function applyLlmProfileToCampaign(profileId: string, campaignId: string): boolean {
+// Apply profile to a campaign's story settings. Returns the FRESH merged
+// settings (or null) so callers can respond with the post-apply state.
+export function applyLlmProfileToCampaign(profileId: string, campaignId: string) {
   const profile = getLlmProfile(profileId);
-  if (!profile) return false;
-  const result = updateStorySettings(campaignId, {
+  if (!profile) return null;
+  return updateStorySettings(campaignId, {
     textProvider: "custom",
     customBaseUrl: profile.baseUrl,
     customModel: profile.model,
     customApiKey: profile.apiKey,
   });
-  return result !== null;
 }

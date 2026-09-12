@@ -1769,7 +1769,7 @@ export function handleLocationCall(
   const mapEnqueued =
     visionClear &&
     campaign.gameSettings.mapsEnabled &&
-    imageProducerReady(campaign.settings.imageBackend) &&
+    imageProducerReady(campaign.settings.imageBackend, campaign.settings) &&
     (!location.mapImage || layoutRevised);
   if (mapEnqueued) {
     void enqueueLocationMap(campaign, location.id);
@@ -1929,7 +1929,7 @@ function finalize(context: TurnContext, turn: DmTurn, failed: string) {
     }
   }
 
-  if (message.imageRequest && imageProducerReady(context.campaign.settings.imageBackend)) {
+  if (message.imageRequest && imageProducerReady(context.campaign.settings.imageBackend, context.campaign.settings)) {
     void fulfillMessageImage(campaignId, message.id, message.imageRequest, context.campaign.settings);
   }
   if (context.campaign.gameSettings.ttsEnabled) {

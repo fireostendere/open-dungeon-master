@@ -25,6 +25,7 @@ const PROVIDER_LABELS: Record<TextProvider, string> = {
 const BACKEND_LABELS: Record<ImageBackend, string> = {
   comfyui: "ComfyUI",
   openai: "OpenAI-compatible",
+  dashscope: "Qwen-Image (Alibaba Cloud)",
   "mflux-hs": "MFLUX (home server)",
   "sdnq-hs": "SDNQ (home server)",
 };
@@ -48,6 +49,16 @@ export function StoryAiPanel({
   const [error, setError] = useState("");
   const [hasCustomKey, setHasCustomKey] = useState(false);
   const [hasUtilityKey, setHasUtilityKey] = useState(false);
+  const [hasImageKey, setHasImageKey] = useState(false);
+  // Saved connection profiles (created in the admin LLM wizard); applying one
+  // writes baseUrl/model/key server-side — the key never reaches this client.
+  const [profiles, setProfiles] = useState<
+    Array<{ id: string; name: string; model: string; lastCheck: { ok: boolean } | null }>
+  >([]);
+  const [selectedProfile, setSelectedProfile] = useState("");
+  // ComfyUI checkpoints installed on the server (null = not fetched/failed;
+  // the free-text admin default still applies then).
+  const [checkpoints, setCheckpoints] = useState<string[] | null>(null);
   // Defaults to true so the warning never flashes while the answer is in
   // flight on servers that are fine.
   const [imagesConfigured, setImagesConfigured] = useState(true);
@@ -59,6 +70,9 @@ export function StoryAiPanel({
     utilityBaseUrl: settings.utilityBaseUrl,
     utilityModel: settings.utilityModel,
     utilityApiKey: SECRET_KEPT,
+    imageModel: settings.imageModel,
+    imageBaseUrl: settings.imageBaseUrl,
+    imageApiKey: SECRET_KEPT,
   });
 
   useEffect(() => {
@@ -72,6 +86,23 @@ export function StoryAiPanel({
         if (!cancelled && data?.settings) {
           setHasCustomKey(data.settings.hasCustomApiKey);
           setHasUtilityKey(data.settings.hasUtilityApiKey);
+          setHasImageKey(data.settings.hasImageApiKey);
+        }
+      })
+      .catch(() => undefined);
+    void fetch(`/api/campaigns/${campaignId}/model-profiles`)
+      .then((response) => (response.ok ? response.json() : null))
+      .then((data: { profiles?: Array<{ id: string; name: string; model: string; lastCheck: { ok: boolean } | null }> } | null) => {
+        if (!cancelled && data?.profiles) {
+          setProfiles(data.profiles);
+        }
+      })
+      .catch(() => undefined);
+    void fetch(`/api/campaigns/${campaignId}/image-options`)
+      .then((response) => (response.ok ? response.json() : null))
+      .then((data: { comfy?: { ok?: boolean; checkpoints?: string[] } } | null) => {
+        if (!cancelled && data?.comfy?.ok) {
+          setCheckpoints(data.comfy.checkpoints ?? []);
         }
       })
       .catch(() => undefined);
@@ -108,12 +139,16 @@ export function StoryAiPanel({
       if (data.settings) {
         setHasCustomKey(data.settings.hasCustomApiKey);
         setHasUtilityKey(data.settings.hasUtilityApiKey);
+        setHasImageKey(data.settings.hasImageApiKey);
       }
       if (update.customApiKey !== undefined) {
         setDrafts((prev) => ({ ...prev, customApiKey: SECRET_KEPT }));
       }
       if (update.utilityApiKey !== undefined) {
         setDrafts((prev) => ({ ...prev, utilityApiKey: SECRET_KEPT }));
+      }
+      if (update.imageApiKey !== undefined) {
+        setDrafts((prev) => ({ ...prev, imageApiKey: SECRET_KEPT }));
       }
     } catch {
       setError("Could not reach the server.");
@@ -122,17 +157,68 @@ export function StoryAiPanel({
     }
   }
 
-  function commitText(field: "customBaseUrl" | "customModel" | "utilityBaseUrl" | "utilityModel") {
+  function commitText(
+    field:
+      | "customBaseUrl"
+      | "customModel"
+      | "utilityBaseUrl"
+      | "utilityModel"
+      | "imageModel"
+      | "imageBaseUrl",
+  ) {
     const value = drafts[field].trim();
     if (value !== settings[field]) {
       void patch({ [field]: value });
     }
   }
 
-  function commitKey(field: "customApiKey" | "utilityApiKey") {
+  function commitKey(field: "customApiKey" | "utilityApiKey" | "imageApiKey") {
     const value = drafts[field];
     if (value !== SECRET_KEPT) {
       void patch({ [field]: value.trim() });
+    }
+  }
+
+  // Applying a saved profile writes baseUrl/model/key server-side and the
+  // refreshed (masked) settings come back in the response; the SSE snapshot
+  // update re-renders the visible fields.
+  async function applyProfile() {
+    if (!selectedProfile) {
+      return;
+    }
+    setBusy(true);
+    setError("");
+    try {
+      const response = await fetch(
+        `/api/campaigns/${campaignId}/model-profiles/${selectedProfile}/apply`,
+        { method: "POST" },
+      );
+      const data = (await response.json().catch(() => ({}))) as {
+        error?: string;
+        settings?: MaskedStorySettings;
+      };
+      if (!response.ok) {
+        setError(data.error ?? "Профиль не применился.");
+        return;
+      }
+      if (data.settings) {
+        setHasCustomKey(data.settings.hasCustomApiKey);
+        setHasUtilityKey(data.settings.hasUtilityApiKey);
+        setHasImageKey(data.settings.hasImageApiKey);
+        setDrafts((prev) => ({
+          ...prev,
+          customBaseUrl: data.settings!.customBaseUrl,
+          customModel: data.settings!.customModel,
+          utilityBaseUrl: data.settings!.utilityBaseUrl,
+          utilityModel: data.settings!.utilityModel,
+          imageModel: data.settings!.imageModel,
+          imageBaseUrl: data.settings!.imageBaseUrl,
+        }));
+      }
+    } catch {
+      setError("Could not reach the server.");
+    } finally {
+      setBusy(false);
     }
   }
 
@@ -185,6 +271,33 @@ export function StoryAiPanel({
       <h2 className="mb-3 text-sm font-medium text-stone-300">Story AI</h2>
       {error ? <p className="mb-2 text-xs text-red-400">{error}</p> : null}
       <div className={cn("space-y-3 text-xs", busy && "opacity-70")}>
+        <div className="flex flex-wrap items-center gap-2">
+          <span className={labelClass}>Профиль</span>
+          <select
+            value={selectedProfile}
+            onChange={(event) => setSelectedProfile(event.target.value)}
+            className={selectClass}
+          >
+            <option value="">— сохранённые профили подключения —</option>
+            {profiles.map((profile) => (
+              <option key={profile.id} value={profile.id}>
+                {profile.name} · {profile.model}
+                {profile.lastCheck ? (profile.lastCheck.ok ? " ✓" : " ⚠") : " (не проверен)"}
+              </option>
+            ))}
+          </select>
+          <button
+            type="button"
+            onClick={() => void applyProfile()}
+            disabled={!selectedProfile}
+            className="rounded-md border border-amber-700 bg-amber-950/50 px-2 py-1 text-amber-200 disabled:opacity-40"
+          >
+            Применить
+          </button>
+          <span className="text-stone-500">
+            Профили создаёт админ в «Мастере подключения модели»; ключ остаётся на сервере.
+          </span>
+        </div>
         <div className="flex flex-wrap items-center gap-2">
           <span className={labelClass}>Storyteller</span>
           <select
@@ -373,7 +486,122 @@ export function StoryAiPanel({
             </>
           ) : null}
         </div>
-        {settings.imageGenerationEnabled && !imagesConfigured ? (
+        {settings.imageGenerationEnabled &&
+        settings.imageBackend === "comfyui" &&
+        checkpoints &&
+        checkpoints.length > 0 ? (
+          <div className="flex flex-wrap items-center gap-2">
+            <span className={labelClass}>Checkpoint</span>
+            <select
+              value={settings.comfyCheckpoint}
+              onChange={(event) => patch({ comfyCheckpoint: event.target.value })}
+              className={selectClass}
+            >
+              {settings.comfyCheckpoint && !checkpoints.includes(settings.comfyCheckpoint) ? (
+                <option value={settings.comfyCheckpoint}>
+                  {settings.comfyCheckpoint} (не установлен)
+                </option>
+              ) : null}
+              {checkpoints.map((name) => (
+                <option key={name} value={name}>
+                  {name}
+                </option>
+              ))}
+            </select>
+            <span className="text-stone-500">Список — реально установленные в ComfyUI модели.</span>
+          </div>
+        ) : null}
+        {settings.imageGenerationEnabled &&
+        (settings.imageBackend === "openai" || settings.imageBackend === "dashscope") ? (
+          <div className="space-y-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className={labelClass}>Пресет</span>
+              <button
+                type="button"
+                onClick={() =>
+                  patch({
+                    imageBackend: "openai",
+                    imageModel: "gpt-image-1",
+                    imageBaseUrl: "https://api.openai.com/v1",
+                  })
+                }
+                className="rounded-md border border-stone-700 px-2 py-1 text-stone-300 hover:border-amber-700"
+              >
+                OpenAI (gpt-image-1)
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  patch({
+                    imageBackend: "dashscope",
+                    imageModel: "qwen-image-plus",
+                    imageBaseUrl: "https://dashscope.aliyuncs.com",
+                  })
+                }
+                className="rounded-md border border-stone-700 px-2 py-1 text-stone-300 hover:border-amber-700"
+              >
+                Qwen-Image (DashScope)
+              </button>
+              <span className="text-stone-500">
+                Ключ кампании имеет приоритет над общим ключом сервера.
+              </span>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className={labelClass}>Модель</span>
+              <input
+                value={drafts.imageModel}
+                onChange={(event) =>
+                  setDrafts((prev) => ({ ...prev, imageModel: event.target.value }))
+                }
+                onBlur={() => commitText("imageModel")}
+                onKeyDown={blurOnEnter}
+                placeholder={settings.imageBackend === "dashscope" ? "qwen-image-plus" : "gpt-image-1"}
+                className={inputClass}
+              />
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className={labelClass}>Base URL</span>
+              <input
+                value={drafts.imageBaseUrl}
+                onChange={(event) =>
+                  setDrafts((prev) => ({ ...prev, imageBaseUrl: event.target.value }))
+                }
+                onBlur={() => commitText("imageBaseUrl")}
+                onKeyDown={blurOnEnter}
+                placeholder={
+                  settings.imageBackend === "dashscope"
+                    ? "https://dashscope.aliyuncs.com"
+                    : "https://api.openai.com/v1"
+                }
+                className={inputClass}
+              />
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className={labelClass}>API-ключ</span>
+              <input
+                type="password"
+                value={drafts.imageApiKey === SECRET_KEPT ? "" : drafts.imageApiKey}
+                onChange={(event) =>
+                  setDrafts((prev) => ({ ...prev, imageApiKey: event.target.value }))
+                }
+                onBlur={() => commitKey("imageApiKey")}
+                onKeyDown={blurOnEnter}
+                placeholder={hasImageKey ? "•••••••• (сохранён)" : "ключ кампании (необязательно)"}
+                className={inputClass}
+              />
+              {hasImageKey ? (
+                <button
+                  type="button"
+                  onClick={() => patch({ imageApiKey: "" })}
+                  className="rounded-md border border-stone-700 px-2 py-1 text-stone-400 hover:text-red-400"
+                >
+                  Удалить
+                </button>
+              ) : null}
+            </div>
+          </div>
+        ) : null}
+        {settings.imageGenerationEnabled && !imagesConfigured && !hasImageKey ? (
           <p className="text-amber-400/90">
             The server has no image backend configured; these settings will not take effect
             until it does.

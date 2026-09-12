@@ -44,6 +44,14 @@ export function normalizeSettings(settings?: Partial<StorySettings>): StorySetti
   merged.comfyCheckpoint =
     typeof merged.comfyCheckpoint === "string" ? merged.comfyCheckpoint.trim().slice(0, 300) : "";
 
+  // OpenAI-compatible image overrides: trim and cap like the text fields.
+  merged.imageModel =
+    typeof merged.imageModel === "string" ? merged.imageModel.trim().slice(0, 200) : "";
+  merged.imageBaseUrl =
+    typeof merged.imageBaseUrl === "string" ? merged.imageBaseUrl.trim().slice(0, 500) : "";
+  merged.imageApiKey =
+    typeof merged.imageApiKey === "string" ? merged.imageApiKey.trim().slice(0, 400) : "";
+
   if (merged.imageMode !== "fast" && merged.imageMode !== "slow") {
     merged.imageMode = defaultSettings.imageMode;
   }
@@ -96,22 +104,27 @@ export function normalizeSettings(settings?: Partial<StorySettings>): StorySetti
 // and belong to nobody else. Blanked at this boundary rather than in the UI,
 // so no future payload can carry them by forgetting to.
 export function scrubStorySettings(settings: StorySettings): StorySettings {
-  return { ...settings, customApiKey: "", utilityApiKey: "" };
+  return { ...settings, customApiKey: "", utilityApiKey: "", imageApiKey: "" };
 }
 
-export type MaskedStorySettings = Omit<StorySettings, "customApiKey" | "utilityApiKey"> & {
+export type MaskedStorySettings = Omit<
+  StorySettings,
+  "customApiKey" | "utilityApiKey" | "imageApiKey"
+> & {
   hasCustomApiKey: boolean;
   hasUtilityApiKey: boolean;
+  hasImageApiKey: boolean;
 };
 
 // What the story authority's settings panel receives: every editable field,
 // with the keys reduced to "is one set" booleans. Same contract as the admin
 // route's maskedConfig, so a key can be kept or cleared but never re-read.
 export function maskStorySettings(settings: StorySettings): MaskedStorySettings {
-  const { customApiKey, utilityApiKey, ...rest } = settings;
+  const { customApiKey, utilityApiKey, imageApiKey, ...rest } = settings;
   return {
     ...rest,
     hasCustomApiKey: customApiKey !== "",
     hasUtilityApiKey: utilityApiKey !== "",
+    hasImageApiKey: imageApiKey !== "",
   };
 }

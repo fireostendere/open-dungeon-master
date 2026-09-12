@@ -69,17 +69,23 @@ test("merging an empty string clears a stored key", () => {
   assert.equal(cleared.customApiKey, "");
 });
 
-test("the mask swaps both keys for booleans and keeps every other field", () => {
-  const settings = normalizeSettings({ customApiKey: "sk-live", utilityApiKey: "" });
+test("the mask swaps the keys for booleans and keeps every other field", () => {
+  const settings = normalizeSettings({
+    customApiKey: "sk-live",
+    utilityApiKey: "",
+    imageApiKey: "ik-live",
+  });
   const masked = maskStorySettings(settings);
   assert.equal("customApiKey" in masked, false);
   assert.equal("utilityApiKey" in masked, false);
+  assert.equal("imageApiKey" in masked, false);
   assert.equal(masked.hasCustomApiKey, true);
   assert.equal(masked.hasUtilityApiKey, false);
+  assert.equal(masked.hasImageApiKey, true);
   // Field-for-field: everything that is not a key survives untouched, so the
   // panel edits exactly what the DM loop reads.
   for (const [key, value] of Object.entries(settings)) {
-    if (key === "customApiKey" || key === "utilityApiKey") {
+    if (key === "customApiKey" || key === "utilityApiKey" || key === "imageApiKey") {
       continue;
     }
     assert.deepEqual(masked[key], value, key);

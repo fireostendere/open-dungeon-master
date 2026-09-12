@@ -6,9 +6,9 @@ export type AspectPreset = "square" | "portrait" | "landscape";
 
 export type ImageMode = "fast" | "slow";
 
-export type ImageBackend = "mflux-hs" | "sdnq-hs" | "comfyui" | "openai";
+export type ImageBackend = "mflux-hs" | "sdnq-hs" | "comfyui" | "openai" | "dashscope";
 
-export const IMAGE_BACKENDS = ["mflux-hs", "sdnq-hs", "comfyui", "openai"] as const;
+export const IMAGE_BACKENDS = ["mflux-hs", "sdnq-hs", "comfyui", "openai", "dashscope"] as const;
 
 export function isImageBackend(value: unknown): value is ImageBackend {
   return typeof value === "string" && (IMAGE_BACKENDS as readonly string[]).includes(value);
@@ -104,6 +104,11 @@ export type StorySettings = {
   // empty checkpoint uses the first one ComfyUI reports.
   comfyUrl: string;
   comfyCheckpoint: string;
+  // OpenAI-compatible image backend overrides. Empty strings fall through to
+  // global config / env, matching the text provider pattern.
+  imageModel: string;
+  imageBaseUrl: string;
+  imageApiKey: string;
   aspect: AspectPreset;
   imageGenerationEnabled: boolean;
   autoImages: boolean;
