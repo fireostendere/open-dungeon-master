@@ -1,17 +1,14 @@
-# Open Dungeon Master. One container, one process. The app uses a synchronous
-# SQLite writer, an in-process event bus and an in-process media queue, so it
-# must never be scaled past a single replica.
+# Open Dungeon Master. The game application remains a single process because
+# SQLite writes, the event bus and media queue are intentionally in-process.
+# An isolated MCP sidecar talks to the app only through the authenticated
+# internal control API; it never opens the database or Docker socket itself.
 #
-#   docker compose pull && docker compose up -d   ->  http://localhost:3005
+#   docker compose up -d --build   -> app http://localhost:3005
+#                                    MCP http://127.0.0.1:3006/mcp
 #
-# `pull` fetches the published image from Docker Hub. Set ODM_IMAGE in .env to
-# pull from GHCR instead, or ODM_IMAGE_TAG=0.10.1 to pin a release. To build it
-# yourself from a clone, use `docker compose up -d --build`.
-#
-# The AI services stay on the host. The defaults below reach them through
-# host.docker.internal; override any of them in a .env file next to this file,
-# which Docker Compose reads automatically. On Linux you can instead share the
-# host network stack: see docker-compose.host-net.yml.
+# Set ODM_MCP_TOKEN in .env before enabling MCP. Generate a long random value,
+# e.g. `openssl rand -hex 32`. The remote endpoint is loopback-only here; use
+# an HTTPS reverse proxy or SSH tunnel rather than exposing port 3006 directly.
 
 services:
   open-dungeon-master:
@@ -23,19 +20,20 @@ services:
     ports:
       - "${ODM_PORT:-3005}:3005"
       # Live voice chat. One port, both protocols. This carries the audio
-      # itself, which is not HTTP, so it does NOT go through a reverse proxy:
-      # open it on the firewall pointing at this host. Set VOICE_ANNOUNCED_IP
-      # below or the container advertises its own 172.x address and calls
-      # connect to silence.
+      # itself, which is not HTTP, so it does NOT go through a reverse proxy.
       - "${VOICE_RTC_PORT:-44444}:${VOICE_RTC_PORT:-44444}/udp"
       - "${VOICE_RTC_PORT:-44444}:${VOICE_RTC_PORT:-44444}/tcp"
     extra_hosts:
-      # Lets the container reach services bound to the host's loopback.
       - "host.docker.internal:host-gateway"
     environment:
       # Leave empty to have a key generated into the data volume on first boot.
       # Whatever you set here wins over the stored one.
       DB_ENCRYPTION_KEY: ${DB_ENCRYPTION_KEY:-}
+
+      # MCP control plane. With no token the internal route fails closed (503).
+      ODM_MCP_TOKEN: ${ODM_MCP_TOKEN:-}
+      ODM_MCP_OWNER_USER_ID: ${ODM_MCP_OWNER_USER_ID:-}
+      ODM_MCP_OWNER_USERNAME: ${ODM_MCP_OWNER_USERNAME:-}
 
       # Text backend: llama.cpp, or any OpenAI-compatible server.
       OPENAI_COMPAT_BASE_URL: ${OPENAI_COMPAT_BASE_URL:-http://host.docker.internal:8001/v1}
@@ -58,15 +56,7 @@ services:
       DISCORD_CLIENT_ID: ${DISCORD_CLIENT_ID:-}
       DISCORD_CLIENT_SECRET: ${DISCORD_CLIENT_SECRET:-}
 
-      # Live voice chat. Off unless VOICE_ENABLED=1, because it needs the port
-      # above opened AND the app served over https (browsers block microphone
-      # access on plain http), so it cannot just work by default.
-      #
-      # VOICE_ANNOUNCED_IP is required once enabled: the address a player's
-      # browser can reach this host on, normally your public IP. Without it the
-      # container announces its own 172.x address and calls stay silent.
-      # VOICE_DOMAIN optionally announces a hostname instead; it must resolve
-      # straight here, so a Cloudflare-proxied name will not do.
+      # Live voice chat. Off unless VOICE_ENABLED=1.
       VOICE_ENABLED: ${VOICE_ENABLED:-0}
       VOICE_RTC_PORT: ${VOICE_RTC_PORT:-44444}
       VOICE_ANNOUNCED_IP: ${VOICE_ANNOUNCED_IP:-}
@@ -75,13 +65,43 @@ services:
       # Verbose DM turn logging.
       DM_DEBUG: ${DM_DEBUG:-}
     volumes:
-      # public/ has to stay writable and keep its build-time assets, so the
-      # three runtime directories are mounted individually instead of mounting
-      # over public/ as a whole.
       - odm-data:/app/data
       - odm-uploads:/app/public/uploads
       - odm-generated:/app/public/generated
       - odm-audio:/app/public/generated-audio
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3005/api/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 8s
+      start_period: 60s
+      retries: 3
+
+  odm-mcp:
+    build:
+      context: .
+      dockerfile: mcp/Dockerfile
+    container_name: open-dungeon-master-mcp
+    restart: unless-stopped
+    depends_on:
+      open-dungeon-master:
+        condition: service_healthy
+    environment:
+      ODM_MCP_CONTROL_URL: http://open-dungeon-master:3005/api/internal/mcp
+      ODM_MCP_TOKEN: ${ODM_MCP_TOKEN:-}
+      ODM_MCP_HOST: 0.0.0.0
+      ODM_MCP_PORT: 3006
+      # Browser-origin requests are rejected unless explicitly allowlisted.
+      # Native MCP clients normally do not send Origin and need no entry.
+      ODM_MCP_ALLOWED_ORIGINS: ${ODM_MCP_ALLOWED_ORIGINS:-}
+    ports:
+      - "127.0.0.1:${ODM_MCP_PORT:-3006}:3006"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
 
 volumes:
   odm-data:

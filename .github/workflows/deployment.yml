@@ -49,11 +49,41 @@ jobs:
     timeout-minutes: 35
     steps:
       - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
       - name: Run the actual standalone installer against this exact commit
         run: |
           sudo bash install-server.sh --yes --root "$RUNNER_TEMP/odm-live" \
             --source "$GITHUB_WORKSPACE" --ref "$GITHUB_SHA" \
             --runtime none --skip-assets --port 13315
+      - name: Real authenticated MCP handshake and tool call
+        run: |
+          mkdir -p "$RUNNER_TEMP/mcp-client"
+          npm install --prefix "$RUNNER_TEMP/mcp-client" --no-save --package-lock=false @modelcontextprotocol/client@2.0.0
+          cat > "$RUNNER_TEMP/mcp-client/smoke.mjs" <<'EOF'
+          import { Client, StreamableHTTPClientTransport } from '@modelcontextprotocol/client';
+          const token = process.env.ODM_MCP_TOKEN;
+          if (!token) throw new Error('ODM_MCP_TOKEN missing');
+          const transport = new StreamableHTTPClientTransport(new URL('http://127.0.0.1:3006/mcp'), {
+            requestInit: { headers: { Authorization: `Bearer ${token}` } },
+          });
+          const client = new Client({ name: 'odm-deployment-ci', version: '1.0.0' });
+          try {
+            await client.connect(transport);
+            const listed = await client.listTools();
+            const names = new Set(listed.tools.map((tool) => tool.name));
+            for (const required of ['odm_server', 'odm_campaigns', 'odm_story', 'odm_sheets']) {
+              if (!names.has(required)) throw new Error(`Missing MCP tool: ${required}`);
+            }
+            const status = await client.callTool({ name: 'odm_server', arguments: { operation: 'status' } });
+            if (status.isError) throw new Error(`odm_server status failed: ${JSON.stringify(status.content)}`);
+          } finally {
+            await client.close().catch(() => undefined);
+          }
+          EOF
+          sudo env ODM_MCP_TOKEN="$(sudo cat "$RUNNER_TEMP/odm-live/config/mcp.token")" \
+            node "$RUNNER_TEMP/mcp-client/smoke.mjs"
       - name: Actual containers, encrypted game database, backup, restore, failure rollback
         run: sudo python3 tests/deploy/live.py --root "$RUNNER_TEMP/odm-live"
       - name: Capture non-secret deployment evidence
@@ -61,6 +91,7 @@ jobs:
         run: |
           mkdir -p deployment-test-results
           sudo python3 "$RUNNER_TEMP/odm-live/tools/odmctl.py" --root "$RUNNER_TEMP/odm-live" status > deployment-test-results/status.json || true
+          sudo /usr/local/bin/odm-mcpctl status > deployment-test-results/mcp-status.json || true
           sudo chmod -R a+rX deployment-test-results
       - uses: actions/upload-artifact@v4
         if: always()
@@ -69,4 +100,6 @@ jobs:
           path: deployment-test-results
       - name: Stop only this test installation
         if: always()
-        run: sudo python3 "$RUNNER_TEMP/odm-live/tools/odmctl.py" --root "$RUNNER_TEMP/odm-live" stop || true
+        run: |
+          sudo /usr/local/bin/odm-mcpctl stop || true
+          sudo python3 "$RUNNER_TEMP/odm-live/tools/odmctl.py" --root "$RUNNER_TEMP/odm-live" stop || true

@@ -54,6 +54,7 @@ if ((PLAN)); then
   printf 'Target: %s\nRepository: %s (%s)\n' "$ROOT" "$REPO" "$BRANCH"
   echo 'Install missing Git, Python, restic and Docker Compose; build this fork locally.'
   echo 'Keep state/keys separate; create private admin; encrypted backups; systemd timers.'
+  echo 'Install the token-protected MCP sidecar and keep it synced to the active release.'
   echo 'No existing database, container, firewall or GPU driver will be removed.'
   exit 0
 fi
@@ -137,13 +138,74 @@ if [[ ! -d $ROOT/repository/.git ]]; then
 fi
 if [[ -n $REF ]]; then git -C "$ROOT/repository" checkout --detach "$REF"; fi
 [[ -f $ROOT/repository/deploy/odmctl.py ]] || { echo 'Selected revision does not contain the deployment controller' >&2; exit 1; }
+[[ -f $ROOT/repository/deploy/mcpctl.py ]] || { echo 'Selected revision does not contain the MCP controller' >&2; exit 1; }
 # On re-run preserve the already installed controller until a tested update.
 if [[ ! -f $ROOT/tools/odmctl.py ]]; then install -m 700 "$ROOT/repository/deploy/odmctl.py" "$ROOT/tools/odmctl.py"; fi
+if [[ ! -f $ROOT/tools/mcpctl.py ]]; then install -m 700 "$ROOT/repository/deploy/mcpctl.py" "$ROOT/tools/mcpctl.py"; fi
 cat > /usr/local/bin/odmctl <<EOF
 #!/bin/sh
 exec /usr/bin/python3 '$ROOT/tools/odmctl.py' --root '$ROOT' "\$@"
 EOF
 chmod 755 /usr/local/bin/odmctl
+cat > /usr/local/bin/odm-mcpctl <<EOF
+#!/bin/sh
+set -eu
+ACTIVE='$ROOT/config/active.json'
+if [ -f "\$ACTIVE" ]; then
+  SHA=\$(/usr/bin/python3 -c 'import json,sys; print(json.load(open(sys.argv[1], encoding="utf-8")).get("sha", ""))' "\$ACTIVE")
+  SOURCE='$ROOT/releases/'"\$SHA"'/source/deploy/mcpctl.py'
+  if [ -f "\$SOURCE" ] && ! cmp -s "\$SOURCE" '$ROOT/tools/mcpctl.py'; then
+    install -m 700 "\$SOURCE" '$ROOT/tools/mcpctl.py'
+  fi
+fi
+exec /usr/bin/python3 '$ROOT/tools/mcpctl.py' --root '$ROOT' "\$@"
+EOF
+chmod 755 /usr/local/bin/odm-mcpctl
 [[ -z $REF ]] || ARGS+=(--ref "$REF")
 [[ -z $SOURCE ]] || ARGS+=(--offline-source)
 python3 "$ROOT/tools/odmctl.py" --root "$ROOT" install --repo "$REPO" --branch "$BRANCH" --runtime "$RUNTIME" "${ARGS[@]}"
+
+# MCP is provisioned after the application is healthy so its control-plane
+# healthcheck can verify the real database/API. The token is generated into
+# config/mcp.token and app.env automatically and is never printed.
+odm-mcpctl sync
+
+if [[ -d /run/systemd/system ]]; then
+  cat > /etc/systemd/system/odm-mcp-sync.service <<'EOF'
+[Unit]
+Description=Synchronize Open Dungeon Master MCP sidecar
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/odm-mcpctl sync
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/odm
+EOF
+  # If a non-default root is used, the unit needs its actual writable path.
+  sed -i "s#^ReadWritePaths=.*#ReadWritePaths=$ROOT#" /etc/systemd/system/odm-mcp-sync.service
+  cat > /etc/systemd/system/odm-mcp-sync.timer <<'EOF'
+[Unit]
+Description=Keep Open Dungeon Master MCP on the active release
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=15min
+RandomizedDelaySec=30
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+EOF
+  systemctl daemon-reload
+  systemctl enable --now odm-mcp-sync.timer
+fi
+
+printf '\nMCP installed.\n'
+printf '  Status: odm-mcpctl status\n'
+printf '  Token:  %s/config/mcp.token\n' "$ROOT"
+printf '  Local endpoint: http://127.0.0.1:3006/mcp\n'

@@ -30,6 +30,7 @@ if ($Plan) {
     Write-Output "Private fork: $Repo ($Branch); runtime: $Runtime; model: $Model"
     Write-Output 'Install missing Git, Python 3.13, restic and Docker Desktop via WinGet.'
     Write-Output 'Build the fork; create persistent encrypted game state; schedule maintenance at user logon.'
+    Write-Output 'Install the token-protected MCP sidecar and keep it synced to the active release.'
     Write-Output 'GPU drivers, global execution policy, firewall and sleep settings are not changed.'
     return
 }
@@ -140,7 +141,9 @@ if (!(Test-Path "$Root\repository\.git")) {
 }
 if ($Ref) { Checked 'git.exe' @('-C',"$Root\repository",'checkout','--detach',$Ref) }
 if (!(Test-Path "$Root\repository\deploy\odmctl.py")) { throw 'Selected revision has no deployment controller' }
+if (!(Test-Path "$Root\repository\deploy\mcpctl.py")) { throw 'Selected revision has no MCP controller' }
 if (!(Test-Path "$Root\tools\odmctl.py")) { Copy-Item "$Root\repository\deploy\odmctl.py" "$Root\tools\odmctl.py" }
+if (!(Test-Path "$Root\tools\mcpctl.py")) { Copy-Item "$Root\repository\deploy\mcpctl.py" "$Root\tools\mcpctl.py" }
 $arguments=@("$Root\tools\odmctl.py",'--root',$Root,'install','--repo',$Repo,'--branch',$Branch,'--runtime',$Runtime,'--model',$Model,'--accelerator',$Accelerator,'--llm-url',$LlmUrl,'--port',"$Port")
 if ($Ref) { $arguments+=@('--ref',$Ref) }; if ($ComfyUrl) { $arguments+=@('--comfy-url',$ComfyUrl) }
 if ($AutoUpdate) { $arguments+='--auto-update' }; if ($SkipAssets) { $arguments+='--skip-assets' }
@@ -152,6 +155,8 @@ $installed=Get-Content -Raw "$Root\config\install.json" | ConvertFrom-Json
 $Port=[int]$installed.port; $AutoUpdate=[bool]$installed.auto_update
 $cmd="@echo off`r`n`"$python`" `"$Root\tools\odmctl.py`" --root `"$Root`" %*`r`n"
 Write-Utf8 "$Root\odmctl.cmd" $cmd
+$mcpCmd="@echo off`r`n`"$python`" `"$Root\tools\mcpctl.py`" --root `"$Root`" %*`r`n"
+Write-Utf8 "$Root\mcpctl.cmd" $mcpCmd
 $runner=@'
 param([string]$Operation='watchdog')
 $ErrorActionPreference='Stop'
@@ -171,6 +176,22 @@ exit $LASTEXITCODE
 $replacements=@{__PYTHON__=$python;__CTL__="$Root\tools\odmctl.py";__ROOT__=$Root;__DESKTOP__=$desktop;__BINPATH__="$env:ProgramFiles\Docker\Docker\resources\bin;$env:ProgramFiles\Git\cmd;$env:LOCALAPPDATA\Microsoft\WinGet\Links"}
 foreach($k in $replacements.Keys){$runner=$runner.Replace($k,$replacements[$k].Replace("'","''"))}
 Write-Utf8 "$Root\tools\windows-run.ps1" $runner
+
+# Refresh mcpctl from the currently active release before every sync. That
+# makes the MCP controller itself roll forward with an ODM update, not merely
+# the MCP container image.
+$mcpRunner=@'
+$ErrorActionPreference='Stop'
+$active=Get-Content -Raw '__ROOT__\config\active.json' | ConvertFrom-Json
+$source="__ROOT__\releases\$($active.sha)\source\deploy\mcpctl.py"
+if(Test-Path $source){Copy-Item $source '__ROOT__\tools\mcpctl.py' -Force}
+& '__PYTHON__' '__ROOT__\tools\mcpctl.py' --root '__ROOT__' sync
+exit $LASTEXITCODE
+'@
+$mcpRunner=$mcpRunner.Replace('__ROOT__',$Root.Replace("'","''")).Replace('__PYTHON__',$python.Replace("'","''"))
+Write-Utf8 "$Root\tools\mcp-sync.ps1" $mcpRunner
+Checked 'powershell.exe' @('-NoProfile','-ExecutionPolicy','Bypass','-File',"$Root\tools\mcp-sync.ps1")
+
 $user=[Security.Principal.WindowsIdentity]::GetCurrent().Name
 $principal=New-ScheduledTaskPrincipal -UserId $user -LogonType Interactive -RunLevel Limited
 $taskSettings=New-ScheduledTaskSettingsSet -StartWhenAvailable -MultipleInstances IgnoreNew -ExecutionTimeLimit (New-TimeSpan -Hours 3)
@@ -189,9 +210,13 @@ foreach($operation in $tasks.Keys) {
     $action=New-ScheduledTaskAction -Execute 'powershell.exe' -Argument "-NoProfile -ExecutionPolicy Bypass -File `"$Root\tools\windows-run.ps1`" -Operation $operation"
     Register-ScheduledTask -TaskName "ODM-$Port-$operation" -Action $action -Trigger $tasks[$operation] -Principal $principal -Settings $taskSettings -Force | Out-Null
 }
+$mcpAction=New-ScheduledTaskAction -Execute 'powershell.exe' -Argument "-NoProfile -ExecutionPolicy Bypass -File `"$Root\tools\mcp-sync.ps1`""
+$mcpTrigger=New-ScheduledTaskTrigger -Once -At (Get-Date).AddMinutes(2) -RepetitionInterval (New-TimeSpan -Minutes 15)
+Register-ScheduledTask -TaskName "ODM-$Port-mcp-sync" -Action $mcpAction -Trigger $mcpTrigger -Principal $principal -Settings $taskSettings -Force | Out-Null
 Remove-ItemProperty -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\RunOnce' -Name 'ODM-Resume-Install' -ErrorAction SilentlyContinue
 Write-Host "Open http://localhost:$Port . Admin credentials: $Root\config\admin.json"
 Write-Host "Management command: $Root\odmctl.cmd"
+Write-Host "MCP command: $Root\mcpctl.cmd ; endpoint http://127.0.0.1:3006/mcp ; token $Root\config\mcp.token"
 Write-Warning 'Local availability requires Windows to be awake and the user session/Docker Desktop to run. A Linux server is the unattended 24/7 option.'
 
 if ($provisioningError) { throw $provisioningError }
