@@ -1,27 +1,29 @@
-# Build inputs only. Everything the image needs at runtime is generated inside
-# the build stage, so host state and host secrets never enter the context.
 .git
 .github
 node_modules
 .next
-
-# Host runtime state; the container keeps its own in named volumes.
+__pycache__
+**/__pycache__
+*.pyc
 data
 models
 logs
+state
+config
+backups
+cache
+releases
 public/dice-box
 public/uploads
 public/generated
 public/generated-audio
-
-# Never bake secrets into an image layer. The DB key comes in as an env var.
+provider-test-results
+deployment-test-results
 .env
 .env.*
-
-# Docker artifacts and archives.
-Dockerfile
-.dockerignore
-docker-compose*.yml
+*.pem
+*.key
 *.tar
 *.tar.gz
 *.tgz
+*.zip

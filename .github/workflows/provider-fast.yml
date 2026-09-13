@@ -1,7 +1,7 @@
 name: Provider boundaries
 on:
   push:
-    branches: [astra/browser-auth-review]
+    branches: [main, astra/browser-auth-review, astra/installers-ops]
   pull_request:
 permissions:
   contents: read

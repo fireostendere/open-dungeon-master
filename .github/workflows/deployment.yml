@@ -1,0 +1,65 @@
+name: Deployment and recovery
+on:
+  push:
+    branches: [main, astra/installers-ops]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: deployment-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  fast:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+      - run: python -m unittest discover -s tests/deploy -v
+      - name: Bash syntax and dry bootstrap
+        if: runner.os == 'Linux'
+        run: |
+          bash -n install-server.sh
+          sh -n scripts/docker-entrypoint.sh
+          bash install-server.sh --plan
+      - name: PowerShell syntax and non-mutating plan
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $tokens=$null; $errors=$null
+          [System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path install-local.ps1),[ref]$tokens,[ref]$errors) | Out-Null
+          if ($errors.Count) { $errors | Format-List; exit 1 }
+          ./install-local.ps1 -Plan -Root "$env:TEMP\odm-plan-only"
+          if (Test-Path "$env:TEMP\odm-plan-only") { throw 'Plan changed the filesystem' }
+  installed-linux:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v6
+      - name: Run the actual standalone installer against this exact commit
+        run: |
+          sudo bash install-server.sh --yes --root "$RUNNER_TEMP/odm-live" \
+            --source "$GITHUB_WORKSPACE" --ref "$GITHUB_SHA" \
+            --runtime none --skip-assets --port 13315
+      - name: Actual containers, encrypted game database, backup, restore, failure rollback
+        run: sudo python3 tests/deploy/live.py --root "$RUNNER_TEMP/odm-live"
+      - name: Capture non-secret deployment evidence
+        if: always()
+        run: |
+          mkdir -p deployment-test-results
+          sudo python3 "$RUNNER_TEMP/odm-live/tools/odmctl.py" --root "$RUNNER_TEMP/odm-live" status > deployment-test-results/status.json || true
+          sudo chmod -R a+rX deployment-test-results
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: deployment-recovery-evidence
+          path: deployment-test-results
+      - name: Stop only this test installation
+        if: always()
+        run: sudo python3 "$RUNNER_TEMP/odm-live/tools/odmctl.py" --root "$RUNNER_TEMP/odm-live" stop || true
