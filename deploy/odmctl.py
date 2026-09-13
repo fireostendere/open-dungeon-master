@@ -99,7 +99,7 @@ def locked(root):
                 msvcrt.locking(f.fileno(), msvcrt.LK_NBLCK, 1)
             else:
                 import fcntl
-                fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                fcntl.flock(f.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
         except OSError as e: raise OpsError('Another ODM operation is running; try again after it finishes') from e
         try: yield
         finally:
@@ -549,8 +549,20 @@ class Controller:
         self.status()
 
     def sync_remote(self):
-        self.restic('copy', '--from-repo', str(self.root / 'backups'), '--from-password-file',
-                    str(self.config_dir / 'backup.password'), remote=True, timeout=7200)
+        # Ubuntu 22.04 ships restic 0.12: copy used -r SOURCE --repo2 DEST.
+        # New versions use -r DEST --from-repo SOURCE. Detect the supported
+        # interface instead of reversing copy direction or replacing system packages.
+        help_text = self.run(['restic', 'copy', '--help'], timeout=30)
+        if '--from-repo' in help_text:
+            self.restic('copy', '--from-repo', str(self.root / 'backups'), '--from-password-file',
+                        str(self.config_dir / 'backup.password'), remote=True, timeout=7200)
+        else:
+            remote = read_json(self.config_dir / 'remote.json')
+            if not remote: raise OpsError('Off-site repository is not configured')
+            env = self.env.copy(); env.update(remote.get('environment', {}))
+            self.run(['restic', '-r', str(self.root / 'backups'), 'copy',
+                      '--repo2', remote['repository'], '--password-file2',
+                      str(self.config_dir / 'remote.password')], env=env, timeout=7200)
         write_json(self.config_dir / 'last-offsite.json', {'at': timestamp(), 'unix': time.time()})
         print('Off-site snapshots copied.')
 
