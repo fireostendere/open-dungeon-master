@@ -28,7 +28,7 @@ export default function ProviderAuthPanel(){
   async function login(mode:'browser'|'device'){await run(async()=>{const data=await request({action:'login',provider:'chatgpt',mode});if(data.operationId&&data.authUrl)setStatus(s=>({...s,login:data as Login}));});}
   async function connect(selected:string,id:string){await run(async()=>{try{const data=await request({action:'connect',provider:selected,model:id,apiKey:selected==='chatgpt'?undefined:key,baseUrl,region,apply});setResult(data);setNotice(data.applied?'Модель проверена и применяется как DM по умолчанию.':data.report?.ok?'Профиль проверен и сохранён.':'Проверка не пройдена. Текущая модель DM не изменена.');}finally{setKey('');}});}
   return <section className="space-y-6" aria-label="Подключение LLM">
-    <label className="flex gap-2"><input type="checkbox" checked={apply} onChange={e=>setApply(e.target.checked)}/>После успешной проверки применить как DM по умолчанию</label>
+    <label className="flex gap-2"><input type="checkbox" checked={apply} disabled={busy} onChange={e=>setApply(e.target.checked)}/>После успешной проверки применить как DM по умолчанию</label>
     <div className="rounded border border-slate-700 p-4 space-y-3">
       <h2 className="text-xl font-semibold">ChatGPT: вход через Codex</h2>
       <p className="text-sm">Официальный Codex CLI должен быть установлен на сервере. ODM использует отдельный профиль входа. Для WSL или удалённого сервера выбирайте код устройства.</p>
@@ -37,7 +37,7 @@ export default function ProviderAuthPanel(){
         <button className={button} disabled={busy||!!status.login||status.authenticated} onClick={()=>void login('device')}>Войти по коду устройства</button>
         <button className={button} disabled={busy||!!status.login||status.authenticated} onClick={()=>void login('browser')}>Войти в браузере на серверном ПК</button>
         <button className={button} disabled={busy} onClick={()=>void run(refresh)}>Обновить статус</button>
-        <button className={button} disabled={busy||!status.authenticated} onClick={()=>void run(async()=>{await request({action:'logout',provider:'chatgpt'});setModels([]);setChatModel('');await refresh();})}>Выйти</button>
+        <button className={button} disabled={busy||!status.authenticated} onClick={()=>void run(async()=>{await request({action:'logout',provider:'chatgpt'});setModels([]);setChatModel('');setResult(null);await refresh();})}>Выйти</button>
       </div>
       {status.login&&<div className="space-y-2" role="status">
         <p><a className="underline" href={status.login.authUrl} target="_blank" rel="noopener noreferrer">Открыть официальный вход ChatGPT</a></p>
@@ -46,19 +46,20 @@ export default function ProviderAuthPanel(){
       </div>}
       <button className={button} disabled={busy||!status.authenticated} onClick={()=>void run(async()=>{const data=await request({action:'models',provider:'chatgpt'});setModels(data.models??[]);setChatModel(data.models?.[0]?.id??'');})}>Получить доступные модели</button>
       <select className={field} aria-label="Модель ChatGPT" value={chatModel} onChange={e=>setChatModel(e.target.value)} disabled={busy||!models.length}><option value="">Выберите модель</option>{models.map(m=><option key={m.id} value={m.id}>{m.displayName} — {m.id}</option>)}</select>
-      <button className={button} disabled={busy||!chatModel} onClick={()=>void connect('chatgpt',chatModel)}>Подключить ChatGPT и проверить инструменты</button>
+      <button className={button} disabled={busy||!chatModel||!status.authenticated} onClick={()=>void connect('chatgpt',chatModel)}>Подключить ChatGPT и проверить инструменты</button>
       <p className="text-sm">Используется официальный экспериментальный API dynamicTools. Игровые действия выполняет ODM. Системные инструменты и приложения для модели отключены. Выход прерывает текущие ходы ChatGPT. Лимиты определяются аккаунтом; потоковый вывод пока не поддерживается.</p>
     </div>
     <div className="rounded border border-slate-700 p-4 space-y-3">
       <h2 className="text-xl font-semibold">Gemini и Qwen</h2>
       <p className="text-sm">Gemini: официальный API-ключ, не OAuth подписки Google. Qwen: API-ключ или локальная модель без облачного входа. Старый Qwen OAuth отключён провайдером.</p>
-      <label className="block">Провайдер<select className={field} value={provider} onChange={e=>{setProvider(e.target.value);setKey('');setModel('');setProviderModels([]);}}><option value="qwen-local">Qwen локально / совместимый сервер</option><option value="qwen">Qwen / DashScope API</option><option value="gemini">Gemini Developer API</option></select></label>
-      {provider==='qwen-local'&&<label className="block">Адрес runtime<input className={field} value={baseUrl} onChange={e=>setBaseUrl(e.target.value)}/></label>}
-      {provider==='qwen'&&<label className="block">Регион ключа<select className={field} value={region} onChange={e=>setRegion(e.target.value)}><option value="international">International</option><option value="china">China</option><option value="token-plan">Token Plan (Singapore)</option></select></label>}
-      <label className="block">{provider==='qwen-local'?'Ключ runtime, если установлен':'API-ключ'}<input className={field} type="password" value={key} onChange={e=>setKey(e.target.value)} autoComplete="new-password" spellCheck={false}/></label>
+      {/* Explicit names prevent nested option text from becoming the select's label. */}
+      <label className="block">Провайдер<select aria-label="Провайдер" className={field} value={provider} disabled={busy} onChange={e=>{setProvider(e.target.value);setKey('');setModel('');setProviderModels([]);setResult(null);setNotice('');}}><option value="qwen-local">Qwen локально / совместимый сервер</option><option value="qwen">Qwen / DashScope API</option><option value="gemini">Gemini Developer API</option></select></label>
+      {provider==='qwen-local'&&<label className="block">Адрес runtime<input aria-label="Адрес runtime" className={field} value={baseUrl} disabled={busy} onChange={e=>setBaseUrl(e.target.value)}/></label>}
+      {provider==='qwen'&&<label className="block">Регион ключа<select aria-label="Регион ключа" className={field} value={region} disabled={busy} onChange={e=>{setRegion(e.target.value);setKey('');setModel('');setProviderModels([]);setResult(null);setNotice('');}}><option value="international">International</option><option value="china">China</option><option value="token-plan">Token Plan (Singapore)</option></select></label>}
+      <label className="block">{provider==='qwen-local'?'Ключ runtime, если установлен':'API-ключ'}<input className={field} type="password" value={key} disabled={busy} onChange={e=>setKey(e.target.value)} autoComplete="new-password" spellCheck={false}/></label>
       <button className={button} disabled={busy||(provider!=='qwen-local'&&!key)} onClick={()=>void run(async()=>{const data=await request({action:'models',provider,apiKey:key,baseUrl,region});setProviderModels(data.models??[]);})}>Загрузить модели провайдера</button>
       <datalist id="odm-provider-models">{providerModels.map(m=><option key={m.id} value={m.id}/>)}</datalist>
-      <label className="block">Точный ID модели<input list="odm-provider-models" className={field} value={model} onChange={e=>setModel(e.target.value)} autoComplete="off"/></label>
+      <label className="block">Точный ID модели<input list="odm-provider-models" className={field} value={model} disabled={busy} onChange={e=>setModel(e.target.value)} autoComplete="off"/></label>
       <button className={button} disabled={busy||!model||(provider!=='qwen-local'&&!key)} onClick={()=>void connect(provider,model)}>Подключить и проверить инструменты</button>
       <p className="text-sm">Модель можно ввести вручную, если провайдер не выдаёт список. Ключ хранится в существующей зашифрованной БД ODM. Неуспешная проверка не меняет текущего DM.</p>
     </div>

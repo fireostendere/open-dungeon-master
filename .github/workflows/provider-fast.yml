@@ -41,6 +41,7 @@ jobs:
     timeout-minutes: 25
     env:
       NEXT_TELEMETRY_DISABLED: '1'
+      ODM_PLAYWRIGHT_MODULE: ${{ runner.temp }}/odm-browser/node_modules/playwright/index.mjs
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
@@ -48,15 +49,22 @@ jobs:
           node-version: '24'
           cache: npm
       - run: npm ci
-      - name: Installed framework agent guidance
-        run: find node_modules/next/dist/docs -maxdepth 2 -type f | head -20 || true
+      - name: Installed framework accessibility guidance
+        run: cat node_modules/next/dist/docs/03-architecture/accessibility.md
       - run: npm run lint
       - run: npm test
       - run: npm run build
-      - name: Install pinned browser test runtime
-        run: npm install --no-save --package-lock=false playwright@1.63.0
+      - name: Snapshot installed application dependency graph
+        run: npm ls --all --json > "$RUNNER_TEMP/odm-app-deps-before.json"
+      - name: Install pinned browser runtime outside application node_modules
+        run: npm install --prefix "$RUNNER_TEMP/odm-browser" --no-save --package-lock=false playwright@1.63.0
+      - name: Verify browser tooling did not change application dependencies
+        run: |
+          npm ls --all --json > "$RUNNER_TEMP/odm-app-deps-after.json"
+          cmp "$RUNNER_TEMP/odm-app-deps-before.json" "$RUNNER_TEMP/odm-app-deps-after.json"
+          git diff --exit-code -- package.json package-lock.json
       - name: Install Chromium
-        run: npx playwright install --with-deps chromium
+        run: node "$RUNNER_TEMP/odm-browser/node_modules/playwright/cli.js" install --with-deps chromium
       - name: Production admin, routes, restart and CLI integration
         run: node scripts/e2e/provider-auth.mjs
       - uses: actions/upload-artifact@v4

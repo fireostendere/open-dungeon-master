@@ -4,10 +4,12 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import {pathToFileURL} from 'node:url';
 import {randomBytes} from 'node:crypto';
 import {spawn} from 'node:child_process';
 import {createServer} from 'node:http';
-import {chromium} from 'playwright';
+// CI installs test tooling outside the application's locked dependency graph.
+const {chromium}=await import(process.env.ODM_PLAYWRIGHT_MODULE ? pathToFileURL(path.resolve(process.env.ODM_PLAYWRIGHT_MODULE)).href : 'playwright');
 const root=process.cwd(),temp=fs.mkdtempSync(path.join(os.tmpdir(),'odm-browser-'));
 const artifacts=path.join(root,'provider-test-results');fs.mkdirSync(artifacts,{recursive:true});
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
@@ -110,6 +112,15 @@ try{
   });
   await check('Gemini/Qwen API forms require credentials honestly',async()=>{
     for(const provider of ['gemini','qwen']){await page.getByLabel('Провайдер',{exact:true}).selectOption(provider);await modelInput.fill('model-id');assert.equal(await page.getByRole('button',{name:'Подключить и проверить инструменты',exact:true}).isDisabled(),true);assert.equal((await post({action:'connect',provider,model:'model-id'})).status(),400);}
+  });
+  await check('Qwen region and provider switch clear account-specific form state',async()=>{
+    await page.getByLabel('Провайдер',{exact:true}).selectOption('qwen');
+    await page.getByLabel('API-ключ',{exact:true}).fill('test-only-form-value');await modelInput.fill('previous-region-model');
+    await page.getByLabel('Регион ключа',{exact:true}).selectOption('china');
+    assert.equal(await page.getByLabel('API-ключ',{exact:true}).inputValue(),'');assert.equal(await modelInput.inputValue(),'');
+    await page.getByLabel('API-ключ',{exact:true}).fill('test-only-form-value');
+    await page.getByLabel('Провайдер',{exact:true}).selectOption('gemini');
+    assert.equal(await page.getByLabel('API-ключ',{exact:true}).inputValue(),'');
   });
   await check('nonadmin cannot operate provider controls',async()=>{
     assert.equal((await context.request.patch('/api/admin/settings',{data:{signupMode:'open'}})).status(),200);
