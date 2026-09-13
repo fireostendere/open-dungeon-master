@@ -41,7 +41,6 @@ jobs:
     timeout-minutes: 25
     env:
       NEXT_TELEMETRY_DISABLED: '1'
-      ODM_PLAYWRIGHT_MODULE: ${{ runner.temp }}/odm-browser/node_modules/playwright/index.mjs
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
@@ -66,6 +65,8 @@ jobs:
       - name: Install Chromium
         run: node "$RUNNER_TEMP/odm-browser/node_modules/playwright/cli.js" install --with-deps chromium
       - name: Production admin, routes, restart and CLI integration
+        env:
+          ODM_PLAYWRIGHT_MODULE: ${{ runner.temp }}/odm-browser/node_modules/playwright/index.mjs
         run: node scripts/e2e/provider-auth.mjs
       - uses: actions/upload-artifact@v4
         if: always()
