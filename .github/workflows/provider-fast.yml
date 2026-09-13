@@ -20,11 +20,13 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: '24'
-      - name: Offline tests without npm install or provider credentials
-        run: node --test scripts/test-provider-core.mjs scripts/test-provider-transport.mjs
+      - name: Offline protocol and connection tests (no install, keys or GPU)
+        run: node --test scripts/test-provider-core.mjs scripts/test-provider-transport.mjs scripts/test-provider-gateway.mjs
   regression:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
+    env:
+      NEXT_TELEMETRY_DISABLED: '1'
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
@@ -32,6 +34,20 @@ jobs:
           node-version: '24'
           cache: npm
       - run: npm ci
+      - name: Installed framework agent guidance
+        run: find node_modules/next/dist/docs -maxdepth 2 -type f | head -20 || true
       - run: npm run lint
       - run: npm test
       - run: npm run build
+      - name: Install pinned browser test runtime
+        run: npm install --no-save --package-lock=false playwright@1.63.0
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Production admin, routes, restart and CLI integration
+        run: node scripts/e2e/provider-auth.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: provider-browser-evidence
+          path: provider-test-results
+          if-no-files-found: ignore
