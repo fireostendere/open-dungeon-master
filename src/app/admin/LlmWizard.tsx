@@ -183,31 +183,42 @@ export function LlmWizard({ profileId, onClose, onSaved }: Props) {
       blurb: "Выберите тип LLM-сервера",
       canContinue: profile.kind !== "custom" || Boolean(profile.baseUrl),
       content: (
-        <div className="grid gap-3 sm:grid-cols-2">
-          <button
-            type="button"
-            onClick={() => setProfile({ ...profile, kind: "cloud-preset", preset: undefined })}
-            className={ui.btnSecondary + (profile.kind === "cloud-preset" ? " ring-2 ring-amber-400" : "")}
-          >
-            ☁️ Облачный провайдер
-            <div className="mt-1 text-xs text-stone-400">OpenRouter, OpenAI, DeepSeek, DashScope</div>
-          </button>
-          <button
-            type="button"
-            onClick={() => setProfile({ ...profile, kind: "local-runtime", preset: undefined })}
-            className={ui.btnSecondary + (profile.kind === "local-runtime" ? " ring-2 ring-amber-400" : "")}
-          >
-            💻 Локальный runtime
-            <div className="mt-1 text-xs text-stone-400">Ollama, llama.cpp, LM Studio, vLLM</div>
-          </button>
-          <button
-            type="button"
-            onClick={() => setProfile({ ...profile, kind: "custom", preset: undefined, baseUrl: "", protocol: "openai-compatible" })}
-            className={ui.btnSecondary + (profile.kind === "custom" ? " ring-2 ring-amber-400" : "")}
-          >
-            🔧 Произвольный endpoint
-            <div className="mt-1 text-xs text-stone-400">OpenAI-совместимый сервер</div>
-          </button>
+        <div className="grid gap-3 md:grid-cols-3">
+          {(
+            [
+              ["cloud-preset", "☁️", "Облачный провайдер", "OpenRouter, OpenAI, DeepSeek, DashScope"],
+              ["local-runtime", "💻", "Локальный runtime", "Ollama, llama.cpp, LM Studio, vLLM"],
+              ["custom", "🔧", "Произвольный endpoint", "OpenAI-совместимый сервер"],
+            ] as const
+          ).map(([kind, icon, title, hint]) => (
+            <button
+              key={kind}
+              type="button"
+              onClick={() =>
+                setProfile(
+                  kind === "custom"
+                    ? { ...profile, kind: "custom", preset: undefined, baseUrl: "", protocol: "openai-compatible" }
+                    : { ...profile, kind, preset: undefined },
+                )
+              }
+              className={
+                "flex h-auto items-start gap-3 rounded-xl border p-3 text-left normal-case tracking-normal transition-all " +
+                (profile.kind === kind
+                  ? "border-amber-500 bg-amber-950/30 shadow-glow-gold"
+                  : "border-stone-700 bg-stone-900/40 hover:border-stone-500")
+              }
+            >
+              <span className="text-xl leading-none">{icon}</span>
+              <span>
+                <span className="block text-sm font-medium normal-case tracking-normal text-stone-100">
+                  {title}
+                </span>
+                <span className="mt-0.5 block text-xs normal-case tracking-normal text-stone-400">
+                  {hint}
+                </span>
+              </span>
+            </button>
+          ))}
         </div>
       ),
     },
@@ -311,6 +322,40 @@ export function LlmWizard({ profileId, onClose, onSaved }: Props) {
                 placeholder="60000"
               />
             </div>
+            <div className="grid grid-cols-2 gap-2">
+              {(
+                [
+                  ["temperature", "Temperature", "0.1", "0.7"],
+                  ["top_p", "Top-p", "0.05", "0.8"],
+                  ["top_k", "Top-k", "1", "20"],
+                  ["min_p", "Min-p", "0.01", "0"],
+                ] as const
+              ).map(([field, label, step, placeholder]) => (
+                <div key={field}>
+                  <label className="mb-1 block text-xs text-stone-400">{label}</label>
+                  <input
+                    type="number"
+                    step={step}
+                    className={ui.input}
+                    value={profile.sampling?.[field] ?? ""}
+                    onChange={(e) =>
+                      setProfile({
+                        ...profile,
+                        sampling: {
+                          ...profile.sampling,
+                          [field]: e.target.value === "" ? undefined : Number(e.target.value),
+                        },
+                      })
+                    }
+                    placeholder={placeholder}
+                  />
+                </div>
+              ))}
+            </div>
+            <p className="text-[11px] text-stone-500">
+              Твики применяются к DM при «Применить как DM»: sampling, лимит вывода, таймаут и
+              thinking. Пусто = настройка сервера/дефолт.
+            </p>
           </div>
         </div>
       ),

@@ -134,19 +134,33 @@ export function deleteLlmProfile(id: string): boolean {
   return true;
 }
 
-// Apply profile to global config: writes text.provider, customBaseUrl, customModel, customApiKey.
-// For ollama-native (local-runtime with preset ollama), we still use custom provider with the /v1 URL
+// Apply profile to global config: writes text.provider, customBaseUrl, customModel, customApiKey
+// plus the profile's tweaks (sampling, output cap, timeout, thinking) so they
+// actually reach the DM engine. For ollama-native (local-runtime with preset ollama), we still use custom provider with the /v1 URL
 // because the global config doesn't have a separate "local" field for arbitrary Ollama URLs.
 export function applyLlmProfileToGlobal(profileId: string): boolean {
   const profile = getLlmProfile(profileId);
   if (!profile) return false;
+  const sampling = profile.sampling;
+  const hasSampling = Boolean(
+    sampling &&
+      (sampling.temperature !== undefined ||
+        sampling.top_p !== undefined ||
+        sampling.top_k !== undefined ||
+        sampling.min_p !== undefined),
+  );
   saveGlobalConfig({
     text: {
       provider: "custom",
       customBaseUrl: profile.baseUrl,
       customModel: profile.model,
       customApiKey: profile.apiKey,
+      maxOutputTokens: profile.maxOutputTokens ?? 0,
+      timeoutMs: profile.timeoutMs ?? 0,
+      // "auto" = don't force: falls back to the DM_THINKING env behavior.
+      thinking: profile.thinking === "auto" ? "" : profile.thinking,
     },
+    ...(hasSampling ? { sampling: { story: sampling } } : {}),
   });
   return true;
 }

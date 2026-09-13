@@ -32,6 +32,9 @@ function maskedConfig(config: GlobalConfig) {
       utilityModel: config.text.utilityModel,
       utilityBaseUrl: config.text.utilityBaseUrl,
       hasUtilityApiKey: config.text.utilityApiKey !== "",
+      maxOutputTokens: config.text.maxOutputTokens,
+      timeoutMs: config.text.timeoutMs,
+      thinking: config.text.thinking,
     },
     images: {
       defaultBackend: config.images.defaultBackend,
@@ -124,6 +127,9 @@ const patchSchema = z.object({
       utilityModel: z.string().trim().max(200).optional(),
       utilityBaseUrl: z.string().trim().max(500).optional(),
       utilityApiKey: z.string().trim().max(400).optional(),
+      maxOutputTokens: z.number().int().min(0).max(1000000).optional(),
+      timeoutMs: z.number().int().min(0).max(1800000).optional(),
+      thinking: z.enum(["", "on", "off"]).optional(),
     })
     .optional(),
   images: z

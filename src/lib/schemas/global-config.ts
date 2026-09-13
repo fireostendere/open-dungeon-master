@@ -74,6 +74,13 @@ export const globalConfigSchema = z.object({
       utilityModel: z.string().trim().max(200).default(""),
       utilityBaseUrl: z.string().trim().max(500).default(""),
       utilityApiKey: z.string().trim().max(400).default(""),
+      // Per-model tweaks written by Admin → Модели → «Применить как DM»
+      // from the saved profile. 0/"" = not set: the existing env/default
+      // resolution keeps applying (CUSTOM_TEXT_TIMEOUT_MS,
+      // OPENROUTER_MAX_TOKENS, DM_THINKING).
+      maxOutputTokens: z.number().int().min(0).max(1000000).default(0),
+      timeoutMs: z.number().int().min(0).max(1800000).default(0),
+      thinking: z.enum(["", "on", "off"]).default(""),
     })
     .prefault({}),
   images: z

@@ -100,6 +100,47 @@ await test("apply to global writes the existing config fields (no parallel store
   deleteLlmProfile(created.id);
 });
 
+await test("apply to global propagates the model tweaks", () => {
+  const tweaked = createLlmProfile({
+    ...profileInput,
+    name: "Tweaked",
+    apiKey: "",
+    maxOutputTokens: 8192,
+    timeoutMs: 900000,
+    thinking: "off",
+    sampling: { temperature: 0.9, top_p: 0.95 },
+  });
+  assert.equal(applyLlmProfileToGlobal(tweaked.id), true);
+  const cfg = getGlobalConfig();
+  assert.equal(cfg.text.maxOutputTokens, 8192);
+  assert.equal(cfg.text.timeoutMs, 900000);
+  assert.equal(cfg.text.thinking, "off");
+  assert.equal(cfg.sampling.story.temperature, 0.9);
+  assert.equal(cfg.sampling.story.top_p, 0.95);
+  // "auto" thinking must not force anything (empty = env fallback).
+  createLlmProfile({ ...profileInput, id: tweaked.id, name: "Tweaked", thinking: "auto", sampling: undefined });
+  assert.equal(applyLlmProfileToGlobal(tweaked.id), true);
+  assert.equal(getGlobalConfig().text.thinking, "");
+  deleteLlmProfile(tweaked.id);
+});
+
+await test("dmThinkingEnabled: config wins, env is the fallback", async () => {
+  const { dmThinkingEnabled } = await import("../src/lib/model-client.ts");
+  const { saveGlobalConfig: saveCfg } = await import("../src/lib/db/app-settings.ts");
+  delete process.env.DM_THINKING;
+  saveCfg({ text: { thinking: "" } });
+  assert.equal(dmThinkingEnabled(), true, "unset = on (legacy default)");
+  saveCfg({ text: { thinking: "off" } });
+  assert.equal(dmThinkingEnabled(), false);
+  saveCfg({ text: { thinking: "on" } });
+  process.env.DM_THINKING = "0";
+  assert.equal(dmThinkingEnabled(), true, "config on beats env 0");
+  saveCfg({ text: { thinking: "" } });
+  assert.equal(dmThinkingEnabled(), false, "env 0 applies when config is auto");
+  delete process.env.DM_THINKING;
+  saveCfg({ text: { thinking: "" } });
+});
+
 // --- SSRF guard ---
 
 await test("url guard blocks dangerous targets and allows local/LAN servers", () => {

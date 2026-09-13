@@ -1,11 +1,12 @@
 "use client";
 
-import { Flag, Globe2, Settings2, Users } from "lucide-react";
+import { Flag, Globe2, Settings2, Users, Cpu } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { PIXEL_ICONS } from "@/lib/ui";
 import { PageLoading, PageNotice, PageShell } from "@/components/PageShell";
 import { SegmentedControl, type SegmentedOption } from "@/components/ui/SegmentedControl";
+import { AdminModelsPanel } from "@/app/admin/AdminModelsPanel";
 import { AdminReportsPanel } from "@/app/admin/AdminReportsPanel";
 import { AdminSettingsPanel } from "@/app/admin/AdminSettingsPanel";
 import { AdminUsersPanel } from "@/app/admin/AdminUsersPanel";
@@ -18,10 +19,11 @@ type Me = {
   isAdmin: boolean;
 };
 
-type Tab = "settings" | "worlds" | "users" | "reports";
+type Tab = "settings" | "models" | "worlds" | "users" | "reports";
 
 const TABS: SegmentedOption<Tab>[] = [
   { value: "settings", label: "Server settings", icon: Settings2 },
+  { value: "models", label: "Модели", icon: Cpu },
   { value: "worlds", label: "Campaign plugins", icon: Globe2 },
   { value: "users", label: "Users", icon: Users },
   { value: "reports", label: "Reports", icon: Flag },
@@ -73,6 +75,8 @@ export default function AdminPage() {
 
       {tab === "settings" ? (
         <AdminSettingsPanel />
+      ) : tab === "models" ? (
+        <AdminModelsPanel />
       ) : tab === "worlds" ? (
         <AdminWorldsPanel />
       ) : tab === "reports" ? (

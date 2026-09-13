@@ -96,6 +96,17 @@ export function configuredMaxOutputTokens() {
   return Math.max(512, Math.min(parsed, MAX_CONFIGURABLE_OUTPUT_TOKENS));
 }
 
+// Whether DM tool-decision calls should request the model's thinking mode.
+// Admin → Модели (text.thinking) wins when set; otherwise the legacy
+// DM_THINKING env (off only when "0"). Lives here so turn.ts and the config
+// agree on one source.
+export function dmThinkingEnabled(): boolean {
+  const cfg = getGlobalConfig().text.thinking;
+  if (cfg === "on") return true;
+  if (cfg === "off") return false;
+  return process.env.DM_THINKING !== "0";
+}
+
 export function localMaxOutputTokens() {
   const parsed = Number.parseInt(serverEnv("LOCAL_TEXT_MAX_TOKENS"), 10);
 
@@ -512,7 +523,9 @@ export async function requestCustomMessage(
       ? "max_completion_tokens"
       : "max_tokens";
   if (!dropped.has(maxTokensField)) {
-    requestPayload[maxTokensField] = configuredMaxOutputTokens();
+    // A per-model cap set in Admin → Модели (applied from the profile) wins;
+    // 0 = not set, keep the env/default resolution.
+    requestPayload[maxTokensField] = globalText.maxOutputTokens || configuredMaxOutputTokens();
   }
 
   for (const field of dropped) {
@@ -525,7 +538,9 @@ export async function requestCustomMessage(
   }
 
   const timeoutMs = resolveTextTimeoutMs(
-    options.timeoutMs,
+    // An explicit per-call timeout (story arcs) wins; then the per-model
+    // tweak applied from Admin → Модели; then env/defaults.
+    options.timeoutMs || globalText.timeoutMs || undefined,
     "CUSTOM_TEXT_TIMEOUT_MS",
     DEFAULT_CUSTOM_TEXT_TIMEOUT_MS,
   );

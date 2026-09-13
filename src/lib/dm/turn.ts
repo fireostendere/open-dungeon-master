@@ -81,7 +81,7 @@ import { takeDirectorArm } from "@/lib/db/director-arms";
 import { listPins } from "@/lib/db/pins";
 import { isStageEnabled } from "@/lib/dm/stages";
 import { renderVariantRules } from "@/lib/dm/rules-logic";
-import { storyContextTokens } from "@/lib/model-client";
+import { dmThinkingEnabled, storyContextTokens } from "@/lib/model-client";
 import { restoreMentionedNpcs } from "@/lib/dm/npc-archive";
 import { handleRecallStory } from "@/lib/dm/recall";
 import { handleSearchLore, searchLoreTool } from "@/lib/dm/lore-search";
@@ -656,8 +656,9 @@ async function runAdvance(context: TurnContext, turn: DmTurn) {
       // Thinking mode on tool-decision calls only: without it qwen3.6-35b
       // narrates right past its tools (0/11 tool calls in live combat);
       // with it, rolls and encounters fire reliably. The forced-narration
-      // final call skips it to keep turns snappy. DM_THINKING=0 disables.
-      thinking: !finalCall && process.env.DM_THINKING !== "0",
+      // final call skips it to keep turns snappy. Admin → Модели toggles it
+      // (text.thinking), falling back to DM_THINKING=0.
+      thinking: !finalCall && dmThinkingEnabled(),
       onDelta: (text) => {
         const visible = filter.push(text);
         if (visible) {
