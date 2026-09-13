@@ -18,7 +18,11 @@ export default function ProviderAuthPanel(){
     const data:Reply=await response.json();if(!response.ok)throw new Error(data.error??`HTTP_${response.status}`);return data;
   },[]);
   const refresh=useCallback(async()=>{const data=await request({action:'status',provider:'chatgpt'});if(alive.current){setStatus(data);if(data.error)setNotice(data.error);}},[request]);
-  useEffect(()=>{void refresh().catch(e=>{if(alive.current)setNotice(String(e.message));});},[refresh]);
+  useEffect(()=>{
+    let cancelled=false;
+    request({action:'status',provider:'chatgpt'}).then(data=>{if(!cancelled){setStatus(data);if(data.error)setNotice(data.error);}}).catch(e=>{if(!cancelled)setNotice(String(e.message));});
+    return()=>{cancelled=true;};
+  },[request]);
   useEffect(()=>{if(!status.login)return;const timer=setInterval(()=>void refresh().catch(e=>{if(alive.current)setNotice(String(e.message));}),2000);return()=>clearInterval(timer);},[status.login,refresh]);
   async function run(fn:()=>Promise<void>){setBusy(true);setNotice('');try{await fn();}catch(e){if(alive.current)setNotice(e instanceof Error?e.message:'PROVIDER_OPERATION_FAILED');}finally{if(alive.current)setBusy(false);}}
   async function login(mode:'browser'|'device'){await run(async()=>{const data=await request({action:'login',provider:'chatgpt',mode});if(data.operationId&&data.authUrl)setStatus(s=>({...s,login:data as Login}));});}
