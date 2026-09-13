@@ -28,11 +28,19 @@ async function runScript(file,args=[],input=''){
   return new Promise((resolve,reject)=>{const p=spawn(process.execPath,[file,...args],{cwd:root,env,stdio:['pipe','pipe','pipe']});let stdout='',stderr='';p.stdout.on('data',d=>stdout+=d);p.stderr.on('data',d=>stderr+=d);p.on('error',reject);const timer=setTimeout(()=>{p.kill();reject(new Error('Script timeout: '+file));},30000);p.on('exit',code=>{clearTimeout(timer);resolve({code,stdout,stderr});});p.stdin.end(input);});
 }
 const cli=(args,input)=>runScript('scripts/odm-auth.mjs',args,input);
+async function register(context,username,isAdmin){
+  const response=await context.request.post('/api/auth/register',{data:{username,password:randomBytes(12).toString('hex')}});
+  assert.ok(response.ok(),await response.text());
+  const account=(await response.json()).user;
+  assert.ok(account?.id,'successful signup must create an account');
+  assert.equal(account.username,username);assert.equal(account.isAdmin,isAdmin);
+  const me=await context.request.get('/api/auth/me');assert.ok(me.ok());
+  assert.equal((await me.json()).user.id,account.id,'signup must establish a usable browser session');
+}
 try{
   await start();browser=await chromium.launch({headless:true});
   const context=await browser.newContext({baseURL:origin});
-  const reg=await context.request.post('/api/auth/register',{data:{username:'provider_admin',password:randomBytes(12).toString('hex')}});
-  assert.equal(reg.status(),200,await reg.text());
+  await register(context,'provider_admin',true);
   page=await context.newPage();const pageErrors=[];page.on('pageerror',e=>pageErrors.push(e.message));
   await page.goto('/admin');await page.getByRole('radio',{name:'Подключения LLM'}).click();
   const post=(data,headers={})=>context.request.post('/api/admin/provider-auth',{data,headers:{Origin:origin,'X-ODM-Provider-Auth':'1',...headers}});
@@ -105,7 +113,7 @@ try{
   });
   await check('nonadmin cannot operate provider controls',async()=>{
     assert.equal((await context.request.patch('/api/admin/settings',{data:{signupMode:'open'}})).status(),200);
-    const visitor=await browser.newContext({baseURL:origin});const r=await visitor.request.post('/api/auth/register',{data:{username:'provider_guest',password:randomBytes(12).toString('hex')}});assert.equal(r.status(),200);
+    const visitor=await browser.newContext({baseURL:origin});await register(visitor,'provider_guest',false);
     assert.equal((await visitor.request.post('/api/admin/provider-auth',{data:{action:'status',provider:'chatgpt'},headers:{Origin:origin,'X-ODM-Provider-Auth':'1'}})).status(),403);await visitor.close();
   });
   await check('no browser exceptions',async()=>assert.deepEqual(pageErrors,[]));
