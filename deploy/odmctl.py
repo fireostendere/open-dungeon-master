@@ -408,20 +408,58 @@ class Controller:
             '--mount', f'type=bind,src={source / "state/data"},dst=/app/data,readonly', '--entrypoint', 'node',
             release['image'], 'deploy/db-tool.mjs', 'check', timeout=120)
 
+    def state_credentials(self):
+        """Read the credentials paired with the current game database, including absence."""
+        return {name: (self.config_dir / name).read_text(encoding='utf-8')
+                if (self.config_dir / name).exists() else None
+                for name in ('app.env', 'admin.json')}
+
+    def restore_credentials(self, values):
+        for name, value in values.items():
+            path = self.config_dir / name
+            if value is None:
+                path.unlink(missing_ok=True)
+            else:
+                atomic(path, value)
+
     def replace_state(self, source):
-        old = self.root / ('state-before-restore-' + str(time.time_ns()))
-        os.replace(self.root / 'state', old)
+        # Prepare the entire tree and its ownership before moving the live state.
+        # A disk/copy/chown error must not remove the only usable database.
+        live = self.root / 'state'
+        previous_credentials = self.state_credentials()
+        candidate = Path(tempfile.mkdtemp(prefix='.state-candidate-', dir=self.root))
+        prepared = candidate / 'state'
+        old = None
+        installed = False
+        credentials_started = False
         try:
-            shutil.copytree(source / 'state', self.root / 'state')
+            shutil.copytree(source / 'state', prepared)
+            if os.name != 'nt':
+                for p in [prepared, *prepared.rglob('*')]:
+                    os.chown(p, 1000, 1000)
+            if live.exists():
+                displaced = self.root / ('state-before-restore-' + str(time.time_ns()))
+                os.replace(live, displaced)
+                old = displaced
+            # Missing live state is valid during journal recovery: a terminated
+            # process may have completed the first rename, but not the second.
+            os.replace(prepared, live)
+            installed = True
+            credentials_started = True
             atomic(self.config_dir / 'app.env', (source / 'config/app.env').read_text(encoding='utf-8'))
             if (source / 'config/admin.json').exists():
                 atomic(self.config_dir / 'admin.json', (source / 'config/admin.json').read_text(encoding='utf-8'))
-            if os.name != 'nt':
-                for p in [self.root / 'state', *(self.root / 'state').rglob('*')]:
-                    os.chown(p, 1000, 1000)
         except BaseException:
-            shutil.rmtree(self.root / 'state', ignore_errors=True); os.replace(old, self.root / 'state'); raise
-        return old  # Preserved intentionally until the owner reviews successful recovery.
+            if installed:
+                shutil.rmtree(live)
+            if old is not None:
+                os.replace(old, live)
+            if credentials_started:
+                self.restore_credentials(previous_credentials)
+            raise
+        finally:
+            shutil.rmtree(candidate, ignore_errors=True)
+        return old  # Preserve the displaced state for operator review, if present.
 
     def upgrade(self, release):
         old = self.active()
@@ -478,7 +516,7 @@ class Controller:
             if check_only:
                 write_json(self.config_dir / 'last-restore-check.json', {'at': timestamp(), 'snapshot': snapshot})
                 print('Restored snapshot decrypted and passed SQLite integrity check; live database untouched.'); return
-            current = self.active(); current_env = (self.config_dir / 'app.env').read_text(encoding='utf-8')
+            current = self.active(); current_credentials = self.state_credentials()
             undo_snapshot = self.backup(resume=False, tag='pre-restore')
             write_json(self.config_dir / 'transaction.json', {'old': current, 'target': release, 'snapshot': undo_snapshot})
             old_state = None
@@ -493,7 +531,7 @@ class Controller:
                 self.compose('stop', 'app', release=release)
                 if old_state:
                     shutil.rmtree(self.root / 'state'); os.replace(old_state, self.root / 'state')
-                atomic(self.config_dir / 'app.env', current_env)
+                self.restore_credentials(current_credentials)
                 write_json(self.config_dir / 'active.json', current)
                 self.compose('up', '-d', '--no-deps', 'app', release=current); self.wait_ready()
                 (self.config_dir / 'transaction.json').unlink(missing_ok=True)

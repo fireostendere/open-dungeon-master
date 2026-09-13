@@ -10,7 +10,7 @@ import urllib.request
 spec=importlib.util.spec_from_file_location('odmctl',Path(__file__).resolve().parents[2]/'deploy/odmctl.py')
 ops=importlib.util.module_from_spec(spec);spec.loader.exec_module(ops)
 p=argparse.ArgumentParser();p.add_argument('--root',required=True);a=p.parse_args()
-c=ops.Controller(a.root);passed=[]
+c=ops.Controller(a.root);passed=[];completed=False
 def record(name):passed.append(name);print('PASS '+name,flush=True)
 def fixture(action):
     c.compose('stop','app')
@@ -52,6 +52,13 @@ try:
     snapshot=c.backup();fixture('mutate')
     ops.write_json(c.config_dir/'transaction.json',{'old':good,'target':bad,'snapshot':snapshot})
     c.start();fixture('assert');record('interrupted transaction is recovered on the next startup')
+    snapshot=c.backup()
+    ops.write_json(c.config_dir/'transaction.json',{'old':good,'target':good,'snapshot':snapshot})
+    c.compose('stop','app')
+    displaced=c.root/'state-before-restore-crash-fixture'
+    os.replace(c.root/'state',displaced)
+    c.start();fixture('assert');assert displaced.is_dir()
+    record('interrupted state-directory rename recovers from the encrypted journal snapshot')
     c.stop();c.watchdog();assert not c.probe();c.start();record('intentional stop is respected by watchdog')
     time.sleep(11)
     container=c.compose('ps','-q','app').strip()
@@ -69,8 +76,9 @@ try:
     c.remote_config(str(remote),str(remote_key));c.restic('init',remote=True);c.sync_remote()
     c.restic('check','--read-data',remote=True,timeout=300);c.restore('latest',remote=True,check_only=True)
     record('off-site copy to a second encrypted repository can be restored and decrypted')
+    completed=True
 finally:
     guard.__exit__(None,None,None)
     output=Path(os.environ.get('ODM_TEST_RESULTS','deployment-test-results'));output.mkdir(exist_ok=True)
-    ops.write_json(output/'live-summary.json',{'passed':len(passed),'checks':passed,'real_services':['Docker','ODM SQLite encryption','restic'],'external_model_inference':False})
+    ops.write_json(output/'live-summary.json',{'completed':completed,'commit':c.active()['sha'],'passed':len(passed),'checks':passed,'real_services':['Docker','ODM SQLite encryption','restic'],'external_model_inference':False})
 print(f'All {len(passed)} live deployment and recovery checks passed.')

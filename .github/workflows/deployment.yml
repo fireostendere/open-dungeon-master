@@ -1,7 +1,7 @@
 name: Deployment and recovery
 on:
   push:
-    branches: [main, astra/installers-ops]
+    branches: [main, astra/installers-ops, astra/installation-final]
   pull_request:
   workflow_dispatch:
 permissions:
@@ -10,6 +10,25 @@ concurrency:
   group: deployment-${{ github.ref }}
   cancel-in-progress: true
 jobs:
+  source-evidence:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - name: Archive only tracked source, never credentials or runtime state
+        run: |
+          mkdir -p source-evidence
+          git archive --format=tar.gz HEAD > source-evidence/source.tar.gz
+          git rev-parse HEAD > source-evidence/commit.txt
+          sha256sum source-evidence/source.tar.gz > source-evidence/source.sha256
+      - uses: actions/upload-artifact@v4
+        with:
+          name: deployment-source
+          path: source-evidence
+          retention-days: 1
+          if-no-files-found: error
   fast:
     strategy:
       matrix:
