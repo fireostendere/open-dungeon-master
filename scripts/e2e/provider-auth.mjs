@@ -36,6 +36,7 @@ try{
   page=await context.newPage();const pageErrors=[];page.on('pageerror',e=>pageErrors.push(e.message));
   await page.goto('/admin');await page.getByRole('radio',{name:'Подключения LLM'}).click();
   const post=(data,headers={})=>context.request.post('/api/admin/provider-auth',{data,headers:{Origin:origin,'X-ODM-Provider-Auth':'1',...headers}});
+  const modelInput=page.locator('input[list="odm-provider-models"]');
   async function connectButton(name,provider){
     const response=page.waitForResponse(r=>r.url().endsWith('/api/admin/provider-auth')&&r.request().postDataJSON()?.action==='connect'&&r.request().postDataJSON()?.provider===provider);
     await page.getByRole('button',{name,exact:true}).click();const r=await response;
@@ -93,14 +94,14 @@ try{
       res.setHeader('Content-Type','application/json');res.end(JSON.stringify({choices:[{message}]}));
     });await new Promise(r=>local.listen(0,'127.0.0.1',r));const base=`http://127.0.0.1:${local.address().port}/v1`;
     await page.getByLabel('Провайдер',{exact:true}).selectOption('qwen-local');await page.getByLabel('Адрес runtime',{exact:true}).fill(base);
-    await page.getByRole('button',{name:'Загрузить модели провайдера',exact:true}).click();await page.getByLabel('Точный ID модели',{exact:true}).fill('local-test-model');
+    await page.getByRole('button',{name:'Загрузить модели провайдера',exact:true}).click();await modelInput.fill('local-test-model');
     await connectButton('Подключить и проверить инструменты','qwen-local');assert.equal((await(await context.request.get('/api/admin/settings')).json()).config.text.customModel,'local-test-model');
     assert.equal((await post({action:'connect',provider:'qwen-local',model:'text-only-broken',baseUrl:base,apply:true})).status(),409);
     assert.equal((await(await context.request.get('/api/admin/settings')).json()).config.text.customModel,'local-test-model');
     const c=await cli(['connect','qwen-local','--model','local-test-model','--base-url',base,'--apply']);assert.equal(c.code,0,c.stderr);
   });
   await check('Gemini/Qwen API forms require credentials honestly',async()=>{
-    for(const provider of ['gemini','qwen']){await page.getByLabel('Провайдер',{exact:true}).selectOption(provider);await page.getByLabel('Точный ID модели',{exact:true}).fill('model-id');assert.equal(await page.getByRole('button',{name:'Подключить и проверить инструменты',exact:true}).isDisabled(),true);assert.equal((await post({action:'connect',provider,model:'model-id'})).status(),400);}
+    for(const provider of ['gemini','qwen']){await page.getByLabel('Провайдер',{exact:true}).selectOption(provider);await modelInput.fill('model-id');assert.equal(await page.getByRole('button',{name:'Подключить и проверить инструменты',exact:true}).isDisabled(),true);assert.equal((await post({action:'connect',provider,model:'model-id'})).status(),400);}
   });
   await check('nonadmin cannot operate provider controls',async()=>{
     assert.equal((await context.request.patch('/api/admin/settings',{data:{signupMode:'open'}})).status(),200);
