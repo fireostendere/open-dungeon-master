@@ -21,7 +21,21 @@ jobs:
         with:
           node-version: '24'
       - name: Offline protocol and connection tests (no install, keys or GPU)
-        run: node --test scripts/test-provider-core.mjs scripts/test-provider-transport.mjs scripts/test-provider-gateway.mjs
+        run: npm run test:providers
+  official-codex:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+      - name: Install pinned official executable outside the project
+        run: npm install --prefix "$RUNNER_TEMP/odm-codex" @openai/codex@0.154.0
+      - name: Check real app-server protocol without login or model inference
+        env:
+          ODM_SMOKE_CODEX_BINARY: ${{ runner.temp }}/odm-codex/node_modules/@openai/codex/bin/codex.js
+        run: node scripts/e2e/codex-protocol-smoke.mjs
   regression:
     runs-on: ubuntu-latest
     timeout-minutes: 25

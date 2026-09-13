@@ -4,9 +4,7 @@
   "private": true,
   "description": "Multiplayer D&D 5e campaigns with an AI Dungeon Master, fully on-device",
   "license": "MIT",
-  "engines": {
-    "node": ">=22"
-  },
+  "engines": { "node": ">=22" },
   "scripts": {
     "dev": "next dev",
     "dev:lan": "next dev -H 0.0.0.0 -p 3005",
@@ -15,6 +13,8 @@
     "start:lan": "next start -H 0.0.0.0 -p 3005",
     "lint": "eslint",
     "test": "node scripts/test-all.mjs",
+    "auth": "node scripts/odm-auth.mjs",
+    "test:providers": "node --test scripts/test-provider-core.mjs scripts/test-provider-transport.mjs scripts/test-provider-gateway.mjs scripts/test-provider-cloud.mjs",
     "resources:generate": "node scripts/generate-class-resources.mjs",
     "test:dice": "node scripts/test-dice.mjs",
     "fetch-model": "node scripts/fetch-embedding-model.mjs",
