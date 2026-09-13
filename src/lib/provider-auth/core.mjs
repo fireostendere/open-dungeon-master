@@ -29,7 +29,6 @@ export function loopbackOrigin(raw = `http://127.0.0.1:${process.env.PORT || '30
   return u.origin;
 }
 export function profileFingerprint(p) {
-  // This private fingerprint is never included in client responses.
   const keys = ['kind','preset','protocol','baseUrl','model','authMode','apiKey','contextLimit','contextVerified','maxOutputTokens','thinking','timeoutMs','sampling'];
   return createHash('sha256').update(JSON.stringify(keys.map(k => [k, p[k] ?? null]))).digest('hex');
 }
@@ -71,12 +70,26 @@ export function chatEnvelope(model, message, finishReason = 'stop') {
 }
 export function requestIsSameOrigin(request) {
   const origin = request.headers.get('origin');
-  let expected = new URL(request.url).origin;
-  if (process.env.ODM_PUBLIC_ORIGIN) {
-    try { const u=new URL(process.env.ODM_PUBLIC_ORIGIN);
-      if (!['http:','https:'].includes(u.protocol) || u.username || u.password || u.pathname!=='/' || u.search || u.hash) return false;
-      expected=u.origin;
-    } catch { return false; }
-  }
-  return origin === expected && request.headers.get('x-odm-provider-auth') === '1' && request.headers.get('content-type')?.split(';')[0] === 'application/json';
+  let expected;
+  try {
+    const target = new URL(request.url);
+    if (!['http:', 'https:'].includes(target.protocol)) return false;
+    if (process.env.ODM_PUBLIC_ORIGIN) {
+      const configured = new URL(process.env.ODM_PUBLIC_ORIGIN);
+      if (!['http:', 'https:'].includes(configured.protocol) || configured.username || configured.password || configured.pathname !== '/' || configured.search || configured.hash) return false;
+      expected = configured.origin;
+    } else {
+      // Next can normalize request.url to its internal listen hostname. Host
+      // is the actual HTTP destination seen by the browser. Never take the
+      // expected origin from Origin itself or untrusted forwarded headers.
+      const host = request.headers.get('host');
+      if (host) {
+        if (/[\s,\/@\\?#%]/.test(host)) return false;
+        const incoming = new URL(`${target.protocol}//${host}`);
+        if (incoming.username || incoming.password || incoming.pathname !== '/' || incoming.search || incoming.hash) return false;
+        expected = incoming.origin;
+      } else expected = target.origin;
+    }
+  } catch { return false; }
+  return origin === expected && request.headers.get('x-odm-provider-auth') === '1' && request.headers.get('content-type')?.split(';')[0].trim().toLowerCase() === 'application/json';
 }
