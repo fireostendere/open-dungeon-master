@@ -17,6 +17,7 @@ def fixture(action):
     try:c.compose('run','--rm','--no-deps','-T','app','node','tests/deploy/db-fixture.mjs',action,timeout=120)
     finally:c.compose('up','-d','app');c.wait_ready()
 
+guard=ops.locked(c.root);guard.__enter__()
 try:
     c.require();c.wait_ready();record('installed application readiness checks actual encrypted database')
     credentials=ops.read_json(c.config_dir/'admin.json')
@@ -53,7 +54,10 @@ try:
     c.start();fixture('assert');record('interrupted transaction is recovered on the next startup')
     c.stop();c.watchdog();assert not c.probe();c.start();record('intentional stop is respected by watchdog')
     time.sleep(11)
-    container=c.compose('ps','-q','app').strip();c.docker('kill',container);c.wait_ready()
+    container=c.compose('ps','-q','app').strip()
+    # Signal the inspected process, not Docker's manual-stop API: this is a crash test.
+    pid=int(c.docker('inspect','--format','{{.State.Pid}}',container).strip());assert pid>1
+    os.kill(pid,9);c.wait_ready()
     record('Docker restart policy recovers an actual killed server process')
     fixture('assert');record('game data survives process crash and restart')
     logs=c.compose('logs','--no-color','app')
@@ -66,6 +70,7 @@ try:
     c.restic('check','--read-data',remote=True,timeout=300);c.restore('latest',remote=True,check_only=True)
     record('off-site copy to a second encrypted repository can be restored and decrypted')
 finally:
+    guard.__exit__(None,None,None)
     output=Path(os.environ.get('ODM_TEST_RESULTS','deployment-test-results'));output.mkdir(exist_ok=True)
     ops.write_json(output/'live-summary.json',{'passed':len(passed),'checks':passed,'real_services':['Docker','ODM SQLite encryption','restic'],'external_model_inference':False})
 print(f'All {len(passed)} live deployment and recovery checks passed.')

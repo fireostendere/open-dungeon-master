@@ -37,6 +37,9 @@ jobs:
           if ($errors.Count) { $errors | Format-List; exit 1 }
           ./install-local.ps1 -Plan -Root "$env:TEMP\odm-plan-only"
           if (Test-Path "$env:TEMP\odm-plan-only") { throw 'Plan changed the filesystem' }
+          ./tests/deploy/test-bootstrap.ps1
+          powershell.exe -NoProfile -ExecutionPolicy Bypass -File tests/deploy/test-bootstrap.ps1
+          if ($LASTEXITCODE -ne 0) { throw 'Windows PowerShell 5.1 probe tests failed' }
   installed-linux:
     runs-on: ubuntu-latest
     timeout-minutes: 35

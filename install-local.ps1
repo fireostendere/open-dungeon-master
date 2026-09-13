@@ -24,6 +24,7 @@ param(
 )
 $ErrorActionPreference = 'Stop'
 if ($Repo -notmatch '^[A-Za-z0-9][A-Za-z0-9-]*/[A-Za-z0-9][A-Za-z0-9_.-]*$' -or $Branch -notmatch '^[A-Za-z0-9][A-Za-z0-9._/-]*$' -or $Branch.Contains('..')) { throw 'Invalid repository or branch' }
+if ($Ref -and ($Ref -notmatch '^[A-Za-z0-9][A-Za-z0-9._/-]*$' -or $Ref.Contains('..'))) { throw 'Invalid source ref' }
 if ($Plan) {
     Write-Output "Target: $Root"
     Write-Output "Private fork: $Repo ($Branch); runtime: $Runtime; model: $Model"
@@ -36,6 +37,7 @@ if ($env:OS -ne 'Windows_NT') { throw 'Use install-server.sh --mode local on Lin
 $Root = [IO.Path]::GetFullPath($Root)
 if ($Root -eq [IO.Path]::GetPathRoot($Root) -or $Root -match '["%$`\r\n]') { throw 'Unsafe installation directory' }
 if ((Test-Path $Root) -and (Get-ChildItem -Force $Root | Select-Object -First 1) -and !(Test-Path "$Root\.odm-managed")) { throw 'Choose an empty directory; existing projects are not overwritten.' }
+if ((Test-Path $Root) -and ((Get-Item -Force $Root).Attributes -band [IO.FileAttributes]::ReparsePoint)) { throw 'Installation root cannot be a junction or symbolic link' }
 New-Item -ItemType Directory -Force "$Root\config", "$Root\tools" | Out-Null
 Set-Content -Encoding Ascii "$Root\.odm-managed" 'schema=1'
 # Protect the ENTIRE installation, not only a plaintext password file.
@@ -48,9 +50,17 @@ function Refresh-Path {
     $env:Path = [Environment]::GetEnvironmentVariable('Path','Machine') + ';' + [Environment]::GetEnvironmentVariable('Path','User')
     $env:Path += ';' + "$env:ProgramFiles\Git\cmd;$env:ProgramFiles\Docker\Docker\resources\bin;$env:LOCALAPPDATA\Microsoft\WinGet\Links"
 }
+function Native-Probe([string]$Program, [string[]]$Arguments) {
+    # PowerShell 5.1 can turn native stderr into terminating errors under Stop.
+    $preference=$ErrorActionPreference
+    try { $ErrorActionPreference='Continue'; & $Program @Arguments 2>$null | Out-Null; return ($LASTEXITCODE -eq 0) }
+    finally { $ErrorActionPreference=$preference }
+}
 function Checked([string]$Program, [string[]]$Arguments) {
-    & $Program @Arguments
-    if ($LASTEXITCODE -ne 0) { throw "$Program failed (exit $LASTEXITCODE). No existing game data was removed." }
+    $preference=$ErrorActionPreference
+    try { $ErrorActionPreference='Continue'; & $Program @Arguments; $code=$LASTEXITCODE }
+    finally { $ErrorActionPreference=$preference }
+    if ($code -ne 0) { throw "$Program failed (exit $code). No existing game data was removed." }
 }
 if ($Resume -and (Test-Path "$Root\config\resume.json")) {
     $saved = Get-Content -Raw "$Root\config\resume.json" | ConvertFrom-Json
@@ -93,13 +103,11 @@ $desktop = "$env:ProgramFiles\Docker\Docker\Docker Desktop.exe"
 if (!(Get-Process 'Docker Desktop' -ErrorAction SilentlyContinue) -and (Test-Path $desktop)) { Start-Process $desktop }
 $ready=$false
 for ($i=0; $i -lt 90; $i++) {
-    & docker.exe info --format '{{.OSType}}' 2>$null | Out-Null
-    if ($LASTEXITCODE -eq 0) { $ready=$true; break }
+    if (Native-Probe 'docker.exe' @('info','--format','{{.OSType}}')) { $ready=$true; break }
     Start-Sleep -Seconds 2
 }
 if (!$ready) {
-    & wsl.exe --status 2>$null | Out-Null
-    if ($LASTEXITCODE -ne 0) {
+    if (!(Native-Probe 'wsl.exe' @('--status'))) {
         $admin=([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
         if (!$admin) { throw 'WSL2 needs administrator permission. Rerun this installer from an elevated PowerShell.' }
         & wsl.exe --install --no-distribution
@@ -121,8 +129,7 @@ if %errorlevel% equ 0 (echo x-access-token) else (type "__TOKEN__")
 Write-Utf8 "$Root\config\git-askpass.cmd" ($helper.Replace('__TOKEN__', "$Root\config\github.token"))
 $env:GIT_ASKPASS="$Root\config\git-askpass.cmd"; $env:GIT_TERMINAL_PROMPT='0'
 if (!(Test-Path "$Root\repository\.git")) {
-    & git.exe ls-remote "https://github.com/$Repo.git" HEAD 2>$null | Out-Null
-    if ($LASTEXITCODE -ne 0) {
+    if (!(Native-Probe 'git.exe' @('ls-remote',"https://github.com/$Repo.git",'HEAD'))) {
         if ($Yes) { throw 'Private repository access required; supply -TokenFile with a read-only Contents token.' }
         $secret=Read-Host 'Read-only GitHub repository token' -AsSecureString
         $ptr=[Runtime.InteropServices.Marshal]::SecureStringToBSTR($secret)
@@ -141,6 +148,8 @@ if ($AutoUpdate) { $arguments+='--auto-update' }; if ($SkipAssets) { $arguments+
 $provisioningError=$null
 try { Checked $python $arguments } catch { $provisioningError=$_ }
 if (!(Test-Path "$Root\config\active.json")) { throw $provisioningError }
+$installed=Get-Content -Raw "$Root\config\install.json" | ConvertFrom-Json
+$Port=[int]$installed.port; $AutoUpdate=[bool]$installed.auto_update
 $cmd="@echo off`r`n`"$python`" `"$Root\tools\odmctl.py`" --root `"$Root`" %*`r`n"
 Write-Utf8 "$Root\odmctl.cmd" $cmd
 $runner=@'
@@ -150,7 +159,9 @@ $env:Path=[Environment]::GetEnvironmentVariable('Path','Machine')+';'+[Environme
 if($Operation -eq 'start') {
   $desktop='__DESKTOP__'
   if(Test-Path $desktop){Start-Process $desktop}
+  $ErrorActionPreference='Continue'
   for($i=0;$i -lt 90;$i++){& docker.exe info 2>$null | Out-Null;if($LASTEXITCODE -eq 0){break};Start-Sleep 2}
+  $ErrorActionPreference='Stop'
 }
 $extra=@();if($Operation -eq 'restore-check'){$extra=@('latest')}
 & '__PYTHON__' '__CTL__' --root '__ROOT__' $Operation @extra
@@ -172,6 +183,8 @@ $tasks=@{
 }
 $updateOperation=if($AutoUpdate){'update'}else{'check-update'}
 $tasks[$updateOperation]=New-ScheduledTaskTrigger -Daily -At '05:30'
+$opposite=if($AutoUpdate){'check-update'}else{'update'}
+Unregister-ScheduledTask -TaskName "ODM-$Port-$opposite" -Confirm:$false -ErrorAction SilentlyContinue
 foreach($operation in $tasks.Keys) {
     $action=New-ScheduledTaskAction -Execute 'powershell.exe' -Argument "-NoProfile -ExecutionPolicy Bypass -File `"$Root\tools\windows-run.ps1`" -Operation $operation"
     Register-ScheduledTask -TaskName "ODM-$Port-$operation" -Action $action -Trigger $tasks[$operation] -Principal $principal -Settings $taskSettings -Force | Out-Null
