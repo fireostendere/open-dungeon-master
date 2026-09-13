@@ -1,0 +1,37 @@
+name: Provider boundaries
+on:
+  push:
+    branches: [astra/browser-auth-review]
+  pull_request:
+permissions:
+  contents: read
+concurrency:
+  group: provider-boundaries-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  fast:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+      - name: Offline tests without npm install or provider credentials
+        run: node --test scripts/test-provider-core.mjs scripts/test-provider-transport.mjs
+  regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm test
+      - run: npm run build
