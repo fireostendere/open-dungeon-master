@@ -76,27 +76,196 @@ jobs:
           sudo bash install-server.sh --yes --root "$RUNNER_TEMP/odm-live" \
             --source "$GITHUB_WORKSPACE" --ref "$GITHUB_SHA" \
             --runtime none --skip-assets --port 13315
-      - name: Real authenticated MCP handshake and tool call
+      - name: Real MCP external-art and progress E2E
         run: |
           mkdir -p "$RUNNER_TEMP/mcp-client"
           npm install --prefix "$RUNNER_TEMP/mcp-client" --no-save --package-lock=false @modelcontextprotocol/client@2.0.0
           cat > "$RUNNER_TEMP/mcp-client/smoke.mjs" <<'EOF'
           import { Client, StreamableHTTPClientTransport } from '@modelcontextprotocol/client';
+
           const token = process.env.ODM_MCP_TOKEN;
           if (!token) throw new Error('ODM_MCP_TOKEN missing');
           const transport = new StreamableHTTPClientTransport(new URL('http://127.0.0.1:3006/mcp'), {
             requestInit: { headers: { Authorization: `Bearer ${token}` } },
           });
           const client = new Client({ name: 'odm-deployment-ci', version: '1.0.0' });
+
+          function unpack(result) {
+            if (result.isError) throw new Error(JSON.stringify(result.content));
+            if (result.structuredContent) return result.structuredContent;
+            const text = result.content?.find((part) => part.type === 'text')?.text;
+            return text ? JSON.parse(text) : {};
+          }
+          async function call(name, args) {
+            return unpack(await client.callTool({ name, arguments: args }));
+          }
+
+          const png = Buffer.from(
+            'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',
+            'base64',
+          );
+
           try {
             await client.connect(transport);
             const listed = await client.listTools();
             const names = new Set(listed.tools.map((tool) => tool.name));
-            for (const required of ['odm_server', 'odm_campaigns', 'odm_story', 'odm_sheets']) {
+            for (const required of ['odm_server', 'odm_campaigns', 'odm_story', 'odm_sheets', 'odm_assets', 'odm_progress']) {
               if (!names.has(required)) throw new Error(`Missing MCP tool: ${required}`);
             }
-            const status = await client.callTool({ name: 'odm_server', arguments: { operation: 'status' } });
-            if (status.isError) throw new Error(`odm_server status failed: ${JSON.stringify(status.content)}`);
+
+            const status = await call('odm_server', { operation: 'status' });
+            if (!status.ok || status.assetProtocolVersion !== 1) {
+              throw new Error(`unexpected ODM status: ${JSON.stringify(status)}`);
+            }
+            const capabilities = await call('odm_server', { operation: 'capabilities' });
+            if (!capabilities.externalAssets?.binaryUpload || !capabilities.characterProgressSync?.supported) {
+              throw new Error(`missing extended capabilities: ${JSON.stringify(capabilities)}`);
+            }
+
+            const created = await call('odm_campaigns', {
+              operation: 'create',
+              title: 'External Asset CI Campaign',
+              description: 'CI fixture campaign for MCP binary upload',
+              theme: 'observatory',
+              startingLevel: 1,
+            });
+            const campaignId = created.campaign.id;
+
+            const planned = await call('odm_assets', { operation: 'plan_campaign', campaign_id: campaignId });
+            if (!planned.pack?.id || !planned.pack.jobs?.length) throw new Error('plan_campaign returned no jobs');
+
+            const packed = await call('odm_assets', {
+              operation: 'create_pack',
+              campaign_id: campaignId,
+              title: 'CI external image pack',
+              pack_type: 'integration_test',
+              jobs: [{
+                kind: 'campaign_cover',
+                title: 'CI cover fixture',
+                description: 'One generated fixture image',
+                suggestedPrompt: 'A ruined observatory at night',
+                target: { type: 'campaign', id: campaignId },
+                dedupeKey: 'ci-cover',
+              }],
+            });
+            const packId = packed.pack.id;
+            const jobId = packed.pack.jobs[0].id;
+
+            const claimed = await call('odm_assets', {
+              operation: 'claim_job',
+              job_id: jobId,
+              worker_id: 'ci-external-worker',
+              lease_seconds: 300,
+            });
+            if (claimed.job.claimedBy !== 'ci-external-worker') throw new Error('job claim failed');
+
+            const grant = await call('odm_assets', {
+              operation: 'create_upload',
+              job_id: jobId,
+              worker_id: 'ci-external-worker',
+              expected_mime_type: 'image/png',
+              expected_max_bytes: 1048576,
+            });
+            if (!grant.uploadUrl.startsWith('http://127.0.0.1:13315/api/assets/ingest/')) {
+              throw new Error(`managed upload URL has wrong public origin: ${grant.uploadUrl}`);
+            }
+            const uploadResponse = await fetch(grant.uploadUrl, {
+              method: 'PUT',
+              headers: {
+                Authorization: `Bearer ${grant.authorization.token}`,
+                'Content-Type': 'image/png',
+              },
+              body: png,
+            });
+            const uploaded = await uploadResponse.json();
+            if (!uploadResponse.ok || uploaded.uploaded?.sha256?.length !== 64) {
+              throw new Error(`binary upload failed: ${uploadResponse.status} ${JSON.stringify(uploaded)}`);
+            }
+
+            const submitted = await call('odm_assets', {
+              operation: 'submit_result',
+              job_id: jobId,
+              upload_id: grant.uploadId,
+              worker_id: 'ci-external-worker',
+              provider: 'fixture',
+              model: 'ci-no-paid-model',
+              prompt_used: 'A ruined observatory at night',
+              variant_label: 'fixture-A',
+              set_primary: true,
+            });
+            const assetId = submitted.asset.id;
+            if (submitted.job.status !== 'ready' || submitted.asset.width !== 1 || submitted.asset.height !== 1) {
+              throw new Error(`submit_result did not finalize asset: ${JSON.stringify(submitted)}`);
+            }
+
+            const listedAssets = await call('odm_assets', {
+              operation: 'list_assets',
+              campaign_id: campaignId,
+              pack_id: packId,
+            });
+            if (!listedAssets.assets.some((asset) => asset.id === assetId)) throw new Error('asset not visible to another MCP call');
+
+            const download = await call('odm_assets', {
+              operation: 'create_download',
+              asset_id: assetId,
+            });
+            const downloadResponse = await fetch(download.downloadUrl, {
+              headers: { Authorization: `Bearer ${download.authorization.token}` },
+            });
+            const downloaded = Buffer.from(await downloadResponse.arrayBuffer());
+            if (!downloadResponse.ok || !downloaded.equals(png)) throw new Error('scoped reference download mismatch');
+
+            const character = await call('odm_characters', {
+              operation: 'create',
+              level: 1,
+              role: 'pc',
+              sheet: {
+                name: 'CI Hero',
+                race: 'human',
+                class: 'fighter',
+                subclass: '',
+                background: 'soldier',
+                abilities: { str: 16, dex: 12, con: 14, int: 10, wis: 11, cha: 10 },
+                maxHp: 12,
+                ac: 16,
+                speed: 30,
+                hitDice: { die: 'd10', total: 1, spent: 0 },
+                proficiencies: {
+                  saves: ['str', 'con'], skills: ['athletics'], expertise: [], languages: ['common'], tools: [], armor: ['all'], weapons: ['martial']
+                },
+                equipment: [],
+                gold: 10,
+                copper: 0,
+                spellcasting: null,
+              },
+            });
+            const instantiated = await call('odm_characters', {
+              operation: 'instantiate',
+              characterId: character.character.id,
+              campaignId,
+              targetLevel: 1,
+            });
+            const sheetId = instantiated.sheet.id;
+            const synced = await call('odm_progress', {
+              operation: 'sync_character',
+              sheet_id: sheetId,
+              expected_version: 0,
+            });
+            if (synced.revision !== 1 || synced.libraryCharacter.id !== character.character.id) {
+              throw new Error(`character sync failed: ${JSON.stringify(synced)}`);
+            }
+            const finished = await call('odm_progress', {
+              operation: 'finish_and_sync_party',
+              campaign_id: campaignId,
+              require_all_synced: true,
+              confirm: true,
+            });
+            if (!finished.ended || finished.status !== 'ended' || finished.sync.totals.failed !== 0) {
+              throw new Error(`finish_and_sync_party failed: ${JSON.stringify(finished)}`);
+            }
+
+            const health = await call('odm_assets', { operation: 'health', campaign_id: campaignId });
+            if (!health.ok) throw new Error(`asset health failed: ${JSON.stringify(health)}`);
           } finally {
             await client.close().catch(() => undefined);
           }
