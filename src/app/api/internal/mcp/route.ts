@@ -1,6 +1,11 @@
 import { createHash, timingSafeEqual } from "node:crypto";
 import { z } from "zod";
 import { executeMcpControl, McpControlError } from "@/lib/mcp-control";
+import {
+  executeMcpExtendedControl,
+  extendControlResult,
+  McpExtendedControlError,
+} from "@/lib/mcp-external-control";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -51,10 +56,14 @@ export async function POST(request: Request) {
   }
 
   try {
+    const extended = await executeMcpExtendedControl(parsed.data.action, parsed.data.params);
+    if (extended.handled) {
+      return json({ ok: true, result: extended.result });
+    }
     const result = await executeMcpControl(parsed.data.action, parsed.data.params);
-    return json({ ok: true, result });
+    return json({ ok: true, result: extendControlResult(parsed.data.action, result) });
   } catch (error) {
-    if (error instanceof McpControlError) {
+    if (error instanceof McpControlError || error instanceof McpExtendedControlError) {
       return json({ ok: false, error: error.message }, error.status);
     }
     console.error("MCP control action failed:", parsed.data.action, error);
