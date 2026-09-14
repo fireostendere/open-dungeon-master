@@ -1,27 +1,42 @@
 import { z } from "zod";
+import { ASSET_MIME_TYPES } from "@/lib/assets/image";
+import { planCampaignAssets } from "@/lib/assets/planner";
 import { getCampaignById } from "@/lib/db/campaigns";
 import {
-  acceptAsset,
-  addAssetRef,
+  ART_KINDS,
+  ASSET_PROTOCOL_VERSION,
+  assetHealth,
+  attachAsset,
+  claimJob,
+  configuredAssetMaxBytes,
+  createDownloadGrant,
+  createPack,
+  createUploadGrant,
   deleteAsset,
-  healthAssetStore,
-  listAssetRefs,
+  deletePack,
+  detachAsset,
+  failJob,
+  getAsset,
+  getJob,
+  getPack,
   listAssets,
-  pinAsset,
-  planAsset,
-  rejectAsset,
-  removeAssetRef,
-  type AssetRefType,
-  type AssetState,
-} from "@/lib/db/odm-assets";
+  listJobs,
+  listPacks,
+  releaseJob,
+  setPrimaryAsset,
+  submitResult,
+  type ArtKind,
+  type AssetEntityType,
+  type JobStatus,
+  type PackStatus,
+} from "@/lib/db/asset-pipeline";
 import {
-  bulkSyncCampaignProgress,
   getProgressState,
   listProgressEvents,
   ProgressConflictError,
-  syncCharacterProgress,
+  syncPartyProgress,
 } from "@/lib/db/progress-sync";
-import { getSheetById } from "@/lib/db/sheets";
+import { finishAndSyncParty, resolveProgressSheet, syncProgressLookup } from "@/lib/progress/service";
 import { publishPersisted } from "@/lib/events";
 
 export class McpExtendedControlError extends Error {
@@ -34,19 +49,29 @@ export class McpExtendedControlError extends Error {
 }
 
 export const MCP_EXTENDED_ACTIONS = [
-  "assets.plan",
-  "assets.accept",
-  "assets.reject",
-  "assets.status",
-  "assets.pin",
-  "assets.unpin",
-  "assets.delete",
-  "assets.list_refs",
-  "assets.add_ref",
-  "assets.remove_ref",
+  "assets.plan_campaign",
+  "assets.create_pack",
+  "assets.get_pack",
+  "assets.list_packs",
+  "assets.list_jobs",
+  "assets.get_job",
+  "assets.claim_job",
+  "assets.release_job",
+  "assets.fail_job",
+  "assets.create_upload",
+  "assets.submit_result",
+  "assets.list_assets",
+  "assets.get_asset",
+  "assets.attach",
+  "assets.detach",
+  "assets.set_primary",
+  "assets.delete_asset",
+  "assets.delete_pack",
+  "assets.create_download",
   "assets.health",
-  "progress.sync",
-  "progress.bulk_sync",
+  "characters.sync_progress",
+  "campaigns.sync_party_progress",
+  "campaigns.finish_and_sync_party",
   "progress.status",
   "progress.events",
 ] as const;
@@ -63,27 +88,61 @@ function campaignOr404(campaignId: string) {
   return campaign;
 }
 
+function publicBaseUrl() {
+  const configured = process.env.APP_PUBLIC_URL?.trim() || process.env.ODM_PUBLIC_URL?.trim();
+  if (configured) return configured.replace(/\/+$/, "");
+  return `http://127.0.0.1:${process.env.ODM_PORT?.trim() || "3005"}`;
+}
+
 const id = z.string().trim().min(1).max(128);
-const assetState = z.enum(["planned", "running", "ready", "failed", "rejected", "deleted"]);
-const refType = z.enum([
+const artKind = z.enum(ART_KINDS);
+const entityType = z.enum([
   "campaign",
-  "session",
   "character",
+  "npc",
+  "scene",
   "location",
+  "map",
+  "chapter",
   "item",
+  "session",
   "encounter",
   "quest",
-  "journal_entry",
+  "handout",
+  "generic",
 ]);
+const packStatus = z.enum(["planned", "active", "ready", "failed", "cancelled"]);
+const jobStatus = z.enum(["planned", "available", "claimed", "uploading", "ready", "failed", "cancelled"]);
+const assetMime = z.enum(ASSET_MIME_TYPES);
+
+const jobDraftSchema = z
+  .object({
+    kind: artKind,
+    title: z.string().trim().min(1).max(200),
+    description: z.string().trim().max(8_000).optional(),
+    suggestedPrompt: z.string().trim().max(16_000).optional(),
+    negativePrompt: z.string().trim().max(8_000).optional(),
+    aspect: z.string().trim().min(1).max(40).optional(),
+    requestedWidth: z.number().int().min(1).max(32_768).nullable().optional(),
+    requestedHeight: z.number().int().min(1).max(32_768).nullable().optional(),
+    target: z.object({ type: entityType, id }).optional(),
+    referenceAssetIds: z.array(id).max(32).optional(),
+    priority: z.number().int().min(-1000).max(1000).optional(),
+    metadata: z.unknown().optional(),
+    dedupeKey: z.string().trim().min(1).max(256).optional(),
+  })
+  .strict();
 
 function wrapDomainError(error: unknown): never {
   if (error instanceof McpExtendedControlError) throw error;
   if (error instanceof ProgressConflictError) throw new McpExtendedControlError(error.message, 409);
   const message = error instanceof Error ? error.message : "MCP extended control action failed.";
-  if (/not found/i.test(message)) throw new McpExtendedControlError(message, 404);
-  if (/conflict|cannot|refusing|outside|invalid|unsupported|required|provide exactly/i.test(message)) {
+  if (/not found|unavailable/i.test(message)) throw new McpExtendedControlError(message, 404);
+  if (/too large|size limit/i.test(message)) throw new McpExtendedControlError(message, 413);
+  if (/claimed|claimable|expired|already|conflict|cannot|refusing|linked|requires confirm|must be|does not belong/i.test(message)) {
     throw new McpExtendedControlError(message, 409);
   }
+  if (/invalid|unsupported|required|provide|missing/i.test(message)) throw new McpExtendedControlError(message, 400);
   throw new McpExtendedControlError(message, 400);
 }
 
@@ -93,171 +152,292 @@ export async function executeMcpExtendedControl(
 ): Promise<{ handled: false } | { handled: true; result: unknown }> {
   try {
     switch (action) {
-      case "assets.plan": {
-        const p = parse(
-          z
-            .object({
-              campaignId: id,
-              kind: z.string().trim().min(1).max(64),
-              query: z.string().trim().min(1).max(12_000),
-              entityId: id.nullish(),
-              reason: z.string().trim().max(4_000).nullish(),
-              constraints: z.unknown().optional(),
-              seed: z.union([z.string().max(200), z.number().finite()]).nullish(),
-              sourceHint: z.string().trim().max(500).nullish(),
-              providerHint: z.string().trim().max(200).nullish(),
-              pendingTtlMs: z.number().int().min(60_000).max(86_400_000).optional(),
-            })
-            .strict(),
-          rawParams,
-        );
+      case "assets.plan_campaign": {
+        const p = parse(z.object({ campaignId: id }).strict(), rawParams);
         campaignOr404(p.campaignId);
-        const result = planAsset(p);
-        publishPersisted(p.campaignId, "asset.planned", {
-          assetId: result.asset.id,
-          kind: result.asset.kind,
-          entityId: result.asset.entityId,
-          requestKey: result.asset.requestKey,
-          reused: result.reused,
+        const result = planCampaignAssets(p.campaignId);
+        publishPersisted(p.campaignId, "asset.backlog_planned", {
+          packId: result.pack.id,
+          planned: result.changes.planned.length,
+          reused: result.changes.reused.length,
+          totals: result.totals,
         });
         return { handled: true, result };
       }
 
-      case "assets.accept": {
+      case "assets.create_pack": {
         const p = parse(
-          z
-            .object({
-              assetId: id,
-              tempPath: z.string().trim().min(1).max(4_096).nullish(),
-              uploadedFileId: z.string().trim().min(1).max(128).nullish(),
-              metadata: z.unknown().optional(),
-            })
-            .strict(),
+          z.object({
+            campaignId: id,
+            title: z.string().trim().min(1).max(200),
+            packType: z.string().trim().min(1).max(80),
+            style: z.unknown().optional(),
+            metadata: z.unknown().optional(),
+            jobs: z.array(jobDraftSchema).max(500).optional(),
+          }).strict(),
           rawParams,
         );
-        const asset = acceptAsset(p);
-        publishPersisted(asset.campaignId, "asset.ready", {
-          assetId: asset.id,
-          kind: asset.kind,
-          sha256: asset.sha256,
-          relativePath: asset.relativePath,
-        });
-        return { handled: true, result: { asset } };
+        campaignOr404(p.campaignId);
+        const pack = createPack(p);
+        publishPersisted(p.campaignId, "asset.pack_created", { packId: pack.id, packType: pack.packType, jobs: pack.jobs.length });
+        return { handled: true, result: { pack } };
       }
 
-      case "assets.reject": {
-        const p = parse(z.object({ assetId: id, reason: z.string().trim().max(4_000).nullish() }).strict(), rawParams);
-        const asset = rejectAsset(p.assetId, p.reason);
-        publishPersisted(asset.campaignId, "asset.rejected", { assetId: asset.id, reason: asset.error });
-        return { handled: true, result: { asset } };
+      case "assets.get_pack": {
+        const p = parse(z.object({ packId: id }).strict(), rawParams);
+        const pack = getPack(p.packId);
+        if (!pack) throw new McpExtendedControlError("Asset pack not found.", 404);
+        return { handled: true, result: { pack } };
       }
 
-      case "assets.status": {
-        const p = parse(
-          z
-            .object({
-              assetId: id.optional(),
-              campaignId: id.optional(),
-              state: assetState.optional(),
-            })
-            .strict()
-            .refine((value) => Boolean(value.assetId) !== Boolean(value.campaignId), {
-              message: "Provide exactly one of assetId or campaignId.",
-            }),
-          rawParams,
-        );
+      case "assets.list_packs": {
+        const p = parse(z.object({ campaignId: id.optional(), status: packStatus.optional() }).strict(), rawParams);
+        if (p.campaignId) campaignOr404(p.campaignId);
+        return { handled: true, result: { packs: listPacks({ campaignId: p.campaignId, status: p.status as PackStatus | undefined }) } };
+      }
+
+      case "assets.list_jobs": {
+        const p = parse(z.object({
+          campaignId: id.optional(),
+          packId: id.optional(),
+          status: jobStatus.optional(),
+          kind: artKind.optional(),
+        }).strict(), rawParams);
         if (p.campaignId) campaignOr404(p.campaignId);
         return {
           handled: true,
-          result: { assets: listAssets({ assetId: p.assetId, campaignId: p.campaignId, state: p.state as AssetState | undefined }) },
+          result: { jobs: listJobs({ campaignId: p.campaignId, packId: p.packId, status: p.status as JobStatus | undefined, kind: p.kind as ArtKind | undefined }) },
         };
       }
 
-      case "assets.pin":
-      case "assets.unpin": {
+      case "assets.get_job": {
+        const p = parse(z.object({ jobId: id }).strict(), rawParams);
+        const job = getJob(p.jobId);
+        if (!job) throw new McpExtendedControlError("Asset job not found.", 404);
+        return { handled: true, result: { job } };
+      }
+
+      case "assets.claim_job": {
+        const p = parse(z.object({
+          jobId: id,
+          workerId: z.string().trim().min(1).max(200),
+          leaseSeconds: z.number().int().min(30).max(86_400).optional(),
+        }).strict(), rawParams);
+        const job = claimJob(p.jobId, p.workerId, p.leaseSeconds);
+        publishPersisted(job.campaignId, "asset.job_claimed", { jobId: job.id, packId: job.packId, workerId: p.workerId, claimExpiresAt: job.claimExpiresAt });
+        return { handled: true, result: { job } };
+      }
+
+      case "assets.release_job": {
+        const p = parse(z.object({ jobId: id, workerId: z.string().trim().min(1).max(200) }).strict(), rawParams);
+        const job = releaseJob(p.jobId, p.workerId);
+        return { handled: true, result: { job } };
+      }
+
+      case "assets.fail_job": {
+        const p = parse(z.object({
+          jobId: id,
+          workerId: z.string().trim().min(1).max(200),
+          error: z.string().trim().min(1).max(4_000),
+        }).strict(), rawParams);
+        const job = failJob(p.jobId, p.workerId, p.error);
+        publishPersisted(job.campaignId, "asset.job_failed", { jobId: job.id, packId: job.packId, error: p.error });
+        return { handled: true, result: { job } };
+      }
+
+      case "assets.create_upload": {
+        const p = parse(z.object({
+          jobId: id,
+          workerId: z.string().trim().min(1).max(200),
+          expectedMimeType: assetMime.nullable().optional(),
+          expectedMaxBytes: z.number().int().min(1).max(HARD_ASSET_MAX_BYTES).nullable().optional(),
+          expiresInSeconds: z.number().int().min(60).max(3600).optional(),
+        }).strict(), rawParams);
+        const grant = createUploadGrant(p);
+        return {
+          handled: true,
+          result: {
+            uploadId: grant.uploadId,
+            uploadUrl: `${publicBaseUrl()}/api/assets/ingest/${grant.uploadId}`,
+            expiresAt: grant.expiresAt,
+            maxBytes: grant.maxBytes,
+            acceptedMimeTypes: grant.acceptedMimeTypes,
+            authorization: { scheme: "Bearer", token: grant.token },
+            method: "PUT",
+          },
+        };
+      }
+
+      case "assets.submit_result": {
+        const p = parse(z.object({
+          jobId: id,
+          uploadId: id,
+          workerId: z.string().trim().min(1).max(200),
+          provider: z.string().trim().max(200).optional(),
+          model: z.string().trim().max(300).optional(),
+          promptUsed: z.string().max(16_000).optional(),
+          revisedPrompt: z.string().max(16_000).optional(),
+          seed: z.union([z.string().max(200), z.number().finite()]).nullable().optional(),
+          metadata: z.unknown().optional(),
+          setPrimary: z.boolean().optional(),
+          variantLabel: z.string().trim().max(100).optional(),
+        }).strict(), rawParams);
+        const result = submitResult(p);
+        publishPersisted(result.asset.campaignId, "asset.ready", {
+          packId: result.asset.packId,
+          jobId: result.asset.jobId,
+          assetId: result.asset.id,
+          kind: result.asset.kind,
+          variantLabel: result.asset.variantLabel,
+          primary: result.asset.isPrimary,
+          sha256: result.asset.sha256,
+          duplicate: result.duplicate,
+        });
+        return { handled: true, result };
+      }
+
+      case "assets.list_assets": {
+        const p = parse(z.object({
+          campaignId: id.optional(),
+          packId: id.optional(),
+          jobId: id.optional(),
+          kind: artKind.optional(),
+        }).strict(), rawParams);
+        if (p.campaignId) campaignOr404(p.campaignId);
+        return { handled: true, result: { assets: listAssets({ campaignId: p.campaignId, packId: p.packId, jobId: p.jobId, kind: p.kind as ArtKind | undefined }) } };
+      }
+
+      case "assets.get_asset": {
         const p = parse(z.object({ assetId: id }).strict(), rawParams);
-        const asset = pinAsset(p.assetId, action === "assets.pin");
+        const asset = getAsset(p.assetId);
+        if (!asset) throw new McpExtendedControlError("Asset not found.", 404);
         return { handled: true, result: { asset } };
       }
 
-      case "assets.delete": {
-        const p = parse(z.object({ assetId: id, force: z.boolean().default(false) }).strict(), rawParams);
-        const asset = deleteAsset(p.assetId, p.force);
-        publishPersisted(asset.campaignId, "asset.deleted", { assetId: asset.id, force: p.force });
-        return { handled: true, result: { asset } };
+      case "assets.attach":
+      case "assets.detach": {
+        const p = parse(z.object({
+          assetId: id,
+          entityType,
+          entityId: id,
+          role: z.string().trim().min(1).max(80).optional(),
+          setPrimary: z.boolean().optional(),
+        }).strict(), rawParams);
+        const links = action === "assets.attach"
+          ? attachAsset({ assetId: p.assetId, entityType: p.entityType as AssetEntityType, entityId: p.entityId, role: p.role, setPrimary: p.setPrimary })
+          : detachAsset({ assetId: p.assetId, entityType: p.entityType as AssetEntityType, entityId: p.entityId, role: p.role });
+        return { handled: true, result: { links } };
       }
 
-      case "assets.list_refs": {
-        const p = parse(z.object({ assetId: id }).strict(), rawParams);
-        return { handled: true, result: { refs: listAssetRefs(p.assetId) } };
+      case "assets.set_primary": {
+        const p = parse(z.object({
+          assetId: id,
+          entityType: entityType.optional(),
+          entityId: id.optional(),
+          role: z.string().trim().min(1).max(80).optional(),
+        }).strict().refine((value) => Boolean(value.entityType) === Boolean(value.entityId), {
+          message: "entityType and entityId must be supplied together.",
+        }), rawParams);
+        return { handled: true, result: { asset: setPrimaryAsset({ assetId: p.assetId, entityType: p.entityType as AssetEntityType | undefined, entityId: p.entityId, role: p.role }) } };
       }
 
-      case "assets.add_ref":
-      case "assets.remove_ref": {
-        const p = parse(
-          z
-            .object({
-              assetId: id,
-              refType,
-              refId: id,
-              role: z.string().trim().min(1).max(80).optional(),
-            })
-            .strict(),
-          rawParams,
-        );
-        const refs = action === "assets.add_ref"
-          ? addAssetRef({ ...p, refType: p.refType as AssetRefType })
-          : removeAssetRef({ ...p, refType: p.refType as AssetRefType });
-        return { handled: true, result: { refs } };
+      case "assets.delete_asset": {
+        const p = parse(z.object({ assetId: id, confirm: z.boolean(), force: z.boolean().optional() }).strict(), rawParams);
+        return { handled: true, result: deleteAsset(p.assetId, p.confirm, p.force ?? false) };
+      }
+
+      case "assets.delete_pack": {
+        const p = parse(z.object({ packId: id, confirm: z.boolean(), deleteAssets: z.boolean().optional() }).strict(), rawParams);
+        return { handled: true, result: deletePack(p.packId, p.confirm, p.deleteAssets ?? false) };
+      }
+
+      case "assets.create_download": {
+        const p = parse(z.object({ assetId: id, expiresInSeconds: z.number().int().min(60).max(3600).optional() }).strict(), rawParams);
+        const grant = createDownloadGrant(p.assetId, p.expiresInSeconds);
+        return {
+          handled: true,
+          result: {
+            downloadId: grant.downloadId,
+            downloadUrl: `${publicBaseUrl()}/api/assets/download/${grant.downloadId}`,
+            expiresAt: grant.expiresAt,
+            mimeType: grant.mimeType,
+            byteSize: grant.byteSize,
+            filename: grant.filename,
+            authorization: { scheme: "Bearer", token: grant.token },
+            method: "GET",
+          },
+        };
       }
 
       case "assets.health": {
         const p = parse(z.object({ campaignId: id.optional() }).strict(), rawParams);
         if (p.campaignId) campaignOr404(p.campaignId);
-        return { handled: true, result: healthAssetStore(p.campaignId) };
+        return { handled: true, result: assetHealth(p.campaignId) };
       }
 
-      case "progress.sync": {
-        const p = parse(
-          z.object({ characterId: id, expectedVersion: z.number().int().min(0).optional() }).strict(),
-          rawParams,
-        );
-        const sheet = getSheetById(p.characterId);
-        if (!sheet) throw new McpExtendedControlError("Campaign character sheet not found.", 404);
-        const result = syncCharacterProgress(p.characterId, p.expectedVersion);
+      case "characters.sync_progress": {
+        const p = parse(z.object({
+          sheetId: id.optional(),
+          campaignId: id.optional(),
+          userId: id.optional(),
+          username: z.string().trim().min(1).max(80).optional(),
+          expectedVersion: z.number().int().min(0).optional(),
+        }).strict(), rawParams);
+        const result = syncProgressLookup(p);
         publishPersisted(result.campaignId, "progress.changed", {
-          characterId: result.sheetId,
+          sheetId: result.sheetId,
           libraryCharacterId: result.libraryCharacterId,
           revision: result.revision,
-          delta: result.delta,
+          before: result.before,
+          after: result.after,
         });
         return { handled: true, result };
       }
 
-      case "progress.bulk_sync": {
-        const p = parse(z.object({ campaignId: id }).strict(), rawParams);
+      case "campaigns.sync_party_progress": {
+        const p = parse(z.object({
+          campaignId: id,
+          includeCompanions: z.boolean().optional(),
+          skipUnlinked: z.boolean().optional(),
+        }).strict(), rawParams);
         campaignOr404(p.campaignId);
-        const result = bulkSyncCampaignProgress(p.campaignId);
-        publishPersisted(p.campaignId, "progress.bulk_synced", {
-          campaignId: p.campaignId,
-          synced: result.synced.length,
-          errors: result.errors,
-        });
+        const result = syncPartyProgress(p.campaignId, p);
+        publishPersisted(p.campaignId, "progress.party_synced", { totals: result.totals, failed: result.failed, skipped: result.skipped });
         return { handled: true, result };
+      }
+
+      case "campaigns.finish_and_sync_party": {
+        const p = parse(z.object({
+          campaignId: id,
+          includeCompanions: z.boolean().optional(),
+          skipUnlinked: z.boolean().optional(),
+          requireAllSynced: z.boolean().optional(),
+          confirm: z.boolean(),
+        }).strict(), rawParams);
+        return { handled: true, result: finishAndSyncParty(p) };
       }
 
       case "progress.status": {
-        const p = parse(z.object({ characterId: id }).strict(), rawParams);
-        const sheet = getSheetById(p.characterId);
-        if (!sheet) throw new McpExtendedControlError("Campaign character sheet not found.", 404);
+        const p = parse(z.object({
+          sheetId: id.optional(),
+          campaignId: id.optional(),
+          userId: id.optional(),
+          username: z.string().trim().min(1).max(80).optional(),
+        }).strict(), rawParams);
+        const sheet = resolveProgressSheet(p);
         if (!sheet.libraryCharacterId) throw new McpExtendedControlError("Campaign character is not linked to a library character.", 409);
         return { handled: true, result: getProgressState(sheet.libraryCharacterId) };
       }
 
       case "progress.events": {
-        const p = parse(z.object({ characterId: id, limit: z.number().int().min(1).max(200).default(50) }).strict(), rawParams);
-        const sheet = getSheetById(p.characterId);
-        if (!sheet) throw new McpExtendedControlError("Campaign character sheet not found.", 404);
+        const p = parse(z.object({
+          sheetId: id.optional(),
+          campaignId: id.optional(),
+          userId: id.optional(),
+          username: z.string().trim().min(1).max(80).optional(),
+          limit: z.number().int().min(1).max(200).default(50),
+        }).strict(), rawParams);
+        const sheet = resolveProgressSheet(p);
         if (!sheet.libraryCharacterId) throw new McpExtendedControlError("Campaign character is not linked to a library character.", 409);
         return { handled: true, result: { events: listProgressEvents(sheet.libraryCharacterId, p.limit) } };
       }
@@ -276,11 +456,35 @@ export function extendControlResult(action: string, result: unknown) {
     return {
       ...result,
       actions: [...(result as { actions: unknown[] }).actions, ...MCP_EXTENDED_ACTIONS],
+      externalAssets: {
+        protocolVersion: ASSET_PROTOCOL_VERSION,
+        externalAssetPipeline: true,
+        binaryUpload: true,
+        packs: true,
+        jobs: true,
+        claims: true,
+        claimLeases: true,
+        variants: true,
+        references: true,
+        scopedDownloads: true,
+        providerAgnostic: true,
+        supportedMimeTypes: [...ASSET_MIME_TYPES],
+        maxFileBytes: configuredAssetMaxBytes(),
+        artKinds: [...ART_KINDS],
+      },
+      characterProgressSync: {
+        supported: true,
+        single: "characters.sync_progress",
+        party: "campaigns.sync_party_progress",
+        finishCampaign: "campaigns.finish_and_sync_party",
+        durableOnly: true,
+        optimisticRevision: true,
+      },
     };
   }
   if (action === "server.status" && "mcpControlActions" in result) {
     const current = Number((result as { mcpControlActions: unknown }).mcpControlActions) || 0;
-    return { ...result, mcpControlActions: current + MCP_EXTENDED_ACTIONS.length };
+    return { ...result, mcpControlActions: current + MCP_EXTENDED_ACTIONS.length, assetProtocolVersion: ASSET_PROTOCOL_VERSION };
   }
   return result;
 }
