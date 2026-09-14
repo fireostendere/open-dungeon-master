@@ -31,7 +31,7 @@ async function probe(name, url, check) {
     const resp = await fetch(url, { signal: controller.signal });
     clearTimeout(timer);
     const ms = Date.now() - t0;
-    const okStatus = resp.ok || resp.status === 401; // 401 = alive but gated
+    const okStatus = resp.ok || resp.status === 401;
     const detail = check ? await check(resp) : `HTTP ${resp.status}`;
     results.push({
       name,
@@ -68,10 +68,10 @@ results.push({
   detail: envServer.DB_ENCRYPTION_KEY ? ".env.server present (value hidden)" : "DB_ENCRYPTION_KEY missing in .env.server",
 });
 
-// External-art media lives below data/media by default, so the normal ODM
-// backup already captures it. Ask the authenticated control plane to verify
-// that every ready asset still has a file and no reference points at a
-// deleted/missing asset. This intentionally does not reveal the MCP token.
+// data/media is under the normal backed-up data tree. The control-plane
+// health operation cross-checks DB rows, links and staging leftovers against
+// the filesystem without exposing storage paths or tokens to unauthenticated
+// callers.
 const mcpToken = process.env.ODM_MCP_TOKEN || envServer.ODM_MCP_TOKEN || envLocal.ODM_MCP_TOKEN;
 if (mcpToken) {
   const t0 = Date.now();
@@ -89,11 +89,14 @@ if (mcpToken) {
     const health = body?.result;
     const ok = Boolean(resp.ok && body?.ok && health?.ok);
     const missing = Array.isArray(health?.missingFiles) ? health.missingFiles.length : 0;
-    const broken = Array.isArray(health?.brokenRefs) ? health.brokenRefs.length : 0;
+    const broken = Array.isArray(health?.brokenLinks) ? health.brokenLinks.length : 0;
+    const stale = Array.isArray(health?.staleUploads) ? health.staleUploads.length : 0;
     results.push({
       name: "External asset store",
       ok,
-      detail: ok ? `ready=${health?.readyAssets ?? 0}, missing=0, broken_refs=0` : `missing=${missing}, broken_refs=${broken}`,
+      detail: ok
+        ? `assets=${health?.assets ?? 0}, missing=0, broken_links=0, stale_uploads=0`
+        : `missing=${missing}, broken_links=${broken}, stale_uploads=${stale}`,
       ms: Date.now() - t0,
     });
   } catch (err) {
@@ -105,11 +108,7 @@ if (mcpToken) {
     });
   }
 } else {
-  results.push({
-    name: "External asset store",
-    ok: true,
-    detail: "skipped — ODM_MCP_TOKEN is not configured",
-  });
+  results.push({ name: "External asset store", ok: true, detail: "skipped — ODM_MCP_TOKEN is not configured" });
 }
 
 const ollamaBase = envLocal.OLLAMA_BASE_URL || "http://127.0.0.1:11434";
@@ -136,13 +135,10 @@ await probe("ComfyUI (images)", `${comfyBase}/system_stats`, async (r) => {
   return dev ? `device: ${dev}` : "reachable";
 });
 if (fs.existsSync("/home/devil/ai/comfyui/models/checkpoints")) {
-  const ckpts = fs
-    .readdirSync("/home/devil/ai/comfyui/models/checkpoints")
-    .filter((f) => f.endsWith(".safetensors"));
+  const ckpts = fs.readdirSync("/home/devil/ai/comfyui/models/checkpoints").filter((f) => f.endsWith(".safetensors"));
   results.push({ name: "ComfyUI checkpoints", ok: ckpts.length > 0, detail: ckpts.join(", ") || "none" });
 }
 
-// LAN / VPN addresses the owner can hand to friends.
 const ifaces = os.networkInterfaces();
 const addrs = [];
 for (const [name, list] of Object.entries(ifaces)) {
@@ -152,7 +148,7 @@ for (const [name, list] of Object.entries(ifaces)) {
       iface.family === "IPv4" &&
       !iface.address.startsWith("127.") &&
       !iface.address.startsWith("172.") &&
-      iface.address !== "10.255.255.254" // WSL-internal DNS relay, not joinable
+      iface.address !== "10.255.255.254"
     ) {
       addrs.push(iface.address);
     }
