@@ -21,6 +21,17 @@ function assertDimensions(width: number, height: number) {
   }
 }
 
+function crc32(bytes: Buffer) {
+  let crc = 0xffffffff;
+  for (const byte of bytes) {
+    crc ^= byte;
+    for (let bit = 0; bit < 8; bit += 1) {
+      crc = (crc >>> 1) ^ ((crc & 1) ? 0xedb88320 : 0);
+    }
+  }
+  return (crc ^ 0xffffffff) >>> 0;
+}
+
 function inspectPng(bytes: Buffer): { width: number; height: number } | null {
   const signature = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
   if (bytes.length < 33 || !bytes.subarray(0, 8).equals(signature)) return null;
@@ -31,13 +42,19 @@ function inspectPng(bytes: Buffer): { width: number; height: number } | null {
   let sawIend = false;
   while (offset + 12 <= bytes.length) {
     const length = bytes.readUInt32BE(offset);
-    const type = bytes.subarray(offset + 4, offset + 8).toString("ascii");
-    const end = offset + 12 + length;
+    const typeStart = offset + 4;
+    const dataStart = offset + 8;
+    const crcOffset = dataStart + length;
+    const end = crcOffset + 4;
     if (end > bytes.length) throw new Error("Corrupted PNG chunk length.");
+    const expectedCrc = bytes.readUInt32BE(crcOffset);
+    const actualCrc = crc32(bytes.subarray(typeStart, crcOffset));
+    if (actualCrc !== expectedCrc) throw new Error("Corrupted PNG chunk CRC.");
+    const type = bytes.subarray(typeStart, dataStart).toString("ascii");
     if (!sawIhdr) {
       if (type !== "IHDR" || length !== 13) throw new Error("Corrupted PNG header.");
-      width = bytes.readUInt32BE(offset + 8);
-      height = bytes.readUInt32BE(offset + 12);
+      width = bytes.readUInt32BE(dataStart);
+      height = bytes.readUInt32BE(dataStart + 4);
       sawIhdr = true;
     }
     if (type === "IEND") {
