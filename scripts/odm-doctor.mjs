@@ -68,6 +68,50 @@ results.push({
   detail: envServer.DB_ENCRYPTION_KEY ? ".env.server present (value hidden)" : "DB_ENCRYPTION_KEY missing in .env.server",
 });
 
+// External-art media lives below data/media by default, so the normal ODM
+// backup already captures it. Ask the authenticated control plane to verify
+// that every ready asset still has a file and no reference points at a
+// deleted/missing asset. This intentionally does not reveal the MCP token.
+const mcpToken = process.env.ODM_MCP_TOKEN || envServer.ODM_MCP_TOKEN || envLocal.ODM_MCP_TOKEN;
+if (mcpToken) {
+  const t0 = Date.now();
+  try {
+    const resp = await fetch(`http://127.0.0.1:${appPort}/api/internal/mcp`, {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${mcpToken}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({ action: "assets.health", params: {} }),
+      signal: AbortSignal.timeout(5000),
+    });
+    const body = await resp.json().catch(() => null);
+    const health = body?.result;
+    const ok = Boolean(resp.ok && body?.ok && health?.ok);
+    const missing = Array.isArray(health?.missingFiles) ? health.missingFiles.length : 0;
+    const broken = Array.isArray(health?.brokenRefs) ? health.brokenRefs.length : 0;
+    results.push({
+      name: "External asset store",
+      ok,
+      detail: ok ? `ready=${health?.readyAssets ?? 0}, missing=0, broken_refs=0` : `missing=${missing}, broken_refs=${broken}`,
+      ms: Date.now() - t0,
+    });
+  } catch (err) {
+    results.push({
+      name: "External asset store",
+      ok: false,
+      detail: err.message?.slice(0, 120) || "health request failed",
+      ms: Date.now() - t0,
+    });
+  }
+} else {
+  results.push({
+    name: "External asset store",
+    ok: true,
+    detail: "skipped — ODM_MCP_TOKEN is not configured",
+  });
+}
+
 const ollamaBase = envLocal.OLLAMA_BASE_URL || "http://127.0.0.1:11434";
 await probe("Ollama (local text)", `${ollamaBase}/api/tags`, async (r) => {
   const d = await r.json().catch(() => null);
