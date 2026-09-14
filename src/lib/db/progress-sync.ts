@@ -109,6 +109,7 @@ function durableSnapshot(sheet: NonNullable<ReturnType<typeof getSheetById>>) {
     copper: sheet.copper,
     feats: sheet.feats,
     features: sheet.features,
+    hitDice: { ...sheet.hitDice, spent: 0 },
     spellcasting: sheet.spellcasting
       ? {
           ...sheet.spellcasting,
@@ -177,6 +178,8 @@ function librarySummary(character: NonNullable<ReturnType<typeof getCharacter>>)
     maxHp: character.sheet.maxHp,
     ac: character.sheet.ac,
     gold: character.sheet.gold,
+    copper: character.sheet.copper,
+    hitDice: character.sheet.hitDice,
     equipmentCount: character.sheet.equipment.length,
     featCount: character.sheet.feats.length,
     updatedAt: character.updatedAt,
@@ -243,6 +246,27 @@ export function listProgressEvents(libraryCharacterId: string, limit = 50) {
   }));
 }
 
+function repairDurableFieldsAfterLegacySync(
+  libraryCharacterId: string,
+  sheet: NonNullable<ReturnType<typeof getSheetById>>,
+) {
+  const current = getCharacter(libraryCharacterId);
+  if (!current) throw new Error("Linked library character not found after sync.");
+  const repaired = {
+    ...current.sheet,
+    copper: sheet.copper,
+    hitDice: { ...sheet.hitDice, spent: 0 },
+    hitDicePools: sheet.hitDicePools?.map((pool) => ({ ...pool, spent: 0 })) ?? null,
+  };
+  const updatedAt = nowIso();
+  getDatabase()
+    .prepare("UPDATE library_characters SET sheet_json = ?, updated_at = ? WHERE id = ?")
+    .run(JSON.stringify(repaired), updatedAt, libraryCharacterId);
+  const final = getCharacter(libraryCharacterId);
+  if (!final) throw new Error("Linked library character disappeared after sync.");
+  return final;
+}
+
 export function syncCharacterProgress(sheetId: string, expectedVersion?: number) {
   ensureProgressSchema();
   const db = getDatabase();
@@ -269,8 +293,12 @@ export function syncCharacterProgress(sheetId: string, expectedVersion?: number)
     const before = getCharacter(sheet.libraryCharacterId!);
     if (!before) throw new Error("Linked library character not found.");
     const beforeSummary = librarySummary(before);
-    const synced = syncProgressToLibrary(sheet.id);
-    if (!synced) throw new Error("Progress synchronization failed.");
+    const legacySynced = syncProgressToLibrary(sheet.id);
+    if (!legacySynced) throw new Error("Progress synchronization failed.");
+    // The established helper intentionally owns the durable merge. Older
+    // versions did not copy single-class hitDice/copper; repair only those
+    // two durable fields here while still clearing spent hit dice.
+    const synced = repairDurableFieldsAfterLegacySync(sheet.libraryCharacterId!, sheet);
     const afterSummary = librarySummary(synced);
     const snapshot = progressSnapshot(sheet);
     const delta = semanticDelta(
