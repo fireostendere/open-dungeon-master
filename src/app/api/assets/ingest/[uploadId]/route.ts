@@ -20,6 +20,30 @@ function json(body: unknown, status: number) {
   });
 }
 
+async function readBoundedBody(request: Request, maxBytes: number) {
+  if (!request.body) throw new Error("Image is empty.");
+  const reader = request.body.getReader();
+  const chunks: Buffer[] = [];
+  let total = 0;
+  try {
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      if (!value?.byteLength) continue;
+      total += value.byteLength;
+      if (total > maxBytes) {
+        await reader.cancel("asset upload exceeds scoped size limit").catch(() => undefined);
+        throw new Error("Asset exceeds upload grant size limit.");
+      }
+      chunks.push(Buffer.from(value));
+    }
+  } finally {
+    reader.releaseLock();
+  }
+  if (!total) throw new Error("Image is empty.");
+  return Buffer.concat(chunks, total);
+}
+
 export async function PUT(
   request: Request,
   { params }: { params: Promise<{ uploadId: string }> },
@@ -37,19 +61,19 @@ export async function PUT(
     return json({ error: message }, status);
   }
 
+  const maxBytes = grant.maxBytes ?? 0;
+  if (maxBytes < 1) {
+    failUploadGrant(uploadId);
+    return json({ error: "Upload grant has no usable size allowance." }, 409);
+  }
   const declaredLength = Number(request.headers.get("content-length") || 0);
-  if (declaredLength > 0 && grant.maxBytes != null && declaredLength > grant.maxBytes) {
+  if (declaredLength > maxBytes) {
     failUploadGrant(uploadId);
     return json({ error: "Asset exceeds upload grant size limit." }, 413);
   }
 
   try {
-    const bytes = Buffer.from(await request.arrayBuffer());
-    if (!bytes.length) throw new Error("Image is empty.");
-    if (grant.maxBytes != null && bytes.length > grant.maxBytes) {
-      failUploadGrant(uploadId);
-      return json({ error: "Asset exceeds upload grant size limit." }, 413);
-    }
+    const bytes = await readBoundedBody(request, maxBytes);
     const inspected = inspectImage(bytes);
     if (grant.expectedMimeType && inspected.mimeType !== grant.expectedMimeType) {
       throw new Error("Uploaded image MIME does not match the upload grant.");
@@ -72,7 +96,11 @@ export async function PUT(
   } catch (error) {
     failUploadGrant(uploadId);
     const message = error instanceof Error ? error.message : "Invalid image upload.";
-    const status = /size limit/i.test(message) ? 413 : /format|PNG|JPEG|WebP|MIME|dimensions|corrupt/i.test(message) ? 415 : 400;
+    const status = /size limit/i.test(message)
+      ? 413
+      : /format|PNG|JPEG|WebP|MIME|dimensions|corrupt/i.test(message)
+        ? 415
+        : 400;
     return json({ error: message }, status);
   }
 }
