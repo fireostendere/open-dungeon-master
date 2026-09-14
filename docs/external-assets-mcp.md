@@ -249,6 +249,10 @@ The progression tool is built on the existing `syncProgressToLibrary` domain log
 
 The reusable library copy receives durable progression. Current HP, temporary HP, conditions, death saves, exhaustion, spent spell slots and spent hit dice remain campaign/runtime state; reusable spell slots and hit dice are reset for a future campaign.
 
+### Party representation note
+
+Open Dungeon Master has no standalone `Party` database table or entity. The party is represented directly by the active campaign participants (`campaign_members`) and their assigned character sheets (`character_sheets`, plus any AI companions). All party operations (`sync_party`, `finish_and_sync_party`, party art packs) iterate directly over these campaign members and their sheets.
+
 ## Upload security model
 
 - normal MCP bearer token is never an upload/download URL parameter;

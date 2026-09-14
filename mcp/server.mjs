@@ -1,5 +1,7 @@
 import { createHash, timingSafeEqual } from "node:crypto";
 import { createServer as createHttpServer } from "node:http";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { McpServer, createMcpHandler } from "@modelcontextprotocol/server";
 import { serveStdio } from "@modelcontextprotocol/server/stdio";
 import { toNodeHandler } from "@modelcontextprotocol/node";
@@ -400,6 +402,51 @@ function createMcpServer() {
   return server;
 }
 
+export const BASE_MCP_TOOLS = Object.freeze([
+  "odm_server",
+  "odm_users",
+  "odm_campaigns",
+  "odm_campaign_settings",
+  "odm_story",
+  "odm_members",
+  "odm_characters",
+  "odm_sheets",
+]);
+
+export const PRELOAD_MCP_TOOLS = Object.freeze([
+  "odm_assets",
+  "odm_progress",
+]);
+
+export const ALL_EXPECTED_MCP_TOOLS = Object.freeze([
+  ...PRELOAD_MCP_TOOLS,
+  ...BASE_MCP_TOOLS,
+].sort());
+
+export function assertRegisteredTools(server, { expectPreload = true } = {}) {
+  const registered = Object.keys(server._registeredTools || {}).sort();
+  const expected = (expectPreload ? ALL_EXPECTED_MCP_TOOLS : BASE_MCP_TOOLS).slice().sort();
+  const missing = expected.filter((tool) => !registered.includes(tool));
+  if (missing.length > 0) {
+    throw new Error(
+      `MCP tools verification failed: missing expected tool(s) [${missing.join(", ")}]. Registered: [${registered.join(", ")}]`
+    );
+  }
+  return registered;
+}
+
+export function createVerifiedMcpServer(options = {}) {
+  const server = createMcpServer();
+  const requirePreload =
+    options.expectPreload ??
+    (process.env.ODM_MCP_REQUIRE_PRELOAD !== "0" &&
+      process.env.ODM_MCP_REQUIRE_PRELOAD !== "false");
+  if (requirePreload) {
+    assertRegisteredTools(server, { expectPreload: true });
+  }
+  return server;
+}
+
 async function serveHttp() {
   if (!Number.isInteger(PORT) || PORT < 1 || PORT > 65535) {
     throw new Error("ODM_MCP_PORT must be a valid TCP port.");
@@ -408,7 +455,7 @@ async function serveHttp() {
     throw new Error("ODM_MCP_TOKEN must be set before the HTTP MCP endpoint can start.");
   }
 
-  const handler = createMcpHandler(createMcpServer);
+  const handler = createMcpHandler(createVerifiedMcpServer);
   const nodeHandler = toNodeHandler(handler);
   const http = createHttpServer(async (req, res) => {
     const pathname = new URL(req.url || "/", `http://${req.headers.host || "localhost"}`).pathname;
@@ -472,8 +519,18 @@ async function serveHttp() {
   });
 }
 
-if (process.argv.includes("--stdio")) {
-  await serveStdio(createMcpServer);
-} else {
-  await serveHttp();
+export { createMcpServer, serveHttp, serveStdio };
+
+const isDirectRun =
+  Boolean(process.argv[1]) &&
+  (fileURLToPath(import.meta.url) === path.resolve(process.argv[1]) ||
+    process.argv[1].endsWith("/server.mjs") ||
+    process.argv[1].endsWith("\\server.mjs"));
+
+if (isDirectRun) {
+  if (process.argv.includes("--stdio")) {
+    await serveStdio(createVerifiedMcpServer);
+  } else {
+    await serveHttp();
+  }
 }

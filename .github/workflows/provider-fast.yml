@@ -68,6 +68,12 @@ jobs:
         env:
           ODM_PLAYWRIGHT_MODULE: ${{ runner.temp }}/odm-browser/node_modules/playwright/index.mjs
         run: node scripts/e2e/provider-auth.mjs
+      - name: Solo campaign lifecycle E2E (creation, combat, art, restart, finish)
+        env:
+          ODM_PLAYWRIGHT_MODULE: ${{ runner.temp }}/odm-browser/node_modules/playwright/index.mjs
+        run: node scripts/e2e/solo-campaign.e2e.mjs
+      - name: 35-turn soak test with restarts and provider fault recovery
+        run: node scripts/e2e/soak-turns.mjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:

@@ -29,6 +29,9 @@ export function PartyStep({ draft, patch, gates }: StepProps) {
   const { solo, aiNarrates } = gates;
   return (
     <div className="space-y-4 text-sm">
+      <p className="text-xs text-stone-400">
+        The party is formed directly by members and their assigned characters joining this campaign.
+      </p>
       <div className={cn("grid gap-3", solo ? "grid-cols-2" : "grid-cols-3")}>
         {!solo ? (
           <label className="block">

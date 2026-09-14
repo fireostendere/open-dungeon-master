@@ -98,9 +98,12 @@ export function LobbyParty({
     <>
       {showParty ? (
       <section className="mb-6">
-        <h2 className={cn(ui.sectionEyebrow, "mb-3")}>
+        <h2 className={cn(ui.sectionEyebrow, "mb-1")}>
           Party · {members.length}/{campaign.maxPlayers}
         </h2>
+        <p className="mb-3 text-xs text-stone-400">
+          The party is formed by campaign members and their assigned characters.
+        </p>
         <ul className="space-y-2">
           {members.map((member) => {
             const sheet = sheets.find((entry) => entry.userId === member.userId);
