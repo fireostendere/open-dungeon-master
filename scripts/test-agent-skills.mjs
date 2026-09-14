@@ -13,11 +13,13 @@ const expected = new Set([
 const files = readdirSync(skillsRoot).map((id) => path.join(skillsRoot, id, "SKILL.md"));
 assert.deepEqual(new Set(files.map((file) => path.basename(path.dirname(file)))), expected, "skill directories must match the catalog");
 const catalogText = readFileSync(catalog, "utf8");
-for (const id of expected) assert(catalogText.includes(`skills/${id}/SKILL.md`), `catalog must list ${id}`);
+const link = /\[[^\]]+\]\(([^)]+)\)/g;
+const catalogLinks = new Set([...catalogText.matchAll(link)].map((match) => match[1].split("#", 1)[0]));
+for (const id of expected) assert(catalogLinks.has(`../.opencode/skills/${id}/SKILL.md`), `catalog must link ${id}`);
 const names = new Set();
-const markdownFiles = [...files, catalog];
+const markdownFiles = [...files, catalog, path.join(root, "AGENTS.md"), path.join(root, "docs", "README.md")];
 for (const file of files) {
-  const text = readFileSync(file, "utf8");
+  const text = readFileSync(file, "utf8").replace(/\r\n/g, "\n");
   const match = text.match(/^---\nname: ([a-z0-9-]+)\ndescription: "([^"\n]+)"\n---\n/);
   assert(match, `${file}: require name and quoted nonempty description frontmatter`);
   assert.equal(match[1], path.basename(path.dirname(file)), `${file}: name must match its directory`);
@@ -26,7 +28,6 @@ for (const file of files) {
   assert(text.includes("agent-skills.md#"), `${file}: link shared contract`);
 }
 assert.equal(names.size, expected.size, "all skills have frontmatter");
-const link = /\[[^\]]+\]\(([^)]+)\)/g;
 for (const file of markdownFiles) {
   const text = readFileSync(file, "utf8");
   for (const match of text.matchAll(link)) {
