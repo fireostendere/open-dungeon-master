@@ -16,6 +16,21 @@ def fixture(action):
     c.compose('stop','app')
     try:c.compose('run','--rm','--no-deps','-T','app','node','tests/deploy/db-fixture.mjs',action,timeout=120)
     finally:c.compose('up','-d','app');c.wait_ready()
+def mcp_control(action,params=None):
+    env={}
+    for line in (c.config_dir/'app.env').read_text(encoding='utf-8').splitlines():
+        if '=' in line and not line.lstrip().startswith('#'):
+            key,value=line.split('=',1);env[key]=value
+    token=env.get('ODM_MCP_TOKEN','').strip();assert token
+    request=urllib.request.Request(
+        f"http://127.0.0.1:{c.config['port']}/api/internal/mcp",
+        data=json.dumps({'action':action,'params':params or {}}).encode(),
+        headers={'Content-Type':'application/json','Authorization':'Bearer '+token},
+    )
+    with urllib.request.urlopen(request,timeout=15) as response:
+        body=json.loads(response.read())
+    assert body.get('ok'),body
+    return body['result']
 
 guard=ops.locked(c.root);guard.__enter__()
 try:
@@ -37,6 +52,11 @@ try:
     fixture('mutate');c.restore(snapshot,check_only=True);fixture('assert-mutated')
     record('restore drill validates encrypted snapshot without replacing newer live state')
     c.restore(snapshot,yes=True);fixture('assert');record('actual restore recovers character HP, story, message, asset and isolated account file')
+    asset_health=mcp_control('assets.health')
+    assert asset_health['ok'],asset_health
+    assert asset_health['assets']>=1,asset_health
+    assert not asset_health['missingFiles'] and not asset_health['brokenLinks'],asset_health
+    record('actual restore preserves external asset DB rows, links and media files')
     good=c.active()
     container=c.docker('create',good['image']).strip()
     try:bad_image=c.docker('commit','--change','CMD ["node","-e","process.exit(42)"]',container).strip()

@@ -1,14 +1,14 @@
 {
   "name": "open-dungeon-master-mcp",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
   "engines": {
     "node": ">=22"
   },
   "scripts": {
-    "start": "node server.mjs",
-    "stdio": "node server.mjs --stdio"
+    "start": "node --import ./external-tools-preload.mjs server.mjs",
+    "stdio": "node --import ./external-tools-preload.mjs server.mjs --stdio"
   },
   "dependencies": {
     "@modelcontextprotocol/node": "2.0.0",

@@ -1,14 +1,10 @@
 // ODM restore: unpack a backup archive into a TARGET directory (never the
 // live repo by default) and verify it can open the encrypted DB with the
-// archived key. The spec requires a proven restore, not just an archive:
-// this script opens the restored SQLite with the restored key and counts
-// campaigns/users, printing them as proof.
+// archived key. Asset media is part of game state, so when the asset tables
+// exist this verification also proves every non-deleted asset file survived
+// the archive and still matches a DB row.
 //
 //   node scripts/odm-restore.mjs <archive.tar.gz> <targetDir> [--live]
-//
-// --live restores over the running repo (refuses unless the server is
-// stopped: it checks for a listener on the app port). Without --live the
-// restore is a dry-run into targetDir and the live campaign is untouched.
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import net from "node:net";
@@ -64,10 +60,42 @@ db.pragma(`key='${key}'`);
 const campaigns = db.prepare("SELECT COUNT(*) AS n FROM campaigns").get().n;
 const users = db.prepare("SELECT COUNT(*) AS n FROM users").get().n;
 const messages = db.prepare("SELECT COUNT(*) AS n FROM campaign_messages").get().n;
+
+let assets = 0;
+let linkedAssets = 0;
+const missingAssets = [];
+const assetTable = db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'asset_files'").get();
+if (assetTable) {
+  const rows = db.prepare("SELECT id, storage_key FROM asset_files WHERE deleted_at IS NULL").all();
+  assets = rows.length;
+  for (const row of rows) {
+    const storageKey = String(row.storage_key || "").replace(/\\/g, "/");
+    if (!storageKey || storageKey.split("/").some((part) => part === ".." || part === ".")) {
+      missingAssets.push(row.id);
+      continue;
+    }
+    const file = path.resolve(target, "data", "media", ...storageKey.split("/"));
+    const mediaRoot = path.resolve(target, "data", "media");
+    const relative = path.relative(mediaRoot, file);
+    if (relative.startsWith("..") || path.isAbsolute(relative) || !fs.existsSync(file) || !fs.statSync(file).isFile()) {
+      missingAssets.push(row.id);
+    }
+  }
+  const linkTable = db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'asset_links'").get();
+  if (linkTable) linkedAssets = db.prepare("SELECT COUNT(*) AS n FROM asset_links").get().n;
+}
+
 db.close();
 
+if (missingAssets.length) {
+  console.error(`restore verification failed: ${missingAssets.length} asset file(s) missing: ${missingAssets.slice(0, 10).join(", ")}`);
+  process.exit(1);
+}
+
 console.log(`restore OK into ${live ? "the live repo" : target}`);
-console.log(`proof: db opened with the archived key — campaigns=${campaigns} users=${users} messages=${messages}`);
+console.log(
+  `proof: db opened with the archived key — campaigns=${campaigns} users=${users} messages=${messages} assets=${assets} asset_links=${linkedAssets}`,
+);
 if (!live) {
   console.log("dry-run restore; the live campaign is untouched. To go live: stop the server, re-run with --live.");
 }

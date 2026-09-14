@@ -162,20 +162,30 @@ class McpController:
             created = True
         if len(token) < 32:
             raise McpOpsError("ODM_MCP_TOKEN is too short; use at least 32 random characters")
-        # app.env is authoritative when the operator rotates the token. Keep
-        # the convenience file synchronized rather than silently preserving a
-        # stale credential that a client would later copy.
         stored = self.token_file.read_text(encoding="utf-8").strip() if self.token_file.exists() else ""
         if stored != token:
             atomic(self.token_file, token + "\n", 0o600)
         return token, created
 
     def ensure_env(self, token: str) -> bool:
+        current = parse_env(self.app_env)
+        domain = str(self.install.get("domain", "")).strip()
+        configured_public = current.get("ODM_PUBLIC_URL", "").strip()
+        if configured_public:
+            public_url = configured_public
+        elif domain:
+            public_url = "https://" + domain
+        else:
+            public_url = f"http://127.0.0.1:{int(self.install.get('port', 3005))}"
         changed = set_env(
             self.app_env,
             {
                 "ODM_MCP_TOKEN": token,
-                "ODM_MCP_OWNER_USERNAME": parse_env(self.app_env).get("ODM_MCP_OWNER_USERNAME", "odm_admin"),
+                "ODM_MCP_OWNER_USERNAME": current.get("ODM_MCP_OWNER_USERNAME", "odm_admin"),
+                # The app creates scoped binary asset URLs, while the MCP
+                # sidecar itself is normally on :3006. Preserve an operator
+                # override; otherwise derive the actual managed app origin.
+                "ODM_PUBLIC_URL": public_url,
             },
         )
         atomic(

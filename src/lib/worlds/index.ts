@@ -179,8 +179,8 @@ export function installedPackPath(id: string): string | null {
   if (!/^[a-z][a-z0-9_]{2,49}$/.test(id)) {
     return null;
   }
-  const target = path.resolve(INSTALLED_DIR, `${id}.json`);
-  const root = path.resolve(INSTALLED_DIR);
+  const target = path.resolve(/*turbopackIgnore: true*/ INSTALLED_DIR, `${id}.json`);
+  const root = path.resolve(/*turbopackIgnore: true*/ INSTALLED_DIR);
   if (path.dirname(target) !== root) {
     return null;
   }

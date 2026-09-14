@@ -1,0 +1,69 @@
+import assert from "node:assert/strict";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { register } from "node:module";
+
+register("./lib/register-alias.mjs", import.meta.url);
+
+const root = fs.mkdtempSync(path.join(os.tmpdir(), "odm-schema-upgrade-"));
+process.env.SQLITE_DB_PATH = path.join(root, "existing.sqlite");
+process.env.DB_ENCRYPTION_KEY = "schema-upgrade-test-key";
+process.env.ODM_SQLITE_DRIVER = "node";
+process.env.ODM_MEDIA_ROOT = path.join(root, "media");
+
+const { getDatabase } = await import("../src/lib/db/core.ts");
+const db = getDatabase();
+const before = new Set(
+  db.prepare("SELECT name FROM sqlite_master WHERE type = 'table'").all().map((row) => row.name),
+);
+assert.equal(before.has("asset_packs"), false, "pre-feature database should not require external tables yet");
+assert.equal(before.has("character_progress_events"), false);
+
+// Existing ODM's migration convention is idempotent CREATE/ALTER during
+// first use/startup rather than a separate migration executable. Feature
+// access must therefore upgrade an already-created DB without operator SQL.
+const { ensureAssetPipelineSchema } = await import("../src/lib/db/asset-pipeline.ts");
+const { ensureProgressSchema } = await import("../src/lib/db/progress-sync.ts");
+ensureAssetPipelineSchema();
+ensureProgressSchema();
+ensureAssetPipelineSchema();
+ensureProgressSchema();
+
+const after = new Set(
+  db.prepare("SELECT name FROM sqlite_master WHERE type = 'table'").all().map((row) => row.name),
+);
+for (const table of [
+  "asset_packs",
+  "asset_jobs",
+  "asset_files",
+  "asset_links",
+  "asset_access_grants",
+  "character_progress_state",
+  "character_progress_events",
+]) {
+  assert.ok(after.has(table), `missing upgraded table ${table}`);
+}
+
+const indexes = new Set(
+  db.prepare("SELECT name FROM sqlite_master WHERE type = 'index'").all().map((row) => row.name),
+);
+for (const index of [
+  "idx_asset_packs_campaign",
+  "idx_asset_jobs_campaign_status",
+  "idx_asset_jobs_pack_status",
+  "idx_asset_files_campaign",
+  "idx_asset_files_job",
+  "idx_asset_files_sha256",
+  "idx_asset_links_target",
+  "idx_character_progress_revision",
+  "idx_character_progress_campaign",
+]) {
+  assert.ok(indexes.has(index), `missing upgraded index ${index}`);
+}
+
+console.log("external schema migration: automatic and idempotent");
+
+globalThis.__localRoleplayDb?.close();
+globalThis.__localRoleplayDb = undefined;
+fs.rmSync(root, { recursive: true, force: true });

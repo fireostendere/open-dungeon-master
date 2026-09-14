@@ -50,6 +50,26 @@ Linux — `/opt/odm/config/admin.json`; Windows — `%LOCALAPPDATA%\OpenDungeonM
 Домен должен указывать на сервер, а TCP 80/443 быть доступны. Без домена приложение
 слушает только localhost; внешняя публикация и открытие firewall молча не выполняются.
 
+## MCP и внешняя генерация артов
+
+ODM MCP может не только управлять кампаниями и live sheets, но и работать как
+control-plane для **внешнего** генератора изображений. Сам генератор не обязан
+находиться на сервере с ODM: внешний AI запрашивает backlog через `odm_assets`,
+claim'ит job, рисует через Qwen/ComfyUI/другой provider, получает одноразовый
+upload grant и отправляет PNG/JPEG/WebP напрямую в scoped HTTP endpoint ODM.
+
+Готовые файлы хранятся в persistent `data/media`, индексируются в той же SQLite,
+связываются с campaign/character/NPC/scene/location/map/chapter/item и переживают
+restart/update/backup/restore. Несколько вариантов одного job поддерживаются с
+выбором primary. Reference assets выдаются через отдельные короткоживущие download grants.
+
+Подробный протокол, remote/local/stdio подключения, полный provider-neutral Qwen
+workflow и troubleshooting: [External art pipeline over MCP](docs/external-assets-mcp.md).
+
+MCP также предоставляет безопасную синхронизацию durable progression обратно в
+character library и `finish_and_sync_party`: временные HP/conditions, death saves,
+потраченные spell slots и hit dice в reusable character не переносятся.
+
 ## Основные команды
 
 На Linux используйте `sudo odmctl …`; на Windows — `…\OpenDungeonMaster\odmctl.cmd …`.
@@ -84,14 +104,16 @@ DNS или настройки гипервизора. На Windows ПК долж
 
 Графика использует существующие ComfyUI или облачные image-провайдеры. Установщик
 не объявляет placeholder сгенерированным изображением, не скачивает без выбора
-десятки гигабайт image-моделей и не обещает поддержку любой GPU.
+десятки гигабайт image-моделей и не обещает поддержку любой GPU. Внешний MCP art
+pipeline работает параллельно с существующей серверной генерацией и не заменяет её.
 
 ## Документация
 
 Начните с [индекса документации](docs/README.md): [установка](docs/installation.md),
 [эксплуатация](docs/operations.md), [бэкапы и восстановление](docs/backups.md),
 [конфигурация](docs/configuration.md), [модели](docs/llm-wizard.md),
-[изображения](docs/image-generation.md), [проверки и ограничения](docs/deployment-testing.md).
+[изображения](docs/image-generation.md), [внешние арты через MCP](docs/external-assets-mcp.md),
+[проверки и ограничения](docs/deployment-testing.md).
 
 Исходное развёрнутое описание возможностей upstream сохранено в
 [архивной справке](docs/upstream-readme.md). Для установки этого форка используйте
