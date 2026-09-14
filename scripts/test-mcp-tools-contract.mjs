@@ -9,7 +9,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const mcpNodeModules = path.join(root, "mcp", "node_modules");
 
 function runSubprocess(code, { preload = true, env = {} } = {}) {
-  const args = [];
+  const args = ["--import", "./scripts/lib/register-mcp-shim.mjs"];
   if (preload) {
     args.push("--import", "./mcp/external-tools-preload.mjs");
   }

@@ -7,7 +7,7 @@ import path from "node:path";
 import { randomBytes } from "node:crypto";
 import { spawn } from "node:child_process";
 import { createServer } from "node:http";
-import { fileURLToPath } from "node:url";
+
 const root = process.cwd();
 const temp = fs.mkdtempSync(path.join(os.tmpdir(), "odm-soak-"));
 const mediaRoot = path.join(temp, "media");
@@ -156,7 +156,13 @@ async function startMcp() {
 
   mcpProcess = spawn(
     process.execPath,
-    ["--import", "./mcp/external-tools-preload.mjs", "mcp/server.mjs"],
+    [
+      "--import",
+      "./scripts/lib/register-mcp-shim.mjs",
+      "--import",
+      "./mcp/external-tools-preload.mjs",
+      "mcp/server.mjs",
+    ],
     {
       cwd: root,
       env: {
