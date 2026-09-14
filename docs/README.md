@@ -15,6 +15,7 @@
 - [Бэкапы, off-site и восстановление на новой машине](backups.md)
 - [Подключение ChatGPT, Gemini, Qwen и локальных runtime](llm-wizard.md)
 - [Изображения, ComfyUI, карты и портреты](image-generation.md)
+- [Внешняя генерация артов через MCP: packs, jobs, binary upload, references](external-assets-mcp.md)
 - [Автотесты и точные границы проверки](deployment-testing.md)
 
 ## Игра, контент и разработка
