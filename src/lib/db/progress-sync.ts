@@ -106,6 +106,7 @@ function durableSnapshot(sheet: NonNullable<ReturnType<typeof getSheetById>>) {
     ac: sheet.ac,
     equipment: sheet.equipment,
     gold: sheet.gold,
+    copper: sheet.copper,
     feats: sheet.feats,
     features: sheet.features,
     spellcasting: sheet.spellcasting
@@ -163,6 +164,22 @@ function progressSnapshot(sheet: NonNullable<ReturnType<typeof getSheetById>>): 
     },
     durable: durableSnapshot(sheet),
     sheetUpdatedAt: sheet.updatedAt,
+  };
+}
+
+function librarySummary(character: NonNullable<ReturnType<typeof getCharacter>>) {
+  return {
+    id: character.id,
+    name: character.name,
+    level: character.level,
+    xp: character.xp,
+    subclass: character.subclass,
+    maxHp: character.sheet.maxHp,
+    ac: character.sheet.ac,
+    gold: character.sheet.gold,
+    equipmentCount: character.sheet.equipment.length,
+    featCount: character.sheet.feats.length,
+    updatedAt: character.updatedAt,
   };
 }
 
@@ -245,14 +262,16 @@ export function syncCharacterProgress(sheetId: string, expectedVersion?: number)
       current.last_sheet_updated_at > sheet.updatedAt
     ) {
       throw new ProgressConflictError(
-        `Refusing to overwrite newer library progress from sheet ${current.last_sheet_id}; pass its current revision after resolving the conflict.`,
+        `Refusing to overwrite newer library progress from sheet ${current.last_sheet_id}; resolve the conflict before syncing this sheet.`,
       );
     }
 
     const before = getCharacter(sheet.libraryCharacterId!);
     if (!before) throw new Error("Linked library character not found.");
+    const beforeSummary = librarySummary(before);
     const synced = syncProgressToLibrary(sheet.id);
     if (!synced) throw new Error("Progress synchronization failed.");
+    const afterSummary = librarySummary(synced);
     const snapshot = progressSnapshot(sheet);
     const delta = semanticDelta(
       { level: before.level, xp: before.xp, sheet: before.sheet },
@@ -292,6 +311,12 @@ export function syncCharacterProgress(sheetId: string, expectedVersion?: number)
     `).run(sheet.libraryCharacterId, revision, now, sheet.id, sheet.updatedAt, synced.updatedAt);
 
     return {
+      sheet,
+      libraryCharacter: synced,
+      before: beforeSummary,
+      after: afterSummary,
+      level: synced.level,
+      xp: synced.xp,
       sheetId: sheet.id,
       campaignId: sheet.campaignId,
       libraryCharacterId: sheet.libraryCharacterId,
@@ -301,21 +326,51 @@ export function syncCharacterProgress(sheetId: string, expectedVersion?: number)
       syncedAt: now,
       delta,
       snapshot,
-      libraryCharacter: synced,
     };
   })();
 }
 
-export function bulkSyncCampaignProgress(campaignId: string) {
-  const sheets = listSheets(campaignId).filter((sheet) => Boolean(sheet.libraryCharacterId));
-  const results: Array<ReturnType<typeof syncCharacterProgress>> = [];
-  const errors: Array<{ sheetId: string; error: string }> = [];
-  for (const sheet of sheets) {
+export function syncPartyProgress(
+  campaignId: string,
+  options: { includeCompanions?: boolean; skipUnlinked?: boolean } = {},
+) {
+  const includeCompanions = options.includeCompanions ?? false;
+  const skipUnlinked = options.skipUnlinked ?? true;
+  const candidates = listSheets(campaignId).filter((sheet) => includeCompanions || !sheet.isCompanion);
+  const synced: Array<ReturnType<typeof syncCharacterProgress>> = [];
+  const skipped: Array<{ sheetId: string; name: string; reason: string }> = [];
+  const failed: Array<{ sheetId: string; name: string; error: string }> = [];
+
+  for (const sheet of candidates) {
+    if (!sheet.libraryCharacterId) {
+      const record = { sheetId: sheet.id, name: sheet.name, reason: "not linked to a library character" };
+      if (skipUnlinked) skipped.push(record);
+      else failed.push({ sheetId: sheet.id, name: sheet.name, error: record.reason });
+      continue;
+    }
     try {
-      results.push(syncCharacterProgress(sheet.id));
+      synced.push(syncCharacterProgress(sheet.id));
     } catch (error) {
-      errors.push({ sheetId: sheet.id, error: error instanceof Error ? error.message : "Unknown progress sync error" });
+      failed.push({
+        sheetId: sheet.id,
+        name: sheet.name,
+        error: error instanceof Error ? error.message : "Unknown progress sync error",
+      });
     }
   }
-  return { campaignId, synced: results, errors, total: sheets.length };
+
+  return {
+    campaignId,
+    synced,
+    skipped,
+    failed,
+    totals: {
+      candidates: candidates.length,
+      synced: synced.length,
+      skipped: skipped.length,
+      failed: failed.length,
+    },
+  };
 }
+
+export const bulkSyncCampaignProgress = syncPartyProgress;
