@@ -27,7 +27,7 @@ The MCP process has no Docker socket mount, no game volume, no database file, no
 
 ## What the model can do
 
-The public MCP surface is deliberately compact and verified: ten tools cover the control actions, asset pipeline, and progression sync so an agent does not have to load dozens of nearly identical tool definitions.
+The public MCP surface is deliberately compact and verified: eleven tools cover the control actions, model switching, asset pipeline, and progression sync so an agent does not have to load dozens of nearly identical tool definitions.
 
 | MCP tool | Main operations |
 | --- | --- |
@@ -39,6 +39,7 @@ The public MCP surface is deliberately compact and verified: ten tools cover the
 | `odm_members` | roster, add an existing user, transfer party lead |
 | `odm_characters` | library characters, create/update/delete, instantiate into a campaign |
 | `odm_sheets` | live campaign sheets, including HP, conditions, XP, inventory and DM-managed fields |
+| `odm_models` | inspect/list text models, test & connect with tool probe, switch between local runtime and remote servers |
 | `odm_assets` | external asset pipeline: campaign art planning, packs, jobs, leases, upload/download grants, variants and links |
 | `odm_progress` | character and party progression sync, versioned sync to library, finish and sync policy |
 

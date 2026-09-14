@@ -23,8 +23,16 @@ export function connectionTarget(input){
       if(!Object.hasOwn(urls,region))throw new ProviderError('INVALID_QWEN_REGION');
       return {...base,name:`Qwen / ${region}`,kind:'cloud-preset',preset:'dashscope',baseUrl:urls[region]+'/chat/completions'};
     }
-    case 'qwen-local':
-      return {...base,name:'Qwen / local',kind:'local-runtime',preset:'ollama',baseUrl:chatUrl(input.baseUrl||'http://127.0.0.1:11434/v1'),timeoutMs:180000};
+    case 'qwen-local': {
+      const customName = typeof input.name === 'string' && input.name.trim() ? input.name.trim() : null;
+      const rawUrl = input.baseUrl || 'http://127.0.0.1:11434/v1';
+      let hostDesc = 'local';
+      try {
+        const host = new URL(rawUrl).hostname;
+        if (host !== '127.0.0.1' && host !== 'localhost') hostDesc = `remote ${host}`;
+      } catch {}
+      return {...base,name:customName||(hostDesc==='local'?'Qwen / local':`Qwen / ${hostDesc}`),kind:'local-runtime',preset:'ollama',baseUrl:chatUrl(rawUrl),timeoutMs:180000};
+    }
     default:throw new ProviderError('UNKNOWN_PROVIDER');
   }
 }

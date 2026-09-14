@@ -72,6 +72,13 @@ function runSubprocess(code, { preload = true, env = {} } = {}) {
       process.exit(4);
     }
 
+    // Verify odm_models is registered
+    const modelsTool = server._registeredTools["odm_models"];
+    if (!modelsTool) {
+      console.error("odm_models is not registered!");
+      process.exit(5);
+    }
+
     process.stdout.write(JSON.stringify({ ok: true, toolsCount: registered.length, registered }));
   `);
 
@@ -82,10 +89,11 @@ function runSubprocess(code, { preload = true, env = {} } = {}) {
   );
   const parsed = JSON.parse(result.stdout);
   assert.equal(parsed.ok, true);
-  assert.equal(parsed.toolsCount, 10);
+  assert.equal(parsed.toolsCount, 11);
   assert.ok(parsed.registered.includes("odm_assets"), "odm_assets must be registered");
   assert.ok(parsed.registered.includes("odm_progress"), "odm_progress must be registered");
-  console.log("PASS mcp full tools contract with preload (10 tools verified)");
+  assert.ok(parsed.registered.includes("odm_models"), "odm_models must be registered");
+  console.log("PASS mcp full tools contract with preload (11 tools verified)");
 }
 
 // 2. Verify that removing odm_assets or odm_progress throws contract violation
@@ -168,7 +176,7 @@ function runSubprocess(code, { preload = true, env = {} } = {}) {
   );
   const parsed = JSON.parse(result.stdout);
   assert.equal(parsed.ok, true);
-  assert.equal(parsed.baseCount, 8);
+  assert.equal(parsed.baseCount, 9);
   console.log("PASS base tools without preload correctly identified");
 }
 

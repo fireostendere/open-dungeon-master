@@ -15,6 +15,8 @@ const help=`ODM authentication (run from the repository root):
   node scripts/odm-auth.mjs connect qwen-local --model MODEL [--base-url URL] [--apply]
   node scripts/odm-auth.mjs connect gemini --model MODEL --key-stdin [--apply]
   node scripts/odm-auth.mjs connect qwen --model MODEL --key-stdin [--region international|china|token-plan] [--apply]
+  node scripts/odm-auth.mjs profiles
+  node scripts/odm-auth.mjs apply --profile-id ID
 Set ODM_LOCAL_ORIGIN for a non-default server port. Otherwise ports 3005 and 3000 are checked.
 The official login must be completed by you in your browser. No browser cookies are copied.
 `;
@@ -25,7 +27,7 @@ async function main(){
   if(!args.length||flag('--help')){console.log(help);return;}
   if(!fs.existsSync('package.json')||!fs.existsSync('src/lib/db/llm-profiles.ts'))throw new ProviderError('RUN_FROM_ODM_REPOSITORY_ROOT');
   const action=args[0],provider=args[1]??'chatgpt';
-  if(!['login','status','models','logout','connect'].includes(action))throw new ProviderError('UNKNOWN_COMMAND');
+  if(!['login','status','models','logout','connect','profiles','apply'].includes(action))throw new ProviderError('UNKNOWN_COMMAND');
   if(flag('--api-key')||flag('--key'))throw new ProviderError('USE_KEY_STDIN_NOT_COMMAND_ARGUMENT');
   let origin=process.env.ODM_LOCAL_ORIGIN?loopbackOrigin(process.env.ODM_LOCAL_ORIGIN):null;
   if(!origin)for(const candidate of [loopbackOrigin(`http://127.0.0.1:${process.env.PORT||3005}`),'http://127.0.0.1:3000']){
@@ -49,6 +51,18 @@ async function main(){
       if(!interrupted)await call({action:'cancel',provider,operationId:login.operationId}).catch(()=>{});
       throw new ProviderError(interrupted?'LOGIN_CANCELLED':'LOGIN_EXPIRED');
     }finally{process.removeListener('SIGINT',cancel);}
+  }
+  if(action==='profiles'){
+    const result=await call({action:'profiles'});
+    console.log(JSON.stringify(result,null,2));
+    return;
+  }
+  if(action==='apply'){
+    const profileId=option('--profile-id');
+    if(!profileId)throw new ProviderError('PROFILE_ID_REQUIRED');
+    const result=await call({action:'apply',profileId});
+    console.log(JSON.stringify(result,null,2));
+    return;
   }
   const body={action,provider};
   if(action==='connect'||action==='models'){body.model=option('--model');body.apply=flag('--apply');body.baseUrl=option('--base-url');body.region=option('--region');if(flag('--key-stdin'))body.apiKey=await readKey();}

@@ -36,13 +36,35 @@ import { listEventsSince, publishPersisted } from "@/lib/events";
 import { gameSettingsSchema } from "@/lib/schemas/game-settings";
 import { createSheetSchema, fullPatchSheetSchema } from "@/lib/schemas/sheet";
 import type { StorySettings } from "@/lib/types";
+import { getGlobalConfig } from "@/lib/db/app-settings";
+import {
+  listLlmProfiles,
+  getLlmProfile,
+  applyLlmProfileToGlobal,
+  applyLlmProfileToCampaign,
+} from "@/lib/db/llm-profiles";
+import { maskLlmProfile } from "@/lib/schemas/llm-profile";
+import { performProviderAction } from "@/lib/provider-auth/actions";
+import { ProviderError, requireVerifiedProfile } from "@/lib/provider-auth/core.mjs";
+
+function maskEndpointUrl(raw: string): string {
+  try {
+    const u = new URL(raw);
+    if (u.password) u.password = "******";
+    return u.toString();
+  } catch {
+    return raw;
+  }
+}
 
 export class McpControlError extends Error {
+  readonly status: number;
   constructor(
     message: string,
-    public readonly status = 400,
+    status = 400,
   ) {
     super(message);
+    this.status = status;
   }
 }
 
@@ -178,6 +200,11 @@ export const MCP_CONTROL_ACTIONS = [
   "sheets.list",
   "sheets.get",
   "sheets.patch",
+  "models.status",
+  "models.list",
+  "models.test_and_connect",
+  "models.apply",
+  "models.switch_remote",
 ] as const;
 
 export type McpControlAction = (typeof MCP_CONTROL_ACTIONS)[number];
@@ -579,6 +606,208 @@ export async function executeMcpControl(action: string, rawParams: unknown): Pro
       if (!sheet) throw new McpControlError("Sheet patch failed.", 500);
       publishPersisted(existing.campaignId, "mcp_control", { action: "sheet_patched", sheetId: params.sheetId });
       return { sheet };
+    }
+
+    case "models.status": {
+      const params = parse(
+        z.object({ campaignId: z.string().uuid().optional() }).strict(),
+        rawParams,
+      );
+      const globalConfig = getGlobalConfig();
+      const profiles = listLlmProfiles();
+      let campaignTarget = null;
+      if (params.campaignId) {
+        const campaign = campaignOr404(params.campaignId);
+        campaignTarget = {
+          campaignId: campaign.id,
+          title: campaign.title,
+          textProvider: campaign.settings.textProvider,
+          localTextModel: campaign.settings.localTextModel,
+          customModel: campaign.settings.customModel,
+          customBaseUrl: campaign.settings.customBaseUrl ? maskEndpointUrl(campaign.settings.customBaseUrl) : "",
+        };
+      }
+      return {
+        global: {
+          provider: globalConfig.text.provider,
+          model: globalConfig.text.customModel,
+          baseUrl: globalConfig.text.customBaseUrl ? maskEndpointUrl(globalConfig.text.customBaseUrl) : "",
+          thinking: globalConfig.text.thinking,
+        },
+        campaign: campaignTarget,
+        profiles,
+        runtimeDefaults: {
+          defaultLocalUrl: "http://127.0.0.1:11434/v1",
+        },
+      };
+    }
+
+    case "models.list": {
+      const params = parse(
+        z
+          .object({
+            provider: z.enum(["qwen-local", "qwen", "gemini", "chatgpt"]).default("qwen-local"),
+            baseUrl: z.string().max(500).optional(),
+            apiKey: z.string().max(400).optional(),
+            region: z.enum(["international", "china", "token-plan"]).optional(),
+          })
+          .strict(),
+        rawParams,
+      );
+      try {
+        const res = (await performProviderAction("mcp-control", {
+          action: "models",
+          provider: params.provider,
+          baseUrl: params.baseUrl,
+          apiKey: params.apiKey,
+          region: params.region,
+        })) as { models?: unknown[] };
+        return { models: res.models ?? [] };
+      } catch (err: unknown) {
+        if (err instanceof ProviderError) {
+          throw new McpControlError(err.code, err.status);
+        }
+        const message = err instanceof Error ? err.message : String(err);
+        throw new McpControlError(`Failed to list models: ${message}`, 502);
+      }
+    }
+
+    case "models.test_and_connect": {
+      const params = parse(
+        z
+          .object({
+            provider: z.enum(["qwen-local", "qwen", "gemini", "chatgpt"]).default("qwen-local"),
+            model: z.string().trim().min(1).max(200),
+            baseUrl: z.string().max(500).optional(),
+            apiKey: z.string().max(400).optional(),
+            region: z.enum(["international", "china", "token-plan"]).optional(),
+            apply: z.boolean().default(true),
+            campaignId: z.string().uuid().optional(),
+          })
+          .strict(),
+        rawParams,
+      );
+      try {
+        const connectResult = (await performProviderAction("mcp-control", {
+          action: "connect",
+          provider: params.provider,
+          model: params.model,
+          baseUrl: params.baseUrl,
+          apiKey: params.apiKey,
+          region: params.region,
+          apply: params.apply && !params.campaignId,
+        })) as {
+          profile?: { id: string };
+          report?: { ok: boolean; stages?: Record<string, { ok: boolean; ms?: number; detail?: string }> };
+          applied?: boolean;
+        };
+
+        let campaignApplied = false;
+        if (params.campaignId && connectResult.profile?.id && connectResult.report?.ok) {
+          const campaign = campaignOr404(params.campaignId);
+          applyLlmProfileToCampaign(connectResult.profile.id, campaign.id);
+          campaignApplied = true;
+        }
+
+        return {
+          ...connectResult,
+          campaignApplied,
+          target: params.campaignId ? "campaign" : params.apply ? "global" : "profile_saved",
+        };
+      } catch (err: unknown) {
+        if (err instanceof ProviderError) {
+          throw new McpControlError(err.code, err.status);
+        }
+        const message = err instanceof Error ? err.message : String(err);
+        throw new McpControlError(`Model connection probe failed: ${message}`, 502);
+      }
+    }
+
+    case "models.apply": {
+      const params = parse(
+        z
+          .object({
+            profileId: z.string().uuid(),
+            campaignId: z.string().uuid().optional(),
+          })
+          .strict(),
+        rawParams,
+      );
+      const profile = getLlmProfile(params.profileId);
+      if (!profile) throw new McpControlError("Profile not found.", 404);
+      try {
+        requireVerifiedProfile(profile);
+      } catch (err: unknown) {
+        if (err instanceof ProviderError) throw new McpControlError(err.code, err.status);
+        throw err;
+      }
+      if (params.campaignId) {
+        const campaign = campaignOr404(params.campaignId);
+        applyLlmProfileToCampaign(profile.id, campaign.id);
+        return {
+          profile: maskLlmProfile(profile),
+          applied: true,
+          target: "campaign",
+          campaignId: campaign.id,
+        };
+      } else {
+        if (!applyLlmProfileToGlobal(profile.id)) {
+          throw new McpControlError("Failed to apply profile globally.", 409);
+        }
+        return {
+          profile: maskLlmProfile(profile),
+          applied: true,
+          target: "global",
+        };
+      }
+    }
+
+    case "models.switch_remote": {
+      const params = parse(
+        z
+          .object({
+            remoteUrl: z.string().trim().min(1).max(500),
+            model: z.string().trim().min(1).max(200),
+            apiKey: z.string().max(400).optional(),
+            apply: z.boolean().default(true),
+            campaignId: z.string().uuid().optional(),
+          })
+          .strict(),
+        rawParams,
+      );
+      try {
+        const connectResult = (await performProviderAction("mcp-control", {
+          action: "connect",
+          provider: "qwen-local",
+          model: params.model,
+          baseUrl: params.remoteUrl,
+          apiKey: params.apiKey,
+          apply: params.apply && !params.campaignId,
+        })) as {
+          profile?: { id: string };
+          report?: { ok: boolean; stages?: Record<string, { ok: boolean; ms?: number; detail?: string }> };
+          applied?: boolean;
+        };
+
+        let campaignApplied = false;
+        if (params.campaignId && connectResult.profile?.id && connectResult.report?.ok) {
+          const campaign = campaignOr404(params.campaignId);
+          applyLlmProfileToCampaign(connectResult.profile.id, campaign.id);
+          campaignApplied = true;
+        }
+
+        return {
+          ...connectResult,
+          campaignApplied,
+          target: params.campaignId ? "campaign" : params.apply ? "global" : "profile_saved",
+        };
+      } catch (err: unknown) {
+        if (err instanceof ProviderError) {
+          throw new McpControlError(err.code, err.status);
+        }
+        const message = err instanceof Error ? err.message : String(err);
+        throw new McpControlError(`Switching to remote model failed: ${message}`, 502);
+      }
     }
 
     default:

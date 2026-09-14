@@ -1,11 +1,14 @@
 import { authAction, bridgeProfile, gateway } from './service.mjs';
 import { ProviderError, modelId, requireVerifiedProfile, profileHasChanged } from './core.mjs';
 import { connectionTarget, listModels, probeConnection } from './connections.mjs';
-import { createLlmProfile, updateLlmProfileCheck, applyLlmProfileToGlobal, getLlmProfile } from '@/lib/db/llm-profiles';
+import { createLlmProfile, updateLlmProfileCheck, applyLlmProfileToGlobal, getLlmProfile, listLlmProfiles } from '@/lib/db/llm-profiles';
 import { maskLlmProfile, type LlmProfileCreate } from '@/lib/schemas/llm-profile';
 import { assertSafeEndpointUrl } from '@/lib/url-guard';
 
 export async function performProviderAction(owner:string,input:Record<string,unknown>,origin?:string):Promise<unknown>{
+  if(input.action==='profiles'){
+    return {profiles:listLlmProfiles()};
+  }
   if(input.action==='apply'){
     if(typeof input.profileId!=='string')throw new ProviderError('PROFILE_ID_REQUIRED');
     const profile=getLlmProfile(input.profileId);

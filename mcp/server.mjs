@@ -399,6 +399,99 @@ function createMcpServer() {
     },
   );
 
+  server.registerTool(
+    "odm_models",
+    {
+      title: "ODM models and providers",
+      description:
+        "Inspect, list, test, and switch LLM text models/providers between local runtime and remote servers. Operations: status, list_models, test_and_connect, apply_profile, switch_remote.",
+      inputSchema: z.object({
+        operation: z
+          .enum(["status", "list_models", "test_and_connect", "apply_profile", "switch_remote"])
+          .default("status")
+          .describe("Operation to perform"),
+        provider: z
+          .enum(["qwen-local", "qwen", "gemini", "chatgpt"])
+          .optional()
+          .describe("LLM provider (default: qwen-local for local/remote Ollama, vLLM, etc.)"),
+        baseUrl: z
+          .string()
+          .max(500)
+          .optional()
+          .describe("Local or remote server URL (e.g. http://127.0.0.1:11434/v1 or http://gpu-server:11434/v1)"),
+        remoteUrl: z
+          .string()
+          .max(500)
+          .optional()
+          .describe("Remote server URL for switch_remote"),
+        model: z
+          .string()
+          .max(200)
+          .optional()
+          .describe("Exact model ID to test, connect or switch"),
+        apiKey: z
+          .string()
+          .max(400)
+          .optional()
+          .describe("API key if required by the provider/server"),
+        region: z
+          .enum(["international", "china", "token-plan"])
+          .optional()
+          .describe("Qwen cloud API region"),
+        profileId: z
+          .string()
+          .uuid()
+          .optional()
+          .describe("Saved profile ID to apply"),
+        apply: z
+          .boolean()
+          .optional()
+          .describe("Whether to apply immediately as default DM (default: true)"),
+        campaignId: z
+          .string()
+          .uuid()
+          .optional()
+          .describe("Optional campaign ID to apply the model specifically to"),
+      }),
+    },
+    async (args) => {
+      switch (args.operation) {
+        case "status":
+          return run("models.status", { campaignId: args.campaignId });
+        case "list_models":
+          return run("models.list", {
+            provider: args.provider || "qwen-local",
+            baseUrl: args.baseUrl,
+            apiKey: args.apiKey,
+            region: args.region,
+          });
+        case "test_and_connect":
+          return run("models.test_and_connect", {
+            provider: args.provider || "qwen-local",
+            model: args.model,
+            baseUrl: args.baseUrl,
+            apiKey: args.apiKey,
+            region: args.region,
+            apply: args.apply !== false,
+            campaignId: args.campaignId,
+          });
+        case "apply_profile":
+          return run("models.apply", {
+            profileId: args.profileId,
+            campaignId: args.campaignId,
+          });
+        case "switch_remote":
+          return run("models.switch_remote", {
+            remoteUrl: args.remoteUrl || args.baseUrl,
+            model: args.model,
+            apiKey: args.apiKey,
+            apply: args.apply !== false,
+            campaignId: args.campaignId,
+          });
+      }
+    },
+  );
+
   return server;
 }
 
@@ -411,6 +504,7 @@ export const BASE_MCP_TOOLS = Object.freeze([
   "odm_members",
   "odm_characters",
   "odm_sheets",
+  "odm_models",
 ]);
 
 export const PRELOAD_MCP_TOOLS = Object.freeze([
