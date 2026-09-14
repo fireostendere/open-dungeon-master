@@ -5,6 +5,7 @@ import { getCampaignById } from "@/lib/db/campaigns";
 import {
   ART_KINDS,
   ASSET_PROTOCOL_VERSION,
+  HARD_ASSET_MAX_BYTES,
   assetHealth,
   attachAsset,
   claimJob,
