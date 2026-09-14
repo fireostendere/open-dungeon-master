@@ -239,7 +239,10 @@ export function PartyPanel({
       )}
     >
       {embedded ? null : (
-        <h2 className="px-1 text-xs font-medium uppercase tracking-wide text-stone-500">Party</h2>
+        <div className="px-1">
+          <h2 className="text-xs font-medium uppercase tracking-wide text-stone-500">Party</h2>
+          <p className="text-[11px] text-stone-500">Campaign members &amp; characters</p>
+        </div>
       )}
       {sheets.map((sheet) => {
         const derived = computeSheetDerived(sheet);

@@ -268,6 +268,17 @@ function registerExternalTools(server, originalRegisterTool) {
   );
 }
 
+export const PRELOAD_TOOLS = Object.freeze(["odm_assets", "odm_progress"]);
+
+export function verifyPreloadInstalled(server) {
+  const registered = Object.keys(server._registeredTools || {});
+  const missing = PRELOAD_TOOLS.filter((name) => !registered.includes(name));
+  if (missing.length > 0) {
+    throw new Error(`Preload verification failed: missing [${missing.join(", ")}]. Registered: [${registered.join(", ")}]`);
+  }
+  return true;
+}
+
 if (!McpServer.prototype[PATCHED]) {
   const originalRegisterTool = McpServer.prototype.registerTool;
   Object.defineProperty(McpServer.prototype, PATCHED, { value: true });

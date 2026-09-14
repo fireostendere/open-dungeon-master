@@ -27,7 +27,7 @@ The MCP process has no Docker socket mount, no game volume, no database file, no
 
 ## What the model can do
 
-The public MCP surface is deliberately compact: eight tools cover 31 validated control actions so an agent does not have to load dozens of nearly identical tool definitions.
+The public MCP surface is deliberately compact and verified: ten tools cover the control actions, asset pipeline, and progression sync so an agent does not have to load dozens of nearly identical tool definitions.
 
 | MCP tool | Main operations |
 | --- | --- |
@@ -39,8 +39,14 @@ The public MCP surface is deliberately compact: eight tools cover 31 validated c
 | `odm_members` | roster, add an existing user, transfer party lead |
 | `odm_characters` | library characters, create/update/delete, instantiate into a campaign |
 | `odm_sheets` | live campaign sheets, including HP, conditions, XP, inventory and DM-managed fields |
+| `odm_assets` | external asset pipeline: campaign art planning, packs, jobs, leases, upload/download grants, variants and links |
+| `odm_progress` | character and party progression sync, versioned sync to library, finish and sync policy |
 
 Two MCP resources are also available: `odm://server/status` and `odm://server/capabilities`.
+
+### Party entity model
+
+In Open Dungeon Master, the **party** is not a separate database entity or table. A campaign's party is represented directly by its active campaign members (`campaign_members`) and their attached live character sheets (`character_sheets`, plus any AI companions). All party-oriented operations (such as `sync_party` and `finish_and_sync_party` in `odm_progress`, and member roster management in `odm_members`) operate directly on this campaign roster.
 
 Campaign and character deletion require `confirm=true`. Stored text/image provider keys can be written through settings, but reads return only `has...ApiKey` flags; the secret value is never sent back to an MCP client.
 
