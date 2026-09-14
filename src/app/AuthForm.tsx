@@ -8,6 +8,7 @@ import type { SessionUser } from "@/lib/campaign-types";
 import { ChangePasswordForm } from "@/app/ChangePasswordForm";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { currentPathname, currentQuery, replaceAddress } from "@/lib/navigation";
+import { useI18n } from "@/lib/i18n";
 
 type AuthMode = "login" | "register";
 
@@ -220,11 +221,17 @@ export default function AuthForm({
     );
   }
 
+  const { t } = useI18n();
   // A closed server has one mode only, so the switch is hidden rather than
   // shown with a dead option; a device world's join page has no modes at all.
   const canRegister = signupMode !== "closed" && !seatJoin;
   // On a join page both modes end at the same seat, so the button says so.
-  const submitLabel = joinCode ? "Join the table" : mode === "login" ? "Log in" : "Create account";
+  const submitLabel = joinCode ? t("campaign.takeYourSeat") : mode === "login" ? t("auth.login") : t("auth.register");
+
+  const modeOptions: Array<{ value: AuthMode; label: string }> = [
+    { value: "login", label: t("auth.login") },
+    { value: "register", label: t("auth.register") },
+  ];
 
   return (
     <>
@@ -236,17 +243,17 @@ export default function AuthForm({
       ) : null}
       {canRegister ? (
         <SegmentedControl
-          options={MODE_OPTIONS}
+          options={modeOptions}
           value={mode}
           onChange={switchMode}
-          label="Log in or create an account"
+          label={t("auth.logInOrRegister")}
           className="mb-5 w-full"
         />
       ) : null}
 
       <form onSubmit={submit} className="space-y-3.5">
         <label className="block">
-          <span className="mb-1.5 block text-xs text-stone-400">Username</span>
+          <span className="mb-1.5 block text-xs text-stone-400">{t("auth.username")}</span>
           <input
             value={username}
             onChange={(event) => setUsername(event.target.value)}
@@ -254,13 +261,13 @@ export default function AuthForm({
             required
             minLength={3}
             maxLength={24}
-            placeholder={seatJoin ? "Your name at this table" : mode === "register" ? "Choose a name" : undefined}
+            placeholder={seatJoin ? "Your name at this table" : mode === "register" ? t("auth.chooseUsername") : undefined}
             className={FIELD}
           />
         </label>
         {seatJoin ? null : (
           <label className="block">
-            <span className="mb-1.5 block text-xs text-stone-400">Password</span>
+            <span className="mb-1.5 block text-xs text-stone-400">{t("auth.password")}</span>
             <input
               type="password"
               value={password}
@@ -269,13 +276,14 @@ export default function AuthForm({
               required
               minLength={mode === "register" ? 8 : 1}
               maxLength={100}
+              placeholder={t("auth.enterPassword")}
               className={FIELD}
             />
           </label>
         )}
         {effectiveMode === "register" && signupMode === "invite" && !seatJoin ? (
           <label className="block">
-            <span className="mb-1.5 block text-xs text-stone-400">Invite code</span>
+            <span className="mb-1.5 block text-xs text-stone-400">{t("auth.inviteCode")}</span>
             <input
               value={inviteCode}
               onChange={(event) => setInviteCode(event.target.value)}
@@ -287,8 +295,8 @@ export default function AuthForm({
             />
             <span className="mt-1.5 block text-xs text-stone-500">
               {urlInvite
-                ? "This code came with your invite link."
-                : "This server is invite-only. Ask whoever runs it for a code."}
+                ? t("auth.inviteCodeFromLink")
+                : t("auth.inviteCodeHelp")}
             </span>
           </label>
         ) : null}
@@ -306,13 +314,13 @@ export default function AuthForm({
         </button>
         {effectiveMode === "register" ? (
           <p className="text-center text-xs leading-5 text-stone-500">
-            Creating an account means you accept this server&apos;s{" "}
+            {t("auth.creatingAccountNotice")}{" "}
             <a href="/terms" className="text-stone-400 underline hover:text-amber-200">
-              terms of service
+              {t("auth.termsOfService")}
             </a>{" "}
-            and{" "}
+            {t("common.and")}{" "}
             <a href="/privacy" className="text-stone-400 underline hover:text-amber-200">
-              privacy policy
+              {t("auth.privacyPolicy")}
             </a>
             .
           </p>

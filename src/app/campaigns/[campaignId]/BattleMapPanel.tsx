@@ -20,6 +20,7 @@ import type { MapPing } from "@/lib/dm/board-logic";
 import type { PlayerMapView } from "@/lib/battlemap/view";
 import type { PublicEncounter } from "@/lib/db/encounter-view";
 import type { CharacterSheet } from "@/lib/schemas/sheet";
+import { useI18n } from "@/lib/i18n";
 
 // The tactical battle map tab.
 //
@@ -60,6 +61,7 @@ export function BattleMapPanel({
   canFocusPing?: boolean;
   ping?: MapPing | null;
 }) {
+  const { locale, formatDistance } = useI18n();
   const [enlarged, setEnlarged] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -201,11 +203,11 @@ export function BattleMapPanel({
     );
     return {
       path: [{ x: from.x, y: from.y }, ...path],
-      label: `${cost * TILE_FEET} ft`,
+      label: formatDistance(cost * TILE_FEET),
       // The DM spends no budget, so nothing they measure is ever too far.
       overBudget: held === null && cost > view.budgetLeft,
     };
-  }, [hover, held, view]);
+  }, [hover, held, view, formatDistance]);
 
   const overlay = useMemo<MapOverlay>(
     () => ({
@@ -440,14 +442,16 @@ export function BattleMapPanel({
                   ? "Name it, then tap a tile."
                   : "Tap a piece to pick it up or change it. Nothing here is charged against the round."
           : pointing
-            ? "Tap a tile to point at it."
+            ? (locale === "ru" ? "Нажмите на клетку, чтобы указать на неё." : "Tap a tile to point at it.")
             : canMove
               ? scene
-                ? "Tap anywhere you can walk. Nothing is being counted out here."
-                : `Tap a highlighted tile to move (${view.budgetLeft * TILE_FEET} ft left this round).`
+                ? (locale === "ru" ? "Нажмите куда хотите пойти." : "Tap anywhere you can walk. Nothing is being counted out here.")
+                : (locale === "ru"
+                    ? `Нажмите на подсвеченную клетку для перемещения (осталось ${formatDistance(view.budgetLeft * TILE_FEET)} в этом раунде).`
+                    : `Tap a highlighted tile to move (${formatDistance(view.budgetLeft * TILE_FEET)} left this round).`)
               : view.myTokenId
-                ? "You can move on your turn. The shroud shows what your character cannot see."
-                : "You have no token on this field."}
+                ? (locale === "ru" ? "Вы сможете двигаться в свой ход. Туман скрывает то, чего персонаж не видит." : "You can move on your turn. The shroud shows what your character cannot see.")
+                : (locale === "ru" ? "У вас нет токена на этом поле." : "You have no token on this field.")}
       </p>
       {error ? <p className="text-[11px] text-red-400">{error}</p> : null}
       {encounter?.orderReady ? (

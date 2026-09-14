@@ -23,6 +23,8 @@ import {
   type TableTabId,
   type TableTabInput,
 } from "@/lib/dm/table-tabs";
+import type { Locale } from "@/lib/i18n";
+import { useI18n } from "@/lib/i18n";
 
 // The id list is owned by src/lib/dm/table-tabs.ts, where the visibility
 // rules are testable without React; this alias keeps the name the rest of
@@ -81,44 +83,79 @@ export type MobileView = "chat" | "panel";
 
 // Label, icon and rail tooltip per tab. Presentation only: which of these
 // a given viewer sees, and in what order, is visiblePanelTabs's decision.
-const TAB_PRESENTATION: Record<PanelTab, [string, LucideIcon, string]> = {
-  dm: [
-    "DM",
-    Gavel,
-    "Everything waiting on you, and every ruling the engine can make on your say-so.",
-  ],
-  lead: [
-    "Lead",
-    Crown,
-    "Steer the table: the floor, notes waiting on you, invites and the lead seat.",
-  ],
-  party: [
-    "Party",
-    Users,
-    "Character sheets, HP and conditions for the whole party, and their bonds with the people they have met.",
-  ],
-  battle: ["Battle", Swords, "The tactical battle map. Move your token on your turn."],
-  map: ["Map", MapIcon, "The scene map and discovered locations."],
-  story: [
-    "Story",
-    BookOpen,
-    "Chapters and the tale so far, the world-state record, and the audited log of rolls and stat changes.",
-  ],
-  notes: ["Notes", StickyNote, "Suggest story notes; the party lead approves them."],
-  chat: ["Chat", MessagesSquare, "Side chat between players. The DM does not see it."],
-  context: [
-    "Context",
-    Gauge,
-    "What the DM was actually sent last turn, and anything the budget cut.",
-  ],
-  settings: ["Setup", Settings2, "Campaign settings, invites and game toggles."],
+const TAB_PRESENTATION: Record<Locale, Record<PanelTab, [string, LucideIcon, string]>> = {
+  en: {
+    dm: [
+      "DM",
+      Gavel,
+      "Everything waiting on you, and every ruling the engine can make on your say-so.",
+    ],
+    lead: [
+      "Lead",
+      Crown,
+      "Steer the table: the floor, notes waiting on you, invites and the lead seat.",
+    ],
+    party: [
+      "Party",
+      Users,
+      "Character sheets, HP and conditions for the whole party, and their bonds with the people they have met.",
+    ],
+    battle: ["Battle", Swords, "The tactical battle map. Move your token on your turn."],
+    map: ["Map", MapIcon, "The scene map and discovered locations."],
+    story: [
+      "Story",
+      BookOpen,
+      "Chapters and the tale so far, the world-state record, and the audited log of rolls and stat changes.",
+    ],
+    notes: ["Notes", StickyNote, "Suggest story notes; the party lead approves them."],
+    chat: ["Chat", MessagesSquare, "Side chat between players. The DM does not see it."],
+    context: [
+      "Context",
+      Gauge,
+      "What the DM was actually sent last turn, and anything the budget cut.",
+    ],
+    settings: ["Setup", Settings2, "Campaign settings, invites and game toggles."],
+  },
+  ru: {
+    dm: [
+      "Мастер",
+      Gavel,
+      "Всё, что ждет ваших решений, и возможности движка.",
+    ],
+    lead: [
+      "Лидер",
+      Crown,
+      "Управление столом: право слова, заметки, приглашения и место лидера.",
+    ],
+    party: [
+      "Отряд",
+      Users,
+      "Листы персонажей, HP и состояния отряда, а также связи с NPC.",
+    ],
+    battle: ["Бой", Swords, "Тактическая боевая карта. Перемещайте токен в свой ход."],
+    map: ["Карта", MapIcon, "Карта сцены и открытые локации."],
+    story: [
+      "Сюжет",
+      BookOpen,
+      "Главы и история, состояние мира и журнал бросков.",
+    ],
+    notes: ["Заметки", StickyNote, "Предлагайте сюжетные заметки; лидер отряда утверждает их."],
+    chat: ["Чат", MessagesSquare, "Шёпот между игроками. Мастер его не видит."],
+    context: [
+      "Контекст",
+      Gauge,
+      "Что было отправлено Мастеру на прошлом ходу.",
+    ],
+    settings: ["Настройки", Settings2, "Настройки кампании, приглашения и переключатели."],
+  },
 };
 
 // Single source of truth for the panel tab list, shared by the desktop rail
 // strip and the mobile bottom bar. The gating flags are documented on
 // TableTabInput (src/lib/dm/table-tabs.ts).
-export function buildPanelTabs(input: TableTabInput): PanelTabDef[] {
-  return visiblePanelTabs(input).map((id) => [id, ...TAB_PRESENTATION[id]]);
+export function buildPanelTabs(input: TableTabInput, locale: Locale = "ru"): PanelTabDef[] {
+  const dict = TAB_PRESENTATION[locale] ?? TAB_PRESENTATION.ru;
+  return visiblePanelTabs(input).map((id) => [id, ...dict[id]]);
 }
 
 // The lead tab is the one place in the rail that is not the DM's gold: the
@@ -217,6 +254,7 @@ function BottomTabBarInner({
   // quiet.
   steersStory: boolean;
 }) {
+  const { locale } = useI18n();
   return (
     <nav className="glass no-scrollbar flex items-stretch gap-1 overflow-x-auto border-t border-stone-700/40 px-1 pb-[max(0.25rem,env(safe-area-inset-bottom))] pt-1 lg:hidden">
       <button
@@ -225,7 +263,7 @@ function BottomTabBarInner({
         className={cn(ui.railCell, "shrink-0 grow basis-auto", mobileView === "chat" && ui.railCellActive)}
       >
         <MessageSquareText className="size-5" />
-        <span className="eyebrow whitespace-nowrap text-[9px] leading-none">Table</span>
+        <span className="eyebrow whitespace-nowrap text-[9px] leading-none">{locale === "ru" ? "Стол" : "Table"}</span>
       </button>
       {tabs.map(([value, label, Icon]) => {
         const active = mobileView === "panel" && panelTab === value;

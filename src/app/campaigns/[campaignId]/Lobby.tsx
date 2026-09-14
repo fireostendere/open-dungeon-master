@@ -28,12 +28,14 @@ import {
 } from "@/app/workshop/ContentImportPicker";
 import type { CampaignState } from "@/app/campaigns/[campaignId]/useCampaignStream";
 import { navigateTo } from "@/lib/navigation";
+import { useI18n } from "@/lib/i18n";
 
 // The lobby: where the table gathers before the adventure opens. The cover
 // art and title lead, then the room code, the game's settings and prep,
 // the call, the schedule, the party and finally the block of actions that
 // belongs to this viewer's seat (LobbyActions).
 export function Lobby({ state, refresh }: { state: CampaignState; refresh: () => void }) {
+  const { locale } = useI18n();
   const { campaign, me, members, sheets } = state;
   const [busy, setBusy] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -251,11 +253,11 @@ export function Lobby({ state, refresh }: { state: CampaignState; refresh: () =>
   // Lobby-only: drop your character so you can create or pick another. The
   // sheet_deleted stream event flips the UI back to "Create your character".
   async function removeCharacter() {
-    if (
-      !window.confirm(
-        `Remove ${mySheet?.name ?? "your character"} from this campaign? You can create or pick another afterwards.`,
-      )
-    ) {
+    const confirmPrompt =
+      locale === "ru"
+        ? `Удалить персонажа "${mySheet?.name ?? "вашего персонажа"}" из этой кампании? Вы сможете создать или выбрать другого.`
+        : `Remove ${mySheet?.name ?? "your character"} from this campaign? You can create or pick another afterwards.`;
+    if (!window.confirm(confirmPrompt)) {
       return;
     }
     setBusy(true);
@@ -291,11 +293,11 @@ export function Lobby({ state, refresh }: { state: CampaignState; refresh: () =>
   }
 
   async function deleteCampaign() {
-    if (
-      !window.confirm(
-        `Delete "${campaign!.title}" for everyone? All characters, messages, and story progress are lost. This cannot be undone.`,
-      )
-    ) {
+    const confirmDelete =
+      locale === "ru"
+        ? `Удалить "${campaign!.title}" для всех? Все персонажи, сообщения и прогресс будут потеряны безвозвратно.`
+        : `Delete "${campaign!.title}" for everyone? All characters, messages, and story progress are lost. This cannot be undone.`;
+    if (!window.confirm(confirmDelete)) {
       return;
     }
     setBusy(true);
@@ -322,7 +324,7 @@ export function Lobby({ state, refresh }: { state: CampaignState; refresh: () =>
           href="/"
           className="mb-3 inline-flex items-center gap-1.5 text-sm text-stone-500 transition-colors hover:text-amber-200"
         >
-          <ArrowLeft className="size-4" /> All campaigns
+          <ArrowLeft className="size-4" /> {locale === "ru" ? "Все кампании" : "All campaigns"}
         </Link>
         <div className={cn(ui.card, "ornate texture-noise flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:p-5")}>
           <CampaignCover
@@ -333,15 +335,15 @@ export function Lobby({ state, refresh }: { state: CampaignState; refresh: () =>
             className="w-full shrink-0 sm:w-44"
           />
           <div className="min-w-0 flex-1">
-            <p className={ui.sectionEyebrow}>Waiting in the lobby</p>
+            <p className={ui.sectionEyebrow}>{locale === "ru" ? "Ожидание в лобби" : "Waiting in the lobby"}</p>
             <h1 className="mt-1 flex items-center gap-2 font-display text-2xl tracking-wide text-amber-50">
               <span className="truncate">{campaign.title}</span>
               {isLead ? (
-                <Tooltip content="Edit campaign settings">
+                <Tooltip content={locale === "ru" ? "Настройки кампании" : "Edit campaign settings"}>
                   <button
                     type="button"
                     onClick={() => setEditing(true)}
-                    aria-label="Edit campaign settings"
+                    aria-label={locale === "ru" ? "Настройки кампании" : "Edit campaign settings"}
                     className="shrink-0 rounded-md border border-stone-700/70 p-1.5 text-stone-400 transition-colors hover:border-amber-500/40 hover:text-amber-100"
                   >
                     <Pencil className="size-3.5" />
@@ -350,7 +352,7 @@ export function Lobby({ state, refresh }: { state: CampaignState; refresh: () =>
               ) : null}
             </h1>
             <p className="mt-1 text-sm text-stone-400">
-              Level {campaign.startingLevel} start · {campaign.difficulty}
+              {locale === "ru" ? `Уровень: ${campaign.startingLevel} · ${campaign.difficulty}` : `Level ${campaign.startingLevel} start · ${campaign.difficulty}`}
               {campaign.theme ? ` · ${campaign.theme}` : ""}
             </p>
             {campaign.description ? (
@@ -411,7 +413,9 @@ export function Lobby({ state, refresh }: { state: CampaignState; refresh: () =>
             lore, places and prepared fights are the DM's to bring in. */}
         {steersStory ? (
           <div className={cn(ui.card, "p-3")}>
-            <h2 className={cn(ui.sectionEyebrow, "mb-2")}>Bring in prep</h2>
+            <h2 className={cn(ui.sectionEyebrow, "mb-2")}>
+              {locale === "ru" ? "Материалы подготовки" : "Bring in prep"}
+            </h2>
             <ContentImportPicker
               campaignId={campaign.id}
               selection={contentImport}
@@ -425,9 +429,13 @@ export function Lobby({ state, refresh }: { state: CampaignState; refresh: () =>
       {campaign.gameSettings.dicePolicy === "real_allowed" && mySheet ? (
         <section className={cn(ui.card, "mb-6 flex items-center justify-between gap-3 px-4 py-3")}>
           <div>
-            <p className="text-sm text-stone-200">I roll physical dice</p>
+            <p className="text-sm text-stone-200">
+              {locale === "ru" ? "Я бросаю настоящие кости" : "I roll physical dice"}
+            </p>
             <p className="text-xs text-stone-500">
-              The game pauses for you to enter your real rolls instead of rolling digitally.
+              {locale === "ru"
+                ? "Игра будет делать паузу, чтобы вы ввели выпавшие значения вместо цифрового броска."
+                : "The game pauses for you to enter your real rolls instead of rolling digitally."}
             </p>
           </div>
           <button
@@ -439,7 +447,9 @@ export function Lobby({ state, refresh }: { state: CampaignState; refresh: () =>
             )}
           >
             <Dices className="size-4" />
-            {myMember?.useRealDice ? "Real dice" : "Digital"}
+            {myMember?.useRealDice
+              ? (locale === "ru" ? "Живые кости" : "Real dice")
+              : (locale === "ru" ? "Цифровые" : "Digital")}
           </button>
         </section>
       ) : null}

@@ -17,6 +17,7 @@ import { AccountMenu, AppHomeButton, type AccountMenuUser } from "@/components/A
 import { Tooltip } from "@/components/ui/Tooltip";
 import { headerButtonClass } from "@/app/campaigns/[campaignId]/headerButton";
 import { VoiceDock } from "@/app/campaigns/[campaignId]/VoiceDock";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import type { NarrationAudio } from "@/app/campaigns/[campaignId]/useNarrationAudio";
 import type { AmbienceAudio } from "@/app/campaigns/[campaignId]/useAmbienceAudio";
 
@@ -230,6 +231,7 @@ export function SessionHeader({
             <span className="hidden md:inline">All campaigns</span>
           </Link>
         </Tooltip>
+        <LanguageSwitcher className="hidden sm:inline-flex" />
         <AppHomeButton className="hidden sm:block" />
         <AccountMenu user={user} onHelp={onHelp} />
       </div>

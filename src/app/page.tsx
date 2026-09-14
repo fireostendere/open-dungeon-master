@@ -8,6 +8,8 @@ import { HowToPlayDialog } from "@/components/HowToPlayDialog";
 import AuthForm from "@/app/AuthForm";
 import { ChangePasswordForm } from "@/app/ChangePasswordForm";
 import { Dashboard } from "@/app/home/Dashboard";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { useI18n } from "@/lib/i18n";
 
 export default function Home() {
   const [checking, setChecking] = useState(true);
@@ -78,20 +80,24 @@ function ForcedPasswordChange({ onChanged }: { onChanged: () => void }) {
 }
 
 function AuthScreen({ onAuthed }: { onAuthed: (user: SessionUser) => void }) {
+  const { t } = useI18n();
   const [howToOpen, setHowToOpen] = useState(false);
 
   return (
-    <main className="bg-starfield flex flex-1 items-center justify-center p-4 sm:p-6">
+    <main className="bg-starfield relative flex flex-1 items-center justify-center p-4 sm:p-6">
+      <div className="absolute top-4 right-4 z-20">
+        <LanguageSwitcher />
+      </div>
+
       <div className="w-full max-w-sm animate-fade-up-slow">
         <div className="mb-6 flex flex-col items-center gap-4 text-center">
           <PixelTile src={PIXEL_ICONS.story} size="size-16" className="animate-twinkle" />
           <div>
             <h1 className="text-balance font-display text-3xl tracking-wide text-amber-50">
-              Open Dungeon Master
+              {t("common.appName")}
             </h1>
             <p className="mt-2 text-pretty text-sm text-stone-400">
-              Gather your party. An AI Dungeon Master runs the table; the dice
-              are honest and the story is yours.
+              {t("common.appTagline")}
             </p>
           </div>
         </div>
@@ -106,7 +112,7 @@ function AuthScreen({ onAuthed }: { onAuthed: (user: SessionUser) => void }) {
             onClick={() => setHowToOpen(true)}
             className="inline-flex items-center gap-1.5 text-xs text-stone-500 transition-colors hover:text-amber-200"
           >
-            <ScrollText className="size-3.5" /> How to play
+            <ScrollText className="size-3.5" /> {t("nav.howToPlay")}
           </button>
         </div>
 

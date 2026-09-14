@@ -7,6 +7,7 @@ import { Tooltip } from "@/components/ui/Tooltip";
 import { UserAvatar, ui } from "@/lib/ui";
 import type { CampaignMember } from "@/lib/campaign-types";
 import type { CharacterSheet } from "@/lib/schemas/sheet";
+import { useI18n } from "@/lib/i18n";
 
 // Small gold badge on a party row: DM, co-DM, party lead, owner, real dice.
 function SeatBadge({ children, tip }: { children: ReactNode; tip?: string }) {
@@ -94,15 +95,19 @@ export function LobbyParty({
   onBuildCompanion: () => void;
   onDismissCompanion: (characterId: string) => void;
 }) {
+  const { locale } = useI18n();
+
   return (
     <>
       {showParty ? (
       <section className="mb-6">
         <h2 className={cn(ui.sectionEyebrow, "mb-1")}>
-          Party · {members.length}/{campaign.maxPlayers}
+          {locale === "ru" ? `Отряд · ${members.length}/${campaign.maxPlayers}` : `Party · ${members.length}/${campaign.maxPlayers}`}
         </h2>
         <p className="mb-3 text-xs text-stone-400">
-          The party is formed by campaign members and their assigned characters.
+          {locale === "ru"
+            ? "Отряд формируется из участников кампании и их персонажей."
+            : "The party is formed by campaign members and their assigned characters."}
         </p>
         <ul className="space-y-2">
           {members.map((member) => {
@@ -118,56 +123,56 @@ export function LobbyParty({
                     <p className="flex flex-wrap items-center gap-1.5 font-medium text-stone-100">
                       <span className="truncate">{member.username}</span>
                       {humanDmTable && member.userId === campaign.dmUserId ? (
-                        <SeatBadge>DM</SeatBadge>
+                        <SeatBadge>{locale === "ru" ? "Мастер" : "DM"}</SeatBadge>
                       ) : null}
                       {humanDmTable && member.userId === campaign.assistantDmUserId ? (
-                        <SeatBadge>co-DM</SeatBadge>
+                        <SeatBadge>{locale === "ru" ? "пом. Мастера" : "co-DM"}</SeatBadge>
                       ) : null}
                       {member.userId === campaign.leadUserId ? (
                         <SeatBadge>
-                          <Crown className="size-3" /> party lead
+                          <Crown className="size-3" /> {locale === "ru" ? "лидер отряда" : "party lead"}
                         </SeatBadge>
                       ) : member.role === "owner" ? (
-                        <SeatBadge>owner</SeatBadge>
+                        <SeatBadge>{locale === "ru" ? "создатель" : "owner"}</SeatBadge>
                       ) : null}
                     </p>
                     <p className="truncate text-sm text-stone-400">
                       {sheet
                         ? `${sheet.name} · ${sheet.race.replaceAll("_", " ")} ${sheet.class} ${sheet.level}`
-                        : "No character yet"}
+                        : (locale === "ru" ? "Персонаж ещё не создан" : "No character yet")}
                     </p>
                   </div>
                 </div>
                 <span className="flex flex-wrap items-center gap-1.5">
                   {canMakeLead && member.userId !== campaign.leadUserId ? (
                     <SeatAction
-                      tip="Hand the party lead to this player"
+                      tip={locale === "ru" ? "Передать лидерство этому игроку" : "Hand the party lead to this player"}
                       onClick={() => onMakeLead(member.userId)}
                     >
-                      <Crown className="size-3" /> make lead
+                      <Crown className="size-3" /> {locale === "ru" ? "лидер" : "make lead"}
                     </SeatAction>
                   ) : null}
                   {humanDmTable && canAssignSeats && member.userId !== campaign.dmUserId ? (
                     <>
                       <SeatAction
-                        tip="Hand this player the DM seat and the game"
+                        tip={locale === "ru" ? "Передать игроку роль Мастера" : "Hand this player the DM seat and the game"}
                         onClick={() => onAssignSeat("dm", member.userId)}
                       >
-                        make DM
+                        {locale === "ru" ? "сделать Мастером" : "make DM"}
                       </SeatAction>
                       {member.userId === campaign.assistantDmUserId ? (
                         <SeatAction
-                          tip="Take back the co-DM seat"
+                          tip={locale === "ru" ? "Освободить место помощника Мастера" : "Take back the co-DM seat"}
                           onClick={() => onAssignSeat("assistant", null)}
                         >
-                          remove co-DM
+                          {locale === "ru" ? "снять пом. Мастера" : "remove co-DM"}
                         </SeatAction>
                       ) : (
                         <SeatAction
-                          tip="Seat this player as co-DM: every DM power except handing out seats"
+                          tip={locale === "ru" ? "Назначить помощником Мастера" : "Seat this player as co-DM: every DM power except handing out seats"}
                           onClick={() => onAssignSeat("assistant", member.userId)}
                         >
-                          make co-DM
+                          {locale === "ru" ? "сделать пом. Мастера" : "make co-DM"}
                         </SeatAction>
                       )}
                     </>
@@ -175,31 +180,31 @@ export function LobbyParty({
                   {canMute && member.userId !== campaign.leadUserId && member.role !== "owner" ? (
                     <SeatAction
                       tip={
-                        member.muted
-                          ? "Let this player speak at the table again"
-                          : "Mute: this player reads along but cannot act, ask or side-chat"
+                        locale === "ru"
+                          ? (member.muted ? "Включить микрофон игроку" : "Заглушить: игрок следит за игрой, но не может действовать")
+                          : (member.muted ? "Let this player speak at the table again" : "Mute: this player reads along but cannot act, ask or side-chat")
                       }
                       onClick={() => onMute(member.userId, !member.muted)}
                     >
                       {member.muted ? (
                         <>
-                          <Volume2 className="size-3" /> unmute
+                          <Volume2 className="size-3" /> {locale === "ru" ? "вкл. звук" : "unmute"}
                         </>
                       ) : (
                         <>
-                          <VolumeX className="size-3" /> mute
+                          <VolumeX className="size-3" /> {locale === "ru" ? "заглушить" : "mute"}
                         </>
                       )}
                     </SeatAction>
                   ) : null}
                   {member.muted ? (
-                    <SeatBadge tip="Muted by the party lead">
-                      <VolumeX className="size-3" /> muted
+                    <SeatBadge tip={locale === "ru" ? "Заглушен лидером отряда" : "Muted by the party lead"}>
+                      <VolumeX className="size-3" /> {locale === "ru" ? "заглушен" : "muted"}
                     </SeatBadge>
                   ) : null}
                   {member.useRealDice ? (
-                    <SeatBadge tip="Rolls physical dice: the DM waits for this player to enter real rolls">
-                      real dice
+                    <SeatBadge tip={locale === "ru" ? "Бросает настоящие кости: игра ждёт ввода чисел" : "Rolls physical dice: the DM waits for this player to enter real rolls"}>
+                      {locale === "ru" ? "живые кости" : "real dice"}
                     </SeatBadge>
                   ) : null}
                   <span
@@ -210,7 +215,7 @@ export function LobbyParty({
                         : "border border-stone-700/70 bg-stone-900/60 text-stone-400",
                     )}
                   >
-                    {member.ready ? "ready" : "not ready"}
+                    {member.ready ? (locale === "ru" ? "готов" : "ready") : (locale === "ru" ? "не готов" : "not ready")}
                   </span>
                 </span>
               </li>
@@ -225,7 +230,7 @@ export function LobbyParty({
         <section className="mb-6">
           <h2 className={cn(ui.sectionEyebrow, "mb-3 flex items-center gap-1.5")}>
             {humanDmTable ? <Users className="size-3.5" /> : <Bot className="size-3.5" />}{" "}
-            Companions
+            {locale === "ru" ? "Спутники" : "Companions"}
           </h2>
           {partyCompanions.length ? (
             <ul className="mb-2 space-y-2">
@@ -258,11 +263,11 @@ export function LobbyParty({
                       </p>
                     </div>
                   </div>
-                  <Tooltip content="Remove this companion">
+                  <Tooltip content={locale === "ru" ? "Удалить спутника" : "Remove this companion"}>
                     <button
                       type="button"
                       onClick={() => onDismissCompanion(companion.id)}
-                      aria-label={`Remove ${companion.name}`}
+                      aria-label={locale === "ru" ? `Удалить ${companion.name}` : `Remove ${companion.name}`}
                       className="rounded-full border border-stone-700/70 p-1.5 text-stone-500 transition-colors hover:border-red-500/40 hover:text-red-400"
                     >
                       <Trash2 className="size-3.5" />
@@ -278,11 +283,11 @@ export function LobbyParty({
               onClick={onBuildCompanion}
               className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-stone-700 px-3 py-3 text-sm text-stone-300 transition-colors hover:border-sky-700/60 hover:bg-stone-900 hover:text-sky-200"
             >
-              <UserPlus className="size-4" /> Add a companion
+              <UserPlus className="size-4" /> {locale === "ru" ? "Добавить спутника" : "Add a companion"}
             </button>
           ) : (
             <p className="text-center text-xs text-stone-500">
-              The party has its full number of companions.
+              {locale === "ru" ? "В отряде максимальное количество спутников." : "The party has its full number of companions."}
             </p>
           )}
         </section>

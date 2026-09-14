@@ -6,6 +6,8 @@ import { use, useCallback, useEffect, useState } from "react";
 import { CampaignCover } from "@/components/CampaignCover";
 import AuthForm from "@/app/AuthForm";
 import { navigateTo } from "@/lib/navigation";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { useI18n } from "@/lib/i18n";
 
 // Invite-link landing: /join/CODE. Logged-in users are joined and forwarded
 // to the campaign; everyone else logs in or registers first, with the
@@ -29,6 +31,7 @@ type Preview = {
 export default function JoinPage({ params }: { params: Promise<{ code: string }> }) {
   const { code } = use(params);
   const roomCode = code.toUpperCase();
+  const { t } = useI18n();
   const [state, setState] = useState<"checking" | "auth" | "joining" | "error">("checking");
   const [error, setError] = useState("");
   const [preview, setPreview] = useState<Preview | null>(null);
@@ -83,7 +86,11 @@ export default function JoinPage({ params }: { params: Promise<{ code: string }>
   }, [join]);
 
   return (
-    <main className="bg-starfield flex flex-1 items-center justify-center p-4 sm:p-6">
+    <main className="bg-starfield relative flex flex-1 items-center justify-center p-4 sm:p-6">
+      <div className="absolute top-4 right-4 z-20">
+        <LanguageSwitcher />
+      </div>
+
       <div className="w-full max-w-sm animate-fade-up-slow">
         <section className="mb-5" aria-label="Campaign invite">
           <CampaignCover
@@ -94,20 +101,20 @@ export default function JoinPage({ params }: { params: Promise<{ code: string }>
           />
           <div className="mt-4 text-center">
             <p className="eyebrow text-[10px] text-amber-400/80">
-              {preview ? "You\u2019re invited to" : "You\u2019re invited"}
+              {t("campaign.joinCampaign")}
             </p>
             <h1 className="mt-1 text-balance font-display text-2xl tracking-wide text-amber-50">
-              {preview?.title ?? "Join the table"}
+              {preview?.title ?? t("campaign.takeYourSeat")}
             </h1>
             {preview ? (
               <p className="mt-1 text-xs text-stone-400">
-                {preview.playerCount}/{preview.maxPlayers} adventurers · {preview.genre} · Lvl{" "}
+                {preview.playerCount}/{preview.maxPlayers} {t("campaign.players")} · {preview.genre} · {t("campaign.level")}{" "}
                 {preview.startingLevel}
                 {preview.seatOpen ? "" : " · not taking new players right now"}
               </p>
             ) : null}
             <p className="mt-2 text-sm text-stone-500">
-              Room code{" "}
+              {t("campaign.roomCode")}{" "}
               <span className="rounded-md border border-amber-400/25 bg-amber-400/10 px-1.5 py-0.5 font-mono text-[13px] tracking-wider text-amber-200">
                 {roomCode}
               </span>
@@ -120,7 +127,7 @@ export default function JoinPage({ params }: { params: Promise<{ code: string }>
             <div className="flex flex-col items-center gap-3 py-6">
               <Loader2 className="size-5 animate-spin text-stone-500" />
               <p className="text-sm text-stone-500">
-                {state === "joining" ? "Taking your seat" : "Checking your session"}
+                {state === "joining" ? t("campaign.takeYourSeat") : t("common.loading")}
               </p>
             </div>
           ) : state === "error" ? (
@@ -132,12 +139,12 @@ export default function JoinPage({ params }: { params: Promise<{ code: string }>
                 {error}
               </p>
               <Link href="/" className="text-sm text-amber-200 hover:text-amber-100">
-                Back to Open Dungeon Master
+                {t("common.back")}
               </Link>
             </div>
           ) : (
             <>
-              <p className="mb-4 text-center text-sm text-stone-400">Sign in to take your seat</p>
+              <p className="mb-4 text-center text-sm text-stone-400">{t("auth.signInToTakeSeat")}</p>
               <AuthForm joinCode={roomCode} onAuthed={() => join()} />
             </>
           )}

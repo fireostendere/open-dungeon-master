@@ -7,6 +7,7 @@ import { copyText } from "@/lib/clipboard";
 import { buildShareLinks } from "@/lib/share-link";
 import { InviteShareDialog } from "@/components/InviteShareDialog";
 import { ui } from "@/lib/ui";
+import { useI18n } from "@/lib/i18n";
 
 // The room code card: the code itself, copy code, copy link, and the share
 // dialog with the QR. Hidden by the lobby for solo campaigns, which have
@@ -55,6 +56,8 @@ export function LobbyRoomCode({
   // has the app or only a browser. The readable /join form stays on screen.
   const shareLinks = buildShareLinks({ publicOrigin, inviteCode });
 
+  const { t, locale } = useI18n();
+
   async function copyInvite() {
     if (await copyText(inviteCode)) {
       setCopied(true);
@@ -73,13 +76,13 @@ export function LobbyRoomCode({
     <section className={cn(ui.card, "ornate mb-6 border-amber-400/30 px-5 py-4 shadow-glow-gold")}>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className={ui.sectionEyebrow}>Room code</p>
+          <p className={ui.sectionEyebrow}>{t("campaign.roomCode")}</p>
           <p className="font-mono text-xl tracking-[0.3em] text-amber-100">{inviteCode}</p>
         </div>
         <div className="flex items-center gap-2">
           <button type="button" onClick={copyInvite} className={ui.btnSmall}>
             {copied ? <Check className="size-4 text-emerald-400" /> : <Copy className="size-4" />}
-            {copied ? "Copied" : "Code"}
+            {copied ? t("common.copied") : (locale === "ru" ? "Код" : "Code")}
           </button>
           <button type="button" onClick={copyLink} className={ui.btnSmall}>
             {linkCopied ? (
@@ -87,10 +90,10 @@ export function LobbyRoomCode({
             ) : (
               <LinkIcon className="size-4" />
             )}
-            {linkCopied ? "Copied" : "Link"}
+            {linkCopied ? t("common.copied") : (locale === "ru" ? "Ссылка" : "Link")}
           </button>
           <button type="button" onClick={() => setSharing(true)} className={ui.btnSmall}>
-            <QrCode className="size-4" /> Share
+            <QrCode className="size-4" /> {locale === "ru" ? "Поделиться" : "Share"}
           </button>
         </div>
       </div>

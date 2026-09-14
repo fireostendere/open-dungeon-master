@@ -20,15 +20,26 @@ import type { BeatCadence } from "@/lib/dm/beat-cadence";
 import type { CampaignState } from "@/app/campaigns/[campaignId]/useCampaignStream";
 
 import type { InputKind } from "@/lib/campaign-types";
+import type { Locale } from "@/lib/i18n";
+import { useI18n } from "@/lib/i18n";
 
 export type { InputKind };
 
-const KIND_TIPS: Record<InputKind, string> = {
-  do: "Act in the world. The DM narrates what happens.",
-  say: "Speak in character. Sent as dialogue in quotes.",
-  ooc: "Table talk. The DM does not respond, and it works even when the floor is locked.",
-  lead: "Party lead only. Send the DM an authoritative story direction.",
-  narrate: "Dungeon Master only. Write the passage the table reads.",
+const KIND_TIPS: Record<Locale, Record<InputKind, string>> = {
+  en: {
+    do: "Act in the world. The DM narrates what happens.",
+    say: "Speak in character. Sent as dialogue in quotes.",
+    ooc: "Table talk. The DM does not respond, and it works even when the floor is locked.",
+    lead: "Party lead only. Send the DM an authoritative story direction.",
+    narrate: "Dungeon Master only. Write the passage the table reads.",
+  },
+  ru: {
+    do: "Действие в мире. Мастер описывает последствия.",
+    say: "Слова персонажа. Отправляется прямой речью.",
+    ooc: "Разговоры игроков (вне роли). Мастер не реагирует.",
+    lead: "Только лидер. Отправить Мастеру сюжетное указание.",
+    narrate: "Только Мастер. Написать описание для игроков.",
+  },
 };
 
 // The action composer at the bottom of the game chat: pending-roll cards,
@@ -102,6 +113,8 @@ function ComposerInner({
   onSnoozeStory: () => void;
   onSubmit: (event: FormEvent) => void;
 }) {
+  const { locale } = useI18n();
+
   return (
     <form onSubmit={onSubmit} className="glass border-t border-stone-700/40 px-3 pb-3 pt-2.5">
       <div className="mx-auto max-w-3xl sm:px-3">
@@ -153,7 +166,7 @@ function ComposerInner({
               ] as const)
           ).map(
             (option) => (
-              <Tooltip key={option} content={KIND_TIPS[option]}>
+              <Tooltip key={option} content={KIND_TIPS[locale]?.[option] ?? KIND_TIPS.en[option]}>
                 <button
                   type="button"
                   onClick={() => onKindChange(option)}
@@ -167,12 +180,14 @@ function ComposerInner({
                   )}
                 >
                   {option === "do"
-                    ? "Do"
+                    ? (locale === "ru" ? "Действие" : "Do")
                     : option === "say"
-                      ? "Say"
+                      ? (locale === "ru" ? "Слова" : "Say")
                       : option === "ooc"
-                        ? "OOC"
-                        : "Direct"}
+                        ? (locale === "ru" ? "Вне игры" : "OOC")
+                        : option === "narrate"
+                          ? (locale === "ru" ? "Текст Мастера" : "Narrate")
+                          : (locale === "ru" ? "Направить" : "Direct")}
                 </button>
               </Tooltip>
             ),
@@ -181,16 +196,16 @@ function ComposerInner({
             <span className="ml-auto flex items-center gap-1.5 text-xs text-stone-500">
               <D20Spinner className="size-3.5 shrink-0 text-amber-600" />
               {dmStatus === "rolling"
-                ? "DM rolling dice..."
+                ? (locale === "ru" ? "Мастер бросает кости..." : "DM rolling dice...")
                 : dmStatus === "awaiting_rolls"
-                  ? "Waiting on real dice..."
+                  ? (locale === "ru" ? "Ожидание реальных бросков..." : "Waiting on real dice...")
                   : dmStatus === "narrating"
-                    ? "DM narrating..."
+                    ? (locale === "ru" ? "Мастер описывает..." : "DM narrating...")
                     : dmStatus === "writing_chapter"
-                      ? "DM writing the chapter..."
+                      ? (locale === "ru" ? "Мастер пишет главу..." : "DM writing the chapter...")
                       : dmStatus === "plotting_arc"
-                        ? "DM plotting the story arc..."
-                        : "DM at work..."}
+                        ? (locale === "ru" ? "Мастер планирует сюжетную арку..." : "DM plotting the story arc...")
+                        : (locale === "ru" ? "Мастер работает..." : "DM at work...")}
             </span>
           ) : null}
         </div>
@@ -205,8 +220,8 @@ function ComposerInner({
             <Tooltip
               content={
                 leadPrivate
-                  ? "Only the DM sees this. It steers the next turn and never enters the transcript."
-                  : "The table sees this direction, and the DM acts on it now."
+                  ? (locale === "ru" ? "Видит только Мастер. Направляет следующий ход и не попадает в историю." : "Only the DM sees this. It steers the next turn and never enters the transcript.")
+                  : (locale === "ru" ? "Видят все игроки, и Мастер действует прямо сейчас." : "The table sees this direction, and the DM acts on it now.")
               }
             >
               <button
@@ -221,7 +236,7 @@ function ComposerInner({
                 )}
               >
                 {leadPrivate ? <EyeOff className="size-3" /> : <Eye className="size-3" />}
-                Private
+                {locale === "ru" ? "Приватно" : "Private"}
               </button>
             </Tooltip>
           </div>

@@ -24,6 +24,7 @@ import { RESOURCE_DEFS } from "@/lib/srd/class-resources";
 import { GameTerm } from "@/components/ui/GameTerm";
 import { InfoButton, InfoChipList } from "@/components/ui/InfoDialog";
 import { contentSlug, describeFeature } from "@/lib/help";
+import { useI18n } from "@/lib/i18n";
 
 function titleCase(value: string) {
   return value.replace(/[-_]/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
@@ -92,6 +93,7 @@ export function CharacterSheetDialog({
   // The speed the server will actually let them move: armor gates the class
   // bonuses, heavy armor below its Strength minimum costs 10 feet, and a
   // heavy pack costs more when the table plays with encumbrance.
+  const { t, formatSpeed, formatWeight, locale } = useI18n();
   const speed = speedFor(sheet, { encumbrance: encumbranceRule });
   const load = encumbranceFor({
     strength: sheet.abilities.str,
@@ -101,8 +103,8 @@ export function CharacterSheetDialog({
   const anyEquipped = sheet.equipment.some((item) => item.equipped);
   const speedNote =
     speed === sheet.speed
-      ? "Their walking speed."
-      : `Base ${sheet.speed} ft, reduced by what they wear${encumbranceRule && load.speedPenalty ? " and carry" : ""}.`;
+      ? (locale === "ru" ? "Базовая скорость передвижения." : "Their walking speed.")
+      : `${locale === "ru" ? "Базовая" : "Base"} ${formatSpeed(sheet.speed)}, ${locale === "ru" ? "снижена снаряжением" : "reduced by what they wear"}${encumbranceRule && load.speedPenalty ? (locale === "ru" ? " и грузом" : " and carry") : ""}.`;
   const [busy, setBusy] = useState(false);
   const [pdfBusy, setPdfBusy] = useState(false);
 
@@ -195,28 +197,28 @@ export function CharacterSheetDialog({
               <Shield className="size-4 text-stone-400" />{" "}
               <GameTerm id="armor_class">AC</GameTerm> {sheet.ac}
             </span>
-            <span title={speedNote}>Speed {speed} ft</span>
+            <span title={speedNote}>{t("sheet.speed")} {formatSpeed(speed)}</span>
             <span
               className={cn(
                 encumbranceRule && load.tier !== "unencumbered" && "text-amber-300",
               )}
               title={
                 encumbranceRule
-                  ? `${load.note ?? "Not encumbered"}. Capacity ${load.capacityLb} lb.${load.unweighed ? ` ${load.unweighed} item${load.unweighed === 1 ? "" : "s"} of unknown weight are not counted.` : ""}`
-                  : `Carrying capacity ${load.capacityLb} lb. Encumbrance is off for this table, so the weight costs nothing.${load.unweighed ? ` ${load.unweighed} item${load.unweighed === 1 ? "" : "s"} of unknown weight are not counted.` : ""}`
+                  ? `${load.note ?? "Not encumbered"}. ${t("sheet.carryingCapacity")} ${formatWeight(load.capacityLb)}.${load.unweighed ? ` ${load.unweighed} item(s) uncounted.` : ""}`
+                  : `${t("sheet.carryingCapacity")} ${formatWeight(load.capacityLb)}.${load.unweighed ? ` ${load.unweighed} item(s) uncounted.` : ""}`
               }
             >
-              {load.carriedLb}
-              {load.unweighed ? "+" : ""}/{load.capacityLb} lb
+              {formatWeight(load.carriedLb)}
+              {load.unweighed ? "+" : ""}/{formatWeight(load.capacityLb)}
             </span>
             <span title={explainParts(derived.parts.initiative)}>
-              <GameTerm id="initiative">Init</GameTerm> {formatModifier(derived.initiative)}
+              <GameTerm id="initiative">{locale === "ru" ? "Иниц." : "Init"}</GameTerm> {formatModifier(derived.initiative)}
             </span>
             <span title={explainParts(derived.parts.passivePerception)}>
-              <GameTerm id="passive_perception">PP</GameTerm> {derived.passivePerception}
+              <GameTerm id="passive_perception">{locale === "ru" ? "Пасс. Вним." : "PP"}</GameTerm> {derived.passivePerception}
             </span>
-            <span>PB {formatModifier(derived.proficiencyBonus)}</span>
-            <span>{sheet.gold} gp</span>
+            <span>{locale === "ru" ? "БМ" : "PB"} {formatModifier(derived.proficiencyBonus)}</span>
+            <span>{sheet.gold} {locale === "ru" ? "зм" : "gp"}</span>
             <span>
               {sheet.xp} XP · Hit dice {sheet.hitDice.total - sheet.hitDice.spent}/
               {sheet.hitDice.total}
@@ -259,7 +261,7 @@ export function CharacterSheetDialog({
           <div className="mt-4 grid grid-cols-3 gap-2 text-center sm:grid-cols-6">
             {ABILITIES.map((ability) => (
               <div key={ability} className="rounded-lg border border-stone-800 p-2">
-                <p className="text-xs uppercase text-stone-500">{ability}</p>
+                <p className="text-xs uppercase font-bold text-amber-300/80">{t(`sheet.abilities.${ability}`)}</p>
                 <p className="text-lg text-stone-100">{sheet.abilities[ability]}</p>
                 <p className="text-xs text-stone-400">
                   {formatModifier(derived.abilityMods[ability])}

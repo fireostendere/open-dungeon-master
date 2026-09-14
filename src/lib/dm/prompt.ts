@@ -109,6 +109,20 @@ export function buildDmSystem(campaign: Campaign): string {
   if (cover) {
     parts.push(cover);
   }
+  parts.push(
+    `Language and Measurement Units:
+- Always narrate, describe scenes, answer actions, and voice NPCs in Russian (на русском языке), unless players explicitly write in English.
+- Always use the METRIC SYSTEM for distances, sizes, ranges, and weights:
+  * 5 feet = 1.5 метра (1.5 м / 1 клетка на карте)
+  * 10 feet = 3 метра (3 м)
+  * 15 feet = 4.5 метра (4.5 м)
+  * 20 feet = 6 метров (6 м)
+  * 30 feet = 9 метров (9 м / стандартная скорость)
+  * 60 feet = 18 метров (18 м)
+  * 120 feet = 36 метров (36 м)
+  * Weights in kilograms (кг): 1 lb ≈ 0.45 кг (5 lbs ≈ 2.2 кг, 10 lbs ≈ 4.5 кг).
+  * Never use "feet", "ft", "pounds", or "lbs" in narration; always state distances in meters (м) and weights in kilograms (кг).`
+  );
   return parts.join("\n\n");
 }
 

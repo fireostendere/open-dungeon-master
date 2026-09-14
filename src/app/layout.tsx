@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Cinzel, Geist, Geist_Mono, Source_Serif_4 } from "next/font/google";
+import { I18nProvider } from "@/lib/i18n";
 import TopoBackground from "./TopoBackground";
 import { ServerAddressButton } from "@/components/ServerAddressButton";
 import "./globals.css";
@@ -61,7 +62,9 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col">
         <TopoBackground />
-        {children}
+        <I18nProvider>
+          {children}
+        </I18nProvider>
         {/* Every page: the QR and address a friend scans to add this server
             in the app or open it in a browser on the same network. */}
         <ServerAddressButton />

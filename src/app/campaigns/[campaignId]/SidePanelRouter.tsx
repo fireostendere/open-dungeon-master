@@ -29,6 +29,7 @@ import {
   type StorySection,
   type SubTabDef,
 } from "@/app/campaigns/[campaignId]/SessionTabs";
+import { useI18n } from "@/lib/i18n";
 import type {
   AuditEntry,
   CampaignLocation,
@@ -178,17 +179,18 @@ export function SidePanelRouter({
 }: SidePanelRouterProps) {
   // Which section of Party and Story is showing. Local state: nothing outside
   // this panel reads or sets them.
+  const { locale } = useI18n();
   const [partySection, setPartySection] = useState<PartySection>("party");
   const [storySection, setStorySection] = useState<StorySection>("story");
 
   const partySubTabs: SubTabDef<PartySection>[] = [
-    ["party", "Roster", Users],
-    ...(relationshipsEnabled ? ([["bonds", "Bonds", Heart]] as SubTabDef<PartySection>[]) : []),
+    ["party", locale === "ru" ? "Состав" : "Roster", Users],
+    ...(relationshipsEnabled ? ([["bonds", locale === "ru" ? "Связи" : "Bonds", Heart]] as SubTabDef<PartySection>[]) : []),
   ];
   const storySubTabs: SubTabDef<StorySection>[] = [
-    ["story", "Chapters", BookOpen],
-    ["facts", "Facts", BookMarked],
-    ["log", "Log", ScrollText],
+    ["story", locale === "ru" ? "Главы" : "Chapters", BookOpen],
+    ["facts", locale === "ru" ? "Факты" : "Facts", BookMarked],
+    ["log", locale === "ru" ? "Журнал" : "Log", ScrollText],
   ];
 
   // Who is running the game, in the shape src/lib/dm/viewer.ts asks for. The

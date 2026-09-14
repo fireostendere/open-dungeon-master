@@ -38,6 +38,7 @@ import {
 import { SessionChatColumn } from "@/app/campaigns/[campaignId]/SessionChatColumn";
 import { SessionHeader } from "@/app/campaigns/[campaignId]/SessionHeader";
 import { SidePanel } from "@/app/campaigns/[campaignId]/SidePanel";
+import { useI18n } from "@/lib/i18n";
 import { useChatChime } from "@/app/campaigns/[campaignId]/useChatChime";
 import { useTableAudio } from "@/app/campaigns/[campaignId]/useTableAudio";
 import type { CampaignState } from "@/app/campaigns/[campaignId]/useCampaignStream";
@@ -87,6 +88,7 @@ export function SessionView({
   refreshAsks: () => Promise<void>;
   refreshBattleMap: () => Promise<void>;
 }) {
+  const { locale } = useI18n();
   const { campaign, me, sheets, messages, pendingRolls, auditLog, levelUps, locations, dmStatus, caps } =
     state;
   const [input, setInput] = useState("");
@@ -215,8 +217,8 @@ export function SessionView({
         secretStory: caps.secretStory,
         adjudicates: caps.adjudicates,
         isLead,
-      }),
-    [state.battleMap, campaign, caps.secretStory, caps.adjudicates, isLead],
+      }, locale),
+    [state.battleMap, campaign, caps.secretStory, caps.adjudicates, isLead, locale],
   );
   // Gates the Bonds sub-tab inside the Party panel.
   const relationshipsEnabled = campaign?.gameSettings?.relationships !== "off";
@@ -420,7 +422,7 @@ export function SessionView({
               sending={sending}
               error={error}
               inputBlocked={gate.inputBlocked || muted}
-              placeholder={muted ? "The party lead has muted you at this table." : gate.placeholder}
+              placeholder={muted ? (locale === "ru" ? "Лидер группы заглушил вас за этим столом." : "The party lead has muted you at this table.") : gate.placeholder}
               dmStatus={dmStatus}
               pendingRolls={pendingRolls}
               floor={floor}

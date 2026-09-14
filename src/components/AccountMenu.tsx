@@ -5,8 +5,10 @@ import {
   AppWindow,
   CircleHelp,
   DoorOpen,
+  Globe,
   HeartHandshake,
   LogOut,
+  Ruler,
   Settings,
   ShieldCheck,
   UserRound,
@@ -21,6 +23,7 @@ import { Tooltip } from "@/components/ui/Tooltip";
 import { headerButtonClass } from "@/app/campaigns/[campaignId]/headerButton";
 import { cn } from "@/lib/cn";
 import { shellHost, type ShellHost } from "@/lib/shell-host";
+import { useI18n } from "@/lib/i18n";
 
 // window.odmShell is set once before any page script runs and never changes.
 const subscribeNever = () => () => {};
@@ -107,6 +110,7 @@ export function AccountMenu({
   // tours) opens that instead of the menu's plain copy.
   onHelp?: () => void;
 }) {
+  const { t, locale, toggleLocale, unitSystem, toggleUnitSystem } = useI18n();
   const [helpOpen, setHelpOpen] = useState(false);
   const pathname = usePathname();
   // Inside the desktop or Android app the menu grows a door back to the
@@ -155,34 +159,29 @@ export function AccountMenu({
             align="end"
             sideOffset={6}
             collisionPadding={12}
-            className="min-w-44 rounded-lg border border-stone-600/60 bg-stone-950 p-1 shadow-elev-2"
+            className="min-w-48 rounded-lg border border-stone-600/60 bg-stone-950 p-1 shadow-elev-2"
           >
             {pathname !== "/" ? (
               <DropdownMenu.Item asChild>
                 <Link href="/" className={itemClass}>
-                  <DoorOpen className="size-4" /> All campaigns
+                  <DoorOpen className="size-4" /> {t("nav.campaigns")}
                 </Link>
               </DropdownMenu.Item>
             ) : null}
             <DropdownMenu.Item asChild>
               <Link href="/characters" className={itemClass}>
-                <Users className="size-4" /> Characters
-              </Link>
-            </DropdownMenu.Item>
-            <DropdownMenu.Item asChild>
-              <Link href="/friends" className={itemClass}>
-                <HeartHandshake className="size-4" /> Friends
+                <Users className="size-4" /> {t("nav.characters")}
               </Link>
             </DropdownMenu.Item>
             <DropdownMenu.Item asChild>
               <Link href="/settings" className={itemClass}>
-                <Settings className="size-4" /> Settings
+                <Settings className="size-4" /> {t("nav.settings")}
               </Link>
             </DropdownMenu.Item>
             {user.isAdmin ? (
               <DropdownMenu.Item asChild>
                 <Link href="/admin" className={itemClass}>
-                  <ShieldCheck className="size-4" /> Admin panel
+                  <ShieldCheck className="size-4" /> {t("nav.admin")}
                 </Link>
               </DropdownMenu.Item>
             ) : null}
@@ -190,16 +189,32 @@ export function AccountMenu({
               onSelect={() => (onHelp ? onHelp() : setHelpOpen(true))}
               className={itemClass}
             >
-              <CircleHelp className="size-4" /> Help
+              <CircleHelp className="size-4" /> {t("nav.help")}
             </DropdownMenu.Item>
+
             <DropdownMenu.Separator className="my-1 h-px bg-stone-800" />
+
+            {/* Quick language toggle */}
+            <DropdownMenu.Item onSelect={toggleLocale} className={itemClass}>
+              <Globe className="size-4 text-amber-400" />
+              <span>{locale === "ru" ? "Язык: Русский (RU)" : "Language: English (EN)"}</span>
+            </DropdownMenu.Item>
+
+            {/* Metric / Imperial toggle */}
+            <DropdownMenu.Item onSelect={toggleUnitSystem} className={itemClass}>
+              <Ruler className="size-4 text-amber-400" />
+              <span>{unitSystem === "metric" ? (locale === "ru" ? "Меры: Метрические (м/кг)" : "Units: Metric (m/kg)") : (locale === "ru" ? "Меры: Английские (ft/lb)" : "Units: Imperial (ft/lb)")}</span>
+            </DropdownMenu.Item>
+
+            <DropdownMenu.Separator className="my-1 h-px bg-stone-800" />
+
             {shell ? (
               <DropdownMenu.Item onSelect={() => shell.showServers()} className={itemClass}>
-                <AppWindow className="size-4" /> App home
+                <AppWindow className="size-4" /> {t("nav.home")}
               </DropdownMenu.Item>
             ) : null}
             <DropdownMenu.Item onSelect={logout} className={itemClass}>
-              <LogOut className="size-4" /> Log out
+              <LogOut className="size-4" /> {t("nav.logout")}
             </DropdownMenu.Item>
           </DropdownMenu.Content>
         </DropdownMenu.Portal>

@@ -6,6 +6,7 @@ import { PIXEL_ICONS, PixelTile } from "@/lib/ui";
 import { AccountMenu, AppBrand, AppHomeButton, type AccountMenuUser } from "@/components/AccountMenu";
 import { DeletionBanner } from "@/components/DeletionBanner";
 import { NotificationBell } from "@/components/NotificationBell";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 
 // Shared top bar for the flat pages (characters, workshop, reference,
 // settings, admin): wordmark home, notifications, account menu. The campaign
@@ -54,13 +55,16 @@ export function AppHeader({
           Open Dungeon Master
         </span>
       </AppBrand>
-      {resolved ? (
-        <div className="flex shrink-0 items-center gap-2">
-          <AppHomeButton />
-          <NotificationBell />
-          <AccountMenu user={resolved} />
-        </div>
-      ) : null}
+      <div className="flex shrink-0 items-center gap-2">
+        <LanguageSwitcher />
+        {resolved ? (
+          <>
+            <AppHomeButton />
+            <NotificationBell />
+            <AccountMenu user={resolved} />
+          </>
+        ) : null}
+      </div>
       </div>
       {resolved?.deletionDueAt ? <DeletionBanner dueAt={resolved.deletionDueAt} /> : null}
     </header>
