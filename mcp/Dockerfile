@@ -11,6 +11,7 @@ RUN npm install --omit=dev --ignore-scripts --no-audit --no-fund \
     && npm cache clean --force
 
 COPY mcp/server.mjs ./server.mjs
+COPY mcp/external-tools-preload.mjs ./external-tools-preload.mjs
 
 RUN chown -R node:node /app
 USER node
@@ -20,4 +21,4 @@ EXPOSE 3006
 HEALTHCHECK --interval=30s --timeout=8s --start-period=20s --retries=3 \
   CMD node -e "fetch('http://127.0.0.1:3006/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
 
-CMD ["node", "server.mjs"]
+CMD ["node", "--import", "./external-tools-preload.mjs", "server.mjs"]
