@@ -643,8 +643,11 @@ function targetContext(job: JobRow) {
       return db.prepare(`SELECT id, name, attitude, trait, location, role, portrait_url FROM npcs WHERE id = ?`).get(job.target_id) ?? null;
     case "location":
       return db.prepare(`SELECT id, name, layout_description, visited, map_image_json FROM locations WHERE id = ?`).get(job.target_id) ?? null;
-    case "map":
-      return db.prepare(`SELECT id, name, notes, width, height, theme, backdrop_path FROM prepared_maps WHERE id = ?`).get(job.target_id) ?? null;
+    case "map": {
+      const prepared = db.prepare(`SELECT id, name, notes, width, height, theme, backdrop_path FROM prepared_maps WHERE id = ?`).get(job.target_id);
+      if (prepared) return prepared;
+      return db.prepare(`SELECT campaign_id AS id, 'Overworld' AS name, notes, width, height, 'regional' AS theme, backdrop_path FROM overworld_maps WHERE campaign_id = ?`).get(job.target_id) ?? null;
+    }
     case "chapter":
       return db.prepare(`SELECT id, chapter_index, title, summary, highlights_json FROM chapters WHERE id = ?`).get(job.target_id) ?? null;
     case "campaign":

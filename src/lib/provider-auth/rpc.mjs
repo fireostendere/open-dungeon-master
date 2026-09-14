@@ -7,7 +7,7 @@ export class CodexRpc extends EventEmitter {
   constructor({command = 'codex', args = ['app-server'], cwd, env, spawnProcess = spawn, timeoutMs = 30000}) {
     super();
     this.nextId = 1; this.pending = new Map(); this.buffer = ''; this.timeoutMs = timeoutMs; this.closed = false;
-    this.child = spawnProcess(command, args, {cwd, env, shell:false, windowsHide:true, stdio:['pipe','pipe','pipe']});
+    this.child = spawnProcess(/*turbopackIgnore: true*/ command, args, {cwd, env, shell:false, windowsHide:true, stdio:['pipe','pipe','pipe']});
     this.child.stdout.setEncoding('utf8');
     this.child.stdout.on('data', chunk => this.feed(chunk));
     // Diagnostics may contain credentials. Do not forward raw stderr to clients or logs.

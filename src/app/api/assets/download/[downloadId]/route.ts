@@ -19,7 +19,7 @@ export async function GET(
   try {
     const asset = consumeDownloadGrant(downloadId, token);
     const bytes = assetStorage().read(asset.storageKey);
-    return new Response(bytes, {
+    return new Response(new Uint8Array(bytes), {
       status: 200,
       headers: {
         "Content-Type": asset.mimeType,

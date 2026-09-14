@@ -61,7 +61,8 @@ function readPack(file) {
   }
   // Keep the author's own key order and any field the schema would default;
   // only `art` is rewritten. artKeys is the loader's field and never written.
-  const { artKeys: _ignored, ...rest } = raw;
+  const rest = { ...raw };
+  delete rest.artKeys;
   return { raw: rest, pack: parsed.data };
 }
 

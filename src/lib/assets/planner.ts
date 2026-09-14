@@ -270,20 +270,20 @@ export function planCampaignAssets(campaignId: string) {
   }
 
   const overworld = db.prepare(`
-    SELECT id, width, height, backdrop_path FROM overworld_maps WHERE campaign_id = ?
-  `).get(campaignId) as { id: string; width: number; height: number; backdrop_path: string } | undefined;
-  if (overworld && !overworld.backdrop_path && !hasLinkedKind(campaignId, "map", overworld.id, "regional_map")) {
+    SELECT campaign_id, width, height, backdrop_path FROM overworld_maps WHERE campaign_id = ?
+  `).get(campaignId) as { campaign_id: string; width: number; height: number; backdrop_path: string } | undefined;
+  if (overworld && !overworld.backdrop_path && !hasLinkedKind(campaignId, "map", overworld.campaign_id, "regional_map")) {
     add(job({
       kind: "regional_map",
       title: `Regional map — ${campaign.title}`,
       description: "Illustrated regional/world map preserving the server-authored geography.",
       suggestedPrompt: `${prefix} Illustrated regional fantasy map matching the campaign geography. Readable terrain silhouettes and routes; no invented labels unless supplied by the brief.`.trim(),
       aspect: overworld.width >= overworld.height ? "landscape" : "portrait",
-      target: { type: "map", id: overworld.id },
-      referenceAssetIds: referenceAssetIds(campaignId, "map", overworld.id),
+      target: { type: "map", id: overworld.campaign_id },
+      referenceAssetIds: referenceAssetIds(campaignId, "map", overworld.campaign_id),
       priority: 62,
       metadata: { gridColumns: overworld.width, gridRows: overworld.height, orientation: "top-down" },
-      dedupeKey: `overworld:${overworld.id}:regional-map`,
+      dedupeKey: `overworld:${overworld.campaign_id}:regional-map`,
     }));
   }
 

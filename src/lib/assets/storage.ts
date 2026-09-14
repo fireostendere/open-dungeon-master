@@ -45,7 +45,7 @@ function within(root: string, candidate: string) {
 }
 
 export function mediaRoot() {
-  return path.resolve(process.env.ODM_MEDIA_ROOT?.trim() || path.join(process.cwd(), "data", "media"));
+  return path.resolve(/*turbopackIgnore: true*/ process.env.ODM_MEDIA_ROOT?.trim() || path.join(process.cwd(), "data", "media"));
 }
 
 class FilesystemAssetStorage implements AssetStorageBackend {
@@ -57,7 +57,7 @@ class FilesystemAssetStorage implements AssetStorageBackend {
     if (!normalized || normalized.includes("\0") || normalized.split("/").some((part) => part === ".." || part === ".")) {
       throw new Error("Invalid asset storage key.");
     }
-    const absolute = path.resolve(this.root, ...normalized.split("/"));
+    const absolute = path.resolve(/*turbopackIgnore: true*/ this.root, ...normalized.split("/"));
     if (!within(this.root, absolute)) throw new Error("Asset storage key escapes the media root.");
     return absolute;
   }

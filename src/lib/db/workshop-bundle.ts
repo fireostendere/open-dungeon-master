@@ -274,7 +274,7 @@ function saveBundleImage(dataUrl: string, uploadDir: string): string {
     return "";
   }
   const filename = `${crypto.randomUUID()}.${image.ext}`;
-  writeFileSync(path.join(uploadDir, filename), image.bytes);
+  writeFileSync(path.join(/*turbopackIgnore: true*/ uploadDir, filename), image.bytes);
   return `/uploads/${filename}`;
 }
 
