@@ -6,23 +6,63 @@ import { HeroCard } from "@/components/ui/HeroCard";
 import { miscPlaceholder } from "@/lib/placeholders";
 import { ui } from "@/lib/ui";
 import { holdsDmSeat, type HomeCampaign } from "@/app/home/types";
+import { useI18n } from "@/lib/i18n";
 
-// The doorway at the top of home: the table you were last at, with its cover
-// art and one line saying who you are there and how full it is.
+const COPY = {
+  en: {
+    continue: "Continue",
+    lobby: "Lobby",
+    playingAs: "Playing as {name} · {party}",
+    running: "Running the table · {party}",
+    noCharacter: "No character yet · {party}",
+    solo: "solo",
+    party: "{seats} party",
+    enter: "Enter world",
+    emptyTitle: "Every campaign starts with an empty table.",
+    emptyBody: "Create one and invite your friends, or join theirs with a room code below.",
+  },
+  ru: {
+    continue: "Продолжить",
+    lobby: "Лобби",
+    playingAs: "Вы играете за {name} · {party}",
+    running: "Вы ведёте стол · {party}",
+    noCharacter: "Персонаж ещё не выбран · {party}",
+    solo: "соло",
+    party: "партия {seats}",
+    enter: "Войти в мир",
+    emptyTitle: "Каждая кампания начинается с пустого стола.",
+    emptyBody: "Создайте кампанию и пригласите друзей или присоединитесь к их столу по коду комнаты ниже.",
+  },
+  pl: {
+    continue: "Kontynuuj",
+    lobby: "Lobby",
+    playingAs: "Grasz jako {name} · {party}",
+    running: "Prowadzisz stół · {party}",
+    noCharacter: "Nie wybrano jeszcze postaci · {party}",
+    solo: "solo",
+    party: "drużyna {seats}",
+    enter: "Wejdź do świata",
+    emptyTitle: "Każda kampania zaczyna się od pustego stołu.",
+    emptyBody: "Utwórz kampanię i zaproś znajomych albo dołącz do ich stołu kodem pokoju poniżej.",
+  },
+} as const;
+
 export function ContinueHero({ campaign, userId }: { campaign: HomeCampaign; userId: string }) {
+  const { locale } = useI18n();
+  const copy = COPY[locale];
   const seats = `${campaign.playerCount}/${campaign.maxPlayers}`;
-  const party = campaign.maxPlayers === 1 ? "solo" : `${seats} party`;
+  const party = campaign.maxPlayers === 1 ? copy.solo : copy.party.replace("{seats}", seats);
   const line =
     campaign.status === "lobby"
-      ? `Lobby · ${seats}`
+      ? `${copy.lobby} · ${seats}`
       : campaign.playingAs
-        ? `Playing as ${campaign.playingAs} · ${party}`
+        ? copy.playingAs.replace("{name}", campaign.playingAs).replace("{party}", party)
         : holdsDmSeat(campaign, userId)
-          ? `Running the table · ${party}`
-          : `No character yet · ${party}`;
+          ? copy.running.replace("{party}", party)
+          : copy.noCharacter.replace("{party}", party);
   return (
     <HeroCard
-      eyebrow="Continue"
+      eyebrow={copy.continue}
       title={campaign.title}
       line={line}
       art={
@@ -36,20 +76,18 @@ export function ContinueHero({ campaign, userId }: { campaign: HomeCampaign; use
       }
       action={
         <a href={`/campaigns/${campaign.id}`} className={ui.btnPrimary}>
-          <Swords className="size-4" /> Enter world
+          <Swords className="size-4" /> {copy.enter}
         </a>
       }
     />
   );
 }
 
-// The same slot when the account has no campaigns at all. Kept word for
-// word from the old dashboard: it is a statement about the account, which
-// is why a failed list fetch never shows it.
 export function EmptyHero() {
+  const { locale } = useI18n();
+  const copy = COPY[locale];
   return (
     <div className="flex flex-col items-center gap-4 rounded-xl border border-stone-800 bg-stone-950/40 px-6 py-10 text-center">
-      {/* The empty plinth plate: the one picture for a table nobody has sat at. */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={miscPlaceholder("empty")}
@@ -57,12 +95,8 @@ export function EmptyHero() {
         className="aspect-video w-full max-w-xs rounded-lg border border-amber-400/20 object-cover shadow-glow-gold"
       />
       <div className="max-w-sm">
-        <p className="text-balance font-serif text-2xl text-stone-200">
-          Every campaign starts with an empty table.
-        </p>
-        <p className="mt-2 text-pretty text-sm text-stone-500">
-          Create one and invite your friends, or join theirs with a room code below.
-        </p>
+        <p className="text-balance font-serif text-2xl text-stone-200">{copy.emptyTitle}</p>
+        <p className="mt-2 text-pretty text-sm text-stone-500">{copy.emptyBody}</p>
       </div>
     </div>
   );
