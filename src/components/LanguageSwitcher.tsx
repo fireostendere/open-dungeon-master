@@ -1,35 +1,39 @@
 "use client";
 
 import { Globe, Ruler } from "lucide-react";
-import { useI18n } from "@/lib/i18n";
+import { nextLocale, useI18n } from "@/lib/i18n";
 import { Tooltip } from "@/components/ui/Tooltip";
 import { cn } from "@/lib/cn";
 
 export function LanguageSwitcher({ className }: { className?: string }) {
-  const { locale, toggleLocale, unitSystem, toggleUnitSystem } = useI18n();
-
-  const languageTooltip = locale === "ru" ? "Переключить на английский" : "Switch to Russian";
-  const languageLabel = locale === "ru" ? "Переключить язык на английский" : "Switch language to Russian";
+  const { t, locale, toggleLocale, unitSystem, toggleUnitSystem } = useI18n();
+  const next = nextLocale(locale);
+  const nextLanguageName =
+    next === "ru"
+      ? t("language.russian")
+      : next === "pl"
+        ? t("language.polish")
+        : t("language.english");
+  const languageTooltip = t("language.switchShort", { language: nextLanguageName });
+  const languageLabel = t("language.switchTo", { language: nextLanguageName });
   const unitsTooltip =
-    unitSystem === "metric"
-      ? locale === "ru"
-        ? "Метрическая система: метры (м) и килограммы (кг). Нажмите для футов/фунтов."
-        : "Metric system: meters and kilograms. Click for imperial units."
-      : locale === "ru"
-        ? "Английская система: футы (ft) и фунты (lb). Нажмите для метров/кг."
-        : "Imperial system: feet and pounds. Click for metric units.";
-  const unitsLabel = locale === "ru" ? "Переключить систему мер" : "Switch unit system";
+    unitSystem === "metric" ? t("language.metricHelp") : t("language.imperialHelp");
+  const unitsLabel = t("language.switchUnits");
 
   return (
-    <div className={cn("inline-flex items-center gap-1.5 rounded-lg border border-stone-800 bg-stone-900/80 p-0.5 backdrop-blur-xs", className)}>
+    <div
+      className={cn(
+        "inline-flex items-center gap-1.5 rounded-lg border border-stone-800 bg-stone-900/80 p-0.5 backdrop-blur-xs",
+        className,
+      )}
+    >
       <Tooltip content={languageTooltip} side="bottom">
         <button
           type="button"
           onClick={toggleLocale}
           className={cn(
-            "flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium transition-all",
-            "hover:bg-amber-400/10 hover:text-amber-200 focus-visible:outline-hidden",
-            locale === "ru" ? "bg-amber-400/15 text-amber-200 border border-amber-400/30" : "text-stone-400",
+            "flex items-center gap-1.5 rounded-md border border-amber-400/30 bg-amber-400/15 px-2 py-1 text-xs font-medium text-amber-200 transition-all",
+            "hover:bg-amber-400/20 focus-visible:outline-hidden",
           )}
           aria-label={languageLabel}
         >
@@ -47,7 +51,9 @@ export function LanguageSwitcher({ className }: { className?: string }) {
           className={cn(
             "flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-mono transition-all",
             "hover:bg-amber-400/10 hover:text-amber-200 focus-visible:outline-hidden",
-            unitSystem === "metric" ? "bg-stone-800/80 text-stone-200 border border-stone-700/60" : "text-stone-400",
+            unitSystem === "metric"
+              ? "border border-stone-700/60 bg-stone-800/80 text-stone-200"
+              : "text-stone-400",
           )}
           aria-label={unitsLabel}
         >
