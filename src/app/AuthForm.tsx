@@ -9,33 +9,81 @@ import { ChangePasswordForm } from "@/app/ChangePasswordForm";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { currentPathname, currentQuery, replaceAddress } from "@/lib/navigation";
 import { useI18n } from "@/lib/i18n";
+import type { Locale } from "@/lib/i18n/translations";
 
 type AuthMode = "login" | "register";
-
-const OAUTH_ERRORS: Record<string, string> = {
-  discord: "Discord sign-in failed. Try again.",
-  signups_disabled: "Signups are disabled on this server.",
-  invite_required: "This server needs an invite code to create an account.",
-  invite_invalid: "That invite code is not valid (or has been used up).",
-};
-
 type SignupMode = "open" | "invite" | "closed";
 
-const MODE_OPTIONS: Array<{ value: AuthMode; label: string }> = [
-  { value: "login", label: "Log in" },
-  { value: "register", label: "Create account" },
-];
+function authCopy(locale: Locale) {
+  if (locale === "ru") {
+    return {
+      oauthErrors: {
+        discord: "Не удалось войти через Discord. Попробуйте ещё раз.",
+        signups_disabled: "Регистрация на этом сервере отключена.",
+        invite_required: "Для регистрации на этом сервере нужен код приглашения.",
+        invite_invalid: "Этот код приглашения недействителен или уже использован.",
+      } as Record<string, string>,
+      seatTaken: "Это имя уже занято за этим столом. Выберите другое или попросите владельца удалить старое место.",
+      genericError: "Что-то пошло не так.",
+      unreachable: "Не удалось подключиться к серверу.",
+      resetIntro: "Администратор сбросил ваш пароль. Задайте новый пароль, чтобы продолжить.",
+      deviceWorld:
+        "Этот мир запущен на устройстве владельца. Укажите имя за столом — и вы внутри; запоминать пароль не нужно.",
+      tableName: "Ваше имя за этим столом",
+      continueDiscord: "Продолжить через Discord",
+      signInDiscord: "Войти через Discord",
+      newHere: "Впервые здесь? ",
+      haveAccount: "Уже есть аккаунт? ",
+      closed: "Этот сервер сейчас не принимает новые регистрации.",
+    };
+  }
+  if (locale === "pl") {
+    return {
+      oauthErrors: {
+        discord: "Logowanie przez Discord nie powiodło się. Spróbuj ponownie.",
+        signups_disabled: "Rejestracja na tym serwerze jest wyłączona.",
+        invite_required: "Do utworzenia konta na tym serwerze potrzebny jest kod zaproszenia.",
+        invite_invalid: "Ten kod zaproszenia jest nieprawidłowy albo został już wykorzystany.",
+      } as Record<string, string>,
+      seatTaken: "Ta nazwa jest już zajęta przy tym stole. Wybierz inną albo poproś gospodarza o usunięcie starego miejsca.",
+      genericError: "Coś poszło nie tak.",
+      unreachable: "Nie udało się połączyć z serwerem.",
+      resetIntro: "Administrator zresetował twoje hasło. Ustaw nowe, aby kontynuować.",
+      deviceWorld:
+        "Ten świat działa na urządzeniu gospodarza. Podaj nazwę używaną przy stole i możesz dołączyć; nie musisz zapamiętywać hasła.",
+      tableName: "Twoja nazwa przy tym stole",
+      continueDiscord: "Kontynuuj przez Discord",
+      signInDiscord: "Zaloguj się przez Discord",
+      newHere: "Jesteś tu pierwszy raz? ",
+      haveAccount: "Masz już konto? ",
+      closed: "Ten serwer obecnie nie przyjmuje nowych kont.",
+    };
+  }
+  return {
+    oauthErrors: {
+      discord: "Discord sign-in failed. Try again.",
+      signups_disabled: "Signups are disabled on this server.",
+      invite_required: "This server needs an invite code to create an account.",
+      invite_invalid: "That invite code is not valid (or has been used up).",
+    } as Record<string, string>,
+    seatTaken: "That name is already taken at this table. Pick another, or ask the host to remove the old seat.",
+    genericError: "Something went wrong.",
+    unreachable: "Could not reach the server.",
+    resetIntro: "An admin reset your password. Pick a new one to continue.",
+    deviceWorld:
+      "This world runs on its host's device. Give the table a name and you are in; there is no password to remember.",
+    tableName: "Your name at this table",
+    continueDiscord: "Continue with Discord",
+    signInDiscord: "Sign in with Discord",
+    newHere: "New here? ",
+    haveAccount: "Have an account? ",
+    closed: "This server is not accepting new accounts.",
+  };
+}
 
-// The prototype draws the fields a touch taller than the app's default input
-// and the Discord button in Discord's own blurple, so it reads as a third
-// party door rather than one of ours.
 const FIELD = cn(ui.input, "h-11");
 const DISCORD_BTN =
   "inline-flex h-11 w-full items-center justify-center gap-2.5 rounded-lg border border-indigo-400/30 bg-[#5865f2]/15 px-4 text-sm text-indigo-100 transition-all duration-150 ease-snap hover:bg-[#5865f2]/25 hover:text-white active:scale-[0.98]";
-
-// The password this browser made up for a seat at a device world, kept so
-// the same name can walk back in from here without one. Per name, since a
-// shared family tablet may hold several seats.
 const SEAT_PREFIX = "odm-seat:";
 
 function seatSecret(name: string): string {
@@ -62,12 +110,8 @@ function mintSecret(): string {
 
 function discordStartHref(inviteCode: string, joinCode?: string): string {
   const query = new URLSearchParams();
-  if (inviteCode.trim()) {
-    query.set("invite", inviteCode.trim().toUpperCase());
-  }
-  if (joinCode) {
-    query.set("next", `/join/${joinCode.trim().toUpperCase()}`);
-  }
+  if (inviteCode.trim()) query.set("invite", inviteCode.trim().toUpperCase());
+  if (joinCode) query.set("next", `/join/${joinCode.trim().toUpperCase()}`);
   const qs = query.toString();
   return qs ? `/api/auth/discord/start?${qs}` : "/api/auth/discord/start";
 }
@@ -80,49 +124,33 @@ function DiscordMark() {
   );
 }
 
-// Shared login/register form used by the home screen and invite-link page.
-// After a login that requires a password reset (admin gave the user a temp
-// password), a "set a new password" step runs before onAuthed fires.
 export default function AuthForm({
   onAuthed,
   joinCode,
 }: {
   onAuthed: (user: SessionUser) => void;
-  // Campaign room code when this form sits on a /join/CODE page. It rides
-  // along on register so an invite-only server can accept the signup, and
-  // on the Discord link so the OAuth round trip returns to the join page.
   joinCode?: string;
 }) {
+  const { t, locale } = useI18n();
+  const copy = authCopy(locale);
   const [mode, setMode] = useState<AuthMode>("login");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  // An ?invite= in the URL (a shared signup link) prefills the account
-  // invite code and locks the field so it cannot be mistyped away.
   const [urlInvite] = useState(() => {
     if (typeof window === "undefined") return "";
-    return (currentQuery().get("invite") || "")
-      .trim()
-      .toUpperCase()
-      .slice(0, 40);
+    return (currentQuery().get("invite") || "").trim().toUpperCase().slice(0, 40);
   });
-  // Seed the error from an OAuth redirect (?error=...) so it shows on load.
   const [error, setError] = useState(() => {
     if (typeof window === "undefined") return "";
     const oauthError = currentQuery().get("error");
-    return (oauthError && OAUTH_ERRORS[oauthError]) || "";
+    return (oauthError && copy.oauthErrors[oauthError]) || "";
   });
   const [busy, setBusy] = useState(false);
   const [discordEnabled, setDiscordEnabled] = useState(false);
   const [signupMode, setSignupMode] = useState<SignupMode>("open");
-  // A world one of the apps hosts: a guest arriving with a room code gives
-  // a name and nothing else. The browser has no keychain, so the password
-  // the form makes up is kept in this browser's storage and used again the
-  // next time the same name joins from here.
   const [deviceWorld, setDeviceWorld] = useState(false);
   const [inviteCode, setInviteCode] = useState(urlInvite);
-  const [pendingReset, setPendingReset] = useState<{ user: SessionUser; tempPassword: string } | null>(
-    null,
-  );
+  const [pendingReset, setPendingReset] = useState<{ user: SessionUser; tempPassword: string } | null>(null);
 
   useEffect(() => {
     fetch("/api/auth/providers")
@@ -130,14 +158,10 @@ export default function AuthForm({
       .then((data) => {
         setDiscordEnabled(data?.discord === true);
         setDeviceWorld(data?.deviceWorld === true);
-        if (data?.signupMode === "invite" || data?.signupMode === "closed") {
-          setSignupMode(data.signupMode);
-        }
+        if (data?.signupMode === "invite" || data?.signupMode === "closed") setSignupMode(data.signupMode);
       })
       .catch(() => undefined);
-    if (currentQuery().get("error")) {
-      replaceAddress(currentPathname());
-    }
+    if (currentQuery().get("error")) replaceAddress(currentPathname());
   }, []);
 
   function switchMode(next: AuthMode) {
@@ -145,7 +169,6 @@ export default function AuthForm({
     setError("");
   }
 
-  // Joining a device world by room code: the form asks for a name only.
   const seatJoin = deviceWorld && Boolean(joinCode);
   const effectiveMode: AuthMode = seatJoin ? "register" : mode;
 
@@ -158,22 +181,14 @@ export default function AuthForm({
       const kept = seatJoin ? seatSecret(name) : "";
       const secret = seatJoin ? kept || mintSecret() : password;
       const payload: Record<string, string> = { username: name, password: secret };
-      if (effectiveMode === "register" && inviteCode.trim()) {
-        payload.inviteCode = inviteCode.trim().toUpperCase();
-      }
-      // The room code from a /join page vouches for the signup on an
-      // invite-only server (only a member could have shared it), and is the
-      // whole invitation on a world an app hosts.
-      if (effectiveMode === "register" && joinCode) {
-        payload.joinCode = joinCode.trim().toUpperCase();
-      }
+      if (effectiveMode === "register" && inviteCode.trim()) payload.inviteCode = inviteCode.trim().toUpperCase();
+      if (effectiveMode === "register" && joinCode) payload.joinCode = joinCode.trim().toUpperCase();
+
       let response = await fetch(`/api/auth/${effectiveMode}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      // The same name joining the same world again from this browser: the
-      // account exists, and the password this browser kept opens it.
       if (seatJoin && response.status === 409 && kept) {
         response = await fetch("/api/auth/login", {
           method: "POST",
@@ -183,23 +198,17 @@ export default function AuthForm({
       }
       const data = await response.json().catch(() => ({}));
       if (!response.ok) {
-        setError(
-          seatJoin && response.status === 409
-            ? "That name is already taken at this table. Pick another, or ask the host to remove the old seat."
-            : data.error || "Something went wrong.",
-        );
+        setError(seatJoin && response.status === 409 ? copy.seatTaken : copy.genericError);
         return;
       }
-      if (seatJoin) {
-        rememberSeat(name, secret);
-      }
+      if (seatJoin) rememberSeat(name, secret);
       if (data.user?.mustChangePassword) {
         setPendingReset({ user: data.user, tempPassword: password });
         return;
       }
       onAuthed(data.user);
     } catch {
-      setError("Could not reach the server.");
+      setError(copy.unreachable);
     } finally {
       setBusy(false);
     }
@@ -208,26 +217,23 @@ export default function AuthForm({
   if (pendingReset) {
     return (
       <>
-        <p className="mb-3 text-sm text-stone-400">
-          An admin reset your password. Pick a new one to continue.
-        </p>
+        <p className="mb-3 text-sm text-stone-400">{copy.resetIntro}</p>
         <ChangePasswordForm
           currentPassword={pendingReset.tempPassword}
           lockCurrent
-          submitLabel="Set new password"
+          submitLabel={t("auth.setNewPassword")}
           onChanged={() => onAuthed({ ...pendingReset.user, mustChangePassword: false })}
         />
       </>
     );
   }
 
-  const { t } = useI18n();
-  // A closed server has one mode only, so the switch is hidden rather than
-  // shown with a dead option; a device world's join page has no modes at all.
   const canRegister = signupMode !== "closed" && !seatJoin;
-  // On a join page both modes end at the same seat, so the button says so.
-  const submitLabel = joinCode ? t("campaign.takeYourSeat") : mode === "login" ? t("auth.login") : t("auth.register");
-
+  const submitLabel = joinCode
+    ? t("campaign.takeYourSeat")
+    : mode === "login"
+      ? t("auth.login")
+      : t("auth.register");
   const modeOptions: Array<{ value: AuthMode; label: string }> = [
     { value: "login", label: t("auth.login") },
     { value: "register", label: t("auth.register") },
@@ -235,12 +241,7 @@ export default function AuthForm({
 
   return (
     <>
-      {seatJoin ? (
-        <p className="mb-4 text-sm text-stone-400">
-          This world runs on its host&apos;s device. Give the table a name and you are in; there is
-          no password to remember.
-        </p>
-      ) : null}
+      {seatJoin ? <p className="mb-4 text-sm text-stone-400">{copy.deviceWorld}</p> : null}
       {canRegister ? (
         <SegmentedControl
           options={modeOptions}
@@ -261,7 +262,7 @@ export default function AuthForm({
             required
             minLength={3}
             maxLength={24}
-            placeholder={seatJoin ? "Your name at this table" : mode === "register" ? t("auth.chooseUsername") : undefined}
+            placeholder={seatJoin ? copy.tableName : mode === "register" ? t("auth.chooseUsername") : undefined}
             className={FIELD}
           />
         </label>
@@ -290,21 +291,16 @@ export default function AuthForm({
               required
               readOnly={Boolean(urlInvite)}
               maxLength={40}
-              placeholder="ODM-XXXXXXXXXX"
+              placeholder={t("auth.inviteCodePlaceholder")}
               className={cn(FIELD, "font-mono uppercase tracking-wider", urlInvite && "text-amber-200")}
             />
             <span className="mt-1.5 block text-xs text-stone-500">
-              {urlInvite
-                ? t("auth.inviteCodeFromLink")
-                : t("auth.inviteCodeHelp")}
+              {urlInvite ? t("auth.inviteCodeFromLink") : t("auth.inviteCodeHelp")}
             </span>
           </label>
         ) : null}
         {error ? (
-          <p
-            role="alert"
-            className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-300"
-          >
+          <p role="alert" className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-300">
             {error}
           </p>
         ) : null}
@@ -331,38 +327,29 @@ export default function AuthForm({
         <>
           <div className="my-4 flex items-center gap-3" aria-hidden="true">
             <span className="h-px flex-1 bg-stone-700/60" />
-            <span className="text-[11px] uppercase tracking-[0.2em] text-stone-600">or</span>
+            <span className="text-[11px] uppercase tracking-[0.2em] text-stone-600">{t("common.or")}</span>
             <span className="h-px flex-1 bg-stone-700/60" />
           </div>
-          <a
-            // A filled invite code rides along so a brand-new Discord account
-            // can pass an invite-only server's gate in one round trip, and on
-            // a join page the return path rides along so the callback lands
-            // back on the campaign instead of the dashboard.
-            href={discordStartHref(inviteCode, joinCode)}
-            className={DISCORD_BTN}
-          >
+          <a href={discordStartHref(inviteCode, joinCode)} className={DISCORD_BTN}>
             <DiscordMark />
-            {joinCode ? "Continue with Discord" : "Sign in with Discord"}
+            {joinCode ? copy.continueDiscord : copy.signInDiscord}
           </a>
         </>
       ) : null}
 
       {canRegister ? (
         <p className="mt-5 text-center text-[13px] text-stone-400">
-          {mode === "login" ? "New here? " : "Have an account? "}
+          {mode === "login" ? copy.newHere : copy.haveAccount}
           <button
             type="button"
             onClick={() => switchMode(mode === "login" ? "register" : "login")}
             className="text-amber-200 underline-offset-2 hover:text-amber-100 hover:underline"
           >
-            {mode === "login" ? "Create an account" : "Log in"}
+            {mode === "login" ? t("auth.register") : t("auth.login")}
           </button>
         </p>
       ) : mode === "login" ? (
-        <p className="mt-5 text-center text-xs text-stone-500">
-          This server is not accepting new accounts.
-        </p>
+        <p className="mt-5 text-center text-xs text-stone-500">{copy.closed}</p>
       ) : null}
     </>
   );
