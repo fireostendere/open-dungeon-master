@@ -3,16 +3,97 @@
 import { CalendarClock, Check, CircleHelp, Plus, X } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { cn } from "@/lib/cn";
+import { useI18n, type Locale } from "@/lib/i18n";
 import { ui } from "@/lib/ui";
 import { miscPlaceholder } from "@/lib/placeholders";
 import type { RsvpResponse, ScheduledSession } from "@/lib/db/scheduling";
+
+const COPY = {
+  en: {
+    going: "Going",
+    maybe: "Maybe",
+    out: "Out",
+    pickDate: "Pick a date and time.",
+    planFailed: "Could not plan the session.",
+    serverFailed: "Could not reach the server.",
+    pickNewDate: "Pick a new date and time.",
+    moveFailed: "Could not move the session.",
+    cancelConfirm: "Call this session off? Everyone gets told.",
+    nextSession: "Next session",
+    planSession: "Plan a session",
+    durationAria: "How long the session runs",
+    hours: (value: number) => `${value} hour${value === 1 ? "" : "s"}`,
+    titlePlaceholder: "Title (optional)",
+    notePlaceholder: "Note, e.g. we pick up at the bridge (optional)",
+    schedule: "Schedule",
+    nothingPlanned: "Nothing planned yet.",
+    someone: "someone",
+    defaultSession: (hours: number) => `${hours}h session`,
+    cancelled: "cancelled",
+    move: "Move",
+    callOff: "Call off",
+    moveIt: "Move it",
+  },
+  ru: {
+    going: "Буду",
+    maybe: "Возможно",
+    out: "Не буду",
+    pickDate: "Выберите дату и время.",
+    planFailed: "Не удалось запланировать сессию.",
+    serverFailed: "Не удалось связаться с сервером.",
+    pickNewDate: "Выберите новую дату и время.",
+    moveFailed: "Не удалось перенести сессию.",
+    cancelConfirm: "Отменить эту сессию? Все участники получат уведомление.",
+    nextSession: "Следующая сессия",
+    planSession: "Запланировать сессию",
+    durationAria: "Продолжительность сессии",
+    hours: (value: number) => `${value} ч.`,
+    titlePlaceholder: "Название (необязательно)",
+    notePlaceholder: "Заметка, например: продолжаем у моста (необязательно)",
+    schedule: "Запланировать",
+    nothingPlanned: "Пока ничего не запланировано.",
+    someone: "кто-то",
+    defaultSession: (hours: number) => `Сессия на ${hours} ч.`,
+    cancelled: "отменена",
+    move: "Перенести",
+    callOff: "Отменить",
+    moveIt: "Перенести",
+  },
+  pl: {
+    going: "Będę",
+    maybe: "Może",
+    out: "Nie będę",
+    pickDate: "Wybierz datę i godzinę.",
+    planFailed: "Nie udało się zaplanować sesji.",
+    serverFailed: "Nie udało się połączyć z serwerem.",
+    pickNewDate: "Wybierz nową datę i godzinę.",
+    moveFailed: "Nie udało się przenieść sesji.",
+    cancelConfirm: "Odwołać tę sesję? Wszyscy zostaną powiadomieni.",
+    nextSession: "Następna sesja",
+    planSession: "Zaplanuj sesję",
+    durationAria: "Czas trwania sesji",
+    hours: (value: number) => `${value} godz.`,
+    titlePlaceholder: "Tytuł (opcjonalnie)",
+    notePlaceholder: "Notatka, np. zaczynamy od mostu (opcjonalnie)",
+    schedule: "Zaplanuj",
+    nothingPlanned: "Nic jeszcze nie zaplanowano.",
+    someone: "ktoś",
+    defaultSession: (hours: number) => `Sesja ${hours} godz.`,
+    cancelled: "odwołana",
+    move: "Przenieś",
+    callOff: "Odwołaj",
+    moveIt: "Przenieś",
+  },
+} as const;
+
+type ScheduleCopy = (typeof COPY)[Locale];
 
 // The out-of-game calendar: when the humans meet next. Lives in the lobby
 // beside the party list. The lead plans and cancels; everyone RSVPs. The
 // schedule_updated stream nudge bumps `version` and this refetches.
 
-function whenLabel(startsAt: string): string {
-  return new Date(startsAt).toLocaleString(undefined, {
+function whenLabel(startsAt: string, locale: Locale): string {
+  return new Date(startsAt).toLocaleString(locale, {
     weekday: "short",
     month: "short",
     day: "numeric",
@@ -33,11 +114,17 @@ function toLocalInput(startsAt: string): string {
 
 const DURATION_CHOICES = [60, 120, 180, 240];
 
-const RSVP_CHOICES: Array<{ value: RsvpResponse; label: string; icon: typeof Check }> = [
-  { value: "yes", label: "Going", icon: Check },
-  { value: "maybe", label: "Maybe", icon: CircleHelp },
-  { value: "no", label: "Out", icon: X },
-];
+function rsvpChoices(copy: ScheduleCopy): Array<{
+  value: RsvpResponse;
+  label: string;
+  icon: typeof Check;
+}> {
+  return [
+    { value: "yes", label: copy.going, icon: Check },
+    { value: "maybe", label: copy.maybe, icon: CircleHelp },
+    { value: "no", label: copy.out, icon: X },
+  ];
+}
 
 export function ScheduleSection({
   campaignId,
@@ -52,6 +139,9 @@ export function ScheduleSection({
   usernames: Record<string, string>;
   version: number;
 }) {
+  const { locale } = useI18n();
+  const copy = COPY[locale];
+  const choices = rsvpChoices(copy);
   const [sessions, setSessions] = useState<ScheduledSession[]>([]);
   const [planning, setPlanning] = useState(false);
   const [title, setTitle] = useState("");
@@ -89,7 +179,7 @@ export function ScheduleSection({
   async function plan(event: React.FormEvent) {
     event.preventDefault();
     if (!when) {
-      setError("Pick a date and time.");
+      setError(copy.pickDate);
       return;
     }
     setBusy(true);
@@ -107,7 +197,7 @@ export function ScheduleSection({
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) {
-        setError(data.error || "Could not plan the session.");
+        setError(data.error || copy.planFailed);
         return;
       }
       setPlanning(false);
@@ -117,7 +207,7 @@ export function ScheduleSection({
       setNote("");
       await load();
     } catch {
-      setError("Could not reach the server.");
+      setError(copy.serverFailed);
     } finally {
       setBusy(false);
     }
@@ -126,7 +216,7 @@ export function ScheduleSection({
   async function move(event: React.FormEvent) {
     event.preventDefault();
     if (!movingId || !moveWhen) {
-      setMoveError("Pick a new date and time.");
+      setMoveError(copy.pickNewDate);
       return;
     }
     setMoveBusy(true);
@@ -139,14 +229,14 @@ export function ScheduleSection({
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) {
-        setMoveError(data.error || "Could not move the session.");
+        setMoveError(data.error || copy.moveFailed);
         return;
       }
       setMovingId(null);
       setMoveWhen("");
       await load();
     } catch {
-      setMoveError("Could not reach the server.");
+      setMoveError(copy.serverFailed);
     } finally {
       setMoveBusy(false);
     }
@@ -162,7 +252,7 @@ export function ScheduleSection({
   }
 
   async function cancel(sessionId: string) {
-    if (!window.confirm("Call this session off? Everyone gets told.")) {
+    if (!window.confirm(copy.cancelConfirm)) {
       return;
     }
     await fetch(`/api/campaigns/${campaignId}/schedule/${sessionId}`, {
@@ -180,11 +270,11 @@ export function ScheduleSection({
       <div className="mb-3 flex items-center justify-between">
         <h2 className="eyebrow text-sm text-amber-200/90">
           <CalendarClock className="mr-1.5 inline size-4" />
-          Next session
+          {copy.nextSession}
         </h2>
         {isLead ? (
           <button type="button" onClick={() => setPlanning(!planning)} className={ui.btnSmall}>
-            <Plus className="size-4" /> Plan a session
+            <Plus className="size-4" /> {copy.planSession}
           </button>
         ) : null}
       </div>
@@ -205,20 +295,20 @@ export function ScheduleSection({
             <select
               value={duration}
               onChange={(event) => setDuration(Number(event.target.value))}
-              aria-label="How long the session runs"
-              title="How long the session runs"
+              aria-label={copy.durationAria}
+              title={copy.durationAria}
               className={cn(ui.input, "w-auto")}
             >
               {DURATION_CHOICES.map((minutes) => (
                 <option key={minutes} value={minutes}>
-                  {minutes / 60} hour{minutes === 60 ? "" : "s"}
+                  {copy.hours(minutes / 60)}
                 </option>
               ))}
             </select>
             <input
               value={title}
               onChange={(event) => setTitle(event.target.value)}
-              placeholder="Title (optional)"
+              placeholder={copy.titlePlaceholder}
               maxLength={120}
               className={cn(ui.input, "flex-1")}
             />
@@ -226,13 +316,13 @@ export function ScheduleSection({
           <input
             value={note}
             onChange={(event) => setNote(event.target.value)}
-            placeholder="Note, e.g. we pick up at the bridge (optional)"
+            placeholder={copy.notePlaceholder}
             maxLength={500}
             className={ui.input}
           />
           <div className="flex items-center gap-2">
             <button type="submit" disabled={busy} className={ui.btnSmall}>
-              Schedule
+              {copy.schedule}
             </button>
             {error ? <p className="text-sm text-red-400">{error}</p> : null}
           </div>
@@ -248,7 +338,7 @@ export function ScheduleSection({
             loading="lazy"
             className="h-12 w-20 shrink-0 rounded-lg border border-amber-400/20 object-cover"
           />
-          <p className="text-sm text-stone-500">Nothing planned yet.</p>
+          <p className="text-sm text-stone-500">{copy.nothingPlanned}</p>
         </div>
       ) : (
         <ul className="space-y-2">
@@ -257,7 +347,7 @@ export function ScheduleSection({
             const names = (response: RsvpResponse) =>
               session.rsvps
                 .filter((entry) => entry.response === response)
-                .map((entry) => usernames[entry.userId] ?? "someone")
+                .map((entry) => usernames[entry.userId] ?? copy.someone)
                 .join(", ");
             return (
               <li
@@ -270,19 +360,19 @@ export function ScheduleSection({
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div>
                     <p className="text-sm text-amber-100">
-                      {whenLabel(session.startsAt)}
+                      {whenLabel(session.startsAt, locale)}
                       <span className="ml-2 text-stone-400">
-                        {session.title || `${Math.round(session.durationMin / 60)}h session`}
+                        {session.title || copy.defaultSession(Math.round(session.durationMin / 60))}
                       </span>
                       {session.cancelledAt ? (
-                        <span className="ml-2 text-red-400">cancelled</span>
+                        <span className="ml-2 text-red-400">{copy.cancelled}</span>
                       ) : null}
                     </p>
                     {session.note ? (
                       <p className="text-xs text-stone-500">{session.note}</p>
                     ) : null}
                     <p className="text-xs text-stone-500">
-                      {RSVP_CHOICES.map((choice) => {
+                      {choices.map((choice) => {
                         const count = session.rsvps.filter(
                           (entry) => entry.response === choice.value,
                         ).length;
@@ -300,7 +390,7 @@ export function ScheduleSection({
                   </div>
                   {!session.cancelledAt ? (
                     <div className="flex items-center gap-1">
-                      {RSVP_CHOICES.map((choice) => (
+                      {choices.map((choice) => (
                         <button
                           key={choice.value}
                           type="button"
@@ -326,14 +416,14 @@ export function ScheduleSection({
                             }}
                             className="ml-1 text-xs text-stone-500 transition-colors hover:text-amber-300"
                           >
-                            Move
+                            {copy.move}
                           </button>
                           <button
                             type="button"
                             onClick={() => void cancel(session.id)}
                             className="ml-1 text-xs text-stone-500 transition-colors hover:text-red-400"
                           >
-                            Call off
+                            {copy.callOff}
                           </button>
                         </>
                       ) : null}
@@ -350,7 +440,7 @@ export function ScheduleSection({
                       required
                     />
                     <button type="submit" disabled={moveBusy} className={ui.btnSmall}>
-                      Move it
+                      {copy.moveIt}
                     </button>
                     {moveError ? <p className="text-sm text-red-400">{moveError}</p> : null}
                   </form>
