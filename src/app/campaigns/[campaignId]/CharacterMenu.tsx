@@ -17,7 +17,50 @@ import {
 import { useState } from "react";
 import { Tooltip } from "@/components/ui/Tooltip";
 import { ReportDialog, type ReportTarget } from "@/app/campaigns/[campaignId]/ReportDialog";
+import { useI18n } from "@/lib/i18n";
 import type { CharacterSheet } from "@/lib/schemas/sheet";
+
+const COPY = {
+  en: {
+    options: (name: string) => `Options for ${name}: sheet, notes, message and more`,
+    viewSheet: "View sheet",
+    notes: "Notes",
+    message: "Message",
+    adjustStats: "Adjust stats",
+    makeLead: "Make party lead",
+    dismissCompanion: "Dismiss companion",
+    unmute: "Unmute player",
+    mute: "Mute player",
+    report: "Report player",
+    block: "Block player",
+  },
+  ru: {
+    options: (name: string) => `Действия для ${name}: лист, заметки, сообщение и другое`,
+    viewSheet: "Открыть лист",
+    notes: "Заметки",
+    message: "Сообщение",
+    adjustStats: "Изменить характеристики",
+    makeLead: "Сделать лидером группы",
+    dismissCompanion: "Отпустить спутника",
+    unmute: "Включить звук игрока",
+    mute: "Заглушить игрока",
+    report: "Пожаловаться на игрока",
+    block: "Заблокировать игрока",
+  },
+  pl: {
+    options: (name: string) => `Opcje dla ${name}: karta, notatki, wiadomość i więcej`,
+    viewSheet: "Otwórz kartę",
+    notes: "Notatki",
+    message: "Wiadomość",
+    adjustStats: "Dostosuj statystyki",
+    makeLead: "Ustaw jako lidera drużyny",
+    dismissCompanion: "Odpraw towarzysza",
+    unmute: "Włącz dźwięk gracza",
+    mute: "Wycisz gracza",
+    report: "Zgłoś gracza",
+    block: "Zablokuj gracza",
+  },
+} as const;
 
 // Per-character options menu on each party card: sheet, notes, private
 // message, and the lead-only corrections and lead transfer.
@@ -42,21 +85,17 @@ export function CharacterMenu({
   onNotes: () => void;
   onAdjust: () => void;
   onMessage?: () => void;
-  // Another player's character: report and block are offered.
   canModerate?: boolean;
-  // The lead or owner looking at another player: mute and unmute.
   canMute?: boolean;
   muted?: boolean;
 }) {
+  const { locale } = useI18n();
+  const copy = COPY[locale];
   const [reportTarget, setReportTarget] = useState<ReportTarget | null>(null);
 
   const item =
     "flex w-full cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-xs text-stone-300 outline-none data-[highlighted]:bg-stone-800";
 
-  // Opening a modal Dialog straight from a DropdownMenu item races the two
-  // Radix components' body cleanup and can strand pointer-events:none on
-  // <body> (page looks frozen until refresh). Let the menu finish closing
-  // before the dialog mounts.
   const defer = (action: () => void) => (event: Event) => {
     event.preventDefault();
     setTimeout(action, 0);
@@ -84,13 +123,15 @@ export function CharacterMenu({
     });
   }
 
+  const optionsLabel = copy.options(sheet.name);
+
   return (
     <DropdownMenu.Root>
-      <Tooltip content={`Options for ${sheet.name}: sheet, notes, message and more`}>
+      <Tooltip content={optionsLabel}>
         <DropdownMenu.Trigger asChild>
           <button
             type="button"
-            aria-label={`Options for ${sheet.name}`}
+            aria-label={optionsLabel}
             className="rounded p-1 text-stone-500 hover:bg-stone-900 hover:text-stone-300"
           >
             <MoreVertical className="size-3.5" />
@@ -104,40 +145,40 @@ export function CharacterMenu({
           className="panel z-50 min-w-40 rounded-lg p-1"
         >
           <DropdownMenu.Item className={item} onSelect={defer(onViewSheet)}>
-            <BookUser className="size-3.5 text-stone-500" /> View sheet
+            <BookUser className="size-3.5 text-stone-500" /> {copy.viewSheet}
           </DropdownMenu.Item>
           <DropdownMenu.Item className={item} onSelect={defer(onNotes)}>
-            <StickyNote className="size-3.5 text-stone-500" /> Notes
+            <StickyNote className="size-3.5 text-stone-500" /> {copy.notes}
           </DropdownMenu.Item>
           {onMessage ? (
             <DropdownMenu.Item className={item} onSelect={defer(onMessage)}>
-              <MessageSquare className="size-3.5 text-stone-500" /> Message
+              <MessageSquare className="size-3.5 text-stone-500" /> {copy.message}
             </DropdownMenu.Item>
           ) : null}
           {steersStory ? (
             <DropdownMenu.Item className={item} onSelect={defer(onAdjust)}>
-              <Wrench className="size-3.5 text-stone-500" /> Adjust stats
+              <Wrench className="size-3.5 text-stone-500" /> {copy.adjustStats}
             </DropdownMenu.Item>
           ) : null}
           {canTransferLead && sheet.userId !== leadUserId && !sheet.isCompanion ? (
             <DropdownMenu.Item className={item} onSelect={makeLead}>
-              <Crown className="size-3.5 text-amber-400" /> Make party lead
+              <Crown className="size-3.5 text-amber-400" /> {copy.makeLead}
             </DropdownMenu.Item>
           ) : null}
           {steersStory && sheet.isCompanion ? (
             <DropdownMenu.Item className={item} onSelect={dismissCompanion}>
-              <UserMinus className="size-3.5 text-red-400" /> Dismiss companion
+              <UserMinus className="size-3.5 text-red-400" /> {copy.dismissCompanion}
             </DropdownMenu.Item>
           ) : null}
           {canMute ? (
             <DropdownMenu.Item className={item} onSelect={() => setMuted(!muted)}>
               {muted ? (
                 <>
-                  <Volume2 className="size-3.5 text-stone-500" /> Unmute player
+                  <Volume2 className="size-3.5 text-stone-500" /> {copy.unmute}
                 </>
               ) : (
                 <>
-                  <VolumeX className="size-3.5 text-orange-400" /> Mute player
+                  <VolumeX className="size-3.5 text-orange-400" /> {copy.mute}
                 </>
               )}
             </DropdownMenu.Item>
@@ -151,7 +192,7 @@ export function CharacterMenu({
                   setReportTarget({ userId: sheet.userId, authorType: "player", label: sheet.name }),
                 )}
               >
-                <Flag className="size-3.5 text-amber-400" /> Report player
+                <Flag className="size-3.5 text-amber-400" /> {copy.report}
               </DropdownMenu.Item>
               <DropdownMenu.Item
                 className={item}
@@ -164,7 +205,7 @@ export function CharacterMenu({
                   }),
                 )}
               >
-                <ShieldBan className="size-3.5 text-red-400" /> Block player
+                <ShieldBan className="size-3.5 text-red-400" /> {copy.block}
               </DropdownMenu.Item>
             </>
           ) : null}
