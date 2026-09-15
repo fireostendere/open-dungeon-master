@@ -4,11 +4,35 @@ import { type FormEvent, type RefObject, useState } from "react";
 import { cn } from "@/lib/cn";
 import { ui } from "@/lib/ui";
 import { navigateTo } from "@/lib/navigation";
+import { useI18n } from "@/lib/i18n";
 
-// Joining someone else's table by its invite code. The quick tile above
-// scrolls here and drops the cursor into the field through inputRef, so
-// the card stays where a friend's "type it in at the bottom" points.
+const COPY = {
+  en: {
+    title: "Join with a room code",
+    help: "A friend running a table gives you an eight-letter sigil.",
+    joining: "Joining...",
+    join: "Join",
+    failed: "Could not join.",
+  },
+  ru: {
+    title: "Присоединиться по коду комнаты",
+    help: "Друг, ведущий стол, даст вам восьмизначный код приглашения.",
+    joining: "Подключение...",
+    join: "Войти",
+    failed: "Не удалось присоединиться.",
+  },
+  pl: {
+    title: "Dołącz kodem pokoju",
+    help: "Znajomy prowadzący stół poda ci ośmioznakowy kod zaproszenia.",
+    joining: "Dołączanie...",
+    join: "Dołącz",
+    failed: "Nie udało się dołączyć.",
+  },
+} as const;
+
 export function JoinCard({ inputRef }: { inputRef: RefObject<HTMLInputElement | null> }) {
+  const { locale } = useI18n();
+  const copy = COPY[locale];
   const [joinCode, setJoinCode] = useState("");
   const [joinError, setJoinError] = useState("");
   const [joining, setJoining] = useState(false);
@@ -25,10 +49,12 @@ export function JoinCard({ inputRef }: { inputRef: RefObject<HTMLInputElement | 
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) {
-        setJoinError(data.error || "Could not join.");
+        setJoinError(copy.failed);
         return;
       }
       navigateTo(`/campaigns/${data.campaign.id}`);
+    } catch {
+      setJoinError(copy.failed);
     } finally {
       setJoining(false);
     }
@@ -36,10 +62,8 @@ export function JoinCard({ inputRef }: { inputRef: RefObject<HTMLInputElement | 
 
   return (
     <section id="join" className={cn(ui.card, "ornate scroll-mt-6 p-5")}>
-      <h2 className="eyebrow mb-1 text-sm text-amber-200/90">Join with a room code</h2>
-      <p className="mb-3 text-sm text-stone-500">
-        A friend running a table gives you an eight-letter sigil.
-      </p>
+      <h2 className="eyebrow mb-1 text-sm text-amber-200/90">{copy.title}</h2>
+      <p className="mb-3 text-sm text-stone-500">{copy.help}</p>
       <form onSubmit={join} className="flex gap-2">
         <input
           ref={inputRef}
@@ -51,7 +75,7 @@ export function JoinCard({ inputRef }: { inputRef: RefObject<HTMLInputElement | 
           className={cn(ui.input, "w-52 font-mono uppercase tracking-[0.25em]")}
         />
         <button type="submit" disabled={joining} className={ui.btnSecondary}>
-          {joining ? "Joining..." : "Join"}
+          {joining ? copy.joining : copy.join}
         </button>
       </form>
       {joinError ? <p className="mt-2 text-sm text-red-400">{joinError}</p> : null}
