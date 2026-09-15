@@ -6,7 +6,6 @@ import {
   CircleHelp,
   DoorOpen,
   Globe,
-  HeartHandshake,
   LogOut,
   Ruler,
   Settings,
