@@ -120,7 +120,7 @@ try {
   const campaignId = created.campaign.id;
 
   await page.goto(`/campaigns/${campaignId}`);
-  await page.waitForLoadState("networkidle");
+  await page.getByRole("button", { name: "Account" }).waitFor();
   assertEnglishOnly(await page.locator("body").innerText(), "campaign lobby");
 
   await page.getByRole("button", { name: "Account" }).click();
