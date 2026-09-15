@@ -1,29 +1,27 @@
-name: i18n extraction
+name: i18n coverage
 
 on:
+  pull_request:
   push:
     branches:
-      - work/i18n-complete
+      - main
+      - "fix/i18n-*"
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  extract:
+  coverage:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
       - uses: actions/setup-node@v6
         with:
           node-version: 24
           cache: npm
       - run: npm ci
-      - name: Extract UI text into i18n keys
-        run: npm run i18n:extract
-      - name: Verify covered UI literals are keyed
+      - name: Verify English localization coverage
         run: npm run i18n:check
       - name: Lint
         run: npm run lint
@@ -33,15 +31,3 @@ jobs:
         env:
           NEXT_TELEMETRY_DISABLED: "1"
         run: npm run build
-      - name: Commit extraction result
-        if: github.actor != 'github-actions[bot]'
-        run: |
-          if git diff --quiet; then
-            echo "No extraction changes"
-            exit 0
-          fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add src/app src/components src/lib/i18n/generated
-          git commit -m "chore(i18n): extract UI text into keys"
-          git push origin HEAD:work/i18n-complete

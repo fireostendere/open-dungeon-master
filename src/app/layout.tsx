@@ -1,7 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Cinzel, Geist, Geist_Mono, Source_Serif_4 } from "next/font/google";
 import { I18nProvider } from "@/lib/i18n";
-import { I18nMarkerBoundary } from "@/lib/i18n/MarkerBoundary";
 import TopoBackground from "./TopoBackground";
 import { ServerAddressButton } from "@/components/ServerAddressButton";
 import "./globals.css";
@@ -56,7 +55,7 @@ export default function RootLayout({
 }>) {
   return (
     <html
-      lang="en"
+      lang="ru"
       className={`${geistSans.variable} ${geistMono.variable} ${sourceSerif.variable} ${cinzel.variable} h-full antialiased`}
       // browser extensions inject attributes into <html> before React loads
       suppressHydrationWarning
@@ -68,7 +67,6 @@ export default function RootLayout({
           {/* Every page: the QR and address a friend scans to add this server
               in the app or open it in a browser on the same network. */}
           <ServerAddressButton />
-          <I18nMarkerBoundary />
         </I18nProvider>
       </body>
     </html>
