@@ -37,7 +37,12 @@ export async function runStorySetup(campaignId: string) {
     .filter(Boolean)
     .join("\n");
 
-  const language = campaign.gameSettings.language === "en" ? "English" : "Russian";
+  const language =
+    campaign.gameSettings.language === "en"
+      ? "English"
+      : campaign.gameSettings.language === "pl"
+        ? "Polish"
+        : "Russian";
   const { message, error } = await requestDmMessage(
     campaign.settings,
     [
