@@ -3,6 +3,37 @@
 import { Bell } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/cn";
+import { useI18n, type Locale } from "@/lib/i18n";
+
+const COPY = {
+  en: {
+    justNow: "just now",
+    minutesAgo: (value: number) => `${value}m ago`,
+    hoursAgo: (value: number) => `${value}h ago`,
+    daysAgo: (value: number) => `${value}d ago`,
+    notifications: "Notifications",
+    unread: (value: number) => `Notifications, ${value} unread`,
+    empty: "Nothing yet. Quiet week.",
+  },
+  ru: {
+    justNow: "только что",
+    minutesAgo: (value: number) => `${value} мин. назад`,
+    hoursAgo: (value: number) => `${value} ч. назад`,
+    daysAgo: (value: number) => `${value} дн. назад`,
+    notifications: "Уведомления",
+    unread: (value: number) => `Уведомления: непрочитанных ${value}`,
+    empty: "Пока ничего. Спокойная неделя.",
+  },
+  pl: {
+    justNow: "przed chwilą",
+    minutesAgo: (value: number) => `${value} min temu`,
+    hoursAgo: (value: number) => `${value} godz. temu`,
+    daysAgo: (value: number) => `${value} dni temu`,
+    notifications: "Powiadomienia",
+    unread: (value: number) => `Powiadomienia: ${value} nieprzeczytanych`,
+    empty: "Na razie nic. Spokojny tydzień.",
+  },
+} as const;
 
 // The bell: out-of-game news (sessions planned, moved, called off; someone
 // can't make it; reminders and the idle-table nudge). Live over the
@@ -20,16 +51,19 @@ type BellNotification = {
   readAt: string | null;
 };
 
-function ago(iso: string): string {
+function ago(iso: string, locale: Locale): string {
+  const copy = COPY[locale];
   const minutes = Math.max(0, Math.round((Date.now() - Date.parse(iso)) / 60_000));
-  if (minutes < 1) return "just now";
-  if (minutes < 60) return `${minutes}m ago`;
+  if (minutes < 1) return copy.justNow;
+  if (minutes < 60) return copy.minutesAgo(minutes);
   const hours = Math.round(minutes / 60);
-  if (hours < 48) return `${hours}h ago`;
-  return `${Math.round(hours / 24)}d ago`;
+  if (hours < 48) return copy.hoursAgo(hours);
+  return copy.daysAgo(Math.round(hours / 24));
 }
 
 export function NotificationBell() {
+  const { locale } = useI18n();
+  const copy = COPY[locale];
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState<BellNotification[]>([]);
   const [unread, setUnread] = useState(0);
@@ -179,7 +213,7 @@ export function NotificationBell() {
       <button
         type="button"
         onClick={toggle}
-        aria-label={unread > 0 ? `Notifications, ${unread} unread` : "Notifications"}
+        aria-label={unread > 0 ? copy.unread(unread) : copy.notifications}
         className="relative rounded-lg border border-stone-800 bg-stone-900/60 p-2 text-stone-300 transition-colors hover:text-amber-200"
       >
         <Bell className="size-4" />
@@ -192,7 +226,7 @@ export function NotificationBell() {
       {open ? (
         <div className="absolute right-0 z-40 mt-2 w-80 rounded-xl border border-stone-800 bg-stone-950/95 p-2 shadow-xl backdrop-blur">
           {items.length === 0 ? (
-            <p className="p-3 text-sm text-stone-500">Nothing yet. Quiet week.</p>
+            <p className="p-3 text-sm text-stone-500">{copy.empty}</p>
           ) : (
             <ul className="max-h-96 space-y-1 overflow-y-auto">
               {items.map((item) => (
@@ -204,7 +238,7 @@ export function NotificationBell() {
                   )}
                 >
                   <p>{item.body}</p>
-                  <p className="text-xs text-stone-600">{ago(item.createdAt)}</p>
+                  <p className="text-xs text-stone-600">{ago(item.createdAt, locale)}</p>
                 </li>
               ))}
             </ul>
