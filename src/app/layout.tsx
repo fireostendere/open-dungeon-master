@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Cinzel, Geist, Geist_Mono, Source_Serif_4 } from "next/font/google";
 import { I18nProvider } from "@/lib/i18n";
+import { I18nMarkerBoundary } from "@/lib/i18n/MarkerBoundary";
 import TopoBackground from "./TopoBackground";
 import { ServerAddressButton } from "@/components/ServerAddressButton";
 import "./globals.css";
@@ -64,10 +65,11 @@ export default function RootLayout({
         <TopoBackground />
         <I18nProvider>
           {children}
+          {/* Every page: the QR and address a friend scans to add this server
+              in the app or open it in a browser on the same network. */}
+          <ServerAddressButton />
+          <I18nMarkerBoundary />
         </I18nProvider>
-        {/* Every page: the QR and address a friend scans to add this server
-            in the app or open it in a browser on the same network. */}
-        <ServerAddressButton />
       </body>
     </html>
   );
