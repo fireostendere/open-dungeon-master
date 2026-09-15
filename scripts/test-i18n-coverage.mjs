@@ -6,7 +6,11 @@ import ts from "typescript";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const translationPath = path.join(root, "src", "lib", "i18n", "translations.ts");
-const uiRoots = [path.join(root, "src", "app"), path.join(root, "src", "components")];
+const auditedRoots = [
+  path.join(root, "src", "app"),
+  path.join(root, "src", "components"),
+  path.join(root, "src", "lib", "i18n"),
+];
 const CYRILLIC = /[А-Яа-яЁё]/;
 
 function unwrap(node) {
@@ -46,9 +50,15 @@ function flattenStatic(node, prefix = "", out = new Map()) {
     out.set(prefix, value.text);
     return out;
   }
-  assert(ts.isObjectLiteralExpression(value), `translation value at ${prefix || "<root>"} must be a static object/string`);
+  assert(
+    ts.isObjectLiteralExpression(value),
+    `translation value at ${prefix || "<root>"} must be a static object/string`,
+  );
   for (const property of value.properties) {
-    assert(ts.isPropertyAssignment(property), `translation object at ${prefix || "<root>"} must use plain properties`);
+    assert(
+      ts.isPropertyAssignment(property),
+      `translation object at ${prefix || "<root>"} must use plain properties`,
+    );
     const name = propertyName(property.name);
     assert(name, `translation object at ${prefix || "<root>"} has an unnamed property`);
     flattenStatic(property.initializer, prefix ? `${prefix}.${name}` : name, out);
@@ -88,21 +98,20 @@ function compareCatalogs(en, ru) {
     const russian = ru.get(key);
     assert(english?.trim(), `English translation ${key} is empty`);
     assert(russian?.trim(), `Russian translation ${key} is empty`);
-    assert(!CYRILLIC.test(english), `English translation ${key} contains Cyrillic: ${JSON.stringify(english)}`);
-    assert.deepEqual(
-      placeholders(russian),
-      placeholders(english),
-      `placeholder mismatch for ${key}`,
+    assert(
+      !CYRILLIC.test(english),
+      `English translation ${key} contains Cyrillic: ${JSON.stringify(english)}`,
     );
+    assert.deepEqual(placeholders(russian), placeholders(english), `placeholder mismatch for ${key}`);
   }
 }
 
-function walk(dir, output = []) {
+function walk(dir, output = [], extension = /\.(ts|tsx)$/) {
   if (!fs.existsSync(dir)) return output;
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
     const full = path.join(dir, entry.name);
-    if (entry.isDirectory()) walk(full, output);
-    else if (entry.isFile() && /\.(ts|tsx)$/.test(entry.name)) output.push(full);
+    if (entry.isDirectory()) walk(full, output, extension);
+    else if (entry.isFile() && extension.test(entry.name)) output.push(full);
   }
   return output;
 }
@@ -124,8 +133,10 @@ function localeBranch(condition) {
   const value = unwrap(condition);
   if (!ts.isBinaryExpression(value)) return null;
   const operator = value.operatorToken.kind;
-  const equality = operator === ts.SyntaxKind.EqualsEqualsEqualsToken || operator === ts.SyntaxKind.EqualsEqualsToken;
-  const inequality = operator === ts.SyntaxKind.ExclamationEqualsEqualsToken || operator === ts.SyntaxKind.ExclamationEqualsToken;
+  const equality =
+    operator === ts.SyntaxKind.EqualsEqualsEqualsToken || operator === ts.SyntaxKind.EqualsEqualsToken;
+  const inequality =
+    operator === ts.SyntaxKind.ExclamationEqualsEqualsToken || operator === ts.SyntaxKind.ExclamationEqualsToken;
   if (!equality && !inequality) return null;
 
   let literal = null;
@@ -134,8 +145,7 @@ function localeBranch(condition) {
   if (literal !== "ru" && literal !== "en") return null;
 
   const comparisonIsTrue = equality;
-  const ruWhenTrue = literal === "ru" ? comparisonIsTrue : !comparisonIsTrue;
-  return { ruWhenTrue };
+  return { ruWhenTrue: literal === "ru" ? comparisonIsTrue : !comparisonIsTrue };
 }
 
 function contains(ancestor, node) {
@@ -145,7 +155,11 @@ function contains(ancestor, node) {
 function isRussianScoped(node) {
   let current = node.parent;
   while (current) {
-    if (ts.isPropertyAssignment(current) && propertyName(current.name) === "ru" && contains(current.initializer, node)) {
+    if (
+      ts.isPropertyAssignment(current) &&
+      propertyName(current.name) === "ru" &&
+      contains(current.initializer, node)
+    ) {
       return true;
     }
     if (ts.isConditionalExpression(current)) {
@@ -200,6 +214,21 @@ function auditBilingualObject(node, file) {
   }
 }
 
+function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function translationKeyPattern(node) {
+  const value = unwrap(node);
+  if (ts.isStringLiteral(value) || ts.isNoSubstitutionTemplateLiteral(value)) {
+    return { exact: value.text, pattern: null };
+  }
+  if (!ts.isTemplateExpression(value)) return null;
+  let source = `^${escapeRegExp(value.head.text)}`;
+  for (const span of value.templateSpans) source += `.+${escapeRegExp(span.literal.text)}`;
+  return { exact: null, pattern: new RegExp(`${source}$`) };
+}
+
 function auditUiFile(file, englishCatalog, usedKeys) {
   const source = fs.readFileSync(file, "utf8");
   const sf = ts.createSourceFile(
@@ -218,14 +247,22 @@ function auditUiFile(file, englishCatalog, usedKeys) {
     if (ts.isObjectLiteralExpression(node)) auditBilingualObject(node, file);
 
     if (usesI18n && ts.isCallExpression(node) && ts.isIdentifier(node.expression) && node.expression.text === "t") {
-      const first = node.arguments[0] ? unwrap(node.arguments[0]) : undefined;
+      const keySpec = node.arguments[0] ? translationKeyPattern(node.arguments[0]) : null;
       assert(
-        first && (ts.isStringLiteral(first) || ts.isNoSubstitutionTemplateLiteral(first)),
-        `${relative}:${sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1}: t() keys must be static string literals`,
+        keySpec,
+        `${relative}:${sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1}: t() keys must be string literals or bounded template literals`,
       );
-      const key = first.text;
-      usedKeys.add(key);
-      assert(englishCatalog.has(key), `${relative}: English catalog is missing t(${JSON.stringify(key)})`);
+      if (keySpec.exact !== null) {
+        usedKeys.add(keySpec.exact);
+        assert(englishCatalog.has(keySpec.exact), `${relative}: English catalog is missing t(${JSON.stringify(keySpec.exact)})`);
+      } else {
+        const matches = [...englishCatalog.keys()].filter((key) => keySpec.pattern.test(key));
+        assert(
+          matches.length > 0,
+          `${relative}: no English catalog keys match dynamic t() pattern ${keySpec.pattern}`,
+        );
+        for (const key of matches) usedKeys.add(key);
+      }
     }
 
     let text = null;
@@ -248,8 +285,6 @@ function auditUiFile(file, englishCatalog, usedKeys) {
 const { en, ru } = loadCatalogs();
 compareCatalogs(en, ru);
 
-// The abandoned generated-marker pipeline caused raw generated.* keys at runtime.
-// Keep the canonical localization path explicit and fail if those artifacts return.
 for (const stale of [
   "src/lib/i18n/MarkerBoundary.tsx",
   "src/lib/i18n/marker.ts",
@@ -259,16 +294,15 @@ for (const stale of [
 ]) {
   assert(!fs.existsSync(path.join(root, stale)), `${stale} is obsolete and must not be restored`);
 }
-const stagedCatalogDir = path.join(root, "public", "i18n");
-if (fs.existsSync(stagedCatalogDir)) {
-  const staged = walk(stagedCatalogDir).filter((file) => file.endsWith(".b64"));
-  assert.equal(staged.length, 0, "unused public/i18n/*.b64 staging catalogs must not be committed");
-}
 
-const files = uiRoots.flatMap((dir) => walk(dir)).sort();
+const stagedCatalogDir = path.join(root, "public", "i18n");
+const stagedCatalogs = walk(stagedCatalogDir, [], /\.b64$/);
+assert.equal(stagedCatalogs.length, 0, "unused public/i18n/*.b64 staging catalogs must not be committed");
+
+const files = [...new Set(auditedRoots.flatMap((dir) => walk(dir)))].sort();
 const usedKeys = new Set();
 for (const file of files) auditUiFile(file, en, usedKeys);
 
 console.log(
-  `i18n coverage passed: ${en.size} paired catalog keys, ${usedKeys.size} referenced t() keys, ${files.length} UI source files; English paths contain no Cyrillic leakage.`,
+  `i18n coverage passed: ${en.size} paired catalog keys, ${usedKeys.size} referenced English keys, ${files.length} audited source files; English paths contain no Cyrillic leakage.`,
 );
