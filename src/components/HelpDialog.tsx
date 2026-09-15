@@ -22,7 +22,362 @@ import {
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { Dialog } from "@/components/ui/Dialog";
+import { useI18n } from "@/lib/i18n";
 import { ui } from "@/lib/ui";
+
+const COPY = {
+  en: {
+    title: "Help",
+    toursTitle: "Guided tours",
+    toursText:
+      "A spotlight walk through the table's controls, one at a time. Each tour ran once when you first sat down; take it again whenever you like.",
+    gettingTitle: "Getting started",
+    getting: [
+      "Create a campaign from the home page, or join a friend's with their invite code or a /join link. Build a character in the creation wizard, or reuse one saved to your library under Characters in the account menu. When everyone in the lobby is ready, the owner starts the adventure.",
+      "If the server has campaign plugins installed, the create form also offers a pre-built world to run the campaign in. See Campaign plugins below for what that changes.",
+    ],
+    lobbyTitle: "The lobby",
+    lobby: [
+      "Before the game begins, each player readies up and whoever steers the story (the party lead, or the DM when a person runs the table) can adjust the game settings: genre, an optional secret story setup for the DM, dice policy, narration voice, and maps. Share the room code or copy the invite link to bring in more players; the owner or the DM opens the table once everyone is ready.",
+    ],
+    talkingTitle: "Talking to the DM",
+    talkingIntro: "The buttons above the message box change what your message means:",
+    doLabel: "Do",
+    doText:
+      "Describe what your character does. The DM narrates the outcome and asks for dice rolls when the rules call for them.",
+    sayLabel: "Say",
+    sayText: "Speak in character. Your text is sent as spoken dialogue, in quotes.",
+    oocLabel: "OOC",
+    oocText:
+      "Out-of-character table talk. The DM does not respond to it, and it stays available even when the floor is locked during narration or a spotlight.",
+    directLabel: "Direct",
+    directText:
+      "Party lead only. Send the DM an authoritative story direction it must weave into the tale, or arm one of the seven canned events: Combat, Place, Social, Romance, Mystery, Weird or Windfall. Turn on Private and the direction goes to the DM alone: no character hears it, it never enters the transcript, and it steers the next turn instead of this one. The table still sees that something is armed, just never what.",
+    talking: [
+      "Questions are separate from these modes. Open the Ask the DM strip above the message box and use its question box. Set About to Auto, Story, Rules or My sheet to choose where the answer comes from, and Seen by to Just me or The table to choose who reads it. Answers quote the campaign record under From the record.",
+      "Asking writes nothing to the transcript and never moves the story on, so it works during narration, during someone else's spotlight, and while the floor is locked. Collapsing the strip keeps a half-typed question and your place in the thread.",
+      "Sometimes the DM puts one player in the spotlight and waits for them to act. While the floor is locked for you, a banner explains why, and OOC and the Ask strip still work. Small chips above the message box name background jobs between turns, such as compacting history, sealing a chapter, running the world tick or answering an Ask, with how long they have been running.",
+    ],
+    wrongTitle: "When the DM gets it wrong",
+    wrongIntro:
+      "Hover a DM message and a row of actions appears above it. None of them advance the story or change a number produced by the rules. Rewriting narration belongs to the party lead, since everyone reads the same transcript:",
+    wrongItems: [
+      ["Reroll", "Lead only. Have the DM write that moment again with the same dice and outcome, optionally with a note about what to do differently. Only the prose changes."],
+      ["Takes", "Lead only. Once a second version exists, arrows and a counter appear in the message header. Paging between takes swaps the message for the whole table."],
+      ["Continue", "Lead only. Have the DM keep writing from where a reply stopped short, without moving the story on."],
+      ["Edit", "Lead only. Fix what the DM said by hand. Mechanics are untouched and every dice marker in the passage must survive the edit."],
+      ["Lore check", "Anyone. Check the passage, or selected text, against the campaign record to see whether it contradicts anything already established."],
+    ],
+    wrongOutro:
+      "If a DM turn fails outright, a banner offers to resume it from where it stopped. It continues the turn that was already running, so nobody has to retype an action and nothing lands in the transcript twice.",
+    memoryTitle: "What the DM remembers",
+    memoryIntro:
+      "Recent turns are in front of the DM word for word. Older ones are compacted into a rolling summary, and closed chapters become chapter summaries it can search and re-read when the table brings up something from long ago.",
+    memoryItems: [
+      ["Remember", "Any player can select text in a DM message and press the bookmark icon, or press it with nothing selected to keep the whole message. Pinned memories ride in every prompt from then on. There is a size budget, and the Pinned memories list under Story, Facts shows how much the table has spent."],
+      ["Pin as canon", "Party lead only, because it writes to the campaign record. Keeps a passage permanently in front of the DM as established fact."],
+      ["Facts and lore", "Story, Facts also holds DM secrets the DM must never contradict and lore entries written by the table."],
+      ["Bonds", "Under Party, this shows where each character stands with the people they have dealt with."],
+    ],
+    memoryOutro:
+      "NPCs the party stops mentioning are archived so they do not crowd out the ones in play, and the party lead can see exactly what the DM received on the last turn, plus anything the token budget cut, in the Context tab.",
+    sideTitle: "The side panel",
+    sideItems: [
+      ["Party", "The roster, with character sheets, HP and conditions for the whole party, plus the active encounter during combat. A Bonds sub-tab appears when relationships are enabled. The room code is in the lead's tab."],
+      ["Battle", "The tactical battle map while a mapped fight is running. Move your token on your turn."],
+      ["Map", "The scene map, overworld and discovered locations when maps are enabled."],
+      ["Story", "Three sub-tabs. Chapters is the tale so far and the current arc, and is where you export the story. Facts holds pinned memories, DM secrets and lore. Log is the audited record of every dice roll and every stat change the DM makes."],
+      ["Notes", "Suggest campaign notes for the story; the party lead approves them."],
+      ["Chat", "Private whispers between you and the DM, and side chat between players that the DM and campaign transcript never see."],
+      ["Context", "Party lead only. Shows what the DM was actually sent last turn and anything the token budget dropped."],
+      ["Setup", "Campaign settings, invites and game toggles."],
+    ],
+    diceTitle: "Dice",
+    dice: [
+      "Every check, save and attack is rolled by the server, never invented by the AI. The dice button in the header toggles the 3D dice animation. If you opt into real dice in game settings, the DM waits for you to enter your physical roll, with a digital fallback if you would rather let the server roll.",
+      "Once opted in, Dice sources in the Party tab lets you decide per die whether to type the physical roll yourself, let the server roll it, or read it from a connected Pixels Bluetooth die. Pairing a Pixel requires a Chromium-based browser and a secure HTTPS connection because Web Bluetooth requires both. When every die is covered by a Pixel or the server, the roll submits itself as soon as the last die lands. These choices are saved in the current browser, so set them again on another device.",
+    ],
+    narrationTitle: "Voice and narration",
+    narration: [
+      "When narration is enabled, the DM reads its replies aloud. Use the speaker button in the header to unmute (browsers require one click before audio can play) and the slider to set volume. Hover a DM message to replay its narration. Push-to-talk, when configured, lets you hold the microphone button to dictate your message.",
+    ],
+    liveVoiceTitle: "Live voice chat",
+    liveVoice: [
+      "When the server and campaign both have voice chat enabled, a Voice card appears in the lobby, and during play a headphones button sits in the top bar with the full voice menu below it. Join and you are talking to the table; no other app is needed, and the call stays up whichever panel you switch to. The microphone needs a secure HTTPS connection, and your browser asks permission the first time.",
+      "Whoever runs the story can open side rooms for a split party or a private word, and can hold the floor: soft enforcement marks who should be talking, strict enforcement actually mutes everyone else, and a raised-hand queue keeps order. A table can also enable world-like voice rules: proximity hearing, whisper and shout ranges, walls muffling speech, and downed characters going deaf. These options live under voice settings in Setup and are off by default, so a normal group call is what you get until the table asks for more.",
+    ],
+    ambienceTitle: "Ambience and music",
+    ambience: [
+      "With ambience enabled in game settings, the table shares a soundtrack: a background bed for the party's location, a music layer for the scene, and one-shot stings for dramatic moments. The DM changes it as the story moves, and combat has its own sound. Whoever runs the story can pin a layer to a chosen cue so the auto-picker leaves it alone. Your speaker button and volume slider control it only for you, and it ducks automatically while narration speaks.",
+      "The sounds themselves are public-domain and Creative Commons recordings installed by the server admin; see the licenses page for attribution. If ambience is enabled but silent, the server simply has no audio installed yet.",
+    ],
+    humanTitle: "Playing with a human DM",
+    human: [
+      "A campaign does not have to be run by AI. With a person in the DM seat, the table works like a kitchen-table game: the DM narrates in their own words, while the app keeps sheets, dice, maps and records straight underneath. Do and Say messages still enter the transcript, but instead of waking the AI they queue as intents for the DM. The DM occupies no party slot, owns the story secrets, and gets a console for initiative, monsters, maps, NPCs, roll tables and rulings, with an optional AI assistant for stat blocks and suggestions.",
+      "Assisted mode sits in between: the human DM keeps the story while handing bookkeeping to AI piece by piece. It can run monster turns, read the DM's notes as full prose, or cover the table for a counted stretch of replies while the DM steps away, following the outline left behind.",
+      "Because narration happens out loud, the app occasionally nudges the DM to write a story beat: a line or two about what just happened. Chapter summaries, recaps and exported stories are built from beats, so a table that never writes them ends up with a transcript of intents but no narrative. Players can help by keeping actions in the composer rather than only in the voice call.",
+    ],
+    leadTitle: "Party lead",
+    lead: [
+      "The campaign owner starts as party lead and can pass the role from a party member's menu. The lead steers the table: Direct messages and event presets, private directions, approving suggested notes, releasing a stuck spotlight, retrying a halted turn, rerolling or editing narration, letting players join mid-game, and editing campaign settings and house rules.",
+      "The lead also owns the story spine under Story, Chapters. A beat can be reworded, skipped or promoted without regenerating the whole arc, a chapter can be sealed early, and the campaign can be rewound to the start of a chapter. Rewind is destructive: it asks for confirmation and lists what will be undone first, then restores sheets, NPCs, locations, maps and quest state.",
+      "When the engine spots two NPC names that may refer to the same person but refuses to merge them on a guess, the lead decides.",
+      "At a table with a human DM the split is different: the lead keeps invites and campaign details but is otherwise a player. Story secrets, settings, rules, floor control, narration fixes and DM seats belong to the person in the DM seat instead.",
+    ],
+    pluginsTitle: "Campaign plugins",
+    plugins: [
+      "A campaign can run in a world pack: a pre-built setting with its own races, classes, spells, gear, monsters, factions and lore, plus a brief telling the DM how that world should sound. Picking one at creation also sets the campaign genre and can fill in its theme and premise.",
+      "A pack renames things; it never changes a rule. Everything underneath is still 5e, character sheets still store canonical names, and a character built in a pack campaign can enter a plain campaign and simply display ordinary names again.",
+      "Server admins install and remove packs under Admin, Campaign plugins, from a registry or file. A pack built on somebody else's setting carries an unofficial-work notice wherever it appears: it is fan-made and not affiliated with, sponsored by or endorsed by the rights holder.",
+    ],
+    newTitle: "New to D&D?",
+    newP1:
+      "You do not need to know the rules to play; the DM and server handle them. When an unfamiliar term appears, look for the small info button next to it: every feature, spell and stat on your sheet explains itself.",
+    referenceBefore: "The ",
+    referenceLabel: "rules reference",
+    referenceAfter:
+      " collects the basics in plain language and lets you search every spell, feat, item and condition the app knows about.",
+    aboutTitle: "About",
+    aboutBefore:
+      "Open Dungeon Master is a self-hosted multiplayer Dungeons & Dragons 5e platform run by an AI Dungeon Master. Server admins manage users, models, images, voice and campaign plugins from the Admin panel. Game content comes from the SRD 5.1 and Open5e; see ",
+    licensesLabel: "licenses and attribution",
+    aboutAfter: ".",
+  },
+  ru: {
+    title: "Помощь",
+    toursTitle: "Обучающие туры",
+    toursText:
+      "Пошаговое знакомство с элементами игрового стола. Каждый тур запускается один раз при первом посещении, но его можно повторить в любой момент.",
+    gettingTitle: "С чего начать",
+    getting: [
+      "Создайте кампанию на главной странице или присоединитесь к кампании друга по коду приглашения либо ссылке /join. Создайте персонажа в мастере или возьмите сохранённого из раздела «Персонажи» в меню аккаунта. Когда все в лобби готовы, владелец начинает приключение.",
+      "Если на сервере установлены плагины кампаний, форма создания также предложит готовый мир. Ниже, в разделе «Плагины кампаний», описано, что именно при этом меняется.",
+    ],
+    lobbyTitle: "Лобби",
+    lobby: [
+      "До начала игры каждый отмечается готовым, а тот, кто управляет историей — лидер группы или человек-Мастер — настраивает жанр, необязательную тайную завязку для Мастера, правила бросков, голос повествования и карты. Отправьте код комнаты или ссылку приглашения другим игрокам; когда все готовы, владелец или Мастер открывает игровой стол.",
+    ],
+    talkingTitle: "Общение с Мастером",
+    talkingIntro: "Кнопки над полем сообщения определяют смысл вашего сообщения:",
+    doLabel: "Действие",
+    doText:
+      "Опишите, что делает персонаж. Мастер расскажет результат и попросит бросок, когда этого требуют правила.",
+    sayLabel: "Речь",
+    sayText: "Говорите от лица персонажа. Текст отправляется как произнесённая реплика в кавычках.",
+    oocLabel: "OOC",
+    oocText:
+      "Внеигровое обсуждение. Мастер на него не отвечает; OOC остаётся доступным даже во время повествования или сцены с фокусом на другом игроке.",
+    directLabel: "Указание",
+    directText:
+      "Только для лидера группы. Отправьте Мастеру обязательное направление сюжета или подготовьте одно из семи событий: бой, место, социальную сцену, романтику, тайну, странность или удачу. В приватном режиме указание видит только Мастер: персонажи его не слышат, оно не попадает в стенограмму и влияет на следующий ход. Стол видит лишь сам факт подготовленного события, но не его содержимое.",
+    talking: [
+      "Вопросы задаются отдельно от этих режимов. Откройте панель «Спросить Мастера» над полем сообщения. В поле «О чём» выберите «Авто», «Сюжет», «Правила» или «Мой лист», чтобы указать источник ответа, а в «Кому видно» — «Только мне» или «Всему столу». Ответы ссылаются на сохранённые сведения кампании в блоке «Из записей».",
+      "Вопрос ничего не пишет в стенограмму и не продвигает сюжет, поэтому его можно задавать во время повествования, чужой сцены или блокировки хода. Сворачивание панели сохраняет недописанный вопрос и позицию в переписке.",
+      "Иногда Мастер выделяет одного игрока и ждёт его действия. Если ваш ход из-за этого заблокирован, баннер объяснит причину, а OOC и вопросы останутся доступны. Небольшие метки над полем сообщения показывают фоновые задачи движка между ходами: сжатие истории, закрытие главы, шаг мира, ответ на вопрос и время их выполнения.",
+    ],
+    wrongTitle: "Если Мастер ошибся",
+    wrongIntro:
+      "Наведите курсор на сообщение Мастера — над ним появится ряд действий. Они не продвигают сюжет и не меняют числа, рассчитанные правилами. Поскольку стенограмма общая, переписывать повествование может лидер группы:",
+    wrongItems: [
+      ["Перегенерировать", "Только лидер. Мастер переписывает этот момент с теми же костями и тем же исходом; можно добавить подсказку, что изменить. Меняется только текст."],
+      ["Варианты", "Только лидер. После появления второй версии в заголовке сообщения появляются стрелки и счётчик. Переключение варианта меняет сообщение для всего стола."],
+      ["Продолжить", "Только лидер. Мастер продолжает с места, где ответ оборвался, не продвигая игровой ход."],
+      ["Редактировать", "Только лидер. Исправьте текст Мастера вручную. Механика не меняется, а все маркеры бросков должны сохраниться."],
+      ["Проверить лор", "Доступно всем. Сверьте весь фрагмент или выделенный текст с записями кампании и проверьте, не противоречит ли он установленным фактам."],
+    ],
+    wrongOutro:
+      "Если ход Мастера полностью сорвался, баннер предложит продолжить с места остановки. Возобновляется уже начатый ход, поэтому никому не нужно повторять действие и в стенограмме не появятся дубликаты.",
+    memoryTitle: "Что помнит Мастер",
+    memoryIntro:
+      "Последние ходы Мастер видит дословно. Более старые сворачиваются в обновляемое резюме, а закрытые главы становятся отдельными сводками, которые можно найти и перечитать, когда стол возвращается к давним событиям.",
+    memoryItems: [
+      ["Запомнить", "Любой игрок может выделить текст в сообщении Мастера и нажать закладку либо сохранить сообщение целиком без выделения. Закреплённые воспоминания затем попадают в каждый запрос. Их объём ограничен; расход бюджета виден в списке закреплённых воспоминаний в «История → Факты»."],
+      ["Закрепить как канон", "Только лидер, поскольку действие записывает факт в кампанию. Фрагмент постоянно остаётся перед Мастером как установленный факт."],
+      ["Факты и лор", "В «История → Факты» также хранятся тайны Мастера, которым он не должен противоречить, и записи лора, созданные игроками."],
+      ["Связи", "На вкладке «Группа» показывают отношения каждого персонажа с встреченными людьми."],
+    ],
+    memoryOutro:
+      "NPC, которых группа давно не упоминает, архивируются и не вытесняют активных персонажей. Лидер группы может на вкладке «Контекст» увидеть, что именно было отправлено Мастеру на прошлом ходу и что не поместилось в бюджет токенов.",
+    sideTitle: "Боковая панель",
+    sideItems: [
+      ["Группа", "Состав группы, листы персонажей, HP и состояния, а во время боя — текущее столкновение. При включённых отношениях появляется подвкладка «Связи». Код комнаты находится во вкладке лидера."],
+      ["Бой", "Тактическая карта боя, когда столкновение проходит на карте. В свой ход перемещайте свой жетон."],
+      ["Карта", "Карта сцены, глобальная карта и открытые места, если карты включены."],
+      ["История", "Три подвкладки. «Главы» показывают пройденную историю и текущую арку и позволяют экспортировать рассказ. «Факты» хранят закреплённые воспоминания, тайны Мастера и лор. «Журнал» — проверяемая запись всех бросков и изменений характеристик."],
+      ["Заметки", "Предлагайте сюжетные заметки для кампании; лидер группы утверждает их."],
+      ["Чат", "Приватный шёпот между вами и Мастером, а также отдельный чат игроков, которого не видит ни Мастер, ни стенограмма кампании."],
+      ["Контекст", "Только лидер. Показывает, что реально было отправлено Мастеру на прошлом ходу и что было отброшено из-за бюджета токенов."],
+      ["Настройка", "Настройки кампании, приглашения и игровые переключатели."],
+    ],
+    diceTitle: "Кости",
+    dice: [
+      "Все проверки, спасброски и атаки бросает сервер — ИИ не придумывает результаты. Кнопка костей в заголовке включает и выключает 3D-анимацию. Если в настройках включены реальные кости, Мастер ждёт ввода физического результата; при желании можно воспользоваться цифровым запасным броском сервера.",
+      "После включения реальных костей кнопка «Источники костей» на вкладке «Группа» позволяет отдельно для каждого кубика выбрать источник: ввести физический результат вручную, поручить бросок серверу или считать его с подключённого Bluetooth-кубика Pixels. Для сопряжения Pixels нужен браузер на Chromium и защищённое HTTPS-соединение из-за требований Web Bluetooth. Когда все кости закрыты Pixels или сервером, результат отправится автоматически после падения последней кости. Выбор хранится в текущем браузере и на другом устройстве его нужно настроить заново.",
+    ],
+    narrationTitle: "Голос и озвучка",
+    narration: [
+      "Если озвучка включена, Мастер читает ответы вслух. Кнопка динамика в заголовке снимает заглушение — браузеру нужен хотя бы один пользовательский клик перед воспроизведением — а ползунок задаёт громкость. Наведите курсор на сообщение Мастера, чтобы повторить озвучку. В режиме push-to-talk можно удерживать кнопку микрофона и диктовать сообщение.",
+    ],
+    liveVoiceTitle: "Голосовой чат",
+    liveVoice: [
+      "Если голосовой чат включён и на сервере, и в кампании, в лобби появляется карточка «Голос», а во время игры — кнопка наушников в верхней панели с полным голосовым меню. Подключитесь — и говорите со всем столом без сторонних приложений; звонок не прерывается при переключении панелей. Микрофону нужно защищённое HTTPS-соединение, а при первом использовании браузер попросит разрешение.",
+      "Ведущий историю может создавать отдельные голосовые комнаты для разделившейся группы или приватного разговора и управлять очередностью речи. Мягкий режим лишь отмечает, кому следует говорить; строгий реально заглушает остальных; очередь поднятых рук поддерживает порядок. При желании голос можно связать с миром: слышимостью по расстоянию, диапазонами шёпота и крика, приглушением через стены и глухотой персонажей без сознания. Всё это находится в голосовых настройках раздела «Настройка» и по умолчанию выключено, поэтому обычный групповой звонок работает без дополнительных правил.",
+    ],
+    ambienceTitle: "Атмосфера и музыка",
+    ambience: [
+      "При включённой атмосфере весь стол слышит общий саундтрек: фон локации, музыкальный слой сцены и разовые акценты для драматичных моментов. Мастер меняет их вместе с сюжетом, а у боя есть собственное звучание. Ведущий может закрепить слой на выбранном треке, чтобы автоматический подбор его не менял. Кнопка динамика и ползунок громкости управляют звуком только для вас; во время голосового повествования фон автоматически приглушается.",
+      "Сами звуки — записи из общественного достояния и Creative Commons, которые устанавливает администратор сервера; авторство указано на странице лицензий. Если атмосфера включена, но ничего не слышно, значит на сервере пока не установлены аудиофайлы.",
+    ],
+    humanTitle: "Игра с человеком-Мастером",
+    human: [
+      "Кампанию не обязательно должен вести ИИ. Если место Мастера занимает человек, стол работает как обычная настольная сессия: Мастер говорит своими словами, а приложение ведёт листы, кости, карты и журнал. Сообщения «Действие» и «Речь» всё так же попадают в стенограмму, но вместо запуска ИИ становятся намерениями, на которые отвечает человек-Мастер. Мастер не занимает слот группы, владеет сюжетными тайнами и получает консоль инициативы, монстров, карт, NPC, таблиц бросков и решений, а при желании — ИИ-помощника для статблоков и идей.",
+      "Промежуточный вариант — режим с помощником: человек сохраняет контроль над историей, но по частям передаёт ИИ рутину. ИИ может проводить ходы монстров, превращать заметки Мастера в полноценное повествование или на ограниченное число ответов подменить Мастера, пока тот отошёл, следуя оставленному плану.",
+      "Поскольку основное повествование звучит голосом, приложение время от времени предлагает Мастеру записать «сюжетный такт» — одну-две строки о произошедшем. Из них строятся сводки глав, пересказы и экспорт истории. Если такты никогда не записывать, останется стенограмма намерений без связного рассказа. Игроки помогают, если отправляют действия через поле ввода, а не только произносят их в звонке.",
+    ],
+    leadTitle: "Лидер группы",
+    lead: [
+      "Владелец кампании изначально становится лидером и может передать роль через меню участника. Лидер направляет стол: использует режим «Указание» и пресеты событий, отправляет приватные направления, утверждает предложенные заметки, снимает зависший фокус сцены, повторяет оборвавшийся ход, перегенерирует или редактирует повествование, разрешает подключение новых игроков по ходу игры и меняет настройки кампании и домашние правила.",
+      "Лидер также управляет каркасом сюжета в «История → Главы». Отдельный такт можно переформулировать, пропустить или сделать активным без пересоздания всей арки; главу можно завершить досрочно; кампанию можно откатить к началу главы. Откат разрушителен: сначала он запрашивает подтверждение и показывает список отменяемых изменений, затем возвращает листы, NPC, локации, карты и состояние квестов к прежнему состоянию.",
+      "Если движок замечает два имени NPC, которые, возможно, относятся к одному человеку, но не решается объединять их автоматически, окончательное решение принимает лидер.",
+      "За столом с человеком-Мастером разделение другое: лидер сохраняет приглашения и общие сведения кампании, но в остальном остаётся игроком. Сюжетные тайны, настройки, правила, управление очередью, исправления повествования и места Мастера принадлежат человеку, который ведёт игру.",
+    ],
+    pluginsTitle: "Плагины кампаний",
+    plugins: [
+      "Кампания может работать в «пакете мира» — готовом сеттинге со своими расами, классами, заклинаниями, снаряжением, монстрами, фракциями и лором, а также инструкцией для Мастера о тоне этого мира. Выбор пакета при создании задаёт жанр и может заполнить тему и завязку кампании.",
+      "Пакет меняет названия и оформление, но не правила. Под капотом всё остаётся 5e, в листе хранятся канонические названия, а персонажа из кампании с пакетом можно перенести в обычную — там сущности снова будут показаны под стандартными именами.",
+      "Администраторы устанавливают и удаляют пакеты в «Администрирование → Плагины кампаний» из реестра или файла. Пакет, основанный на чужом сеттинге, везде помечается как неофициальная фанатская работа, не связанная с правообладателем и не одобренная им.",
+    ],
+    newTitle: "Впервые в D&D?",
+    newP1:
+      "Знать правила заранее не обязательно — Мастер и сервер применяют их сами. Если встретился незнакомый термин, ищите рядом маленькую кнопку информации: особенности, заклинания и характеристики в листе персонажа имеют пояснения.",
+    referenceBefore: "В ",
+    referenceLabel: "справочнике правил",
+    referenceAfter:
+      " основные механики объяснены простым языком; там же можно найти любое известное приложению заклинание, черту, предмет или состояние.",
+    aboutTitle: "О проекте",
+    aboutBefore:
+      "Open Dungeon Master — самостоятельно размещаемая многопользовательская платформа Dungeons & Dragons 5e с ИИ-Мастером. Администратор сервера управляет пользователями, моделями, изображениями, голосом и плагинами кампаний через панель администратора. Игровой контент основан на SRD 5.1 и Open5e; см. ",
+    licensesLabel: "лицензии и указание авторства",
+    aboutAfter: ".",
+  },
+  pl: {
+    title: "Pomoc",
+    toursTitle: "Samouczki",
+    toursText:
+      "Prowadzone krok po kroku objaśnienie elementów stołu. Każdy samouczek uruchamia się raz przy pierwszej wizycie, ale możesz powtórzyć go w dowolnej chwili.",
+    gettingTitle: "Pierwsze kroki",
+    getting: [
+      "Utwórz kampanię na stronie głównej albo dołącz do kampanii znajomego za pomocą kodu zaproszenia lub linku /join. Stwórz postać w kreatorze albo użyj zapisanej wcześniej z sekcji „Postacie” w menu konta. Gdy wszyscy w lobby są gotowi, właściciel rozpoczyna przygodę.",
+      "Jeśli serwer ma zainstalowane wtyczki kampanii, formularz tworzenia pozwoli też wybrać gotowy świat. Sekcja „Wtyczki kampanii” poniżej wyjaśnia, co to zmienia.",
+    ],
+    lobbyTitle: "Lobby",
+    lobby: [
+      "Przed rozpoczęciem gry każdy gracz oznacza gotowość, a osoba prowadząca historię — lider drużyny lub człowiek pełniący rolę Mistrza Gry — może ustawić gatunek, opcjonalny tajny zarys fabuły dla Mistrza Gry, zasady kości, głos narracji i mapy. Udostępnij kod pokoju lub link z zaproszeniem, aby sprowadzić kolejnych graczy; gdy wszyscy są gotowi, właściciel lub Mistrz Gry otwiera stół.",
+    ],
+    talkingTitle: "Rozmowa z Mistrzem Gry",
+    talkingIntro: "Przyciski nad polem wiadomości określają znaczenie wysyłanego tekstu:",
+    doLabel: "Akcja",
+    doText:
+      "Opisz, co robi twoja postać. Mistrz Gry opisze rezultat i poprosi o rzuty, gdy wymagają tego zasady.",
+    sayLabel: "Mowa",
+    sayText: "Mów jako postać. Tekst zostanie wysłany jako wypowiedziana kwestia w cudzysłowie.",
+    oocLabel: "OOC",
+    oocText:
+      "Rozmowa poza postacią. Mistrz Gry na nią nie odpowiada; OOC pozostaje dostępne również podczas narracji i sceny skupionej na innym graczu.",
+    directLabel: "Wytyczna",
+    directText:
+      "Tylko lider drużyny. Wyślij Mistrzowi Gry wiążącą wytyczną fabularną albo przygotuj jedno z siedmiu gotowych zdarzeń: walkę, miejsce, scenę społeczną, romans, tajemnicę, dziwność lub szczęśliwy traf. W trybie prywatnym wytyczkę widzi wyłącznie Mistrz Gry: postacie jej nie słyszą, nie trafia do transkrypcji i wpływa na następną turę. Stół widzi jedynie, że coś przygotowano, ale nie co.",
+    talking: [
+      "Pytania są oddzielne od tych trybów. Otwórz pasek „Zapytaj Mistrza Gry” nad polem wiadomości. W polu „O czym” wybierz Auto, Fabuła, Zasady albo Moja karta, aby wskazać źródło odpowiedzi, a w „Widoczne dla” — Tylko ja lub Cały stół. Odpowiedzi cytują zapis kampanii w sekcji „Z zapisu”.",
+      "Pytanie nie zapisuje niczego w transkrypcji i nie przesuwa fabuły, więc działa podczas narracji, sceny innego gracza i blokady możliwości działania. Zwinięcie paska zachowuje niedokończone pytanie oraz miejsce w wątku.",
+      "Czasem Mistrz Gry skupia scenę na jednym graczu i czeka na jego ruch. Jeśli możliwość działania jest wtedy zablokowana, baner wyjaśni dlaczego, a OOC i pytania nadal działają. Małe znaczniki nad polem wiadomości pokazują zadania wykonywane w tle między turami, takie jak kompresja historii, zamykanie rozdziału, krok świata czy odpowiedź na pytanie, wraz z czasem ich działania.",
+    ],
+    wrongTitle: "Gdy Mistrz Gry się pomyli",
+    wrongIntro:
+      "Najedź na wiadomość Mistrza Gry, aby zobaczyć rząd działań. Żadne z nich nie przesuwa fabuły ani nie zmienia liczb wyliczonych przez zasady. Ponieważ wszyscy czytają tę samą transkrypcję, przepisywanie narracji należy do lidera drużyny:",
+    wrongItems: [
+      ["Wygeneruj ponownie", "Tylko lider. Mistrz Gry opisuje ten moment ponownie z tymi samymi kośćmi i wynikiem; można dodać wskazówkę, co zmienić. Zmienia się tylko tekst."],
+      ["Wersje", "Tylko lider. Po utworzeniu drugiej wersji w nagłówku wiadomości pojawiają się strzałki i licznik. Przełączanie wersji zmienia wiadomość dla całego stołu."],
+      ["Kontynuuj", "Tylko lider. Mistrz Gry dopisuje dalszą część od miejsca, w którym odpowiedź się urwała, bez przesuwania tury."],
+      ["Edytuj", "Tylko lider. Popraw tekst Mistrza Gry ręcznie. Mechanika pozostaje bez zmian, a wszystkie znaczniki kości muszą zostać zachowane."],
+      ["Sprawdź lore", "Dostępne dla wszystkich. Porównaj fragment lub zaznaczony tekst z zapisem kampanii i sprawdź, czy nie przeczy ustalonym faktom."],
+    ],
+    wrongOutro:
+      "Jeśli tura Mistrza Gry całkowicie się nie powiedzie, baner pozwoli wznowić ją od miejsca przerwania. Kontynuowana jest już rozpoczęta tura, więc nikt nie musi ponownie wpisywać działania i nic nie trafi do transkrypcji dwa razy.",
+    memoryTitle: "Co pamięta Mistrz Gry",
+    memoryIntro:
+      "Najnowsze tury Mistrz Gry widzi słowo w słowo. Starsze są kompresowane do aktualizowanego podsumowania, a zamknięte rozdziały stają się osobnymi streszczeniami, które można wyszukać i ponownie przeczytać, gdy stół wraca do dawnych wydarzeń.",
+    memoryItems: [
+      ["Zapamiętaj", "Każdy gracz może zaznaczyć tekst w wiadomości Mistrza Gry i nacisnąć ikonę zakładki albo zapisać całą wiadomość bez zaznaczenia. Przypięte wspomnienia trafiają odtąd do każdego promptu. Obowiązuje limit rozmiaru, a lista przypiętych wspomnień w „Historia → Fakty” pokazuje zużycie budżetu."],
+      ["Przypnij jako kanon", "Tylko lider, ponieważ zapisuje fakt w kampanii. Fragment pozostaje stale przed Mistrzem Gry jako ustalony fakt."],
+      ["Fakty i lore", "„Historia → Fakty” przechowuje również tajemnice Mistrza Gry, którym nie wolno mu przeczyć, oraz wpisy lore przygotowane przez stół."],
+      ["Relacje", "Na karcie „Drużyna” pokazują, jakie relacje ma każda postać z napotkanymi osobami."],
+    ],
+    memoryOutro:
+      "NPC, o których drużyna przestaje wspominać, są archiwizowani, aby nie wypierać aktywnych postaci. Lider drużyny może na karcie „Kontekst” zobaczyć dokładnie, co wysłano Mistrzowi Gry w poprzedniej turze i co zostało pominięte przez limit tokenów.",
+    sideTitle: "Panel boczny",
+    sideItems: [
+      ["Drużyna", "Skład drużyny, karty postaci, PW i stany całej grupy, a podczas walki także aktywne starcie. Gdy relacje są włączone, pojawia się podkarta „Relacje”. Kod pokoju znajduje się na karcie lidera."],
+      ["Walka", "Taktyczna mapa walki podczas starcia rozgrywanego na mapie. W swojej turze poruszaj własnym znacznikiem."],
+      ["Mapa", "Mapa sceny, mapa świata i odkryte miejsca, gdy mapy są włączone."],
+      ["Historia", "Trzy podkarty. „Rozdziały” pokazują dotychczasową opowieść i bieżący wątek oraz pozwalają eksportować historię. „Fakty” przechowują przypięte wspomnienia, tajemnice Mistrza Gry i lore. „Dziennik” jest audytowalnym zapisem każdego rzutu oraz każdej zmiany statystyk."],
+      ["Notatki", "Proponuj notatki fabularne kampanii; lider drużyny je zatwierdza."],
+      ["Czat", "Prywatne szepty między tobą a Mistrzem Gry oraz boczny czat graczy, którego nie widzą ani Mistrz Gry, ani transkrypcja kampanii."],
+      ["Kontekst", "Tylko lider. Pokazuje, co rzeczywiście wysłano Mistrzowi Gry w ostatniej turze i co odpadło przez limit tokenów."],
+      ["Ustawienia", "Ustawienia kampanii, zaproszenia i przełączniki gry."],
+    ],
+    diceTitle: "Kości",
+    dice: [
+      "Każdy test, rzut obronny i atak wykonuje serwer — AI nigdy nie wymyśla wyniku. Przycisk kości w nagłówku włącza lub wyłącza animację kości 3D. Jeśli w ustawieniach gry wybierzesz prawdziwe kości, Mistrz Gry czeka na wpisanie wyniku fizycznego rzutu; zawsze dostępny jest też cyfrowy rzut zapasowy serwera.",
+      "Po włączeniu prawdziwych kości przycisk „Źródła kości” na karcie „Drużyna” pozwala osobno dla każdej kości wybrać źródło: wpisać fizyczny wynik, pozwolić rzucić serwerowi albo odczytać wynik z połączonej kości Bluetooth Pixels. Parowanie Pixels wymaga przeglądarki opartej na Chromium oraz bezpiecznego połączenia HTTPS, ponieważ wymaga tego Web Bluetooth. Gdy każda kość jest obsługiwana przez Pixels lub serwer, wynik wysyła się automatycznie po zatrzymaniu ostatniej kości. Ustawienia są zapisywane w bieżącej przeglądarce, więc na innym urządzeniu trzeba skonfigurować je ponownie.",
+    ],
+    narrationTitle: "Głos i narracja",
+    narration: [
+      "Gdy narracja głosowa jest włączona, Mistrz Gry czyta odpowiedzi na głos. Użyj przycisku głośnika w nagłówku, aby wyłączyć wyciszenie — przeglądarka wymaga jednego kliknięcia przed odtwarzaniem dźwięku — oraz suwaka głośności. Najedź na wiadomość Mistrza Gry, aby ponownie odtworzyć narrację. Po skonfigurowaniu push-to-talk możesz przytrzymać przycisk mikrofonu i podyktować wiadomość.",
+    ],
+    liveVoiceTitle: "Czat głosowy na żywo",
+    liveVoice: [
+      "Gdy czat głosowy jest włączony zarówno na serwerze, jak i w kampanii, w lobby pojawia się karta „Głos”, a podczas gry w górnym pasku widoczny jest przycisk słuchawek z pełnym menu głosowym. Dołącz i rozmawiaj z całym stołem bez dodatkowej aplikacji; połączenie pozostaje aktywne przy zmianie paneli. Mikrofon wymaga bezpiecznego połączenia HTTPS, a przy pierwszym użyciu przeglądarka poprosi o zgodę.",
+      "Osoba prowadząca historię może tworzyć osobne pokoje głosowe dla podzielonej drużyny lub prywatnej rozmowy oraz kontrolować kolejność wypowiedzi. Tryb miękki jedynie wskazuje, kto powinien mówić; tryb ścisły naprawdę wycisza pozostałych; kolejka podniesionych rąk utrzymuje porządek. Można też powiązać głos ze światem: słyszalnością zależną od odległości, zasięgiem szeptu i krzyku, tłumieniem przez ściany oraz głuchotą nieprzytomnych postaci. Wszystkie te opcje znajdują się w ustawieniach głosu w sekcji „Ustawienia” i domyślnie są wyłączone, więc bez zmian otrzymujesz zwykłą rozmowę grupową.",
+    ],
+    ambienceTitle: "Atmosfera i muzyka",
+    ambience: [
+      "Po włączeniu dźwięków otoczenia cały stół dzieli ścieżkę dźwiękową: tło miejsca, warstwę muzyczną sceny oraz krótkie akcenty dla dramatycznych chwil. Mistrz Gry zmienia je wraz z historią, a walka ma własne brzmienie. Prowadzący może przypiąć warstwę do wybranego nagrania, aby automatyczny wybór jej nie zmieniał. Przycisk głośnika i suwak głośności sterują dźwiękiem wyłącznie po twojej stronie, a tło automatycznie cichnie podczas narracji głosowej.",
+      "Nagrania pochodzą z domeny publicznej i licencji Creative Commons i są instalowane przez administratora serwera; autorów znajdziesz na stronie licencji. Jeśli dźwięki otoczenia są włączone, ale panuje cisza, serwer po prostu nie ma jeszcze zainstalowanych plików audio.",
+    ],
+    humanTitle: "Gra z człowiekiem jako Mistrzem Gry",
+    human: [
+      "Kampanii nie musi prowadzić AI. Gdy w fotelu Mistrza Gry siedzi człowiek, stół działa jak tradycyjna sesja: Mistrz opowiada własnymi słowami, a aplikacja pilnuje kart postaci, kości, map i zapisu gry. Wiadomości „Akcja” i „Mowa” nadal trafiają do transkrypcji, ale zamiast uruchamiać AI są kolejkowane jako intencje dla człowieka-Mistrza. Mistrz nie zajmuje miejsca w drużynie, posiada tajemnice fabularne i otrzymuje konsolę inicjatywy, potworów, map, NPC, tabel rzutów i rozstrzygnięć, a opcjonalnie także asystenta AI do bloków statystyk i sugestii.",
+      "Tryb wspomagany leży pośrodku: człowiek zachowuje kontrolę nad historią, ale po kawałku przekazuje AI księgowość. AI może prowadzić tury potworów, zamieniać notatki Mistrza Gry w pełną narrację albo na określoną liczbę odpowiedzi przejąć stół, gdy Mistrz na chwilę odchodzi, trzymając się pozostawionego planu.",
+      "Ponieważ właściwa narracja odbywa się głosem, aplikacja co jakiś czas przypomina Mistrzowi Gry o zapisaniu krótkiego punktu fabularnego — jednego lub dwóch zdań o tym, co właśnie się wydarzyło. Na tych punktach opierają się streszczenia rozdziałów, podsumowania i eksport historii. Stół, który nigdy ich nie zapisuje, kończy z transkrypcją intencji bez spójnej opowieści. Gracze mogą pomóc, wysyłając działania przez pole wiadomości zamiast ograniczać się do rozmowy głosowej.",
+    ],
+    leadTitle: "Lider drużyny",
+    lead: [
+      "Właściciel kampanii zaczyna jako lider drużyny i może przekazać rolę z menu członka drużyny. Lider steruje stołem: korzysta z trybu „Wytyczna” i gotowych zdarzeń, wysyła prywatne instrukcje, zatwierdza sugerowane notatki, zwalnia zablokowaną scenę, ponawia zatrzymaną turę, ponownie generuje lub edytuje narrację, pozwala nowym graczom dołączać w trakcie gry oraz zmienia ustawienia kampanii i zasady domowe.",
+      "Lider kontroluje też szkielet historii w „Historia → Rozdziały”. Pojedynczy punkt można przeformułować, pominąć lub ustawić jako aktywny bez regenerowania całego wątku; rozdział można zamknąć wcześniej, a kampanię cofnąć do początku rozdziału. Cofnięcie jest destrukcyjne: najpierw prosi o potwierdzenie i pokazuje listę zmian do anulowania, a następnie przywraca karty, NPC, miejsca, mapy i stan zadań.",
+      "Gdy silnik zauważy dwa imiona NPC, które mogą oznaczać tę samą osobę, ale nie chce łączyć ich na podstawie zgadywania, decyzję podejmuje lider.",
+      "Przy stole z człowiekiem jako Mistrzem Gry podział jest inny: lider zachowuje zaproszenia i ogólne dane kampanii, ale poza tym jest zwykłym graczem. Tajemnice fabularne, ustawienia, zasady, kontrola kolejności, poprawki narracji i miejsca Mistrza należą do osoby prowadzącej grę.",
+    ],
+    pluginsTitle: "Wtyczki kampanii",
+    plugins: [
+      "Kampania może działać w pakiecie świata: gotowym settingu z własnymi rasami, klasami, czarami, wyposażeniem, potworami, frakcjami i lore oraz instrukcją dla Mistrza Gry opisującą ton świata. Wybranie pakietu przy tworzeniu ustawia również gatunek kampanii i może uzupełnić jej motyw oraz założenie fabularne.",
+      "Pakiet zmienia nazwy i prezentację, ale nigdy zasad. Pod spodem wszystko nadal jest 5e, karta postaci przechowuje kanoniczne nazwy, a postać z kampanii korzystającej z pakietu może zostać przeniesiona do zwykłej kampanii i ponownie wyświetlać standardowe nazwy.",
+      "Administratorzy serwera instalują i usuwają pakiety w „Administracja → Wtyczki kampanii” z rejestru lub pliku. Pakiet oparty na cudzym settingu wszędzie wyświetla informację o nieoficjalnym dziele fanowskim, które nie jest powiązane z właścicielem praw, sponsorowane przez niego ani przez niego zatwierdzone.",
+    ],
+    newTitle: "Pierwszy raz w D&D?",
+    newP1:
+      "Nie musisz znać zasad, aby grać — Mistrz Gry i serwer stosują je automatycznie. Gdy pojawi się nieznany termin, poszukaj obok małego przycisku informacji: każda cecha, czar i statystyka na karcie postaci ma własne objaśnienie.",
+    referenceBefore: "W ",
+    referenceLabel: "kompendium zasad",
+    referenceAfter:
+      " podstawy opisano prostym językiem; możesz też wyszukać każdy czar, atut, przedmiot i stan znany aplikacji.",
+    aboutTitle: "O projekcie",
+    aboutBefore:
+      "Open Dungeon Master to samodzielnie hostowana, wieloosobowa platforma Dungeons & Dragons 5e prowadzona przez Mistrza Gry AI. Administratorzy serwera zarządzają użytkownikami, modelami, obrazami, głosem i wtyczkami kampanii w panelu administracyjnym. Treść gry pochodzi z SRD 5.1 i Open5e; zobacz ",
+    licensesLabel: "licencje i informacje o autorstwie",
+    aboutAfter: ".",
+  },
+} as const;
 
 // Exported for HowToPlayDialog, which is the short orientation read to this
 // dialog's full reference. Both used to carry byte-identical private copies,
@@ -72,6 +427,22 @@ export function ModeRow({
   );
 }
 
+function Paragraphs({ items }: { items: readonly string[] }) {
+  return items.map((item) => <p key={item}>{item}</p>);
+}
+
+function LabeledList({ items }: { items: readonly (readonly [string, string])[] }) {
+  return (
+    <ul className="list-none space-y-1.5">
+      {items.map(([label, text]) => (
+        <li key={label}>
+          <span className="text-stone-300">{label}:</span> {text}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 // One walkthrough of the whole app: menus, side-panel tabs, composer modes,
 // asking the DM, fixing a bad narration, what the DM remembers, dice, voice,
 // lead powers and world packs. Opened from the home account menu and the
@@ -83,24 +454,22 @@ export function HelpDialog({
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  // The table offers its guided tours from here; each runs once on its own
-  // and can be replayed at will. Other pages pass nothing.
   tours?: { label: string; detail: string; onStart: () => void }[];
 }) {
+  const { locale } = useI18n();
+  const copy = COPY[locale];
+
   return (
     <Dialog
       open={open}
       onOpenChange={onOpenChange}
-      title="Help"
+      title={copy.title}
       icon={<CircleHelp className="size-5 text-amber-500/80" />}
       width="w-[min(94vw,44rem)]"
     >
       {tours && tours.length ? (
-        <Section icon={Footprints} title="Guided tours">
-          <p>
-            A spotlight walk through the table&apos;s controls, one at a time. Each tour ran once
-            when you first sat down; take it again whenever you like.
-          </p>
+        <Section icon={Footprints} title={copy.toursTitle}>
+          <p>{copy.toursText}</p>
           <div className="flex flex-wrap gap-2">
             {tours.map((tour) => (
               <button
@@ -119,353 +488,88 @@ export function HelpDialog({
           </div>
         </Section>
       ) : null}
-      <Section icon={Compass} title="Getting started">
-        <p>
-          Create a campaign from the home page, or join a friend&apos;s with their invite code or a{" "}
-          <span className="text-stone-300">/join</span> link. Build a character in the creation
-          wizard, or reuse one saved to your library under Characters in the account menu. When
-          everyone in the lobby is ready, the owner starts the adventure.
-        </p>
-        <p>
-          If the server has campaign plugins installed, the create form also offers a{" "}
-          <span className="text-stone-300">pre-built world</span> to run the campaign in. See
-          Campaign plugins below for what that changes.
-        </p>
+
+      <Section icon={Compass} title={copy.gettingTitle}>
+        <Paragraphs items={copy.getting} />
       </Section>
 
-      <Section icon={DoorOpen} title="The lobby">
-        <p>
-          Before the game begins, each player readies up and whoever steers the story (the party
-          lead, or the DM when a person runs the table) can adjust the game settings: genre, an
-          optional secret story setup for the DM, dice policy, narration voice, and maps. Share the
-          room code or copy the invite link to bring in more players; the owner or the DM opens the
-          table once everyone is ready.
-        </p>
+      <Section icon={DoorOpen} title={copy.lobbyTitle}>
+        <Paragraphs items={copy.lobby} />
       </Section>
 
-      <Section icon={MessageSquareText} title="Talking to the DM">
-        <p>The buttons above the message box change what your message means:</p>
-        <ModeRow label="Do">
-          Describe what your character does. The DM narrates the outcome and asks for dice rolls
-          when the rules call for them.
+      <Section icon={MessageSquareText} title={copy.talkingTitle}>
+        <p>{copy.talkingIntro}</p>
+        <ModeRow label={copy.doLabel}>{copy.doText}</ModeRow>
+        <ModeRow label={copy.sayLabel}>{copy.sayText}</ModeRow>
+        <ModeRow label={copy.oocLabel}>{copy.oocText}</ModeRow>
+        <ModeRow label={copy.directLabel} lead>
+          {copy.directText}
         </ModeRow>
-        <ModeRow label="Say">
-          Speak in character. Your text is sent as spoken dialogue, in quotes.
-        </ModeRow>
-        <ModeRow label="OOC">
-          Out-of-character table talk. The DM does not respond to it, and it stays available even
-          when the floor is locked during narration or a spotlight.
-        </ModeRow>
-        <ModeRow label="Direct" lead>
-          Party lead only. Send the DM an authoritative story direction it must weave into the
-          tale, or arm one of the seven canned events: Combat, Place, Social, Romance, Mystery,
-          Weird or Windfall. Turn on <span className="text-stone-300">Private</span> and the
-          direction goes to the DM alone: no character hears it, it never enters the transcript,
-          and it steers the next turn instead of this one. The table still sees that something is
-          armed, just never what.
-        </ModeRow>
-        <p>
-          Questions are not one of these buttons. Open the{" "}
-          <span className="text-stone-300">Ask the DM</span> strip just above the message box and
-          use its own question box. Set <span className="text-stone-300">About</span> to Auto,
-          Story, Rules or My sheet to say where the answer should come from, and{" "}
-          <span className="text-stone-300">Seen by</span> to Just me or The table to say who reads
-          it. Answers quote what the campaign has on record under{" "}
-          <span className="text-stone-300">From the record</span>.
-        </p>
-        <p>
-          Asking writes nothing to the transcript and never moves the story on, so it works during
-          narration, during someone else&apos;s spotlight, and while the floor is locked. Collapsing
-          the strip keeps a half-typed question and your place in the thread.
-        </p>
-        <p>
-          Sometimes the DM puts one player in the spotlight and waits for them to act. While the
-          floor is locked for you, a banner explains why, and OOC and the Ask strip still work.
-          Small chips above the message box name the background work the engine is doing between
-          turns, such as compacting history, sealing a chapter, running the world tick or answering
-          an Ask, with how long it has been going.
-        </p>
+        <Paragraphs items={copy.talking} />
       </Section>
 
-      <Section icon={RefreshCw} title="When the DM gets it wrong">
-        <p>
-          Hover a DM message and a row of actions appears above it. None of them advance the story
-          or change a single number the rules produced. Rewriting the narration belongs to the
-          party lead, since everyone reads the same transcript:
-        </p>
-        <ul className="list-none space-y-1.5">
-          <li>
-            <span className="text-stone-300">Reroll:</span> lead only. Have the DM write that
-            moment again with the same dice and the same outcome, optionally with a note on what to
-            do differently. Only the prose changes.
-          </li>
-          <li>
-            <span className="text-stone-300">Takes:</span> lead only. Once a second version exists,
-            arrows and a counter appear in the message header. Paging between takes swaps the
-            message for the whole table.
-          </li>
-          <li>
-            <span className="text-stone-300">Continue:</span> lead only. Have the DM keep writing
-            from where a reply stopped short, without moving the story on.
-          </li>
-          <li>
-            <span className="text-stone-300">Edit:</span> lead only. Fix what the DM said by hand.
-            Mechanics are untouched and every dice marker in the passage has to survive the edit.
-          </li>
-          <li>
-            <span className="text-stone-300">Lore check:</span> anyone. Flag the passage, or just
-            the text you selected, against the campaign record and see whether it contradicts
-            anything already established.
-          </li>
-        </ul>
-        <p>
-          If a DM turn fails outright, a banner offers to send it back in from where it stopped. It
-          resumes the turn that was already running, so nobody has to retype an action and nothing
-          lands in the transcript twice.
-        </p>
+      <Section icon={RefreshCw} title={copy.wrongTitle}>
+        <p>{copy.wrongIntro}</p>
+        <LabeledList items={copy.wrongItems} />
+        <p>{copy.wrongOutro}</p>
       </Section>
 
-      <Section icon={Brain} title="What the DM remembers">
-        <p>
-          Recent turns are in front of the DM word for word. Older ones are compacted into a
-          rolling summary, and closed chapters become chapter summaries it can search and re-read
-          when the table brings up something from long ago.
-        </p>
-        <ul className="list-none space-y-1.5">
-          <li>
-            <span className="text-stone-300">Remember:</span> any player can select text in a DM
-            message and press the bookmark icon, or press it with nothing selected to keep the
-            whole message. Pinned memories ride in every prompt from then on. There is a size
-            budget, and the Pinned memories list under Story, Facts shows how much of it the table
-            has spent.
-          </li>
-          <li>
-            <span className="text-stone-300">Pin as canon:</span> party lead only, because it
-            writes to the campaign record. Keeps a passage in front of the DM permanently as
-            established fact.
-          </li>
-          <li>
-            <span className="text-stone-300">Facts and lore:</span> Story, Facts also holds DM
-            secrets the DM must never contradict and the lore entries the table has written up.
-          </li>
-          <li>
-            <span className="text-stone-300">Bonds:</span> under Party, where each character stands
-            with the people they have dealt with.
-          </li>
-        </ul>
-        <p>
-          NPCs the party stops mentioning are archived so they do not crowd out the ones in play,
-          and the party lead can see exactly what the DM was sent on the last turn, plus anything
-          the budget cut, in the Context tab.
-        </p>
+      <Section icon={Brain} title={copy.memoryTitle}>
+        <p>{copy.memoryIntro}</p>
+        <LabeledList items={copy.memoryItems} />
+        <p>{copy.memoryOutro}</p>
       </Section>
 
-      <Section icon={PanelRight} title="The side panel">
-        <ul className="list-none space-y-1.5">
-          <li>
-            <span className="text-stone-300">Party:</span> the roster, with character sheets, HP and
-            conditions for the whole party, and the active encounter during combat. A Bonds
-            sub-tab appears when relationships are on. The room code is in the lead&apos;s tab.
-          </li>
-          <li>
-            <span className="text-stone-300">Battle:</span> the tactical battle map, while a fight
-            with a map is running. Move your token on your turn.
-          </li>
-          <li>
-            <span className="text-stone-300">Map:</span> the scene map, the overworld and
-            discovered locations, when maps are enabled.
-          </li>
-          <li>
-            <span className="text-stone-300">Story:</span> three sub-tabs. Chapters is the tale so
-            far and the arc in play, and it is where you export the story. Facts holds pinned
-            memories, DM secrets and lore. Log is the audited record of every dice roll and every
-            stat change the DM makes.
-          </li>
-          <li>
-            <span className="text-stone-300">Notes:</span> suggest campaign notes for the story; the
-            party lead approves them.
-          </li>
-          <li>
-            <span className="text-stone-300">Chat:</span> private whispers between you and the DM,
-            and side chat between players that the DM and the campaign transcript never see.
-          </li>
-          <li>
-            <span className="text-stone-300">Context:</span> party lead only. What the DM was
-            actually sent last turn, and anything the token budget dropped.
-          </li>
-          <li>
-            <span className="text-stone-300">Setup:</span> campaign settings, invites and game
-            toggles.
-          </li>
-        </ul>
+      <Section icon={PanelRight} title={copy.sideTitle}>
+        <LabeledList items={copy.sideItems} />
       </Section>
 
-      <Section icon={Dices} title="Dice">
-        <p>
-          Every check, save, and attack is rolled by the server, never invented by the AI. The dice
-          button in the header toggles the 3D dice animation. If you opt into real dice in the game
-          settings, the DM waits for you to enter your physical roll, with a digital fallback
-          button if you would rather let the server roll.
-        </p>
-        <p>
-          Once you have opted in, the <span className="text-stone-300">Dice sources</span> button in
-          the Party tab lets you decide per die which happens: type the physical roll yourself, let
-          the server roll that die for you, or read it straight from a connected{" "}
-          <span className="text-stone-300">Pixels Bluetooth die</span>. Pairing a Pixel needs a
-          Chromium-based browser and a secure (https) connection, because that is what Web
-          Bluetooth requires. When every die in a request is covered by a Pixel or the server, the
-          roll submits itself the moment the last die lands. These choices are saved in the
-          browser you set them in, so set them again if you switch devices.
-        </p>
+      <Section icon={Dices} title={copy.diceTitle}>
+        <Paragraphs items={copy.dice} />
       </Section>
 
-      <Section icon={Volume2} title="Voice and narration">
-        <p>
-          When narration is enabled, the DM reads its replies aloud. Use the speaker button in the
-          header to unmute (browsers require one click before audio can play) and the slider to set
-          the volume. Hover a DM message to replay its narration. Push-to-talk, when configured,
-          lets you hold the microphone button to dictate your message.
-        </p>
+      <Section icon={Volume2} title={copy.narrationTitle}>
+        <Paragraphs items={copy.narration} />
       </Section>
 
-      <Section icon={Mic} title="Live voice chat">
-        <p>
-          When the server and the campaign both have voice chat switched on, a{" "}
-          <span className="text-stone-300">Voice</span> card appears in the lobby, and during play a{" "}
-          <span className="text-stone-300">headphones button</span> sits in the top bar with the
-          full voice menu under it. Join and you are talking to the table; no other app needed, and
-          the call stays up whatever panel you switch to. The microphone needs a secure (https)
-          connection, and your browser will ask permission the first time.
-        </p>
-        <p>
-          Whoever runs the story can open <span className="text-stone-300">side rooms</span> for a
-          split party or a private word, and can hold the floor: soft enforcement marks who should
-          be talking, strict actually mutes everyone else, and a raised-hand queue keeps it civil.
-          A table can also opt into rules that make the call behave like the world: proximity
-          hearing (you only hear players whose characters are near yours on the map, while the DM
-          hears everyone), whisper and shout ranges, walls muffling speech, and downed characters
-          going deaf. All of that lives under voice settings in Setup, and all of it is off by
-          default, so a plain group call is what you get until the table asks for more.
-        </p>
+      <Section icon={Mic} title={copy.liveVoiceTitle}>
+        <Paragraphs items={copy.liveVoice} />
       </Section>
 
-      <Section icon={Music} title="Ambience and music">
-        <p>
-          With ambience enabled in the game settings, the table shares a soundtrack: a background
-          bed for where the party is (a tavern, a forest, a crypt), a music layer for what the
-          scene is doing, and one-shot stings for dramatic moments. The DM changes it as the story
-          moves, and combat brings its own sound. Whoever runs the story can also hold a layer on a
-          chosen cue so the auto-picker leaves it alone. Your speaker button and volume slider in
-          the header control it for you alone, and it ducks automatically while narration speaks.
-        </p>
-        <p>
-          The sounds themselves are public-domain and Creative Commons recordings the server admin
-          installs; see the licenses page for who made what. If ambience is on but silent, the
-          server simply has no audio installed yet.
-        </p>
+      <Section icon={Music} title={copy.ambienceTitle}>
+        <Paragraphs items={copy.ambience} />
       </Section>
 
-      <Section icon={Gavel} title="Playing with a human DM">
-        <p>
-          A campaign does not have to be run by the AI. Created with{" "}
-          <span className="text-stone-300">a person in the DM seat</span>, the table works the way
-          a kitchen-table game does: the DM narrates in their own words (most tables do it over
-          voice chat), and the app keeps the sheets, the dice, the maps and the record straight
-          underneath them. Your Do and Say messages still land in the transcript, but instead of
-          waking the AI they queue as intents for the DM to answer. The DM holds no party slot
-          (though they can build a companion to play from the console), holds the story secrets
-          the party lead would hold at an AI table, and gets a console of
-          tools: initiative, monsters, maps, NPCs, roll tables and rulings, with an AI assistant
-          one click away for stat blocks and suggestions if they want it.
-        </p>
-        <p>
-          The in-between setting, <span className="text-stone-300">assisted mode</span>, lets the
-          DM keep the story and hand the bookkeeping to the AI a piece at a time: it can run the
-          monsters&apos; turns, read the DM&apos;s notes aloud as full prose, or{" "}
-          <span className="text-stone-300">cover the table</span> for a counted stretch of answers
-          while the DM steps away, following the outline they left behind.
-        </p>
-        <p>
-          Because the narration happens out loud, the app nudges the DM every so often to jot down
-          a <span className="text-stone-300">story beat</span>, a line or two about what just
-          happened. Beats are what chapter summaries, recaps and the exported story are built
-          from, so a table that never writes any ends up with a transcript of intents and no tale.
-          Players can help by keeping their actions in the composer rather than only in the call.
-        </p>
+      <Section icon={Gavel} title={copy.humanTitle}>
+        <Paragraphs items={copy.human} />
       </Section>
 
-      <Section icon={Crown} title="Party lead">
-        <p>
-          The campaign owner starts as party lead and can pass the role from a party member&apos;s
-          menu. The lead steers the table: the Direct message mode with its event presets and
-          private directions, approving suggested notes, releasing a stuck spotlight, retrying a
-          halted turn, rerolling or editing a narration, letting new players join mid-game, and
-          editing campaign settings and house rules.
-        </p>
-        <p>
-          The lead also owns the story spine, under Story, Chapters. A single beat can be reworded,
-          skipped or promoted to the one in play without regenerating the whole arc, a chapter can
-          be sealed early, and the whole campaign can be rewound to the start of a chapter. A
-          rewind is destructive: it asks for confirmation and lists what it will undo first, then
-          puts sheets, NPCs, locations, maps and quest state back the way they were.
-        </p>
-        <p>
-          Where the engine spots two NPC names that might be the same person but refuses to merge
-          them on a guess, the lead is the one who settles it.
-        </p>
-        <p>
-          At a table with a human DM the split is different: the lead keeps the invites and the
-          campaign details but is otherwise a player, because the story powers listed above exist
-          to steer the AI and there is no AI to steer. Story secrets, settings, rules, floor
-          control, narration fixes and the DM seats belong to the person in the DM seat instead.
-        </p>
+      <Section icon={Crown} title={copy.leadTitle}>
+        <Paragraphs items={copy.lead} />
       </Section>
 
-      <Section icon={Puzzle} title="Campaign plugins">
-        <p>
-          A campaign can run in a <span className="text-stone-300">world pack</span>: a pre-built
-          setting with its own races, classes, spells, gear, monsters, factions and lore, and a
-          brief telling the DM how that world should sound. Picking one at creation also sets the
-          campaign&apos;s genre and can fill in its theme and premise.
-        </p>
-        <p>
-          A pack renames things, it never changes a rule. Everything underneath is still 5e, your
-          sheet still stores the canonical names, and a character built in a pack campaign can be
-          brought into a plain one and simply reads under its ordinary names again.
-        </p>
-        <p>
-          Server admins install and remove packs under Admin, Campaign plugins, from a registry or
-          from a file. A pack built on somebody else&apos;s setting carries an unofficial-work
-          notice wherever it appears: it is fan-made and is not affiliated with, sponsored by or
-          endorsed by the rights holder.
-        </p>
+      <Section icon={Puzzle} title={copy.pluginsTitle}>
+        <Paragraphs items={copy.plugins} />
       </Section>
 
-      <Section icon={BookOpen} title="New to D&amp;D?">
+      <Section icon={BookOpen} title={copy.newTitle}>
+        <p>{copy.newP1}</p>
         <p>
-          You do not need to know the rules to play; the DM and the server handle them. When a term
-          comes up that you do not recognize, look for the small info button next to it: every
-          feature, spell and stat on your sheet explains itself.
-        </p>
-        <p>
-          The{" "}
+          {copy.referenceBefore}
           <Link href="/reference" className="text-amber-300 underline-offset-2 hover:underline">
-            rules reference
-          </Link>{" "}
-          collects the basics in plain language and lets you search every spell, feat, item and
-          condition the app knows about.
+            {copy.referenceLabel}
+          </Link>
+          {copy.referenceAfter}
         </p>
       </Section>
 
-      <Section icon={BookOpen} title="About">
+      <Section icon={BookOpen} title={copy.aboutTitle}>
         <p>
-          Open Dungeon Master is a self-hosted, multiplayer Dungeons &amp; Dragons 5e platform run
-          by an AI Dungeon Master. Server admins manage users, models, images, voice and campaign
-          plugins from the Admin panel. Game content comes from the SRD 5.1 and Open5e; see{" "}
+          {copy.aboutBefore}
           <Link href="/licenses" className="text-amber-300 underline-offset-2 hover:underline">
-            licenses and attribution
+            {copy.licensesLabel}
           </Link>
-          .
+          {copy.aboutAfter}
         </p>
       </Section>
     </Dialog>
