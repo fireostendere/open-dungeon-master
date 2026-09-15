@@ -6,10 +6,65 @@ import QRCode from "qrcode";
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/cn";
 import { copyText } from "@/lib/clipboard";
+import { useI18n } from "@/lib/i18n";
 import { shareableAddresses } from "@/lib/server-address";
 import { shareSheet } from "@/lib/shell-host";
 import { ui } from "@/lib/ui";
 import { pageOrigin } from "@/lib/navigation";
+
+const COPY = {
+  en: {
+    dialogLabel: "This server's address",
+    thisServer: "This server",
+    close: "Close",
+    qrAlt: (address: string) => `QR code for ${address}`,
+    preparing: "Preparing the code...",
+    shareAddress: "Which address to share",
+    copied: "Copied",
+    copy: "Copy",
+    share: "Share",
+    help:
+      "Scan with the Open Dungeon Master app to add this server, or with a phone camera to open it in a browser.",
+    hideAddress: "Hide this server's address",
+    showAddress: "Show this server's address",
+    buttonTitle: "This server's address and QR code",
+    shareText: (name: string, address: string) => `Join me on ${name}: ${address}`,
+  },
+  ru: {
+    dialogLabel: "Адрес этого сервера",
+    thisServer: "Этот сервер",
+    close: "Закрыть",
+    qrAlt: (address: string) => `QR-код для ${address}`,
+    preparing: "Подготавливаем QR-код...",
+    shareAddress: "Какой адрес отправить",
+    copied: "Скопировано",
+    copy: "Копировать",
+    share: "Поделиться",
+    help:
+      "Отсканируйте код приложением Open Dungeon Master, чтобы добавить этот сервер, или камерой телефона, чтобы открыть его в браузере.",
+    hideAddress: "Скрыть адрес этого сервера",
+    showAddress: "Показать адрес этого сервера",
+    buttonTitle: "Адрес этого сервера и QR-код",
+    shareText: (name: string, address: string) => `Присоединяйся ко мне на ${name}: ${address}`,
+  },
+  pl: {
+    dialogLabel: "Adres tego serwera",
+    thisServer: "Ten serwer",
+    close: "Zamknij",
+    qrAlt: (address: string) => `Kod QR dla ${address}`,
+    preparing: "Przygotowywanie kodu...",
+    shareAddress: "Który adres udostępnić",
+    copied: "Skopiowano",
+    copy: "Kopiuj",
+    share: "Udostępnij",
+    help:
+      "Zeskanuj kod aplikacją Open Dungeon Master, aby dodać ten serwer, albo aparatem telefonu, aby otworzyć go w przeglądarce.",
+    hideAddress: "Ukryj adres tego serwera",
+    showAddress: "Pokaż adres tego serwera",
+    buttonTitle: "Adres tego serwera i kod QR",
+    shareText: (name: string, address: string) => `Dołącz do mnie na ${name}: ${address}`,
+  },
+} as const;
 
 // The little button in the corner of every page: tap it and the server's
 // address comes up as a QR code and as text with a copy button. The client
@@ -27,6 +82,8 @@ import { pageOrigin } from "@/lib/navigation";
 // corner, and the lobby's room-code card already carries a QR that names
 // this server along with the room.
 export function ServerAddressButton() {
+  const { locale } = useI18n();
+  const copy = COPY[locale];
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [addresses, setAddresses] = useState<string[]>([]);
@@ -106,7 +163,7 @@ export function ServerAddressButton() {
     return () => window.removeEventListener("keydown", onKey);
   }, [open]);
 
-  async function copy() {
+  async function copyAddress() {
     if (await copyText(picked)) {
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
@@ -119,9 +176,10 @@ export function ServerAddressButton() {
 
   async function share() {
     if (!sheet || !picked) return;
+    const name = serverName || "Open Dungeon Master";
     await sheet({
-      title: serverName || "Open Dungeon Master",
-      text: `Join me on ${serverName || "Open Dungeon Master"}: ${picked}`,
+      title: name,
+      text: copy.shareText(name, picked),
       url: picked,
     });
   }
@@ -139,12 +197,12 @@ export function ServerAddressButton() {
         {open ? (
           <div
             role="dialog"
-            aria-label="This server's address"
+            aria-label={copy.dialogLabel}
             className={cn(ui.card, "ornate w-72 border-amber-400/30 p-4 shadow-glow-gold")}
           >
             <div className="mb-2 flex items-start justify-between gap-2">
               <div className="min-w-0">
-                <p className={ui.sectionEyebrow}>This server</p>
+                <p className={ui.sectionEyebrow}>{copy.thisServer}</p>
                 <p className="truncate font-display text-sm tracking-wide text-amber-50">
                   {serverName || "Open Dungeon Master"}
                 </p>
@@ -152,7 +210,7 @@ export function ServerAddressButton() {
               <button
                 type="button"
                 onClick={() => setOpen(false)}
-                aria-label="Close"
+                aria-label={copy.close}
                 className="rounded p-1 text-stone-400 hover:bg-stone-900"
               >
                 <X className="size-4" />
@@ -162,19 +220,19 @@ export function ServerAddressButton() {
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={qrDataUrl}
-                alt={`QR code for ${picked}`}
+                alt={copy.qrAlt(picked)}
                 className="mx-auto size-56 rounded-lg border border-amber-400/20"
               />
             ) : (
               <div className="mx-auto flex size-56 items-center justify-center rounded-lg border border-dashed border-stone-700 text-xs text-stone-500">
-                Preparing the code...
+                {copy.preparing}
               </div>
             )}
             {addresses.length > 1 ? (
               <select
                 value={picked}
                 onChange={(event) => setPicked(event.target.value)}
-                aria-label="Which address to share"
+                aria-label={copy.shareAddress}
                 className="mt-3 w-full rounded-md border border-stone-700 bg-stone-950 px-2 py-1 text-xs text-stone-200"
               >
                 {addresses.map((address) => (
@@ -188,12 +246,12 @@ export function ServerAddressButton() {
             <div className="mt-2 flex gap-2">
               <button
                 type="button"
-                onClick={() => void copy()}
+                onClick={() => void copyAddress()}
                 disabled={!picked}
                 className={cn(ui.btnSmall, "flex-1 justify-center")}
               >
                 {copied ? <Check className="size-4 text-emerald-300" /> : <Copy className="size-4" />}
-                {copied ? "Copied" : "Copy"}
+                {copied ? copy.copied : copy.copy}
               </button>
               {sheet ? (
                 <button
@@ -202,22 +260,19 @@ export function ServerAddressButton() {
                   disabled={!picked}
                   className={cn(ui.btnSmall, "flex-1 justify-center")}
                 >
-                  <Share2 className="size-4" /> Share
+                  <Share2 className="size-4" /> {copy.share}
                 </button>
               ) : null}
             </div>
-            <p className="mt-2 text-[11px] leading-4 text-stone-500">
-              Scan with the Open Dungeon Master app to add this server, or with a phone camera
-              to open it in a browser.
-            </p>
+            <p className="mt-2 text-[11px] leading-4 text-stone-500">{copy.help}</p>
           </div>
         ) : null}
         <button
           type="button"
           onClick={() => setOpen((value) => !value)}
           aria-expanded={open}
-          aria-label={open ? "Hide this server's address" : "Show this server's address"}
-          title="This server's address and QR code"
+          aria-label={open ? copy.hideAddress : copy.showAddress}
+          title={copy.buttonTitle}
           className="flex size-10 items-center justify-center rounded-full border border-amber-500/30 bg-stone-950/90 text-amber-200 shadow-glow-gold backdrop-blur transition-colors hover:border-amber-400/60 hover:text-amber-100"
         >
           <QrCode className="size-5" />
