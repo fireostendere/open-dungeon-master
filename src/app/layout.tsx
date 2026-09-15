@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { cookies } from "next/headers";
 import { Cinzel, Geist, Geist_Mono, Source_Serif_4 } from "next/font/google";
 import { I18nProvider } from "@/lib/i18n";
+import type { Locale } from "@/lib/i18n/translations";
 import TopoBackground from "./TopoBackground";
 import { ServerAddressButton } from "@/components/ServerAddressButton";
 import "./globals.css";
@@ -49,13 +50,17 @@ export const viewport: Viewport = {
   interactiveWidget: "resizes-content",
 };
 
+function localeFromCookie(value: string | undefined): Locale {
+  return value === "en" || value === "pl" || value === "ru" ? value : "ru";
+}
+
 export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   const cookieStore = await cookies();
-  const locale = cookieStore.get("odm_locale")?.value === "en" ? "en" : "ru";
+  const locale = localeFromCookie(cookieStore.get("odm_locale")?.value);
 
   return (
     <html
