@@ -7,7 +7,89 @@ import { cn } from "@/lib/cn";
 import { Tooltip } from "@/components/ui/Tooltip";
 import type { CampaignAsk } from "@/lib/db/asks";
 import type { AskScope, AskVisibility } from "@/lib/dm/ask-logic";
+import { useI18n } from "@/lib/i18n";
 import { ui } from "@/lib/ui";
+
+const COPY = {
+  en: {
+    scopes: { story: "Story", rules: "Rules", sheet: "Sheet" },
+    pickerScopes: { auto: "Auto", story: "Story", rules: "Rules", sheet: "My sheet" },
+    sharedMine: "Shared with the table",
+    sharedOther: "Asked by the table",
+    onlyYou: "Only you",
+    answerFailedOne: "The DM could not answer this one.",
+    fromRecord: "From the record",
+    answerFailed: "The DM could not answer.",
+    serverFailed: "Could not reach the server.",
+    title: "Ask the DM",
+    explainer:
+      "Questions about the story, the world, the rules, or your sheet. Answers come from what the campaign has on record and never move the story forward.",
+    loading: "Loading...",
+    empty: "Nothing asked yet. Put a question to the DM below.",
+    checking: "Checking the record (queued behind the DM)...",
+    about: "About",
+    seenBy: "Seen by",
+    privateTip: "Only you see the question and the answer.",
+    tableTip: "The whole table sees the question and the answer.",
+    justMe: "Just me",
+    table: "The table",
+    noStoryMove: "The story does not move.",
+    placeholder: "Ask the DM about the story, the world, the rules, or your sheet",
+    ask: "Ask",
+  },
+  ru: {
+    scopes: { story: "Сюжет", rules: "Правила", sheet: "Лист" },
+    pickerScopes: { auto: "Авто", story: "Сюжет", rules: "Правила", sheet: "Мой лист" },
+    sharedMine: "Открыто для всего стола",
+    sharedOther: "Вопрос от стола",
+    onlyYou: "Только вам",
+    answerFailedOne: "Мастер не смог ответить на этот вопрос.",
+    fromRecord: "Из записей",
+    answerFailed: "Мастер не смог ответить.",
+    serverFailed: "Не удалось связаться с сервером.",
+    title: "Спросить Мастера",
+    explainer:
+      "Вопросы о сюжете, мире, правилах или вашем листе. Ответы опираются на сведения кампании и никогда не продвигают сюжет.",
+    loading: "Загрузка...",
+    empty: "Вопросов пока нет. Задайте вопрос Мастеру ниже.",
+    checking: "Проверяем записи (в очереди за Мастером)...",
+    about: "О чём",
+    seenBy: "Кому видно",
+    privateTip: "Вопрос и ответ видите только вы.",
+    tableTip: "Вопрос и ответ видит весь стол.",
+    justMe: "Только мне",
+    table: "Всему столу",
+    noStoryMove: "Сюжет не продвигается.",
+    placeholder: "Спросите Мастера о сюжете, мире, правилах или своём листе",
+    ask: "Спросить",
+  },
+  pl: {
+    scopes: { story: "Fabuła", rules: "Zasady", sheet: "Karta" },
+    pickerScopes: { auto: "Auto", story: "Fabuła", rules: "Zasady", sheet: "Moja karta" },
+    sharedMine: "Udostępniono całemu stołowi",
+    sharedOther: "Pytanie od stołu",
+    onlyYou: "Tylko ty",
+    answerFailedOne: "Mistrz Gry nie mógł odpowiedzieć na to pytanie.",
+    fromRecord: "Z zapisu",
+    answerFailed: "Mistrz Gry nie mógł odpowiedzieć.",
+    serverFailed: "Nie udało się połączyć z serwerem.",
+    title: "Zapytaj Mistrza Gry",
+    explainer:
+      "Pytania o fabułę, świat, zasady lub twoją kartę. Odpowiedzi opierają się na zapisie kampanii i nigdy nie przesuwają fabuły do przodu.",
+    loading: "Ładowanie...",
+    empty: "Nie zadano jeszcze żadnego pytania. Zadaj pytanie Mistrzowi Gry poniżej.",
+    checking: "Sprawdzanie zapisu (w kolejce za Mistrzem Gry)...",
+    about: "O czym",
+    seenBy: "Widoczne dla",
+    privateTip: "Tylko ty widzisz pytanie i odpowiedź.",
+    tableTip: "Cały stół widzi pytanie i odpowiedź.",
+    justMe: "Tylko ja",
+    table: "Cały stół",
+    noStoryMove: "Fabuła się nie przesuwa.",
+    placeholder: "Zapytaj Mistrza Gry o fabułę, świat, zasady lub swoją kartę",
+    ask: "Zapytaj",
+  },
+} as const;
 
 // The Ask thread: out-of-character questions to the DM and their grounded
 // answers. Framed hard as an aside, because the one thing a player must
@@ -24,40 +106,27 @@ import { ui } from "@/lib/ui";
 // campaign_messages row and no dm_turns row (src/lib/dm/ask.ts), and nothing
 // here is rendered into MessageList.
 
-const SCOPE_LABELS: Record<string, string> = {
-  story: "Story",
-  rules: "Rules",
-  sheet: "Sheet",
-};
-
-// The picker offers "auto" on top of the stored scopes, and names the sheet
-// scope from the asker's point of view.
-const SCOPE_PICKER_LABELS: Record<AskScope | "auto", string> = {
-  auto: "Auto",
-  story: "Story",
-  rules: "Rules",
-  sheet: "My sheet",
-};
-
 function AskEntry({ ask, meUserId }: { ask: CampaignAsk; meUserId: string }) {
+  const { locale } = useI18n();
+  const copy = COPY[locale];
   const mine = ask.userId === meUserId;
   return (
     <li className="rounded-lg border border-stone-800 bg-stone-950/40 p-2.5">
       <div className="mb-1.5 flex flex-wrap items-center gap-1.5 text-[10px] uppercase tracking-wide text-stone-500">
         <span className="rounded bg-stone-800 px-1 text-stone-400">
-          {SCOPE_LABELS[ask.scope] ?? ask.scope}
+          {copy.scopes[ask.scope as keyof typeof copy.scopes] ?? ask.scope}
         </span>
         {ask.visibility === "table" ? (
           <span className="inline-flex items-center gap-1 text-stone-500">
-            <Users className="size-3" /> {mine ? "Shared with the table" : "Asked by the table"}
+            <Users className="size-3" /> {mine ? copy.sharedMine : copy.sharedOther}
           </span>
         ) : (
-          <span className="text-stone-600">Only you</span>
+          <span className="text-stone-600">{copy.onlyYou}</span>
         )}
       </div>
       <p className="mb-1.5 text-xs font-medium leading-5 text-stone-200">{ask.question}</p>
       {ask.status === "failed" ? (
-        <p className="text-xs italic text-red-400">The DM could not answer this one.</p>
+        <p className="text-xs italic text-red-400">{copy.answerFailedOne}</p>
       ) : (
         <p className="whitespace-pre-wrap font-serif text-xs leading-5 text-stone-300">
           {ask.answer}
@@ -66,7 +135,7 @@ function AskEntry({ ask, meUserId }: { ask: CampaignAsk; meUserId: string }) {
       {ask.citations.length ? (
         <div className="mt-2 space-y-1">
           <p className="text-[10px] font-medium uppercase tracking-wide text-stone-600">
-            From the record
+            {copy.fromRecord}
           </p>
           {ask.citations.map((citation, index) => (
             <p
@@ -86,16 +155,6 @@ function AskEntry({ ask, meUserId }: { ask: CampaignAsk; meUserId: string }) {
   );
 }
 
-// The one Ask surface: a collapsible strip directly above the composer,
-// holding the thread and the question box.
-//
-// The toggle row below is the only place the words "Ask the DM" appear. The
-// expanded body deliberately has no header of its own; it used to repeat the
-// same title and icon one border down, which read as a second Ask feature
-// stacked on the first.
-//
-// Collapsing HIDES rather than unmounts, so a half-typed question and the
-// thread's scroll position both survive a collapse.
 function AskDockInner({
   campaignId,
   asks,
@@ -111,23 +170,17 @@ function AskDockInner({
   loaded: boolean;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  // Refetches the thread once an answer lands.
   onAsked: () => Promise<void>;
 }) {
+  const { locale } = useI18n();
+  const copy = COPY[locale];
   const [question, setQuestion] = useState("");
   const [scope, setScope] = useState<AskScope | "auto">("auto");
   const [visibility, setVisibility] = useState<AskVisibility>("private");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
-  // The question in flight, echoed into the list because an ask answers here
-  // rather than in the transcript and a local model can take a while; without
-  // it the box just empties and nothing visibly happens.
   const [pendingQuestion, setPendingQuestion] = useState("");
 
-  // No floor gating anywhere in here, by design. Asking never consumes the
-  // floor and /ask runs no floor check (ask/route.ts), so this stays usable
-  // during a hold, a spotlight, someone else's initiative turn, and while the
-  // opening narration plays. That is the whole point of the feature.
   const submit = useCallback(
     async (event: FormEvent) => {
       event.preventDefault();
@@ -146,19 +199,19 @@ function AskDockInner({
         });
         if (!response.ok) {
           const data = await response.json().catch(() => ({}));
-          setError(data.error || "The DM could not answer.");
+          setError(data.error || copy.answerFailed);
           return;
         }
         setQuestion("");
         await onAsked();
       } catch {
-        setError("Could not reach the server.");
+        setError(copy.serverFailed);
       } finally {
         setSending(false);
         setPendingQuestion("");
       }
     },
-    [campaignId, question, scope, sending, visibility, onAsked],
+    [campaignId, copy.answerFailed, copy.serverFailed, question, scope, sending, visibility, onAsked],
   );
 
   const answered = asks.length;
@@ -171,33 +224,21 @@ function AskDockInner({
         className="flex w-full items-center gap-1.5 px-3 py-1.5 text-[11px] text-stone-500 transition-colors hover:text-stone-300"
       >
         <MessageCircleQuestion className="size-3.5 text-amber-300/70" />
-        <span>Ask the DM</span>
+        <span>{copy.title}</span>
         {answered ? <span className="text-stone-600">({answered})</span> : null}
-        {pendingQuestion && !open ? (
-          <Loader2 className="size-3 animate-spin text-stone-500" />
-        ) : null}
-        <ChevronDown
-          className={cn("ml-auto size-3.5 transition-transform", open ? "" : "-rotate-90")}
-        />
+        {pendingQuestion && !open ? <Loader2 className="size-3 animate-spin text-stone-500" /> : null}
+        <ChevronDown className={cn("ml-auto size-3.5 transition-transform", open ? "" : "-rotate-90")} />
       </button>
 
-      {/* The column needs a DEFINITE height, or the list's `min-h-0 flex-1
-          overflow-y-auto` has nothing to scroll against and a long thread
-          pushes the question box off screen. */}
       <div className={cn("max-h-[28rem] flex-col", open ? "flex" : "hidden")}>
         <div className="min-h-0 flex-1 overflow-y-auto px-3 pb-3 pt-1">
-          <p className="pb-2 text-[11px] leading-4 text-stone-500">
-            Questions about the story, the world, the rules, or your sheet. Answers come from
-            what the campaign has on record and never move the story forward.
-          </p>
+          <p className="pb-2 text-[11px] leading-4 text-stone-500">{copy.explainer}</p>
           {!loaded ? (
             <p className="flex items-center gap-2 text-xs text-stone-500">
-              <Loader2 className="size-3.5 animate-spin" /> Loading...
+              <Loader2 className="size-3.5 animate-spin" /> {copy.loading}
             </p>
           ) : !asks.length && !pendingQuestion ? (
-            <p className="text-xs leading-5 text-stone-600">
-              Nothing asked yet. Put a question to the DM below.
-            </p>
+            <p className="text-xs leading-5 text-stone-600">{copy.empty}</p>
           ) : (
             <ul className="space-y-2">
               {asks.map((ask) => (
@@ -210,7 +251,7 @@ function AskDockInner({
                   </p>
                   <p className="flex items-center gap-2 text-xs text-stone-500">
                     <Loader2 className="size-3.5 animate-spin" />
-                    Checking the record (queued behind the DM)...
+                    {copy.checking}
                   </p>
                 </li>
               ) : null}
@@ -220,7 +261,7 @@ function AskDockInner({
 
         <form onSubmit={submit} className="border-t border-stone-800 px-3 py-2.5">
           <div className="mb-1.5 flex flex-wrap items-center gap-1.5 text-[11px] text-stone-500">
-            <span>About</span>
+            <span>{copy.about}</span>
             {(["auto", "story", "rules", "sheet"] as const).map((option) => (
               <button
                 key={option}
@@ -233,19 +274,12 @@ function AskDockInner({
                     : "border-stone-700 text-stone-400 hover:text-stone-200",
                 )}
               >
-                {SCOPE_PICKER_LABELS[option]}
+                {copy.pickerScopes[option]}
               </button>
             ))}
-            <span className="ml-2">Seen by</span>
+            <span className="ml-2">{copy.seenBy}</span>
             {(["private", "table"] as const).map((option) => (
-              <Tooltip
-                key={option}
-                content={
-                  option === "private"
-                    ? "Only you see the question and the answer."
-                    : "The whole table sees the question and the answer."
-                }
-              >
+              <Tooltip key={option} content={option === "private" ? copy.privateTip : copy.tableTip}>
                 <button
                   type="button"
                   onClick={() => setVisibility(option)}
@@ -256,11 +290,11 @@ function AskDockInner({
                       : "border-stone-700 text-stone-400 hover:text-stone-200",
                   )}
                 >
-                  {option === "private" ? "Just me" : "The table"}
+                  {option === "private" ? copy.justMe : copy.table}
                 </button>
               </Tooltip>
             ))}
-            <span className="ml-auto italic text-stone-600">The story does not move.</span>
+            <span className="ml-auto italic text-stone-600">{copy.noStoryMove}</span>
           </div>
           <div className="flex items-end gap-2">
             <textarea
@@ -273,7 +307,7 @@ function AskDockInner({
                 }
               }}
               rows={2}
-              placeholder="Ask the DM about the story, the world, the rules, or your sheet"
+              placeholder={copy.placeholder}
               className={cn(ui.input, "resize-none text-xs leading-5")}
             />
             <button
@@ -281,12 +315,8 @@ function AskDockInner({
               disabled={!question.trim() || sending}
               className={cn(ui.btnSmall, "shrink-0 px-2 py-1 text-[11px]")}
             >
-              {sending ? (
-                <Loader2 className="size-3 animate-spin" />
-              ) : (
-                <Send className="size-3" />
-              )}
-              Ask
+              {sending ? <Loader2 className="size-3 animate-spin" /> : <Send className="size-3" />}
+              {copy.ask}
             </button>
           </div>
           {error ? <p className="mt-1.5 text-[11px] text-red-400">{error}</p> : null}
@@ -296,6 +326,4 @@ function AskDockInner({
   );
 }
 
-// Memoized for the same reason as SidePanel: its props do not change while
-// the DM streams narration into the message list.
 export const AskDock = memo(AskDockInner);

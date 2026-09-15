@@ -5,34 +5,33 @@ import { cn } from "@/lib/cn";
 import { ui } from "@/lib/ui";
 import { navigateTo } from "@/lib/navigation";
 import { useI18n } from "@/lib/i18n";
-
-const COPY = {
-  en: {
-    title: "Join with a room code",
-    help: "A friend running a table gives you an eight-letter sigil.",
-    joining: "Joining...",
-    join: "Join",
-    failed: "Could not join.",
-  },
-  ru: {
-    title: "Присоединиться по коду комнаты",
-    help: "Друг, ведущий стол, даст вам восьмизначный код приглашения.",
-    joining: "Подключение...",
-    join: "Войти",
-    failed: "Не удалось присоединиться.",
-  },
-  pl: {
-    title: "Dołącz kodem pokoju",
-    help: "Znajomy prowadzący stół poda ci ośmioznakowy kod zaproszenia.",
-    joining: "Dołączanie...",
-    join: "Dołącz",
-    failed: "Nie udało się dołączyć.",
-  },
-} as const;
+import { localeText } from "@/lib/i18n/locale-text";
 
 export function JoinCard({ inputRef }: { inputRef: RefObject<HTMLInputElement | null> }) {
   const { locale } = useI18n();
-  const copy = COPY[locale];
+  const copy = localeText(locale, {
+    en: {
+      title: "Join with a room code",
+      body: "A friend running a table gives you an eight-letter sigil.",
+      joining: "Joining...",
+      join: "Join",
+      failed: "Could not join.",
+    },
+    ru: {
+      title: "Войти по коду комнаты",
+      body: "Друг, который ведёт игру, даст вам восьмибуквенный код.",
+      joining: "Подключение...",
+      join: "Войти",
+      failed: "Не удалось присоединиться.",
+    },
+    pl: {
+      title: "Dołącz kodem pokoju",
+      body: "Osoba prowadząca stół poda ci ośmioznakowy kod.",
+      joining: "Dołączanie...",
+      join: "Dołącz",
+      failed: "Nie udało się dołączyć.",
+    },
+  });
   const [joinCode, setJoinCode] = useState("");
   const [joinError, setJoinError] = useState("");
   const [joining, setJoining] = useState(false);
@@ -49,12 +48,10 @@ export function JoinCard({ inputRef }: { inputRef: RefObject<HTMLInputElement | 
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) {
-        setJoinError(copy.failed);
+        setJoinError(data.error || copy.failed);
         return;
       }
       navigateTo(`/campaigns/${data.campaign.id}`);
-    } catch {
-      setJoinError(copy.failed);
     } finally {
       setJoining(false);
     }
@@ -63,7 +60,7 @@ export function JoinCard({ inputRef }: { inputRef: RefObject<HTMLInputElement | 
   return (
     <section id="join" className={cn(ui.card, "ornate scroll-mt-6 p-5")}>
       <h2 className="eyebrow mb-1 text-sm text-amber-200/90">{copy.title}</h2>
-      <p className="mb-3 text-sm text-stone-500">{copy.help}</p>
+      <p className="mb-3 text-sm text-stone-500">{copy.body}</p>
       <form onSubmit={join} className="flex gap-2">
         <input
           ref={inputRef}

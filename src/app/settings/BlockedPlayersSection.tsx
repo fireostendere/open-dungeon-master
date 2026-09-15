@@ -4,6 +4,8 @@ import { Loader2, ShieldBan, UserRound } from "lucide-react";
 import { useEffect, useState } from "react";
 import { ui } from "@/lib/ui";
 import { PageSection } from "@/components/PageShell";
+import { useI18n } from "@/lib/i18n";
+import { localeText } from "@/lib/i18n/locale-text";
 
 type Blocked = {
   userId: string;
@@ -14,6 +16,27 @@ type Blocked = {
 
 // Who this account has blocked on this server, with the way back.
 export function BlockedPlayersSection() {
+  const { locale } = useI18n();
+  const copy = localeText(locale, {
+    en: {
+      heading: "Blocked players",
+      intro: "Blocked players' table messages are hidden from you, and neither of you can open a private chat or send a friend request. Block someone from their message or from the party list.",
+      empty: "Nobody blocked.",
+      unblock: "Unblock",
+    },
+    ru: {
+      heading: "Заблокированные игроки",
+      intro: "Сообщения заблокированных игроков за столом скрыты от вас; вы не сможете открыть приватный чат или отправить друг другу запрос в друзья. Заблокировать игрока можно из его сообщения или списка партии.",
+      empty: "Заблокированных игроков нет.",
+      unblock: "Разблокировать",
+    },
+    pl: {
+      heading: "Zablokowani gracze",
+      intro: "Wiadomości zablokowanych graczy przy stole są przed tobą ukryte; nie możecie też otworzyć prywatnego czatu ani wysłać sobie zaproszenia do znajomych. Gracza można zablokować z jego wiadomości lub z listy drużyny.",
+      empty: "Brak zablokowanych graczy.",
+      unblock: "Odblokuj",
+    },
+  });
   const [blocked, setBlocked] = useState<Blocked[] | null>(null);
   const [busyId, setBusyId] = useState("");
 
@@ -41,14 +64,11 @@ export function BlockedPlayersSection() {
   }
 
   return (
-    <PageSection
-      heading="Blocked players"
-      intro="Blocked players' table messages are hidden from you, and neither of you can open a private chat or send a friend request. Block someone from their message or from the party list."
-    >
+    <PageSection heading={copy.heading} intro={copy.intro}>
       {blocked === null ? (
         <Loader2 className="size-4 animate-spin text-stone-500" />
       ) : blocked.length === 0 ? (
-        <p className="text-sm text-stone-500">Nobody blocked.</p>
+        <p className="text-sm text-stone-500">{copy.empty}</p>
       ) : (
         <ul className="divide-y divide-stone-800/70">
           {blocked.map((entry) => (
@@ -74,7 +94,7 @@ export function BlockedPlayersSection() {
                 onClick={() => unblock(entry.userId)}
                 className={ui.btnSmall}
               >
-                <ShieldBan className="size-3.5" /> Unblock
+                <ShieldBan className="size-3.5" /> {copy.unblock}
               </button>
             </li>
           ))}

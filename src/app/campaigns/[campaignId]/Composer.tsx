@@ -34,20 +34,65 @@ const KIND_TIPS: Record<Locale, Record<InputKind, string>> = {
     narrate: "Dungeon Master only. Write the passage the table reads.",
   },
   ru: {
-    do: "Действие в мире. Мастер описывает последствия.",
-    say: "Слова персонажа. Отправляется прямой речью.",
-    ooc: "Разговоры игроков (вне роли). Мастер не реагирует.",
-    lead: "Только лидер. Отправить Мастеру сюжетное указание.",
-    narrate: "Только Мастер. Написать описание для игроков.",
+    do: "Действуйте в мире. Мастер опишет последствия.",
+    say: "Говорите от лица персонажа. Текст отправится как прямая речь.",
+    ooc: "Внеигровое обсуждение. Мастер не отвечает; режим работает даже при заблокированном ходе.",
+    lead: "Только лидер группы. Отправьте Мастеру обязательное направление сюжета.",
+    narrate: "Только Мастер. Напишите фрагмент повествования, который увидит стол.",
   },
   pl: {
-    do: "Działanie w świecie. Mistrz Gry opisuje konsekwencje.",
-    say: "Kwestia postaci. Wysyłana jako dialog w cudzysłowie.",
-    ooc: "Rozmowy poza postacią (OOC). MG nie reaguje.",
-    lead: "Tylko lider drużyny. Wyślij MG wskazówkę fabularną.",
-    narrate: "Tylko Mistrz Gry. Napisz fragment narracji dla graczy.",
+    do: "Działaj w świecie. Mistrz Gry opisze, co się wydarzy.",
+    say: "Mów jako postać. Tekst zostanie wysłany jako dialog w cudzysłowie.",
+    ooc: "Rozmowa poza postacią. Mistrz Gry nie odpowiada; tryb działa również przy zablokowanej możliwości działania.",
+    lead: "Tylko lider drużyny. Wyślij Mistrzowi Gry wiążącą wytyczną fabularną.",
+    narrate: "Tylko Mistrz Gry. Napisz fragment narracji, który przeczyta stół.",
   },
 };
+
+const COPY = {
+  en: {
+    kinds: { do: "Do", say: "Say", ooc: "OOC", lead: "Direct", narrate: "Narrate" },
+    statuses: {
+      rolling: "DM rolling dice...",
+      awaiting_rolls: "Waiting on real dice...",
+      narrating: "DM narrating...",
+      writing_chapter: "DM writing the chapter...",
+      plotting_arc: "DM plotting the story arc...",
+      default: "DM at work...",
+    },
+    privateOn: "Only the DM sees this. It steers the next turn and never enters the transcript.",
+    privateOff: "The table sees this direction, and the DM acts on it now.",
+    private: "Private",
+  },
+  ru: {
+    kinds: { do: "Действие", say: "Речь", ooc: "OOC", lead: "Указание", narrate: "Повествование" },
+    statuses: {
+      rolling: "Мастер бросает кости...",
+      awaiting_rolls: "Ожидание реальных бросков...",
+      narrating: "Мастер ведёт повествование...",
+      writing_chapter: "Мастер пишет главу...",
+      plotting_arc: "Мастер планирует сюжетную арку...",
+      default: "Мастер работает...",
+    },
+    privateOn: "Это видит только Мастер. Указание направляет следующий ход и не попадает в стенограмму.",
+    privateOff: "Указание видит весь стол, и Мастер применяет его прямо сейчас.",
+    private: "Приватно",
+  },
+  pl: {
+    kinds: { do: "Akcja", say: "Mowa", ooc: "OOC", lead: "Wytyczna", narrate: "Narracja" },
+    statuses: {
+      rolling: "Mistrz Gry rzuca kośćmi...",
+      awaiting_rolls: "Oczekiwanie na prawdziwe kości...",
+      narrating: "Mistrz Gry tworzy narrację...",
+      writing_chapter: "Mistrz Gry pisze rozdział...",
+      plotting_arc: "Mistrz Gry planuje wątek fabularny...",
+      default: "Mistrz Gry pracuje...",
+    },
+    privateOn: "Tylko Mistrz Gry to widzi. Wytyczna kieruje następną turą i nigdy nie trafia do transkrypcji.",
+    privateOff: "Cały stół widzi tę wytyczną, a Mistrz Gry stosuje ją od razu.",
+    private: "Prywatnie",
+  },
+} as const;
 
 // The action composer at the bottom of the game chat: pending-roll cards,
 // floor banners, the join notice, kind pills and the input row.
@@ -113,14 +158,26 @@ function ComposerInner({
   onLeadPrivateChange: (leadPrivate: boolean) => void;
   composerRef: RefObject<HTMLTextAreaElement | null>;
   directorArm: CampaignState["directorArm"];
-  // How overdue the DM's story capture is. Always "quiet" for anyone but the
-  // DM, so this renders nothing at a player's table.
   storyCadence: BeatCadence;
   onCaptureStory: () => void;
   onSnoozeStory: () => void;
   onSubmit: (event: FormEvent) => void;
 }) {
   const { locale } = useI18n();
+  const copy = COPY[locale];
+
+  const dmStatusText =
+    dmStatus === "rolling"
+      ? copy.statuses.rolling
+      : dmStatus === "awaiting_rolls"
+        ? copy.statuses.awaiting_rolls
+        : dmStatus === "narrating"
+          ? copy.statuses.narrating
+          : dmStatus === "writing_chapter"
+            ? copy.statuses.writing_chapter
+            : dmStatus === "plotting_arc"
+              ? copy.statuses.plotting_arc
+              : copy.statuses.default;
 
   return (
     <form onSubmit={onSubmit} className="glass border-t border-stone-700/40 px-3 pb-3 pt-2.5">
@@ -146,11 +203,7 @@ function ComposerInner({
           onRelease={onReleaseFloor}
         />
         <DirectorArmedBanner campaignId={campaignId} steersStory={steersStory} armed={directorArm} />
-        <StoryNudge
-          cadence={storyCadence}
-          onCapture={onCaptureStory}
-          onSnooze={onSnoozeStory}
-        />
+        <StoryNudge cadence={storyCadence} onCapture={onCaptureStory} onSnooze={onSnoozeStory} />
         {joinBanner ? (
           <NewAdventurerBanner
             campaignId={campaignId}
@@ -160,77 +213,38 @@ function ComposerInner({
           />
         ) : null}
         <div className="mb-2 flex gap-1.5" data-tour="composer-modes">
-          {/* The DM authors and talks out of character; they have no
-              character to act or speak as, and the story directions exist to
-              steer an AI narrator they have replaced. */}
           {(isDm
             ? (["narrate", "ooc"] as const)
-            : ([
-                "do",
-                "say",
-                "ooc",
-                ...(steersStory ? (["lead"] as const) : []),
-              ] as const)
-          ).map(
-            (option) => (
-              <Tooltip key={option} content={KIND_TIPS[locale]?.[option] ?? KIND_TIPS.en[option]}>
-                <button
-                  type="button"
-                  onClick={() => onKindChange(option)}
-                  className={cn(
-                    "rounded-full px-3.5 py-2 text-xs font-medium transition-all duration-150 ease-snap active:scale-95 sm:px-3 sm:py-1",
-                    kind === option
-                      ? option === "lead"
-                        ? "bg-gradient-to-b from-ember-400 to-ember-600 text-stone-950 shadow-glow-ember"
-                        : "bg-gradient-to-b from-amber-100 to-amber-400 text-amber-950 shadow-glow-gold"
-                      : "bg-stone-900/80 text-stone-400 hover:bg-stone-800 hover:text-stone-200",
-                  )}
-                >
-                  {option === "do"
-                    ? (locale === "ru" ? "Действие" : "Do")
-                    : option === "say"
-                      ? (locale === "ru" ? "Слова" : "Say")
-                      : option === "ooc"
-                        ? (locale === "ru" ? "Вне игры" : "OOC")
-                        : option === "narrate"
-                          ? (locale === "ru" ? "Текст Мастера" : "Narrate")
-                          : (locale === "ru" ? "Направить" : "Direct")}
-                </button>
-              </Tooltip>
-            ),
-          )}
+            : (["do", "say", "ooc", ...(steersStory ? (["lead"] as const) : [])] as const)
+          ).map((option) => (
+            <Tooltip key={option} content={KIND_TIPS[locale][option]}>
+              <button
+                type="button"
+                onClick={() => onKindChange(option)}
+                className={cn(
+                  "rounded-full px-3.5 py-2 text-xs font-medium transition-all duration-150 ease-snap active:scale-95 sm:px-3 sm:py-1",
+                  kind === option
+                    ? option === "lead"
+                      ? "bg-gradient-to-b from-ember-400 to-ember-600 text-stone-950 shadow-glow-ember"
+                      : "bg-gradient-to-b from-amber-100 to-amber-400 text-amber-950 shadow-glow-gold"
+                    : "bg-stone-900/80 text-stone-400 hover:bg-stone-800 hover:text-stone-200",
+                )}
+              >
+                {copy.kinds[option]}
+              </button>
+            </Tooltip>
+          ))}
           {dmStatus !== "idle" ? (
             <span className="ml-auto flex items-center gap-1.5 text-xs text-stone-500">
               <D20Spinner className="size-3.5 shrink-0 text-amber-600" />
-              {dmStatus === "rolling"
-                ? (locale === "ru" ? "Мастер бросает кости..." : "DM rolling dice...")
-                : dmStatus === "awaiting_rolls"
-                  ? (locale === "ru" ? "Ожидание реальных бросков..." : "Waiting on real dice...")
-                  : dmStatus === "narrating"
-                    ? (locale === "ru" ? "Мастер описывает..." : "DM narrating...")
-                    : dmStatus === "writing_chapter"
-                      ? (locale === "ru" ? "Мастер пишет главу..." : "DM writing the chapter...")
-                      : dmStatus === "plotting_arc"
-                        ? (locale === "ru" ? "Мастер планирует сюжетную арку..." : "DM plotting the story arc...")
-                        : (locale === "ru" ? "Мастер работает..." : "DM at work...")}
+              {dmStatusText}
             </span>
           ) : null}
         </div>
-        {/*
-          Direct's own controls, and the reason there is no second row of
-          director buttons above this composer: a canned event to arm, and the
-          choice of whether the direction is something the table reads.
-        */}
         {kind === "lead" && steersStory ? (
           <div className="mb-2 flex flex-wrap items-center gap-1.5">
             <DirectorPresets campaignId={campaignId} />
-            <Tooltip
-              content={
-                leadPrivate
-                  ? (locale === "ru" ? "Видит только Мастер. Направляет следующий ход и не попадает в историю." : "Only the DM sees this. It steers the next turn and never enters the transcript.")
-                  : (locale === "ru" ? "Видят все игроки, и Мастер действует прямо сейчас." : "The table sees this direction, and the DM acts on it now.")
-              }
-            >
+            <Tooltip content={leadPrivate ? copy.privateOn : copy.privateOff}>
               <button
                 type="button"
                 role="switch"
@@ -243,7 +257,7 @@ function ComposerInner({
                 )}
               >
                 {leadPrivate ? <EyeOff className="size-3" /> : <Eye className="size-3" />}
-                {locale === "ru" ? "Приватно" : "Private"}
+                {copy.private}
               </button>
             </Tooltip>
           </div>
@@ -269,9 +283,7 @@ function ComposerInner({
           />
           <PushToTalk
             disabled={inputBlocked}
-            onTranscript={(text) =>
-              setInput((current) => (current ? `${current} ${text}` : text))
-            }
+            onTranscript={(text) => setInput((current) => (current ? `${current} ${text}` : text))}
           />
           <button
             type="submit"
@@ -287,6 +299,4 @@ function ComposerInner({
   );
 }
 
-// Memoized for the same reason as SidePanel: unchanged props while the DM
-// streams narration into the message list.
 export const Composer = memo(ComposerInner);

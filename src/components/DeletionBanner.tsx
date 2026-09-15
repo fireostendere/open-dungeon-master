@@ -3,37 +3,40 @@
 import { Loader2, Undo2 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/cn";
+import { useI18n } from "@/lib/i18n";
 import { ui } from "@/lib/ui";
 import { reloadPage } from "@/lib/navigation";
-import { useI18n } from "@/lib/i18n";
 
 const COPY = {
   en: {
-    scheduled: "This account is scheduled for deletion on {date}. Everything it owns goes with it.",
-    error: "Could not reach the server. Try again from account settings.",
+    serverError: "Could not reach the server. Try again from account settings.",
+    scheduled: (when: string) =>
+      `This account is scheduled for deletion on ${when}. Everything it owns goes with it.`,
     keep: "Keep my account",
-    dateLocale: "en-US",
   },
   ru: {
-    scheduled: "Аккаунт будет удалён {date}. Всё принадлежащее ему содержимое будет удалено вместе с ним.",
-    error: "Не удалось подключиться к серверу. Попробуйте снова в настройках аккаунта.",
+    serverError: "Не удалось связаться с сервером. Повторите попытку в настройках аккаунта.",
+    scheduled: (when: string) =>
+      `Этот аккаунт будет удалён ${when}. Вместе с ним удалится всё, чем он владеет.`,
     keep: "Сохранить аккаунт",
-    dateLocale: "ru-RU",
   },
   pl: {
-    scheduled: "Konto zostanie usunięte {date}. Cała należąca do niego zawartość zostanie usunięta razem z nim.",
-    error: "Nie udało się połączyć z serwerem. Spróbuj ponownie w ustawieniach konta.",
-    keep: "Zachowaj konto",
-    dateLocale: "pl-PL",
+    serverError: "Nie udało się połączyć z serwerem. Spróbuj ponownie w ustawieniach konta.",
+    scheduled: (when: string) =>
+      `To konto zostanie usunięte ${when}. Wraz z nim zostanie usunięte wszystko, co do niego należy.`,
+    keep: "Zachowaj moje konto",
   },
 } as const;
 
+// The notice every page shows while the account is scheduled for deletion
+// (src/lib/account-deletion.ts). One button calls it off; the page reloads
+// so whatever fetched the user sees the cleared stamp.
 export function DeletionBanner({ dueAt, className }: { dueAt: string; className?: string }) {
   const { locale } = useI18n();
   const copy = COPY[locale];
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const when = new Date(dueAt).toLocaleDateString(copy.dateLocale, {
+  const when = new Date(dueAt).toLocaleDateString(locale, {
     year: "numeric",
     month: "long",
     day: "numeric",
@@ -49,13 +52,13 @@ export function DeletionBanner({ dueAt, className }: { dueAt: string; className?
         body: JSON.stringify({ keepAccount: true }),
       });
       if (!response.ok) {
-        setError(copy.error);
+        setError(copy.serverError);
         setBusy(false);
         return;
       }
       reloadPage();
     } catch {
-      setError(copy.error);
+      setError(copy.serverError);
       setBusy(false);
     }
   }
@@ -69,7 +72,7 @@ export function DeletionBanner({ dueAt, className }: { dueAt: string; className?
       )}
     >
       <span>
-        {copy.scheduled.replace("{date}", when)}
+        {copy.scheduled(when)}
         {error ? <span className="block text-xs text-red-300">{error}</span> : null}
       </span>
       <button type="button" onClick={keep} disabled={busy} className={ui.btnSmall}>

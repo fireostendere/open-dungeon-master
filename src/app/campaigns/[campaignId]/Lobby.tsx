@@ -29,6 +29,7 @@ import {
 import type { CampaignState } from "@/app/campaigns/[campaignId]/useCampaignStream";
 import { navigateTo } from "@/lib/navigation";
 import { useI18n } from "@/lib/i18n";
+import { localeText } from "@/lib/i18n/locale-text";
 
 // The lobby: where the table gathers before the adventure opens. The cover
 // art and title lead, then the room code, the game's settings and prep,
@@ -388,7 +389,11 @@ export function Lobby({ state, refresh }: { state: CampaignState; refresh: () =>
       {steersStory ? (
         <details className="mb-6 rounded-lg border border-stone-800 bg-stone-950/60" open>
           <summary className="cursor-pointer px-4 py-3 text-sm font-medium text-stone-300">
-            Модели для игры (текст и картинки)
+            {localeText(locale, {
+              en: "Game models (text and images)",
+              ru: "Модели для игры (текст и картинки)",
+              pl: "Modele gry (tekst i obrazy)",
+            })}
           </summary>
           <div className="px-4 pb-4">
             <StoryAiPanel

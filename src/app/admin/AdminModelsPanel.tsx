@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { ui } from "@/lib/ui";
 import { LlmWizard } from "@/app/admin/LlmWizard";
+import { useI18n } from "@/lib/i18n";
 
 // Admin «Модели» panel: the no-fuss way to add and manage LLM connections.
 // Top: one-screen quick add (preset → key → model → add & verify).
@@ -35,21 +36,21 @@ const PRESETS: Array<{
 }> = [
   {
     id: "qwen-tokenplan",
-    label: "Qwen Token Plan (Alibaba, Сингапур)",
+    label: "Qwen Token Plan (Alibaba, Singapore)",
     baseUrl: "https://token-plan.ap-southeast-1.maas.aliyuncs.com/compatible-mode/v1",
     needsKey: true,
     modelHint: "qwen3.8-max",
   },
   {
     id: "dashscope",
-    label: "Qwen / DashScope (международный ключ)",
+    label: "Qwen / DashScope (international key)",
     baseUrl: "https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
     needsKey: true,
     modelHint: "qwen-plus",
   },
   {
     id: "dashscope-cn",
-    label: "Qwen / DashScope (Китай)",
+    label: "Qwen / DashScope (China)",
     baseUrl: "https://dashscope.aliyuncs.com/compatible-mode/v1",
     needsKey: true,
     modelHint: "qwen-plus",
@@ -66,7 +67,7 @@ const PRESETS: Array<{
     label: "OpenRouter",
     baseUrl: "https://openrouter.ai/api/v1",
     needsKey: true,
-    modelHint: "модель с openrouter.ai/models",
+    modelHint: "model from openrouter.ai/models",
   },
   {
     id: "deepseek",
@@ -77,17 +78,17 @@ const PRESETS: Array<{
   },
   {
     id: "ollama",
-    label: "Ollama (локально, без ключа)",
+    label: "Ollama (local, no key)",
     baseUrl: "http://127.0.0.1:11434/v1",
     needsKey: false,
     modelHint: "qwen3.8-dm",
   },
   {
     id: "custom",
-    label: "Другой OpenAI-совместимый сервер",
+    label: "Other OpenAI-compatible server",
     baseUrl: "",
     needsKey: false,
-    modelHint: "имя модели вашего сервера",
+    modelHint: "your server's model name",
   },
 ];
 
@@ -121,21 +122,177 @@ async function initiateOpenRouterOAuth() {
 }
 
 const STAGE_LABELS: Record<string, string> = {
-  models: "Список моделей",
-  chat: "Чат (русский ответ)",
-  stream: "Стриминг",
+  models: "Model list",
+  chat: "Chat (Russian response)",
+  stream: "Streaming",
   tool_call: "Tool call",
-  tool_result: "Результат инструмента",
+  tool_result: "Tool result",
 };
 
-function StageList({ stages }: { stages: StageReport }) {
+const COPY = {
+  en: {
+    seconds: "s",
+    loadFailed: "Could not load model profiles.",
+    oauthExchangeFailed: (status: number) => `OpenRouter: authorization-code exchange failed (HTTP ${status}).`,
+    oauthProfileName: "OpenRouter (browser sign-in)",
+    oauthProfileFailed: "The key was received, but the profile was not saved.",
+    oauthNotice: "OpenRouter connected by link: profile created. Click Check, then Apply as DM.",
+    oauthNetworkFailed: "OpenRouter: code exchange failed because of a network error.",
+    modelsUnavailable: "The model list is unavailable — enter the model name manually.",
+    modelsEmpty: "The server returned no models — enter the model name manually; this is fine.",
+    modelsNetworkFailed: "The server did not respond while loading the model list.",
+    modelRequired: "Enter a model (use Load model list or type it manually).",
+    profileSaveFailed: "Could not save the profile.",
+    profilePassed: (name: string) => `Profile “${name}” was added and checked — it can be applied as DM.`,
+    profileFailed: "The profile was saved, but the check failed (details below). It cannot be used as DM.",
+    profileSaved: (name: string) => `Profile “${name}” was saved; run the check with the Check button below.`,
+    serverFailed: "The server did not respond. Check that ODM is running and try again.",
+    checkFailed: "The check did not run.",
+    applyFailed: "Could not apply the profile.",
+    applyNotice: "The profile is now the default DM for new campaigns. Each campaign can still choose its own model in the lobby.",
+    deleteConfirm: "Delete this profile?",
+    addTitle: "Add model",
+    addIntro: "One screen: preset → key → model → Add and check. The check is real: chat, streaming, and tool calling (without it the model cannot run the DM).",
+    provider: "Provider",
+    apiKey: "API key",
+    keyNotNeeded: "(not needed)",
+    leaveEmpty: "leave empty",
+    model: "Model",
+    loadModels: "Load model list",
+    loading: "Loading...",
+    addAndCheck: "Add and check",
+    adding: "Adding and checking (may take a few minutes)...",
+    oauthTitle: "Official OAuth PKCE: browser → openrouter.ai → key arrives automatically",
+    oauthLogin: "Sign in with OpenRouter (by link)",
+    profileNameHelp: "Set the profile name below in the list with Edit.",
+    checkPassed: "✓ Check passed — the model supports everything the DM needs",
+    checkFailedLabel: "✗ Check failed",
+    savedProfiles: "Saved profiles",
+    emptyProfiles: "Nothing here yet. Add the first profile above — for example, choose Qwen Token Plan, paste the sk-sp-... key, and click Add and check.",
+    activeDefault: "active default DM",
+    checked: "✓ checked",
+    notChecked: "✗ check failed",
+    unchecked: "not checked",
+    noKey: "no key",
+    toolRequired: "Run the check first — the DM cannot connect without tool calling",
+    applyAsDm: "Apply as DM",
+    checking: "Checking...",
+    check: "Check",
+    edit: "Edit",
+    delete: "Delete",
+  },
+  ru: {
+    seconds: "с",
+    loadFailed: "Не удалось загрузить список профилей.",
+    oauthExchangeFailed: (status: number) => `OpenRouter: не удалось обменять код авторизации (HTTP ${status}).`,
+    oauthProfileName: "OpenRouter (вход через браузер)",
+    oauthProfileFailed: "Ключ получен, но профиль не сохранился.",
+    oauthNotice: "OpenRouter подключён ссылкой: профиль создан. Нажмите «Проверить», затем «Применить как DM».",
+    oauthNetworkFailed: "OpenRouter: обмен кода прервался сетью.",
+    modelsUnavailable: "Список моделей недоступен — впишите имя модели вручную.",
+    modelsEmpty: "Сервер не отдал список — впишите имя модели вручную, это нормально.",
+    modelsNetworkFailed: "Сервер не ответил при запросе списка моделей.",
+    modelRequired: "Укажите модель (кнопка «Загрузить список» или вручную).",
+    profileSaveFailed: "Не удалось сохранить профиль.",
+    profilePassed: (name: string) => `Профиль «${name}» добавлен и проверен — можно применять как DM.`,
+    profileFailed: "Профиль сохранён, но проверка не пройдена (детали ниже). Как DM он не включится.",
+    profileSaved: (name: string) => `Профиль «${name}» сохранён; проверку запустите кнопкой «Проверить» в списке.`,
+    serverFailed: "Сервер не ответил. Проверьте, что ODM запущен, и попробуйте ещё раз.",
+    checkFailed: "Проверка не выполнена.",
+    applyFailed: "Не удалось применить профиль.",
+    applyNotice: "Профиль применён как DM по умолчанию для новых кампаний. В лобби каждой кампании выбор остаётся за вами.",
+    deleteConfirm: "Удалить профиль?",
+    addTitle: "Добавить модель",
+    addIntro: "Один экран: пресет → ключ → модель → «Добавить и проверить». Проверка настоящая: чат, стриминг и tool calling (без него модель нельзя поставить DM).",
+    provider: "Провайдер",
+    apiKey: "API-ключ",
+    keyNotNeeded: "(не нужен)",
+    leaveEmpty: "оставьте пустым",
+    model: "Модель",
+    loadModels: "Загрузить список моделей",
+    loading: "Загрузка...",
+    addAndCheck: "Добавить и проверить",
+    adding: "Добавляю и проверяю (может занять пару минут)...",
+    oauthTitle: "Официальный OAuth PKCE: браузер → openrouter.ai → ключ прилетает сам",
+    oauthLogin: "Войти через OpenRouter (ссылкой)",
+    profileNameHelp: "Название профиля можно задать ниже в списке через «Изменить».",
+    checkPassed: "✓ Проверка пройдена — модель умеет всё, что нужно DM",
+    checkFailedLabel: "✗ Проверка не пройдена",
+    savedProfiles: "Сохранённые профили",
+    emptyProfiles: "Пока пусто. Добавьте первый профиль формой выше — например, выберите Qwen Token Plan, вставьте ключ sk-sp-... и нажмите «Добавить и проверить».",
+    activeDefault: "активный DM по умолчанию",
+    checked: "✓ проверен",
+    notChecked: "✗ проверка не пройдена",
+    unchecked: "не проверен",
+    noKey: "нет ключа",
+    toolRequired: "Сначала пройдите проверку — без tool calling DM не подключается",
+    applyAsDm: "Применить как DM",
+    checking: "Проверка...",
+    check: "Проверить",
+    edit: "Изменить",
+    delete: "Удалить",
+  },
+  pl: {
+    seconds: "s",
+    loadFailed: "Nie udało się wczytać profili modeli.",
+    oauthExchangeFailed: (status: number) => `OpenRouter: wymiana kodu autoryzacji nie powiodła się (HTTP ${status}).`,
+    oauthProfileName: "OpenRouter (logowanie w przeglądarce)",
+    oauthProfileFailed: "Klucz został odebrany, ale profil nie został zapisany.",
+    oauthNotice: "OpenRouter połączono przez link: profil utworzony. Kliknij Sprawdź, a następnie Zastosuj jako MG.",
+    oauthNetworkFailed: "OpenRouter: wymiana kodu przerwana przez błąd sieci.",
+    modelsUnavailable: "Lista modeli jest niedostępna — wpisz nazwę modelu ręcznie.",
+    modelsEmpty: "Serwer nie zwrócił modeli — wpisz nazwę ręcznie; to normalne.",
+    modelsNetworkFailed: "Serwer nie odpowiedział podczas pobierania listy modeli.",
+    modelRequired: "Wpisz model (użyj opcji Wczytaj listę modeli albo wpisz go ręcznie).",
+    profileSaveFailed: "Nie udało się zapisać profilu.",
+    profilePassed: (name: string) => `Profil „${name}” został dodany i sprawdzony — można zastosować go jako MG.`,
+    profileFailed: "Profil zapisano, ale sprawdzanie nie powiodło się (szczegóły poniżej). Nie może działać jako MG.",
+    profileSaved: (name: string) => `Profil „${name}” zapisano; uruchom sprawdzanie przyciskiem Sprawdź na liście.`,
+    serverFailed: "Serwer nie odpowiedział. Sprawdź, czy ODM działa, i spróbuj ponownie.",
+    checkFailed: "Nie udało się wykonać sprawdzania.",
+    applyFailed: "Nie udało się zastosować profilu.",
+    applyNotice: "Profil jest domyślnym MG dla nowych kampanii. Każda kampania nadal może wybrać własny model w lobby.",
+    deleteConfirm: "Usunąć ten profil?",
+    addTitle: "Dodaj model",
+    addIntro: "Jeden ekran: preset → klucz → model → Dodaj i sprawdź. Sprawdzanie jest rzeczywiste: czat, streaming i wywoływanie narzędzi (bez tego model nie może prowadzić gry).",
+    provider: "Dostawca",
+    apiKey: "Klucz API",
+    keyNotNeeded: "(niepotrzebny)",
+    leaveEmpty: "zostaw puste",
+    model: "Model",
+    loadModels: "Wczytaj listę modeli",
+    loading: "Ładowanie...",
+    addAndCheck: "Dodaj i sprawdź",
+    adding: "Dodawanie i sprawdzanie (może potrwać kilka minut)...",
+    oauthTitle: "Oficjalny OAuth PKCE: przeglądarka → openrouter.ai → klucz przychodzi automatycznie",
+    oauthLogin: "Zaloguj przez OpenRouter (linkiem)",
+    profileNameHelp: "Nazwę profilu ustawisz niżej na liście przyciskiem Edytuj.",
+    checkPassed: "✓ Sprawdzanie zakończone — model obsługuje wszystko, czego potrzebuje MG",
+    checkFailedLabel: "✗ Sprawdzanie nieudane",
+    savedProfiles: "Zapisane profile",
+    emptyProfiles: "Jeszcze nic tu nie ma. Dodaj pierwszy profil powyżej — wybierz Qwen Token Plan, wklej klucz sk-sp-... i kliknij Dodaj i sprawdź.",
+    activeDefault: "aktywny domyślny MG",
+    checked: "✓ sprawdzony",
+    notChecked: "✗ sprawdzanie nieudane",
+    unchecked: "niesprawdzony",
+    noKey: "brak klucza",
+    toolRequired: "Najpierw uruchom sprawdzanie — bez wywoływania narzędzi MG nie może się połączyć",
+    applyAsDm: "Zastosuj jako MG",
+    checking: "Sprawdzanie...",
+    check: "Sprawdź",
+    edit: "Edytuj",
+    delete: "Usuń",
+  },
+} as const;
+
+function StageList({ stages, labels }: { stages: StageReport; labels: Record<string, string> }) {
   return (
     <div className="mt-1 grid gap-0.5 text-[11px] text-stone-400">
       {Object.entries(stages).map(([key, result]) => (
         <div key={key}>
           <span className={result.ok ? "text-green-400" : "text-red-400"}>{result.ok ? "✓" : "✗"}</span>{" "}
-          {STAGE_LABELS[key] ?? key}
-          {result.ms !== undefined ? ` · ${Math.round(result.ms / 100) / 10}с` : ""}
+          {labels[key] ?? key}
+          {result.ms !== undefined ? ` · ${Math.round(result.ms / 100) / 10}s` : ""}
           {result.detail ? ` — ${result.detail}` : ""}
         </div>
       ))}
@@ -144,6 +301,8 @@ function StageList({ stages }: { stages: StageReport }) {
 }
 
 export function AdminModelsPanel() {
+  const { locale } = useI18n();
+  const copy = COPY[locale];
   const [profiles, setProfiles] = useState<MaskedProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -169,7 +328,7 @@ export function AdminModelsPanel() {
 
   const preset = PRESETS.find((p) => p.id === presetId) ?? PRESETS[0];
 
-  async function reload() {
+  const reload = useCallback(async () => {
     try {
       const [listResp, cfgResp] = await Promise.all([
         fetch("/api/admin/llm-profiles"),
@@ -185,11 +344,11 @@ export function AdminModelsPanel() {
         });
       }
     } catch {
-      setError("Не удалось загрузить список профилей.");
+      setError(copy.loadFailed);
     } finally {
       setLoading(false);
     }
-  }
+  }, [copy.loadFailed]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -216,14 +375,14 @@ export function AdminModelsPanel() {
         const data = (await res.json().catch(() => ({}))) as { key?: string; data?: { key?: string } };
         const key = data?.key || data?.data?.key;
         if (!res.ok || !key) {
-          setError(`OpenRouter: не удалось обменять код авторизации (HTTP ${res.status}).`);
+          setError(copy.oauthExchangeFailed(res.status));
           return;
         }
         const create = await fetch("/api/admin/llm-profiles", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            name: "OpenRouter (вход через браузер)",
+            name: copy.oauthProfileName,
             kind: "cloud-preset",
             preset: "openrouter",
             protocol: "openai-compatible",
@@ -235,20 +394,20 @@ export function AdminModelsPanel() {
         });
         const created = (await create.json().catch(() => ({}))) as { error?: string };
         if (!create.ok) {
-          setError(created?.error || "Ключ получен, но профиль не сохранился.");
+          setError(created?.error || copy.oauthProfileFailed);
           return;
         }
         setNotice(
-          "OpenRouter подключён ссылкой: профиль создан. Нажмите «Проверить», затем «Применить как DM».",
+          copy.oauthNotice,
         );
         await reload();
       } catch {
-        setError("OpenRouter: обмен кода прервался сетью.");
+        setError(copy.oauthNetworkFailed);
       } finally {
         setBusy("");
       }
     });
-  }, []);
+  }, [copy, reload]);
 
   function pickPreset(id: string) {
     const p = PRESETS.find((x) => x.id === id);
@@ -271,16 +430,16 @@ export function AdminModelsPanel() {
       });
       const data = await resp.json().catch(() => ({}));
       if (!resp.ok) {
-        setError(data.error || "Список моделей недоступен — впишите имя модели вручную.");
+        setError(data.error || copy.modelsUnavailable);
         setModels([]);
       } else {
         setModels(data.models || []);
         if ((data.models || []).length === 0) {
-          setNotice("Сервер не отдал список — впишите имя модели вручную, это нормально.");
+          setNotice(copy.modelsEmpty);
         }
       }
     } catch {
-      setError("Сервер не ответил при запросе списка моделей.");
+      setError(copy.modelsNetworkFailed);
     } finally {
       setBusy("");
     }
@@ -288,7 +447,7 @@ export function AdminModelsPanel() {
 
   async function addAndVerify() {
     if (!model.trim()) {
-      setError("Укажите модель (кнопка «Загрузить список» или вручную).");
+      setError(copy.modelRequired);
       return;
     }
     setBusy("add");
@@ -313,7 +472,7 @@ export function AdminModelsPanel() {
       });
       const created = await createResp.json().catch(() => ({}));
       if (!createResp.ok || !created?.profile?.id) {
-        setError(created?.error || "Не удалось сохранить профиль.");
+        setError(created?.error || copy.profileSaveFailed);
         return;
       }
       // Verify right away — the whole point is one screen, no surprises later.
@@ -327,18 +486,18 @@ export function AdminModelsPanel() {
         setAddReportOk(Boolean(probed.report.ok));
         setNotice(
           probed.report.ok
-            ? `Профиль «${created.profile.name}» добавлен и проверен — можно применять как DM.`
-            : `Профиль сохранён, но проверка не пройдена (детали ниже). Как DM он не включится.`,
+            ? copy.profilePassed(created.profile.name)
+            : copy.profileFailed,
         );
       } else {
-        setNotice(`Профиль «${created.profile.name}» сохранён; проверку запустите кнопкой «Проверить» в списке.`);
+        setNotice(copy.profileSaved(created.profile.name));
       }
       setApiKey("");
       setModel("");
       setModels([]);
       await reload();
     } catch {
-      setError("Сервер не ответил. Проверьте, что ODM запущен, и попробуйте ещё раз.");
+      setError(copy.serverFailed);
     } finally {
       setBusy("");
     }
@@ -357,7 +516,7 @@ export function AdminModelsPanel() {
       if (data?.report) {
         setProbeReports((prev) => ({ ...prev, [id]: { ok: data.report.ok, stages: data.report.stages } }));
       } else {
-        setError(data?.error || "Проверка не выполнена.");
+        setError(data?.error || copy.checkFailed);
       }
       await reload();
     } finally {
@@ -376,9 +535,9 @@ export function AdminModelsPanel() {
       });
       const data = await resp.json().catch(() => ({}));
       if (!resp.ok) {
-        setError(data?.error || "Не удалось применить профиль.");
+        setError(data?.error || copy.applyFailed);
       } else {
-        setNotice("Профиль применён как DM по умолчанию для новых кампаний. В лобби каждой кампании выбор остаётся за вами.");
+        setNotice(copy.applyNotice);
       }
       await reload();
     } finally {
@@ -387,7 +546,7 @@ export function AdminModelsPanel() {
   }
 
   async function removeProfile(id: string) {
-    if (!confirm("Удалить профиль?")) return;
+    if (!confirm(copy.deleteConfirm)) return;
     setBusy(id);
     try {
       await fetch(`/api/admin/llm-profiles/${id}`, { method: "DELETE" });
@@ -413,16 +572,15 @@ export function AdminModelsPanel() {
   return (
     <div className="space-y-6">
       <section className="rounded-lg border border-stone-800 bg-stone-950/60 p-4">
-        <h2 className="mb-1 text-sm font-medium text-stone-200">Добавить модель</h2>
+        <h2 className="mb-1 text-sm font-medium text-stone-200">{copy.addTitle}</h2>
         <p className="mb-3 text-xs text-stone-500">
-          Один экран: пресет → ключ → модель → «Добавить и проверить». Проверка настоящая: чат,
-          стриминг и tool calling (без него модель нельзя поставить DM).
+          {copy.addIntro}
         </p>
         {error ? <p className="mb-2 text-xs text-red-400">{error}</p> : null}
         {notice ? <p className="mb-2 text-xs text-green-400">{notice}</p> : null}
         <div className="grid gap-3 sm:grid-cols-2">
           <label className="block text-xs text-stone-400">
-            Провайдер
+            {copy.provider}
             <select className={inputClass + " mt-1 w-full"} value={presetId} onChange={(e) => pickPreset(e.target.value)}>
               {PRESETS.map((p) => (
                 <option key={p.id} value={p.id}>
@@ -441,18 +599,18 @@ export function AdminModelsPanel() {
             />
           </label>
           <label className="block text-xs text-stone-400">
-            API-ключ {preset.needsKey ? "" : "(не нужен)"}
+            {copy.apiKey} {preset.needsKey ? "" : copy.keyNotNeeded}
             <input
               type="password"
               className={inputClass + " mt-1 w-full"}
               value={apiKey}
               onChange={(e) => setApiKey(e.target.value)}
-              placeholder={preset.needsKey ? "sk-..." : "оставьте пустым"}
+              placeholder={preset.needsKey ? "sk-..." : copy.leaveEmpty}
               autoComplete="off"
             />
           </label>
           <label className="block text-xs text-stone-400">
-            Модель
+            {copy.model}
             <input
               className={inputClass + " mt-1 w-full"}
               value={model}
@@ -469,40 +627,39 @@ export function AdminModelsPanel() {
         </div>
         <div className="mt-3 flex flex-wrap items-center gap-2">
           <button type="button" className={btnSecondary} onClick={() => void loadModels()} disabled={busy !== "" || !baseUrl}>
-            {busy === "models" ? "Загрузка..." : "Загрузить список моделей"}
+            {busy === "models" ? copy.loading : copy.loadModels}
           </button>
           <button type="button" className={btnPrimary} onClick={() => void addAndVerify()} disabled={busy !== ""}>
-            {busy === "add" ? "Добавляю и проверяю (может занять пару минут)..." : "Добавить и проверить"}
+            {busy === "add" ? copy.adding : copy.addAndCheck}
           </button>
           <button
             type="button"
             className={btnSecondary}
             onClick={() => void initiateOpenRouterOAuth()}
             disabled={busy !== ""}
-            title="Официальный OAuth PKCE: браузер → openrouter.ai → ключ прилетает сам"
+            title={copy.oauthTitle}
           >
-            Войти через OpenRouter (ссылкой)
+            {copy.oauthLogin}
           </button>
-          <span className="text-[11px] text-stone-500">Название профиля можно задать ниже в списке через «Изменить».</span>
+          <span className="text-[11px] text-stone-500">{copy.profileNameHelp}</span>
         </div>
         {addReport ? (
           <div className="mt-3 rounded border border-stone-700 p-2">
             <div className={"text-xs " + (addReportOk ? "text-green-400" : "text-red-400")}>
-              {addReportOk ? "✓ Проверка пройдена — модель умеет всё, что нужно DM" : "✗ Проверка не пройдена"}
+              {addReportOk ? copy.checkPassed : copy.checkFailedLabel}
             </div>
-            <StageList stages={addReport} />
+            <StageList stages={addReport} labels={STAGE_LABELS} />
           </div>
         ) : null}
       </section>
 
       <section className="rounded-lg border border-stone-800 bg-stone-950/60 p-4">
-        <h2 className="mb-3 text-sm font-medium text-stone-200">Сохранённые профили</h2>
+        <h2 className="mb-3 text-sm font-medium text-stone-200">{copy.savedProfiles}</h2>
         {loading ? (
-          <p className="text-xs text-stone-500">Загрузка...</p>
+          <p className="text-xs text-stone-500">{copy.loading}</p>
         ) : profiles.length === 0 ? (
           <p className="text-xs text-stone-500">
-            Пока пусто. Добавьте первый профиль формой выше — например, Qwen Token Plan: выберите
-            пресет, вставьте ключ sk-sp-..., нажмите «Добавить и проверить».
+            {copy.emptyProfiles}
           </p>
         ) : (
           <div className="space-y-3">
@@ -519,19 +676,19 @@ export function AdminModelsPanel() {
                     <span className="text-sm text-stone-200">{p.name}</span>
                     {isActive ? (
                       <span className="rounded bg-amber-950/60 px-1.5 py-0.5 text-[10px] text-amber-300">
-                        активный DM по умолчанию
+                        {copy.activeDefault}
                       </span>
                     ) : null}
                     {p.lastCheck ? (
                       <span className={p.lastCheck.ok ? "text-[11px] text-green-400" : "text-[11px] text-red-400"}>
-                        {p.lastCheck.ok ? "✓ проверен" : "✗ проверка не пройдена"}{" "}
+                        {p.lastCheck.ok ? copy.checked : copy.notChecked}{" "}
                         {new Date(p.lastCheck.at).toLocaleString("ru-RU")}
                       </span>
                     ) : (
-                      <span className="text-[11px] text-stone-500">не проверен</span>
+                      <span className="text-[11px] text-stone-500">{copy.unchecked}</span>
                     )}
                     {p.hasApiKey || p.authMode === "none" ? null : (
-                      <span className="text-[11px] text-yellow-400">нет ключа</span>
+                      <span className="text-[11px] text-yellow-400">{copy.noKey}</span>
                     )}
                   </div>
                   <div className="mt-1 text-[11px] text-stone-500">
@@ -542,16 +699,16 @@ export function AdminModelsPanel() {
                       type="button"
                       className={btnSecondary}
                       disabled={busy === p.id || !toolsOk}
-                      title={toolsOk ? "" : "Сначала пройдьте проверку — без tool calling DM не подключается"}
+                      title={toolsOk ? "" : copy.toolRequired}
                       onClick={() => void applyGlobal(p.id)}
                     >
-                      {busy === p.id ? "..." : "Применить как DM"}
+                      {busy === p.id ? "..." : copy.applyAsDm}
                     </button>
                     <button type="button" className={btnSecondary} disabled={busy === p.id} onClick={() => void probeProfile(p.id)}>
-                      {busy === p.id ? "Проверка..." : "Проверить"}
+                      {busy === p.id ? copy.checking : copy.check}
                     </button>
                     <button type="button" className={btnSecondary} onClick={() => setEditing(p.id)}>
-                      Изменить
+                      {copy.edit}
                     </button>
                     <button
                       type="button"
@@ -559,10 +716,10 @@ export function AdminModelsPanel() {
                       disabled={busy === p.id}
                       onClick={() => void removeProfile(p.id)}
                     >
-                      Удалить
+                      {copy.delete}
                     </button>
                   </div>
-                  {report ? <StageList stages={report.stages} /> : null}
+                  {report ? <StageList stages={report.stages} labels={STAGE_LABELS} /> : null}
                 </div>
               );
             })}

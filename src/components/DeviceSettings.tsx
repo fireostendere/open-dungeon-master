@@ -26,7 +26,106 @@ import {
 } from "@/lib/audio-devices";
 import { AUDIO_PREF_FIELDS, writeAudioPref, type AudioPrefField } from "@/lib/audio-prefs";
 import { cn } from "@/lib/cn";
+import { useI18n, type Locale } from "@/lib/i18n";
 import { MASTER_VOLUME_MAX, VOLUME_STEP } from "@/lib/voice/volume";
+
+const COPY = {
+  en: {
+    microphoneNoun: "Microphone",
+    outputNoun: "Output",
+    on: "On",
+    off: "Off",
+    microphone: "Microphone",
+    recordingDevice: "Recording device",
+    systemDefault: "System default",
+    allowMic: "Allow microphone access to see device names",
+    recordingLevel: "Recording level",
+    stopTest: "Stop test",
+    testMic: "Test microphone",
+    mode: "Mode",
+    hold: "hold",
+    orTalkButton: "or the talk button",
+    microphoneMode: "Microphone mode",
+    openMic: "Open mic",
+    pushToTalk: "Push to talk",
+    playback: "Playback",
+    playbackDevice: "Playback device",
+    test: "Test",
+    systemOutput:
+      "Sound plays through the output this device has selected; change it in the system settings.",
+    voiceChat: "Voice chat",
+    narration: "Narration",
+    narrationReadAloud: "Narration read aloud",
+    ambience: "Ambience",
+    dice: "Dice",
+    roll3d: "Roll 3D dice on the table",
+    physicalDice: "Physical dice",
+  },
+  ru: {
+    microphoneNoun: "Микрофон",
+    outputNoun: "Выход",
+    on: "Вкл.",
+    off: "Выкл.",
+    microphone: "Микрофон",
+    recordingDevice: "Устройство записи",
+    systemDefault: "Системное по умолчанию",
+    allowMic: "Разрешить доступ к микрофону, чтобы увидеть названия устройств",
+    recordingLevel: "Уровень записи",
+    stopTest: "Остановить тест",
+    testMic: "Проверить микрофон",
+    mode: "Режим",
+    hold: "удерживайте",
+    orTalkButton: "или кнопку разговора",
+    microphoneMode: "Режим микрофона",
+    openMic: "Открытый микрофон",
+    pushToTalk: "Нажать, чтобы говорить",
+    playback: "Воспроизведение",
+    playbackDevice: "Устройство воспроизведения",
+    test: "Проверить",
+    systemOutput:
+      "Звук выводится через устройство, выбранное системой; изменить его можно в системных настройках.",
+    voiceChat: "Голосовой чат",
+    narration: "Озвучка повествования",
+    narrationReadAloud: "Читать повествование вслух",
+    ambience: "Фоновая атмосфера",
+    dice: "Кости",
+    roll3d: "Показывать 3D-броски костей на столе",
+    physicalDice: "Физические кости",
+  },
+  pl: {
+    microphoneNoun: "Mikrofon",
+    outputNoun: "Wyjście",
+    on: "Wł.",
+    off: "Wył.",
+    microphone: "Mikrofon",
+    recordingDevice: "Urządzenie nagrywające",
+    systemDefault: "Domyślne systemowe",
+    allowMic: "Zezwól na dostęp do mikrofonu, aby zobaczyć nazwy urządzeń",
+    recordingLevel: "Poziom nagrywania",
+    stopTest: "Zatrzymaj test",
+    testMic: "Przetestuj mikrofon",
+    mode: "Tryb",
+    hold: "przytrzymaj",
+    orTalkButton: "lub przycisk mówienia",
+    microphoneMode: "Tryb mikrofonu",
+    openMic: "Otwarty mikrofon",
+    pushToTalk: "Naciśnij, aby mówić",
+    playback: "Odtwarzanie",
+    playbackDevice: "Urządzenie odtwarzające",
+    test: "Test",
+    systemOutput:
+      "Dźwięk jest odtwarzany przez wyjście wybrane przez to urządzenie; zmień je w ustawieniach systemu.",
+    voiceChat: "Czat głosowy",
+    narration: "Narracja",
+    narrationReadAloud: "Czytaj narrację na głos",
+    ambience: "Dźwięki otoczenia",
+    dice: "Kości",
+    roll3d: "Pokazuj rzuty kośćmi 3D na stole",
+    physicalDice: "Fizyczne kości",
+  },
+} as const;
+
+type DeviceCopy = (typeof COPY)[Locale];
 
 // Everything about the machine in front of the player: which microphone
 // and how hot, which output and how loud, and the dice on the table. The
@@ -54,7 +153,7 @@ type Device = { deviceId: string; label: string };
 // The microphones and outputs the browser knows. Labels are only readable
 // once microphone permission has been granted; `allow` asks for it with a
 // capture that is stopped the moment it starts.
-function useDevices() {
+function useDevices(microphoneNoun: string, outputNoun: string) {
   const [inputs, setInputs] = useState<Device[]>([]);
   const [outputs, setOutputs] = useState<Device[]>([]);
   const [labelled, setLabelled] = useState(false);
@@ -72,13 +171,13 @@ function useDevices() {
             deviceId: device.deviceId,
             label: device.label || `${noun} ${index + 1}`,
           }));
-      setInputs(named("audioinput", "Microphone"));
-      setOutputs(named("audiooutput", "Output"));
+      setInputs(named("audioinput", microphoneNoun));
+      setOutputs(named("audiooutput", outputNoun));
       setLabelled(devices.some((device) => device.label));
     } catch {
       // No device access at all; the selects stay on the system default.
     }
-  }, []);
+  }, [microphoneNoun, outputNoun]);
 
   useEffect(() => {
     // Deferred a tick: the list arrives asynchronously anyway, and the
@@ -294,10 +393,12 @@ function Switch({
   label,
   on,
   onChange,
+  copy,
 }: {
   label: string;
   on: boolean;
   onChange: (next: boolean) => void;
+  copy: DeviceCopy;
 }) {
   return (
     <div className={ROW}>
@@ -314,32 +415,39 @@ function Switch({
             : "border-stone-700 text-stone-400 hover:bg-stone-900",
         )}
       >
-        {on ? "On" : "Off"}
+        {on ? copy.on : copy.off}
       </button>
     </div>
   );
 }
 
-function MicrophoneSection({ devices }: { devices: ReturnType<typeof useDevices> }) {
+function MicrophoneSection({
+  devices,
+  copy,
+}: {
+  devices: ReturnType<typeof useDevices>;
+  copy: DeviceCopy;
+}) {
   const micId = useSyncExternalStore(subscribeMicPrefs, readMicId, () => "");
   const micMode = useSyncExternalStore(subscribeMicPrefs, readMicMode, () => "open" as MicMode);
   const gain = useMicGain();
   const meter = useMicMeter(micId, gain);
+  const pttKey = PTT_KEY === "Backquote" ? "`" : PTT_KEY;
   return (
     <section>
       <h3 className={HEADING}>
-        <Mic className="size-3.5" /> Microphone
+        <Mic className="size-3.5" /> {copy.microphone}
       </h3>
       <div className="space-y-3">
         <div>
-          <span className={cn(LABEL, "mb-1 block")}>Recording device</span>
+          <span className={cn(LABEL, "mb-1 block")}>{copy.recordingDevice}</span>
           <select
             value={micId}
             onChange={(event) => writeMicId(event.target.value)}
-            aria-label="Recording device"
+            aria-label={copy.recordingDevice}
             className={SELECT}
           >
-            <option value="">System default</option>
+            <option value="">{copy.systemDefault}</option>
             {devices.inputs.map((device) => (
               <option key={device.deviceId} value={device.deviceId}>
                 {device.label}
@@ -348,11 +456,11 @@ function MicrophoneSection({ devices }: { devices: ReturnType<typeof useDevices>
           </select>
           {!devices.labelled ? (
             <button type="button" onClick={() => void devices.allow()} className={cn(BUTTON, "mt-1.5")}>
-              Allow microphone access to see device names
+              {copy.allowMic}
             </button>
           ) : null}
         </div>
-        <Slider label="Recording level" value={gain} max={MIC_GAIN_MAX} onChange={writeMicGain} />
+        <Slider label={copy.recordingLevel} value={gain} max={MIC_GAIN_MAX} onChange={writeMicGain} />
         <div className={ROW}>
           <div className="h-2 flex-1 overflow-hidden rounded-full bg-stone-800">
             <div
@@ -365,21 +473,22 @@ function MicrophoneSection({ devices }: { devices: ReturnType<typeof useDevices>
             onClick={() => (meter.testing ? meter.stop() : void meter.start())}
             className={BUTTON}
           >
-            {meter.testing ? "Stop test" : "Test microphone"}
+            {meter.testing ? copy.stopTest : copy.testMic}
           </button>
         </div>
         <div className={ROW}>
           <span className={LABEL}>
-            Mode{micMode === "ptt" ? ` (hold ${PTT_KEY === "Backquote" ? "`" : PTT_KEY} or the talk button)` : ""}
+            {copy.mode}
+            {micMode === "ptt" ? ` (${copy.hold} ${pttKey} ${copy.orTalkButton})` : ""}
           </span>
           <select
             value={micMode}
             onChange={(event) => writeMicMode(event.target.value as MicMode)}
-            aria-label="Microphone mode"
+            aria-label={copy.microphoneMode}
             className={cn(SELECT, "w-auto")}
           >
-            <option value="open">Open mic</option>
-            <option value="ptt">Push to talk</option>
+            <option value="open">{copy.openMic}</option>
+            <option value="ptt">{copy.pushToTalk}</option>
           </select>
         </div>
       </div>
@@ -387,7 +496,13 @@ function MicrophoneSection({ devices }: { devices: ReturnType<typeof useDevices>
   );
 }
 
-function PlaybackSection({ devices }: { devices: ReturnType<typeof useDevices> }) {
+function PlaybackSection({
+  devices,
+  copy,
+}: {
+  devices: ReturnType<typeof useDevices>;
+  copy: DeviceCopy;
+}) {
   const outputId = useOutputId();
   const volumes = useVolumePrefs();
   const narrationMuted = useAudioFlag("narrationMuted", false);
@@ -398,20 +513,20 @@ function PlaybackSection({ devices }: { devices: ReturnType<typeof useDevices> }
   return (
     <section>
       <h3 className={HEADING}>
-        <Volume2 className="size-3.5" /> Playback
+        <Volume2 className="size-3.5" /> {copy.playback}
       </h3>
       <div className="space-y-3">
         <div>
-          <span className={cn(LABEL, "mb-1 block")}>Playback device</span>
+          <span className={cn(LABEL, "mb-1 block")}>{copy.playbackDevice}</span>
           {selectable ? (
             <div className="flex items-center gap-2">
               <select
                 value={outputId}
                 onChange={(event) => writeOutputId(event.target.value)}
-                aria-label="Playback device"
+                aria-label={copy.playbackDevice}
                 className={SELECT}
               >
-                <option value="">System default</option>
+                <option value="">{copy.systemDefault}</option>
                 {devices.outputs.map((device) => (
                   <option key={device.deviceId} value={device.deviceId}>
                     {device.label}
@@ -419,52 +534,51 @@ function PlaybackSection({ devices }: { devices: ReturnType<typeof useDevices> }
                 ))}
               </select>
               <button type="button" onClick={() => void playTestTone()} className={BUTTON}>
-                Test
+                {copy.test}
               </button>
             </div>
           ) : (
-            <p className="text-xs text-stone-500">
-              Sound plays through the output this device has selected; change it in the system
-              settings.
-            </p>
+            <p className="text-xs text-stone-500">{copy.systemOutput}</p>
           )}
         </div>
         <Slider
-          label="Voice chat"
+          label={copy.voiceChat}
           value={volumes.master}
           max={MASTER_VOLUME_MAX}
           onChange={setMasterVolume}
         />
         <Slider
-          label="Narration"
+          label={copy.narration}
           value={narrationVolume}
           max={1}
           min={VOLUME_STEP}
           onChange={(value) => writeAudioPref("narrationVolume", value)}
         />
         <Switch
-          label="Narration read aloud"
+          label={copy.narrationReadAloud}
           on={!narrationMuted}
           onChange={(on) => writeAudioPref("narrationMuted", !on)}
+          copy={copy}
         />
         <Slider
-          label="Ambience"
+          label={copy.ambience}
           value={ambienceVolume}
           max={1}
           min={VOLUME_STEP}
           onChange={(value) => writeAudioPref("ambienceVolume", value)}
         />
         <Switch
-          label="Ambience"
+          label={copy.ambience}
           on={!ambienceMuted}
           onChange={(on) => writeAudioPref("ambienceMuted", !on)}
+          copy={copy}
         />
       </div>
     </section>
   );
 }
 
-function DiceSection() {
+function DiceSection({ copy }: { copy: DeviceCopy }) {
   const dice3d = useSyncExternalStore(
     subscribeDice3d,
     () => window.localStorage.getItem(DICE3D_KEY) !== "off",
@@ -473,19 +587,20 @@ function DiceSection() {
   return (
     <section>
       <h3 className={HEADING}>
-        <Dices className="size-3.5" /> Dice
+        <Dices className="size-3.5" /> {copy.dice}
       </h3>
       <div className="space-y-3">
         <Switch
-          label="Roll 3D dice on the table"
+          label={copy.roll3d}
           on={dice3d}
           onChange={(on) => {
             window.localStorage.setItem(DICE3D_KEY, on ? "on" : "off");
             window.dispatchEvent(new Event(DICE3D_EVENT));
           }}
+          copy={copy}
         />
         <div className={cn(HEADING, "mb-0")}>
-          <Bluetooth className="size-3.5" /> Physical dice
+          <Bluetooth className="size-3.5" /> {copy.physicalDice}
         </div>
         <DiceSourcesPanel />
       </div>
@@ -494,12 +609,14 @@ function DiceSection() {
 }
 
 export function DeviceSettings() {
-  const devices = useDevices();
+  const { locale } = useI18n();
+  const copy = COPY[locale];
+  const devices = useDevices(copy.microphoneNoun, copy.outputNoun);
   return (
     <div className="space-y-6 text-sm text-stone-200">
-      <MicrophoneSection devices={devices} />
-      <PlaybackSection devices={devices} />
-      <DiceSection />
+      <MicrophoneSection devices={devices} copy={copy} />
+      <PlaybackSection devices={devices} copy={copy} />
+      <DiceSection copy={copy} />
     </div>
   );
 }

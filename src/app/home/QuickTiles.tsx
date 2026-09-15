@@ -4,12 +4,7 @@ import { BookOpen, Hammer, KeyRound, Plus, Users } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { QuickTile } from "@/components/ui/QuickTile";
 import { useI18n } from "@/lib/i18n";
-
-const COPY = {
-  en: { newCampaign: "New campaign", solo: "Solo adventure", join: "Join with a code" },
-  ru: { newCampaign: "Новая кампания", solo: "Одиночное приключение", join: "Войти по коду" },
-  pl: { newCampaign: "Nowa kampania", solo: "Przygoda solo", join: "Dołącz kodem" },
-} as const;
+import { localeText } from "@/lib/i18n/locale-text";
 
 export function QuickTiles({
   onNewCampaign,
@@ -22,8 +17,12 @@ export function QuickTiles({
   showSolo: boolean;
   onJoin: () => void;
 }) {
-  const { t, locale } = useI18n();
-  const copy = COPY[locale];
+  const { locale, t } = useI18n();
+  const copy = localeText(locale, {
+    en: { newCampaign: "New campaign", solo: "Solo adventure", join: "Join with a code" },
+    ru: { newCampaign: "Новая кампания", solo: "Соло-приключение", join: "Войти по коду" },
+    pl: { newCampaign: "Nowa kampania", solo: "Przygoda solo", join: "Dołącz kodem" },
+  });
   return (
     <div
       className={cn(

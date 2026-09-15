@@ -7,10 +7,9 @@ import { CampaignCover } from "@/components/CampaignCover";
 import { Tooltip } from "@/components/ui/Tooltip";
 import { ExportMenu } from "@/app/campaigns/[campaignId]/ExportMenu";
 import { steersStory, type HomeCampaign } from "@/app/home/types";
+import { useI18n } from "@/lib/i18n";
+import { localeText } from "@/lib/i18n/locale-text";
 
-// "Your campaigns": every table this account sits at, with the same three
-// actions the old tiles carried. Export is for anyone at the table,
-// Duplicate follows story authority, Delete is the owner's alone.
 export function CampaignList({
   campaigns,
   loading,
@@ -32,11 +31,17 @@ export function CampaignList({
   onClone: (id: string) => void;
   onDelete: (campaign: HomeCampaign) => void;
 }) {
+  const { locale } = useI18n();
+  const copy = localeText(locale, {
+    en: { title: "Your campaigns", loadFailed: "Could not load your campaigns.", retry: "Try again" },
+    ru: { title: "Ваши кампании", loadFailed: "Не удалось загрузить ваши кампании.", retry: "Попробовать снова" },
+    pl: { title: "Twoje kampanie", loadFailed: "Nie udało się wczytać twoich kampanii.", retry: "Spróbuj ponownie" },
+  });
   return (
     <section className="mb-8">
       <div className="mb-4 flex items-center gap-3">
         <PixelTile src={PIXEL_ICONS.chats} size="size-9" />
-        <h2 className="eyebrow text-sm text-amber-200/90">Your campaigns</h2>
+        <h2 className="eyebrow text-sm text-amber-200/90">{copy.title}</h2>
       </div>
 
       {actionError ? <p className="mb-3 text-sm text-red-400">{actionError}</p> : null}
@@ -46,15 +51,13 @@ export function CampaignList({
           <Loader2 className="size-5 animate-spin text-stone-500" />
         </div>
       ) : loadFailed && campaigns.length === 0 ? (
-        // The list never arrived; a table full of campaigns may still
-        // exist, so the empty-table hero would be a lie here.
         <div className="flex flex-col items-center gap-3 rounded-xl border border-stone-800 bg-stone-950/40 px-6 py-10 text-center">
-          <p className="text-sm text-stone-400">Could not load your campaigns.</p>
+          <p className="text-sm text-stone-400">{copy.loadFailed}</p>
           <button type="button" onClick={onRetry} className={ui.btnSecondary}>
-            Try again
+            {copy.retry}
           </button>
         </div>
-      ) : campaigns.length === 0 ? null : ( // the hero above has already said "empty table"
+      ) : campaigns.length === 0 ? null : (
         <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {campaigns.map((campaign) => (
             <li key={campaign.id}>
@@ -86,7 +89,47 @@ function CampaignTile({
   onClone: () => void;
   onDelete: () => void;
 }) {
+  const { locale } = useI18n();
+  const copy = localeText(locale, {
+    en: {
+      lobby: "lobby",
+      active: "active",
+      ended: "ended",
+      level: "Level",
+      start: "start",
+      solo: "solo",
+      duplicateTip: "Copy the world into a new campaign, without the transcript",
+      duplicate: "Duplicate this campaign",
+      deleteTip: "Delete this campaign",
+      delete: "Delete this campaign",
+    },
+    ru: {
+      lobby: "лобби",
+      active: "активна",
+      ended: "завершена",
+      level: "Уровень",
+      start: "старт",
+      solo: "соло",
+      duplicateTip: "Скопировать мир в новую кампанию без истории сообщений",
+      duplicate: "Дублировать эту кампанию",
+      deleteTip: "Удалить эту кампанию",
+      delete: "Удалить эту кампанию",
+    },
+    pl: {
+      lobby: "poczekalnia",
+      active: "aktywna",
+      ended: "zakończona",
+      level: "Poziom",
+      start: "start",
+      solo: "solo",
+      duplicateTip: "Skopiuj świat do nowej kampanii bez historii rozmów",
+      duplicate: "Duplikuj tę kampanię",
+      deleteTip: "Usuń tę kampanię",
+      delete: "Usuń tę kampanię",
+    },
+  });
   const ended = campaign.status === "ended";
+  const statusLabel = campaign.status === "lobby" ? copy.lobby : campaign.status === "active" ? copy.active : copy.ended;
   return (
     <a
       href={`/campaigns/${campaign.id}`}
@@ -110,26 +153,26 @@ function CampaignTile({
             ended && "border-stone-600/50 bg-stone-900 text-stone-400",
           )}
         >
-          {campaign.status}
+          {statusLabel}
         </span>
       </div>
       <p className="text-sm text-stone-400">
-        Level {campaign.startingLevel} start · {campaign.difficulty}
+        {copy.level} {campaign.startingLevel} {copy.start} · {campaign.difficulty}
         {campaign.theme ? ` · ${campaign.theme}` : ""}
       </p>
       <div className="mt-3 flex items-center justify-between border-t border-stone-700/40 pt-2.5 text-sm text-stone-400">
         <span className="flex items-center gap-1.5">
           <Users className="size-4 text-amber-300/70" />
           {campaign.playerCount}/{campaign.maxPlayers}
-          {campaign.maxPlayers === 1 ? " · solo" : ""}
+          {campaign.maxPlayers === 1 ? ` · ${copy.solo}` : ""}
         </span>
         <span className="flex items-center gap-1">
           <ExportMenu campaignId={campaign.id} variant="tile-icon" />
           {steersStory(campaign, userId) ? (
-            <Tooltip content="Copy the world into a new campaign, without the transcript">
+            <Tooltip content={copy.duplicateTip}>
               <button
                 type="button"
-                aria-label="Duplicate this campaign"
+                aria-label={copy.duplicate}
                 disabled={cloning}
                 onClick={(event) => {
                   event.preventDefault();
@@ -138,19 +181,15 @@ function CampaignTile({
                 }}
                 className={cn(ui.iconAction, "hover:text-amber-300")}
               >
-                {cloning ? (
-                  <Loader2 className="size-4 animate-spin" />
-                ) : (
-                  <Copy className="size-4" />
-                )}
+                {cloning ? <Loader2 className="size-4 animate-spin" /> : <Copy className="size-4" />}
               </button>
             </Tooltip>
           ) : null}
           {campaign.role === "owner" ? (
-            <Tooltip content="Delete this campaign">
+            <Tooltip content={copy.deleteTip}>
               <button
                 type="button"
-                aria-label="Delete this campaign"
+                aria-label={copy.delete}
                 onClick={(event) => {
                   event.preventDefault();
                   event.stopPropagation();

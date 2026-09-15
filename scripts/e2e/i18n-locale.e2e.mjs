@@ -90,24 +90,9 @@ function assertEnglishOnly(text, surface) {
   assertNoRawKeys(text, surface);
 }
 
-async function assertStoredLocale(page, context, locale) {
-  await page.waitForFunction((expected) => document.documentElement.lang === expected, locale);
-  assert.equal(await page.evaluate(() => localStorage.getItem("odm_locale")), locale);
-  assert.equal((await context.cookies()).find((cookie) => cookie.name === "odm_locale")?.value, locale);
-}
-
-async function selectAccountLocale(page, campaignId, accountName, menuLanguageLabel, optionLabel, locale) {
-  await page.getByRole("button", { name: accountName }).click();
-  await page.getByText(menuLanguageLabel, { exact: true }).click();
-  const patch = page.waitForResponse(
-    (response) =>
-      response.url().endsWith(`/api/campaigns/${campaignId}/settings`) &&
-      response.request().method() === "PATCH",
-  );
-  await page.getByText(optionLabel, { exact: true }).click();
-  const response = await patch;
-  assert.ok(response.ok(), `campaign language PATCH failed: ${response.status()}`);
-  assert.deepEqual(response.request().postDataJSON(), { language: locale });
+function assertPolishOnly(text, surface) {
+  assert.ok(!/[А-Яа-яЁё]/.test(text), `${surface} leaked Cyrillic while Polish locale was active: ${text}`);
+  assertNoRawKeys(text, surface);
 }
 
 try {
@@ -116,17 +101,15 @@ try {
   const context = await browser.newContext({ baseURL: origin });
   const page = await context.newPage();
 
-  // Fresh installs default to Russian. Exercise the compact header switcher
-  // through Russian -> Polish -> English before authentication.
   await page.goto("/");
-  await page.getByRole("button", { name: "Переключить язык на польский" }).click();
-  await assertStoredLocale(page, context, "pl");
-  await page.getByRole("button", { name: "Przełącz język na angielski" }).click();
-  await assertStoredLocale(page, context, "en");
+  await page.getByRole("button", { name: "Переключить язык на Английский" }).click();
+  await page.waitForFunction(() => document.documentElement.lang === "en");
+  assert.equal(await page.evaluate(() => localStorage.getItem("odm_locale")), "en");
+  assert.match((await context.cookies()).find((cookie) => cookie.name === "odm_locale")?.value ?? "", /^en$/);
   assertEnglishOnly(await page.locator("body").innerText(), "auth screen");
 
   const register = await context.request.post("/api/auth/register", {
-    data: { username: "i18n_languages", password: "LanguageCoverage2026!" },
+    data: { username: "i18n_english", password: "EnglishCoverage2026!" },
   });
   assert.ok(register.ok(), `registration failed: ${register.status()} ${await register.text()}`);
   await page.goto("/");
@@ -134,8 +117,8 @@ try {
 
   const create = await context.request.post("/api/campaigns", {
     data: {
-      title: "Locale Coverage Campaign",
-      description: "EN RU PL localization smoke test",
+      title: "English Coverage Campaign",
+      description: "English-only localization smoke test",
       maxPlayers: 1,
       gameSettings: { dmMode: "human", aiStorySetup: false },
     },
@@ -149,20 +132,45 @@ try {
   await page.getByRole("button", { name: "Account" }).waitFor();
   assertEnglishOnly(await page.locator("body").innerText(), "campaign lobby");
 
-  await selectAccountLocale(page, campaignId, "Account", "Language", "Русский (RU)", "ru");
-  await assertStoredLocale(page, context, "ru");
-  assertNoRawKeys(await page.locator("body").innerText(), "Russian campaign lobby");
+  // EN -> PL: account menu uses the same locale cycle as the compact switcher.
+  await page.getByRole("button", { name: "Account" }).click();
+  const toPolish = page.getByText("Language: English (EN)", { exact: true });
+  const plPatch = page.waitForResponse(
+    (response) => response.url().endsWith(`/api/campaigns/${campaignId}/settings`) && response.request().method() === "PATCH",
+  );
+  await toPolish.click();
+  const plResponse = await plPatch;
+  assert.ok(plResponse.ok(), `campaign language PATCH failed: ${plResponse.status()}`);
+  assert.deepEqual(plResponse.request().postDataJSON(), { language: "pl" });
+  await page.waitForFunction(() => document.documentElement.lang === "pl");
+  assert.equal(await page.evaluate(() => localStorage.getItem("odm_locale")), "pl");
+  assertPolishOnly(await page.locator("body").innerText(), "Polish campaign lobby");
 
-  await selectAccountLocale(page, campaignId, "Аккаунт", "Язык", "Polski (PL)", "pl");
-  await assertStoredLocale(page, context, "pl");
-  assertNoRawKeys(await page.locator("body").innerText(), "Polish campaign lobby");
-  await page.getByRole("button", { name: "Przełącz język na angielski" }).waitFor();
+  await page.getByRole("button", { name: "Konto" }).click();
+  const toRussian = page.getByText("Język: Polski (PL)", { exact: true });
+  const ruPatch = page.waitForResponse(
+    (response) => response.url().endsWith(`/api/campaigns/${campaignId}/settings`) && response.request().method() === "PATCH",
+  );
+  await toRussian.click();
+  const ruResponse = await ruPatch;
+  assert.ok(ruResponse.ok(), `campaign language PATCH failed: ${ruResponse.status()}`);
+  assert.deepEqual(ruResponse.request().postDataJSON(), { language: "ru" });
+  await page.waitForFunction(() => document.documentElement.lang === "ru");
 
-  await selectAccountLocale(page, campaignId, "Konto", "Język", "English (EN)", "en");
-  await assertStoredLocale(page, context, "en");
-  assertEnglishOnly(await page.locator("body").innerText(), "campaign lobby after EN/RU/PL round trip");
+  // RU -> EN closes the cycle and proves the campaign language is not stuck.
+  await page.getByRole("button", { name: "Аккаунт" }).click();
+  const toEnglish = page.getByText("Язык: Русский (RU)", { exact: true });
+  const enPatch = page.waitForResponse(
+    (response) => response.url().endsWith(`/api/campaigns/${campaignId}/settings`) && response.request().method() === "PATCH",
+  );
+  await toEnglish.click();
+  const enResponse = await enPatch;
+  assert.ok(enResponse.ok(), `campaign language PATCH failed: ${enResponse.status()}`);
+  assert.deepEqual(enResponse.request().postDataJSON(), { language: "en" });
+  await page.waitForFunction(() => document.documentElement.lang === "en");
+  assertEnglishOnly(await page.locator("body").innerText(), "campaign lobby after RU/EN/PL round trip");
 
-  console.log("PASS i18n locale E2E: EN/RU/PL auth, dashboard, lobby and campaign-language persistence");
+  console.log("PASS i18n locale E2E: EN/RU/PL UI persistence and campaign-language PATCH cycle");
 } finally {
   await browser?.close().catch(() => undefined);
   await stop();

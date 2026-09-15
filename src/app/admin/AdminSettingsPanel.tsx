@@ -9,6 +9,8 @@ import { PageSection } from "@/components/PageShell";
 import { AdminInvitesSection } from "@/app/admin/AdminInvitesSection";
 import { LlmWizard } from "@/app/admin/LlmWizard";
 import { ComfyTestPanel } from "@/app/admin/ComfyTestPanel";
+import { useI18n } from "@/lib/i18n";
+import { localeText } from "@/lib/i18n/locale-text";
 
 type MaskedConfig = {
   signupsEnabled: boolean;
@@ -129,6 +131,21 @@ function SecretField({
 // Global server settings. Each string setting overrides its env var; a blank
 // field falls back to the env value shown as the placeholder/hint.
 export function AdminSettingsPanel() {
+  const { locale } = useI18n();
+  const copy = localeText(locale, {
+    en: {
+      modelWizard: "Open model connection wizard",
+      modelMissing: "No model is connected — open the wizard to check the connection and real tool calling required to run the game.",
+    },
+    ru: {
+      modelWizard: "Мастер подключения модели",
+      modelMissing: "Модель не подключена — запустите мастер: он проверит не только соединение, но и реальный tool calling, необходимый для управления игрой.",
+    },
+    pl: {
+      modelWizard: "Kreator połączenia modelu",
+      modelMissing: "Model nie jest podłączony — uruchom kreator, aby sprawdzić połączenie i rzeczywiste wywoływanie narzędzi potrzebne do prowadzenia gry.",
+    },
+  });
   const [config, setConfig] = useState<MaskedConfig | null>(null);
   const [env, setEnv] = useState<EnvDefaults | null>(null);
   const [apiKey, setApiKey] = useState(SECRET_KEPT);
@@ -340,12 +357,11 @@ export function AdminSettingsPanel() {
         </p>
         <div className="mb-3 flex flex-wrap items-center gap-3">
           <button type="button" className={ui.btnPrimary} onClick={() => setWizardOpen(true)}>
-            Мастер подключения модели
+            {copy.modelWizard}
           </button>
           {config && !config.text.provider && !config.text.customBaseUrl && !env?.customBaseUrl && (
             <span className="text-xs text-yellow-300">
-              Модель не подключена — запустите мастер: он проверит не только соединение, но и
-              реальный tool calling, необходимый для управления игрой.
+              {copy.modelMissing}
             </span>
           )}
         </div>

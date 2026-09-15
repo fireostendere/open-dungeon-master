@@ -221,7 +221,10 @@ function flattenObjectStrings(node, prefix = "", out = new Map()) {
   for (const property of value.properties) {
     if (!ts.isPropertyAssignment(property)) continue;
     const name = propertyName(property.name);
-    flattenObjectStrings(property.initializer, prefix ? `${prefix}.${name}` : name, out);
+    const key = prefix ? `${prefix}.${name}` : name;
+    const initializer = unwrap(property.initializer);
+    if (ts.isObjectLiteralExpression(initializer)) flattenObjectStrings(initializer, key, out);
+    else out.set(key, "");
   }
   return out;
 }

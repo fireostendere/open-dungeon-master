@@ -12,6 +12,8 @@ import { AvatarCropDialog } from "@/app/settings/AvatarCropDialog";
 import { BlockedPlayersSection } from "@/app/settings/BlockedPlayersSection";
 import { ChangePasswordForm } from "@/app/ChangePasswordForm";
 import { currentPathname, currentQuery, replaceAddress } from "@/lib/navigation";
+import { useI18n, type Locale } from "@/lib/i18n";
+import { localeText } from "@/lib/i18n/locale-text";
 
 type Me = {
   id: string;
@@ -24,17 +26,146 @@ type Me = {
   deletionDueAt?: string | null;
 };
 
-function dueDate(iso: string): string {
-  return new Date(iso).toLocaleDateString(undefined, {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
+function dueDate(iso: string, locale: Locale): string {
+  return new Date(iso).toLocaleDateString(
+    locale === "ru" ? "ru-RU" : locale === "pl" ? "pl-PL" : "en-US",
+    { year: "numeric", month: "long", day: "numeric" },
+  );
 }
 
-// Account settings: profile picture, password, Discord link, deletion, and
-// the About card naming the server.
 export default function SettingsPage() {
+  const { locale, t } = useI18n();
+  const copy = localeText(locale, {
+    en: {
+      discordLinkedNotice: "Discord account linked.",
+      discordTaken: "That Discord account is already linked to another user.",
+      deleteFailed: "Could not delete your account.",
+      immediateGrace: "Your account, the campaigns you created, your characters and your pictures are erased immediately.",
+      grace: (days: number) => `Your account is signed out everywhere and erased after ${days} day${days === 1 ? "" : "s"}, together with the campaigns you created, your characters and your pictures. Signing in before then lets you keep it.`,
+      deleted: "Your account and everything it owned have been deleted.",
+      scheduled: (date: string) => `Your account is scheduled for deletion on ${date}. You have been signed out everywhere. To keep it, sign in again before then and choose “Keep my account”.`,
+      backFront: "Back to the front door",
+      login: "Log in",
+      manageSuffix: "to manage your account.",
+      accountSettings: "Account settings",
+      signedInAs: "Signed in as",
+      adminPanel: "Admin panel",
+      profilePicture: "Profile picture",
+      yourAvatar: "Your avatar",
+      changePicture: "Change picture",
+      addPicture: "Add picture",
+      remove: "Remove",
+      pictureHelp: "Shown next to your name in lobbies and at the table. Character portraits are set on each character.",
+      setPasswordHeading: "Set a password",
+      passwordHeading: "Password",
+      passwordDiscordHelp: "You sign in with Discord. Set a password to also log in with your username, for example in the desktop and mobile apps.",
+      setPassword: "Set password",
+      passwordSaved: "Password saved. Other devices were signed out.",
+      discordLinked: "Linked. You can sign in with Discord.",
+      linkDiscord: "Link Discord account",
+      deletionScheduled: "Deletion scheduled",
+      pending: "Pending",
+      deletionIntro: (date: string) => `This account will be permanently deleted on ${date}. Until then everything still works, and you can call it off.`,
+      keepAccount: "Keep my account",
+      deleteAccount: "Delete account",
+      irreversible: "Irreversible",
+      about: "About",
+      rulesReference: "Rules reference",
+      licenses: "Licenses and attribution",
+      deleteQuestion: "Delete your account?",
+      deleteDialogSuffix: "Messages you wrote in other people’s campaigns stay in those transcripts without your name on them. Once the account is erased it cannot be brought back.",
+      passwordConfirm: "Enter your password to confirm",
+      typeDelete: "Type DELETE to confirm",
+      deleteForever: "Delete forever",
+      deleteMine: "Delete my account",
+    },
+    ru: {
+      discordLinkedNotice: "Аккаунт Discord привязан.",
+      discordTaken: "Этот аккаунт Discord уже привязан к другому пользователю.",
+      deleteFailed: "Не удалось удалить аккаунт.",
+      immediateGrace: "Ваш аккаунт, созданные вами кампании, персонажи и изображения будут удалены немедленно.",
+      grace: (days: number) => `Ваш аккаунт будет разлогинен на всех устройствах и окончательно удалён через ${days} дн., вместе с созданными вами кампаниями, персонажами и изображениями. Если войти до этого срока, удаление можно отменить.`,
+      deleted: "Ваш аккаунт и все принадлежавшие ему данные удалены.",
+      scheduled: (date: string) => `Удаление аккаунта назначено на ${date}. Вы вышли из аккаунта на всех устройствах. Чтобы сохранить аккаунт, войдите снова до этой даты и выберите «Сохранить мой аккаунт».`,
+      backFront: "Вернуться на главную",
+      login: "Войти",
+      manageSuffix: "чтобы управлять аккаунтом.",
+      accountSettings: "Настройки аккаунта",
+      signedInAs: "Вы вошли как",
+      adminPanel: "Панель администратора",
+      profilePicture: "Изображение профиля",
+      yourAvatar: "Ваш аватар",
+      changePicture: "Изменить изображение",
+      addPicture: "Добавить изображение",
+      remove: "Удалить",
+      pictureHelp: "Показывается рядом с вашим именем в лобби и за игровым столом. Портреты персонажей настраиваются отдельно.",
+      setPasswordHeading: "Задать пароль",
+      passwordHeading: "Пароль",
+      passwordDiscordHelp: "Вы входите через Discord. Задайте пароль, чтобы также входить по имени пользователя, например в настольном и мобильном приложениях.",
+      setPassword: "Задать пароль",
+      passwordSaved: "Пароль сохранён. На других устройствах выполнен выход.",
+      discordLinked: "Привязан. Теперь можно входить через Discord.",
+      linkDiscord: "Привязать аккаунт Discord",
+      deletionScheduled: "Удаление запланировано",
+      pending: "Ожидает",
+      deletionIntro: (date: string) => `Аккаунт будет окончательно удалён ${date}. До этого момента всё продолжит работать, а удаление можно отменить.`,
+      keepAccount: "Сохранить мой аккаунт",
+      deleteAccount: "Удалить аккаунт",
+      irreversible: "Необратимо",
+      about: "О приложении",
+      rulesReference: "Справочник правил",
+      licenses: "Лицензии и авторство",
+      deleteQuestion: "Удалить ваш аккаунт?",
+      deleteDialogSuffix: "Сообщения, которые вы писали в чужих кампаниях, останутся в их истории без вашего имени. После окончательного удаления восстановить аккаунт невозможно.",
+      passwordConfirm: "Введите пароль для подтверждения",
+      typeDelete: "Введите DELETE для подтверждения",
+      deleteForever: "Удалить навсегда",
+      deleteMine: "Удалить мой аккаунт",
+    },
+    pl: {
+      discordLinkedNotice: "Konto Discord zostało połączone.",
+      discordTaken: "To konto Discord jest już połączone z innym użytkownikiem.",
+      deleteFailed: "Nie udało się usunąć konta.",
+      immediateGrace: "Twoje konto, utworzone kampanie, postacie i obrazy zostaną usunięte natychmiast.",
+      grace: (days: number) => `Twoje konto zostanie wylogowane na wszystkich urządzeniach i usunięte po ${days} dniach wraz z utworzonymi kampaniami, postaciami i obrazami. Jeśli zalogujesz się wcześniej, możesz anulować usunięcie.`,
+      deleted: "Twoje konto i wszystkie należące do niego dane zostały usunięte.",
+      scheduled: (date: string) => `Usunięcie konta zaplanowano na ${date}. Wylogowano cię na wszystkich urządzeniach. Aby zachować konto, zaloguj się ponownie przed tym terminem i wybierz „Zachowaj moje konto”.`,
+      backFront: "Wróć na stronę główną",
+      login: "Zaloguj się",
+      manageSuffix: "aby zarządzać kontem.",
+      accountSettings: "Ustawienia konta",
+      signedInAs: "Zalogowano jako",
+      adminPanel: "Panel administratora",
+      profilePicture: "Zdjęcie profilowe",
+      yourAvatar: "Twój awatar",
+      changePicture: "Zmień zdjęcie",
+      addPicture: "Dodaj zdjęcie",
+      remove: "Usuń",
+      pictureHelp: "Jest wyświetlane obok twojej nazwy w poczekalniach i przy stole. Portrety postaci ustawia się osobno.",
+      setPasswordHeading: "Ustaw hasło",
+      passwordHeading: "Hasło",
+      passwordDiscordHelp: "Logujesz się przez Discord. Ustaw hasło, aby móc też logować się nazwą użytkownika, na przykład w aplikacji komputerowej i mobilnej.",
+      setPassword: "Ustaw hasło",
+      passwordSaved: "Hasło zapisano. Inne urządzenia zostały wylogowane.",
+      discordLinked: "Połączono. Możesz logować się przez Discord.",
+      linkDiscord: "Połącz konto Discord",
+      deletionScheduled: "Zaplanowano usunięcie",
+      pending: "Oczekuje",
+      deletionIntro: (date: string) => `Konto zostanie trwale usunięte ${date}. Do tego czasu wszystko działa normalnie, a usunięcie można anulować.`,
+      keepAccount: "Zachowaj moje konto",
+      deleteAccount: "Usuń konto",
+      irreversible: "Nieodwracalne",
+      about: "O aplikacji",
+      rulesReference: "Kompendium zasad",
+      licenses: "Licencje i informacje o autorach",
+      deleteQuestion: "Usunąć twoje konto?",
+      deleteDialogSuffix: "Wiadomości napisane przez ciebie w kampaniach innych osób pozostaną w ich historii bez twojej nazwy. Po usunięciu konta nie można go przywrócić.",
+      passwordConfirm: "Wpisz hasło, aby potwierdzić",
+      typeDelete: "Wpisz DELETE, aby potwierdzić",
+      deleteForever: "Usuń na zawsze",
+      deleteMine: "Usuń moje konto",
+    },
+  });
   const [me, setMe] = useState<Me | null>(null);
   const [loading, setLoading] = useState(true);
   const [cropping, setCropping] = useState(false);
@@ -44,29 +175,15 @@ export default function SettingsPage() {
   const [deleteConfirm, setDeleteConfirm] = useState("");
   const [deleteError, setDeleteError] = useState("");
   const [deleting, setDeleting] = useState(false);
-  // Set once the server has accepted the request: this session is over, so
-  // the page turns into the farewell note instead of re-fetching anything.
   const [scheduled, setScheduled] = useState<{ dueAt: string; purged: boolean } | null>(null);
   const [keeping, setKeeping] = useState(false);
-  // Server identity for the About section, from the same public endpoint
-  // the login form and client apps read. graceDays feeds the deletion copy.
-  const [about, setAbout] = useState<{
-    serverName: string;
-    version: string;
-    graceDays: number;
-  } | null>(null);
-  // A world one of the apps hosts: guests never chose a password (the app
-  // minted one and renews their session with it), so offering to change it
-  // would lock them out of their own seat. The host keeps the option.
+  const [about, setAbout] = useState<{ serverName: string; version: string; graceDays: number } | null>(null);
   const [deviceWorld, setDeviceWorld] = useState(false);
-  // Seeded from the Discord link redirect (?linked=1 / ?error=...).
   const [discordNotice] = useState(() => {
     if (typeof window === "undefined") return "";
     const query = currentQuery();
-    if (query.get("linked") === "1") return "Discord account linked.";
-    if (query.get("error") === "discord_taken") {
-      return "That Discord account is already linked to another user.";
-    }
+    if (query.get("linked") === "1") return copy.discordLinkedNotice;
+    if (query.get("error") === "discord_taken") return copy.discordTaken;
     return "";
   });
 
@@ -83,16 +200,13 @@ export default function SettingsPage() {
           setAbout({
             serverName: data.serverName,
             version: data.version,
-            graceDays:
-              typeof data.accountDeletionGraceDays === "number" ? data.accountDeletionGraceDays : 14,
+            graceDays: typeof data.accountDeletionGraceDays === "number" ? data.accountDeletionGraceDays : 14,
           });
         }
       })
       .catch(() => undefined);
     const query = currentQuery();
-    if (query.get("linked") || query.get("error")) {
-      replaceAddress(currentPathname());
-    }
+    if (query.get("linked") || query.get("error")) replaceAddress(currentPathname());
   }, []);
 
   async function setAvatar(avatar: { url: string } | null) {
@@ -103,9 +217,7 @@ export default function SettingsPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ avatar }),
       });
-      if (response.ok && me) {
-        setMe({ ...me, avatar });
-      }
+      if (response.ok && me) setMe({ ...me, avatar });
     } finally {
       setSaving(false);
     }
@@ -123,14 +235,14 @@ export default function SettingsPage() {
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) {
-        setDeleteError(data.error || "Could not delete your account.");
+        setDeleteError(data.error || copy.deleteFailed);
         setDeleting(false);
         return;
       }
       setConfirmingDelete(false);
       setScheduled({ dueAt: data.dueAt, purged: data.purged === true });
     } catch {
-      setDeleteError("Could not delete your account.");
+      setDeleteError(copy.deleteFailed);
       setDeleting(false);
     }
   }
@@ -143,9 +255,7 @@ export default function SettingsPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ keepAccount: true }),
       });
-      if (response.ok) {
-        setMe((current) => (current ? { ...current, deletionDueAt: null } : current));
-      }
+      if (response.ok) setMe((current) => (current ? { ...current, deletionDueAt: null } : current));
     } finally {
       setKeeping(false);
     }
@@ -156,28 +266,17 @@ export default function SettingsPage() {
     setTimeout(() => setPasswordChanged(false), 2500);
   }
 
-  // The confirm button unlocks on the right password, or on typing DELETE for
-  // Discord-only accounts that have no password.
   const deleteReady = me?.hasPassword ? deleteConfirm.length > 0 : deleteConfirm === "DELETE";
   const graceDays = about?.graceDays ?? 14;
-  const graceCopy =
-    graceDays === 0
-      ? "Your account, the campaigns you created, your characters and your pictures are erased immediately."
-      : `Your account is signed out everywhere and erased after ${graceDays} day${graceDays === 1 ? "" : "s"}, together with the campaigns you created, your characters and your pictures. Signing in before then lets you keep it.`;
+  const graceCopy = graceDays === 0 ? copy.immediateGrace : copy.grace(graceDays);
 
-  if (loading) {
-    return <PageLoading width="narrow" />;
-  }
+  if (loading) return <PageLoading width="narrow" />;
 
   if (scheduled) {
     return (
       <PageNotice width="narrow">
-        {scheduled.purged
-          ? "Your account and everything it owned have been deleted. "
-          : `Your account is scheduled for deletion on ${dueDate(scheduled.dueAt)}. You have been signed out everywhere. To keep it, sign in again before then and choose "Keep my account". `}
-        <Link href="/" className="text-amber-200 hover:text-amber-400">
-          Back to the front door
-        </Link>
+        {scheduled.purged ? copy.deleted : copy.scheduled(dueDate(scheduled.dueAt, locale))} {" "}
+        <Link href="/" className="text-amber-200 hover:text-amber-400">{copy.backFront}</Link>
       </PageNotice>
     );
   }
@@ -185,10 +284,8 @@ export default function SettingsPage() {
   if (!me) {
     return (
       <PageNotice width="narrow">
-        <Link href="/" className="text-amber-200 hover:text-amber-400">
-          Log in
-        </Link>{" "}
-        to manage your account.
+        <Link href="/" className="text-amber-200 hover:text-amber-400">{copy.login}</Link>{" "}
+        {copy.manageSuffix}
       </PageNotice>
     );
   }
@@ -198,23 +295,23 @@ export default function SettingsPage() {
       user={me}
       width="narrow"
       icon={PIXEL_ICONS.characters}
-      title="Account settings"
-      blurb={`Signed in as ${me.username}`}
+      title={copy.accountSettings}
+      blurb={`${copy.signedInAs} ${me.username}`}
       actions={
         me.isAdmin ? (
           <Link href="/admin" className={ui.btnSecondary}>
-            <ShieldCheck className="size-4" /> Admin panel
+            <ShieldCheck className="size-4" /> {copy.adminPanel}
           </Link>
         ) : null
       }
     >
-      <PageSection heading="Profile picture">
+      <PageSection heading={copy.profilePicture}>
         <div className="flex items-center gap-5">
           {me.avatar ? (
             <ImageLightbox
               src={me.avatar.url}
-              alt="Your avatar"
-              caption="Your avatar"
+              alt={copy.yourAvatar}
+              caption={copy.yourAvatar}
               className="size-24 rounded-full border-2 border-amber-500/40 object-cover shadow-glow-gold"
             />
           ) : (
@@ -223,13 +320,8 @@ export default function SettingsPage() {
             </div>
           )}
           <div className="space-y-2">
-            <button
-              type="button"
-              onClick={() => setCropping(true)}
-              disabled={saving}
-              className={ui.btnPrimary}
-            >
-              {me.avatar ? "Change picture" : "Add picture"}
+            <button type="button" onClick={() => setCropping(true)} disabled={saving} className={ui.btnPrimary}>
+              {me.avatar ? copy.changePicture : copy.addPicture}
             </button>
             {me.avatar ? (
               <button
@@ -238,58 +330,49 @@ export default function SettingsPage() {
                 disabled={saving}
                 className="flex items-center gap-1.5 text-xs text-stone-500 hover:text-red-400"
               >
-                <Trash2 className="size-3.5" /> Remove
+                <Trash2 className="size-3.5" /> {copy.remove}
               </button>
             ) : null}
           </div>
         </div>
-        <p className="mt-3 text-xs text-stone-500">
-          Shown next to your name in lobbies and at the table. Character portraits are set on each
-          character.
-        </p>
+        <p className="mt-3 text-xs text-stone-500">{copy.pictureHelp}</p>
       </PageSection>
 
       {deviceWorld && !me.isAdmin ? null : (
-      <PageSection heading={me.hasPassword === false ? "Set a password" : "Password"}>
-        {me.hasPassword === false ? (
-          <>
-            <p className="mb-3 text-sm text-stone-400">
-              You sign in with Discord. Set a password to also log in with your username, for
-              example in the desktop and mobile apps.
+        <PageSection heading={me.hasPassword === false ? copy.setPasswordHeading : copy.passwordHeading}>
+          {me.hasPassword === false ? (
+            <>
+              <p className="mb-3 text-sm text-stone-400">{copy.passwordDiscordHelp}</p>
+              <ChangePasswordForm
+                currentPassword=""
+                lockCurrent
+                submitLabel={copy.setPassword}
+                onChanged={() => {
+                  setMe((current) => (current ? { ...current, hasPassword: true } : current));
+                  flashPasswordSaved();
+                }}
+              />
+            </>
+          ) : (
+            <ChangePasswordForm onChanged={flashPasswordSaved} />
+          )}
+          {passwordChanged ? (
+            <p className="mt-2 inline-flex items-center gap-1 text-sm text-emerald-400">
+              <Check className="size-4" /> {copy.passwordSaved}
             </p>
-            {/* lockCurrent hides the current-password field; the server
-                skips verification for accounts that have none. */}
-            <ChangePasswordForm
-              currentPassword=""
-              lockCurrent
-              submitLabel="Set password"
-              onChanged={() => {
-                setMe((current) => (current ? { ...current, hasPassword: true } : current));
-                flashPasswordSaved();
-              }}
-            />
-          </>
-        ) : (
-          <ChangePasswordForm onChanged={flashPasswordSaved} />
-        )}
-        {passwordChanged ? (
-          <p className="mt-2 inline-flex items-center gap-1 text-sm text-emerald-400">
-            <Check className="size-4" /> Password saved. Other devices were signed out.
-          </p>
-        ) : null}
-      </PageSection>
+          ) : null}
+        </PageSection>
       )}
 
       {me.discordAvailable || me.discordLinked ? (
         <PageSection heading="Discord">
           {me.discordLinked ? (
             <p className="text-sm text-stone-400">
-              <Check className="mr-1 inline size-4 text-emerald-400" />
-              Linked. You can sign in with Discord.
+              <Check className="mr-1 inline size-4 text-emerald-400" /> {copy.discordLinked}
             </p>
           ) : (
             <a href="/api/auth/discord/start?link=1" className={ui.btnSmall}>
-              <Link2 className="size-3.5" /> Link Discord account
+              <Link2 className="size-3.5" /> {copy.linkDiscord}
             </a>
           )}
           {discordNotice ? <p className="mt-2 text-sm text-amber-300">{discordNotice}</p> : null}
@@ -300,26 +383,21 @@ export default function SettingsPage() {
 
       {me.deletionDueAt ? (
         <PageSection
-          heading="Deletion scheduled"
-          ribbon="Pending"
+          heading={copy.deletionScheduled}
+          ribbon={copy.pending}
           ribbonTone="ember"
           tone="danger"
-          intro={`This account will be permanently deleted on ${dueDate(me.deletionDueAt)}. Until then everything still works, and you can call it off.`}
+          intro={copy.deletionIntro(dueDate(me.deletionDueAt, locale))}
         >
-          <button
-            type="button"
-            onClick={keepAccount}
-            disabled={keeping}
-            className={ui.btnPrimary}
-          >
+          <button type="button" onClick={keepAccount} disabled={keeping} className={ui.btnPrimary}>
             {keeping ? <Loader2 className="size-4 animate-spin" /> : <Undo2 className="size-4" />}
-            Keep my account
+            {copy.keepAccount}
           </button>
         </PageSection>
       ) : (
         <PageSection
-          heading="Delete account"
-          ribbon="Irreversible"
+          heading={copy.deleteAccount}
+          ribbon={copy.irreversible}
           ribbonTone="ember"
           tone="danger"
           intro={graceCopy}
@@ -333,32 +411,24 @@ export default function SettingsPage() {
             }}
             className={cn(ui.btnSmall, "hover:border-red-500/50 hover:text-red-400")}
           >
-            <Trash2 className="size-3.5" /> Delete account
+            <Trash2 className="size-3.5" /> {copy.deleteAccount}
           </button>
         </PageSection>
       )}
 
-      <PageSection heading="About">
+      <PageSection heading={copy.about}>
         {about ? (
           <p className="text-sm text-stone-300">
             {about.serverName} <span className="text-stone-500">v{about.version}</span>
           </p>
         ) : (
-          <p className="text-sm text-stone-500">Open Dungeon Master</p>
+          <p className="text-sm text-stone-500">{t("common.appName")}</p>
         )}
         <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2">
-          <Link href="/reference" className="text-xs text-stone-500 hover:text-amber-200">
-            Rules reference
-          </Link>
-          <Link href="/terms" className="text-xs text-stone-500 hover:text-amber-200">
-            Terms of service
-          </Link>
-          <Link href="/privacy" className="text-xs text-stone-500 hover:text-amber-200">
-            Privacy policy
-          </Link>
-          <Link href="/licenses" className="text-xs text-stone-500 hover:text-amber-200">
-            Licenses and attribution
-          </Link>
+          <Link href="/reference" className="text-xs text-stone-500 hover:text-amber-200">{copy.rulesReference}</Link>
+          <Link href="/terms" className="text-xs text-stone-500 hover:text-amber-200">{t("auth.termsOfService")}</Link>
+          <Link href="/privacy" className="text-xs text-stone-500 hover:text-amber-200">{t("auth.privacyPolicy")}</Link>
+          <Link href="/licenses" className="text-xs text-stone-500 hover:text-amber-200">{copy.licenses}</Link>
           <a
             href="https://github.com/Lebbitheplow/open-dungeon-master"
             target="_blank"
@@ -372,7 +442,7 @@ export default function SettingsPage() {
 
       {cropping ? (
         <AvatarCropDialog
-          title="Profile picture"
+          title={copy.profilePicture}
           onUploaded={(image) => setAvatar({ url: image.url })}
           onClose={() => setCropping(false)}
         />
@@ -394,17 +464,15 @@ export default function SettingsPage() {
               )}
             >
               <AlertDialog.Title className="font-display text-lg tracking-wide text-amber-50">
-                Delete your account?
+                {copy.deleteQuestion}
               </AlertDialog.Title>
               <AlertDialog.Description className="mt-2 text-xs text-stone-400">
-                {graceCopy} Messages you wrote in other people&apos;s campaigns stay in those
-                transcripts without your name on them. Once the account is erased it cannot be
-                brought back.
+                {graceCopy} {copy.deleteDialogSuffix}
               </AlertDialog.Description>
               <div className="mt-4">
                 {me.hasPassword ? (
                   <label className="block text-xs text-stone-400">
-                    Enter your password to confirm
+                    {copy.passwordConfirm}
                     <input
                       type="password"
                       autoFocus
@@ -415,7 +483,7 @@ export default function SettingsPage() {
                   </label>
                 ) : (
                   <label className="block text-xs text-stone-400">
-                    Type DELETE to confirm
+                    {copy.typeDelete}
                     <input
                       type="text"
                       autoFocus
@@ -429,7 +497,7 @@ export default function SettingsPage() {
               </div>
               <div className="mt-4 flex justify-end gap-2">
                 <AlertDialog.Cancel className={ui.btnSmall} disabled={deleting}>
-                  Cancel
+                  {t("common.cancel")}
                 </AlertDialog.Cancel>
                 <button
                   type="button"
@@ -438,7 +506,7 @@ export default function SettingsPage() {
                   className={cn(ui.btnPrimary, "from-red-200 via-red-300 to-red-500 text-red-950")}
                 >
                   {deleting ? <Loader2 className="size-4 animate-spin" /> : null}
-                  {graceDays === 0 ? "Delete forever" : "Delete my account"}
+                  {graceDays === 0 ? copy.deleteForever : copy.deleteMine}
                 </button>
               </div>
             </AlertDialog.Content>

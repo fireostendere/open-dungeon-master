@@ -21,30 +21,7 @@ import { WorkshopSection } from "@/app/home/WorkshopSection";
 import { pickContinue, type HomeCampaign } from "@/app/home/types";
 import { currentPathname, currentQuery, navigateTo, replaceAddress } from "@/lib/navigation";
 import { useI18n } from "@/lib/i18n";
-
-const COPY = {
-  en: {
-    signedInAs: "Signed in as {user}",
-    helpTip: "What this app is and how a table works",
-    deleteConfirm: "Delete \"{title}\" for everyone? All characters, messages, and story progress are lost. This cannot be undone.",
-    deleteFailed: "Could not delete \"{title}\".",
-    copyFailed: "Could not make the copy.",
-  },
-  ru: {
-    signedInAs: "Вы вошли как {user}",
-    helpTip: "Что это за приложение и как работает игровой стол",
-    deleteConfirm: "Удалить «{title}» для всех? Все персонажи, сообщения и прогресс истории будут потеряны без возможности восстановления.",
-    deleteFailed: "Не удалось удалить «{title}».",
-    copyFailed: "Не удалось создать копию.",
-  },
-  pl: {
-    signedInAs: "Zalogowano jako {user}",
-    helpTip: "Czym jest ta aplikacja i jak działa stół",
-    deleteConfirm: "Usunąć „{title}” dla wszystkich? Wszystkie postacie, wiadomości i postęp historii zostaną bezpowrotnie utracone.",
-    deleteFailed: "Nie udało się usunąć „{title}”.",
-    copyFailed: "Nie udało się utworzyć kopii.",
-  },
-} as const;
+import { localeText } from "@/lib/i18n/locale-text";
 
 function requestedWizard(): "campaign" | "solo" | null {
   if (typeof window === "undefined") return null;
@@ -54,7 +31,29 @@ function requestedWizard(): "campaign" | "solo" | null {
 
 export function Dashboard({ user, onLogout }: { user: SessionUser; onLogout: () => void }) {
   const { t, locale } = useI18n();
-  const copy = COPY[locale];
+  const copy = localeText(locale, {
+    en: {
+      signedIn: "Signed in as",
+      howToTooltip: "What this app is and how a table works",
+      deleteForEveryone: "for everyone? All characters, messages, and story progress are lost. This cannot be undone.",
+      couldNotDelete: "Could not delete",
+      couldNotCopy: "Could not make the copy.",
+    },
+    ru: {
+      signedIn: "Вы вошли как",
+      howToTooltip: "Что это за приложение и как проходит игра за столом",
+      deleteForEveryone: "для всех? Все персонажи, сообщения и прогресс истории будут потеряны. Это действие нельзя отменить.",
+      couldNotDelete: "Не удалось удалить",
+      couldNotCopy: "Не удалось создать копию.",
+    },
+    pl: {
+      signedIn: "Zalogowano jako",
+      howToTooltip: "Czym jest ta aplikacja i jak działa gra przy stole",
+      deleteForEveryone: "dla wszystkich? Wszystkie postacie, wiadomości i postęp fabuły zostaną utracone. Tej operacji nie można cofnąć.",
+      couldNotDelete: "Nie udało się usunąć",
+      couldNotCopy: "Nie udało się utworzyć kopii.",
+    },
+  });
   const [campaigns, setCampaigns] = useState<HomeCampaign[]>([]);
   const [workshops, setWorkshops] = useState<WorkshopSummary[]>([]);
   const [loading, setLoading] = useState(true);
@@ -111,13 +110,16 @@ export function Dashboard({ user, onLogout }: { user: SessionUser; onLogout: () 
   }, [refreshWorkshops]);
 
   async function deleteCampaign(campaign: HomeCampaign) {
-    if (!window.confirm(copy.deleteConfirm.replace("{title}", campaign.title))) return;
+    if (!window.confirm(`${t("common.delete")} "${campaign.title}" ${copy.deleteForEveryone}`)) return;
     setActionError("");
-    const response = await fetch(`/api/campaigns/${campaign.id}`, { method: "DELETE" }).catch(() => null);
+    const response = await fetch(`/api/campaigns/${campaign.id}`, { method: "DELETE" }).catch(
+      () => null,
+    );
     if (response?.ok) {
       setCampaigns((current) => current.filter((entry) => entry.id !== campaign.id));
     } else {
-      setActionError(copy.deleteFailed.replace("{title}", campaign.title));
+      const data = await response?.json().catch(() => ({}));
+      setActionError(data?.error || `${copy.couldNotDelete} "${campaign.title}".`);
     }
   }
 
@@ -125,9 +127,12 @@ export function Dashboard({ user, onLogout }: { user: SessionUser; onLogout: () 
     setCloningId(id);
     setActionError("");
     try {
-      const response = await fetch(`/api/campaigns/${id}/clone`, { method: "POST" }).catch(() => null);
+      const response = await fetch(`/api/campaigns/${id}/clone`, { method: "POST" }).catch(
+        () => null,
+      );
       if (!response?.ok) {
-        setActionError(copy.copyFailed);
+        const data = await response?.json().catch(() => ({}));
+        setActionError(data?.error || copy.couldNotCopy);
         return;
       }
       const data = await response.json().catch(() => ({}));
@@ -155,17 +160,17 @@ export function Dashboard({ user, onLogout }: { user: SessionUser; onLogout: () 
             <PixelTile src={PIXEL_ICONS.story} />
             <span className="min-w-0">
               <span className="block text-balance font-display text-lg leading-tight tracking-wide text-amber-50 sm:text-xl">
-                Open Dungeon Master
+                {t("common.appName")}
               </span>
               <span className="block truncate text-sm text-stone-500">
-                {copy.signedInAs.replace("{user}", user.username)}
+                {copy.signedIn} {user.username}
               </span>
             </span>
           </AppBrand>
           <div className="flex shrink-0 items-center gap-2">
             <AppHomeButton />
             <NotificationBell />
-            <Tooltip content={copy.helpTip} side="bottom">
+            <Tooltip content={copy.howToTooltip} side="bottom">
               <button type="button" onClick={() => setHowToOpen(true)} className={ui.btnSmall}>
                 <ScrollText className="size-4" />
                 <span className="hidden sm:inline">{t("nav.howToPlay")}</span>
@@ -181,7 +186,9 @@ export function Dashboard({ user, onLogout }: { user: SessionUser; onLogout: () 
             <ContinueHero campaign={continueCampaign} userId={user.id} />
           </section>
         ) : !loading && !loadFailed && campaigns.length === 0 ? (
-          <section className="mb-6"><EmptyHero /></section>
+          <section className="mb-6">
+            <EmptyHero />
+          </section>
         ) : null}
 
         <section className="mb-8">
@@ -207,6 +214,7 @@ export function Dashboard({ user, onLogout }: { user: SessionUser; onLogout: () 
           onClone={clone}
           onDelete={deleteCampaign}
         />
+
         <WorkshopSection workshops={workshops} cloningId={cloningId} onClone={clone} />
         <JoinCard inputRef={joinInputRef} />
         <HomeFooter />

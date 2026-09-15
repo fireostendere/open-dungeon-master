@@ -3,17 +3,16 @@ import { GET as coreGET, POST as corePOST } from "./route-core";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-type CampaignLanguage = "ru" | "en" | "pl";
+type CampaignLocale = "ru" | "en" | "pl";
 
 export async function GET() {
   return coreGET();
 }
 
-function localeFromCookie(request: Request): CampaignLanguage {
+function localeFromCookie(request: Request): CampaignLocale {
   const cookie = request.headers.get("cookie") ?? "";
   const match = cookie.match(/(?:^|;\s*)odm_locale=(ru|en|pl)(?:;|$)/);
-  const locale = match?.[1];
-  return locale === "en" || locale === "pl" || locale === "ru" ? locale : "ru";
+  return match?.[1] === "en" || match?.[1] === "pl" ? match[1] : "ru";
 }
 
 export async function POST(request: Request) {

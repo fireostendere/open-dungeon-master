@@ -2,7 +2,13 @@
 
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
-import { translations, type Locale, type UnitSystem } from "./translations";
+import {
+  isLocale,
+  nextLocale,
+  translations,
+  type Locale,
+  type UnitSystem,
+} from "./translations";
 
 interface I18nContextType {
   locale: Locale;
@@ -23,11 +29,6 @@ const I18nContext = createContext<I18nContextType | null>(null);
 const STORAGE_LOCALE_KEY = "odm_locale";
 const STORAGE_UNITS_KEY = "odm_unit_system";
 const LOCALE_COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
-const NEXT_LOCALE: Record<Locale, Locale> = { en: "ru", ru: "pl", pl: "en" };
-
-function isLocale(value: unknown): value is Locale {
-  return value === "en" || value === "ru" || value === "pl";
-}
 
 function persistLocale(locale: Locale) {
   document.documentElement.lang = locale;
@@ -86,11 +87,11 @@ export function I18nProvider({
   const [unitSystem, setUnitSystemState] = useState<UnitSystem>("metric");
 
   useEffect(() => {
-    let nextLocale: Locale = initialLocale;
+    let next: Locale = initialLocale;
     let nextUnits: UnitSystem = "metric";
     try {
       const savedLocale = localStorage.getItem(STORAGE_LOCALE_KEY);
-      if (isLocale(savedLocale)) nextLocale = savedLocale;
+      if (isLocale(savedLocale)) next = savedLocale;
 
       const savedUnits = localStorage.getItem(STORAGE_UNITS_KEY);
       if (savedUnits === "metric" || savedUnits === "imperial") nextUnits = savedUnits;
@@ -98,9 +99,12 @@ export function I18nProvider({
       // Storage can be unavailable in private/embedded contexts; server locale stays usable.
     }
 
-    setLocaleState(nextLocale);
-    setUnitSystemState(nextUnits);
-    persistLocale(nextLocale);
+    const applyStoredPreferences = window.setTimeout(() => {
+      setLocaleState(next);
+      setUnitSystemState(nextUnits);
+    }, 0);
+    persistLocale(next);
+    return () => window.clearTimeout(applyStoredPreferences);
   }, [initialLocale]);
 
   const setLocale = (newLocale: Locale) => {
@@ -109,7 +113,9 @@ export function I18nProvider({
     persistCampaignLanguage(newLocale);
   };
 
-  const toggleLocale = () => setLocale(NEXT_LOCALE[locale]);
+  // The original two-language switch was a toggle. Keep the same API for all
+  // callers, but cycle through the complete supported locale list.
+  const toggleLocale = () => setLocale(nextLocale(locale));
 
   const setUnitSystem = (newSystem: UnitSystem) => {
     setUnitSystemState(newSystem);
@@ -125,8 +131,8 @@ export function I18nProvider({
   const t = useMemo(
     () =>
       (path: string, params?: Record<string, string | number>): string => {
-        // English is the canonical fallback. Missing target copy must never make
-        // the UI display a raw translation key.
+        // English is the canonical fallback. A missing localized string must
+        // never expose a raw key to players.
         const source = lookup(locale, path) ?? lookup("en", path);
         return source ? interpolate(source, params) : path;
       },

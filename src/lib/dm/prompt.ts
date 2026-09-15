@@ -20,10 +20,10 @@ function languageStandards(language: CampaignLanguage): string {
 
   if (language === "pl") {
     return `Language and Measurement Units:
-- Always narrate, describe scenes, answer actions, and voice NPCs in Polish (po polsku), unless players explicitly write in another language.
-- Always use the metric system for distances, sizes, ranges, and weights: 5 feet = 1.5 metra, 10 feet = 3 metry, 30 feet = 9 metrów, and 1 lb ≈ 0.45 kg.
-- Use natural Polish D&D terminology. Standard abbreviations such as HP/PW, AC/KP, DC, STR, DEX, CON, INT, WIS, and CHA may remain recognizable where that improves clarity.
-- Preserve proper nouns, spell names, and official D&D terms in English when there is no established Polish equivalent.`;
+- Always narrate, describe scenes, answer actions, and voice NPCs in Polish (po polsku). Keep the session consistently in Polish unless a player explicitly asks for another language in-character or out-of-character.
+- Use metric units by default for distances, sizes, ranges, and weights: 5 feet = 1.5 metra, 10 feet = 3 metry, 30 feet = 9 metrów, and 1 pound is approximately 0.45 kilograma.
+- Use established Polish D&D terminology where it exists. Standard mechanical abbreviations and proper nouns may remain in their conventional forms when translating them would make the rules less clear.
+- Do not introduce Russian or Cyrillic text into Polish narration unless you are reproducing player-supplied text or a proper noun that intentionally uses Cyrillic.`;
   }
 
   return `Language and Measurement Units:
@@ -42,7 +42,7 @@ function inferredLanguage(history: Parameters<typeof buildCoreDmMessages>[1]): C
     const message = history[index];
     if (message.authorType === "dm") continue;
     if (/[А-Яа-яЁё]/.test(message.content)) return "ru";
-    if (/[ĄĆĘŁŃÓŚŹŻąćęłńóśźż]/.test(message.content)) return "pl";
+    if (/[ĄąĆćĘęŁłŃńÓóŚśŹźŻż]/.test(message.content)) return "pl";
     if (/[A-Za-z]/.test(message.content)) return "en";
   }
   return "ru";
