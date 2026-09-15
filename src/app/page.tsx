@@ -11,6 +11,12 @@ import { Dashboard } from "@/app/home/Dashboard";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { useI18n } from "@/lib/i18n";
 
+const HOME_COPY = {
+  en: { licenses: "Licenses" },
+  ru: { licenses: "Лицензии" },
+  pl: { licenses: "Licencje" },
+} as const;
+
 export default function Home() {
   const [checking, setChecking] = useState(true);
   const [user, setUser] = useState<SessionUser | null>(null);
@@ -20,15 +26,11 @@ export default function Home() {
     fetch("/api/auth/me")
       .then((response) => response.json())
       .then((data) => {
-        if (!cancelled) {
-          setUser(data.user ?? null);
-        }
+        if (!cancelled) setUser(data.user ?? null);
       })
       .catch(() => undefined)
       .finally(() => {
-        if (!cancelled) {
-          setChecking(false);
-        }
+        if (!cancelled) setChecking(false);
       });
     return () => {
       cancelled = true;
@@ -44,35 +46,25 @@ export default function Home() {
   }
 
   if (user?.mustChangePassword) {
-    return (
-      <ForcedPasswordChange
-        onChanged={() => setUser({ ...user, mustChangePassword: false })}
-      />
-    );
+    return <ForcedPasswordChange onChanged={() => setUser({ ...user, mustChangePassword: false })} />;
   }
 
-  return user ? (
-    <Dashboard user={user} onLogout={() => setUser(null)} />
-  ) : (
-    <AuthScreen onAuthed={setUser} />
-  );
+  return user ? <Dashboard user={user} onLogout={() => setUser(null)} /> : <AuthScreen onAuthed={setUser} />;
 }
 
 // Shown when a session belongs to an account flagged by an admin password
 // reset; the server rejects campaign APIs until the password is changed.
 function ForcedPasswordChange({ onChanged }: { onChanged: () => void }) {
+  const { t } = useI18n();
   return (
     <main className="bg-starfield flex flex-1 items-center justify-center p-4 sm:p-6">
       <div className="w-full max-w-sm animate-fade-up-slow">
         <div className="glass texture-noise rounded-xl p-6 shadow-elev-2">
           <h1 className="mb-1 font-display text-xl tracking-wide text-amber-50">
-            Set a new password
+            {t("auth.forcedPasswordTitle")}
           </h1>
-          <p className="mb-4 text-sm text-stone-400">
-            An admin reset your password. Enter the temporary password you were given and pick a
-            new one.
-          </p>
-          <ChangePasswordForm submitLabel="Set new password" onChanged={onChanged} />
+          <p className="mb-4 text-sm text-stone-400">{t("auth.forcedPasswordDesc")}</p>
+          <ChangePasswordForm submitLabel={t("auth.setNewPassword")} onChanged={onChanged} />
         </div>
       </div>
     </main>
@@ -80,7 +72,8 @@ function ForcedPasswordChange({ onChanged }: { onChanged: () => void }) {
 }
 
 function AuthScreen({ onAuthed }: { onAuthed: (user: SessionUser) => void }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
+  const copy = HOME_COPY[locale];
   const [howToOpen, setHowToOpen] = useState(false);
 
   return (
@@ -96,9 +89,7 @@ function AuthScreen({ onAuthed }: { onAuthed: (user: SessionUser) => void }) {
             <h1 className="text-balance font-display text-3xl tracking-wide text-amber-50">
               {t("common.appName")}
             </h1>
-            <p className="mt-2 text-pretty text-sm text-stone-400">
-              {t("common.appTagline")}
-            </p>
+            <p className="mt-2 text-pretty text-sm text-stone-400">{t("common.appTagline")}</p>
           </div>
         </div>
 
@@ -118,15 +109,15 @@ function AuthScreen({ onAuthed }: { onAuthed: (user: SessionUser) => void }) {
 
         <footer className="mt-6 flex items-center justify-center gap-4 border-t border-stone-900 pt-4">
           <a href="/licenses" className="text-xs text-stone-600 hover:text-stone-400">
-            Licenses
+            {copy.licenses}
           </a>
           <span className="text-xs text-stone-700">&middot;</span>
           <a href="/privacy" className="text-xs text-stone-600 hover:text-stone-400">
-            Privacy
+            {t("auth.privacyPolicy")}
           </a>
           <span className="text-xs text-stone-700">&middot;</span>
           <a href="/terms" className="text-xs text-stone-600 hover:text-stone-400">
-            Terms
+            {t("auth.termsOfService")}
           </a>
         </footer>
       </div>
