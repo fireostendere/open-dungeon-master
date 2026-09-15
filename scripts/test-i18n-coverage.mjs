@@ -85,24 +85,38 @@ function loadCatalogs() {
   assert(initializer && ts.isObjectLiteralExpression(initializer), "translations must be a static object literal");
   const enNode = propertyInitializer(initializer, "en");
   const ruNode = propertyInitializer(initializer, "ru");
-  assert(enNode && ruNode, "translations must contain both en and ru catalogs");
-  return { en: flattenStatic(enNode), ru: flattenStatic(ruNode) };
+  const plNode = propertyInitializer(initializer, "pl");
+  assert(enNode && ruNode && plNode, "translations must contain en, ru, and pl catalogs");
+  return {
+    en: flattenStatic(enNode),
+    ru: flattenStatic(ruNode),
+    pl: flattenStatic(plNode),
+  };
 }
 
-function compareCatalogs(en, ru) {
+function compareCatalogs(en, ru, pl) {
   const enKeys = [...en.keys()].sort();
   const ruKeys = [...ru.keys()].sort();
+  const plKeys = [...pl.keys()].sort();
   assert.deepEqual(ruKeys, enKeys, "English and Russian catalogs must contain exactly the same keys");
+  assert.deepEqual(plKeys, enKeys, "English and Polish catalogs must contain exactly the same keys");
   for (const key of enKeys) {
     const english = en.get(key);
     const russian = ru.get(key);
+    const polish = pl.get(key);
     assert(english?.trim(), `English translation ${key} is empty`);
     assert(russian?.trim(), `Russian translation ${key} is empty`);
+    assert(polish?.trim(), `Polish translation ${key} is empty`);
     assert(
       !CYRILLIC.test(english),
       `English translation ${key} contains Cyrillic: ${JSON.stringify(english)}`,
     );
-    assert.deepEqual(placeholders(russian), placeholders(english), `placeholder mismatch for ${key}`);
+    assert(
+      !CYRILLIC.test(polish),
+      `Polish translation ${key} contains Cyrillic: ${JSON.stringify(polish)}`,
+    );
+    assert.deepEqual(placeholders(russian), placeholders(english), `Russian placeholder mismatch for ${key}`);
+    assert.deepEqual(placeholders(polish), placeholders(english), `Polish placeholder mismatch for ${key}`);
   }
 }
 
@@ -142,6 +156,8 @@ function localeBranch(condition) {
   let literal = null;
   if (isLocaleExpression(value.left)) literal = stringValue(value.right);
   else if (isLocaleExpression(value.right)) literal = stringValue(value.left);
+  // This helper only answers whether a branch is explicitly Russian. Polish
+  // and English are both non-Cyrillic and do not need Russian-scope treatment.
   if (literal !== "ru" && literal !== "en") return null;
 
   const comparisonIsTrue = equality;
@@ -282,14 +298,15 @@ function auditUiFile(file, englishCatalog, usedKeys) {
   visit(sf);
 }
 
-const { en, ru } = loadCatalogs();
-compareCatalogs(en, ru);
+const { en, ru, pl } = loadCatalogs();
+compareCatalogs(en, ru, pl);
 
 for (const stale of [
   "src/lib/i18n/MarkerBoundary.tsx",
   "src/lib/i18n/marker.ts",
   "src/lib/i18n/generated/en.json",
   "src/lib/i18n/generated/ru.json",
+  "src/lib/i18n/generated/pl.json",
   "scripts/i18n-extract.mjs",
 ]) {
   assert(!fs.existsSync(path.join(root, stale)), `${stale} is obsolete and must not be restored`);
@@ -304,5 +321,5 @@ const usedKeys = new Set();
 for (const file of files) auditUiFile(file, en, usedKeys);
 
 console.log(
-  `i18n coverage passed: ${en.size} paired catalog keys, ${usedKeys.size} referenced English keys, ${files.length} audited source files; English paths contain no Cyrillic leakage.`,
+  `i18n coverage passed: ${en.size} keys aligned across en/ru/pl, ${usedKeys.size} referenced keys, ${files.length} audited source files; English and Polish catalogs contain no Cyrillic leakage.`,
 );
