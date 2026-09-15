@@ -3,15 +3,106 @@
 import { AlertTriangle, Hammer, Loader2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { cn } from "@/lib/cn";
+import { useI18n, type Locale } from "@/lib/i18n";
 import { ui } from "@/lib/ui";
 import {
   IMPORT_KINDS,
-  IMPORT_KIND_LABELS,
   SINGULAR_KINDS,
   type ImportKind,
   type ImportPlan,
+  type ImportWarning,
 } from "@/lib/workshop/import";
 import type { ImportSourceSummary } from "@/app/workshop/types";
+
+const COPY = {
+  en: {
+    kindLabels: {
+      lore: "World lore",
+      locations: "Places",
+      overworld: "Region map",
+      encounters: "Prepared encounters",
+      tables: "Roll tables",
+      npcs: "NPCs",
+      maps: "Battle maps",
+      storyboard: "The storyboard",
+      houseRules: "House rules and variant rules",
+    },
+    importFailed: "Could not import.",
+    brought: (count: number) => `Brought ${count} item${count === 1 ? "" : "s"} across.`,
+    empty:
+      "You have nothing to copy from yet. Build maps, lore and encounters in the Workshop, or run a campaign, and you can bring any of it straight in here.",
+    startFrom: "Start from",
+    none: "None",
+    workshops: "Workshops",
+    campaigns: "Campaigns",
+    existingRules: "Existing house rules",
+    replace: "Replace them",
+    append: "Keep them and add these",
+    bring: "Bring it in",
+    creationHelp:
+      "This lands in the campaign right after it is created. Nothing is removed from where it came from.",
+    emptyWorkshop: "That workshop is still empty. Build something in it first.",
+    emptyCampaign: "That campaign has no prep to copy yet.",
+  },
+  ru: {
+    kindLabels: {
+      lore: "Лор мира",
+      locations: "Места",
+      overworld: "Карта региона",
+      encounters: "Подготовленные столкновения",
+      tables: "Таблицы бросков",
+      npcs: "NPC",
+      maps: "Боевые карты",
+      storyboard: "Сценарный план",
+      houseRules: "Домашние и вариантные правила",
+    },
+    importFailed: "Не удалось импортировать.",
+    brought: (count: number) => `Перенесено объектов: ${count}.`,
+    empty:
+      "Пока неоткуда копировать подготовку. Создайте карты, лор и столкновения в Мастерской или проведите другую кампанию — после этого их можно будет перенести сюда.",
+    startFrom: "Источник",
+    none: "Нет",
+    workshops: "Мастерские",
+    campaigns: "Кампании",
+    existingRules: "Существующие домашние правила",
+    replace: "Заменить их",
+    append: "Сохранить и добавить новые",
+    bring: "Импортировать",
+    creationHelp:
+      "Эти материалы попадут в кампанию сразу после её создания. В исходном месте ничего не удаляется.",
+    emptyWorkshop: "Эта мастерская пока пуста. Сначала подготовьте в ней материалы.",
+    emptyCampaign: "В этой кампании пока нет подготовки, которую можно скопировать.",
+  },
+  pl: {
+    kindLabels: {
+      lore: "Lore świata",
+      locations: "Miejsca",
+      overworld: "Mapa regionu",
+      encounters: "Przygotowane starcia",
+      tables: "Tabele rzutów",
+      npcs: "NPC",
+      maps: "Mapy walki",
+      storyboard: "Plan fabuły",
+      houseRules: "Zasady domowe i wariantowe",
+    },
+    importFailed: "Nie udało się zaimportować.",
+    brought: (count: number) => `Przeniesiono elementów: ${count}.`,
+    empty:
+      "Nie masz jeszcze skąd kopiować przygotowania. Zbuduj mapy, lore i starcia w Warsztacie albo poprowadź inną kampanię, a potem przenieś materiały tutaj.",
+    startFrom: "Źródło",
+    none: "Brak",
+    workshops: "Warsztaty",
+    campaigns: "Kampanie",
+    existingRules: "Istniejące zasady domowe",
+    replace: "Zastąp je",
+    append: "Zachowaj je i dodaj nowe",
+    bring: "Importuj",
+    creationHelp:
+      "Materiały trafią do kampanii zaraz po jej utworzeniu. Nic nie zostanie usunięte ze źródła.",
+    emptyWorkshop: "Ten warsztat jest jeszcze pusty. Najpierw przygotuj w nim materiały.",
+    emptyCampaign: "Ta kampania nie ma jeszcze przygotowania, które można skopiować.",
+  },
+} as const;
 
 // Choosing what crosses over into a table.
 //
@@ -38,6 +129,52 @@ export const EMPTY_SELECTION: ImportSelection = {
   houseRules: "replace",
 };
 
+function localizeWarning(warning: ImportWarning, locale: Locale): string {
+  if (locale === "en") return warning.message;
+  const count = Number(warning.message.match(/^\d+/)?.[0] ?? 0);
+  if (locale === "ru") {
+    if (warning.kind === "houseRules") {
+      return "В кампании уже есть домашние правила. При импорте они будут заменены, если не выбрать добавление.";
+    }
+    if (warning.kind === "storyboard") {
+      return "В кампании уже есть сюжетная арка. Места, квесты, бои и заметки из сценарного плана будут перенесены, но его сюжетные такты не заменят уже сыгранный каркас истории.";
+    }
+    if (warning.kind === "overworld" && warning.message.includes("already has a region map")) {
+      return "В кампании уже есть карта региона. Импорт заменит её.";
+    }
+    if (warning.kind === "overworld" && warning.message.includes("Places are not included")) {
+      return "Места не выбраны для импорта, поэтому карта региона будет перенесена без маркеров. Они появятся снова по мере путешествия группы.";
+    }
+    if (warning.kind === "encounters" && warning.message.includes("hand-built monsters")) {
+      return `${count || "Некоторые"} подготовленных столкновений ссылаются на авторских монстров. Они остаются в бестиарии своего создателя и корректно разрешаются только если владелец кампании — тот же пользователь.`;
+    }
+    if (count) {
+      return `Совпадений по имени: ${count}. Такие записи будут автоматически пронумерованы при импорте.`;
+    }
+  }
+  if (locale === "pl") {
+    if (warning.kind === "houseRules") {
+      return "Kampania ma już zasady domowe. Import je zastąpi, chyba że wybierzesz dołączenie nowych.";
+    }
+    if (warning.kind === "storyboard") {
+      return "Kampania ma już główny wątek. Miejsca, zadania, walki i notatki z planu fabuły zostaną przeniesione, ale jego punkty nie nadpiszą szkieletu historii, który stół już rozgrywa.";
+    }
+    if (warning.kind === "overworld" && warning.message.includes("already has a region map")) {
+      return "Kampania ma już mapę regionu. Import ją zastąpi.";
+    }
+    if (warning.kind === "overworld" && warning.message.includes("Places are not included")) {
+      return "Miejsca nie zostały wybrane do importu, więc mapa regionu trafi bez znaczników. Zostaną ponownie rozmieszczone podczas podróży drużyny.";
+    }
+    if (warning.kind === "encounters" && warning.message.includes("hand-built monsters")) {
+      return `${count || "Niektóre"} przygotowanych starć odwołuje się do własnych potworów. Pozostają one w bestiariuszu ich twórcy i poprawnie działają tylko wtedy, gdy właścicielem kampanii jest ten sam użytkownik.`;
+    }
+    if (count) {
+      return `Liczba kolizji nazw: ${count}. Takie wpisy zostaną automatycznie ponumerowane podczas importu.`;
+    }
+  }
+  return warning.message;
+}
+
 export function ContentImportPicker({
   campaignId,
   selection,
@@ -51,6 +188,8 @@ export function ContentImportPicker({
   // Only meaningful with a campaignId: importing happens immediately.
   onImported?: (copied: number) => void;
 }) {
+  const { locale } = useI18n();
+  const copy = COPY[locale];
   const [sources, setSources] = useState<ImportSourceSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [plan, setPlan] = useState<ImportPlan | null>(null);
@@ -153,10 +292,10 @@ export function ContentImportPicker({
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) {
-        setNote(data.error || "Could not import.");
+        setNote(data.error || copy.importFailed);
         return;
       }
-      setNote(`Brought ${data.copied} item${data.copied === 1 ? "" : "s"} across.`);
+      setNote(copy.brought(data.copied ?? 0));
       onChange({ ...selection, select: [] });
       onImported?.(data.copied ?? 0);
       await refreshPlan();
@@ -170,18 +309,13 @@ export function ContentImportPicker({
   }
 
   if (!offered.length) {
-    return (
-      <p className="text-xs text-stone-500">
-        You have nothing to copy from yet. Build maps, lore and encounters in the Workshop, or run
-        a campaign, and you can bring any of it straight in here.
-      </p>
-    );
+    return <p className="text-xs text-stone-500">{copy.empty}</p>;
   }
 
   return (
     <div className="space-y-3">
       <label className="block">
-        <span className="mb-1 block text-xs text-stone-400">Start from</span>
+        <span className="mb-1 block text-xs text-stone-400">{copy.startFrom}</span>
         <select
           value={selection.sourceId}
           onChange={(event) =>
@@ -189,9 +323,9 @@ export function ContentImportPicker({
           }
           className={ui.input}
         >
-          <option value="">None</option>
+          <option value="">{copy.none}</option>
           {workshops.length ? (
-            <optgroup label="Workshops">
+            <optgroup label={copy.workshops}>
               {workshops.map((source) => (
                 <option key={source.id} value={source.id}>
                   {source.title}
@@ -200,7 +334,7 @@ export function ContentImportPicker({
             </optgroup>
           ) : null}
           {campaigns.length ? (
-            <optgroup label="Campaigns">
+            <optgroup label={copy.campaigns}>
               {campaigns.map((source) => (
                 <option key={source.id} value={source.id}>
                   {source.title}
@@ -223,7 +357,7 @@ export function ContentImportPicker({
                     onChange={() => toggle(kind)}
                     className="accent-amber-400"
                   />
-                  <span>{IMPORT_KIND_LABELS[kind]}</span>
+                  <span>{copy.kindLabels[kind]}</span>
                   {SINGULAR_KINDS.has(kind) ? null : (
                     <span className="text-xs text-stone-500">({chosen.contents[kind]})</span>
                   )}
@@ -233,7 +367,7 @@ export function ContentImportPicker({
 
             {selection.select.includes("houseRules") ? (
               <label className="block">
-                <span className="mb-1 block text-xs text-stone-400">Existing house rules</span>
+                <span className="mb-1 block text-xs text-stone-400">{copy.existingRules}</span>
                 <select
                   value={selection.houseRules}
                   onChange={(event) =>
@@ -244,8 +378,8 @@ export function ContentImportPicker({
                   }
                   className={cn(ui.input, "py-1 text-xs")}
                 >
-                  <option value="replace">Replace them</option>
-                  <option value="append">Keep them and add these</option>
+                  <option value="replace">{copy.replace}</option>
+                  <option value="append">{copy.append}</option>
                 </select>
               </label>
             ) : null}
@@ -258,7 +392,7 @@ export function ContentImportPicker({
                     className="flex items-start gap-1.5 text-xs text-amber-300/90"
                   >
                     <AlertTriangle className="mt-0.5 size-3.5 shrink-0" />
-                    <span>{warning.message}</span>
+                    <span>{localizeWarning(warning, locale)}</span>
                   </li>
                 ))}
               </ul>
@@ -273,22 +407,17 @@ export function ContentImportPicker({
                   className={ui.btnSmall}
                 >
                   {busy ? <Loader2 className="size-3.5 animate-spin" /> : <Hammer className="size-3.5" />}
-                  Bring it in
+                  {copy.bring}
                 </button>
                 {note ? <span className="text-xs text-emerald-400">{note}</span> : null}
               </div>
             ) : (
-              <p className="text-xs text-stone-500">
-                This lands in the campaign right after it is created. Nothing is removed from
-                where it came from.
-              </p>
+              <p className="text-xs text-stone-500">{copy.creationHelp}</p>
             )}
           </>
         ) : (
           <p className="text-xs text-stone-500">
-            {chosen.kind === "workshop"
-              ? "That workshop is still empty. Build something in it first."
-              : "That campaign has no prep to copy yet."}
+            {chosen.kind === "workshop" ? copy.emptyWorkshop : copy.emptyCampaign}
           </p>
         )
       ) : null}
