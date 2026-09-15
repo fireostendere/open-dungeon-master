@@ -1,8 +1,11 @@
 import { GET as coreGET, POST as corePOST } from "./route-core";
 
-export { dynamic, runtime } from "./route-core";
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
-export const GET = coreGET;
+export async function GET() {
+  return coreGET();
+}
 
 function localeFromCookie(request: Request): "ru" | "en" {
   const cookie = request.headers.get("cookie") ?? "";

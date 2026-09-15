@@ -36,6 +36,12 @@ assert.match(settings, /normalizeGameSettings/);
 assert.match(context, /document\.cookie = `\$\{STORAGE_LOCALE_KEY\}=\$\{locale\}/);
 assert.match(context, /persistLocale\(nextLocale\)/);
 assert.match(context, /persistLocale\(newLocale\)/);
+assert.match(context, /persistCampaignLanguage\(newLocale\)/);
+assert.match(context, /\/api\/campaigns\/\$\{encodeURIComponent\(match\[1\]\)\}\/settings/);
+assert.match(context, /JSON\.stringify\(\{ language: locale \}\)/);
+
+assert.match(campaignsRoute, /export const runtime = "nodejs"/);
+assert.match(campaignsRoute, /export const dynamic = "force-dynamic"/);
 assert.match(campaignsRoute, /odm_locale=\(ru\|en\)/);
 assert.match(campaignsRoute, /gameSettings:\s*\{ \.\.\.currentSettings, language \}/);
 assert.match(campaignsRoute, /return corePOST\(forwarded\)/);
@@ -47,4 +53,4 @@ assert.match(prompt, /export \* from "@\/lib\/dm\/prompt-core"/);
 assert.match(settings, /export \* from "@\/lib\/schemas\/game-settings-core"/);
 assert.match(campaignsRoute, /from "\.\/route-core"/);
 
-console.log("language coverage passed: UI locale persists to campaign creation and DM narration has explicit RU/EN branches.");
+console.log("language coverage passed: UI locale persists to campaign creation, existing campaign settings, and explicit RU/EN DM narration.");

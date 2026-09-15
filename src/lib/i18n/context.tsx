@@ -34,6 +34,16 @@ function persistLocale(locale: Locale) {
   }
 }
 
+function persistCampaignLanguage(locale: Locale) {
+  const match = window.location.pathname.match(/^\/campaigns\/([^/?#]+)/);
+  if (!match) return;
+  void fetch(`/api/campaigns/${encodeURIComponent(match[1])}/settings`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ language: locale }),
+  }).catch(() => undefined);
+}
+
 function lookup(locale: Locale, path: string): string | undefined {
   const parts = path.split(".");
   let current: unknown = translations[locale];
@@ -79,6 +89,7 @@ export function I18nProvider({ children }: { children: ReactNode }) {
   const setLocale = (newLocale: Locale) => {
     setLocaleState(newLocale);
     persistLocale(newLocale);
+    persistCampaignLanguage(newLocale);
   };
 
   const toggleLocale = () => setLocale(locale === "ru" ? "en" : "ru");
