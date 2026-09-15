@@ -41,15 +41,21 @@ import { finishAndSyncParty, resolveProgressSheet, syncProgressLookup } from "@/
 import { publishPersisted } from "@/lib/events";
 
 export class McpExtendedControlError extends Error {
-  constructor(
-    message: string,
-    public readonly status = 400,
-  ) {
+  readonly status: number;
+
+  constructor(message: string, status = 400) {
     super(message);
+    this.status = status;
   }
 }
 
 export const MCP_EXTENDED_ACTIONS = [
+  "narrator.connect",
+  "narrator.read",
+  "narrator.catalog",
+  "narrator.invoke",
+  "narrator.narrate",
+  "narrator.release_floor",
   "assets.plan_campaign",
   "assets.create_pack",
   "assets.get_pack",

@@ -134,6 +134,23 @@ function createMcpServer() {
   );
 
   server.registerResource(
+    "external-narrator-instructions",
+    "odm://narrator/instructions",
+    {
+      title: "External narrator instructions",
+      description: "Protocol for a trusted external MCP narrator in a human-DM, no-server-AI campaign.",
+      mimeType: "text/plain",
+    },
+    async (uri) => ({
+      contents: [{
+        uri: uri.href,
+        mimeType: "text/plain",
+        text: "Trusted DM only: connect, read until hasMore is false, then use the fully drained nextCursor/currentSeq as expectedSeq for one invoke, narrate, or release_floor. Inspect pendingRolls, roll_result events, and recentRolls; the server owns dice. Reread after every write, timeout, or error and never retry automatically. This is not a background loop. The shared bearer is operator-wide, not player-scoped; never put it or DM secrets in player chat.",
+      }],
+    }),
+  );
+
+  server.registerResource(
     "control-capabilities",
     "odm://server/capabilities",
     {
@@ -150,6 +167,30 @@ function createMcpServer() {
         },
       ],
     }),
+  );
+
+  server.registerTool(
+    "odm_narrator",
+    {
+      title: "External campaign narrator",
+      description: "Trusted external DM lifecycle for human mode with server LLM, TTS, and automatic maps disabled. Read before each write; no automatic retries.",
+      inputSchema: z.object({
+        operation: z.enum(["connect", "read", "catalog", "invoke", "narrate", "release_floor"]),
+        campaignId: z.string().uuid(),
+        afterSeq: z.number().int().min(0).optional(),
+        limit: z.number().int().min(1).max(100).optional(),
+        expectedSeq: z.number().int().min(0).optional(),
+        name: z.string().trim().min(1).max(100).optional(),
+        args: z.record(z.string(), z.unknown()).optional(),
+        content: z.string().trim().min(1).max(8000).optional(),
+      }),
+    },
+    async (args) => {
+      const action = `narrator.${args.operation}`;
+      const params = { ...args };
+      delete params.operation;
+      return run(action, params);
+    },
   );
 
   server.registerTool(
@@ -505,6 +546,7 @@ export const BASE_MCP_TOOLS = Object.freeze([
   "odm_characters",
   "odm_sheets",
   "odm_models",
+  "odm_narrator",
 ]);
 
 export const PRELOAD_MCP_TOOLS = Object.freeze([

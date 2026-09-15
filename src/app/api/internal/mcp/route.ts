@@ -6,6 +6,7 @@ import {
   extendControlResult,
   McpExtendedControlError,
 } from "@/lib/mcp-external-control";
+import { executeMcpNarratorControl, McpNarratorControlError } from "@/lib/mcp-narrator-control";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -56,6 +57,10 @@ export async function POST(request: Request) {
   }
 
   try {
+    const narrator = await executeMcpNarratorControl(parsed.data.action, parsed.data.params);
+    if (narrator.handled) {
+      return json({ ok: true, result: narrator.result });
+    }
     const extended = await executeMcpExtendedControl(parsed.data.action, parsed.data.params);
     if (extended.handled) {
       return json({ ok: true, result: extended.result });
@@ -63,7 +68,7 @@ export async function POST(request: Request) {
     const result = await executeMcpControl(parsed.data.action, parsed.data.params);
     return json({ ok: true, result: extendControlResult(parsed.data.action, result) });
   } catch (error) {
-    if (error instanceof McpControlError || error instanceof McpExtendedControlError) {
+    if (error instanceof McpControlError || error instanceof McpExtendedControlError || error instanceof McpNarratorControlError) {
       return json({ ok: false, error: error.message }, error.status);
     }
     console.error("MCP control action failed:", parsed.data.action, error);

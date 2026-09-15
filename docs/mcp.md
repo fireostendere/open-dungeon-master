@@ -27,7 +27,7 @@ The MCP process has no Docker socket mount, no game volume, no database file, no
 
 ## What the model can do
 
-The public MCP surface is deliberately compact and verified: eleven tools cover the control actions, model switching, asset pipeline, and progression sync so an agent does not have to load dozens of nearly identical tool definitions.
+The public MCP surface is deliberately compact and verified: twelve tools cover the control actions, external narration, model switching, asset pipeline, and progression sync so an agent does not have to load dozens of nearly identical tool definitions.
 
 | MCP tool | Main operations |
 | --- | --- |
@@ -40,10 +40,14 @@ The public MCP surface is deliberately compact and verified: eleven tools cover 
 | `odm_characters` | library characters, create/update/delete, instantiate into a campaign |
 | `odm_sheets` | live campaign sheets, including HP, conditions, XP, inventory and DM-managed fields |
 | `odm_models` | inspect/list text models, test & connect with tool probe, switch between local runtime and remote servers |
+| `odm_narrator` | trusted external DM lifecycle for a human-mode campaign without server LLM |
 | `odm_assets` | external asset pipeline: campaign art planning, packs, jobs, leases, upload/download grants, variants and links |
 | `odm_progress` | character and party progression sync, versioned sync to library, finish and sync policy |
 
-Two MCP resources are also available: `odm://server/status` and `odm://server/capabilities`.
+Three MCP resources are also available: `odm://server/status`,
+`odm://server/capabilities`, and `odm://narrator/instructions` (the cursor
+protocol for `odm_narrator`).
+See [External MCP narrator](external-narrator.md) for the no-server-LLM setup and limits.
 
 ### Party entity model
 
