@@ -1,17 +1,28 @@
+"use client";
+
+import { useI18n } from "@/lib/i18n";
+import { localeText } from "@/lib/i18n/locale-text";
+
 // The legal links and the source, at the foot of home.
 export function HomeFooter() {
+  const { locale, t } = useI18n();
+  const licenses = localeText(locale, {
+    en: "Licenses and attribution",
+    ru: "Лицензии и авторство",
+    pl: "Licencje i informacje o autorach",
+  });
   return (
     <footer className="mt-12 flex flex-wrap items-center justify-center gap-4 border-t border-stone-900 pt-4">
       <a href="/licenses" className="text-xs text-stone-600 hover:text-stone-400">
-        Licenses and attribution
+        {licenses}
       </a>
       <span className="text-xs text-stone-700">&middot;</span>
       <a href="/privacy" className="text-xs text-stone-600 hover:text-stone-400">
-        Privacy policy
+        {t("auth.privacyPolicy")}
       </a>
       <span className="text-xs text-stone-700">&middot;</span>
       <a href="/terms" className="text-xs text-stone-600 hover:text-stone-400">
-        Terms of service
+        {t("auth.termsOfService")}
       </a>
       <span className="text-xs text-stone-700">&middot;</span>
       <a
