@@ -3,6 +3,7 @@
 import { ChevronDown, ChevronRight, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/cn";
+import { useI18n } from "@/lib/i18n";
 import { ui } from "@/lib/ui";
 import {
   WORLD_LORE_CATEGORIES,
@@ -20,15 +21,80 @@ export type LoreDraft = {
   body: string;
 };
 
-const CATEGORY_LABELS: Record<WorldLoreCategory, string> = {
-  geography: "Geography",
-  factions: "Factions",
-  history: "History",
-  magic: "Magic",
-  culture: "Culture",
-  religion: "Religion",
-  other: "Other",
-};
+const COPY = {
+  en: {
+    categories: {
+      geography: "Geography",
+      factions: "Factions",
+      history: "History",
+      magic: "Magic",
+      culture: "Culture",
+      religion: "Religion",
+      other: "Other",
+    },
+    worldBuilding: "World building",
+    optional: (filled: number) => `optional${filled ? `, ${filled} item${filled === 1 ? "" : "s"}` : ""}`,
+    houseRules: "House rules",
+    houseRulesPlaceholder:
+      "Your table's rulings, grouped under headings, e.g.\n\nPotions:\nDrinking a potion is a bonus action.",
+    houseRulesHelp: "The DM is reminded of the relevant rules each turn. Editable later in Setup.",
+    worldLore: "World lore",
+    titlePlaceholder: "Title (The Ashen League, The Sundering...)",
+    remove: "Remove this entry",
+    bodyPlaceholder: "What is established about it...",
+    addLore: "Add lore entry",
+    loreHelp:
+      "Places, factions, and history the DM treats as canon. Grows anytime from the lobby and the Facts tab.",
+  },
+  ru: {
+    categories: {
+      geography: "География",
+      factions: "Фракции",
+      history: "История",
+      magic: "Магия",
+      culture: "Культура",
+      religion: "Религия",
+      other: "Другое",
+    },
+    worldBuilding: "Проработка мира",
+    optional: (filled: number) => `необязательно${filled ? `, заполнено: ${filled}` : ""}`,
+    houseRules: "Домашние правила",
+    houseRulesPlaceholder:
+      "Ваши правила стола, сгруппированные по разделам, например:\n\nЗелья:\nВыпить зелье можно бонусным действием.",
+    houseRulesHelp: "Мастер получает напоминание о подходящих правилах каждый ход. Позже их можно изменить в настройках.",
+    worldLore: "Лор мира",
+    titlePlaceholder: "Название (Пепельная лига, Раскол...)",
+    remove: "Удалить эту запись",
+    bodyPlaceholder: "Что об этом установлено в мире...",
+    addLore: "Добавить запись лора",
+    loreHelp:
+      "Места, фракции и история, которые Мастер считает каноном. Их можно дополнять в любое время из лобби и вкладки «Факты».",
+  },
+  pl: {
+    categories: {
+      geography: "Geografia",
+      factions: "Frakcje",
+      history: "Historia",
+      magic: "Magia",
+      culture: "Kultura",
+      religion: "Religia",
+      other: "Inne",
+    },
+    worldBuilding: "Budowanie świata",
+    optional: (filled: number) => `opcjonalne${filled ? `, uzupełniono: ${filled}` : ""}`,
+    houseRules: "Zasady domowe",
+    houseRulesPlaceholder:
+      "Ustalenia waszego stołu, pogrupowane nagłówkami, np.\n\nMikstury:\nWypicie mikstury jest akcją dodatkową.",
+    houseRulesHelp: "Mistrz Gry dostaje przypomnienie o odpowiednich zasadach w każdej turze. Później można je edytować w ustawieniach.",
+    worldLore: "Lore świata",
+    titlePlaceholder: "Tytuł (Popielna Liga, Rozdarcie...)",
+    remove: "Usuń ten wpis",
+    bodyPlaceholder: "Co zostało o tym ustalone...",
+    addLore: "Dodaj wpis lore",
+    loreHelp:
+      "Miejsca, frakcje i historia traktowane przez Mistrza Gry jako kanon. Możesz je rozwijać w dowolnej chwili z lobby i karty „Fakty”.",
+  },
+} as const;
 
 // Posts the drafts after creation; failures are silent (the lobby panels
 // can re-enter anything that was lost).
@@ -73,6 +139,8 @@ export function WorldSetupFields({
   loreDrafts: LoreDraft[];
   setLoreDrafts: (drafts: LoreDraft[]) => void;
 }) {
+  const { locale } = useI18n();
+  const copy = COPY[locale];
   const [open, setOpen] = useState(false);
   const filled =
     (houseRules.trim() ? 1 : 0) + loreDrafts.filter((draft) => draft.title.trim()).length;
@@ -97,32 +165,26 @@ export function WorldSetupFields({
         ) : (
           <ChevronRight className="size-3.5 text-stone-500" />
         )}
-        <span className="font-medium">World building</span>
-        <span className="text-xs text-stone-500">
-          optional{filled ? `, ${filled} item${filled === 1 ? "" : "s"}` : ""}
-        </span>
+        <span className="font-medium">{copy.worldBuilding}</span>
+        <span className="text-xs text-stone-500">{copy.optional(filled)}</span>
       </button>
       {open ? (
         <div className="space-y-3 border-t border-stone-800/70 p-3">
           <label className="block">
-            <span className="mb-1 block text-xs text-stone-400">House rules</span>
+            <span className="mb-1 block text-xs text-stone-400">{copy.houseRules}</span>
             <textarea
               value={houseRules}
               onChange={(event) => setHouseRules(event.target.value)}
               rows={4}
               maxLength={20_000}
-              placeholder={
-                "Your table's rulings, grouped under headings, e.g.\n\nPotions:\nDrinking a potion is a bonus action."
-              }
+              placeholder={copy.houseRulesPlaceholder}
               className={ui.input}
             />
-            <span className="mt-1 block text-xs text-stone-500">
-              The DM is reminded of the relevant rules each turn. Editable later in Setup.
-            </span>
+            <span className="mt-1 block text-xs text-stone-500">{copy.houseRulesHelp}</span>
           </label>
 
           <div>
-            <span className="mb-1 block text-xs text-stone-400">World lore</span>
+            <span className="mb-1 block text-xs text-stone-400">{copy.worldLore}</span>
             <div className="space-y-2">
               {loreDrafts.map((draft, index) => (
                 <div
@@ -141,7 +203,7 @@ export function WorldSetupFields({
                     >
                       {WORLD_LORE_CATEGORIES.map((category) => (
                         <option key={category} value={category}>
-                          {CATEGORY_LABELS[category]}
+                          {copy.categories[category]}
                         </option>
                       ))}
                     </select>
@@ -149,7 +211,7 @@ export function WorldSetupFields({
                       value={draft.title}
                       onChange={(event) => patchDraft(index, { title: event.target.value })}
                       maxLength={120}
-                      placeholder="Title (The Ashen League, The Sundering...)"
+                      placeholder={copy.titlePlaceholder}
                       className={ui.input}
                     />
                     <button
@@ -157,7 +219,7 @@ export function WorldSetupFields({
                       onClick={() =>
                         setLoreDrafts(loreDrafts.filter((_, draftIndex) => draftIndex !== index))
                       }
-                      title="Remove this entry"
+                      title={copy.remove}
                       className="shrink-0 rounded p-1 text-stone-500 hover:text-red-400"
                     >
                       <Trash2 className="size-3.5" />
@@ -168,7 +230,7 @@ export function WorldSetupFields({
                     onChange={(event) => patchDraft(index, { body: event.target.value })}
                     rows={2}
                     maxLength={4000}
-                    placeholder="What is established about it..."
+                    placeholder={copy.bodyPlaceholder}
                     className={ui.input}
                   />
                 </div>
@@ -180,13 +242,10 @@ export function WorldSetupFields({
                 }
                 className="flex items-center gap-1 rounded border border-stone-700 px-2 py-1 text-xs text-stone-400 hover:bg-stone-900"
               >
-                <Plus className="size-3" /> Add lore entry
+                <Plus className="size-3" /> {copy.addLore}
               </button>
             </div>
-            <span className="mt-1 block text-xs text-stone-500">
-              Places, factions, and history the DM treats as canon. Grows anytime from the lobby
-              and the Facts tab.
-            </span>
+            <span className="mt-1 block text-xs text-stone-500">{copy.loreHelp}</span>
           </div>
         </div>
       ) : null}
