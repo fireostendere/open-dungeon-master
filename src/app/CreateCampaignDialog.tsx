@@ -8,6 +8,7 @@ import { submitWorldSetup } from "@/app/WorldSetupFields";
 import { submitContentImport } from "@/app/workshop/ContentImportPicker";
 import { groupByFranchise, type WorldPackSummary } from "@/lib/worlds/summary";
 import type { Genre } from "@/lib/schemas/game-settings";
+import { useI18n } from "@/lib/i18n";
 import {
   applyPack,
   clearPack,
@@ -21,6 +22,75 @@ import { PartyStep } from "@/app/create-campaign/PartyStep";
 import { FeelStep } from "@/app/create-campaign/FeelStep";
 import { AdvancedStep } from "@/app/create-campaign/AdvancedStep";
 import { ReviewStep } from "@/app/create-campaign/ReviewStep";
+
+const COPY = {
+  en: {
+    createFailed: "Could not create the campaign.",
+    serverFailed: "Could not reach the server.",
+    soloTitle: "New solo adventure",
+    campaignTitle: "New campaign",
+    premiseTitle: "The premise",
+    premiseSoloBlurb: "Name the adventure and decide who narrates.",
+    premiseBlurb: "Name it and decide who runs the table.",
+    worldTitle: "The world",
+    worldBlurb: "Pick a setting and say what the story is about.",
+    partyTitle: "The party",
+    partySoloBlurb: "Where your hero begins.",
+    partyBlurb: "Who is adventuring, and how hard the road is.",
+    feelTitle: "The feel",
+    feelBlurb: "What is on at the table. Flip any of these later in the lobby too.",
+    advancedTitle: "Advanced",
+    advancedBlurb: "Variant rules, house rules, prep and live voice. All optional.",
+    reviewTitle: "Review",
+    reviewBlurb: "Ready the table.",
+    createAdventure: "Create adventure",
+    createCampaign: "Create campaign",
+  },
+  ru: {
+    createFailed: "Не удалось создать кампанию.",
+    serverFailed: "Не удалось связаться с сервером.",
+    soloTitle: "Новое одиночное приключение",
+    campaignTitle: "Новая кампания",
+    premiseTitle: "Завязка",
+    premiseSoloBlurb: "Назовите приключение и решите, кто будет вести повествование.",
+    premiseBlurb: "Назовите кампанию и решите, кто будет вести игру.",
+    worldTitle: "Мир",
+    worldBlurb: "Выберите сеттинг и расскажите, о чём будет история.",
+    partyTitle: "Группа",
+    partySoloBlurb: "Определите, с чего начнёт ваш герой.",
+    partyBlurb: "Кто отправляется в приключение и насколько трудным будет путь.",
+    feelTitle: "Атмосфера игры",
+    feelBlurb: "Выберите, что будет включено за столом. Всё это можно изменить позже в лобби.",
+    advancedTitle: "Дополнительно",
+    advancedBlurb: "Вариантные и домашние правила, подготовка и голосовой чат. Всё необязательно.",
+    reviewTitle: "Проверка",
+    reviewBlurb: "Подготовьте стол к игре.",
+    createAdventure: "Создать приключение",
+    createCampaign: "Создать кампанию",
+  },
+  pl: {
+    createFailed: "Nie udało się utworzyć kampanii.",
+    serverFailed: "Nie udało się połączyć z serwerem.",
+    soloTitle: "Nowa przygoda solo",
+    campaignTitle: "Nowa kampania",
+    premiseTitle: "Założenia",
+    premiseSoloBlurb: "Nadaj przygodzie nazwę i zdecyduj, kto prowadzi narrację.",
+    premiseBlurb: "Nadaj kampanii nazwę i zdecyduj, kto prowadzi stół.",
+    worldTitle: "Świat",
+    worldBlurb: "Wybierz setting i określ, o czym będzie historia.",
+    partyTitle: "Drużyna",
+    partySoloBlurb: "Określ, gdzie zaczyna twój bohater.",
+    partyBlurb: "Kto wyrusza na przygodę i jak trudna będzie droga.",
+    feelTitle: "Styl rozgrywki",
+    feelBlurb: "Wybierz, co ma być aktywne przy stole. Wszystko można później zmienić w lobby.",
+    advancedTitle: "Zaawansowane",
+    advancedBlurb: "Zasady wariantowe i domowe, przygotowanie oraz czat głosowy. Wszystko opcjonalne.",
+    reviewTitle: "Podsumowanie",
+    reviewBlurb: "Przygotuj stół do gry.",
+    createAdventure: "Utwórz przygodę",
+    createCampaign: "Utwórz kampanię",
+  },
+} as const;
 
 // The slice of /api/capabilities this dialog gates on. null means the
 // endpoint never answered, and the dialog assumes everything is available:
@@ -55,6 +125,8 @@ export function CreateCampaignDialog({
   onCreated: (campaignId: string) => void;
   solo?: boolean;
 }) {
+  const { locale } = useI18n();
+  const copy = COPY[locale];
   const [draft, setDraft] = useState<CampaignDraft>(DEFAULT_DRAFT);
   const [packs, setPacks] = useState<WorldPackSummary[]>([]);
   const [capabilities, setCapabilities] = useState<ServerCapabilities | null>(null);
@@ -247,7 +319,7 @@ export function CreateCampaignDialog({
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) {
-        setError(data.error || "Could not create the campaign.");
+        setError(data.error || copy.createFailed);
         return;
       }
       // House rules and starting lore land right after the campaign row
@@ -259,14 +331,14 @@ export function CreateCampaignDialog({
       await submitContentImport(data.campaign.id, contentImport);
       onCreated(data.campaign.id);
     } catch {
-      setError("Could not reach the server.");
+      setError(copy.serverFailed);
     } finally {
       setBusy(false);
     }
   }
 
   const stepProps = { draft, patch, gates };
-  const title = solo ? "New solo adventure" : "New campaign";
+  const title = solo ? copy.soloTitle : copy.campaignTitle;
 
   // A step is dropped when nothing on it applies. Today every step keeps at
   // least one field in every mode (voice chat leaves the Advanced step on a
@@ -276,8 +348,8 @@ export function CreateCampaignDialog({
     [
       {
         key: "premise",
-        title: "The premise",
-        blurb: solo ? "Name the adventure and decide who narrates." : "Name it and decide who runs the table.",
+        title: copy.premiseTitle,
+        blurb: solo ? copy.premiseSoloBlurb : copy.premiseBlurb,
         content: (
           <PremiseStep
             {...stepProps}
@@ -293,36 +365,36 @@ export function CreateCampaignDialog({
       },
       {
         key: "world",
-        title: "The world",
-        blurb: "Pick a setting and say what the story is about.",
+        title: copy.worldTitle,
+        blurb: copy.worldBlurb,
         content: <WorldStep {...stepProps} onPickGenre={pickGenre} />,
         applies: true,
       },
       {
         key: "party",
-        title: "The party",
-        blurb: solo ? "Where your hero begins." : "Who is adventuring, and how hard the road is.",
+        title: copy.partyTitle,
+        blurb: solo ? copy.partySoloBlurb : copy.partyBlurb,
         content: <PartyStep {...stepProps} />,
         applies: true,
       },
       {
         key: "feel",
-        title: "The feel",
-        blurb: "What is on at the table. Flip any of these later in the lobby too.",
+        title: copy.feelTitle,
+        blurb: copy.feelBlurb,
         content: <FeelStep {...stepProps} />,
         applies: true,
       },
       {
         key: "advanced",
-        title: "Advanced",
-        blurb: "Variant rules, house rules, prep and live voice. All optional.",
+        title: copy.advancedTitle,
+        blurb: copy.advancedBlurb,
         content: <AdvancedStep {...stepProps} />,
         applies: true,
       },
       {
         key: "review",
-        title: "Review",
-        blurb: "Ready the table.",
+        title: copy.reviewTitle,
+        blurb: copy.reviewBlurb,
         content: <ReviewStep {...stepProps} selectedPack={selectedPack} error={error} />,
         canContinue: !busy && !(solo && storyKnownMissing),
         applies: true,
@@ -351,7 +423,7 @@ export function CreateCampaignDialog({
             doneLabel={
               <>
                 {busy ? <Loader2 className="size-4 animate-spin" /> : null}
-                {solo ? "Create adventure" : "Create campaign"}
+                {solo ? copy.createAdventure : copy.createCampaign}
               </>
             }
             className="[&>header]:pr-9"
