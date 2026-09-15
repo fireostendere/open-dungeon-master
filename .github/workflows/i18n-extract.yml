@@ -1,30 +1,29 @@
 name: i18n extraction
+
 on:
   push:
-    branches: [work/i18n-complete]
+    branches:
+      - work/i18n-complete
+
 permissions:
   contents: write
-concurrency:
-  group: i18n-extraction-${{ github.ref }}
-  cancel-in-progress: true
+
 jobs:
-  extract-and-verify:
-    if: ${{ !contains(github.event.head_commit.message, 'chore(i18n): extract UI text into keys') }}
+  extract:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v6
         with:
-          ref: work/i18n-complete
           fetch-depth: 0
       - uses: actions/setup-node@v6
         with:
-          node-version: '24'
+          node-version: 24
           cache: npm
       - run: npm ci
       - name: Extract UI text into i18n keys
         run: npm run i18n:extract
-      - name: Verify no covered UI literals remain
+      - name: Verify covered UI literals are keyed
         run: npm run i18n:check
       - name: Lint
         run: npm run lint
@@ -32,9 +31,10 @@ jobs:
         run: npm test
       - name: Build
         env:
-          NEXT_TELEMETRY_DISABLED: '1'
+          NEXT_TELEMETRY_DISABLED: "1"
         run: npm run build
-      - name: Commit extracted catalog and keyed UI
+      - name: Commit extraction result
+        if: github.actor != 'github-actions[bot]'
         run: |
           if git diff --quiet; then
             echo "No extraction changes"
