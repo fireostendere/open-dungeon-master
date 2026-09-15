@@ -81,9 +81,18 @@ async function stop() {
   await Promise.race([new Promise((resolve) => app.once("exit", resolve)), sleep(3000)]);
 }
 
+function assertNoRawKeys(text, surface) {
+  assert.ok(!/generated\.[a-z0-9_.-]+/i.test(text), `${surface} leaked a raw generated i18n key`);
+}
+
 function assertEnglishOnly(text, surface) {
   assert.ok(!/[А-Яа-яЁё]/.test(text), `${surface} leaked Cyrillic while English locale was active: ${text}`);
-  assert.ok(!/generated\.[a-z0-9_.-]+/i.test(text), `${surface} leaked a raw generated i18n key`);
+  assertNoRawKeys(text, surface);
+}
+
+function assertPolishOnly(text, surface) {
+  assert.ok(!/[А-Яа-яЁё]/.test(text), `${surface} leaked Cyrillic while Polish locale was active: ${text}`);
+  assertNoRawKeys(text, surface);
 }
 
 try {
@@ -93,7 +102,7 @@ try {
   const page = await context.newPage();
 
   await page.goto("/");
-  await page.getByRole("button", { name: "Переключить язык на английский" }).click();
+  await page.getByRole("button", { name: "Переключить язык на Английский" }).click();
   await page.waitForFunction(() => document.documentElement.lang === "en");
   assert.equal(await page.evaluate(() => localStorage.getItem("odm_locale")), "en");
   assert.match((await context.cookies()).find((cookie) => cookie.name === "odm_locale")?.value ?? "", /^en$/);
@@ -123,8 +132,22 @@ try {
   await page.getByRole("button", { name: "Account" }).waitFor();
   assertEnglishOnly(await page.locator("body").innerText(), "campaign lobby");
 
+  // EN -> PL: account menu uses the same locale cycle as the compact switcher.
   await page.getByRole("button", { name: "Account" }).click();
-  const toRussian = page.getByText("Language: English (EN)", { exact: true });
+  const toPolish = page.getByText("Language: English (EN)", { exact: true });
+  const plPatch = page.waitForResponse(
+    (response) => response.url().endsWith(`/api/campaigns/${campaignId}/settings`) && response.request().method() === "PATCH",
+  );
+  await toPolish.click();
+  const plResponse = await plPatch;
+  assert.ok(plResponse.ok(), `campaign language PATCH failed: ${plResponse.status()}`);
+  assert.deepEqual(plResponse.request().postDataJSON(), { language: "pl" });
+  await page.waitForFunction(() => document.documentElement.lang === "pl");
+  assert.equal(await page.evaluate(() => localStorage.getItem("odm_locale")), "pl");
+  assertPolishOnly(await page.locator("body").innerText(), "Polish campaign lobby");
+
+  await page.getByRole("button", { name: "Konto" }).click();
+  const toRussian = page.getByText("Język: Polski (PL)", { exact: true });
   const ruPatch = page.waitForResponse(
     (response) => response.url().endsWith(`/api/campaigns/${campaignId}/settings`) && response.request().method() === "PATCH",
   );
@@ -134,7 +157,8 @@ try {
   assert.deepEqual(ruResponse.request().postDataJSON(), { language: "ru" });
   await page.waitForFunction(() => document.documentElement.lang === "ru");
 
-  await page.getByRole("button", { name: "Account" }).click();
+  // RU -> EN closes the cycle and proves the campaign language is not stuck.
+  await page.getByRole("button", { name: "Аккаунт" }).click();
   const toEnglish = page.getByText("Язык: Русский (RU)", { exact: true });
   const enPatch = page.waitForResponse(
     (response) => response.url().endsWith(`/api/campaigns/${campaignId}/settings`) && response.request().method() === "PATCH",
@@ -144,9 +168,9 @@ try {
   assert.ok(enResponse.ok(), `campaign language PATCH failed: ${enResponse.status()}`);
   assert.deepEqual(enResponse.request().postDataJSON(), { language: "en" });
   await page.waitForFunction(() => document.documentElement.lang === "en");
-  assertEnglishOnly(await page.locator("body").innerText(), "campaign lobby after round-trip locale switch");
+  assertEnglishOnly(await page.locator("body").innerText(), "campaign lobby after RU/EN/PL round trip");
 
-  console.log("PASS i18n locale E2E: English auth/dashboard/lobby coverage and campaign-language persistence");
+  console.log("PASS i18n locale E2E: EN/RU/PL UI persistence and campaign-language PATCH cycle");
 } finally {
   await browser?.close().catch(() => undefined);
   await stop();
