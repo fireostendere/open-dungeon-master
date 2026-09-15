@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { cookies } from "next/headers";
 import { Cinzel, Geist, Geist_Mono, Source_Serif_4 } from "next/font/google";
-import { I18nProvider } from "@/lib/i18n";
+import { I18nProvider, isLocale, type Locale } from "@/lib/i18n";
 import TopoBackground from "./TopoBackground";
 import { ServerAddressButton } from "@/components/ServerAddressButton";
 import "./globals.css";
@@ -55,7 +55,8 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const cookieStore = await cookies();
-  const locale = cookieStore.get("odm_locale")?.value === "en" ? "en" : "ru";
+  const cookieLocale = cookieStore.get("odm_locale")?.value;
+  const locale: Locale = isLocale(cookieLocale) ? cookieLocale : "ru";
 
   return (
     <html
