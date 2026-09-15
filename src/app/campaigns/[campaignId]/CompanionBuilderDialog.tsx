@@ -4,11 +4,57 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { Bot, Users, X } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { cn } from "@/lib/cn";
+import { useI18n } from "@/lib/i18n";
 import { ui } from "@/lib/ui";
 import CharacterBuilder, {
   type BuilderResult,
 } from "@/app/characters/builder/CharacterBuilder";
 import type { Genre } from "@/lib/schemas/game-settings";
+
+const COPY = {
+  en: {
+    createFailed: "Could not create the companion.",
+    serverFailed: "Could not reach the server.",
+    title: "Build a companion",
+    humanHelp:
+      "This ally joins the party as a character you play from the DM console. In combat their turn waits for you: act for them, then end the turn. They start at the party's level.",
+    aiHelp:
+      "This ally joins the party as an AI companion the DM plays. They start at the party's level.",
+    fromLibrary: "From your library",
+    level: (value: number) => `level ${value}`,
+    adapts: (value: number) =>
+      `They arrive at level ${value}, adapted the same way a player character is.`,
+    submit: "Add companion",
+  },
+  ru: {
+    createFailed: "Не удалось создать спутника.",
+    serverFailed: "Не удалось связаться с сервером.",
+    title: "Создать спутника",
+    humanHelp:
+      "Этот союзник присоединится к группе как персонаж, которым вы управляете из консоли Мастера. В бою его ход ждёт ваших действий: походите за него и завершите ход. Он начинает на уровне группы.",
+    aiHelp:
+      "Этот союзник присоединится к группе как ИИ-спутник под управлением Мастера. Он начинает на уровне группы.",
+    fromLibrary: "Из вашей библиотеки",
+    level: (value: number) => `уровень ${value}`,
+    adapts: (value: number) =>
+      `Спутник войдёт в игру на ${value}-м уровне и будет адаптирован так же, как персонаж игрока.`,
+    submit: "Добавить спутника",
+  },
+  pl: {
+    createFailed: "Nie udało się utworzyć towarzysza.",
+    serverFailed: "Nie udało się połączyć z serwerem.",
+    title: "Utwórz towarzysza",
+    humanHelp:
+      "Ten sojusznik dołącza do drużyny jako postać, którą prowadzisz z konsoli Mistrza Gry. W walce jego tura czeka na ciebie: wykonaj jego działania, a potem zakończ turę. Zaczyna na poziomie drużyny.",
+    aiHelp:
+      "Ten sojusznik dołącza do drużyny jako towarzysz AI prowadzony przez Mistrza Gry. Zaczyna na poziomie drużyny.",
+    fromLibrary: "Z twojej biblioteki",
+    level: (value: number) => `poziom ${value}`,
+    adapts: (value: number) =>
+      `Towarzysz wejdzie do gry na poziomie ${value}, dostosowany tak samo jak postać gracza.`,
+    submit: "Dodaj towarzysza",
+  },
+} as const;
 
 // Whoever steers the story (the party lead in an AI campaign, the DM in a
 // human-run one) builds a lasting companion with the full character creator.
@@ -32,6 +78,8 @@ export function CompanionBuilderDialog({
   onClose: () => void;
   onCreated?: () => void;
 }) {
+  const { locale } = useI18n();
+  const copy = COPY[locale];
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   // Companions filed in this user's own library. An ally worth writing once
@@ -68,13 +116,13 @@ export function CompanionBuilderDialog({
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) {
-        setError(data.error || "Could not create the companion.");
+        setError(data.error || copy.createFailed);
         return;
       }
       onCreated?.();
       onClose();
     } catch {
-      setError("Could not reach the server.");
+      setError(copy.serverFailed);
     } finally {
       setBusy(false);
     }
@@ -101,23 +149,17 @@ export function CompanionBuilderDialog({
               ) : (
                 <Bot className="size-4 text-sky-300" />
               )}{" "}
-              Build a companion
+              {copy.title}
             </Dialog.Title>
             <Dialog.Close className="text-stone-500 hover:text-stone-300">
               <X className="size-4" />
             </Dialog.Close>
           </div>
-          <p className="mb-3 text-xs text-stone-500">
-            {humanDm
-              ? "This ally joins the party as a character you play from the DM console. In combat their turn waits for you: act for them, then end the turn. They start at the party's level."
-              : "This ally joins the party as an AI companion the DM plays. They start at the party's level."}
-          </p>
+          <p className="mb-3 text-xs text-stone-500">{humanDm ? copy.humanHelp : copy.aiHelp}</p>
 
           {library.length ? (
             <div className="mb-4 space-y-1.5 rounded-lg border border-stone-800 bg-stone-950/40 px-2.5 py-2">
-              <p className="text-[11px] uppercase tracking-wide text-stone-500">
-                From your library
-              </p>
+              <p className="text-[11px] uppercase tracking-wide text-stone-500">{copy.fromLibrary}</p>
               <div className="flex flex-wrap gap-1">
                 {library.map((companion) => (
                   <button
@@ -128,19 +170,17 @@ export function CompanionBuilderDialog({
                     className="rounded-md border border-stone-700 px-2 py-1 text-xs text-stone-300 hover:bg-stone-900 disabled:opacity-50"
                   >
                     {companion.name}
-                    <span className="ml-1 text-stone-600">level {companion.level}</span>
+                    <span className="ml-1 text-stone-600">{copy.level(companion.level)}</span>
                   </button>
                 ))}
               </div>
-              <p className="text-[10px] text-stone-600">
-                They arrive at level {level}, adapted the same way a player character is.
-              </p>
+              <p className="text-[10px] text-stone-600">{copy.adapts(level)}</p>
             </div>
           ) : null}
           <CharacterBuilder
             fixedLevel={level}
             genre={genre}
-            submitLabel="Add companion"
+            submitLabel={copy.submit}
             onSubmit={submit}
             busy={busy}
             error={error}
