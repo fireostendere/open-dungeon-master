@@ -2,19 +2,12 @@
 
 import { cn } from "@/lib/cn";
 import { InfoButton } from "@/components/ui/InfoDialog";
-import {
-  BONDS_INFO,
-  LIVING_WORLD_INFO,
-  NARRATION_GUARD_INFO,
-  ROMANCE_INFO,
-} from "@/app/campaigns/[campaignId]/GameSettingsPanel";
 import { ToggleCard } from "@/app/create-campaign/fields";
 import { NarratorFields } from "@/app/create-campaign/NarratorFields";
 import type { CampaignDraft, StepProps, WizardGates } from "@/app/create-campaign/draft";
+import { useI18n } from "@/lib/i18n";
+import { campaignWizardCopy } from "@/lib/i18n/campaign-wizard";
 
-// Which of the table features are switched on, counting only the ones the
-// wizard actually showed: a hidden toggle is not a choice the table made.
-// The review step reads this so its "n on" agrees with the grid.
 export function featuresOn(draft: CampaignDraft, gates: WizardGates): number {
   const { aiNarrates, solo } = gates;
   const bonds = draft.relationships !== "off";
@@ -35,14 +28,13 @@ export function featuresOn(draft: CampaignDraft, gates: WizardGates): number {
   ].filter(Boolean).length;
 }
 
-// Step 4: the toggle grid, then the AI allies and narrator voice. Voice
-// narration and maps stay visible but disabled when the server lacks the
-// backend, because they are one server switch away rather than a feature
-// this install can never have; the AI-only rows hide when a human narrates.
 export function FeelStep(props: StepProps) {
+  const { locale } = useI18n();
+  const copy = campaignWizardCopy(locale);
   const { draft, patch, gates } = props;
   const { aiNarrates, solo, ttsAvailable, mapsAvailable } = gates;
   const bonds = draft.relationships !== "off";
+
   return (
     <div className="space-y-4 text-sm">
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
@@ -50,55 +42,55 @@ export function FeelStep(props: StepProps) {
           <ToggleCard
             active={draft.aiStorySetup}
             onClick={() => patch({ aiStorySetup: !draft.aiStorySetup })}
-            label="AI story setup"
-            hint="The DM invents the plot"
+            label={copy.feel.aiSetupLabel}
+            hint={copy.feel.aiSetupHint}
           />
         ) : null}
         <ToggleCard
           active={draft.ttsEnabled}
           disabled={!ttsAvailable}
           onClick={() => patch({ ttsEnabled: !draft.ttsEnabled })}
-          label="Voice narration"
-          hint={ttsAvailable ? "Spoken DM narration" : "No speech service on this server"}
+          label={copy.feel.voiceNarrationLabel}
+          hint={ttsAvailable ? copy.feel.voiceNarrationHint : copy.feel.noSpeech}
         />
         <ToggleCard
           active={draft.mapsEnabled}
           disabled={!mapsAvailable}
           onClick={() => patch({ mapsEnabled: !draft.mapsEnabled })}
-          label="Maps"
-          hint={mapsAvailable ? "AI-drawn area maps" : "No image service on this server"}
+          label={copy.feel.mapsLabel}
+          hint={mapsAvailable ? copy.feel.mapsHint : copy.feel.noImages}
         />
         <ToggleCard
           active={draft.ambienceEnabled}
           onClick={() => patch({ ambienceEnabled: !draft.ambienceEnabled })}
-          label="Ambience"
-          hint="Room tone, music and stings"
+          label={copy.feel.ambienceLabel}
+          hint={copy.feel.ambienceHint}
         />
         {draft.ambienceEnabled ? (
           <ToggleCard
             active={draft.ambienceAuto}
             onClick={() => patch({ ambienceAuto: !draft.ambienceAuto })}
-            label="Sound follows the scene"
-            hint="Off leaves it to the DM"
+            label={copy.feel.ambienceAutoLabel}
+            hint={copy.feel.ambienceAutoHint}
           />
         ) : null}
         <ToggleCard
           active={draft.multiclassingEnabled}
           onClick={() => patch({ multiclassingEnabled: !draft.multiclassingEnabled })}
-          label="Multiclassing"
-          hint="Second classes at level-up"
+          label={copy.feel.multiclassLabel}
+          hint={copy.feel.multiclassHint}
         />
         {aiNarrates ? (
           <div className="relative flex">
             <ToggleCard
               active={draft.worldSimulation}
               onClick={() => patch({ worldSimulation: !draft.worldSimulation })}
-              label="Living world"
-              hint="Off-screen schemes and rumors advance on their own"
+              label={copy.feel.livingWorldLabel}
+              hint={copy.feel.livingWorldHint}
             />
             <InfoButton
-              label="What does Living World do?"
-              text={LIVING_WORLD_INFO}
+              label={copy.feel.livingWorldInfoLabel}
+              text={copy.feel.livingWorldInfo}
               className="absolute right-1.5 top-1.5"
             />
           </div>
@@ -106,29 +98,33 @@ export function FeelStep(props: StepProps) {
         <ToggleCard
           active={draft.inventoryApprovals}
           onClick={() => patch({ inventoryApprovals: !draft.inventoryApprovals })}
-          label="Item offers"
-          hint="Players confirm DM loot and gold changes"
+          label={copy.feel.itemOffersLabel}
+          hint={copy.feel.itemOffersHint}
         />
         <div className="relative flex">
           <ToggleCard
             active={bonds}
             onClick={() => patch({ relationships: bonds ? "off" : "on" })}
-            label="Bonds"
-            hint="NPCs remember how each character treated them"
+            label={copy.feel.bondsLabel}
+            hint={copy.feel.bondsHint}
           />
-          <InfoButton label="What are Bonds?" text={BONDS_INFO} className="absolute right-1.5 top-1.5" />
+          <InfoButton
+            label={copy.feel.bondsInfoLabel}
+            text={copy.feel.bondsInfo}
+            className="absolute right-1.5 top-1.5"
+          />
         </div>
         {bonds ? (
           <div className="relative flex">
             <ToggleCard
               active={draft.romance !== "off"}
               onClick={() => patch({ romance: draft.romance === "off" ? "on" : "off" })}
-              label="Romance"
-              hint="Bonds can grow into a relationship"
+              label={copy.feel.romanceLabel}
+              hint={copy.feel.romanceHint}
             />
             <InfoButton
-              label="How does Romance work?"
-              text={ROMANCE_INFO}
+              label={copy.feel.romanceInfoLabel}
+              text={copy.feel.romanceInfo}
               className="absolute right-1.5 top-1.5"
             />
           </div>
@@ -138,12 +134,12 @@ export function FeelStep(props: StepProps) {
             <ToggleCard
               active={draft.narrationGuard}
               onClick={() => patch({ narrationGuard: !draft.narrationGuard })}
-              label="Outcome check"
-              hint="Narration that contradicts the dice is rewritten"
+              label={copy.feel.outcomeLabel}
+              hint={copy.feel.outcomeHint}
             />
             <InfoButton
-              label="What is the outcome check?"
-              text={NARRATION_GUARD_INFO}
+              label={copy.feel.outcomeInfoLabel}
+              text={copy.feel.outcomeInfo}
               className="absolute right-1.5 top-1.5"
             />
           </div>
@@ -152,16 +148,16 @@ export function FeelStep(props: StepProps) {
           <ToggleCard
             active={draft.midGameJoinOpen}
             onClick={() => patch({ midGameJoinOpen: !draft.midGameJoinOpen })}
-            label="Mid-game joining"
-            hint="New players can use the invite code after the start"
+            label={copy.feel.midJoinLabel}
+            hint={copy.feel.midJoinHint}
           />
         ) : null}
         {!solo ? (
           <ToggleCard
             active={draft.holdSubmissions}
             onClick={() => patch({ holdSubmissions: !draft.holdSubmissions })}
-            label="Held responses"
-            hint="Nobody acts until the party lead opens the floor"
+            label={copy.feel.heldLabel}
+            hint={copy.feel.heldHint}
           />
         ) : null}
       </div>
