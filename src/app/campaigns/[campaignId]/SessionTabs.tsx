@@ -148,6 +148,38 @@ const TAB_PRESENTATION: Record<Locale, Record<PanelTab, [string, LucideIcon, str
     ],
     settings: ["Настройки", Settings2, "Настройки кампании, приглашения и переключатели."],
   },
+  pl: {
+    dm: [
+      "MG",
+      Gavel,
+      "Wszystko, co czeka na Twoją decyzję, oraz możliwości silnika.",
+    ],
+    lead: [
+      "Lider",
+      Crown,
+      "Zarządzanie stołem: głos, notatki, zaproszenia i rola lidera.",
+    ],
+    party: [
+      "Drużyna",
+      Users,
+      "Karty postaci, PZ i stany drużyny oraz relacje z BN-ami.",
+    ],
+    battle: ["Walka", Swords, "Taktyczna mapa bitewna. Przesuwaj żeton w swojej turze."],
+    map: ["Mapa", MapIcon, "Mapa sceny i odkryte lokacje."],
+    story: [
+      "Fabuła",
+      BookOpen,
+      "Rozdziały i dotychczasowa historia, stan świata oraz dziennik rzutów.",
+    ],
+    notes: ["Notatki", StickyNote, "Proponuj notatki fabularne; lider drużyny je zatwierdza."],
+    chat: ["Czat", MessagesSquare, "Czat poboczny między graczami. MG go nie widzi."],
+    context: [
+      "Kontekst",
+      Gauge,
+      "Co zostało wysłane do MG w poprzedniej turze.",
+    ],
+    settings: ["Ustawienia", Settings2, "Ustawienia kampanii, zaproszenia i opcje."],
+  },
 };
 
 // Single source of truth for the panel tab list, shared by the desktop rail

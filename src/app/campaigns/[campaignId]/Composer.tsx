@@ -40,6 +40,13 @@ const KIND_TIPS: Record<Locale, Record<InputKind, string>> = {
     lead: "Только лидер. Отправить Мастеру сюжетное указание.",
     narrate: "Только Мастер. Написать описание для игроков.",
   },
+  pl: {
+    do: "Działanie w świecie. Mistrz Gry opisuje konsekwencje.",
+    say: "Kwestia postaci. Wysyłana jako dialog w cudzysłowie.",
+    ooc: "Rozmowy poza postacią (OOC). MG nie reaguje.",
+    lead: "Tylko lider drużyny. Wyślij MG wskazówkę fabularną.",
+    narrate: "Tylko Mistrz Gry. Napisz fragment narracji dla graczy.",
+  },
 };
 
 // The action composer at the bottom of the game chat: pending-roll cards,
