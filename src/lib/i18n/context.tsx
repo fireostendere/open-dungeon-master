@@ -63,13 +63,21 @@ function interpolate(text: string, params?: Record<string, string | number>): st
   return result;
 }
 
-export function I18nProvider({ children }: { children: ReactNode }) {
-  // Russian remains the product default. A saved English selection is restored on mount.
-  const [locale, setLocaleState] = useState<Locale>("ru");
+export function I18nProvider({
+  children,
+  initialLocale = "ru",
+}: {
+  children: ReactNode;
+  initialLocale?: Locale;
+}) {
+  // The server supplies the cookie-backed locale so SSR and hydration render
+  // the same language; localStorage remains a compatibility fallback for
+  // installations that predate the cookie.
+  const [locale, setLocaleState] = useState<Locale>(initialLocale);
   const [unitSystem, setUnitSystemState] = useState<UnitSystem>("metric");
 
   useEffect(() => {
-    let nextLocale: Locale = "ru";
+    let nextLocale: Locale = initialLocale;
     let nextUnits: UnitSystem = "metric";
     try {
       const savedLocale = localStorage.getItem(STORAGE_LOCALE_KEY);
@@ -78,13 +86,13 @@ export function I18nProvider({ children }: { children: ReactNode }) {
       const savedUnits = localStorage.getItem(STORAGE_UNITS_KEY);
       if (savedUnits === "metric" || savedUnits === "imperial") nextUnits = savedUnits;
     } catch {
-      // Storage can be unavailable in private/embedded contexts; defaults remain usable.
+      // Storage can be unavailable in private/embedded contexts; server locale stays usable.
     }
 
     setLocaleState(nextLocale);
     setUnitSystemState(nextUnits);
     persistLocale(nextLocale);
-  }, []);
+  }, [initialLocale]);
 
   const setLocale = (newLocale: Locale) => {
     setLocaleState(newLocale);

@@ -38,6 +38,8 @@ assert.match(settings, /language:\s*z\.enum\(\["ru", "en"\]\)\.optional\(\)/);
 assert.match(settings, /coreGameSettingsSchema\.extend/);
 assert.match(settings, /normalizeGameSettings/);
 
+assert.match(context, /initialLocale = "ru"/);
+assert.match(context, /useState<Locale>\(initialLocale\)/);
 assert.match(context, /document\.cookie = `\$\{STORAGE_LOCALE_KEY\}=\$\{locale\}/);
 assert.match(context, /persistLocale\(nextLocale\)/);
 assert.match(context, /persistLocale\(newLocale\)/);
@@ -48,6 +50,7 @@ assert.match(context, /JSON\.stringify\(\{ language: locale \}\)/);
 assert.match(layout, /import \{ cookies \} from "next\/headers"/);
 assert.match(layout, /cookieStore\.get\("odm_locale"\)\?\.value === "en" \? "en" : "ru"/);
 assert.match(layout, /<html\s+[\s\S]*lang=\{locale\}/);
+assert.match(layout, /<I18nProvider initialLocale=\{locale\}>/);
 
 assert.match(campaignsRoute, /export const runtime = "nodejs"/);
 assert.match(campaignsRoute, /export const dynamic = "force-dynamic"/);
@@ -62,4 +65,4 @@ assert.match(prompt, /export \* from "@\/lib\/dm\/prompt-core"/);
 assert.match(settings, /export \* from "@\/lib\/schemas\/game-settings-core"/);
 assert.match(campaignsRoute, /from "\.\/route-core"/);
 
-console.log("language coverage passed: SSR document language, UI locale persistence, campaign creation/settings, story setup, and explicit RU/EN DM narration are wired end-to-end.");
+console.log("language coverage passed: SSR/hydration locale, UI persistence, campaign creation/settings, story setup, and explicit RU/EN DM narration are wired end-to-end.");

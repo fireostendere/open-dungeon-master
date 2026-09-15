@@ -66,7 +66,7 @@ export default async function RootLayout({
     >
       <body className="min-h-full flex flex-col">
         <TopoBackground />
-        <I18nProvider>
+        <I18nProvider initialLocale={locale}>
           {children}
           {/* Every page: the QR and address a friend scans to add this server
               in the app or open it in a browser on the same network. */}
