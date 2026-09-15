@@ -3,10 +3,10 @@
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import {
   AppWindow,
+  Check,
   CircleHelp,
   DoorOpen,
   Globe,
-  HeartHandshake,
   LogOut,
   Ruler,
   Settings,
@@ -24,9 +24,35 @@ import { headerButtonClass } from "@/app/campaigns/[campaignId]/headerButton";
 import { cn } from "@/lib/cn";
 import { shellHost, type ShellHost } from "@/lib/shell-host";
 import { useI18n } from "@/lib/i18n";
+import type { Locale } from "@/lib/i18n/translations";
 
 // window.odmShell is set once before any page script runs and never changes.
 const subscribeNever = () => () => {};
+
+function shellLabels(locale: Locale) {
+  if (locale === "ru") {
+    return {
+      homeTooltip: "Вернуться на главный экран приложения",
+      homeAria: "Главная Open Dungeon Master",
+      accountTooltip: "Аккаунт и меню приложения",
+      accountAria: "Аккаунт",
+    };
+  }
+  if (locale === "pl") {
+    return {
+      homeTooltip: "Wróć do ekranu głównego aplikacji",
+      homeAria: "Strona główna Open Dungeon Master",
+      accountTooltip: "Konto i menu aplikacji",
+      accountAria: "Konto",
+    };
+  }
+  return {
+    homeTooltip: "Back to the app's home screen",
+    homeAria: "Open Dungeon Master home",
+    accountTooltip: "Account and app menu",
+    accountAria: "Account",
+  };
+}
 
 // The book tile and wordmark at the top of a page. In a browser it leads
 // to this server's home; inside the desktop or Android app it leads to the
@@ -37,44 +63,45 @@ export function AppBrand({
   children,
   className,
 }: {
-  // The tile and wordmark, laid out by the caller.
   children: ReactNode;
   className?: string;
 }) {
   const shell = useSyncExternalStore<ShellHost | null>(subscribeNever, shellHost, () => null);
+  const { locale } = useI18n();
+  const labels = shellLabels(locale);
   const classes = cn(
     "flex min-w-0 items-center gap-2.5 rounded-md text-left outline-none transition-colors hover:text-amber-200 focus-visible:text-amber-200",
     className,
   );
   if (shell) {
     return (
-      <Tooltip content="Back to the app's home screen" side="bottom">
-        <button type="button" onClick={() => shell.showServers()} aria-label="App home" className={classes}>
+      <Tooltip content={labels.homeTooltip} side="bottom">
+        <button type="button" onClick={() => shell.showServers()} aria-label={labels.homeAria} className={classes}>
           {children}
         </button>
       </Tooltip>
     );
   }
   return (
-    <Link href="/" className={classes}>
+    <Link href="/" className={classes} aria-label={labels.homeAria}>
       {children}
     </Link>
   );
 }
 
 // Inside the desktop or Android app, the one visible way back to the app's
-// own home screen (its servers, device world and settings) from any page:
-// the account menu offers the same door, but a door behind an avatar is
-// not a door a newcomer finds. Renders nothing in a plain browser.
+// own home screen (its servers, device world and settings) from any page.
 export function AppHomeButton({ className }: { className?: string }) {
   const shell = useSyncExternalStore<ShellHost | null>(subscribeNever, shellHost, () => null);
+  const { locale } = useI18n();
+  const labels = shellLabels(locale);
   if (!shell) return null;
   return (
-    <Tooltip content="Back to the app's home screen" side="bottom">
+    <Tooltip content={labels.homeTooltip} side="bottom">
       <button
         type="button"
         onClick={() => shell.showServers()}
-        aria-label="App home"
+        aria-label={labels.homeAria}
         className={headerButtonClass(false, className)}
       >
         <AppWindow className="size-4" />
@@ -83,19 +110,17 @@ export function AppHomeButton({ className }: { className?: string }) {
   );
 }
 
-// The one account menu, extracted from the home page so every top-level page
-// offers the same doors. Only the fields the menu draws from, so any page's
-// own user shape (SessionUser, a settings Me) can be passed as-is.
 export type AccountMenuUser = {
   username: string;
   avatar?: { url: string } | null;
   isAdmin?: boolean;
-  // Present while the account is scheduled for deletion (AppHeader's banner).
   deletionDueAt?: string | null;
 };
 
 const itemClass =
   "flex cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-sm text-stone-300 outline-none data-[highlighted]:bg-stone-800 data-[highlighted]:text-amber-100";
+const subContentClass =
+  "min-w-48 rounded-lg border border-stone-600/60 bg-stone-950 p-1 shadow-elev-2";
 
 export function AccountMenu({
   user,
@@ -103,22 +128,21 @@ export function AccountMenu({
   onHelp,
 }: {
   user: AccountMenuUser;
-  // The home page swaps back to the login screen in place; every other page
-  // just leaves. Omitting the prop gets the redirect.
   onLogout?: () => void;
-  // A page with its own Help (the table, whose dialog also offers the
-  // tours) opens that instead of the menu's plain copy.
   onHelp?: () => void;
 }) {
-  const { t, locale, toggleLocale, unitSystem, toggleUnitSystem } = useI18n();
+  const { t, locale, setLocale, unitSystem, toggleUnitSystem } = useI18n();
   const [helpOpen, setHelpOpen] = useState(false);
   const pathname = usePathname();
-  // Inside the desktop or Android app the menu grows a door back to the
-  // app's server list. The host object is a client-only global, so it is
-  // read as an external store with a null server snapshot: server and
-  // client markup agree, and the entry appears right after hydration.
   const shell = useSyncExternalStore<ShellHost | null>(subscribeNever, shellHost, () => null);
   const router = useRouter();
+  const labels = shellLabels(locale);
+
+  const localeOptions: Array<{ value: Locale; label: string }> = [
+    { value: "en", label: t("common.languageEnglish") },
+    { value: "ru", label: t("common.languageRussian") },
+    { value: "pl", label: t("common.languagePolish") },
+  ];
 
   async function logout() {
     await fetch("/api/auth/logout", { method: "POST" });
@@ -132,11 +156,11 @@ export function AccountMenu({
   return (
     <>
       <DropdownMenu.Root>
-        <Tooltip content="Account and app menu" side="bottom">
+        <Tooltip content={labels.accountTooltip} side="bottom">
           <DropdownMenu.Trigger asChild>
             <button
               type="button"
-              aria-label="Account"
+              aria-label={labels.accountAria}
               className="rounded-full outline-none transition-shadow duration-150 hover:shadow-glow-gold focus-visible:shadow-glow-gold"
             >
               {user.avatar ? (
@@ -159,7 +183,7 @@ export function AccountMenu({
             align="end"
             sideOffset={6}
             collisionPadding={12}
-            className="min-w-48 rounded-lg border border-stone-600/60 bg-stone-950 p-1 shadow-elev-2"
+            className={subContentClass}
           >
             {pathname !== "/" ? (
               <DropdownMenu.Item asChild>
@@ -194,16 +218,35 @@ export function AccountMenu({
 
             <DropdownMenu.Separator className="my-1 h-px bg-stone-800" />
 
-            {/* Quick language toggle */}
-            <DropdownMenu.Item onSelect={toggleLocale} className={itemClass}>
-              <Globe className="size-4 text-amber-400" />
-              <span>{locale === "ru" ? "Язык: Русский (RU)" : "Language: English (EN)"}</span>
-            </DropdownMenu.Item>
+            <DropdownMenu.Sub>
+              <DropdownMenu.SubTrigger className={itemClass}>
+                <Globe className="size-4 text-amber-400" />
+                <span className="flex-1">{t("common.language")}</span>
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-stone-500">
+                  {locale}
+                </span>
+              </DropdownMenu.SubTrigger>
+              <DropdownMenu.Portal>
+                <DropdownMenu.SubContent sideOffset={6} collisionPadding={12} className={subContentClass}>
+                  {localeOptions.map((option) => (
+                    <DropdownMenu.Item
+                      key={option.value}
+                      onSelect={() => setLocale(option.value)}
+                      className={itemClass}
+                    >
+                      <span className="flex-1">{option.label}</span>
+                      {locale === option.value ? <Check className="size-4 text-amber-400" /> : null}
+                    </DropdownMenu.Item>
+                  ))}
+                </DropdownMenu.SubContent>
+              </DropdownMenu.Portal>
+            </DropdownMenu.Sub>
 
-            {/* Metric / Imperial toggle */}
             <DropdownMenu.Item onSelect={toggleUnitSystem} className={itemClass}>
               <Ruler className="size-4 text-amber-400" />
-              <span>{unitSystem === "metric" ? (locale === "ru" ? "Меры: Метрические (м/кг)" : "Units: Metric (m/kg)") : (locale === "ru" ? "Меры: Английские (ft/lb)" : "Units: Imperial (ft/lb)")}</span>
+              <span>
+                {t("common.units")}: {unitSystem === "metric" ? t("common.metric") : t("common.imperial")}
+              </span>
             </DropdownMenu.Item>
 
             <DropdownMenu.Separator className="my-1 h-px bg-stone-800" />
