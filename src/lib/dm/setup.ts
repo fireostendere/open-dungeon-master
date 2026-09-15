@@ -37,13 +37,14 @@ export async function runStorySetup(campaignId: string) {
     .filter(Boolean)
     .join("\n");
 
+  const language = campaign.gameSettings.language === "en" ? "English" : "Russian";
   const { message, error } = await requestDmMessage(
     campaign.settings,
     [
       {
         role: "system",
         content:
-          "You design the seed of a D&D 5e campaign. Reply with ONLY a JSON object, no code fences, shaped exactly: {\"premise\": string, \"openingScene\": string, \"secretOutline\": string}. premise: 2-3 sentences the players will read. openingScene: one sentence naming where the story opens. secretOutline: 6-10 numbered beats for the DM only, with a central antagonist, two twists, and a finale; players never see this.",
+          `You design the seed of a D&D 5e campaign. Reply with ONLY a JSON object, no code fences, shaped exactly: {\"premise\": string, \"openingScene\": string, \"secretOutline\": string}. premise: 2-3 sentences the players will read. openingScene: one sentence naming where the story opens. secretOutline: 6-10 numbered beats for the DM only, with a central antagonist, two twists, and a finale; players never see this. Write all three string values in ${language}.`,
       },
       {
         role: "user",
