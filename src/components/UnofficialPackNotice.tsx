@@ -1,15 +1,29 @@
-import { cn } from "@/lib/cn";
+"use client";
 
-// The standing notice on any world pack built on somebody else's setting.
-//
-// This is deliberately explicit and deliberately unmissable. The risk a fan
-// campaign actually runs is not that it exists, it is that a player could
-// come away thinking the rights holder made it or blessed it. So wherever a
-// pack names itself, this names what it is not.
-//
-// A pack with no `rightsHolder` is an original world and gets the milder
-// community-content line instead of a non-affiliation disclaimer it does not
-// need.
+import { cn } from "@/lib/cn";
+import { useI18n } from "@/lib/i18n";
+
+const COPY = {
+  en: {
+    title: "Unofficial community campaign",
+    inline: "Unofficial community campaign. ",
+    fan: "This campaign is a fan-created work and is not affiliated with, sponsored by, or endorsed by {holder}.",
+    community: "This campaign is community-created content and does not ship with Open Dungeon Master.",
+  },
+  ru: {
+    title: "Неофициальная кампания сообщества",
+    inline: "Неофициальная кампания сообщества. ",
+    fan: "Эта кампания создана фанатами и не связана с {holder}, не спонсируется и не одобряется правообладателем.",
+    community: "Эта кампания создана сообществом и не входит в поставку Open Dungeon Master.",
+  },
+  pl: {
+    title: "Nieoficjalna kampania społeczności",
+    inline: "Nieoficjalna kampania społeczności. ",
+    fan: "Ta kampania jest dziełem fanowskim i nie jest powiązana z {holder}, sponsorowana ani zatwierdzona przez właściciela praw.",
+    community: "Ta kampania została utworzona przez społeczność i nie jest dostarczana z Open Dungeon Master.",
+  },
+} as const;
+
 export function UnofficialPackNotice({
   rightsHolder,
   inspiredBy,
@@ -18,20 +32,18 @@ export function UnofficialPackNotice({
 }: {
   rightsHolder: string;
   inspiredBy?: string;
-  // "block" for a bordered panel (the builder, the plugin browser);
-  // "inline" for a single quiet line under a picker.
   variant?: "block" | "inline";
   className?: string;
 }) {
+  const { locale } = useI18n();
+  const copy = COPY[locale];
   const holder = rightsHolder.trim();
-  const body = holder
-    ? `This campaign is a fan-created work and is not affiliated with, sponsored by, or endorsed by ${holder}.`
-    : "This campaign is community-created content and does not ship with Open Dungeon Master.";
+  const body = holder ? copy.fan.replace("{holder}", holder) : copy.community;
 
   if (variant === "inline") {
     return (
       <p className={cn("text-[11px] italic leading-4 text-stone-500", className)}>
-        {holder ? "Unofficial community campaign. " : ""}
+        {holder ? copy.inline : ""}
         {body}
       </p>
     );
@@ -44,9 +56,7 @@ export function UnofficialPackNotice({
         className,
       )}
     >
-      <p className="font-medium uppercase tracking-wide text-stone-300">
-        Unofficial community campaign
-      </p>
+      <p className="font-medium uppercase tracking-wide text-stone-300">{copy.title}</p>
       <p className="mt-1">{body}</p>
       {inspiredBy ? <p className="mt-1 text-stone-500">{inspiredBy}</p> : null}
     </div>
