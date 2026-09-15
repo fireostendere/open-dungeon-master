@@ -2,7 +2,13 @@
 
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
-import { translations, type Locale, type UnitSystem } from "./translations";
+import {
+  isLocale,
+  nextLocale,
+  translations,
+  type Locale,
+  type UnitSystem,
+} from "./translations";
 
 interface I18nContextType {
   locale: Locale;
@@ -63,6 +69,12 @@ function interpolate(text: string, params?: Record<string, string | number>): st
   return result;
 }
 
+function tileUnit(locale: Locale): string {
+  if (locale === "ru") return "кл.";
+  if (locale === "pl") return "pól";
+  return "sq.";
+}
+
 export function I18nProvider({
   children,
   initialLocale = "ru",
@@ -77,11 +89,11 @@ export function I18nProvider({
   const [unitSystem, setUnitSystemState] = useState<UnitSystem>("metric");
 
   useEffect(() => {
-    let nextLocale: Locale = initialLocale;
+    let next: Locale = initialLocale;
     let nextUnits: UnitSystem = "metric";
     try {
       const savedLocale = localStorage.getItem(STORAGE_LOCALE_KEY);
-      if (savedLocale === "ru" || savedLocale === "en") nextLocale = savedLocale;
+      if (isLocale(savedLocale)) next = savedLocale;
 
       const savedUnits = localStorage.getItem(STORAGE_UNITS_KEY);
       if (savedUnits === "metric" || savedUnits === "imperial") nextUnits = savedUnits;
@@ -89,9 +101,9 @@ export function I18nProvider({
       // Storage can be unavailable in private/embedded contexts; server locale stays usable.
     }
 
-    setLocaleState(nextLocale);
+    setLocaleState(next);
     setUnitSystemState(nextUnits);
-    persistLocale(nextLocale);
+    persistLocale(next);
   }, [initialLocale]);
 
   const setLocale = (newLocale: Locale) => {
@@ -100,7 +112,9 @@ export function I18nProvider({
     persistCampaignLanguage(newLocale);
   };
 
-  const toggleLocale = () => setLocale(locale === "ru" ? "en" : "ru");
+  // The original two-language switch was a toggle. Keep the same API for all
+  // callers, but cycle through the complete supported locale list.
+  const toggleLocale = () => setLocale(nextLocale(locale));
 
   const setUnitSystem = (newSystem: UnitSystem) => {
     setUnitSystemState(newSystem);
@@ -116,8 +130,8 @@ export function I18nProvider({
   const t = useMemo(
     () =>
       (path: string, params?: Record<string, string | number>): string => {
-        // English is the canonical fallback. Missing Russian copy must never make the
-        // English UI display a key or Cyrillic text.
+        // English is the canonical fallback. A missing localized string must
+        // never expose a raw key to players.
         const source = lookup(locale, path) ?? lookup("en", path);
         return source ? interpolate(source, params) : path;
       },
@@ -140,7 +154,7 @@ export function I18nProvider({
     if (unitSystem === "imperial") return `${feet} ${locale === "ru" ? "фт" : "ft"}`;
     const meters = Math.round(feet * 0.3);
     const tiles = Math.round(feet / 5);
-    return `${meters} ${locale === "ru" ? "м" : "m"} (${tiles} ${locale === "ru" ? "кл." : "sq."})`;
+    return `${meters} ${locale === "ru" ? "м" : "m"} (${tiles} ${tileUnit(locale)})`;
   };
 
   const formatTile = (tiles: number): string => {
