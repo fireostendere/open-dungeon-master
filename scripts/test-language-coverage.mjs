@@ -14,6 +14,7 @@ const settingsCore = path.join(root, "src/lib/schemas/game-settings-core.ts");
 const campaignsRoute = read("src/app/api/campaigns/route.ts");
 const campaignsRouteCore = path.join(root, "src/app/api/campaigns/route-core.ts");
 const context = read("src/lib/i18n/context.tsx");
+const layout = read("src/app/layout.tsx");
 const accountMenu = read("src/components/AccountMenu.tsx");
 
 assert(fs.existsSync(promptCore), "prompt-core.ts must preserve the upstream prompt implementation");
@@ -44,6 +45,10 @@ assert.match(context, /persistCampaignLanguage\(newLocale\)/);
 assert.match(context, /\/api\/campaigns\/\$\{encodeURIComponent\(match\[1\]\)\}\/settings/);
 assert.match(context, /JSON\.stringify\(\{ language: locale \}\)/);
 
+assert.match(layout, /import \{ cookies \} from "next\/headers"/);
+assert.match(layout, /cookieStore\.get\("odm_locale"\)\?\.value === "en" \? "en" : "ru"/);
+assert.match(layout, /<html\s+[\s\S]*lang=\{locale\}/);
+
 assert.match(campaignsRoute, /export const runtime = "nodejs"/);
 assert.match(campaignsRoute, /export const dynamic = "force-dynamic"/);
 assert.match(campaignsRoute, /odm_locale=\(ru\|en\)/);
@@ -57,4 +62,4 @@ assert.match(prompt, /export \* from "@\/lib\/dm\/prompt-core"/);
 assert.match(settings, /export \* from "@\/lib\/schemas\/game-settings-core"/);
 assert.match(campaignsRoute, /from "\.\/route-core"/);
 
-console.log("language coverage passed: UI locale persists to campaign creation, existing campaign settings, story setup, and explicit RU/EN DM narration.");
+console.log("language coverage passed: SSR document language, UI locale persistence, campaign creation/settings, story setup, and explicit RU/EN DM narration are wired end-to-end.");

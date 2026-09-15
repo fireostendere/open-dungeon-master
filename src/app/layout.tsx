@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { cookies } from "next/headers";
 import { Cinzel, Geist, Geist_Mono, Source_Serif_4 } from "next/font/google";
 import { I18nProvider } from "@/lib/i18n";
 import TopoBackground from "./TopoBackground";
@@ -48,14 +49,17 @@ export const viewport: Viewport = {
   interactiveWidget: "resizes-content",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const cookieStore = await cookies();
+  const locale = cookieStore.get("odm_locale")?.value === "en" ? "en" : "ru";
+
   return (
     <html
-      lang="ru"
+      lang={locale}
       className={`${geistSans.variable} ${geistMono.variable} ${sourceSerif.variable} ${cinzel.variable} h-full antialiased`}
       // browser extensions inject attributes into <html> before React loads
       suppressHydrationWarning
