@@ -7,36 +7,44 @@ import { GENRE_PRESETS } from "@/lib/genres";
 import type { Genre } from "@/lib/schemas/game-settings";
 import { FieldLabel, inputClass } from "@/app/create-campaign/fields";
 import type { StepProps } from "@/app/create-campaign/draft";
+import { useI18n } from "@/lib/i18n";
+import { campaignWizardCopy } from "@/lib/i18n/campaign-wizard";
 
-// A tile grid cannot hold a ⓘ per tile, and a `title` tooltip never opens
-// under a finger, so all twelve settings are spelled out in one dialog on
-// the label instead.
-const SETTING_INFO = `The setting decides how the world sounds, what the maps and portraits look like, and which classes and backgrounds the character builder floats to the top. It changes no rule: every setting plays 5e.\n\n${GENRE_PRESETS.map(
-  (preset) => `**${preset.name}**: ${preset.blurb}`,
-).join("\n\n")}`;
-
-// Step 2: the setting, its custom description, the premise and theme notes.
-// Cover art is only pointed at from here: the upload and the AI painter live
-// in the campaign's details dialog, because a cover needs a campaign row to
-// hang off, and duplicating the picker here would mean two upload paths.
 export function WorldStep({
   draft,
   patch,
   gates,
   onPickGenre,
 }: StepProps & {
-  // Picking a bare genre by hand leaves the pack, so the dialog owns the
-  // handler that does both.
   onPickGenre: (genre: Genre) => void;
 }) {
+  const { locale } = useI18n();
+  const copy = campaignWizardCopy(locale);
   const showsAiFill = gates.aiNarrates && draft.aiStorySetup;
+  const genreCopy: Record<Genre, { name: string; blurb: string }> = {
+    high_fantasy: { name: copy.genres.highFantasyName, blurb: copy.genres.highFantasyBlurb },
+    dark_fantasy: { name: copy.genres.darkFantasyName, blurb: copy.genres.darkFantasyBlurb },
+    mystery: { name: copy.genres.mysteryName, blurb: copy.genres.mysteryBlurb },
+    horror: { name: copy.genres.horrorName, blurb: copy.genres.horrorBlurb },
+    cyberpunk: { name: copy.genres.cyberpunkName, blurb: copy.genres.cyberpunkBlurb },
+    steampunk: { name: copy.genres.steampunkName, blurb: copy.genres.steampunkBlurb },
+    post_apocalyptic: {
+      name: copy.genres.postApocalypticName,
+      blurb: copy.genres.postApocalypticBlurb,
+    },
+    custom: { name: copy.genres.customName, blurb: copy.genres.customBlurb },
+  };
+  const settingInfo = `${copy.world.settingsInfoIntro}\n\n${GENRE_PRESETS.map(
+    (preset) => `**${genreCopy[preset.id].name}**: ${genreCopy[preset.id].blurb}`,
+  ).join("\n\n")}`;
+
   return (
     <div className="space-y-4 text-sm">
       <div>
         <FieldLabel className="mb-1.5">
           <span className="flex items-center gap-1">
-            Setting
-            <InfoButton label="Settings" text={SETTING_INFO} />
+            {copy.world.setting}
+            <InfoButton label={copy.world.settingsInfoLabel} text={settingInfo} />
           </span>
         </FieldLabel>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
@@ -45,7 +53,7 @@ export function WorldStep({
               key={preset.id}
               type="button"
               onClick={() => onPickGenre(preset.id)}
-              title={preset.blurb}
+              title={genreCopy[preset.id].blurb}
               className={cn(
                 "rounded-lg border px-2 py-1.5 text-xs transition-colors",
                 draft.genre === preset.id
@@ -53,20 +61,18 @@ export function WorldStep({
                   : "border-stone-800 text-stone-400 hover:border-stone-600",
               )}
             >
-              {preset.name}
+              {genreCopy[preset.id].name}
             </button>
           ))}
         </div>
-        <p className="mt-1 text-xs text-stone-500">
-          {GENRE_PRESETS.find((preset) => preset.id === draft.genre)?.blurb}
-        </p>
+        <p className="mt-1 text-xs text-stone-500">{genreCopy[draft.genre].blurb}</p>
         {draft.genre === "custom" ? (
           <textarea
             value={draft.customGenreText}
             onChange={(event) => patch({ customGenreText: event.target.value })}
             rows={2}
             maxLength={500}
-            placeholder="Describe the world and tone in your own words..."
+            placeholder={copy.world.customPlaceholder}
             className={cn(inputClass, "mt-2")}
           />
         ) : null}
@@ -74,13 +80,12 @@ export function WorldStep({
 
       <label className="block">
         <FieldLabel>
-          Premise (optional{showsAiFill ? "; the AI fills this in if left blank" : ""})
+          {copy.world.premise} ({copy.world.optional}
+          {showsAiFill ? `; ${copy.world.aiFills}` : ""})
         </FieldLabel>
         <textarea
           value={draft.description}
-          onChange={(event) =>
-            patch({ description: event.target.value, descriptionTouched: true })
-          }
+          onChange={(event) => patch({ description: event.target.value, descriptionTouched: true })}
           rows={2}
           maxLength={500}
           className={inputClass}
@@ -88,12 +93,12 @@ export function WorldStep({
       </label>
 
       <label className="block">
-        <FieldLabel>World or theme notes</FieldLabel>
+        <FieldLabel>{copy.world.themeNotes}</FieldLabel>
         <input
           value={draft.theme}
           onChange={(event) => patch({ theme: event.target.value, themeTouched: true })}
           maxLength={120}
-          placeholder="Low-magic gritty, homebrew fey court, neon-drenched megacity..."
+          placeholder={copy.world.themePlaceholder}
           className={inputClass}
         />
       </label>
@@ -101,10 +106,8 @@ export function WorldStep({
       <div className="flex items-start gap-3 rounded-lg border border-stone-800 bg-stone-950/40 p-3">
         <ImageIcon className="mt-0.5 size-4 shrink-0 text-amber-300/70" aria-hidden="true" />
         <div>
-          <span className="block text-stone-300">Cover art</span>
-          <p className="mt-0.5 text-xs text-stone-500">
-            You can add cover art from the campaign&apos;s details once it exists.
-          </p>
+          <span className="block text-stone-300">{copy.world.coverArt}</span>
+          <p className="mt-0.5 text-xs text-stone-500">{copy.world.coverHelp}</p>
         </div>
       </div>
     </div>
