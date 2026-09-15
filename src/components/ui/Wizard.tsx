@@ -4,23 +4,13 @@ import { ChevronLeft } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { cn } from "@/lib/cn";
 import { ui } from "@/lib/ui";
+import { useI18n } from "@/lib/i18n";
 
-// Stepped wizard: gold progress bar, steps that slide sideways, Back in the
-// header and Continue in the footer. Fills whatever holds it (a Dialog or a
-// full-height page on a phone) and each step scrolls on its own.
-//
-//   <Wizard
-//     title="New campaign"
-//     steps={[
-//       { key: "name", title: "Name it", content: <NameFields />, canContinue: !!name },
-//       { key: "world", title: "Pick a world", blurb: "You can change this later.", content: <WorldPicker /> },
-//     ]}
-//     doneLabel="Create"
-//     onDone={create}
-//     onCancel={() => setOpen(false)}
-//   />
-//
-// Step state is internal unless `step` and `onStepChange` are both passed.
+const COPY = {
+  en: { step: "Step" },
+  ru: { step: "Шаг" },
+  pl: { step: "Krok" },
+} as const;
 
 export type WizardStep = {
   key: string;
@@ -34,7 +24,7 @@ export function Wizard({
   steps,
   title,
   onDone,
-  doneLabel = "Done",
+  doneLabel,
   onCancel,
   step: controlledStep,
   onStepChange,
@@ -49,12 +39,11 @@ export function Wizard({
   onStepChange?: (step: number) => void;
   className?: string;
 }) {
+  const { t, locale } = useI18n();
+  const copy = COPY[locale];
   const [internalStep, setInternalStep] = useState(0);
   const controlled = controlledStep !== undefined;
   const raw = controlled ? controlledStep : internalStep;
-  // Clamp rather than trust the caller: a steps array that shrinks after a
-  // choice on an earlier step would otherwise leave the track pointing at
-  // nothing.
   const step = Math.min(Math.max(raw, 0), Math.max(steps.length - 1, 0));
   const total = steps.length;
   const last = step >= total - 1;
@@ -84,7 +73,7 @@ export function Wizard({
               type="button"
               onClick={back}
               className="-ml-1.5 rounded-md p-1.5 text-stone-400 transition-colors hover:bg-stone-800 hover:text-stone-200"
-              aria-label={step === 0 ? "Cancel" : "Back"}
+              aria-label={step === 0 ? t("common.cancel") : t("common.back")}
             >
               <ChevronLeft className="size-4" />
             </button>
@@ -93,7 +82,7 @@ export function Wizard({
             {title}
           </h2>
           <span className="eyebrow shrink-0 text-[10px] text-stone-500" aria-live="polite">
-            Step {step + 1} / {total}
+            {copy.step} {step + 1} / {total}
           </span>
         </div>
         <div
@@ -110,9 +99,6 @@ export function Wizard({
         </div>
       </header>
 
-      {/* The track holds every step side by side and translates as a whole,
-          so the outgoing and incoming step share one motion. Inactive steps
-          are inert so tabbing cannot land on something off screen. */}
       <div className="mt-4 min-h-0 flex-1 overflow-hidden">
         <div
           className="flex h-full transition-transform duration-[380ms] ease-snap"
@@ -136,11 +122,11 @@ export function Wizard({
       <footer className="mt-4 flex shrink-0 items-center justify-end gap-2">
         {step > 0 ? (
           <button type="button" onClick={back} className={ui.btnSecondary}>
-            Back
+            {t("common.back")}
           </button>
         ) : null}
         <button type="button" onClick={forward} disabled={!canContinue} className={ui.btnPrimary}>
-          {last ? doneLabel : "Continue"}
+          {last ? (doneLabel ?? t("common.finish")) : t("common.next")}
         </button>
       </footer>
     </div>
