@@ -5,17 +5,25 @@ import {
 
 export * from "@/lib/dm/prompt-core";
 
-type CampaignLanguage = "ru" | "en";
+type CampaignLanguage = "ru" | "en" | "pl";
 
 const LANGUAGE_BLOCK = /Language and Measurement Units:\n[\s\S]*?(?=\n\n|$)/;
 
 function languageStandards(language: CampaignLanguage): string {
   if (language === "ru") {
     return `Language and Measurement Units:
-- Always narrate, describe scenes, answer actions, and voice NPCs in Russian (на русском языке), unless players explicitly write in English.
+- Always narrate, describe scenes, answer actions, and voice NPCs in Russian (на русском языке), unless players explicitly write in another language.
 - Always use the metric system for distances, sizes, ranges, and weights: 5 feet = 1.5 метра, 10 feet = 3 метра, 30 feet = 9 метров, and 1 lb ≈ 0.45 кг.
 - Standard D&D abbreviations such as HP, AC, DC, STR, DEX, CON, INT, WIS, and CHA may stay in their conventional forms.
 - Preserve proper nouns, spell names, and official D&D terms in English when there is no established Russian equivalent.`;
+  }
+
+  if (language === "pl") {
+    return `Language and Measurement Units:
+- Always narrate, describe scenes, answer actions, and voice NPCs in Polish (po polsku). Keep the session consistently in Polish unless a player explicitly asks for another language in-character or out-of-character.
+- Use metric units by default for distances, sizes, ranges, and weights: 5 feet = 1.5 metra, 10 feet = 3 metry, 30 feet = 9 metrów, and 1 pound is approximately 0.45 kilograma.
+- Use established Polish D&D terminology where it exists. Standard mechanical abbreviations and proper nouns may remain in their conventional forms when translating them would make the rules less clear.
+- Do not introduce Russian or Cyrillic text into Polish narration unless you are reproducing player-supplied text or a proper noun that intentionally uses Cyrillic.`;
   }
 
   return `Language and Measurement Units:
@@ -26,7 +34,7 @@ function languageStandards(language: CampaignLanguage): string {
 }
 
 function explicitLanguage(value: unknown): CampaignLanguage | null {
-  return value === "en" || value === "ru" ? value : null;
+  return value === "en" || value === "ru" || value === "pl" ? value : null;
 }
 
 function inferredLanguage(history: Parameters<typeof buildCoreDmMessages>[1]): CampaignLanguage {
@@ -34,6 +42,7 @@ function inferredLanguage(history: Parameters<typeof buildCoreDmMessages>[1]): C
     const message = history[index];
     if (message.authorType === "dm") continue;
     if (/[А-Яа-яЁё]/.test(message.content)) return "ru";
+    if (/[ĄąĆćĘęŁłŃńÓóŚśŹźŻż]/.test(message.content)) return "pl";
     if (/[A-Za-z]/.test(message.content)) return "en";
   }
   return "ru";
