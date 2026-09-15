@@ -41,6 +41,7 @@ export function AppBrand({
   children: ReactNode;
   className?: string;
 }) {
+  const { t } = useI18n();
   const shell = useSyncExternalStore<ShellHost | null>(subscribeNever, shellHost, () => null);
   const classes = cn(
     "flex min-w-0 items-center gap-2.5 rounded-md text-left outline-none transition-colors hover:text-amber-200 focus-visible:text-amber-200",
@@ -48,8 +49,13 @@ export function AppBrand({
   );
   if (shell) {
     return (
-      <Tooltip content="Back to the app's home screen" side="bottom">
-        <button type="button" onClick={() => shell.showServers()} aria-label="App home" className={classes}>
+      <Tooltip content={t("language.appHome")} side="bottom">
+        <button
+          type="button"
+          onClick={() => shell.showServers()}
+          aria-label={t("language.appHomeAria")}
+          className={classes}
+        >
           {children}
         </button>
       </Tooltip>
@@ -67,14 +73,15 @@ export function AppBrand({
 // the account menu offers the same door, but a door behind an avatar is
 // not a door a newcomer finds. Renders nothing in a plain browser.
 export function AppHomeButton({ className }: { className?: string }) {
+  const { t } = useI18n();
   const shell = useSyncExternalStore<ShellHost | null>(subscribeNever, shellHost, () => null);
   if (!shell) return null;
   return (
-    <Tooltip content="Back to the app's home screen" side="bottom">
+    <Tooltip content={t("language.appHome")} side="bottom">
       <button
         type="button"
         onClick={() => shell.showServers()}
-        aria-label="App home"
+        aria-label={t("language.appHomeAria")}
         className={headerButtonClass(false, className)}
       >
         <AppWindow className="size-4" />
@@ -119,6 +126,12 @@ export function AccountMenu({
   // client markup agree, and the entry appears right after hydration.
   const shell = useSyncExternalStore<ShellHost | null>(subscribeNever, shellHost, () => null);
   const router = useRouter();
+  const languageName =
+    locale === "ru"
+      ? t("language.russian")
+      : locale === "pl"
+        ? t("language.polish")
+        : t("language.english");
 
   async function logout() {
     await fetch("/api/auth/logout", { method: "POST" });
@@ -132,11 +145,11 @@ export function AccountMenu({
   return (
     <>
       <DropdownMenu.Root>
-        <Tooltip content="Account and app menu" side="bottom">
+        <Tooltip content={t("language.accountMenu")} side="bottom">
           <DropdownMenu.Trigger asChild>
             <button
               type="button"
-              aria-label="Account"
+              aria-label={t("language.account")}
               className="rounded-full outline-none transition-shadow duration-150 hover:shadow-glow-gold focus-visible:shadow-glow-gold"
             >
               {user.avatar ? (
@@ -194,16 +207,23 @@ export function AccountMenu({
 
             <DropdownMenu.Separator className="my-1 h-px bg-stone-800" />
 
-            {/* Quick language toggle */}
             <DropdownMenu.Item onSelect={toggleLocale} className={itemClass}>
               <Globe className="size-4 text-amber-400" />
-              <span>{locale === "ru" ? "Язык: Русский (RU)" : "Language: English (EN)"}</span>
+              <span>
+                {t("language.current", {
+                  language: languageName,
+                  code: locale.toUpperCase(),
+                })}
+              </span>
             </DropdownMenu.Item>
 
-            {/* Metric / Imperial toggle */}
             <DropdownMenu.Item onSelect={toggleUnitSystem} className={itemClass}>
               <Ruler className="size-4 text-amber-400" />
-              <span>{unitSystem === "metric" ? (locale === "ru" ? "Меры: Метрические (м/кг)" : "Units: Metric (m/kg)") : (locale === "ru" ? "Меры: Английские (ft/lb)" : "Units: Imperial (ft/lb)")}</span>
+              <span>
+                {unitSystem === "metric"
+                  ? t("language.unitsMetric")
+                  : t("language.unitsImperial")}
+              </span>
             </DropdownMenu.Item>
 
             <DropdownMenu.Separator className="my-1 h-px bg-stone-800" />
