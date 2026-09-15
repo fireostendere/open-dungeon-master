@@ -3,6 +3,7 @@
 import { Heart, HeartCrack, Loader2, Users } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { cn } from "@/lib/cn";
+import { useI18n } from "@/lib/i18n";
 import type { FriendshipTier, RomanceStage } from "@/lib/dm/relationship-logic";
 
 // Where each character stands with the people they have dealt with. The
@@ -25,7 +26,6 @@ type RelationshipView = {
   approval?: number;
 };
 
-// Warm for regard, cold for its absence; mirrors how the tiers read.
 const TIER_STYLES: Record<FriendshipTier, string> = {
   hostile: "border-red-900/60 bg-red-950/30 text-red-300",
   disliked: "border-red-900/40 bg-red-950/20 text-red-400/90",
@@ -37,42 +37,119 @@ const TIER_STYLES: Record<FriendshipTier, string> = {
   devoted: "border-emerald-700 bg-emerald-950/40 text-emerald-100",
 };
 
-const TIER_WORD: Record<FriendshipTier, string> = {
-  hostile: "Hostile",
-  disliked: "Dislikes",
-  wary: "Wary",
-  neutral: "Neutral",
-  cordial: "Cordial",
-  friendly: "Friendly",
-  close: "Close",
-  devoted: "Devoted",
-};
-
-const ROMANCE_WORD: Record<RomanceStage, string> = {
-  none: "",
-  interested: "Interested",
-  courting: "Courting",
-  together: "Together",
-  betrothed: "Betrothed",
-  married: "Married",
-};
+const COPY = {
+  en: {
+    tiers: {
+      hostile: "Hostile",
+      disliked: "Dislikes",
+      wary: "Wary",
+      neutral: "Neutral",
+      cordial: "Cordial",
+      friendly: "Friendly",
+      close: "Close",
+      devoted: "Devoted",
+    },
+    romance: {
+      none: "",
+      interested: "Interested",
+      courting: "Courting",
+      together: "Together",
+      betrothed: "Betrothed",
+      married: "Married",
+    },
+    companion: "companion",
+    npc: "npc",
+    away: "away",
+    chapterShort: "ch",
+    ended: "ended",
+    romanceTitle: (stage: string) => `Romance: ${stage}`,
+    trackingOff:
+      "Relationship tracking is off for this campaign. The party lead can turn it on in Setup.",
+    empty:
+      "Nobody has an opinion yet. How NPCs and companions feel about each character builds as you deal with them, and shows up here.",
+  },
+  ru: {
+    tiers: {
+      hostile: "Враждебность",
+      disliked: "Неприязнь",
+      wary: "Настороженность",
+      neutral: "Нейтрально",
+      cordial: "Расположение",
+      friendly: "Дружелюбие",
+      close: "Близость",
+      devoted: "Преданность",
+    },
+    romance: {
+      none: "",
+      interested: "Интерес",
+      courting: "Ухаживание",
+      together: "Вместе",
+      betrothed: "Помолвка",
+      married: "Брак",
+    },
+    companion: "спутник",
+    npc: "NPC",
+    away: "вдали",
+    chapterShort: "гл.",
+    ended: "завершено",
+    romanceTitle: (stage: string) => `Романтика: ${stage}`,
+    trackingOff:
+      "Отслеживание отношений выключено для этой кампании. Лидер группы может включить его в настройках.",
+    empty:
+      "Пока ни у кого не сложилось заметного отношения. Оно будет формироваться по мере общения персонажей с NPC и спутниками и появится здесь.",
+  },
+  pl: {
+    tiers: {
+      hostile: "Wrogość",
+      disliked: "Niechęć",
+      wary: "Nieufność",
+      neutral: "Neutralnie",
+      cordial: "Sympatia",
+      friendly: "Przyjaźń",
+      close: "Bliskość",
+      devoted: "Oddanie",
+    },
+    romance: {
+      none: "",
+      interested: "Zainteresowanie",
+      courting: "Zaloty",
+      together: "Razem",
+      betrothed: "Zaręczyny",
+      married: "Małżeństwo",
+    },
+    companion: "towarzysz",
+    npc: "NPC",
+    away: "poza drużyną",
+    chapterShort: "rozdz.",
+    ended: "zakończone",
+    romanceTitle: (stage: string) => `Romans: ${stage}`,
+    trackingOff:
+      "Śledzenie relacji jest wyłączone w tej kampanii. Lider drużyny może włączyć je w ustawieniach.",
+    empty:
+      "Nikt nie ma jeszcze wyraźnego stosunku do postaci. Relacje NPC i towarzyszy będą rozwijać się podczas gry i pojawią się tutaj.",
+  },
+} as const;
 
 function BondRow({ bond }: { bond: RelationshipView }) {
+  const { locale } = useI18n();
+  const copy = COPY[locale];
+  const romanceWord = copy.romance[bond.romance];
   return (
     <li className="rounded-md border border-stone-800 bg-stone-950/40 px-2.5 py-1.5">
       <div className="flex items-start gap-2">
         <span className="min-w-0 flex-1 text-xs text-stone-300">
           {bond.subjectName}
           <span className="ml-1.5 text-[10px] uppercase tracking-wide text-stone-600">
-            {bond.subjectKind === "companion" ? "companion" : "npc"}
+            {bond.subjectKind === "companion" ? copy.companion : copy.npc}
           </span>
           {bond.status === "parted" ? (
             <span className="ml-1.5 text-[10px] text-stone-500">
-              away{bond.apartChapters > 0 ? ` ${bond.apartChapters}ch` : ""}
+              {copy.away}
+              {bond.apartChapters > 0 ? ` ${bond.apartChapters} ${copy.chapterShort}` : ""}
             </span>
           ) : null}
           {bond.status === "ended" ? (
-            <span className="ml-1.5 text-[10px] text-stone-600">ended</span>
+            <span className="ml-1.5 text-[10px] text-stone-600">{copy.ended}</span>
           ) : null}
         </span>
         <span
@@ -80,22 +157,22 @@ function BondRow({ bond }: { bond: RelationshipView }) {
             "shrink-0 rounded-full border px-1.5 py-0.5 text-[10px]",
             TIER_STYLES[bond.tier],
           )}
-          title={bond.tierLabel}
+          title={copy.tiers[bond.tier]}
         >
-          {TIER_WORD[bond.tier]}
+          {copy.tiers[bond.tier]}
           {bond.approval === undefined ? "" : ` ${bond.approval > 0 ? "+" : ""}${bond.approval}`}
         </span>
         {bond.romance !== "none" ? (
           <span
             className="flex shrink-0 items-center gap-1 rounded-full border border-rose-900/60 bg-rose-950/30 px-1.5 py-0.5 text-[10px] text-rose-200"
-            title={`Romance: ${ROMANCE_WORD[bond.romance]}`}
+            title={copy.romanceTitle(romanceWord)}
           >
             {bond.status === "ended" ? (
               <HeartCrack className="size-2.5" />
             ) : (
               <Heart className="size-2.5" />
             )}
-            {ROMANCE_WORD[bond.romance]}
+            {romanceWord}
           </span>
         ) : null}
       </div>
@@ -109,6 +186,8 @@ function BondRow({ bond }: { bond: RelationshipView }) {
 }
 
 export function BondsPanel({ campaignId, refreshKey }: { campaignId: string; refreshKey: number }) {
+  const { locale } = useI18n();
+  const copy = COPY[locale];
   const [bonds, setBonds] = useState<RelationshipView[]>([]);
   const [enabled, setEnabled] = useState(true);
   const [loading, setLoading] = useState(true);
@@ -127,8 +206,6 @@ export function BondsPanel({ campaignId, refreshKey }: { campaignId: string; ref
     }
   }, [campaignId]);
 
-  // Refetches on mount and whenever the stream reports a change, exactly
-  // like the facts panel.
   useEffect(() => {
     void load();
   }, [load, refreshKey]);
@@ -141,22 +218,12 @@ export function BondsPanel({ campaignId, refreshKey }: { campaignId: string; ref
     );
   }
   if (!enabled) {
-    return (
-      <p className="px-1 py-6 text-center text-xs text-stone-600">
-        Relationship tracking is off for this campaign. The party lead can turn it on in Setup.
-      </p>
-    );
+    return <p className="px-1 py-6 text-center text-xs text-stone-600">{copy.trackingOff}</p>;
   }
   if (!bonds.length) {
-    return (
-      <p className="px-1 py-6 text-center text-xs text-stone-600">
-        Nobody has an opinion yet. How NPCs and companions feel about each character builds as you
-        deal with them, and shows up here.
-      </p>
-    );
+    return <p className="px-1 py-6 text-center text-xs text-stone-600">{copy.empty}</p>;
   }
 
-  // Grouped by character, so each player reads their own standing first.
   const byCharacter = new Map<string, RelationshipView[]>();
   for (const bond of bonds) {
     byCharacter.set(bond.characterId, [...(byCharacter.get(bond.characterId) ?? []), bond]);
