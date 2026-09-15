@@ -8,17 +8,36 @@ import { cn } from "@/lib/cn";
 export function LanguageSwitcher({ className }: { className?: string }) {
   const { locale, toggleLocale, unitSystem, toggleUnitSystem } = useI18n();
 
-  const languageTooltip = locale === "ru" ? "Переключить на английский" : "Switch to Russian";
-  const languageLabel = locale === "ru" ? "Переключить язык на английский" : "Switch language to Russian";
+  const languageTooltip =
+    locale === "en"
+      ? "Switch to Russian"
+      : locale === "ru"
+        ? "Переключить на польский"
+        : "Przełącz na angielski";
+  const languageLabel =
+    locale === "en"
+      ? "Switch language to Russian"
+      : locale === "ru"
+        ? "Переключить язык на польский"
+        : "Przełącz język na angielski";
   const unitsTooltip =
     unitSystem === "metric"
       ? locale === "ru"
         ? "Метрическая система: метры (м) и килограммы (кг). Нажмите для футов/фунтов."
-        : "Metric system: meters and kilograms. Click for imperial units."
+        : locale === "pl"
+          ? "System metryczny: metry i kilogramy. Kliknij, aby używać stóp i funtów."
+          : "Metric system: meters and kilograms. Click for imperial units."
       : locale === "ru"
         ? "Английская система: футы (ft) и фунты (lb). Нажмите для метров/кг."
-        : "Imperial system: feet and pounds. Click for metric units.";
-  const unitsLabel = locale === "ru" ? "Переключить систему мер" : "Switch unit system";
+        : locale === "pl"
+          ? "System imperialny: stopy i funty. Kliknij, aby używać metrów i kilogramów."
+          : "Imperial system: feet and pounds. Click for metric units.";
+  const unitsLabel =
+    locale === "ru"
+      ? "Переключить систему мер"
+      : locale === "pl"
+        ? "Przełącz system jednostek"
+        : "Switch unit system";
 
   return (
     <div className={cn("inline-flex items-center gap-1.5 rounded-lg border border-stone-800 bg-stone-900/80 p-0.5 backdrop-blur-xs", className)}>
@@ -27,9 +46,8 @@ export function LanguageSwitcher({ className }: { className?: string }) {
           type="button"
           onClick={toggleLocale}
           className={cn(
-            "flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium transition-all",
-            "hover:bg-amber-400/10 hover:text-amber-200 focus-visible:outline-hidden",
-            locale === "ru" ? "bg-amber-400/15 text-amber-200 border border-amber-400/30" : "text-stone-400",
+            "flex items-center gap-1.5 rounded-md border border-amber-400/30 bg-amber-400/15 px-2 py-1 text-xs font-medium text-amber-200 transition-all",
+            "hover:bg-amber-400/20 focus-visible:outline-hidden",
           )}
           aria-label={languageLabel}
         >
