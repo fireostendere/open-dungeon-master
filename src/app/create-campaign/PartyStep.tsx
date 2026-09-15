@@ -4,38 +4,40 @@ import { InfoButton } from "@/components/ui/InfoDialog";
 import { cn } from "@/lib/cn";
 import {
   CAMPAIGN_DIFFICULTIES,
-  CAMPAIGN_DIFFICULTY_HINTS,
   type CampaignDifficulty,
 } from "@/lib/campaign-types";
 import {
-  CAMPAIGN_LENGTH_LABELS,
   CAMPAIGN_LENGTHS,
   type CampaignLengthSetting,
 } from "@/lib/schemas/game-settings-options";
 import { FieldLabel, inputClass, ToggleCard } from "@/app/create-campaign/fields";
 import type { StepProps } from "@/app/create-campaign/draft";
+import { useI18n } from "@/lib/i18n";
+import { campaignWizardCopy } from "@/lib/i18n/campaign-wizard";
 
-const DIFFICULTY_INFO = `Difficulty is guidance to the Dungeon Master, not a damage multiplier: every rule underneath stays 5e. It steers how hard encounters are built and how often a bad roll is allowed to really cost you.\n\n${CAMPAIGN_DIFFICULTIES.map(
-  (value) => `**${value}**: ${CAMPAIGN_DIFFICULTY_HINTS[value]}`,
-).join("\n\n")}\n\nThe party lead can change it later from the table's settings.`;
-
-const LENGTH_INFO =
-  "How far ahead the DM plans the secret story: how many acts the arc spans, and how many villains and threads it seeds at the start.\n\n**Short**: three acts, one focused adventure. A handful of sessions.\n\n**Standard**: four or five acts. The default shape of a campaign.\n\n**Epic**: six to eight acts, several threads running at once.\n\nNo length ever cuts you off. Play past the finale and a sequel saga picks up where the last one ended.";
-
-// Step 3: how many, how strong, how hard, how long, and whose dice. A solo
-// table has no player count (maxPlayers is pinned to 1 in the payload), and
-// only an AI narrator plans a story arc, so length hides with it.
 export function PartyStep({ draft, patch, gates }: StepProps) {
+  const { locale } = useI18n();
+  const copy = campaignWizardCopy(locale);
   const { solo, aiNarrates } = gates;
+  const difficultyCopy: Record<CampaignDifficulty, { label: string; hint: string }> = {
+    easy: { label: copy.difficulty.easyLabel, hint: copy.difficulty.easyHint },
+    normal: { label: copy.difficulty.normalLabel, hint: copy.difficulty.normalHint },
+    hard: { label: copy.difficulty.hardLabel, hint: copy.difficulty.hardHint },
+    deadly: { label: copy.difficulty.deadlyLabel, hint: copy.difficulty.deadlyHint },
+  };
+  const lengthCopy: Record<CampaignLengthSetting, string> = {
+    short: copy.length.short,
+    standard: copy.length.standard,
+    epic: copy.length.epic,
+  };
+
   return (
     <div className="space-y-4 text-sm">
-      <p className="text-xs text-stone-400">
-        The party is formed directly by members and their assigned characters joining this campaign.
-      </p>
+      <p className="text-xs text-stone-400">{copy.party.formation}</p>
       <div className={cn("grid gap-3", solo ? "grid-cols-2" : "grid-cols-3")}>
         {!solo ? (
           <label className="block">
-            <FieldLabel>Players</FieldLabel>
+            <FieldLabel>{copy.party.players}</FieldLabel>
             <input
               type="number"
               min={1}
@@ -47,7 +49,7 @@ export function PartyStep({ draft, patch, gates }: StepProps) {
           </label>
         ) : null}
         <label className="block">
-          <FieldLabel>Start level</FieldLabel>
+          <FieldLabel>{copy.party.startLevel}</FieldLabel>
           <input
             type="number"
             min={1}
@@ -60,27 +62,22 @@ export function PartyStep({ draft, patch, gates }: StepProps) {
         <label className="block">
           <FieldLabel>
             <span className="flex items-center gap-1">
-              Difficulty
-              <InfoButton label="Difficulty" text={DIFFICULTY_INFO} />
+              {copy.party.difficulty}
+              <InfoButton label={copy.party.difficulty} text={copy.party.difficultyInfo} />
             </span>
           </FieldLabel>
           <select
             value={draft.difficulty}
-            onChange={(event) =>
-              patch({ difficulty: event.target.value as CampaignDifficulty })
-            }
+            onChange={(event) => patch({ difficulty: event.target.value as CampaignDifficulty })}
             className={inputClass}
           >
             {CAMPAIGN_DIFFICULTIES.map((value) => (
               <option key={value} value={value}>
-                {value}
+                {difficultyCopy[value].label}
               </option>
             ))}
           </select>
-          {/* The chosen tier says what it means without opening anything. */}
-          <p className="mt-1 text-xs text-stone-500">
-            {CAMPAIGN_DIFFICULTY_HINTS[draft.difficulty]}
-          </p>
+          <p className="mt-1 text-xs text-stone-500">{difficultyCopy[draft.difficulty].hint}</p>
         </label>
       </div>
 
@@ -88,8 +85,8 @@ export function PartyStep({ draft, patch, gates }: StepProps) {
         <label className="block">
           <FieldLabel>
             <span className="flex items-center gap-1">
-              Campaign length
-              <InfoButton label="Campaign length" text={LENGTH_INFO} />
+              {copy.party.campaignLength}
+              <InfoButton label={copy.party.campaignLength} text={copy.party.lengthInfo} />
             </span>
           </FieldLabel>
           <select
@@ -101,35 +98,28 @@ export function PartyStep({ draft, patch, gates }: StepProps) {
           >
             {CAMPAIGN_LENGTHS.map((value) => (
               <option key={value} value={value}>
-                {CAMPAIGN_LENGTH_LABELS[value]}
+                {lengthCopy[value]}
               </option>
             ))}
           </select>
-          <p className="mt-1 text-xs text-stone-500">
-            How far the DM plans the story ahead. Any length keeps going if you play past the
-            finale: a sequel saga picks up where the last one ended.
-          </p>
+          <p className="mt-1 text-xs text-stone-500">{copy.party.lengthHelp}</p>
         </label>
       ) : null}
 
       <div>
-        <FieldLabel className="mb-1.5">Dice</FieldLabel>
+        <FieldLabel className="mb-1.5">{copy.party.dice}</FieldLabel>
         <div className="flex gap-2">
           <ToggleCard
             active={draft.dicePolicy === "digital_only"}
             onClick={() => patch({ dicePolicy: "digital_only" })}
-            label="Digital only"
-            hint="The server rolls everything"
+            label={copy.party.digitalOnly}
+            hint={copy.party.digitalHint}
           />
           <ToggleCard
             active={draft.dicePolicy === "real_allowed"}
             onClick={() => patch({ dicePolicy: "real_allowed" })}
-            label="Real dice allowed"
-            hint={
-              solo
-                ? "Roll at your desk and enter the numbers"
-                : "Players may opt in to rolling at the table"
-            }
+            label={copy.party.realAllowed}
+            hint={solo ? copy.party.realSoloHint : copy.party.realMultiHint}
           />
         </div>
       </div>
