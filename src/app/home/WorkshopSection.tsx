@@ -6,10 +6,9 @@ import { cn } from "@/lib/cn";
 import { IconChip, ui } from "@/lib/ui";
 import { Tooltip } from "@/components/ui/Tooltip";
 import type { WorkshopSummary } from "@/app/workshop/types";
+import { useI18n } from "@/lib/i18n";
+import { localeText } from "@/lib/i18n/locale-text";
 
-// The bench, alongside the tables. A workshop is not a game, so it gets its
-// own section rather than a row in the campaign list, but it is a first
-// thought rather than something buried in an account menu.
 export function WorkshopSection({
   workshops,
   cloningId,
@@ -19,20 +18,48 @@ export function WorkshopSection({
   cloningId: string;
   onClone: (id: string) => void;
 }) {
+  const { locale, t } = useI18n();
+  const copy = localeText(locale, {
+    en: {
+      body: "Build maps, NPCs, monsters, story and rules before a table exists.",
+      open: "Open workshop",
+      partyOf: "Party of",
+      atLevel: "at level",
+      duplicateTip: "Copy this workshop and everything in it",
+      duplicate: "Duplicate",
+      empty: "Nothing on the bench yet. A workshop is yours alone, and nothing in it reaches a table until you bring it in.",
+    },
+    ru: {
+      body: "Готовьте карты, NPC, монстров, сюжет и правила ещё до создания игрового стола.",
+      open: "Открыть мастерскую",
+      partyOf: "Партия из",
+      atLevel: "на уровне",
+      duplicateTip: "Скопировать мастерскую вместе со всем её содержимым",
+      duplicate: "Дублировать",
+      empty: "На верстаке пока пусто. Мастерская принадлежит только вам, и ничего из неё не попадёт в игру, пока вы сами это не перенесёте.",
+    },
+    pl: {
+      body: "Przygotuj mapy, NPC, potwory, fabułę i zasady jeszcze przed utworzeniem stołu.",
+      open: "Otwórz warsztat",
+      partyOf: "Drużyna licząca",
+      atLevel: "na poziomie",
+      duplicateTip: "Skopiuj ten warsztat wraz z całą zawartością",
+      duplicate: "Duplikuj",
+      empty: "Na stole roboczym jest jeszcze pusto. Warsztat należy tylko do ciebie i nic nie trafi z niego do gry, dopóki sam tego nie przeniesiesz.",
+    },
+  });
   return (
     <section className="mb-8">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <IconChip icon={Hammer} size="size-9" iconSize="size-4" />
           <div>
-            <h2 className="eyebrow text-sm text-amber-200/90">Workshop</h2>
-            <p className="text-xs text-stone-500">
-              Build maps, NPCs, monsters, story and rules before a table exists.
-            </p>
+            <h2 className="eyebrow text-sm text-amber-200/90">{t("nav.workshop")}</h2>
+            <p className="text-xs text-stone-500">{copy.body}</p>
           </div>
         </div>
         <Link href="/workshop" className={ui.btnSecondary}>
-          <Hammer className="size-4" /> Open workshop
+          <Hammer className="size-4" /> {copy.open}
         </Link>
       </div>
 
@@ -45,14 +72,14 @@ export function WorkshopSection({
                   {workshop.title}
                 </p>
                 <p className="text-sm text-stone-400">
-                  Party of {workshop.gameSettings.targetParty.size} at level{" "}
+                  {copy.partyOf} {workshop.gameSettings.targetParty.size} {copy.atLevel}{" "}
                   {workshop.gameSettings.targetParty.level}
                 </p>
               </Link>
-              <Tooltip content="Copy this workshop and everything in it">
+              <Tooltip content={copy.duplicateTip}>
                 <button
                   type="button"
-                  aria-label={`Duplicate ${workshop.title}`}
+                  aria-label={`${copy.duplicate} ${workshop.title}`}
                   disabled={cloningId === workshop.id}
                   onClick={() => onClone(workshop.id)}
                   className={cn("absolute right-2 top-2", ui.iconAction, "hover:text-amber-300")}
@@ -69,8 +96,7 @@ export function WorkshopSection({
         </ul>
       ) : (
         <p className="rounded-xl border border-stone-800 bg-stone-950/40 px-5 py-4 text-sm text-stone-500">
-          Nothing on the bench yet. A workshop is yours alone, and nothing in it reaches a table
-          until you bring it in.
+          {copy.empty}
         </p>
       )}
     </section>
