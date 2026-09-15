@@ -23,6 +23,11 @@ const I18nContext = createContext<I18nContextType | null>(null);
 const STORAGE_LOCALE_KEY = "odm_locale";
 const STORAGE_UNITS_KEY = "odm_unit_system";
 const LOCALE_COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
+const NEXT_LOCALE: Record<Locale, Locale> = { en: "ru", ru: "pl", pl: "en" };
+
+function isLocale(value: unknown): value is Locale {
+  return value === "en" || value === "ru" || value === "pl";
+}
 
 function persistLocale(locale: Locale) {
   document.documentElement.lang = locale;
@@ -63,6 +68,10 @@ function interpolate(text: string, params?: Record<string, string | number>): st
   return result;
 }
 
+function unit(locale: Locale, name: "meters" | "feet" | "kilograms" | "pounds" | "tiles") {
+  return lookup(locale, `units.${name}`) ?? lookup("en", `units.${name}`) ?? name;
+}
+
 export function I18nProvider({
   children,
   initialLocale = "ru",
@@ -81,7 +90,7 @@ export function I18nProvider({
     let nextUnits: UnitSystem = "metric";
     try {
       const savedLocale = localStorage.getItem(STORAGE_LOCALE_KEY);
-      if (savedLocale === "ru" || savedLocale === "en") nextLocale = savedLocale;
+      if (isLocale(savedLocale)) nextLocale = savedLocale;
 
       const savedUnits = localStorage.getItem(STORAGE_UNITS_KEY);
       if (savedUnits === "metric" || savedUnits === "imperial") nextUnits = savedUnits;
@@ -100,7 +109,7 @@ export function I18nProvider({
     persistCampaignLanguage(newLocale);
   };
 
-  const toggleLocale = () => setLocale(locale === "ru" ? "en" : "ru");
+  const toggleLocale = () => setLocale(NEXT_LOCALE[locale]);
 
   const setUnitSystem = (newSystem: UnitSystem) => {
     setUnitSystemState(newSystem);
@@ -116,8 +125,8 @@ export function I18nProvider({
   const t = useMemo(
     () =>
       (path: string, params?: Record<string, string | number>): string => {
-        // English is the canonical fallback. Missing Russian copy must never make the
-        // English UI display a key or Cyrillic text.
+        // English is the canonical fallback. Missing target copy must never make
+        // the UI display a raw translation key.
         const source = lookup(locale, path) ?? lookup("en", path);
         return source ? interpolate(source, params) : path;
       },
@@ -125,27 +134,27 @@ export function I18nProvider({
   );
 
   const formatDistance = (feet: number): string => {
-    if (unitSystem === "imperial") return `${feet} ${locale === "ru" ? "фт" : "ft"}`;
+    if (unitSystem === "imperial") return `${feet} ${unit(locale, "feet")}`;
     const meters = Math.round(feet * 0.3 * 10) / 10;
-    return `${meters} ${locale === "ru" ? "м" : "m"}`;
+    return `${meters} ${unit(locale, "meters")}`;
   };
 
   const formatWeight = (lbs: number): string => {
-    if (unitSystem === "imperial") return `${lbs} ${locale === "ru" ? "фнт" : "lb"}`;
+    if (unitSystem === "imperial") return `${lbs} ${unit(locale, "pounds")}`;
     const kg = Math.round(lbs * 0.453592 * 10) / 10;
-    return `${kg} ${locale === "ru" ? "кг" : "kg"}`;
+    return `${kg} ${unit(locale, "kilograms")}`;
   };
 
   const formatSpeed = (feet: number): string => {
-    if (unitSystem === "imperial") return `${feet} ${locale === "ru" ? "фт" : "ft"}`;
+    if (unitSystem === "imperial") return `${feet} ${unit(locale, "feet")}`;
     const meters = Math.round(feet * 0.3);
     const tiles = Math.round(feet / 5);
-    return `${meters} ${locale === "ru" ? "м" : "m"} (${tiles} ${locale === "ru" ? "кл." : "sq."})`;
+    return `${meters} ${unit(locale, "meters")} (${tiles} ${unit(locale, "tiles")})`;
   };
 
   const formatTile = (tiles: number): string => {
-    if (unitSystem === "imperial") return `${tiles * 5} ${locale === "ru" ? "фт" : "ft"}`;
-    return `${tiles * 1.5} ${locale === "ru" ? "м" : "m"}`;
+    if (unitSystem === "imperial") return `${tiles * 5} ${unit(locale, "feet")}`;
+    return `${tiles * 1.5} ${unit(locale, "meters")}`;
   };
 
   const value: I18nContextType = {
