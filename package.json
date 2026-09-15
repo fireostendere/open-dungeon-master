@@ -19,7 +19,7 @@
     "test:providers": "node --test scripts/test-provider-core.mjs scripts/test-provider-transport.mjs scripts/test-provider-gateway.mjs scripts/test-provider-cloud.mjs scripts/test-provider-transitions.mjs",
     "resources:generate": "node scripts/generate-class-resources.mjs",
     "test:dice": "node scripts/test-dice.mjs",
-    "i18n:check": "node scripts/test-i18n-coverage.mjs",
+    "i18n:check": "node scripts/test-i18n-coverage.mjs && node scripts/test-language-coverage.mjs",
     "fetch-model": "node scripts/fetch-embedding-model.mjs",
     "fetch-ambience": "node scripts/fetch-ambience.mjs",
     "postinstall": "node scripts/copy-dice-assets.mjs"

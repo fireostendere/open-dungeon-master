@@ -22,6 +22,17 @@ const I18nContext = createContext<I18nContextType | null>(null);
 
 const STORAGE_LOCALE_KEY = "odm_locale";
 const STORAGE_UNITS_KEY = "odm_unit_system";
+const LOCALE_COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
+
+function persistLocale(locale: Locale) {
+  document.documentElement.lang = locale;
+  document.cookie = `${STORAGE_LOCALE_KEY}=${locale}; Path=/; Max-Age=${LOCALE_COOKIE_MAX_AGE}; SameSite=Lax`;
+  try {
+    localStorage.setItem(STORAGE_LOCALE_KEY, locale);
+  } catch {
+    // The cookie still lets server routes inherit the selected language.
+  }
+}
 
 function lookup(locale: Locale, path: string): string | undefined {
   const parts = path.split(".");
@@ -62,17 +73,12 @@ export function I18nProvider({ children }: { children: ReactNode }) {
 
     setLocaleState(nextLocale);
     setUnitSystemState(nextUnits);
-    document.documentElement.lang = nextLocale;
+    persistLocale(nextLocale);
   }, []);
 
   const setLocale = (newLocale: Locale) => {
     setLocaleState(newLocale);
-    document.documentElement.lang = newLocale;
-    try {
-      localStorage.setItem(STORAGE_LOCALE_KEY, newLocale);
-    } catch {
-      // The in-memory selection still works when storage is unavailable.
-    }
+    persistLocale(newLocale);
   };
 
   const toggleLocale = () => setLocale(locale === "ru" ? "en" : "ru");
