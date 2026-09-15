@@ -8,6 +8,7 @@ const read = (relative) => fs.readFileSync(path.join(root, relative), "utf8");
 
 const prompt = read("src/lib/dm/prompt.ts");
 const promptCore = path.join(root, "src/lib/dm/prompt-core.ts");
+const setup = read("src/lib/dm/setup.ts");
 const settings = read("src/lib/schemas/game-settings.ts");
 const settingsCore = path.join(root, "src/lib/schemas/game-settings-core.ts");
 const campaignsRoute = read("src/app/api/campaigns/route.ts");
@@ -28,6 +29,9 @@ assert.match(prompt, /inferredLanguage\(history\)/);
 assert.match(prompt, /localizeLanguageBlock\(message\.content, language\)/);
 assert.match(prompt, /LANGUAGE_BLOCK/);
 assert.match(prompt, /text\.replace\(LANGUAGE_BLOCK, replacement\)/);
+
+assert.match(setup, /campaign\.gameSettings\.language === "en" \? "English" : "Russian"/);
+assert.match(setup, /Write all three string values in \$\{language\}/);
 
 assert.match(settings, /language:\s*z\.enum\(\["ru", "en"\]\)\.optional\(\)/);
 assert.match(settings, /coreGameSettingsSchema\.extend/);
@@ -53,4 +57,4 @@ assert.match(prompt, /export \* from "@\/lib\/dm\/prompt-core"/);
 assert.match(settings, /export \* from "@\/lib\/schemas\/game-settings-core"/);
 assert.match(campaignsRoute, /from "\.\/route-core"/);
 
-console.log("language coverage passed: UI locale persists to campaign creation, existing campaign settings, and explicit RU/EN DM narration.");
+console.log("language coverage passed: UI locale persists to campaign creation, existing campaign settings, story setup, and explicit RU/EN DM narration.");
