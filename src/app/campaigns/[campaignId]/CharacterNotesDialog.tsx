@@ -4,11 +4,54 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { Loader2, Pencil, StickyNote, Trash2, X, Check } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/cn";
+import { useI18n } from "@/lib/i18n";
 import { ui } from "@/lib/ui";
 import { NoteComposer } from "@/app/campaigns/[campaignId]/NotesPanel";
 import type { CampaignMember } from "@/lib/campaign-types";
 import type { Note } from "@/lib/db/notes";
 import type { CharacterSheet } from "@/lib/schemas/sheet";
+
+const COPY = {
+  en: {
+    save: "Save",
+    cancel: "Cancel",
+    edit: "Edit",
+    deleteNote: "Delete note",
+    you: "You",
+    unknown: "Unknown",
+    notesOn: (name: string) => `Notes on ${name}`,
+    partyNotes: "Party notes",
+    noPartyNotes: (name: string) => `No party notes on ${name} yet.`,
+    myNotes: "My notes (only you see these)",
+    noPrivateNotes: "No private notes yet.",
+  },
+  ru: {
+    save: "Сохранить",
+    cancel: "Отмена",
+    edit: "Редактировать",
+    deleteNote: "Удалить заметку",
+    you: "Вы",
+    unknown: "Неизвестно",
+    notesOn: (name: string) => `Заметки о ${name}`,
+    partyNotes: "Заметки группы",
+    noPartyNotes: (name: string) => `О ${name} пока нет заметок группы.`,
+    myNotes: "Мои заметки (видны только вам)",
+    noPrivateNotes: "Личных заметок пока нет.",
+  },
+  pl: {
+    save: "Zapisz",
+    cancel: "Anuluj",
+    edit: "Edytuj",
+    deleteNote: "Usuń notatkę",
+    you: "Ty",
+    unknown: "Nieznany",
+    notesOn: (name: string) => `Notatki o ${name}`,
+    partyNotes: "Notatki drużyny",
+    noPartyNotes: (name: string) => `Nie ma jeszcze notatek drużyny o ${name}.`,
+    myNotes: "Moje notatki (widoczne tylko dla ciebie)",
+    noPrivateNotes: "Nie ma jeszcze prywatnych notatek.",
+  },
+} as const;
 
 // Notes attached to one character: public party notes (anyone can write;
 // the author, the party lead, and the character's owner can delete) and the
@@ -28,6 +71,8 @@ function CharacterNoteRow({
   canDelete: boolean;
   refreshNotes: () => Promise<void>;
 }) {
+  const { locale } = useI18n();
+  const copy = COPY[locale];
   const [editing, setEditing] = useState(false);
   const [body, setBody] = useState(note.body);
   const [busy, setBusy] = useState(false);
@@ -70,7 +115,7 @@ function CharacterNoteRow({
               className="flex items-center gap-1 rounded border border-stone-700 px-2 py-0.5 text-[11px] text-stone-300 hover:bg-stone-900 disabled:opacity-50"
             >
               {busy ? <Loader2 className="size-3 animate-spin" /> : <Check className="size-3" />}
-              Save
+              {copy.save}
             </button>
             <button
               type="button"
@@ -80,7 +125,7 @@ function CharacterNoteRow({
               }}
               className="flex items-center gap-1 rounded border border-stone-700 px-2 py-0.5 text-[11px] text-stone-500 hover:bg-stone-900"
             >
-              <X className="size-3" /> Cancel
+              <X className="size-3" /> {copy.cancel}
             </button>
           </div>
         </div>
@@ -94,7 +139,7 @@ function CharacterNoteRow({
                 <button
                   type="button"
                   onClick={() => setEditing(true)}
-                  title="Edit"
+                  title={copy.edit}
                   className="text-stone-500 hover:text-stone-300"
                 >
                   <Pencil className="size-3" />
@@ -111,7 +156,7 @@ function CharacterNoteRow({
                       }),
                     )
                   }
-                  title="Delete note"
+                  title={copy.deleteNote}
                   className="text-stone-500 hover:text-red-400"
                 >
                   <Trash2 className="size-3" />
@@ -144,10 +189,12 @@ export function CharacterNotesDialog({
   refreshNotes: () => Promise<void>;
   onClose: () => void;
 }) {
+  const { locale } = useI18n();
+  const copy = COPY[locale];
   const nameFor = (userId: string) =>
     userId === meUserId
-      ? "You"
-      : members.find((member) => member.userId === userId)?.username ?? "Unknown";
+      ? copy.you
+      : members.find((member) => member.userId === userId)?.username ?? copy.unknown;
 
   const characterNotes = notes.filter((note) => note.characterId === sheet.id);
   const publicNotes = characterNotes
@@ -172,7 +219,7 @@ export function CharacterNotesDialog({
         >
           <div className="mb-3 flex items-center justify-between">
             <Dialog.Title className="flex items-center gap-2 font-display text-lg tracking-wide text-amber-50">
-              <StickyNote className="size-4 text-amber-300" /> Notes on {sheet.name}
+              <StickyNote className="size-4 text-amber-300" /> {copy.notesOn(sheet.name)}
             </Dialog.Title>
             <Dialog.Close className="text-stone-500 hover:text-stone-300">
               <X className="size-4" />
@@ -188,7 +235,7 @@ export function CharacterNotesDialog({
             />
 
             <div className="space-y-1.5">
-              <h3 className={section}>Party notes</h3>
+              <h3 className={section}>{copy.partyNotes}</h3>
               {publicNotes.length ? (
                 <ul className="space-y-1.5">
                   {publicNotes.map((note) => (
@@ -204,14 +251,12 @@ export function CharacterNotesDialog({
                   ))}
                 </ul>
               ) : (
-                <p className="text-[11px] text-stone-600">
-                  No party notes on {sheet.name} yet.
-                </p>
+                <p className="text-[11px] text-stone-600">{copy.noPartyNotes(sheet.name)}</p>
               )}
             </div>
 
             <div className="space-y-1.5">
-              <h3 className={section}>My notes (only you see these)</h3>
+              <h3 className={section}>{copy.myNotes}</h3>
               {myNotes.length ? (
                 <ul className="space-y-1.5">
                   {myNotes.map((note) => (
@@ -219,7 +264,7 @@ export function CharacterNotesDialog({
                       key={note.id}
                       campaignId={campaignId}
                       note={note}
-                      authorName="You"
+                      authorName={copy.you}
                       canEdit
                       canDelete
                       refreshNotes={refreshNotes}
@@ -227,7 +272,7 @@ export function CharacterNotesDialog({
                   ))}
                 </ul>
               ) : (
-                <p className="text-[11px] text-stone-600">No private notes yet.</p>
+                <p className="text-[11px] text-stone-600">{copy.noPrivateNotes}</p>
               )}
             </div>
           </div>
