@@ -6,6 +6,8 @@ import { useCallback, useRef, useState } from "react";
 import Cropper, { type Area } from "react-easy-crop";
 import { ui } from "@/lib/ui";
 import { cn } from "@/lib/cn";
+import { useI18n } from "@/lib/i18n";
+import { localeText } from "@/lib/i18n/locale-text";
 
 // The familiar profile-picture flow: pick a file, pan/zoom a square crop,
 // export 512x512, upload through the existing /api/upload route.
@@ -42,7 +44,6 @@ async function cropToSquare(imageSrc: string, area: Area): Promise<{ dataUrl: st
   }
   context.drawImage(image, area.x, area.y, area.width, area.height, 0, 0, 512, 512);
   const webp = canvas.toDataURL("image/webp", 0.9);
-  // Browsers without webp encoding return a png data URL instead.
   return webp.startsWith("data:image/webp")
     ? { dataUrl: webp, type: "image/webp" }
     : { dataUrl: canvas.toDataURL("image/jpeg", 0.9), type: "image/jpeg" };
@@ -57,6 +58,33 @@ export function AvatarCropDialog({
   onUploaded: (image: UploadedImage) => void;
   onClose: () => void;
 }) {
+  const { locale, t } = useI18n();
+  const copy = localeText(locale, {
+    en: {
+      invalidType: "Only PNG, JPEG, and WebP images are supported.",
+      tooLarge: "Image is larger than 8MB.",
+      uploadFailed: "Upload failed.",
+      processFailed: "Could not process the image.",
+      choose: "Choose an image",
+      different: "Different image",
+    },
+    ru: {
+      invalidType: "Поддерживаются только изображения PNG, JPEG и WebP.",
+      tooLarge: "Размер изображения превышает 8 МБ.",
+      uploadFailed: "Не удалось загрузить изображение.",
+      processFailed: "Не удалось обработать изображение.",
+      choose: "Выбрать изображение",
+      different: "Другое изображение",
+    },
+    pl: {
+      invalidType: "Obsługiwane są tylko obrazy PNG, JPEG i WebP.",
+      tooLarge: "Obraz ma więcej niż 8 MB.",
+      uploadFailed: "Nie udało się przesłać obrazu.",
+      processFailed: "Nie udało się przetworzyć obrazu.",
+      choose: "Wybierz obraz",
+      different: "Inny obraz",
+    },
+  });
   const [source, setSource] = useState("");
   const [fileName, setFileName] = useState("");
   const [crop, setCrop] = useState({ x: 0, y: 0 });
@@ -71,15 +99,13 @@ export function AvatarCropDialog({
   }, []);
 
   async function pickFile(file: File | undefined) {
-    if (!file) {
-      return;
-    }
+    if (!file) return;
     if (!["image/png", "image/jpeg", "image/webp"].includes(file.type)) {
-      setError("Only PNG, JPEG, and WebP images are supported.");
+      setError(copy.invalidType);
       return;
     }
     if (file.size > 8 * 1024 * 1024) {
-      setError("Image is larger than 8MB.");
+      setError(copy.tooLarge);
       return;
     }
     setError("");
@@ -90,9 +116,7 @@ export function AvatarCropDialog({
   }
 
   async function save() {
-    if (!source || !areaPixels) {
-      return;
-    }
+    if (!source || !areaPixels) return;
     setBusy(true);
     setError("");
     try {
@@ -104,13 +128,13 @@ export function AvatarCropDialog({
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) {
-        setError(data.error || "Upload failed.");
+        setError(data.error || copy.uploadFailed);
         return;
       }
       onUploaded(data as UploadedImage);
       onClose();
     } catch {
-      setError("Could not process the image.");
+      setError(copy.processFailed);
     } finally {
       setBusy(false);
     }
@@ -125,7 +149,7 @@ export function AvatarCropDialog({
         >
           <div className="mb-3 flex items-center justify-between">
             <Dialog.Title className="font-display text-lg tracking-wide text-amber-50">{title}</Dialog.Title>
-            <Dialog.Close className="text-stone-500 hover:text-stone-300">
+            <Dialog.Close className="text-stone-500 hover:text-stone-300" aria-label={t("common.close")}>
               <X className="size-4" />
             </Dialog.Close>
           </div>
@@ -173,7 +197,7 @@ export function AvatarCropDialog({
               className="flex h-40 w-full flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-stone-700 text-sm text-stone-400 hover:border-amber-800 hover:text-stone-200"
             >
               <Upload className="size-5" />
-              Choose an image
+              {copy.choose}
             </button>
           )}
 
@@ -181,27 +205,18 @@ export function AvatarCropDialog({
 
           <div className="mt-4 flex justify-between gap-2">
             {source ? (
-              <button
-                type="button"
-                onClick={() => fileInput.current?.click()}
-                className={ui.btnSmall}
-              >
-                Different image
+              <button type="button" onClick={() => fileInput.current?.click()} className={ui.btnSmall}>
+                {copy.different}
               </button>
             ) : (
               <span />
             )}
             <div className="flex gap-2">
               <button type="button" onClick={onClose} className={ui.btnSmall}>
-                Cancel
+                {t("common.cancel")}
               </button>
-              <button
-                type="button"
-                onClick={save}
-                disabled={busy || !source}
-                className={ui.btnPrimary}
-              >
-                {busy ? <Loader2 className="size-4 animate-spin" /> : null} Save
+              <button type="button" onClick={save} disabled={busy || !source} className={ui.btnPrimary}>
+                {busy ? <Loader2 className="size-4 animate-spin" /> : null} {t("common.save")}
               </button>
             </div>
           </div>
