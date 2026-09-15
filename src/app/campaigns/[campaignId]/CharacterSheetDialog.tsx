@@ -25,6 +25,7 @@ import { GameTerm } from "@/components/ui/GameTerm";
 import { InfoButton, InfoChipList } from "@/components/ui/InfoDialog";
 import { contentSlug, describeFeature } from "@/lib/help";
 import { useI18n } from "@/lib/i18n";
+import { localeText } from "@/lib/i18n/locale-text";
 
 function titleCase(value: string) {
   return value.replace(/[-_]/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
@@ -94,6 +95,38 @@ export function CharacterSheetDialog({
   // bonuses, heavy armor below its Strength minimum costs 10 feet, and a
   // heavy pack costs more when the table plays with encumbrance.
   const { t, formatSpeed, formatWeight, locale } = useI18n();
+  const copy = localeText(locale, {
+    en: {
+      baseSpeed: "Base",
+      walkingSpeed: "Their walking speed.",
+      reducedByGear: "reduced by what they wear",
+      andCarry: " and carry",
+      initiative: "Init",
+      passivePerception: "PP",
+      proficiencyBonus: "PB",
+      gold: "gp",
+    },
+    ru: {
+      baseSpeed: "Базовая",
+      walkingSpeed: "Базовая скорость передвижения.",
+      reducedByGear: "снижена снаряжением",
+      andCarry: " и грузом",
+      initiative: "Иниц.",
+      passivePerception: "Пасс. Вним.",
+      proficiencyBonus: "БМ",
+      gold: "зм",
+    },
+    pl: {
+      baseSpeed: "Bazowa",
+      walkingSpeed: "Ich szybkość poruszania się.",
+      reducedByGear: "zmniejszona przez noszony ekwipunek",
+      andCarry: " i ciężar",
+      initiative: "Inic.",
+      passivePerception: "PW",
+      proficiencyBonus: "PB",
+      gold: "sz.",
+    },
+  });
   const speed = speedFor(sheet, { encumbrance: encumbranceRule });
   const load = encumbranceFor({
     strength: sheet.abilities.str,
@@ -103,8 +136,8 @@ export function CharacterSheetDialog({
   const anyEquipped = sheet.equipment.some((item) => item.equipped);
   const speedNote =
     speed === sheet.speed
-      ? (locale === "ru" ? "Базовая скорость передвижения." : "Their walking speed.")
-      : `${locale === "ru" ? "Базовая" : "Base"} ${formatSpeed(sheet.speed)}, ${locale === "ru" ? "снижена снаряжением" : "reduced by what they wear"}${encumbranceRule && load.speedPenalty ? (locale === "ru" ? " и грузом" : " and carry") : ""}.`;
+      ? copy.walkingSpeed
+      : `${copy.baseSpeed} ${formatSpeed(sheet.speed)}, ${copy.reducedByGear}${encumbranceRule && load.speedPenalty ? copy.andCarry : ""}.`;
   const [busy, setBusy] = useState(false);
   const [pdfBusy, setPdfBusy] = useState(false);
 
@@ -212,13 +245,13 @@ export function CharacterSheetDialog({
               {load.unweighed ? "+" : ""}/{formatWeight(load.capacityLb)}
             </span>
             <span title={explainParts(derived.parts.initiative)}>
-              <GameTerm id="initiative">{locale === "ru" ? "Иниц." : "Init"}</GameTerm> {formatModifier(derived.initiative)}
+              <GameTerm id="initiative">{copy.initiative}</GameTerm> {formatModifier(derived.initiative)}
             </span>
             <span title={explainParts(derived.parts.passivePerception)}>
-              <GameTerm id="passive_perception">{locale === "ru" ? "Пасс. Вним." : "PP"}</GameTerm> {derived.passivePerception}
+              <GameTerm id="passive_perception">{copy.passivePerception}</GameTerm> {derived.passivePerception}
             </span>
-            <span>{locale === "ru" ? "БМ" : "PB"} {formatModifier(derived.proficiencyBonus)}</span>
-            <span>{sheet.gold} {locale === "ru" ? "зм" : "gp"}</span>
+            <span>{copy.proficiencyBonus} {formatModifier(derived.proficiencyBonus)}</span>
+            <span>{sheet.gold} {copy.gold}</span>
             <span>
               {sheet.xp} XP · Hit dice {sheet.hitDice.total - sheet.hitDice.spent}/
               {sheet.hitDice.total}

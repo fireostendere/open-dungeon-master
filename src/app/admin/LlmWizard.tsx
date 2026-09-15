@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { Wizard, type WizardStep } from "@/components/ui/Wizard";
 import { ui } from "@/lib/ui";
+import { useI18n } from "@/lib/i18n";
+import { localeText } from "@/lib/i18n/locale-text";
 
 // LLM connection wizard. Reuses Wizard.tsx for step navigation.
 // Steps: Type → Connection → Model → Check → Save
@@ -60,6 +62,144 @@ const PRESETS = {
 };
 
 export function LlmWizard({ profileId, onClose, onSaved }: Props) {
+  const { locale } = useI18n();
+  const copy = localeText(locale, {
+    en: {
+      typeTitle: "Connection type",
+      typeBlurb: "Choose the type of LLM server",
+      cloud: "Cloud provider",
+      cloudHint: "OpenRouter, OpenAI, DeepSeek, DashScope",
+      local: "Local runtime",
+      localHint: "Ollama, llama.cpp, LM Studio, vLLM",
+      custom: "Custom endpoint",
+      customHint: "OpenAI-compatible server",
+      connectionTitle: "Address and access",
+      connectionBlurb: "Server URL and API key",
+      apiKey: "API key",
+      apiKeySaved: "•••••••• (leave empty to keep it)",
+      apiKeyLocal: "Optional for local servers",
+      contextLimit: "Context limit (tokens)",
+      maxOutput: "Max output tokens",
+      thinking: "Thinking",
+      timeout: "Timeout (ms)",
+      tweaks: "Tweaks apply to the DM when you use Apply as DM: sampling, output limit, timeout, and thinking. Empty means server default.",
+      modelTitle: "Model",
+      modelBlurb: "Choose a model or enter its name manually",
+      load: "Load list",
+      loading: "Loading...",
+      protocol: "Protocol",
+      modelName: "Model name",
+      checkTitle: "Check",
+      checkBlurb: "Check the connection and model capabilities",
+      checking: "Checking...",
+      checkConnection: "Check connection",
+      connectionWorks: "✓ Connection works",
+      connectionFails: "✗ Connection failed",
+      tools: "Tools",
+      streaming: "Streaming",
+      modelListed: "Model listed",
+      toolsWarning: "⚠ Without reliable tools, this model cannot run as an automatic DM",
+      saveTitle: "Save",
+      saveBlurb: "Save and apply the profile",
+      profileName: "Profile name",
+      profilePlaceholder: "My model",
+      saving: "Saving...",
+      saveProfile: "Save profile",
+      apply: "Apply as DM (global)",
+      cannotApply: "Cannot apply: tools did not pass the check",
+      done: "Done",
+    },
+    ru: {
+      typeTitle: "Тип подключения",
+      typeBlurb: "Выберите тип LLM-сервера",
+      cloud: "Облачный провайдер",
+      cloudHint: "OpenRouter, OpenAI, DeepSeek, DashScope",
+      local: "Локальный runtime",
+      localHint: "Ollama, llama.cpp, LM Studio, vLLM",
+      custom: "Произвольный endpoint",
+      customHint: "OpenAI-совместимый сервер",
+      connectionTitle: "Адрес и доступ",
+      connectionBlurb: "URL сервера и ключ API",
+      apiKey: "API-ключ",
+      apiKeySaved: "•••••••• (оставьте пустым, чтобы сохранить)",
+      apiKeyLocal: "Необязательно для локальных серверов",
+      contextLimit: "Лимит контекста (токены)",
+      maxOutput: "Максимум токенов вывода",
+      thinking: "Размышление",
+      timeout: "Тайм-аут (мс)",
+      tweaks: "Твики применяются к DM при «Применить как DM»: sampling, лимит вывода, таймаут и thinking. Пусто = настройка сервера/дефолт.",
+      modelTitle: "Модель",
+      modelBlurb: "Выберите модель или введите имя вручную",
+      load: "Загрузить список",
+      loading: "Загрузка...",
+      protocol: "Протокол",
+      modelName: "Название модели",
+      checkTitle: "Проверка",
+      checkBlurb: "Проверьте подключение и возможности модели",
+      checking: "Проверка...",
+      checkConnection: "Проверить подключение",
+      connectionWorks: "✓ Подключение работает",
+      connectionFails: "✗ Подключение не работает",
+      tools: "Инструменты",
+      streaming: "Стриминг",
+      modelListed: "Модель в списке",
+      toolsWarning: "⚠ Без надёжных инструментов модель нельзя включать как автоматического DM",
+      saveTitle: "Сохранение",
+      saveBlurb: "Сохраните профиль и примените",
+      profileName: "Название профиля",
+      profilePlaceholder: "Моя модель",
+      saving: "Сохранение...",
+      saveProfile: "Сохранить профиль",
+      apply: "Применить как DM (глобально)",
+      cannotApply: "Нельзя применить: инструменты не прошли проверку",
+      done: "Готово",
+    },
+    pl: {
+      typeTitle: "Typ połączenia",
+      typeBlurb: "Wybierz typ serwera LLM",
+      cloud: "Dostawca chmurowy",
+      cloudHint: "OpenRouter, OpenAI, DeepSeek, DashScope",
+      local: "Lokalny runtime",
+      localHint: "Ollama, llama.cpp, LM Studio, vLLM",
+      custom: "Własny endpoint",
+      customHint: "Serwer zgodny z OpenAI",
+      connectionTitle: "Adres i dostęp",
+      connectionBlurb: "URL serwera i klucz API",
+      apiKey: "Klucz API",
+      apiKeySaved: "•••••••• (zostaw puste, aby zachować)",
+      apiKeyLocal: "Opcjonalne dla serwerów lokalnych",
+      contextLimit: "Limit kontekstu (tokeny)",
+      maxOutput: "Maksymalna liczba tokenów wyjściowych",
+      thinking: "Rozumowanie",
+      timeout: "Limit czasu (ms)",
+      tweaks: "Zmiany obowiązują po użyciu Zastosuj jako MG: sampling, limit wyjścia, limit czasu i rozumowanie. Puste oznacza domyślne ustawienia serwera.",
+      modelTitle: "Model",
+      modelBlurb: "Wybierz model lub wpisz jego nazwę ręcznie",
+      load: "Wczytaj listę",
+      loading: "Ładowanie...",
+      protocol: "Protokół",
+      modelName: "Nazwa modelu",
+      checkTitle: "Sprawdź",
+      checkBlurb: "Sprawdź połączenie i możliwości modelu",
+      checking: "Sprawdzanie...",
+      checkConnection: "Sprawdź połączenie",
+      connectionWorks: "✓ Połączenie działa",
+      connectionFails: "✗ Połączenie nie działa",
+      tools: "Narzędzia",
+      streaming: "Streaming",
+      modelListed: "Model na liście",
+      toolsWarning: "⚠ Bez niezawodnych narzędzi ten model nie może prowadzić gry automatycznie",
+      saveTitle: "Zapisz",
+      saveBlurb: "Zapisz i zastosuj profil",
+      profileName: "Nazwa profilu",
+      profilePlaceholder: "Mój model",
+      saving: "Zapisywanie...",
+      saveProfile: "Zapisz profil",
+      apply: "Zastosuj jako MG (globalnie)",
+      cannotApply: "Nie można zastosować: narzędzia nie przeszły sprawdzania",
+      done: "Gotowe",
+    },
+  });
   const [profile, setProfile] = useState<LlmProfile>({
     name: "",
     kind: "custom",
@@ -179,16 +319,16 @@ export function LlmWizard({ profileId, onClose, onSaved }: Props) {
   const steps: WizardStep[] = [
     {
       key: "type",
-      title: "Тип подключения",
-      blurb: "Выберите тип LLM-сервера",
+      title: copy.typeTitle,
+      blurb: copy.typeBlurb,
       canContinue: profile.kind !== "custom" || Boolean(profile.baseUrl),
       content: (
         <div className="grid gap-3 md:grid-cols-3">
           {(
             [
-              ["cloud-preset", "☁️", "Облачный провайдер", "OpenRouter, OpenAI, DeepSeek, DashScope"],
-              ["local-runtime", "💻", "Локальный runtime", "Ollama, llama.cpp, LM Studio, vLLM"],
-              ["custom", "🔧", "Произвольный endpoint", "OpenAI-совместимый сервер"],
+              ["cloud-preset", "☁️", copy.cloud, copy.cloudHint],
+              ["local-runtime", "💻", copy.local, copy.localHint],
+              ["custom", "🔧", copy.custom, copy.customHint],
             ] as const
           ).map(([kind, icon, title, hint]) => (
             <button
@@ -224,8 +364,8 @@ export function LlmWizard({ profileId, onClose, onSaved }: Props) {
     },
     {
       key: "connection",
-      title: "Адрес и доступ",
-      blurb: "URL сервера и ключ API",
+      title: copy.connectionTitle,
+      blurb: copy.connectionBlurb,
       canContinue: canProceedToConnection,
       content: (
         <div className="space-y-3">
@@ -270,18 +410,18 @@ export function LlmWizard({ profileId, onClose, onSaved }: Props) {
             />
           </div>
           <div>
-            <label className="mb-1 block text-sm text-stone-300">API Key</label>
+            <label className="mb-1 block text-sm text-stone-300">{copy.apiKey}</label>
             <input
               type="password"
               className={ui.input}
               value={profile.apiKey}
               onChange={(e) => setProfile({ ...profile, apiKey: e.target.value })}
-              placeholder={profile.hasApiKey ? "•••••••• (оставьте пустым чтобы сохранить)" : "Необязательно для локальных серверов"}
+              placeholder={profile.hasApiKey ? copy.apiKeySaved : copy.apiKeyLocal}
             />
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
             <div>
-              <label className="mb-1 block text-xs text-stone-400">Context limit (tokens)</label>
+              <label className="mb-1 block text-xs text-stone-400">{copy.contextLimit}</label>
               <input
                 type="number"
                 className={ui.input}
@@ -291,7 +431,7 @@ export function LlmWizard({ profileId, onClose, onSaved }: Props) {
               />
             </div>
             <div>
-              <label className="mb-1 block text-xs text-stone-400">Max output tokens</label>
+              <label className="mb-1 block text-xs text-stone-400">{copy.maxOutput}</label>
               <input
                 type="number"
                 className={ui.input}
@@ -301,7 +441,7 @@ export function LlmWizard({ profileId, onClose, onSaved }: Props) {
               />
             </div>
             <div>
-              <label className="mb-1 block text-xs text-stone-400">Thinking</label>
+              <label className="mb-1 block text-xs text-stone-400">{copy.thinking}</label>
               <select
                 className={ui.input}
                 value={profile.thinking}
@@ -313,7 +453,7 @@ export function LlmWizard({ profileId, onClose, onSaved }: Props) {
               </select>
             </div>
             <div>
-              <label className="mb-1 block text-xs text-stone-400">Timeout (ms)</label>
+              <label className="mb-1 block text-xs text-stone-400">{copy.timeout}</label>
               <input
                 type="number"
                 className={ui.input}
@@ -353,8 +493,7 @@ export function LlmWizard({ profileId, onClose, onSaved }: Props) {
               ))}
             </div>
             <p className="text-[11px] text-stone-500">
-              Твики применяются к DM при «Применить как DM»: sampling, лимит вывода, таймаут и
-              thinking. Пусто = настройка сервера/дефолт.
+              {copy.tweaks}
             </p>
           </div>
         </div>
@@ -362,8 +501,8 @@ export function LlmWizard({ profileId, onClose, onSaved }: Props) {
     },
     {
       key: "model",
-      title: "Модель",
-      blurb: "Выберите модель или введите имя вручную",
+      title: copy.modelTitle,
+      blurb: copy.modelBlurb,
       canContinue: canProceedToModel,
       content: (
         <div className="space-y-3">
@@ -374,9 +513,9 @@ export function LlmWizard({ profileId, onClose, onSaved }: Props) {
               disabled={loadingModels || !profile.baseUrl}
               className={ui.btnSmall}
             >
-              {loadingModels ? "Загрузка..." : "Загрузить список"}
+              {loadingModels ? copy.loading : copy.load}
             </button>
-            <span className="ml-2 text-xs text-stone-400">Протокол: {profile.protocol}</span>
+            <span className="ml-2 text-xs text-stone-400">{copy.protocol}: {profile.protocol}</span>
           </div>
           {models.length > 0 && (
             <div className="max-h-48 overflow-y-auto rounded border border-stone-700">
@@ -396,7 +535,7 @@ export function LlmWizard({ profileId, onClose, onSaved }: Props) {
             </div>
           )}
           <div>
-            <label className="mb-1 block text-sm text-stone-300">Model name</label>
+            <label className="mb-1 block text-sm text-stone-300">{copy.modelName}</label>
             <input
               type="text"
               className={ui.input}
@@ -410,8 +549,8 @@ export function LlmWizard({ profileId, onClose, onSaved }: Props) {
     },
     {
       key: "check",
-      title: "Проверка",
-      blurb: "Проверьте подключение и возможности модели",
+      title: copy.checkTitle,
+      blurb: copy.checkBlurb,
       content: (
         <div className="space-y-3">
           <button
@@ -420,13 +559,13 @@ export function LlmWizard({ profileId, onClose, onSaved }: Props) {
             disabled={probing || !profile.baseUrl || !profile.model}
             className={ui.btnPrimary}
           >
-            {probing ? "Проверка..." : "Проверить подключение"}
+            {probing ? copy.checking : copy.checkConnection}
           </button>
           {report && (
             <div className="space-y-2 rounded border border-stone-700 p-3">
               <div className="flex items-center gap-2">
                 <span className={report.ok ? "text-green-400" : "text-red-400"}>
-                  {report.ok ? "✓ Подключение работает" : "✗ Подключение не работает"}
+                  {report.ok ? copy.connectionWorks : copy.connectionFails}
                 </span>
               </div>
               <div className="grid gap-1 text-xs">
@@ -442,15 +581,15 @@ export function LlmWizard({ profileId, onClose, onSaved }: Props) {
                 ))}
               </div>
               <div className="flex gap-3 text-xs">
-                <span>Tools: {report.capabilities.tools ? "✓" : "✗"}</span>
-                <span>Streaming: {report.capabilities.streaming ? "✓" : "✗"}</span>
+                <span>{copy.tools}: {report.capabilities.tools ? "✓" : "✗"}</span>
+                <span>{copy.streaming}: {report.capabilities.streaming ? "✓" : "✗"}</span>
                 {report.capabilities.modelListed !== null && (
-                  <span>Model listed: {report.capabilities.modelListed ? "✓" : "✗"}</span>
+                  <span>{copy.modelListed}: {report.capabilities.modelListed ? "✓" : "✗"}</span>
                 )}
               </div>
               {!report.capabilities.tools && (
                 <div className="rounded bg-yellow-900/30 p-2 text-xs text-yellow-200">
-                  ⚠ Без надёжных инструментов модель нельзя включать как автоматического DM
+                  {copy.toolsWarning}
                 </div>
               )}
             </div>
@@ -460,19 +599,19 @@ export function LlmWizard({ profileId, onClose, onSaved }: Props) {
     },
     {
       key: "save",
-      title: "Сохранение",
-      blurb: "Сохраните профиль и примените",
+      title: copy.saveTitle,
+      blurb: copy.saveBlurb,
       canContinue: canSave,
       content: (
         <div className="space-y-3">
           <div>
-            <label className="mb-1 block text-sm text-stone-300">Название профиля</label>
+            <label className="mb-1 block text-sm text-stone-300">{copy.profileName}</label>
             <input
               type="text"
               className={ui.input}
               value={profile.name}
               onChange={(e) => setProfile({ ...profile, name: e.target.value })}
-              placeholder="Моя модель"
+              placeholder={copy.profilePlaceholder}
             />
           </div>
           <button
@@ -481,7 +620,7 @@ export function LlmWizard({ profileId, onClose, onSaved }: Props) {
             disabled={saving || !canSave}
             className={ui.btnPrimary}
           >
-            {saving ? "Сохранение..." : "Сохранить профиль"}
+            {saving ? copy.saving : copy.saveProfile}
           </button>
           {profile.id && (
             <div className="space-y-2">
@@ -491,11 +630,11 @@ export function LlmWizard({ profileId, onClose, onSaved }: Props) {
                 disabled={!toolsVerified}
                 className={ui.btnSecondary}
               >
-                Применить как DM (глобально)
+                {copy.apply}
               </button>
               {!toolsVerified && (
                 <div className="text-xs text-yellow-300">
-                  Нельзя применить: инструменты не прошли проверку
+                  {copy.cannotApply}
                 </div>
               )}
             </div>
@@ -508,9 +647,9 @@ export function LlmWizard({ profileId, onClose, onSaved }: Props) {
   return (
     <Wizard
       steps={steps}
-      title="Мастер подключения модели"
+      title={copy.connectionTitle}
       onDone={onClose}
-      doneLabel="Готово"
+      doneLabel={copy.done}
       onCancel={onClose}
       step={step}
       onStepChange={setStep}

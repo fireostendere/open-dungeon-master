@@ -53,7 +53,7 @@ function titleCase(value: string) {
 }
 
 export default function CharactersPage() {
-  const { locale, t } = useI18n();
+  const { locale } = useI18n();
   const copy = localeText(locale, {
     en: {
       loginPrefix: "Log in",

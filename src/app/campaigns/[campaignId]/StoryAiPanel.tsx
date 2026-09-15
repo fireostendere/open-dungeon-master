@@ -10,24 +10,171 @@ import {
   type ImageBackend,
   type StorySettings,
 } from "@/lib/types";
+import { useI18n } from "@/lib/i18n";
+import { localeText } from "@/lib/i18n/locale-text";
 
 // A secret field never receives its stored value; SECRET_KEPT means "leave it
 // as is" and the field is simply omitted from the PATCH. Same contract as the
 // admin settings panel.
 const SECRET_KEPT = "\u0000keep";
 
-const PROVIDER_LABELS: Record<TextProvider, string> = {
-  local: "Local (Ollama)",
-  custom: "Custom backend",
-  none: "No AI storyteller",
-};
-
-const BACKEND_LABELS: Record<ImageBackend, string> = {
-  comfyui: "ComfyUI",
-  openai: "OpenAI-compatible",
-  dashscope: "Qwen-Image (Alibaba Cloud)",
-  "mflux-hs": "MFLUX (home server)",
-  "sdnq-hs": "SDNQ (home server)",
+const COPY = {
+  en: {
+    providers: { local: "Local (Ollama)", custom: "Custom backend", none: "No AI storyteller" },
+    backends: {
+      comfyui: "ComfyUI",
+      openai: "OpenAI-compatible",
+      dashscope: "Qwen-Image (Alibaba Cloud)",
+      "mflux-hs": "MFLUX (home server)",
+      "sdnq-hs": "SDNQ (home server)",
+    },
+    storyAi: "Story AI",
+    storyteller: "Storyteller",
+    utility: "Utility",
+    utilityModel: "Utility model",
+    images: "Images",
+    automatic: ", automatic",
+    passages: "Passages",
+    profile: "Profile",
+    savedProfiles: "— saved connection profiles —",
+    notChecked: " (not checked)",
+    apply: "Apply",
+    profileHint: "Profiles are created by an admin; keys stay on the server.",
+    baseUrl: "Base URL",
+    model: "Model",
+    apiKey: "API key",
+    set: "•••••••• (set)",
+    notSet: "Not set",
+    clear: "Clear",
+    blankFallback: "Blank fields fall back to the server's settings.",
+    modelBlank: "Model (blank keeps everything on the storyteller)",
+    utilityUrl: "Utility URL",
+    apiKeyOptional: "API key (optional)",
+    off: "Off",
+    square: "Square",
+    portrait: "Portrait",
+    landscape: "Landscape",
+    fast: "Fast",
+    slow: "Slow (higher quality)",
+    autoScenes: "Auto scenes",
+    checkpoint: "Checkpoint",
+    notInstalled: " (not installed)",
+    checkpointHint: "Only models actually installed in ComfyUI are listed.",
+    preset: "Preset",
+    campaignKeyHint: "The campaign key takes priority over the server key.",
+    saved: "•••••••• (saved)",
+    campaignKeyOptional: "campaign key (optional)",
+    remove: "Remove",
+    noImageBackend: "The server has no image backend configured; these settings will not take effect until it does.",
+    passageHint: "How long each narrated passage runs.",
+    profileError: "The profile could not be applied.",
+    changeError: "That change was not saved.",
+    serverError: "Could not reach the server.",
+  },
+  ru: {
+    providers: { local: "Локальная (Ollama)", custom: "Свой сервер", none: "Без ИИ-рассказчика" },
+    backends: {
+      comfyui: "ComfyUI",
+      openai: "Совместимый с OpenAI",
+      dashscope: "Qwen-Image (Alibaba Cloud)",
+      "mflux-hs": "MFLUX (домашний сервер)",
+      "sdnq-hs": "SDNQ (домашний сервер)",
+    },
+    storyAi: "ИИ сюжета",
+    storyteller: "Рассказчик",
+    utility: "Служебная модель",
+    utilityModel: "Служебная модель",
+    images: "Картинки",
+    automatic: ", автоматически",
+    passages: "Фрагменты",
+    profile: "Профиль",
+    savedProfiles: "— сохранённые профили подключения —",
+    notChecked: " (не проверен)",
+    apply: "Применить",
+    profileHint: "Профили создаёт администратор; ключи остаются на сервере.",
+    baseUrl: "Базовый URL",
+    model: "Модель",
+    apiKey: "API-ключ",
+    set: "•••••••• (задан)",
+    notSet: "Не задан",
+    clear: "Очистить",
+    blankFallback: "Пустые поля используют настройки сервера.",
+    modelBlank: "Модель (пусто — всё остаётся на рассказчике)",
+    utilityUrl: "URL служебной модели",
+    apiKeyOptional: "API-ключ (необязательно)",
+    off: "Выкл.",
+    square: "Квадрат",
+    portrait: "Портрет",
+    landscape: "Альбом",
+    fast: "Быстро",
+    slow: "Медленно (выше качество)",
+    autoScenes: "Автокартинки сцен",
+    checkpoint: "Модель",
+    notInstalled: " (не установлена)",
+    checkpointHint: "Здесь перечислены только реально установленные в ComfyUI модели.",
+    preset: "Пресет",
+    campaignKeyHint: "Ключ кампании важнее общего ключа сервера.",
+    saved: "•••••••• (сохранён)",
+    campaignKeyOptional: "ключ кампании (необязательно)",
+    remove: "Удалить",
+    noImageBackend: "На сервере не настроен генератор изображений; эти параметры заработают после его настройки.",
+    passageHint: "Длина каждого фрагмента повествования.",
+    profileError: "Не удалось применить профиль.",
+    changeError: "Изменение не сохранено.",
+    serverError: "Не удалось связаться с сервером.",
+  },
+  pl: {
+    providers: { local: "Lokalny (Ollama)", custom: "Własny backend", none: "Brak narratora AI" },
+    backends: {
+      comfyui: "ComfyUI",
+      openai: "Zgodny z OpenAI",
+      dashscope: "Qwen-Image (Alibaba Cloud)",
+      "mflux-hs": "MFLUX (serwer domowy)",
+      "sdnq-hs": "SDNQ (serwer domowy)",
+    },
+    storyAi: "AI fabuły",
+    storyteller: "Narrator",
+    utility: "Model pomocniczy",
+    utilityModel: "Model pomocniczy",
+    images: "Obrazy",
+    automatic: ", automatycznie",
+    passages: "Fragmenty",
+    profile: "Profil",
+    savedProfiles: "— zapisane profile połączeń —",
+    notChecked: " (niesprawdzony)",
+    apply: "Zastosuj",
+    profileHint: "Profile tworzy administrator; klucze pozostają na serwerze.",
+    baseUrl: "Bazowy URL",
+    model: "Model",
+    apiKey: "Klucz API",
+    set: "•••••••• (ustawiony)",
+    notSet: "Nieustawiony",
+    clear: "Wyczyść",
+    blankFallback: "Puste pola używają ustawień serwera.",
+    modelBlank: "Model (puste pole zostawia wszystko narratorowi)",
+    utilityUrl: "URL modelu pomocniczego",
+    apiKeyOptional: "Klucz API (opcjonalny)",
+    off: "Wył.",
+    square: "Kwadrat",
+    portrait: "Portret",
+    landscape: "Poziomy",
+    fast: "Szybko",
+    slow: "Wolno (wyższa jakość)",
+    autoScenes: "Automatyczne sceny",
+    checkpoint: "Checkpoint",
+    notInstalled: " (niezainstalowany)",
+    checkpointHint: "Lista zawiera tylko modele faktycznie zainstalowane w ComfyUI.",
+    preset: "Preset",
+    campaignKeyHint: "Klucz kampanii ma priorytet nad kluczem serwera.",
+    saved: "•••••••• (zapisany)",
+    campaignKeyOptional: "klucz kampanii (opcjonalny)",
+    remove: "Usuń",
+    noImageBackend: "Na serwerze nie skonfigurowano backendu obrazów; ustawienia zaczną działać po jego skonfigurowaniu.",
+    passageHint: "Długość każdego fragmentu narracji.",
+    profileError: "Nie udało się zastosować profilu.",
+    changeError: "Nie udało się zapisać zmiany.",
+    serverError: "Nie udało się połączyć z serwerem.",
+  },
 };
 
 // Per-campaign AI settings for the Setup tab. The values render from the
@@ -43,6 +190,8 @@ export function StoryAiPanel({
   settings: StorySettings;
   steersStory: boolean;
 }) {
+  const { locale } = useI18n();
+  const copy = localeText(locale, COPY);
   const [busy, setBusy] = useState(false);
   // Every control renders the server's settings, so a refused PATCH changes
   // nothing on screen; without this line it changes nothing silently.
@@ -133,7 +282,7 @@ export function StoryAiPanel({
         settings?: MaskedStorySettings;
       };
       if (!response.ok) {
-        setError(data.error ?? "That change was not saved.");
+        setError(data.error ?? copy.changeError);
         return;
       }
       if (data.settings) {
@@ -151,7 +300,7 @@ export function StoryAiPanel({
         setDrafts((prev) => ({ ...prev, imageApiKey: SECRET_KEPT }));
       }
     } catch {
-      setError("Could not reach the server.");
+      setError(copy.serverError);
     } finally {
       setBusy(false);
     }
@@ -198,7 +347,7 @@ export function StoryAiPanel({
         settings?: MaskedStorySettings;
       };
       if (!response.ok) {
-        setError(data.error ?? "Профиль не применился.");
+        setError(data.error ?? copy.profileError);
         return;
       }
       if (data.settings) {
@@ -216,7 +365,7 @@ export function StoryAiPanel({
         }));
       }
     } catch {
-      setError("Could not reach the server.");
+      setError(copy.serverError);
     } finally {
       setBusy(false);
     }
@@ -224,32 +373,32 @@ export function StoryAiPanel({
 
   const storytellerSummary =
     settings.textProvider === "custom"
-      ? settings.customModel || "custom backend"
-      : PROVIDER_LABELS[settings.textProvider];
+      ? settings.customModel || copy.providers.custom
+      : copy.providers[settings.textProvider];
   const imagesSummary = settings.imageGenerationEnabled
-    ? `${BACKEND_LABELS[settings.imageBackend]}${settings.autoImages ? ", automatic" : ""}`
-    : "off";
+    ? `${copy.backends[settings.imageBackend]}${settings.autoImages ? copy.automatic : ""}`
+    : copy.off;
 
   if (!steersStory) {
     return (
       <section className="rounded-lg border border-stone-800 bg-stone-950/60 p-4">
-        <h2 className="mb-2 text-sm font-medium text-stone-300">Story AI</h2>
+        <h2 className="mb-2 text-sm font-medium text-stone-300">{copy.storyAi}</h2>
         <div className="flex flex-wrap gap-x-5 gap-y-1.5 text-xs text-stone-400">
           <span className="flex items-center gap-1.5">
             <Bot className="size-3.5 text-amber-200" />
-            Storyteller: {storytellerSummary}
+            {copy.storyteller}: {storytellerSummary}
           </span>
           <span className="flex items-center gap-1.5">
             <Wrench className="size-3.5 text-amber-200" />
-            Utility model: {settings.utilityModel || "off"}
+            {copy.utilityModel}: {settings.utilityModel || copy.off}
           </span>
           <span className="flex items-center gap-1.5">
             <ImageIcon className="size-3.5 text-amber-200" />
-            Images: {imagesSummary}
+            {copy.images}: {imagesSummary}
           </span>
           <span className="flex items-center gap-1.5">
             <AlignLeft className="size-3.5 text-amber-200" />
-            Passage length: {settings.proseSize}
+            {copy.passages}: {settings.proseSize}
           </span>
         </div>
       </section>
@@ -268,21 +417,21 @@ export function StoryAiPanel({
 
   return (
     <section className="rounded-lg border border-stone-800 bg-stone-950/60 p-4">
-      <h2 className="mb-3 text-sm font-medium text-stone-300">Story AI</h2>
+      <h2 className="mb-3 text-sm font-medium text-stone-300">{copy.storyAi}</h2>
       {error ? <p className="mb-2 text-xs text-red-400">{error}</p> : null}
       <div className={cn("space-y-3 text-xs", busy && "opacity-70")}>
         <div className="flex flex-wrap items-center gap-2">
-          <span className={labelClass}>Профиль</span>
+          <span className={labelClass}>{copy.profile}</span>
           <select
             value={selectedProfile}
             onChange={(event) => setSelectedProfile(event.target.value)}
             className={selectClass}
           >
-            <option value="">— сохранённые профили подключения —</option>
+            <option value="">{copy.savedProfiles}</option>
             {profiles.map((profile) => (
               <option key={profile.id} value={profile.id}>
                 {profile.name} · {profile.model}
-                {profile.lastCheck ? (profile.lastCheck.ok ? " ✓" : " ⚠") : " (не проверен)"}
+                {profile.lastCheck ? (profile.lastCheck.ok ? " ✓" : " ⚠") : copy.notChecked}
               </option>
             ))}
           </select>
@@ -292,22 +441,22 @@ export function StoryAiPanel({
             disabled={!selectedProfile}
             className="rounded-md border border-amber-700 bg-amber-950/50 px-2 py-1 text-amber-200 disabled:opacity-40"
           >
-            Применить
+            {copy.apply}
           </button>
           <span className="text-stone-500">
-            Профили создаёт админ в «Мастере подключения модели»; ключ остаётся на сервере.
+            {copy.profileHint}
           </span>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <span className={labelClass}>Storyteller</span>
+          <span className={labelClass}>{copy.storyteller}</span>
           <select
             value={settings.textProvider}
             onChange={(event) => patch({ textProvider: event.target.value as TextProvider })}
             className={selectClass}
           >
-            {(Object.keys(PROVIDER_LABELS) as TextProvider[]).map((provider) => (
+            {(Object.keys(copy.providers) as TextProvider[]).map((provider) => (
               <option key={provider} value={provider}>
-                {PROVIDER_LABELS[provider]}
+                {copy.providers[provider]}
               </option>
             ))}
           </select>
@@ -315,7 +464,7 @@ export function StoryAiPanel({
         {settings.textProvider === "custom" ? (
           <>
             <div className="flex flex-wrap items-center gap-2">
-              <span className={labelClass}>Base URL</span>
+              <span className={labelClass}>{copy.baseUrl}</span>
               <input
                 value={drafts.customBaseUrl}
                 onChange={(event) =>
@@ -328,7 +477,7 @@ export function StoryAiPanel({
               />
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              <span className={labelClass}>Model</span>
+              <span className={labelClass}>{copy.model}</span>
               <input
                 value={drafts.customModel}
                 onChange={(event) =>
@@ -340,7 +489,7 @@ export function StoryAiPanel({
               />
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              <span className={labelClass}>API key</span>
+              <span className={labelClass}>{copy.apiKey}</span>
               <input
                 type="password"
                 value={drafts.customApiKey === SECRET_KEPT ? "" : drafts.customApiKey}
@@ -349,7 +498,7 @@ export function StoryAiPanel({
                 }
                 onBlur={() => commitKey("customApiKey")}
                 onKeyDown={blurOnEnter}
-                placeholder={hasCustomKey ? "•••••••• (set)" : "Not set"}
+                placeholder={hasCustomKey ? copy.set : copy.notSet}
                 className={inputClass}
               />
               {hasCustomKey ? (
@@ -358,16 +507,16 @@ export function StoryAiPanel({
                   onClick={() => patch({ customApiKey: "" })}
                   className="rounded-md border border-stone-700 px-2 py-1 text-stone-400 hover:text-red-400"
                 >
-                  Clear
+                  {copy.clear}
                 </button>
               ) : null}
             </div>
-            <p className="text-stone-500">Blank fields fall back to the server&apos;s settings.</p>
+            <p className="text-stone-500">{copy.blankFallback}</p>
           </>
         ) : null}
 
         <div className="flex flex-wrap items-center gap-2 border-t border-stone-800/60 pt-3">
-          <span className={labelClass}>Utility</span>
+          <span className={labelClass}>{copy.utility}</span>
           <select
             value={settings.utilityProvider}
             onChange={(event) =>
@@ -375,8 +524,8 @@ export function StoryAiPanel({
             }
             className={selectClass}
           >
-            <option value="local">{PROVIDER_LABELS.local}</option>
-            <option value="custom">{PROVIDER_LABELS.custom}</option>
+            <option value="local">{copy.providers.local}</option>
+            <option value="custom">{copy.providers.custom}</option>
           </select>
           <input
             value={drafts.utilityModel}
@@ -385,13 +534,13 @@ export function StoryAiPanel({
             }
             onBlur={() => commitText("utilityModel")}
             onKeyDown={blurOnEnter}
-            placeholder="Model (blank keeps everything on the storyteller)"
+            placeholder={copy.modelBlank}
             className={inputClass}
           />
         </div>
         {settings.utilityProvider === "custom" && settings.utilityModel ? (
           <div className="flex flex-wrap items-center gap-2">
-            <span className={labelClass}>Utility URL</span>
+            <span className={labelClass}>{copy.utilityUrl}</span>
             <input
               value={drafts.utilityBaseUrl}
               onChange={(event) =>
@@ -410,7 +559,7 @@ export function StoryAiPanel({
               }
               onBlur={() => commitKey("utilityApiKey")}
               onKeyDown={blurOnEnter}
-              placeholder={hasUtilityKey ? "•••••••• (set)" : "API key (optional)"}
+              placeholder={hasUtilityKey ? copy.set : copy.apiKeyOptional}
               className={cn(selectClass, "w-40")}
             />
             {hasUtilityKey ? (
@@ -419,14 +568,14 @@ export function StoryAiPanel({
                 onClick={() => patch({ utilityApiKey: "" })}
                 className="rounded-md border border-stone-700 px-2 py-1 text-stone-400 hover:text-red-400"
               >
-                Clear
+                {copy.clear}
               </button>
             ) : null}
           </div>
         ) : null}
 
         <div className="flex flex-wrap items-center gap-2 border-t border-stone-800/60 pt-3">
-          <span className={labelClass}>Images</span>
+          <span className={labelClass}>{copy.images}</span>
           <select
             value={settings.imageGenerationEnabled ? settings.imageBackend : "off"}
             onChange={(event) => {
@@ -441,10 +590,10 @@ export function StoryAiPanel({
             }}
             className={selectClass}
           >
-            <option value="off">Off</option>
-            {(Object.keys(BACKEND_LABELS) as ImageBackend[]).map((backend) => (
+            <option value="off">{copy.off}</option>
+            {(Object.keys(copy.backends) as ImageBackend[]).map((backend) => (
               <option key={backend} value={backend}>
-                {BACKEND_LABELS[backend]}
+                {copy.backends[backend]}
               </option>
             ))}
           </select>
@@ -457,9 +606,9 @@ export function StoryAiPanel({
                 }
                 className={selectClass}
               >
-                <option value="square">Square</option>
-                <option value="portrait">Portrait</option>
-                <option value="landscape">Landscape</option>
+                <option value="square">{copy.square}</option>
+                <option value="portrait">{copy.portrait}</option>
+                <option value="landscape">{copy.landscape}</option>
               </select>
               <select
                 value={settings.imageMode}
@@ -468,8 +617,8 @@ export function StoryAiPanel({
                 }
                 className={selectClass}
               >
-                <option value="fast">Fast</option>
-                <option value="slow">Slow (higher quality)</option>
+                <option value="fast">{copy.fast}</option>
+                <option value="slow">{copy.slow}</option>
               </select>
               <button
                 type="button"
@@ -481,7 +630,7 @@ export function StoryAiPanel({
                     : "border-stone-700 text-stone-400",
                 )}
               >
-                Auto scenes
+                {copy.autoScenes}
               </button>
             </>
           ) : null}
@@ -491,7 +640,7 @@ export function StoryAiPanel({
         checkpoints &&
         checkpoints.length > 0 ? (
           <div className="flex flex-wrap items-center gap-2">
-            <span className={labelClass}>Checkpoint</span>
+            <span className={labelClass}>{copy.checkpoint}</span>
             <select
               value={settings.comfyCheckpoint}
               onChange={(event) => patch({ comfyCheckpoint: event.target.value })}
@@ -499,7 +648,7 @@ export function StoryAiPanel({
             >
               {settings.comfyCheckpoint && !checkpoints.includes(settings.comfyCheckpoint) ? (
                 <option value={settings.comfyCheckpoint}>
-                  {settings.comfyCheckpoint} (не установлен)
+                  {settings.comfyCheckpoint}{copy.notInstalled}
                 </option>
               ) : null}
               {checkpoints.map((name) => (
@@ -508,14 +657,14 @@ export function StoryAiPanel({
                 </option>
               ))}
             </select>
-            <span className="text-stone-500">Список — реально установленные в ComfyUI модели.</span>
+            <span className="text-stone-500">{copy.checkpointHint}</span>
           </div>
         ) : null}
         {settings.imageGenerationEnabled &&
         (settings.imageBackend === "openai" || settings.imageBackend === "dashscope") ? (
           <div className="space-y-2">
             <div className="flex flex-wrap items-center gap-2">
-              <span className={labelClass}>Пресет</span>
+              <span className={labelClass}>{copy.preset}</span>
               <button
                 type="button"
                 onClick={() =>
@@ -543,11 +692,11 @@ export function StoryAiPanel({
                 Qwen-Image (DashScope)
               </button>
               <span className="text-stone-500">
-                Ключ кампании имеет приоритет над общим ключом сервера.
+                {copy.campaignKeyHint}
               </span>
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              <span className={labelClass}>Модель</span>
+              <span className={labelClass}>{copy.model}</span>
               <input
                 value={drafts.imageModel}
                 onChange={(event) =>
@@ -560,7 +709,7 @@ export function StoryAiPanel({
               />
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              <span className={labelClass}>Base URL</span>
+              <span className={labelClass}>{copy.baseUrl}</span>
               <input
                 value={drafts.imageBaseUrl}
                 onChange={(event) =>
@@ -577,7 +726,7 @@ export function StoryAiPanel({
               />
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              <span className={labelClass}>API-ключ</span>
+              <span className={labelClass}>{copy.apiKey}</span>
               <input
                 type="password"
                 value={drafts.imageApiKey === SECRET_KEPT ? "" : drafts.imageApiKey}
@@ -586,7 +735,7 @@ export function StoryAiPanel({
                 }
                 onBlur={() => commitKey("imageApiKey")}
                 onKeyDown={blurOnEnter}
-                placeholder={hasImageKey ? "•••••••• (сохранён)" : "ключ кампании (необязательно)"}
+                placeholder={hasImageKey ? copy.saved : copy.campaignKeyOptional}
                 className={inputClass}
               />
               {hasImageKey ? (
@@ -595,7 +744,7 @@ export function StoryAiPanel({
                   onClick={() => patch({ imageApiKey: "" })}
                   className="rounded-md border border-stone-700 px-2 py-1 text-stone-400 hover:text-red-400"
                 >
-                  Удалить
+                  {copy.remove}
                 </button>
               ) : null}
             </div>
@@ -603,13 +752,12 @@ export function StoryAiPanel({
         ) : null}
         {settings.imageGenerationEnabled && !imagesConfigured && !hasImageKey ? (
           <p className="text-amber-400/90">
-            The server has no image backend configured; these settings will not take effect
-            until it does.
+            {copy.noImageBackend}
           </p>
         ) : null}
 
         <div className="flex flex-wrap items-center gap-2 border-t border-stone-800/60 pt-3">
-          <span className={labelClass}>Passages</span>
+          <span className={labelClass}>{copy.passages}</span>
           <select
             value={settings.proseSize}
             onChange={(event) =>
@@ -623,7 +771,7 @@ export function StoryAiPanel({
               </option>
             ))}
           </select>
-          <span className="text-stone-500">How long each narrated passage runs.</span>
+          <span className="text-stone-500">{copy.passageHint}</span>
         </div>
       </div>
     </section>

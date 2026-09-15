@@ -16,7 +16,7 @@ type RuleChunkView = {
 };
 
 export const VARIANT_TOGGLES: Array<{
-  key: keyof GameSettings["variantRules"] & string;
+  key: Exclude<keyof GameSettings["variantRules"], "restVariant"> & string;
   label: string;
   tip: string;
 }> = [

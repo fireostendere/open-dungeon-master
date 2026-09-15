@@ -69,10 +69,8 @@ function interpolate(text: string, params?: Record<string, string | number>): st
   return result;
 }
 
-function tileUnit(locale: Locale): string {
-  if (locale === "ru") return "кл.";
-  if (locale === "pl") return "pól";
-  return "sq.";
+function unit(locale: Locale, name: "meters" | "feet" | "kilograms" | "pounds" | "tiles") {
+  return lookup(locale, `units.${name}`) ?? lookup("en", `units.${name}`) ?? name;
 }
 
 export function I18nProvider({
@@ -101,9 +99,12 @@ export function I18nProvider({
       // Storage can be unavailable in private/embedded contexts; server locale stays usable.
     }
 
-    setLocaleState(next);
-    setUnitSystemState(nextUnits);
+    const applyStoredPreferences = window.setTimeout(() => {
+      setLocaleState(next);
+      setUnitSystemState(nextUnits);
+    }, 0);
     persistLocale(next);
+    return () => window.clearTimeout(applyStoredPreferences);
   }, [initialLocale]);
 
   const setLocale = (newLocale: Locale) => {
@@ -139,27 +140,27 @@ export function I18nProvider({
   );
 
   const formatDistance = (feet: number): string => {
-    if (unitSystem === "imperial") return `${feet} ${locale === "ru" ? "фт" : "ft"}`;
+    if (unitSystem === "imperial") return `${feet} ${unit(locale, "feet")}`;
     const meters = Math.round(feet * 0.3 * 10) / 10;
-    return `${meters} ${locale === "ru" ? "м" : "m"}`;
+    return `${meters} ${unit(locale, "meters")}`;
   };
 
   const formatWeight = (lbs: number): string => {
-    if (unitSystem === "imperial") return `${lbs} ${locale === "ru" ? "фнт" : "lb"}`;
+    if (unitSystem === "imperial") return `${lbs} ${unit(locale, "pounds")}`;
     const kg = Math.round(lbs * 0.453592 * 10) / 10;
-    return `${kg} ${locale === "ru" ? "кг" : "kg"}`;
+    return `${kg} ${unit(locale, "kilograms")}`;
   };
 
   const formatSpeed = (feet: number): string => {
-    if (unitSystem === "imperial") return `${feet} ${locale === "ru" ? "фт" : "ft"}`;
+    if (unitSystem === "imperial") return `${feet} ${unit(locale, "feet")}`;
     const meters = Math.round(feet * 0.3);
     const tiles = Math.round(feet / 5);
-    return `${meters} ${locale === "ru" ? "м" : "m"} (${tiles} ${tileUnit(locale)})`;
+    return `${meters} ${unit(locale, "meters")} (${tiles} ${unit(locale, "tiles")})`;
   };
 
   const formatTile = (tiles: number): string => {
-    if (unitSystem === "imperial") return `${tiles * 5} ${locale === "ru" ? "фт" : "ft"}`;
-    return `${tiles * 1.5} ${locale === "ru" ? "м" : "m"}`;
+    if (unitSystem === "imperial") return `${tiles * 5} ${unit(locale, "feet")}`;
+    return `${tiles * 1.5} ${unit(locale, "meters")}`;
   };
 
   const value: I18nContextType = {
