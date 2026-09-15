@@ -8,7 +8,7 @@ export * from "@/lib/schemas/game-settings-core";
 // It stays optional so campaigns created before localization can infer a
 // language from player input until a table owner explicitly selects one.
 export const gameSettingsSchema = coreGameSettingsSchema.extend({
-  language: z.enum(["ru", "en"]).optional(),
+  language: z.enum(["ru", "en", "pl"]).optional(),
 });
 
 export type GameSettings = z.infer<typeof gameSettingsSchema>;
