@@ -6,8 +6,8 @@ ENV NODE_ENV=production \
 
 WORKDIR /app
 
-COPY mcp/package.json ./package.json
-RUN npm install --omit=dev --ignore-scripts --no-audit --no-fund \
+COPY mcp/package.json mcp/package-lock.json ./
+RUN npm ci --omit=dev --ignore-scripts --no-audit --no-fund \
     && npm cache clean --force
 
 COPY mcp/server.mjs ./server.mjs
