@@ -99,6 +99,14 @@ export function isFloorExempt(kind: InputKind): boolean {
   return FLOOR_EXEMPT_KINDS.includes(kind);
 }
 
+// Marks table talk messages that should not be visible to external AI narrators
+// or trigger DM narration.
+export const OOC_MESSAGE_PREFIX = "(ooc) ";
+
+export function isOocMessage(message: { content?: string } | null | undefined): boolean {
+  return typeof message?.content === "string" && /^\s*\(ooc\)/i.test(message.content);
+}
+
 // Marks system messages the party lead injected to steer the story; the DM
 // prompt reframes them as authoritative table direction and the client
 // styles them as a lead note.

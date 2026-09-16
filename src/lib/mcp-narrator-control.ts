@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { isOocMessage } from "@/lib/campaign-types";
 import { getCampaignById, getCampaignSummaryState, latestSeq, listMembers, setFloor } from "@/lib/db/campaigns";
 import { listChapters } from "@/lib/db/chapters";
 import { listOpenPendingRolls } from "@/lib/db/dm-turns";
@@ -86,7 +87,7 @@ function read(raw: unknown) {
   // advance only after the persisted stream is drained so clients cannot loop.
   const nextCursor = hasMore ? events.at(-1)?.seq ?? p.data.afterSeq : currentSeq;
   const messages = nextCursor > p.data.afterSeq
-    ? listMessagesInSeqRange(campaign.id, p.data.afterSeq + 1, nextCursor)
+    ? listMessagesInSeqRange(campaign.id, p.data.afterSeq + 1, nextCursor).filter((msg) => !isOocMessage(msg))
     : [];
   return {
     campaign: safeCampaign(campaign), currentSeq,
@@ -104,7 +105,7 @@ function read(raw: unknown) {
     recentRolls: listRecentRolls(campaign.id, 100),
     playerWhispers: listPendingPlayerWhispers(campaign.id),
     recentDmWhispers: listRecentWhispersForPrompt(campaign.id),
-    recentMessages: listRecentMessages(campaign.id, 400),
+    recentMessages: listRecentMessages(campaign.id, 400).filter((msg) => !isOocMessage(msg)),
     notes: listPublicCampaignNotes(campaign.id, 20),
     npcs: npcRosterForPrompt(campaign.id).slice(0, 100),
     facts: listActiveFacts(campaign.id), chapters: listChapters(campaign.id),

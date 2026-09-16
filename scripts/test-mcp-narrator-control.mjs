@@ -18,9 +18,11 @@ const { allocateSeq, createCampaign, setCampaignStatus, latestSeq, updateStorySe
 const { createCharacter, instantiateIntoCampaign } = await import("../src/lib/db/characters.ts");
 const { createSheetSchema } = await import("../src/lib/schemas/sheet.ts");
 const { createDmTurn, createPendingRoll, resolvePendingRoll, saveDmTurn } = await import("../src/lib/db/dm-turns.ts");
+const { insertCampaignMessage } = await import("../src/lib/db/messages.ts");
 const { insertRoll } = await import("../src/lib/db/rolls.ts");
 const { publishWithSeq } = await import("../src/lib/events.ts");
 const { executeMcpNarratorControl, McpNarratorControlError, EXTERNAL_NARRATOR_ACTIONS } = await import("../src/lib/mcp-narrator-control.ts");
+const { executeMcpControl } = await import("../src/lib/mcp-control.ts");
 const { extendControlResult } = await import("../src/lib/mcp-external-control.ts");
 const { resumeHumanTurn } = await import("../src/lib/dm/invoke.ts");
 
@@ -171,6 +173,58 @@ await assert.rejects(
   () => executeMcpNarratorControl("narrator.connect", { campaignId: unsafeSettings.id }),
   (error) => error instanceof McpNarratorControlError && error.status === 409,
 );
+
+const oocCampaign = createCampaign(dm.id, {
+  title: "OOC Filter Test", description: "", theme: "", maxPlayers: 4, startingLevel: 1,
+  difficulty: "normal", gameSettings: { dmMode: "human", ttsEnabled: false, mapsEnabled: false },
+});
+setCampaignStatus(oocCampaign.id, "active");
+
+const icSeq = allocateSeq(oocCampaign.id);
+const icMsg = insertCampaignMessage({
+  campaignId: oocCampaign.id,
+  seq: icSeq,
+  authorType: "player",
+  userId: dm.id,
+  characterId: null,
+  content: "I search for traps.",
+});
+publishWithSeq(oocCampaign.id, icSeq, "message_added", { message: icMsg });
+
+const oocSeq = allocateSeq(oocCampaign.id);
+const oocMsg = insertCampaignMessage({
+  campaignId: oocCampaign.id,
+  seq: oocSeq,
+  authorType: "player",
+  userId: dm.id,
+  characterId: null,
+  content: "(ooc) AFK grabbing tea",
+});
+publishWithSeq(oocCampaign.id, oocSeq, "message_added", { message: oocMsg });
+
+const icSeq2 = allocateSeq(oocCampaign.id);
+const icMsg2 = insertCampaignMessage({
+  campaignId: oocCampaign.id,
+  seq: icSeq2,
+  authorType: "player",
+  userId: dm.id,
+  characterId: null,
+  content: '"Can anyone hear me?"',
+});
+publishWithSeq(oocCampaign.id, icSeq2, "message_added", { message: icMsg2 });
+
+const oocRead = await executeMcpNarratorControl("narrator.read", { campaignId: oocCampaign.id, afterSeq: 0, limit: 50 });
+assert.equal(oocRead.result.messages.some((m) => m.id === oocMsg.id), false, "OOC message must not be in narrator.read messages");
+assert.equal(oocRead.result.messages.some((m) => m.id === icMsg.id), true, "IC message must be in narrator.read messages");
+assert.equal(oocRead.result.messages.some((m) => m.id === icMsg2.id), true, "Second IC message must be in narrator.read messages");
+
+assert.equal(oocRead.result.recentMessages.some((m) => m.id === oocMsg.id), false, "OOC message must not be in recentMessages");
+assert.equal(oocRead.result.recentMessages.some((m) => m.id === icMsg.id), true, "IC message must be in recentMessages");
+
+const oocEvents = await executeMcpControl("campaigns.events", { campaignId: oocCampaign.id, afterSeq: 0, limit: 50 });
+assert.equal(oocEvents.events.some((e) => e.seq === oocSeq), false, "OOC event must not be returned by campaigns.events");
+assert.equal(oocEvents.events.some((e) => e.seq === icSeq), true, "IC event must be returned by campaigns.events");
+assert.equal(oocEvents.events.some((e) => e.seq === icSeq2), true, "Second IC event must be returned by campaigns.events");
 
 assert.equal(fetchCalls, 0, "no server provider/network call may be attempted");
 

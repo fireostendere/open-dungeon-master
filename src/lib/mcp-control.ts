@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { CAMPAIGN_DIFFICULTIES } from "@/lib/campaign-types";
+import { CAMPAIGN_DIFFICULTIES, isOocMessage } from "@/lib/campaign-types";
 import {
   createCampaign,
   deleteCampaign,
@@ -479,7 +479,16 @@ export async function executeMcpControl(action: string, rawParams: unknown): Pro
         rawParams,
       );
       campaignOr404(params.campaignId);
-      return { events: listEventsSince(params.campaignId, params.afterSeq, params.limit) };
+      const events = listEventsSince(params.campaignId, params.afterSeq, params.limit);
+      return {
+        events: events.filter(
+          (event) =>
+            !(
+              event.type === "message_added" &&
+              isOocMessage((event.payload as { message?: { content?: string } })?.message)
+            ),
+        ),
+      };
     }
 
     case "campaigns.announce": {
