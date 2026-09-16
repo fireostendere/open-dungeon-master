@@ -1,4 +1,6 @@
 import { ProviderError, modelId } from './core.mjs';
+import { secureEndpointFetch } from '@/lib/url-guard';
+
 export function chatUrl(raw){
   const u=new URL(raw);
   if(!['http:','https:'].includes(u.protocol)||u.username||u.password||u.search||u.hash)throw new ProviderError('INVALID_ENDPOINT_URL');
@@ -36,7 +38,7 @@ export function connectionTarget(input){
     default:throw new ProviderError('UNKNOWN_PROVIDER');
   }
 }
-export async function listModels(target,{fetchImpl=fetch,timeoutMs=15000}={}){
+export async function listModels(target,{fetchImpl=secureEndpointFetch,timeoutMs=15000}={}){
   const r=await fetchImpl(modelsUrl(target.baseUrl),{redirect:'error',headers:target.apiKey?{Authorization:`Bearer ${target.apiKey}`}:{},signal:AbortSignal.timeout(timeoutMs)});
   if(!r.ok)throw new ProviderError(r.status===401||r.status===403?'AUTHENTICATION_FAILED':r.status===429?'PROVIDER_RATE_LIMIT':'MODEL_LIST_UNAVAILABLE',r.status===401||r.status===403?401:502);
   const body=await r.json();
@@ -44,7 +46,7 @@ export async function listModels(target,{fetchImpl=fetch,timeoutMs=15000}={}){
 }
 // Preserve the real tool message and ID: native app-server tools cannot be
 // continued by inventing a replacement assistant message in the probe.
-export async function probeConnection(target,{fetchImpl=fetch,timeoutMs=120000}={}){
+export async function probeConnection(target,{fetchImpl=secureEndpointFetch,timeoutMs=120000}={}){
   const stages={};
   const messages=[{role:'system',content:'Ты проверяешь подключение. Выполняй инструкции пользователя и используй инструменты.'},{role:'user',content:'Вызови probe_echo со словом куб и числом 7.'}];
   const tools=[{type:'function',function:{name:'probe_echo',description:'Проверка возврата результата',parameters:{type:'object',properties:{word:{type:'string'},n:{type:'integer'}},required:['word','n'],additionalProperties:false}}}];
