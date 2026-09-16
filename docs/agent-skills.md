@@ -46,6 +46,7 @@ Markdown-ссылки, напротив, относительны к файлу,
 | [odm-backup](../.opencode/skills/odm-backup/SKILL.md) | Снимки и восстановление | «Проведи проверку восстановления» |
 | [odm-providers](../.opencode/skills/odm-providers/SKILL.md) | LLM-учётные данные и проверка | «Подключи Gemini через визард» |
 | [odm-mcp](../.opencode/skills/odm-mcp/SKILL.md) | Управление через MCP | «После подтверждения добавь участника» |
+| [odm-narrator](../.opencode/skills/odm-narrator/SKILL.md) | Внешний AI-ведущий / DM сессии | «Веди игру в ODM через MCP» |
 | [odm-content](../.opencode/skills/odm-content/SKILL.md) | Мастерская и миры | «Проверь импорт мира и права» |
 | [odm-assets](../.opencode/skills/odm-assets/SKILL.md) | Карты, портреты, Asset MCP | «Сделай описание портрета» |
 | [dnd-session-zero](../.opencode/skills/dnd-session-zero/SKILL.md) | Договор стола | «Подготовь нулевую сессию» |
