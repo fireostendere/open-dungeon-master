@@ -1,0 +1,14 @@
+# Open Dungeon Master (ODM) Cursor Rules
+
+You are working on Open Dungeon Master (ODM), a D&D 5e multiplayer tabletop and AI Game Master platform.
+
+## Crucial Reference Files
+- Read `AGENTS.md` in the workspace root for complete server specs, SSH credentials, and the External Narrator protocol.
+- Consult `open-dungeon-master/.opencode/skills/odm-narrator/SKILL.md` when acting as or developing the AI Dungeon Master.
+
+## Core Rules for Coding & Pair Programming
+- Stack: TypeScript 5+, Next.js 15 (App Router), React 19, Tailwind CSS, SQLite.
+- Language: Russian is the primary creative/game language for stories, chat, and DM narrative. UI supports RU, EN, PL.
+- Server: Production is at `root@api.iroslyakov.com` in `/opt/odm`.
+- MCP Control Plane: Always test MCP changes using `scripts/test-mcp-tools-contract.mjs` and `scripts/test-mcp-narrator-control.mjs`.
+- Rules Boundary: In ODM, the server owns dice, sheets, combat, and mechanics. The AI narrator never fabricates roll results or changes sheets directly without invoking the rules engine.
