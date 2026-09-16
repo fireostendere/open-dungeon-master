@@ -59,6 +59,11 @@ export function finishAndSyncParty(input: {
 }) {
   if (!input.confirm) throw new Error("finish_and_sync_party requires confirm=true.");
   const requireAllSynced = input.requireAllSynced ?? true;
+  const db = getDatabase();
+  db.exec(`CREATE TABLE IF NOT EXISTS campaign_finish_results (
+    campaign_id TEXT PRIMARY KEY REFERENCES campaigns(id) ON DELETE CASCADE,
+    result_json TEXT NOT NULL
+  )`);
   try {
     // The outer transaction owns ALL member writes, their revision events,
     // the campaign status and the completion event. Nested member transactions
@@ -67,6 +72,14 @@ export function finishAndSyncParty(input: {
       const campaign = getCampaignById(input.campaignId);
       if (!campaign) throw new Error("Campaign not found.");
       if (campaign.kind !== "campaign") throw new Error("Workshops cannot be finished as campaigns.");
+      if (campaign.status === "ended") {
+        const completed = db.prepare("SELECT result_json FROM campaign_finish_results WHERE campaign_id = ?")
+          .get(input.campaignId) as { result_json: string } | undefined;
+        if (completed) return JSON.parse(completed.result_json) as {
+          campaignId: string; ended: true; status: "ended"; sync: PartySync;
+        };
+        throw new Error("Campaign already ended before finish receipts existed; use an explicit progress sync instead.");
+      }
       const sync = syncPartyProgress(input.campaignId, {
         includeCompanions: input.includeCompanions ?? false,
         skipUnlinked: input.skipUnlinked ?? true,
@@ -91,7 +104,11 @@ export function finishAndSyncParty(input: {
         failed: sync.failed,
         skipped: sync.skipped,
       });
-      return { campaignId: input.campaignId, ended: true, status: "ended" as const, sync };
+      const result = { campaignId: input.campaignId, ended: true as const, status: "ended" as const, sync };
+      db.prepare(`INSERT INTO campaign_finish_results (campaign_id, result_json) VALUES (?, ?)
+        ON CONFLICT(campaign_id) DO UPDATE SET result_json = excluded.result_json`)
+        .run(input.campaignId, JSON.stringify(result));
+      return result;
     })());
   } catch (error) {
     if (!(error instanceof PartySyncBlocked)) throw error;
