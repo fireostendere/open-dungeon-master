@@ -15,13 +15,15 @@ import {
 // - App origins (src/lib/app-cors.ts): the apps' native screens call the
 //   API directly with a bearer token from a foreign origin, so those
 //   origins get CORS headers and their preflights an empty 204.
-// - Portal mode (src/lib/portal.ts): when the app that serves this UI has
-//   planted a host and a token, every data request is answered by that
-//   host instead of this server.
+// - Portal mode (src/lib/portal.ts): a deliberately local-only deployment
+//   may opt in to client-selected portal targets. Server deployments leave
+//   this off, so unsigned cookies can never choose an outbound destination.
 //
-// Without an app origin or the portal cookies nothing here changes.
+// Without an app origin or an explicitly enabled local portal nothing here
+// changes. Managed/public servers MUST NOT set ODM_PORTAL_CLIENT_TARGETS=1.
 
 const extra = extraAppOrigins(process.env.ODM_APP_ORIGINS);
+const portalClientTargetsEnabled = process.env.ODM_PORTAL_CLIENT_TARGETS === "1";
 
 export function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
@@ -34,7 +36,9 @@ export function proxy(request: NextRequest) {
   }
 
   let response: NextResponse;
-  const target = portalFromCookies((name) => request.cookies.get(name)?.value);
+  const target = portalClientTargetsEnabled
+    ? portalFromCookies((name) => request.cookies.get(name)?.value)
+    : null;
   if (target && isPortalPath(pathname)) {
     const headers = new Headers();
     for (const [name, value] of forwardHeaders(request.headers, target.token)) {
