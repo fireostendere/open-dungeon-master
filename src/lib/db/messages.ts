@@ -12,20 +12,9 @@ export type CampaignMessage = {
   content: string;
   imageRequest?: ImageRequest;
   generatedImage?: GeneratedImage;
-  // Set on DM messages that moved the party somewhere new; the chat renders
-  // that location's map inline (the map itself lives on the locations row).
   locationId?: string;
-  // Narration rerolls: every prose variant of this message the lead has
-  // generated, oldest first, with variants[0] the prose originally published.
-  // Absent until the first reroll; content always mirrors the selected entry.
   variants?: string[];
   variantIndex?: number;
-  // The dm_turns row this message came from, serving two features. On a DM
-  // narration it is the turn a reroll replays the stored conversation of. On
-  // the "DM ran into a problem" system notice it is the turn the lead can
-  // retry, and it is cleared the moment a retry is claimed, which is what
-  // makes the banner disappear for every client at once. Absent on messages
-  // written before either feature existed.
   dmTurnId?: string;
   createdAt: string;
 };
@@ -66,6 +55,72 @@ function mapMessage(row: MessageRow): CampaignMessage {
   };
 }
 
+type CampaignLanguage = "en" | "ru" | "pl";
+
+function campaignLanguage(campaignId: string): CampaignLanguage {
+  const row = getDatabase()
+    .prepare("SELECT game_settings_json FROM campaigns WHERE id = ?")
+    .get(campaignId) as { game_settings_json?: string | null } | undefined;
+  const settings = parseJson<{ language?: unknown }>(row?.game_settings_json ?? null, {});
+  return settings.language === "ru" || settings.language === "pl" ? settings.language : "en";
+}
+
+// Server-generated transcript messages are game events, not authored prose.
+// Localize them at the persistence boundary so every writer (combat, retry,
+// fallback DM) follows the campaign narration language and the web client never
+// has to guess which English service strings should be translated.
+function localizeServiceContent(
+  campaignId: string,
+  authorType: "player" | "dm" | "system",
+  content: string,
+): string {
+  if (authorType === "player") return content;
+  const language = campaignLanguage(campaignId);
+  if (language === "en") return content;
+
+  let match = /^It is now (.+)'s turn \(round (\d+)\)\.$/.exec(content);
+  if (match) return language === "ru" ? `Теперь ход ${match[1]} (раунд ${match[2]}).` : `Teraz kolej ${match[1]} (runda ${match[2]}).`;
+
+  match = /^(.+) ends their turn\.(?: It is now (.+)'s turn\.)?$/.exec(content);
+  if (match) {
+    const next = match[2]
+      ? language === "ru" ? ` Теперь ход ${match[2]}.` : ` Teraz kolej ${match[2]}.`
+      : "";
+    return language === "ru" ? `${match[1]} завершает ход.${next}` : `${match[1]} kończy turę.${next}`;
+  }
+
+  match = /^The party lead skipped (.+)'s turn\.(?: It is now (.+)'s turn\.)?$/.exec(content);
+  if (match) {
+    const next = match[2]
+      ? language === "ru" ? ` Теперь ход ${match[2]}.` : ` Teraz kolej ${match[2]}.`
+      : "";
+    return language === "ru" ? `Лидер группы пропустил ход ${match[1]}.${next}` : `Lider drużyny pominął turę ${match[1]}.${next}`;
+  }
+
+  match = /^Skipped enemy turns resolve automatically: (.+)$/.exec(content);
+  if (match) return language === "ru" ? `Пропущенные ходы врагов разрешены автоматически: ${match[1]}` : `Pominięte tury wrogów rozstrzygnięto automatycznie: ${match[1]}`;
+
+  match = /^(.+)'s turn resolves automatically: (.+)$/.exec(content);
+  if (match) return language === "ru" ? `Ход ${match[1]} разрешён автоматически: ${match[2]}` : `Tura ${match[1]} została rozstrzygnięta automatycznie: ${match[2]}`;
+
+  if (content === "The moment hangs there, waiting on the party's next move.") {
+    return language === "ru"
+      ? "Мгновение замирает в ожидании следующего действия группы."
+      : "Chwila zamiera w oczekiwaniu na następny ruch drużyny.";
+  }
+  if (content.includes("The Dungeon Master hit an internal error")) {
+    return language === "ru"
+      ? "Ведущий столкнулся с внутренней ошибкой и остановил этот ход."
+      : "Mistrz Gry napotkał błąd wewnętrzny i przerwał tę turę.";
+  }
+  if (content.includes("The Dungeon Master could not reach the model backend")) {
+    return language === "ru"
+      ? "Ведущий не смог подключиться к серверу модели."
+      : "Mistrz Gry nie mógł połączyć się z serwerem modelu.";
+  }
+  return content;
+}
+
 export function insertCampaignMessage(input: {
   campaignId: string;
   seq: number;
@@ -78,6 +133,7 @@ export function insertCampaignMessage(input: {
   dmTurnId?: string;
 }): CampaignMessage {
   const id = crypto.randomUUID();
+  const content = localizeServiceContent(input.campaignId, input.authorType, input.content);
   getDatabase()
     .prepare(
       `
@@ -95,172 +151,86 @@ export function insertCampaignMessage(input: {
       input.authorType,
       input.userId ?? null,
       input.characterId ?? null,
-      input.content,
+      content,
       input.imageRequest ? JSON.stringify(input.imageRequest) : null,
       input.locationId ?? null,
       input.dmTurnId ?? null,
       nowIso(),
     );
   touchCampaign(input.campaignId);
-
   const message = getCampaignMessage(id);
-  if (!message) {
-    throw new Error("Failed to insert campaign message.");
-  }
+  if (!message) throw new Error("Failed to insert campaign message.");
   return message;
 }
 
 export function getCampaignMessage(messageId: string): CampaignMessage | null {
-  const row = getDatabase()
-    .prepare(`SELECT * FROM campaign_messages WHERE id = ?`)
-    .get(messageId) as MessageRow | undefined;
+  const row = getDatabase().prepare(`SELECT * FROM campaign_messages WHERE id = ?`).get(messageId) as MessageRow | undefined;
   return row ? mapMessage(row) : null;
 }
 
-// Messages inside a seq span (chapter transcripts), ascending.
-export function listMessagesInSeqRange(
-  campaignId: string,
-  seqStart: number,
-  seqEnd: number,
-): CampaignMessage[] {
-  const rows = getDatabase()
-    .prepare(
-      `SELECT * FROM campaign_messages WHERE campaign_id = ? AND seq >= ? AND seq <= ? ORDER BY seq ASC`,
-    )
-    .all(campaignId, seqStart, seqEnd) as MessageRow[];
+export function listMessagesInSeqRange(campaignId: string, seqStart: number, seqEnd: number): CampaignMessage[] {
+  const rows = getDatabase().prepare(`SELECT * FROM campaign_messages WHERE campaign_id = ? AND seq >= ? AND seq <= ? ORDER BY seq ASC`).all(campaignId, seqStart, seqEnd) as MessageRow[];
   return rows.map(mapMessage);
 }
 
-// How many messages exist at or below a seq (compaction watermark resets).
 export function countMessagesUpToSeq(campaignId: string, seq: number): number {
-  const row = getDatabase()
-    .prepare(`SELECT COUNT(*) AS n FROM campaign_messages WHERE campaign_id = ? AND seq <= ?`)
-    .get(campaignId, seq) as { n: number };
+  const row = getDatabase().prepare(`SELECT COUNT(*) AS n FROM campaign_messages WHERE campaign_id = ? AND seq <= ?`).get(campaignId, seq) as { n: number };
   return row.n;
 }
 
-// Most recent `limit` messages in ascending seq order.
 export function listRecentMessages(campaignId: string, limit = 100): CampaignMessage[] {
-  const rows = getDatabase()
-    .prepare(
-      `
-        SELECT * FROM (
-          SELECT * FROM campaign_messages WHERE campaign_id = ? ORDER BY seq DESC LIMIT ?
-        ) ORDER BY seq ASC
-      `,
-    )
-    .all(campaignId, limit) as MessageRow[];
+  const rows = getDatabase().prepare(`SELECT * FROM (SELECT * FROM campaign_messages WHERE campaign_id = ? ORDER BY seq DESC LIMIT ?) ORDER BY seq ASC`).all(campaignId, limit) as MessageRow[];
   return rows.map(mapMessage);
 }
 
 export function listAllMessages(campaignId: string): CampaignMessage[] {
-  const rows = getDatabase()
-    .prepare(`SELECT * FROM campaign_messages WHERE campaign_id = ? ORDER BY seq ASC`)
-    .all(campaignId) as MessageRow[];
+  const rows = getDatabase().prepare(`SELECT * FROM campaign_messages WHERE campaign_id = ? ORDER BY seq ASC`).all(campaignId) as MessageRow[];
   return rows.map(mapMessage);
 }
 
-// A window of the seq-ascending transcript: offset is an index into that
-// ordering, matching the compaction engine's coveredCount semantics.
-export function listMessagesPage(
-  campaignId: string,
-  offset: number,
-  limit: number,
-): CampaignMessage[] {
-  const rows = getDatabase()
-    .prepare(
-      `SELECT * FROM campaign_messages WHERE campaign_id = ? ORDER BY seq ASC LIMIT ? OFFSET ?`,
-    )
-    .all(campaignId, limit, offset) as MessageRow[];
+export function listMessagesPage(campaignId: string, offset: number, limit: number): CampaignMessage[] {
+  const rows = getDatabase().prepare(`SELECT * FROM campaign_messages WHERE campaign_id = ? ORDER BY seq ASC LIMIT ? OFFSET ?`).all(campaignId, limit, offset) as MessageRow[];
   return rows.map(mapMessage);
 }
 
 export function countMessages(campaignId: string): number {
-  const row = getDatabase()
-    .prepare(`SELECT COUNT(*) AS count FROM campaign_messages WHERE campaign_id = ?`)
-    .get(campaignId) as { count: number };
+  const row = getDatabase().prepare(`SELECT COUNT(*) AS count FROM campaign_messages WHERE campaign_id = ?`).get(campaignId) as { count: number };
   return row.count;
 }
 
-// Attaches an image request to a message already in the transcript. The AI
-// path sets this at insert time, because its picture and its narration land
-// together; a human DM narrates first and illustrates after, so the request
-// has to be able to arrive later. The caller publishes message_updated.
 export function setMessageImageRequest(messageId: string, request: ImageRequest) {
-  const result = getDatabase()
-    .prepare(`UPDATE campaign_messages SET image_request_json = ? WHERE id = ?`)
-    .run(JSON.stringify(request), messageId);
+  const result = getDatabase().prepare(`UPDATE campaign_messages SET image_request_json = ? WHERE id = ?`).run(JSON.stringify(request), messageId);
   return result.changes > 0;
 }
 
 export function setMessageGeneratedImage(messageId: string, image: GeneratedImage) {
-  const result = getDatabase()
-    .prepare(`UPDATE campaign_messages SET generated_image_json = ? WHERE id = ?`)
-    .run(JSON.stringify(image), messageId);
+  const result = getDatabase().prepare(`UPDATE campaign_messages SET generated_image_json = ? WHERE id = ?`).run(JSON.stringify(image), messageId);
   return result.changes > 0;
 }
 
-// Retry claim: drops a halted notice's link to its DM turn so the retry
-// banner stops being offered. Conditional on the turn id, so it doubles as a
-// second guard against two leads retrying the same turn (better-sqlite3 is
-// synchronous, so only one caller can see changes > 0). The caller publishes
-// message_updated.
 export function clearMessageDmTurn(messageId: string, dmTurnId: string): CampaignMessage | null {
-  const result = getDatabase()
-    .prepare(`UPDATE campaign_messages SET dm_turn_id = NULL WHERE id = ? AND dm_turn_id = ?`)
-    .run(messageId, dmTurnId);
+  const result = getDatabase().prepare(`UPDATE campaign_messages SET dm_turn_id = NULL WHERE id = ? AND dm_turn_id = ?`).run(messageId, dmTurnId);
   return result.changes > 0 ? getCampaignMessage(messageId) : null;
 }
 
-// The halted notice pointing at a turn, if it is still offering a retry.
 export function findMessageForDmTurn(dmTurnId: string): CampaignMessage | null {
-  const row = getDatabase()
-    .prepare(`SELECT * FROM campaign_messages WHERE dm_turn_id = ? ORDER BY seq DESC LIMIT 1`)
-    .get(dmTurnId) as MessageRow | undefined;
+  const row = getDatabase().prepare(`SELECT * FROM campaign_messages WHERE dm_turn_id = ? ORDER BY seq DESC LIMIT 1`).get(dmTurnId) as MessageRow | undefined;
   return row ? mapMessage(row) : null;
 }
 
-// Lore-check accept: replaces a message's text in place (the lead applying
-// an approved consistency rewrite). The caller publishes message_updated.
 export function updateMessageContent(messageId: string, content: string): CampaignMessage | null {
-  const result = getDatabase()
-    .prepare(
-      // Clearing the reroll takes keeps content === variants[variant_index]:
-      // an accepted rewrite supersedes every take, and browsing back to one
-      // afterwards would silently undo the fix.
-      `UPDATE campaign_messages SET content = ?, variants_json = NULL, variant_index = NULL WHERE id = ?`,
-    )
-    .run(content, messageId);
+  const result = getDatabase().prepare(`UPDATE campaign_messages SET content = ?, variants_json = NULL, variant_index = NULL WHERE id = ?`).run(content, messageId);
   return result.changes > 0 ? getCampaignMessage(messageId) : null;
 }
 
-// The newest DM narration in the campaign. Rerolls are offered on this
-// message only: an older one has already been read, reacted to, and built on.
 export function getLatestDmMessage(campaignId: string): CampaignMessage | null {
-  const row = getDatabase()
-    .prepare(
-      `SELECT * FROM campaign_messages WHERE campaign_id = ? AND author_type = 'dm' ORDER BY seq DESC LIMIT 1`,
-    )
-    .get(campaignId) as MessageRow | undefined;
+  const row = getDatabase().prepare(`SELECT * FROM campaign_messages WHERE campaign_id = ? AND author_type = 'dm' ORDER BY seq DESC LIMIT 1`).get(campaignId) as MessageRow | undefined;
   return row ? mapMessage(row) : null;
 }
 
-// Narration reroll: stores the variant set and which one stands, keeping
-// content in sync with the selection in one statement so no reader can see
-// a message whose text disagrees with its own variant index.
-export function setMessageVariants(
-  messageId: string,
-  variants: string[],
-  index: number,
-): CampaignMessage | null {
+export function setMessageVariants(messageId: string, variants: string[], index: number): CampaignMessage | null {
   const selected = variants[index];
-  if (selected === undefined) {
-    return null;
-  }
-  const result = getDatabase()
-    .prepare(
-      `UPDATE campaign_messages SET variants_json = ?, variant_index = ?, content = ? WHERE id = ?`,
-    )
-    .run(JSON.stringify(variants), index, selected, messageId);
+  if (selected === undefined) return null;
+  const result = getDatabase().prepare(`UPDATE campaign_messages SET variants_json = ?, variant_index = ?, content = ? WHERE id = ?`).run(JSON.stringify(variants), index, selected, messageId);
   return result.changes > 0 ? getCampaignMessage(messageId) : null;
 }
