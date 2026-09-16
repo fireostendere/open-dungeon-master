@@ -240,6 +240,29 @@ export function deleteCharacter(userId: string, id: string): boolean {
   return result.changes > 0;
 }
 
+function recordProgressBaseline(
+  campaignCharacterId: string,
+  libraryCharacterId: string,
+  libraryUpdatedAt: string,
+) {
+  const db = getDatabase();
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS character_progress_baselines (
+      campaign_character_id TEXT PRIMARY KEY REFERENCES character_sheets(id) ON DELETE CASCADE,
+      library_character_id TEXT NOT NULL REFERENCES library_characters(id) ON DELETE CASCADE,
+      library_updated_at TEXT NOT NULL,
+      created_at TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_character_progress_baselines_library
+      ON character_progress_baselines(library_character_id);
+  `);
+  db.prepare(`
+    INSERT OR REPLACE INTO character_progress_baselines (
+      campaign_character_id, library_character_id, library_updated_at, created_at
+    ) VALUES (?, ?, ?, ?)
+  `).run(campaignCharacterId, libraryCharacterId, libraryUpdatedAt, nowIso());
+}
+
 // Copy a library character into a campaign as a fresh sheet. When the
 // campaign's starting level differs, hit dice, suggested HP, and spell
 // slots are recomputed (SRD tables; unknown classes keep their stored HP).
@@ -262,7 +285,17 @@ export function instantiateIntoCampaign(
   // it and a test can drive every branch without a database.
   const sheet = adaptSheetToLevel(character.sheet, character.level, level);
 
-  return createSheet(campaignId, userId, level, sheet, characterId);
+  const created = createSheet(campaignId, userId, level, sheet, characterId);
+  // Continuing the same-level hero must not silently zero accumulated XP.
+  // Intentional level scaling is a different operation and keeps the legacy
+  // zero-XP policy until the UI exposes an explicit scaling policy.
+  if (level === character.level && character.xp !== created.xp) {
+    getDatabase()
+      .prepare(`UPDATE character_sheets SET xp = ?, updated_at = ? WHERE id = ?`)
+      .run(character.xp, nowIso(), created.id);
+  }
+  recordProgressBaseline(created.id, character.id, character.updatedAt);
+  return getSheetById(created.id) ?? created;
 }
 
 // Write durable progression (never HP/conditions) from a campaign sheet
