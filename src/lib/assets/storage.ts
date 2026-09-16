@@ -1,5 +1,6 @@
 import crypto from "node:crypto";
 import {
+  copyFileSync,
   existsSync,
   mkdirSync,
   readFileSync,
@@ -97,7 +98,24 @@ class FilesystemAssetStorage implements AssetStorageBackend {
     const destination = this.resolveKey(storageKey);
     mkdirSync(path.dirname(destination), { recursive: true });
     if (existsSync(destination)) throw new Error("Asset storage destination already exists.");
-    renameSync(source, destination);
+
+    // Keep the accepted upload recoverable until the synchronous DB commit in
+    // submitResult has had a chance to succeed. The caller's existing rollback
+    // deletes destination on DB failure; this deferred cleanup then notices the
+    // missing destination and deliberately leaves staging in place so the same
+    // uploadId can be submitted again. On success destination still exists and
+    // the staging copy is removed at the microtask boundary.
+    copyFileSync(source, destination);
+    queueMicrotask(() => {
+      try {
+        if (existsSync(destination)) {
+          rmSync(source, { force: true });
+        }
+      } catch {
+        // A leftover staging copy is safer than destroying the only accepted
+        // upload. Integrity/maintenance tooling can reconcile redundant data.
+      }
+    });
     return { storageKey, filename };
   }
 
