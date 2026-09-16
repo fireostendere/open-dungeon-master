@@ -115,7 +115,7 @@ export function I18nProvider({
     }
   };
 
-  const toggleUnitSystem = () => setUnitSystem(unitSystem === "imperial" ? "imperial" : "metric");
+  const toggleUnitSystem = () => setUnitSystem(unitSystem === "metric" ? "imperial" : "metric");
 
   const t = useMemo(
     () =>
