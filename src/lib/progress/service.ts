@@ -4,6 +4,7 @@ import { getSheetById, listSheets } from "@/lib/db/sheets";
 import { getUserById, getUserByUsername } from "@/lib/db/users";
 import { syncCharacterProgress, syncPartyProgress } from "@/lib/db/progress-sync";
 import { publishPersisted } from "@/lib/events";
+import { withCommittedEffects } from "@/lib/db/commit-effects";
 
 export function resolveProgressSheet(input: {
   sheetId?: string;
@@ -42,6 +43,13 @@ export function syncProgressLookup(input: {
   return syncCharacterProgress(sheet.id, input.expectedVersion);
 }
 
+type PartySync = ReturnType<typeof syncPartyProgress>;
+class PartySyncBlocked extends Error {
+  constructor(readonly sync: PartySync, readonly campaignStatus: string) {
+    super("Not every selected party member synchronized successfully.");
+  }
+}
+
 export function finishAndSyncParty(input: {
   campaignId: string;
   includeCompanions?: boolean;
@@ -50,58 +58,65 @@ export function finishAndSyncParty(input: {
   confirm: boolean;
 }) {
   if (!input.confirm) throw new Error("finish_and_sync_party requires confirm=true.");
-  const campaign = getCampaignById(input.campaignId);
-  if (!campaign) throw new Error("Campaign not found.");
-  if (campaign.kind !== "campaign") throw new Error("Workshops cannot be finished as campaigns.");
-
-  const sync = syncPartyProgress(input.campaignId, {
-    includeCompanions: input.includeCompanions ?? false,
-    skipUnlinked: input.skipUnlinked ?? true,
-  });
   const requireAllSynced = input.requireAllSynced ?? true;
-  const blockers = sync.totals.failed + sync.totals.skipped;
-
-  if (requireAllSynced && blockers > 0) {
+  try {
+    // The outer transaction owns ALL member writes, their revision events,
+    // the campaign status and the completion event. Nested member transactions
+    // are savepoints; a blocker rolls the entire operation back.
+    return withCommittedEffects(() => getDatabase().transaction(() => {
+      const campaign = getCampaignById(input.campaignId);
+      if (!campaign) throw new Error("Campaign not found.");
+      if (campaign.kind !== "campaign") throw new Error("Workshops cannot be finished as campaigns.");
+      const sync = syncPartyProgress(input.campaignId, {
+        includeCompanions: input.includeCompanions ?? false,
+        skipUnlinked: input.skipUnlinked ?? true,
+      });
+      if (requireAllSynced && sync.totals.failed + sync.totals.skipped > 0) {
+        throw new PartySyncBlocked(sync, campaign.status);
+      }
+      setCampaignStatus(input.campaignId, "ended");
+      publishPersisted(input.campaignId, "campaign.finished_progress_sync", {
+        campaignId: input.campaignId,
+        previousStatus: campaign.status,
+        status: "ended",
+        requireAllSynced,
+        totals: sync.totals,
+        synced: sync.synced.map((entry) => ({
+          sheetId: entry.sheetId,
+          libraryCharacterId: entry.libraryCharacterId,
+          level: entry.level,
+          xp: entry.xp,
+          revision: entry.revision,
+        })),
+        failed: sync.failed,
+        skipped: sync.skipped,
+      });
+      return { campaignId: input.campaignId, ended: true, status: "ended" as const, sync };
+    })());
+  } catch (error) {
+    if (!(error instanceof PartySyncBlocked)) throw error;
+    // Report committed results, not the successes that the outer transaction
+    // rolled back. Keep their IDs separately so an operator can see the scope.
+    const sync = {
+      ...error.sync,
+      synced: [],
+      totals: { ...error.sync.totals, synced: 0 },
+      rolledBack: error.sync.synced.map((entry) => entry.sheetId),
+    };
     publishPersisted(input.campaignId, "campaign.finish_sync_blocked", {
       campaignId: input.campaignId,
       requireAllSynced,
       totals: sync.totals,
       failed: sync.failed,
       skipped: sync.skipped,
+      rolledBack: sync.rolledBack,
     });
     return {
       campaignId: input.campaignId,
       ended: false,
-      status: campaign.status,
-      reason: "Not every selected party member synchronized successfully.",
+      status: error.campaignStatus,
+      reason: error.message,
       sync,
     };
   }
-
-  getDatabase().transaction(() => {
-    setCampaignStatus(input.campaignId, "ended");
-    publishPersisted(input.campaignId, "campaign.finished_progress_sync", {
-      campaignId: input.campaignId,
-      previousStatus: campaign.status,
-      status: "ended",
-      requireAllSynced,
-      totals: sync.totals,
-      synced: sync.synced.map((entry) => ({
-        sheetId: entry.sheetId,
-        libraryCharacterId: entry.libraryCharacterId,
-        level: entry.level,
-        xp: entry.xp,
-        revision: entry.revision,
-      })),
-      failed: sync.failed,
-      skipped: sync.skipped,
-    });
-  })();
-
-  return {
-    campaignId: input.campaignId,
-    ended: true,
-    status: "ended" as const,
-    sync,
-  };
 }
