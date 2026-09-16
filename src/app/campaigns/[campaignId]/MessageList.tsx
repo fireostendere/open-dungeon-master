@@ -12,10 +12,13 @@ import {
   ImageOff,
   ImagePlus,
   Loader2,
+  MessageSquare,
   Pin,
   RefreshCw,
   ShieldQuestion,
+  Swords,
   UserPlus,
+  Users,
   Volume2,
 } from "lucide-react";
 import { memo, useEffect, useMemo, useRef, useState } from "react";
@@ -169,6 +172,45 @@ function DmContent({ content, rollsById, sheetsById }: {
       )}
     </div>
   );
+}
+
+function parsePlayerMessage(rawContent: string): {
+  kind: "say" | "do" | "ooc";
+  displayContent: string;
+} {
+  const trimmed = rawContent.trim();
+  if (/^\s*\(ooc\)/i.test(trimmed)) {
+    return {
+      kind: "ooc",
+      displayContent: trimmed.replace(/^\s*\(ooc\)\s*/i, ""),
+    };
+  }
+
+  const isQuoted =
+    (trimmed.startsWith('"') && trimmed.endsWith('"') && trimmed.length >= 2) ||
+    (trimmed.startsWith('«') && trimmed.endsWith('»') && trimmed.length >= 2) ||
+    (trimmed.startsWith('“') && trimmed.endsWith('”') && trimmed.length >= 2);
+
+  if (isQuoted) {
+    const inner = trimmed.slice(1, -1).trim();
+    return {
+      kind: "say",
+      displayContent: inner,
+    };
+  }
+
+  let doContent = trimmed;
+  if (
+    (doContent.startsWith("**") && doContent.endsWith("**") && doContent.length >= 4) ||
+    (doContent.startsWith("*") && doContent.endsWith("*") && doContent.length >= 2)
+  ) {
+    doContent = doContent.replace(/^\*+|\*+$/g, "").trim();
+  }
+
+  return {
+    kind: "do",
+    displayContent: doContent,
+  };
 }
 
 // One chat entry. Memoized so the per-token dm_delta re-renders of the list
@@ -584,9 +626,42 @@ const MessageItem = memo(function MessageItem({
       : message.userId
         ? avatarPlaceholder(message.userId)
         : undefined);
+  const parsed = parsePlayerMessage(message.content);
+
   return (
     <div className="group ml-auto max-w-[92%] animate-fade-up sm:max-w-2xl">
-      <p className="mb-1 flex items-center justify-end gap-1.5 text-right text-xs font-medium text-amber-200/80">
+      <div className="mb-1 flex items-center justify-end gap-1.5 text-right text-xs font-medium">
+        {onReport && !mine && message.userId ? (
+          <button
+            type="button"
+            onClick={() => onReport(message)}
+            aria-label="Report this message"
+            title="Report: flag this message to the admins of this server, or block the player"
+            className={cn(ui.iconAction, "-my-1.5 mr-0.5 opacity-0 transition-opacity focus:opacity-100 group-hover:opacity-100")}
+          >
+            <Flag className="size-3.5" />
+          </button>
+        ) : null}
+
+        {parsed.kind === "say" ? (
+          <span className="inline-flex items-center gap-1 rounded-full border border-sky-500/30 bg-sky-500/10 px-2 py-0.5 text-[10px] font-medium tracking-wide text-sky-300">
+            <MessageSquare className="size-3 text-sky-400" />
+            {locale === "ru" ? "Речь" : locale === "pl" ? "Mowa" : "Say"}
+          </span>
+        ) : parsed.kind === "do" ? (
+          <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium tracking-wide text-amber-300">
+            <Swords className="size-3 text-amber-400" />
+            {locale === "ru" ? "Действие" : locale === "pl" ? "Akcja" : "Action"}
+          </span>
+        ) : (
+          <span className="inline-flex items-center gap-1 rounded-full border border-stone-700/60 bg-stone-800/80 px-2 py-0.5 text-[10px] font-medium tracking-wide text-stone-400">
+            <Users className="size-3 text-stone-500" />
+            {locale === "ru" ? "Вне игры" : locale === "pl" ? "Poza grą" : "OOC"}
+          </span>
+        )}
+
+        <span className="text-amber-200/90">{sheet?.name ?? "Player"}</span>
+
         {portraitUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -595,27 +670,42 @@ const MessageItem = memo(function MessageItem({
             className="size-6 rounded-full border border-amber-500/30 object-cover"
           />
         ) : null}
-        {sheet?.name ?? "Player"}
-        {onReport && !mine && message.userId ? (
-          <button
-            type="button"
-            onClick={() => onReport(message)}
-            aria-label="Report this message"
-            title="Report: flag this message to the admins of this server, or block the player"
-            className={cn(ui.iconAction, "-my-1.5 opacity-0 transition-opacity focus:opacity-100 group-hover:opacity-100")}
-          >
-            <Flag className="size-3.5" />
-          </button>
-        ) : null}
-      </p>
-      <div
-        className={cn(
-          "rounded-2xl rounded-br-md border border-stone-700/50 bg-stone-900/70 px-4 py-3 text-sm leading-6 text-stone-200 shadow-elev-1",
-          message.content.startsWith("(ooc)") && "italic text-stone-500",
-        )}
-      >
-        <p className="whitespace-pre-wrap text-pretty">{message.content}</p>
       </div>
+
+      {parsed.kind === "say" ? (
+        <div
+          className={cn(
+            "relative rounded-2xl rounded-tr-sm border border-sky-500/30 bg-stone-900/85 px-4 py-3 text-sm leading-6 text-stone-100 shadow-elev-1 transition-colors hover:border-sky-500/45",
+          )}
+        >
+          <p className="whitespace-pre-wrap text-pretty">
+            <span className="mr-1.5 select-none font-serif text-base font-bold text-sky-400/80">“</span>
+            {parsed.displayContent}
+            <span className="ml-1 select-none font-serif text-base font-bold text-sky-400/80">”</span>
+          </p>
+        </div>
+      ) : parsed.kind === "do" ? (
+        <div
+          className={cn(
+            "rounded-xl border border-stone-700/60 border-l-4 border-l-amber-500/80 bg-stone-950/80 px-4 py-3 text-sm leading-6 text-stone-200 shadow-elev-1 transition-colors hover:border-stone-600",
+          )}
+        >
+          <p className="whitespace-pre-wrap text-pretty italic text-stone-200 font-normal">
+            <span className="mr-2 select-none not-italic text-xs text-amber-400/90">✦</span>
+            {parsed.displayContent}
+          </p>
+        </div>
+      ) : (
+        <div
+          className={cn(
+            "rounded-xl border border-dashed border-stone-800 bg-stone-950/40 px-3.5 py-2.5 text-xs leading-5 text-stone-400 shadow-none",
+          )}
+        >
+          <p className="whitespace-pre-wrap text-pretty italic">
+            {parsed.displayContent}
+          </p>
+        </div>
+      )}
     </div>
   );
 });
