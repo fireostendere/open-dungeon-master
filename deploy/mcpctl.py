@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """Manage the unprivileged Open Dungeon Master MCP sidecar.
 
-This helper deliberately does not expose host operations to MCP. It only builds
-and runs the MCP image next to the release selected by odmctl, provisions the
-shared control token, and wires Caddy to /mcp when a managed HTTPS domain exists.
+The sidecar is versioned with the active ODM release and is replaced only after
+a disposable candidate has passed its real control-plane healthcheck. External
+HTTPS /mcp traffic is proxied by the managed Next.js application, so this
+controller never rewrites Caddy configuration.
 """
 from __future__ import annotations
 
@@ -110,6 +111,8 @@ class McpController:
         self.project = "odm-" + hashlib.sha256(str(self.root).encode()).hexdigest()[:10]
         self.network = self.project + "_default"
         self.container = self.project + "-mcp"
+        self.candidate = self.container + "-candidate"
+        self.previous = self.container + "-previous"
         self.image = "odm-mcp-managed:" + self.sha
         self.app_env = self.config_dir / "app.env"
         self.mcp_env = self.config_dir / "mcp.env"
@@ -133,7 +136,9 @@ class McpController:
         except (OSError, subprocess.TimeoutExpired) as exc:
             raise McpOpsError(f"{Path(args[0]).name} unavailable or timed out") from exc
         if result.returncode:
-            raise McpOpsError(f"{Path(args[0]).name} failed with exit {result.returncode}")
+            detail = (result.stderr or "").strip().splitlines()
+            suffix = f": {detail[-1]}" if detail else ""
+            raise McpOpsError(f"{Path(args[0]).name} failed with exit {result.returncode}{suffix}")
         return result.stdout or ""
 
     def docker(self, *args: str, **kwargs) -> str:
@@ -169,8 +174,6 @@ class McpController:
 
     def token(self, show: bool = False) -> None:
         token, created = self.ensure_token()
-        # The secret stays in a mode-0600 file. Normal status output exposes
-        # only a fingerprint; printing the bearer requires an explicit --show.
         payload = {
             "tokenFile": str(self.token_file),
             "fingerprint": hashlib.sha256(token.encode("utf-8")).hexdigest()[:16],
@@ -195,9 +198,6 @@ class McpController:
             {
                 "ODM_MCP_TOKEN": token,
                 "ODM_MCP_OWNER_USERNAME": current.get("ODM_MCP_OWNER_USERNAME", "odm_admin"),
-                # The app creates scoped binary asset URLs, while the MCP
-                # sidecar itself is normally on :3006. Preserve an operator
-                # override; otherwise derive the actual managed app origin.
                 "ODM_PUBLIC_URL": public_url,
             },
         )
@@ -240,9 +240,18 @@ class McpController:
             timeout=1800,
         )
 
-    def container_label(self, name: str) -> str:
+    def container_exists(self, name: str) -> bool:
         result = subprocess.run(
-            ["docker", "inspect", "--format", "{{ index .Config.Labels \"" + name + "\" }}", self.container],
+            ["docker", "container", "inspect", name],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            check=False,
+        )
+        return result.returncode == 0
+
+    def container_label(self, name: str, label: str) -> str:
+        result = subprocess.run(
+            ["docker", "inspect", "--format", "{{ index .Config.Labels \"" + label + "\" }}", name],
             text=True,
             stdout=subprocess.PIPE,
             stderr=subprocess.DEVNULL,
@@ -251,7 +260,7 @@ class McpController:
         return result.stdout.strip() if result.returncode == 0 else ""
 
     def container_sha(self) -> str:
-        return self.container_label("odm.mcp.sha")
+        return self.container_label(self.container, "odm.mcp.sha")
 
     def ensure_network(self) -> None:
         result = subprocess.run(
@@ -263,30 +272,32 @@ class McpController:
         if result.returncode:
             raise McpOpsError("ODM Docker network is not running; start the application first")
 
-    def run_container(self, token: str) -> None:
-        token_fingerprint = hashlib.sha256(token.encode("utf-8")).hexdigest()[:16]
-        if (
-            self.container_sha() == self.sha
-            and self.container_label("odm.mcp.token") == token_fingerprint
-        ):
-            self.docker("start", self.container, timeout=60)
-            return
-        subprocess.run(["docker", "rm", "-f", self.container], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False)
-        self.docker(
+    def sidecar_run_args(
+        self,
+        name: str,
+        alias: str,
+        token_fingerprint: str,
+        *,
+        publish: bool,
+        restart: bool,
+    ) -> list[str]:
+        args = [
             "run",
             "-d",
             "--name",
-            self.container,
-            "--restart",
-            "unless-stopped",
+            name,
             "--network",
             self.network,
             "--network-alias",
-            "mcp",
+            alias,
             "--env-file",
             str(self.mcp_env),
-            "--publish",
-            "127.0.0.1:3006:3006",
+        ]
+        if restart:
+            args += ["--restart", "unless-stopped"]
+        if publish:
+            args += ["--publish", "127.0.0.1:3006:3006"]
+        args += [
             "--security-opt",
             "no-new-privileges:true",
             "--cap-drop",
@@ -301,32 +312,32 @@ class McpController:
             "--label",
             "odm.mcp.token=" + token_fingerprint,
             self.image,
-            timeout=120,
-        )
+        ]
+        return args
 
-    def caddy(self) -> None:
-        domain = str(self.install.get("domain", "")).strip()
-        if not domain:
-            return
-        caddyfile = self.config_dir / "Caddyfile"
-        content = (
-            f"{domain} {{\n"
-            " encode zstd gzip\n"
-            " @private path /api/internal/*\n"
-            " respond @private 404\n"
-            " @mcp path /mcp\n"
-            " reverse_proxy @mcp mcp:3006\n"
-            " reverse_proxy app:3005\n"
-            "}\n"
-        )
-        old = caddyfile.read_text(encoding="utf-8") if caddyfile.exists() else ""
-        if old != content:
-            atomic(caddyfile, content, 0o600)
-            self.compose("up", "-d", "proxy", timeout=120)
-            self.compose("exec", "-T", "proxy", "caddy", "reload", "--config", "/etc/caddy/Caddyfile", timeout=60)
+    def wait_container_ready(self, name: str, seconds: int = 90) -> None:
+        deadline = time.monotonic() + seconds
+        while time.monotonic() < deadline:
+            result = subprocess.run(
+                [
+                    "docker",
+                    "exec",
+                    name,
+                    "node",
+                    "-e",
+                    "fetch('http://127.0.0.1:3006/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+                ],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                check=False,
+            )
+            if result.returncode == 0:
+                return
+            time.sleep(2)
+        raise McpOpsError(f"MCP container {name} did not become healthy")
 
-    def wait_ready(self) -> None:
-        deadline = time.monotonic() + 90
+    def wait_ready(self, seconds: int = 90) -> None:
+        deadline = time.monotonic() + seconds
         while time.monotonic() < deadline:
             try:
                 with urllib.request.urlopen("http://127.0.0.1:3006/healthz", timeout=4) as response:
@@ -337,6 +348,46 @@ class McpController:
             time.sleep(2)
         raise McpOpsError("MCP sidecar did not become healthy")
 
+    def run_container(self, token: str) -> None:
+        token_fingerprint = hashlib.sha256(token.encode("utf-8")).hexdigest()[:16]
+        if (
+            self.container_sha() == self.sha
+            and self.container_label(self.container, "odm.mcp.token") == token_fingerprint
+        ):
+            self.docker("start", self.container, timeout=60)
+            self.wait_ready()
+            return
+
+        # Prove the new image against the real app/control API while the old
+        # sidecar is still untouched. A bad image therefore cannot create an
+        # outage simply by being selected as the next release.
+        subprocess.run(["docker", "rm", "-f", self.candidate], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False)
+        subprocess.run(["docker", "rm", "-f", self.previous], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False)
+        self.docker(*self.sidecar_run_args(self.candidate, "mcp-candidate", token_fingerprint, publish=False, restart=False), timeout=120)
+        try:
+            self.wait_container_ready(self.candidate)
+        finally:
+            subprocess.run(["docker", "rm", "-f", self.candidate], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False)
+
+        had_previous = self.container_exists(self.container)
+        if had_previous:
+            self.docker("stop", self.container, timeout=60)
+            self.docker("rename", self.container, self.previous, timeout=30)
+
+        try:
+            self.docker(*self.sidecar_run_args(self.container, "mcp", token_fingerprint, publish=True, restart=True), timeout=120)
+            self.wait_ready()
+        except BaseException:
+            subprocess.run(["docker", "rm", "-f", self.container], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False)
+            if had_previous and self.container_exists(self.previous):
+                self.docker("rename", self.previous, self.container, timeout=30)
+                self.docker("start", self.container, timeout=60)
+                self.wait_ready()
+            raise
+        else:
+            if had_previous:
+                subprocess.run(["docker", "rm", "-f", self.previous], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False)
+
     def sync(self) -> None:
         token, created = self.ensure_token()
         app_changed = self.ensure_env(token)
@@ -345,8 +396,6 @@ class McpController:
         self.ensure_network()
         self.build()
         self.run_container(token)
-        self.wait_ready()
-        self.caddy()
         if created:
             print("Created MCP bearer token at " + str(self.token_file))
         print("MCP endpoint: " + self.endpoint())
