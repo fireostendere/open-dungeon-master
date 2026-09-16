@@ -13,7 +13,7 @@ function activeScopes(): Effect[][] {
 function deliver(effect: Effect) {
   try {
     const result = effect();
-    if (result && typeof (result as Promise<unknown>).then === "function") {
+    if (result && typeof (result as { then?: unknown }).then === "function") {
       void Promise.resolve(result).catch((error) => console.error("[after-commit] effect failed", error));
     }
   } catch (error) {
@@ -37,7 +37,7 @@ export function withCommittedEffects<T>(work: () => T): T {
   let result: T;
   try {
     result = work();
-    if (result && typeof (result as Promise<unknown>).then === "function") {
+    if (result && typeof (result as { then?: unknown }).then === "function") {
       throw new Error("A commit-effects scope must be synchronous.");
     }
   } catch (error) {

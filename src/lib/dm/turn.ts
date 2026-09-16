@@ -1,3 +1,5 @@
+import { gameText, modelFailureText, resolveGameLanguage, type GameLanguage } from "@/lib/i18n/game-text";
+import { executeDmTool, withGameStateRollback } from "@/lib/dm/tool-transaction";
 import { getDatabase } from "@/lib/db/core";
 import { withCommittedEffects } from "@/lib/db/commit-effects";
 import {
@@ -5,7 +7,7 @@ import {
   prepareDmBatch, restoreDmBatch, type BatchDecision,
 } from "@/lib/db/dm-execution";
 import { completedInputSeq, rememberTurnInput } from "@/lib/db/dm-turn-inputs";
-import { latestInputSeq, needsDmTurn, normalizeTurnToolCalls } from "@/lib/dm/turn-input";
+import { latestInputSeq, needsDmTurn, normalizeTurnToolCalls, collectTurnToolCallIds } from "@/lib/dm/turn-input";
 import {
   allocateSeq,
   getCampaignById,
@@ -70,7 +72,6 @@ import {
 } from "@/lib/dm/prompt";
 import {
   deliverWhisper,
-  FALLBACK_WHISPER_MESSAGE,
   handleSendWhisper,
   WHISPER_CAP_PER_TURN,
 } from "@/lib/dm/whispers";
@@ -240,6 +241,7 @@ const ATTACK_OUTCOME_TOOLS = new Set([
 ]);
 
 type TurnContext = {
+  language: GameLanguage;
   campaign: Campaign;
   sheets: CharacterSheet[];
   sheetsById: Map<string, CharacterSheet>;
@@ -336,6 +338,7 @@ function loadContext(campaign: Campaign): TurnContext {
       ? new Set(members.filter((member) => member.useRealDice).map((member) => member.userId))
       : new Set<string>();
   return {
+    language: resolveGameLanguage(campaign.gameSettings.language, campaign.gameSettings.language ? [] : listRecentMessages(campaign.id, 100)),
     campaign,
     sheets,
     sheetsById: new Map(sheets.map((sheet) => [sheet.id, sheet])),
@@ -564,7 +567,7 @@ async function advance(context: TurnContext, turn: DmTurn) {
   } catch (error) {
     console.error("[dm-turn] advance failed", error);
     if (turn.status === "running") {
-      finalize(context, turn, "The Dungeon Master hit an internal error and had to stop this turn.");
+      finalize(context, turn, gameText(context.language, "internal"));
     } else {
       setDmStatus(context.campaign.id, "idle");
     }
@@ -669,7 +672,7 @@ async function runAdvance(context: TurnContext, turn: DmTurn) {
     const { message, error } = response;
     if (error) {
       const payload = (await error.json().catch(() => null)) as { error?: string } | null;
-      failed = payload?.error || "The Dungeon Master could not reach the model backend.";
+      failed = modelFailureText(context.language, payload?.error, error.status);
       break;
     }
 
@@ -706,7 +709,7 @@ async function runAdvance(context: TurnContext, turn: DmTurn) {
     const allToolCalls = normalizeTurnToolCalls(
       [...extractToolCalls(message?.tool_calls), ...salvagedCalls],
       `${turn.id}_${batch.index}`,
-      turn.conversation.flatMap((entry) => entry.tool_calls?.map((call) => call.id).filter((id): id is string => Boolean(id)) ?? []),
+      collectTurnToolCallIds(turn.conversation),
     );
     const echoedToolCalls = allToolCalls.map((call) => ({
       id: call.id,
@@ -718,15 +721,15 @@ async function runAdvance(context: TurnContext, turn: DmTurn) {
     // tool_choice=none is a protocol boundary, not a promise by the model.
     // Reject the whole final batch before any bookkeeping or mutation runs.
     if (finalCall && allToolCalls.length) {
-      commitDmBatch(turn, batch, allToolCalls, () => {
+      withGameStateRollback([context, turn], () => commitDmBatch(turn, batch, allToolCalls, () => {
         turn.conversation.push({ role: "assistant", content: visibleText || "", tool_calls: echoedToolCalls });
         for (const call of allToolCalls) {
           turn.conversation.push({ role: "tool", tool_call_id: call.id,
             content: JSON.stringify({ error: "Tool budget exhausted. No action was applied by this call." }) });
         }
         return "continue";
-      }, runtimeState);
-      failed = "The model returned actions after the turn's tool budget was exhausted.";
+      }, runtimeState));
+      failed = gameText(context.language, "toolsExhausted");
       break;
     }
     // Text streamed alongside an attack-resolving tool call is the model
@@ -807,12 +810,12 @@ async function runAdvance(context: TurnContext, turn: DmTurn) {
         await handleSearchLore(campaignId, searchLoreCall.rawArguments),
       );
     }
-    const decision = commitDmBatch(turn, batch, allToolCalls, (): BatchDecision => {
+    const decision = withGameStateRollback([context, turn], () => commitDmBatch(turn, batch, allToolCalls, (): BatchDecision => {
     // Location bookkeeping is synchronous and cheap; maps render async on
     // the media queue when vision allows.
     const locationResults = new Map<string, Record<string, unknown>>();
     for (const locationCall of locationCalls) {
-      const result = handleLocationCall(campaign, locationCall.name, locationCall.rawArguments);
+      const result = executeDmTool([context, turn], () => handleLocationCall(campaign, locationCall.name, locationCall.rawArguments));
       if (result.movedToNewLocation) {
         delete result.movedToNewLocation;
         // Link the narration message finalize() writes to the new area so
@@ -834,7 +837,7 @@ async function runAdvance(context: TurnContext, turn: DmTurn) {
       if (noteCount >= 1) {
         result = { error: "Note limit reached for this turn." };
       } else {
-        result = handleWriteCampaignNote(campaign, noteCall.rawArguments);
+        result = executeDmTool([context, turn], () => handleWriteCampaignNote(campaign, noteCall.rawArguments));
         if (!("error" in result)) {
           noteCount += 1;
         }
@@ -845,12 +848,12 @@ async function runAdvance(context: TurnContext, turn: DmTurn) {
     for (const eventCall of eventCalls) {
       eventResults.set(
         eventCall.id ?? "record_event",
-        handleRecordEvent(campaign, eventCall.rawArguments, sheets, sheetsById),
+        executeDmTool([context, turn], () => handleRecordEvent(campaign, eventCall.rawArguments, sheets, sheetsById)),
       );
     }
     const beatResults = new Map<string, Record<string, unknown>>();
     for (const beatCall of beatCalls) {
-      const outcome = handleCompleteBeat(campaignId, beatCall.rawArguments, beatCompleted);
+      const outcome = executeDmTool([context, turn], () => handleCompleteBeat(campaignId, beatCall.rawArguments, beatCompleted));
       beatCompleted = beatCompleted || outcome.completed;
       beatResults.set(beatCall.id ?? "complete_beat", outcome.result);
     }
@@ -862,7 +865,7 @@ async function runAdvance(context: TurnContext, turn: DmTurn) {
       if (whisperCount >= WHISPER_CAP_PER_TURN) {
         result = { error: "Whisper limit reached for this turn." };
       } else {
-        result = handleSendWhisper(campaign, turn.id, whisperCall.rawArguments, sheets, sheetsById);
+        result = executeDmTool([context, turn], () => handleSendWhisper(campaign, turn.id, whisperCall.rawArguments, sheets, sheetsById));
         if (!("error" in result)) {
           whisperCount += 1;
           // Track which senders were actually answered so finalize() (and the
@@ -889,7 +892,7 @@ async function runAdvance(context: TurnContext, turn: DmTurn) {
     for (const inputCall of inputCalls) {
       const result = spotlightSet
         ? { error: "The floor was already set in this turn." }
-        : handleRequestPlayerInput(campaign, inputCall.rawArguments, sheets, sheetsById);
+        : executeDmTool([context, turn], () => handleRequestPlayerInput(campaign, inputCall.rawArguments, sheets, sheetsById));
       inputResults.set(inputCall.id, result);
       if (!("error" in result)) spotlightSet = true;
     }
@@ -1022,7 +1025,7 @@ async function runAdvance(context: TurnContext, turn: DmTurn) {
       if (turn.encounterCount >= ENCOUNTER_CAP_PER_TURN) {
         result = { error: "Encounter action limit reached for this turn." };
       } else {
-        result = applyEncounterCall(
+        result = executeDmTool([context, turn], () => applyEncounterCall(
           campaign,
           turn,
           encounterCall.name,
@@ -1030,7 +1033,7 @@ async function runAdvance(context: TurnContext, turn: DmTurn) {
           sheets,
           sheetsById,
           { realDiceUserIds, toolCallId: encounterCall.id ?? null },
-        ).result;
+        )).result;
         if (!("error" in result)) {
           turn.encounterCount += 1;
         }
@@ -1051,12 +1054,12 @@ async function runAdvance(context: TurnContext, turn: DmTurn) {
     // fresh sheet list matters (the shared `sheets` snapshot predates it),
     // so later tools in this turn resolve the new characterId via the DB.
     for (const companionCall of companionCalls) {
-      const result = applyCompanionCall(
+      const result = executeDmTool([context, turn], () => applyCompanionCall(
         campaign,
         companionCall.name,
         companionCall.rawArguments,
         listSheets(campaignId),
-      );
+      ));
       if (!("error" in result)) {
         // Refresh the shared snapshot in place so pc_attack and friends can
         // resolve the new (or removed) companion later this same turn.
@@ -1078,13 +1081,13 @@ async function runAdvance(context: TurnContext, turn: DmTurn) {
     // Buff casts resolve synchronously: the slot spends, the effect lands
     // as a tracked condition, and the model narrates from the result.
     for (const castBuffCall of castBuffCalls) {
-      const result = handleCastBuff(
+      const result = executeDmTool([context, turn], () => handleCastBuff(
         campaign,
         turn,
         castBuffCall.rawArguments,
         sheets,
         sheetsById,
-      );
+      ));
       turn.conversation.push({
         role: "tool",
         ...(castBuffCall.id ? { tool_call_id: castBuffCall.id } : {}),
@@ -1095,7 +1098,7 @@ async function runAdvance(context: TurnContext, turn: DmTurn) {
     // Rests resolve synchronously: hit dice roll server-side and every
     // sheet write is audited; the model narrates from the results.
     for (const restCall of restCalls) {
-      const result = handleTakeRest(campaign, turn.id, restCall.rawArguments, sheets, sheetsById);
+      const result = executeDmTool([context, turn], () => handleTakeRest(campaign, turn.id, restCall.rawArguments, sheets, sheetsById));
       turn.conversation.push({
         role: "tool",
         ...(restCall.id ? { tool_call_id: restCall.id } : {}),
@@ -1113,23 +1116,23 @@ async function runAdvance(context: TurnContext, turn: DmTurn) {
         // inventoryApprovals: item/gold changes to player characters stage
         // as offers the owning player answers; null falls through to the
         // normal auto-apply path.
-        const proposed = maybeProposeItemChange(
+        const proposed = executeDmTool([context, turn], () => maybeProposeItemChange(
           campaign,
           turn.id,
           mutationCall.name,
           mutationCall.rawArguments,
           sheetsById,
-        );
+        ));
         result =
           proposed ??
-          applyDmMutation(
+          executeDmTool([context, turn], () => applyDmMutation(
             campaign,
             turn.id,
             mutationCall.name,
             mutationCall.rawArguments,
             sheets,
             sheetsById,
-          ).result;
+          )).result;
         if (!("error" in result)) {
           turn.mutationCount += 1;
         }
@@ -1147,8 +1150,8 @@ async function runAdvance(context: TurnContext, turn: DmTurn) {
     for (const checkCall of checkCalls) {
       const result =
         checkCall.name === "group_check"
-          ? handleGroupCheck(campaign, turn, checkCall.rawArguments, sheets, sheetsById)
-          : handleCheckNotice(campaign, checkCall.rawArguments, sheets, sheetsById);
+          ? executeDmTool([context, turn], () => handleGroupCheck(campaign, turn, checkCall.rawArguments, sheets, sheetsById))
+          : executeDmTool([context, turn], () => handleCheckNotice(campaign, checkCall.rawArguments, sheets, sheetsById));
       turn.conversation.push({
         role: "tool",
         ...(checkCall.id ? { tool_call_id: checkCall.id } : {}),
@@ -1159,7 +1162,7 @@ async function runAdvance(context: TurnContext, turn: DmTurn) {
     // Traps, falls, and environmental hazards resolve synchronously: the
     // server owns the save DC and damage dice and applies them per victim.
     for (const hazardCall of hazardCalls) {
-      const result = handleApplyHazard(campaign, turn, hazardCall.rawArguments, sheets, sheetsById);
+      const result = executeDmTool([context, turn], () => handleApplyHazard(campaign, turn, hazardCall.rawArguments, sheets, sheetsById));
       turn.conversation.push({
         role: "tool",
         ...(hazardCall.id ? { tool_call_id: hazardCall.id } : {}),
@@ -1171,7 +1174,7 @@ async function runAdvance(context: TurnContext, turn: DmTurn) {
     // doubling are the server's, and every share then lands through the
     // ordinary damage rules.
     for (const splitCall of splitCalls) {
-      const result = handleSplitDamage(campaign, turn, splitCall.rawArguments, sheets, sheetsById);
+      const result = executeDmTool([context, turn], () => handleSplitDamage(campaign, turn, splitCall.rawArguments, sheets, sheetsById));
       turn.conversation.push({
         role: "tool",
         ...(splitCall.id ? { tool_call_id: splitCall.id } : {}),
@@ -1184,13 +1187,13 @@ async function runAdvance(context: TurnContext, turn: DmTurn) {
     for (const petCall of petCalls) {
       let result: Record<string, unknown>;
       if (petCall.name === "summon_pet") {
-        result = handleSummonPet(campaign, turn, petCall.rawArguments, sheets, sheetsById);
+        result = executeDmTool([context, turn], () => handleSummonPet(campaign, turn, petCall.rawArguments, sheets, sheetsById));
       } else if (petCall.name === "pet_attack") {
-        result = handlePetAttack(campaign, turn, petCall.rawArguments, sheets, sheetsById);
+        result = executeDmTool([context, turn], () => handlePetAttack(campaign, turn, petCall.rawArguments, sheets, sheetsById));
       } else if (petCall.name === "damage_pet") {
-        result = handleDamagePet(campaign, petCall.rawArguments, sheets, sheetsById);
+        result = executeDmTool([context, turn], () => handleDamagePet(campaign, petCall.rawArguments, sheets, sheetsById));
       } else {
-        result = handleDismissPet(campaign, petCall.rawArguments, sheets, sheetsById);
+        result = executeDmTool([context, turn], () => handleDismissPet(campaign, petCall.rawArguments, sheets, sheetsById));
       }
       turn.conversation.push({
         role: "tool",
@@ -1205,11 +1208,11 @@ async function runAdvance(context: TurnContext, turn: DmTurn) {
     for (const socialCall of socialCalls) {
       let result: Record<string, unknown>;
       if (socialCall.name === "set_npc") {
-        result = handleSetNpc(campaign, socialCall.rawArguments);
+        result = executeDmTool([context, turn], () => handleSetNpc(campaign, socialCall.rawArguments));
       } else if (socialCall.name === "npc_reaction") {
-        result = handleNpcReaction(campaign, turn, socialCall.rawArguments);
+        result = executeDmTool([context, turn], () => handleNpcReaction(campaign, turn, socialCall.rawArguments));
       } else {
-        result = handleSocialCheck(campaign, turn, socialCall.rawArguments, sheets, sheetsById);
+        result = executeDmTool([context, turn], () => handleSocialCheck(campaign, turn, socialCall.rawArguments, sheets, sheetsById));
       }
       turn.conversation.push({
         role: "tool",
@@ -1224,23 +1227,23 @@ async function runAdvance(context: TurnContext, turn: DmTurn) {
     for (const relationshipCall of relationshipCalls) {
       let result: Record<string, unknown>;
       if (relationshipCall.name === "relationship_beat") {
-        result = handleRelationshipBeat(
+        result = executeDmTool([context, turn], () => handleRelationshipBeat(
           campaign,
           turn,
           relationshipCall.rawArguments,
           sheets,
           sheetsById,
-        );
+        ));
       } else if (relationshipCall.name === "romance_advance") {
-        result = handleRomanceAdvance(
+        result = executeDmTool([context, turn], () => handleRomanceAdvance(
           campaign,
           turn,
           relationshipCall.rawArguments,
           sheets,
           sheetsById,
-        );
+        ));
       } else {
-        result = handleRelationshipEnd(campaign, relationshipCall.rawArguments, sheets, sheetsById);
+        result = executeDmTool([context, turn], () => handleRelationshipEnd(campaign, relationshipCall.rawArguments, sheets, sheetsById));
       }
       turn.conversation.push({
         role: "tool",
@@ -1255,33 +1258,33 @@ async function runAdvance(context: TurnContext, turn: DmTurn) {
     for (const worldCall of worldCalls) {
       let result: Record<string, unknown>;
       if (worldCall.name === "roll_treasure") {
-        result = handleRollTreasure(campaign, turn, worldCall.rawArguments, sheets, sheetsById);
+        result = executeDmTool([context, turn], () => handleRollTreasure(campaign, turn, worldCall.rawArguments, sheets, sheetsById));
       } else if (worldCall.name === "travel") {
-        result = handleTravel(campaign, turn, worldCall.rawArguments, sheets, sheetsById);
+        result = executeDmTool([context, turn], () => handleTravel(campaign, turn, worldCall.rawArguments, sheets, sheetsById));
       } else if (worldCall.name === "pass_time") {
-        result = handlePassTime(campaign, worldCall.rawArguments);
+        result = executeDmTool([context, turn], () => handlePassTime(campaign, worldCall.rawArguments));
       } else if (worldCall.name === "party_stash") {
-        result = handlePartyStash(campaign, worldCall.rawArguments, sheets, sheetsById);
+        result = executeDmTool([context, turn], () => handlePartyStash(campaign, worldCall.rawArguments, sheets, sheetsById));
       } else if (worldCall.name === "set_effect") {
-        result = handleSetEffect(campaign, worldCall.rawArguments, sheets, sheetsById);
+        result = executeDmTool([context, turn], () => handleSetEffect(campaign, worldCall.rawArguments, sheets, sheetsById));
       } else if (worldCall.name === "clear_effect") {
-        result = handleClearEffect(campaign, worldCall.rawArguments, sheets, sheetsById);
+        result = executeDmTool([context, turn], () => handleClearEffect(campaign, worldCall.rawArguments, sheets, sheetsById));
       } else if (worldCall.name === "start_scene") {
-        result = handleStartScene(campaign, worldCall.rawArguments);
+        result = executeDmTool([context, turn], () => handleStartScene(campaign, worldCall.rawArguments));
       } else if (worldCall.name === "scene_check") {
-        result = handleSceneCheck(campaign, worldCall.rawArguments, sheets, sheetsById);
+        result = executeDmTool([context, turn], () => handleSceneCheck(campaign, worldCall.rawArguments, sheets, sheetsById));
       } else if (worldCall.name === "end_scene") {
-        result = handleEndScene(campaign, worldCall.rawArguments);
+        result = executeDmTool([context, turn], () => handleEndScene(campaign, worldCall.rawArguments));
       } else if (worldCall.name === "mount_up") {
-        result = handleMountUp(campaign, worldCall.rawArguments, sheets, sheetsById);
+        result = executeDmTool([context, turn], () => handleMountUp(campaign, worldCall.rawArguments, sheets, sheetsById));
       } else if (worldCall.name === "dismount") {
-        result = handleDismount(campaign, worldCall.rawArguments, sheets, sheetsById);
+        result = executeDmTool([context, turn], () => handleDismount(campaign, worldCall.rawArguments, sheets, sheetsById));
       } else if (worldCall.name === "set_ambience") {
-        result = handleSetAmbience(campaign, worldCall.rawArguments);
+        result = executeDmTool([context, turn], () => handleSetAmbience(campaign, worldCall.rawArguments));
       } else if (worldCall.name === "play_sting") {
-        result = handlePlaySting(campaign, worldCall.rawArguments);
+        result = executeDmTool([context, turn], () => handlePlaySting(campaign, worldCall.rawArguments));
       } else {
-        result = handleDamageObject(worldCall.rawArguments);
+        result = executeDmTool([context, turn], () => handleDamageObject(worldCall.rawArguments));
       }
       turn.conversation.push({
         role: "tool",
@@ -1291,12 +1294,13 @@ async function runAdvance(context: TurnContext, turn: DmTurn) {
     }
 
     for (const rollCall of rollCalls) {
-      let parsedArgs: RollArgs | null = null;
+      let parsedResult: RollArgs | null = null;
       try {
-        parsedArgs = rollArgsSchema.parse(JSON.parse(rollCall.rawArguments || "{}"));
+        parsedResult = rollArgsSchema.parse(JSON.parse(rollCall.rawArguments || "{}"));
       } catch {
-        parsedArgs = null;
+        parsedResult = null;
       }
+      const parsedArgs = parsedResult;
 
       if (!parsedArgs) {
         turn.conversation.push({
@@ -1441,7 +1445,7 @@ async function runAdvance(context: TurnContext, turn: DmTurn) {
       // dice land, so the enemy card can never lag the narration.
       const appliedDamage =
         parsedArgs.kind === "damage" && parsedArgs.targetEnemyId
-          ? autoApplyDamageRoll(
+          ? executeDmTool([context, turn], () => autoApplyDamageRoll(
               campaign,
               turn,
               parsedArgs.targetEnemyId,
@@ -1449,7 +1453,7 @@ async function runAdvance(context: TurnContext, turn: DmTurn) {
               sheets,
               sheetsById,
               parsedArgs.damageType,
-            )
+            ))
           : null;
       turn.conversation.push({
         role: "tool",
@@ -1496,7 +1500,7 @@ async function runAdvance(context: TurnContext, turn: DmTurn) {
     saveDmTurn(turn);
     setDmStatus(campaignId, "narrating");
     return "continue";
-    }, runtimeState);
+    }, runtimeState));
     if (decision === "park") return;
     if (decision === "finish") break;
   }
@@ -1545,20 +1549,20 @@ async function ensureWhisperReplies(context: TurnContext, turn: DmTurn) {
     ], { tools: [sendWhisperTool], toolChoice: "auto", thinking: true });
     batch = prepareDmBatch(turn, message, "whispers");
   }
-  const message = batch.message;
+  const preparedBatch = batch;
+  const message = preparedBatch.message;
   const xmlSalvage = salvageXmlToolCalls(extractStoryText(message?.content));
   const salvage = salvageTextualToolCalls(xmlSalvage.text);
   const calls = normalizeTurnToolCalls([
     ...extractToolCalls(message?.tool_calls), ...xmlSalvage.calls, ...salvage.calls,
-  ], `${turn.id}_${batch.index}`, turn.conversation.flatMap((entry) =>
-    entry.tool_calls?.map((call) => call.id).filter((id): id is string => Boolean(id)) ?? []));
-  commitDmBatch(turn, batch, calls, () => {
+  ], `${turn.id}_${batch.index}`, collectTurnToolCallIds(turn.conversation));
+  withGameStateRollback([context, turn], () => commitDmBatch(turn, preparedBatch, calls, () => {
     if (calls.length) turn.conversation.push({ role: "assistant", content: "", tool_calls: calls.map((call) => ({
       id: call.id, type: "function", function: { name: call.name, arguments: call.rawArguments },
     })) });
     for (const call of calls) {
       const result = call.name === "send_whisper"
-        ? handleSendWhisper(campaign, turn.id, call.rawArguments, sheets, sheetsById)
+        ? executeDmTool([context, turn], () => handleSendWhisper(campaign, turn.id, call.rawArguments, sheets, sheetsById))
         : { error: "Only private replies are permitted at this stage." };
       turn.conversation.push({ role: "tool", tool_call_id: call.id, content: JSON.stringify(result) });
       if (!("error" in result)) for (const characterId of (result.whisperedCharacterIds as string[] | undefined) ?? []) {
@@ -1569,13 +1573,13 @@ async function ensureWhisperReplies(context: TurnContext, turn: DmTurn) {
     // results in the same transaction as the delivered private message.
     for (const whisper of unanswered()) {
       if (!whisper.characterId) continue;
-      const args = JSON.stringify({ characterId: whisper.characterId, message: FALLBACK_WHISPER_MESSAGE });
+      const args = JSON.stringify({ characterId: whisper.characterId, message: gameText(context.language, "whisper") });
       const [fallback] = normalizeTurnToolCalls([{ id: `odm_whisper_fallback_${turn.id}_${whisper.id}`,
         name: "send_whisper", rawArguments: args }], `${turn.id}_${batch.index}_fallback`,
-        turn.conversation.flatMap((entry) => entry.tool_calls?.map((call) => call.id).filter((id): id is string => Boolean(id)) ?? []));
+        collectTurnToolCallIds(turn.conversation));
       const id = fallback.id;
       deliverWhisper(campaign.id, turn.id, [{ userId: whisper.userId,
-        characterId: whisper.characterId, characterName: whisper.characterName }], FALLBACK_WHISPER_MESSAGE);
+        characterId: whisper.characterId, characterName: whisper.characterName }], gameText(context.language, "whisper"));
       turn.answeredWhisperCharacterIds.push(whisper.characterId);
       calls.push({ id, name: "send_whisper", rawArguments: args });
       turn.conversation.push({ role: "assistant", content: "", tool_calls: [{
@@ -1584,7 +1588,7 @@ async function ensureWhisperReplies(context: TurnContext, turn: DmTurn) {
         content: JSON.stringify({ ok: true, fallback: true, whisperedCharacterIds: [whisper.characterId] }) });
     }
     return "finish";
-  }, () => dmExecutionState(turn.id));
+  }, () => dmExecutionState(turn.id)));
 }
 
 // request_player_input: hands the floor to named players and waits for them.
@@ -1791,7 +1795,7 @@ function parseSpotlightUserIds(
 }
 
 function finalize(context: TurnContext, turn: DmTurn, failed: string) {
-  commitDmFinalization(turn, () => finalizeInTransaction(context, turn, failed));
+  withGameStateRollback([context, turn], () => commitDmFinalization(turn, () => finalizeInTransaction(context, turn, failed)));
 }
 
 function finalizeInTransaction(context: TurnContext, turn: DmTurn, failed: string) {
@@ -1849,7 +1853,7 @@ function finalizeInTransaction(context: TurnContext, turn: DmTurn, failed: strin
   const narrationParts = turn.narrationParts;
   let content = narrationParts.join("\n\n").trim();
   if (!content) {
-    content = "The moment hangs there, waiting on the party's next move.";
+    content = gameText(context.language, "moment");
   }
   if (turn.rollIds.length && narrationParts.length > 1) {
     const lastPart = narrationParts[narrationParts.length - 1];

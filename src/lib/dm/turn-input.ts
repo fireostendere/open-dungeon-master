@@ -35,3 +35,17 @@ export function normalizeTurnToolCalls<T extends { id?: string; name: string; ra
     return { ...call, id };
   });
 }
+
+/** Read only IDs from untrusted/legacy payloads; preserve all opaque metadata. */
+export function collectTurnToolCallIds(history: readonly { tool_calls?: unknown; tool_call_id?: unknown }[]): string[] {
+  const ids = new Set<string>();
+  for (const entry of history) {
+    if (typeof entry.tool_call_id === "string" && entry.tool_call_id) ids.add(entry.tool_call_id);
+    if (!Array.isArray(entry.tool_calls)) continue;
+    for (const call of entry.tool_calls as unknown[]) {
+      if (!call || typeof call !== "object" || !("id" in call)) continue;
+      if (typeof call.id === "string" && call.id) ids.add(call.id);
+    }
+  }
+  return [...ids];
+}
