@@ -18,6 +18,7 @@ const { allocateSeq, createCampaign, setCampaignStatus, latestSeq, updateStorySe
 const { createCharacter, instantiateIntoCampaign } = await import("../src/lib/db/characters.ts");
 const { createSheetSchema } = await import("../src/lib/schemas/sheet.ts");
 const { createDmTurn, createPendingRoll, resolvePendingRoll, saveDmTurn } = await import("../src/lib/db/dm-turns.ts");
+const { insertAsk } = await import("../src/lib/db/asks.ts");
 const { insertCampaignMessage } = await import("../src/lib/db/messages.ts");
 const { insertRoll } = await import("../src/lib/db/rolls.ts");
 const { publishWithSeq } = await import("../src/lib/events.ts");
@@ -225,6 +226,30 @@ const oocEvents = await executeMcpControl("campaigns.events", { campaignId: oocC
 assert.equal(oocEvents.events.some((e) => e.seq === oocSeq), false, "OOC event must not be returned by campaigns.events");
 assert.equal(oocEvents.events.some((e) => e.seq === icSeq), true, "IC event must be returned by campaigns.events");
 assert.equal(oocEvents.events.some((e) => e.seq === icSeq2), true, "Second IC event must be returned by campaigns.events");
+
+const testAsk = insertAsk({
+  campaignId: oocCampaign.id,
+  userId: dm.id,
+  characterId: null,
+  visibility: "private",
+  scope: "rules",
+  question: "How does sneak attack work?",
+  answer: "Forwarded to DM...",
+  citations: [],
+  status: "answered",
+});
+
+const askRead = await executeMcpNarratorControl("narrator.read", { campaignId: oocCampaign.id, afterSeq: 0, limit: 10 });
+assert.ok(askRead.result.asks.some((a) => a.id === testAsk.id), "narrator.read must include asks");
+
+const answeredAsk = await executeMcpNarratorControl("narrator.answer_ask", {
+  campaignId: oocCampaign.id,
+  askId: testAsk.id,
+  answer: "Sneak attack grants extra damage once per turn when you have advantage.",
+});
+assert.equal(answeredAsk.handled, true);
+assert.equal(answeredAsk.result.ask.status, "answered");
+assert.equal(answeredAsk.result.ask.answer.includes("Sneak attack grants extra damage"), true);
 
 assert.equal(fetchCalls, 0, "no server provider/network call may be attempted");
 

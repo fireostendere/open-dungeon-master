@@ -18,7 +18,8 @@ import { persistHumanNarration } from "@/lib/dm/human-narration";
 import { enqueueDmJob } from "@/lib/dm/queue";
 import { coverInEffect } from "@/lib/dm/delegation";
 import { npcRosterForPrompt } from "@/lib/dm/social-tools";
-import { listEventsSince, publishPersisted } from "@/lib/events";
+import { answerAsk, listAsksForCampaign } from "@/lib/db/asks";
+import { listEventsSince, publishEphemeral, publishPersisted } from "@/lib/events";
 
 export class McpNarratorControlError extends Error {
   readonly status: number;
@@ -106,6 +107,7 @@ function read(raw: unknown) {
     playerWhispers: listPendingPlayerWhispers(campaign.id),
     recentDmWhispers: listRecentWhispersForPrompt(campaign.id),
     recentMessages: listRecentMessages(campaign.id, 400).filter((msg) => !isOocMessage(msg)),
+    asks: listAsksForCampaign(campaign.id, 20),
     notes: listPublicCampaignNotes(campaign.id, 20),
     npcs: npcRosterForPrompt(campaign.id).slice(0, 100),
     facts: listActiveFacts(campaign.id), chapters: listChapters(campaign.id),
@@ -185,6 +187,24 @@ export async function executeMcpNarratorControl(action: string, raw: unknown): P
     case "narrator.invoke": return { handled: true, result: await invoke(raw) };
     case "narrator.narrate": return { handled: true, result: await narrate(raw) };
     case "narrator.release_floor": return { handled: true, result: await releaseFloor(raw) };
+    case "narrator.answer_ask": {
+      const p = z.object({
+        campaignId: id,
+        askId: id,
+        answer: z.string().trim().min(1).max(4000),
+        citations: z.array(z.object({
+          kind: z.enum(["fact", "chapter", "scene", "summary", "npc", "place", "rule", "sheet", "recent"]),
+          ref: z.string(),
+          quote: z.string(),
+        })).default([]),
+      }).strict().safeParse(raw);
+      if (!p.success) throw new McpNarratorControlError(z.prettifyError(p.error));
+      campaignOrHuman(p.data.campaignId);
+      const updated = answerAsk(p.data.askId, p.data.answer, p.data.citations);
+      if (!updated) throw new McpNarratorControlError("Ask not found.", 404);
+      publishEphemeral(p.data.campaignId, "ask_activity", {});
+      return { handled: true, result: { ok: true, ask: updated } };
+    }
     default: return { handled: false };
   }
 }

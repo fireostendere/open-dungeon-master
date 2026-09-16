@@ -151,6 +151,49 @@ function createMcpServer() {
   );
 
   server.registerResource(
+    "narrator-playbook",
+    "odm://narrator/playbook",
+    {
+      title: "Dungeon Master rules and protocol playbook",
+      description: "Comprehensive guide for AI models acting as DM: D&D 5e rules, dice request protocol, combat encounters, answering player asks, and narration guidelines.",
+      mimeType: "text/markdown",
+    },
+    async (uri) => ({
+      contents: [{
+        uri: uri.href,
+        mimeType: "text/markdown",
+        text: `# Open Dungeon Master — AI Game Master Playbook
+
+You are the Dungeon Master (Game Master) for a multiplayer D&D 5e campaign in Open Dungeon Master.
+You interact with the game state, dice, and players exclusively through the \`odm_narrator\` MCP tool.
+
+## Core Rules:
+1. NEVER invent roll numbers, checks, saves, or attack outcomes yourself.
+   - When an outcome is uncertain, call \`odm_narrator(operation: "invoke", name: "request_roll", args: {...})\`.
+   - The server calculates character modifiers, rolls authentic random dice, and returns the result.
+   - Narrate strictly based on the server's roll numbers.
+2. NEVER puppet player characters. Describe what the world and NPCs do, then stop at the next decision point.
+3. COMBAT: Call \`start_encounter\` before narrating hostile exchanges. The server sets up the battle map and initiative.
+   - Move tokens with \`move_token(forced: true, x, y)\`.
+   - Execute attacks with \`pc_attack\` (passing both \`enemyId\` and \`targetEnemyId\`).
+   - Deal damage or execute finishing moves with \`damage_enemy\`.
+4. INVENTORY & PROGRESS:
+   - Award loot via \`grant_item(characterId, name, qty)\`.
+   - Award experience via \`award_xp(characterId, amount)\`.
+   - Update objectives via \`campaigns.set_quest_log\`.
+5. ASKS & QUESTIONS:
+   - Inspect \`asks\` in \`narrator.read\`.
+   - Answer player questions submitted via the Ask panel with \`odm_narrator(operation: "answer_ask", askId, answer)\`.
+6. OPTIMISTIC SEQUENCE PROTOCOL:
+   - Always call \`narrator.read\` before any write.
+   - Use the latest \`currentSeq\` as \`expectedSeq\` for \`invoke\` or \`narrate\`.
+   - If error 409 (stale cursor) occurs, re-read and retry with the updated sequence.
+`,
+      }],
+    }),
+  );
+
+  server.registerResource(
     "control-capabilities",
     "odm://server/capabilities",
     {
@@ -173,9 +216,9 @@ function createMcpServer() {
     "odm_narrator",
     {
       title: "External campaign narrator",
-      description: "Trusted external DM lifecycle for human mode with server LLM, TTS, and automatic maps disabled. Read before each write; no automatic retries.",
+      description: "Trusted external DM lifecycle for human mode with server LLM, TTS, and automatic maps disabled. Read before each write; no automatic retries. Operations: connect (setup session), read (pull stream, sheets, asks), catalog (view 40+ rules engine actions), invoke (call rules engine e.g. request_roll, start_encounter, pc_attack), narrate (post DM story text), release_floor (pass turn to players), answer_ask (answer player question from Ask panel).",
       inputSchema: z.object({
-        operation: z.enum(["connect", "read", "catalog", "invoke", "narrate", "release_floor"]),
+        operation: z.enum(["connect", "read", "catalog", "invoke", "narrate", "release_floor", "answer_ask"]),
         campaignId: z.string().uuid(),
         afterSeq: z.number().int().min(0).optional(),
         limit: z.number().int().min(1).max(100).optional(),
@@ -183,6 +226,8 @@ function createMcpServer() {
         name: z.string().trim().min(1).max(100).optional(),
         args: z.record(z.string(), z.unknown()).optional(),
         content: z.string().trim().min(1).max(8000).optional(),
+        askId: z.string().uuid().optional(),
+        answer: z.string().trim().min(1).max(4000).optional(),
       }),
     },
     async (args) => {

@@ -1,8 +1,9 @@
 import { z } from "zod";
 import { isErrorResponse, requireMember, requireVoice } from "@/lib/campaign-api";
+import { getCampaignById } from "@/lib/db/campaigns";
 import { insertAsk, listAsksForUser } from "@/lib/db/asks";
 import { getSheetForUser } from "@/lib/db/sheets";
-import { publishEphemeral } from "@/lib/events";
+import { publishEphemeral, publishPersisted } from "@/lib/events";
 import { runAsk } from "@/lib/dm/ask";
 import {
   ASK_SCOPES,
@@ -49,8 +50,35 @@ export async function POST(
   const scope =
     parsed.data.scope === "auto" ? inferScope(question) : parsed.data.scope;
 
-  const result = await runAsk({ campaignId, userId: user.id, question, scope });
   const sheet = getSheetForUser(campaignId, user.id);
+  const campaign = getCampaignById(campaignId);
+  const isHumanDm = campaign?.gameSettings.dmMode === "human";
+
+  if (isHumanDm) {
+    const ask = insertAsk({
+      campaignId,
+      userId: user.id,
+      characterId: sheet?.id ?? null,
+      visibility: parsed.data.visibility,
+      scope,
+      question,
+      answer: "Вопрос передан Мастеру стола...",
+      citations: [],
+      status: "answered",
+    });
+    publishPersisted(campaignId, "ask_submitted", {
+      askId: ask.id,
+      userId: user.id,
+      characterId: sheet?.id ?? null,
+      question,
+      scope,
+      visibility: parsed.data.visibility,
+    });
+    publishEphemeral(campaignId, "ask_activity", {});
+    return Response.json({ ask });
+  }
+
+  const result = await runAsk({ campaignId, userId: user.id, question, scope });
   const failed = "error" in result;
 
   const ask = insertAsk({

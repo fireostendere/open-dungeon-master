@@ -124,3 +124,38 @@ export function listRecentAsksForThread(
     .all(campaignId, userId, limit) as AskRow[];
   return rows.reverse().map(mapAsk);
 }
+
+// Answer or update an existing Ask row from the DM or external narrator.
+export function answerAsk(
+  askId: string,
+  answer: string,
+  citations: AskCitation[] = [],
+): CampaignAsk | null {
+  const db = getDatabase();
+  const info = db
+    .prepare(
+      `UPDATE campaign_asks
+       SET answer = ?, citations_json = ?, status = 'answered'
+       WHERE id = ?`,
+    )
+    .run(answer, JSON.stringify(citations), askId);
+  if (info.changes === 0) return null;
+  const row = db.prepare(`SELECT * FROM campaign_asks WHERE id = ?`).get(askId) as AskRow | undefined;
+  return row ? mapAsk(row) : null;
+}
+
+// All recent asks for the campaign so the DM/narrator can see and answer them.
+export function listAsksForCampaign(
+  campaignId: string,
+  limit = 20,
+): CampaignAsk[] {
+  const rows = getDatabase()
+    .prepare(
+      `SELECT * FROM campaign_asks
+       WHERE campaign_id = ?
+       ORDER BY created_at DESC, id DESC
+       LIMIT ?`,
+    )
+    .all(campaignId, limit) as AskRow[];
+  return rows.reverse().map(mapAsk);
+}
