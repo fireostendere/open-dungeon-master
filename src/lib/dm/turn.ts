@@ -1443,12 +1443,13 @@ async function runAdvance(context: TurnContext, turn: DmTurn) {
           : null;
       // Damage rolls aimed at an enemy apply server-side the moment the
       // dice land, so the enemy card can never lag the narration.
+      const targetEnemyId = parsedArgs.targetEnemyId;
       const appliedDamage =
-        parsedArgs.kind === "damage" && parsedArgs.targetEnemyId
+        parsedArgs.kind === "damage" && targetEnemyId
           ? executeDmTool([context, turn], () => autoApplyDamageRoll(
               campaign,
               turn,
-              parsedArgs.targetEnemyId,
+              targetEnemyId,
               roll,
               sheets,
               sheetsById,
@@ -1555,7 +1556,7 @@ async function ensureWhisperReplies(context: TurnContext, turn: DmTurn) {
   const salvage = salvageTextualToolCalls(xmlSalvage.text);
   const calls = normalizeTurnToolCalls([
     ...extractToolCalls(message?.tool_calls), ...xmlSalvage.calls, ...salvage.calls,
-  ], `${turn.id}_${batch.index}`, collectTurnToolCallIds(turn.conversation));
+  ], `${turn.id}_${preparedBatch.index}`, collectTurnToolCallIds(turn.conversation));
   withGameStateRollback([context, turn], () => commitDmBatch(turn, preparedBatch, calls, () => {
     if (calls.length) turn.conversation.push({ role: "assistant", content: "", tool_calls: calls.map((call) => ({
       id: call.id, type: "function", function: { name: call.name, arguments: call.rawArguments },
@@ -1575,7 +1576,7 @@ async function ensureWhisperReplies(context: TurnContext, turn: DmTurn) {
       if (!whisper.characterId) continue;
       const args = JSON.stringify({ characterId: whisper.characterId, message: gameText(context.language, "whisper") });
       const [fallback] = normalizeTurnToolCalls([{ id: `odm_whisper_fallback_${turn.id}_${whisper.id}`,
-        name: "send_whisper", rawArguments: args }], `${turn.id}_${batch.index}_fallback`,
+        name: "send_whisper", rawArguments: args }], `${turn.id}_${preparedBatch.index}_fallback`,
         collectTurnToolCallIds(turn.conversation));
       const id = fallback.id;
       deliverWhisper(campaign.id, turn.id, [{ userId: whisper.userId,

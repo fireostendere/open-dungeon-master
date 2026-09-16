@@ -12,7 +12,7 @@ const input = loadReviewModule(fileURLToPath(new URL("../src/lib/dm/turn-input.t
 const tool = (name) => ({ type: "function", function: { name, parameters: { type: "object", properties: {} } } });
 const call = (name, id = name, args = {}) => ({ id, type: "function", function: { name, arguments: JSON.stringify(args) } });
 
-function fixture() {
+function fixture({ encounterNames = [] } = {}) {
   const db = new DatabaseSync(":memory:");
   db.exec(`CREATE TABLE campaigns (id TEXT PRIMARY KEY);
     INSERT INTO campaigns VALUES ('c');
@@ -62,8 +62,10 @@ function fixture() {
   const checkpoint = loadReviewModule(fileURLToPath(new URL("../src/lib/db/dm-turn-inputs.ts", import.meta.url)), {
     "@/lib/db/core": { getDatabase: () => adapter },
   });
+  mocks["@/lib/dm/tool-transaction"] = loadReviewModule(fileURLToPath(new URL("../src/lib/dm/tool-transaction.ts", import.meta.url)), mocks);
   mocks["@/lib/db/dm-turn-inputs"] = checkpoint;
   mocks["@/lib/dm/turn-input"] = input;
+  mocks["@/lib/i18n/game-text"] = loadReviewModule(fileURLToPath(new URL("../src/lib/i18n/game-text.ts", import.meta.url)));
   set("@/lib/db/campaigns", {
     getCampaignById: () => campaign, getCampaignSummaryState: () => ({ summary: "" }),
     getFloor: () => state.floor, setFloor: (_, value) => { state.floor = value; },
@@ -101,8 +103,8 @@ function fixture() {
     salvageProseRollAsks: (text) => ({ text, calls: [] }),
     resolveSheetRef: (id) => sheets.find((sheet) => sheet.id === id) ?? null,
   });
-  set("@/lib/dm/encounter-tools", { ENCOUNTER_TOOL_NAMES: [], ENCOUNTER_CAP_PER_TURN: 10,
-    encounterTools: () => [], ensureInitiativeProgress: () => {}, advanceAfterTurn: () => {},
+  set("@/lib/dm/encounter-tools", { ENCOUNTER_TOOL_NAMES: encounterNames, ENCOUNTER_CAP_PER_TURN: 10,
+    encounterTools: () => encounterNames.map(tool), ensureInitiativeProgress: () => {}, advanceAfterTurn: () => {},
   });
   set("@/lib/dm/mutations", { MUTATION_TOOL_NAMES: [], MUTATION_CAP_PER_TURN: 10, mutationTools: [] });
   set("@/lib/dm/pc-attack", { PC_ATTACK_PARKED: "parked" });
@@ -340,4 +342,104 @@ test("R08: interrupted private fallback replays once without leaking into shared
     assert.equal(f.db.prepare("SELECT COUNT(*) AS n FROM campaign_messages WHERE author_type='dm'").get().n,0);
     assert.equal(f.db.prepare("SELECT COUNT(*) AS n FROM dm_tool_results WHERE tool_name='send_whisper'").get().n,1);
   }finally{f.db.close();}
+});
+
+test("R08: a returned tool error rolls back its own SQL/cache/notifications, not a successful sibling", async () => {
+  const f = fixture();
+  try {
+    const sheet = f.sheets[0]; const conditions = sheet.conditions;
+    const t = f.turn();
+    f.mocks["@/lib/dm/cast-tools"].handleCastBuff = (_campaign, turn, _args, sheets, byId) => {
+      f.db.exec("UPDATE effects SET amount=amount-1 WHERE name='slots'");
+      sheet.conditions.push("invalid-partial-buff"); sheet.newField = "must disappear";
+      turn.rollIds.push("nonexistent-roll"); byId.delete(sheet.id); sheets.push({ id: "ghost" });
+      f.mocks["@/lib/events"].publishPersisted("c", "refused_effect", {});
+      return { error: "The spell was refused after a partial resource spend." };
+    };
+    f.state.responses.push({ content: "", tool_calls: [call("cast_buff"), call("set_npc")] });
+    await f.engine.reenterDmTurn(f.campaign, t);
+    assert.equal(t.status, "done"); assert.equal(f.effect("slots"), 3); assert.equal(f.effect("npcs"), 1);
+    assert.equal(f.sheets.length, 1); assert.equal(f.sheets[0], sheet); assert.equal(sheet.conditions, conditions);
+    assert.deepEqual(conditions, []); assert.equal(sheet.newField, undefined); assert.deepEqual(t.rollIds, []);
+    assert.equal(f.state.events.some(e => e.type === "refused_effect"), false);
+    const results = f.db.prepare("SELECT tool_name,result_json FROM dm_tool_results ORDER BY tool_name").all();
+    assert.equal(results.length, 2); assert.match(results[0].result_json, /spell was refused/);
+    assert.equal(JSON.parse(results[1].result_json).ok, true);
+  } finally { f.db.close(); }
+});
+
+test("R02: malformed historical tool metadata cannot crash new call-ID allocation", async () => {
+  const f = fixture();
+  try {
+    const t = f.turn([{ role: "assistant", content: "legacy", tool_calls: { malformed: true } },
+      { role: "tool", content: "old result", tool_call_id: "same" }]);
+    f.state.responses.push({content:"",tool_calls:[call("cast_buff","same")]});
+    await f.engine.reenterDmTurn(f.campaign,t);
+    assert.equal(t.status,"done");assert.equal(f.effect("slots"),2);
+    const results = f.db.prepare("SELECT tool_call_id FROM dm_tool_results").all();
+    assert.equal(results.length,1);assert.notEqual(results[0].tool_call_id,"same");
+    assert.deepEqual(t.conversation[0].tool_calls,{malformed:true});
+  } finally { f.db.close(); }
+});
+
+for (const language of ["ru", "pl", "en"]) {
+  test(`R21: empty narration and provider failures use the campaign language (${language})`, async () => {
+    const f = fixture();
+    try {
+      f.campaign.gameSettings.language = language;
+      const game = f.mocks["@/lib/i18n/game-text"];
+      const prefix = "The DM ran into a problem: ";
+      f.mocks["@/lib/campaign-types"].DM_HALTED_PREFIX = prefix;
+      f.state.responses.push({ content: "" });
+      const t = f.turn(); await f.engine.reenterDmTurn(f.campaign, t);
+      assert.equal(t.status, "done");
+      assert.equal(f.state.events.find(e => e.type === "message_added").payload.message.content, game.gameText(language, "moment"));
+      f.mocks["@/lib/dm/model"].requestDmMessage = async () => ({error: Response.json({error:"Internal provider message"},{status:504})});
+      const failed = f.turn(); await f.engine.reenterDmTurn(f.campaign, failed);
+      assert.equal(failed.status, "failed");
+      assert.equal(f.state.events.filter(e => e.type === "message_added").at(-1).payload.message.content, prefix + game.gameText(language, "timeout"));
+    } finally { f.db.close(); }
+  });
+}
+
+test("R08: whole-batch failure restores successful earlier tools' cached mutations too", async () => {
+  const f = fixture();
+  try {
+    const sheet = f.sheets[0]; const conditions = sheet.conditions; const t = f.turn();
+    let fail = true;
+    f.mocks["@/lib/dm/cast-tools"].handleCastBuff = () => {
+      f.db.exec("UPDATE effects SET amount=amount-1 WHERE name='slots'");
+      conditions.push("buff"); return {ok:true};
+    };
+    f.mocks["@/lib/dm/social-tools"].handleSetNpc = () => {
+      if (fail) { fail = false; throw new Error("second-tool fault"); }
+      return {ok:true};
+    };
+    f.state.responses.push({content:"",tool_calls:[call("cast_buff"),call("set_npc")]});
+    await f.engine.reenterDmTurn(f.campaign,t);
+    assert.equal(t.status,"failed");assert.deepEqual(conditions,[]);assert.equal(f.effect("slots"),3);
+    const journal = f.mocks["@/lib/db/dm-execution"];
+    journal.restoreDmBatch(t,journal.pendingDmBatch(t.id));f.save(t);
+    await f.engine.reenterDmTurn(f.campaign,t);
+    assert.equal(t.status,"done");assert.deepEqual(conditions,["buff"]);assert.equal(f.effect("slots"),2);
+  } finally { f.db.close(); }
+});
+
+test("R08: a nested dispatcher error does not advance encounter counters", async () => {
+  const f=fixture({ encounterNames: ["end_turn"] });
+  try {
+    let executed = 0;
+    f.mocks["@/lib/dm/encounter-tools"].applyEncounterCall = (_campaign, turn) => {
+      executed++;
+      f.db.exec("UPDATE effects SET amount=amount-1 WHERE name='slots'");
+      turn.resolvedCharacterIds.push("pc");
+      return {result:{error:"Refused end turn"}};
+    };
+    const t=f.turn();f.state.responses.push({content:"",tool_calls:[call("end_turn")]});
+    await f.engine.reenterDmTurn(f.campaign,t);
+    assert.equal(t.status,"done");assert.equal(f.effect("slots"),3);
+    assert.deepEqual(t.resolvedCharacterIds,[]);assert.equal(t.encounterCount,0);
+    assert.equal(executed,1);
+    assert.match(t.conversation.find(entry=>entry.role==="tool").content,/Refused end turn/);
+  } finally { f.db.close(); }
 });
