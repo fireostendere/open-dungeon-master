@@ -167,6 +167,19 @@ class McpController:
             atomic(self.token_file, token + "\n", 0o600)
         return token, created
 
+    def token(self, show: bool = False) -> None:
+        token, created = self.ensure_token()
+        # The secret stays in a mode-0600 file. Normal status output exposes
+        # only a fingerprint; printing the bearer requires an explicit --show.
+        payload = {
+            "tokenFile": str(self.token_file),
+            "fingerprint": hashlib.sha256(token.encode("utf-8")).hexdigest()[:16],
+            "created": created,
+        }
+        if show:
+            payload["token"] = token
+        print(json.dumps(payload, indent=2))
+
     def ensure_env(self, token: str) -> bool:
         current = parse_env(self.app_env)
         domain = str(self.install.get("domain", "")).strip()
@@ -357,7 +370,17 @@ class McpController:
                     "release": sha or None,
                     "expectedRelease": self.sha,
                     "tokenFile": str(self.token_file),
-                    "stdioCommand": ["docker", "exec", "-i", self.container, "node", "/app/server.mjs", "--stdio"],
+                    "stdioCommand": [
+                        "docker",
+                        "exec",
+                        "-i",
+                        self.container,
+                        "node",
+                        "--import",
+                        "/app/external-tools-preload.mjs",
+                        "/app/server.mjs",
+                        "--stdio",
+                    ],
                 },
                 indent=2,
             )
@@ -370,11 +393,19 @@ class McpController:
 def main() -> int:
     parser = argparse.ArgumentParser(description="Open Dungeon Master MCP sidecar controller")
     parser.add_argument("--root", required=True)
-    parser.add_argument("action", choices=("sync", "status", "stop"))
+    parser.add_argument("action", choices=("sync", "status", "stop", "token"))
+    parser.add_argument(
+        "--show",
+        action="store_true",
+        help="With 'token', include the bearer secret in output (default: path and fingerprint only)",
+    )
     args = parser.parse_args()
     try:
         controller = McpController(args.root)
-        getattr(controller, args.action)()
+        if args.action == "token":
+            controller.token(show=args.show)
+        else:
+            getattr(controller, args.action)()
         return 0
     except McpOpsError as exc:
         print("mcpctl: " + str(exc), file=sys.stderr)
