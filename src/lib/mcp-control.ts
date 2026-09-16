@@ -578,6 +578,7 @@ export async function executeMcpControl(action: string, rawParams: unknown): Pro
         params.targetLevel ?? campaign.startingLevel,
       );
       if ("error" in sheet) throw new McpControlError(sheet.error);
+      publishPersisted(campaign.id, "sheet_updated", { sheet });
       publishPersisted(campaign.id, "mcp_control", { action: "character_instantiated", sheetId: sheet.id });
       return { sheet };
     }
@@ -604,6 +605,7 @@ export async function executeMcpControl(action: string, rawParams: unknown): Pro
       if (!existing) throw new McpControlError("Sheet not found.", 404);
       const sheet = patchSheet(params.sheetId, params.patch);
       if (!sheet) throw new McpControlError("Sheet patch failed.", 500);
+      publishPersisted(existing.campaignId, "sheet_updated", { sheet });
       publishPersisted(existing.campaignId, "mcp_control", { action: "sheet_patched", sheetId: params.sheetId });
       return { sheet };
     }
@@ -703,7 +705,7 @@ export async function executeMcpControl(action: string, rawParams: unknown): Pro
         };
 
         let campaignApplied = false;
-        if (params.campaignId && connectResult.profile?.id && connectResult.report?.ok) {
+        if (params.apply && params.campaignId && connectResult.profile?.id && connectResult.report?.ok) {
           const campaign = campaignOr404(params.campaignId);
           applyLlmProfileToCampaign(connectResult.profile.id, campaign.id);
           campaignApplied = true;
@@ -712,7 +714,7 @@ export async function executeMcpControl(action: string, rawParams: unknown): Pro
         return {
           ...connectResult,
           campaignApplied,
-          target: params.campaignId ? "campaign" : params.apply ? "global" : "profile_saved",
+          target: params.campaignId ? (params.apply ? "campaign" : "profile_saved") : params.apply ? "global" : "profile_saved",
         };
       } catch (err: unknown) {
         if (err instanceof ProviderError) {
@@ -790,7 +792,7 @@ export async function executeMcpControl(action: string, rawParams: unknown): Pro
         };
 
         let campaignApplied = false;
-        if (params.campaignId && connectResult.profile?.id && connectResult.report?.ok) {
+        if (params.apply && params.campaignId && connectResult.profile?.id && connectResult.report?.ok) {
           const campaign = campaignOr404(params.campaignId);
           applyLlmProfileToCampaign(connectResult.profile.id, campaign.id);
           campaignApplied = true;
@@ -799,7 +801,7 @@ export async function executeMcpControl(action: string, rawParams: unknown): Pro
         return {
           ...connectResult,
           campaignApplied,
-          target: params.campaignId ? "campaign" : params.apply ? "global" : "profile_saved",
+          target: params.campaignId ? (params.apply ? "campaign" : "profile_saved") : params.apply ? "global" : "profile_saved",
         };
       } catch (err: unknown) {
         if (err instanceof ProviderError) {
