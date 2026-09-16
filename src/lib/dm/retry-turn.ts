@@ -15,6 +15,7 @@ import { publishPersisted } from "@/lib/events";
 import { enqueueDmJob } from "@/lib/dm/queue";
 import { setDmStatus } from "@/lib/dm/status";
 import { fakeRollMarkerRegex } from "@/lib/dm/tool-text";
+import { getJournaledToolResult } from "@/lib/dm/tool-execution";
 import { MAX_MODEL_CALLS, reenterDmTurn } from "@/lib/dm/turn";
 import {
   assistantTextOf,
@@ -39,12 +40,12 @@ import {
 // the campaign's latest, which is what stops a newer turn and a retry from
 // both answering the same whisper.
 
-// Handed to the model on re-entry. Some tools run before turn.ts echoes the
-// assistant message that called them, so a crash can leave real, applied
-// changes with no trace in the conversation; the model needs to know that
-// rather than redo them.
+// Journaled tools have a durable result and must not execute again. A tool
+// without a journal row did not commit its transaction, so it is safe to ask
+// the model to call it again. This removes the old ambiguous "may already have
+// happened" retry contract.
 const RETRY_NOTE =
-  "[System] Your last attempt at this turn was interrupted by an internal error and nothing you wrote then reached the table. Pick the scene back up and narrate it now. Some bookkeeping from that attempt may already have taken effect (a move, a recorded event, a closed beat): if a tool reports something is already done, accept it and keep going rather than repeating it.";
+  "[System] Your last attempt at this turn was interrupted by an internal error and nothing you wrote then reached the table. Committed tool calls have been restored from the server's execution journal and must not be repeated. A call explicitly reported as not committed may be called again if the action is still needed. Continue from the supplied tool results and narrate only the authoritative state.";
 
 export type RetryRequest = { campaignId: string; turnId: string };
 export type RetryResult = { ok: true; turnId: string } | { ok: false; status: number; error: string };
@@ -132,25 +133,26 @@ export function requestTurnRetry(request: RetryRequest): RetryResult {
   // Repair the conversation before it goes back to the model: a throw partway
   // through the tool loop can persist an assistant message whose tool_calls
   // were only partly answered, and strict OpenAI-compatible backends reject
-  // that shape outright.
+  // that shape outright. Journaled calls get their exact committed result;
+  // non-journaled calls are explicitly safe to issue again.
   for (const toolCallId of danglingToolCallIds(claimed.conversation)) {
+    const resolvedRoll = resolvedRollResult(claimed, pendings, toolCallId);
+    const journaled = getJournaledToolResult(turnId, toolCallId);
     claimed.conversation.push({
       role: "tool",
       tool_call_id: toolCallId,
       content:
-        resolvedRollResult(claimed, pendings, toolCallId) ??
-        JSON.stringify({
-          error:
-            "The DM hit an internal error before this call finished. Do not call it again; continue from what you already have.",
-        }),
+        resolvedRoll ??
+        (journaled
+          ? JSON.stringify(journaled)
+          : JSON.stringify({
+              error:
+                "This tool call did not commit before the interruption. It is safe to call it again if the action is still needed.",
+              retryable: true,
+            })),
     });
   }
 
-  // Tool calls that ran before the crash are already applied (the party moved,
-  // the event was recorded) but the conversation has no assistant echo of
-  // them, so the model cannot see them. Say so plainly rather than let it
-  // rediscover the same bookkeeping. Deduped: a second retry must not stack a
-  // second copy of the note.
   const lastMessage = claimed.conversation[claimed.conversation.length - 1];
   if (lastMessage?.content !== RETRY_NOTE) {
     claimed.conversation.push({ role: "user", content: RETRY_NOTE });
