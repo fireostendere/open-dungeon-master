@@ -3,6 +3,8 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+// Structural i18n wiring check only. This file intentionally does not claim
+// SSR, hydration, browser persistence, authorization, or narration E2E.
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const read = (relative) => fs.readFileSync(path.join(root, relative), "utf8");
 
@@ -58,9 +60,10 @@ assert.match(context, /nextLocale\(locale\)/);
 assert.match(context, /document\.cookie = `\$\{STORAGE_LOCALE_KEY\}=\$\{locale\}/);
 assert.match(context, /persistLocale\(next\)/);
 assert.match(context, /persistLocale\(newLocale\)/);
-assert.match(context, /persistCampaignLanguage\(newLocale\)/);
-assert.match(context, /\/api\/campaigns\/\$\{encodeURIComponent\(match\[1\]\)\}\/settings/);
-assert.match(context, /JSON\.stringify\(\{ language: locale \}\)/);
+// Personal display language must not mutate shared campaign narration settings.
+assert.doesNotMatch(context, /persistCampaignLanguage/);
+assert.doesNotMatch(context, /\/api\/campaigns\/.*\/settings/);
+assert.doesNotMatch(context, /JSON\.stringify\(\{ language: locale \}\)/);
 
 assert.match(layout, /import \{ I18nProvider, isLocale, type Locale \} from "@\/lib\/i18n"/);
 assert.match(layout, /isLocale\(cookieLocale\) \? cookieLocale : "ru"/);
@@ -84,4 +87,4 @@ assert.match(prompt, /export \* from "@\/lib\/dm\/prompt-core"/);
 assert.match(settings, /export \* from "@\/lib\/schemas\/game-settings-core"/);
 assert.match(campaignsRoute, /from "\.\/route-core"/);
 
-console.log("language coverage passed: SSR/hydration locale, UI persistence, campaign creation/settings, story setup, and explicit RU/EN/PL DM narration are wired end-to-end.");
+console.log("language structural checks passed: RU/EN/PL wiring is present and personal UI locale is separated from campaign language. Browser and narration behavior require separate behavioral tests.");
