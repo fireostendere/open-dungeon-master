@@ -36,18 +36,8 @@ function persistLocale(locale: Locale) {
   try {
     localStorage.setItem(STORAGE_LOCALE_KEY, locale);
   } catch {
-    // The cookie still lets server routes inherit the selected language.
+    // The cookie still lets server-rendered UI inherit the selected language.
   }
-}
-
-function persistCampaignLanguage(locale: Locale) {
-  const match = window.location.pathname.match(/^\/campaigns\/([^/?#]+)/);
-  if (!match) return;
-  void fetch(`/api/campaigns/${encodeURIComponent(match[1])}/settings`, {
-    method: "PATCH",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ language: locale }),
-  }).catch(() => undefined);
 }
 
 function lookup(locale: Locale, path: string): string | undefined {
@@ -80,9 +70,9 @@ export function I18nProvider({
   children: ReactNode;
   initialLocale?: Locale;
 }) {
-  // The server supplies the cookie-backed locale so SSR and hydration render
-  // the same language; localStorage remains a compatibility fallback for
-  // installations that predate the cookie.
+  // The server supplies the cookie-backed UI locale so SSR and hydration
+  // render the same language. This is a personal display preference only;
+  // campaign narrationLanguage is changed by its own authorized setting.
   const [locale, setLocaleState] = useState<Locale>(initialLocale);
   const [unitSystem, setUnitSystemState] = useState<UnitSystem>("metric");
 
@@ -110,7 +100,6 @@ export function I18nProvider({
   const setLocale = (newLocale: Locale) => {
     setLocaleState(newLocale);
     persistLocale(newLocale);
-    persistCampaignLanguage(newLocale);
   };
 
   // The original two-language switch was a toggle. Keep the same API for all
@@ -126,7 +115,7 @@ export function I18nProvider({
     }
   };
 
-  const toggleUnitSystem = () => setUnitSystem(unitSystem === "metric" ? "imperial" : "metric");
+  const toggleUnitSystem = () => setUnitSystem(unitSystem === "imperial" ? "imperial" : "metric");
 
   const t = useMemo(
     () =>
