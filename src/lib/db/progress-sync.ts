@@ -32,6 +32,13 @@ type ProgressEventRow = {
   created_at: string;
 };
 
+type ProgressBaselineRow = {
+  campaign_character_id: string;
+  library_character_id: string;
+  library_updated_at: string;
+  created_at: string;
+};
+
 export type ProgressSnapshot = {
   level: number;
   xp: number;
@@ -92,6 +99,14 @@ export function ensureProgressSchema() {
       ON character_progress_events(campaign_id, created_at DESC);
     CREATE INDEX IF NOT EXISTS idx_character_progress_sheet
       ON character_progress_events(campaign_character_id, created_at DESC);
+    CREATE TABLE IF NOT EXISTS character_progress_baselines (
+      campaign_character_id TEXT PRIMARY KEY REFERENCES character_sheets(id) ON DELETE CASCADE,
+      library_character_id TEXT NOT NULL REFERENCES library_characters(id) ON DELETE CASCADE,
+      library_updated_at TEXT NOT NULL,
+      created_at TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_character_progress_baselines_library
+      ON character_progress_baselines(library_character_id);
   `);
 }
 
@@ -279,19 +294,41 @@ export function syncCharacterProgress(sheetId: string, expectedVersion?: number)
     if (expectedVersion != null && expectedVersion !== current.revision) {
       throw new ProgressConflictError(`Progress revision conflict: expected ${expectedVersion}, current ${current.revision}.`);
     }
+
+    const before = getCharacter(sheet.libraryCharacterId!);
+    if (!before) throw new Error("Linked library character not found.");
+    const baseline = db
+      .prepare("SELECT * FROM character_progress_baselines WHERE campaign_character_id = ?")
+      .get(sheet.id) as ProgressBaselineRow | undefined;
+
+    // A campaign copy is allowed to overwrite only the library revision it
+    // was created/synchronized from. Cosmetic edits to an old sheet no longer
+    // make it look newer than progress synchronized by another campaign.
     if (
-      current.last_sheet_updated_at &&
+      baseline &&
+      baseline.library_character_id === sheet.libraryCharacterId &&
+      baseline.library_updated_at !== before.updatedAt &&
+      current.last_sheet_id !== sheet.id
+    ) {
+      throw new ProgressConflictError(
+        `Library progress changed after this campaign copy was created; resolve the conflict before syncing sheet ${sheet.id}.`,
+      );
+    }
+    // Legacy copies created before baselines existed still get a conservative
+    // conflict check based on when another sheet last synchronized, never on
+    // this stale sheet's mutable updated_at value.
+    if (
+      !baseline &&
+      current.last_synced_at &&
       current.last_sheet_id &&
       current.last_sheet_id !== sheet.id &&
-      current.last_sheet_updated_at > sheet.updatedAt
+      current.last_synced_at > sheet.createdAt
     ) {
       throw new ProgressConflictError(
         `Refusing to overwrite newer library progress from sheet ${current.last_sheet_id}; resolve the conflict before syncing this sheet.`,
       );
     }
 
-    const before = getCharacter(sheet.libraryCharacterId!);
-    if (!before) throw new Error("Linked library character not found.");
     const beforeSummary = librarySummary(before);
     const legacySynced = syncProgressToLibrary(sheet.id);
     if (!legacySynced) throw new Error("Progress synchronization failed.");
@@ -337,6 +374,14 @@ export function syncCharacterProgress(sheetId: string, expectedVersion?: number)
         last_sheet_updated_at = excluded.last_sheet_updated_at,
         last_library_updated_at = excluded.last_library_updated_at
     `).run(sheet.libraryCharacterId, revision, now, sheet.id, sheet.updatedAt, synced.updatedAt);
+    db.prepare(`
+      INSERT INTO character_progress_baselines (
+        campaign_character_id, library_character_id, library_updated_at, created_at
+      ) VALUES (?, ?, ?, ?)
+      ON CONFLICT(campaign_character_id) DO UPDATE SET
+        library_character_id = excluded.library_character_id,
+        library_updated_at = excluded.library_updated_at
+    `).run(sheet.id, sheet.libraryCharacterId, synced.updatedAt, now);
 
     return {
       sheet,
