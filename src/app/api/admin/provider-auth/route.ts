@@ -8,6 +8,10 @@ export async function POST(request:Request):Promise<Response>{
   const admin=await requireAdmin();if(isErrorResponse(admin))return admin;
   try{
     if(!requestIsSameOrigin(request))throw new ProviderError('SAME_ORIGIN_JSON_REQUIRED',403);
-    return Response.json(await performProviderAction(`admin:${admin.id}`,await limitedJson(request),request.url),{headers:responseHeaders});
-  }catch(error){return failure(error);}
+    return Response.json(await performProviderAction(`admin:${admin.id}`,await limitedJson(request),request.url,{signal:request.signal}),{headers:responseHeaders});
+  }catch(error){
+    if(request.signal.aborted)return failure(new ProviderError('REQUEST_ABORTED',499));
+    if(error instanceof Error&&error.name==='TimeoutError')return failure(new ProviderError('PROVIDER_OPERATION_TIMEOUT',504));
+    return failure(error);
+  }
 }

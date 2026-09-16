@@ -6,9 +6,10 @@ import { McpServer, createMcpHandler } from "@modelcontextprotocol/server";
 import { serveStdio } from "@modelcontextprotocol/server/stdio";
 import { toNodeHandler } from "@modelcontextprotocol/node";
 import * as z from "zod/v4";
+import { callControl, withMcpCancellation } from "./control-client.mjs";
+import { createSafeHttpListener } from "./http-boundary.mjs";
 
 const VERSION = "0.1.0";
-const CONTROL_URL = process.env.ODM_MCP_CONTROL_URL?.trim() || "http://127.0.0.1:3005/api/internal/mcp";
 const TOKEN = process.env.ODM_MCP_TOKEN?.trim() || "";
 const HOST = process.env.ODM_MCP_HOST?.trim() || "127.0.0.1";
 const PORT = Number(process.env.ODM_MCP_PORT || 3006);
@@ -41,27 +42,6 @@ function allowedOrigin(origin) {
   } catch {
     return false;
   }
-}
-
-async function callControl(action, params = {}) {
-  if (!TOKEN) {
-    throw new Error("ODM_MCP_TOKEN is not configured. The control plane is disabled.");
-  }
-  const response = await fetch(CONTROL_URL, {
-    method: "POST",
-    headers: {
-      authorization: `Bearer ${TOKEN}`,
-      "content-type": "application/json",
-      accept: "application/json",
-    },
-    body: JSON.stringify({ action, params }),
-    signal: AbortSignal.timeout(30_000),
-  });
-  const body = await response.json().catch(() => ({}));
-  if (!response.ok || body?.ok === false) {
-    throw new Error(body?.error || `ODM control API returned HTTP ${response.status}.`);
-  }
-  return body?.result;
 }
 
 function result(value) {
@@ -113,8 +93,10 @@ function createMcpServer() {
     { name: "open-dungeon-master", version: VERSION },
     { capabilities: { tools: {}, resources: {} } },
   );
+  const registerTool = (name, config, callback) => server.registerTool(name, config, withMcpCancellation(callback));
+  const registerResource = (name, uri, config, callback) => server.registerResource(name, uri, config, withMcpCancellation(callback));
 
-  server.registerResource(
+  registerResource(
     "server-status",
     "odm://server/status",
     {
@@ -133,7 +115,7 @@ function createMcpServer() {
     }),
   );
 
-  server.registerResource(
+  registerResource(
     "external-narrator-instructions",
     "odm://narrator/instructions",
     {
@@ -150,7 +132,7 @@ function createMcpServer() {
     }),
   );
 
-  server.registerResource(
+  registerResource(
     "control-capabilities",
     "odm://server/capabilities",
     {
@@ -169,7 +151,7 @@ function createMcpServer() {
     }),
   );
 
-  server.registerTool(
+  registerTool(
     "odm_narrator",
     {
       title: "External campaign narrator",
@@ -193,7 +175,7 @@ function createMcpServer() {
     },
   );
 
-  server.registerTool(
+  registerTool(
     "odm_server",
     {
       title: "ODM server",
@@ -203,7 +185,7 @@ function createMcpServer() {
     async ({ operation }) => run(operation === "status" ? "server.status" : "server.capabilities", {}),
   );
 
-  server.registerTool(
+  registerTool(
     "odm_users",
     {
       title: "ODM users",
@@ -213,7 +195,7 @@ function createMcpServer() {
     async () => run("users.list", {}),
   );
 
-  server.registerTool(
+  registerTool(
     "odm_campaigns",
     {
       title: "ODM campaigns",
@@ -271,7 +253,7 @@ function createMcpServer() {
     },
   );
 
-  server.registerTool(
+  registerTool(
     "odm_campaign_settings",
     {
       title: "ODM campaign settings",
@@ -304,7 +286,7 @@ function createMcpServer() {
     },
   );
 
-  server.registerTool(
+  registerTool(
     "odm_story",
     {
       title: "ODM story control",
@@ -349,7 +331,7 @@ function createMcpServer() {
     },
   );
 
-  server.registerTool(
+  registerTool(
     "odm_members",
     {
       title: "ODM campaign members",
@@ -369,7 +351,7 @@ function createMcpServer() {
     },
   );
 
-  server.registerTool(
+  registerTool(
     "odm_characters",
     {
       title: "ODM character library",
@@ -420,7 +402,7 @@ function createMcpServer() {
     },
   );
 
-  server.registerTool(
+  registerTool(
     "odm_sheets",
     {
       title: "ODM live character sheets",
@@ -440,7 +422,7 @@ function createMcpServer() {
     },
   );
 
-  server.registerTool(
+  registerTool(
     "odm_models",
     {
       title: "ODM models and providers",
@@ -593,12 +575,11 @@ async function serveHttp() {
 
   const handler = createMcpHandler(createVerifiedMcpServer);
   const nodeHandler = toNodeHandler(handler);
-  const http = createHttpServer(async (req, res) => {
-    const pathname = new URL(req.url || "/", `http://${req.headers.host || "localhost"}`).pathname;
+  const http = createHttpServer(createSafeHttpListener(async (req, res, pathname) => {
 
     if (pathname === "/healthz") {
       try {
-        await callControl("server.status", {});
+        await callControl("server.status", {}, { timeout: 5_000 });
         res.writeHead(200, { "content-type": "application/json", "cache-control": "no-store" });
         res.end('{"ok":true}');
       } catch {
@@ -630,14 +611,10 @@ async function serveHttp() {
       return;
     }
 
-    try {
-      await nodeHandler(req, res);
-    } catch (error) {
-      console.error("MCP request failed:", error instanceof Error ? error.message : String(error));
-      if (!res.headersSent) res.writeHead(500, { "content-type": "application/json" });
-      if (!res.writableEnded) res.end('{"error":"MCP request failed"}');
-    }
-  });
+    await nodeHandler(req, res);
+  }, {
+    onError: (error) => console.error("MCP request failed:", error instanceof Error ? error.message : String(error)),
+  }));
 
   const shutdown = async () => {
     http.close();

@@ -7,6 +7,7 @@ import {
   McpExtendedControlError,
 } from "@/lib/mcp-external-control";
 import { executeMcpNarratorControl, McpNarratorControlError } from "@/lib/mcp-narrator-control";
+import { withOperationSignal } from "@/lib/operation-scope.mjs";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -56,18 +57,28 @@ export async function POST(request: Request) {
     return json({ error: "Invalid MCP control request." }, 400);
   }
 
+  // This total budget is shorter than the sidecar's 135-second budget.
+  // Async-local propagation keeps cancellation scoped to this request only.
+  const signal = AbortSignal.any([request.signal, AbortSignal.timeout(120_000)]);
   try {
-    const narrator = await executeMcpNarratorControl(parsed.data.action, parsed.data.params);
-    if (narrator.handled) {
-      return json({ ok: true, result: narrator.result });
-    }
-    const extended = await executeMcpExtendedControl(parsed.data.action, parsed.data.params);
-    if (extended.handled) {
-      return json({ ok: true, result: extended.result });
-    }
-    const result = await executeMcpControl(parsed.data.action, parsed.data.params);
-    return json({ ok: true, result: extendControlResult(parsed.data.action, result) });
+    return await withOperationSignal(signal, async () => {
+      const narrator = await executeMcpNarratorControl(parsed.data.action, parsed.data.params);
+      if (narrator.handled) {
+        return json({ ok: true, result: narrator.result });
+      }
+      signal.throwIfAborted();
+      const extended = await executeMcpExtendedControl(parsed.data.action, parsed.data.params);
+      if (extended.handled) {
+        return json({ ok: true, result: extended.result });
+      }
+      signal.throwIfAborted();
+      const result = await executeMcpControl(parsed.data.action, parsed.data.params);
+      return json({ ok: true, result: extendControlResult(parsed.data.action, result) });
+    });
   } catch (error) {
+    if (signal.aborted) {
+      return json({ ok: false, error: request.signal.aborted ? "MCP request cancelled." : "MCP operation timed out." }, request.signal.aborted ? 499 : 504);
+    }
     if (error instanceof McpControlError || error instanceof McpExtendedControlError || error instanceof McpNarratorControlError) {
       return json({ ok: false, error: error.message }, error.status);
     }

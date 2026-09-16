@@ -14,6 +14,7 @@ import os
 from pathlib import Path
 import re
 import secrets
+import stat
 import shutil
 import subprocess
 import sys
@@ -25,6 +26,7 @@ import urllib.error
 import zipfile
 
 SCHEMA = 1
+OPS_API_VERSION = 2
 STATE_DIRS = ('data', 'uploads', 'generated', 'audio', 'provider-auth')
 REPO_RE = re.compile(r'^[A-Za-z0-9][A-Za-z0-9-]*/[A-Za-z0-9][A-Za-z0-9_.-]*$')
 REF_RE = re.compile(r'^[A-Za-z0-9][A-Za-z0-9._/-]*$')
@@ -88,10 +90,33 @@ def validate_config(c):
                 raise OpsError(f'Invalid {key}; put credentials in the provider wizard, not the URL')
     return c
 
+def render_caddy(domain: str, mcp_enabled: bool = True) -> str:
+    """Pure renderer: builds and restore-checks must never rewrite live ingress."""
+    if not DOMAIN_RE.fullmatch(domain): raise OpsError('Invalid public domain')
+    mcp = 'reverse_proxy mcp:3006 {\n   flush_interval -1\n  }' if mcp_enabled else 'respond 503'
+    return (domain + ' {\n encode zstd gzip\n'
+            ' @private path /api/internal /api/internal/*\n'
+            ' handle @private {\n  respond 404\n }\n'
+            ' @mcp path /mcp /mcp/*\n handle @mcp {\n  ' + mcp + '\n }\n'
+            ' handle {\n  reverse_proxy app:3005\n }\n}\n')
+
 @contextlib.contextmanager
-def locked(root):
+def locked(root, inherited_fd=None):
     root.mkdir(parents=True, exist_ok=True)
-    with open(root / '.ops.lock', 'a+b') as f:
+    lock_path = root / '.ops.lock'
+    if inherited_fd is not None:
+        if os.name == 'nt': raise OpsError('Inherited lock descriptors are only supported on POSIX')
+        try:
+            descriptor = os.fstat(inherited_fd)
+            expected = lock_path.stat(follow_symlinks=False)
+            if not stat.S_ISREG(expected.st_mode) or (descriptor.st_dev, descriptor.st_ino) != (expected.st_dev, expected.st_ino):
+                raise OpsError('Inherited lock is not this installation lock')
+            handle = os.fdopen(os.dup(inherited_fd), 'a+b')
+        except OSError as error: raise OpsError('Invalid inherited installation lock') from error
+    else:
+        if lock_path.is_symlink(): raise OpsError('Installation lock must not be a symlink')
+        handle = open(lock_path, 'a+b')
+    with handle as f:
         try:
             if os.name == 'nt':
                 import msvcrt
@@ -105,6 +130,25 @@ def locked(root):
         finally:
             if os.name == 'nt':
                 f.seek(0); msvcrt.locking(f.fileno(), msvcrt.LK_UNLCK, 1)
+
+def install_ops_tools(root: Path, source: Path):
+    """Called only under .ops.lock. Validate the entire bundle before replacing it."""
+    contents = {}
+    for name in ('mcpctl.py', 'retention.py', 'odmctl.py'):
+        candidate = source / name
+        if candidate.is_symlink() or not candidate.is_file(): raise OpsError('Incomplete operations bundle: ' + name)
+        text = candidate.read_text(encoding='utf-8')
+        try: compile(text, str(candidate), 'exec')
+        except SyntaxError as error: raise OpsError('Invalid operations module: ' + name) from error
+        contents[name] = text
+    version = re.search(r'^OPS_API_VERSION = (\d+)$', contents['odmctl.py'], re.M)
+    if not version or int(version.group(1)) < 2: raise OpsError('Selected installer lacks coordinated operations; use a current installer')
+    # Core is last: older cores do not depend on the new helper modules.
+    for name, text in contents.items():
+        target = root / 'tools' / name
+        if target.is_symlink(): raise OpsError('Operations module must not be a symlink: ' + name)
+        if not target.is_file() or target.read_text(encoding='utf-8') != text:
+            atomic(target, text, 0o700)
 
 class Controller:
     def __init__(self, root):
@@ -180,6 +224,8 @@ class Controller:
         # Never regenerate passwords or encryption keys on an interrupted re-run.
         password = self.config_dir / 'backup.password'
         if not password.exists(): atomic(password, secrets.token_hex(32) + '\n')
+        admin = self.config_dir / 'admin.json'
+        if not admin.exists(): write_json(admin, {'username': 'odm_admin', 'password': secrets.token_urlsafe(24)})
         write_json(self.config_dir / 'install.json', c); self.config = c
         self.require()
         if not (self.root / 'backups' / 'config').exists(): self.restic('init')
@@ -206,14 +252,18 @@ class Controller:
         source = directory / 'source'
         directory.mkdir(parents=True, exist_ok=True)
         if not source.exists(): self.run(['git', '-C', self.repo, 'worktree', 'add', '--detach', str(source), sha])
-        image = 'odm-managed:' + sha
+        image = 'odm-managed:' + self.env['COMPOSE_PROJECT_NAME'] + '-' + sha
         print('Building isolated release ' + sha[:12], flush=True)
-        self.docker('build', '--pull', '-f', str(source / 'deploy' / 'Dockerfile'), '-t', image, str(source), capture=False, timeout=3600)
+        self.docker('build', '--pull', '-f', str(source / 'deploy' / 'Dockerfile'), '--label', 'odm.managed=1', '--label', 'odm.root=' + self.env['COMPOSE_PROJECT_NAME'],
+            '--label', 'odm.release=' + sha, '-t', image, str(source), capture=False, timeout=3600)
         self.docker('run', '--rm', '--entrypoint', 'npm', image, 'run', 'test:providers', timeout=180)
         image_id = self.docker('image', 'inspect', '--format', '{{.Id}}', image).strip()
         if not re.fullmatch(r'sha256:[a-f0-9]{64}', image_id): raise OpsError('Invalid built image digest')
         release = {'sha': sha, 'image': image_id, 'compose': str(directory / ('compose-' + image_id[7:19] + '.json'))}
         write_json(Path(release['compose']), self.manifest(release))
+        mcp = self.mcp_controller(release)
+        if mcp: release['mcpImage'] = mcp.build()
+        write_json(directory / 'release.json', release)
         self.docker('compose', '-f', release['compose'], 'config', '--quiet')
         return release
 
@@ -241,11 +291,81 @@ class Controller:
             if c['accelerator'] == 'nvidia': ollama['gpus'] = 'all'
             services['ollama'] = ollama
         if c['domain']:
-            atomic(self.config_dir / 'Caddyfile', c['domain'] + ' {\n encode zstd gzip\n @private path /api/internal/*\n respond @private 404\n reverse_proxy app:3005\n}\n')
             services['proxy'] = {'image': 'caddy:2', 'restart': 'unless-stopped', 'ports': ['80:80', '443:443'],
-                'volumes': [dict(mount('config/Caddyfile', '/etc/caddy/Caddyfile'), read_only=True), mount('proxy', '/data')],
+                'volumes': [dict(mount('config/caddy', '/etc/caddy'), read_only=True), mount('proxy', '/data')],
                 'logging': app['logging']}
         return {'services': services}
+
+    def mcp_controller(self, release=None):
+        release = release or self.active()
+        if not release: return None
+        source = self.root / 'releases' / release['sha'] / 'source' / 'mcp' / 'Dockerfile'
+        if not source.is_file():
+            if (self.config_dir / 'mcp.env').exists():
+                raise OpsError('Selected release has no MCP sidecar; coordinated rollback cannot use it')
+            return None
+        from mcpctl import McpController
+        return McpController(str(self.root), release=release)
+
+    def prepare_mcp_env(self, release):
+        mcp = self.mcp_controller(release)
+        if mcp:
+            token, _ = mcp.ensure_token(); mcp.ensure_env(token)
+        return mcp
+
+    def pause_mcp(self, release=None):
+        mcp = self.mcp_controller(release)
+        if mcp: mcp.stop()
+
+    def configure_proxy(self, release=None):
+        if not self.config['domain']: return
+        release = release or self.active()
+        directory = self.config_dir / 'caddy'
+        directory.mkdir(parents=True, exist_ok=True)
+        content = render_caddy(self.config['domain'], (self.config_dir / 'mcp.env').exists())
+        fd, temporary = tempfile.mkstemp(prefix='.Caddyfile-', dir=directory)
+        os.close(fd)
+        candidate = Path(temporary)
+        try:
+            atomic(candidate, content)
+            # Validate a candidate before changing the live file. Mount only the
+            # dedicated Caddy directory, never app.env or any other secret.
+            self.docker('run', '--rm', '--network', 'none',
+                '--mount', f'type=bind,src={directory},dst=/etc/caddy,readonly',
+                'caddy:2', 'caddy', 'validate', '--config', '/etc/caddy/' + candidate.name,
+                '--adapter', 'caddyfile', timeout=60)
+            atomic(directory / 'Caddyfile', content)
+            # Refresh legacy single-file mounts too. Directory binds see future
+            # atomic replacements, and recreate makes the exact config effective.
+            write_json(Path(release['compose']), self.manifest(release))
+            self.compose('up', '-d', '--no-deps', '--force-recreate', 'proxy', release=release, timeout=120)
+        finally: candidate.unlink(missing_ok=True)
+
+    def release_gate(self, release):
+        mcp = self.mcp_controller(release)
+        if mcp:
+            mcp.sync(keep_previous=True, configure_proxy=False)
+        self.wait_ready()
+        return mcp
+
+    def release_cleanup(self):
+        # Failure to prune old files must not roll back a healthy game release.
+        try:
+            mcp = self.mcp_controller()
+            if mcp: mcp.finalize()
+            self.retention(apply=True)
+        except Exception as exc:
+            self.alert('retention-pending', 'Release is healthy; managed cleanup needs attention: ' + type(exc).__name__)
+
+    def retention(self, apply=False, prune=False):
+        from retention import apply_retention
+        return apply_retention(self, apply=apply, prune=prune)
+
+    def restore_previous_metadata(self, transaction):
+        if 'previousBefore' not in transaction: return
+        previous = transaction['previousBefore']
+        if previous is None: (self.config_dir / 'previous.json').unlink(missing_ok=True)
+        else: write_json(self.config_dir / 'previous.json', previous)
 
     def wait_ready(self, seconds=120):
         deadline = time.monotonic() + seconds
@@ -261,9 +381,15 @@ class Controller:
         except (OSError, ValueError, urllib.error.URLError): return False
 
     def start(self):
-        self.recover_pending()
         (self.config_dir / 'stopped').unlink(missing_ok=True)
-        self.compose('up', '-d'); self.wait_ready()
+        self.recover_pending()
+        release = self.active()
+        write_json(Path(release['compose']), self.manifest(release))
+        self.prepare_mcp_env(release)
+        self.compose('up', '-d', 'app', *(['ollama'] if self.config['runtime'] == 'ollama' else []))
+        self.release_gate(release)
+        self.sync_tools()
+        self.configure_proxy(release)
 
     def recover_pending(self):
         journal = self.config_dir / 'transaction.json'
@@ -272,18 +398,26 @@ class Controller:
         if transaction.get('committed') is True:
             journal.unlink(); return
         old = transaction['old']
-        self.compose('stop', 'app', release=transaction['target'])
+        self.pause_mcp(transaction['target'])
+        self.compose('stop', 'app', *(['proxy'] if self.config['domain'] else []), release=transaction['target'])
         target, source = self.stage_restore(transaction['snapshot'])
         try:
             self.check_restored(source, old); self.replace_state(source)
+            write_json(Path(old['compose']), self.manifest(old))
+            self.prepare_mcp_env(old)
+            self.compose('up', '-d', '--no-deps', 'app', release=old)
+            self.release_gate(old)
             write_json(self.config_dir / 'active.json', old)
-            self.compose('up', '-d', '--no-deps', 'app', release=old); self.wait_ready()
+            self.restore_previous_metadata(transaction)
+            self.sync_tools()
+            self.configure_proxy(old)
             journal.unlink()
-            self.alert('interrupted-update-recovered', 'Recovered the previous release and database after an interrupted state transition')
+            self.alert('interrupted-update-recovered', 'Recovered the previous web/MCP release and database after an interrupted transition')
         finally: shutil.rmtree(target, ignore_errors=True)
 
     def stop(self):
         atomic(self.config_dir / 'stopped', timestamp())
+        self.pause_mcp()
         self.compose('stop', 'app', *(['proxy'] if self.config['domain'] else []))
 
     def install(self, options):
@@ -300,7 +434,8 @@ class Controller:
             self.compose('run', '--rm', '--no-deps', '-T', 'app', 'node', 'deploy/db-tool.mjs', 'bootstrap',
                          release=release, input=admin.read_text(encoding='utf-8'), timeout=120)
             write_json(self.config_dir / 'active.json', release)
-        self.compose('up', '-d', 'app'); self.wait_ready()
+        self.prepare_mcp_env(self.active())
+        self.compose('up', '-d', 'app'); self.release_gate(self.active())
         # Persistence, backup and boot recovery are installed even if an optional
         # model/asset provider is unreachable. A re-run resumes provisioning.
         self.backup()
@@ -316,7 +451,7 @@ class Controller:
             except OpsError:
                 pending.append('model')
                 self.alert('model-unavailable', 'Model installation or real tool-call probe failed; default DM was not changed')
-        if self.config['domain']: self.compose('up', '-d', 'proxy')
+        self.configure_proxy()
         self.backup()
         self.sync_tools()
         print('Admin credentials: ' + str(self.config_dir / 'admin.json'))
@@ -328,9 +463,13 @@ class Controller:
         print('Installation completed. Select/authorize a cloud provider in the admin wizard when using runtime=none.')
 
     def sync_tools(self):
-        source = self.root / 'releases' / self.active()['sha'] / 'source' / 'deploy' / 'odmctl.py'
-        if source.is_file():
-            atomic(self.root / 'tools/odmctl.py', source.read_text(encoding='utf-8'), 0o700)
+        source = self.root / 'releases' / self.active()['sha'] / 'source' / 'deploy'
+        core = source / 'odmctl.py'
+        if not core.is_file(): return
+        version = re.search(r'^OPS_API_VERSION = (\d+)$', core.read_text(encoding='utf-8'), re.M)
+        # Rolling the game back must not re-introduce the unsafe old scheduler.
+        if version and int(version.group(1)) >= 2:
+            install_ops_tools(self.root, source)
 
     def assets(self):
         for cmd in (['node', 'scripts/fetch-content-pack.mjs'], ['npm', 'run', 'fetch-model']):
@@ -363,6 +502,7 @@ class Controller:
         active = self.active()
         if not active: raise OpsError('No release to back up')
         was_stopped = (self.config_dir / 'stopped').exists()
+        self.pause_mcp()
         self.compose('stop', 'app')
         succeeded = False
         try:
@@ -380,6 +520,8 @@ class Controller:
         finally:
             if (resume or not succeeded) and not was_stopped:
                 self.compose('up', '-d', 'app'); self.wait_ready()
+                mcp = self.mcp_controller()
+                if mcp: mcp.sync(configure_proxy=False)
         if resume and (self.config_dir / 'remote.json').exists(): self.sync_remote()
         print('Encrypted backup: ' + snapshot)
         return snapshot
@@ -465,33 +607,47 @@ class Controller:
     def upgrade(self, release):
         old = self.active()
         if not old: raise OpsError('Install before updating')
-        if release['sha'] == old['sha'] and release['image'] == old['image']:
-            print('Already at selected commit.'); return
+        if all(release.get(key) == old.get(key) for key in ('sha', 'image', 'mcpImage')):
+            print('Already at selected release.'); return
         snapshot = None
+        transaction = {'old': old, 'target': release, 'previousBefore': read_json(self.config_dir / 'previous.json')}
         try:
+            # MCP bytes and dependency registration are prepared before downtime.
+            self.prepare_mcp_env(release)
             snapshot = self.backup(resume=False, tag='pre-update')
-            write_json(self.config_dir / 'transaction.json', {'old': old, 'target': release, 'snapshot': snapshot})
+            transaction['snapshot'] = snapshot
+            write_json(self.config_dir / 'transaction.json', transaction)
+            if self.config['domain']: self.compose('stop', 'proxy', release=old)
             self.compose('up', '-d', '--no-deps', 'app', release=release); self.wait_ready()
+            self.release_gate(release)
             write_json(self.config_dir / 'active.json', release)
             write_json(self.config_dir / 'previous.json', {'release': old, 'snapshot': snapshot})
-            if self.config['domain']: self.compose('up', '-d', 'proxy')
             self.sync_tools(); self.install_timers()
-            write_json(self.config_dir / 'transaction.json', {'committed': True})
+            self.configure_proxy(release)
+            write_json(self.config_dir / 'transaction.json', {**transaction, 'committed': True})
             (self.config_dir / 'transaction.json').unlink(missing_ok=True)
-            print('Updated to ' + release['sha'])
+            print('Updated web and MCP to ' + release['sha'])
         except BaseException:
             if snapshot:
-                self.compose('stop', 'app', release=release)
+                self.pause_mcp(release)
+                self.compose('stop', 'app', *(['proxy'] if self.config['domain'] else []), release=release)
                 target, source = self.stage_restore(snapshot)
                 try:
                     self.check_restored(source, old); self.replace_state(source)
                 finally: shutil.rmtree(target, ignore_errors=True)
-            write_json(self.config_dir / 'active.json', old)
+            write_json(Path(old['compose']), self.manifest(old))
+            self.prepare_mcp_env(old)
             self.compose('up', '-d', '--no-deps', 'app', release=old); self.wait_ready()
-            (self.config_dir / 'transaction.json').unlink(missing_ok=True)
+            self.release_gate(old)
+            write_json(self.config_dir / 'active.json', old)
+            self.restore_previous_metadata(transaction)
             self.sync_tools()
-            self.alert('update-rolled-back', 'Update failed; previous application and database restored')
+            self.configure_proxy(old)
+            # Keep the journal if either rollback health gate fails above.
+            (self.config_dir / 'transaction.json').unlink(missing_ok=True)
+            self.alert('update-rolled-back', 'Update failed; previous web/MCP images and database restored')
             raise
+        self.release_cleanup()
         if (self.config_dir / 'remote.json').exists(): self.sync_remote()
 
     def update(self, ref=None):
@@ -506,38 +662,62 @@ class Controller:
             recovery = read_json(source / 'config/recovery.json')
             sha = recovery['release']['sha']
             if not SHA_RE.fullmatch(sha): raise OpsError('Invalid recovery commit')
-            # Never use executable paths or image names supplied by a backup.
             image = recovery['release'].get('image', '')
             if not re.fullmatch(r'sha256:[a-f0-9]{64}', image): raise OpsError('Invalid recovery image digest')
             try: self.docker('image', 'inspect', image, timeout=30)
             except OpsError: image = self.build(sha)['image']
             release = {'sha': sha, 'image': image, 'compose': str(self.root / 'releases' / sha / ('compose-' + image[7:19] + '.json'))}
-            write_json(Path(release['compose']), self.manifest(release))
+            # Check-only never rewrites even an existing active compose file.
             self.check_restored(source, release)
             if check_only:
                 write_json(self.config_dir / 'last-restore-check.json', {'at': timestamp(), 'snapshot': snapshot})
-                print('Restored snapshot decrypted and passed SQLite integrity check; live database untouched.'); return
+                print('Restored snapshot passed SQLite integrity check; live state and ingress untouched.'); return
+            write_json(Path(release['compose']), self.manifest(release))
+            mcp = self.mcp_controller(release)
+            if mcp:
+                recorded = recovery['release'].get('mcpImage')
+                if recorded is not None and not re.fullmatch(r'sha256:[a-f0-9]{64}', str(recorded)):
+                    raise OpsError('Invalid recovery MCP image digest')
+                if recorded:
+                    try: self.docker('image', 'inspect', recorded, timeout=30); mcp.image = recorded
+                    except OpsError: pass  # A rebuild records its new digest explicitly below.
+                release['mcpImage'] = mcp.build()
+            write_json(self.root / 'releases' / sha / 'release.json', release)
             current = self.active(); current_credentials = self.state_credentials()
             undo_snapshot = self.backup(resume=False, tag='pre-restore')
-            write_json(self.config_dir / 'transaction.json', {'old': current, 'target': release, 'snapshot': undo_snapshot})
+            transaction = {'old': current, 'target': release, 'snapshot': undo_snapshot,
+                           'previousBefore': read_json(self.config_dir / 'previous.json')}
+            write_json(self.config_dir / 'transaction.json', transaction)
             old_state = None
             try:
+                if self.config['domain']: self.compose('stop', 'proxy', release=current)
                 old_state = self.replace_state(source)
+                self.prepare_mcp_env(release)
                 self.compose('up', '-d', '--no-deps', 'app', release=release); self.wait_ready()
+                self.release_gate(release)
                 write_json(self.config_dir / 'active.json', release)
-                write_json(self.config_dir / 'transaction.json', {'committed': True})
-                (self.config_dir / 'transaction.json').unlink(missing_ok=True)
+                write_json(self.config_dir / 'previous.json', {'release': current, 'snapshot': undo_snapshot})
                 self.sync_tools()
+                self.configure_proxy(release)
+                write_json(self.config_dir / 'transaction.json', {**transaction, 'committed': True})
+                (self.config_dir / 'transaction.json').unlink(missing_ok=True)
             except BaseException:
-                self.compose('stop', 'app', release=release)
+                self.pause_mcp(release)
+                self.compose('stop', 'app', *(['proxy'] if self.config['domain'] else []), release=release)
                 if old_state:
                     shutil.rmtree(self.root / 'state'); os.replace(old_state, self.root / 'state')
                 self.restore_credentials(current_credentials)
-                write_json(self.config_dir / 'active.json', current)
+                self.prepare_mcp_env(current)
                 self.compose('up', '-d', '--no-deps', 'app', release=current); self.wait_ready()
+                self.release_gate(current)
+                write_json(self.config_dir / 'active.json', current)
+                self.restore_previous_metadata(transaction)
+                self.sync_tools()
+                self.configure_proxy(current)
                 (self.config_dir / 'transaction.json').unlink(missing_ok=True)
                 raise
-            print('Restored; previous state retained at ' + str(old_state))
+            print('Restored; displaced state retained at ' + str(old_state))
+            self.release_cleanup()
         finally: shutil.rmtree(target, ignore_errors=True)
 
     def status(self):
@@ -585,6 +765,14 @@ class Controller:
         if (self.config_dir / 'remote.json').exists() and (not offsite.get('unix') or now - offsite['unix'] > 26 * 3600):
             self.alert('offsite-stale', 'No successful off-site copy in the last 26 hours')
         if shutil.disk_usage(self.root).free < 2 * 1024**3: self.alert('disk-low', 'Less than 2 GiB of disk space remains')
+        if ready:
+            mcp = self.mcp_controller()
+            if mcp:
+                info = mcp.inspect_container(mcp.container) or {}
+                labels = info.get('Config', {}).get('Labels', {})
+                if labels.get('odm.mcp.sha') != self.active()['sha'] or info.get('State', {}).get('Health', {}).get('Status') != 'healthy':
+                    try: mcp.sync(configure_proxy=False)
+                    except Exception: self.alert('mcp-unavailable', 'MCP health/version check failed; operator investigation required')
         self.status()
 
     def sync_remote(self):
@@ -671,8 +859,10 @@ class Controller:
 def parser():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--root', default=os.environ.get('ODM_HOME', '/opt/odm' if os.name != 'nt' else str(Path.home() / 'ODM')))
+    p.add_argument('--lock-fd', type=int, help=argparse.SUPPRESS)
     sub = p.add_subparsers(dest='command', required=True)
     install = sub.add_parser('install')
+    install.add_argument('--bootstrap-tools', action='store_true', help='Install this verified operations bundle under the common lock')
     install.add_argument('--repo', default='fireostendere/dungeon_master'); install.add_argument('--branch', default='main')
     install.add_argument('--ref'); install.add_argument('--port', type=int, default=3005)
     install.add_argument('--listen', choices=['127.0.0.1', '0.0.0.0'], default='127.0.0.1'); install.add_argument('--domain', default='')
@@ -681,8 +871,12 @@ def parser():
     install.add_argument('--accelerator', choices=['cpu', 'amd', 'nvidia'], default='cpu')
     install.add_argument('--comfy-url', default=''); install.add_argument('--auto-update', action='store_true')
     install.add_argument('--skip-assets', action='store_true'); install.add_argument('--offline-source', action='store_true', help='Use a supplied local Git checkout; CI/offline mirror only')
-    for name in ('start', 'stop', 'status', 'watchdog', 'backup', 'check', 'check-update', 'assets', 'model', 'offsite', 'remote-init', 'snapshots', 'logs', 'recovery-kit'):
+    for name in ('start', 'stop', 'status', 'watchdog', 'backup', 'check', 'check-update', 'assets', 'model', 'offsite', 'remote-init', 'snapshots', 'recovery-kit'):
         sub.add_parser(name)
+    logs = sub.add_parser('logs'); logs.add_argument('-f', '--follow', action='store_true')
+    logs.add_argument('--tail', type=int, default=200)
+    retention = sub.add_parser('retention'); retention.add_argument('--apply', action='store_true')
+    retention.add_argument('--prune', action='store_true')
     update = sub.add_parser('update'); update.add_argument('--ref')
     for name in ('restore', 'restore-check'):
         restore = sub.add_parser(name); restore.add_argument('snapshot'); restore.add_argument('--yes', action='store_true'); restore.add_argument('--remote', action='store_true')
@@ -697,8 +891,21 @@ def main():
     if args.command == 'status':
         if not c.config: raise OpsError('No deployment configuration')
         return 0 if c.status()['ready'] else 1
-    with locked(c.root):
-        if args.command == 'install': c.install(args); return 0
+    if args.command == 'logs':
+        if not c.config: raise OpsError('No deployment configuration')
+        if not 1 <= args.tail <= 10000: raise OpsError('--tail must be 1..10000')
+        c.compose('logs', '--tail', str(args.tail), *(['--follow'] if args.follow else []), capture=False, timeout=None if args.follow else 60)
+        return 0
+    with locked(c.root, inherited_fd=args.lock_fd):
+        # Re-read install metadata after acquiring the lock, not before another
+        # process may have finished a release/restore.
+        c = Controller(args.root)
+        # A legacy controller may have copied only this core file during its
+        # last update. Hydrate matching helper modules before their first use.
+        if c.active(): c.sync_tools()
+        if args.command == 'install':
+            if args.bootstrap_tools: install_ops_tools(c.root, Path(__file__).resolve().parent)
+            c.install(args); return 0
         c.require()
         if args.command == 'update': c.update(args.ref)
         elif args.command in ('restore', 'restore-check'): c.restore(args.snapshot, args.yes, args.remote, args.command == 'restore-check')
@@ -716,16 +923,16 @@ def main():
         elif args.command == 'remote-init': c.restic('init', remote=True)
         elif args.command == 'check':
             c.restic('check', '--read-data-subset=10%', timeout=7200)
-            c.restic('forget', '--tag', 'scheduled', '--keep-daily', '7', '--keep-weekly', '4', '--keep-monthly', '6', '--prune', timeout=7200)
+            c.retention(apply=True, prune=True)
         elif args.command == 'snapshots': print(c.restic('snapshots'))
-        elif args.command == 'logs': c.compose('logs', '--tail', '200', capture=False)
+        elif args.command == 'retention': c.retention(apply=args.apply, prune=args.prune)
         elif args.command == 'auth': c.compose('exec', 'app', 'node', 'scripts/odm-auth.mjs', *args.args, capture=False, timeout=900)
         else: getattr(c, args.command.replace('-', '_'))()
     return 0
 
 if __name__ == '__main__':
     try: sys.exit(main())
-    except (OpsError, ValueError, KeyError, OSError) as error:
+    except (RuntimeError, ValueError, KeyError, OSError) as error:
         print('ODM: ' + str(error), file=sys.stderr); sys.exit(1)
     except KeyboardInterrupt:
         print('ODM: operation interrupted; inspect odmctl status before retrying', file=sys.stderr); sys.exit(130)

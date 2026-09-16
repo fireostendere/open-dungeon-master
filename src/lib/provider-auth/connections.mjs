@@ -1,4 +1,6 @@
 import { ProviderError, modelId } from './core.mjs';
+import { secureEndpointFetch } from '../safe-endpoint.mjs';
+import { combinedSignal, currentOperationSignal } from '../operation-scope.mjs';
 export function chatUrl(raw){
   const u=new URL(raw);
   if(!['http:','https:'].includes(u.protocol)||u.username||u.password||u.search||u.hash)throw new ProviderError('INVALID_ENDPOINT_URL');
@@ -36,30 +38,37 @@ export function connectionTarget(input){
     default:throw new ProviderError('UNKNOWN_PROVIDER');
   }
 }
-export async function listModels(target,{fetchImpl=fetch,timeoutMs=15000}={}){
-  const r=await fetchImpl(modelsUrl(target.baseUrl),{redirect:'error',headers:target.apiKey?{Authorization:`Bearer ${target.apiKey}`}:{},signal:AbortSignal.timeout(timeoutMs)});
+export async function listModels(target,{fetchImpl=secureEndpointFetch,timeoutMs=15000,signal}={}){
+  const requestSignal=combinedSignal(currentOperationSignal(),signal,AbortSignal.timeout(timeoutMs));
+  requestSignal.throwIfAborted();
+  const r=await fetchImpl(modelsUrl(target.baseUrl),{redirect:'error',headers:target.apiKey?{Authorization:`Bearer ${target.apiKey}`}:{},signal:requestSignal});
   if(!r.ok)throw new ProviderError(r.status===401||r.status===403?'AUTHENTICATION_FAILED':r.status===429?'PROVIDER_RATE_LIMIT':'MODEL_LIST_UNAVAILABLE',r.status===401||r.status===403?401:502);
   const body=await r.json();
+  requestSignal.throwIfAborted();
   return [...new Set((body.data??body.models??[]).map(m=>m.id??m.name??m.model).filter(x=>typeof x==='string'&&x.length<=200))].map(id=>({id,displayName:id}));
 }
-// Preserve the real tool message and ID: native app-server tools cannot be
-// continued by inventing a replacement assistant message in the probe.
-export async function probeConnection(target,{fetchImpl=fetch,timeoutMs=120000}={}){
+// Preserve the real tool message and ID. All stages share one total deadline;
+// caller cancellation is never converted into a failed stage followed by work.
+export async function probeConnection(target,{fetchImpl=secureEndpointFetch,timeoutMs=120000,signal}={}){
+  const budget=combinedSignal(currentOperationSignal(),signal,AbortSignal.timeout(timeoutMs));
+  budget.throwIfAborted();
   const stages={};
   const messages=[{role:'system',content:'Ты проверяешь подключение. Выполняй инструкции пользователя и используй инструменты.'},{role:'user',content:'Вызови probe_echo со словом куб и числом 7.'}];
   const tools=[{type:'function',function:{name:'probe_echo',description:'Проверка возврата результата',parameters:{type:'object',properties:{word:{type:'string'},n:{type:'integer'}},required:['word','n'],additionalProperties:false}}}];
   const tokenField=new URL(target.baseUrl).hostname==='api.openai.com'?'max_completion_tokens':'max_tokens';
   async function call(msg,extra={}){
-    const r=await fetchImpl(chatUrl(target.baseUrl),{method:'POST',redirect:'error',headers:{'Content-Type':'application/json',...(target.apiKey?{Authorization:`Bearer ${target.apiKey}`}:{})},body:JSON.stringify({model:target.model,messages:msg,[tokenField]:4096,...extra}),signal:AbortSignal.timeout(timeoutMs)});
+    budget.throwIfAborted();
+    const r=await fetchImpl(chatUrl(target.baseUrl),{method:'POST',redirect:'error',headers:{'Content-Type':'application/json',...(target.apiKey?{Authorization:`Bearer ${target.apiKey}`}:{})},body:JSON.stringify({model:target.model,messages:msg,[tokenField]:4096,...extra}),signal:budget});
     if(!r.ok)throw new ProviderError(r.status===401||r.status===403?'AUTHENTICATION_FAILED':r.status===429?'PROVIDER_RATE_LIMIT':`PROVIDER_HTTP_${r.status}`,502);
-    const data=await r.json();if(!data.choices?.[0]?.message)throw new ProviderError('INVALID_MODEL_RESPONSE',502);return data.choices[0].message;
+    const data=await r.json();budget.throwIfAborted();if(!data.choices?.[0]?.message)throw new ProviderError('INVALID_MODEL_RESPONSE',502);return data.choices[0].message;
   }
-  async function stage(name,fn){const t=Date.now();try{const v=await fn();stages[name]={ok:true,ms:Date.now()-t};return v;}catch(e){stages[name]={ok:false,ms:Date.now()-t,detail:e instanceof ProviderError?e.code:'PROVIDER_REQUEST_FAILED'};return null;}}
-  await stage('models',()=>listModels(target,{fetchImpl,timeoutMs:Math.min(timeoutMs,15000)}));
+  async function stage(name,fn){const t=Date.now();budget.throwIfAborted();try{const v=await fn();budget.throwIfAborted();stages[name]={ok:true,ms:Date.now()-t};return v;}catch(e){budget.throwIfAborted();stages[name]={ok:false,ms:Date.now()-t,detail:e instanceof ProviderError?e.code:'PROVIDER_REQUEST_FAILED'};return null;}}
+  await stage('models',()=>listModels(target,{fetchImpl,timeoutMs:Math.min(timeoutMs,15000),signal:budget}));
   const text=await stage('chat',async()=>{const m=await call([{role:'user',content:'Ответь одним словом: готово.'}]);if(typeof m.content!=='string'||!m.content.trim()||m.tool_calls?.length)throw new ProviderError('EMPTY_CHAT_RESPONSE');return m;});
   if(!text)return {ok:false,stages};
   const called=await stage('tool_call',async()=>{const m=await call(messages,{tools,tool_choice:'auto'});if(m.tool_calls?.length!==1)throw new ProviderError('REAL_TOOL_CALL_REQUIRED');const c=m.tool_calls[0];let a;try{a=JSON.parse(c.function.arguments);}catch{throw new ProviderError('INVALID_TOOL_ARGUMENTS');}if(!c.id||c.function.name!=='probe_echo'||a.word!=='куб'||a.n!==7)throw new ProviderError('INVALID_TOOL_CALL');return m;});
   if(!called)return {ok:false,stages};
   const result=await stage('tool_result',async()=>{const m=await call([...messages,called,{role:'tool',tool_call_id:called.tool_calls[0].id,content:'{"word":"куб","n":7,"result":"Проверка завершена"}'}],{tools,tool_choice:'none'});if(!m.content?.trim()||m.tool_calls?.length)throw new ProviderError('TOOL_RESULT_NOT_CONSUMED');return m;});
+  budget.throwIfAborted();
   return {ok:!!result,stages};
 }

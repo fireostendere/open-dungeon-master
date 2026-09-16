@@ -1,3 +1,4 @@
+import { afterCommit } from "@/lib/db/commit-effects";
 import { getDatabase, nowIso, parseJson } from "@/lib/db/core";
 import { allocateSeq } from "@/lib/db/campaigns";
 
@@ -125,8 +126,11 @@ export function publishWithSeq(campaignId: string, seq: number, type: string, pa
       `INSERT INTO campaign_events (campaign_id, seq, type, payload_json, created_at) VALUES (?, ?, ?, ?, ?)`,
     )
     .run(campaignId, seq, type, JSON.stringify(payload), nowIso());
-  fanOut(campaignId, sseChunk(type, payload, seq));
-  globalThis.__odmVoiceEventHook?.(campaignId, type);
+  const chunk = sseChunk(type, payload, seq);
+  afterCommit(() => {
+    fanOut(campaignId, chunk);
+    globalThis.__odmVoiceEventHook?.(campaignId, type);
+  });
   return seq;
 }
 
@@ -140,8 +144,11 @@ export function publishPersisted(campaignId: string, type: string, payload: unkn
 // events still arrive with the previous persisted event's lastEventId; the
 // stream hook must ignore lastEventId for ephemeral event types.
 export function publishEphemeral(campaignId: string, type: string, payload: unknown) {
-  fanOut(campaignId, sseChunk(type, payload));
-  globalThis.__odmVoiceEventHook?.(campaignId, type);
+  const chunk = sseChunk(type, payload);
+  afterCommit(() => {
+    fanOut(campaignId, chunk);
+    globalThis.__odmVoiceEventHook?.(campaignId, type);
+  });
 }
 
 // Voice reacts to things the rest of the app already announces: the floor
