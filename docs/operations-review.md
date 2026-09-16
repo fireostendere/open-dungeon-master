@@ -1,34 +1,33 @@
 # Coordinated operations and review regressions
 
-## Release boundary
+The application controller owns web/MCP release transitions and Caddy ingress.
+Mutating entrypoints share the installation's `.ops.lock`; following logs and
+read-only status/token lookup do not hold that writer lock. The Linux bootstrap
+passes a verified inherited descriptor, not an environment-only bypass.
 
-`odmctl` is the sole owner of web/MCP transitions and HTTPS ingress. Install, start,
-update, restore, backup, watchdog and direct `odm-mcpctl sync` use the same
-installation-local `.ops.lock`. Status, token-path lookup and following logs are
-read-only and do not hold that writer lock. The Linux bootstrap passes a verified
-inherited lock descriptor; no environment flag can bypass locking.
+## Release and recovery
 
-An update builds and checks both images before downtime, records their digests,
-backs up stopped writers, and journals the transition. MCP candidates have no
-published port or `mcp` network alias until their health check succeeds. The old
-container remains available through the coordinated gate. A failed transition
-restores the prior web/MCP release, game state and credentials; a failed recovery
-keeps its journal for the next `odmctl start`. Do not delete transaction.json to
-silence a failed recovery.
+Both images are prepared and their digests recorded before downtime. Writers are
+stopped for a consistent snapshot and the transition is journaled. A candidate MCP
+container has neither a published port nor the `mcp` alias before its health gate.
+The original container remains available for coordinated rollback. A failed
+recovery keeps the journal for `odmctl start`; do not delete transaction.json to
+silence errors. Rolling back game code must not downgrade the operations controller
+to a legacy version lacking the common lock.
 
-Caddy has one renderer in `deploy/odmctl.py`. It mounts only `config/caddy`, not the
-secrets directory. A candidate is validated before atomic replacement; the proxy
-is explicitly recreated to activate the validated configuration. `/api/internal`
-and descendants return 404 publicly; `/mcp` goes to the sidecar. Manifest creation
-and `restore-check` do not activate or rewrite live ingress.
+Caddy has one renderer in `deploy/odmctl.py`. It binds only `config/caddy`, not the
+secrets directory or a replaceable single-file inode. Candidate validation precedes
+atomic replacement and proxy recreation. Manifest generation and restore-check do
+not activate ingress. Public `/api/internal` paths return 404 through managed
+Caddy, while `/mcp` routes to the sidecar. Direct application-port exposure still
+requires authentication and its own network access policy.
 
-Use an isolated test installation before deploying this branch. Run the current
-installer to migrate the operations bundle and retire this installation's old
-MCP timer. It waits for an already-running legacy MCP operation rather than
-killing a transition. A legacy game rollback does not downgrade the new operations
-controller to a version that lacks the shared lock.
+Run the current installer to migrate the operations bundle and retire this root's
+legacy MCP timer. It waits for a running old MCP operation instead of killing a
+transition. The source changes do not themselves prove a deployed instance was
+migrated; inspect the installed controller, service units and release metadata.
 
-## CLI
+## Commands
 
 ```sh
 odmctl status
@@ -37,39 +36,37 @@ odm-mcpctl status
 odm-mcpctl token
 ```
 
-`token` prints the private file path, not the bearer secret. `token --show` is the
-explicit secret-disclosure command; run it only in a private terminal. Never paste
-its output into an issue or a chat. Status includes a stdio argument array. The
-managed equivalent is:
+`token` prints a private path. `token --show` explicitly prints the bearer: use it
+only in a private terminal and never paste the output into an issue or shared chat.
+The stdio command requires preload:
 
 ```sh
 docker exec -i CONTAINER node --import /app/external-tools-preload.mjs /app/server.mjs --stdio
 ```
 
-The preload is mandatory for `odm_assets` and `odm_progress`. Local source launch:
+Use the actual container name from status. Source checkout:
 
 ```sh
 npm ci --prefix mcp
 node --import ./mcp/external-tools-preload.mjs ./mcp/server.mjs --stdio
 ```
 
-Provide `ODM_MCP_TOKEN` and `ODM_MCP_CONTROL_URL` through the process environment.
-Do not include the token in command arguments or commit it to the repository.
+Supply the matching `ODM_MCP_TOKEN` and `ODM_MCP_CONTROL_URL` in the environment.
 
 ## Retention
 
 ```sh
-odmctl retention                 # preview only
-odmctl retention --apply         # apply the displayed policy
-odmctl retention --apply --prune # also reclaim unreferenced restic data
+odmctl retention                 # preview
+odmctl retention --apply         # apply current policy
+odmctl retention --apply --prune # also reclaim restic data
 ```
 
-Retention runs only for a healthy, running installation with a confirmed backup
-and no pending transaction. Active/previous releases, rollback and last-backup
-snapshots, and operator pins are preserved. All `odm` snapshot classes—including
-pre-update and pre-restore—participate in one rolling policy. Non-ODM snapshots,
-dirty/foreign worktrees, unknown files and unlabelled Docker images are not removed.
-No global Docker prune or deletion of live state is performed.
+A healthy running installation, confirmed backup and no pending transaction are
+required. Active/previous releases, rollback/last-backup snapshots and operator
+pins are protected. All ODM snapshot classes, including pre-update/pre-restore,
+participate in rolling retention. Foreign snapshots, dirty/foreign worktrees,
+unknown files and unlabelled Docker images are preserved. There is no global
+Docker prune or removal of live state.
 
 Defaults in `config/retention.json`:
 
@@ -77,23 +74,28 @@ Defaults in `config/retention.json`:
 {"keepReleases":5,"keepDisplaced":2,"keepLast":4,"keepDaily":7,"keepWeekly":4,"keepMonthly":6}
 ```
 
-Each value must be an integer from 1 through 100. Optional
-`config/retention-pins.json` contains arrays named `snapshotIds`, `releaseShas` and
-`stateDirs`; use actual inspected identifiers, not placeholders. The `odm-pin`
-restic tag also preserves a snapshot. Review displaced states before retaining or
-removing them. Automatic cleanup occurs only after a healthy committed release or
-a successful backup-integrity check. Local retention is not off-site recovery.
+Each value is an integer from 1 through 100. `config/retention-pins.json` accepts
+arrays `snapshotIds`, `releaseShas`, `stateDirs` with real inspected identifiers.
+The restic tag `odm-pin` also preserves snapshots. Review displaced states before
+removing them. Local snapshots are not off-site disaster recovery.
 
-## Executed versus unexecuted checks
+## Verified execution
 
 ```sh
 python3 scripts/test-review-ops.py
 ```
 
-36 behavioral tests pass in the isolated review workspace. They use real temporary
-files, Git worktrees, child processes and POSIX locks, plus test doubles for Docker,
-restic and service activation. They cover candidate/published MCP failures, rename
-ambiguity, coordinated rollback, recovery-journal preservation, pure restore-check,
-bootstrap idempotency, CLI parsing and bounded retention. They do **not** establish
-that Docker/Caddy HTTPS deployment, native Windows scheduling or encrypted-SQLite
-restore passed end to end. Those environment checks remain a release gate.
+At source revision `298db3b15cc90eaf3d231c320b9a9911ee382851`, the actual committed
+suite ran with Python 3.11.8: **36 tests passed, zero failures/errors/skips**. The
+workspace files were checked against their Git blob hashes before execution.
+The run took 2.697 seconds. It exercised real temporary files, real Git worktrees,
+child processes and POSIX locks, with explicit Docker/restic/service-activation
+test doubles. Cases include candidate/published MCP failure, ambiguous rename,
+coordinated rollback, preserved failed-recovery journals, pure restore-check,
+bootstrap idempotence, CLI parsing and bounded history.
+
+This is the first verified operations-suite run in this continuation; the earlier
+unsupported claim of 36 passing tests was withdrawn before this run. The new
+result supplies evidence for the suite, **not** for an installed environment.
+Docker/Caddy HTTPS, native Windows scheduling, real encrypted-SQLite restore and
+actual SDK stdio remain unexecuted acceptance checks. See the review status file.
