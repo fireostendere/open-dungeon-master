@@ -25,7 +25,6 @@ interface I18nContextType {
 }
 
 const I18nContext = createContext<I18nContextType | null>(null);
-
 const STORAGE_LOCALE_KEY = "odm_locale";
 const STORAGE_UNITS_KEY = "odm_unit_system";
 const LOCALE_COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
@@ -36,18 +35,8 @@ function persistLocale(locale: Locale) {
   try {
     localStorage.setItem(STORAGE_LOCALE_KEY, locale);
   } catch {
-    // The cookie still lets server routes inherit the selected language.
+    // Personal UI preferences remain usable without localStorage.
   }
-}
-
-function persistCampaignLanguage(locale: Locale) {
-  const match = window.location.pathname.match(/^\/campaigns\/([^/?#]+)/);
-  if (!match) return;
-  void fetch(`/api/campaigns/${encodeURIComponent(match[1])}/settings`, {
-    method: "PATCH",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ language: locale }),
-  }).catch(() => undefined);
 }
 
 function lookup(locale: Locale, path: string): string | undefined {
@@ -73,16 +62,10 @@ function unit(locale: Locale, name: "meters" | "feet" | "kilograms" | "pounds" |
   return lookup(locale, `units.${name}`) ?? lookup("en", `units.${name}`) ?? name;
 }
 
-export function I18nProvider({
-  children,
-  initialLocale = "ru",
-}: {
+export function I18nProvider({ children, initialLocale = "ru" }: {
   children: ReactNode;
   initialLocale?: Locale;
 }) {
-  // The server supplies the cookie-backed locale so SSR and hydration render
-  // the same language; localStorage remains a compatibility fallback for
-  // installations that predate the cookie.
   const [locale, setLocaleState] = useState<Locale>(initialLocale);
   const [unitSystem, setUnitSystemState] = useState<UnitSystem>("metric");
 
@@ -92,13 +75,11 @@ export function I18nProvider({
     try {
       const savedLocale = localStorage.getItem(STORAGE_LOCALE_KEY);
       if (isLocale(savedLocale)) next = savedLocale;
-
       const savedUnits = localStorage.getItem(STORAGE_UNITS_KEY);
       if (savedUnits === "metric" || savedUnits === "imperial") nextUnits = savedUnits;
     } catch {
-      // Storage can be unavailable in private/embedded contexts; server locale stays usable.
+      // Storage can be unavailable in private/embedded contexts.
     }
-
     const applyStoredPreferences = window.setTimeout(() => {
       setLocaleState(next);
       setUnitSystemState(nextUnits);
@@ -108,97 +89,63 @@ export function I18nProvider({
   }, [initialLocale]);
 
   const setLocale = (newLocale: Locale) => {
+    if (!isLocale(newLocale)) return;
     setLocaleState(newLocale);
+    // This is strictly a personal preference. The shared narration language
+    // is changed explicitly in campaign settings by the story authority.
     persistLocale(newLocale);
-    persistCampaignLanguage(newLocale);
   };
-
-  // The original two-language switch was a toggle. Keep the same API for all
-  // callers, but cycle through the complete supported locale list.
   const toggleLocale = () => setLocale(nextLocale(locale));
 
   const setUnitSystem = (newSystem: UnitSystem) => {
     setUnitSystemState(newSystem);
-    try {
-      localStorage.setItem(STORAGE_UNITS_KEY, newSystem);
-    } catch {
+    try { localStorage.setItem(STORAGE_UNITS_KEY, newSystem); } catch {
       // The in-memory selection still works when storage is unavailable.
     }
   };
-
   const toggleUnitSystem = () => setUnitSystem(unitSystem === "metric" ? "imperial" : "metric");
 
-  const t = useMemo(
-    () =>
-      (path: string, params?: Record<string, string | number>): string => {
-        // English is the canonical fallback. A missing localized string must
-        // never expose a raw key to players.
-        const source = lookup(locale, path) ?? lookup("en", path);
-        return source ? interpolate(source, params) : path;
-      },
-    [locale],
-  );
+  const t = useMemo(() => (path: string, params?: Record<string, string | number>): string => {
+    const source = lookup(locale, path) ?? lookup("en", path);
+    return source ? interpolate(source, params) : path;
+  }, [locale]);
 
   const formatDistance = (feet: number): string => {
     if (unitSystem === "imperial") return `${feet} ${unit(locale, "feet")}`;
-    const meters = Math.round(feet * 0.3 * 10) / 10;
-    return `${meters} ${unit(locale, "meters")}`;
+    return `${Math.round(feet * 0.3 * 10) / 10} ${unit(locale, "meters")}`;
   };
-
   const formatWeight = (lbs: number): string => {
     if (unitSystem === "imperial") return `${lbs} ${unit(locale, "pounds")}`;
-    const kg = Math.round(lbs * 0.453592 * 10) / 10;
-    return `${kg} ${unit(locale, "kilograms")}`;
+    return `${Math.round(lbs * 0.453592 * 10) / 10} ${unit(locale, "kilograms")}`;
   };
-
   const formatSpeed = (feet: number): string => {
     if (unitSystem === "imperial") return `${feet} ${unit(locale, "feet")}`;
-    const meters = Math.round(feet * 0.3);
-    const tiles = Math.round(feet / 5);
-    return `${meters} ${unit(locale, "meters")} (${tiles} ${unit(locale, "tiles")})`;
+    return `${Math.round(feet * 0.3)} ${unit(locale, "meters")} (${Math.round(feet / 5)} ${unit(locale, "tiles")})`;
   };
-
   const formatTile = (tiles: number): string => {
     if (unitSystem === "imperial") return `${tiles * 5} ${unit(locale, "feet")}`;
     return `${tiles * 1.5} ${unit(locale, "meters")}`;
   };
 
   const value: I18nContextType = {
-    locale,
-    setLocale,
-    toggleLocale,
-    unitSystem,
-    setUnitSystem,
-    toggleUnitSystem,
-    t,
-    formatDistance,
-    formatWeight,
-    formatSpeed,
-    formatTile,
+    locale, setLocale, toggleLocale, unitSystem, setUnitSystem, toggleUnitSystem,
+    t, formatDistance, formatWeight, formatSpeed, formatTile,
   };
-
   return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>;
 }
 
 export function useI18n() {
   const context = useContext(I18nContext);
   if (context) return context;
-
-  // Components rendered outside the provider get a deterministic English fallback.
-  // This makes English the safe baseline even in tests, error boundaries and isolated UI.
   const fallbackT = (path: string, params?: Record<string, string | number>): string => {
     const source = lookup("en", path);
     return source ? interpolate(source, params) : path;
   };
-
   return {
     locale: "en" as Locale,
-    setLocale: () => {},
-    toggleLocale: () => {},
+    setLocale: () => {}, toggleLocale: () => {},
     unitSystem: "metric" as UnitSystem,
-    setUnitSystem: () => {},
-    toggleUnitSystem: () => {},
-    t: fallbackT,
+    setUnitSystem: () => {}, toggleUnitSystem: () => {}, t: fallbackT,
     formatDistance: (feet: number) => `${Math.round(feet * 0.3 * 10) / 10} m`,
     formatWeight: (lbs: number) => `${Math.round(lbs * 0.453592 * 10) / 10} kg`,
     formatSpeed: (feet: number) => `${Math.round(feet * 0.3)} m`,
