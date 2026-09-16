@@ -1,3 +1,11 @@
+import { getDatabase } from "@/lib/db/core";
+import { withCommittedEffects } from "@/lib/db/commit-effects";
+import {
+  commitDmBatch, commitDmFinalization, dmExecutionState, dmReadyToFinalize, pendingDmBatch,
+  prepareDmBatch, restoreDmBatch, type BatchDecision,
+} from "@/lib/db/dm-execution";
+import { completedInputSeq, rememberTurnInput } from "@/lib/db/dm-turn-inputs";
+import { latestInputSeq, needsDmTurn, normalizeTurnToolCalls } from "@/lib/dm/turn-input";
 import {
   allocateSeq,
   getCampaignById,
@@ -26,13 +34,12 @@ import { getRoll, insertRoll, listRecentRolls } from "@/lib/db/rolls";
 import { listSheets, patchSheet } from "@/lib/db/sheets";
 import { removeConditions } from "@/lib/dm/condition-logic";
 import { rollExpression } from "@/lib/dice";
-import { publishEphemeral, publishPersisted, publishWithSeq } from "@/lib/events";
+import { publishPersisted, publishWithSeq } from "@/lib/events";
 import { generateImageTool, parseGenerateImageToolCall } from "@/lib/image-tool";
-import { createStreamingArtifactFilter, extractStoryText } from "@/lib/story-prompt";
+import { extractStoryText } from "@/lib/story-prompt";
 import type { CharacterSheet } from "@/lib/schemas/sheet";
-import { fulfillMessageImage } from "@/lib/dm/images";
+import { enqueueDmMediaIntent } from "@/lib/dm/media-jobs";
 import { imageProducerReady } from "@/lib/image-generate";
-import { enqueueNarrationAudio } from "@/lib/tts";
 import { requestDmMessage } from "@/lib/dm/model";
 import { setDmStatus } from "@/lib/dm/status";
 import {
@@ -96,7 +103,6 @@ import {
   CHARACTER_EVENT_KINDS,
   type CharacterEventKind,
 } from "@/lib/db/character-events";
-import { enqueueLocationMap } from "@/lib/dm/maps";
 import {
   getCurrentLocation,
   listLocations,
@@ -104,7 +110,6 @@ import {
   upsertCurrentLocation,
 } from "@/lib/db/locations";
 import { maybeCompactHistory } from "@/lib/dm/compaction";
-import { createDeltaBatcher } from "@/lib/dm/delta-buffer";
 import {
   applyDmMutation,
   MUTATION_CAP_PER_TURN,
@@ -348,17 +353,11 @@ export async function startDmTurn(campaignId: string) {
   // 400 recent messages always over-covers the prompt builder's 100k-char
   // budget; the full transcript stays in the DB for compaction and chapters.
   const history = listRecentMessages(campaignId, 400);
-  // Coalesced follow-up turn with nothing new to answer (the previous turn
-  // already covered every message): skip instead of narrating into silence.
-  // Pending player whispers count as new input: they never appear in the
-  // message history, so without this check a whisper-triggered turn would
-  // wrongly skip itself.
+  // Only inputs captured by a successfully completed turn are acknowledged.
+  // A player action arriving during the model request must not be hidden by
+  // the later DM message that finishes that request.
   const pendingWhispers = listPendingPlayerWhispers(campaignId);
-  if (
-    history.length &&
-    history[history.length - 1].authorType === "dm" &&
-    !pendingWhispers.length
-  ) {
+  if (!needsDmTurn(history, completedInputSeq(campaignId), pendingWhispers.length > 0)) {
     setDmStatus(campaignId, "idle");
     return;
   }
@@ -389,99 +388,103 @@ export async function startDmTurn(campaignId: string) {
   // before the conversation is persisted below, which is what makes a retry
   // correct: retry-turn.ts replays that stored conversation, so the directive
   // is still in the prompt it re-runs, neither lost nor applied twice.
-  const directorArm = takeDirectorArm(campaignId);
-  const directorBlock = buildDirectorBlock(directorArm);
-  if (directorArm) {
-    // Clear the armed badge for every client now that the steer is spent.
-    publishPersisted(campaignId, "director_armed", {
-      armed: false,
-      oneShot: null,
-      absoluteCommand: "",
-    });
-  }
-  const promptState: DmGameState = {
-      campaign,
-      // The window the prompt is actually being built against; without this
-      // every budget silently fell back to the default rather than the
-      // campaign's configured model.
-      contextLimitTokens: storyContextTokens(campaign.settings),
-      variantRulesBlock: retrieval.variantRulesBlock,
-      houseRulesBlock: retrieval.houseRulesBlock,
-      loreBlock: retrieval.loreBlock,
-      members: listMembers(campaignId),
-      sheets: context.sheets,
-      encounter: buildEncounterState(campaignId, context.sheets),
-      enemySuggestions: suggestEnemies(
-        campaign.gameSettings,
-        context.sheets.map((sheet) => sheet.level),
-        10,
-      ),
-      recentRolls: listRecentRolls(campaignId, 5),
-      storySummary: summary,
-      currentLocation: currentLocation
-        ? {
-            name: currentLocation.name,
-            layoutDescription: currentLocation.layoutDescription,
-            connections: currentLocation.connections,
-          }
-        : null,
-      visitedLocationNames: listLocations(campaignId)
-        .filter((location) => location.visited)
-        .map((location) => location.name)
-        .slice(0, 15),
-      recentEventsByCharacter: new Map(
-        [...listRecentEventsForCampaign(campaignId, 3)].map(([characterId, events]) => [
-          characterId,
-          events.map((event) => event.summary),
-        ]),
-      ),
-      pins: listPins(campaignId).map((pin) => ({ text: pin.text })),
-      chapters: listChapters(campaignId)
-        .filter((chapter) => chapter.status === "closed")
-        .map((chapter) => ({
-          id: chapter.id,
-          index: chapter.index,
-          title: chapter.title,
-          oneLiner: chapter.highlights[0] ?? "",
-          // The full sealed summary; the LOD renderer decides per chapter
-          // whether the prompt gets all of it or just its first sentence.
-          summary: chapter.summary || chapter.highlights[0] || "",
+  const turn = withCommittedEffects(() => getDatabase().transaction(() => {
+    const directorArm = takeDirectorArm(campaignId);
+    const directorBlock = buildDirectorBlock(directorArm);
+    if (directorArm) {
+      // Clear the armed badge for every client now that the steer is spent.
+      publishPersisted(campaignId, "director_armed", {
+        armed: false,
+        oneShot: null,
+        absoluteCommand: "",
+      });
+    }
+    const promptState: DmGameState = {
+        campaign,
+        // The window the prompt is actually being built against; without this
+        // every budget silently fell back to the default rather than the
+        // campaign's configured model.
+        contextLimitTokens: storyContextTokens(campaign.settings),
+        variantRulesBlock: retrieval.variantRulesBlock,
+        houseRulesBlock: retrieval.houseRulesBlock,
+        loreBlock: retrieval.loreBlock,
+        members: listMembers(campaignId),
+        sheets: context.sheets,
+        encounter: buildEncounterState(campaignId, context.sheets),
+        enemySuggestions: suggestEnemies(
+          campaign.gameSettings,
+          context.sheets.map((sheet) => sheet.level),
+          10,
+        ),
+        recentRolls: listRecentRolls(campaignId, 5),
+        storySummary: summary,
+        currentLocation: currentLocation
+          ? {
+              name: currentLocation.name,
+              layoutDescription: currentLocation.layoutDescription,
+              connections: currentLocation.connections,
+            }
+          : null,
+        visitedLocationNames: listLocations(campaignId)
+          .filter((location) => location.visited)
+          .map((location) => location.name)
+          .slice(0, 15),
+        recentEventsByCharacter: new Map(
+          [...listRecentEventsForCampaign(campaignId, 3)].map(([characterId, events]) => [
+            characterId,
+            events.map((event) => event.summary),
+          ]),
+        ),
+        pins: listPins(campaignId).map((pin) => ({ text: pin.text })),
+        chapters: listChapters(campaignId)
+          .filter((chapter) => chapter.status === "closed")
+          .map((chapter) => ({
+            id: chapter.id,
+            index: chapter.index,
+            title: chapter.title,
+            oneLiner: chapter.highlights[0] ?? "",
+            // The full sealed summary; the LOD renderer decides per chapter
+            // whether the prompt gets all of it or just its first sentence.
+            summary: chapter.summary || chapter.highlights[0] || "",
+          })),
+        publicNotes: listPublicCampaignNotes(campaignId, 10).map((note) => ({
+          pinned: note.pinned,
+          title: note.title,
+          body: note.body,
         })),
-      publicNotes: listPublicCampaignNotes(campaignId, 10).map((note) => ({
-        pinned: note.pinned,
-        title: note.title,
-        body: note.body,
-      })),
-      facts: listActiveFacts(campaignId).map((fact) => ({
-        category: fact.category,
-        subject: fact.subject,
-        fact: fact.fact,
-        pinned: fact.pinned,
-        knownBy: fact.knownBy,
-      })),
-      directorNotes: consumePendingSparks(campaignId).map((spark) => spark.text),
-      directorBlock,
-      npcs: npcRosterForPrompt(campaignId),
-      relationships:
-        campaign.gameSettings.relationships === "off"
-          ? []
-          : relationshipRosterForPrompt(campaignId),
-      recentWhispers: listRecentWhispersForPrompt(campaignId, 10),
-      pendingPlayerWhispers: pendingWhispers.map((whisper) => ({
-        from: whisper.characterName,
-        content: whisper.content,
-      })),
-  };
-  const conversation = buildDmMessages(promptState, history);
-
-  const turn = createDmTurn(campaignId, conversation);
-  // buildDmMessages fills this in on the state object it was handed, so the
-  // trace is carried onto the turn row rather than recomputed.
-  turn.contextTrace = promptState.contextTrace ?? null;
-  // Remember which player whispers this turn's prompt carries; finalize()
-  // marks them answered only when the turn succeeds.
-  turn.playerWhisperIds = pendingWhispers.map((whisper) => whisper.id);
-  saveDmTurn(turn);
+        facts: listActiveFacts(campaignId).map((fact) => ({
+          category: fact.category,
+          subject: fact.subject,
+          fact: fact.fact,
+          pinned: fact.pinned,
+          knownBy: fact.knownBy,
+        })),
+        directorNotes: consumePendingSparks(campaignId).map((spark) => spark.text),
+        directorBlock,
+        npcs: npcRosterForPrompt(campaignId),
+        relationships:
+          campaign.gameSettings.relationships === "off"
+            ? []
+            : relationshipRosterForPrompt(campaignId),
+        recentWhispers: listRecentWhispersForPrompt(campaignId, 10),
+        pendingPlayerWhispers: pendingWhispers.map((whisper) => ({
+          from: whisper.characterName,
+          content: whisper.content,
+        })),
+    };
+    const conversation = buildDmMessages(promptState, history);
+  
+    const turn = createDmTurn(campaignId, conversation);
+    rememberTurnInput(turn.id, campaignId, latestInputSeq(history));
+    // buildDmMessages fills this in on the state object it was handed, so the
+    // trace is carried onto the turn row rather than recomputed.
+    turn.contextTrace = promptState.contextTrace ?? null;
+    // Remember which player whispers this turn's prompt carries; finalize()
+    // marks them answered only when the turn succeeds.
+    turn.playerWhisperIds = pendingWhispers.map((whisper) => whisper.id);
+    saveDmTurn(turn);
+    return turn;
+  })());
   await advance(context, turn);
 }
 
@@ -572,28 +575,31 @@ async function runAdvance(context: TurnContext, turn: DmTurn) {
   const { campaign, sheets, sheetsById, realDiceUserIds } = context;
   const campaignId = campaign.id;
   let failed = "";
-  let spotlightSet = false;
+  const executionState = dmExecutionState(turn.id);
+  let spotlightSet = executionState.spotlightSet;
 
   const imageEnabled =
     campaign.settings.imageGenerationEnabled && campaign.settings.autoImages;
   // DM_LEAN_TOOLS=1 trims the mutation tools if the model's tool fidelity
   // suffers under the full set.
   const leanTools = process.env.DM_LEAN_TOOLS === "1";
-  // Chapters close on story progress, not message volume: the DM reports a
-  // finished beat with complete_beat and that ends the chapter. One per
-  // advance() run, so a single reply can never burn several beats.
-  let beatCompleted = false;
-  // Whisper cap is per advance() run, not persisted: a resumed turn simply
-  // gets a fresh allowance, which the bounded call loop keeps small.
-  let whisperCount = 0;
-  // One suggested note per advance() run keeps the DM from papering the
+  // These caps survive a crash or physical-dice resume, not just one
+  // invocation of advance(). A retry cannot spend the same allowance twice.
+  let beatCompleted = executionState.beatCompleted;
+  let whisperCount = executionState.whisperCount;
+  // One suggested note per turn keeps the DM from papering the
   // lead's approval queue in a single reply.
-  let noteCount = 0;
+  let noteCount = executionState.noteCount;
   // One shot at fixing a fight announced in prose without start_encounter; a
   // model that ignores the correction keeps its text rather than looping.
-  let encounterNudged = false;
+  let encounterNudged = executionState.encounterNudged;
+  const runtimeState = () => ({ spotlightSet, beatCompleted, whisperCount, noteCount, encounterNudged });
 
-  while (turn.callIndex < MAX_MODEL_CALLS) {
+  while (turn.status === "running" && (turn.callIndex < MAX_MODEL_CALLS || pendingDmBatch(turn.id))) {
+    type ModelReply = Awaited<ReturnType<typeof requestDmMessage>>["message"];
+    const pendingBatch = pendingDmBatch<ModelReply>(turn.id);
+    if (pendingBatch?.phase === "whispers" || (!pendingBatch && dmReadyToFinalize(turn.id))) break;
+    if (pendingBatch) restoreDmBatch(turn, pendingBatch);
     const finalCall = turn.callIndex === MAX_MODEL_CALLS - 1;
     // Rebuilt each iteration: the moment start_encounter succeeds mid-turn,
     // the combat tools must appear on the very next model call. Encounter
@@ -642,13 +648,11 @@ async function runAdvance(context: TurnContext, turn: DmTurn) {
       ...(leanTools ? [] : mutationTools),
       ...(imageEnabled ? [generateImageTool] : []),
     ];
-    // Fresh reasoning-artifact filter per model call; each call is its own
-    // stream. Withheld trailing text is flushed after the call completes.
-    const filter = createStreamingArtifactFilter();
-    const batcher = createDeltaBatcher((text) =>
-      publishEphemeral(campaignId, "dm_delta", { text }),
-    );
-    const { message, error } = await requestDmMessage(campaign.settings, turn.conversation, {
+    // Model deltas are untrusted drafts: dice and the narration guard have
+    // not run yet. Keep the thinking status, but publish prose only through
+    // finalize() after the authoritative results have been checked.
+    const response = pendingBatch ? { message: pendingBatch.message, error: undefined }
+      : await requestDmMessage(campaign.settings, turn.conversation, {
       tools,
       // Force pure narration on the last permitted call so a tool-happy
       // model cannot loop forever.
@@ -659,23 +663,17 @@ async function runAdvance(context: TurnContext, turn: DmTurn) {
       // final call skips it to keep turns snappy. Admin → Модели toggles it
       // (text.thinking), falling back to DM_THINKING=0.
       thinking: !finalCall && dmThinkingEnabled(),
-      onDelta: (text) => {
-        const visible = filter.push(text);
-        if (visible) {
-          batcher.push(visible);
-        }
-      },
+
     });
 
+    const { message, error } = response;
     if (error) {
-      batcher.flush();
       const payload = (await error.json().catch(() => null)) as { error?: string } | null;
       failed = payload?.error || "The Dungeon Master could not reach the model backend.";
       break;
     }
 
-    batcher.push(filter.flush());
-    batcher.flush();
+    const batch = pendingBatch ?? prepareDmBatch(turn, message);
     if (process.env.DM_DEBUG) {
       console.log(
         `[dm-debug] call ${turn.callIndex}: content=${JSON.stringify(String(message?.content ?? "").slice(0, 300))} tool_calls=${JSON.stringify(message?.tool_calls ?? null).slice(0, 500)}`,
@@ -705,17 +703,32 @@ async function runAdvance(context: TurnContext, turn: DmTurn) {
         : salvageProseRollAsks(salvage.text, sheets);
     const salvagedCalls = [...xmlSalvage.calls, ...salvage.calls, ...proseRolls.calls];
     const visibleText = proseRolls.text;
-    const echoedToolCalls = salvagedCalls.length
-      ? [
-          ...(Array.isArray(message?.tool_calls) ? message.tool_calls : []),
-          ...salvagedCalls.map((call) => ({
-            id: call.id,
-            type: "function",
-            function: { name: call.name, arguments: call.rawArguments },
-          })),
-        ]
-      : message?.tool_calls;
-    const toolCalls = [...extractToolCalls(message?.tool_calls), ...salvagedCalls];
+    const allToolCalls = normalizeTurnToolCalls(
+      [...extractToolCalls(message?.tool_calls), ...salvagedCalls],
+      `${turn.id}_${batch.index}`,
+      turn.conversation.flatMap((entry) => entry.tool_calls?.map((call) => call.id).filter((id): id is string => Boolean(id)) ?? []),
+    );
+    const echoedToolCalls = allToolCalls.map((call) => ({
+      id: call.id,
+      type: "function" as const,
+      function: { name: call.name, arguments: call.rawArguments },
+    }));
+    const offeredNames = new Set(tools.map((tool) => tool.function.name));
+    const toolCalls = allToolCalls.filter((call) => offeredNames.has(call.name));
+    // tool_choice=none is a protocol boundary, not a promise by the model.
+    // Reject the whole final batch before any bookkeeping or mutation runs.
+    if (finalCall && allToolCalls.length) {
+      commitDmBatch(turn, batch, allToolCalls, () => {
+        turn.conversation.push({ role: "assistant", content: visibleText || "", tool_calls: echoedToolCalls });
+        for (const call of allToolCalls) {
+          turn.conversation.push({ role: "tool", tool_call_id: call.id,
+            content: JSON.stringify({ error: "Tool budget exhausted. No action was applied by this call." }) });
+        }
+        return "continue";
+      }, runtimeState);
+      failed = "The model returned actions after the turn's tool budget was exhausted.";
+      break;
+    }
     // Text streamed alongside an attack-resolving tool call is the model
     // guessing the outcome before the dice exist ("the blade bites deep" on
     // what turns out to be a miss). Drop it from the persisted narration;
@@ -767,10 +780,6 @@ async function runAdvance(context: TurnContext, turn: DmTurn) {
     const socialCalls = toolCalls.filter((toolCall) =>
       (SOCIAL_TOOL_NAMES as readonly string[]).includes(toolCall.name),
     );
-    // A social_check or npc_reaction produces a roll the model must narrate
-    // from; a lone set_npc is bookkeeping like record_event.
-    const socialRollCalls = socialCalls.filter((toolCall) => toolCall.name !== "set_npc");
-    const setNpcCalls = socialCalls.filter((toolCall) => toolCall.name === "set_npc");
     const relationshipCalls = toolCalls.filter((toolCall) =>
       (RELATIONSHIP_TOOL_NAMES as readonly string[]).includes(toolCall.name),
     );
@@ -784,6 +793,21 @@ async function runAdvance(context: TurnContext, turn: DmTurn) {
         (AMBIENCE_TOOL_NAMES as readonly string[]).includes(toolCall.name),
     );
 
+    const recallResults = new Map<string, Record<string, unknown>>();
+    for (const recallCall of recallCalls) {
+      recallResults.set(
+        recallCall.id ?? "recall_story",
+        await handleRecallStory(campaignId, recallCall.rawArguments),
+      );
+    }
+    const searchLoreResults = new Map<string, Record<string, unknown>>();
+    for (const searchLoreCall of searchLoreCalls) {
+      searchLoreResults.set(
+        searchLoreCall.id ?? "search_lore",
+        await handleSearchLore(campaignId, searchLoreCall.rawArguments),
+      );
+    }
+    const decision = commitDmBatch(turn, batch, allToolCalls, (): BatchDecision => {
     // Location bookkeeping is synchronous and cheap; maps render async on
     // the media queue when vision allows.
     const locationResults = new Map<string, Record<string, unknown>>();
@@ -801,20 +825,6 @@ async function runAdvance(context: TurnContext, turn: DmTurn) {
       delete result._locationId;
       delete result._mapAvailable;
       locationResults.set(locationCall.id ?? locationCall.name, result);
-    }
-    const recallResults = new Map<string, Record<string, unknown>>();
-    for (const recallCall of recallCalls) {
-      recallResults.set(
-        recallCall.id ?? "recall_story",
-        await handleRecallStory(campaignId, recallCall.rawArguments),
-      );
-    }
-    const searchLoreResults = new Map<string, Record<string, unknown>>();
-    for (const searchLoreCall of searchLoreCalls) {
-      searchLoreResults.set(
-        searchLoreCall.id ?? "search_lore",
-        await handleSearchLore(campaignId, searchLoreCall.rawArguments),
-      );
     }
     // Notes deliver as pending suggestions immediately (like whispers); the
     // lead approves them in the notes panel.
@@ -873,48 +883,20 @@ async function runAdvance(context: TurnContext, turn: DmTurn) {
       }
     }
 
-    // Spotlight: hand the floor to the named characters.
-    if (inputCalls.length && !spotlightSet) {
-      const floorUserIds = parseSpotlightUserIds(inputCalls[0].rawArguments, sheets, sheetsById);
-      if (floorUserIds) {
-        const floor = {
-          mode: "spotlight" as const,
-          userIds: floorUserIds.userIds,
-          prompt: floorUserIds.prompt,
-          respondedUserIds: [],
-        };
-        setFloor(campaignId, floor);
-        publishPersisted(campaignId, "floor_changed", { floor });
-        spotlightSet = true;
-      }
+    // AI and human adjudication share the same initiative guard. Preserve
+    // each call's real result rather than claiming the floor always changed.
+    const inputResults = new Map<string, Record<string, unknown>>();
+    for (const inputCall of inputCalls) {
+      const result = spotlightSet
+        ? { error: "The floor was already set in this turn." }
+        : handleRequestPlayerInput(campaign, inputCall.rawArguments, sheets, sheetsById);
+      inputResults.set(inputCall.id, result);
+      if (!("error" in result)) spotlightSet = true;
     }
 
-    // Location-only calls with narration already in hand are pure
-    // bookkeeping (applied above); the turn can end without another call.
-    const needsFollowUp =
-      rollCalls.length > 0 ||
-      checkCalls.length > 0 ||
-      hazardCalls.length > 0 ||
-      petCalls.length > 0 ||
-      socialRollCalls.length > 0 ||
-      // Every relationship call reports an outcome (how the deed landed, a
-      // yes, a refusal) the model must narrate from rather than guess at.
-      relationshipCalls.length > 0 ||
-      worldCalls.length > 0 ||
-      mutationCalls.length > 0 ||
-      encounterCalls.length > 0 ||
-      restCalls.length > 0 ||
-      companionCalls.length > 0 ||
-      // The model asked for a chapter recall or lore search in order to
-      // use the answer.
-      recallCalls.length > 0 ||
-      searchLoreCalls.length > 0 ||
-      ((locationCalls.length > 0 ||
-        eventCalls.length > 0 ||
-        whisperCalls.length > 0 ||
-        noteCalls.length > 0 ||
-        setNpcCalls.length > 0) &&
-        !turn.narrationParts.length);
+    // A tool call is work, even when it accompanies narration. Never infer
+    // whether to execute it from a second, incomplete list of tool groups.
+    const needsFollowUp = allToolCalls.length > 0;
 
     if (!needsFollowUp) {
       saveDmTurn(turn);
@@ -939,35 +921,10 @@ async function runAdvance(context: TurnContext, turn: DmTurn) {
         turn.conversation.push({ role: "user", content: FAKE_ENCOUNTER_PROMPT });
         // Saved again: the save above still carried the withheld announcement.
         saveDmTurn(turn);
-        continue;
+        return "continue";
       }
-      // A spotlight with no narration yet gets one forced-narration call so
-      // the turn never lands empty.
-      if (spotlightSet && !turn.narrationParts.length && !finalCall) {
-        turn.conversation.push({
-          role: "assistant",
-          content: visibleText || "",
-          tool_calls: echoedToolCalls,
-        });
-        for (const inputCall of inputCalls) {
-          turn.conversation.push({
-            role: "tool",
-            ...(inputCall.id ? { tool_call_id: inputCall.id } : {}),
-            content: JSON.stringify({
-              ok: true,
-              note: "The floor is theirs. Narrate the moment and stop.",
-            }),
-          });
-        }
-        continue;
-      }
-      break;
+      return "finish";
     }
-    if (finalCall) {
-      saveDmTurn(turn);
-      break;
-    }
-
     setDmStatus(campaignId, "rolling");
 
     // Echo the assistant turn (with its tool calls) then answer each call
@@ -978,11 +935,12 @@ async function runAdvance(context: TurnContext, turn: DmTurn) {
       tool_calls: echoedToolCalls,
     });
 
+    const resultStart = turn.conversation.length;
     for (const inputCall of inputCalls) {
       turn.conversation.push({
         role: "tool",
         ...(inputCall.id ? { tool_call_id: inputCall.id } : {}),
-        content: JSON.stringify({ ok: spotlightSet, note: "Floor updated." }),
+        content: JSON.stringify(inputResults.get(inputCall.id)),
       });
     }
 
@@ -1400,6 +1358,25 @@ async function runAdvance(context: TurnContext, turn: DmTurn) {
         continue;
       }
 
+      // Validate digital dice before spending resources. Only invalid dice
+      // syntax is a recoverable tool error; persistence/handler failures must
+      // escape to the batch transaction so no partial roll effects commit.
+      let digitalOutcome: ReturnType<typeof rollExpression> | undefined;
+      if (!(sheet && realDiceUserIds.has(sheet.userId))) {
+        try {
+          digitalOutcome = rollExpression(resolved.expression);
+        } catch (rollError) {
+          turn.conversation.push({
+            role: "tool",
+            tool_call_id: rollCall.id,
+            content: JSON.stringify({
+              error: rollError instanceof Error ? rollError.message : "Invalid dice expression.",
+            }),
+          });
+          continue;
+        }
+      }
+
       // The inspiration die and a held Help are baked into the expression
       // above, so they are spent whether the dice are digital or physical:
       // clear them now. The field carries one or both, "|"-separated.
@@ -1437,69 +1414,75 @@ async function runAdvance(context: TurnContext, turn: DmTurn) {
         continue;
       }
 
-      // Digital roll: resolve immediately.
-      try {
-        const outcome = rollExpression(resolved.expression);
-        const roll = insertRoll({
-          campaignId,
-          characterId: sheet?.id ?? null,
-          requestedBy: "dm",
-          kind: parsedArgs.kind,
-          detail: resolved.detail,
-          advantage: parsedArgs.advantage ?? "none",
-          dc: parsedArgs.dc ?? null,
-          result: outcome,
-        });
-        turn.rollIds.push(roll.id);
-        publishWithSeq(campaignId, allocateSeq(campaignId), "roll_result", {
-          roll,
-          source: "digital",
-        });
-        // Combat initiative: feed the roll into the active encounter; the
-        // last one in locks the order and begins combat.
-        const combatNote =
-          parsedArgs.kind === "initiative"
-            ? recordInitiativeRoll(campaignId, sheet?.id ?? null, roll.total)
-            : null;
-        // Damage rolls aimed at an enemy apply server-side the moment the
-        // dice land, so the enemy card can never lag the narration.
-        const appliedDamage =
-          parsedArgs.kind === "damage" && parsedArgs.targetEnemyId
-            ? autoApplyDamageRoll(
-                campaign,
-                turn,
-                parsedArgs.targetEnemyId,
-                roll,
-                sheets,
-                sheetsById,
-                parsedArgs.damageType,
-              )
-            : null;
-        turn.conversation.push({
-          role: "tool",
-          ...(rollCall.id ? { tool_call_id: rollCall.id } : {}),
-          content: JSON.stringify({
-            total: roll.total,
-            dice: outcome.terms,
-            ...(parsedArgs.dc !== undefined
-              ? { dc: parsedArgs.dc, success: roll.total >= parsedArgs.dc }
-              : {}),
-            ...(outcome.crit ? { crit: outcome.crit } : {}),
-            ...(resolved.conditionNotes ? { conditionEffects: resolved.conditionNotes } : {}),
-            note: "Narrate this real result. Do not roll again for the same action.",
-            ...(combatNote ? { combat: combatNote } : {}),
-            ...(appliedDamage ? { applied: appliedDamage } : {}),
-          }),
-        });
-      } catch (rollError) {
-        turn.conversation.push({
-          role: "tool",
-          ...(rollCall.id ? { tool_call_id: rollCall.id } : {}),
-          content: JSON.stringify({
-            error: rollError instanceof Error ? rollError.message : "Invalid dice expression.",
-          }),
-        });
-      }
+      // Digital roll: all writes below belong to the enclosing batch.
+      const outcome = digitalOutcome!;
+      const roll = insertRoll({
+        campaignId,
+        characterId: sheet?.id ?? null,
+        requestedBy: "dm",
+        kind: parsedArgs.kind,
+        detail: resolved.detail,
+        advantage: parsedArgs.advantage ?? "none",
+        dc: parsedArgs.dc ?? null,
+        result: outcome,
+      });
+      turn.rollIds.push(roll.id);
+      publishWithSeq(campaignId, allocateSeq(campaignId), "roll_result", {
+        roll,
+        source: "digital",
+      });
+      // Combat initiative: feed the roll into the active encounter; the
+      // last one in locks the order and begins combat.
+      const combatNote =
+        parsedArgs.kind === "initiative"
+          ? recordInitiativeRoll(campaignId, sheet?.id ?? null, roll.total)
+          : null;
+      // Damage rolls aimed at an enemy apply server-side the moment the
+      // dice land, so the enemy card can never lag the narration.
+      const appliedDamage =
+        parsedArgs.kind === "damage" && parsedArgs.targetEnemyId
+          ? autoApplyDamageRoll(
+              campaign,
+              turn,
+              parsedArgs.targetEnemyId,
+              roll,
+              sheets,
+              sheetsById,
+              parsedArgs.damageType,
+            )
+          : null;
+      turn.conversation.push({
+        role: "tool",
+        ...(rollCall.id ? { tool_call_id: rollCall.id } : {}),
+        content: JSON.stringify({
+          total: roll.total,
+          dice: outcome.terms,
+          ...(parsedArgs.dc !== undefined
+            ? { dc: parsedArgs.dc, success: roll.total >= parsedArgs.dc }
+            : {}),
+          ...(outcome.crit ? { crit: outcome.crit } : {}),
+          ...(resolved.conditionNotes ? { conditionEffects: resolved.conditionNotes } : {}),
+          note: "Narrate this real result. Do not roll again for the same action.",
+          ...(combatNote ? { combat: combatNote } : {}),
+          ...(appliedDamage ? { applied: appliedDamage } : {}),
+        }),
+      });
+    }
+
+    const answered = new Set(
+      turn.conversation.slice(resultStart)
+        .filter((entry) => entry.role === "tool")
+        .map((entry) => entry.tool_call_id),
+    );
+    const pendingIds = new Set(
+      listPendingForTurn(turn.id).filter((roll) => roll.status === "pending").map((roll) => roll.toolCallId),
+    );
+    for (const call of allToolCalls) {
+      if (answered.has(call.id) || pendingIds.has(call.id)) continue;
+      const result = call.name === "generate_image" && offeredNames.has(call.name)
+        ? (turn.imageArgs ? { ok: true, note: "Image request recorded." } : { error: "Invalid image request." })
+        : { error: `Tool ${call.name} is unavailable or has no handler in this turn.` };
+      turn.conversation.push({ role: "tool", tool_call_id: call.id, content: JSON.stringify(result) });
     }
 
     if (parkedAny) {
@@ -1507,13 +1490,18 @@ async function runAdvance(context: TurnContext, turn: DmTurn) {
       turn.status = "awaiting_rolls";
       saveDmTurn(turn);
       setDmStatus(campaignId, "awaiting_rolls");
-      return;
+      return "park";
     }
 
     saveDmTurn(turn);
     setDmStatus(campaignId, "narrating");
+    return "continue";
+    }, runtimeState);
+    if (decision === "park") return;
+    if (decision === "finish") break;
   }
 
+  if (turn.status === "done") return;
   if (!failed) {
     await ensureWhisperReplies(context, turn);
     // Last stop before the narration is persisted: cross-check the prose
@@ -1527,9 +1515,6 @@ async function runAdvance(context: TurnContext, turn: DmTurn) {
     if (isStageEnabled(context.campaign.gameSettings.stages, "compaction")) {
       await maybeCompactHistory(campaignId);
     }
-    // The world-simulation heartbeat: pure dice, sparks land in the NEXT
-    // turn's prompt, so background clocks never trigger model calls.
-    tickWorldState(campaignId);
   }
 }
 
@@ -1539,84 +1524,67 @@ async function runAdvance(context: TurnContext, turn: DmTurn) {
 // with an explicit whisper prompt, then fall back to a canned whisper so the
 // player is never left in silence.
 async function ensureWhisperReplies(context: TurnContext, turn: DmTurn) {
-  if (!turn.playerWhisperIds.length) {
-    return;
-  }
+  if (!turn.playerWhisperIds.length) return;
   const { campaign, sheets, sheetsById } = context;
   const pending = listPendingPlayerWhispers(campaign.id).filter((whisper) =>
     turn.playerWhisperIds.includes(whisper.id),
   );
-  const unanswered = () =>
-    pending.filter(
-      (whisper) =>
-        whisper.characterId && !turn.answeredWhisperCharacterIds.includes(whisper.characterId),
-    );
-  if (!unanswered().length) {
-    return;
-  }
-
-  // One forced follow-up call: name the messages still owed a reply and ask
-  // for send_whisper explicitly. toolChoice stays "auto" (the llama.cpp /v1
-  // path only exercises auto/none) with a strong nudge instead.
-  const owed = unanswered()
-    .map((whisper) => `- ${whisper.characterName}: "${whisper.content}"`)
-    .join("\n");
-  const { message } = await requestDmMessage(
-    campaign.settings,
-    [
-      ...turn.conversation,
-      {
-        role: "user",
-        content: `[System] You have not yet privately answered these player messages. Reply to each one now using the send_whisper tool addressed to that character. Refuse any out-of-character request for levels, XP, perks, items, or abilities in-fiction, but resolve legitimate secret actions. Do not narrate anything to the shared table.\n${owed}`,
-      },
-    ],
-    { tools: [sendWhisperTool], toolChoice: "auto", thinking: true },
+  const unanswered = () => pending.filter((whisper) =>
+    whisper.characterId && !turn.answeredWhisperCharacterIds.includes(whisper.characterId),
   );
+  type ModelReply = Awaited<ReturnType<typeof requestDmMessage>>["message"];
+  let batch = pendingDmBatch<ModelReply>(turn.id);
+  if (batch && batch.phase !== "whispers") throw new Error("An unfinished tool batch must be resolved before private replies.");
+  if (batch) restoreDmBatch(turn, batch);
+  if (!batch && !unanswered().length) return;
+  if (!batch) {
+    const owed = unanswered().map((whisper) => `- ${whisper.characterName}: "${whisper.content}"`).join("\n");
+    const { message } = await requestDmMessage(campaign.settings, [
+      ...turn.conversation,
+      { role: "user", content: `[System] Privately answer each message using send_whisper. Refuse out-of-character requests for levels, XP, perks, items, or abilities in-fiction. Do not narrate to the shared table.\n${owed}` },
+    ], { tools: [sendWhisperTool], toolChoice: "auto", thinking: true });
+    batch = prepareDmBatch(turn, message, "whispers");
+  }
+  const message = batch.message;
   const xmlSalvage = salvageXmlToolCalls(extractStoryText(message?.content));
   const salvage = salvageTextualToolCalls(xmlSalvage.text);
-  const whisperCalls = [
-    ...extractToolCalls(message?.tool_calls),
-    ...xmlSalvage.calls,
-    ...salvage.calls,
-  ].filter((toolCall) => toolCall.name === "send_whisper");
-  for (const whisperCall of whisperCalls) {
-    const result = handleSendWhisper(
-      campaign,
-      turn.id,
-      whisperCall.rawArguments,
-      sheets,
-      sheetsById,
-    );
-    if (!("error" in result)) {
-      for (const characterId of (result.whisperedCharacterIds as string[] | undefined) ?? []) {
-        if (!turn.answeredWhisperCharacterIds.includes(characterId)) {
-          turn.answeredWhisperCharacterIds.push(characterId);
-        }
+  const calls = normalizeTurnToolCalls([
+    ...extractToolCalls(message?.tool_calls), ...xmlSalvage.calls, ...salvage.calls,
+  ], `${turn.id}_${batch.index}`, turn.conversation.flatMap((entry) =>
+    entry.tool_calls?.map((call) => call.id).filter((id): id is string => Boolean(id)) ?? []));
+  commitDmBatch(turn, batch, calls, () => {
+    if (calls.length) turn.conversation.push({ role: "assistant", content: "", tool_calls: calls.map((call) => ({
+      id: call.id, type: "function", function: { name: call.name, arguments: call.rawArguments },
+    })) });
+    for (const call of calls) {
+      const result = call.name === "send_whisper"
+        ? handleSendWhisper(campaign, turn.id, call.rawArguments, sheets, sheetsById)
+        : { error: "Only private replies are permitted at this stage." };
+      turn.conversation.push({ role: "tool", tool_call_id: call.id, content: JSON.stringify(result) });
+      if (!("error" in result)) for (const characterId of (result.whisperedCharacterIds as string[] | undefined) ?? []) {
+        if (!turn.answeredWhisperCharacterIds.includes(characterId)) turn.answeredWhisperCharacterIds.push(characterId);
       }
     }
-  }
-
-  // Anyone still unanswered gets a deterministic fallback whisper so the
-  // private line never goes silent.
-  for (const whisper of unanswered()) {
-    if (!whisper.characterId) {
-      continue;
+    // Deterministic fallbacks are effects too: record their stable keys and
+    // results in the same transaction as the delivered private message.
+    for (const whisper of unanswered()) {
+      if (!whisper.characterId) continue;
+      const args = JSON.stringify({ characterId: whisper.characterId, message: FALLBACK_WHISPER_MESSAGE });
+      const [fallback] = normalizeTurnToolCalls([{ id: `odm_whisper_fallback_${turn.id}_${whisper.id}`,
+        name: "send_whisper", rawArguments: args }], `${turn.id}_${batch.index}_fallback`,
+        turn.conversation.flatMap((entry) => entry.tool_calls?.map((call) => call.id).filter((id): id is string => Boolean(id)) ?? []));
+      const id = fallback.id;
+      deliverWhisper(campaign.id, turn.id, [{ userId: whisper.userId,
+        characterId: whisper.characterId, characterName: whisper.characterName }], FALLBACK_WHISPER_MESSAGE);
+      turn.answeredWhisperCharacterIds.push(whisper.characterId);
+      calls.push({ id, name: "send_whisper", rawArguments: args });
+      turn.conversation.push({ role: "assistant", content: "", tool_calls: [{
+        id, type: "function", function: { name: "send_whisper", arguments: args },
+      }] }, { role: "tool", tool_call_id: id,
+        content: JSON.stringify({ ok: true, fallback: true, whisperedCharacterIds: [whisper.characterId] }) });
     }
-    deliverWhisper(
-      campaign.id,
-      turn.id,
-      [
-        {
-          userId: whisper.userId,
-          characterId: whisper.characterId,
-          characterName: whisper.characterName,
-        },
-      ],
-      FALLBACK_WHISPER_MESSAGE,
-    );
-    turn.answeredWhisperCharacterIds.push(whisper.characterId);
-  }
-  saveDmTurn(turn);
+    return "finish";
+  }, () => dmExecutionState(turn.id));
 }
 
 // request_player_input: hands the floor to named players and waits for them.
@@ -1632,7 +1600,9 @@ export function handleRequestPlayerInput(
 ): Record<string, unknown> {
   // Initiative owns the floor while a fight runs, exactly as the floor route
   // refuses there. Handing it to someone out of turn would break the order.
-  if (getFloor(campaign.id).mode === "initiative") {
+  const currentFloor = getFloor(campaign.id);
+  const effectiveFloor = currentFloor.mode === "hold" ? currentFloor.next : currentFloor;
+  if (getActiveEncounter(campaign.id) || effectiveFloor.mode === "initiative") {
     return { error: "The initiative order has the floor while the fight runs." };
   }
   const parsed = parseSpotlightUserIds(rawArguments, sheets, sheetsById);
@@ -1773,7 +1743,8 @@ export function handleLocationCall(
     imageProducerReady(campaign.settings.imageBackend, campaign.settings) &&
     (!location.mapImage || layoutRevised);
   if (mapEnqueued) {
-    void enqueueLocationMap(campaign, location.id);
+    enqueueDmMediaIntent(campaign.id, { kind: "map", targetId: location.id,
+      name: location.name, layout: location.layoutDescription, previousImageId: location.mapImage?.id ?? null });
   }
 
   return {
@@ -1820,6 +1791,10 @@ function parseSpotlightUserIds(
 }
 
 function finalize(context: TurnContext, turn: DmTurn, failed: string) {
+  commitDmFinalization(turn, () => finalizeInTransaction(context, turn, failed));
+}
+
+function finalizeInTransaction(context: TurnContext, turn: DmTurn, failed: string) {
   const campaignId = context.campaign.id;
 
   if (failed) {
@@ -1863,6 +1838,7 @@ function finalize(context: TurnContext, turn: DmTurn, failed: string) {
   // would leak that a secret exchange happened at all.
   if (turn.playerWhisperIds.length && !turn.narrationParts.join("").trim() && !turn.rollIds.length) {
     setDmStatus(campaignId, "idle");
+    tickWorldState(campaignId);
     turn.status = "done";
     saveDmTurn(turn);
     return;
@@ -1931,17 +1907,14 @@ function finalize(context: TurnContext, turn: DmTurn, failed: string) {
   }
 
   if (message.imageRequest && imageProducerReady(context.campaign.settings.imageBackend, context.campaign.settings)) {
-    void fulfillMessageImage(campaignId, message.id, message.imageRequest, context.campaign.settings);
+    enqueueDmMediaIntent(campaignId, { kind: "image", targetId: message.id });
   }
   if (context.campaign.gameSettings.ttsEnabled) {
-    void enqueueNarrationAudio(
-      campaignId,
-      message.id,
-      content,
-      context.campaign.gameSettings.ttsVoice,
-    );
+    enqueueDmMediaIntent(campaignId, { kind: "tts", targetId: message.id,
+      voice: context.campaign.gameSettings.ttsVoice });
   }
 
+  tickWorldState(campaignId);
   turn.status = "done";
   saveDmTurn(turn);
 }

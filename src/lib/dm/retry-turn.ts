@@ -1,3 +1,4 @@
+import { hasDmExecutionJournal, pendingDmBatch, recordedDmToolResult, restoreDmBatch } from "@/lib/db/dm-execution";
 import { getCampaignById } from "@/lib/db/campaigns";
 import {
   claimFailedDmTurn,
@@ -14,14 +15,11 @@ import { getRoll } from "@/lib/db/rolls";
 import { publishPersisted } from "@/lib/events";
 import { enqueueDmJob } from "@/lib/dm/queue";
 import { setDmStatus } from "@/lib/dm/status";
-import { fakeRollMarkerRegex } from "@/lib/dm/tool-text";
 import { MAX_MODEL_CALLS, reenterDmTurn } from "@/lib/dm/turn";
 import {
-  assistantTextOf,
   checkRetryEligible,
   danglingToolCallIds,
   retryCallIndex,
-  rewindHaltedCall,
 } from "@/lib/dm/retry-turn-logic";
 
 // Retrying a halted DM turn. When a turn throws, finalize() writes the
@@ -39,12 +37,10 @@ import {
 // the campaign's latest, which is what stops a newer turn and a retry from
 // both answering the same whisper.
 
-// Handed to the model on re-entry. Some tools run before turn.ts echoes the
-// assistant message that called them, so a crash can leave real, applied
-// changes with no trace in the conversation; the model needs to know that
-// rather than redo them.
+// This note describes committed, authoritative results; it is never used
+// as a substitute for deciding whether an interrupted effect happened.
 const RETRY_NOTE =
-  "[System] Your last attempt at this turn was interrupted by an internal error and nothing you wrote then reached the table. Pick the scene back up and narrate it now. Some bookkeeping from that attempt may already have taken effect (a move, a recorded event, a closed beat): if a tool reports something is already done, accept it and keep going rather than repeating it.";
+  "[System] Continue this interrupted turn from its recorded tool results. Those results are authoritative and their effects are already committed. Narrate the remaining outcome; do not repeat completed actions.";
 
 export type RetryRequest = { campaignId: string; turnId: string };
 export type RetryResult = { ok: true; turnId: string } | { ok: false; status: number; error: string };
@@ -94,9 +90,26 @@ export function requestTurnRetry(request: RetryRequest): RetryResult {
   if (!eligibility.ok) {
     return eligibility;
   }
-  if (!campaign) {
+  if (!campaign || !turn) {
     // Unreachable once eligibility passed; narrows the type for the job below.
     return { ok: false, status: 404, error: "Campaign not found." };
+  }
+
+  const pendingBatch = pendingDmBatch(turnId);
+  const journaled = hasDmExecutionJournal(turnId);
+  // Old backups cannot reveal effects that the old code never recorded.
+  // Fail closed rather than ask the model to guess whether they happened.
+  if (!journaled && (turn.callIndex > 0 || turn.mutationCount > 0 || turn.encounterCount > 0 ||
+      turn.rollIds.length > 0 || turn.conversation.some((entry) => entry.tool_calls?.length))) {
+    return { ok: false, status: 409, error: "This pre-journal turn has uncertain effects. Review its game state before continuing; automatic replay is unsafe." };
+  }
+  const recoveredResults = new Map<string, string>();
+  if (!pendingBatch) {
+    for (const id of danglingToolCallIds(turn.conversation)) {
+      const result = resolvedRollResult(turn, pendings, id) ?? recordedDmToolResult(turnId, id);
+      if (!result) return { ok: false, status: 409, error: "The recorded tool result is missing. The turn was not replayed." };
+      recoveredResults.set(id, result);
+    }
   }
 
   // The claim, and the only race guard that matters: two players hitting
@@ -118,42 +131,21 @@ export function requestTurnRetry(request: RetryRequest): RetryResult {
     }
   }
 
-  // Undo the model call the crash swallowed: its narration never reached the
-  // conversation, so the retried model would otherwise write that beat twice.
-  const rewind = rewindHaltedCall({
-    narrationParts: claimed.narrationParts,
-    callIndex: claimed.callIndex,
-    assistantText: assistantTextOf(claimed.conversation).replace(fakeRollMarkerRegex(), ""),
-  });
-  claimed.narrationParts = rewind.narrationParts;
-  // A turn that burned its whole call budget resumes at the forced-narration
-  // call so the retry always produces prose instead of another tool loop.
-  claimed.callIndex = retryCallIndex(rewind.callIndex, MAX_MODEL_CALLS);
-  // Repair the conversation before it goes back to the model: a throw partway
-  // through the tool loop can persist an assistant message whose tool_calls
-  // were only partly answered, and strict OpenAI-compatible backends reject
-  // that shape outright.
-  for (const toolCallId of danglingToolCallIds(claimed.conversation)) {
-    claimed.conversation.push({
-      role: "tool",
-      tool_call_id: toolCallId,
-      content:
-        resolvedRollResult(claimed, pendings, toolCallId) ??
-        JSON.stringify({
-          error:
-            "The DM hit an internal error before this call finished. Do not call it again; continue from what you already have.",
-        }),
-    });
-  }
-
-  // Tool calls that ran before the crash are already applied (the party moved,
-  // the event was recorded) but the conversation has no assistant echo of
-  // them, so the model cannot see them. Say so plainly rather than let it
-  // rediscover the same bookkeeping. Deduped: a second retry must not stack a
-  // second copy of the note.
-  const lastMessage = claimed.conversation[claimed.conversation.length - 1];
-  if (lastMessage?.content !== RETRY_NOTE) {
-    claimed.conversation.push({ role: "user", content: RETRY_NOTE });
+  if (pendingBatch) {
+    // The saved response is replayed by runAdvance without another model
+    // request. Its entire uncommitted batch is known to have rolled back.
+    restoreDmBatch(claimed, pendingBatch);
+  } else {
+    // No rewind: completed batches already carry their exact narration,
+    // results and spent budget. Only a new narration-only retry gets room.
+    claimed.callIndex = retryCallIndex(claimed.callIndex, MAX_MODEL_CALLS);
+    for (const [toolCallId, content] of recoveredResults) {
+      // Also carry the physical-roll IDs recovered before the claim.
+      claimed.rollIds = [...new Set([...claimed.rollIds, ...turn.rollIds])];
+      claimed.conversation.push({ role: "tool", tool_call_id: toolCallId, content });
+    }
+    const lastMessage = claimed.conversation[claimed.conversation.length - 1];
+    if (lastMessage?.content !== RETRY_NOTE) claimed.conversation.push({ role: "user", content: RETRY_NOTE });
   }
   saveDmTurn(claimed);
 
