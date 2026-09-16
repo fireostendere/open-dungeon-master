@@ -12,6 +12,10 @@ const CONTROL_URL = process.env.ODM_MCP_CONTROL_URL?.trim() || "http://127.0.0.1
 const TOKEN = process.env.ODM_MCP_TOKEN?.trim() || "";
 const HOST = process.env.ODM_MCP_HOST?.trim() || "127.0.0.1";
 const PORT = Number(process.env.ODM_MCP_PORT || 3006);
+const configuredControlTimeout = Number(process.env.ODM_MCP_CONTROL_TIMEOUT_MS || 135_000);
+const CONTROL_TIMEOUT_MS = Number.isFinite(configuredControlTimeout)
+  ? Math.min(Math.max(Math.floor(configuredControlTimeout), 120_000), 600_000)
+  : 135_000;
 
 function digest(value) {
   return createHash("sha256").update(value, "utf8").digest();
@@ -55,7 +59,9 @@ async function callControl(action, params = {}) {
       accept: "application/json",
     },
     body: JSON.stringify({ action, params }),
-    signal: AbortSignal.timeout(30_000),
+    // Provider probes are allowed up to 120 s in the app. The MCP hop must
+    // never time out first and leave a still-running mutation behind.
+    signal: AbortSignal.timeout(CONTROL_TIMEOUT_MS),
   });
   const body = await response.json().catch(() => ({}));
   if (!response.ok || body?.ok === false) {
@@ -583,6 +589,18 @@ export function createVerifiedMcpServer(options = {}) {
   return server;
 }
 
+export function requestPath(requestTarget, hostHeader) {
+  if (hostHeader) {
+    try {
+      // Validate Host for malformed input, but never use it as the URL base.
+      new URL(`http://${hostHeader}`);
+    } catch {
+      throw new TypeError("Invalid Host header");
+    }
+  }
+  return new URL(requestTarget || "/", "http://127.0.0.1").pathname;
+}
+
 async function serveHttp() {
   if (!Number.isInteger(PORT) || PORT < 1 || PORT > 65535) {
     throw new Error("ODM_MCP_PORT must be a valid TCP port.");
@@ -593,50 +611,59 @@ async function serveHttp() {
 
   const handler = createMcpHandler(createVerifiedMcpServer);
   const nodeHandler = toNodeHandler(handler);
-  const http = createHttpServer(async (req, res) => {
-    const pathname = new URL(req.url || "/", `http://${req.headers.host || "localhost"}`).pathname;
-
-    if (pathname === "/healthz") {
+  const http = createHttpServer((req, res) => {
+    // Never hand an async function directly to EventEmitter: every rejection
+    // must terminate this request, not the Node process.
+    void (async () => {
+      let pathname;
       try {
-        await callControl("server.status", {});
-        res.writeHead(200, { "content-type": "application/json", "cache-control": "no-store" });
-        res.end('{"ok":true}');
+        pathname = requestPath(req.url || "/", req.headers.host);
       } catch {
-        res.writeHead(503, { "content-type": "application/json", "cache-control": "no-store" });
-        res.end('{"ok":false}');
+        res.writeHead(400, { "content-type": "application/json", "cache-control": "no-store" });
+        res.end('{"error":"Bad request"}');
+        return;
       }
-      return;
-    }
 
-    if (pathname !== "/mcp") {
-      res.writeHead(404, { "content-type": "application/json" });
-      res.end('{"error":"Not found"}');
-      return;
-    }
+      if (pathname === "/healthz") {
+        try {
+          await callControl("server.status", {});
+          res.writeHead(200, { "content-type": "application/json", "cache-control": "no-store" });
+          res.end('{"ok":true}');
+        } catch {
+          res.writeHead(503, { "content-type": "application/json", "cache-control": "no-store" });
+          res.end('{"ok":false}');
+        }
+        return;
+      }
 
-    if (!allowedOrigin(req.headers.origin)) {
-      res.writeHead(403, { "content-type": "application/json", "cache-control": "no-store" });
-      res.end('{"error":"Origin not allowed"}');
-      return;
-    }
+      if (pathname !== "/mcp") {
+        res.writeHead(404, { "content-type": "application/json" });
+        res.end('{"error":"Not found"}');
+        return;
+      }
 
-    if (!tokenMatches(bearerFrom(req.headers))) {
-      res.writeHead(401, {
-        "content-type": "application/json",
-        "cache-control": "no-store",
-        "www-authenticate": 'Bearer realm="open-dungeon-master-mcp"',
-      });
-      res.end('{"error":"Unauthorized"}');
-      return;
-    }
+      if (!allowedOrigin(req.headers.origin)) {
+        res.writeHead(403, { "content-type": "application/json", "cache-control": "no-store" });
+        res.end('{"error":"Origin not allowed"}');
+        return;
+      }
 
-    try {
+      if (!tokenMatches(bearerFrom(req.headers))) {
+        res.writeHead(401, {
+          "content-type": "application/json",
+          "cache-control": "no-store",
+          "www-authenticate": 'Bearer realm="open-dungeon-master-mcp"',
+        });
+        res.end('{"error":"Unauthorized"}');
+        return;
+      }
+
       await nodeHandler(req, res);
-    } catch (error) {
+    })().catch((error) => {
       console.error("MCP request failed:", error instanceof Error ? error.message : String(error));
       if (!res.headersSent) res.writeHead(500, { "content-type": "application/json" });
       if (!res.writableEnded) res.end('{"error":"MCP request failed"}');
-    }
+    });
   });
 
   const shutdown = async () => {
