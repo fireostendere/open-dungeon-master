@@ -86,9 +86,8 @@ fi
 [[ $RUNTIME == none || $RUNTIME == ollama || $RUNTIME == external ]] || { echo 'Invalid runtime' >&2; exit 2; }
 export DEBIAN_FRONTEND=noninteractive
 apt-get update
-apt-get install -y --no-install-recommends ca-certificates curl git python3 restic
+apt-get install -y --no-install-recommends ca-certificates curl git python3 restic util-linux
 if ! command -v docker >/dev/null 2>&1; then
-  # Official signed apt repository, not a curl | sh convenience installer.
   install -m 0755 -d /etc/apt/keyrings
   curl --fail --show-error --silent --location --proto '=https' --tlsv1.2 "https://download.docker.com/linux/$ID/gpg" -o /etc/apt/keyrings/odm-docker.asc
   chmod a+r /etc/apt/keyrings/odm-docker.asc
@@ -139,42 +138,115 @@ fi
 if [[ -n $REF ]]; then git -C "$ROOT/repository" checkout --detach "$REF"; fi
 [[ -f $ROOT/repository/deploy/odmctl.py ]] || { echo 'Selected revision does not contain the deployment controller' >&2; exit 1; }
 [[ -f $ROOT/repository/deploy/mcpctl.py ]] || { echo 'Selected revision does not contain the MCP controller' >&2; exit 1; }
-# On re-run preserve the already installed controller until a tested update.
 if [[ ! -f $ROOT/tools/odmctl.py ]]; then install -m 700 "$ROOT/repository/deploy/odmctl.py" "$ROOT/tools/odmctl.py"; fi
 if [[ ! -f $ROOT/tools/mcpctl.py ]]; then install -m 700 "$ROOT/repository/deploy/mcpctl.py" "$ROOT/tools/mcpctl.py"; fi
-cat > /usr/local/bin/odmctl <<EOF
+if [[ -f $ROOT/repository/deploy/retention.py ]]; then install -m 700 "$ROOT/repository/deploy/retention.py" "$ROOT/tools/retention.py"; fi
+
+cat > /usr/local/bin/odm-refresh-units <<EOF
 #!/bin/sh
-exec /usr/bin/python3 '$ROOT/tools/odmctl.py' --root '$ROOT' "\$@"
+set -eu
+ROOT='$ROOT'
+[ -d /run/systemd/system ] || exit 0
+PROJECT=\$(/usr/bin/python3 -c 'import hashlib,sys; print("odm-"+hashlib.sha256(sys.argv[1].encode()).hexdigest()[:10])' "\$ROOT")
+for UNIT in "/etc/systemd/system/\$PROJECT.service" /etc/systemd/system/"\$PROJECT"-*.service; do
+  [ -f "\$UNIT" ] || continue
+  sed -E -i "s#^ExecStart=/usr/bin/python3 [^ ]+/tools/odmctl.py --root [^ ]+(.*)#ExecStart=/usr/local/bin/odmctl\\1#" "\$UNIT"
+  sed -E -i "s#^ExecStop=/usr/bin/python3 [^ ]+/tools/odmctl.py --root [^ ]+(.*)#ExecStop=/usr/local/bin/odmctl\\1#" "\$UNIT"
+done
+systemctl daemon-reload
 EOF
-chmod 755 /usr/local/bin/odmctl
+chmod 755 /usr/local/bin/odm-refresh-units
+
 cat > /usr/local/bin/odm-mcpctl <<EOF
 #!/bin/sh
 set -eu
-ACTIVE='$ROOT/config/active.json'
+ROOT='$ROOT'
+SELF=/usr/local/bin/odm-mcpctl
+if [ "\${ODM_RELEASE_LOCK_HELD:-0}" != 1 ] && [ "\${1:-}" != status ]; then
+  exec /usr/bin/flock -x "\$ROOT/.release.lock" /usr/bin/env ODM_RELEASE_LOCK_HELD=1 "\$SELF" "\$@"
+fi
+ACTIVE="\$ROOT/config/active.json"
 if [ -f "\$ACTIVE" ]; then
   SHA=\$(/usr/bin/python3 -c 'import json,sys; print(json.load(open(sys.argv[1], encoding="utf-8")).get("sha", ""))' "\$ACTIVE")
-  SOURCE='$ROOT/releases/'"\$SHA"'/source/deploy/mcpctl.py'
-  if [ -f "\$SOURCE" ] && ! cmp -s "\$SOURCE" '$ROOT/tools/mcpctl.py'; then
-    install -m 700 "\$SOURCE" '$ROOT/tools/mcpctl.py'
+  SOURCE="\$ROOT/releases/\$SHA/source/deploy/mcpctl.py"
+  if [ -f "\$SOURCE" ] && ! cmp -s "\$SOURCE" "\$ROOT/tools/mcpctl.py"; then
+    install -m 700 "\$SOURCE" "\$ROOT/tools/mcpctl.py"
   fi
 fi
-exec /usr/bin/python3 '$ROOT/tools/mcpctl.py' --root '$ROOT' "\$@"
+exec /usr/bin/python3 "\$ROOT/tools/mcpctl.py" --root "\$ROOT" "\$@"
 EOF
 chmod 755 /usr/local/bin/odm-mcpctl
+
+cat > /usr/local/bin/odmctl <<EOF
+#!/bin/sh
+set -eu
+ROOT='$ROOT'
+SELF=/usr/local/bin/odmctl
+ACTION="\${1:-}"
+case "\$ACTION" in
+  status|logs|snapshots|check-update) ;;
+  *)
+    if [ "\${ODM_RELEASE_LOCK_HELD:-0}" != 1 ]; then
+      exec /usr/bin/flock -x "\$ROOT/.release.lock" /usr/bin/env ODM_RELEASE_LOCK_HELD=1 "\$SELF" "\$@"
+    fi
+    ;;
+esac
+
+refresh_release_tools() {
+  [ -f "\$ROOT/config/active.json" ] || return 0
+  SHA=\$(/usr/bin/python3 -c 'import json,sys; print(json.load(open(sys.argv[1], encoding="utf-8")).get("sha", ""))' "\$ROOT/config/active.json")
+  for NAME in mcpctl.py retention.py; do
+    SRC="\$ROOT/releases/\$SHA/source/deploy/\$NAME"
+    [ -f "\$SRC" ] && install -m 700 "\$SRC" "\$ROOT/tools/\$NAME"
+  done
+}
+
+/usr/bin/python3 "\$ROOT/tools/odmctl.py" --root "\$ROOT" "\$@"
+RC=\$?
+[ "\$RC" -eq 0 ] || exit "\$RC"
+
+case "\$ACTION" in
+  update|rollback|restore)
+    refresh_release_tools
+    if ! /usr/bin/env ODM_RELEASE_LOCK_HELD=1 /usr/local/bin/odm-mcpctl sync; then
+      if [ "\$ACTION" = update ]; then
+        echo 'MCP release failed health gate; rolling the application back to the previous release.' >&2
+        /usr/bin/python3 "\$ROOT/tools/odmctl.py" --root "\$ROOT" rollback --yes || exit 1
+        refresh_release_tools
+        /usr/bin/env ODM_RELEASE_LOCK_HELD=1 /usr/local/bin/odm-mcpctl sync || true
+        /usr/local/bin/odm-refresh-units || true
+      fi
+      exit 1
+    fi
+    [ ! -x "\$ROOT/tools/retention.py" ] || /usr/bin/python3 "\$ROOT/tools/retention.py" --root "\$ROOT" --local-only || true
+    /usr/local/bin/odm-refresh-units || true
+    ;;
+  check)
+    refresh_release_tools
+    [ ! -x "\$ROOT/tools/retention.py" ] || /usr/bin/python3 "\$ROOT/tools/retention.py" --root "\$ROOT"
+    /usr/local/bin/odm-refresh-units || true
+    ;;
+esac
+exit 0
+EOF
+chmod 755 /usr/local/bin/odmctl
+
 [[ -z $REF ]] || ARGS+=(--ref "$REF")
 [[ -z $SOURCE ]] || ARGS+=(--offline-source)
 python3 "$ROOT/tools/odmctl.py" --root "$ROOT" install --repo "$REPO" --branch "$BRANCH" --runtime "$RUNTIME" "${ARGS[@]}"
 
-# MCP is provisioned after the application is healthy so its control-plane
-# healthcheck can verify the real database/API. The token is generated into
-# config/mcp.token and app.env automatically and is never printed.
-odm-mcpctl sync
+# Make the timers installed by odmctl enter through the coordinated wrapper,
+# then provision MCP while the application is already healthy.
+odm-refresh-units
+ODM_RELEASE_LOCK_HELD=1 odm-mcpctl sync
 
 if [[ -d /run/systemd/system ]]; then
-  cat > /etc/systemd/system/odm-mcp-sync.service <<'EOF'
+  PROJECT=$(python3 -c 'import hashlib,sys; print("odm-"+hashlib.sha256(sys.argv[1].encode()).hexdigest()[:10])' "$ROOT")
+  cat > /etc/systemd/system/odm-mcp-sync.service <<EOF
 [Unit]
 Description=Synchronize Open Dungeon Master MCP sidecar
-After=docker.service network-online.target
+After=docker.service network-online.target $PROJECT.service
+Requires=$PROJECT.service
 Wants=network-online.target
 
 [Service]
@@ -184,13 +256,11 @@ NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=strict
 ProtectHome=true
-ReadWritePaths=/opt/odm
+ReadWritePaths=$ROOT
 EOF
-  # If a non-default root is used, the unit needs its actual writable path.
-  sed -i "s#^ReadWritePaths=.*#ReadWritePaths=$ROOT#" /etc/systemd/system/odm-mcp-sync.service
   cat > /etc/systemd/system/odm-mcp-sync.timer <<'EOF'
 [Unit]
-Description=Keep Open Dungeon Master MCP on the active release
+Description=Repair Open Dungeon Master MCP if it drifts from the active release
 
 [Timer]
 OnBootSec=2min
