@@ -10,7 +10,7 @@ export function loadReviewModule(filename, mocks = {}) {
   const source = fs.readFileSync(filename, "utf8");
   const output = ts.transpileModule(source, {
     fileName: filename,
-    compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS },
+    compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS, esModuleInterop: true },
     reportDiagnostics: true,
   });
   const errors = (output.diagnostics ?? []).filter((entry) => entry.category === ts.DiagnosticCategory.Error);
