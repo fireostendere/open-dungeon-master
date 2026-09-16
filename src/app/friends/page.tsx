@@ -6,6 +6,8 @@ import { useCallback, useEffect, useState } from "react";
 import { cn } from "@/lib/cn";
 import { IconChip, PIXEL_ICONS, ui } from "@/lib/ui";
 import { PageLoading, PageNotice, PageSection, PageShell } from "@/components/PageShell";
+import { useI18n } from "@/lib/i18n";
+import { localeText } from "@/lib/i18n/locale-text";
 
 // The server's social circle: accounts are per-server, so these are the
 // people at this table's door, not a global roster. Online means their
@@ -52,6 +54,12 @@ function Avatar({ friend }: { friend: FriendItem }) {
 const ROW = "flex flex-wrap items-center gap-3 px-5 py-3";
 
 export default function FriendsPage() {
+  const { locale } = useI18n();
+  const copy = localeText(locale, {
+    en: { login: "Log in", loginSuffix: "to see your friends on this server.", title: "Friends", blurb: "People on this server; invite them to your campaigns.", addFriend: "Add a friend", placeholder: "Add by exact username", username: "Username", add: "Add", requests: "Requests for you", waitingOnYou: "Waiting on you", sent: "Sent requests", waiting: "Waiting", cancel: "Cancel", unfriend: "Unfriend", online: "Online now", invite: "Invite to campaign...", remove: "Remove {name} from your friends?", inviteSent: "Invite sent.", error: "Something went wrong." },
+    ru: { login: "Войдите", loginSuffix: "чтобы увидеть друзей на этом сервере.", title: "Друзья", blurb: "Люди на этом сервере; приглашайте их в свои кампании.", addFriend: "Добавить друга", placeholder: "Точное имя пользователя", username: "Имя пользователя", add: "Добавить", requests: "Входящие запросы", waitingOnYou: "Ожидают вас", sent: "Отправленные запросы", waiting: "Ожидание", cancel: "Отменить", unfriend: "Удалить из друзей", online: "Сейчас в сети", invite: "Пригласить в кампанию...", remove: "Удалить {name} из друзей?", inviteSent: "Приглашение отправлено.", error: "Что-то пошло не так." },
+    pl: { login: "Zaloguj się", loginSuffix: "aby zobaczyć znajomych na tym serwerze.", title: "Znajomi", blurb: "Osoby na tym serwerze; zapraszaj je do kampanii.", addFriend: "Dodaj znajomego", placeholder: "Dokładna nazwa użytkownika", username: "Nazwa użytkownika", add: "Dodaj", requests: "Prośby do ciebie", waitingOnYou: "Czekają na ciebie", sent: "Wysłane prośby", waiting: "Oczekiwanie", cancel: "Anuluj", unfriend: "Usuń ze znajomych", online: "Teraz online", invite: "Zaproś do kampanii...", remove: "Usunąć {name} ze znajomych?", inviteSent: "Zaproszenie wysłane.", error: "Coś poszło nie tak." },
+  });
   const [data, setData] = useState<FriendsData>({ friends: [], incoming: [], outgoing: [] });
   const [campaigns, setCampaigns] = useState<CampaignOption[]>([]);
   const [loading, setLoading] = useState(true);
@@ -129,7 +137,7 @@ export default function FriendsPage() {
       });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) {
-        setAddNote({ text: payload.error ?? "Something went wrong.", error: true });
+        setAddNote({ text: payload.error ?? copy.error, error: true });
         return;
       }
       setAddNote({ text: payload.message ?? "Request sent.", error: false });
@@ -148,14 +156,14 @@ export default function FriendsPage() {
     });
     if (!response.ok) {
       const payload = await response.json().catch(() => ({}));
-      setRowNote(userId, payload.error ?? "Something went wrong.", true);
+      setRowNote(userId, payload.error ?? copy.error, true);
       return;
     }
     void load();
   }
 
   async function unfriend(friend: FriendItem) {
-    if (!window.confirm(`Remove ${friend.username} from your friends?`)) {
+    if (!window.confirm(copy.remove.replace("{name}", friend.username))) {
       return;
     }
     const response = await fetch("/api/friends", {
@@ -165,7 +173,7 @@ export default function FriendsPage() {
     });
     if (!response.ok) {
       const payload = await response.json().catch(() => ({}));
-      setRowNote(friend.userId, payload.error ?? "Something went wrong.", true);
+      setRowNote(friend.userId, payload.error ?? copy.error, true);
       return;
     }
     void load();
@@ -179,19 +187,19 @@ export default function FriendsPage() {
     });
     const payload = await response.json().catch(() => ({}));
     if (!response.ok) {
-      setRowNote(userId, payload.error ?? "Something went wrong.", true);
+      setRowNote(userId, payload.error ?? copy.error, true);
       return;
     }
-    setRowNote(userId, "Invite sent.", false);
+    setRowNote(userId, copy.inviteSent, false);
   }
 
   if (!authed) {
     return (
       <PageNotice>
         <Link href="/" className="text-amber-200 hover:text-amber-400">
-          Log in
+          {copy.login}
         </Link>{" "}
-        to see your friends on this server.
+        {copy.loginSuffix}
       </PageNotice>
     );
   }
@@ -203,21 +211,21 @@ export default function FriendsPage() {
   return (
     <PageShell
       icon={PIXEL_ICONS.chats}
-      title="Friends"
-      blurb="People on this server; invite them to your campaigns."
+      title={copy.title}
+      blurb={copy.blurb}
     >
-      <PageSection heading="Add a friend">
+      <PageSection heading={copy.addFriend}>
         <form onSubmit={add} className="flex gap-2">
           <input
             value={name}
             onChange={(event) => setName(event.target.value)}
-            placeholder="Add by exact username"
+            placeholder={copy.placeholder}
             maxLength={64}
-            aria-label="Username"
+            aria-label={copy.username}
             className={ui.input}
           />
           <button type="submit" disabled={sending || !name.trim()} className={ui.btnPrimary}>
-            {sending ? <Loader2 className="size-4 animate-spin" /> : null} Add
+            {sending ? <Loader2 className="size-4 animate-spin" /> : null} {copy.add}
           </button>
         </form>
         {addNote ? (
@@ -228,7 +236,7 @@ export default function FriendsPage() {
       </PageSection>
 
       {data.incoming.length > 0 ? (
-        <PageSection heading="Requests for you" ribbon="Waiting on you" padded={false}>
+        <PageSection heading={copy.requests} ribbon={copy.waitingOnYou} padded={false}>
           <ul className="divide-y divide-stone-800/70">
             {data.incoming.map((request) => (
               <li key={request.userId} className={ROW}>
@@ -244,14 +252,14 @@ export default function FriendsPage() {
                   onClick={() => respond(request.userId, true)}
                   className={ui.btnSmall}
                 >
-                  <Check className="size-4 text-emerald-300" /> Accept
+                  <Check className="size-4 text-emerald-300" /> {locale === "ru" ? "Принять" : locale === "pl" ? "Akceptuj" : "Accept"}
                 </button>
                 <button
                   type="button"
                   onClick={() => respond(request.userId, false)}
                   className={ui.btnSmall}
                 >
-                  <X className="size-4 text-red-400" /> Decline
+                  <X className="size-4 text-red-400" /> {locale === "ru" ? "Отклонить" : locale === "pl" ? "Odrzuć" : "Decline"}
                 </button>
               </li>
             ))}
@@ -259,16 +267,16 @@ export default function FriendsPage() {
         </PageSection>
       ) : null}
 
-      <PageSection heading="Friends" padded={data.friends.length === 0}>
+      <PageSection heading={copy.title} padded={data.friends.length === 0}>
         {data.friends.length === 0 ? (
           <div className="flex flex-col items-center gap-4 px-6 py-8 text-center">
             <IconChip icon={HeartHandshake} size="size-12" iconSize="size-5" />
             <div className="max-w-sm">
               <p className="text-balance font-serif text-2xl text-stone-200">
-                No party outside the party yet.
+                {locale === "ru" ? "Пока нет друзей вне вашей партии." : locale === "pl" ? "Nie ma jeszcze znajomych poza drużyną." : "No party outside the party yet."}
               </p>
               <p className="mt-2 text-pretty text-sm text-stone-500">
-                Add someone by their exact username on this server.
+                {locale === "ru" ? "Добавьте человека по точному имени на этом сервере." : locale === "pl" ? "Dodaj osobę po dokładnej nazwie użytkownika na tym serwerze." : "Add someone by their exact username on this server."}
               </p>
             </div>
           </div>
@@ -282,7 +290,7 @@ export default function FriendsPage() {
                     <span className="truncate font-medium text-stone-100">{friend.username}</span>
                     {friend.online ? (
                       <span
-                        title="Online now"
+                        title={copy.online}
                         className="size-2 shrink-0 rounded-full bg-emerald-400 shadow-[0_0_4px_rgba(52,211,153,0.7)]"
                       />
                     ) : null}
@@ -298,7 +306,7 @@ export default function FriendsPage() {
                       aria-label={`Invite ${friend.username} to a campaign`}
                       className={cn(ui.input, "w-auto max-w-40 py-1.5 text-stone-300")}
                     >
-                      <option value="">Invite to campaign...</option>
+                      <option value="">{copy.invite}</option>
                       {campaigns.map((campaign) => (
                         <option key={campaign.id} value={campaign.id}>
                           {campaign.title}
@@ -307,7 +315,7 @@ export default function FriendsPage() {
                     </select>
                   ) : null}
                   <button type="button" onClick={() => unfriend(friend)} className={ui.btnSmall}>
-                    <X className="size-4 text-red-400" /> Unfriend
+                    <X className="size-4 text-red-400" /> {copy.unfriend}
                   </button>
                 </div>
                 {rowNotes[friend.userId] ? (
@@ -327,19 +335,19 @@ export default function FriendsPage() {
       </PageSection>
 
       {data.outgoing.length > 0 ? (
-        <PageSection heading="Sent requests" padded={false}>
+        <PageSection heading={copy.sent} padded={false}>
           <ul className="divide-y divide-stone-800/70 pb-2">
             {data.outgoing.map((request) => (
               <li key={request.userId} className={ROW}>
                 <Avatar friend={request} />
                 <span className="min-w-0 flex-1 truncate text-stone-300">{request.username}</span>
-                <span className="text-xs text-stone-500">Waiting</span>
+                <span className="text-xs text-stone-500">{copy.waiting}</span>
                 <button
                   type="button"
                   onClick={() => respond(request.userId, false)}
                   className={ui.btnSmall}
                 >
-                  <X className="size-4" /> Cancel
+                  <X className="size-4" /> {copy.cancel}
                 </button>
               </li>
             ))}

@@ -21,6 +21,9 @@ import {
   type SystemId,
 } from "@/app/workshop/[workshopId]/systems";
 import type { WorkshopSummary } from "@/app/workshop/types";
+import { useI18n } from "@/lib/i18n/context";
+import { workshopCopy } from "@/app/workshop/copy";
+import { workshopSystemText } from "@/app/workshop/[workshopId]/systems";
 
 // One system, open. A way back to the hub, the system's name with its count,
 // a sideways rail to hop to a neighbour, and then the panel itself.
@@ -57,13 +60,15 @@ export function SystemView({
   onHomebrewChanged: () => void;
   onPregensChanged: () => void;
 }) {
+  const { locale } = useI18n();
+  const copy = workshopCopy(locale);
   const current = WORKSHOP_SYSTEMS.find((entry) => entry.id === system) ?? WORKSHOP_SYSTEMS[0];
-  const count = systemCount(current.id, workshop, bestiary, homebrew, pregens);
+  const count = systemCount(current.id, workshop, bestiary, homebrew, pregens, locale);
   const items: IconRailItem<SystemId>[] = WORKSHOP_SYSTEMS.map((entry) => {
-    const entryCount = systemCount(entry.id, workshop, bestiary, homebrew, pregens);
+    const entryCount = systemCount(entry.id, workshop, bestiary, homebrew, pregens, locale);
     return {
       value: entry.id,
-      label: entry.label,
+      label: workshopSystemText(locale, entry.id).label,
       icon: entry.icon,
       badge: entryCount.total || undefined,
       tour: `system-tab-${entry.id}`,
@@ -80,12 +85,12 @@ export function SystemView({
         <ArrowLeft className="size-4" /> {workshop.title}
       </button>
       <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1">
-        <h2 className="font-display text-xl tracking-wide text-amber-50">{current.label}</h2>
+        <h2 className="font-display text-xl tracking-wide text-amber-50">{workshopSystemText(locale, current.id).label}</h2>
         <span className="text-sm text-stone-500">{count.phrase}</span>
         <button
           type="button"
-          aria-label={`How ${current.label} works`}
-          title="Guide and tour for this tool"
+          aria-label={copy.guideTool}
+          title={copy.guideTool}
           onClick={onHelp}
           data-tour="system-help"
           className="ml-auto rounded-md border border-stone-700 p-1.5 text-stone-500 hover:text-stone-300"

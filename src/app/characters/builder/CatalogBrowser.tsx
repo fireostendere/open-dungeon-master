@@ -6,6 +6,8 @@ import { InfoButton } from "@/components/ui/InfoDialog";
 import { cn } from "@/lib/cn";
 import { contentSlug, describeContentEntry, spellSummary } from "@/lib/help";
 import type { PickerEntry } from "./useContentSearch";
+import { useI18n } from "@/lib/i18n/context";
+import { localeText } from "@/lib/i18n/locale-text";
 
 // The whole catalog, not just what you can name.
 //
@@ -96,6 +98,12 @@ export default function CatalogBrowser({
   // Section keys expanded (and fetched) from the first render.
   openSections?: string[];
 }) {
+  const { locale } = useI18n();
+  const copy = localeText(locale, {
+    en: { narrow: "Narrow this list...", narrowAria: "Narrow the browsed list", unavailable: "The content pack is not installed on this server, so there is nothing to list. Whoever runs it can install it with: node scripts/import-open5e.mjs", empty: "Nothing here.", homebrew: "homebrew", showing: "Showing the first", searchRest: "Search by name above for the rest." },
+    ru: { narrow: "Сузить список...", narrowAria: "Сузить просматриваемый список", unavailable: "Набор материалов не установлен на сервере, поэтому пока нечего показывать. Администратор может установить его командой: node scripts/import-open5e.mjs", empty: "Здесь ничего нет.", homebrew: "хоумбрю", showing: "Показаны первые", searchRest: "Остальные найдите поиском по названию выше." },
+    pl: { narrow: "Zawęź listę...", narrowAria: "Zawęź przeglądaną listę", unavailable: "Pakiet zawartości nie jest zainstalowany na tym serwerze, więc nie ma czego wyświetlić. Osoba zarządzająca serwerem może go zainstalować poleceniem: node scripts/import-open5e.mjs", empty: "Tu nic nie ma.", homebrew: "homebrew", showing: "Pokazano pierwsze", searchRest: "Pozostałe wyszukaj po nazwie powyżej." },
+  });
   const [open, setOpen] = useState(defaultOpen);
   const [expanded, setExpanded] = useState<string[]>(openSections);
   const [loaded, setLoaded] = useState<Record<string, Loaded>>({});
@@ -222,8 +230,8 @@ export default function CatalogBrowser({
           <input
             value={filter}
             onChange={(event) => setFilter(event.target.value)}
-            placeholder="Narrow this list..."
-            aria-label="Narrow the browsed list"
+             placeholder={copy.narrow}
+             aria-label={copy.narrowAria}
             className="mb-2 w-full rounded-md border border-stone-700/70 bg-stone-950 px-2.5 py-1.5 text-xs text-stone-200 outline-none focus:border-amber-400/60"
           />
 
@@ -315,8 +323,8 @@ export default function CatalogBrowser({
                     {!isLoading && !rows.length ? (
                       <p className="px-1 py-1 text-[11px] text-stone-500">
                         {unavailable
-                          ? "The content pack is not installed on this server, so there is nothing to list. Whoever runs it can install it with: node scripts/import-open5e.mjs"
-                          : "Nothing here."}
+                           ? copy.unavailable
+                           : copy.empty}
                       </p>
                     ) : null}
                     <ul className="max-h-72 overflow-y-auto">
@@ -358,7 +366,7 @@ export default function CatalogBrowser({
                                     </span>
                                     <span className="shrink-0 text-[11px] text-stone-500">
                                       {entry.source === "homebrew"
-                                        ? "homebrew"
+                                         ? copy.homebrew
                                         : (metaOf?.(entry) ?? "")}
                                     </span>
                                   </button>
@@ -383,7 +391,7 @@ export default function CatalogBrowser({
                     </ul>
                     {loaded[section.key]?.truncated ? (
                       <p className="px-1 pt-1 text-[11px] text-stone-500">
-                        Showing the first {rows.length}. Search by name above for the rest.
+                         {copy.showing} {rows.length}. {copy.searchRest}
                       </p>
                     ) : null}
                   </div>

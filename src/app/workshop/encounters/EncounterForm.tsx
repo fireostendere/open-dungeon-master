@@ -6,6 +6,8 @@ import { TEMPLATE_NAME_MAX } from "@/lib/dm/encounter-template-logic";
 import { MonsterRosterPicker } from "@/app/campaigns/[campaignId]/MonsterRosterPicker";
 import { EncounterExtras } from "@/app/workshop/encounters/EncounterExtras";
 import type { EncounterDraft, MapOption } from "@/app/workshop/encounters/types";
+import { useI18n } from "@/lib/i18n/context";
+import { localeText } from "@/lib/i18n/locale-text";
 
 // The prepared-encounter form: a name, the roster (picked or typed), where it
 // happens, which map, and the notes. Split out of DmEncounterPrepPanel so
@@ -36,6 +38,8 @@ export function EncounterForm({
   onSubmit: () => void;
   variant?: "card" | "sheet";
 }) {
+  const { locale } = useI18n();
+  const copy = localeText(locale, { en: { name: "Encounter name", roster: "Roster", battle: "Battlefield", map: "On which map", generator: "Generator's choice", notes: "Notes", note: "One per line, name or slug, optional xN. Picking above and typing here are the same thing." }, ru: { name: "Название встречи", roster: "Состав", battle: "Поле боя", map: "На какой карте", generator: "Выбор генератора", notes: "Заметки", note: "По одному в строке: имя или идентификатор, можно xN. Выбор выше и ввод здесь означают одно и то же." }, pl: { name: "Nazwa spotkania", roster: "Skład", battle: "Pole bitwy", map: "Na której mapie", generator: "Wybór generatora", notes: "Notatki", note: "Po jednym w wierszu: nazwa lub identyfikator, opcjonalnie xN. Wybór powyżej i wpisywanie tutaj działają tak samo." } });
   const set = (patch: Partial<EncounterDraft>) => onChange({ ...value, ...patch });
   return (
     <section
@@ -50,7 +54,7 @@ export function EncounterForm({
         maxLength={TEMPLATE_NAME_MAX}
         onChange={(event) => set({ name: event.target.value })}
         placeholder="Ambush at the ford"
-        aria-label="Encounter name"
+        aria-label={copy.name}
         className={field}
       />
       <div data-tour="encounters-picker">
@@ -65,28 +69,27 @@ export function EncounterForm({
         onChange={(event) => set({ enemies: event.target.value })}
         rows={3}
         placeholder={"goblin x4\nhobgoblin"}
-        aria-label="Roster"
+        aria-label={copy.roster}
         className={field}
       />
       <p className="text-[10px] text-stone-600">
-        One per line, name or slug, optional xN. The same shorthand Start a fight takes, so
-        picking above and typing here are the same thing.
+        {copy.note}
       </p>
       <input
         value={value.battlefield}
         onChange={(event) => set({ battlefield: event.target.value })}
         placeholder="a rope bridge over a gorge"
-        aria-label="Battlefield"
+        aria-label={copy.battle}
         className={field}
       />
       <label className="block" data-tour="encounters-map">
-        <span className="text-[10px] uppercase tracking-wide text-stone-500">On which map</span>
+        <span className="text-[10px] uppercase tracking-wide text-stone-500">{copy.map}</span>
         <select
           value={value.mapId}
           onChange={(event) => set({ mapId: event.target.value })}
           className={cn(field, "mt-0.5")}
         >
-          <option value="">Generator&apos;s choice</option>
+          <option value="">{copy.generator}</option>
           {maps.map((map) => (
             <option key={map.id} value={map.id}>
               {map.name}
@@ -106,7 +109,7 @@ export function EncounterForm({
         onChange={(event) => set({ notes: event.target.value })}
         rows={2}
         placeholder="Tactics, what they want, when they run."
-        aria-label="Notes"
+        aria-label={copy.notes}
         className={field}
       />
       <button

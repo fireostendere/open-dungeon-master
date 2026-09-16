@@ -6,6 +6,8 @@ import { MonsterTile, ui } from "@/lib/ui";
 import { crLabel } from "@/lib/bestiary/derive-cr";
 import { RatingLine } from "@/app/campaigns/[campaignId]/MonsterFields";
 import type { Monster } from "@/app/workshop/bestiary/types";
+import { useI18n } from "@/lib/i18n/context";
+import { localeText } from "@/lib/i18n/locale-text";
 
 // The workshop's bestiary list: one full-width row per built monster with
 // the numbers a DM scans a stat block for (rating, armour, hit points, how
@@ -37,10 +39,12 @@ export function MonsterRows({
   onDuplicate: (monster: Monster) => void;
   onDelete: (monster: Monster) => void;
 }) {
+  const { locale } = useI18n();
+  const copy = localeText(locale, { en: { empty: "Nothing built yet. A monster made here answers to its name wherever a fight starts.", hp: "hp", swing: "swing", swings: "swings", turn: "a turn", dex: "Dex", duplicate: "Duplicate", delete: "Delete" }, ru: { empty: "Пока ничего не создано. Монстр отсюда отвечает на своё имя в любой начавшейся схватке.", hp: "ОЗ", swing: "атака", swings: "атак", turn: "за ход", dex: "ЛВК", duplicate: "Дублировать", delete: "Удалить" }, pl: { empty: "Nie zbudowano jeszcze niczego. Potwór stąd odpowiada na swoją nazwę, gdziekolwiek zacznie się walka.", hp: "PŻ", swing: "atak", swings: "ataki", turn: "na turę", dex: "ZR", duplicate: "Duplikuj", delete: "Usuń" } });
   if (!monsters.length) {
     return (
       <p className="text-xs text-stone-500">
-        Nothing built yet. A monster made here answers to its name wherever a fight starts.
+        {copy.empty}
       </p>
     );
   }
@@ -72,20 +76,20 @@ export function MonsterRows({
                 </span>
               </div>
               <p className="mt-1 text-sm text-stone-300">
-                AC {stats.ac} · {stats.maxHp} hp
+                AC {stats.ac} · {stats.maxHp} {copy.hp}
               </p>
               <p className="text-xs text-stone-500">
-                {swings} swing{swings === 1 ? "" : "s"} a turn · Dex {signed(stats.dexMod)}
+                {swings} {swings === 1 ? copy.swing : copy.swings} {copy.turn} · {copy.dex} {signed(stats.dexMod)}
               </p>
               <div className="mt-1">
                 <RatingLine readout={monster.readout} />
               </div>
             </button>
-            <div className="flex shrink-0 items-center gap-1">
+            <div className="flex shrink-0 flex-wrap items-center gap-1">
               <button
                 type="button"
                 disabled={busy}
-                aria-label={`Duplicate ${monster.draft.name}`}
+                aria-label={`${copy.duplicate} ${monster.draft.name}`}
                 onClick={() => onDuplicate(monster)}
                 className="rounded-md p-1.5 text-stone-500 hover:text-stone-200 disabled:opacity-40"
               >
@@ -93,7 +97,7 @@ export function MonsterRows({
               </button>
               <button
                 type="button"
-                aria-label={`Delete ${monster.draft.name}`}
+                aria-label={`${copy.delete} ${monster.draft.name}`}
                 onClick={() => onDelete(monster)}
                 className="rounded-md p-1.5 text-stone-500 hover:text-red-300"
               >

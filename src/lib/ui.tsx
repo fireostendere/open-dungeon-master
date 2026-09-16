@@ -24,11 +24,11 @@ export const PIXEL_ICONS = {
 export const ui = {
   // Buttons
   btnPrimary:
-    "inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-gradient-to-b from-amber-100 via-amber-200 to-amber-400 px-4 font-display text-[13px] font-semibold uppercase tracking-[0.14em] text-amber-950 shadow-[0_1px_0_rgba(253,247,231,0.6)_inset,0_2px_8px_rgba(4,2,12,0.5)] transition-all duration-150 ease-snap hover:-translate-y-px hover:shadow-[0_1px_0_rgba(253,247,231,0.6)_inset,0_4px_16px_rgba(212,171,58,0.35)] active:translate-y-0 active:scale-[0.98] active:shadow-none disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:shadow-none",
+    "inline-flex min-h-10 max-w-full items-center justify-center gap-2 whitespace-normal rounded-lg bg-gradient-to-b from-amber-100 via-amber-200 to-amber-400 px-4 py-2 text-center font-display text-[13px] font-semibold uppercase tracking-[0.14em] text-amber-950 shadow-[0_1px_0_rgba(253,247,231,0.6)_inset,0_2px_8px_rgba(4,2,12,0.5)] transition-all duration-150 ease-snap hover:-translate-y-px hover:shadow-[0_1px_0_rgba(253,247,231,0.6)_inset,0_4px_16px_rgba(212,171,58,0.35)] active:translate-y-0 active:scale-[0.98] active:shadow-none disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:shadow-none",
   btnSecondary:
-    "inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-amber-500/25 bg-stone-900/50 px-3 font-display text-[13px] uppercase tracking-[0.12em] text-stone-200 shadow-[0_1px_0_rgba(233,230,244,0.06)_inset,0_2px_6px_rgba(4,2,12,0.4)] transition-all duration-150 ease-snap hover:border-amber-500/50 hover:bg-stone-800/70 hover:text-amber-100 hover:shadow-glow-gold active:scale-[0.98] disabled:opacity-50",
+    "inline-flex min-h-10 max-w-full items-center justify-center gap-2 whitespace-normal rounded-lg border border-amber-500/25 bg-stone-900/50 px-3 py-2 text-center font-display text-[13px] uppercase tracking-[0.12em] text-stone-200 shadow-[0_1px_0_rgba(233,230,244,0.06)_inset,0_2px_6px_rgba(4,2,12,0.4)] transition-all duration-150 ease-snap hover:border-amber-500/50 hover:bg-stone-800/70 hover:text-amber-100 hover:shadow-glow-gold active:scale-[0.98] disabled:opacity-50",
   btnSmall:
-    "inline-flex items-center gap-1.5 rounded-lg border border-stone-600/60 bg-stone-900/50 px-3 py-1.5 text-sm text-stone-300 shadow-[0_1px_0_rgba(233,230,244,0.05)_inset] transition-all duration-150 ease-snap hover:border-amber-500/40 hover:bg-stone-800/70 hover:text-amber-100 active:scale-[0.97] disabled:opacity-50",
+    "inline-flex max-w-full items-center justify-center gap-1.5 whitespace-normal rounded-lg border border-stone-600/60 bg-stone-900/50 px-3 py-1.5 text-center text-sm text-stone-300 shadow-[0_1px_0_rgba(233,230,244,0.05)_inset] transition-all duration-150 ease-snap hover:border-amber-500/40 hover:bg-stone-800/70 hover:text-amber-100 active:scale-[0.97] disabled:opacity-50",
   // Small icon action pinned to a card or message. Fades in on hover for mouse
   // users and stays visible on touch (see .reveal-on-hover in globals.css).
   // The padding keeps the tap target reachable on a phone; add a negative
@@ -52,7 +52,7 @@ export const ui = {
   // Icon rail cells: icon over a tiny eyebrow label. Active gets the gold
   // glow the session tab rail uses; the ember variant marks the party lead.
   railCell:
-    "relative flex min-w-[3.25rem] flex-col items-center gap-1 rounded-lg px-2 py-2 text-stone-500 transition-all duration-150 ease-snap hover:bg-stone-900/60 hover:text-stone-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/40",
+    "relative flex min-w-[4.5rem] flex-col items-center gap-1 rounded-lg px-2 py-2 text-center text-stone-500 transition-all duration-150 ease-snap hover:bg-stone-900/60 hover:text-stone-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/40",
   railCellActive:
     "bg-amber-400/10 text-amber-300 shadow-[0_1px_0_rgba(244,224,166,0.15)_inset,0_0_16px_rgba(212,171,58,0.12)] hover:bg-amber-400/10 hover:text-amber-300",
   railCellActiveEmber:

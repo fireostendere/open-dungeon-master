@@ -70,6 +70,7 @@ const TOOL_SOURCES = [
   "src/lib/dm/companion-tools.ts",
   "src/lib/dm/cast-tools.ts",
   "src/lib/dm/prompt.ts",
+  "src/lib/dm/prompt-core.ts",
   "src/lib/dm/note-tools.ts",
   "src/lib/dm/lore-search.ts",
   "src/lib/dm/split-damage.ts",

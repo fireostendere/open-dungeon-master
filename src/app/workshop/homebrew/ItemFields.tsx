@@ -27,6 +27,8 @@ import {
 import { DAMAGE_TYPES, input } from "@/app/workshop/homebrew/types";
 import type { Data } from "@/app/workshop/homebrew/draft";
 import { DAMAGE_TYPE_BLURBS, WEAPON_PROPERTY_BLURBS, glossaryFor } from "@/lib/help/terms";
+import { useI18n } from "@/lib/i18n/context";
+import { localeText } from "@/lib/i18n/locale-text";
 
 // "1d8 slashing" as the two things a DM actually decides. A type the list
 // does not know (a homebrew "1d6 chitin-shredding") stays in the dice box
@@ -360,6 +362,12 @@ function EffectsBlock({
 }
 
 export function ItemFields({ data, onChange }: { data: Data; onChange: (next: Data) => void }) {
+  const { locale } = useI18n();
+  const copy = localeText(locale, {
+    en: { kind: "Kind", rarity: "Rarity", mundane: "mundane", cost: "Cost", weight: "Weight (lb)", attunement: "Requires attunement", charges: "Charges", recharge: "Recharge", alsoWeapon: "It is also a weapon", alsoArmor: "It is also armour" },
+    ru: { kind: "Вид", rarity: "Редкость", mundane: "обычный", cost: "Стоимость", weight: "Вес (фнт)", attunement: "Требует настройки", charges: "Заряды", recharge: "Восстановление", alsoWeapon: "Также является оружием", alsoArmor: "Также является доспехом" },
+    pl: { kind: "Rodzaj", rarity: "Rzadkość", mundane: "zwykły", cost: "Cena", weight: "Waga (funt)", attunement: "Wymaga zestrojenia", charges: "Ładunki", recharge: "Odnowienie", alsoWeapon: "Jest też bronią", alsoArmor: "Jest też pancerzem" },
+  });
   const set = (patch: Data) => onChange({ ...data, ...patch });
   const itemKind = ITEM_KINDS.includes(data.itemKind as ItemKind) ? (data.itemKind as ItemKind) : "gear";
   const weapon = (data.weapon ?? {}) as Weapon;
@@ -371,20 +379,20 @@ export function ItemFields({ data, onChange }: { data: Data; onChange: (next: Da
     <div className="space-y-3">
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
         <SelectField
-          label="Kind"
+          label={copy.kind}
           value={itemKind}
           options={ITEM_KINDS.map((value) => ({ value, label: KIND_LABELS[value] }))}
           onChange={(next) => set({ itemKind: next })}
         />
         <SelectField
-          label="Rarity"
+          label={copy.rarity}
           value={String(data.rarity ?? "")}
-          options={[{ value: "", label: "mundane" }, ...RARITIES.map((value) => ({ value, label: value }))]}
+          options={[{ value: "", label: copy.mundane }, ...RARITIES.map((value) => ({ value, label: value }))]}
           onChange={(rarity) => set({ rarity })}
         />
-        <TextField label="Cost" value={String(data.cost ?? "")} onChange={(cost) => set({ cost })} placeholder="15 gp" maxLength={40} />
+        <TextField label={copy.cost} value={String(data.cost ?? "")} onChange={(cost) => set({ cost })} placeholder="15 gp" maxLength={40} />
         <NumberField
-          label="Weight (lb)"
+          label={copy.weight}
           value={num(data.weight)}
           min={0}
           max={GEAR_LIMITS.weightMax}
@@ -400,12 +408,12 @@ export function ItemFields({ data, onChange }: { data: Data; onChange: (next: Da
         <div className="space-y-2 rounded-md border border-stone-800 p-2">
           <div className="flex flex-wrap items-center gap-3">
             <CheckField
-              label="Requires attunement"
+              label={copy.attunement}
               checked={data.requiresAttunement === true}
               onChange={(requiresAttunement) => set({ requiresAttunement })}
             />
             <NumberField
-              label="Charges"
+              label={copy.charges}
               value={num(charges.max)}
               min={0}
               max={GEAR_LIMITS.chargesMax}
@@ -416,7 +424,7 @@ export function ItemFields({ data, onChange }: { data: Data; onChange: (next: Da
             />
             {charges.max ? (
               <TextField
-                label="Recharge"
+                label={copy.recharge}
                 value={charges.recharge ?? "dawn"}
                 onChange={(recharge) => set({ charges: { ...charges, recharge } })}
                 placeholder="dawn"
@@ -429,12 +437,12 @@ export function ItemFields({ data, onChange }: { data: Data; onChange: (next: Da
           <EffectsBlock effects={effects} onChange={(next) => set({ effects: next })} />
           <div className="flex flex-wrap gap-3">
             <CheckField
-              label="It is also a weapon"
+              label={copy.alsoWeapon}
               checked={Boolean(data.weapon)}
               onChange={(on) => set({ weapon: on ? { category: "martial", kind: "melee", damage: "1d8 slashing" } : undefined })}
             />
             <CheckField
-              label="It is also armour"
+              label={copy.alsoArmor}
               checked={Boolean(data.armor)}
               onChange={(on) => set({ armor: on ? { category: "light", baseAc: 12 } : undefined })}
             />

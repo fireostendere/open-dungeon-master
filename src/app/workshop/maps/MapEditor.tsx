@@ -18,7 +18,9 @@ import {
   type MapTools,
 } from "@/app/campaigns/[campaignId]/MapToolbox";
 import { usePainter } from "@/app/campaigns/[campaignId]/usePainter";
-import { THEME_LABELS, type LibraryState, type PreparedMap } from "@/app/workshop/maps/types";
+import type { LibraryState, PreparedMap } from "@/app/workshop/maps/types";
+import { useI18n } from "@/lib/i18n/context";
+import { localeText } from "@/lib/i18n/locale-text";
 
 // One prepared map, open for editing: the canvas, its name and dials, the
 // toolbox, the scene layer, the backdrop, and what can be done with it.
@@ -60,6 +62,8 @@ export function MapEditor({
   // The cast, for the bystander token's name dropdown.
   npcNames?: readonly string[];
 }) {
+  const { locale } = useI18n();
+  const copy = localeText(locale, { en: { name: "Map name", theme: "Theme", ambient: "Ambient light", daylight: "Daylight", dim: "Dim", dark: "Dark", tags: "Tags", tagsHint: "Tags, comma separated: crypt, undead, act two", addTag: "Add a tag you already use", notes: "Notes", notesHint: "What lives here. Nobody but you reads this.", deploy: "Put it on the table", replace: "Replace the board's ground with this map", nothing: "Nothing is on the table to replace", nobody: "There is nobody to put on it yet", occupied: "Something is already on the table", openHint: "Put the party on this map with nobody to fight", open: "Open it as a scene", duplicate: "Duplicate", forget: "Forget it", seed: "Seed", themes: { cave: "Cave", forest: "Forest", swamp: "Swamp", riverside: "Water", interior: "Indoors", field: "Open ground" } }, ru: { name: "Название карты", theme: "Тема", ambient: "Освещение", daylight: "Дневной свет", dim: "Тусклый свет", dark: "Темнота", tags: "Метки", tagsHint: "Метки через запятую: склеп, нежить, второй акт", addTag: "Добавить уже используемую метку", notes: "Заметки", notesHint: "Кто здесь живёт. Это видите только вы.", deploy: "Поместить на стол", replace: "Заменить поле на столе этой картой", nothing: "На столе нечего заменять", nobody: "Некого разместить на карте", occupied: "На столе уже есть сцена", openHint: "Поместить группу на эту карту без противников", open: "Открыть как сцену", duplicate: "Дублировать", forget: "Удалить", seed: "Зерно", themes: { cave: "Пещера", forest: "Лес", swamp: "Болото", riverside: "Вода", interior: "Интерьер", field: "Открытая местность" } }, pl: { name: "Nazwa mapy", theme: "Motyw", ambient: "Oświetlenie", daylight: "Światło dzienne", dim: "Przyćmione", dark: "Ciemność", tags: "Tagi", tagsHint: "Tagi po przecinku: krypta, nieumarli, akt drugi", addTag: "Dodaj używany tag", notes: "Notatki", notesHint: "Kto tu mieszka. Tylko Ty to widzisz.", deploy: "Umieść na stole", replace: "Zastąp planszę tą mapą", nothing: "Nie ma nic na stole do zastąpienia", nobody: "Nie ma jeszcze kogo umieścić", occupied: "Coś już jest na stole", openHint: "Umieść drużynę na tej mapie bez przeciwników", open: "Otwórz jako scenę", duplicate: "Duplikuj", forget: "Usuń", seed: "Ziarno", themes: { cave: "Jaskinia", forest: "Las", swamp: "Bagno", riverside: "Woda", interior: "Wnętrze", field: "Otwarty teren" } } });
   const canDeploy = state.board !== null;
   // Tags already used on the other maps, offered beside the tag field.
   const knownTags = collectTags(state.maps.filter((map) => map.id !== selected.id));
@@ -158,7 +162,7 @@ export function MapEditor({
         <input
           defaultValue={selected.name}
           key={`name-${selected.id}`}
-          aria-label="Map name"
+          aria-label={copy.name}
           onBlur={(event) =>
             event.target.value.trim() && event.target.value !== selected.name
               ? void patch({ name: event.target.value.trim() })
@@ -168,25 +172,25 @@ export function MapEditor({
         />
         <select
           value={selected.theme}
-          aria-label="Theme"
+          aria-label={copy.theme}
           onChange={(event) => void patch({ theme: event.target.value })}
           className="rounded-md border border-stone-700 bg-stone-950 px-1.5 py-1 text-xs text-stone-300"
         >
           {MAP_THEMES.map((theme) => (
             <option key={theme} value={theme}>
-              {THEME_LABELS[theme]}
+              {copy.themes[theme]}
             </option>
           ))}
         </select>
         <select
           value={selected.ambient}
-          aria-label="Ambient light"
+          aria-label={copy.ambient}
           onChange={(event) => void patch({ ambient: event.target.value })}
           className="rounded-md border border-stone-700 bg-stone-950 px-1.5 py-1 text-xs text-stone-300"
         >
-          <option value="bright">Daylight</option>
-          <option value="dim">Dim</option>
-          <option value="dark">Dark</option>
+          <option value="bright">{copy.daylight}</option>
+          <option value="dim">{copy.dim}</option>
+          <option value="dark">{copy.dark}</option>
         </select>
       </div>
 
@@ -194,8 +198,8 @@ export function MapEditor({
         <input
           defaultValue={selected.tags.join(", ")}
           key={`tags-${selected.id}-${selected.tags.join("|")}`}
-          aria-label="Tags"
-          placeholder="Tags, comma separated: crypt, undead, act two"
+          aria-label={copy.tags}
+          placeholder={copy.tagsHint}
           onBlur={(event) => {
             const tags = event.target.value
               .split(",")
@@ -208,7 +212,7 @@ export function MapEditor({
           className="min-w-40 flex-1 rounded-md border border-stone-700 bg-stone-950 px-2 py-1 text-xs text-stone-300"
         />
         <AddFromList
-          prompt="Add a tag you already use"
+          prompt={copy.addTag}
           options={knownTags.filter((tag) => !selected.tags.includes(tag))}
           onPick={(tag) => void patch({ tags: [...selected.tags, tag] })}
         />
@@ -217,12 +221,12 @@ export function MapEditor({
       <textarea
         defaultValue={selected.notes}
         key={`notes-${selected.id}`}
-        aria-label="Notes"
+        aria-label={copy.notes}
         onBlur={(event) =>
           event.target.value !== selected.notes ? void patch({ notes: event.target.value }) : undefined
         }
         rows={2}
-        placeholder="What lives here. Nobody but you reads this."
+        placeholder={copy.notesHint}
         className="w-full rounded-md border border-stone-700 bg-stone-950 px-2 py-1 text-xs text-stone-300"
       />
 
@@ -239,11 +243,11 @@ export function MapEditor({
         <button
           type="button"
           disabled={busy || !canDeploy}
-          title={canDeploy ? "Replace the board's ground with this map" : "Nothing is on the table to replace"}
+          title={canDeploy ? copy.replace : copy.nothing}
           onClick={() => void act("deploy")}
           className="flex items-center gap-1 rounded-md border border-amber-700 bg-amber-950/50 px-2 py-1 text-xs text-amber-100 disabled:opacity-40"
         >
-          <Upload className="size-3" /> Put it on the table
+          <Upload className="size-3" /> {copy.deploy}
         </button>
         {state.workshop ? null : (
           <button
@@ -251,25 +255,25 @@ export function MapEditor({
             disabled={busy || !state.hasParty || state.board !== null}
             title={
               !state.hasParty
-                ? "There is nobody to put on it yet"
+                ? copy.nobody
                 : state.board
-                  ? "Something is already on the table"
-                  : "Put the party on this map with nobody to fight"
+                  ? copy.occupied
+                  : copy.openHint
             }
             onClick={() => void act("open-scene")}
             className="flex items-center gap-1 rounded-md border border-stone-700 px-2 py-1 text-xs text-stone-300 hover:bg-stone-900 disabled:opacity-40"
           >
-            <Play className="size-3" /> Open it as a scene
+            <Play className="size-3" /> {copy.open}
           </button>
         )}
         <button
           type="button"
           disabled={busy}
-          aria-label={`Duplicate ${selected.name}`}
+          aria-label={`${copy.duplicate} ${selected.name}`}
           onClick={() => void duplicate()}
           className="flex items-center gap-1 rounded-md border border-stone-700 px-2 py-1 text-xs text-stone-300 hover:bg-stone-900 disabled:opacity-50"
         >
-          <Copy className="size-3" /> Duplicate
+          <Copy className="size-3" /> {copy.duplicate}
         </button>
         <button
           type="button"
@@ -277,10 +281,10 @@ export function MapEditor({
           onClick={() => void remove()}
           className="ml-auto flex items-center gap-1 rounded-md border border-stone-700 px-2 py-1 text-xs text-stone-500 hover:text-red-300 disabled:opacity-50"
         >
-          <Trash2 className="size-3" /> Forget it
+          <Trash2 className="size-3" /> {copy.forget}
         </button>
       </div>
-      {selected.seed ? <p className="text-[10px] text-stone-600">Seed {selected.seed}.</p> : null}
+      {selected.seed ? <p className="text-[10px] text-stone-600">{copy.seed} {selected.seed}.</p> : null}
     </section>
   );
 }

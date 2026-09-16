@@ -9,6 +9,8 @@ import { ALL_SKILLS } from "@/lib/content/mechanics";
 import { contentSlug, describeSkill } from "@/lib/help";
 import { SRD_SKILLS } from "@/lib/srd";
 import { ABILITIES, type Ability } from "@/lib/schemas/sheet";
+import { useI18n } from "@/lib/i18n/context";
+import { localeText } from "@/lib/i18n/locale-text";
 
 const ABILITY_NAMES: Record<Ability, string> = {
   str: "Strength",
@@ -54,6 +56,13 @@ export function RacialChoicesSection({
   onToolChange: (tool: string) => void;
   inputClass: string;
 }) {
+  const { locale } = useI18n();
+  const copy = localeText(locale, {
+    en: { choices: "choices", ability: "Ability", increases: "increases", abilitiesChoice: "abilities of your choice", abilityIncrease: "Ability increase", chooseAbility: "Choose an ability...", what: "what is this?", skill: "Skill", proficiencies: "proficiencies", choice: "of your choice", skillProficiency: "Skill proficiency", chooseSkill: "Choose a skill...", tool: "Tool proficiency", chooseTool: "Choose a tool...", bonus: "Bonus", one: "one", cantrip: "cantrip", cantripHelp: "A cantrip is a small spell you can cast as often as you like, forever. Pick one from the list below (tap ⓘ to read what each does), or search by name if you already have one in mind.", change: "Change", every: "Every", orSearch: "Or search by name:", searchCantrips: "Search cantrips (e.g. fire bolt)" },
+    ru: { choices: "выборы", ability: "Характеристика", increases: "увеличения", abilitiesChoice: "характеристик на выбор", abilityIncrease: "Увеличение характеристики", chooseAbility: "Выберите характеристику...", what: "что это?", skill: "Навык", proficiencies: "владения", choice: "на выбор", skillProficiency: "Владение навыком", chooseSkill: "Выберите навык...", tool: "Владение инструментом", chooseTool: "Выберите инструмент...", bonus: "Дополнительный", one: "один", cantrip: "заговор", cantripHelp: "Заговор — это небольшое заклинание, которое можно накладывать сколько угодно раз. Выберите его из списка ниже (нажмите ⓘ, чтобы прочитать описание) или найдите по названию.", change: "Изменить", every: "Все", orSearch: "Или найдите по названию:", searchCantrips: "Искать заговоры (например: огненный снаряд)" },
+    pl: { choices: "wybory", ability: "Cecha", increases: "zwiększenia", abilitiesChoice: "cech do wyboru", abilityIncrease: "Zwiększenie cechy", chooseAbility: "Wybierz cechę...", what: "co to jest?", skill: "Umiejętność", proficiencies: "biegłości", choice: "do wyboru", skillProficiency: "Biegłość w umiejętności", chooseSkill: "Wybierz umiejętność...", tool: "Biegłość w narzędziu", chooseTool: "Wybierz narzędzie...", bonus: "Dodatkowa", one: "jedna", cantrip: "sztuczka", cantripHelp: "Sztuczka to małe zaklęcie, które możesz rzucać dowolnie często. Wybierz jedną z listy poniżej (dotknij ⓘ, aby przeczytać opis) lub wyszukaj po nazwie.", change: "Zmień", every: "Każda", orSearch: "Albo wyszukaj po nazwie:", searchCantrips: "Szukaj sztuczek (np. ognisty pocisk)" },
+  });
+  const abilityNames = localeText(locale, { en: ABILITY_NAMES, ru: { str: "Сила", dex: "Ловкость", con: "Телосложение", int: "Интеллект", wis: "Мудрость", cha: "Харизма" }, pl: { str: "Siła", dex: "Zręczność", con: "Kondycja", int: "Inteligencja", wis: "Mądrość", cha: "Charyzma" } });
   const hasChoices = Boolean(
     race.asiChoice || race.skillChoice || race.cantripChoice || race.toolChoice,
   );
@@ -67,13 +76,12 @@ export function RacialChoicesSection({
 
   return (
     <div className="space-y-3 rounded-lg border border-amber-900/40 bg-amber-950/10 p-3">
-      <p className="text-xs text-amber-200/90">{race.name} choices</p>
+       <p className="text-xs text-amber-200/90">{race.name}: {copy.choices}</p>
 
       {race.asiChoice ? (
         <div>
           <span className="mb-1 flex flex-wrap items-center gap-1 text-stone-400">
-            <GameTerm id="ability_score">Ability</GameTerm> increases (+{race.asiChoice.amount} to{" "}
-            {race.asiChoice.count} abilities of your choice)
+             <GameTerm id="ability_score">{copy.ability}</GameTerm> {copy.increases} (+{race.asiChoice.amount} {copy.abilitiesChoice}: {race.asiChoice.count})
           </span>
           <div className="grid grid-cols-2 gap-2">
             {Array.from({ length: race.asiChoice.count }, (_, index) => (
@@ -82,22 +90,22 @@ export function RacialChoicesSection({
                   value={asi[index] ?? ""}
                   onChange={(event) => onAsiChange(index, event.target.value as Ability | "")}
                   className={inputClass}
-                  aria-label={`Ability increase ${index + 1}`}
+                   aria-label={`${copy.abilityIncrease} ${index + 1}`}
                 >
-                  <option value="">Choose an ability...</option>
+                   <option value="">{copy.chooseAbility}</option>
                   {ABILITIES.filter(
                     (ability) =>
                       !fixedAbilities.has(ability) &&
                       (asi[index] === ability || !asi.includes(ability)),
                   ).map((ability) => (
                     <option key={ability} value={ability}>
-                      {ABILITY_NAMES[ability]}
+                       {abilityNames[ability]}
                     </option>
                   ))}
                 </select>
                 {asi[index] ? (
                   <GameTerm id={asi[index] as Ability} className="shrink-0 text-xs text-stone-500">
-                    what is this?
+                     {copy.what}
                   </GameTerm>
                 ) : null}
               </span>
@@ -109,8 +117,7 @@ export function RacialChoicesSection({
       {race.skillChoice ? (
         <div>
           <span className="mb-1 flex flex-wrap items-center gap-1 text-stone-400">
-            <GameTerm id="skill">Skill</GameTerm> proficiencies ({race.skillChoice.count} of your
-            choice)
+             <GameTerm id="skill">{copy.skill}</GameTerm> {copy.proficiencies} ({race.skillChoice.count} {copy.choice})
           </span>
           <div className="grid grid-cols-2 gap-2">
             {Array.from({ length: race.skillChoice.count }, (_, index) => (
@@ -119,9 +126,9 @@ export function RacialChoicesSection({
                   value={skills[index] ?? ""}
                   onChange={(event) => onSkillsChange(index, event.target.value)}
                   className={inputClass}
-                  aria-label={`Skill proficiency ${index + 1}`}
+                   aria-label={`${copy.skillProficiency} ${index + 1}`}
                 >
-                  <option value="">Choose a skill...</option>
+                   <option value="">{copy.chooseSkill}</option>
                   {ALL_SKILLS.filter(
                     (skill) =>
                       skills[index] === skill ||
@@ -146,13 +153,13 @@ export function RacialChoicesSection({
 
       {race.toolChoice ? (
         <label className="block">
-          <span className="mb-1 block text-stone-400">Tool proficiency</span>
+           <span className="mb-1 block text-stone-400">{copy.tool}</span>
           <select
             value={tool}
             onChange={(event) => onToolChange(event.target.value)}
             className={inputClass}
           >
-            <option value="">Choose a tool...</option>
+             <option value="">{copy.chooseTool}</option>
             {race.toolChoice.from.map((entry) => (
               <option key={entry} value={entry}>
                 {entry}
@@ -165,13 +172,10 @@ export function RacialChoicesSection({
       {race.cantripChoice ? (
         <div>
           <span className="mb-1 flex flex-wrap items-center gap-1 text-stone-400">
-            Bonus <GameTerm id="cantrip">cantrip</GameTerm> (one {race.cantripChoice.list}{" "}
-            cantrip)
+             {copy.bonus} <GameTerm id="cantrip">{copy.cantrip}</GameTerm> ({copy.one} {race.cantripChoice.list} {copy.cantrip})
           </span>
           <p className="mb-1.5 text-xs text-stone-500">
-            A cantrip is a small spell you can cast as often as you like, forever. Pick one from
-            the list below (tap ⓘ to read what each does), or search by name if you already have
-            one in mind.
+             {copy.cantripHelp}
           </p>
           {cantrip ? (
             <div className="mb-1.5 flex items-center gap-2">
@@ -187,7 +191,7 @@ export function RacialChoicesSection({
                 onClick={() => onCantripChange("")}
                 className="text-xs text-stone-500 hover:text-stone-300"
               >
-                Change
+                 {copy.change}
               </button>
             </div>
           ) : (
@@ -197,7 +201,7 @@ export function RacialChoicesSection({
                   with the ⓘ that says what it does; the search is second. */}
               <CatalogBrowser
                 kind="spells"
-                buttonLabel={`Every ${race.cantripChoice.list} cantrip`}
+                 buttonLabel={`${copy.every} ${race.cantripChoice.list} ${copy.cantrip}`}
                 defaultOpen
                 openSections={[`cantrips:${race.cantripChoice.list}`]}
                 selectedNames={cantrip ? [cantrip] : []}
@@ -205,17 +209,17 @@ export function RacialChoicesSection({
                 sections={[
                   {
                     key: `cantrips:${race.cantripChoice.list}`,
-                    label: `Every ${race.cantripChoice.list} cantrip`,
+                     label: `${copy.every} ${race.cantripChoice.list} ${copy.cantrip}`,
                     params: { class: race.cantripChoice.list, level: "0" },
                   },
                 ]}
                 metaOf={(entry) => entry.school ?? ""}
               />
-              <p className="mt-2 mb-1 text-xs text-stone-500">Or search by name:</p>
+               <p className="mt-2 mb-1 text-xs text-stone-500">{copy.orSearch}</p>
               <ContentPicker
                 kind="spells"
                 extraParams={{ class: race.cantripChoice.list, level: "0" }}
-                placeholder="Search cantrips (e.g. fire bolt)"
+                 placeholder={copy.searchCantrips}
                 onPick={(entry) => onCantripChange(entry.name)}
               />
             </>

@@ -7,6 +7,8 @@ import { MonsterTile } from "@/lib/ui";
 import { HEALTH_COLORS } from "@/lib/bestiary/health";
 import { DmInitiativePanel } from "@/app/campaigns/[campaignId]/DmInitiativePanel";
 import type { PublicEncounter } from "@/lib/db/encounter-view";
+import { useI18n } from "@/lib/i18n/context";
+import { localeText } from "@/lib/i18n/locale-text";
 
 function crLabel(cr: number): string {
   if (cr === 0.125) return "1/8";
@@ -35,6 +37,8 @@ export function EncounterPanel({
   // The table's setting, so a high-rating enemy draws the genre's boss plate.
   genre?: string | null;
 }) {
+  const { locale } = useI18n();
+  const copy = localeText(locale, { en: { confirm: "End this encounter without a resolution? No XP is awarded.", combat: "Combat", round: "Round", rolling: "Rolling initiative", force: "Force-end the encounter (lead only)", end: "End encounter", of: "of", standing: "standing", fled: "fled", rounds: "rd", hidden: "hidden" }, ru: { confirm: "Завершить эту встречу без исхода? Опыт не начисляется.", combat: "Бой", round: "Раунд", rolling: "Бросок инициативы", force: "Принудительно завершить встречу (только ведущий)", end: "Завершить встречу", of: "из", standing: "на ногах", fled: "сбежал", rounds: "раунд.", hidden: "скрыт" }, pl: { confirm: "Zakończyć to starcie bez rozstrzygnięcia? Nie przyznano PD.", combat: "Walka", round: "Runda", rolling: "Rzut inicjatywy", force: "Wymuś zakończenie starcia (tylko prowadzący)", end: "Zakończ starcie", of: "z", standing: "stoi", fled: "uciekł", rounds: "r.", hidden: "ukryty" } });
   const [ending, setEnding] = useState(false);
   const [openGroups, setOpenGroups] = useState<string[]>([]);
 
@@ -52,7 +56,7 @@ export function EncounterPanel({
   }, [encounter.enemies]);
 
   async function forceEnd() {
-    if (!window.confirm("End this encounter without a resolution? No XP is awarded.")) {
+    if (!window.confirm(copy.confirm)) {
       return;
     }
     setEnding(true);
@@ -73,7 +77,7 @@ export function EncounterPanel({
       <header className="mb-2 flex items-center justify-between">
         <h2 className="flex items-center gap-1.5 text-sm font-semibold text-red-300">
           <Swords className="size-4" />
-          Combat{encounter.orderReady ? ` · Round ${encounter.round}` : " · Rolling initiative"}
+           {copy.combat}{encounter.orderReady ? ` · ${copy.round} ${encounter.round}` : ` · ${copy.rolling}`}
         </h2>
         {steersStory ? (
           <button
@@ -81,9 +85,9 @@ export function EncounterPanel({
             onClick={forceEnd}
             disabled={ending}
             className="text-xs text-stone-500 hover:text-red-300 disabled:opacity-50"
-            title="Force-end the encounter (lead only)"
+             title={copy.force}
           >
-            End encounter
+             {copy.end}
           </button>
         ) : null}
       </header>
@@ -107,8 +111,7 @@ export function EncounterPanel({
                         className="flex w-full items-center gap-1 text-xs text-stone-500 hover:text-stone-300"
                       >
                         <ChevronDown className="size-3.5" />
-                        {group.members[0].name.replace(/\s+\d+$/, "")} · {standing.length} of{" "}
-                        {group.members.length} standing
+                         {group.members[0].name.replace(/\s+\d+$/, "")} · {standing.length} {copy.of} {group.members.length} {copy.standing}
                       </button>
                     </li>,
                   ];
@@ -134,7 +137,7 @@ export function EncounterPanel({
                   </span>
                 </span>
                 <span className="ml-2 shrink-0 text-[10px] text-stone-500">
-                  {standing.length} standing
+                   {standing.length} {copy.standing}
                 </span>
               </button>
             </li>,
@@ -188,7 +191,7 @@ export function EncounterPanel({
                     HEALTH_COLORS[enemy.status === "fled" ? "dead" : enemy.health],
                   )}
                 >
-                  {enemy.status === "fled" ? "fled" : enemy.health}
+                   {enemy.status === "fled" ? copy.fled : enemy.health}
                 </span>
                 {/* DM only: publicEncounter attaches these for the seat that
                     is allowed them, so their presence is the permission. */}
@@ -207,7 +210,7 @@ export function EncounterPanel({
                     >
                       {condition}
                       {enemy.conditionRounds?.[condition]
-                        ? ` (${enemy.conditionRounds[condition]} rd)`
+                         ? ` (${enemy.conditionRounds[condition]} ${copy.rounds})`
                         : ""}
                     </span>
                   ))}

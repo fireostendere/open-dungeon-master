@@ -12,9 +12,11 @@ import { ImportBundleButton } from "@/app/workshop/ImportBundleButton";
 import { WorkshopHelpDialog } from "@/components/WorkshopHelpDialog";
 import { GuidedTour } from "@/components/ui/GuidedTour";
 import { markTourSeen, tourSeen } from "@/lib/tours/logic";
-import { SHELF_TOUR, SHELF_TOUR_ID } from "@/lib/tours/workshop";
+import { SHELF_TOUR_ID, workshopTour } from "@/lib/tours/workshop";
 import type { WorkshopSummary } from "@/app/workshop/types";
 import { navigateTo } from "@/lib/navigation";
+import { useI18n } from "@/lib/i18n/context";
+import { interpolateWorkshop, workshopCopy } from "@/app/workshop/copy";
 
 // The shelf. A workshop is a place to build maps, NPCs, monsters, story and
 // rules before any table exists, and to import them into a campaign later
@@ -25,6 +27,8 @@ import { navigateTo } from "@/lib/navigation";
 // top of it as their own buttons, since a button cannot live inside a link.
 
 export default function WorkshopListPage() {
+  const { locale } = useI18n();
+  const copy = workshopCopy(locale);
   const [workshops, setWorkshops] = useState<WorkshopSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
@@ -86,7 +90,7 @@ export default function WorkshopListPage() {
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) {
-        setError(data.error || "Could not create that workshop.");
+        setError(data.error || copy.createError);
         return;
       }
       navigateTo(`/workshop/${data.workshop.id}`);
@@ -118,7 +122,7 @@ export default function WorkshopListPage() {
   async function remove(workshop: WorkshopSummary) {
     if (
       !window.confirm(
-        `Delete "${workshop.title}"? Every map, NPC, table and note in it is lost. Anything already imported into a campaign stays there.`,
+        interpolateWorkshop(copy.deleteConfirm, { title: workshop.title }),
       )
     ) {
       return;
@@ -133,19 +137,18 @@ export default function WorkshopListPage() {
     <main className="mx-auto w-full max-w-4xl flex-1 p-4 sm:p-6">
       <AppHeader />
       <header className="mb-6">
-        <div className="flex items-center gap-3">
+        <div className="flex min-w-0 items-start gap-3">
           <IconChip icon={Hammer} size="size-10" iconSize="size-5" />
-          <div>
-            <h1 className="font-display text-xl tracking-wide text-amber-50">Workshop</h1>
+          <div className="min-w-0">
+            <h1 className="font-display text-xl tracking-wide text-amber-50">{copy.title}</h1>
             <p className="text-sm text-stone-500">
-              Build maps, NPCs, monsters, story and rules before the table exists. Import any of
-              it when you start a campaign.
+              {copy.intro}
             </p>
           </div>
           <button
             type="button"
-            aria-label="How workshops work"
-            title="Guides and tours"
+            aria-label={copy.help}
+            title={copy.guides}
             onClick={() => setHelpOpen(true)}
             data-tour="shelf-help"
             className="ml-auto self-start rounded-md border border-stone-700 p-1.5 text-stone-500 hover:text-stone-300"
@@ -159,31 +162,31 @@ export default function WorkshopListPage() {
         onOpenChange={setHelpOpen}
         tours={[
           {
-            label: "Tour the shelf",
-            detail: "Starting a workshop, importing a bundle, and what the tiles do.",
+            label: locale === "ru" ? "Тур по списку" : locale === "pl" ? "Wycieczka po liście" : "Tour the shelf",
+            detail: locale === "ru" ? "Создание мастерской, импорт набора и карточки." : locale === "pl" ? "Tworzenie warsztatu, import pakietu i karty." : "Starting a workshop, importing a bundle, and what the tiles do.",
             onStart: () => setTouring(true),
           },
         ]}
       />
-      <GuidedTour open={touring} steps={SHELF_TOUR} onClose={closeTour} />
+      <GuidedTour open={touring} steps={workshopTour(locale, "shelf")} onClose={closeTour} />
 
       <section className="mb-6">
         {creating ? (
           <form onSubmit={create} className={`${ui.card} ornate space-y-3 p-4`}>
-            <p className="font-display tracking-wide text-amber-50">New workshop</p>
+            <p className="font-display tracking-wide text-amber-50">{copy.new}</p>
             <label className="block">
-              <span className="mb-1 block text-xs text-stone-400">Name</span>
+              <span className="mb-1 block text-xs text-stone-400">{copy.name}</span>
               <input
                 autoFocus
                 value={title}
                 onChange={(event) => setTitle(event.target.value)}
                 maxLength={80}
-                placeholder="The Saltmarch campaign, Session zero prep..."
+                placeholder={copy.namePlaceholder}
                 className={ui.input}
               />
             </label>
             <div>
-              <span className="mb-1 block text-xs text-stone-400">Building for a party of</span>
+              <span className="mb-1 block text-xs text-stone-400">{copy.buildingFor}</span>
               <div className="flex flex-wrap items-center gap-2">
                 <input
                   type="number"
@@ -193,7 +196,7 @@ export default function WorkshopListPage() {
                   onChange={(event) => setSize(Number(event.target.value))}
                   className={`${ui.input} w-20`}
                 />
-                <span className="text-sm text-stone-400">heroes at level</span>
+                <span className="text-sm text-stone-400">{copy.heroesAtLevel}</span>
                 <input
                   type="number"
                   min={1}
@@ -204,14 +207,13 @@ export default function WorkshopListPage() {
                 />
               </div>
               <span className="mt-1 block text-xs text-stone-500">
-                The encounter calculator and the odds preview budget against this. Change it
-                anytime.
+                {copy.budgetHint}
               </span>
             </div>
             {error ? <p className="text-sm text-red-400">{error}</p> : null}
             <div className="flex gap-2">
               <button type="submit" disabled={busy || !title.trim()} className={ui.btnPrimary}>
-                {busy ? <Loader2 className="size-4 animate-spin" /> : null} Create
+                {busy ? <Loader2 className="size-4 animate-spin" /> : null} {copy.create}
               </button>
               <button
                 type="button"
@@ -221,7 +223,7 @@ export default function WorkshopListPage() {
                 }}
                 className={ui.btnSecondary}
               >
-                Cancel
+                {copy.cancel}
               </button>
             </div>
           </form>
@@ -233,7 +235,7 @@ export default function WorkshopListPage() {
               data-tour="shelf-new"
               className={ui.btnPrimary}
             >
-              <Plus className="size-4" /> New workshop
+              <Plus className="size-4" /> {copy.new}
             </button>
             <div data-tour="shelf-import">
               <ImportBundleButton />
@@ -269,8 +271,7 @@ export default function WorkshopListPage() {
                   {workshop.title}
                 </span>
                 <span className="text-xs text-stone-500">
-                  Party of {workshop.gameSettings.targetParty.size} at level{" "}
-                  {workshop.gameSettings.targetParty.level}
+                  {interpolateWorkshop(copy.partyOf, { size: workshop.gameSettings.targetParty.size, level: workshop.gameSettings.targetParty.level })}
                 </span>
               </Link>
               <div className="absolute right-2 top-2 flex gap-0.5">
@@ -278,8 +279,8 @@ export default function WorkshopListPage() {
                   type="button"
                   disabled={cloningId === workshop.id}
                   onClick={() => void clone(workshop)}
-                  aria-label={`Duplicate ${workshop.title}`}
-                  title="Duplicate this workshop and everything in it"
+                  aria-label={`${copy.duplicate} ${workshop.title}`}
+                  title={copy.duplicate}
                   className={ui.iconAction}
                 >
                   {cloningId === workshop.id ? (
@@ -291,7 +292,7 @@ export default function WorkshopListPage() {
                 <button
                   type="button"
                   onClick={() => void remove(workshop)}
-                  aria-label={`Delete ${workshop.title}`}
+                  aria-label={`${copy.delete} ${workshop.title}`}
                   className={ui.iconAction}
                 >
                   <Trash2 className="size-4" />
@@ -303,9 +304,9 @@ export default function WorkshopListPage() {
       ) : (
         <div className={`${ui.card} ornate p-8 text-center`}>
           <IconChip icon={Hammer} className="mx-auto mb-3" />
-          <p className="font-display tracking-wide text-amber-50">No workshops yet.</p>
+          <p className="font-display tracking-wide text-amber-50">{copy.empty}</p>
           <p className="mt-1 text-sm text-stone-500">
-            A workshop is yours alone. Nothing in it reaches a table until you import it.
+            {copy.emptyHint}
           </p>
         </div>
       )}

@@ -16,8 +16,13 @@ import { Sheet } from "@/components/ui/Sheet";
 import { useTourPrepare } from "@/lib/tours/prepare";
 import { appendLine } from "@/lib/workshop/pickers";
 import { RefPicker } from "@/app/workshop/tables/RefPicker";
-import { inputClass, StatblockFinder } from "@/app/workshop/tables/StatblockFinder";
+import {
+  inputClass,
+  StatblockFinder,
+} from "@/app/workshop/tables/StatblockFinder";
 import { TableRows, type RollResult } from "@/app/workshop/tables/TableRows";
+import { useI18n } from "@/lib/i18n/context";
+import { localeText } from "@/lib/i18n/locale-text";
 
 // The DM's random tables, and the monster lookup beside them. Both are the
 // DM's own reference: rolling a table writes an ordinary roll everyone can
@@ -36,6 +41,42 @@ export function DmTablesPanel({
   campaignId: string;
   layout?: "list" | "rows";
 }) {
+  const { locale } = useI18n();
+  const copy = localeText(locale, {
+    en: {
+      failed: "That did not work.", tables: "Your tables", new: "New table", roll: "Roll",
+      loading: "Loading...",
+      empty: "No tables yet. Paste one in below.",
+      duplicate: "Duplicate",
+      delete: "Delete",
+      deleteTitle: "Delete this table",
+      save: "Save table", missingResult: "Nothing. That result is not on the table.", promptExample: "Rumours in the Salt Wharf", coverage: (count: number, die: number) => `${count} rows, rolled on a d${die}.`, uncovered: (values: string) => ` Nothing on ${values}.`, overlapping: (values: string) => ` Two rows both cover ${values}.`, withoutReplacement: "Draw without replacement", reset: (count: number) => `Reset (${count} dealt)`, formatHint: "Bare rows can carry a weight (x3 A goblin patrol). A row can be a thing: @table: Gems rolls that table too; @monster: wolf, @item: Potion of Healing, @npc: Marla name what they are. The picker above writes those rows for you.",
+    },
+    ru: {
+      failed: "Не удалось выполнить действие.",
+      tables: "Ваши таблицы",
+      new: "Новая таблица",
+      roll: "Бросить",
+      loading: "Загрузка...",
+      empty: "Таблиц пока нет. Вставьте одну ниже.",
+      duplicate: "Дублировать",
+      delete: "Удалить",
+      deleteTitle: "Удалить эту таблицу",
+      save: "Сохранить таблицу", missingResult: "Ничего. Такого результата нет в таблице.", promptExample: "Слухи в Соляной пристани", coverage: (count: number, die: number) => `${count} строк, бросок d${die}.`, uncovered: (values: string) => ` Нет результата для ${values}.`, overlapping: (values: string) => ` Две строки покрывают ${values}.`, withoutReplacement: "Тянуть без повторов", reset: (count: number) => `Сбросить (${count} вытянуто)`, formatHint: "Обычные строки могут иметь вес (x3 Патруль гоблинов). Строка может ссылаться на объект: @table: Самоцветы также бросает эту таблицу; @monster: волк, @item: Зелье лечения, @npc: Марла задают его тип. Выбор выше добавляет такие строки.",
+    },
+    pl: {
+      failed: "Nie udało się wykonać działania.",
+      tables: "Twoje tabele",
+      new: "Nowa tabela",
+      roll: "Rzuć",
+      loading: "Ładowanie...",
+      empty: "Nie ma jeszcze tabel. Wklej jedną poniżej.",
+      duplicate: "Duplikuj",
+      delete: "Usuń",
+      deleteTitle: "Usuń tę tabelę",
+      save: "Zapisz tabelę", missingResult: "Nic. Tego wyniku nie ma w tabeli.", promptExample: "Plotki w Solnym Nabrzeżu", coverage: (count: number, die: number) => `${count} wierszy, rzut d${die}.`, uncovered: (values: string) => ` Brak wyniku dla ${values}.`, overlapping: (values: string) => ` Dwa wiersze obejmują ${values}.`, withoutReplacement: "Losuj bez powtórzeń", reset: (count: number) => `Zresetuj (${count} wylosowano)`, formatHint: "Zwykłe wiersze mogą mieć wagę (x3 Patrol goblinów). Wiersz może być rzeczą: @table: Klejnoty też losuje tę tabelę; @monster: wilk, @item: Mikstura leczenia, @npc: Marla określają, czym jest. Selektor powyżej wpisuje takie wiersze.",
+    },
+  });
   const [tables, setTables] = useState<RollTable[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [name, setName] = useState("");
@@ -58,7 +99,9 @@ export function DmTablesPanel({
 
   const load = useCallback(async () => {
     try {
-      const response = await fetch(`/api/campaigns/${campaignId}/dm/roll-tables`);
+      const response = await fetch(
+        `/api/campaigns/${campaignId}/dm/roll-tables`,
+      );
       if (!response.ok) {
         return;
       }
@@ -83,11 +126,14 @@ export function DmTablesPanel({
     setBusy("draft");
     setError("");
     try {
-      const response = await fetch(`/api/campaigns/${campaignId}/dm/roll-tables/generate`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt: prompt.trim(), rows: 12 }),
-      });
+      const response = await fetch(
+        `/api/campaigns/${campaignId}/dm/roll-tables/generate`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ prompt: prompt.trim(), rows: 12 }),
+        },
+      );
       const data = await response.json().catch(() => ({}));
       if (!response.ok) {
         setError(data.error || "Could not draft that.");
@@ -162,8 +208,12 @@ export function DmTablesPanel({
       setResult({
         tableId: table.id,
         total: data.total,
-        text: data.final?.text ?? data.entry?.text ?? "Nothing. That result is not on the table.",
-        chain: Array.isArray(data.chain) && data.chain.length > 1 ? data.chain : [],
+        text:
+          data.final?.text ??
+          data.entry?.text ??
+          copy.missingResult,
+        chain:
+          Array.isArray(data.chain) && data.chain.length > 1 ? data.chain : [],
         remaining: typeof data.remaining === "number" ? data.remaining : null,
       });
       // A no-replacement draw changed the table's memory; the rows show it.
@@ -182,11 +232,14 @@ export function DmTablesPanel({
     setBusy(table.id);
     setError("");
     try {
-      const response = await fetch(`/api/campaigns/${campaignId}/dm/roll-tables/${table.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ reset: true }),
-      });
+      const response = await fetch(
+        `/api/campaigns/${campaignId}/dm/roll-tables/${table.id}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ reset: true }),
+        },
+      );
       if (!response.ok) {
         const data = await response.json().catch(() => ({}));
         setError(data.error || "Could not reset that.");
@@ -221,14 +274,17 @@ export function DmTablesPanel({
     setBusy(`copy-${table.id}`);
     setError("");
     try {
-      const response = await fetch(`/api/campaigns/${campaignId}/dm/roll-tables`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: `${table.name} (copy)`.slice(0, TABLE_NAME_MAX),
-          text: formatRollTable(table.entries),
-        }),
-      });
+      const response = await fetch(
+        `/api/campaigns/${campaignId}/dm/roll-tables`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: `${table.name} (copy)`.slice(0, TABLE_NAME_MAX),
+            text: formatRollTable(table.entries),
+          }),
+        },
+      );
       if (!response.ok) {
         const data = await response.json().catch(() => ({}));
         setError(data.error || "Could not copy that.");
@@ -276,8 +332,10 @@ export function DmTablesPanel({
     <>
       <input
         value={name}
-        onChange={(event) => setName(event.target.value.slice(0, TABLE_NAME_MAX))}
-        placeholder="Rumours in the Salt Wharf"
+        onChange={(event) =>
+          setName(event.target.value.slice(0, TABLE_NAME_MAX))
+        }
+        placeholder={copy.promptExample}
         data-tour="tables-name"
         className={inputClass}
       />
@@ -309,7 +367,9 @@ export function DmTablesPanel({
         value={text}
         onChange={(event) => setText(event.target.value)}
         rows={rows ? 10 : 5}
-        placeholder={"1-3 A press gang is working the taproom.\n4. The harbourmaster has not been seen in a week.\nOr just paste a table straight out of a book."}
+        placeholder={
+          "1-3 A press gang is working the taproom.\n4. The harbourmaster has not been seen in a week.\nOr just paste a table straight out of a book."
+        }
         data-tour="tables-body"
         className={cn(inputClass, "mt-1.5 resize-y font-mono text-xs")}
       />
@@ -323,12 +383,12 @@ export function DmTablesPanel({
       </div>
       {draftEntries.length ? (
         <p className="mt-1 text-[11px] text-stone-500">
-          {draftEntries.length} rows, rolled on a d{dieForTable(draftEntries)}.
+          {copy.coverage(draftEntries.length, dieForTable(draftEntries))}
           {gaps?.uncovered.length
-            ? ` Nothing on ${gaps.uncovered.join(", ")}.`
+            ? copy.uncovered(gaps.uncovered.join(", "))
             : ""}
           {gaps?.overlapping.length
-            ? ` Two rows both cover ${gaps.overlapping.join(", ")}.`
+            ? copy.overlapping(gaps.overlapping.join(", "))
             : ""}
         </p>
       ) : null}
@@ -340,7 +400,7 @@ export function DmTablesPanel({
             onChange={(event) => setNoReplacement(event.target.checked)}
             className="accent-amber-500"
           />
-          Draw without replacement
+          {copy.withoutReplacement}
         </label>
         {editing?.noReplacement && editing.drawn.length ? (
           <button
@@ -348,14 +408,12 @@ export function DmTablesPanel({
             onClick={() => void reset(editing)}
             className="rounded-md border border-stone-700 px-2 py-0.5 text-[11px] text-stone-400 hover:text-amber-100"
           >
-            Reset ({editing.drawn.length} dealt)
+            {copy.reset(editing.drawn.length)}
           </button>
         ) : null}
       </div>
       <p className="mt-1 text-[10px] text-stone-600">
-        Bare rows can carry a weight (x3 A goblin patrol). A row can be a thing: @table: Gems rolls
-        that table too; @monster: wolf, @item: Potion of Healing, @npc: Marla name what they are.
-        The picker above writes those rows for you.
+        {copy.formatHint}
       </p>
       {error ? <p className="mt-1 text-xs text-red-400">{error}</p> : null}
       <button
@@ -365,7 +423,7 @@ export function DmTablesPanel({
         data-tour="tables-save"
         className="mt-1.5 rounded-md border border-amber-700 bg-amber-950/50 px-2.5 py-1 text-xs text-amber-100 hover:bg-amber-900/50 disabled:opacity-40"
       >
-        {busy === "save" ? "Saving..." : "Save table"}
+        {busy === "save" ? copy.loading : copy.save}
       </button>
     </>
   );
@@ -392,7 +450,7 @@ export function DmTablesPanel({
         <Sheet
           open={editorOpen}
           onOpenChange={setEditorOpen}
-          title={editing ? editing.name : "New table"}
+          title={editing ? editing.name : copy.new}
           className="lg:w-[min(92vw,40rem)]"
         >
           {editor}
@@ -432,14 +490,14 @@ export function DmTablesPanel({
                       {busy === table.id ? (
                         <Loader2 className="size-3.5 animate-spin" />
                       ) : (
-                        "Roll"
+                        copy.roll
                       )}
                     </button>
                     <button
                       type="button"
                       onClick={() => duplicate(table)}
                       disabled={busy === `copy-${table.id}`}
-                      aria-label={`Duplicate ${table.name}`}
+                      aria-label={`${copy.duplicate} ${table.name}`}
                       className="rounded-md border border-stone-700 p-1 text-stone-500 hover:text-stone-300 disabled:opacity-40"
                     >
                       <Copy className="size-3.5" />
@@ -447,8 +505,8 @@ export function DmTablesPanel({
                     <button
                       type="button"
                       onClick={() => remove(table)}
-                      aria-label={`Delete ${table.name}`}
-                      title="Delete this table"
+                      aria-label={`${copy.delete} ${table.name}`}
+                      title={copy.deleteTitle}
                       className="rounded-md border border-stone-700 p-1 text-stone-500 hover:text-red-300"
                     >
                       <Trash2 className="size-3.5" />
@@ -458,7 +516,8 @@ export function DmTablesPanel({
                 {result?.tableId === table.id ? (
                   <div className="mt-1 text-xs text-stone-300">
                     <p>
-                      <span className="text-amber-200">{result.total}:</span> {result.text}
+                      <span className="text-amber-200">{result.total}:</span>{" "}
+                      {result.text}
                     </p>
                     {result.chain.map((line, index) => (
                       <p key={index} className="text-[11px] text-stone-500">
@@ -472,7 +531,7 @@ export function DmTablesPanel({
           </ul>
         ) : (
           <p className="text-xs text-stone-500">
-            {loaded ? "No tables yet. Paste one in below." : "Loading..."}
+            {loaded ? copy.empty : copy.loading}
           </p>
         )}
       </section>

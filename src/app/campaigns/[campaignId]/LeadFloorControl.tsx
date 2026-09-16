@@ -6,6 +6,8 @@ import { cn } from "@/lib/cn";
 import type { Floor } from "@/lib/db/campaigns";
 import type { PublicEncounter } from "@/lib/db/encounter-view";
 import type { CharacterSheet } from "@/lib/schemas/sheet";
+import { useI18n } from "@/lib/i18n";
+import { localeText } from "@/lib/i18n/locale-text";
 
 // Who may speak right now, from the lead's desk. The same route the DM
 // console's FloorControl and the composer banners call, with the one thing
@@ -26,17 +28,25 @@ const chip = "rounded-md border px-2 py-1 text-xs disabled:opacity-40";
 const chipOn = "border-amber-700 bg-amber-950/50 text-amber-100";
 const chipOff = "border-stone-700 text-stone-400 hover:text-stone-200";
 
-function modeLabel(floor: Floor): string {
+function modeLabel(floor: Floor, copy: ReturnType<typeof floorCopy>): string {
   switch (floor.mode) {
     case "open":
-      return "Open: anyone may act.";
+      return copy.openDescription;
     case "hold":
-      return "Held: nobody acts until you open it.";
+      return copy.heldDescription;
     case "spotlight":
-      return "Spotlight: only the named players may act.";
+      return copy.spotlightDescription;
     case "initiative":
-      return "The initiative order has the floor while the fight runs.";
+      return copy.initiativeDescription;
   }
+}
+
+function floorCopy(locale: Parameters<typeof localeText>[0]) {
+  return localeText(locale, {
+    en: { floor: "The floor", openDescription: "Open: anyone may act.", heldDescription: "Held: nobody acts until you open it.", spotlightDescription: "Spotlight: only the named players may act.", initiativeDescription: "The initiative order has the floor while the fight runs.", changeFailed: "The floor did not change.", reachFailed: "Could not reach the table.", round: "Round", turn: "turn", skipTitle: "Skip the current player's turn", skip: "Skip turn", openTitle: "Let anyone act", open: "Open floor", holdTitle: "Hold every response while the table talks it over", hold: "Hold for talk", releaseTo: "On release: spotlight on", someone: "someone", answered: "answered", waiting: "waiting", releaseTitle: "Open the floor now; whatever has been answered goes to the DM", release: "Release", give: "Give the floor", noCharacters: "No player characters yet.", prompt: "What are you asking them? (optional)", spotlightTitle: "Only the picked players may act until each has answered or you release", spotlight: "Spotlight" },
+    ru: { floor: "Очередь слова", openDescription: "Открыта: действовать может любой.", heldDescription: "Приостановлена: никто не действует, пока вы её не откроете.", spotlightDescription: "В центре внимания: действовать могут только выбранные игроки.", initiativeDescription: "Во время боя очередь определяет порядок инициативы.", changeFailed: "Очередь слова не изменилась.", reachFailed: "Не удалось связаться со столом.", round: "Раунд", turn: "ход", skipTitle: "Пропустить ход текущего игрока", skip: "Пропустить ход", openTitle: "Разрешить действовать всем", open: "Открыть очередь", holdTitle: "Приостановить ответы, пока стол обсуждает", hold: "Пауза для обсуждения", releaseTo: "После открытия — внимание на", someone: "кого-то", answered: "ответил", waiting: "ожидает", releaseTitle: "Открыть очередь сейчас; полученные ответы уйдут мастеру", release: "Открыть", give: "Передать слово", noCharacters: "Персонажей игроков ещё нет.", prompt: "О чём вы их спрашиваете? (необязательно)", spotlightTitle: "Действовать смогут только выбранные игроки, пока все не ответят или вы не откроете очередь", spotlight: "В центр внимания" },
+    pl: { floor: "Głos przy stole", openDescription: "Otwarte: każdy może działać.", heldDescription: "Wstrzymane: nikt nie działa, dopóki nie otworzysz.", spotlightDescription: "W centrum uwagi: działać mogą tylko wskazani gracze.", initiativeDescription: "Podczas walki głos ma kolejność inicjatywy.", changeFailed: "Głos przy stole nie zmienił się.", reachFailed: "Nie udało się połączyć ze stołem.", round: "Runda", turn: "tura", skipTitle: "Pomiń turę bieżącego gracza", skip: "Pomiń turę", openTitle: "Pozwól działać każdemu", open: "Otwórz głos", holdTitle: "Wstrzymaj odpowiedzi, gdy stół rozmawia", hold: "Wstrzymaj rozmowę", releaseTo: "Po zwolnieniu: centrum uwagi na", someone: "kogoś", answered: "odpowiedział", waiting: "czeka", releaseTitle: "Otwórz głos teraz; udzielone odpowiedzi trafią do MG", release: "Zwolnij", give: "Oddaj głos", noCharacters: "Nie ma jeszcze postaci graczy.", prompt: "O co ich pytasz? (opcjonalnie)", spotlightTitle: "Tylko wybrani gracze mogą działać, aż każdy odpowie lub zwolnisz głos", spotlight: "Centrum uwagi" },
+  });
 }
 
 export function LeadFloorControl({
@@ -50,6 +60,8 @@ export function LeadFloorControl({
   sheets: CharacterSheet[];
   encounter?: PublicEncounter | null;
 }) {
+  const { locale } = useI18n();
+  const copy = floorCopy(locale);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   // Character ids, which is what the route takes; it resolves them to the
@@ -75,12 +87,12 @@ export function LeadFloorControl({
       });
       if (!response.ok) {
         const data = (await response.json().catch(() => ({}))) as { error?: string };
-        setError(data.error ?? "The floor did not change.");
+        setError(data.error ?? copy.changeFailed);
         return false;
       }
       return true;
     } catch {
-      setError("Could not reach the table.");
+      setError(copy.reachFailed);
       return false;
     } finally {
       setBusy(false);
@@ -101,14 +113,14 @@ export function LeadFloorControl({
   return (
     <div className="mb-3 rounded-lg border border-stone-800 bg-stone-950/40 p-3">
       <p className="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-stone-400">
-        <Megaphone className="size-3.5" /> The floor
+        <Megaphone className="size-3.5" /> {copy.floor}
       </p>
-      <p className="text-xs text-stone-300">{modeLabel(floor)}</p>
+      <p className="text-xs text-stone-300">{modeLabel(floor, copy)}</p>
 
       {floor.mode === "initiative" ? (
         <div className="mt-2 space-y-1.5">
           <p className="text-[11px] text-stone-500">
-            Round {floor.round}
+            {copy.round} {floor.round}
             {encounter?.orderReady && encounter.order.length ? (
               <>
                 {" · "}
@@ -125,17 +137,17 @@ export function LeadFloorControl({
                 ))}
               </>
             ) : (
-              <> · {floor.currentName}&apos;s turn</>
+              <> · {floor.currentName} — {copy.turn}</>
             )}
           </p>
           <button
             type="button"
             disabled={busy}
             onClick={() => post({})}
-            title="Skip the current player's turn"
+            title={copy.skipTitle}
             className={cn(chip, chipOff)}
           >
-            Skip turn
+            {copy.skip}
           </button>
         </div>
       ) : (
@@ -145,32 +157,32 @@ export function LeadFloorControl({
               type="button"
               disabled={busy || floor.mode === "open"}
               onClick={() => post({ set: "open" })}
-              title="Let anyone act"
+              title={copy.openTitle}
               className={cn(chip, floor.mode === "open" ? chipOn : chipOff)}
             >
-              Open floor
+              {copy.open}
             </button>
             <button
               type="button"
               disabled={busy || floor.mode === "hold"}
               onClick={() => post({ set: "hold" })}
-              title="Hold every response while the table talks it over"
+              title={copy.holdTitle}
               className={cn(chip, floor.mode === "hold" ? chipOn : chipOff)}
             >
-              Hold for talk
+              {copy.hold}
             </button>
           </div>
 
           {floor.mode === "hold" && floor.next.mode === "spotlight" ? (
             <p className="mt-1.5 text-[11px] text-stone-500">
-              On release: spotlight on{" "}
+              {copy.releaseTo}{" "}
               {players
                 .filter(
                   (sheet) =>
                     floor.next.mode === "spotlight" && floor.next.userIds.includes(sheet.userId),
                 )
                 .map((sheet) => sheet.name)
-                .join(", ") || "someone"}
+                .join(", ") || copy.someone}
               .
             </p>
           ) : null}
@@ -200,7 +212,7 @@ export function LeadFloorControl({
                       )}
                       {sheet.name}
                       <span className="text-[10px] text-stone-600">
-                        {answered ? "answered" : "waiting"}
+                        {answered ? copy.answered : copy.waiting}
                       </span>
                     </li>
                   );
@@ -210,15 +222,15 @@ export function LeadFloorControl({
                 type="button"
                 disabled={busy}
                 onClick={() => post({})}
-                title="Open the floor now; whatever has been answered goes to the DM"
+                title={copy.releaseTitle}
                 className={cn(chip, chipOff, "mt-1.5")}
               >
-                Release
+                {copy.release}
               </button>
             </div>
           ) : null}
 
-          <p className="mb-1 mt-3 text-[11px] font-medium text-stone-500">Give the floor</p>
+          <p className="mb-1 mt-3 text-[11px] font-medium text-stone-500">{copy.give}</p>
           <div className="flex flex-wrap gap-1.5">
             {players.length ? (
               players.map((sheet) => {
@@ -252,7 +264,7 @@ export function LeadFloorControl({
                 );
               })
             ) : (
-              <span className="text-[11px] text-stone-600">No player characters yet.</span>
+              <span className="text-[11px] text-stone-600">{copy.noCharacters}</span>
             )}
           </div>
           <div className="mt-1.5 flex gap-1.5">
@@ -260,18 +272,18 @@ export function LeadFloorControl({
               value={prompt}
               onChange={(event) => setPrompt(event.target.value)}
               maxLength={300}
-              placeholder="What are you asking them? (optional)"
+              placeholder={copy.prompt}
               className="min-w-0 flex-1 rounded border border-stone-700 bg-stone-900 px-2 py-1 text-xs outline-none focus:border-amber-600"
             />
             <button
               type="button"
               disabled={busy || !picked.length}
               onClick={spotlight}
-              title="Only the picked players may act until each has answered or you release"
+              title={copy.spotlightTitle}
               className={cn(chip, chipOff, "flex shrink-0 items-center gap-1")}
             >
               {busy ? <Loader2 className="size-3 animate-spin" /> : null}
-              Spotlight
+              {copy.spotlight}
             </button>
           </div>
         </>

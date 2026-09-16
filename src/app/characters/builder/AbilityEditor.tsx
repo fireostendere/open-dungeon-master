@@ -11,6 +11,8 @@ import {
   pointBuyRemaining,
 } from "@/lib/srd/point-buy";
 import type { Ability } from "@/lib/schemas/sheet";
+import { useI18n } from "@/lib/i18n/context";
+import { localeText } from "@/lib/i18n/locale-text";
 
 export const STANDARD_ARRAY = [15, 14, 13, 12, 10, 8];
 export type AbilityMethod = "standard" | "pointbuy" | "roll";
@@ -25,30 +27,6 @@ export const ABILITY_LABELS: Record<Ability, string> = {
 };
 
 const ABILITY_KEYS = Object.keys(ABILITY_LABELS) as Ability[];
-
-// What each way of getting six numbers actually costs you, for the player who
-// has never been asked this question before.
-const METHODS: Array<{ id: AbilityMethod; label: string; info: string }> = [
-  {
-    id: "standard",
-    label: "Standard array",
-    info: `Everyone starts with the same six numbers: ${STANDARD_ARRAY.join(
-      ", ",
-    )}. You decide which ability gets which. Nothing is left to luck, and no character is accidentally weaker than the rest of the party. This is the safe choice if you are new.`,
-  },
-  {
-    id: "pointbuy",
-    label: "Point buy",
-    info:
-      "You spend 27 points raising each score from 8. The higher a score climbs the more each step costs, so a character with one towering ability pays for it with weak ones. Fair like the standard array, but you choose the shape.",
-  },
-  {
-    id: "roll",
-    label: "Roll 4d6",
-    info:
-      "Roll four six-sided dice for each ability and drop the lowest. It can hand you a hero far above the standard array, or well below it. Some tables love the swing; ask yours before choosing it.",
-  },
-];
 
 export type AbilityState = Record<Ability, number | null>;
 
@@ -78,6 +56,18 @@ export default function AbilityEditor({
   // that base scores are level-1 rules and the bonuses are picked below.
   asiCount?: number;
 }) {
+  const { locale } = useI18n();
+  const copy = localeText(locale, {
+    en: { abilityScores: "Ability scores", standard: "Standard array", standardInfo: "Everyone starts with the same six numbers: {scores}. You decide which ability gets which. Nothing is left to luck, and no character is accidentally weaker than the rest of the party. This is the safe choice if you are new.", pointBuy: "Point buy", pointBuyInfo: "You spend 27 points raising each score from 8. The higher a score climbs the more each step costs, so a character with one towering ability pays for it with weak ones. Fair like the standard array, but you choose the shape.", roll: "Roll 4d6", rollInfo: "Roll four six-sided dice for each ability and drop the lowest. It can hand you a hero far above the standard array, or well below it. Some tables love the swing; ask yours before choosing it.", pointsLeft: "points left", rollAll: "Roll all", base: "These are your base scores, the same at every level. Your level has earned", improvement: "ability score improvement", improvements: "ability score improvements", pickBelow: "on top of them; pick those in the section below.", racial: "racial", final: "Final" },
+    ru: { abilityScores: "Характеристики", standard: "Стандартный набор", standardInfo: "Все начинают с одних и тех же шести чисел: {scores}. Вы решаете, какому параметру достанется каждое. Здесь нет удачи, и персонаж случайно не окажется слабее остальной группы. Безопасный выбор для новичка.", pointBuy: "Покупка очками", pointBuyInfo: "Вы тратите 27 очков, повышая каждый параметр от 8. Чем выше параметр, тем дороже каждый шаг, поэтому герой с одним выдающимся параметром платит за него слабыми. Так же честно, как стандартный набор, но форму выбираете вы.", roll: "Бросок 4d6", rollInfo: "Бросьте четыре шестигранника для каждого параметра и отбросьте наименьший. Можно получить героя намного сильнее стандартного набора или намного слабее. Некоторые столы любят риск — спросите свой, прежде чем выбирать.", pointsLeft: "очков осталось", rollAll: "Бросить всё", base: "Это базовые параметры, одинаковые на каждом уровне. На вашем уровне получено", improvement: "улучшение характеристики", improvements: "улучшений характеристик", pickBelow: "сверх них; выберите их в разделе ниже.", racial: "расовое", final: "Итог" },
+    pl: { abilityScores: "Cechy", standard: "Zestaw standardowy", standardInfo: "Wszyscy zaczynają z tymi samymi sześcioma liczbami: {scores}. Decydujesz, która cecha dostanie którą. Nie ma tu losowości, więc postać przypadkiem nie będzie słabsza od reszty drużyny. To bezpieczny wybór dla nowych graczy.", pointBuy: "Kupno punktowe", pointBuyInfo: "Wydajesz 27 punktów, podnosząc każdą cechę od 8. Im wyższa cecha, tym więcej kosztuje każdy krok, więc postać z jedną potężną cechą płaci za nią słabymi. Równie uczciwe jak zestaw standardowy, ale sam wybierasz kształt.", roll: "Rzut 4k6", rollInfo: "Rzuć czterema kośćmi sześciennymi za każdą cechę i odrzuć najniższą. Możesz dostać bohatera znacznie silniejszego lub słabszego od zestawu standardowego. Niektóre stoły lubią tę losowość — zapytaj swój przed wyborem.", pointsLeft: "punktów pozostało", rollAll: "Rzuć wszystkimi", base: "To są twoje bazowe cechy, takie same na każdym poziomie. Twój poziom daje", improvement: "ulepszenie cechy", improvements: "ulepszeń cech", pickBelow: "ponad nimi; wybierz je w sekcji poniżej.", racial: "rasowe", final: "Wynik" },
+  });
+  const abilityNames = localeText(locale, { en: ABILITY_LABELS, ru: { str: "Сила", dex: "Ловкость", con: "Телосложение", int: "Интеллект", wis: "Мудрость", cha: "Харизма" }, pl: { str: "Siła", dex: "Zręczność", con: "Kondycja", int: "Inteligencja", wis: "Mądrość", cha: "Charyzma" } });
+  const methods = [
+    { id: "standard" as const, label: copy.standard, info: copy.standardInfo.replace("{scores}", STANDARD_ARRAY.join(", ")) },
+    { id: "pointbuy" as const, label: copy.pointBuy, info: copy.pointBuyInfo },
+    { id: "roll" as const, label: copy.roll, info: copy.rollInfo },
+  ];
   const inputClass =
     "w-full rounded-lg border border-stone-800 bg-stone-950 px-3 py-2 text-sm text-stone-200 outline-none focus:border-amber-300";
   const usedValues = ABILITY_KEYS.map((key) => scores[key]).filter(
@@ -85,7 +75,7 @@ export default function AbilityEditor({
   );
   const pointBuyScores = ABILITY_KEYS.map((key) => scores[key] ?? POINT_BUY_MIN);
   const remaining = method === "pointbuy" ? pointBuyRemaining(pointBuyScores) : 0;
-  const activeMethod = METHODS.find((entry) => entry.id === method) ?? METHODS[0];
+  const activeMethod = methods.find((entry) => entry.id === method) ?? methods[0];
 
   function setScore(ability: Ability, value: number | null) {
     const next = { ...scores };
@@ -121,10 +111,10 @@ export default function AbilityEditor({
     <section className="panel rounded-xl p-4">
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <h2 className="eyebrow text-xs text-amber-200/90">
-          <GameTerm id="ability_score">Ability scores</GameTerm>
+          <GameTerm id="ability_score">{copy.abilityScores}</GameTerm>
         </h2>
         <div className="flex items-center rounded-md border border-stone-700 p-0.5 text-xs">
-          {METHODS.map((entry) => (
+           {methods.map((entry) => (
             <button
               key={entry.id}
               type="button"
@@ -154,7 +144,7 @@ export default function AbilityEditor({
               remaining < 0 ? "text-red-400" : "text-stone-400",
             )}
           >
-            {remaining} points left
+             {remaining} {copy.pointsLeft}
           </span>
         ) : null}
         {method === "roll" ? (
@@ -163,17 +153,17 @@ export default function AbilityEditor({
             onClick={rollAll}
             className="flex items-center gap-1 rounded-md border border-stone-700 px-2.5 py-1 text-xs text-stone-300 hover:bg-stone-900"
           >
-            <Dices className="size-3.5" /> Roll all
+             <Dices className="size-3.5" /> {copy.rollAll}
           </button>
         ) : null}
       </div>
       {asiCount > 0 ? (
         <p className="mb-3 text-xs text-stone-500">
-          These are your base scores, the same at every level. Your level has earned{" "}
+           {copy.base}{" "}
           <span className="text-amber-200">
-            {asiCount} ability score {asiCount === 1 ? "improvement" : "improvements"}
+             {asiCount} {asiCount === 1 ? copy.improvement : copy.improvements}
           </span>{" "}
-          on top of them; pick those in the section below.
+           {" "}{copy.pickBelow}
         </p>
       ) : null}
 
@@ -189,9 +179,9 @@ export default function AbilityEditor({
             >
               <span className="mb-1 flex items-baseline justify-between">
                 <span className="text-stone-300">
-                  <GameTerm id={ability}>{ABILITY_LABELS[ability]}</GameTerm>
+                   <GameTerm id={ability}>{abilityNames[ability]}</GameTerm>
                 </span>
-                {bonus ? <span className="text-xs text-amber-200">+{bonus} racial</span> : null}
+                 {bonus ? <span className="text-xs text-amber-200">+{bonus} {copy.racial}</span> : null}
               </span>
               {method === "standard" ? (
                 <select
@@ -241,7 +231,7 @@ export default function AbilityEditor({
               )}
               {finalScore !== null ? (
                 <span className="mt-1 block text-xs text-stone-400">
-                  Final {finalScore} ({formatModifier(abilityMod(finalScore))})
+                   {copy.final} {finalScore} ({formatModifier(abilityMod(finalScore))})
                 </span>
               ) : null}
             </label>

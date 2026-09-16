@@ -20,6 +20,7 @@ const dialog = read("../src/app/CreateCampaignDialog.tsx");
 const worldSetup = read("../src/app/WorldSetupFields.tsx");
 const rulesPanel = read("../src/app/campaigns/[campaignId]/RulesPanel.tsx");
 const creationSurface = `${dialog}\n${worldSetup}\n${rulesPanel}`;
+const creationRoute = read("../src/app/api/campaigns/route.ts");
 
 // `stages` is deliberately absent: it tunes the turn pipeline for a slow local
 // model, which is an operator decision made in the lobby, not a table decision
@@ -57,7 +58,9 @@ function test(name, fn) {
 // "voice" pass for as long as the dialog had a `(voice) =>` TTS loop, while
 // the actual voice settings were never offered at creation.
 function offeredAtCreation(key) {
-  return new RegExp(`(?<![.\\w$])${key}(?=\\s*[:,}])`).test(creationSurface);
+  // Language is selected in the shared UI and inherited by the creation route.
+  const surface = key === "language" ? `${creationSurface}\n${creationRoute}` : creationSurface;
+  return new RegExp(`(?<![.\\w$])${key}(?=\\s*[:,}])`).test(surface);
 }
 
 test("every game setting except the omitted ones is offered at creation", () => {

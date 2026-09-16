@@ -33,6 +33,8 @@ import type { CharacterSheet } from "@/lib/schemas/sheet";
 import { D20Spinner } from "@/components/ui/D20Spinner";
 import { RollCard } from "@/app/campaigns/[campaignId]/RollCard";
 import { DM_STATUS_PHRASES } from "@/app/campaigns/[campaignId]/dmStatusPhrases";
+import { useI18n } from "@/lib/i18n";
+import { displaySystemText } from "@/lib/i18n/session-system-text";
 import type {
   CampaignLocation,
   DmStatus,
@@ -228,6 +230,7 @@ const MessageItem = memo(function MessageItem({
   // Browse the rerolled takes; the picked one is what the table reads.
   onSelectVariant?: (message: CampaignMessage, index: number) => void;
 }) {
+  const { locale } = useI18n();
   // Local to the row: only one narration is ever being corrected at a time,
   // and the draft should not survive the row unmounting.
   const [editing, setEditing] = useState(false);
@@ -295,7 +298,7 @@ const MessageItem = memo(function MessageItem({
       return (
         <div className="mx-auto max-w-xl rounded-lg border border-amber-900/60 bg-amber-950/30 px-4 py-2.5">
           <p className="mb-0.5 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-amber-300">
-            <Crown className="size-3.5" /> Party Lead
+             <Crown className="size-3.5" /> {locale === "ru" ? "Лидер отряда" : locale === "pl" ? "Lider drużyny" : "Party Lead"}
           </p>
           <p className="text-sm text-amber-100/90">
             {message.content.slice(LEAD_NOTE_PREFIX.length)}
@@ -313,7 +316,7 @@ const MessageItem = memo(function MessageItem({
     }
     return (
       <p className="mx-auto max-w-xl text-center font-serif text-sm italic text-stone-500">
-        {message.content}
+         {displaySystemText(message.content, locale)}
       </p>
     );
   }

@@ -12,6 +12,8 @@ import type { BuilderActions, BuilderDerived } from "../useBuilderDerived";
 import type { BuilderState } from "../useBuilderState";
 import { ClassChoices } from "./ClassChoices";
 import { Field, PickPill, StepPanel, inputClass } from "./shared";
+import { useI18n } from "@/lib/i18n/context";
+import { localeText } from "@/lib/i18n/locale-text";
 
 // Step 3: the class, its subclass once the level allows one, what the pair
 // grants at this level, and the class skill picks. Expertise, fighting
@@ -39,12 +41,18 @@ export function CallingStep({
   offersSubclass: boolean;
   chosenArchetype: ArchetypeOption | null;
 }) {
+  const { locale } = useI18n();
+  const copy = localeText(locale, {
+    en: { choose: "Choose a class", class: "Class", hitDie: "hit die", saves: "saves", caster: "caster", flavored: "spells flavored as", subclass: "Subclass", none: "None yet", specialization: "A specialization within your class.", still: "Still to choose.", subclassHelp: "Your subclass is the biggest choice about how this character plays. Tap the info icon next to any option to read what it does before choosing.", gain: "What you gain at level", gainHelp: "Tap any name to read what it does. Racial traits and background perks are added on top when the character is saved.", level: "Level", skills: "Class skills", pick: "pick", stillChoose: "still to choose.", skillHelp: "A skill you are proficient in adds your proficiency bonus to rolls that use it. Tap any ⓘ to see which ability a skill leans on.", background: "(background)" },
+    ru: { choose: "Выберите класс", class: "Класс", hitDie: "кость хитов", saves: "спасброски", caster: "заклинатель", flavored: "заклинания в стиле", subclass: "Подкласс", none: "Пока нет", specialization: "Специализация внутри вашего класса.", still: "Ещё нужно выбрать.", subclassHelp: "Подкласс — главный выбор, определяющий стиль игры персонажа. Нажмите значок информации возле варианта, чтобы прочитать описание перед выбором.", gain: "Что вы получаете на уровне", gainHelp: "Нажмите на название, чтобы прочитать описание. Расовые черты и преимущества предыстории добавятся при сохранении персонажа.", level: "Уровень", skills: "Навыки класса", pick: "выберите", stillChoose: "ещё нужно выбрать.", skillHelp: "Владение навыком добавляет бонус мастерства к броскам с ним. Нажмите ⓘ, чтобы узнать, от какой характеристики зависит навык.", background: "(предыстория)" },
+    pl: { choose: "Wybierz klasę", class: "Klasa", hitDie: "kość życia", saves: "rzuty obronne", caster: "czarujący", flavored: "czary w stylu", subclass: "Podklasa", none: "Jeszcze nie", specialization: "Specjalizacja w obrębie twojej klasy.", still: "Jeszcze do wyboru.", subclassHelp: "Podklasa to najważniejszy wybór dotyczący stylu gry postaci. Dotknij ikony informacji przy opcji, aby przeczytać jej opis przed wyborem.", gain: "Co zyskujesz na poziomie", gainHelp: "Dotknij dowolnej nazwy, aby przeczytać opis. Cechy rasowe i korzyści z tła zostaną dodane przy zapisie postaci.", level: "Poziom", skills: "Umiejętności klasy", pick: "wybierz", stillChoose: "pozostało do wyboru.", skillHelp: "Biegłość w umiejętności dodaje premię z biegłości do rzutów, które jej używają. Dotknij ⓘ, aby sprawdzić, z jaką cechą wiąże się umiejętność.", background: "(tło)" },
+  });
   const { subclass } = state;
   const { effectiveLevel, grantedFeatures } = derived;
   return (
     <div className="space-y-4">
-      <StepPanel title="Choose a class" ornate>
-        <Field label="Class">
+       <StepPanel title={copy.choose} ornate>
+         <Field label={copy.class}>
           <OptionPicker
             value={klass?.id ?? ""}
             groups={classGroups}
@@ -53,15 +61,15 @@ export function CallingStep({
           />
           {klass ? (
             <span className="mt-1 flex flex-wrap items-center gap-x-1 text-xs text-stone-500">
-              <GameTerm id="hit_dice">d{klass.hitDie} hit die</GameTerm> ·{" "}
-              <GameTerm id="saving_throw">saves</GameTerm>{" "}
+               <GameTerm id="hit_dice">d{klass.hitDie} {copy.hitDie}</GameTerm> ·{" "}
+               <GameTerm id="saving_throw">{copy.saves}</GameTerm>{" "}
               {klass.saves.map((save) => save.toUpperCase()).join(", ")}
               {klass.spellAbility ? (
                 <>
                   {" · "}
                   <GameTerm id={klass.spellAbility}>{klass.spellAbility.toUpperCase()}</GameTerm>{" "}
-                  caster
-                  {klass.castingLabel ? ` (spells flavored as ${klass.castingLabel})` : ""}
+                   {copy.caster}
+                   {klass.castingLabel ? ` (${copy.flavored} ${klass.castingLabel})` : ""}
                 </>
               ) : null}
               <InfoButton
@@ -73,11 +81,11 @@ export function CallingStep({
           ) : null}
         </Field>
         {offersSubclass ? (
-          <Field label="Subclass" className="mt-3">
+           <Field label={copy.subclass} className="mt-3">
             <OptionPicker
               value={subclass}
               groups={subclassGroups}
-              placeholder="None yet"
+               placeholder={copy.none}
               className={inputClass}
               onChange={state.setSubclass}
             />
@@ -87,7 +95,7 @@ export function CallingStep({
                   <span className="grow">
                     {chosenArchetype?.desc
                       ? chosenArchetype.desc.split("\n")[0]
-                      : "A specialization within your class."}
+                       : copy.specialization}
                   </span>
                   <InfoButton
                     label={subclass}
@@ -99,10 +107,8 @@ export function CallingStep({
                 </>
               ) : (
                 <span className="grow">
-                  <span className="text-amber-300">Still to choose. </span>
-                  Your <GameTerm id="subclass">subclass</GameTerm> is the biggest choice about how
-                  this character plays. Tap the info icon next to any option to read what it does
-                  before choosing.
+                   <span className="text-amber-300">{copy.still} </span>
+                   {copy.subclassHelp}
                 </span>
               )}
             </span>
@@ -112,8 +118,8 @@ export function CallingStep({
 
       {grantedFeatures.length ? (
         <StepPanel
-          title={`What you gain at level ${effectiveLevel}`}
-          help="Tap any name to read what it does. Racial traits and background perks are added on top when the character is saved."
+           title={`${copy.gain} ${effectiveLevel}`}
+           help={copy.gainHelp}
         >
           <div className="flex flex-wrap gap-x-3 gap-y-1">
             {grantedFeatures.map((feature) => (
@@ -124,7 +130,7 @@ export function CallingStep({
                 {displayName(pack, "features", feature.name)}
                 <InfoButton
                   label={feature.name}
-                  meta={feature.level ? `Level ${feature.level}` : undefined}
+                   meta={feature.level ? `${copy.level} ${feature.level}` : undefined}
                   text={klass ? describeFeature(klass.id, subclass, feature.name) : null}
                 />
               </span>
@@ -135,17 +141,15 @@ export function CallingStep({
 
       {klass ? (
         <StepPanel
-          title={`Class skills (pick ${klass.skillChoices.count})`}
+           title={`${copy.skills} (${copy.pick} ${klass.skillChoices.count})`}
           help={
             <>
               {klass.skillChoices.count - state.chosenSkills.length > 0 ? (
                 <span className="text-amber-300">
-                  {klass.skillChoices.count - state.chosenSkills.length} still to choose.{" "}
+                   {klass.skillChoices.count - state.chosenSkills.length} {copy.stillChoose}{" "}
                 </span>
               ) : null}
-              A <GameTerm id="skill">skill</GameTerm> you are proficient in adds your{" "}
-              <GameTerm id="proficiency_bonus">proficiency bonus</GameTerm> to rolls that use
-              it. Tap any ⓘ to see which ability a skill leans on.
+               {copy.skillHelp}
             </>
           }
         >
@@ -163,7 +167,7 @@ export function CallingStep({
                   info={{ text: describeSkill(skillId) }}
                 >
                   {skill?.name ?? skillId}
-                  {fromBackground ? " (background)" : ""}
+                   {fromBackground ? ` ${copy.background}` : ""}
                 </PickPill>
               );
             })}

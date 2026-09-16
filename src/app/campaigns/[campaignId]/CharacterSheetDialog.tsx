@@ -26,6 +26,7 @@ import { InfoButton, InfoChipList } from "@/components/ui/InfoDialog";
 import { contentSlug, describeFeature } from "@/lib/help";
 import { useI18n } from "@/lib/i18n";
 import { localeText } from "@/lib/i18n/locale-text";
+import { characterDisplay } from "@/lib/i18n/character-display";
 
 function titleCase(value: string) {
   return value.replace(/[-_]/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
@@ -105,6 +106,8 @@ export function CharacterSheetDialog({
       passivePerception: "PP",
       proficiencyBonus: "PB",
       gold: "gp",
+      level: "Level",
+      xpHitDice: "XP · Hit dice", wildShape: "Wild Shaped", beastHp: "Beast HP", ownHp: "own HP", savingThrows: "Saving throws", skills: "Skills", slots: "Slots", spendSlot: "Spend a slot", hitDice: "Hit dice", spendHitDie: "Spend a hit die", spendUse: "Spend a use", equipment: "Equipment", attuned: "attuned", attune: "attune", features: "Features & Traits", story: "(story)", feats: "Feats", backstory: "Backstory", notes: "Notes (only you see these)", downloadTitle: "Download this character sheet as a fillable PDF", preparing: "Preparing...", download: "Download PDF", adjustTitle: "Party lead: correct this character's stats, items, and spells", adjust: "Adjust",
     },
     ru: {
       baseSpeed: "Базовая",
@@ -115,6 +118,8 @@ export function CharacterSheetDialog({
       passivePerception: "Пасс. Вним.",
       proficiencyBonus: "БМ",
       gold: "зм",
+      level: "Уровень",
+      xpHitDice: "Опыт · Кости хитов", wildShape: "Дикая форма", beastHp: "Хиты зверя", ownHp: "собственные хиты", savingThrows: "Спасброски", skills: "Навыки", slots: "Ячейки", spendSlot: "Потратить ячейку", hitDice: "Кости хитов", spendHitDie: "Потратить кость хитов", spendUse: "Потратить применение", equipment: "Снаряжение", attuned: "настроен", attune: "настроить", features: "Умения и свойства", story: "(сюжет)", feats: "Черты", backstory: "Предыстория", notes: "Заметки (видны только вам)", downloadTitle: "Скачать этот лист персонажа как заполняемый PDF", preparing: "Подготовка...", download: "Скачать PDF", adjustTitle: "Лидер группы: исправить характеристики, предметы и заклинания персонажа", adjust: "Исправить",
     },
     pl: {
       baseSpeed: "Bazowa",
@@ -125,6 +130,8 @@ export function CharacterSheetDialog({
       passivePerception: "PW",
       proficiencyBonus: "PB",
       gold: "sz.",
+      level: "Poziom",
+      xpHitDice: "PD · Kości wytrzymałości", wildShape: "Dzika postać", beastHp: "PW bestii", ownHp: "własne PW", savingThrows: "Rzuty obronne", skills: "Umiejętności", slots: "Miejsca", spendSlot: "Użyj miejsca", hitDice: "Kości wytrzymałości", spendHitDie: "Użyj kości wytrzymałości", spendUse: "Użyj", equipment: "Ekwipunek", attuned: "dostrojony", attune: "dostrój", features: "Cechy i zdolności", story: "(fabuła)", feats: "Atuty", backstory: "Historia", notes: "Notatki (widzisz je tylko Ty)", downloadTitle: "Pobierz kartę postaci jako wypełnialny PDF", preparing: "Przygotowanie...", download: "Pobierz PDF", adjustTitle: "Lider drużyny: popraw statystyki, przedmioty i zaklęcia tej postaci", adjust: "Popraw",
     },
   });
   const speed = speedFor(sheet, { encumbrance: encumbranceRule });
@@ -197,13 +204,13 @@ export function CharacterSheetDialog({
                   {sheet.name}
                 </Dialog.Title>
                 <p className="text-xs text-stone-400">
-                  Level {sheet.level} {titleCase(sheet.race)}{" "}
+                   {copy.level} {sheet.level} {characterDisplay(sheet.race, locale)}{" "}
                   {(sheet.classes?.length ?? 0) > 1
                     ? (sheet.classes ?? [])
-                        .map((entry) => `${titleCase(entry.id)} ${entry.level}`)
+                         .map((entry) => `${characterDisplay(entry.id, locale)} ${entry.level}`)
                         .join(" / ")
-                    : `${titleCase(sheet.class)}${sheet.subclass ? ` (${titleCase(sheet.subclass)})` : ""}`}
-                  {sheet.background ? ` · ${titleCase(sheet.background)}` : ""}
+                     : `${characterDisplay(sheet.class, locale)}${sheet.subclass ? ` (${characterDisplay(sheet.subclass, locale)})` : ""}`}
+                   {sheet.background ? ` · ${characterDisplay(sheet.background, locale)}` : ""}
                   {sheet.alignment ? ` · ${sheet.alignment}` : ""}
                 </p>
               </div>
@@ -253,7 +260,7 @@ export function CharacterSheetDialog({
             <span>{copy.proficiencyBonus} {formatModifier(derived.proficiencyBonus)}</span>
             <span>{sheet.gold} {copy.gold}</span>
             <span>
-              {sheet.xp} XP · Hit dice {sheet.hitDice.total - sheet.hitDice.spent}/
+              {sheet.xp} {copy.xpHitDice} {sheet.hitDice.total - sheet.hitDice.spent}/
               {sheet.hitDice.total}
               {sheet.hitDice.die}
             </span>
@@ -262,7 +269,7 @@ export function CharacterSheetDialog({
           {sheet.wildShape ? (
             <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border border-lime-800/60 bg-lime-950/40 px-3 py-2 text-sm text-lime-200">
               <span className="flex items-center gap-1.5 font-medium capitalize">
-                <PawPrint className="size-4" /> Wild Shaped: {sheet.wildShape.form}
+                <PawPrint className="size-4" /> {copy.wildShape}: {sheet.wildShape.form}
               </span>
               <span className="font-mono text-xs">
                 {sheet.wildShape.beastHp}/{sheet.wildShape.beastMaxHp} beast HP
@@ -306,7 +313,7 @@ export function CharacterSheetDialog({
           <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
             <section>
               <h3 className="mb-1.5 text-xs font-medium uppercase tracking-wide text-stone-500">
-                <GameTerm id="saving_throw">Saving throws</GameTerm>
+                <GameTerm id="saving_throw">{copy.savingThrows}</GameTerm>
               </h3>
               <div className="grid grid-cols-3 gap-x-2 gap-y-1 text-xs text-stone-300">
                 {ABILITIES.map((ability) => (
@@ -324,7 +331,7 @@ export function CharacterSheetDialog({
             </section>
             <section>
               <h3 className="mb-1.5 text-xs font-medium uppercase tracking-wide text-stone-500">
-                <GameTerm id="skill">Skills</GameTerm>
+                <GameTerm id="skill">{copy.skills}</GameTerm>
               </h3>
               <div className="grid grid-cols-2 gap-x-2 gap-y-1 text-xs text-stone-300">
                 {SRD_SKILLS.map((skill) => (
@@ -362,7 +369,7 @@ export function CharacterSheetDialog({
               {Object.keys(sheet.spellcasting.slots).length ? (
                 <div className="flex flex-wrap items-center gap-1.5 text-xs text-stone-400">
                   <span>
-                    <GameTerm id="spell_slot">Slots</GameTerm>:
+                    <GameTerm id="spell_slot">{copy.slots}</GameTerm>:
                   </span>
                   {Object.entries(sheet.spellcasting.slots).map(([slotLevel, slot]) => (
                     <span
@@ -374,7 +381,7 @@ export function CharacterSheetDialog({
                           type="button"
                           className={stepButton}
                           disabled={busy || slot.used >= slot.max}
-                          title="Spend a slot"
+                          title={copy.spendSlot}
                           onClick={() => adjustUsage({ slots: { [slotLevel]: slot.used + 1 } })}
                         >
                           <Minus className="size-3" />
@@ -421,14 +428,14 @@ export function CharacterSheetDialog({
               <div className="space-y-1.5 text-xs text-stone-300">
                 <div className="flex items-center gap-2">
                   <span className="w-36 shrink-0 text-stone-400">
-                    <GameTerm id="hit_dice">Hit dice</GameTerm> ({sheet.hitDice.die})
+                    <GameTerm id="hit_dice">{copy.hitDice}</GameTerm> ({sheet.hitDice.die})
                   </span>
                   {mine ? (
                     <button
                       type="button"
                       className={stepButton}
                       disabled={busy || sheet.hitDice.spent >= sheet.hitDice.total}
-                      title="Spend a hit die"
+                      title={copy.spendHitDie}
                       onClick={() => adjustUsage({ hitDiceSpent: sheet.hitDice.spent + 1 })}
                     >
                       <Minus className="size-3" />
@@ -465,7 +472,7 @@ export function CharacterSheetDialog({
                         type="button"
                         className={stepButton}
                         disabled={busy || pool.used >= pool.max}
-                        title="Spend a use"
+                        title={copy.spendUse}
                         onClick={() => adjustUsage({ resources: { [id]: pool.used + 1 } })}
                       >
                         <Minus className="size-3" />
@@ -567,7 +574,7 @@ export function CharacterSheetDialog({
                               : "border-stone-700 text-stone-400",
                           )}
                         >
-                          {item.attuned ? "attuned" : "attune"}
+                          {item.attuned ? copy.attuned : copy.attune}
                         </button>
                       </div>
                     );
@@ -580,13 +587,13 @@ export function CharacterSheetDialog({
           {sheet.features.length ? (
             <section className="mt-4">
               <h3 className="mb-1.5 text-xs font-medium uppercase tracking-wide text-stone-500">
-                Features &amp; Traits
+                {copy.features}
               </h3>
               <InfoChipList
                 items={sheet.features.map((feature) => ({
                   name: feature.name,
-                  note: feature.source === "story" ? "(story)" : undefined,
-                  meta: feature.level ? `Level ${feature.level}` : undefined,
+                  note: feature.source === "story" ? copy.story : undefined,
+                  meta: feature.level ? `${copy.level} ${feature.level}` : undefined,
                   text: describeFeature(sheet.class, sheet.subclass, feature.name),
                 }))}
               />
@@ -620,7 +627,7 @@ export function CharacterSheetDialog({
           {mine && sheet.notes ? (
             <section className="mt-4">
               <h3 className="mb-1.5 text-xs font-medium uppercase tracking-wide text-stone-500">
-                Notes (only you see these)
+                {copy.notes}
               </h3>
               <p className="whitespace-pre-wrap text-xs text-stone-300">{sheet.notes}</p>
             </section>
@@ -632,16 +639,16 @@ export function CharacterSheetDialog({
               onClick={handleDownloadPdf}
               disabled={pdfBusy}
               className={ui.btnSmall}
-              title="Download this character sheet as a fillable PDF"
+              title={copy.downloadTitle}
             >
-              <FileDown className="size-3.5" /> {pdfBusy ? "Preparing..." : "Download PDF"}
+              <FileDown className="size-3.5" /> {pdfBusy ? copy.preparing : copy.download}
             </button>
             {steersStory && onAdjust ? (
               <button
                 type="button"
                 onClick={onAdjust}
                 className={ui.btnSmall}
-                title="Party lead: correct this character's stats, items, and spells"
+                title={copy.adjustTitle}
               >
                 <Wrench className="size-3.5" /> Adjust
               </button>

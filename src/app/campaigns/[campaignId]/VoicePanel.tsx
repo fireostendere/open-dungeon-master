@@ -28,6 +28,8 @@ import {
   type VoiceFloorMode,
 } from "@/lib/voice/turn-logic";
 import type { VoiceChannelView, VoiceRosterEntry } from "@/lib/voice/types";
+import { useI18n } from "@/lib/i18n/context";
+import { localeText } from "@/lib/i18n/locale-text";
 
 // The voice menu. Shown in the lobby while people pick characters and in the
 // session side panel during play, from the same component, because "who is on
@@ -68,6 +70,8 @@ export function VoicePanel({
   meshSignal?: { to: string; version: number } | null;
   compact?: boolean;
 }) {
+  const { locale } = useI18n();
+  const copy = localeText(locale, { en: { off: "This server has voice chat switched off.", settings: "Turn it on in campaign settings to talk at this table.", lower: "Lower your hand", ask: "Ask to speak", range: "How far your voice carries", whisper: "Whisper", normal: "Normal", shout: "Shout", undeafen: "Turn the call back on", deafen: "Silence the call", silence: "Silence everyone (you keep transmitting)", holdTitle: "Hold to talk (or hold the ` key)", talking: "Talking", hold: "Hold", unmute: "Unmute", mute: "Mute", micSettings: "Microphone settings", leave: "Leave voice", volume: "How loud the whole call is", microphone: "Microphone", mode: "Mode", holdKey: "(hold ` or the button)", saved: "Saved in this browser.", system: "System default", openMic: "Open mic", ptt: "Push to talk", close: "Close", closeRoom: "and send everyone back to the table", newRoom: "New side room", open: "Open", recall: "Recall", recallTitle: "Bring everyone back to the table", empty: "Nobody is on the call yet." }, ru: { off: "Голосовой чат выключен на этом сервере.", settings: "Включите его в настройках кампании, чтобы говорить за этим столом.", lower: "Опустить руку", ask: "Попросить слово", range: "Как далеко слышен голос", whisper: "Шёпот", normal: "Обычно", shout: "Крик", undeafen: "Включить звук звонка", deafen: "Выключить звук звонка", silence: "Отключить всех (вы продолжите передавать)", holdTitle: "Удерживайте для разговора (или клавишу `)", talking: "Говорите", hold: "Удерживать", unmute: "Включить микрофон", mute: "Выключить микрофон", micSettings: "Настройки микрофона", leave: "Покинуть голосовой чат", volume: "Громкость всего звонка", microphone: "Микрофон", mode: "Режим", holdKey: "(удерживайте ` или кнопку)", saved: "Сохранено в этом браузере.", system: "Системный по умолчанию", openMic: "Открытый микрофон", ptt: "Нажми и говори", close: "Закрыть", closeRoom: "и вернуть всех за стол", newRoom: "Новая боковая комната", open: "Открыть", recall: "Вернуть", recallTitle: "Вернуть всех за стол", empty: "В звонке пока никого нет." }, pl: { off: "Czat głosowy jest wyłączony na tym serwerze.", settings: "Włącz go w ustawieniach kampanii, aby rozmawiać przy tym stole.", lower: "Opuść rękę", ask: "Poproś o głos", range: "Jak daleko niesie się głos", whisper: "Szept", normal: "Normalnie", shout: "Krzyk", undeafen: "Włącz dźwięk rozmowy", deafen: "Wycisz rozmowę", silence: "Wycisz wszystkich (nadal nadajesz)", holdTitle: "Przytrzymaj, aby mówić (lub klawisz `)", talking: "Mówisz", hold: "Przytrzymaj", unmute: "Włącz mikrofon", mute: "Wycisz mikrofon", micSettings: "Ustawienia mikrofonu", leave: "Opuść czat głosowy", volume: "Głośność całej rozmowy", microphone: "Mikrofon", mode: "Tryb", holdKey: "(przytrzymaj ` lub przycisk)", saved: "Zapisano w tej przeglądarce.", system: "Domyślne urządzenie", openMic: "Otwarty mikrofon", ptt: "Naciśnij, aby mówić", close: "Zamknij", closeRoom: "i odeślij wszystkich do stołu", newRoom: "Nowy boczny pokój", open: "Otwórz", recall: "Przywołaj", recallTitle: "Przyprowadź wszystkich do stołu", empty: "Nikt nie jest jeszcze na rozmowie." } });
   const voice = useVoiceRoom(campaignId, roster, meUserId, audibilityVersion, meshSignal);
   const [channels, setChannels] = useState<VoiceChannelView[]>([]);
   const [newRoom, setNewRoom] = useState("");
@@ -121,8 +125,7 @@ export function VoicePanel({
         </p>
         <p className="mt-1 text-xs text-stone-500">
           {voice.unavailableReason === "server"
-            ? "This server has voice chat switched off."
-            : "Turn it on in campaign settings to talk at this table."}
+             ? copy.off : copy.settings}
         </p>
       </div>
     );
@@ -165,8 +168,8 @@ export function VoicePanel({
                 <button
                   type="button"
                   onClick={() => void voice.toggleHand()}
-                  aria-label={voice.handRaised ? "Lower your hand" : "Ask to speak"}
-                  title={voice.handRaised ? "Lower your hand" : "Ask to speak"}
+                  aria-label={voice.handRaised ? copy.lower : copy.ask}
+                  title={voice.handRaised ? copy.lower : copy.ask}
                   className={cn(
                     "rounded-md border p-2 transition-colors",
                     voice.handRaised
@@ -186,13 +189,11 @@ export function VoicePanel({
                   onChange={(event) =>
                     void voice.setSayRange(event.target.value as "whisper" | "normal" | "shout")
                   }
-                  aria-label="How far your voice carries"
-                  title="How far your voice carries"
+                  aria-label={copy.range}
+                  title={copy.range}
                   className="rounded-md border border-stone-700 bg-stone-950 px-2 py-1.5 text-xs text-stone-300"
                 >
-                  <option value="whisper">Whisper</option>
-                  <option value="normal">Normal</option>
-                  <option value="shout">Shout</option>
+                  <option value="whisper">{copy.whisper}</option><option value="normal">{copy.normal}</option><option value="shout">{copy.shout}</option>
                 </select>
               ) : null}
               {/* Deafen. Sits next to mute because that is the pair every
@@ -202,11 +203,10 @@ export function VoicePanel({
               <button
                 type="button"
                 onClick={voice.toggleDeafen}
-                aria-label={voice.deafened ? "Turn the call back on" : "Silence the call"}
+                aria-label={voice.deafened ? copy.undeafen : copy.deafen}
                 title={
                   voice.deafened
-                    ? "Turn the call back on"
-                    : "Silence everyone (you keep transmitting)"
+                    ? copy.undeafen : copy.silence
                 }
                 className={cn(
                   "rounded-md border p-2 transition-colors",
@@ -234,7 +234,7 @@ export function VoicePanel({
                   onPointerUp={() => voice.setTalking(false)}
                   onPointerLeave={() => voice.setTalking(false)}
                   onContextMenu={(event) => event.preventDefault()}
-                  title="Hold to talk (or hold the ` key)"
+                  title={copy.holdTitle}
                   className={cn(
                     "select-none touch-none rounded-md border px-3 py-2 text-xs transition-colors",
                     voice.talking
@@ -243,14 +243,14 @@ export function VoicePanel({
                   )}
                 >
                   <Radio className={cn("mr-1 inline size-3.5", voice.talking && "animate-pulse")} />
-                  {voice.talking ? "Talking" : "Hold"}
+                  {voice.talking ? copy.talking : copy.hold}
                 </button>
               ) : (
                 <button
                   type="button"
                   onClick={() => void voice.toggleMute()}
-                  aria-label={voice.muted ? "Unmute" : "Mute"}
-                  title={voice.muted ? "Unmute" : "Mute"}
+                aria-label={voice.muted ? copy.unmute : copy.mute}
+                title={voice.muted ? copy.unmute : copy.mute}
                   className={cn(
                     "rounded-md border p-2 transition-colors",
                     voice.muted
@@ -264,8 +264,8 @@ export function VoicePanel({
               <button
                 type="button"
                 onClick={() => setShowSettings((open) => !open)}
-                aria-label="Microphone settings"
-                title="Microphone settings"
+                aria-label={copy.micSettings}
+                title={copy.micSettings}
                 className={cn(
                   "rounded-md border p-2 transition-colors",
                   showSettings
@@ -278,8 +278,8 @@ export function VoicePanel({
               <button
                 type="button"
                 onClick={() => void voice.leave()}
-                aria-label="Leave voice"
-                title="Leave voice"
+                aria-label={copy.leave}
+                title={copy.leave}
                 className="rounded-md border border-stone-700 p-2 text-stone-300 hover:bg-stone-900"
               >
                 <PhoneOff className="size-4" />
@@ -346,18 +346,18 @@ export function VoicePanel({
               value={voice.masterVolume}
               disabled={voice.deafened}
               onChange={(event) => voice.setMasterVolume(Number(event.target.value))}
-              aria-label="How loud the whole call is"
+              aria-label={copy.volume}
               className="w-full accent-amber-600 disabled:opacity-40"
             />
           </label>
           <label className="block">
-            <span className="mb-1 block text-[11px] text-stone-500">Microphone</span>
+            <span className="mb-1 block text-[11px] text-stone-500">{copy.microphone}</span>
             <select
               value={voice.micId}
               onChange={(event) => void voice.selectMic(event.target.value)}
               className="w-full rounded border border-stone-800 bg-stone-950 px-2 py-1 text-xs text-stone-200"
             >
-              <option value="">System default</option>
+              <option value="">{copy.system}</option>
               {voice.micDevices.map((device) => (
                 <option key={device.deviceId} value={device.deviceId}>
                   {device.label}
@@ -367,19 +367,18 @@ export function VoicePanel({
           </label>
           <label className="block">
             <span className="mb-1 block text-[11px] text-stone-500">
-              Mode {voice.micMode === "ptt" ? "(hold ` or the button)" : ""}
+               {copy.mode} {voice.micMode === "ptt" ? copy.holdKey : ""}
             </span>
             <select
               value={voice.micMode}
               onChange={(event) => voice.selectMicMode(event.target.value as "open" | "ptt")}
               className="w-full rounded border border-stone-800 bg-stone-950 px-2 py-1 text-xs text-stone-200"
             >
-              <option value="open">Open mic</option>
-              <option value="ptt">Push to talk</option>
+              <option value="open">{copy.openMic}</option><option value="ptt">{copy.ptt}</option>
             </select>
           </label>
           <p className="text-[11px] text-stone-600">
-            Saved in this browser.
+             {copy.saved}
           </p>
         </div>
       ) : null}
@@ -400,8 +399,8 @@ export function VoicePanel({
                   <button
                     type="button"
                     onClick={() => void channelAction({ action: "close", channelId: channel.id })}
-                    aria-label={`Close ${channel.name} and send everyone back to the table`}
-                    title="Close this room and send everyone back to the table"
+                    aria-label={`${copy.close} ${channel.name} ${copy.closeRoom}`}
+                    title={`${copy.close} ${copy.closeRoom}`}
                     className="ml-auto text-stone-600 hover:text-red-400"
                   >
                     <DoorOpen className="size-3.5" />
@@ -415,7 +414,7 @@ export function VoicePanel({
               <input
                 value={newRoom}
                 onChange={(event) => setNewRoom(event.target.value)}
-                placeholder="New side room"
+                placeholder={copy.newRoom}
                 className="min-w-0 flex-1 rounded border border-stone-800 bg-stone-950 px-2 py-1 text-xs text-stone-200"
               />
               <button
@@ -427,16 +426,16 @@ export function VoicePanel({
                 }}
                 className="rounded border border-stone-700 px-2 py-1 text-xs text-stone-300 hover:bg-stone-900 disabled:opacity-40"
               >
-                Open
+                {copy.open}
               </button>
               {channels.length > 1 ? (
                 <button
                   type="button"
                   onClick={() => void channelAction({ action: "recall" })}
-                  title="Bring everyone back to the table"
+                  title={copy.recallTitle}
                   className="rounded border border-stone-700 px-2 py-1 text-xs text-stone-300 hover:bg-stone-900"
                 >
-                  Recall
+                  {copy.recall}
                 </button>
               ) : null}
             </div>
@@ -472,7 +471,7 @@ export function VoicePanel({
           ))}
         </ul>
       ) : (
-        <p className="mt-2 text-xs text-stone-500">Nobody is on the call yet.</p>
+         <p className="mt-2 text-xs text-stone-500">{copy.empty}</p>
       )}
     </div>
   );

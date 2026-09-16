@@ -7,6 +7,8 @@ import { ROLL_REF_KINDS, type RollRefKind } from "@/lib/dm/roll-table-logic";
 import type { RollTable } from "@/lib/db/roll-tables";
 import { AddFromList } from "@/components/ui/AddFromList";
 import { ContentPick } from "@/components/ui/ContentPick";
+import { useI18n } from "@/lib/i18n/context";
+import { localeText } from "@/lib/i18n/locale-text";
 
 // A row that IS a thing: "@monster: wolf", "@table: Gems". The table body
 // takes them typed, which means knowing the exact name of everything in the
@@ -42,6 +44,8 @@ export function RefPicker({
   editingId: string;
   onInsert: (line: string) => void;
 }) {
+  const { locale } = useI18n();
+  const copy = localeText(locale, { en: { kind: "What kind of thing the row is", item: "Find an item to add as a row", monster: "Find a monster in the catalogue to add as a row", yours: "One of yours", add: "Add a row for", reading: "Reading...", empty: "Nothing of that kind in this workshop yet." }, ru: { kind: "Что представляет строка", item: "Найти предмет для добавления строкой", monster: "Найти монстра в каталоге для добавления строкой", yours: "Один из ваших", add: "Добавить строку для", reading: "Загрузка...", empty: "В этой мастерской пока нет ничего такого типа." }, pl: { kind: "Czym jest ten wiersz", item: "Znajdź przedmiot do dodania jako wiersz", monster: "Znajdź potwora w katalogu do dodania jako wiersz", yours: "Jeden z Twoich", add: "Dodaj wiersz dla", reading: "Wczytywanie...", empty: "W tym warsztacie nie ma jeszcze niczego tego rodzaju." } });
   const [kind, setKind] = useState<RollRefKind>("table");
   const [npcs, setNpcs] = useState<Named[] | null>(null);
   const [lore, setLore] = useState<Named[] | null>(null);
@@ -104,7 +108,7 @@ export function RefPicker({
       <Link2 className="size-3.5 text-stone-500" aria-hidden="true" />
       <select
         value={kind}
-        aria-label="What kind of thing the row is"
+        aria-label={copy.kind}
         onChange={(event) => setKind(event.target.value as RollRefKind)}
         className={select}
       >
@@ -117,7 +121,7 @@ export function RefPicker({
       {kind === "item" ? (
         <ContentPick
           kind="items"
-          label="Find an item to add as a row"
+          label={copy.item}
           placeholder="Potion of Healing"
           onPick={(entry) => insert(entry.name)}
           className="min-w-44 flex-1"
@@ -125,13 +129,13 @@ export function RefPicker({
       ) : kind === "monster" ? (
         <>
           <AddFromList
-            prompt="One of yours"
+            prompt={copy.yours}
             options={(list ?? []).map((entry) => entry.name)}
             onPick={insert}
           />
           <ContentPick
             kind="monsters"
-            label="Find a monster in the catalogue to add as a row"
+            label={copy.monster}
             placeholder="wolf"
             onPick={(entry) => insert(entry.name)}
             className="min-w-44 flex-1"
@@ -139,14 +143,14 @@ export function RefPicker({
         </>
       ) : list && list.length ? (
         <AddFromList
-          prompt="Add a row for"
+          prompt={copy.add}
           options={list.map((entry) => entry.name)}
           onPick={insert}
           className={cn("min-w-44")}
         />
       ) : (
         <span className="text-[11px] text-stone-600">
-          {list === null ? "Reading..." : `Nothing of that kind in this workshop yet.`}
+          {list === null ? copy.reading : copy.empty}
         </span>
       )}
     </div>

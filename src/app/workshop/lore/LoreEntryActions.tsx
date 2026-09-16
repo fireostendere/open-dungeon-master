@@ -3,6 +3,8 @@
 import { Copy, Pencil, Pin, Trash2 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import type { LoreEntryView } from "@/app/workshop/lore/types";
+import { useI18n } from "@/lib/i18n/context";
+import { localeText } from "@/lib/i18n/locale-text";
 
 // What the lead can do to one lore entry: edit it, pin it into every DM
 // turn, copy it, delete it. Split out of LorePanel so the workshop's editor
@@ -25,6 +27,8 @@ export function LoreEntryActions({
   onDuplicate: () => void;
   onDelete: () => void;
 }) {
+  const { locale } = useI18n();
+  const copy = localeText(locale, { en: { edit: "Edit", pin: "Pin", pinned: "Pinned", duplicate: "Duplicate", delete: "Delete" }, ru: { edit: "Изменить", pin: "Закрепить", pinned: "Закреплено", duplicate: "Дублировать", delete: "Удалить" }, pl: { edit: "Edytuj", pin: "Przypnij", pinned: "Przypięte", duplicate: "Duplikuj", delete: "Usuń" } });
   return (
     <div className="flex items-center gap-2.5">
       {onEdit ? (
@@ -33,7 +37,7 @@ export function LoreEntryActions({
           onClick={onEdit}
           className="flex items-center gap-1 text-[11px] text-stone-500 hover:text-stone-300"
         >
-          <Pencil className="size-3" /> Edit
+          <Pencil className="size-3" /> {copy.edit}
         </button>
       ) : null}
       <button
@@ -47,22 +51,22 @@ export function LoreEntryActions({
           entry.pinned ? "text-amber-300" : "text-stone-500 hover:text-stone-300",
         )}
       >
-        <Pin className="size-3" /> {entry.pinned ? "Pinned" : "Pin"}
+        <Pin className="size-3" /> {entry.pinned ? copy.pinned : copy.pin}
       </button>
       <button
         type="button"
         onClick={onDuplicate}
-        aria-label={`Duplicate ${entry.title}`}
+        aria-label={`${copy.duplicate} ${entry.title}`}
         className="flex items-center gap-1 text-[11px] text-stone-500 hover:text-stone-300"
       >
-        <Copy className="size-3" /> Duplicate
+        <Copy className="size-3" /> {copy.duplicate}
       </button>
       <button
         type="button"
         onClick={onDelete}
         className="flex items-center gap-1 text-[11px] text-stone-500 hover:text-red-400"
       >
-        <Trash2 className="size-3" /> Delete
+        <Trash2 className="size-3" /> {copy.delete}
       </button>
     </div>
   );

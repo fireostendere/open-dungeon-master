@@ -5,6 +5,8 @@ import { cn } from "@/lib/cn";
 import { ui } from "@/lib/ui";
 import { BEAT_LABELS, type Board, type BoardInventory, type BoardNode } from "@/lib/workshop/board";
 import { KIND_CHIP, LINK_FIELDS } from "@/app/workshop/storyboard/beat-fields";
+import { useI18n } from "@/lib/i18n/context";
+import { localeText } from "@/lib/i18n/locale-text";
 
 // The workshop's storyboard: every card as a card. Kind chip, title, the
 // first line of what happens, a chip per thing it points at, and how many
@@ -31,10 +33,12 @@ export function BeatBoard({
   inventory: BoardInventory;
   onOpen: (node: BoardNode) => void;
 }) {
+  const { locale } = useI18n();
+  const copy = localeText(locale, { en: { empty: "Nothing on the board. Start with a reason the party would go somewhere.", open: "Open", leads: "leads to" }, ru: { empty: "На доске пока ничего нет. Начните с причины, по которой группа куда-то отправится.", open: "Открыть", leads: "ведёт к" }, pl: { empty: "Na planszy jeszcze nic nie ma. Zacznij od powodu, dla którego drużyna gdzieś pójdzie.", open: "Otwórz", leads: "prowadzi do" } });
   if (board.nodes.length === 0) {
     return (
       <p className="text-xs text-stone-500">
-        Nothing on the board. Start with a reason the party would go somewhere.
+        {copy.empty}
       </p>
     );
   }
@@ -56,7 +60,7 @@ export function BeatBoard({
             <button
               type="button"
               onClick={() => onOpen(node)}
-              aria-label={`Open ${node.title}`}
+              aria-label={`${copy.open} ${node.title}`}
               className={cn(
                 ui.cardHover,
                 "flex h-full w-full flex-col gap-2 p-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/40",
@@ -87,7 +91,7 @@ export function BeatBoard({
               ) : null}
               <span className="mt-auto flex items-center gap-1 text-[11px] text-stone-500">
                 <ArrowRight className="size-3" aria-hidden="true" />
-                leads to {node.out.length}
+                {copy.leads} {node.out.length}
               </span>
             </button>
           </li>

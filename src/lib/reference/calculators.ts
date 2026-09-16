@@ -16,6 +16,7 @@ import {
   type TravelPace,
 } from "@/lib/srd/travel";
 import { crLabel } from "@/lib/bestiary/derive-cr";
+import type { Locale } from "@/lib/i18n";
 
 // Every table calculation a DM does by hand between sessions, on one screen.
 //
@@ -455,4 +456,58 @@ export function runCalculator(id: string, input: CalcInput): CalcResult | { erro
     return { error: `There is no "${id}" calculator.` };
   }
   return calculator.run(input);
+}
+
+// Keep calculation data and identifiers stable; only this display boundary varies by locale.
+export function calculatorDisplay(calculator: Calculator, locale: Locale): Calculator {
+  if (locale === "en") return calculator;
+  const text = CALCULATOR_COPY[locale][calculator.id];
+  return {
+    ...calculator,
+    label: text?.label ?? calculator.label,
+    blurb: text?.blurb ?? calculator.blurb,
+    fields: calculator.fields.map((field) => ({
+      ...field,
+      label: text?.fields[field.key] ?? field.label,
+      ...(field.kind === "choice"
+        ? { options: field.options.map((option) => ({ ...option, label: text?.options[option.value] ?? option.label })) }
+        : {}),
+    })) as ReadonlyArray<CalcField>,
+  };
+}
+
+type CalculatorCopy = { label: string; blurb: string; fields: Record<string, string>; options: Record<string, string> };
+const CALCULATOR_COPY: Record<Exclude<Locale, "en">, Record<string, CalculatorCopy>> = {
+  ru: {
+    "encounter-budget": { label: "Сложность встречи", blurb: "Стоимость боя относительно порогов опыта группы.", fields: { partySize: "Размер группы", partyLevel: "Уровень группы", monsterCount: "Монстры", monsterCr: "Каждый с" }, options: {} },
+    treasure: { label: "Сокровища по CR", blurb: "Ценность клада для этого показателя опасности.", fields: { cr: "Показатель опасности", kind: "Тип" }, options: { hoard: "Клад", individual: "Личная добыча" } },
+    travel: { label: "Время пути", blurb: "Сколько займёт дорога и чего стоит путь дольше дня.", fields: { miles: "Расстояние", pace: "Темп", hours: "Часов в день" }, options: { slow: "Медленный", normal: "Обычный", fast: "Быстрый" } },
+    "spell-dc": { label: "СЛ спасброска заклинания", blurb: "СЛ заклинателя и оценка этого значения.", fields: { abilityScore: "Заклинательная характеристика", level: "Уровень персонажа", bonus: "Другой бонус" }, options: {} },
+    carrying: { label: "Грузоподъёмность", blurb: "Сколько может нести персонаж до применения вариантного правила.", fields: { strength: "Сила", size: "Размер", coins: "Монеты" }, options: { tiny: "Крошечный", small: "Маленький", medium: "Средний", large: "Большой", huge: "Огромный", gargantuan: "Громадный" } },
+  },
+  pl: {
+    "encounter-budget": { label: "Budżet spotkania", blurb: "Koszt walki względem progów PD drużyny.", fields: { partySize: "Wielkość drużyny", partyLevel: "Poziom drużyny", monsterCount: "Potwory", monsterCr: "Każdy o" }, options: {} },
+    treasure: { label: "Skarb według CR", blurb: "Wartość skarbca dla tego poziomu wyzwania.", fields: { cr: "Poziom wyzwania", kind: "Rodzaj" }, options: { hoard: "Skarbiec", individual: "Skarb osobisty" } },
+    travel: { label: "Czas podróży", blurb: "Ile trwa podróż i co kosztuje marsz dłuższy niż dzień.", fields: { miles: "Odległość", pace: "Tempo", hours: "Godzin dziennie" }, options: { slow: "Wolne", normal: "Zwykłe", fast: "Szybkie" } },
+    "spell-dc": { label: "ST obrony przed czarem", blurb: "ST czarującego i ocena tej wartości.", fields: { abilityScore: "Cecha rzucania czarów", level: "Poziom postaci", bonus: "Inny bonus" }, options: {} },
+    carrying: { label: "Udźwig", blurb: "Ile postać może nieść przed zastosowaniem zasady wariantowej.", fields: { strength: "Siła", size: "Rozmiar", coins: "Niesione monety" }, options: { tiny: "Maleńki", small: "Mały", medium: "Średni", large: "Duży", huge: "Wielki", gargantuan: "Kolosalny" } },
+  },
+};
+
+const RESULT_LABELS: Record<Exclude<Locale, "en">, Record<string, string>> = {
+  ru: { "Raw XP": "Базовый опыт", Multiplier: "Множитель", "Adjusted XP": "Скорректированный опыт", Thresholds: "Пороги", Tier: "Категория", Roll: "Бросок", "Magic items": "Магические предметы", Pace: "Темп", "Covered a day": "За день", Watch: "Наблюдательность", "Forced march": "Форсированный марш", "Ability modifier": "Модификатор характеристики", Proficiency: "Бонус мастерства", "Spell attack": "Атака заклинанием", "On the ladder": "По шкале", "Encumbered past": "Нагрузка после", "Heavily encumbered past": "Сильная нагрузка после", "Push, drag or lift": "Толкнуть, тащить или поднять", Coins: "Монеты" },
+  pl: { "Raw XP": "Bazowe PD", Multiplier: "Mnożnik", "Adjusted XP": "Skorygowane PD", Thresholds: "Progi", Tier: "Poziom", Roll: "Rzut", "Magic items": "Magicczne przedmioty", Pace: "Tempo", "Covered a day": "Dystans dzienny", Watch: "Czujność", "Forced march": "Forsowny marsz", "Ability modifier": "Modyfikator cechy", Proficiency: "Biegłość", "Spell attack": "Atak czarem", "On the ladder": "Na skali", "Encumbered past": "Obciążenie od", "Heavily encumbered past": "Duże obciążenie od", "Push, drag or lift": "Pchać, ciągnąć lub podnosić", Coins: "Monety" },
+};
+
+export function localizeCalculatorResult(id: string, result: CalcResult, locale: Locale): CalcResult {
+  if (locale === "en") return result;
+  const labels = RESULT_LABELS[locale];
+  const difficultyNames: Record<string, string> = {
+    ru: { Trivial: "Незначительная", Easy: "Лёгкая", Medium: "Средняя", Hard: "Трудная", Deadly: "Смертельная", "Beyond deadly": "Сверхсмертельная" },
+    pl: { Trivial: "Błaha", Easy: "Łatwa", Medium: "Średnia", Hard: "Trudna", Deadly: "Śmiertelna", "Beyond deadly": "Ponad śmiertelną" },
+  }[locale];
+  const headline = id === "encounter-budget" && Object.hasOwn(difficultyNames, result.headline)
+    ? difficultyNames[result.headline]
+    : result.headline;
+  return { ...result, headline, parts: result.parts.map((part) => ({ ...part, label: labels[part.label] ?? part.label })) };
 }

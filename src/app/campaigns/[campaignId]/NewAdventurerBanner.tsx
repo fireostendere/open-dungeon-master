@@ -2,6 +2,8 @@
 
 import { UserPlus, X } from "lucide-react";
 import { useState } from "react";
+import { useI18n } from "@/lib/i18n/context";
+import { localeText } from "@/lib/i18n/locale-text";
 
 // Lead-only banner after a mid-game joiner creates their character: write
 // the introduction as a Direct, or let the DM improvise one now.
@@ -16,6 +18,8 @@ export function NewAdventurerBanner({
   onWriteIntro: () => void;
   onDismiss: () => void;
 }) {
+  const { locale } = useI18n();
+  const copy = localeText(locale, { en: { write: "Write intro", dm: "Let the DM do it", dismiss: "Dismiss" }, ru: { write: "Написать вступление", dm: "Пусть ведущий введёт", dismiss: "Скрыть" }, pl: { write: "Napisz wstęp", dm: "Niech MG to zrobi", dismiss: "Ukryj" } });
   const [sending, setSending] = useState(false);
 
   async function letDmIntroduce() {
@@ -49,7 +53,7 @@ export function NewAdventurerBanner({
           onClick={onWriteIntro}
           className="text-amber-200 hover:text-amber-300"
         >
-          Write intro
+           {copy.write}
         </button>
         <button
           type="button"
@@ -57,12 +61,13 @@ export function NewAdventurerBanner({
           disabled={sending}
           className="text-amber-200 hover:text-amber-300 disabled:opacity-50"
         >
-          Let the DM do it
+           {copy.dm}
         </button>
         <button
           type="button"
           onClick={onDismiss}
-          title="Dismiss"
+           title={copy.dismiss}
+           aria-label={copy.dismiss}
           className="text-stone-500 hover:text-stone-300"
         >
           <X className="size-3.5" />

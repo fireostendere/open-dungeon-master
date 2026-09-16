@@ -4,6 +4,8 @@ import { useRef, useState } from "react";
 import { Dices, FileUp, Library, Loader2, Save } from "lucide-react";
 import { MAP_SIZE } from "@/lib/battlemap/generate";
 import type { LibraryState, PreparedMap } from "@/app/workshop/maps/types";
+import { useI18n } from "@/lib/i18n/context";
+import { localeText } from "@/lib/i18n/locale-text";
 
 // The top of the map drawer: name a map, then roll it, start it blank,
 // import a drawing, or keep what is on the table. Split out of
@@ -26,6 +28,8 @@ export function MapCreateControls({
   onCreate: (body: Record<string, unknown>) => Promise<{ map?: PreparedMap } | null>;
   onImport: (file: File) => void;
 }) {
+  const { locale } = useI18n();
+  const copy = localeText(locale, { en: { drawer: "The map drawer", name: "Name it: the flooded crypt", hint: "what the place is like, for the generator", size: "Size", roll: "Roll one", rock: "Blank rock", ground: "Blank ground", import: "Import .dd2vtt", keep: "Keep the board", note: "Name it first. Nothing here touches the table until you put it there." }, ru: { drawer: "Хранилище карт", name: "Название: затопленный склеп", hint: "какое это место — подсказка генератору", size: "Размер", roll: "Сгенерировать", rock: "Пустая скала", ground: "Пустая земля", import: "Импорт .dd2vtt", keep: "Сохранить поле", note: "Сначала укажите название. Ничто отсюда не попадёт на стол, пока вы сами не добавите это." }, pl: { drawer: "Szuflada map", name: "Nazwa: zalana krypta", hint: "opis miejsca dla generatora", size: "Rozmiar", roll: "Wylosuj", rock: "Pusta skała", ground: "Pusty grunt", import: "Importuj .dd2vtt", keep: "Zachowaj planszę", note: "Najpierw podaj nazwę. Nic stąd nie trafi do stołu, dopóki tego nie dodasz." } });
   const [newName, setNewName] = useState("");
   const [size, setSize] = useState({ width: 20, height: 15 });
   const [hint, setHint] = useState("");
@@ -46,26 +50,26 @@ export function MapCreateControls({
       {showHeading ? (
         <p className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-stone-500">
           <Library className="size-3.5" />
-          The map drawer
+          {copy.drawer}
         </p>
       ) : null}
       <div className="flex flex-wrap gap-1.5">
         <input
           value={newName}
           onChange={(event) => setNewName(event.target.value)}
-          placeholder="Name it: the flooded crypt"
+          placeholder={copy.name}
           className="min-w-40 flex-1 rounded-md border border-stone-700 bg-stone-950 px-2 py-1 text-sm text-stone-200"
         />
       </div>
       <input
         value={hint}
         onChange={(event) => setHint(event.target.value)}
-        placeholder="what the place is like, for the generator"
+          placeholder={copy.hint}
         className="w-full rounded-md border border-stone-700 bg-stone-950 px-2 py-1 text-xs text-stone-300"
       />
       <div className="flex flex-wrap items-center gap-1.5">
         <label className="flex items-center gap-1 text-[11px] text-stone-500">
-          Size
+          {copy.size}
           <input
             type="number"
             min={MAP_SIZE.minWidth}
@@ -101,7 +105,7 @@ export function MapCreateControls({
           className="flex items-center gap-1 rounded-md border border-stone-700 px-2 py-1 text-xs text-stone-300 hover:bg-stone-900 disabled:opacity-50"
         >
           {busy ? <Loader2 className="size-3 animate-spin" /> : <Dices className="size-3" />}
-          Roll one
+          {copy.roll}
         </button>
         {(["rock", "ground"] as const).map((blank) => (
           <button
@@ -114,7 +118,7 @@ export function MapCreateControls({
             onClick={() => void create({ do: "create", ...size, blank })}
             className="rounded-md border border-stone-700 px-2 py-1 text-xs text-stone-300 hover:bg-stone-900 disabled:opacity-50"
           >
-            {blank === "rock" ? "Blank rock" : "Blank ground"}
+            {blank === "rock" ? copy.rock : copy.ground}
           </button>
         ))}
         <input
@@ -137,7 +141,7 @@ export function MapCreateControls({
           onClick={() => fileRef.current?.click()}
           className="flex items-center gap-1 rounded-md border border-stone-700 px-2 py-1 text-xs text-stone-300 hover:bg-stone-900 disabled:opacity-50"
         >
-          <FileUp className="size-3" /> Import .dd2vtt
+          <FileUp className="size-3" /> {copy.import}
         </button>
         {board ? (
           <button
@@ -147,12 +151,12 @@ export function MapCreateControls({
             onClick={() => void create({ do: "capture" })}
             className="flex items-center gap-1 rounded-md border border-stone-700 px-2 py-1 text-xs text-stone-300 hover:bg-stone-900 disabled:opacity-50"
           >
-            <Save className="size-3" /> Keep the board
+            <Save className="size-3" /> {copy.keep}
           </button>
         ) : null}
       </div>
       <p className="text-[10px] text-stone-600">
-        Name it first. Nothing here touches the table until you put it there.
+        {copy.note}
       </p>
     </section>
   );

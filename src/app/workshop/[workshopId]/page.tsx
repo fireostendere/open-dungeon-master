@@ -8,17 +8,16 @@ import { SystemCards } from "@/app/workshop/[workshopId]/SystemCards";
 import { SystemView } from "@/app/workshop/[workshopId]/SystemView";
 import { TargetPartyBar } from "@/app/workshop/[workshopId]/TargetPartyBar";
 import { WorkshopHeader } from "@/app/workshop/[workshopId]/WorkshopHeader";
-import {
-  WORKSHOP_SYSTEMS,
-  isSystemId,
-  type SystemId,
-} from "@/app/workshop/[workshopId]/systems";
+import { isSystemId, type SystemId } from "@/app/workshop/[workshopId]/systems";
 import { markTourSeen, tourSeen } from "@/lib/tours/logic";
 import { requestTourPrepare } from "@/lib/tours/prepare";
-import { HUB_TOUR, HUB_TOUR_ID, SYSTEM_TOURS, systemTourId } from "@/lib/tours/workshop";
+import { HUB_TOUR_ID, systemTour, systemTourId, workshopTour } from "@/lib/tours/workshop";
 import { GuidedTour } from "@/components/ui/GuidedTour";
 import { WorkshopHelpDialog, type HelpTour } from "@/components/WorkshopHelpDialog";
 import type { WorkshopSummary } from "@/app/workshop/types";
+import { useI18n } from "@/lib/i18n/context";
+import { interpolateWorkshop, workshopCopy } from "@/app/workshop/copy";
+import { workshopSystemText } from "@/app/workshop/[workshopId]/systems";
 
 // The workshop shell: a hub of system cards, or one system open.
 //
@@ -33,6 +32,8 @@ import type { WorkshopSummary } from "@/app/workshop/types";
 // panel that owns the editor in question answers it.
 
 function WorkshopPageInner({ workshopId }: { workshopId: string }) {
+  const { locale } = useI18n();
+  const copy = workshopCopy(locale);
   const router = useRouter();
   const pathname = usePathname();
   const requested = useSearchParams().get("system");
@@ -59,7 +60,7 @@ function WorkshopPageInner({ workshopId }: { workshopId: string }) {
           // transient; the next action reloads
         })
         .finally(() => setLoading(false)),
-    [workshopId],
+    [workshopId, setWorkshop],
   );
 
   // Homebrew monsters are not an importable kind, so the contents map does
@@ -148,21 +149,21 @@ function WorkshopPageInner({ workshopId }: { workshopId: string }) {
   // tool's own.
   const helpTours: HelpTour[] = [
     {
-      label: "Tour the workshop",
-      detail: "The hub: the party bar, the tool cards and the actions on the workshop.",
+      label: copy.tourWorkshop,
+      detail: copy.tourWorkshopDetail,
       onStart: () => setTour(HUB_TOUR_ID),
     },
     ...(system
       ? [
           {
-            label: `Tour ${WORKSHOP_SYSTEMS.find((entry) => entry.id === system)?.label ?? system}`,
-            detail: "This tool's controls, one at a time.",
+            label: interpolateWorkshop(copy.tourTool, { name: workshopSystemText(locale, system).label }),
+            detail: copy.tourToolDetail,
             onStart: () => setTour(systemTourId(system)),
           },
         ]
       : []),
   ];
-  const tourSteps = tour === HUB_TOUR_ID ? HUB_TOUR : tour ? SYSTEM_TOURS[tour.replace(/^workshop-/, "")] ?? [] : [];
+  const tourSteps = tour === HUB_TOUR_ID ? workshopTour(locale, "hub") : tour ? systemTour(locale, tour.replace(/^workshop-/, "")) : [];
 
   if (loading) {
     return (
@@ -179,9 +180,9 @@ function WorkshopPageInner({ workshopId }: { workshopId: string }) {
           href="/workshop"
           className="mb-4 inline-flex items-center gap-1.5 text-sm text-stone-500 hover:text-amber-200"
         >
-          <ArrowLeft className="size-4" /> Workshop
+          <ArrowLeft className="size-4" /> {copy.title}
         </Link>
-        <p className="text-stone-400">That workshop does not exist, or is not yours.</p>
+        <p className="text-stone-400">{copy.missing}</p>
       </main>
     );
   }

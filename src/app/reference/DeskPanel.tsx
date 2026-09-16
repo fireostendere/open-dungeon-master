@@ -4,6 +4,8 @@ import { Loader2, Quote, Send } from "lucide-react";
 import { useEffect, useState } from "react";
 import { ui } from "@/lib/ui";
 import { DESK_QUESTION_MAX, type DeskAnswer } from "@/lib/reference/desk-logic";
+import { useI18n } from "@/lib/i18n";
+import { localeText } from "@/lib/i18n/locale-text";
 
 // The fact-checking desk: a rules question, answered from what the server
 // actually has, with the sources shown BEFORE the answer is asked for.
@@ -28,6 +30,8 @@ const KIND_LABELS: Record<string, string> = {
 };
 
 export function DeskPanel() {
+  const { locale } = useI18n();
+  const copy = localeText(locale, { en: { ask: "Ask", placeholder: "Does a readied spell need concentration?", error: "The desk could not answer that.", intro: "Ask a rules question. Sources are checked against the material the desk actually received.", none: "Nothing on file bears on this yet", fallback: "The desk will still answer from general rules knowledge and say that it did.", uncited: "This answer cites nothing on file. Treat it as a starting point and check a book before settling anything at the table." }, ru: { ask: "Спросить", placeholder: "Требует ли подготовленное заклинание концентрации?", error: "Справочник не смог ответить.", intro: "Задайте вопрос по правилам. Источники сверяются с материалом, который действительно получил справочник.", none: "В сохранённых материалах пока ничего нет", fallback: "Справочник всё равно ответит из общих знаний правил и сообщит об этом.", uncited: "В ответе нет сохранённых источников. Считайте его отправной точкой и сверьтесь с книгой, прежде чем решать вопрос за столом." }, pl: { ask: "Zapytaj", placeholder: "Czy przygotowane zaklęcie wymaga koncentracji?", error: "Pomocnik nie mógł odpowiedzieć.", intro: "Zadaj pytanie o zasady. Źródła są sprawdzane z materiałem faktycznie otrzymanym przez pomocnik.", none: "Nie ma jeszcze niczego w zapisanych materiałach", fallback: "Pomocnik nadal odpowie z ogólnej wiedzy o zasadach i zaznaczy to.", uncited: "Odpowiedź nie cytuje materiałów z pliku. Traktuj ją jako punkt wyjścia i sprawdź książkę przed rozstrzygnięciem przy stole." } });
   const [question, setQuestion] = useState("");
   const [sources, setSources] = useState<PreviewSource[]>([]);
   const [answer, setAnswer] = useState<DeskAnswer | null>(null);
@@ -83,12 +87,12 @@ export function DeskPanel() {
       });
       const data = await response.json();
       if (!response.ok) {
-        setError(data.error ?? "The desk could not answer that.");
+        setError(data.error ?? copy.error);
         return;
       }
       setAnswer(data.result);
     } catch {
-      setError("The desk could not answer that.");
+      setError(copy.error);
     } finally {
       setAsking(false);
     }
@@ -97,9 +101,7 @@ export function DeskPanel() {
   return (
     <div>
       <p className="mb-3 text-sm text-stone-400">
-        A rules question, answered from the content pack, the rules basics and your own house
-        rules. Every citation is checked against what the desk actually supplied, so a source
-        listed here is one that exists.
+        {copy.intro}
       </p>
 
       <div className="mb-3 flex gap-2">
@@ -112,7 +114,8 @@ export function DeskPanel() {
               void ask();
             }
           }}
-          placeholder="Does a readied spell need concentration?"
+          placeholder={copy.placeholder}
+          aria-label={copy.ask}
           className="flex-1 rounded-lg border border-stone-800 bg-stone-950 px-3 py-2 text-sm text-stone-200 outline-none focus:border-amber-300"
         />
         <button
@@ -122,7 +125,7 @@ export function DeskPanel() {
           className={ui.btnSecondary}
         >
           {asking ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
-          Ask
+          {copy.ask}
         </button>
       </div>
 
@@ -131,7 +134,7 @@ export function DeskPanel() {
           <p className="mb-2 text-xs uppercase tracking-wide text-stone-500">
             {sources.length
               ? `${sources.length} source${sources.length === 1 ? "" : "s"} the desk would read`
-              : "Nothing on file bears on this yet"}
+              : copy.none}
           </p>
           {sources.length ? (
             <ul className="flex flex-wrap gap-1.5">
@@ -150,7 +153,7 @@ export function DeskPanel() {
             </ul>
           ) : (
             <p className="text-xs text-stone-500">
-              The desk will still answer, from general rules knowledge, and will say that it did.
+              {copy.fallback}
             </p>
           )}
         </div>
@@ -180,8 +183,7 @@ export function DeskPanel() {
             </ul>
           ) : (
             <p className="mt-4 border-t border-stone-800 pt-3 text-xs text-amber-200/80">
-              This answer cites nothing on file. Treat it as a starting point and check it against
-              a book before it settles anything at the table.
+              {copy.uncited}
             </p>
           )}
         </div>

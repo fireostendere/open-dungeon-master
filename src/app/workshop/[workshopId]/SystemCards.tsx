@@ -9,8 +9,11 @@ import {
   systemCount,
   totalPieces,
   type SystemId,
+  workshopSystemText,
 } from "@/app/workshop/[workshopId]/systems";
 import type { WorkshopSummary } from "@/app/workshop/types";
+import { useI18n } from "@/lib/i18n/context";
+import { workshopCopy } from "@/app/workshop/copy";
 
 // The hub: ten cards, one per system, each wearing its live count so a DM
 // sees at a glance what is built and what is still empty. Tapping one opens
@@ -44,19 +47,22 @@ export function SystemCards({
   pregens?: number | null;
   onOpen: (system: SystemId) => void;
 }) {
+  const { locale } = useI18n();
+  const copy = workshopCopy(locale);
   const total = totalPieces(workshop, bestiary, homebrew, pregens);
   return (
     <section className="mt-5">
       <div className="mb-3 flex items-center gap-3">
-        <Ribbon className="flex-1">Systems</Ribbon>
+        <Ribbon className="min-w-0 flex-1">{copy.systems}</Ribbon>
         <span className="shrink-0 text-xs text-stone-500">
-          {total} {total === 1 ? "piece" : "pieces"} of prep
+          {total} {copy.prep}
         </span>
       </div>
       <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5" data-tour="hub-systems">
         {WORKSHOP_SYSTEMS.map((system) => {
-          const count = systemCount(system.id, workshop, bestiary, homebrew, pregens);
-          const empty = count.figure === "0" || count.figure === "none";
+          const count = systemCount(system.id, workshop, bestiary, homebrew, pregens, locale);
+          const text = workshopSystemText(locale, system.id);
+          const empty = count.total === 0;
           return (
             <li key={system.id}>
               <button
@@ -93,9 +99,9 @@ export function SystemCards({
                 />
                 <div className="mt-auto">
                   <p className="font-display text-[13px] font-semibold uppercase tracking-[0.12em] text-stone-200">
-                    {system.label}
+                    {text.label}
                   </p>
-                  <p className="text-xs text-stone-500">{system.blurb}</p>
+                  <p className="text-xs text-stone-500">{text.blurb}</p>
                 </div>
               </button>
             </li>
@@ -103,7 +109,7 @@ export function SystemCards({
         })}
       </ul>
       <p className="mt-4 text-sm text-stone-500">
-        Everything here is yours alone. Import any of it into a campaign when you start one.
+        {copy.private}
       </p>
     </section>
   );

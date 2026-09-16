@@ -7,6 +7,8 @@ import { ui } from "@/lib/ui";
 import { setChimeMuted, useChimeMuted } from "@/app/campaigns/[campaignId]/useChatChime";
 import type { CampaignMember } from "@/lib/campaign-types";
 import type { SideMessage, SideThread } from "@/lib/db/side-chat";
+import { useI18n } from "@/lib/i18n";
+import { localeText } from "@/lib/i18n/locale-text";
 
 // Private table talk: 1:1 whispers and group side chats. Content lives only
 // in the side-chat API; the shared campaign stream carries just a contentless
@@ -31,6 +33,12 @@ export function SideChatPanel({
   openThreadRequest: string | null;
   onOpenHandled: () => void;
 }) {
+  const { locale } = useI18n();
+  const copy = localeText(locale, {
+    en: { chats: "Private chats", new: "New", muted: "Chime muted. Click to play a chime when a private message arrives.", chime: "The chime plays when a private message arrives. Click to mute.", privacy: "Only the people in a chat can read it. The Dungeon Master never sees these.", empty: "No side chats yet. Whisper a party member from their card, or start one here.", openFailed: "Could not open the chat.", reachFailed: "Could not reach the server.", someone: "someone" },
+    ru: { chats: "Личные чаты", new: "Новый", muted: "Звук выключен. Нажмите, чтобы слышать сигнал при новом личном сообщении.", chime: "Сигнал звучит при новом личном сообщении. Нажмите, чтобы выключить.", privacy: "Чат видят только его участники. Мастер его не видит.", empty: "Личных чатов ещё нет. Напишите члену группы с его карточки или начните чат здесь.", openFailed: "Не удалось открыть чат.", reachFailed: "Не удалось связаться с сервером.", someone: "кто-то" },
+    pl: { chats: "Prywatne czaty", new: "Nowy", muted: "Dźwięk wyciszony. Kliknij, aby odtwarzać dźwięk przy nowej prywatnej wiadomości.", chime: "Dźwięk odtwarza się przy nowej prywatnej wiadomości. Kliknij, aby wyciszyć.", privacy: "Tylko osoby na czacie mogą go czytać. Mistrz Gry nigdy go nie widzi.", empty: "Nie ma jeszcze czatów pobocznych. Napisz do członka drużyny z jego karty albo zacznij tutaj.", openFailed: "Nie udało się otworzyć czatu.", reachFailed: "Nie udało się połączyć z serwerem.", someone: "ktoś" },
+  });
   const [openThreadId, setOpenThreadId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState("");
@@ -49,16 +57,16 @@ export function SideChatPanel({
         });
         const data = await response.json().catch(() => ({}));
         if (!response.ok) {
-          setError(data.error || "Could not open the chat.");
+          setError(data.error || copy.openFailed);
           return;
         }
         await refreshSideChat();
         setOpenThreadId(data.thread.id);
       } catch {
-        setError("Could not reach the server.");
+        setError(copy.reachFailed);
       }
     },
-    [campaignId, refreshSideChat],
+    [campaignId, copy, refreshSideChat],
   );
 
   useEffect(() => {
@@ -74,8 +82,8 @@ export function SideChatPanel({
   }, [openThreadRequest, onOpenHandled, openDmWith]);
 
   const nameOf = useCallback(
-    (userId: string) => members.find((member) => member.userId === userId)?.username ?? "someone",
-    [members],
+    (userId: string) => members.find((member) => member.userId === userId)?.username ?? copy.someone,
+    [copy.someone, members],
   );
 
   function threadLabel(thread: SideThread): string {
@@ -104,7 +112,7 @@ export function SideChatPanel({
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <h3 className="text-xs font-medium uppercase tracking-wide text-stone-500">
-          Private chats
+          {copy.chats}
         </h3>
         <div className="flex items-center gap-1.5">
           <button
@@ -113,19 +121,18 @@ export function SideChatPanel({
             className={ui.btnSmall}
             title={
               chimeMuted
-                ? "Chime muted. Click to play a chime when a private message arrives."
-                : "The chime plays when a private message arrives. Click to mute."
+                ? copy.muted : copy.chime
             }
           >
             {chimeMuted ? <BellOff className="size-3.5" /> : <Bell className="size-3.5" />}
           </button>
           <button type="button" onClick={() => setCreating(true)} className={ui.btnSmall}>
-            <Plus className="size-3.5" /> New
+            <Plus className="size-3.5" /> {copy.new}
           </button>
         </div>
       </div>
       <p className="text-[11px] leading-4 text-stone-600">
-        Only the people in a chat can read it. The Dungeon Master never sees these.
+        {copy.privacy}
       </p>
       {error ? <p className="text-sm text-red-400">{error}</p> : null}
 
@@ -133,7 +140,7 @@ export function SideChatPanel({
         <div className="flex flex-col items-center gap-2 py-8 text-center">
           <MessagesSquare className="size-6 text-stone-700" />
           <p className="text-xs text-stone-600">
-            No side chats yet. Whisper a party member from their card, or start one here.
+            {copy.empty}
           </p>
         </div>
       ) : (
@@ -191,6 +198,12 @@ function NewChatForm({
   onCreated: (threadId: string) => Promise<void>;
   onCancel: () => void;
 }) {
+  const { locale } = useI18n();
+  const copy = localeText(locale, {
+    en: { pick: "Pick at least one member.", createFailed: "Could not create the chat.", reachFailed: "Could not reach the server.", who: "Who's in it?", group: "Group name (optional)", cancel: "Cancel", start: "Start chat" },
+    ru: { pick: "Выберите хотя бы одного участника.", createFailed: "Не удалось создать чат.", reachFailed: "Не удалось связаться с сервером.", who: "Кто участвует?", group: "Название группы (необязательно)", cancel: "Отмена", start: "Начать чат" },
+    pl: { pick: "Wybierz co najmniej jednego członka.", createFailed: "Nie udało się utworzyć czatu.", reachFailed: "Nie udało się połączyć z serwerem.", who: "Kto w nim jest?", group: "Nazwa grupy (opcjonalnie)", cancel: "Anuluj", start: "Rozpocznij czat" },
+  });
   const [selected, setSelected] = useState<string[]>([]);
   const [title, setTitle] = useState("");
   const [busy, setBusy] = useState(false);
@@ -198,7 +211,7 @@ function NewChatForm({
 
   async function create() {
     if (selected.length === 0) {
-      setError("Pick at least one member.");
+      setError(copy.pick);
       return;
     }
     setBusy(true);
@@ -215,12 +228,12 @@ function NewChatForm({
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) {
-        setError(data.error || "Could not create the chat.");
+        setError(data.error || copy.createFailed);
         return;
       }
       await onCreated(data.thread.id);
     } catch {
-      setError("Could not reach the server.");
+      setError(copy.reachFailed);
     } finally {
       setBusy(false);
     }
@@ -228,7 +241,7 @@ function NewChatForm({
 
   return (
     <div className="rounded-lg border border-stone-800 bg-stone-950/40 p-3">
-      <p className="mb-2 text-xs font-medium text-stone-400">Who&apos;s in it?</p>
+      <p className="mb-2 text-xs font-medium text-stone-400">{copy.who}</p>
       <ul className="space-y-1">
         {members.map((member) => (
           <li key={member.userId}>
@@ -255,17 +268,17 @@ function NewChatForm({
           value={title}
           onChange={(event) => setTitle(event.target.value)}
           maxLength={80}
-          placeholder="Group name (optional)"
+          placeholder={copy.group}
           className={cn(ui.input, "mt-2 text-sm")}
         />
       ) : null}
       {error ? <p className="mt-2 text-xs text-red-400">{error}</p> : null}
       <div className="mt-2 flex justify-end gap-2">
         <button type="button" onClick={onCancel} className="text-xs text-stone-500 hover:text-stone-300">
-          Cancel
+          {copy.cancel}
         </button>
         <button type="button" onClick={create} disabled={busy} className={ui.btnSmall}>
-          {busy ? <Loader2 className="size-3.5 animate-spin" /> : null} Start chat
+          {busy ? <Loader2 className="size-3.5 animate-spin" /> : null} {copy.start}
         </button>
       </div>
     </div>
@@ -289,6 +302,12 @@ function ThreadView({
   refreshSideChat: () => Promise<void>;
   onBack: () => void;
 }) {
+  const { locale } = useI18n();
+  const copy = localeText(locale, {
+    en: { all: "All chats", sendFailed: "Could not send.", reachFailed: "Could not reach the server.", someone: "someone", message: "Message" },
+    ru: { all: "Все чаты", sendFailed: "Не удалось отправить.", reachFailed: "Не удалось связаться с сервером.", someone: "кто-то", message: "Сообщение" },
+    pl: { all: "Wszystkie czaty", sendFailed: "Nie udało się wysłać.", reachFailed: "Nie udało się połączyć z serwerem.", someone: "ktoś", message: "Wiadomość" },
+  });
   const [messages, setMessages] = useState<SideMessage[]>([]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
@@ -363,7 +382,7 @@ function ThreadView({
       );
       const data = await response.json().catch(() => ({}));
       if (!response.ok) {
-        setError(data.error || "Could not send.");
+        setError(data.error || copy.sendFailed);
         return;
       }
       setInput("");
@@ -371,14 +390,14 @@ function ThreadView({
       setMessages((current) => [...current, message]);
       lastSeqRef.current = Math.max(lastSeqRef.current, message.seq);
     } catch {
-      setError("Could not reach the server.");
+      setError(copy.reachFailed);
     } finally {
       setSending(false);
     }
   }
 
   const nameOf = (userId: string) =>
-    members.find((member) => member.userId === userId)?.username ?? "someone";
+    members.find((member) => member.userId === userId)?.username ?? copy.someone;
 
   return (
     <div className="flex h-full flex-col">
@@ -386,7 +405,7 @@ function ThreadView({
         <button
           type="button"
           onClick={onBack}
-          title="All chats"
+          title={copy.all}
           className="rounded p-1 text-stone-500 hover:bg-stone-900 hover:text-stone-300"
         >
           <ArrowLeft className="size-4" />
@@ -438,7 +457,7 @@ function ThreadView({
             }}
             rows={1}
             maxLength={2000}
-            placeholder={`Message ${label}`}
+            placeholder={`${copy.message} ${label}`}
             className="flex-1 resize-none bg-transparent px-1.5 py-1 text-sm text-stone-200 outline-none"
           />
           <button

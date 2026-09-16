@@ -7,6 +7,8 @@ import { ui } from "@/lib/ui";
 import type { WorkbenchPart, WorkbenchReadout } from "@/lib/dm/encounter-workbench";
 import { useTourPrepare } from "@/lib/tours/prepare";
 import { MonsterRosterPicker } from "@/app/campaigns/[campaignId]/MonsterRosterPicker";
+import { useI18n } from "@/lib/i18n/context";
+import { localeText } from "@/lib/i18n/locale-text";
 
 // The encounter workbench: what a roster costs, and what it is likely to do.
 //
@@ -65,6 +67,12 @@ export function DmWorkbenchPanel({
   // the DM console renders as it always has.
   collapsible?: boolean;
 }) {
+  const { locale } = useI18n();
+  const copy = localeText(locale, {
+    en: { costError: "That roster could not be costed.", weigh: "Weigh a fight", partyLevel: "Party level (what if)", partySize: "Party size", asIs: "as it is", run: "Work it out", hard: "How hard is this?", forParty: (size: number, levels: string) => `For ${size} characters at level ${levels}`, ceiling: "Past this campaign's ceiling. The engine will refuse to start it as written.", deploy: (count: number, maximum: number) => `${count} creatures. A fight takes ${maximum} or fewer, so this roster is a plan rather than something that will deploy.`, party: "Party", roster: "Roster", round: "a round" },
+    ru: { costError: "Не удалось рассчитать этот состав.", weigh: "Оценить бой", partyLevel: "Уровень группы (что если)", partySize: "Размер группы", asIs: "как сейчас", run: "Рассчитать", hard: "Насколько это сложно?", forParty: (size: number, levels: string) => `Для ${size} персонажей уровня ${levels}`, ceiling: "Выше предела этой кампании. Движок не запустит бой в таком виде.", deploy: (count: number, maximum: number) => `${count} существ. В бой можно отправить не более ${maximum}, поэтому этот состав — только план.`, party: "Группа", roster: "Состав", round: "за раунд" },
+    pl: { costError: "Nie udało się wycenić tego składu.", weigh: "Oceń walkę", partyLevel: "Poziom drużyny (co jeśli)", partySize: "Liczebność drużyny", asIs: "obecny", run: "Oblicz", hard: "Jak trudne to jest?", forParty: (size: number, levels: string) => `Dla ${size} postaci na poziomie ${levels}`, ceiling: "Powyżej limitu tej kampanii. Silnik odmówi rozpoczęcia takiej walki.", deploy: (count: number, maximum: number) => `${count} stworzeń. Walka przyjmuje najwyżej ${maximum}, więc ten skład jest planem, a nie czymś do wystawienia.`, party: "Drużyna", roster: "Skład", round: "na rundę" },
+  });
   const [open, setOpen] = useState(false);
   const [enemies, setEnemies] = useState("");
   const [partyLevel, setPartyLevel] = useState<number | "">("");
@@ -95,7 +103,7 @@ export function DmWorkbenchPanel({
         error?: string;
       };
       if (!response.ok || !payload.readout) {
-        setError(payload.error ?? "That roster could not be costed.");
+        setError(payload.error ?? copy.costError);
         setResult(null);
         return;
       }
@@ -113,7 +121,7 @@ export function DmWorkbenchPanel({
       <div className="flex flex-col gap-2 rounded-lg border border-stone-800 bg-stone-900/40 p-3">
         {collapsible ? null : (
           <h3 className="flex items-center gap-1.5 text-sm text-amber-100">
-            <Calculator className="size-4" /> Weigh a fight
+            <Calculator className="size-4" /> {copy.weigh}
           </h3>
         )}
         {/* The same search the prepared-encounter form has: pick from what
@@ -130,7 +138,7 @@ export function DmWorkbenchPanel({
         <div className="flex flex-wrap items-end gap-2">
           <label className="flex flex-col gap-0.5">
             <span className="text-[10px] uppercase tracking-wide text-stone-500">
-              Party level (what if)
+              {copy.partyLevel}
             </span>
             <input
               type="number"
@@ -140,12 +148,12 @@ export function DmWorkbenchPanel({
               onChange={(event) =>
                 setPartyLevel(event.target.value === "" ? "" : Number(event.target.value))
               }
-              placeholder="as it is"
+               placeholder={copy.asIs}
               className={cn(input, "w-28")}
             />
           </label>
           <label className="flex flex-col gap-0.5">
-            <span className="text-[10px] uppercase tracking-wide text-stone-500">Party size</span>
+            <span className="text-[10px] uppercase tracking-wide text-stone-500">{copy.partySize}</span>
             <input
               type="number"
               min={1}
@@ -154,7 +162,7 @@ export function DmWorkbenchPanel({
               onChange={(event) =>
                 setPartySize(event.target.value === "" ? "" : Number(event.target.value))
               }
-              placeholder="as it is"
+               placeholder={copy.asIs}
               className={cn(input, "w-28")}
             />
           </label>
@@ -165,7 +173,7 @@ export function DmWorkbenchPanel({
             className="inline-flex items-center gap-1.5 rounded-md border border-amber-500/40 px-3 py-1 text-xs text-amber-100 hover:bg-stone-800 disabled:opacity-40"
           >
             {busy ? <Loader2 className="size-3.5 animate-spin" /> : null}
-            Work it out
+            {copy.run}
           </button>
         </div>
         {error ? <p className="text-[11px] text-red-400">{error}</p> : null}
@@ -179,19 +187,17 @@ export function DmWorkbenchPanel({
                 {budget.verdict.replace(/_/g, " ")}
               </span>{" "}
               <span className="text-stone-500">
-                for {result.party.size} character{result.party.size === 1 ? "" : "s"} at level{" "}
-                {[...new Set(result.party.levels)].join(", ")}
+                {copy.forParty(result.party.size, [...new Set(result.party.levels)].join(", "))}
               </span>
             </p>
             {budget.overCeiling ? (
               <p className="text-[11px] text-red-400">
-                Past this campaign&apos;s ceiling. The engine will refuse to start it as written.
+                {copy.ceiling}
               </p>
             ) : null}
             {budget.monsterCount > result.maxEnemies ? (
               <p className="text-[11px] text-amber-300/80">
-                {budget.monsterCount} creatures. A fight takes {result.maxEnemies} or fewer, so this
-                roster is a plan rather than something that will deploy.
+                {copy.deploy(budget.monsterCount, result.maxEnemies)}
               </p>
             ) : null}
             <Parts parts={budget.parts} />
@@ -201,16 +207,16 @@ export function DmWorkbenchPanel({
             <p className="text-sm text-stone-300">{attrition.outcome}</p>
             <div className="flex flex-wrap gap-x-6 gap-y-1 text-[11px] text-stone-500">
               <span>
-                Party{" "}
+                {copy.party}{" "}
                 <span className="text-amber-100">
-                  {attrition.party.hitPoints} hp, {attrition.party.damagePerRound.toFixed(1)} a round
+                  {attrition.party.hitPoints} hp, {attrition.party.damagePerRound.toFixed(1)} {copy.round}
                 </span>
               </span>
               <span>
-                Roster{" "}
+                {copy.roster}{" "}
                 <span className="text-amber-100">
                   {attrition.monsters.hitPoints} hp,{" "}
-                  {attrition.monsters.damagePerRound.toFixed(1)} a round
+                  {attrition.monsters.damagePerRound.toFixed(1)} {copy.round}
                 </span>
               </span>
             </div>
@@ -239,7 +245,7 @@ export function DmWorkbenchPanel({
         className="flex w-full items-center gap-2 text-left font-display text-sm tracking-wide text-amber-100"
       >
         <Calculator className="size-4 text-amber-300" />
-        How hard is this?
+        {copy.hard}
         {open ? (
           <ChevronDown className="ml-auto size-4 text-stone-500" />
         ) : (

@@ -13,7 +13,7 @@ import { register } from "node:module";
 
 register("./lib/register-alias.mjs", import.meta.url);
 
-const { CALCULATORS, calculatorById, runCalculator } = await import(
+const { CALCULATORS, calculatorById, runCalculator, calculatorDisplay, localizeCalculatorResult } = await import(
   "../src/lib/reference/calculators.ts"
 );
 const { buildCompare, MAX_COMPARE } = await import("../src/lib/reference/compare.ts");
@@ -51,6 +51,28 @@ function part(result, label) {
 }
 
 // ---- calculators ----
+
+test("localization changes calculator labels without changing inputs or results", () => {
+  for (const locale of ["ru", "en", "pl"]) {
+    for (const calculator of CALCULATORS) {
+      const display = calculatorDisplay(calculator, locale);
+      assert.equal(display.run, calculator.run);
+      assert.deepEqual(display.defaults, calculator.defaults);
+      assert.deepEqual(display.fields.map((field) => field.key), calculator.fields.map((field) => field.key));
+      if (locale !== "en") assert.notEqual(display.label, calculator.label);
+      for (let index = 0; index < calculator.fields.length; index += 1) {
+        if (calculator.fields[index].kind === "choice") {
+          assert.deepEqual(display.fields[index].options.map((option) => option.value), calculator.fields[index].options.map((option) => option.value));
+        }
+      }
+      const result = calculator.run(calculator.defaults);
+      const before = JSON.stringify(result);
+      const localized = localizeCalculatorResult(calculator.id, result, locale);
+      assert.deepEqual(localized.parts.map((part) => part.value), result.parts.map((part) => part.value));
+      assert.equal(JSON.stringify(result), before);
+    }
+  }
+});
 
 test("every calculator runs on its own defaults", () => {
   for (const calculator of CALCULATORS) {

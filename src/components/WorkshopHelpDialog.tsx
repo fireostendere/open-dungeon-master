@@ -14,6 +14,8 @@ import { ui } from "@/lib/ui";
 import { WORKSHOP_GUIDES } from "@/lib/tours/workshop-guide";
 import { Dialog } from "@/components/ui/Dialog";
 import { Section } from "@/components/HelpDialog";
+import { useI18n } from "@/lib/i18n/context";
+import { localeText } from "@/lib/i18n/locale-text";
 
 // The workshop's own help. The main HelpDialog is written for a table
 // mid-session; a workshop has no table, no transcript and no AI turns, so
@@ -37,6 +39,12 @@ export function WorkshopHelpDialog({
   // The tool open right now, whose guide leads and starts unfolded.
   system?: string | null;
 }) {
+  const { locale } = useI18n();
+  const copy = localeText(locale, {
+    en: { title: "Workshop help", tours: "Guided tours", tools: "The tools, one by one", what: "What a workshop is", import: "Into a campaign, and back out", copying: "Copying things", rules: "Where the rules live", tourText: "A spotlight walk through the controls, one at a time. Each tour ran once when you first opened its page; take it again whenever you like.", toolsText: "What each tool is for, how a first session with it goes, and the things people miss.", first: " The tool you have open comes first.", whatText: "A prep space: everything a campaign holds, with no players, no transcript and no AI narrator. Build the material on your own time, then bring it into a real campaign when the table sits down. Nothing you do here can start a fight or move a story, because there is no story running. The stand-in party bar at the top sets the party size and level your prep is measured against, so encounter difficulty readouts mean something before real characters exist.", importText: "Creating a campaign offers a Bring in prep step: pick a workshop (or another campaign you can see) and choose what to copy in. A campaign lobby can import the same way after creation. Copies are copies: the workshop keeps its version, the campaign owns its own from then on, and name collisions get numbered instead of overwritten. The Share tool exports the whole workshop as a bundle file another server can import, and can compile a draft world pack from it.", copyingText: "A whole workshop can be cloned from the shelf or the hub, and individual pieces (maps, NPCs, monsters, encounters, tables, lore) each have a duplicate action. Homebrew monsters, items, spells and options belong to your account rather than to any one workshop, so they follow you everywhere but do not travel inside bundles sent to other people.", rulesText: "Everything here is still 5e underneath: attack expressions have to roll, challenge ratings show their working, and imported material behaves in a campaign exactly like material made there. When you want the numbers themselves, the rules reference and its calculators are one click away in the account menu." },
+    ru: { title: "Справка по мастерской", tours: "Пошаговые туры", tools: "Инструменты по очереди", what: "Что такое мастерская", import: "В кампанию и обратно", copying: "Копирование", rules: "Где находятся правила", tourText: "Пошаговая подсветка элементов управления. Каждый тур запускается один раз при первом открытии страницы, но его можно повторить в любое время.", toolsText: "Назначение каждого инструмента, порядок первой работы с ним и важные детали.", first: " Открытый инструмент показан первым.", whatText: "Это пространство для подготовки: всё, что может быть в кампании, но без игроков, журнала и AI-ведущего. Создавайте материалы в удобное время, затем переносите их в кампанию перед игрой. Здесь нельзя начать бой или продвинуть сюжет, потому что активной истории нет. Панель условной группы сверху задаёт размер и уровень, по которым оценивается подготовка, поэтому сложность встреч имеет смысл ещё до появления настоящих персонажей.", importText: "При создании кампании доступен шаг «Добавить подготовку»: выберите мастерскую или другую доступную кампанию и укажите, что копировать. То же можно импортировать из лобби после создания. Копии независимы: версия остаётся в мастерской, а кампания получает собственную; совпадающие названия нумеруются, а не перезаписываются. Инструмент «Поделиться» экспортирует всю мастерскую в файл набора, который можно импортировать на другом сервере, и может собрать черновик world pack.", copyingText: "Всю мастерскую можно клонировать со списка или из главной страницы, а карты, NPC, монстров, встречи, таблицы и записи лора — дублировать по отдельности. Хоумбрю-монстры, предметы, заклинания и опции принадлежат вашей учётной записи, поэтому доступны везде, но не передаются в наборах другим людям.", rulesText: "В основе всего по-прежнему 5e: выражения атак должны бросаться, рейтинги опасности показывают расчёт, а импортированные материалы в кампании работают так же, как созданные в ней. Справочник правил и калькуляторы доступны в меню учётной записи." },
+    pl: { title: "Pomoc warsztatu", tours: "Wycieczki z przewodnikiem", tools: "Narzędzia po kolei", what: "Czym jest warsztat", import: "Do kampanii i z powrotem", copying: "Kopiowanie", rules: "Gdzie są zasady", tourText: "Kolejne podświetlane objaśnienia kontrolek. Każda wycieczka uruchamia się raz przy pierwszym wejściu na stronę, ale możesz ją powtórzyć w każdej chwili.", toolsText: "Do czego służy każde narzędzie, jak wygląda pierwsza praca z nim i o czym łatwo zapomnieć.", first: " Otwarte narzędzie jest pokazane jako pierwsze.", whatText: "To przestrzeń przygotowań: wszystko, co może zawierać kampania, lecz bez graczy, zapisu i narratora AI. Twórz materiały w swoim czasie, a potem przenieś je do prawdziwej kampanii przed sesją. Nie da się tu rozpocząć walki ani przesunąć fabuły, bo żadna historia nie jest aktywna. Pasek zastępczej drużyny u góry określa jej liczebność i poziom, więc oceny trudności spotkań mają sens przed powstaniem prawdziwych postaci.", importText: "Podczas tworzenia kampanii dostępny jest krok „Dodaj przygotowania”: wybierz warsztat lub inną widoczną kampanię i wskaż, co skopiować. To samo można importować z lobby po utworzeniu kampanii. Kopie są niezależne: warsztat zachowuje swoją wersję, a kampania dostaje własną; kolizje nazw są numerowane, nie nadpisywane. Narzędzie Udostępnij eksportuje cały warsztat jako plik pakietu do importu na innym serwerze i może zbudować szkic world packa.", copyingText: "Cały warsztat można sklonować z półki lub centrum, a mapy, NPC, potwory, spotkania, tabele i wpisy wiedzy mają własne działanie duplikacji. Potwory homebrew, przedmioty, czary i opcje należą do Twojego konta, więc są dostępne wszędzie, ale nie podróżują w pakietach do innych osób.", rulesText: "Pod spodem nadal działają zasady 5e: wyrażenia ataku muszą wykonywać rzuty, współczynniki trudności pokazują obliczenia, a importowane materiały działają w kampanii tak samo jak utworzone w niej. Kompendium zasad i kalkulatory są dostępne z menu konta." },
+  });
   const guides = [
     ...WORKSHOP_GUIDES.filter((guide) => guide.id === system),
     ...WORKSHOP_GUIDES.filter((guide) => guide.id !== system),
@@ -45,16 +53,13 @@ export function WorkshopHelpDialog({
     <Dialog
       open={open}
       onOpenChange={onOpenChange}
-      title="Workshop help"
+      title={copy.title}
       icon={<CircleHelp className="size-5 text-amber-500/80" />}
       width="w-[min(94vw,44rem)]"
     >
       {tours && tours.length ? (
-        <Section icon={Footprints} title="Guided tours">
-          <p>
-            A spotlight walk through the controls, one at a time. Each tour ran once when you
-            first opened its page; take it again whenever you like.
-          </p>
+        <Section icon={Footprints} title={copy.tours}>
+          <p>{copy.tourText}</p>
           <div className="flex flex-wrap gap-2">
             {tours.map((tour) => (
               <button
@@ -73,10 +78,9 @@ export function WorkshopHelpDialog({
           </div>
         </Section>
       ) : null}
-      <Section icon={Wrench} title="The tools, one by one">
+      <Section icon={Wrench} title={copy.tools}>
         <p>
-          What each tool is for, how a first session with it goes, and the things people miss.
-          {system ? " The tool you have open comes first." : ""}
+          {copy.toolsText}{system ? copy.first : ""}
         </p>
         <div className="space-y-1.5">
           {guides.map((guide) => (
@@ -117,41 +121,24 @@ export function WorkshopHelpDialog({
           ))}
         </div>
       </Section>
-      <Section icon={Hammer} title="What a workshop is">
+      <Section icon={Hammer} title={copy.what}>
         <p>
-          A prep space: everything a campaign holds, with no players, no transcript and no AI
-          narrator. Build the material on your own time, then bring it into a real campaign when
-          the table sits down. Nothing you do here can start a fight or move a story, because
-          there is no story running. The stand-in party bar at the top sets the party size and
-          level your prep is measured against, so encounter difficulty readouts mean something
-          before real characters exist.
+          {copy.whatText}
         </p>
       </Section>
-      <Section icon={Share2} title="Into a campaign, and back out">
+      <Section icon={Share2} title={copy.import}>
         <p>
-          Creating a campaign offers a <span className="text-stone-300">Bring in prep</span> step:
-          pick a workshop (or another campaign you can see) and choose what to copy in. A campaign
-          lobby can import the same way after creation. Copies are copies: the workshop keeps its
-          version, the campaign owns its own from then on, and name collisions get numbered
-          instead of overwritten. The Share tool exports the whole workshop as a bundle file
-          another server can import, and can compile a draft world pack from it.
+          {copy.importText}
         </p>
       </Section>
-      <Section icon={Copy} title="Copying things">
+      <Section icon={Copy} title={copy.copying}>
         <p>
-          A whole workshop can be cloned from the shelf or the hub, and individual pieces (maps,
-          NPCs, monsters, encounters, tables, lore) each have a duplicate action, for the
-          version-two-of-this-boss workflow. Homebrew monsters, items, spells and options belong
-          to your account rather than to any one workshop, so they follow you everywhere but do
-          not travel inside bundles sent to other people.
+          {copy.copyingText}
         </p>
       </Section>
-      <Section icon={BookOpen} title="Where the rules live">
+      <Section icon={BookOpen} title={copy.rules}>
         <p>
-          Everything here is still 5e underneath: attack expressions have to roll, challenge
-          ratings show their working, and imported material behaves in a campaign exactly like
-          material made there. When you want the numbers themselves, the rules reference and its
-          calculators are one click away in the account menu.
+          {copy.rulesText}
         </p>
       </Section>
     </Dialog>

@@ -61,15 +61,16 @@ export function JoinCard({ inputRef }: { inputRef: RefObject<HTMLInputElement | 
     <section id="join" className={cn(ui.card, "ornate scroll-mt-6 p-5")}>
       <h2 className="eyebrow mb-1 text-sm text-amber-200/90">{copy.title}</h2>
       <p className="mb-3 text-sm text-stone-500">{copy.body}</p>
-      <form onSubmit={join} className="flex gap-2">
+      <form onSubmit={join} className="flex flex-col gap-2 sm:flex-row">
         <input
           ref={inputRef}
           value={joinCode}
           onChange={(event) => setJoinCode(event.target.value)}
           placeholder="K7WQ2MNP"
+          aria-label={copy.title}
           required
           maxLength={12}
-          className={cn(ui.input, "w-52 font-mono uppercase tracking-[0.25em]")}
+          className={cn(ui.input, "min-w-0 w-full font-mono uppercase tracking-[0.25em] sm:w-52")}
         />
         <button type="submit" disabled={joining} className={ui.btnSecondary}>
           {joining ? copy.joining : copy.join}

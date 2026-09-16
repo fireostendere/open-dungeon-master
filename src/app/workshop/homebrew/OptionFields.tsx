@@ -23,6 +23,8 @@ import { describeSkill } from "@/lib/help";
 import type { GlossaryEntry } from "@/lib/help/terms";
 import { CLASS_IDS, input, type EditorKind } from "@/app/workshop/homebrew/types";
 import type { Data } from "@/app/workshop/homebrew/draft";
+import { useI18n } from "@/lib/i18n/context";
+import { localeText } from "@/lib/i18n/locale-text";
 
 // The character-option forms: feat, background, species, subclass. Each
 // writes the field names the character builder already reads for the
@@ -84,69 +86,73 @@ function ListField({
 }
 
 function FeatFields({ data, set }: { data: Data; set: (patch: Data) => void }) {
+  const { locale } = useI18n();
+  const copy = localeText(locale, { en: { prerequisite: "Prerequisite", prerequisiteHint: "Leave empty for none. The builder shows it beside the feat." }, ru: { prerequisite: "Требование", prerequisiteHint: "Оставьте пустым, если его нет. Конструктор покажет его рядом с чертой." }, pl: { prerequisite: "Wymaganie", prerequisiteHint: "Pozostaw puste, jeśli go nie ma. Kreator pokaże je przy atucie." } });
   return (
     <TextField
-      label="Prerequisite"
+      label={copy.prerequisite}
       value={String(data.prerequisite ?? "")}
       onChange={(prerequisite) => set({ prerequisite })}
       placeholder="Strength 13 or higher"
       maxLength={200}
-      hint="Leave empty for none. The builder shows it beside the feat."
+      hint={copy.prerequisiteHint}
       suggestions={PREREQUISITE_SUGGESTIONS}
     />
   );
 }
 
 function BackgroundFields({ data, set }: { data: Data; set: (patch: Data) => void }) {
+  const { locale } = useI18n();
+  const copy = localeText(locale, { en: { skills: "Skill proficiencies", tools: "Tool proficiencies", languages: "Languages", equipment: "Equipment", feature: "Feature", featureDoes: "What the feature does", addSkill: "Add a skill", addTool: "Add a tool", addLanguage: "Add a language", equipmentHint: "What the character starts with. Pick from the catalogue or type anything.", addItem: "Add an item", builderGrants: "The builder grants these by name.", toolHint: "A tool you are proficient with adds your proficiency bonus to checks made with it." }, ru: { skills: "Владение навыками", tools: "Владение инструментами", languages: "Языки", equipment: "Снаряжение", feature: "Черта", featureDoes: "Что делает черта", addSkill: "Добавить навык", addTool: "Добавить инструмент", addLanguage: "Добавить язык", equipmentHint: "Снаряжение, с которым начинает персонаж. Выберите из каталога или введите своё.", addItem: "Добавить предмет", builderGrants: "Конструктор выдаёт их по названию.", toolHint: "Владение инструментом добавляет бонус мастерства к проверкам с ним." }, pl: { skills: "Biegłości w umiejętnościach", tools: "Biegłości w narzędziach", languages: "Języki", equipment: "Wyposażenie", feature: "Cecha", featureDoes: "Działanie cechy", addSkill: "Dodaj umiejętność", addTool: "Dodaj narzędzie", addLanguage: "Dodaj język", equipmentHint: "Z czym zaczyna postać. Wybierz z katalogu lub wpisz własne.", addItem: "Dodaj przedmiot", builderGrants: "Kreator przyznaje je według nazwy.", toolHint: "Biegłość w narzędziu dodaje premię z biegłości do testów z nim." } });
   return (
     <div className="grid gap-2 sm:grid-cols-2">
       <ListField
-        label="Skill proficiencies"
+        label={copy.skills}
         value={String(data.skill_proficiencies ?? "")}
         onChange={(skill_proficiencies) => set({ skill_proficiencies })}
         placeholder="Insight, Persuasion"
-        hint="The builder grants these by name."
+        hint={copy.builderGrants}
         options={SKILL_LABELS}
-        prompt="Add a skill"
+        prompt={copy.addSkill}
         glossary={{ title: "Skills", entries: SKILL_GLOSSARY }}
       />
       <ListField
-        label="Tool proficiencies"
+        label={copy.tools}
         value={String(data.tool_proficiencies ?? "")}
         onChange={(tool_proficiencies) => set({ tool_proficiencies })}
         placeholder="One type of gaming set"
-        hint="A tool you are proficient with adds your proficiency bonus to checks made with it."
+        hint={copy.toolHint}
         options={TOOL_PROFICIENCIES}
-        prompt="Add a tool"
+        prompt={copy.addTool}
       />
       <ListField
-        label="Languages"
+        label={copy.languages}
         value={String(data.languages ?? "")}
         onChange={(languages) => set({ languages })}
         placeholder="Two of your choice"
         options={LANGUAGES}
-        prompt="Add a language"
+        prompt={copy.addLanguage}
       />
-      <Field label="Equipment" hint="What the character starts with. Pick from the catalogue or type anything.">
+      <Field label={copy.equipment} hint={copy.equipmentHint}>
         <div className="flex flex-wrap items-center gap-1.5">
           <input
             value={String(data.equipment ?? "")}
             maxLength={500}
             placeholder="A set of fine clothes, 15 gp"
-            aria-label="Equipment"
+            aria-label={copy.equipment}
             onChange={(event) => set({ equipment: event.target.value })}
             className={`${input} min-w-32 flex-1`}
           />
           <ContentPick
             kind="items"
-            label="Add an item"
-            placeholder="Add an item..."
+            label={copy.addItem}
+            placeholder={`${copy.addItem}...`}
             onPick={(entry) => set({ equipment: appendTerm(String(data.equipment ?? ""), entry.name) })}
           />
         </div>
       </Field>
-      <TextField label="Feature" value={String(data.feature ?? "")} onChange={(feature) => set({ feature })} placeholder="Salt Lore" maxLength={80} />
-      <TextField label="What the feature does" value={String(data.feature_desc ?? "")} onChange={(feature_desc) => set({ feature_desc })} maxLength={2000} />
+      <TextField label={copy.feature} value={String(data.feature ?? "")} onChange={(feature) => set({ feature })} placeholder="Salt Lore" maxLength={80} />
+      <TextField label={copy.featureDoes} value={String(data.feature_desc ?? "")} onChange={(feature_desc) => set({ feature_desc })} maxLength={2000} />
     </div>
   );
 }

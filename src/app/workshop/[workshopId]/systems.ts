@@ -14,6 +14,8 @@ import {
   Users,
 } from "lucide-react";
 import type { WorkshopSummary } from "@/app/workshop/types";
+import { localeText } from "@/lib/i18n/locale-text";
+import type { Locale } from "@/lib/i18n/translations";
 
 // The twelve systems a workshop is made of, and how each one counts itself.
 //
@@ -47,6 +49,15 @@ export const WORKSHOP_SYSTEMS = [
 
 export type SystemId = (typeof WORKSHOP_SYSTEMS)[number]["id"];
 
+// Stored ids stay stable; only their presentation crosses the UI boundary.
+export function workshopSystemText(locale: Locale, id: SystemId): { label: string; blurb: string } {
+  return localeText(locale, {
+    en: Object.fromEntries(WORKSHOP_SYSTEMS.map(({ id, label, blurb }) => [id, { label, blurb }])) as Record<SystemId, { label: string; blurb: string }>,
+    ru: { storyboard: { label: "Сюжет", blurb: "Планируйте арку" }, party: { label: "Группа", blurb: "Для кого подготовка" }, maps: { label: "Боевые карты", blurb: "Места для сражений" }, region: { label: "Регион", blurb: "Карта мира" }, encounters: { label: "Встречи", blurb: "Бои с расчётом" }, cast: { label: "Персонажи", blurb: "NPC и их цели" }, bestiary: { label: "Бестиарий", blurb: "Свои монстры" }, homebrew: { label: "Хоумбрю", blurb: "Предметы, заклинания и опции" }, lore: { label: "Лор", blurb: "Факты и места мира" }, tables: { label: "Таблицы", blurb: "Таблицы бросков" }, rules: { label: "Правила", blurb: "Домашние и варианты" }, share: { label: "Поделиться", blurb: "Экспортировать набор" } },
+    pl: { storyboard: { label: "Scenorys", blurb: "Zaplanuj wątek" }, party: { label: "Drużyna", blurb: "Dla kogo przygotowujesz" }, maps: { label: "Mapy bitew", blurb: "Miejsca do walki" }, region: { label: "Region", blurb: "Mapa świata" }, encounters: { label: "Spotkania", blurb: "Walki z budżetem" }, cast: { label: "Postacie", blurb: "NPC i cele" }, bestiary: { label: "Bestiariusz", blurb: "Własne potwory" }, homebrew: { label: "Homebrew", blurb: "Przedmioty, czary i opcje" }, lore: { label: "Wiedza", blurb: "Fakty i miejsca świata" }, tables: { label: "Tabele", blurb: "Tabele rzutów" }, rules: { label: "Zasady", blurb: "Domowe i warianty" }, share: { label: "Udostępnij", blurb: "Eksportuj pakiet" } },
+  })[id];
+}
+
 export function isSystemId(value: string | null): value is SystemId {
   return WORKSHOP_SYSTEMS.some((system) => system.id === value);
 }
@@ -56,90 +67,89 @@ export function isSystemId(value: string | null): value is SystemId {
 // bestiary, while its count is still on the wire.
 export type SystemCount = { figure: string | null; phrase: string; total: number };
 
-function plural(count: number, one: string, many: string): string {
-  return `${count} ${count === 1 ? one : many}`;
-}
-
 export function systemCount(
   id: SystemId,
   workshop: WorkshopSummary,
   bestiary: number | null,
   homebrew: number | null = null,
   pregens: number | null = null,
+  locale: Locale = "en",
 ): SystemCount {
   const contents = workshop.contents;
+  const text = localeText(locale, {
+    en: { counting: "Counting", party: (level: number, ready: number | null) => ready === null ? `At level ${level}` : `At level ${level}; pregens: ${ready}`, homebrew: (count: number) => `Homebrew: ${count}`, storyboard: (count: number) => count ? "Board in progress" : "No board yet", maps: (count: number) => `Maps: ${count}`, region: (count: number) => count ? "Overworld drawn" : "No overworld yet", encounters: (count: number) => `Encounters: ${count}`, cast: (count: number) => `People: ${count}`, bestiary: (count: number) => `Monsters: ${count}`, lore: (count: number) => `Facts & places: ${count}`, tables: (count: number) => `Tables: ${count}`, rules: (set: boolean) => set ? "House rules set" : "No house rules yet", share: "Export a bundle", set: "set", none: "none" },
+    ru: { counting: "Подсчёт", party: (level: number, ready: number | null) => ready === null ? `Уровень ${level}` : `Уровень ${level}; готовые персонажи: ${ready}`, homebrew: (count: number) => `Хоумбрю: ${count}`, storyboard: (count: number) => count ? "Сюжет в работе" : "Сюжета ещё нет", maps: (count: number) => `Карты: ${count}`, region: (count: number) => count ? "Карта мира готова" : "Карты мира ещё нет", encounters: (count: number) => `Встречи: ${count}`, cast: (count: number) => `Персонажи: ${count}`, bestiary: (count: number) => `Монстры: ${count}`, lore: (count: number) => `Факты и места: ${count}`, tables: (count: number) => `Таблицы: ${count}`, rules: (set: boolean) => set ? "Домашние правила заданы" : "Домашних правил ещё нет", share: "Экспортировать набор", set: "заданы", none: "нет" },
+    pl: { counting: "Liczenie", party: (level: number, ready: number | null) => ready === null ? `Poziom ${level}` : `Poziom ${level}; gotowe postacie: ${ready}`, homebrew: (count: number) => `Homebrew: ${count}`, storyboard: (count: number) => count ? "Scenorys w toku" : "Brak scenorysu", maps: (count: number) => `Mapy: ${count}`, region: (count: number) => count ? "Mapa świata gotowa" : "Brak mapy świata", encounters: (count: number) => `Spotkania: ${count}`, cast: (count: number) => `Postacie: ${count}`, bestiary: (count: number) => `Potwory: ${count}`, lore: (count: number) => `Fakty i miejsca: ${count}`, tables: (count: number) => `Tabele: ${count}`, rules: (set: boolean) => set ? "Zasady domowe ustawione" : "Brak zasad domowych", share: "Eksportuj pakiet", set: "ustawione", none: "brak" },
+  });
   switch (id) {
     case "party": {
       const party = workshop.gameSettings.targetParty;
       return {
         figure: String(party.size),
-        phrase:
-          pregens === null
-            ? `at level ${party.level}`
-            : `at level ${party.level}, ${plural(pregens, "pregen ready", "pregens ready")}`,
+          phrase: text.party(party.level, pregens),
         total: pregens ?? 0,
       };
     }
     case "homebrew":
       return {
         figure: homebrew === null ? null : String(homebrew),
-        phrase: homebrew === null ? "counting" : plural(homebrew, "piece of homebrew", "pieces of homebrew"),
+        phrase: homebrew === null ? text.counting : text.homebrew(homebrew),
         total: homebrew ?? 0,
       };
     case "storyboard": {
       const count = contents.storyboard;
       return {
         figure: String(count),
-        phrase: count ? "a board in progress" : "no board yet",
+        phrase: text.storyboard(count),
         total: count,
       };
     }
     case "maps":
-      return { figure: String(contents.maps), phrase: `${contents.maps} in the drawer`, total: contents.maps };
+      return { figure: String(contents.maps), phrase: text.maps(contents.maps), total: contents.maps };
     case "region": {
       const count = contents.overworld;
       return {
         figure: String(count),
-        phrase: count ? "the overworld is drawn" : "no overworld yet",
+        phrase: text.region(count),
         total: count,
       };
     }
     case "encounters":
       return {
         figure: String(contents.encounters),
-        phrase: plural(contents.encounters, "fight", "fights"),
+        phrase: text.encounters(contents.encounters),
         total: contents.encounters,
       };
     case "cast":
       return {
         figure: String(contents.npcs),
-        phrase: plural(contents.npcs, "person", "people"),
+        phrase: text.cast(contents.npcs),
         total: contents.npcs,
       };
     case "bestiary":
       return {
         figure: bestiary === null ? null : String(bestiary),
-        phrase: bestiary === null ? "counting" : plural(bestiary, "monster", "monsters"),
+        phrase: bestiary === null ? text.counting : text.bestiary(bestiary),
         total: bestiary ?? 0,
       };
     case "lore": {
       const count = contents.lore + contents.locations;
-      return { figure: String(count), phrase: `${count} facts & places`, total: count };
+      return { figure: String(count), phrase: text.lore(count), total: count };
     }
     case "tables":
       return {
         figure: String(contents.tables),
-        phrase: plural(contents.tables, "table", "tables"),
+        phrase: text.tables(contents.tables),
         total: contents.tables,
       };
     case "rules":
       return {
-        figure: contents.houseRules ? "set" : "none",
-        phrase: contents.houseRules ? "house rules set" : "no house rules yet",
+        figure: contents.houseRules ? text.set : text.none,
+        phrase: text.rules(Boolean(contents.houseRules)),
         total: 0,
       };
     case "share":
-      return { figure: null, phrase: "export a bundle", total: 0 };
+      return { figure: null, phrase: text.share, total: 0 };
   }
 }
 

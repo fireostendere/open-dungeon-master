@@ -22,6 +22,7 @@ import { pickContinue, type HomeCampaign } from "@/app/home/types";
 import { currentPathname, currentQuery, navigateTo, replaceAddress } from "@/lib/navigation";
 import { useI18n } from "@/lib/i18n";
 import { localeText } from "@/lib/i18n/locale-text";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 
 function requestedWizard(): "campaign" | "solo" | null {
   if (typeof window === "undefined") return null;
@@ -155,7 +156,7 @@ export function Dashboard({ user, onLogout }: { user: SessionUser; onLogout: () 
   return (
     <main className="bg-starfield flex-1">
       <div className="mx-auto w-full max-w-3xl p-4 sm:p-6">
-        <header className="mb-8 flex items-center justify-between gap-3">
+        <header className="mb-8 flex flex-wrap items-center justify-between gap-3">
           <AppBrand className="gap-3">
             <PixelTile src={PIXEL_ICONS.story} />
             <span className="min-w-0">
@@ -167,7 +168,8 @@ export function Dashboard({ user, onLogout }: { user: SessionUser; onLogout: () 
               </span>
             </span>
           </AppBrand>
-          <div className="flex shrink-0 items-center gap-2">
+          <div className="ml-auto flex max-w-full flex-wrap items-center gap-2">
+            <LanguageSwitcher />
             <AppHomeButton />
             <NotificationBell />
             <Tooltip content={copy.howToTooltip} side="bottom">

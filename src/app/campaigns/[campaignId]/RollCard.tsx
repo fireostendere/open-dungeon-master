@@ -4,19 +4,13 @@ import { Dices } from "lucide-react";
 import { cn } from "@/lib/cn";
 import type { StoredRoll } from "@/lib/db/rolls";
 import type { DiceTerm } from "@/lib/dice";
-
-const KIND_LABELS: Record<string, string> = {
-  skill_check: "Skill check",
-  saving_throw: "Saving throw",
-  ability_check: "Ability check",
-  attack: "Attack roll",
-  damage: "Damage",
-  initiative: "Initiative",
-  custom: "Roll",
-};
+import { useI18n } from "@/lib/i18n/context";
+import { localeText } from "@/lib/i18n/locale-text";
 
 export function RollCard({ roll, characterName }: { roll: StoredRoll; characterName?: string }) {
-  const label = KIND_LABELS[roll.kind] ?? "Roll";
+  const { locale } = useI18n();
+  const copy = localeText(locale, { en: { skill_check: "Skill check", saving_throw: "Saving throw", ability_check: "Ability check", attack: "Attack roll", damage: "Damage", initiative: "Initiative", custom: "Roll", hidden: "rolled behind the screen", success: "success", failure: "failure", natural20: "Natural 20!", natural1: "Natural 1" }, ru: { skill_check: "Проверка навыка", saving_throw: "Спасбросок", ability_check: "Проверка характеристики", attack: "Бросок атаки", damage: "Урон", initiative: "Инициатива", custom: "Бросок", hidden: "брошено за ширмой", success: "успех", failure: "провал", natural20: "Натуральные 20!", natural1: "Натуральная 1" }, pl: { skill_check: "Test umiejętności", saving_throw: "Rzut obronny", ability_check: "Test cechy", attack: "Rzut ataku", damage: "Obrażenia", initiative: "Inicjatywa", custom: "Rzut", hidden: "rzucono za ekranem", success: "sukces", failure: "porażka", natural20: "Naturalne 20!", natural1: "Naturalne 1" } });
+  const label = copy[roll.kind as keyof typeof copy] ?? copy.custom;
   const detail = roll.detail ? roll.detail.replaceAll("_", " ") : "";
 
   // A blind roll: the table sees that the dice went, and what for, and not
@@ -31,7 +25,7 @@ export function RollCard({ roll, characterName }: { roll: StoredRoll; characterN
           {label}
           {detail ? ` (${detail})` : ""}
         </span>
-        <span className="text-xs text-stone-600">rolled behind the screen</span>
+         <span className="text-xs text-stone-600">{copy.hidden}</span>
       </div>
     );
   }
@@ -82,13 +76,13 @@ export function RollCard({ roll, characterName }: { roll: StoredRoll; characterN
             roll.success ? "bg-emerald-950 text-emerald-300" : "bg-red-950 text-red-300",
           )}
         >
-          DC {roll.dc} · {roll.success ? "success" : "failure"}
+           DC {roll.dc} · {roll.success ? copy.success : copy.failure}
         </span>
       ) : null}
       {roll.breakdown.crit === "nat20" ? (
-        <span className="animate-twinkle text-xs font-semibold text-amber-200">Natural 20!</span>
+         <span className="animate-twinkle text-xs font-semibold text-amber-200">{copy.natural20}</span>
       ) : roll.breakdown.crit === "nat1" ? (
-        <span className="text-xs font-medium text-ember-300">Natural 1</span>
+         <span className="text-xs font-medium text-ember-300">{copy.natural1}</span>
       ) : null}
     </div>
   );

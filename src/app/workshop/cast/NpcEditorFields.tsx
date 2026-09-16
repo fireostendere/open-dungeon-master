@@ -15,6 +15,8 @@ import {
   goalText,
   setGoal,
 } from "@/app/campaigns/[campaignId]/NpcFields";
+import { useI18n } from "@/lib/i18n/context";
+import { localeText } from "@/lib/i18n/locale-text";
 
 // The four sections of the NPC form: who they are on the surface, who they
 // are underneath, what they want, and how they feel about everyone else.
@@ -48,6 +50,8 @@ export function NpcEditorFields({
   // the geography lore), offered under the location field.
   places?: readonly string[];
 }) {
+  const { locale } = useI18n();
+  const copy = localeText(locale, { en: { name: "Their name", role: "Role: pick one or type your own", roleHint: "Pick a role or type your own. It chooses their stand-in face until a portrait exists.", doing: "What they do", hostile: "Hostile to the party", friendly: "Friendly to the party", indifferent: "Indifferent", location: "Location: pick a place on the map or type your own", locationHint: "Where they are usually found", aliases: "Other names they answer to, separated by commas", trait: "What a player notices about them first", identity: "Who they are", wants: "What they want", goals: { scene: "Right now, in the next scene", session: "Working toward over a few sessions", ambition: "What they would give up everything for" }, progress: "The middle one advances on background dice at the end of a chapter, so its progress is the engine's to move, not yours.", relations: "How they feel about other people" }, ru: { name: "Имя", role: "Роль: выберите или введите свою", roleHint: "Выберите роль или введите свою. Она определяет временный портрет до появления настоящего.", doing: "Чем занимается", hostile: "Враждебен к группе", friendly: "Дружелюбен к группе", indifferent: "Нейтрален", location: "Место: выберите на карте или введите своё", locationHint: "Где его обычно можно найти", aliases: "Другие имена через запятую", trait: "Что игрок замечает в нём прежде всего", identity: "Кто он", wants: "Чего он хочет", goals: { scene: "Прямо сейчас, в следующей сцене", session: "К чему идёт несколько сессий", ambition: "Ради чего он готов отдать всё" }, progress: "Средняя цель продвигается фоновыми бросками в конце главы: её прогресс меняет движок, а не вы.", relations: "Как он относится к другим" }, pl: { name: "Imię", role: "Rola: wybierz lub wpisz własną", roleHint: "Wybierz rolę lub wpisz własną. Określa zastępczy portret, dopóki nie istnieje prawdziwy.", doing: "Czym się zajmuje", hostile: "Wrogi wobec drużyny", friendly: "Przyjazny drużynie", indifferent: "Obojętny", location: "Miejsce: wybierz na mapie lub wpisz własne", locationHint: "Gdzie zwykle można go znaleźć", aliases: "Inne imiona, na które odpowiada, po przecinku", trait: "Co gracz zauważa najpierw", identity: "Kim jest", wants: "Czego chce", goals: { scene: "Teraz, w następnej scenie", session: "Nad czym pracuje przez kilka sesji", ambition: "Za co oddałby wszystko" }, progress: "Środkowy cel rozwija się przez rzuty w tle na końcu rozdziału; jego postęp zmienia silnik, nie Ty.", relations: "Jak odnosi się do innych" } });
   const roleListId = useId();
   const placeListId = useId();
   const roles = npcRoleOptions(genre);
@@ -61,16 +65,16 @@ export function NpcEditorFields({
           <input
             value={draft.name}
             onChange={(event) => onChange({ ...draft, name: event.target.value })}
-            placeholder="Their name"
+            placeholder={copy.name}
             className="min-w-32 flex-1 rounded-md border border-stone-700 bg-stone-950 px-2 py-1 text-sm text-stone-200"
           />
           <input
             list={roleListId}
             value={draft.role}
             onChange={(event) => onChange({ ...draft, role: event.target.value })}
-            placeholder="What they do"
-            aria-label="Role: pick one or type your own"
-            title="Pick a role or type your own. It chooses their stand-in face until a portrait exists."
+            placeholder={copy.doing}
+            aria-label={copy.role}
+            title={copy.roleHint}
             className="w-36 rounded-md border border-stone-700 bg-stone-950 px-2 py-1 text-xs text-stone-300"
           />
           <datalist id={roleListId}>
@@ -90,10 +94,10 @@ export function NpcEditorFields({
             {ATTITUDES.map((attitude) => (
               <option key={attitude} value={attitude}>
                 {attitude === "hostile"
-                  ? "Hostile to the party"
+                  ? copy.hostile
                   : attitude === "friendly"
-                    ? "Friendly to the party"
-                    : "Indifferent"}
+                    ? copy.friendly
+                    : copy.indifferent}
               </option>
             ))}
           </select>
@@ -103,8 +107,8 @@ export function NpcEditorFields({
           value={draft.location}
           list={places.length ? placeListId : undefined}
           onChange={(event) => onChange({ ...draft, location: event.target.value })}
-          placeholder="Where they are usually found"
-          aria-label="Location: pick a place on the map or type your own"
+          placeholder={copy.locationHint}
+          aria-label={copy.location}
           className="w-full rounded-md border border-stone-700 bg-stone-950 px-2 py-1 text-xs text-stone-300"
         />
         {places.length ? (
@@ -123,16 +127,16 @@ export function NpcEditorFields({
               aliases: event.target.value.split(",").map((alias) => alias.trim()).filter(Boolean),
             })
           }
-          placeholder="Other names they answer to, separated by commas"
+          placeholder={copy.aliases}
           className="w-full rounded-md border border-stone-700 bg-stone-950 px-2 py-1 text-xs text-stone-300"
         />
 
-        <div className="flex items-start gap-1.5">
+          <div className="flex items-start gap-1.5">
           <textarea
             value={draft.trait}
             onChange={(event) => onChange({ ...draft, trait: event.target.value })}
             rows={2}
-            placeholder="What a player notices about them first"
+            placeholder={copy.trait}
             className="flex-1 rounded-md border border-stone-700 bg-stone-950 px-2 py-1 text-xs text-stone-300"
           />
           {suggest("trait")}
@@ -141,20 +145,20 @@ export function NpcEditorFields({
 
       <section className="space-y-1.5 rounded-lg border border-stone-800 bg-stone-950/60 px-2.5 py-2">
         <div className="flex items-center justify-between">
-          <p className="text-[11px] uppercase tracking-wide text-stone-500">Who they are</p>
+          <p className="text-[11px] uppercase tracking-wide text-stone-500">{copy.identity}</p>
           {suggest("personality")}
         </div>
         <PersonalitySliders draft={draft} onChange={onChange} />
       </section>
 
       <section className="space-y-1.5 rounded-lg border border-stone-800 bg-stone-950/60 px-2.5 py-2">
-        <p className="text-[11px] uppercase tracking-wide text-stone-500">What they want</p>
-        {GOAL_FIELDS.map(([field, placeholder]) => (
-          <div key={field} className="flex items-center gap-1.5">
+        <p className="text-[11px] uppercase tracking-wide text-stone-500">{copy.wants}</p>
+        {GOAL_FIELDS.map(([field]) => (
+          <div key={field} className="flex min-w-0 items-center gap-1.5">
             <input
               value={goalText(draft, field)}
               onChange={(event) => onChange(setGoal(draft, field, event.target.value))}
-              placeholder={placeholder}
+              placeholder={copy.goals[field]}
               className="flex-1 rounded-md border border-stone-700 bg-stone-950 px-2 py-1 text-xs text-stone-300"
             />
             {field === "session" && draft.goals.session ? (
@@ -166,14 +170,13 @@ export function NpcEditorFields({
           </div>
         ))}
         <p className="text-[10px] text-stone-600">
-          The middle one advances on background dice at the end of a chapter, so its progress is
-          the engine&apos;s to move, not yours.
+          {copy.progress}
         </p>
       </section>
 
       <section className="space-y-1.5 rounded-lg border border-stone-800 bg-stone-950/60 px-2.5 py-2">
         <p className="text-[11px] uppercase tracking-wide text-stone-500">
-          How they feel about other people
+          {copy.relations}
         </p>
         <RelationEditor draft={draft} graph={graph} others={others} onChange={onChange} />
       </section>

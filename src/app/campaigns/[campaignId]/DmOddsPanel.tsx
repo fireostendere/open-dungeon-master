@@ -3,6 +3,8 @@
 import { useMemo, useState } from "react";
 import { Calculator } from "lucide-react";
 import { asPercent, forecastAttack, roundsToDrop } from "@/lib/srd/odds";
+import { useI18n } from "@/lib/i18n/context";
+import { localeText } from "@/lib/i18n/locale-text";
 
 // The consequence preview: hit chance, expected damage, and how long a target
 // lasts. Pure arithmetic from src/lib/srd/odds.ts, so it is instant, always
@@ -46,6 +48,12 @@ export function OddsCalculator({
   // server would actually roll.
   variantRules: CritRules;
 }) {
+  const { locale } = useI18n();
+  const copy = localeText(locale, {
+    en: { title: "What is this likely to do?", attack: "Attack bonus", ac: "Target AC", damage: "Damage", roll: "Roll", straight: "Straight", advantage: "Advantage", disadvantage: "Disadvantage", hp: "Target hit points", attacks: "Attacks per round", extra: "Extra dice on a crit", invalid: "That damage expression cannot be averaged, so only the odds below are real. The chance to hit never depended on it.", chance: "Chance to hit", crit: "crit", hit: "Damage on a hit", onCrit: "on a crit", average: "Average per round", rounds: "Rounds to drop", unknown: "unknown", never: "never" },
+    ru: { title: "Что это, вероятно, сделает?", attack: "Бонус атаки", ac: "КД цели", damage: "Урон", roll: "Бросок", straight: "Обычный", advantage: "Преимущество", disadvantage: "Помеха", hp: "Хиты цели", attacks: "Атак за раунд", extra: "Доп. кости при крите", invalid: "Это выражение урона нельзя усреднить, поэтому точны только шансы ниже. Шанс попадания от него не зависит.", chance: "Шанс попасть", crit: "крит", hit: "Урон при попадании", onCrit: "при крите", average: "Среднее за раунд", rounds: "Раундов до падения", unknown: "неизвестно", never: "никогда" },
+    pl: { title: "Co to prawdopodobnie zrobi?", attack: "Premia do ataku", ac: "KP celu", damage: "Obrażenia", roll: "Rzut", straight: "Zwykły", advantage: "Ułatwienie", disadvantage: "Utrudnienie", hp: "Punkty życia celu", attacks: "Ataki na rundę", extra: "Dodatkowe kości przy krytyku", invalid: "Tego wyrażenia obrażeń nie można uśrednić, więc dokładne są tylko poniższe szanse. Szansa trafienia od niego nie zależy.", chance: "Szansa trafienia", crit: "kryt.", hit: "Obrażenia po trafieniu", onCrit: "przy krytyku", average: "Średnio na rundę", rounds: "Rundy do pokonania", unknown: "nieznane", never: "nigdy" },
+  });
   const [attackBonus, setAttackBonus] = useState(5);
   const [ac, setAc] = useState(15);
   const [damage, setDamage] = useState("1d8+3");
@@ -73,10 +81,10 @@ export function OddsCalculator({
   const rounds = roundsToDrop(hitPoints, perRound);
 
   return (
-    <Section icon={Calculator} title="What is this likely to do?">
+    <Section icon={Calculator} title={copy.title}>
       <div className="grid grid-cols-2 gap-1.5">
         <label className="text-[11px] text-stone-500">
-          Attack bonus
+          {copy.attack}
           <input
             type="number"
             value={attackBonus}
@@ -85,7 +93,7 @@ export function OddsCalculator({
           />
         </label>
         <label className="text-[11px] text-stone-500">
-          Target AC
+          {copy.ac}
           <input
             type="number"
             value={ac}
@@ -94,7 +102,7 @@ export function OddsCalculator({
           />
         </label>
         <label className="text-[11px] text-stone-500">
-          Damage
+          {copy.damage}
           <input
             value={damage}
             onChange={(event) => setDamage(event.target.value)}
@@ -103,7 +111,7 @@ export function OddsCalculator({
           />
         </label>
         <label className="text-[11px] text-stone-500">
-          Roll
+          {copy.roll}
           <select
             value={advantage}
             onChange={(event) =>
@@ -111,13 +119,13 @@ export function OddsCalculator({
             }
             className={inputClass}
           >
-            <option value="none">Straight</option>
-            <option value="advantage">Advantage</option>
-            <option value="disadvantage">Disadvantage</option>
+            <option value="none">{copy.straight}</option>
+            <option value="advantage">{copy.advantage}</option>
+            <option value="disadvantage">{copy.disadvantage}</option>
           </select>
         </label>
         <label className="text-[11px] text-stone-500">
-          Target hit points
+          {copy.hp}
           <input
             type="number"
             value={hitPoints}
@@ -126,7 +134,7 @@ export function OddsCalculator({
           />
         </label>
         <label className="text-[11px] text-stone-500">
-          Attacks per round
+          {copy.attacks}
           <input
             type="number"
             min={1}
@@ -136,7 +144,7 @@ export function OddsCalculator({
           />
         </label>
         <label className="text-[11px] text-stone-500" title="Brutal Critical, Savage Attacks.">
-          Extra dice on a crit
+          {copy.extra}
           <input
             type="number"
             min={0}
@@ -149,39 +157,38 @@ export function OddsCalculator({
       </div>
       {forecast.exact ? null : (
         <p className="mt-2 text-xs text-amber-300/90">
-          That damage expression cannot be averaged, so only the odds below are
-          real. The chance to hit never depended on it.
+          {copy.invalid}
         </p>
       )}
       <dl className="mt-2 space-y-0.5 text-xs">
         <div className="flex justify-between">
-          <dt className="text-stone-500">Chance to hit</dt>
+          <dt className="text-stone-500">{copy.chance}</dt>
           <dd className="text-stone-200">
             {asPercent(forecast.odds.hit)}
-            <span className="text-stone-500"> ({asPercent(forecast.odds.crit)} crit)</span>
+            <span className="text-stone-500"> ({asPercent(forecast.odds.crit)} {copy.crit})</span>
           </dd>
         </div>
         <div className="flex justify-between">
-          <dt className="text-stone-500">Damage on a hit</dt>
+          <dt className="text-stone-500">{copy.hit}</dt>
           <dd className="text-stone-200">
             {forecast.exact ? (
               <>
                 {forecast.onHit.toFixed(1)}
-                <span className="text-stone-500"> ({forecast.onCrit.toFixed(1)} on a crit)</span>
+                <span className="text-stone-500"> ({forecast.onCrit.toFixed(1)} {copy.onCrit})</span>
               </>
             ) : (
-              "unknown"
+              copy.unknown
             )}
           </dd>
         </div>
         <div className="flex justify-between">
-          <dt className="text-stone-500">Average per round</dt>
-          <dd className="text-stone-200">{forecast.exact ? perRound.toFixed(1) : "unknown"}</dd>
+          <dt className="text-stone-500">{copy.average}</dt>
+          <dd className="text-stone-200">{forecast.exact ? perRound.toFixed(1) : copy.unknown}</dd>
         </div>
         <div className="flex justify-between">
-          <dt className="text-stone-500">Rounds to drop</dt>
+          <dt className="text-stone-500">{copy.rounds}</dt>
           <dd className="text-stone-200">
-            {!forecast.exact ? "unknown" : rounds === null ? "never" : rounds}
+            {!forecast.exact ? copy.unknown : rounds === null ? copy.never : rounds}
           </dd>
         </div>
       </dl>

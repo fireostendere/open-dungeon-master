@@ -101,7 +101,7 @@ function SidePanelInner({
       {/* The rail sits on the outer edge, away from the chat, so the eye
           reads chat, context, then the switch between contexts. It scrolls
           on a short window rather than clipping the last tabs. */}
-      <div className="hidden w-16 shrink-0 flex-col items-stretch gap-1 overflow-y-auto border-l border-stone-700/40 px-1.5 py-2 [scrollbar-width:none] lg:flex">
+      <div className="hidden w-24 shrink-0 flex-col items-stretch gap-1 overflow-y-auto border-l border-stone-700/40 px-1.5 py-2 [scrollbar-width:none] lg:flex">
         <Tooltip content={wide ? "Narrow the panel" : "Widen the panel"} side="left">
           <button
             type="button"

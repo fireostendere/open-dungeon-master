@@ -16,19 +16,20 @@ import { useState } from "react";
 import { cn } from "@/lib/cn";
 import type { WorldFact } from "@/lib/db/facts";
 import { FACT_CATEGORIES, type FactCategory } from "@/lib/dm/fact-logic";
+import { useI18n } from "@/lib/i18n";
+import { localeText } from "@/lib/i18n/locale-text";
 
 // The world-state fact sheet: server-tracked canon extracted at chapter
 // close (plus manual pins). Everyone sees party-known facts; the lead can
 // pin, edit, retire, add facts, and peek at DM-only secrets.
 
-const CATEGORY_LABELS: Record<FactCategory, string> = {
-  location: "Places",
-  npc: "People",
-  promise: "Promises & debts",
-  world: "World state",
-  party: "The party",
-  lore: "Lore & rules",
-};
+function categoryLabels(locale: Parameters<typeof localeText>[0]): Record<FactCategory, string> {
+  return localeText(locale, {
+    en: { location: "Places", npc: "People", promise: "Promises & debts", world: "World state", party: "The party", lore: "Lore & rules" },
+    ru: { location: "Места", npc: "Персонажи", promise: "Обещания и долги", world: "Состояние мира", party: "Группа", lore: "Знания и правила" },
+    pl: { location: "Miejsca", npc: "Postacie", promise: "Obietnice i długi", world: "Stan świata", party: "Drużyna", lore: "Wiedza i zasady" },
+  });
+}
 
 function FactCard({
   campaignId,
@@ -41,6 +42,13 @@ function FactCard({
   steersStory: boolean;
   refresh: () => Promise<void>;
 }) {
+  const { locale } = useI18n();
+  const labels = categoryLabels(locale);
+  const copy = localeText(locale, {
+    en: { save: "Save", cancel: "Cancel", secret: "DM secret", unpin: "Unpin", pin: "Pin: always kept in front of the DM, never auto-replaced", edit: "Edit", retire: "Retire: the DM stops treating this as true" },
+    ru: { save: "Сохранить", cancel: "Отмена", secret: "Секрет мастера", unpin: "Открепить", pin: "Закрепить: всегда показывать мастеру, никогда не заменять автоматически", edit: "Редактировать", retire: "Отправить в архив: мастер перестанет считать это правдой" },
+    pl: { save: "Zapisz", cancel: "Anuluj", secret: "Sekret MG", unpin: "Odepnij", pin: "Przypnij: zawsze pokazuj MG, nigdy nie zastępuj automatycznie", edit: "Edytuj", retire: "Wycofaj: MG przestanie traktować to jako prawdę" },
+  });
   const [editing, setEditing] = useState(false);
   const [text, setText] = useState(fact.fact);
   const [busy, setBusy] = useState(false);
@@ -81,7 +89,7 @@ function FactCard({
               className="flex items-center gap-1 rounded border border-stone-700 px-2 py-0.5 text-[11px] text-stone-300 hover:bg-stone-900 disabled:opacity-50"
             >
               {busy ? <Loader2 className="size-3 animate-spin" /> : <Check className="size-3" />}
-              Save
+              {copy.save}
             </button>
             <button
               type="button"
@@ -91,7 +99,7 @@ function FactCard({
               }}
               className="flex items-center gap-1 rounded border border-stone-700 px-2 py-0.5 text-[11px] text-stone-500 hover:bg-stone-900"
             >
-              <X className="size-3" /> Cancel
+              <X className="size-3" /> {copy.cancel}
             </button>
           </div>
         </div>
@@ -106,7 +114,7 @@ function FactCard({
           </p>
           <div className="mt-1.5 flex items-center gap-2 text-[10px] text-stone-600">
             <span>
-              {fact.knownBy === "dm" ? "DM secret" : CATEGORY_LABELS[fact.category]}
+              {fact.knownBy === "dm" ? copy.secret : labels[fact.category]}
             </span>
             {steersStory ? (
               <span className="ml-auto flex shrink-0 items-center gap-1.5">
@@ -116,8 +124,7 @@ function FactCard({
                   onClick={() => patch({ pinned: !fact.pinned })}
                   title={
                     fact.pinned
-                      ? "Unpin"
-                      : "Pin: always kept in front of the DM, never auto-replaced"
+                      ? copy.unpin : copy.pin
                   }
                   className="text-stone-500 hover:text-amber-300"
                 >
@@ -126,7 +133,7 @@ function FactCard({
                 <button
                   type="button"
                   onClick={() => setEditing(true)}
-                  title="Edit"
+                  title={copy.edit}
                   className="text-stone-500 hover:text-stone-300"
                 >
                   <Pencil className="size-3" />
@@ -135,7 +142,7 @@ function FactCard({
                   type="button"
                   disabled={busy}
                   onClick={() => patch({ status: "retired" })}
-                  title="Retire: the DM stops treating this as true"
+                  title={copy.retire}
                   className="text-stone-500 hover:text-red-400"
                 >
                   <Trash2 className="size-3" />
@@ -156,6 +163,13 @@ function FactComposer({
   campaignId: string;
   refresh: () => Promise<void>;
 }) {
+  const { locale } = useI18n();
+  const labels = categoryLabels(locale);
+  const copy = localeText(locale, {
+    en: { saveFailed: "Could not save the fact.", reachFailed: "Could not reach the server.", subject: "Subject (who or what it is about)", fact: "One sentence the DM must never contradict", pin: "Pin fact" },
+    ru: { saveFailed: "Не удалось сохранить факт.", reachFailed: "Не удалось связаться с сервером.", subject: "Тема (о ком или о чём это)", fact: "Одно предложение, которому мастер никогда не должен противоречить", pin: "Закрепить факт" },
+    pl: { saveFailed: "Nie udało się zapisać faktu.", reachFailed: "Nie udało się połączyć z serwerem.", subject: "Temat (kogo lub czego dotyczy)", fact: "Jedno zdanie, któremu MG nie może nigdy zaprzeczyć", pin: "Przypnij fakt" },
+  });
   const [category, setCategory] = useState<FactCategory>("world");
   const [subject, setSubject] = useState("");
   const [fact, setFact] = useState("");
@@ -176,14 +190,14 @@ function FactComposer({
       });
       if (!response.ok) {
         const data = await response.json().catch(() => ({}));
-        setError(data.error || "Could not save the fact.");
+        setError(data.error || copy.saveFailed);
         return;
       }
       setSubject("");
       setFact("");
       await refresh();
     } catch {
-      setError("Could not reach the server.");
+      setError(copy.reachFailed);
     } finally {
       setBusy(false);
     }
@@ -204,7 +218,7 @@ function FactComposer({
                 : "border-stone-800 text-stone-500 hover:text-stone-300",
             )}
           >
-            {CATEGORY_LABELS[value]}
+            {labels[value]}
           </button>
         ))}
       </div>
@@ -212,7 +226,7 @@ function FactComposer({
         value={subject}
         onChange={(event) => setSubject(event.target.value)}
         maxLength={80}
-        placeholder="Subject (who or what it is about)"
+        placeholder={copy.subject}
         className="mb-1.5 w-full rounded border border-stone-700 bg-stone-900 px-2 py-1 text-xs outline-none focus:border-amber-600"
       />
       <textarea
@@ -220,7 +234,7 @@ function FactComposer({
         onChange={(event) => setFact(event.target.value)}
         rows={2}
         maxLength={300}
-        placeholder="One sentence the DM must never contradict"
+        placeholder={copy.fact}
         className="w-full rounded border border-stone-700 bg-stone-900 px-2 py-1 text-[11px] leading-4 outline-none focus:border-amber-600"
       />
       {error ? <p className="mt-1 text-[10px] text-red-400">{error}</p> : null}
@@ -231,7 +245,7 @@ function FactComposer({
         className="mt-1.5 flex w-full items-center justify-center gap-1 rounded border border-stone-700 py-1 text-[11px] text-stone-400 hover:bg-stone-900 disabled:opacity-50"
       >
         {busy ? <Loader2 className="size-3 animate-spin" /> : <BookMarked className="size-3" />}
-        Pin fact
+        {copy.pin}
       </button>
     </div>
   );
@@ -248,6 +262,13 @@ export function FactsPanel({
   steersStory: boolean;
   refreshFacts: () => Promise<void>;
 }) {
+  const { locale } = useI18n();
+  const labels = categoryLabels(locale);
+  const copy = localeText(locale, {
+    en: { pinned: "Pinned", empty: "Nothing recorded yet. The DM writes durable facts here as chapters close", pinYourself: ", or pin one yourself above", hideSecrets: "Hide DM secrets", showSecrets: "Show DM secrets (spoilers)", noSecrets: "No DM secrets recorded." },
+    ru: { pinned: "Закреплённое", empty: "Пока ничего не записано. Мастер добавляет сюда устойчивые факты после завершения глав", pinYourself: ", или закрепите факт сами выше", hideSecrets: "Скрыть секреты мастера", showSecrets: "Показать секреты мастера (спойлеры)", noSecrets: "Секретов мастера пока нет." },
+    pl: { pinned: "Przypięte", empty: "Nic jeszcze nie zapisano. MG dodaje tu trwałe fakty po zamknięciu rozdziałów", pinYourself: ", albo przypnij własny powyżej", hideSecrets: "Ukryj sekrety MG", showSecrets: "Pokaż sekrety MG (spoilery)", noSecrets: "Brak zapisanych sekretów MG." },
+  });
   // Lead-only peek at DM secrets: fetched separately so the spoilers never
   // sit in shared state, and merged in only while the toggle is on.
   const [secrets, setSecrets] = useState<WorldFact[] | null>(null);
@@ -287,7 +308,7 @@ export function FactsPanel({
 
       {pinned.length ? (
         <div className="space-y-1.5">
-          <h3 className={cn(section, "text-amber-400")}>Pinned</h3>
+          <h3 className={cn(section, "text-amber-400")}>{copy.pinned}</h3>
           <ul className="space-y-1.5">
             {pinned.map((fact) => (
               <FactCard
@@ -309,7 +330,7 @@ export function FactsPanel({
         }
         return (
           <div key={category} className="space-y-1.5">
-            <h3 className={section}>{CATEGORY_LABELS[category]}</h3>
+            <h3 className={section}>{labels[category]}</h3>
             <ul className="space-y-1.5">
               {entries.map((fact) => (
                 <FactCard
@@ -327,8 +348,7 @@ export function FactsPanel({
 
       {!facts.length ? (
         <p className="px-1 text-[11px] text-stone-600">
-          Nothing recorded yet. The DM writes durable facts here as chapters close
-          {steersStory ? ", or pin one yourself above" : ""}.
+          {copy.empty}{steersStory ? copy.pinYourself : ""}.
         </p>
       ) : null}
 
@@ -340,7 +360,7 @@ export function FactsPanel({
             className="flex items-center gap-1 px-1 text-[10px] font-medium uppercase tracking-wide text-stone-500 hover:text-amber-300"
           >
             {secrets ? <EyeOff className="size-3" /> : <Eye className="size-3" />}
-            {secrets ? "Hide DM secrets" : "Show DM secrets (spoilers)"}
+            {secrets ? copy.hideSecrets : copy.showSecrets}
           </button>
           {secrets ? (
             secrets.length ? (
@@ -356,7 +376,7 @@ export function FactsPanel({
                 ))}
               </ul>
             ) : (
-              <p className="px-1 text-[11px] text-stone-600">No DM secrets recorded.</p>
+              <p className="px-1 text-[11px] text-stone-600">{copy.noSecrets}</p>
             )
           ) : null}
         </div>

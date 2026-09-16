@@ -13,6 +13,8 @@ import {
 import type { Campaign } from "@/lib/db/campaigns";
 import { offersImages, useCapabilities } from "@/lib/use-capabilities";
 import { CampaignCover, type CoverStatus } from "@/components/CampaignCover";
+import { useI18n } from "@/lib/i18n";
+import { localeText } from "@/lib/i18n/locale-text";
 
 // Matches the characters page: polls every 2.5 s while a render is queued
 // or generating, and gives up after the image backend's own timeout so a
@@ -39,6 +41,12 @@ export function EditCampaignDialog({
   };
   onClose: () => void;
 }) {
+  const { locale } = useI18n();
+  const copy = localeText(locale, {
+    en: { title: "Edit campaign", name: "Title", description: "Premise", setting: "Setting", players: "Player slots", level: "Starting level", difficulty: "Difficulty", cover: "Cover art", upload: "Upload", painting: "Painting", paint: "Paint one", remove: "Remove", coverFailed: "The cover did not paint. Try again, or upload one.", save: "Save changes" },
+    ru: { title: "Изменить кампанию", name: "Название", description: "Завязка", setting: "Сеттинг", players: "Места для игроков", level: "Стартовый уровень", difficulty: "Сложность", cover: "Обложка", upload: "Загрузить", painting: "Рисуем", paint: "Создать", remove: "Удалить", coverFailed: "Не удалось создать обложку. Повторите попытку или загрузите свою.", save: "Сохранить изменения" },
+    pl: { title: "Edytuj kampanię", name: "Tytuł", description: "Założenie", setting: "Świat", players: "Miejsca dla graczy", level: "Poziom początkowy", difficulty: "Trudność", cover: "Grafika okładki", upload: "Prześlij", painting: "Tworzenie", paint: "Utwórz", remove: "Usuń", coverFailed: "Nie udało się utworzyć okładki. Spróbuj ponownie lub prześlij własną.", save: "Zapisz zmiany" },
+  });
   const [title, setTitle] = useState(campaign.title);
   const [description, setDescription] = useState(campaign.description);
   const [theme, setTheme] = useState(campaign.theme);
@@ -187,7 +195,7 @@ export function EditCampaignDialog({
         <Dialog.Content className="fixed left-1/2 top-1/2 z-50 max-h-[90vh] w-[min(92vw,28rem)] -translate-x-1/2 -translate-y-1/2 overflow-y-auto panel rounded-xl p-6">
           <div className="mb-4 flex items-center justify-between">
             <Dialog.Title className="font-display text-lg tracking-wide text-amber-50">
-              Edit campaign
+              {copy.title}
             </Dialog.Title>
             <Dialog.Close className="rounded p-1 text-stone-400 hover:bg-stone-900">
               <X className="size-4" />
@@ -196,7 +204,7 @@ export function EditCampaignDialog({
 
           <form onSubmit={submit} className="space-y-4 text-sm">
             <label className="block">
-              <span className="mb-1 block text-stone-400">Title</span>
+              <span className="mb-1 block text-stone-400">{copy.name}</span>
               <input
                 value={title}
                 onChange={(event) => setTitle(event.target.value)}
@@ -206,7 +214,7 @@ export function EditCampaignDialog({
               />
             </label>
             <label className="block">
-              <span className="mb-1 block text-stone-400">Premise</span>
+              <span className="mb-1 block text-stone-400">{copy.description}</span>
               <textarea
                 value={description}
                 onChange={(event) => setDescription(event.target.value)}
@@ -216,7 +224,7 @@ export function EditCampaignDialog({
               />
             </label>
             <label className="block">
-              <span className="mb-1 block text-stone-400">World or theme notes</span>
+              <span className="mb-1 block text-stone-400">{copy.setting}</span>
               <input
                 value={theme}
                 onChange={(event) => setTheme(event.target.value)}
@@ -226,7 +234,7 @@ export function EditCampaignDialog({
             </label>
             <div className="grid grid-cols-3 gap-3">
               <label className="block">
-                <span className="mb-1 block text-stone-400">Players</span>
+                <span className="mb-1 block text-stone-400">{copy.players}</span>
                 <input
                   type="number"
                   min={1}
@@ -237,7 +245,7 @@ export function EditCampaignDialog({
                 />
               </label>
               <label className="block">
-                <span className="mb-1 block text-stone-400">Start level</span>
+                <span className="mb-1 block text-stone-400">{copy.level}</span>
                 <input
                   type="number"
                   min={1}
@@ -248,7 +256,7 @@ export function EditCampaignDialog({
                 />
               </label>
               <label className="block">
-                <span className="mb-1 block text-stone-400">Difficulty</span>
+                <span className="mb-1 block text-stone-400">{copy.difficulty}</span>
                 <select
                   value={difficulty}
                   onChange={(event) => setDifficulty(event.target.value as CampaignDifficulty)}
@@ -264,7 +272,7 @@ export function EditCampaignDialog({
             </div>
 
             <div>
-              <span className="mb-1 block text-stone-400">Cover art</span>
+              <span className="mb-1 block text-stone-400">{copy.cover}</span>
               <CampaignCover
                 cover={cover}
                 title={title || campaign.title}
@@ -292,7 +300,7 @@ export function EditCampaignDialog({
                   onClick={() => fileInput.current?.click()}
                   className={ui.btnSmall}
                 >
-                  Upload
+                  {copy.upload}
                 </button>
                 {offersImages(capabilities) ? (
                   <button
@@ -302,7 +310,7 @@ export function EditCampaignDialog({
                     className={ui.btnSmall}
                   >
                     {coverPending ? <Loader2 className="size-3.5 animate-spin" /> : null}
-                    {coverPending ? "Painting" : "Paint one"}
+                    {coverPending ? copy.painting : copy.paint}
                   </button>
                 ) : null}
                 {cover ? (
@@ -312,13 +320,13 @@ export function EditCampaignDialog({
                     onClick={() => void coverRequest("DELETE")}
                     className={ui.btnSmall}
                   >
-                    Remove
+                    {copy.remove}
                   </button>
                 ) : null}
               </div>
               {coverStatus === "failed" ? (
                 <p className="mt-1 text-xs text-red-400">
-                  The cover did not paint. Try again, or upload one.
+                  {copy.coverFailed}
                 </p>
               ) : null}
               {coverError ? <p className="mt-1 text-xs text-red-400">{coverError}</p> : null}
@@ -327,7 +335,7 @@ export function EditCampaignDialog({
             {error ? <p className="text-red-400">{error}</p> : null}
             <button type="submit" disabled={busy} className={cn(ui.btnPrimary, "w-full")}>
               {busy ? <Loader2 className="size-4 animate-spin" /> : null}
-              Save changes
+              {copy.save}
             </button>
           </form>
         </Dialog.Content>

@@ -7,6 +7,8 @@ import { InfoButton } from "@/components/ui/InfoDialog";
 import { describeContentEntry, spellSummary } from "@/lib/help";
 import { useContentSearch, type PickerEntry } from "@/app/characters/builder/useContentSearch";
 import { CLASS_IDS, input, type EditorKind } from "@/app/workshop/homebrew/types";
+import { useI18n } from "@/lib/i18n/context";
+import { localeText } from "@/lib/i18n/locale-text";
 
 // "Start from": a search over the content pack that hands back a row to
 // copy into the draft. Pick, do not type: a DM changing one number on an
@@ -32,6 +34,8 @@ export function CatalogStart({
   // so a wizard spell starts from wizard spells rather than the whole book.
   scope?: Record<string, string>;
 }) {
+  const { locale } = useI18n();
+  const copy = localeText(locale, { en: { class: "Class to browse", start: "Start from something in the books...", search: "Search the content pack to start from", none: "Nothing in the books matched" }, ru: { class: "Класс для просмотра", start: "Начать с чего-то из книг...", search: "Искать в наборе материалов", none: "В книгах ничего не найдено по запросу" }, pl: { class: "Klasa do przeglądania", start: "Zacznij od czegoś z książek...", search: "Szukaj w pakiecie materiałów", none: "W książkach nie znaleziono" } });
   const [classSlug, setClassSlug] = useState<string>("fighter");
   const extra: Record<string, string> = kind === "archetype" ? { class: classSlug } : { ...scope };
   const { query, setQuery, results, open, setOpen, loading, unavailable } = useContentSearch(
@@ -57,7 +61,7 @@ export function CatalogStart({
   return (
     <div ref={container} className="flex flex-wrap items-center gap-1.5">
       {kind === "archetype" ? (
-        <select value={classSlug} aria-label="Class to browse" onChange={(event) => setClassSlug(event.target.value)} className={input}>
+        <select value={classSlug} aria-label={copy.class} onChange={(event) => setClassSlug(event.target.value)} className={input}>
           {CLASS_IDS.map((id) => (
             <option key={id} value={id}>
               {id}
@@ -71,15 +75,15 @@ export function CatalogStart({
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           onFocus={() => results.length && setOpen(true)}
-          placeholder="Start from something in the books..."
-          aria-label="Search the content pack to start from"
+          placeholder={copy.start}
+          aria-label={copy.search}
           className={cn(input, "w-full pl-7")}
         />
         {loading ? <Loader2 className="absolute right-2 top-1/2 size-3.5 -translate-y-1/2 animate-spin text-stone-500" /> : null}
       </div>
       {open && !results.length && query.trim() && !loading ? (
         <p className="basis-full text-[11px] text-stone-500">
-          Nothing in the books matched &quot;{query.trim()}&quot;.
+          {copy.none} &quot;{query.trim()}&quot;.
         </p>
       ) : null}
       {/* In the flow, not absolutely positioned: the editor sits in a sheet

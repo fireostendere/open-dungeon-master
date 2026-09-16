@@ -11,6 +11,8 @@ import { OptionFields } from "@/app/workshop/homebrew/OptionFields";
 import { SpellFields } from "@/app/workshop/homebrew/SpellFields";
 import { draftFindings, draftFromCatalog, type HomebrewDraft } from "@/app/workshop/homebrew/draft";
 import { KIND_SINGULAR } from "@/app/workshop/homebrew/types";
+import { useI18n } from "@/lib/i18n/context";
+import { localeText } from "@/lib/i18n/locale-text";
 
 // A spell draft that already names its classes searches that class's list
 // first; the catalogue is otherwise the whole book.
@@ -53,6 +55,8 @@ export function HomebrewEditor({
   onDuplicate: () => void;
   onDelete: () => void;
 }) {
+  const { locale } = useI18n();
+  const copy = localeText(locale, { en: { name: "Name", description: "Description", keep: "Keep it", save: "Save", duplicate: "Duplicate", forget: "Forget it" }, ru: { name: "Название", description: "Описание", keep: "Сохранить", save: "Сохранить", duplicate: "Дублировать", forget: "Удалить" }, pl: { name: "Nazwa", description: "Opis", keep: "Zachowaj", save: "Zapisz", duplicate: "Duplikuj", forget: "Usuń" } });
   const findings = draftFindings(draft, variantRules);
   const refused = findings.some((finding) => finding.level === "error");
   const setData = (data: HomebrewDraft["data"]) => onDraft({ ...draft, data });
@@ -68,7 +72,7 @@ export function HomebrewEditor({
       </div>
 
       <TextField
-        label="Name"
+        label={copy.name}
         value={draft.name}
         onChange={(name) => onDraft({ ...draft, name: name.slice(0, 80) })}
         placeholder={`What this ${KIND_SINGULAR[draft.kind]} is called`}
@@ -82,7 +86,7 @@ export function HomebrewEditor({
       ) : null}
 
       <TextArea
-        label="Description"
+        label={copy.description}
         value={String(draft.data.desc ?? "")}
         onChange={(desc) => setData({ ...draft.data, desc })}
         rows={draft.kind === "spell" ? 5 : 3}
@@ -119,7 +123,7 @@ export function HomebrewEditor({
           className="flex items-center gap-1 rounded-md border border-amber-700 bg-amber-950/50 px-2 py-1 text-xs text-amber-100 disabled:opacity-40"
         >
           {busy ? <Loader2 className="size-3 animate-spin" /> : null}
-          {isNew ? "Keep it" : "Save"}
+          {isNew ? copy.keep : copy.save}
         </button>
         {!isNew ? (
           <>
@@ -129,7 +133,7 @@ export function HomebrewEditor({
               onClick={onDuplicate}
               className="flex items-center gap-1 rounded-md border border-stone-700 px-2 py-1 text-xs text-stone-300 hover:bg-stone-900 disabled:opacity-50"
             >
-              <Copy className="size-3" /> Duplicate
+              <Copy className="size-3" /> {copy.duplicate}
             </button>
             <button
               type="button"
@@ -137,7 +141,7 @@ export function HomebrewEditor({
               onClick={onDelete}
               className="ml-auto flex items-center gap-1 rounded-md border border-stone-700 px-2 py-1 text-xs text-stone-500 hover:text-red-300 disabled:opacity-50"
             >
-              <Trash2 className="size-3" /> Forget it
+              <Trash2 className="size-3" /> {copy.forget}
             </button>
           </>
         ) : null}

@@ -8,6 +8,7 @@ import { buildShareLinks } from "@/lib/share-link";
 import { InviteShareDialog } from "@/components/InviteShareDialog";
 import { ui } from "@/lib/ui";
 import { useI18n } from "@/lib/i18n";
+import { localeText } from "@/lib/i18n/locale-text";
 
 // The room code card: the code itself, copy code, copy link, and the share
 // dialog with the QR. Hidden by the lobby for solo campaigns, which have
@@ -57,6 +58,11 @@ export function LobbyRoomCode({
   const shareLinks = buildShareLinks({ publicOrigin, inviteCode });
 
   const { t, locale } = useI18n();
+  const copy = localeText(locale, {
+    en: { code: "Code", link: "Link", share: "Share" },
+    ru: { code: "Код", link: "Ссылка", share: "Поделиться" },
+    pl: { code: "Kod", link: "Link", share: "Udostępnij" },
+  });
 
   async function copyInvite() {
     if (await copyText(inviteCode)) {
@@ -82,7 +88,7 @@ export function LobbyRoomCode({
         <div className="flex items-center gap-2">
           <button type="button" onClick={copyInvite} className={ui.btnSmall}>
             {copied ? <Check className="size-4 text-emerald-400" /> : <Copy className="size-4" />}
-            {copied ? t("common.copied") : (locale === "ru" ? "Код" : "Code")}
+            {copied ? t("common.copied") : copy.code}
           </button>
           <button type="button" onClick={copyLink} className={ui.btnSmall}>
             {linkCopied ? (
@@ -90,10 +96,10 @@ export function LobbyRoomCode({
             ) : (
               <LinkIcon className="size-4" />
             )}
-            {linkCopied ? t("common.copied") : (locale === "ru" ? "Ссылка" : "Link")}
+            {linkCopied ? t("common.copied") : copy.link}
           </button>
           <button type="button" onClick={() => setSharing(true)} className={ui.btnSmall}>
-            <QrCode className="size-4" /> {locale === "ru" ? "Поделиться" : "Share"}
+            <QrCode className="size-4" /> {copy.share}
           </button>
         </div>
       </div>

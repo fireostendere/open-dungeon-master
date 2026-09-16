@@ -74,13 +74,13 @@ export function PageShell({
         <div className="flex min-w-0 items-center gap-3">
           <PixelTile src={icon} />
           <div className="min-w-0">
-            <h1 className="text-balance font-display text-2xl leading-tight tracking-wide text-amber-50">
+            <h1 className="text-balance break-words font-display text-2xl leading-tight tracking-wide text-amber-50">
               {title}
             </h1>
             {blurb ? <p className="mt-0.5 text-pretty text-sm text-stone-500">{blurb}</p> : null}
           </div>
         </div>
-        {actions ? <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div> : null}
+        {actions ? <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:shrink-0">{actions}</div> : null}
       </header>
       <div className="space-y-4">{children}</div>
     </Column>
@@ -136,7 +136,7 @@ export function PageSection({
               <h2 className={cn(ui.sectionEyebrow, danger && "text-red-300/80")}>{heading}</h2>
             ) : null}
           </div>
-          {actions ? <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div> : null}
+          {actions ? <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:shrink-0">{actions}</div> : null}
         </div>
       ) : null}
       {intro ? (

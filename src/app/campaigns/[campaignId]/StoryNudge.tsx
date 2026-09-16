@@ -3,6 +3,8 @@
 import { BookMarked } from "lucide-react";
 import { cn } from "@/lib/cn";
 import type { BeatCadence } from "@/lib/dm/beat-cadence";
+import { useI18n } from "@/lib/i18n";
+import { localeText } from "@/lib/i18n/locale-text";
 
 // The reminder, above the composer and DM-only. It escalates from nothing to
 // a quiet line to a lit banner, and it is never a modal: the remedy travels
@@ -17,6 +19,12 @@ export function StoryNudge({
   onCapture: () => void;
   onSnooze: () => void;
 }) {
+  const { locale } = useI18n();
+  const copy = localeText(locale, {
+    en: { overdue: "The chapter summaries and the recap are built from it.", write: "Write it down", later: "Later" },
+    ru: { overdue: "На его основе создаются итоги главы и предыдущее содержание.", write: "Записать", later: "Позже" },
+    pl: { overdue: "Na jego podstawie powstają podsumowania rozdziałów i przypomnienie.", write: "Zapisz", later: "Później" },
+  });
   if (cadence.level === "quiet") {
     return null;
   }
@@ -34,7 +42,7 @@ export function StoryNudge({
         <BookMarked className="size-3.5 shrink-0" />
         <span className="truncate">
           {cadence.reason}
-          {overdue ? " The chapter summaries and the recap are built from it." : ""}
+          {overdue ? ` ${copy.overdue}` : ""}
         </span>
       </span>
       <span className="flex shrink-0 items-center gap-3">
@@ -46,14 +54,14 @@ export function StoryNudge({
             overdue ? "text-amber-200 hover:text-amber-100" : "text-stone-300 hover:text-stone-100",
           )}
         >
-          Write it down
+          {copy.write}
         </button>
         <button
           type="button"
           onClick={onSnooze}
           className="text-stone-500 hover:text-stone-300"
         >
-          Later
+          {copy.later}
         </button>
       </span>
     </div>

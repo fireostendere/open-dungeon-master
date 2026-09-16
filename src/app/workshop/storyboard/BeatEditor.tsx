@@ -12,6 +12,8 @@ import {
   type BoardNode,
 } from "@/lib/workshop/board";
 import { LINK_FIELDS, beatInput } from "@/app/workshop/storyboard/beat-fields";
+import { useI18n } from "@/lib/i18n/context";
+import { localeText } from "@/lib/i18n/locale-text";
 
 // One card, open for editing: its kind and title, what happens, who and
 // where it involves, and which cards it leads to. Split out of
@@ -40,6 +42,8 @@ export function BeatEditor({
   onSave: () => void;
   onDelete?: () => void;
 }) {
+  const { locale } = useI18n();
+  const copy = localeText(locale, { en: { save: "Save the card", body: "What actually happens, and what it means if the party is not there.", nobody: "nobody in particular", leads: "Leads to", delete: "Delete" }, ru: { save: "Сохранить карточку", body: "Что происходит на самом деле и что это значит, если группы там нет.", nobody: "никто конкретный", leads: "Ведёт к", delete: "Удалить" }, pl: { save: "Zapisz kartę", body: "Co naprawdę się dzieje i co to znaczy, jeśli drużyny tam nie ma.", nobody: "nikt konkretny", leads: "Prowadzi do", delete: "Usuń" } });
   const saveButton = (
     <button
       type="button"
@@ -48,7 +52,7 @@ export function BeatEditor({
       className="inline-flex w-fit items-center gap-1.5 rounded-md border border-amber-500/40 px-3 py-1 text-xs text-amber-100 hover:bg-stone-800 disabled:opacity-40"
     >
       {busy ? <Loader2 className="size-3.5 animate-spin" /> : null}
-      Save the card
+      {copy.save}
     </button>
   );
 
@@ -78,7 +82,7 @@ export function BeatEditor({
         value={edit.body}
         onChange={(event) => onChange({ ...edit, body: event.target.value })}
         rows={3}
-        placeholder="What actually happens, and what it means if the party is not there."
+        placeholder={copy.body}
         className={cn(beatInput, "w-full resize-y")}
       />
 
@@ -96,7 +100,7 @@ export function BeatEditor({
               }
               className={cn(beatInput, "w-full")}
             >
-              <option value="">nobody in particular</option>
+              <option value="">{copy.nobody}</option>
               {inventory[bucket].map((entry) => (
                 <option key={entry.id} value={entry.id}>
                   {entry.name}
@@ -108,7 +112,7 @@ export function BeatEditor({
       </div>
 
       <div className="flex flex-col gap-1">
-        <span className="text-[10px] uppercase tracking-wide text-stone-500">Leads to</span>
+        <span className="text-[10px] uppercase tracking-wide text-stone-500">{copy.leads}</span>
         <div className="flex flex-wrap gap-1">
           {others.map((other) => {
             const on = edit.edges.includes(other.id);
@@ -145,10 +149,10 @@ export function BeatEditor({
             type="button"
             disabled={busy}
             onClick={onDelete}
-            aria-label={`Delete ${edit.title}`}
+            aria-label={`${copy.delete} ${edit.title}`}
             className="ml-auto inline-flex items-center gap-1 rounded-md border border-stone-700 px-2 py-1 text-xs text-stone-500 hover:text-red-300 disabled:opacity-40"
           >
-            <Trash2 className="size-3" /> Delete
+            <Trash2 className="size-3" /> {copy.delete}
           </button>
         </div>
       ) : (

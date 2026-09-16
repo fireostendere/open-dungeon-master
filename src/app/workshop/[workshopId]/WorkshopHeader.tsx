@@ -7,6 +7,8 @@ import { useState } from "react";
 import { ui } from "@/lib/ui";
 import { ImportBundleButton } from "@/app/workshop/ImportBundleButton";
 import type { WorkshopSummary } from "@/app/workshop/types";
+import { useI18n } from "@/lib/i18n/context";
+import { interpolateWorkshop, workshopCopy } from "@/app/workshop/copy";
 
 // The hub's masthead: the way back to the shelf, the workshop's name
 // (editable in place), and the four things that act on the workshop as a
@@ -22,6 +24,8 @@ export function WorkshopHeader({
   onRenamed: (title: string) => void;
   onHelp: () => void;
 }) {
+  const { locale } = useI18n();
+  const copy = workshopCopy(locale);
   const router = useRouter();
   const [renaming, setRenaming] = useState(false);
   const [titleDraft, setTitleDraft] = useState("");
@@ -65,7 +69,7 @@ export function WorkshopHeader({
   async function remove() {
     if (
       !window.confirm(
-        `Delete "${workshop.title}"? Every map, NPC, table and note in it is lost. Anything already imported into a campaign stays there.`,
+        interpolateWorkshop(copy.deleteConfirm, { title: workshop.title }),
       )
     ) {
       return;
@@ -82,7 +86,7 @@ export function WorkshopHeader({
         href="/workshop"
         className="inline-flex items-center gap-1.5 text-sm text-stone-500 hover:text-amber-200"
       >
-        <ArrowLeft className="size-4" /> All workshops
+        <ArrowLeft className="size-4" /> {copy.all}
       </Link>
       <div className="flex flex-wrap items-center gap-2">
         {renaming ? (
@@ -100,7 +104,7 @@ export function WorkshopHeader({
                 setRenaming(false);
               }
             }}
-            aria-label="Workshop name"
+            aria-label={copy.name}
             className="w-full max-w-md rounded-md border border-stone-700 bg-stone-950 px-2 py-1 font-display text-xl tracking-wide text-amber-50"
           />
         ) : (
@@ -108,7 +112,7 @@ export function WorkshopHeader({
             <h1 className="font-display text-xl tracking-wide text-amber-50">{workshop.title}</h1>
             <button
               type="button"
-              aria-label="Rename this workshop"
+              aria-label={copy.rename}
               onClick={() => {
                 setTitleDraft(workshop.title);
                 setRenaming(true);
@@ -119,11 +123,11 @@ export function WorkshopHeader({
             </button>
           </>
         )}
-        <div className="ml-auto flex items-center gap-1" data-tour="hub-actions">
+        <div className="ml-auto flex shrink-0 items-center gap-1" data-tour="hub-actions">
           <button
             type="button"
-            aria-label="How workshops work"
-            title="Guides and tours"
+            aria-label={copy.help}
+            title={copy.guides}
             onClick={onHelp}
             data-tour="hub-help"
             className="rounded-md border border-stone-700 p-1.5 text-stone-500 hover:text-stone-300"
@@ -134,8 +138,8 @@ export function WorkshopHeader({
             type="button"
             disabled={cloning}
             onClick={() => void clone()}
-            aria-label={`Duplicate ${workshop.title}`}
-            title="Duplicate this workshop and everything in it"
+            aria-label={`${copy.duplicate} ${workshop.title}`}
+            title={copy.duplicate}
             className="rounded-md border border-stone-700 p-1.5 text-stone-500 hover:text-stone-300 disabled:opacity-50"
           >
             {cloning ? <Loader2 className="size-4 animate-spin" /> : <Copy className="size-4" />}
@@ -143,8 +147,8 @@ export function WorkshopHeader({
           <button
             type="button"
             onClick={() => void remove()}
-            aria-label={`Delete ${workshop.title}`}
-            title="Delete this workshop"
+            aria-label={`${copy.delete} ${workshop.title}`}
+            title={copy.delete}
             className="rounded-md border border-stone-700 p-1.5 text-stone-500 hover:text-red-300"
           >
             <Trash2 className="size-4" />
@@ -152,7 +156,7 @@ export function WorkshopHeader({
         </div>
       </div>
       <div data-tour="hub-import" className="w-fit">
-        <ImportBundleButton label="Import a bundle" className={ui.btnSmall} />
+        <ImportBundleButton label={copy.import} className={ui.btnSmall} />
       </div>
     </header>
   );

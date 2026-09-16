@@ -25,6 +25,8 @@ import {
 } from "@/lib/workshop/pickers";
 import { CONDITION_BLURBS, SPELL_SCHOOL_BLURBS, glossaryFor } from "@/lib/help/terms";
 import type { Data } from "@/app/workshop/homebrew/draft";
+import { useI18n } from "@/lib/i18n/context";
+import { localeText } from "@/lib/i18n/locale-text";
 
 // The spell form. The description is the part the engine reads its damage
 // out of, the same way it reads the SRD's, so the form shows what it found
@@ -32,25 +34,19 @@ import type { Data } from "@/app/workshop/homebrew/draft";
 // is the part prose cannot state: how the spell resolves, which save, what
 // condition or buff it applies.
 
-const RESOLUTIONS = [
-  { value: "", label: "Let the engine read the prose" },
-  { value: "attack", label: "Spell attack roll" },
-  { value: "save", label: "Target saves" },
-  { value: "auto", label: "Hits without a roll" },
-  { value: "heal", label: "Restores hit points" },
-  { value: "buff", label: "Grants a condition to allies" },
-  { value: "summon", label: "Conjures creatures" },
-  { value: "utility", label: "Utility, narrated" },
-] as const;
-
-const ABILITY_OPTIONS = [
-  { value: "", label: "none" },
-  ...(["str", "dex", "con", "int", "wis", "cha"] as const).map((value) => ({ value, label: value.toUpperCase() })),
-];
-
 type Mech = Record<string, unknown>;
 
 export function SpellFields({ data, onChange }: { data: Data; onChange: (next: Data) => void }) {
+  const { locale } = useI18n();
+  const copy = localeText(locale, {
+    en: { level: "Level", cantrip: "0 is a cantrip.", school: "School", schools: "Schools of magic", casting: "Casting time", castingHint: "How long it takes to cast. Most spells take one action.", range: "Range", rangeHint: "How far away the target can be. Self means the caster only.", components: "Components", componentsHint: "V spoken words, S a free hand, M a material (name it after M in brackets).", duration: "Duration", durationHint: "How long the effect lasts. Concentration spells end when the caster loses focus.", concentration: "Concentration", ritual: "Ritual", classes: "Classes that can learn it", higher: "At higher levels", higherPlaceholder: "The damage increases by 1d6 for each slot level above 1st.", higherHint: "The engine scales the dice from this sentence when a spell is upcast.", reads: "From the description the engine reads: ", damage: "damage", heals: "heals", noDice: "no dice", save: "save", half: "half on a success", write: " Write it as \"takes 3d6 fire damage\" and it will.", resolves: "How it resolves", resolvesHint: "Set this and the cast tools trust it over the prose.", prose: "Let the engine read the prose", attack: "Spell attack roll", targetSaves: "Target saves", auto: "Hits without a roll", heal: "Restores hit points", buff: "Grants a condition to allies", summon: "Conjures creatures", utility: "Utility, narrated", none: "none", halfSuccess: "Half on a success", damageType: "Damage type", fromProse: "from the prose", condition: "Condition on a hit or failed save", rounds: "For rounds", roundsHint: "10 rounds is a minute.", granted: "Condition granted", on: "On", caster: "the caster", ally: "one ally", allies: "several allies", note: "Note for the DM", notePlaceholder: "Up to three targets." },
+    ru: { level: "Уровень", cantrip: "0 — заговор.", school: "Школа", schools: "Школы магии", casting: "Время накладывания", castingHint: "Сколько длится накладывание. Большинство заклинаний требует действия.", range: "Дистанция", rangeHint: "Как далеко может находиться цель. «На себя» означает только заклинателя.", components: "Компоненты", componentsHint: "В — произносимые слова, С — свободная рука, М — материальный компонент (укажите его после М в скобках).", duration: "Длительность", durationHint: "Как долго действует эффект. Концентрация заканчивается, если заклинатель теряет фокус.", concentration: "Концентрация", ritual: "Ритуал", classes: "Классы, способные изучить", higher: "На более высоких уровнях", higherPlaceholder: "Урон увеличивается на 1d6 за каждый уровень ячейки выше 1-го.", higherHint: "При накладывании более высокой ячейкой движок берёт масштабирование кубов из этого предложения.", reads: "Из описания движок читает: ", damage: "урона", heals: "восстанавливает", noDice: "кубы не найдены", save: "спасбросок", half: "половина при успехе", write: " Напишите «получает 3d6 огненного урона», и он это распознает.", resolves: "Как разрешается", resolvesHint: "Укажите это, и инструменты накладывания доверятся значению больше, чем описанию.", prose: "Пусть движок читает описание", attack: "Бросок атаки заклинанием", targetSaves: "Цель делает спасбросок", auto: "Попадает без броска", heal: "Восстанавливает хиты", buff: "Даёт союзникам состояние", summon: "Призывает существ", utility: "Утилитарное, с описанием", none: "нет", halfSuccess: "Половина при успехе", damageType: "Тип урона", fromProse: "из описания", condition: "Состояние при попадании или провале", rounds: "Раундов", roundsHint: "10 раундов — минута.", granted: "Данное состояние", on: "Кому", caster: "заклинателю", ally: "одному союзнику", allies: "нескольким союзникам", note: "Заметка для ведущего", notePlaceholder: "До трёх целей." },
+    pl: { level: "Poziom", cantrip: "0 to sztuczka.", school: "Szkoła", schools: "Szkoły magii", casting: "Czas rzucania", castingHint: "Ile trwa rzucanie. Większość czarów wymaga jednej akcji.", range: "Zasięg", rangeHint: "Jak daleko może być cel. «Na siebie» oznacza tylko rzucającego.", components: "Komponenty", componentsHint: "W — słowa, S — wolna ręka, M — materiał (podaj go po M w nawiasie).", duration: "Czas trwania", durationHint: "Jak długo trwa efekt. Koncentracja kończy się, gdy rzucający straci skupienie.", concentration: "Koncentracja", ritual: "Rytuał", classes: "Klasy, które mogą się go nauczyć", higher: "Na wyższych poziomach", higherPlaceholder: "Obrażenia rosną o 1d6 za każdy poziom slotu powyżej 1.", higherHint: "Przy rzucaniu z wyższego slotu silnik odczytuje skalowanie kości z tego zdania.", reads: "Z opisu silnik odczytuje: ", damage: "obrażeń", heals: "leczy", noDice: "brak kości", save: "rzut obronny", half: "połowa przy sukcesie", write: " Napisz «otrzymuje 3d6 obrażeń od ognia», a silnik to odczyta.", resolves: "Sposób rozstrzygnięcia", resolvesHint: "Ustaw to, a narzędzia rzucania zaufają temu bardziej niż opisowi.", prose: "Niech silnik odczyta opis", attack: "Rzut ataku czarem", targetSaves: "Cel wykonuje rzut obronny", auto: "Trafia bez rzutu", heal: "Przywraca punkty życia", buff: "Daje sojusznikom stan", summon: "Przywołuje istoty", utility: "Użytkowe, narracyjne", none: "brak", halfSuccess: "Połowa przy sukcesie", damageType: "Typ obrażeń", fromProse: "z opisu", condition: "Stan przy trafieniu lub nieudanym obronnym", rounds: "Rundy", roundsHint: "10 rund to minuta.", granted: "Nadany stan", on: "Komu", caster: "rzucającemu", ally: "jednemu sojusznikowi", allies: "kilku sojusznikom", note: "Notatka dla MG", notePlaceholder: "Do trzech celów." },
+  });
+  const resolutions = [
+    { value: "", label: copy.prose }, { value: "attack", label: copy.attack }, { value: "save", label: copy.targetSaves }, { value: "auto", label: copy.auto }, { value: "heal", label: copy.heal }, { value: "buff", label: copy.buff }, { value: "summon", label: copy.summon }, { value: "utility", label: copy.utility },
+  ] as const;
+  const abilityOptions = [{ value: "", label: copy.none }, ...(["str", "dex", "con", "int", "wis", "cha"] as const).map((value) => ({ value, label: value.toUpperCase() }))];
   const set = (patch: Data) => onChange({ ...data, ...patch });
   const mech = (data.mech ?? {}) as Mech;
   const setMech = (patch: Mech) => {
@@ -73,60 +69,60 @@ export function SpellFields({ data, onChange }: { data: Data; onChange: (next: D
     <div className="space-y-3">
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
         <NumberField
-          label="Level"
+          label={copy.level}
           value={typeof data.level === "number" ? data.level : 1}
           min={0}
           max={9}
           onChange={(level) => set({ level: level === "" ? 0 : level })}
-          hint="0 is a cantrip."
+          hint={copy.cantrip}
         />
         <SelectField
-          label="School"
+          label={copy.school}
           value={String(data.school ?? "evocation")}
           options={SPELL_SCHOOLS.map((value) => ({ value, label: value }))}
           onChange={(school) => set({ school })}
-          glossary={{ title: "Schools of magic", entries: glossaryFor(SPELL_SCHOOLS, SPELL_SCHOOL_BLURBS) }}
+          glossary={{ title: copy.schools, entries: glossaryFor(SPELL_SCHOOLS, SPELL_SCHOOL_BLURBS) }}
         />
         <TextField
-          label="Casting time"
+          label={copy.casting}
           value={String(data.casting_time ?? "")}
           onChange={(casting_time) => set({ casting_time })}
           maxLength={60}
           suggestions={CASTING_TIMES}
-          hint="How long it takes to cast. Most spells take one action."
+          hint={copy.castingHint}
         />
         <TextField
-          label="Range"
+          label={copy.range}
           value={String(data.range ?? "")}
           onChange={(range) => set({ range })}
           maxLength={60}
           suggestions={SPELL_RANGES}
-          hint="How far away the target can be. Self means the caster only."
+          hint={copy.rangeHint}
         />
         <TextField
-          label="Components"
+          label={copy.components}
           value={String(data.components ?? "")}
           onChange={(components) => set({ components })}
           maxLength={120}
           suggestions={SPELL_COMPONENTS}
-          hint="V spoken words, S a free hand, M a material (name it after M in brackets)."
+          hint={copy.componentsHint}
         />
         <TextField
-          label="Duration"
+          label={copy.duration}
           value={String(data.duration ?? "")}
           onChange={(duration) => set({ duration })}
           maxLength={60}
           suggestions={SPELL_DURATIONS}
-          hint="How long the effect lasts. Concentration spells end when the caster loses focus."
+          hint={copy.durationHint}
         />
         <div className="col-span-2 flex flex-wrap items-end gap-3">
-          <CheckField label="Concentration" checked={data.concentration === true} onChange={(concentration) => set({ concentration })} />
-          <CheckField label="Ritual" checked={data.ritual === true} onChange={(ritual) => set({ ritual })} />
+          <CheckField label={copy.concentration} checked={data.concentration === true} onChange={(concentration) => set({ concentration })} />
+          <CheckField label={copy.ritual} checked={data.ritual === true} onChange={(ritual) => set({ ritual })} />
         </div>
       </div>
 
       <div className="space-y-1">
-        <span className="text-[10px] uppercase tracking-wide text-stone-500">Classes that can learn it</span>
+        <span className="text-[10px] uppercase tracking-wide text-stone-500">{copy.classes}</span>
         <ToggleChips
           options={CLASS_IDS}
           selected={Array.isArray(data.classes) ? (data.classes as string[]) : []}
@@ -138,56 +134,56 @@ export function SpellFields({ data, onChange }: { data: Data; onChange: (next: D
       </div>
 
       <TextField
-        label="At higher levels"
+        label={copy.higher}
         value={String(data.higher_level ?? "")}
         onChange={(higher_level) => set({ higher_level })}
-        placeholder="The damage increases by 1d6 for each slot level above 1st."
+        placeholder={copy.higherPlaceholder}
         maxLength={2000}
-        hint="The engine scales the dice from this sentence when a spell is upcast."
+        hint={copy.higherHint}
       />
 
       <p className="rounded-md border border-stone-800 bg-stone-950/60 px-2 py-1.5 text-[11px] text-stone-400">
-        <span className="uppercase tracking-wide text-stone-500">From the description the engine reads: </span>
-        {read.dice ? `${read.dice}${read.type ? ` ${read.type}` : ""} damage` : read.heal ? `heals ${read.heal}` : "no dice"}
-        {read.save ? `, ${read.save.toUpperCase()} save${read.half ? ", half on a success" : ""}` : ""}.
-        {!read.dice && !read.heal ? " Write it as \"takes 3d6 fire damage\" and it will." : ""}
+        <span className="uppercase tracking-wide text-stone-500">{copy.reads}</span>
+        {read.dice ? `${read.dice}${read.type ? ` ${read.type}` : ""} ${copy.damage}` : read.heal ? `${copy.heals} ${read.heal}` : copy.noDice}
+        {read.save ? `, ${read.save.toUpperCase()} ${copy.save}${read.half ? `, ${copy.half}` : ""}` : ""}.
+        {!read.dice && !read.heal ? copy.write : ""}
       </p>
 
       <div className="space-y-2 rounded-md border border-stone-800 p-2">
         <SelectField
-          label="How it resolves"
+          label={copy.resolves}
           value={String(mech.resolution ?? "")}
-          options={RESOLUTIONS}
+          options={resolutions}
           onChange={(resolution) => setMech({ resolution: resolution || undefined })}
-          hint="Set this and the cast tools trust it over the prose."
+          hint={copy.resolvesHint}
         />
         {block ? (
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
             {block.resolution === "save" ? (
               <>
                 <SelectField
-                  label="Save"
+                  label={copy.save}
                   value={String(mech.save ?? "")}
-                  options={ABILITY_OPTIONS}
+                  options={abilityOptions}
                   onChange={(save) => setMech({ save: save || undefined })}
                 />
                 <div className="flex items-end pb-1">
-                  <CheckField label="Half on a success" checked={mech.halfOnSave === true} onChange={(halfOnSave) => setMech({ halfOnSave })} />
+                  <CheckField label={copy.halfSuccess} checked={mech.halfOnSave === true} onChange={(halfOnSave) => setMech({ halfOnSave })} />
                 </div>
               </>
             ) : null}
             {["attack", "save", "auto"].includes(block.resolution) ? (
               <SelectField
-                label="Damage type"
+                label={copy.damageType}
                 value={String(mech.damageType ?? "")}
-                options={[{ value: "", label: "from the prose" }, ...DAMAGE_TYPES.map((value) => ({ value, label: value }))]}
+                options={[{ value: "", label: copy.fromProse }, ...DAMAGE_TYPES.map((value) => ({ value, label: value }))]}
                 onChange={(damageType) => setMech({ damageType: damageType || undefined })}
               />
             ) : null}
             {["attack", "save", "auto"].includes(block.resolution) ? (
               <>
                 <TextField
-                  label="Condition on a hit or failed save"
+                  label={copy.condition}
                   value={String(condition.name ?? "")}
                   onChange={(name) => setMech({ condition: name ? { ...condition, name } : undefined })}
                   placeholder="frightened"
@@ -197,12 +193,12 @@ export function SpellFields({ data, onChange }: { data: Data; onChange: (next: D
                 />
                 {condition.name ? (
                   <NumberField
-                    label="For rounds"
+                    label={copy.rounds}
                     value={typeof condition.rounds === "number" ? condition.rounds : 10}
                     min={1}
                     max={6000}
                     onChange={(rounds) => setMech({ condition: { ...condition, rounds: rounds === "" ? 10 : rounds } })}
-                    hint="10 rounds is a minute."
+                    hint={copy.roundsHint}
                   />
                 ) : null}
               </>
@@ -210,7 +206,7 @@ export function SpellFields({ data, onChange }: { data: Data; onChange: (next: D
             {block.resolution === "buff" ? (
               <>
                 <TextField
-                  label="Condition granted"
+                  label={copy.granted}
                   value={String(buff.condition ?? "")}
                   onChange={(name) => setMech({ buff: { ...buff, condition: name } })}
                   placeholder="blessed"
@@ -218,17 +214,15 @@ export function SpellFields({ data, onChange }: { data: Data; onChange: (next: D
                   suggestions={["blessed", "hasted", "shielded", "invisible", "inspired", ...CONDITIONS]}
                 />
                 <SelectField
-                  label="On"
+                  label={copy.on}
                   value={String(buff.target ?? "self")}
                   options={[
-                    { value: "self", label: "the caster" },
-                    { value: "ally", label: "one ally" },
-                    { value: "allies", label: "several allies" },
+                    { value: "self", label: copy.caster }, { value: "ally", label: copy.ally }, { value: "allies", label: copy.allies },
                   ]}
                   onChange={(target) => setMech({ buff: { ...buff, target } })}
                 />
                 <NumberField
-                  label="For rounds"
+                label={copy.rounds}
                   value={typeof buff.rounds === "number" ? buff.rounds : 10}
                   min={1}
                   max={6000}
@@ -237,10 +231,10 @@ export function SpellFields({ data, onChange }: { data: Data; onChange: (next: D
               </>
             ) : null}
             <TextField
-              label="Note for the DM"
+              label={copy.note}
               value={String(mech.note ?? "")}
               onChange={(note) => setMech({ note: note || undefined })}
-              placeholder="Up to three targets."
+              placeholder={copy.notePlaceholder}
               maxLength={200}
               className="col-span-2"
             />

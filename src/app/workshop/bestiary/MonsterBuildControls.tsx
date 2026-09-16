@@ -7,6 +7,8 @@ import { MonsterTile } from "@/lib/ui";
 import { MONSTER_NAME_MAX } from "@/lib/bestiary/monster-draft";
 import { crLabel } from "@/lib/bestiary/derive-cr";
 import { CR_CHOICES, input, type Found } from "@/app/workshop/bestiary/types";
+import { useI18n } from "@/lib/i18n/context";
+import { localeText } from "@/lib/i18n/locale-text";
 
 // The top of the bestiary: name a monster and start it at a challenge
 // rating, or search the content pack for something to start from. Split out
@@ -41,6 +43,8 @@ export function MonsterBuildControls({
   // The table's setting, so a high-rating find draws the boss plate.
   genre?: string | null;
 }) {
+  const { locale } = useI18n();
+  const copy = localeText(locale, { en: { build: "Build a monster", name: "Name", cr: "Starting CR", baseline: "Start from the baseline", existing: "Or start from something that exists", find: "Find" }, ru: { build: "Создать монстра", name: "Название", cr: "Начальный CR", baseline: "Начать с основы", existing: "Или начать с существующего", find: "Найти" }, pl: { build: "Stwórz potwora", name: "Nazwa", cr: "Początkowy CR", baseline: "Zacznij od podstawy", existing: "Albo zacznij od istniejącego", find: "Znajdź" } });
   const [newName, setNewName] = useState("");
   const [newCr, setNewCr] = useState(1);
 
@@ -60,12 +64,12 @@ export function MonsterBuildControls({
     >
       {variant === "card" ? (
         <h3 className="flex items-center gap-1.5 text-sm text-amber-100">
-          <Skull className="size-4" /> Build a monster
+          <Skull className="size-4" /> {copy.build}
         </h3>
       ) : null}
       <div className="flex flex-wrap items-end gap-2">
         <label className="flex flex-col gap-0.5">
-          <span className="text-[10px] uppercase tracking-wide text-stone-500">Name</span>
+          <span className="text-[10px] uppercase tracking-wide text-stone-500">{copy.name}</span>
           <input
             value={newName}
             onChange={(event) => setNewName(event.target.value.slice(0, MONSTER_NAME_MAX))}
@@ -74,7 +78,7 @@ export function MonsterBuildControls({
           />
         </label>
         <label className="flex flex-col gap-0.5">
-          <span className="text-[10px] uppercase tracking-wide text-stone-500">Starting CR</span>
+          <span className="text-[10px] uppercase tracking-wide text-stone-500">{copy.cr}</span>
           <select
             value={newCr}
             onChange={(event) => setNewCr(Number(event.target.value))}
@@ -93,14 +97,14 @@ export function MonsterBuildControls({
           onClick={() => void create({ from: "cr", name: newName.trim(), cr: newCr })}
           className="rounded-md border border-amber-500/40 px-3 py-1 text-xs text-amber-100 hover:bg-stone-800 disabled:opacity-40"
         >
-          Start from the baseline
+          {copy.baseline}
         </button>
       </div>
 
       <div className="flex flex-wrap items-end gap-2">
         <label className="flex flex-1 flex-col gap-0.5">
           <span className="text-[10px] uppercase tracking-wide text-stone-500">
-            Or start from something that exists
+            {copy.existing}
           </span>
           <div className="flex gap-1.5">
             <input
@@ -119,7 +123,7 @@ export function MonsterBuildControls({
               onClick={onFind}
               className="inline-flex items-center gap-1 rounded-md border border-stone-700 px-2 text-xs text-stone-300 hover:text-amber-100"
             >
-              <Search className="size-3.5" /> Find
+              <Search className="size-3.5" /> {copy.find}
             </button>
           </div>
         </label>

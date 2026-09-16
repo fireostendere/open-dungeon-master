@@ -199,8 +199,8 @@ export function SessionView({
   const muted = Boolean(state.members.find((member) => member.userId === meId)?.muted);
   const gate = useMemo(
     () =>
-      composerGate({ floor, sheets, meUserId: meId, kind, myName, leadPrivate, openingNarrationPlaying }),
-    [floor, sheets, meId, kind, myName, leadPrivate, openingNarrationPlaying],
+      composerGate({ floor, sheets, meUserId: meId, kind, myName, leadPrivate, openingNarrationPlaying, locale }),
+    [floor, sheets, meId, kind, myName, leadPrivate, openingNarrationPlaying, locale],
   );
   // A mid-game joiner without a character is gated to creation first. The DM
   // runs no character, so the gate must never catch them.
@@ -422,7 +422,7 @@ export function SessionView({
               sending={sending}
               error={error}
               inputBlocked={gate.inputBlocked || muted}
-              placeholder={muted ? (locale === "ru" ? "Лидер группы заглушил вас за этим столом." : "The party lead has muted you at this table.") : gate.placeholder}
+               placeholder={muted ? (locale === "ru" ? "Лидер отряда заглушил вас за этим столом." : locale === "pl" ? "Lider drużyny wyciszył cię przy tym stole." : "The party lead has muted you at this table.") : gate.placeholder}
               dmStatus={dmStatus}
               pendingRolls={pendingRolls}
               floor={floor}

@@ -16,6 +16,8 @@ import { LoreEntryActions } from "@/app/workshop/lore/LoreEntryActions";
 import { LoreBody, LoreImageField, VisibilitySelect } from "@/app/workshop/lore/LoreFields";
 import { LoreRows } from "@/app/workshop/lore/LoreRows";
 import { CATEGORY_LABELS, type LoreEntryView } from "@/app/workshop/lore/types";
+import { useI18n } from "@/lib/i18n";
+import { localeText } from "@/lib/i18n/locale-text";
 
 // World lore builder: the lead's world bible. Entries feed the DM prompt
 // (pinned always, the rest retrieved by relevance) and the search_lore
@@ -34,6 +36,12 @@ export function LorePanel({
   steersStory: boolean;
   layout?: "list" | "rows";
 }) {
+  const { locale } = useI18n();
+  const copy = localeText(locale, {
+    en: { copy: "(copy)", newEntry: "New entry", lore: "World lore", add: "Add entry", loading: "Loading...", emptyLead: "No lore yet. Write your world's places, factions, and history; the DM treats it as canon.", empty: "The party lead has not written any world lore yet." },
+    ru: { copy: "(копия)", newEntry: "Новая запись", lore: "Лор мира", add: "Добавить запись", loading: "Загрузка...", emptyLead: "Лора пока нет. Опишите места, фракции и историю мира — ведущий считает это каноном.", empty: "Лидер группы ещё не добавил лор мира." },
+    pl: { copy: "(kopia)", newEntry: "Nowy wpis", lore: "Wiedza o świecie", add: "Dodaj wpis", loading: "Ładowanie...", emptyLead: "Nie ma jeszcze wiedzy o świecie. Opisz miejsca, frakcje i historię — MG potraktuje je jako kanon.", empty: "Lider drużyny nie dodał jeszcze wiedzy o świecie." },
+  });
   const [loading, setLoading] = useState(true);
   const [entries, setEntries] = useState<LoreEntryView[]>([]);
   const [adding, setAdding] = useState(false);
@@ -203,7 +211,7 @@ export function LorePanel({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           category: entry.category,
-          title: `${entry.title} (copy)`,
+          title: `${entry.title} ${copy.copy}`,
           body: entry.body,
           tags: entry.tags,
           visibility: entry.visibility,
@@ -390,7 +398,7 @@ export function LorePanel({
               closeEditor();
             }
           }}
-          title={editing?.title || reading?.title || "New entry"}
+          title={editing?.title || reading?.title || copy.newEntry}
           className="lg:w-[min(92vw,40rem)]"
         >
           {editorOpen ? (
@@ -422,7 +430,7 @@ export function LorePanel({
     <div className="rounded-lg border border-stone-800 bg-stone-950/40 p-2.5">
       <div className="mb-2 flex items-center justify-between">
         <p className="flex items-center gap-1.5 text-xs font-medium text-stone-300">
-          <BookMarked className="size-3.5 text-amber-600" /> World lore
+          <BookMarked className="size-3.5 text-amber-600" /> {copy.lore}
         </p>
         {steersStory && !editorOpen ? (
           <button
@@ -430,20 +438,20 @@ export function LorePanel({
             onClick={startAdd}
             className="flex items-center gap-1 rounded border border-stone-700 px-2 py-0.5 text-[11px] text-stone-400 hover:bg-stone-900"
           >
-            <Plus className="size-3" /> Add entry
+            <Plus className="size-3" /> {copy.add}
           </button>
         ) : null}
       </div>
       {loading ? (
         <p className="flex items-center gap-1 text-[11px] text-stone-500">
-          <Loader2 className="size-3 animate-spin" /> Loading...
+          <Loader2 className="size-3 animate-spin" /> {copy.loading}
         </p>
       ) : null}
       {!loading && !entries.length && !editorOpen ? (
         <p className="text-[11px] italic text-stone-600">
           {steersStory
-            ? "No lore yet. Write your world's places, factions, and history; the DM treats it as canon."
-            : "The party lead has not written any world lore yet."}
+            ? copy.emptyLead
+            : copy.empty}
         </p>
       ) : null}
       {editorOpen ? (

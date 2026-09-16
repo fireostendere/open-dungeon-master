@@ -9,6 +9,8 @@ import {
   type PeerVolume,
 } from "@/lib/voice/volume";
 import type { VoiceChannelView, VoiceRosterEntry } from "@/lib/voice/types";
+import { useI18n } from "@/lib/i18n/context";
+import { localeText } from "@/lib/i18n/locale-text";
 
 // One person on the call. Lifted out of VoicePanel once the row grew a volume
 // control: it now carries three microphone states, the name, a raised hand,
@@ -47,6 +49,8 @@ export function VoicePeerRow({
   onReset: () => void;
   onMove: (channelId: string) => void;
 }) {
+  const { locale } = useI18n();
+  const copy = localeText(locale, { en: { you: "(you)", wants: "Wants to speak", connecting: "connecting", loud: "How loud", forYou: "is for you", muted: "is muted for you", move: "Move", room: "to another room", unmute: "Unmute", mute: "Mute", normal: "Back to normal", off: "off" }, ru: { you: "(вы)", wants: "Хочет говорить", connecting: "подключается", loud: "Громкость", forYou: "для вас", muted: "отключён для вас", move: "Переместить", room: "в другую комнату", unmute: "Включить", mute: "Выключить", normal: "Вернуть обычную", off: "выкл." }, pl: { you: "(ty)", wants: "Chce mówić", connecting: "łączenie", loud: "Głośność", forYou: "dla ciebie", muted: "jest wyciszony dla ciebie", move: "Przenieś", room: "do innego pokoju", unmute: "Włącz", mute: "Wycisz", normal: "Wróć do normy", off: "wył." } });
   // You have no consumer for yourself, so there is nothing to turn down.
   const adjustable = !isMe;
   const untouched = isDefaultPeer(volume);
@@ -77,24 +81,24 @@ export function VoicePeerRow({
           )}
         >
           {peer.username}
-          {isMe ? " (you)" : ""}
+           {isMe ? ` ${copy.you}` : ""}
         </span>
         {peer.handRaisedAt ? (
-          <Hand className="size-3.5 shrink-0 text-amber-300" aria-label="Wants to speak" />
+           <Hand className="size-3.5 shrink-0 text-amber-300" aria-label={copy.wants} />
         ) : null}
         {/* Joined but not yet publishing: their browser is still asking for the
             microphone, which is worth saying so the silence does not read as a
             fault. */}
-        {!peer.producing ? <span className="text-xs text-stone-600">connecting</span> : null}
+         {!peer.producing ? <span className="text-xs text-stone-600">{copy.connecting}</span> : null}
         {adjustable ? (
           <button
             type="button"
             onClick={onToggleVolume}
-            aria-label={`How loud ${peer.username} is for you`}
+             aria-label={`${copy.loud} ${peer.username} ${copy.forYou}`}
             title={
               volume.muted
-                ? `${peer.username} is muted for you`
-                : `${peer.username} plays at ${percent}% for you`
+                 ? `${peer.username} ${copy.muted}`
+                 : `${copy.loud} ${peer.username}: ${percent}% ${copy.forYou}`
             }
             aria-expanded={expanded}
             className={cn(
@@ -113,8 +117,8 @@ export function VoicePeerRow({
           <select
             value={peer.channelId}
             onChange={(event) => onMove(event.target.value)}
-            aria-label={`Move ${peer.username} to another room`}
-            title={`Move ${peer.username}`}
+             aria-label={`${copy.move} ${peer.username} ${copy.room}`}
+             title={`${copy.move} ${peer.username}`}
             className={cn(
               "rounded border border-stone-800 bg-stone-950 px-1 py-0.5 text-[11px] text-stone-400",
               !adjustable && "ml-auto",
@@ -134,8 +138,8 @@ export function VoicePeerRow({
           <button
             type="button"
             onClick={onToggleMute}
-            aria-label={volume.muted ? `Unmute ${peer.username}` : `Mute ${peer.username} for you`}
-            title={volume.muted ? `Unmute ${peer.username}` : `Mute ${peer.username} for you`}
+             aria-label={volume.muted ? `${copy.unmute} ${peer.username}` : `${copy.mute} ${peer.username} ${copy.forYou}`}
+             title={volume.muted ? `${copy.unmute} ${peer.username}` : `${copy.mute} ${peer.username} ${copy.forYou}`}
             className={cn(
               "shrink-0 rounded p-0.5 transition-colors",
               volume.muted ? "text-red-400" : "text-stone-500 hover:text-stone-300",
@@ -151,7 +155,7 @@ export function VoicePeerRow({
             value={volume.volume}
             disabled={volume.muted}
             onChange={(event) => onVolume(Number(event.target.value))}
-            aria-label={`How loud ${peer.username} is for you`}
+             aria-label={`${copy.loud} ${peer.username} ${copy.forYou}`}
             className="min-w-0 flex-1 accent-amber-600 disabled:opacity-40"
           />
           {/* Doubles as the way back to default, because a slider is hard to
@@ -160,10 +164,10 @@ export function VoicePeerRow({
             type="button"
             onClick={onReset}
             disabled={untouched}
-            title="Back to normal"
+             title={copy.normal}
             className="w-9 shrink-0 text-right text-[11px] tabular-nums text-stone-500 enabled:hover:text-stone-300 disabled:cursor-default"
           >
-            {volume.muted ? "off" : `${percent}%`}
+             {volume.muted ? copy.off : `${percent}%`}
           </button>
         </div>
       ) : null}

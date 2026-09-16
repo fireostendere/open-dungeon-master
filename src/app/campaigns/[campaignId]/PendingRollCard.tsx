@@ -17,6 +17,8 @@ import {
 } from "@/lib/dice/pixels-dice";
 import type { CharacterSheet } from "@/lib/schemas/sheet";
 import type { PendingRoll } from "@/app/campaigns/[campaignId]/useCampaignStream";
+import { useI18n } from "@/lib/i18n/context";
+import { localeText } from "@/lib/i18n/locale-text";
 
 const OWNER_FALLBACK_AFTER_MS = 3 * 60 * 1000;
 
@@ -36,6 +38,8 @@ export function PendingRollCard({
   meUserId: string;
   steersStory: boolean;
 }) {
+  const { locale } = useI18n();
+  const copy = localeText(locale, { en: { someone: "Someone", and: "and", enter: "Enter the bare die numbers; the", added: "is added for you.", submitFailed: "Could not submit the roll.", serverFailed: "Could not reach the server.", roll: "Roll", assigned: "Your assigned dice fill in on their own.", auto: "auto", rolled: "rolled for you", submit: "Submit roll", digital: "Roll digitally instead" }, ru: { someone: "Кто-то", and: "и", enter: "Введите только значения кубов;", added: "будет добавлен автоматически.", submitFailed: "Не удалось отправить бросок.", serverFailed: "Не удалось связаться с сервером.", roll: "Бросьте", assigned: "Назначенные кубы заполнятся сами.", auto: "авто", rolled: "брошен за вас", submit: "Отправить бросок", digital: "Бросить цифровым кубом" }, pl: { someone: "Ktoś", and: "i", enter: "Wpisz same wyniki kości;", added: "zostanie dodany automatycznie.", submitFailed: "Nie udało się wysłać rzutu.", serverFailed: "Nie udało się połączyć z serwerem.", roll: "Rzuć", assigned: "Przypisane kości wypełnią się same.", auto: "auto", rolled: "rzucono za ciebie", submit: "Wyślij rzut", digital: "Rzuć cyfrowo" } });
   const [values, setValues] = useState<Record<number, string>>({});
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -107,7 +111,7 @@ export function PendingRollCard({
   const detailText = pending.detail.replaceAll("_", " ");
   const label = detailText.startsWith(`${character?.name ?? ""}:`)
     ? detailText
-    : `${character?.name ?? "Someone"}: ${pending.kind.replaceAll("_", " ")}${
+     : `${character?.name ?? copy.someone}: ${pending.kind.replaceAll("_", " ")}${
         detailText ? ` (${detailText})` : ""
       }`;
   // Plain-words instruction: "Roll 2× d20 and 1× d8" from the faces list.
@@ -123,13 +127,13 @@ export function PendingRollCard({
       ([sides, count]) => `${count} × d${sides}`,
     );
     return parts.length > 1
-      ? `${parts.slice(0, -1).join(", ")} and ${parts[parts.length - 1]}`
+      ? `${parts.slice(0, -1).join(", ")} ${copy.and} ${parts[parts.length - 1]}`
       : parts[0];
   })();
   // Enter raw die faces only; any flat bonus applies server-side.
   const flatModifier = /([+-]\d+)$/.exec(pending.expression.replaceAll(" ", ""))?.[1];
   const modifierNote = flatModifier
-    ? `Enter the bare die numbers; the ${flatModifier} is added for you.`
+    ? `${copy.enter} ${flatModifier} ${copy.added}`
     : "";
   const advantageNote =
     pending.advantage === "advantage"
@@ -164,10 +168,10 @@ export function PendingRollCard({
       );
       if (!response.ok) {
         const data = await response.json().catch(() => ({}));
-        setError(data.error || "Could not submit the roll.");
+        setError(data.error || copy.submitFailed);
       }
     } catch {
-      setError("Could not reach the server.");
+      setError(copy.serverFailed);
     } finally {
       setBusy(false);
     }
@@ -221,7 +225,7 @@ export function PendingRollCard({
       {diceSummary ? (
         <p className="mt-1 text-xs text-amber-100">
           {fullyAutomatic
-            ? `Roll ${diceSummary}. Your assigned dice fill in on their own.`
+            ? `${copy.roll} ${diceSummary}. ${copy.assigned}`
             : `Roll ${diceSummary} at your table and enter each die below.${
                 modifierNote ? ` ${modifierNote}` : ""
               } The game waits for your result.`}
@@ -241,10 +245,10 @@ export function PendingRollCard({
             return (
               <div key={index} className="block">
                 <span className="mb-0.5 block text-center text-[10px] text-sky-300/80">
-                  d{sides} · auto
+                   d{sides} · {copy.auto}
                 </span>
                 <div
-                  aria-label={`d${sides} rolled for you`}
+                   aria-label={`d${sides} ${copy.rolled}`}
                   className="flex h-[34px] w-14 items-center justify-center rounded-md border border-sky-800/70 bg-sky-950/30 text-sm text-sky-100"
                 >
                   <Dices className="size-4 text-sky-300/80" />
@@ -301,7 +305,7 @@ export function PendingRollCard({
             "disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:translate-y-0 disabled:hover:shadow-none",
           )}
         >
-          {busy ? <Loader2 className="size-4 animate-spin" /> : "Submit roll"}
+           {busy ? <Loader2 className="size-4 animate-spin" /> : copy.submit}
         </button>
         <button
           type="button"
@@ -309,7 +313,7 @@ export function PendingRollCard({
           onClick={() => submit({ fallback: "digital" })}
           className="text-xs text-stone-400 hover:text-stone-200 disabled:opacity-50"
         >
-          Roll digitally instead
+           {copy.digital}
         </button>
       </div>
       {error ? <p className="mt-1.5 text-xs text-red-400">{error}</p> : null}

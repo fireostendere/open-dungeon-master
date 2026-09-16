@@ -32,6 +32,8 @@ import {
   type OverworldData,
 } from "@/app/campaigns/[campaignId]/overworldDraw";
 import { useOverworldView } from "@/app/campaigns/[campaignId]/useOverworldView";
+import { useI18n } from "@/lib/i18n/context";
+import { localeText } from "@/lib/i18n/locale-text";
 
 // The overworld region map: seeded terrain canvas (or a picture in its
 // place), known locations as anchors with routes from the connections
@@ -54,6 +56,12 @@ export function OverworldPanel({
   genre: string;
   steersStory: boolean;
 }) {
+  const { locale } = useI18n();
+  const copy = localeText(locale, {
+    en: { loading: "Charting the region...", holding: (name: string) => `Holding ${name}. Tap where it belongs.`, rename: "Rename it", erase: "Tap a line, a label or a pin to take it off the map.", help: "Drag to pan, scroll or pinch to zoom. Locations appear as the party discovers them.", error: "That did not work." },
+    ru: { loading: "Строим карту региона...", holding: (name: string) => `Вы держите: ${name}. Нажмите там, где ему место.`, rename: "Переименовать", erase: "Нажмите на линию, подпись или метку, чтобы убрать её с карты.", help: "Перетаскивайте для панорамирования, прокручивайте или сведите пальцы для масштаба. Локации появляются по мере открытия группой.", error: "Не удалось выполнить действие." },
+    pl: { loading: "Tworzenie mapy regionu...", holding: (name: string) => `Trzymasz: ${name}. Kliknij miejsce, do którego należy.`, rename: "Zmień nazwę", erase: "Kliknij linię, etykietę lub znacznik, aby usunąć je z mapy.", help: "Przeciągaj, aby przesuwać, przewijaj lub szczyp, aby zmienić powiększenie. Lokacje pojawiają się, gdy drużyna je odkrywa.", error: "Nie udało się wykonać działania." },
+  });
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [data, setData] = useState<OverworldData | null>(null);
@@ -194,7 +202,7 @@ export function OverworldPanel({
     });
     const payload = await response.json().catch(() => ({}));
     if (!response.ok) {
-      setError((payload as { error?: string }).error ?? "That did not work.");
+      setError((payload as { error?: string }).error ?? copy.error);
       return null;
     }
     setData(payload);
@@ -381,7 +389,7 @@ export function OverworldPanel({
 
   const skin = data ? skinForGenre(genre) : null;
   const heldName = data?.locations.find((entry) => entry.id === held)?.name ?? "";
-  const ask = askCopy(asking, labelSize, heldName);
+  const ask = askCopy(asking, labelSize, heldName, locale);
 
   return (
     <div className="space-y-2">
@@ -392,7 +400,7 @@ export function OverworldPanel({
       >
         {loading ? (
           <p className="flex items-center gap-1 p-6 text-[11px] text-stone-500">
-            <Loader2 className="size-3 animate-spin" /> Charting the region...
+            <Loader2 className="size-3 animate-spin" /> {copy.loading}
           </p>
         ) : (
           <canvas
@@ -426,13 +434,13 @@ export function OverworldPanel({
           />
           {held ? (
             <p className="flex items-center gap-2 text-[11px] text-amber-200">
-              Holding {heldName}. Tap where it belongs.
+              {copy.holding(heldName)}
               <button
                 type="button"
                 onClick={() => setAsking({ kind: "rename", locationId: held })}
                 className="rounded border border-stone-700 px-1.5 py-0.5 text-stone-400 hover:bg-stone-900"
               >
-                Rename it
+                {copy.rename}
               </button>
             </p>
           ) : null}
@@ -460,7 +468,7 @@ export function OverworldPanel({
           ) : null}
           {mode === "label" ? <LabelTools size={labelSize} onSize={setLabelSize} /> : null}
           {mode === "erase" ? (
-            <p className="text-[11px] text-stone-500">Tap a line, a label or a pin to take it off the map.</p>
+            <p className="text-[11px] text-stone-500">{copy.erase}</p>
           ) : null}
           <FileTools
             backdropPath={data.map.backdropPath}
@@ -477,7 +485,7 @@ export function OverworldPanel({
         </>
       ) : null}
       <p className="text-[10px] text-stone-600">
-        Drag to pan, scroll or pinch to zoom. Locations appear as the party discovers them.
+        {copy.help}
       </p>
       <PromptDialog
         open={asking !== null}

@@ -17,6 +17,9 @@ import type { Genre } from "@/lib/schemas/game-settings";
 import type { CharacterSheet } from "@/lib/schemas/sheet";
 import { computeSheetDerived, formatModifier } from "@/lib/srd";
 import { usePackArt } from "@/lib/worlds/use-pack-art";
+import { useI18n } from "@/lib/i18n";
+import { localeText } from "@/lib/i18n/locale-text";
+import { characterDisplay } from "@/lib/i18n/character-display";
 
 // Mid-game physical-dice opt-in/out; the same per-member preference the
 // Lobby toggle writes. Turning it ON means the DM pauses on your rolls and
@@ -28,6 +31,12 @@ function RealDiceToggle({
   campaignId: string;
   member: CampaignMember;
 }) {
+  const { locale } = useI18n();
+  const copy = localeText(locale, {
+    en: { on: "Physical dice: ON", off: "Physical dice: off" },
+    ru: { on: "Физические кубики: вкл.", off: "Физические кубики: выкл." },
+    pl: { on: "Fizyczne kości: wł.", off: "Fizyczne kości: wył." },
+  });
   const [busy, setBusy] = useState(false);
   async function toggle() {
     setBusy(true);
@@ -59,7 +68,7 @@ function RealDiceToggle({
       )}
     >
       <Dices className="size-3" />
-      {member.useRealDice ? "Physical dice: ON" : "Physical dice: off"}
+       {member.useRealDice ? copy.on : copy.off}
     </button>
   );
 }
@@ -67,6 +76,12 @@ function RealDiceToggle({
 // Nudges the DM to write an AI companion into the story (the DM decides who
 // arrives and how); shown while the table is below its companion cap.
 function RequestCompanionButton({ campaignId }: { campaignId: string }) {
+  const { locale } = useI18n();
+  const copy = localeText(locale, {
+    en: { request: "Request a companion", sent: "The DM has been asked" },
+    ru: { request: "Попросить спутника", sent: "Мастер получил просьбу" },
+    pl: { request: "Poproś o towarzysza", sent: "MG otrzymał prośbę" },
+  });
   const [state, setState] = useState<"idle" | "sending" | "sent">("idle");
   async function request() {
     setState("sending");
@@ -91,12 +106,18 @@ function RequestCompanionButton({ campaignId }: { campaignId: string }) {
       className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-dashed border-stone-700 py-2 text-xs text-stone-400 hover:bg-stone-900 hover:text-sky-200 disabled:opacity-60"
     >
       <Bot className="size-3.5" />
-      {state === "sent" ? "The DM has been asked" : "Request a companion"}
+       {state === "sent" ? copy.sent : copy.request}
     </button>
   );
 }
 
 function SaveToLibraryButton({ campaignId }: { campaignId: string }) {
+  const { locale } = useI18n();
+  const copy = localeText(locale, {
+    en: { saved: "Saved", save: "Save to library" },
+    ru: { saved: "Сохранено", save: "Сохранить в библиотеку" },
+    pl: { saved: "Zapisano", save: "Zapisz w bibliotece" },
+  });
   const [state, setState] = useState<"idle" | "saving" | "saved">("idle");
   async function save() {
     setState("saving");
@@ -122,11 +143,11 @@ function SaveToLibraryButton({ campaignId }: { campaignId: string }) {
     >
       {state === "saved" ? (
         <>
-          <Check className="size-3 text-emerald-400" /> Saved
+           <Check className="size-3 text-emerald-400" /> {copy.saved}
         </>
       ) : (
         <>
-          <Save className="size-3" /> Save to library
+           <Save className="size-3" /> {copy.save}
         </>
       )}
     </button>
@@ -192,6 +213,12 @@ export function PartyPanel({
   // The campaign's world pack, whose art stands in for an unpainted portrait.
   worldPack?: string;
 }) {
+  const { locale } = useI18n();
+  const copy = localeText(locale, {
+    en: { party: "Party", members: "Campaign members & characters", changePortrait: "Change portrait", addPortrait: "Add portrait", build: "Build a companion", resource: "Limited-use resource: remaining/max", exhaustionTitle: "Exhaustion level (a long rest reduces it by one)", exhaustion: "exhaustion {level}", concentrating: "Concentrating on this spell" },
+    ru: { party: "Отряд", members: "Участники кампании и персонажи", changePortrait: "Сменить портрет", addPortrait: "Добавить портрет", build: "Создать спутника", resource: "Ограниченный ресурс: осталось/максимум", exhaustionTitle: "Уровень истощения (долгий отдых снижает его на один)", exhaustion: "истощение {level}", concentrating: "Концентрация на этом заклинании" },
+    pl: { party: "Drużyna", members: "Członkowie kampanii i postacie", changePortrait: "Zmień portret", addPortrait: "Dodaj portret", build: "Stwórz towarzysza", resource: "Zasób o ograniczonych użyciach: pozostało/maksimum", exhaustionTitle: "Poziom wyczerpania (długi odpoczynek zmniejsza go o jeden)", exhaustion: "wyczerpanie {level}", concentrating: "Koncentracja na tym zaklęciu" },
+  });
   const packArt = usePackArt(worldPack);
   const [editingSheetId, setEditingSheetId] = useState("");
   const [viewingSheetId, setViewingSheetId] = useState("");
@@ -240,8 +267,8 @@ export function PartyPanel({
     >
       {embedded ? null : (
         <div className="px-1">
-          <h2 className="text-xs font-medium uppercase tracking-wide text-stone-500">Party</h2>
-          <p className="text-[11px] text-stone-500">Campaign members &amp; characters</p>
+           <h2 className="text-xs font-medium uppercase tracking-wide text-stone-500">{copy.party}</h2>
+           <p className="text-[11px] text-stone-500">{copy.members}</p>
         </div>
       )}
       {sheets.map((sheet) => {
@@ -309,10 +336,10 @@ export function PartyPanel({
                   ) : null}
                 </span>
                 <span className="block text-xs text-stone-400">
-                  {sheet.race.replaceAll("_", " ")}{" "}
+                   {characterDisplay(sheet.race, locale)}{" "}
                   {(sheet.classes?.length ?? 0) > 1
-                    ? (sheet.classes ?? []).map((entry) => `${entry.id} ${entry.level}`).join(" / ")
-                    : `${sheet.class} ${sheet.level}`}
+                     ? (sheet.classes ?? []).map((entry) => `${characterDisplay(entry.id, locale)} ${entry.level}`).join(" / ")
+                     : `${characterDisplay(sheet.class, locale)} ${sheet.level}`}
                 </span>
               </span>
               </button>
@@ -497,7 +524,7 @@ export function PartyPanel({
                   <span
                     key={id}
                     className="rounded-full border border-stone-700/50 bg-stone-950/60 px-2 py-0.5 text-[10px] capitalize text-stone-300"
-                    title="Limited-use resource: remaining/max"
+                    title={copy.resource}
                   >
                     {id.replaceAll("_", " ")} {state.max - state.used}/{state.max}
                   </span>
@@ -510,9 +537,9 @@ export function PartyPanel({
                 {(sheet.exhaustion ?? 0) > 0 ? (
                   <span
                     className="rounded-full bg-orange-950 px-2 py-0.5 text-xs text-orange-300"
-                    title="Exhaustion level (a long rest reduces it by one)"
+                    title={copy.exhaustionTitle}
                   >
-                    exhaustion {sheet.exhaustion}
+                    {copy.exhaustion.replace("{level}", String(sheet.exhaustion))}
                   </span>
                 ) : null}
                 {sheet.conditions.map((condition) => (
@@ -529,7 +556,7 @@ export function PartyPanel({
                 {sheet.concentratingOn ? (
                   <span
                     className="rounded-full bg-sky-950 px-2 py-0.5 text-xs text-sky-300"
-                    title="Concentrating on this spell"
+                    title={copy.concentrating}
                   >
                     ◎ {sheet.concentratingOn}
                   </span>
@@ -548,7 +575,7 @@ export function PartyPanel({
                   className="flex w-full items-center justify-center gap-1 rounded border border-stone-700 py-1 text-xs text-stone-400 hover:bg-stone-900"
                 >
                   <ImagePlus className="size-3" />
-                  {sheet.portrait ? "Change portrait" : "Add portrait"}
+                   {sheet.portrait ? copy.changePortrait : copy.addPortrait}
                 </button>
                 {mine && realDiceAllowed && myMember ? (
                   <>
@@ -577,7 +604,7 @@ export function PartyPanel({
               className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-dashed border-stone-700 py-2 text-xs text-stone-400 hover:bg-stone-900 hover:text-sky-200"
             >
               <UserPlus className="size-3.5" />
-              Build a companion
+               {copy.build}
             </button>
           ) : null}
         </div>

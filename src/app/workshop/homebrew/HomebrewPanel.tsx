@@ -10,6 +10,8 @@ import { Sheet } from "@/components/ui/Sheet";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { useTourPrepare } from "@/lib/tours/prepare";
 import { HomebrewEditor } from "@/app/workshop/homebrew/HomebrewEditor";
+import { useI18n } from "@/lib/i18n/context";
+import { localeText } from "@/lib/i18n/locale-text";
 import { blankDraft, type HomebrewDraft } from "@/app/workshop/homebrew/draft";
 import {
   HOMEBREW_EDITOR_KINDS,
@@ -32,6 +34,8 @@ export function HomebrewPanel({
   variantRules: Partial<VariantRules>;
   onChanged?: () => void;
 }) {
+  const { locale } = useI18n();
+  const copy = localeText(locale, { en: { kind: "Kind of homebrew", search: "Search your", new: "New", empty: "Nothing of your own yet. Start from something in the books and change what you like.", noMatch: "Nothing by that name." }, ru: { kind: "Тип хоумбрю", search: "Поиск:", new: "Новое", empty: "Пока нет ваших материалов. Начните с чего-то из книг и измените как хотите.", noMatch: "Ничего с таким названием нет." }, pl: { kind: "Rodzaj homebrew", search: "Szukaj", new: "Nowy", empty: "Nie masz jeszcze własnych materiałów. Zacznij od czegoś z książek i zmień, co chcesz.", noMatch: "Nie ma nic o tej nazwie." } });
   const [entries, setEntries] = useState<HomebrewEntryView[]>([]);
   const [kind, setKind] = useState<EditorKind>("item");
   const [query, setQuery] = useState("");
@@ -168,7 +172,7 @@ export function HomebrewPanel({
           value={kind}
           onChange={setKind}
           size="sm"
-          label="Kind of homebrew"
+          label={copy.kind}
         />
       </div>
 
@@ -179,8 +183,8 @@ export function HomebrewPanel({
         <input
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          placeholder={`Search your ${KIND_LABELS[kind].toLowerCase()}`}
-          aria-label={`Search your ${KIND_LABELS[kind].toLowerCase()}`}
+          placeholder={`${copy.search} ${KIND_LABELS[kind].toLowerCase()}`}
+          aria-label={`${copy.search} ${KIND_LABELS[kind].toLowerCase()}`}
           className={`${ui.input} pl-9`}
         />
       </label>
@@ -220,17 +224,17 @@ export function HomebrewPanel({
             <span className="flex size-9 shrink-0 items-center justify-center rounded-full border border-dashed border-stone-600">
               <Plus className="size-4" />
             </span>
-            <span className="font-display tracking-wide">New {KIND_SINGULAR[kind]}</span>
+            <span className="font-display tracking-wide">{copy.new} {KIND_SINGULAR[kind]}</span>
           </button>
         </li>
       </ul>
 
       {ofKind.length === 0 ? (
         <p className="text-[11px] italic text-stone-600">
-          Nothing of your own yet. Start from something in the books and change what you like.
+          {copy.empty}
         </p>
       ) : shown.length === 0 ? (
-        <p className="text-[11px] text-stone-500">Nothing by that name.</p>
+        <p className="text-[11px] text-stone-500">{copy.noMatch}</p>
       ) : null}
 
       <Sheet

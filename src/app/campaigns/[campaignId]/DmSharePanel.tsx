@@ -5,6 +5,8 @@ import { useState } from "react";
 import { ui } from "@/lib/ui";
 import { UnofficialPackNotice } from "@/components/UnofficialPackNotice";
 import { BUNDLE_KIND_LABELS } from "@/lib/workshop/bundle";
+import { useI18n } from "@/lib/i18n/context";
+import { localeText } from "@/lib/i18n/locale-text";
 
 // Handing a workshop to somebody else.
 //
@@ -38,6 +40,12 @@ function fileStem(name: string): string {
 }
 
 export function DmSharePanel({ campaignId }: { campaignId: string }) {
+  const { locale } = useI18n();
+  const copy = localeText(locale, {
+    en: { failed: "That could not be built.", noPack: "Nothing in this workshop maps onto a world pack yet. Write some lore, places or hook cards first.", title: "Share this workshop", description: "A bundle is everything you prepared here as one file: lore, places, NPCs, fights, tables, map geometry, the board and your hand-built monsters. Pictures travel with it too, NPC faces and map backdrops alike, within the size caps. Nothing from any campaign does.", download: "Download bundle", compile: "Compile a world pack", required: "A name, a line about it and what it is inspired by are required before it can leave.", name: "Name", author: "Author", version: "Version", homepage: "Homepage (optional)", inspired: "Inspired by", rights: "Rights holder", blurb: "One line about it", nameExample: "The Sunken Vault", blurbExample: "A drowned dwarven city and the things that kept living in it.", inspiredExample: "Original work, or the setting this is a homage to", rightsExample: "Leave empty if this is your own world", rightsHint: "Fill this in if it is built on somebody else's setting. It is what turns the notice below into an explicit non-affiliation disclaimer." },
+    ru: { failed: "Не удалось собрать пакет.", noPack: "В этой мастерской пока нет содержимого для world pack. Сначала добавьте лор, места или карточки зацепок.", title: "Поделиться мастерской", description: "Набор содержит всё подготовленное здесь в одном файле: лор, места, NPC, встречи, таблицы, геометрию карт, доску и созданных вручную монстров. В нём также передаются портреты NPC и фоны карт в пределах ограничений размера. Данные кампаний не включаются.", download: "Скачать набор", compile: "Собрать world pack", required: "Для экспорта нужны название, краткое описание и источник вдохновения.", name: "Название", author: "Автор", version: "Версия", homepage: "Сайт (необязательно)", inspired: "Вдохновлено", rights: "Правообладатель", blurb: "Краткое описание", nameExample: "Затонувшее хранилище", blurbExample: "Затопленный город дворфов и те, кто продолжал жить в нём.", inspiredExample: "Оригинальная работа или сеттинг, которому отдана дань", rightsExample: "Оставьте пустым, если это ваш собственный мир", rightsHint: "Заполните поле, если работа основана на чужом сеттинге. Так уведомление ниже явно укажет на отсутствие аффилиации." },
+    pl: { failed: "Nie udało się zbudować pakietu.", noPack: "W tym warsztacie nie ma jeszcze zawartości dla world pack. Najpierw dodaj lore, miejsca lub karty haczyków.", title: "Udostępnij warsztat", description: "Zestaw zawiera w jednym pliku wszystko przygotowane tutaj: lore, miejsca, NPC, spotkania, tabele, geometrię map, planszę i własne potwory. Obejmuje też portrety NPC i tła map w granicach limitów rozmiaru. Nie zawiera danych żadnej kampanii.", download: "Pobierz zestaw", compile: "Zbuduj world pack", required: "Przed eksportem wymagane są nazwa, opis i źródło inspiracji.", name: "Nazwa", author: "Autor", version: "Wersja", homepage: "Strona (opcjonalnie)", inspired: "Inspiracja", rights: "Właściciel praw", blurb: "Krótki opis", nameExample: "Zatopiony skarbiec", blurbExample: "Zatopione miasto krasnoludów i istoty, które nadal w nim żyły.", inspiredExample: "Oryginalne dzieło lub świat, któremu składa hołd", rightsExample: "Pozostaw puste, jeśli to twój własny świat", rightsHint: "Wypełnij to pole, jeśli dzieło powstało na cudzym świecie. Dzięki temu informacja poniżej wyraźnie zaznaczy brak powiązania." },
+  });
   const [name, setName] = useState("");
   const [blurb, setBlurb] = useState("");
   const [author, setAuthor] = useState("");
@@ -70,7 +78,7 @@ export function DmSharePanel({ campaignId }: { campaignId: string }) {
     });
     const data = await response.json();
     if (!response.ok) {
-      throw new Error(data.error ?? "That could not be built.");
+      throw new Error(data.error ?? copy.failed);
     }
     return data;
   }
@@ -85,7 +93,7 @@ export function DmSharePanel({ campaignId }: { campaignId: string }) {
       setWarnings(data.warnings ?? []);
       download(`${fileStem(manifest.name)}.odm-workshop.json`, data.bundle);
     } catch (thrown) {
-      setError(thrown instanceof Error ? thrown.message : "That could not be built.");
+      setError(thrown instanceof Error ? thrown.message : copy.failed);
     } finally {
       setBusy("");
     }
@@ -101,13 +109,13 @@ export function DmSharePanel({ campaignId }: { campaignId: string }) {
       setCounts(null);
       if (!data.filled) {
         setError(
-          "Nothing in this workshop maps onto a world pack yet. Write some lore, places or hook cards first.",
+          copy.noPack,
         );
         return;
       }
       download(`${fileStem(manifest.name)}.world-pack.json`, data.draft);
     } catch (thrown) {
-      setError(thrown instanceof Error ? thrown.message : "That could not be built.");
+      setError(thrown instanceof Error ? thrown.message : copy.failed);
     } finally {
       setBusy("");
     }
@@ -116,39 +124,37 @@ export function DmSharePanel({ campaignId }: { campaignId: string }) {
   return (
     <section className={ui.card + " p-4"}>
       <h2 className="mb-1 flex items-center gap-2 font-display text-lg text-amber-100">
-        <Share2 className="size-4 text-amber-500/80" /> Share this workshop
+        <Share2 className="size-4 text-amber-500/80" /> {copy.title}
       </h2>
       <p className="mb-4 text-sm text-stone-400">
-        A bundle is everything you prepared here as one file: lore, places, NPCs, fights, tables,
-        map geometry, the board and your hand-built monsters. Pictures travel with it too, NPC
-        faces and map backdrops alike, within the size caps. Nothing from any campaign does.
+        {copy.description}
       </p>
 
       <div className="mb-4 grid gap-3 sm:grid-cols-2" data-tour="share-manifest">
         <label className="block sm:col-span-2">
-          <span className="mb-1 block text-xs uppercase tracking-wide text-stone-500">Name</span>
+          <span className="mb-1 block text-xs uppercase tracking-wide text-stone-500">{copy.name}</span>
           <input
             value={name}
             onChange={(event) => setName(event.target.value)}
             maxLength={70}
-            placeholder="The Sunken Vault"
+            placeholder={copy.nameExample}
             className={ui.input}
           />
         </label>
         <label className="block sm:col-span-2">
           <span className="mb-1 block text-xs uppercase tracking-wide text-stone-500">
-            One line about it
+            {copy.blurb}
           </span>
           <input
             value={blurb}
             onChange={(event) => setBlurb(event.target.value)}
             maxLength={200}
-            placeholder="A drowned dwarven city and the things that kept living in it."
+            placeholder={copy.blurbExample}
             className={ui.input}
           />
         </label>
         <label className="block">
-          <span className="mb-1 block text-xs uppercase tracking-wide text-stone-500">Author</span>
+          <span className="mb-1 block text-xs uppercase tracking-wide text-stone-500">{copy.author}</span>
           <input
             value={author}
             onChange={(event) => setAuthor(event.target.value)}
@@ -157,7 +163,7 @@ export function DmSharePanel({ campaignId }: { campaignId: string }) {
           />
         </label>
         <label className="block">
-          <span className="mb-1 block text-xs uppercase tracking-wide text-stone-500">Version</span>
+          <span className="mb-1 block text-xs uppercase tracking-wide text-stone-500">{copy.version}</span>
           <input
             value={version}
             onChange={(event) => setVersion(event.target.value)}
@@ -167,7 +173,7 @@ export function DmSharePanel({ campaignId }: { campaignId: string }) {
         </label>
         <label className="block sm:col-span-2">
           <span className="mb-1 block text-xs uppercase tracking-wide text-stone-500">
-            Homepage (optional)
+            {copy.homepage}
           </span>
           <input
             value={homepage}
@@ -178,30 +184,29 @@ export function DmSharePanel({ campaignId }: { campaignId: string }) {
         </label>
         <label className="block sm:col-span-2">
           <span className="mb-1 block text-xs uppercase tracking-wide text-stone-500">
-            Inspired by
+            {copy.inspired}
           </span>
           <input
             value={inspiredBy}
             onChange={(event) => setInspiredBy(event.target.value)}
             maxLength={200}
-            placeholder="Original work, or the setting this is a homage to"
+            placeholder={copy.inspiredExample}
             className={ui.input}
           />
         </label>
         <label className="block sm:col-span-2">
           <span className="mb-1 block text-xs uppercase tracking-wide text-stone-500">
-            Rights holder
+            {copy.rights}
           </span>
           <input
             value={rightsHolder}
             onChange={(event) => setRightsHolder(event.target.value)}
             maxLength={120}
-            placeholder="Leave empty if this is your own world"
+            placeholder={copy.rightsExample}
             className={ui.input}
           />
           <span className="mt-1 block text-xs text-stone-500">
-            Fill this in if it is built on somebody else&apos;s setting. It is what turns the
-            notice below into an explicit non-affiliation disclaimer.
+            {copy.rightsHint}
           </span>
         </label>
       </div>
@@ -224,7 +229,7 @@ export function DmSharePanel({ campaignId }: { campaignId: string }) {
           ) : (
             <Download className="size-4" />
           )}
-          Download bundle
+          {copy.download}
         </button>
         <button
           type="button"
@@ -237,12 +242,12 @@ export function DmSharePanel({ campaignId }: { campaignId: string }) {
           ) : (
             <Package className="size-4" />
           )}
-          Compile a world pack
+          {copy.compile}
         </button>
       </div>
       {!ready ? (
         <p className="mt-2 text-xs text-stone-500">
-          A name, a line about it and what it is inspired by are required before it can leave.
+          {copy.required}
         </p>
       ) : null}
 

@@ -4,6 +4,8 @@ import { Check, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/cn";
 import { ui } from "@/lib/ui";
+import { useI18n } from "@/lib/i18n/context";
+import { localeText } from "@/lib/i18n/locale-text";
 
 // Inline narration editor, ported from NE-P's InlineMessageEditor
 // (src/components/message/InlineMessageEditor.tsx, MIT, Copyright (c) 2026
@@ -29,6 +31,8 @@ export function InlineMessageEditor({
   onSave: (content: string) => Promise<string | null>;
   onCancel: () => void;
 }) {
+  const { locale } = useI18n();
+  const copy = localeText(locale, { en: { save: "Save", cancel: "Cancel", help: "Enter saves, Shift+Enter for a new line, Escape cancels. Keep the dice markers." }, ru: { save: "Сохранить", cancel: "Отмена", help: "Enter сохраняет, Shift+Enter добавляет строку, Escape отменяет. Сохраняйте маркеры кубов." }, pl: { save: "Zapisz", cancel: "Anuluj", help: "Enter zapisuje, Shift+Enter dodaje wiersz, Escape anuluje. Zachowaj znaczniki kości." } });
   const ref = useRef<HTMLTextAreaElement | null>(null);
   const [draft, setDraft] = useState(initial);
   const [busy, setBusy] = useState(false);
@@ -90,7 +94,7 @@ export function InlineMessageEditor({
           disabled={busy}
           className={cn(ui.btnPrimary, "h-8 px-3 text-[11px]")}
         >
-          <Check className="size-3" /> Save
+           <Check className="size-3" /> {copy.save}
         </button>
         <button
           type="button"
@@ -98,10 +102,10 @@ export function InlineMessageEditor({
           disabled={busy}
           className={cn(ui.btnSmall, "px-3 py-1.5 text-[11px]")}
         >
-          <X className="size-3" /> Cancel
+           <X className="size-3" /> {copy.cancel}
         </button>
         <span className="text-[10px] text-stone-600">
-          Enter saves, Shift+Enter for a new line, Escape cancels. Keep the dice markers.
+           {copy.help}
         </span>
       </div>
     </div>

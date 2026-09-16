@@ -33,6 +33,8 @@ import type { PublicEncounter } from "@/lib/db/encounter-view";
 import type { Note } from "@/lib/db/notes";
 import type { GameSettings } from "@/lib/schemas/game-settings";
 import type { CharacterSheet } from "@/lib/schemas/sheet";
+import { useI18n } from "@/lib/i18n";
+import { localeText } from "@/lib/i18n/locale-text";
 
 // The lead's desk. Everything the party lead can do to the table, in one
 // tab, rather than an invite block on Party, an approval queue on Notes,
@@ -89,6 +91,12 @@ function InvitesCard({
   midGameJoinOpen: boolean;
   steersStory: boolean;
 }) {
+  const { locale } = useI18n();
+  const copy = localeText(locale, {
+    en: { saveFailed: "That change was not saved.", reachFailed: "Could not reach the table.", invites: "Invites", joining: "Joining", open: "open", closed: "closed", joinTitle: "Allow new players to join with the invite code mid-game", copy: "Copy the invite link", share: "Show the invite QR code and share options" },
+    ru: { saveFailed: "Изменение не сохранено.", reachFailed: "Не удалось связаться со столом.", invites: "Приглашения", joining: "Присоединение", open: "открыто", closed: "закрыто", joinTitle: "Разрешить новым игрокам присоединяться по коду приглашения во время игры", copy: "Скопировать ссылку-приглашение", share: "Показать QR-код приглашения и варианты отправки" },
+    pl: { saveFailed: "Zmiana nie została zapisana.", reachFailed: "Nie udało się połączyć ze stołem.", invites: "Zaproszenia", joining: "Dołączanie", open: "otwarte", closed: "zamknięte", joinTitle: "Pozwól nowym graczom dołączyć kodem zaproszenia w trakcie gry", copy: "Kopiuj link zaproszenia", share: "Pokaż kod QR zaproszenia i opcje udostępniania" },
+  });
   const [inviteCopied, setInviteCopied] = useState(false);
   const [inviteSharing, setInviteSharing] = useState(false);
   // The joining toggle has no optimistic state (midGameJoinOpen rides the
@@ -123,10 +131,10 @@ function InvitesCard({
       });
       if (!response.ok) {
         const data = (await response.json().catch(() => ({}))) as { error?: string };
-        setJoinToggleError(data.error ?? "That change was not saved.");
+        setJoinToggleError(data.error ?? copy.saveFailed);
       }
     } catch {
-      setJoinToggleError("Could not reach the table.");
+      setJoinToggleError(copy.reachFailed);
     }
   }
 
@@ -140,13 +148,13 @@ function InvitesCard({
   }
 
   return (
-    <Card icon={UserPlus} title="Invites">
+    <Card icon={UserPlus} title={copy.invites}>
       <div className="flex items-center gap-1.5">
         {steersStory ? (
           <button
             type="button"
             onClick={toggleMidGameJoin}
-            title="Allow new players to join with the invite code mid-game"
+            title={copy.joinTitle}
             className={cn(
               "rounded-md border px-2 py-1 text-xs",
               midGameJoinOpen
@@ -154,14 +162,14 @@ function InvitesCard({
                 : "border-stone-700 text-stone-400",
             )}
           >
-            Joining {midGameJoinOpen ? "open" : "closed"}
+            {copy.joining} {midGameJoinOpen ? copy.open : copy.closed}
           </button>
         ) : (
           // A lead at a human-DM table shares the code but the setting is
           // the DM's, so the state shows without a control the server would
           // refuse.
           <span className="rounded-md border border-stone-800 px-2 py-1 text-xs text-stone-500">
-            Joining {midGameJoinOpen ? "open" : "closed"}
+            {copy.joining} {midGameJoinOpen ? copy.open : copy.closed}
           </span>
         )}
         {midGameJoinOpen ? (
@@ -169,7 +177,7 @@ function InvitesCard({
             <button
               type="button"
               onClick={copyInviteLink}
-              title="Copy the invite link"
+              title={copy.copy}
               className="flex items-center gap-1 rounded-md border border-stone-700 px-2 py-1 text-xs text-stone-400 hover:text-stone-200"
             >
               {inviteCopied ? (
@@ -182,7 +190,7 @@ function InvitesCard({
             <button
               type="button"
               onClick={() => setInviteSharing(true)}
-              title="Show the invite QR code and share options"
+              title={copy.share}
               className="flex items-center gap-1 rounded-md border border-stone-700 px-2 py-1 text-xs text-stone-400 hover:text-stone-200"
             >
               <QrCode className="size-3.5" />
@@ -218,6 +226,12 @@ function LeadSeatCard({
   leadUserId: string;
   dmUserIds: string[];
 }) {
+  const { locale } = useI18n();
+  const copy = localeText(locale, {
+    en: { confirm: "Make {name} the party lead? You will lose this tab.", failed: "The lead did not change.", reachFailed: "Could not reach the table.", title: "The lead seat", as: "as", make: "Make lead", nobody: "Nobody else at the table to hand it to." },
+    ru: { confirm: "Сделать {name} лидером группы? Вы потеряете доступ к этой вкладке.", failed: "Лидер группы не изменился.", reachFailed: "Не удалось связаться со столом.", title: "Место лидера", as: "как", make: "Сделать лидером", nobody: "За столом больше некому передать эту роль." },
+    pl: { confirm: "Uczynić {name} liderem drużyny? Utracisz tę kartę.", failed: "Lider drużyny się nie zmienił.", reachFailed: "Nie udało się połączyć ze stołem.", title: "Miejsce lidera", as: "jako", make: "Uczyń liderem", nobody: "Nie ma nikogo innego przy stole, komu można to przekazać." },
+  });
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
   const candidates = members.filter(
@@ -227,7 +241,7 @@ function LeadSeatCard({
     sheets.find((sheet) => sheet.userId === userId && !sheet.isCompanion)?.name;
 
   async function makeLead(member: CampaignMember) {
-    if (!window.confirm(`Make ${member.username} the party lead? You will lose this tab.`)) {
+    if (!window.confirm(copy.confirm.replace("{name}", member.username))) {
       return;
     }
     setBusy(member.userId);
@@ -240,17 +254,17 @@ function LeadSeatCard({
       });
       if (!response.ok) {
         const data = (await response.json().catch(() => ({}))) as { error?: string };
-        setError(data.error ?? "The lead did not change.");
+        setError(data.error ?? copy.failed);
       }
     } catch {
-      setError("Could not reach the table.");
+      setError(copy.reachFailed);
     } finally {
       setBusy("");
     }
   }
 
   return (
-    <Card icon={Crown} title="The lead seat">
+    <Card icon={Crown} title={copy.title}>
       {candidates.length ? (
         <ul className="space-y-1">
           {candidates.map((member) => {
@@ -260,7 +274,7 @@ function LeadSeatCard({
                 <span className="min-w-0 flex-1 truncate text-stone-300">
                   {member.username}
                   {character ? (
-                    <span className="text-stone-500"> as {character}</span>
+                    <span className="text-stone-500"> {copy.as} {character}</span>
                   ) : null}
                 </span>
                 <button
@@ -269,14 +283,14 @@ function LeadSeatCard({
                   onClick={() => makeLead(member)}
                   className="shrink-0 rounded-md border border-stone-700 px-2 py-0.5 text-[11px] text-stone-400 hover:text-stone-200 disabled:opacity-40"
                 >
-                  Make lead
+                  {copy.make}
                 </button>
               </li>
             );
           })}
         </ul>
       ) : (
-        <p className="text-[11px] text-stone-600">Nobody else at the table to hand it to.</p>
+        <p className="text-[11px] text-stone-600">{copy.nobody}</p>
       )}
       {error ? <p className="mt-1.5 text-xs text-red-400">{error}</p> : null}
     </Card>
@@ -320,6 +334,12 @@ export function LeadPanel({
   // the same beat as the one above the composer.
   directorArm?: Parameters<typeof DirectorArmedBanner>[0]["armed"];
 }) {
+  const { locale } = useI18n();
+  const copy = localeText(locale, {
+    en: { only: "Lead only", steer: "You steer this table.", notes: "Notes to approve", waiting: "Nothing waiting for you.", direct: "Direct the story", directHint: "Pick Direct in the composer, then Private for a note only the DM sees.", details: "Campaign details", editTitle: "Edit title, premise, setting, difficulty, and player slots", edit: "Edit details", difficulty: "Difficulty", level: "Level", start: "start", upTo: "Up to", players: "players" },
+    ru: { only: "Только для лидера", steer: "Вы ведёте этот стол.", notes: "Заметки на одобрение", waiting: "Ничего не ожидает вашего решения.", direct: "Направить историю", directHint: "Выберите «Направить» в редакторе, затем «Личное» для заметки, которую видит только мастер.", details: "Данные кампании", editTitle: "Изменить название, завязку, сеттинг, сложность и места для игроков", edit: "Изменить данные", difficulty: "Сложность", level: "Уровень", start: "начало", upTo: "До", players: "игроков" },
+    pl: { only: "Tylko dla lidera", steer: "Prowadzisz ten stół.", notes: "Notatki do zatwierdzenia", waiting: "Nic na ciebie nie czeka.", direct: "Kieruj historią", directHint: "Wybierz Kieruj w edytorze, a potem Prywatne dla notatki widocznej tylko dla MG.", details: "Szczegóły kampanii", editTitle: "Edytuj tytuł, założenie, scenerię, trudność i miejsca graczy", edit: "Edytuj szczegóły", difficulty: "Trudność", level: "Poziom", start: "na start", upTo: "Do", players: "graczy" },
+  });
   const [editing, setEditing] = useState(false);
   const pending = pendingCampaignNotes(notes);
   // The director route accepts any story authority, but Direct only exists
@@ -338,9 +358,9 @@ export function LeadPanel({
       <div className="mb-3">
         <Ribbon tone="ember">
           <Crown className="mr-1 inline size-3" aria-hidden="true" />
-          Lead only
+          {copy.only}
         </Ribbon>
-        <p className="mt-1.5 text-xs text-stone-400">You steer this table.</p>
+        <p className="mt-1.5 text-xs text-stone-400">{copy.steer}</p>
       </div>
 
       {steersStory ? (
@@ -355,7 +375,7 @@ export function LeadPanel({
       {steersStory ? (
         <Card
           icon={StickyNote}
-          title="Notes to approve"
+          title={copy.notes}
           aside={
             pending.length ? (
               <span className="rounded-full bg-amber-900/60 px-1.5 text-[10px] text-amber-200">
@@ -373,15 +393,15 @@ export function LeadPanel({
               refreshNotes={refreshNotes}
             />
           ) : (
-            <p className="text-[11px] text-stone-600">Nothing waiting for you.</p>
+            <p className="text-[11px] text-stone-600">{copy.waiting}</p>
           )}
         </Card>
       ) : null}
 
       {directsAi ? (
-        <Card icon={Wand2} title="Direct the story">
+        <Card icon={Wand2} title={copy.direct}>
           <p className="mb-2 text-[11px] text-stone-500">
-            Pick Direct in the composer, then Private for a note only the DM sees.
+            {copy.directHint}
           </p>
           <DirectorArmedBanner campaignId={campaignId} steersStory armed={directorArm} />
           <div className="flex flex-wrap gap-1.5">
@@ -412,22 +432,22 @@ export function LeadPanel({
       {isLead ? (
         <Card
           icon={Pencil}
-          title="Campaign details"
+          title={copy.details}
           aside={
             <button
               type="button"
               onClick={() => setEditing(true)}
-              title="Edit title, premise, setting, difficulty, and player slots"
+              title={copy.editTitle}
               className="flex items-center gap-1 rounded-md border border-stone-700 px-2 py-1 text-xs text-stone-300 hover:bg-stone-900"
             >
-              <Pencil className="size-3" /> Edit details
+              <Pencil className="size-3" /> {copy.edit}
             </button>
           }
         >
           <p className="truncate text-stone-200">{campaign.title}</p>
           <p className="mt-1 text-xs text-stone-500">
-            Difficulty {campaign.difficulty} · Level {campaign.startingLevel} start · Up to{" "}
-            {campaign.maxPlayers} players
+            {copy.difficulty} {campaign.difficulty} · {copy.level} {campaign.startingLevel} {copy.start} · {copy.upTo}{" "}
+            {campaign.maxPlayers} {copy.players}
           </p>
         </Card>
       ) : null}

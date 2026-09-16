@@ -5,6 +5,9 @@ import { useState } from "react";
 import { ui } from "@/lib/ui";
 import { thresholdsForParty } from "@/lib/srd/encounter-math";
 import { TARGET_PARTY_LIMITS, targetPartyLevels, type TargetParty } from "@/lib/workshop/kind";
+import { useI18n } from "@/lib/i18n/context";
+import { workshopCopy } from "@/app/workshop/copy";
+import { localeText } from "@/lib/i18n/locale-text";
 
 // The party a workshop is building for, declared once and read by every tool
 // that needs numbers before any character sheet exists.
@@ -34,6 +37,13 @@ export function TargetPartyBar({
   targetParty: TargetParty;
   onSaved: (targetParty: TargetParty) => void;
 }) {
+  const { locale } = useI18n();
+  const copy = workshopCopy(locale);
+  const budgetCopy = localeText(locale, {
+    en: "One fight is easy up to {easy} XP, medium to {medium}, hard to {hard}, deadly beyond {deadly}. Adjusted for how many creatures you field.",
+    ru: "Один бой лёгкий до {easy} XP, средний до {medium}, тяжёлый до {hard}, смертельный выше {deadly}. Значения скорректированы по числу существ.",
+    pl: "Jedna walka jest łatwa do {easy} XP, średnia do {medium}, trudna do {hard}, a śmiertelna powyżej {deadly}. Wartości uwzględniają liczbę stworzeń.",
+  });
   const [size, setSize] = useState(targetParty.size);
   const [level, setLevel] = useState(targetParty.level);
   const [busy, setBusy] = useState(false);
@@ -65,14 +75,14 @@ export function TargetPartyBar({
     <div className={`${ui.card} p-3`}>
       <div className="flex flex-wrap items-center gap-x-2 gap-y-2">
         <Users className="size-4 shrink-0 text-amber-200/70" />
-        <span className="text-sm text-stone-400">Building for</span>
+        <span className="text-sm text-stone-400">{copy.building}</span>
         <select
           value={size}
           onChange={(event) => {
             setSize(Number(event.target.value));
             setSaved(false);
           }}
-          aria-label="Party size"
+          aria-label={copy.partySize}
           className={select}
         >
           {SIZES.map((option) => (
@@ -81,14 +91,14 @@ export function TargetPartyBar({
             </option>
           ))}
         </select>
-        <span className="text-sm text-stone-400">{size === 1 ? "hero" : "heroes"} at level</span>
+        <span className="text-sm text-stone-400">{size === 1 ? copy.hero : copy.heroes} {locale === "ru" ? "уровня" : locale === "pl" ? "na poziomie" : "at level"}</span>
         <select
           value={level}
           onChange={(event) => {
             setLevel(Number(event.target.value));
             setSaved(false);
           }}
-          aria-label="Party level"
+          aria-label={copy.partyLevel}
           className={select}
         >
           {LEVELS.map((option) => (
@@ -99,18 +109,16 @@ export function TargetPartyBar({
         </select>
         {dirty ? (
           <button type="button" onClick={save} disabled={busy} className={ui.btnSmall}>
-            {busy ? <Loader2 className="size-3.5 animate-spin" /> : null} Save
+            {busy ? <Loader2 className="size-3.5 animate-spin" /> : null} {copy.save}
           </button>
         ) : saved ? (
           <span className="inline-flex items-center gap-1 text-xs text-emerald-400">
-            <Check className="size-3.5" /> Saved
+            <Check className="size-3.5" /> {copy.saved}
           </span>
         ) : null}
       </div>
       <p className="mt-2 text-xs text-stone-500">
-        One fight is easy up to {budget.easy.toLocaleString()} XP, medium to{" "}
-        {budget.medium.toLocaleString()}, hard to {budget.hard.toLocaleString()}, deadly beyond{" "}
-        {budget.deadly.toLocaleString()}. Adjusted for how many creatures you field.
+        {budgetCopy.replace("{easy}", budget.easy.toLocaleString()).replace("{medium}", budget.medium.toLocaleString()).replace("{hard}", budget.hard.toLocaleString()).replace("{deadly}", budget.deadly.toLocaleString())}
       </p>
     </div>
   );

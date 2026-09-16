@@ -10,6 +10,8 @@ import { MonsterBuildControls } from "@/app/workshop/bestiary/MonsterBuildContro
 import { MonsterEditor } from "@/app/workshop/bestiary/MonsterEditor";
 import { MonsterRows } from "@/app/workshop/bestiary/MonsterRows";
 import type { Found, Monster } from "@/app/workshop/bestiary/types";
+import { useI18n } from "@/lib/i18n/context";
+import { localeText } from "@/lib/i18n/locale-text";
 
 // The bestiary forge: build a monster, and see what it is actually worth.
 //
@@ -36,6 +38,12 @@ export function DmBestiaryPanel({
   campaignId: string;
   layout?: "list" | "rows";
 }) {
+  const { locale } = useI18n();
+  const copy = localeText(locale, {
+    en: { buildFailed: "That could not be built.", saveFailed: "That could not be saved.", build: "Build a monster", monster: "Monster", empty: "Nothing built yet. A monster made here answers to its name wherever a fight starts.", duplicate: "Duplicate", delete: "Delete" },
+    ru: { buildFailed: "Не удалось создать монстра.", saveFailed: "Не удалось сохранить монстра.", build: "Создать монстра", monster: "Монстр", empty: "Монстров пока нет. Монстр, созданный здесь, доступен по имени в каждом бою.", duplicate: "Дублировать", delete: "Удалить" },
+    pl: { buildFailed: "Nie udało się utworzyć potwora.", saveFailed: "Nie udało się zapisać potwora.", build: "Utwórz potwora", monster: "Potwór", empty: "Nie utworzono jeszcze potworów. Potwór zbudowany tutaj jest dostępny po nazwie w każdej walce.", duplicate: "Duplikuj", delete: "Usuń" },
+  });
   const [monsters, setMonsters] = useState<Monster[]>([]);
   const [found, setFound] = useState<Found[]>([]);
   // The table's setting, for the boss plate on high-rating thumbnails.
@@ -106,7 +114,7 @@ export function DmBestiaryPanel({
         error?: string;
       };
       if (!response.ok || !payload.monster) {
-        setError(payload.error ?? "That could not be built.");
+        setError(payload.error ?? copy.buildFailed);
         return false;
       }
       await load(query || undefined);
@@ -155,7 +163,7 @@ export function DmBestiaryPanel({
         error?: string;
       };
       if (!response.ok || !payload.monster) {
-        setError(payload.error ?? "That could not be saved.");
+        setError(payload.error ?? copy.saveFailed);
         return;
       }
       setReadout(payload.monster.readout);
@@ -203,7 +211,7 @@ export function DmBestiaryPanel({
             className="flex w-full items-center gap-2 text-left font-display text-sm tracking-wide text-amber-100"
           >
             <Skull className="size-4 text-amber-300" />
-            Build a monster
+            {copy.build}
             {building ? (
               <ChevronDown className="ml-auto size-4 text-stone-500" />
             ) : (
@@ -241,7 +249,7 @@ export function DmBestiaryPanel({
         <Sheet
           open={editorOpen && editor !== null}
           onOpenChange={setEditorOpen}
-          title={draft?.name || "Monster"}
+          title={draft?.name || copy.monster}
           className="top-0 h-dvh max-h-none rounded-none lg:top-1/2 lg:h-auto lg:max-h-[92vh] lg:w-[min(96vw,64rem)] lg:rounded-xl"
         >
           {editor}
@@ -266,7 +274,7 @@ export function DmBestiaryPanel({
       <div className="flex flex-col gap-1.5">
         {monsters.length === 0 ? (
           <p className="text-xs text-stone-500">
-            Nothing built yet. A monster made here answers to its name wherever a fight starts.
+            {copy.empty}
           </p>
         ) : null}
         {monsters.map((monster) => (
@@ -290,7 +298,7 @@ export function DmBestiaryPanel({
               <button
                 type="button"
                 disabled={busy}
-                aria-label={`Duplicate ${monster.draft.name}`}
+                aria-label={`${copy.duplicate} ${monster.draft.name}`}
                 onClick={() => void duplicate(monster)}
                 className="text-stone-600 hover:text-stone-300 disabled:opacity-40"
               >
@@ -300,7 +308,7 @@ export function DmBestiaryPanel({
                 type="button"
                 onClick={() => void remove(monster.id)}
                 className="text-stone-600 hover:text-red-300"
-                aria-label={`Delete ${monster.draft.name}`}
+                aria-label={`${copy.delete} ${monster.draft.name}`}
               >
                 <Trash2 className="size-3.5" />
               </button>

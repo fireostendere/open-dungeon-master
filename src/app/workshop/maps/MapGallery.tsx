@@ -4,6 +4,8 @@ import { cn } from "@/lib/cn";
 import { ui } from "@/lib/ui";
 import { TerrainCanvas } from "@/app/campaigns/[campaignId]/TerrainCanvas";
 import { THEME_LABELS, type PreparedMap } from "@/app/workshop/maps/types";
+import { useI18n } from "@/lib/i18n/context";
+import { localeText } from "@/lib/i18n/locale-text";
 
 // The workshop's map gallery: every prepared map as a thumbnail tile that
 // renders the real terrain grid, with its size and theme underneath. Tapping
@@ -24,10 +26,12 @@ export function MapGallery({
   selectedId: string;
   onOpen: (map: PreparedMap) => void;
 }) {
+  const { locale } = useI18n();
+  const copy = localeText(locale, { en: { empty: "Nothing in the drawer yet. Roll one, start from blank rock, or import a drawing.", open: "Open" }, ru: { empty: "В хранилище пока ничего нет. Сгенерируйте карту, начните с пустой скалы или импортируйте рисунок.", open: "Открыть" }, pl: { empty: "W szufladzie nie ma jeszcze map. Wylosuj mapę, zacznij od pustej skały lub zaimportuj rysunek.", open: "Otwórz" } });
   if (!maps.length) {
     return (
       <p className="text-xs text-stone-500">
-        Nothing in the drawer yet. Roll one, start from blank rock, or import a drawing.
+        {copy.empty}
       </p>
     );
   }
@@ -38,7 +42,7 @@ export function MapGallery({
           <button
             type="button"
             onClick={() => onOpen(map)}
-            aria-label={`Open ${map.name}`}
+            aria-label={`${copy.open} ${map.name}`}
             className={cn(
               ui.card,
               ui.tileHover,

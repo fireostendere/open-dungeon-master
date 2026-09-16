@@ -11,6 +11,8 @@ import { MAX_BEAT_TEXT, type BeatEdit } from "@/lib/dm/arc-edit-logic";
 import { offersStoryModel, useCapabilities } from "@/lib/use-capabilities";
 import { ExportMenu } from "./ExportMenu";
 import { NpcReviewPanel } from "./NpcReviewPanel";
+import { useI18n } from "@/lib/i18n";
+import { localeText } from "@/lib/i18n/locale-text";
 
 // Confirmation for a chapter rewind (the server answered 409 with the
 // consequences). Rewinds are destructive: everything after the boundary is
@@ -28,6 +30,12 @@ function ConfirmRewindDialog({
   onConfirm: () => void;
   onCancel: () => void;
 }) {
+  const { locale } = useI18n();
+  const copy = localeText(locale, {
+    en: { title: "Rewind to Chapter {chapter}?", warning: "The story returns to the start of Chapter {chapter}. Sheets, NPCs, facts, and the world roll back with it. This cannot be undone.", cancel: "Cancel", rewind: "Rewind" },
+    ru: { title: "Вернуться к главе {chapter}?", warning: "История вернётся к началу главы {chapter}. Листы персонажей, NPC, факты и мир откатятся вместе с ней. Это нельзя отменить.", cancel: "Отмена", rewind: "Вернуться" },
+    pl: { title: "Cofnąć do rozdziału {chapter}?", warning: "Historia wróci do początku rozdziału {chapter}. Karty postaci, NPC, fakty i świat cofną się wraz z nią. Tego nie można cofnąć.", cancel: "Anuluj", rewind: "Cofnij" },
+  });
   return (
     <AlertDialog.Root open onOpenChange={(open) => !open && onCancel()}>
       <AlertDialog.Portal>
@@ -39,11 +47,10 @@ function ConfirmRewindDialog({
           )}
         >
           <AlertDialog.Title className="font-display text-lg tracking-wide text-amber-50">
-            Rewind to Chapter {chapterIndex}?
+            {copy.title.replace("{chapter}", String(chapterIndex))}
           </AlertDialog.Title>
           <AlertDialog.Description className="mt-2 text-xs text-stone-400">
-            The story returns to the start of Chapter {chapterIndex}. Sheets, NPCs, facts, and the
-            world roll back with it. This cannot be undone.
+            {copy.warning.replace("{chapter}", String(chapterIndex))}
           </AlertDialog.Description>
           <ul className="mt-2 space-y-1">
             {warnings.slice(0, 8).map((warning, index) => (
@@ -53,9 +60,9 @@ function ConfirmRewindDialog({
             ))}
           </ul>
           <div className="mt-4 flex justify-end gap-2">
-            <AlertDialog.Cancel className={ui.btnSmall}>Cancel</AlertDialog.Cancel>
+            <AlertDialog.Cancel className={ui.btnSmall}>{copy.cancel}</AlertDialog.Cancel>
             <button type="button" onClick={onConfirm} disabled={busy} className={ui.btnPrimary}>
-              {busy ? <Loader2 className="size-4 animate-spin" /> : null} Rewind
+              {busy ? <Loader2 className="size-4 animate-spin" /> : null} {copy.rewind}
             </button>
           </div>
         </AlertDialog.Content>
@@ -78,6 +85,12 @@ function ChapterCard({
   steersStory: boolean;
   onRewind?: () => void;
 }) {
+  const { locale } = useI18n();
+  const copy = localeText(locale, {
+    en: { chapter: "Chapter", noSummary: "No summary recorded.", edit: "Edit", rewindTitle: "Rewind the whole campaign to the start of this chapter", rewind: "Rewind to start", save: "Save", cancel: "Cancel" },
+    ru: { chapter: "Глава", noSummary: "Итог ещё не записан.", edit: "Редактировать", rewindTitle: "Откатить всю кампанию к началу этой главы", rewind: "Вернуться к началу", save: "Сохранить", cancel: "Отмена" },
+    pl: { chapter: "Rozdział", noSummary: "Nie zapisano podsumowania.", edit: "Edytuj", rewindTitle: "Cofnij całą kampanię do początku tego rozdziału", rewind: "Cofnij do początku", save: "Zapisz", cancel: "Anuluj" },
+  });
   const [expanded, setExpanded] = useState(false);
   const [editing, setEditing] = useState(false);
   const [title, setTitle] = useState(chapter.title);
@@ -112,7 +125,7 @@ function ChapterCard({
         )}
         <span className="min-w-0">
           <span className="block text-xs font-medium text-amber-200">
-            {chapter.index}. {chapter.title || `Chapter ${chapter.index}`}
+            {chapter.index}. {chapter.title || `${copy.chapter} ${chapter.index}`}
           </span>
         </span>
       </button>
@@ -134,7 +147,7 @@ function ChapterCard({
               {chapter.summary}
             </p>
           ) : (
-            <p className="text-[11px] italic text-stone-600">No summary recorded.</p>
+            <p className="text-[11px] italic text-stone-600">{copy.noSummary}</p>
           )}
           {steersStory ? (
             <div className="flex items-center gap-3">
@@ -143,16 +156,16 @@ function ChapterCard({
                 onClick={() => setEditing(true)}
                 className="flex items-center gap-1 text-[11px] text-stone-500 hover:text-stone-300"
               >
-                <Pencil className="size-3" /> Edit
+                <Pencil className="size-3" /> {copy.edit}
               </button>
               {onRewind ? (
                 <button
                   type="button"
                   onClick={onRewind}
-                  title="Rewind the whole campaign to the start of this chapter"
+                  title={copy.rewindTitle}
                   className="flex items-center gap-1 text-[11px] text-stone-500 hover:text-amber-300"
                 >
-                  <Rewind className="size-3" /> Rewind to start
+                  <Rewind className="size-3" /> {copy.rewind}
                 </button>
               ) : null}
             </div>
@@ -240,6 +253,12 @@ function NpcReviewCard({ campaignId }: { campaignId: string }) {
 // of what happened at the table rather than a plan, and the server refuses
 // those edits regardless; the UI just does not offer them.
 function ArcCard({ campaignId }: { campaignId: string }) {
+  const { locale } = useI18n();
+  const copy = localeText(locale, {
+    en: { editFailed: "That edit did not go through.", arc: "DM story arc (secret)", loading: "Loading...", saga: "Saga", sequel: "sequel", act: "act", of: "of", stakes: "Stakes:", antagonist: "Antagonist:", now: "(now)", skipped: "(skipped)", play: "Make this the beat in play", up: "Move up", down: "Move down", reword: "Reword this beat", skip: "Skip this beat", happens: "What happens in this beat", ahead: "Acts ahead (sketches)", cast: "Recurring cast", wants: "wants:", events: "Planned events (may never fire)", when: "when", threads: "Open threads", previous: "Previous sagas", emptyPlot: "No story arc yet. It is written when the adventure begins, or generate one now.", empty: "No story arc yet.", regenerateTitle: "Discard the current arc and have the DM plot a fresh one from the premise", plotting: "Plotting a new arc...", regenerate: "Generate story arc" },
+    ru: { editFailed: "Не удалось изменить этот этап.", arc: "Арка истории мастера (секрет)", loading: "Загрузка...", saga: "Сага", sequel: "продолжение", act: "акт", of: "из", stakes: "Ставки:", antagonist: "Антагонист:", now: "(сейчас)", skipped: "(пропущено)", play: "Сделать текущим этапом", up: "Переместить выше", down: "Переместить ниже", reword: "Изменить формулировку этапа", skip: "Пропустить этап", happens: "Что происходит на этом этапе", ahead: "Будущие акты (наброски)", cast: "Постоянные NPC", wants: "хочет:", events: "Запланированные события (могут не произойти)", when: "когда", threads: "Открытые нити", previous: "Предыдущие саги", emptyPlot: "Арки истории пока нет. Она будет написана с началом приключения или сгенерирована сейчас.", empty: "Арки истории пока нет.", regenerateTitle: "Отбросить текущую арку и поручить мастеру построить новую из завязки", plotting: "Строим новую арку...", regenerate: "Создать арку истории" },
+    pl: { editFailed: "Ta zmiana nie przeszła.", arc: "Łuk historii MG (sekret)", loading: "Ładowanie...", saga: "Saga", sequel: "kontynuacja", act: "akt", of: "z", stakes: "Stawka:", antagonist: "Antagonista:", now: "(teraz)", skipped: "(pominięto)", play: "Uczyń to aktualnym punktem", up: "Przesuń w górę", down: "Przesuń w dół", reword: "Zmień opis punktu", skip: "Pomiń punkt", happens: "Co dzieje się w tym punkcie", ahead: "Przyszłe akty (szkice)", cast: "Powracające postacie", wants: "chce:", events: "Planowane wydarzenia (mogą nigdy nie nastąpić)", when: "gdy", threads: "Otwarte wątki", previous: "Poprzednie sagi", emptyPlot: "Nie ma jeszcze łuku historii. Zostanie napisany wraz z początkiem przygody albo wygeneruj go teraz.", empty: "Nie ma jeszcze łuku historii.", regenerateTitle: "Odrzuć bieżący łuk i zleć MG ułożenie nowego z założenia", plotting: "Układanie nowego łuku...", regenerate: "Wygeneruj łuk historii" },
+  });
   const [expanded, setExpanded] = useState(false);
   const [loading, setLoading] = useState(false);
   const [regenerating, setRegenerating] = useState(false);
@@ -266,13 +285,13 @@ function ArcCard({ campaignId }: { campaignId: string }) {
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) {
-        setBeatError(data.error ?? "That edit did not go through.");
+        setBeatError(data.error ?? copy.editFailed);
         return false;
       }
       setArc(data.arc);
       return true;
     } catch {
-      setBeatError("That edit did not go through.");
+      setBeatError(copy.editFailed);
       return false;
     } finally {
       setBeatBusy(false);
@@ -364,33 +383,33 @@ function ArcCard({ campaignId }: { campaignId: string }) {
           <ChevronRight className="mt-0.5 size-3.5 shrink-0 text-stone-500" />
         )}
         <span className="flex items-center gap-1.5 text-xs font-medium text-amber-200">
-          <Compass className="size-3.5 text-amber-600" /> DM story arc (secret)
+          <Compass className="size-3.5 text-amber-600" /> {copy.arc}
         </span>
       </button>
       {expanded ? (
         <div className="mt-2 space-y-2 pl-5">
           {loading ? (
             <p className="flex items-center gap-1 text-[11px] text-stone-500">
-              <Loader2 className="size-3 animate-spin" /> Loading...
+              <Loader2 className="size-3 animate-spin" /> {copy.loading}
             </p>
           ) : arc ? (
             <>
               {arc.saga ? (
                 <p className="text-[11px] font-medium leading-4 text-amber-200">
-                  {arc.saga.sagaIndex > 1 ? `Saga ${arc.saga.sagaIndex} (sequel): ` : ""}
+                  {arc.saga.sagaIndex > 1 ? `${copy.saga} ${arc.saga.sagaIndex} (${copy.sequel}): ` : ""}
                   &ldquo;{arc.saga.title}&rdquo;
                   <span className="font-normal text-stone-400">
                     {" "}
-                    &middot; act {currentAct} of {arc.saga.plannedActs}
+                    &middot; {copy.act} {currentAct} {copy.of} {arc.saga.plannedActs}
                   </span>
                 </p>
               ) : null}
               <p className="text-[11px] leading-4 text-stone-300">{arc.premise}</p>
               {arc.stakes ? (
-                <p className="text-[11px] leading-4 text-stone-400">Stakes: {arc.stakes}</p>
+                <p className="text-[11px] leading-4 text-stone-400">{copy.stakes} {arc.stakes}</p>
               ) : null}
               {arc.antagonist ? (
-                <p className="text-[11px] leading-4 text-stone-400">Antagonist: {arc.antagonist}</p>
+                <p className="text-[11px] leading-4 text-stone-400">{copy.antagonist} {arc.antagonist}</p>
               ) : null}
               {actGroups.map((act) => (
                 <div key={act}>
@@ -451,8 +470,8 @@ function ArcCard({ campaignId }: { campaignId: string }) {
                           }`}
                         >
                           <span className="min-w-0 flex-1">
-                            {number}. {beat.status === "active" ? "(now) " : ""}
-                            {beat.status === "skipped" ? "(skipped) " : ""}
+                            {number}. {beat.status === "active" ? `${copy.now} ` : ""}
+                            {beat.status === "skipped" ? `${copy.skipped} ` : ""}
                             {beat.text}
                             {beat.detail ? (
                               <span className="text-stone-500"> [{beat.detail}]</span>
@@ -466,8 +485,8 @@ function ArcCard({ campaignId }: { campaignId: string }) {
                                   disabled={beatBusy}
                                   onClick={() => void editBeat({ op: "setNow", beat: number })}
                                   className={cn(ui.iconAction, "p-1")}
-                                  title="Make this the beat in play"
-                                  aria-label="Make this the beat in play"
+                                  title={copy.play}
+                                  aria-label={copy.play}
                                 >
                                   <Crosshair className="size-3" />
                                 </button>
@@ -479,8 +498,8 @@ function ArcCard({ campaignId }: { campaignId: string }) {
                                   void editBeat({ op: "move", beat: number, direction: "up" })
                                 }
                                 className={cn(ui.iconAction, "p-1")}
-                                title="Move up"
-                                aria-label="Move up"
+                                title={copy.up}
+                                aria-label={copy.up}
                               >
                                 <ArrowUp className="size-3" />
                               </button>
@@ -491,8 +510,8 @@ function ArcCard({ campaignId }: { campaignId: string }) {
                                   void editBeat({ op: "move", beat: number, direction: "down" })
                                 }
                                 className={cn(ui.iconAction, "p-1")}
-                                title="Move down"
-                                aria-label="Move down"
+                                title={copy.down}
+                                aria-label={copy.down}
                               >
                                 <ArrowDown className="size-3" />
                               </button>
@@ -505,8 +524,8 @@ function ArcCard({ campaignId }: { campaignId: string }) {
                                   setDraft(beat.text);
                                 }}
                                 className={cn(ui.iconAction, "p-1")}
-                                title="Reword this beat"
-                                aria-label="Reword this beat"
+                                title={copy.reword}
+                                aria-label={copy.reword}
                               >
                                 <Pencil className="size-3" />
                               </button>
@@ -515,8 +534,8 @@ function ArcCard({ campaignId }: { campaignId: string }) {
                                 disabled={beatBusy}
                                 onClick={() => void editBeat({ op: "skip", beat: number })}
                                 className={cn(ui.iconAction, "p-1")}
-                                title="Skip this beat"
-                                aria-label="Skip this beat"
+                                title={copy.skip}
+                                aria-label={copy.skip}
                               >
                                 <SkipForward className="size-3" />
                               </button>
@@ -532,7 +551,7 @@ function ArcCard({ campaignId }: { campaignId: string }) {
                         value={draft}
                         autoFocus
                         maxLength={MAX_BEAT_TEXT}
-                        placeholder="What happens in this beat"
+                        placeholder={copy.happens}
                         onChange={(event) => setDraft(event.target.value)}
                         onKeyDown={(event) => {
                           if (event.key === "Enter") {
@@ -578,7 +597,7 @@ function ArcCard({ campaignId }: { campaignId: string }) {
               {beatError ? <p className="text-[11px] text-red-400">{beatError}</p> : null}
               {aheadSketches.length ? (
                 <div>
-                  <p className="text-[11px] font-medium text-stone-500">Acts ahead (sketches)</p>
+                  <p className="text-[11px] font-medium text-stone-500"> {copy.ahead}</p>
                   <ul className="mt-0.5 space-y-0.5">
                     {aheadSketches.map((sketch) => (
                       <li key={sketch.act} className="list-none text-[11px] leading-4 text-stone-500">
@@ -611,14 +630,14 @@ function ArcCard({ campaignId }: { campaignId: string }) {
               ) : null}
               {cast?.length ? (
                 <div>
-                  <p className="text-[11px] font-medium text-stone-400">Recurring cast</p>
+                  <p className="text-[11px] font-medium text-stone-400"> {copy.cast}</p>
                   <ul className="mt-0.5 space-y-0.5">
                     {cast.map((npc) => (
                       <li key={npc.id} className="list-none text-[11px] leading-4 text-stone-400">
                         {npc.name}
                         {npc.role ? `, ${npc.role}` : ""}
                         {npc.agenda ? (
-                          <span className="text-stone-500"> wants: {npc.agenda}</span>
+                          <span className="text-stone-500"> {copy.wants} {npc.agenda}</span>
                         ) : null}
                       </li>
                     ))}
@@ -628,7 +647,7 @@ function ArcCard({ campaignId }: { campaignId: string }) {
               {plannedEvents?.length ? (
                 <div>
                   <p className="text-[11px] font-medium text-stone-400">
-                    Planned events (may never fire)
+                    {copy.events}
                   </p>
                   <ul className="mt-0.5 space-y-0.5">
                     {plannedEvents.map((event) => (
@@ -637,7 +656,7 @@ function ArcCard({ campaignId }: { campaignId: string }) {
                         <span className="text-stone-500">
                           {" "}
                           [{event.kind.replaceAll("_", " ")}]
-                          {event.trigger ? ` when ${event.trigger}` : ""}
+                          {event.trigger ? ` ${copy.when} ${event.trigger}` : ""}
                         </span>
                       </li>
                     ))}
@@ -646,7 +665,7 @@ function ArcCard({ campaignId }: { campaignId: string }) {
               ) : null}
               {openThreads?.length ? (
                 <div>
-                  <p className="text-[11px] font-medium text-stone-400">Open threads</p>
+                  <p className="text-[11px] font-medium text-stone-400"> {copy.threads}</p>
                   <ul className="mt-0.5 space-y-0.5">
                     {openThreads.map((subArc) => (
                       <li key={subArc.id} className="list-none text-[11px] leading-4 text-stone-400">
@@ -658,7 +677,7 @@ function ArcCard({ campaignId }: { campaignId: string }) {
               ) : null}
               {arc.saga?.priorSagas.length ? (
                 <div>
-                  <p className="text-[11px] font-medium text-stone-500">Previous sagas</p>
+                  <p className="text-[11px] font-medium text-stone-500"> {copy.previous}</p>
                   <ul className="mt-0.5 space-y-0.5">
                     {arc.saga.priorSagas.map((prior, index) => (
                       <li key={index} className="list-none text-[11px] leading-4 text-stone-500">
@@ -677,8 +696,8 @@ function ArcCard({ campaignId }: { campaignId: string }) {
           ) : (
             <p className="text-[11px] italic text-stone-600">
               {canPlot
-                ? "No story arc yet. It is written when the adventure begins, or generate one now."
-                : "No story arc yet."}
+                ? copy.emptyPlot
+                : copy.empty}
             </p>
           )}
           {!loading && canPlot ? (
@@ -686,16 +705,16 @@ function ArcCard({ campaignId }: { campaignId: string }) {
               type="button"
               onClick={regenerate}
               disabled={regenerating}
-              title="Discard the current arc and have the DM plot a fresh one from the premise"
+              title={copy.regenerateTitle}
               className="flex items-center gap-1 rounded border border-stone-700 px-2 py-0.5 text-[11px] text-stone-400 hover:bg-stone-900 disabled:opacity-50"
             >
               {regenerating ? (
                 <>
-                  <Loader2 className="size-3 animate-spin" /> Plotting a new arc...
+                  <Loader2 className="size-3 animate-spin" /> {copy.plotting}
                 </>
               ) : (
                 <>
-                  <RefreshCw className="size-3" /> Regenerate arc
+                  <RefreshCw className="size-3" /> {copy.regenerate}
                 </>
               )}
             </button>
@@ -715,6 +734,12 @@ export function StoryPanel({
   chapters: Chapter[];
   steersStory: boolean;
 }) {
+  const { locale } = useI18n();
+  const copy = localeText(locale, {
+    en: { notBegun: "The story has not begun. Chapters appear here as the adventure unfolds.", progress: "Chapter {chapter} in progress", seal: "Seal this chapter; the DM writes its title and summary", writing: "Writing the chapter...", close: "Close chapter", restartTitle: "Discard this chapter's progress and return to how it began", restart: "Restart this chapter" },
+    ru: { notBegun: "История ещё не началась. Главы появятся здесь по мере развития приключения.", progress: "Глава {chapter} в процессе", seal: "Завершить главу; мастер напишет её название и итог", writing: "Мастер пишет главу...", close: "Завершить главу", restartTitle: "Отменить прогресс этой главы и вернуться к её началу", restart: "Начать эту главу заново" },
+    pl: { notBegun: "Historia jeszcze się nie zaczęła. Rozdziały pojawią się tu w miarę rozwoju przygody.", progress: "Rozdział {chapter} w toku", seal: "Zamknij ten rozdział; MG napisze jego tytuł i podsumowanie", writing: "MG pisze rozdział...", close: "Zamknij rozdział", restartTitle: "Odrzuć postęp tego rozdziału i wróć do jego początku", restart: "Rozpocznij ten rozdział od nowa" },
+  });
   const [closing, setClosing] = useState(false);
   const [rewindable, setRewindable] = useState<number[]>([]);
   const [rewindTarget, setRewindTarget] = useState<{
@@ -785,7 +810,7 @@ export function StoryPanel({
         {steersStory ? <ArcCard campaignId={campaignId} /> : null}
         {steersStory ? <NpcReviewCard campaignId={campaignId} /> : null}
         <p className="px-1 py-6 text-center text-xs text-stone-600">
-          The story has not begun. Chapters appear here as the adventure unfolds.
+          {copy.notBegun}
         </p>
       </div>
     );
@@ -799,23 +824,23 @@ export function StoryPanel({
       <div className="rounded-lg border border-dashed border-stone-800 p-2.5">
         <p className="flex items-center gap-1.5 text-xs text-stone-400">
           <BookOpen className="size-3.5 text-amber-600" />
-          Chapter {open?.index ?? closed.length + 1} in progress
+          {copy.progress.replace("{chapter}", String(open?.index ?? closed.length + 1))}
         </p>
         {steersStory ? (
           <button
             type="button"
             onClick={closeChapter}
             disabled={closing}
-            title="Seal this chapter; the DM writes its title and summary"
+            title={copy.seal}
             className="mt-1.5 flex w-full items-center justify-center gap-1 rounded border border-stone-700 py-1 text-[11px] text-stone-400 hover:bg-stone-900 disabled:opacity-50"
           >
             {closing ? (
               <>
-                <Loader2 className="size-3 animate-spin" /> Writing the chapter...
+                <Loader2 className="size-3 animate-spin" /> {copy.writing}
               </>
             ) : (
               <>
-                <Scissors className="size-3" /> Close chapter
+                <Scissors className="size-3" /> {copy.close}
               </>
             )}
           </button>
@@ -825,10 +850,10 @@ export function StoryPanel({
             type="button"
             onClick={() => void postRewind(open.index, false)}
             disabled={rewindBusy}
-            title="Discard this chapter's progress and return to how it began"
+            title={copy.restartTitle}
             className="mt-1.5 flex w-full items-center justify-center gap-1 rounded border border-stone-700 py-1 text-[11px] text-stone-400 hover:bg-stone-900 disabled:opacity-50"
           >
-            <Rewind className="size-3" /> Restart this chapter
+            <Rewind className="size-3" /> {copy.restart}
           </button>
         ) : null}
       </div>

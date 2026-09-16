@@ -6,6 +6,8 @@ import { cn } from "@/lib/cn";
 import type { Floor } from "@/lib/db/campaigns";
 import type { PublicEncounter } from "@/lib/db/encounter-view";
 import type { CharacterSheet } from "@/lib/schemas/sheet";
+import { useI18n } from "@/lib/i18n/context";
+import { localeText } from "@/lib/i18n/locale-text";
 
 // Spotlight, held-responses, and initiative banners above the composer;
 // the lead gets the release/skip buttons, the current player gets End turn.
@@ -28,6 +30,8 @@ export function FloorBanners({
   meUserId?: string;
   onRelease: () => void;
 }) {
+  const { locale } = useI18n();
+  const copy = localeText(locale, { en: { round: "Round", turn: "turn", endTitle: "Done with your action, movement, and bonus action? End your combat turn.", end: "End turn", skipTitle: "Skip the current player's turn", skip: "Skip turn", waiting: "Spotlight, waiting on", spotlight: "Spotlight", someone: "someone", release: "Release", held: "Responses held. Talk it over; the lead opens the floor.", next: "Next: spotlight on", allow: "Allow responses" }, ru: { round: "Раунд", turn: "ход", endTitle: "Закончили действие, перемещение и бонусное действие? Завершите боевой ход.", end: "Завершить ход", skipTitle: "Пропустить ход текущего игрока", skip: "Пропустить ход", waiting: "В центре внимания, ждём", spotlight: "В центре внимания", someone: "кого-то", release: "Открыть", held: "Ответы удержаны. Обсудите; ведущий откроет слово.", next: "Далее: в центре внимания", allow: "Разрешить ответы" }, pl: { round: "Runda", turn: "tura", endTitle: "Skończono akcję, ruch i akcję dodatkową? Zakończ turę walki.", end: "Zakończ turę", skipTitle: "Pomiń turę bieżącego gracza", skip: "Pomiń turę", waiting: "W centrum uwagi, czekamy na", spotlight: "W centrum uwagi", someone: "kogoś", release: "Otwórz", held: "Odpowiedzi wstrzymane. Omówcie to; prowadzący otworzy głos.", next: "Dalej: centrum uwagi", allow: "Zezwól na odpowiedzi" } });
   const [endingTurn, setEndingTurn] = useState(false);
   const myInitiativeTurn =
     floor.mode === "initiative" && meUserId !== "" && floor.userIds.includes(meUserId);
@@ -50,7 +54,7 @@ export function FloorBanners({
           <span className="flex min-w-0 items-center gap-1.5 text-red-200">
             <Swords className="size-3.5 shrink-0" />
             <span className="truncate">
-              Round {floor.round}
+               {copy.round} {floor.round}
               {encounter?.orderReady && encounter.order.length ? (
                 <>
                   {" · "}
@@ -70,7 +74,7 @@ export function FloorBanners({
                   })}
                 </>
               ) : (
-                <> · {floor.currentName}&apos;s turn</>
+                <> · {floor.currentName}: {copy.turn}</>
               )}
             </span>
           </span>
@@ -81,9 +85,9 @@ export function FloorBanners({
                 onClick={endTurn}
                 disabled={endingTurn}
                 className="rounded border border-red-800 bg-red-950/60 px-2 py-0.5 font-medium text-red-100 hover:bg-red-900/60 disabled:opacity-50"
-                title="Done with your action, movement, and bonus action? End your combat turn."
+                 title={copy.endTitle}
               >
-                End turn
+                 {copy.end}
               </button>
             ) : null}
             {steersStory ? (
@@ -91,9 +95,9 @@ export function FloorBanners({
                 type="button"
                 onClick={onRelease}
                 className="text-red-200 hover:text-red-300"
-                title="Skip the current player's turn"
+                 title={copy.skipTitle}
               >
-                Skip turn
+                 {copy.skip}
               </button>
             ) : null}
           </span>
@@ -117,7 +121,7 @@ export function FloorBanners({
                 ))}
             </span>
             <span>
-              {floor.respondedUserIds.length ? "Spotlight, waiting on: " : "Spotlight: "}
+               {floor.respondedUserIds.length ? `${copy.waiting}: ` : `${copy.spotlight}: `}
               {spotlighted.length
                 ? spotlighted.map((sheet, index) => {
                     const responded = floor.respondedUserIds.includes(sheet.userId);
@@ -132,7 +136,7 @@ export function FloorBanners({
                       </span>
                     );
                   })
-                : "someone"}
+                 : copy.someone}
               {floor.prompt ? (
                 <span className="text-amber-200/80"> · {floor.prompt}</span>
               ) : null}
@@ -144,7 +148,7 @@ export function FloorBanners({
               onClick={onRelease}
               className="ml-3 shrink-0 text-amber-200 hover:text-amber-300"
             >
-              Release
+               {copy.release}
             </button>
           ) : null}
         </div>
@@ -154,11 +158,11 @@ export function FloorBanners({
           <span className="flex items-center gap-1.5 text-amber-200">
             <Hand className="size-3.5" />
             <span>
-              Responses held. Talk it over; the lead opens the floor.
+               {copy.held}
               {heldSpotlightNames.length ? (
                 <span className="text-amber-200/80">
                   {" "}
-                  Next: spotlight on {heldSpotlightNames.join(", ")}
+                   {copy.next} {heldSpotlightNames.join(", ")}
                 </span>
               ) : null}
             </span>
@@ -169,7 +173,7 @@ export function FloorBanners({
               onClick={onRelease}
               className="ml-3 shrink-0 text-amber-200 hover:text-amber-300"
             >
-              Allow responses
+               {copy.allow}
             </button>
           ) : null}
         </div>

@@ -5,6 +5,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/cn";
 import { placeCard, resolveSteps, type ResolvedStep, type TourStep } from "@/lib/tours/logic";
 import { ui } from "@/lib/ui";
+import { useI18n } from "@/lib/i18n/context";
+import { localeText } from "@/lib/i18n/locale-text";
 
 // A spotlight walkthrough: dims the page, cuts a window around one control
 // at a time, and explains it in a card beside it. Targets are elements
@@ -38,6 +40,12 @@ export function GuidedTour({
   onPrepare?: (name: string) => void;
   onClose: () => void;
 }) {
+  const { locale } = useI18n();
+  const copy = localeText(locale, {
+    en: { label: "Guided tour", end: "End the tour", of: "of", back: "Back", next: "Next", done: "Done" },
+    ru: { label: "Пошаговый тур", end: "Завершить тур", of: "из", back: "Назад", next: "Далее", done: "Готово" },
+    pl: { label: "Wycieczka z przewodnikiem", end: "Zakończ wycieczkę", of: "z", back: "Wstecz", next: "Dalej", done: "Gotowe" },
+  });
   const [resolved, setResolved] = useState<ResolvedStep[] | null>(null);
   const [index, setIndex] = useState(0);
   const [spot, setSpot] = useState<Box | null>(null);
@@ -175,18 +183,18 @@ export function GuidedTour({
         ref={cardRef}
         data-guided-tour
         role="dialog"
-        aria-label="Guided tour"
+        aria-label={copy.label}
         className="panel ornate texture-noise fixed z-[82] w-[min(22rem,calc(100vw-1.5rem))] rounded-xl p-4 shadow-elev-2 transition-[top,left] duration-200 ease-snap motion-reduce:transition-none"
         style={{ top: card.top, left: card.left }}
       >
         <div className="flex items-center justify-between gap-2">
           <span className={ui.sectionEyebrow}>
-            {index + 1} of {total}
+            {index + 1} {copy.of} {total}
           </span>
           <button
             type="button"
             onClick={onClose}
-            aria-label="End the tour"
+            aria-label={copy.end}
             className="rounded-md p-1 text-stone-500 transition-colors hover:bg-stone-800 hover:text-stone-200"
           >
             <X className="size-4" />
@@ -197,7 +205,7 @@ export function GuidedTour({
         <div className="mt-3 flex justify-end gap-2">
           {index > 0 ? (
             <button type="button" onClick={() => step(-1)} className={ui.btnSmall}>
-              Back
+              {copy.back}
             </button>
           ) : null}
           <button
@@ -206,7 +214,7 @@ export function GuidedTour({
             onClick={() => step(1)}
             className={cn(ui.btnPrimary, "h-9 px-3.5")}
           >
-            {last ? "Done" : "Next"}
+            {last ? copy.done : copy.next}
             {last ? null : <ChevronRight className="size-4" />}
           </button>
         </div>

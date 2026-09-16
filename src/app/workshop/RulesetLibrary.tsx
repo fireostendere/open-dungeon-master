@@ -4,6 +4,8 @@ import { BookmarkPlus, Check, Loader2, Scale, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { cn } from "@/lib/cn";
 import { ui } from "@/lib/ui";
+import { useI18n } from "@/lib/i18n/context";
+import { localeText } from "@/lib/i18n/locale-text";
 import {
   activeVariantRules,
   describeRuleset,
@@ -64,6 +66,8 @@ export function RulesetLibrary({
   campaignId: string;
   onApplied?: () => void;
 }) {
+  const { locale } = useI18n();
+  const copy = localeText(locale, { en: { library: "Ruleset library", apply: "Apply", save: "Save", empty: "No saved rulesets yet. Set the rules below the way your table plays, then save them.", saveAs: "Save these rules as...", delete: "Delete", homebrew: "Homebrew this ruleset ships", applying: "Applying here would", mode: "How to handle existing house rules", replace: "Replace the house rules here", append: "Add to the house rules here" }, ru: { library: "Библиотека наборов правил", apply: "Применить", save: "Сохранить", empty: "Сохранённых наборов правил пока нет. Настройте правила стола ниже и сохраните их.", saveAs: "Сохранить эти правила как...", delete: "Удалить", homebrew: "Хоумбрю этого набора", applying: "При применении здесь", mode: "Как обработать существующие домашние правила", replace: "Заменить домашние правила здесь", append: "Добавить к домашним правилам здесь" }, pl: { library: "Biblioteka zestawów zasad", apply: "Zastosuj", save: "Zapisz", empty: "Nie ma zapisanych zestawów zasad. Ustaw zasady stołu poniżej i je zapisz.", saveAs: "Zapisz te zasady jako...", delete: "Usuń", homebrew: "Homebrew w tym zestawie", applying: "Zastosowanie tutaj spowoduje", mode: "Jak obsłużyć istniejące zasady domowe", replace: "Zastąp zasady domowe tutaj", append: "Dodaj do zasad domowych tutaj" } });
   const [rulesets, setRulesets] = useState<Ruleset[]>([]);
   const [loading, setLoading] = useState(true);
   const [openId, setOpenId] = useState<string | null>(null);
@@ -202,7 +206,7 @@ export function RulesetLibrary({
   return (
     <section className={`${ui.card} mb-4 p-3`} data-tour="rules-library">
       <h2 className="mb-1 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-stone-500">
-        <Scale className="size-3.5" /> Ruleset library
+        <Scale className="size-3.5" /> {copy.library}
       </h2>
       <p className="mb-3 text-xs text-stone-500">
         A ruleset is your table&apos;s variant rules and house rulings kept as one thing, reusable
@@ -228,7 +232,7 @@ export function RulesetLibrary({
                 <button
                   type="button"
                   onClick={() => remove(ruleset)}
-                  aria-label={`Delete ${ruleset.name}`}
+                  aria-label={`${copy.delete}: ${ruleset.name}`}
                   className={ui.iconAction}
                 >
                   <Trash2 className="size-3.5" />
@@ -245,13 +249,13 @@ export function RulesetLibrary({
                   ) : null}
                   <div>
                     <p className="mb-1 text-xs uppercase tracking-wide text-stone-500">
-                      Applying here would
+                      {copy.applying}
                     </p>
                     <ChangeList changes={changes} />
                   </div>
                   <div data-tour="rules-homebrew">
                     <p className="mb-1 text-xs uppercase tracking-wide text-stone-500">
-                      Homebrew this ruleset ships
+                      {copy.homebrew}
                     </p>
                     {homebrew === null ? (
                       <Loader2 className="size-3.5 animate-spin text-stone-500" />
@@ -293,11 +297,11 @@ export function RulesetLibrary({
                     <select
                       value={mode}
                       onChange={(event) => setMode(event.target.value as "replace" | "append")}
-                      aria-label="How to handle existing house rules"
+                      aria-label={copy.mode}
                       className={cn(ui.input, "w-auto py-1 text-xs")}
                     >
-                      <option value="replace">Replace the house rules here</option>
-                      <option value="append">Add to the house rules here</option>
+                      <option value="replace">{copy.replace}</option>
+                      <option value="append">{copy.append}</option>
                     </select>
                     <button
                       type="button"
@@ -310,7 +314,7 @@ export function RulesetLibrary({
                       ) : (
                         <Check className="size-3.5" />
                       )}
-                      Apply
+                      {copy.apply}
                     </button>
                   </div>
                 </div>
@@ -320,7 +324,7 @@ export function RulesetLibrary({
         </ul>
       ) : (
         <p className="mb-3 text-xs text-stone-500">
-          No saved rulesets yet. Set the rules below the way your table plays, then save them.
+          {copy.empty}
         </p>
       )}
 
@@ -329,7 +333,7 @@ export function RulesetLibrary({
           value={saveName}
           onChange={(event) => setSaveName(event.target.value)}
           maxLength={80}
-          placeholder="Save these rules as..."
+          placeholder={copy.saveAs}
           className={cn(ui.input, "w-56 py-1 text-xs")}
         />
         <button
@@ -343,7 +347,7 @@ export function RulesetLibrary({
           ) : (
             <BookmarkPlus className="size-3.5" />
           )}
-          Save
+          {copy.save}
         </button>
       </div>
       {note ? <p className="mt-2 text-xs text-emerald-400">{note}</p> : null}

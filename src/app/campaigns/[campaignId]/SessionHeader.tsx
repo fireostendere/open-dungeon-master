@@ -20,6 +20,8 @@ import { VoiceDock } from "@/app/campaigns/[campaignId]/VoiceDock";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import type { NarrationAudio } from "@/app/campaigns/[campaignId]/useNarrationAudio";
 import type { AmbienceAudio } from "@/app/campaigns/[campaignId]/useAmbienceAudio";
+import { useI18n } from "@/lib/i18n";
+import { localeText } from "@/lib/i18n/locale-text";
 
 // One audio group in the header: narration or ambience. On sm+ it is the
 // familiar icon button with an inline slider. Below sm the header has no
@@ -152,14 +154,20 @@ export function SessionHeader({
   ambience: AmbienceAudio;
   onHelp: () => void;
 }) {
-  const diceLabel = dice3d ? "Turn off 3D dice animation" : "Turn on 3D dice animation";
+  const { locale } = useI18n();
+  const copy = localeText(locale, {
+    en: { diceOn: "Turn on 3D dice animation", diceOff: "Turn off 3D dice animation", scene: "The adventure unfolds", help: "Help", helpTip: "How everything works, and the guided tours", campaigns: "All campaigns" },
+    ru: { diceOn: "Включить 3D-анимацию кубиков", diceOff: "Выключить 3D-анимацию кубиков", scene: "Приключение начинается", help: "Помощь", helpTip: "Как всё устроено и как пройти обучение", campaigns: "Все кампании" },
+    pl: { diceOn: "Włącz animację kości 3D", diceOff: "Wyłącz animację kości 3D", scene: "Przygoda trwa", help: "Pomoc", helpTip: "Jak wszystko działa i samouczki", campaigns: "Wszystkie kampanie" },
+  });
+  const diceLabel = dice3d ? copy.diceOff : copy.diceOn;
   return (
     <header className="glass z-10 flex items-center gap-3 border-b border-stone-700/40 px-4 pb-2 pt-[calc(0.5rem+env(safe-area-inset-top))]">
       <div className="min-w-0 flex-1">
         <h1 className="truncate font-display text-base leading-tight tracking-wide text-amber-50 sm:text-lg">
           {title}
         </h1>
-        <p className="truncate text-xs text-stone-500">{scene || "The adventure unfolds"}</p>
+         <p className="truncate text-xs text-stone-500">{scene || copy.scene}</p>
       </div>
       <div className="flex shrink-0 items-center gap-2 sm:gap-2.5">
         <VoiceDock {...voice} />
@@ -210,25 +218,25 @@ export function SessionHeader({
             OffIcon={Music2}
           />
         ) : null}
-        <Tooltip content="How everything works, and the guided tours" side="bottom">
+         <Tooltip content={copy.helpTip} side="bottom">
           <button
             type="button"
             onClick={onHelp}
-            aria-label="Help"
+             aria-label={copy.help}
             data-tour="header-help"
             className={headerButtonClass(false)}
           >
             <CircleHelp className="size-4" />
           </button>
         </Tooltip>
-        <Tooltip content="All campaigns" side="bottom">
+         <Tooltip content={copy.campaigns} side="bottom">
           <Link
             href="/"
-            aria-label="All campaigns"
+             aria-label={copy.campaigns}
             className="hidden items-center gap-1.5 rounded-lg border border-transparent p-2.5 text-sm text-stone-500 transition-colors hover:text-amber-200 sm:flex sm:p-1.5 md:border-stone-700/70 md:px-2.5"
           >
             <DoorOpen className="size-4" />
-            <span className="hidden md:inline">All campaigns</span>
+             <span className="hidden md:inline">{copy.campaigns}</span>
           </Link>
         </Tooltip>
         <LanguageSwitcher className="hidden sm:inline-flex" />

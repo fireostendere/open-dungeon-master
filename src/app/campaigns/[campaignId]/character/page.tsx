@@ -12,6 +12,8 @@ import CharacterBuilder, {
 import type { Genre } from "@/lib/schemas/game-settings";
 import type { CreateSheetInput } from "@/lib/schemas/sheet";
 import { navigateTo } from "@/lib/navigation";
+import { useI18n } from "@/lib/i18n";
+import { localeText } from "@/lib/i18n/locale-text";
 
 type LibraryCharacter = {
   id: string;
@@ -34,6 +36,12 @@ function titleCase(value: string) {
 // clearing the ready flag; an edit keeps the existing portrait unless the
 // builder's regenerate control cleared it).
 function CampaignCharacterPageInner({ campaignId }: { campaignId: string }) {
+  const { locale } = useI18n();
+  const copy = localeText(locale, {
+    en: { saveError: "Could not save the character.", server: "Could not reach the server.", back: "← Back to the lobby", edit: "Edit your character", switch: "Switch your character", choose: "Choose your character", create: "Create your character", starts: "This campaign starts at level {level}.", clears: " Changing your character clears your ready status.", library: "From your library", current: "current", level: "Level {level}", adapted: "Will be adapted to level {level}", createInstead: "Create a new character instead", pick: "← Or pick one from your library", save: "Save changes", replace: "Replace your character", join: "Join the party" },
+    ru: { saveError: "Не удалось сохранить персонажа.", server: "Не удалось связаться с сервером.", back: "← В лобби", edit: "Изменить персонажа", switch: "Сменить персонажа", choose: "Выбрать персонажа", create: "Создать персонажа", starts: "Кампания начинается с {level}-го уровня.", clears: " Смена персонажа сбросит статус готовности.", library: "Из вашей библиотеки", current: "текущий", level: "Уровень {level}", adapted: "Будет адаптирован к {level}-му уровню", createInstead: "Создать нового персонажа", pick: "← Или выбрать из библиотеки", save: "Сохранить изменения", replace: "Заменить персонажа", join: "Вступить в отряд" },
+    pl: { saveError: "Nie udało się zapisać postaci.", server: "Nie udało się połączyć z serwerem.", back: "← Wróć do lobby", edit: "Edytuj postać", switch: "Zmień postać", choose: "Wybierz postać", create: "Utwórz postać", starts: "Ta kampania zaczyna się na poziomie {level}.", clears: " Zmiana postaci wyczyści status gotowości.", library: "Z biblioteki", current: "obecna", level: "Poziom {level}", adapted: "Zostanie dostosowana do poziomu {level}", createInstead: "Utwórz nową postać", pick: "← Lub wybierz z biblioteki", save: "Zapisz zmiany", replace: "Zastąp postać", join: "Dołącz do drużyny" },
+  });
   // join = first character; edit = rebuild the current one in place;
   // replace = switch to another or a brand-new one.
   const requested = useSearchParams().get("mode");
@@ -97,12 +105,12 @@ function CampaignCharacterPageInner({ campaignId }: { campaignId: string }) {
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) {
-        setError(data.error || "Could not save the character.");
+        setError(data.error || copy.saveError);
         return;
       }
       navigateTo(`/campaigns/${campaignId}`);
     } catch {
-      setError("Could not reach the server.");
+      setError(copy.server);
     } finally {
       setBusy(false);
     }
@@ -134,23 +142,23 @@ function CampaignCharacterPageInner({ campaignId }: { campaignId: string }) {
     <main className="mx-auto w-full max-w-3xl flex-1 p-4 sm:p-6">
       <header className="mb-5">
         <a href={`/campaigns/${campaignId}`} className="text-sm text-stone-500 hover:text-stone-300">
-          &larr; Back to the lobby
+          {copy.back}
         </a>
         <div className="mt-2 flex items-center gap-3">
           <PixelTile src={PIXEL_ICONS.characters} />
           <div>
             <h1 className="font-display text-2xl tracking-wide text-amber-50">
               {flow === "edit"
-                ? "Edit your character"
+                ? copy.edit
                 : flow === "replace"
-                  ? "Switch your character"
+                  ? copy.switch
                   : mode === "choose"
-                    ? "Choose your character"
-                    : "Create your character"}
+                    ? copy.choose
+                    : copy.create}
             </h1>
             <p className="text-sm text-stone-400">
-              This campaign starts at level {level}.
-              {flow !== "join" ? " Changing your character clears your ready status." : ""}
+              {copy.starts.replace("{level}", String(level))}
+              {flow !== "join" ? copy.clears : ""}
             </p>
           </div>
         </div>
@@ -158,7 +166,7 @@ function CampaignCharacterPageInner({ campaignId }: { campaignId: string }) {
 
       {mode === "choose" ? (
         <section className="space-y-4">
-          <Ribbon>From your library</Ribbon>
+          <Ribbon>{copy.library}</Ribbon>
           <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             {library.map((character) => (
               <li key={character.id}>
@@ -182,18 +190,18 @@ function CampaignCharacterPageInner({ campaignId }: { campaignId: string }) {
                     <span className="font-medium text-stone-100">{character.name}</span>
                     {character.id === currentLibraryId ? (
                       <span className="rounded-full border border-amber-500/30 bg-amber-400/10 px-2 py-0.5 text-[11px] text-amber-200">
-                        current
+                        {copy.current}
                       </span>
                     ) : null}
                   </div>
                   <p className="mt-1 text-sm text-stone-400">
-                    Level {character.level} {titleCase(character.race)}{" "}
+                    {copy.level.replace("{level}", String(character.level))} {titleCase(character.race)}{" "}
                     {titleCase(character.class)}
                     {character.subclass ? ` (${character.subclass})` : ""}
                   </p>
                   {character.level !== level ? (
                     <p className="mt-1 text-xs text-amber-200">
-                      Will be adapted to level {level}
+                      {copy.adapted.replace("{level}", String(level))}
                     </p>
                   ) : null}
                 </button>
@@ -205,7 +213,7 @@ function CampaignCharacterPageInner({ campaignId }: { campaignId: string }) {
             onClick={() => setMode("create")}
             className={cn(ui.btnSecondary, "w-full border-dashed")}
           >
-            <Plus className="size-4" /> Create a new character instead
+            <Plus className="size-4" /> {copy.createInstead}
           </button>
           {error ? <p className="text-sm text-red-400">{error}</p> : null}
         </section>
@@ -217,7 +225,7 @@ function CampaignCharacterPageInner({ campaignId }: { campaignId: string }) {
               onClick={() => setMode("choose")}
               className="mb-4 text-sm text-amber-200 hover:text-amber-400"
             >
-              &larr; Or pick one from your library
+              {copy.pick}
             </button>
           ) : null}
           <CharacterBuilder
@@ -227,10 +235,10 @@ function CampaignCharacterPageInner({ campaignId }: { campaignId: string }) {
             initial={flow === "edit" ? editCharacter?.sheet : undefined}
             submitLabel={
               flow === "edit"
-                ? "Save changes"
+                ? copy.save
                 : flow === "replace"
-                  ? "Replace your character"
-                  : "Join the party"
+                  ? copy.replace
+                  : copy.join
             }
             onSubmit={submitNew}
             busy={busy}

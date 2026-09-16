@@ -5,6 +5,8 @@ import { EyeOff, Image as ImageIcon, Pin, Plus, Search } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { ui } from "@/lib/ui";
 import { CATEGORY_LABELS, type LoreEntryView } from "@/app/workshop/lore/types";
+import { useI18n } from "@/lib/i18n/context";
+import { localeText } from "@/lib/i18n/locale-text";
 
 // The workshop's world lore as full-width rows: the title, whether it is
 // pinned into every DM turn, its category, its tags, and the first line of
@@ -41,6 +43,8 @@ export function LoreRows({
   onOpen: (entry: LoreEntryView) => void;
   onNew: () => void;
 }) {
+  const { locale } = useI18n();
+  const copy = localeText(locale, { en: { search: "Search the lore", searchLabel: "Search the lore by title, body or tag", secret: "Secret", handout: "Handout", entry: "New entry", empty: "No lore yet. Write your world's places, factions, and history; the DM treats it as canon.", noMatch: "Nothing by that title, body or tag." }, ru: { search: "Поиск лора", searchLabel: "Искать лор по названию, тексту или тегу", secret: "Секрет", handout: "Раздатка", entry: "Новая запись", empty: "Лора пока нет. Запишите места, фракции и историю мира — мастер будет считать это каноном.", noMatch: "Ничего с таким названием, текстом или тегом нет." }, pl: { search: "Szukaj w wiedzy", searchLabel: "Szukaj po tytule, treści lub tagu", secret: "Sekret", handout: "Materiały", entry: "Nowy wpis", empty: "Nie ma jeszcze wiedzy o świecie. Opisz miejsca, frakcje i historię — prowadzący potraktuje to jako kanon.", noMatch: "Nie ma nic o takim tytule, treści ani tagu." } });
   const [query, setQuery] = useState("");
   const shown = entries.filter((entry) => matches(entry, query));
 
@@ -51,8 +55,8 @@ export function LoreRows({
         <input
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          placeholder="Search the lore"
-          aria-label="Search the lore by title, body or tag"
+          placeholder={copy.search}
+          aria-label={copy.searchLabel}
           className={`${ui.input} pl-9`}
         />
       </label>
@@ -83,11 +87,11 @@ export function LoreRows({
                   </span>
                   {entry.visibility === "dm" ? (
                     <span className="flex items-center gap-1 rounded-sm border border-violet-500/40 bg-violet-500/10 px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-violet-300">
-                      <EyeOff className="size-3" /> Secret
+                      <EyeOff className="size-3" /> {copy.secret}
                     </span>
                   ) : entry.imagePath ? (
                     <span className="flex items-center gap-1 rounded-sm border border-emerald-500/40 bg-emerald-500/10 px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-emerald-300">
-                      <ImageIcon className="size-3" /> Handout
+                      <ImageIcon className="size-3" /> {copy.handout}
                     </span>
                   ) : null}
                 </span>
@@ -122,7 +126,7 @@ export function LoreRows({
               <span className="flex size-9 shrink-0 items-center justify-center rounded-full border border-dashed border-stone-600">
                 <Plus className="size-4" />
               </span>
-              <span className="font-display tracking-wide">New entry</span>
+              <span className="font-display tracking-wide">{copy.entry}</span>
             </button>
           </li>
         ) : null}
@@ -131,11 +135,11 @@ export function LoreRows({
       {entries.length === 0 ? (
         <p className="text-[11px] italic text-stone-600">
           {steersStory
-            ? "No lore yet. Write your world's places, factions, and history; the DM treats it as canon."
+            ? copy.empty
             : "The party lead has not written any world lore yet."}
         </p>
       ) : shown.length === 0 ? (
-        <p className="text-[11px] text-stone-500">Nothing by that title, body or tag.</p>
+        <p className="text-[11px] text-stone-500">{copy.noMatch}</p>
       ) : null}
     </div>
   );

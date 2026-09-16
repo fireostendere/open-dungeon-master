@@ -6,6 +6,8 @@ import { useEffect, useState } from "react";
 import { cn } from "@/lib/cn";
 import { useShellShare } from "@/lib/use-shell-share";
 import { CampaignCover } from "@/components/CampaignCover";
+import { AccountMenu } from "@/components/AccountMenu";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { ScheduleSection } from "@/components/ScheduleSection";
 import { Tooltip } from "@/components/ui/Tooltip";
 import { ui } from "@/lib/ui";
@@ -30,6 +32,7 @@ import type { CampaignState } from "@/app/campaigns/[campaignId]/useCampaignStre
 import { navigateTo } from "@/lib/navigation";
 import { useI18n } from "@/lib/i18n";
 import { localeText } from "@/lib/i18n/locale-text";
+import { campaignWizardCopy } from "@/lib/i18n/campaign-wizard";
 
 // The lobby: where the table gathers before the adventure opens. The cover
 // art and title lead, then the room code, the game's settings and prep,
@@ -37,6 +40,11 @@ import { localeText } from "@/lib/i18n/locale-text";
 // belongs to this viewer's seat (LobbyActions).
 export function Lobby({ state, refresh }: { state: CampaignState; refresh: () => void }) {
   const { locale } = useI18n();
+  const copy = localeText(locale, {
+    en: { readyError: "Could not change your ready state.", server: "Could not reach the server.", startError: "Could not start the adventure.", seatError: "Could not move that seat.", removeError: "Could not remove the character.", companionError: "Could not remove the companion.", deleteError: "Could not delete the campaign.", waiting: "Waiting in the lobby", settings: "Edit campaign settings", realDice: "Real dice", digital: "Digital" },
+    ru: { readyError: "Не удалось изменить статус готовности.", server: "Не удалось связаться с сервером.", startError: "Не удалось начать приключение.", seatError: "Не удалось переместить это место.", removeError: "Не удалось удалить персонажа.", companionError: "Не удалось удалить спутника.", deleteError: "Не удалось удалить кампанию.", waiting: "Ожидание в лобби", settings: "Настройки кампании", realDice: "Живые кости", digital: "Цифровые" },
+    pl: { readyError: "Nie udało się zmienić statusu gotowości.", server: "Nie udało się połączyć z serwerem.", startError: "Nie udało się rozpocząć przygody.", seatError: "Nie udało się przenieść tego miejsca.", removeError: "Nie udało się usunąć postaci.", companionError: "Nie udało się usunąć towarzysza.", deleteError: "Nie udało się usunąć kampanii.", waiting: "Oczekiwanie w lobby", settings: "Edytuj ustawienia kampanii", realDice: "Prawdziwe kości", digital: "Cyfrowe" },
+  });
   const { campaign, me, members, sheets } = state;
   const [busy, setBusy] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -85,6 +93,7 @@ export function Lobby({ state, refresh }: { state: CampaignState; refresh: () =>
     return null;
   }
 
+  const difficulty = campaignWizardCopy(locale).difficulty[`${campaign.difficulty}Label`];
   const myMember = members.find((member) => member.userId === me.id);
   const mySheet = sheets.find((sheet) => sheet.userId === me.id);
   // The DM runs no character, so every "create your character" prompt below
@@ -159,12 +168,12 @@ export function Lobby({ state, refresh }: { state: CampaignState; refresh: () =>
       });
       if (!response.ok) {
         const data = await response.json().catch(() => ({}));
-        setError(data.error || "Could not change your ready state.");
+        setError(data.error || copy.readyError);
         return false;
       }
       return true;
     } catch {
-      setError("Could not reach the server.");
+      setError(copy.server);
       return false;
     } finally {
       setBusy(false);
@@ -189,7 +198,7 @@ export function Lobby({ state, refresh }: { state: CampaignState; refresh: () =>
       }
       refresh();
     } catch {
-      setError("Could not reach the server.");
+      setError(copy.server);
     } finally {
       setBusy(false);
     }
@@ -200,7 +209,7 @@ export function Lobby({ state, refresh }: { state: CampaignState; refresh: () =>
     if (!myMember?.ready && !(await setReady(true))) {
       return;
     }
-    await activate("Could not start the adventure.");
+    await activate(copy.startError);
   }
 
   async function makeLead(userId: string) {
@@ -233,13 +242,13 @@ export function Lobby({ state, refresh }: { state: CampaignState; refresh: () =>
       });
       if (!response.ok) {
         const data = await response.json().catch(() => ({}));
-        setSeatError(data.error || "Could not move that seat.");
+        setSeatError(data.error || copy.seatError);
         return;
       }
       setSeatVersion((version) => version + 1);
       refresh();
     } catch {
-      setSeatError("Could not reach the server.");
+      setSeatError(copy.server);
     }
   }
 
@@ -267,10 +276,10 @@ export function Lobby({ state, refresh }: { state: CampaignState; refresh: () =>
       const response = await fetch(`/api/campaigns/${campaign!.id}/sheet`, { method: "DELETE" });
       if (!response.ok) {
         const data = await response.json().catch(() => ({}));
-        setError(data.error || "Could not remove the character.");
+        setError(data.error || copy.removeError);
       }
     } catch {
-      setError("Could not reach the server.");
+      setError(copy.server);
     } finally {
       setBusy(false);
     }
@@ -286,10 +295,10 @@ export function Lobby({ state, refresh }: { state: CampaignState; refresh: () =>
       );
       if (!response.ok) {
         const data = await response.json().catch(() => ({}));
-        setError(data.error || "Could not remove the companion.");
+        setError(data.error || copy.companionError);
       }
     } catch {
-      setError("Could not reach the server.");
+      setError(copy.server);
     }
   }
 
@@ -307,12 +316,12 @@ export function Lobby({ state, refresh }: { state: CampaignState; refresh: () =>
       const response = await fetch(`/api/campaigns/${campaign!.id}`, { method: "DELETE" });
       if (!response.ok) {
         const data = await response.json().catch(() => ({}));
-        setError(data.error || "Could not delete the campaign.");
+        setError(data.error || copy.deleteError);
         return;
       }
       navigateTo("/");
     } catch {
-      setError("Could not reach the server.");
+      setError(copy.server);
     } finally {
       setBusy(false);
     }
@@ -321,12 +330,18 @@ export function Lobby({ state, refresh }: { state: CampaignState; refresh: () =>
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 p-4 sm:p-6">
       <header className="mb-6">
-        <Link
-          href="/"
-          className="mb-3 inline-flex items-center gap-1.5 text-sm text-stone-500 transition-colors hover:text-amber-200"
-        >
-          <ArrowLeft className="size-4" /> {locale === "ru" ? "Все кампании" : "All campaigns"}
-        </Link>
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-1.5 text-sm text-stone-500 transition-colors hover:text-amber-200"
+          >
+            <ArrowLeft className="size-4 shrink-0" /> {localeText(locale, { en: "All campaigns", ru: "Все кампании", pl: "Wszystkie kampanie" })}
+          </Link>
+          <div className="flex items-center gap-2">
+            <LanguageSwitcher />
+            <AccountMenu user={me} />
+          </div>
+        </div>
         <div className={cn(ui.card, "ornate texture-noise flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:p-5")}>
           <CampaignCover
             cover={campaign.cover}
@@ -336,15 +351,15 @@ export function Lobby({ state, refresh }: { state: CampaignState; refresh: () =>
             className="w-full shrink-0 sm:w-44"
           />
           <div className="min-w-0 flex-1">
-            <p className={ui.sectionEyebrow}>{locale === "ru" ? "Ожидание в лобби" : "Waiting in the lobby"}</p>
+            <p className={ui.sectionEyebrow}>{copy.waiting}</p>
             <h1 className="mt-1 flex items-center gap-2 font-display text-2xl tracking-wide text-amber-50">
               <span className="truncate">{campaign.title}</span>
               {isLead ? (
-                <Tooltip content={locale === "ru" ? "Настройки кампании" : "Edit campaign settings"}>
+                <Tooltip content={copy.settings}>
                   <button
                     type="button"
                     onClick={() => setEditing(true)}
-                    aria-label={locale === "ru" ? "Настройки кампании" : "Edit campaign settings"}
+                    aria-label={copy.settings}
                     className="shrink-0 rounded-md border border-stone-700/70 p-1.5 text-stone-400 transition-colors hover:border-amber-500/40 hover:text-amber-100"
                   >
                     <Pencil className="size-3.5" />
@@ -353,7 +368,7 @@ export function Lobby({ state, refresh }: { state: CampaignState; refresh: () =>
               ) : null}
             </h1>
             <p className="mt-1 text-sm text-stone-400">
-              {locale === "ru" ? `Уровень: ${campaign.startingLevel} · ${campaign.difficulty}` : `Level ${campaign.startingLevel} start · ${campaign.difficulty}`}
+              {localeText(locale, { en: `Level ${campaign.startingLevel} start · ${difficulty}`, ru: `Уровень: ${campaign.startingLevel} · ${difficulty}`, pl: `Początek na poziomie ${campaign.startingLevel} · ${difficulty}` })}
               {campaign.theme ? ` · ${campaign.theme}` : ""}
             </p>
             {campaign.description ? (
@@ -453,8 +468,8 @@ export function Lobby({ state, refresh }: { state: CampaignState; refresh: () =>
           >
             <Dices className="size-4" />
             {myMember?.useRealDice
-              ? (locale === "ru" ? "Живые кости" : "Real dice")
-              : (locale === "ru" ? "Цифровые" : "Digital")}
+              ? copy.realDice
+              : copy.digital}
           </button>
         </section>
       ) : null}

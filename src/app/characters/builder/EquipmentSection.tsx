@@ -6,6 +6,8 @@ import { gearFromHomebrewData, type HomebrewGear } from "@/lib/homebrew/gear";
 import CatalogBrowser from "./CatalogBrowser";
 import ContentPicker from "./ContentPicker";
 import { Chip } from "./steps/shared";
+import { useI18n } from "@/lib/i18n/context";
+import { localeText } from "@/lib/i18n/locale-text";
 
 const STARTER_PACK: Array<{ name: string; qty: number }> = [
   { name: "Backpack", qty: 1 },
@@ -45,15 +47,21 @@ export default function EquipmentSection({
   setGold: (gold: number) => void;
   inputClass: string;
 }) {
+  const { locale } = useI18n();
+  const copy = localeText(locale, {
+    en: { equipment: "Equipment", suggested: "Suggested for your class", starter: "Add adventurer's starter pack", searchLead: "plus search armor, weapons, and gear:", search: "Search items (e.g. longsword, chain mail, rope)", browse: "Browse every weapon, armor and item", recommendedNote: "What this class is proficient with, plus the kit everyone carries.", kit: "kit", weapons: "Weapons", armor: "Armor and shields", gear: "Adventuring gear", magic: "Magic items", magicNote: "Ask your DM before starting with one of these.", rarityMissing: "Rarity not given", gold: "Starting gold" },
+    ru: { equipment: "Снаряжение", suggested: "Рекомендуется для вашего класса", starter: "Добавить набор искателя приключений", searchLead: "или ищите доспехи, оружие и снаряжение:", search: "Искать предметы (например: длинный меч, кольчуга, верёвка)", browse: "Просмотреть всё оружие, доспехи и предметы", recommendedNote: "То, чем владеет этот класс, и набор, который носит каждый.", kit: "набор", weapons: "Оружие", armor: "Доспехи и щиты", gear: "Походное снаряжение", magic: "Магические предметы", magicNote: "Спросите ведущего, прежде чем начинать с одним из них.", rarityMissing: "Редкость не указана", gold: "Начальное золото" },
+    pl: { equipment: "Wyposażenie", suggested: "Polecane dla twojej klasy", starter: "Dodaj pakiet poszukiwacza przygód", searchLead: "albo wyszukaj pancerze, broń i ekwipunek:", search: "Szukaj przedmiotów (np. długi miecz, kolczuga, lina)", browse: "Przeglądaj każdą broń, pancerz i przedmiot", recommendedNote: "To, czym ta klasa włada, oraz zestaw noszony przez każdego.", kit: "zestaw", weapons: "Bronie", armor: "Pancerze i tarcze", gear: "Ekwipunek podróżny", magic: "Przedmioty magiczne", magicNote: "Zapytaj MG, zanim zaczniesz z jednym z nich.", rarityMissing: "Nie podano rzadkości", gold: "Początkowe złoto" },
+  });
   const have = new Set(equipment.map((item) => item.name));
   const openSuggestions = suggestions.filter((entry) => !have.has(entry.name));
 
   return (
     <section className="panel rounded-xl p-4">
-      <h2 className="eyebrow mb-1 text-xs text-amber-200/90">Equipment</h2>
+       <h2 className="eyebrow mb-1 text-xs text-amber-200/90">{copy.equipment}</h2>
       {openSuggestions.length ? (
         <div className="mb-2">
-          <p className="mb-1.5 text-xs text-stone-500">Suggested for your class:</p>
+           <p className="mb-1.5 text-xs text-stone-500">{copy.suggested}:</p>
           <div className="flex flex-wrap gap-1.5">
             {openSuggestions.map((entry) => (
               <span
@@ -83,13 +91,13 @@ export default function EquipmentSection({
           onClick={() => onAddMany(STARTER_PACK)}
           className="rounded-md border border-stone-700 px-2.5 py-1 text-xs text-stone-300 hover:bg-stone-900"
         >
-          Add adventurer&apos;s starter pack
+           {copy.starter}
         </button>
-        <span className="text-xs text-stone-500">plus search armor, weapons, and gear:</span>
+         <span className="text-xs text-stone-500">{copy.searchLead}</span>
       </div>
       <ContentPicker
         kind="items"
-        placeholder="Search items (e.g. longsword, chain mail, rope)"
+         placeholder={copy.search}
         onPick={(entry) =>
           onAdd({
             name: entry.name,
@@ -106,7 +114,7 @@ export default function EquipmentSection({
           top and a ⓘ on every row. */}
       <CatalogBrowser
         kind="items"
-        buttonLabel="Browse every weapon, armor and item"
+         buttonLabel={copy.browse}
         selectedNames={equipment.map((item) => item.name)}
         onPick={(entry) =>
           onAdd({
@@ -121,30 +129,30 @@ export default function EquipmentSection({
         recommended={
           suggestions.length
             ? {
-                label: "Suggested for your class",
-                note: "What this class is proficient with, plus the kit everyone carries.",
+                 label: copy.suggested,
+                 note: copy.recommendedNote,
                 entries: [
                   ...suggestions.map((entry) => ({ name: entry.name, note: entry.note })),
-                  ...STARTER_PACK.map((entry) => ({ name: entry.name, note: "kit" })),
+                   ...STARTER_PACK.map((entry) => ({ name: entry.name, note: copy.kit })),
                 ],
               }
             : undefined
         }
         sections={[
-          { key: "items:weapon", label: "Weapons", params: { kind: "weapon" } },
-          { key: "items:armor", label: "Armor and shields", params: { kind: "armor" } },
-          { key: "items:gear", label: "Adventuring gear", params: { kind: "gear" } },
+           { key: "items:weapon", label: copy.weapons, params: { kind: "weapon" } },
+           { key: "items:armor", label: copy.armor, params: { kind: "armor" } },
+           { key: "items:gear", label: copy.gear, params: { kind: "gear" } },
           {
             key: "items:magic",
-            label: "Magic items",
+             label: copy.magic,
             params: { kind: "magic_item" },
-            note: "Ask your DM before starting with one of these.",
+             note: copy.magicNote,
             bucketOf: (entry) => {
               const rarity = (entry.rarity ?? "").trim().toLowerCase();
               const order = RARITY_ORDER.indexOf(rarity);
               return {
                 key: rarity || "unspecified",
-                label: rarity ? rarity.replace(/^./, (c) => c.toUpperCase()) : "Rarity not given",
+                 label: rarity ? rarity.replace(/^./, (c) => c.toUpperCase()) : copy.rarityMissing,
                 order: order === -1 ? RARITY_ORDER.length : order,
               };
             },
@@ -174,7 +182,7 @@ export default function EquipmentSection({
         ))}
       </div>
       <label className="mt-3 block w-40">
-        <span className="mb-1 block text-xs text-stone-400">Starting gold</span>
+         <span className="mb-1 block text-xs text-stone-400">{copy.gold}</span>
         <input
           type="number"
           min={0}

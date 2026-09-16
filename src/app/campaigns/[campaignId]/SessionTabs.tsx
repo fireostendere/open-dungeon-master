@@ -295,7 +295,7 @@ function BottomTabBarInner({
         className={cn(ui.railCell, "shrink-0 grow basis-auto", mobileView === "chat" && ui.railCellActive)}
       >
         <MessageSquareText className="size-5" />
-        <span className="eyebrow whitespace-nowrap text-[9px] leading-none">{locale === "ru" ? "Стол" : "Table"}</span>
+         <span className="eyebrow whitespace-nowrap text-[9px] leading-none">{locale === "ru" ? "Стол" : locale === "pl" ? "Stół" : "Table"}</span>
       </button>
       {tabs.map(([value, label, Icon]) => {
         const active = mobileView === "panel" && panelTab === value;

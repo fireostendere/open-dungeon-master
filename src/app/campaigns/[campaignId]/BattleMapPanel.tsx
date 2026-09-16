@@ -21,6 +21,7 @@ import type { PlayerMapView } from "@/lib/battlemap/view";
 import type { PublicEncounter } from "@/lib/db/encounter-view";
 import type { CharacterSheet } from "@/lib/schemas/sheet";
 import { useI18n } from "@/lib/i18n";
+import { localeText } from "@/lib/i18n/locale-text";
 
 // The tactical battle map tab.
 //
@@ -62,6 +63,7 @@ export function BattleMapPanel({
   ping?: MapPing | null;
 }) {
   const { locale, formatDistance } = useI18n();
+  const copy = localeText(locale, { en: { denied: "That was not allowed.", reach: "Could not reach the table.", name: "Name it first.", measure: "That area could not be measured.", point: "Point at a tile", enlarge: "Enlarge battle map", directHeld: "Tap where it should stand. The round's movement is not charged for this.", measurePoint: "Now tap where it points.", measureStart: "Tap where the area starts.", pointTile: "Tap a tile and everyone looks at it.", place: "Name it, then tap a tile.", edit: "Tap a piece to pick it up or change it. Nothing here is charged against the round.", playerPoint: "Tap a tile to point at it.", sceneMove: "Tap anywhere you can walk. Nothing is being counted out here.", move: "Tap a highlighted tile to move", left: "left this round", turn: "You can move on your turn. The shroud shows what your character cannot see.", none: "You have no token on this field.", hidden: "hidden", ground: "The ground here", map: "Battle map, round" }, ru: { denied: "Это не разрешено.", reach: "Не удалось связаться со столом.", name: "Сначала укажите имя.", measure: "Не удалось измерить область.", point: "Указать на клетку", enlarge: "Развернуть карту боя", directHeld: "Нажмите, где он должен стоять. Перемещение в раунде не расходуется.", measurePoint: "Теперь нажмите, куда она указывает.", measureStart: "Нажмите, где начинается область.", pointTile: "Нажмите на клетку, и все увидят её.", place: "Назовите, затем нажмите клетку.", edit: "Нажмите на фигуру, чтобы выбрать или изменить её. Это не расходует перемещение в раунде.", playerPoint: "Нажмите на клетку, чтобы указать на неё.", sceneMove: "Нажмите куда хотите пойти. Здесь ничего не отсчитывается.", move: "Нажмите на подсвеченную клетку для перемещения", left: "осталось в этом раунде", turn: "Вы сможете двигаться в свой ход. Туман скрывает то, чего персонаж не видит.", none: "У вас нет токена на этом поле.", hidden: "скрыт", ground: "Земля здесь", map: "Карта боя, раунд" }, pl: { denied: "To nie jest dozwolone.", reach: "Nie udało się połączyć ze stołem.", name: "Najpierw podaj nazwę.", measure: "Nie udało się zmierzyć obszaru.", point: "Wskaż pole", enlarge: "Powiększ mapę walki", directHeld: "Dotknij miejsca, w którym powinien stanąć. Ruch w tej rundzie nie jest naliczany.", measurePoint: "Teraz dotknij miejsca, na które wskazuje.", measureStart: "Dotknij miejsca, gdzie zaczyna się obszar.", pointTile: "Dotknij pola, a wszyscy na nie spojrzą.", place: "Nazwij to, potem dotknij pola.", edit: "Dotknij elementu, aby go podnieść lub zmienić. Nic nie jest naliczane do rundy.", playerPoint: "Dotknij pola, aby je wskazać.", sceneMove: "Dotknij dowolnego miejsca, do którego możesz dojść. Nic nie jest tu liczone.", move: "Dotknij podświetlonego pola, aby się przesunąć", left: "pozostało w tej rundzie", turn: "Możesz ruszać się w swojej turze. Mgła ukrywa to, czego postać nie widzi.", none: "Nie masz żetonu na tym polu.", hidden: "ukryty", ground: "Teren tutaj", map: "Mapa walki, runda" } });
   const [enlarged, setEnlarged] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -130,12 +132,12 @@ export function BattleMapPanel({
       });
       const data = (await response.json().catch(() => ({}))) as { error?: string };
       if (!response.ok) {
-        setError(data.error ?? "That was not allowed.");
+        setError(data.error ?? copy.denied);
         return false;
       }
       return true;
     } catch {
-      setError("Could not reach the table.");
+      setError(copy.reach);
       return false;
     } finally {
       setBusy(false);
@@ -236,7 +238,7 @@ export function BattleMapPanel({
         }
         if (tool === "place") {
           if (!placeName.trim()) {
-            setError("Name it first.");
+            setError(copy.name);
             return;
           }
           void board({ do: "add", kind: placeKind, name: placeName.trim(), x, y }).then((ok) => {
@@ -273,7 +275,7 @@ export function BattleMapPanel({
                 error?: string;
               };
               if (!response.ok) {
-                setError(data.error ?? "That area could not be measured.");
+                setError(data.error ?? copy.measure);
                 return;
               }
               setMeasure({
@@ -353,7 +355,7 @@ export function BattleMapPanel({
             <button
               type="button"
               onClick={() => setPointing((current) => !current)}
-              title="Point at a tile"
+              title={copy.point}
               aria-pressed={pointing}
               className={`rounded p-1 ${
                 pointing ? "bg-amber-950/60 text-amber-300" : "text-stone-400 hover:bg-stone-900"
@@ -366,7 +368,7 @@ export function BattleMapPanel({
             type="button"
             onClick={() => setEnlarged(true)}
             className="rounded p-1 text-stone-400 hover:bg-stone-900 hover:text-stone-200"
-            aria-label="Enlarge battle map"
+            aria-label={copy.enlarge}
           >
             <Maximize2 className="size-4" />
           </button>
@@ -431,27 +433,27 @@ export function BattleMapPanel({
       <p className="text-[11px] leading-4 text-stone-500">
         {canDirect
           ? held
-            ? "Tap where it should stand. The round's movement is not charged for this."
+            ? copy.directHeld
             : tool === "measure"
               ? liveOrigin
-                ? "Now tap where it points."
-                : "Tap where the area starts."
+                ? copy.measurePoint
+                : copy.measureStart
               : tool === "point"
-                ? "Tap a tile and everyone looks at it."
+                ? copy.pointTile
                 : tool === "place"
-                  ? "Name it, then tap a tile."
-                  : "Tap a piece to pick it up or change it. Nothing here is charged against the round."
+                  ? copy.place
+                  : copy.edit
           : pointing
-            ? (locale === "ru" ? "Нажмите на клетку, чтобы указать на неё." : "Tap a tile to point at it.")
+            ? copy.playerPoint
             : canMove
               ? scene
-                ? (locale === "ru" ? "Нажмите куда хотите пойти." : "Tap anywhere you can walk. Nothing is being counted out here.")
+                ? copy.sceneMove
                 : (locale === "ru"
-                    ? `Нажмите на подсвеченную клетку для перемещения (осталось ${formatDistance(view.budgetLeft * TILE_FEET)} в этом раунде).`
-                    : `Tap a highlighted tile to move (${formatDistance(view.budgetLeft * TILE_FEET)} left this round).`)
+                    ? `${copy.move} (${formatDistance(view.budgetLeft * TILE_FEET)} ${copy.left}).`
+                    : `${copy.move} (${formatDistance(view.budgetLeft * TILE_FEET)} ${copy.left}).`)
               : view.myTokenId
-                ? (locale === "ru" ? "Вы сможете двигаться в свой ход. Туман скрывает то, чего персонаж не видит." : "You can move on your turn. The shroud shows what your character cannot see.")
-                : (locale === "ru" ? "У вас нет токена на этом поле." : "You have no token on this field.")}
+                ? copy.turn
+                : copy.none}
       </p>
       {error ? <p className="text-[11px] text-red-400">{error}</p> : null}
       {encounter?.orderReady ? (
@@ -466,7 +468,7 @@ export function BattleMapPanel({
               }
             >
               {entry.name}
-              {entry.hidden ? " (hidden)" : ""}
+               {entry.hidden ? ` (${copy.hidden})` : ""}
             </li>
           ))}
         </ol>
@@ -477,7 +479,7 @@ export function BattleMapPanel({
           <Dialog.Content className="fixed left-1/2 top-1/2 z-50 max-h-[92vh] w-[min(94vw,64rem)] -translate-x-1/2 -translate-y-1/2 overflow-auto panel rounded-xl p-4">
             <div className="mb-2 flex items-center justify-between">
               <Dialog.Title className="font-serif text-stone-100">
-                {scene ? "The ground here" : `Battle map, round ${view.round}`}
+                 {scene ? copy.ground : `${copy.map} ${view.round}`}
               </Dialog.Title>
               <Dialog.Close className="rounded p-1 text-stone-400 hover:bg-stone-900">
                 <X className="size-4" />

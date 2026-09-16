@@ -5,6 +5,8 @@ import { useCallback, useEffect, useState } from "react";
 import { cn } from "@/lib/cn";
 import { ui } from "@/lib/ui";
 import { PIN_TOKEN_CAP, pinTokens, totalPinTokens } from "@/lib/dm/pin-logic";
+import { useI18n } from "@/lib/i18n";
+import { localeText } from "@/lib/i18n/locale-text";
 
 // Pinned memories: excerpts that ride in every prompt, unconditionally.
 //
@@ -24,6 +26,12 @@ type PinRow = {
 const COLLAPSE_AT = 160;
 
 function PinItem({ pin, onUnpin }: { pin: PinRow; onUnpin: (id: string) => void }) {
+  const { locale } = useI18n();
+  const copy = localeText(locale, {
+    en: { full: "Full message", excerpt: "Excerpt", unpin: "Unpin", less: "Show less", more: "Show more", jump: "Jump to message" },
+    ru: { full: "Всё сообщение", excerpt: "Фрагмент", unpin: "Открепить", less: "Свернуть", more: "Показать больше", jump: "Перейти к сообщению" },
+    pl: { full: "Cała wiadomość", excerpt: "Fragment", unpin: "Odepnij", less: "Pokaż mniej", more: "Pokaż więcej", jump: "Przejdź do wiadomości" },
+  });
   const [expanded, setExpanded] = useState(false);
   const long = pin.text.length > COLLAPSE_AT;
   const shown = !expanded && long ? `${pin.text.slice(0, COLLAPSE_AT)}...` : pin.text;
@@ -33,7 +41,7 @@ function PinItem({ pin, onUnpin }: { pin: PinRow; onUnpin: (id: string) => void 
       <div className="mb-1 flex items-center gap-2">
         <Pin className="size-3 shrink-0 text-amber-400" />
         <span className="text-[10px] font-medium uppercase tracking-wide text-amber-300/70">
-          {pin.isFullMessage ? "Full message" : "Excerpt"}
+          {pin.isFullMessage ? copy.full : copy.excerpt}
         </span>
         <span className="ml-auto shrink-0 font-mono text-[10px] text-stone-500">
           {pinTokens(pin.text)}t
@@ -41,7 +49,7 @@ function PinItem({ pin, onUnpin }: { pin: PinRow; onUnpin: (id: string) => void 
         <button
           type="button"
           onClick={() => onUnpin(pin.id)}
-          aria-label="Unpin"
+          aria-label={copy.unpin}
           className={cn(ui.iconAction, "-my-1 shrink-0 hover:text-red-400")}
         >
           <Trash2 className="size-3" />
@@ -57,7 +65,7 @@ function PinItem({ pin, onUnpin }: { pin: PinRow; onUnpin: (id: string) => void 
             onClick={() => setExpanded((value) => !value)}
             className="text-[10px] text-stone-500 hover:text-stone-300"
           >
-            {expanded ? "Show less" : "Show more"}
+            {expanded ? copy.less : copy.more}
           </button>
         ) : null}
         <button
@@ -69,7 +77,7 @@ function PinItem({ pin, onUnpin }: { pin: PinRow; onUnpin: (id: string) => void 
           }}
           className="text-[10px] text-stone-500 hover:text-stone-300"
         >
-          Jump to message
+          {copy.jump}
         </button>
       </div>
     </li>
@@ -77,6 +85,12 @@ function PinItem({ pin, onUnpin }: { pin: PinRow; onUnpin: (id: string) => void 
 }
 
 export function PinsPanel({ campaignId, version }: { campaignId: string; version: number }) {
+  const { locale } = useI18n();
+  const copy = localeText(locale, {
+    en: { title: "Pinned memories", empty: "Nothing pinned. Select text in one of the DM's messages and press the pin icon to put it in front of the DM every turn, whether or not it looks relevant." },
+    ru: { title: "Закреплённые воспоминания", empty: "Пока ничего не закреплено. Выделите текст в сообщении мастера и нажмите значок закрепления, чтобы он попадал к мастеру каждый ход, даже если кажется неважным." },
+    pl: { title: "Przypięte wspomnienia", empty: "Nic nie przypięto. Zaznacz tekst w wiadomości MG i naciśnij ikonę pinezki, aby MG widział go w każdej turze, niezależnie od trafności." },
+  });
   const [pins, setPins] = useState<PinRow[]>([]);
   const [reload, setReload] = useState(0);
 
@@ -113,9 +127,7 @@ export function PinsPanel({ campaignId, version }: { campaignId: string; version
   return (
     <div className="space-y-2">
       <div className="flex items-baseline justify-between">
-        <h3 className="px-1 text-[10px] font-medium uppercase tracking-wide text-amber-400">
-          Pinned memories
-        </h3>
+        <h3 className="px-1 text-[10px] font-medium uppercase tracking-wide text-amber-400">{copy.title}</h3>
         <span
           className={cn(
             "font-mono text-[10px]",
@@ -151,8 +163,7 @@ export function PinsPanel({ campaignId, version }: { campaignId: string; version
         </ul>
       ) : (
         <p className="text-[11px] leading-relaxed text-stone-500">
-          Nothing pinned. Select text in one of the DM&apos;s messages and press the pin icon to
-          put it in front of the DM every turn, whether or not it looks relevant.
+          {copy.empty}
         </p>
       )}
     </div>

@@ -11,7 +11,11 @@ import {
   Sparkles,
   Trash2,
 } from "lucide-react";
-import { offersImages, offersStoryModel, useCapabilities } from "@/lib/use-capabilities";
+import {
+  offersImages,
+  offersStoryModel,
+  useCapabilities,
+} from "@/lib/use-capabilities";
 import {
   FIELD_LABELS,
   applyGeneratedField,
@@ -25,6 +29,8 @@ import { Sheet } from "@/components/ui/Sheet";
 import { CastChips, CastRows, type Npc } from "@/app/workshop/cast/CastList";
 import { useTourPrepare } from "@/lib/tours/prepare";
 import { NpcEditorFields } from "@/app/workshop/cast/NpcEditorFields";
+import { useI18n } from "@/lib/i18n/context";
+import { localeText } from "@/lib/i18n/locale-text";
 
 // The NPC forge.
 //
@@ -53,6 +59,39 @@ export function DmNpcForgePanel({
   campaignId: string;
   layout?: "chips" | "rows";
 }) {
+  const { locale } = useI18n();
+  const copy = localeText(locale, {
+    en: {
+      failed: "That did not work.",
+      someone: "Someone new",
+      paint: "Paint one", placeholder: "Use placeholder", restore: "Bring back", archive: "Set aside",
+      duplicate: "Duplicate",
+      forget: "Forget them",
+      copied: "That could not be copied.", nothingSuggested: "The model had nothing to say.", suggest: "Ask the model for", replaceFace: "Replace face", addFace: "Add a face", renderHint: "Render one on the shared media queue", placeholderHint: "Take the picture away and show the stand-in for their role instead", restoreHint: "Put them back in the DM's prompt", archiveHint: "Keep them, but take them out of the DM's prompt", save: "Save them",
+    },
+    ru: {
+      failed: "Не удалось выполнить действие.",
+      someone: "Новый персонаж",
+      paint: "Создать портрет",
+      placeholder: "Использовать заглушку",
+      restore: "Вернуть",
+      archive: "Отложить",
+      duplicate: "Дублировать",
+      forget: "Забыть",
+      copied: "Не удалось скопировать.", nothingSuggested: "Модель ничего не предложила.", suggest: "Попросить модель предложить", replaceFace: "Заменить портрет", addFace: "Добавить портрет", renderHint: "Создать портрет в общей очереди медиа", placeholderHint: "Убрать изображение и показывать заглушку для роли", restoreHint: "Вернуть персонажа в запрос мастера", archiveHint: "Сохранить персонажа, но убрать из запроса мастера", save: "Сохранить",
+    },
+    pl: {
+      failed: "Nie udało się wykonać działania.",
+      someone: "Nowa postać",
+      paint: "Utwórz portret",
+      placeholder: "Użyj zastępnika",
+      restore: "Przywróć",
+      archive: "Odłóż",
+      duplicate: "Duplikuj",
+      forget: "Zapomnij",
+      copied: "Nie udało się skopiować.", nothingSuggested: "Model nie miał nic do zaproponowania.", suggest: "Poproś model o", replaceFace: "Zmień portret", addFace: "Dodaj portret", renderHint: "Utwórz portret we wspólnej kolejce mediów", placeholderHint: "Usuń obraz i pokaż zastępnik roli", restoreHint: "Przywróć postać do promptu mistrza", archiveHint: "Zachowaj postać, ale usuń ją z promptu mistrza", save: "Zapisz",
+    },
+  });
   const [npcs, setNpcs] = useState<Npc[]>([]);
   const [graph, setGraph] = useState<RelationGraph>({ nodes: [], edges: [] });
   // The table's setting, for the role picker's ordering.
@@ -78,13 +117,21 @@ export function DmNpcForgePanel({
     () =>
       fetch(`/api/campaigns/${campaignId}/dm/npcs`)
         .then((response) => (response.ok ? response.json() : null))
-        .then((payload: { npcs: Npc[]; graph: RelationGraph; genre?: string } | null) => {
-          if (payload) {
-            setNpcs(payload.npcs);
-            setGraph(payload.graph);
-            setGenre(payload.genre ?? "");
-          }
-        })
+        .then(
+          (
+            payload: {
+              npcs: Npc[];
+              graph: RelationGraph;
+              genre?: string;
+            } | null,
+          ) => {
+            if (payload) {
+              setNpcs(payload.npcs);
+              setGraph(payload.graph);
+              setGenre(payload.genre ?? "");
+            }
+          },
+        )
         .catch(() => {
           // transient; the next action reloads
         }),
@@ -108,15 +155,24 @@ export function DmNpcForgePanel({
         .catch(() => [] as string[]),
       fetch(`/api/campaigns/${campaignId}/lore`)
         .then((response) => (response.ok ? response.json() : null))
-        .then((data: { entries?: Array<{ title: string; category: string }> } | null) =>
-          (data?.entries ?? [])
-            .filter((entry) => entry.category === "geography")
-            .map((entry) => entry.title),
+        .then(
+          (
+            data: {
+              entries?: Array<{ title: string; category: string }>;
+            } | null,
+          ) =>
+            (data?.entries ?? [])
+              .filter((entry) => entry.category === "geography")
+              .map((entry) => entry.title),
         )
         .catch(() => [] as string[]),
     ]).then(([fromMap, fromLore]) => {
       if (!cancelled) {
-        setPlaces([...new Set([...fromMap, ...fromLore])].sort((a, b) => a.localeCompare(b)));
+        setPlaces(
+          [...new Set([...fromMap, ...fromLore])].sort((a, b) =>
+            a.localeCompare(b),
+          ),
+        );
       }
     });
     return () => {
@@ -195,7 +251,9 @@ export function DmNpcForgePanel({
     }
     setBusy(true);
     try {
-      await fetch(`/api/campaigns/${campaignId}/dm/npcs/${selected.id}`, { method: "DELETE" });
+      await fetch(`/api/campaigns/${campaignId}/dm/npcs/${selected.id}`, {
+        method: "DELETE",
+      });
       setError("");
       setSelectedId("");
       setDraft(blankDraft());
@@ -220,11 +278,15 @@ export function DmNpcForgePanel({
       const response = await fetch(`/api/campaigns/${campaignId}/dm/npcs`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ draft: { ...base, name: `${base.name} (copy)`.slice(0, 80) } }),
+        body: JSON.stringify({
+          draft: { ...base, name: `${base.name} (copy)`.slice(0, 80) },
+        }),
       });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) {
-        setError((payload as { error?: string }).error ?? "That could not be copied.");
+        setError(
+          (payload as { error?: string }).error ?? copy.copied,
+        );
         return;
       }
       await load();
@@ -246,23 +308,31 @@ export function DmNpcForgePanel({
     setGenerating(field);
     setError("");
     try {
-      const response = await fetch(`/api/campaigns/${campaignId}/dm/npcs/generate`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          field,
-          name: draft.name,
-          trait: draft.trait,
-          location: draft.location,
-          attitude: draft.attitude,
-        }),
-      });
+      const response = await fetch(
+        `/api/campaigns/${campaignId}/dm/npcs/generate`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            field,
+            name: draft.name,
+            trait: draft.trait,
+            location: draft.location,
+            attitude: draft.attitude,
+          }),
+        },
+      );
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) {
-        setError((payload as { error?: string }).error ?? "The model had nothing to say.");
+        setError(
+          (payload as { error?: string }).error ??
+            copy.nothingSuggested,
+        );
         return;
       }
-      setDraft((current) => applyGeneratedField(current, field, String(payload.text ?? "")));
+      setDraft((current) =>
+        applyGeneratedField(current, field, String(payload.text ?? "")),
+      );
     } finally {
       setGenerating("");
     }
@@ -296,13 +366,15 @@ export function DmNpcForgePanel({
     }
   }
 
-  const others = npcs.filter((npc) => npc.id !== selectedId).map((npc) => npc.name);
+  const others = npcs
+    .filter((npc) => npc.id !== selectedId)
+    .map((npc) => npc.name);
   const generateButton = (field: GeneratableField) =>
     canSuggest ? (
       <button
         type="button"
         disabled={generating !== "" || busy}
-        title={`Ask the model for ${FIELD_LABELS[field].toLowerCase()}`}
+        title={`${copy.suggest} ${FIELD_LABELS[field].toLowerCase()}`}
         onClick={() => void suggest(field)}
         className="flex shrink-0 items-center gap-1 rounded-md border border-stone-700 px-1.5 py-0.5 text-[10px] text-stone-400 hover:text-amber-200 disabled:opacity-40"
       >
@@ -335,7 +407,8 @@ export function DmNpcForgePanel({
           data-tour="cast-save"
           className="rounded-md border border-amber-700 bg-amber-950/50 px-2 py-1 text-xs text-amber-100 disabled:opacity-40"
         >
-          {busy ? <Loader2 className="inline size-3 animate-spin" /> : null} Save them
+          {busy ? <Loader2 className="inline size-3 animate-spin" /> : null}{" "}
+          {copy.save}
         </button>
         {selected ? (
           <>
@@ -358,28 +431,29 @@ export function DmNpcForgePanel({
               onClick={() => fileRef.current?.click()}
               className="flex items-center gap-1 rounded-md border border-stone-700 px-2 py-1 text-xs text-stone-300 hover:bg-stone-900 disabled:opacity-50"
             >
-              <ImageIcon className="size-3" /> {selected.portraitUrl ? "Replace face" : "Add a face"}
+              <ImageIcon className="size-3" />{" "}
+              {selected.portraitUrl ? copy.replaceFace : copy.addFace}
             </button>
             {canPaint ? (
               <button
                 type="button"
                 disabled={busy}
-                title="Render one on the shared media queue"
+                title={copy.renderHint}
                 onClick={() => void patch({ draft, generatePortrait: true })}
                 className="flex items-center gap-1 rounded-md border border-stone-700 px-2 py-1 text-xs text-stone-300 hover:bg-stone-900 disabled:opacity-50"
               >
-                <Sparkles className="size-3" /> Paint one
+                <Sparkles className="size-3" /> {copy.paint}
               </button>
             ) : null}
             {selected.portraitUrl ? (
               <button
                 type="button"
                 disabled={busy}
-                title="Take the picture away and show the stand-in for their role instead"
+                title={copy.placeholderHint}
                 onClick={() => void patch({ portraitUrl: "" })}
                 className="flex items-center gap-1 rounded-md border border-stone-700 px-2 py-1 text-xs text-stone-400 hover:bg-stone-900 disabled:opacity-50"
               >
-                <ImageOff className="size-3" /> Use placeholder
+                <ImageOff className="size-3" /> {copy.placeholder}
               </button>
             ) : null}
             <button
@@ -387,30 +461,30 @@ export function DmNpcForgePanel({
               disabled={busy}
               title={
                 selected.archived
-                  ? "Put them back in the DM's prompt"
-                  : "Keep them, but take them out of the DM's prompt"
+                  ? copy.restoreHint
+                  : copy.archiveHint
               }
               onClick={() => void patch({ archived: !selected.archived })}
               className="flex items-center gap-1 rounded-md border border-stone-700 px-2 py-1 text-xs text-stone-400 hover:bg-stone-900 disabled:opacity-50"
             >
               {selected.archived ? (
                 <>
-                  <ArchiveRestore className="size-3" /> Bring back
+                  <ArchiveRestore className="size-3" /> {copy.restore}
                 </>
               ) : (
                 <>
-                  <Archive className="size-3" /> Set aside
+                  <Archive className="size-3" /> {copy.archive}
                 </>
               )}
             </button>
             <button
               type="button"
               disabled={busy}
-              aria-label={`Duplicate ${selected.name}`}
+              aria-label={`${copy.duplicate} ${selected.name}`}
               onClick={() => void duplicate()}
               className="flex items-center gap-1 rounded-md border border-stone-700 px-2 py-1 text-xs text-stone-300 hover:bg-stone-900 disabled:opacity-50"
             >
-              <Copy className="size-3" /> Duplicate
+              <Copy className="size-3" /> {copy.duplicate}
             </button>
             <button
               type="button"
@@ -418,7 +492,7 @@ export function DmNpcForgePanel({
               onClick={() => void remove()}
               className="ml-auto flex items-center gap-1 rounded-md border border-stone-700 px-2 py-1 text-xs text-stone-500 hover:text-red-300 disabled:opacity-50"
             >
-              <Trash2 className="size-3" /> Forget them
+              <Trash2 className="size-3" /> {copy.forget}
             </button>
           </>
         ) : null}
@@ -435,7 +509,7 @@ export function DmNpcForgePanel({
         <Sheet
           open={editorOpen}
           onOpenChange={setEditorOpen}
-          title={selected ? selected.name : "Someone new"}
+          title={selected ? selected.name : copy.someone}
           className="lg:w-[min(92vw,40rem)]"
         >
           {editor}

@@ -10,6 +10,9 @@ import { contentSlug, describeFeature } from "@/lib/help";
 import type { CreateSheetInput } from "@/lib/schemas/sheet";
 import { abilityMod, formatModifier } from "@/lib/srd";
 import { ui } from "@/lib/ui";
+import { useI18n } from "@/lib/i18n";
+import { localeText } from "@/lib/i18n/locale-text";
+import { characterDisplay } from "@/lib/i18n/character-display";
 
 export type CharacterEvent = {
   id: string;
@@ -19,13 +22,13 @@ export type CharacterEvent = {
   createdAt: string;
 };
 
-const KIND_LABELS: Record<string, string> = {
-  achievement: "Achievement",
-  item: "Treasure",
-  relationship: "Bond",
-  death: "Death",
-  level_up: "Level up",
-  story: "Story",
+const KIND_LABELS: Record<string, Record<"en" | "ru" | "pl", string>> = {
+  achievement: { en: "Achievement", ru: "Достижение", pl: "Osiągnięcie" },
+  item: { en: "Treasure", ru: "Сокровище", pl: "Skarb" },
+  relationship: { en: "Bond", ru: "Связь", pl: "Więź" },
+  death: { en: "Death", ru: "Смерть", pl: "Śmierć" },
+  level_up: { en: "Level up", ru: "Новый уровень", pl: "Awans" },
+  story: { en: "Story", ru: "Сюжет", pl: "Fabuła" },
 };
 
 // A titled block of the read-only sheet: Ribbon rule, then whatever the
@@ -52,17 +55,23 @@ function SheetPanel({
 // spells, equipment, features, feats, backstory. Read-only; editing happens
 // through the builder in a campaign lobby.
 export function SheetSections({ sheet }: { sheet: CreateSheetInput }) {
+  const { locale } = useI18n();
+  const copy = localeText(locale, {
+    en: { abilities: "Abilities", speed: "Speed", gold: "Gold", spells: "Spells", equipment: "Equipment", features: "Features and traits", feats: "Feats", backstory: "Backstory", none: "None chosen.", story: "(story)", level: "Level", feet: "ft" },
+    ru: { abilities: "Характеристики", speed: "Скорость", gold: "Золото", spells: "Заклинания", equipment: "Снаряжение", features: "Черты и особенности", feats: "Черты", backstory: "Предыстория", none: "Ничего не выбрано.", story: "(сюжет)", level: "Уровень", feet: "фт" },
+    pl: { abilities: "Cechy", speed: "Szybkość", gold: "Złoto", spells: "Zaklęcia", equipment: "Ekwipunek", features: "Cechy i zdolności", feats: "Atuty", backstory: "Historia", none: "Nic nie wybrano.", story: "(fabuła)", level: "Poziom", feet: "st." },
+  });
   const abilities = sheet.abilities;
   return (
     <div className="space-y-4">
-      <SheetPanel title="Abilities" className="ornate">
+      <SheetPanel title={copy.abilities} className="ornate">
         <div className="grid grid-cols-3 gap-2 text-center sm:grid-cols-6">
           {(Object.entries(abilities) as Array<[string, number]>).map(([ability, score]) => (
             <div
               key={ability}
               className="rounded-lg border border-stone-700/60 bg-stone-950/60 p-2 shadow-[0_2px_6px_rgba(4,2,12,0.45)_inset]"
             >
-              <p className="eyebrow text-[10px] text-stone-500">{ability}</p>
+               <p className="eyebrow text-[10px] text-stone-500">{characterDisplay(ability, locale)}</p>
               <p className="font-display text-xl text-amber-50">{score}</p>
               <p className="text-xs text-amber-200/80">{formatModifier(abilityMod(score))}</p>
             </div>
@@ -75,13 +84,13 @@ export function SheetSections({ sheet }: { sheet: CreateSheetInput }) {
           <span>
             <GameTerm id="armor_class">AC</GameTerm> {sheet.ac}
           </span>
-          <span>Speed {sheet.speed} ft</span>
-          <span>Gold {sheet.gold}</span>
+           <span>{copy.speed} {sheet.speed} {copy.feet}</span>
+           <span>{copy.gold} {sheet.gold}</span>
         </div>
       </SheetPanel>
 
       {sheet.spellcasting ? (
-        <SheetPanel title="Spells">
+         <SheetPanel title={copy.spells}>
           <InfoChipList
             items={[
               ...new Set([...sheet.spellcasting.known, ...sheet.spellcasting.prepared]),
@@ -89,13 +98,13 @@ export function SheetSections({ sheet }: { sheet: CreateSheetInput }) {
               name: spell,
               reference: { kind: "spells", slug: contentSlug(spell), name: spell },
             }))}
-            emptyText="None chosen."
+             emptyText={copy.none}
           />
         </SheetPanel>
       ) : null}
 
       {sheet.equipment.length ? (
-        <SheetPanel title="Equipment">
+         <SheetPanel title={copy.equipment}>
           <p className="text-sm text-stone-400">
             {sheet.equipment
               .map((item) => (item.qty > 1 ? `${item.name} x${item.qty}` : item.name))
@@ -105,12 +114,12 @@ export function SheetSections({ sheet }: { sheet: CreateSheetInput }) {
       ) : null}
 
       {sheet.features?.length ? (
-        <SheetPanel title="Features and traits">
+         <SheetPanel title={copy.features}>
           <InfoChipList
             items={sheet.features.map((feature) => ({
               name: feature.name,
-              note: feature.source === "story" ? "(story)" : undefined,
-              meta: feature.level ? `Level ${feature.level}` : undefined,
+               note: feature.source === "story" ? copy.story : undefined,
+               meta: feature.level ? `${copy.level} ${feature.level}` : undefined,
               text: describeFeature(sheet.class, sheet.subclass, feature.name),
             }))}
           />
@@ -118,7 +127,7 @@ export function SheetSections({ sheet }: { sheet: CreateSheetInput }) {
       ) : null}
 
       {sheet.feats.length ? (
-        <SheetPanel title="Feats">
+         <SheetPanel title={copy.feats}>
           <InfoChipList
             items={sheet.feats.map((feat) => ({
               name: feat,
@@ -130,7 +139,7 @@ export function SheetSections({ sheet }: { sheet: CreateSheetInput }) {
       ) : null}
 
       {sheet.backstory ? (
-        <SheetPanel title="Backstory">
+         <SheetPanel title={copy.backstory}>
           <p className="whitespace-pre-wrap font-serif text-sm leading-relaxed text-stone-300">
             {sheet.backstory}
           </p>
@@ -143,18 +152,23 @@ export function SheetSections({ sheet }: { sheet: CreateSheetInput }) {
 // Milestones the campaigns recorded for this character, newest first as the
 // API returns them, drawn as a timeline down a gold hairline.
 export function StorySoFar({ events }: { events: CharacterEvent[] }) {
+  const { locale } = useI18n();
+  const copy = localeText(locale, {
+    en: { title: "Story so far", empty: "Nothing recorded yet. Milestones from campaigns land here: victories, treasures, bonds, and worse." },
+    ru: { title: "История персонажа", empty: "Пока ничего не записано. Здесь появятся победы, сокровища, связи и другие вехи кампаний." },
+    pl: { title: "Dotychczasowa historia", empty: "Nic jeszcze nie zapisano. Trafią tu zwycięstwa, skarby, więzi i inne wydarzenia z kampanii." },
+  });
   return (
     <SheetPanel
       title={
         <span className="inline-flex items-center gap-1.5">
-          <BookOpen className="size-3" aria-hidden="true" /> Story so far
+          <BookOpen className="size-3" aria-hidden="true" /> {copy.title}
         </span>
       }
     >
       {events.length === 0 ? (
         <p className="rounded-lg border border-dashed border-stone-700/60 p-5 text-center text-sm text-stone-500">
-          Nothing recorded yet. Milestones from campaigns land here: victories, treasures,
-          bonds, and worse.
+           {copy.empty}
         </p>
       ) : (
         <ol className="relative ml-2 space-y-3 border-l border-amber-400/20 pl-5">
@@ -166,10 +180,10 @@ export function StorySoFar({ events }: { events: CharacterEvent[] }) {
               />
               <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
                 <span className="eyebrow rounded-sm border border-amber-400/30 bg-amber-400/10 px-1.5 py-0.5 text-[9px] leading-none text-amber-300">
-                  {KIND_LABELS[event.kind] ?? event.kind}
+                   {KIND_LABELS[event.kind]?.[locale] ?? event.kind}
                 </span>
                 <span className="text-xs text-stone-500">
-                  {new Date(event.createdAt).toLocaleDateString()}
+                  {new Date(event.createdAt).toLocaleDateString(locale)}
                 </span>
               </div>
               <p className="mt-1 text-stone-200">{event.summary}</p>

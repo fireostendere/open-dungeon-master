@@ -6,6 +6,8 @@ import { input } from "@/app/workshop/homebrew/types";
 import { AddFromList, Suggestions, type AddOption } from "@/components/ui/AddFromList";
 import { OptionGlossary } from "@/components/ui/OptionGlossary";
 import type { GlossaryEntry } from "@/lib/help/terms";
+import { useI18n } from "@/lib/i18n/context";
+import { localeText } from "@/lib/i18n/locale-text";
 
 // The three inputs every homebrew form is made of, labelled the same way
 // the monster editor labels its own, so the two read as one workshop.
@@ -67,6 +69,12 @@ export function TextField({
   suggestions?: readonly AddOption[];
   glossary?: FieldGlossary;
 }) {
+  const { locale } = useI18n();
+  const copy = localeText(locale, {
+    en: { pick: "Pick" },
+    ru: { pick: "Выбрать" },
+    pl: { pick: "Wybierz" },
+  });
   const listId = useId();
   return (
     <Field label={label} hint={hint} className={className} glossary={glossary}>
@@ -79,7 +87,7 @@ export function TextField({
           onChange={(event) => onChange(event.target.value)}
           className={cn(input, "min-w-32 flex-1")}
         />
-        {suggestions ? <AddFromList prompt="Pick" options={suggestions} onPick={onChange} /> : null}
+        {suggestions ? <AddFromList prompt={copy.pick} options={suggestions} onPick={onChange} /> : null}
       </div>
       {suggestions ? <Suggestions id={listId} options={suggestions} /> : null}
     </Field>

@@ -6,6 +6,8 @@ import { cn } from "@/lib/cn";
 import { InfoButton } from "@/components/ui/InfoDialog";
 import { describeContentEntry, spellSummary } from "@/lib/help";
 import { useContentSearch, type PickerEntry } from "./useContentSearch";
+import { useI18n } from "@/lib/i18n/context";
+import { localeText } from "@/lib/i18n/locale-text";
 
 export type { PickerEntry } from "./useContentSearch";
 
@@ -30,6 +32,12 @@ export default function ContentPicker({
   onPick: (entry: PickerEntry) => void;
   renderMeta?: (entry: PickerEntry) => string;
 }) {
+  const { locale } = useI18n();
+  const copy = localeText(locale, {
+    en: { unavailable: "The content pack is not installed on this server, so there is nothing to search or browse. Whoever runs it can install it with: node scripts/import-open5e.mjs", noMatch: "Nothing matched", tryLess: "Try fewer letters, or pick from the full list.", homebrew: "homebrew" },
+    ru: { unavailable: "Набор материалов не установлен на сервере, поэтому искать и просматривать пока нечего. Администратор может установить его командой: node scripts/import-open5e.mjs", noMatch: "Ничего не найдено по запросу", tryLess: "Попробуйте меньше букв или выберите из полного списка.", homebrew: "хоумбрю" },
+    pl: { unavailable: "Pakiet zawartości nie jest zainstalowany na tym serwerze, więc nie ma czego szukać ani przeglądać. Osoba zarządzająca serwerem może go zainstalować poleceniem: node scripts/import-open5e.mjs", noMatch: "Brak wyników dla", tryLess: "Wpisz mniej liter lub wybierz z pełnej listy.", homebrew: "homebrew" },
+  });
   const { query, setQuery, results, setResults, open, setOpen, loading, unavailable } =
     useContentSearch(kind, extraParams);
   const container = useRef<HTMLDivElement>(null);
@@ -57,8 +65,9 @@ export default function ContentPicker({
               setOpen(false);
             }
           }}
-          onFocus={() => results.length && setOpen(true)}
-          placeholder={placeholder}
+           onFocus={() => results.length && setOpen(true)}
+           placeholder={placeholder}
+           aria-label={placeholder}
           className="w-full rounded-lg border border-stone-800 bg-stone-950 px-3 py-2 text-sm text-stone-200 outline-none focus:border-amber-300"
         />
         {loading ? (
@@ -67,12 +76,11 @@ export default function ContentPicker({
       </div>
       {unavailable ? (
         <p className="mt-1 rounded-lg border border-amber-900/50 bg-amber-950/20 px-3 py-2 text-xs text-amber-200/80">
-          The content pack is not installed on this server, so there is nothing to search or
-          browse. Whoever runs it can install it with: node scripts/import-open5e.mjs
+           {copy.unavailable}
         </p>
       ) : open && !results.length && query.trim() && !loading ? (
         <p className="mt-1 rounded-lg border border-stone-800 bg-stone-950/60 px-3 py-2 text-xs text-stone-500">
-          Nothing matched &quot;{query.trim()}&quot;. Try fewer letters, or pick from the full list.
+           {copy.noMatch} &quot;{query.trim()}&quot;. {copy.tryLess}
         </p>
       ) : null}
       {open && results.length ? (
@@ -98,7 +106,7 @@ export default function ContentPicker({
                 </span>
                 <span className="shrink-0 text-xs text-stone-500">
                   {entry.source === "homebrew"
-                    ? "homebrew"
+                     ? copy.homebrew
                     : (renderMeta?.(entry) ?? "")}
                 </span>
               </button>

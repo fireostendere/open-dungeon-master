@@ -17,6 +17,8 @@ import { CalculatorsPanel } from "@/app/reference/CalculatorsPanel";
 import { ComparePanel, type CompareSelection } from "@/app/reference/ComparePanel";
 import { DeskPanel } from "@/app/reference/DeskPanel";
 import { MAX_COMPARE, type CompareKind } from "@/lib/reference/compare";
+import { useI18n } from "@/lib/i18n";
+import { localeText } from "@/lib/i18n/locale-text";
 
 // The research desk: what used to be a player's rules lookup, grown into the
 // thing a DM actually uses between sessions.
@@ -74,6 +76,13 @@ function comparableKind(kind: Kind): CompareKind | null {
 }
 
 export default function ReferencePage() {
+  const { locale } = useI18n();
+  const copy = localeText(locale, {
+    en: { basics: "Basics", spells: "Spells", feats: "Feats", items: "Items", conditions: "Conditions", races: "Lineages", backgrounds: "Backgrounds", monsters: "Monsters", rulings: "House rules", browse: "Browse", compare: "Compare", calculators: "Calculators", ask: "Ask", title: "Rules reference", blurb: "Look something up, line things up side by side, run the numbers, or ask.", mode: "Reference mode", intro: "New to this? Start with Basics, which explains the terms the game leans on constantly. The other tabs search everything the app knows about, including your own homebrew and the house rules on your rulesets.", category: "Category", search: "Search", searchBasics: "Search the basics", searchRulings: "Search your house rules", compareHint: "Select up to {count} to line them up side by side in Compare.", noMatch: "Nothing matches that.", noRulingMatch: "None of your house rules mention that.", noRulings: "No house rules yet. Rulesets in your library are where they live.", unavailable: "The content pack is not installed, so there is nothing to browse here yet.", noDescription: "No description available for this entry.", compareItem: "Compare {name}", cantrip: "cantrip", level: "level {level}" },
+    ru: { basics: "Основы", spells: "Заклинания", feats: "Черты", items: "Предметы", conditions: "Состояния", races: "Происхождения", backgrounds: "Предыстории", monsters: "Монстры", rulings: "Домашние правила", browse: "Обзор", compare: "Сравнение", calculators: "Калькуляторы", ask: "Спросить", title: "Справочник правил", blurb: "Найдите правило, сравните варианты, посчитайте значения или задайте вопрос.", mode: "Режим справочника", intro: "Начните с «Основ»: здесь объясняются постоянно встречающиеся игровые термины. Другие вкладки ищут по всему, что знает приложение, включая ваш homebrew и домашние правила наборов правил.", category: "Категория", search: "Поиск", searchBasics: "Поиск по основам", searchRulings: "Поиск по домашним правилам", compareHint: "Выберите до {count} записей, чтобы сравнить их рядом во вкладке «Сравнение».", noMatch: "Ничего не найдено.", noRulingMatch: "Ни одно из ваших домашних правил этого не упоминает.", noRulings: "Домашних правил пока нет. Они хранятся в наборах правил вашей библиотеки.", unavailable: "Пакет контента не установлен, поэтому здесь пока нечего просматривать.", noDescription: "Для этой записи нет описания.", compareItem: "Сравнить: {name}", cantrip: "заговор", level: "уровень {level}" },
+    pl: { basics: "Podstawy", spells: "Zaklęcia", feats: "Atuty", items: "Przedmioty", conditions: "Stany", races: "Pochodzenia", backgrounds: "Tła", monsters: "Potwory", rulings: "Zasady domowe", browse: "Przeglądaj", compare: "Porównaj", calculators: "Kalkulatory", ask: "Zapytaj", title: "Kompendium zasad", blurb: "Wyszukaj zasadę, porównaj wpisy, oblicz wartości lub zadaj pytanie.", mode: "Tryb kompendium", intro: "Zacznij od „Podstaw”, które wyjaśniają stale używane terminy. Pozostałe karty przeszukują wszystko, co zna aplikacja, w tym własne homebrew i zasady domowe zestawów zasad.", category: "Kategoria", search: "Szukaj", searchBasics: "Szukaj w podstawach", searchRulings: "Szukaj w zasadach domowych", compareHint: "Wybierz do {count} wpisów, aby porównać je obok siebie w „Porównaj”.", noMatch: "Nic nie pasuje.", noRulingMatch: "Żadna z Twoich zasad domowych o tym nie wspomina.", noRulings: "Nie ma jeszcze zasad domowych. Są w zestawach zasad w bibliotece.", unavailable: "Pakiet treści nie jest zainstalowany, więc nie ma tu jeszcze czego przeglądać.", noDescription: "Ten wpis nie ma opisu.", compareItem: "Porównaj: {name}", cantrip: "sztuczka", level: "poziom {level}" },
+  });
+  const tabs = TABS.map((tab) => ({ ...tab, label: tab.kind === "glossary" ? copy.basics : copy[tab.kind] }));
   const [mode, setMode] = useState<Mode>("browse");
   const [kind, setKind] = useState<Kind>("glossary");
   const [query, setQuery] = useState("");
@@ -154,7 +163,7 @@ export default function ReferencePage() {
     setOpen({
       title: row.name,
       meta: kind === "spells" ? spellSummary(row.data) : undefined,
-      text: describeContentEntry(row.data) ?? "No description available for this entry.",
+      text: describeContentEntry(row.data) ?? copy.noDescription,
     });
   }
 
@@ -191,27 +200,27 @@ export default function ReferencePage() {
 
   const compareCount = selection?.entries.length ?? 0;
   const modes = [
-    { value: "browse" as const, label: "Browse", icon: Search },
+    { value: "browse" as const, label: copy.browse, icon: Search },
     {
       value: "compare" as const,
-      label: compareCount ? `Compare (${compareCount})` : "Compare",
+      label: compareCount ? `${copy.compare} (${compareCount})` : copy.compare,
       icon: Columns3,
     },
-    { value: "calculators" as const, label: "Calculators", icon: Calculator },
-    { value: "ask" as const, label: "Ask", icon: MessageCircleQuestion },
+    { value: "calculators" as const, label: copy.calculators, icon: Calculator },
+    { value: "ask" as const, label: copy.ask, icon: MessageCircleQuestion },
   ];
 
   return (
     <PageShell
       icon={PIXEL_ICONS.support}
-      title="Rules reference"
-      blurb="Look something up, line things up side by side, run the numbers, or ask."
+      title={copy.title}
+      blurb={copy.blurb}
     >
       <SegmentedControl
         options={modes}
         value={mode}
         onChange={setMode}
-        label="Reference mode"
+        label={copy.mode}
         size="sm"
         className="w-full sm:w-auto"
       />
@@ -234,11 +243,11 @@ export default function ReferencePage() {
 
       {mode === "browse" ? (
         <PageSection
-          heading="Browse"
-          intro="New to this? Start with Basics, which explains the terms the game leans on constantly. The other tabs search everything the app knows about, including your own homebrew and the house rules on your rulesets."
+          heading={copy.browse}
+          intro={copy.intro}
         >
-          <div className="mb-3 flex flex-wrap gap-1.5" role="tablist" aria-label="Category">
-            {TABS.map((tab) => (
+          <div className="mb-3 flex flex-wrap gap-1.5" role="tablist" aria-label={copy.category}>
+            {tabs.map((tab) => (
               <button
                 key={tab.kind}
                 type="button"
@@ -259,12 +268,12 @@ export default function ReferencePage() {
               onChange={(event) => setQuery(event.target.value)}
               placeholder={
                 kind === "glossary"
-                  ? "Search the basics"
+                  ? copy.searchBasics
                   : kind === "rulings"
-                    ? "Search your house rules"
-                    : `Search ${kind}`
+                    ? copy.searchRulings
+                    : `${copy.search} ${tabs.find((tab) => tab.kind === kind)?.label ?? kind}`
               }
-              aria-label="Search"
+              aria-label={copy.search}
               className={cn(ui.input, "pl-9 pr-9")}
             />
             {loading ? (
@@ -274,7 +283,7 @@ export default function ReferencePage() {
 
           {comparableKind(kind) ? (
             <p className="mb-3 text-xs text-stone-500">
-              Tick up to {MAX_COMPARE} to line them up side by side in Compare.
+              {copy.compareHint.replace("{count}", String(MAX_COMPARE))}
             </p>
           ) : null}
 
@@ -289,7 +298,7 @@ export default function ReferencePage() {
                 </li>
               ))}
               {!filteredTerms.length ? (
-                <li className="text-sm text-stone-500">Nothing matches that.</li>
+                <li className="text-sm text-stone-500">{copy.noMatch}</li>
               ) : null}
             </ul>
           ) : kind === "rulings" ? (
@@ -308,8 +317,8 @@ export default function ReferencePage() {
               {!rulings.length && !loading ? (
                 <li className="text-sm text-stone-500">
                   {query.trim()
-                    ? "None of your house rules mention that."
-                    : "No house rules yet. Rulesets in your library are where they live."}
+                    ? copy.noRulingMatch
+                    : copy.noRulings}
                 </li>
               ) : null}
             </ul>
@@ -321,7 +330,7 @@ export default function ReferencePage() {
                     <button
                       type="button"
                       onClick={() => toggleCompare(row)}
-                      aria-label={`Compare ${row.name}`}
+                      aria-label={copy.compareItem.replace("{name}", row.name)}
                       aria-pressed={picked.has(row.slug)}
                       className={cn(
                         "shrink-0 rounded-lg border px-2 text-xs transition-colors",
@@ -345,7 +354,7 @@ export default function ReferencePage() {
                       </span>
                       {kind === "spells" ? (
                         <span className="shrink-0 text-xs text-stone-500">
-                          {row.level === 0 ? "cantrip" : `level ${row.level}`}
+                          {row.level === 0 ? copy.cantrip : copy.level.replace("{level}", String(row.level))}
                         </span>
                       ) : null}
                     </span>
@@ -355,8 +364,8 @@ export default function ReferencePage() {
               {!rows.length && !loading ? (
                 <li className="text-sm text-stone-500">
                   {unavailable
-                    ? "The content pack is not installed, so there is nothing to browse here yet."
-                    : "Nothing matches that."}
+                    ? copy.unavailable
+                    : copy.noMatch}
                 </li>
               ) : null}
             </ul>

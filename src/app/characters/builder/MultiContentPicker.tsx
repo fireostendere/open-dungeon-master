@@ -6,6 +6,8 @@ import { cn } from "@/lib/cn";
 import { InfoButton } from "@/components/ui/InfoDialog";
 import { describeContentEntry, spellSummary } from "@/lib/help";
 import { useContentSearch, type PickerEntry } from "./useContentSearch";
+import { useI18n } from "@/lib/i18n/context";
+import { localeText } from "@/lib/i18n/locale-text";
 
 export type MultiPick = { name: string; slug?: string };
 
@@ -31,6 +33,12 @@ export default function MultiContentPicker({
   onAdd: (entries: MultiPick[]) => void;
   renderMeta?: (entry: PickerEntry) => string;
 }) {
+  const { locale } = useI18n();
+  const copy = localeText(locale, {
+    en: { added: "already added", homebrew: "homebrew", custom: "Add", asCustom: "as custom", unavailable: "Content pack not installed; add entries by name instead.", remove: "Remove", add: "Add" },
+    ru: { added: "уже добавлено", homebrew: "хоумбрю", custom: "Добавить", asCustom: "как своё", unavailable: "Набор материалов не установлен; добавьте записи по названию.", remove: "Удалить", add: "Добавить" },
+    pl: { added: "już dodano", homebrew: "homebrew", custom: "Dodaj", asCustom: "jako własne", unavailable: "Pakiet zawartości nie jest zainstalowany; dodaj wpisy po nazwie.", remove: "Usuń", add: "Dodaj" },
+  });
   const { query, setQuery, results, setResults, open, setOpen, loading, unavailable } =
     useContentSearch(kind, extraParams);
   const [pending, setPending] = useState<MultiPick[]>([]);
@@ -89,8 +97,9 @@ export default function MultiContentPicker({
         <input
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          onFocus={() => setOpen(true)}
-          placeholder={placeholder}
+           onFocus={() => setOpen(true)}
+           placeholder={placeholder}
+           aria-label={placeholder}
           className="w-full rounded-lg border border-stone-800 bg-stone-950 px-3 py-2 text-sm text-stone-200 outline-none focus:border-amber-300"
         />
         {loading ? (
@@ -129,9 +138,9 @@ export default function MultiContentPicker({
                   </span>
                   <span className="shrink-0 text-xs text-stone-500">
                     {alreadyOn
-                      ? "already added"
+                       ? copy.added
                       : entry.source === "homebrew"
-                        ? "homebrew"
+                         ? copy.homebrew
                         : (renderMeta?.(entry) ?? "")}
                   </span>
                 </button>
@@ -153,13 +162,13 @@ export default function MultiContentPicker({
                 onClick={addCustom}
                 className="flex w-full items-center gap-1.5 px-3 py-1.5 text-left text-sm text-amber-300 hover:bg-stone-800"
               >
-                <Plus className="size-3.5 shrink-0" /> Add &quot;{trimmedQuery}&quot; as custom
+                 <Plus className="size-3.5 shrink-0" /> {copy.custom} &quot;{trimmedQuery}&quot; {copy.asCustom}
               </button>
             </li>
           ) : null}
           {unavailable ? (
             <li className="px-3 py-1.5 text-xs text-stone-500">
-              Content pack not installed; add entries by name instead.
+               {copy.unavailable}
             </li>
           ) : null}
         </ul>
@@ -177,7 +186,7 @@ export default function MultiContentPicker({
                 onClick={() =>
                   setPending((picks) => picks.filter((entry) => entry.name !== pick.name))
                 }
-                aria-label={`Remove ${pick.name}`}
+                 aria-label={`${copy.remove}: ${pick.name}`}
                 className="text-stone-500 hover:text-red-400"
               >
                 <X className="size-3" />
@@ -189,7 +198,7 @@ export default function MultiContentPicker({
             onClick={commit}
             className="rounded-full bg-amber-300 px-2.5 py-0.5 text-xs font-medium text-stone-950 hover:bg-amber-200"
           >
-            Add {pending.length}
+             {copy.add} {pending.length}
           </button>
         </div>
       ) : null}

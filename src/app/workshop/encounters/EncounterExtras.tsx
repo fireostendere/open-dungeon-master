@@ -12,6 +12,8 @@ import {
 import { TerrainCanvas } from "@/app/campaigns/[campaignId]/TerrainCanvas";
 import type { MapOption } from "@/app/workshop/encounters/types";
 import { RefPicker } from "@/app/workshop/tables/RefPicker";
+import { useI18n } from "@/lib/i18n/context";
+import { localeText } from "@/lib/i18n/locale-text";
 
 // The rest of a prepared fight (docs/workshop-parity-audit.md phase 13):
 // where each enemy starts on the linked map, where the party comes in, who
@@ -37,6 +39,8 @@ export function EncounterExtras({
   value: TemplateExtras;
   onChange: (next: TemplateExtras) => void;
 }) {
+  const { locale } = useI18n();
+  const copy = localeText(locale, { en: { plan: "The plan", place: "Then tap the map where it starts", link: "Link a prepared map to place it", name: "name", hp: "hp", hidden: "Hidden when the fight opens", hide: "Hidden", seen: "Seen", entry: "Where the party comes in", roster: "Write the roster above and each creature gets a line here.", pick: "Pick a creature above, then tap where it starts. The party goes where the flag says.", tap: "Tap the tile. Tap the same tile again to clear it.", generator: "Link a prepared map above to place each creature on it. Without one the generator seats them.", rewards: "What the fight is worth", rewardsHint: "120 gp in a locked chest, the captain's signet ring, roll once on Marsh treasure.", phases: "What happens when", phaseHint: "When the shaman drops, the wolves flee.", remove: "Remove phase", add: "Add a phase", note: "Rewards and phases land as a note only you can read when the fight is deployed." }, ru: { plan: "План", place: "Затем нажмите на карте, где он начинает", link: "Привяжите подготовленную карту, чтобы разместить", name: "имя", hp: "ОЗ", hidden: "Скрыт при начале боя", hide: "Скрыт", seen: "Виден", entry: "Где входит группа", roster: "Заполните состав выше — у каждого существа появится строка.", pick: "Выберите существо выше и нажмите место старта. Группа появляется у флага.", tap: "Нажмите клетку. Нажмите ту же клетку ещё раз, чтобы очистить.", generator: "Привяжите подготовленную карту выше для размещения существ. Без неё их расставит генератор.", rewards: "Награда за бой", rewardsHint: "120 зм в запертом сундуке, перстень капитана, один бросок по сокровищам болота.", phases: "Что происходит, когда", phaseHint: "Когда шаман падает, волки бегут.", remove: "Удалить фазу", add: "Добавить фазу", note: "При развёртывании боя награды и фазы попадут в заметку, которую видите только вы." }, pl: { plan: "Plan", place: "Następnie kliknij mapę, gdzie zaczyna", link: "Połącz przygotowaną mapę, aby go umieścić", name: "imię", hp: "PŻ", hidden: "Ukryty po rozpoczęciu walki", hide: "Ukryty", seen: "Widoczny", entry: "Gdzie wchodzi drużyna", roster: "Wpisz skład powyżej, a każde stworzenie dostanie tu wiersz.", pick: "Wybierz stworzenie powyżej, a potem kliknij miejsce startu. Drużyna wchodzi przy fladze.", tap: "Kliknij pole. Kliknij to samo ponownie, aby je wyczyścić.", generator: "Połącz przygotowaną mapę powyżej, aby umieścić stworzenia. Bez niej zrobi to generator.", rewards: "Wartość tej walki", rewardsHint: "120 sz w zamkniętej skrzyni, sygnet kapitana, jeden rzut na skarby bagien.", phases: "Co dzieje się, gdy", phaseHint: "Gdy szaman pada, wilki uciekają.", remove: "Usuń fazę", add: "Dodaj fazę", note: "Nagrody i fazy trafią jako notatka widoczna tylko dla Ciebie po rozstawieniu walki." } });
   const slots = expandRoster(parseRoster(roster));
   // Which slot the next tap on the map places; -1 is the party's entry.
   const [placing, setPlacing] = useState<number | null>(null);
@@ -77,11 +81,11 @@ export function EncounterExtras({
         : null;
     })
     .filter((label): label is NonNullable<typeof label> => label !== null);
-  const props = value.entry ? [{ x: value.entry.x, y: value.entry.y, name: "Party enters", kind: "npc" as const }] : [];
+  const props = value.entry ? [{ x: value.entry.x, y: value.entry.y, name: copy.entry, kind: "npc" as const }] : [];
 
   return (
     <div className="space-y-3 rounded-lg border border-stone-800 bg-stone-950/40 px-2.5 py-2">
-      <p className="text-[11px] uppercase tracking-wide text-stone-500">The plan</p>
+      <p className="text-[11px] uppercase tracking-wide text-stone-500">{copy.plan}</p>
 
       {slots.length ? (
         <ul className="space-y-1">
@@ -95,7 +99,7 @@ export function EncounterExtras({
                   type="button"
                   disabled={!canPlace}
                   aria-pressed={placing === slot.slot}
-                  title={canPlace ? "Then tap the map where it starts" : "Link a prepared map to place it"}
+                  title={canPlace ? copy.place : copy.link}
                   onClick={() => setPlacing(placing === slot.slot ? null : slot.slot)}
                   className={cn(
                     "min-w-28 rounded-md border px-2 py-0.5 text-left text-[11px] capitalize disabled:opacity-50",
@@ -109,7 +113,7 @@ export function EncounterExtras({
                 </button>
                 <input
                   value={override?.name ?? ""}
-                  placeholder="name"
+                  placeholder={copy.name}
                   maxLength={EXTRAS_LIMITS.name}
                   aria-label={`${slot.label} name`}
                   onChange={(event) => setOverride(slot.slot, { name: event.target.value })}
@@ -118,7 +122,7 @@ export function EncounterExtras({
                 <input
                   type="number"
                   value={override?.hp ?? ""}
-                  placeholder="hp"
+                  placeholder={copy.hp}
                   min={1}
                   max={EXTRAS_LIMITS.hp}
                   aria-label={`${slot.label} hit points`}
@@ -130,7 +134,7 @@ export function EncounterExtras({
                 <button
                   type="button"
                   aria-pressed={hidden}
-                  title="Hidden when the fight opens"
+                  title={copy.hidden}
                   onClick={() =>
                     set({ hidden: hidden ? value.hidden.filter((entry) => entry !== slot.slot) : [...value.hidden, slot.slot] })
                   }
@@ -139,7 +143,7 @@ export function EncounterExtras({
                     hidden ? "border-violet-700 bg-violet-950/40 text-violet-200" : "border-stone-700 text-stone-500",
                   )}
                 >
-                  <EyeOff className="size-3" /> {hidden ? "Hidden" : "Seen"}
+                  <EyeOff className="size-3" /> {hidden ? copy.hide : copy.seen}
                 </button>
               </li>
             );
@@ -155,13 +159,13 @@ export function EncounterExtras({
                 placing === -1 ? "border-amber-700 bg-amber-950/50 text-amber-100" : "border-stone-700 text-stone-300 hover:bg-stone-900",
               )}
             >
-              <Flag className="size-3" /> Where the party comes in
+              <Flag className="size-3" /> {copy.entry}
               {value.entry ? <span className="text-stone-500">({value.entry.x},{value.entry.y})</span> : null}
             </button>
           </li>
         </ul>
       ) : (
-        <p className="text-[11px] text-stone-500">Write the roster above and each creature gets a line here.</p>
+        <p className="text-[11px] text-stone-500">{copy.roster}</p>
       )}
 
       {canPlace && map?.terrain && map.width && map.height ? (
@@ -178,23 +182,23 @@ export function EncounterExtras({
           />
           <p className="text-[10px] text-stone-600">
             {placing === null
-              ? "Pick a creature above, then tap where it starts. The party goes where the flag says."
-              : "Tap the tile. Tap the same tile again to clear it."}
+              ? copy.pick
+              : copy.tap}
           </p>
         </>
       ) : (
         <p className="text-[10px] text-stone-600">
-          Link a prepared map above to place each creature on it. Without one the generator seats them.
+          {copy.generator}
         </p>
       )}
 
       <label className="block">
-        <span className="text-[10px] uppercase tracking-wide text-stone-500">What the fight is worth</span>
+        <span className="text-[10px] uppercase tracking-wide text-stone-500">{copy.rewards}</span>
         <textarea
           value={value.rewards}
           maxLength={EXTRAS_LIMITS.rewards}
           rows={2}
-          placeholder="120 gp in a locked chest, the captain's signet ring, roll once on Marsh treasure."
+          placeholder={copy.rewardsHint}
           onChange={(event) => set({ rewards: event.target.value })}
           className={cn(field, "mt-0.5 w-full")}
         />
@@ -213,14 +217,14 @@ export function EncounterExtras({
       />
 
       <div className="space-y-1">
-        <span className="text-[10px] uppercase tracking-wide text-stone-500">What happens when</span>
+        <span className="text-[10px] uppercase tracking-wide text-stone-500">{copy.phases}</span>
         {value.phases.map((phase, index) => (
           <div key={index} className="flex items-center gap-1.5">
             <input
               value={phase}
               maxLength={EXTRAS_LIMITS.phaseText}
-              placeholder="When the shaman drops, the wolves flee."
-              aria-label={`Phase ${index + 1}`}
+              placeholder={copy.phaseHint}
+              aria-label={`${copy.phases} ${index + 1}`}
               onChange={(event) =>
                 set({ phases: value.phases.map((line, at) => (at === index ? event.target.value : line)) })
               }
@@ -228,7 +232,7 @@ export function EncounterExtras({
             />
             <button
               type="button"
-              aria-label="Remove phase"
+              aria-label={copy.remove}
               onClick={() => set({ phases: value.phases.filter((_, at) => at !== index) })}
               className="rounded-md border border-stone-700 p-1 text-stone-500 hover:text-red-300"
             >
@@ -242,11 +246,11 @@ export function EncounterExtras({
             onClick={() => set({ phases: [...value.phases, ""] })}
             className="flex items-center gap-1 rounded-md border border-stone-700 px-2 py-1 text-[11px] text-stone-300 hover:bg-stone-900"
           >
-            <Plus className="size-3" /> Add a phase
+            <Plus className="size-3" /> {copy.add}
           </button>
         ) : null}
         <p className="text-[10px] text-stone-600">
-          Rewards and phases land as a note only you can read when the fight is deployed.
+          {copy.note}
         </p>
       </div>
     </div>

@@ -40,6 +40,8 @@ import { suggestedSpellCount } from "@/lib/content/mechanics";
 import AsiFeatEditor from "@/app/characters/builder/AsiFeatEditor";
 import { useArchetypes } from "@/app/characters/builder/useBuilderOptions";
 import type { AsiChoice, CharacterSheet } from "@/lib/schemas/sheet";
+import { useI18n } from "@/lib/i18n";
+import { localeText } from "@/lib/i18n/locale-text";
 
 type SpellRow = { slug: string; name: string; level: number };
 
@@ -63,6 +65,12 @@ export function LevelUpDialog({
   multiclassAllowed?: boolean;
   onDone: () => void;
 }) {
+  const { locale } = useI18n();
+  const copy = localeText(locale, {
+    en: { level: "Level {level}!", newAt: "New at level {level}:", average: "Take the average", roll: "Roll {dice}", rolled: "Rolled {value}", take: "Take +{value} HP", multiclass: "Multiclass into a new class", grants: "Grants: {value}", requires: "Requires {value}", known: "Already known. ", full: "full features", description: "description only", search: "Search your class's spell list", noSpells: "No matching spells.", spellName: "Spell name", add: "Add", learning: "Learning:", allowance: "(that is the full allowance at this level)", back: "Back", next: "Next", confirm: "Confirm level up", error: "Could not level up.", server: "Could not reach the server." },
+    ru: { level: "Уровень {level}!", newAt: "Новое на {level}-м уровне:", average: "Взять среднее", roll: "Бросить {dice}", rolled: "Выпало {value}", take: "Взять +{value} хитов", multiclass: "Мультикласс в новый класс", grants: "Даёт: {value}", requires: "Требуется {value}", known: "Уже известно. ", full: "полные умения", description: "только описание", search: "Поиск по списку заклинаний класса", noSpells: "Подходящих заклинаний нет.", spellName: "Название заклинания", add: "Добавить", learning: "Изучается:", allowance: "(это весь доступный выбор на этом уровне)", back: "Назад", next: "Далее", confirm: "Подтвердить повышение", error: "Не удалось повысить уровень.", server: "Не удалось связаться с сервером." },
+    pl: { level: "Poziom {level}!", newAt: "Nowości na poziomie {level}:", average: "Weź średnią", roll: "Rzuć {dice}", rolled: "Wynik: {value}", take: "Weź +{value} PW", multiclass: "Wieloklasowość w nową klasę", grants: "Daje: {value}", requires: "Wymaga: {value}", known: "Już znane. ", full: "pełne cechy", description: "tylko opis", search: "Szukaj na liście czarów klasy", noSpells: "Brak pasujących czarów.", spellName: "Nazwa czaru", add: "Dodaj", learning: "Nauka:", allowance: "(to pełny limit na tym poziomie)", back: "Wstecz", next: "Dalej", confirm: "Potwierdź awans", error: "Nie udało się awansować.", server: "Nie udało się połączyć z serwerem." },
+  });
   const [rolledHp, setRolledHp] = useState<number | null>(null);
   const [hpGain, setHpGain] = useState<number | null>(null);
   const [asiChoices, setAsiChoices] = useState<Array<AsiChoice | null>>([]);
@@ -190,6 +198,7 @@ export function LevelUpDialog({
     (chosenEntry?.level ?? 0) < subclassLevel &&
     subclassLevel <= classLevelAfter;
   const builtInSubclasses = subclassNamesFor(classChoice);
+  const subclassKey = builtInSubclasses.join("|");
   const archetypes = useArchetypes(needsSubclass ? classChoice : "");
   // The subclasses with real feature tables come first; content-pack
   // archetypes are prose only and fill in behind them.
@@ -203,18 +212,14 @@ export function LevelUpDialog({
     return names;
     // builtInSubclasses is rebuilt each render from a constant table.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [builtInSubclasses.join("|"), archetypes]);
+  }, [subclassKey, archetypes]);
 
-  const openSlots = useMemo(
-    () =>
-      openOptionSlots({
-        classId: classChoice,
-        subclass: subclassChoice || entrySubclass,
-        level: classLevelAfter,
-        features: [...sheet.features, ...optionPicks.map((name) => ({ name }))],
-      }),
-    [classChoice, entrySubclass, sheet.features, subclassChoice, classLevelAfter, optionPicks],
-  );
+  const openSlots = openOptionSlots({
+    classId: classChoice,
+    subclass: subclassChoice || entrySubclass,
+    level: classLevelAfter,
+    features: [...sheet.features, ...optionPicks.map((name) => ({ name }))],
+  });
   const needsOptions = openSlots.some((slot) => slot.remaining > 0);
 
   function toggleOption(slot: OptionSlot, name: string) {
@@ -237,19 +242,16 @@ export function LevelUpDialog({
     ? Boolean(chosenKlass && chosenKlass.casterType !== "none" && chosenKlass.spellAbility)
     : Boolean(sheet.spellcasting);
 
-  const steps = useMemo(
-    () => [
-      ...(needsClassStep ? ["class"] : []),
-      "hp",
-      ...(asiLevels.length ? ["asi"] : []),
-      ...(needsExpertise ? ["expertise"] : []),
-      ...(needsStyle ? ["style"] : []),
-      ...(needsSubclass ? ["subclass"] : []),
-      ...(needsOptions ? ["options"] : []),
-      ...(showSpells ? ["spells"] : []),
-    ],
-    [needsClassStep, asiLevels.length, needsExpertise, needsStyle, needsSubclass, needsOptions, showSpells],
-  );
+  const steps = [
+    ...(needsClassStep ? ["class"] : []),
+    "hp",
+    ...(asiLevels.length ? ["asi"] : []),
+    ...(needsExpertise ? ["expertise"] : []),
+    ...(needsStyle ? ["style"] : []),
+    ...(needsSubclass ? ["subclass"] : []),
+    ...(needsOptions ? ["options"] : []),
+    ...(showSpells ? ["spells"] : []),
+  ];
   const step = steps[stepIndex];
   const lastStep = stepIndex === steps.length - 1;
 
@@ -408,7 +410,7 @@ export function LevelUpDialog({
         });
         if (!response.ok) {
           const data = await response.json().catch(() => ({}));
-          setError(data.error || "Could not level up.");
+          setError(data.error || copy.error);
           return;
         }
         onDone();
@@ -483,12 +485,12 @@ export function LevelUpDialog({
       });
       if (!response.ok) {
         const data = await response.json().catch(() => ({}));
-        setError(data.error || "Could not level up.");
+        setError(data.error || copy.error);
         return;
       }
       onDone();
     } catch {
-      setError("Could not reach the server.");
+      setError(copy.server);
     } finally {
       setBusy(false);
     }
@@ -534,7 +536,7 @@ export function LevelUpDialog({
           <div className="mb-4 flex items-center justify-between">
             <Dialog.Title className="flex items-center gap-2 font-display text-lg tracking-wide text-amber-100">
               <Sparkles className="size-5 text-amber-200" />
-              Level {targetLevel}!
+              {copy.level.replace("{level}", String(targetLevel))}
             </Dialog.Title>
             <Dialog.Close className="rounded p-1 text-stone-400 hover:bg-stone-900">
               <X className="size-4" />
@@ -553,7 +555,7 @@ export function LevelUpDialog({
               </p>
               {newFeatureNames.length ? (
                 <div className="mb-4 rounded-md border border-amber-900/50 bg-stone-950/60 px-3 py-2">
-                  <p className="mb-1 text-xs text-amber-200">New at level {targetLevel}:</p>
+                  <p className="mb-1 text-xs text-amber-200">{copy.newAt.replace("{level}", String(targetLevel))}</p>
                   <InfoChipList
                     items={newFeatureNames.map((name) => ({
                       name,
@@ -570,7 +572,7 @@ export function LevelUpDialog({
                   onClick={() => pickHp(averageGain)}
                   className="flex w-full items-center justify-between rounded-md border border-stone-700 px-4 py-2.5 text-sm hover:border-amber-700 hover:bg-stone-900 disabled:opacity-50"
                 >
-                  <span>Take the average</span>
+                  <span>{copy.average}</span>
                   <span className="font-mono text-amber-400">+{averageGain} HP</span>
                 </button>
                 <div className="flex gap-2">
@@ -581,7 +583,7 @@ export function LevelUpDialog({
                     className="flex flex-1 items-center justify-center gap-2 rounded-md border border-stone-700 px-4 py-2.5 text-sm hover:border-amber-700 hover:bg-stone-900 disabled:opacity-50"
                   >
                     <Dices className="size-4" />
-                    {rolledHp === null ? `Roll ${levelsGained}d${hitDie}` : `Rolled ${rolledHp}`}
+                    {rolledHp === null ? copy.roll.replace("{dice}", `${levelsGained}d${hitDie}`) : copy.rolled.replace("{value}", String(rolledHp))}
                   </button>
                   {rolledGain !== null ? (
                     <button
@@ -593,7 +595,7 @@ export function LevelUpDialog({
                         "hover:bg-amber-100 disabled:opacity-50",
                       )}
                     >
-                      {busy ? <Loader2 className="size-4 animate-spin" /> : `Take +${rolledGain} HP`}
+                      {busy ? <Loader2 className="size-4 animate-spin" /> : copy.take.replace("{value}", String(rolledGain))}
                     </button>
                   ) : null}
                 </div>
@@ -644,7 +646,7 @@ export function LevelUpDialog({
                   {newClassOptions.length ? (
                     <>
                       <p className="text-xs uppercase tracking-wide text-amber-200/80">
-                        Multiclass into a new class
+                        {copy.multiclass}
                       </p>
                       <p className="text-xs text-stone-500">
                         A new class starts at level 1 with SOME of its training: no saving
@@ -678,7 +680,7 @@ export function LevelUpDialog({
                               </span>
                               <span className="block text-xs text-stone-400">
                                 {check.ok
-                                  ? `Grants: ${describeGrant(multiclassGrantsFor(option.id))}`
+                                  ? copy.grants.replace("{value}", describeGrant(multiclassGrantsFor(option.id)))
                                   : check.error}
                               </span>
                               <span className="block text-[11px] text-stone-600">
@@ -824,7 +826,7 @@ export function LevelUpDialog({
                                 >
                                   <span className="block">{option.n}</span>
                                   <span className="block text-[11px] text-stone-500">
-                                    {already ? "Already known. " : ""}
+                                    {already ? copy.known : ""}
                                     {option.req ? `Requires ${option.req}. ` : ""}
                                     {option.d}
                                   </span>
@@ -915,9 +917,9 @@ export function LevelUpDialog({
                             {builtInSubclasses.some(
                               (entry) => entry.toLowerCase() === name.toLowerCase(),
                             ) ? (
-                              <span className="text-xs text-stone-500">full features</span>
+                              <span className="text-xs text-stone-500">{copy.full}</span>
                             ) : (
-                              <span className="text-xs text-stone-600">description only</span>
+                              <span className="text-xs text-stone-600">{copy.description}</span>
                             )}
                           </button>
                           <InfoButton
@@ -963,7 +965,7 @@ export function LevelUpDialog({
                         <input
                           value={spellQuery}
                           onChange={(event) => setSpellQuery(event.target.value)}
-                          placeholder="Search your class's spell list"
+                          placeholder={copy.search}
                           className="w-full bg-transparent text-sm outline-none placeholder:text-stone-600"
                         />
                       </label>
@@ -1002,7 +1004,7 @@ export function LevelUpDialog({
                             </div>
                           ))}
                         {!spellOptions.length ? (
-                          <p className="px-1 py-2 text-xs text-stone-500">No matching spells.</p>
+                          <p className="px-1 py-2 text-xs text-stone-500">{copy.noSpells}</p>
                         ) : null}
                       </div>
                     </>
@@ -1011,7 +1013,7 @@ export function LevelUpDialog({
                       <input
                         value={manualSpell}
                         onChange={(event) => setManualSpell(event.target.value)}
-                        placeholder="Spell name"
+                        placeholder={copy.spellName}
                         className="w-full rounded-md border border-stone-700 bg-transparent px-3 py-2 text-sm outline-none placeholder:text-stone-600"
                       />
                       <button
@@ -1029,11 +1031,11 @@ export function LevelUpDialog({
                   )}
                   {spellPicks.length ? (
                     <p className="text-xs text-stone-400">
-                      Learning: <span className="text-amber-200">{spellPicks.join(", ")}</span>
+                      {copy.learning} <span className="text-amber-200">{spellPicks.join(", ")}</span>
                       {remainingPicks !== null && spellPicks.length >= remainingPicks ? (
                         <span className="text-stone-500">
                           {" "}
-                          (that is the full allowance at this level)
+                          {copy.allowance}
                         </span>
                       ) : null}
                     </p>
@@ -1059,9 +1061,9 @@ export function LevelUpDialog({
                   {busy ? (
                     <Loader2 className="size-4 animate-spin" />
                   ) : lastStep ? (
-                    "Confirm level up"
+                    copy.confirm
                   ) : (
-                    "Next"
+                    copy.next
                   )}
                 </button>
               </div>

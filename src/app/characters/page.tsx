@@ -20,6 +20,7 @@ import { cn } from "@/lib/cn";
 import { CharacterPortrait, IconChip, PIXEL_ICONS, PixelTile, ui } from "@/lib/ui";
 import { useI18n } from "@/lib/i18n";
 import { localeText } from "@/lib/i18n/locale-text";
+import { characterDisplay } from "@/lib/i18n/character-display";
 
 type CharacterAssignment = {
   campaignId: string;
@@ -47,10 +48,6 @@ function portraitPending(character: LibraryCharacter) {
 }
 
 const PORTRAIT_POLL_LIMIT = 240;
-
-function titleCase(value: string) {
-  return value.replace(/[-_]/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
-}
 
 export default function CharactersPage() {
   const { locale } = useI18n();
@@ -235,7 +232,7 @@ export default function CharactersPage() {
             <p className="text-sm text-stone-500">{copy.subtitle}</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <input
             ref={importInput}
             type="file"
@@ -391,15 +388,15 @@ function CharacterCard({
               {character.name}
             </span>
             <span className="inline-flex rounded-full border border-amber-500/30 bg-amber-400/10 px-2 py-0.5 text-[11px] text-amber-200">
-              {copy.level} {character.level} {titleCase(character.class)}
+               {copy.level} {character.level} {characterDisplay(character.class, locale)}
             </span>
           </div>
         </div>
         <p className="mt-2 text-sm text-stone-400">
-          {titleCase(character.race)}
-          {character.subclass ? ` (${character.subclass})` : ""}
+           {characterDisplay(character.race, locale)}
+           {character.subclass ? ` (${characterDisplay(character.subclass, locale)})` : ""}
         </p>
-        {character.background ? <p className="text-xs text-stone-500">{titleCase(character.background)}</p> : null}
+         {character.background ? <p className="text-xs text-stone-500">{characterDisplay(character.background, locale)}</p> : null}
       </a>
       {character.campaigns?.length ? (
         <div className="mt-2 flex flex-wrap gap-1.5 border-t border-stone-700/40 pt-2">

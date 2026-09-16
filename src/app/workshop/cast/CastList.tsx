@@ -6,6 +6,8 @@ import { cn } from "@/lib/cn";
 import { ui } from "@/lib/ui";
 import { npcPlaceholder, npcRoleLabel } from "@/lib/placeholders";
 import { describeNpc, draftFrom } from "@/lib/npcs/forge";
+import { useI18n } from "@/lib/i18n/context";
+import { localeText } from "@/lib/i18n/locale-text";
 
 // The cast, two ways. CastChips is the DM console's compact row of names,
 // moved here unchanged from DmNpcForgePanel. CastRows is the workshop's
@@ -39,11 +41,13 @@ type ListProps = {
 };
 
 export function CastChips({ npcs, selectedId, onOpen }: ListProps) {
+  const { locale } = useI18n();
+  const copy = localeText(locale, { en: { cast: "The cast", new: "Someone new", empty: "Nobody written yet. Everything here also fills itself in as the party meets people." }, ru: { cast: "Персонажи", new: "Новый персонаж", empty: "Пока никого нет. Этот список также пополняется, когда группа знакомится с людьми." }, pl: { cast: "Postacie", new: "Nowa postać", empty: "Nie ma jeszcze postaci. Lista uzupełnia się też, gdy drużyna poznaje ludzi." } });
   return (
     <section className="space-y-2 rounded-lg border border-stone-800 bg-stone-950/40 px-2.5 py-2">
       <p className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-stone-500">
         <Users className="size-3.5" />
-        The cast
+          {copy.cast}
       </p>
       <div className="flex flex-wrap gap-1">
         <button
@@ -56,7 +60,7 @@ export function CastChips({ npcs, selectedId, onOpen }: ListProps) {
               : "border-stone-700 text-stone-400 hover:text-stone-200",
           )}
         >
-          <UserPlus className="size-3" /> Someone new
+          <UserPlus className="size-3" /> {copy.new}
         </button>
         {npcs.map((npc) => (
           <button
@@ -84,7 +88,7 @@ export function CastChips({ npcs, selectedId, onOpen }: ListProps) {
       </div>
       {npcs.length === 0 ? (
         <p className="text-[11px] text-stone-500">
-          Nobody written yet. Everything here also fills itself in as the party meets people.
+          {copy.empty}
         </p>
       ) : null}
     </section>
@@ -113,6 +117,8 @@ function matches(npc: Npc, query: string): boolean {
 }
 
 export function CastRows({ npcs, onOpen }: Omit<ListProps, "selectedId">) {
+  const { locale } = useI18n();
+  const copy = localeText(locale, { en: { search: "Search the cast", searchLabel: "Search the cast by name or alias", new: "Someone new", archived: "set aside", relation: "relationship", relations: "relationships", wants: "wants", empty: "Nobody written yet. Everything here also fills itself in as the party meets people.", noMatch: "Nobody by that name or alias." }, ru: { search: "Поиск персонажей", searchLabel: "Искать персонажа по имени или прозвищу", new: "Новый персонаж", archived: "отложен", relation: "связь", relations: "связей", wants: "цель", empty: "Пока никого нет. Этот список также пополняется, когда группа знакомится с людьми.", noMatch: "Никого с таким именем или прозвищем нет." }, pl: { search: "Szukaj postaci", searchLabel: "Szukaj postaci po imieniu lub przydomku", new: "Nowa postać", archived: "odłożona", relation: "relacja", relations: "relacji", wants: "cel", empty: "Nie ma jeszcze postaci. Lista uzupełnia się też, gdy drużyna poznaje ludzi.", noMatch: "Nie ma postaci o tym imieniu ani przydomku." } });
   const [query, setQuery] = useState("");
   const shown = npcs.filter((npc) => matches(npc, query));
 
@@ -123,8 +129,8 @@ export function CastRows({ npcs, onOpen }: Omit<ListProps, "selectedId">) {
         <input
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          placeholder="Search the cast"
-          aria-label="Search the cast by name or alias"
+          placeholder={copy.search}
+          aria-label={copy.searchLabel}
           className={`${ui.input} pl-9`}
         />
       </label>
@@ -166,7 +172,7 @@ export function CastRows({ npcs, onOpen }: Omit<ListProps, "selectedId">) {
                     </span>
                     {npc.archived ? (
                       <span className="rounded-sm border border-stone-600/60 px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-stone-500">
-                        set aside
+                        {copy.archived}
                       </span>
                     ) : null}
                   </div>
@@ -177,8 +183,8 @@ export function CastRows({ npcs, onOpen }: Omit<ListProps, "selectedId">) {
                     <p className="mt-1 line-clamp-2 text-sm text-stone-300">{npc.trait}</p>
                   ) : null}
                   <p className="mt-1 truncate text-[11px] text-stone-500">
-                    {relations} {relations === 1 ? "relationship" : "relationships"}
-                    {goal ? <> · wants: {goal}</> : null}
+                    {relations} {relations === 1 ? copy.relation : copy.relations}
+                    {goal ? <> · {copy.wants}: {goal}</> : null}
                   </p>
                 </div>
               </button>
@@ -198,17 +204,17 @@ export function CastRows({ npcs, onOpen }: Omit<ListProps, "selectedId">) {
             <span className="flex size-11 shrink-0 items-center justify-center rounded-full border border-dashed border-stone-600">
               <UserPlus className="size-4" />
             </span>
-            <span className="font-display tracking-wide">Someone new</span>
+            <span className="font-display tracking-wide">{copy.new}</span>
           </button>
         </li>
       </ul>
 
       {npcs.length === 0 ? (
         <p className="text-[11px] text-stone-500">
-          Nobody written yet. Everything here also fills itself in as the party meets people.
+          {copy.empty}
         </p>
       ) : shown.length === 0 ? (
-        <p className="text-[11px] text-stone-500">Nobody by that name or alias.</p>
+        <p className="text-[11px] text-stone-500">{copy.noMatch}</p>
       ) : null}
     </div>
   );

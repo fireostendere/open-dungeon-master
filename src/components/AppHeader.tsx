@@ -48,14 +48,14 @@ export function AppHeader({
     // min-h keeps the row the height of the avatar button even before the
     // user resolves, so the page header below never jumps.
     <header className={cn("mb-6", className)}>
-      <div className="flex min-h-9 items-center justify-between gap-3">
+      <div className="flex min-h-9 flex-wrap items-center justify-between gap-3">
       <AppBrand>
         <PixelTile src={PIXEL_ICONS.story} size="size-8" />
         <span className="text-balance font-display text-base leading-tight tracking-wide text-amber-50 sm:text-lg">
           Open Dungeon Master
         </span>
       </AppBrand>
-      <div className="flex shrink-0 items-center gap-2">
+      <div className="ml-auto flex max-w-full flex-wrap items-center gap-2">
         <LanguageSwitcher />
         {resolved ? (
           <>

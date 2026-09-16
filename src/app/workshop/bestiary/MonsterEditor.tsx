@@ -20,6 +20,8 @@ import {
   SkillsAndSenses,
 } from "@/app/workshop/bestiary/StatBlockFields";
 import { CR_CHOICES, input } from "@/app/workshop/bestiary/types";
+import { useI18n } from "@/lib/i18n/context";
+import { localeText } from "@/lib/i18n/locale-text";
 
 // One built monster, open for editing: the block's numbers, the catalogue
 // over them, its attacks, saves, traits and defences, what it is, and the
@@ -56,6 +58,8 @@ export function MonsterEditor({
   onSave: () => void;
   layout?: "inline" | "sheet";
 }) {
+  const { locale } = useI18n();
+  const copy = localeText(locale, { en: { name: "Name", challenge: "Challenge", hp: "Hit points", swings: "Swings", dex: "Dex mod", extra: "Extra damage a round", extraHint: "A breath weapon or a round of spellcasting, averaged. The rating cannot see it otherwise.", what: "What it is", whatHint: "A knight's armour walking with nobody inside it.", wants: "wants", save: "Save the block", saving: "Saving recalculates the rating from what is on screen." }, ru: { name: "Название", challenge: "Угроза", hp: "Очки здоровья", swings: "Атак за ход", dex: "Модификатор ЛВК", extra: "Доп. урон за раунд", extraHint: "Например, дыхание или раунд заклинаний в среднем. Иначе рейтинг его не учитывает.", what: "Что это", whatHint: "Доспехи рыцаря, в которых никого нет.", wants: "ожидает", save: "Сохранить блок", saving: "При сохранении рейтинг пересчитывается по данным на экране." }, pl: { name: "Nazwa", challenge: "Wyzwanie", hp: "Punkty życia", swings: "Ataków na turę", dex: "Modyfikator ZR", extra: "Dodatkowe obrażenia na rundę", extraHint: "Np. oddech lub runda czarowania, uśrednione. Inaczej ocena tego nie widzi.", what: "Czym jest", whatHint: "Zbroja rycerza chodząca bez nikogo w środku.", wants: "oczekuje", save: "Zapisz blok", saving: "Zapis przelicza ocenę z danych na ekranie." } });
   const sheet = layout === "sheet";
   const setStats = (patch: Partial<MonsterDraft["stats"]>) =>
     onDraft({ ...draft, stats: { ...draft.stats, ...patch } });
@@ -67,7 +71,7 @@ export function MonsterEditor({
       )}
     >
       <label className={cn("flex flex-col gap-0.5", sheet && "col-span-2 sm:col-span-3")}>
-        <span className="text-[10px] uppercase tracking-wide text-stone-500">Name</span>
+        <span className="text-[10px] uppercase tracking-wide text-stone-500">{copy.name}</span>
         <input
           value={draft.name}
           onChange={(event) =>
@@ -77,7 +81,7 @@ export function MonsterEditor({
         />
       </label>
       <label className="flex flex-col gap-0.5">
-        <span className="text-[10px] uppercase tracking-wide text-stone-500">Challenge</span>
+        <span className="text-[10px] uppercase tracking-wide text-stone-500">{copy.challenge}</span>
         <select
           value={draft.stats.cr}
           onChange={(event) => setStats({ cr: Number(event.target.value) })}
@@ -92,21 +96,21 @@ export function MonsterEditor({
       </label>
       <NumberField label="AC" value={draft.stats.ac} min={1} max={30} onChange={(ac) => setStats({ ac })} />
       <NumberField
-        label="Hit points"
+        label={copy.hp}
         value={draft.stats.maxHp}
         min={1}
         max={1000}
         onChange={(maxHp) => setStats({ maxHp })}
       />
       <NumberField
-        label="Swings"
+        label={copy.swings}
         value={draft.stats.attacksPerTurn ?? 1}
         min={1}
         max={3}
         onChange={(attacksPerTurn) => setStats({ attacksPerTurn })}
       />
       <NumberField
-        label="Dex mod"
+        label={copy.dex}
         value={draft.stats.dexMod}
         min={-5}
         max={10}
@@ -117,23 +121,23 @@ export function MonsterEditor({
 
   const extraDamage = (
     <NumberField
-      label="Extra damage a round"
+      label={copy.extra}
       value={draft.extraDamagePerRound}
       min={0}
       max={400}
       onChange={(extraDamagePerRound) => onDraft({ ...draft, extraDamagePerRound })}
-      hint="A breath weapon or a round of spellcasting, averaged. The rating cannot see it otherwise."
+      hint={copy.extraHint}
     />
   );
 
   const description = (
     <label className="flex flex-col gap-0.5">
-      <span className="text-[10px] uppercase tracking-wide text-stone-500">What it is</span>
+      <span className="text-[10px] uppercase tracking-wide text-stone-500">{copy.what}</span>
       <textarea
         value={desc}
         onChange={(event) => onDesc(event.target.value)}
         rows={2}
-        placeholder="A knight's armour walking with nobody inside it."
+        placeholder={copy.whatHint}
         className={cn(input, "w-full resize-y")}
       />
     </label>
@@ -153,7 +157,7 @@ export function MonsterEditor({
               {row.stat}
             </span>{" "}
             <span className="text-stone-600">
-              ({row.verdict}, CR {crLabel(readout.statedCr)} wants {row.expected})
+              ({row.verdict}, CR {crLabel(readout.statedCr)} {copy.wants} {row.expected})
             </span>
           </span>
         ))}
@@ -164,7 +168,7 @@ export function MonsterEditor({
   const footer = (
     <>
       {error ? <p className="text-[11px] text-red-400">{error}</p> : null}
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <button
           type="button"
           disabled={busy}
@@ -172,10 +176,10 @@ export function MonsterEditor({
           className="inline-flex items-center gap-1.5 rounded-md border border-amber-500/40 px-3 py-1 text-xs text-amber-100 hover:bg-stone-800 disabled:opacity-40"
         >
           {busy ? <Loader2 className="size-3.5 animate-spin" /> : null}
-          Save the block
+          {copy.save}
         </button>
         <span className="text-[10px] text-stone-600">
-          Saving recalculates the rating from what is on screen.
+          {copy.saving}
         </span>
       </div>
     </>

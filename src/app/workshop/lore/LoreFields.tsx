@@ -6,6 +6,8 @@ import { cn } from "@/lib/cn";
 import type { LoreLinkTarget, LoreVisibility } from "@/lib/dm/world-lore-logic";
 import { Markdown } from "@/components/ui/Markdown";
 import type { LoreEntryView } from "@/app/workshop/lore/types";
+import { useI18n } from "@/lib/i18n/context";
+import { localeText } from "@/lib/i18n/locale-text";
 
 // The binder's extra fields (docs/workshop-parity-audit.md phase 14): who
 // may read an entry, the picture that makes it a handout, and the body
@@ -21,6 +23,8 @@ export function VisibilitySelect({
   value: LoreVisibility;
   onChange: (next: LoreVisibility) => void;
 }) {
+  const { locale } = useI18n();
+  const copy = localeText(locale, { en: { table: "The table reads it", dm: "Only I read it", secret: "A secret: the DM prompt knows it, the players never see it.", public: "Part of the world bible every player can open. With a picture, a handout." }, ru: { table: "Стол читает это", dm: "Только я читаю это", secret: "Секрет: мастер видит его в подсказке, игроки — никогда.", public: "Часть энциклопедии мира, которую может открыть каждый игрок. С изображением — раздатка." }, pl: { table: "Stół to czyta", dm: "Tylko ja to czytam", secret: "Sekret: prowadzący widzi go w podpowiedzi, gracze nigdy.", public: "Część kroniki świata dostępna dla każdego gracza. Ze zdjęciem staje się materiałem dla graczy." } });
   return (
     <div className="flex flex-wrap items-center gap-1">
       <button
@@ -32,7 +36,7 @@ export function VisibilitySelect({
           value === "party" ? "border-emerald-700 bg-emerald-950/40 text-emerald-200" : "border-stone-700 text-stone-400",
         )}
       >
-        <Users className="size-3" /> The table reads it
+        <Users className="size-3" /> {copy.table}
       </button>
       <button
         type="button"
@@ -43,12 +47,12 @@ export function VisibilitySelect({
           value === "dm" ? "border-violet-700 bg-violet-950/40 text-violet-200" : "border-stone-700 text-stone-400",
         )}
       >
-        <EyeOff className="size-3" /> Only I read it
+        <EyeOff className="size-3" /> {copy.dm}
       </button>
       <span className="text-[10px] text-stone-600">
         {value === "dm"
-          ? "A secret: the DM prompt knows it, the players never see it."
-          : "Part of the world bible every player can open. With a picture, a handout."}
+          ? copy.secret
+          : copy.public}
       </span>
     </div>
   );
@@ -61,6 +65,8 @@ export function LoreImageField({
   imagePath: string;
   onChange: (path: string) => void;
 }) {
+  const { locale } = useI18n();
+  const copy = localeText(locale, { en: { failed: "That image would not upload.", replace: "Replace the picture", add: "Add a picture", remove: "Take it away" }, ru: { failed: "Не удалось загрузить изображение.", replace: "Заменить изображение", add: "Добавить изображение", remove: "Убрать" }, pl: { failed: "Nie udało się przesłać obrazu.", replace: "Zastąp obraz", add: "Dodaj obraz", remove: "Usuń obraz" } });
   const fileRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
@@ -82,12 +88,12 @@ export function LoreImageField({
       });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) {
-        setError(payload.error || "That image would not upload.");
+        setError(payload.error || copy.failed);
         return;
       }
       onChange(payload.url);
     } catch {
-      setError("That image would not upload.");
+      setError(copy.failed);
     } finally {
       setUploading(false);
     }
@@ -119,11 +125,11 @@ export function LoreImageField({
         className={cn(chip, "border-stone-700 text-stone-300 hover:bg-stone-900 disabled:opacity-50")}
       >
         {uploading ? <Loader2 className="size-3 animate-spin" /> : <ImageIcon className="size-3" />}
-        {imagePath ? "Replace the picture" : "Add a picture"}
+        {imagePath ? copy.replace : copy.add}
       </button>
       {imagePath ? (
         <button type="button" onClick={() => onChange("")} className={cn(chip, "border-stone-700 text-stone-400 hover:bg-stone-900")}>
-          <Trash2 className="size-3" /> Take it away
+          <Trash2 className="size-3" /> {copy.remove}
         </button>
       ) : null}
       {error ? <span className="text-[11px] text-red-400">{error}</span> : null}

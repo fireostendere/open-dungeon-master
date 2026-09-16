@@ -6,6 +6,8 @@ import { cn } from "@/lib/cn";
 import { ui } from "@/lib/ui";
 import { dieForTable, tableGaps, type RollTableEntry } from "@/lib/dm/roll-table-logic";
 import type { RollTable } from "@/lib/db/roll-tables";
+import { useI18n } from "@/lib/i18n/context";
+import { localeText } from "@/lib/i18n/locale-text";
 
 // The workshop's view of the DM's tables: one full-width row per table with
 // the die it rolls, how many rows it has and whether every face of that die
@@ -33,16 +35,16 @@ export function coverageOf(entries: RollTableEntry[]): TableCoverage {
 // Green when every face lands on one row; amber with the counts when a roll
 // can land nowhere or on two rows at once. Which numbers are the trouble is
 // the editor's coverage line, where the DM can fix them.
-export function coverageLabel(coverage: TableCoverage): string {
+export function coverageLabel(coverage: TableCoverage, copy = { covered: "covers", gap: "gap", gaps: "gaps", overlap: "overlap", overlaps: "overlaps" }): string {
   if (!coverage.gaps && !coverage.overlaps) {
-    return `covers 1 to ${coverage.die}`;
+    return `${copy.covered} 1–${coverage.die}`;
   }
   const parts: string[] = [];
   if (coverage.gaps) {
-    parts.push(`${coverage.gaps} ${coverage.gaps === 1 ? "gap" : "gaps"}`);
+    parts.push(`${coverage.gaps} ${coverage.gaps === 1 ? copy.gap : copy.gaps}`);
   }
   if (coverage.overlaps) {
-    parts.push(`${coverage.overlaps} ${coverage.overlaps === 1 ? "overlap" : "overlaps"}`);
+    parts.push(`${coverage.overlaps} ${coverage.overlaps === 1 ? copy.overlap : copy.overlaps}`);
   }
   return parts.join(", ");
 }
@@ -83,6 +85,12 @@ export function TableRows({
   onDuplicate,
   onDelete,
 }: RowsProps) {
+  const { locale } = useI18n();
+  const copy = localeText(locale, {
+    en: { search: "Search your tables", searchAria: "Search your tables by name", row: "row", rows: "rows", covered: "covers", gap: "gap", gaps: "gaps", overlap: "overlap", overlaps: "overlaps", deck: "deck", dealt: "dealt", roll: "Roll", duplicate: "Duplicate", delete: "Delete", deleteTitle: "Delete this table", left: "left", new: "New table", empty: "No tables yet. Start one with New table, or paste one out of a book.", loading: "Loading...", noMatch: "No table by that name." },
+    ru: { search: "Поиск по таблицам", searchAria: "Искать таблицы по названию", row: "строка", rows: "строк", covered: "охват", gap: "пробел", gaps: "пробелов", overlap: "пересечение", overlaps: "пересечений", deck: "колода", dealt: "вытянуто", roll: "Бросить", duplicate: "Дублировать", delete: "Удалить", deleteTitle: "Удалить эту таблицу", left: "осталось", new: "Новая таблица", empty: "Таблиц пока нет. Создайте новую или вставьте таблицу из книги.", loading: "Загрузка...", noMatch: "Таблица с таким названием не найдена." },
+    pl: { search: "Szukaj tabel", searchAria: "Szukaj tabel według nazwy", row: "wiersz", rows: "wierszy", covered: "obejmuje", gap: "luka", gaps: "luk", overlap: "nakładanie", overlaps: "nakładań", deck: "talia", dealt: "dobrano", roll: "Rzuć", duplicate: "Duplikuj", delete: "Usuń", deleteTitle: "Usuń tę tabelę", left: "pozostało", new: "Nowa tabela", empty: "Nie ma jeszcze tabel. Utwórz nową lub wklej tabelę z książki.", loading: "Ładowanie...", noMatch: "Nie ma tabeli o tej nazwie." },
+  });
   const [query, setQuery] = useState("");
   const needle = query.trim().toLowerCase();
   const shown = needle
@@ -96,8 +104,8 @@ export function TableRows({
         <input
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          placeholder="Search your tables"
-          aria-label="Search your tables by name"
+          placeholder={copy.search}
+          aria-label={copy.searchAria}
           className={`${ui.input} pl-9`}
         />
       </label>
@@ -122,7 +130,7 @@ export function TableRows({
                   </span>
                   <span className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-stone-500">
                     <span>
-                      {coverage.rows} {coverage.rows === 1 ? "row" : "rows"}
+                       {coverage.rows} {coverage.rows === 1 ? copy.row : copy.rows}
                     </span>
                     <span
                       className={cn(
@@ -130,11 +138,11 @@ export function TableRows({
                         clean ? COVERED : PATCHY,
                       )}
                     >
-                      {coverageLabel(coverage)}
+                       {coverageLabel(coverage, copy)}
                     </span>
                     {table.noReplacement ? (
                       <span className="rounded-sm border border-violet-500/40 bg-violet-500/10 px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-violet-300">
-                        deck, {table.drawn.length} dealt
+                         {copy.deck}, {table.drawn.length} {copy.dealt}
                       </span>
                     ) : null}
                   </span>
@@ -146,13 +154,13 @@ export function TableRows({
                     disabled={busy === table.id}
                     className="rounded-md border border-amber-700 bg-amber-950/50 px-2.5 py-1 text-xs text-amber-100 hover:bg-amber-900/50 disabled:opacity-40"
                   >
-                    {busy === table.id ? <Loader2 className="size-3.5 animate-spin" /> : "Roll"}
+                     {busy === table.id ? <Loader2 className="size-3.5 animate-spin" /> : copy.roll}
                   </button>
                   <button
                     type="button"
                     onClick={() => onDuplicate(table)}
                     disabled={busy === `copy-${table.id}`}
-                    aria-label={`Duplicate ${table.name}`}
+                     aria-label={`${copy.duplicate}: ${table.name}`}
                     className="rounded-md border border-stone-700 p-1.5 text-stone-500 hover:text-stone-300 disabled:opacity-40"
                   >
                     <Copy className="size-3.5" />
@@ -160,8 +168,8 @@ export function TableRows({
                   <button
                     type="button"
                     onClick={() => onDelete(table)}
-                    aria-label={`Delete ${table.name}`}
-                    title="Delete this table"
+                     aria-label={`${copy.delete}: ${table.name}`}
+                     title={copy.deleteTitle}
                     className="rounded-md border border-stone-700 p-1.5 text-stone-500 hover:text-red-300"
                   >
                     <Trash2 className="size-3.5" />
@@ -173,7 +181,7 @@ export function TableRows({
                   <p>
                     <span className="text-amber-200">{result.total}:</span> {result.text}
                     {result.remaining !== null ? (
-                      <span className="ml-1 text-stone-500">({result.remaining} left)</span>
+                       <span className="ml-1 text-stone-500">({result.remaining} {copy.left})</span>
                     ) : null}
                   </p>
                   {result.chain.map((line, index) => (
@@ -199,17 +207,17 @@ export function TableRows({
             <span className="flex size-9 shrink-0 items-center justify-center rounded-full border border-dashed border-stone-600">
               <Plus className="size-4" />
             </span>
-            <span className="font-display tracking-wide">New table</span>
+             <span className="font-display tracking-wide">{copy.new}</span>
           </button>
         </li>
       </ul>
 
       {tables.length === 0 ? (
         <p className="text-[11px] text-stone-500">
-          {loaded ? "No tables yet. Start one with New table, or paste one out of a book." : "Loading..."}
+           {loaded ? copy.empty : copy.loading}
         </p>
       ) : shown.length === 0 ? (
-        <p className="text-[11px] text-stone-500">No table by that name.</p>
+         <p className="text-[11px] text-stone-500">{copy.noMatch}</p>
       ) : null}
     </div>
   );

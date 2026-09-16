@@ -64,7 +64,7 @@ function interpolate(text: string, params?: Record<string, string | number>): st
   if (!params) return text;
   let result = text;
   for (const [key, value] of Object.entries(params)) {
-    result = result.replaceAll(`{${key}}`, String(value));
+    result = result.replaceAll(`{${key}}`, () => String(value));
   }
   return result;
 }

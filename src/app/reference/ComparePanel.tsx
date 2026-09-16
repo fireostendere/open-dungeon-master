@@ -4,6 +4,8 @@ import { Loader2, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/cn";
 import { ui } from "@/lib/ui";
+import { useI18n } from "@/lib/i18n";
+import { localeText } from "@/lib/i18n/locale-text";
 import type { CompareKind, CompareTable } from "@/lib/reference/compare";
 
 // Several monsters or spells side by side, with the rows that differ marked.
@@ -27,6 +29,8 @@ export function ComparePanel({
   onRemove: (slug: string) => void;
   onClear: () => void;
 }) {
+  const { locale } = useI18n();
+  const copy = localeText(locale, { en: { pick: "Pick two or more spells or monsters in Browse to compare them. Only one kind at a time.", remove: "Remove", clear: "Clear", building: "Building the table", differs: "Only what differs", agree: "These agree on every row the table checks.", error: "That comparison could not be built." }, ru: { pick: "Выберите в обзоре два или больше заклинаний или монстров для сравнения. Одновременно доступен один тип.", remove: "Убрать", clear: "Очистить", building: "Составляем таблицу", differs: "Только различия", agree: "По всем проверяемым строкам эти записи совпадают.", error: "Не удалось составить сравнение." }, pl: { pick: "Wybierz w przeglądzie co najmniej dwa zaklęcia lub potwory do porównania. Naraz tylko jeden typ.", remove: "Usuń", clear: "Wyczyść", building: "Tworzenie tabeli", differs: "Tylko różnice", agree: "Te wpisy są zgodne we wszystkich sprawdzanych wierszach.", error: "Nie udało się utworzyć porównania." } });
   const [table, setTable] = useState<CompareTable | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -59,7 +63,7 @@ export function ComparePanel({
           return;
         }
         if (!response.ok) {
-          setError(data.error ?? "That comparison could not be built.");
+          setError(data.error ?? copy.error);
           setTable(null);
           return;
         }
@@ -67,7 +71,7 @@ export function ComparePanel({
         setTable(data.table);
       } catch {
         if (!cancelled) {
-          setError("That comparison could not be built.");
+          setError(copy.error);
         }
       } finally {
         if (!cancelled) {
@@ -79,12 +83,12 @@ export function ComparePanel({
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [slugs, selection.kind]);
+  }, [slugs, selection.kind, copy.error]);
 
   if (selection.entries.length < 2) {
     return (
       <p className="text-sm text-stone-500">
-        Pick two or more spells or monsters in Browse to compare them. Only one kind at a time.
+        {copy.pick}
       </p>
     );
   }
@@ -103,7 +107,7 @@ export function ComparePanel({
             <button
               type="button"
               onClick={() => onRemove(entry.slug)}
-              aria-label={`Remove ${entry.name}`}
+              aria-label={`${copy.remove} ${entry.name}`}
               className="text-stone-600 hover:text-amber-200"
             >
               <X className="size-3" />
@@ -111,13 +115,13 @@ export function ComparePanel({
           </span>
         ))}
         <button type="button" onClick={onClear} className={ui.btnSmall}>
-          Clear
+          {copy.clear}
         </button>
       </div>
 
       {loading ? (
         <p className="flex items-center gap-2 text-sm text-stone-500">
-          <Loader2 className="size-4 animate-spin" /> Building the table
+          <Loader2 className="size-4 animate-spin" /> {copy.building}
         </p>
       ) : null}
       {error ? <p className="text-sm text-red-300">{error}</p> : null}
@@ -131,7 +135,7 @@ export function ComparePanel({
               onChange={(event) => setOnlyDiffering(event.target.checked)}
               className="accent-amber-500"
             />
-            Only what differs ({table.differingRows} of {table.rows.length} rows)
+            {copy.differs} ({table.differingRows} / {table.rows.length})
           </label>
 
           <div className="overflow-x-auto rounded-xl border border-stone-800">
@@ -180,7 +184,7 @@ export function ComparePanel({
                       colSpan={table.columns.length + 1}
                       className="px-3 py-4 text-sm text-stone-500"
                     >
-                      These agree on every row the table checks.
+                      {copy.agree}
                     </td>
                   </tr>
                 ) : null}

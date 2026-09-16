@@ -1,8 +1,14 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { cn } from "@/lib/cn";
-import { CALCULATORS, type CalcInput } from "@/lib/reference/calculators";
+import { useI18n } from "@/lib/i18n";
+import {
+  CALCULATORS,
+  calculatorDisplay,
+  localizeCalculatorResult,
+  type CalcInput,
+} from "@/lib/reference/calculators";
 
 // Every table calculation on one screen.
 //
@@ -12,6 +18,7 @@ import { CALCULATORS, type CalcInput } from "@/lib/reference/calculators";
 // which input produced it.
 
 export function CalculatorsPanel() {
+  const { locale } = useI18n();
   const [openId, setOpenId] = useState(CALCULATORS[0]?.id ?? "");
   const [inputs, setInputs] = useState<Record<string, CalcInput>>(() =>
     Object.fromEntries(CALCULATORS.map((calculator) => [calculator.id, { ...calculator.defaults }])),
@@ -19,7 +26,8 @@ export function CalculatorsPanel() {
 
   const calculator = CALCULATORS.find((entry) => entry.id === openId) ?? CALCULATORS[0];
   const input = inputs[calculator.id] ?? calculator.defaults;
-  const result = useMemo(() => calculator.run(input), [calculator, input]);
+  const display = calculatorDisplay(calculator, locale);
+  const result = localizeCalculatorResult(calculator.id, calculator.run(input), locale);
 
   function set(key: string, value: string) {
     setInputs((previous) => ({
@@ -43,15 +51,15 @@ export function CalculatorsPanel() {
                 : "border-stone-700 text-stone-400 hover:border-amber-800 hover:text-stone-200",
             )}
           >
-            {entry.label}
+            {calculatorDisplay(entry, locale).label}
           </button>
         ))}
       </div>
 
-      <p className="mb-3 text-sm text-stone-400">{calculator.blurb}</p>
+      <p className="mb-3 text-sm text-stone-400">{display.blurb}</p>
 
       <div className="mb-4 grid gap-3 sm:grid-cols-2">
-        {calculator.fields.map((field) => (
+        {display.fields.map((field) => (
           <label key={field.key} className="block">
             <span className="mb-1 block text-xs uppercase tracking-wide text-stone-500">
               {field.label}

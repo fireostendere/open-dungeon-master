@@ -6,7 +6,6 @@ import { MAX_TRAITS, TRAIT_MAX, type MonsterDraft } from "@/lib/bestiary/monster
 import {
   ABILITY_ORDER,
   ENVIRONMENTS,
-  SECTION_LABELS,
   SENSE_NAMES,
   SKILL_NAMES,
   TRAIT_SECTIONS,
@@ -23,6 +22,8 @@ import { describeSkill } from "@/lib/help";
 import type { GlossaryEntry } from "@/lib/help/terms";
 import { ALIGNMENT_LABELS } from "@/app/characters/builder/usePickerGroups";
 import { input } from "@/app/workshop/bestiary/types";
+import { useI18n } from "@/lib/i18n/context";
+import { localeText } from "@/lib/i18n/locale-text";
 
 // The printed half of a stat block (docs/workshop-parity-audit.md phase
 // 12): ability scores, skills, senses, languages and alignment, the spells
@@ -52,6 +53,11 @@ function signed(value: number): string {
 
 type Setter = (patch: Partial<EnemyStats>) => void;
 
+function useStatBlockCopy() {
+  const { locale } = useI18n();
+  return localeText(locale, { en: { abilities: "Ability scores", saves: "Saves from scores", savesHint: "Set the DEX modifier and the saving throws from these scores", skills: "Skills (tap to add, type the bonus)", skillsTitle: "Skills", bonus: "bonus", passive: "Passive Perception", passiveHint: "A hiding character has to beat the passive Perception; the printed number wins, then the skill, then Wisdom.", languages: "Languages", add: "Add", alignment: "Alignment", alignments: "Alignments", unstated: "unstated", spells: "Spells known (by name, comma separated)", spellsHint: "Fire Bolt, Shield, Misty Step", findSpell: "Find a spell in the catalogue to add", findSpellHint: "Find a spell to add...", spellNote: "The DM running it sees the list. Put a round of casting into extra damage so the rating counts it.", found: "Found in", traits: "Traits and actions", section: "Section", traitHint: "Fire Breath (Recharge 5-6): DC 15 Dex save, 6d6 fire, half on a success", remove: "Remove trait", full: "The block is full at", lines: "lines", sections: { trait: "Trait", action: "Action", bonus: "Bonus action", reaction: "Reaction", legendary: "Legendary action", lair: "Lair action" }, senses: { darkvision: "Darkvision", blindsight: "Blindsight", tremorsense: "Tremorsense", truesight: "Truesight" }, environments: { arctic: "Arctic", coastal: "Coastal", desert: "Desert", forest: "Forest", grassland: "Grassland", hill: "Hill", mountain: "Mountain", swamp: "Swamp", underdark: "Underdark", underwater: "Underwater", urban: "Urban" } }, ru: { abilities: "Характеристики", saves: "Спасброски из характеристик", savesHint: "Установить модификатор ЛВК и спасброски по этим характеристикам", skills: "Навыки (нажмите, чтобы добавить, введите бонус)", skillsTitle: "Навыки", bonus: "бонус", passive: "Пассивное Восприятие", passiveHint: "Скрывающийся персонаж должен превзойти пассивное Восприятие; сначала используется указанное число, затем навык, затем МДР.", languages: "Языки", add: "Добавить", alignment: "Мировоззрение", alignments: "Мировоззрения", unstated: "не указано", spells: "Известные заклинания (названия через запятую)", spellsHint: "Огненный снаряд, Щит, Туманный шаг", findSpell: "Найти заклинание в каталоге", findSpellHint: "Найти заклинание...", spellNote: "DM видит этот список. Добавьте раунд заклинаний в доп. урон, чтобы рейтинг его учёл.", found: "Где встречается", traits: "Черты и действия", section: "Раздел", traitHint: "Огненное дыхание (перезарядка 5–6): СЛ 15 ЛВК, 6к6 огнём, половина при успехе", remove: "Удалить черту", full: "Блок заполнен: максимум", lines: "строк", sections: { trait: "Черта", action: "Действие", bonus: "Бонусное действие", reaction: "Реакция", legendary: "Легендарное действие", lair: "Действие логова" }, senses: { darkvision: "Тёмное зрение", blindsight: "Слепое зрение", tremorsense: "Чувство вибрации", truesight: "Истинное зрение" }, environments: { arctic: "Арктика", coastal: "Побережье", desert: "Пустыня", forest: "Лес", grassland: "Луга", hill: "Холмы", mountain: "Горы", swamp: "Болото", underdark: "Подземье", underwater: "Под водой", urban: "Город" } }, pl: { abilities: "Cechy", saves: "Rzuty obronne z cech", savesHint: "Ustaw modyfikator ZR i rzuty obronne na podstawie tych cech", skills: "Umiejętności (kliknij, aby dodać, wpisz premię)", skillsTitle: "Umiejętności", bonus: "premia", passive: "Pasywna Percepcja", passiveHint: "Ukrywająca się postać musi pokonać pasywną Percepcję; najpierw używane jest wpisane liczba, potem umiejętność, potem MĄD.", languages: "Języki", add: "Dodaj", alignment: "Charakter", alignments: "Charaktery", unstated: "nie podano", spells: "Znane czary (nazwy po przecinku)", spellsHint: "Ognisty pocisk, Tarcza, Mglisty krok", findSpell: "Znajdź czar w katalogu", findSpellHint: "Znajdź czar do dodania...", spellNote: "MG widzi listę. Dodaj rundę czarowania do dodatkowych obrażeń, aby ocena ją uwzględniła.", found: "Występuje w", traits: "Cechy i akcje", section: "Sekcja", traitHint: "Ognisty oddech (odnowienie 5–6): ST 15 ZR, 6k6 ognia, połowa przy sukcesie", remove: "Usuń cechę", full: "Blok jest pełny: maksymalnie", lines: "wierszy", sections: { trait: "Cecha", action: "Akcja", bonus: "Akcja dodatkowa", reaction: "Reakcja", legendary: "Akcja legendarna", lair: "Akcja legowiska" }, senses: { darkvision: "Widzenie w ciemności", blindsight: "Ślepowidzenie", tremorsense: "Wyczucie drgań", truesight: "Prawdziwe widzenie" }, environments: { arctic: "Arktyka", coastal: "Wybrzeże", desert: "Pustynia", forest: "Las", grassland: "Łąki", hill: "Wzgórza", mountain: "Góry", swamp: "Bagno", underdark: "Podmrok", underwater: "Pod wodą", urban: "Miasto" } } });
+}
+
 function Label({ children }: { children: string }) {
   return <span className="text-[10px] uppercase tracking-wide text-stone-500">{children}</span>;
 }
@@ -69,6 +75,7 @@ const ALIGNMENT_GLOSSARY: GlossaryEntry[] = Object.values(ALIGNMENT_LABELS).map(
 }));
 
 export function AbilityScores({ draft, onChange }: { draft: MonsterDraft; onChange: (draft: MonsterDraft) => void }) {
+  const copy = useStatBlockCopy();
   const stats = draft.stats;
   const set: Setter = (patch) => onChange({ ...draft, stats: { ...stats, ...patch } });
   const scores = stats.abilities ?? {};
@@ -96,15 +103,15 @@ export function AbilityScores({ draft, onChange }: { draft: MonsterDraft; onChan
   return (
     <div className="space-y-1">
       <div className="flex items-center gap-2">
-        <Label>Ability scores</Label>
+        <Label>{copy.abilities}</Label>
         <button
           type="button"
           onClick={derive}
           disabled={!Object.keys(scores).length}
           className="rounded-md border border-stone-700 px-1.5 py-0.5 text-[10px] text-stone-400 hover:text-amber-100 disabled:opacity-40"
-          title="Set the DEX modifier and the saving throws from these scores"
+          title={copy.savesHint}
         >
-          Saves from scores
+          {copy.saves}
         </button>
       </div>
       <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-6">
@@ -133,6 +140,7 @@ export function AbilityScores({ draft, onChange }: { draft: MonsterDraft; onChan
 }
 
 export function SkillsAndSenses({ draft, onChange }: { draft: MonsterDraft; onChange: (draft: MonsterDraft) => void }) {
+  const copy = useStatBlockCopy();
   const stats = draft.stats;
   const set: Setter = (patch) => onChange({ ...draft, stats: { ...stats, ...patch } });
   const skills = stats.skills ?? {};
@@ -150,8 +158,8 @@ export function SkillsAndSenses({ draft, onChange }: { draft: MonsterDraft; onCh
     <div className="space-y-2">
       <div className="space-y-1">
         <span className="flex items-center gap-1">
-          <Label>Skills (tap to add, type the bonus)</Label>
-          <OptionGlossary title="Skills" entries={SKILL_GLOSSARY} />
+          <Label>{copy.skills}</Label>
+          <OptionGlossary title={copy.skillsTitle} entries={SKILL_GLOSSARY} />
         </span>
         <div className="flex flex-wrap gap-1">
           {SKILL_NAMES.map((name) => {
@@ -183,7 +191,7 @@ export function SkillsAndSenses({ draft, onChange }: { draft: MonsterDraft; onCh
                 {on ? (
                   <input
                     type="number"
-                    aria-label={`${name} bonus`}
+                    aria-label={`${name} ${copy.bonus}`}
                     min={-5}
                     max={20}
                     value={bonus}
@@ -199,7 +207,7 @@ export function SkillsAndSenses({ draft, onChange }: { draft: MonsterDraft; onCh
       <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-5">
         {SENSE_NAMES.map((name) => (
           <label key={name} className="flex flex-col gap-0.5">
-            <span className="text-[10px] uppercase tracking-wide text-stone-500">{name} (ft)</span>
+            <span className="text-[10px] uppercase tracking-wide text-stone-500">{copy.senses[name]} (ft)</span>
             <input
               type="number"
               min={0}
@@ -213,7 +221,7 @@ export function SkillsAndSenses({ draft, onChange }: { draft: MonsterDraft; onCh
           </label>
         ))}
         <label className="flex flex-col gap-0.5">
-          <span className="text-[10px] uppercase tracking-wide text-stone-500">Passive Perception</span>
+          <span className="text-[10px] uppercase tracking-wide text-stone-500">{copy.passive}</span>
           <input
             type="number"
             min={1}
@@ -228,13 +236,15 @@ export function SkillsAndSenses({ draft, onChange }: { draft: MonsterDraft; onCh
         </label>
       </div>
       <p className="text-[10px] text-stone-600">
-        A hiding character has to beat the passive Perception; the printed number wins, then the skill, then Wisdom.
+        {copy.passiveHint}
       </p>
     </div>
   );
 }
 
 export function LanguagesAndHabitat({ draft, onChange }: { draft: MonsterDraft; onChange: (draft: MonsterDraft) => void }) {
+  const { locale } = useI18n();
+  const copy = useStatBlockCopy();
   const stats = draft.stats;
   const set: Setter = (patch) => onChange({ ...draft, stats: { ...stats, ...patch } });
   const environment = stats.environment ?? [];
@@ -243,17 +253,17 @@ export function LanguagesAndHabitat({ draft, onChange }: { draft: MonsterDraft; 
     <div className="space-y-2">
       <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
         <label className="flex flex-col gap-0.5">
-          <Label>Languages</Label>
+          <Label>{copy.languages}</Label>
           <div className="flex flex-wrap items-center gap-1.5">
             <input
               value={stats.languages ?? ""}
               maxLength={200}
-              placeholder="Common, Goblin"
+              placeholder={locale === "ru" ? "Всеобщий, Гоблинский" : locale === "pl" ? "Wspólny, Gobliński" : "Common, Goblin"}
               onChange={(event) => set({ languages: event.target.value || undefined })}
               className={cn(input, "min-w-32 flex-1")}
             />
             <AddFromList
-              prompt="Add"
+              prompt={copy.add}
               options={LANGUAGES}
               onPick={(term) => set({ languages: appendTerm(stats.languages ?? "", term) })}
             />
@@ -261,8 +271,8 @@ export function LanguagesAndHabitat({ draft, onChange }: { draft: MonsterDraft; 
         </label>
         <label className="flex flex-col gap-0.5">
           <span className="flex items-center gap-1">
-            <Label>Alignment</Label>
-            <OptionGlossary title="Alignments" entries={ALIGNMENT_GLOSSARY} />
+            <Label>{copy.alignment}</Label>
+            <OptionGlossary title={copy.alignments} entries={ALIGNMENT_GLOSSARY} />
           </span>
           <select
             value={stats.alignment ?? ""}
@@ -271,20 +281,20 @@ export function LanguagesAndHabitat({ draft, onChange }: { draft: MonsterDraft; 
           >
             {ALIGNMENTS.map((alignment) => (
               <option key={alignment} value={alignment} className="capitalize">
-                {alignment || "unstated"}
+                {alignment || copy.unstated}
               </option>
             ))}
           </select>
         </label>
       </div>
       <div className="flex flex-col gap-0.5">
-        <Label>Spells known (by name, comma separated)</Label>
+        <Label>{copy.spells}</Label>
         <input
           defaultValue={spells.join(", ")}
           key={spells.join("|")}
           maxLength={800}
-          aria-label="Spells known"
-          placeholder="Fire Bolt, Shield, Misty Step"
+          aria-label={copy.spells}
+          placeholder={copy.spellsHint}
           onBlur={(event) => {
             const next = event.target.value.split(",").map((name) => name.trim()).filter(Boolean);
             if (next.join("|") !== spells.join("|")) {
@@ -295,8 +305,8 @@ export function LanguagesAndHabitat({ draft, onChange }: { draft: MonsterDraft; 
         />
         <ContentPick
           kind="spells"
-          label="Find a spell in the catalogue to add"
-          placeholder="Find a spell to add..."
+          label={copy.findSpell}
+          placeholder={copy.findSpellHint}
           onPick={(entry) => {
             if (!spells.some((known) => known.toLowerCase() === entry.name.toLowerCase())) {
               set({ spells: [...spells, entry.name] });
@@ -304,11 +314,11 @@ export function LanguagesAndHabitat({ draft, onChange }: { draft: MonsterDraft; 
           }}
         />
         <span className="text-[10px] text-stone-600">
-          The DM running it sees the list. Put a round of casting into extra damage so the rating counts it.
+          {copy.spellNote}
         </span>
       </div>
       <div className="space-y-1">
-        <Label>Found in</Label>
+        <Label>{copy.found}</Label>
         <div className="flex flex-wrap gap-1">
           {ENVIRONMENTS.map((place) => {
             const on = environment.includes(place);
@@ -326,7 +336,7 @@ export function LanguagesAndHabitat({ draft, onChange }: { draft: MonsterDraft; 
                   on ? "border-amber-700 bg-amber-950/50 text-amber-100" : "border-stone-700 text-stone-400 hover:text-stone-200",
                 )}
               >
-                {place}
+                {copy.environments[place]}
               </button>
             );
           })}
@@ -339,18 +349,19 @@ export function LanguagesAndHabitat({ draft, onChange }: { draft: MonsterDraft; 
 // The trait list with a section on every line. The line stored is the one
 // the DM prompt prints, prefix and all (src/lib/bestiary/block-sections.ts).
 export function SectionedTraitEditor({ draft, onChange }: { draft: MonsterDraft; onChange: (draft: MonsterDraft) => void }) {
+  const copy = useStatBlockCopy();
   const traits = draft.stats.traits;
   const setTraits = (next: string[]) => onChange({ ...draft, stats: { ...draft.stats, traits: next } });
   return (
     <div className="flex flex-col gap-1">
-      <Label>Traits and actions</Label>
+      <Label>{copy.traits}</Label>
       {traits.map((trait, index) => {
         const { section, text } = sectionOfLine(trait);
         return (
-          <div key={index} className="flex items-center gap-1.5">
+          <div key={index} className="flex min-w-0 items-center gap-1.5">
             <select
               value={section}
-              aria-label="Section"
+              aria-label={copy.section}
               onChange={(event) =>
                 setTraits(traits.map((row, at) => (at === index ? withSection(row, event.target.value as typeof section) : row)))
               }
@@ -358,7 +369,7 @@ export function SectionedTraitEditor({ draft, onChange }: { draft: MonsterDraft;
             >
               {TRAIT_SECTIONS.map((option) => (
                 <option key={option} value={option}>
-                  {SECTION_LABELS[option]}
+                  {copy.sections[option]}
                 </option>
               ))}
             </select>
@@ -368,14 +379,14 @@ export function SectionedTraitEditor({ draft, onChange }: { draft: MonsterDraft;
               onChange={(event) =>
                 setTraits(traits.map((row, at) => (at === index ? withSection(event.target.value, section) : row)))
               }
-              placeholder="Fire Breath (Recharge 5-6): DC 15 Dex save, 6d6 fire, half on a success"
+              placeholder={copy.traitHint}
               className={cn(input, "flex-1")}
             />
             <button
               type="button"
               onClick={() => setTraits(traits.filter((_, at) => at !== index))}
               className="text-stone-600 hover:text-red-300"
-              aria-label="Remove trait"
+              aria-label={copy.remove}
             >
               <Trash2 className="size-3.5" />
             </button>
@@ -391,12 +402,12 @@ export function SectionedTraitEditor({ draft, onChange }: { draft: MonsterDraft;
               onClick={() => setTraits([...traits, withSection("", section)])}
               className="inline-flex items-center gap-1 rounded-md border border-stone-700 px-2 py-0.5 text-[11px] text-stone-400 hover:text-amber-100"
             >
-              <Plus className="size-3" /> {SECTION_LABELS[section]}
+              <Plus className="size-3" /> {copy.sections[section]}
             </button>
           ))}
         </div>
       ) : (
-        <p className="text-[10px] text-stone-600">The block is full at {MAX_TRAITS} lines.</p>
+        <p className="text-[10px] text-stone-600">{copy.full} {MAX_TRAITS} {copy.lines}.</p>
       )}
     </div>
   );

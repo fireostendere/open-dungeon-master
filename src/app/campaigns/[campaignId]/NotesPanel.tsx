@@ -14,6 +14,8 @@ import { useState } from "react";
 import { cn } from "@/lib/cn";
 import type { CampaignMember } from "@/lib/campaign-types";
 import type { Note } from "@/lib/db/notes";
+import { useI18n } from "@/lib/i18n";
+import { localeText } from "@/lib/i18n/locale-text";
 
 // Campaign notes tab: the lead's public party notes and pinned events, the
 // suggestion queue, and each member's private notes. Character-scoped notes
@@ -47,6 +49,12 @@ function NoteCard({
   deleteLabel: string;
   refreshNotes: () => Promise<void>;
 }) {
+  const { locale } = useI18n();
+  const copy = localeText(locale, {
+    en: { title: "Title (optional)", save: "Save", cancel: "Cancel", approveTitle: "Approve: publish to the whole party", approve: "Approve", unpin: "Unpin", pin: "Pin to the top (the DM treats pinned notes as key canon)", edit: "Edit" },
+    ru: { title: "Заголовок (необязательно)", save: "Сохранить", cancel: "Отмена", approveTitle: "Одобрить: опубликовать для всей группы", approve: "Одобрить", unpin: "Открепить", pin: "Закрепить сверху (мастер считает закреплённые заметки важным каноном)", edit: "Редактировать" },
+    pl: { title: "Tytuł (opcjonalnie)", save: "Zapisz", cancel: "Anuluj", approveTitle: "Zatwierdź: opublikuj dla całej drużyny", approve: "Zatwierdź", unpin: "Odepnij", pin: "Przypnij u góry (MG traktuje przypięte notatki jako ważny kanon)", edit: "Edytuj" },
+  });
   const [editing, setEditing] = useState(false);
   const [title, setTitle] = useState(note.title);
   const [body, setBody] = useState(note.body);
@@ -84,7 +92,7 @@ function NoteCard({
             value={title}
             onChange={(event) => setTitle(event.target.value)}
             maxLength={120}
-            placeholder="Title (optional)"
+            placeholder={copy.title}
             className="w-full rounded border border-stone-700 bg-stone-900 px-2 py-1 text-xs outline-none focus:border-amber-600"
           />
           <textarea
@@ -105,7 +113,7 @@ function NoteCard({
               className="flex items-center gap-1 rounded border border-stone-700 px-2 py-0.5 text-[11px] text-stone-300 hover:bg-stone-900 disabled:opacity-50"
             >
               {busy ? <Loader2 className="size-3 animate-spin" /> : <Check className="size-3" />}
-              Save
+              {copy.save}
             </button>
             <button
               type="button"
@@ -116,7 +124,7 @@ function NoteCard({
               }}
               className="flex items-center gap-1 rounded border border-stone-700 px-2 py-0.5 text-[11px] text-stone-500 hover:bg-stone-900"
             >
-              <X className="size-3" /> Cancel
+              <X className="size-3" /> {copy.cancel}
             </button>
           </div>
         </div>
@@ -139,10 +147,10 @@ function NoteCard({
                   type="button"
                   disabled={busy}
                   onClick={() => patch({ status: "active" })}
-                  title="Approve: publish to the whole party"
+                  title={copy.approveTitle}
                   className="flex items-center gap-0.5 rounded border border-emerald-900 px-1.5 py-0.5 text-emerald-400 hover:bg-emerald-950/50"
                 >
-                  <Check className="size-3" /> Approve
+                  <Check className="size-3" /> {copy.approve}
                 </button>
               ) : null}
               {canPin ? (
@@ -150,7 +158,7 @@ function NoteCard({
                   type="button"
                   disabled={busy}
                   onClick={() => patch({ pinned: !note.pinned })}
-                  title={note.pinned ? "Unpin" : "Pin to the top (the DM treats pinned notes as key canon)"}
+                  title={note.pinned ? copy.unpin : copy.pin}
                   className="text-stone-500 hover:text-amber-300"
                 >
                   {note.pinned ? <PinOff className="size-3" /> : <Pin className="size-3" />}
@@ -160,7 +168,7 @@ function NoteCard({
                 <button
                   type="button"
                   onClick={() => setEditing(true)}
-                  title="Edit"
+                  title={copy.edit}
                   className="text-stone-500 hover:text-stone-300"
                 >
                   <Pencil className="size-3" />
@@ -196,6 +204,12 @@ export function NoteComposer({
   steersStory: boolean;
   refreshNotes: () => Promise<void>;
 }) {
+  const { locale } = useI18n();
+  const copy = localeText(locale, {
+    en: { party: "Party note", suggest: "Suggest party note", private: "Private note", saveFailed: "Could not save the note.", reachFailed: "Could not reach the server.", title: "Title (optional)", privateHint: "Only you will see this", publicHint: "Visible to the whole party", pendingHint: "Sent to the party lead for approval", add: "Add note" },
+    ru: { party: "Заметка группы", suggest: "Предложить заметку группе", private: "Личная заметка", saveFailed: "Не удалось сохранить заметку.", reachFailed: "Не удалось связаться с сервером.", title: "Заголовок (необязательно)", privateHint: "Эту заметку увидите только вы", publicHint: "Видна всей группе", pendingHint: "Отправлена лидеру группы на одобрение", add: "Добавить заметку" },
+    pl: { party: "Notatka drużyny", suggest: "Zaproponuj notatkę drużyny", private: "Prywatna notatka", saveFailed: "Nie udało się zapisać notatki.", reachFailed: "Nie udało się połączyć z serwerem.", title: "Tytuł (opcjonalnie)", privateHint: "Tylko ty to zobaczysz", publicHint: "Widoczne dla całej drużyny", pendingHint: "Wysłano liderowi drużyny do zatwierdzenia", add: "Dodaj notatkę" },
+  });
   const [visibility, setVisibility] = useState<"public" | "private">("private");
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
@@ -203,10 +217,10 @@ export function NoteComposer({
   const [error, setError] = useState("");
 
   const publicLabel = characterId
-    ? "Party note"
+    ? copy.party
     : steersStory
-      ? "Party note"
-      : "Suggest party note";
+      ? copy.party
+      : copy.suggest;
 
   async function submit() {
     if (!body.trim() || busy) {
@@ -227,14 +241,14 @@ export function NoteComposer({
       });
       if (!response.ok) {
         const data = await response.json().catch(() => ({}));
-        setError(data.error || "Could not save the note.");
+        setError(data.error || copy.saveFailed);
         return;
       }
       setTitle("");
       setBody("");
       await refreshNotes();
     } catch {
-      setError("Could not reach the server.");
+      setError(copy.reachFailed);
     } finally {
       setBusy(false);
     }
@@ -245,7 +259,7 @@ export function NoteComposer({
       <div className="mb-1.5 flex gap-1">
         {(
           [
-            ["private", "Private note"],
+            ["private", copy.private],
             ["public", publicLabel],
           ] as Array<["private" | "public", string]>
         ).map(([value, label]) => (
@@ -269,7 +283,7 @@ export function NoteComposer({
           value={title}
           onChange={(event) => setTitle(event.target.value)}
           maxLength={120}
-          placeholder="Title (optional)"
+          placeholder={copy.title}
           className="mb-1.5 w-full rounded border border-stone-700 bg-stone-900 px-2 py-1 text-xs outline-none focus:border-amber-600"
         />
       ) : null}
@@ -280,10 +294,10 @@ export function NoteComposer({
         maxLength={2000}
         placeholder={
           visibility === "private"
-            ? "Only you will see this"
+            ? copy.privateHint
             : steersStory || characterId
-              ? "Visible to the whole party"
-              : "Sent to the party lead for approval"
+              ? copy.publicHint
+              : copy.pendingHint
         }
         className="w-full rounded border border-stone-700 bg-stone-900 px-2 py-1 text-[11px] leading-4 outline-none focus:border-amber-600"
       />
@@ -295,7 +309,7 @@ export function NoteComposer({
         className="mt-1.5 flex w-full items-center justify-center gap-1 rounded border border-stone-700 py-1 text-[11px] text-stone-400 hover:bg-stone-900 disabled:opacity-50"
       >
         {busy ? <Loader2 className="size-3 animate-spin" /> : <StickyNote className="size-3" />}
-        Add note
+        {copy.add}
       </button>
     </div>
   );
@@ -326,8 +340,14 @@ export function PendingNotesList({
   meUserId: string;
   refreshNotes: () => Promise<void>;
 }) {
+  const { locale } = useI18n();
+  const copy = localeText(locale, {
+    en: { unknown: "Unknown", dm: "The DM", reject: "Reject suggestion" },
+    ru: { unknown: "Неизвестно", dm: "Мастер", reject: "Отклонить предложение" },
+    pl: { unknown: "Nieznany", dm: "MG", reject: "Odrzuć propozycję" },
+  });
   const nameFor = (userId: string) =>
-    members.find((member) => member.userId === userId)?.username ?? "Unknown";
+    members.find((member) => member.userId === userId)?.username ?? copy.unknown;
   return (
     <ul className="space-y-1.5">
       {notes.map((note) => (
@@ -335,12 +355,12 @@ export function PendingNotesList({
           key={note.id}
           campaignId={campaignId}
           note={note}
-          authorName={note.authorKind === "dm" ? "The DM" : nameFor(note.authorUserId)}
+          authorName={note.authorKind === "dm" ? copy.dm : nameFor(note.authorUserId)}
           canEdit={note.authorUserId === meUserId}
           canDelete
           canPin={false}
           canApprove
-          deleteLabel="Reject suggestion"
+          deleteLabel={copy.reject}
           refreshNotes={refreshNotes}
         />
       ))}
@@ -363,8 +383,14 @@ export function NotesPanel({
   steersStory: boolean;
   refreshNotes: () => Promise<void>;
 }) {
+  const { locale } = useI18n();
+  const copy = localeText(locale, {
+    en: { awaiting: "Suggestions awaiting you", mine: "My suggestions (awaiting the lead)", party: "Party notes", private: "My private notes", you: "You", withdraw: "Withdraw suggestion", delete: "Delete note", onlyYou: "Only you can see this", leadEmpty: "Pin key events and facts here; the DM treats them as canon.", playerEmpty: "Nothing recorded yet. Suggest a note and the party lead can publish it.", privateEmpty: "No private notes yet.", unknown: "Unknown" },
+    ru: { awaiting: "Предложения ждут вас", mine: "Мои предложения (ожидают лидера)", party: "Заметки группы", private: "Мои личные заметки", you: "Вы", withdraw: "Отозвать предложение", delete: "Удалить заметку", onlyYou: "Эту заметку видите только вы", leadEmpty: "Закрепляйте здесь ключевые события и факты — мастер считает их каноном.", playerEmpty: "Пока ничего не записано. Предложите заметку, и лидер группы сможет её опубликовать.", privateEmpty: "Личных заметок пока нет.", unknown: "Неизвестно" },
+    pl: { awaiting: "Propozycje czekające na ciebie", mine: "Moje propozycje (czekają na lidera)", party: "Notatki drużyny", private: "Moje prywatne notatki", you: "Ty", withdraw: "Wycofaj propozycję", delete: "Usuń notatkę", onlyYou: "Tylko ty widzisz tę notatkę", leadEmpty: "Przypinaj tu kluczowe wydarzenia i fakty — MG traktuje je jako kanon.", playerEmpty: "Nic jeszcze nie zapisano. Zaproponuj notatkę, a lider drużyny może ją opublikować.", privateEmpty: "Brak prywatnych notatek.", unknown: "Nieznany" },
+  });
   const nameFor = (userId: string) =>
-    members.find((member) => member.userId === userId)?.username ?? "Unknown";
+    members.find((member) => member.userId === userId)?.username ?? copy.unknown;
 
   const campaignNotes = notes.filter((note) => note.characterId === null);
   const partyNotes = campaignNotes
@@ -389,7 +415,7 @@ export function NotesPanel({
 
       {leadQueue.length ? (
         <div className="space-y-1.5">
-          <h3 className={cn(section, "text-amber-400")}>Suggestions awaiting you</h3>
+          <h3 className={cn(section, "text-amber-400")}>{copy.awaiting}</h3>
           <PendingNotesList
             campaignId={campaignId}
             notes={leadQueue}
@@ -402,19 +428,19 @@ export function NotesPanel({
 
       {mySuggestions.length ? (
         <div className="space-y-1.5">
-          <h3 className={section}>My suggestions (awaiting the lead)</h3>
+          <h3 className={section}>{copy.mine}</h3>
           <ul className="space-y-1.5">
             {mySuggestions.map((note) => (
               <NoteCard
                 key={note.id}
                 campaignId={campaignId}
                 note={note}
-                authorName="You"
+                authorName={copy.you}
                 canEdit
                 canDelete
                 canPin={false}
                 canApprove={false}
-                deleteLabel="Withdraw suggestion"
+                deleteLabel={copy.withdraw}
                 refreshNotes={refreshNotes}
               />
             ))}
@@ -423,7 +449,7 @@ export function NotesPanel({
       ) : null}
 
       <div className="space-y-1.5">
-        <h3 className={section}>Party notes</h3>
+        <h3 className={section}>{copy.party}</h3>
         {partyNotes.length ? (
           <ul className="space-y-1.5">
             {partyNotes.map((note) => (
@@ -436,7 +462,7 @@ export function NotesPanel({
                 canDelete={steersStory || note.authorUserId === meUserId}
                 canPin={steersStory}
                 canApprove={false}
-                deleteLabel="Delete note"
+                deleteLabel={copy.delete}
                 refreshNotes={refreshNotes}
               />
             ))}
@@ -444,14 +470,13 @@ export function NotesPanel({
         ) : (
           <p className="px-1 text-[11px] text-stone-600">
             {steersStory
-              ? "Pin key events and facts here; the DM treats them as canon."
-              : "Nothing recorded yet. Suggest a note and the party lead can publish it."}
+              ? copy.leadEmpty : copy.playerEmpty}
           </p>
         )}
       </div>
 
       <div className="space-y-1.5">
-        <h3 className={section}>My private notes</h3>
+        <h3 className={section}>{copy.private}</h3>
         {myPrivate.length ? (
           <ul className="space-y-1.5">
             {myPrivate.map((note) => (
@@ -459,18 +484,18 @@ export function NotesPanel({
                 key={note.id}
                 campaignId={campaignId}
                 note={note}
-                authorName="Only you can see this"
+                authorName={copy.onlyYou}
                 canEdit
                 canDelete
                 canPin={false}
                 canApprove={false}
-                deleteLabel="Delete note"
+                deleteLabel={copy.delete}
                 refreshNotes={refreshNotes}
               />
             ))}
           </ul>
         ) : (
-          <p className="px-1 text-[11px] text-stone-600">No private notes yet.</p>
+          <p className="px-1 text-[11px] text-stone-600">{copy.privateEmpty}</p>
         )}
       </div>
     </div>

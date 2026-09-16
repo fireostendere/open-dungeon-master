@@ -24,6 +24,9 @@ import { CharacterPortrait, ui } from "@/lib/ui";
 import { offersImages, useCapabilities } from "@/lib/use-capabilities";
 import { SheetSections, StorySoFar, type CharacterEvent } from "./SheetSections";
 import { navigateTo } from "@/lib/navigation";
+import { useI18n } from "@/lib/i18n";
+import { localeText } from "@/lib/i18n/locale-text";
+import { characterDisplay } from "@/lib/i18n/character-display";
 
 // Where this character is playing; see src/lib/db/characters.ts.
 type CharacterAssignment = {
@@ -52,16 +55,18 @@ type LibraryCharacter = {
 // never resolves the job.
 const PORTRAIT_POLL_LIMIT = 240;
 
-function titleCase(value: string) {
-  return value.replace(/[-_]/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
-}
-
 export default function CharacterDetailPage({
   params,
 }: {
   params: Promise<{ characterId: string }>;
 }) {
   const { characterId } = use(params);
+  const { locale } = useI18n();
+  const copy = localeText(locale, {
+    en: { back: "Back to your characters", level: "Level", notInCampaign: "Not in a campaign yet.", preparing: "Preparing...", download: "Download PDF", exporting: "Exporting...", export: "Export", exportFailed: "Export failed.", copying: "Copying...", duplicate: "Duplicate", replacePortrait: "Replace portrait", uploadPortrait: "Upload portrait", painting: "Painting...", paint: "Paint one", placeholder: "Use placeholder", portraitFailed: "Portrait couldn't be generated.", notFound: "Character not found.", library: "Back to your library" },
+    ru: { back: "Назад к персонажам", level: "Уровень", notInCampaign: "Пока не участвует в кампании.", preparing: "Подготовка...", download: "Скачать PDF", exporting: "Экспорт...", export: "Экспорт", exportFailed: "Не удалось экспортировать персонажа.", copying: "Копирование...", duplicate: "Дублировать", replacePortrait: "Сменить портрет", uploadPortrait: "Загрузить портрет", painting: "Создание...", paint: "Создать", placeholder: "Стандартный портрет", portraitFailed: "Не удалось создать портрет.", notFound: "Персонаж не найден.", library: "Вернуться в библиотеку" },
+    pl: { back: "Wróć do postaci", level: "Poziom", notInCampaign: "Nie jest jeszcze w kampanii.", preparing: "Przygotowywanie...", download: "Pobierz PDF", exporting: "Eksportowanie...", export: "Eksport", exportFailed: "Eksport nie powiódł się.", copying: "Kopiowanie...", duplicate: "Duplikuj", replacePortrait: "Zmień portret", uploadPortrait: "Prześlij portret", painting: "Tworzenie...", paint: "Utwórz", placeholder: "Portret zastępczy", portraitFailed: "Nie udało się utworzyć portretu.", notFound: "Nie znaleziono postaci.", library: "Wróć do biblioteki" },
+  });
   const [character, setCharacter] = useState<LibraryCharacter | null>(null);
   const [events, setEvents] = useState<CharacterEvent[]>([]);
   const [loading, setLoading] = useState(true);
@@ -101,12 +106,12 @@ export default function CharacterDetailPage({
     try {
       const response = await fetch(`/api/characters/${characterId}/export`);
       if (!response.ok) {
-        setExportError("Export failed.");
+        setExportError(copy.exportFailed);
         return;
       }
       downloadBlob(`${filenameSlug(character.name)}.odm-character.json`, await response.blob());
     } catch {
-      setExportError("Export failed.");
+      setExportError(copy.exportFailed);
     } finally {
       setExporting(false);
     }
@@ -237,9 +242,9 @@ export default function CharacterDetailPage({
       <main className="mx-auto w-full max-w-3xl flex-1 p-4 sm:p-6">
         <AppHeader />
         <p className={cn(ui.card, "p-6 text-center text-stone-400")}>
-          Character not found.{" "}
+           {copy.notFound}{" "}
           <Link href="/characters" className="text-amber-200 hover:text-amber-400">
-            Back to your library
+             {copy.library}
           </Link>
         </p>
       </main>
@@ -253,7 +258,7 @@ export default function CharacterDetailPage({
       <AppHeader />
       <header className={cn(ui.card, "ornate mb-4 p-4 sm:p-5")}>
         <Link href="/characters" className="text-sm text-stone-500 hover:text-stone-300">
-          &larr; Back to your characters
+          &larr; {copy.back}
         </Link>
         <div className="mt-3 flex items-start gap-4">
           {sheet.portrait?.url ? (
@@ -285,14 +290,14 @@ export default function CharacterDetailPage({
             </h1>
             <p className="mt-1 text-sm text-stone-400">
               <span className="mr-1.5 inline-flex rounded-full border border-amber-500/30 bg-amber-400/10 px-2 py-0.5 text-[11px] text-amber-200">
-                Level {character.level}
+                 {copy.level} {character.level}
               </span>
-              {titleCase(character.race)} {titleCase(character.class)}
-              {character.subclass ? ` (${character.subclass})` : ""}
-              {character.background ? ` · ${titleCase(character.background)}` : ""}
+               {characterDisplay(character.race, locale)} {characterDisplay(character.class, locale)}
+               {character.subclass ? ` (${characterDisplay(character.subclass, locale)})` : ""}
+               {character.background ? ` · ${characterDisplay(character.background, locale)}` : ""}
             </p>
             {!sheet.portrait && character.portraitStatus === "failed" ? (
-              <p className="mt-1 text-xs text-stone-500">Portrait couldn&apos;t be generated.</p>
+               <p className="mt-1 text-xs text-stone-500">{copy.portraitFailed}</p>
             ) : null}
             {/* Each campaign holds its own copy of this sheet, so one library
                 entry can be at several tables at once. Naming them is what
@@ -318,7 +323,7 @@ export default function CharacterDetailPage({
                   </Link>
                 ))
               ) : (
-                <span className="text-xs text-stone-600">Not in a campaign yet.</span>
+                <span className="text-xs text-stone-600">{copy.notInCampaign}</span>
               )}
             </div>
           </div>
@@ -331,7 +336,7 @@ export default function CharacterDetailPage({
             className={cn(ui.btnSmall, "border-amber-500/40 text-amber-100")}
             title="Download this character sheet as a fillable PDF"
           >
-            <FileDown className="size-4" /> {pdfBusy ? "Preparing..." : "Download PDF"}
+            <FileDown className="size-4 shrink-0" /> {pdfBusy ? copy.preparing : copy.download}
           </button>
           <button
             type="button"
@@ -340,7 +345,7 @@ export default function CharacterDetailPage({
             className={ui.btnSmall}
             title="Save this character as a file you can import on another device or server"
           >
-            <FileJson className="size-4" /> {exporting ? "Exporting..." : "Export"}
+            <FileJson className="size-4 shrink-0" /> {exporting ? copy.exporting : copy.export}
           </button>
           <button
             type="button"
@@ -349,7 +354,7 @@ export default function CharacterDetailPage({
             className={ui.btnSmall}
             title="Save a second copy of this character to your library"
           >
-            <Copy className="size-4" /> {cloning ? "Copying..." : "Duplicate"}
+            <Copy className="size-4 shrink-0" /> {cloning ? copy.copying : copy.duplicate}
           </button>
           <button
             type="button"
@@ -357,7 +362,7 @@ export default function CharacterDetailPage({
             className={ui.btnSmall}
             title={sheet.portrait ? "Replace the portrait with a photo" : "Upload a portrait"}
           >
-            <Camera className="size-4" /> {sheet.portrait ? "Replace portrait" : "Upload portrait"}
+            <Camera className="size-4 shrink-0" /> {sheet.portrait ? copy.replacePortrait : copy.uploadPortrait}
           </button>
           {canPaint ? (
             <button
@@ -367,7 +372,7 @@ export default function CharacterDetailPage({
               className={ui.btnSmall}
               title="Paint a new portrait on this server's image model"
             >
-              <Sparkles className="size-4" /> {portraitPending ? "Painting..." : "Paint one"}
+              <Sparkles className="size-4 shrink-0" /> {portraitPending ? copy.painting : copy.paint}
             </button>
           ) : null}
           {sheet.portrait ? (
@@ -377,7 +382,7 @@ export default function CharacterDetailPage({
               className={ui.btnSmall}
               title="Take the picture away and show the stand-in for this class or race"
             >
-              <ImageOff className="size-4" /> Use placeholder
+              <ImageOff className="size-4 shrink-0" /> {copy.placeholder}
             </button>
           ) : null}
         </div>

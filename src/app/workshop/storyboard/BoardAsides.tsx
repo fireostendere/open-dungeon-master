@@ -6,6 +6,8 @@ import { cn } from "@/lib/cn";
 import { ui } from "@/lib/ui";
 import { BEAT_LABELS, type BeatKind, type Suggestion } from "@/lib/workshop/board";
 import type { CompileSummary } from "@/lib/workshop/board-compile";
+import { useI18n } from "@/lib/i18n/context";
+import { localeText } from "@/lib/i18n/locale-text";
 
 // What sits beside the workshop board: what the board is missing and what
 // it becomes. Both are collapsible cards so a phone can fold them away under
@@ -59,13 +61,15 @@ export function SuggestionsCard({
   busy: boolean;
   onAdd: (kind: BeatKind, title: string) => void;
 }) {
+  const { locale } = useI18n();
+  const copy = localeText(locale, { en: { missing: "What this board is missing", counted: "Counted, not guessed. Nothing here asked a model what your story needs.", kinds: { setting: "Place", backstory: "What happened before", event: "Something happens", encounter: "A fight", hook: "A reason to go", secret: "Something hidden", npc_moment: "Somebody's moment" } }, ru: { missing: "Чего не хватает доске", counted: "Посчитано, а не угадано. Здесь не спрашивали модель, что нужно вашей истории.", kinds: { setting: "Место", backstory: "Что случилось раньше", event: "Событие", encounter: "Бой", hook: "Причина отправиться", secret: "Скрытое", npc_moment: "Момент персонажа" } }, pl: { missing: "Czego brakuje tej planszy", counted: "Policzone, nie zgadnięte. Nic tutaj nie pytało modelu, czego potrzebuje Twoja historia.", kinds: { setting: "Miejsce", backstory: "Co wydarzyło się wcześniej", event: "Coś się dzieje", encounter: "Walka", hook: "Powód, by ruszyć", secret: "Coś ukrytego", npc_moment: "Chwila postaci" } } });
   if (!suggestions.length) {
     return null;
   }
   return (
-    <AsideCard title="What this board is missing" icon={<Lightbulb className="size-4" />} tour="storyboard-missing">
+    <AsideCard title={copy.missing} icon={<Lightbulb className="size-4" />} tour="storyboard-missing">
       <p className="text-[10px] text-stone-600">
-        Counted, not guessed. Nothing here asked a model what your story needs.
+        {copy.counted}
       </p>
       {suggestions.map((suggestion) => (
         <div key={suggestion.id} className="flex flex-wrap items-center gap-2">
@@ -76,7 +80,7 @@ export function SuggestionsCard({
             onClick={() => onAdd(suggestion.kind, suggestion.title)}
             className="rounded-md border border-stone-700 px-1.5 py-0.5 text-[10px] text-stone-400 hover:text-amber-100 disabled:opacity-40"
           >
-            + {BEAT_LABELS[suggestion.kind]}
+            + {copy.kinds[suggestion.kind] ?? BEAT_LABELS[suggestion.kind]}
           </button>
         </div>
       ))}
@@ -85,12 +89,14 @@ export function SuggestionsCard({
 }
 
 export function CompileCard({ summary }: { summary: CompileSummary }) {
+  const { locale } = useI18n();
+  const copy = localeText(locale, { en: { title: "What this becomes", becomes: "Imported into a campaign, this board becomes", empty: "Nothing yet. Cards become lore, quests, prepared fights, DM notes and the story arc." }, ru: { title: "Чем это станет", becomes: "При импорте в кампанию эта доска станет", empty: "Пока ничем. Карточки превратятся в лор, задания, подготовленные встречи, заметки DM и сюжетную арку." }, pl: { title: "Czym to się stanie", becomes: "Po zaimportowaniu do kampanii ta plansza stanie się", empty: "Jeszcze niczym. Karty staną się wiedzą, zadaniami, przygotowanymi walkami, notatkami MG i łukiem fabularnym." } });
   return (
-    <AsideCard title="What this becomes" tour="storyboard-compile">
+    <AsideCard title={copy.title} tour="storyboard-compile">
       <p className="text-[11px] text-stone-500">
         {summary.lines.length
-          ? `Imported into a campaign, this board becomes ${summary.lines.join(", ")}.`
-          : "Nothing yet. Cards become lore, quests, prepared fights, DM notes and the story arc."}
+          ? `${copy.becomes} ${summary.lines.join(", ")}.`
+          : copy.empty}
       </p>
       {summary.arcRefusal ? (
         <p className="text-[10px] text-amber-300/70">{summary.arcRefusal}</p>

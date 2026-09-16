@@ -30,6 +30,8 @@ import { builderActions, useBuilderDerived } from "./useBuilderDerived";
 import { useArchetypes, useBuilderOptions, useWorldPack } from "./useBuilderOptions";
 import { useBuilderState } from "./useBuilderState";
 import { usePickerGroups } from "./usePickerGroups";
+import { useI18n } from "@/lib/i18n";
+import { localeText } from "@/lib/i18n/locale-text";
 
 export type { BuilderResult } from "./submit";
 
@@ -72,6 +74,12 @@ export default function CharacterBuilder({
   role?: { value: BuilderRole; onChange: (role: BuilderRole) => void };
   className?: string;
 }) {
+  const { locale } = useI18n();
+  const copy = localeText(locale, {
+    en: { newCharacter: "New character", identity: "Who is this?", ancestry: "Ancestry", ancestryBlurb: "Where are they from, and what does that grant?", calling: "Calling", callingBlurb: "The class decides how this character plays.", abilities: "Ability scores", abilitiesBlurb: "How do you roll?", spellsGear: "Spells and gear", gear: "Gear", spellsGearBlurb: "Pick what they can cast, then arm your hero.", gearBlurb: "Arm your hero.", finish: "Finishing touches", finishBlurb: "Who have you made?", yourCharacter: "your character" },
+    ru: { newCharacter: "Новый персонаж", identity: "Кто это?", ancestry: "Происхождение", ancestryBlurb: "Откуда он и что это даёт?", calling: "Класс", callingBlurb: "Класс определяет стиль игры персонажем.", abilities: "Характеристики", abilitiesBlurb: "Как вы распределите значения?", spellsGear: "Заклинания и снаряжение", gear: "Снаряжение", spellsGearBlurb: "Выберите заклинания, затем вооружите героя.", gearBlurb: "Вооружите героя.", finish: "Последние штрихи", finishBlurb: "Кого вы создали?", yourCharacter: "вашего персонажа" },
+    pl: { newCharacter: "Nowa postać", identity: "Kto to jest?", ancestry: "Pochodzenie", ancestryBlurb: "Skąd pochodzi i co mu to daje?", calling: "Klasa", callingBlurb: "Klasa określa styl gry postacią.", abilities: "Cechy", abilitiesBlurb: "Jak rozdzielasz wyniki?", spellsGear: "Zaklęcia i ekwipunek", gear: "Ekwipunek", spellsGearBlurb: "Wybierz zaklęcia, a potem uzbrój bohatera.", gearBlurb: "Uzbrój bohatera.", finish: "Ostatnie szlify", finishBlurb: "Kogo stworzyłeś?", yourCharacter: "twoją postać" },
+  });
   const {
     races: rawRaces,
     classes: rawClasses,
@@ -151,7 +159,7 @@ export default function CharacterBuilder({
   const steps: WizardStep[] = [
     {
       key: "identity",
-      title: "Who is this?",
+       title: copy.identity,
       canContinue: !blockers.identity,
       content: (
         <>
@@ -172,8 +180,8 @@ export default function CharacterBuilder({
     },
     {
       key: "ancestry",
-      title: "Ancestry",
-      blurb: "Where are they from, and what does that grant?",
+       title: copy.ancestry,
+       blurb: copy.ancestryBlurb,
       canContinue: !blockers.ancestry,
       content: (
         <>
@@ -189,8 +197,8 @@ export default function CharacterBuilder({
     },
     {
       key: "calling",
-      title: "Calling",
-      blurb: "The class decides how this character plays.",
+       title: copy.calling,
+       blurb: copy.callingBlurb,
       canContinue: !blockers.calling,
       content: (
         <>
@@ -212,8 +220,8 @@ export default function CharacterBuilder({
     },
     {
       key: "abilities",
-      title: "Ability scores",
-      blurb: "How do you roll?",
+       title: copy.abilities,
+       blurb: copy.abilitiesBlurb,
       canContinue: !blockers.abilities,
       content: (
         <>
@@ -224,8 +232,8 @@ export default function CharacterBuilder({
     },
     {
       key: "spells-gear",
-      title: casts ? "Spells and gear" : "Gear",
-      blurb: casts ? "Pick what they can cast, then arm your hero." : "Arm your hero.",
+       title: casts ? copy.spellsGear : copy.gear,
+       blurb: casts ? copy.spellsGearBlurb : copy.gearBlurb,
       canContinue: !blockers.spells,
       content: (
         <>
@@ -242,8 +250,8 @@ export default function CharacterBuilder({
     },
     {
       key: "finish",
-      title: "Finishing touches",
-      blurb: "Who have you made?",
+       title: copy.finish,
+       blurb: copy.finishBlurb,
       canContinue: !busy,
       content: (
         <FinishStep
@@ -264,7 +272,7 @@ export default function CharacterBuilder({
     // button stays put; the fallback keeps a usable pane on a short phone.
     <div className={cn("flex h-[max(30rem,calc(100dvh-14rem))] flex-col text-sm", className)}>
       <Wizard
-        title={state.name.trim() || "New character"}
+         title={state.name.trim() || copy.newCharacter}
         steps={steps}
         onDone={submit}
         doneLabel={
@@ -279,7 +287,7 @@ export default function CharacterBuilder({
       />
       {cropping ? (
         <AvatarCropDialog
-          title={`Portrait for ${state.name.trim() || "your character"}`}
+           title={`Portrait for ${state.name.trim() || copy.yourCharacter}`}
           onUploaded={(image) => {
             setCropping(false);
             state.setPortrait({ id: image.id, name: image.name, type: image.type, url: image.url });

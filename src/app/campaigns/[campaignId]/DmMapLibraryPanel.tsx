@@ -12,6 +12,8 @@ import { MapCreateControls } from "@/app/workshop/maps/MapCreateControls";
 import { MapEditor } from "@/app/workshop/maps/MapEditor";
 import { MapGallery } from "@/app/workshop/maps/MapGallery";
 import type { LibraryState, PreparedMap } from "@/app/workshop/maps/types";
+import { useI18n } from "@/lib/i18n/context";
+import { localeText } from "@/lib/i18n/locale-text";
 
 // The map library: maps built before anybody needed them.
 //
@@ -36,6 +38,12 @@ export function DmMapLibraryPanel({
   campaignId: string;
   layout?: "drawer" | "gallery";
 }) {
+  const { locale } = useI18n();
+  const copy = localeText(locale, {
+    en: { failed: "That did not work.", refused: "That was refused.", deployed: "It is on the table.", opened: "The scene is open.", copyFailed: "The copy could not be painted.", imported: "Imported.", invalid: "That file is not a Universal VTT export this can read.", newMap: "New map", map: "Map", empty: "Nothing in the drawer yet. Roll one, start from blank rock, or import a drawing." },
+    ru: { failed: "Не удалось выполнить действие.", refused: "Действие отклонено.", deployed: "Карта на столе.", opened: "Сцена открыта.", copyFailed: "Не удалось отрисовать копию.", imported: "Импортировано.", invalid: "Этот файл не является читаемым экспортом Universal VTT.", newMap: "Новая карта", map: "Карта", empty: "В ящике пока ничего нет. Создайте карту, начните с пустой скалы или импортируйте рисунок." },
+    pl: { failed: "Nie udało się wykonać działania.", refused: "Działanie zostało odrzucone.", deployed: "Mapa jest na stole.", opened: "Scena jest otwarta.", copyFailed: "Nie udało się narysować kopii.", imported: "Zaimportowano.", invalid: "Ten plik nie jest odczytywalnym eksportem Universal VTT.", newMap: "Nowa mapa", map: "Mapa", empty: "Szuflada jest jeszcze pusta. Utwórz mapę, zacznij od pustej skały lub zaimportuj rysunek." },
+  });
   const [state, setState] = useState<LibraryState>({
     maps: [],
     board: null,
@@ -120,7 +128,7 @@ export function DmMapLibraryPanel({
       });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) {
-        setError((payload as { error?: string }).error ?? "That did not work.");
+        setError((payload as { error?: string }).error ?? copy.failed);
         return null;
       }
       await load();
@@ -159,13 +167,13 @@ export function DmMapLibraryPanel({
       });
       if (!response.ok) {
         const payload = await response.json().catch(() => ({}));
-        setError((payload as { error?: string }).error ?? "That was refused.");
+        setError((payload as { error?: string }).error ?? copy.refused);
         return false;
       }
       await load();
       return true;
     },
-    [campaignId, load],
+    [campaignId, load, copy.refused],
   );
 
   async function act(action: "deploy" | "open-scene") {
@@ -183,10 +191,10 @@ export function DmMapLibraryPanel({
       });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) {
-        setError((payload as { error?: string }).error ?? "That did not work.");
+        setError((payload as { error?: string }).error ?? copy.failed);
         return;
       }
-      setNote(action === "deploy" ? "It is on the table." : "The scene is open.");
+      setNote(action === "deploy" ? copy.deployed : copy.opened);
       await load();
     } finally {
       setBusy(false);
@@ -212,8 +220,8 @@ export function DmMapLibraryPanel({
       theme: original.theme,
       ambient: original.ambient,
     });
-    const copy = created?.map;
-    if (!copy) {
+    const duplicateMap = created?.map;
+    if (!duplicateMap) {
       return;
     }
     setBusy(true);
@@ -234,17 +242,17 @@ export function DmMapLibraryPanel({
         carry.backdropPath = original.backdrop.path;
         carry.backdropTransform = original.backdrop.transform;
       }
-      const response = await fetch(`/api/campaigns/${campaignId}/dm/maps/${copy.id}`, {
+      const response = await fetch(`/api/campaigns/${campaignId}/dm/maps/${duplicateMap.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(carry),
       });
       if (!response.ok) {
         const payload = await response.json().catch(() => ({}));
-        setError((payload as { error?: string }).error ?? "The copy could not be painted.");
+        setError((payload as { error?: string }).error ?? copy.copyFailed);
         return;
       }
-      setSelectedId(copy.id);
+      setSelectedId(duplicateMap.id);
       await load();
     } finally {
       setBusy(false);
@@ -302,10 +310,10 @@ export function DmMapLibraryPanel({
       });
       if (result?.map) {
         select(result.map.id);
-        setNote(result.notes?.[0] ?? "Imported.");
+        setNote(result.notes?.[0] ?? copy.imported);
       }
     } catch {
-      setError("That file is not a Universal VTT export this can read.");
+      setError(copy.invalid);
     } finally {
       setBusy(false);
     }
@@ -345,7 +353,7 @@ export function DmMapLibraryPanel({
             className="flex w-full items-center gap-2 text-left font-display text-sm tracking-wide text-amber-100"
           >
             <Plus className="size-4 text-amber-300" />
-            New map
+            {copy.newMap}
             {creating ? (
               <ChevronDown className="ml-auto size-4 text-stone-500" />
             ) : (
@@ -373,7 +381,7 @@ export function DmMapLibraryPanel({
         <Sheet
           open={editorOpen && selected !== null}
           onOpenChange={setEditorOpen}
-          title={selected?.name ?? "Map"}
+          title={selected?.name ?? copy.map}
           className="top-0 h-dvh max-h-none rounded-none lg:top-1/2 lg:h-auto lg:max-h-[92vh] lg:w-[min(96vw,64rem)] lg:rounded-xl"
         >
           {editor}
@@ -415,7 +423,7 @@ export function DmMapLibraryPanel({
         </div>
       ) : (
         <p className="text-xs text-stone-500">
-          Nothing in the drawer yet. Roll one, start from blank rock, or import a drawing.
+          {copy.empty}
         </p>
       )}
 

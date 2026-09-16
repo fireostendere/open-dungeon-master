@@ -9,15 +9,17 @@ import type { BackgroundOption, RaceOption } from "../useBuilderOptions";
 import type { BuilderState } from "../useBuilderState";
 import { bonusLanguageCount } from "../submit";
 import { Field, StepPanel, inputClass } from "./shared";
+import { useI18n } from "@/lib/i18n/context";
+import { localeText } from "@/lib/i18n/locale-text";
 
-function languageHelp(race: RaceOption, background: BackgroundOption | undefined): string {
-  const parts = [`${race.name} speaks ${race.languages.join(" and ")}`];
+function languageHelp(race: RaceOption, background: BackgroundOption | undefined, copy: { speaks: string; and: string; plus: string; choice: string; more: string; fromBackground: string }): string {
+  const parts = [`${race.name} ${copy.speaks} ${race.languages.join(` ${copy.and} `)}`];
   if (race.bonusLanguages > 0) {
-    parts.push(`plus ${race.bonusLanguages} of your choice`);
+    parts.push(`${copy.plus} ${race.bonusLanguages} ${copy.choice}`);
   }
   if (background?.languages) {
     parts.push(
-      `${race.bonusLanguages > 0 ? "and" : "plus"} ${background.languages} more from your ${background.name} background`,
+      `${race.bonusLanguages > 0 ? copy.and : copy.plus} ${background.languages} ${copy.more} ${copy.fromBackground} ${background.name}`,
     );
   }
   return `${parts.join(" ")}.`;
@@ -36,13 +38,19 @@ export function AncestryStep({
   background: BackgroundOption | undefined;
   raceGroups: PickerGroup[];
 }) {
+  const { locale } = useI18n();
+  const copy = localeText(locale, {
+    en: { title: "Where are they from?", race: "Race", bonus: "Bonus", language: "language", languages: "languages", languageInfo: "A language you know is one you can speak, read and write. It decides who your character can talk to without help, and it comes up more than new players expect: half the trouble in a dungeon is written on a wall.\n\nCommon is the trade tongue everyone shares. The rest are the tongues of particular peoples: Dwarvish, Elvish, Orc, Draconic and so on. Pick whatever fits where your character grew up, or whoever you expect to be negotiating with.", aria: "Bonus language", choose: "Choose a language...", speaks: "speaks", and: "and", plus: "plus", choice: "of your choice", more: "more from your", fromBackground: "background" },
+    ru: { title: "Откуда он родом?", race: "Раса", bonus: "Дополнительный", language: "язык", languages: "языки", languageInfo: "Известный язык — это язык, на котором персонаж говорит, читает и пишет. Он определяет, с кем можно общаться без помощи, и встречается чаще, чем ожидают новички: половина неприятностей в подземелье написана на стене.\n\nВсеобщий — общий торговый язык. Остальные принадлежат определённым народам: дворфийский, эльфийский, орочий, драконий и другие. Выберите то, что подходит месту, где вырос персонаж, или тем, с кем он будет вести переговоры.", aria: "Дополнительный язык", choose: "Выберите язык...", speaks: "знает", and: "и", plus: "плюс", choice: "на выбор", more: "дополнительно от происхождения", fromBackground: "" },
+    pl: { title: "Skąd pochodzi?", race: "Rasa", bonus: "Dodatkowy", language: "język", languages: "języki", languageInfo: "Znany język to taki, którym postać mówi, czyta i pisze. Określa, z kim może rozmawiać bez pomocy, i pojawia się częściej, niż oczekują nowi gracze: połowa problemów w podziemiu jest napisana na ścianie.\n\nWspólny to język handlowy znany wszystkim. Pozostałe są językami konkretnych ludów: krasnoludzkim, elfickim, orczym, smoczym i tak dalej. Wybierz taki, który pasuje do miejsca dorastania postaci lub osób, z którymi będzie negocjować.", aria: "Dodatkowy język", choose: "Wybierz język...", speaks: "zna", and: "i", plus: "plus", choice: "do wyboru", more: "więcej z tła", fromBackground: "" },
+  });
   // The race's bonus languages plus the background's (an acolyte or a sage
   // learns two more), which used to be loaded and never asked for.
   const languageCount = bonusLanguageCount(race, background);
   return (
     <div className="space-y-4">
-      <StepPanel title="Where are they from?" ornate>
-        <Field label="Race">
+       <StepPanel title={copy.title} ornate>
+         <Field label={copy.race}>
           <OptionPicker
             value={race?.id ?? ""}
             groups={raceGroups}
@@ -66,16 +74,14 @@ export function AncestryStep({
         <StepPanel
           title={
             <span className="flex items-center gap-1">
-              Bonus {languageCount === 1 ? "language" : "languages"}
+               {copy.bonus} {languageCount === 1 ? copy.language : copy.languages}
               <InfoButton
-                label="Languages"
-                text={
-                  "A language you know is one you can speak, read and write. It decides who your character can talk to without help, and it comes up more than new players expect: half the trouble in a dungeon is written on a wall.\n\nCommon is the trade tongue everyone shares. The rest are the tongues of particular peoples: Dwarvish, Elvish, Orc, Draconic and so on. Pick whatever fits where your character grew up, or whoever you expect to be negotiating with."
-                }
+                 label={copy.languages}
+                 text={copy.languageInfo}
               />
             </span>
           }
-          help={languageHelp(race, background)}
+           help={languageHelp(race, background, copy)}
         >
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             {Array.from({ length: languageCount }, (_, index) => (
@@ -90,9 +96,9 @@ export function AncestryStep({
                   })
                 }
                 className={inputClass}
-                aria-label={`Bonus language ${index + 1}`}
+                 aria-label={`${copy.aria} ${index + 1}`}
               >
-                <option value="">Choose a language...</option>
+                 <option value="">{copy.choose}</option>
                 {STANDARD_LANGUAGES.filter(
                   (language) =>
                     !race.languages.includes(language) &&

@@ -9,6 +9,7 @@ import { ExportMenu } from "@/app/campaigns/[campaignId]/ExportMenu";
 import { steersStory, type HomeCampaign } from "@/app/home/types";
 import { useI18n } from "@/lib/i18n";
 import { localeText } from "@/lib/i18n/locale-text";
+import { campaignWizardCopy } from "@/lib/i18n/campaign-wizard";
 
 export function CampaignList({
   campaigns,
@@ -157,7 +158,7 @@ function CampaignTile({
         </span>
       </div>
       <p className="text-sm text-stone-400">
-        {copy.level} {campaign.startingLevel} {copy.start} · {campaign.difficulty}
+        {copy.level} {campaign.startingLevel} {copy.start} · {campaignWizardCopy(locale).difficulty[`${campaign.difficulty}Label`]}
         {campaign.theme ? ` · ${campaign.theme}` : ""}
       </p>
       <div className="mt-3 flex items-center justify-between border-t border-stone-700/40 pt-2.5 text-sm text-stone-400">

@@ -6,6 +6,8 @@ import { useRef, useState } from "react";
 import { cn } from "@/lib/cn";
 import { mapPlaceholder } from "@/lib/placeholders";
 import { offersImages, useCapabilities } from "@/lib/use-capabilities";
+import { useI18n } from "@/lib/i18n";
+import { localeText } from "@/lib/i18n/locale-text";
 import type {
   CampaignLocation,
   MediaStatus,
@@ -31,6 +33,12 @@ export function MapPanel({
   // The table's setting, for the stand-in plate an unmapped area shows.
   genre?: string | null;
 }) {
+  const { locale } = useI18n();
+  const copy = localeText(locale, {
+    en: { noAreasPaint: "No areas charted yet. Maps appear as the party explores.", noAreas: "No areas charted yet. Areas appear as the party explores, and the DM can upload a map for each.", here: "here", replacePicture: "Replace map with your own picture", replace: "Replace map", upload: "Upload a map", redraw: "Redraw this map", removeTitle: "Take the map away and show the stand-in for this kind of place", placeholder: "Use the placeholder instead", mapOf: "Map of", waiting: "Waiting for the render queue...", drawing: "Drawing the map...", renderFailed: "Map render failed", uploadAbove: "Not yet mapped. Upload one above.", unmapped: "Not yet mapped", routes: "Routes:", charted: "Charted areas", unmappedShort: "unmapped" },
+    ru: { noAreasPaint: "Пока нет отмеченных областей. Карты появятся по мере исследования мира группой.", noAreas: "Пока нет отмеченных областей. Они появятся по мере исследования мира группой, а мастер может загрузить карту для каждой.", here: "здесь", replacePicture: "Заменить карту своим изображением", replace: "Заменить карту", upload: "Загрузить карту", redraw: "Перерисовать карту", removeTitle: "Убрать карту и показать заготовку для такого места", placeholder: "Использовать заготовку", mapOf: "Карта:", waiting: "Ожидание очереди рендеринга...", drawing: "Рисуем карту...", renderFailed: "Не удалось нарисовать карту", uploadAbove: "Карта ещё не добавлена. Загрузите её выше.", unmapped: "Карта ещё не добавлена", routes: "Пути:", charted: "Отмеченные области", unmappedShort: "без карты" },
+    pl: { noAreasPaint: "Nie ma jeszcze zaznaczonych obszarów. Mapy pojawią się podczas eksploracji drużyny.", noAreas: "Nie ma jeszcze zaznaczonych obszarów. Pojawią się podczas eksploracji drużyny, a MG może przesłać mapę każdego.", here: "tutaj", replacePicture: "Zastąp mapę własnym obrazem", replace: "Zastąp mapę", upload: "Prześlij mapę", redraw: "Narysuj mapę ponownie", removeTitle: "Usuń mapę i pokaż zastępnik dla tego miejsca", placeholder: "Użyj zastępnika", mapOf: "Mapa:", waiting: "Oczekiwanie w kolejce renderowania...", drawing: "Rysowanie mapy...", renderFailed: "Renderowanie mapy nie powiodło się", uploadAbove: "Mapa nie jest jeszcze gotowa. Prześlij ją powyżej.", unmapped: "Mapa nie jest jeszcze gotowa", routes: "Trasy:", charted: "Zmapowane obszary", unmappedShort: "bez mapy" },
+  });
   const current = locations.find((location) => location.isCurrent) ?? null;
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [enlarged, setEnlarged] = useState(false);
@@ -130,8 +138,8 @@ export function MapPanel({
     return (
       <p className="px-1 py-6 text-center text-xs text-stone-600">
         {canPaint
-          ? "No areas charted yet. Maps appear as the party explores."
-          : "No areas charted yet. Areas appear as the party explores, and the DM can upload a map for each."}
+          ? copy.noAreasPaint
+          : copy.noAreas}
       </p>
     );
   }
@@ -146,7 +154,7 @@ export function MapPanel({
               {shown.name}
               {shown.isCurrent ? (
                 <span className="rounded-full bg-emerald-950 px-1.5 py-0.5 text-[10px] text-emerald-300">
-                  here
+                  {copy.here}
                 </span>
               ) : null}
             </h3>
@@ -169,8 +177,8 @@ export function MapPanel({
                   type="button"
                   onClick={() => fileRef.current?.click()}
                   disabled={uploading || regenerating}
-                  title={shown.mapImage ? "Replace map with your own picture" : "Upload a map"}
-                  aria-label={shown.mapImage ? "Replace map" : "Upload a map"}
+                  title={shown.mapImage ? copy.replacePicture : copy.upload}
+                  aria-label={shown.mapImage ? copy.replace : copy.upload}
                   className="text-stone-500 hover:text-amber-400 disabled:opacity-50"
                 >
                   {uploading ? (
@@ -184,8 +192,8 @@ export function MapPanel({
                     type="button"
                     onClick={regenerate}
                     disabled={regenerating || uploading}
-                    title="Redraw this map"
-                    aria-label="Redraw this map"
+                    title={copy.redraw}
+                    aria-label={copy.redraw}
                     className="text-stone-500 hover:text-amber-400 disabled:opacity-50"
                   >
                     {regenerating ? (
@@ -200,8 +208,8 @@ export function MapPanel({
                     type="button"
                     onClick={() => void clearToPlaceholder()}
                     disabled={uploading || regenerating}
-                    title="Take the map away and show the stand-in for this kind of place"
-                    aria-label="Use the placeholder instead"
+                    title={copy.removeTitle}
+                    aria-label={copy.placeholder}
                     className="text-stone-500 hover:text-amber-400 disabled:opacity-50"
                   >
                     <ImageOff className="size-3.5" />
@@ -219,7 +227,7 @@ export function MapPanel({
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={shown.mapImage.url}
-                alt={`Map of ${shown.name}`}
+                alt={`${copy.mapOf} ${shown.name}`}
                 className="w-full rounded-md border border-stone-800"
               />
             </button>
@@ -227,8 +235,8 @@ export function MapPanel({
             <div className="flex aspect-[4/3] flex-col items-center justify-center gap-1.5 rounded-md border border-dashed border-stone-800 text-xs text-stone-500">
               <Loader2 className="size-4 animate-spin text-amber-700" />
               {mediaStatus[shown.id].state === "queued"
-                ? "Waiting for the render queue..."
-                : "Drawing the map..."}
+                ? copy.waiting
+                : copy.drawing}
             </div>
           ) : (
             // The stand-in plate for the kind of place this is, with the
@@ -248,10 +256,10 @@ export function MapPanel({
               <p className="absolute inset-x-0 bottom-0 flex items-center gap-1.5 bg-gradient-to-t from-stone-950/90 to-transparent px-2 pb-1.5 pt-4 text-xs text-stone-300">
                 <MapIcon className="size-3.5 shrink-0" />
                 {mediaStatus[shown.id]?.state === "failed"
-                  ? "Map render failed"
+                  ? copy.renderFailed
                   : !canPaint && steersStory
-                    ? "Not yet mapped. Upload one above."
-                    : "Not yet mapped"}
+                    ? copy.uploadAbove
+                    : copy.unmapped}
               </p>
             </div>
           )}
@@ -261,7 +269,7 @@ export function MapPanel({
           ) : null}
           {shown.connections.length ? (
             <p className="mt-1 text-xs text-stone-500">
-              Routes: {shown.connections.join(", ")}
+              {copy.routes} {shown.connections.join(", ")}
             </p>
           ) : null}
         </div>
@@ -270,7 +278,7 @@ export function MapPanel({
       {locations.length > 1 ? (
         <div>
           <h4 className="mb-1.5 text-xs font-medium uppercase tracking-wide text-stone-500">
-            Charted areas
+            {copy.charted}
           </h4>
           <ul className="space-y-1">
             {locations.map((location) => (
@@ -288,8 +296,8 @@ export function MapPanel({
                   )}
                 >
                   {location.name}
-                  {location.isCurrent ? " (here)" : ""}
-                  {location.mapImage ? "" : " · unmapped"}
+                  {location.isCurrent ? ` (${copy.here})` : ""}
+                  {location.mapImage ? "" : ` · ${copy.unmappedShort}`}
                 </button>
               </li>
             ))}
@@ -309,7 +317,7 @@ export function MapPanel({
                 </Dialog.Close>
               </div>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={shown.mapImage.url} alt={`Map of ${shown.name}`} className="w-full rounded" />
+              <img src={shown.mapImage.url} alt={`${copy.mapOf} ${shown.name}`} className="w-full rounded" />
             </Dialog.Content>
           </Dialog.Portal>
         </Dialog.Root>

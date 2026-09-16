@@ -5,6 +5,8 @@ import { useState } from "react";
 import { cn } from "@/lib/cn";
 import type { ItemProposal } from "@/app/campaigns/[campaignId]/useCampaignStream";
 import type { CharacterSheet } from "@/lib/schemas/sheet";
+import { useI18n } from "@/lib/i18n/context";
+import { localeText } from "@/lib/i18n/locale-text";
 
 // Pending DM item/gold offers (inventoryApprovals): the owning player gets
 // Accept/Decline, everyone else sees a passive chip, the lead may withdraw.
@@ -22,6 +24,8 @@ export function ItemProposalBar({
   meUserId: string;
   steersStory: boolean;
 }) {
+  const { locale } = useI18n();
+  const copy = localeText(locale, { en: { failed: "That did not work.", character: "a character", accept: "Accept", decline: "Decline", withdraw: "Withdraw", waiting: "waiting on" }, ru: { failed: "Не получилось.", character: "персонажа", accept: "Принять", decline: "Отклонить", withdraw: "Отозвать", waiting: "ждём" }, pl: { failed: "To nie zadziałało.", character: "postać", accept: "Przyjmij", decline: "Odrzuć", withdraw: "Wycofaj", waiting: "czekamy na" } });
   const [busyId, setBusyId] = useState("");
   const [error, setError] = useState("");
 
@@ -43,7 +47,7 @@ export function ItemProposalBar({
       );
       if (!response.ok) {
         const data = await response.json().catch(() => ({}));
-        setError(String(data.error ?? "That did not work."));
+         setError(String(data.error ?? copy.failed));
       }
     } finally {
       setBusyId("");
@@ -56,7 +60,7 @@ export function ItemProposalBar({
       {proposals.map((proposal) => {
         const mine = proposal.userId === meUserId;
         const characterName =
-          sheets.find((sheet) => sheet.id === proposal.characterId)?.name ?? "a character";
+           sheets.find((sheet) => sheet.id === proposal.characterId)?.name ?? copy.character;
         const busy = busyId === proposal.id;
         return (
           <div
@@ -84,7 +88,7 @@ export function ItemProposalBar({
                   className="flex items-center gap-1 rounded border border-emerald-800 px-2 py-0.5 text-[11px] text-emerald-300 hover:bg-emerald-950/50 disabled:opacity-50"
                 >
                   {busy ? <Loader2 className="size-3 animate-spin" /> : <Check className="size-3" />}
-                  Accept
+                   {copy.accept}
                 </button>
                 <button
                   type="button"
@@ -92,12 +96,12 @@ export function ItemProposalBar({
                   disabled={busy}
                   className="flex items-center gap-1 rounded border border-stone-700 px-2 py-0.5 text-[11px] text-stone-400 hover:bg-stone-900 disabled:opacity-50"
                 >
-                  <X className="size-3" /> {mine ? "Decline" : "Withdraw"}
+                   <X className="size-3" /> {mine ? copy.decline : copy.withdraw}
                 </button>
               </span>
             ) : (
               <span className="shrink-0 text-[11px] text-stone-600">
-                waiting on {characterName}
+                 {copy.waiting} {characterName}
               </span>
             )}
           </div>

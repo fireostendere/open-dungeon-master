@@ -11,6 +11,8 @@ import { useTourPrepare } from "@/lib/tours/prepare";
 import { DmWorkbenchPanel } from "@/app/campaigns/[campaignId]/DmWorkbenchPanel";
 import { EncounterForm } from "@/app/workshop/encounters/EncounterForm";
 import { EncounterRows } from "@/app/workshop/encounters/EncounterRows";
+import { useI18n } from "@/lib/i18n/context";
+import { localeText } from "@/lib/i18n/locale-text";
 import {
   EMPTY_ENCOUNTER_DRAFT,
   type EncounterDraft,
@@ -63,6 +65,12 @@ export function DmEncounterPrepPanel({
   // console never shows the bar.
   targetParty?: TargetParty;
 }) {
+  const { locale } = useI18n();
+  const copy = localeText(locale, {
+    en: { failed: "That did not work.", prepared: "Prepared encounters", deploy: "Deploy", duplicate: "Duplicate", delete: "Delete", empty: "Nothing prepared. Write a roster below and it is one button at the table.", save: "Save", prepare: "Prepare it" },
+    ru: { failed: "Не удалось выполнить действие.", prepared: "Подготовленные встречи", deploy: "Развернуть", duplicate: "Дублировать", delete: "Удалить", empty: "Встреч пока нет. Запишите состав ниже — и за столом останется нажать одну кнопку.", save: "Сохранить", prepare: "Подготовить" },
+    pl: { failed: "Nie udało się wykonać działania.", prepared: "Przygotowane spotkania", deploy: "Rozstaw", duplicate: "Duplikuj", delete: "Usuń", empty: "Nie przygotowano jeszcze spotkań. Wpisz skład poniżej, a przy stole wystarczy jeden przycisk.", save: "Zapisz", prepare: "Przygotuj" },
+  });
   const [templates, setTemplates] = useState<PreparedEncounter[]>([]);
   const [draft, setDraft] = useState<EncounterDraft>(EMPTY_ENCOUNTER_DRAFT);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -269,7 +277,7 @@ export function DmEncounterPrepPanel({
         <Sheet
           open={editorOpen}
           onOpenChange={setEditorOpen}
-          title={editing ? editing.name : "New encounter"}
+          title={editing ? editing.name : copy.prepare}
           className="lg:w-[min(92vw,40rem)]"
         >
           <EncounterForm
@@ -278,7 +286,7 @@ export function DmEncounterPrepPanel({
             onChange={setDraft}
             maps={maps}
             busy={busy}
-            submitLabel={editing ? "Save" : "Prepare it"}
+          submitLabel={editing ? copy.save : copy.prepare}
             onSubmit={() => void save()}
             variant="sheet"
           />
@@ -292,7 +300,7 @@ export function DmEncounterPrepPanel({
     <div className="space-y-3">
       <section>
         <h3 className="mb-1.5 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-stone-500">
-          <Swords className="size-3.5" /> Prepared encounters
+          <Swords className="size-3.5" /> {copy.prepared}
         </h3>
         {templates.length ? (
           <ul className="space-y-1.5">
@@ -322,12 +330,12 @@ export function DmEncounterPrepPanel({
                       onClick={() => void deploy(template.id)}
                       className="rounded-md border border-amber-700 bg-amber-950/50 px-2 py-1 text-xs text-amber-100 disabled:opacity-40"
                     >
-                      Deploy
+                      {copy.deploy}
                     </button>
                     <button
                       type="button"
                       disabled={busy}
-                      aria-label={`Duplicate ${template.name}`}
+                      aria-label={`${copy.duplicate} ${template.name}`}
                       onClick={() => void duplicate(template)}
                       className="rounded p-1 text-stone-500 hover:text-stone-200 disabled:opacity-40"
                     >
@@ -335,7 +343,7 @@ export function DmEncounterPrepPanel({
                     </button>
                     <button
                       type="button"
-                      aria-label={`Delete ${template.name}`}
+                      aria-label={`${copy.delete} ${template.name}`}
                       onClick={() => void remove(template.id)}
                       className="rounded p-1 text-stone-500 hover:text-red-400"
                     >
@@ -348,7 +356,7 @@ export function DmEncounterPrepPanel({
           </ul>
         ) : (
           <p className="rounded-lg border border-stone-800 bg-stone-950/40 px-2.5 py-2 text-xs text-stone-500">
-            Nothing prepared. Write a roster below and it is one button at the table.
+            {copy.empty}
           </p>
         )}
       </section>
@@ -359,7 +367,7 @@ export function DmEncounterPrepPanel({
         onChange={setDraft}
         maps={maps}
         busy={busy}
-        submitLabel="Prepare it"
+        submitLabel={copy.prepare}
         onSubmit={() => void save()}
       />
 

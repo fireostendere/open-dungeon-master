@@ -6,6 +6,8 @@ import { ui } from "@/lib/ui";
 import { UnofficialPackNotice } from "@/components/UnofficialPackNotice";
 import { BUNDLE_KIND_LABELS, MAX_BUNDLE_BYTES } from "@/lib/workshop/bundle";
 import { navigateTo } from "@/lib/navigation";
+import { useI18n } from "@/lib/i18n/context";
+import { localeText } from "@/lib/i18n/locale-text";
 
 // Opening somebody else's workshop.
 //
@@ -39,6 +41,8 @@ export function ImportBundleButton({
   label?: string;
   className?: string;
 } = {}) {
+  const { locale } = useI18n();
+  const copy = localeText(locale, { en: { open: "Open a bundle", unreadable: "That bundle could not be read.", importFailed: "That bundle could not be imported.", by: "by", note: "This creates a new workshop of your own. Nothing is written into any campaign you already have.", empty: "Import an empty workshop", import: "Import it", cancel: "Cancel" }, ru: { open: "Открыть набор", unreadable: "Не удалось прочитать этот набор.", importFailed: "Не удалось импортировать этот набор.", by: "автор: ", note: "Это создаст новую мастерскую. Ни одна из ваших существующих кампаний не будет изменена.", empty: "Импортировать пустую мастерскую", import: "Импортировать", cancel: "Отмена" }, pl: { open: "Otwórz pakiet", unreadable: "Nie udało się odczytać pakietu.", importFailed: "Nie udało się zaimportować pakietu.", by: "autor: ", note: "Powstanie nowy warsztat. Żadna istniejąca kampania nie zostanie zmieniona.", empty: "Importuj pusty warsztat", import: "Importuj", cancel: "Anuluj" } });
   const input = useRef<HTMLInputElement>(null);
   const [text, setText] = useState("");
   const [preview, setPreview] = useState<Preview | null>(null);
@@ -55,7 +59,7 @@ export function ImportBundleButton({
     });
     const data = await response.json().catch(() => ({}));
     if (!response.ok) {
-      throw new Error(data.error ?? "That bundle could not be read.");
+        throw new Error(data.error ?? copy.unreadable);
     }
     return data;
   }
@@ -80,7 +84,7 @@ export function ImportBundleButton({
       setPreview(data);
       setKinds(kindsOf(data));
     } catch (thrown) {
-      setError(thrown instanceof Error ? thrown.message : "That bundle could not be read.");
+      setError(thrown instanceof Error ? thrown.message : copy.unreadable);
     } finally {
       setBusy(false);
     }
@@ -93,7 +97,7 @@ export function ImportBundleButton({
       const data = await post({ text, kinds });
       navigateTo(`/workshop/${data.workshopId}`);
     } catch (thrown) {
-      setError(thrown instanceof Error ? thrown.message : "That bundle could not be imported.");
+      setError(thrown instanceof Error ? thrown.message : copy.importFailed);
       setBusy(false);
     }
   }
@@ -128,7 +132,7 @@ export function ImportBundleButton({
           <p className="font-display tracking-wide text-amber-50">{preview.manifest.name}</p>
           <p className="text-sm text-stone-400">{preview.manifest.blurb}</p>
           {preview.manifest.author ? (
-            <p className="mt-0.5 text-xs text-stone-500">by {preview.manifest.author}</p>
+            <p className="mt-0.5 text-xs text-stone-500">{copy.by}{preview.manifest.author}</p>
           ) : null}
 
           {/* Each kind is a tick: a DM who only wants the monsters takes the
@@ -183,17 +187,16 @@ export function ImportBundleButton({
           ) : null}
 
           <p className="mt-3 text-xs text-stone-500">
-            This creates a new workshop of your own. Nothing is written into any campaign you
-            already have.
+            {copy.note}
           </p>
 
           <div className="mt-3 flex gap-2">
             <button type="button" onClick={() => void confirm()} disabled={busy} className={ui.btnPrimary}>
               {busy ? <Loader2 className="size-4 animate-spin" /> : null}{" "}
               {kinds.length === 0
-                ? "Import an empty workshop"
+                ? copy.empty
                 : kinds.length === kindsOf(preview).length
-                  ? "Import it"
+                  ? copy.import
                   : `Import ${kinds.length} of ${kindsOf(preview).length} kinds`}
             </button>
             <button
@@ -204,7 +207,7 @@ export function ImportBundleButton({
               }}
               className={ui.btnSecondary}
             >
-              Cancel
+              {copy.cancel}
             </button>
           </div>
         </div>

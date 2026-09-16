@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { ChevronDown, ChevronRight, Dices } from "lucide-react";
 import { MonsterTile, ui } from "@/lib/ui";
+import { useI18n } from "@/lib/i18n/context";
+import { localeText } from "@/lib/i18n/locale-text";
 
 // Monster lookup: the campaign's own genre catalog, then the exact numbers
 // start_encounter would spawn. A CR with no match falls back to the DMG's
@@ -24,6 +26,8 @@ export function StatblockFinder({
   campaignId: string;
   collapsible?: boolean;
 }) {
+  const { locale } = useI18n();
+  const copy = localeText(locale, { en: { placeholder: "wolf, or leave empty for what fits the party", search: "Search", lookup: "Look up a monster", baseline: "DMG baseline", speed: "speed", hit: "to hit" }, ru: { placeholder: "волк или оставьте пустым для подходящего группе", search: "Найти", lookup: "Найти монстра", baseline: "базовые значения DMG", speed: "скорость", hit: "к попаданию" }, pl: { placeholder: "wilk albo puste, by dobrać do drużyny", search: "Szukaj", lookup: "Znajdź potwora", baseline: "wartości bazowe DMG", speed: "szybkość", hit: "do trafienia" } });
   const [query, setQuery] = useState("");
   const [matches, setMatches] = useState<StatblockMatch[]>([]);
   // The table's setting, for the boss plate on high-rating matches.
@@ -76,7 +80,7 @@ export function StatblockFinder({
         <input
           value={query}
           onChange={(event) => setQuery(event.target.value.slice(0, 80))}
-          placeholder="wolf, or leave empty for what fits the party"
+          placeholder={copy.placeholder}
           className={inputClass}
         />
         <button
@@ -85,7 +89,7 @@ export function StatblockFinder({
           disabled={busy}
           className="shrink-0 rounded-md border border-stone-700 px-2 py-1 text-xs text-stone-300 hover:bg-stone-900 disabled:opacity-40"
         >
-          Search
+          {copy.search}
         </button>
       </div>
       {matches.length ? (
@@ -119,16 +123,16 @@ export function StatblockFinder({
             {String(detail?.name ?? "")}
             {detail?.synthesized ? (
               <span className="ml-1.5 text-[10px] uppercase tracking-wide text-amber-300/80">
-                DMG baseline
+                {copy.baseline}
               </span>
             ) : null}
           </p>
           <p className="text-stone-500">
-            AC {stats.ac} · {stats.maxHp} hp · CR {stats.cr} · speed {stats.speed}
+            AC {stats.ac} · {stats.maxHp} hp · CR {stats.cr} · {copy.speed} {stats.speed}
           </p>
           {stats.attacks.map((attack) => (
             <p key={attack.name} className="text-stone-400">
-              {attack.name}: +{attack.toHit} to hit, {attack.damage}
+              {attack.name}: +{attack.toHit} {copy.hit}, {attack.damage}
             </p>
           ))}
         </div>
@@ -146,7 +150,7 @@ export function StatblockFinder({
           className="flex w-full items-center gap-2 text-left font-display text-sm tracking-wide text-amber-100"
         >
           <Dices className="size-4 text-amber-300" />
-          Look up a monster
+          {copy.lookup}
           {open ? (
             <ChevronDown className="ml-auto size-4 text-stone-500" />
           ) : (
@@ -162,7 +166,7 @@ export function StatblockFinder({
     <section className="rounded-lg border border-stone-800 bg-stone-950/60 px-2.5 py-2">
       <p className="mb-1.5 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-stone-500">
         <Dices className="size-3.5" />
-        Look up a monster
+        {copy.lookup}
       </p>
       {controls}
     </section>
