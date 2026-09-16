@@ -8,9 +8,23 @@ import {requestStrictCloudMessage} from '@/lib/provider-auth/cloud';
 function custom(baseUrl:string,model:string,key:string,messages:ChatMessage[],options:ChatRequestOptions):Promise<UpstreamResult>{
   return isStrictCloudEndpoint(baseUrl)?requestStrictCloudMessage(baseUrl,model,key,messages,options):requestCustomMessage(baseUrl,model,key,messages,options);
 }
-export function requestDmMessage(settings:StorySettings,messages:ChatMessage[],options:ChatRequestOptions):Promise<UpstreamResult>{
+
+async function requestStoryBackend(settings:StorySettings,messages:ChatMessage[],options:ChatRequestOptions):Promise<UpstreamResult>{
   if(settings.textProvider==='local')return requestLocalMessage(settings.localTextModel,messages,options);
   return custom(settings.customBaseUrl,settings.customModel,settings.customApiKey,messages,options);
+}
+
+export function requestDmMessage(settings:StorySettings,messages:ChatMessage[],options:ChatRequestOptions):Promise<UpstreamResult>{
+  // Tool-decision calls are provisional until the server has parsed and
+  // executed every tool result. Streaming their prose straight to players can
+  // announce a hit before the authoritative attack roll says miss. Suppress
+  // live deltas for every call that may choose a tool; the persisted/final
+  // narration is delivered after adjudication. Forced pure-narration calls
+  // (`toolChoice: none`) retain normal live streaming.
+  const safeOptions = options.onDelta && options.toolChoice !== 'none'
+    ? { ...options, onDelta: undefined }
+    : options;
+  return requestStoryBackend(settings,messages,safeOptions);
 }
 // Utility work uses the selected backend, with the original DM fallback.
 export async function requestUtilityMessage(settings:StorySettings,messages:ChatMessage[],options:ChatRequestOptions):Promise<UpstreamResult>{
