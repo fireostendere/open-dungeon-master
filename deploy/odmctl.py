@@ -370,7 +370,8 @@ class Controller:
             # are captured together; rsyncing a live encrypted DB is not a backup.
             write_json(self.config_dir / 'recovery.json', {'schema': SCHEMA, 'release': active, 'at': timestamp()})
             out = self.restic('backup', 'state', 'config/app.env', 'config/install.json',
-                              'config/recovery.json', 'config/admin.json', '--tag', 'odm', '--tag', tag, '--json', timeout=3600)
+                               'config/recovery.json', 'config/admin.json', '--exclude=state/provider-auth/codex/tmp',
+                               '--tag', 'odm', '--tag', tag, '--json', timeout=3600)
             summaries = [json.loads(line) for line in out.splitlines() if line.strip()]
             snapshot = next((s['snapshot_id'] for s in reversed(summaries) if s.get('snapshot_id')), None)
             if not snapshot: raise OpsError('Backup did not produce a confirmed snapshot')

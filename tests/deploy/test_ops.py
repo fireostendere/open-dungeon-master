@@ -150,6 +150,12 @@ class OpsTests(unittest.TestCase):
     def test_backup_pauses_and_resumes_writer(self):
         ident=self.c.backup();self.assertTrue(self.c.running);self.assertIn(ident,self.c.saved)
         self.assertEqual((self.c.saved[ident]/'state/uploads/portrait.png').read_bytes(),b'portrait fixture')
+    def test_backup_excludes_only_transient_codex_auth_tmp(self):
+        ident=self.c.backup()
+        command=next(call[1] for call in self.c.calls if call[0]=='restic' and call[1][0]=='backup')
+        self.assertIn('--exclude=state/provider-auth/codex/tmp',command)
+        self.assertNotIn('--exclude=state/provider-auth',command)
+        self.assertTrue((self.c.saved[ident]/'state/provider-auth/account.json').is_file())
     def test_backup_does_not_include_github_credentials(self):
         (self.c.config_dir/'github.token').write_text('must-not-leave');ident=self.c.backup()
         self.assertFalse((self.c.saved[ident]/'config/github.token').exists())
