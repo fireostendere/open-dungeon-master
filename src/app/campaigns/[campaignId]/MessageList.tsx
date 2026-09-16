@@ -32,8 +32,9 @@ import type { StoredRoll } from "@/lib/db/rolls";
 import type { CharacterSheet } from "@/lib/schemas/sheet";
 import { D20Spinner } from "@/components/ui/D20Spinner";
 import { RollCard } from "@/app/campaigns/[campaignId]/RollCard";
-import { DM_STATUS_PHRASES } from "@/app/campaigns/[campaignId]/dmStatusPhrases";
-import { useI18n } from "@/lib/i18n";
+import { DM_STATUS_PHRASES_BY_LOCALE } from "@/app/campaigns/[campaignId]/dmStatusPhrases";
+import { useI18n, type Locale } from "@/lib/i18n";
+import { messageText } from "@/lib/i18n/message-text";
 import { displaySystemText } from "@/lib/i18n/session-system-text";
 import type {
   CampaignLocation,
@@ -69,11 +70,11 @@ function hashString(value: string): number {
 // one turn to the next. Keyed on the id (not the message count, which the
 // 200-message cap pins in long sessions) and salted with the status, so the
 // beats within a single turn read differently too.
-function dmStatusPhrase(status: DmStatus, turnKey: string): string {
+function dmStatusPhrase(status: DmStatus, turnKey: string, locale: Locale): string {
   if (status === "idle") {
     return "";
   }
-  const pool = DM_STATUS_PHRASES[status];
+  const pool = DM_STATUS_PHRASES_BY_LOCALE[locale][status];
   return pool[hashString(turnKey + status) % pool.length];
 }
 
@@ -89,6 +90,7 @@ export function MediaPlaceholder({
   status?: MediaStatus;
   fallbackStartedAt: string;
 }) {
+  const { locale } = useI18n();
   const [now, setNow] = useState(() => Date.now());
   const failed = status?.state === "failed";
   useEffect(() => {
@@ -102,7 +104,7 @@ export function MediaPlaceholder({
   if (failed) {
     return (
       <p className="mt-3 flex items-center gap-1.5 text-xs text-stone-600">
-        <ImageOff className="size-3.5" /> Illustration failed; the story carries on.
+        <ImageOff className="size-3.5" /> {messageText(locale, "Illustration failed; the story carries on.")}
       </p>
     );
   }
@@ -110,7 +112,7 @@ export function MediaPlaceholder({
     <div className="mt-3 flex aspect-video max-h-56 w-full max-w-md flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed border-stone-800 bg-stone-950/40">
       <Loader2 className="size-5 animate-spin text-amber-700" />
       <p className="text-xs text-stone-400">
-        {status?.state === "queued" ? "Waiting for the render queue..." : label}
+        {status?.state === "queued" ? messageText(locale, "Waiting for the render queue...") : label}
       </p>
       <p className="font-mono text-[11px] text-stone-600">
         {formatElapsed(status?.startedAt ?? fallbackStartedAt, now)}
@@ -258,7 +260,7 @@ const MessageItem = memo(function MessageItem({
       });
       const uploaded = await upload.json().catch(() => ({}));
       if (!upload.ok) {
-        window.alert(uploaded.error || "That image would not upload.");
+        window.alert(messageText(locale, "That image would not upload."));
         return;
       }
       const response = await fetch(
@@ -270,11 +272,10 @@ const MessageItem = memo(function MessageItem({
         },
       );
       if (!response.ok) {
-        const data = await response.json().catch(() => ({}));
-        window.alert(data.error || "Could not put that picture under the passage.");
+        window.alert(messageText(locale, "Could not put that picture under the passage."));
       }
     } catch {
-      window.alert("That image would not upload.");
+      window.alert(messageText(locale, "That image would not upload."));
     } finally {
       setAttaching(false);
     }
@@ -325,7 +326,7 @@ const MessageItem = memo(function MessageItem({
       <div className="group animate-fade-up">
         <p className="eyebrow mb-2 flex items-center gap-2 text-[10px] text-amber-300/80">
           <span className="h-px w-8 bg-gradient-to-r from-transparent to-amber-500/60" />
-          Dungeon Master
+          {messageText(locale, "Dungeon Master")}
           <span className="h-px flex-1 bg-gradient-to-r from-amber-500/40 to-transparent" />
           {(() => {
             // Reroll takes: the counter only appears once a second one exists.
@@ -340,7 +341,7 @@ const MessageItem = memo(function MessageItem({
                   type="button"
                   onClick={() => onSelectVariant(message, index - 1)}
                   disabled={index <= 0}
-                  aria-label="Previous take"
+                  aria-label={messageText(locale, "Previous take")}
                   className={cn(ui.iconAction, "-my-1.5 p-1 disabled:opacity-30")}
                 >
                   <ChevronLeft className="size-3.5" />
@@ -350,7 +351,7 @@ const MessageItem = memo(function MessageItem({
                   type="button"
                   onClick={() => onSelectVariant(message, index + 1)}
                   disabled={index >= variants.length - 1}
-                  aria-label="Next take"
+                  aria-label={messageText(locale, "Next take")}
                   className={cn(ui.iconAction, "-my-1.5 p-1 disabled:opacity-30")}
                 >
                   <ChevronRight className="size-3.5" />
@@ -362,8 +363,8 @@ const MessageItem = memo(function MessageItem({
             <button
               type="button"
               onClick={() => onRenarrate(message)}
-              aria-label="Reroll this narration"
-              title="Reroll: have the DM write this moment again, with the same dice and outcome"
+              aria-label={messageText(locale, "Reroll this narration")}
+              title={messageText(locale, "Reroll: have the DM write this moment again, with the same dice and outcome")}
               className={cn(ui.iconAction, "-my-1.5")}
             >
               <RefreshCw className="size-3.5" />
@@ -373,8 +374,8 @@ const MessageItem = memo(function MessageItem({
             <button
               type="button"
               onClick={() => onContinueScene(message)}
-              aria-label="Continue this scene"
-              title="Continue: have the DM keep writing from where this stopped, without moving the story on"
+              aria-label={messageText(locale, "Continue this scene")}
+              title={messageText(locale, "Continue: have the DM keep writing from where this stopped, without moving the story on")}
               className={cn(ui.iconAction, "-my-1.5")}
             >
               <FastForward className="size-3.5" />
@@ -384,8 +385,8 @@ const MessageItem = memo(function MessageItem({
             <button
               type="button"
               onClick={() => setEditing(true)}
-              aria-label="Edit this narration"
-              title="Edit: fix what the DM said. Mechanics are untouched, and every dice marker must survive"
+              aria-label={messageText(locale, "Edit this narration")}
+              title={messageText(locale, "Edit: fix what the DM said. Mechanics are untouched, and every dice marker must survive")}
               className={cn(ui.iconAction, "-my-1.5")}
             >
               <Pencil className="size-3.5" />
@@ -395,8 +396,8 @@ const MessageItem = memo(function MessageItem({
             <button
               type="button"
               onClick={() => onPinMemory(message)}
-              aria-label="Pin this to the DM's memory"
-              title="Remember: keep your selected text (or this whole message) in front of the DM every turn"
+              aria-label={messageText(locale, "Pin this to the DM's memory")}
+              title={messageText(locale, "Remember: keep your selected text (or this whole message) in front of the DM every turn")}
               className={cn(ui.iconAction, "-my-1.5")}
             >
               <Bookmark className="size-3.5" />
@@ -406,8 +407,8 @@ const MessageItem = memo(function MessageItem({
             <button
               type="button"
               onClick={() => onLoreCheck(message)}
-              aria-label="Lore check this passage"
-              title="Lore check: flag this passage (or your selected text) against the campaign record"
+              aria-label={messageText(locale, "Lore check this passage")}
+              title={messageText(locale, "Lore check: flag this passage (or your selected text) against the campaign record")}
               className={cn(ui.iconAction, "-my-1.5")}
             >
               <ShieldQuestion className="size-3.5" />
@@ -417,8 +418,8 @@ const MessageItem = memo(function MessageItem({
             <button
               type="button"
               onClick={() => onPinCanon(message)}
-              aria-label="Pin this passage as canon"
-              title="Pin as canon: keep this passage (or your selected text) in front of the DM permanently"
+              aria-label={messageText(locale, "Pin this passage as canon")}
+              title={messageText(locale, "Pin as canon: keep this passage (or your selected text) in front of the DM permanently")}
               className={cn(ui.iconAction, "-my-1.5")}
             >
               <Pin className="size-3.5" />
@@ -443,11 +444,11 @@ const MessageItem = memo(function MessageItem({
                 type="button"
                 disabled={attaching}
                 onClick={() => pictureRef.current?.click()}
-                aria-label={message.generatedImage ? "Replace the picture" : "Add a picture"}
+                aria-label={message.generatedImage ? messageText(locale, "Replace the picture") : messageText(locale, "Add a picture")}
                 title={
                   message.generatedImage
-                    ? "Replace picture: put an image of your own under this passage"
-                    : "Add a picture: put an image of your own under this passage"
+                    ? messageText(locale, "Replace picture: put an image of your own under this passage")
+                    : messageText(locale, "Add a picture: put an image of your own under this passage")
                 }
                 className={cn(ui.iconAction, "-my-1.5")}
               >
@@ -465,14 +466,17 @@ const MessageItem = memo(function MessageItem({
               disabled={narrating}
               onClick={async () => {
                 setNarrating(true);
-                const error = await onReplayAudio(message.id);
-                setNarrating(false);
-                if (error) {
-                  window.alert(error);
+                try {
+                  const error = await onReplayAudio(message.id);
+                  if (error) window.alert(error);
+                } catch {
+                  window.alert(messageText(locale, "Could not read that passage aloud."));
+                } finally {
+                  setNarrating(false);
                 }
               }}
-              aria-label="Read this passage aloud"
-              title="Read aloud"
+              aria-label={messageText(locale, "Read this passage aloud")}
+              title={messageText(locale, "Read aloud")}
               className={cn(ui.iconAction, "-my-1.5")}
             >
               {narrating ? (
@@ -486,8 +490,8 @@ const MessageItem = memo(function MessageItem({
             <button
               type="button"
               onClick={() => onReport(message)}
-              aria-label="Report this passage"
-              title="Report: flag this passage to the admins of this server"
+              aria-label={messageText(locale, "Report this passage")}
+              title={messageText(locale, "Report: flag this passage to the admins of this server")}
               className={cn(ui.iconAction, "-my-1.5")}
             >
               <Flag className="size-3.5" />
@@ -512,12 +516,12 @@ const MessageItem = memo(function MessageItem({
         {message.generatedImage ? (
           <ImageLightbox
             src={message.generatedImage.url}
-            alt={message.imageRequest?.prompt || "Scene"}
+            alt={message.imageRequest?.prompt || messageText(locale, "Scene")}
             className="mt-3 max-h-96 rounded-xl border border-stone-800"
           />
         ) : message.imageRequest?.needed ? (
           <MediaPlaceholder
-            label="Illustrating the scene..."
+            label={messageText(locale, "Illustrating the scene...")}
             status={mediaStatus[message.id]}
             fallbackStartedAt={message.createdAt}
           />
@@ -537,7 +541,7 @@ const MessageItem = memo(function MessageItem({
               <figure className="mt-3 max-w-md">
                 <ImageLightbox
                   src={location.mapImage.url}
-                  alt={`Map of ${location.name}`}
+                  alt={messageText(locale, "Map of {name}", { name: location.name })}
                   caption={location.name}
                   className="max-h-96 rounded-xl border border-stone-800"
                 />
@@ -549,7 +553,7 @@ const MessageItem = memo(function MessageItem({
           }
           return (
             <MediaPlaceholder
-              label="Charting the area..."
+              label={messageText(locale, "Charting the area...")}
               status={mediaStatus[location.id]}
               fallbackStartedAt={message.createdAt}
             />
@@ -562,7 +566,7 @@ const MessageItem = memo(function MessageItem({
     return (
       <p className="ml-auto flex max-w-[92%] items-center justify-end gap-1.5 text-right text-xs italic text-stone-600 sm:max-w-2xl">
         <EyeOff className="size-3.5 shrink-0" />
-        A message from a player you blocked
+        {messageText(locale, "A message from a player you blocked")}
       </p>
     );
   }
@@ -595,13 +599,13 @@ const MessageItem = memo(function MessageItem({
             className="size-6 rounded-full border border-amber-500/30 object-cover"
           />
         ) : null}
-        {sheet?.name ?? "Player"}
+        {sheet?.name ?? messageText(locale, "Player")}
         {onReport && !mine && message.userId ? (
           <button
             type="button"
             onClick={() => onReport(message)}
-            aria-label="Report this message"
-            title="Report: flag this message to the admins of this server, or block the player"
+            aria-label={messageText(locale, "Report this message")}
+            title={messageText(locale, "Report: flag this message to the admins of this server, or block the player")}
             className={cn(ui.iconAction, "-my-1.5 opacity-0 transition-opacity focus:opacity-100 group-hover:opacity-100")}
           >
             <Flag className="size-3.5" />
@@ -674,11 +678,12 @@ export function MessageList({
   onContinueScene?: (message: CampaignMessage) => void;
   onSelectVariant?: (message: CampaignMessage, index: number) => void;
 }) {
+  const { locale } = useI18n();
   const containerRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const nearBottomRef = useRef(true);
   const scrollPendingRef = useRef(false);
-  const statusPhrase = dmStatusPhrase(dmStatus, messages[messages.length - 1]?.id ?? "");
+  const statusPhrase = dmStatusPhrase(dmStatus, messages[messages.length - 1]?.id ?? "", locale);
   const rollsById = useMemo(() => new Map(rolls.map((roll) => [roll.id, roll])), [rolls]);
   const sheetsById = useMemo(
     () => new Map(sheets.map((sheet) => [sheet.id, sheet])),
@@ -851,7 +856,7 @@ export function MessageList({
         <div>
           <p className="eyebrow mb-2 flex items-center gap-2 text-[10px] text-amber-300/80">
             <span className="h-px w-8 bg-gradient-to-r from-transparent to-amber-500/60" />
-            Dungeon Master
+            {messageText(locale, "Dungeon Master")}
             <span className="h-px flex-1 bg-gradient-to-r from-amber-500/40 to-transparent" />
           </p>
           <p className="whitespace-pre-wrap text-pretty font-serif text-base leading-relaxed text-stone-100">

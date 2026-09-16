@@ -7,6 +7,7 @@ import { cn } from "@/lib/cn";
 import { ui } from "@/lib/ui";
 import { useI18n } from "@/lib/i18n";
 import { describeAuditEntry, sessionText } from "@/lib/i18n/session-text";
+import { displayAuditReason, displayAuditWarning } from "@/lib/i18n/audit-text";
 import { sessionRequest, SessionRequestError } from "@/lib/i18n/session-request";
 import type { CharacterEvent } from "@/lib/db/character-events";
 import type { AuditEntry } from "@/app/campaigns/[campaignId]/useCampaignStream";
@@ -121,7 +122,7 @@ export function EventLog({ campaignId, auditLog, sheets, characterEvents = [], s
                     </button>
                   ) : null}
                 </div>
-                {entry.reason ? <span className="block pl-4.5 text-[11px] text-stone-500">{entry.reason}</span> : null}
+                {entry.reason ? <span className="block pl-4.5 text-[11px] text-stone-500">{displayAuditReason(entry.kind, entry.reason, locale)}</span> : null}
               </div>
             </li>
           );
@@ -135,7 +136,7 @@ export function EventLog({ campaignId, auditLog, sheets, characterEvents = [], s
               <AlertDialog.Title className="font-display text-lg tracking-wide text-amber-50">{sessionText(locale, "undoTitle")}</AlertDialog.Title>
               <AlertDialog.Description className="mt-2 text-xs text-stone-400">{sessionText(locale, "overwrite")}</AlertDialog.Description>
               <ul className="mt-2 space-y-1">{confirming.warnings.slice(0, 5).map((warning, index) => (
-                <li key={index} className="text-[11px] leading-4 text-amber-300/80">{warning}</li>
+                <li key={index} className="text-[11px] leading-4 text-amber-300/80">{displayAuditWarning(warning, locale)}</li>
               ))}</ul>
               {error ? <p role="alert" className="mt-2 text-xs text-red-400">{error}</p> : null}
               <div className="mt-4 flex justify-end gap-2">

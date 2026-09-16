@@ -49,6 +49,7 @@ function loadUi(path, locale='ru') {
   const imported=Object.fromEntries(names.map(name=>[name,name]));
   const mocks={react:h.react,'react/jsx-runtime':h.jsx,'@/lib/i18n':{useI18n:()=>({locale})},'@/lib/i18n/translations':localeModule,
     '@/lib/i18n/session-text':catalog,'@/lib/i18n/session-request':request,'@/lib/cn':{cn:(...args)=>args.filter(Boolean).join(' ')},
+    '@/lib/i18n/audit-text':loadReviewModule(source('lib/i18n/audit-text.ts')),
     '@/lib/ui':{ui:new Proxy({},{get:(_t,p)=>String(p)})},
     'lucide-react':Object.fromEntries(['Loader2','RotateCcw','ScrollText','Star'].map(x=>[x,x])),
     '@radix-ui/react-alert-dialog':Object.fromEntries(['Root','Portal','Overlay','Content','Title','Description','Cancel'].map(x=>[x,'Alert'+x])),
@@ -94,6 +95,8 @@ for(const locale of locales){
     const h=hooks();const mod=loadReviewModule(source('lib/i18n/context.tsx'),{react:h.react,'react/jsx-runtime':h.jsx,'./translations':localeModule});
     let tree=h.render(mod.I18nProvider,{children:null,initialLocale:'en'});
     h.effects[0]();queued.forEach(fn=>fn());
+    tree=h.render(mod.I18nProvider,{children:null,initialLocale:'en'});
+    tree.props.value.setLocale(locale);
     tree=h.render(mod.I18nProvider,{children:null,initialLocale:'en'});
     tree.props.value.setLocale(locale);
     tree=h.render(mod.I18nProvider,{children:null,initialLocale:'en'});
