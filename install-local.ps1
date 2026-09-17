@@ -142,9 +142,22 @@ if (!(Test-Path "$Root\repository\.git")) {
 if ($Ref) { Checked 'git.exe' @('-C',"$Root\repository",'checkout','--detach',$Ref) }
 if (!(Test-Path "$Root\repository\deploy\odmctl.py")) { throw 'Selected revision has no deployment controller' }
 if (!(Test-Path "$Root\repository\deploy\mcpctl.py")) { throw 'Selected revision has no MCP controller' }
-if (!(Test-Path "$Root\tools\odmctl.py")) { Copy-Item "$Root\repository\deploy\odmctl.py" "$Root\tools\odmctl.py" }
-if (!(Test-Path "$Root\tools\mcpctl.py")) { Copy-Item "$Root\repository\deploy\mcpctl.py" "$Root\tools\mcpctl.py" }
-$arguments=@("$Root\tools\odmctl.py",'--root',$Root,'install','--repo',$Repo,'--branch',$Branch,'--runtime',$Runtime,'--model',$Model,'--accelerator',$Accelerator,'--llm-url',$LlmUrl,'--port',"$Port")
+if (!(Test-Path "$Root\repository\deploy\retention.py")) { throw 'Selected revision lacks the coordinated operations bundle' }
+# Retire only this installation's legacy timer. An already-running rollout
+# must finish before replacing its controller, rather than being force-killed.
+$oldTasks=Get-ScheduledTask -TaskName 'ODM-*-mcp-sync' -ErrorAction SilentlyContinue
+foreach ($oldTask in $oldTasks) {
+    if (!($oldTask.Actions | Where-Object { $_.Arguments -and $_.Arguments.Contains("$Root\tools\mcp-sync.ps1") })) { continue }
+    $oldTaskName=$oldTask.TaskName
+    Disable-ScheduledTask -TaskName $oldTaskName | Out-Null
+    $deadline=(Get-Date).AddHours(1)
+    while ((Get-ScheduledTask -TaskName $oldTaskName).State -eq 'Running') {
+        if ((Get-Date) -ge $deadline) { throw 'Legacy MCP operation did not finish; controllers were not replaced.' }
+        Start-Sleep -Seconds 2
+    }
+    Unregister-ScheduledTask -TaskName $oldTaskName -Confirm:$false
+}
+$arguments=@("$Root\repository\deploy\odmctl.py",'--root',$Root,'install','--bootstrap-tools','--repo',$Repo,'--branch',$Branch,'--runtime',$Runtime,'--model',$Model,'--accelerator',$Accelerator,'--llm-url',$LlmUrl,'--port',"$Port")
 if ($Ref) { $arguments+=@('--ref',$Ref) }; if ($ComfyUrl) { $arguments+=@('--comfy-url',$ComfyUrl) }
 if ($AutoUpdate) { $arguments+='--auto-update' }; if ($SkipAssets) { $arguments+='--skip-assets' }
 # Keep maintenance installed when an optional model/asset download needs a retry.
@@ -177,21 +190,8 @@ $replacements=@{__PYTHON__=$python;__CTL__="$Root\tools\odmctl.py";__ROOT__=$Roo
 foreach($k in $replacements.Keys){$runner=$runner.Replace($k,$replacements[$k].Replace("'","''"))}
 Write-Utf8 "$Root\tools\windows-run.ps1" $runner
 
-# Refresh mcpctl from the currently active release before every sync. That
-# makes the MCP controller itself roll forward with an ODM update, not merely
-# the MCP container image.
-$mcpRunner=@'
-$ErrorActionPreference='Stop'
-$active=Get-Content -Raw '__ROOT__\config\active.json' | ConvertFrom-Json
-$source="__ROOT__\releases\$($active.sha)\source\deploy\mcpctl.py"
-if(Test-Path $source){Copy-Item $source '__ROOT__\tools\mcpctl.py' -Force}
-& '__PYTHON__' '__ROOT__\tools\mcpctl.py' --root '__ROOT__' sync
-exit $LASTEXITCODE
-'@
-$mcpRunner=$mcpRunner.Replace('__ROOT__',$Root.Replace("'","''")).Replace('__PYTHON__',$python.Replace("'","''"))
-Write-Utf8 "$Root\tools\mcp-sync.ps1" $mcpRunner
-Checked 'powershell.exe' @('-NoProfile','-ExecutionPolicy','Bypass','-File',"$Root\tools\mcp-sync.ps1")
-
+# MCP install/update/restore and watchdog now run inside odmctl's common
+# transaction. No second process copies mcpctl.py outside that lock.
 $user=[Security.Principal.WindowsIdentity]::GetCurrent().Name
 $principal=New-ScheduledTaskPrincipal -UserId $user -LogonType Interactive -RunLevel Limited
 $taskSettings=New-ScheduledTaskSettingsSet -StartWhenAvailable -MultipleInstances IgnoreNew -ExecutionTimeLimit (New-TimeSpan -Hours 3)
@@ -210,9 +210,6 @@ foreach($operation in $tasks.Keys) {
     $action=New-ScheduledTaskAction -Execute 'powershell.exe' -Argument "-NoProfile -ExecutionPolicy Bypass -File `"$Root\tools\windows-run.ps1`" -Operation $operation"
     Register-ScheduledTask -TaskName "ODM-$Port-$operation" -Action $action -Trigger $tasks[$operation] -Principal $principal -Settings $taskSettings -Force | Out-Null
 }
-$mcpAction=New-ScheduledTaskAction -Execute 'powershell.exe' -Argument "-NoProfile -ExecutionPolicy Bypass -File `"$Root\tools\mcp-sync.ps1`""
-$mcpTrigger=New-ScheduledTaskTrigger -Once -At (Get-Date).AddMinutes(2) -RepetitionInterval (New-TimeSpan -Minutes 15)
-Register-ScheduledTask -TaskName "ODM-$Port-mcp-sync" -Action $mcpAction -Trigger $mcpTrigger -Principal $principal -Settings $taskSettings -Force | Out-Null
 Remove-ItemProperty -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\RunOnce' -Name 'ODM-Resume-Install' -ErrorAction SilentlyContinue
 Write-Host "Open http://localhost:$Port . Admin credentials: $Root\config\admin.json"
 Write-Host "Management command: $Root\odmctl.cmd"

@@ -1,36 +1,32 @@
-# Open Dungeon Master — Claude Code Guide
+# Open Dungeon Master — Claude Code guide
 
-This workspace contains **Open Dungeon Master (ODM)**, a full-stack multiplayer virtual tabletop and rules engine for D&D 5e with AI Dungeon Master support.
+Read `AGENTS.md` in this repository root. Code paths start here: `src/`, `mcp/`,
+`scripts/`, `deploy/` and `.opencode/skills/`. Exact dependency versions and scripts
+are defined by `package.json` and the lockfiles, not a fixed framework version in
+a guide. No SSH password, bearer or API key belongs in this file.
 
-## Key Information & Master Guide
-For complete server credentials, architecture details, and D&D 5e Master protocols, always consult:
-- **`AGENTS.md`** in the repository root.
-- **`open-dungeon-master/.opencode/skills/odm-narrator/SKILL.md`** for external AI Master operations.
+For external narration use `.opencode/skills/odm-narrator/SKILL.md` and
+`odm://narrator/playbook`. Connect, read until `hasMore:false`, inspect the current
+catalog, invoke real engine actions, reread and narrate actual outcomes. Players
+own their decisions and the server owns dice and state. Do not automatically
+retry writes after 409/timeouts, duplicate damage, or force movement to bypass rules.
 
-## Architecture
-- **Web App**: Next.js 15, React 19, TypeScript, Tailwind CSS, SQLite with SQLCipher.
-- **Production Server**: `root@api.iroslyakov.com` (`/opt/odm`).
-- **MCP Server**: `open-dungeon-master/mcp/server.mjs` (listening on port 3006 or `--stdio`).
-- **Internal API**: `http://127.0.0.1:3005/api/internal/mcp` (Bearer token in `/opt/odm/config/mcp.token`).
+Ask replies use `narrator.answer_ask` with `campaignId`, `askId`, `answer` and
+optional citations. Read asks even when the story cursor is unchanged. Private
+questions/answers must not appear in table events or public narration. A skill
+alone cannot maintain an asynchronous game loop or wake an agent.
 
-## Build & Test Commands
-Run all commands inside `open-dungeon-master/`:
-```bash
-# Type check
-npm run typecheck   # or npx tsc --noEmit
-
-# Run unit and contract tests
-npm test            # or node scripts/test-mcp-tools-contract.mjs
+```sh
+npx --no-install tsc --noEmit
+npm test
+npm run build
+node scripts/test-mcp-tools-contract.mjs
 node scripts/test-mcp-narrator-control.mjs
-
-# Development server
-npm run dev
+node --experimental-vm-modules --test scripts/test-merge-*.mjs
 ```
 
-## Running as Dungeon Master via MCP
-1. Connect to campaign: `narrator.connect` (or `odm_narrator(operation: "connect")`).
-2. Read game stream: `narrator.read` (gives `currentSeq`, messages, sheets, pending rolls, asks).
-3. **NEVER invent dice rolls in text!** Call `narrator.invoke` with `name: "request_roll"` — the server rules engine rolls authentic random d20 with character sheet modifiers.
-4. Combat: Call `start_encounter`, move tokens with `move_token`, attack with `pc_attack` (`enemyId` and `targetEnemyId`), apply damage with `damage_enemy`.
-5. Answer Ask Panel: Call `narrator.answer_ask` with `{ askId, answer }`.
-6. Live reactive loop: Run `/opt/odm/tools/watch-player.sh <LATEST_SEQ>` in the background to listen for player turns.
+Run only with the required dependencies and report what actually executed. The
+scoped merge tests do not replace browser/SDK/deployment acceptance. See
+`docs/merge-2026-09-17.md` and `docs/review-2026-09-16-status.md`.
+A request to merge code is not permission to deploy, access production or restore
+its database. Use the installation's coordinated controller only when authorized.

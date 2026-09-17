@@ -1,28 +1,9 @@
 import { McpServer } from "@modelcontextprotocol/server";
 import * as z from "zod/v4";
+import { callControl, withMcpCancellation } from "./control-client.mjs";
 
 const PATCHED = Symbol.for("odm.external-tools-preload.patched");
 const REGISTERED = Symbol.for("odm.external-tools-preload.registered");
-const CONTROL_URL = process.env.ODM_MCP_CONTROL_URL?.trim() || "http://127.0.0.1:3005/api/internal/mcp";
-const TOKEN = process.env.ODM_MCP_TOKEN?.trim() || "";
-
-async function callControl(action, params = {}) {
-  if (!TOKEN) throw new Error("ODM_MCP_TOKEN is not configured. The control plane is disabled.");
-  const response = await fetch(CONTROL_URL, {
-    method: "POST",
-    headers: {
-      authorization: `Bearer ${TOKEN}`,
-      "content-type": "application/json",
-      accept: "application/json",
-    },
-    body: JSON.stringify({ action, params }),
-    signal: AbortSignal.timeout(30_000),
-  });
-  const body = await response.json().catch(() => ({}));
-  if (!response.ok || body?.ok === false) throw new Error(body?.error || `ODM control API returned HTTP ${response.status}.`);
-  return body?.result;
-}
-
 function success(value) {
   const structuredContent = value && typeof value === "object" && !Array.isArray(value) ? value : { result: value };
   return { content: [{ type: "text", text: JSON.stringify(value, null, 2) }], structuredContent };
@@ -80,8 +61,8 @@ const jobStatus = z.enum(["planned", "available", "claimed", "uploading", "ready
 const packStatus = z.enum(["planned", "active", "ready", "failed", "cancelled"]);
 
 function registerExternalTools(server, originalRegisterTool) {
-  originalRegisterTool.call(
-    server,
+  const register = (name, config, callback) => originalRegisterTool.call(server, name, config, withMcpCancellation(callback));
+  register(
     "odm_assets",
     {
       title: "ODM external asset pipeline",
@@ -214,8 +195,7 @@ function registerExternalTools(server, originalRegisterTool) {
     },
   );
 
-  originalRegisterTool.call(
-    server,
+  register(
     "odm_progress",
     {
       title: "ODM character progression",

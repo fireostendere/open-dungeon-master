@@ -1,24 +1,16 @@
-import { getGlobalConfig } from "@/lib/db/app-settings";
-import {
-  describeEndpoint,
-  profileById,
-  resolveSampling,
-  unsupportedParamFromError,
-} from "@/lib/dm/sampling-logic";
-import {
-  buildPropsUrl,
-  contextCacheKey,
-  readContextWindow,
-} from "@/lib/dm/context-probe-logic";
+import { getAppSetting, getGlobalConfig } from "@/lib/db/app-settings";
+import { describeEndpoint, profileById, resolveSampling, unsupportedParamFromError } from "@/lib/dm/sampling-logic";
+import { buildPropsUrl, contextCacheKey, readContextWindow } from "@/lib/dm/context-probe-logic";
 import { serverEnv } from "@/lib/server-env";
 import { localModelContextWindow } from "@/lib/text-models";
+import { secureEndpointFetch } from "@/lib/url-guard";
+import {
+  GLOBAL_MODEL_RUNTIME_KEY, ModelContextError, normalizeModelRuntime, requestBudget,
+  resolveContextLimit, type ModelRuntime,
+} from "@/lib/model-runtime";
 
-// Shared chat-completion client for both providers:
-// - custom: any OpenAI-compatible /chat/completions (llama.cpp, LM Studio,
-//   vLLM, OpenRouter, remote Ollama), streaming SSE
-// - local: Ollama /api/chat, streaming NDJSON
-// Used by the solo narrator (/api/story) and the campaign DM loop.
-
+// Shared compatible SSE / native Ollama NDJSON client. The runtime snapshot
+// used for prompt construction is also passed to the actual request budget.
 const DEFAULT_MAX_OUTPUT_TOKENS = 16_384;
 const MAX_CONFIGURABLE_OUTPUT_TOKENS = 65_536;
 const DEFAULT_LOCAL_MAX_OUTPUT_TOKENS = 4_096;
@@ -28,921 +20,293 @@ const MIN_TEXT_TIMEOUT_MS = 30 * 1000;
 const MAX_TEXT_TIMEOUT_MS = 30 * 60 * 1000;
 const WINDOWS_DEFAULT_LOCAL_CONTEXT_TOKENS = 65_536;
 
-export type TextContentPart = {
-  type: "text";
-  text: string;
-};
-
-export type ImageContentPart = {
-  type: "image_url";
-  image_url: {
-    url: string;
-  };
-};
-
+export type TextContentPart = { type: "text"; text: string };
+export type ImageContentPart = { type: "image_url"; image_url: { url: string } };
 export type ChatMessage = {
   role: "system" | "user" | "assistant" | "tool";
   content: string | Array<TextContentPart | ImageContentPart>;
   tool_calls?: unknown;
   tool_call_id?: string;
 };
-
 export type StreamDeltaHandler = (text: string) => void;
-
 export type StreamedToolCall = {
-  id?: string;
-  type?: "function";
-  function: { name: string; arguments: string };
+  id?: string; type?: "function"; function: { name: string; arguments: string };
 };
-
-export type UpstreamChatMessage = {
-  content?: unknown;
-  tool_calls?: unknown;
-};
-
-export type UpstreamResult = {
-  message?: UpstreamChatMessage;
-  error?: Response;
-};
-
+export type UpstreamChatMessage = { content?: unknown; tool_calls?: unknown };
+export type UpstreamResult = { message?: UpstreamChatMessage; error?: Response };
 export type ChatRequestOptions = {
   tools?: readonly unknown[];
   toolChoice?: "auto" | "none";
   temperature?: number;
   onDelta?: StreamDeltaHandler;
   timeoutMs?: number;
-  // Ask the backend for reasoning/thinking mode on this call. Qwen-family
-  // models are unreliable tool callers without it under long prompts
-  // (measured ~1/5 request_roll without vs ~4/5 with on qwen3.6-35b);
-  // llama.cpp and vLLM honor chat_template_kwargs, and OpenRouter ignores
-  // the unknown field. OpenAI answers 400 for it, so describeEndpoint keeps
-  // it off that backend entirely. Reasoning deltas never reach onDelta: the
-  // stream parser forwards only delta.content.
   thinking?: boolean;
-  // Body fields a previous attempt was rejected for, omitted on the retry.
-  // Set only by requestCustomMessage's own unsupported-parameter path; no
-  // caller outside this module should populate it.
+  contextTokens?: number;
+  maxOutputTokens?: number;
+  // Internal, bounded unsupported-parameter retry bookkeeping.
   dropParams?: readonly string[];
 };
 
 export function configuredMaxOutputTokens() {
-  const raw = serverEnv("OPENROUTER_MAX_TOKENS");
-  const parsed = Number.parseInt(raw, 10);
-
-  if (!Number.isFinite(parsed)) {
-    return DEFAULT_MAX_OUTPUT_TOKENS;
-  }
-
-  return Math.max(512, Math.min(parsed, MAX_CONFIGURABLE_OUTPUT_TOKENS));
+  const parsed = Number.parseInt(serverEnv("OPENROUTER_MAX_TOKENS"), 10);
+  return Number.isFinite(parsed) ? Math.max(512, Math.min(parsed, MAX_CONFIGURABLE_OUTPUT_TOKENS)) : DEFAULT_MAX_OUTPUT_TOKENS;
 }
-
-// Whether DM tool-decision calls should request the model's thinking mode.
-// Admin → Модели (text.thinking) wins when set; otherwise the legacy
-// DM_THINKING env (off only when "0"). Lives here so turn.ts and the config
-// agree on one source.
 export function dmThinkingEnabled(): boolean {
   const cfg = getGlobalConfig().text.thinking;
   if (cfg === "on") return true;
   if (cfg === "off") return false;
   return process.env.DM_THINKING !== "0";
 }
-
 export function localMaxOutputTokens() {
   const parsed = Number.parseInt(serverEnv("LOCAL_TEXT_MAX_TOKENS"), 10);
-
-  if (!Number.isFinite(parsed)) {
-    return DEFAULT_LOCAL_MAX_OUTPUT_TOKENS;
-  }
-
-  return Math.max(256, Math.min(parsed, MAX_CONFIGURABLE_OUTPUT_TOKENS));
+  return Number.isFinite(parsed) ? Math.max(256, Math.min(parsed, MAX_CONFIGURABLE_OUTPUT_TOKENS)) : DEFAULT_LOCAL_MAX_OUTPUT_TOKENS;
 }
-
-// Defaults to the model's full native window: Gemma 4's sliding-window
-// attention keeps the KV cache small even at 256K, so memory is not the
-// limiting factor. LOCAL_TEXT_CONTEXT can cap it to bound worst-case
-// prefill time on very long stories.
 export function localContextTokens(model: string) {
   const native = localModelContextWindow(model);
-  const raw = serverEnv("LOCAL_TEXT_CONTEXT");
-  const parsed = Number.parseInt(raw, 10);
-
-  if (!Number.isFinite(parsed)) {
-    return process.platform === "win32"
-      ? Math.min(native, WINDOWS_DEFAULT_LOCAL_CONTEXT_TOKENS)
-      : native;
-  }
-
+  const parsed = Number.parseInt(serverEnv("LOCAL_TEXT_CONTEXT"), 10);
+  if (!Number.isFinite(parsed)) return process.platform === "win32" ? Math.min(native, WINDOWS_DEFAULT_LOCAL_CONTEXT_TOKENS) : native;
   return Math.max(2_048, Math.min(parsed, native));
 }
-
-// Conservative stand-in for an OpenAI-compatible endpoint whose window we
-// cannot know. llama.cpp, LM Studio, vLLM and OpenRouter all report it
-// differently or not at all, and overshooting means the server silently
-// truncates the prompt, which is far worse than packing less. Operators who
-// know their endpoint can raise it with OPENAI_COMPAT_CONTEXT.
 export const DEFAULT_CUSTOM_CONTEXT_TOKENS = 16_384;
-
-// The context window the DM prompt is being built against, resolved the same
-// way requestDmMessage routes the call (src/lib/dm/model.ts). Local models
-// have a known native window; custom endpoints do not, so they fall back to
-// the documented default unless the operator says otherwise.
-export function storyContextTokens(settings: {
-  textProvider: string;
-  localTextModel: string;
-  customBaseUrl?: string;
-  customModel?: string;
-}): number {
-  if (settings.textProvider === "local") {
-    return localContextTokens(settings.localTextModel);
-  }
-  // An explicit setting always wins: the operator knows their deployment
-  // better than a probe does.
-  const raw = Number.parseInt(serverEnv("OPENAI_COMPAT_CONTEXT"), 10);
-  if (Number.isFinite(raw) && raw > 0) {
-    return Math.max(2_048, raw);
-  }
-  const probed = probedContextWindows.get(
-    contextCacheKey(settings.customBaseUrl ?? "", settings.customModel ?? ""),
-  );
-  return probed ? Math.max(2_048, probed) : DEFAULT_CUSTOM_CONTEXT_TOKENS;
-}
-
-// Windows learned from an endpoint's own /props, keyed by base URL. Probed
-// once and cached for the process: llama.cpp cannot change n_ctx without a
-// restart, and a restart restarts ODM's own process in every deployment we
-// ship.
 const probedContextWindows = new Map<string, number>();
-
-// llama.cpp and llama-swap expose the real n_ctx the server was launched with
-// (its -c flag) on /props. Nothing else in the OpenAI-compatible ecosystem
-// reports it, so a miss is completely ordinary and falls through quietly.
-export async function probeCustomContextWindow(
-  baseUrl: string,
-  apiKey: string,
-  model: string,
-): Promise<number | null> {
+export function storyContextTokens(settings: {
+  textProvider: string; localTextModel: string; customBaseUrl?: string; customModel?: string;
+  modelRuntime?: ModelRuntime | null;
+}): number {
+  if (settings.textProvider === "local") return localContextTokens(settings.localTextModel);
+  const base = settings.customBaseUrl ?? "";
+  const model = settings.customModel ?? "";
+  const runtime = normalizeModelRuntime(settings.modelRuntime, base, model);
+  const override = Number.parseInt(serverEnv("OPENAI_COMPAT_CONTEXT"), 10);
+  return resolveContextLimit(runtime?.contextLimit, override, probedContextWindows.get(contextCacheKey(base, model)), DEFAULT_CUSTOM_CONTEXT_TOKENS);
+}
+export async function probeCustomContextWindow(baseUrl: string, apiKey: string, model: string): Promise<number | null> {
   const url = buildPropsUrl(baseUrl, model);
-  if (!url) {
-    return null;
-  }
-  // Keyed by base URL AND model: llama-server's --models-preset router serves
-  // several models from one port, each launched with its own -c.
+  if (!url) return null;
   const cacheKey = contextCacheKey(baseUrl, model);
   const cached = probedContextWindows.get(cacheKey);
-  if (cached !== undefined) {
-    return cached || null;
-  }
+  if (cached !== undefined) return cached || null;
   try {
-    const response = await fetch(url, {
-      headers: apiKey ? { Authorization: `Bearer ${apiKey}` } : undefined,
-      signal: AbortSignal.timeout(2_000),
-    });
-    if (!response.ok) {
-      probedContextWindows.set(cacheKey, 0);
-      return null;
-    }
+    const response = await secureEndpointFetch(url, { headers: apiKey ? { Authorization: `Bearer ${apiKey}` } : undefined, signal: AbortSignal.timeout(2_000) });
+    if (!response.ok) { probedContextWindows.set(cacheKey, 0); return null; }
     const window = readContextWindow(await response.json()) ?? 0;
     probedContextWindows.set(cacheKey, window);
     return window || null;
-  } catch {
-    // Unreachable, not llama.cpp, or too slow. Cache the miss so a turn does
-    // not pay the timeout again.
-    probedContextWindows.set(cacheKey, 0);
-    return null;
-  }
+  } catch { probedContextWindows.set(cacheKey, 0); return null; }
 }
-
-export function resolveTextTimeoutMs(
-  explicit: number | undefined,
-  envKey: string,
-  fallback: number,
-) {
+export function resolveTextTimeoutMs(explicit: number | undefined, envKey: string, fallback: number) {
   const raw = explicit ?? Number.parseInt(serverEnv(envKey), 10);
-
-  if (!Number.isFinite(raw)) {
-    return fallback;
-  }
-
-  return Math.max(MIN_TEXT_TIMEOUT_MS, Math.min(raw, MAX_TEXT_TIMEOUT_MS));
+  return Number.isFinite(raw) ? Math.max(MIN_TEXT_TIMEOUT_MS, Math.min(raw, MAX_TEXT_TIMEOUT_MS)) : fallback;
 }
-
-// Story-arc generation and chapter summaries digest the whole story so far
-// with no streaming, so the entire reply must land inside one timeout.
-export function arcTextTimeoutMs() {
-  return resolveTextTimeoutMs(undefined, "ARC_TEXT_TIMEOUT_MS", 8 * 60 * 1000);
-}
-
+export function arcTextTimeoutMs() { return resolveTextTimeoutMs(undefined, "ARC_TEXT_TIMEOUT_MS", 8 * 60 * 1000); }
 function formatTimeout(ms: number) {
   const seconds = Math.round(ms / 1000);
-  if (seconds >= 60) {
-    const minutes = Math.round(seconds / 60);
-    return `${minutes} ${minutes === 1 ? "minute" : "minutes"}`;
-  }
-
+  if (seconds >= 60) { const minutes = Math.round(seconds / 60); return `${minutes} ${minutes === 1 ? "minute" : "minutes"}`; }
   return `${seconds} seconds`;
 }
-
 function createRequestTimeout(ms: number) {
-  const controller = new AbortController();
-  let timedOut = false;
-  const abortNow = () => {
-    timedOut = true;
-    controller.abort();
-  };
+  const controller = new AbortController(); let timedOut = false;
+  const abortNow = () => { timedOut = true; controller.abort(); };
   const timeoutId = setTimeout(abortNow, ms);
-
-  return {
-    signal: controller.signal,
-    clear: () => clearTimeout(timeoutId),
-    timedOut: () => timedOut,
-    abortNow,
-  };
+  return { signal: controller.signal, clear: () => clearTimeout(timeoutId), timedOut: () => timedOut, abortNow };
 }
-
-// Reads an upstream streaming body line by line with an idle timeout that
-// resets on every chunk, so a stalled model server can't hold the turn open
-// forever while a slow-but-alive one is given all the time it needs.
-async function forEachStreamLine(
-  upstream: Response,
-  idleMs: number,
-  onIdleAbort: () => void,
-  onLine: (line: string) => void,
-) {
-  const reader = upstream.body!.getReader();
-  const decoder = new TextDecoder();
-  let buffer = "";
+async function forEachStreamLine(upstream: Response, idleMs: number, onIdleAbort: () => void, onLine: (line: string) => void) {
+  const reader = upstream.body!.getReader(); const decoder = new TextDecoder(); let buffer = "";
   let idleTimer: ReturnType<typeof setTimeout> | undefined;
-  const resetIdle = () => {
-    clearTimeout(idleTimer);
-    idleTimer = setTimeout(onIdleAbort, idleMs);
-  };
-
+  const resetIdle = () => { clearTimeout(idleTimer); idleTimer = setTimeout(onIdleAbort, idleMs); };
   resetIdle();
   try {
     for (;;) {
-      const { done, value } = await reader.read();
-      if (done) {
-        break;
-      }
-      resetIdle();
-      buffer += decoder.decode(value, { stream: true });
+      const { done, value } = await reader.read(); if (done) break;
+      resetIdle(); buffer += decoder.decode(value, { stream: true });
       let newline = buffer.indexOf("\n");
       while (newline >= 0) {
-        const line = buffer.slice(0, newline).trim();
-        buffer = buffer.slice(newline + 1);
-        if (line) {
-          onLine(line);
-        }
+        const line = buffer.slice(0, newline).trim(); buffer = buffer.slice(newline + 1);
+        if (line) onLine(line);
         newline = buffer.indexOf("\n");
       }
     }
-    buffer += decoder.decode();
-    const rest = buffer.trim();
-    if (rest) {
-      onLine(rest);
-    }
-  } finally {
-    clearTimeout(idleTimer);
-  }
+    buffer += decoder.decode(); if (buffer.trim()) onLine(buffer.trim());
+  } finally { clearTimeout(idleTimer); reader.releaseLock(); }
 }
-
-type OllamaChatMessage = {
-  role: "system" | "user" | "assistant" | "tool";
-  content: string;
-  images?: string[];
-  tool_calls?: unknown;
-};
-
+type OllamaChatMessage = { role: ChatMessage["role"]; content: string; images?: string[]; tool_calls?: unknown };
 function toOllamaMessages(messages: ChatMessage[]): OllamaChatMessage[] {
-  return messages.map((message) => {
-    if (typeof message.content === "string") {
-      return {
-        role: message.role,
-        content: message.content,
-        ...(message.tool_calls ? { tool_calls: message.tool_calls } : {}),
-      };
-    }
-
-    const textParts: string[] = [];
-    const images: string[] = [];
+  return messages.map(message => {
+    if (typeof message.content === "string") return { role: message.role, content: message.content, ...(message.tool_calls ? { tool_calls: message.tool_calls } : {}) };
+    const texts: string[] = []; const images: string[] = [];
     for (const part of message.content) {
-      if (part.type === "text") {
-        textParts.push(part.text);
-        continue;
-      }
-
-      // Only data URLs reach this point; Ollama wants the bare base64 payload.
-      const base64 = part.image_url.url.split(",")[1];
-      if (base64) {
-        images.push(base64);
-      }
+      if (part.type === "text") { texts.push(part.text); continue; }
+      const base64 = part.image_url.url.split(",")[1]; if (base64) images.push(base64);
     }
-
-    return {
-      role: message.role,
-      content: textParts.join("\n\n"),
-      ...(images.length ? { images } : {}),
-    };
+    return { role: message.role, content: texts.join("\n\n"), ...(images.length ? { images } : {}) };
   });
 }
-
 function hasImageParts(messages: ChatMessage[]) {
-  return messages.some(
-    (message) =>
-      typeof message.content !== "string" &&
-      message.content.some((part) => part.type === "image_url"),
-  );
+  return messages.some(message => typeof message.content !== "string" && message.content.some(part => part.type === "image_url"));
 }
-
-// Flatten multimodal messages to text-only for backends that can't take
-// images (e.g. llama.cpp without an mmproj file). Portrait labels survive as
-// text, so character continuity degrades gracefully instead of erroring.
 function stripImageParts(messages: ChatMessage[]): ChatMessage[] {
-  return messages.map((message) => {
-    if (typeof message.content === "string") {
-      return message;
-    }
-
-    return {
-      ...message,
-      content: message.content
-        .filter((part): part is TextContentPart => part.type === "text")
-        .map((part) => part.text)
-        .join("\n\n"),
-    };
+  return messages.map(message => typeof message.content === "string" ? message : {
+    ...message, content: message.content.filter((part): part is TextContentPart => part.type === "text").map(part => part.text).join("\n\n"),
   });
 }
-
-// Resolve a user-entered backend URL to its /chat/completions endpoint.
-// Accepts a bare host (http://127.0.0.1:8080), a versioned base (.../v1), or
-// the full endpoint, so people can paste whatever their server prints.
 export function customChatEndpoint(baseUrl: string): string {
   const url = baseUrl.trim().replace(/\/+$/, "");
   if (/\/chat\/completions$/.test(url)) return url;
-  if (/\/v\d+$/.test(url)) return `${url}/chat/completions`;
-  return `${url}/v1/chat/completions`;
+  return /\/v\d+$/.test(url) ? `${url}/chat/completions` : `${url}/v1/chat/completions`;
+}
+function contextFailure(error: ModelContextError): UpstreamResult {
+  return { error: Response.json({ error: error.message, ...error.budget }, { status: 400 }) };
 }
 
-// Any OpenAI-compatible server: llama.cpp, LM Studio, vLLM, TabbyAPI,
-// KoboldCpp, OpenRouter, a remote Ollama, etc. The model name and base URL are
-// per-chat settings; the key is optional (most local servers need none). When
-// the URL is OpenRouter we add its attribution headers and fall back to the
-// OPENROUTER_* env vars; otherwise the fallback is OPENAI_COMPAT_API_KEY.
-export async function requestCustomMessage(
-  baseUrl: string,
-  model: string,
-  apiKey: string,
-  messages: ChatMessage[],
-  options: ChatRequestOptions = {},
-): Promise<UpstreamResult> {
+export async function requestCustomMessage(baseUrl: string, model: string, apiKey: string, messages: ChatMessage[], options: ChatRequestOptions = {}): Promise<UpstreamResult> {
   const { tools, toolChoice, temperature, onDelta } = options;
   const trimmedBase = (baseUrl || "").trim();
-
   if (!trimmedBase) {
-    // A blank base URL under a server-wide "none" provider is not a
-    // misconfiguration to debug; it is the admin's recorded answer, so the
-    // table gets a plain statement instead of a hint about backend URLs.
-    const configuredProvider =
-      getGlobalConfig().text.provider || serverEnv("DEFAULT_TEXT_PROVIDER");
-    if (configuredProvider === "none") {
-      return {
-        error: Response.json(
-          { error: "This world has no AI storyteller configured." },
-          { status: 400 },
-        ),
-      };
-    }
-
-    return {
-      error: Response.json(
-        {
-          error:
-            "No backend URL set. Add your server's URL (for example http://127.0.0.1:8080/v1) in Text Model settings.",
-        },
-        { status: 400 },
-      ),
-    };
+    const configuredProvider = getGlobalConfig().text.provider || serverEnv("DEFAULT_TEXT_PROVIDER");
+    return { error: Response.json({ error: configuredProvider === "none" ? "This world has no AI storyteller configured." :
+      "No backend URL set. Add your server's URL (for example http://127.0.0.1:8080/v1) in Text Model settings." }, { status: 400 }) };
   }
-
-  const globalText = getGlobalConfig().text;
-  const globalSampling = getGlobalConfig().sampling;
-  // What this backend accepts in the body. "local" reproduces the behaviour
-  // every self-hosted server already had, so the default llama-server install
-  // receives the same payload it always did.
-  const caps = describeEndpoint(trimmedBase);
-  const dropped = new Set(options.dropParams ?? []);
-  // Kept on its own looser historical test rather than folded into
-  // describeEndpoint: this one only picks attribution headers and error copy,
-  // and rewiring it could change OpenRouter behaviour that already works.
-  const isOpenRouter = /(^|\.)openrouter\.ai/i.test(trimmedBase);
-  const resolvedModel =
-    (model || "").trim() ||
-    globalText.customModel ||
-    serverEnv("OPENAI_COMPAT_MODEL") ||
-    (isOpenRouter ? serverEnv("OPENROUTER_MODEL", "google/gemini-3.5-flash") : "");
-
-  if (!resolvedModel) {
-    return {
-      error: Response.json(
-        {
-          error:
-            "No model name set. Enter the model your server serves in Text Model settings.",
-        },
-        { status: 400 },
-      ),
-    };
-  }
-
+  const globalText = getGlobalConfig().text; const globalSampling = getGlobalConfig().sampling;
+  const caps = describeEndpoint(trimmedBase); const dropped = new Set(options.dropParams ?? []);
+  let isOpenRouter = false;
+  try { const hostname = new URL(trimmedBase).hostname; isOpenRouter = hostname === "openrouter.ai" || hostname.endsWith(".openrouter.ai"); } catch { /* Transport rejects invalid URLs. */ }
+  const resolvedModel = (model || "").trim() || globalText.customModel || serverEnv("OPENAI_COMPAT_MODEL") || (isOpenRouter ? serverEnv("OPENROUTER_MODEL", "google/gemini-3.5-flash") : "");
+  if (!resolvedModel) return { error: Response.json({ error: "No model name set. Enter the model your server serves in Text Model settings." }, { status: 400 }) };
   const endpoint = customChatEndpoint(trimmedBase);
-  // Per-campaign key wins, then the admin-panel key, then the env vars.
-  // Fallback keys belong to the admin-configured backend: attaching them to
-  // any other URL would hand the server's key to whatever host a campaign's
-  // settings point at. The OpenRouter env key is already host-gated above.
   const globalBase = (globalText.customBaseUrl || serverEnv("OPENAI_COMPAT_BASE_URL") || "").trim();
   const isGlobalBackend = Boolean(globalBase) && customChatEndpoint(globalBase) === endpoint;
-  // The optional utility backend gets the same treatment: its key is host-
-  // gated to its own configured URL, so pointing a campaign elsewhere cannot
-  // borrow it.
   const utilityBase = (globalText.utilityBaseUrl || serverEnv("UTILITY_TEXT_BASE_URL") || "").trim();
   const isUtilityBackend = Boolean(utilityBase) && customChatEndpoint(utilityBase) === endpoint;
-  const resolvedKey =
-    (apiKey || "").trim() ||
-    (isGlobalBackend ? globalText.customApiKey : "") ||
-    (isUtilityBackend ? globalText.utilityApiKey : "") ||
-    (isOpenRouter ? serverEnv("OPENROUTER_API_KEY") : "") ||
-    (isGlobalBackend ? serverEnv("OPENAI_COMPAT_API_KEY") : "") ||
-    (isUtilityBackend ? serverEnv("UTILITY_TEXT_API_KEY") : "");
+  const resolvedKey = (apiKey || "").trim() || (isGlobalBackend ? globalText.customApiKey : "") || (isUtilityBackend ? globalText.utilityApiKey : "") ||
+    (isOpenRouter ? serverEnv("OPENROUTER_API_KEY") : "") || (isGlobalBackend ? serverEnv("OPENAI_COMPAT_API_KEY") : "") || (isUtilityBackend ? serverEnv("UTILITY_TEXT_API_KEY") : "");
+  const runtime = normalizeModelRuntime(getAppSetting(GLOBAL_MODEL_RUNTIME_KEY, null), trimmedBase, resolvedModel);
+  const contextTokens = options.contextTokens ?? storyContextTokens({ textProvider: "custom", localTextModel: "", customBaseUrl: trimmedBase, customModel: resolvedModel, modelRuntime: runtime });
+  let outputTokens: number;
+  try { outputTokens = requestBudget(messages, tools, contextTokens, options.maxOutputTokens ?? (globalText.maxOutputTokens || configuredMaxOutputTokens())).maxOutputTokens; }
+  catch (error) { if (error instanceof ModelContextError) return contextFailure(error); throw error; }
   const requestPayload: Record<string, unknown> = {
-    model: resolvedModel,
-    messages,
-    // Thinking runs cooler per Qwen guidance; 0.9 there makes the thought
-    // ramble past the point of ever emitting the tool call.
-    // Per-role sampling, resolved from the admin config
-    // (src/lib/dm/sampling-logic.ts). An explicit per-call temperature still
-    // wins, and an unconfigured install resolves to exactly the previous
-    // built-in defaults.
-    ...resolveSampling({
-      role: isUtilityBackend ? "utility" : "story",
-      configured: {
-        ...(isUtilityBackend ? globalSampling.utility : globalSampling.story),
-        ...(temperature !== undefined ? { temperature } : {}),
-      },
-      profile: profileById(globalSampling.profile || "default"),
-      // Local servers ignore fields they do not know; OpenRouter and OpenAI
-      // reject the local-only sampler fields (src/lib/dm/sampling-logic.ts).
-      allowLocalOnly: caps.allowLocalOnlySamplers,
-      thinking: options.thinking,
-    }),
-    // Explicit 0 so a server-side sampler preset cannot override it: a
-    // positive presence penalty over the long DM prompt suppresses the
-    // tool-call token sequence (measured 2/5 vs 4/5 request_roll rate on
-    // llama-server with the qwen preset's 1.5). Deliberately NOT exposed as a
-    // sampling option, and written after the spread so nothing can reinstate
-    // it from config. Skipped on backends with no preset to override, where
-    // 0 is already the default and reasoning models reject the field.
+    model: resolvedModel, messages,
+    ...resolveSampling({ role: isUtilityBackend ? "utility" : "story",
+      configured: { ...(isUtilityBackend ? globalSampling.utility : globalSampling.story), ...(temperature !== undefined ? { temperature } : {}) },
+      profile: profileById(globalSampling.profile || "default"), allowLocalOnly: caps.allowLocalOnlySamplers, thinking: options.thinking }),
     ...(caps.sendZeroPresencePenalty ? { presence_penalty: 0 } : {}),
-    ...(caps.allowTemplateKwargs && options.thinking
-      ? { chat_template_kwargs: { enable_thinking: true } }
-      : {}),
-    // Always stream, even when the caller passes no onDelta. Node's fetch
-    // (undici) enforces a ~300s headersTimeout: a non-streaming request to a
-    // slow local model that needs longer than that to produce the WHOLE
-    // reply (story arcs, chapter summaries, world setup) dies as a
-    // misleading "could not reach the backend" while the server is still
-    // generating. With stream:true the headers land immediately and the
-    // per-chunk idle timeout below governs stalls instead.
+    ...(caps.allowTemplateKwargs && options.thinking ? { chat_template_kwargs: { enable_thinking: true } } : {}),
     stream: true,
   };
-
-  // The output cap, under whichever name this backend takes. Dropping
-  // max_tokens promotes the request to max_completion_tokens rather than
-  // uncapping it, because that rename is why OpenAI's reasoning models
-  // reject the older field.
-  const maxTokensField =
-    caps.maxTokensField === "max_completion_tokens" || dropped.has("max_tokens")
-      ? "max_completion_tokens"
-      : "max_tokens";
-  if (!dropped.has(maxTokensField)) {
-    // A per-model cap set in Admin → Модели (applied from the profile) wins;
-    // 0 = not set, keep the env/default resolution.
-    requestPayload[maxTokensField] = globalText.maxOutputTokens || configuredMaxOutputTokens();
-  }
-
-  for (const field of dropped) {
-    delete requestPayload[field];
-  }
-
-  if (tools?.length) {
-    requestPayload.tools = tools;
-    requestPayload.tool_choice = toolChoice ?? "auto";
-  }
-
-  const timeoutMs = resolveTextTimeoutMs(
-    // An explicit per-call timeout (story arcs) wins; then the per-model
-    // tweak applied from Admin → Модели; then env/defaults.
-    options.timeoutMs || globalText.timeoutMs || undefined,
-    "CUSTOM_TEXT_TIMEOUT_MS",
-    DEFAULT_CUSTOM_TEXT_TIMEOUT_MS,
-  );
+  const maxTokensField = caps.maxTokensField === "max_completion_tokens" || dropped.has("max_tokens") ? "max_completion_tokens" : "max_tokens";
+  if (dropped.has(maxTokensField)) return { error: Response.json({ error: "The backend rejected every supported output-limit field." }, { status: 502 }) };
+  requestPayload[maxTokensField] = outputTokens;
+  for (const field of dropped) delete requestPayload[field];
+  if (tools?.length) { requestPayload.tools = tools; requestPayload.tool_choice = toolChoice ?? "auto"; }
+  const timeoutMs = resolveTextTimeoutMs(options.timeoutMs || globalText.timeoutMs || undefined, "CUSTOM_TEXT_TIMEOUT_MS", DEFAULT_CUSTOM_TEXT_TIMEOUT_MS);
   const requestTimeout = createRequestTimeout(timeoutMs);
   let upstream: Response;
   try {
-    upstream = await fetch(endpoint, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...(resolvedKey ? { Authorization: `Bearer ${resolvedKey}` } : {}),
-        ...(isOpenRouter
-          ? {
-              "HTTP-Referer": serverEnv("OPENROUTER_APP_URL", "http://localhost:3000"),
-              "X-Title": serverEnv("OPENROUTER_APP_TITLE", "Open Dungeon Master"),
-            }
-          : {}),
-      },
-      body: JSON.stringify(requestPayload),
-      signal: requestTimeout.signal,
-    });
+    upstream = await secureEndpointFetch(endpoint, { method: "POST",
+      headers: { "Content-Type": "application/json", ...(resolvedKey ? { Authorization: `Bearer ${resolvedKey}` } : {}),
+        ...(isOpenRouter ? { "HTTP-Referer": serverEnv("OPENROUTER_APP_URL", "http://localhost:3000"), "X-Title": serverEnv("OPENROUTER_APP_TITLE", "Open Dungeon Master") } : {}) },
+      body: JSON.stringify(requestPayload), signal: requestTimeout.signal });
   } catch {
-    if (requestTimeout.timedOut()) {
-      return {
-        error: Response.json(
-          {
-            error: `${isOpenRouter ? "OpenRouter" : "Backend"} request timed out after ${formatTimeout(timeoutMs)}. The server may still be generating in the background; wait a moment, then retry or lower that backend's context/output settings.`,
-          },
-          { status: 504 },
-        ),
-      };
-    }
-
-    return {
-      error: Response.json(
-        {
-          error: `Could not reach the backend at ${endpoint}. Check the URL and that your server is running.`,
-        },
-        { status: 502 },
-      ),
-    };
-  } finally {
-    requestTimeout.clear();
-  }
-
+    return { error: Response.json({ error: requestTimeout.timedOut()
+      ? `${isOpenRouter ? "OpenRouter" : "Backend"} request timed out after ${formatTimeout(timeoutMs)}.`
+      : `Could not reach the backend at ${endpoint}. Check the URL and that your server is running.` }, { status: requestTimeout.timedOut() ? 504 : 502 }) };
+  } finally { requestTimeout.clear(); }
   if (!upstream.ok) {
     const text = await upstream.text();
-
-    // Some servers can't accept image inputs at all (llama.cpp without an
-    // mmproj, plain text models); retry the turn with text-only messages.
-    if (hasImageParts(messages) && /image input|mmproj|image_url|vision/i.test(text)) {
-      return requestCustomMessage(
-        trimmedBase,
-        resolvedModel,
-        apiKey,
-        stripImageParts(messages),
-        options,
-      );
-    }
-
-    // A strict backend rejected one named body field. Drop that field and
-    // retry, so a model family ODM has never heard of still runs instead of
-    // costing the table its turn. Checked BEFORE the tool retry below,
-    // whose /not support/ arm would otherwise swallow "Unsupported
-    // parameter: 'temperature' is not supported with this model" and strip
-    // the tools instead of the temperature.
-    //
-    // Bounded three ways: only fields on the droppable list in
-    // sampling-logic.ts, never the same field twice, and at most three drops
-    // per request. Unreachable on a healthy local server, which answers 200.
+    if (hasImageParts(messages) && /image input|mmproj|image_url|vision/i.test(text)) return requestCustomMessage(trimmedBase, resolvedModel, apiKey, stripImageParts(messages), options);
     const offending = unsupportedParamFromError(text);
     if (offending && !dropped.has(offending) && dropped.size < 3) {
-      console.warn(
-        `[model] ${endpoint} rejected "${offending}"; retrying without it`,
-      );
-      return requestCustomMessage(trimmedBase, resolvedModel, apiKey, messages, {
-        ...options,
-        dropParams: [...dropped, offending],
-      });
+      console.warn(`[model] ${endpoint} rejected "${offending}"; retrying without it`);
+      return requestCustomMessage(trimmedBase, resolvedModel, apiKey, messages, { ...options, dropParams: [...dropped, offending] });
     }
-
-    // Some servers don't implement function tools; retry without them.
-    if (tools?.length && /tool|function|not support/i.test(text)) {
-      return requestCustomMessage(trimmedBase, resolvedModel, apiKey, messages, {
-        ...options,
-        tools: undefined,
-        toolChoice: undefined,
-      });
-    }
-
-    return {
-      error: Response.json(
-        {
-          error: `${isOpenRouter ? "OpenRouter" : "Backend"} request failed (${upstream.status}).`,
-          detail: text.slice(0, 300),
-        },
-        { status: upstream.status },
-      ),
-    };
+    if (tools?.length && /tool|function|not support/i.test(text)) return requestCustomMessage(trimmedBase, resolvedModel, apiKey, messages, { ...options, tools: undefined, toolChoice: undefined });
+    return { error: Response.json({ error: `${isOpenRouter ? "OpenRouter" : "Backend"} request failed (${upstream.status}).`, detail: text.slice(0, 300) }, { status: upstream.status }) };
   }
-
   if (upstream.body) {
-    // OpenAI-compatible SSE: "data: {...}" lines carrying content and
-    // tool-call fragments, terminated by "data: [DONE]". A backend that
-    // ignores stream:true and answers one JSON document is handled by the
-    // rawAll fallback at the end of this block.
-    const contentParts: string[] = [];
-    const toolCalls: Array<StreamedToolCall | undefined> = [];
-    let upstreamError = "";
-    let rawAll = "";
-
+    const contentParts: string[] = []; const toolCalls: Array<StreamedToolCall | undefined> = [];
+    let upstreamError = ""; let rawAll = "";
     try {
-      await forEachStreamLine(upstream, timeoutMs, requestTimeout.abortNow, (line) => {
-        if (!line.startsWith("data:")) {
-          rawAll += line;
-          return;
-        }
-        const payload = line.slice(5).trim();
-        if (!payload || payload === "[DONE]") {
-          return;
-        }
-        let parsed: unknown;
-        try {
-          parsed = JSON.parse(payload);
-        } catch {
-          return;
-        }
-        const record = parsed as {
-          choices?: Array<{ delta?: { content?: unknown; tool_calls?: unknown } }>;
-          error?: { message?: string } | string;
-        };
-        if (record.error) {
-          upstreamError =
-            typeof record.error === "string"
-              ? record.error
-              : record.error.message || "The backend reported a stream error.";
-          return;
-        }
+      await forEachStreamLine(upstream, timeoutMs, requestTimeout.abortNow, line => {
+        if (!line.startsWith("data:")) { rawAll += line; return; }
+        const payload = line.slice(5).trim(); if (!payload || payload === "[DONE]") return;
+        let parsed: unknown; try { parsed = JSON.parse(payload); } catch { return; }
+        const record = parsed as { choices?: Array<{ delta?: { content?: unknown; tool_calls?: unknown } }>; error?: { message?: string } | string };
+        if (record.error) { upstreamError = typeof record.error === "string" ? record.error : record.error.message || "The backend reported a stream error."; return; }
         const delta = record.choices?.[0]?.delta;
-        if (typeof delta?.content === "string" && delta.content) {
-          contentParts.push(delta.content);
-          if (onDelta) {
-            onDelta(delta.content);
-          }
-        }
+        if (typeof delta?.content === "string" && delta.content) { contentParts.push(delta.content); onDelta?.(delta.content); }
         if (Array.isArray(delta?.tool_calls)) {
           for (const call of delta.tool_calls) {
-            const raw = call as {
-              index?: number;
-              id?: unknown;
-              function?: { name?: unknown; arguments?: unknown };
-            };
+            const raw = call as { index?: number; id?: unknown; function?: { name?: unknown; arguments?: unknown } };
             const index = typeof raw.index === "number" ? raw.index : 0;
-            const target = (toolCalls[index] ??= {
-              type: "function",
-              function: { name: "", arguments: "" },
-            });
-            if (typeof raw.id === "string" && raw.id) {
-              target.id = raw.id;
-            }
-            if (typeof raw.function?.name === "string") {
-              target.function.name += raw.function.name;
-            }
-            if (typeof raw.function?.arguments === "string") {
-              target.function.arguments += raw.function.arguments;
-            }
+            if (!Number.isInteger(index) || index < 0 || index >= 256) { upstreamError = "Invalid tool-call index."; continue; }
+            const target = (toolCalls[index] ??= { type: "function", function: { name: "", arguments: "" } });
+            if (typeof raw.id === "string" && raw.id) target.id = raw.id;
+            if (typeof raw.function?.name === "string") target.function.name += raw.function.name;
+            if (typeof raw.function?.arguments === "string") target.function.arguments += raw.function.arguments;
           }
         }
       });
     } catch {
-      return {
-        error: Response.json(
-          {
-            error: requestTimeout.timedOut()
-              ? `${isOpenRouter ? "OpenRouter" : "Backend"} stream stalled for ${formatTimeout(timeoutMs)}. Retry, or lower that backend's context/output settings.`
-              : `The ${isOpenRouter ? "OpenRouter" : "backend"} stream was interrupted. Check the server and retry.`,
-          },
-          { status: requestTimeout.timedOut() ? 504 : 502 },
-        ),
-      };
+      return { error: Response.json({ error: requestTimeout.timedOut()
+        ? `${isOpenRouter ? "OpenRouter" : "Backend"} stream stalled for ${formatTimeout(timeoutMs)}.`
+        : `The ${isOpenRouter ? "OpenRouter" : "backend"} stream was interrupted. Check the server and retry.` }, { status: requestTimeout.timedOut() ? 504 : 502 }) };
     }
-
-    if (upstreamError) {
-      return {
-        error: Response.json(
-          {
-            error: `${isOpenRouter ? "OpenRouter" : "Backend"} stream failed.`,
-            detail: upstreamError.slice(0, 300),
-          },
-          { status: 502 },
-        ),
-      };
-    }
-
+    if (upstreamError) return { error: Response.json({ error: `${isOpenRouter ? "OpenRouter" : "Backend"} stream failed.`, detail: upstreamError.slice(0, 300) }, { status: 502 }) };
     const completedToolCalls = toolCalls.filter(Boolean) as StreamedToolCall[];
-    if (!contentParts.length && !completedToolCalls.length && !upstreamError && rawAll) {
-      // The backend answered a plain JSON document instead of an SSE stream.
-      try {
-        const data = JSON.parse(rawAll) as {
-          choices?: Array<{ message?: UpstreamChatMessage }>;
-        };
-        const message = data.choices?.[0]?.message;
-        if (message) {
-          return { message };
-        }
-      } catch {
-        // Not JSON either; fall through to the (empty) assembled result.
-      }
+    if (!contentParts.length && !completedToolCalls.length && rawAll) {
+      try { const data = JSON.parse(rawAll) as { choices?: Array<{ message?: UpstreamChatMessage }> }; if (data.choices?.[0]?.message) return { message: data.choices[0].message }; }
+      catch { /* Preserve the empty assembled result for an unreadable fallback. */ }
     }
-    return {
-      message: {
-        content: contentParts.join(""),
-        ...(completedToolCalls.length ? { tool_calls: completedToolCalls } : {}),
-      },
-    };
+    return { message: { content: contentParts.join(""), ...(completedToolCalls.length ? { tool_calls: completedToolCalls } : {}) } };
   }
-
-  let data: { choices?: Array<{ message?: UpstreamChatMessage }> };
-  try {
-    data = (await upstream.json()) as typeof data;
-  } catch {
-    return {
-      error: Response.json(
-        { error: "The backend returned an unreadable response." },
-        { status: 502 },
-      ),
-    };
-  }
-
-  return { message: data?.choices?.[0]?.message };
+  try { const data = await upstream.json() as { choices?: Array<{ message?: UpstreamChatMessage }> }; return { message: data?.choices?.[0]?.message }; }
+  catch { return { error: Response.json({ error: "The backend returned an unreadable response." }, { status: 502 }) }; }
 }
 
-export async function requestLocalMessage(
-  model: string,
-  messages: ChatMessage[],
-  options: ChatRequestOptions & { disableThinking?: boolean } = {},
-): Promise<UpstreamResult> {
-  const { tools, temperature, onDelta } = options;
-  const disableThinking = options.disableThinking ?? true;
+export async function requestLocalMessage(model: string, messages: ChatMessage[], options: ChatRequestOptions & { disableThinking?: boolean } = {}): Promise<UpstreamResult> {
+  const { tools, temperature, onDelta } = options; const disableThinking = options.disableThinking ?? true;
   const baseUrl = serverEnv("OLLAMA_BASE_URL", "http://127.0.0.1:11434").replace(/\/$/, "");
+  const contextTokens = Math.min(options.contextTokens ?? localContextTokens(model), localContextTokens(model));
+  let outputTokens: number;
+  try { outputTokens = requestBudget(messages, tools, contextTokens, options.maxOutputTokens ?? localMaxOutputTokens()).maxOutputTokens; }
+  catch (error) { if (error instanceof ModelContextError) return contextFailure(error); throw error; }
   const requestPayload: Record<string, unknown> = {
-    model,
-    messages: toOllamaMessages(messages),
-    stream: Boolean(onDelta),
-    // Keep the model (and the story's prompt cache) resident between turns.
-    keep_alive: "30m",
-    options: {
-      temperature: temperature ?? 0.9,
-      num_predict: localMaxOutputTokens(),
-      num_ctx: localContextTokens(model),
-    },
+    model, messages: toOllamaMessages(messages), stream: Boolean(onDelta), keep_alive: "30m",
+    options: { temperature: temperature ?? 0.9, num_predict: outputTokens, num_ctx: contextTokens },
   };
-
-  // Gemma 4 is a hybrid reasoning model; without this it spends most of the
-  // token budget on a hidden "thinking" channel before any story text.
-  if (disableThinking) {
-    requestPayload.think = false;
-  }
-
-  if (tools?.length) {
-    requestPayload.tools = tools;
-  }
-
-  const timeoutMs = resolveTextTimeoutMs(
-    options.timeoutMs,
-    "LOCAL_TEXT_TIMEOUT_MS",
-    DEFAULT_LOCAL_TEXT_TIMEOUT_MS,
-  );
-  const requestTimeout = createRequestTimeout(timeoutMs);
-  let upstream: Response;
-  try {
-    upstream = await fetch(`${baseUrl}/api/chat`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(requestPayload),
-      signal: requestTimeout.signal,
-    });
-  } catch {
-    if (requestTimeout.timedOut()) {
-      return {
-        error: Response.json(
-          {
-            error: `The local model took longer than ${formatTimeout(timeoutMs)} to answer. Ollama may still be working in the background; wait a moment, then retry, restart Ollama if your fans stay high, or lower LOCAL_TEXT_CONTEXT / LOCAL_TEXT_MAX_TOKENS.`,
-          },
-          { status: 504 },
-        ),
-      };
-    }
-
-    return {
-      error: Response.json(
-        {
-          error: `Could not reach Ollama at ${baseUrl}. Start the Ollama app (or \`ollama serve\`), pull the model with \`ollama pull ${model}\`, or switch this chat to a custom backend (LM Studio, llama.cpp, OpenRouter, ...) in Text Model settings.`,
-        },
-        { status: 502 },
-      ),
-    };
-  } finally {
-    requestTimeout.clear();
-  }
-
+  if (disableThinking) requestPayload.think = false;
+  if (tools?.length) requestPayload.tools = tools;
+  const timeoutMs = resolveTextTimeoutMs(options.timeoutMs, "LOCAL_TEXT_TIMEOUT_MS", DEFAULT_LOCAL_TEXT_TIMEOUT_MS);
+  const requestTimeout = createRequestTimeout(timeoutMs); let upstream: Response;
+  try { upstream = await secureEndpointFetch(`${baseUrl}/api/chat`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(requestPayload), signal: requestTimeout.signal }); }
+  catch {
+    return { error: Response.json({ error: requestTimeout.timedOut()
+      ? `The local model took longer than ${formatTimeout(timeoutMs)} to answer.`
+      : `Could not reach Ollama at ${baseUrl}. Start the server and pull ${model}, or select a custom backend.` }, { status: requestTimeout.timedOut() ? 504 : 502 }) };
+  } finally { requestTimeout.clear(); }
   if (!upstream.ok) {
     const text = await upstream.text();
-
-    // Some local models lack a tool-call template; retry the turn without tools.
-    if (tools?.length && /does not support tools/i.test(text)) {
-      return requestLocalMessage(model, messages, { ...options, tools: undefined });
-    }
-
-    // Models without a thinking channel reject the think parameter; retry without it.
-    if (disableThinking && /does not support think/i.test(text)) {
-      return requestLocalMessage(model, messages, { ...options, disableThinking: false });
-    }
-
-    const hint = /not found/i.test(text)
-      ? ` The model is not installed — run \`ollama pull ${model}\`.`
-      : "";
-    return {
-      error: Response.json(
-        {
-          error: `Local model request failed (${upstream.status}).${hint}`,
-          detail: text.slice(0, 300),
-        },
-        { status: 502 },
-      ),
-    };
+    if (tools?.length && /does not support tools/i.test(text)) return requestLocalMessage(model, messages, { ...options, tools: undefined });
+    if (disableThinking && /does not support think/i.test(text)) return requestLocalMessage(model, messages, { ...options, disableThinking: false });
+    const hint = /not found/i.test(text) ? ` The model is not installed — run \`ollama pull ${model}\`.` : "";
+    return { error: Response.json({ error: `Local model request failed (${upstream.status}).${hint}`, detail: text.slice(0, 300) }, { status: 502 }) };
   }
-
   if (onDelta && upstream.body) {
-    // Ollama streams NDJSON: one JSON object per line with message.content
-    // fragments; tool calls arrive whole on whichever line carries them.
-    const contentParts: string[] = [];
-    const toolCalls: unknown[] = [];
-    let upstreamError = "";
-
+    const contentParts: string[] = []; const toolCalls: unknown[] = []; let upstreamError = "";
     try {
-      await forEachStreamLine(upstream, timeoutMs, requestTimeout.abortNow, (line) => {
-        let parsed: unknown;
-        try {
-          parsed = JSON.parse(line);
-        } catch {
-          return;
-        }
-        const record = parsed as {
-          message?: { content?: unknown; tool_calls?: unknown };
-          error?: unknown;
-        };
-        if (record.error) {
-          upstreamError = String(record.error);
-          return;
-        }
-        if (typeof record.message?.content === "string" && record.message.content) {
-          contentParts.push(record.message.content);
-          onDelta(record.message.content);
-        }
-        if (Array.isArray(record.message?.tool_calls)) {
-          toolCalls.push(...record.message.tool_calls);
-        }
+      await forEachStreamLine(upstream, timeoutMs, requestTimeout.abortNow, line => {
+        let parsed: unknown; try { parsed = JSON.parse(line); } catch { return; }
+        const record = parsed as { message?: { content?: unknown; tool_calls?: unknown }; error?: unknown };
+        if (record.error) { upstreamError = String(record.error); return; }
+        if (typeof record.message?.content === "string" && record.message.content) { contentParts.push(record.message.content); onDelta(record.message.content); }
+        if (Array.isArray(record.message?.tool_calls)) toolCalls.push(...record.message.tool_calls);
       });
     } catch {
-      return {
-        error: Response.json(
-          {
-            error: requestTimeout.timedOut()
-              ? `The local model stalled for ${formatTimeout(timeoutMs)} mid-passage. Ollama may still be working; wait a moment, then retry, or lower LOCAL_TEXT_CONTEXT / LOCAL_TEXT_MAX_TOKENS.`
-              : "The local model stream was interrupted. Check that Ollama is still running and retry.",
-          },
-          { status: requestTimeout.timedOut() ? 504 : 502 },
-        ),
-      };
+      return { error: Response.json({ error: requestTimeout.timedOut() ? `The local model stalled for ${formatTimeout(timeoutMs)} mid-passage.` : "The local model stream was interrupted. Check that Ollama is still running and retry." }, { status: requestTimeout.timedOut() ? 504 : 502 }) };
     }
-
-    if (upstreamError) {
-      return {
-        error: Response.json(
-          {
-            error: "Local model stream failed.",
-            detail: upstreamError.slice(0, 300),
-          },
-          { status: 502 },
-        ),
-      };
-    }
-
-    return {
-      message: {
-        content: contentParts.join(""),
-        ...(toolCalls.length ? { tool_calls: toolCalls } : {}),
-      },
-    };
+    if (upstreamError) return { error: Response.json({ error: "Local model stream failed.", detail: upstreamError.slice(0, 300) }, { status: 502 }) };
+    return { message: { content: contentParts.join(""), ...(toolCalls.length ? { tool_calls: toolCalls } : {}) } };
   }
-
-  let data: { message?: UpstreamChatMessage };
-  try {
-    data = (await upstream.json()) as typeof data;
-  } catch {
-    return {
-      error: Response.json(
-        { error: "The backend returned an unreadable response." },
-        { status: 502 },
-      ),
-    };
-  }
-  return { message: data?.message };
+  try { const data = await upstream.json() as { message?: UpstreamChatMessage }; return { message: data?.message }; }
+  catch { return { error: Response.json({ error: "The backend returned an unreadable response." }, { status: 502 }) }; }
 }

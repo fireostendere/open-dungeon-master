@@ -1,10 +1,10 @@
-// Next's startup hook: the one code path a standalone server is guaranteed
-// to run exactly once, which makes it the home for the background job loop.
-// Guarded to the node runtime because register() is also evaluated for the
-// edge bundle, where there is no database and no interval to own.
+// Next's standalone startup hook. Both runners are process-global/idempotent;
+// importing them only in Node keeps SQLite out of the edge bundle.
 export async function register() {
   if (process.env.NEXT_RUNTIME === "nodejs") {
     const { startJobRunner } = await import("@/lib/jobs");
     startJobRunner();
+    const { startDmMediaRunner } = await import("@/lib/dm/media-jobs");
+    startDmMediaRunner();
   }
 }

@@ -1,3 +1,4 @@
+import { afterCommit } from "@/lib/db/commit-effects";
 import { getDatabase, nowIso, parseJson } from "@/lib/db/core";
 import { allocateSeq } from "@/lib/db/campaigns";
 
@@ -7,6 +8,7 @@ type Subscriber = (chunk: string) => void;
 // and a module-scoped map would silently drop subscribers.
 declare global {
   var __odmEventBus: Map<string, Set<Subscriber>> | undefined;
+  var __odmEventSubscriberUsers: Map<string, WeakMap<Subscriber, string>> | undefined;
   // Presence: who has the campaign open in a live tab, as connection counts
   // per user so a second tab does not read as a second person and closing
   // one of two tabs does not read as leaving. Distinct from the voice
@@ -20,6 +22,12 @@ declare global {
 
 function bus() {
   return (globalThis.__odmEventBus ??= new Map<string, Set<Subscriber>>());
+}
+function subscriberUsers(campaignId: string) {
+  const campaigns = (globalThis.__odmEventSubscriberUsers ??= new Map<string, WeakMap<Subscriber, string>>());
+  let users = campaigns.get(campaignId);
+  if (!users) { users = new WeakMap<Subscriber, string>(); campaigns.set(campaignId, users); }
+  return users;
 }
 
 function presenceCounts() {
@@ -52,7 +60,9 @@ export function subscribe(
     bus().set(campaignId, subscribers);
   }
   subscribers.add(subscriber);
+  if (!userId) subscriberUsers(campaignId).delete(subscriber);
   if (userId) {
+    subscriberUsers(campaignId).set(subscriber, userId);
     let counts = presenceCounts().get(campaignId);
     if (!counts) {
       counts = new Map();
@@ -74,8 +84,10 @@ export function subscribe(
     }
     released = true;
     subscribers.delete(subscriber);
+    subscriberUsers(campaignId).delete(subscriber);
     if (subscribers.size === 0) {
       bus().delete(campaignId);
+      globalThis.__odmEventSubscriberUsers?.delete(campaignId);
     }
     if (userId) {
       const counts = presenceCounts().get(campaignId);
@@ -125,8 +137,11 @@ export function publishWithSeq(campaignId: string, seq: number, type: string, pa
       `INSERT INTO campaign_events (campaign_id, seq, type, payload_json, created_at) VALUES (?, ?, ?, ?, ?)`,
     )
     .run(campaignId, seq, type, JSON.stringify(payload), nowIso());
-  fanOut(campaignId, sseChunk(type, payload, seq));
-  globalThis.__odmVoiceEventHook?.(campaignId, type);
+  const chunk = sseChunk(type, payload, seq);
+  afterCommit(() => {
+    fanOut(campaignId, chunk);
+    globalThis.__odmVoiceEventHook?.(campaignId, type);
+  });
   return seq;
 }
 
@@ -140,8 +155,26 @@ export function publishPersisted(campaignId: string, type: string, payload: unkn
 // events still arrive with the previous persisted event's lastEventId; the
 // stream hook must ignore lastEventId for ephemeral event types.
 export function publishEphemeral(campaignId: string, type: string, payload: unknown) {
-  fanOut(campaignId, sseChunk(type, payload));
-  globalThis.__odmVoiceEventHook?.(campaignId, type);
+  const chunk = sseChunk(type, payload);
+  afterCommit(() => {
+    fanOut(campaignId, chunk);
+    globalThis.__odmVoiceEventHook?.(campaignId, type);
+  });
+}
+
+// Private Ask updates must refresh the asker's other tabs without revealing
+// even the existence of that question to the rest of the table. Identity is
+// registered by the authenticated SSE route, never supplied by event payloads.
+export function publishUserEphemeral(campaignId: string, userId: string, type: string, payload: unknown) {
+  const chunk = sseChunk(type, payload);
+  afterCommit(() => {
+    const subscribers = bus().get(campaignId);
+    if (!subscribers) return;
+    for (const subscriber of subscribers) {
+      if (subscriberUsers(campaignId).get(subscriber) !== userId) continue;
+      try { subscriber(chunk); } catch { subscribers.delete(subscriber); }
+    }
+  });
 }
 
 // Voice reacts to things the rest of the app already announces: the floor

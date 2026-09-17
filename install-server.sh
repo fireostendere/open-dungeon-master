@@ -86,7 +86,7 @@ fi
 [[ $RUNTIME == none || $RUNTIME == ollama || $RUNTIME == external ]] || { echo 'Invalid runtime' >&2; exit 2; }
 export DEBIAN_FRONTEND=noninteractive
 apt-get update
-apt-get install -y --no-install-recommends ca-certificates curl git python3 restic
+apt-get install -y --no-install-recommends ca-certificates curl git python3 restic util-linux
 if ! command -v docker >/dev/null 2>&1; then
   # Official signed apt repository, not a curl | sh convenience installer.
   install -m 0755 -d /etc/apt/keyrings
@@ -107,6 +107,21 @@ if ! docker compose version >/dev/null 2>&1; then
 fi
 if [[ -d /run/systemd/system ]]; then systemctl enable --now docker; fi
 docker info >/dev/null || { echo 'Docker daemon is unavailable' >&2; exit 1; }
+# Retire only this root's legacy timer before it can replace controllers
+# outside the common lock. Do not kill a running legacy rollout mid-transition.
+if [[ -d /run/systemd/system ]] && systemctl cat odm-mcp-sync.service 2>/dev/null | grep -Fxq "ReadWritePaths=$ROOT"; then
+  systemctl disable --now odm-mcp-sync.timer
+  DEADLINE=$((SECONDS + 3600))
+  while systemctl is-active --quiet odm-mcp-sync.service; do
+    ((SECONDS < DEADLINE)) || { echo 'Legacy MCP operation did not finish; no controllers replaced.' >&2; exit 1; }
+    sleep 2
+  done
+fi
+# This descriptor is verified by Python against .ops.lock and locked again;
+# an environment variable alone can never bypass operation serialization.
+[[ ! -L $ROOT/.ops.lock ]] || { echo 'Unsafe lock path' >&2; exit 1; }
+exec 9>>"$ROOT/.ops.lock"
+flock -n 9 || { echo 'Another ODM operation is running; no repository/controllers changed.' >&2; exit 1; }
 if [[ -n $TOKEN_FILE ]]; then
   [[ -f $TOKEN_FILE && ! -L $TOKEN_FILE ]] || { echo 'Invalid token file' >&2; exit 1; }
   if [[ $(realpath "$TOKEN_FILE") != "$ROOT/config/github.token" ]]; then install -m 600 "$TOKEN_FILE" "$ROOT/config/github.token"; fi
@@ -139,9 +154,7 @@ fi
 if [[ -n $REF ]]; then git -C "$ROOT/repository" checkout --detach "$REF"; fi
 [[ -f $ROOT/repository/deploy/odmctl.py ]] || { echo 'Selected revision does not contain the deployment controller' >&2; exit 1; }
 [[ -f $ROOT/repository/deploy/mcpctl.py ]] || { echo 'Selected revision does not contain the MCP controller' >&2; exit 1; }
-# On re-run preserve the already installed controller until a tested update.
-if [[ ! -f $ROOT/tools/odmctl.py ]]; then install -m 700 "$ROOT/repository/deploy/odmctl.py" "$ROOT/tools/odmctl.py"; fi
-if [[ ! -f $ROOT/tools/mcpctl.py ]]; then install -m 700 "$ROOT/repository/deploy/mcpctl.py" "$ROOT/tools/mcpctl.py"; fi
+[[ -f $ROOT/repository/deploy/retention.py ]] || { echo 'Selected revision lacks the coordinated operations bundle' >&2; exit 1; }
 cat > /usr/local/bin/odmctl <<EOF
 #!/bin/sh
 exec /usr/bin/python3 '$ROOT/tools/odmctl.py' --root '$ROOT' "\$@"
@@ -149,61 +162,15 @@ EOF
 chmod 755 /usr/local/bin/odmctl
 cat > /usr/local/bin/odm-mcpctl <<EOF
 #!/bin/sh
-set -eu
-ACTIVE='$ROOT/config/active.json'
-if [ -f "\$ACTIVE" ]; then
-  SHA=\$(/usr/bin/python3 -c 'import json,sys; print(json.load(open(sys.argv[1], encoding="utf-8")).get("sha", ""))' "\$ACTIVE")
-  SOURCE='$ROOT/releases/'"\$SHA"'/source/deploy/mcpctl.py'
-  if [ -f "\$SOURCE" ] && ! cmp -s "\$SOURCE" '$ROOT/tools/mcpctl.py'; then
-    install -m 700 "\$SOURCE" '$ROOT/tools/mcpctl.py'
-  fi
-fi
 exec /usr/bin/python3 '$ROOT/tools/mcpctl.py' --root '$ROOT' "\$@"
 EOF
 chmod 755 /usr/local/bin/odm-mcpctl
 [[ -z $REF ]] || ARGS+=(--ref "$REF")
 [[ -z $SOURCE ]] || ARGS+=(--offline-source)
-python3 "$ROOT/tools/odmctl.py" --root "$ROOT" install --repo "$REPO" --branch "$BRANCH" --runtime "$RUNTIME" "${ARGS[@]}"
-
-# MCP is provisioned after the application is healthy so its control-plane
-# healthcheck can verify the real database/API. The token is generated into
-# config/mcp.token and app.env automatically and is never printed.
-odm-mcpctl sync
-
-if [[ -d /run/systemd/system ]]; then
-  cat > /etc/systemd/system/odm-mcp-sync.service <<'EOF'
-[Unit]
-Description=Synchronize Open Dungeon Master MCP sidecar
-After=docker.service network-online.target
-Wants=network-online.target
-
-[Service]
-Type=oneshot
-ExecStart=/usr/local/bin/odm-mcpctl sync
-NoNewPrivileges=true
-PrivateTmp=true
-ProtectSystem=strict
-ProtectHome=true
-ReadWritePaths=/opt/odm
-EOF
-  # If a non-default root is used, the unit needs its actual writable path.
-  sed -i "s#^ReadWritePaths=.*#ReadWritePaths=$ROOT#" /etc/systemd/system/odm-mcp-sync.service
-  cat > /etc/systemd/system/odm-mcp-sync.timer <<'EOF'
-[Unit]
-Description=Keep Open Dungeon Master MCP on the active release
-
-[Timer]
-OnBootSec=2min
-OnUnitActiveSec=15min
-RandomizedDelaySec=30
-Persistent=true
-
-[Install]
-WantedBy=timers.target
-EOF
-  systemctl daemon-reload
-  systemctl enable --now odm-mcp-sync.timer
-fi
+# Install all controller modules under the same lock, then install/start both
+# services through the coordinated controller. MCP has no independent timer.
+python3 "$ROOT/repository/deploy/odmctl.py" --root "$ROOT" --lock-fd 9 install --bootstrap-tools --repo "$REPO" --branch "$BRANCH" --runtime "$RUNTIME" "${ARGS[@]}"
+exec 9>&-
 
 printf '\nMCP installed.\n'
 printf '  Status: odm-mcpctl status\n'

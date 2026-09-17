@@ -13,6 +13,7 @@
     "build": "next build",
     "start": "next start",
     "start:lan": "next start -H 0.0.0.0 -p 3005",
+    "start:portal": "node scripts/launch-portal.mjs",
     "lint": "eslint",
     "test": "node scripts/test-all.mjs",
     "auth": "node scripts/odm-auth.mjs",

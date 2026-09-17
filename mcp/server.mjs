@@ -6,9 +6,10 @@ import { McpServer, createMcpHandler } from "@modelcontextprotocol/server";
 import { serveStdio } from "@modelcontextprotocol/server/stdio";
 import { toNodeHandler } from "@modelcontextprotocol/node";
 import * as z from "zod/v4";
+import { callControl, withMcpCancellation } from "./control-client.mjs";
+import { createSafeHttpListener } from "./http-boundary.mjs";
 
 const VERSION = "0.1.0";
-const CONTROL_URL = process.env.ODM_MCP_CONTROL_URL?.trim() || "http://127.0.0.1:3005/api/internal/mcp";
 const TOKEN = process.env.ODM_MCP_TOKEN?.trim() || "";
 const HOST = process.env.ODM_MCP_HOST?.trim() || "127.0.0.1";
 const PORT = Number(process.env.ODM_MCP_PORT || 3006);
@@ -41,27 +42,6 @@ function allowedOrigin(origin) {
   } catch {
     return false;
   }
-}
-
-async function callControl(action, params = {}) {
-  if (!TOKEN) {
-    throw new Error("ODM_MCP_TOKEN is not configured. The control plane is disabled.");
-  }
-  const response = await fetch(CONTROL_URL, {
-    method: "POST",
-    headers: {
-      authorization: `Bearer ${TOKEN}`,
-      "content-type": "application/json",
-      accept: "application/json",
-    },
-    body: JSON.stringify({ action, params }),
-    signal: AbortSignal.timeout(30_000),
-  });
-  const body = await response.json().catch(() => ({}));
-  if (!response.ok || body?.ok === false) {
-    throw new Error(body?.error || `ODM control API returned HTTP ${response.status}.`);
-  }
-  return body?.result;
 }
 
 function result(value) {
@@ -113,8 +93,10 @@ function createMcpServer() {
     { name: "open-dungeon-master", version: VERSION },
     { capabilities: { tools: {}, resources: {} } },
   );
+  const registerTool = (name, config, callback) => server.registerTool(name, config, withMcpCancellation(callback));
+  const registerResource = (name, uri, config, callback) => server.registerResource(name, uri, config, withMcpCancellation(callback));
 
-  server.registerResource(
+  registerResource(
     "server-status",
     "odm://server/status",
     {
@@ -133,7 +115,7 @@ function createMcpServer() {
     }),
   );
 
-  server.registerResource(
+  registerResource(
     "external-narrator-instructions",
     "odm://narrator/instructions",
     {
@@ -150,50 +132,56 @@ function createMcpServer() {
     }),
   );
 
-  server.registerResource(
+  registerResource(
     "narrator-playbook",
     "odm://narrator/playbook",
     {
-      title: "Dungeon Master rules and protocol playbook",
-      description: "Comprehensive guide for AI models acting as DM: D&D 5e rules, dice request protocol, combat encounters, answering player asks, and narration guidelines.",
+      title: "External narrator playbook",
+      description: "Rules-engine, cursor, private Ask and dialogue guidance for a trusted external DM.",
       mimeType: "text/markdown",
     },
-    async (uri) => ({
-      contents: [{
-        uri: uri.href,
-        mimeType: "text/markdown",
-        text: `# Open Dungeon Master — AI Game Master Playbook
+    async (uri) => ({ contents: [{ uri: uri.href, mimeType: "text/markdown", text: `# External narrator playbook
 
-You are the Dungeon Master (Game Master) for a multiplayer D&D 5e campaign in Open Dungeon Master.
-You interact with the game state, dice, and players exclusively through the \`odm_narrator\` MCP tool.
+You describe the world and play NPCs. Players decide their own character actions.
+The server owns dice, HP, slots, initiative and inventory. Never invent a roll or
+claim an action succeeded before the authoritative result has arrived.
 
-## Core Rules:
-1. NEVER invent roll numbers, checks, saves, or attack outcomes yourself.
-   - When an outcome is uncertain, call \`odm_narrator(operation: "invoke", name: "request_roll", args: {...})\`.
-   - The server calculates character modifiers, rolls authentic random dice, and returns the result.
-   - Narrate strictly based on the server's roll numbers.
-2. NEVER puppet player characters. Describe what the world and NPCs do, then stop at the next decision point.
-3. COMBAT: Call \`start_encounter\` before narrating hostile exchanges. The server sets up the battle map and initiative.
-   - Move tokens with \`move_token(forced: true, x, y)\`.
-   - Execute attacks with \`pc_attack\` (passing both \`enemyId\` and \`targetEnemyId\`).
-   - Deal damage or execute finishing moves with \`damage_enemy\`.
-4. INVENTORY & PROGRESS:
-   - Award loot via \`grant_item(characterId, name, qty)\`.
-   - Award experience via \`award_xp(characterId, amount)\`.
-   - Update objectives via \`campaigns.set_quest_log\`.
-5. ASKS & QUESTIONS:
-   - Inspect \`asks\` in \`narrator.read\`.
-   - Answer player questions submitted via the Ask panel with \`odm_narrator(operation: "answer_ask", askId, answer)\`.
-6. OPTIMISTIC SEQUENCE PROTOCOL:
-   - Always call \`narrator.read\` before any write.
-   - Use the latest \`currentSeq\` as \`expectedSeq\` for \`invoke\` or \`narrate\`.
-   - If error 409 (stale cursor) occurs, re-read and retry with the updated sequence.
-`,
-      }],
-    }),
+## Read and write protocol
+Call connect and read; follow nextCursor until hasMore is false. Filtering OOC
+messages can produce empty pages with a NEW cursor: keep draining them. Use the
+fully drained currentSeq as expectedSeq for one invoke, narrate or release_floor.
+Read after every write, timeout or error, including 409. Inspect the result and
+current state; NEVER automatically replay an ambiguous write. This resource does
+not run a background loop or wake an agent by itself.
+
+## Rules and combat
+Use catalog to obtain the current argument schemas. Request real skill/save/damage
+rolls through the engine and inspect pendingRolls, roll_result and recentRolls.
+Start an encounter before narrating a fight as active. Initiative controls the floor.
+Move tokens through move_token; forced movement is for a justified DM override,
+not a shortcut around normal movement budgets. pc_attack uses the character and
+target IDs from the current state (supply enemyId and targetEnemyId where the
+catalog requires them). The engine adjudicates hits and damage. Do not apply the
+same damage or reward again. Use grant_item/award_xp for an explicit new award.
+Use supported campaign controls for scene and quest-log changes.
+
+## Dialogue and private questions
+Player speech, actions and OOC have different visual styles. OOC is absent from
+narrator message/event projections; it is still stored and visible in player chat.
+Inspect asks on EVERY read, even when the story cursor did not change. Human-mode
+submissions receive an acknowledgement; answer via answer_ask using the askId in
+this campaign and optional grounded citations. It changes no scene/floor state.
+Private questions and answers are for the asker and the trusted DM only. Never
+copy them into shared narration or table events. Notification events contain no
+question or answer. A continuous client must actually schedule reads/subscribe to
+its authorized notifications; an undocumented host watch script is not guaranteed.
+
+The bearer is operator-wide, not a per-player credential. Never expose it, private
+questions, private whispers, DM outlines or other DM secrets to the table.
+` }] }),
   );
 
-  server.registerResource(
+  registerResource(
     "control-capabilities",
     "odm://server/capabilities",
     {
@@ -212,11 +200,11 @@ You interact with the game state, dice, and players exclusively through the \`od
     }),
   );
 
-  server.registerTool(
+  registerTool(
     "odm_narrator",
     {
       title: "External campaign narrator",
-      description: "Trusted external DM lifecycle for human mode with server LLM, TTS, and automatic maps disabled. Read before each write; no automatic retries. Operations: connect (setup session), read (pull stream, sheets, asks), catalog (view 40+ rules engine actions), invoke (call rules engine e.g. request_roll, start_encounter, pc_attack), narrate (post DM story text), release_floor (pass turn to players), answer_ask (answer player question from Ask panel).",
+      description: "Trusted external DM lifecycle for human mode with server LLM, TTS, and automatic maps disabled. Read before each write; no automatic retries. answer_ask answers a campaign Ask question without advancing the scene. See odm://narrator/playbook.",
       inputSchema: z.object({
         operation: z.enum(["connect", "read", "catalog", "invoke", "narrate", "release_floor", "answer_ask"]),
         campaignId: z.string().uuid(),
@@ -228,6 +216,10 @@ You interact with the game state, dice, and players exclusively through the \`od
         content: z.string().trim().min(1).max(8000).optional(),
         askId: z.string().uuid().optional(),
         answer: z.string().trim().min(1).max(4000).optional(),
+        citations: z.array(z.object({
+          kind: z.enum(["fact", "chapter", "scene", "summary", "npc", "place", "rule", "sheet", "recent"]),
+          ref: z.string().max(300), quote: z.string().max(2000),
+        }).strict()).max(50).optional(),
       }),
     },
     async (args) => {
@@ -238,7 +230,7 @@ You interact with the game state, dice, and players exclusively through the \`od
     },
   );
 
-  server.registerTool(
+  registerTool(
     "odm_server",
     {
       title: "ODM server",
@@ -248,7 +240,7 @@ You interact with the game state, dice, and players exclusively through the \`od
     async ({ operation }) => run(operation === "status" ? "server.status" : "server.capabilities", {}),
   );
 
-  server.registerTool(
+  registerTool(
     "odm_users",
     {
       title: "ODM users",
@@ -258,7 +250,7 @@ You interact with the game state, dice, and players exclusively through the \`od
     async () => run("users.list", {}),
   );
 
-  server.registerTool(
+  registerTool(
     "odm_campaigns",
     {
       title: "ODM campaigns",
@@ -316,12 +308,12 @@ You interact with the game state, dice, and players exclusively through the \`od
     },
   );
 
-  server.registerTool(
+  registerTool(
     "odm_campaign_settings",
     {
       title: "ODM campaign settings",
       description:
-        "Change game rules, AI/text/image provider settings, or DM mode for a campaign. Story settings may write API keys but reads never reveal stored keys.",
+        "Change game rules, AI/text/image providers, or DM mode for a campaign. Story settings may write API keys but reads never reveal stored keys.",
       inputSchema: z.object({
         operation: z.enum(["game", "story", "dm_mode"]),
         campaignId: z.string().uuid(),
@@ -349,7 +341,7 @@ You interact with the game state, dice, and players exclusively through the \`od
     },
   );
 
-  server.registerTool(
+  registerTool(
     "odm_story",
     {
       title: "ODM story control",
@@ -394,7 +386,7 @@ You interact with the game state, dice, and players exclusively through the \`od
     },
   );
 
-  server.registerTool(
+  registerTool(
     "odm_members",
     {
       title: "ODM campaign members",
@@ -414,7 +406,7 @@ You interact with the game state, dice, and players exclusively through the \`od
     },
   );
 
-  server.registerTool(
+  registerTool(
     "odm_characters",
     {
       title: "ODM character library",
@@ -465,12 +457,12 @@ You interact with the game state, dice, and players exclusively through the \`od
     },
   );
 
-  server.registerTool(
+  registerTool(
     "odm_sheets",
     {
       title: "ODM live character sheets",
       description:
-        "Read or patch live campaign character sheets. This is the game-state control surface for HP, conditions, XP, inventory, abilities, spells, identity and other DM-managed sheet fields.",
+        "Read or patch live campaign character sheets. This is the game-state control surface for HP, conditions, XP, inventory, abilities, spells, identity and other DM-managed fields.",
       inputSchema: z.object({
         operation: z.enum(["list", "get", "patch"]),
         campaignId: z.string().uuid().optional(),
@@ -485,7 +477,7 @@ You interact with the game state, dice, and players exclusively through the \`od
     },
   );
 
-  server.registerTool(
+  registerTool(
     "odm_models",
     {
       title: "ODM models and providers",
@@ -638,12 +630,11 @@ async function serveHttp() {
 
   const handler = createMcpHandler(createVerifiedMcpServer);
   const nodeHandler = toNodeHandler(handler);
-  const http = createHttpServer(async (req, res) => {
-    const pathname = new URL(req.url || "/", `http://${req.headers.host || "localhost"}`).pathname;
+  const http = createHttpServer(createSafeHttpListener(async (req, res, pathname) => {
 
     if (pathname === "/healthz") {
       try {
-        await callControl("server.status", {});
+        await callControl("server.status", {}, { timeout: 5_000 });
         res.writeHead(200, { "content-type": "application/json", "cache-control": "no-store" });
         res.end('{"ok":true}');
       } catch {
@@ -675,14 +666,10 @@ async function serveHttp() {
       return;
     }
 
-    try {
-      await nodeHandler(req, res);
-    } catch (error) {
-      console.error("MCP request failed:", error instanceof Error ? error.message : String(error));
-      if (!res.headersSent) res.writeHead(500, { "content-type": "application/json" });
-      if (!res.writableEnded) res.end('{"error":"MCP request failed"}');
-    }
-  });
+    await nodeHandler(req, res);
+  }, {
+    onError: (error) => console.error("MCP request failed:", error instanceof Error ? error.message : String(error)),
+  }));
 
   const shutdown = async () => {
     http.close();

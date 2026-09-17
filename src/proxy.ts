@@ -6,18 +6,18 @@ import {
   PORTAL_TOKEN_COOKIE,
   forwardHeaders,
   isPortalPath,
-  portalFromCookies,
   portalTargetUrl,
 } from "@/lib/portal";
+import { trustedPortalFromCookies } from "@/lib/portal-trust";
 
 // Two doors for the desktop and Android apps, both on the data paths only:
 //
 // - App origins (src/lib/app-cors.ts): the apps' native screens call the
 //   API directly with a bearer token from a foreign origin, so those
 //   origins get CORS headers and their preflights an empty 204.
-// - Portal mode (src/lib/portal.ts): when the app that serves this UI has
-//   planted a host and a token, every data request is answered by that
-//   host instead of this server.
+// - Portal mode: explicitly enabled by a trusted local launcher with a
+//   server-pinned destination and bearer. Client cookies cannot enable it
+//   or change the destination; public server installs leave it disabled.
 //
 // Without an app origin or the portal cookies nothing here changes.
 
@@ -34,7 +34,11 @@ export function proxy(request: NextRequest) {
   }
 
   let response: NextResponse;
-  const target = portalFromCookies((name) => request.cookies.get(name)?.value);
+  const target = trustedPortalFromCookies((name) => request.cookies.get(name)?.value, {
+    enabled: process.env.ODM_LOCAL_PORTAL,
+    origin: process.env.ODM_PORTAL_ORIGIN,
+    token: process.env.ODM_PORTAL_TOKEN,
+  });
   if (target && isPortalPath(pathname)) {
     const headers = new Headers();
     for (const [name, value] of forwardHeaders(request.headers, target.token)) {
