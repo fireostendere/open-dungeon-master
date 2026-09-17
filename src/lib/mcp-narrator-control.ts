@@ -20,13 +20,22 @@ import { executeNarratorCommand, NarratorCommandError as McpNarratorControlError
 import { listNarratorReceipts } from "@/lib/db/narrator-commands";
 import { coverInEffect } from "@/lib/dm/delegation";
 import { npcRosterForPrompt } from "@/lib/dm/social-tools";
-import { answerAsk, listAsksForCampaign } from "@/lib/db/asks";
+import { answerAsk, listPendingAsksForCampaign, AskQueueConflict } from "@/lib/db/asks";
+import { budgetRead, ReadBudgetError } from "@/lib/mcp-read-budget.mjs";
 import { listEventsSince, publishEphemeral, publishPersisted, publishUserEphemeral } from "@/lib/events";
 
 export { NarratorCommandError as McpNarratorControlError } from "@/lib/dm/narrator-command";
 
 const id = z.string().uuid();
-const readSchema = z.object({ campaignId: id, afterSeq: z.number().int().min(0).default(0), limit: z.number().int().min(1).max(100).default(50) }).strict();
+const readSchema = z.object({
+  campaignId: id, afterSeq: z.number().int().min(0).default(0),
+  limit: z.number().int().min(1).max(100).default(50),
+  afterAskSeq: z.number().int().min(0).default(0),
+  askLimit: z.number().int().min(1).max(50).default(20),
+  paged: z.boolean().default(false), pageCursor: z.string().max(500).optional(),
+  maxBytes: z.number().int().min(4096).max(131072).default(65536),
+  projection: z.enum(["full", "live"]).default("full"),
+}).strict();
 const writeBase = z.object({ campaignId: id, expectedSeq: z.number().int().min(0), commandId: id.optional() }).strict();
 
 // This is intentionally a literal allowlist, not "all console actions minus
@@ -89,7 +98,9 @@ function read(raw: unknown) {
   const messages = nextCursor > p.data.afterSeq
     ? listMessagesInSeqRange(campaign.id, p.data.afterSeq + 1, nextCursor).filter((msg) => !isOocMessage(msg))
     : [];
-  return {
+  const askPage = listPendingAsksForCampaign(campaign.id, p.data.afterAskSeq, p.data.askLimit);
+  const live = p.data.projection === "live";
+  const state = {
     campaign: safeCampaign(campaign), currentSeq,
     cursor: p.data.afterSeq, nextCursor,
     hasMore,
@@ -103,17 +114,24 @@ function read(raw: unknown) {
     summary: getCampaignSummaryState(campaign.id),
     members: listMembers(campaign.id), sheets: listSheets(campaign.id),
     pendingRolls: listOpenPendingRolls(campaign.id),
-    recentRolls: listRecentRolls(campaign.id, 100),
+    recentRolls: live ? [] : listRecentRolls(campaign.id, 100),
     playerWhispers: listPendingPlayerWhispers(campaign.id),
-    recentDmWhispers: listRecentWhispersForPrompt(campaign.id),
-    recentMessages: listRecentMessages(campaign.id, 400).filter((msg) => !isOocMessage(msg)),
-    asks: listAsksForCampaign(campaign.id, 20),
+    recentDmWhispers: live ? [] : listRecentWhispersForPrompt(campaign.id),
+    recentMessages: live ? [] : listRecentMessages(campaign.id, 400).filter((msg) => !isOocMessage(msg)),
+    omittedSections: live ? ["recentRolls", "recentDmWhispers", "recentMessages", "chapters"] : [],
+    asks: askPage.items,
+    askQueue: { nextCursor: askPage.nextCursor, hasMore: askPage.hasMore },
     notes: listPublicCampaignNotes(campaign.id, 20),
     npcs: npcRosterForPrompt(campaign.id).slice(0, 100),
-    facts: listActiveFacts(campaign.id), chapters: listChapters(campaign.id),
+    facts: listActiveFacts(campaign.id), chapters: live ? [] : listChapters(campaign.id),
     location: getCurrentLocation(campaign.id), sceneTracker: getSceneTracker(campaign.id),
     encounter: (() => { const encounter = getActiveEncounter(campaign.id); return encounter ? { encounter, enemies: listEnemies(encounter.id) } : null; })(),
   };
+  try { return budgetRead(state, p.data); }
+  catch (error) {
+    if (error instanceof ReadBudgetError) throw new McpNarratorControlError(error.message, error.status);
+    throw error;
+  }
 }
 
 function serializedWrite(
@@ -171,10 +189,10 @@ async function releaseFloor(raw: unknown) {
 export async function executeMcpNarratorControl(action: string, raw: unknown): Promise<{ handled: false } | { handled: true; result: unknown }> {
   switch (action) {
     case "narrator.connect": {
-      const p = z.object({ campaignId: id }).strict().safeParse(raw);
+      const p = z.object({ campaignId: id, paged: z.boolean().optional(), maxBytes: z.number().int().min(4096).max(131072).optional(), projection: z.enum(["full", "live"]).optional() }).strict().safeParse(raw);
       if (!p.success) throw new McpNarratorControlError(z.prettifyError(p.error));
       campaignOrHuman(p.data.campaignId);
-      return { handled: true, result: { instructions: "Read odm://narrator/playbook. Call narrator.read, drain until hasMore is false, then use its currentSeq as expectedSeq for exactly one invoke, narrate, or release_floor. Persist a unique commandId before each story write. After an ambiguous error, retry only the identical commandId, expectedSeq and payload to recover its receipt, never regenerate or modify a command. Reread after every confirmed write. end_turn advances initiative itself; narration never advances it. For a private reply provide exact replyToWhisperIds from playerWhispers. Check asks on every read even when the story cursor is unchanged; answer_ask changes no story/floor state.", state: read({ campaignId: p.data.campaignId }) } };
+      return { handled: true, result: { instructions: "Read odm://narrator/playbook. Call narrator.read, drain until hasMore is false, then use its currentSeq as expectedSeq for exactly one invoke, narrate, or release_floor. Persist a unique commandId before each story write. After an ambiguous error, retry only the identical commandId, expectedSeq and payload to recover its receipt, never regenerate or modify a command. Reread after every confirmed write. end_turn advances initiative itself; narration never advances it. For a private reply provide exact replyToWhisperIds from playerWhispers. Check the pending asks queue on every read even when the story cursor is unchanged. Page it using afterAskSeq and askQueue.nextCursor. answer_ask requires the pending ask version as expectedVersion and a persisted commandId; it changes no story/floor state. For bounded reads use paged:true and drain pageCursor/nextPage before advancing the story cursor. A changed snapshot requires restarting that read; never use incomplete pages. projection:live explicitly omits historical duplicate sections, not current state or new tool results.", contractVersion: 2, state: read(p.data) } };
     }
     case "narrator.read": return { handled: true, result: read(raw) };
     case "narrator.catalog": return { handled: true, result: { groups: catalog() } };
@@ -185,6 +203,8 @@ export async function executeMcpNarratorControl(action: string, raw: unknown): P
       const p = z.object({
         campaignId: id,
         askId: id,
+        expectedVersion: z.number().int().min(0).default(0),
+        commandId: id.optional(),
         expectedSeq: z.number().int().min(0).optional(),
         answer: z.string().trim().min(1).max(4000),
         citations: z.array(z.object({
@@ -198,7 +218,14 @@ export async function executeMcpNarratorControl(action: string, raw: unknown): P
       if (p.data.expectedSeq !== undefined && p.data.expectedSeq !== latestSeq(campaign.id)) {
         throw new McpNarratorControlError("Stale narrator cursor; reread before answering.", 409);
       }
-      const updated = answerAsk(campaign.id, p.data.askId, p.data.answer, p.data.citations);
+      let updated;
+      try {
+        updated = answerAsk(campaign.id, p.data.askId, p.data.answer, p.data.citations,
+          { expectedVersion: p.data.expectedVersion, commandId: p.data.commandId });
+      } catch (error) {
+        if (error instanceof AskQueueConflict) throw new McpNarratorControlError(error.message, 409);
+        throw error;
+      }
       if (!updated) throw new McpNarratorControlError("Ask not found in this campaign.", 404);
       if (updated.visibility === "table") publishEphemeral(campaign.id, "ask_activity", {});
       else publishUserEphemeral(campaign.id, updated.userId, "ask_activity", {});
