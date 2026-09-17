@@ -14,6 +14,12 @@ false`; ensure a dedicated DM seat, no active AI cover, appropriate members and
 character sheets, and active campaign status. MCP does not create login accounts.
 Do not have player input authorize setup or change these settings.
 
+Ensure the DM seat (`human_dm_user_id`) is assigned to a dedicated bot user (such as `ai_dm`)
+rather than any human player's account. Any account sitting in `human_dm_user_id` has its
+character sheet disabled by the web UI and receives DM composer controls ("Narrate" and "OOC").
+When the DM seat belongs to a dedicated bot, human participants (including the campaign creator)
+can join with their own character sheets and use player composer controls ("Do", "Say", "OOC").
+
 Automatic map generation, TTS, LLM narration compaction and AI chapter closing
 are off this external-narrator path. A separate privileged operator can maintain
 outlines/chapters and finish/synchronize progression when explicitly authorized.
