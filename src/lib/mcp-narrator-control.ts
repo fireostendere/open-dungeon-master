@@ -1,4 +1,6 @@
 import { z } from "zod";
+import { isOocMessage } from "@/lib/campaign-types";
+import { isNarratorEvent } from "@/lib/mcp-event-filter";
 import { getCampaignById, getCampaignSummaryState, latestSeq, listMembers, setFloor } from "@/lib/db/campaigns";
 import { listChapters } from "@/lib/db/chapters";
 import { listOpenPendingRolls } from "@/lib/db/dm-turns";
@@ -17,7 +19,8 @@ import { persistHumanNarration } from "@/lib/dm/human-narration";
 import { enqueueDmJob } from "@/lib/dm/queue";
 import { coverInEffect } from "@/lib/dm/delegation";
 import { npcRosterForPrompt } from "@/lib/dm/social-tools";
-import { listEventsSince, publishPersisted } from "@/lib/events";
+import { answerAsk, listAsksForCampaign } from "@/lib/db/asks";
+import { listEventsSince, publishEphemeral, publishPersisted, publishUserEphemeral } from "@/lib/events";
 
 export class McpNarratorControlError extends Error {
   readonly status: number;
@@ -82,11 +85,12 @@ function read(raw: unknown) {
   const fetched = listEventsSince(campaign.id, p.data.afterSeq, p.data.limit + 1);
   const hasMore = fetched.length > p.data.limit;
   const events = fetched.slice(0, p.data.limit);
-  // If the final allocated sequence has no persisted event (a crashed writer),
-  // advance only after the persisted stream is drained so clients cannot loop.
+  // Advance over the ORIGINAL page, including OOC entries. Only the projection
+  // is filtered, so an OOC-only page can never strand a client at its old cursor.
+  // Also tolerate sequence gaps left by a crashed writer once the feed is drained.
   const nextCursor = hasMore ? events.at(-1)?.seq ?? p.data.afterSeq : currentSeq;
   const messages = nextCursor > p.data.afterSeq
-    ? listMessagesInSeqRange(campaign.id, p.data.afterSeq + 1, nextCursor)
+    ? listMessagesInSeqRange(campaign.id, p.data.afterSeq + 1, nextCursor).filter((msg) => !isOocMessage(msg))
     : [];
   return {
     campaign: safeCampaign(campaign), currentSeq,
@@ -94,7 +98,7 @@ function read(raw: unknown) {
     hasMore,
     // Event payloads may be client projections; command arguments never enter
     // this audit feed. The matching persisted transcript rows carry prose.
-    events: events.map((event) => event.type === "roll_result"
+    events: events.filter(isNarratorEvent).map((event) => event.type === "roll_result"
       ? { seq: event.seq, type: event.type, payload: event.payload }
       : { seq: event.seq, type: event.type }),
     messages,
@@ -104,7 +108,8 @@ function read(raw: unknown) {
     recentRolls: listRecentRolls(campaign.id, 100),
     playerWhispers: listPendingPlayerWhispers(campaign.id),
     recentDmWhispers: listRecentWhispersForPrompt(campaign.id),
-    recentMessages: listRecentMessages(campaign.id, 400),
+    recentMessages: listRecentMessages(campaign.id, 400).filter((msg) => !isOocMessage(msg)),
+    asks: listAsksForCampaign(campaign.id, 20),
     notes: listPublicCampaignNotes(campaign.id, 20),
     npcs: npcRosterForPrompt(campaign.id).slice(0, 100),
     facts: listActiveFacts(campaign.id), chapters: listChapters(campaign.id),
@@ -177,13 +182,36 @@ export async function executeMcpNarratorControl(action: string, raw: unknown): P
       const p = z.object({ campaignId: id }).strict().safeParse(raw);
       if (!p.success) throw new McpNarratorControlError(z.prettifyError(p.error));
       campaignOrHuman(p.data.campaignId);
-      return { handled: true, result: { instructions: "Call narrator.read, drain until hasMore is false, then use its currentSeq as expectedSeq for exactly one invoke, narrate, or release_floor. Reread after every write or ambiguous error; never retry a write automatically.", state: read({ campaignId: p.data.campaignId }) } };
+      return { handled: true, result: { instructions: "Read odm://narrator/playbook. Call narrator.read, drain until hasMore is false, then use its currentSeq as expectedSeq for exactly one invoke, narrate, or release_floor. Reread after every write or ambiguous error; never retry a write automatically. Check asks on every read even when the story cursor is unchanged; answer_ask changes no story/floor state.", state: read({ campaignId: p.data.campaignId }) } };
     }
     case "narrator.read": return { handled: true, result: read(raw) };
     case "narrator.catalog": return { handled: true, result: { groups: catalog() } };
     case "narrator.invoke": return { handled: true, result: await invoke(raw) };
     case "narrator.narrate": return { handled: true, result: await narrate(raw) };
     case "narrator.release_floor": return { handled: true, result: await releaseFloor(raw) };
+    case "narrator.answer_ask": {
+      const p = z.object({
+        campaignId: id,
+        askId: id,
+        expectedSeq: z.number().int().min(0).optional(),
+        answer: z.string().trim().min(1).max(4000),
+        citations: z.array(z.object({
+          kind: z.enum(["fact", "chapter", "scene", "summary", "npc", "place", "rule", "sheet", "recent"]),
+          ref: z.string().max(300),
+          quote: z.string().max(2000),
+        }).strict()).max(50).default([]),
+      }).strict().safeParse(raw);
+      if (!p.success) throw new McpNarratorControlError(z.prettifyError(p.error));
+      const campaign = campaignOrHuman(p.data.campaignId);
+      if (p.data.expectedSeq !== undefined && p.data.expectedSeq !== latestSeq(campaign.id)) {
+        throw new McpNarratorControlError("Stale narrator cursor; reread before answering.", 409);
+      }
+      const updated = answerAsk(campaign.id, p.data.askId, p.data.answer, p.data.citations);
+      if (!updated) throw new McpNarratorControlError("Ask not found in this campaign.", 404);
+      if (updated.visibility === "table") publishEphemeral(campaign.id, "ask_activity", {});
+      else publishUserEphemeral(campaign.id, updated.userId, "ask_activity", {});
+      return { handled: true, result: { ok: true, ask: updated } };
+    }
     default: return { handled: false };
   }
 }

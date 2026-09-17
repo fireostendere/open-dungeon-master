@@ -1,0 +1,18 @@
+# Open Dungeon Master workspace rules
+
+Read AGENTS.md at this repository root. The ODM source root is this directory,
+not an additional open-dungeon-master/ subdirectory. Dependency versions and
+available scripts come from package.json and the lockfiles.
+
+For external-DM work read .opencode/skills/odm-narrator/SKILL.md and the live
+odm://narrator/playbook resource. Preserve authoritative engine outcomes, drained
+cursors, private Ask/whisper boundaries, RU/EN/PL UI and independent narration
+language. Never automatically replay an ambiguous write or reapply engine damage.
+
+Code integration does not authorize production access or deployment. Do not copy
+secrets into source, logs or command arguments. Keep current transaction/CAS,
+MCP cancellation/preload, network and operations protections when merging old work.
+
+Run affected tests and report their exact scope. Source/registry test doubles are
+not a full Next build, browser session, installed MCP SDK or deployment acceptance.
+See docs/merge-2026-09-17.md for the current reconciliation and test record.

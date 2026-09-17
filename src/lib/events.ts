@@ -8,6 +8,7 @@ type Subscriber = (chunk: string) => void;
 // and a module-scoped map would silently drop subscribers.
 declare global {
   var __odmEventBus: Map<string, Set<Subscriber>> | undefined;
+  var __odmEventSubscriberUsers: Map<string, WeakMap<Subscriber, string>> | undefined;
   // Presence: who has the campaign open in a live tab, as connection counts
   // per user so a second tab does not read as a second person and closing
   // one of two tabs does not read as leaving. Distinct from the voice
@@ -21,6 +22,12 @@ declare global {
 
 function bus() {
   return (globalThis.__odmEventBus ??= new Map<string, Set<Subscriber>>());
+}
+function subscriberUsers(campaignId: string) {
+  const campaigns = (globalThis.__odmEventSubscriberUsers ??= new Map<string, WeakMap<Subscriber, string>>());
+  let users = campaigns.get(campaignId);
+  if (!users) { users = new WeakMap<Subscriber, string>(); campaigns.set(campaignId, users); }
+  return users;
 }
 
 function presenceCounts() {
@@ -53,7 +60,9 @@ export function subscribe(
     bus().set(campaignId, subscribers);
   }
   subscribers.add(subscriber);
+  if (!userId) subscriberUsers(campaignId).delete(subscriber);
   if (userId) {
+    subscriberUsers(campaignId).set(subscriber, userId);
     let counts = presenceCounts().get(campaignId);
     if (!counts) {
       counts = new Map();
@@ -75,8 +84,10 @@ export function subscribe(
     }
     released = true;
     subscribers.delete(subscriber);
+    subscriberUsers(campaignId).delete(subscriber);
     if (subscribers.size === 0) {
       bus().delete(campaignId);
+      globalThis.__odmEventSubscriberUsers?.delete(campaignId);
     }
     if (userId) {
       const counts = presenceCounts().get(campaignId);
@@ -148,6 +159,21 @@ export function publishEphemeral(campaignId: string, type: string, payload: unkn
   afterCommit(() => {
     fanOut(campaignId, chunk);
     globalThis.__odmVoiceEventHook?.(campaignId, type);
+  });
+}
+
+// Private Ask updates must refresh the asker's other tabs without revealing
+// even the existence of that question to the rest of the table. Identity is
+// registered by the authenticated SSE route, never supplied by event payloads.
+export function publishUserEphemeral(campaignId: string, userId: string, type: string, payload: unknown) {
+  const chunk = sseChunk(type, payload);
+  afterCommit(() => {
+    const subscribers = bus().get(campaignId);
+    if (!subscribers) return;
+    for (const subscriber of subscribers) {
+      if (subscriberUsers(campaignId).get(subscriber) !== userId) continue;
+      try { subscriber(chunk); } catch { subscribers.delete(subscriber); }
+    }
   });
 }
 

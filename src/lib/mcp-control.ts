@@ -3,8 +3,9 @@
 export * from "@/lib/mcp-control-actions";
 import { executeMcpControl as executeAction } from "@/lib/mcp-control-actions";
 import { getSheetById } from "@/lib/db/sheets";
-import { listMembers } from "@/lib/db/campaigns";
-import { publishPersisted } from "@/lib/events";
+import { latestSeq, listMembers } from "@/lib/db/campaigns";
+import { listEventsSince, publishPersisted, type StoredEvent } from "@/lib/events";
+import { isNarratorEvent } from "@/lib/mcp-event-filter";
 
 export async function executeMcpControl(action: string, rawParams: unknown): Promise<unknown> {
   let params = rawParams;
@@ -24,6 +25,19 @@ export async function executeMcpControl(action: string, rawParams: unknown): Pro
     }
   }
   const result = await executeAction(action, params);
+  if (action === "campaigns.events") {
+    // The action above has already validated the UUID, cursor and page limit.
+    // Cursor progression uses the unfiltered page: an OOC-only page must not
+    // trap an agent in a loop or hide the first in-character event after it.
+    const input = params as { campaignId: string; afterSeq?: number };
+    const page = result as { events: StoredEvent[] };
+    const cursor = input.afterSeq ?? 0;
+    const last = page.events.at(-1)?.seq ?? cursor;
+    const hasMore = listEventsSince(input.campaignId, last, 1).length > 0;
+    const currentSeq = latestSeq(input.campaignId);
+    return { ...page, events: page.events.filter(isNarratorEvent), cursor,
+      nextCursor: hasMore ? last : Math.max(last, currentSeq), currentSeq, hasMore };
+  }
   if ((action === "sheets.patch" || action === "characters.instantiate") && result && typeof result === "object" && "sheet" in result) {
     const returned = result.sheet as { id?: unknown } | null;
     const sheet = returned && typeof returned.id === "string" ? getSheetById(returned.id) : null;

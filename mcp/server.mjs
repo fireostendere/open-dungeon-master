@@ -133,6 +133,55 @@ function createMcpServer() {
   );
 
   registerResource(
+    "narrator-playbook",
+    "odm://narrator/playbook",
+    {
+      title: "External narrator playbook",
+      description: "Rules-engine, cursor, private Ask and dialogue guidance for a trusted external DM.",
+      mimeType: "text/markdown",
+    },
+    async (uri) => ({ contents: [{ uri: uri.href, mimeType: "text/markdown", text: `# External narrator playbook
+
+You describe the world and play NPCs. Players decide their own character actions.
+The server owns dice, HP, slots, initiative and inventory. Never invent a roll or
+claim an action succeeded before the authoritative result has arrived.
+
+## Read and write protocol
+Call connect and read; follow nextCursor until hasMore is false. Filtering OOC
+messages can produce empty pages with a NEW cursor: keep draining them. Use the
+fully drained currentSeq as expectedSeq for one invoke, narrate or release_floor.
+Read after every write, timeout or error, including 409. Inspect the result and
+current state; NEVER automatically replay an ambiguous write. This resource does
+not run a background loop or wake an agent by itself.
+
+## Rules and combat
+Use catalog to obtain the current argument schemas. Request real skill/save/damage
+rolls through the engine and inspect pendingRolls, roll_result and recentRolls.
+Start an encounter before narrating a fight as active. Initiative controls the floor.
+Move tokens through move_token; forced movement is for a justified DM override,
+not a shortcut around normal movement budgets. pc_attack uses the character and
+target IDs from the current state (supply enemyId and targetEnemyId where the
+catalog requires them). The engine adjudicates hits and damage. Do not apply the
+same damage or reward again. Use grant_item/award_xp for an explicit new award.
+Use supported campaign controls for scene and quest-log changes.
+
+## Dialogue and private questions
+Player speech, actions and OOC have different visual styles. OOC is absent from
+narrator message/event projections; it is still stored and visible in player chat.
+Inspect asks on EVERY read, even when the story cursor did not change. Human-mode
+submissions receive an acknowledgement; answer via answer_ask using the askId in
+this campaign and optional grounded citations. It changes no scene/floor state.
+Private questions and answers are for the asker and the trusted DM only. Never
+copy them into shared narration or table events. Notification events contain no
+question or answer. A continuous client must actually schedule reads/subscribe to
+its authorized notifications; an undocumented host watch script is not guaranteed.
+
+The bearer is operator-wide, not a per-player credential. Never expose it, private
+questions, private whispers, DM outlines or other DM secrets to the table.
+` }] }),
+  );
+
+  registerResource(
     "control-capabilities",
     "odm://server/capabilities",
     {
@@ -155,9 +204,9 @@ function createMcpServer() {
     "odm_narrator",
     {
       title: "External campaign narrator",
-      description: "Trusted external DM lifecycle for human mode with server LLM, TTS, and automatic maps disabled. Read before each write; no automatic retries.",
+      description: "Trusted external DM lifecycle for human mode with server LLM, TTS, and automatic maps disabled. Read before each write; no automatic retries. answer_ask answers a campaign Ask question without advancing the scene. See odm://narrator/playbook.",
       inputSchema: z.object({
-        operation: z.enum(["connect", "read", "catalog", "invoke", "narrate", "release_floor"]),
+        operation: z.enum(["connect", "read", "catalog", "invoke", "narrate", "release_floor", "answer_ask"]),
         campaignId: z.string().uuid(),
         afterSeq: z.number().int().min(0).optional(),
         limit: z.number().int().min(1).max(100).optional(),
@@ -165,6 +214,12 @@ function createMcpServer() {
         name: z.string().trim().min(1).max(100).optional(),
         args: z.record(z.string(), z.unknown()).optional(),
         content: z.string().trim().min(1).max(8000).optional(),
+        askId: z.string().uuid().optional(),
+        answer: z.string().trim().min(1).max(4000).optional(),
+        citations: z.array(z.object({
+          kind: z.enum(["fact", "chapter", "scene", "summary", "npc", "place", "rule", "sheet", "recent"]),
+          ref: z.string().max(300), quote: z.string().max(2000),
+        }).strict()).max(50).optional(),
       }),
     },
     async (args) => {
@@ -258,7 +313,7 @@ function createMcpServer() {
     {
       title: "ODM campaign settings",
       description:
-        "Change game rules, AI/text/image provider settings, or DM mode for a campaign. Story settings may write API keys but reads never reveal stored keys.",
+        "Change game rules, AI/text/image providers, or DM mode for a campaign. Story settings may write API keys but reads never reveal stored keys.",
       inputSchema: z.object({
         operation: z.enum(["game", "story", "dm_mode"]),
         campaignId: z.string().uuid(),
@@ -407,7 +462,7 @@ function createMcpServer() {
     {
       title: "ODM live character sheets",
       description:
-        "Read or patch live campaign character sheets. This is the game-state control surface for HP, conditions, XP, inventory, abilities, spells, identity and other DM-managed sheet fields.",
+        "Read or patch live campaign character sheets. This is the game-state control surface for HP, conditions, XP, inventory, abilities, spells, identity and other DM-managed fields.",
       inputSchema: z.object({
         operation: z.enum(["list", "get", "patch"]),
         campaignId: z.string().uuid().optional(),

@@ -23,6 +23,7 @@ import { cn } from "@/lib/cn";
 import { ui } from "@/lib/ui";
 import { avatarPlaceholder, characterPlaceholder } from "@/lib/placeholders";
 import { DM_HALTED_PREFIX, JOIN_NOTE_PREFIX, LEAD_NOTE_PREFIX, type CampaignMember } from "@/lib/campaign-types";
+import { PlayerMessageBadge, PlayerMessageBody } from "@/app/campaigns/[campaignId]/PlayerMessageStyle";
 import { HaltedTurnBanner } from "@/app/campaigns/[campaignId]/HaltedTurnBanner";
 import { InlineMessageEditor } from "@/app/campaigns/[campaignId]/InlineMessageEditor";
 import { stripToolText } from "@/lib/dm/tool-text";
@@ -590,7 +591,7 @@ const MessageItem = memo(function MessageItem({
         : undefined);
   return (
     <div className="group ml-auto max-w-[92%] animate-fade-up sm:max-w-2xl">
-      <p className="mb-1 flex items-center justify-end gap-1.5 text-right text-xs font-medium text-amber-200/80">
+      <p className="mb-1 flex flex-wrap items-center justify-end gap-1.5 text-right text-xs font-medium text-amber-200/80">
         {portraitUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -599,6 +600,7 @@ const MessageItem = memo(function MessageItem({
             className="size-6 rounded-full border border-amber-500/30 object-cover"
           />
         ) : null}
+        <PlayerMessageBadge content={message.content} locale={locale} />
         {sheet?.name ?? messageText(locale, "Player")}
         {onReport && !mine && message.userId ? (
           <button
@@ -612,14 +614,7 @@ const MessageItem = memo(function MessageItem({
           </button>
         ) : null}
       </p>
-      <div
-        className={cn(
-          "rounded-2xl rounded-br-md border border-stone-700/50 bg-stone-900/70 px-4 py-3 text-sm leading-6 text-stone-200 shadow-elev-1",
-          message.content.startsWith("(ooc)") && "italic text-stone-500",
-        )}
-      >
-        <p className="whitespace-pre-wrap text-pretty">{message.content}</p>
-      </div>
+      <PlayerMessageBody content={message.content} />
     </div>
   );
 });
