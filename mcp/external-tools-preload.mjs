@@ -1,6 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/server";
 import * as z from "zod/v4";
 import { callControl, withMcpCancellation } from "./control-client.mjs";
+import { registerDmPolicy } from "./dm-policy.mjs";
 
 const PATCHED = Symbol.for("odm.external-tools-preload.patched");
 const REGISTERED = Symbol.for("odm.external-tools-preload.registered");
@@ -61,6 +62,7 @@ const jobStatus = z.enum(["planned", "available", "claimed", "uploading", "ready
 const packStatus = z.enum(["planned", "active", "ready", "failed", "cancelled"]);
 
 function registerExternalTools(server, originalRegisterTool) {
+  registerDmPolicy(server, withMcpCancellation);
   const register = (name, config, callback) => originalRegisterTool.call(server, name, config, withMcpCancellation(callback));
   register(
     "odm_assets",

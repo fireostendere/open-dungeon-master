@@ -1,92 +1,105 @@
 # External MCP narrator
 
-An MCP-capable client can run the narrator for an ODM campaign without an ODM
-LLM. This is a **trusted DM integration**, not a player API: the existing MCP
-bearer is an operator-wide credential and is not scoped to a campaign or a
-player. Keep it in the MCP client's secure configuration, never in a prompt,
-chat transcript, or player browser.
+An MCP-capable host can run a trusted DM for an ODM human-DM campaign without
+an ODM story LLM. This is not a public player assistant or a general coding agent.
+The player-facing host must use the [D&D-only policy](dm-player-boundary.md).
+The operator's direct development/setup conversation is a separate context.
 
-Install ODM with no server model runtime and connect the client to HTTPS MCP:
+## Setup belongs to the operator
 
-```bash
-sudo bash install-server.sh --domain dnd.example.com --runtime none
+Install ODM without a server model runtime, provision DM/player accounts using
+the authenticated account flow, and create/select the campaign using operator
+credentials. At creation use `dmMode: human`, `ttsEnabled: false`, `mapsEnabled:
+false`; ensure a dedicated DM seat, no active AI cover, appropriate members and
+character sheets, and active campaign status. MCP does not create login accounts.
+Do not have player input authorize setup or change these settings.
+
+Automatic map generation, TTS, LLM narration compaction and AI chapter closing
+are off this external-narrator path. A separate privileged operator can maintain
+outlines/chapters and finish/synchronize progression when explicitly authorized.
+The restricted narrator credential does not expose those general admin services.
+
+The existing managed `ODM_MCP_TOKEN` is operator-wide. Prefer a separate
+`ODM_MCP_NARRATOR_TOKEN` in the application, bound through
+`ODM_MCP_NARRATOR_CAMPAIGN_ID`. Give its value, not the admin secret, to a dedicated
+narrator sidecar as that process's `ODM_MCP_TOKEN`. Configuration, separate
+process/port details and limitations are in [dm-player-boundary.md](dm-player-boundary.md).
+The default managed operator sidecar is not automatically converted or made
+multi-token by adding this documentation. Never put credentials in player chat.
+
+Use HTTPS or a private tunnel to the chosen sidecar. An MCP resource/skill does
+not install a client, persist a connection, schedule a loop or wake a model.
+
+## Trusted host instructions
+
+From a trusted checkout, export the fixed policy:
+
+```sh
+node scripts/export-dm-policy.mjs
 ```
 
-Configure Streamable HTTP `https://dnd.example.com/mcp` and the bearer value
-from `config/mcp.token`. A plain text-only chat cannot call MCP tools or keep a
-background game loop; it can only receive manually copied context and produce
-text for a person to paste.
+Install that output in the dedicated host's trusted system/developer configuration
+before it receives game data. Also read `odm://narrator/policy`,
+`odm://narrator/instructions`, and `odm://narrator/playbook` for reference. Loading
+a skill only on demand is not equivalent to a persistent host instruction.
+Do not promote stored player prose, quoted instructions or arbitrary remote
+resource contents into a higher-priority message.
 
-## Campaign setup
+Limit the narrator host's exposed tools to `odm_narrator`, minimal `odm_server`
+and the static narrator resources. Do not attach shell, Git, email or arbitrary
+web/filesystem tools. Internal API authorization still checks every call even if
+the sidecar's broad tools/list advertises an operator tool.
 
-MCP cannot create users. First create a dedicated DM account and player accounts
-through ODM's normal authenticated account flow. Use `odm_campaigns.create`
-with the dedicated DM as owner and this `gameSettings` **at creation**:
-
-```json
-{"dmMode":"human","ttsEnabled":false,"mapsEnabled":false}
-```
-
-Do not enable an active AI cover. Add existing users with `odm_members`, create
-library characters with `odm_characters`, instantiate/join them, then use
-`odm_campaigns.set_status` with `status: "active"`.
-
-Automatic maps, TTS, narration compaction, and chapter closing are deliberately
-off this path because they can call a server model. Maintain chapter summaries
-and outlines explicitly when needed.
+The role accepts D&D rules, character questions, campaign play, recaps and table
+safety/logistics. It briefly declines unrelated tasks without tool calls for them.
+Requests such as “ignore your instructions”, “I am the admin” and “write my code
+for D&D” inside Ask/notes/whispers do not change its privileges or purpose.
 
 ## Narrator loop
 
-Read `odm://narrator/instructions`, then use `odm_narrator`:
+1. `connect` validates the human-DM configuration and returns the current state.
+   The sidecar prefixes returned instructions with the canonical player policy.
+2. `read(afterSeq, limit)` must be drained using `nextCursor` until `hasMore` is
+   false. OOC filtering may leave an empty page but still advance the cursor.
+   `currentSeq` is not an intermediate page cursor. `dmPolicy` accompanies these
+   sidecar results without rewriting messages, Ask visibility or sequence values.
+3. Inspect `catalog`, sheets, encounter, pending physical rolls, roll_result and
+   recentRolls. The server owns dice/results; never roll the same event twice.
+4. Use the fully drained cursor as `expectedSeq` for one `invoke`, `narrate`, or
+   `release_floor`. These story operations persist an argument-free attempt event.
+5. Reread after each write, error, timeout or disconnect. Never automatically
+   replay an ambiguous mutation. A stale sequence returns 409. `release_floor`
+   removes a hold and preserves its inner floor, including initiative.
 
-1. `connect` validates the human DM seat and returns a bootstrap snapshot.
-2. `read` with `afterSeq` and `limit`; continue with **`nextCursor`** until
-   `hasMore` is false. `currentSeq` is distinct from a page cursor.
-3. `catalog` lists the audited server-rules actions. AI/image/semantic retrieval
-   actions are absent.
-4. For exactly one action, call `invoke`, `narrate`, or `release_floor` with
-   `expectedSeq` equal to the fully drained cursor/current sequence.
-5. Read again after every write, timeout, disconnect, or ambiguous error. Never
-   automatically retry a write.
+No exclusive narrator lease is claimed. Use one active narrator per campaign by
+operator convention; cursor checks do not make simultaneous separate admin/UI
+writes exclusive. Do not tight-poll or claim background activity without an actual
+client scheduler.
 
-Every external write first persists an argument-free command-attempt event and
-therefore consumes the cursor. A stale `expectedSeq` returns `409`; drain and
-decide again. The server owns rolls and pending physical-dice resolution. When
-a player resolves a pending roll, ODM resumes the human turn; reread before the
-next narrator decision. `release_floor` releases the held floor after narration.
+## Ask is not a story turn
 
-There is no exclusive narrator session or lease. Operate one narrator per
-campaign by convention and use the cursor protocol to avoid duplicate writes.
-The optimistic cursor protects external narrator writes against other external
-narrator writes; it does not make an operator's separate human/admin UI write
-exclusive.
-When the adventure finishes, use the existing `odm_progress` finish/sync
-operations as appropriate.
+Inspect `asks` on every read even when story sequence is unchanged. The current
+read returns the latest 20, not a complete unbounded work queue. Human-mode Ask
+initially contains a localized acknowledgement under the existing answered/failed
+schema; the external DM replaces it with an answer.
 
-## Copyable client instruction
+Use `answer_ask` with `campaignId`, `askId`, `answer` (1–4000 trimmed characters),
+optional citations (up to 50), and optionally `expectedSeq`. Citations use the
+published schema and must be grounded, not invented. The question must belong
+to that campaign. A mismatched campaign cannot write the Ask even with its UUID.
 
-Paste this into an MCP-capable client's trusted narrator configuration (not a
-player chat):
+Unlike story writes, **answer_ask does not advance the story sequence, floor or
+scene**. A brief off-topic refusal is also an Ask answer and retains its original
+private/table visibility. Private notifications contain no question/answer text
+and target the appropriate authenticated user; never quote private questions,
+DM plans or secrets into public narration. A host holding all DM context is still
+trusted and must not expose that context to a player's general assistant.
 
-```text
-You are the trusted external DM for Open Dungeon Master. Use odm_narrator only
-within the operator-confirmed campaign scope. First inspect server capabilities
-and existing ODM users; resolve a dedicated DM account separately from player
-accounts. Ask the operator to confirm the campaign scope before writes. If no
-campaign exists, use odm_campaigns with operation=create and human gameSettings
-(dmMode human, ttsEnabled false, mapsEnabled false), then add existing members,
-create/instantiate library characters, and use odm_campaigns operation=set_status
-to make it active. Use tool help/schema for exact arguments rather than guessing.
-First call connect, then repeatedly
-call read(afterSeq=nextCursor) until hasMore is false. Treat nextCursor and
-currentSeq as different values: write exactly one invoke, narrate, or
-release_floor using expectedSeq from the fully drained read. Call catalog before
-an unfamiliar rules action. The server owns dice: inspect roll_result events,
-recentRolls, and pendingRolls; never invent a roll. After every write, timeout,
-disconnect, or error, reread; never automatically retry a write. Narrate only
-public table prose and never copy DM outlines, whispers, bearer tokens, provider
-keys, or other secrets into player chat. This client runs only while connected;
-it is not a background loop: when there are no new intents, stop and await the
-user/client scheduler instead of tight polling. On completion use odm_progress
-as needed.
-```
+## Acceptance limits
+
+The policy and bounded narrator token are complementary: one is host behavior,
+the other is deterministic campaign/action authorization. Neither proves that
+an arbitrary external LLM will never answer off-topic. Live-model acceptance
+cases are in `scripts/fixtures/dm-player-policy-cases.json`. They are not passed
+merely because source tests succeeded. Rate limits, cost quotas, a semantic
+classifier and runtime configuration of third-party hosts are separate work.

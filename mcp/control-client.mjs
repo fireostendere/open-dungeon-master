@@ -1,4 +1,5 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
+import { withDmPolicy } from './dm-policy.mjs';
 
 const operation = new AsyncLocalStorage();
 export function controlTimeout(value = process.env.ODM_MCP_CONTROL_TIMEOUT_MS) {
@@ -39,7 +40,7 @@ export function createControlClient({
     const body = await response.json();
     requestSignal.throwIfAborted();
     if (!response.ok || body?.ok === false) throw new Error(body?.error || `ODM control API returned HTTP ${response.status}.`);
-    return body?.result;
+    return withDmPolicy(action, body?.result);
   };
 }
 export const callControl = createControlClient();

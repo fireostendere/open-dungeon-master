@@ -1,4 +1,3 @@
-import { createHash, timingSafeEqual } from "node:crypto";
 import { z } from "zod";
 import { executeMcpControl, McpControlError } from "@/lib/mcp-control";
 import {
@@ -8,6 +7,7 @@ import {
 } from "@/lib/mcp-external-control";
 import { executeMcpNarratorControl, McpNarratorControlError } from "@/lib/mcp-narrator-control";
 import { withOperationSignal } from "@/lib/operation-scope.mjs";
+import { authenticateMcp, authorizeMcpAction, narratorServiceResult, McpAccessError, type McpPrincipal } from "@/lib/mcp-access.mjs";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -18,20 +18,6 @@ const requestSchema = z
     params: z.unknown().default({}),
   })
   .strict();
-
-function digest(value: string) {
-  return createHash("sha256").update(value, "utf8").digest();
-}
-
-function authorized(request: Request) {
-  const expected = process.env.ODM_MCP_TOKEN?.trim();
-  if (!expected) return false;
-  const header = request.headers.get("authorization") ?? "";
-  const prefix = "Bearer ";
-  if (!header.startsWith(prefix)) return false;
-  const supplied = header.slice(prefix.length).trim();
-  return supplied.length > 0 && timingSafeEqual(digest(supplied), digest(expected));
-}
 
 function json(body: unknown, status = 200) {
   return Response.json(body, {
@@ -44,11 +30,11 @@ function json(body: unknown, status = 200) {
 }
 
 export async function POST(request: Request) {
-  if (!process.env.ODM_MCP_TOKEN?.trim()) {
-    return json({ error: "MCP control plane is disabled." }, 503);
-  }
-  if (!authorized(request)) {
-    return json({ error: "Unauthorized." }, 401);
+  let principal: McpPrincipal;
+  try { principal = authenticateMcp(request); }
+  catch (error) {
+    if (error instanceof McpAccessError) return json({ error: error.message }, error.status);
+    throw error;
   }
 
   const raw = await request.json().catch(() => null);
@@ -56,6 +42,14 @@ export async function POST(request: Request) {
   if (!parsed.success) {
     return json({ error: "Invalid MCP control request." }, 400);
   }
+  try { authorizeMcpAction(principal, parsed.data.action, parsed.data.params); }
+  catch (error) {
+    if (error instanceof McpAccessError) return json({ ok: false, error: error.message }, error.status);
+    throw error;
+  }
+  // Restricted sidecar health is not a global database/counts endpoint.
+  const scopedService = narratorServiceResult(principal, parsed.data.action);
+  if (scopedService !== undefined) return json({ ok: true, result: scopedService });
 
   // This total budget is shorter than the sidecar's 135-second budget.
   // Async-local propagation keeps cancellation scoped to this request only.
@@ -66,6 +60,8 @@ export async function POST(request: Request) {
       if (narrator.handled) {
         return json({ ok: true, result: narrator.result });
       }
+      // Fail closed if a whitelisted action is removed from the narrator handler.
+      if (principal.role === "narrator") return json({ ok: false, error: "Narrator action is unavailable." }, 403);
       signal.throwIfAborted();
       const extended = await executeMcpExtendedControl(parsed.data.action, parsed.data.params);
       if (extended.handled) {
