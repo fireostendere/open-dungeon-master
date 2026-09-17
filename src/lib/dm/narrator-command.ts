@@ -9,7 +9,11 @@ import { publishPersisted } from "@/lib/events";
 import { currentOperationSignal } from "@/lib/operation-scope.mjs";
 
 export class NarratorCommandError extends Error {
-  constructor(message: string, readonly status = 400) { super(message); }
+  readonly status: number;
+  constructor(message: string, status = 400) {
+    super(message);
+    this.status = status;
+  }
 }
 function notCancelled(signal: AbortSignal | undefined): void {
   if (signal?.aborted) {

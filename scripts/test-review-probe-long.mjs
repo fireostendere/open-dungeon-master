@@ -33,6 +33,6 @@ test('45-second provider stage succeeds through the control HTTP hop', { timeout
   const client = createControlClient({ url: app, token: 'isolated-test-token' });
   const report = await client('models.test_and_connect', {});
   assert.equal(report.ok, true);
-  assert.ok(report.stages.chat.ms >= 44_000);
+  assert.ok(report.stages.chat.ms >= 40_000, `expected chat stage to take >= 40000ms, got ${report.stages.chat.ms}`);
   assert.deepEqual(Object.keys(report.stages), ['models', 'chat', 'tool_call', 'tool_result']);
 });

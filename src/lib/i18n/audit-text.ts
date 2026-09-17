@@ -1,27 +1,47 @@
 import type { Locale } from "./translations";
 
-const kinds: Record<string, [string, string]> = {
-  apply_damage: ["урон", "obrażenia"], heal: ["лечение", "leczenie"], award_xp: ["опыт", "doświadczenie"],
-  modify_gold: ["золото", "złoto"], grant_item: ["выдача предмета", "przyznanie przedmiotu"],
-  remove_item: ["удаление предмета", "usunięcie przedmiotu"], set_condition: ["наложение состояния", "nałożenie stanu"],
-  clear_condition: ["снятие состояния", "usunięcie stanu"], use_spell_slot: ["ячейка заклинания", "komórka czaru"],
-  use_item: ["использование предмета", "użycie przedmiotu"], purchase: ["торговля", "handel"],
-  use_resource: ["расход ресурса", "zużycie zasobu"], grant_temp_hp: ["временные ОЗ", "tymczasowe PŻ"],
-  learn_spell: ["изменение заклинаний", "zmiana czarów"], update_sheet: ["изменение листа", "zmiana karty"],
-  undo: ["отмена", "cofnięcie"], lead_edit: ["правка лидера", "poprawka lidera"],
-  player_adjust: ["правка игрока", "poprawka gracza"],
+const kinds: Record<string, Record<Locale, string>> = {
+  apply_damage: { en: "apply_damage", ru: "урон", pl: "obrażenia" },
+  heal: { en: "heal", ru: "лечение", pl: "leczenie" },
+  award_xp: { en: "award_xp", ru: "опыт", pl: "doświadczenie" },
+  modify_gold: { en: "modify_gold", ru: "золото", pl: "złoto" },
+  grant_item: { en: "grant_item", ru: "выдача предмета", pl: "przyznanie przedmiotu" },
+  remove_item: { en: "remove_item", ru: "удаление предмета", pl: "usunięcie przedmiotu" },
+  set_condition: { en: "set_condition", ru: "наложение состояния", pl: "nałożenie stanu" },
+  clear_condition: { en: "clear_condition", ru: "снятие состояния", pl: "usunięcie stanu" },
+  use_spell_slot: { en: "use_spell_slot", ru: "ячейка заклинания", pl: "komórka czaru" },
+  use_item: { en: "use_item", ru: "использование предмета", pl: "użycie przedmiotu" },
+  purchase: { en: "purchase", ru: "торговля", pl: "handel" },
+  use_resource: { en: "use_resource", ru: "расход ресурса", pl: "zużycie zasobu" },
+  grant_temp_hp: { en: "grant_temp_hp", ru: "временные ОЗ", pl: "tymczasowe PŻ" },
+  learn_spell: { en: "learn_spell", ru: "изменение заклинаний", pl: "zmiana czarów" },
+  update_sheet: { en: "update_sheet", ru: "изменение листа", pl: "zmiana karty" },
+  undo: { en: "undo", ru: "отмена", pl: "cofnięcie" },
+  lead_edit: { en: "lead_edit", ru: "правка лидера", pl: "poprawka lidera" },
+  player_adjust: { en: "player_adjust", ru: "правка игрока", pl: "poprawka gracza" },
 };
-const fields: Record<string, [string, string]> = {
-  currentHp: ["текущие ОЗ", "obecne PŻ"], maxHp: ["максимальные ОЗ", "maksymalne PŻ"],
-  tempHp: ["временные ОЗ", "tymczasowe PŻ"], xp: ["опыт", "doświadczenie"], level: ["уровень", "poziom"],
-  gold: ["золото", "złoto"], inventory: ["инвентарь", "ekwipunek"], conditions: ["состояния", "stany"],
-  conditionMeta: ["параметры состояний", "parametry stanów"], spellSlots: ["ячейки заклинаний", "komórki czarów"],
-  spells: ["заклинания", "czary"], resources: ["ресурсы", "zasoby"], hitDice: ["кости хитов", "kości wytrzymałości"],
-  deathSaves: ["спасброски от смерти", "rzuty obronne przed śmiercią"], abilities: ["характеристики", "cechy"],
-  ac: ["класс доспеха", "klasa pancerza"], speed: ["скорость", "szybkość"], name: ["имя", "imię"],
+const fields: Record<string, Record<Locale, string>> = {
+  currentHp: { en: "currentHp", ru: "текущие ОЗ", pl: "obecne PŻ" },
+  maxHp: { en: "maxHp", ru: "максимальные ОЗ", pl: "maksymalne PŻ" },
+  tempHp: { en: "tempHp", ru: "временные ОЗ", pl: "tymczasowe PŻ" },
+  xp: { en: "xp", ru: "опыт", pl: "doświadczenie" },
+  level: { en: "level", ru: "уровень", pl: "poziom" },
+  gold: { en: "gold", ru: "золото", pl: "złoto" },
+  inventory: { en: "inventory", ru: "инвентарь", pl: "ekwipunek" },
+  conditions: { en: "conditions", ru: "состояния", pl: "stany" },
+  conditionMeta: { en: "conditionMeta", ru: "параметры состояний", pl: "parametry stanów" },
+  spellSlots: { en: "spellSlots", ru: "ячейки заклинаний", pl: "komórki czarów" },
+  spells: { en: "spells", ru: "заклинания", pl: "czary" },
+  resources: { en: "resources", ru: "ресурсы", pl: "zasoby" },
+  hitDice: { en: "hitDice", ru: "кости хитов", pl: "kości wytrzymałości" },
+  deathSaves: { en: "deathSaves", ru: "спасброски от смерти", pl: "rzuty obronne przed śmiercią" },
+  abilities: { en: "abilities", ru: "характеристики", pl: "cechy" },
+  ac: { en: "ac", ru: "класс доспеха", pl: "klasa pancerza" },
+  speed: { en: "speed", ru: "скорость", pl: "szybkość" },
+  name: { en: "name", ru: "имя", pl: "imię" },
 };
-function label(catalog: Record<string, [string, string]>, key: string, locale: Locale): string {
-  return locale === "en" ? key : catalog[key]?.[locale === "ru" ? 0 : 1] ?? key;
+function label(catalog: Record<string, Record<Locale, string>>, key: string, locale: Locale): string {
+  return catalog[key]?.[locale] ?? key;
 }
 
 /** Translate the exact server-generated warning format; authored reasons stay intact. */

@@ -6,6 +6,7 @@ description: "Внешний ведущий ODM через MCP: игра и D&D-
 # Внешний ведущий Open Dungeon Master
 
 Корень — каталог package.json. Сначала прочитайте AGENTS.md,
+[общий контракт](../../../docs/agent-skills.md#общий-контракт-и-границы),
 [odm-dm-policy](../odm-dm-policy/SKILL.md), ресурсы `odm://narrator/policy`,
 `odm://narrator/instructions`, `odm://narrator/playbook`, а также актуальный
 [P2-STATUS](../../../P2-STATUS.md). Skill не запускает фонового агента.

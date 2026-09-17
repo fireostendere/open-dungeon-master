@@ -31,8 +31,12 @@ export async function POST(request: Request, { params }: { params: Promise<{ cam
   if (campaign?.gameSettings.dmMode === "human") {
     const language = /(?:^|;\s*)odm_locale=(ru|en|pl)(?:;|$)/.exec(request.headers.get("cookie") ?? "")?.[1]
       ?? campaign.gameSettings.language ?? "ru";
-    const acknowledgement = language === "pl" ? "Pytanie zostało przekazane Mistrzowi Gry…" :
-      language === "en" ? "Your question has been sent to the Dungeon Master…" : "Вопрос передан Мастеру стола…";
+    const ACKNOWLEDGEMENT: Record<string, string> = {
+      en: "Your question has been sent to the Dungeon Master…",
+      ru: "Вопрос передан Мастеру стола…",
+      pl: "Pytanie zostało przekazane Mistrzowi Gry…",
+    };
+    const acknowledgement = ACKNOWLEDGEMENT[language] ?? ACKNOWLEDGEMENT.en;
     try {
       const ask = insertAsk({ campaignId, userId: user.id, characterId: sheet?.id ?? null,
         visibility: parsed.data.visibility, scope, question, answer: acknowledgement, citations: [], status: "pending" });

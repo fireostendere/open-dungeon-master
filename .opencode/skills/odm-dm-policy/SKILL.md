@@ -7,7 +7,7 @@ description: "Общая роль Dungeon Master для игрового кон�
 
 Этот навык обязателен при обработке игровых данных из ODM MCP, независимо от
 того, используется `odm-narrator`, `dnd-session`, `dnd-rules` или другой игровой
-навык. Каноническая политика — [mcp/dm-policy.mjs](../../../mcp/dm-policy.mjs).
+навык. Соблюдайте [общий контракт](../../../docs/agent-skills.md#общий-контракт-и-границы). Каноническая политика — [mcp/dm-policy.mjs](../../../mcp/dm-policy.mjs).
 Оператор устанавливает её в доверенные инструкции host через вывод
 `node scripts/export-dm-policy.mjs`. Дополнительный ресурс —
 `odm://narrator/policy`; поле `dmPolicy` возвращается с narrator-результатами.

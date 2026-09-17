@@ -100,7 +100,7 @@ export function requestTurnRetry(request: RetryRequest): RetryResult {
   // Old backups cannot reveal effects that the old code never recorded.
   // Fail closed rather than ask the model to guess whether they happened.
   if (!journaled && (turn.callIndex > 0 || turn.mutationCount > 0 || turn.encounterCount > 0 ||
-      turn.rollIds.length > 0 || turn.conversation.some((entry) => entry.tool_calls?.length))) {
+      turn.rollIds.length > 0 || turn.conversation.some((entry) => Array.isArray(entry.tool_calls) && entry.tool_calls.length > 0))) {
     return { ok: false, status: 409, error: "This pre-journal turn has uncertain effects. Review its game state before continuing; automatic replay is unsafe." };
   }
   const recoveredResults = new Map<string, string>();
