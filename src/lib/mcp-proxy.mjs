@@ -1,6 +1,6 @@
 // App-port bridge retained from the parallel review. The destination is fixed
 // by server configuration; incoming URLs, Host, cookies and tokens cannot pick it.
-const REQUEST_HEADERS = new Set(['authorization', 'accept', 'content-type', 'mcp-session-id', 'mcp-protocol-version', 'last-event-id', 'origin']);
+const REQUEST_HEADERS = new Set(['authorization', 'accept', 'content-type', 'mcp-session-id', 'mcp-protocol-version', 'mcp-method', 'mcp-name', 'last-event-id', 'origin']);
 const HOP_HEADERS = new Set(['connection', 'keep-alive', 'proxy-authenticate', 'proxy-authorization', 'te', 'trailer', 'trailers', 'transfer-encoding', 'upgrade', 'host', 'content-length', 'content-encoding', 'set-cookie']);
 class BodyError extends Error {
   constructor(status) { super('Invalid or oversized MCP request body'); this.status = status; }
@@ -49,7 +49,7 @@ export function createMcpProxy({ upstream = 'http://mcp:3006/mcp', fetchImpl = g
     const signal = AbortSignal.any([request.signal, AbortSignal.timeout(timeoutMs)]);
     try {
       const headers = new Headers();
-      for (const [key, value] of request.headers) if (REQUEST_HEADERS.has(key.toLowerCase())) headers.set(key, value);
+      for (const [key, value] of request.headers) if (REQUEST_HEADERS.has(key.toLowerCase()) || key.toLowerCase().startsWith('mcp-param-')) headers.set(key, value);
       // Cookies, forwarding/Host headers and the application's own credential
       // are never forwarded or substituted for the caller's bearer token.
       headers.set('accept-encoding', 'identity');

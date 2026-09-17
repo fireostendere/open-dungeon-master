@@ -1,10 +1,10 @@
 import { isErrorResponse, requireMember } from "@/lib/campaign-api";
+import { latestSeq } from "@/lib/db/campaigns";
+import { createCampaignStream } from "@/lib/campaign-stream";
 import { listEventsSince, sseChunk, subscribe } from "@/lib/events";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-const HEARTBEAT_MS = 20_000;
 
 export async function GET(
   request: Request,
@@ -12,59 +12,22 @@ export async function GET(
 ) {
   const { campaignId } = await params;
   const context = await requireMember(campaignId);
-  if (isErrorResponse(context)) {
-    return context;
-  }
+  if (isErrorResponse(context)) return context;
 
-  // Catch-up point: EventSource sends Last-Event-ID on auto-reconnect; the
-  // first connect passes ?lastSeq= from the snapshot fetch.
   const url = new URL(request.url);
-  const lastEventId = request.headers.get("last-event-id");
-  const lastSeq = Number(lastEventId ?? url.searchParams.get("lastSeq") ?? 0) || 0;
-
-  const encoder = new TextEncoder();
-  const stream = new ReadableStream<Uint8Array>({
-    start(controller) {
-      let closed = false;
-      const send = (chunk: string) => {
-        if (closed) {
-          return;
-        }
-        try {
-          controller.enqueue(encoder.encode(chunk));
-        } catch {
-          cleanup();
-        }
-      };
-
-      // Replay persisted events missed while disconnected, then go live.
-      for (const event of listEventsSince(campaignId, lastSeq)) {
-        send(sseChunk(event.type, event.payload, event.seq));
-      }
-
-      // The member's id rides along so the bus can keep the campaign's
-      // online set and announce joins and leaves (presence ephemeral).
-      const unsubscribe = subscribe(campaignId, send, context.user.id);
-      const heartbeat = setInterval(() => send(": ping\n\n"), HEARTBEAT_MS);
-
-      const cleanup = () => {
-        if (closed) {
-          return;
-        }
-        closed = true;
-        clearInterval(heartbeat);
-        unsubscribe();
-        try {
-          controller.close();
-        } catch {
-          // already closed
-        }
-      };
-
-      request.signal.addEventListener("abort", cleanup);
-    },
+  const rawCursor = request.headers.get("last-event-id") ?? url.searchParams.get("lastSeq") ?? "0";
+  const afterSeq = Number(rawCursor);
+  if (!/^\d+$/.test(rawCursor) || !Number.isSafeInteger(afterSeq) || afterSeq < 0) {
+    return Response.json({ error: "Invalid campaign stream cursor." }, { status: 400 });
+  }
+  const stream = createCampaignStream({
+    afterSeq,
+    signal: request.signal,
+    latestSeq: () => latestSeq(campaignId),
+    listEventsSince: (cursor, limit) => listEventsSince(campaignId, cursor, limit),
+    subscribe: (send) => subscribe(campaignId, send, context.user.id),
+    sseChunk,
   });
-
   return new Response(stream, {
     headers: {
       "Content-Type": "text/event-stream",

@@ -101,7 +101,7 @@ await assert.rejects(
   () => executeMcpNarratorControl("narrator.invoke", { campaignId: campaign.id, expectedSeq: partialSeq, name: "set_npc", args: {} }),
   McpNarratorControlError,
 );
-assert.ok(latestSeq(campaign.id) > partialSeq, "failed engine command keeps its attempt marker");
+assert.equal(latestSeq(campaign.id), partialSeq, "refused engine command rolls back completely, including sequence");
 
 const digitalSeq = latestSeq(campaign.id);
 const digital = await executeMcpNarratorControl("narrator.invoke", {

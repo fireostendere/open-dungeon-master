@@ -18,7 +18,12 @@ import { listMembers } from "@/lib/db/campaigns";
 import { listSheets } from "@/lib/db/sheets";
 import { listOpenPendingRolls } from "@/lib/db/dm-turns";
 import { adjudication, checkArgs, type CatalogEntry } from "@/lib/dm/invoke-catalog";
-import { dispatchAdjudication } from "@/lib/dm/invoke-dispatch";
+import { ASYNC_ADJUDICATIONS, dispatchAdjudication, dispatchSynchronousAdjudication } from "@/lib/dm/invoke-dispatch";
+import { executeDmTool } from "@/lib/dm/tool-transaction";
+import { scopedHumanTurn } from "@/lib/db/human-adjudication-scopes";
+import { getActiveEncounter } from "@/lib/db/encounters";
+import { finishHumanAdjudication } from "@/lib/dm/human-turn-lifecycle";
+import { currentOperationSignal } from "@/lib/operation-scope.mjs";
 // "goblin x4" is the same shorthand a prepared encounter is saved in, so the
 // live form and the saved roster share one parser.
 import { parseRoster } from "@/lib/dm/encounter-template-logic";
@@ -43,6 +48,7 @@ const LIST_FIELDS = new Set([
   "enemyIds",
   "targetCharacterIds",
   "connections",
+  "replyToWhisperIds",
 ]);
 
 function toList(value: unknown): string[] {
@@ -153,20 +159,55 @@ function realDiceUsers(campaign: Campaign): Set<string> {
   );
 }
 
-// The turn a human DM's adjudications hang on. Rolls need a turn to belong
-// to (pending_rolls.turn_id is NOT NULL), and so does the encounter
-// bookkeeping that tracks who has acted this round. One open human turn is
-// reused until something parks a roll on it, which is what keeps "who has
-// already swung this round" meaning what it says.
+// Reuse combat bookkeeping by an explicit encounter/round/position key, not
+// by "most recent turn". Pending physical rolls still attach to their own turn.
 function humanTurnFor(campaignId: string): DmTurn {
-  const open = listOpenPendingRolls(campaignId);
-  for (const pending of open) {
-    const turn = getDmTurn(pending.turnId);
-    if (turn && turn.actor === "human_dm" && turn.status === "awaiting_rolls") {
-      return turn;
-    }
+  const pending = listOpenPendingRolls(campaignId)
+    .map((roll) => getDmTurn(roll.turnId))
+    .find((turn): turn is DmTurn => !!turn && turn.actor === "human_dm" && turn.status === "awaiting_rolls");
+  const encounter = getActiveEncounter(campaignId);
+  if (encounter?.orderReady) {
+    return scopedHumanTurn(campaignId, `${encounter.id}:${encounter.round}:${encounter.turnIndex}`, pending);
   }
-  return createDmTurn(campaignId, [], "human_dm");
+  return pending ?? createDmTurn(campaignId, [], "human_dm");
+}
+
+/** Deterministic entry point used by external commands. No await is permitted
+ * between the first mutation and commit; returned refusals roll back too.
+ */
+export function invokeEngineSynchronous(campaign: Campaign, actor: Actor, call: Adjudication): InvokeOutcome {
+  const entry = adjudication(call.name);
+  if (!entry) return { ok: false, error: `Unknown action "${call.name}".` };
+  if (ASYNC_ADJUDICATIONS.has(entry.name)) return { ok: false, error: "This action requires the asynchronous operator path." };
+  const args = normalizeArgs(entry, call.args ?? {});
+  const complaint = checkArgs(entry, args);
+  if (complaint) return { ok: false, error: complaint };
+  try {
+    currentOperationSignal()?.throwIfAborted();
+    return executeDmTool<InvokeOutcome>([campaign], () => {
+      currentOperationSignal()?.throwIfAborted();
+      const turn = actor.kind === "ai" ? getDmTurn(actor.turnId) : humanTurnFor(campaign.id);
+      if (!turn || turn.campaignId !== campaign.id) return { ok: false, error: "That DM turn no longer exists in this campaign." };
+      const sheets = listSheets(campaign.id);
+      const sheetsById = new Map(sheets.map((sheet) => [sheet.id, sheet]));
+      return executeDmTool<InvokeOutcome>([turn, sheets, sheetsById], () => {
+        if (actor.kind === "human") turn.status = "running";
+        const result = dispatchSynchronousAdjudication(entry.name, JSON.stringify(args), {
+          campaign, turn, sheets, sheetsById, realDiceUserIds: realDiceUsers(campaign),
+        });
+        if (!result || typeof result !== "object" || typeof result.then === "function") throw new Error("Expected a synchronous adjudication result.");
+        if ("error" in result) return { ok: false, error: typeof result.error === "string" ? result.error : JSON.stringify(result.error) ?? "The engine refused this action." };
+        if (actor.kind === "human") {
+          finishHumanAdjudication(campaign, turn, entry.name);
+          if (entry.name === "end_turn") result.note = "Initiative advancement committed. Narrate confirmed outcomes; narration will not advance it again.";
+        }
+        else saveDmTurn(turn);
+        return { ok: true, result, turnId: turn.id };
+      });
+    });
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : "The engine could not resolve that." };
+  }
 }
 
 export async function invokeEngine(
@@ -174,6 +215,9 @@ export async function invokeEngine(
   actor: Actor,
   call: Adjudication,
 ): Promise<InvokeOutcome> {
+  if (!ASYNC_ADJUDICATIONS.has(call.name)) return invokeEngineSynchronous(campaign, actor, call);
+  // Model/retrieval operations are intentionally outside a synchronous SQL
+  // transaction. They are not admitted by the external narrator allowlist.
   const entry = adjudication(call.name);
   if (!entry) {
     return { ok: false, error: `Unknown action "${call.name}".` };

@@ -1,7 +1,7 @@
 import { z } from "zod";
 import type { Campaign } from "@/lib/db/campaigns";
-import { insertWhisper, type WhisperRecipient } from "@/lib/db/dm-whispers";
-import { publishEphemeral } from "@/lib/events";
+import type { WhisperRecipient } from "@/lib/db/dm-whispers";
+import { deliverWhisperReply } from "@/lib/db/whisper-replies";
 import { resolveSheetRef } from "@/lib/dm/rolls";
 import type { CharacterSheet } from "@/lib/schemas/sheet";
 
@@ -27,9 +27,9 @@ export function deliverWhisper(
   turnId: string,
   recipients: WhisperRecipient[],
   message: string,
+  replyToWhisperIds: string[] = [],
 ) {
-  insertWhisper(campaignId, turnId, recipients, message);
-  publishEphemeral(campaignId, "whisper_activity", {});
+  return deliverWhisperReply(campaignId, turnId, recipients, message, replyToWhisperIds);
 }
 
 // characterIds tolerates a comma-joined string and a singular characterId:
@@ -40,6 +40,7 @@ const whisperArgsSchema = z.object({
     .optional(),
   characterId: z.string().max(120).optional(),
   message: z.string().trim().min(1).max(1000),
+  replyToWhisperIds: z.array(z.string().uuid()).max(20).default([]),
 });
 
 export function handleSendWhisper(
@@ -78,9 +79,16 @@ export function handleSendWhisper(
     characterId: sheet.id,
     characterName: sheet.name,
   }));
-  deliverWhisper(campaign.id, turnId, recipients, args.message);
+  let groupId: string;
+  try {
+    groupId = deliverWhisper(campaign.id, turnId, recipients, args.message, args.replyToWhisperIds);
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "Private reply could not be committed." };
+  }
   return {
     ok: true,
+    groupId,
+    answeredWhisperIds: args.replyToWhisperIds,
     whisperedTo: recipients.map((recipient) => recipient.characterName),
     // Character ids that got this whisper, so the turn can tell which pending
     // player messages were actually answered.

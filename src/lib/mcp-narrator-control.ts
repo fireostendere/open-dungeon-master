@@ -3,7 +3,7 @@ import { isOocMessage } from "@/lib/campaign-types";
 import { isNarratorEvent } from "@/lib/mcp-event-filter";
 import { getCampaignById, getCampaignSummaryState, latestSeq, listMembers, setFloor } from "@/lib/db/campaigns";
 import { listChapters } from "@/lib/db/chapters";
-import { listOpenPendingRolls } from "@/lib/db/dm-turns";
+import { getDmTurn, listOpenPendingRolls } from "@/lib/db/dm-turns";
 import { listRecentWhispersForPrompt, listPendingPlayerWhispers } from "@/lib/db/dm-whispers";
 import { getActiveEncounter, listEnemies } from "@/lib/db/encounters";
 import { listActiveFacts } from "@/lib/db/facts";
@@ -14,26 +14,20 @@ import { listRecentRolls } from "@/lib/db/rolls";
 import { getSceneTracker } from "@/lib/db/scene-tracker";
 import { listSheets } from "@/lib/db/sheets";
 import { consoleAdjudications } from "@/lib/dm/invoke-catalog";
-import { invokeEngine } from "@/lib/dm/invoke";
+import { invokeEngineSynchronous } from "@/lib/dm/invoke";
 import { persistHumanNarration } from "@/lib/dm/human-narration";
-import { enqueueDmJob } from "@/lib/dm/queue";
+import { executeNarratorCommand, NarratorCommandError as McpNarratorControlError } from "@/lib/dm/narrator-command";
+import { listNarratorReceipts } from "@/lib/db/narrator-commands";
 import { coverInEffect } from "@/lib/dm/delegation";
 import { npcRosterForPrompt } from "@/lib/dm/social-tools";
 import { answerAsk, listAsksForCampaign } from "@/lib/db/asks";
 import { listEventsSince, publishEphemeral, publishPersisted, publishUserEphemeral } from "@/lib/events";
 
-export class McpNarratorControlError extends Error {
-  readonly status: number;
-
-  constructor(message: string, status = 400) {
-    super(message);
-    this.status = status;
-  }
-}
+export { NarratorCommandError as McpNarratorControlError } from "@/lib/dm/narrator-command";
 
 const id = z.string().uuid();
 const readSchema = z.object({ campaignId: id, afterSeq: z.number().int().min(0).default(0), limit: z.number().int().min(1).max(100).default(50) }).strict();
-const writeBase = z.object({ campaignId: id, expectedSeq: z.number().int().min(0) }).strict();
+const writeBase = z.object({ campaignId: id, expectedSeq: z.number().int().min(0), commandId: id.optional() }).strict();
 
 // This is intentionally a literal allowlist, not "all console actions minus
 // today's unsafe ones": future AI-producing adjudications stay unavailable.
@@ -70,7 +64,10 @@ function safeCampaign(campaign: NonNullable<ReturnType<typeof getCampaignById>>)
 function catalog() {
   return consoleAdjudications().map((group) => ({
     ...group,
-    entries: group.entries.filter((entry) => EXTERNAL_NARRATOR_ACTIONS.has(entry.name)),
+    entries: group.entries.filter((entry) => EXTERNAL_NARRATOR_ACTIONS.has(entry.name)).map((entry) => entry.name === "send_whisper"
+      ? { ...entry, fields: [...entry.fields, { name: "replyToWhisperIds", label: "Incoming whisper IDs", kind: "text" as const,
+        help: "Exact IDs from playerWhispers. Reply and acknowledge only these messages, never later arrivals." }] }
+      : entry),
   })).filter((group) => group.entries.length);
 }
 
@@ -102,6 +99,7 @@ function read(raw: unknown) {
       ? { seq: event.seq, type: event.type, payload: event.payload }
       : { seq: event.seq, type: event.type }),
     messages,
+    commands: listNarratorReceipts(campaign.id),
     summary: getCampaignSummaryState(campaign.id),
     members: listMembers(campaign.id), sheets: listSheets(campaign.id),
     pendingRolls: listOpenPendingRolls(campaign.id),
@@ -118,29 +116,17 @@ function read(raw: unknown) {
   };
 }
 
-async function serializedWrite(campaignId: string, expectedSeq: number, work: (campaign: NonNullable<ReturnType<typeof getCampaignById>>) => Promise<unknown> | unknown) {
-  let outcome: unknown;
-  let failure: McpNarratorControlError | undefined;
-  await enqueueDmJob(campaignId, async () => {
-    try {
-      const campaign = campaignOrHuman(campaignId);
-      if (campaign.kind !== "campaign" || campaign.status !== "active") {
-        throw new McpNarratorControlError("External narrator writes require an active campaign.", 409);
-      }
-      if (latestSeq(campaignId) !== expectedSeq) {
-        throw new McpNarratorControlError("Stale narrator cursor; reread and drain events before writing.", 409);
-      }
-      // A durable, argument-free marker makes an ambiguous request non-retryable.
-      publishPersisted(campaignId, "narrator_command_attempted", {});
-      outcome = await work(campaign);
-    } catch (error) {
-      failure = error instanceof McpNarratorControlError
-        ? error
-        : new McpNarratorControlError(error instanceof Error ? error.message : "Narrator command failed.", 500);
+function serializedWrite(
+  params: z.infer<typeof writeBase>, operation: string, payload: unknown,
+  work: (campaign: NonNullable<ReturnType<typeof getCampaignById>>) => Record<string, unknown>,
+) {
+  return executeNarratorCommand({ ...params, operation, payload, work, loadState: () => {
+    const campaign = campaignOrHuman(params.campaignId);
+    if (campaign.kind !== "campaign" || campaign.status !== "active") {
+      throw new McpNarratorControlError("External narrator writes require an active campaign.", 409);
     }
-  });
-  if (failure) throw failure;
-  return { result: outcome, currentSeq: latestSeq(campaignId) };
+    return campaign;
+  } });
 }
 
 async function invoke(raw: unknown) {
@@ -149,26 +135,32 @@ async function invoke(raw: unknown) {
   if (!EXTERNAL_NARRATOR_ACTIONS.has(p.data.name)) {
     throw new McpNarratorControlError("That action is not available to an external narrator.", 403);
   }
-  return serializedWrite(p.data.campaignId, p.data.expectedSeq, async (campaign) => {
-    const outcome = await invokeEngine(campaign, { kind: "human", userId: campaign.dmUserId! }, { name: p.data.name, args: p.data.args });
+  return serializedWrite(p.data, "narrator.invoke", { name: p.data.name, args: p.data.args }, (campaign) => {
+    const outcome = invokeEngineSynchronous(campaign, { kind: "human", userId: campaign.dmUserId! }, { name: p.data.name, args: p.data.args });
     if (!outcome.ok) throw new McpNarratorControlError(outcome.error);
     return outcome;
   });
 }
 
 async function narrate(raw: unknown) {
-  const p = writeBase.extend({ content: z.string().trim().min(1).max(8000) }).safeParse(raw);
+  const p = writeBase.extend({ content: z.string().trim().min(1).max(8000), turnId: id.optional() }).safeParse(raw);
   if (!p.success) throw new McpNarratorControlError(z.prettifyError(p.error));
-  return serializedWrite(p.data.campaignId, p.data.expectedSeq, (campaign) => {
+  return serializedWrite(p.data, "narrator.narrate", { content: p.data.content, turnId: p.data.turnId }, (campaign) => {
+    if (p.data.turnId) {
+      const turn = getDmTurn(p.data.turnId);
+      if (!turn || turn.campaignId !== campaign.id || turn.actor !== "human_dm") throw new McpNarratorControlError("Narration turn does not belong to this human-DM campaign.", 409);
+    }
     const message = persistHumanNarration(campaign, p.data.content, campaign.dmUserId!);
-    return { messageId: message.id };
+    // The receipt links narration to an explicit adjudication. Narration never
+    // advances an arbitrary latest turn or repeats an end_turn transition.
+    return { messageId: message.id, ...(p.data.turnId ? { turnId: p.data.turnId } : {}) };
   });
 }
 
 async function releaseFloor(raw: unknown) {
   const p = writeBase.safeParse(raw);
   if (!p.success) throw new McpNarratorControlError(z.prettifyError(p.error));
-  return serializedWrite(p.data.campaignId, p.data.expectedSeq, (campaign) => {
+  return serializedWrite(p.data, "narrator.release_floor", {}, (campaign) => {
     const floor = campaign.floor.mode === "hold" ? campaign.floor.next : campaign.floor;
     setFloor(campaign.id, floor);
     publishPersisted(campaign.id, "floor_changed", { floor });
@@ -182,7 +174,7 @@ export async function executeMcpNarratorControl(action: string, raw: unknown): P
       const p = z.object({ campaignId: id }).strict().safeParse(raw);
       if (!p.success) throw new McpNarratorControlError(z.prettifyError(p.error));
       campaignOrHuman(p.data.campaignId);
-      return { handled: true, result: { instructions: "Read odm://narrator/playbook. Call narrator.read, drain until hasMore is false, then use its currentSeq as expectedSeq for exactly one invoke, narrate, or release_floor. Reread after every write or ambiguous error; never retry a write automatically. Check asks on every read even when the story cursor is unchanged; answer_ask changes no story/floor state.", state: read({ campaignId: p.data.campaignId }) } };
+      return { handled: true, result: { instructions: "Read odm://narrator/playbook. Call narrator.read, drain until hasMore is false, then use its currentSeq as expectedSeq for exactly one invoke, narrate, or release_floor. Persist a unique commandId before each story write. After an ambiguous error, retry only the identical commandId, expectedSeq and payload to recover its receipt, never regenerate or modify a command. Reread after every confirmed write. end_turn advances initiative itself; narration never advances it. For a private reply provide exact replyToWhisperIds from playerWhispers. Check asks on every read even when the story cursor is unchanged; answer_ask changes no story/floor state.", state: read({ campaignId: p.data.campaignId }) } };
     }
     case "narrator.read": return { handled: true, result: read(raw) };
     case "narrator.catalog": return { handled: true, result: { groups: catalog() } };
