@@ -32,6 +32,7 @@ const COPY = {
     setting: "Setting",
     partyLabel: "Party",
     difficulty: "Difficulty",
+    dmDifficulty: "DM strictness",
     dice: "Dice",
     features: "Table features",
     featuresOn: (count: number) => `${count} on`,
@@ -65,6 +66,7 @@ const COPY = {
     setting: "Сеттинг",
     partyLabel: "Группа",
     difficulty: "Сложность",
+    dmDifficulty: "Жёсткость Мастера",
     dice: "Кости",
     features: "Функции стола",
     featuresOn: (count: number) => `включено: ${count}`,
@@ -98,6 +100,7 @@ const COPY = {
     setting: "Setting",
     partyLabel: "Drużyna",
     difficulty: "Poziom trudności",
+    dmDifficulty: "Surowość Mistrza Gry",
     dice: "Kości",
     features: "Funkcje stołu",
     featuresOn: (count: number) => `włączone: ${count}`,
@@ -138,6 +141,7 @@ export function ReviewStep({
         <Row label={copy.setting}>{setting}</Row>
         <Row label={copy.partyLabel}>{party}</Row>
         <Row label={copy.difficulty}>{difficulty}</Row>
+        <Row label={copy.dmDifficulty}>{draft.dmDifficulty}/10</Row>
         <Row label={copy.dice}>{dice}</Row>
         <Row label={copy.features}>{copy.featuresOn(featuresOn(draft, gates))}</Row>
       </dl>

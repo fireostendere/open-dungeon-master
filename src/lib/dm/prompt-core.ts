@@ -85,6 +85,22 @@ Core rules you must always follow:
 
 // Full system prompt for a campaign: base rules plus genre flavor plus any
 // custom world text.
+function dmDifficultyBlock(level: number): string {
+  const value = Math.max(1, Math.min(10, Math.round(Number.isFinite(level) ? level : 5)));
+  const guidance = value <= 2
+    ? "Be very forgiving about approach, offer generous fail-forward consequences, and avoid punishing harmless mistakes."
+    : value <= 4
+      ? "Be fair and forgiving: honor failed rolls, but keep consequences proportional and real."
+      : value <= 6
+        ? "Be firm: use the stated rules, require rolls for uncertain stakes, and make failures change the situation."
+        : value <= 8
+          ? "Be hard-nosed: enforce resources, positioning, time pressure, and social consequences; do not hand out retries."
+          : "Be pedantic and adversarial: enforce RAW plausibility, declared action limits, exact resources, and full consequences for careless choices. Look for the sharp edge in a plan, but never invent facts or override a server result.";
+  return `Narrator strictness: ${value}/10.
+This is separate from encounter-budget difficulty. It changes adjudication tone and consequence severity, not the dice and not the truth of a roll. ${guidance}
+At every level: never fudge, conceal, reroll, or narrate a different server result; never turn a declared attempt into an automatic success; never raise a DC retroactively after seeing the approach.`;
+}
+
 export function buildDmSystem(campaign: Campaign): string {
   const preset = presetFor(campaign.gameSettings);
   // The engine-boundary contract leads: one labelled statement of which facts
@@ -95,6 +111,7 @@ export function buildDmSystem(campaign: Campaign): string {
       ? `${ENGINE_BOUNDARY_RULES}${ENGINE_BOUNDARY_CHECK}`
       : ENGINE_BOUNDARY_RULES,
     DM_SYSTEM,
+    dmDifficultyBlock(campaign.gameSettings.dmDifficulty),
   ];
   if (preset.dmFlavor) {
     parts.push(preset.dmFlavor);
@@ -563,7 +580,7 @@ export function buildGameStateBlock(state: DmGameState): string {
 
   const sections = [
     "=== GAME STATE (authoritative; never contradict) ===",
-    `Campaign: ${campaign.title} | Difficulty: ${campaign.difficulty}${campaign.theme ? ` | Setting: ${campaign.theme}` : ""}`,
+    `Campaign: ${campaign.title} | Encounter difficulty: ${campaign.difficulty} | Narrator strictness: ${campaign.gameSettings.dmDifficulty ?? 5}/10${campaign.theme ? ` | Setting: ${campaign.theme}` : ""}`,
   ];
   if (campaign.description) {
     sections.push(`Premise: ${campaign.description}`);

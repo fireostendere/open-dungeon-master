@@ -9,6 +9,7 @@ import {
 } from "@/lib/campaign-types";
 import {
   CAMPAIGN_LENGTHS,
+  DM_DIFFICULTY_LEVELS,
   type CampaignLengthSetting,
 } from "@/lib/schemas/game-settings-options";
 import { FieldLabel, inputClass, ToggleCard } from "@/app/create-campaign/fields";
@@ -30,6 +31,10 @@ const COPY = {
       hard: "Bigger fights, fewer second chances, resources that actually run out.",
       deadly: "Assumes you want to lose characters. Plan retreats and bring spares.",
     },
+    dmDifficulty: "DM strictness",
+    dmDifficultyInfo:
+      "Separate from encounter difficulty. At 1 the DM is very forgiving; at 10 the DM is pedantic, adversarial, and makes mistakes cost their full price. Dice are never fudged at any level.",
+    dmDifficultyHint: (value: number) => value <= 2 ? "Very forgiving" : value <= 4 ? "Fair and forgiving" : value <= 6 ? "Firm" : value <= 8 ? "Hard-nosed" : "Pedantic and adversarial",
     campaignLength: "Campaign length",
     lengthInfo:
       "How far ahead the DM plans the secret story: how many acts the arc spans, and how many villains and threads it seeds at the start.\n\n**Short**: three acts, one focused adventure. A handful of sessions.\n\n**Standard**: four or five acts. The default shape of a campaign.\n\n**Epic**: six to eight acts, several threads running at once.\n\nNo length ever cuts you off. Play past the finale and a sequel saga picks up where the last one ended.",
@@ -62,6 +67,10 @@ const COPY = {
       hard: "Более тяжёлые бои, меньше вторых шансов и ресурсы, которые действительно заканчиваются.",
       deadly: "Режим для игры, где гибель персонажей ожидаема. Планируйте отступления и держите запасных героев.",
     },
+    dmDifficulty: "Жёсткость Мастера",
+    dmDifficultyInfo:
+      "Это не боевая сложность. На 1 Мастер очень снисходителен; на 10 — душный, придирчивый и подъёбистый, а ошибки имеют полную цену. Кости не подкручиваются ни на одном уровне.",
+    dmDifficultyHint: (value: number) => value <= 2 ? "Очень снисходительно" : value <= 4 ? "Честно и мягко" : value <= 6 ? "Строго" : value <= 8 ? "Жёстко" : "Душно и подъёбисто",
     campaignLength: "Длина кампании",
     lengthInfo:
       "Насколько далеко Мастер заранее планирует скрытую сюжетную арку: сколько в ней актов, злодеев и сюжетных нитей.\n\n**Короткая**: три акта и одно сфокусированное приключение. Несколько сессий.\n\n**Стандартная**: четыре-пять актов. Обычная форма кампании.\n\n**Эпическая**: шесть-восемь актов и несколько параллельных линий.\n\nВыбранная длина никогда не завершает игру принудительно. После финала следующая сага продолжит историю с того же места.",
@@ -94,6 +103,10 @@ const COPY = {
       hard: "Większe starcia, mniej drugich szans i zasoby, które naprawdę się kończą.",
       deadly: "Zakłada, że utrata postaci jest częścią gry. Planuj odwroty i przygotuj zapasowych bohaterów.",
     },
+    dmDifficulty: "Surowość Mistrza Gry",
+    dmDifficultyInfo:
+      "To osobne od trudności starć. Przy 1 MG jest bardzo wyrozumiały; przy 10 jest pedantyczny i bezlitosny, a błędy mają pełną cenę. Kości nigdy nie są naginane.",
+    dmDifficultyHint: (value: number) => value <= 2 ? "Bardzo wyrozumiale" : value <= 4 ? "Uczciwie i łagodnie" : value <= 6 ? "Stanowczo" : value <= 8 ? "Twardo" : "Pedantycznie i bezlitośnie",
     campaignLength: "Długość kampanii",
     lengthInfo:
       "Jak daleko Mistrz Gry planuje z wyprzedzeniem tajną fabułę: ile aktów obejmuje wątek oraz ilu przeciwników i pobocznych tematów zostaje zasianych na początku.\n\n**Krótka**: trzy akty, jedna skupiona przygoda. Kilka sesji.\n\n**Standardowa**: cztery lub pięć aktów. Domyślna forma kampanii.\n\n**Epicka**: sześć do ośmiu aktów i kilka równoległych wątków.\n\nŻadna długość nie kończy gry na siłę. Po finale kolejna saga podejmuje historię w miejscu, w którym skończyła się poprzednia.",
@@ -175,6 +188,25 @@ export function PartyStep({ draft, patch, gates }: StepProps) {
           <p className="mt-1 text-xs text-stone-500">{copy.difficultyHints[draft.difficulty]}</p>
         </label>
       </div>
+
+      <label className="block">
+        <FieldLabel>
+          <span className="flex items-center gap-1">
+            {copy.dmDifficulty}
+            <InfoButton label={copy.dmDifficulty} text={copy.dmDifficultyInfo} />
+          </span>
+        </FieldLabel>
+        <select
+          value={draft.dmDifficulty}
+          onChange={(event) => patch({ dmDifficulty: Number(event.target.value) as typeof draft.dmDifficulty })}
+          className={inputClass}
+        >
+          {DM_DIFFICULTY_LEVELS.map((value) => (
+            <option key={value} value={value}>{value}/10</option>
+          ))}
+        </select>
+        <p className="mt-1 text-xs text-stone-500">{copy.dmDifficultyHint(draft.dmDifficulty)}</p>
+      </label>
 
       {aiNarrates ? (
         <label className="block">

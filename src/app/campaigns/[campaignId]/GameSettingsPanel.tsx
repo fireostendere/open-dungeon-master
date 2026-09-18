@@ -28,6 +28,7 @@ import { VoicePreviewButton } from "@/components/VoicePreviewButton";
 import type { GameSettings } from "@/lib/schemas/game-settings";
 import {
   CAMPAIGN_LENGTHS,
+  DM_DIFFICULTY_LEVELS,
   type CampaignLengthSetting,
   type DicePolicy,
   type Genre,
@@ -127,6 +128,9 @@ const COPY = {
     customPlaceholder: "Describe the world and tone...",
     length: "Length",
     lengthTip: "How far the DM plans the story ahead (acts, bosses, side quests). Changing it mid-campaign applies when the next saga is planned; any length continues with a sequel saga if you play past the finale.",
+    dmDifficulty: "DM strictness",
+    dmDifficultyTip: "Separate from encounter difficulty. 1 is forgiving; 10 is pedantic, adversarial, and makes mistakes cost their full price. Dice are never fudged.",
+    dmDifficultyHint: (value: number) => value <= 2 ? "Very forgiving" : value <= 4 ? "Fair and forgiving" : value <= 6 ? "Firm" : value <= 8 ? "Hard-nosed" : "Pedantic and adversarial",
     dice: "Dice",
     diceTip: "Real dice lets each player opt in to rolling at their table: the game parks until they type the result, read it from a paired Pixels Bluetooth die, or let the server roll per die (Dice sources, in the Party tab).",
     dicePolicy: "Dice policy",
@@ -277,6 +281,9 @@ const COPY = {
     customPlaceholder: "Опишите мир и его настроение...",
     length: "Длина",
     lengthTip: "Определяет, насколько далеко Мастер заранее планирует сюжет: акты, боссов и побочные задания. Изменение во время кампании применяется при планировании следующей саги; после финала любая длина может продолжиться новой сагой.",
+    dmDifficulty: "Жёсткость Мастера",
+    dmDifficultyTip: "Это не боевая сложность. 1 — мягкий Мастер, 10 — душный, придирчивый и подъёбистый; ошибки имеют полную цену. Кости не подкручиваются.",
+    dmDifficultyHint: (value: number) => value <= 2 ? "Очень снисходительно" : value <= 4 ? "Честно и мягко" : value <= 6 ? "Строго" : value <= 8 ? "Жёстко" : "Душно и подъёбисто",
     dice: "Кости",
     diceTip: "Реальные кости позволяют каждому игроку выбрать физические броски: игра ждёт, пока он введёт результат, считает его с подключённого Bluetooth-кубика Pixels или поручит конкретную кость серверу в разделе «Источники костей» на вкладке группы.",
     dicePolicy: "Правила костей",
@@ -427,6 +434,9 @@ const COPY = {
     customPlaceholder: "Opisz świat i jego ton...",
     length: "Długość",
     lengthTip: "Określa, jak daleko Mistrz Gry planuje fabułę z wyprzedzeniem: akty, bossów i zadania poboczne. Zmiana w trakcie kampanii zacznie obowiązywać przy planowaniu następnej sagi; po finale każda długość może przejść w kolejną sagę.",
+    dmDifficulty: "Surowość Mistrza Gry",
+    dmDifficultyTip: "To osobne od trudności starć. 1 jest wyrozumiałe; 10 jest pedantyczne i bezlitosne, a błędy mają pełną cenę. Kości nigdy nie są naginane.",
+    dmDifficultyHint: (value: number) => value <= 2 ? "Bardzo wyrozumiale" : value <= 4 ? "Uczciwie i łagodnie" : value <= 6 ? "Stanowczo" : value <= 8 ? "Twardo" : "Pedantycznie i bezlitośnie",
     dice: "Kości",
     diceTip: "Prawdziwe kości pozwalają każdemu graczowi wybrać fizyczne rzuty: gra czeka na wpisanie wyniku, odczyt z połączonej kości Bluetooth Pixels albo rzut serwera dla wybranej kości w sekcji „Źródła kości” na karcie drużyny.",
     dicePolicy: "Zasady kości",
@@ -603,6 +613,10 @@ export function GameSettingsPanel({
             {settings.dicePolicy === "real_allowed" ? copy.diceReal : copy.diceDigital}
           </span>
           <span className="flex items-center gap-1.5">
+            <Hand className="size-3.5 text-amber-200" />
+            {copy.dmDifficulty} {settings.dmDifficulty}/10
+          </span>
+          <span className="flex items-center gap-1.5">
             <Volume2 className="size-3.5 text-amber-200" />
             {settings.ttsEnabled
               ? copy.narrationOn(
@@ -759,6 +773,23 @@ export function GameSettingsPanel({
             </Tooltip>
           </div>
         ) : null}
+
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="w-16 text-stone-500">{copy.dmDifficulty}</span>
+          <Tooltip content={copy.dmDifficultyTip}>
+            <select
+              value={settings.dmDifficulty}
+              onChange={(event) => patch({ dmDifficulty: Number(event.target.value) as GameSettings["dmDifficulty"] })}
+              className={selectClass}
+              aria-label={copy.dmDifficulty}
+            >
+              {DM_DIFFICULTY_LEVELS.map((value) => (
+                <option key={value} value={value}>{value}/10</option>
+              ))}
+            </select>
+          </Tooltip>
+          <span className="text-stone-500">{copy.dmDifficultyHint(settings.dmDifficulty)}</span>
+        </div>
 
         <div className="flex flex-wrap items-center gap-2">
           <span className="w-16 text-stone-500">{copy.dice}</span>

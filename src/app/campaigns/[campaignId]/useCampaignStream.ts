@@ -366,10 +366,12 @@ function reducer(state: CampaignState, action: Action): CampaignState {
           }
           return next;
         }
-        case "roll_result":
-          next.rolls = [...state.rolls.slice(-30), payload.roll as StoredRoll];
+        case "roll_result": {
+          const roll = payload.roll as StoredRoll;
+          const displayRoll = action.seq === null ? roll : { ...roll, eventSeq: action.seq };
+          next.rolls = upsertBy([...state.rolls, displayRoll], displayRoll, (entry) => entry.id).slice(-30);
           next.latestRoll = {
-            roll: payload.roll as StoredRoll,
+            roll: displayRoll,
             source: String(payload.source ?? "digital"),
             seq: action.seq ?? 0,
           };
@@ -379,6 +381,7 @@ function reducer(state: CampaignState, action: Action): CampaignState {
             );
           }
           return next;
+        }
         case "beat_recorded": {
           const beat = payload.beat as DmBeat | undefined;
           // Only the DM seat is given a beat list to append to; for everyone
