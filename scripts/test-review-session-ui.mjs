@@ -64,7 +64,7 @@ for(const locale of ['ru','pl','en']){
       const translated=messageText(locale,key);assert.ok(translated.trim());
       if(locale!=='en')assert.notEqual(translated,key);
       const placeholders=v=>[...v.matchAll(/\{(\w+)\}/g)].map(x=>x[1]).sort();
-      assert.deepEqual(placeholders(translated),placeholders(key));assert.equal(pair.length,2);
+      assert.deepEqual(placeholders(translated),placeholders(key));assert.ok(pair.ru && pair.pl);
     }
     assert.ok(messageText(locale,'Map of {name}',{name:'{name} $& Hero'}).includes('{name} $& Hero'));
   });

@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { allocateSeq, type Campaign } from "@/lib/db/campaigns";
 import { getSheetById } from "@/lib/db/sheets";
-import { insertRoll } from "@/lib/db/rolls";
+import { insertRoll, setRollSeq } from "@/lib/db/rolls";
 import type { DmTurn } from "@/lib/db/dm-turns";
 import { rollExpression } from "@/lib/dice";
 import { publishWithSeq } from "@/lib/events";
@@ -146,7 +146,9 @@ function resolveTargets(
 }
 
 function publishRoll(campaignId: string, roll: ReturnType<typeof insertRoll>) {
-  publishWithSeq(campaignId, allocateSeq(campaignId), "roll_result", { roll, source: "digital" });
+  const seq = allocateSeq(campaignId);
+  setRollSeq(roll.id, seq);
+  publishWithSeq(campaignId, seq, "roll_result", { roll: { ...roll, eventSeq: seq }, source: "digital" });
 }
 
 // ---- group_check ----

@@ -109,6 +109,7 @@ export function handleRequestRoll(
 
   try {
     const outcome = rollExpression(resolved.expression);
+    const rollSeq = allocateSeq(campaignId);
     const roll = insertRoll({
       campaignId,
       characterId: sheet?.id ?? null,
@@ -119,12 +120,13 @@ export function handleRequestRoll(
       dc: args.dc ?? null,
       result: outcome,
       visibility: args.visibility ?? "public",
+      seq: rollSeq,
     });
     turn.rollIds.push(roll.id);
     // The stream is shared, so it carries what a PLAYER may see. Whoever is
     // allowed the number re-fetches it from GET /rolls, exactly as the DM
     // re-fetches their own enemy numbers.
-    publishWithSeq(campaignId, allocateSeq(campaignId), "roll_result", {
+    publishWithSeq(campaignId, rollSeq, "roll_result", {
       roll: roll.visibility === "public" ? roll : redactRoll(roll),
       source: "digital",
     });

@@ -59,6 +59,7 @@ type RollRow = {
   message_id: string | null;
   target_enemy_id: string | null;
   applied: number;
+  seq: number | null;
   created_at: string;
 };
 
@@ -85,6 +86,7 @@ function mapRoll(row: RollRow): StoredRoll {
     targetEnemyId: row.target_enemy_id ?? null,
     applied: Boolean(row.applied),
     createdAt: row.created_at,
+    eventSeq: row.seq !== null && row.seq !== undefined ? row.seq : undefined,
   };
 }
 
@@ -94,6 +96,12 @@ export function markRollApplied(rollId: string, targetEnemyId: string) {
   getDatabase()
     .prepare(`UPDATE rolls SET applied = 1, target_enemy_id = ? WHERE id = ?`)
     .run(targetEnemyId, rollId);
+}
+
+export function setRollSeq(rollId: string, seq: number): void {
+  getDatabase()
+    .prepare(`UPDATE rolls SET seq = ? WHERE id = ?`)
+    .run(seq, rollId);
 }
 
 export function insertRoll(input: {
@@ -107,6 +115,7 @@ export function insertRoll(input: {
   result: RollResult;
   visibility?: RollVisibility;
   messageId?: string | null;
+  seq?: number | null;
 }): StoredRoll {
   const id = crypto.randomUUID();
   const success =
@@ -118,9 +127,9 @@ export function insertRoll(input: {
         INSERT INTO rolls (
           id, campaign_id, character_id, requested_by, roll_kind, detail,
           expression, advantage, dc, total, success, breakdown_json,
-          visibility, message_id, created_at
+          visibility, message_id, seq, created_at
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `,
     )
     .run(
@@ -138,6 +147,7 @@ export function insertRoll(input: {
       JSON.stringify(input.result),
       input.visibility ?? "public",
       input.messageId ?? null,
+      input.seq ?? null,
       nowIso(),
     );
 

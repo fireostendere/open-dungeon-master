@@ -20,7 +20,7 @@ const { createSheetSchema } = await import("../src/lib/schemas/sheet.ts");
 const { createDmTurn, createPendingRoll, resolvePendingRoll, saveDmTurn } = await import("../src/lib/db/dm-turns.ts");
 const { insertAsk } = await import("../src/lib/db/asks.ts");
 const { insertCampaignMessage } = await import("../src/lib/db/messages.ts");
-const { insertRoll } = await import("../src/lib/db/rolls.ts");
+const { getRoll, insertRoll, setRollSeq } = await import("../src/lib/db/rolls.ts");
 const { publishWithSeq } = await import("../src/lib/events.ts");
 const { executeMcpNarratorControl, McpNarratorControlError, EXTERNAL_NARRATOR_ACTIONS } = await import("../src/lib/mcp-narrator-control.ts");
 const { executeMcpControl } = await import("../src/lib/mcp-control.ts");
@@ -145,6 +145,14 @@ assert.equal(settled.result.events.find((event) => event.type === "roll_result")
 assert.equal(settled.result.events.find((event) => event.type === "roll_result")?.payload.pendingRollId, pending.id);
 assert.equal(settled.result.recentRolls.find((entry) => entry.id === roll.id)?.total, 17);
 assert.ok(settled.result.recentRolls.some((entry) => entry.total === digital.result.result.result.total));
+
+const rollWithSeq = insertRoll({ campaignId: campaign.id, requestedBy: "player", kind: "custom", result: { expression: "1d20", total: 19, terms: [] }, seq: 42 });
+assert.equal(rollWithSeq.eventSeq, 42);
+const reloaded = getRoll(rollWithSeq.id);
+assert.equal(reloaded?.eventSeq, 42);
+
+setRollSeq(rollWithSeq.id, 43);
+assert.equal(getRoll(rollWithSeq.id)?.eventSeq, 43);
 
 setCampaignStatus(campaign.id, "ended");
 const endedSeq = latestSeq(campaign.id);

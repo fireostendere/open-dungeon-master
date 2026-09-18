@@ -20,10 +20,12 @@ export function loadReviewModule(filename, mocks = {}) {
       const bare = path.join(srcRoot, name.slice(2));
       if (fs.existsSync(bare) && fs.statSync(bare).isFile()) return localRequire(bare);
       if (fs.existsSync(`${bare}.ts`)) return loadReviewModule(`${bare}.ts`, mocks);
+      if (fs.existsSync(`${bare}.tsx`)) return loadReviewModule(`${bare}.tsx`, mocks);
       if (fs.existsSync(`${bare}.mjs`)) return localRequire(`${bare}.mjs`);
       if (fs.existsSync(`${bare}.js`)) return localRequire(`${bare}.js`);
       if (fs.existsSync(`${bare}.json`)) return localRequire(`${bare}.json`);
       if (fs.existsSync(path.join(bare, 'index.ts'))) return loadReviewModule(path.join(bare, 'index.ts'), mocks);
+      if (fs.existsSync(path.join(bare, 'index.tsx'))) return loadReviewModule(path.join(bare, 'index.tsx'), mocks);
       if (fs.existsSync(path.join(bare, 'index.js'))) return localRequire(path.join(bare, 'index.js'));
     }
     return localRequire(name);
