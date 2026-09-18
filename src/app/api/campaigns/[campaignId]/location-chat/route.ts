@@ -6,8 +6,14 @@ import { runSpatialCommand, spatialContext, spatialStore, SpatialError } from "@
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-const headers = { "Cache-Control": "private, no-store, max-age=0", Vary: "Cookie" };
+const headers = { "Cache-Control": "private, no-store, max-age=0", Vary: "Cookie, X-ODM-Actor" };
 const query = z.object({ roomId: z.string().uuid().nullable(), beforeSeq: z.number().int().min(1).max(Number.MAX_SAFE_INTEGER).optional() });
+// This header is NOT authentication. It can only reject a stale caller that
+// expected a different signed-in identity; it can never grant another role.
+function checkExpectedActor(request: Request, authenticatedUserId: string) {
+  const expected = request.headers.get("X-ODM-Actor");
+  if (expected !== null && expected !== authenticatedUserId) throw new SpatialError("Signed-in user changed. Reopen this campaign before retrying.", 409);
+}
 function viewResponse(request: Request, value: unknown) {
   const body = JSON.stringify(value), etag = `"${createHash("sha256").update(body).digest("base64url")}"`;
   const responseHeaders = { ...headers, ETag: etag, "Content-Type": "application/json" };
@@ -26,6 +32,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ camp
   const context = await requireMember(campaignId);
   if (isErrorResponse(context)) return context;
   try {
+    checkExpectedActor(request, context.user.id);
     const { actor } = spatialContext(campaignId, context.user.id), store = spatialStore(), view = store.view(actor);
     const search = new URL(request.url).searchParams;
     if (!view.enabled || !search.has("roomId")) return viewResponse(request, view);
@@ -59,6 +66,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ cam
   const { campaignId } = await params;
   const context = await requireVoice(campaignId);
   if (isErrorResponse(context)) return context;
+  try { checkExpectedActor(request, context.user.id); } catch (error) { return errorResponse(error); }
   const limited = enforcePlayerIngress(campaignId, context.user.id, "action");
   if (limited) return limited;
   try {

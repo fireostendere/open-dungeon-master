@@ -1,9 +1,10 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { LocationCommandClient } from "@/lib/spatial/client-commands.mjs";
 import type { SpatialPage, SpatialView } from "@/lib/spatial/store.mjs";
 
 type Snapshot = { key: string; view: SpatialView; page: SpatialPage };
-type Pending = { requestId: string; input: Record<string, unknown>; identity: string };
+type CommandState = { identity: string; busy: boolean; pending: boolean; error: string };
 const EMPTY: SpatialPage = { messages: [], nextBefore: null };
 // Poll the authorized projection, not the campaign-wide event bus. Fetches
 // are serial and abort on room/account changes; another room's result cannot
@@ -12,15 +13,19 @@ export function useLocationChat(campaignId: string, userId: string) {
   const [selected, setSelected] = useState<string | null>(null);
   const [before, setBefore] = useState<number | null>(null);
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
-  const [error, setError] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [pending, setPending] = useState<Pending | null>(null);
-  const pendingRef = useRef<Pending | null>(null);
-  const busyRef = useRef(false);
+  const identity = `${campaignId}:${userId}`;
+  const [loadError, setLoadError] = useState({ identity, text: "" });
+  const [commandState, setCommandState] = useState<CommandState>({ identity, busy: false, pending: false, error: "" });
+  const clientRef = useRef<LocationCommandClient | null>(null);
   const [version, setVersion] = useState(0);
   const key = `${campaignId}:${userId}:${selected ?? ""}:${before ?? "latest"}`;
   const endpoint = `/api/campaigns/${encodeURIComponent(campaignId)}/location-chat`;
   const refresh = useCallback(() => setVersion(value => value + 1), []);
+  useEffect(() => {
+    const client = new LocationCommandClient({ campaignId, userId });
+    clientRef.current = client;
+    return () => { client.dispose(); if (clientRef.current === client) clientRef.current = null; };
+  }, [campaignId, userId]);
   useEffect(() => {
     const abort = new AbortController();
     let timer: ReturnType<typeof setTimeout>;
@@ -28,7 +33,8 @@ export function useLocationChat(campaignId: string, userId: string) {
     async function poll() {
       try {
         const response = await fetch(endpoint + (selected ? `?roomId=${encodeURIComponent(selected)}${before ? `&beforeSeq=${before}` : ""}` : ""),
-          { cache: "no-store", signal: abort.signal, headers: etag ? { "If-None-Match": etag } : {} });
+          { cache: "no-store", signal: abort.signal, headers: { "X-ODM-Actor": userId, ...(etag ? { "If-None-Match": etag } : {}) } });
+        if (abort.signal.aborted) return;
         if (response.status === 304) return;
         if (response.status === 404 && selected) { setSelected(null); setBefore(null); setSnapshot(null); return; }
         const data = await response.json();
@@ -40,43 +46,39 @@ export function useLocationChat(campaignId: string, userId: string) {
           return;
         }
         setSnapshot({ key, view: data, page: { messages: data.messages ?? [], nextBefore: data.nextBefore ?? null } });
-        setError("");
+        setLoadError({ identity, text: "" });
         if (data.enabled && selected === null) setSelected(data.current?.roomId ?? data.rooms[0]?.id ?? "ooc");
       } catch (cause) {
-        if (!abort.signal.aborted) setError(cause instanceof Error ? cause.message : "Unable to load location chat.");
+        if (!abort.signal.aborted) setLoadError({ identity, text: cause instanceof Error ? cause.message : "Unable to load location chat." });
       } finally {
         if (!abort.signal.aborted) timer = setTimeout(poll, 2000);
       }
     }
     void poll();
     return () => { abort.abort(); clearTimeout(timer); };
-  }, [endpoint, selected, before, key, version]);
+  }, [endpoint, selected, before, key, version, identity, userId]);
 
-  const command = useCallback(async (input: Record<string, unknown>) => {
-    if (busyRef.current) return false;
-    const previous = pendingRef.current?.identity === `${campaignId}:${userId}` ? pendingRef.current : null;
-    if (previous && JSON.stringify(previous.input) !== JSON.stringify(input)) {
-      setError("Retry the unconfirmed command before submitting another one."); return false;
-    }
-    const attempt = previous ?? { requestId: crypto.randomUUID(), input, identity: `${campaignId}:${userId}` };
-    pendingRef.current = attempt; setPending(attempt);
-    busyRef.current = true; setBusy(true); setError("");
-    try {
-      const response = await fetch(endpoint, { method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...attempt.input, requestId: attempt.requestId }) });
-      const data = await response.json();
-      if (!response.ok) {
-        // Explicit client rejection is definite. Network/5xx failures may
-        // have committed; retain the UUID and exact payload for manual retry.
-        if (response.status < 500) { pendingRef.current = null; setPending(null); }
-        throw new Error(data.error || "Location command failed.");
+  const execute = useCallback(async (input?: Record<string, unknown>) => {
+    const client = clientRef.current;
+    // This also protects callbacks retained by the old screen before React's
+    // effect cleanup has run. Never reinterpret old pending input as a new send.
+    if (!client || client.identity !== identity || client.closed || client.busy) return false;
+    const sync = (error = "") => {
+      if (clientRef.current === client && !client.closed) {
+        setCommandState({ identity, busy: client.busy, pending: Boolean(client.pending), error });
       }
-      pendingRef.current = null; setPending(null);
-      refresh();
+    };
+    try {
+      const request = input === undefined ? client.retry() : client.command(input);
+      sync();
+      await request;
+      if (clientRef.current !== client || client.closed) return false;
+      sync(); refresh();
       return true;
-    } catch (cause) { setError(cause instanceof Error ? cause.message : "Location command failed."); return false; }
-    finally { busyRef.current = false; setBusy(false); }
-  }, [campaignId, endpoint, refresh, userId]);
+    } catch (cause) { sync(cause instanceof Error ? cause.message : "Location command failed."); return false; }
+  }, [identity, refresh]);
+  const command = useCallback((input: Record<string, unknown>) => execute(input), [execute]);
+  const retry = useCallback(() => execute(), [execute]);
 
   const select = useCallback((roomId: string) => { setBefore(null); setSelected(roomId); }, []);
   const older = () => { if (snapshot?.key === key && snapshot.page.nextBefore) setBefore(snapshot.page.nextBefore); };
@@ -87,8 +89,10 @@ export function useLocationChat(campaignId: string, userId: string) {
   return { view: sameIdentity ? snapshot?.view ?? null : null,
     campaignId, userId,
     page: snapshot?.key === key ? snapshot.page : EMPTY, loading: !sameIdentity,
-    selected, select, error, busy, command, refresh, older,
+    selected, select,
+    error: (commandState.identity === identity ? commandState.error : "") || (loadError.identity === identity ? loadError.text : ""),
+    busy: commandState.identity === identity && commandState.busy, command, refresh, older,
     showingOlder: before !== null, newest: () => setBefore(null),
-    pending: Boolean(pending), retry: () => pendingRef.current ? command(pendingRef.current.input) : Promise.resolve(false) };
+    pending: commandState.identity === identity && commandState.pending, retry };
 }
 export type LocationChatController = ReturnType<typeof useLocationChat>;

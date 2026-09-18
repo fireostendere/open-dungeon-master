@@ -21,7 +21,7 @@ export function SessionChatColumn(props: ComponentProps<typeof LegacySessionChat
     {chat.error ? <button type="button" onClick={chat.refresh}>{t.retry}</button> : null}</div>;
   const view = chat.view;
   if (view?.enabled) return <div className={cn("min-w-0 flex-1 flex-col overflow-y-auto", props.visible ? "flex" : "hidden lg:flex")}>
-    <LocationChat chat={chat} members={props.state.members} dmUserId={props.state.campaign?.dmUserId} />
+    <LocationChat key={`${props.campaignId}:${props.meUserId}`} chat={chat} members={props.state.members} dmUserId={props.state.campaign?.dmUserId} />
     <details className="m-3 min-h-0 rounded border border-stone-800 p-2 text-sm text-stone-400"><summary>{t.history}</summary>
       <p className="my-2 text-xs">{t.note}</p>
       <LegacySessionChatColumn {...props}>{null}</LegacySessionChatColumn>
