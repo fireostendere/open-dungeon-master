@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { stripTypeScriptTypes } from 'node:module';
 import { DatabaseSync } from 'node:sqlite';
 import vm from 'node:vm';
+import * as crypto from 'node:crypto';
 
 // Real SQLite + real event/stream/route modules. Auth/campaign adapters are
 // explicit fixtures, not a claim that the full Next server ran in this suite.
@@ -31,6 +32,7 @@ async function fixture() {
   const capsFor = (_campaign, userId) => ({ role: sqlite.prepare('SELECT role FROM members WHERE user_id=?').get(userId)?.role });
   const context = vm.createContext({ console, TextEncoder, TextDecoder, ReadableStream, Response, Request, URL, AbortController, setInterval, clearInterval });
   const stubs = {
+    'node:crypto': crypto,
     '@/lib/db/core': { getDatabase: () => db, nowIso: () => '2026-09-18T00:00:00Z', parseJson: (value, fallback) => { try { return JSON.parse(value); } catch { return fallback; } } },
     '@/lib/db/campaigns': { allocateSeq: () => ++sequence, latestSeq: () => sequence, capsFor, getCampaignForUser,
       listMembers: () => sqlite.prepare('SELECT user_id AS userId FROM members').all() },
@@ -55,9 +57,10 @@ async function fixture() {
     modules.set(name, module); await module.link(load); return module;
   }
   const events = await load('@/lib/events'); await events.evaluate();
+  const timeline = await load('@/lib/spatial/timeline'); await timeline.evaluate();
   const stream = await load('@/lib/campaign-stream'); await stream.evaluate();
   const route = await load('../src/app/api/campaigns/[campaignId]/events/route.ts'); await route.evaluate();
-  return { db, sqlite, events: events.namespace, stream: stream.namespace, route: route.namespace,
+  return { db, sqlite, timeline: timeline.namespace, events: events.namespace, stream: stream.namespace, route: route.namespace,
     authenticate: user => { authenticated = user; }, close: () => sqlite.close() };
 }
 
@@ -186,5 +189,21 @@ test('R01: stream rejects revoked delivery before subscription or buffered outpu
     receive(f.events.sseChunk('secret', { text: 'BUFFERED_SECRET' }, 1));
     allowed = false;
     assert.equal((await buffered.getReader().read()).done, true); assert.equal(released, true);
+  } finally { f.close(); }
+});
+
+
+test('R06: repeated rewind at the same sequence and timestamp gets a distinct durable timeline', async () => {
+  const f = await fixture();
+  try {
+    const initial = f.timeline.campaignTimelineEpoch('c');
+    f.events.publishWithSeq('c', 1, 'campaign_rewound', { boundarySeq: 0 });
+    const first = f.timeline.campaignTimelineEpoch('c');
+    f.db.exec('DELETE FROM campaign_events');
+    f.events.publishWithSeq('c', 1, 'campaign_rewound', { boundarySeq: 0 });
+    const second = f.timeline.campaignTimelineEpoch('c');
+    assert.notEqual(first, initial); assert.notEqual(second, first);
+    assert.equal(second, f.timeline.campaignTimelineEpoch('c'));
+    assert.doesNotMatch(JSON.stringify(f.events.listEventsSince('c', 0, 10, 'A')), /timelineEpoch/);
   } finally { f.close(); }
 });

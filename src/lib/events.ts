@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { afterCommit } from "@/lib/db/commit-effects";
 import { getDatabase, nowIso, parseJson } from "@/lib/db/core";
 import { allocateSeq } from "@/lib/db/campaigns";
@@ -82,7 +83,8 @@ function fanOut(campaignId: string, event: PrivateEvent, onlyUserId?: string) {
 
 export function publishWithSeq(campaignId: string, seq: number, type: string, payload: unknown, scope?: EventScope) {
   const db = getDatabase();
-  const event = freezeEvent(campaignId, type, payload, seq, scope);
+  const publishedPayload = type === "campaign_rewound" ? { ...(payload && typeof payload === "object" ? payload : {}), timelineEpoch: randomUUID() } : payload;
+  const event = freezeEvent(campaignId, type, publishedPayload, seq, scope);
   db.transaction(() => {
     ensureEventAudienceColumn();
     db.prepare("INSERT INTO campaign_events (campaign_id, seq, type, payload_json, created_at, audience_json) VALUES (?, ?, ?, ?, ?, ?)")
