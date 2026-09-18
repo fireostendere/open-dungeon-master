@@ -37,6 +37,9 @@ export type StoredRoll = {
   targetEnemyId: string | null;
   applied: boolean;
   createdAt: string;
+  // Client-only ordering hint copied from the persisted roll_result event.
+  // It is absent on snapshot rows and never written to the database.
+  eventSeq?: number;
 };
 
 type RollRow = {

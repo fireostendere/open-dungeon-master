@@ -1,6 +1,6 @@
 // Regression coverage for the trusted, no-server-AI narrator control path.
 import assert from "node:assert/strict";
-import { randomBytes } from "node:crypto";
+import { randomBytes, randomUUID } from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -236,20 +236,30 @@ const testAsk = insertAsk({
   question: "How does sneak attack work?",
   answer: "Forwarded to DM...",
   citations: [],
-  status: "answered",
+  status: "pending",
 });
 
 const askRead = await executeMcpNarratorControl("narrator.read", { campaignId: oocCampaign.id, afterSeq: 0, limit: 10 });
 assert.ok(askRead.result.asks.some((a) => a.id === testAsk.id), "narrator.read must include asks");
 
-const answeredAsk = await executeMcpNarratorControl("narrator.answer_ask", {
+const answerCommandId = randomUUID();
+const askSequence = latestSeq(oocCampaign.id);
+const answerRequest = {
   campaignId: oocCampaign.id,
   askId: testAsk.id,
+  expectedVersion: testAsk.version,
+  commandId: answerCommandId,
   answer: "Sneak attack grants extra damage once per turn when you have advantage.",
-});
+};
+const answeredAsk = await executeMcpNarratorControl("narrator.answer_ask", answerRequest);
 assert.equal(answeredAsk.handled, true);
 assert.equal(answeredAsk.result.ask.status, "answered");
 assert.equal(answeredAsk.result.ask.answer.includes("Sneak attack grants extra damage"), true);
+
+assert.equal(latestSeq(oocCampaign.id), askSequence);
+assert.equal((await executeMcpNarratorControl("narrator.answer_ask", answerRequest)).result.ask.version, 1);
+await assert.rejects(() => executeMcpNarratorControl("narrator.answer_ask", { ...answerRequest, commandId: randomUUID(), answer: "Conflicting answer" }), error => error.status === 409);
+assert.equal((await executeMcpNarratorControl("narrator.read", { campaignId: oocCampaign.id })).result.asks.some(a => a.id === testAsk.id), false);
 
 assert.equal(fetchCalls, 0, "no server provider/network call may be attempted");
 

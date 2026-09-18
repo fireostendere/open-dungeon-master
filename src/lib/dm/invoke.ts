@@ -142,6 +142,12 @@ export function normalizeArgs(
   ) {
     out.characterIds = [out.characterId];
   }
+  // External callers historically supplied both enemyId and targetEnemyId for
+  // pc_attack. Keep that façade contract while accepting the canonical target
+  // from older callers and filling the compatibility alias deterministically.
+  if (entry.name === "pc_attack" && out.targetEnemyId && !out.enemyId) {
+    out.enemyId = out.targetEnemyId;
+  }
   return out;
 }
 

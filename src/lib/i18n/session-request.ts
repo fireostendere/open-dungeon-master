@@ -2,9 +2,13 @@ import { sessionRequestError, sessionText, type SessionTextKey } from "./session
 import type { Locale } from "./translations";
 
 export class SessionRequestError extends Error {
-  constructor(message: string, readonly status: number, readonly data: Record<string, unknown>) {
+  readonly status: number;
+  readonly data: Record<string, unknown>;
+  constructor(message: string, status: number, data: Record<string, unknown>) {
     super(message);
     this.name = "SessionRequestError";
+    this.status = status;
+    this.data = data;
   }
 }
 

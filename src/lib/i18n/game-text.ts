@@ -18,7 +18,7 @@ const en = {
 } as const;
 export type GameTextKey = keyof typeof en;
 export const GAME_TEXT: Record<GameLanguage, Record<GameTextKey, string>> = {
-  en,
+  en: en,
   ru: {
     moment: "Мгновение замирает в ожидании следующего действия отряда.",
     whisper: "Ведущий внимательно принимает ваши слова и вплетёт их в историю.",

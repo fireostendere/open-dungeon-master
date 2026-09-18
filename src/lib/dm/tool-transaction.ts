@@ -44,7 +44,11 @@ export function withGameStateRollback<T>(state: readonly unknown[], work: () => 
 }
 
 class RefusedTool extends Error {
-  constructor(readonly result: unknown) { super("Tool refused"); }
+  readonly result: unknown;
+  constructor(result: unknown) {
+    super("Tool refused");
+    this.result = result;
+  }
 }
 function refused(value: unknown): boolean {
   if (!value || typeof value !== "object") return false;

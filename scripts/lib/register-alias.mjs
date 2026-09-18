@@ -10,6 +10,18 @@ export function resolve(specifier, context, nextResolve) {
     let target = bare;
     if (!/\.(ts|tsx|json|mjs)$/.test(bare)) target = fs.existsSync(path.join(bare, "index.ts")) ? path.join(bare, "index.ts") : `${bare}.ts`;
     spec = pathToFileURL(target).href;
+  } else if ((spec.startsWith("./") || spec.startsWith("../")) && !/\.(ts|tsx|json|mjs|js)$/.test(spec) && context.parentURL) {
+    try {
+      const parentPath = new URL(context.parentURL).pathname;
+      const bare = path.resolve(path.dirname(parentPath), spec);
+      if (fs.existsSync(`${bare}.ts`)) {
+        spec = pathToFileURL(`${bare}.ts`).href;
+      } else if (fs.existsSync(`${bare}.tsx`)) {
+        spec = pathToFileURL(`${bare}.tsx`).href;
+      } else if (fs.existsSync(path.join(bare, "index.ts"))) {
+        spec = pathToFileURL(path.join(bare, "index.ts")).href;
+      }
+    } catch {}
   }
   return nextResolve(spec, context);
 }

@@ -176,6 +176,24 @@ test("a select refuses a value outside its options", () => {
   assert.equal(checkArgs(action, { characterId: "c1", action: "dodge" }), null);
 });
 
+test("combat and roll forms expose the handler's real argument names", () => {
+  const attack = adjudication("pc_attack");
+  const attackFields = new Set(attack.fields.map((field) => field.name));
+  assert.ok(attackFields.has("targetEnemyId"));
+  assert.ok(attackFields.has("enemyId"), "legacy external alias stays visible");
+
+  const cast = adjudication("cast_at_enemy");
+  const castFields = new Set(cast.fields.map((field) => field.name));
+  assert.ok(castFields.has("targetEnemyId"));
+  assert.ok(castFields.has("saveAbility"));
+  assert.equal(castFields.has("enemyIds"), false);
+
+  const roll = adjudication("request_roll");
+  const rollFields = new Set(roll.fields.map((field) => field.name));
+  assert.ok(rollFields.has("expression"));
+  assert.ok(rollFields.has("targetEnemyId"));
+});
+
 test("the console offers every entry exactly once", () => {
   // Not "every visible entry": nothing is hidden. If the engine can do it,
   // the person running the table can reach it.

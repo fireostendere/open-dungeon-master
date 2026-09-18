@@ -8,6 +8,7 @@ import { createRequire } from 'node:module';
 import { DatabaseSync } from 'node:sqlite';
 import { loadModule, sqliteAdapter } from './lib/merge-test-module.mjs';
 const require = createRequire(import.meta.url);
+process.env.DB_ENCRYPTION_KEY = '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef';
 const { z } = require('zod');
 if (z.__mergeTestAdapter) console.log('SCHEMA DEPENDENCY: local adapter; real Zod/full application validation is NOT verified in this run.');
 const root = fileURLToPath(new URL('../', import.meta.url));
@@ -39,7 +40,9 @@ test('OOC event projection filters new/edited talk, preserves opaque unrelated e
 const A='11111111-1111-4111-8111-111111111111',B='22222222-2222-4222-8222-222222222222';
 function fixture(t) {
   const db=new DatabaseSync(':memory:');const adapter=sqliteAdapter(db);
-  db.exec(`CREATE TABLE campaign_asks(id TEXT PRIMARY KEY,campaign_id TEXT,user_id TEXT,character_id TEXT,
+  db.exec(`CREATE TABLE IF NOT EXISTS campaigns (id TEXT PRIMARY KEY);
+    INSERT OR IGNORE INTO campaigns (id) VALUES ('${A}'), ('${B}');
+    CREATE TABLE campaign_asks(id TEXT PRIMARY KEY,campaign_id TEXT,user_id TEXT,character_id TEXT,
     visibility TEXT CHECK(visibility IN ('private','table')),scope TEXT CHECK(scope IN ('story','rules','sheet')),
     question TEXT,answer TEXT,citations_json TEXT,status TEXT CHECK(status IN ('answered','failed')),created_at TEXT);
     CREATE TABLE campaign_events(campaign_id TEXT,seq INTEGER,type TEXT,payload_json TEXT,created_at TEXT);
@@ -85,6 +88,7 @@ function fixture(t) {
   });
   const route=load('src/app/api/campaigns/[campaignId]/ask/route.ts',{
     zod:{z},'@/lib/campaign-api':{requireVoice:async()=>voiceError??{user:{id:'alice'}},requireMember:async()=>voiceError??{user:{id:'bob'}},isErrorResponse:x=>x instanceof Response},
+    '@/lib/ingress-budget':{enforcePlayerIngress:()=>null},
     '@/lib/db/campaigns':campaignApi,'@/lib/db/asks':asks,'@/lib/db/sheets':{getSheetForUser:()=>({id:'sheet'})},
     '@/lib/events':events,'@/lib/dm/ask':{runAsk:async()=>{modelCalls++;return{answer:'AI response',citations:[]};}},
     '@/lib/dm/ask-logic':{ASK_SCOPES:['story','rules','sheet'],ASK_VISIBILITIES:['private','table'],QUESTION_MAX_CHARS:1000,clampQuestion:x=>x,inferScope:()=> 'story'},
@@ -94,7 +98,7 @@ function fixture(t) {
   stops.push(events.subscribe(A,chunk=>streams.anonymous.push(chunk)),events.subscribe(B,chunk=>streams.other.push(chunk),'alice'));
   for(const value of Object.values(streams))value.length=0;
   t.after(()=>{stops.forEach(stop=>stop());db.close();});
-  const insert=(campaignId=A,visibility='private')=>asks.insertAsk({campaignId,userId:'alice',characterId:'sheet',visibility,scope:'story',question:'Secret question',answer:'Awaiting reply',citations:[],status:'answered'});
+  const insert=(campaignId=A,visibility='private')=>asks.insertAsk({campaignId,userId:'alice',characterId:'sheet',visibility,scope:'story',question:'Secret question',answer:'Awaiting reply',citations:[],status:'pending'});
   const message=(content,type='message_added')=>{
     const n=++seq;db.prepare('INSERT INTO campaign_messages VALUES(?,?,?,?)').run(A,n,'player',content);
     events.publishWithSeq(A,n,type,{message:{content}});return n;
@@ -137,7 +141,7 @@ test('table reply sends a contentless notification to the table',async t=>{
 
 test('private human Ask submission cannot enter shared persisted/SSE payloads or run the model',async t=>{
   const f=fixture(t);const response=await f.submit({question:'PRIVATE SENTINEL'});
-  assert.equal(response.status,200);const {ask}=await response.json();assert.equal(ask.question,'PRIVATE SENTINEL');
+  assert.equal(response.status,202);const {ask}=await response.json();assert.equal(ask.question,'PRIVATE SENTINEL');
   assert.equal(f.modelCalls(),0);assert.equal(f.getSeq(),0);
   assert.equal(f.db.prepare('SELECT COUNT(*) n FROM campaign_events').get().n,0);
   for(const stream of Object.values(f.streams))assert.ok(!stream.join('').includes('PRIVATE SENTINEL'));

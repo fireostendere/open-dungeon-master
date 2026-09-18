@@ -84,6 +84,10 @@ export const pcAttackTool: ToolDef = {
       properties: {
         characterId: { type: "string", description: "Exact characterId from GAME STATE." },
         targetEnemyId: { type: "string", description: "Exact enemyId from GAME STATE." },
+        enemyId: {
+          type: "string",
+          description: "Legacy compatibility alias for targetEnemyId; when supplied it must be the same enemy.",
+        },
         weapon: {
           type: "string",
           description:
@@ -127,7 +131,7 @@ export const pcAttackTool: ToolDef = {
             "Battle Master maneuver riding this weapon attack (e.g. 'Trip Attack', 'Precision Attack', 'Menacing Attack'). The server spends a Superiority Die, adds it to the damage (Precision: to the attack roll), and rolls the target's save against the maneuver's rider.",
         },
       },
-      required: ["characterId", "targetEnemyId"],
+      required: ["characterId", "enemyId", "targetEnemyId"],
     },
   },
 };
@@ -135,6 +139,7 @@ export const pcAttackTool: ToolDef = {
 const pcAttackArgsSchema = z.object({
   characterId: z.string(),
   targetEnemyId: z.string(),
+  enemyId: z.string().optional(),
   weapon: z.string().max(80).optional(),
   spell: z.string().max(80).optional(),
   damage: z.string().max(30).optional(),
@@ -192,7 +197,7 @@ export function handlePcAttack(
   try {
     args = pcAttackArgsSchema.parse(JSON.parse(rawArguments || "{}"));
   } catch {
-    return { error: "Invalid arguments: pc_attack needs characterId and targetEnemyId." };
+    return { error: "Invalid arguments: pc_attack needs characterId, enemyId and targetEnemyId." };
   }
   const staleSheet = resolveSheetRef(args.characterId, sheets, sheetsById);
   const sheet = staleSheet ? (getSheetById(staleSheet.id) ?? staleSheet) : null;
@@ -201,6 +206,9 @@ export function handlePcAttack(
   }
   if (sheet.currentHp <= 0) {
     return { error: `${sheet.name} is at 0 HP and cannot attack.` };
+  }
+  if (args.enemyId && args.enemyId !== args.targetEnemyId) {
+    return { error: "enemyId and targetEnemyId must identify the same enemy." };
   }
   const stoppedBy = incapacitatedBy(sheet.conditions);
   if (stoppedBy) {

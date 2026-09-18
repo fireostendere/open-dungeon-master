@@ -3,6 +3,8 @@ import {
   CAMPAIGN_LENGTHS,
   COMPANION_SETTINGS,
   DICE_POLICIES,
+  DM_DIFFICULTY_LEVELS,
+  DEFAULT_DM_DIFFICULTY,
   DM_MODES,
   GENRES,
 } from "@/lib/schemas/game-settings-options";
@@ -16,6 +18,8 @@ export {
   COMPANION_LABELS,
   COMPANION_SETTINGS,
   DICE_POLICIES,
+  DM_DIFFICULTY_LEVELS,
+  DEFAULT_DM_DIFFICULTY,
   DM_MODE_HINTS,
   DM_MODE_LABELS,
   DM_MODES,
@@ -23,6 +27,7 @@ export {
   type CampaignLengthSetting,
   type CompanionSetting,
   type DicePolicy,
+  type DmDifficulty,
   type DmModeSetting,
   type Genre,
 } from "@/lib/schemas/game-settings-options";
@@ -61,6 +66,14 @@ export const gameSettingsSchema = z.object({
   aiStorySetup: z.boolean().default(true),
   campaignLength: z.enum(CAMPAIGN_LENGTHS).default("standard"),
   dicePolicy: z.enum(DICE_POLICIES).default("digital_only"),
+  // Narrator strictness is independent from encounter-budget difficulty.
+  // Existing rows without this field get the middle default through normalization.
+  dmDifficulty: z
+    .number()
+    .int()
+    .min(DM_DIFFICULTY_LEVELS[0])
+    .max(DM_DIFFICULTY_LEVELS.at(-1) ?? 10)
+    .default(DEFAULT_DM_DIFFICULTY),
   ttsEnabled: z.boolean().default(true),
   ttsVoice: z.string().trim().max(40).default("af_heart"),
   // The sound library (src/lib/ambience/catalog.ts). On by default and free

@@ -1323,7 +1323,7 @@ async function runAdvance(context: TurnContext, turn: DmTurn) {
           ...(rollCall.id ? { tool_call_id: rollCall.id } : {}),
           content: JSON.stringify({
             error:
-              "Character attacks in combat go through pc_attack: call it with characterId, targetEnemyId, and the weapon (or spell + damage dice). The server rolls to-hit from their sheet, adjudicates against the enemy's AC, and applies damage itself.",
+              "Character attacks in combat go through pc_attack: call it with characterId plus both enemyId and targetEnemyId set to the same enemy, and the weapon (or spell + damage dice). The server rolls to-hit from their sheet, adjudicates against the enemy's AC, and applies damage itself.",
           }),
         });
         continue;

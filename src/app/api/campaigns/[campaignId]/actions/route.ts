@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { enforcePlayerIngress } from "@/lib/ingress-budget";
 import { isErrorResponse, requireVoice } from "@/lib/campaign-api";
 import {
   allocateSeq,
@@ -52,6 +53,8 @@ export async function POST(
     return Response.json({ error: "Invalid action." }, { status: 400 });
   }
 
+  const limited = enforcePlayerIngress(campaignId, user.id, "action");
+  if (limited) return limited;
   const { kind } = parsed.data;
 
   // Floor control: during a spotlight only the named players may act (ooc is

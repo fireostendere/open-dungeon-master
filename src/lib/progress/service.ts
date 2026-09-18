@@ -45,8 +45,12 @@ export function syncProgressLookup(input: {
 
 type PartySync = ReturnType<typeof syncPartyProgress>;
 class PartySyncBlocked extends Error {
-  constructor(readonly sync: PartySync, readonly campaignStatus: string) {
+  readonly sync: PartySync;
+  readonly campaignStatus: string;
+  constructor(sync: PartySync, campaignStatus: string) {
     super("Not every selected party member synchronized successfully.");
+    this.sync = sync;
+    this.campaignStatus = campaignStatus;
   }
 }
 

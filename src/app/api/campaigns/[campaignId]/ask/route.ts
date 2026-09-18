@@ -1,22 +1,19 @@
 import { z } from "zod";
 import { isErrorResponse, requireMember, requireVoice } from "@/lib/campaign-api";
 import { getCampaignById } from "@/lib/db/campaigns";
-import { insertAsk, listAsksForUser } from "@/lib/db/asks";
+import { insertAsk, listAsksForUser, AskQueueFull } from "@/lib/db/asks";
 import { getSheetForUser } from "@/lib/db/sheets";
 import { publishEphemeral, publishUserEphemeral } from "@/lib/events";
 import { runAsk } from "@/lib/dm/ask";
 import { ASK_SCOPES, ASK_VISIBILITIES, QUESTION_MAX_CHARS, clampQuestion, inferScope } from "@/lib/dm/ask-logic";
-
+import { enforcePlayerIngress } from "@/lib/ingress-budget";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-// Questions never take the floor, create story messages or enqueue a DM turn.
 const askSchema = z.object({
   question: z.string().trim().min(1).max(QUESTION_MAX_CHARS),
   scope: z.enum(["auto", ...ASK_SCOPES]).default("auto"),
   visibility: z.enum(ASK_VISIBILITIES).default("private"),
 });
-
 export async function POST(request: Request, { params }: { params: Promise<{ campaignId: string }> }) {
   const { campaignId } = await params;
   const context = await requireVoice(campaignId);
@@ -25,28 +22,35 @@ export async function POST(request: Request, { params }: { params: Promise<{ cam
   const raw = await request.json().catch(() => ({}));
   const parsed = askSchema.safeParse(raw);
   if (!parsed.success) return Response.json({ error: "Invalid question." }, { status: 400 });
+  const limited = enforcePlayerIngress(campaignId, user.id, "ask");
+  if (limited) return limited;
   const question = clampQuestion(parsed.data.question);
   const scope = parsed.data.scope === "auto" ? inferScope(question) : parsed.data.scope;
   const sheet = getSheetForUser(campaignId, user.id);
   const campaign = getCampaignById(campaignId);
-
   if (campaign?.gameSettings.dmMode === "human") {
-    // Retain the existing database status contract (answered/failed); this
-    // localized acknowledgement is replaced by the external DM's answer.
     const language = /(?:^|;\s*)odm_locale=(ru|en|pl)(?:;|$)/.exec(request.headers.get("cookie") ?? "")?.[1]
       ?? campaign.gameSettings.language ?? "ru";
-    const acknowledgement = language === "pl" ? "Pytanie zostało przekazane Mistrzowi Gry…" :
-      language === "en" ? "Your question has been sent to the Dungeon Master…" : "Вопрос передан Мастеру стола…";
-    const ask = insertAsk({ campaignId, userId: user.id, characterId: sheet?.id ?? null,
-      visibility: parsed.data.visibility, scope, question, answer: acknowledgement, citations: [], status: "answered" });
-    if (ask.visibility === "table") publishEphemeral(campaignId, "ask_activity", {});
-    else {
-      publishUserEphemeral(campaignId, user.id, "ask_activity", {});
-      if (campaign.dmUserId && campaign.dmUserId !== user.id) publishUserEphemeral(campaignId, campaign.dmUserId, "ask_activity", {});
+    const ACKNOWLEDGEMENT: Record<string, string> = {
+      en: "Your question has been sent to the Dungeon Master…",
+      ru: "Вопрос передан Мастеру стола…",
+      pl: "Pytanie zostało przekazane Mistrzowi Gry…",
+    };
+    const acknowledgement = ACKNOWLEDGEMENT[language] ?? ACKNOWLEDGEMENT.en;
+    try {
+      const ask = insertAsk({ campaignId, userId: user.id, characterId: sheet?.id ?? null,
+        visibility: parsed.data.visibility, scope, question, answer: acknowledgement, citations: [], status: "pending" });
+      if (ask.visibility === "table") publishEphemeral(campaignId, "ask_activity", {});
+      else {
+        publishUserEphemeral(campaignId, user.id, "ask_activity", {});
+        if (campaign.dmUserId && campaign.dmUserId !== user.id) publishUserEphemeral(campaignId, campaign.dmUserId, "ask_activity", {});
+      }
+      return Response.json({ ask }, { status: 202 });
+    } catch (error) {
+      if (error instanceof AskQueueFull) return Response.json({ error: error.message }, { status: 429 });
+      throw error;
     }
-    return Response.json({ ask });
   }
-
   const result = await runAsk({ campaignId, userId: user.id, question, scope });
   const failed = "error" in result;
   const ask = insertAsk({ campaignId, userId: user.id, characterId: sheet?.id ?? null,
@@ -56,7 +60,6 @@ export async function POST(request: Request, { params }: { params: Promise<{ cam
   if (failed) return Response.json({ error: result.error, ask }, { status: 502 });
   return Response.json({ ask });
 }
-
 export async function GET(_request: Request, { params }: { params: Promise<{ campaignId: string }> }) {
   const { campaignId } = await params;
   const context = await requireMember(campaignId);

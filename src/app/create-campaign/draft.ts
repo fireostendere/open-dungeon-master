@@ -5,6 +5,7 @@ import type { WorldPackSummary } from "@/lib/worlds/types";
 import type {
   CampaignLengthSetting,
   DicePolicy,
+  DmDifficulty,
   DmModeSetting,
   GameSettings,
   Genre,
@@ -33,6 +34,7 @@ export type CampaignDraft = {
   descriptionTouched: boolean;
   aiStorySetup: boolean;
   dicePolicy: DicePolicy;
+  dmDifficulty: DmDifficulty;
   ttsEnabled: boolean;
   ttsVoice: string;
   mapsEnabled: boolean;
@@ -75,6 +77,7 @@ export const DEFAULT_DRAFT: CampaignDraft = {
   descriptionTouched: false,
   aiStorySetup: true,
   dicePolicy: "digital_only",
+  dmDifficulty: 5,
   ttsEnabled: true,
   ttsVoice: "af_heart",
   mapsEnabled: true,

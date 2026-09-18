@@ -2,8 +2,10 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
+import { fileURLToPath } from 'node:url';
 const require = createRequire(import.meta.url);
 const ts = require('typescript');
+const srcRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../src');
 export function loadReviewModule(filename, mocks = {}) {
   const source = fs.readFileSync(filename, 'utf8');
   const output = ts.transpileModule(source, {fileName: filename,
@@ -12,8 +14,22 @@ export function loadReviewModule(filename, mocks = {}) {
   if (errors.length) throw new Error(ts.formatDiagnostics(errors, {getCanonicalFileName: f => f, getCurrentDirectory: () => process.cwd(), getNewLine: () => '\n'}));
   const module = {exports:{}};
   const localRequire = createRequire(filename);
+  const resolveDep = (name) => {
+    if (Object.hasOwn(mocks, name)) return mocks[name];
+    if (name.startsWith('@/')) {
+      const bare = path.join(srcRoot, name.slice(2));
+      if (fs.existsSync(bare) && fs.statSync(bare).isFile()) return localRequire(bare);
+      if (fs.existsSync(`${bare}.ts`)) return loadReviewModule(`${bare}.ts`, mocks);
+      if (fs.existsSync(`${bare}.mjs`)) return localRequire(`${bare}.mjs`);
+      if (fs.existsSync(`${bare}.js`)) return localRequire(`${bare}.js`);
+      if (fs.existsSync(`${bare}.json`)) return localRequire(`${bare}.json`);
+      if (fs.existsSync(path.join(bare, 'index.ts'))) return loadReviewModule(path.join(bare, 'index.ts'), mocks);
+      if (fs.existsSync(path.join(bare, 'index.js'))) return localRequire(path.join(bare, 'index.js'));
+    }
+    return localRequire(name);
+  };
   new Function('require','module','exports','__filename','__dirname',output.outputText)(
-    name => Object.hasOwn(mocks,name) ? mocks[name] : localRequire(name), module,module.exports,filename,path.dirname(filename));
+    resolveDep, module,module.exports,filename,path.dirname(filename));
   return module.exports;
 }
 export function namedImports(filename) {

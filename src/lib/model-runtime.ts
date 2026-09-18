@@ -62,9 +62,11 @@ export function resolveContextLimit(declared: number | null | undefined, overrid
 
 export type RequestBudget = { contextTokens: number; estimatedInputTokens: number; maxOutputTokens: number };
 export class ModelContextError extends Error {
-  constructor(readonly budget: Omit<RequestBudget, "maxOutputTokens">) {
+  readonly budget: Omit<RequestBudget, "maxOutputTokens">;
+  constructor(budget: Omit<RequestBudget, "maxOutputTokens">) {
     super("MODEL_CONTEXT_EXCEEDED");
     this.name = "ModelContextError";
+    this.budget = budget;
   }
 }
 

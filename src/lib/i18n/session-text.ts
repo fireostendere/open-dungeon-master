@@ -122,15 +122,22 @@ export function sessionRequestError(locale: Locale, fallback: SessionTextKey, st
   return sessionText(locale, key);
 }
 
-const conditions: Record<string, [string, string]> = {
-  blinded: ["ослеплён", "oślepiony"], charmed: ["очарован", "zauroczony"],
-  deafened: ["оглохший", "ogłuszony"], frightened: ["испуган", "przerażony"],
-  grappled: ["схвачен", "pochwycony"], incapacitated: ["недееспособен", "obezwładniony"],
-  invisible: ["невидим", "niewidzialny"], paralyzed: ["парализован", "sparaliżowany"],
-  petrified: ["окаменел", "skamieniały"], poisoned: ["отравлен", "zatruty"],
-  prone: ["сбит с ног", "powalony"], restrained: ["опутан", "unieruchomiony"],
-  stunned: ["ошеломлён", "oszołomiony"], unconscious: ["без сознания", "nieprzytomny"],
-  exhaustion: ["истощение", "wyczerpanie"],
+const conditions: Record<string, Record<Locale, string>> = {
+  blinded: { en: "blinded", ru: "ослеплён", pl: "oślepiony" },
+  charmed: { en: "charmed", ru: "очарован", pl: "zauroczony" },
+  deafened: { en: "deafened", ru: "оглохший", pl: "ogłuszony" },
+  frightened: { en: "frightened", ru: "испуган", pl: "przerażony" },
+  grappled: { en: "grappled", ru: "схвачен", pl: "pochwycony" },
+  incapacitated: { en: "incapacitated", ru: "недееспособен", pl: "obezwładniony" },
+  invisible: { en: "invisible", ru: "невидим", pl: "niewidzialny" },
+  paralyzed: { en: "paralyzed", ru: "парализован", pl: "sparaliżowany" },
+  petrified: { en: "petrified", ru: "окаменел", pl: "skamieniały" },
+  poisoned: { en: "poisoned", ru: "отравлен", pl: "zatruty" },
+  prone: { en: "prone", ru: "сбит с ног", pl: "powalony" },
+  restrained: { en: "restrained", ru: "опутан", pl: "unieruchomiony" },
+  stunned: { en: "stunned", ru: "ошеломлён", pl: "oszołomiony" },
+  unconscious: { en: "unconscious", ru: "без сознания", pl: "nieprzytomny" },
+  exhaustion: { en: "exhaustion", ru: "истощение", pl: "wyczerpanie" },
 };
 
 export function describeAuditEntry(entry: {kind: string; delta: Record<string, unknown>}, name: string, locale: Locale): string {
@@ -138,7 +145,7 @@ export function describeAuditEntry(entry: {kind: string; delta: Record<string, u
   const quantity = (raw: unknown) => Number(raw) > 1 ? ` ×${raw}` : "";
   const render = (key: SessionTextKey, params: Record<string, unknown> = {}) => sessionText(locale, key, {name, ...params});
   const condition = String(d.condition ?? "");
-  const localizedCondition = locale === "en" ? condition : conditions[condition.toLowerCase()]?.[locale === "ru" ? 0 : 1] ?? condition;
+  const localizedCondition = conditions[condition.toLowerCase()]?.[locale] ?? condition;
   switch (entry.kind) {
     case "apply_damage":
       if (d.form) return d.reverted

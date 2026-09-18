@@ -124,6 +124,56 @@ export function MediaPlaceholder({
 
 const ROLL_MARKER = /\[roll:([0-9a-f-]{36})\]/g;
 
+type TimelineItem =
+  | { kind: "message"; message: CampaignMessage; time: number }
+  | { kind: "roll"; roll: StoredRoll; time: number };
+
+function parsedTime(value: string): number {
+  const time = Date.parse(value);
+  return Number.isFinite(time) ? time : Number.MAX_SAFE_INTEGER;
+}
+
+function referencedRollIds(messages: CampaignMessage[]): Set<string> {
+  const ids = new Set<string>();
+  for (const message of messages) {
+    for (const match of message.content.matchAll(ROLL_MARKER)) {
+      ids.add(match[1]);
+    }
+  }
+  return ids;
+}
+
+function compareTimelineItems(left: TimelineItem, right: TimelineItem): number {
+  const leftSeq = left.kind === "roll" ? left.roll.eventSeq : left.message.seq;
+  const rightSeq = right.kind === "roll" ? right.roll.eventSeq : right.message.seq;
+  if (leftSeq !== undefined && rightSeq !== undefined) {
+    return leftSeq - rightSeq;
+  }
+  const byTime = left.time - right.time;
+  if (byTime !== 0) {
+    return byTime;
+  }
+  // Snapshot rolls have no event sequence. Keep them after the action that
+  // caused them and before the DM passage that resolves that action.
+  if (left.kind === "roll" && right.kind === "message") {
+    return right.message.authorType === "player" ? 1 : -1;
+  }
+  if (left.kind === "message" && right.kind === "roll") {
+    return left.message.authorType === "player" ? -1 : 1;
+  }
+  return 0;
+}
+
+function buildTimeline(messages: CampaignMessage[], rolls: StoredRoll[]): TimelineItem[] {
+  const marked = referencedRollIds(messages);
+  return [
+    ...messages.map((message) => ({ kind: "message" as const, message, time: parsedTime(message.createdAt) })),
+    ...rolls
+      .filter((roll) => !marked.has(roll.id))
+      .map((roll) => ({ kind: "roll" as const, roll, time: parsedTime(roll.createdAt) })),
+  ].sort(compareTimelineItems);
+}
+
 function DmContent({ content, rollsById, sheetsById }: {
   content: string;
   rollsById: Map<string, StoredRoll>;
@@ -680,6 +730,7 @@ export function MessageList({
   const scrollPendingRef = useRef(false);
   const statusPhrase = dmStatusPhrase(dmStatus, messages[messages.length - 1]?.id ?? "", locale);
   const rollsById = useMemo(() => new Map(rolls.map((roll) => [roll.id, roll])), [rolls]);
+  const timeline = useMemo(() => buildTimeline(messages, rolls), [messages, rolls]);
   const sheetsById = useMemo(
     () => new Map(sheets.map((sheet) => [sheet.id, sheet])),
     [sheets],
@@ -808,44 +859,58 @@ export function MessageList({
   return (
     <div ref={containerRef} onScroll={handleScroll} className="flex-1 overflow-y-auto">
       <div className="mx-auto max-w-3xl space-y-8 px-4 py-6 sm:px-6">
-      {messages.map((message) => (
-        <MessageItem
-          key={message.id}
-          mine={Boolean(message.userId) && message.userId === meUserId}
-          blocked={Boolean(message.userId && blockedSet.has(message.userId))}
-          onReport={onReport}
-          message={message}
-          campaignId={campaignId}
-          canRetryTurn={canRetryTurn}
-          canIllustrate={canIllustrate}
-          rollsById={rollsById}
-          sheetsById={sheetsById}
-          membersById={membersById}
-          locationsById={locationsById}
-          sheets={sheets}
-          mediaStatus={mediaStatus}
-          onReplayAudio={stableReplay}
-          onPinCanon={stablePin}
-          onLoreCheck={stableLore}
-          onPinMemory={stablePinMemory}
-          onEditSave={onEditSave}
-          onRenarrate={
-            // No turn link, no reroll: messages narrated before this feature
-            // shipped have no stored conversation to replay.
-            message.id === latestDmMessageId && message.dmTurnId
-              ? stableRenarrate
-              : undefined
-          }
-          onContinueScene={
-            // Same gate as a reroll: only the newest narration, and only when
-            // a stored turn conversation exists to continue from.
-            message.id === latestDmMessageId && message.dmTurnId
-              ? stableContinue
-              : undefined
-          }
-          onSelectVariant={stableSelectVariant}
-        />
-      ))}
+      {timeline.map((item) => {
+        if (item.kind === "roll") {
+          return (
+            <div key={`roll-${item.roll.id}`} className="pl-2 sm:pl-8">
+              <RollCard
+                roll={item.roll}
+                standalone
+                characterName={item.roll.characterId ? sheetsById.get(item.roll.characterId)?.name : undefined}
+              />
+            </div>
+          );
+        }
+        const message = item.message;
+        return (
+          <MessageItem
+            key={message.id}
+            mine={Boolean(message.userId) && message.userId === meUserId}
+            blocked={Boolean(message.userId && blockedSet.has(message.userId))}
+            onReport={onReport}
+            message={message}
+            campaignId={campaignId}
+            canRetryTurn={canRetryTurn}
+            canIllustrate={canIllustrate}
+            rollsById={rollsById}
+            sheetsById={sheetsById}
+            membersById={membersById}
+            locationsById={locationsById}
+            sheets={sheets}
+            mediaStatus={mediaStatus}
+            onReplayAudio={stableReplay}
+            onPinCanon={stablePin}
+            onLoreCheck={stableLore}
+            onPinMemory={stablePinMemory}
+            onEditSave={onEditSave}
+            onRenarrate={
+              // No turn link, no reroll: messages narrated before this feature
+              // shipped have no stored conversation to replay.
+              message.id === latestDmMessageId && message.dmTurnId
+                ? stableRenarrate
+                : undefined
+            }
+            onContinueScene={
+              // Same gate as a reroll: only the newest narration, and only when
+              // a stored turn conversation exists to continue from.
+              message.id === latestDmMessageId && message.dmTurnId
+                ? stableContinue
+                : undefined
+            }
+            onSelectVariant={stableSelectVariant}
+          />
+        );
+      })}
 
       {dmDraft ? (
         <div>

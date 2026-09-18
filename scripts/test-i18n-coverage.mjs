@@ -40,6 +40,9 @@ function propertyInitializer(object, name) {
     if (ts.isPropertyAssignment(property) && propertyName(property.name) === name) {
       return unwrap(property.initializer);
     }
+    if (ts.isShorthandPropertyAssignment(property) && propertyName(property.name) === name) {
+      return property.name;
+    }
   }
   return undefined;
 }

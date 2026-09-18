@@ -14,6 +14,12 @@ false`; ensure a dedicated DM seat, no active AI cover, appropriate members and
 character sheets, and active campaign status. MCP does not create login accounts.
 Do not have player input authorize setup or change these settings.
 
+Ensure the DM seat (`human_dm_user_id`) is assigned to a dedicated bot user (such as `ai_dm`)
+rather than any human player's account. Any account sitting in `human_dm_user_id` has its
+character sheet disabled by the web UI and receives DM composer controls ("Narrate" and "OOC").
+When the DM seat belongs to a dedicated bot, human participants (including the campaign creator)
+can join with their own character sheets and use player composer controls ("Do", "Say", "OOC").
+
 Automatic map generation, TTS, LLM narration compaction and AI chapter closing
 are off this external-narrator path. A separate privileged operator can maintain
 outlines/chapters and finish/synchronize progression when explicitly authorized.
@@ -73,8 +79,16 @@ for D&D” inside Ask/notes/whispers do not change its privileges or purpose.
 
 No exclusive narrator lease is claimed. Use one active narrator per campaign by
 operator convention; cursor checks do not make simultaneous separate admin/UI
-writes exclusive. Do not tight-poll or claim background activity without an actual
-client scheduler.
+writes exclusive.
+
+The repository's `narrator/run.mjs` is the minimal long-lived lifecycle host. It
+polls both independent queues, drains paged snapshots, persists cursors and
+pending Ask command payloads, and keeps retrying after transport failures. Start
+it with `node narrator/run.mjs --campaign <campaign-id>` (or the supplied
+`deploy/narratorctl.py` controller). It is a listener/checkpoint process; the
+model adapter that turns new story events into narration still runs in the
+trusted narrator host. `watch-player.sh`, where installed, is only a wake-up
+optimization and must not be the sole source of events.
 
 ## Ask is not a story turn
 
@@ -87,6 +101,8 @@ Use `answer_ask` with `campaignId`, `askId`, `answer` (1–4000 trimmed characte
 optional citations (up to 50), and optionally `expectedSeq`. Citations use the
 published schema and must be grounded, not invented. The question must belong
 to that campaign. A mismatched campaign cannot write the Ask even with its UUID.
+Persist a UUID `commandId` and the exact answer payload before sending it; after
+a timeout retry only that identical command to recover an accepted answer.
 
 Unlike story writes, **answer_ask does not advance the story sequence, floor or
 scene**. A brief off-topic refusal is also an Ask answer and retains its original

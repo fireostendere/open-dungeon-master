@@ -19,6 +19,14 @@ export type Genre = (typeof GENRES)[number];
 export const DICE_POLICIES = ["digital_only", "real_allowed"] as const;
 export type DicePolicy = (typeof DICE_POLICIES)[number];
 
+// How strict the narrator is about consequences and player-facing rulings.
+// This is deliberately separate from the campaign's four-tier encounter
+// budget (`campaign.difficulty`): a forgiving table can still run a deadly
+// fight, and a strict table can still choose easy encounters.
+export const DM_DIFFICULTY_LEVELS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] as const;
+export type DmDifficulty = (typeof DM_DIFFICULTY_LEVELS)[number];
+export const DEFAULT_DM_DIFFICULTY: DmDifficulty = 5;
+
 // Who narrates. Mirrors DmMode in src/lib/dm/viewer.ts, which holds the pure
 // rules about what each seat may see and do; this is the stored setting.
 export const DM_MODES = ["ai", "human", "assisted"] as const;
