@@ -1,3 +1,4 @@
+import { campaignEventProjector } from "@/lib/spatial/event-policy";
 import { isErrorResponse, requireMember } from "@/lib/campaign-api";
 import { latestSeq } from "@/lib/db/campaigns";
 import { createCampaignStream } from "@/lib/campaign-stream";
@@ -21,6 +22,7 @@ export async function GET(
     return Response.json({ error: "Invalid campaign stream cursor." }, { status: 400 });
   }
   const stream = createCampaignStream({
+    ...campaignEventProjector(campaignId, context.user.id),
     afterSeq,
     signal: request.signal,
     latestSeq: () => latestSeq(campaignId),

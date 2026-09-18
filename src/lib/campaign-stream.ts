@@ -10,6 +10,11 @@ type StreamOptions = {
   listEventsSince: (afterSeq: number, limit: number) => ReplayEvent[];
   subscribe: (send: (chunk: string) => void) => () => void;
   sseChunk: (type: string, payload: unknown, id?: number) => string;
+  // Player streams install these together. Internal/test streams may omit
+  // them; authorization belongs to the authenticated route, not the transport.
+  assertAccess?: () => void;
+  projectEvent?: (event: ReplayEvent) => ReplayEvent;
+  projectLive?: (chunk: string) => string | null;
   heartbeatMs?: number;
   maximumBufferedBytes?: number;
 };
@@ -25,7 +30,7 @@ export function createCampaignStream(options: StreamOptions): ReadableStream<Uin
   let cursor = options.afterSeq;
   let watermark = 0;
   let bufferedBytes = 0;
-  const live: Uint8Array[] = [];
+  const live: Array<{ chunk: string; bytes: number }> = [];
   let wake: (() => void) | undefined;
   let unsubscribe = () => {};
   let heartbeat: ReturnType<typeof setInterval> | undefined;
@@ -56,12 +61,13 @@ export function createCampaignStream(options: StreamOptions): ReadableStream<Uin
       cleanup(new Error("Campaign stream consumer fell behind; reconnect to replay."));
       return;
     }
-    live.push(encoded);
+    live.push({ chunk, bytes: encoded.byteLength });
     bufferedBytes += encoded.byteLength;
     wake?.();
     wake = undefined;
   }
   function finishReplay() {
+    options.assertAccess?.();
     replaying = false;
     // Sequence allocations without an event are legal. Advance the transport
     // cursor over that tail without inventing a game event in the database.
@@ -75,6 +81,7 @@ export function createCampaignStream(options: StreamOptions): ReadableStream<Uin
     start(target) {
       controller = target;
       if (options.signal.aborted) { cleanup(); return; }
+      options.assertAccess?.();
       watermark = options.latestSeq();
       // Subscribe before the first page. Writes arriving between later pulls
       // are buffered while replay stops at this fixed watermark.
@@ -93,21 +100,38 @@ export function createCampaignStream(options: StreamOptions): ReadableStream<Uin
     async pull() {
       try {
         if (closed) return;
+        options.assertAccess?.();
         if (replaying) {
           const page = options.listEventsSince(cursor, PAGE_SIZE).filter((event) => event.seq <= watermark);
           for (const event of page) {
             if (!Number.isSafeInteger(event.seq) || event.seq <= cursor) throw new Error("Invalid campaign replay order.");
-            controller.enqueue(encoder.encode(options.sseChunk(event.type, event.payload, event.seq)));
+            const projected = options.projectEvent?.(event) ?? event;
+            if (projected.seq !== event.seq) throw new Error("Projection changed the campaign cursor.");
+            controller.enqueue(encoder.encode(options.sseChunk(projected.type, projected.payload, projected.seq)));
             cursor = event.seq;
           }
           if (page.length < PAGE_SIZE || cursor >= watermark) finishReplay();
           return;
         }
-        while (!closed && !live.length) await new Promise<void>((resolve) => { wake = resolve; });
-        if (closed) return;
-        const chunk = live.shift()!;
-        bufferedBytes -= chunk.byteLength;
-        controller.enqueue(chunk);
+        // Project at dequeue, not subscription time: role/membership may have
+        // changed while a slow browser was buffering. Never serialize DM data
+        // using privileges captured at connection opening.
+        while (!closed) {
+          while (!closed && !live.length) await new Promise<void>((resolve) => { wake = resolve; });
+          if (closed) return;
+          options.assertAccess?.();
+          const item = live.shift()!;
+          bufferedBytes -= item.bytes;
+          const chunk = options.projectLive ? options.projectLive(item.chunk) : item.chunk;
+          if (chunk === null) continue;
+          controller.enqueue(encoder.encode(chunk));
+          if (chunk.includes("\nevent: campaign_rewound\n")) {
+            // Buffered pre-rewind events belong to a discarded timeline.
+            // Reconnect from the reset cursor rather than mixing both feeds.
+            cleanup();
+          }
+          return;
+        }
       } catch (error) { cleanup(error); }
     },
     cancel() { cleanup(); },

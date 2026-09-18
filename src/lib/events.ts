@@ -1,4 +1,6 @@
-import { afterCommit } from "@/lib/db/commit-effects";
+import { captureEventAudience } from "@/lib/spatial/event-policy";
+import type { EventScope } from "@/lib/spatial/event-access.mjs";
+import { afterCommit, withCommittedEffects } from "@/lib/db/commit-effects";
 import { getDatabase, nowIso, parseJson } from "@/lib/db/core";
 import { allocateSeq } from "@/lib/db/campaigns";
 
@@ -131,7 +133,10 @@ function fanOut(campaignId: string, chunk: string) {
 // Persisted events are replayable after reconnect and carry an SSE id (the
 // campaign seq). Use publishWithSeq when the seq was already allocated so a
 // row (e.g. a campaign message) can share it.
-export function publishWithSeq(campaignId: string, seq: number, type: string, payload: unknown) {
+export function publishWithSeq(campaignId: string, seq: number, type: string, payload: unknown, scope?: EventScope) {
+  return withCommittedEffects(() => getDatabase().transaction(() => {
+  // The immutable audience and original event commit or roll back together.
+  captureEventAudience(campaignId, { seq, type, payload }, scope);
   getDatabase()
     .prepare(
       `INSERT INTO campaign_events (campaign_id, seq, type, payload_json, created_at) VALUES (?, ?, ?, ?, ?)`,
@@ -143,10 +148,11 @@ export function publishWithSeq(campaignId: string, seq: number, type: string, pa
     globalThis.__odmVoiceEventHook?.(campaignId, type);
   });
   return seq;
+  })());
 }
 
-export function publishPersisted(campaignId: string, type: string, payload: unknown) {
-  return publishWithSeq(campaignId, allocateSeq(campaignId), type, payload);
+export function publishPersisted(campaignId: string, type: string, payload: unknown, scope?: EventScope) {
+  return publishWithSeq(campaignId, allocateSeq(campaignId), type, payload, scope);
 }
 
 // Ephemeral events (streaming deltas, DM status) skip persistence and carry
