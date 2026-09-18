@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
-import { FileDown, Heart, Minus, Plus, PawPrint, Shield, Wrench, X } from "lucide-react";
+import { FileDown, Heart, Minus, Plus, PawPrint, Pencil, Shield, Wrench, X } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { CharacterPortrait, ui } from "@/lib/ui";
 import { downloadCharacterSheetPdf } from "@/lib/pdf/download";
@@ -60,6 +60,7 @@ export function CharacterSheetDialog({
   inCombat = false,
   portraitFallback,
   onAdjust,
+  onEditBackstory,
   onClose,
 }: {
   sheet: CharacterSheet;
@@ -75,6 +76,7 @@ export function CharacterSheetDialog({
   // stays available for bookkeeping.
   inCombat?: boolean;
   onAdjust?: () => void;
+  onEditBackstory?: () => void;
   onClose: () => void;
 }) {
   const derived = computeSheetDerived(sheet);
@@ -107,7 +109,9 @@ export function CharacterSheetDialog({
       proficiencyBonus: "PB",
       gold: "gp",
       level: "Level",
-      xpHitDice: "XP · Hit dice", wildShape: "Wild Shaped", beastHp: "Beast HP", ownHp: "own HP", savingThrows: "Saving throws", skills: "Skills", slots: "Slots", spendSlot: "Spend a slot", hitDice: "Hit dice", spendHitDie: "Spend a hit die", spendUse: "Spend a use", equipment: "Equipment", attuned: "attuned", attune: "attune", features: "Features & Traits", story: "(story)", feats: "Feats", backstory: "Backstory", notes: "Notes (only you see these)", downloadTitle: "Download this character sheet as a fillable PDF", preparing: "Preparing...", download: "Download PDF", adjustTitle: "Party lead: correct this character's stats, items, and spells", adjust: "Adjust",
+      xpHitDice: "XP · Hit dice", wildShape: "Wild Shaped", beastHp: "Beast HP", ownHp: "own HP", savingThrows: "Saving throws", skills: "Skills", slots: "Slots", spendSlot: "Spend a slot", hitDice: "Hit dice", spendHitDie: "Spend a hit die", spendUse: "Spend a use", equipment: "Equipment", attuned: "attuned", attune: "attune", features: "Features & Traits", story: "(story)", feats: "Feats", backstory: "Backstory", notes: "Notes (only you see these)", downloadTitle: "Download this character sheet as a fillable PDF", preparing: "Preparing...", download: "Download PDF", adjustTitle: "Adjust this character's stats, items, and spells", adjust: "Adjust",
+      editBackstory: "Edit backstory",
+      noBackstory: "No backstory written yet.",
     },
     ru: {
       baseSpeed: "Базовая",
@@ -119,7 +123,9 @@ export function CharacterSheetDialog({
       proficiencyBonus: "БМ",
       gold: "зм",
       level: "Уровень",
-      xpHitDice: "Опыт · Кости хитов", wildShape: "Дикая форма", beastHp: "Хиты зверя", ownHp: "собственные хиты", savingThrows: "Спасброски", skills: "Навыки", slots: "Ячейки", spendSlot: "Потратить ячейку", hitDice: "Кости хитов", spendHitDie: "Потратить кость хитов", spendUse: "Потратить применение", equipment: "Снаряжение", attuned: "настроен", attune: "настроить", features: "Умения и свойства", story: "(сюжет)", feats: "Черты", backstory: "Предыстория", notes: "Заметки (видны только вам)", downloadTitle: "Скачать этот лист персонажа как заполняемый PDF", preparing: "Подготовка...", download: "Скачать PDF", adjustTitle: "Лидер группы: исправить характеристики, предметы и заклинания персонажа", adjust: "Исправить",
+      xpHitDice: "Опыт · Кости хитов", wildShape: "Дикая форма", beastHp: "Хиты зверя", ownHp: "собственные хиты", savingThrows: "Спасброски", skills: "Навыки", slots: "Ячейки", spendSlot: "Потратить ячейку", hitDice: "Кости хитов", spendHitDie: "Потратить кость хитов", spendUse: "Потратить применение", equipment: "Снаряжение", attuned: "настроен", attune: "настроить", features: "Умения и свойства", story: "(сюжет)", feats: "Черты", backstory: "Предыстория", notes: "Заметки (видны только вам)", downloadTitle: "Скачать этот лист персонажа как заполняемый PDF", preparing: "Подготовка...", download: "Скачать PDF", adjustTitle: "Редактировать характеристики, предметы и заклинания персонажа", adjust: "Редактировать",
+      editBackstory: "Изменить предысторию",
+      noBackstory: "Предыстория ещё не написана.",
     },
     pl: {
       baseSpeed: "Bazowa",
@@ -131,7 +137,9 @@ export function CharacterSheetDialog({
       proficiencyBonus: "PB",
       gold: "sz.",
       level: "Poziom",
-      xpHitDice: "PD · Kości wytrzymałości", wildShape: "Dzika postać", beastHp: "PW bestii", ownHp: "własne PW", savingThrows: "Rzuty obronne", skills: "Umiejętności", slots: "Miejsca", spendSlot: "Użyj miejsca", hitDice: "Kości wytrzymałości", spendHitDie: "Użyj kości wytrzymałości", spendUse: "Użyj", equipment: "Ekwipunek", attuned: "dostrojony", attune: "dostrój", features: "Cechy i zdolności", story: "(fabuła)", feats: "Atuty", backstory: "Historia", notes: "Notatki (widzisz je tylko Ty)", downloadTitle: "Pobierz kartę postaci jako wypełnialny PDF", preparing: "Przygotowanie...", download: "Pobierz PDF", adjustTitle: "Lider drużyny: popraw statystyki, przedmioty i zaklęcia tej postaci", adjust: "Popraw",
+      xpHitDice: "PD · Kości wytrzymałości", wildShape: "Dzika postać", beastHp: "PW bestii", ownHp: "własne PW", savingThrows: "Rzuty obronne", skills: "Umiejętności", slots: "Miejsca", spendSlot: "Użyj miejsca", hitDice: "Kości wytrzymałości", spendHitDie: "Użyj kości wytrzymałości", spendUse: "Użyj", equipment: "Ekwipunek", attuned: "dostrojony", attune: "dostrój", features: "Cechy i zdolności", story: "(fabuła)", feats: "Atuty", backstory: "Historia", notes: "Notatki (widzisz je tylko Ty)", downloadTitle: "Pobierz kartę postaci jako wypełnialny PDF", preparing: "Przygotowanie...", download: "Pobierz PDF", adjustTitle: "Dostosuj statystyki, przedmioty i zaklęcia tej postaci", adjust: "Dostosuj",
+      editBackstory: "Edytuj historię",
+      noBackstory: "Brak historii postaci.",
     },
   });
   const speed = speedFor(sheet, { encumbrance: encumbranceRule });
@@ -615,12 +623,27 @@ export function CharacterSheetDialog({
             </section>
           ) : null}
 
-          {sheet.backstory ? (
+          {sheet.backstory || mine ? (
             <section className="mt-4">
-              <h3 className="mb-1.5 text-xs font-medium uppercase tracking-wide text-stone-500">
-                Backstory
-              </h3>
-              <p className="whitespace-pre-wrap text-xs text-stone-300">{sheet.backstory}</p>
+              <div className="mb-1.5 flex items-center justify-between">
+                <h3 className="text-xs font-medium uppercase tracking-wide text-stone-500">
+                  {copy.backstory}
+                </h3>
+                {mine && onEditBackstory ? (
+                  <button
+                    type="button"
+                    onClick={onEditBackstory}
+                    className="flex items-center gap-1 text-[11px] text-amber-300/80 hover:text-amber-200"
+                  >
+                    <Pencil className="size-3" /> {copy.editBackstory}
+                  </button>
+                ) : null}
+              </div>
+              {sheet.backstory ? (
+                <p className="whitespace-pre-wrap text-xs text-stone-300">{sheet.backstory}</p>
+              ) : (
+                <p className="text-xs italic text-stone-600">{copy.noBackstory}</p>
+              )}
             </section>
           ) : null}
 
@@ -650,7 +673,7 @@ export function CharacterSheetDialog({
                 className={ui.btnSmall}
                 title={copy.adjustTitle}
               >
-                <Wrench className="size-3.5" /> Adjust
+                <Wrench className="size-3.5" /> {copy.adjust}
               </button>
             ) : null}
           </div>

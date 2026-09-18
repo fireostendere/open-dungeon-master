@@ -75,6 +75,19 @@ function fixture() {
     '@/lib/db/narrator-commands': { listNarratorReceipts: () => [] },
     '@/lib/dm/delegation': { coverInEffect: () => false }, '@/lib/dm/social-tools': { npcRosterForPrompt: () => [] },
     '@/lib/db/asks': asks, '@/lib/mcp-read-budget.mjs': budget,
+    '@/lib/spatial/narrator': {
+      SPATIAL_NARRATOR_CATALOG: [],
+      SPATIAL_NARRATOR_OPERATIONS: new Set(),
+      SPATIAL_GUIDANCE: '',
+      readSpatialForNarrator: () => null,
+      invokeSpatialForNarrator: forbidden,
+    },
+    '@/lib/spatial/narrator-page.mjs': {
+      spatialNarratorBoundary: ({ events }) => ({ events, roomMessages: [], hasMore: false }),
+    },
+    '@/lib/spatial/service': {
+      spatialEnabled: () => false,
+    },
     '@/lib/events': { listEventsSince: (_id, cursor, limit) => events.filter(e => e.seq > cursor).slice(0, limit),
       publishPersisted: forbidden, publishEphemeral: (...a) => notices.push(['table', ...a]),
       publishUserEphemeral: (...a) => notices.push(['user', ...a]) },
@@ -176,6 +189,10 @@ function route(kind, muted, limited, calls) {
     '@/lib/dm/ask': { runAsk: forbidden }, '@/lib/dm/ask-logic': {
       ASK_SCOPES: ['story', 'rules', 'sheet'], ASK_VISIBILITIES: ['private', 'table'], QUESTION_MAX_CHARS: 4000,
       clampQuestion: forbidden, inferScope: forbidden,
+    },
+    '@/lib/spatial/service': {
+      spatialEnabled: () => false,
+      postRoomMessage: forbidden,
     },
     '@/lib/ingress-budget': { enforcePlayerIngress: () => { calls.quota++; return limited ? Response.json({}, { status: 429 }) : null; } },
   });

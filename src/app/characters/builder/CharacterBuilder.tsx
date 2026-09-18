@@ -44,6 +44,7 @@ export type { BuilderResult } from "./submit";
 // single-page form this replaced; only the pacing is new.
 export default function CharacterBuilder({
   fixedLevel,
+  initialLevel,
   genre,
   worldPackId,
   initial,
@@ -55,6 +56,7 @@ export default function CharacterBuilder({
   className,
 }: {
   fixedLevel?: number;
+  initialLevel?: number;
   // Campaign genre: floats setting-appropriate classes to the top of the
   // class picker. Absent in the library builder (default ordering).
   genre?: Genre;
@@ -97,7 +99,7 @@ export default function CharacterBuilder({
     [rawBackgrounds, pack],
   );
 
-  const state = useBuilderState({ initial, fixedLevel, races, backgrounds });
+  const state = useBuilderState({ initial, initialLevel, fixedLevel, races, backgrounds });
   const race = races.find((entry) => entry.id === state.raceId) ?? races[0];
   const klass = classes.find((entry) => entry.id === state.classId) ?? classes[0];
   const background =

@@ -1,9 +1,10 @@
 "use client";
 
-import { Bot, Check, Crown, Dices, Heart, ImagePlus, PawPrint, Save, Shield, StickyNote, UserPlus } from "lucide-react";
+import { Bot, Check, Crown, Dices, Heart, ImagePlus, PawPrint, Pencil, Save, Shield, StickyNote, UserPlus } from "lucide-react";
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/cn";
 import { CharacterPortrait } from "@/lib/ui";
+import { CharacterBackstoryDialog } from "@/app/campaigns/[campaignId]/CharacterBackstoryDialog";
 import { CharacterMenu } from "@/app/campaigns/[campaignId]/CharacterMenu";
 import { CharacterNotesDialog } from "@/app/campaigns/[campaignId]/CharacterNotesDialog";
 import { CharacterSheetDialog } from "@/app/campaigns/[campaignId]/CharacterSheetDialog";
@@ -215,17 +216,19 @@ export function PartyPanel({
 }) {
   const { locale } = useI18n();
   const copy = localeText(locale, {
-    en: { party: "Party", members: "Campaign members & characters", changePortrait: "Change portrait", addPortrait: "Add portrait", build: "Build a companion", resource: "Limited-use resource: remaining/max", exhaustionTitle: "Exhaustion level (a long rest reduces it by one)", exhaustion: "exhaustion {level}", concentrating: "Concentrating on this spell" },
-    ru: { party: "Отряд", members: "Участники кампании и персонажи", changePortrait: "Сменить портрет", addPortrait: "Добавить портрет", build: "Создать спутника", resource: "Ограниченный ресурс: осталось/максимум", exhaustionTitle: "Уровень истощения (долгий отдых снижает его на один)", exhaustion: "истощение {level}", concentrating: "Концентрация на этом заклинании" },
-    pl: { party: "Drużyna", members: "Członkowie kampanii i postacie", changePortrait: "Zmień portret", addPortrait: "Dodaj portret", build: "Stwórz towarzysza", resource: "Zasób o ograniczonych użyciach: pozostało/maksimum", exhaustionTitle: "Poziom wyczerpania (długi odpoczynek zmniejsza go o jeden)", exhaustion: "wyczerpanie {level}", concentrating: "Koncentracja na tym zaklęciu" },
+    en: { party: "Party", members: "Campaign members & characters", changePortrait: "Change portrait", addPortrait: "Add portrait", build: "Build a companion", resource: "Limited-use resource: remaining/max", exhaustionTitle: "Exhaustion level (a long rest reduces it by one)", exhaustion: "exhaustion {level}", concentrating: "Concentrating on this spell", editBackstory: "Edit backstory" },
+    ru: { party: "Отряд", members: "Участники кампании и персонажи", changePortrait: "Сменить портрет", addPortrait: "Добавить портрет", build: "Создать спутника", resource: "Ограниченный ресурс: осталось/максимум", exhaustionTitle: "Уровень истощения (долгий отдых снижает его на один)", exhaustion: "истощение {level}", concentrating: "Концентрация на этом заклинании", editBackstory: "Редактировать предысторию" },
+    pl: { party: "Drużyna", members: "Członkowie kampanii i postacie", changePortrait: "Zmień portret", addPortrait: "Dodaj portret", build: "Stwórz towarzysza", resource: "Zasób o ograniczonych użyciach: pozostało/maksimum", exhaustionTitle: "Poziom wyczerpania (długi odpoczynek zmniejsza go o jeden)", exhaustion: "wyczerpanie {level}", concentrating: "Koncentracja na tym zaklęciu", editBackstory: "Edytuj historię" },
   });
   const packArt = usePackArt(worldPack);
   const [editingSheetId, setEditingSheetId] = useState("");
+  const [backstorySheetId, setBackstorySheetId] = useState("");
   const [viewingSheetId, setViewingSheetId] = useState("");
   const [croppingSheetId, setCroppingSheetId] = useState("");
   const [notesSheetId, setNotesSheetId] = useState("");
   const [buildingCompanion, setBuildingCompanion] = useState(false);
   const editingSheet = sheets.find((sheet) => sheet.id === editingSheetId);
+  const backstorySheet = sheets.find((sheet) => sheet.id === backstorySheetId);
   const viewingSheet = sheets.find((sheet) => sheet.id === viewingSheetId);
   const croppingSheet = sheets.find((sheet) => sheet.id === croppingSheetId);
   const notesSheet = sheets.find((sheet) => sheet.id === notesSheetId);
@@ -236,7 +239,7 @@ export function PartyPanel({
   // dialog owned by this panel is closed, body pointer-events must be back;
   // a stranded pointer-events:none makes the whole page unclickable.
   const anyDialogOpen = Boolean(
-    editingSheetId || viewingSheetId || croppingSheetId || notesSheetId || buildingCompanion,
+    editingSheetId || backstorySheetId || viewingSheetId || croppingSheetId || notesSheetId || buildingCompanion,
   );
   useEffect(() => {
     if (!anyDialogOpen && document.body.style.pointerEvents === "none") {
@@ -353,14 +356,26 @@ export function PartyPanel({
                   <StickyNote className="size-3" /> {publicNoteCount}
                 </button>
               ) : null}
+              {mine ? (
+                <button
+                  type="button"
+                  onClick={() => setBackstorySheetId(sheet.id)}
+                  title={copy.editBackstory}
+                  className="flex shrink-0 items-center gap-0.5 rounded-full border border-stone-800 px-1.5 py-0.5 text-[10px] text-stone-500 hover:text-amber-300"
+                >
+                  <Pencil className="size-3" />
+                </button>
+              ) : null}
               <CharacterMenu
                 sheet={sheet}
                 steersStory={steersStory}
+                mine={mine}
                 leadUserId={leadUserId}
                 canTransferLead={canTransferLead}
                 onViewSheet={() => setViewingSheetId(sheet.id)}
                 onNotes={() => setNotesSheetId(sheet.id)}
                 onAdjust={() => setEditingSheetId(sheet.id)}
+                onEditBackstory={mine ? () => setBackstorySheetId(sheet.id) : undefined}
                 onMessage={
                   onMessageUser && !mine && !sheet.isCompanion
                     ? () => onMessageUser(sheet.userId)
@@ -644,7 +659,20 @@ export function PartyPanel({
             setViewingSheetId("");
             setTimeout(() => setEditingSheetId(sheetId), 0);
           }}
+          onEditBackstory={() => {
+            const sheetId = viewingSheet.id;
+            setViewingSheetId("");
+            setTimeout(() => setBackstorySheetId(sheetId), 0);
+          }}
           onClose={() => setViewingSheetId("")}
+        />
+      ) : null}
+
+      {backstorySheet ? (
+        <CharacterBackstoryDialog
+          campaignId={campaignId}
+          sheet={backstorySheet}
+          onClose={() => setBackstorySheetId("")}
         />
       ) : null}
 

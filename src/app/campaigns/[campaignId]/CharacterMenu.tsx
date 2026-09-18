@@ -7,6 +7,7 @@ import {
   Flag,
   MessageSquare,
   MoreVertical,
+  Pencil,
   ShieldBan,
   StickyNote,
   UserMinus,
@@ -26,6 +27,7 @@ const COPY = {
     viewSheet: "View sheet",
     notes: "Notes",
     message: "Message",
+    editBackstory: "Edit backstory",
     adjustStats: "Adjust stats",
     makeLead: "Make party lead",
     dismissCompanion: "Dismiss companion",
@@ -39,6 +41,7 @@ const COPY = {
     viewSheet: "Открыть лист",
     notes: "Заметки",
     message: "Сообщение",
+    editBackstory: "Редактировать предысторию",
     adjustStats: "Изменить характеристики",
     makeLead: "Сделать лидером группы",
     dismissCompanion: "Отпустить спутника",
@@ -52,6 +55,7 @@ const COPY = {
     viewSheet: "Otwórz kartę",
     notes: "Notatki",
     message: "Wiadomość",
+    editBackstory: "Edytuj historię",
     adjustStats: "Dostosuj statystyki",
     makeLead: "Ustaw jako lidera drużyny",
     dismissCompanion: "Odpraw towarzysza",
@@ -67,11 +71,13 @@ const COPY = {
 export function CharacterMenu({
   sheet,
   steersStory,
+  mine = false,
   leadUserId,
   canTransferLead,
   onViewSheet,
   onNotes,
   onAdjust,
+  onEditBackstory,
   onMessage,
   canModerate = false,
   canMute = false,
@@ -79,11 +85,13 @@ export function CharacterMenu({
 }: {
   sheet: CharacterSheet;
   steersStory: boolean;
+  mine?: boolean;
   leadUserId: string;
   canTransferLead: boolean;
   onViewSheet: () => void;
   onNotes: () => void;
   onAdjust: () => void;
+  onEditBackstory?: () => void;
   onMessage?: () => void;
   canModerate?: boolean;
   canMute?: boolean;
@@ -153,6 +161,11 @@ export function CharacterMenu({
           {onMessage ? (
             <DropdownMenu.Item className={item} onSelect={defer(onMessage)}>
               <MessageSquare className="size-3.5 text-stone-500" /> {copy.message}
+            </DropdownMenu.Item>
+          ) : null}
+          {mine && onEditBackstory ? (
+            <DropdownMenu.Item className={item} onSelect={defer(onEditBackstory)}>
+              <Pencil className="size-3.5 text-stone-500" /> {copy.editBackstory}
             </DropdownMenu.Item>
           ) : null}
           {steersStory ? (

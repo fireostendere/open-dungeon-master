@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { CatalogEntry, CatalogField } from "@/lib/dm/invoke-catalog";
 import { NarratorCommandError } from "@/lib/dm/narrator-command";
-import { runSpatialCommand, spatialContext, spatialStore, SpatialError } from "./service";
+import { runSpatialCommand, spatialContext, spatialStore, SpatialError } from "@/lib/spatial/service";
 
 export const SPATIAL_NARRATOR_OPERATIONS: Readonly<Record<string, string>> = Object.freeze({
   location_enable: "enable", location_create_room: "create_room", location_link: "link",
