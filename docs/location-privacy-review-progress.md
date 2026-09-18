@@ -40,7 +40,7 @@ node --experimental-vm-modules --test \
   scripts/test-narrator-read-recovery.mjs
 ```
 
-Latest combined run: **38 passed, 0 failed, 0 skipped**, Node 22.16.0. `scripts/test-all.mjs` discovers the new `test-*.mjs` files automatically. The entire repository test runner was NOT executed here.
+Latest combined run: **38 passed, 0 failed, 0 skipped**, Node 22.16.0. `scripts/test-all.mjs` discovers the new `test-*.mjs` files automatically. The entire repository test runner was NOT executed here. The R02/R03 regression files were added after that 38-test run and have not been executed in this environment; their route wiring was reviewed against the committed diff, but runtime acceptance remains pending the full checkout/browser run.
 
 Memory tests have no doubles. Event tests use real SQLite with fixture auth/campaign/after-commit adapters. Client tests execute real session/hook/adapter/route code with explicit React/native-registration/auth/Zod/service doubles; one test uses real TCP/HTTP with a fixture command journal. Recovery tests execute the actual runner/read-session/memory/atomic checkpoint code with fixture control responses and model-related dependencies. The dispatcher test uses real SQLite with domain/Zod fixtures. None of these is full Next.js/browser/production acceptance.
 
