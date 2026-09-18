@@ -166,6 +166,7 @@ export function createSpatialStore(db, { nextSeq, now = () => new Date().toISOSt
     room(actor, sourceId); room(actor, targetId);
     if (sourceId === targetId) throw new SpatialError("A location cannot connect to itself.");
     for (const [source, target] of [[sourceId, targetId], [targetId, sourceId]]) {
+      if (!input.sound) run("DELETE FROM spatial_observers WHERE campaign_id=? AND source_id=? AND anchor_id=? AND mode='speech'", actor.campaignId, source, target);
       run(`INSERT INTO spatial_links(campaign_id,source_id,target_id,walkable,sound,sight) VALUES(?,?,?,?,?,?)
         ON CONFLICT(campaign_id,source_id,target_id) DO UPDATE SET walkable=excluded.walkable,sound=excluded.sound,sight=excluded.sight`,
       actor.campaignId, source, target, Number(input.walkable ?? true), Number(input.sound ?? false), Number(input.sight ?? false));
@@ -228,6 +229,7 @@ export function createSpatialStore(db, { nextSeq, now = () => new Date().toISOSt
     }
     dm(actor);
     if (operation === "create_room") {
+      if (one("SELECT COUNT(*) AS n FROM spatial_rooms WHERE campaign_id=?", actor.campaignId).n >= 128) throw new SpatialError("This campaign has reached its 128-location limit.", 409);
       const name = text(input.name, 80, "location name"), roomId = uuid();
       run("INSERT INTO spatial_rooms(id,campaign_id,name) VALUES(?,?,?)", roomId, actor.campaignId, name);
       if (input.connectTo) link(actor, input.connectTo, roomId, input);
@@ -240,6 +242,7 @@ export function createSpatialStore(db, { nextSeq, now = () => new Date().toISOSt
       return { linked: true };
     }
     if (operation === "observe") {
+      if (one("SELECT COUNT(*) AS n FROM spatial_observers WHERE campaign_id=? AND expires_at>?", actor.campaignId, now()).n >= 256) throw new SpatialError("Too many active observation grants.", 409);
       room(actor, input.roomId);
       if (!actor.playerIds.includes(input.userId)) throw new SpatialError("Player not found.", 404);
       const current = position(actor, input.userId);
@@ -320,7 +323,8 @@ export function createSpatialStore(db, { nextSeq, now = () => new Date().toISOSt
         FROM spatial_observers o JOIN spatial_presence p ON p.campaign_id=o.campaign_id AND p.user_id=o.user_id
         AND p.room_id=o.anchor_id AND p.revision=o.anchor_revision WHERE o.campaign_id=? AND o.expires_at>? ${actor.isDm ? "" : "AND o.user_id=?"}`,
       actor.campaignId, now(), ...(actor.isDm ? [] : [actor.userId]));
-      return { enabled: true, current, rooms, exits, grants, isDm: actor.isDm };
+      const { start_seq: startSeq } = one("SELECT start_seq FROM spatial_campaigns WHERE campaign_id=?", actor.campaignId);
+      return { enabled: true, startSeq, current, rooms, exits, grants, isDm: actor.isDm };
     },
     messages(actor, { roomId = null, beforeSeq = Number.MAX_SAFE_INTEGER, limit = 100 } = {}) {
       active(actor);
@@ -338,7 +342,8 @@ export function createSpatialStore(db, { nextSeq, now = () => new Date().toISOSt
       integer(afterSeq, 0, Number.MAX_SAFE_INTEGER, "narrator cursor");
       integer(limit, 1, 100, "page size");
       const rows = all("SELECT * FROM spatial_messages WHERE campaign_id=? AND kind<>'ooc' AND seq>? ORDER BY seq LIMIT ?", actor.campaignId, afterSeq, limit + 1);
-      const messages = rows.slice(0, limit).map(mapMessage);
+      const messages = rows.slice(0, limit).map(row => ({ ...mapMessage(row),
+        witnessUserIds: all("SELECT user_id FROM spatial_receipts WHERE campaign_id=? AND message_id=?", actor.campaignId, row.id).map(receipt => receipt.user_id) }));
       return { ...this.view(actor), messages, nextCursor: messages.at(-1)?.seq ?? afterSeq, hasMore: rows.length > limit };
     },
   };

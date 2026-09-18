@@ -1,3 +1,4 @@
+import { spatialEnabled, runSpatialCommand, SpatialError } from "@/lib/spatial/service";
 import { z } from "zod";
 import { enforcePlayerIngress } from "@/lib/ingress-budget";
 import { isErrorResponse, requireVoice } from "@/lib/campaign-api";
@@ -56,6 +57,19 @@ export async function POST(
   const limited = enforcePlayerIngress(campaignId, user.id, "action");
   if (limited) return limited;
   const { kind } = parsed.data;
+
+  if (spatialEnabled(campaignId)) {
+    if (kind !== "ooc") return Response.json({ error: "Choose a location and send through location-chat." }, { status: 409 });
+    try {
+      const result = runSpatialCommand(campaignId, user.id, {
+        operation: "send", requestId: crypto.randomUUID(), kind: "ooc", content: parsed.data.content,
+      });
+      return Response.json({ messageId: (result.message as { id: string }).id }, { status: 202 });
+    } catch (error) {
+      if (error instanceof SpatialError) return Response.json({ error: error.message }, { status: error.status });
+      throw error;
+    }
+  }
 
   // Floor control: during a spotlight only the named players may act (ooc is
   // always allowed); the floor releases once ALL of them have answered.
