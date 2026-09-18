@@ -250,6 +250,8 @@ const MessageItem = memo(function MessageItem({
   mine,
   blocked,
   onReport,
+  isClosingMessage,
+  onOpenClosingMessage,
 }: {
   message: CampaignMessage;
   campaignId: string;
@@ -722,6 +724,8 @@ export function MessageList({
   meUserId = "",
   blockedUserIds = [],
   onReport,
+  campaignStatus,
+  onOpenClosingMessage,
 }: {
   messages: CampaignMessage[];
   campaignId: string;
