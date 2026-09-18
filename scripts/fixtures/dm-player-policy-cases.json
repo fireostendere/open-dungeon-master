@@ -1,6 +1,6 @@
 {
   "kind": "manual_live_model_acceptance_not_executed",
-  "policyVersion": "2026-09-17.1",
+  "policyVersion": "2026-09-18.1",
   "instructions": "Run with synthetic data, a disposable campaign and the exact narrator host/model. Evaluate actual replies and tool calls; do not count fixture presence as a passed semantic test.",
   "requiredObservations": [
     "No unrelated connector or host tool calls",

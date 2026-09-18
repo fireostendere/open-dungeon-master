@@ -14,12 +14,93 @@ import { classifyInput, DM_REFUSALS } from './semantic-gate.mjs';
 import { NarratorCostTracker } from './cost-tracker.mjs';
 import { HostContextMemory } from './compaction.mjs';
 
+// The standalone narrator image does not contain src/lib. Keep the small
+// page assembler here so Docker and local runs use the same MCP contract.
+function assembleReadPages(pages) {
+  if (!Array.isArray(pages) || !pages.length || !pages.at(-1)?.complete) {
+    const error = new Error('Incomplete narrator read pages.');
+    error.status = 409;
+    throw error;
+  }
+  const first = pages[0];
+  if (!first || !first.shape || typeof first.shape !== 'object' || Array.isArray(first.shape)) {
+    const error = new Error('Invalid narrator read page shape.');
+    error.status = 400;
+    throw error;
+  }
+  const state = {};
+  for (const [key, kind] of Object.entries(first.shape || {})) {
+    if (['__proto__', 'constructor', 'prototype'].includes(key) || !['array', 'value'].includes(kind)) {
+      const error = new Error('Invalid narrator read page shape.');
+      error.status = 400;
+      throw error;
+    }
+    state[key] = kind === 'array' ? [] : undefined;
+  }
+  let offset = 0;
+  let totalBytes = 0;
+  for (let pageIndex = 0; pageIndex < pages.length; pageIndex += 1) {
+    const page = pages[pageIndex];
+    totalBytes += Buffer.byteLength(JSON.stringify(page), 'utf8');
+    if (totalBytes > 4 * 1024 * 1024) {
+      const error = new Error('Narrator read exceeds the host memory budget.');
+      error.status = 413;
+      throw error;
+    }
+    if (page.hash !== first.hash || page.offset !== offset ||
+        JSON.stringify(page.shape) !== JSON.stringify(first.shape) ||
+        page.complete !== (pageIndex === pages.length - 1)) {
+      const error = new Error('Inconsistent narrator read pages.');
+      error.status = 409;
+      throw error;
+    }
+    if (!Array.isArray(page.entries)) {
+      const error = new Error('Invalid narrator read page entries.');
+      error.status = 400;
+      throw error;
+    }
+    for (const item of page.entries) {
+      if (!Object.hasOwn(first.shape, item.key) ||
+          ['__proto__', 'constructor', 'prototype'].includes(item.key)) {
+        const error = new Error('Invalid narrator read page entry.');
+        error.status = 400;
+        throw error;
+      }
+      if (first.shape[item.key] === 'array') {
+        if (item.index !== state[item.key].length) {
+          const error = new Error('Narrator read page array gap.');
+          error.status = 409;
+          throw error;
+        }
+        state[item.key].push(item.value);
+      } else {
+        if (Object.hasOwn(item, 'index')) {
+          const error = new Error('Unexpected narrator read page index.');
+          error.status = 400;
+          throw error;
+        }
+        state[item.key] = item.value;
+      }
+    }
+    offset += (page.entries || []).length;
+  }
+  const digest = crypto.createHash('sha256').update(JSON.stringify(state)).digest('hex');
+  if (digest !== first.hash) {
+    const error = new Error('Narrator read page integrity check failed.');
+    error.status = 409;
+    throw error;
+  }
+  return state;
+}
+
 export class NarratorRunner {
   constructor(options = {}) {
     this.campaignId = options.campaignId || process.env.ODM_CAMPAIGN_ID || process.env.ODM_MCP_NARRATOR_CAMPAIGN_ID || '';
     this.controlUrl = (options.controlUrl || process.env.ODM_MCP_URL || process.env.ODM_MCP_CONTROL_URL || 'http://127.0.0.1:3005/api/internal/mcp').trim();
     this.token = (options.token || process.env.ODM_MCP_NARRATOR_TOKEN || process.env.ODM_MCP_TOKEN || '').trim();
     this.pollIntervalMs = Number(options.pollIntervalMs ?? process.env.ODM_NARRATOR_POLL_MS ?? 2000);
+    this.readMaxBytes = Number(options.readMaxBytes ?? process.env.ODM_NARRATOR_READ_BYTES ?? 65536);
+    this.readPageRetries = Number(options.readPageRetries ?? process.env.ODM_NARRATOR_READ_RETRIES ?? 2);
     this.healthPort = options.healthPort !== undefined ? Number(options.healthPort) : Number(process.env.ODM_NARRATOR_PORT ?? 3007);
     this.fetchImpl = options.fetchImpl || globalThis.fetch;
 
@@ -36,10 +117,13 @@ export class NarratorRunner {
     this.lastSeq = 0;
     this.lastAskSeq = 0;
     this.answeredAsks = new Set();
+    this.pendingAskCommands = new Map();
     this.running = false;
     this.timer = null;
     this.healthServer = null;
     this.startedAt = Date.now();
+    this.lastPollAt = 0;
+    this.lastError = null;
   }
 
   loadCheckpoint() {
@@ -51,6 +135,13 @@ export class NarratorRunner {
         this.lastAskSeq = Number(saved.lastAskSeq || 0);
         if (Array.isArray(saved.answeredAsks)) {
           this.answeredAsks = new Set(saved.answeredAsks.slice(-200));
+        }
+        if (saved.pendingAskCommands && typeof saved.pendingAskCommands === 'object') {
+          for (const [askId, command] of Object.entries(saved.pendingAskCommands).slice(-200)) {
+            if (command && typeof command === 'object' && typeof command.commandId === 'string') {
+              this.pendingAskCommands.set(askId, command);
+            }
+          }
         }
         if (saved.memory) {
           this.memory.restoreState(saved.memory);
@@ -65,10 +156,13 @@ export class NarratorRunner {
       lastSeq: this.lastSeq,
       lastAskSeq: this.lastAskSeq,
       answeredAsks: Array.from(this.answeredAsks).slice(-200),
+      pendingAskCommands: Object.fromEntries(Array.from(this.pendingAskCommands.entries()).slice(-200)),
       memory: this.memory.serializeState(),
       metrics: this.costTracker.getMetrics(),
       updatedAt: new Date().toISOString(),
       uptimeSeconds: Math.floor((Date.now() - this.startedAt) / 1000),
+      lastPollAt: this.lastPollAt || null,
+      lastError: this.lastError,
     };
     atomicWriteJson(this.checkpointPath, data);
   }
@@ -103,62 +197,120 @@ export class NarratorRunner {
     if (!this.campaignId) throw new Error('Cannot connect narrator without campaignId.');
     const result = await this.callControl('narrator.connect', { campaignId: this.campaignId });
     if (result && typeof result === 'object') {
-      if (result.currentSeq && this.lastSeq === 0) {
-        this.lastSeq = result.currentSeq;
+      const state = result.state && typeof result.state === 'object' ? result.state : result;
+      if (Number.isSafeInteger(state.currentSeq) &&
+          (this.lastSeq === 0 || this.lastSeq > state.currentSeq)) {
+        this.lastSeq = state.currentSeq;
       }
-      this.memory.ingestReadSnapshot(result);
+      this.memory.ingestReadSnapshot(state);
     }
     return result;
+  }
+
+  async readSnapshot(params) {
+    for (let attempt = 0; attempt <= this.readPageRetries; attempt += 1) {
+      const pages = [];
+      let pageCursor;
+      try {
+        while (true) {
+          const request = {
+            ...params,
+            paged: true,
+            maxBytes: this.readMaxBytes,
+            ...(pageCursor ? { pageCursor } : {}),
+          };
+          const result = await this.callControl('narrator.read', request);
+          if (!result?.format) return result;
+          if (result.format !== 'odm.read.page.v1') {
+            throw new Error(`Unsupported narrator read format: ${result.format}`);
+          }
+          pages.push(result);
+          if (result.complete) return assembleReadPages(pages);
+          if (!result.nextPage) throw new Error('Narrator read page has no nextPage.');
+          pageCursor = result.nextPage;
+        }
+      } catch (error) {
+        if (error?.status === 409 && attempt < this.readPageRetries) continue;
+        throw error;
+      }
+    }
+    throw new Error('Narrator read retry budget exhausted.');
+  }
+
+  async drainAskQueue() {
+    // Ask is an independent pending queue. Start at zero on every poll so a
+    // still-pending item behind an old cursor cannot be stranded.
+    let cursor = 0;
+    for (let page = 0; page < 1000; page += 1) {
+      const result = await this.readSnapshot({
+        campaignId: this.campaignId,
+        afterSeq: this.lastSeq,
+        afterAskSeq: cursor,
+        askLimit: 20,
+        limit: 1,
+        projection: 'live',
+      });
+      for (const item of result?.asks || result?.askQueue?.items || []) {
+        await this.handlePendingAsk(item);
+      }
+
+      const queue = result?.askQueue || {};
+      const next = Number(queue.nextCursor ?? cursor);
+      if (!queue.hasMore) {
+        this.lastAskSeq = next;
+        return;
+      }
+      if (!Number.isSafeInteger(next) || next <= cursor) {
+        throw new Error('Ask queue cursor did not advance.');
+      }
+      cursor = next;
+    }
+    throw new Error('Ask queue exceeded the page safety limit.');
+  }
+
+  async drainStory() {
+    let cursor = this.lastSeq;
+    for (let page = 0; page < 1000; page += 1) {
+      const result = await this.readSnapshot({
+        campaignId: this.campaignId,
+        afterSeq: cursor,
+        limit: 50,
+        projection: 'full',
+      });
+      if (!result) return;
+      this.memory.ingestReadSnapshot(result);
+      const next = Number(result.nextCursor ?? result.currentSeq ?? cursor);
+      if (!result.hasMore) {
+        this.lastSeq = Math.max(this.lastSeq, Number.isSafeInteger(next) ? next : cursor);
+        return;
+      }
+      if (!Number.isSafeInteger(next) || next <= cursor) {
+        throw new Error('Story cursor did not advance.');
+      }
+      cursor = next;
+    }
+    throw new Error('Story stream exceeded the page safety limit.');
   }
 
   async pollTick() {
     if (!this.campaignId) return;
 
     try {
-      // 1. Check pending Ask queue
-      const askResult = await this.callControl('narrator.read', {
-        campaignId: this.campaignId,
-        afterAskSeq: this.lastAskSeq,
-        askLimit: 20,
-        limit: 1, // Minimize story payload while polling asks
-      });
-
-      if (askResult?.askQueue?.items?.length) {
-        for (const item of askResult.askQueue.items) {
-          await this.handlePendingAsk(item);
-        }
-        if (typeof askResult.askQueue.nextCursor === 'number') {
-          this.lastAskSeq = Math.max(this.lastAskSeq, askResult.askQueue.nextCursor);
-        }
-      }
-
-      // 2. Check story sequence
-      const storyResult = await this.callControl('narrator.read', {
-        campaignId: this.campaignId,
-        afterSeq: this.lastSeq,
-        limit: 50,
-        paged: true,
-      });
-
-      if (storyResult) {
-        this.memory.ingestReadSnapshot(storyResult);
-        if (typeof storyResult.currentSeq === 'number') {
-          this.lastSeq = Math.max(this.lastSeq, storyResult.currentSeq);
-        }
-      }
+      await this.drainAskQueue();
+      await this.drainStory();
 
       // Checkpoint after successful poll cycle
+      this.lastPollAt = Date.now();
+      this.lastError = null;
       this.saveCheckpoint();
+      return true;
     } catch (err) {
-      if (err.status === 409) {
-        // Stale sequence conflict: re-read without mutating to resync
-        try {
-          const fresh = await this.callControl('narrator.read', { campaignId: this.campaignId, limit: 1 });
-          if (fresh?.currentSeq) this.lastSeq = fresh.currentSeq;
-        } catch {}
-      } else {
-        console.error('[narrator-runner] poll error:', err.message);
-      }
+      this.lastError = err?.message || String(err);
+      console.error('[narrator-runner] poll error:', this.lastError);
+      // Keep cursors unchanged on a failed read. The next tick retries the
+      // same page; jumping ahead here silently loses player input.
+      this.saveCheckpoint();
+      return false;
     }
   }
 
@@ -186,23 +338,31 @@ export class NarratorRunner {
       answerText = `[Ведущий]: Ответ на вопрос "${text}": действие выполняется согласно правилам D&D 5e и обстановке на сцене.`;
     }
 
-    const commandId = `cmd-ask-${ask.id}-${ask.version ?? 0}-${crypto.randomBytes(4).toString('hex')}`;
+    const command = this.pendingAskCommands.get(ask.id) || {
+      campaignId: this.campaignId,
+      askId: ask.id,
+      answer: answerText,
+      expectedVersion: ask.version ?? 0,
+      commandId: crypto.randomUUID(),
+      citations,
+    };
+    this.pendingAskCommands.set(ask.id, command);
+    // Persist before sending: a timeout after the server commits must replay
+    // the exact same command instead of creating a second answer.
+    this.saveCheckpoint();
 
     try {
-      await this.callControl('narrator.answer_ask', {
-        campaignId: this.campaignId,
-        askId: ask.id,
-        answer: answerText,
-        expectedVersion: ask.version ?? 0,
-        commandId,
-        citations,
-      });
+      await this.callControl('narrator.answer_ask', command);
 
       this.answeredAsks.add(ask.id);
+      this.pendingAskCommands.delete(ask.id);
+      this.saveCheckpoint();
     } catch (err) {
       if (err.status === 409) {
         // Already answered or version conflict; record as answered to prevent tight loop
         this.answeredAsks.add(ask.id);
+        this.pendingAskCommands.delete(ask.id);
+        this.saveCheckpoint();
       } else {
         throw err;
       }
@@ -226,6 +386,9 @@ export class NarratorRunner {
           lastSeq: this.lastSeq,
           lastAskSeq: this.lastAskSeq,
           answeredAsksCount: this.answeredAsks.size,
+          pendingAskCommandsCount: this.pendingAskCommands.size,
+          lastPollAt: this.lastPollAt || null,
+          lastError: this.lastError,
           metrics: this.costTracker.getMetrics(),
           memory: this.memory.serializeState(),
           uptime: process.uptime(),

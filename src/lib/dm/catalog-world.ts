@@ -381,6 +381,13 @@ export const STORY_ADJUDICATIONS: CatalogEntry[] = [
       { name: "difficulty", label: "Difficulty", kind: "select", options: DIFFICULTIES },
       { name: "dc", label: "Or an exact DC", kind: "number", min: 1, max: 30 },
       {
+        name: "expression",
+        label: "Dice expression",
+        kind: "text",
+        placeholder: "1d20+4 or 2d6+2",
+        help: "Required for attack, damage and custom rolls. In combat, use Player attacks instead of request_roll attack.",
+      },
+      {
         name: "advantage",
         label: "Advantage",
         kind: "select",
@@ -403,6 +410,9 @@ export const STORY_ADJUDICATIONS: CatalogEntry[] = [
         help: "Your screen. The dice are still the server's, and the number is still real.",
       },
       { name: "reason", label: "What they are trying", kind: "text" },
+      { name: "targetEnemyId", label: "Damage target", kind: "enemy", help: "For kind=damage; the server applies the rolled total." },
+      { name: "damageType", label: "Damage type", kind: "text", placeholder: "fire" },
+      { name: "against", label: "What the save resists", kind: "text", placeholder: "frightened" },
     ],
   },
   {

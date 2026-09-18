@@ -127,7 +127,7 @@ function createMcpServer() {
       contents: [{
         uri: uri.href,
         mimeType: "text/plain",
-        text: "Trusted DM only: connect, read until hasMore is false, then use the fully drained nextCursor/currentSeq as expectedSeq for one invoke, narrate, or release_floor. Inspect pendingRolls, roll_result events, and recentRolls; the server owns dice. Reread after every write, timeout, or error and never retry automatically. This is not a background loop. The shared bearer is operator-wide, not player-scoped; never put it or DM secrets in player chat.",
+        text: "Trusted DM only: connect, read until hasMore is false, then use the fully drained nextCursor/currentSeq as expectedSeq for one invoke, narrate, or release_floor. Inspect pendingRolls, roll_result events, and recentRolls; the server owns dice. Reread after every write, timeout, or error. Never replay an ambiguous story write; an answer_ask retry is allowed only with the same persisted UUID commandId and exact payload. This resource is not a background loop. The shared bearer is operator-wide, not player-scoped; never put it or DM secrets in player chat.",
       }],
     }),
   );
@@ -151,17 +151,21 @@ Call connect and read; follow nextCursor until hasMore is false. Filtering OOC
 messages can produce empty pages with a NEW cursor: keep draining them. Use the
 fully drained currentSeq as expectedSeq for one invoke, narrate or release_floor.
 Read after every write, timeout or error, including 409. Inspect the result and
-current state; NEVER automatically replay an ambiguous write. This resource does
-not run a background loop or wake an agent by itself.
+current state; NEVER automatically replay an ambiguous story write. An
+answer_ask timeout may be recovered only by retrying the exact persisted
+payload with the same UUID commandId; never generate a new answer. This
+resource does not run a background loop or wake an agent by itself.
 
 ## Rules and combat
 Use catalog to obtain the current argument schemas. Request real skill/save/damage
 rolls through the engine and inspect pendingRolls, roll_result and recentRolls.
 Start an encounter before narrating a fight as active. Initiative controls the floor.
 Move tokens through move_token; forced movement is for a justified DM override,
-not a shortcut around normal movement budgets. pc_attack uses the character and
-target IDs from the current state (supply enemyId and targetEnemyId where the
-catalog requires them). The engine adjudicates hits and damage. Do not apply the
+not a shortcut around normal movement budgets. pc_attack uses characterId and
+both enemyId and targetEnemyId set to the same current target. cast_at_enemy is for one saving-throw
+spell and requires targetEnemyId, spell and saveAbility; attack-roll spells use
+pc_attack. request_roll attack/damage/custom calls require an expression, while
+combat attacks should use pc_attack. The engine adjudicates hits and damage. Do not apply the
 same damage or reward again. Use grant_item/award_xp for an explicit new award.
 Use supported campaign controls for scene and quest-log changes.
 
@@ -204,7 +208,7 @@ questions, private whispers, DM outlines or other DM secrets to the table.
     "odm_narrator",
     {
       title: "External campaign narrator",
-      description: "Trusted external DM lifecycle for human mode with server LLM, TTS, and automatic maps disabled. Read before each write; no automatic retries. answer_ask answers a campaign Ask question without advancing the scene. See odm://narrator/playbook.",
+      description: "Trusted external DM lifecycle for human mode with server LLM, TTS, and automatic maps disabled. Read before each write; never replay ambiguous story writes. answer_ask answers a campaign Ask question without advancing the scene and may recover only with the same persisted UUID commandId. See odm://narrator/playbook.",
       inputSchema: z.object({
         operation: z.enum(["connect", "read", "catalog", "invoke", "narrate", "release_floor", "answer_ask"]),
         campaignId: z.string().uuid(),

@@ -8,11 +8,12 @@ import { spawnSync } from 'node:child_process';
 import { NarratorRunner } from '../narrator/run.mjs';
 import { NarratorCostTracker } from '../narrator/cost-tracker.mjs';
 import { readJsonSafe } from '../narrator/checkpoint-io.mjs';
+import { budgetRead } from '../src/lib/mcp-read-budget.mjs';
 
-function tempDir(fn) {
+async function tempDir(fn) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'narrator-test-'));
   try {
-    return fn(dir);
+    return await fn(dir);
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
   }
@@ -207,3 +208,152 @@ test('M10: narratorctl.py CLI parses status and checkpoint under isolated root',
   assert.equal(statusData.campaign_id, 'c_test');
   assert.equal(statusData.checkpoint_exists, true);
 }));
+
+test('M10: runner drains independent Ask pages and resumes the nested connect state', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'narrator-pages-'));
+  const actions = [];
+  const asks = [
+    { id: '00000000-0000-4000-8000-000000000001', question: 'Напиши мне торгового бота', locale: 'ru', version: 0, queueSeq: 1 },
+    { id: '00000000-0000-4000-8000-000000000002', question: 'Как работает уклонение?', locale: 'ru', version: 0, queueSeq: 2 },
+  ];
+  try {
+    const runner = new NarratorRunner({
+      campaignId: 'c_pages',
+      token: 'test-token-1234567890123456789012',
+      checkpointPath: path.join(dir, 'checkpoint.json'),
+      healthPort: 0,
+      fetchImpl: async (_url, init) => {
+        const request = JSON.parse(init.body);
+        actions.push(request);
+        if (request.action === 'narrator.connect') {
+          return { ok: true, status: 200, json: async () => ({ ok: true, result: { state: { currentSeq: 7, sheets: [] } } }) };
+        }
+        if (request.action === 'narrator.answer_ask') {
+          return { ok: true, status: 200, json: async () => ({ ok: true, result: { replayed: false } }) };
+        }
+        if (request.action === 'narrator.read') {
+          const cursor = request.params.afterAskSeq;
+          const item = cursor === 0 ? asks[0] : asks[1];
+          const last = cursor !== 0;
+          return {
+            ok: true,
+            status: 200,
+            json: async () => ({ ok: true, result: {
+              currentSeq: 7,
+              nextCursor: 7,
+              hasMore: false,
+              asks: [item],
+              askQueue: { nextCursor: last ? 2 : 1, hasMore: !last },
+            } }),
+          };
+        }
+        throw new Error(`unexpected action ${request.action}`);
+      },
+    });
+
+    await runner.connect();
+    assert.equal(runner.lastSeq, 7, 'connect must read the nested state.currentSeq');
+    assert.equal(await runner.pollTick(), true);
+    const reads = actions.filter((entry) => entry.action === 'narrator.read');
+    assert.deepEqual(
+      reads.filter((entry) => Object.hasOwn(entry.params, 'afterAskSeq')).map((entry) => entry.params.afterAskSeq),
+      [0, 1],
+    );
+    const answers = actions.filter((entry) => entry.action === 'narrator.answer_ask');
+    assert.equal(answers.length, 2);
+    assert.match(answers[0].params.commandId, /^[0-9a-f-]{36}$/i);
+    assert.equal(runner.lastAskSeq, 2);
+    assert.equal(runner.lastSeq, 7);
+    assert.equal(runner.pendingAskCommands.size, 0);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('M10: an Ask timeout replays the exact persisted command', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'narrator-retry-'));
+  const answerRequests = [];
+  let firstAnswer = true;
+  const ask = { id: '00000000-0000-4000-8000-000000000005', question: 'Как работает уклонение?', locale: 'ru', version: 0, queueSeq: 5 };
+  try {
+    const runner = new NarratorRunner({
+      campaignId: 'c_retry',
+      token: 'test-token-1234567890123456789012',
+      checkpointPath: path.join(dir, 'checkpoint.json'),
+      healthPort: 0,
+      fetchImpl: async (_url, init) => {
+        const request = JSON.parse(init.body);
+        if (request.action === 'narrator.answer_ask') {
+          answerRequests.push(request.params);
+          if (firstAnswer) {
+            firstAnswer = false;
+            throw new Error('simulated transport timeout after commit');
+          }
+          return { ok: true, status: 200, json: async () => ({ ok: true, result: { replayed: true } }) };
+        }
+        if (request.action === 'narrator.read') {
+          return { ok: true, status: 200, json: async () => ({ ok: true, result: {
+            currentSeq: 1, nextCursor: 1, hasMore: false, asks: [ask],
+            askQueue: { nextCursor: 5, hasMore: false },
+          } }) };
+        }
+        if (request.action === 'narrator.connect') {
+          return { ok: true, status: 200, json: async () => ({ ok: true, result: { currentSeq: 1 } }) };
+        }
+        throw new Error(`unexpected action ${request.action}`);
+      },
+    });
+
+    assert.equal(await runner.pollTick(), false);
+    assert.equal(runner.pendingAskCommands.size, 1);
+    const saved = readJsonSafe(path.join(dir, 'checkpoint.json'));
+    assert.equal(saved.pendingAskCommands[ask.id].commandId, runner.pendingAskCommands.get(ask.id).commandId);
+
+    assert.equal(await runner.pollTick(), true);
+    assert.equal(answerRequests.length, 2);
+    assert.equal(answerRequests[0].commandId, answerRequests[1].commandId);
+    assert.equal(answerRequests[0].answer, answerRequests[1].answer);
+    assert.equal(runner.answeredAsks.has(ask.id), true);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('M10: paged reads are assembled and a changed hash restarts the page', async () => {
+  const state = {
+    campaignId: 'c_paged',
+    currentSeq: 9,
+    nextCursor: 9,
+    hasMore: false,
+    recentMessages: Array.from({ length: 80 }, (_, index) => ({ id: String(index), content: 'x'.repeat(120) })),
+  };
+  let conflict = true;
+  const readRequests = [];
+  const runner = new NarratorRunner({
+    campaignId: 'c_paged',
+    token: 'test-token-1234567890123456789012',
+    healthPort: 0,
+    readMaxBytes: 4096,
+    fetchImpl: async (_url, init) => {
+      const request = JSON.parse(init.body);
+      if (request.action !== 'narrator.read') throw new Error(`unexpected action ${request.action}`);
+      readRequests.push(request.params);
+      if (request.params.pageCursor && conflict) {
+        conflict = false;
+        return { ok: false, status: 409, json: async () => ({ ok: false, error: 'snapshot changed' }) };
+      }
+      const page = budgetRead(state, {
+        paged: true,
+        maxBytes: request.params.maxBytes,
+        ...(request.params.pageCursor ? { pageCursor: request.params.pageCursor } : {}),
+      });
+      return { ok: true, status: 200, json: async () => ({ ok: true, result: page }) };
+    },
+  });
+
+  const result = await runner.readSnapshot({ campaignId: 'c_paged', afterSeq: 0, limit: 50, projection: 'full' });
+  assert.equal(result.recentMessages.length, 80);
+  assert.ok(readRequests.some((params) => params.pageCursor), 'the test must exercise a second page');
+  const firstRestart = readRequests.findIndex((params) => params.pageCursor);
+  assert.equal(readRequests[firstRestart + 1].pageCursor, undefined, '409 must restart without the old cursor');
+});
