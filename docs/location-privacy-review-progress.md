@@ -20,7 +20,7 @@ Details: `location-privacy-event-milestone.md`, `location-privacy-client-milesto
 
 ## Still open — implementation, not merely missing test results
 
-- **R02 is implemented in this branch:** active tactical maps are explicitly bound to a spatial room by start_encounter, direct player reads record a per-user observed map projection, leaving freezes that projection, returning advances it, and unbound legacy boards fail closed. R03-R04 remain open for facts, notes, chapters and the rest of the legacy object/read surface.
+- **R02-R03 are implemented in this branch:** tactical maps are room/version scoped; legacy player reads now share a fail-closed spatial projection. Characterless/foreign rolls are hidden, automated facts require a witnessed spatial source, post-spatial DM notes and mixed/new chapter summaries are withheld, campaign scene/quest/floor/current-party activity are redacted, direct encounter reads are hidden until scene-scoped combat exists, relationships are limited to owned characters and item offers to their addressed player. Ambience is not exposed as campaign-global state. Pre-spatial history keeps its original global semantics; explicit member public campaign notes and manual party facts remain global. R04 remains open for first-class versioned domain objects and updates.
 - **R05:** independent encounters, scene-specific floor/initiative and unrelated subgroup movement still need implementation. Shared campaign-level engine assumptions are not removed by hiding the encounter panel.
 - **R07:** the runner's allowed Ask path still uses a placeholder answer and fabricated usage rather than a real model adapter; the player-intent → model → engine → addressed narration chain remains unimplemented in that host. An external Luna client is a different runtime.
 - **R11:** the original browser harness's contradictory outsider expectations and wrong history endpoint are not yet repaired, and the full dynamic acceptance scenario is not implemented/executed.
@@ -35,6 +35,7 @@ node --experimental-vm-modules --test \
   scripts/test-narrator-memory-privacy.mjs \
   scripts/test-spatial-event-privacy.mjs \
   scripts/test-spatial-battle-map.mjs \
+  scripts/test-spatial-legacy-projection.mjs \
   scripts/test-location-client-intents.mjs \
   scripts/test-narrator-read-recovery.mjs
 ```

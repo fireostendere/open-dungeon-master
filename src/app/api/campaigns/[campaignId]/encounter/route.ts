@@ -4,6 +4,7 @@ import { endEncounter, getActiveEncounter, listEnemies, patchEnemyHp } from "@/l
 import { activePublicEncounter } from "@/lib/db/encounter-view";
 import { publishBattleMapUpdate } from "@/lib/dm/map-tools";
 import { publishPersisted } from "@/lib/events";
+import { spatialLegacyPolicy } from "@/lib/spatial/legacy-projection";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -21,10 +22,12 @@ export async function GET(
   if (isErrorResponse(context)) {
     return context;
   }
+  const caps = capsFor(context);
+  const policy = spatialLegacyPolicy({
+    campaignId, userId: context.user.id, adjudicates: caps.adjudicates, ownedCharacterIds: [],
+  });
   return Response.json({
-    encounter: activePublicEncounter(campaignId, {
-      enemyNumbers: capsFor(context).enemyNumbers,
-    }),
+    encounter: policy.scoped ? null : activePublicEncounter(campaignId, { enemyNumbers: caps.enemyNumbers }),
   });
 }
 

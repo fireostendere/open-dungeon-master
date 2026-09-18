@@ -1,10 +1,11 @@
-import { isErrorResponse, requireStoryAuthority, requireMember } from "@/lib/campaign-api";
+import { capsFor, isErrorResponse, requireStoryAuthority, requireMember } from "@/lib/campaign-api";
 import { ensureOpenChapter, listChapters } from "@/lib/db/chapters";
 import { listRewindableChapters } from "@/lib/db/snapshots";
 import { countMessagesUpToSeq } from "@/lib/db/messages";
 import { latestSeq } from "@/lib/db/campaigns";
 import { maybeCloseChapter } from "@/lib/dm/chapter-close";
 import { enqueueDmJob } from "@/lib/dm/queue";
+import { projectSpatialChapters, spatialLegacyPolicy } from "@/lib/spatial/legacy-projection";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -19,12 +20,19 @@ export async function GET(
   if (isErrorResponse(context)) {
     return context;
   }
+  const policy = spatialLegacyPolicy({
+    campaignId, userId: context.user.id, adjudicates: capsFor(context).adjudicates, ownedCharacterIds: [],
+  });
+  const visibleChapters = projectSpatialChapters(policy, listChapters(campaignId));
+  if (policy.scoped) {
+    return Response.json({ chapters: visibleChapters, openMessageCount: 0, rewindableChapters: [] });
+  }
   const open = ensureOpenChapter(campaignId);
   const openMessageCount =
     countMessagesUpToSeq(campaignId, latestSeq(campaignId)) -
     (open.seqStart > 0 ? countMessagesUpToSeq(campaignId, open.seqStart - 1) : 0);
   return Response.json({
-    chapters: listChapters(campaignId),
+    chapters: visibleChapters,
     openMessageCount,
     // Chapters the lead may rewind to (a boundary snapshot exists).
     rewindableChapters: listRewindableChapters(campaignId),

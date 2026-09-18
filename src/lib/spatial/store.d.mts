@@ -16,6 +16,7 @@ export type SpatialStore = {
   messages(actor: SpatialActor, options?: { roomId?: string | null; beforeSeq?: number; limit?: number }): SpatialPage;
   object(actor: SpatialActor, objectType: string, objectId: string): SpatialObjectProjection;
   canReadMessage(actor: SpatialActor, messageId: string): boolean;
+  canReadSeq(actor: SpatialActor, seq: number): boolean | null;
   publishObject(actor: SpatialActor, input: { objectType: string; objectId: string; roomId?: string | null; payload: unknown; userIds?: string[] }): { objectType: string; objectId: string; version: number; seq: number };
   observeObject(actor: SpatialActor, input: { objectType: string; objectId: string; userIds: string[] }): { objectType: string; objectId: string; version: number };
   narratorRead(actor: SpatialActor, options?: { afterSeq?: number; limit?: number }): SpatialNarratorRead;

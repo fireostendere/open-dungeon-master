@@ -1,8 +1,9 @@
 import { z } from "zod";
-import { isErrorResponse, steersStory, requireMember } from "@/lib/campaign-api";
+import { capsFor, isErrorResponse, steersStory, requireMember } from "@/lib/campaign-api";
 import { deleteNote, getNoteById, updateNote, type Note } from "@/lib/db/notes";
-import { getSheetById } from "@/lib/db/sheets";
+import { getSheetById, listSheets } from "@/lib/db/sheets";
 import { publishPersisted } from "@/lib/events";
+import { projectSpatialNotes, spatialLegacyPolicy } from "@/lib/spatial/legacy-projection";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -35,6 +36,12 @@ export async function PATCH(
   if (!note || note.campaignId !== campaignId) {
     return Response.json({ error: "Note not found." }, { status: 404 });
   }
+  const ownedCharacterIds = listSheets(campaignId).filter((sheet) => sheet.userId === context.user.id).map((sheet) => sheet.id);
+  const policy = spatialLegacyPolicy({ campaignId, userId: context.user.id, adjudicates: capsFor(context).adjudicates, ownedCharacterIds });
+  if (!projectSpatialNotes(policy, [note]).length) {
+    return Response.json({ error: "Note not found." }, { status: 404 });
+  }
+
   const lead = steersStory(context);
   const author = note.authorUserId === context.user.id;
   // Non-authors can only reach notes they can see: public ones, or pending
@@ -90,6 +97,12 @@ export async function DELETE(
 
   const note = getNoteById(noteId);
   if (!note || note.campaignId !== campaignId) {
+    return Response.json({ error: "Note not found." }, { status: 404 });
+  }
+
+  const ownedCharacterIds = listSheets(campaignId).filter((sheet) => sheet.userId === context.user.id).map((sheet) => sheet.id);
+  const policy = spatialLegacyPolicy({ campaignId, userId: context.user.id, adjudicates: capsFor(context).adjudicates, ownedCharacterIds });
+  if (!projectSpatialNotes(policy, [note]).length) {
     return Response.json({ error: "Note not found." }, { status: 404 });
   }
 

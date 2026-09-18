@@ -1,9 +1,10 @@
 import { z } from "zod";
-import { isErrorResponse, steersStory, requireMember } from "@/lib/campaign-api";
+import { capsFor, isErrorResponse, steersStory, requireMember } from "@/lib/campaign-api";
 import { allocateSeq } from "@/lib/db/campaigns";
 import { insertNote, listNotesVisibleTo } from "@/lib/db/notes";
-import { getSheetById } from "@/lib/db/sheets";
+import { getSheetById, listSheets } from "@/lib/db/sheets";
 import { publishPersisted } from "@/lib/events";
+import { projectSpatialNotes, spatialLegacyPolicy } from "@/lib/spatial/legacy-projection";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -24,8 +25,10 @@ export async function GET(
   if (isErrorResponse(context)) {
     return context;
   }
+  const ownedCharacterIds = listSheets(campaignId).filter((sheet) => sheet.userId === context.user.id).map((sheet) => sheet.id);
+  const policy = spatialLegacyPolicy({ campaignId, userId: context.user.id, adjudicates: capsFor(context).adjudicates, ownedCharacterIds });
   return Response.json({
-    notes: listNotesVisibleTo(campaignId, context.user.id, steersStory(context)),
+    notes: projectSpatialNotes(policy, listNotesVisibleTo(campaignId, context.user.id, steersStory(context))),
   });
 }
 

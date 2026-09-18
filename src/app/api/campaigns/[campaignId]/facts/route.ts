@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { isErrorResponse, steersStory, requireMember } from "@/lib/campaign-api";
+import { capsFor, isErrorResponse, steersStory, requireMember } from "@/lib/campaign-api";
 import {
   getFactById,
   insertFact,
@@ -11,6 +11,7 @@ import {
 import { listSheets } from "@/lib/db/sheets";
 import { publishEphemeral } from "@/lib/events";
 import { FACT_CATEGORIES } from "@/lib/dm/fact-logic";
+import { projectSpatialFacts, spatialLegacyPolicy } from "@/lib/spatial/legacy-projection";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -37,12 +38,10 @@ export async function GET(
   }
   const secrets =
     new URL(request.url).searchParams.get("secrets") === "1" && steersStory(context);
+  const owned = ownedCharacterIds(campaignId, context.user.id);
+  const policy = spatialLegacyPolicy({ campaignId, userId: context.user.id, adjudicates: capsFor(context).adjudicates, ownedCharacterIds: owned });
   return Response.json({
-    facts: listFactsVisibleTo(
-      campaignId,
-      ownedCharacterIds(campaignId, context.user.id),
-      secrets,
-    ),
+    facts: projectSpatialFacts(policy, listFactsVisibleTo(campaignId, owned, secrets)),
     lead: steersStory(context),
   });
 }
@@ -120,10 +119,11 @@ export async function PATCH(
     );
   }
   // A member can only touch facts they can see.
-  const visible = listFactsVisibleTo(
-    campaignId,
-    ownedCharacterIds(campaignId, context.user.id),
-    steersStory(context),
+  const owned = ownedCharacterIds(campaignId, context.user.id);
+  const policy = spatialLegacyPolicy({ campaignId, userId: context.user.id, adjudicates: capsFor(context).adjudicates, ownedCharacterIds: owned });
+  const visible = projectSpatialFacts(
+    policy,
+    listFactsVisibleTo(campaignId, owned, steersStory(context)),
   ).some((fact) => fact.id === factId);
   if (!visible) {
     return Response.json({ error: "Fact not found." }, { status: 404 });

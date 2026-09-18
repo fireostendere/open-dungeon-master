@@ -7,6 +7,7 @@ import { computeSheetDerived, findSkill } from "@/lib/srd";
 import { allySaveAura } from "@/lib/dm/aura";
 import { publishPersisted } from "@/lib/events";
 import { ABILITIES } from "@/lib/schemas/sheet";
+import { projectSpatialRolls, spatialLegacyPolicy } from "@/lib/spatial/legacy-projection";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -41,8 +42,10 @@ export async function GET(
   const ownedCharacterIds = listSheets(campaignId)
     .filter((sheet) => sheet.userId === context.user.id)
     .map((sheet) => sheet.id);
+  const caps = capsFor(context);
+  const policy = spatialLegacyPolicy({ campaignId, userId: context.user.id, adjudicates: caps.adjudicates, ownedCharacterIds });
   return Response.json({
-    rolls: listRollsVisibleTo(campaignId, capsFor(context), ownedCharacterIds, 20),
+    rolls: projectSpatialRolls(policy, listRollsVisibleTo(campaignId, caps, ownedCharacterIds, 20)),
   });
 }
 
@@ -64,6 +67,14 @@ export async function POST(
 
   const sheet = getSheetForUser(campaignId, context.user.id);
   const input = parsed.data;
+  const caps = capsFor(context);
+  const policy = spatialLegacyPolicy({
+    campaignId, userId: context.user.id, adjudicates: caps.adjudicates,
+    ownedCharacterIds: sheet ? [sheet.id] : [],
+  });
+  if (policy.scoped && !sheet) {
+    return Response.json({ error: "Create a character before rolling in a location-scoped campaign." }, { status: 409 });
+  }
 
   let expression: string;
   let kind: "skill_check" | "saving_throw" | "ability_check" | "custom" = "custom";

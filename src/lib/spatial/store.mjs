@@ -425,6 +425,15 @@ export function createSpatialStore(db, { nextSeq, now = () => new Date().toISOSt
       return Boolean(actor.isDm || one(`SELECT 1 FROM spatial_receipts
         WHERE campaign_id=? AND message_id=? AND user_id=?`, actor.campaignId, messageId, actor.userId));
     },
+    canReadSeq(actor, seq) {
+      active(actor);
+      integer(seq, 0, Number.MAX_SAFE_INTEGER, "message sequence");
+      const message = one("SELECT id,room_id FROM spatial_messages WHERE campaign_id=? AND seq=?", actor.campaignId, seq);
+      if (!message) return null;
+      if (actor.isDm || message.room_id === null) return true;
+      return Boolean(one(`SELECT 1 FROM spatial_receipts
+        WHERE campaign_id=? AND message_id=? AND user_id=?`, actor.campaignId, message.id, actor.userId));
+    },
     publishObject(actor, input) {
       authorize(actor);
       return db.transaction(() => publishObject(actor, input))();
