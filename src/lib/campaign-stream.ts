@@ -1,6 +1,5 @@
-/** A fixed-watermark replay followed by live SSE, with bounded live buffering.
- * This is the players' web stream, not an MCP transport. Database reads stay
- * synchronous; a new page is fetched only when the consumer asks for it.
+/** Fixed-watermark replay, then bounded live SSE. Authorization is rechecked
+ * at delivery, including for events buffered before a role/membership change.
  */
 type ReplayEvent = { seq: number; type: string; payload: unknown };
 type StreamOptions = {
@@ -10,10 +9,10 @@ type StreamOptions = {
   listEventsSince: (afterSeq: number, limit: number) => ReplayEvent[];
   subscribe: (send: (chunk: string) => void) => () => void;
   sseChunk: (type: string, payload: unknown, id?: number) => string;
+  canDeliver?: () => boolean;
   heartbeatMs?: number;
   maximumBufferedBytes?: number;
 };
-
 const REFRESH_EVENTS = ["ask_activity", "whisper_activity", "facts_updated", "side_activity", "battle_map_updated", "relationships_updated"];
 const PAGE_SIZE = 500;
 
@@ -42,17 +41,20 @@ export function createCampaignStream(options: StreamOptions): ReadableStream<Uin
     wake = undefined;
     try { if (error) controller.error(error); else controller.close(); } catch { /* cancelled reader */ }
   }
+  function authorized() {
+    if (closed) return false;
+    try {
+      if (options.canDeliver && !options.canDeliver()) { cleanup(); return false; }
+      return true;
+    } catch (error) { cleanup(error); return false; }
+  }
   function abort() { cleanup(); }
   function receive(chunk: string) {
-    if (closed) return;
-    // Presence and private notifications have no id. Persisted events already
-    // covered by the watermark must not move EventSource's cursor backwards.
+    if (!authorized()) return;
     const match = /^id: (\d+)\n/.exec(chunk);
     if (match && Number(match[1]) <= watermark && !chunk.includes("\nevent: campaign_rewound\n")) return;
     const encoded = encoder.encode(chunk);
     if (bufferedBytes + encoded.byteLength > maximum) {
-      // Disconnect instead of dropping events: reconnect replays from the last
-      // id actually delivered to the browser and refreshes private views again.
       cleanup(new Error("Campaign stream consumer fell behind; reconnect to replay."));
       return;
     }
@@ -62,12 +64,10 @@ export function createCampaignStream(options: StreamOptions): ReadableStream<Uin
     wake = undefined;
   }
   function finishReplay() {
+    if (!authorized()) return;
     replaying = false;
-    // Sequence allocations without an event are legal. Advance the transport
-    // cursor over that tail without inventing a game event in the database.
+    // Hidden events have contentless checkpoints. Gaps without events are legal.
     controller.enqueue(encoder.encode(options.sseChunk("stream_checkpoint", {}, watermark)));
-    // Existing clients already handle these contentless, authenticated refresh
-    // nudges. They are sent on EVERY connection, including EventSource retries.
     for (const type of REFRESH_EVENTS) controller.enqueue(encoder.encode(options.sseChunk(type, {})));
   }
 
@@ -75,27 +75,25 @@ export function createCampaignStream(options: StreamOptions): ReadableStream<Uin
     start(target) {
       controller = target;
       if (options.signal.aborted) { cleanup(); return; }
+      if (!authorized()) return;
       watermark = options.latestSeq();
-      // Subscribe before the first page. Writes arriving between later pulls
-      // are buffered while replay stops at this fixed watermark.
       unsubscribe = options.subscribe(receive);
       if (closed) { unsubscribe(); return; }
       if (options.signal.aborted) { cleanup(); return; }
       options.signal.addEventListener("abort", abort, { once: true });
       heartbeat = setInterval(() => receive(": ping\n\n"), options.heartbeatMs ?? 20_000);
       if (cursor > watermark) {
-        // A restored/rewound database is behind the browser. Existing clients
-        // handle this control by fetching a fresh authorized snapshot.
         controller.enqueue(encoder.encode(options.sseChunk("campaign_rewound", { reason: "cursor_ahead" }, watermark)));
         finishReplay();
       }
     },
     async pull() {
       try {
-        if (closed) return;
+        if (!authorized()) return;
         if (replaying) {
-          const page = options.listEventsSince(cursor, PAGE_SIZE).filter((event) => event.seq <= watermark);
+          const page = options.listEventsSince(cursor, PAGE_SIZE).filter(event => event.seq <= watermark);
           for (const event of page) {
+            if (!authorized()) return;
             if (!Number.isSafeInteger(event.seq) || event.seq <= cursor) throw new Error("Invalid campaign replay order.");
             controller.enqueue(encoder.encode(options.sseChunk(event.type, event.payload, event.seq)));
             cursor = event.seq;
@@ -103,8 +101,8 @@ export function createCampaignStream(options: StreamOptions): ReadableStream<Uin
           if (page.length < PAGE_SIZE || cursor >= watermark) finishReplay();
           return;
         }
-        while (!closed && !live.length) await new Promise<void>((resolve) => { wake = resolve; });
-        if (closed) return;
+        while (!closed && !live.length) await new Promise<void>(resolve => { wake = resolve; });
+        if (!authorized()) return;
         const chunk = live.shift()!;
         bufferedBytes -= chunk.byteLength;
         controller.enqueue(chunk);

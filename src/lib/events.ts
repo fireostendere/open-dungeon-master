@@ -1,208 +1,119 @@
 import { afterCommit } from "@/lib/db/commit-effects";
 import { getDatabase, nowIso, parseJson } from "@/lib/db/core";
 import { allocateSeq } from "@/lib/db/campaigns";
+import { captureEventAudience, decodeEventAudience, ensureEventAudienceColumn, projectEventForUser, type EventScope, type PrivateEvent } from "@/lib/spatial/event-privacy";
 
 type Subscriber = (chunk: string) => void;
 
-// The bus must live on globalThis: in `next dev`, HMR re-evaluates modules
-// and a module-scoped map would silently drop subscribers.
+// Keep the bus and per-tab presence across Next development HMR evaluations.
 declare global {
   var __odmEventBus: Map<string, Set<Subscriber>> | undefined;
   var __odmEventSubscriberUsers: Map<string, WeakMap<Subscriber, string>> | undefined;
-  // Presence: who has the campaign open in a live tab, as connection counts
-  // per user so a second tab does not read as a second person and closing
-  // one of two tabs does not read as leaving. Distinct from the voice
-  // roster, which is who is on the call.
   var __odmPresenceCounts: Map<string, Map<string, number>> | undefined;
-  // Set by src/lib/voice/peers.ts the first time anything voice-related is
-  // loaded. Undefined on a server where voice has never been used, in which
-  // case the calls below are no-ops.
   var __odmVoiceEventHook: ((campaignId: string, type: string) => void) | undefined;
 }
-
-function bus() {
-  return (globalThis.__odmEventBus ??= new Map<string, Set<Subscriber>>());
-}
+function bus() { return (globalThis.__odmEventBus ??= new Map<string, Set<Subscriber>>()); }
 function subscriberUsers(campaignId: string) {
   const campaigns = (globalThis.__odmEventSubscriberUsers ??= new Map<string, WeakMap<Subscriber, string>>());
   let users = campaigns.get(campaignId);
   if (!users) { users = new WeakMap<Subscriber, string>(); campaigns.set(campaignId, users); }
   return users;
 }
+function presenceCounts() { return (globalThis.__odmPresenceCounts ??= new Map<string, Map<string, number>>()); }
+export function onlineUserIds(campaignId: string): string[] { return Array.from(presenceCounts().get(campaignId)?.keys() ?? []); }
 
-function presenceCounts() {
-  return (globalThis.__odmPresenceCounts ??= new Map<string, Map<string, number>>());
+function freezeEvent(campaignId: string, type: string, payload: unknown, seq?: number, scope?: EventScope): PrivateEvent {
+  // Deferred after-commit callbacks must not observe a subsequently mutated object.
+  const frozen = JSON.parse(JSON.stringify(payload ?? null)) as unknown;
+  return { seq, type, payload: frozen, audience: captureEventAudience(campaignId, type, frozen, scope) };
 }
-
-export function onlineUserIds(campaignId: string): string[] {
-  return Array.from(presenceCounts().get(campaignId)?.keys() ?? []);
-}
-
-// The whole online set each time, voice_roster style, so a dropped event
-// self-heals on the next join or leave. Fanned out directly rather than via
-// publishEphemeral because presence is not a game event and the voice layer
-// keeps its own roster.
 function announcePresence(campaignId: string) {
-  fanOut(campaignId, sseChunk("presence", { online: onlineUserIds(campaignId) }));
+  fanOut(campaignId, freezeEvent(campaignId, "presence", { online: onlineUserIds(campaignId) }));
 }
 
-// userId ties the connection to presence. It is passed by the events route,
-// which has already authenticated the member; a subscriber without one does
-// not count as anybody being online.
-export function subscribe(
-  campaignId: string,
-  subscriber: Subscriber,
-  userId?: string,
-): () => void {
+export function subscribe(campaignId: string, subscriber: Subscriber, userId?: string): () => void {
   let subscribers = bus().get(campaignId);
-  if (!subscribers) {
-    subscribers = new Set();
-    bus().set(campaignId, subscribers);
-  }
+  if (!subscribers) { subscribers = new Set(); bus().set(campaignId, subscribers); }
   subscribers.add(subscriber);
   if (!userId) subscriberUsers(campaignId).delete(subscriber);
   if (userId) {
     subscriberUsers(campaignId).set(subscriber, userId);
     let counts = presenceCounts().get(campaignId);
-    if (!counts) {
-      counts = new Map();
-      presenceCounts().set(campaignId, counts);
-    }
+    if (!counts) { counts = new Map(); presenceCounts().set(campaignId, counts); }
     const next = (counts.get(userId) ?? 0) + 1;
     counts.set(userId, next);
-    // Announced after the subscriber is registered, so the joining tab hears
-    // about its own arrival and needs no separate snapshot of the set.
-    if (next === 1) {
-      announcePresence(campaignId);
-    }
+    if (next === 1) announcePresence(campaignId);
   }
-  // Guarded so a double-unsubscribe cannot drive a presence count negative.
   let released = false;
   return () => {
-    if (released) {
-      return;
-    }
+    if (released) return;
     released = true;
     subscribers.delete(subscriber);
     subscriberUsers(campaignId).delete(subscriber);
-    if (subscribers.size === 0) {
-      bus().delete(campaignId);
-      globalThis.__odmEventSubscriberUsers?.delete(campaignId);
-    }
+    if (!subscribers.size) { bus().delete(campaignId); globalThis.__odmEventSubscriberUsers?.delete(campaignId); }
     if (userId) {
       const counts = presenceCounts().get(campaignId);
       if (counts) {
         const left = (counts.get(userId) ?? 0) - 1;
-        if (left <= 0) {
-          counts.delete(userId);
-        } else {
-          counts.set(userId, left);
-        }
-        if (counts.size === 0) {
-          presenceCounts().delete(campaignId);
-        }
-        if (left <= 0) {
-          announcePresence(campaignId);
-        }
+        if (left <= 0) counts.delete(userId); else counts.set(userId, left);
+        if (!counts.size) presenceCounts().delete(campaignId);
+        if (left <= 0) announcePresence(campaignId);
       }
     }
   };
 }
 
 export function sseChunk(type: string, payload: unknown, id?: number) {
-  const idLine = id === undefined ? "" : `id: ${id}\n`;
-  return `${idLine}event: ${type}\ndata: ${JSON.stringify(payload)}\n\n`;
+  return `${id === undefined ? "" : `id: ${id}\n`}event: ${type}\ndata: ${JSON.stringify(payload)}\n\n`;
 }
-
-function fanOut(campaignId: string, chunk: string) {
+function fanOut(campaignId: string, event: PrivateEvent, onlyUserId?: string) {
   const subscribers = bus().get(campaignId);
-  if (!subscribers) {
-    return;
-  }
+  if (!subscribers) return;
   for (const subscriber of subscribers) {
-    try {
-      subscriber(chunk);
-    } catch {
-      subscribers.delete(subscriber);
-    }
+    const userId = subscriberUsers(campaignId).get(subscriber);
+    if (onlyUserId && userId !== onlyUserId) continue;
+    // Anonymous process-local subscribers are not a spatial audience.
+    const projected = userId ? projectEventForUser(campaignId, userId, event) : event.audience ? null : event;
+    if (!projected) continue;
+    try { subscriber(sseChunk(projected.type, projected.payload, projected.seq)); }
+    catch { subscribers.delete(subscriber); }
   }
 }
 
-// Persisted events are replayable after reconnect and carry an SSE id (the
-// campaign seq). Use publishWithSeq when the seq was already allocated so a
-// row (e.g. a campaign message) can share it.
-export function publishWithSeq(campaignId: string, seq: number, type: string, payload: unknown) {
-  getDatabase()
-    .prepare(
-      `INSERT INTO campaign_events (campaign_id, seq, type, payload_json, created_at) VALUES (?, ?, ?, ?, ?)`,
-    )
-    .run(campaignId, seq, type, JSON.stringify(payload), nowIso());
-  const chunk = sseChunk(type, payload, seq);
-  afterCommit(() => {
-    fanOut(campaignId, chunk);
-    globalThis.__odmVoiceEventHook?.(campaignId, type);
-  });
+export function publishWithSeq(campaignId: string, seq: number, type: string, payload: unknown, scope?: EventScope) {
+  const db = getDatabase();
+  const event = freezeEvent(campaignId, type, payload, seq, scope);
+  db.transaction(() => {
+    ensureEventAudienceColumn();
+    db.prepare("INSERT INTO campaign_events (campaign_id, seq, type, payload_json, created_at, audience_json) VALUES (?, ?, ?, ?, ?, ?)")
+      .run(campaignId, seq, type, JSON.stringify(event.payload), nowIso(), event.audience ? JSON.stringify(event.audience) : null);
+  })();
+  afterCommit(() => { fanOut(campaignId, event); globalThis.__odmVoiceEventHook?.(campaignId, type); });
   return seq;
 }
-
-export function publishPersisted(campaignId: string, type: string, payload: unknown) {
-  return publishWithSeq(campaignId, allocateSeq(campaignId), type, payload);
+export function publishPersisted(campaignId: string, type: string, payload: unknown, scope?: EventScope) {
+  return publishWithSeq(campaignId, allocateSeq(campaignId), type, payload, scope);
 }
-
-// Ephemeral events (streaming deltas, DM status) skip persistence and carry
-// no id, so EventSource reconnects do not replay them. Note: SSE offers no
-// way to clear the browser's last-event-id buffer, so on the client these
-// events still arrive with the previous persisted event's lastEventId; the
-// stream hook must ignore lastEventId for ephemeral event types.
-export function publishEphemeral(campaignId: string, type: string, payload: unknown) {
-  const chunk = sseChunk(type, payload);
-  afterCommit(() => {
-    fanOut(campaignId, chunk);
-    globalThis.__odmVoiceEventHook?.(campaignId, type);
-  });
+export function publishEphemeral(campaignId: string, type: string, payload: unknown, scope?: EventScope) {
+  const event = freezeEvent(campaignId, type, payload, undefined, scope);
+  afterCommit(() => { fanOut(campaignId, event); globalThis.__odmVoiceEventHook?.(campaignId, type); });
 }
-
-// Private Ask updates must refresh the asker's other tabs without revealing
-// even the existence of that question to the rest of the table. Identity is
-// registered by the authenticated SSE route, never supplied by event payloads.
 export function publishUserEphemeral(campaignId: string, userId: string, type: string, payload: unknown) {
-  const chunk = sseChunk(type, payload);
-  afterCommit(() => {
-    const subscribers = bus().get(campaignId);
-    if (!subscribers) return;
-    for (const subscriber of subscribers) {
-      if (subscriberUsers(campaignId).get(subscriber) !== userId) continue;
-      try { subscriber(chunk); } catch { subscribers.delete(subscriber); }
-    }
-  });
+  const event = freezeEvent(campaignId, type, payload, undefined, { kind: "users", userIds: [userId] });
+  afterCommit(() => fanOut(campaignId, event, userId));
 }
-
-// Voice reacts to things the rest of the app already announces: the floor
-// changing decides who may speak, and a token moving or a fight starting
-// decides who can hear whom. Those events are published from more than a dozen
-// call sites between them, and these two functions are the only points they
-// all pass through, so the hook lives here rather than at every site where the
-// next one added would forget it.
-//
-// Registered through globalThis, and dispatched through a dynamic import on
-// the voice side, so this low-level module imports nothing from the voice
-// layer and there is no cycle.
 
 export type StoredEvent = { seq: number; type: string; payload: unknown };
-
-export function listEventsSince(campaignId: string, afterSeq: number, limit = 500): StoredEvent[] {
-  const rows = getDatabase()
-    .prepare(
-      `
-        SELECT seq, type, payload_json FROM campaign_events
-        WHERE campaign_id = ? AND seq > ?
-        ORDER BY seq ASC LIMIT ?
-      `,
-    )
-    .all(campaignId, afterSeq, limit) as Array<{ seq: number; type: string; payload_json: string }>;
-  return rows.map((row) => ({
-    seq: row.seq,
-    type: row.type,
-    payload: parseJson<unknown>(row.payload_json, null),
-  }));
+export function listEventsSince(campaignId: string, afterSeq: number, limit = 500, viewerUserId?: string): StoredEvent[] {
+  ensureEventAudienceColumn();
+  const rows = getDatabase().prepare(`SELECT seq, type, payload_json, audience_json FROM campaign_events
+    WHERE campaign_id = ? AND seq > ? ORDER BY seq ASC LIMIT ?`)
+    .all(campaignId, afterSeq, limit) as Array<{ seq: number; type: string; payload_json: string; audience_json: string | null }>;
+  return rows.map(row => {
+    const event: PrivateEvent = { seq: row.seq, type: row.type, payload: parseJson<unknown>(row.payload_json, null), audience: decodeEventAudience(row.audience_json) };
+    const visible = viewerUserId ? projectEventForUser(campaignId, viewerUserId, event) : event;
+    // One output per scanned sequence, even for a hidden event or revoked reader.
+    // The route closes revoked streams; these checkpoints also keep paging finite.
+    return visible ? { seq: row.seq, type: visible.type, payload: visible.payload } : { seq: row.seq, type: "stream_checkpoint", payload: {} };
+  });
 }
