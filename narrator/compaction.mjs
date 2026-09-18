@@ -13,6 +13,7 @@ export class HostContextMemory {
 
     this.campaignId = options.campaignId || '';
     this.summary = options.initialSummary || '';
+    this.summaries = new Map();
     this.messages = [];
     this.rolls = [];
     this.milestones = [];
@@ -50,26 +51,32 @@ export class HostContextMemory {
       }
     }
 
-    if (Array.isArray(snapshot.recentMessages)) {
-      for (const msg of snapshot.recentMessages) {
-        if (!this.messages.some(m => m.id === msg.id)) {
-          this.messages.push(msg);
-          // Detect milestone events in message text or meta
-          this._checkMilestone(msg);
-        }
-      }
-      this._compactIfNeeded();
+    // `messages` is the authoritative incremental feed. `recentMessages` is
+    // the legacy/backfill feed; ingesting only the latter silently drops room
+    // actions after the host cursor has advanced.
+    const incoming = [
+      ...(Array.isArray(snapshot.recentMessages) ? snapshot.recentMessages : []),
+      ...(Array.isArray(snapshot.messages) ? snapshot.messages : []),
+    ];
+    for (const msg of incoming) {
+      if (!msg?.id || this.messages.some(m => m.id === msg.id)) continue;
+      this.messages.push(msg);
+      this._checkMilestone(msg);
     }
+    this.messages.sort((a, b) => (a.seq ?? 0) - (b.seq ?? 0) || String(a.id).localeCompare(String(b.id)));
+    this._compactIfNeeded();
   }
 
   _checkMilestone(msg) {
     const text = msg.content || '';
+    const scope = msg.roomId || null;
+    const milestone = type => ({ seq: msg.seq, roomId: scope, time: new Date().toISOString(), type, text: text.slice(0, 150) });
     if (/(?:смерть|умер|killed|death|fallen in battle|погиб)/iu.test(text)) {
-      this.milestones.push({ seq: msg.seq, time: new Date().toISOString(), type: 'death', text: text.slice(0, 150) });
+      this.milestones.push(milestone('death'));
     } else if (/(?:level up|новый уровень|повышение уровня)/iu.test(text)) {
-      this.milestones.push({ seq: msg.seq, time: new Date().toISOString(), type: 'level_up', text: text.slice(0, 150) });
+      this.milestones.push(milestone('level_up'));
     } else if (/(?:артефакт|легендарный предмет|получил артефакт|quest complete)/iu.test(text)) {
-      this.milestones.push({ seq: msg.seq, time: new Date().toISOString(), type: 'quest_item', text: text.slice(0, 150) });
+      this.milestones.push(milestone('quest_item'));
     }
 
     if (this.milestones.length > 25) {
@@ -83,34 +90,33 @@ export class HostContextMemory {
       const toCompact = this.messages.slice(0, count);
       this.messages = this.messages.slice(count);
 
-      const foldLines = toCompact
-        .filter(m => !m.content?.startsWith('(ooc)'))
-        .map(m => `[#${m.seq ?? '?'}] ${m.authorName || 'Speaker'}: ${m.content}`);
-
-      if (foldLines.length > 0) {
-        const addition = foldLines.join('\n');
-        if (this.summary) {
-          this.summary = `${this.summary}\n\n[Прошедшие события]:\n${addition}`;
-        } else {
-          this.summary = `[Прошедшие события]:\n${addition}`;
-        }
-
-        if (this.summary.length > this.summaryLimitChars) {
-          this.summary = this.summary.slice(-this.summaryLimitChars);
-        }
+      for (const msg of toCompact) {
+        if (msg.content?.startsWith('(ooc)')) continue;
+        const scope = msg.roomId ? `room:${msg.roomId}` : `channel:${msg.channel || 'global'}`;
+        const line = `[#${msg.seq ?? '?'}] ${msg.authorName || 'Speaker'}: ${msg.content}`;
+        const current = this.summaries.get(scope) || '';
+        const next = `${current}${current ? '\n' : `[Прошедшие события]: ${scope}\n`}${line}`;
+        this.summaries.set(scope, next.slice(-this.summaryLimitChars));
       }
     }
+    this.summary = [...this.summaries.values()].join('\n\n').slice(-this.summaryLimitChars);
   }
 
   /**
    * Builds the bounded context representation to provide to the model or prompt.
    * @returns {{ summary: string, milestones: Array, recentMessages: Array, recentRolls: Array, activeEncounter: object|null }}
    */
-  getPromptContext() {
+  getPromptContext(scope = null) {
+    const scopedMessages = scope
+      ? this.messages.filter(message => message.roomId === scope || (!message.roomId && message.channel === 'global'))
+      : this.messages;
+    const scopedSummary = scope
+      ? [this.summaries.get(`room:${scope}`), this.summaries.get('channel:global')].filter(Boolean).join('\n\n')
+      : this.summary;
     return {
-      summary: this.summary,
-      milestones: [...this.milestones],
-      recentMessages: [...this.messages],
+      summary: scopedSummary,
+      milestones: this.milestones.filter(m => !scope || m.roomId === scope || !m.roomId),
+      recentMessages: [...scopedMessages],
       recentRolls: [...this.rolls],
       activeEncounter: this.encounter ? { ...this.encounter } : null,
       characters: Array.from(this.sheets.values()).map(s => ({
@@ -124,20 +130,37 @@ export class HostContextMemory {
     };
   }
 
-  serializeState() {
+  serializeState({ safe = false } = {}) {
+    if (safe) {
+      return {
+        campaignId: this.campaignId,
+        messageCount: this.messages.length,
+        rollCount: this.rolls.length,
+        sheetCount: this.sheets.size,
+        roomCount: new Set(this.messages.map(message => message.roomId).filter(Boolean)).size,
+        milestoneCount: this.milestones.length,
+      };
+    }
     return {
       campaignId: this.campaignId,
       summary: this.summary,
+      summaries: Object.fromEntries(this.summaries),
+      messages: this.messages,
+      rolls: this.rolls,
+      sheets: Array.from(this.sheets.values()),
+      encounter: this.encounter,
       milestones: this.milestones,
-      messageCount: this.messages.length,
-      rollCount: this.rolls.length,
-      sheetCount: this.sheets.size,
     };
   }
 
   restoreState(state) {
     if (!state) return;
     if (state.summary) this.summary = state.summary;
+    if (state.summaries && typeof state.summaries === 'object') this.summaries = new Map(Object.entries(state.summaries));
+    if (Array.isArray(state.messages)) this.messages = state.messages.slice(-this.maxRecentMessages);
+    if (Array.isArray(state.rolls)) this.rolls = state.rolls.slice(-this.maxRecentRolls);
+    if (Array.isArray(state.sheets)) this.sheets = new Map(state.sheets.filter(s => s?.id).map(s => [s.id, s]));
+    if (state.encounter !== undefined) this.encounter = state.encounter;
     if (Array.isArray(state.milestones)) this.milestones = [...state.milestones];
   }
 }

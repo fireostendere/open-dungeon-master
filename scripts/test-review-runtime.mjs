@@ -31,13 +31,13 @@ function fixture(t,config=defaultConfig()) {
 }
 function client({config=defaultConfig(),env={},storedRuntime=null,fetchImpl=async()=>Response.json({choices:[{message:{content:'ok'}}]})}={}) {
   const calls=[];
-  const module=loadReviewModule(path('model-client.ts'),{
+  const loaded=loadReviewModule(path('model-client.ts'),{
     '@/lib/db/app-settings':{getGlobalConfig:()=>config,getAppSetting:()=>storedRuntime},
     '@/lib/dm/sampling-logic':{describeEndpoint:base=>({allowLocalOnlySamplers:!base.includes('openai.com'),sendZeroPresencePenalty:!base.includes('openai.com'),allowTemplateKwargs:!base.includes('openai.com'),maxTokensField:base.includes('openai.com')?'max_completion_tokens':'max_tokens'}),profileById:()=>({}),resolveSampling:({configured})=>({temperature:0.7,...configured}),unsupportedParamFromError:text=>/Unsupported parameter: (\w+)/.exec(text)?.[1]},
     '@/lib/dm/context-probe-logic':{buildPropsUrl:base=>base+'/props',contextCacheKey:(base,model)=>base+'|'+model,readContextWindow:value=>value.n_ctx},
     '@/lib/server-env':{serverEnv:(key,fallback='')=>env[key]??fallback},'@/lib/text-models':modelChecks,'@/lib/model-runtime':runtime,
     '@/lib/url-guard':{secureEndpointFetch:async(url,init)=>{calls.push({url,init,payload:init.body?JSON.parse(init.body):undefined});return fetchImpl(url,init,calls.length);}},
-  });return {...module,calls};
+  });return {...loaded,calls};
 }
 
 test('runtime snapshot contains no secrets and requires its exact endpoint/model',()=>{
