@@ -149,6 +149,11 @@ def install_ops_tools(root: Path, source: Path):
         if target.is_symlink(): raise OpsError('Operations module must not be a symlink: ' + name)
         if not target.is_file() or target.read_text(encoding='utf-8') != text:
             atomic(target, text, 0o700)
+    watch_sh = source / 'watch-player.sh'
+    if watch_sh.is_file() and not watch_sh.is_symlink():
+        target_sh = root / 'tools' / 'watch-player.sh'
+        if not target_sh.is_file() or target_sh.read_text(encoding='utf-8') != watch_sh.read_text(encoding='utf-8'):
+            atomic(target_sh, watch_sh.read_text(encoding='utf-8'), 0o755)
 
 class Controller:
     def __init__(self, root):
