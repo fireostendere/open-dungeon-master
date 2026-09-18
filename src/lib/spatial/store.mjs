@@ -90,6 +90,26 @@ CREATE TABLE IF NOT EXISTS spatial_requests (
   fingerprint TEXT NOT NULL,
   result_json TEXT NOT NULL,
   PRIMARY KEY(campaign_id,actor_id,request_id)
+);
+CREATE TABLE IF NOT EXISTS spatial_object_versions (
+  campaign_id TEXT NOT NULL REFERENCES campaigns(id) ON DELETE CASCADE,
+  object_type TEXT NOT NULL,
+  object_id TEXT NOT NULL,
+  version INTEGER NOT NULL,
+  room_id TEXT REFERENCES spatial_rooms(id) ON DELETE CASCADE,
+  payload_json TEXT NOT NULL,
+  seq INTEGER NOT NULL,
+  PRIMARY KEY(campaign_id,object_type,object_id,version)
+);
+CREATE INDEX IF NOT EXISTS spatial_object_versions_latest ON spatial_object_versions(campaign_id,object_type,object_id,version DESC);
+CREATE TABLE IF NOT EXISTS spatial_object_receipts (
+  campaign_id TEXT NOT NULL REFERENCES campaigns(id) ON DELETE CASCADE,
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  object_type TEXT NOT NULL,
+  object_id TEXT NOT NULL,
+  version INTEGER NOT NULL,
+  observed_seq INTEGER NOT NULL,
+  PRIMARY KEY(campaign_id,user_id,object_type,object_id)
 );`;
 
 function canonical(value) {
@@ -162,6 +182,58 @@ export function createSpatialStore(db, { nextSeq, now = () => new Date().toISOSt
     }
     return { id, roomId, seq, kind, authorUserId: actor.userId, content, createdAt };
   }
+  function objectKey(input) {
+    return {
+      objectType: text(input.objectType, 80, "object type"),
+      objectId: text(input.objectId, 200, "object ID"),
+    };
+  }
+  function latestObject(actor, objectType, objectId) {
+    return one(`SELECT * FROM spatial_object_versions
+      WHERE campaign_id=? AND object_type=? AND object_id=? ORDER BY version DESC LIMIT 1`, actor.campaignId, objectType, objectId);
+  }
+  function projectObject(actor, objectType, objectId) {
+    const row = actor.isDm
+      ? latestObject(actor, objectType, objectId)
+      : one(`SELECT v.* FROM spatial_object_receipts r
+        JOIN spatial_object_versions v ON v.campaign_id=r.campaign_id AND v.object_type=r.object_type
+          AND v.object_id=r.object_id AND v.version=r.version
+        WHERE r.campaign_id=? AND r.user_id=? AND r.object_type=? AND r.object_id=?`, actor.campaignId, actor.userId, objectType, objectId);
+    if (!row) throw new SpatialError("Object not found.", 404);
+    return { objectType: row.object_type, objectId: row.object_id, roomId: row.room_id, version: row.version, seq: row.seq, payload: JSON.parse(row.payload_json) };
+  }
+  function publishObject(actor, input) {
+    dm(actor);
+    const { objectType, objectId } = objectKey(input);
+    const payload = input.payload;
+    if (payload === undefined) throw new SpatialError("Invalid object payload.");
+    const roomId = input.roomId == null ? null : room(actor, input.roomId).id;
+    const previous = latestObject(actor, objectType, objectId);
+    const version = (previous?.version ?? 0) + 1;
+    const seq = nextSeq(actor.campaignId);
+    run(`INSERT INTO spatial_object_versions(campaign_id,object_type,object_id,version,room_id,payload_json,seq)
+      VALUES(?,?,?,?,?,?,?)`, actor.campaignId, objectType, objectId, version, roomId, JSON.stringify(payload), seq);
+    const recipients = Array.isArray(input.userIds) ? input.userIds : roomId ? occupants(actor, roomId) : [];
+    for (const userId of new Set(recipients)) {
+      if (!actor.playerIds.includes(userId)) throw new SpatialError("Player not found.", 404);
+      run(`INSERT INTO spatial_object_receipts(campaign_id,user_id,object_type,object_id,version,observed_seq)
+        VALUES(?,?,?,?,?,?) ON CONFLICT(campaign_id,user_id,object_type,object_id)
+        DO UPDATE SET version=excluded.version,observed_seq=excluded.observed_seq`, actor.campaignId, userId, objectType, objectId, version, seq);
+    }
+    return { objectType, objectId, version, seq };
+  }
+  function observeObject(actor, input) {
+    dm(actor);
+    const { objectType, objectId } = objectKey(input);
+    const row = latestObject(actor, objectType, objectId);
+    if (!row) throw new SpatialError("Object not found.", 404);
+    const users = input.userIds;
+    if (!Array.isArray(users) || !users.length || users.some(userId => !actor.playerIds.includes(userId))) throw new SpatialError("Invalid observation recipients.");
+    for (const userId of new Set(users)) run(`INSERT INTO spatial_object_receipts(campaign_id,user_id,object_type,object_id,version,observed_seq)
+      VALUES(?,?,?,?,?,?) ON CONFLICT(campaign_id,user_id,object_type,object_id)
+      DO UPDATE SET version=excluded.version,observed_seq=excluded.observed_seq`, actor.campaignId, userId, objectType, objectId, row.version, nextSeq(actor.campaignId));
+    return { objectType, objectId, version: row.version };
+  }
   function link(actor, sourceId, targetId, input) {
     room(actor, sourceId); room(actor, targetId);
     if (sourceId === targetId) throw new SpatialError("A location cannot connect to itself.");
@@ -227,6 +299,10 @@ export function createSpatialStore(db, { nextSeq, now = () => new Date().toISOSt
       const seq = nextSeq(actor.campaignId);
       return { moved: [...new Set(targets)].map(userId => ({ userId, ...moveOne(actor, userId, input.roomId, seq) })) };
     }
+    if (operation === "object_read") {
+      const { objectType, objectId } = objectKey(input);
+      return projectObject(actor, objectType, objectId);
+    }
     dm(actor);
     if (operation === "create_room") {
       if (one("SELECT COUNT(*) AS n FROM spatial_rooms WHERE campaign_id=?", actor.campaignId).n >= 128) throw new SpatialError("This campaign has reached its 128-location limit.", 409);
@@ -286,6 +362,8 @@ export function createSpatialStore(db, { nextSeq, now = () => new Date().toISOSt
       }
       return { message: append(actor, input.roomId, "perception", text(input.content, 2000, "perceived fragment"), recipients) };
     }
+    if (operation === "object_publish") return publishObject(actor, input);
+    if (operation === "object_observe") return observeObject(actor, input);
     throw new SpatialError("Unknown location operation.");
   }
 
@@ -336,6 +414,24 @@ export function createSpatialStore(db, { nextSeq, now = () => new Date().toISOSt
         ORDER BY m.seq DESC LIMIT ?`, actor.campaignId, roomId, beforeSeq, ...(actor.isDm || roomId === null ? [] : [actor.userId]), limit + 1);
       const hasMore = rows.length > limit, page = rows.slice(0, limit).reverse().map(mapMessage);
       return { messages: page, nextBefore: hasMore ? page[0].seq : null };
+    },
+    object(actor, objectType, objectId) {
+      active(actor);
+      return projectObject(actor, text(objectType, 80, "object type"), text(objectId, 200, "object ID"));
+    },
+    canReadMessage(actor, messageId) {
+      active(actor);
+      text(messageId, 200, "message ID");
+      return Boolean(actor.isDm || one(`SELECT 1 FROM spatial_receipts
+        WHERE campaign_id=? AND message_id=? AND user_id=?`, actor.campaignId, messageId, actor.userId));
+    },
+    publishObject(actor, input) {
+      authorize(actor);
+      return db.transaction(() => publishObject(actor, input))();
+    },
+    observeObject(actor, input) {
+      authorize(actor);
+      return db.transaction(() => observeObject(actor, input))();
     },
     narratorRead(actor, { afterSeq = 0, limit = 100 } = {}) {
       dm(actor);

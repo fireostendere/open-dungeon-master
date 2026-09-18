@@ -7,7 +7,8 @@
   "scripts": {
     "start": "node server.mjs",
     "test": "node --test test/*.test.mjs",
-    "smoke": "node smoke.mjs"
+    "smoke": "node smoke.mjs",
+    "playwright:mcp": "playwright-mcp --config playwright-mcp.config.json"
   },
   "dependencies": {
     "@modelcontextprotocol/client": "2.0.0",

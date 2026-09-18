@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { SpatialPage, SpatialView } from "@/lib/spatial/store.mjs";
 
 type Snapshot = { key: string; view: SpatialView; page: SpatialPage };
-type Pending = { requestId: string; input: Record<string, unknown> };
+type Pending = { requestId: string; input: Record<string, unknown>; identity: string };
 const EMPTY: SpatialPage = { messages: [], nextBefore: null };
 // Poll the authorized projection, not the campaign-wide event bus. Fetches
 // are serial and abort on room/account changes; another room's result cannot
@@ -21,15 +21,6 @@ export function useLocationChat(campaignId: string, userId: string) {
   const key = `${campaignId}:${userId}:${selected ?? ""}:${before ?? "latest"}`;
   const endpoint = `/api/campaigns/${encodeURIComponent(campaignId)}/location-chat`;
   const refresh = useCallback(() => setVersion(value => value + 1), []);
-  useEffect(() => {
-    pendingRef.current = null;
-    setPending(null);
-    setSnapshot(null);
-    setSelected(null);
-    setBefore(null);
-    setError("");
-  }, [campaignId, userId]);
-
   useEffect(() => {
     const abort = new AbortController();
     let timer: ReturnType<typeof setTimeout>;
@@ -63,11 +54,11 @@ export function useLocationChat(campaignId: string, userId: string) {
 
   const command = useCallback(async (input: Record<string, unknown>) => {
     if (busyRef.current) return false;
-    const previous = pendingRef.current;
+    const previous = pendingRef.current?.identity === `${campaignId}:${userId}` ? pendingRef.current : null;
     if (previous && JSON.stringify(previous.input) !== JSON.stringify(input)) {
       setError("Retry the unconfirmed command before submitting another one."); return false;
     }
-    const attempt = previous ?? { requestId: crypto.randomUUID(), input };
+    const attempt = previous ?? { requestId: crypto.randomUUID(), input, identity: `${campaignId}:${userId}` };
     pendingRef.current = attempt; setPending(attempt);
     busyRef.current = true; setBusy(true); setError("");
     try {
@@ -85,7 +76,7 @@ export function useLocationChat(campaignId: string, userId: string) {
       return true;
     } catch (cause) { setError(cause instanceof Error ? cause.message : "Location command failed."); return false; }
     finally { busyRef.current = false; setBusy(false); }
-  }, [endpoint, refresh]);
+  }, [campaignId, endpoint, refresh, userId]);
 
   const select = useCallback((roomId: string) => { setBefore(null); setSelected(roomId); }, []);
   const older = () => { if (snapshot?.key === key && snapshot.page.nextBefore) setBefore(snapshot.page.nextBefore); };
@@ -94,6 +85,7 @@ export function useLocationChat(campaignId: string, userId: string) {
   // metadata may be reused within this identity, never across accounts.
   const sameIdentity = snapshot?.key.startsWith(`${campaignId}:${userId}:`);
   return { view: sameIdentity ? snapshot?.view ?? null : null,
+    campaignId, userId,
     page: snapshot?.key === key ? snapshot.page : EMPTY, loading: !sameIdentity,
     selected, select, error, busy, command, refresh, older,
     showingOlder: before !== null, newest: () => setBefore(null),

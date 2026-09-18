@@ -3,6 +3,7 @@ import { SPATIAL_SCHEMA } from "./store.mjs";
 export const SPATIAL_TABLES = Object.freeze([
   "spatial_campaigns", "spatial_rooms", "spatial_links", "spatial_presence", "spatial_visits",
   "spatial_messages", "spatial_receipts", "spatial_observers", "spatial_requests",
+  "spatial_object_versions", "spatial_object_receipts",
 ]);
 export function captureSpatialSnapshot(db, campaignId) {
   db.exec(SPATIAL_SCHEMA);

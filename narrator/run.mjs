@@ -102,6 +102,7 @@ export class NarratorRunner {
     this.readMaxBytes = Number(options.readMaxBytes ?? process.env.ODM_NARRATOR_READ_BYTES ?? 65536);
     this.readPageRetries = Number(options.readPageRetries ?? process.env.ODM_NARRATOR_READ_RETRIES ?? 2);
     this.healthPort = options.healthPort !== undefined ? Number(options.healthPort) : Number(process.env.ODM_NARRATOR_PORT ?? 3007);
+    this.statusToken = (options.statusToken || process.env.ODM_NARRATOR_STATUS_TOKEN || '').trim();
     this.fetchImpl = options.fetchImpl || globalThis.fetch;
 
     const defaultStateDir = process.env.ODM_STATE_DIR || './state';
@@ -162,7 +163,7 @@ export class NarratorRunner {
       updatedAt: new Date().toISOString(),
       uptimeSeconds: Math.floor((Date.now() - this.startedAt) / 1000),
       lastPollAt: this.lastPollAt || null,
-      lastError: this.lastError,
+      lastError: this.lastError ? 'poll_failed' : null,
     };
     atomicWriteJson(this.checkpointPath, data);
   }
@@ -378,6 +379,11 @@ export class NarratorRunner {
         res.writeHead(200, { 'content-type': 'application/json' });
         res.end(JSON.stringify({ ok: true, status: 'healthy', uptime: process.uptime() }));
       } else if (url.pathname === '/status') {
+        if (this.statusToken && req.headers.authorization !== `Bearer ${this.statusToken}`) {
+          res.writeHead(401, { 'content-type': 'application/json', 'cache-control': 'no-store' });
+          res.end(JSON.stringify({ error: 'Unauthorized' }));
+          return;
+        }
         res.writeHead(200, { 'content-type': 'application/json' });
         res.end(JSON.stringify({
           ok: true,
@@ -388,9 +394,11 @@ export class NarratorRunner {
           answeredAsksCount: this.answeredAsks.size,
           pendingAskCommandsCount: this.pendingAskCommands.size,
           lastPollAt: this.lastPollAt || null,
-          lastError: this.lastError,
+          // Never expose provider errors, prompts, tokens or private prose in
+          // diagnostics. The detailed error remains in the operator log.
+          lastError: this.lastError ? 'poll_failed' : null,
           metrics: this.costTracker.getMetrics(),
-          memory: this.memory.serializeState(),
+          memory: this.memory.serializeState({ safe: true }),
           uptime: process.uptime(),
         }));
       } else {
@@ -399,7 +407,7 @@ export class NarratorRunner {
       }
     });
 
-    this.healthServer.listen(this.healthPort, '0.0.0.0', () => {
+    this.healthServer.listen(this.healthPort, '127.0.0.1', () => {
       console.log(`[narrator-runner] Health server listening on port ${this.healthPort}`);
     });
   }

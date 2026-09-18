@@ -3,6 +3,7 @@ import { useState, type FormEvent } from "react";
 import { useI18n } from "@/lib/i18n";
 import { localeText } from "@/lib/i18n/locale-text";
 import type { LocationChatController } from "./useLocationChat";
+import { WebMcpLocationTools } from "./WebMcpLocationTools";
 
 type Member = { userId: string; username: string };
 const field = "rounded border border-stone-700 bg-stone-950 px-2 py-1 text-sm text-stone-100";
@@ -31,7 +32,8 @@ export function LocationChat({ chat, members, dmUserId }: { chat: LocationChatCo
   const [summary, setSummary] = useState("");
   const [medium, setMedium] = useState("sound");
   const view = chat.view;
-  if (!view?.enabled) return null;
+  const webMcp = <WebMcpLocationTools campaignId={chat.campaignId} userId={chat.userId} />;
+  if (!view?.enabled) return webMcp;
   const selected = view.rooms.find(room => room.id === chat.selected);
   const ooc = chat.selected === "ooc";
   const active = view.current?.roomId === chat.selected;
@@ -62,10 +64,10 @@ export function LocationChat({ chat, members, dmUserId }: { chat: LocationChatCo
       <option value="">—</option>{view.rooms.map(room => <option value={room.id} key={room.id}>{room.name}</option>)}
     </select></label>
   );
-  return <section className="flex min-h-0 flex-1 flex-col gap-2 p-3 text-stone-200" aria-label={t.title}>
+  return <><>{webMcp}</><section data-testid="location-chat" className="flex min-h-0 flex-1 flex-col gap-2 p-3 text-stone-200" aria-label={t.title}>
     <nav className="flex flex-wrap gap-1" aria-label={t.title}>
       <button type="button" className={button} aria-pressed={ooc} onClick={() => chat.select("ooc")}>{t.ooc}</button>
-      {view.rooms.map(room => <button type="button" key={room.id} className={button} aria-pressed={chat.selected === room.id}
+      {view.rooms.map(room => <button data-testid={`location-room-${room.id}`} type="button" key={room.id} className={button} aria-pressed={chat.selected === room.id}
         onClick={() => chat.select(room.id)}>{room.active ? "● " : ""}{room.name}</button>)}
     </nav>
     <p className="text-xs text-stone-400">{ooc ? t.global : active ? t.live : observing ? t.observing : view.isDm ? t.narration : t.archive}</p>
@@ -122,5 +124,5 @@ export function LocationChat({ chat, members, dmUserId }: { chat: LocationChatCo
         <button type="button" className={button} disabled={chat.busy || chat.pending} onClick={() => void chat.command({ operation: "revoke", grantId: grant.id })}>{t.revoke}</button>
       </div>)}</div>
     </details> : null}
-  </section>;
+  </section></>;
 }

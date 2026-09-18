@@ -1,0 +1,15 @@
+{
+  "browser": {
+    "browserName": "chromium",
+    "isolated": true,
+    "launchOptions": { "headless": true }
+  },
+  "server": {
+    "allowedHosts": ["127.0.0.1", "localhost"]
+  },
+  "network": {
+    "allowedOrigins": ["http://127.0.0.1:*", "http://localhost:*"]
+  },
+  "capabilities": ["core", "core-navigation", "core-input", "testing", "network"],
+  "testIdAttribute": "data-testid"
+}

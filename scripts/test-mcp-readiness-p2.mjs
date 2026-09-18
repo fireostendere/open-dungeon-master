@@ -168,11 +168,11 @@ function routeModule(filename, deps) {
   const source = ts.transpileModule(readFileSync(path.join(root, filename), 'utf8'), {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, esModuleInterop: true }
   }).outputText;
-  const module = { exports: {} };
-  new Function('module', 'exports', 'require', source)(module, module.exports, name => {
+  const localModule = { exports: {} };
+  new Function('module', 'exports', 'require', source)(localModule, localModule.exports, name => {
     if (Object.hasOwn(deps, name)) return deps[name]; throw new Error(`Unsubstituted route dependency ${name}`);
   });
-  return module.exports;
+  return localModule.exports;
 }
 const chain = new Proxy(function() {}, { get: () => chain, apply: () => chain });
 test('M12: muted whisper POST exits through requireVoice before DB, quota or model work; GET still reads own history', async () => {

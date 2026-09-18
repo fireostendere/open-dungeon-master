@@ -90,7 +90,7 @@ node --test scripts/test-spatial-chat.mjs scripts/test-spatial-snapshot.mjs
 
 **27 tests passed** using real in-memory SQLite. These cover entry/exit/reentry, unseen gaps, global OOC, sound and sight incidents, eavesdropping/magic, expiry/revocation/closed windows, stale tabs, actor/campaign boundaries, hidden activity, paging, atomic batch movement, retry persistence, deleted users, snapshot rollback and merged narrator cursor progression.
 
-Added for the full repository environment, but not executed in the implementation environment:
+Executed in the implementation environment:
 
 ```sh
 node --experimental-vm-modules scripts/test-spatial-integration.mjs
@@ -100,7 +100,9 @@ npm run lint
 npm run build
 ```
 
-The integration suite uses the real application database and narrator dispatcher, blocks provider/network calls, tests failed-first-write schema recovery, private message delivery in normal MCP reads, durable retries, OOC exclusion, and refusal of unscoped narration. It is automatically discovered by `scripts/test-all.mjs`.
+The spatial integration suite passed, `npx tsc --noEmit` passed and `npm run lint` passed with seven warnings. The full `npm test` run is currently stopped by the unrelated asset-claim race assertion in `scripts/test-asset-claim-concurrency.mjs`; `npm run build` is blocked in this sandbox by Next/Turbopack's attempt to bind a worker port. The integration suite uses the real application database and narrator dispatcher, blocks provider/network calls, tests failed-first-write schema recovery, private message delivery in normal MCP reads, durable retries, OOC exclusion, and refusal of unscoped narration. It is automatically discovered by `scripts/test-all.mjs`.
+
+The dedicated completion matrix, exact command results and remaining mechanical-view/browser blockers are in [location-privacy-acceptance.md](./location-privacy-acceptance.md).
 
 ### Required browser acceptance
 

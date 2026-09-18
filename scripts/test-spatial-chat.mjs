@@ -222,3 +222,17 @@ test("reopening the store retains visits, gap permissions and durable retries", 
   assert.deepEqual(reopened.messages(f.alice, { roomId: f.tavern }).messages.map(m => m.content), ["One durable message"]);
   assert.equal(reopened.view(f.alice).rooms.find(room => room.id === f.tavern).active, false);
 });
+
+test("object receipts retain the observed version after a player leaves", t => {
+  const f = fixture(); t.after(() => f.db.close());
+  const first = f.store.publishObject(f.dm, { objectType: "note", objectId: "notice", roomId: f.outside, payload: { text: "old" } });
+  assert.equal(f.store.object(f.bob, "note", "notice").version, first.version);
+  f.move(f.bob, f.tavern);
+  const second = f.store.publishObject(f.dm, { objectType: "note", objectId: "notice", roomId: f.outside, payload: { text: "new" } });
+  assert.equal(f.store.object(f.dm, "note", "notice").version, second.version);
+  assert.deepEqual(f.store.object(f.bob, "note", "notice").payload, { text: "old" });
+  f.move(f.bob, f.outside);
+  assert.deepEqual(f.store.object(f.bob, "note", "notice").payload, { text: "old" });
+  f.store.observeObject(f.dm, { objectType: "note", objectId: "notice", userIds: ["bob"] });
+  assert.deepEqual(f.store.object(f.bob, "note", "notice").payload, { text: "new" });
+});
