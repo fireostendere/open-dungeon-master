@@ -20,6 +20,8 @@ import { CharacterGate } from "@/app/campaigns/[campaignId]/CharacterGate";
 import { Composer, type InputKind } from "@/app/campaigns/[campaignId]/Composer";
 import { composerGate } from "@/app/campaigns/[campaignId]/composerGate";
 import { DiceOverlay } from "@/app/campaigns/[campaignId]/DiceOverlay";
+import { EndingCelebration } from "@/app/campaigns/[campaignId]/EndingCelebration";
+import { ClosingMessageModal } from "@/app/campaigns/[campaignId]/ClosingMessageModal";
 import { LoreCheckDialog } from "@/app/campaigns/[campaignId]/LoreCheckDialog";
 import { RenarrateDialog } from "@/app/campaigns/[campaignId]/RenarrateDialog";
 import type { CampaignMessage } from "@/lib/db/messages";
@@ -119,6 +121,36 @@ export function SessionView({
   // Bumped on pin/unpin so the pins panel refetches without a stream event.
   const [pinsVersion, setPinsVersion] = useState(0);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [closingModalOpen, setClosingModalOpen] = useState(false);
+  const [celebrationActive, setCelebrationActive] = useState(false);
+  const [hasOpenedFinale, setHasOpenedFinale] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && campaign?.id) {
+      const seen = window.localStorage.getItem(`odm:seen_finale_${campaign.id}`);
+      setHasOpenedFinale(Boolean(seen));
+    }
+  }, [campaign?.id]);
+
+  const openClosingMessage = useCallback(() => {
+    setClosingModalOpen(true);
+    setCelebrationActive(true);
+    setHasOpenedFinale(true);
+    if (typeof window !== "undefined" && campaign?.id) {
+      window.localStorage.setItem(`odm:seen_finale_${campaign.id}`, "true");
+    }
+  }, [campaign?.id]);
+
+  const closingDmMessage = useMemo(() => {
+    if (campaign?.status !== "ended") return null;
+    for (let i = messages.length - 1; i >= 0; i--) {
+      if (messages[i].authorType === "dm") {
+        return messages[i];
+      }
+    }
+    return null;
+  }, [campaign?.status, messages]);
+
   // The guided tour on screen, if any: the player's or the DM's.
   const [tour, setTour] = useState<"player" | "dm" | null>(null);
   const composerRef = useRef<HTMLTextAreaElement>(null);
@@ -418,6 +450,8 @@ export function SessionView({
           onLoreCheck={openLoreCheck}
           onRenarrate={setRenarrate}
           onPinned={bumpPins}
+          onOpenClosingMessage={openClosingMessage}
+          hasOpenedFinale={hasOpenedFinale}
         >
           {needsCharacter ? (
             <CharacterGate campaignId={campaign.id} />
@@ -589,6 +623,21 @@ export function SessionView({
           />
         </Suspense>
       ) : null}
+
+      <ClosingMessageModal
+        open={closingModalOpen}
+        onOpenChange={setClosingModalOpen}
+        campaignTitle={campaign.title}
+        message={closingDmMessage}
+        sheets={sheets}
+        onTriggerCelebration={() => setCelebrationActive(true)}
+      />
+
+      <EndingCelebration
+        active={celebrationActive}
+        onClose={() => setCelebrationActive(false)}
+        campaignTitle={campaign.title}
+      />
     </main>
   );
 }

@@ -38,14 +38,15 @@ export function EditCampaignDialog({
     cover?: CampaignCoverRef | null;
     // Same reason: the preview falls back to the generic plate without it.
     genre?: string;
+    status?: "lobby" | "active" | "ended";
   };
   onClose: () => void;
 }) {
   const { locale } = useI18n();
   const copy = localeText(locale, {
-    en: { title: "Edit campaign", name: "Title", description: "Premise", setting: "Setting", players: "Player slots", level: "Starting level", difficulty: "Difficulty", cover: "Cover art", upload: "Upload", painting: "Painting", paint: "Paint one", remove: "Remove", coverFailed: "The cover did not paint. Try again, or upload one.", save: "Save changes" },
-    ru: { title: "Изменить кампанию", name: "Название", description: "Завязка", setting: "Сеттинг", players: "Места для игроков", level: "Стартовый уровень", difficulty: "Сложность", cover: "Обложка", upload: "Загрузить", painting: "Рисуем", paint: "Создать", remove: "Удалить", coverFailed: "Не удалось создать обложку. Повторите попытку или загрузите свою.", save: "Сохранить изменения" },
-    pl: { title: "Edytuj kampanię", name: "Tytuł", description: "Założenie", setting: "Świat", players: "Miejsca dla graczy", level: "Poziom początkowy", difficulty: "Trudność", cover: "Grafika okładki", upload: "Prześlij", painting: "Tworzenie", paint: "Utwórz", remove: "Usuń", coverFailed: "Nie udało się utworzyć okładki. Spróbuj ponownie lub prześlij własną.", save: "Zapisz zmiany" },
+    en: { title: "Edit campaign", name: "Title", description: "Premise", setting: "Setting", players: "Player slots", level: "Starting level", difficulty: "Difficulty", cover: "Cover art", upload: "Upload", painting: "Painting", paint: "Paint one", remove: "Remove", coverFailed: "The cover did not paint. Try again, or upload one.", save: "Save changes", status: "Campaign status", active: "Active", ended: "Ended (concluded)" },
+    ru: { title: "Изменить кампанию", name: "Название", description: "Завязка", setting: "Сеттинг", players: "Места для игроков", level: "Стартовый уровень", difficulty: "Сложность", cover: "Обложка", upload: "Загрузить", painting: "Рисуем", paint: "Создать", remove: "Удалить", coverFailed: "Не удалось создать обложку. Повторите попытку или загрузите свою.", save: "Сохранить изменения", status: "Статус кампании", active: "В процессе", ended: "Завершена (финал)" },
+    pl: { title: "Edytuj kampanię", name: "Tytuł", description: "Założenie", setting: "Świat", players: "Miejsca dla graczy", level: "Poziom początkowy", difficulty: "Trudność", cover: "Grafika okładki", upload: "Prześlij", painting: "Tworzenie", paint: "Utwórz", remove: "Usuń", coverFailed: "Nie udało się utworzyć okładki. Spróbuj ponownie lub prześlij własną.", save: "Zapisz zmiany", status: "Status kampanii", active: "W toku", ended: "Zakończona (finał)" },
   });
   const [title, setTitle] = useState(campaign.title);
   const [description, setDescription] = useState(campaign.description);
@@ -53,6 +54,7 @@ export function EditCampaignDialog({
   const [maxPlayers, setMaxPlayers] = useState(campaign.maxPlayers);
   const [startingLevel, setStartingLevel] = useState(campaign.startingLevel);
   const [difficulty, setDifficulty] = useState<CampaignDifficulty>(campaign.difficulty);
+  const [status, setStatus] = useState<"lobby" | "active" | "ended" | undefined>(campaign.status);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -171,6 +173,7 @@ export function EditCampaignDialog({
           maxPlayers,
           startingLevel,
           difficulty,
+          ...(status && status !== campaign.status ? { status } : {}),
         }),
       });
       const data = await response.json().catch(() => ({}));
@@ -331,6 +334,40 @@ export function EditCampaignDialog({
               ) : null}
               {coverError ? <p className="mt-1 text-xs text-red-400">{coverError}</p> : null}
             </div>
+
+            {campaign.status === "active" || campaign.status === "ended" ? (
+              <div>
+                <label className="mb-1 block text-xs font-medium text-stone-300">
+                  {copy.status}
+                </label>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setStatus("active")}
+                    className={cn(
+                      "flex-1 rounded-lg border px-3 py-2 text-xs font-medium transition",
+                      status === "active"
+                        ? "border-amber-500 bg-amber-950/60 text-amber-200"
+                        : "border-stone-800 bg-stone-900/40 text-stone-400 hover:text-stone-200",
+                    )}
+                  >
+                    {copy.active}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setStatus("ended")}
+                    className={cn(
+                      "flex-1 rounded-lg border px-3 py-2 text-xs font-medium transition",
+                      status === "ended"
+                        ? "border-amber-500 bg-amber-950/60 text-amber-200 shadow-[0_0_15px_rgba(245,158,11,0.2)]"
+                        : "border-stone-800 bg-stone-900/40 text-stone-400 hover:text-stone-200",
+                    )}
+                  >
+                    {copy.ended}
+                  </button>
+                </div>
+              </div>
+            ) : null}
 
             {error ? <p className="text-red-400">{error}</p> : null}
             <button type="submit" disabled={busy} className={cn(ui.btnPrimary, "w-full")}>

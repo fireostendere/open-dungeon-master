@@ -15,6 +15,7 @@ import {
   Pin,
   RefreshCw,
   ShieldQuestion,
+  Sparkles,
   UserPlus,
   Volume2,
 } from "lucide-react";
@@ -282,6 +283,8 @@ const MessageItem = memo(function MessageItem({
   onContinueScene?: (message: CampaignMessage) => void;
   // Browse the rerolled takes; the picked one is what the table reads.
   onSelectVariant?: (message: CampaignMessage, index: number) => void;
+  isClosingMessage?: boolean;
+  onOpenClosingMessage?: () => void;
 }) {
   const { locale } = useI18n();
   // Local to the row: only one narration is ever being corrected at a time,
@@ -374,11 +377,38 @@ const MessageItem = memo(function MessageItem({
   }
   if (message.authorType === "dm") {
     return (
-      <div className="group animate-fade-up">
+      <div
+        className={cn(
+          "group animate-fade-up transition-all",
+          isClosingMessage &&
+            "rounded-2xl border-2 border-amber-500/50 bg-gradient-to-b from-amber-950/25 via-stone-900/40 to-transparent p-5 shadow-[0_0_35px_rgba(245,158,11,0.2)]",
+        )}
+      >
         <p className="eyebrow mb-2 flex items-center gap-2 text-[10px] text-amber-300/80">
           <span className="h-px w-8 bg-gradient-to-r from-transparent to-amber-500/60" />
-          {messageText(locale, "Dungeon Master")}
+          {isClosingMessage ? (
+            <span className="flex items-center gap-1.5 font-bold text-amber-300">
+              <Sparkles className="size-3.5 text-amber-400" />
+              {locale === "ru"
+                ? "Заключительное послание Мастера · Финал приключения"
+                : locale === "pl"
+                  ? "Końcowe przesłanie Mistrza Gry · Finał przygody"
+                  : "DM's Closing Message · Adventure Finale"}
+            </span>
+          ) : (
+            messageText(locale, "Dungeon Master")
+          )}
           <span className="h-px flex-1 bg-gradient-to-r from-amber-500/40 to-transparent" />
+          {isClosingMessage && onOpenClosingMessage ? (
+            <button
+              type="button"
+              onClick={onOpenClosingMessage}
+              className="inline-flex items-center gap-1 rounded-md border border-amber-500/50 bg-amber-950/70 px-2.5 py-1 text-[11px] font-semibold text-amber-100 shadow-[0_0_12px_rgba(245,158,11,0.3)] transition hover:bg-amber-900/80 hover:text-white"
+            >
+              <Sparkles className="size-3 text-amber-300" />
+              {locale === "ru" ? "Салют и финал" : locale === "pl" ? "Salwa i finał" : "Salute & Finale"}
+            </button>
+          ) : null}
           {(() => {
             // Reroll takes: the counter only appears once a second one exists.
             const variants = message.variants ?? [];
@@ -722,6 +752,8 @@ export function MessageList({
   onRenarrate?: (message: CampaignMessage) => void;
   onContinueScene?: (message: CampaignMessage) => void;
   onSelectVariant?: (message: CampaignMessage, index: number) => void;
+  campaignStatus?: string;
+  onOpenClosingMessage?: () => void;
 }) {
   const { locale } = useI18n();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -731,6 +763,15 @@ export function MessageList({
   const statusPhrase = dmStatusPhrase(dmStatus, messages[messages.length - 1]?.id ?? "", locale);
   const rollsById = useMemo(() => new Map(rolls.map((roll) => [roll.id, roll])), [rolls]);
   const timeline = useMemo(() => buildTimeline(messages, rolls), [messages, rolls]);
+  const closingDmMessageId = useMemo(() => {
+    if (campaignStatus !== "ended") return "";
+    for (let index = messages.length - 1; index >= 0; index -= 1) {
+      if (messages[index].authorType === "dm") {
+        return messages[index].id;
+      }
+    }
+    return "";
+  }, [messages, campaignStatus]);
   const sheetsById = useMemo(
     () => new Map(sheets.map((sheet) => [sheet.id, sheet])),
     [sheets],
@@ -908,6 +949,8 @@ export function MessageList({
                 : undefined
             }
             onSelectVariant={stableSelectVariant}
+            isClosingMessage={message.id === closingDmMessageId}
+            onOpenClosingMessage={onOpenClosingMessage}
           />
         );
       })}
