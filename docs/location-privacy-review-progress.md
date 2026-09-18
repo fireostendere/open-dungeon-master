@@ -20,7 +20,7 @@ Details: `location-privacy-event-milestone.md`, `location-privacy-client-milesto
 
 ## Still open — implementation, not merely missing test results
 
-- **R02-R04:** real battle maps, facts, notes, chapters and other legacy projections are not fully integrated with scene bindings, per-viewer observed versions, direct-ID authorization, search/export and rewind. `!roll.characterId` in the campaign snapshot remains a specific open issue. The generic object store alone is not domain integration.
+- **R02 is implemented in this branch:** active tactical maps are explicitly bound to a spatial room by start_encounter, direct player reads record a per-user observed map projection, leaving freezes that projection, returning advances it, and unbound legacy boards fail closed. R03-R04 remain open for facts, notes, chapters and the rest of the legacy object/read surface.
 - **R05:** independent encounters, scene-specific floor/initiative and unrelated subgroup movement still need implementation. Shared campaign-level engine assumptions are not removed by hiding the encounter panel.
 - **R07:** the runner's allowed Ask path still uses a placeholder answer and fabricated usage rather than a real model adapter; the player-intent → model → engine → addressed narration chain remains unimplemented in that host. An external Luna client is a different runtime.
 - **R11:** the original browser harness's contradictory outsider expectations and wrong history endpoint are not yet repaired, and the full dynamic acceptance scenario is not implemented/executed.
@@ -34,6 +34,7 @@ node --experimental-vm-modules --test \
   scripts/test-narrator-compaction.mjs \
   scripts/test-narrator-memory-privacy.mjs \
   scripts/test-spatial-event-privacy.mjs \
+  scripts/test-spatial-battle-map.mjs \
   scripts/test-location-client-intents.mjs \
   scripts/test-narrator-read-recovery.mjs
 ```

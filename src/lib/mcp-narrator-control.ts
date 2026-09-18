@@ -1,6 +1,10 @@
 import { SPATIAL_NARRATOR_CATALOG, SPATIAL_NARRATOR_OPERATIONS, SPATIAL_GUIDANCE, readSpatialForNarrator, invokeSpatialForNarrator } from "@/lib/spatial/narrator";
 import { spatialNarratorBoundary } from "@/lib/spatial/narrator-page.mjs";
 import { spatialEnabled } from "@/lib/spatial/service";
+import {
+  bindActiveBattleMapToRoom,
+  scopeBattleMapInvocation,
+} from "@/lib/spatial/battle-map";
 import { campaignTimelineEpoch } from "@/lib/spatial/timeline";
 import { z } from "zod";
 import { isOocMessage } from "@/lib/campaign-types";
@@ -75,10 +79,17 @@ function safeCampaign(campaign: NonNullable<ReturnType<typeof getCampaignById>>)
 function catalog() {
   return [...consoleAdjudications(), { category: "world" as const, label: "Location chats", entries: SPATIAL_NARRATOR_CATALOG }].map((group) => ({
     ...group,
-    entries: group.entries.filter((entry) => EXTERNAL_NARRATOR_ACTIONS.has(entry.name)).map((entry) => entry.name === "send_whisper"
-      ? { ...entry, fields: [...entry.fields, { name: "replyToWhisperIds", label: "Incoming whisper IDs", kind: "text" as const,
-        help: "Exact IDs from playerWhispers. Reply and acknowledge only these messages, never later arrivals." }] }
-      : entry),
+    entries: group.entries.filter((entry) => EXTERNAL_NARRATOR_ACTIONS.has(entry.name)).map((entry) => {
+      if (entry.name === "send_whisper") {
+        return { ...entry, fields: [...entry.fields, { name: "replyToWhisperIds", label: "Incoming whisper IDs", kind: "text" as const,
+          help: "Exact IDs from playerWhispers. Reply and acknowledge only these messages, never later arrivals." }] };
+      }
+      if (entry.name === "start_encounter") {
+        return { ...entry, fields: [...entry.fields, { name: "roomId", label: "Spatial room ID", kind: "text" as const, required: false,
+          help: "Required after location_enable. Exact room UUID that owns this encounter; it is stripped before the combat engine runs." }] };
+      }
+      return entry;
+    }),
   })).filter((group) => group.entries.length);
 }
 
@@ -139,8 +150,10 @@ async function invoke(raw: unknown) {
   if (!EXTERNAL_NARRATOR_ACTIONS.has(p.data.name)) throw new McpNarratorControlError("That action is not available to an external narrator.", 403);
   return serializedWrite(p.data, "narrator.invoke", { name: p.data.name, args: p.data.args }, (campaign) => {
     if (Object.hasOwn(SPATIAL_NARRATOR_OPERATIONS, p.data.name)) return invokeSpatialForNarrator(campaign.id, campaign.dmUserId!, p.data.name, p.data.args, p.data.commandId);
-    const outcome = invokeEngineSynchronous(campaign, { kind: "human", userId: campaign.dmUserId! }, { name: p.data.name, args: p.data.args });
+    const scoped = scopeBattleMapInvocation(campaign.id, campaign.dmUserId!, p.data.name, p.data.args);
+    const outcome = invokeEngineSynchronous(campaign, { kind: "human", userId: campaign.dmUserId! }, { name: p.data.name, args: scoped.args });
     if (!outcome.ok) throw new McpNarratorControlError(outcome.error);
+    if (scoped.roomId) bindActiveBattleMapToRoom(campaign.id, campaign.dmUserId!, scoped.roomId);
     return outcome;
   });
 }
