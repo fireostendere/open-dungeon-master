@@ -1,4 +1,4 @@
-import { isErrorResponse, requireStoryAuthority } from "@/lib/campaign-api";
+import { isErrorResponse, isLead, requireMember, steersStory } from "@/lib/campaign-api";
 import { setDmMode, updateGameSettings } from "@/lib/db/campaigns";
 import { gameSettingsSchema } from "@/lib/schemas/game-settings";
 import { publishPersisted } from "@/lib/events";
@@ -12,9 +12,12 @@ export async function PATCH(
   { params }: { params: Promise<{ campaignId: string }> },
 ) {
   const { campaignId } = await params;
-  const context = await requireStoryAuthority(campaignId);
+  const context = await requireMember(campaignId);
   if (isErrorResponse(context)) {
     return context;
+  }
+  if (!isLead(context) && !steersStory(context)) {
+    return Response.json({ error: "Only the party lead or DM can change game settings." }, { status: 403 });
   }
 
   const raw = await request.json().catch(() => ({}));

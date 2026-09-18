@@ -1,10 +1,12 @@
 import { purgeDueAccounts } from "@/lib/account-deletion";
 import {
   getCampaignById,
+  listDueGlobalTurnCampaignIds,
   listIdleActiveCampaigns,
   listMembers,
   markCampaignNudged,
 } from "@/lib/db/campaigns";
+import { resolveGlobalTurn } from "@/lib/dm/global-turn-logic";
 import { notifyUsers } from "@/lib/db/notifications";
 import {
   listSessionsAwaitingReminder,
@@ -129,10 +131,20 @@ function accountPurgeJob(now: number) {
   purgeDueAccounts(now);
 }
 
+function globalTurnJob(now: number) {
+  const dueIds = listDueGlobalTurnCampaignIds(new Date(now).toISOString());
+  for (const campaignId of dueIds) {
+    void resolveGlobalTurn(campaignId).catch((err) =>
+      console.error(`[jobs] Failed to resolve global turn for ${campaignId}:`, err),
+    );
+  }
+}
+
 const jobs: Array<[name: string, run: (now: number) => void]> = [
   ["session-reminders", sessionReminderJob],
   ["idle-campaigns", idleCampaignJob],
   ["account-purge", accountPurgeJob],
+  ["global-turns", globalTurnJob],
 ];
 
 // One pass over every job. Exported so the test harness can drive ticks with

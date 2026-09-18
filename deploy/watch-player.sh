@@ -56,13 +56,17 @@ while true; do
   # 4. Open pending rolls requested by the engine/DM
   PENDING_ROLLS=$(echo "$RES" | jq -r '.result.pendingRolls[]? | "PENDING_ROLL [\(.id)] char=\(.characterId) kind=\(.kind): \(.reason // "")"' 2>/dev/null)
 
-  if [ -n "$PLAYER_MSGS" ] || [ -n "$DIRECTOR" ] || [ -n "$PENDING_ASKS" ] || [ -n "$PENDING_ROLLS" ]; then
+  # 5. Global Turn Round Resolution events
+  GLOBAL_TURN=$(echo "$RES" | jq -r '.result.events[]? | select(.type=="global_turn_ended" or .type=="global_turn_resolved") | "[\(.seq)] \(.type): round=\(.payload.roundNumber // .payload.resolvedRound)"' 2>/dev/null)
+
+  if [ -n "$PLAYER_MSGS" ] || [ -n "$DIRECTOR" ] || [ -n "$PENDING_ASKS" ] || [ -n "$PENDING_ROLLS" ] || [ -n "$GLOBAL_TURN" ]; then
     LATEST_SEQ=$(echo "$RES" | jq -r '.result.currentSeq')
     echo "LATEST_SEQ: $LATEST_SEQ"
     [ -n "$PLAYER_MSGS" ] && echo "$PLAYER_MSGS"
     [ -n "$DIRECTOR" ] && echo "$DIRECTOR"
     [ -n "$PENDING_ASKS" ] && echo "$PENDING_ASKS"
     [ -n "$PENDING_ROLLS" ] && echo "$PENDING_ROLLS"
+    [ -n "$GLOBAL_TURN" ] && echo "$GLOBAL_TURN"
     exit 0
   fi
 

@@ -141,6 +141,22 @@ export function latestUnintroducedJoin<
     : notice;
 }
 
+export type GlobalTurnActionUsage = {
+  actionsCount: number; // 0 or 1
+  phrasesCount: number; // 0 or 1
+  lastActionKind?: "do" | "say";
+  updatedAt: string;
+};
+
+export type GlobalTurnState = {
+  roundNumber: number;
+  phase: "waiting" | "active" | "quorum_delay" | "resolving";
+  firstActionAt: string | null;
+  deadlineAt: string | null;
+  quorumReachedAt: string | null;
+  actionsByCharacter: Record<string, GlobalTurnActionUsage>;
+};
+
 export type CampaignMember = {
   userId: string;
   username: string;
@@ -150,5 +166,10 @@ export type CampaignMember = {
   useRealDice: boolean;
   // Muted by the party lead: reads along, cannot act, ask or side-chat.
   muted: boolean;
+  // How many consecutive turns this player chooses to skip (0..99).
+  skipTurnsCount: number;
+  // AI autopilot / Doppelganger taking turns for this player when idle.
+  autopilot: boolean;
   joinedAt: string;
 };
+

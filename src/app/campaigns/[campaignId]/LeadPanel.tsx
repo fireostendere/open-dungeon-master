@@ -19,6 +19,7 @@ import { InviteShareDialog } from "@/components/InviteShareDialog";
 import { Ribbon } from "@/components/ui/Ribbon";
 import { EditCampaignDialog } from "@/app/campaigns/[campaignId]/EditCampaignDialog";
 import { LeadFloorControl } from "@/app/campaigns/[campaignId]/LeadFloorControl";
+import { GlobalTurnCard } from "@/app/campaigns/[campaignId]/GlobalTurnCard";
 import {
   DirectorArmedBanner,
   DirectorPresets,
@@ -362,6 +363,14 @@ export function LeadPanel({
         </Ribbon>
         <p className="mt-1.5 text-xs text-stone-400">{copy.steer}</p>
       </div>
+
+      <GlobalTurnCard
+        campaignId={campaignId}
+        campaign={campaign}
+        members={members}
+        sheets={sheets}
+        isLead={isLead}
+      />
 
       {steersStory ? (
         <LeadFloorControl

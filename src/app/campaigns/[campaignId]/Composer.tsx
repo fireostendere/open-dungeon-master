@@ -1,7 +1,7 @@
 "use client";
 
-import { Eye, EyeOff, Loader2, Send } from "lucide-react";
-import { memo } from "react";
+import { Bot, Clock, Eye, EyeOff, FastForward, Loader2, Send, SkipForward } from "lucide-react";
+import { memo, useEffect, useState } from "react";
 import type { Dispatch, FormEvent, RefObject, SetStateAction } from "react";
 import { cn } from "@/lib/cn";
 import { ui } from "@/lib/ui";
@@ -19,7 +19,7 @@ import { StoryNudge } from "@/app/campaigns/[campaignId]/StoryNudge";
 import type { BeatCadence } from "@/lib/dm/beat-cadence";
 import type { CampaignState } from "@/app/campaigns/[campaignId]/useCampaignStream";
 
-import type { InputKind } from "@/lib/campaign-types";
+import type { CampaignMember, GlobalTurnState, InputKind } from "@/lib/campaign-types";
 import type { Locale } from "@/lib/i18n";
 import { useI18n } from "@/lib/i18n";
 
@@ -130,6 +130,9 @@ function ComposerInner({
   storyCadence,
   onCaptureStory,
   onSnoozeStory,
+  members = [],
+  globalTurnEnabled = false,
+  globalTurnState = null,
   onSubmit,
 }: {
   campaignId: string;
@@ -138,6 +141,9 @@ function ComposerInner({
   steersStory: boolean;
   // The DM seat: narrates instead of acting, and never runs a character.
   isDm: boolean;
+  members?: CampaignMember[];
+  globalTurnEnabled?: boolean;
+  globalTurnState?: GlobalTurnState | null;
   kind: InputKind;
   onKindChange: (kind: InputKind) => void;
   input: string;
@@ -179,6 +185,73 @@ function ComposerInner({
               ? copy.statuses.plotting_arc
               : copy.statuses.default;
 
+  const mySheet = sheets.find((s) => s.userId === meUserId && !s.isCompanion);
+  const myMember = members.find((m) => m.userId === meUserId);
+  const [now, setNow] = useState(Date.now());
+  const [skipCount, setSkipCount] = useState(1);
+  const [skipBusy, setSkipBusy] = useState(false);
+  const [autopilotBusy, setAutopilotBusy] = useState(false);
+
+  useEffect(() => {
+    if (!globalTurnEnabled || !globalTurnState?.deadlineAt) return;
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, [globalTurnEnabled, globalTurnState?.deadlineAt]);
+
+  const msRemaining = globalTurnState?.deadlineAt
+    ? Math.max(0, new Date(globalTurnState.deadlineAt).getTime() - now)
+    : 0;
+  const secsTotal = Math.floor(msRemaining / 1000);
+  const countdownMinutes = Math.floor(secsTotal / 60);
+  const countdownSeconds = secsTotal % 60;
+  const formattedCountdown = `${String(countdownMinutes).padStart(2, "0")}:${String(countdownSeconds).padStart(2, "0")}`;
+
+  const playerSheets = sheets.filter((s) => !s.isCompanion);
+  const respondedPlayersCount = playerSheets.filter((s) => {
+    const u = globalTurnState?.actionsByCharacter?.[s.id];
+    if (u && (u.actionsCount > 0 || u.phrasesCount > 0)) return true;
+    const mem = members.find((m) => m.userId === s.userId);
+    return Boolean(mem && mem.skipTurnsCount > 0);
+  }).length;
+
+  const usage = mySheet && globalTurnState ? globalTurnState.actionsByCharacter[mySheet.id] : null;
+  const heroActionsCount = usage?.actionsCount ?? 0;
+  const heroPhrasesCount = usage?.phrasesCount ?? 0;
+
+  async function handleSetSkip(count: number) {
+    setSkipBusy(true);
+    try {
+      await fetch(`/api/campaigns/${campaignId}/members/me/skip-turns`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ count }),
+      });
+    } finally {
+      setSkipBusy(false);
+    }
+  }
+
+  async function handleToggleAutopilot() {
+    setAutopilotBusy(true);
+    try {
+      await fetch(`/api/campaigns/${campaignId}/members/${meUserId}/autopilot`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ autopilot: !myMember?.autopilot }),
+      });
+    } finally {
+      setAutopilotBusy(false);
+    }
+  }
+
+  const optionLabel = (opt: InputKind) => {
+    const base = copy.kinds[opt];
+    if (!globalTurnEnabled || isDm) return base;
+    if (opt === "do") return `${base} (${heroActionsCount}/1${heroActionsCount >= 1 ? " ✓" : ""})`;
+    if (opt === "say") return `${base} (${heroPhrasesCount}/1${heroPhrasesCount >= 1 ? " ✓" : ""})`;
+    return base;
+  };
+
   return (
     <form onSubmit={onSubmit} className="glass border-t border-stone-700/40 px-3 pb-3 pt-2.5">
       <div className="mx-auto max-w-3xl sm:px-3">
@@ -212,6 +285,89 @@ function ComposerInner({
             onDismiss={joinBanner.onDismiss}
           />
         ) : null}
+
+        {/* Global Turn Player Banner */}
+        {globalTurnEnabled && !isDm ? (
+          <div className="mb-2 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-amber-900/50 bg-amber-950/25 px-2.5 py-1.5 text-xs text-amber-200">
+            <div className="flex items-center gap-2 font-medium">
+              <Clock className="size-3.5 text-amber-400" />
+              <span>Раунд #{globalTurnState?.roundNumber ?? 1}</span>
+              <span className="text-[11px] text-stone-400">
+                ({respondedPlayersCount}/{Math.max(1, playerSheets.length)} сходили)
+              </span>
+              {globalTurnState?.deadlineAt ? (
+                <span
+                  className={cn(
+                    "rounded bg-stone-900/90 px-1.5 py-0.5 font-mono text-[11px]",
+                    secsTotal <= 60 ? "text-red-400 animate-pulse" : "text-amber-300",
+                  )}
+                >
+                  Осталось: {formattedCountdown}
+                </span>
+              ) : (
+                <span className="text-[11px] italic text-stone-400">
+                  (ждём 1-го хода)
+                </span>
+              )}
+            </div>
+
+            <div className="flex items-center gap-1.5">
+              {/* Autopilot toggle */}
+              <button
+                type="button"
+                disabled={autopilotBusy}
+                onClick={handleToggleAutopilot}
+                className={cn(
+                  "flex items-center gap-1 rounded border px-2 py-0.5 text-[11px] transition-colors",
+                  myMember?.autopilot
+                    ? "border-sky-600 bg-sky-950/80 text-sky-200"
+                    : "border-stone-700 bg-stone-900 text-stone-400 hover:text-stone-200",
+                )}
+                title="Автопилот нейросети для вашего персонажа (Доппельгангер)"
+              >
+                <Bot className="size-3" />
+                {myMember?.autopilot ? "Автопилот: ВКЛ" : "Автопилот"}
+              </button>
+
+              {/* Skip turns controls */}
+              {myMember && myMember.skipTurnsCount > 0 ? (
+                <div className="flex items-center gap-1 rounded border border-amber-700/60 bg-amber-950/50 px-1.5 py-0.5 text-[11px]">
+                  <span>⏭️ Пропуск ({myMember.skipTurnsCount})</span>
+                  <button
+                    type="button"
+                    disabled={skipBusy}
+                    onClick={() => void handleSetSkip(0)}
+                    className="text-[10px] text-stone-400 hover:text-red-300 underline"
+                  >
+                    Отмена
+                  </button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-1">
+                  <input
+                    type="number"
+                    min={1}
+                    max={99}
+                    value={skipCount}
+                    onChange={(e) => setSkipCount(Math.max(1, Math.min(99, Number(e.target.value))))}
+                    className="w-10 rounded border border-stone-700 bg-stone-900 px-1 py-0.5 text-center text-[11px] text-stone-200"
+                    title="Количество ходов для пропуска (1..99)"
+                  />
+                  <button
+                    type="button"
+                    disabled={skipBusy}
+                    onClick={() => void handleSetSkip(skipCount)}
+                    className="flex items-center gap-0.5 rounded border border-stone-700 bg-stone-900 px-1.5 py-0.5 text-[11px] text-stone-300 hover:text-stone-100"
+                    title="Пропустить N ходов"
+                  >
+                    <SkipForward className="size-3" /> Пропустить
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        ) : null}
+
         <div className="mb-2 flex gap-1.5" data-tour="composer-modes">
           {(isDm
             ? (["narrate", "ooc"] as const)
@@ -228,9 +384,11 @@ function ComposerInner({
                       ? "bg-gradient-to-b from-ember-400 to-ember-600 text-stone-950 shadow-glow-ember"
                       : "bg-gradient-to-b from-amber-100 to-amber-400 text-amber-950 shadow-glow-gold"
                     : "bg-stone-900/80 text-stone-400 hover:bg-stone-800 hover:text-stone-200",
+                  globalTurnEnabled && !isDm && option === "do" && heroActionsCount >= 1 && "opacity-60",
+                  globalTurnEnabled && !isDm && option === "say" && heroPhrasesCount >= 1 && "opacity-60",
                 )}
               >
-                {copy.kinds[option]}
+                {optionLabel(option)}
               </button>
             </Tooltip>
           ))}

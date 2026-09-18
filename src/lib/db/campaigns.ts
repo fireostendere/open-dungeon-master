@@ -10,6 +10,7 @@ import type {
   CampaignMember,
   CampaignStatus,
   CampaignSummary,
+  GlobalTurnState,
 } from "@/lib/campaign-types";
 import { isUploadedImagePath } from "@/lib/uploads";
 import type { StorySettings } from "@/lib/types";
@@ -72,6 +73,7 @@ export type Campaign = CampaignSummary & {
   // The party as a thing in its own right: common purse, shared pack, banked
   // XP, marching order (src/lib/dm/party-logic.ts).
   party: PartyState;
+  globalTurnState: GlobalTurnState;
 };
 
 type CampaignRow = {
@@ -97,6 +99,7 @@ type CampaignRow = {
   dm_cover_json: string;
   clock_json: string;
   party_json: string;
+  global_turn_json?: string;
   scene: string;
   quest_log_json: string;
   cover_json: string | null;
@@ -195,6 +198,30 @@ export function normalizeFloor(raw: unknown): Floor {
   return { mode: "open" };
 }
 
+export function defaultGlobalTurnState(): GlobalTurnState {
+  return {
+    roundNumber: 1,
+    phase: "waiting",
+    firstActionAt: null,
+    deadlineAt: null,
+    quorumReachedAt: null,
+    actionsByCharacter: {},
+  };
+}
+
+export function normalizeGlobalTurnState(raw: unknown): GlobalTurnState {
+  if (!raw || typeof raw !== "object") return defaultGlobalTurnState();
+  const obj = raw as Partial<GlobalTurnState>;
+  return {
+    roundNumber: typeof obj.roundNumber === "number" && obj.roundNumber >= 1 ? Math.floor(obj.roundNumber) : 1,
+    phase: obj.phase === "active" || obj.phase === "quorum_delay" || obj.phase === "resolving" ? obj.phase : "waiting",
+    firstActionAt: typeof obj.firstActionAt === "string" ? obj.firstActionAt : null,
+    deadlineAt: typeof obj.deadlineAt === "string" ? obj.deadlineAt : null,
+    quorumReachedAt: typeof obj.quorumReachedAt === "string" ? obj.quorumReachedAt : null,
+    actionsByCharacter: obj.actionsByCharacter && typeof obj.actionsByCharacter === "object" ? obj.actionsByCharacter : {},
+  };
+}
+
 // Unambiguous alphabet: no 0/O, 1/I lookalikes.
 const INVITE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
@@ -256,6 +283,7 @@ function mapCampaign(row: CampaignRow): Campaign {
     dmCover: normalizeCover(parseJson(row.dm_cover_json ?? "", null)),
     clock: normalizeClock(parseJson(row.clock_json ?? "", null)),
     party: normalizeParty(parseJson(row.party_json ?? "", null)),
+    globalTurnState: normalizeGlobalTurnState(parseJson(row.global_turn_json ?? "", null)),
   };
 }
 
@@ -443,7 +471,7 @@ export function listMembers(campaignId: string): CampaignMember[] {
   const rows = getDatabase()
     .prepare(
       `
-        SELECT m.user_id, u.username, u.avatar_json, m.role, m.ready, m.use_real_dice, m.muted, m.joined_at
+        SELECT m.user_id, u.username, u.avatar_json, m.role, m.ready, m.use_real_dice, m.muted, m.skip_turns_count, m.autopilot, m.joined_at
         FROM campaign_members m
         JOIN users u ON u.id = m.user_id
         WHERE m.campaign_id = ?
@@ -458,6 +486,8 @@ export function listMembers(campaignId: string): CampaignMember[] {
     ready: number;
     use_real_dice: number;
     muted: number;
+    skip_turns_count: number;
+    autopilot: number;
     joined_at: string;
   }>;
 
@@ -469,6 +499,8 @@ export function listMembers(campaignId: string): CampaignMember[] {
     ready: Boolean(row.ready),
     useRealDice: Boolean(row.use_real_dice),
     muted: Boolean(row.muted),
+    skipTurnsCount: Number(row.skip_turns_count ?? 0),
+    autopilot: Boolean(row.autopilot),
     joinedAt: row.joined_at,
   }));
 }
@@ -476,6 +508,35 @@ export function listMembers(campaignId: string): CampaignMember[] {
 export function getMember(campaignId: string, userId: string): CampaignMember | null {
   return listMembers(campaignId).find((member) => member.userId === userId) ?? null;
 }
+
+export function getGlobalTurnState(campaignId: string): GlobalTurnState {
+  const row = getDatabase()
+    .prepare(`SELECT global_turn_json FROM campaigns WHERE id = ?`)
+    .get(campaignId) as { global_turn_json?: string } | undefined;
+  return normalizeGlobalTurnState(parseJson(row?.global_turn_json ?? null, null));
+}
+
+export function setGlobalTurnState(campaignId: string, state: GlobalTurnState) {
+  getDatabase()
+    .prepare(`UPDATE campaigns SET global_turn_json = ?, updated_at = ? WHERE id = ?`)
+    .run(JSON.stringify(state), nowIso(), campaignId);
+}
+
+export function setMemberAutopilot(campaignId: string, userId: string, autopilot: boolean): CampaignMember | null {
+  getDatabase()
+    .prepare(`UPDATE campaign_members SET autopilot = ? WHERE campaign_id = ? AND user_id = ?`)
+    .run(autopilot ? 1 : 0, campaignId, userId);
+  return getMember(campaignId, userId);
+}
+
+export function setMemberSkipTurns(campaignId: string, userId: string, count: number): CampaignMember | null {
+  const clamped = Math.max(0, Math.min(99, Math.floor(count)));
+  getDatabase()
+    .prepare(`UPDATE campaign_members SET skip_turns_count = ? WHERE campaign_id = ? AND user_id = ?`)
+    .run(clamped, campaignId, userId);
+  return getMember(campaignId, userId);
+}
+
 
 // Non-consuming lookup: registration treats a live room code as proof of
 // invitation without joining anything or spending the code.
@@ -856,6 +917,25 @@ export function setCampaignScene(campaignId: string, scene: string) {
   getDatabase()
     .prepare(`UPDATE campaigns SET scene = ?, updated_at = ? WHERE id = ?`)
     .run(scene.slice(0, 2000), nowIso(), campaignId);
+}
+
+export function listDueGlobalTurnCampaignIds(nowIsoStr: string): string[] {
+  const rows = getDatabase()
+    .prepare(
+      `SELECT id, global_turn_json, game_settings_json FROM campaigns WHERE status = 'active'`,
+    )
+    .all() as Array<{ id: string; global_turn_json: string; game_settings_json: string }>;
+
+  const due: string[] = [];
+  for (const row of rows) {
+    const settings = normalizeGameSettings(parseJson(row.game_settings_json, {}));
+    if (!settings.globalTurn?.enabled) continue;
+    const state = normalizeGlobalTurnState(parseJson(row.global_turn_json, null));
+    if (state.deadlineAt && state.deadlineAt <= nowIsoStr) {
+      due.push(row.id);
+    }
+  }
+  return due;
 }
 
 export function getCampaignSummaryState(campaignId: string) {

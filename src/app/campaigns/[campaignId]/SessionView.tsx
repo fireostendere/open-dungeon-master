@@ -197,10 +197,23 @@ export function SessionView({
   // Muted by the party lead: the server refuses the send, so the box says
   // so instead of letting the player type into a wall.
   const muted = Boolean(state.members.find((member) => member.userId === meId)?.muted);
+  const globalTurnEnabled = Boolean(campaign?.gameSettings?.globalTurn?.enabled);
+  const globalTurnState = campaign?.globalTurnState ?? null;
   const gate = useMemo(
     () =>
-      composerGate({ floor, sheets, meUserId: meId, kind, myName, leadPrivate, openingNarrationPlaying, locale }),
-    [floor, sheets, meId, kind, myName, leadPrivate, openingNarrationPlaying, locale],
+      composerGate({
+        floor,
+        sheets,
+        meUserId: meId,
+        kind,
+        myName,
+        leadPrivate,
+        openingNarrationPlaying,
+        globalTurnEnabled,
+        globalTurnState,
+        locale,
+      }),
+    [floor, sheets, meId, kind, myName, leadPrivate, openingNarrationPlaying, globalTurnEnabled, globalTurnState, locale],
   );
   // A mid-game joiner without a character is gated to creation first. The DM
   // runs no character, so the gate must never catch them.
@@ -415,6 +428,9 @@ export function SessionView({
               meUserId={me.id}
               steersStory={steersStory}
               isDm={isDm}
+              members={state.members}
+              globalTurnEnabled={globalTurnEnabled}
+              globalTurnState={globalTurnState}
               kind={kind}
               onKindChange={setKind}
               input={input}

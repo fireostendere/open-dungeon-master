@@ -18,6 +18,7 @@ import { hasHumanDm } from "@/lib/dm/viewer";
 import { enqueueDmJob } from "@/lib/dm/queue";
 import { runResumeRecap } from "@/lib/dm/recap";
 import { publishPersisted, publishWithSeq } from "@/lib/events";
+import { recordGlobalTurnAction } from "@/lib/dm/global-turn-logic";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -119,6 +120,12 @@ export async function POST(
     spotlightStillWaiting = !allAnswered;
   }
 
+  // Global turn pacing: enforce maximum 1 do and 1 say per hero per turn
+  const turnResult = recordGlobalTurnAction(campaignId, sheet.id, user.id, kind);
+  if (!turnResult.allowed) {
+    return Response.json({ error: turnResult.error ?? "Действие недоступно в этом ходе." }, { status: 409 });
+  }
+
   const content =
     kind === "say"
       ? `"${parsed.data.content}"`
@@ -172,7 +179,8 @@ export async function POST(
   // intent: it sits in the DM's queue until they adjudicate it, and all the
   // table sees is that it landed. The message row and the floor bookkeeping
   // above are identical either way, which is what keeps one transcript.
-  if ((kind !== "ooc" && !spotlightStillWaiting) || isFirstAction) {
+  const globalTurnActive = Boolean(campaign.gameSettings?.globalTurn?.enabled);
+  if (!globalTurnActive && ((kind !== "ooc" && !spotlightStillWaiting) || isFirstAction)) {
     if (humanDm) {
       publishPersisted(campaignId, "dm_intent_queued", {
         messageId: message.id,

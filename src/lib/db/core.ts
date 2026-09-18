@@ -1219,6 +1219,8 @@ function ensureSchema(db: SqliteDatabase) {
     // about a scene, not about a character: it is left at the stable, and a
     // sheet carried between campaigns should not bring a horse.
     ["mounts_json", `TEXT NOT NULL DEFAULT '{}'`],
+    // Global turn state (rounds, deadline, quorum, action counts)
+    ["global_turn_json", `TEXT NOT NULL DEFAULT '{}'`],
     // What this row is for. 'campaign' is a table that plays; 'workshop' is
     // a DM's prep space (docs/workshop-plan.md). A workshop reuses every
     // campaign-scoped table, route and projection unchanged, which is the
@@ -1271,6 +1273,10 @@ function ensureSchema(db: SqliteDatabase) {
   addColumns("campaign_members", [
     // Player opted in to rolling physical dice (when the campaign allows it).
     ["use_real_dice", `INTEGER NOT NULL DEFAULT 0`],
+    // Player skipped turns count (0..99)
+    ["skip_turns_count", `INTEGER NOT NULL DEFAULT 0`],
+    // Autopilot / Doppelganger mode (1 = enabled, 0 = disabled)
+    ["autopilot", `INTEGER NOT NULL DEFAULT 0`],
   ]);
 
   // How far the reminder job has walked this session's ladder: 0 = nothing

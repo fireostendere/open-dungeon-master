@@ -484,6 +484,8 @@ function reducer(state: CampaignState, action: Action): CampaignState {
             useRealDice: false,
             muted: false,
             joinedAt: new Date().toISOString(),
+            skipTurnsCount: 0,
+            autopilot: false,
           };
           next.members = upsertBy(state.members, member, (entry) => entry.userId);
           return next;
@@ -609,6 +611,11 @@ function reducer(state: CampaignState, action: Action): CampaignState {
             ? { ...state.campaign, floor: payload.floor as Campaign["floor"] }
             : state.campaign;
           return next;
+        case "global_turn_updated":
+          next.campaign = state.campaign
+            ? { ...state.campaign, globalTurnState: payload.globalTurnState as Campaign["globalTurnState"] }
+            : state.campaign;
+          return next;
         // Assisted mode: the DM stepped away, came back, or the AI spent one
         // of the answers they handed over. Rides on the campaign for the same
         // reason the floor does: every seat renders it and none should be
@@ -710,6 +717,8 @@ const PERSISTED_EVENTS = [
   "audit_reverted",
   "encounter_updated",
   "floor_changed",
+  "global_turn_updated",
+  "global_turn_resolved",
   "image_ready",
   "location_updated",
   "location_map_ready",
