@@ -8,7 +8,7 @@ const skillsRoot = path.join(root, ".opencode", "skills");
 const catalog = path.join(root, "docs", "agent-skills.md");
 const expected = new Set([
   "odm-dm-policy", "odm-development", "odm-server", "odm-backup", "odm-providers", "odm-mcp", "odm-narrator", "odm-content", "odm-assets",
-  "dnd-session-zero", "dnd-campaign", "dnd-characters", "dnd-npcs-factions", "dnd-encounters", "dnd-locations", "dnd-session", "dnd-rules", "dnd-loot-homebrew",
+  "dnd-session-zero", "dnd-campaign", "dnd-characters", "dnd-npcs-factions", "dnd-encounters", "dnd-locations", "dnd-session", "dnd-rules", "dnd-loot-homebrew", "dnd-doppelganger",
 ]);
 const files = readdirSync(skillsRoot).map((id) => path.join(skillsRoot, id, "SKILL.md"));
 assert.deepEqual(new Set(files.map((file) => path.basename(path.dirname(file)))), expected, "skill directories must match the catalog");

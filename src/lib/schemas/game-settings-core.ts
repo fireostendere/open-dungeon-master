@@ -24,12 +24,16 @@ export {
   DM_MODE_LABELS,
   DM_MODES,
   GENRES,
+  UNIT_SYSTEMS,
+  UNIT_SYSTEM_LABELS,
+  DEFAULT_UNIT_SYSTEM,
   type CampaignLengthSetting,
   type CompanionSetting,
   type DicePolicy,
   type DmDifficulty,
   type DmModeSetting,
   type Genre,
+  type UnitSystemSetting,
 } from "@/lib/schemas/game-settings-options";
 
 // Game-facing campaign settings. Stored in campaigns.game_settings_json,

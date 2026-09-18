@@ -252,6 +252,7 @@ export function CreateCampaignDialog({
       maxGuests,
       worldPack,
       voiceChat,
+      unitSystem,
       houseRules,
       loreDrafts,
       contentImport,
@@ -297,7 +298,8 @@ export function CreateCampaignDialog({
             maxGuests,
             worldPack,
             voice: voiceChat,
-            // Three gameSettings fields are deliberately not offered here.
+            unitSystem,
+            // Game settings fields deliberately not offered at initial creation:
             //
             // `stages` trades turn quality for speed on a slow local model,
             // which is an operator decision, not a table decision, so it
@@ -316,6 +318,10 @@ export function CreateCampaignDialog({
             // and when, is a question a person answers at the table with the
             // console in front of them, so all three start on and the
             // settings panel shows them only once the mode is assisted.
+            //
+            // `globalTurn` is pacing and turn timers (turn timeouts, quorum)
+            // for an active table, tuned in the Party and Lead panels during play
+            // rather than before characters or participants exist.
           },
         }),
       });

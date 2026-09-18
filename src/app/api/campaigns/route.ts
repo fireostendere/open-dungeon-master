@@ -4,6 +4,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 type CampaignLocale = "ru" | "en" | "pl";
+type CampaignUnitSystem = "metric" | "imperial";
 
 export async function GET() {
   return coreGET();
@@ -13,6 +14,12 @@ function localeFromCookie(request: Request): CampaignLocale {
   const cookie = request.headers.get("cookie") ?? "";
   const match = cookie.match(/(?:^|;\s*)odm_locale=(ru|en|pl)(?:;|$)/);
   return match?.[1] === "en" || match?.[1] === "pl" ? match[1] : "ru";
+}
+
+function unitSystemFromCookie(request: Request): CampaignUnitSystem {
+  const cookie = request.headers.get("cookie") ?? "";
+  const match = cookie.match(/(?:^|;\s*)odm_unit_system=(metric|imperial)(?:;|$)/);
+  return match?.[1] === "imperial" ? "imperial" : "metric";
 }
 
 export async function POST(request: Request) {
@@ -28,14 +35,19 @@ export async function POST(request: Request) {
     currentSettings.language === "pl"
       ? currentSettings.language
       : localeFromCookie(request);
+  const unitSystem =
+    currentSettings.unitSystem === "metric" || currentSettings.unitSystem === "imperial"
+      ? currentSettings.unitSystem
+      : unitSystemFromCookie(request);
 
   const forwarded = new Request(request.url, {
     method: "POST",
     headers: request.headers,
     body: JSON.stringify({
       ...body,
-      gameSettings: { ...currentSettings, language },
+      gameSettings: { ...currentSettings, language, unitSystem },
     }),
   });
   return corePOST(forwarded);
 }
+

@@ -67,3 +67,13 @@ export const COMPANION_LABELS: Record<CompanionSetting, string> = {
   guests: "Temporary guests only",
   off: "Off",
 };
+
+export const UNIT_SYSTEMS = ["metric", "imperial"] as const;
+export type UnitSystemSetting = (typeof UNIT_SYSTEMS)[number];
+export const DEFAULT_UNIT_SYSTEM: UnitSystemSetting = "metric";
+
+export const UNIT_SYSTEM_LABELS: Record<UnitSystemSetting, string> = {
+  metric: "Metric (meters, kg)",
+  imperial: "Imperial (feet, lbs)",
+};
+

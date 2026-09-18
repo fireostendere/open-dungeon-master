@@ -19,7 +19,8 @@ const read = (relative) => fs.readFileSync(path.resolve(scriptsDir, relative), "
 const dialog = read("../src/app/CreateCampaignDialog.tsx");
 const worldSetup = read("../src/app/WorldSetupFields.tsx");
 const rulesPanel = read("../src/app/campaigns/[campaignId]/RulesPanel.tsx");
-const creationSurface = `${dialog}\n${worldSetup}\n${rulesPanel}`;
+const advancedStep = read("../src/app/create-campaign/AdvancedStep.tsx");
+const creationSurface = `${dialog}\n${worldSetup}\n${rulesPanel}\n${advancedStep}`;
 const creationRoute = read("../src/app/api/campaigns/route.ts");
 
 // `stages` is deliberately absent: it tunes the turn pipeline for a slow local
@@ -40,11 +41,15 @@ const creationRoute = read("../src/app/api/campaigns/route.ts");
 // the stand-in party a WORKSHOP budgets prep against, and a campaign has real
 // character sheets to read instead (docs/workshop-plan.md section 1.1). It
 // lives in gameSettingsSchema because a workshop is a campaigns row.
+//
+// `globalTurn` is pacing and turn timers for an active table, tuned in the
+// Party and Lead panels during play rather than before characters exist.
 const DELIBERATELY_OMITTED = new Set([
   "stages",
   "beatReminder",
   "dmAssist",
   "targetParty",
+  "globalTurn",
 ]);
 
 let passed = 0;

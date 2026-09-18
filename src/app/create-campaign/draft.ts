@@ -9,6 +9,7 @@ import type {
   DmModeSetting,
   GameSettings,
   Genre,
+  UnitSystemSetting,
 } from "@/lib/schemas/game-settings";
 
 // Everything the new-campaign wizard collects, as one object. The wizard is
@@ -59,6 +60,7 @@ export type CampaignDraft = {
   maxCompanions: number;
   maxGuests: number;
   voiceChat: GameSettings["voice"];
+  unitSystem: UnitSystemSetting;
 };
 
 export const DEFAULT_DRAFT: CampaignDraft = {
@@ -77,6 +79,7 @@ export const DEFAULT_DRAFT: CampaignDraft = {
   descriptionTouched: false,
   aiStorySetup: true,
   dicePolicy: "digital_only",
+  unitSystem: "metric",
   dmDifficulty: 5,
   ttsEnabled: true,
   ttsVoice: "af_heart",

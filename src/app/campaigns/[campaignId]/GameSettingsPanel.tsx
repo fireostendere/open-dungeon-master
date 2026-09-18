@@ -32,6 +32,7 @@ import {
   type CampaignLengthSetting,
   type DicePolicy,
   type Genre,
+  type UnitSystemSetting,
 } from "@/lib/schemas/game-settings-options";
 
 // Kept exported for callers that use these explainers directly. The panel
@@ -134,6 +135,11 @@ const COPY = {
     dice: "Dice",
     diceTip: "Real dice lets each player opt in to rolling at their table: the game parks until they type the result, read it from a paired Pixels Bluetooth die, or let the server roll per die (Dice sources, in the Party tab).",
     dicePolicy: "Dice policy",
+    units: "Units",
+    unitsTip: "Measurement units used in narration, battle map distances, and descriptions. Metric (meters, kg) is the standard default.",
+    unitsPolicy: "Measurement units",
+    unitsMetric: "Metric (m, kg)",
+    unitsImperial: "Imperial (ft, lb)",
     narration: "Narration",
     on: "On",
     off: "Off",
@@ -285,8 +291,13 @@ const COPY = {
     dmDifficultyTip: "Это не боевая сложность. 1 — мягкий Мастер, 10 — душный, придирчивый и подъёбистый; ошибки имеют полную цену. Кости не подкручиваются.",
     dmDifficultyHint: (value: number) => value <= 2 ? "Очень снисходительно" : value <= 4 ? "Честно и мягко" : value <= 6 ? "Строго" : value <= 8 ? "Жёстко" : "Душно и подъёбисто",
     dice: "Кости",
-    diceTip: "Реальные кости позволяют каждому игроку выбрать физические броски: игра ждёт, пока он введёт результат, считает его с подключённого Bluetooth-кубика Pixels или поручит конкретную кость серверу в разделе «Источники костей» на вкладке группы.",
+    diceTip: "Разрешить игрокам бросать физические кости: игра ждёт ввода результата вручную, считывает его с Bluetooth-кости Pixels или бросает на сервере (вкладка «Группа» -> «Источники костей»).",
     dicePolicy: "Правила костей",
+    units: "Единицы измерения",
+    unitsTip: "Система мер в повествовании, на тактической карте и в описаниях. Метрическая (метры, кг) используется по умолчанию.",
+    unitsPolicy: "Единицы измерения",
+    unitsMetric: "Метрические (м, кг)",
+    unitsImperial: "Имперские (фт, фнт)",
     narration: "Озвучка",
     on: "Вкл.",
     off: "Выкл.",
@@ -440,6 +451,11 @@ const COPY = {
     dice: "Kości",
     diceTip: "Prawdziwe kości pozwalają każdemu graczowi wybrać fizyczne rzuty: gra czeka na wpisanie wyniku, odczyt z połączonej kości Bluetooth Pixels albo rzut serwera dla wybranej kości w sekcji „Źródła kości” na karcie drużyny.",
     dicePolicy: "Zasady kości",
+    units: "Jednostki",
+    unitsTip: "Jednostki miary używane w narracji i na mapie bitewnej. Metryczne (metry, kg) są standardem.",
+    unitsPolicy: "Jednostki miary",
+    unitsMetric: "Metryczne (m, kg)",
+    unitsImperial: "Imperialne (ft, lb)",
     narration: "Narracja",
     on: "Wł.",
     off: "Wył.",
@@ -802,6 +818,21 @@ export function GameSettingsPanel({
             >
               <option value="digital_only">{copy.diceDigital}</option>
               <option value="real_allowed">{copy.diceReal}</option>
+            </select>
+          </Tooltip>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="w-16 text-stone-500">{copy.units}</span>
+          <Tooltip content={copy.unitsTip}>
+            <select
+              value={settings.unitSystem ?? "metric"}
+              onChange={(event) => patch({ unitSystem: event.target.value as UnitSystemSetting })}
+              className={selectClass}
+              aria-label={copy.unitsPolicy}
+            >
+              <option value="metric">{copy.unitsMetric}</option>
+              <option value="imperial">{copy.unitsImperial}</option>
             </select>
           </Tooltip>
         </div>
