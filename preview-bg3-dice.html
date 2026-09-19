@@ -24,47 +24,47 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      overflow: hidden;
+      overflow-x: hidden;
       position: relative;
+      padding: 20px 0 100px 0;
     }
 
-    /* Ambient background vignette and misty lighting */
     .bg-overlay {
       position: absolute;
       inset: 0;
       background: 
-        radial-gradient(ellipse at 50% 30%, rgba(139, 92, 246, 0.12) 0%, transparent 60%),
-        radial-gradient(ellipse at 50% 70%, rgba(225, 29, 72, 0.08) 0%, transparent 60%);
+        radial-gradient(ellipse at 50% 30%, rgba(139, 92, 246, 0.14) 0%, transparent 60%),
+        radial-gradient(ellipse at 50% 70%, rgba(225, 29, 72, 0.09) 0%, transparent 60%);
       pointer-events: none;
       z-index: 1;
     }
 
-    /* Floating control bar */
+    /* Control panel */
     .controls-panel {
-      position: absolute;
-      bottom: 24px;
-      z-index: 30;
+      position: fixed;
+      bottom: 20px;
+      z-index: 50;
       display: flex;
       flex-wrap: wrap;
-      gap: 10px;
+      gap: 8px;
       justify-content: center;
-      max-width: 90vw;
-      background: rgba(18, 12, 24, 0.85);
-      border: 1px solid rgba(212, 175, 55, 0.4);
+      max-width: 95vw;
+      background: rgba(18, 12, 24, 0.9);
+      border: 1px solid rgba(212, 175, 55, 0.45);
       border-radius: 9999px;
-      padding: 10px 20px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.8);
-      backdrop-filter: blur(12px);
+      padding: 10px 18px;
+      box-shadow: 0 10px 35px rgba(0,0,0,0.85);
+      backdrop-filter: blur(14px);
     }
 
     .btn-action {
-      background: linear-gradient(180deg, rgba(50, 40, 65, 0.9) 0%, rgba(25, 18, 35, 0.9) 100%);
+      background: linear-gradient(180deg, rgba(50, 40, 65, 0.95) 0%, rgba(25, 18, 35, 0.95) 100%);
       color: #f3e5ab;
       border: 1px solid rgba(212, 175, 55, 0.5);
       border-radius: 9999px;
-      padding: 8px 18px;
+      padding: 8px 16px;
       font-family: 'Cinzel', serif;
-      font-size: 13px;
+      font-size: 12px;
       font-weight: 700;
       letter-spacing: 0.05em;
       cursor: pointer;
@@ -75,7 +75,7 @@
     }
 
     .btn-action:hover {
-      background: linear-gradient(180deg, rgba(85, 65, 110, 0.9) 0%, rgba(45, 30, 65, 0.9) 100%);
+      background: linear-gradient(180deg, rgba(85, 65, 110, 0.95) 0%, rgba(45, 30, 65, 0.95) 100%);
       border-color: #f3e5ab;
       box-shadow: 0 0 15px rgba(245, 158, 11, 0.4);
       transform: translateY(-1px);
@@ -85,28 +85,35 @@
       transform: translateY(0) scale(0.97);
     }
 
+    .btn-advantage {
+      border-color: #38bdf8;
+      color: #bae6fd;
+      background: linear-gradient(180deg, rgba(14, 116, 144, 0.5) 0%, rgba(12, 74, 110, 0.6) 100%);
+    }
+
+    .btn-disadvantage {
+      border-color: #fb923c;
+      color: #ffedd5;
+      background: linear-gradient(180deg, rgba(154, 52, 18, 0.5) 0%, rgba(124, 45, 18, 0.6) 100%);
+    }
+
     .btn-screenshot {
       border-color: #f43f5e;
       color: #fda4af;
       background: linear-gradient(180deg, rgba(70, 20, 35, 0.9) 0%, rgba(35, 10, 20, 0.9) 100%);
     }
 
-    .btn-screenshot:hover {
-      border-color: #fb7185;
-      box-shadow: 0 0 15px rgba(244, 63, 94, 0.5);
-    }
-
-    /* BG3 Cartouche / Plaque container */
+    /* BG3 Plaque */
     .bg3-plaque {
       position: relative;
       z-index: 10;
-      width: 420px;
-      max-width: 92vw;
+      width: 440px;
+      max-width: 94vw;
       border-radius: 40px;
-      background: linear-gradient(180deg, rgba(28, 18, 40, 0.94) 0%, rgba(19, 13, 29, 0.96) 50%, rgba(11, 6, 18, 0.98) 100%);
+      background: linear-gradient(180deg, rgba(28, 18, 40, 0.95) 0%, rgba(19, 13, 29, 0.97) 50%, rgba(11, 6, 18, 0.99) 100%);
       border: 1px solid rgba(161, 129, 70, 0.55);
-      box-shadow: 0 0 80px rgba(0,0,0,0.95), 0 0 30px rgba(139, 92, 246, 0.2);
-      padding: 36px 28px;
+      box-shadow: 0 0 80px rgba(0,0,0,0.95), 0 0 35px rgba(139, 92, 246, 0.2);
+      padding: 34px 24px;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -115,22 +122,55 @@
     }
 
     .bg3-plaque.state-fail {
-      box-shadow: 0 0 80px rgba(0,0,0,0.95), 0 0 45px rgba(225, 29, 72, 0.35);
-      border-color: rgba(244, 63, 94, 0.6);
+      box-shadow: 0 0 85px rgba(0,0,0,0.95), 0 0 50px rgba(225, 29, 72, 0.4);
+      border-color: rgba(244, 63, 94, 0.65);
     }
 
     .bg3-plaque.state-success {
-      box-shadow: 0 0 80px rgba(0,0,0,0.95), 0 0 50px rgba(250, 204, 21, 0.4);
-      border-color: rgba(250, 204, 21, 0.7);
+      box-shadow: 0 0 85px rgba(0,0,0,0.95), 0 0 55px rgba(250, 204, 21, 0.45);
+      border-color: rgba(250, 204, 21, 0.75);
     }
 
-    /* SVG Filigree Frame */
     .filigree-frame {
       position: absolute;
       inset: 0;
       width: 100%;
       height: 100%;
       pointer-events: none;
+    }
+
+    /* Roll Subtitle / Character */
+    .char-badge {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      color: #e9d5ff;
+      text-transform: uppercase;
+      margin-bottom: 2px;
+      opacity: 0.85;
+    }
+
+    .roll-mode-badge {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      padding: 2px 10px;
+      border-radius: 9999px;
+      margin-bottom: 6px;
+    }
+
+    .mode-advantage {
+      background: rgba(14, 116, 144, 0.4);
+      border: 1px solid #38bdf8;
+      color: #bae6fd;
+    }
+
+    .mode-disadvantage {
+      background: rgba(194, 65, 12, 0.4);
+      border: 1px solid #fb923c;
+      color: #ffedd5;
     }
 
     /* Header text */
@@ -140,17 +180,17 @@
       letter-spacing: 0.22em;
       color: #d4af37;
       text-transform: uppercase;
-      margin-bottom: 4px;
+      margin-bottom: 2px;
       text-shadow: 0 2px 4px rgba(0,0,0,0.8);
     }
 
     .dc-value {
-      font-size: 58px;
+      font-size: 54px;
       font-weight: 900;
       line-height: 1;
       color: #f43f5e;
       text-shadow: 0 0 20px rgba(244, 63, 94, 0.7), 0 0 40px rgba(225, 29, 72, 0.4);
-      margin-bottom: 12px;
+      margin-bottom: 10px;
       font-family: 'Cinzel', serif;
     }
 
@@ -162,7 +202,7 @@
       align-items: center;
       justify-content: center;
       gap: 8px;
-      margin-bottom: 16px;
+      margin-bottom: 12px;
       opacity: 0.85;
     }
 
@@ -174,25 +214,25 @@
 
     .divider-symbol {
       color: #d4af37;
-      font-size: 16px;
+      font-size: 15px;
     }
 
-    /* Canvas D20 container */
-    .canvas-box {
+    /* Canvas Tray */
+    .canvas-container {
       position: relative;
-      width: 250px;
-      height: 250px;
+      width: 100%;
+      height: 230px;
       display: flex;
       align-items: center;
       justify-content: center;
-      margin: 6px 0;
+      margin: 4px 0 10px 0;
       cursor: pointer;
     }
 
     .canvas-glow {
       position: absolute;
-      width: 210px;
-      height: 210px;
+      width: 260px;
+      height: 200px;
       border-radius: 50%;
       background: radial-gradient(circle, rgba(147, 51, 234, 0.25) 0%, transparent 70%);
       filter: blur(14px);
@@ -202,30 +242,65 @@
     #dice-canvas {
       position: relative;
       z-index: 5;
-      width: 250px;
-      height: 250px;
     }
 
-    /* Formula Breakdown */
-    .formula-row {
-      min-height: 26px;
+    /* Bonus Breakdown List (BG3 Style) */
+    .bonus-list {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      margin: 6px 0 12px 0;
+      padding: 0 12px;
+    }
+
+    .bonus-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(212, 175, 55, 0.2);
+      border-radius: 8px;
+      padding: 5px 12px;
+      font-size: 12px;
+      color: #d6d3d1;
+      animation: fadeIn 0.3s ease forwards;
+    }
+
+    .bonus-name {
       display: flex;
       align-items: center;
       gap: 6px;
-      font-family: monospace;
-      font-size: 15px;
-      color: #a8a29e;
-      margin-bottom: 8px;
+      color: #e7e5e4;
     }
 
-    .formula-num {
-      color: #fef08a;
+    .bonus-val {
+      font-family: monospace;
+      font-weight: 700;
+      color: #fde047;
+      font-size: 13px;
+    }
+
+    .bonus-total-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-top: 1px solid rgba(212, 175, 55, 0.4);
+      padding: 6px 12px 0 12px;
+      margin-top: 2px;
+      font-size: 14px;
       font-weight: bold;
+    }
+
+    .bonus-total-val {
+      font-family: monospace;
+      font-size: 18px;
+      color: #fff;
     }
 
     /* Verdict Banner */
     .verdict-box {
-      min-height: 52px;
+      min-height: 48px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -233,7 +308,7 @@
     }
 
     .verdict-text {
-      font-size: 34px;
+      font-size: 32px;
       font-weight: 900;
       letter-spacing: 0.12em;
       text-transform: uppercase;
@@ -267,8 +342,13 @@
       }
     }
 
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
     .hint-label {
-      margin-top: 14px;
+      margin-top: 10px;
       font-size: 11px;
       letter-spacing: 0.08em;
       color: rgba(212, 175, 55, 0.6);
@@ -281,8 +361,8 @@
 
   <!-- BG3 Plaque -->
   <div id="plaque" class="bg3-plaque">
-    <!-- SVG Filigree Frame with Gothic flourishes -->
-    <svg class="filigree-frame" viewBox="0 0 420 560" preserveAspectRatio="none">
+    <!-- SVG Filigree Frame -->
+    <svg class="filigree-frame" viewBox="0 0 440 600" preserveAspectRatio="none">
       <defs>
         <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
           <stop offset="0%" stopColor="#f3e5ab" />
@@ -295,26 +375,26 @@
         </filter>
       </defs>
 
-      <!-- Outer rounded border -->
-      <rect x="8" y="8" width="404" height="544" rx="36" fill="none" stroke="url(#goldGrad)" stroke-width="1.8" filter="url(#goldGlow)" />
-      <!-- Inner dashed decorative line -->
-      <rect x="13" y="13" width="394" height="534" rx="31" fill="none" stroke="url(#goldGrad)" stroke-width="0.8" stroke-dasharray="5 3" opacity="0.65" />
+      <rect x="8" y="8" width="424" height="584" rx="36" fill="none" stroke="url(#goldGrad)" stroke-width="1.8" filter="url(#goldGlow)" />
+      <rect x="13" y="13" width="414" height="574" rx="31" fill="none" stroke="url(#goldGrad)" stroke-width="0.8" stroke-dasharray="5 3" opacity="0.65" />
 
-      <!-- Top and bottom crest finials -->
-      <path d="M 185 8 Q 210 0 235 8 Q 210 16 185 8 Z" fill="url(#goldGrad)" />
-      <path d="M 185 552 Q 210 560 235 552 Q 210 544 185 552 Z" fill="url(#goldGrad)" />
+      <path d="M 195 8 Q 220 0 245 8 Q 220 16 195 8 Z" fill="url(#goldGrad)" />
+      <path d="M 195 592 Q 220 600 245 592 Q 220 584 195 592 Z" fill="url(#goldGrad)" />
 
-      <!-- Corner corner ornamental brackets -->
       <g stroke="url(#goldGrad)" stroke-width="1.8" fill="none" opacity="0.85">
         <path d="M 26 50 C 26 34, 34 26, 50 26" />
-        <path d="M 394 50 C 394 34, 386 26, 370 26" />
-        <path d="M 26 510 C 26 526, 34 534, 50 534" />
-        <path d="M 394 510 C 394 526, 386 534, 370 534" />
+        <path d="M 414 50 C 414 34, 406 26, 390 26" />
+        <path d="M 26 550 C 26 566, 34 574, 50 574" />
+        <path d="M 414 550 C 414 566, 406 574, 390 574" />
       </g>
     </svg>
 
+    <!-- Character / Roll title -->
+    <div id="char-name" class="char-badge">Торин · Скрытность</div>
+    <div id="mode-badge-container"></div>
+
     <!-- Header Section -->
-    <div class="dc-title">КЛАСС СЛОЖНОСТИ</div>
+    <div id="header-title" class="dc-title">КЛАСС СЛОЖНОСТИ</div>
     <div id="dc-target" class="dc-value">15</div>
 
     <!-- Celtic / Gothic Divider -->
@@ -324,16 +404,14 @@
       <div class="divider-line"></div>
     </div>
 
-    <!-- Center D20 Canvas Tray -->
-    <div class="canvas-box" onclick="rerollCurrent()">
+    <!-- Center Canvas Tray (Supports 1 or 2 dice!) -->
+    <div class="canvas-container" onclick="rerollCurrent()">
       <div class="canvas-glow"></div>
-      <canvas id="dice-canvas" width="250" height="250"></canvas>
+      <canvas id="dice-canvas" width="400" height="230"></canvas>
     </div>
 
-    <!-- Formula breakdown -->
-    <div id="formula" class="formula-row">
-      <span>Бросок кубика...</span>
-    </div>
+    <!-- Itemized Bonus Breakdown (BG3 Style) -->
+    <div id="bonus-list" class="bonus-list"></div>
 
     <!-- Verdict Banner -->
     <div class="verdict-box">
@@ -343,27 +421,30 @@
     <div class="hint-label">Нажмите на куб для повторного броска</div>
   </div>
 
-  <!-- Control panel -->
+  <!-- Control panel with rich scenarios -->
   <div class="controls-panel">
-    <button class="btn-action btn-screenshot" onclick="rollPreset(15, 9, 0)">
+    <button class="btn-action btn-screenshot" onclick="playScenario('screenshot')">
       📸 Как на скриншоте (СЛ 15 → 9 НЕУДАЧА!)
     </button>
-    <button class="btn-action" onclick="rollPreset(15, 18, 0)">
-      ✨ Успех (СЛ 15 → 18 УСПЕХ!)
+    <button class="btn-action btn-advantage" onclick="playScenario('advantage')">
+      ⚔ ПРЕИМУЩЕСТВО (2d20: 18 и 7 → УСПЕХ!)
     </button>
-    <button class="btn-action" onclick="rollPreset(20, 20, 0)">
+    <button class="btn-action btn-disadvantage" onclick="playScenario('disadvantage')">
+      🛡 ПОМЕХА (2d20: 4 и 16 → НЕУДАЧА!)
+    </button>
+    <button class="btn-action" onclick="playScenario('buffs')">
+      ✨ Все бонусы (+3 Ловк, +2 Мастерство, +1d4 Наставление)
+    </button>
+    <button class="btn-action" onclick="playScenario('nat20')">
       ★ Натуральные 20 (КРИТИЧЕСКИЙ УСПЕХ!)
     </button>
-    <button class="btn-action" onclick="rollPreset(10, 1, 0)">
+    <button class="btn-action" onclick="playScenario('nat1')">
       ☠ Натуральная 1 (КРИТИЧЕСКИЙ ПРОВАЛ!)
-    </button>
-    <button class="btn-action" onclick="rollRandomWithModifier()">
-      🎲 Случайный бросок (+3 бонус)
     </button>
   </div>
 
   <script>
-    // --- Web Audio API Synth ---
+    // --- Audio Synthesizer ---
     let audioCtx = null;
     function getAudio() {
       if (!audioCtx) {
@@ -380,13 +461,13 @@
 
       if (type === 'tumble') {
         for (let i = 0; i < 6; i++) {
-          const t = now + i * 0.24 + Math.random() * 0.06;
+          const t = now + i * 0.22 + Math.random() * 0.05;
           const osc = ctx.createOscillator();
           const gain = ctx.createGain();
           osc.type = i % 2 === 0 ? 'triangle' : 'sine';
           osc.frequency.setValueAtTime(150 + Math.random() * 80, t);
           osc.frequency.exponentialRampToValueAtTime(70 + Math.random() * 30, t + 0.12);
-          gain.gain.setValueAtTime(0.15 * (1 - i / 7), t);
+          gain.gain.setValueAtTime(0.14 * (1 - i / 7), t);
           gain.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
           osc.connect(gain);
           gain.connect(ctx.destination);
@@ -394,7 +475,6 @@
           osc.stop(t + 0.12);
         }
       } else if (type === 'land') {
-        // Heavy impact THUD
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
         osc.type = 'sine';
@@ -478,7 +558,7 @@
       }
     }
 
-    // --- 3D D20 Mathematics ---
+    // --- 3D Geometry of Regular Icosahedron (D20) ---
     const PHI = (1 + Math.sqrt(5)) / 2;
     const INV_LEN = 1 / Math.sqrt(1 + PHI * PHI);
 
@@ -574,177 +654,263 @@
       ];
     }
 
-    // --- State & Animation ---
+    // --- State & Rendering Engine ---
     const canvas = document.getElementById('dice-canvas');
     const ctx = canvas.getContext('2d');
     const plaqueEl = document.getElementById('plaque');
     const dcTargetEl = document.getElementById('dc-target');
-    const formulaEl = document.getElementById('formula');
+    const bonusListEl = document.getElementById('bonus-list');
     const verdictEl = document.getElementById('verdict-text');
+    const modeBadgeContainer = document.getElementById('mode-badge-container');
+    const charNameEl = document.getElementById('char-name');
 
-    let currentDC = 15;
-    let currentDie = 9;
-    let currentMod = 0;
+    let currentConfig = null;
     let animId = null;
 
-    function runRollAnimation(dc, targetDie, mod = 0) {
+    function renderSingleDie(ctx, dieState, now, startTime, duration) {
+      const elapsed = now - startTime;
+      const p = Math.min(1, elapsed / duration);
+      const easeOut = 1 - Math.pow(1 - p, 3);
+
+      const curRx = dieState.randRx * (1 - easeOut);
+      const curRy = dieState.randRy * (1 - easeOut);
+      const curRz = dieState.randRz * (1 - easeOut);
+      const spin = makeEulerMatrix(curRx, curRy, curRz);
+      const currentRot = multMatrix(spin, dieState.targetRot);
+
+      let bounce = 1.0;
+      if (p >= 1) {
+        const dt = elapsed - duration;
+        bounce = 1.0 + 0.12 * Math.exp(-dt * 0.008) * Math.sin(dt * 0.025);
+      }
+
+      const cx = dieState.cx;
+      const cy = dieState.cy;
+      const radius = dieState.radius * bounce;
+      const isDimmed = p >= 1 && dieState.discarded;
+
+      ctx.save();
+      if (isDimmed) {
+        ctx.globalAlpha = 0.38;
+      }
+
+      const lightDir = [-0.4, -0.6, 0.75];
+      const lLen = Math.hypot(...lightDir);
+      const L = [lightDir[0]/lLen, lightDir[1]/lLen, lightDir[2]/lLen];
+
+      const transformedVerts = D20_VERTICES.map(v => transformVec(currentRot, v));
+      const projected = transformedVerts.map(([x, y, z]) => {
+        const pers = 380 / (380 - z * radius * 0.3);
+        return {
+          px: cx + x * radius * pers,
+          py: cy + y * radius * pers,
+          pz: z
+        };
+      });
+
+      const faceList = D20_FACES.map((f, idx) => {
+        const avgZ = (projected[f[0]].pz + projected[f[1]].pz + projected[f[2]].pz) / 3;
+        const norm = transformVec(currentRot, FACE_NORMALS[idx]);
+        return { idx, f, avgZ, norm, visible: norm[2] > 0.05 };
+      });
+
+      faceList.sort((a, b) => a.avgZ - b.avgZ);
+
+      for (const item of faceList) {
+        if (!item.visible) continue;
+        const p0 = projected[item.f[0]];
+        const p1 = projected[item.f[1]];
+        const p2 = projected[item.f[2]];
+        const norm = item.norm;
+
+        const dot = Math.max(0, norm[0]*L[0] + norm[1]*L[1] + norm[2]*L[2]);
+        const ambient = 0.22;
+        const diffuse = dot * 0.68;
+        const spec = Math.pow(Math.max(0, (norm[0]*L[0] + norm[1]*L[1] + norm[2]*(L[2]+1)) / 1.5), 24) * 0.45;
+        const light = Math.min(1, ambient + diffuse + spec);
+
+        const r = Math.round(36 + light * 165);
+        const g = Math.round(40 + light * 175);
+        const b = Math.round(55 + light * 195);
+
+        // Draw face polygon
+        ctx.beginPath();
+        ctx.moveTo(p0.px, p0.py);
+        ctx.lineTo(p1.px, p1.py);
+        ctx.lineTo(p2.px, p2.py);
+        ctx.closePath();
+
+        ctx.fillStyle = `rgb(${r},${g},${b})`;
+        ctx.fill();
+
+        ctx.strokeStyle = `rgba(235, 215, 175, ${0.18 + spec * 0.6})`;
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+
+        const faceVal = D20_FACE_VALUES[item.idx];
+        const isCenter = norm[2] > 0.88 && p >= 0.95;
+
+        // Centroid of face in 2D
+        const fcx = (p0.px + p1.px + p2.px) / 3;
+        const fcy = (p0.px + p1.px + p2.px) / 3;
+
+        // CRITICAL FIX: Clip to the face triangle so numbers NEVER bleed outside!
+        ctx.save();
+        ctx.beginPath();
+        ctx.moveTo(p0.px, p0.py);
+        ctx.lineTo(p1.px, p1.py);
+        ctx.lineTo(p2.px, p2.py);
+        ctx.closePath();
+        ctx.clip(); // CLIPPED TO FACE TRIANGLE!
+
+        ctx.translate(fcx, fcy);
+
+        if (isCenter) {
+          ctx.font = `bold ${Math.round(radius * 0.38)}px 'Cinzel', serif, Georgia`;
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+
+          if (dieState.isCrit20) {
+            ctx.fillStyle = "#fffbeb";
+            ctx.shadowColor = "#f59e0b";
+            ctx.shadowBlur = 18;
+          } else if (dieState.isCrit1 || !dieState.isWinningSuccess) {
+            ctx.fillStyle = "#fb7185";
+            ctx.shadowColor = "#e11d48";
+            ctx.shadowBlur = 16;
+          } else {
+            ctx.fillStyle = "#fef08a";
+            ctx.shadowColor = "#eab308";
+            ctx.shadowBlur = 14;
+          }
+          ctx.fillText(String(faceVal), 0, 0);
+        } else if (norm[2] > 0.52) {
+          // Strictly only faces angled cleanly towards camera, scaled down, clipped!
+          ctx.font = `bold ${Math.round(radius * 0.17)}px 'Cinzel', serif, Georgia`;
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillStyle = `rgba(215, 225, 240, ${Math.min(0.85, (norm[2] - 0.4) * 1.8)})`;
+          ctx.fillText(String(faceVal), 0, 0);
+        }
+
+        ctx.restore();
+      }
+
+      // If discarded die, draw crossed out indicator on top
+      if (isDimmed) {
+        ctx.beginPath();
+        ctx.moveTo(cx - radius * 0.6, cy - radius * 0.6);
+        ctx.lineTo(cx + radius * 0.6, cy + radius * 0.6);
+        ctx.strokeStyle = "rgba(239, 68, 68, 0.75)";
+        ctx.lineWidth = 4;
+        ctx.stroke();
+      }
+
+      ctx.restore();
+    }
+
+    function runRoll(config) {
       if (animId) cancelAnimationFrame(animId);
+      currentConfig = config;
 
-      currentDC = dc;
-      currentDie = targetDie;
-      currentMod = mod;
+      dcTargetEl.textContent = config.dc;
+      charNameEl.textContent = config.characterName || "Торин · Проверка";
 
-      dcTargetEl.textContent = dc;
-      formulaEl.innerHTML = `<span>Бросок кубика...</span>`;
+      // Advantage / Disadvantage badge
+      if (config.mode === 'advantage') {
+        modeBadgeContainer.innerHTML = `<span class="roll-mode-badge mode-advantage">Преимущество (2d20)</span>`;
+      } else if (config.mode === 'disadvantage') {
+        modeBadgeContainer.innerHTML = `<span class="roll-mode-badge mode-disadvantage">Помеха (2d20)</span>`;
+      } else {
+        modeBadgeContainer.innerHTML = ``;
+      }
+
+      bonusListEl.innerHTML = `<div class="bonus-item" style="justify-content:center;color:#a8a29e;font-style:italic">Судьба решает...</div>`;
       verdictEl.textContent = "";
       verdictEl.className = "verdict-text";
       plaqueEl.className = "bg3-plaque";
 
       playSound('tumble');
 
-      const targetRot = getTargetRotation(targetDie);
+      const diceList = config.dice.map((d, index) => {
+        const isMulti = config.dice.length > 1;
+        const cx = isMulti ? (index === 0 ? 120 : 280) : 200;
+        const cy = 115;
+        const radius = isMulti ? 74 : 94;
+
+        return {
+          val: d.val,
+          discarded: d.discarded,
+          isCrit20: d.val === 20,
+          isCrit1: d.val === 1,
+          isWinningSuccess: config.success,
+          cx,
+          cy,
+          radius,
+          targetRot: getTargetRotation(d.val),
+          randRx: (Math.random() * 8 + 14) * Math.PI,
+          randRy: (Math.random() * 8 + 16) * Math.PI,
+          randRz: (Math.random() * 6 + 12) * Math.PI,
+        };
+      });
+
       const startTime = performance.now();
       const duration = 2000;
-
-      const randRx = (Math.random() * 8 + 14) * Math.PI;
-      const randRy = (Math.random() * 8 + 16) * Math.PI;
-      const randRz = (Math.random() * 6 + 12) * Math.PI;
-
-      let landSoundDone = false;
+      let landDone = false;
       let verdictDone = false;
 
-      function render(now) {
+      function loop(now) {
         const elapsed = now - startTime;
         const p = Math.min(1, elapsed / duration);
-        const easeOut = 1 - Math.pow(1 - p, 3);
 
-        ctx.clearRect(0, 0, 250, 250);
+        ctx.clearRect(0, 0, 400, 230);
 
-        const curRx = randRx * (1 - easeOut);
-        const curRy = randRy * (1 - easeOut);
-        const curRz = randRz * (1 - easeOut);
-        const spin = makeEulerMatrix(curRx, curRy, curRz);
-        const currentRot = multMatrix(spin, targetRot);
-
-        let bounce = 1.0;
-        if (p >= 1) {
-          const dt = elapsed - duration;
-          bounce = 1.0 + 0.12 * Math.exp(-dt * 0.008) * Math.sin(dt * 0.025);
-          if (!landSoundDone) {
-            landSoundDone = true;
-            playSound('land');
-          }
+        // Draw each die
+        for (const dieState of diceList) {
+          renderSingleDie(ctx, dieState, now, startTime, duration);
         }
 
-        const cx = 125, cy = 125;
-        const radius = 98 * bounce;
-        const lightDir = [-0.4, -0.6, 0.75];
-        const lLen = Math.hypot(...lightDir);
-        const L = [lightDir[0]/lLen, lightDir[1]/lLen, lightDir[2]/lLen];
-
-        const transformedVerts = D20_VERTICES.map(v => transformVec(currentRot, v));
-        const projected = transformedVerts.map(([x, y, z]) => {
-          const pers = 420 / (420 - z * radius * 0.3);
-          return {
-            px: cx + x * radius * pers,
-            py: cy + y * radius * pers,
-            pz: z
-          };
-        });
-
-        const faceList = D20_FACES.map((f, idx) => {
-          const avgZ = (projected[f[0]].pz + projected[f[1]].pz + projected[f[2]].pz) / 3;
-          const norm = transformVec(currentRot, FACE_NORMALS[idx]);
-          return { idx, f, avgZ, norm, visible: norm[2] > 0.02 };
-        });
-
-        faceList.sort((a, b) => a.avgZ - b.avgZ);
-
-        for (const item of faceList) {
-          if (!item.visible) continue;
-          const p0 = projected[item.f[0]];
-          const p1 = projected[item.f[1]];
-          const p2 = projected[item.f[2]];
-          const norm = item.norm;
-
-          const dot = Math.max(0, norm[0]*L[0] + norm[1]*L[1] + norm[2]*L[2]);
-          const ambient = 0.24;
-          const diffuse = dot * 0.65;
-          const spec = Math.pow(Math.max(0, (norm[0]*L[0] + norm[1]*L[1] + norm[2]*(L[2]+1)) / 1.5), 24) * 0.45;
-          const light = Math.min(1, ambient + diffuse + spec);
-
-          const r = Math.round(38 + light * 165);
-          const g = Math.round(42 + light * 175);
-          const b = Math.round(58 + light * 195);
-
-          ctx.beginPath();
-          ctx.moveTo(p0.px, p0.py);
-          ctx.lineTo(p1.px, p1.py);
-          ctx.lineTo(p2.px, p2.py);
-          ctx.closePath();
-
-          ctx.fillStyle = `rgb(${r},${g},${b})`;
-          ctx.fill();
-
-          ctx.strokeStyle = `rgba(235, 215, 175, ${0.2 + spec * 0.6})`;
-          ctx.lineWidth = 1.6;
-          ctx.stroke();
-
-          const faceVal = D20_FACE_VALUES[item.idx];
-          const isCenter = norm[2] > 0.88 && p >= 0.95;
-          const fcx = (p0.px + p1.px + p2.px) / 3;
-          const fcy = (p0.px + p1.px + p2.px) / 3;
-
-          ctx.save();
-          ctx.translate(fcx, fcy);
-
-          if (isCenter) {
-            const total = targetDie + mod;
-            const success = total >= dc;
-            const isCrit20 = targetDie === 20;
-            const isCrit1 = targetDie === 1;
-
-            ctx.font = "bold 36px 'Cinzel', serif, Georgia";
-            ctx.textAlign = "center";
-            ctx.textBaseline = "middle";
-
-            if (isCrit20) {
-              ctx.fillStyle = "#fffbeb";
-              ctx.shadowColor = "#f59e0b";
-              ctx.shadowBlur = 18;
-            } else if (isCrit1 || !success) {
-              ctx.fillStyle = "#fb7185";
-              ctx.shadowColor = "#e11d48";
-              ctx.shadowBlur = 16;
-            } else {
-              ctx.fillStyle = "#fef08a";
-              ctx.shadowColor = "#eab308";
-              ctx.shadowBlur = 14;
-            }
-            ctx.fillText(String(faceVal), 0, 0);
-          } else if (norm[2] > 0.28) {
-            ctx.font = "bold 15px 'Cinzel', serif, Georgia";
-            ctx.textAlign = "center";
-            ctx.textBaseline = "middle";
-            ctx.fillStyle = `rgba(215, 225, 240, ${Math.min(0.85, norm[2] * 0.9)})`;
-            ctx.fillText(String(faceVal), 0, 0);
-          }
-
-          ctx.restore();
+        if (p >= 1 && !landDone) {
+          landDone = true;
+          playSound('land');
         }
 
         if (p >= 1 && elapsed > duration + 500 && !verdictDone) {
           verdictDone = true;
-          const total = targetDie + mod;
-          const success = total >= dc;
-          const isCrit20 = targetDie === 20;
-          const isCrit1 = targetDie === 1;
 
-          if (mod !== 0) {
-            formulaEl.innerHTML = `<span class="formula-num">${targetDie}</span> <span>${mod > 0 ? '+' : '-'}</span> <span>${Math.abs(mod)}</span> <span>=</span> <span class="formula-num" style="color:white;font-size:17px">${total}</span>`;
-          } else {
-            formulaEl.innerHTML = `<span class="formula-num" style="font-size:17px">${targetDie}</span>`;
+          // Render itemized bonuses
+          let html = "";
+          const winningDie = config.dice.find(d => !d.discarded) || config.dice[0];
+          html += `
+            <div class="bonus-item">
+              <span class="bonus-name">🎲 Результат кубика (d20)</span>
+              <span class="bonus-val">${winningDie.val}</span>
+            </div>
+          `;
+
+          let runningTotal = winningDie.val;
+          for (const b of config.bonuses) {
+            runningTotal += b.val;
+            html += `
+              <div class="bonus-item">
+                <span class="bonus-name">${b.icon || '🔹'} ${b.name}</span>
+                <span class="bonus-val">${b.val >= 0 ? '+' : ''}${b.val}</span>
+              </div>
+            `;
           }
+
+          html += `
+            <div class="bonus-total-row">
+              <span>ИТОГ:</span>
+              <span class="bonus-total-val">${runningTotal}</span>
+            </div>
+          `;
+          bonusListEl.innerHTML = html;
+
+          // Verdict Banner
+          const isCrit20 = winningDie.val === 20;
+          const isCrit1 = winningDie.val === 1;
+          const success = runningTotal >= config.dc;
 
           if (isCrit20) {
             verdictEl.textContent = "★ КРИТИЧЕСКИЙ УСПЕХ! ★";
@@ -769,29 +935,98 @@
           }
         }
 
-        animId = requestAnimationFrame(render);
+        animId = requestAnimationFrame(loop);
       }
 
-      animId = requestAnimationFrame(render);
+      animId = requestAnimationFrame(loop);
     }
 
-    function rollPreset(dc, die, mod) {
-      runRollAnimation(dc, die, mod);
+    function playScenario(type) {
+      if (type === 'screenshot') {
+        runRoll({
+          dc: 15,
+          characterName: "Астарион · Ловкость рук",
+          mode: "none",
+          dice: [{ val: 9, discarded: false }],
+          bonuses: [
+            { name: "Модификатор Ловкости", val: 3, icon: "🖐" }
+          ],
+          success: false
+        });
+      } else if (type === 'advantage') {
+        runRoll({
+          dc: 15,
+          characterName: "Шэдоухарт · Внимательность",
+          mode: "advantage",
+          dice: [
+            { val: 7, discarded: true },
+            { val: 18, discarded: false }
+          ],
+          bonuses: [
+            { name: "Модификатор Мудрости", val: 2, icon: "👁" },
+            { name: "Бонус мастерства", val: 2, icon: "⚔" }
+          ],
+          success: true
+        });
+      } else if (type === 'disadvantage') {
+        runRoll({
+          dc: 15,
+          characterName: "Гейл · Спасбросок Ловкости",
+          mode: "disadvantage",
+          dice: [
+            { val: 4, discarded: false },
+            { val: 16, discarded: true }
+          ],
+          bonuses: [
+            { name: "Модификатор Ловкости", val: 1, icon: "🏃" }
+          ],
+          success: false
+        });
+      } else if (type === 'buffs') {
+        runRoll({
+          dc: 18,
+          characterName: "Уилл · Убеждение",
+          mode: "none",
+          dice: [{ val: 11, discarded: false }],
+          bonuses: [
+            { name: "Модификатор Харизмы", val: 3, icon: "✨" },
+            { name: "Бонус мастерства", val: 2, icon: "📜" },
+            { name: "Заклинание «Наставление» (1d4)", val: 3, icon: "🙏" }
+          ],
+          success: true
+        });
+      } else if (type === 'nat20') {
+        runRoll({
+          dc: 20,
+          characterName: "Лаэзель · Атака мечом",
+          mode: "none",
+          dice: [{ val: 20, discarded: false }],
+          bonuses: [
+            { name: "Модификатор Силы", val: 4, icon: "💪" },
+            { name: "Бонус мастерства", val: 2, icon: "⚔" }
+          ],
+          success: true
+        });
+      } else if (type === 'nat1') {
+        runRoll({
+          dc: 10,
+          characterName: "Карлах · Атлетика",
+          mode: "none",
+          dice: [{ val: 1, discarded: false }],
+          bonuses: [
+            { name: "Модификатор Силы", val: 3, icon: "💪" }
+          ],
+          success: false
+        });
+      }
     }
 
     function rerollCurrent() {
-      runRollAnimation(currentDC, currentDie, currentMod);
+      if (currentConfig) runRoll(currentConfig);
     }
 
-    function rollRandomWithModifier() {
-      const randDie = Math.floor(Math.random() * 20) + 1;
-      const mod = 3;
-      runRollAnimation(15, randDie, mod);
-    }
-
-    // Run initial roll exactly like the screenshot
     window.addEventListener('DOMContentLoaded', () => {
-      runRollAnimation(15, 9, 0);
+      playScenario('screenshot');
     });
   </script>
 </body>
