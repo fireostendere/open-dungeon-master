@@ -7,6 +7,7 @@ import { readFileSync } from 'node:fs';
 import { stripTypeScriptTypes } from 'node:module';
 import { AsyncLocalStorage } from 'node:async_hooks';
 import vm from 'node:vm';
+import * as entities from '../src/lib/spatial/entity-versions.mjs';
 import * as access from '../src/lib/spatial/event-access.mjs';
 
 async function fixture(t) {
@@ -42,6 +43,7 @@ async function fixture(t) {
     '@/lib/db/core': { getDatabase: () => db, nowIso: () => new Date().toISOString(), parseJson: (raw, fallback) => { try { return JSON.parse(raw); } catch { return fallback; } } },
     '@/lib/db/campaigns': helpers,
     './event-access.mjs': access,
+    './entity-versions.mjs': entities,
     '@/lib/campaign-api': { isErrorResponse: value => value instanceof Response,
       requireMember: async () => ({ campaign: { id: 'c' }, user: { id: 'b' } }) },
   };

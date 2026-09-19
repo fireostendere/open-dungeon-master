@@ -1,3 +1,4 @@
+import { createEntityVersions } from './entity-versions.mjs';
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { getDatabase } from '@/lib/db/core';
 import { capsFor, getCampaignById, listMembers } from '@/lib/db/campaigns';
@@ -29,7 +30,26 @@ export function captureEventAudience(campaignId: string, event: EventView, expli
   if (!state.enabled) return;
   const actors = listMembers(campaignId).map(member => actorFor(campaignId, member.userId, true));
   const inherited = scopes.getStore();
-  const scope = explicit ?? (inherited?.campaignId === campaignId ? inherited.scope : undefined);
+  let scope = explicit ?? (inherited?.campaignId === campaignId ? inherited.scope : undefined);
+  // Real note writers store the canonical object's audience before publishing
+  // their existing event. Do not let an enclosing room scope make a pending
+  // suggestion/publication more public than that object actually is.
+  const payload = event.payload as { note?: { id?: string }; noteId?: string } | null;
+  const noteId = event.type.startsWith('note_') ? payload?.note?.id ?? payload?.noteId : undefined;
+  if (noteId && getDatabase().prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='spatial_object_scopes'").get()) {
+    const versions = createEntityVersions(getDatabase(), { nextSeq: () => { throw new Error('Audience reads cannot allocate sequences.'); } });
+    if (versions.scope(campaignId, 'note', noteId)) {
+      const intended = versions.audience(campaignId, 'note', noteId, actors);
+      const restriction = scope;
+      const permitted = actors.filter(actor => intended.includes(actor.userId) && (
+        !restriction || restriction.kind === 'global' ||
+        restriction.kind === 'users' && restriction.userIds.includes(actor.userId) ||
+        restriction.kind === 'room' && restriction.roomId === actor.roomId ||
+        restriction.kind === 'dm' && actor.isDm
+      )).map(actor => actor.userId);
+      scope = { kind: 'users', userIds: permitted };
+    }
+  }
   createEventAccess(getDatabase()).capture(campaignId, event, actors, scope);
 }
 function eventInCurrentTimeline(campaignId: string, event: EventView) {
@@ -63,4 +83,10 @@ export function campaignEventProjector(campaignId: string, userId: string) {
       return result ? `${result.seq === undefined ? '' : `id: ${result.seq}\n`}event: ${result.type}\ndata: ${JSON.stringify(result.payload)}\n\n` : null;
     },
   };
+}
+
+export { actorFor as eventActorFor, enabledState as eventSpatialState };
+export function currentEventScope(campaignId: string): EventScope | undefined {
+  const value = scopes.getStore();
+  return value?.campaignId === campaignId ? value.scope : undefined;
 }

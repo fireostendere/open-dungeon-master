@@ -1,6 +1,7 @@
 "use client";
 import type { ComponentProps } from "react";
 import { SessionChatColumn as LegacySessionChatColumn } from "./LegacySessionChatColumn";
+import { LocationNotes } from "./LocationNotes";
 import { LocationChat } from "./LocationChat";
 import { useLocationChat } from "./useLocationChat";
 import { useI18n } from "@/lib/i18n";
@@ -22,6 +23,10 @@ export function SessionChatColumn(props: ComponentProps<typeof LegacySessionChat
   const view = chat.view;
   if (view?.enabled) return <div className={cn("min-w-0 flex-1 flex-col overflow-y-auto", props.visible ? "flex" : "hidden lg:flex")}>
     <LocationChat key={`${props.campaignId}:${props.meUserId}`} chat={chat} members={props.state.members} dmUserId={props.state.campaign?.dmUserId} />
+    {chat.selected && chat.selected !== "ooc" ? <LocationNotes
+      key={`${props.campaignId}:${props.meUserId}:${chat.selected}`}
+      campaignId={props.campaignId} userId={props.meUserId} roomId={chat.selected}
+      active={view.current?.roomId === chat.selected} isDm={view.isDm} /> : null}
     <details className="m-3 min-h-0 rounded border border-stone-800 p-2 text-sm text-stone-400"><summary>{t.history}</summary>
       <p className="my-2 text-xs">{t.note}</p>
       <LegacySessionChatColumn {...props}>{null}</LegacySessionChatColumn>
