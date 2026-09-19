@@ -7,6 +7,7 @@ import { isMemberMuted } from "@/lib/db/moderation";
 import { coverInEffect } from "@/lib/dm/delegation";
 import { isDmSeat } from "@/lib/dm/viewer";
 import { createSpatialStore, SpatialError, type SpatialActor, type SpatialStore } from "@/lib/spatial/store.mjs";
+import { capturePreSpatialEntities } from "@/lib/spatial/domain-migration";
 
 export { SpatialError } from "@/lib/spatial/store.mjs";
 const stores = new WeakMap<ReturnType<typeof getDatabase>, SpatialStore>();
@@ -71,7 +72,13 @@ export function runSpatialCommand(campaignId: string, userId: string, raw: unkno
     }
   }
   const { operation, requestId, ...input } = command;
-  const result = spatialStore().command(actor, requestId, operation, input);
+  const result = getDatabase().transaction(() => {
+    const previouslyEnabled = spatialStore().enabled(campaignId);
+    const result = spatialStore().command(actor, requestId, operation, input);
+    // Exact retry of enable must not capture newer text as pre-spatial history.
+    if (operation === "enable" && !previouslyEnabled) capturePreSpatialEntities(campaignId);
+    return result;
+  })();
   touchCampaign(campaignId);
   // No content (nor private room IDs/rosters) enters the global SSE ledger.
   // Authenticated views refetch independently; the narrator has a bounded feed.

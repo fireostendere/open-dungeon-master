@@ -1,132 +1,58 @@
-import { getCampaignById, listMembers } from "@/lib/db/campaigns";
-import { listChapters } from "@/lib/db/chapters";
-import { listAllMessages } from "@/lib/db/messages";
-import { listSheets } from "@/lib/db/sheets";
+export * from '@/lib/export/legacy-story-document';
+import * as legacy from '@/lib/export/legacy-story-document';
+import type { StoryDocument, StoryChapter, TranscriptLine } from '@/lib/export/legacy-story-document';
+import { getCampaignById, listMembers } from '@/lib/db/campaigns';
+import { listAllMessages } from '@/lib/db/messages';
+import { listChaptersVisibleTo } from '@/lib/db/chapters';
+import { spatialContext, spatialEnabled, spatialStore } from '@/lib/spatial/service';
+import { DomainError } from '@/lib/spatial/domain';
 
-// A serializer-independent view of a campaign's story, gathered once from the
-// database and then handed to the HTML/ODT/DOCX renderers. Player-safe by
-// construction: it never reads the DM outline, story arc, or private notes.
-
-export type TranscriptLine = {
-  speaker: string;
-  kind: "dm" | "player";
-  text: string;
-};
-
-export type StoryChapter = {
-  index: number;
-  // Full heading text, e.g. "Chapter 1: The Sunless Road" or the in-progress
-  // label for the open chapter.
-  heading: string;
-  status: "open" | "closed";
-  summary: string;
-  highlights: string[];
-  transcript: TranscriptLine[];
-};
-
-export type StoryDocument = {
-  title: string;
-  premise: string;
-  meta: {
-    theme: string;
-    difficulty: string;
-    startingLevel: number;
-    status: string;
-    exportedAt: string;
-  };
-  questLog: string[];
-  chapters: StoryChapter[];
-};
-
-// Reads every player-safe narrative source for a campaign and folds it into a
-// StoryDocument. The caller is responsible for membership authorization.
-export function buildStoryDocument(campaignId: string): StoryDocument | null {
+export function buildStoryDocument(campaignId: string, viewerUserId?: string): StoryDocument | null {
+  if (!spatialEnabled(campaignId)) return legacy.buildStoryDocument(campaignId);
+  if (!viewerUserId) throw new DomainError('An authenticated viewer is required for a spatial export.', 403);
   const campaign = getCampaignById(campaignId);
-  if (!campaign) {
-    return null;
+  if (!campaign) return null;
+  const { actor } = spatialContext(campaignId, viewerUserId);
+  const store = spatialStore(); const view = store.view(actor);
+  if (!view.enabled) throw new DomainError('Location mode changed. Retry the export.', 409);
+  const names = new Map(listMembers(campaignId).map(member => [member.userId, member.username]));
+  const oldMessages = listAllMessages(campaignId).filter(message => message.seq < view.startSeq);
+  const chapters: StoryChapter[] = listChaptersVisibleTo(campaignId, viewerUserId).map((chapter, index) => ({
+    index: index + 1,
+    heading: chapter.title || `Chapter ${chapter.index}`,
+    status: chapter.status,
+    summary: chapter.summary,
+    highlights: chapter.highlights,
+    transcript: oldMessages.filter(message => message.seq >= chapter.seqStart && message.seq <= (chapter.seqEnd ?? view.startSeq - 1)
+      && message.authorType !== 'system' && !/^\s*\(ooc\)/i.test(message.content)).map(message => ({
+      kind: message.authorType === 'dm' ? 'dm' : 'player',
+      speaker: message.authorType === 'dm' ? 'Dungeon Master' : names.get(message.userId ?? '') ?? 'Adventurer',
+      text: message.content,
+    })),
+  }));
+  let total = 0;
+  for (const room of view.rooms) {
+    const transcript: TranscriptLine[] = [];
+    let beforeSeq: number | undefined;
+    do {
+      const page = store.messages(actor, { roomId: room.id, beforeSeq, limit: 100 });
+      transcript.unshift(...page.messages.map(message => ({
+        kind: message.kind === 'say' || message.kind === 'do' ? 'player' as const : 'dm' as const,
+        speaker: message.kind === 'say' || message.kind === 'do' ? names.get(message.authorUserId ?? '') ?? 'Adventurer' : 'Dungeon Master',
+        text: message.content,
+      })));
+      total += page.messages.length;
+      if (total > 15000) throw new DomainError('Export exceeds the message budget. Export a smaller campaign archive.', 413);
+      beforeSeq = page.nextBefore ?? undefined;
+    } while (beforeSeq !== undefined);
+    if (transcript.length) chapters.push({ index: chapters.length + 1, heading: room.name, status: 'open', summary: '', highlights: [], transcript });
   }
-
-  const chapters = listChapters(campaignId);
-  const messages = listAllMessages(campaignId);
-
-  // Name resolution for transcript attribution.
-  const memberNames = new Map(listMembers(campaignId).map((m) => [m.userId, m.username]));
-  const sheetNames = new Map(listSheets(campaignId).map((s) => [s.id, s.name]));
-
-  const storyChapters: StoryChapter[] = chapters.map((chapter) => {
-    const seqEnd = chapter.seqEnd ?? Number.MAX_SAFE_INTEGER;
-    const transcript: TranscriptLine[] = messages
-      .filter(
-        (message) =>
-          message.seq >= chapter.seqStart &&
-          message.seq <= seqEnd &&
-          message.authorType !== "system" &&
-          message.content.trim().length > 0,
-      )
-      .map((message) => ({
-        kind: message.authorType === "dm" ? "dm" : "player",
-        speaker:
-          message.authorType === "dm"
-            ? "Dungeon Master"
-            : (message.characterId && sheetNames.get(message.characterId)) ||
-              (message.userId && memberNames.get(message.userId)) ||
-              "Adventurer",
-        text: message.content.trim(),
-      }));
-
-    const title = chapter.title?.trim();
-    const heading =
-      chapter.status === "open"
-        ? `Chapter ${chapter.index} (in progress)`
-        : `Chapter ${chapter.index}: ${title || "Untitled"}`;
-
-    return {
-      index: chapter.index,
-      heading,
-      status: chapter.status,
-      summary: chapter.summary ?? "",
-      highlights: chapter.highlights ?? [],
-      transcript,
-    };
-  });
-
-  return {
-    title: campaign.title,
-    premise: campaign.description ?? "",
-    meta: {
-      theme: campaign.theme ?? "",
-      difficulty: campaign.difficulty,
-      startingLevel: campaign.startingLevel,
-      status: campaign.status,
-      exportedAt: new Date().toISOString(),
-    },
-    questLog: campaign.questLog ?? [],
-    chapters: storyChapters,
+  const doc: StoryDocument = {
+    title: campaign.title, premise: campaign.description ?? '',
+    meta: { theme: campaign.theme ?? '', difficulty: campaign.difficulty, startingLevel: campaign.startingLevel,
+      status: campaign.status, exportedAt: new Date().toISOString() },
+    questLog: actor.isDm ? campaign.questLog : [], chapters,
   };
-}
-
-// A url/filename-safe slug of the campaign title.
-export function slugify(name: string): string {
-  return (
-    name
-      .trim()
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-+|-+$/g, "") || "campaign"
-  );
-}
-
-export function exportFilename(doc: StoryDocument, ext: "html" | "odt" | "docx"): string {
-  return `${slugify(doc.title)}-story.${ext}`;
-}
-
-// Escapes text for insertion into HTML or XML text/attribute nodes. ODF and
-// OOXML are both XML, so the same five-entity escape serves all three formats.
-export function escapeXml(value: string): string {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&apos;");
+  if (Buffer.byteLength(JSON.stringify(doc), 'utf8') > 16 * 1024 * 1024) throw new DomainError('Export exceeds the size budget.', 413);
+  return doc;
 }
