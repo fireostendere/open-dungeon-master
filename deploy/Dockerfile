@@ -9,7 +9,7 @@ RUN npm ci && npm install --prefix /opt/odm-codex @openai/codex@0.154.0
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1 NODE_ENV=production PORT=3005 \
     ODM_CODEX_BINARY=/opt/odm-codex/node_modules/@openai/codex/bin/codex.js
-RUN npm run build && mkdir -p data models/embeddings public/uploads public/generated public/generated-audio logs /app/provider-auth \
+RUN NODE_OPTIONS=--max-old-space-size=1536 npm run build && mkdir -p data models/embeddings public/uploads public/generated public/generated-audio logs /app/provider-auth \
     && chown -R node:node /app
 USER node
 EXPOSE 3005
