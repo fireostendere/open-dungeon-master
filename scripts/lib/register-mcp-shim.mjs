@@ -1,5 +1,4 @@
-// Module loader hook to resolve @modelcontextprotocol/* imports to mock-mcp-sdk.mjs
-// when mcp/node_modules is not present.
+// Module loader hook for the MCP contract test's stable mock SDK.
 import { register } from "node:module";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
@@ -12,14 +11,10 @@ export async function resolve(specifier, context, nextResolve) {
     specifier === "@modelcontextprotocol/server/stdio" ||
     specifier === "@modelcontextprotocol/node"
   ) {
-    try {
-      return await nextResolve(specifier, context);
-    } catch {
-      return {
-        url: `${mockSdkUrl}?pkg=${encodeURIComponent(specifier)}`,
-        shortCircuit: true,
-      };
-    }
+    return {
+      url: `${mockSdkUrl}?pkg=${encodeURIComponent(specifier)}`,
+      shortCircuit: true,
+    };
   }
   return nextResolve(specifier, context);
 }

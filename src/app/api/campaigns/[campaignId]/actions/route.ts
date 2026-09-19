@@ -60,6 +60,8 @@ export async function POST(
   }
 
   const { campaign, user } = context;
+  const locale = /(?:^|;\s*)odm_locale=(ru|en|pl)(?:;|$)/.exec(request.headers.get("cookie") ?? "")?.[1]
+    ?? campaign.gameSettings.language ?? "ru";
   if (campaign.status !== "active") {
     return Response.json({ error: "The adventure has not started yet." }, { status: 400 });
   }
@@ -191,7 +193,12 @@ export async function POST(
   // pacing must not consume or reject combat turns.
   const turnResult = encounter?.orderReady ? { allowed: true } : recordGlobalTurnAction(campaignId, sheet.id, user.id, kind);
   if (!turnResult.allowed) {
-    return Response.json({ error: turnResult.error ?? "Действие недоступно в этом ходе." }, { status: 409 });
+    const fallback = {
+      en: "This action is unavailable this turn.",
+      ru: "Действие недоступно в этом ходе.",
+      pl: "To działanie jest niedostępne w tej turze.",
+    }[locale] ?? "This action is unavailable this turn.";
+    return Response.json({ error: turnResult.error ?? fallback }, { status: 409 });
   }
 
   const content =
