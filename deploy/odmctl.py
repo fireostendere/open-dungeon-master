@@ -280,6 +280,7 @@ class Controller:
             'ports': [f"{c['listen']}:{c['port']}:3005"],
             'extra_hosts': ['host.docker.internal:host-gateway'],
             'security_opt': ['no-new-privileges:true'], 'cap_drop': ['ALL'],
+            'mem_limit': '512m',
             'logging': {'driver': 'json-file', 'options': {'max-size': '10m', 'max-file': '3'}},
             'stop_grace_period': '60s',
             'volumes': [mount('state/' + d, target) for d, target in zip(STATE_DIRS,

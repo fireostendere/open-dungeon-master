@@ -196,6 +196,7 @@ class McpController:
         extra = ['--network-alias', 'mcp', '--publish', '127.0.0.1:3006:3006'] if published else []
         self.docker('run', '-d', '--name', name, '--restart', 'unless-stopped' if published else 'no',
             '--network', self.network, *extra, '--env-file', str(self.mcp_env),
+            '--memory', '256m',
             '--security-opt', 'no-new-privileges:true', '--cap-drop', 'ALL', '--read-only',
             '--tmpfs', '/tmp:rw,noexec,nosuid,size=16m', '--log-driver', 'json-file',
             '--log-opt', 'max-size=10m', '--log-opt', 'max-file=3',
