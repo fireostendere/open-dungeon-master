@@ -2,6 +2,7 @@ import { AsyncLocalStorage } from 'node:async_hooks';
 import { getDatabase } from '@/lib/db/core';
 import { capsFor, getCampaignById, listMembers } from '@/lib/db/campaigns';
 import { currentPublicationScope } from './publication-scope.mjs';
+import { projectEventForUser } from './event-privacy';
 import { createEventAccess, decodeEventChunk, ephemeralView, publicationView, type EventActor, type EventScope, type EventView } from './event-access.mjs';
 const scopes=new AsyncLocalStorage<{campaignId:string;scope:EventScope}>();
 export function withEventScope<T>(campaignId:string,scope:EventScope,work:()=>T):T {return scopes.run({campaignId,scope},work);}
@@ -71,7 +72,10 @@ export function campaignEventProjector(campaignId:string,userId:string) {
     if(saved.audience_json) {
       let audience:{version?:number;userIds?:unknown};try{audience=JSON.parse(saved.audience_json);}catch{return checkpoint;}
       if(audience.version!==1||!Array.isArray(audience.userIds)||!audience.userIds.includes(userId)) return checkpoint;
-      const payload=publicationView(event.type,event.payload,actor,{kind:'users',userIds:[userId]});
+      // Keep the old metadata/presence redactions as well as the saved audience.
+      const legacy=projectEventForUser(campaignId,userId,{...event,audience:{version:1,userIds:audience.userIds as string[]}});
+      if(!legacy || legacy.type==='stream_checkpoint') return checkpoint;
+      const payload=publicationView(event.type,legacy.payload,actor,{kind:'users',userIds:[userId]});
       return payload===null?checkpoint:{...event,payload};
     }
     if(!state.enabled) return event;
