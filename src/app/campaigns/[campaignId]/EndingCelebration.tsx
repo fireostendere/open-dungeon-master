@@ -401,10 +401,10 @@ export function EndingCelebration({
     (rocket: FireworkRocket) => {
       audioRef.current.playExplosion();
 
-      const particleCount = rocket.burstPayload === "grand_finale" ? 140 : 80;
+      const particleCount = rocket.burstPayload === "grand_finale" ? 220 : 160;
       for (let i = 0; i < particleCount; i++) {
         const angle = Math.random() * Math.PI * 2;
-        const speed = Math.random() * 8 + 2;
+        const speed = Math.random() * 9 + 2;
         sparksRef.current.push({
           x: rocket.x,
           y: rocket.y,
@@ -412,26 +412,26 @@ export function EndingCelebration({
           vy: Math.sin(angle) * speed,
           color: Math.random() < 0.2 ? "#ffffff" : rocket.color,
           alpha: 1,
-          decay: Math.random() * 0.015 + 0.012,
-          size: Math.random() * 3 + 1.5,
+          decay: Math.random() * 0.014 + 0.01,
+          size: Math.random() * 3.5 + 1.5,
           gravity: 0.12,
           friction: 0.96,
-          flicker: Math.random() < 0.3,
+          flicker: Math.random() < 0.35,
         });
       }
 
       // If it's a dice burst or grand finale, launch tumbling dice!
       if (rocket.burstPayload === "dice_burst" || rocket.burstPayload === "grand_finale") {
         audioRef.current.playFanfare();
-        const diceCount = rocket.burstPayload === "grand_finale" ? 5 : 3;
+        const diceCount = rocket.burstPayload === "grand_finale" ? 9 : 5;
         for (let i = 0; i < diceCount; i++) {
-          const angle = ((Math.PI * 2) / diceCount) * i + (Math.random() - 0.5) * 0.5;
-          const speed = Math.random() * 5 + 3;
+          const angle = ((Math.PI * 2) / diceCount) * i + (Math.random() - 0.5) * 0.4;
+          const speed = Math.random() * 5.5 + 3.5;
           spawnDie(
             rocket.x,
             rocket.y,
             Math.cos(angle) * speed,
-            Math.sin(angle) * speed - 2,
+            Math.sin(angle) * speed - 2.5,
             i === 0 ? "d20" : undefined,
             i === 0 ? "20" : undefined,
           );
@@ -439,7 +439,7 @@ export function EndingCelebration({
 
         // Floating celebratory badge
         bannersRef.current.push({
-          text: Math.random() < 0.5 ? "★ NAT 20! ★" : "⚔ VICTORY ⚔",
+          text: Math.random() < 0.4 ? "★ NAT 20! ★" : Math.random() < 0.7 ? "⚔ VICTORY ⚔" : "👑 CRITICAL TRIUMPH 👑",
           x: rocket.x,
           y: rocket.y - 20,
           vy: -1.2,
@@ -452,27 +452,64 @@ export function EndingCelebration({
     [spawnDie],
   );
 
-  // Trigger a full celebration volley
+  // Trigger a full celebration volley (2x more rockets, 2x more dice!)
   const triggerVolley = useCallback(() => {
     if (typeof window === "undefined") return;
     const w = window.innerWidth;
     const h = window.innerHeight;
 
-    // Launch a barrage of 4-6 rockets across the screen
-    const count = 5;
-    for (let i = 0; i < count; i++) {
+    // Reset old particles to cleanly start the grand animation from the beginning!
+    rocketsRef.current = [];
+    sparksRef.current = [];
+    diceRef.current = [];
+    bannersRef.current = [];
+
+    // Wave 1: 4 rockets across the bottom-mid screen (0ms - 360ms)
+    const wave1 = [
+      { x: w * 0.18, targetY: h * 0.28, delay: 0, payload: "dice_burst" as const },
+      { x: w * 0.42, targetY: h * 0.22, delay: 120, payload: "normal" as const },
+      { x: w * 0.65, targetY: h * 0.25, delay: 240, payload: "dice_burst" as const },
+      { x: w * 0.84, targetY: h * 0.30, delay: 360, payload: "normal" as const },
+    ];
+
+    // Wave 2: 5 rockets exploding higher and wider (550ms - 1150ms)
+    const wave2 = [
+      { x: w * 0.28, targetY: h * 0.18, delay: 550, payload: "dice_burst" as const },
+      { x: w * 0.50, targetY: h * 0.14, delay: 700, payload: "grand_finale" as const },
+      { x: w * 0.72, targetY: h * 0.20, delay: 850, payload: "dice_burst" as const },
+      { x: w * 0.14, targetY: h * 0.26, delay: 1000, payload: "normal" as const },
+      { x: w * 0.88, targetY: h * 0.24, delay: 1150, payload: "dice_burst" as const },
+    ];
+
+    // Wave 3: 3 massive grand finale rockets (1400ms - 1800ms)
+    const wave3 = [
+      { x: w * 0.35, targetY: h * 0.15, delay: 1400, payload: "grand_finale" as const },
+      { x: w * 0.65, targetY: h * 0.16, delay: 1600, payload: "grand_finale" as const },
+      { x: w * 0.50, targetY: h * 0.12, delay: 1800, payload: "grand_finale" as const },
+    ];
+
+    const allRockets = [...wave1, ...wave2, ...wave3];
+    for (const r of allRockets) {
       setTimeout(() => {
-        const x = (w / (count + 1)) * (i + 1) + (Math.random() - 0.5) * 80;
-        const payload = i % 2 === 0 ? "dice_burst" : "normal";
-        launchRocket(x, h * 0.2 + Math.random() * (h * 0.25), payload);
-      }, i * 220);
+        launchRocket(r.x + (Math.random() - 0.5) * 40, r.targetY, r.payload);
+      }, r.delay);
     }
 
-    // Also shoot up 2 ground-based celebration dice
+    // Shoot up 6 ground-based celebratory dice fountains (at 250ms, 550ms, 850ms)
     setTimeout(() => {
-      spawnDie(w * 0.25, h, (Math.random() - 0.2) * 5, -(Math.random() * 6 + 14), "d20", "20");
-      spawnDie(w * 0.75, h, -(Math.random() - 0.2) * 5, -(Math.random() * 6 + 14), "d20", "NAT 20");
-    }, 400);
+      spawnDie(w * 0.20, h, 2 + Math.random() * 3, -(Math.random() * 5 + 15), "d20", "20");
+      spawnDie(w * 0.80, h, -(2 + Math.random() * 3), -(Math.random() * 5 + 15), "d20", "NAT 20");
+    }, 250);
+
+    setTimeout(() => {
+      spawnDie(w * 0.38, h, (Math.random() - 0.5) * 4, -(Math.random() * 6 + 16), "d20", "CRIT");
+      spawnDie(w * 0.62, h, (Math.random() - 0.5) * 4, -(Math.random() * 6 + 16), "d20", "20");
+    }, 550);
+
+    setTimeout(() => {
+      spawnDie(w * 0.10, h, 3 + Math.random() * 3, -(Math.random() * 5 + 14), "d8", "8");
+      spawnDie(w * 0.90, h, -(3 + Math.random() * 3), -(Math.random() * 5 + 14), "d6", "6");
+    }, 850);
   }, [launchRocket, spawnDie]);
 
   // Initial trigger upon becoming active
@@ -511,12 +548,10 @@ export function EndingCelebration({
 
       // Auto-schedule occasional celebratory fireworks while active
       if (time > nextSpawnTimeRef.current) {
-        launchRocket(
-          undefined,
-          undefined,
-          Math.random() < 0.4 ? "dice_burst" : "normal",
-        );
-        nextSpawnTimeRef.current = time + 1400 + Math.random() * 1600;
+        const payloadRand = Math.random();
+        const payload = payloadRand < 0.25 ? "grand_finale" : payloadRand < 0.65 ? "dice_burst" : "normal";
+        launchRocket(undefined, undefined, payload);
+        nextSpawnTimeRef.current = time + 1000 + Math.random() * 1200;
       }
 
       // 1. UPDATE & DRAW ROCKETS

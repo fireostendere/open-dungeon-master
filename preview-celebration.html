@@ -487,9 +487,9 @@
 
       <div class="modal-actions">
         <button class="btn-secondary" onclick="closeClosingMessage()">Закрыть и смотреть стол</button>
-        <button class="btn-gold" onclick="triggerVolley()">
+        <button class="btn-gold" onclick="launchCelebrationFromModal()">
           <span>🎆</span>
-          <span>Запустить салют ещё раз!</span>
+          <span>Запустить салют из кубов и фейерверков!</span>
         </button>
       </div>
     </div>
@@ -740,22 +740,22 @@
 
       if (r.isDiceBurst) {
         playFanfare();
-        const diceCount = 4;
+        const diceCount = 6;
         for (let i = 0; i < diceCount; i++) {
-          const angle = ((Math.PI * 2) / diceCount) * i + (Math.random() - 0.5) * 0.5;
-          const speed = Math.random() * 5 + 3;
+          const angle = ((Math.PI * 2) / diceCount) * i + (Math.random() - 0.5) * 0.4;
+          const speed = Math.random() * 5.5 + 3.5;
           spawnDie(
             r.x,
             r.y,
             Math.cos(angle) * speed,
-            Math.sin(angle) * speed - 2,
+            Math.sin(angle) * speed - 2.5,
             i === 0 ? "d20" : i % 2 === 0 ? "d8" : "d6",
             i === 0 ? "20" : null
           );
         }
 
         banners.push({
-          text: Math.random() < 0.5 ? "★ NAT 20! ★" : "⚔ VICTORY ⚔",
+          text: Math.random() < 0.4 ? "★ NAT 20! ★" : Math.random() < 0.7 ? "⚔ VICTORY ⚔" : "👑 CRITICAL TRIUMPH 👑",
           x: r.x,
           y: r.y - 20,
           vy: -1.2,
@@ -768,16 +768,58 @@
 
     function triggerVolley() {
       const w = canvas.width, h = canvas.height;
-      for (let i = 0; i < 5; i++) {
+      // Reset particles to play cleanly from beginning
+      rockets = [];
+      sparks = [];
+      dice = [];
+      banners = [];
+
+      // Wave 1: 4 rockets
+      const wave1 = [
+        { x: w * 0.18, targetY: h * 0.28, delay: 0, isDice: true },
+        { x: w * 0.42, targetY: h * 0.22, delay: 120, isDice: false },
+        { x: w * 0.65, targetY: h * 0.25, delay: 240, isDice: true },
+        { x: w * 0.84, targetY: h * 0.30, delay: 360, isDice: false },
+      ];
+
+      // Wave 2: 5 rockets
+      const wave2 = [
+        { x: w * 0.28, targetY: h * 0.18, delay: 550, isDice: true },
+        { x: w * 0.50, targetY: h * 0.14, delay: 700, isDice: true },
+        { x: w * 0.72, targetY: h * 0.20, delay: 850, isDice: true },
+        { x: w * 0.14, targetY: h * 0.26, delay: 1000, isDice: false },
+        { x: w * 0.88, targetY: h * 0.24, delay: 1150, isDice: true },
+      ];
+
+      // Wave 3: 3 grand finale rockets
+      const wave3 = [
+        { x: w * 0.35, targetY: h * 0.15, delay: 1400, isDice: true },
+        { x: w * 0.65, targetY: h * 0.16, delay: 1600, isDice: true },
+        { x: w * 0.50, targetY: h * 0.12, delay: 1800, isDice: true },
+      ];
+
+      const allRockets = [...wave1, ...wave2, ...wave3];
+      for (const r of allRockets) {
         setTimeout(() => {
-          const x = (w / 6) * (i + 1) + (Math.random() - 0.5) * 60;
-          launchRocket(x, h * 0.2 + Math.random() * h * 0.2, i % 2 === 0);
-        }, i * 200);
+          launchRocket(r.x + (Math.random() - 0.5) * 40, r.targetY, r.isDice);
+        }, r.delay);
       }
+
+      // Shoot up 6 ground-based celebratory dice fountains
       setTimeout(() => {
-        spawnDie(w * 0.3, h, (Math.random() - 0.2) * 5, -(Math.random() * 5 + 13), "d20", "20");
-        spawnDie(w * 0.7, h, -(Math.random() - 0.2) * 5, -(Math.random() * 5 + 13), "d20", "NAT 20");
-      }, 400);
+        spawnDie(w * 0.20, h, 2 + Math.random() * 3, -(Math.random() * 5 + 15), "d20", "20");
+        spawnDie(w * 0.80, h, -(2 + Math.random() * 3), -(Math.random() * 5 + 15), "d20", "NAT 20");
+      }, 250);
+
+      setTimeout(() => {
+        spawnDie(w * 0.38, h, (Math.random() - 0.5) * 4, -(Math.random() * 6 + 16), "d20", "CRIT");
+        spawnDie(w * 0.62, h, (Math.random() - 0.5) * 4, -(Math.random() * 6 + 16), "d20", "20");
+      }, 550);
+
+      setTimeout(() => {
+        spawnDie(w * 0.10, h, 3 + Math.random() * 3, -(Math.random() * 5 + 14), "d8", "8");
+        spawnDie(w * 0.90, h, -(3 + Math.random() * 3), -(Math.random() * 5 + 14), "d6", "6");
+      }, 850);
     }
 
     function startCelebration() {
@@ -1102,12 +1144,20 @@
 
     // Modal controls
     function openClosingMessage() {
+      // Just open the modal to read! Stop/hide any active celebration & popup
+      stopCelebration();
       document.getElementById("closingModal").classList.add("active");
-      startCelebration();
     }
 
     function closeClosingMessage() {
+      // Close modal and return to clean table (no fireworks, no popup)
       document.getElementById("closingModal").classList.remove("active");
+    }
+
+    function launchCelebrationFromModal() {
+      // Close modal and start full celebration with popup from the beginning
+      closeClosingMessage();
+      startCelebration();
     }
   </script>
 </body>

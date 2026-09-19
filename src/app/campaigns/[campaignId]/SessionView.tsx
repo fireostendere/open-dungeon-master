@@ -133,8 +133,8 @@ export function SessionView({
   }, [campaign?.id]);
 
   const openClosingMessage = useCallback(() => {
+    setCelebrationActive(false);
     setClosingModalOpen(true);
-    setCelebrationActive(true);
     setHasOpenedFinale(true);
     if (typeof window !== "undefined" && campaign?.id) {
       window.localStorage.setItem(`odm:seen_finale_${campaign.id}`, "true");
@@ -639,7 +639,10 @@ export function SessionView({
         campaignTitle={campaign.title}
         message={closingDmMessage}
         sheets={sheets}
-        onTriggerCelebration={() => setCelebrationActive(true)}
+        onTriggerCelebration={() => {
+          setCelebrationActive(false);
+          setTimeout(() => setCelebrationActive(true), 20);
+        }}
       />
 
       <EndingCelebration

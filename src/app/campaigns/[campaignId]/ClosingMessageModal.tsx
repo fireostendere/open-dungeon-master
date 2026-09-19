@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect, useRef } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { Award, Dices, Sparkles, Trophy, X } from "lucide-react";
 import { cn } from "@/lib/cn";
@@ -61,18 +60,6 @@ export function ClosingMessageModal({
   });
 
   const content = message?.content?.trim() || copy.fallbackProse;
-
-  // Trigger celebration as soon as modal opens
-  const hasTriggeredRef = useRef(false);
-  useEffect(() => {
-    if (open && !hasTriggeredRef.current) {
-      hasTriggeredRef.current = true;
-      onTriggerCelebration?.();
-    }
-    if (!open) {
-      hasTriggeredRef.current = false;
-    }
-  }, [open, onTriggerCelebration]);
 
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
@@ -179,7 +166,10 @@ export function ClosingMessageModal({
               </button>
               <button
                 type="button"
-                onClick={() => onTriggerCelebration?.()}
+                onClick={() => {
+                  onOpenChange(false);
+                  onTriggerCelebration?.();
+                }}
                 className={cn(ui.btnPrimary, "text-xs py-2 gap-1.5 shadow-[0_0_20px_rgba(245,158,11,0.3)]")}
               >
                 <Sparkles className="size-4 text-amber-950" />
