@@ -386,6 +386,11 @@ export function canonicalCondition(raw: string): string {
   if (!cleaned) {
     return cleaned;
   }
+  // Bound spell effects carry an item name; never reinterpret a word inside
+  // that name (for example, "Poisoned Club") as an SRD status.
+  if (/^shillelagh \(.+\)$/.test(cleaned)) {
+    return cleaned;
+  }
   const known = listConditions({ limit: 50 }).map((entry) => entry.name.toLowerCase());
   if (known.includes(cleaned)) {
     return cleaned;

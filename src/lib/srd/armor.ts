@@ -53,13 +53,33 @@ export const SRD_ARMOR: SrdArmor[] = [
 
 const byName = new Map(SRD_ARMOR.map((armor) => [normalize(armor.name), armor]));
 
+// Exact Russian aliases keep localized sheet entries mechanical without
+// turning unrelated words such as "кожаный рюкзак" into armor.
+const RUSSIAN_ARMOR_ALIASES: Record<string, string> = {
+  "стёганый доспех": "Padded",
+  "стеганый доспех": "Padded",
+  "кожаный доспех": "Leather",
+  "клёпаный кожаный доспех": "Studded Leather",
+  "клепаный кожаный доспех": "Studded Leather",
+  "шкурный доспех": "Hide",
+  "кольчужная рубаха": "Chain Shirt",
+  "чешуйчатый доспех": "Scale Mail",
+  "нагрудник": "Breastplate",
+  "полулаты": "Half Plate",
+  "колечный доспех": "Ring Mail",
+  "кольчуга": "Chain Mail",
+  "бригантина": "Splint",
+  "латы": "Plate",
+  "щит": "Shield",
+};
+
 // "+1 Plate", "Plate Armor", "Chain Mail, +2" -> a lookup key. The magic
 // bonus, punctuation, and the noise word "armor" go; a trailing plural too.
 function normalize(term: string) {
   return term
     .toLowerCase()
     .replace(/[+-]\d+/g, " ")
-    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/[^\p{L}\p{N}]+/gu, " ")
     .replace(/\b(armor|armour)\b/g, " ")
     .trim()
     .replace(/\s+/g, " ")
@@ -89,6 +109,10 @@ export function matchArmor(term: string): SrdArmor | null {
   if (exact) {
     return exact;
   }
+  const alias = RUSSIAN_ARMOR_ALIASES[wanted];
+  if (alias) {
+    return byName.get(normalize(alias)) ?? null;
+  }
   const candidates = SRD_ARMOR.filter((armor) => wanted.endsWith(` ${normalize(armor.name)}`));
   candidates.sort((a, b) => b.name.length - a.name.length);
   return candidates[0] ?? null;
@@ -101,11 +125,11 @@ export function matchArmor(term: string): SrdArmor | null {
 export function isArmorProficient(armorProfs: string[], armor: SrdArmor): boolean {
   const terms = armorProfs.map((entry) => entry.trim().toLowerCase());
   if (armor.category === "shield") {
-    return terms.some((term) => term.includes("shield"));
+    return terms.some((term) => term.includes("shield") || term.includes("щит"));
   }
-  const light = terms.some((term) => term.includes("light"));
-  const medium = terms.some((term) => term.includes("medium"));
-  const heavy = terms.some((term) => term.includes("heavy"));
+  const light = terms.some((term) => term.includes("light") || term.includes("лёгк") || term.includes("легк"));
+  const medium = terms.some((term) => term.includes("medium") || term.includes("средн"));
+  const heavy = terms.some((term) => term.includes("heavy") || term.includes("тяжёл") || term.includes("тяжел"));
   if (armor.category === "light") {
     return light || medium || heavy;
   }
@@ -125,7 +149,7 @@ export const ATTUNEMENT_SLOTS = 3;
 // `gear` is a homebrew item's snapshotted mechanics (src/lib/homebrew/
 // gear.ts): an armour written in the workshop is read here exactly as an
 // SRD one, and the name lookup is only the fallback.
-export type WornItem = { name: string; equipped?: boolean; gear?: { armor?: SrdArmor } };
+export type WornItem = { name: string; qty?: number; equipped?: boolean; gear?: { armor?: SrdArmor } };
 
 // An alternative base-AC formula a class feature provides while wearing no
 // armor: Unarmored Defense (barbarian 10 + DEX + CON, monk 10 + DEX + WIS),
@@ -215,8 +239,9 @@ export function computeArmorClass(input: {
   // Flat adds from features and fighting styles (Defense +1, a ring +1).
   bonus?: number;
 }): AcBreakdown {
-  const anyExplicit = input.equipment.some((item) => item.equipped);
-  const worn = input.equipment.filter((item) => (anyExplicit ? item.equipped : true));
+  const carried = input.equipment.filter((item) => item.qty === undefined || item.qty > 0);
+  const anyExplicit = carried.some((item) => (item.gear?.armor ?? matchArmor(item.name)) && item.equipped !== undefined);
+  const worn = carried.filter((item) => (anyExplicit ? item.equipped === true : true));
 
   let armorItem: { item: WornItem; armor: SrdArmor } | null = null;
   let shieldItem: { item: WornItem; armor: SrdArmor } | null = null;

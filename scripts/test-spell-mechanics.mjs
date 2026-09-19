@@ -145,4 +145,16 @@ test("authored buff staples resolve with their real payloads", () => {
   assert.equal(conditionEffectsFor("blessed").attackDie, "1d4");
 });
 
+test("Shillelagh is an SRD cantrip buff with a bound weapon mechanic", () => {
+  const shillelagh = spellMechFor(["Shillelagh"]);
+  assert.equal(shillelagh.resolution, "buff");
+  assert.equal(shillelagh.buff.condition, "shillelagh");
+  assert.equal(shillelagh.buff.rounds, 10);
+  assert.ok(conditionEffectsFor("shillelagh"));
+  const authored = spells.find((spell) => spell.name === "Shillelagh");
+  assert.equal(authored.level, 0);
+  assert.equal(authored.casting_time, "1 bonus action");
+  assert.equal(authored.concentration, false);
+});
+
 console.log(`test-spell-mechanics: ${passed} tests passed`);

@@ -59,6 +59,43 @@ test("resolveAttackWeapon: named weapon matches carried equipment", () => {
   assert.equal(resolved.srd?.name, "Longsword");
 });
 
+test("resolveAttackWeapon: uses equipped positive-quantity weapons only", () => {
+  const equipment = [
+    { name: "Greatsword", qty: 1, equipped: false },
+    { name: "Club", qty: 1, equipped: true },
+    { name: "Longsword", qty: 0, equipped: true },
+  ];
+  assert.equal(resolveAttackWeapon(equipment, ["simple", "martial"]).displayName, "Club");
+  assert.equal(resolveAttackWeapon(equipment, ["simple", "martial"], "Greatsword", { requireCarried: true }).error, "Greatsword is not equipped.");
+  assert.equal(resolveAttackWeapon([], ["martial"], "Longsword", { requireCarried: true }).error, "Longsword is not carried.");
+  assert.equal(
+    resolveAttackWeapon([{ name: "Chain Mail", qty: 1, equipped: true }, { name: "Club", qty: 1 }], ["simple"]).displayName,
+    "Club",
+  );
+});
+
+test("resolveAttackWeapon: unknown terms neither match unrelated gear nor fabricate equipment", () => {
+  const equipment = [{ name: "Improvised iron poker", qty: 1, equipped: true }];
+  const absent = resolveAttackWeapon(equipment, [], "barstool", { requireCarried: true });
+  assert.equal(absent.displayName, "barstool");
+  assert.equal(absent.error, "barstool is not carried.");
+  assert.equal(absent.item, undefined);
+  const carried = resolveAttackWeapon(equipment, [], "iron poker", { requireCarried: true });
+  assert.equal(carried.item?.name, "Improvised iron poker");
+  assert.equal(carried.srd, null);
+});
+
+test("weaponAttackProfile: Shillelagh only changes its bound weapon", () => {
+  const club = resolveAttackWeapon([{ name: "Club", qty: 1, equipped: true }], ["simple"]);
+  const profile = weaponAttackProfile(derived, ["simple"], club, { shillelagh: { abilityMod: 4 }, twoHanded: true });
+  assert.equal(profile.toHit, 7);
+  assert.equal(profile.damageExpression, "1d8+4");
+  assert.equal(profile.ability, "wis");
+  assert.equal(profile.magical, true);
+  const staff = resolveAttackWeapon([{ name: "Quarterstaff", qty: 1, equipped: true }], ["simple"]);
+  assert.equal(weaponAttackProfile(derived, ["simple"], staff).damageExpression, "1d6+3");
+});
+
 test("resolveAttackWeapon: no arg picks best proficient carried weapon", () => {
   const resolved = resolveAttackWeapon(
     [

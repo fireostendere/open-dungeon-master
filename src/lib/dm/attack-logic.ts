@@ -22,6 +22,8 @@ export type ResolvedWeapon = {
   // null = improvised weapon or unarmed strike (no SRD profile).
   srd: SrdWeapon | null;
   unarmed: boolean;
+  item?: EquipmentItem;
+  error?: string;
 };
 
 export type AttackProfile = {
@@ -40,10 +42,12 @@ export type AttackProfile = {
   improvised: boolean;
   // Which ability drove the attack. Rage's bonus damage rides on melee
   // Strength attacks specifically, so finesse picking DEX matters.
-  ability: "str" | "dex";
+  ability: "str" | "dex" | "int" | "wis" | "cha";
   // The +1/+2/+3 a magic weapon's name declares, already folded into toHit
   // and damageExpression; kept so the tool result can say why.
   magicBonus: number;
+  // True when the attack bypasses defenses limited to nonmagical weapons.
+  magical?: boolean;
   // Two-handed or versatile-in-two-hands: Great Weapon Fighting rerolls
   // this attack's damage dice.
   twoHanded: boolean;
@@ -65,7 +69,13 @@ export function weaponOf(item: EquipmentItem | undefined): SrdWeapon | null {
 function itemMatchesTerm(itemName: string, term: string): boolean {
   const item = itemName.trim().toLowerCase();
   const wanted = term.trim().toLowerCase();
-  return Boolean(item && wanted && (item.includes(wanted) || wanted.includes(item)));
+  const wantedWeapon = matchWeapon(term);
+  return Boolean(
+    item &&
+      wanted &&
+      (item.includes(wanted) || wanted.includes(item) ||
+        (wantedWeapon && matchWeapon(itemName)?.name === wantedWeapon.name)),
+  );
 }
 
 // Which weapon the character attacks with. A named weapon fuzzy-matches
@@ -75,26 +85,50 @@ export function resolveAttackWeapon(
   equipment: EquipmentItem[],
   weaponProfs: string[],
   weaponArg: string | undefined,
+  options: { requireCarried?: boolean } = {},
 ): ResolvedWeapon {
   const arg = (weaponArg ?? "").trim();
+  const usable = equipment.filter(
+    (item) => (item.qty ?? 1) > 0 && item.equipped !== false && Boolean(weaponOf(item) ?? matchWeapon(item.name)),
+  );
+  // Undefined equipped is legacy data. Once a sheet has an explicitly held
+  // item, only those rows may be used automatically.
+  const held = usable.some((item) => item.equipped === true)
+    ? usable.filter((item) => item.equipped === true)
+    : usable;
   if (arg) {
     if (/unarmed|fist|punch|kick/i.test(arg)) {
       return { displayName: "Unarmed strike", srd: null, unarmed: true };
     }
-    const carriedItem = equipment.find((item) => itemMatchesTerm(item.name, arg));
+    const known = matchWeapon(arg);
+    const carriedItem =
+      held.find((item) => itemMatchesTerm(item.name, arg)) ??
+      (!known
+        ? equipment.find((item) => (item.qty ?? 1) > 0 && item.equipped !== false && itemMatchesTerm(item.name, arg))
+        : undefined);
+    if (!carriedItem && options.requireCarried) {
+      const owned = equipment.some((item) => (item.qty ?? 1) > 0 && itemMatchesTerm(item.name, arg));
+      return {
+        displayName: arg,
+        srd: null,
+        unarmed: false,
+        error: `${arg} is ${owned ? "not equipped" : "not carried"}.`,
+      };
+    }
     // A carried homebrew weapon carries its own block (src/lib/homebrew/
     // gear.ts) and wins over a name that happens to resemble an SRD one.
     const srd =
-      weaponOf(carriedItem) ?? matchWeapon(arg) ?? (carriedItem ? matchWeapon(carriedItem.name) : null);
+      weaponOf(carriedItem) ?? known ?? (carriedItem ? matchWeapon(carriedItem.name) : null);
     return {
       displayName: carriedItem?.name ?? srd?.name ?? arg,
       srd,
       unarmed: false,
+      ...(carriedItem ? { item: carriedItem } : {}),
     };
   }
   // No name given: best carried weapon, proficient ones first.
   let best: { item: EquipmentItem; srd: SrdWeapon; proficient: boolean } | null = null;
-  for (const item of equipment) {
+  for (const item of held) {
     const srd = weaponOf(item) ?? matchWeapon(item.name);
     if (!srd) {
       continue;
@@ -109,7 +143,7 @@ export function resolveAttackWeapon(
     }
   }
   if (best) {
-    return { displayName: best.item.name, srd: best.srd, unarmed: false };
+    return { displayName: best.item.name, srd: best.srd, unarmed: false, item: best.item };
   }
   return { displayName: "Unarmed strike", srd: null, unarmed: true };
 }
@@ -159,6 +193,7 @@ export type AttackStance = {
   // The bonus-action attack of two-weapon fighting: no ability modifier on
   // damage unless the Two-Weapon Fighting style says otherwise.
   offHand?: boolean;
+  shillelagh?: { abilityMod: number };
 };
 
 // Derives the full attack profile from the sheet's numbers and the weapon's
@@ -213,7 +248,8 @@ export function weaponAttackProfile(
   const dex = derived.abilityMods.dex;
   // Ranged-kind weapons shoot with DEX; thrown ranged-kind (darts, vials)
   // and melee weapons use STR, with finesse taking the better of the two.
-  const mod = finesse ? Math.max(str, dex) : ranged && !thrown ? dex : str;
+  const shillelagh = stance.shillelagh;
+  const mod = shillelagh?.abilityMod ?? (finesse ? Math.max(str, dex) : ranged && !thrown ? dex : str);
   const proficient = isWeaponProficient(weaponProfs, srd);
   const { dice, type } = splitDamage(srd.damage);
   const rangeTiles = srd.rangeFt
@@ -226,7 +262,10 @@ export function weaponAttackProfile(
   const inherentlyTwoHanded = properties.includes("two-handed");
   const versatile = properties.includes("versatile");
   const twoHanded = inherentlyTwoHanded || (versatile && stance.twoHanded === true);
-  const damageDice = versatile && twoHanded ? versatileDice(dice) : dice;
+  const damageDice = shillelagh ? "1d8" : versatile && twoHanded ? versatileDice(dice) : dice;
+  if (shillelagh) {
+    notes.push("Shillelagh: spellcasting ability, 1d8, magical");
+  }
   if (versatile && twoHanded) {
     notes.push(`two-handed: ${damageDice}`);
   }
@@ -267,13 +306,14 @@ export function weaponAttackProfile(
     proficient,
     improvised: false,
     // Mirrors the `mod` choice above; a tie counts as Strength.
-    ability: finesse ? (dex > str ? "dex" : "str") : ranged && !thrown ? "dex" : "str",
+    ability: shillelagh ? "wis" : finesse ? (dex > str ? "dex" : "str") : ranged && !thrown ? "dex" : "str",
     magicBonus,
     twoHanded,
     // Sneak Attack rides on finesse and ranged weapons only.
     sneakEligible: finesse || ranged,
     heavy: properties.includes("heavy"),
     riderNotes: notes,
+    ...(shillelagh ? { magical: true } : {}),
   };
 }
 

@@ -364,11 +364,29 @@ export function handlePcAttack(
       riderNotes: [`natural attack while transformed (${sheet.wildShape.form})`],
     };
   } else {
-    const resolved = resolveAttackWeapon(sheet.equipment, sheet.proficiencies.weapons, args.weapon);
+    const resolved = resolveAttackWeapon(sheet.equipment, sheet.proficiencies.weapons, args.weapon, {
+      requireCarried: true,
+    });
+    if (resolved.error) {
+      return { error: resolved.error };
+    }
+    const escapedWeapon = resolved.displayName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const shillelagh = sheet.conditions.some((condition) =>
+      new RegExp(`^shillelagh \\(${escapedWeapon}\\)$`, "i").test(condition),
+    );
     profile = weaponAttackProfile(derived, sheet.proficiencies.weapons, resolved, {
       riders,
       twoHanded: args.twoHanded,
       offHand: args.offHand,
+      ...(shillelagh
+        ? {
+            shillelagh: {
+              abilityMod:
+                (spellAttackFor(sheet, "Shillelagh") ?? derived.spellAttack ?? derived.proficiencyBonus) -
+                derived.proficiencyBonus,
+            },
+          }
+        : {}),
     });
   }
 
@@ -802,6 +820,7 @@ export function handlePcAttack(
         damageExpression: profile.damageExpression,
         critDamageExpression: critExpression,
         damageType: profile.damageType,
+        ...(profile.magical ? { magical: true } : {}),
         ...(conditionContext.autoCrit ? { autoCrit: true } : {}),
         ...(riders.critRange < 20 ? { critRange: riders.critRange } : {}),
         ...(rerollBelow ? { rerollBelow } : {}),
@@ -885,6 +904,7 @@ export function handlePcAttack(
     sheets,
     sheetsById,
     profile.damageType,
+    profile.magical,
   );
   if (!("error" in applied)) {
     markRollApplied(damageRoll.id, enemy.id);

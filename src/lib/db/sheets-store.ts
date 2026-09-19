@@ -563,6 +563,22 @@ export function patchSheet(sheetId: string, patch: FullPatchSheetInput): Charact
     backstory: patch.backstory ?? existing.backstory,
   };
 
+  // A Shillelagh is bound to the exact held equipment name. Dropping,
+  // transferring, consuming, or unequipping that row ends it permanently;
+  // simply equipping the same name later must not revive the old spell.
+  const shillelaghConditions = next.conditions.filter((condition) => {
+    const match = /^shillelagh \((.+)\)$/i.exec(condition);
+    return !match || next.equipment.filter(
+      (item) => item.name.toLowerCase() === match[1].toLowerCase() && item.qty > 0 && item.equipped !== false,
+    ).length === 1;
+  });
+  if (shillelaghConditions.length !== next.conditions.length) {
+    next.conditions = shillelaghConditions;
+    next.conditionMeta = Object.fromEntries(
+      Object.entries(next.conditionMeta).filter(([condition]) => shillelaghConditions.includes(condition)),
+    );
+  }
+
   // The armor engine owns the AC unless a human pinned it: buying a
   // breastplate, equipping a shield, or gaining Unarmored Defense changes
   // the number here rather than waiting for someone to retype it.

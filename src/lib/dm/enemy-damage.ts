@@ -177,6 +177,7 @@ export function applyEnemyDamage(
   sheets: CharacterSheet[],
   sheetsById: Map<string, CharacterSheet>,
   damageType?: string,
+  magical = false,
 ): Record<string, unknown> {
   const adjusted = damageAdjust(
     amount,
@@ -184,6 +185,7 @@ export function applyEnemyDamage(
     enemy.stats.resist,
     enemy.stats.immune,
     enemy.stats.vulnerable,
+    magical,
   );
   if (adjusted.amount <= 0) {
     return {
@@ -253,6 +255,7 @@ export function autoApplyDamageRoll(
   sheets: CharacterSheet[],
   sheetsById: Map<string, CharacterSheet>,
   damageType?: string,
+  magical = false,
 ): Record<string, unknown> {
   const encounter = getActiveEncounter(campaign.id);
   if (!encounter) {
@@ -273,6 +276,7 @@ export function autoApplyDamageRoll(
     sheets,
     sheetsById,
     damageType,
+    magical,
   );
   if (!("error" in result)) {
     markRollApplied(roll.id, enemy.id);
@@ -305,6 +309,7 @@ export function applyPendingDamageRoll(pending: PendingRoll, roll: StoredRoll): 
     sheets,
     sheetsById,
     pending.attack?.damageType,
+    Boolean(pending.attack?.magical),
   );
   if (typeof applied.warning === "string") {
     return applied.warning;

@@ -315,12 +315,17 @@ export function damageAdjust(
   resist: string,
   immune: string,
   vulnerable: string,
+  magical = false,
 ): { amount: number; note: string | null } {
   const wanted = (type ?? "").trim().toLowerCase();
   if (!wanted) {
     return { amount, note: null };
   }
-  const listed = (block: string) => block.toLowerCase().includes(wanted);
+  const listed = (block: string) =>
+    block
+      .toLowerCase()
+      .split(";")
+      .some((clause) => clause.includes(wanted) && !(magical && /nonmagical/i.test(clause)));
   if (listed(immune)) {
     return { amount: 0, note: `immune to ${wanted} damage: no damage` };
   }

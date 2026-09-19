@@ -40,6 +40,14 @@ test("matches armor by exact and trailing name", () => {
   assert.equal(matchArmor("Chain Mail")?.name, "Chain Mail");
 });
 
+test("matches common Russian armor names without classifying ordinary gear", () => {
+  assert.equal(matchArmor("Кожаный доспех")?.name, "Leather");
+  assert.equal(matchArmor("Клёпаный кожаный доспех")?.name, "Studded Leather");
+  assert.equal(matchArmor("Кольчужный доспех"), null);
+  assert.equal(matchArmor("Кожаный рюкзак"), null);
+  assert.equal(matchArmor("Свиток щита"), null);
+});
+
 test("ordinary gear never becomes armor", () => {
   // The old substring approach turned every one of these into armor.
   for (const name of ["Leather Backpack", "Hide Rope", "Plate of Stew", "Shield Charm Scroll"]) {
@@ -130,6 +138,12 @@ test("explicit equipped flags win over carrying everything", () => {
     ac({ equipment: [{ name: "Plate" }, { name: "Leather", equipped: true }] }),
     11,
   );
+});
+
+test("removed and explicitly unequipped armor never contributes AC", () => {
+  assert.equal(ac({ equipment: [{ name: "Plate", qty: 0, equipped: false }] }), 10);
+  assert.equal(ac({ equipment: [{ name: "Plate", equipped: false }] }), 10);
+  assert.equal(ac({ equipment: [{ name: "Plate", qty: 0 }, { name: "Leather", qty: 1 }] }), 11);
 });
 
 test("reports unproficient wear, stealth, and the Strength penalty", () => {

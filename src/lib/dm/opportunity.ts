@@ -13,7 +13,7 @@ import {
   resolveAttackWeapon,
   weaponAttackProfile,
 } from "@/lib/dm/attack-logic";
-import { computeSheetDerived, effectiveAcFor } from "@/lib/srd";
+import { computeSheetDerived, effectiveAcFor, spellAttackFor } from "@/lib/srd";
 import { combatRiders } from "@/lib/srd/feature-effects";
 import { enemyDamageMath } from "@/lib/dm/encounter-logic";
 import { patchEnemyHp } from "@/lib/db/encounters";
@@ -238,7 +238,22 @@ export function resolvePcOpportunityAttacks(
     const derived = computeSheetDerived(sheet);
     const riders = combatRiders(sheet);
     const resolved = resolveAttackWeapon(sheet.equipment, sheet.proficiencies.weapons, undefined);
-    const profile = weaponAttackProfile(derived, sheet.proficiencies.weapons, resolved, { riders });
+    const escapedWeapon = resolved.displayName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const shillelagh = sheet.conditions.some((condition) =>
+      new RegExp(`^shillelagh \\(${escapedWeapon}\\)$`, "i").test(condition),
+    );
+    const profile = weaponAttackProfile(derived, sheet.proficiencies.weapons, resolved, {
+      riders,
+      ...(shillelagh
+        ? {
+            shillelagh: {
+              abilityMod:
+                (spellAttackFor(sheet, "Shillelagh") ?? derived.spellAttack ?? derived.proficiencyBonus) -
+                derived.proficiencyBonus,
+            },
+          }
+        : {}),
+    });
     if (profile.ranged) {
       continue;
     }
@@ -303,6 +318,7 @@ export function resolvePcOpportunityAttacks(
       enemy.stats.resist,
       enemy.stats.immune,
       enemy.stats.vulnerable,
+      profile.magical,
     );
     const math = enemyDamageMath(enemy.currentHp, adjusted.amount);
     patchEnemyHp(enemy.id, math.currentHp, math.dropped ? "dead" : "alive");

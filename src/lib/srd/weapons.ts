@@ -90,6 +90,34 @@ const ALIAS_TERMS: Record<string, string[]> = {
   occult: ["Silvered Stake", "Censer Mace", "Dagger", "Hurled Vial"],
 };
 
+// Common Russian sheet names map to the same canonical SRD entries. These
+// are exact aliases, not word matching, so ordinary gear stays ordinary gear.
+const RUSSIAN_WEAPON_ALIASES: Record<string, string> = {
+  "дубинка": "Club",
+  "кинжал": "Dagger",
+  "боевой топор": "Battleaxe",
+  "ручной топор": "Handaxe",
+  "лёгкий молот": "Light Hammer",
+  "легкий молот": "Light Hammer",
+  "булава": "Mace",
+  "боевой посох": "Quarterstaff",
+  "боевые посохи": "Quarterstaff",
+  "деревянный боевой посох": "Quarterstaff",
+  "копьё": "Spear",
+  "копье": "Spear",
+  "лёгкий арбалет": "Light Crossbow",
+  "легкий арбалет": "Light Crossbow",
+  "короткий лук": "Shortbow",
+  "длинный меч": "Longsword",
+  "длинные мечи": "Longsword",
+  "рапира": "Rapier",
+  "короткий меч": "Shortsword",
+  "длинный лук": "Longbow",
+  "ручной арбалет": "Hand Crossbow",
+  "тяжёлый арбалет": "Heavy Crossbow",
+  "тяжелый арбалет": "Heavy Crossbow",
+};
+
 const byName = new Map(SRD_WEAPONS.map((weapon) => [normalize(weapon.name), weapon]));
 
 // "Longswords" / "quarterstaffs" / "Hand crossbows" -> canonical lookup key.
@@ -97,18 +125,28 @@ function normalize(term: string) {
   return term.trim().toLowerCase().replace(/s$/, "");
 }
 
+// Mirrors the declared +1..+3 convention used by magicItemBonus, but only
+// for matching. The original equipment name stays intact for its bonus.
+function normalizeMatch(term: string) {
+  return normalize(term.replace(/(?:^|[\s,(])[+-][123](?![0-9])/g, " "));
+}
+
 // Finds the weapon a free-text reference points at: exact normalized name,
 // then containment either way so "Longsword of the Dawn" and "long sword"
 // both land on the Longsword. Longer names win so "hand crossbow" never
 // matches a plain crossbow entry first.
 export function matchWeapon(term: string): SrdWeapon | null {
-  const wanted = normalize(term);
+  const wanted = normalizeMatch(term);
   if (!wanted) {
     return null;
   }
   const exact = byName.get(wanted);
   if (exact) {
     return exact;
+  }
+  const alias = RUSSIAN_WEAPON_ALIASES[wanted];
+  if (alias) {
+    return byName.get(normalize(alias)) ?? null;
   }
   const candidates = SRD_WEAPONS.filter((weapon) => {
     const name = normalize(weapon.name);
@@ -136,11 +174,11 @@ function parseProfs(weaponProfs: string[]) {
     if (!term) {
       continue;
     }
-    if (term.includes("simple")) {
+    if (term.includes("simple") || term.includes("простое оружие")) {
       simple = true;
       continue;
     }
-    if (term.includes("martial")) {
+    if (term.includes("martial") || term.includes("воинское оружие")) {
       martial = true;
       continue;
     }
@@ -159,7 +197,8 @@ function parseProfs(weaponProfs: string[]) {
       }
       continue;
     }
-    addSpecific(byName.get(normalize(term)));
+    const russianAlias = RUSSIAN_WEAPON_ALIASES[normalize(term)];
+    addSpecific(byName.get(normalize(russianAlias ?? term)));
   }
   return { simple, martial, firearm, exotic, specific };
 }

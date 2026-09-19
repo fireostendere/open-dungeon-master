@@ -102,6 +102,11 @@ export type ConditionEffectRow = {
 // steps.
 export const CONDITION_EFFECTS: ConditionEffectRow[] = [
   {
+    id: "shillelagh",
+    match: ["shillelagh"],
+    summary: "Shillelagh: the bound held club or quarterstaff uses spellcasting ability, deals 1d8, and counts as magical.",
+  },
+  {
     id: "blessed",
     match: ["blessed", "bless"],
     summary: "Bless: +1d4 on attack rolls and saving throws.",

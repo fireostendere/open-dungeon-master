@@ -20,6 +20,9 @@ test("healing potion tiers", () => {
   assert.deepEqual(consumableEffect("Superior Healing Potion"), { kind: "healing", expression: "8d4+8" });
   assert.deepEqual(consumableEffect("potion of supreme healing"), { kind: "healing", expression: "10d4+20" });
   assert.deepEqual(consumableEffect("Healing Draught"), { kind: "healing", expression: "2d4+2" });
+  assert.deepEqual(consumableEffect("Зелье лечения"), { kind: "healing", expression: "2d4+2" });
+  assert.deepEqual(consumableEffect("Зелье большого лечения"), { kind: "healing", expression: "4d4+4" });
+  assert.deepEqual(consumableEffect("Зелье высшего лечения"), { kind: "healing", expression: "10d4+20" });
 });
 
 test("non-healing consumables are generic", () => {
@@ -40,6 +43,16 @@ test("findCarriedItem fuzzy matches", () => {
   assert.equal(findCarriedItem(pack, "healing potion").name, "Potion of Healing");
   assert.equal(findCarriedItem(pack, "Potion").name, "Potion of Healing");
   assert.equal(findCarriedItem(pack, "shield"), null);
+  assert.equal(
+    findCarriedItem(
+      [
+        { name: "Potion of Healing", qty: 0 },
+        { name: "Potion of Healing", qty: 1 },
+      ],
+      "potion of healing",
+    ).qty,
+    1,
+  );
 });
 
 console.log(`test-item-logic: ${passed} tests passed`);

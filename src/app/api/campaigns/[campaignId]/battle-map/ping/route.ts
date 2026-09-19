@@ -3,6 +3,7 @@ import { capsFor, isErrorResponse, requireMember } from "@/lib/campaign-api";
 import { getActiveBattleMap } from "@/lib/battlemap/view";
 import { pingBoard } from "@/lib/dm/board";
 import { getSheetForUser } from "@/lib/db/sheets";
+import { spatialEnabled, spatialStore } from "@/lib/spatial/service";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -30,7 +31,8 @@ export async function POST(
   if (!parsed.success) {
     return Response.json({ error: "Invalid ping." }, { status: 400 });
   }
-  const map = getActiveBattleMap(campaignId);
+  const roomId = spatialEnabled(campaignId) ? spatialStore().getUserRoom(campaignId, context.user.id) : undefined;
+  const map = getActiveBattleMap(campaignId, roomId);
   if (!map || parsed.data.x >= map.width || parsed.data.y >= map.height) {
     return Response.json({ error: "There is no board to point at." }, { status: 404 });
   }
@@ -43,6 +45,7 @@ export async function POST(
     // the seat when the pinger runs nobody.
     byName: sheet?.name ?? (caps.role === "dm" ? "The DM" : context.user.username),
     focus: parsed.data.focus === true && caps.steersStory,
+    ...(typeof roomId === "string" ? { roomId } : {}),
   });
   return Response.json({ ok: true });
 }

@@ -53,6 +53,7 @@ export const COMBAT_ADJUDICATIONS: CatalogEntry[] = [
         ],
       },
       { name: "battlefield", label: "Battlefield", kind: "text" },
+      { name: "roomId", label: "Spatial room ID", kind: "text", help: "Required when location mode is enabled; use the current room's ID." },
     ],
   },
   {

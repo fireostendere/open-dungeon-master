@@ -37,7 +37,7 @@ function fixture(t) {
   const street = command("create_room", { name: "Street", connectTo: tavern, walkable: true }).roomId;
   command("move", { roomId: street, userIds: ["b"] });
 
-  let board = { id: "board-1" };
+  let board = { id: "board-1", roomId: tavern };
   let map = { id: "map-1" };
   let version = 1;
   const mod = loadReviewModule(helperFile, {
@@ -50,7 +50,7 @@ function fixture(t) {
         actor: actor(userId),
       }),
     },
-    "@/lib/db/encounters": { getActiveBoard: () => board },
+    "@/lib/db/encounters": { getActiveBoard: (_campaignId, roomId) => roomId === undefined || roomId === board.roomId ? board : null },
     "@/lib/db/battle-maps": { getBattleMapForEncounter: () => map },
     "@/lib/battlemap/view": {
       buildPlayerMapView: (_campaignId, userId, options = {}) => ({
@@ -89,11 +89,11 @@ function fixture(t) {
   return {
     sqlite, store, actor, command, tavern, street, mod,
     setVersion: value => { version = value; },
-    replaceBoard: (boardId, mapId) => { board = { id: boardId }; map = { id: mapId }; },
+    replaceBoard: (boardId, mapId, roomId = tavern) => { board = { id: boardId, roomId }; map = { id: mapId }; },
   };
 }
 
-test("R02: start_encounter requires an explicit spatial room and strips it before engine validation", t => {
+test("R02: start_encounter requires an explicit spatial room and retains it for engine validation", t => {
   const f = fixture(t);
   assert.throws(
     () => f.mod.scopeBattleMapInvocation("c", "dm", "start_encounter", { enemies: [] }),
@@ -104,7 +104,7 @@ test("R02: start_encounter requires an explicit spatial room and strips it befor
     enemies: [{ monster: "goblin" }],
   });
   assert.equal(scoped.roomId, f.tavern);
-  assert.deepEqual(scoped.args, { enemies: [{ monster: "goblin" }] });
+  assert.deepEqual(scoped.args, { roomId: f.tavern, enemies: [{ monster: "goblin" }] });
   assert.equal(
     f.mod.scopeBattleMapInvocation("c", "dm", "damage_enemy", { amount: 1 }).roomId,
     null,
@@ -153,4 +153,10 @@ test("R02: an unbound active board fails closed for players while the DM retains
   const dm = f.mod.spatialBattleMapView("c", "dm", { fullVision: true });
   assert.equal(dm.mapId, "map-2");
   assert.equal(dm.fullVision, true);
+});
+
+test("R03: a player cannot receive a board from another spatial room", t => {
+  const f = fixture(t);
+  f.mod.bindActiveBattleMapToRoom("c", "dm", f.tavern);
+  assert.equal(f.mod.spatialBattleMapView("c", "b"), null);
 });

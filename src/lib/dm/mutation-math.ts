@@ -112,7 +112,7 @@ export function spendSlotMath(slot: SlotState | undefined | null): SlotState | n
 // Returns null when the item is absent.
 export function removeItemMath(equipment: EquipmentRow[], name: string, qty: number) {
   const index = equipment.findIndex(
-    (item) => item.name.toLowerCase() === name.toLowerCase(),
+    (item) => item.name.toLowerCase() === name.toLowerCase() && item.qty > 0,
   );
   if (index < 0) {
     return null;

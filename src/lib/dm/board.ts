@@ -244,7 +244,7 @@ export function readTemplate(campaign: Campaign, spec: TemplateSpec): TemplateRe
 // than only flashing on the ones already looking at it.
 export function pingBoard(
   campaign: Campaign,
-  input: { x: number; y: number; byName: string; focus: boolean },
+  input: { x: number; y: number; byName: string; focus: boolean; roomId?: string },
 ) {
   const ping: MapPing = {
     x: input.x,
@@ -253,5 +253,5 @@ export function pingBoard(
     focus: input.focus,
     at: Date.now(),
   };
-  publishEphemeral(campaign.id, "map_ping", ping);
+  publishEphemeral(campaign.id, "map_ping", ping, input.roomId ? { kind: "room", roomId: input.roomId } : undefined);
 }

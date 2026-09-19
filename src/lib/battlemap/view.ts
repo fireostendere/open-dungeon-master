@@ -1,5 +1,5 @@
-import { getFloor } from "@/lib/db/campaigns";
-import { getActiveBoard, getActiveEncounter, listEnemies } from "@/lib/db/encounters";
+import { getCampaignById, getFloor } from "@/lib/db/campaigns";
+import { getActiveBoard, listEnemies, type Encounter } from "@/lib/db/encounters";
 import { getSheetForUser, listSheets } from "@/lib/db/sheets";
 import {
   getBattleMapForEncounter,
@@ -10,7 +10,8 @@ import {
   type BattleMap,
 } from "@/lib/db/battle-maps";
 import { darkvisionTilesFromText, litTiles, visibleTiles } from "@/lib/battlemap/los";
-import { reachableTiles, speedToTiles } from "@/lib/battlemap/movement";
+import { reachableTiles } from "@/lib/battlemap/movement";
+import { movementBudget } from "@/lib/battlemap/movement-budget";
 import { tileIndex, type AmbientLight, type BattleToken, type TokenKind } from "@/lib/battlemap/types";
 import type { Backdrop } from "@/lib/battlemap/backdrop";
 import { labelsFor, type DoorStates, type LightZone, type MapLabel } from "@/lib/battlemap/scene";
@@ -82,7 +83,7 @@ export function sheetDarkvisionTiles(sheet: CharacterSheet): number {
 
 // Whether this player's PC may move right now: open floor, or their own
 // slot in the initiative order.
-function canMoveNow(campaignId: string, characterId: string): boolean {
+function canMoveNow(campaignId: string, encounter: Encounter, characterId: string): boolean {
   const floor = getFloor(campaignId);
   if (floor.mode === "open") {
     return true;
@@ -90,8 +91,7 @@ function canMoveNow(campaignId: string, characterId: string): boolean {
   if (floor.mode !== "initiative") {
     return false;
   }
-  const encounter = getActiveEncounter(campaignId);
-  if (!encounter || !encounter.orderReady) {
+  if (!encounter.orderReady) {
     return false;
   }
   const current = encounter.order[encounter.turnIndex];
@@ -101,8 +101,8 @@ function canMoveNow(campaignId: string, characterId: string): boolean {
 // The board on the table, fight or scene. Only the map layer asks this
 // question; everything that enforces a combat rule keeps asking
 // getActiveEncounter, which never answers with a scene.
-export function getActiveBattleMap(campaignId: string): BattleMap | null {
-  const board = getActiveBoard(campaignId);
+export function getActiveBattleMap(campaignId: string, roomId?: string | null): BattleMap | null {
+  const board = getActiveBoard(campaignId, roomId);
   if (!board) {
     return null;
   }
@@ -112,13 +112,13 @@ export function getActiveBattleMap(campaignId: string): BattleMap | null {
 export function buildPlayerMapView(
   campaignId: string,
   userId: string,
-  options: { fullVision?: boolean } = {},
+  options: { fullVision?: boolean; encounter?: Encounter | null } = {},
 ): PlayerMapView | null {
   // The DM sees the whole board. Everything below that reads `visible` or
   // `explored` then falls through to the full tile set, so there is one
   // branch rather than a fog exception per feature.
   const fullVision = options.fullVision === true;
-  const encounter = getActiveBoard(campaignId);
+  const encounter = options.encounter === undefined ? getActiveBoard(campaignId) : options.encounter;
   if (!encounter) {
     return null;
   }
@@ -240,11 +240,14 @@ export function buildPlayerMapView(
   // spends nothing: the party walks the board while the DM talks.
   let reachable: number[] = [];
   let budgetLeft = 0;
-  if (!fullVision && sheet && myToken && sheet.currentHp > 0 && canMoveNow(campaignId, sheet.id)) {
-    budgetLeft =
-      encounter.kind === "scene"
-        ? tileCount
-        : Math.max(0, speedToTiles(sheet.speed) - myToken.movedThisRound);
+  if (!fullVision && sheet && myToken && sheet.currentHp > 0 && canMoveNow(campaignId, encounter, sheet.id)) {
+    budgetLeft = movementBudget({
+      sheet,
+      encumbrance: getCampaignById(campaignId)?.gameSettings.variantRules.encumbrance ?? false,
+      movedThisRound: myToken.movedThisRound,
+      dashed: encounter.turnBudget?.dashed ?? false,
+      ...(encounter.kind === "scene" ? { sceneBudget: tileCount } : {}),
+    }).remaining;
     if (budgetLeft > 0) {
       const occupied = occupiedTiles(map, tokens, myToken);
       reachable = [

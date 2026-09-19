@@ -215,6 +215,7 @@ export type PendingAttack = {
   damageExpression: string;
   critDamageExpression: string;
   damageType?: string;
+  magical?: boolean;
   // Condition-derived: any hit is a critical hit (paralyzed target, etc).
   autoCrit?: boolean;
   // Improved/Superior Critical: the natural roll that crits, when below 20.

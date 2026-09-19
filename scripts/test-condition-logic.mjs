@@ -174,7 +174,9 @@ test("damageAdjust: immunity zeroes, resistance halves, vulnerability doubles", 
 test("damageAdjust: nonmagical-attacks substring matches base types", () => {
   const resist = "bludgeoning, piercing, and slashing from nonmagical attacks";
   assert.equal(damageAdjust(9, "slashing", resist, "", "").amount, 4);
+  assert.equal(damageAdjust(9, "slashing", resist, "", "", true).amount, 9);
   assert.equal(damageAdjust(9, "fire", resist, "", "").amount, 9);
+  assert.equal(damageAdjust(9, "bludgeoning", "bludgeoning; piercing and slashing from nonmagical attacks", "", "", true).amount, 4);
 });
 
 test("damageAdjust floors resistance at 1", () => {

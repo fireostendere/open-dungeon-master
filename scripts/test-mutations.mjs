@@ -70,6 +70,16 @@ test("item removal adjusts qty and removes empty rows", () => {
   assert.equal(removeItemMath(equipment, "Lantern", 1), null);
 });
 
+test("item removal skips depleted duplicate rows", () => {
+  const duplicates = [
+    { name: "Potion of Healing", qty: 0 },
+    { name: "Potion of Healing", qty: 1 },
+  ];
+  const removal = removeItemMath(duplicates, "potion of healing", 1);
+  assert.deepEqual(removal.equipment, [{ name: "Potion of Healing", qty: 0 }]);
+  assert.equal(removeItemMath([{ name: "Potion of Healing", qty: 0 }], "potion of healing", 1), null);
+});
+
 test("item granting merges by name", () => {
   const equipment = [{ name: "Torch", qty: 1 }];
   assert.equal(grantItemMath(equipment, "torch", 2).equipment[0].qty, 3);

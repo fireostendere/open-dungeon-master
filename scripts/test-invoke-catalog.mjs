@@ -177,6 +177,9 @@ test("a select refuses a value outside its options", () => {
 });
 
 test("combat and roll forms expose the handler's real argument names", () => {
+  const start = adjudication("start_encounter");
+  assert.ok(start.fields.some((field) => field.name === "roomId"));
+
   const attack = adjudication("pc_attack");
   const attackFields = new Set(attack.fields.map((field) => field.name));
   assert.ok(attackFields.has("targetEnemyId"));

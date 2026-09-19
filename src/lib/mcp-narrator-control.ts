@@ -76,8 +76,10 @@ function catalog(options: CatalogOptions = {}) {
     ...group, entries: group.entries.filter(entry => EXTERNAL_NARRATOR_ACTIONS.has(entry.name)).map(entry => {
       if (entry.name === "send_whisper") return { ...entry, fields: [...entry.fields, { name: "replyToWhisperIds", label: "Incoming whisper IDs", kind: "text" as const,
         help: "Exact IDs from playerWhispers. Reply and acknowledge only these messages, never later arrivals." }] };
-      if (entry.name === "start_encounter") return { ...entry, fields: [...entry.fields, { name: "roomId", label: "Spatial room ID", kind: "text" as const, required: false,
-        help: "Required after location_enable. Exact room UUID that owns this encounter; it is stripped before the combat engine runs." }] };
+      if (entry.name === "start_encounter") return { ...entry, fields: entry.fields.map(field => field.name === "roomId" ? {
+        ...field, required: false,
+        help: "Required after location_enable. Exact room UUID that owns this encounter; it reaches the combat engine unchanged.",
+      } : field) };
       return entry;
     }),
   })).filter(group => group.entries.length);

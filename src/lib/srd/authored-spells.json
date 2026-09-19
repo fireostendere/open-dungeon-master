@@ -254,6 +254,28 @@
    }
   },
   {
+   "name": "Shillelagh",
+   "level": 0,
+   "school": "transmutation",
+   "classes": [
+    "druid"
+   ],
+   "casting_time": "1 bonus action",
+   "range": "Touch",
+   "components": "V, S, M (mistletoe, shamrock leaf, or a club or quarterstaff)",
+   "duration": "1 minute",
+   "concentration": false,
+   "desc": "You empower one club or quarterstaff you are holding. Until the spell ends, its melee attacks use your spellcasting ability for attack and damage rolls, deal 1d8 damage, and count as magical. Casting the spell again or letting go of the weapon ends the effect.",
+   "mech": {
+    "resolution": "buff",
+    "buff": {
+     "condition": "shillelagh",
+     "target": "self",
+     "rounds": 10
+    }
+   }
+  },
+  {
    "name": "Spray of Cards",
    "level": 0,
    "school": "conjuration",

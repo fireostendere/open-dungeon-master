@@ -10,8 +10,11 @@ export type ConsumableEffect =
 
 const POTION_TIERS: Array<{ pattern: RegExp; expression: string }> = [
   { pattern: /supreme/i, expression: "10d4+20" },
+  { pattern: /высш/i, expression: "10d4+20" },
   { pattern: /superior/i, expression: "8d4+8" },
+  { pattern: /превосходн/i, expression: "8d4+8" },
   { pattern: /greater/i, expression: "4d4+4" },
+  { pattern: /больш/i, expression: "4d4+4" },
   { pattern: /./, expression: "2d4+2" },
 ];
 
@@ -20,8 +23,9 @@ const POTION_TIERS: Array<{ pattern: RegExp; expression: string }> = [
 export function consumableEffect(name: string): ConsumableEffect {
   const lowered = name.toLowerCase();
   const isHealing =
-    /potion|vial|elixir|flask|draught|philter/.test(lowered) &&
-    /heal|life|vitality|cure/.test(lowered);
+    (/potion|vial|elixir|flask|draught|philter/.test(lowered) &&
+      /heal|life|vitality|cure/.test(lowered)) ||
+    (/зелье|эликсир/.test(lowered) && /лечени|исцелени/.test(lowered));
   if (isHealing) {
     const tier = POTION_TIERS.find((entry) => entry.pattern.test(lowered));
     return { kind: "healing", expression: tier?.expression ?? "2d4+2" };
@@ -35,14 +39,15 @@ export function findCarriedItem(equipment: EquipmentItem[], term: string): Equip
   if (!wanted) {
     return null;
   }
+  const carried = equipment.filter((item) => item.qty > 0);
   return (
-    equipment.find((item) => item.name.toLowerCase() === wanted) ??
-    equipment.find(
+    carried.find((item) => item.name.toLowerCase() === wanted) ??
+    carried.find(
       (item) =>
         item.name.toLowerCase().includes(wanted) || wanted.includes(item.name.toLowerCase()),
     ) ??
     // Token fallback so "healing potion" still finds "Potion of Healing".
-    equipment.find((item) => {
+    carried.find((item) => {
       const name = item.name.toLowerCase();
       const tokens = wanted.split(/\s+/).filter((token) => token.length > 2);
       return tokens.length > 0 && tokens.every((token) => name.includes(token));

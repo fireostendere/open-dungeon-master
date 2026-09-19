@@ -78,6 +78,27 @@ export function bindActiveBattleMapToRoom(
   return payload;
 }
 
+// Verifies the DM-owned binding without trusting a room ID supplied by a
+// player route. The caller still owns the current-room check.
+export function boundBattleMapRoom(
+  campaignId: string,
+  userId: string,
+  board: { id: string },
+  map: { id: string },
+): string | null {
+  if (!spatialEnabled(campaignId)) return null;
+  const { campaign } = spatialContext(campaignId, userId);
+  if (!campaign.dmUserId) return null;
+  const { actor: dmActor } = spatialContext(campaignId, campaign.dmUserId);
+  const binding = objectOrNull(dmActor, BINDING_TYPE, map.id);
+  const bound = binding?.payload as
+    | { boardId?: string; mapId?: string; roomId?: string }
+    | undefined;
+  return bound?.boardId === board.id && bound.mapId === map.id && typeof bound.roomId === "string"
+    ? bound.roomId
+    : null;
+}
+
 export function spatialBattleMapView(
   campaignId: string,
   userId: string,
@@ -96,34 +117,26 @@ export function spatialBattleMapView(
 
   const view = spatialStore().view(actor);
   const userRoomId = view.enabled && view.current ? view.current.roomId : null;
-  const board = getActiveBoard(campaignId, userRoomId);
+  // A player who left a room may still retrieve their own frozen projection,
+  // but only when there is one unambiguous board to identify that projection.
+  const board = getActiveBoard(campaignId, userRoomId) ?? getActiveBoard(campaignId);
   const map = board ? getBattleMapForEncounter(board.id) : null;
   if (!board || !map || !campaign.dmUserId) return null;
 
+  const boundRoomId = boundBattleMapRoom(campaignId, userId, board, map);
+  if (!boundRoomId) return null;
   const { actor: dmActor } = spatialContext(campaignId, campaign.dmUserId);
-  const binding = objectOrNull(dmActor, BINDING_TYPE, map.id);
-  const bound = binding?.payload as
-    | { boardId?: string; mapId?: string; roomId?: string }
-    | undefined;
-  if (
-    !bound ||
-    bound.boardId !== board.id ||
-    bound.mapId !== map.id ||
-    typeof bound.roomId !== "string"
-  ) {
-    return null;
-  }
 
   const projectionId = `${map.id}:${userId}`;
-  if (view.enabled && view.current?.roomId === bound.roomId) {
-    const live = buildPlayerMapView(campaignId, userId, { fullVision: false });
+  if (view.enabled && view.current?.roomId === boundRoomId) {
+    const live = buildPlayerMapView(campaignId, userId, { fullVision: false, encounter: board });
     if (!live) return null;
     const previous = objectOrNull(dmActor, VIEW_TYPE, projectionId);
     if (JSON.stringify(previous?.payload) !== JSON.stringify(live)) {
       spatialStore().publishObject(dmActor, {
         objectType: VIEW_TYPE,
         objectId: projectionId,
-        roomId: bound.roomId,
+        roomId: boundRoomId,
         payload: live,
         userIds: [userId],
       });

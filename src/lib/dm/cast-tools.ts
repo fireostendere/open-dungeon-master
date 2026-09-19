@@ -17,6 +17,9 @@ import { applyDmMutation, canonicalCondition } from "@/lib/dm/mutations";
 import { applyEnemyDamage, publishEncounter, resolveEnemyRef } from "@/lib/dm/enemy-damage";
 import { resolveRollExpression, resolveSheetRef } from "@/lib/dm/rolls";
 import { normalizeAbility } from "@/lib/dm/arg-coerce";
+import { resolveAttackWeapon } from "@/lib/dm/attack-logic";
+import { attacksAllowedFor, budgetFor, currentCombatantId, storeBudget } from "@/lib/dm/action-tools";
+import { spendAction } from "@/lib/dm/action-budget";
 import type { ConditionMeta } from "@/lib/dm/condition-logic";
 import type { CharacterSheet } from "@/lib/schemas/sheet";
 
@@ -491,11 +494,42 @@ export function handleCastBuff(
       error: `${resolvedMech.name} carries no enforceable effect; spend the slot with use_spell_slot and narrate it.`,
     };
   }
+  const isShillelagh = resolvedMech.name.toLowerCase() === "shillelagh";
+  const shillelaghWeapon = isShillelagh
+    ? args.variant
+      ? resolveAttackWeapon(sheet.equipment, sheet.proficiencies.weapons, args.variant, { requireCarried: true })
+      : ["Quarterstaff", "Club"]
+          .map((weapon) => resolveAttackWeapon(sheet.equipment, sheet.proficiencies.weapons, weapon, { requireCarried: true }))
+          .find((weapon) => !weapon.error) ?? resolveAttackWeapon(sheet.equipment, sheet.proficiencies.weapons, undefined)
+    : null;
+  if (shillelaghWeapon?.error) {
+    return { error: shillelaghWeapon.error };
+  }
+  if (
+    shillelaghWeapon &&
+    (!shillelaghWeapon.item || !["club", "quarterstaff"].includes(shillelaghWeapon.srd?.name.toLowerCase() ?? ""))
+  ) {
+    return { error: "Shillelagh requires one equipped club or quarterstaff; pass it as variant when holding both." };
+  }
+  if (shillelaghWeapon) {
+    const binding = `shillelagh (${shillelaghWeapon.displayName})`;
+    const copies = sheet.equipment.filter(
+      (item) => item.qty > 0 && item.equipped !== false && item.name.toLowerCase() === shillelaghWeapon.displayName.toLowerCase(),
+    );
+    if (copies.length !== 1) {
+      return { error: "Shillelagh needs one unambiguous held weapon." };
+    }
+    if (binding.length > 40) {
+      // ponytail: conditions cap names at 40; add structured weapon binding if longer names need support.
+      return { error: `Shillelagh's held weapon name is too long to track; rename it to ${40 - "shillelagh ()".length} characters or fewer first.` };
+    }
+  }
 
   // The condition applied: the spell's own, or a declared variant.
   const wantedVariant = (args.variant ?? "").trim().toLowerCase();
-  const condition =
-    wantedVariant && buff.variants?.some((entry) => entry.toLowerCase().includes(wantedVariant))
+  const condition = isShillelagh
+    ? `shillelagh (${shillelaghWeapon!.displayName})`
+    : wantedVariant && buff.variants?.some((entry) => entry.toLowerCase().includes(wantedVariant))
       ? buff.variants.find((entry) => entry.toLowerCase().includes(wantedVariant))!
       : buff.condition;
 
@@ -546,6 +580,24 @@ export function handleCastBuff(
     }
   }
 
+  // Shillelagh is the exceptional buff cast as a bonus action. Its cantrip
+  // validation above has already completed, so a refused action never alters
+  // equipment, conditions, or slots.
+  if (isShillelagh) {
+    const encounter = getActiveEncounter(campaign.id);
+    if (encounter && (!encounter.orderReady || currentCombatantId(encounter) !== sheet.id)) {
+      return { error: "Shillelagh can be cast only on the caster's current combat turn." };
+    }
+    const budget = budgetFor(encounter, sheet.id, attacksAllowedFor(sheet));
+    if (budget) {
+      const spent = spendAction(budget, "bonus", "casting Shillelagh", sheet.name);
+      if (!spent.ok) {
+        return { error: spent.error };
+      }
+      storeBudget(encounter!, spent.budget);
+    }
+  }
+
   // Resolve the recipients: self-only spells ignore stray targets.
   const targetSheets: CharacterSheet[] = [];
   if (buff.target === "self" || !args.targetCharacterIds?.length) {
@@ -577,6 +629,17 @@ export function handleCastBuff(
   }
   const applied: string[] = [];
   for (const target of targetSheets) {
+    if (isShillelagh) {
+      // Recasting transfers the effect; removing the old bound condition now
+      // prevents a later re-equip from reviving it.
+      const conditions = target.conditions.filter((entry) => !entry.toLowerCase().startsWith("shillelagh ("));
+      if (conditions.length !== target.conditions.length) {
+        const conditionMeta = Object.fromEntries(
+          Object.entries(target.conditionMeta).filter(([entry]) => !entry.toLowerCase().startsWith("shillelagh (")),
+        );
+        patchSheet(target.id, { conditions, conditionMeta });
+      }
+    }
     const outcome = applyDmMutation(
       campaign,
       turn.id,

@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync, readdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { SRD_WEAPONS, defaultLoadout, suggestWeapons } from "../src/lib/srd/weapons.ts";
+import { SRD_WEAPONS, defaultLoadout, isWeaponProficient, matchWeapon, suggestWeapons } from "../src/lib/srd/weapons.ts";
 import srdClasses from "../src/lib/srd/classes.json" with { type: "json" };
 
 const catalogDir = join(dirname(fileURLToPath(import.meta.url)), "../src/lib/classes");
@@ -26,6 +26,17 @@ const names = (weapons) => weapons.map((weapon) => weapon.name);
 test("weapon table has unique names", () => {
   const all = names(SRD_WEAPONS);
   assert.equal(new Set(all).size, all.length);
+});
+
+test("matches common Russian weapon names to canonical SRD weapons", () => {
+  assert.equal(matchWeapon("Деревянный боевой посох")?.name, "Quarterstaff");
+  assert.equal(matchWeapon("+1 Деревянный боевой посох")?.name, "Quarterstaff");
+  assert.equal(matchWeapon("длинный меч")?.name, "Longsword");
+  assert.equal(matchWeapon("Длинный меч +2")?.name, "Longsword");
+  assert.equal(matchWeapon("Длинный меч +12"), null);
+  assert.equal(isWeaponProficient(["боевые посохи"], SRD_WEAPONS.find((weapon) => weapon.name === "Quarterstaff")), true);
+  assert.equal(isWeaponProficient(["простое оружие"], SRD_WEAPONS.find((weapon) => weapon.name === "Quarterstaff")), true);
+  assert.equal(isWeaponProficient(["воинское оружие"], SRD_WEAPONS.find((weapon) => weapon.name === "Longsword")), true);
 });
 
 test("martial classes get longsword and longbow", () => {
