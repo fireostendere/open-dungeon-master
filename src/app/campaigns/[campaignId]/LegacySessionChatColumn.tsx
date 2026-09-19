@@ -12,6 +12,7 @@ import { UtilityCallStrip } from "@/app/campaigns/[campaignId]/UtilityCallStrip"
 import { AskDock } from "@/app/campaigns/[campaignId]/AskPanel";
 import { DmCoverNotice } from "@/app/campaigns/[campaignId]/DmDelegationPanel";
 import { NarrationLanguageSetting } from "@/app/campaigns/[campaignId]/NarrationLanguageSetting";
+import { ClosingMessageBanner } from "@/app/campaigns/[campaignId]/ClosingMessageBanner";
 import type { NarrationAudio } from "@/app/campaigns/[campaignId]/useNarrationAudio";
 import type { CampaignState } from "@/app/campaigns/[campaignId]/useCampaignStream";
 import type { CampaignMessage } from "@/lib/db/messages";
@@ -20,7 +21,8 @@ import type { CampaignMessage } from "@/lib/db/messages";
 // gates. Shared request handling localizes both HTTP and network failures.
 export function SessionChatColumn({
   state, campaignId, meUserId, steersStory, narration, visible, askOpen,
-  onAskOpenChange, refreshAsks, refreshFacts, onError, onLoreCheck, onRenarrate, onPinned, children,
+  onAskOpenChange, refreshAsks, refreshFacts, onError, onLoreCheck, onRenarrate, onPinned,
+  onOpenClosingMessage, hasOpenedFinale, children,
 }: {
   state: CampaignState;
   campaignId: string;
@@ -36,6 +38,8 @@ export function SessionChatColumn({
   onLoreCheck: (message: CampaignMessage, selection: string) => void;
   onRenarrate: (message: CampaignMessage) => void;
   onPinned: () => void;
+  onOpenClosingMessage?: () => void;
+  hasOpenedFinale?: boolean;
   children: ReactNode;
 }) {
   const { locale } = useI18n();
@@ -63,6 +67,7 @@ export function SessionChatColumn({
       <MessageList
         messages={messages} campaignId={campaignId} canRetryTurn={steersStory} canIllustrate={steersStory}
         rolls={rolls} sheets={sheets} members={state.members} meUserId={meUserId} blockedUserIds={blockedUserIds}
+        campaignStatus={campaign?.status} onOpenClosingMessage={onOpenClosingMessage}
         onReport={message => {
           if (message.authorType === "dm") {
             setReportTarget({ messageId: message.id, authorType: "dm", label: sessionText(locale, "dm") });
@@ -113,6 +118,13 @@ export function SessionChatColumn({
       <UtilityCallStrip calls={visibleUtilityCalls} />
       <DmCoverNotice cover={campaign?.dmCover ?? null} />
       {steersStory && campaign ? <NarrationLanguageSetting key={campaignId} campaignId={campaignId} language={campaign.gameSettings.language} /> : null}
+      {campaign?.status === "ended" ? (
+        <ClosingMessageBanner
+          campaignTitle={campaign.title}
+          hasOpened={Boolean(hasOpenedFinale)}
+          onOpenClosingMessage={onOpenClosingMessage ?? (() => {})}
+        />
+      ) : null}
       {children}
     </div>
   );
