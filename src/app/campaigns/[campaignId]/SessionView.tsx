@@ -560,7 +560,7 @@ export function SessionView({
         steersStory={steersStory}
       />
 
-      {dice3d ? <DiceOverlay latestRoll={state.latestRoll} enabled /> : null}
+      {dice3d ? <DiceOverlay latestRoll={state.latestRoll} sheets={state.sheets} enabled /> : null}
 
       <HelpDialog
         open={helpOpen}

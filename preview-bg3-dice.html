@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Baldur's Gate 3 Dice Roller - ODM</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=MedievalSharp&display=swap" rel="stylesheet">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    body {
+      background: radial-gradient(circle at center, #1b1622 0%, #0c0812 70%, #050308 100%);
+      color: #e5e5e5;
+      font-family: 'Cinzel', serif, Georgia;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* Ambient background vignette and misty lighting */
+    .bg-overlay {
+      position: absolute;
+      inset: 0;
+      background: 
+        radial-gradient(ellipse at 50% 30%, rgba(139, 92, 246, 0.12) 0%, transparent 60%),
+        radial-gradient(ellipse at 50% 70%, rgba(225, 29, 72, 0.08) 0%, transparent 60%);
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    /* Floating control bar */
+    .controls-panel {
+      position: absolute;
+      bottom: 24px;
+      z-index: 30;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      max-width: 90vw;
+      background: rgba(18, 12, 24, 0.85);
+      border: 1px solid rgba(212, 175, 55, 0.4);
+      border-radius: 9999px;
+      padding: 10px 20px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+      backdrop-filter: blur(12px);
+    }
+
+    .btn-action {
+      background: linear-gradient(180deg, rgba(50, 40, 65, 0.9) 0%, rgba(25, 18, 35, 0.9) 100%);
+      color: #f3e5ab;
+      border: 1px solid rgba(212, 175, 55, 0.5);
+      border-radius: 9999px;
+      padding: 8px 18px;
+      font-family: 'Cinzel', serif;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn-action:hover {
+      background: linear-gradient(180deg, rgba(85, 65, 110, 0.9) 0%, rgba(45, 30, 65, 0.9) 100%);
+      border-color: #f3e5ab;
+      box-shadow: 0 0 15px rgba(245, 158, 11, 0.4);
+      transform: translateY(-1px);
+    }
+
+    .btn-action:active {
+      transform: translateY(0) scale(0.97);
+    }
+
+    .btn-screenshot {
+      border-color: #f43f5e;
+      color: #fda4af;
+      background: linear-gradient(180deg, rgba(70, 20, 35, 0.9) 0%, rgba(35, 10, 20, 0.9) 100%);
+    }
+
+    .btn-screenshot:hover {
+      border-color: #fb7185;
+      box-shadow: 0 0 15px rgba(244, 63, 94, 0.5);
+    }
+
+    /* BG3 Cartouche / Plaque container */
+    .bg3-plaque {
+      position: relative;
+      z-index: 10;
+      width: 420px;
+      max-width: 92vw;
+      border-radius: 40px;
+      background: linear-gradient(180deg, rgba(28, 18, 40, 0.94) 0%, rgba(19, 13, 29, 0.96) 50%, rgba(11, 6, 18, 0.98) 100%);
+      border: 1px solid rgba(161, 129, 70, 0.55);
+      box-shadow: 0 0 80px rgba(0,0,0,0.95), 0 0 30px rgba(139, 92, 246, 0.2);
+      padding: 36px 28px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      backdrop-filter: blur(16px);
+      transition: box-shadow 0.4s ease, border-color 0.4s ease;
+    }
+
+    .bg3-plaque.state-fail {
+      box-shadow: 0 0 80px rgba(0,0,0,0.95), 0 0 45px rgba(225, 29, 72, 0.35);
+      border-color: rgba(244, 63, 94, 0.6);
+    }
+
+    .bg3-plaque.state-success {
+      box-shadow: 0 0 80px rgba(0,0,0,0.95), 0 0 50px rgba(250, 204, 21, 0.4);
+      border-color: rgba(250, 204, 21, 0.7);
+    }
+
+    /* SVG Filigree Frame */
+    .filigree-frame {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+    }
+
+    /* Header text */
+    .dc-title {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.22em;
+      color: #d4af37;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+    }
+
+    .dc-value {
+      font-size: 58px;
+      font-weight: 900;
+      line-height: 1;
+      color: #f43f5e;
+      text-shadow: 0 0 20px rgba(244, 63, 94, 0.7), 0 0 40px rgba(225, 29, 72, 0.4);
+      margin-bottom: 12px;
+      font-family: 'Cinzel', serif;
+    }
+
+    /* Ornate divider */
+    .ornate-divider {
+      width: 85%;
+      height: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 16px;
+      opacity: 0.85;
+    }
+
+    .divider-line {
+      flex: 1;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, #c8a45d, #f3e5ab, transparent);
+    }
+
+    .divider-symbol {
+      color: #d4af37;
+      font-size: 16px;
+    }
+
+    /* Canvas D20 container */
+    .canvas-box {
+      position: relative;
+      width: 250px;
+      height: 250px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 6px 0;
+      cursor: pointer;
+    }
+
+    .canvas-glow {
+      position: absolute;
+      width: 210px;
+      height: 210px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(147, 51, 234, 0.25) 0%, transparent 70%);
+      filter: blur(14px);
+      pointer-events: none;
+    }
+
+    #dice-canvas {
+      position: relative;
+      z-index: 5;
+      width: 250px;
+      height: 250px;
+    }
+
+    /* Formula Breakdown */
+    .formula-row {
+      min-height: 26px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-family: monospace;
+      font-size: 15px;
+      color: #a8a29e;
+      margin-bottom: 8px;
+    }
+
+    .formula-num {
+      color: #fef08a;
+      font-weight: bold;
+    }
+
+    /* Verdict Banner */
+    .verdict-box {
+      min-height: 52px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+    }
+
+    .verdict-text {
+      font-size: 34px;
+      font-weight: 900;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      font-family: 'Cinzel', serif;
+      animation: verdictPop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    }
+
+    .verdict-fail {
+      color: #f43f5e;
+      text-shadow: 0 0 25px rgba(244, 63, 94, 0.85), 0 0 50px rgba(225, 29, 72, 0.5);
+    }
+
+    .verdict-success {
+      color: #34d399;
+      text-shadow: 0 0 25px rgba(52, 211, 153, 0.85), 0 0 50px rgba(16, 185, 129, 0.5);
+    }
+
+    .verdict-crit {
+      color: #fde047;
+      text-shadow: 0 0 30px rgba(250, 204, 21, 0.95), 0 0 60px rgba(245, 158, 11, 0.7);
+    }
+
+    @keyframes verdictPop {
+      0% {
+        transform: scale(0.6);
+        opacity: 0;
+      }
+      100% {
+        transform: scale(1);
+        opacity: 1;
+      }
+    }
+
+    .hint-label {
+      margin-top: 14px;
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      color: rgba(212, 175, 55, 0.6);
+      text-transform: uppercase;
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-overlay"></div>
+
+  <!-- BG3 Plaque -->
+  <div id="plaque" class="bg3-plaque">
+    <!-- SVG Filigree Frame with Gothic flourishes -->
+    <svg class="filigree-frame" viewBox="0 0 420 560" preserveAspectRatio="none">
+      <defs>
+        <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#f3e5ab" />
+          <stop offset="35%" stopColor="#c8a45d" />
+          <stop offset="70%" stopColor="#8a6208" />
+          <stop offset="100%" stopColor="#d4af37" />
+        </linearGradient>
+        <filter id="goldGlow">
+          <feDropShadow dx="0" dy="0" stdDeviation="2" floodColor="#f59e0b" floodOpacity="0.4" />
+        </filter>
+      </defs>
+
+      <!-- Outer rounded border -->
+      <rect x="8" y="8" width="404" height="544" rx="36" fill="none" stroke="url(#goldGrad)" stroke-width="1.8" filter="url(#goldGlow)" />
+      <!-- Inner dashed decorative line -->
+      <rect x="13" y="13" width="394" height="534" rx="31" fill="none" stroke="url(#goldGrad)" stroke-width="0.8" stroke-dasharray="5 3" opacity="0.65" />
+
+      <!-- Top and bottom crest finials -->
+      <path d="M 185 8 Q 210 0 235 8 Q 210 16 185 8 Z" fill="url(#goldGrad)" />
+      <path d="M 185 552 Q 210 560 235 552 Q 210 544 185 552 Z" fill="url(#goldGrad)" />
+
+      <!-- Corner corner ornamental brackets -->
+      <g stroke="url(#goldGrad)" stroke-width="1.8" fill="none" opacity="0.85">
+        <path d="M 26 50 C 26 34, 34 26, 50 26" />
+        <path d="M 394 50 C 394 34, 386 26, 370 26" />
+        <path d="M 26 510 C 26 526, 34 534, 50 534" />
+        <path d="M 394 510 C 394 526, 386 534, 370 534" />
+      </g>
+    </svg>
+
+    <!-- Header Section -->
+    <div class="dc-title">КЛАСС СЛОЖНОСТИ</div>
+    <div id="dc-target" class="dc-value">15</div>
+
+    <!-- Celtic / Gothic Divider -->
+    <div class="ornate-divider">
+      <div class="divider-line"></div>
+      <div class="divider-symbol">❖</div>
+      <div class="divider-line"></div>
+    </div>
+
+    <!-- Center D20 Canvas Tray -->
+    <div class="canvas-box" onclick="rerollCurrent()">
+      <div class="canvas-glow"></div>
+      <canvas id="dice-canvas" width="250" height="250"></canvas>
+    </div>
+
+    <!-- Formula breakdown -->
+    <div id="formula" class="formula-row">
+      <span>Бросок кубика...</span>
+    </div>
+
+    <!-- Verdict Banner -->
+    <div class="verdict-box">
+      <div id="verdict-text" class="verdict-text verdict-fail">НЕУДАЧА!</div>
+    </div>
+
+    <div class="hint-label">Нажмите на куб для повторного броска</div>
+  </div>
+
+  <!-- Control panel -->
+  <div class="controls-panel">
+    <button class="btn-action btn-screenshot" onclick="rollPreset(15, 9, 0)">
+      📸 Как на скриншоте (СЛ 15 → 9 НЕУДАЧА!)
+    </button>
+    <button class="btn-action" onclick="rollPreset(15, 18, 0)">
+      ✨ Успех (СЛ 15 → 18 УСПЕХ!)
+    </button>
+    <button class="btn-action" onclick="rollPreset(20, 20, 0)">
+      ★ Натуральные 20 (КРИТИЧЕСКИЙ УСПЕХ!)
+    </button>
+    <button class="btn-action" onclick="rollPreset(10, 1, 0)">
+      ☠ Натуральная 1 (КРИТИЧЕСКИЙ ПРОВАЛ!)
+    </button>
+    <button class="btn-action" onclick="rollRandomWithModifier()">
+      🎲 Случайный бросок (+3 бонус)
+    </button>
+  </div>
+
+  <script>
+    // --- Web Audio API Synth ---
+    let audioCtx = null;
+    function getAudio() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      return audioCtx;
+    }
+
+    function playSound(type) {
+      const ctx = getAudio();
+      if (!ctx) return;
+      const now = ctx.currentTime;
+
+      if (type === 'tumble') {
+        for (let i = 0; i < 6; i++) {
+          const t = now + i * 0.24 + Math.random() * 0.06;
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = i % 2 === 0 ? 'triangle' : 'sine';
+          osc.frequency.setValueAtTime(150 + Math.random() * 80, t);
+          osc.frequency.exponentialRampToValueAtTime(70 + Math.random() * 30, t + 0.12);
+          gain.gain.setValueAtTime(0.15 * (1 - i / 7), t);
+          gain.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(t);
+          osc.stop(t + 0.12);
+        }
+      } else if (type === 'land') {
+        // Heavy impact THUD
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(170, now);
+        osc.frequency.exponentialRampToValueAtTime(35, now + 0.3);
+        gain.gain.setValueAtTime(0.5, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.3);
+
+        const click = ctx.createOscillator();
+        const clickG = ctx.createGain();
+        click.type = 'triangle';
+        click.frequency.setValueAtTime(800, now);
+        click.frequency.exponentialRampToValueAtTime(180, now + 0.05);
+        clickG.gain.setValueAtTime(0.3, now);
+        clickG.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
+        click.connect(clickG);
+        clickG.connect(ctx.destination);
+        click.start(now);
+        click.stop(now + 0.06);
+      } else if (type === 'success') {
+        [523.25, 659.25, 783.99, 1046.5].forEach((freq, idx) => {
+          const t = now + idx * 0.06;
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(freq, t);
+          gain.gain.setValueAtTime(0.2, t);
+          gain.gain.exponentialRampToValueAtTime(0.001, t + 1.2);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(t);
+          osc.stop(t + 1.2);
+        });
+      } else if (type === 'failure') {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        const filter = ctx.createBiquadFilter();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(65, now);
+        osc.frequency.exponentialRampToValueAtTime(45, now + 1.4);
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(150, now);
+        gain.gain.setValueAtTime(0.35, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 1.4);
+        osc.connect(filter);
+        filter.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now);
+        osc.stop(now + 1.4);
+      } else if (type === 'crit_success') {
+        [523.25, 659.25, 783.99, 1046.5, 1318.5, 1567.9].forEach((freq, idx) => {
+          const t = now + idx * 0.07;
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(freq, t);
+          gain.gain.setValueAtTime(0.25, t);
+          gain.gain.exponentialRampToValueAtTime(0.001, t + 1.6);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(t);
+          osc.stop(t + 1.6);
+        });
+      } else if (type === 'crit_fail') {
+        [110, 116.5, 73.4].forEach(freq => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(freq, now);
+          gain.gain.setValueAtTime(0.35, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 1.2);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now);
+          osc.stop(now + 1.2);
+        });
+      }
+    }
+
+    // --- 3D D20 Mathematics ---
+    const PHI = (1 + Math.sqrt(5)) / 2;
+    const INV_LEN = 1 / Math.sqrt(1 + PHI * PHI);
+
+    const D20_VERTICES = [
+      [-1 * INV_LEN, PHI * INV_LEN, 0],
+      [1 * INV_LEN, PHI * INV_LEN, 0],
+      [-1 * INV_LEN, -PHI * INV_LEN, 0],
+      [1 * INV_LEN, -PHI * INV_LEN, 0],
+      [0, -1 * INV_LEN, PHI * INV_LEN],
+      [0, 1 * INV_LEN, PHI * INV_LEN],
+      [0, -1 * INV_LEN, -PHI * INV_LEN],
+      [0, 1 * INV_LEN, -PHI * INV_LEN],
+      [PHI * INV_LEN, 0, -1 * INV_LEN],
+      [PHI * INV_LEN, 0, 1 * INV_LEN],
+      [-PHI * INV_LEN, 0, -1 * INV_LEN],
+      [-PHI * INV_LEN, 0, 1 * INV_LEN]
+    ];
+
+    const D20_FACES = [
+      [0, 11, 5], [0, 5, 1], [0, 1, 7], [0, 7, 10], [0, 10, 11],
+      [1, 5, 9], [5, 11, 4], [11, 10, 2], [10, 7, 6], [7, 1, 8],
+      [3, 9, 4], [3, 4, 2], [3, 2, 6], [3, 6, 8], [3, 8, 9],
+      [4, 9, 5], [2, 4, 11], [6, 2, 10], [8, 6, 7], [9, 8, 1]
+    ];
+
+    const D20_FACE_VALUES = [
+      20, 9, 2, 14, 8,
+      11, 18, 4, 13, 16,
+      1, 12, 19, 7, 13,
+      10, 3, 17, 5, 15
+    ];
+
+    function calcNormal(v0, v1, v2) {
+      const ax = v1[0] - v0[0], ay = v1[1] - v0[1], az = v1[2] - v0[2];
+      const bx = v2[0] - v0[0], by = v2[1] - v0[1], bz = v2[2] - v0[2];
+      const nx = ay * bz - az * by;
+      const ny = az * bx - ax * bz;
+      const nz = ax * by - ay * bx;
+      const len = Math.hypot(nx, ny, nz) || 1;
+      return [nx / len, ny / len, nz / len];
+    }
+
+    const FACE_NORMALS = D20_FACES.map(f => calcNormal(D20_VERTICES[f[0]], D20_VERTICES[f[1]], D20_VERTICES[f[2]]));
+
+    function getTargetRotation(targetVal) {
+      let faceIdx = D20_FACE_VALUES.indexOf(targetVal);
+      if (faceIdx === -1) faceIdx = 0;
+      const norm = FACE_NORMALS[faceIdx];
+
+      const dot = norm[2];
+      if (dot > 0.9999) return [[1,0,0],[0,1,0],[0,0,1]];
+      if (dot < -0.9999) return [[-1,0,0],[0,1,0],[0,0,-1]];
+
+      const ax = norm[1], ay = -norm[0], az = 0;
+      const axLen = Math.hypot(ax, ay) || 1;
+      const u = [ax/axLen, ay/axLen, az/axLen];
+      const angle = Math.acos(Math.max(-1, Math.min(1, dot)));
+      const c = Math.cos(angle), s = Math.sin(angle), t = 1 - c;
+
+      return [
+        [t*u[0]*u[0] + c, t*u[0]*u[1] - s*u[2], t*u[0]*u[2] + s*u[1]],
+        [t*u[0]*u[1] + s*u[2], t*u[1]*u[1] + c, t*u[1]*u[2] - s*u[0]],
+        [t*u[0]*u[2] - s*u[1], t*u[1]*u[2] + s*u[0], t*u[2]*u[2] + c]
+      ];
+    }
+
+    function multMatrix(a, b) {
+      const r = [[0,0,0],[0,0,0],[0,0,0]];
+      for (let i = 0; i < 3; i++) {
+        for (let j = 0; j < 3; j++) {
+          r[i][j] = a[i][0]*b[0][j] + a[i][1]*b[1][j] + a[i][2]*b[2][j];
+        }
+      }
+      return r;
+    }
+
+    function transformVec(m, v) {
+      return [
+        m[0][0]*v[0] + m[0][1]*v[1] + m[0][2]*v[2],
+        m[1][0]*v[0] + m[1][1]*v[1] + m[1][2]*v[2],
+        m[2][0]*v[0] + m[2][1]*v[1] + m[2][2]*v[2]
+      ];
+    }
+
+    function makeEulerMatrix(rx, ry, rz) {
+      const cx = Math.cos(rx), sx = Math.sin(rx);
+      const cy = Math.cos(ry), sy = Math.sin(ry);
+      const cz = Math.cos(rz), sz = Math.sin(rz);
+      return [
+        [cy * cz, -cy * sz, sy],
+        [sx * sy * cz + cx * sz, -sx * sy * sz + cx * cz, -sx * cy],
+        [-cx * sy * cz + sx * sz, cx * sy * sz + sx * cz, cx * cy]
+      ];
+    }
+
+    // --- State & Animation ---
+    const canvas = document.getElementById('dice-canvas');
+    const ctx = canvas.getContext('2d');
+    const plaqueEl = document.getElementById('plaque');
+    const dcTargetEl = document.getElementById('dc-target');
+    const formulaEl = document.getElementById('formula');
+    const verdictEl = document.getElementById('verdict-text');
+
+    let currentDC = 15;
+    let currentDie = 9;
+    let currentMod = 0;
+    let animId = null;
+
+    function runRollAnimation(dc, targetDie, mod = 0) {
+      if (animId) cancelAnimationFrame(animId);
+
+      currentDC = dc;
+      currentDie = targetDie;
+      currentMod = mod;
+
+      dcTargetEl.textContent = dc;
+      formulaEl.innerHTML = `<span>Бросок кубика...</span>`;
+      verdictEl.textContent = "";
+      verdictEl.className = "verdict-text";
+      plaqueEl.className = "bg3-plaque";
+
+      playSound('tumble');
+
+      const targetRot = getTargetRotation(targetDie);
+      const startTime = performance.now();
+      const duration = 2000;
+
+      const randRx = (Math.random() * 8 + 14) * Math.PI;
+      const randRy = (Math.random() * 8 + 16) * Math.PI;
+      const randRz = (Math.random() * 6 + 12) * Math.PI;
+
+      let landSoundDone = false;
+      let verdictDone = false;
+
+      function render(now) {
+        const elapsed = now - startTime;
+        const p = Math.min(1, elapsed / duration);
+        const easeOut = 1 - Math.pow(1 - p, 3);
+
+        ctx.clearRect(0, 0, 250, 250);
+
+        const curRx = randRx * (1 - easeOut);
+        const curRy = randRy * (1 - easeOut);
+        const curRz = randRz * (1 - easeOut);
+        const spin = makeEulerMatrix(curRx, curRy, curRz);
+        const currentRot = multMatrix(spin, targetRot);
+
+        let bounce = 1.0;
+        if (p >= 1) {
+          const dt = elapsed - duration;
+          bounce = 1.0 + 0.12 * Math.exp(-dt * 0.008) * Math.sin(dt * 0.025);
+          if (!landSoundDone) {
+            landSoundDone = true;
+            playSound('land');
+          }
+        }
+
+        const cx = 125, cy = 125;
+        const radius = 98 * bounce;
+        const lightDir = [-0.4, -0.6, 0.75];
+        const lLen = Math.hypot(...lightDir);
+        const L = [lightDir[0]/lLen, lightDir[1]/lLen, lightDir[2]/lLen];
+
+        const transformedVerts = D20_VERTICES.map(v => transformVec(currentRot, v));
+        const projected = transformedVerts.map(([x, y, z]) => {
+          const pers = 420 / (420 - z * radius * 0.3);
+          return {
+            px: cx + x * radius * pers,
+            py: cy + y * radius * pers,
+            pz: z
+          };
+        });
+
+        const faceList = D20_FACES.map((f, idx) => {
+          const avgZ = (projected[f[0]].pz + projected[f[1]].pz + projected[f[2]].pz) / 3;
+          const norm = transformVec(currentRot, FACE_NORMALS[idx]);
+          return { idx, f, avgZ, norm, visible: norm[2] > 0.02 };
+        });
+
+        faceList.sort((a, b) => a.avgZ - b.avgZ);
+
+        for (const item of faceList) {
+          if (!item.visible) continue;
+          const p0 = projected[item.f[0]];
+          const p1 = projected[item.f[1]];
+          const p2 = projected[item.f[2]];
+          const norm = item.norm;
+
+          const dot = Math.max(0, norm[0]*L[0] + norm[1]*L[1] + norm[2]*L[2]);
+          const ambient = 0.24;
+          const diffuse = dot * 0.65;
+          const spec = Math.pow(Math.max(0, (norm[0]*L[0] + norm[1]*L[1] + norm[2]*(L[2]+1)) / 1.5), 24) * 0.45;
+          const light = Math.min(1, ambient + diffuse + spec);
+
+          const r = Math.round(38 + light * 165);
+          const g = Math.round(42 + light * 175);
+          const b = Math.round(58 + light * 195);
+
+          ctx.beginPath();
+          ctx.moveTo(p0.px, p0.py);
+          ctx.lineTo(p1.px, p1.py);
+          ctx.lineTo(p2.px, p2.py);
+          ctx.closePath();
+
+          ctx.fillStyle = `rgb(${r},${g},${b})`;
+          ctx.fill();
+
+          ctx.strokeStyle = `rgba(235, 215, 175, ${0.2 + spec * 0.6})`;
+          ctx.lineWidth = 1.6;
+          ctx.stroke();
+
+          const faceVal = D20_FACE_VALUES[item.idx];
+          const isCenter = norm[2] > 0.88 && p >= 0.95;
+          const fcx = (p0.px + p1.px + p2.px) / 3;
+          const fcy = (p0.px + p1.px + p2.px) / 3;
+
+          ctx.save();
+          ctx.translate(fcx, fcy);
+
+          if (isCenter) {
+            const total = targetDie + mod;
+            const success = total >= dc;
+            const isCrit20 = targetDie === 20;
+            const isCrit1 = targetDie === 1;
+
+            ctx.font = "bold 36px 'Cinzel', serif, Georgia";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+
+            if (isCrit20) {
+              ctx.fillStyle = "#fffbeb";
+              ctx.shadowColor = "#f59e0b";
+              ctx.shadowBlur = 18;
+            } else if (isCrit1 || !success) {
+              ctx.fillStyle = "#fb7185";
+              ctx.shadowColor = "#e11d48";
+              ctx.shadowBlur = 16;
+            } else {
+              ctx.fillStyle = "#fef08a";
+              ctx.shadowColor = "#eab308";
+              ctx.shadowBlur = 14;
+            }
+            ctx.fillText(String(faceVal), 0, 0);
+          } else if (norm[2] > 0.28) {
+            ctx.font = "bold 15px 'Cinzel', serif, Georgia";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillStyle = `rgba(215, 225, 240, ${Math.min(0.85, norm[2] * 0.9)})`;
+            ctx.fillText(String(faceVal), 0, 0);
+          }
+
+          ctx.restore();
+        }
+
+        if (p >= 1 && elapsed > duration + 500 && !verdictDone) {
+          verdictDone = true;
+          const total = targetDie + mod;
+          const success = total >= dc;
+          const isCrit20 = targetDie === 20;
+          const isCrit1 = targetDie === 1;
+
+          if (mod !== 0) {
+            formulaEl.innerHTML = `<span class="formula-num">${targetDie}</span> <span>${mod > 0 ? '+' : '-'}</span> <span>${Math.abs(mod)}</span> <span>=</span> <span class="formula-num" style="color:white;font-size:17px">${total}</span>`;
+          } else {
+            formulaEl.innerHTML = `<span class="formula-num" style="font-size:17px">${targetDie}</span>`;
+          }
+
+          if (isCrit20) {
+            verdictEl.textContent = "★ КРИТИЧЕСКИЙ УСПЕХ! ★";
+            verdictEl.className = "verdict-text verdict-crit";
+            plaqueEl.className = "bg3-plaque state-success";
+            playSound('crit_success');
+          } else if (isCrit1) {
+            verdictEl.textContent = "☠ КРИТИЧЕСКИЙ ПРОВАЛ! ☠";
+            verdictEl.className = "verdict-text verdict-fail";
+            plaqueEl.className = "bg3-plaque state-fail";
+            playSound('crit_fail');
+          } else if (success) {
+            verdictEl.textContent = "УСПЕХ!";
+            verdictEl.className = "verdict-text verdict-success";
+            plaqueEl.className = "bg3-plaque state-success";
+            playSound('success');
+          } else {
+            verdictEl.textContent = "НЕУДАЧА!";
+            verdictEl.className = "verdict-text verdict-fail";
+            plaqueEl.className = "bg3-plaque state-fail";
+            playSound('failure');
+          }
+        }
+
+        animId = requestAnimationFrame(render);
+      }
+
+      animId = requestAnimationFrame(render);
+    }
+
+    function rollPreset(dc, die, mod) {
+      runRollAnimation(dc, die, mod);
+    }
+
+    function rerollCurrent() {
+      runRollAnimation(currentDC, currentDie, currentMod);
+    }
+
+    function rollRandomWithModifier() {
+      const randDie = Math.floor(Math.random() * 20) + 1;
+      const mod = 3;
+      runRollAnimation(15, randDie, mod);
+    }
+
+    // Run initial roll exactly like the screenshot
+    window.addEventListener('DOMContentLoaded', () => {
+      runRollAnimation(15, 9, 0);
+    });
+  </script>
+</body>
+</html>
