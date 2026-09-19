@@ -73,4 +73,34 @@ for (let i = 0; i < normals.length; i++) {
   assert(dot > 0.5, `Normal ${i} must point outward from origin`);
 }
 
-console.log("All D20 geometric checks passed successfully! 🎲");
+// Test Canonical BG3 orientation
+const CANONICAL_ROT = [
+  [-0.3090708472753448, -0.8090248494677429, 0.4999540021923981],
+  [0.7557392923695095, 0.11020644087512578, 0.6455328514943839],
+  [-0.5773502691896257, 0.5773502691896257, 0.5773502691896257],
+];
+
+const face0Norm = normals[0];
+const rotNormZ = CANONICAL_ROT[2][0] * face0Norm[0] + CANONICAL_ROT[2][1] * face0Norm[1] + CANONICAL_ROT[2][2] * face0Norm[2];
+assert(Math.abs(rotNormZ - 1.0) < 1e-3, `Face 0 normal Z after CANONICAL_ROT must be 1.0, got ${rotNormZ}`);
+
+function getFaceValuesForRoll(targetVal) {
+  const others = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20].filter(
+    (x) => x !== targetVal
+  );
+  const values = [];
+  values[0] = targetVal;
+  for (let i = 1; i < 20; i++) {
+    const pickIdx = (i * 7 + targetVal * 3) % others.length;
+    values[i] = others.splice(pickIdx, 1)[0];
+  }
+  return values;
+}
+
+for (let v = 1; v <= 20; v++) {
+  const vals = getFaceValuesForRoll(v);
+  assert.equal(vals[0], v, `Face 0 must equal rolled value ${v}`);
+  assert.equal(new Set(vals).size, 20, `Must have all 20 unique values for roll ${v}`);
+}
+
+console.log("All D20 geometric & canonical BG3 orientation checks passed successfully! 🎲");

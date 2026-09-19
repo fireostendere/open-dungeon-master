@@ -603,26 +603,23 @@
 
     const FACE_NORMALS = D20_FACES.map(f => calcNormal(D20_VERTICES[f[0]], D20_VERTICES[f[1]], D20_VERTICES[f[2]]));
 
-    function getTargetRotation(targetVal) {
-      let faceIdx = D20_FACE_VALUES.indexOf(targetVal);
-      if (faceIdx === -1) faceIdx = 0;
-      const norm = FACE_NORMALS[faceIdx];
+    // Canonical BG3 orientation: Face 0 is directly in front (normal [0, 0, 1]),
+    // with horizontal top edge and apex pointing straight down.
+    const CANONICAL_ROT = [
+      [-0.3090708472753448, -0.8090248494677429, 0.4999540021923981],
+      [0.7557392923695095, 0.11020644087512578, 0.6455328514943839],
+      [-0.5773502691896257, 0.5773502691896257, 0.5773502691896257]
+    ];
 
-      const dot = norm[2];
-      if (dot > 0.9999) return [[1,0,0],[0,1,0],[0,0,1]];
-      if (dot < -0.9999) return [[-1,0,0],[0,1,0],[0,0,-1]];
-
-      const ax = norm[1], ay = -norm[0], az = 0;
-      const axLen = Math.hypot(ax, ay) || 1;
-      const u = [ax/axLen, ay/axLen, az/axLen];
-      const angle = Math.acos(Math.max(-1, Math.min(1, dot)));
-      const c = Math.cos(angle), s = Math.sin(angle), t = 1 - c;
-
-      return [
-        [t*u[0]*u[0] + c, t*u[0]*u[1] - s*u[2], t*u[0]*u[2] + s*u[1]],
-        [t*u[0]*u[1] + s*u[2], t*u[1]*u[1] + c, t*u[1]*u[2] - s*u[0]],
-        [t*u[0]*u[2] - s*u[1], t*u[1]*u[2] + s*u[0], t*u[2]*u[2] + c]
-      ];
+    function getFaceValuesForRoll(targetVal) {
+      const others = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20].filter(x => x !== targetVal);
+      const values = [];
+      values[0] = targetVal; // Central face is ALWAYS the rolled value!
+      for (let i = 1; i < 20; i++) {
+        const pickIdx = (i * 7 + targetVal * 3) % others.length;
+        values[i] = others.splice(pickIdx, 1)[0];
+      }
+      return values;
     }
 
     function multMatrix(a, b) {
@@ -750,7 +747,7 @@
         // --- Number rendering: only after die settles, properly on face ---
         if (p < 0.92) continue; // No numbers while spinning fast
 
-        const faceVal = D20_FACE_VALUES[item.idx];
+        const faceVal = dieState.faceValues[item.idx];
         if (norm[2] < 0.15) continue; // Skip faces too edge-on
 
         // Correct 2D centroid of the triangle
@@ -781,46 +778,56 @@
 
         const isCenter = norm[2] > 0.85;
 
-        // Clip to triangle so text never bleeds outside
+        // Clip only side faces so numbers stay inside facets, but center glow stays natural
         ctx.save();
-        ctx.beginPath();
-        ctx.moveTo(p0.px, p0.py);
-        ctx.lineTo(p1.px, p1.py);
-        ctx.lineTo(p2.px, p2.py);
-        ctx.closePath();
-        ctx.clip();
+        if (!isCenter) {
+          ctx.beginPath();
+          ctx.moveTo(p0.px, p0.py);
+          ctx.lineTo(p1.px, p1.py);
+          ctx.lineTo(p2.px, p2.py);
+          ctx.closePath();
+          ctx.clip();
+        }
 
         ctx.translate(fcx, fcy);
-        ctx.rotate(faceAngle);
-
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
 
         if (isCenter) {
-          // The front face — big, glowing number
-          const fontSize = Math.round(Math.min(inRadius * 1.4, radius * 0.42));
-          ctx.font = `bold ${fontSize}px 'Cinzel', serif, Georgia`;
+          // Center face: big glowing number, always strictly UPRIGHT (no rotation tilt!)
+          const fontSize = Math.round(Math.min(inRadius * 1.35, radius * 0.40));
+          ctx.font = `900 ${fontSize}px 'Cinzel', serif, Georgia`;
+
+          // Crisp dark outline for extreme contrast against any facet lighting
+          ctx.lineWidth = Math.max(2, Math.round(fontSize * 0.07));
+          ctx.strokeStyle = "rgba(10, 10, 20, 0.9)";
+          ctx.strokeText(String(faceVal), 0, 0);
 
           if (dieState.isCrit20) {
             ctx.fillStyle = "#fffbeb";
             ctx.shadowColor = "#f59e0b";
-            ctx.shadowBlur = 20;
+            ctx.shadowBlur = 24;
           } else if (dieState.isCrit1 || !dieState.isWinningSuccess) {
             ctx.fillStyle = "#fb7185";
             ctx.shadowColor = "#e11d48";
-            ctx.shadowBlur = 18;
+            ctx.shadowBlur = 22;
           } else {
             ctx.fillStyle = "#fef08a";
             ctx.shadowColor = "#eab308";
-            ctx.shadowBlur = 16;
+            ctx.shadowBlur = 20;
           }
           ctx.fillText(String(faceVal), 0, 0);
+
+          // Second fill pass for brilliant crisp core
+          ctx.shadowBlur = 0;
+          ctx.fillText(String(faceVal), 0, 0);
         } else {
-          // Surrounding visible faces — engraved silver numbers
-          const fontSize = Math.round(Math.min(inRadius * 1.1, radius * 0.22));
-          ctx.font = `bold ${fontSize}px 'Cinzel', serif, Georgia`;
-          const alpha = Math.min(0.9, (norm[2] - 0.1) * 1.2);
-          ctx.fillStyle = `rgba(200, 210, 230, ${alpha})`;
+          // Side faces: high-contrast dark engraved numbers, rotated to follow face
+          ctx.rotate(faceAngle);
+          const fontSize = Math.round(Math.min(inRadius * 1.05, radius * 0.20));
+          ctx.font = `900 ${fontSize}px 'Cinzel', serif, Georgia`;
+          const alpha = Math.min(1.0, Math.max(0.55, (norm[2] - 0.05) * 1.8));
+          ctx.fillStyle = `rgba(10, 12, 20, ${alpha.toFixed(2)})`;
           ctx.fillText(String(faceVal), 0, 0);
         }
 
@@ -878,7 +885,8 @@
           cx,
           cy,
           radius,
-          targetRot: getTargetRotation(d.val),
+          targetRot: CANONICAL_ROT,
+          faceValues: getFaceValuesForRoll(d.val),
           randRx: (Math.random() * 8 + 14) * Math.PI,
           randRy: (Math.random() * 8 + 16) * Math.PI,
           randRz: (Math.random() * 6 + 12) * Math.PI,

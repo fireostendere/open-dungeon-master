@@ -77,26 +77,25 @@ const FACE_NORMALS: [number, number, number][] = D20_FACES.map((face) =>
   calcNormal(D20_VERTICES[face[0]], D20_VERTICES[face[1]], D20_VERTICES[face[2]])
 );
 
-function getTargetRotation(targetVal: number): [number, number, number][] {
-  let faceIdx = D20_FACE_VALUES.indexOf(targetVal);
-  if (faceIdx === -1) faceIdx = 0;
-  const norm = FACE_NORMALS[faceIdx];
+// Canonical BG3 orientation: Face 0 is directly in front (normal [0, 0, 1]),
+// with horizontal top edge and apex pointing straight down.
+const CANONICAL_ROT: [number, number, number][] = [
+  [-0.3090708472753448, -0.8090248494677429, 0.4999540021923981],
+  [0.7557392923695095, 0.11020644087512578, 0.6455328514943839],
+  [-0.5773502691896257, 0.5773502691896257, 0.5773502691896257],
+];
 
-  const dot = norm[2];
-  if (dot > 0.9999) return [[1, 0, 0], [0, 1, 0], [0, 0, 1]];
-  if (dot < -0.9999) return [[-1, 0, 0], [0, 1, 0], [0, 0, -1]];
-
-  const ax = norm[1], ay = -norm[0], az = 0;
-  const axLen = Math.hypot(ax, ay) || 1;
-  const u: [number, number, number] = [ax / axLen, ay / axLen, az / axLen];
-  const angle = Math.acos(Math.max(-1, Math.min(1, dot)));
-  const c = Math.cos(angle), s = Math.sin(angle), t = 1 - c;
-
-  return [
-    [t * u[0] * u[0] + c, t * u[0] * u[1] - s * u[2], t * u[0] * u[2] + s * u[1]],
-    [t * u[0] * u[1] + s * u[2], t * u[1] * u[1] + c, t * u[1] * u[2] - s * u[0]],
-    [t * u[0] * u[2] - s * u[1], t * u[1] * u[2] + s * u[0], t * u[2] * u[2] + c],
-  ];
+function getFaceValuesForRoll(targetVal: number): number[] {
+  const others = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20].filter(
+    (x) => x !== targetVal
+  );
+  const values: number[] = [];
+  values[0] = targetVal; // Central face is ALWAYS the rolled value!
+  for (let i = 1; i < 20; i++) {
+    const pickIdx = (i * 7 + targetVal * 3) % others.length;
+    values[i] = others.splice(pickIdx, 1)[0];
+  }
+  return values;
 }
 
 function multMatrix(a: [number, number, number][], b: [number, number, number][]): [number, number, number][] {
@@ -154,6 +153,7 @@ type DieSimState = {
   cy: number;
   radius: number;
   targetRot: [number, number, number][];
+  faceValues: number[];
   randRx: number;
   randRy: number;
   randRz: number;
@@ -175,26 +175,30 @@ export function Bg3DiceOverlay({
   const [bonuses, setBonuses] = useState<ItemizedBonus[]>([]);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const animFrameRef = useRef<number | null>(null);
-  const seenSeqRef = useRef<number>(latestRoll?.seq ?? 0);
+  const seenSeqRef = useRef<number>(0);
+  const initializedRef = useRef(false);
+
+  if (!initializedRef.current) {
+    initializedRef.current = true;
+    let initialSeq = latestRoll?.seq ?? 0;
+    if (typeof window !== "undefined") {
+      const stored = window.sessionStorage.getItem("odm:bg3-last-dismissed-roll-seq");
+      if (stored) {
+        initialSeq = Number(stored);
+      } else if (latestRoll) {
+        const rollAgeMs = Date.now() - new Date(latestRoll.roll.createdAt).getTime();
+        // If created in the last 45 seconds, let it play
+        if (rollAgeMs < 45000) {
+          initialSeq = Math.max(0, latestRoll.seq - 1);
+        }
+      }
+    }
+    seenSeqRef.current = initialSeq;
+  }
+
   const rollQueueRef = useRef<Bg3RollData[]>([]);
 
   const character = sheets.find((s) => s.id === activeRoll?.roll.characterId);
-
-  const dismiss = useCallback(() => {
-    if (animFrameRef.current) {
-      cancelAnimationFrame(animFrameRef.current);
-      animFrameRef.current = null;
-    }
-    setActiveRoll(null);
-    setPhase("idle");
-    setBonuses([]);
-    onDismiss?.();
-
-    if (rollQueueRef.current.length > 0) {
-      const next = rollQueueRef.current.shift()!;
-      startRollAnimation(next);
-    }
-  }, [onDismiss]);
 
   const extractItemizedBonuses = useCallback((roll: StoredRoll, sheet?: CharacterSheet): ItemizedBonus[] => {
     const list: ItemizedBonus[] = [];
@@ -280,21 +284,33 @@ export function Bg3DiceOverlay({
         cx,
         cy,
         radius,
-        targetRot: getTargetRotation(d.value),
+        targetRot: CANONICAL_ROT,
+        faceValues: getFaceValuesForRoll(d.value),
         randRx: (Math.random() * 8 + 14) * Math.PI,
         randRy: (Math.random() * 8 + 16) * Math.PI,
         randRz: (Math.random() * 6 + 12) * Math.PI,
       };
     });
 
-    const startTime = performance.now();
+    let lastFrameTime = performance.now();
+    let activeElapsed = 0;
     const duration = 2000;
     let landingSoundDone = false;
     let verdictSoundDone = false;
 
     const renderLoop = (now: number) => {
-      const elapsed = now - startTime;
-      const progress = Math.min(1, elapsed / duration);
+      // Pause time while tab is hidden/minimized so the player never misses the roll!
+      if (typeof document !== "undefined" && document.hidden) {
+        lastFrameTime = now;
+        animFrameRef.current = requestAnimationFrame(renderLoop);
+        return;
+      }
+
+      const dt = Math.min(100, Math.max(0, now - lastFrameTime));
+      lastFrameTime = now;
+      activeElapsed += dt;
+
+      const progress = Math.min(1, activeElapsed / duration);
       const easeOut = 1 - Math.pow(1 - progress, 3);
 
       const canvas = canvasRef.current;
@@ -317,7 +333,7 @@ export function Bg3DiceOverlay({
 
         let bounceScale = 1.0;
         if (progress >= 1) {
-          const dt = elapsed - duration;
+          const dt = activeElapsed - duration;
           bounceScale = 1.0 + 0.12 * Math.exp(-dt * 0.008) * Math.sin(dt * 0.025);
         }
 
@@ -388,7 +404,7 @@ export function Bg3DiceOverlay({
           // --- Number rendering: only after die settles, properly on face ---
           if (progress < 0.92) continue; // No numbers while spinning
 
-          const faceVal = D20_FACE_VALUES[item.idx];
+          const faceVal = die.faceValues[item.idx];
           if (norm[2] < 0.15) continue; // Skip faces too edge-on
 
           // Correct 2D centroid
@@ -413,46 +429,59 @@ export function Bg3DiceOverlay({
           const semiP = (edgeA + edgeB + edgeC) / 2;
           const inRadius = triArea / semiP;
 
-          const isCenter = norm[2] > 0.85;
+          const isCenter = item.idx === 0 || norm[2] > 0.85;
 
-          // Clip to triangle
+          // Clip only side faces so numbers stay inside facets, but center glow stays natural
           ctx.save();
-          ctx.beginPath();
-          ctx.moveTo(p0.px, p0.py);
-          ctx.lineTo(p1.px, p1.py);
-          ctx.lineTo(p2.px, p2.py);
-          ctx.closePath();
-          ctx.clip();
+          if (!isCenter) {
+            ctx.beginPath();
+            ctx.moveTo(p0.px, p0.py);
+            ctx.lineTo(p1.px, p1.py);
+            ctx.lineTo(p2.px, p2.py);
+            ctx.closePath();
+            ctx.clip();
+          }
 
           ctx.translate(fcx, fcy);
-          ctx.rotate(faceAngle);
           ctx.textAlign = "center";
           ctx.textBaseline = "middle";
 
           if (isCenter) {
+            // Center face: big glowing number, always strictly UPRIGHT (no rotation tilt!)
             const isSuccess = roll.success === true || (roll.dc !== null && roll.total >= roll.dc);
-            const fontSize = Math.round(Math.min(inRadius * 1.4, radius * 0.42));
-            ctx.font = `bold ${fontSize}px 'Cinzel', serif, Georgia`;
+            const fontSize = Math.round(Math.min(inRadius * 1.35, radius * 0.40));
+            ctx.font = `900 ${fontSize}px 'Cinzel', serif, Georgia`;
+
+            // Crisp dark outline for extreme contrast against any facet lighting
+            ctx.lineWidth = Math.max(2, Math.round(fontSize * 0.07));
+            ctx.strokeStyle = "rgba(10, 10, 20, 0.9)";
+            ctx.strokeText(String(faceVal), 0, 0);
 
             if (die.isCrit20) {
               ctx.fillStyle = "#fffbeb";
               ctx.shadowColor = "#f59e0b";
-              ctx.shadowBlur = 20;
+              ctx.shadowBlur = 24;
             } else if (die.isCrit1 || !isSuccess) {
               ctx.fillStyle = "#fb7185";
               ctx.shadowColor = "#e11d48";
-              ctx.shadowBlur = 18;
+              ctx.shadowBlur = 22;
             } else {
               ctx.fillStyle = "#fef08a";
               ctx.shadowColor = "#eab308";
-              ctx.shadowBlur = 16;
+              ctx.shadowBlur = 20;
             }
             ctx.fillText(String(faceVal), 0, 0);
+
+            // Second fill pass for brilliant crisp core
+            ctx.shadowBlur = 0;
+            ctx.fillText(String(faceVal), 0, 0);
           } else {
-            const fontSize = Math.round(Math.min(inRadius * 1.1, radius * 0.22));
-            ctx.font = `bold ${fontSize}px 'Cinzel', serif, Georgia`;
-            const alpha = Math.min(0.9, (norm[2] - 0.1) * 1.2);
-            ctx.fillStyle = `rgba(200, 210, 230, ${alpha})`;
+            // Side faces: high-contrast dark engraved numbers, rotated to follow face
+            ctx.rotate(faceAngle);
+            const fontSize = Math.round(Math.min(inRadius * 1.05, radius * 0.20));
+            ctx.font = `900 ${fontSize}px 'Cinzel', serif, Georgia`;
+            const alpha = Math.min(1.0, Math.max(0.55, (norm[2] - 0.05) * 1.8));
+            ctx.fillStyle = `rgba(10, 12, 20, ${alpha.toFixed(2)})`;
             ctx.fillText(String(faceVal), 0, 0);
           }
 
@@ -478,7 +507,7 @@ export function Bg3DiceOverlay({
         playBg3Sound("land");
       }
 
-      if (progress >= 1 && elapsed > duration + 500 && !verdictSoundDone) {
+      if (progress >= 1 && activeElapsed > duration + 500 && !verdictSoundDone) {
         verdictSoundDone = true;
         setPhase("verdict");
         const isSuccess = roll.success === true || (roll.dc !== null && roll.total >= roll.dc);
@@ -496,20 +525,46 @@ export function Bg3DiceOverlay({
         }
       }
 
-      if (elapsed < duration + 4800) {
+      // Keep rendering until settling ends; DO NOT auto-dismiss!
+      if (activeElapsed < duration + 3000) {
         animFrameRef.current = requestAnimationFrame(renderLoop);
-      } else {
-        dismiss();
       }
     };
 
     animFrameRef.current = requestAnimationFrame(renderLoop);
-  }, [character, extractItemizedBonuses, dismiss]);
+  }, [character, extractItemizedBonuses]);
+
+  const dismiss = useCallback(() => {
+    if (animFrameRef.current) {
+      cancelAnimationFrame(animFrameRef.current);
+      animFrameRef.current = null;
+    }
+    if (activeRoll) {
+      try {
+        window.sessionStorage.setItem("odm:bg3-last-dismissed-roll-seq", String(activeRoll.seq));
+      } catch {}
+    }
+    setActiveRoll(null);
+    setPhase("idle");
+    setBonuses([]);
+    onDismiss?.();
+
+    if (rollQueueRef.current.length > 0) {
+      const next = rollQueueRef.current.shift()!;
+      startRollAnimation(next);
+    }
+  }, [activeRoll, onDismiss, startRollAnimation]);
 
   useEffect(() => {
     if (!latestRoll || !enabled) return;
     if (latestRoll.seq <= seenSeqRef.current) return;
     seenSeqRef.current = latestRoll.seq;
+
+    // If tab is currently minimized / hidden, queue it so it rolls the moment user focuses the window!
+    if (typeof document !== "undefined" && document.hidden) {
+      rollQueueRef.current.push(latestRoll);
+      return;
+    }
 
     if (activeRoll) {
       rollQueueRef.current.push(latestRoll);
@@ -517,6 +572,24 @@ export function Bg3DiceOverlay({
       startRollAnimation(latestRoll);
     }
   }, [latestRoll, enabled, activeRoll, startRollAnimation]);
+
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (typeof document === "undefined" || document.hidden) return;
+      // Tab just became visible! If there's a queued roll and no active roll running, start it now!
+      if (!activeRoll && rollQueueRef.current.length > 0) {
+        const next = rollQueueRef.current.shift()!;
+        startRollAnimation(next);
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("focus", handleVisibilityChange);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("focus", handleVisibilityChange);
+    };
+  }, [activeRoll, startRollAnimation]);
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -555,10 +628,10 @@ export function Bg3DiceOverlay({
       role="dialog"
       aria-modal="true"
       onClick={dismiss}
+      onTouchEnd={dismiss}
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-md transition-opacity duration-300 animate-fade-in select-none cursor-pointer"
     >
       <div
-        onClick={(e) => e.stopPropagation()}
         className={cn(
           "relative w-[440px] max-w-[94vw] overflow-hidden rounded-[2.5rem] border border-[#a18146]/55 bg-gradient-to-b from-[#1c1228]/95 via-[#130d1d]/97 to-[#0b0612]/99 p-6 shadow-[0_0_80px_rgba(0,0,0,0.95),0_0_35px_rgba(168,85,247,0.2)] backdrop-blur-xl transition-all duration-400",
           phase === "verdict" && isCritSuccess && "shadow-[0_0_85px_rgba(250,204,21,0.45)] ring-2 ring-amber-400/75",
@@ -720,13 +793,9 @@ export function Bg3DiceOverlay({
             ) : null}
           </div>
 
-          <button
-            type="button"
-            onClick={dismiss}
-            className="mt-2 rounded-full border border-amber-500/30 bg-amber-950/40 px-5 py-1 text-xs text-amber-200/80 transition-colors hover:border-amber-400 hover:bg-amber-900/60 hover:text-amber-100"
-          >
-            Продолжить (или клик в любом месте)
-          </button>
+          <div className="mt-3 text-center text-xs tracking-widest text-amber-200/60 uppercase">
+            Нажмите в любое место, чтобы закрыть
+          </div>
         </div>
       </div>
     </div>
