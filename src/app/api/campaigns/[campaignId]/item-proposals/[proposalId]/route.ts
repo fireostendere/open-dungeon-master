@@ -1,11 +1,12 @@
 import { z } from "zod";
-import { isErrorResponse, steersStory, requireMember } from "@/lib/campaign-api";
+import { capsFor, isErrorResponse, steersStory, requireMember } from "@/lib/campaign-api";
 import { getItemProposal, resolveItemProposal } from "@/lib/db/item-proposals";
 import { listSheets } from "@/lib/db/sheets";
 import { applyDmMutation } from "@/lib/dm/mutations";
 import { canResolveProposal } from "@/lib/dm/proposal-logic";
 import { publicItemProposal } from "@/lib/dm/proposal-intercept";
 import { publishPersisted } from "@/lib/events";
+import { projectSpatialUserRows, spatialLegacyPolicy } from "@/lib/spatial/legacy-projection";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -32,6 +33,13 @@ export async function POST(
 
   const proposal = getItemProposal(proposalId);
   if (!proposal || proposal.campaignId !== campaignId) {
+    return Response.json({ error: "Offer not found." }, { status: 404 });
+  }
+  const caps = capsFor(context);
+  const policy = spatialLegacyPolicy({
+    campaignId, userId: context.user.id, adjudicates: caps.adjudicates, ownedCharacterIds: [],
+  });
+  if (!projectSpatialUserRows(policy, [proposal]).length) {
     return Response.json({ error: "Offer not found." }, { status: 404 });
   }
   if (proposal.status !== "pending") {

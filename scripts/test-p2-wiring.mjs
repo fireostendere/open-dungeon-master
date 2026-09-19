@@ -16,12 +16,12 @@ function load(relative, deps) {
   const output = ts.transpileModule(readFileSync(new URL(relative, root), 'utf8'), {
     compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS, esModuleInterop: true },
   }).outputText;
-  const module = { exports: {} };
-  new Function('module', 'exports', 'require', output)(module, module.exports, name => {
+  const localModule = { exports: {} };
+  new Function('module', 'exports', 'require', output)(localModule, localModule.exports, name => {
     if (Object.hasOwn(deps, name)) return deps[name];
     throw new Error(`Unsubstituted dependency: ${name}`);
   });
-  return module.exports;
+  return localModule.exports;
 }
 // Deliberately does not validate. Test only trusted, already-shaped inputs.
 function schemaDouble(defaults = {}) {
@@ -75,6 +75,19 @@ function fixture() {
     '@/lib/db/narrator-commands': { listNarratorReceipts: () => [] },
     '@/lib/dm/delegation': { coverInEffect: () => false }, '@/lib/dm/social-tools': { npcRosterForPrompt: () => [] },
     '@/lib/db/asks': asks, '@/lib/mcp-read-budget.mjs': budget,
+    '@/lib/spatial/narrator': {
+      SPATIAL_NARRATOR_CATALOG: [],
+      SPATIAL_NARRATOR_OPERATIONS: new Set(),
+      SPATIAL_GUIDANCE: '',
+      readSpatialForNarrator: () => null,
+      invokeSpatialForNarrator: forbidden,
+    },
+    '@/lib/spatial/narrator-page.mjs': {
+      spatialNarratorBoundary: ({ events }) => ({ events, roomMessages: [], hasMore: false }),
+    },
+    '@/lib/spatial/service': {
+      spatialEnabled: () => false,
+    },
     '@/lib/events': { listEventsSince: (_id, cursor, limit) => events.filter(e => e.seq > cursor).slice(0, limit),
       publishPersisted: forbidden, publishEphemeral: (...a) => notices.push(['table', ...a]),
       publishUserEphemeral: (...a) => notices.push(['user', ...a]) },
@@ -177,18 +190,22 @@ function route(kind, muted, limited, calls) {
       ASK_SCOPES: ['story', 'rules', 'sheet'], ASK_VISIBILITIES: ['private', 'table'], QUESTION_MAX_CHARS: 4000,
       clampQuestion: forbidden, inferScope: forbidden,
     },
+    '@/lib/spatial/service': {
+      spatialEnabled: () => false,
+      postRoomMessage: forbidden,
+    },
     '@/lib/ingress-budget': { enforcePlayerIngress: () => { calls.quota++; return limited ? Response.json({}, { status: 429 }) : null; } },
   });
 }
 for (const kind of ['ask', 'actions', 'whispers']) {
   test(`wiring: ${kind} rejects a muted participant before quota or domain work`, async () => {
-    const calls = { voice: 0, quota: 0 }; const module = route(kind, true, false, calls);
-    const result = await module.POST(new Request('http://localhost', { method: 'POST', body: '{}' }), { params: Promise.resolve({ campaignId: 'c1' }) });
+    const calls = { voice: 0, quota: 0 }; const routeModule = route(kind, true, false, calls);
+    const result = await routeModule.POST(new Request('http://localhost', { method: 'POST', body: '{}' }), { params: Promise.resolve({ campaignId: 'c1' }) });
     assert.equal(result.status, 403); assert.equal(calls.voice, 1); assert.equal(calls.quota, 0);
   });
   test(`wiring: ${kind} stops at the ingress quota before persistence or model invocation`, async () => {
-    const calls = { voice: 0, quota: 0 }; const module = route(kind, false, true, calls);
-    const result = await module.POST(new Request('http://localhost', { method: 'POST', body: JSON.stringify({ question: 'Q', scope: 'rules', kind: 'do', content: 'A', message: 'W' }) }), { params: Promise.resolve({ campaignId: 'c1' }) });
+    const calls = { voice: 0, quota: 0 }; const routeModule = route(kind, false, true, calls);
+    const result = await routeModule.POST(new Request('http://localhost', { method: 'POST', body: JSON.stringify({ question: 'Q', scope: 'rules', kind: 'do', content: 'A', message: 'W' }) }), { params: Promise.resolve({ campaignId: 'c1' }) });
     assert.equal(result.status, 429); assert.equal(calls.quota, 1);
   });
 }

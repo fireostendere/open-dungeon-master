@@ -32,10 +32,10 @@ async function fixture(){
       withMcpCancellation:callback=>(...args)=>{args.at(-1)?.mcpReq?.signal?.throwIfAborted();return callback(...args);}},
     './http-boundary.mjs':{createSafeHttpListener:()=>{throw Error('listener must not start on import');}},
   };
-  const module=new vm.SourceTextModule(fs.readFileSync(source,'utf8'),{context,identifier:source,initializeImportMeta(meta){meta.url=new URL('../mcp/server.mjs',import.meta.url).href;}});
-  await module.link(async name=>{const exports=mocked[name];if(!exports)throw Error('Unexpected module: '+name);return new vm.SyntheticModule(Object.keys(exports),function(){for(const [key,value]of Object.entries(exports))this.setExport(key,value);},{context});});
-  await module.evaluate();
-  return{api:module.namespace,server:module.namespace.createVerifiedMcpServer({expectPreload:false}),calls};
+  const sourceModule=new vm.SourceTextModule(fs.readFileSync(source,'utf8'),{context,identifier:source,initializeImportMeta(meta){meta.url=new URL('../mcp/server.mjs',import.meta.url).href;}});
+  await sourceModule.link(async name=>{const exports=mocked[name];if(!exports)throw Error('Unexpected module: '+name);return new vm.SyntheticModule(Object.keys(exports),function(){for(const [key,value]of Object.entries(exports))this.setExport(key,value);},{context});});
+  await sourceModule.evaluate();
+  return{api:sourceModule.namespace,server:sourceModule.namespace.createVerifiedMcpServer({expectPreload:false}),calls};
 }
 
 test('merged server retains all base tools and exposes the fourth narrator resource',async()=>{

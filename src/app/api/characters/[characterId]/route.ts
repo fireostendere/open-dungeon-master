@@ -5,6 +5,7 @@ import {
   getCharacterForUser,
   listAssignmentsForCharacter,
   updateCharacter,
+  updateCharacterBackstory,
   updateCharacterPortrait,
 } from "@/lib/db/characters";
 import { listEventsForLibraryCharacter } from "@/lib/db/character-events";
@@ -19,8 +20,8 @@ const updateLibrarySchema = z.object({
   sheet: createSheetSchema,
 });
 
-// Portrait-only PATCH from the library list page; attachmentSchema keeps
-// the url pinned to local /uploads/ files.
+// Backstory and portrait updates from character detail / edit page.
+const updateBackstorySchema = z.object({ backstory: z.string().max(4000) }).strict();
 const updatePortraitSchema = z.object({ portrait: attachmentSchema.nullable() }).strict();
 
 export async function GET(
@@ -57,6 +58,20 @@ export async function PATCH(
   const { characterId } = await params;
   const raw = await request.json().catch(() => ({}));
   if (raw && typeof raw === "object" && !("sheet" in raw)) {
+    if ("backstory" in raw) {
+      const parsedBackstory = updateBackstorySchema.safeParse(raw);
+      if (!parsedBackstory.success) {
+        return Response.json(
+          { error: parsedBackstory.error.issues[0]?.message || "Invalid backstory update." },
+          { status: 400 },
+        );
+      }
+      const character = updateCharacterBackstory(user.id, characterId, parsedBackstory.data.backstory);
+      if (!character) {
+        return Response.json({ error: "Character not found." }, { status: 404 });
+      }
+      return Response.json({ character });
+    }
     const parsedPortrait = updatePortraitSchema.safeParse(raw);
     if (!parsedPortrait.success) {
       return Response.json(

@@ -1,6 +1,8 @@
-import { isErrorResponse, steersStory, requireMember } from "@/lib/campaign-api";
+import { capsFor, isErrorResponse, steersStory, requireMember } from "@/lib/campaign-api";
 import { listRelationships } from "@/lib/db/relationships";
 import { friendshipTier, TIER_LABEL } from "@/lib/dm/relationship-logic";
+import { listSheets } from "@/lib/db/sheets";
+import { projectSpatialOwnedRows, spatialLegacyPolicy } from "@/lib/spatial/legacy-projection";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -22,13 +24,17 @@ export async function GET(
     return context;
   }
   const lead = steersStory(context);
+  const ownedCharacterIds = listSheets(campaignId).filter((sheet) => sheet.userId === context.user.id).map((sheet) => sheet.id);
+  const policy = spatialLegacyPolicy({
+    campaignId, userId: context.user.id, adjudicates: capsFor(context).adjudicates, ownedCharacterIds,
+  });
   if (context.campaign.gameSettings.relationships === "off") {
     return Response.json({ enabled: false, relationships: [] });
   }
   return Response.json({
     enabled: true,
     romanceEnabled: context.campaign.gameSettings.romance !== "off",
-    relationships: listRelationships(campaignId).map((relationship) => {
+    relationships: projectSpatialOwnedRows(policy, listRelationships(campaignId)).map((relationship) => {
       const tier = friendshipTier(relationship.approval);
       return {
         id: relationship.id,

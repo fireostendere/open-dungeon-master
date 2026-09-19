@@ -39,6 +39,11 @@ import { listUtilityCalls } from "@/lib/dm/call-tracker";
 import { listBlockedUserIds } from "@/lib/db/moderation";
 import { publishPersisted, publishWithSeq } from "@/lib/events";
 import { listNarrationAudio } from "@/lib/tts";
+import { spatialEnabled, spatialContext, spatialStore } from "@/lib/spatial/service";
+import {
+  projectSpatialCampaign, projectSpatialChapters, projectSpatialNotes, projectSpatialRolls,
+  projectSpatialUserRows, spatialLegacyPolicy,
+} from "@/lib/spatial/legacy-projection";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -55,31 +60,51 @@ export async function GET(
 
   const { campaign, user } = context;
   const caps = capsFor(context);
+  const spatial = spatialEnabled(campaignId);
+  const spatialActor = spatial ? spatialContext(campaignId, user.id).actor : null;
+  const spatialView = spatialActor ? spatialStore().view(spatialActor) : null;
   const sheets = listSheets(campaignId);
   // Their own characters, for the rolls only they and the DM may read.
   const ownedCharacterIds = sheets
     .filter((sheet) => sheet.userId === user.id)
     .map((sheet) => sheet.id);
+  const visibleSheets = spatial && !caps.adjudicates ? sheets.filter((sheet) => sheet.userId === user.id) : sheets;
+  const legacyPolicy = spatialLegacyPolicy({ campaignId, userId: user.id, adjudicates: caps.adjudicates, ownedCharacterIds });
+  const visibleRolls = projectSpatialRolls(legacyPolicy, listRollsVisibleTo(campaignId, caps, ownedCharacterIds, 20));
+  const visiblePendingRolls = listOpenPendingRolls(campaignId)
+    .filter((roll) => !spatial || caps.adjudicates || roll.userId === user.id)
+    .map(publicPendingRoll);
+  const visibleCharacterEvents = listRecentCampaignEvents(campaignId, 30)
+    .filter((event) => !spatial || caps.adjudicates || ownedCharacterIds.includes(event.campaignCharacterId));
+  const visibleMessages = spatial
+    ? spatialStore().messages(spatialActor!, { roomId: null, limit: 100 }).messages
+    : listRecentMessages(campaignId, 100);
   return Response.json({
-    campaign: publicCampaign(campaign),
+    campaign: projectSpatialCampaign(legacyPolicy, publicCampaign(campaign)),
     me: { id: user.id, username: user.username, avatar: user.avatar },
     members: listMembers(campaignId),
     // Players this user has blocked; their table messages fold away.
     blockedUserIds: listBlockedUserIds(user.id),
-    sheets,
-    messages: listRecentMessages(campaignId, 100),
+    sheets: visibleSheets,
+    // In spatial mode campaign_messages is not a scene history. The only
+    // player-visible transcript here is the separately authorized OOC ledger;
+    // room prose is served by location-chat and never enters this snapshot.
+    messages: visibleMessages,
     // Blind and DM-only rolls are redacted or dropped here, not in the UI;
     // a player's snapshot must never carry a number they are not meant to
     // have (src/lib/dm/viewer.ts).
-    rolls: listRollsVisibleTo(campaignId, caps, ownedCharacterIds, 20),
-    pendingRolls: listOpenPendingRolls(campaignId).map(publicPendingRoll),
-    auditLog: listRecentAudit(campaignId, 50),
-    locations: listLocations(campaignId),
-    chapters: listChapters(campaignId),
-    notes: listNotesVisibleTo(campaignId, user.id, caps.steersStory),
-    characterEvents: listRecentCampaignEvents(campaignId, 30),
-    encounter: activePublicEncounter(campaignId, { enemyNumbers: caps.enemyNumbers }),
-    itemProposals: listOpenItemProposals(campaignId).map(publicItemProposal),
+    rolls: visibleRolls,
+    pendingRolls: visiblePendingRolls,
+    auditLog: spatial && !caps.adjudicates ? [] : listRecentAudit(campaignId, 50),
+    // Legacy location/map IDs are not interchangeable with spatial room IDs.
+    // Until a room-scoped map projection is attached, never leak the current
+    // campaign-wide map to a player in spatial mode.
+    locations: spatial && !caps.adjudicates ? [] : listLocations(campaignId),
+    chapters: projectSpatialChapters(legacyPolicy, listChapters(campaignId)),
+    notes: projectSpatialNotes(legacyPolicy, listNotesVisibleTo(campaignId, user.id, caps.steersStory)),
+    characterEvents: visibleCharacterEvents,
+    encounter: legacyPolicy.scoped ? null : activePublicEncounter(campaignId, { enemyNumbers: caps.enemyNumbers }),
+    itemProposals: projectSpatialUserRows(legacyPolicy, listOpenItemProposals(campaignId)).map(publicItemProposal),
     // Story the DM has written down. A DM tool, so only the DM seat is
     // served the list; the text itself is public either way, because a beat
     // is published as an ordinary DM passage (src/lib/dm/beats.ts).
@@ -87,19 +112,20 @@ export async function GET(
     latestSeq: latestSeq(campaignId),
     // Which messages already have narration on disk, so read-aloud plays them
     // straight from a fresh load instead of rendering a second take.
-    narrationAudio: listNarrationAudio(campaignId),
+    narrationAudio: spatial && !caps.adjudicates ? {} : listNarrationAudio(campaignId),
     // What is playing. The ambience_changed event keeps it live from here;
     // without the snapshot a reload mid-scene would sit in silence until the
     // next place or fight changed it.
-    ambience: getAmbience(campaignId),
+    ambience: legacyPolicy.scoped ? null : getAmbience(campaignId),
     // What this seat may see and do, so the client never re-derives it from
     // ids and never shows a control the server would refuse.
     caps,
     // In-memory status so a reload mid-turn still shows the DM at work.
-    dmStatus: getDmStatus(campaignId),
+    dmStatus: caps.adjudicates ? getDmStatus(campaignId) : null,
     // Same reason, for background work: utility_calls is ephemeral, so a
     // client that reloads mid-compaction would otherwise see an empty strip.
-    utilityCalls: listUtilityCalls(campaignId),
+    utilityCalls: caps.adjudicates ? listUtilityCalls(campaignId) : [],
+    spatial: spatialView,
   });
 }
 

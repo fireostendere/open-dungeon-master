@@ -1,244 +1,59 @@
-import { latestSeq } from "@/lib/db/campaigns";
-import { parseWitnesses, serializeWitnesses } from "@/lib/dm/witness-logic";
-import { getDatabase, nowIso } from "@/lib/db/core";
-import {
-  classifyCandidate,
-  factVisibleTo,
-  normalizeSubject,
-  parseKnownBy,
-  serializeKnownBy,
-  FACT_MAX_CHARS,
-  type FactCandidate,
-  type FactCategory,
-  type FactKnownBy,
-} from "@/lib/dm/fact-logic";
+export * from '@/lib/db/facts-store';
+import * as raw from '@/lib/db/facts-store';
+import type { WorldFact } from '@/lib/db/facts-store';
+import { getDatabase } from '@/lib/db/core';
+import { getCampaignById } from '@/lib/db/campaigns';
+import { listSheets } from '@/lib/db/sheets';
+import { spatialEnabled } from '@/lib/spatial/service';
+import { domainStore, publishEntity, visibleEntities } from '@/lib/spatial/domain';
+import { currentPublicationScope, type PublicationScope } from '@/lib/spatial/publication-scope.mjs';
 
-// The world-state fact sheet ("divergence register"). Facts arrive from the
-// chapter-close extraction, the compaction fallback, manual pins, and the
-// world-simulation engines; they render into GAME STATE as server-tracked
-// canon so established truths survive long past the message history budget.
-//
-// PRIVACY: known_by scopes reads. SSE only ever carries a contentless
-// facts_updated ephemeral; clients refetch their own filtered view, exactly
-// like whispers.
-
-export type WorldFactSource = "chapter" | "compaction" | "manual" | "simulation";
-export type WorldFactStatus = "active" | "superseded" | "retired";
-
-export type WorldFact = {
-  id: string;
-  campaignId: string;
-  category: FactCategory;
-  subject: string;
-  fact: string;
-  knownBy: FactKnownBy;
-  // Tracked NPCs present when this was established; see witness-logic.ts.
-  witnessedBy: string[];
-  pinned: boolean;
-  status: WorldFactStatus;
-  source: WorldFactSource;
-  sourceSeq: number | null;
-  createdAt: string;
-  updatedAt: string;
-};
-
-type WorldFactRow = {
-  id: string;
-  campaign_id: string;
-  category: FactCategory;
-  subject: string;
-  fact: string;
-  known_by: string;
-  witnessed_by: string | null;
-  pinned: number;
-  status: WorldFactStatus;
-  source: WorldFactSource;
-  source_seq: number | null;
-  created_at: string;
-  updated_at: string;
-};
-
-function mapFact(row: WorldFactRow): WorldFact {
-  return {
-    id: row.id,
-    campaignId: row.campaign_id,
-    category: row.category,
-    subject: row.subject,
-    fact: row.fact,
-    knownBy: parseKnownBy(row.known_by),
-    witnessedBy: parseWitnesses(row.witnessed_by ?? "[]"),
-    pinned: row.pinned === 1,
-    status: row.status,
-    source: row.source,
-    sourceSeq: row.source_seq,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
-  };
+export function insertFact(input: Parameters<typeof raw.insertFact>[0] & { scope?: PublicationScope }): WorldFact {
+  return getDatabase().transaction(() => {
+    const { scope, ...data } = input;
+    return publishEntity('fact', raw.insertFact(data), scope ? { scope } : {});
+  })();
 }
-
-const FACT_COLUMNS =
-  "id, campaign_id, category, subject, fact, known_by, witnessed_by, pinned, status, source, source_seq, created_at, updated_at";
-
-export function getFactById(factId: string): WorldFact | null {
-  const row = getDatabase()
-    .prepare(`SELECT ${FACT_COLUMNS} FROM world_facts WHERE id = ?`)
-    .get(factId) as WorldFactRow | undefined;
-  return row ? mapFact(row) : null;
+function mutate(work: () => WorldFact | null) {
+  return getDatabase().transaction(() => { const result = work(); return result ? publishEntity('fact', result) : null; })();
 }
-
-// Active facts newest-first; the prompt renderer applies pinning and caps.
-export function listActiveFacts(campaignId: string, limit = 200): WorldFact[] {
-  const rows = getDatabase()
-    .prepare(
-      `
-        SELECT ${FACT_COLUMNS} FROM world_facts
-        WHERE campaign_id = ? AND status = 'active'
-        ORDER BY created_at DESC, id DESC
-        LIMIT ?
-      `,
-    )
-    .all(campaignId, limit) as WorldFactRow[];
-  return rows.map(mapFact);
-}
-
-// Facts a member may see, per known_by scoping. DM secrets only surface
-// when the lead explicitly requests them.
-export function listFactsVisibleTo(
-  campaignId: string,
-  ownedCharacterIds: string[],
-  includeDmSecrets: boolean,
-): WorldFact[] {
-  return listActiveFacts(campaignId).filter((fact) =>
-    factVisibleTo(fact.knownBy, ownedCharacterIds, includeDmSecrets),
-  );
-}
-
-export function insertFact(input: {
-  campaignId: string;
-  category: FactCategory;
-  subject: string;
-  fact: string;
-  knownBy?: FactKnownBy;
-  witnessedBy?: string[];
-  pinned?: boolean;
-  source: WorldFactSource;
-  sourceSeq?: number | null;
-}): WorldFact {
-  const id = crypto.randomUUID();
-  const now = nowIso();
-  getDatabase()
-    .prepare(
-      `
-        INSERT INTO world_facts (
-          id, campaign_id, category, subject, fact, known_by, witnessed_by, pinned,
-          status, source, source_seq, created_at, updated_at
-        )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, ?, ?)
-      `,
-    )
-    .run(
-      id,
-      input.campaignId,
-      input.category,
-      normalizeSubject(input.subject),
-      input.fact.slice(0, FACT_MAX_CHARS),
-      serializeKnownBy(input.knownBy ?? "party"),
-      serializeWitnesses(input.witnessedBy ?? []),
-      input.pinned ? 1 : 0,
-      input.source,
-      // Every fact carries the campaign position it was learned at, so
-      // rollback tooling can reason about when a fact entered the world.
-      input.sourceSeq ?? latestSeq(input.campaignId),
-      now,
-      now,
-    );
-  return getFactById(id)!;
-}
-
-export function setFactPinned(factId: string, pinned: boolean): WorldFact | null {
-  getDatabase()
-    .prepare(`UPDATE world_facts SET pinned = ?, updated_at = ? WHERE id = ?`)
-    .run(pinned ? 1 : 0, nowIso(), factId);
-  return getFactById(factId);
-}
-
-export function setFactStatus(factId: string, status: WorldFactStatus): WorldFact | null {
-  getDatabase()
-    .prepare(`UPDATE world_facts SET status = ?, updated_at = ? WHERE id = ?`)
-    .run(status, nowIso(), factId);
-  return getFactById(factId);
-}
-
-export function updateFactText(
-  factId: string,
-  patch: { fact?: string; subject?: string; category?: FactCategory },
-): WorldFact | null {
-  const fact = getFactById(factId);
-  if (!fact) {
-    return null;
-  }
-  getDatabase()
-    .prepare(
-      `UPDATE world_facts SET fact = ?, subject = ?, category = ?, updated_at = ? WHERE id = ?`,
-    )
-    .run(
-      (patch.fact ?? fact.fact).slice(0, FACT_MAX_CHARS),
-      normalizeSubject(patch.subject ?? fact.subject),
-      patch.category ?? fact.category,
-      nowIso(),
-      factId,
-    );
-  return getFactById(factId);
-}
-
-// Retires every active fact sharing the candidate's category+subject; used
-// when a newer fact supersedes what was on file about that subject.
-function supersedeSubject(campaignId: string, category: FactCategory, subject: string) {
-  if (!subject) {
-    return;
-  }
-  getDatabase()
-    .prepare(
-      `
-        UPDATE world_facts SET status = 'superseded', updated_at = ?
-        WHERE campaign_id = ? AND category = ? AND subject = ? AND status = 'active'
-          AND pinned = 0
-      `,
-    )
-    .run(nowIso(), campaignId, category, subject);
-}
-
-// Records a batch of extracted candidates with dedup and supersede
-// semantics. Pinned facts are never auto-superseded (a pin is a human
-// statement that this exact wording stays). Returns the inserted rows.
-export function recordExtractedFacts(
-  campaignId: string,
-  candidates: FactCandidate[],
-  source: WorldFactSource,
-  options: { knownBy?: FactKnownBy; sourceSeq?: number | null; witnessedBy?: string[] } = {},
-): WorldFact[] {
-  const inserted: WorldFact[] = [];
-  for (const candidate of candidates) {
-    const existing = listActiveFacts(campaignId);
-    const verdict = classifyCandidate(candidate, existing);
-    if (verdict === "duplicate") {
-      continue;
+export function setFactPinned(...args: Parameters<typeof raw.setFactPinned>) { return mutate(() => raw.setFactPinned(...args)); }
+export function setFactStatus(...args: Parameters<typeof raw.setFactStatus>) { return mutate(() => raw.setFactStatus(...args)); }
+export function updateFactText(...args: Parameters<typeof raw.updateFactText>) { return mutate(() => raw.updateFactText(...args)); }
+export function recordExtractedFacts(...args: Parameters<typeof raw.recordExtractedFacts>): WorldFact[] {
+  return getDatabase().transaction(() => {
+    const before = (getDatabase().prepare('SELECT id FROM world_facts WHERE campaign_id=?').all(args[0]) as { id: string }[])
+      .map(({ id }) => raw.getFactById(id)).filter((value): value is WorldFact => value !== null);
+    const result = raw.recordExtractedFacts(...args);
+    // raw.recordExtractedFacts invokes local SQL helpers. Capture both new
+    // facts AND rows superseded by that batch, not just its return value.
+    const ids = new Set([...before, ...result].map(fact => fact.id));
+    for (const id of ids) {
+      const fact = raw.getFactById(id);
+      if (fact && JSON.stringify(before.find(value => value.id === id)) !== JSON.stringify(fact)) {
+        publishEntity('fact', fact, { scope: currentPublicationScope(args[0]) ?? { kind: 'dm' } });
+      }
     }
-    if (verdict === "supersedes") {
-      supersedeSubject(campaignId, candidate.category, normalizeSubject(candidate.subject));
-    }
-    inserted.push(
-      insertFact({
-        campaignId,
-        category: candidate.category,
-        subject: candidate.subject,
-        fact: candidate.fact,
-        knownBy: options.knownBy ?? "party",
-        witnessedBy: options.witnessedBy ?? [],
-        source,
-        sourceSeq: options.sourceSeq ?? null,
-      }),
-    );
+    return result;
+  })();
+}
+export function registerUnversionedFacts(campaignId: string) {
+  if (!spatialEnabled(campaignId)) return;
+  const store = domainStore();
+  const ids = getDatabase().prepare('SELECT id FROM world_facts WHERE campaign_id=?').all(campaignId) as { id: string }[];
+  for (const { id } of ids) if (!store.has(campaignId, 'fact', id)) {
+    const value = raw.getFactById(id);
+    // Existing private knowledge can be retained; an old source_seq is not
+    // permission to expose text edited after location mode was enabled.
+    if (value) publishEntity('fact', value, { scope: { kind: 'dm' } });
   }
-  return inserted;
+}
+export function listFactsVisibleTo(campaignId: string, ownedCharacterIds: string[], includeDmSecrets: boolean, viewerUserId?: string): WorldFact[] {
+  if (!spatialEnabled(campaignId)) return raw.listFactsVisibleTo(campaignId, ownedCharacterIds, includeDmSecrets);
+  registerUnversionedFacts(campaignId);
+  const owners = [...new Set(listSheets(campaignId).filter(sheet => ownedCharacterIds.includes(sheet.id)).map(sheet => sheet.userId))];
+  const userId = viewerUserId ?? (includeDmSecrets ? getCampaignById(campaignId)?.dmUserId : owners.length === 1 ? owners[0] : undefined);
+  if (!userId) return [];
+  return visibleEntities<WorldFact>(campaignId, userId, 'fact', { limit: 1000 })
+    .filter(fact => fact.status === 'active' && (includeDmSecrets || fact.knownBy !== 'dm'));
 }

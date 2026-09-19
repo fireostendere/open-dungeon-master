@@ -233,6 +233,22 @@ export function updateCharacterPortrait(
   return getCharacter(id);
 }
 
+export function updateCharacterBackstory(
+  userId: string,
+  id: string,
+  backstory: string,
+): LibraryCharacter | null {
+  const character = getCharacterForUser(userId, id);
+  if (!character) {
+    return null;
+  }
+  const stored: CreateSheetInput = { ...character.sheet, backstory };
+  getDatabase()
+    .prepare(`UPDATE library_characters SET sheet_json = ?, updated_at = ? WHERE id = ?`)
+    .run(JSON.stringify(stored), nowIso(), id);
+  return getCharacter(id);
+}
+
 export function deleteCharacter(userId: string, id: string): boolean {
   const result = getDatabase()
     .prepare(`DELETE FROM library_characters WHERE id = ? AND user_id = ?`)

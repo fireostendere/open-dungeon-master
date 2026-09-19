@@ -12,7 +12,7 @@ export function loadReviewModule(filename, mocks = {}) {
     compilerOptions: {target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX, esModuleInterop: true}, reportDiagnostics: true});
   const errors = (output.diagnostics ?? []).filter(x => x.category === ts.DiagnosticCategory.Error);
   if (errors.length) throw new Error(ts.formatDiagnostics(errors, {getCanonicalFileName: f => f, getCurrentDirectory: () => process.cwd(), getNewLine: () => '\n'}));
-  const module = {exports:{}};
+  const localModule = {exports:{}};
   const localRequire = createRequire(filename);
   const resolveDep = (name) => {
     if (Object.hasOwn(mocks, name)) return mocks[name];
@@ -31,8 +31,8 @@ export function loadReviewModule(filename, mocks = {}) {
     return localRequire(name);
   };
   new Function('require','module','exports','__filename','__dirname',output.outputText)(
-    resolveDep, module,module.exports,filename,path.dirname(filename));
-  return module.exports;
+    resolveDep, localModule,localModule.exports,filename,path.dirname(filename));
+  return localModule.exports;
 }
 export function namedImports(filename) {
   const file = ts.createSourceFile(filename, fs.readFileSync(filename, 'utf8'), ts.ScriptTarget.Latest, true);

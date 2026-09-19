@@ -22,14 +22,14 @@ export function loadSource(relative, dependencies = {}) {
   if (errors.length) throw new Error(ts.formatDiagnosticsWithColorAndContext(errors, {
     getCanonicalFileName: (name) => name, getCurrentDirectory: () => root, getNewLine: () => '\n',
   }));
-  const module = { exports: {} };
+  const localModule = { exports: {} };
   const scopedRequire = (name) => {
     if (Object.hasOwn(dependencies, name)) return dependencies[name];
     if (name.startsWith('node:')) return nativeRequire(name);
     throw new Error(`Unsubstituted dependency ${name} in ${relative}`);
   };
-  new Function('module', 'exports', 'require', `${compiled.outputText}\n//# sourceURL=${filename}`)(module, module.exports, scopedRequire);
-  return module.exports;
+  new Function('module', 'exports', 'require', `${compiled.outputText}\n//# sourceURL=${filename}`)(localModule, localModule.exports, scopedRequire);
+  return localModule.exports;
 }
 
 export function sqliteFixture() {

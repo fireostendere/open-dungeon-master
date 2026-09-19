@@ -1,6 +1,7 @@
 import { currentUser, unauthorized } from "@/lib/auth";
 import { isCampaignMember } from "@/lib/db/campaigns";
 import { serveGeneratedFile } from "@/lib/serve-file";
+import { spatialContext, spatialEnabled, spatialStore } from "@/lib/spatial/service";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -21,6 +22,13 @@ export async function GET(
   const campaignId = segments[0] ?? "";
   if (!user.isAdmin && !isCampaignMember(campaignId, user.id)) {
     return Response.json({ error: "Not found." }, { status: 404 });
+  }
+  if (!user.isAdmin && spatialEnabled(campaignId)) {
+    const { actor } = spatialContext(campaignId, user.id);
+    const messageId = (segments[1] ?? "").replace(/\.mp3$/i, "");
+    if (!actor.isDm && !spatialStore().canReadMessage(actor, messageId)) {
+      return Response.json({ error: "Not found." }, { status: 404 });
+    }
   }
   return serveGeneratedFile("generated-audio", segments);
 }

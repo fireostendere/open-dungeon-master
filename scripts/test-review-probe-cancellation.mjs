@@ -57,7 +57,7 @@ import * as scope from '../src/lib/operation-scope.mjs';
 import * as guard from '../src/lib/safe-endpoint.mjs';
 function providerActions(probe) {
   const writes = []; let saved;
-  const module = loadReviewModule(fileURLToPath(new URL('../src/lib/provider-auth/actions.ts', import.meta.url)), {
+  const loaded = loadReviewModule(fileURLToPath(new URL('../src/lib/provider-auth/actions.ts', import.meta.url)), {
     './service.mjs': {}, './core.mjs': core,
     './connections.mjs': { ...connections, probeConnection: probe },
     '../operation-scope.mjs': scope, '@/lib/url-guard': guard,
@@ -69,7 +69,7 @@ function providerActions(probe) {
       getLlmProfile: () => saved, listLlmProfiles: () => [],
     },
   });
-  return { ...module, writes };
+  return { ...loaded, writes };
 }
 const candidate = { action: 'connect', provider: 'qwen-local', model: 'fixture', apply: true };
 test('abort after the probe but before persistence creates/applies nothing', async () => {
