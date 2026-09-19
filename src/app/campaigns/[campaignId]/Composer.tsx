@@ -285,13 +285,11 @@ function ComposerInner({
           />
         ))}
         <FloorBanners
-          campaignId={campaignId}
           floor={floor}
           spotlighted={spotlighted}
           heldSpotlightNames={heldSpotlightNames}
           encounter={encounter}
           steersStory={steersStory}
-          meUserId={meUserId}
           onRelease={onReleaseFloor}
         />
         <DirectorArmedBanner campaignId={campaignId} steersStory={steersStory} armed={directorArm} />

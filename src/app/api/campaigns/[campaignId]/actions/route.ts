@@ -45,7 +45,9 @@ const actionSchema = z.object({
     ])).max(8),
     prose: z.string().trim().max(1200).optional(),
   }).strict().optional(),
-}).strict().refine((value) => Boolean(value.content || value.combatTurn), "An action needs content or a combat turn.");
+}).strict()
+  .refine((value) => Boolean(value.content || value.combatTurn), "An action needs content or a combat turn.")
+  .refine((value) => !value.combatTurn || value.kind === "do", "Combat turns must be actions.");
 
 export async function POST(
   request: Request,
@@ -157,7 +159,12 @@ export async function POST(
     const budget = budgetFor(encounter, sheet.id, attacksAllowedFor(sheet), conditionExtraActions(sheet.conditions));
     if (!budget) return Response.json({ error: "This combat turn is no longer available." }, { status: 409 });
     const publicEncounter = activePublicEncounter(campaignId);
-    const result = validateCombatTurnIntent(intent, sheet, new Set(publicEncounter?.enemies.filter((enemy) => enemy.status === "alive").map((enemy) => enemy.id)), new Set(listSheets(campaignId).filter((entry) => !entry.deathSaves?.dead).map((entry) => entry.id)), budget);
+    const allies = listSheets(campaignId).filter((entry) => !entry.deathSaves?.dead);
+    const visibleEnemies = publicEncounter?.enemies.filter((enemy) => enemy.status === "alive") ?? [];
+    const result = validateCombatTurnIntent(intent, sheet, new Set(visibleEnemies.map((enemy) => enemy.id)), new Set(allies.map((entry) => entry.id)), budget, {
+      language: campaign.gameSettings.language ?? "ru",
+      names: new Map([...allies, ...visibleEnemies].map((entry) => [entry.id, entry.name])),
+    });
     if (!result.ok) return Response.json({ error: result.error }, { status: 400 });
     combatContent = result.content;
     combatGate = { encounterId: encounter.id, round: encounter.round, turnIndex: encounter.turnIndex, characterId: sheet.id, requiresEndTurn: true, mechanicsResolved: false };
