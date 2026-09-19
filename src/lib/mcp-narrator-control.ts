@@ -111,7 +111,6 @@ function catalog(options: CatalogOptions = {}) {
       actions: g.entries.map((e) => ({
         name: e.name,
         label: e.label,
-        intent: e.intent,
       })),
     }));
   }
