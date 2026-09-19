@@ -32,15 +32,23 @@ export function useLocationChat(campaignId: string, userId: string) {
     const abort = new AbortController();
     let timer: ReturnType<typeof setTimeout> | undefined;
     let etag: string | null = null;
+    let delay = 0, failures = 0;
     const current = () => session.active && !abort.signal.aborted;
     async function poll() {
       try {
-        const response = await fetch(endpoint + (selected ? `?roomId=${encodeURIComponent(selected)}${before ? `&beforeSeq=${before}` : ""}` : ""), {
-          cache: "no-store", signal: abort.signal,
+        const query = new URLSearchParams();
+        if (selected) query.set("roomId", selected);
+        if (before) query.set("beforeSeq", String(before));
+        if (etag) query.set("waitMs", "20000");
+        const response = await fetch(endpoint + (query.size ? `?${query}` : ""), {
+          cache: "no-store", signal: AbortSignal.any([abort.signal, AbortSignal.timeout(25000)]),
           headers: { "X-ODM-Expected-User": userId, ...(etag ? { "If-None-Match": etag } : {}) },
         });
         if (!current()) return;
-        if (response.status === 304) return;
+        // No sleep after a supported long poll. Older servers retain the
+        // conservative polling interval instead of spinning on fast 304s.
+        delay = response.headers.get("x-odm-long-poll") === "1" ? 0 : 2000;
+        if (response.status === 304) { failures = 0; setPollError({ identity, message: "" }); return; }
         const data = await response.json();
         if (!current()) return;
         if (data?.code === "identity_changed" || [401, 403].includes(response.status)) {
@@ -50,7 +58,7 @@ export function useLocationChat(campaignId: string, userId: string) {
           setNavigation({ identity, selected: null, before: null }); setSnapshot(null); return;
         }
         if (!response.ok) { setSnapshot(null); throw new Error(data.error || "Unable to load location chat."); }
-        etag = response.headers.get("etag");
+        failures = 0; etag = response.headers.get("etag");
         if (data.enabled && selected && selected !== "ooc" && !data.rooms.some((room: { id: string }) => room.id === selected)) {
           setNavigation({ identity, selected: data.current?.roomId ?? "ooc", before: null }); return;
         }
@@ -58,8 +66,9 @@ export function useLocationChat(campaignId: string, userId: string) {
         setPollError({ identity, message: "" });
         if (data.enabled && selected === null) setNavigation({ identity, selected: data.current?.roomId ?? data.rooms[0]?.id ?? "ooc", before: null });
       } catch (cause) {
+        delay = Math.min(30000, 1000 * 2 ** Math.min(++failures, 5));
         if (current()) setPollError({ identity, message: cause instanceof Error ? cause.message : "Unable to load location chat." });
-      } finally { if (current()) timer = setTimeout(poll, 2000); }
+      } finally { if (current()) timer = setTimeout(poll, delay); }
     }
     void poll();
     return () => { abort.abort(); if (timer) clearTimeout(timer); };

@@ -97,10 +97,10 @@ export async function connectNarrator(host) {
   else host.timelineEpoch=epoch??host.timelineEpoch;
   await host.drainStory({ full: true });return result;
 }
-export async function drainNarratorStory(host) {
+export async function drainNarratorStory(host, { full = false } = {}) {
   for(let page=0;page<1000;page++){
     const cursor=host.lastSeq;
-    const result=await host.readSnapshot({campaignId:host.campaignId,afterSeq:cursor,limit:50,projection:'full',...(host.timelineEpoch?{timelineEpoch:host.timelineEpoch}:{})});
+    const result=await host.readSnapshot({campaignId:host.campaignId,afterSeq:cursor,limit:50,projection:full?'full':'live',...(host.timelineEpoch?{timelineEpoch:host.timelineEpoch}:{})});
     if(!result||!seq(result.currentSeq))throw fail('Narrator snapshot has no valid current sequence.',400);
     const epoch=epochOf(result);
     if(host.timelineEpoch!==null&&epoch!==null&&host.timelineEpoch!==epoch)throw fail('Narrator timeline changed.',409,'timeline_changed');
