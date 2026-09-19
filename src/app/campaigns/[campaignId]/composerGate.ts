@@ -38,7 +38,8 @@ export function composerGate({
   globalTurnState?: GlobalTurnState | null;
   locale?: Locale;
 }) {
-  const exempt = isFloorExempt(kind);
+  const combat = floor.mode === "initiative" || (floor.mode === "hold" && (floor.next.mode === "initiative" || !!floor.combat));
+  const exempt = isFloorExempt(kind) && !(combat && kind === "lead");
   const spotlighted =
     floor.mode === "spotlight"
       ? sheets.filter((sheet) => floor.userIds.includes(sheet.userId))
@@ -69,7 +70,7 @@ export function composerGate({
   // Global turn action limits: 1 do + 1 say per hero per turn
   let turnActionBlocked = false;
   let turnActionReason = "";
-  if (globalTurnEnabled && globalTurnState && (kind === "do" || kind === "say")) {
+  if (!combat && globalTurnEnabled && globalTurnState && (kind === "do" || kind === "say")) {
     const mySheet = sheets.find((s) => s.userId === meUserId && !s.isCompanion);
     if (mySheet) {
       const usage = globalTurnState.actionsByCharacter[mySheet.id];
@@ -80,10 +81,10 @@ export function composerGate({
         turnActionBlocked = true;
         turnActionReason =
           locale === "ru"
-            ? "Действие уже совершено в этом ходе (1/1). Используйте «Речь» или «OOC»."
+            ? "Действие уже отправлено (1/1). Пока доступен OOC."
             : locale === "pl"
-              ? "Akcja została już wykonana w tej turze (1/1). Użyj «Mowa» lub «OOC»."
-              : "Action already used in this turn (1/1). Use «Say» or «OOC».";
+              ? "Akcja została już wysłana (1/1). OOC jest dostępne."
+              : "Action already submitted (1/1). OOC remains available.";
       } else if (kind === "say" && hasSay) {
         turnActionBlocked = true;
         turnActionReason =

@@ -21,6 +21,7 @@ const { createDmTurn, createPendingRoll, resolvePendingRoll, saveDmTurn } = awai
 const { insertAsk } = await import("../src/lib/db/asks.ts");
 const { insertCampaignMessage } = await import("../src/lib/db/messages.ts");
 const { getRoll, insertRoll, setRollSeq } = await import("../src/lib/db/rolls.ts");
+const { getDatabase } = await import("../src/lib/db/core.ts");
 const { publishWithSeq } = await import("../src/lib/events.ts");
 const { executeMcpNarratorControl, McpNarratorControlError, EXTERNAL_NARRATOR_ACTIONS } = await import("../src/lib/mcp-narrator-control.ts");
 const { executeMcpControl } = await import("../src/lib/mcp-control.ts");
@@ -294,22 +295,95 @@ assert.equal(compoundNarrate.result.result.floorReleased, true);
 assert.ok(compoundNarrate.result.result.floor);
 assert.ok(compoundNarrate.result.currentSeq > preFloorSeq);
 
-// Optimizations verification: delta read prunes static sections
-const deltaRead = await executeMcpNarratorControl("narrator.read", {
-  campaignId: oocCampaign.id,
-  afterSeq: compoundNarrate.result.currentSeq,
-  delta: true,
-  knownSeq: compoundNarrate.result.currentSeq,
+// Delta section negotiation is content-addressed: an old cursor alone is never
+// permission to omit state, including mutations with no matching event type.
+const deltaBaseline = await executeMcpNarratorControl("narrator.read", {
+  campaignId: campaign.id, afterSeq: 0, delta: true,
 });
-assert.equal(deltaRead.handled, true);
-assert.deepEqual(deltaRead.result.sheets, []);
-assert.deepEqual(deltaRead.result.facts, []);
-assert.ok(deltaRead.result.omittedSections.includes("sheets"));
-assert.ok(deltaRead.result.omittedSections.includes("facts"));
-assert.equal(deltaRead.result.deltaState?.enabled, true);
+assert.match(deltaBaseline.result.sectionVersions.sheets, /^[a-f0-9]{64}$/);
+const legacyDelta = await executeMcpNarratorControl("narrator.read", {
+  campaignId: campaign.id, afterSeq: deltaBaseline.result.currentSeq, delta: true,
+  knownSeq: deltaBaseline.result.currentSeq,
+});
+assert.equal(legacyDelta.result.sheets.length, 1, "legacy knownSeq must retain full sections");
+
+const negotiatedDelta = await executeMcpNarratorControl("narrator.read", {
+  campaignId: campaign.id, afterSeq: deltaBaseline.result.currentSeq, delta: true,
+  knownSeq: deltaBaseline.result.currentSeq, knownSections: deltaBaseline.result.sectionVersions,
+});
+assert.deepEqual(negotiatedDelta.result.sheets, []);
+assert.deepEqual(negotiatedDelta.result.facts, []);
+assert.ok(negotiatedDelta.result.omittedSections.includes("sheets"));
+assert.ok(negotiatedDelta.result.omittedSections.includes("facts"));
+assert.deepEqual(
+  Object.fromEntries(["sheets", "facts", "notes", "npcs"].map(section => [section,
+      negotiatedDelta.result.omittedSections.includes(section) ? deltaBaseline.result[section] : negotiatedDelta.result[section],
+    ])),
+  Object.fromEntries(["sheets", "facts", "notes", "npcs"].map(section => [section, deltaBaseline.result[section]])),
+  "an omitted section reconstructs from the negotiated baseline",
+);
+const baselineSectionBytes = Buffer.byteLength(JSON.stringify({ sheets: deltaBaseline.result.sheets, facts: deltaBaseline.result.facts, notes: deltaBaseline.result.notes, npcs: deltaBaseline.result.npcs }));
+const omittedSectionBytes = Buffer.byteLength(JSON.stringify({ sheets: negotiatedDelta.result.sheets, facts: negotiatedDelta.result.facts, notes: negotiatedDelta.result.notes, npcs: negotiatedDelta.result.npcs }));
+assert.ok(omittedSectionBytes < baselineSectionBytes, "negotiated fixture must omit cached section bytes");
+const fullResponseBytes = Buffer.byteLength(JSON.stringify(legacyDelta.result));
+const deltaResponseBytes = Buffer.byteLength(JSON.stringify(negotiatedDelta.result));
+assert.ok(deltaResponseBytes < fullResponseBytes, "whole response, including version metadata, must shrink");
+assert.ok(negotiatedDelta.result.omittedSections.includes("recentMessages"));
+const historicalMessage = deltaBaseline.result.recentMessages[0];
+assert.ok(historicalMessage);
+getDatabase().prepare("UPDATE campaign_messages SET content = ? WHERE id = ?").run("Corrected historical narration.", historicalMessage.id);
+const editedHistory = await executeMcpNarratorControl("narrator.read", {
+  campaignId: campaign.id, afterSeq: deltaBaseline.result.currentSeq, delta: true, knownSections: deltaBaseline.result.sectionVersions,
+});
+assert.equal(editedHistory.result.omittedSections.includes("recentMessages"), false);
+assert.ok(editedHistory.result.recentMessages.some(message => message.id === historicalMessage.id && message.content === "Corrected historical narration."));
+
+// This intentionally bypasses event publication: old event-name heuristics
+// omitted the changed resources payload because the sequence did not advance.
+getDatabase().prepare("UPDATE character_sheets SET resources_json = ? WHERE id = ?")
+  .run(JSON.stringify({ test_resource: { current: 0, max: 1 } }), liveSheet.id);
+const changedDelta = await executeMcpNarratorControl("narrator.read", {
+  campaignId: campaign.id, afterSeq: deltaBaseline.result.currentSeq, delta: true,
+  knownSeq: deltaBaseline.result.currentSeq, knownSections: deltaBaseline.result.sectionVersions,
+});
+assert.equal(changedDelta.result.sheets[0].resources.test_resource.current, 0);
+assert.equal(changedDelta.result.omittedSections.includes("sheets"), false);
+
+const changedBaseline = await executeMcpNarratorControl("narrator.read", { campaignId: campaign.id, delta: true });
+getDatabase().prepare("DELETE FROM character_sheets WHERE id = ?").run(liveSheet.id);
+const deletedDelta = await executeMcpNarratorControl("narrator.read", {
+  campaignId: campaign.id, delta: true, knownSections: changedBaseline.result.sectionVersions,
+});
+assert.deepEqual(deletedDelta.result.sheets, [], "a changed section returns an empty array to clear the cache");
+assert.equal(deletedDelta.result.omittedSections.includes("sheets"), false);
+
+const scopedDelta = await executeMcpNarratorControl("narrator.read", {
+  campaignId: oocCampaign.id, delta: true, knownSections: deltaBaseline.result.sectionVersions,
+});
+assert.equal(scopedDelta.result.omittedSections.includes("facts"), false, "campaign-scoped hashes cannot cross campaigns");
+publishWithSeq(oocCampaign.id, allocateSeq(oocCampaign.id), "campaign_rewound", {});
+const epochDelta = await executeMcpNarratorControl("narrator.read", {
+  campaignId: oocCampaign.id, delta: true, knownSections: scopedDelta.result.sectionVersions,
+});
+assert.equal(epochDelta.result.omittedSections.includes("facts"), false, "epoch-scoped hashes cannot cross rewinds");
+
+const deltaTurn = createDmTurn(oocCampaign.id, [], "human_dm");
+const pendingDelta = createPendingRoll({ campaignId: oocCampaign.id, turnId: deltaTurn.id, toolCallId: null, userId: dm.id, characterId: null, kind: "check", detail: "delta", expression: "1d20", advantage: "none", dc: null, reason: "delta" });
+const deltaRoll = insertRoll({ campaignId: oocCampaign.id, requestedBy: "player", kind: "custom", result: { expression: "1d20", total: 11, terms: [] } });
+const pagedDelta = await executeMcpNarratorControl("narrator.read", {
+  campaignId: oocCampaign.id, afterSeq: 0, limit: 1, delta: true, knownSections: epochDelta.result.sectionVersions,
+});
+assert.equal(pagedDelta.result.hasMore, true, "delta retains event pagination");
+assert.ok(pagedDelta.result.pendingRolls.some(roll => roll.id === pendingDelta.id), "delta retains pending rolls");
+assert.ok(pagedDelta.result.recentRolls.some(roll => roll.id === deltaRoll.id), "delta retains recent rolls");
+await assert.rejects(
+  () => executeMcpNarratorControl("narrator.read", { campaignId: oocCampaign.id, delta: true, knownSections: { sheets: "bad" } }),
+  McpNarratorControlError,
+);
+assert.equal(pagedDelta.result.deltaState?.enabled, true);
 
 assert.equal(fetchCalls, 0, "no server provider/network call may be attempted");
 
 globalThis.fetch = nativeFetch;
 removeTempDir(dir);
-console.log("PASS mcp narrator no-AI lifecycle, cursor gaps, privacy, concurrent writes, and roll replay");
+console.log(`PASS mcp narrator no-AI lifecycle, cursor gaps, privacy, concurrent writes, and roll replay (delta fixture sections ${baselineSectionBytes}B -> ${omittedSectionBytes}B; whole response ${fullResponseBytes}B -> ${deltaResponseBytes}B)`);

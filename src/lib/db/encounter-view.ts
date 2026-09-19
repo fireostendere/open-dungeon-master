@@ -10,6 +10,7 @@ import {
   type EncounterStatus,
   type EnemyStatus,
 } from "@/lib/db/encounters";
+import { spatialEnabled, spatialStore } from "@/lib/spatial/service";
 
 // What a client is allowed to know about a fight. Split out of
 // encounters.ts, which is persistence: this is the projection, and it is the
@@ -27,6 +28,10 @@ export type PublicEncounter = {
   round: number;
   turnIndex: number;
   orderReady: boolean;
+  // Never infer this from a filtered initiative list. A hidden enemy yields
+  // null, so its identity does not leak to player clients.
+  currentActorId: string | null;
+  turnBudget: { actionUsed: boolean; bonusUsed: boolean; reactionUsed: boolean; attacksMade: number; attacksAllowed: number; extraActions?: number } | null;
   order: Array<{
     kind: "pc" | "enemy" | "npc";
     id: string;
@@ -72,12 +77,19 @@ export function publicEncounter(
   // means the same thing in both places: an ambusher the players have not
   // met yet is neither on the map nor on the tracker.
   const hidden = new Set(options.hiddenRefIds ?? []);
+  const current = encounter.orderReady ? encounter.order[encounter.turnIndex] : undefined;
+  const currentId = current ? orderEntryId(current) : null;
+  const currentVisible = Boolean(currentId && (showNumbers || !hidden.has(currentId)));
   return {
     id: encounter.id,
     status: encounter.status,
     round: encounter.round,
     turnIndex: encounter.turnIndex,
     orderReady: encounter.orderReady,
+    currentActorId: currentVisible ? currentId : null,
+    turnBudget: currentVisible && current?.kind === "pc" && encounter.turnBudget?.ownerId === current.characterId && encounter.turnBudget.round === encounter.round
+      ? { actionUsed: encounter.turnBudget.actionUsed, bonusUsed: encounter.turnBudget.bonusUsed, reactionUsed: encounter.turnBudget.reactionUsed, attacksMade: encounter.turnBudget.attacksMade, attacksAllowed: encounter.turnBudget.attacksAllowed, extraActions: encounter.turnBudget.extraActions }
+      : null,
     order: encounter.orderReady
       ? encounter.order
           // A hidden combatant is not on the players' tracker at all. The DM
@@ -128,15 +140,37 @@ export function publicEncounter(
 
 export function activePublicEncounter(
   campaignId: string,
-  options: { enemyNumbers?: boolean } = {},
+  options: { enemyNumbers?: boolean; viewerUserId?: string; roomId?: string | null } = {},
 ): PublicEncounter | null {
-  const encounter = getActiveEncounter(campaignId);
+  const encounter = getActiveEncounter(campaignId, options.roomId);
   if (!encounter) {
     return null;
   }
   const map = getBattleMapForEncounter(encounter.id);
+  const hidden = new Set<string>(map ? listHiddenRefIds(map.id) : []);
+  if (!options.enemyNumbers && options.viewerUserId && spatialEnabled(campaignId)) {
+    const store = spatialStore();
+    for (const entry of encounter.order) {
+      const id = orderEntryId(entry);
+      if (entry.kind === "pc" && entry.userId === options.viewerUserId) continue;
+      const stealth = store.getStealthState(campaignId, id);
+      if (stealth && (stealth.status === "pending" || stealth.status === "confirmed")) {
+        if (!store.isDetected(campaignId, options.viewerUserId, id)) {
+          hidden.add(id);
+        }
+      }
+    }
+    for (const enemy of listEnemies(encounter.id)) {
+      const stealth = store.getStealthState(campaignId, enemy.id);
+      if (stealth && (stealth.status === "pending" || stealth.status === "confirmed")) {
+        if (!store.isDetected(campaignId, options.viewerUserId, enemy.id)) {
+          hidden.add(enemy.id);
+        }
+      }
+    }
+  }
   return publicEncounter(encounter, listEnemies(encounter.id), {
     ...options,
-    hiddenRefIds: map ? listHiddenRefIds(map.id) : [],
+    hiddenRefIds: Array.from(hidden),
   });
 }

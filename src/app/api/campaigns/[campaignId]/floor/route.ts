@@ -2,7 +2,8 @@ import { z } from "zod";
 import { isErrorResponse, requireStoryAuthority } from "@/lib/campaign-api";
 import { getFloor, setFloor, type Floor } from "@/lib/db/campaigns";
 import { listSheets } from "@/lib/db/sheets";
-import { skipCurrentTurn } from "@/lib/dm/encounter-tools";
+import { queueSkippedCombatTurn, skipCurrentTurn } from "@/lib/dm/encounter-tools";
+import { listOpenPendingRolls } from "@/lib/db/dm-turns";
 import { requestDmTurn } from "@/lib/dm/loop";
 import { publishPersisted } from "@/lib/events";
 
@@ -34,13 +35,19 @@ export async function POST(
     return context;
   }
   const floor = getFloor(campaignId);
+  if (listOpenPendingRolls(campaignId).length) {
+    return Response.json({ error: "Resolve pending physical rolls before changing the floor." }, { status: 409 });
+  }
+  if (floor.mode === "hold" && floor.combat) {
+    return Response.json({ error: "Combat adjudication is still in progress. Only OOC is available." }, { status: 409 });
+  }
 
   const parsed = setFloorSchema.safeParse(await request.json().catch(() => ({})));
   const wanted = parsed.success ? parsed.data.set : undefined;
   if (wanted) {
     // Initiative is the encounter's to own; nothing sets the floor into or
     // out of it but the combat engine.
-    if (floor.mode === "initiative") {
+    if (floor.mode === "initiative" || (floor.mode === "hold" && floor.next.mode === "initiative")) {
       return Response.json(
         { error: "The initiative order owns the floor while a fight is running." },
         { status: 409 },
@@ -89,6 +96,7 @@ export async function POST(
   const next: Floor = floor.mode === "hold" ? floor.next : { mode: "open" };
   setFloor(campaignId, next);
   publishPersisted(campaignId, "floor_changed", { floor: next });
+  queueSkippedCombatTurn(campaignId);
   if (floor.mode === "spotlight" && floor.respondedUserIds.length) {
     requestDmTurn(campaignId);
   }

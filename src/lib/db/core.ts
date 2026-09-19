@@ -478,6 +478,7 @@ function ensureSchema(db: SqliteDatabase) {
     CREATE TABLE IF NOT EXISTS encounters (
       id TEXT PRIMARY KEY,
       campaign_id TEXT NOT NULL REFERENCES campaigns(id) ON DELETE CASCADE,
+      room_id TEXT,
       status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active','ended')),
       round INTEGER NOT NULL DEFAULT 1,
       turn_index INTEGER NOT NULL DEFAULT 0,
@@ -493,6 +494,7 @@ function ensureSchema(db: SqliteDatabase) {
     );
 
     CREATE INDEX IF NOT EXISTS idx_encounters_campaign ON encounters(campaign_id, status);
+    CREATE INDEX IF NOT EXISTS idx_encounters_room ON encounters(campaign_id, room_id, status);
 
     CREATE TABLE IF NOT EXISTS encounter_enemies (
       id TEXT PRIMARY KEY,
@@ -1444,6 +1446,8 @@ function ensureSchema(db: SqliteDatabase) {
   ]);
 
   addColumns("encounters", [
+    // Room in a spatially separated campaign where this combat or scene lives.
+    ["room_id", `TEXT`],
     // The action economy of whichever combatant is currently acting: action,
     // bonus action, reaction, attacks made, and movement spent. Rebuilt from
     // scratch whenever the initiative pointer moves, so it never needs a

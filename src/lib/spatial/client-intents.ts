@@ -98,8 +98,8 @@ export class LocationIntentSession {
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 /** Pure, deterministic encoding: retries do not read a new room or revision. */
 export function encodeWebMcpLocationIntent(input: Record<string, unknown>): Record<string, unknown> {
-  if (Object.keys(input).some(key => !["intentId", "roomId", "expectedRevision", "kind", "content"].includes(key))) throw new Error("Unknown message argument.");
-  const { intentId, roomId, expectedRevision, kind, content } = input;
+  if (Object.keys(input).some(key => !["intentId", "roomId", "expectedRevision", "kind", "content", "stealth"].includes(key))) throw new Error("Unknown message argument.");
+  const { intentId, roomId, expectedRevision, kind, content, stealth } = input;
   if (typeof intentId !== "string" || !uuidPattern.test(intentId)) throw new Error("Provide one UUID intentId and reuse it unchanged on retry.");
   if (!["say", "do", "ooc"].includes(String(kind)) || typeof content !== "string" || !content.trim() || content.length > 2000) throw new Error("Invalid location message.");
   if (kind === "ooc") {
@@ -109,5 +109,5 @@ export function encodeWebMcpLocationIntent(input: Record<string, unknown>): Reco
   if (typeof roomId !== "string" || !uuidPattern.test(roomId) || !Number.isSafeInteger(expectedRevision) || Number(expectedRevision) < 1) {
     throw new Error("Read the current location first, then provide its roomId and revision.");
   }
-  return { operation: "send", requestId: intentId, roomId, kind, content, expectedRevision };
+  return { operation: "send", requestId: intentId, roomId, kind, content, expectedRevision, ...(stealth !== undefined ? { stealth: Boolean(stealth) } : {}) };
 }

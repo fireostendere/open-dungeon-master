@@ -16,6 +16,7 @@ import type { Backdrop } from "@/lib/battlemap/backdrop";
 import { labelsFor, type DoorStates, type LightZone, type MapLabel } from "@/lib/battlemap/scene";
 import type { MapTheme } from "@/lib/battlemap/generate";
 import type { CharacterSheet } from "@/lib/schemas/sheet";
+import { spatialEnabled, spatialStore } from "@/lib/spatial/service";
 
 // Per-player projection of the battle map. This is the ONLY battlemap
 // module that touches the DB, and the only shape clients ever see: terrain
@@ -172,6 +173,8 @@ export function buildPlayerMapView(
 
   const enemiesById = new Map(listEnemies(encounter.id).map((enemy) => [enemy.id, enemy]));
   const sheetsById = new Map(listSheets(campaignId).map((entry) => [entry.id, entry]));
+  const isSpatial = spatialEnabled(campaignId);
+  const store = isSpatial ? spatialStore() : null;
   const shownTokens = tokens
     .filter((token) => {
       // The DM hid it, so for everyone but the DM it is not on the board at
@@ -185,9 +188,33 @@ export function buildPlayerMapView(
         if (!enemy || enemy.status !== "alive") {
           return false;
         }
+        if (!fullVision && isSpatial && store) {
+          const stealth = store.getStealthState(campaignId, token.refId);
+          if (stealth && (stealth.status === "pending" || stealth.status === "confirmed")) {
+            const detected = store.isDetected(campaignId, userId, token.refId) ||
+              (sheet ? store.isDetected(campaignId, sheet.id, token.refId) : false);
+            if (!detected) return false;
+          }
+        }
         return visible.has(tileIndex(map.width, token.x, token.y));
       }
-      // Allies are always drawn: the party coordinates aloud at the table.
+      if (token.kind === "pc") {
+        if (myToken !== null && token.id === myToken.id) {
+          return true;
+        }
+        if (!fullVision && isSpatial && store) {
+          const stealth = store.getStealthState(campaignId, token.refId);
+          if (stealth && (stealth.status === "pending" || stealth.status === "confirmed")) {
+            const detected = store.isDetected(campaignId, userId, token.refId) ||
+              (sheet ? store.isDetected(campaignId, sheet.id, token.refId) : false);
+            if (!detected) return false;
+          }
+        }
+        if (!fullVision && isSpatial) {
+          return visible.has(tileIndex(map.width, token.x, token.y));
+        }
+        return true;
+      }
       // The DM's own NPCs and props are things standing in the room, so they
       // follow the same rule the enemies do and appear when they are seen.
       if (token.kind === "npc" || token.kind === "prop") {

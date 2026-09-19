@@ -102,9 +102,16 @@ export async function GET(
     locations: spatial && !caps.adjudicates ? [] : listLocations(campaignId),
     chapters: projectSpatialChapters(legacyPolicy, listChapters(campaignId)),
     notes: projectSpatialNotes(legacyPolicy, listNotesVisibleTo(campaignId, user.id, caps.steersStory)),
-    characterEvents: visibleCharacterEvents,
-    encounter: legacyPolicy.scoped ? null : activePublicEncounter(campaignId, { enemyNumbers: caps.enemyNumbers }),
-    itemProposals: projectSpatialUserRows(legacyPolicy, listOpenItemProposals(campaignId)).map(publicItemProposal),
+    encounter: legacyPolicy.scoped
+      ? activePublicEncounter(campaignId, {
+          enemyNumbers: caps.enemyNumbers,
+          viewerUserId: user.id,
+          roomId: spatialStore().getUserRoom(campaignId, user.id),
+        })
+      : activePublicEncounter(campaignId, {
+          enemyNumbers: caps.enemyNumbers,
+          viewerUserId: user.id,
+        }),
     // Story the DM has written down. A DM tool, so only the DM seat is
     // served the list; the text itself is public either way, because a beat
     // is published as an ordinary DM passage (src/lib/dm/beats.ts).

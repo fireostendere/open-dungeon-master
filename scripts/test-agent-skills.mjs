@@ -37,4 +37,9 @@ for (const file of markdownFiles) {
     assert(existsSync(path.resolve(path.dirname(file), target)), `${file}: broken local link ${href}`);
   }
 }
+const narrator = readFileSync(path.join(skillsRoot, "odm-narrator", "SKILL.md"), "utf8");
+const narratorContract = narrator.replace(/\s+/g, " ").toLowerCase();
+for (const phrase of ["start_encounter", "инициатив", "свежей генерации", "group_check"]) assert(narratorContract.includes(phrase), `narrator contract must mention ${phrase}`);
+const policySkill = readFileSync(path.join(skillsRoot, "odm-dm-policy", "SKILL.md"), "utf8");
+assert(policySkill.includes("fun/freeform/cinematic-success"), "policy skill must prohibit implicit fun mode");
 console.log(`agent skills: ${names.size} skills and local Markdown links verified`);

@@ -85,6 +85,20 @@ function runSubprocess(code, { preload = true, env = {} } = {}) {
       process.exit(6);
     }
 
+    const validEpoch = "a".repeat(64);
+    const parsedNarrator = narratorTool.inputSchema.safeParse({
+      operation: "read", campaignId: "11111111-1111-4111-8111-111111111111",
+      commandId: "22222222-2222-4222-8222-222222222222", expectedVersion: 3,
+      timelineEpoch: validEpoch, knownSections: { sheets: validEpoch },
+    });
+    if (!parsedNarrator.success || parsedNarrator.data.commandId === undefined ||
+      parsedNarrator.data.expectedVersion !== 3 || parsedNarrator.data.timelineEpoch !== validEpoch ||
+      narratorTool.inputSchema.safeParse({operation:"read", campaignId:"11111111-1111-4111-8111-111111111111", timelineEpoch:"bad"}).success ||
+      narratorTool.inputSchema.safeParse({operation:"read", campaignId:"11111111-1111-4111-8111-111111111111", knownSections:{sheets:"bad"}}).success) {
+      console.error("odm_narrator metadata schema did not preserve/reject contract fields");
+      process.exit(7);
+    }
+
     process.stdout.write(JSON.stringify({ ok: true, toolsCount: registered.length, registered }));
   `);
 

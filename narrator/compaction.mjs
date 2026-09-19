@@ -72,7 +72,8 @@ export class HostContextMemory {
     if (Array.isArray(snapshot.sheets)) this.sheets = new Map(snapshot.sheets.filter(s => s?.id).slice(0, 256).map(s => [s.id, clone(s)]));
     if (snapshot.encounter !== undefined) { this.encounter = clone(snapshot.encounter); this.encounters = this.encounter ? [this.encounter] : []; }
     if (Array.isArray(snapshot.encounters)) this.encounters = clone(snapshot.encounters.slice(0, 128));
-    for (const roll of Array.isArray(snapshot.recentRolls) ? snapshot.recentRolls : []) {
+    const eventRolls = (snapshot.events ?? []).filter(event => event.type === 'roll_result').map(event => event.payload?.roll);
+    for (const roll of [...eventRolls, ...(Array.isArray(snapshot.recentRolls) ? snapshot.recentRolls : [])]) {
       if (!roll?.id) continue;
       const index = this.rolls.findIndex(item => item.id === roll.id);
       if (index >= 0) this.rolls[index] = clone(roll); else this.rolls.push(clone(roll));

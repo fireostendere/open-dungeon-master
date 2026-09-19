@@ -2,7 +2,9 @@ import { z } from "zod";
 import {
   allocateSeq,
   getCampaignById,
+  getMember,
   latestSeq,
+  setMemberSkipTurns,
   setFloor,
   getFloor,
   type Campaign,
@@ -276,6 +278,8 @@ function crLabel(cr: number): string {
   return String(cr);
 }
 
+import { spatialEnabled, spatialStore } from "@/lib/spatial/service";
+
 // ---- start_encounter ----
 
 const startArgsSchema = z.object({
@@ -283,6 +287,7 @@ const startArgsSchema = z.object({
   summary: z.string().optional(),
   surprised: z.enum(["none", "enemies", "party"]).optional(),
   battlefield: z.string().max(300).optional(),
+  roomId: z.string().optional(),
 });
 
 // Accepts the documented {enemies:[...]} shape, or flat monster/name/count
@@ -299,13 +304,14 @@ function parseStartArgs(rawArguments: string): z.infer<typeof startArgsSchema> |
     return nested.data;
   }
   const flat = enemyRequestSchema
-    .extend({ summary: z.string().optional(), battlefield: z.string().max(300).optional() })
+    .extend({ summary: z.string().optional(), battlefield: z.string().max(300).optional(), roomId: z.string().optional() })
     .safeParse(raw);
   if (flat.success) {
     return {
       enemies: [{ monster: flat.data.monster, name: flat.data.name, count: flat.data.count, cr: flat.data.cr }],
       summary: flat.data.summary,
       battlefield: flat.data.battlefield,
+      roomId: flat.data.roomId,
     };
   }
   return null;
@@ -329,13 +335,22 @@ function handleStartEncounter(
         'Invalid start_encounter arguments. Send {"enemies":[{"monster":"goblin","count":3}],"summary":"..."}.',
     };
   }
-  if (getActiveEncounter(campaign.id)) {
+  if (getActiveEncounter(campaign.id, args.roomId)) {
     return {
       error:
         "An encounter is already active. Use damage_enemy and enemy_attack, or end_encounter first.",
     };
   }
-  if (!sheets.length) {
+  let participants = sheets;
+  if (spatialEnabled(campaign.id) && args.roomId) {
+    const roomSheets = sheets.filter(
+      (sheet) => spatialStore().getUserRoom(campaign.id, sheet.userId) === args.roomId,
+    );
+    if (roomSheets.length > 0) {
+      participants = roomSheets;
+    }
+  }
+  if (!participants.length) {
     return { error: "No party characters to fight." };
   }
 
@@ -343,7 +358,7 @@ function handleStartEncounter(
   const outcome = resolveEnemyRequests(campaign.gameSettings, args.enemies, campaign.ownerUserId);
   if ("unknownMonster" in outcome) {
     return {
-      error: `Unknown monster "${outcome.unknownMonster}". Use a real monster slug or name, or pass cr for an invented enemy. Good picks for this world: ${suggestionLines(campaign, sheets)}.`,
+      error: `Unknown monster "${outcome.unknownMonster}". Use a real monster slug or name, or pass cr for an invented enemy. Good picks for this world: ${suggestionLines(campaign, participants)}.`,
     };
   }
   const resolved = outcome.resolved;
@@ -352,16 +367,16 @@ function handleStartEncounter(
   }
 
   // 5e budget check: refuse fights the party cannot plausibly survive.
-  const partyLevels = sheets.map((sheet) => sheet.level);
+  const partyLevels = participants.map((sheet) => sheet.level);
   const evaluation = evaluateEncounter(partyLevels, resolved.map((entry) => entry.stats.cr));
   const ceiling = encounterCeiling(campaign.difficulty, evaluation.thresholds.deadly);
   if (evaluation.adjustedXp > ceiling) {
     return {
-      error: `Too deadly for this party: adjusted XP ${evaluation.adjustedXp} vs an allowed ceiling of ${ceiling} (difficulty ${campaign.difficulty}). Use fewer or weaker enemies. Good picks for this world: ${suggestionLines(campaign, sheets)}.`,
+      error: `Too deadly for this party: adjusted XP ${evaluation.adjustedXp} vs an allowed ceiling of ${ceiling} (difficulty ${campaign.difficulty}). Use fewer or weaker enemies. Good picks for this world: ${suggestionLines(campaign, participants)}.`,
     };
   }
 
-  const encounter = createEncounter(campaign.id, args.summary ?? "");
+  const encounter = createEncounter(campaign.id, args.summary ?? "", "fight", args.roomId);
   if (!encounter) {
     return { error: "An encounter is already active." };
   }
@@ -383,12 +398,12 @@ function handleStartEncounter(
   if (args.surprised === "enemies") {
     encounter.surprisedIds = enemies.map((enemy) => enemy.id);
   } else if (args.surprised === "party") {
-    encounter.surprisedIds = sheets.map((sheet) => sheet.id);
+    encounter.surprisedIds = participants.map((sheet) => sheet.id);
   }
   if (encounter.surprisedIds.length) {
     saveEncounter(encounter);
   }
-  createBattleMapForEncounter(campaign, encounter, enemies, sheets, args.battlefield);
+  createBattleMapForEncounter(campaign, encounter, enemies, participants, args.battlefield);
   publishEncounter(campaign.id);
 
   // Initiative is starting: the room's music changes, and the harder the
@@ -400,7 +415,7 @@ function handleStartEncounter(
     evaluation.verdict === "deadly" || evaluation.verdict === "beyond_deadly",
   );
 
-  const rollList = sheets
+  const rollList = participants
     .map((sheet) => `${sheet.name} (characterId=${sheet.id})`)
     .join(", ");
   return {
@@ -495,8 +510,14 @@ export function setInitiativeFloor(campaign: Campaign | null, encounter: Encount
     currentName: current.name,
     round: encounter.round,
   };
-  setFloor(campaign.id, floor);
-  publishPersisted(campaign.id, "floor_changed", { floor });
+  // Pointer movement must not reopen a submitted combat turn. The narration
+  // path is the only place that releases this gate.
+  const previous = getFloor(campaign.id, encounter.roomId);
+  const next = previous.mode === "hold" && previous.combat?.encounterId === encounter.id
+    ? { ...previous, next: floor }
+    : floor;
+  setFloor(campaign.id, next, encounter.roomId);
+  publishPersisted(campaign.id, "floor_changed", { floor: next });
 }
 
 function describeOrder(encounter: Encounter): string {
@@ -516,11 +537,12 @@ export function recordInitiativeRoll(
   if (!characterId) {
     return null;
   }
-  const encounter = getActiveEncounter(campaignId);
+  const sheet = getSheetById(characterId);
+  const userRoom = sheet && spatialEnabled(campaignId) ? spatialStore().getUserRoom(campaignId, sheet.userId) : null;
+  const encounter = (userRoom ? getActiveEncounter(campaignId, userRoom) : null) ?? getActiveEncounter(campaignId);
   if (!encounter || encounter.orderReady) {
     return null;
   }
-  const sheet = getSheetById(characterId);
   if (!sheet || encounter.order.some((entry) => entry.kind === "pc" && entry.characterId === characterId)) {
     return null;
   }
@@ -532,11 +554,14 @@ export function recordInitiativeRoll(
     initiative: total,
   });
 
-  const sheets = listSheets(campaignId);
+  const allSheets = listSheets(campaignId);
+  const relevantSheets = encounter.roomId && spatialEnabled(campaignId)
+    ? allSheets.filter((s) => spatialStore().getUserRoom(campaignId, s.userId) === encounter.roomId)
+    : allSheets;
   const staged = encounter.order.filter(
     (entry): entry is Extract<OrderEntry, { kind: "pc" }> => entry.kind === "pc",
   );
-  if (staged.length < sheets.length) {
+  if (staged.length < relevantSheets.length) {
     saveEncounter(encounter);
     return null;
   }
@@ -598,7 +623,11 @@ export function ensureInitiativeProgress(campaign: Campaign): string | null {
       .filter((entry): entry is Extract<OrderEntry, { kind: "pc" }> => entry.kind === "pc")
       .map((entry) => entry.characterId),
   );
-  const missing = listSheets(campaign.id).filter((sheet) => !staged.has(sheet.id));
+  const allSheets = listSheets(campaign.id);
+  const relevantSheets = encounter.roomId && spatialEnabled(campaign.id)
+    ? allSheets.filter((s) => spatialStore().getUserRoom(campaign.id, s.userId) === encounter.roomId)
+    : allSheets;
+  const missing = relevantSheets.filter((sheet) => !staged.has(sheet.id));
   if (!missing.length) {
     return null;
   }
@@ -1000,6 +1029,10 @@ function handleEndTurn(
     return { error: `It is ${current?.name ?? "someone else"}'s turn, not ${sheet.name}'s.` };
   }
   markTurnResolved(turn, sheet.id);
+  const floor = getFloor(campaign.id);
+  if (floor.mode === "hold" && floor.combat?.characterId === sheet.id) {
+    setFloor(campaign.id, { ...floor, combat: { ...floor.combat, mechanicsResolved: true } });
+  }
   return {
     ok: true,
     note: "Turn recorded. Narrate the result and stop; the server hands the floor onward.",
@@ -1222,7 +1255,12 @@ function autoActSkippedEnemies(
 // passes that the model never attacked with auto-act via the server
 // fallback.
 export function advanceAfterTurn(campaign: Campaign, turn?: DmTurn) {
-  const floor = getFloor(campaign.id);
+  const held = getFloor(campaign.id);
+  // A bundle is held while the DM adjudicates it. Once end_turn confirms the
+  // mechanics, narration may advance its stored initiative floor exactly once.
+  const floor = held.mode === "hold" && held.combat?.requiresEndTurn && held.combat.mechanicsResolved
+    ? held.next
+    : held;
   if (floor.mode !== "initiative") {
     return;
   }
@@ -1339,30 +1377,54 @@ function companionAutoAct(
 // Self-service turn end: the current player declares their combat turn done
 // (attack landed, movement spent or declined). Same shape as the lead skip
 // below; the caller wakes the DM so intervening enemies still act.
-export function endOwnTurn(campaignId: string, userId: string): boolean {
+export function endOwnTurn(campaignId: string, userId: string, skipped = false): boolean {
   const campaign = getCampaignById(campaignId);
   const encounter = getActiveEncounter(campaignId);
-  if (!campaign || !encounter || !encounter.orderReady) {
+  const floor = getFloor(campaignId);
+  if (!campaign || campaign.status !== "active" || !encounter || !encounter.orderReady ||
+    floor.mode !== "initiative" || listOpenPendingRolls(campaignId).length) {
     return false;
   }
   const current = encounter.order[encounter.turnIndex];
   if (!current || current.kind !== "pc" || current.userId !== userId) {
     return false;
   }
-  const name = current.name;
-  if (!advancePointer(campaign, encounter, { announce: false })) {
-    return false;
-  }
-  const next = encounter.order[encounter.turnIndex];
   const seq = allocateSeq(campaignId);
   const message = insertCampaignMessage({
     campaignId,
     seq,
-    authorType: "system",
-    content: `${name} ends their turn.${next ? ` It is now ${next.name}'s turn.` : ""}`,
+    authorType: "player",
+    userId,
+    characterId: current.characterId,
+    content: `[combat turn intent] ${current.name}: ${skipped ? "skip this turn" : "end turn"}.\n[end turn requested]`,
   });
   publishWithSeq(campaignId, seq, "message_added", { message });
+  const held = { mode: "hold" as const, next: floor, combat: {
+    encounterId: encounter.id, round: encounter.round, turnIndex: encounter.turnIndex,
+    characterId: current.characterId, requiresEndTurn: true, mechanicsResolved: false,
+  } };
+  setFloor(campaignId, held);
+  publishPersisted(campaignId, "floor_changed", { floor: held });
+  publishPersisted(campaignId, "dm_intent_queued", { messageId: message.id, userId, characterId: current.characterId, seq });
   return true;
+}
+
+// Consume exactly one persisted Skip N when its owner's initiative arrives.
+// The normal adjudication cycle resolves this automatic intent; pending
+// physical dice leave the turn untouched.
+export function skipOwnTurn(campaignId: string, userId: string): boolean {
+  const member = getMember(campaignId, userId);
+  if (!member || member.skipTurnsCount <= 0 || !endOwnTurn(campaignId, userId, true)) return false;
+  const updated = setMemberSkipTurns(campaignId, userId, member.skipTurnsCount - 1);
+  publishPersisted(campaignId, "member_updated", { member: updated });
+  return true;
+}
+
+// Queue only one skipped intent. Its normal end_turn + narration cycle owns
+// enemy actions and then queues the next one; never fast-forward a whole round.
+export function queueSkippedCombatTurn(campaignId: string): void {
+  const floor = getFloor(campaignId);
+  if (floor.mode === "initiative" && floor.userIds[0] && skipOwnTurn(campaignId, floor.userIds[0])) wakeDm(campaignId);
 }
 
 // Lead escape hatch: advance past an absent player's turn. Inserts a table

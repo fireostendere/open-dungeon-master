@@ -47,8 +47,7 @@ export function scopeBattleMapInvocation(
       400,
     );
   }
-  const engineArgs = { ...args };
-  delete engineArgs.roomId;
+  const engineArgs = { ...args, roomId };
   return { args: engineArgs, roomId };
 }
 
@@ -60,7 +59,7 @@ export function bindActiveBattleMapToRoom(
   if (!spatialEnabled(campaignId) || !roomExists(campaignId, dmUserId, roomId)) {
     throw new SpatialError("Battle-map room is unavailable.", 409);
   }
-  const board = getActiveBoard(campaignId);
+  const board = getActiveBoard(campaignId, roomId);
   const map = board ? getBattleMapForEncounter(board.id) : null;
   if (!board || !map) throw new SpatialError("The active encounter has no battle map.", 409);
 
@@ -95,7 +94,9 @@ export function spatialBattleMapView(
     return buildPlayerMapView(campaignId, userId, { fullVision: true });
   }
 
-  const board = getActiveBoard(campaignId);
+  const view = spatialStore().view(actor);
+  const userRoomId = view.enabled && view.current ? view.current.roomId : null;
+  const board = getActiveBoard(campaignId, userRoomId);
   const map = board ? getBattleMapForEncounter(board.id) : null;
   if (!board || !map || !campaign.dmUserId) return null;
 
@@ -113,7 +114,6 @@ export function spatialBattleMapView(
     return null;
   }
 
-  const view = spatialStore().view(actor);
   const projectionId = `${map.id}:${userId}`;
   if (view.enabled && view.current?.roomId === bound.roomId) {
     const live = buildPlayerMapView(campaignId, userId, { fullVision: false });

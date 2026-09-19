@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { narratorHarness as runner,snapshot,message,pages } from './lib/astra-narrator-harness.mjs';
 test('handshake and metadata never acknowledge an unread story page',async()=>{
  const f=await runner({control:(action,p)=>action==='narrator.connect'?{state:snapshot(0,1,3,true,[message(1)])}:p.afterSeq===0?snapshot(0,1,3,true,[message(1)]):snapshot(1,3,3,false,[message(2),message(3)])});
- await f.instance.connect();assert.deepEqual(f.calls.filter(c=>c.action==='narrator.read'&&c.params.projection==='full').map(c=>c.params.afterSeq),[0,1]);
+ await f.instance.connect();const storyReads=f.calls.filter(c=>c.action==='narrator.read'&&c.params.limit===50);assert.deepEqual(storyReads.map(c=>c.params.afterSeq),[0,1]);assert.deepEqual(storyReads.map(c=>c.params.projection),['full','full']);
  assert.equal(f.instance.lastSeq,3);assert.deepEqual(f.instance.memory.messages.map(m=>m.id),['m1','m2','m3']);assert.equal(f.saved.at(-1).lastSeq,3);
 });
 test('accepted pages remain durable after a later failure; retry does not lose input',async()=>{

@@ -13,6 +13,8 @@ export const dynamic = "force-dynamic";
 // only the player-safe payload, so a DM (who is allowed the real hit points
 // and AC) re-fetches here after every encounter_updated ping, the same
 // ping-and-self-fetch pattern the fogged battle map already uses.
+import { spatialStore } from "@/lib/spatial/service";
+
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ campaignId: string }> },
@@ -27,7 +29,16 @@ export async function GET(
     campaignId, userId: context.user.id, adjudicates: caps.adjudicates, ownedCharacterIds: [],
   });
   return Response.json({
-    encounter: policy.scoped ? null : activePublicEncounter(campaignId, { enemyNumbers: caps.enemyNumbers }),
+    encounter: policy.scoped
+      ? activePublicEncounter(campaignId, {
+          enemyNumbers: caps.enemyNumbers,
+          viewerUserId: context.user.id,
+          roomId: spatialStore().getUserRoom(campaignId, context.user.id),
+        })
+      : activePublicEncounter(campaignId, {
+          enemyNumbers: caps.enemyNumbers,
+          viewerUserId: context.user.id,
+        }),
   });
 }
 

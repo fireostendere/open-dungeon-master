@@ -1,6 +1,7 @@
 import { isErrorResponse, requireStoryAuthority } from "@/lib/campaign-api";
 import { LEAD_NOTE_PREFIX } from "@/lib/campaign-types";
-import { allocateSeq } from "@/lib/db/campaigns";
+import { allocateSeq, capsFor, getFloor } from "@/lib/db/campaigns";
+import { getActiveEncounter } from "@/lib/db/encounters";
 import { insertCampaignMessage } from "@/lib/db/messages";
 import { requestDmTurn } from "@/lib/dm/loop";
 import { publishWithSeq } from "@/lib/events";
@@ -24,6 +25,10 @@ export async function POST(
   }
 
   const raw = await request.json().catch(() => ({}));
+  const floor = getFloor(campaignId);
+  if (!capsFor(context.campaign, context.user.id).adjudicates && (getActiveEncounter(campaignId) || (floor.mode === "hold" && floor.combat))) {
+    return Response.json({ error: "Use your combat action or OOC during combat." }, { status: 409 });
+  }
   const content = typeof raw?.content === "string" ? raw.content.trim().slice(0, 1000) : "";
   if (!content) {
     return Response.json({ error: "Write the direction first." }, { status: 400 });

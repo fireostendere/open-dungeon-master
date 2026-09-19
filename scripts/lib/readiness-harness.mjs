@@ -38,7 +38,7 @@ export function sqliteFixture() {
     CREATE TABLE campaigns (id TEXT PRIMARY KEY, next_seq INTEGER NOT NULL DEFAULT 1, floor_json TEXT NOT NULL DEFAULT '{"mode":"free"}');
     INSERT INTO campaigns (id) VALUES ('c1'), ('c2');
     CREATE TABLE campaign_messages (id TEXT PRIMARY KEY, campaign_id TEXT NOT NULL REFERENCES campaigns(id), seq INTEGER NOT NULL, content TEXT NOT NULL, user_id TEXT, UNIQUE(campaign_id, seq));
-    CREATE TABLE campaign_events (campaign_id TEXT NOT NULL REFERENCES campaigns(id), seq INTEGER NOT NULL, type TEXT NOT NULL, payload_json TEXT NOT NULL, created_at TEXT NOT NULL, UNIQUE(campaign_id, seq));
+    CREATE TABLE campaign_events (campaign_id TEXT NOT NULL REFERENCES campaigns(id), seq INTEGER NOT NULL, type TEXT NOT NULL, payload_json TEXT NOT NULL, created_at TEXT NOT NULL, audience_json TEXT, UNIQUE(campaign_id, seq));
   `);
   let nextSavepoint = 0;
   let depth = 0;
@@ -62,7 +62,12 @@ export function sqliteFixture() {
     setFloor: (id, floor) => db.prepare('UPDATE campaigns SET floor_json = ? WHERE id = ?').run(JSON.stringify(floor), id),
   };
   const effects = loadSource('src/lib/db/commit-effects.ts');
-  const events = loadSource('src/lib/events.ts', { '@/lib/db/core': core, '@/lib/db/campaigns': campaigns, '@/lib/db/commit-effects': effects });
+  const events = loadSource('src/lib/events.ts', {
+    '@/lib/db/core': core, '@/lib/db/campaigns': campaigns, '@/lib/db/commit-effects': effects,
+    // This fixture is a non-spatial table. Spatial privacy has its own suites.
+    '@/lib/spatial/event-policy': { captureEventAudience() {}, eventSpatialState: () => ({ enabled: false }), campaignEventProjector: () => ({ projectEvent: event => event, projectLive: chunk => chunk }) },
+    '@/lib/spatial/event-privacy': { captureEventAudience: () => null, ensureEventAudienceColumn() {}, projectEventForUser: (_campaign, _user, event) => event },
+  });
   const transactions = loadSource('src/lib/dm/tool-transaction.ts', { '@/lib/db/core': core, '@/lib/db/commit-effects': effects });
   const messages = {
     insertCampaignMessage: (input) => {

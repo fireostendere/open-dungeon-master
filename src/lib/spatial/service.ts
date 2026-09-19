@@ -42,11 +42,15 @@ export const spatialCommandSchema = z.discriminatedUnion("operation", [
   z.object({ ...base, operation: z.literal("create_room"), name: z.string().trim().min(1).max(80), connectTo: id.optional(), ...passage }).strict(),
   z.object({ ...base, operation: z.literal("link"), sourceId: id, targetId: id, ...passage }).strict(),
   z.object({ ...base, operation: z.literal("move"), roomId: id, userIds: z.array(id).min(1).max(20).optional(), expectedRevision: revision }).strict(),
-  z.object({ ...base, operation: z.literal("send"), roomId: id.nullable().optional(), kind: z.enum(["say", "do", "narration", "ooc"]), content: z.string().trim().min(1).max(8000), expectedRevision: revision }).strict(),
+  z.object({ ...base, operation: z.literal("send"), roomId: id.nullable().optional(), kind: z.enum(["say", "do", "narration", "ooc"]), content: z.string().trim().min(1).max(8000), expectedRevision: revision, stealth: z.boolean().optional(), characterId: z.string().optional() }).strict(),
   z.object({ ...base, operation: z.literal("observe"), roomId: id, userId: id, mode: z.enum(["speech", "scry"]), seconds: z.number().int().min(1).max(3600), reason: z.string().trim().min(1).max(500) }).strict(),
   z.object({ ...base, operation: z.literal("revoke"), grantId: id }).strict(),
   z.object({ ...base, operation: z.literal("propagate"), roomId: id, medium: z.enum(["sound", "sight"]), content: z.string().trim().min(1).max(2000) }).strict(),
   z.object({ ...base, operation: z.literal("perceive"), roomId: id, userIds: z.array(id).min(1).max(20), content: z.string().trim().min(1).max(2000) }).strict(),
+  z.object({ ...base, operation: z.literal("stealth_resolve"), messageId: z.string().min(1).max(100), outcome: z.enum(["confirmed", "revealed", "failed"]), characterId: z.string().optional(), detectedByUserIds: z.array(z.string()).optional(), perceivedText: z.string().max(2000).optional(), sense: z.enum(["sight", "sound", "both", "special"]).optional() }).strict(),
+  z.object({ ...base, operation: z.literal("detect"), observerId: z.string().min(1).max(100), targetId: z.string().min(1).max(100), roomId: id.optional(), sense: z.enum(["sight", "sound", "both", "special"]).optional(), state: z.enum(["detected", "unaware", "suspected"]).optional(), expiresAt: z.string().optional() }).strict(),
+  z.object({ ...base, operation: z.literal("lose_detection"), observerId: z.string().min(1).max(100), targetId: z.string().min(1).max(100) }).strict(),
+  z.object({ ...base, operation: z.literal("set_floor"), roomId: id, floor: z.unknown().optional() }).strict(),
 ]);
 
 export function runSpatialCommand(campaignId: string, userId: string, raw: unknown) {
@@ -67,8 +71,11 @@ export function runSpatialCommand(campaignId: string, userId: string, raw: unkno
   if (isMemberMuted(campaignId, userId)) throw new SpatialError("The party lead has muted you at this table.", 403);
   if (!actor.isDm && !ooc) {
     if (!getSheetForUser(campaignId, userId)) throw new SpatialError("You need a character to act.", 409);
-    if (command.operation === "move" && getActiveEncounter(campaignId)) {
-      throw new SpatialError("Ask the DM to adjudicate movement during an encounter.", 409);
+    if (command.operation === "move") {
+      const userRoom = spatialStore().getUserRoom(campaignId, userId);
+      if (userRoom && getActiveEncounter(campaignId, userRoom)) {
+        throw new SpatialError("Ask the DM to adjudicate movement during an encounter.", 409);
+      }
     }
   }
   const { operation, requestId, ...input } = command;

@@ -5,7 +5,12 @@ import { insertCharacterEvent } from "@/lib/db/character-events";
 import { allocateSeq, type Campaign } from "@/lib/db/campaigns";
 import { listConditions } from "@/lib/content";
 import { levelForXp } from "@/lib/srd";
-import { RAGING, spendRelentlessEndurance } from "@/lib/srd/class-resources";
+import { RAGING, matchResource, spendRelentlessEndurance } from "@/lib/srd/class-resources";
+import { getActiveEncounter, saveEncounter } from "@/lib/db/encounters";
+import { budgetApplies, freshBudget, spendAction } from "@/lib/dm/action-budget";
+import { RESOURCE_ACTIONS } from "@/lib/dm/resource-action-cost";
+import { combatRiders } from "@/lib/srd/feature-effects";
+import { conditionExtraActions } from "@/lib/srd/condition-effects";
 import { publishPersisted } from "@/lib/events";
 import {
   fullPatchSheetSchema,
@@ -599,6 +604,19 @@ export function applyDmMutation(
     return { result: { error: "Unknown characterId; use one from GAME STATE." } };
   }
 
+  const encounter = toolName === "use_item" || toolName === "use_resource" ? getActiveEncounter(campaign.id) : null;
+  const actor = encounter?.orderReady ? encounter.order[encounter.turnIndex] : null;
+  const resourceId = toolName === "use_resource" ? matchResource(args.resource ?? args.name ?? "")?.id : undefined;
+  const resourceAction = resourceId && Object.hasOwn(RESOURCE_ACTIONS, resourceId) ? RESOURCE_ACTIONS[resourceId] : undefined;
+  const cost = toolName === "use_item" ? "action" : resourceAction?.cost;
+  const resourceBudget = encounter && actor?.kind === "pc" && actor.characterId === sheet.id && cost
+    ? spendAction(budgetApplies(encounter.turnBudget, sheet.id, encounter.round) ? encounter.turnBudget : freshBudget({
+      ownerId: sheet.id, round: encounter.round, attacksAllowed: 1 + combatRiders(sheet).extraAttacks,
+      extraActions: conditionExtraActions(sheet.conditions),
+    }), cost, resourceAction?.name ?? "Use an item", sheet.name)
+    : null;
+  if (resourceBudget && !resourceBudget.ok) return { result: { error: resourceBudget.error } };
+
   switch (toolName) {
     case "apply_damage": {
       const amount = args.amount ?? 0;
@@ -977,6 +995,11 @@ export function applyDmMutation(
       if ("error" in outcome) {
         return { result: outcome };
       }
+      if (encounter && resourceBudget?.ok) {
+        encounter.turnBudget = resourceBudget.budget;
+        saveEncounter(encounter);
+        publishPersisted(campaign.id, "encounter_updated", {});
+      }
       patchSheet(sheet.id, outcome.patch);
       audit(campaign, turnId, sheet, "use_item", { item: itemName }, reason, outcome.patch);
       publishSheet(campaign, sheet.id);
@@ -1057,6 +1080,11 @@ export function applyDmMutation(
       );
       if ("error" in outcome) {
         return { result: outcome };
+      }
+      if (encounter && resourceBudget?.ok) {
+        encounter.turnBudget = resourceBudget.budget;
+        saveEncounter(encounter);
+        publishPersisted(campaign.id, "encounter_updated", {});
       }
       patchSheet(sheet.id, outcome.patch);
       audit(

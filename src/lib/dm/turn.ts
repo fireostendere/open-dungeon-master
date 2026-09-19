@@ -23,6 +23,7 @@ import {
   createPendingRoll,
   failStaleRunningTurns,
   getDmTurn,
+  listOpenPendingRolls,
   listPendingForTurn,
   publicPendingRoll,
   saveDmTurn,
@@ -121,6 +122,7 @@ import { describeBudget } from "@/lib/dm/action-budget";
 import { castBuffTool, handleCastBuff } from "@/lib/dm/cast-tools";
 import {
   advanceAfterTurn,
+  queueSkippedCombatTurn,
   applyEncounterCall,
   ENCOUNTER_CAP_PER_TURN,
   ENCOUNTER_TOOL_NAMES,
@@ -1899,6 +1901,17 @@ function finalizeInTransaction(context: TurnContext, turn: DmTurn, failed: strin
   // Runs before the hold below so a hold wraps the NEW turn's floor.
   advanceAfterTurn(context.campaign, turn);
 
+  // A legacy do/say during initiative is exclusive while it is narrated but
+  // does not assert an end of turn. Release its stored initiative floor now;
+  // structured bundles instead advanced through their explicit end_turn.
+  const combatGate = getFloor(campaignId);
+  if (combatGate.mode === "hold" && combatGate.combat &&
+    (!combatGate.combat.requiresEndTurn || combatGate.combat.mechanicsResolved) &&
+    !listOpenPendingRolls(campaignId).length) {
+    setFloor(campaignId, combatGate.next);
+    publishPersisted(campaignId, "floor_changed", { floor: combatGate.next });
+  }
+
   // Held responses: after a successful narration the table is locked for
   // discussion until the lead releases. A spotlight set this turn becomes
   // the floor that takes effect on release.
@@ -1922,4 +1935,5 @@ function finalizeInTransaction(context: TurnContext, turn: DmTurn, failed: strin
   tickWorldState(campaignId);
   turn.status = "done";
   saveDmTurn(turn);
+  queueSkippedCombatTurn(campaignId);
 }

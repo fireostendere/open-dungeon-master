@@ -16,6 +16,7 @@ CREATE TABLE IF NOT EXISTS spatial_rooms (
   id TEXT PRIMARY KEY,
   campaign_id TEXT NOT NULL REFERENCES campaigns(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
+  floor_json TEXT,
   UNIQUE(campaign_id, id)
 );
 CREATE TABLE IF NOT EXISTS spatial_links (
@@ -55,12 +56,39 @@ CREATE TABLE IF NOT EXISTS spatial_messages (
   author_user_id TEXT REFERENCES users(id) ON DELETE SET NULL,
   content TEXT NOT NULL,
   created_at TEXT NOT NULL,
+  stealth INTEGER NOT NULL DEFAULT 0,
+  stealth_status TEXT NOT NULL DEFAULT 'none' CHECK(stealth_status IN ('none','pending','confirmed','revealed','failed')),
   UNIQUE(campaign_id, seq),
   UNIQUE(campaign_id, id),
   FOREIGN KEY(campaign_id, room_id) REFERENCES spatial_rooms(campaign_id,id) ON DELETE CASCADE,
   CHECK((kind = 'ooc' AND room_id IS NULL) OR (kind <> 'ooc' AND room_id IS NOT NULL))
 );
 CREATE INDEX IF NOT EXISTS spatial_messages_room_seq ON spatial_messages(campaign_id, room_id, seq DESC);
+CREATE TABLE IF NOT EXISTS spatial_detections (
+  campaign_id TEXT NOT NULL REFERENCES campaigns(id) ON DELETE CASCADE,
+  observer_id TEXT NOT NULL,
+  target_id TEXT NOT NULL,
+  room_id TEXT REFERENCES spatial_rooms(id) ON DELETE CASCADE,
+  sense TEXT NOT NULL DEFAULT 'sight' CHECK(sense IN ('sight','sound','both','special')),
+  state TEXT NOT NULL DEFAULT 'detected' CHECK(state IN ('detected','unaware','suspected')),
+  expires_at TEXT,
+  created_at TEXT NOT NULL,
+  PRIMARY KEY(campaign_id, observer_id, target_id)
+);
+CREATE INDEX IF NOT EXISTS spatial_detections_target ON spatial_detections(campaign_id, target_id);
+CREATE INDEX IF NOT EXISTS spatial_detections_room ON spatial_detections(campaign_id, room_id);
+CREATE TABLE IF NOT EXISTS spatial_stealth_states (
+  campaign_id TEXT NOT NULL REFERENCES campaigns(id) ON DELETE CASCADE,
+  character_id TEXT NOT NULL,
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  room_id TEXT NOT NULL REFERENCES spatial_rooms(id) ON DELETE CASCADE,
+  status TEXT NOT NULL DEFAULT 'confirmed' CHECK(status IN ('pending','confirmed','revealed','failed')),
+  stealth_roll INTEGER,
+  passive_dc INTEGER,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY(campaign_id, character_id)
+);
+CREATE INDEX IF NOT EXISTS spatial_stealth_room ON spatial_stealth_states(campaign_id, room_id);
 CREATE TABLE IF NOT EXISTS spatial_receipts (
   campaign_id TEXT NOT NULL,
   message_id TEXT NOT NULL,
@@ -126,11 +154,32 @@ function integer(value, minimum, maximum, label) {
   return value;
 }
 function mapMessage(row) {
-  return { id: row.id, roomId: row.room_id, seq: row.seq, kind: row.kind, authorUserId: row.author_user_id, content: row.content, createdAt: row.created_at };
+  return {
+    id: row.id,
+    roomId: row.room_id,
+    seq: row.seq,
+    kind: row.kind,
+    authorUserId: row.author_user_id,
+    content: row.content,
+    createdAt: row.created_at,
+    stealth: Boolean(row.stealth),
+    stealthStatus: row.stealth_status || "none",
+  };
 }
 
 export function createSpatialStore(db, { nextSeq, now = () => new Date().toISOString(), uuid = randomUUID }) {
   db.exec(SPATIAL_SCHEMA);
+  const addCol = (tbl, col, ddl) => {
+    try {
+      const cols = db.prepare(`PRAGMA table_info(${tbl})`).all();
+      if (cols.length && !cols.some(c => c.name === col)) db.exec(`ALTER TABLE ${tbl} ADD COLUMN ${col} ${ddl}`);
+    } catch {}
+  };
+  addCol("spatial_messages", "stealth", "INTEGER NOT NULL DEFAULT 0");
+  addCol("spatial_messages", "stealth_status", "TEXT NOT NULL DEFAULT 'none'");
+  addCol("spatial_rooms", "floor_json", "TEXT DEFAULT NULL");
+  addCol("encounters", "room_id", "TEXT");
+
   const run = (sql, ...params) => db.prepare(sql).run(...params);
   const one = (sql, ...params) => db.prepare(sql).get(...params);
   const all = (sql, ...params) => db.prepare(sql).all(...params);
@@ -172,15 +221,18 @@ export function createSpatialStore(db, { nextSeq, now = () => new Date().toISOSt
       WHERE o.campaign_id=? AND o.source_id=? AND o.expires_at>? AND (o.mode='scry' OR ?='say')`, actor.campaignId, roomId, now(), kind)
       .map(row => row.user_id).filter(id => actor.playerIds.includes(id));
   }
-  function append(actor, roomId, kind, content, recipients) {
+  function append(actor, roomId, kind, content, recipients, meta = {}) {
     const id = uuid(), seq = nextSeq(actor.campaignId), createdAt = now();
-    run("INSERT INTO spatial_messages(id,campaign_id,room_id,seq,kind,author_user_id,content,created_at) VALUES(?,?,?,?,?,?,?,?)", id, actor.campaignId, roomId, seq, kind, actor.userId, content, createdAt);
+    const stealth = meta.stealth ? 1 : 0;
+    const stealthStatus = meta.stealthStatus || (stealth ? "pending" : "none");
+    run("INSERT INTO spatial_messages(id,campaign_id,room_id,seq,kind,author_user_id,content,created_at,stealth,stealth_status) VALUES(?,?,?,?,?,?,?,?,?,?)",
+      id, actor.campaignId, roomId, seq, kind, actor.userId, content, createdAt, stealth, stealthStatus);
     for (const userId of new Set(recipients)) {
       if (!actor.memberIds.includes(userId)) continue;
       run("INSERT INTO spatial_receipts(campaign_id,message_id,user_id) VALUES(?,?,?)", actor.campaignId, id, userId);
       if (roomId) visit(actor, userId, roomId, seq);
     }
-    return { id, roomId, seq, kind, authorUserId: actor.userId, content, createdAt };
+    return { id, roomId, seq, kind, authorUserId: actor.userId, content, createdAt, stealth: Boolean(stealth), stealthStatus };
   }
   function objectKey(input) {
     return {
@@ -283,6 +335,19 @@ export function createSpatialStore(db, { nextSeq, now = () => new Date().toISOSt
           throw new SpatialError("Your location changed. Refresh before sending.", 409);
         }
       }
+      const isStealth = Boolean(input.stealth);
+      if (isStealth) {
+        if (actor.isDm || kind === "ooc" || kind === "narration") throw new SpatialError("Stealth is only available for player actions and speech.");
+        const msg = append(actor, input.roomId, kind, content, [actor.userId], { stealth: 1, stealthStatus: "pending" });
+        const charId = typeof input.characterId === "string" ? input.characterId : actor.userId;
+        run(`INSERT INTO spatial_stealth_states(campaign_id,character_id,user_id,room_id,status,updated_at)
+          VALUES(?,?,?,?,?,?) ON CONFLICT(campaign_id,character_id) DO UPDATE SET
+          status='pending',room_id=excluded.room_id,updated_at=excluded.updated_at`,
+          actor.campaignId, charId, actor.userId, input.roomId, "pending", now());
+        return { message: msg };
+      }
+      run("UPDATE spatial_stealth_states SET status='revealed',updated_at=? WHERE campaign_id=? AND user_id=? AND room_id=?",
+        now(), actor.campaignId, actor.userId, input.roomId);
       return { message: append(actor, input.roomId, kind, content, [actor.userId, ...occupants(actor, input.roomId), ...observers(actor, input.roomId, kind)]) };
     }
     if (operation === "move") {
@@ -362,8 +427,91 @@ export function createSpatialStore(db, { nextSeq, now = () => new Date().toISOSt
       }
       return { message: append(actor, input.roomId, "perception", text(input.content, 2000, "perceived fragment"), recipients) };
     }
-    if (operation === "object_publish") return publishObject(actor, input);
-    if (operation === "object_observe") return observeObject(actor, input);
+    if (operation === "stealth_resolve") {
+      dm(actor);
+      const messageId = text(input.messageId, 100, "message ID");
+      const outcome = input.outcome;
+      if (!["confirmed", "revealed", "failed"].includes(outcome)) throw new SpatialError("Invalid stealth outcome.");
+      const msg = one("SELECT * FROM spatial_messages WHERE campaign_id=? AND id=?", actor.campaignId, messageId);
+      if (!msg) throw new SpatialError("Message not found.", 404);
+      run("UPDATE spatial_messages SET stealth_status=? WHERE campaign_id=? AND id=?", outcome, actor.campaignId, messageId);
+      const targetUserId = msg.author_user_id;
+      const charId = typeof input.characterId === "string" ? input.characterId : (targetUserId || messageId);
+      if (targetUserId && msg.room_id) {
+        run(`INSERT INTO spatial_stealth_states(campaign_id,character_id,user_id,room_id,status,updated_at)
+          VALUES(?,?,?,?,?,?) ON CONFLICT(campaign_id,character_id) DO UPDATE SET
+          status=excluded.status,room_id=excluded.room_id,updated_at=excluded.updated_at`,
+          actor.campaignId, charId, targetUserId, msg.room_id, outcome, now());
+      }
+      const perceivedText = input.perceivedText ? text(input.perceivedText, 2000, "perceived fragment") : null;
+      const sense = ["sight", "sound", "both", "special"].includes(input.sense) ? input.sense : "sight";
+      const detectedUsers = Array.isArray(input.detectedByUserIds) ? input.detectedByUserIds.filter(id => actor.playerIds.includes(id)) : [];
+      
+      if (outcome === "confirmed") {
+        for (const obsUserId of detectedUsers) {
+          run(`INSERT INTO spatial_detections(campaign_id,observer_id,target_id,room_id,sense,state,created_at)
+            VALUES(?,?,?,?,?,?,?) ON CONFLICT(campaign_id,observer_id,target_id) DO UPDATE SET
+            sense=excluded.sense,state='detected',room_id=excluded.room_id,created_at=excluded.created_at`,
+            actor.campaignId, obsUserId, charId, msg.room_id, sense, "detected", now());
+          if (targetUserId) {
+            run(`INSERT INTO spatial_detections(campaign_id,observer_id,target_id,room_id,sense,state,created_at)
+              VALUES(?,?,?,?,?,?,?) ON CONFLICT(campaign_id,observer_id,target_id) DO UPDATE SET
+              sense=excluded.sense,state='detected',room_id=excluded.room_id,created_at=excluded.created_at`,
+              actor.campaignId, obsUserId, targetUserId, msg.room_id, sense, "detected", now());
+          }
+        }
+        let perceptionMessage = null;
+        if (perceivedText && detectedUsers.length) {
+          perceptionMessage = append(actor, msg.room_id, "perception", perceivedText, detectedUsers, { stealth: 1, stealthStatus: "confirmed" });
+        }
+        return { messageId, outcome, detectedByUserIds: detectedUsers, perceptionMessage };
+      }
+      if (outcome === "revealed") {
+        const allInRoom = occupants(actor, msg.room_id);
+        for (const obsUserId of allInRoom) {
+          if (obsUserId !== targetUserId) {
+            run(`INSERT INTO spatial_detections(campaign_id,observer_id,target_id,room_id,sense,state,created_at)
+              VALUES(?,?,?,?,?,?,?) ON CONFLICT(campaign_id,observer_id,target_id) DO UPDATE SET
+              sense=excluded.sense,state='detected',room_id=excluded.room_id,created_at=excluded.created_at`,
+              actor.campaignId, obsUserId, charId, msg.room_id, sense, "detected", now());
+          }
+        }
+        let perceptionMessage = null;
+        if (perceivedText && allInRoom.length) {
+          perceptionMessage = append(actor, msg.room_id, "perception", perceivedText, allInRoom, { stealth: 0, stealthStatus: "revealed" });
+        }
+        return { messageId, outcome, perceptionMessage };
+      }
+      return { messageId, outcome };
+    }
+    if (operation === "detect") {
+      dm(actor);
+      const observerId = text(input.observerId, 100, "observer ID");
+      const targetId = text(input.targetId, 100, "target ID");
+      const roomId = input.roomId ? room(actor, input.roomId).id : null;
+      const sense = ["sight", "sound", "both", "special"].includes(input.sense) ? input.sense : "sight";
+      const state = ["detected", "unaware", "suspected"].includes(input.state) ? input.state : "detected";
+      const expiresAt = input.expiresAt ? new Date(input.expiresAt).toISOString() : null;
+      run(`INSERT INTO spatial_detections(campaign_id,observer_id,target_id,room_id,sense,state,expires_at,created_at)
+        VALUES(?,?,?,?,?,?,?,?) ON CONFLICT(campaign_id,observer_id,target_id) DO UPDATE SET
+        room_id=excluded.room_id,sense=excluded.sense,state=excluded.state,expires_at=excluded.expires_at,created_at=excluded.created_at`,
+        actor.campaignId, observerId, targetId, roomId, sense, state, expiresAt, now());
+      return { observerId, targetId, sense, state };
+    }
+    if (operation === "lose_detection") {
+      dm(actor);
+      const observerId = text(input.observerId, 100, "observer ID");
+      const targetId = text(input.targetId, 100, "target ID");
+      run("DELETE FROM spatial_detections WHERE campaign_id=? AND observer_id=? AND target_id=?", actor.campaignId, observerId, targetId);
+      return { lost: true };
+    }
+    if (operation === "set_floor") {
+      dm(actor);
+      const roomId = room(actor, input.roomId).id;
+      const floorJson = input.floor ? JSON.stringify(input.floor) : null;
+      run("UPDATE spatial_rooms SET floor_json=? WHERE campaign_id=? AND id=?", floorJson, actor.campaignId, roomId);
+      return { roomId, floor: input.floor ?? null };
+    }
     throw new SpatialError("Unknown location operation.");
   }
 
@@ -402,7 +550,12 @@ export function createSpatialStore(db, { nextSeq, now = () => new Date().toISOSt
         AND p.room_id=o.anchor_id AND p.revision=o.anchor_revision WHERE o.campaign_id=? AND o.expires_at>? ${actor.isDm ? "" : "AND o.user_id=?"}`,
       actor.campaignId, now(), ...(actor.isDm ? [] : [actor.userId]));
       const { start_seq: startSeq } = one("SELECT start_seq FROM spatial_campaigns WHERE campaign_id=?", actor.campaignId);
-      return { enabled: true, startSeq, current, rooms, exits, grants, isDm: actor.isDm };
+      const roomRow = current?.roomId ? one("SELECT floor_json FROM spatial_rooms WHERE campaign_id=? AND id=?", actor.campaignId, current.roomId) : null;
+      const floor = roomRow?.floor_json ? JSON.parse(roomRow.floor_json) : null;
+      const stealthRow = current?.roomId ? one("SELECT status, updated_at FROM spatial_stealth_states WHERE campaign_id=? AND user_id=? AND room_id=?",
+        actor.campaignId, actor.userId, current.roomId) : null;
+      const stealth = stealthRow ? { status: stealthRow.status, updatedAt: stealthRow.updated_at } : null;
+      return { enabled: true, startSeq, current, rooms, exits, grants, isDm: actor.isDm, floor, stealth };
     },
     messages(actor, { roomId = null, beforeSeq = Number.MAX_SAFE_INTEGER, limit = 100 } = {}) {
       active(actor);
@@ -441,6 +594,35 @@ export function createSpatialStore(db, { nextSeq, now = () => new Date().toISOSt
     observeObject(actor, input) {
       authorize(actor);
       return db.transaction(() => observeObject(actor, input))();
+    },
+    isDetected(campaignId, observerId, targetId) {
+      if (!campaignId || !observerId || !targetId) return false;
+      const row = one("SELECT state, expires_at FROM spatial_detections WHERE campaign_id=? AND observer_id=? AND target_id=?",
+        campaignId, observerId, targetId);
+      if (!row || row.state !== 'detected') return false;
+      if (row.expires_at && row.expires_at <= now()) return false;
+      return true;
+    },
+    getStealthState(campaignId, characterId) {
+      if (!campaignId || !characterId) return null;
+      const row = one("SELECT * FROM spatial_stealth_states WHERE campaign_id=? AND character_id=?",
+        campaignId, characterId);
+      return row ? { status: row.status, roomId: row.room_id, updatedAt: row.updated_at } : null;
+    },
+    getRoomFloor(campaignId, roomId) {
+      if (!campaignId || !roomId) return null;
+      const row = one("SELECT floor_json FROM spatial_rooms WHERE campaign_id=? AND id=?", campaignId, roomId);
+      return row?.floor_json ? JSON.parse(row.floor_json) : null;
+    },
+    setRoomFloor(campaignId, roomId, floor) {
+      if (!campaignId || !roomId) return;
+      const json = floor ? JSON.stringify(floor) : null;
+      run("UPDATE spatial_rooms SET floor_json=? WHERE campaign_id=? AND id=?", json, campaignId, roomId);
+    },
+    getUserRoom(campaignId, userId) {
+      if (!campaignId || !userId) return null;
+      const row = one("SELECT room_id FROM spatial_presence WHERE campaign_id=? AND user_id=?", campaignId, userId);
+      return row ? row.room_id : null;
     },
     narratorRead(actor, { afterSeq = 0, limit = 100 } = {}) {
       dm(actor);

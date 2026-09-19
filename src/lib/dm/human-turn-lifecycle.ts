@@ -34,7 +34,7 @@ export function finishHumanAdjudication(campaign: Campaign, turn: DmTurn, action
     }
     if (floor.mode === "hold") {
       const next = getFloor(campaign.id);
-      const held = next.mode === "hold" ? next : { mode: "hold" as const, next };
+      const held = next.mode === "hold" ? next : { mode: "hold" as const, next, combat: floor.combat };
       setFloor(campaign.id, held);
       publishPersisted(campaign.id, "floor_changed", { floor: held });
     }

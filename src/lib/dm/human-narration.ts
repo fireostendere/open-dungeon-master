@@ -3,7 +3,9 @@ import { allocateSeq, getFloor, setFloor, type Campaign } from "@/lib/db/campaig
 import { getDatabase } from "@/lib/db/core";
 import { withCommittedEffects } from "@/lib/db/commit-effects";
 import { insertCampaignMessage } from "@/lib/db/messages";
+import { listOpenPendingRolls } from "@/lib/db/dm-turns";
 import { publishPersisted, publishWithSeq } from "@/lib/events";
+import { queueSkippedCombatTurn } from "@/lib/dm/encounter-tools";
 
 // The shared, synchronous part of a human narration. Callers own optional
 // follow-up work (TTS and model-backed upkeep must stay out of external MCP).
@@ -20,6 +22,16 @@ export function persistHumanNarration(campaign: Campaign, content: string, userI
     });
     publishWithSeq(campaign.id, seq, "message_added", { message });
 
+    // A human DM may end the mechanics before writing narration. Keep the
+    // submitted turn closed until this message, then expose the already-
+    // advanced initiative floor.
+    const combatGate = getFloor(campaign.id);
+    if (combatGate.mode === "hold" && combatGate.combat &&
+      (!combatGate.combat.requiresEndTurn || combatGate.combat.mechanicsResolved) && !listOpenPendingRolls(campaign.id).length) {
+      setFloor(campaign.id, combatGate.next);
+      publishPersisted(campaign.id, "floor_changed", { floor: combatGate.next });
+    }
+
     if (campaign.gameSettings.holdSubmissions) {
       const current = getFloor(campaign.id);
       if (current.mode !== "hold") {
@@ -28,6 +40,7 @@ export function persistHumanNarration(campaign: Campaign, content: string, userI
         publishPersisted(campaign.id, "floor_changed", { floor: held });
       }
     }
+    queueSkippedCombatTurn(campaign.id);
     return message;
   })());
 }

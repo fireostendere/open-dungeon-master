@@ -280,6 +280,7 @@ if (!McpServer.prototype[PATCHED]) {
           commandId: z.string().uuid().optional(),
           turnId: z.string().uuid().optional(),
           expectedVersion: z.number().int().min(0).optional(),
+          timelineEpoch: z.string().regex(/^[a-f0-9]{64}$/).optional(),
           afterAskSeq: z.number().int().min(0).optional(),
           askLimit: z.number().int().min(1).max(50).optional(),
           paged: z.boolean().optional(), pageCursor: z.string().max(500).optional(),

@@ -44,13 +44,24 @@ export type InitiativeFloor = {
   currentName: string;
   round: number;
 };
+// A submitted combat intent owns the table until its mechanical resolution
+// and narration have both landed. It is deliberately floor metadata: no new
+// mutable combat state or migration is needed, and refreshes cannot reopen it.
+export type CombatSubmissionGate = {
+  encounterId: string;
+  round: number;
+  turnIndex: number;
+  characterId: string;
+  requiresEndTurn: boolean;
+  mechanicsResolved: boolean;
+};
 export type Floor =
   | { mode: "open" }
   | SpotlightFloor
   | InitiativeFloor
   // Held responses: nobody may act until the party lead releases; `next` is
   // the floor that takes effect on release.
-  | { mode: "hold"; next: { mode: "open" } | SpotlightFloor | InitiativeFloor };
+  | { mode: "hold"; next: { mode: "open" } | SpotlightFloor | InitiativeFloor; combat?: CombatSubmissionGate };
 
 export type Campaign = CampaignSummary & {
   scene: string;
@@ -190,9 +201,16 @@ export function normalizeFloor(raw: unknown): Floor {
     return initiative;
   }
   if (floor && floor.mode === "hold") {
+    const combat = floor.combat;
+    const normalizedCombat = combat && typeof combat === "object" &&
+      typeof combat.encounterId === "string" && typeof combat.characterId === "string" &&
+      Number.isInteger(combat.round) && combat.round >= 1 && Number.isInteger(combat.turnIndex) && combat.turnIndex >= 0 &&
+      typeof combat.requiresEndTurn === "boolean" && typeof combat.mechanicsResolved === "boolean"
+      ? combat : undefined;
     return {
       mode: "hold",
       next: normalizeSpotlight(floor.next) ?? normalizeInitiative(floor.next) ?? { mode: "open" },
+      ...(normalizedCombat ? { combat: normalizedCombat } : {}),
     };
   }
   return { mode: "open" };
@@ -790,14 +808,36 @@ export function setWorldTickJson(campaignId: string, serialized: string) {
     .run(serialized, campaignId);
 }
 
-export function getFloor(campaignId: string): Floor {
+export function getFloor(campaignId: string, roomId?: string | null): Floor {
+  if (roomId) {
+    try {
+      const roomRow = getDatabase()
+        .prepare(`SELECT floor_json FROM spatial_rooms WHERE campaign_id = ? AND id = ?`)
+        .get(campaignId, roomId) as { floor_json?: string } | undefined;
+      if (roomRow?.floor_json) {
+        return normalizeFloor(parseJson(roomRow.floor_json, null));
+      }
+    } catch {
+      // Fall through to campaign floor if spatial_rooms doesn't exist yet
+    }
+  }
   const row = getDatabase()
     .prepare(`SELECT floor_json FROM campaigns WHERE id = ?`)
     .get(campaignId) as { floor_json?: string } | undefined;
   return normalizeFloor(parseJson(row?.floor_json ?? null, null));
 }
 
-export function setFloor(campaignId: string, floor: Floor) {
+export function setFloor(campaignId: string, floor: Floor, roomId?: string | null) {
+  if (roomId) {
+    try {
+      getDatabase()
+        .prepare(`UPDATE spatial_rooms SET floor_json = ? WHERE campaign_id = ? AND id = ?`)
+        .run(JSON.stringify(floor), campaignId, roomId);
+      return;
+    } catch {
+      // Fall through to campaign floor if spatial_rooms doesn't exist yet
+    }
+  }
   getDatabase()
     .prepare(`UPDATE campaigns SET floor_json = ? WHERE id = ?`)
     .run(JSON.stringify(floor), campaignId);

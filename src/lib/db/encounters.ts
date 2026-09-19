@@ -42,6 +42,7 @@ export type EncounterKind = "fight" | "scene";
 export type Encounter = {
   id: string;
   campaignId: string;
+  roomId: string | null;
   status: EncounterStatus;
   kind: EncounterKind;
   round: number;
@@ -95,6 +96,7 @@ export type EncounterEnemy = {
 type EncounterRow = {
   id: string;
   campaign_id: string;
+  room_id: string | null;
   status: EncounterStatus;
   kind: EncounterKind;
   round: number;
@@ -137,6 +139,7 @@ function mapEncounter(row: EncounterRow): Encounter {
   return {
     id: row.id,
     campaignId: row.campaign_id,
+    roomId: row.room_id ?? null,
     status: row.status,
     kind: row.kind === "scene" ? "scene" : "fight",
     round: row.round,
@@ -195,16 +198,17 @@ export function createEncounter(
   campaignId: string,
   summary: string,
   kind: EncounterKind = "fight",
+  roomId: string | null = null,
 ): Encounter | null {
-  // One board at a time, and the fight always wins it. A fight breaking out
+  // One board at a time per room, and the fight always wins it. A fight breaking out
   // on an exploration map closes the scene here rather than in each caller,
   // so two active rows can never both claim to own the battle map; a scene
   // asked for while a fight is running is refused instead, because a fight
   // is not something to quietly clear off the table.
-  if (getActiveEncounter(campaignId)) {
+  if (getActiveEncounter(campaignId, roomId)) {
     return null;
   }
-  const scene = getActiveScene(campaignId);
+  const scene = getActiveScene(campaignId, roomId);
   if (scene) {
     if (kind === "scene") {
       return null;
@@ -215,10 +219,10 @@ export function createEncounter(
   const now = nowIso();
   getDatabase()
     .prepare(
-      `INSERT INTO encounters (id, campaign_id, status, kind, summary, created_at, updated_at)
-       VALUES (?, ?, 'active', ?, ?, ?, ?)`,
+      `INSERT INTO encounters (id, campaign_id, room_id, status, kind, summary, created_at, updated_at)
+       VALUES (?, ?, ?, 'active', ?, ?, ?, ?)`,
     )
-    .run(id, campaignId, kind, summary.slice(0, 300), now, now);
+    .run(id, campaignId, roomId ?? null, kind, summary.slice(0, 300), now, now);
   return getEncounter(id);
 }
 
@@ -232,31 +236,110 @@ export function getEncounter(id: string): Encounter | null {
 // "Is a fight running?" Scenes are deliberately invisible here: every combat
 // rule in the engine asks this question, and none of them should fire because
 // the party is standing on an exploration map.
-export function getActiveEncounter(campaignId: string): Encounter | null {
-  const row = getDatabase()
+export function getActiveEncounter(campaignId: string, roomId?: string | null): Encounter | null {
+  if (roomId !== undefined) {
+    if (roomId === null) {
+      const row = getDatabase()
+        .prepare(
+          `SELECT * FROM encounters WHERE campaign_id = ? AND room_id IS NULL AND status = 'active' AND kind = 'fight'
+           ORDER BY created_at DESC LIMIT 1`,
+        )
+        .get(campaignId) as EncounterRow | undefined;
+      return row ? mapEncounter(row) : null;
+    }
+    const row = getDatabase()
+      .prepare(
+        `SELECT * FROM encounters WHERE campaign_id = ? AND room_id = ? AND status = 'active' AND kind = 'fight'
+         ORDER BY created_at DESC LIMIT 1`,
+      )
+      .get(campaignId, roomId) as EncounterRow | undefined;
+    return row ? mapEncounter(row) : null;
+  }
+  const rows = getDatabase()
     .prepare(
       `SELECT * FROM encounters WHERE campaign_id = ? AND status = 'active' AND kind = 'fight'
-       ORDER BY created_at DESC LIMIT 1`,
+       ORDER BY created_at DESC`,
     )
-    .get(campaignId) as EncounterRow | undefined;
-  return row ? mapEncounter(row) : null;
+    .all(campaignId) as EncounterRow[];
+  if (rows.length === 1) return mapEncounter(rows[0]);
+  return null;
 }
 
-export function getActiveScene(campaignId: string): Encounter | null {
-  const row = getDatabase()
+export function getActiveScene(campaignId: string, roomId?: string | null): Encounter | null {
+  if (roomId !== undefined) {
+    if (roomId === null) {
+      const row = getDatabase()
+        .prepare(
+          `SELECT * FROM encounters WHERE campaign_id = ? AND room_id IS NULL AND status = 'active' AND kind = 'scene'
+           ORDER BY created_at DESC LIMIT 1`,
+        )
+        .get(campaignId) as EncounterRow | undefined;
+      return row ? mapEncounter(row) : null;
+    }
+    const row = getDatabase()
+      .prepare(
+        `SELECT * FROM encounters WHERE campaign_id = ? AND room_id = ? AND status = 'active' AND kind = 'scene'
+         ORDER BY created_at DESC LIMIT 1`,
+      )
+      .get(campaignId, roomId) as EncounterRow | undefined;
+    return row ? mapEncounter(row) : null;
+  }
+  const rows = getDatabase()
     .prepare(
       `SELECT * FROM encounters WHERE campaign_id = ? AND status = 'active' AND kind = 'scene'
-       ORDER BY created_at DESC LIMIT 1`,
+       ORDER BY created_at DESC`,
     )
-    .get(campaignId) as EncounterRow | undefined;
-  return row ? mapEncounter(row) : null;
+    .all(campaignId) as EncounterRow[];
+  if (rows.length === 1) return mapEncounter(rows[0]);
+  return null;
 }
 
 // Whatever owns the tactical board right now. Only the map layer asks this:
 // the fight comes first, because createEncounter closes any scene the moment
 // one starts, so the two can never both be open.
-export function getActiveBoard(campaignId: string): Encounter | null {
-  return getActiveEncounter(campaignId) ?? getActiveScene(campaignId);
+export function getActiveBoard(campaignId: string, roomId?: string | null): Encounter | null {
+  return getActiveEncounter(campaignId, roomId) ?? getActiveScene(campaignId, roomId);
+}
+
+export function listActiveEncounters(campaignId: string): Encounter[] {
+  const rows = getDatabase()
+    .prepare(
+      `SELECT * FROM encounters WHERE campaign_id = ? AND status = 'active' ORDER BY created_at ASC`,
+    )
+    .all(campaignId) as EncounterRow[];
+  return rows.map(mapEncounter);
+}
+
+export function getEncounterForCharacter(campaignId: string, characterId: string): Encounter | null {
+  const rows = getDatabase()
+    .prepare(
+      `SELECT * FROM encounters WHERE campaign_id = ? AND status = 'active' AND kind = 'fight'
+       ORDER BY created_at DESC`,
+    )
+    .all(campaignId) as EncounterRow[];
+  for (const row of rows) {
+    const enc = mapEncounter(row);
+    if (enc.order.some(e => e.kind === "pc" && e.characterId === characterId)) {
+      return enc;
+    }
+  }
+  return null;
+}
+
+export function getEncounterForUser(campaignId: string, userId: string): Encounter | null {
+  const rows = getDatabase()
+    .prepare(
+      `SELECT * FROM encounters WHERE campaign_id = ? AND status = 'active' AND kind = 'fight'
+       ORDER BY created_at DESC`,
+    )
+    .all(campaignId) as EncounterRow[];
+  for (const row of rows) {
+    const enc = mapEncounter(row);
+    if (enc.order.some(e => e.kind === "pc" && e.userId === userId)) {
+      return enc;
+    }
+  }
+  return null;
 }
 
 export function saveEncounter(encounter: Encounter) {

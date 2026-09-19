@@ -25,13 +25,27 @@ export class NarratorRunner {
     this.statusToken=(options.statusToken||process.env.ODM_NARRATOR_STATUS_TOKEN||'').trim();
     this.fetchImpl=options.fetchImpl||globalThis.fetch;
     this.askResponder=typeof options.askResponder==='function'?options.askResponder:null;
-    this.mode=this.askResponder?'collector-with-ask-adapter':'collector';
+    this.storyController=options.storyController||null;this.adapterModule=options.adapterModule||process.env.ODM_NARRATOR_ADAPTER_MODULE||'';
+    this.deltaReads=options.deltaReads??true;this.sectionCache=null;this.hasBaseline=false;
+    this.resumeRequested=options.resume??false;this.resumeAfterSeq=options.resumeAfterSeq;
+    this.mode=this.storyController?'local-role-orchestrator':this.askResponder?'collector-with-ask-adapter':'collector';
     this.checkpointPath=options.checkpointPath||process.env.ODM_NARRATOR_CHECKPOINT_PATH||path.join(process.env.ODM_STATE_DIR||'./state',`narrator-checkpoint-${this.campaignId||'default'}.json`);
     this.costTracker=options.costTracker||new NarratorCostTracker({storagePath:path.join(path.dirname(this.checkpointPath),`narrator-cost-${this.campaignId||'default'}.json`)});
     this.memory=new HostContextMemory({campaignId:this.campaignId});
     this.lastSeq=0;this.lastAskSeq=0;this.timelineEpoch=null;this.answeredAsks=new Set();this.pendingAskCommands=new Map();
     this.running=false;this.polling=false;this.connected=false;this.timer=null;this.healthServer=null;
     this.startedAt=Date.now();this.lastPollAt=0;this.lastError=null;
+  }
+  async loadAdapter(){
+    if(this.storyController||!this.adapterModule)return;
+    const moduleUrl=new URL(this.adapterModule,`file://${process.cwd()}/`);
+    if(moduleUrl.protocol!=='file:')throw new Error('Narrator adapter must be an operator-installed local module.');
+    const adapterModule=await import(moduleUrl.href),factory=adapterModule.createNarratorAdapter||adapterModule.default;
+    if(typeof factory!=='function')throw new Error('Narrator adapter module must export createNarratorAdapter.');
+    const configured=await factory({campaignId:this.campaignId});
+    if(!configured?.storyController?.tick)throw new Error('Narrator adapter has no storyController.');
+    this.storyController=configured.storyController;this.askResponder=configured.askResponder??this.askResponder;this.mode='local-role-orchestrator';
+    if(!this.askResponder&&this.storyController.answerAsk)this.askResponder=(ask,context)=>this.storyController.answerAsk(this,ask,context);
   }
   loadCheckpoint() {
     const saved=readJsonSafe(this.checkpointPath);
@@ -45,25 +59,35 @@ export class NarratorRunner {
       if(command?.campaignId===this.campaignId&&command.askId===askId&&typeof command.commandId==='string')this.pendingAskCommands.set(askId,command);
     }
     if(saved.memory)this.memory.restoreState(saved.memory);
+    if(saved.storyController&&this.storyController?.restore)this.storyController.restore(saved.storyController);
+    // A collector cursor proves delivery to memory, not resolution by a DM.
+    else if(this.storyController)this.lastSeq=this.storyController.state.handledSeq;
   }
   saveCheckpoint() {
     atomicWriteJson(this.checkpointPath,{formatVersion:3,version:3,mode:this.mode,campaignId:this.campaignId,timelineEpoch:this.timelineEpoch,
       lastSeq:this.lastSeq,lastAskSeq:this.lastAskSeq,answeredAsks:Array.from(this.answeredAsks).slice(-200),
-      pendingAskCommands:Object.fromEntries(Array.from(this.pendingAskCommands.entries()).slice(-200)),
+      pendingAskCommands:Object.fromEntries(Array.from(this.pendingAskCommands.entries()).slice(-200)),storyController:this.storyController?.serialize?.(),
       memory:this.memory.serializeState(),metrics:this.costTracker.getMetrics(),updatedAt:new Date().toISOString(),
       uptimeSeconds:Math.floor((Date.now()-this.startedAt)/1000),lastPollAt:this.lastPollAt||null,lastError:this.lastError?'poll_failed':null});
   }
   async callControl(action,params={}, {timeoutMs=15000}={}) {
     if(!this.token)throw new Error('Narrator authentication token is missing.');
     const response=await this.fetchImpl(this.controlUrl,{method:'POST',headers:{authorization:`Bearer ${this.token}`,'content-type':'application/json',accept:'application/json'},
-      body:JSON.stringify({action,params}),signal:AbortSignal.timeout(timeoutMs)});
+      body:JSON.stringify({action,params}),redirect:'error',signal:AbortSignal.timeout(timeoutMs)});
     const body=await response.json().catch(()=>null);
     if(!response.ok||body?.ok===false)throw Object.assign(new Error(body?.error||`Control returned HTTP ${response.status}`),{status:response.status,code:body?.code});
     if(!body||!Object.hasOwn(body,'result'))throw new Error('Invalid control response.');return body.result;
   }
-  async connect(){this.connected=false;const result=await connectNarrator(this);this.connected=true;return result;}
+  async connect(){
+    this.connected=false;const result=await connectNarrator(this);
+    if(this.resumeRequested){
+      if(this.resumeAfterSeq!==undefined&&(!Number.isSafeInteger(this.resumeAfterSeq)||this.resumeAfterSeq<0||this.resumeAfterSeq>this.lastSeq))throw new Error('Resume cursor must be inside the fully read timeline.');
+      this.storyController?.resume({afterSeq:this.resumeAfterSeq});this.resumeRequested=false;this.saveCheckpoint();
+    }
+    this.connected=true;return result;
+  }
   readSnapshot(params){return readNarratorSnapshot(this,params);}
-  drainStory(){return drainNarratorStory(this);}
+  drainStory(options){return drainNarratorStory(this,options);}
   async drainAskQueue() {
     let cursor=0;
     for(let page=0;page<1000;page++){
@@ -83,14 +107,14 @@ export class NarratorRunner {
         try{
           if(!this.connected)await this.connect();
           // Refresh story/epoch before using player-projected context for Ask.
-          await this.drainStory();await this.drainAskQueue();break;
+          const story=await this.drainStory();await this.drainAskQueue();if(this.storyController)await this.storyController.tick(this,story);break;
         }catch(error){
           if(attempt||error?.status!==409)throw error;
           // Only fully assembled authoritative metadata can prove a rewind.
           await this.connect();
         }
       }
-      this.lastPollAt=Date.now();this.lastError=null;this.saveCheckpoint();return true;
+      this.lastPollAt=Date.now();this.lastError=this.storyController?.state?.paused?'story_paused':null;this.saveCheckpoint();return !this.lastError;
     }catch{
       this.lastError='poll_failed';console.error('[narrator-runner] poll_failed');this.saveCheckpoint();return false;
     }finally{this.polling=false;}
@@ -137,13 +161,16 @@ export class NarratorRunner {
         if(this.statusToken&&!crypto.timingSafeEqual(hash(request.headers.authorization??''),hash(`Bearer ${this.statusToken}`))){response.writeHead(401);response.end(JSON.stringify({error:'Unauthorized'}));return;}
         response.end(JSON.stringify({ok:true,status:'running',mode:this.mode,campaignId:this.campaignId,lastSeq:this.lastSeq,lastAskSeq:this.lastAskSeq,
           answeredAsksCount:this.answeredAsks.size,pendingAskCommandsCount:this.pendingAskCommands.size,lastPollAt:this.lastPollAt||null,
-          lastError:this.lastError?'poll_failed':null,metrics:this.costTracker.getMetrics(),memory:this.memory.serializeState({safe:true}),uptime:process.uptime()}));
+          lastError:this.lastError?'poll_failed':null,metrics:this.costTracker.getMetrics(),
+          story:this.storyController?{paused:this.storyController.state.paused,queued:this.storyController.state.queue.length,
+            calls:this.storyController.state.usage.calls,inputBytes:this.storyController.state.usage.inputBytes,outputBytes:this.storyController.state.usage.outputBytes,tokens:null,cost:null}:null,
+          memory:this.memory.serializeState({safe:true}),uptime:process.uptime()}));
       }else{response.writeHead(404);response.end(JSON.stringify({error:'Not found'}));}
     });
     this.healthServer.listen(this.healthPort,'127.0.0.1');
   }
   async start(){
-    this.loadCheckpoint();this.startHealthServer();this.running=true;
+    await this.loadAdapter();this.loadCheckpoint();this.startHealthServer();this.running=true;
     try{await this.connect();}catch{console.warn('[narrator-runner] Initial connect failed; collector will retry.');}
     const schedule=()=>{if(this.running)this.timer=setTimeout(async()=>{await this.pollTick();schedule();},this.pollIntervalMs);};schedule();
   }
@@ -153,12 +180,13 @@ export class NarratorRunner {
   }
 }
 if(process.argv[1]&&fileURLToPath(import.meta.url)===path.resolve(process.argv[1])){
-  const args=process.argv.slice(2);let campaignId='',once=false,port;
+  const args=process.argv.slice(2);let campaignId='',once=false,port,resume=false,resumeAfterSeq;
   for(let index=0;index<args.length;index++){
     if(args[index]==='--campaign'&&args[index+1])campaignId=args[++index];else if(args[index]==='--port'&&args[index+1])port=Number(args[++index]);else if(args[index]==='--once')once=true;
+    else if(args[index]==='--resume')resume=true;else if(args[index]==='--after'&&args[index+1])resumeAfterSeq=Number(args[++index]);
   }
-  const runner=new NarratorRunner({campaignId,healthPort:port});
+  const runner=new NarratorRunner({campaignId,healthPort:port,resume,resumeAfterSeq});
   const shutdown=async()=>{await runner.stop();process.exit(0);};process.on('SIGINT',shutdown);process.on('SIGTERM',shutdown);
-  if(once){runner.loadCheckpoint();try{await runner.connect();const ok=await runner.pollTick();runner.saveCheckpoint();process.exit(ok?0:1);}catch{console.error('[narrator-runner] Collector once failed.');process.exit(1);}}
+  if(once){await runner.loadAdapter();runner.loadCheckpoint();try{await runner.connect();const ok=await runner.pollTick();runner.saveCheckpoint();process.exit(ok?0:1);}catch{console.error('[narrator-runner] Collector once failed.');process.exit(1);}}
   else runner.start().catch(()=>{console.error('[narrator-runner] Collector start failed.');process.exit(1);});
 }

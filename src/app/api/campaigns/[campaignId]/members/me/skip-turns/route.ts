@@ -1,10 +1,13 @@
 import { z } from "zod";
 import { isErrorResponse, requireMember } from "@/lib/campaign-api";
-import { allocateSeq, getGlobalTurnState, setGlobalTurnState, setMemberSkipTurns } from "@/lib/db/campaigns";
+import { allocateSeq, getGlobalTurnState, getMember, setGlobalTurnState, setMemberSkipTurns } from "@/lib/db/campaigns";
 import { getSheetForUser, listSheets } from "@/lib/db/sheets";
 import { insertCampaignMessage } from "@/lib/db/messages";
 import { publishPersisted, publishWithSeq } from "@/lib/events";
 import { scheduleGlobalTurnTimer } from "@/lib/dm/global-turn-logic";
+import { skipOwnTurn } from "@/lib/dm/encounter-tools";
+import { requestDmTurn } from "@/lib/dm/loop";
+import { getActiveEncounter } from "@/lib/db/encounters";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -30,12 +33,25 @@ export async function POST(
   }
 
   const { count } = parsed.data;
+  if (context.campaign.status !== "active" || !getSheetForUser(campaignId, context.user.id)) {
+    return Response.json({ error: "An active player character is required." }, { status: 409 });
+  }
   const member = setMemberSkipTurns(campaignId, context.user.id, count);
   if (!member) {
     return Response.json({ error: "Member not found." }, { status: 404 });
   }
 
   publishPersisted(campaignId, "member_updated", { member });
+
+  // A newly selected skip consumes the current owner's turn only. Later
+  // turns remain persisted until this player reaches initiative again.
+  if (count > 0 && skipOwnTurn(campaignId, context.user.id)) {
+    const updated = getMember(campaignId, context.user.id) ?? member;
+    publishPersisted(campaignId, "member_updated", { member: updated });
+    requestDmTurn(campaignId);
+    return Response.json({ ok: true, member: updated });
+  }
+  if (getActiveEncounter(campaignId)) return Response.json({ ok: true, member });
 
   // If player set a skip and global turn is active, mark them as responded and publish note
   const sheet = getSheetForUser(campaignId, context.user.id);

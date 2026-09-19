@@ -3,10 +3,12 @@ import { spatialNarratorBoundary } from "@/lib/spatial/narrator-page.mjs";
 import { spatialEnabled } from "@/lib/spatial/service";
 import { bindActiveBattleMapToRoom, scopeBattleMapInvocation } from "@/lib/spatial/battle-map";
 import { campaignTimelineEpoch } from "@/lib/spatial/timeline";
+import { createHash } from "node:crypto";
 import { z } from "zod";
+import { queueSkippedCombatTurn } from "@/lib/dm/encounter-tools";
 import { isOocMessage } from "@/lib/campaign-types";
 import { isNarratorEvent } from "@/lib/mcp-event-filter";
-import { getCampaignById, getCampaignSummaryState, latestSeq, listMembers, setFloor } from "@/lib/db/campaigns";
+import { getCampaignById, getCampaignSummaryState, getFloor, latestSeq, listMembers, setFloor } from "@/lib/db/campaigns";
 import { listChapters } from "@/lib/db/chapters";
 import { getDmTurn, listOpenPendingRolls } from "@/lib/db/dm-turns";
 import { listRecentWhispersForPrompt, listPendingPlayerWhispers } from "@/lib/db/dm-whispers";
@@ -30,12 +32,15 @@ import { budgetRead, ReadBudgetError } from "@/lib/mcp-read-budget.mjs";
 import { listEventsSince, publishEphemeral, publishPersisted, publishUserEphemeral } from "@/lib/events";
 export { NarratorCommandError as McpNarratorControlError } from "@/lib/dm/narrator-command";
 const id = z.string().uuid();
+const sectionDigest = z.string().regex(/^[a-f0-9]{64}$/);
 const readSchema = z.object({
   campaignId: id, afterSeq: z.number().int().min(0).default(0), limit: z.number().int().min(1).max(100).default(50),
   afterAskSeq: z.number().int().min(0).default(0), askLimit: z.number().int().min(1).max(50).default(20),
   paged: z.boolean().default(false), pageCursor: z.string().max(500).optional(),
   maxBytes: z.number().int().min(4096).max(131072).default(65536), projection: z.enum(["full", "live"]).default("full"),
   delta: z.boolean().default(false), knownSeq: z.number().int().min(0).optional(),
+  knownSections: z.object({ sheets: sectionDigest.optional(), facts: sectionDigest.optional(), notes: sectionDigest.optional(), npcs: sectionDigest.optional(),
+    recentMessages: sectionDigest.optional(), recentRolls: sectionDigest.optional(), chapters: sectionDigest.optional() }).strict().optional(),
 }).strict();
 const writeBase = z.object({ campaignId: id, expectedSeq: z.number().int().min(0), commandId: id.optional() }).strict();
 // Future AI-producing adjudications remain unavailable unless explicitly listed.
@@ -61,6 +66,11 @@ function safeCampaign(campaign: NonNullable<ReturnType<typeof getCampaignById>>)
   };
 }
 type CatalogOptions = { summaryOnly?: boolean; category?: string; action?: string };
+function sectionVersion(campaignId: string, timelineEpoch: string, section: string, content: unknown) {
+  return createHash("sha256").update(JSON.stringify({ campaignId, timelineEpoch, section, content }, (_key, value) =>
+    value && typeof value === "object" && !Array.isArray(value) ? Object.fromEntries(Object.keys(value).sort().map(key => [key, value[key]])) : value,
+  )).digest("hex");
+}
 function catalog(options: CatalogOptions = {}) {
   let groups = [...consoleAdjudications(), { category: "world" as const, label: "Location chats", entries: SPATIAL_NARRATOR_CATALOG }].map(group => ({
     ...group, entries: group.entries.filter(entry => EXTERNAL_NARRATOR_ACTIONS.has(entry.name)).map(entry => {
@@ -94,36 +104,32 @@ function read(raw: unknown) {
     authorType: message.kind === "narration" || message.kind === "perception" ? "dm" : "player", channel: "location" as const,
   }))].sort((a,b) => a.seq-b.seq);
   const askPage = listPendingAsksForCampaign(campaign.id, p.data.afterAskSeq, p.data.askLimit), live = p.data.projection === "live";
-  const delta = Boolean(p.data.delta), baselineSeq = p.data.knownSeq ?? (delta ? p.data.afterSeq : 0);
+  const delta = Boolean(p.data.delta), baselineSeq = p.data.knownSeq ?? (delta ? p.data.afterSeq : 0), timelineEpoch = campaignTimelineEpoch(campaign.id);
   const omittedSections: string[] = live ? ["recentRolls", "recentDmWhispers", "recentMessages", "chapters"] : [];
-  let includeSheets = true, includeFacts = true, includeNotes = true, includeNpcs = true;
-  if (delta && baselineSeq > 0) {
-    const changes = listEventsSince(campaign.id, baselineSeq, 501);
-    // An incomplete change window is not evidence that a section stayed unchanged.
-    if (changes.length < 501) {
-      const types = changes.map(event => event.type);
-      includeSheets = types.some(type => ["sheet", "hp", "inventory", "character", "spell", "roll_result"].some(key => type.includes(key)));
-      includeFacts = types.some(type => type.includes("fact"));
-      includeNotes = types.some(type => type.includes("note"));
-      includeNpcs = types.some(type => type.includes("npc"));
-    }
+  const sections = {
+    sheets: listSheets(campaign.id), facts: listActiveFacts(campaign.id), notes: listPublicCampaignNotes(campaign.id, 20), npcs: npcRosterForPrompt(campaign.id).slice(0, 100),
+    recentMessages: live ? [] : listRecentMessages(campaign.id, 400).filter(msg => !isOocMessage(msg)),
+    recentRolls: live ? [] : listRecentRolls(campaign.id, 100), chapters: live ? [] : listChapters(campaign.id),
+  };
+  const sectionVersions: Partial<Record<keyof typeof sections, string>> = {};
+  for (const key of Object.keys(sections) as Array<keyof typeof sections>) {
+    if (omittedSections.includes(key)) continue;
+    const version = sectionVersion(campaign.id, timelineEpoch, key, sections[key]);
+    sectionVersions[key] = version;
+    if (delta && p.data.knownSections?.[key] === version) { sections[key] = []; omittedSections.push(key); }
   }
-  if (!includeSheets) omittedSections.push("sheets"); if (!includeFacts) omittedSections.push("facts");
-  if (!includeNotes) omittedSections.push("notes"); if (!includeNpcs) omittedSections.push("npcs");
   const receipts = listNarratorReceipts(campaign.id);
   const state = {
-    campaign: safeCampaign(campaign), currentSeq, timelineEpoch: campaignTimelineEpoch(campaign.id), cursor: p.data.afterSeq, nextCursor, hasMore,
+    campaign: safeCampaign(campaign), currentSeq, timelineEpoch, cursor: p.data.afterSeq, nextCursor, hasMore,
     events: events.filter(isNarratorEvent).map(event => event.type === "roll_result" ? { seq: event.seq, type: event.type, payload: event.payload } : { seq: event.seq, type: event.type }),
     messages, spatial: spatial ? { enabled: true, instructions: SPATIAL_GUIDANCE } : { enabled: false }, spatialRooms: spatial?.rooms ?? [], spatialGrants: spatial?.grants ?? [],
     commands: delta && baselineSeq > 0 ? receipts.filter(receipt => receipt.committedSeq > baselineSeq) : receipts,
-    summary: getCampaignSummaryState(campaign.id), members: listMembers(campaign.id), sheets: includeSheets ? listSheets(campaign.id) : [], pendingRolls: listOpenPendingRolls(campaign.id),
-    recentRolls: live ? [] : listRecentRolls(campaign.id, 100), playerWhispers: listPendingPlayerWhispers(campaign.id),
-    recentDmWhispers: live ? [] : listRecentWhispersForPrompt(campaign.id), recentMessages: live ? [] : listRecentMessages(campaign.id, 400).filter(msg => !isOocMessage(msg)),
+    summary: getCampaignSummaryState(campaign.id), members: listMembers(campaign.id), pendingRolls: listOpenPendingRolls(campaign.id),
+    playerWhispers: listPendingPlayerWhispers(campaign.id), recentDmWhispers: live ? [] : listRecentWhispersForPrompt(campaign.id),
     omittedSections, asks: askPage.items, askQueue: { nextCursor: askPage.nextCursor, hasMore: askPage.hasMore },
-    notes: includeNotes ? listPublicCampaignNotes(campaign.id, 20) : [], npcs: includeNpcs ? npcRosterForPrompt(campaign.id).slice(0, 100) : [],
-    facts: includeFacts ? listActiveFacts(campaign.id) : [], chapters: live ? [] : listChapters(campaign.id), location: getCurrentLocation(campaign.id), sceneTracker: getSceneTracker(campaign.id),
+    ...sections, sectionVersions, location: getCurrentLocation(campaign.id), sceneTracker: getSceneTracker(campaign.id),
     encounter: (() => { const encounter = getActiveEncounter(campaign.id); return encounter ? { encounter, enemies: listEnemies(encounter.id) } : null; })(),
-    ...(delta ? { deltaState: { enabled: true, baselineSeq, pruned: !includeSheets && !includeFacts && !includeNpcs && !includeNotes } } : {}),
+    ...(delta ? { deltaState: { enabled: true, baselineSeq, pruned: ["sheets", "facts", "notes", "npcs"].every(key => omittedSections.includes(key)) } } : {}),
   };
   try { return budgetRead(state, p.data); }
   catch (error) { if (error instanceof ReadBudgetError) throw new McpNarratorControlError(error.message, error.status); throw error; }
@@ -158,11 +164,23 @@ async function narrate(raw: unknown) {
       if (!turn || turn.campaignId !== campaign.id || turn.actor !== "human_dm") throw new McpNarratorControlError("Narration turn does not belong to this human-DM campaign.", 409);
     }
     if (spatialEnabled(campaign.id)) throw new McpNarratorControlError("Use narrator.invoke location_narrate with an explicit roomId for this campaign.", 409);
+    if (p.data.releaseFloor) {
+      const floor = getFloor(campaign.id);
+      if (listOpenPendingRolls(campaign.id).length) {
+        throw new McpNarratorControlError("Resolve pending physical rolls before releasing the floor.", 409);
+      }
+      if (floor.mode === "hold" && floor.combat?.requiresEndTurn && !floor.combat.mechanicsResolved) {
+        throw new McpNarratorControlError("Combat mechanics must finish before the floor can be released.", 409);
+      }
+    }
     const message = persistHumanNarration(campaign, p.data.content, campaign.dmUserId!);
     let floorResult;
     if (p.data.releaseFloor) {
-      const floor = campaign.floor.mode === "hold" ? campaign.floor.next : campaign.floor;
-      setFloor(campaign.id, floor); publishPersisted(campaign.id, "floor_changed", { floor }); floorResult = { floorReleased: true, floor };
+      const current = getFloor(campaign.id);
+      const floor = current.mode === "hold" && !current.combat ? current.next : current;
+      setFloor(campaign.id, floor); publishPersisted(campaign.id, "floor_changed", { floor });
+      queueSkippedCombatTurn(campaign.id);
+      floorResult = { floorReleased: getFloor(campaign.id).mode !== "hold", floor: getFloor(campaign.id) };
     }
     return { messageId: message.id, ...(p.data.turnId ? { turnId: p.data.turnId } : {}), ...(floorResult ?? {}) };
   });
@@ -171,8 +189,13 @@ async function releaseFloor(raw: unknown) {
   const p = writeBase.safeParse(raw);
   if (!p.success) throw new McpNarratorControlError(z.prettifyError(p.error));
   return serializedWrite(p.data, "narrator.release_floor", {}, campaign => {
-    const floor = campaign.floor.mode === "hold" ? campaign.floor.next : campaign.floor;
-    setFloor(campaign.id, floor); publishPersisted(campaign.id, "floor_changed", { floor }); return { floor };
+    const current = getFloor(campaign.id);
+    if (listOpenPendingRolls(campaign.id).length) throw new McpNarratorControlError("Resolve pending physical rolls before releasing the floor.", 409);
+    if (current.mode === "hold" && current.combat) throw new McpNarratorControlError("Combat adjudication is still in progress.", 409);
+    const floor = current.mode === "hold" ? current.next : current;
+    setFloor(campaign.id, floor); publishPersisted(campaign.id, "floor_changed", { floor });
+    queueSkippedCombatTurn(campaign.id);
+    return { floor: getFloor(campaign.id) };
   });
 }
 export async function executeMcpNarratorControl(action: string, raw: unknown): Promise<{ handled: false } | { handled: true; result: unknown }> {

@@ -14,6 +14,8 @@ import {
   ONE_SHOT_EVENT_IDS,
 } from "@/lib/dm/director-logic";
 import { publishPersisted } from "@/lib/events";
+import { capsFor, getFloor } from "@/lib/db/campaigns";
+import { getActiveEncounter } from "@/lib/db/encounters";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -89,6 +91,10 @@ export async function POST(
     return context;
   }
   const raw = await request.json().catch(() => ({}));
+  const floor = getFloor(campaignId);
+  if (!capsFor(context.campaign, context.user.id).adjudicates && (getActiveEncounter(campaignId) || (floor.mode === "hold" && floor.combat))) {
+    return Response.json({ error: "Use your combat action or OOC during combat." }, { status: 409 });
+  }
   const parsed = armSchema.safeParse(raw);
   if (!parsed.success) {
     return Response.json({ error: "Nothing to arm." }, { status: 400 });

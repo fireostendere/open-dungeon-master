@@ -20,14 +20,32 @@ import { enqueueDmJob } from "@/lib/dm/queue";
 import { runResumeRecap } from "@/lib/dm/recap";
 import { publishPersisted, publishWithSeq } from "@/lib/events";
 import { recordGlobalTurnAction } from "@/lib/dm/global-turn-logic";
+import { getActiveEncounter } from "@/lib/db/encounters";
+import { activePublicEncounter } from "@/lib/db/encounter-view";
+import { attacksAllowedFor, budgetFor } from "@/lib/dm/action-tools";
+import { validateCombatTurnIntent } from "@/lib/dm/combat-turn-intent";
+import { conditionExtraActions } from "@/lib/srd/condition-effects";
+import { listOpenPendingRolls } from "@/lib/db/dm-turns";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const actionSchema = z.object({
-  content: z.string().trim().min(1).max(2000),
+  content: z.string().trim().min(1).max(2000).optional(),
   kind: z.enum(["do", "say", "ooc"]).default("do"),
-});
+  combatTurn: z.object({
+    encounterId: z.string().uuid(),
+    round: z.number().int().min(1),
+    turnIndex: z.number().int().min(0),
+    choices: z.array(z.discriminatedUnion("type", [
+      z.object({ type: z.literal("attack"), targetEnemyId: z.string().uuid(), weapon: z.string().trim().min(1).max(80) }),
+      z.object({ type: z.literal("dodge") }),
+      z.object({ type: z.literal("resource"), resource: z.string().trim().min(1).max(80), targetCharacterId: z.string().uuid().optional() }),
+      z.object({ type: z.literal("item"), item: z.string().trim().min(1).max(80), targetCharacterId: z.string().uuid().optional() }),
+    ])).max(8),
+    prose: z.string().trim().max(1200).optional(),
+  }).strict().optional(),
+}).strict().refine((value) => Boolean(value.content || value.combatTurn), "An action needs content or a combat turn.");
 
 export async function POST(
   request: Request,
@@ -117,6 +135,33 @@ export async function POST(
       { status: 409 },
     );
   }
+  const encounter = getActiveEncounter(campaignId);
+  if (kind !== "ooc" && encounter) {
+    const actor = encounter.order[encounter.turnIndex];
+    if (!encounter.orderReady || floor.mode !== "initiative" || actor?.kind !== "pc" || actor.characterId !== sheet.id || listOpenPendingRolls(campaignId).length) {
+      return Response.json({ error: "Wait for your combat turn and pending rolls. OOC remains available." }, { status: 409 });
+    }
+  }
+  let combatContent: string | null = null;
+  let combatGate: Extract<Floor, { mode: "hold" }>["combat"] | undefined;
+  if (parsed.data.combatTurn) {
+    const intent = parsed.data.combatTurn;
+    if (kind !== "do" || floor.mode !== "initiative" || !encounter || !encounter.orderReady ||
+      intent.encounterId !== encounter.id || intent.round !== encounter.round || intent.turnIndex !== encounter.turnIndex) {
+      return Response.json({ error: "This combat turn is stale. Refresh the encounter." }, { status: 409 });
+    }
+    const current = encounter.order[encounter.turnIndex];
+    if (!current || current.kind !== "pc" || current.characterId !== sheet.id) {
+      return Response.json({ error: "It is not your initiative turn." }, { status: 409 });
+    }
+    const budget = budgetFor(encounter, sheet.id, attacksAllowedFor(sheet), conditionExtraActions(sheet.conditions));
+    if (!budget) return Response.json({ error: "This combat turn is no longer available." }, { status: 409 });
+    const publicEncounter = activePublicEncounter(campaignId);
+    const result = validateCombatTurnIntent(intent, sheet, new Set(publicEncounter?.enemies.filter((enemy) => enemy.status === "alive").map((enemy) => enemy.id)), new Set(listSheets(campaignId).filter((entry) => !entry.deathSaves?.dead).map((entry) => entry.id)), budget);
+    if (!result.ok) return Response.json({ error: result.error }, { status: 400 });
+    combatContent = result.content;
+    combatGate = { encounterId: encounter.id, round: encounter.round, turnIndex: encounter.turnIndex, characterId: sheet.id, requiresEndTurn: true, mechanicsResolved: false };
+  }
   let spotlightStillWaiting = false;
   if (kind !== "ooc" && floor.mode === "spotlight") {
     const responded =
@@ -135,17 +180,19 @@ export async function POST(
   }
 
   // Global turn pacing: enforce maximum 1 do and 1 say per hero per turn
-  const turnResult = recordGlobalTurnAction(campaignId, sheet.id, user.id, kind);
+  // Initiative already has a per-combatant action budget; global collection
+  // pacing must not consume or reject combat turns.
+  const turnResult = encounter?.orderReady ? { allowed: true } : recordGlobalTurnAction(campaignId, sheet.id, user.id, kind);
   if (!turnResult.allowed) {
     return Response.json({ error: turnResult.error ?? "Действие недоступно в этом ходе." }, { status: 409 });
   }
 
   const content =
-    kind === "say"
+      combatContent ?? (kind === "say"
       ? `"${parsed.data.content}"`
       : kind === "ooc"
         ? `(ooc) ${parsed.data.content}`
-        : parsed.data.content;
+        : parsed.data.content!);
 
   const isFirstAction = countMessages(campaignId) === 0;
 
@@ -183,6 +230,19 @@ export async function POST(
   });
   publishWithSeq(campaignId, seq, "message_added", { message });
 
+  // Non-OOC combat input is exclusive until a DM narration completes. A
+  // bundle additionally requires explicit end_turn, so prose cannot advance
+  // initiative by guessing the player's intent.
+  if (kind !== "ooc" && floor.mode === "initiative") {
+    const gate = combatGate ?? {
+      encounterId: floor.encounterId, round: floor.round, turnIndex: encounter?.turnIndex ?? 0,
+      characterId: sheet.id, requiresEndTurn: false, mechanicsResolved: false,
+    };
+    const held: Floor = { mode: "hold", next: floor, combat: gate };
+    setFloor(campaignId, held);
+    publishPersisted(campaignId, "floor_changed", { floor: held });
+  }
+
   // OOC table talk does not wake the DM; everything else requests a
   // narration turn, except while a spotlight still waits on other players:
   // the single coalesced turn fires with the last answer and reads all the
@@ -193,7 +253,9 @@ export async function POST(
   // intent: it sits in the DM's queue until they adjudicate it, and all the
   // table sees is that it landed. The message row and the floor bookkeeping
   // above are identical either way, which is what keeps one transcript.
-  const globalTurnActive = Boolean(campaign.gameSettings?.globalTurn?.enabled);
+  // Initiative owns its own progression; global collection must neither
+  // suppress this wake nor compete with its action accounting.
+  const globalTurnActive = Boolean(campaign.gameSettings?.globalTurn?.enabled) && !encounter?.orderReady;
   if (!globalTurnActive && ((kind !== "ooc" && !spotlightStillWaiting) || isFirstAction)) {
     if (humanDm) {
       publishPersisted(campaignId, "dm_intent_queued", {

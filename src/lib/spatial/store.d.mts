@@ -1,11 +1,11 @@
 import type { SqliteDatabase } from "../db/driver";
 export type SpatialActor = { campaignId: string; userId: string; isDm: boolean; memberIds: string[]; playerIds: string[] };
-export type SpatialMessage = { id: string; roomId: string | null; seq: number; kind: "say" | "do" | "narration" | "perception" | "ooc"; authorUserId: string | null; content: string; createdAt: string };
+export type SpatialMessage = { id: string; roomId: string | null; seq: number; kind: "say" | "do" | "narration" | "perception" | "ooc"; authorUserId: string | null; content: string; createdAt: string; stealth?: boolean; stealthStatus?: "none" | "pending" | "confirmed" | "revealed" | "failed" };
 export type SpatialRoom = { id: string; name: string; active: boolean; occupants: string[] };
 export type SpatialPosition = { roomId: string; revision: number };
 export type SpatialObjectProjection = { objectType: string; objectId: string; roomId: string | null; version: number; seq: number; payload: unknown };
 export type SpatialGrant = { id: string; userId: string; roomId: string; mode: "speech" | "scry"; expiresAt: string };
-export type SpatialView = { enabled: false } | { enabled: true; startSeq: number; current: SpatialPosition | null; rooms: SpatialRoom[]; exits: { id: string; name: string }[]; grants: SpatialGrant[]; isDm: boolean };
+export type SpatialView = { enabled: false } | { enabled: true; startSeq: number; current: SpatialPosition | null; rooms: SpatialRoom[]; exits: { id: string; name: string }[]; grants: SpatialGrant[]; isDm: boolean; floor?: unknown; stealth?: { status: string; updatedAt: string } | null };
 export type SpatialPage = { messages: SpatialMessage[]; nextBefore: number | null };
 export type SpatialNarratorMessage = SpatialMessage & { witnessUserIds: string[] };
 export type SpatialNarratorRead = Extract<SpatialView, { enabled: true }> & { messages: SpatialNarratorMessage[]; nextCursor: number; hasMore: boolean };
@@ -20,6 +20,11 @@ export type SpatialStore = {
   publishObject(actor: SpatialActor, input: { objectType: string; objectId: string; roomId?: string | null; payload: unknown; userIds?: string[] }): { objectType: string; objectId: string; version: number; seq: number };
   observeObject(actor: SpatialActor, input: { objectType: string; objectId: string; userIds: string[] }): { objectType: string; objectId: string; version: number };
   narratorRead(actor: SpatialActor, options?: { afterSeq?: number; limit?: number }): SpatialNarratorRead;
+  isDetected(campaignId: string, observerId: string, targetId: string): boolean;
+  getStealthState(campaignId: string, characterId: string): { status: string; roomId: string; updatedAt: string } | null;
+  getRoomFloor(campaignId: string, roomId: string): any;
+  setRoomFloor(campaignId: string, roomId: string, floor: any): void;
+  getUserRoom(campaignId: string, userId: string): string | null;
 };
 export class SpatialError extends Error { status: number; constructor(message: string, status?: number); }
 export const SPATIAL_SCHEMA: string;

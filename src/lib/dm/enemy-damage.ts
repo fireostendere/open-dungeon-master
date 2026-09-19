@@ -112,10 +112,15 @@ export function finishEncounter(
     ).result;
   }
 
-  const floor = getFloor(campaign.id);
+  const floor = getFloor(campaign.id, encounter.roomId);
   if (floor.mode === "initiative" || (floor.mode === "hold" && floor.next.mode === "initiative")) {
-    setFloor(campaign.id, { mode: "open" });
-    publishPersisted(campaign.id, "floor_changed", { floor: { mode: "open" } });
+    // Even a killing blow needs its consequence narrated before submissions
+    // reopen. The completed gate releases to open through narration.
+    const next = floor.mode === "hold" && floor.combat
+      ? { ...floor, next: { mode: "open" as const }, combat: { ...floor.combat, mechanicsResolved: true } }
+      : { mode: "open" as const };
+    setFloor(campaign.id, next, encounter.roomId);
+    publishPersisted(campaign.id, "floor_changed", { floor: next });
   }
   publishPersisted(campaign.id, "encounter_updated", { encounter: null });
   // The fight is over, so the fight music is. Every way an encounter can

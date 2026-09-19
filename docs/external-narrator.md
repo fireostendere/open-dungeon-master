@@ -68,7 +68,7 @@ for D&D” inside Ask/notes/whispers do not change its privileges or purpose.
 2. `read(afterSeq, limit)` must be drained using `nextCursor` until `hasMore` is
    false. OOC filtering may leave an empty page but still advance the cursor.
    `currentSeq` is not an intermediate page cursor. `dmPolicy` accompanies these
-   sidecar results without rewriting messages, Ask visibility or sequence values.
+    sidecar results without rewriting messages, Ask visibility or sequence values.
 3. Inspect `catalog`, sheets, encounter, pending physical rolls, roll_result and
    recentRolls. The server owns dice/results; never roll the same event twice.
 4. Use the fully drained cursor as `expectedSeq` for one `invoke`, `narrate`, or
@@ -80,6 +80,18 @@ for D&D” inside Ask/notes/whispers do not change its privileges or purpose.
 No exclusive narrator lease is claimed. Use one active narrator per campaign by
 operator convention; cursor checks do not make simultaneous separate admin/UI
 writes exclusive.
+
+### Content-addressed delta reads
+
+With `delta: true`, a read returns `sectionVersions` (64-hex SHA-256 digests)
+for the complete `sheets`, `facts`, `notes`, and `npcs` arrays, plus
+`recentMessages`, `recentRolls`, and `chapters` in the full projection. On the next
+read, send those exact values as `knownSections`; only matching sections are
+omitted and named in `omittedSections`. Retain an omitted array from the
+baseline; an included empty array clears it. Digests are scoped to campaign and
+`timelineEpoch`, so reconnect after a rewind or campaign switch. `knownSeq`
+remains a receipt cursor only: legacy delta clients without `knownSections`
+receive complete static sections and lose no data.
 
 The repository's `narrator/run.mjs` is the minimal long-lived lifecycle host. It
 polls both independent queues, drains paged snapshots, persists cursors and

@@ -44,6 +44,7 @@ import { useI18n } from "@/lib/i18n";
 import { useChatChime } from "@/app/campaigns/[campaignId]/useChatChime";
 import { useTableAudio } from "@/app/campaigns/[campaignId]/useTableAudio";
 import type { CampaignState } from "@/app/campaigns/[campaignId]/useCampaignStream";
+import type { CombatTurnIntent } from "@/lib/dm/combat-turn-intent";
 
 // The level-up dialog carries the class feature and resource tables of the
 // whole SRD; it loads the first time a character actually levels rather
@@ -275,10 +276,10 @@ export function SessionView({
   }, [campaignId]);
 
   const submit = useCallback(
-    async (event: FormEvent) => {
-      event.preventDefault();
+    async (event: FormEvent | null, combatTurn?: CombatTurnIntent) => {
+      event?.preventDefault();
       const content = input.trim();
-      if (!content || sending || gate.inputBlocked || muted) {
+      if ((!content && !combatTurn) || sending || gate.inputBlocked || muted) {
         return;
       }
       setSending(true);
@@ -295,7 +296,7 @@ export function SessionView({
               ? leadPrivate
                 ? ["director", { oneShot: null, absoluteCommand: content }]
                 : ["lead-note", { content }]
-              : ["actions", { content, kind }];
+              : ["actions", combatTurn ? { kind: "do", combatTurn } : { content, kind }];
         const response = await fetch(`/api/campaigns/${campaignId}/${route}`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -489,6 +490,7 @@ export function SessionView({
               onCaptureStory={openStoryCapture}
               onSnoozeStory={snoozeStory}
               onSubmit={submit}
+              onCombatSubmit={(combatTurn) => void submit(null, combatTurn)}
             />
           )}
         </SessionChatColumn>

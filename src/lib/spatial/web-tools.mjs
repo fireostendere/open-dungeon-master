@@ -26,12 +26,13 @@ export function locationWebTools({campaignId,userId,signal,fetchImpl=globalThis.
       description:'Persist a UUID requestId (legacy alias intentId) before sending. Repeat identical arguments and the same ID after an uncertain failure. For say/do read and pass roomId and expectedRevision explicitly. OOC is global. No DM powers.',
       inputSchema:{type:'object',additionalProperties:false,properties:{requestId:uuid,intentId:uuid,
         roomId:{type:['string','null'],format:'uuid'},expectedRevision:{type:['integer','null'],minimum:1},
-        kind:{type:'string',enum:['say','do','ooc']},content:{type:'string',minLength:1,maxLength:2000}},
+        kind:{type:'string',enum:['say','do','ooc']},content:{type:'string',minLength:1,maxLength:2000},
+        stealth:{type:'boolean'}},
         required:['kind','content'],anyOf:[{required:['requestId']},{required:['intentId']}],
-        oneOf:[{properties:{kind:{const:'ooc'},roomId:{type:'null'},expectedRevision:{type:'null'}}},
-          {properties:{kind:{enum:['say','do']},roomId:uuid,expectedRevision:{type:'integer',minimum:1}},required:['roomId','expectedRevision']}]},
+        oneOf:[{properties:{kind:{const:'ooc'},roomId:{type:'null'},expectedRevision:{type:'null'},stealth:{type:'boolean'}}},
+          {properties:{kind:{enum:['say','do']},roomId:uuid,expectedRevision:{type:'integer',minimum:1},stealth:{type:'boolean'}},required:['roomId','expectedRevision']}]},
       execute:(input,execution)=>{
-        if(!input||typeof input!=='object'||Object.keys(input).some(key=>!['requestId','intentId','roomId','expectedRevision','kind','content'].includes(key)))throw new Error('Unknown message argument.');
+        if(!input||typeof input!=='object'||Object.keys(input).some(key=>!['requestId','intentId','roomId','expectedRevision','kind','content','stealth'].includes(key)))throw new Error('Unknown message argument.');
         if(input.intentId!==undefined&&input.requestId!==undefined&&input.intentId!==input.requestId)throw new Error('Conflicting intentId and requestId.');
         const requestId=input.requestId??input.intentId;
         if(!uuidPattern.test(String(requestId))||!['say','do','ooc'].includes(input.kind)||typeof input.content!=='string'||!input.content.trim()||input.content.length>2000)throw new Error('Invalid message arguments.');
@@ -39,6 +40,7 @@ export function locationWebTools({campaignId,userId,signal,fetchImpl=globalThis.
         if(input.kind==='ooc'&&(input.roomId!=null||input.expectedRevision!=null))throw new Error('OOC does not belong to a room/revision.');
         return request('',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({operation:'send',requestId,
           roomId:input.kind==='ooc'?null:input.roomId,kind:input.kind,content:input.content,
+          ...(input.stealth!==undefined?{stealth:Boolean(input.stealth)}:{}),
           ...(input.kind==='ooc'?{}:{expectedRevision:input.expectedRevision})})},execution);
       }},
   ];

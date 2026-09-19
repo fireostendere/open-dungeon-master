@@ -3,6 +3,28 @@ const fail=(message,status=409,code)=>Object.assign(new Error(message),{status,c
 const seq=value=>Number.isSafeInteger(value)&&value>=0;
 const epochOf=state=>typeof state?.timelineEpoch==='string'?state.timelineEpoch:null;
 const changed=error=>error?.code==='timeline_changed'||error?.code==='NARRATOR_CURSOR_AHEAD'||/^Narrator cursor is ahead of campaign state/.test(error?.message??'');
+const cachedSections=['sheets','facts','notes','npcs','recentMessages','recentRolls','chapters'];
+function restoreSections(host,state,params,baseline) {
+  if(state.campaign?.id&&state.campaign.id!==params.campaignId)throw fail('Read belongs to another campaign.',400);
+  if(params.timelineEpoch&&state.timelineEpoch&&params.timelineEpoch!==state.timelineEpoch)throw fail('Narrator timeline changed.',409,'timeline_changed');
+  if(!state.sectionVersions)return state;
+  const scope=`${params.campaignId}:${state.timelineEpoch}`;
+  const values=baseline?.scope===scope?{...baseline.values}:{},versions=baseline?.scope===scope?{...baseline.versions}:{};
+  if(Object.keys(state.sectionVersions).some(key=>!cachedSections.includes(key)))throw fail('Unknown narrator section.',400);
+  for(const key of cachedSections){
+    if(!Object.hasOwn(state.sectionVersions,key))continue;
+    if(!/^[a-f0-9]{64}$/.test(state.sectionVersions[key]??''))throw fail('Invalid section version.',400);
+    if(state.omittedSections?.includes(key)){
+      if(baseline?.scope!==scope||baseline.versions[key]!==state.sectionVersions[key]||params.knownSections?.[key]!==state.sectionVersions[key])throw fail('Missing delta baseline.',409);
+      state[key]=structuredClone(baseline.values[key]);
+    }
+    if(!Array.isArray(state[key]))throw fail('Invalid narrator section.',400);
+    values[key]=structuredClone(state[key]);
+    versions[key]=state.sectionVersions[key];
+  }
+  host.sectionCache={scope,versions,values};
+  return state;
+}
 export function assembleReadPages(pages) {
   if(!Array.isArray(pages)||!pages.length||!pages.at(-1)?.complete)throw fail('Incomplete narrator read pages.');
   const first=pages[0];
@@ -33,6 +55,8 @@ export function assembleReadPages(pages) {
   return state;
 }
 export async function readNarratorSnapshot(host,params) {
+  const baseline=host.sectionCache;
+  if(host.deltaReads&&params.delta!==false)params={...params,delta:true,...(baseline?{knownSections:{...baseline.versions}}:{})};
   for(let attempt=0;attempt<=host.readPageRetries;attempt++){
     const pages=[],cursors=new Set();let pageCursor,bytes=0;
     try{
@@ -42,11 +66,11 @@ export async function readNarratorSnapshot(host,params) {
           if(pages.length)throw fail('A paged read changed format.');
           if(!result||typeof result!=='object'||Array.isArray(result))throw fail('Invalid narrator read response.',400);
           if(Buffer.byteLength(JSON.stringify(result))>4*1024*1024)throw fail('Narrator read exceeds the host memory budget.',413);
-          return result;
+          return restoreSections(host,result,params,baseline);
         }
         if(result.format!=='odm.read.page.v1')throw fail('Unsupported narrator read format.',400);
         bytes+=Buffer.byteLength(JSON.stringify(result));if(bytes>4*1024*1024)throw fail('Narrator read exceeds the host memory budget.',413);
-        pages.push(result);if(result.complete)return assembleReadPages(pages);
+        pages.push(result);if(result.complete)return restoreSections(host,assembleReadPages(pages),params,baseline);
         if(typeof result.nextPage!=='string'||!result.nextPage||cursors.has(result.nextPage))throw fail('Narrator byte-page cursor did not advance.',400);
         cursors.add(result.nextPage);pageCursor=result.nextPage;
       }
@@ -57,6 +81,7 @@ export async function readNarratorSnapshot(host,params) {
 }
 export function resetNarratorTimeline(host,epoch) {
   host.lastSeq=0;host.lastAskSeq=0;host.timelineEpoch=epoch;host.answeredAsks.clear();host.pendingAskCommands.clear();
+  host.sectionCache=null;host.hasBaseline=false;host.storyController?.reset?.(epoch);
   host.pendingStoryCommands?.clear();host.memory.reset(epoch);host.saveCheckpoint();
 }
 export async function connectNarrator(host) {
@@ -69,7 +94,7 @@ export async function connectNarrator(host) {
   const epoch=epochOf(metadata);
   if(host.timelineEpoch!==null&&epoch!==null&&host.timelineEpoch!==epoch||host.lastSeq>metadata.currentSeq)resetNarratorTimeline(host,epoch);
   else host.timelineEpoch=epoch??host.timelineEpoch;
-  await host.drainStory();return result;
+  await host.drainStory({ full: true });return result;
 }
 export async function drainNarratorStory(host) {
   for(let page=0;page<1000;page++){
@@ -82,10 +107,11 @@ export async function drainNarratorStory(host) {
     const next=result.nextCursor??(result.hasMore?null:result.currentSeq);
     if(!seq(next)||next<cursor||next>result.currentSeq||result.hasMore&&next<=cursor||!result.hasMore&&next!==result.currentSeq)throw fail('Story cursor did not advance safely.',400);
     if((result.messages||[]).some(message=>!seq(message.seq)||message.seq<=cursor||message.seq>next))throw fail('Story message lies outside its acknowledged range.',400);
-    const before=host.memory.serializeState(),previousEpoch=host.timelineEpoch;
+    const before=host.memory.serializeState(),previousEpoch=host.timelineEpoch,controller=host.storyController?.serialize?.(),hadBaseline=host.hasBaseline;
     try{
-      host.memory.ingestReadSnapshot(result);host.timelineEpoch=epoch??host.timelineEpoch;host.lastSeq=next;host.saveCheckpoint();
-    }catch(error){host.memory.restoreState(before);host.timelineEpoch=previousEpoch;host.lastSeq=cursor;throw error;}
+      host.memory.ingestReadSnapshot(result);host.storyController?.ingestReadSnapshot?.(result);
+      host.timelineEpoch=epoch??host.timelineEpoch;host.lastSeq=next;host.hasBaseline=true;host.saveCheckpoint();
+    }catch(error){host.memory.restoreState(before);if(controller)host.storyController.restore(controller);host.timelineEpoch=previousEpoch;host.lastSeq=cursor;host.hasBaseline=hadBaseline;throw error;}
     // Every completed byte/story page is durable. A later failure retries the
     // first unacknowledged page and never leaves memory ahead of its checkpoint.
     if(!result.hasMore)return result;
