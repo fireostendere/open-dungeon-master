@@ -1,5 +1,7 @@
 import { z } from "zod";
 import { getDatabase } from "@/lib/db/core";
+import { afterCommit } from "@/lib/db/commit-effects";
+import { notifySpatialChange } from "@/lib/spatial/updates.mjs";
 import { allocateSeq, campaignSeats, capsFor, getCampaignForUser, listMembers, touchCampaign } from "@/lib/db/campaigns";
 import { getSheetForUser } from "@/lib/db/sheets";
 import { getActiveEncounter } from "@/lib/db/encounters";
@@ -87,7 +89,9 @@ export function runSpatialCommand(campaignId: string, userId: string, raw: unkno
     return result;
   })();
   touchCampaign(campaignId);
-  // No content (nor private room IDs/rosters) enters the global SSE ledger.
-  // Authenticated views refetch independently; the narrator has a bounded feed.
+  // Internal wakeup only, after the OUTERMOST narrator transaction commits.
+  // Each waiting request reloads its authorized projection. An unchanged
+  // projection stays pending: no private activity enters the global SSE bus.
+  afterCommit(() => notifySpatialChange(campaignId));
   return result;
 }

@@ -3,9 +3,10 @@ import { z } from "zod";
 import { isErrorResponse, requireMember, requireVoice } from "@/lib/campaign-api";
 import { enforcePlayerIngress } from "@/lib/ingress-budget";
 import { runSpatialCommand, spatialContext, spatialStore, SpatialError } from "@/lib/spatial/service";
+import { subscribeSpatialChanges, waitForPrivateUpdate } from "@/lib/spatial/updates.mjs";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-const headers = { "Cache-Control": "private, no-store, max-age=0", Vary: "Cookie, X-ODM-Expected-User, X-ODM-Actor" };
+const headers = { "Cache-Control": "private, no-store, max-age=0", Vary: "Cookie, X-ODM-Expected-User, X-ODM-Actor", "X-ODM-Long-Poll": "1" };
 const query = z.object({ roomId: z.string().uuid().nullable(), beforeSeq: z.number().int().min(1).max(Number.MAX_SAFE_INTEGER).optional() });
 function identityConflict(request: Request, authenticatedUserId: string): Response | null {
   // Both branch contracts are assertions, never authentication.
@@ -24,18 +25,29 @@ function errorResponse(error: unknown) {
 }
 export async function GET(request: Request, { params }: { params: Promise<{ campaignId: string }> }) {
   const { campaignId } = await params;
-  const context = await requireMember(campaignId);
-  if (isErrorResponse(context)) return context;
-  const conflict = identityConflict(request, context.user.id); if (conflict) return conflict;
-  try {
+  const search = new URL(request.url).searchParams;
+  const wait = z.number().int().min(0).max(20000).safeParse(Number(search.get("waitMs") ?? 0));
+  if (!wait.success) return Response.json({ error: "Invalid waitMs." }, { status: 400, headers });
+  // Re-authorize on EVERY wakeup, not just when the connection was opened.
+  const load = async () => {
+    const context = await requireMember(campaignId);
+    if (isErrorResponse(context)) return context;
+    const conflict = identityConflict(request, context.user.id); if (conflict) return conflict;
     const { actor } = spatialContext(campaignId, context.user.id), store = spatialStore(), view = store.view(actor);
-    const search = new URL(request.url).searchParams;
     if (!view.enabled || !search.has("roomId")) return viewResponse(request, view);
     const input = query.safeParse({ roomId: search.get("roomId") === "ooc" ? null : search.get("roomId"),
       ...(search.has("beforeSeq") ? { beforeSeq: Number(search.get("beforeSeq")) } : {}) });
     if (!input.success) return Response.json({ error: "Invalid history request." }, { status: 400, headers });
     return viewResponse(request, { ...view, ...store.messages(actor, input.data) });
-  } catch (error) { return errorResponse(error); }
+  };
+  try {
+    return await waitForPrivateUpdate({ load, signal: request.signal,
+      waitMs: request.headers.has("if-none-match") ? wait.data : 0,
+      subscribe: (listener: () => void) => subscribeSpatialChanges(campaignId, listener) });
+  } catch (error) {
+    if (request.signal.aborted) return new Response(null, { status: 499, headers });
+    return errorResponse(error);
+  }
 }
 async function boundedJson(request: Request): Promise<unknown> {
   const reader = request.body?.getReader();
