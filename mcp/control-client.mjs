@@ -40,7 +40,10 @@ export function createControlClient({
     const body = await response.json();
     requestSignal.throwIfAborted();
     if (!response.ok || body?.ok === false) throw new Error(body?.error || `ODM control API returned HTTP ${response.status}.`);
-    return withDmPolicy(action, body?.result);
+    return withDmPolicy(action, body?.result, {
+      policyMode: params?.policyMode,
+      includePolicyText: params?.includePolicyText,
+    });
   };
 }
 export const callControl = createControlClient();

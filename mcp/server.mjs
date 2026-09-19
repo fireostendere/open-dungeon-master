@@ -44,8 +44,9 @@ function allowedOrigin(origin) {
   }
 }
 
-function result(value) {
-  const text = JSON.stringify(value, null, 2);
+function result(value, options = {}) {
+  const compact = options.compact ?? (process.env.ODM_MCP_COMPACT === "1" || process.env.ODM_MCP_COMPACT === "true");
+  const text = compact ? JSON.stringify(value) : JSON.stringify(value, null, 2);
   const structuredContent =
     value && typeof value === "object" && !Array.isArray(value) ? value : { result: value };
   return {
@@ -64,7 +65,8 @@ function failure(error) {
 
 async function run(action, params) {
   try {
-    return result(await callControl(action, params));
+    const compact = params?.compact === true;
+    return result(await callControl(action, params), { compact });
   } catch (error) {
     return failure(error);
   }
@@ -218,12 +220,24 @@ questions, private whispers, DM outlines or other DM secrets to the table.
         name: z.string().trim().min(1).max(100).optional(),
         args: z.record(z.string(), z.unknown()).optional(),
         content: z.string().trim().min(1).max(8000).optional(),
+        turnId: z.string().uuid().optional(),
         askId: z.string().uuid().optional(),
         answer: z.string().trim().min(1).max(4000).optional(),
         citations: z.array(z.object({
           kind: z.enum(["fact", "chapter", "scene", "summary", "npc", "place", "rule", "sheet", "recent"]),
           ref: z.string().max(300), quote: z.string().max(2000),
         }).strict()).max(50).optional(),
+        projection: z.enum(["full", "live"]).optional().describe("Projection mode: full or live (prunes static/historical sections)"),
+        maxBytes: z.number().int().min(4096).max(131072).optional().describe("Context byte budget (4096-131072)"),
+        releaseFloor: z.boolean().optional().describe("For narrate: automatically release floor to players"),
+        summaryOnly: z.boolean().optional().describe("For catalog: return action summary without parameter schemas"),
+        category: z.string().optional().describe("For catalog: filter actions by category"),
+        action: z.string().optional().describe("For catalog: filter to a single action schema"),
+        policyMode: z.enum(["full", "compact"]).optional().describe("DM policy mode: full or compact"),
+        includePolicyText: z.boolean().optional().describe("Explicitly include full DM policy text"),
+        delta: z.boolean().optional().describe("For read: omit unchanged static sheets, facts and NPC roster"),
+        knownSeq: z.number().int().min(0).optional().describe("For read: last known sequence to compute delta from"),
+        compact: z.boolean().optional().describe("Compact JSON serialization in text output"),
       }),
     },
     async (args) => {

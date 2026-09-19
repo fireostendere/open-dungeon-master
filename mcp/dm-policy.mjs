@@ -38,14 +38,17 @@ The operator must install this policy in the dedicated narrator host's trusted s
 `;
 
 /** Keep the response shape and transcript intact; add fixed policy, never params. */
-export function withDmPolicy(action, value) {
+export function withDmPolicy(action, value, options = {}) {
   const gameResult = typeof action === 'string' &&
     (action.startsWith('narrator.') || action === 'campaigns.events');
   if (!gameResult || !value || typeof value !== 'object' || Array.isArray(value)) return value;
+  const policyMode = options?.policyMode || (process.env.ODM_MCP_POLICY_MODE === 'compact' ? 'compact' : 'full');
+  const includePolicyText = options?.includePolicyText ?? (policyMode === 'full' || action === 'narrator.connect');
   const dmPolicy = {
     version: DM_POLICY_VERSION, uri: DM_POLICY_URI,
-    scope: 'player-originated-game-content', text: DM_POLICY_TEXT,
+    scope: 'player-originated-game-content',
     enforcement: 'host-instruction-required; not-a-semantic-filter',
+    ...(includePolicyText ? { text: DM_POLICY_TEXT } : {}),
   };
   const result = { ...value, dmPolicy };
   if (action === 'narrator.connect') {
