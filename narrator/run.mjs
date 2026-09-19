@@ -1,9 +1,8 @@
 #!/usr/bin/env node
-/**
- * Standalone Autonomous Narrator Host & Lifecycle Runner for Open Dungeon Master (ODM).
- *
- * Runs as an independent daemon or container, connecting to the ODM server / MCP sidecar,
- * managing checkpoint/recovery, semantic input validation, cost limits, and bounded memory.
+/** Campaign-scoped context collector and lifecycle runner.
+ * The CLI does NOT pretend to be a model: an external narrator (e.g. Luna)
+ * reads/adjudicates/narrates through MCP. An explicitly supplied askResponder
+ * can answer Ask through the durable command path; without it Ask stays pending.
  */
 import http from 'node:http';
 import path from 'node:path';
@@ -14,82 +13,41 @@ import { classifyInput, DM_REFUSALS } from './semantic-gate.mjs';
 import { NarratorCostTracker } from './cost-tracker.mjs';
 import { HostContextMemory } from './compaction.mjs';
 
-// The standalone narrator image does not contain src/lib. Keep the small
-// page assembler here so Docker and local runs use the same MCP contract.
+const integer = (value, fallback, min, max) => Number.isSafeInteger(Number(value)) && Number(value) >= min && Number(value) <= max ? Number(value) : fallback;
+const cursorAhead = error => error?.status === 409 && (error.code === 'NARRATOR_CURSOR_AHEAD' || /^Narrator cursor is ahead of campaign state;/.test(error.message));
+const hash = value => crypto.createHash('sha256').update(value).digest();
+const MAX_READ_BYTES = 4 * 1024 * 1024;
+
+// Keep this assembler in the standalone image; never import src/lib here.
 function assembleReadPages(pages) {
-  if (!Array.isArray(pages) || !pages.length || !pages.at(-1)?.complete) {
-    const error = new Error('Incomplete narrator read pages.');
-    error.status = 409;
-    throw error;
-  }
+  if (!Array.isArray(pages) || !pages.length || !pages.at(-1)?.complete) throw new Error('Incomplete narrator read pages.');
   const first = pages[0];
-  if (!first || !first.shape || typeof first.shape !== 'object' || Array.isArray(first.shape)) {
-    const error = new Error('Invalid narrator read page shape.');
-    error.status = 400;
-    throw error;
-  }
+  if (!first.shape || typeof first.shape !== 'object' || Array.isArray(first.shape)) throw new Error('Invalid narrator read page shape.');
   const state = {};
-  for (const [key, kind] of Object.entries(first.shape || {})) {
-    if (['__proto__', 'constructor', 'prototype'].includes(key) || !['array', 'value'].includes(kind)) {
-      const error = new Error('Invalid narrator read page shape.');
-      error.status = 400;
-      throw error;
-    }
+  for (const [key, kind] of Object.entries(first.shape)) {
+    if (['__proto__', 'constructor', 'prototype'].includes(key) || !['array', 'value'].includes(kind)) throw new Error('Invalid narrator read page shape.');
     state[key] = kind === 'array' ? [] : undefined;
   }
-  let offset = 0;
-  let totalBytes = 0;
-  for (let pageIndex = 0; pageIndex < pages.length; pageIndex += 1) {
-    const page = pages[pageIndex];
+  let offset = 0, totalBytes = 0;
+  for (let index = 0; index < pages.length; index++) {
+    const page = pages[index];
     totalBytes += Buffer.byteLength(JSON.stringify(page), 'utf8');
-    if (totalBytes > 4 * 1024 * 1024) {
-      const error = new Error('Narrator read exceeds the host memory budget.');
-      error.status = 413;
-      throw error;
-    }
-    if (page.hash !== first.hash || page.offset !== offset ||
-        JSON.stringify(page.shape) !== JSON.stringify(first.shape) ||
-        page.complete !== (pageIndex === pages.length - 1)) {
-      const error = new Error('Inconsistent narrator read pages.');
-      error.status = 409;
-      throw error;
-    }
-    if (!Array.isArray(page.entries)) {
-      const error = new Error('Invalid narrator read page entries.');
-      error.status = 400;
-      throw error;
-    }
+    if (totalBytes > MAX_READ_BYTES) throw new Error('Narrator read exceeds the host memory budget.');
+    if (page.hash !== first.hash || page.offset !== offset || JSON.stringify(page.shape) !== JSON.stringify(first.shape) ||
+        page.complete !== (index === pages.length - 1) || !Array.isArray(page.entries)) throw new Error('Inconsistent narrator read pages.');
     for (const item of page.entries) {
-      if (!Object.hasOwn(first.shape, item.key) ||
-          ['__proto__', 'constructor', 'prototype'].includes(item.key)) {
-        const error = new Error('Invalid narrator read page entry.');
-        error.status = 400;
-        throw error;
-      }
+      if (!item || !Object.hasOwn(first.shape, item.key)) throw new Error('Invalid narrator read page entry.');
       if (first.shape[item.key] === 'array') {
-        if (item.index !== state[item.key].length) {
-          const error = new Error('Narrator read page array gap.');
-          error.status = 409;
-          throw error;
-        }
+        if (item.index !== state[item.key].length) throw new Error('Narrator read page array gap.');
         state[item.key].push(item.value);
       } else {
-        if (Object.hasOwn(item, 'index')) {
-          const error = new Error('Unexpected narrator read page index.');
-          error.status = 400;
-          throw error;
-        }
+        if (Object.hasOwn(item, 'index') || state[item.key] !== undefined) throw new Error('Unexpected narrator read page value.');
         state[item.key] = item.value;
       }
     }
-    offset += (page.entries || []).length;
+    offset += page.entries.length;
   }
-  const digest = crypto.createHash('sha256').update(JSON.stringify(state)).digest('hex');
-  if (digest !== first.hash) {
-    const error = new Error('Narrator read page integrity check failed.');
-    error.status = 409;
-    throw error;
-  }
+  if (crypto.createHash('sha256').update(JSON.stringify(state)).digest('hex') !== first.hash) throw new Error('Narrator read page integrity check failed.');
   return state;
 }
 
@@ -98,28 +56,28 @@ export class NarratorRunner {
     this.campaignId = options.campaignId || process.env.ODM_CAMPAIGN_ID || process.env.ODM_MCP_NARRATOR_CAMPAIGN_ID || '';
     this.controlUrl = (options.controlUrl || process.env.ODM_MCP_URL || process.env.ODM_MCP_CONTROL_URL || 'http://127.0.0.1:3005/api/internal/mcp').trim();
     this.token = (options.token || process.env.ODM_MCP_NARRATOR_TOKEN || process.env.ODM_MCP_TOKEN || '').trim();
-    this.pollIntervalMs = Number(options.pollIntervalMs ?? process.env.ODM_NARRATOR_POLL_MS ?? 2000);
-    this.readMaxBytes = Number(options.readMaxBytes ?? process.env.ODM_NARRATOR_READ_BYTES ?? 65536);
-    this.readPageRetries = Number(options.readPageRetries ?? process.env.ODM_NARRATOR_READ_RETRIES ?? 2);
-    this.healthPort = options.healthPort !== undefined ? Number(options.healthPort) : Number(process.env.ODM_NARRATOR_PORT ?? 3007);
+    this.pollIntervalMs = integer(options.pollIntervalMs ?? process.env.ODM_NARRATOR_POLL_MS, 2000, 10, 86400000);
+    this.readMaxBytes = integer(options.readMaxBytes ?? process.env.ODM_NARRATOR_READ_BYTES, 65536, 4096, 131072);
+    this.readPageRetries = integer(options.readPageRetries ?? process.env.ODM_NARRATOR_READ_RETRIES, 2, 0, 10);
+    this.healthPort = integer(options.healthPort ?? process.env.ODM_NARRATOR_PORT, 3007, 0, 65535);
     this.statusToken = (options.statusToken || process.env.ODM_NARRATOR_STATUS_TOKEN || '').trim();
     this.fetchImpl = options.fetchImpl || globalThis.fetch;
-
-    const defaultStateDir = process.env.ODM_STATE_DIR || './state';
+    // A callable supplied by the authenticated operator, never a module path
+    // or provider instruction taken from player content or a checkpoint.
+    this.askResponder = typeof options.askResponder === 'function' ? options.askResponder : null;
+    this.mode = this.askResponder ? 'collector-with-ask-adapter' : 'collector';
     this.checkpointPath = options.checkpointPath || process.env.ODM_NARRATOR_CHECKPOINT_PATH ||
-      path.join(defaultStateDir, `narrator-checkpoint-${this.campaignId || 'default'}.json`);
-
+      path.join(process.env.ODM_STATE_DIR || './state', `narrator-checkpoint-${this.campaignId || 'default'}.json`);
     this.costTracker = options.costTracker || new NarratorCostTracker({
       storagePath: path.join(path.dirname(this.checkpointPath), `narrator-cost-${this.campaignId || 'default'}.json`),
     });
-
     this.memory = new HostContextMemory({ campaignId: this.campaignId });
-
     this.lastSeq = 0;
     this.lastAskSeq = 0;
     this.answeredAsks = new Set();
     this.pendingAskCommands = new Map();
     this.running = false;
+    this.polling = false;
     this.timer = null;
     this.healthServer = null;
     this.startedAt = Date.now();
@@ -129,361 +87,251 @@ export class NarratorRunner {
 
   loadCheckpoint() {
     const saved = readJsonSafe(this.checkpointPath);
-    if (saved && typeof saved === 'object') {
-      if (saved.campaignId === this.campaignId || !this.campaignId) {
-        if (!this.campaignId && saved.campaignId) this.campaignId = saved.campaignId;
-        this.lastSeq = Number(saved.lastSeq || 0);
-        this.lastAskSeq = Number(saved.lastAskSeq || 0);
-        if (Array.isArray(saved.answeredAsks)) {
-          this.answeredAsks = new Set(saved.answeredAsks.slice(-200));
-        }
-        if (saved.pendingAskCommands && typeof saved.pendingAskCommands === 'object') {
-          for (const [askId, command] of Object.entries(saved.pendingAskCommands).slice(-200)) {
-            if (command && typeof command === 'object' && typeof command.commandId === 'string') {
-              this.pendingAskCommands.set(askId, command);
-            }
-          }
-        }
-        if (saved.memory) {
-          this.memory.restoreState(saved.memory);
-        }
+    if (!saved || typeof saved !== 'object' || (this.campaignId && saved.campaignId !== this.campaignId)) return;
+    if (!this.campaignId && saved.campaignId) this.campaignId = saved.campaignId;
+    this.lastSeq = integer(saved.lastSeq, 0, 0, Number.MAX_SAFE_INTEGER);
+    this.lastAskSeq = integer(saved.lastAskSeq, 0, 0, Number.MAX_SAFE_INTEGER);
+    this.answeredAsks = new Set(Array.isArray(saved.answeredAsks) ? saved.answeredAsks.filter(id => typeof id === 'string').slice(-200) : []);
+    for (const [askId, command] of Object.entries(saved.pendingAskCommands ?? {}).slice(-200)) {
+      if (command?.campaignId === this.campaignId && command.askId === askId && typeof command.commandId === 'string') {
+        this.pendingAskCommands.set(askId, command);
       }
     }
+    if (saved.memory) this.memory.restoreState(saved.memory);
   }
 
   saveCheckpoint() {
-    const data = {
-      campaignId: this.campaignId,
-      lastSeq: this.lastSeq,
-      lastAskSeq: this.lastAskSeq,
+    atomicWriteJson(this.checkpointPath, {
+      version: 2, mode: this.mode, campaignId: this.campaignId, lastSeq: this.lastSeq, lastAskSeq: this.lastAskSeq,
       answeredAsks: Array.from(this.answeredAsks).slice(-200),
       pendingAskCommands: Object.fromEntries(Array.from(this.pendingAskCommands.entries()).slice(-200)),
-      memory: this.memory.serializeState(),
-      metrics: this.costTracker.getMetrics(),
-      updatedAt: new Date().toISOString(),
-      uptimeSeconds: Math.floor((Date.now() - this.startedAt) / 1000),
-      lastPollAt: this.lastPollAt || null,
+      memory: this.memory.serializeState(), metrics: this.costTracker.getMetrics(), updatedAt: new Date().toISOString(),
+      uptimeSeconds: Math.floor((Date.now() - this.startedAt) / 1000), lastPollAt: this.lastPollAt || null,
       lastError: this.lastError ? 'poll_failed' : null,
-    };
-    atomicWriteJson(this.checkpointPath, data);
+    });
   }
 
   async callControl(action, params = {}, { timeoutMs = 15000 } = {}) {
-    if (!this.token) {
-      throw new Error('Narrator authentication token is missing.');
-    }
-    const signal = AbortSignal.timeout(timeoutMs);
-    const res = await this.fetchImpl(this.controlUrl, {
-      method: 'POST',
-      headers: {
-        authorization: `Bearer ${this.token}`,
-        'content-type': 'application/json',
-        accept: 'application/json',
-      },
-      body: JSON.stringify({ action, params }),
-      signal,
+    if (!this.token) throw new Error('Narrator authentication token is missing.');
+    const response = await this.fetchImpl(this.controlUrl, {
+      method: 'POST', headers: { authorization: `Bearer ${this.token}`, 'content-type': 'application/json', accept: 'application/json' },
+      body: JSON.stringify({ action, params }), signal: AbortSignal.timeout(timeoutMs),
     });
-
-    const body = await res.json().catch(() => null);
-    if (!res.ok || body?.ok === false) {
-      const err = new Error(body?.error || `Control returned HTTP ${res.status}`);
-      err.status = res.status;
-      err.code = body?.code;
-      throw err;
+    const body = await response.json().catch(() => null);
+    if (!response.ok || body?.ok === false) {
+      const error = new Error(body?.error || `Control returned HTTP ${response.status}`);
+      error.status = response.status; error.code = body?.code;
+      throw error;
     }
-    return body?.result;
+    if (!body || !Object.hasOwn(body, 'result')) throw new Error('Invalid control response.');
+    return body.result;
+  }
+
+  resetForRewind() {
+    this.lastSeq = 0; this.lastAskSeq = 0;
+    this.answeredAsks.clear(); this.pendingAskCommands.clear();
+    this.memory.reset({ campaignId: this.campaignId });
   }
 
   async connect() {
     if (!this.campaignId) throw new Error('Cannot connect narrator without campaignId.');
-    const result = await this.callControl('narrator.connect', { campaignId: this.campaignId });
-    if (result && typeof result === 'object') {
-      const state = result.state && typeof result.state === 'object' ? result.state : result;
-      if (Number.isSafeInteger(state.currentSeq) &&
-          (this.lastSeq === 0 || this.lastSeq > state.currentSeq)) {
-        this.lastSeq = state.currentSeq;
-      }
-      this.memory.ingestReadSnapshot(state);
+    const result = await this.callControl('narrator.connect', {
+      campaignId: this.campaignId, paged: true, projection: 'live', maxBytes: this.readMaxBytes,
+    });
+    // A handshake's first byte/story page is NOT an acknowledgement of its
+    // currentSeq. Re-read from the durable consumed cursor and drain fully.
+    try { await this.drainStory(); }
+    catch (error) {
+      if (!cursorAhead(error)) throw error;
+      this.resetForRewind(); await this.drainStory();
     }
+    this.saveCheckpoint();
     return result;
   }
 
   async readSnapshot(params) {
-    for (let attempt = 0; attempt <= this.readPageRetries; attempt += 1) {
-      const pages = [];
-      let pageCursor;
+    for (let attempt = 0; attempt <= this.readPageRetries; attempt++) {
+      const pages = [], cursors = new Set();
+      let pageCursor, bytes = 0;
       try {
-        while (true) {
-          const request = {
-            ...params,
-            paged: true,
-            maxBytes: this.readMaxBytes,
-            ...(pageCursor ? { pageCursor } : {}),
-          };
-          const result = await this.callControl('narrator.read', request);
-          if (!result?.format) return result;
-          if (result.format !== 'odm.read.page.v1') {
-            throw new Error(`Unsupported narrator read format: ${result.format}`);
+        for (let page = 0; page < 1024; page++) {
+          const result = await this.callControl('narrator.read', { ...params, paged: true, maxBytes: this.readMaxBytes,
+            ...(pageCursor ? { pageCursor } : {}) });
+          if (!result?.format) {
+            if (pages.length || !result || typeof result !== 'object') throw new Error('Invalid narrator read response.');
+            return result;
           }
+          if (result.format !== 'odm.read.page.v1') throw new Error('Unsupported narrator read format.');
+          bytes += Buffer.byteLength(JSON.stringify(result), 'utf8');
+          if (bytes > MAX_READ_BYTES) throw new Error('Narrator read exceeds the host memory budget.');
           pages.push(result);
           if (result.complete) return assembleReadPages(pages);
-          if (!result.nextPage) throw new Error('Narrator read page has no nextPage.');
-          pageCursor = result.nextPage;
+          if (typeof result.nextPage !== 'string' || !result.nextPage || cursors.has(result.nextPage)) throw new Error('Narrator read page cursor did not advance.');
+          cursors.add(result.nextPage); pageCursor = result.nextPage;
         }
+        throw new Error('Narrator byte pages exceeded the safety limit.');
       } catch (error) {
-        if (error?.status === 409 && attempt < this.readPageRetries) continue;
+        if (!cursorAhead(error) && error?.status === 409 && attempt < this.readPageRetries) continue;
         throw error;
       }
     }
     throw new Error('Narrator read retry budget exhausted.');
   }
 
-  async drainAskQueue() {
-    // Ask is an independent pending queue. Start at zero on every poll so a
-    // still-pending item behind an old cursor cannot be stranded.
-    let cursor = 0;
-    for (let page = 0; page < 1000; page += 1) {
-      const result = await this.readSnapshot({
-        campaignId: this.campaignId,
-        afterSeq: this.lastSeq,
-        afterAskSeq: cursor,
-        askLimit: 20,
-        limit: 1,
-        projection: 'live',
-      });
-      for (const item of result?.asks || result?.askQueue?.items || []) {
-        await this.handlePendingAsk(item);
+  async drainStory() {
+    const savedMemory = this.memory.serializeState();
+    let cursor = this.lastSeq;
+    try {
+      for (let page = 0; page < 1000; page++) {
+        const result = await this.readSnapshot({ campaignId: this.campaignId, afterSeq: cursor, limit: 50, projection: 'live' });
+        const next = result?.nextCursor, current = result?.currentSeq;
+        if (!Number.isSafeInteger(next) || !Number.isSafeInteger(current) || next < cursor || next > current ||
+            typeof result.hasMore !== 'boolean' || (result.hasMore && next <= cursor) || (!result.hasMore && next !== current)) {
+          throw new Error('Invalid story cursor progression.');
+        }
+        this.memory.ingestReadSnapshot(result);
+        cursor = next;
+        if (!result.hasMore) { this.lastSeq = cursor; return; }
       }
+      throw new Error('Story stream exceeded the page safety limit.');
+    } catch (error) {
+      // A partial drain must not leave a compaction watermark ahead of the
+      // durable cursor: retrying the page would then silently drop its data.
+      this.memory.restoreState(savedMemory);
+      throw error;
+    }
+  }
 
-      const queue = result?.askQueue || {};
-      const next = Number(queue.nextCursor ?? cursor);
-      if (!queue.hasMore) {
-        this.lastAskSeq = next;
-        return;
-      }
-      if (!Number.isSafeInteger(next) || next <= cursor) {
-        throw new Error('Ask queue cursor did not advance.');
-      }
+  async drainAskQueue() {
+    let cursor = 0;
+    for (let page = 0; page < 1000; page++) {
+      const result = await this.readSnapshot({ campaignId: this.campaignId, afterSeq: this.lastSeq,
+        afterAskSeq: cursor, askLimit: 20, limit: 1, projection: 'live' });
+      for (const ask of result.asks ?? result.askQueue?.items ?? []) await this.handlePendingAsk(ask);
+      const queue = result.askQueue ?? {}, next = queue.nextCursor ?? cursor;
+      if (!Number.isSafeInteger(next) || next < cursor || (queue.hasMore && next <= cursor)) throw new Error('Ask queue cursor did not advance.');
+      if (!queue.hasMore) { this.lastAskSeq = next; return; }
       cursor = next;
     }
     throw new Error('Ask queue exceeded the page safety limit.');
   }
 
-  async drainStory() {
-    let cursor = this.lastSeq;
-    for (let page = 0; page < 1000; page += 1) {
-      const result = await this.readSnapshot({
-        campaignId: this.campaignId,
-        afterSeq: cursor,
-        limit: 50,
-        projection: 'full',
-      });
-      if (!result) return;
-      this.memory.ingestReadSnapshot(result);
-      const next = Number(result.nextCursor ?? result.currentSeq ?? cursor);
-      if (!result.hasMore) {
-        this.lastSeq = Math.max(this.lastSeq, Number.isSafeInteger(next) ? next : cursor);
-        return;
-      }
-      if (!Number.isSafeInteger(next) || next <= cursor) {
-        throw new Error('Story cursor did not advance.');
-      }
-      cursor = next;
-    }
-    throw new Error('Story stream exceeded the page safety limit.');
-  }
-
   async pollTick() {
-    if (!this.campaignId) return;
-
+    if (!this.campaignId || this.polling) return false;
+    this.polling = true;
     try {
-      await this.drainAskQueue();
-      await this.drainStory();
-
-      // Checkpoint after successful poll cycle
-      this.lastPollAt = Date.now();
-      this.lastError = null;
-      this.saveCheckpoint();
+      for (let attempt = 0; attempt < 2; attempt++) {
+        try { await this.drainStory(); await this.drainAskQueue(); break; }
+        catch (error) {
+          if (attempt || !cursorAhead(error)) throw error;
+          this.resetForRewind();
+        }
+      }
+      this.lastPollAt = Date.now(); this.lastError = null; this.saveCheckpoint();
       return true;
-    } catch (err) {
-      this.lastError = err?.message || String(err);
-      console.error('[narrator-runner] poll error:', this.lastError);
-      // Keep cursors unchanged on a failed read. The next tick retries the
-      // same page; jumping ahead here silently loses player input.
+    } catch (error) {
+      this.lastError = error;
+      // Error text may itself contain private content returned by a provider.
+      console.error('[narrator-runner] poll failed', { status: error?.status ?? null });
       this.saveCheckpoint();
       return false;
-    }
+    } finally { this.polling = false; }
   }
 
   async handlePendingAsk(ask) {
+    // Collector mode must not consume another external narrator's queue or
+    // publish a fake rules answer. A pending command, however, is retried with
+    // its original payload even if an optional adapter is temporarily absent.
     if (!ask?.id || this.answeredAsks.has(ask.id)) return;
-
-    const text = ask.question || '';
-    const locale = ask.locale || 'ru';
-    const classification = classifyInput(text, { locale, source: 'ask' });
-
-    let answerText = '';
-    let citations = [];
-
-    if (classification.decision === 'safety_pause') {
-      answerText = classification.replyText;
-    } else if (classification.decision === 'decline' || classification.decision === 'ignore_instruction') {
-      answerText = classification.replyText || DM_REFUSALS[locale] || DM_REFUSALS.ru;
-    } else if (classification.decision === 'refuse_secret') {
-      answerText = classification.replyText;
-    } else if (classification.decision === 'clarify') {
-      answerText = classification.replyText;
-    } else {
-      // In-scope game question
-      this.costTracker.recordUsage({ promptTokens: Math.ceil(text.length / 4) + 100, completionTokens: 150 });
-      answerText = `[Ведущий]: Ответ на вопрос "${text}": действие выполняется согласно правилам D&D 5e и обстановке на сцене.`;
+    let command = this.pendingAskCommands.get(ask.id);
+    if (!command && !this.askResponder) return;
+    if (!command) {
+      const locale = ask.locale || 'ru';
+      const classification = classifyInput(ask.question || '', { locale, source: 'ask' });
+      let reply;
+      if (['safety_pause', 'decline', 'ignore_instruction', 'refuse_secret', 'clarify'].includes(classification.decision)) {
+        reply = { answer: classification.replyText || DM_REFUSALS[locale] || DM_REFUSALS.ru, citations: [] };
+      } else {
+        reply = await this.askResponder(structuredClone(ask), this.memory.getPromptContext({ viewerUserId: ask.userId }));
+      }
+      if (reply == null) return;
+      if (typeof reply.answer !== 'string' || !reply.answer.trim() || reply.answer.length > 4000 ||
+          (reply.citations !== undefined && (!Array.isArray(reply.citations) || reply.citations.length > 50))) throw new Error('Invalid Ask adapter response.');
+      // Usage is accepted only when reported by the real adapter. No guessed
+      // prompt/completion tokens are recorded without an actual model call.
+      if (reply.usage && Number.isSafeInteger(reply.usage.promptTokens) && Number.isSafeInteger(reply.usage.completionTokens) &&
+          reply.usage.promptTokens >= 0 && reply.usage.completionTokens >= 0) this.costTracker.recordUsage(reply.usage);
+      command = { campaignId: this.campaignId, askId: ask.id, answer: reply.answer, expectedVersion: ask.version ?? 0,
+        commandId: crypto.randomUUID(), citations: reply.citations ?? [] };
+      this.pendingAskCommands.set(ask.id, command); this.saveCheckpoint();
     }
-
-    const command = this.pendingAskCommands.get(ask.id) || {
-      campaignId: this.campaignId,
-      askId: ask.id,
-      answer: answerText,
-      expectedVersion: ask.version ?? 0,
-      commandId: crypto.randomUUID(),
-      citations,
-    };
-    this.pendingAskCommands.set(ask.id, command);
-    // Persist before sending: a timeout after the server commits must replay
-    // the exact same command instead of creating a second answer.
-    this.saveCheckpoint();
-
     try {
       await this.callControl('narrator.answer_ask', command);
-
-      this.answeredAsks.add(ask.id);
-      this.pendingAskCommands.delete(ask.id);
-      this.saveCheckpoint();
-    } catch (err) {
-      if (err.status === 409) {
-        // Already answered or version conflict; record as answered to prevent tight loop
-        this.answeredAsks.add(ask.id);
-        this.pendingAskCommands.delete(ask.id);
-        this.saveCheckpoint();
-      } else {
-        throw err;
-      }
+      this.answeredAsks.add(ask.id); this.pendingAskCommands.delete(ask.id); this.saveCheckpoint();
+    } catch (error) {
+      if (error.status !== 409) throw error;
+      // A conflict is not proof that a still-pending question was answered.
+      // Re-read its version next poll; only confirmed success is remembered.
+      this.pendingAskCommands.delete(ask.id); this.saveCheckpoint();
     }
   }
 
   startHealthServer() {
     if (!this.healthPort || this.healthServer) return;
-
-    this.healthServer = http.createServer((req, res) => {
-      const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+    this.healthServer = http.createServer((request, response) => {
+      const url = new URL(request.url, 'http://localhost');
+      response.setHeader('content-type', 'application/json'); response.setHeader('cache-control', 'no-store');
       if (url.pathname === '/healthz') {
-        res.writeHead(200, { 'content-type': 'application/json' });
-        res.end(JSON.stringify({ ok: true, status: 'healthy', uptime: process.uptime() }));
+        response.end(JSON.stringify({ ok: true, status: this.lastError ? 'degraded' : 'healthy', mode: this.mode, uptime: process.uptime() }));
       } else if (url.pathname === '/status') {
-        if (this.statusToken && req.headers.authorization !== `Bearer ${this.statusToken}`) {
-          res.writeHead(401, { 'content-type': 'application/json', 'cache-control': 'no-store' });
-          res.end(JSON.stringify({ error: 'Unauthorized' }));
-          return;
+        if (this.statusToken && !crypto.timingSafeEqual(hash(request.headers.authorization ?? ''), hash(`Bearer ${this.statusToken}`))) {
+          response.writeHead(401); response.end(JSON.stringify({ error: 'Unauthorized' })); return;
         }
-        res.writeHead(200, { 'content-type': 'application/json' });
-        res.end(JSON.stringify({
-          ok: true,
-          status: 'running',
-          campaignId: this.campaignId,
-          lastSeq: this.lastSeq,
-          lastAskSeq: this.lastAskSeq,
-          answeredAsksCount: this.answeredAsks.size,
-          pendingAskCommandsCount: this.pendingAskCommands.size,
-          lastPollAt: this.lastPollAt || null,
-          // Never expose provider errors, prompts, tokens or private prose in
-          // diagnostics. The detailed error remains in the operator log.
-          lastError: this.lastError ? 'poll_failed' : null,
-          metrics: this.costTracker.getMetrics(),
-          memory: this.memory.serializeState({ safe: true }),
-          uptime: process.uptime(),
-        }));
-      } else {
-        res.writeHead(404, { 'content-type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Not found' }));
-      }
+        response.end(JSON.stringify({ ok: true, status: 'running', mode: this.mode, campaignId: this.campaignId,
+          lastSeq: this.lastSeq, lastAskSeq: this.lastAskSeq, answeredAsksCount: this.answeredAsks.size,
+          pendingAskCommandsCount: this.pendingAskCommands.size, lastPollAt: this.lastPollAt || null,
+          lastError: this.lastError ? 'poll_failed' : null, metrics: this.costTracker.getMetrics(),
+          memory: this.memory.serializeState({ safe: true }), uptime: process.uptime() }));
+      } else { response.writeHead(404); response.end(JSON.stringify({ error: 'Not found' })); }
     });
-
-    this.healthServer.listen(this.healthPort, '127.0.0.1', () => {
-      console.log(`[narrator-runner] Health server listening on port ${this.healthPort}`);
-    });
+    this.healthServer.listen(this.healthPort, '127.0.0.1');
   }
 
   async start() {
-    this.loadCheckpoint();
-    this.startHealthServer();
-    this.running = true;
-
-    try {
-      await this.connect();
-      console.log(`[narrator-runner] Connected to campaign ${this.campaignId} (seq: ${this.lastSeq}, askSeq: ${this.lastAskSeq})`);
-    } catch (err) {
-      console.warn('[narrator-runner] Initial connect failed, will retry in loop:', err.message);
-    }
-
-    const scheduleNext = () => {
+    this.loadCheckpoint(); this.startHealthServer(); this.running = true;
+    try { await this.connect(); }
+    catch { console.warn('[narrator-runner] Initial connect failed; collector will retry.'); }
+    const schedule = () => {
       if (!this.running) return;
-      this.timer = setTimeout(async () => {
-        await this.pollTick();
-        scheduleNext();
-      }, this.pollIntervalMs);
+      this.timer = setTimeout(async () => { await this.pollTick(); schedule(); }, this.pollIntervalMs);
     };
-
-    scheduleNext();
+    schedule();
   }
-
   async stop() {
     this.running = false;
-    if (this.timer) {
-      clearTimeout(this.timer);
-      this.timer = null;
-    }
+    if (this.timer) { clearTimeout(this.timer); this.timer = null; }
     this.saveCheckpoint();
-    if (this.healthServer) {
-      await new Promise(resolve => this.healthServer.close(resolve));
-      this.healthServer = null;
-    }
-    console.log('[narrator-runner] Stopped gracefully. Checkpoint saved.');
+    if (this.healthServer) { await new Promise(resolve => this.healthServer.close(resolve)); this.healthServer = null; }
   }
 }
 
-// Direct execution CLI entrypoint
 if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1])) {
   const args = process.argv.slice(2);
-  let campaignId = '';
-  let once = false;
-  let port = undefined;
-
-  for (let i = 0; i < args.length; i++) {
-    if (args[i] === '--campaign' && args[i + 1]) campaignId = args[++i];
-    else if (args[i] === '--port' && args[i + 1]) port = Number(args[++i]);
-    else if (args[i] === '--once') once = true;
+  let campaignId = '', once = false, port;
+  for (let index = 0; index < args.length; index++) {
+    if (args[index] === '--campaign' && args[index + 1]) campaignId = args[++index];
+    else if (args[index] === '--port' && args[index + 1]) port = Number(args[++index]);
+    else if (args[index] === '--once') once = true;
   }
-
   const runner = new NarratorRunner({ campaignId, healthPort: port });
-
-  const shutdown = async () => {
-    await runner.stop();
-    process.exit(0);
-  };
-
-  process.on('SIGINT', shutdown);
-  process.on('SIGTERM', shutdown);
-
+  const shutdown = async () => { await runner.stop(); process.exit(0); };
+  process.on('SIGINT', shutdown); process.on('SIGTERM', shutdown);
   if (once) {
     runner.loadCheckpoint();
-    await runner.connect().catch(e => console.warn('Connect warning:', e.message));
-    await runner.pollTick();
-    runner.saveCheckpoint();
-    console.log('[narrator-runner] Once completed.');
-    process.exit(0);
-  } else {
-    runner.start().catch(err => {
-      console.error('[narrator-runner] Fatal error:', err);
-      process.exit(1);
-    });
-  }
+    try {
+      await runner.connect();
+      const ok = await runner.pollTick(); runner.saveCheckpoint();
+      process.exit(ok ? 0 : 1);
+    } catch { console.error('[narrator-runner] Collector once failed.'); process.exit(1); }
+  } else runner.start().catch(() => { console.error('[narrator-runner] Collector start failed.'); process.exit(1); });
 }
