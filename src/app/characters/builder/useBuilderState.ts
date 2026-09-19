@@ -21,18 +21,20 @@ export type EquipmentItem = { name: string; qty: number; slug?: string };
 // submit payload (submit.ts) reads these unchanged.
 export function useBuilderState({
   initial,
+  initialLevel,
   fixedLevel,
   races,
   backgrounds,
 }: {
   initial?: CreateSheetInput;
+  initialLevel?: number;
   fixedLevel?: number;
   races: RaceOption[];
   backgrounds: BackgroundOption[];
 }) {
   const [name, setName] = useState(initial?.name ?? "");
   const [alignment, setAlignment] = useState(initial?.alignment ?? "N");
-  const [level, setLevel] = useState(fixedLevel ?? 1);
+  const [level, setLevel] = useState(fixedLevel ?? initialLevel ?? 1);
   const [raceId, setRaceId] = useState(initial?.race ?? "");
   const [classId, setClassId] = useState(initial?.class ?? "");
   const [subclass, setSubclass] = useState(initial?.subclass ?? "");

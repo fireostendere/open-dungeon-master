@@ -6,6 +6,7 @@ import {
   FileUp,
   Hammer,
   Loader2,
+  Pencil,
   Plus,
   Swords,
   Trash2,
@@ -333,6 +334,8 @@ function CharacterCard({
       upload: "Upload portrait",
       uploadFor: "Upload a portrait for",
       duplicate: "Duplicate",
+      edit: "Edit backstory",
+      editFor: "Edit backstory for",
     },
     ru: {
       painting: "Рисуем портрет...",
@@ -343,6 +346,8 @@ function CharacterCard({
       upload: "Загрузить портрет",
       uploadFor: "Загрузить портрет для",
       duplicate: "Дублировать",
+      edit: "Изменить предысторию",
+      editFor: "Изменить предысторию для",
     },
     pl: {
       painting: "Tworzenie portretu...",
@@ -353,6 +358,8 @@ function CharacterCard({
       upload: "Prześlij portret",
       uploadFor: "Prześlij portret dla",
       duplicate: "Duplikuj",
+      edit: "Edytuj historię",
+      editFor: "Edytuj historię dla",
     },
   });
   return (
@@ -418,34 +425,44 @@ function CharacterCard({
       ) : (
         <p className="mt-2 border-t border-stone-700/40 pt-2 text-xs text-stone-600">{copy.notInCampaign}</p>
       )}
-      <button
-        type="button"
-        onClick={onDelete}
-        className={cn("absolute right-2 top-2", ui.iconAction, "hover:text-red-400")}
-        aria-label={`${copy.delete} ${character.name}`}
-        title={copy.delete}
-      >
-        <Trash2 className="size-4" />
-      </button>
-      <button
-        type="button"
-        onClick={onUploadPortrait}
-        className={cn("absolute right-2 top-10", ui.iconAction, "hover:text-amber-300")}
-        aria-label={`${copy.uploadFor} ${character.name}`}
-        title={copy.upload}
-      >
-        <Camera className="size-4" />
-      </button>
-      <button
-        type="button"
-        disabled={cloning}
-        onClick={onDuplicate}
-        className={cn("absolute right-2 top-[4.5rem]", ui.iconAction, "hover:text-amber-300")}
-        aria-label={`${copy.duplicate} ${character.name}`}
-        title={copy.duplicate}
-      >
-        {cloning ? <Loader2 className="size-4 animate-spin" /> : <Copy className="size-4" />}
-      </button>
+      <div className="absolute right-2 top-2 flex flex-col items-center gap-1">
+        <Link
+          href={`/characters/${character.id}/edit`}
+          className={cn(ui.iconAction, "hover:text-amber-300")}
+          aria-label={`${copy.editFor} ${character.name}`}
+          title={copy.edit}
+        >
+          <Pencil className="size-4" />
+        </Link>
+        <button
+          type="button"
+          onClick={onUploadPortrait}
+          className={cn(ui.iconAction, "hover:text-amber-300")}
+          aria-label={`${copy.uploadFor} ${character.name}`}
+          title={copy.upload}
+        >
+          <Camera className="size-4" />
+        </button>
+        <button
+          type="button"
+          disabled={cloning}
+          onClick={onDuplicate}
+          className={cn(ui.iconAction, "hover:text-amber-300")}
+          aria-label={`${copy.duplicate} ${character.name}`}
+          title={copy.duplicate}
+        >
+          {cloning ? <Loader2 className="size-4 animate-spin" /> : <Copy className="size-4" />}
+        </button>
+        <button
+          type="button"
+          onClick={onDelete}
+          className={cn(ui.iconAction, "hover:text-red-400")}
+          aria-label={`${copy.delete} ${character.name}`}
+          title={copy.delete}
+        >
+          <Trash2 className="size-4" />
+        </button>
+      </div>
     </li>
   );
 }

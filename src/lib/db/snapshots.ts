@@ -1,3 +1,4 @@
+import { captureSpatialSnapshot, restoreSpatialSnapshot } from "@/lib/spatial/snapshot.mjs";
 import { getDatabase, nowIso, parseJson } from "@/lib/db/core";
 import {
   CAMPAIGN_SNAPSHOT_COLUMNS,
@@ -26,6 +27,7 @@ export type ChapterSnapshotMeta = {
 function buildPayload(campaignId: string): SnapshotPayload {
   const db = getDatabase();
   const tables: Record<string, SnapshotRow[]> = {};
+  for (const [table, rows] of Object.entries(captureSpatialSnapshot(db, campaignId))) tables[table] = rows as SnapshotRow[];
   for (const table of SNAPSHOT_TABLES) {
     const rows =
       table === "battle_explored"
@@ -204,6 +206,7 @@ export function restoreSnapshot(campaignId: string, payload: SnapshotPayload) {
       insert.run(...columns.map((column) => row[column] ?? null));
     }
   }
+  restoreSpatialSnapshot(db, campaignId, payload.tables);
   const campaignSets = CAMPAIGN_SNAPSHOT_COLUMNS.map((column) => `${column} = ?`).join(", ");
   db.prepare(`UPDATE campaigns SET ${campaignSets} WHERE id = ?`).run(
     ...CAMPAIGN_SNAPSHOT_COLUMNS.map((column) => payload.campaign?.[column] ?? null),

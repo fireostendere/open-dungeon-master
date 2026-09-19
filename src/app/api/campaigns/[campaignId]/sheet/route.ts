@@ -12,6 +12,7 @@ import {
   getCharacterForUser,
   instantiateIntoCampaign,
   updateCharacter,
+  updateCharacterBackstory,
   updateCharacterPortrait,
 } from "@/lib/db/characters";
 import { insertCampaignMessage } from "@/lib/db/messages";
@@ -692,6 +693,9 @@ export async function PATCH(
   // wrong owner.
   if (parsed.data.portrait !== undefined && sheet.libraryCharacterId && !companionPortrait) {
     updateCharacterPortrait(context.user.id, sheet.libraryCharacterId, parsed.data.portrait);
+  }
+  if (parsed.data.backstory !== undefined && sheet.libraryCharacterId && !companionPortrait) {
+    updateCharacterBackstory(context.user.id, sheet.libraryCharacterId, parsed.data.backstory);
   }
   publishPersisted(campaignId, "sheet_updated", { sheet: updated });
 

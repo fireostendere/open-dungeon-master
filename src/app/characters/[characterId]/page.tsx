@@ -8,6 +8,7 @@ import {
   Hammer,
   ImageOff,
   Loader2,
+  Pencil,
   Sparkles,
   Swords,
 } from "lucide-react";
@@ -63,9 +64,9 @@ export default function CharacterDetailPage({
   const { characterId } = use(params);
   const { locale } = useI18n();
   const copy = localeText(locale, {
-    en: { back: "Back to your characters", level: "Level", notInCampaign: "Not in a campaign yet.", preparing: "Preparing...", download: "Download PDF", exporting: "Exporting...", export: "Export", exportFailed: "Export failed.", copying: "Copying...", duplicate: "Duplicate", replacePortrait: "Replace portrait", uploadPortrait: "Upload portrait", painting: "Painting...", paint: "Paint one", placeholder: "Use placeholder", portraitFailed: "Portrait couldn't be generated.", notFound: "Character not found.", library: "Back to your library" },
-    ru: { back: "Назад к персонажам", level: "Уровень", notInCampaign: "Пока не участвует в кампании.", preparing: "Подготовка...", download: "Скачать PDF", exporting: "Экспорт...", export: "Экспорт", exportFailed: "Не удалось экспортировать персонажа.", copying: "Копирование...", duplicate: "Дублировать", replacePortrait: "Сменить портрет", uploadPortrait: "Загрузить портрет", painting: "Создание...", paint: "Создать", placeholder: "Стандартный портрет", portraitFailed: "Не удалось создать портрет.", notFound: "Персонаж не найден.", library: "Вернуться в библиотеку" },
-    pl: { back: "Wróć do postaci", level: "Poziom", notInCampaign: "Nie jest jeszcze w kampanii.", preparing: "Przygotowywanie...", download: "Pobierz PDF", exporting: "Eksportowanie...", export: "Eksport", exportFailed: "Eksport nie powiódł się.", copying: "Kopiowanie...", duplicate: "Duplikuj", replacePortrait: "Zmień portret", uploadPortrait: "Prześlij portret", painting: "Tworzenie...", paint: "Utwórz", placeholder: "Portret zastępczy", portraitFailed: "Nie udało się utworzyć portretu.", notFound: "Nie znaleziono postaci.", library: "Wróć do biblioteki" },
+    en: { back: "Back to your characters", level: "Level", notInCampaign: "Not in a campaign yet.", preparing: "Preparing...", download: "Download PDF", exporting: "Exporting...", export: "Export", exportFailed: "Export failed.", copying: "Copying...", duplicate: "Duplicate", edit: "Edit backstory", editTip: "Edit this character's backstory", replacePortrait: "Replace portrait", uploadPortrait: "Upload portrait", painting: "Painting...", paint: "Paint one", placeholder: "Use placeholder", portraitFailed: "Portrait couldn't be generated.", notFound: "Character not found.", library: "Back to your library" },
+    ru: { back: "Назад к персонажам", level: "Уровень", notInCampaign: "Пока не участвует в кампании.", preparing: "Подготовка...", download: "Скачать PDF", exporting: "Экспорт...", export: "Экспорт", exportFailed: "Не удалось экспортировать персонажа.", copying: "Копирование...", duplicate: "Дублировать", edit: "Изменить предысторию", editTip: "Редактировать предысторию персонажа", replacePortrait: "Сменить портрет", uploadPortrait: "Загрузить портрет", painting: "Создание...", paint: "Создать", placeholder: "Стандартный портрет", portraitFailed: "Не удалось создать портрет.", notFound: "Персонаж не найден.", library: "Вернуться в библиотеку" },
+    pl: { back: "Wróć do postaci", level: "Poziom", notInCampaign: "Nie jest jeszcze w kampanii.", preparing: "Przygotowywanie...", download: "Pobierz PDF", exporting: "Eksportowanie...", export: "Eksport", exportFailed: "Eksport nie powiódł się.", copying: "Kopiowanie...", duplicate: "Duplikuj", edit: "Edytuj historię", editTip: "Edytuj historię tej postaci", replacePortrait: "Zmień portret", uploadPortrait: "Prześlij portret", painting: "Tworzenie...", paint: "Utwórz", placeholder: "Portret zastępczy", portraitFailed: "Nie udało się utworzyć portretu.", notFound: "Nie znaleziono postaci.", library: "Wróć do biblioteki" },
   });
   const [character, setCharacter] = useState<LibraryCharacter | null>(null);
   const [events, setEvents] = useState<CharacterEvent[]>([]);
@@ -329,11 +330,18 @@ export default function CharacterDetailPage({
           </div>
         </div>
         <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-stone-700/40 pt-3">
+          <Link
+            href={`/characters/${characterId}/edit`}
+            className={cn(ui.btnSmall, "border-amber-500/40 text-amber-100")}
+            title={copy.editTip}
+          >
+            <Pencil className="size-4 shrink-0" /> {copy.edit}
+          </Link>
           <button
             type="button"
             onClick={handleDownloadPdf}
             disabled={pdfBusy}
-            className={cn(ui.btnSmall, "border-amber-500/40 text-amber-100")}
+            className={ui.btnSmall}
             title="Download this character sheet as a fillable PDF"
           >
             <FileDown className="size-4 shrink-0" /> {pdfBusy ? copy.preparing : copy.download}
