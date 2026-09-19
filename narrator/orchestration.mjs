@@ -1,4 +1,6 @@
 import crypto from 'node:crypto';
+import { postWriteReadOptions, consumePostWriteRead } from './read-session.mjs';
+import { compactRolePacket } from './role-packet.mjs';
 
 const clone = value => structuredClone(value);
 const sequence = value => Number.isSafeInteger(value) && value >= 0;
@@ -102,12 +104,19 @@ export class NarratorOrchestrator {
     const usage = this.state.usage, now = Date.now();
     usage.times = usage.times.filter(time => time > now - 3600000);
     if (usage.times.length >= this.maxCallsPerHour) throw new Error('Narrator model call budget exhausted.');
-    const prompt = JSON.stringify(packet);
+    const prompt = JSON.stringify(compactRolePacket(role, packet));
     usage.calls++; usage.times.push(now); usage.inputBytes += Buffer.byteLength(prompt); host.saveCheckpoint();
-    const response = await this.adapter.generate(role, prompt);
-    if (typeof response !== 'string') throw new Error('Role did not return text.');
-    usage.outputBytes += Buffer.byteLength(response); host.saveCheckpoint();
-    return response;
+    const startedAt = performance.now();
+    try {
+      const response = await this.adapter.generate(role, prompt);
+      if (typeof response !== 'string') throw new Error('Role did not return text.');
+      usage.outputBytes += Buffer.byteLength(response);
+      // Output byte counters are advisory. The next decision boundary saves
+      // them together with its mandatory state, not another full fsync here.
+      return response;
+    } finally {
+      if (process.env.ODM_LATENCY_LOG === '1') console.error('[odm-latency]', JSON.stringify({ stage: 'narrator_model', role, durationMs: Math.round(performance.now()-startedAt), inputBytes: Buffer.byteLength(prompt) }));
+    }
   }
   async answerAsk(host, ask, context) {
     try {
@@ -132,7 +141,6 @@ export class NarratorOrchestrator {
     const current = this.state.current;
     if (current.waiting.some(id => !current.resolved[id]) || snapshot.pendingRolls?.length) return false;
     if (current.waiting.length) {
-      // Physical dice must have a matching roll_result, not merely disappear.
       snapshot = await host.drainStory({ full: true });
       current.outcomes.push({ physicalRolls: clone(Object.values(current.resolved)), authoritativeRolls: (snapshot.recentRolls ?? []).filter(roll => Object.values(current.resolved).some(value => value.roll?.id === roll.id)) });
       current.waiting = []; current.resolved = {}; host.saveCheckpoint();
@@ -158,9 +166,10 @@ export class NarratorOrchestrator {
     };
     let decision;
     try {
-      current.steps++; host.saveCheckpoint();
+      current.steps++; // generate durably records this and the call budget together
       decision = validateDecision(JSON.parse(await this.generate(host, 'referee', packet)), { allowedActions });
     } catch { return this.pause(host, 'model_or_decision_error'); }
+    if (host.stopping || this.state.current !== current || this.state.epoch !== snapshot.timelineEpoch) return false;
     if (decision.kind === 'wait') { current.waitSeq = snapshot.currentSeq; host.saveCheckpoint(); return false; }
     if (decision.kind === 'catalog') {
       const result = await host.callControl('narrator.catalog', { campaignId: host.campaignId, action: decision.action });
@@ -174,14 +183,16 @@ export class NarratorOrchestrator {
       catch { return this.pause(host, 'writer_error'); }
       if (!text(content)) return this.pause(host, 'invalid_writer_text');
     }
-    // Generation is not a lock: reject a draft based on stale state.
-    const fresh = await host.drainStory();
-    if (fresh.timelineEpoch !== snapshot.timelineEpoch) return this.pause(host, 'timeline_changed');
-    if (fresh.currentSeq !== snapshot.currentSeq) return true;
+    // Generation is not a lock. The engine's transactional expectedSeq/epoch
+    // check rejects a stale draft before effects. A redundant pre-write read
+    // neither closes that race nor replaces CAS; keep the original read cursor.
+    if (host.stopping || this.state.current !== current) return false;
+    if (this.state.epoch !== snapshot.timelineEpoch || host.timelineEpoch && host.timelineEpoch !== snapshot.timelineEpoch) return this.pause(host, 'timeline_changed');
     const action = decision.kind === 'invoke' ? 'narrator.invoke' : decision.kind === 'narrate' ? 'narrator.narrate' : 'narrator.release_floor';
-    const params = { campaignId: host.campaignId, expectedSeq: fresh.currentSeq, timelineEpoch: fresh.timelineEpoch, commandId: crypto.randomUUID(),
-      ...(decision.kind === 'invoke' ? { name: decision.action, args: decision.args } : decision.kind === 'narrate' ? { content, releaseFloor: decision.releaseFloor ?? false } : {}) };
-    this.state.pending = { action, params, attempts: 0, phase: 'prepared', beforePendingIds: (fresh.pendingRolls ?? []).map(roll => roll.id) };
+    const params = { campaignId: host.campaignId, expectedSeq: snapshot.currentSeq, timelineEpoch: snapshot.timelineEpoch, commandId: crypto.randomUUID(),
+      ...(decision.kind === 'invoke' ? { name: decision.action, args: decision.args } : decision.kind === 'narrate' ? { content, releaseFloor: decision.releaseFloor ?? false } : {}),
+      ...(sequence(host.lastSeq) ? { readAfter: postWriteReadOptions(host) } : {}) };
+    this.state.pending = { action, params, attempts: 0, phase: 'prepared', beforePendingIds: (snapshot.pendingRolls ?? []).map(roll => roll.id) };
     host.saveCheckpoint();
     return this.write(host);
   }
@@ -191,6 +202,7 @@ export class NarratorOrchestrator {
   async write(host) {
     const pending = this.state.pending;
     if (pending.params.campaignId !== host.campaignId || pending.params.timelineEpoch !== this.state.epoch) return this.pause(host, 'incompatible_command');
+    let readback;
     if (pending.phase !== 'committed') {
       if (pending.attempts >= 2) return this.pause(host, 'ambiguous_write');
       pending.attempts++; host.saveCheckpoint();
@@ -206,14 +218,17 @@ export class NarratorOrchestrator {
         throw error;
       }
       if (receipt?.commandId !== pending.params.commandId || !sequence(receipt.committedSeq) || !Object.hasOwn(receipt, 'result')) return this.pause(host, 'invalid_command_receipt');
-      pending.phase = 'committed'; pending.receipt = clone(receipt); host.saveCheckpoint();
+      readback = receipt;
+      // Persist the small authoritative receipt, not a second copy of the
+      // complete private snapshot. Restart recovery reads fresh, never replays.
+      const { state: _state, readAfter: _read, readRequired: _required, readError: _error, ...durable } = receipt;
+      pending.phase = 'committed'; pending.receipt = clone(durable); host.saveCheckpoint();
     }
-    const fresh = await host.drainStory();
+    const fresh = readback ? await consumePostWriteRead(host, readback) : await host.drainStory();
     if (fresh.timelineEpoch !== pending.params.timelineEpoch) return this.pause(host, 'timeline_changed');
     if (pending.action === 'narrator.narrate' || pending.action === 'narrator.release_floor') { this.finish(host); return true; }
     const result = pending.receipt.result;
     const waiting = (fresh.pendingRolls ?? []).filter(roll => !pending.beforePendingIds.includes(roll.id)).map(roll => roll.id);
-    // A parked call whose roll vanished before observation needs reconciliation.
     if (result?.parked && !waiting.length) return this.pause(host, 'unobserved_pending_roll');
     this.state.current.outcomes.push({ name: pending.params.name, args: pending.params.args, result, commandId: pending.params.commandId, committedSeq: pending.receipt.committedSeq });
     this.state.current.waiting = waiting; this.state.current.waitSeq = null;
