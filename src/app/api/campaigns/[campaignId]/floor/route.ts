@@ -34,6 +34,7 @@ export async function POST(
   if (isErrorResponse(context)) {
     return context;
   }
+  const parsed = setFloorSchema.safeParse(await request.json().catch(() => ({})));
   const floor = getFloor(campaignId);
   if (listOpenPendingRolls(campaignId).length) {
     return Response.json({ error: "Resolve pending physical rolls before changing the floor." }, { status: 409 });
@@ -42,7 +43,6 @@ export async function POST(
     return Response.json({ error: "Combat adjudication is still in progress. Only OOC is available." }, { status: 409 });
   }
 
-  const parsed = setFloorSchema.safeParse(await request.json().catch(() => ({})));
   const wanted = parsed.success ? parsed.data.set : undefined;
   if (wanted) {
     // Initiative is the encounter's to own; nothing sets the floor into or

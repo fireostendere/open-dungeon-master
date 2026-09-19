@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { Check, Hand, Swords } from "lucide-react";
 import { cn } from "@/lib/cn";
 import type { Floor } from "@/lib/db/campaigns";
@@ -10,42 +9,24 @@ import { useI18n } from "@/lib/i18n/context";
 import { localeText } from "@/lib/i18n/locale-text";
 
 // Spotlight, held-responses, and initiative banners above the composer;
-// the lead gets the release/skip buttons, the current player gets End turn.
+// The lead gets release/skip controls; the combat HUD owns player submission.
 export function FloorBanners({
-  campaignId,
   floor,
   spotlighted,
   heldSpotlightNames,
   encounter,
   steersStory,
-  meUserId = "",
   onRelease,
 }: {
-  campaignId: string;
   floor: Floor;
   spotlighted: CharacterSheet[];
   heldSpotlightNames: string[];
   encounter?: PublicEncounter | null;
   steersStory: boolean;
-  meUserId?: string;
   onRelease: () => void;
 }) {
   const { locale } = useI18n();
   const copy = localeText(locale, { en: { round: "Round", turn: "turn", endTitle: "Done with your action, movement, and bonus action? End your combat turn.", end: "End turn", skipTitle: "Skip the current player's turn", skip: "Skip turn", waiting: "Spotlight, waiting on", spotlight: "Spotlight", someone: "someone", release: "Release", held: "Responses held. Talk it over; the lead opens the floor.", next: "Next: spotlight on", allow: "Allow responses" }, ru: { round: "Раунд", turn: "ход", endTitle: "Закончили действие, перемещение и бонусное действие? Завершите боевой ход.", end: "Завершить ход", skipTitle: "Пропустить ход текущего игрока", skip: "Пропустить ход", waiting: "В центре внимания, ждём", spotlight: "В центре внимания", someone: "кого-то", release: "Открыть", held: "Ответы удержаны. Обсудите; ведущий откроет слово.", next: "Далее: в центре внимания", allow: "Разрешить ответы" }, pl: { round: "Runda", turn: "tura", endTitle: "Skończono akcję, ruch i akcję dodatkową? Zakończ turę walki.", end: "Zakończ turę", skipTitle: "Pomiń turę bieżącego gracza", skip: "Pomiń turę", waiting: "W centrum uwagi, czekamy na", spotlight: "W centrum uwagi", someone: "kogoś", release: "Otwórz", held: "Odpowiedzi wstrzymane. Omówcie to; prowadzący otworzy głos.", next: "Dalej: centrum uwagi", allow: "Zezwól na odpowiedzi" } });
-  const [endingTurn, setEndingTurn] = useState(false);
-  const myInitiativeTurn =
-    floor.mode === "initiative" && meUserId !== "" && floor.userIds.includes(meUserId);
-
-  // Attacks no longer end the turn by themselves (movement and bonus
-  // actions stay open), so this is the player's way to say "done".
-  async function endTurn() {
-    setEndingTurn(true);
-    try {
-      await fetch(`/api/campaigns/${campaignId}/encounter/end-turn`, { method: "POST" });
-    } finally {
-      setEndingTurn(false);
-    }
-  }
 
   return (
     <>
@@ -59,7 +40,7 @@ export function FloorBanners({
                 <>
                   {" · "}
                   {encounter.order.map((entry, index) => {
-                    const current = index === encounter.turnIndex;
+                     const current = entry.id === encounter.currentActorId;
                     return (
                       <span
                         key={entry.id}
@@ -79,17 +60,6 @@ export function FloorBanners({
             </span>
           </span>
           <span className="ml-3 flex shrink-0 items-center gap-3">
-            {myInitiativeTurn ? (
-              <button
-                type="button"
-                onClick={endTurn}
-                disabled={endingTurn}
-                className="rounded border border-red-800 bg-red-950/60 px-2 py-0.5 font-medium text-red-100 hover:bg-red-900/60 disabled:opacity-50"
-                 title={copy.endTitle}
-              >
-                 {copy.end}
-              </button>
-            ) : null}
             {steersStory ? (
               <button
                 type="button"
@@ -153,7 +123,7 @@ export function FloorBanners({
           ) : null}
         </div>
       ) : null}
-      {floor.mode === "hold" ? (
+      {floor.mode === "hold" && !floor.combat ? (
         <div className="mb-2 flex items-center justify-between rounded-md border border-amber-900/60 bg-amber-950/30 px-3 py-1.5 text-xs">
           <span className="flex items-center gap-1.5 text-amber-200">
             <Hand className="size-3.5" />

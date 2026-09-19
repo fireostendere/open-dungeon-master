@@ -4,6 +4,8 @@ import { z } from 'zod';
 import { loadSource, sqliteFixture } from './lib/readiness-harness.mjs';
 import { validateCombatTurnIntent } from '../src/lib/dm/combat-turn-intent.ts';
 import { freshBudget } from '../src/lib/dm/action-budget.ts';
+import * as actionBudget from '../src/lib/dm/action-budget.ts';
+import { RESOURCE_ACTIONS } from '../src/lib/dm/resource-action-cost.ts';
 
 const encounterId = '00000000-0000-4000-8000-000000000001';
 const heroId = '00000000-0000-4000-8000-000000000002';
@@ -63,6 +65,7 @@ test('combat CAS, owner admission, persistent gate, duplicate rejection and OOC'
   const f = fixture();
   try {
     f.user('u2'); assert.equal((await f.send(f.intent)).status, 409);
+    assert.equal((await f.send({ ...f.intent, kind: 'ooc' })).status, 400);
     f.user('u1'); assert.equal((await f.send({ ...f.intent, combatTurn: { ...f.intent.combatTurn, round: 2 } })).status, 409);
     assert.equal((await f.send(f.intent)).status, 202);
     assert.equal(f.campaigns.getFloor('c1').combat.requiresEndTurn, true, 'metadata survives SQLite normalization');
@@ -133,4 +136,37 @@ test('Skip N queues one normal turn per arrival, never advances enemies or decre
     tools.queueSkippedCombatTurn('c1'); assert.equal(remaining, 0); assert.equal(wakes, 2);
     assert.equal(f.db.prepare("SELECT COUNT(*) AS n FROM campaign_events WHERE type='dm_intent_queued'").get().n, 2);
   } finally { f.close(); }
+});
+
+test('actual resource mutation spends shared action economy before any effect or dice', () => {
+  const sheet = { id: heroId, name: 'First', conditions: [] };
+  const encounter = { id: encounterId, orderReady: true, round: 1, turnIndex: 0, order: [{ kind: 'pc', characterId: heroId }], turnBudget: null };
+  let effects = 0;
+  const compute = () => { effects++; return { patch: {}, result: { ok: true } }; };
+  const mutation = loadSource('src/lib/dm/mutations.ts', {
+    zod: { z }, '@/lib/db/sheets': { getSheetById: () => sheet, patchSheet: () => sheet },
+    '@/lib/db/sheet-audit': { insertSheetAudit: () => ({}) }, '@/lib/db/character-events': {},
+    '@/lib/db/campaigns': { allocateSeq: () => 1 }, '@/lib/content': {}, '@/lib/srd': {},
+    '@/lib/srd/class-resources': { matchResource: name => ({ id: name }) },
+    '@/lib/db/encounters': { getActiveEncounter: () => encounter, saveEncounter() {} },
+    '@/lib/dm/action-budget': actionBudget, '@/lib/dm/resource-action-cost': { RESOURCE_ACTIONS },
+    '@/lib/srd/feature-effects': { combatRiders: () => ({ extraAttacks: 1 }) },
+    '@/lib/srd/condition-effects': { conditionExtraActions: () => 0 }, '@/lib/events': { publishPersisted() {} },
+    '@/lib/schemas/sheet': { fullPatchSheetSchema: { pick: () => z.any() } },
+    '@/lib/dm/mutation-math': {}, '@/lib/srd/currency': {}, '@/lib/dm/death': {},
+    '@/lib/dm/companion-tools': {}, '@/lib/dm/condition-logic': {},
+    '@/lib/dm/arg-coerce': { normalizeAbility: value => value, normalizeListAction: value => value },
+    '@/lib/dm/concentration': {}, '@/lib/dm/resource-tools': { resourceTools: [], computeUseItem: compute, computeUseResource: compute },
+    '@/lib/content/mechanics': {}, '@/lib/classes': {}, '@/lib/db/rolls': {}, '@/lib/dice': {},
+  });
+  const invoke = (name, args) => mutation.applyDmMutation({ id: 'c1' }, 'turn', name, JSON.stringify({ characterId: heroId, ...args }), [sheet], new Map([[heroId, sheet]])).result;
+  assert.equal(invoke('use_resource', { resource: 'second_wind' }).ok, true);
+  assert.equal(encounter.turnBudget.bonusUsed, true);
+  assert.equal(encounter.turnBudget.attacksAllowed, 2);
+  assert.match(invoke('use_resource', { resource: 'rage' }).error, /bonus action/);
+  assert.equal(effects, 1, 'a refused bonus action cannot roll or spend a class resource');
+  assert.equal(invoke('use_item', { item: 'Potion of Healing' }).ok, true);
+  assert.equal(encounter.turnBudget.actionUsed, true);
+  assert.match(invoke('use_item', { item: 'Potion of Healing' }).error, /action/);
+  assert.equal(effects, 2, 'a refused item cannot roll or consume inventory');
 });
