@@ -385,12 +385,37 @@ export function Bg3DiceOverlay({
           ctx.lineWidth = 1.5;
           ctx.stroke();
 
-          const faceVal = D20_FACE_VALUES[item.idx];
-          const isCenter = norm[2] > 0.88 && progress >= 0.95;
-          const fcx = (p0.px + p1.px + p2.px) / 3;
-          const fcy = (p0.px + p1.px + p2.px) / 3;
+          // --- Number rendering: only after die settles, properly on face ---
+          if (progress < 0.92) continue; // No numbers while spinning
 
-          // CLIP TO TRIANGLE: Numbers strictly stay inside faces!
+          const faceVal = D20_FACE_VALUES[item.idx];
+          if (norm[2] < 0.15) continue; // Skip faces too edge-on
+
+          // Correct 2D centroid
+          const fcx = (p0.px + p1.px + p2.px) / 3;
+          const fcy = (p0.py + p1.py + p2.py) / 3;
+
+          // Face "up" direction in screen space for text rotation
+          const midX = (p0.px + p1.px) / 2;
+          const midY = (p0.py + p1.py) / 2;
+          const upDx = p2.px - midX;
+          const upDy = p2.py - midY;
+          const faceAngle = Math.atan2(upDx, -upDy);
+
+          // Screen-space triangle incircle radius for font scaling
+          const triArea = Math.abs(
+            (p1.px - p0.px) * (p2.py - p0.py) -
+            (p2.px - p0.px) * (p1.py - p0.py)
+          ) / 2;
+          const edgeA = Math.hypot(p1.px - p0.px, p1.py - p0.py);
+          const edgeB = Math.hypot(p2.px - p1.px, p2.py - p1.py);
+          const edgeC = Math.hypot(p0.px - p2.px, p0.py - p2.py);
+          const semiP = (edgeA + edgeB + edgeC) / 2;
+          const inRadius = triArea / semiP;
+
+          const isCenter = norm[2] > 0.85;
+
+          // Clip to triangle
           ctx.save();
           ctx.beginPath();
           ctx.moveTo(p0.px, p0.py);
@@ -400,32 +425,34 @@ export function Bg3DiceOverlay({
           ctx.clip();
 
           ctx.translate(fcx, fcy);
+          ctx.rotate(faceAngle);
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
 
           if (isCenter) {
             const isSuccess = roll.success === true || (roll.dc !== null && roll.total >= roll.dc);
-            ctx.font = `bold ${Math.round(radius * 0.38)}px 'Cinzel', serif, Georgia`;
-            ctx.textAlign = "center";
-            ctx.textBaseline = "middle";
+            const fontSize = Math.round(Math.min(inRadius * 1.4, radius * 0.42));
+            ctx.font = `bold ${fontSize}px 'Cinzel', serif, Georgia`;
 
             if (die.isCrit20) {
               ctx.fillStyle = "#fffbeb";
               ctx.shadowColor = "#f59e0b";
-              ctx.shadowBlur = 18;
+              ctx.shadowBlur = 20;
             } else if (die.isCrit1 || !isSuccess) {
               ctx.fillStyle = "#fb7185";
               ctx.shadowColor = "#e11d48";
-              ctx.shadowBlur = 16;
+              ctx.shadowBlur = 18;
             } else {
               ctx.fillStyle = "#fef08a";
               ctx.shadowColor = "#eab308";
-              ctx.shadowBlur = 14;
+              ctx.shadowBlur = 16;
             }
             ctx.fillText(String(faceVal), 0, 0);
-          } else if (norm[2] > 0.52) {
-            ctx.font = `bold ${Math.round(radius * 0.17)}px 'Cinzel', serif, Georgia`;
-            ctx.textAlign = "center";
-            ctx.textBaseline = "middle";
-            ctx.fillStyle = `rgba(215, 225, 240, ${Math.min(0.85, (norm[2] - 0.4) * 1.8)})`;
+          } else {
+            const fontSize = Math.round(Math.min(inRadius * 1.1, radius * 0.22));
+            ctx.font = `bold ${fontSize}px 'Cinzel', serif, Georgia`;
+            const alpha = Math.min(0.9, (norm[2] - 0.1) * 1.2);
+            ctx.fillStyle = `rgba(200, 210, 230, ${alpha})`;
             ctx.fillText(String(faceVal), 0, 0);
           }
 
