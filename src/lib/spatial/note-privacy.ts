@@ -40,7 +40,9 @@ function scopeForNote(note: Note, target: NoteAudience | undefined, prior: Entit
   else scope = { kind: "users" };
   const memberIds = new Set(listMembers(note.campaignId).map(member => member.userId));
   return { ...scope,
-    userIds: note.authorKind === "dm" && note.visibility === "public" ? [] : [note.authorUserId].filter(id => memberIds.has(id)),
+    userIds: note.authorKind === "dm" && note.visibility === "public" ? []
+      : note.visibility === "private" || note.status === "pending" || scope.kind === "users"
+        ? [note.authorUserId].filter(id => memberIds.has(id)) : [],
     dmCanRead: note.visibility === "public",
     restricted: note.visibility === "private" || note.status === "pending",
     discover: true,
@@ -85,4 +87,18 @@ export function listSpatialNotes(campaignId: string, userId: string, canonicalNo
     .map(version => version.payload as Note & { __spatialDeleted?: boolean })
     .filter(note => !note.__spatialDeleted)
     .sort((left, right) => Number(right.pinned) - Number(left.pinned) || right.seq - left.seq);
+}
+
+// An author's edit rights do not remotely reveal or mutate a shared local
+// object after departure. Private journals and explicit global notes differ.
+export function canMutateSpatialNote(campaignId: string, noteId: string, userId: string): boolean {
+  if (!eventSpatialState(campaignId).enabled) return true;
+  const actor = eventActorFor(campaignId, userId, true);
+  if (!actor.member) return false;
+  const scope = store().scope(campaignId, "note", noteId);
+  if (!scope) return false;
+  if (actor.isDm) return scope.dmCanRead !== false;
+  if (scope.restricted) return Boolean(scope.userIds?.includes(userId));
+  return scope.kind === "global" || scope.kind === "room" && scope.roomId === actor.roomId ||
+    scope.kind === "users" && Boolean(scope.userIds?.includes(userId));
 }

@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { isErrorResponse, steersStory, requireMember, requireVoice } from "@/lib/campaign-api";
 import { deleteNote, getNoteById, getNoteVisibleTo, updateNote, type Note } from "@/lib/db/notes";
-import { NotePrivacyError } from "@/lib/spatial/note-privacy";
+import { NotePrivacyError, canMutateSpatialNote } from "@/lib/spatial/note-privacy";
 import { getSheetById } from "@/lib/db/sheets";
 import { publishPersisted } from "@/lib/events";
 
@@ -36,6 +36,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ ca
   if ((request.headers.get("X-ODM-Actor") ?? initial.user.id) !== context.user.id) return Response.json({ error: "Signed-in user changed." }, { status: 409, headers });
   const note = getNoteById(noteId), lead = steersStory(context);
   if (!note || note.campaignId !== campaignId || !getNoteVisibleTo(campaignId, noteId, context.user.id, lead)) return missing();
+  if (!canMutateSpatialNote(campaignId, noteId, context.user.id)) return Response.json({ error: "Return to the note's location before changing it." }, { status: 403, headers });
   const author = note.authorUserId === context.user.id, campaignPublic = !note.characterId && note.visibility === "public";
   // An empty PATCH used to return the latest canonical body even to a reader
   // who only knew an older version. Every PATCH now needs real write authority.
@@ -62,6 +63,7 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ c
   if (expected !== null && expected !== context.user.id) return Response.json({ error: "Signed-in user changed." }, { status: 409, headers });
   const note = getNoteById(noteId), lead = steersStory(context);
   if (!note || note.campaignId !== campaignId || !getNoteVisibleTo(campaignId, noteId, context.user.id, lead)) return missing();
+  if (!canMutateSpatialNote(campaignId, noteId, context.user.id)) return Response.json({ error: "Return to the note's location before changing it." }, { status: 403, headers });
   const author = note.authorUserId === context.user.id;
   if (!author && !(note.visibility === "public" && (lead || note.status === "active" && isCharacterOwner(note, context.user.id)))) {
     return Response.json({ error: "You cannot delete this note." }, { status: 403, headers });
