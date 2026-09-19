@@ -271,3 +271,47 @@ test('enabling automation does not mistake a collector checkpoint for handled pl
   await f.instance.connect();
   assert.equal(h.controller.state.queue[0].seq, 2);
 });
+
+test('private answer transport has one persisted retry after restart', async () => {
+  const ask = { id: 'ask', userId: 'user', version: 0, question: 'Can I hide?' };
+  const f = await narratorHarness({ askResponder: async () => ({ answer: 'You may try.', citations: [] }),
+    control: () => { throw new Error('ambiguous transport'); } });
+  await assert.rejects(f.instance.handlePendingAsk(ask));
+  await assert.rejects(f.instance.handlePendingAsk(ask));
+  const restored = await narratorHarness({ checkpoint: f.saved.at(-1), askResponder: async () => { throw new Error('Do not generate again.'); },
+    control: () => { throw new Error('Do not write again.'); } });
+  restored.instance.loadCheckpoint();
+  await restored.instance.handlePendingAsk(ask);
+  assert.equal(restored.calls.length, 0);
+  assert.equal(restored.instance.askBlocked, true);
+});
+
+test('OpenCode never generates with a substituted model or retries oversized output', async () => {
+  for (const wrongModel of [true, false]) {
+    const calls = [], model = { providerID: 'openai', id: 'chosen' };
+    const adapter = new OpenCodeAdapter({ endpoint: 'http://127.0.0.1:4096', workspace: '/isolated', model,
+      fetchImpl: async (url, init) => {
+        calls.push({ url: String(url), method: init.method });
+        if (init.method === 'DELETE') return new Response(null, { status: 204 });
+        if (String(url).endsWith('/api/session')) return Response.json({ data: { id: 'ses_owned', agent: 'narrator-referee', model: wrongModel ? { ...model, id: 'substituted' } : model } });
+        return Response.json({ data: String(url).endsWith('/generate') ? { text: 'x'.repeat(270000) } : {} });
+      } });
+    await assert.rejects(adapter.generate('referee', 'bounded input'), wrongModel ? /selected role\/model/ : /byte budget/);
+    assert.equal(calls.filter(call => call.url.endsWith('/generate')).length, wrongModel ? 0 : 1);
+    assert.equal(calls.at(-1).method, 'DELETE');
+  }
+});
+
+test('operator health signals a paused host without disclosing private input', async () => {
+  let handler;
+  const f = await narratorHarness({ healthPort: 3007, http: { createServer(callback) { handler = callback; return { listen() {} }; } } });
+  f.instance.lastError = 'ask_write_ambiguous';
+  f.instance.startHealthServer();
+  let body;
+  const response = { statusCode: 200, setHeader() {}, end(value) { body = JSON.parse(value); } };
+  handler({ url: '/healthz' }, response);
+  assert.equal(response.statusCode, 503);
+  assert.equal(body.ok, false);
+  assert.equal(body.status, 'degraded');
+  assert.equal(Object.hasOwn(body, 'asks'), false);
+});

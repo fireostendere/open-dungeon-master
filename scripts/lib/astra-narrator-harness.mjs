@@ -10,17 +10,17 @@ import * as reader from '../../narrator/read-session.mjs';
 export async function narratorHarness(options={}){
  const saved=[],calls=[],usage=[];
  const deps={
-  'node:http':{default:http},'node:path':{default:path},'node:crypto':{default:crypto},'node:url':{fileURLToPath},
+  'node:http':{default:options.http??http},'node:path':{default:path},'node:crypto':{default:crypto},'node:url':{fileURLToPath},
   './checkpoint-io.mjs':{atomicWriteJson:(_file,value)=>{if(options.failCheckpoint)throw new Error('Checkpoint write failed');saved.push(structuredClone(value));},readJsonSafe:()=>options.checkpoint??null},
   './semantic-gate.mjs':{classifyInput:()=>({decision:'allow'}),DM_REFUSALS:{ru:'Game only'}},
   './cost-tracker.mjs':{NarratorCostTracker:class{getMetrics(){return{};}recordUsage(value){usage.push(value);}}},
   './compaction.mjs':{HostContextMemory},'./read-session.mjs':reader,
  };
  const context=vm.createContext({console:{...console,error(){}},process,Buffer,structuredClone,URL,AbortSignal,setTimeout,clearTimeout});
- const url=new URL('../../narrator/run.mjs',import.meta.url),module=new vm.SourceTextModule(readFileSync(url,'utf8'),{context,initializeImportMeta:meta=>{meta.url=url.href;}});
- await module.link(name=>{assert.ok(deps[name],`Missing dependency ${name}`);return new vm.SyntheticModule(Object.keys(deps[name]),function(){for(const[key,value]of Object.entries(deps[name]))this.setExport(key,value);},{context});});
- await module.evaluate();
- const instance=new module.namespace.NarratorRunner({campaignId:'c',token:'test-only',healthPort:0,readPageRetries:0,...options,
+ const url=new URL('../../narrator/run.mjs',import.meta.url),vmModule=new vm.SourceTextModule(readFileSync(url,'utf8'),{context,initializeImportMeta:meta=>{meta.url=url.href;}});
+ await vmModule.link(name=>{assert.ok(deps[name],`Missing dependency ${name}`);return new vm.SyntheticModule(Object.keys(deps[name]),function(){for(const[key,value]of Object.entries(deps[name]))this.setExport(key,value);},{context});});
+ await vmModule.evaluate();
+ const instance=new vmModule.namespace.NarratorRunner({campaignId:'c',token:'test-only',healthPort:0,readPageRetries:0,...options,
   fetchImpl:async(_url,init)=>{const request=JSON.parse(init.body);calls.push(request);const result=await options.control?.(request.action,request.params);return Response.json({ok:true,result});}});
  return{instance,saved,calls,usage};
 }

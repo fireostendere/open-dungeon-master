@@ -106,3 +106,15 @@ test('a cancelled operation cannot start another control request', async () => {
   assert.throws(() => withControlSignal(AbortSignal.abort(), () => client('test')), { name: 'AbortError' });
   assert.equal(called, false);
 });
+
+test('presentation options stay in the sidecar and do not break strict narrator schemas', async () => {
+  const params = { campaignId: 'c', afterSeq: 7, compact: true, policyMode: 'compact', includePolicyText: false };
+  const client = createControlClient({ token: 'test', fetchImpl: async (_url, init) => {
+    assert.deepEqual(JSON.parse(init.body), { action: 'narrator.read', params: { campaignId: 'c', afterSeq: 7 } });
+    return Response.json({ ok: true, result: { currentSeq: 7, messages: [] } });
+  } });
+  const result = await client('narrator.read', params);
+  assert.equal(result.currentSeq, 7);
+  assert.equal(result.dmPolicy.text, undefined);
+  assert.equal(params.compact, true, 'caller options must not be mutated');
+});

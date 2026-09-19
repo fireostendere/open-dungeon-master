@@ -32,10 +32,14 @@ export function createControlClient({
     const signals = [operation.getStore(), signal, AbortSignal.timeout(timeout)].filter(Boolean);
     const requestSignal = AbortSignal.any(signals);
     requestSignal.throwIfAborted();
+    const controlParams = { ...params };
+    if (action.startsWith('narrator.')) {
+      for (const key of ['compact', 'policyMode', 'includePolicyText']) delete controlParams[key];
+    }
     const response = await fetchImpl(url, {
       method: 'POST', redirect: 'error',
       headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json', accept: 'application/json' },
-      body: JSON.stringify({ action, params }), signal: requestSignal,
+      body: JSON.stringify({ action, params: controlParams }), signal: requestSignal,
     });
     const body = await response.json();
     requestSignal.throwIfAborted();

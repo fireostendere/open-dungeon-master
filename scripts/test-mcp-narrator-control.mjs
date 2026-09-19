@@ -258,6 +258,7 @@ const answerRequest = {
   askId: testAsk.id,
   expectedVersion: testAsk.version,
   commandId: answerCommandId,
+  timelineEpoch: askRead.result.timelineEpoch,
   answer: "Sneak attack grants extra damage once per turn when you have advantage.",
 };
 const answeredAsk = await executeMcpNarratorControl("narrator.answer_ask", answerRequest);
