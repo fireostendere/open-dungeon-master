@@ -26,13 +26,14 @@ export class NarratorRunner {
     this.fetchImpl=options.fetchImpl||globalThis.fetch;
     this.askResponder=typeof options.askResponder==='function'?options.askResponder:null;
     this.storyController=options.storyController||null;this.adapterModule=options.adapterModule||process.env.ODM_NARRATOR_ADAPTER_MODULE||'';
-    this.deltaReads=options.deltaReads??true;this.sectionCache=null;this.hasBaseline=false;
+    this.deltaReads=options.deltaReads??true;this.sectionCache=null;
     this.resumeRequested=options.resume??false;this.resumeAfterSeq=options.resumeAfterSeq;
     this.mode=this.storyController?'local-role-orchestrator':this.askResponder?'collector-with-ask-adapter':'collector';
     this.checkpointPath=options.checkpointPath||process.env.ODM_NARRATOR_CHECKPOINT_PATH||path.join(process.env.ODM_STATE_DIR||'./state',`narrator-checkpoint-${this.campaignId||'default'}.json`);
     this.costTracker=options.costTracker||new NarratorCostTracker({storagePath:path.join(path.dirname(this.checkpointPath),`narrator-cost-${this.campaignId||'default'}.json`)});
     this.memory=new HostContextMemory({campaignId:this.campaignId});
     this.lastSeq=0;this.lastAskSeq=0;this.timelineEpoch=null;this.answeredAsks=new Set();this.pendingAskCommands=new Map();
+    this.pendingAskAttempts=new Map();this.askBlocked=false;
     this.running=false;this.polling=false;this.connected=false;this.timer=null;this.healthServer=null;
     this.startedAt=Date.now();this.lastPollAt=0;this.lastError=null;
   }
@@ -55,8 +56,12 @@ export class NarratorRunner {
     this.timelineEpoch=typeof saved.timelineEpoch==='string'?saved.timelineEpoch:typeof saved.memory?.timelineEpoch==='string'?saved.memory.timelineEpoch:typeof saved.memory?.timelineId==='string'?saved.memory.timelineId:null;
     this.answeredAsks=new Set(Array.isArray(saved.answeredAsks)?saved.answeredAsks.filter(id=>typeof id==='string').slice(-200):[]);
     this.pendingAskCommands.clear();
+    this.pendingAskAttempts.clear();
     for(const [askId,command] of Object.entries(saved.pendingAskCommands??{}).slice(-200)){
-      if(command?.campaignId===this.campaignId&&command.askId===askId&&typeof command.commandId==='string')this.pendingAskCommands.set(askId,command);
+      if(command?.campaignId===this.campaignId&&command.askId===askId&&typeof command.commandId==='string'){
+        this.pendingAskCommands.set(askId,command);
+        this.pendingAskAttempts.set(askId,integer(saved.pendingAskAttempts?.[askId],0,0,2));
+      }
     }
     if(saved.memory)this.memory.restoreState(saved.memory);
     if(saved.storyController&&this.storyController?.restore)this.storyController.restore(saved.storyController);
@@ -66,7 +71,8 @@ export class NarratorRunner {
   saveCheckpoint() {
     atomicWriteJson(this.checkpointPath,{formatVersion:3,version:3,mode:this.mode,campaignId:this.campaignId,timelineEpoch:this.timelineEpoch,
       lastSeq:this.lastSeq,lastAskSeq:this.lastAskSeq,answeredAsks:Array.from(this.answeredAsks).slice(-200),
-      pendingAskCommands:Object.fromEntries(Array.from(this.pendingAskCommands.entries()).slice(-200)),storyController:this.storyController?.serialize?.(),
+      pendingAskCommands:Object.fromEntries(Array.from(this.pendingAskCommands.entries()).slice(-200)),
+      pendingAskAttempts:Object.fromEntries(Array.from(this.pendingAskAttempts.entries()).slice(-200)),storyController:this.storyController?.serialize?.(),
       memory:this.memory.serializeState(),metrics:this.costTracker.getMetrics(),updatedAt:new Date().toISOString(),
       uptimeSeconds:Math.floor((Date.now()-this.startedAt)/1000),lastPollAt:this.lastPollAt||null,lastError:this.lastError?'poll_failed':null});
   }
@@ -89,6 +95,7 @@ export class NarratorRunner {
   readSnapshot(params){return readNarratorSnapshot(this,params);}
   drainStory(options){return drainNarratorStory(this,options);}
   async drainAskQueue() {
+    this.askBlocked=false;
     let cursor=0;
     for(let page=0;page<1000;page++){
       const result=await this.readSnapshot({campaignId:this.campaignId,afterSeq:this.lastSeq,afterAskSeq:cursor,askLimit:20,limit:1,projection:'live',...(this.timelineEpoch?{timelineEpoch:this.timelineEpoch}:{})});
@@ -114,7 +121,7 @@ export class NarratorRunner {
           await this.connect();
         }
       }
-      this.lastPollAt=Date.now();this.lastError=this.storyController?.state?.paused?'story_paused':null;this.saveCheckpoint();return !this.lastError;
+      this.lastPollAt=Date.now();this.lastError=this.askBlocked?'ask_write_ambiguous':this.storyController?.state?.paused?'story_paused':null;this.saveCheckpoint();return !this.lastError;
     }catch{
       this.lastError='poll_failed';console.error('[narrator-runner] poll_failed');this.saveCheckpoint();return false;
     }finally{this.polling=false;}
@@ -125,7 +132,7 @@ export class NarratorRunner {
     if(command&&command.expectedVersion!==(ask.version??0)){
       // A fresh queue version is authoritative evidence to rebuild a rejected
       // command. An ambiguous network failure alone never changes its UUID.
-      this.pendingAskCommands.delete(ask.id);command=null;this.saveCheckpoint();
+      this.pendingAskCommands.delete(ask.id);this.pendingAskAttempts.delete(ask.id);command=null;this.saveCheckpoint();
     }
     if(!command&&!this.askResponder)return;
     if(!command){
@@ -143,23 +150,29 @@ export class NarratorRunner {
       command={campaignId:this.campaignId,askId:ask.id,answer:reply.answer,expectedVersion:ask.version??0,commandId:crypto.randomUUID(),citations:reply.citations??[],...(this.timelineEpoch?{timelineEpoch:this.timelineEpoch}:{})};
       this.pendingAskCommands.set(ask.id,command);this.saveCheckpoint();
     }
+    const attempts=this.pendingAskAttempts.get(ask.id)??0;
+    if(attempts>=2){this.askBlocked=true;return;}
+    this.pendingAskAttempts.set(ask.id,attempts+1);this.saveCheckpoint();
     try{
-      await this.callControl('narrator.answer_ask',command);this.answeredAsks.add(ask.id);this.pendingAskCommands.delete(ask.id);this.saveCheckpoint();
+      await this.callControl('narrator.answer_ask',command);this.answeredAsks.add(ask.id);this.pendingAskCommands.delete(ask.id);this.pendingAskAttempts.delete(ask.id);this.saveCheckpoint();
     }catch(error){
       if(error.status!==409||error.code==='timeline_changed')throw error;
       // A rejected version is not an answered question. Leave it pending for
       // the next authoritative queue read, without retrying a stale payload.
-      this.pendingAskCommands.delete(ask.id);this.saveCheckpoint();
+      this.pendingAskCommands.delete(ask.id);this.pendingAskAttempts.delete(ask.id);this.saveCheckpoint();
     }
   }
   startHealthServer() {
     if(!this.healthPort||this.healthServer)return;
     this.healthServer=http.createServer((request,response)=>{
       const url=new URL(request.url,'http://localhost');response.setHeader('content-type','application/json');response.setHeader('cache-control','no-store');
-      if(url.pathname==='/healthz')response.end(JSON.stringify({ok:true,status:this.lastError?'degraded':'healthy',mode:this.mode,uptime:process.uptime()}));
+      if(url.pathname==='/healthz'){
+        if(this.lastError)response.statusCode=503;
+        response.end(JSON.stringify({ok:!this.lastError,status:this.lastError?'degraded':'healthy',mode:this.mode,uptime:process.uptime()}));
+      }
       else if(url.pathname==='/status'){
         if(this.statusToken&&!crypto.timingSafeEqual(hash(request.headers.authorization??''),hash(`Bearer ${this.statusToken}`))){response.writeHead(401);response.end(JSON.stringify({error:'Unauthorized'}));return;}
-        response.end(JSON.stringify({ok:true,status:'running',mode:this.mode,campaignId:this.campaignId,lastSeq:this.lastSeq,lastAskSeq:this.lastAskSeq,
+        response.end(JSON.stringify({ok:!this.lastError,status:this.lastError?'degraded':'running',mode:this.mode,campaignId:this.campaignId,lastSeq:this.lastSeq,lastAskSeq:this.lastAskSeq,
           answeredAsksCount:this.answeredAsks.size,pendingAskCommandsCount:this.pendingAskCommands.size,lastPollAt:this.lastPollAt||null,
           lastError:this.lastError?'poll_failed':null,metrics:this.costTracker.getMetrics(),
           story:this.storyController?{paused:this.storyController.state.paused,queued:this.storyController.state.queue.length,

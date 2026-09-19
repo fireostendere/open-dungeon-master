@@ -81,7 +81,8 @@ export async function readNarratorSnapshot(host,params) {
 }
 export function resetNarratorTimeline(host,epoch) {
   host.lastSeq=0;host.lastAskSeq=0;host.timelineEpoch=epoch;host.answeredAsks.clear();host.pendingAskCommands.clear();
-  host.sectionCache=null;host.hasBaseline=false;host.storyController?.reset?.(epoch);
+  host.pendingAskAttempts?.clear();host.askBlocked=false;
+  host.sectionCache=null;host.storyController?.reset?.(epoch);
   host.pendingStoryCommands?.clear();host.memory.reset(epoch);host.saveCheckpoint();
 }
 export async function connectNarrator(host) {
@@ -107,11 +108,11 @@ export async function drainNarratorStory(host) {
     const next=result.nextCursor??(result.hasMore?null:result.currentSeq);
     if(!seq(next)||next<cursor||next>result.currentSeq||result.hasMore&&next<=cursor||!result.hasMore&&next!==result.currentSeq)throw fail('Story cursor did not advance safely.',400);
     if((result.messages||[]).some(message=>!seq(message.seq)||message.seq<=cursor||message.seq>next))throw fail('Story message lies outside its acknowledged range.',400);
-    const before=host.memory.serializeState(),previousEpoch=host.timelineEpoch,controller=host.storyController?.serialize?.(),hadBaseline=host.hasBaseline;
+    const before=host.memory.serializeState(),previousEpoch=host.timelineEpoch,controller=host.storyController?.serialize?.();
     try{
       host.memory.ingestReadSnapshot(result);host.storyController?.ingestReadSnapshot?.(result);
-      host.timelineEpoch=epoch??host.timelineEpoch;host.lastSeq=next;host.hasBaseline=true;host.saveCheckpoint();
-    }catch(error){host.memory.restoreState(before);if(controller)host.storyController.restore(controller);host.timelineEpoch=previousEpoch;host.lastSeq=cursor;host.hasBaseline=hadBaseline;throw error;}
+      host.timelineEpoch=epoch??host.timelineEpoch;host.lastSeq=next;host.saveCheckpoint();
+    }catch(error){host.memory.restoreState(before);if(controller)host.storyController.restore(controller);host.timelineEpoch=previousEpoch;host.lastSeq=cursor;throw error;}
     // Every completed byte/story page is durable. A later failure retries the
     // first unacknowledged page and never leaves memory ahead of its checkpoint.
     if(!result.hasMore)return result;

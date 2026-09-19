@@ -65,7 +65,7 @@ function failure(error) {
 
 async function run(action, params) {
   try {
-    const compact = params?.compact === true;
+    const compact = params?.compact ?? (action.startsWith('narrator.') ? true : undefined);
     return result(await callControl(action, params), { compact });
   } catch (error) {
     return failure(error);
