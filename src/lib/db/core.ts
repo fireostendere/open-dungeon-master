@@ -494,7 +494,6 @@ function ensureSchema(db: SqliteDatabase) {
     );
 
     CREATE INDEX IF NOT EXISTS idx_encounters_campaign ON encounters(campaign_id, status);
-    CREATE INDEX IF NOT EXISTS idx_encounters_room ON encounters(campaign_id, room_id, status);
 
     CREATE TABLE IF NOT EXISTS encounter_enemies (
       id TEXT PRIMARY KEY,
@@ -1474,6 +1473,7 @@ function ensureSchema(db: SqliteDatabase) {
     // (getActiveScene), so no combat rule ever sees one.
     ["kind", `TEXT NOT NULL DEFAULT 'fight'`],
   ]);
+  db.exec("CREATE INDEX IF NOT EXISTS idx_encounters_room ON encounters(campaign_id, room_id, status)");
 
   // The binder (docs/workshop-parity-audit.md phase 14). A lore entry is
   // party-visible by default, as it always was; 'dm' keeps it as the DM's

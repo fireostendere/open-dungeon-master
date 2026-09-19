@@ -12,6 +12,26 @@ process.env.DB_ENCRYPTION_KEY = "schema-upgrade-test-key";
 process.env.ODM_SQLITE_DRIVER = "node";
 process.env.ODM_MEDIA_ROOT = path.join(root, "media");
 
+const { openDatabase } = await import("../src/lib/db/driver.ts");
+const legacy = openDatabase(process.env.SQLITE_DB_PATH);
+legacy.exec(`
+  CREATE TABLE encounters (
+    id TEXT PRIMARY KEY,
+    campaign_id TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'active',
+    round INTEGER NOT NULL DEFAULT 1,
+    turn_index INTEGER NOT NULL DEFAULT 0,
+    order_ready INTEGER NOT NULL DEFAULT 0,
+    order_json TEXT NOT NULL DEFAULT '[]',
+    waiting_seq INTEGER NOT NULL DEFAULT 0,
+    outcome TEXT NOT NULL DEFAULT '',
+    summary TEXT NOT NULL DEFAULT '',
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  );
+`);
+legacy.close();
+
 const { getDatabase } = await import("../src/lib/db/core.ts");
 const db = getDatabase();
 const before = new Set(
@@ -49,6 +69,7 @@ const indexes = new Set(
   db.prepare("SELECT name FROM sqlite_master WHERE type = 'index'").all().map((row) => row.name),
 );
 for (const index of [
+  "idx_encounters_room",
   "idx_asset_packs_campaign",
   "idx_asset_jobs_campaign_status",
   "idx_asset_jobs_pack_status",
@@ -61,6 +82,10 @@ for (const index of [
 ]) {
   assert.ok(indexes.has(index), `missing upgraded index ${index}`);
 }
+const encounterColumns = new Set(
+  db.prepare("PRAGMA table_info(encounters)").all().map((row) => row.name),
+);
+assert.ok(encounterColumns.has("room_id"), "legacy encounters table did not gain room_id before indexing");
 
 console.log("external schema migration: automatic and idempotent");
 
