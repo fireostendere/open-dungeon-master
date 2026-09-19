@@ -17,45 +17,64 @@ export class OpenCodeAdapter {
     if (typeof this.workspace !== 'string' || !path.isAbsolute(this.workspace)) throw new Error('Select an absolute isolated OpenCode workspace.');
     this.fetch = options.fetchImpl ?? globalThis.fetch;
     this.timeoutMs = options.timeoutMs ?? 120000;
+    this.cleanupTimeoutMs = options.cleanupTimeoutMs ?? 2000;
+    if (!Number.isSafeInteger(this.cleanupTimeoutMs) || this.cleanupTimeoutMs < 1 || this.cleanupTimeoutMs > 10000) throw new Error('Invalid cleanup timeout.');
+    this.pendingCleanups = new Set();
+    this.onTiming = typeof options.onTiming === 'function' ? options.onTiming : null;
   }
-  async request(route, { method = 'POST', body } = {}) {
-    const response = await this.fetch(new URL(route, this.endpoint), { method, redirect: 'error',
-      headers: { accept: 'application/json', 'content-type': 'application/json', ...(this.token ? { authorization: `Bearer ${this.token}` } : {}) },
-      body: body === undefined ? undefined : JSON.stringify(body), signal: AbortSignal.timeout(this.timeoutMs) });
-    if (!response.ok) { await response.body?.cancel(); throw new Error(`OpenCode HTTP ${response.status}`); }
-    if (response.status === 204) return null;
-    const reader = response.body?.getReader();
-    if (!reader) throw new Error('Empty OpenCode response.');
-    const chunks = []; let bytes = 0;
+  timing(stage, startedAt) {
+    // Telemetry is deliberately content-free and must never break a response.
+    try { this.onTiming?.({ stage, durationMs: Math.max(0, performance.now() - startedAt) }); } catch {}
+  }
+  async request(route, { method = 'POST', body, timeoutMs = this.timeoutMs, stage = 'request' } = {}) {
+    const startedAt = performance.now();
     try {
-      for (;;) {
-        const { done, value } = await reader.read(); if (done) break;
-        bytes += value.byteLength;
-        if (bytes > 262144) { await reader.cancel(); throw new Error('OpenCode response exceeds the byte budget.'); }
-        chunks.push(Buffer.from(value));
-      }
-    } finally { reader.releaseLock(); }
-    const json = JSON.parse(Buffer.concat(chunks).toString('utf8'));
-    return json?.data ?? json;
+      const response = await this.fetch(new URL(route, this.endpoint), { method, redirect: 'error',
+        headers: { accept: 'application/json', 'content-type': 'application/json', ...(this.token ? { authorization: `Bearer ${this.token}` } : {}) },
+        body: body === undefined ? undefined : JSON.stringify(body), signal: AbortSignal.timeout(timeoutMs) });
+      if (!response.ok) { await response.body?.cancel(); throw new Error(`OpenCode HTTP ${response.status}`); }
+      if (response.status === 204) return null;
+      const reader = response.body?.getReader();
+      if (!reader) throw new Error('Empty OpenCode response.');
+      const chunks = []; let bytes = 0;
+      try {
+        for (;;) {
+          const { done, value } = await reader.read(); if (done) break;
+          bytes += value.byteLength;
+          if (bytes > 262144) { await reader.cancel(); throw new Error('OpenCode response exceeds the byte budget.'); }
+          chunks.push(Buffer.from(value));
+        }
+      } finally { reader.releaseLock(); }
+      const json = JSON.parse(Buffer.concat(chunks).toString('utf8'));
+      return json?.data ?? json;
+    } finally { this.timing(stage, startedAt); }
   }
+  cleanup(route) {
+    // Delete only this call's isolated session. Awaiting DELETE in generate's
+    // finally used to hold a completed answer for the full model timeout.
+    const task = this.request(route, { method: 'DELETE', timeoutMs: this.cleanupTimeoutMs, stage: 'cleanup' }).catch(() => {});
+    this.pendingCleanups.add(task);
+    void task.finally(() => this.pendingCleanups.delete(task));
+  }
+  async close() { await Promise.allSettled([...this.pendingCleanups]); }
   async generate(role, prompt) {
     const instruction = trustedInstruction(role);
     if (typeof prompt !== 'string' || Buffer.byteLength(prompt) > 262144) throw new Error('Role input exceeds the byte budget; no facts were clipped.');
+    // Bound outstanding cleanup work without reusing sessions across roles or
+    // private Ask audiences. Real fetches abort after cleanupTimeoutMs.
+    if (this.pendingCleanups.size >= 32) throw new Error('OpenCode cleanup capacity exhausted.');
     const agent = `narrator-${role}`;
-    const session = await this.request('/api/session', { body: { agent, model: this.model,
+    const session = await this.request('/api/session', { stage: 'session', body: { agent, model: this.model,
       location: { directory: this.workspace }, permissions: [{ action: '*', resource: '*', effect: 'deny' }], title: `ODM ${role}` } });
     if (typeof session?.id !== 'string' || !/^ses[a-zA-Z0-9_-]+$/.test(session.id)) throw new Error('Invalid OpenCode session.');
     const route = `/api/session/${encodeURIComponent(session.id)}`;
     try {
       if (session.agent !== agent || ['providerID', 'id', 'variant'].some(key => session.model?.[key] !== this.model[key])) throw new Error('OpenCode did not preserve the selected role/model.');
-      await this.request(`/api/experimental/session/${encodeURIComponent(session.id)}/instructions/entries/odm-policy`, { method: 'PUT', body: { value: instruction } });
-      const reply = await this.request(`${route}/generate`, { body: { prompt } });
+      await this.request(`/api/experimental/session/${encodeURIComponent(session.id)}/instructions/entries/odm-policy`, { method: 'PUT', stage: 'policy', body: { value: instruction } });
+      const reply = await this.request(`${route}/generate`, { stage: 'model', body: { prompt } });
       if (typeof reply?.text !== 'string' || !reply.text.trim() || Buffer.byteLength(reply.text) > 32768) throw new Error('Malformed or oversized model output.');
       return reply.text;
-    } finally {
-      // Only this adapter's own transient session is eligible for cleanup.
-      await this.request(route, { method: 'DELETE' }).catch(() => {});
-    }
+    } finally { this.cleanup(route); }
   }
 }
 
