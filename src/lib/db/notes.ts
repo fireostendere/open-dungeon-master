@@ -1,48 +1,58 @@
-// Canonical SQL/embedding implementation stays in notes-store. Every domain
-// mutation and its observed version commit together, including deletions.
+// The SQL implementation is retained; the mutation, audience and observed
+// domain version commit together. No secondary note ledger is introduced.
 export * from '@/lib/db/notes-store';
 import * as raw from '@/lib/db/notes-store';
-import type { Note } from '@/lib/db/notes-store';
 import { getDatabase } from '@/lib/db/core';
+import { withCommittedEffects } from '@/lib/db/commit-effects';
+import { domainStore } from '@/lib/spatial/domain';
+import { migrateScopedNoteLedger } from '@/lib/spatial/note-ledger-migration.mjs';
 import { spatialEnabled } from '@/lib/spatial/service';
-import { domainStore, publishEntity, tombstoneEntity, visibleEntities, authorizePublication } from '@/lib/spatial/domain';
-import { currentPublicationScope, type PublicationScope } from '@/lib/spatial/publication-scope.mjs';
-
-export function insertNote(input: Parameters<typeof raw.insertNote>[0] & { scope?: PublicationScope }): Note {
-  return getDatabase().transaction(() => {
-    const { scope, ...data } = input;
-    const intended = scope ?? currentPublicationScope(input.campaignId);
-    if (spatialEnabled(input.campaignId) && intended && input.authorKind !== 'dm') authorizePublication(input.campaignId, input.authorUserId, intended);
-    return publishEntity('note', raw.insertNote(data), scope ? { scope } : {});
-  })();
+import { captureNoteVersion, ensureNoteVersion, projectSpatialNote, listSpatialNotes, type NoteAudience } from '@/lib/spatial/note-privacy';
+import type { PublicationScope } from '@/lib/spatial/publication-scope.mjs';
+export type Note=raw.Note & {roomId?:string|null;audience?:string};
+export function insertNote(input:Parameters<typeof raw.insertNote>[0] & {scope?:PublicationScope;audience?:NoteAudience}):Note {
+  return withCommittedEffects(()=>getDatabase().transaction(()=>{
+    const {scope,audience,...data}=input;
+    const note=raw.insertNote(data);
+    captureNoteVersion(note,scope?{...audience,scope}:audience);
+    return note;
+  })());
 }
-export function updateNote(noteId: string, patch: Parameters<typeof raw.updateNote>[1]): Note | null {
-  return getDatabase().transaction(() => {
-    const result = raw.updateNote(noteId, patch);
-    return result ? publishEntity('note', result) : null;
-  })();
+export function updateNote(noteId:string,patch:Parameters<typeof raw.updateNote>[1],audience?:NoteAudience):Note|null {
+  return withCommittedEffects(()=>getDatabase().transaction(()=>{
+    const previous=raw.getNoteById(noteId);
+    if(!previous) return null;
+    ensureNoteVersion(previous);
+    const result=raw.updateNote(noteId,patch);
+    if(result) captureNoteVersion(result,audience);
+    return result;
+  })());
 }
-export function deleteNote(noteId: string): boolean {
-  return getDatabase().transaction(() => {
-    const previous = raw.getNoteById(noteId);
-    if (!previous) return false;
-    tombstoneEntity('note', previous);
-    return raw.deleteNote(noteId);
-  })();
+export function deleteNote(noteId:string):boolean {
+  return withCommittedEffects(()=>getDatabase().transaction(()=>{
+    const previous=raw.getNoteById(noteId);
+    if(!previous) return false;
+    ensureNoteVersion(previous);
+    if(!raw.deleteNote(noteId)) return false;
+    captureNoteVersion(previous,undefined,true);
+    return true;
+  })());
 }
-export function registerUnversionedNotes(campaignId: string) {
-  if (!spatialEnabled(campaignId)) return;
-  const store = domainStore();
-  const ids = getDatabase().prepare('SELECT id FROM campaign_notes WHERE campaign_id=?').all(campaignId) as { id: string }[];
-  for (const { id } of ids) if (!store.has(campaignId, 'note', id)) {
-    const value = raw.getNoteById(id);
-    if (value) publishEntity('note', value, { scope: { kind: 'dm' } });
-  }
+export function registerUnversionedNotes(campaignId:string):void {
+  if(!spatialEnabled(campaignId)) return;
+  domainStore(); migrateScopedNoteLedger(getDatabase(),campaignId);
+  const rows=getDatabase().prepare('SELECT id FROM campaign_notes WHERE campaign_id=?').all(campaignId) as {id:string}[];
+  for(const {id} of rows) {const note=raw.getNoteById(id);if(note) ensureNoteVersion(note);}
 }
-export function listNotesVisibleTo(campaignId: string, userId: string, lead: boolean): Note[] {
-  if (!spatialEnabled(campaignId)) return raw.listNotesVisibleTo(campaignId, userId, lead);
-  registerUnversionedNotes(campaignId);
-  return visibleEntities<Note>(campaignId, userId, 'note', { limit: 1000 })
-    .filter(note => (note.visibility === 'public' && note.status === 'active') || note.authorUserId === userId || (lead && note.status === 'pending'))
-    .sort((a, b) => Number(b.pinned) - Number(a.pinned) || b.seq - a.seq);
+export function getNoteVisibleTo(campaignId:string,noteId:string,userId:string,lead:boolean):Note|null {
+  const note=raw.getNoteById(noteId);
+  if(note && note.campaignId!==campaignId) return null;
+  if(spatialEnabled(campaignId)) return projectSpatialNote(campaignId,noteId,userId,note);
+  return note && (note.authorUserId===userId || note.visibility==='public' && (note.status==='active' || lead && note.status==='pending')) ? note : null;
+}
+export function listNotesVisibleTo(campaignId:string,userId:string,lead:boolean):Note[] {
+  if(!spatialEnabled(campaignId)) return raw.listNotesVisibleTo(campaignId,userId,lead);
+  const rows=getDatabase().prepare('SELECT id FROM campaign_notes WHERE campaign_id=?').all(campaignId) as {id:string}[];
+  const notes=rows.map(({id})=>raw.getNoteById(id)).filter((note):note is raw.Note=>note!==null);
+  return listSpatialNotes(campaignId,userId,notes);
 }

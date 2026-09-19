@@ -55,6 +55,18 @@ test('trusted-host export prints exact canonical policy',()=>{
   const script=fileURLToPath(new URL('./export-dm-policy.mjs',import.meta.url));
   assert.equal(execFileSync(process.execPath,[script],{encoding:'utf8'}),DM_POLICY_TEXT);
 });
+test('compact policy mode omits redundant text for turns but keeps version and uri',()=>{
+  const read=withDmPolicy('narrator.read',{currentSeq:5},{policyMode:'compact'});
+  assert.equal(read.dmPolicy.version,DM_POLICY_VERSION);
+  assert.equal(read.dmPolicy.uri,DM_POLICY_URI);
+  assert.equal(read.dmPolicy.text,undefined);
+
+  const connect=withDmPolicy('narrator.connect',{currentSeq:5},{policyMode:'compact'});
+  assert.equal(connect.dmPolicy.text,DM_POLICY_TEXT);
+
+  const withExplicit=withDmPolicy('narrator.read',{currentSeq:5},{policyMode:'compact',includePolicyText:true});
+  assert.equal(withExplicit.dmPolicy.text,DM_POLICY_TEXT);
+});
 
 test('operator compatibility and narrator identity come from credentials only',()=>{
   assert.equal(authenticateMcp(req(OP),env).role,'operator');

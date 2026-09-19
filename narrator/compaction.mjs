@@ -1,223 +1,188 @@
-/** Bounded narrator memory. Audience provenance is data, not a room-name hint. */
-import { createHash } from 'node:crypto';
-
-const copy = value => value == null ? value : structuredClone(value);
-const positive = (value, fallback) => Number.isSafeInteger(Number(value)) && Number(value) > 0 ? Number(value) : fallback;
-const users = value => Array.isArray(value) ? [...new Set(value.filter(id => typeof id === 'string'))].sort() : null;
-const canonical = value => Array.isArray(value) ? value.map(canonical) : value && typeof value === 'object'
-  ? Object.fromEntries(Object.keys(value).sort().map(key => [key, canonical(value[key])])) : value;
-const digest = value => createHash('sha256').update(JSON.stringify(canonical(value))).digest('hex');
-const sequence = value => Number.isSafeInteger(value) && value >= 0 ? value : null;
-
-function provenance(item = {}) {
-  const roomId = typeof item.roomId === 'string' ? item.roomId : null;
-  const witnessUserIds = users(item.witnessUserIds ?? item.audienceUserIds);
-  const global = item.visibility === 'global' || item.kind === 'ooc' || (!roomId && item.channel === 'global');
-  return {
-    roomId,
-    witnessUserIds,
-    visibility: item.dmOnly || item.visibility === 'dm' || (!global && witnessUserIds === null) ? 'dm' : global ? 'global' : 'witnesses',
-    permittedAspects: Array.isArray(item.permittedAspects) ? [...item.permittedAspects] : [],
-  };
+/** Bounded narrator memory with publication-time audiences. Both historical
+ * checkpoint formats are accepted; unknown legacy provenance stays DM-only.
+ */
+const clone = value => value == null ? value : structuredClone(value);
+const bounded = (value, fallback, max) => Number.isSafeInteger(Number(value)) && Number(value) > 0 ? Math.min(Number(value), max) : fallback;
+const seqOf = value => Number.isSafeInteger(value?.updatedSeq) && value.updatedSeq >= 0 ? value.updatedSeq : Number.isSafeInteger(value?.seq) && value.seq >= 0 ? value.seq : -1;
+const isOoc = value => value?.kind === 'ooc' || /^\s*\(ooc\)/i.test(value?.content ?? '');
+const roomOf = value => value?.roomId ?? value?.encounter?.roomId ?? null;
+const ids = value => Array.isArray(value) ? [...new Set(value.filter(id => typeof id === 'string'))].sort() : [];
+function provenance(value) {
+  const roomId = roomOf(value);
+  const global = !value?.dmOnly && value?.visibility !== 'dm' && (value?.visibility === 'global' || value?.channel === 'global');
+  return { roomId, channel: global ? 'global' : 'private',
+    visibility: value?.dmOnly || value?.visibility === 'dm' ? 'dm' : global ? 'global' : 'witnesses',
+    witnessUserIds: ids(value?.witnessUserIds ?? value?.audienceUserIds),
+    aspects: ids(value?.aspects ?? value?.permittedAspects),
+    permittedAspects: ids(value?.permittedAspects ?? value?.aspects) };
 }
-
-function visible(item, roomId, audience) {
-  const p = provenance(item);
-  if (roomId && p.roomId !== roomId && p.visibility !== 'global') return false;
-  if (audience !== null) {
-    if (p.visibility === 'dm') return false;
-    if (p.visibility !== 'global' && !audience.every(id => p.witnessUserIds?.includes(id))) return false;
-  }
-  return true;
+function visible(value, roomId, audience) {
+  const meta = provenance(value);
+  if (roomId && meta.roomId !== roomId && meta.channel !== 'global') return false;
+  if (audience === null) return !value.legacy || !roomId;
+  if (value.legacy || meta.visibility === 'dm') return false;
+  return meta.channel === 'global' || (audience.length > 0 && audience.every(id => meta.witnessUserIds.includes(id)));
 }
-
+function recordLine(value) {
+  const meta = { id: value.id, seq: value.seq, ...provenance(value), ...(value.legacy ? { legacy: true, dmOnly: true } : {}) };
+  return `[${JSON.stringify(meta)}] ${value.content ?? ''}`;
+}
 export class HostContextMemory {
   constructor(options = {}) {
-    this.maxRecentMessages = positive(options.maxRecentMessages, 30);
-    this.maxRecentRolls = positive(options.maxRecentRolls, 20);
-    this.compactionBatchSize = positive(options.compactionBatchSize, 15);
-    this.summaryLimitChars = positive(options.summaryLimitChars, 6_000);
-    this.maxSeenMessages = positive(options.maxSeenMessages, 20_000);
+    this.maxRecentMessages = bounded(options.maxRecentMessages, 30, 1000);
+    this.maxRecentRolls = bounded(options.maxRecentRolls, 20, 1000);
+    this.compactionBatchSize = bounded(options.compactionBatchSize, 15, 1000);
+    this.summaryLimitChars = bounded(options.summaryLimitChars, 6000, 100000);
+    this.maxSeenMessages = bounded(options.maxSeenMessages, 20000, 100000);
     this.campaignId = options.campaignId || '';
     this.reset(options.timelineEpoch ?? null);
-    this.legacySummary = String(options.initialSummary || '').slice(-this.summaryLimitChars);
+    if (options.initialSummary) this._legacy(options.initialSummary);
+  }
+  reset(options = null) {
+    const config = options && typeof options === 'object' ? options : { timelineEpoch: options };
+    this.campaignId = config.campaignId ?? this.campaignId;
+    this.timelineEpoch = config.timelineEpoch ?? config.timelineId ?? null;
+    this.timelineId = this.timelineEpoch;
+    this.processedSeq = -1; this.compactedThroughSeq = -1; this.lastCurrentSeq = null;
+    this.summary = ''; this.summaries = new Map(); this.summaryRecords = []; this.messages = [];
+    this.rolls = []; this.milestones = []; this.sheets = new Map(); this.encounter = null; this.encounters = [];
+    this.seenMessages = new Map();
+  }
+  get summarySegments() {
+    return this.summaryRecords.filter(item => !item.legacy).map(item => ({ ...clone(item), sourceId: item.id,
+      fromSeq: item.seq, toSeq: item.updatedSeq ?? item.seq, text: item.content }));
+  }
+  _legacy(content, id = 'legacy-summary') {
+    if (typeof content !== 'string' || !content) return;
+    this.summaryRecords.push({ id, seq: -1, roomId: null, channel: 'private', visibility: 'dm', witnessUserIds: [], aspects: [], legacy: true,
+      content: content.slice(-this.summaryLimitChars) });
     this._rebuildSummary();
   }
-
-  reset(timelineEpoch = null) {
-    this.timelineEpoch = timelineEpoch;
-    this.legacySummary = '';
-    this.summary = '';
-    this.summaries = new Map();
-    this.summarySegments = [];
-    this.messages = [];
-    this.rolls = [];
-    this.milestones = [];
-    this.sheets = new Map();
-    this.encounter = null;
-    this.encounters = [];
-    this.seenMessages = new Map();
-    this.compactedThroughSeq = -1;
-  }
-
   ingestReadSnapshot(snapshot) {
     if (!snapshot || typeof snapshot !== 'object') return;
-    const epoch = snapshot.timelineEpoch ?? snapshot.epoch ?? this.timelineEpoch;
-    if ((snapshot.campaignId && this.campaignId && snapshot.campaignId !== this.campaignId) ||
-        (this.timelineEpoch !== null && epoch !== this.timelineEpoch)) this.reset(epoch);
-    this.timelineEpoch = epoch;
-    if (snapshot.campaignId) this.campaignId = snapshot.campaignId;
-    if (Array.isArray(snapshot.sheets)) {
-      for (const sheet of snapshot.sheets) if (sheet?.id) this.sheets.set(sheet.id, copy(sheet));
+    const campaignId = snapshot.campaignId ?? snapshot.campaign?.id ?? this.campaignId;
+    if (this.campaignId && campaignId && campaignId !== this.campaignId) throw new Error('Narrator memory belongs to another campaign.');
+    const epoch = snapshot.timelineEpoch ?? snapshot.epoch ?? snapshot.timelineId ?? snapshot.campaign?.timelineId ?? this.timelineEpoch;
+    if ((this.timelineEpoch !== null && epoch !== this.timelineEpoch) ||
+        (Number.isSafeInteger(snapshot.currentSeq) && this.lastCurrentSeq !== null && snapshot.currentSeq < this.lastCurrentSeq)) {
+      this.reset({ campaignId, timelineEpoch: epoch });
     }
-    if (snapshot.encounter !== undefined) {
-      this.encounter = copy(snapshot.encounter);
-      this.encounters = this.encounter ? [this.encounter] : [];
+    this.campaignId = campaignId; this.timelineEpoch = epoch; this.timelineId = epoch;
+    if (Number.isSafeInteger(snapshot.currentSeq)) this.lastCurrentSeq = snapshot.currentSeq;
+    if (Array.isArray(snapshot.sheets)) this.sheets = new Map(snapshot.sheets.filter(s => s?.id).slice(0, 256).map(s => [s.id, clone(s)]));
+    if (snapshot.encounter !== undefined) { this.encounter = clone(snapshot.encounter); this.encounters = this.encounter ? [this.encounter] : []; }
+    if (Array.isArray(snapshot.encounters)) this.encounters = clone(snapshot.encounters.slice(0, 128));
+    for (const roll of Array.isArray(snapshot.recentRolls) ? snapshot.recentRolls : []) {
+      if (!roll?.id) continue;
+      const index = this.rolls.findIndex(item => item.id === roll.id);
+      if (index >= 0) this.rolls[index] = clone(roll); else this.rolls.push(clone(roll));
     }
-    if (Array.isArray(snapshot.encounters)) this.encounters = copy(snapshot.encounters);
-    if (Array.isArray(snapshot.recentRolls)) {
-      for (const roll of snapshot.recentRolls) {
-        if (!roll?.id) continue;
-        const index = this.rolls.findIndex(existing => existing.id === roll.id);
-        if (index < 0) this.rolls.push(copy(roll));
-        else this.rolls[index] = copy(roll);
-      }
-      this.rolls = this.rolls.slice(-this.maxRecentRolls);
-    }
-    const incoming = [...(Array.isArray(snapshot.recentMessages) ? snapshot.recentMessages : []),
-      ...(Array.isArray(snapshot.messages) ? snapshot.messages : [])];
+    this.rolls = this.rolls.slice(-this.maxRecentRolls);
+    const incoming = [...(Array.isArray(snapshot.recentMessages) ? snapshot.recentMessages : []), ...(Array.isArray(snapshot.messages) ? snapshot.messages : [])]
+      .filter(msg => msg?.id && !isOoc(msg)).sort((a, b) => seqOf(a) - seqOf(b));
+    const priorWatermark = this.processedSeq;
     for (const raw of incoming) {
-      if (!raw?.id) continue;
-      const msg = { ...copy(raw), ...provenance(raw) };
-      const fingerprint = digest(msg);
-      const seen = this.seenMessages.get(msg.id);
-      const seq = sequence(msg.updatedSeq) ?? sequence(msg.seq);
-      if (seen?.fingerprint === fingerprint) continue;
-      // Old backfill cannot resurrect evicted history. Updates beyond the bounded
-      // ledger must carry a new monotonic updatedSeq, like other domain events.
-      if (!seen && seq !== null && seq <= this.compactedThroughSeq) continue;
-      this.messages = this.messages.filter(item => item.id !== msg.id);
-      this.summarySegments = this.summarySegments.filter(item => item.sourceId !== msg.id);
-      this.milestones = this.milestones.filter(item => item.sourceId !== msg.id);
-      this.seenMessages.delete(msg.id);
-      this.seenMessages.set(msg.id, { fingerprint, seq });
-      this.messages.push(msg);
+      const msg = { ...clone(raw), ...provenance(raw) };
+      const recent = this.messages.findIndex(m => m.id === msg.id), folded = this.summaryRecords.findIndex(m => m.id === msg.id);
+      if (recent >= 0) this.messages[recent] = msg;
+      else if (folded >= 0) this.summaryRecords[folded] = this._summaryRecord(msg);
+      else if (seqOf(msg) > priorWatermark || seqOf(msg) === -1 && !this.seenMessages.has(msg.id)) this.messages.push(msg);
+      else continue;
+      this.seenMessages.set(msg.id, seqOf(msg));
+      this.processedSeq = Math.max(this.processedSeq, seqOf(msg));
       this._checkMilestone(msg);
     }
-    this.messages.sort((a, b) => (a.seq ?? 0) - (b.seq ?? 0) || String(a.id).localeCompare(String(b.id)));
+    this.messages.sort((a, b) => seqOf(a) - seqOf(b) || String(a.id).localeCompare(String(b.id)));
     this._compactIfNeeded();
     while (this.seenMessages.size > this.maxSeenMessages) this.seenMessages.delete(this.seenMessages.keys().next().value);
   }
-
   _checkMilestone(msg) {
-    const text = String(msg.content || '');
-    const type = /(?:смерть|умер|killed|death|fallen in battle|погиб)/iu.test(text) ? 'death'
-      : /(?:level up|новый уровень|повышение уровня)/iu.test(text) ? 'level_up'
-      : /(?:артефакт|легендарный предмет|получил артефакт|quest complete)/iu.test(text) ? 'quest_item' : null;
-    if (!type) return;
-    this.milestones.push({ ...provenance(msg), sourceId: msg.id, seq: msg.seq, version: msg.version ?? null,
-      time: msg.createdAt || null, type, text: text.slice(0, 150) });
+    const content = msg.content || '';
+    const type = /(?:смерть|умер|killed|death|fallen in battle|погиб)/iu.test(content) ? 'death'
+      : /(?:level up|новый уровень|повышение уровня)/iu.test(content) ? 'level_up'
+      : /(?:артефакт|легендарный предмет|получил артефакт|quest complete)/iu.test(content) ? 'quest_item' : null;
+    const previous = this.milestones.find(m => m.id === msg.id);
+    this.milestones = this.milestones.filter(m => m.id !== msg.id);
+    if (type) this.milestones.push({ id: msg.id, sourceId: msg.id, seq: msg.seq, ...provenance(msg),
+      time: msg.createdAt ?? previous?.time ?? null, type, text: content.slice(0, 150) });
+    this.milestones.sort((a,b) => seqOf(a)-seqOf(b));
     this.milestones = this.milestones.slice(-25);
   }
-
+  _summaryRecord(msg) {
+    return { id: msg.id, seq: msg.seq, updatedSeq: msg.updatedSeq ?? msg.seq, revision: msg.revision ?? msg.version ?? null,
+      ...provenance(msg), content: String(msg.content ?? '').slice(0, this.summaryLimitChars) };
+  }
   _compactIfNeeded() {
     while (this.messages.length > this.maxRecentMessages) {
-      const batch = this.messages.splice(0, Math.min(this.compactionBatchSize, this.messages.length - this.maxRecentMessages));
-      for (const msg of batch) {
-        this.compactedThroughSeq = Math.max(this.compactedThroughSeq, sequence(msg.updatedSeq) ?? sequence(msg.seq) ?? -1);
-        if (msg.kind === 'ooc' || msg.content?.startsWith('(ooc)')) continue;
-        this.summarySegments.push({ ...provenance(msg), sourceId: msg.id, version: msg.version ?? null,
-          fromSeq: msg.seq ?? null, toSeq: msg.updatedSeq ?? msg.seq ?? null,
-          text: `${msg.authorName || 'Speaker'}: ${msg.content || ''}`.slice(-this.summaryLimitChars) });
+      const count = Math.min(this.compactionBatchSize, this.messages.length - this.maxRecentMessages);
+      for (const msg of this.messages.splice(0, count)) {
+        this.compactedThroughSeq = Math.max(this.compactedThroughSeq, seqOf(msg));
+        this.summaryRecords.push(this._summaryRecord(msg));
       }
     }
-    // Drop whole old segments, never detach content from its audience metadata.
-    let remaining = this.summaryLimitChars;
-    const kept = [];
-    for (const segment of [...this.summarySegments].reverse()) {
-      if (remaining <= 0) break;
-      const text = String(segment.text || '').slice(-remaining);
-      kept.push({ ...segment, text });
-      remaining -= text.length;
+    let chars = this.summaryRecords.reduce((sum, item) => sum + recordLine(item).length + 1, 0);
+    while (chars > this.summaryLimitChars && this.summaryRecords.length > 1) chars -= recordLine(this.summaryRecords.shift()).length + 1;
+    if (this.summaryRecords.length === 1) {
+      const item = this.summaryRecords[0];
+      const overhead = recordLine({ ...item, content: '' }).length;
+      if (overhead > this.summaryLimitChars) this.summaryRecords = [];
+      else item.content = item.content.slice(0, Math.max(0, this.summaryLimitChars - overhead));
     }
-    this.summarySegments = kept.reverse();
-    this.legacySummary = this.legacySummary.slice(-Math.max(0, remaining));
-    if (remaining <= 0) this.legacySummary = '';
     this._rebuildSummary();
   }
-
-  _render(segments) {
-    return (segments.length ? '[Прошедшие события]:\n' : '') + segments.map(segment => `[${segment.fromSeq ?? '?'}..${segment.toSeq ?? '?'}; room=${segment.roomId || '-'}; ` +
-      `audience=${segment.visibility === 'global' ? 'global' : segment.visibility === 'dm' ? 'dm-only' : JSON.stringify(segment.witnessUserIds)}]\n${segment.text}`).join('\n');
-  }
-
   _rebuildSummary() {
     this.summaries = new Map();
-    for (const segment of this.summarySegments) {
-      const key = segment.roomId ? `room:${segment.roomId}` : `channel:${segment.visibility}`;
-      this.summaries.set(key, `${this.summaries.get(key) || ''}${this.summaries.has(key) ? '\n' : ''}${this._render([segment])}`);
+    for (const item of this.summaryRecords) {
+      const key = item.legacy ? 'legacy:dm-only' : item.roomId ? `room:${item.roomId}` : `channel:${item.channel}`;
+      this.summaries.set(key, [this.summaries.get(key), recordLine(item)].filter(Boolean).join('\n'));
     }
-    this.summary = [this.legacySummary && `[Legacy memory: DM-only, audience unknown]\n${this.legacySummary}`, this._render(this.summarySegments)].filter(Boolean).join('\n\n');
+    this.summary = this.summaryRecords.map(recordLine).join('\n');
   }
-
-  /** With audienceUserIds, every returned fact is authorized for the whole reply audience. */
   getPromptContext(scope = null, options = {}) {
-    const roomId = typeof scope === 'object' && scope ? scope.roomId || null : scope;
-    const config = typeof scope === 'object' && scope ? scope : options;
-    const audience = config.viewerUserId ? [config.viewerUserId] : users(config.audienceUserIds);
-    const allowed = item => visible(item, roomId, audience);
-    const segments = this.summarySegments.filter(allowed);
-    const encounters = this.encounters.filter(allowed);
-    return copy({
-      summary: !roomId && audience === null ? this.summary : this._render(segments),
-      summarySegments: segments,
-      milestones: this.milestones.filter(allowed),
-      recentMessages: this.messages.filter(allowed),
-      recentRolls: this.rolls.filter(allowed),
-      activeEncounter: encounters[0] || null,
-      encounters,
-      characters: Array.from(this.sheets.values()).filter(allowed).map(sheet => ({
-        ...provenance(sheet), id: sheet.id, name: sheet.name, hp: sheet.hp, ac: sheet.ac, class: sheet.class, level: sheet.level,
-      })),
-    });
+    const roomId = typeof scope === 'string' ? scope : scope?.roomId ?? null;
+    const config = scope && typeof scope === 'object' ? scope : options;
+    const audience = typeof config.viewerUserId === 'string' && config.viewerUserId ? [config.viewerUserId]
+      : Array.isArray(config.audienceUserIds) ? ids(config.audienceUserIds) : null;
+    const permitted = value => visible(value, roomId, audience);
+    const encounters = this.encounters.length ? this.encounters : this.encounter ? [this.encounter] : [];
+    return clone({ summary: this.summaryRecords.filter(permitted).map(recordLine).join('\n'),
+      summaryRecords: this.summaryRecords.filter(permitted), summarySegments: this.summarySegments.filter(permitted),
+      milestones: this.milestones.filter(permitted), recentMessages: this.messages.filter(permitted), recentRolls: this.rolls.filter(permitted),
+      activeEncounter: encounters.find(permitted) ?? null, encounters: encounters.filter(permitted),
+      characters: Array.from(this.sheets.values()).filter(permitted).map(s => ({ id:s.id,name:s.name,hp:s.hp,ac:s.ac,class:s.class,level:s.level,...provenance(s) })) });
   }
-
   serializeState({ safe = false } = {}) {
-    if (safe) return {
-      campaignId: this.campaignId, messageCount: this.messages.length, rollCount: this.rolls.length,
-      sheetCount: this.sheets.size, roomCount: new Set(this.messages.map(message => message.roomId).filter(Boolean)).size,
-      milestoneCount: this.milestones.length,
-    };
-    return copy({
-      formatVersion: 2, campaignId: this.campaignId, timelineEpoch: this.timelineEpoch,
-      summary: this.summary, legacySummary: this.legacySummary, summarySegments: this.summarySegments,
-      messages: this.messages, rolls: this.rolls, sheets: Array.from(this.sheets.values()),
-      encounter: this.encounter, encounters: this.encounters, milestones: this.milestones,
-      seenMessages: Array.from(this.seenMessages), compactedThroughSeq: this.compactedThroughSeq,
-    });
+    if (safe) return { campaignId: this.campaignId, messageCount: this.messages.length, rollCount: this.rolls.length,
+      sheetCount: this.sheets.size, roomCount: new Set([...this.messages, ...this.summaryRecords].map(m => m.roomId).filter(Boolean)).size, milestoneCount: this.milestones.length };
+    return clone({ version: 3, formatVersion: 3, campaignId: this.campaignId, timelineEpoch: this.timelineEpoch, timelineId: this.timelineEpoch,
+      processedSeq: this.processedSeq, compactedThroughSeq: this.compactedThroughSeq, lastCurrentSeq: this.lastCurrentSeq,
+      summary: this.summary, summaryRecords: this.summaryRecords, summarySegments: this.summarySegments,
+      messages: this.messages, rolls: this.rolls, sheets: Array.from(this.sheets.values()), encounter: this.encounter,
+      encounters: this.encounters, milestones: this.milestones, seenMessages: Array.from(this.seenMessages) });
   }
-
   restoreState(state) {
     if (!state || typeof state !== 'object') return;
-    this.reset(state.timelineEpoch ?? null);
-    if (state.campaignId) this.campaignId = state.campaignId;
-    if (state.formatVersion === 2) {
-      this.legacySummary = String(state.legacySummary || '');
-      this.summarySegments = Array.isArray(state.summarySegments) ? copy(state.summarySegments) : [];
-      this.seenMessages = new Map(Array.isArray(state.seenMessages) ? state.seenMessages.slice(-this.maxSeenMessages) : []);
-      this.compactedThroughSeq = Number.isSafeInteger(state.compactedThroughSeq) ? state.compactedThroughSeq : -1;
-    } else {
-      // Old room summaries have already lost witnesses. Keep them for the DM,
-      // but do not silently relabel them as knowledge of today's room occupants.
-      this.legacySummary = String(state.summary || Object.values(state.summaries || {}).join('\n\n'));
-    }
-    this.messages = Array.isArray(state.messages) ? state.messages.map(msg => ({ ...copy(msg), ...provenance(msg) })) : [];
-    for (const msg of this.messages) if (msg?.id && !this.seenMessages.has(msg.id)) this.seenMessages.set(msg.id, { fingerprint: digest(msg), seq: sequence(msg.seq) });
-    this.rolls = Array.isArray(state.rolls) ? copy(state.rolls.slice(-this.maxRecentRolls)) : [];
-    this.sheets = new Map(Array.isArray(state.sheets) ? state.sheets.filter(sheet => sheet?.id).map(sheet => [sheet.id, copy(sheet)]) : []);
-    this.encounter = copy(state.encounter ?? null);
-    this.encounters = Array.isArray(state.encounters) ? copy(state.encounters) : this.encounter ? [this.encounter] : [];
-    this.milestones = Array.isArray(state.milestones) ? state.milestones.slice(-25).map(item => ({ ...copy(item), ...provenance(item) })) : [];
+    if (this.campaignId && state.campaignId && this.campaignId !== state.campaignId) throw new Error('Narrator checkpoint belongs to another campaign.');
+    this.reset({ campaignId: state.campaignId || this.campaignId, timelineEpoch: state.timelineEpoch ?? state.timelineId ?? null });
+    if ([2,3].includes(state.version) && Array.isArray(state.summaryRecords)) {
+      this.summaryRecords = clone(state.summaryRecords.filter(item => item?.id).map(item => ({ ...item, ...provenance(item) })));
+    } else if (state.formatVersion === 2 && Array.isArray(state.summarySegments)) {
+      this.summaryRecords = state.summarySegments.map((item,index) => ({ id:item.sourceId ?? `migrated-segment-${index}`,seq:item.fromSeq ?? -1,
+        updatedSeq:item.toSeq ?? item.fromSeq ?? -1,revision:item.version ?? null,...provenance(item),content:String(item.text ?? '') }));
+      this._legacy(state.legacySummary);
+    } else this._legacy(state.summary || Object.values(state.summaries ?? {}).filter(v => typeof v === 'string').join('\n'));
+    this.messages = clone((Array.isArray(state.messages) ? state.messages : []).filter(m => m?.id && !isOoc(m)).map(m => ({ ...m, ...provenance(m) })));
+    this.rolls = clone((Array.isArray(state.rolls) ? state.rolls : []).slice(-this.maxRecentRolls));
+    this.sheets = new Map((Array.isArray(state.sheets) ? state.sheets : []).filter(s => s?.id).slice(0, 256).map(s => [s.id, clone(s)]));
+    this.encounter = clone(state.encounter ?? null);
+    this.encounters = clone((Array.isArray(state.encounters) ? state.encounters : this.encounter ? [this.encounter] : []).slice(0, 128));
+    this.milestones = clone((Array.isArray(state.milestones) ? state.milestones : []).slice(-25).map(m => ({ ...m, id:m.id ?? m.sourceId, ...provenance(m) })));
+    this.compactedThroughSeq = Number.isSafeInteger(state.compactedThroughSeq) ? state.compactedThroughSeq : -1;
+    this.processedSeq = Math.max(Number.isSafeInteger(state.processedSeq) ? state.processedSeq : -1,
+      this.compactedThroughSeq, ...this.messages.map(seqOf), ...this.summaryRecords.map(seqOf));
+    this.lastCurrentSeq = Number.isSafeInteger(state.lastCurrentSeq) ? state.lastCurrentSeq : null;
+    this.seenMessages = new Map((Array.isArray(state.seenMessages) ? state.seenMessages : []).slice(-this.maxSeenMessages));
+    for (const item of [...this.messages, ...this.summaryRecords]) this.seenMessages.set(item.id, seqOf(item));
     this._compactIfNeeded();
   }
 }

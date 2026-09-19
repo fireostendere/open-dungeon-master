@@ -59,7 +59,8 @@ export function createDomainStore(db, { nextSeq, actorFor }) {
     throw new DomainError('Invalid disclosure scope.');
   }
   function canObserve(current, value, userId) {
-    if (value.ownerUserId === userId) return true;
+    // Old active-note envelopes also must not treat authorship as a remote subscription.
+    if (value.ownerUserId === userId && !(value.data?.visibility === 'public' && value.data?.status === 'active')) return true;
     if (value.allowedUserIds !== null && !value.allowedUserIds.includes(userId)) return false;
     switch (value.scope.kind) {
       case 'global': return true;

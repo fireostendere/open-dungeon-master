@@ -1,10 +1,7 @@
 import { SPATIAL_NARRATOR_CATALOG, SPATIAL_NARRATOR_OPERATIONS, SPATIAL_GUIDANCE, readSpatialForNarrator, invokeSpatialForNarrator } from "@/lib/spatial/narrator";
 import { spatialNarratorBoundary } from "@/lib/spatial/narrator-page.mjs";
 import { spatialEnabled } from "@/lib/spatial/service";
-import {
-  bindActiveBattleMapToRoom,
-  scopeBattleMapInvocation,
-} from "@/lib/spatial/battle-map";
+import { bindActiveBattleMapToRoom, scopeBattleMapInvocation } from "@/lib/spatial/battle-map";
 import { campaignTimelineEpoch } from "@/lib/spatial/timeline";
 import { z } from "zod";
 import { isOocMessage } from "@/lib/campaign-types";
@@ -31,22 +28,17 @@ import { npcRosterForPrompt } from "@/lib/dm/social-tools";
 import { answerAsk, listPendingAsksForCampaign, AskQueueConflict } from "@/lib/db/asks";
 import { budgetRead, ReadBudgetError } from "@/lib/mcp-read-budget.mjs";
 import { listEventsSince, publishEphemeral, publishPersisted, publishUserEphemeral } from "@/lib/events";
-
 export { NarratorCommandError as McpNarratorControlError } from "@/lib/dm/narrator-command";
-
 const id = z.string().uuid();
 const readSchema = z.object({
-  campaignId: id, afterSeq: z.number().int().min(0).default(0),
-  limit: z.number().int().min(1).max(100).default(50),
-  afterAskSeq: z.number().int().min(0).default(0),
-  askLimit: z.number().int().min(1).max(50).default(20),
+  campaignId: id, afterSeq: z.number().int().min(0).default(0), limit: z.number().int().min(1).max(100).default(50),
+  afterAskSeq: z.number().int().min(0).default(0), askLimit: z.number().int().min(1).max(50).default(20),
   paged: z.boolean().default(false), pageCursor: z.string().max(500).optional(),
-  maxBytes: z.number().int().min(4096).max(131072).default(65536),
-  projection: z.enum(["full", "live"]).default("full"),
+  maxBytes: z.number().int().min(4096).max(131072).default(65536), projection: z.enum(["full", "live"]).default("full"),
+  delta: z.boolean().default(false), knownSeq: z.number().int().min(0).optional(),
 }).strict();
 const writeBase = z.object({ campaignId: id, expectedSeq: z.number().int().min(0), commandId: id.optional() }).strict();
-
-// A literal allowlist: future AI-producing adjudications remain unavailable.
+// Future AI-producing adjudications remain unavailable unless explicitly listed.
 export const EXTERNAL_NARRATOR_ACTIONS = new Set([
   ...Object.keys(SPATIAL_NARRATOR_OPERATIONS),
   "start_encounter", "add_enemies", "pc_attack", "enemy_attack", "damage_enemy", "cast_at_enemy", "cast_at_player", "cast_buff", "aoe_damage", "split_damage", "set_enemy_condition", "clear_enemy_condition", "enemy_flees", "take_action", "use_reaction", "apply_hazard", "end_turn", "end_encounter", "move_token",
@@ -54,101 +46,101 @@ export const EXTERNAL_NARRATOR_ACTIONS = new Set([
   "move_party", "update_location", "travel", "pass_time", "start_scene", "scene_check", "end_scene", "request_roll", "request_player_input", "send_whisper", "record_event", "complete_beat", "write_campaign_note", "set_ambience", "play_sting",
   "set_npc", "npc_reaction", "social_check", "relationship_beat", "romance_advance", "relationship_end", "summon_pet", "pet_attack", "damage_pet", "dismiss_pet",
 ]);
-
 function campaignOrHuman(campaignId: string) {
   const campaign = getCampaignById(campaignId);
   if (!campaign) throw new McpNarratorControlError("Campaign not found.", 404);
-  if (campaign.gameSettings.dmMode !== "human" || !campaign.dmUserId || coverInEffect(campaign.gameSettings.dmMode, campaign.gameSettings.dmAssist, campaign.dmCover)) {
-    throw new McpNarratorControlError("External narration requires a human-DM campaign with a DM seat.", 409);
-  }
+  if (campaign.gameSettings.dmMode !== "human" || !campaign.dmUserId || coverInEffect(campaign.gameSettings.dmMode, campaign.gameSettings.dmAssist, campaign.dmCover)) throw new McpNarratorControlError("External narration requires a human-DM campaign with a DM seat.", 409);
   if (campaign.gameSettings.ttsEnabled || campaign.gameSettings.mapsEnabled) throw new McpNarratorControlError("External narration requires TTS and automatic maps to be disabled.", 409);
   return campaign;
 }
-
 function safeCampaign(campaign: NonNullable<ReturnType<typeof getCampaignById>>) {
   return {
-    id: campaign.id, title: campaign.title, description: campaign.description,
-    status: campaign.status, theme: campaign.theme, scene: campaign.scene, questLog: campaign.questLog,
-    difficulty: campaign.difficulty, startingLevel: campaign.startingLevel,
-    dmMode: campaign.gameSettings.dmMode, dmUserId: campaign.dmUserId,
-    gameSettings: campaign.gameSettings, dmOutline: campaign.dmOutline, storyArc: campaign.storyArc,
-    floor: campaign.floor, clock: campaign.clock, party: campaign.party,
+    id: campaign.id, title: campaign.title, description: campaign.description, status: campaign.status, theme: campaign.theme, scene: campaign.scene, questLog: campaign.questLog,
+    difficulty: campaign.difficulty, startingLevel: campaign.startingLevel, dmMode: campaign.gameSettings.dmMode, dmUserId: campaign.dmUserId,
+    gameSettings: campaign.gameSettings, dmOutline: campaign.dmOutline, storyArc: campaign.storyArc, floor: campaign.floor, clock: campaign.clock, party: campaign.party,
   };
 }
-
-function catalog() {
-  return [...consoleAdjudications(), { category: "world" as const, label: "Location chats", entries: SPATIAL_NARRATOR_CATALOG }].map((group) => ({
-    ...group,
-    entries: group.entries.filter((entry) => EXTERNAL_NARRATOR_ACTIONS.has(entry.name)).map((entry) => {
-      if (entry.name === "send_whisper") {
-        return { ...entry, fields: [...entry.fields, { name: "replyToWhisperIds", label: "Incoming whisper IDs", kind: "text" as const,
-          help: "Exact IDs from playerWhispers. Reply and acknowledge only these messages, never later arrivals." }] };
-      }
-      if (entry.name === "start_encounter") {
-        return { ...entry, fields: [...entry.fields, { name: "roomId", label: "Spatial room ID", kind: "text" as const, required: false,
-          help: "Required after location_enable. Exact room UUID that owns this encounter; it is stripped before the combat engine runs." }] };
-      }
+type CatalogOptions = { summaryOnly?: boolean; category?: string; action?: string };
+function catalog(options: CatalogOptions = {}) {
+  let groups = [...consoleAdjudications(), { category: "world" as const, label: "Location chats", entries: SPATIAL_NARRATOR_CATALOG }].map(group => ({
+    ...group, entries: group.entries.filter(entry => EXTERNAL_NARRATOR_ACTIONS.has(entry.name)).map(entry => {
+      if (entry.name === "send_whisper") return { ...entry, fields: [...entry.fields, { name: "replyToWhisperIds", label: "Incoming whisper IDs", kind: "text" as const,
+        help: "Exact IDs from playerWhispers. Reply and acknowledge only these messages, never later arrivals." }] };
+      if (entry.name === "start_encounter") return { ...entry, fields: [...entry.fields, { name: "roomId", label: "Spatial room ID", kind: "text" as const, required: false,
+        help: "Required after location_enable. Exact room UUID that owns this encounter; it is stripped before the combat engine runs." }] };
       return entry;
     }),
-  })).filter((group) => group.entries.length);
+  })).filter(group => group.entries.length);
+  if (options.category) {
+    const target = options.category.toLowerCase().trim();
+    groups = groups.filter(group => group.category?.toLowerCase() === target || group.label?.toLowerCase().includes(target));
+  }
+  if (options.action) groups = groups.map(group => ({ ...group, entries: group.entries.filter(entry => entry.name === options.action!.trim()) })).filter(group => group.entries.length);
+  // Name and label are shared by all action types; there is no common intent field.
+  if (options.summaryOnly) return groups.map(group => ({ category: group.category, label: group.label, actions: group.entries.map(entry => ({ name: entry.name, label: entry.label })) }));
+  return groups;
 }
-
 function read(raw: unknown) {
   const p = readSchema.safeParse(raw);
   if (!p.success) throw new McpNarratorControlError(z.prettifyError(p.error));
-  const campaign = campaignOrHuman(p.data.campaignId);
-  const currentSeq = latestSeq(campaign.id);
-  if (p.data.afterSeq > currentSeq) throw new McpNarratorControlError("Narrator cursor is ahead of campaign state; reconnect from a fresh read.", 409);
+  const campaign = campaignOrHuman(p.data.campaignId), currentSeq = latestSeq(campaign.id);
+  if (p.data.afterSeq > currentSeq || (p.data.knownSeq ?? 0) > currentSeq) throw new McpNarratorControlError("Narrator cursor is ahead of campaign state; reconnect from a fresh read.", 409);
   const fetched = listEventsSince(campaign.id, p.data.afterSeq, p.data.limit + 1);
   const spatial = readSpatialForNarrator(campaign.id, campaign.dmUserId!, p.data.afterSeq, p.data.limit);
   const { nextCursor, hasMore, events, roomMessages } = spatialNarratorBoundary({ afterSeq: p.data.afterSeq, currentSeq, limit: p.data.limit, events: fetched, spatial });
-  const legacyMessages = nextCursor > p.data.afterSeq ? listMessagesInSeqRange(campaign.id, p.data.afterSeq + 1, nextCursor).filter((msg) => !isOocMessage(msg)) : [];
+  const legacyMessages = nextCursor > p.data.afterSeq ? listMessagesInSeqRange(campaign.id, p.data.afterSeq + 1, nextCursor).filter(msg => !isOocMessage(msg)) : [];
   const messages = [...legacyMessages, ...roomMessages.map(message => ({
     ...message, campaignId: campaign.id, userId: message.authorUserId, characterId: null,
     authorType: message.kind === "narration" || message.kind === "perception" ? "dm" : "player", channel: "location" as const,
-  }))].sort((a, b) => a.seq - b.seq);
-  const askPage = listPendingAsksForCampaign(campaign.id, p.data.afterAskSeq, p.data.askLimit);
-  const live = p.data.projection === "live";
+  }))].sort((a,b) => a.seq-b.seq);
+  const askPage = listPendingAsksForCampaign(campaign.id, p.data.afterAskSeq, p.data.askLimit), live = p.data.projection === "live";
+  const delta = Boolean(p.data.delta), baselineSeq = p.data.knownSeq ?? (delta ? p.data.afterSeq : 0);
+  const omittedSections: string[] = live ? ["recentRolls", "recentDmWhispers", "recentMessages", "chapters"] : [];
+  let includeSheets = true, includeFacts = true, includeNotes = true, includeNpcs = true;
+  if (delta && baselineSeq > 0) {
+    const changes = listEventsSince(campaign.id, baselineSeq, 501);
+    // An incomplete change window is not evidence that a section stayed unchanged.
+    if (changes.length < 501) {
+      const types = changes.map(event => event.type);
+      includeSheets = types.some(type => ["sheet", "hp", "inventory", "character", "spell", "roll_result"].some(key => type.includes(key)));
+      includeFacts = types.some(type => type.includes("fact"));
+      includeNotes = types.some(type => type.includes("note"));
+      includeNpcs = types.some(type => type.includes("npc"));
+    }
+  }
+  if (!includeSheets) omittedSections.push("sheets"); if (!includeFacts) omittedSections.push("facts");
+  if (!includeNotes) omittedSections.push("notes"); if (!includeNpcs) omittedSections.push("npcs");
+  const receipts = listNarratorReceipts(campaign.id);
   const state = {
-    campaign: safeCampaign(campaign), currentSeq, timelineEpoch: campaignTimelineEpoch(campaign.id),
-    cursor: p.data.afterSeq, nextCursor, hasMore,
-    // Command arguments never enter the audit feed. Transcript rows carry prose.
-    events: events.filter(isNarratorEvent).map((event) => event.type === "roll_result" ? { seq: event.seq, type: event.type, payload: event.payload } : { seq: event.seq, type: event.type }),
-    messages,
-    spatial: spatial ? { enabled: true, instructions: SPATIAL_GUIDANCE } : { enabled: false },
-    spatialRooms: spatial?.rooms ?? [], spatialGrants: spatial?.grants ?? [],
-    commands: listNarratorReceipts(campaign.id), summary: getCampaignSummaryState(campaign.id),
-    members: listMembers(campaign.id), sheets: listSheets(campaign.id), pendingRolls: listOpenPendingRolls(campaign.id),
+    campaign: safeCampaign(campaign), currentSeq, timelineEpoch: campaignTimelineEpoch(campaign.id), cursor: p.data.afterSeq, nextCursor, hasMore,
+    events: events.filter(isNarratorEvent).map(event => event.type === "roll_result" ? { seq: event.seq, type: event.type, payload: event.payload } : { seq: event.seq, type: event.type }),
+    messages, spatial: spatial ? { enabled: true, instructions: SPATIAL_GUIDANCE } : { enabled: false }, spatialRooms: spatial?.rooms ?? [], spatialGrants: spatial?.grants ?? [],
+    commands: delta && baselineSeq > 0 ? receipts.filter(receipt => receipt.committedSeq > baselineSeq) : receipts,
+    summary: getCampaignSummaryState(campaign.id), members: listMembers(campaign.id), sheets: includeSheets ? listSheets(campaign.id) : [], pendingRolls: listOpenPendingRolls(campaign.id),
     recentRolls: live ? [] : listRecentRolls(campaign.id, 100), playerWhispers: listPendingPlayerWhispers(campaign.id),
-    recentDmWhispers: live ? [] : listRecentWhispersForPrompt(campaign.id),
-    recentMessages: live ? [] : listRecentMessages(campaign.id, 400).filter((msg) => !isOocMessage(msg)),
-    omittedSections: live ? ["recentRolls", "recentDmWhispers", "recentMessages", "chapters"] : [],
-    asks: askPage.items, askQueue: { nextCursor: askPage.nextCursor, hasMore: askPage.hasMore },
-    notes: listPublicCampaignNotes(campaign.id, 20), npcs: npcRosterForPrompt(campaign.id).slice(0, 100),
-    facts: listActiveFacts(campaign.id), chapters: live ? [] : listChapters(campaign.id),
-    location: getCurrentLocation(campaign.id), sceneTracker: getSceneTracker(campaign.id),
+    recentDmWhispers: live ? [] : listRecentWhispersForPrompt(campaign.id), recentMessages: live ? [] : listRecentMessages(campaign.id, 400).filter(msg => !isOocMessage(msg)),
+    omittedSections, asks: askPage.items, askQueue: { nextCursor: askPage.nextCursor, hasMore: askPage.hasMore },
+    notes: includeNotes ? listPublicCampaignNotes(campaign.id, 20) : [], npcs: includeNpcs ? npcRosterForPrompt(campaign.id).slice(0, 100) : [],
+    facts: includeFacts ? listActiveFacts(campaign.id) : [], chapters: live ? [] : listChapters(campaign.id), location: getCurrentLocation(campaign.id), sceneTracker: getSceneTracker(campaign.id),
     encounter: (() => { const encounter = getActiveEncounter(campaign.id); return encounter ? { encounter, enemies: listEnemies(encounter.id) } : null; })(),
+    ...(delta ? { deltaState: { enabled: true, baselineSeq, pruned: !includeSheets && !includeFacts && !includeNpcs && !includeNotes } } : {}),
   };
   try { return budgetRead(state, p.data); }
   catch (error) { if (error instanceof ReadBudgetError) throw new McpNarratorControlError(error.message, error.status); throw error; }
 }
-
-function serializedWrite(
-  params: z.infer<typeof writeBase>, operation: string, payload: unknown,
-  work: (campaign: NonNullable<ReturnType<typeof getCampaignById>>) => Record<string, unknown>,
-) {
+function serializedWrite(params: z.infer<typeof writeBase>, operation: string, payload: unknown,
+  work: (campaign: NonNullable<ReturnType<typeof getCampaignById>>) => Record<string, unknown>) {
   return executeNarratorCommand({ ...params, operation, payload, work, loadState: () => {
     const campaign = campaignOrHuman(params.campaignId);
     if (campaign.kind !== "campaign" || campaign.status !== "active") throw new McpNarratorControlError("External narrator writes require an active campaign.", 409);
     return campaign;
   } });
 }
-
 async function invoke(raw: unknown) {
   const p = writeBase.extend({ name: z.string().trim().min(1).max(100), args: z.record(z.string(), z.unknown()).default({}) }).safeParse(raw);
   if (!p.success) throw new McpNarratorControlError(z.prettifyError(p.error));
   if (!EXTERNAL_NARRATOR_ACTIONS.has(p.data.name)) throw new McpNarratorControlError("That action is not available to an external narrator.", 403);
-  return serializedWrite(p.data, "narrator.invoke", { name: p.data.name, args: p.data.args }, (campaign) => {
+  return serializedWrite(p.data, "narrator.invoke", { name: p.data.name, args: p.data.args }, campaign => {
     if (Object.hasOwn(SPATIAL_NARRATOR_OPERATIONS, p.data.name)) return invokeSpatialForNarrator(campaign.id, campaign.dmUserId!, p.data.name, p.data.args, p.data.commandId);
     const scoped = scopeBattleMapInvocation(campaign.id, campaign.dmUserId!, p.data.name, p.data.args);
     const outcome = invokeEngineSynchronous(campaign, { kind: "human", userId: campaign.dmUserId! }, { name: p.data.name, args: scoped.args });
@@ -157,34 +149,34 @@ async function invoke(raw: unknown) {
     return outcome;
   });
 }
-
 async function narrate(raw: unknown) {
-  const p = writeBase.extend({ content: z.string().trim().min(1).max(8000), turnId: id.optional() }).safeParse(raw);
+  const p = writeBase.extend({ content: z.string().trim().min(1).max(8000), turnId: id.optional(), releaseFloor: z.boolean().optional() }).safeParse(raw);
   if (!p.success) throw new McpNarratorControlError(z.prettifyError(p.error));
-  return serializedWrite(p.data, "narrator.narrate", { content: p.data.content, turnId: p.data.turnId }, (campaign) => {
+  return serializedWrite(p.data, "narrator.narrate", { content: p.data.content, turnId: p.data.turnId, releaseFloor: p.data.releaseFloor }, campaign => {
     if (p.data.turnId) {
       const turn = getDmTurn(p.data.turnId);
       if (!turn || turn.campaignId !== campaign.id || turn.actor !== "human_dm") throw new McpNarratorControlError("Narration turn does not belong to this human-DM campaign.", 409);
     }
     if (spatialEnabled(campaign.id)) throw new McpNarratorControlError("Use narrator.invoke location_narrate with an explicit roomId for this campaign.", 409);
     const message = persistHumanNarration(campaign, p.data.content, campaign.dmUserId!);
-    return { messageId: message.id, ...(p.data.turnId ? { turnId: p.data.turnId } : {}) };
+    let floorResult;
+    if (p.data.releaseFloor) {
+      const floor = campaign.floor.mode === "hold" ? campaign.floor.next : campaign.floor;
+      setFloor(campaign.id, floor); publishPersisted(campaign.id, "floor_changed", { floor }); floorResult = { floorReleased: true, floor };
+    }
+    return { messageId: message.id, ...(p.data.turnId ? { turnId: p.data.turnId } : {}), ...(floorResult ?? {}) };
   });
 }
-
 async function releaseFloor(raw: unknown) {
   const p = writeBase.safeParse(raw);
   if (!p.success) throw new McpNarratorControlError(z.prettifyError(p.error));
-  return serializedWrite(p.data, "narrator.release_floor", {}, (campaign) => {
+  return serializedWrite(p.data, "narrator.release_floor", {}, campaign => {
     const floor = campaign.floor.mode === "hold" ? campaign.floor.next : campaign.floor;
-    setFloor(campaign.id, floor); publishPersisted(campaign.id, "floor_changed", { floor });
-    return { floor };
+    setFloor(campaign.id, floor); publishPersisted(campaign.id, "floor_changed", { floor }); return { floor };
   });
 }
-
 export async function executeMcpNarratorControl(action: string, raw: unknown): Promise<{ handled: false } | { handled: true; result: unknown }> {
-  // Optional for old clients, mandatory for the upgraded host. The guard runs
-  // before command-receipt lookup, so an old timeline cannot replay a write.
+  // Reject old-timeline writes BEFORE consulting idempotency receipts.
   if (action.startsWith("narrator.") && raw && typeof raw === "object" && !Array.isArray(raw) && Object.hasOwn(raw, "timelineEpoch")) {
     const { timelineEpoch, ...params } = raw as Record<string, unknown>;
     const campaignId = id.safeParse(params.campaignId);
@@ -201,7 +193,11 @@ export async function executeMcpNarratorControl(action: string, raw: unknown): P
       return { handled: true, result: { instructions: "Read odm://narrator/playbook. Call narrator.read, drain until hasMore is false, then use its currentSeq as expectedSeq for exactly one invoke, narrate, or release_floor. Persist a unique UUID commandId before each story write. After an ambiguous error, retry only the identical commandId, expectedSeq and payload to recover its receipt, never regenerate or modify a command. Reread after every confirmed write. end_turn advances initiative itself; narration never advances it. For a private reply provide exact replyToWhisperIds from playerWhispers. Check the pending asks queue on every read even when the story cursor is unchanged. Page it using afterAskSeq and askQueue.nextCursor; a fresh Ask scan may start at zero. answer_ask requires the pending ask version as expectedVersion and a persisted UUID commandId; it changes no story/floor state. For bounded reads use paged:true and drain pageCursor/nextPage before advancing the story cursor. A changed snapshot requires restarting that read; never use incomplete pages. projection:live explicitly omits historical duplicate sections, not current state or new tool results. Carry the returned timelineEpoch on reads and writes; reconnect and discard incompatible pending work when it changes.", contractVersion: 2, timelineVersion: 1, state: read(p.data) } };
     }
     case "narrator.read": return { handled: true, result: read(raw) };
-    case "narrator.catalog": return { handled: true, result: { groups: catalog() } };
+    case "narrator.catalog": {
+      const p = z.object({ summaryOnly: z.boolean().optional(), category: z.string().optional(), action: z.string().optional(), actionFilter: z.string().optional(), name: z.string().optional() }).optional().safeParse(raw);
+      const options = p.success && p.data ? { summaryOnly: p.data.summaryOnly, category: p.data.category, action: p.data.action || p.data.actionFilter || p.data.name } : {};
+      return { handled: true, result: { groups: catalog(options) } };
+    }
     case "narrator.invoke": return { handled: true, result: await invoke(raw) };
     case "narrator.narrate": return { handled: true, result: await narrate(raw) };
     case "narrator.release_floor": return { handled: true, result: await releaseFloor(raw) };
@@ -218,8 +214,7 @@ export async function executeMcpNarratorControl(action: string, raw: unknown): P
       try { updated = answerAsk(campaign.id, p.data.askId, p.data.answer, p.data.citations, { expectedVersion: p.data.expectedVersion, commandId: p.data.commandId }); }
       catch (error) { if (error instanceof AskQueueConflict) throw new McpNarratorControlError(error.message, 409); throw error; }
       if (!updated) throw new McpNarratorControlError("Ask not found in this campaign.", 404);
-      if (updated.visibility === "table") publishEphemeral(campaign.id, "ask_activity", {});
-      else publishUserEphemeral(campaign.id, updated.userId, "ask_activity", {});
+      if (updated.visibility === "table") publishEphemeral(campaign.id, "ask_activity", {}); else publishUserEphemeral(campaign.id, updated.userId, "ask_activity", {});
       return { handled: true, result: { ok: true, ask: updated } };
     }
     default: return { handled: false };

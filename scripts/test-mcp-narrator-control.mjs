@@ -269,6 +269,45 @@ assert.equal((await executeMcpNarratorControl("narrator.answer_ask", answerReque
 await assert.rejects(() => executeMcpNarratorControl("narrator.answer_ask", { ...answerRequest, commandId: randomUUID(), answer: "Conflicting answer" }), error => error.status === 409);
 assert.equal((await executeMcpNarratorControl("narrator.read", { campaignId: oocCampaign.id })).result.asks.some(a => a.id === testAsk.id), false);
 
+// Optimizations verification: catalog summary & filter
+const fullCatalog = await executeMcpNarratorControl("narrator.catalog", {});
+const summaryCatalog = await executeMcpNarratorControl("narrator.catalog", { summaryOnly: true });
+assert.ok(fullCatalog.result.groups.length > 0);
+assert.ok(summaryCatalog.result.groups.length > 0);
+assert.ok(JSON.stringify(summaryCatalog.result).length < JSON.stringify(fullCatalog.result).length / 5, "summary catalog must be at least 5x smaller than full");
+const combatOnly = await executeMcpNarratorControl("narrator.catalog", { category: "combat" });
+assert.ok(combatOnly.result.groups.every(g => g.category === "combat"));
+const attackOnly = await executeMcpNarratorControl("narrator.catalog", { action: "pc_attack" });
+assert.equal(attackOnly.result.groups[0].entries.length, 1);
+assert.equal(attackOnly.result.groups[0].entries[0].name, "pc_attack");
+
+// Optimizations verification: compound narration with floor release
+const preFloorSeq = latestSeq(oocCampaign.id);
+const compoundNarrate = await executeMcpNarratorControl("narrator.narrate", {
+  campaignId: oocCampaign.id,
+  expectedSeq: preFloorSeq,
+  content: "The mist rolls in as you press forward.",
+  releaseFloor: true,
+});
+assert.equal(compoundNarrate.handled, true);
+assert.equal(compoundNarrate.result.result.floorReleased, true);
+assert.ok(compoundNarrate.result.result.floor);
+assert.ok(compoundNarrate.result.currentSeq > preFloorSeq);
+
+// Optimizations verification: delta read prunes static sections
+const deltaRead = await executeMcpNarratorControl("narrator.read", {
+  campaignId: oocCampaign.id,
+  afterSeq: compoundNarrate.result.currentSeq,
+  delta: true,
+  knownSeq: compoundNarrate.result.currentSeq,
+});
+assert.equal(deltaRead.handled, true);
+assert.deepEqual(deltaRead.result.sheets, []);
+assert.deepEqual(deltaRead.result.facts, []);
+assert.ok(deltaRead.result.omittedSections.includes("sheets"));
+assert.ok(deltaRead.result.omittedSections.includes("facts"));
+assert.equal(deltaRead.result.deltaState?.enabled, true);
+
 assert.equal(fetchCalls, 0, "no server provider/network call may be attempted");
 
 globalThis.fetch = nativeFetch;

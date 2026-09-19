@@ -1,3 +1,4 @@
+import { afterCommit } from "@/lib/db/commit-effects";
 import { getDatabase, nowIso } from "@/lib/db/core";
 import { embed, vectorToBuffer } from "@/lib/embeddings";
 
@@ -103,7 +104,7 @@ export function insertNote(input: {
       now,
       now,
     );
-  void embedNote(id);
+  afterCommit(() => embedNote(id));
   return getNoteById(id)!;
 }
 
@@ -135,7 +136,7 @@ export function updateNote(
       noteId,
     );
   if (patch.title !== undefined || patch.body !== undefined) {
-    void embedNote(noteId);
+    afterCommit(() => embedNote(noteId));
   }
   return getNoteById(noteId);
 }

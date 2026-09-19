@@ -3,16 +3,14 @@ import { z } from "zod";
 import { isErrorResponse, requireMember, requireVoice } from "@/lib/campaign-api";
 import { enforcePlayerIngress } from "@/lib/ingress-budget";
 import { runSpatialCommand, spatialContext, spatialStore, SpatialError } from "@/lib/spatial/service";
-
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-const headers = { "Cache-Control": "private, no-store, max-age=0", Vary: "Cookie, X-ODM-Expected-User" };
+const headers = { "Cache-Control": "private, no-store, max-age=0", Vary: "Cookie, X-ODM-Expected-User, X-ODM-Actor" };
 const query = z.object({ roomId: z.string().uuid().nullable(), beforeSeq: z.number().int().min(1).max(Number.MAX_SAFE_INTEGER).optional() });
 function identityConflict(request: Request, authenticatedUserId: string): Response | null {
-  // This is an assertion, never authentication. Cookie identity remains authoritative.
-  const expected = request.headers.get("x-odm-expected-user");
-  return expected !== null && expected !== authenticatedUserId
-    ? Response.json({ error: "The signed-in account changed. Reload before continuing.", code: "identity_changed" }, { status: 409, headers }) : null;
+  // Both branch contracts are assertions, never authentication.
+  const changed = ["x-odm-expected-user", "x-odm-actor"].some(name => request.headers.has(name) && request.headers.get(name) !== authenticatedUserId);
+  return changed ? Response.json({ error: "The signed-in account changed. Reload before continuing.", code: "identity_changed" }, { status: 409, headers }) : null;
 }
 function viewResponse(request: Request, value: unknown) {
   const body = JSON.stringify(value), etag = `"${createHash("sha256").update(body).digest("base64url")}"`;
@@ -63,6 +61,11 @@ export async function POST(request: Request, { params }: { params: Promise<{ cam
   if (limited) return limited;
   try {
     const body = await boundedJson(request);
-    return Response.json(runSpatialCommand(campaignId, context.user.id, body), { headers });
+    const current = await requireVoice(campaignId);
+    if (isErrorResponse(current)) return current;
+    const changed = identityConflict(request,current.user.id);
+    if (changed) return changed;
+    if (current.user.id !== context.user.id) return Response.json({error:"The signed-in account changed.",code:"identity_changed"},{status:409,headers});
+    return Response.json(runSpatialCommand(campaignId,current.user.id,body),{headers});
   } catch (error) { return errorResponse(error); }
 }
