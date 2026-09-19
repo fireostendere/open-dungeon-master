@@ -353,6 +353,179 @@
       letter-spacing: 0.08em;
       color: rgba(212, 175, 55, 0.6);
       text-transform: uppercase;
+      text-align: center;
+    }
+
+    /* 60s Countdown Timer Bar */
+    .timer-container {
+      width: 100%;
+      margin-bottom: 12px;
+      animation: fadeIn 0.3s ease;
+    }
+
+    .timer-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      color: #fde047;
+      margin-bottom: 5px;
+    }
+
+    .timer-pulse-dot {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #fbbf24;
+      box-shadow: 0 0 10px #f59e0b;
+      animation: pulseDot 1s infinite alternate;
+      margin-right: 6px;
+    }
+
+    @keyframes pulseDot {
+      from { transform: scale(0.8); opacity: 0.6; }
+      to { transform: scale(1.3); opacity: 1; }
+    }
+
+    .timer-countdown {
+      font-family: monospace;
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .timer-countdown.urgent {
+      color: #fb7185;
+      animation: pulseDot 0.6s infinite alternate;
+    }
+
+    .timer-bar-track {
+      width: 100%;
+      height: 8px;
+      background: rgba(10, 8, 15, 0.9);
+      border: 1px solid rgba(212, 175, 55, 0.4);
+      border-radius: 9999px;
+      overflow: hidden;
+      padding: 1px;
+    }
+
+    .timer-bar-fill {
+      height: 100%;
+      border-radius: 9999px;
+      background: linear-gradient(90deg, #b45309, #d4af37, #fde047);
+      box-shadow: 0 0 10px rgba(245, 158, 11, 0.6);
+      transition: width 1s linear, background 0.4s ease;
+    }
+
+    .timer-bar-fill.urgent {
+      background: linear-gradient(90deg, #be123c, #f43f5e, #fb923c);
+      box-shadow: 0 0 12px rgba(244, 63, 94, 0.8);
+    }
+
+    /* Main CTA Roll Button */
+    .cta-container {
+      width: 100%;
+      margin-top: 8px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      animation: fadeIn 0.4s ease;
+    }
+
+    .btn-roll-main {
+      width: 100%;
+      background: linear-gradient(180deg, #3b2850 0%, #211530 50%, #12091c 100%);
+      border: 1px solid rgba(212, 175, 55, 0.75);
+      border-radius: 18px;
+      color: #fef08a;
+      font-family: 'Cinzel', serif;
+      font-size: 16px;
+      font-weight: 900;
+      letter-spacing: 0.15em;
+      padding: 14px 20px;
+      cursor: pointer;
+      box-shadow: 0 5px 25px rgba(0,0,0,0.8), 0 0 20px rgba(212, 175, 55, 0.25);
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .btn-roll-main:hover {
+      background: linear-gradient(180deg, #51356e 0%, #2f1d45 50%, #1a0d29 100%);
+      border-color: #fde047;
+      box-shadow: 0 6px 30px rgba(0,0,0,0.9), 0 0 35px rgba(245, 158, 11, 0.6);
+      transform: translateY(-2px) scale(1.02);
+    }
+
+    .btn-roll-main:active {
+      transform: translateY(0) scale(0.98);
+    }
+
+    .btn-roll-main.pulse-reminder {
+      animation: reminderPulse 1.2s infinite alternate;
+      border-color: #f59e0b;
+    }
+
+    @keyframes reminderPulse {
+      from { box-shadow: 0 0 15px rgba(245, 158, 11, 0.4); border-color: rgba(212, 175, 55, 0.6); }
+      to { box-shadow: 0 0 40px rgba(245, 158, 11, 0.95); border-color: #fde047; }
+    }
+
+    .cta-subhint {
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      color: rgba(212, 175, 55, 0.5);
+      text-transform: uppercase;
+    }
+
+    /* Inspiration Reroll Button */
+    .inspiration-container {
+      width: 100%;
+      margin-top: 10px;
+      animation: fadeIn 0.4s ease;
+    }
+
+    .btn-reroll-inspiration {
+      width: 100%;
+      background: linear-gradient(180deg, rgba(88, 28, 135, 0.9) 0%, rgba(59, 7, 100, 0.95) 100%);
+      border: 1px solid #c084fc;
+      border-radius: 16px;
+      color: #fef08a;
+      font-family: 'Cinzel', serif;
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: 0.1em;
+      padding: 12px 16px;
+      cursor: pointer;
+      box-shadow: 0 0 25px rgba(168, 85, 247, 0.45);
+      transition: all 0.25s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+
+    .btn-reroll-inspiration:hover {
+      background: linear-gradient(180deg, rgba(126, 34, 206, 0.95) 0%, rgba(76, 12, 128, 0.95) 100%);
+      border-color: #e9d5ff;
+      box-shadow: 0 0 35px rgba(192, 132, 252, 0.7);
+      transform: translateY(-1px) scale(1.02);
+    }
+
+    .btn-reroll-inspiration:active {
+      transform: translateY(0) scale(0.98);
+    }
+
+    .inspiration-badge {
+      background: rgba(147, 51, 234, 0.7);
+      border: 1px solid rgba(216, 180, 254, 0.5);
+      border-radius: 9999px;
+      padding: 2px 8px;
+      font-size: 11px;
+      color: #f3e8ff;
     }
   </style>
 </head>
@@ -389,6 +562,20 @@
       </g>
     </svg>
 
+    <!-- 60-Second Countdown Timer Bar -->
+    <div id="timer-container" class="timer-container" style="display: none;">
+      <div class="timer-header">
+        <div style="display:flex;align-items:center;">
+          <span class="timer-pulse-dot"></span>
+          <span>Время на бросок:</span>
+        </div>
+        <span id="timer-countdown" class="timer-countdown">60 сек</span>
+      </div>
+      <div class="timer-bar-track">
+        <div id="timer-bar-fill" class="timer-bar-fill" style="width: 100%;"></div>
+      </div>
+    </div>
+
     <!-- Character / Roll title -->
     <div id="char-name" class="char-badge">Торин · Скрытность</div>
     <div id="mode-badge-container"></div>
@@ -405,7 +592,7 @@
     </div>
 
     <!-- Center Canvas Tray (Supports 1 or 2 dice!) -->
-    <div class="canvas-container" onclick="rerollCurrent()">
+    <div class="canvas-container" onclick="handleCanvasClick()">
       <div class="canvas-glow"></div>
       <canvas id="dice-canvas" width="400" height="230"></canvas>
     </div>
@@ -413,23 +600,53 @@
     <!-- Itemized Bonus Breakdown (BG3 Style) -->
     <div id="bonus-list" class="bonus-list"></div>
 
+    <!-- Interactive CTA Button (Prompt Phase) -->
+    <div id="cta-container" class="cta-container" style="display: none;">
+      <button id="btn-roll-main" class="btn-roll-main" onclick="submitInteractiveRoll()">
+        <span>🎲 БРОСИТЬ КУБИК</span>
+      </button>
+      <div class="cta-subhint">(или нажмите прямо на 3D кубик)</div>
+    </div>
+
     <!-- Verdict Banner -->
-    <div class="verdict-box">
+    <div id="verdict-box" class="verdict-box">
       <div id="verdict-text" class="verdict-text verdict-fail">НЕУДАЧА!</div>
     </div>
 
-    <div class="hint-label">Нажмите на куб для повторного броска</div>
+    <!-- Inspiration Reroll Button (on Failure) -->
+    <div id="inspiration-container" class="inspiration-container" style="display: none;">
+      <button id="btn-reroll-inspiration" class="btn-reroll-inspiration" onclick="spendInspirationReroll()">
+        <span>★ ПЕРЕБРОСИТЬ ЗА ВДОХНОВЕНИЕ</span>
+        <span id="inspiration-badge" class="inspiration-badge">Осталось: 2</span>
+      </button>
+    </div>
+
+    <div id="hint-label" class="hint-label">Нажмите на куб для повторного броска</div>
   </div>
 
   <!-- Control panel with rich scenarios -->
   <div class="controls-panel">
+    <button class="btn-action" style="border-color:#fde047;background:linear-gradient(180deg, rgba(85, 45, 15, 0.95) 0%, rgba(45, 20, 5, 0.95) 100%);color:#fef08a" onclick="startInteractiveScenario()">
+      🎮 Интерактивный BG3 (СЛ 15, Таймер 60с, Звуки, Переброс)
+    </button>
+    <button class="btn-action" onclick="playSound('bell_prompt')">
+      🔔 Колокольчик (0с)
+    </button>
+    <button class="btn-action" onclick="playSound('bell_reminder')">
+      🔔 Напоминание (30с)
+    </button>
+    <button class="btn-action" onclick="playSound('inspire_buff')">
+      🎵 Вдохновение
+    </button>
     <button class="btn-action btn-screenshot" onclick="playScenario('screenshot')">
-      📸 Как на скриншоте (СЛ 15 → 9 НЕУДАЧА!)
+      📸 Скриншот (9 НЕУДАЧА)
     </button>
     <button class="btn-action btn-advantage" onclick="playScenario('advantage')">
-      ⚔ ПРЕИМУЩЕСТВО (2d20: 18 и 7 → УСПЕХ!)
+      ⚔ ПРЕИМУЩЕСТВО
     </button>
     <button class="btn-action btn-disadvantage" onclick="playScenario('disadvantage')">
+      🛡 ПОМЕХА
+    </button>
       🛡 ПОМЕХА (2d20: 4 и 16 → НЕУДАЧА!)
     </button>
     <button class="btn-action" onclick="playScenario('buffs')">
@@ -554,6 +771,58 @@
           gain.connect(ctx.destination);
           osc.start(now);
           osc.stop(now + 1.2);
+        });
+      } else if (type === 'bell_prompt') {
+        const harmonics = [
+          { freq: 880, gain: 0.22, decay: 2.4 },
+          { freq: 1760, gain: 0.12, decay: 1.8 },
+          { freq: 2640, gain: 0.08, decay: 1.2 },
+          { freq: 3520, gain: 0.04, decay: 0.8 },
+        ];
+        harmonics.forEach(({ freq, gain: vol, decay }) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = "sine";
+          osc.frequency.setValueAtTime(freq, now);
+          gain.gain.setValueAtTime(vol, now);
+          gain.gain.exponentialRampToValueAtTime(0.0001, now + decay);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now);
+          osc.stop(now + decay);
+        });
+      } else if (type === 'bell_reminder') {
+        const tones = [
+          { freq: 659.25, timeOffset: 0, gain: 0.16, decay: 1.2 },
+          { freq: 880.0, timeOffset: 0.16, gain: 0.18, decay: 1.6 },
+        ];
+        tones.forEach(({ freq, timeOffset, gain: vol, decay }) => {
+          const t = now + timeOffset;
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = "sine";
+          osc.frequency.setValueAtTime(freq, t);
+          gain.gain.setValueAtTime(vol, t);
+          gain.gain.exponentialRampToValueAtTime(0.0001, t + decay);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(t);
+          osc.stop(t + decay);
+        });
+      } else if (type === 'inspire_buff') {
+        const notes = [523.25, 659.25, 783.99, 987.77, 1046.5, 1318.51];
+        notes.forEach((freq, idx) => {
+          const t = now + idx * 0.05;
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = "triangle";
+          osc.frequency.setValueAtTime(freq, t);
+          gain.gain.setValueAtTime(0.18, t);
+          gain.gain.exponentialRampToValueAtTime(0.0001, t + 1.4);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(t);
+          osc.stop(t + 1.4);
         });
       }
     }
@@ -972,6 +1241,10 @@
             plaqueEl.className = "bg3-plaque state-fail";
             playSound('failure');
           }
+
+          if (config.onComplete) {
+            config.onComplete(success);
+          }
         }
 
         animId = requestAnimationFrame(loop);
@@ -980,7 +1253,269 @@
       animId = requestAnimationFrame(loop);
     }
 
+    // --- Interactive BG3 Flow ---
+    let isInteractiveMode = false;
+    let interactivePhase = 'idle'; // 'prompt', 'rolling', 'landed', 'verdict'
+    let timerCountdownInterval = null;
+    let interactiveTimeLeft = 60;
+    let interactiveConfig = null;
+    let inspirationPoints = 2;
+
+    const timerContainer = document.getElementById('timer-container');
+    const timerCountdownEl = document.getElementById('timer-countdown');
+    const timerBarFillEl = document.getElementById('timer-bar-fill');
+    const ctaContainer = document.getElementById('cta-container');
+    const btnRollMain = document.getElementById('btn-roll-main');
+    const inspirationContainer = document.getElementById('inspiration-container');
+    const inspirationBadge = document.getElementById('inspiration-badge');
+    const hintLabel = document.getElementById('hint-label');
+
+    function startInteractiveScenario() {
+      if (animId) cancelAnimationFrame(animId);
+      if (timerCountdownInterval) clearInterval(timerCountdownInterval);
+
+      isInteractiveMode = true;
+      interactivePhase = 'prompt';
+      interactiveTimeLeft = 60;
+      inspirationPoints = 2;
+
+      interactiveConfig = {
+        dc: 15,
+        characterName: "Торин · Скрытность",
+        reason: "Попытка прокрасться мимо часовых в тёмном переулке",
+        mode: "none",
+        bonuses: [
+          { name: "Модификатор (Ловкость)", val: 3, icon: "🖐" },
+          { name: "Бонус мастерства", val: 2, icon: "⚔" },
+          { name: "Заклинание «Наставление»", val: 3, icon: "🙏" }
+        ],
+      };
+
+      dcTargetEl.textContent = "15";
+      charNameEl.textContent = interactiveConfig.characterName;
+      modeBadgeContainer.innerHTML = `<span class="roll-mode-badge" style="background:rgba(168,85,247,0.3);border:1px solid #c084fc;color:#f3e8ff">«${interactiveConfig.reason}»</span>`;
+
+      // Render pre-roll itemized bonuses
+      let html = "";
+      for (const b of interactiveConfig.bonuses) {
+        html += `
+          <div class="bonus-item">
+            <span class="bonus-name">${b.icon} ${b.name}</span>
+            <span class="bonus-val">+${b.val}</span>
+          </div>
+        `;
+      }
+      html += `
+        <div class="bonus-total-row">
+          <span>Всего к броску: +8</span>
+          <span style="font-size:11px;color:#fde047">Нужно на кубике: 7+</span>
+        </div>
+      `;
+      bonusListEl.innerHTML = html;
+
+      verdictEl.textContent = "";
+      verdictEl.className = "verdict-text";
+      plaqueEl.className = "bg3-plaque";
+
+      // Show timer and CTA button
+      timerContainer.style.display = "block";
+      timerCountdownEl.textContent = "60 сек";
+      timerCountdownEl.className = "timer-countdown";
+      timerBarFillEl.style.width = "100%";
+      timerBarFillEl.className = "timer-bar-fill";
+
+      ctaContainer.style.display = "flex";
+      btnRollMain.className = "btn-roll-main";
+      inspirationContainer.style.display = "none";
+      hintLabel.textContent = "Нажмите на кнопку или кубик для броска";
+
+      playSound('bell_prompt');
+
+      // Start 60s countdown
+      timerCountdownInterval = setInterval(() => {
+        interactiveTimeLeft--;
+        timerCountdownEl.textContent = `${interactiveTimeLeft} сек`;
+        timerBarFillEl.style.width = `${(interactiveTimeLeft / 60) * 100}%`;
+
+        if (interactiveTimeLeft === 30) {
+          playSound('bell_reminder');
+          btnRollMain.classList.add('pulse-reminder');
+          timerCountdownEl.classList.add('urgent');
+          timerBarFillEl.classList.add('urgent');
+        }
+
+        if (interactiveTimeLeft <= 0) {
+          clearInterval(timerCountdownInterval);
+          submitInteractiveRoll();
+        }
+      }, 1000);
+
+      // Start idle floating die in canonical pose!
+      startIdleDieFloating();
+    }
+
+    function startIdleDieFloating() {
+      if (animId) cancelAnimationFrame(animId);
+
+      const radius = 94;
+      const targetRot = CANONICAL_ROT;
+
+      function idleLoop(now) {
+        if (interactivePhase !== 'prompt') return;
+
+        ctx.clearRect(0, 0, 400, 230);
+
+        const cx = 200;
+        const cy = 115 + Math.sin(now * 0.0025) * 7;
+
+        const wobbleRx = Math.sin(now * 0.001) * 0.05;
+        const wobbleRy = Math.cos(now * 0.0012) * 0.05;
+        const spin = makeEulerMatrix(wobbleRx, wobbleRy, 0);
+        const currentRot = multMatrix(spin, targetRot);
+
+        const lightDir = [-0.4, -0.6, 0.75];
+        const lLen = Math.hypot(...lightDir);
+        const L = [lightDir[0]/lLen, lightDir[1]/lLen, lightDir[2]/lLen];
+
+        const transformedVerts = D20_VERTICES.map(v => transformVec(currentRot, v));
+        const projected = transformedVerts.map(([x, y, z]) => {
+          const pers = 380 / (380 - z * radius * 0.3);
+          return {
+            px: cx + x * radius * pers,
+            py: cy + y * radius * pers,
+            pz: z
+          };
+        });
+
+        const faceList = D20_FACES.map((f, idx) => {
+          const avgZ = (projected[f[0]].pz + projected[f[1]].pz + projected[f[2]].pz) / 3;
+          const norm = transformVec(currentRot, FACE_NORMALS[idx]);
+          return { idx, f, avgZ, norm, visible: norm[2] > 0.05 };
+        });
+
+        faceList.sort((a, b) => a.avgZ - b.avgZ);
+
+        for (const item of faceList) {
+          if (!item.visible) continue;
+          const p0 = projected[item.f[0]];
+          const p1 = projected[item.f[1]];
+          const p2 = projected[item.f[2]];
+          const norm = item.norm;
+
+          const dot = Math.max(0, norm[0]*L[0] + norm[1]*L[1] + norm[2]*L[2]);
+          const ambient = 0.25;
+          const diffuse = dot * 0.65;
+          const spec = Math.pow(Math.max(0, (norm[0]*L[0] + norm[1]*L[1] + norm[2]*(L[2]+1)) / 1.5), 24) * 0.45;
+          const light = Math.min(1, ambient + diffuse + spec);
+
+          const r = Math.round(36 + light * 165);
+          const g = Math.round(40 + light * 175);
+          const b = Math.round(55 + light * 195);
+
+          ctx.beginPath();
+          ctx.moveTo(p0.px, p0.py);
+          ctx.lineTo(p1.px, p1.py);
+          ctx.lineTo(p2.px, p2.py);
+          ctx.closePath();
+
+          ctx.fillStyle = `rgb(${r},${g},${b})`;
+          ctx.fill();
+
+          ctx.strokeStyle = `rgba(235, 215, 175, ${0.25 + spec * 0.6})`;
+          ctx.lineWidth = 1.5;
+          ctx.stroke();
+
+          const isCenter = item.idx === 0 || norm[2] > 0.85;
+          if (!isCenter) continue;
+
+          const fcx = (p0.px + p1.px + p2.px) / 3;
+          const fcy = (p0.py + p1.py + p2.py) / 3;
+
+          ctx.save();
+          ctx.translate(fcx, fcy);
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+
+          const fontSize = Math.round(radius * 0.38);
+          ctx.font = `900 ${fontSize}px 'Cinzel', serif, Georgia`;
+
+          ctx.lineWidth = Math.max(2, Math.round(fontSize * 0.07));
+          ctx.strokeStyle = "rgba(10, 10, 20, 0.9)";
+          ctx.strokeText("20", 0, 0);
+
+          ctx.fillStyle = "#fef08a";
+          ctx.shadowColor = "#eab308";
+          ctx.shadowBlur = 18;
+          ctx.fillText("20", 0, 0);
+          ctx.shadowBlur = 0;
+          ctx.fillText("20", 0, 0);
+
+          ctx.restore();
+        }
+
+        animId = requestAnimationFrame(idleLoop);
+      }
+
+      animId = requestAnimationFrame(idleLoop);
+    }
+
+    function submitInteractiveRoll(customVal) {
+      if (timerCountdownInterval) clearInterval(timerCountdownInterval);
+      timerContainer.style.display = "none";
+      ctaContainer.style.display = "none";
+      interactivePhase = 'rolling';
+
+      const rolledVal = customVal !== undefined ? customVal : 5; // 5 + 8 = 13 < 15 => fails, triggering reroll demo!
+
+      runRoll({
+        dc: interactiveConfig.dc,
+        characterName: interactiveConfig.characterName,
+        mode: "none",
+        dice: [{ val: rolledVal, discarded: false }],
+        bonuses: interactiveConfig.bonuses,
+        success: (rolledVal + 8) >= interactiveConfig.dc,
+        onComplete: (isSuccess) => {
+          interactivePhase = 'verdict';
+          if (!isSuccess && inspirationPoints > 0) {
+            inspirationContainer.style.display = "block";
+            inspirationBadge.textContent = `Осталось: ${inspirationPoints}`;
+            hintLabel.textContent = "Неудача! Вы можете перебросить кубик за Вдохновение";
+          } else {
+            inspirationContainer.style.display = "none";
+            hintLabel.textContent = isSuccess ? "Успех! Нажмите для повтора" : "Все очки вдохновения исчерпаны";
+          }
+        }
+      });
+    }
+
+    function spendInspirationReroll() {
+      if (inspirationPoints <= 0) return;
+      inspirationPoints--;
+      playSound('inspire_buff');
+      inspirationContainer.style.display = "none";
+
+      setTimeout(() => {
+        submitInteractiveRoll(14); // 14 + 8 = 22 => Success!
+      }, 400);
+    }
+
+    function handleCanvasClick() {
+      if (isInteractiveMode && interactivePhase === 'prompt') {
+        submitInteractiveRoll();
+      } else {
+        rerollCurrent();
+      }
+    }
+
     function playScenario(type) {
+      isInteractiveMode = false;
+      interactivePhase = 'idle';
+      if (timerCountdownInterval) clearInterval(timerCountdownInterval);
+      timerContainer.style.display = "none";
+      ctaContainer.style.display = "none";
+      inspirationContainer.style.display = "none";
+      hintLabel.textContent = "Нажмите на куб для повторного броска";
+
       if (type === 'screenshot') {
         runRoll({
           dc: 15,
@@ -1065,8 +1600,9 @@
     }
 
     window.addEventListener('DOMContentLoaded', () => {
-      playScenario('screenshot');
+      startInteractiveScenario();
     });
   </script>
 </body>
 </html>
+

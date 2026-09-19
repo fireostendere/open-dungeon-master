@@ -16,7 +16,16 @@ function getAudioContext(): AudioContext | null {
   return audioCtx;
 }
 
-export type Bg3SoundType = "tumble" | "land" | "success" | "failure" | "crit_success" | "crit_fail";
+export type Bg3SoundType =
+  | "tumble"
+  | "land"
+  | "success"
+  | "failure"
+  | "crit_success"
+  | "crit_fail"
+  | "bell_prompt"
+  | "bell_reminder"
+  | "inspire_buff";
 
 export function playBg3Sound(type: Bg3SoundType) {
   const ctx = getAudioContext();
@@ -181,6 +190,82 @@ export function playBg3Sound(type: Bg3SoundType) {
 
         osc.start(now);
         osc.stop(now + 1.2);
+      });
+      break;
+    }
+
+    case "bell_prompt": {
+      // Clear, celestial silver temple bell (A5 fundamental + shimmering harmonics)
+      const harmonics = [
+        { freq: 880, gain: 0.22, decay: 2.4 },
+        { freq: 1760, gain: 0.12, decay: 1.8 },
+        { freq: 2640, gain: 0.08, decay: 1.2 },
+        { freq: 3520, gain: 0.04, decay: 0.8 },
+      ];
+      harmonics.forEach(({ freq, gain: vol, decay }) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(freq, now);
+
+        gain.gain.setValueAtTime(vol, now);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + decay);
+
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+
+        osc.start(now);
+        osc.stop(now + decay);
+      });
+      break;
+    }
+
+    case "bell_reminder": {
+      // Soft gentle two-tone chime (E5 -> A5 reminder)
+      const tones = [
+        { freq: 659.25, timeOffset: 0, gain: 0.16, decay: 1.2 },
+        { freq: 880.0, timeOffset: 0.16, gain: 0.18, decay: 1.6 },
+      ];
+      tones.forEach(({ freq, timeOffset, gain: vol, decay }) => {
+        const t = now + timeOffset;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(freq, t);
+
+        gain.gain.setValueAtTime(vol, t);
+        gain.gain.exponentialRampToValueAtTime(0.0001, t + decay);
+
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+
+        osc.start(t);
+        osc.stop(t + decay);
+      });
+      break;
+    }
+
+    case "inspire_buff": {
+      // Celestial harp shimmer (C5, E5, G5, B5, C6, E6)
+      const notes = [523.25, 659.25, 783.99, 987.77, 1046.5, 1318.51];
+      notes.forEach((freq, idx) => {
+        const t = now + idx * 0.05;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+
+        osc.type = "triangle";
+        osc.frequency.setValueAtTime(freq, t);
+
+        gain.gain.setValueAtTime(0.18, t);
+        gain.gain.exponentialRampToValueAtTime(0.0001, t + 1.4);
+
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+
+        osc.start(t);
+        osc.stop(t + 1.4);
       });
       break;
     }
