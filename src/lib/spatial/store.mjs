@@ -446,7 +446,7 @@ export function createSpatialStore(db, { nextSeq, now = () => new Date().toISOSt
       const perceivedText = input.perceivedText ? text(input.perceivedText, 2000, "perceived fragment") : null;
       const sense = ["sight", "sound", "both", "special"].includes(input.sense) ? input.sense : "sight";
       const detectedUsers = Array.isArray(input.detectedByUserIds) ? input.detectedByUserIds.filter(id => actor.playerIds.includes(id)) : [];
-      
+
       if (outcome === "confirmed") {
         for (const obsUserId of detectedUsers) {
           run(`INSERT INTO spatial_detections(campaign_id,observer_id,target_id,room_id,sense,state,created_at)

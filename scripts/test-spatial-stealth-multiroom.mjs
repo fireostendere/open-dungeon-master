@@ -964,4 +964,3 @@ test("Scenario 13: Sensory channels (sight vs sound) and multi-observer asymmetr
   const msgsD = env.store.messages(actorD, { roomId: env.rooms.dungeonId }).messages;
   assert.equal(msgsD.length, 0);
 });
-

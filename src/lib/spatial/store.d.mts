@@ -22,8 +22,8 @@ export type SpatialStore = {
   narratorRead(actor: SpatialActor, options?: { afterSeq?: number; limit?: number }): SpatialNarratorRead;
   isDetected(campaignId: string, observerId: string, targetId: string): boolean;
   getStealthState(campaignId: string, characterId: string): { status: string; roomId: string; updatedAt: string } | null;
-  getRoomFloor(campaignId: string, roomId: string): any;
-  setRoomFloor(campaignId: string, roomId: string, floor: any): void;
+  getRoomFloor(campaignId: string, roomId: string): unknown;
+  setRoomFloor(campaignId: string, roomId: string, floor: unknown): void;
   getUserRoom(campaignId: string, userId: string): string | null;
 };
 export class SpatialError extends Error { status: number; constructor(message: string, status?: number); }
