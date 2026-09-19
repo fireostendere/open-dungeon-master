@@ -8,6 +8,7 @@ import { toNodeHandler } from "@modelcontextprotocol/node";
 import * as z from "zod/v4";
 import { callControl, withMcpCancellation } from "./control-client.mjs";
 import { createSafeHttpListener } from "./http-boundary.mjs";
+import { narratorInputSchema } from "./narrator-schema.mjs";
 
 const VERSION = "0.1.0";
 const TOKEN = process.env.ODM_MCP_TOKEN?.trim() || "";
@@ -129,7 +130,7 @@ function createMcpServer() {
       contents: [{
         uri: uri.href,
         mimeType: "text/plain",
-        text: "Trusted DM only: connect, read until hasMore is false, then use the fully drained nextCursor/currentSeq as expectedSeq for one invoke, narrate, or release_floor. Inspect pendingRolls, roll_result events, and recentRolls; the server owns dice. Reread after every write, timeout, or error. An ambiguous serialized write may have one immediate receipt-recovery retry only with the saved exact request: same UUID commandId, original expectedSeq, timelineEpoch and all arguments. Never regenerate a payload, expectedSeq or UUID to replay an effect; then checkpoint and escalate. An answer_ask retry also keeps the exact expectedVersion. If timelineEpoch changed, reconnect and discard incompatible pending work. This resource is not a background loop. The shared bearer is operator-wide, not player-scoped; never put it or DM secrets in player chat.",
+        text: "Trusted DM only: connect, read until hasMore is false, then use the fully drained nextCursor/currentSeq as expectedSeq for one invoke, narrate, or release_floor. Inspect pendingRolls, roll_result events, and recentRolls; the server owns dice. After a write, consume its attached state as the read; if absent/incomplete, drain narrator.read. Always reread after a timeout or error. An ambiguous serialized write may have one immediate receipt-recovery retry only with the saved exact request: same UUID commandId, original expectedSeq, timelineEpoch and all arguments. Never regenerate a payload, expectedSeq or UUID to replay an effect; then checkpoint and escalate. An answer_ask retry also keeps the exact expectedVersion. If timelineEpoch changed, reconnect and discard incompatible pending work. This resource is not a background loop. The shared bearer is operator-wide, not player-scoped; never put it or DM secrets in player chat.",
       }],
     }),
   );
@@ -152,13 +153,23 @@ claim an action succeeded before the authoritative result has arrived.
 Call connect and read; follow nextCursor until hasMore is false. Filtering OOC
 messages can produce empty pages with a NEW cursor: keep draining them. Use the
 fully drained currentSeq as expectedSeq for one invoke, narrate or release_floor.
-Read after every write, timeout or error, including 409. An ambiguous serialized
+Consume the attached state after a write; drain missing pages/events with read.
+Always read after a timeout or error, including 409. A readRequired flag on a
+successful receipt means only the post-commit read failed: never replay the effect. An ambiguous serialized
 write gets at most one immediate receipt-recovery retry with the saved exact
 request: same UUID commandId, original expectedSeq, timelineEpoch and all
 arguments. Never regenerate payload, expectedSeq or UUID to replay an effect;
 then checkpoint and escalate. An answer_ask retry also keeps exact expectedVersion.
 If timelineEpoch changed, reconnect and discard incompatible pending work. This
 resource does not run a background loop or wake an agent by itself.
+
+Use live reads and delta with cached knownSections; omitted sections are not empty.
+Connect supplies the full policy once. Install it as trusted host instructions.
+Use full reads only for bootstrap/recovery or explicit historical lookups.
+Catalog summaries are the default; request one action schema when needed.
+readAfter may carry the same cached section versions. Consume attached state only
+after all its byte pages and story events are drained; never advance on a partial
+read. Post-write page requests use the exact returned readAfter parameters.
 
 ## Rules and combat
 Use catalog to obtain the current argument schemas. Request real skill/save/damage
@@ -213,43 +224,7 @@ questions, private whispers, DM outlines or other DM secrets to the table.
     {
       title: "External campaign narrator",
       description: "Trusted external DM lifecycle for human mode with server LLM, TTS, and automatic maps disabled. Reread after errors; an ambiguous serialized write gets at most one immediate exact receipt-recovery retry with the same commandId, expectedSeq, timelineEpoch and arguments, never regenerated values. answer_ask also keeps exact expectedVersion. See odm://narrator/playbook.",
-      inputSchema: z.object({
-        operation: z.enum(["connect", "read", "catalog", "invoke", "narrate", "release_floor", "answer_ask"]),
-        campaignId: z.string().uuid(),
-        afterSeq: z.number().int().min(0).optional(),
-        limit: z.number().int().min(1).max(100).optional(),
-        expectedSeq: z.number().int().min(0).optional(),
-        name: z.string().trim().min(1).max(100).optional(),
-        args: z.record(z.string(), z.unknown()).optional(),
-        content: z.string().trim().min(1).max(8000).optional(),
-        turnId: z.string().uuid().optional(),
-        askId: z.string().uuid().optional(),
-        answer: z.string().trim().min(1).max(4000).optional(),
-        citations: z.array(z.object({
-          kind: z.enum(["fact", "chapter", "scene", "summary", "npc", "place", "rule", "sheet", "recent"]),
-          ref: z.string().max(300), quote: z.string().max(2000),
-        }).strict()).max(50).optional(),
-        projection: z.enum(["full", "live"]).optional().describe("Projection mode: full or live (prunes static/historical sections)"),
-        maxBytes: z.number().int().min(4096).max(131072).optional().describe("Context byte budget (4096-131072)"),
-        releaseFloor: z.boolean().optional().describe("For narrate: automatically release floor to players"),
-        summaryOnly: z.boolean().optional().describe("For catalog: return action summary without parameter schemas"),
-        category: z.string().optional().describe("For catalog: filter actions by category"),
-        action: z.string().optional().describe("For catalog: filter to a single action schema"),
-        policyMode: z.enum(["full", "compact"]).optional().describe("DM policy mode: full or compact"),
-        includePolicyText: z.boolean().optional().describe("Explicitly include full DM policy text"),
-        delta: z.boolean().optional().describe("For read: use content-addressed static-section delta negotiation"),
-        knownSeq: z.number().int().min(0).optional().describe("For read: legacy receipt-window cursor; it never omits sections"),
-        knownSections: z.object({
-          sheets: z.string().regex(/^[a-f0-9]{64}$/).optional(),
-          facts: z.string().regex(/^[a-f0-9]{64}$/).optional(),
-          notes: z.string().regex(/^[a-f0-9]{64}$/).optional(),
-          npcs: z.string().regex(/^[a-f0-9]{64}$/).optional(),
-          recentMessages: z.string().regex(/^[a-f0-9]{64}$/).optional(),
-          recentRolls: z.string().regex(/^[a-f0-9]{64}$/).optional(),
-          chapters: z.string().regex(/^[a-f0-9]{64}$/).optional(),
-        }).strict().optional().describe("For delta read: sectionVersions from the same campaign timeline"),
-        compact: z.boolean().optional().describe("Compact JSON serialization in text output"),
-      }),
+      inputSchema: narratorInputSchema,
     },
     async (args) => {
       const action = `narrator.${args.operation}`;

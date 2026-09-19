@@ -1,8 +1,11 @@
 import { SPATIAL_NARRATOR_CATALOG, SPATIAL_NARRATOR_OPERATIONS, SPATIAL_GUIDANCE, readSpatialForNarrator, invokeSpatialForNarrator } from "@/lib/spatial/narrator";
 import { spatialNarratorBoundary } from "@/lib/spatial/narrator-page.mjs";
-import { spatialEnabled } from "@/lib/spatial/service";
+import { spatialEnabled, spatialContext } from "@/lib/spatial/service";
 import { bindActiveBattleMapToRoom, scopeBattleMapInvocation } from "@/lib/spatial/battle-map";
 import { campaignTimelineEpoch } from "@/lib/spatial/timeline";
+import { getDatabase } from "@/lib/db/core";
+import { unrelatedRoomChat } from "@/lib/spatial/narrator-concurrency.mjs";
+import { attachPostWriteRead } from "@/lib/mcp-post-write.mjs";
 import { createHash } from "node:crypto";
 import { z } from "zod";
 import { queueSkippedCombatTurn } from "@/lib/dm/encounter-tools";
@@ -28,6 +31,7 @@ import { listNarratorReceipts } from "@/lib/db/narrator-commands";
 import { coverInEffect } from "@/lib/dm/delegation";
 import { npcRosterForPrompt } from "@/lib/dm/social-tools";
 import { answerAsk, listPendingAsksForCampaign, AskQueueConflict } from "@/lib/db/asks";
+import { narratorSnapshots } from "@/lib/mcp-snapshot-cache.mjs";
 import { budgetRead, ReadBudgetError } from "@/lib/mcp-read-budget.mjs";
 import { listEventsSince, publishEphemeral, publishPersisted, publishUserEphemeral } from "@/lib/events";
 export { NarratorCommandError as McpNarratorControlError } from "@/lib/dm/narrator-command";
@@ -95,6 +99,18 @@ function read(raw: unknown) {
   if (!p.success) throw new McpNarratorControlError(z.prettifyError(p.error));
   const campaign = campaignOrHuman(p.data.campaignId), currentSeq = latestSeq(campaign.id);
   if (p.data.afterSeq > currentSeq || (p.data.knownSeq ?? 0) > currentSeq) throw new McpNarratorControlError("Narrator cursor is ahead of campaign state; reconnect from a fresh read.", 409);
+  const timelineEpoch = campaignTimelineEpoch(campaign.id);
+  const cacheParams = { ...p.data, dmUserId: campaign.dmUserId };
+  if (p.data.pageCursor) {
+    if (!p.data.paged) throw new McpNarratorControlError("pageCursor requires paged:true.", 400);
+    if (spatialEnabled(campaign.id) && !spatialContext(campaign.id, campaign.dmUserId!).actor.isDm) {
+      throw new McpNarratorControlError("Narrator access changed.", 403);
+    }
+    const snapshot = narratorSnapshots.restore(campaign.id, timelineEpoch, cacheParams);
+    if (!snapshot) throw new McpNarratorControlError("Snapshot expired or changed scope; restart the read without a pageCursor.", 409);
+    try { return budgetRead(snapshot, p.data); }
+    catch (error) { if (error instanceof ReadBudgetError) throw new McpNarratorControlError(error.message, error.status); throw error; }
+  }
   const fetched = listEventsSince(campaign.id, p.data.afterSeq, p.data.limit + 1);
   const spatial = readSpatialForNarrator(campaign.id, campaign.dmUserId!, p.data.afterSeq, p.data.limit);
   const { nextCursor, hasMore, events, roomMessages } = spatialNarratorBoundary({ afterSeq: p.data.afterSeq, currentSeq, limit: p.data.limit, events: fetched, spatial });
@@ -104,7 +120,7 @@ function read(raw: unknown) {
     authorType: message.kind === "narration" || message.kind === "perception" ? "dm" : "player", channel: "location" as const,
   }))].sort((a,b) => a.seq-b.seq);
   const askPage = listPendingAsksForCampaign(campaign.id, p.data.afterAskSeq, p.data.askLimit), live = p.data.projection === "live";
-  const delta = Boolean(p.data.delta), baselineSeq = p.data.knownSeq ?? (delta ? p.data.afterSeq : 0), timelineEpoch = campaignTimelineEpoch(campaign.id);
+  const delta = Boolean(p.data.delta), baselineSeq = p.data.knownSeq ?? (delta ? p.data.afterSeq : 0);
   const omittedSections: string[] = live ? ["recentRolls", "recentDmWhispers", "recentMessages", "chapters"] : [];
   const sections = {
     sheets: listSheets(campaign.id), facts: listActiveFacts(campaign.id), notes: listPublicCampaignNotes(campaign.id, 20), npcs: npcRosterForPrompt(campaign.id).slice(0, 100),
@@ -131,29 +147,41 @@ function read(raw: unknown) {
     encounter: (() => { const encounter = getActiveEncounter(campaign.id); return encounter ? { encounter, enemies: listEnemies(encounter.id) } : null; })(),
     ...(delta ? { deltaState: { enabled: true, baselineSeq, pruned: ["sheets", "facts", "notes", "npcs"].every(key => omittedSections.includes(key)) } } : {}),
   };
-  try { return budgetRead(state, p.data); }
+  try {
+    const result = budgetRead(state, p.data);
+    if (p.data.paged && "nextPage" in result && result.nextPage && !narratorSnapshots.remember(state, cacheParams)) {
+      throw new McpNarratorControlError("Snapshot exceeds the bounded page cache; reduce the projection.", 413);
+    }
+    return result;
+  }
   catch (error) { if (error instanceof ReadBudgetError) throw new McpNarratorControlError(error.message, error.status); throw error; }
 }
 function serializedWrite(params: z.infer<typeof writeBase>, operation: string, payload: unknown,
-  work: (campaign: NonNullable<ReturnType<typeof getCampaignById>>) => Record<string, unknown>) {
-  return executeNarratorCommand({ ...params, operation, payload, work, loadState: () => {
+  work: (campaign: NonNullable<ReturnType<typeof getCampaignById>>) => Record<string, unknown>,
+  acceptUnrelated?: (campaign: NonNullable<ReturnType<typeof getCampaignById>>, currentSeq: number) => boolean) {
+  return executeNarratorCommand({ ...params, operation, payload, work, acceptUnrelated, loadState: () => {
     const campaign = campaignOrHuman(params.campaignId);
     if (campaign.kind !== "campaign" || campaign.status !== "active") throw new McpNarratorControlError("External narrator writes require an active campaign.", 409);
     return campaign;
   } });
 }
 async function invoke(raw: unknown) {
-  const p = writeBase.extend({ name: z.string().trim().min(1).max(100), args: z.record(z.string(), z.unknown()).default({}) }).safeParse(raw);
+  const p = writeBase.extend({ name: z.string().trim().min(1).max(100), args: z.record(z.string(), z.unknown()).default({}), scopeRoomId: id.optional() }).safeParse(raw);
   if (!p.success) throw new McpNarratorControlError(z.prettifyError(p.error));
   if (!EXTERNAL_NARRATOR_ACTIONS.has(p.data.name)) throw new McpNarratorControlError("That action is not available to an external narrator.", 403);
-  return serializedWrite(p.data, "narrator.invoke", { name: p.data.name, args: p.data.args }, campaign => {
+  if (p.data.scopeRoomId && (p.data.name !== "location_narrate" || p.data.args.roomId !== p.data.scopeRoomId)) {
+    throw new McpNarratorControlError("Room concurrency scope is only valid for location_narrate in that room.", 400);
+  }
+  return serializedWrite(p.data, "narrator.invoke", { name: p.data.name, args: p.data.args, ...(p.data.scopeRoomId ? { scopeRoomId: p.data.scopeRoomId } : {}) }, campaign => {
     if (Object.hasOwn(SPATIAL_NARRATOR_OPERATIONS, p.data.name)) return invokeSpatialForNarrator(campaign.id, campaign.dmUserId!, p.data.name, p.data.args, p.data.commandId);
     const scoped = scopeBattleMapInvocation(campaign.id, campaign.dmUserId!, p.data.name, p.data.args);
     const outcome = invokeEngineSynchronous(campaign, { kind: "human", userId: campaign.dmUserId! }, { name: p.data.name, args: scoped.args });
     if (!outcome.ok) throw new McpNarratorControlError(outcome.error);
     if (scoped.roomId) bindActiveBattleMapToRoom(campaign.id, campaign.dmUserId!, scoped.roomId);
     return outcome;
-  });
+  }, p.data.scopeRoomId ? (campaign, currentSeq) => unrelatedRoomChat(getDatabase(), {
+    campaignId: campaign.id, dmUserId: campaign.dmUserId!, roomId: p.data.scopeRoomId!, afterSeq: p.data.expectedSeq, currentSeq,
+  }) : undefined);
 }
 async function narrate(raw: unknown) {
   const p = writeBase.extend({ content: z.string().trim().min(1).max(8000), turnId: id.optional(), releaseFloor: z.boolean().optional() }).safeParse(raw);
@@ -198,7 +226,10 @@ async function releaseFloor(raw: unknown) {
     return { floor: getFloor(campaign.id) };
   });
 }
-export async function executeMcpNarratorControl(action: string, raw: unknown): Promise<{ handled: false } | { handled: true; result: unknown }> {
+async function dispatchMcpNarratorControl(action: string, raw: unknown): Promise<{ handled: false } | { handled: true; result: unknown }> {
+  if (action === "narrator.invoke" && raw && typeof raw === "object" && "scopeRoomId" in raw && !("timelineEpoch" in raw)) {
+    throw new McpNarratorControlError("Scoped narration requires timelineEpoch.", 400);
+  }
   // Reject old-timeline writes BEFORE consulting idempotency receipts.
   if (action.startsWith("narrator.") && raw && typeof raw === "object" && !Array.isArray(raw) && Object.hasOwn(raw, "timelineEpoch")) {
     const { timelineEpoch, ...params } = raw as Record<string, unknown>;
@@ -213,7 +244,7 @@ export async function executeMcpNarratorControl(action: string, raw: unknown): P
       const p = z.object({ campaignId: id, paged: z.boolean().optional(), maxBytes: z.number().int().min(4096).max(131072).optional(), projection: z.enum(["full", "live"]).optional() }).strict().safeParse(raw);
       if (!p.success) throw new McpNarratorControlError(z.prettifyError(p.error));
       campaignOrHuman(p.data.campaignId);
-      return { handled: true, result: { instructions: "Read odm://narrator/playbook. Call narrator.read, drain until hasMore is false, then use its currentSeq as expectedSeq for exactly one invoke, narrate, or release_floor. Persist a unique UUID commandId before each story write. After an ambiguous error, retry only the identical commandId, expectedSeq and payload to recover its receipt, never regenerate or modify a command. Reread after every confirmed write. end_turn advances initiative itself; narration never advances it. For a private reply provide exact replyToWhisperIds from playerWhispers. Check the pending asks queue on every read even when the story cursor is unchanged. Page it using afterAskSeq and askQueue.nextCursor; a fresh Ask scan may start at zero. answer_ask requires the pending ask version as expectedVersion and a persisted UUID commandId; it changes no story/floor state. For bounded reads use paged:true and drain pageCursor/nextPage before advancing the story cursor. A changed snapshot requires restarting that read; never use incomplete pages. projection:live explicitly omits historical duplicate sections, not current state or new tool results. Carry the returned timelineEpoch on reads and writes; reconnect and discard incompatible pending work when it changes.", contractVersion: 2, timelineVersion: 1, state: read(p.data) } };
+      return { handled: true, result: { instructions: "Read odm://narrator/playbook. Call narrator.read, drain until hasMore is false, then use its currentSeq as expectedSeq for exactly one invoke, narrate, or release_floor. Persist a unique UUID commandId before each story write. After an ambiguous error, retry only the identical commandId, expectedSeq and payload to recover its receipt, never regenerate or modify a command. Consume the attached state after a confirmed write as its read, then drain any remaining pages/events. If readRequired is true, the write succeeded but its read failed: read again, never replay the effect. end_turn advances initiative itself; narration never advances it. For a private reply provide exact replyToWhisperIds from playerWhispers. Check the pending asks queue on every read even when the story cursor is unchanged. Page it using afterAskSeq and askQueue.nextCursor; a fresh Ask scan may start at zero. answer_ask requires the pending ask version as expectedVersion and a persisted UUID commandId; it changes no story/floor state. For bounded reads use paged:true and drain pageCursor/nextPage before advancing the story cursor. Byte pages use a bounded frozen snapshot. Restart on expiry, a changed scope or timeline; never use incomplete pages. projection:live explicitly omits historical duplicate sections, not current state or new tool results. Carry the returned timelineEpoch on reads and writes; reconnect and discard incompatible pending work when it changes.", contractVersion: 3, timelineVersion: 1, features: { postWriteRead: true, frozenPages: true, liveDefaults: true }, state: read({ projection: "full", ...p.data }) } };
     }
     case "narrator.read": return { handled: true, result: read(raw) };
     case "narrator.catalog": {
@@ -242,4 +273,42 @@ export async function executeMcpNarratorControl(action: string, raw: unknown): P
     }
     default: return { handled: false };
   }
+}
+
+
+const storyWrites = new Set(["narrator.invoke", "narrator.narrate", "narrator.release_floor"]);
+const readAfterSchema = z.union([z.boolean(), z.object({
+  afterSeq: z.number().int().min(0).optional(), limit: z.number().int().min(1).max(100).optional(),
+  afterAskSeq: z.number().int().min(0).optional(), askLimit: z.number().int().min(1).max(50).optional(),
+  paged: z.boolean().optional(), projection: z.enum(["full", "live"]).optional(),
+  maxBytes: z.number().int().min(4096).max(131072).optional(), delta: z.boolean().optional(),
+  knownSeq: z.number().int().min(0).optional(), knownSections: readSchema.shape.knownSections,
+}).strict()]);
+/** A post-commit read is an optimization, not part of the mutation receipt.
+ * Invalid options fail BEFORE a write. A read failure AFTER commit must never
+ * masquerade as a failed action or cause dice/resources to be applied twice.
+ */
+export async function executeMcpNarratorControl(action: string, raw: unknown): Promise<{ handled: false } | { handled: true; result: unknown }> {
+  if (!storyWrites.has(action) || !raw || typeof raw !== "object" || Array.isArray(raw) || !Object.hasOwn(raw, "readAfter")) {
+    return dispatchMcpNarratorControl(action, raw);
+  }
+  const { readAfter, ...params } = raw as Record<string, unknown>;
+  const options = readAfterSchema.safeParse(readAfter);
+  if (!options.success) throw new McpNarratorControlError(z.prettifyError(options.error));
+  const query = typeof options.data === "object" ? options.data : {};
+  for (const cursor of [query.afterSeq, query.knownSeq]) {
+    if (cursor !== undefined && (typeof params.expectedSeq !== "number" || cursor > params.expectedSeq)) {
+      throw new McpNarratorControlError("Post-write read cannot skip unread input.", 400);
+    }
+  }
+  const result = await dispatchMcpNarratorControl(action, params);
+  if (!result.handled || options.data === false) return result;
+  const readParams = { campaignId: params.campaignId, afterSeq: params.expectedSeq, projection: "live", delta: true, ...query,
+    ...(params.timelineEpoch ? { timelineEpoch: params.timelineEpoch } : {}) };
+  const receipt = await attachPostWriteRead(result.result, readParams, async (params: Record<string, unknown>) => {
+    const fresh = await dispatchMcpNarratorControl("narrator.read", params);
+    if (!fresh.handled) throw new Error("Read handler unavailable.");
+    return fresh.result;
+  });
+  return { handled: true, result: receipt };
 }

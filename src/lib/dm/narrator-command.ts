@@ -38,6 +38,8 @@ type CommandOptions<State extends object> = {
   payload: unknown;
   loadState: () => State;
   work: (state: State) => Record<string, unknown>;
+  // A server-selected, narrow dependency proof. Never supplied by a client.
+  acceptUnrelated?: (state: State, currentSeq: number) => boolean;
 };
 type CommandResult = { result: unknown; commandId: string; receiptId: string; committedSeq: number; currentSeq: number; replayed: boolean };
 
@@ -46,6 +48,8 @@ type CommandResult = { result: unknown; commandId: string; receiptId: string; co
  * cannot undo it: the identical request can recover its durable receipt.
  */
 export async function executeNarratorCommand<State extends object>(options: CommandOptions<State>): Promise<CommandResult> {
+  const startedAt = performance.now();
+  let queueMs = 0;
   const signal = currentOperationSignal() as AbortSignal | undefined;
   notCancelled(signal);
   if (options.work.constructor.name === "AsyncFunction") throw new NarratorCommandError("Narrator command work must be synchronous.", 500);
@@ -56,6 +60,7 @@ export async function executeNarratorCommand<State extends object>(options: Comm
   let outcome: CommandResult | undefined;
   let failure: unknown;
   await enqueueDmJob(options.campaignId, async () => {
+    queueMs = performance.now() - startedAt;
     try {
       notCancelled(signal);
       const state = options.loadState(); // repeats authorization/mode checks after waiting
@@ -67,10 +72,15 @@ export async function executeNarratorCommand<State extends object>(options: Comm
           committedSeq: previous.committedSeq, currentSeq: latestSeq(options.campaignId), replayed: true };
         return;
       }
-      if (latestSeq(options.campaignId) !== options.expectedSeq) throw new NarratorCommandError("Stale narrator cursor; reread and drain events before writing.", 409);
       notCancelled(signal);
       outcome = withGameStateRollback([state], () => withCommittedEffects(() => getDatabase().transaction(() => {
         notCancelled(signal);
+        // Both the ordinary CAS and the optional proof run under the write's
+        // transaction; shared mechanics still require exact campaign sequence.
+        const currentSeq = latestSeq(options.campaignId);
+        if (currentSeq !== options.expectedSeq && !options.acceptUnrelated?.(state, currentSeq)) {
+          throw new NarratorCommandError("Stale narrator cursor; reread and drain events before writing.", 409);
+        }
         const result = options.work(state);
         if (result && typeof result.then === "function") throw new NarratorCommandError("Narrator command returned asynchronous work.", 500);
         notCancelled(signal);
@@ -84,6 +94,7 @@ export async function executeNarratorCommand<State extends object>(options: Comm
       })()));
     } catch (error) { failure = error; }
   });
+  if (process.env.ODM_LATENCY_LOG === "1") console.error("[odm-latency]", JSON.stringify({ stage: "narrator_write", queueMs: Math.round(queueMs), durationMs: Math.round(performance.now() - startedAt), ok: !failure, replayed: outcome?.replayed ?? false }));
   if (failure) throw failure instanceof NarratorCommandError ? failure
     : new NarratorCommandError(failure instanceof Error ? failure.message : "Narrator command failed.", 500);
   if (!outcome) throw new NarratorCommandError("Narrator command did not execute.", 500);
