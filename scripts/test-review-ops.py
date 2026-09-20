@@ -38,6 +38,7 @@ def setup(root):
     (root / 'config').mkdir()
     ops.write_json(root / 'config/install.json', config())
     ops.atomic(root / 'config/app.env', 'DB_ENCRYPTION_KEY=isolated-fixture\nODM_MCP_TOKEN=' + TOKEN + '\n')
+    ops.atomic(root / 'config/mcp.env', 'ODM_MCP_TOKEN=' + TOKEN + '\n')
     ops.atomic(root / 'config/admin.json', '{}')
     for name in ops.STATE_DIRS: (root / 'state' / name).mkdir(parents=True)
     (root / 'state/data/local-roleplay.sqlite').write_text('original-state')
@@ -70,7 +71,8 @@ class FakeMcp(mcp.McpController):
     def add_old(self):
         self.store[self.container] = {'Id': 'original-container', 'Image': OLD_MCP, 'Config': {'Labels': {
             'odm.mcp.managed': '1', 'odm.root': self.project, 'odm.mcp.sha': OLD,
-            'odm.mcp.token': hashlib.sha256(TOKEN.encode()).hexdigest()[:16]}}, 'State': {'Running': True}}
+            'odm.mcp.token': hashlib.sha256(TOKEN.encode()).hexdigest()[:16],
+            'odm.mcp.env': self.env_fingerprint()}}, 'State': {'Running': True}}
     def docker(self, *args, **kwargs):
         self.calls.append(args)
         if args[0] == 'inspect':
@@ -139,6 +141,11 @@ class McpLifecycle(Fixture):
         self.assertEqual(c.store[c.container]['Id'], 'original-container')
         self.assertIn(('health', c.container), c.calls)
         self.assertFalse(any(call[:2] == ('run', '-d') for call in c.calls))
+    def test_changed_env_replaces_same_release(self):
+        c = FakeMcp(self.root, self.old); c.add_old()
+        c.mcp_env.write_text('ODM_MCP_TOKEN=' + TOKEN + '\nODM_LATENCY_LOG=1\n')
+        c.run_container(TOKEN)
+        self.assertNotEqual(c.store[c.container]['Id'], 'original-container')
     def test_foreign_container_is_never_removed(self):
         c = FakeMcp(self.root, self.new); c.add_old()
         c.store[c.container]['Config']['Labels']['odm.root'] = 'some-other-install'

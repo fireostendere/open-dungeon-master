@@ -54,12 +54,14 @@ export function validateDecision(value, { allowedActions = new Set(), catalogAct
 }
 
 export class NarratorOrchestrator {
-  constructor({ adapter, startAfterSeq = 0, maxSteps, maxCallsPerHour = 240, yolo = false } = {}) {
+  constructor({ adapter, startAfterSeq = 0, maxSteps, maxCallsPerHour = 240, yolo = false,
+    writerEnabled = process.env.ODM_NARRATOR_WRITER_ENABLED !== '0' } = {}) {
     const playMode = resolveNarratorPlayMode(adapter, { requested: yolo });
     const resolvedMaxSteps = maxSteps ?? (playMode === 'yolo' ? 6 : 24);
     if (!adapter?.generate || !sequence(startAfterSeq) || !Number.isSafeInteger(resolvedMaxSteps) || resolvedMaxSteps < 1 ||
         !Number.isSafeInteger(maxCallsPerHour) || maxCallsPerHour < 1) throw new Error('Invalid narrator controller configuration.');
     this.adapter = adapter; this.playMode = playMode; this.maxSteps = resolvedMaxSteps; this.maxCallsPerHour = maxCallsPerHour;
+    this.writerEnabled = writerEnabled === true;
     this.catalog = null; this.schemas = {};
     this.state = { version: 1, epoch: null, handledSeq: startAfterSeq, queue: [], current: null, pending: null,
       history: [], events: [], paused: null, usage: { calls: 0, inputBytes: 0, outputBytes: 0, times: [] } };
@@ -215,7 +217,8 @@ export class NarratorOrchestrator {
     }
     if (decision.kind === 'invoke' && invokedAction === 'request_roll' && current.outcomes.some(outcome => outcome.name === invokedAction && digest(outcome.args) === digest(invokedArgs) && !outcome.result?.error)) return this.pause(host, 'duplicate_check');
     let content = decision.text;
-    if (decision.kind === 'narrate' && decision.writer && this.playMode !== 'yolo') {
+    const combatActive = snapshot.encounter?.status === 'active' && snapshot.encounter?.kind === 'fight';
+    if (decision.kind === 'narrate' && decision.writer && this.playMode !== 'yolo' && this.writerEnabled && !combatActive) {
       try { content = await this.generate(host, 'writer', { instructions: narratorGuidance(snapshot.campaign?.gameSettings, this.playMode), ...publicProjection(snapshot, this.state.history, 24), input: current.input, approvedDraft: decision.text }); }
       catch { return this.pause(host, 'writer_error'); }
       if (!text(content)) return this.pause(host, 'invalid_writer_text');

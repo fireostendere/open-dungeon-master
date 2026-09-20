@@ -138,7 +138,8 @@ class McpController:
         changed = set_env(self.app_env, {"ODM_MCP_TOKEN": token,
             "ODM_MCP_OWNER_USERNAME": current.get("ODM_MCP_OWNER_USERNAME", "odm_admin"), "ODM_PUBLIC_URL": public_url})
         atomic(self.mcp_env, "ODM_MCP_CONTROL_URL=http://app:3005/api/internal/mcp\n"
-               f"ODM_MCP_TOKEN={token}\nODM_MCP_HOST=0.0.0.0\nODM_MCP_PORT=3006\n", 0o600)
+               f"ODM_MCP_TOKEN={token}\nODM_MCP_HOST=0.0.0.0\nODM_MCP_PORT=3006\n"
+               f"ODM_LATENCY_LOG={current.get('ODM_LATENCY_LOG', '')}\n", 0o600)
         return changed
 
     def image_exists(self) -> bool:
@@ -192,6 +193,9 @@ class McpController:
         try: self.docker('network', 'inspect', self.network, timeout=30)
         except McpOpsError as exc: raise McpOpsError("ODM Docker network is not running; start the application first") from exc
 
+    def env_fingerprint(self) -> str:
+        return hashlib.sha256(self.mcp_env.read_bytes()).hexdigest()[:16]
+
     def launch(self, name: str, token: str, *, published: bool) -> None:
         extra = ['--network-alias', 'mcp', '--publish', '127.0.0.1:3006:3006'] if published else []
         self.docker('run', '-d', '--name', name, '--restart', 'unless-stopped' if published else 'no',
@@ -201,7 +205,7 @@ class McpController:
             '--tmpfs', '/tmp:rw,noexec,nosuid,size=16m', '--log-driver', 'json-file',
             '--log-opt', 'max-size=10m', '--log-opt', 'max-file=3',
             '--label', 'odm.mcp.managed=1', '--label', 'odm.root=' + self.project,
-            '--label', 'odm.mcp.sha=' + self.sha,
+            '--label', 'odm.mcp.sha=' + self.sha, '--label', 'odm.mcp.env=' + self.env_fingerprint(),
             '--label', 'odm.mcp.token=' + hashlib.sha256(token.encode()).hexdigest()[:16], self.image, timeout=120)
 
     def wait_ready(self, container: str | None = None, seconds: int = 90) -> None:
@@ -219,7 +223,8 @@ class McpController:
         info = self.inspect_container(self.previous)
         labels = (info or {}).get('Config', {}).get('Labels', {})
         expected = hashlib.sha256(token.encode()).hexdigest()[:16]
-        if not info or labels.get('odm.mcp.sha') != self.sha or labels.get('odm.mcp.token') != expected:
+        if (not info or labels.get('odm.mcp.sha') != self.sha or labels.get('odm.mcp.token') != expected
+                or labels.get('odm.mcp.env') != self.env_fingerprint()):
             return False
         if self.active.get('mcpImage') and info.get('Image') != self.active['mcpImage']: return False
         if labels.get('odm.root') not in (None, self.project) or labels.get('odm.mcp.managed') != '1':
@@ -234,7 +239,7 @@ class McpController:
         labels = (info or {}).get('Config', {}).get('Labels', {})
         fingerprint = hashlib.sha256(token.encode()).hexdigest()[:16]
         if (info and labels.get('odm.mcp.sha') == self.sha and labels.get('odm.mcp.token') == fingerprint
-                and info.get('Image') == self.image):
+                and labels.get('odm.mcp.env') == self.env_fingerprint() and info.get('Image') == self.image):
             self.docker('start', self.container, timeout=60); self.wait_ready(); return
         if self.restore_previous(token): return
         self.remove_owned(self.candidate)

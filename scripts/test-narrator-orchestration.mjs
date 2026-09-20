@@ -69,6 +69,15 @@ test('real legacy player messages have no kind; referee receives IDs, state and 
   await h.tick(); assert.equal(h.modelCalls.length, 3, 'idle polling must not spend model calls');
 });
 
+test('writer can be disabled for short combat narration', async () => {
+  const h = fixture([{ kind: 'narrate', text: 'Короткое последствие.', writer: true }, 'writer output']);
+  h.snapshot.encounter = { status: 'active', kind: 'fight' };
+  await h.tick();
+  await h.tick();
+  assert.deepEqual(h.modelCalls.map(call => call.role), ['referee']);
+  assert.equal(h.writes[0].params.content, 'Короткое последствие.');
+});
+
 test('initiative setup and attack are separate confirmed steps, not a blanket one-invoke limit', async () => {
   const h = fixture([{ kind: 'invoke', action: 'start_encounter', args: { enemies: 'goblin' } },
     { kind: 'invoke', action: 'pc_attack', args: { characterId: 'hero', enemyId: 'enemy', targetEnemyId: 'enemy', weapon: 'sword' } },

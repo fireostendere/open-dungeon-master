@@ -18,6 +18,7 @@ export async function createNarratorAdapter(options = {}) {
       ...(maxStepsRaw === undefined ? {} : { maxSteps: Number(maxStepsRaw) }),
       maxCallsPerHour: Number(maxCallsRaw),
       yolo: options.yolo === true,
+      writerEnabled: options.writerEnabled ?? process.env.ODM_NARRATOR_WRITER_ENABLED !== '0',
     }),
   };
 }

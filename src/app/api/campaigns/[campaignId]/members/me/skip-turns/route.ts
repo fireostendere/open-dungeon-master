@@ -8,6 +8,7 @@ import { scheduleGlobalTurnTimer } from "@/lib/dm/global-turn-logic";
 import { skipOwnTurn } from "@/lib/dm/encounter-tools";
 import { requestDmTurn } from "@/lib/dm/loop";
 import { getActiveEncounter } from "@/lib/db/encounters";
+import { gameText, resolveGameLanguage } from "@/lib/i18n/game-text";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -25,6 +26,11 @@ export async function POST(
   if (isErrorResponse(context)) {
     return context;
   }
+
+  const locale = resolveGameLanguage(
+    /(?:^|;\s*)odm_locale=(ru|en|pl)(?:;|$)/.exec(request.headers.get("cookie") ?? "")?.[1]
+      ?? context.campaign.gameSettings.language,
+  );
 
   const raw = await request.json().catch(() => ({}));
   const parsed = skipSchema.safeParse(raw);
@@ -65,7 +71,7 @@ export async function POST(
       authorType: "player",
       userId: context.user.id,
       characterId: sheet.id,
-      content: `*${sheet.name} пропускает ход (осталось: ${count}).*`,
+      content: gameText(locale, "skipTurns", { name: sheet.name, count }),
     });
     publishWithSeq(campaignId, seq, "message_added", { message: msg });
 
