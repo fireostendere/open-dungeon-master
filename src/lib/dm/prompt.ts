@@ -127,8 +127,11 @@ export function buildDmMessages(
           narrationGuard: false,
         },
       },
-      chapters: [],
-      facts: (state.facts ?? []).filter((fact) => fact.pinned).slice(0, 8),
+      chapters: (state.chapters ?? []).slice(-3).map((chapter) => ({
+        ...chapter,
+        summary: chapter.oneLiner || chapter.title,
+      })),
+      facts: (state.facts ?? []).slice(0, 10),
       publicNotes: (state.publicNotes ?? []).filter((note) => note.pinned).slice(0, 6),
       npcs: (state.npcs ?? []).slice(0, 8),
       relationships: [],
