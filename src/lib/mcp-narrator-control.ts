@@ -119,7 +119,7 @@ function read(raw: unknown) {
     live, delta, knownSections: p.data.knownSections,
     loaders: {
       sheets: () => listSheets(campaign.id), facts: () => listActiveFacts(campaign.id),
-      notes: () => listPublicCampaignNotes(campaign.id, 20), npcs: () => npcRosterForPrompt(campaign.id).slice(0, 100),
+      notes: () => listPublicCampaignNotes(campaign.id, 20), npcs: () => npcRosterForPrompt(campaign.id, 100),
       recentMessages: () => listRecentMessages(campaign.id, 400).filter(msg => !isOocMessage(msg)),
       recentRolls: () => listRecentRolls(campaign.id, 100), chapters: () => listChapters(campaign.id),
     },
