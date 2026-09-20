@@ -1,6 +1,5 @@
-// The world, the people in it, and the story: what a DM does outside a
-// fight and outside the party's own sheets. Names match the tool names the
-// AI DM is offered exactly.
+// The world, the people in it, and the story: deterministic adjudications
+// available to a human DM or an external narrator.
 import type { CatalogEntry } from "@/lib/dm/catalog-types";
 import { cueOptions } from "@/lib/ambience/catalog";
 
@@ -505,22 +504,6 @@ export const STORY_ADJUDICATIONS: CatalogEntry[] = [
         placeholder: "any",
         help: "Blank searches every category.",
       },
-    ],
-  },
-  {
-    name: "generate_image",
-    label: "Illustrate",
-    category: "story",
-    summary: "Draws the scene, and hangs it under your latest passage.",
-    fields: [
-      {
-        name: "prompt",
-        label: "What to draw",
-        kind: "longtext",
-        required: true,
-        placeholder: "a flooded stone stair descending into black water, lit by one lantern",
-      },
-      { name: "reason", label: "Why", kind: "text" },
     ],
   },
 ];

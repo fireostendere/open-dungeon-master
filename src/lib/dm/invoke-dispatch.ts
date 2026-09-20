@@ -1,8 +1,7 @@
 // One switch from an adjudication name to the handler that performs it.
 //
-// Every arm calls exactly what turn.ts calls for the same tool. That is the
-// point: there is one rules engine, and swapping the AI DM for a person
-// swaps the caller, not the game.
+// One deterministic rules engine serves human and external MCP narrators.
+// The caller may change; adjudication semantics do not.
 import { handleCompleteBeat } from "@/lib/dm/arc";
 import { handleCastBuff } from "@/lib/dm/cast-tools";
 import { handleCheckNotice, handleGroupCheck } from "@/lib/dm/check-tools";
@@ -43,7 +42,6 @@ import {
   handleRecordEvent,
   handleRequestPlayerInput,
 } from "@/lib/dm/basic-adjudications";
-import { handleGenerateImage } from "@/lib/dm/images";
 import { handleRequestRoll } from "@/lib/dm/invoke-roll";
 import { handleSplitDamage } from "@/lib/dm/split-damage";
 import type { Campaign } from "@/lib/db/campaigns";
@@ -63,13 +61,12 @@ export type DispatchContext = {
 
 // These actions can await I/O. Keep them out of every synchronous SQL scope,
 // and out of the external narrator allowlist. New async actions must opt in.
-export const ASYNC_ADJUDICATIONS = new Set(["add_companion", "generate_image", "recall_story", "search_lore"]);
+export const ASYNC_ADJUDICATIONS = new Set(["add_companion", "recall_story", "search_lore"]);
 
 export async function dispatchAdjudication(name: string, rawArguments: string, context: DispatchContext): Promise<Record<string, unknown>> {
   const { campaign, sheets } = context;
   switch (name) {
     case "add_companion": return handleAddCompanion(campaign, rawArguments, sheets);
-    case "generate_image": return handleGenerateImage(campaign, rawArguments);
     case "recall_story": return handleRecallStory(campaign.id, rawArguments);
     case "search_lore": return handleSearchLore(campaign.id, rawArguments);
     default: return dispatchSynchronousAdjudication(name, rawArguments, context);
@@ -169,8 +166,7 @@ export function dispatchSynchronousAdjudication(
     case "move_party":
     case "update_location": {
       const result = handleLocationCall(campaign, name, rawArguments);
-      // Bookkeeping the model's turn uses to link its narration to a map;
-      // a person's narration is a separate message, so it goes no further.
+      // Internal location bookkeeping is not part of the public adjudication result.
       delete result.movedToNewLocation;
       delete result._locationId;
       delete result._mapAvailable;

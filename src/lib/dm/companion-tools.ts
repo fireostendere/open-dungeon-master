@@ -38,7 +38,6 @@ import {
   type SrdClass,
 } from "@/lib/srd";
 import { populateFeatures } from "@/lib/srd/features";
-import { queueCompanionPortrait } from "@/lib/portrait";
 import { settingClassIds } from "@/lib/classes";
 import { presetFor, packFor } from "@/lib/worlds/preset";
 import { packIds } from "@/lib/worlds/reskin-logic";
@@ -412,8 +411,7 @@ export function handleAddCompanion(
 
 // Shared creation for every companion path (the DM's add_companion and the
 // party lead's manual build): a bot user, the sheet, the companion mark, a
-// portrait for lasting members, a story event, and, mid-fight, a real
-// initiative slot and a map token beside the party. Returns the sheet and
+// a story event and, mid-fight, a real initiative slot and map token. Returns the sheet and
 // whether an encounter was live so callers can word their own responses.
 export function finalizeNewCompanion(
   campaign: Campaign,
@@ -435,24 +433,8 @@ export function finalizeNewCompanion(
     campaignId: campaign.id,
     seq: allocateSeq(campaign.id),
     kind: "story",
-    summary: `${sheet.name} joined the party as an AI companion (${kind}).`,
+    summary: `${sheet.name} joined the party as a companion (${kind}).`,
   });
-  // Guests are transient and the render queue shares the one iGPU with the DM
-  // model, so only lasting party members are worth a portrait; a sheet built
-  // with its own portrait already (manual build) keeps it.
-  if (kind === "party" && !sheet.portrait) {
-    queueCompanionPortrait({
-      id: sheet.id,
-      campaignId: campaign.id,
-      name: sheet.name,
-      race: sheet.race,
-      class: sheet.class,
-      background: sheet.background,
-      personality,
-      genre: campaign.gameSettings.genre,
-      worldPack: campaign.gameSettings.worldPack,
-    });
-  }
 
   // Mid-combat arrival: a real initiative slot and a token beside the party,
   // exactly like add_enemies does for the other side.
