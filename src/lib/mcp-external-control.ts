@@ -52,6 +52,7 @@ export class McpExtendedControlError extends Error {
 export const MCP_EXTENDED_ACTIONS = [
   "narrator.connect",
   "narrator.read",
+  "narrator.snapshot",
   "narrator.catalog",
   "narrator.invoke",
   "narrator.narrate",

@@ -4,7 +4,7 @@ export class McpAccessError extends Error {
   constructor(message, status) { super(message); this.name = 'McpAccessError'; this.status = status; }
 }
 const NARRATOR_ACTIONS = Object.freeze([
-  'narrator.connect', 'narrator.read', 'narrator.catalog', 'narrator.invoke',
+  'narrator.connect', 'narrator.read', 'narrator.snapshot', 'narrator.catalog', 'narrator.invoke',
   'narrator.narrate', 'narrator.release_floor', 'narrator.answer_ask',
 ]);
 const HEALTH_ACTIONS = new Set(['server.status', 'server.capabilities']);

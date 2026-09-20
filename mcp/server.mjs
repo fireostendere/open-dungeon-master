@@ -230,7 +230,7 @@ questions, private whispers, DM outlines or other DM secrets to the table.
     "odm_narrator",
     {
       title: "External campaign narrator",
-      description: "Trusted external DM lifecycle for human mode with server LLM, TTS, and automatic maps disabled. Reread after errors; an ambiguous serialized write gets at most one immediate exact receipt-recovery retry with the same commandId, expectedSeq, timelineEpoch and arguments, never regenerated values. answer_ask also keeps exact expectedVersion. See odm://narrator/playbook.",
+      description: "Trusted external DM lifecycle for human mode with server LLM, TTS, and automatic maps disabled. Use snapshot for one-call compact orchestration state before deciding whether detailed reads are needed. Reread after errors; an ambiguous serialized write gets at most one immediate exact receipt-recovery retry with the same commandId, expectedSeq, timelineEpoch and arguments, never regenerated values. answer_ask also keeps exact expectedVersion. See odm://narrator/playbook.",
       inputSchema: narratorInputSchema,
     },
     async (args) => {

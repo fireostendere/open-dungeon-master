@@ -17,7 +17,7 @@ const readFields = {
 // Keep the advertised MCP contract in sync with the strict application API.
 // In particular, never let Zod silently strip idempotency or paging fields.
 export const narratorInputSchema = z.object({
-  operation: z.enum(['connect', 'read', 'catalog', 'invoke', 'narrate', 'release_floor', 'answer_ask']),
+  operation: z.enum(['connect', 'read', 'snapshot', 'catalog', 'invoke', 'narrate', 'release_floor', 'answer_ask']),
   campaignId: z.string().uuid(), ...readFields,
   pageCursor: z.string().max(500).optional(),
   commandId: z.string().uuid().optional(),
@@ -32,6 +32,9 @@ export const narratorInputSchema = z.object({
     kind: z.enum(['fact', 'chapter', 'scene', 'summary', 'npc', 'place', 'rule', 'sheet', 'recent']),
     ref: z.string().max(300), quote: z.string().max(2000),
   }).strict()).max(50).optional(),
+  sections: z.array(z.enum(['party', 'combat', 'location', 'recent', 'memory', 'npcs'])).max(6).optional(),
+  recentLimit: z.number().int().min(1).max(20).optional(),
+  knownRevision: z.string().regex(/^[a-f0-9]{64}$/).optional(),
   releaseFloor: z.boolean().optional(),
   summaryOnly: z.boolean().optional(), category: z.string().optional(), action: z.string().optional(),
   policyMode: z.enum(['full', 'compact']).optional(), includePolicyText: z.boolean().optional(),
