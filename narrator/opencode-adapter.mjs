@@ -3,6 +3,9 @@ import { trustedInstruction } from './role-profiles.mjs';
 
 export class OpenCodeAdapter {
   constructor(options = {}) {
+    // Trusted source marker used by the shared play-mode router. This is set by
+    // the in-repo adapter itself, not inferred from a client-supplied header.
+    this.runtimeSource = "custom-opencode";
     this.endpoint = new URL(options.endpoint ?? process.env.ODM_OPENCODE_URL);
     const local = ['localhost', '127.0.0.1', '[::1]'].includes(this.endpoint.hostname);
     if (!(this.endpoint.protocol === 'https:' || this.endpoint.protocol === 'http:' && local) || this.endpoint.username || this.endpoint.password || this.endpoint.search || this.endpoint.hash) throw new Error('Use HTTPS or loopback HTTP without URL credentials.');
