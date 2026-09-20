@@ -11,7 +11,7 @@ import { classifyInput,DM_REFUSALS } from './semantic-gate.mjs';
 import { NarratorCostTracker } from './cost-tracker.mjs';
 import { HostContextMemory } from './compaction.mjs';
 import { connectNarrator,drainNarratorStory,readNarratorSnapshot } from './read-session.mjs';
-import { explicitYoloRequested } from '../src/lib/dm/play-mode.mjs';
+import { explicitYoloRequested } from '../shared/dnd-play-mode.mjs';
 const integer=(value,fallback,min,max)=>Number.isSafeInteger(Number(value))&&Number(value)>=min&&Number(value)<=max?Number(value):fallback;
 const hash=value=>crypto.createHash('sha256').update(value).digest();
 export class NarratorRunner {
