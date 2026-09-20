@@ -1,5 +1,4 @@
 import { getDatabase, nowIso } from "@/lib/db/core";
-import type { SqliteDatabase } from "@/lib/db/driver";
 
 export type NarratorReceipt = {
   commandId: string;
@@ -13,16 +12,13 @@ type ReceiptRow = {
   command_id: string; receipt_id: string; fingerprint: string; operation: string;
   result_json: string; committed_seq: number;
 };
-const schemas = new WeakMap<SqliteDatabase, number>();
 function database() {
   const db = getDatabase();
-  const version = (db.prepare("PRAGMA schema_version").get() as { schema_version: number }).schema_version;
-  if (schemas.get(db) === version) return db;
+  // Read schema objects, not a memoized schema_version that can repeat after rollback.
   const objects = db.prepare(`SELECT name FROM sqlite_master
     WHERE type IN ('table', 'index') AND name IN ('narrator_commands', 'narrator_commands_recent')`).all() as Array<{ name: string }>;
   const names = new Set(objects.map(({ name }) => name));
   if (!names.has("narrator_commands") || !names.has("narrator_commands_recent")) {
-    schemas.delete(db);
     db.exec(`CREATE TABLE IF NOT EXISTS narrator_commands (
     campaign_id TEXT NOT NULL REFERENCES campaigns(id) ON DELETE CASCADE,
     command_id TEXT NOT NULL,
@@ -34,10 +30,6 @@ function database() {
     created_at TEXT NOT NULL,
     PRIMARY KEY (campaign_id, command_id)
   ); CREATE INDEX IF NOT EXISTS narrator_commands_recent ON narrator_commands(campaign_id, committed_seq DESC);`);
-  } else {
-    // Stamp only the version whose objects were checked. DDL may roll back or
-    // another connection may migrate after that check; recheck on next access.
-    schemas.set(db, version);
   }
   return db;
 }

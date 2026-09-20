@@ -13,18 +13,12 @@ export class AskQueueConflict extends Error {
     super(message); this.name = 'AskQueueConflict';
   }
 }
-const schemas = new WeakMap();
 export function ensureAskQueue(db) {
-  const version = db.prepare('PRAGMA schema_version').get().schema_version;
-  let ready = schemas.get(db) === version;
-  if (!ready) {
-    const objects = db.prepare(`SELECT name FROM sqlite_master WHERE type IN ('table','index')
-      AND name IN ('campaign_ask_queue','idx_ask_queue_pending','odm_ask_queue_migrations')`).all();
-    ready = objects.length === 3;
-    if (ready) schemas.set(db, version); else schemas.delete(db);
-  }
-  // Cache schema identity only. The data marker can be deleted or rolled back
-  // without changing schema_version and must always be checked in SQLite.
+  const objects = db.prepare(`SELECT name FROM sqlite_master WHERE type IN ('table','index')
+    AND name IN ('campaign_ask_queue','idx_ask_queue_pending','odm_ask_queue_migrations')`).all();
+  const ready = objects.length === 3;
+  // Both schema_version and the migration marker can roll back. Only prepared
+  // programs are reused; schema existence and the data marker stay live reads.
   if (ready && db.prepare('SELECT version FROM odm_ask_queue_migrations WHERE version = 1').get()) return;
   db.transaction(() => {
     if (!ready) db.exec(`CREATE TABLE IF NOT EXISTS campaign_ask_queue (

@@ -15,8 +15,8 @@
         "name": "warm_full_mcp_read",
         "reads": 25,
         "wallMs": {
-          "p50": 1.035,
-          "p95": 1.644
+          "p50": 0.632,
+          "p95": 0.993
         },
         "bytes": 25783,
         "identicalWithinScenario": true,
@@ -34,8 +34,8 @@
         "name": "changed_sheet",
         "reads": 25,
         "wallMs": {
-          "p50": 1.146,
-          "p95": 1.544
+          "p50": 0.746,
+          "p95": 1.105
         },
         "bytes": 25783,
         "identicalWithinScenario": false,
@@ -53,8 +53,8 @@
         "name": "changed_fact_npc",
         "reads": 25,
         "wallMs": {
-          "p50": 2.288,
-          "p95": 3.943
+          "p50": 1.554,
+          "p95": 2.411
         },
         "bytes": 25804,
         "identicalWithinScenario": false,
@@ -72,8 +72,8 @@
     "exactContent": {
       "label": "SERVER EXACT CONTENT path, NOT local external D&D RAG",
       "samples": 100,
-      "p50Ms": 0.015,
-      "p95Ms": 0.07,
+      "p50Ms": 0.014,
+      "p95Ms": 0.064,
       "bytes": 234,
       "sourceCitation": "SRD 5.1",
       "documentSlug": "srd-2014",
@@ -95,16 +95,16 @@
         "name": "warm_full_mcp_read",
         "reads": 25,
         "wallMs": {
-          "p50": 0.476,
-          "p95": 1.133
+          "p50": 0.423,
+          "p95": 0.908
         },
         "bytes": 25783,
         "identicalWithinScenario": true,
         "db": {
-          "prepareRequests": 875,
-          "distinctStatementHandles": 19,
+          "prepareRequests": 975,
+          "distinctStatementHandles": 22,
           "exec": 0,
-          "sqlReads": 875,
+          "sqlReads": 975,
           "npcRows": 0
         },
         "projectionLoads": 0,
@@ -114,16 +114,16 @@
         "name": "changed_sheet",
         "reads": 25,
         "wallMs": {
-          "p50": 0.518,
-          "p95": 0.718
+          "p50": 0.524,
+          "p95": 0.631
         },
         "bytes": 25783,
         "identicalWithinScenario": false,
         "db": {
-          "prepareRequests": 1000,
-          "distinctStatementHandles": 21,
+          "prepareRequests": 1100,
+          "distinctStatementHandles": 24,
           "exec": 0,
-          "sqlReads": 975,
+          "sqlReads": 1075,
           "npcRows": 0
         },
         "projectionLoads": 25,
@@ -133,16 +133,16 @@
         "name": "changed_fact_npc",
         "reads": 25,
         "wallMs": {
-          "p50": 1.067,
-          "p95": 2.049
+          "p50": 1.36,
+          "p95": 2.115
         },
         "bytes": 25804,
         "identicalWithinScenario": false,
         "db": {
-          "prepareRequests": 1200,
-          "distinctStatementHandles": 25,
+          "prepareRequests": 1300,
+          "distinctStatementHandles": 28,
           "exec": 0,
-          "sqlReads": 1150,
+          "sqlReads": 1250,
           "npcRows": 2500
         },
         "projectionLoads": 50,
@@ -152,8 +152,8 @@
     "exactContent": {
       "label": "SERVER EXACT CONTENT path, NOT local external D&D RAG",
       "samples": 100,
-      "p50Ms": 0.015,
-      "p95Ms": 0.089,
+      "p50Ms": 0.014,
+      "p95Ms": 0.061,
       "bytes": 234,
       "sourceCitation": "SRD 5.1",
       "documentSlug": "srd-2014",
