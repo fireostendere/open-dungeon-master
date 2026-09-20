@@ -18,7 +18,7 @@ const snapshot = (extra = {}) => ({ campaign: { id: 'c', status: 'active', scene
 
 function fixture(replies, options = {}) {
   const modelCalls = [], writes = [], receipts = new Map();
-  const adapter = { async generate(role, prompt) {
+  const adapter = { runtimeSource: 'custom-opencode', async generate(role, prompt) {
     modelCalls.push({ role, packet: JSON.parse(prompt) });
     const reply = typeof replies === 'function' ? await replies(role, JSON.parse(prompt)) : replies.shift();
     if (reply === undefined) throw new Error('Unexpected model call');

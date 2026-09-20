@@ -101,6 +101,7 @@ COPY --from=build --chown=node:node /app/data/content/open5e.sqlite ./content/op
 # Source and scripts, so maintenance commands work through `docker compose exec`
 # (make-admin.mjs and backfill-embeddings.mjs import TypeScript from src/).
 COPY --from=build --chown=node:node /app/src ./src
+COPY --from=build --chown=node:node /app/shared ./shared
 COPY --from=build --chown=node:node /app/scripts ./scripts
 COPY --from=build --chown=node:node /app/tsconfig.json ./tsconfig.json
 

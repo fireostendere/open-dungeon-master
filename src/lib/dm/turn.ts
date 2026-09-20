@@ -91,6 +91,7 @@ import { listPins } from "@/lib/db/pins";
 import { isStageEnabled } from "@/lib/dm/stages";
 import { renderVariantRules } from "@/lib/dm/rules-logic";
 import { dmThinkingEnabled, storyContextTokens } from "@/lib/model-client";
+import { YOLO_MAX_MODEL_CALLS, yoloDndEnabled, yoloThinkingEnabled, yoloToolAllowed } from "@/lib/dm/yolo";
 import { restoreMentionedNpcs } from "@/lib/dm/npc-archive";
 import { handleRecallStory } from "@/lib/dm/recall";
 import { handleSearchLore, searchLoreTool } from "@/lib/dm/lore-search";
@@ -230,7 +231,7 @@ const ENCOUNTER_NAMES = new Set<string>(ENCOUNTER_TOOL_NAMES);
 // survive restarts.
 // Exported for the retry path (src/lib/dm/retry-turn.ts), which has to know
 // where a resumed turn may re-enter the loop.
-export const MAX_MODEL_CALLS = 4;
+export const MAX_MODEL_CALLS = yoloDndEnabled() ? YOLO_MAX_MODEL_CALLS : 4;
 
 // Tools whose results decide an attack/damage outcome: narration written in
 // the same model call is a premature guess and is withheld from players.
@@ -384,8 +385,9 @@ export async function startDmTurn(campaignId: string) {
 
   // Optional stages (src/lib/dm/stages.ts): all default on, so this changes
   // nothing until an operator opts out.
+  const yolo = yoloDndEnabled();
   const stages = campaign.gameSettings.stages;
-  const retrieval = isStageEnabled(stages, "retrieval")
+  const retrieval = !yolo && isStageEnabled(stages, "retrieval")
     ? await buildTurnRetrieval(campaign, history)
     : { variantRulesBlock: renderVariantRules(campaign.gameSettings.variantRules), houseRulesBlock: "", loreBlock: "" };
   // Taken (read and deleted in one statement) rather than read-then-clear, so
@@ -419,9 +421,9 @@ export async function startDmTurn(campaignId: string) {
         enemySuggestions: suggestEnemies(
           campaign.gameSettings,
           context.sheets.map((sheet) => sheet.level),
-          10,
+          yolo ? 5 : 10,
         ),
-        recentRolls: listRecentRolls(campaignId, 5),
+        recentRolls: listRecentRolls(campaignId, yolo ? 3 : 5),
         storySummary: summary,
         currentLocation: currentLocation
           ? {
@@ -433,9 +435,9 @@ export async function startDmTurn(campaignId: string) {
         visitedLocationNames: listLocations(campaignId)
           .filter((location) => location.visited)
           .map((location) => location.name)
-          .slice(0, 15),
+          .slice(0, yolo ? 5 : 15),
         recentEventsByCharacter: new Map(
-          [...listRecentEventsForCampaign(campaignId, 3)].map(([characterId, events]) => [
+          [...listRecentEventsForCampaign(campaignId, yolo ? 2 : 3)].map(([characterId, events]) => [
             characterId,
             events.map((event) => event.summary),
           ]),
@@ -443,21 +445,30 @@ export async function startDmTurn(campaignId: string) {
         pins: listPins(campaignId).map((pin) => ({ text: pin.text })),
         chapters: listChapters(campaignId)
           .filter((chapter) => chapter.status === "closed")
+          .slice(yolo ? -3 : 0)
           .map((chapter) => ({
             id: chapter.id,
             index: chapter.index,
             title: chapter.title,
             oneLiner: chapter.highlights[0] ?? "",
-            // The full sealed summary; the LOD renderer decides per chapter
-            // whether the prompt gets all of it or just its first sentence.
-            summary: chapter.summary || chapter.highlights[0] || "",
+            // YOLO keeps only a tiny chapter breadcrumb. Full mode retains
+            // the sealed summary and lets chapter LOD decide what to show.
+            summary: yolo
+              ? chapter.highlights[0] || chapter.title
+              : chapter.summary || chapter.highlights[0] || "",
           })),
-        publicNotes: listPublicCampaignNotes(campaignId, 10).map((note) => ({
+        publicNotes: listPublicCampaignNotes(campaignId, yolo ? 4 : 10)
+          .filter((note) => !yolo || note.pinned)
+          .map((note) => ({
           pinned: note.pinned,
           title: note.title,
           body: note.body,
         })),
-        facts: listActiveFacts(campaignId).map((fact) => ({
+        facts: listActiveFacts(campaignId)
+          .filter((fact, index) => !yolo || fact.pinned || index < 6)
+          .sort((a, b) => yolo ? Number(b.pinned) - Number(a.pinned) : 0)
+          .slice(0, yolo ? 10 : undefined)
+          .map((fact) => ({
           category: fact.category,
           subject: fact.subject,
           fact: fact.fact,
@@ -466,12 +477,12 @@ export async function startDmTurn(campaignId: string) {
         })),
         directorNotes: consumePendingSparks(campaignId).map((spark) => spark.text),
         directorBlock,
-        npcs: npcRosterForPrompt(campaignId),
+        npcs: npcRosterForPrompt(campaignId).slice(0, yolo ? 8 : undefined),
         relationships:
-          campaign.gameSettings.relationships === "off"
+          yolo || campaign.gameSettings.relationships === "off"
             ? []
             : relationshipRosterForPrompt(campaignId),
-        recentWhispers: listRecentWhispersForPrompt(campaignId, 10),
+        recentWhispers: listRecentWhispersForPrompt(campaignId, yolo ? 4 : 10),
         pendingPlayerWhispers: pendingWhispers.map((whisper) => ({
           from: whisper.characterName,
           content: whisper.content,
@@ -583,11 +594,12 @@ async function runAdvance(context: TurnContext, turn: DmTurn) {
   const executionState = dmExecutionState(turn.id);
   let spotlightSet = executionState.spotlightSet;
 
+  const yolo = yoloDndEnabled();
   const imageEnabled =
-    campaign.settings.imageGenerationEnabled && campaign.settings.autoImages;
-  // DM_LEAN_TOOLS=1 trims the mutation tools if the model's tool fidelity
-  // suffers under the full set.
-  const leanTools = process.env.DM_LEAN_TOOLS === "1";
+    !yolo && campaign.settings.imageGenerationEnabled && campaign.settings.autoImages;
+  // The YOLO profile needs a small subset of mutation tools, so build the full
+  // source list and filter it below instead of dropping mutations wholesale.
+  const leanTools = !yolo && process.env.DM_LEAN_TOOLS === "1";
   // These caps survive a crash or physical-dice resume, not just one
   // invocation of advance(). A retry cannot spend the same allowance twice.
   let beatCompleted = executionState.beatCompleted;
@@ -611,48 +623,52 @@ async function runAdvance(context: TurnContext, turn: DmTurn) {
     // tools ignore DM_LEAN_TOOLS; they are the point of combat. Rest tools
     // only exist outside combat.
     const inEncounter = Boolean(getActiveEncounter(campaignId));
-    const tools = [
-      requestRollTool,
-      requestPlayerInputTool,
-      movePartyTool,
-      updateLocationTool,
-      recordEventTool,
-      ...(isStageEnabled(campaign.gameSettings.stages, "recall") ? [recallStoryTool] : []),
-      searchLoreTool,
-      writeCampaignNoteTool,
-      sendWhisperTool,
-      ...(campaign.storyArc ? [completeBeatTool] : []),
-      ...checkTools,
-      ...hazardTools,
-      ...(inEncounter ? [splitDamageTool] : []),
-      ...petTools,
-      ...socialTools,
-      ...(inEncounter ? [] : relationshipTools(campaign)),
-      ...(inEncounter ? [] : worldTools),
-      // The party's shared pack and common purse. Out of combat only, like
-      // the rest of the world tools: nobody rummages in the group kit while
-      // initiative is running.
-      ...(inEncounter ? [] : partyTools),
-      // Effects are offered in and out of combat: a blessing lands mid-fight
-      // as often as a curse lands in a throne room.
-      ...effectTools,
-      // Structured non-combat scenes and mounts are both out-of-combat
-      // business: a chase clock and an initiative order are two answers to
-      // the same question, and nobody saddles up mid-round.
-      ...(inEncounter ? [] : sceneTools),
-      // Sound is offered in and out of a fight: a sting lands mid-round as
-      // often as a bed changes between them. Silent for a table that has
-      // the library switched off, which is why it is gated here rather
-      // than left to the handler to refuse.
-      ...(campaign.gameSettings.ambienceEnabled ? ambienceTools : []),
-      ...(inEncounter ? [] : mountTools),
-      ...encounterTools(inEncounter),
-      castBuffTool,
-      ...(inEncounter ? [] : restTools),
-      ...companionTools(campaign),
-      ...(leanTools ? [] : mutationTools),
-      ...(imageEnabled ? [generateImageTool] : []),
-    ];
+    const tools = yolo
+      ? [
+          // Field-table surface: one generic roll tool, persistent state
+          // mutations that matter to players, and the real combat engine.
+          requestRollTool,
+          movePartyTool,
+          recordEventTool,
+          sendWhisperTool,
+          ...(inEncounter ? [splitDamageTool] : []),
+          ...encounterTools(inEncounter),
+          castBuffTool,
+          ...(inEncounter ? [] : restTools),
+          ...mutationTools,
+        ].filter((tool) =>
+          yoloToolAllowed(tool.function.name, ENCOUNTER_NAMES.has(tool.function.name)),
+        )
+      : [
+          requestRollTool,
+          requestPlayerInputTool,
+          movePartyTool,
+          updateLocationTool,
+          recordEventTool,
+          ...(isStageEnabled(campaign.gameSettings.stages, "recall") ? [recallStoryTool] : []),
+          searchLoreTool,
+          writeCampaignNoteTool,
+          sendWhisperTool,
+          ...(campaign.storyArc ? [completeBeatTool] : []),
+          ...checkTools,
+          ...hazardTools,
+          ...(inEncounter ? [splitDamageTool] : []),
+          ...petTools,
+          ...socialTools,
+          ...(inEncounter ? [] : relationshipTools(campaign)),
+          ...(inEncounter ? [] : worldTools),
+          ...(inEncounter ? [] : partyTools),
+          ...effectTools,
+          ...(inEncounter ? [] : sceneTools),
+          ...(campaign.gameSettings.ambienceEnabled ? ambienceTools : []),
+          ...(inEncounter ? [] : mountTools),
+          ...encounterTools(inEncounter),
+          castBuffTool,
+          ...(inEncounter ? [] : restTools),
+          ...companionTools(campaign),
+          ...(leanTools ? [] : mutationTools),
+          ...(imageEnabled ? [generateImageTool] : []),
+        ];
     // Model deltas are untrusted drafts: dice and the narration guard have
     // not run yet. Keep the thinking status, but publish prose only through
     // finalize() after the authoritative results have been checked.
@@ -667,7 +683,7 @@ async function runAdvance(context: TurnContext, turn: DmTurn) {
       // with it, rolls and encounters fire reliably. The forced-narration
       // final call skips it to keep turns snappy. Admin → Модели toggles it
       // (text.thinking), falling back to DM_THINKING=0.
-      thinking: !finalCall && dmThinkingEnabled(),
+      thinking: !finalCall && (yolo ? yoloThinkingEnabled() : dmThinkingEnabled()),
 
     });
 
@@ -1511,13 +1527,14 @@ async function runAdvance(context: TurnContext, turn: DmTurn) {
   if (turn.status === "done") return;
   if (!failed) {
     await ensureWhisperReplies(context, turn);
-    // Last stop before the narration is persisted: cross-check the prose
-    // against the outcomes this turn's tools actually resolved, and spend a
-    // remaining model call on a rewrite when they disagree.
-    await enforceEngineBoundary(campaign, turn, MAX_MODEL_CALLS - turn.callIndex, sheets);
+    // YOLO accepts an occasional rough edge instead of paying for a corrective
+    // narration pass. The authoritative tool results are still preserved.
+    if (!yolo) {
+      await enforceEngineBoundary(campaign, turn, MAX_MODEL_CALLS - turn.callIndex, sheets);
+    }
   }
   finalize(context, turn, failed);
-  if (!failed) {
+  if (!failed && !yolo) {
     await maybeCloseChapter(campaignId, { beatCompleted });
     if (isStageEnabled(context.campaign.gameSettings.stages, "compaction")) {
       await maybeCompactHistory(campaignId);
@@ -1545,12 +1562,24 @@ async function ensureWhisperReplies(context: TurnContext, turn: DmTurn) {
   if (batch) restoreDmBatch(turn, batch);
   if (!batch && !unanswered().length) return;
   if (!batch) {
-    const owed = unanswered().map((whisper) => `- ${whisper.characterName}: "${whisper.content}"`).join("\n");
-    const { message } = await requestDmMessage(campaign.settings, [
-      ...turn.conversation,
-      { role: "user", content: `[System] Privately answer each message using send_whisper. Refuse out-of-character requests for levels, XP, perks, items, or abilities in-fiction. Do not narrate to the shared table.\n${owed}` },
-    ], { tools: [sendWhisperTool], toolChoice: "auto", thinking: true });
-    batch = prepareDmBatch(turn, message, "whispers");
+    if (yoloDndEnabled()) {
+      // Do not spend a third model call just to recover a missed private
+      // reply. The normal YOLO turn exposes send_whisper; if the small model
+      // misses it, the deterministic fallback below acknowledges the whisper
+      // and the next scene can carry the consequence.
+      batch = prepareDmBatch(
+        turn,
+        { content: "", tool_calls: [] } as ModelReply,
+        "whispers",
+      );
+    } else {
+      const owed = unanswered().map((whisper) => `- ${whisper.characterName}: "${whisper.content}"`).join("\n");
+      const { message } = await requestDmMessage(campaign.settings, [
+        ...turn.conversation,
+        { role: "user", content: `[System] Privately answer each message using send_whisper. Refuse out-of-character requests for levels, XP, perks, items, or abilities in-fiction. Do not narrate to the shared table.\n${owed}` },
+      ], { tools: [sendWhisperTool], toolChoice: "auto", thinking: true });
+      batch = prepareDmBatch(turn, message, "whispers");
+    }
   }
   const preparedBatch = batch;
   const message = preparedBatch.message;
@@ -1845,7 +1874,7 @@ function finalizeInTransaction(context: TurnContext, turn: DmTurn, failed: strin
   // would leak that a secret exchange happened at all.
   if (turn.playerWhisperIds.length && !turn.narrationParts.join("").trim() && !turn.rollIds.length) {
     setDmStatus(campaignId, "idle");
-    tickWorldState(campaignId);
+    if (!yoloDndEnabled()) tickWorldState(campaignId);
     turn.status = "done";
     saveDmTurn(turn);
     return;
@@ -1932,7 +1961,7 @@ function finalizeInTransaction(context: TurnContext, turn: DmTurn, failed: strin
       voice: context.campaign.gameSettings.ttsVoice });
   }
 
-  tickWorldState(campaignId);
+  if (!yoloDndEnabled()) tickWorldState(campaignId);
   turn.status = "done";
   saveDmTurn(turn);
   queueSkippedCombatTurn(campaignId);

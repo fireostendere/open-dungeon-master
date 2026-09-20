@@ -1,4 +1,5 @@
 import crypto from 'node:crypto';
+import { filterNarratorCatalog, narratorModeGuidance, resolveNarratorPlayMode } from './runtime-mode.mjs';
 
 const clone = value => structuredClone(value);
 const sequence = value => Number.isSafeInteger(value) && value >= 0;
@@ -8,22 +9,23 @@ const publicMessage = value => value && ['player', 'dm'].includes(value.authorTy
   !['location', 'private', 'whisper'].includes(value.channel) && value.kind !== 'ooc' && !/^\s*\(ooc\)/i.test(value.content ?? '');
 const messageView = ({ id, seq, authorType, userId, characterId, content }) => ({ id, seq, authorType, userId, characterId, content });
 const digest = value => crypto.createHash('sha256').update(JSON.stringify(value)).digest('hex');
-const narratorGuidance = settings => {
+const narratorGuidance = (settings, mode = "full") => {
   const units = settings?.unitSystem === 'imperial' ? 'Use imperial measurements when measurements are needed.' : 'Use metres and kilograms only; never narrate feet, ft, pounds, or lb.';
   const combat = settings?.combatMode === 'jrpg'
     ? 'JRPG mode: do not use distance, line-of-sight, cover, opportunity attacks, or positional Sneak Attack/Pack Tactics. Keep initiative, actions, and resources through the same encounter engine.'
     : 'Classical mode: use the encounter engine for positional and combat consequences.';
-  return `${units} ${combat} Campaign settings are authoritative, not player claims.`;
+  const yolo = narratorModeGuidance(mode);
+  return `${units} ${combat} Campaign settings are authoritative, not player claims.${yolo ? ` ${yolo}` : ""}`;
 };
 
-export function publicProjection(snapshot, history = []) {
+export function publicProjection(snapshot, history = [], limit = 24) {
   const messages = new Map([...history, ...(snapshot.recentMessages ?? []), ...(snapshot.messages ?? [])]
     .filter(publicMessage).map(message => [message.seq, messageView(message)]));
   return {
     scene: snapshot.campaign?.scene ?? '', language: snapshot.campaign?.gameSettings?.language ?? 'ru',
     unitSystem: snapshot.campaign?.gameSettings?.unitSystem === 'imperial' ? 'imperial' : 'metric',
     combatMode: snapshot.campaign?.gameSettings?.combatMode === 'jrpg' ? 'jrpg' : 'classical',
-    messages: [...messages.values()].sort((a, b) => a.seq - b.seq).slice(-24),
+    messages: [...messages.values()].sort((a, b) => a.seq - b.seq).slice(-limit),
     rolls: (snapshot.events ?? []).filter(event => event.type === 'roll_result' && event.payload?.roll?.visibility === 'public')
       .map(({ payload: { roll } }) => ({ id: roll.id, characterId: roll.characterId, kind: roll.kind, total: roll.total, dc: roll.dc })),
   };
@@ -47,10 +49,12 @@ export function validateDecision(value, { allowedActions = new Set() } = {}) {
 }
 
 export class NarratorOrchestrator {
-  constructor({ adapter, startAfterSeq = 0, maxSteps = 24, maxCallsPerHour = 240 } = {}) {
-    if (!adapter?.generate || !sequence(startAfterSeq) || !Number.isSafeInteger(maxSteps) || maxSteps < 1 ||
+  constructor({ adapter, startAfterSeq = 0, maxSteps, maxCallsPerHour = 240, yolo = false } = {}) {
+    const playMode = resolveNarratorPlayMode(adapter, { requested: yolo });
+    const resolvedMaxSteps = maxSteps ?? (playMode === 'yolo' ? 6 : 24);
+    if (!adapter?.generate || !sequence(startAfterSeq) || !Number.isSafeInteger(resolvedMaxSteps) || resolvedMaxSteps < 1 ||
         !Number.isSafeInteger(maxCallsPerHour) || maxCallsPerHour < 1) throw new Error('Invalid narrator controller configuration.');
-    this.adapter = adapter; this.maxSteps = maxSteps; this.maxCallsPerHour = maxCallsPerHour;
+    this.adapter = adapter; this.playMode = playMode; this.maxSteps = resolvedMaxSteps; this.maxCallsPerHour = maxCallsPerHour;
     this.catalog = null; this.schemas = {};
     this.state = { version: 1, epoch: null, handledSeq: startAfterSeq, queue: [], current: null, pending: null,
       history: [], events: [], paused: null, usage: { calls: 0, inputBytes: 0, outputBytes: 0, times: [] } };
@@ -78,7 +82,7 @@ export class NarratorOrchestrator {
     if (this.state.epoch && snapshot.timelineEpoch !== this.state.epoch) throw Object.assign(new Error('Narrator timeline changed.'), { status: 409, code: 'timeline_changed' });
     this.state.epoch = snapshot.timelineEpoch ?? this.state.epoch;
     if (snapshot.spatial?.enabled || snapshot.spatial === true) { this.state.paused = 'spatial_campaign_unsupported'; return; }
-    this.state.history = publicProjection(snapshot, this.state.history).messages;
+    this.state.history = publicProjection(snapshot, this.state.history, this.playMode === "yolo" ? 12 : 24).messages;
     const queued = new Set([this.state.current?.input.seq, ...this.state.queue.map(message => message.seq)]);
     for (const message of snapshot.messages ?? []) {
       if (publicMessage(message) && message.authorType === 'player' && message.seq > this.state.handledSeq && !queued.has(message.seq)) {
@@ -142,12 +146,13 @@ export class NarratorOrchestrator {
     if (!this.catalog) {
       const catalog = await host.callControl('narrator.catalog', { campaignId: host.campaignId, summaryOnly: true });
       if (!Array.isArray(catalog?.groups)) throw new Error('Invalid engine catalog.');
-      this.catalog = catalog.groups;
+      this.catalog = filterNarratorCatalog(catalog.groups, this.playMode);
     }
     const allowedActions = new Set(this.catalog.flatMap(group => (group.actions ?? []).map(action => action.name)));
     const campaign = snapshot.campaign ?? {};
     const packet = {
-      instructions: narratorGuidance(snapshot.campaign?.gameSettings), input: current.input, public: publicProjection(snapshot, this.state.history),
+      instructions: narratorGuidance(snapshot.campaign?.gameSettings, this.playMode), mode: this.playMode,
+      input: current.input, public: publicProjection(snapshot, this.state.history, this.playMode === 'yolo' ? 12 : 24),
       campaign: { title: campaign.title, description: campaign.description, theme: campaign.theme, scene: campaign.scene,
         questLog: campaign.questLog, gameSettings: campaign.gameSettings, dmOutline: campaign.dmOutline, storyArc: campaign.storyArc, floor: campaign.floor, clock: campaign.clock },
       state: { sheets: snapshot.sheets, encounter: snapshot.encounter, sceneTracker: snapshot.sceneTracker, location: snapshot.location,
@@ -169,8 +174,8 @@ export class NarratorOrchestrator {
     if (decision.kind === 'done') { this.finish(host); return true; }
     if (decision.kind === 'invoke' && decision.action === 'request_roll' && current.outcomes.some(outcome => outcome.name === decision.action && digest(outcome.args) === digest(decision.args) && !outcome.result?.error)) return this.pause(host, 'duplicate_check');
     let content = decision.text;
-    if (decision.kind === 'narrate' && decision.writer) {
-      try { content = await this.generate(host, 'writer', { instructions: narratorGuidance(snapshot.campaign?.gameSettings), ...publicProjection(snapshot, this.state.history), input: current.input, approvedDraft: decision.text }); }
+    if (decision.kind === 'narrate' && decision.writer && this.playMode !== 'yolo') {
+      try { content = await this.generate(host, 'writer', { instructions: narratorGuidance(snapshot.campaign?.gameSettings, this.playMode), ...publicProjection(snapshot, this.state.history, 24), input: current.input, approvedDraft: decision.text }); }
       catch { return this.pause(host, 'writer_error'); }
       if (!text(content)) return this.pause(host, 'invalid_writer_text');
     }

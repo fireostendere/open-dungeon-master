@@ -3,6 +3,8 @@ import {
   buildDmSystem as buildCoreDmSystem,
 } from "@/lib/dm/prompt-core";
 import { combatModeInstructions } from "@/lib/dm/combat-mode";
+import { YOLO_DM_SYSTEM, YOLO_HISTORY_MESSAGES, yoloDndEnabled } from "@/lib/dm/yolo";
+import { estimateTokens } from "@/lib/dm/context-budget";
 
 export * from "@/lib/dm/prompt-core";
 
@@ -91,6 +93,13 @@ export function buildDmSystem(
   const [campaign] = args;
   const language = explicitLanguage(campaign.gameSettings.language) ?? "ru";
   const unitSystem = campaign.gameSettings.unitSystem === "imperial" ? "imperial" : "metric";
+  if (yoloDndEnabled()) {
+    return [
+      YOLO_DM_SYSTEM,
+      languageStandards(language, unitSystem),
+      combatModeInstructions(campaign),
+    ].filter(Boolean).join("\n\n");
+  }
   return `${localizeLanguageBlock(buildCoreDmSystem(...args), language, unitSystem)}\n\n${combatModeInstructions(campaign)}`;
 }
 
@@ -100,6 +109,111 @@ export function buildDmMessages(
   const [state, history] = args;
   const language = explicitLanguage(state.campaign.gameSettings.language) ?? inferredLanguage(history);
   const unitSystem = state.campaign.gameSettings.unitSystem === "imperial" ? "imperial" : "metric";
+
+  if (yoloDndEnabled()) {
+    // Keep the current arc and authoritative character/encounter state, but
+    // remove the expensive long-tail simulation context. The rolling campaign
+    // summary is the memory spine; a small recent window is enough for voice
+    // and immediate continuity.
+    const yoloState = {
+      ...state,
+      campaign: {
+        ...state.campaign,
+        gameSettings: {
+          ...state.campaign.gameSettings,
+          worldSimulation: false,
+          relationships: "off" as const,
+          romance: "off" as const,
+          companions: "off" as const,
+          narrationGuard: false,
+        },
+      },
+      chapters: (state.chapters ?? []).slice(-3).map((chapter) => ({
+        ...chapter,
+        summary: chapter.oneLiner || chapter.title,
+      })),
+      facts: (state.facts ?? []).slice(0, 10),
+      publicNotes: (state.publicNotes ?? []).filter((note) => note.pinned).slice(0, 6),
+      npcs: (state.npcs ?? []).slice(0, 8),
+      relationships: [],
+      recentWhispers: (state.recentWhispers ?? []).slice(-4),
+      pins: (state.pins ?? []).slice(0, 6),
+      houseRulesBlock: "",
+      loreBlock: "",
+    };
+
+    const messages = buildCoreDmMessages(
+      yoloState,
+      history.slice(-YOLO_HISTORY_MESSAGES),
+    );
+
+    const marker = "=== GAME STATE (authoritative; never contradict) ===";
+    const compactMessages = messages.map((message) => {
+      if (message.role !== "system" || typeof message.content !== "string") return message;
+      // buildCoreDmMessages still gives us its authoritative GAME STATE
+      // formatter. Drop the giant rules preamble in front of it and replace it
+      // with the YOLO contract.
+      const markerIndex = message.content.indexOf(marker);
+      const gameState = markerIndex >= 0 ? message.content.slice(markerIndex) : message.content;
+      return {
+        ...message,
+        content: [
+          YOLO_DM_SYSTEM,
+          languageStandards(language, unitSystem),
+          combatModeInstructions(state.campaign),
+          gameState,
+        ].filter(Boolean).join("\n\n"),
+      };
+    }) as ReturnType<typeof buildCoreDmMessages>;
+
+    // The core builder measured the full rules manual before we replaced it.
+    // Rewrite the trace so the context inspector reports the payload that is
+    // actually sent to the model rather than a fictional pre-YOLO token cost.
+    const systemText =
+      typeof compactMessages[0]?.content === "string" ? compactMessages[0].content : "";
+    const gameStateIndex = systemText.indexOf(marker);
+    const rulesText = gameStateIndex >= 0 ? systemText.slice(0, gameStateIndex) : systemText;
+    const gameStateText = gameStateIndex >= 0 ? systemText.slice(gameStateIndex) : "";
+    const tailTokens = compactMessages.slice(1).reduce((sum, message) => {
+      const text = typeof message.content === "string"
+        ? message.content
+        : JSON.stringify(message.content);
+      return sum + estimateTokens(text);
+    }, 0);
+    state.contextTrace = {
+      limitTokens: yoloState.contextTrace?.limitTokens ?? state.contextLimitTokens ?? 0,
+      promptTokens: estimateTokens(systemText) + tailTokens,
+      blocks: [
+        {
+          id: "yolo-rules",
+          kind: "rules",
+          tokens: estimateTokens(rulesText),
+          included: true,
+          reason: "compact YOLO rules; full DM manual omitted",
+          position: 1,
+        },
+        {
+          id: "game-state",
+          kind: "state",
+          tokens: estimateTokens(gameStateText),
+          included: true,
+          reason: "authoritative live state",
+          position: 2,
+        },
+        {
+          id: "history",
+          kind: "history",
+          tokens: tailTokens,
+          included: true,
+          reason: `last ${Math.min(history.length, YOLO_HISTORY_MESSAGES)} messages plus any armed director note`,
+          position: 3,
+        },
+      ],
+    };
+
+    return compactMessages;
+  }
+
   const messages = buildCoreDmMessages(...args);
   return messages.map((message) => {
     if (message.role !== "system" || typeof message.content !== "string") return message;

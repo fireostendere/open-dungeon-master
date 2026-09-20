@@ -1,5 +1,12 @@
 # Dungeon Master — приватный AI D&D сервер
 
+> **Автоматический режим DM:** обычный web/internal AI и любой внешний host,
+> кроме доверенного встроенного OpenCode narrator, работают в лёгком
+> fiction-first **YOLO**. Встроенный custom OpenCode narrator получает полный
+> pipeline. Явный `--yolo`, `ODM_DND_MODE=yolo` или `YOLO_DND=1` всегда
+> принудительно включает YOLO, в том числе внутри OpenCode.
+> Подробности: [docs/yolo-dnd.md](docs/yolo-dnd.md).
+
 Приватный форк Open Dungeon Master: браузерные кампании D&D 5e, текстовый AI-ведущий, карты, боевой трекер, библиотека персонажей, постоянное хранилище и отдельный MCP-контур для внешних агентов.
 
 ## Результат ревью R01–R26
