@@ -37,7 +37,7 @@ def parse_env(path: Path) -> dict[str, str]:
     return values
 
 class NarratorController:
-    def __init__(self, root: str | Path | None = None, campaign_id: str | None = None, port: int = 3007):
+    def __init__(self, root: str | Path | None = None, campaign_id: str | None = None, port: int = 3007, yolo: bool = False):
         default_root = Path("/opt/odm") if Path("/opt/odm").is_dir() else Path.cwd()
         self.root = Path(root or os.environ.get("ODM_ROOT") or default_root).expanduser().resolve()
         self.config_dir = self.root / "config"
@@ -45,6 +45,9 @@ class NarratorController:
         self.state_dir.mkdir(parents=True, exist_ok=True)
         self.campaign_id = campaign_id or os.environ.get("ODM_CAMPAIGN_ID") or ""
         self.port = port
+        requested_mode = (os.environ.get("ODM_DND_MODE") or "").strip().lower()
+        legacy_yolo = (os.environ.get("YOLO_DND") or "").strip().lower() in {"1", "true", "yes", "on", "yolo", "fast", "field"}
+        self.yolo = yolo or requested_mode == "yolo" or legacy_yolo
 
         self.project = "odm-" + hashlib.sha256(str(self.root).encode()).hexdigest()[:10]
         self.network = self.project + "_default"
@@ -118,7 +121,7 @@ class NarratorController:
         return info
 
     def start(self, detach: bool = True) -> bool:
-        print(f"Starting narrator host for campaign '{self.campaign_id}' on port {self.port}...", flush=True)
+        print(f"Starting narrator host for campaign '{self.campaign_id}' on port {self.port} (requested mode: {'yolo' if self.yolo else 'auto'})...", flush=True)
 
         token = os.environ.get("ODM_MCP_NARRATOR_TOKEN") or os.environ.get("ODM_MCP_TOKEN")
         if not token:
@@ -158,6 +161,7 @@ class NarratorController:
                 "-e", f"ODM_MCP_TOKEN={token}",
                 "-e", "ODM_MCP_URL=http://app:3005/api/internal/mcp",
                 "-e", "ODM_NARRATOR_PORT=3007",
+                *(["-e", "ODM_DND_MODE=yolo"] if self.yolo else []),
                 "--security-opt", "no-new-privileges:true",
                 "--cap-drop", "ALL",
                 "--read-only",
@@ -177,6 +181,8 @@ class NarratorController:
             env["ODM_MCP_TOKEN"] = token
             env["ODM_NARRATOR_PORT"] = str(self.port)
             env["ODM_NARRATOR_CHECKPOINT_PATH"] = str(self.checkpoint_file)
+            if self.yolo:
+                env["ODM_DND_MODE"] = "yolo"
 
             subprocess.Popen([sys.executable if sys.executable.endswith("node") else "node", str(run_script)],
                              cwd=str(self.root), env=env)
@@ -226,9 +232,10 @@ def main() -> None:
     parser.add_argument("--campaign", help="Target campaign ID", default=None)
     parser.add_argument("--port", help="Health/status port (default 3007)", type=int, default=3007)
     parser.add_argument("--lines", help="Lines of logs to fetch", type=int, default=50)
+    parser.add_argument("--yolo", help="Explicitly request lightweight YOLO narration mode", action="store_true")
 
     args = parser.parse_args()
-    ctl = NarratorController(root=args.root, campaign_id=args.campaign, port=args.port)
+    ctl = NarratorController(root=args.root, campaign_id=args.campaign, port=args.port, yolo=args.yolo)
 
     if args.command == "status":
         info = ctl.status()
