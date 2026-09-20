@@ -1,5 +1,8 @@
 # Narrator latency: protocol, runtime and room delivery
 
+Current measurements and explicit outstanding work are in
+[the 2026-09-20 follow-up](narrator-performance-2026-09-20.md).
+
 This change targets application-controlled latency in external MCP play and the optional OpenCode narrator host. It does not change dice, private audiences, provider safety policy, model quality settings or the operator's local RAG. It does not promise a measured end-to-end speedup without a live trace.
 
 ## External Codex / MCP path
@@ -62,7 +65,7 @@ OpenCode generation still uses isolated sessions for roles and private contexts.
 
 Set `ODM_LATENCY_LOG=1` in the web/MCP processes to emit content-free JSONL to stderr, prefixed with `[odm-latency]`. Every record has an opaque random `traceId`, an allowlisted stage and numeric duration/count/byte fields only; durations retain millisecond precision to three decimals. It never includes player text, prompts, private Ask values, room/campaign/user/command IDs, hashes, credentials, tool arguments or error text. Logging failures are isolated from the command.
 
-Current coverage: MCP-side calls report `mcp_read`, `mcp_engine`, `mcp_narration` and `mcp_ask`; the host records `post_write_read` while it validates and consumes an attached receipt state; `narrator_write` records server queue and total command time. Packet construction reports `packet`; section cache work reports `read_sections`; checkpoints separately report serialization (state-key hash plus payload JSON, excluding filesystem work), file fsync, directory fsync and one `checkpoint_write` only after the full durable boundary succeeds. The OpenCode adapter reports `adapter_session`, `adapter_policy`, `adapter_model` and `adapter_cleanup`; `narrator_model` adds host role/input/output bytes and a model-call count. Summarize captured files without replaying raw input:
+Current coverage: MCP-side calls report `mcp_read`, `mcp_engine`, `mcp_narration` and `mcp_ask`; the host records `post_write_read` while it validates and consumes an attached receipt state; `narrator_write` records server queue and total command time. Packet construction reports `packet`; section cache work reports `read_sections`; checkpoints separately report serialization (state-key hash plus payload JSON, excluding filesystem work), file fsync, directory fsync and `checkpoint_write` attempts/errors. Only a completed file-and-directory durability boundary increments `writeCount`. The OpenCode adapter reports `adapter_session`, `adapter_policy`, `adapter_model` and `adapter_cleanup`; `narrator_model` adds host role/input/output bytes and a model-call count. Summarize captured files without replaying raw input:
 
 ```sh
 node scripts/summarize-latency.mjs /path/to/odm.log

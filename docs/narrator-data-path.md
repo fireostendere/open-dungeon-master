@@ -1,5 +1,9 @@
 # Narrator data-path optimization, second pass
 
+For the subsequent measured pass, the discovered external RAG, schema rollback
+fix and remaining gaps, see [the 2026-09-20 report](narrator-performance-2026-09-20.md).
+The timings and environment limitations below describe the earlier pass.
+
 Continues `astra` from `b6a75a1`. This document distinguishes implemented runtime changes from work that requires access to the operator's separate local RAG. No live server, game database, model selection, RAG corpus or main branch was changed during development.
 
 ## Implemented
@@ -45,7 +49,7 @@ This is deliberately **not** a new snapshot-plus-journal storage format. A chang
 
 The referee packet drops portrait-rendering metadata and an exact duplicate of the current input. It retains mechanics, resources, biographies, notes, rules, catalog and audience information. Writer and private Ask packets are not shortened. No cheaper model, speculative roll outcome or automatic reduction of literary quality is introduced.
 
-## Local RAG: not modified or benchmarked
+## Local RAG: historical second-pass limitation
 
 The actual Codex-side D&D RAG path, repository, backend and launch configuration were not available in this checkout/context. The in-project server embedding/retrieval modules are not evidence of that local RAG's implementation, and were not altered as a substitute. The engineering `mcp-rag` repository was not changed.
 

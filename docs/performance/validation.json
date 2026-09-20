@@ -1,0 +1,112 @@
+{
+  "baseline": "7aa73c4",
+  "inventoryCode": "0344bd5",
+  "testedCode": "7872dc6",
+  "node": "v24.18.0",
+  "command": "Each scripts/test-*.mjs except test-all, node --experimental-vm-modules, 120000ms per-script limit",
+  "postInventoryVerification": {
+    "scripts": [
+      "test-merge-mcp-registration.mjs",
+      "test-review-mcp-http.mjs"
+    ],
+    "command": "node --experimental-vm-modules --test scripts/test-merge-mcp-registration.mjs scripts/test-review-mcp-http.mjs",
+    "passed": 15,
+    "failed": 0
+  },
+  "baselineScripts": {
+    "total": 259,
+    "passed": 238,
+    "failed": 21
+  },
+  "finalScripts": {
+    "total": 262,
+    "passed": 250,
+    "failed": 12,
+    "method": "all-script inventory plus the two verified reruns"
+  },
+  "remainingFailures": [
+    {
+      "name": "test-i18n-coverage.mjs",
+      "status": 1,
+      "signal": null
+    },
+    {
+      "name": "test-language-coverage.mjs",
+      "status": 1,
+      "signal": null
+    },
+    {
+      "name": "test-location-client-boundary.mjs",
+      "status": 1,
+      "signal": null
+    },
+    {
+      "name": "test-location-client-intents.mjs",
+      "status": null,
+      "signal": "SIGTERM",
+      "error": "ETIMEDOUT"
+    },
+    {
+      "name": "test-merge-dialogue-mcp.mjs",
+      "status": 1,
+      "signal": null
+    },
+    {
+      "name": "test-p2-wiring.mjs",
+      "status": 1,
+      "signal": null
+    },
+    {
+      "name": "test-review-progress-finish.mjs",
+      "status": 1,
+      "signal": null
+    },
+    {
+      "name": "test-review-ui.mjs",
+      "status": 1,
+      "signal": null
+    },
+    {
+      "name": "test-spatial-battle-map.mjs",
+      "status": 1,
+      "signal": null
+    },
+    {
+      "name": "test-spatial-domain-notes.mjs",
+      "status": 1,
+      "signal": null
+    },
+    {
+      "name": "test-spatial-event-wiring.mjs",
+      "status": 1,
+      "signal": null
+    },
+    {
+      "name": "test-spatial-legacy-route-wiring.mjs",
+      "status": 1,
+      "signal": null
+    }
+  ],
+  "newFailures": [],
+  "fixedBaselineSuites": [
+    "test-dm-player-boundary.mjs",
+    "test-mcp-readiness-p1.mjs",
+    "test-merge-mcp-registration.mjs",
+    "test-narrator-host.mjs",
+    "test-narrator-orchestration.mjs",
+    "test-narrator-read-recovery.mjs",
+    "test-narrator-reader-recovery.mjs",
+    "test-review-mcp-http.mjs",
+    "test-spatial-event-privacy.mjs"
+  ],
+  "focused": {
+    "passed": 233,
+    "failed": 0,
+    "skipped": 0
+  },
+  "pythonBenchmarkTests": {
+    "passed": 3,
+    "failed": 0
+  },
+  "typescript": "passed"
+}
