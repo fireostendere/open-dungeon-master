@@ -619,53 +619,51 @@ async function runAdvance(context: TurnContext, turn: DmTurn) {
     // tools ignore DM_LEAN_TOOLS; they are the point of combat. Rest tools
     // only exist outside combat.
     const inEncounter = Boolean(getActiveEncounter(campaignId));
-    const allTools = [
-      requestRollTool,
-      requestPlayerInputTool,
-      movePartyTool,
-      updateLocationTool,
-      recordEventTool,
-      ...(isStageEnabled(campaign.gameSettings.stages, "recall") ? [recallStoryTool] : []),
-      searchLoreTool,
-      writeCampaignNoteTool,
-      sendWhisperTool,
-      ...(campaign.storyArc ? [completeBeatTool] : []),
-      ...checkTools,
-      ...hazardTools,
-      ...(inEncounter ? [splitDamageTool] : []),
-      ...petTools,
-      ...socialTools,
-      ...(inEncounter ? [] : relationshipTools(campaign)),
-      ...(inEncounter ? [] : worldTools),
-      // The party's shared pack and common purse. Out of combat only, like
-      // the rest of the world tools: nobody rummages in the group kit while
-      // initiative is running.
-      ...(inEncounter ? [] : partyTools),
-      // Effects are offered in and out of combat: a blessing lands mid-fight
-      // as often as a curse lands in a throne room.
-      ...effectTools,
-      // Structured non-combat scenes and mounts are both out-of-combat
-      // business: a chase clock and an initiative order are two answers to
-      // the same question, and nobody saddles up mid-round.
-      ...(inEncounter ? [] : sceneTools),
-      // Sound is offered in and out of a fight: a sting lands mid-round as
-      // often as a bed changes between them. Silent for a table that has
-      // the library switched off, which is why it is gated here rather
-      // than left to the handler to refuse.
-      ...(campaign.gameSettings.ambienceEnabled ? ambienceTools : []),
-      ...(inEncounter ? [] : mountTools),
-      ...encounterTools(inEncounter),
-      castBuffTool,
-      ...(inEncounter ? [] : restTools),
-      ...companionTools(campaign),
-      ...(leanTools ? [] : mutationTools),
-      ...(imageEnabled ? [generateImageTool] : []),
-    ];
     const tools = yolo
-      ? allTools.filter((tool) =>
+      ? [
+          // Field-table surface: one generic roll tool, persistent state
+          // mutations that matter to players, and the real combat engine.
+          requestRollTool,
+          movePartyTool,
+          sendWhisperTool,
+          ...(inEncounter ? [splitDamageTool] : []),
+          ...encounterTools(inEncounter),
+          castBuffTool,
+          ...(inEncounter ? [] : restTools),
+          ...mutationTools,
+        ].filter((tool) =>
           yoloToolAllowed(tool.function.name, ENCOUNTER_NAMES.has(tool.function.name)),
         )
-      : allTools;
+      : [
+          requestRollTool,
+          requestPlayerInputTool,
+          movePartyTool,
+          updateLocationTool,
+          recordEventTool,
+          ...(isStageEnabled(campaign.gameSettings.stages, "recall") ? [recallStoryTool] : []),
+          searchLoreTool,
+          writeCampaignNoteTool,
+          sendWhisperTool,
+          ...(campaign.storyArc ? [completeBeatTool] : []),
+          ...checkTools,
+          ...hazardTools,
+          ...(inEncounter ? [splitDamageTool] : []),
+          ...petTools,
+          ...socialTools,
+          ...(inEncounter ? [] : relationshipTools(campaign)),
+          ...(inEncounter ? [] : worldTools),
+          ...(inEncounter ? [] : partyTools),
+          ...effectTools,
+          ...(inEncounter ? [] : sceneTools),
+          ...(campaign.gameSettings.ambienceEnabled ? ambienceTools : []),
+          ...(inEncounter ? [] : mountTools),
+          ...encounterTools(inEncounter),
+          castBuffTool,
+          ...(inEncounter ? [] : restTools),
+          ...companionTools(campaign),
+          ...(leanTools ? [] : mutationTools),
+          ...(imageEnabled ? [generateImageTool] : []),
+        ];
     // Model deltas are untrusted drafts: dice and the narration guard have
     // not run yet. Keep the thinking status, but publish prose only through
     // finalize() after the authoritative results have been checked.
