@@ -743,8 +743,8 @@ async function runAdvance(context: TurnContext, turn: DmTurn) {
       type: "function" as const,
       function: { name: call.name, arguments: call.rawArguments },
     }));
-    const offeredNames = new Set(tools.map((tool) => tool.function.name));
-    const allowedInnerNames = new Set(innerTools.map((tool) => tool.function.name));
+    const offeredNames = new Set<string>(tools.map((tool) => tool.function.name));
+    const allowedInnerNames = new Set<string>(innerTools.map((tool) => tool.function.name));
     // Only "game" is advertised. Direct inner names remain a hidden
     // compatibility lane for textual/XML salvage and old local providers; this
     // preserves recovery without putting dozens of schemas back into context.
@@ -1551,7 +1551,10 @@ async function runAdvance(context: TurnContext, turn: DmTurn) {
     );
     for (const call of allToolCalls) {
       if (answered.has(call.id) || pendingIds.has(call.id)) continue;
-      const result = call.name === "generate_image" && offeredNames.has(call.name)
+      const isImage =
+        call.name === "generate_image" &&
+        (offeredNames.has(call.name) || allowedInnerNames.has(call.name));
+      const result = isImage
         ? (turn.imageArgs ? { ok: true, note: "Image request recorded." } : { error: "Invalid image request." })
         : { error: `Tool ${call.name} is unavailable or has no handler in this turn.` };
       turn.conversation.push({ role: "tool", tool_call_id: call.id, content: JSON.stringify(result) });
