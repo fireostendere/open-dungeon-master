@@ -24,8 +24,8 @@ test('M10: Narrator runner lifecycle, checkpoint recovery, and health endpoint',
   let receivedActions = [];
   let currentSeq = 15;
   let pendingAsks = [
-    { id: 'ask-1', question: 'Напиши мне торгового бота на Python.', locale: 'ru', version: 0 },
-    { id: 'ask-2', question: 'Какое среднее значение 2d6 урона?', locale: 'ru', version: 0 },
+    { id: 'ask-1', userId: 'player', queueSeq: 1, question: 'Напиши мне торгового бота на Python.', locale: 'ru', version: 0 },
+    { id: 'ask-2', userId: 'player', queueSeq: 2, question: 'Какое среднее значение 2d6 урона?', locale: 'ru', version: 0 },
   ];
 
   // Mock control API server
@@ -45,6 +45,7 @@ test('M10: Narrator runner lifecycle, checkpoint recovery, and health endpoint',
           ok: true,
           result: {
             currentSeq,
+            asks: pendingAsks,
             askQueue: {
               items: pendingAsks,
               nextCursor: pendingAsks.length,
@@ -69,16 +70,18 @@ test('M10: Narrator runner lifecycle, checkpoint recovery, and health endpoint',
   });
 
   const healthPort = 39871;
-
+  let runner;
   try {
     // 1. Initial runner run
-    const runner = new NarratorRunner({
+    runner = new NarratorRunner({
       campaignId: 'c_test',
       controlUrl: `http://127.0.0.1:${controlPort}`,
       token: 'test-token-1234567890123456789012',
       checkpointPath,
       healthPort,
       pollIntervalMs: 100,
+      maxAsksPerTick: 2,
+      askResponder: async () => ({ answer: 'Test rules answer.', citations: [] }),
     });
 
     runner.startHealthServer();
@@ -106,7 +109,7 @@ test('M10: Narrator runner lifecycle, checkpoint recovery, and health endpoint',
     // Ask 2 should be answered as in-scope game question
     const ans2 = receivedActions.find(a => a.action === 'narrator.answer_ask' && a.params.askId === 'ask-2');
     assert.ok(ans2, 'Ask-2 was not answered');
-    assert.ok(ans2.params.answer.includes('Ответ на вопрос'), 'Ask-2 did not receive game answer');
+    assert.equal(ans2.params.answer, 'Test rules answer.', 'Ask-2 must receive the explicit test adapter answer');
 
     // Checkpoint must exist on disk and record sequence
     assert.ok(fs.existsSync(checkpointPath));
@@ -146,6 +149,8 @@ test('M10: Narrator runner lifecycle, checkpoint recovery, and health endpoint',
     const newAnswers = receivedActions.slice(actionsBefore).filter(a => a.action === 'narrator.answer_ask');
     assert.equal(newAnswers.length, 0, 'Re-answered an already completed ask');
   } finally {
+    await runner?.stop();
+    mockServer.closeAllConnections();
     mockServer.close();
   }
 }));
@@ -213,12 +218,14 @@ test('M10: runner drains independent Ask pages and resumes the nested connect st
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'narrator-pages-'));
   const actions = [];
   const asks = [
-    { id: '00000000-0000-4000-8000-000000000001', question: 'Напиши мне торгового бота', locale: 'ru', version: 0, queueSeq: 1 },
-    { id: '00000000-0000-4000-8000-000000000002', question: 'Как работает уклонение?', locale: 'ru', version: 0, queueSeq: 2 },
+    { id: '00000000-0000-4000-8000-000000000001', userId: 'player', question: 'Напиши мне торгового бота', locale: 'ru', version: 0, queueSeq: 1 },
+    { id: '00000000-0000-4000-8000-000000000002', userId: 'player', question: 'Как работает уклонение?', locale: 'ru', version: 0, queueSeq: 2 },
   ];
   try {
     const runner = new NarratorRunner({
       campaignId: 'c_pages',
+      maxAsksPerTick: 2,
+      askResponder: async () => ({ answer: 'Test rules answer.', citations: [] }),
       token: 'test-token-1234567890123456789012',
       checkpointPath: path.join(dir, 'checkpoint.json'),
       healthPort: 0,
@@ -232,7 +239,7 @@ test('M10: runner drains independent Ask pages and resumes the nested connect st
           return { ok: true, status: 200, json: async () => ({ ok: true, result: { replayed: false } }) };
         }
         if (request.action === 'narrator.read') {
-          const cursor = request.params.afterAskSeq;
+          const cursor = request.params.afterAskSeq ?? 0;
           const item = cursor === 0 ? asks[0] : asks[1];
           const last = cursor !== 0;
           return {
@@ -257,12 +264,13 @@ test('M10: runner drains independent Ask pages and resumes the nested connect st
     const reads = actions.filter((entry) => entry.action === 'narrator.read');
     assert.deepEqual(
       reads.filter((entry) => Object.hasOwn(entry.params, 'afterAskSeq')).map((entry) => entry.params.afterAskSeq),
-      [0, 1],
+      [1], // Page zero is already present in the authoritative story read.
     );
     const answers = actions.filter((entry) => entry.action === 'narrator.answer_ask');
     assert.equal(answers.length, 2);
     assert.match(answers[0].params.commandId, /^[0-9a-f-]{36}$/i);
-    assert.equal(runner.lastAskSeq, 2);
+    assert.equal(runner.lastAskSeq, 0, 'bounded Ask worker does not acknowledge a global queue watermark');
+    assert.equal(runner.answeredAsks.size, 2, 'individual answers are durably acknowledged instead');
     assert.equal(runner.lastSeq, 7);
     assert.equal(runner.pendingAskCommands.size, 0);
   } finally {
@@ -274,10 +282,11 @@ test('M10: an Ask timeout replays the exact persisted command', async () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'narrator-retry-'));
   const answerRequests = [];
   let firstAnswer = true;
-  const ask = { id: '00000000-0000-4000-8000-000000000005', question: 'Как работает уклонение?', locale: 'ru', version: 0, queueSeq: 5 };
+  const ask = { id: '00000000-0000-4000-8000-000000000005', userId: 'player', question: 'Как работает уклонение?', locale: 'ru', version: 0, queueSeq: 5 };
   try {
     const runner = new NarratorRunner({
       campaignId: 'c_retry',
+      askResponder: async () => ({ answer: 'Test rules answer.', citations: [] }),
       token: 'test-token-1234567890123456789012',
       checkpointPath: path.join(dir, 'checkpoint.json'),
       healthPort: 0,

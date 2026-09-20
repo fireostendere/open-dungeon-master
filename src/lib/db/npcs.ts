@@ -94,11 +94,14 @@ function mapNpc(row: NpcRow): Npc {
   };
 }
 
-export function listNpcs(campaignId: string): Npc[] {
+export function listNpcs(campaignId: string, options: { activeOnly?: boolean; limit?: number } = {}): Npc[] {
+  const activeOnly = options.activeOnly === true;
+  const limit = options.limit;
+  if (limit !== undefined && (!Number.isSafeInteger(limit) || limit < 1)) throw new Error("Invalid NPC limit");
   return (
     getDatabase()
-      .prepare(`SELECT * FROM npcs WHERE campaign_id = ? ORDER BY name COLLATE NOCASE`)
-      .all(campaignId) as NpcRow[]
+      .prepare(`SELECT * FROM npcs WHERE campaign_id = ?${activeOnly ? " AND archived IS NOT 1" : ""} ORDER BY name COLLATE NOCASE${limit === undefined ? "" : " LIMIT ?"}`)
+      .all(campaignId, ...(limit === undefined ? [] : [limit])) as NpcRow[]
   ).map(mapNpc);
 }
 

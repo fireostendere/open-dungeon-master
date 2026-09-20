@@ -1,6 +1,9 @@
 import crypto from 'node:crypto';
 import { filterNarratorCatalog, narratorModeGuidance, resolveNarratorPlayMode } from './runtime-mode.mjs';
 import { parseGameFacadeArgs } from '../shared/dnd-game-facade.mjs';
+import { postWriteReadOptions, consumePostWriteRead } from './read-session.mjs';
+import { compactRolePacket } from './role-packet.mjs';
+import { emitLatency, latencyEnabled } from '../mcp/latency-trace.mjs';
 
 const clone = value => structuredClone(value);
 const sequence = value => Number.isSafeInteger(value) && value >= 0;
@@ -108,12 +111,21 @@ export class NarratorOrchestrator {
     const usage = this.state.usage, now = Date.now();
     usage.times = usage.times.filter(time => time > now - 3600000);
     if (usage.times.length >= this.maxCallsPerHour) throw new Error('Narrator model call budget exhausted.');
-    const prompt = JSON.stringify(packet);
+    const packetTiming=latencyEnabled(), packetStarted=packetTiming?performance.now():0;
+    const prompt = JSON.stringify(compactRolePacket(role, packet));
+    if(packetTiming)emitLatency({stage:'packet',role,durationMs:performance.now()-packetStarted,bytes:Buffer.byteLength(prompt)});
     usage.calls++; usage.times.push(now); usage.inputBytes += Buffer.byteLength(prompt); host.saveCheckpoint();
-    const response = await this.adapter.generate(role, prompt);
-    if (typeof response !== 'string') throw new Error('Role did not return text.');
-    usage.outputBytes += Buffer.byteLength(response); host.saveCheckpoint();
-    return response;
+    const modelTiming=latencyEnabled(), startedAt = modelTiming?performance.now():0; let outputBytes=0;
+    try {
+      const response = await this.adapter.generate(role, prompt);
+      if (typeof response !== 'string') throw new Error('Role did not return text.');
+      outputBytes=Buffer.byteLength(response);usage.outputBytes += outputBytes;
+      // Output byte counters are advisory. The next decision boundary saves
+      // them together with its mandatory state, not another full fsync here.
+      return response;
+    } finally {
+      if (modelTiming) emitLatency({ stage: 'narrator_model', role, durationMs: performance.now()-startedAt, inputBytes: Buffer.byteLength(prompt), outputBytes, modelCalls: 1 });
+    }
   }
   async answerAsk(host, ask, context) {
     try {
@@ -138,7 +150,6 @@ export class NarratorOrchestrator {
     const current = this.state.current;
     if (current.waiting.some(id => !current.resolved[id]) || snapshot.pendingRolls?.length) return false;
     if (current.waiting.length) {
-      // Physical dice must have a matching roll_result, not merely disappear.
       snapshot = await host.drainStory({ full: true });
       current.outcomes.push({ physicalRolls: clone(Object.values(current.resolved)), authoritativeRolls: (snapshot.recentRolls ?? []).filter(roll => Object.values(current.resolved).some(value => value.roll?.id === roll.id)) });
       current.waiting = []; current.resolved = {}; host.saveCheckpoint();
@@ -157,20 +168,21 @@ export class NarratorOrchestrator {
     const catalogActions = new Set(this.catalog.flatMap(group => (group.actions ?? []).flatMap(action =>
       (action.operations ?? []).map(operation => operation.name))));
     const campaign = snapshot.campaign ?? {};
+    const safeCampaign = campaign;
     const packet = {
       instructions: narratorGuidance(snapshot.campaign?.gameSettings, this.playMode), mode: this.playMode,
       input: current.input, public: publicProjection(snapshot, this.state.history, this.playMode === 'yolo' ? 12 : 24),
-      campaign: { title: campaign.title, description: campaign.description, theme: campaign.theme, scene: campaign.scene,
-        questLog: campaign.questLog, gameSettings: campaign.gameSettings, dmOutline: campaign.dmOutline, storyArc: campaign.storyArc, floor: campaign.floor, clock: campaign.clock },
+      campaign: { title: safeCampaign.title, description: safeCampaign.description, theme: safeCampaign.theme, scene: safeCampaign.scene,
+        questLog: safeCampaign.questLog, gameSettings: safeCampaign.gameSettings, dmOutline: safeCampaign.dmOutline, storyArc: safeCampaign.storyArc, floor: safeCampaign.floor, clock: safeCampaign.clock, party: safeCampaign.party },
       state: { sheets: snapshot.sheets, encounter: snapshot.encounter, sceneTracker: snapshot.sceneTracker, location: snapshot.location,
-        facts: snapshot.facts, notes: snapshot.notes, npcs: snapshot.npcs, pendingRolls: snapshot.pendingRolls, summary: snapshot.summary },
+        facts: snapshot.facts, notes: snapshot.notes, npcs: snapshot.npcs, pendingRolls: snapshot.pendingRolls, summary: snapshot.summary, members: snapshot.members },
       historySummary: host.memory?.getPromptContext?.().summary ?? '',
       outcomes: current.outcomes, rollEvents: this.state.events.filter(event => event.seq >= current.input.seq),
       actions: this.catalog, schemas: this.schemas,
     };
     let decision;
     try {
-      current.steps++; host.saveCheckpoint();
+      current.steps++; // generate durably records this and the call budget together
       let rawDecision = JSON.parse(await this.generate(host, 'referee', packet));
       // Compatibility lane for checkpoints/prompts produced before the one-game
       // façade: normalize a directly named engine operation into game instead
@@ -186,6 +198,7 @@ export class NarratorOrchestrator {
       }
       decision = validateDecision(rawDecision, { allowedActions, catalogActions });
     } catch { return this.pause(host, 'model_or_decision_error'); }
+    if (host.stopping || this.state.current !== current || this.state.epoch !== snapshot.timelineEpoch) return false;
     if (decision.kind === 'wait') { current.waitSeq = snapshot.currentSeq; host.saveCheckpoint(); return false; }
     if (decision.kind === 'catalog') {
       const result = await host.callControl('narrator.catalog', { campaignId: host.campaignId, action: decision.action });
@@ -207,14 +220,16 @@ export class NarratorOrchestrator {
       catch { return this.pause(host, 'writer_error'); }
       if (!text(content)) return this.pause(host, 'invalid_writer_text');
     }
-    // Generation is not a lock: reject a draft based on stale state.
-    const fresh = await host.drainStory();
-    if (fresh.timelineEpoch !== snapshot.timelineEpoch) return this.pause(host, 'timeline_changed');
-    if (fresh.currentSeq !== snapshot.currentSeq) return true;
+    // Generation is not a lock. The engine's transactional expectedSeq/epoch
+    // check rejects a stale draft before effects. A redundant pre-write read
+    // neither closes that race nor replaces CAS; keep the original read cursor.
+    if (host.stopping || this.state.current !== current) return false;
+    if (this.state.epoch !== snapshot.timelineEpoch || host.timelineEpoch && host.timelineEpoch !== snapshot.timelineEpoch) return this.pause(host, 'timeline_changed');
     const action = decision.kind === 'invoke' ? 'narrator.invoke' : decision.kind === 'narrate' ? 'narrator.narrate' : 'narrator.release_floor';
-    const params = { campaignId: host.campaignId, expectedSeq: fresh.currentSeq, timelineEpoch: fresh.timelineEpoch, commandId: crypto.randomUUID(),
-      ...(decision.kind === 'invoke' ? { name: invokedAction, args: invokedArgs } : decision.kind === 'narrate' ? { content, releaseFloor: decision.releaseFloor ?? false } : {}) };
-    this.state.pending = { action, params, attempts: 0, phase: 'prepared', beforePendingIds: (fresh.pendingRolls ?? []).map(roll => roll.id) };
+    const params = { campaignId: host.campaignId, expectedSeq: snapshot.currentSeq, timelineEpoch: snapshot.timelineEpoch, commandId: crypto.randomUUID(),
+      ...(decision.kind === 'invoke' ? { name: invokedAction, args: invokedArgs } : decision.kind === 'narrate' ? { content, releaseFloor: decision.releaseFloor ?? false } : {}),
+      ...(sequence(host.lastSeq) ? { readAfter: postWriteReadOptions(host) } : {}) };
+    this.state.pending = { action, params, attempts: 0, phase: 'prepared', beforePendingIds: (snapshot.pendingRolls ?? []).map(roll => roll.id) };
     host.saveCheckpoint();
     return this.write(host);
   }
@@ -224,6 +239,7 @@ export class NarratorOrchestrator {
   async write(host) {
     const pending = this.state.pending;
     if (pending.params.campaignId !== host.campaignId || pending.params.timelineEpoch !== this.state.epoch) return this.pause(host, 'incompatible_command');
+    let readback;
     if (pending.phase !== 'committed') {
       if (pending.attempts >= 2) return this.pause(host, 'ambiguous_write');
       pending.attempts++; host.saveCheckpoint();
@@ -239,14 +255,17 @@ export class NarratorOrchestrator {
         throw error;
       }
       if (receipt?.commandId !== pending.params.commandId || !sequence(receipt.committedSeq) || !Object.hasOwn(receipt, 'result')) return this.pause(host, 'invalid_command_receipt');
-      pending.phase = 'committed'; pending.receipt = clone(receipt); host.saveCheckpoint();
+      readback = receipt;
+      // Persist the small authoritative receipt, not a second copy of the
+      // complete private snapshot. Restart recovery reads fresh, never replays.
+      const { state: _state, readAfter: _read, readRequired: _required, readError: _error, ...durable } = receipt;
+      pending.phase = 'committed'; pending.receipt = clone(durable); host.saveCheckpoint();
     }
-    const fresh = await host.drainStory();
+    const fresh = readback ? await consumePostWriteRead(host, readback) : await host.drainStory();
     if (fresh.timelineEpoch !== pending.params.timelineEpoch) return this.pause(host, 'timeline_changed');
     if (pending.action === 'narrator.narrate' || pending.action === 'narrator.release_floor') { this.finish(host); return true; }
     const result = pending.receipt.result;
     const waiting = (fresh.pendingRolls ?? []).filter(roll => !pending.beforePendingIds.includes(roll.id)).map(roll => roll.id);
-    // A parked call whose roll vanished before observation needs reconciliation.
     if (result?.parked && !waiting.length) return this.pause(host, 'unobserved_pending_roll');
     this.state.current.outcomes.push({ name: pending.params.name, args: pending.params.args, result, commandId: pending.params.commandId, committedSeq: pending.receipt.committedSeq });
     this.state.current.waiting = waiting; this.state.current.waitSeq = null;

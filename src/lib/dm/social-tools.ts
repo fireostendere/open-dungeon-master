@@ -431,7 +431,7 @@ function buildSocialNote(
 // toward the party, and a bounded agency fragment (personality leans, goals,
 // pressure). How they feel about individual characters is the approval meter
 // and renders in its own section.
-export function npcRosterForPrompt(campaignId: string): Array<{
+export function npcRosterForPrompt(campaignId: string, limit?: number): Array<{
   name: string;
   attitude: Attitude;
   trait: string;
@@ -440,6 +440,10 @@ export function npcRosterForPrompt(campaignId: string): Array<{
   aliases: string[];
   witnessNote: string;
 }> {
+  // Archived NPCs stay out of the prompt until someone names them again
+  // (src/lib/dm/npc-archive-logic.ts). They are never deleted.
+  const npcs = listNpcs(campaignId, { activeOnly: true, ...(limit === undefined ? {} : { limit }) });
+  if (!npcs.length) return [];
   // Facts are read once for the whole roster; witness notes are per-NPC.
   const facts = listActiveFacts(campaignId).map((fact) => ({
     category: fact.category as string,
@@ -447,11 +451,7 @@ export function npcRosterForPrompt(campaignId: string): Array<{
     fact: fact.fact,
     witnessedBy: fact.witnessedBy,
   }));
-  // Archived NPCs stay out of the prompt until someone names them again
-  // (src/lib/dm/npc-archive-logic.ts). They are never deleted.
-  return listNpcs(campaignId)
-    .filter((npc) => !npc.archived)
-    .map((npc) => ({
+  return npcs.map((npc) => ({
     name: npc.name,
     attitude: npc.attitude,
     trait: npc.trait,

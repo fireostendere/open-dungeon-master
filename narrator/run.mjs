@@ -12,6 +12,8 @@ import { NarratorCostTracker } from './cost-tracker.mjs';
 import { HostContextMemory } from './compaction.mjs';
 import { connectNarrator,drainNarratorStory,readNarratorSnapshot } from './read-session.mjs';
 import { explicitYoloRequested } from '../shared/dnd-play-mode.mjs';
+import { driveNarratorCycle,narratorPollDelay } from './poll-cycle.mjs';
+import { emitLatency, latencyEnabled, mcpLatencyStage, withLatencyTrace } from '../mcp/latency-trace.mjs';
 const integer=(value,fallback,min,max)=>Number.isSafeInteger(Number(value))&&Number(value)>=min&&Number(value)<=max?Number(value):fallback;
 const hash=value=>crypto.createHash('sha256').update(value).digest();
 export class NarratorRunner {
@@ -20,6 +22,8 @@ export class NarratorRunner {
     this.controlUrl=(options.controlUrl||process.env.ODM_MCP_URL||process.env.ODM_MCP_CONTROL_URL||'http://127.0.0.1:3005/api/internal/mcp').trim();
     this.token=(options.token||process.env.ODM_MCP_NARRATOR_TOKEN||process.env.ODM_MCP_TOKEN||'').trim();
     this.pollIntervalMs=integer(options.pollIntervalMs??process.env.ODM_NARRATOR_POLL_MS,2000,10,86400000);
+    this.maxAsksPerTick=integer(options.maxAsksPerTick??process.env.ODM_NARRATOR_ASK_BATCH,1,1,20);
+    this.askTask=null;this.askError=null;this.madeProgress=false;this.stopping=false;
     this.readMaxBytes=integer(options.readMaxBytes??process.env.ODM_NARRATOR_READ_BYTES,65536,4096,131072);
     this.readPageRetries=integer(options.readPageRetries??process.env.ODM_NARRATOR_READ_RETRIES,2,0,10);
     this.healthPort=integer(options.healthPort??process.env.ODM_NARRATOR_PORT,3007,0,65535);
@@ -80,12 +84,18 @@ export class NarratorRunner {
       uptimeSeconds:Math.floor((Date.now()-this.startedAt)/1000),lastPollAt:this.lastPollAt||null,lastError:this.lastError?'poll_failed':null});
   }
   async callControl(action,params={}, {timeoutMs=15000}={}) {
-    if(!this.token)throw new Error('Narrator authentication token is missing.');
-    const response=await this.fetchImpl(this.controlUrl,{method:'POST',headers:{authorization:`Bearer ${this.token}`,'content-type':'application/json',accept:'application/json'},
-      body:JSON.stringify({action,params}),redirect:'error',signal:AbortSignal.timeout(timeoutMs)});
-    const body=await response.json().catch(()=>null);
-    if(!response.ok||body?.ok===false)throw Object.assign(new Error(body?.error||`Control returned HTTP ${response.status}`),{status:response.status,code:body?.code});
-    if(!body||!Object.hasOwn(body,'result'))throw new Error('Invalid control response.');return body.result;
+    return withLatencyTrace(async()=>{
+      if(!this.token)throw new Error('Narrator authentication token is missing.');
+      const timing=latencyEnabled(),started=timing?performance.now():0;let status=0,responseBytes=0;
+      try {
+        const response=await this.fetchImpl(this.controlUrl,{method:'POST',headers:{authorization:`Bearer ${this.token}`,'content-type':'application/json',accept:'application/json'},
+          body:JSON.stringify({action,params}),redirect:'error',signal:AbortSignal.timeout(timeoutMs)});
+        status=response.status;const body=await response.json().catch(()=>null);
+        if(timing)responseBytes=Buffer.byteLength(JSON.stringify(body?.result)??'');
+        if(!response.ok||body?.ok===false)throw Object.assign(new Error(body?.error||`Control returned HTTP ${response.status}`),{status:response.status,code:body?.code});
+        if(!body||!Object.hasOwn(body,'result'))throw new Error('Invalid control response.');return body.result;
+      } finally { if(timing)emitLatency({stage:mcpLatencyStage(action),durationMs:performance.now()-started,status,responseBytes,mcpCalls:1}); }
+    });
   }
   async connect(){
     this.connected=false;const result=await connectNarrator(this);
@@ -111,26 +121,27 @@ export class NarratorRunner {
     throw new Error('Ask queue exceeded the page safety limit.');
   }
   async pollTick() {
-    if(!this.campaignId||this.polling)return false;this.polling=true;
+    if(!this.campaignId||this.polling||this.stopping)return false;this.polling=true;this.madeProgress=false;
     try{
       for(let attempt=0;attempt<2;attempt++){
         try{
           if(!this.connected)await this.connect();
-          // Refresh story/epoch before using player-projected context for Ask.
-          const story=await this.drainStory();await this.drainAskQueue();if(this.storyController)await this.storyController.tick(this,story);break;
+          await driveNarratorCycle(this);break;
         }catch(error){
           if(attempt||error?.status!==409)throw error;
           // Only fully assembled authoritative metadata can prove a rewind.
           await this.connect();
         }
       }
-      this.lastPollAt=Date.now();this.lastError=this.askBlocked?'ask_write_ambiguous':this.storyController?.state?.paused?'story_paused':null;this.saveCheckpoint();return !this.lastError;
+      this.lastPollAt=Date.now();this.lastError=this.askError||this.askBlocked?'ask_failed':this.storyController?.state?.paused?'story_paused':null;this.saveCheckpoint();return !this.lastError;
     }catch{
       this.lastError='poll_failed';console.error('[narrator-runner] poll_failed');this.saveCheckpoint();return false;
     }finally{this.polling=false;}
   }
   async handlePendingAsk(ask) {
-    if(!ask?.id||this.answeredAsks.has(ask.id))return;
+    if(!ask?.id||this.answeredAsks.has(ask.id)||this.stopping)return;
+    const epoch=this.timelineEpoch,campaignId=this.campaignId;
+    const current=()=>!this.stopping&&this.timelineEpoch===epoch&&this.campaignId===campaignId;
     let command=this.pendingAskCommands.get(ask.id);
     if(command&&command.expectedVersion!==(ask.version??0)){
       // A fresh queue version is authoritative evidence to rebuild a rejected
@@ -147,7 +158,9 @@ export class NarratorRunner {
         if(typeof ask.userId!=='string'||!ask.userId)throw new Error('Ask author is required for a private context projection.');
         reply=await this.askResponder(structuredClone(ask),this.memory.getPromptContext({viewerUserId:ask.userId}));
       }
-      if(reply==null)return;
+      // A model may finish after a rewind/stop. Never attach its old private
+      // context or command to the new timeline's checkpoint or Ask queue.
+      if(!current()||reply==null)return;
       if(typeof reply.answer!=='string'||!reply.answer.trim()||reply.answer.length>4000||reply.citations!==undefined&&(!Array.isArray(reply.citations)||reply.citations.length>50))throw new Error('Invalid Ask adapter response.');
       if(reply.usage&&Number.isSafeInteger(reply.usage.promptTokens)&&Number.isSafeInteger(reply.usage.completionTokens)&&reply.usage.promptTokens>=0&&reply.usage.completionTokens>=0)this.costTracker.recordUsage(reply.usage);
       command={campaignId:this.campaignId,askId:ask.id,answer:reply.answer,expectedVersion:ask.version??0,commandId:crypto.randomUUID(),citations:reply.citations??[],...(this.timelineEpoch?{timelineEpoch:this.timelineEpoch}:{})};
@@ -157,8 +170,11 @@ export class NarratorRunner {
     if(attempts>=2){this.askBlocked=true;return;}
     this.pendingAskAttempts.set(ask.id,attempts+1);this.saveCheckpoint();
     try{
-      await this.callControl('narrator.answer_ask',command);this.answeredAsks.add(ask.id);this.pendingAskCommands.delete(ask.id);this.pendingAskAttempts.delete(ask.id);this.saveCheckpoint();
+      await this.callControl('narrator.answer_ask',command);
+      if(!current())return;
+      this.answeredAsks.add(ask.id);this.pendingAskCommands.delete(ask.id);this.pendingAskAttempts.delete(ask.id);this.saveCheckpoint();
     }catch(error){
+      if(!current())return;
       if(error.status!==409||error.code==='timeline_changed')throw error;
       // A rejected version is not an answered question. Leave it pending for
       // the next authoritative queue read, without retrying a stale payload.
@@ -186,12 +202,14 @@ export class NarratorRunner {
     this.healthServer.listen(this.healthPort,'127.0.0.1');
   }
   async start(){
-    await this.loadAdapter();this.loadCheckpoint();this.startHealthServer();this.running=true;
+    await this.loadAdapter();this.loadCheckpoint();this.startHealthServer();this.running=true;this.stopping=false;
     try{await this.connect();}catch{console.warn('[narrator-runner] Initial connect failed; collector will retry.');}
-    const schedule=()=>{if(this.running)this.timer=setTimeout(async()=>{await this.pollTick();schedule();},this.pollIntervalMs);};schedule();
+    // Productive tool steps continue immediately; idle/error polls keep their
+    // bounded interval. A timer still yields the event loop between decisions.
+    const schedule=(delay=0)=>{if(this.running)this.timer=setTimeout(async()=>{await this.pollTick();schedule(narratorPollDelay(this));},delay);};schedule();
   }
   async stop(){
-    this.running=false;if(this.timer){clearTimeout(this.timer);this.timer=null;}this.saveCheckpoint();
+    this.stopping=true;this.running=false;if(this.timer){clearTimeout(this.timer);this.timer=null;}this.saveCheckpoint();
     if(this.healthServer){await new Promise(resolve=>this.healthServer.close(resolve));this.healthServer=null;}
   }
 }
@@ -203,6 +221,6 @@ if(process.argv[1]&&fileURLToPath(import.meta.url)===path.resolve(process.argv[1
   }
   const runner=new NarratorRunner({campaignId,healthPort:port,resume,resumeAfterSeq,yolo});
   const shutdown=async()=>{await runner.stop();process.exit(0);};process.on('SIGINT',shutdown);process.on('SIGTERM',shutdown);
-  if(once){await runner.loadAdapter();runner.loadCheckpoint();try{await runner.connect();const ok=await runner.pollTick();runner.saveCheckpoint();process.exit(ok?0:1);}catch{console.error('[narrator-runner] Collector once failed.');process.exit(1);}}
+  if(once){await runner.loadAdapter();runner.loadCheckpoint();try{await runner.connect();const ok=await runner.pollTick();await runner.askTask;runner.saveCheckpoint();process.exit(ok&&!runner.askError?0:1);}catch{console.error('[narrator-runner] Collector once failed.');process.exit(1);}}
   else runner.start().catch(()=>{console.error('[narrator-runner] Collector start failed.');process.exit(1);});
 }

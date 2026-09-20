@@ -14,8 +14,14 @@ export class AskQueueConflict extends Error {
   }
 }
 export function ensureAskQueue(db) {
+  const objects = db.prepare(`SELECT name FROM sqlite_master WHERE type IN ('table','index')
+    AND name IN ('campaign_ask_queue','idx_ask_queue_pending','odm_ask_queue_migrations')`).all();
+  const ready = objects.length === 3;
+  // Both schema_version and the migration marker can roll back. Only prepared
+  // programs are reused; schema existence and the data marker stay live reads.
+  if (ready && db.prepare('SELECT version FROM odm_ask_queue_migrations WHERE version = 1').get()) return;
   db.transaction(() => {
-    db.exec(`CREATE TABLE IF NOT EXISTS campaign_ask_queue (
+    if (!ready) db.exec(`CREATE TABLE IF NOT EXISTS campaign_ask_queue (
       seq INTEGER PRIMARY KEY AUTOINCREMENT,
       ask_id TEXT NOT NULL UNIQUE REFERENCES campaign_asks(id) ON DELETE CASCADE,
       campaign_id TEXT NOT NULL REFERENCES campaigns(id) ON DELETE CASCADE,

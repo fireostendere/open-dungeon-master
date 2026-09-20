@@ -17,7 +17,7 @@ const snapshot = (extra = {}) => ({ campaign: { id: 'c', status: 'active', scene
   facts: [], notes: [], npcs: [], ...extra });
 
 function fixture(replies, options = {}) {
-  const modelCalls = [], writes = [], receipts = new Map();
+  const modelCalls = [], writes = [], commits = [], receipts = new Map();
   const adapter = { runtimeSource: 'custom-opencode', async generate(role, prompt) {
     modelCalls.push({ role, packet: JSON.parse(prompt) });
     const reply = typeof replies === 'function' ? await replies(role, JSON.parse(prompt)) : replies.shift();
@@ -26,7 +26,7 @@ function fixture(replies, options = {}) {
   } };
   const controller = new NarratorOrchestrator({ adapter, ...options });
   const host = {
-    campaignId: 'c', snapshot: snapshot(), saved: null, writes, modelCalls, controller,
+    campaignId: 'c', snapshot: snapshot(), saved: null, writes, commits, modelCalls, controller,
     memory: { getPromptContext: () => ({ summary: 'Earlier public events.' }) },
     saveCheckpoint() { this.saved = this.controller.serialize(); },
     async drainStory() {
@@ -39,16 +39,17 @@ function fixture(replies, options = {}) {
         const names = ['request_roll', 'start_encounter', 'pc_attack', 'end_turn'];
         return { groups: [{ category: 'combat', ...(params.summaryOnly ? { actions: names.map(name => ({ name })) } : { entries: [{ name: params.action, fields: [] }] }) }] };
       }
+      if (action === 'narrator.read') return structuredClone(this.snapshot);
       writes.push({ action, params: structuredClone(params) });
       if (receipts.has(params.commandId)) return receipts.get(params.commandId);
-      if (params.expectedSeq !== this.snapshot.currentSeq) throw Object.assign(new Error('Stale narrator cursor; reread and drain events before writing.'), { status: 409 });
+      if (params.expectedSeq !== this.snapshot.currentSeq || this.originalExpectedSeq !== undefined && params.expectedSeq !== this.originalExpectedSeq) throw Object.assign(new Error('Stale narrator cursor; reread and drain events before writing.'), { status: 409 });
       const result = this.onInvoke ? await this.onInvoke(action, params) : { ok: true, total: 14, success: true };
       const receipt = { commandId: params.commandId, receiptId: 'receipt', committedSeq: ++this.snapshot.currentSeq, result };
-      this.snapshot.nextCursor = this.snapshot.currentSeq; receipts.set(params.commandId, receipt);
+      this.snapshot.nextCursor = this.snapshot.currentSeq; receipts.set(params.commandId, receipt); commits.push(receipt);
       if (this.timeoutAfterCommit) { this.timeoutAfterCommit = false; throw new Error('transport timeout'); }
       return receipt;
     },
-    tick() { this.snapshot.nextCursor = this.snapshot.currentSeq; return this.controller.tick(this, structuredClone(this.snapshot)); },
+    tick() { this.snapshot.nextCursor = this.snapshot.currentSeq; this.originalExpectedSeq = this.snapshot.currentSeq; return this.controller.tick(this, structuredClone(this.snapshot)); },
   };
   return host;
 }
@@ -133,10 +134,14 @@ test('messages arriving during a committed write survive the next empty read and
 });
 
 test('read-only drafts are discarded if another event arrives during generation', async () => {
-  let h;
-  h = fixture(() => { h.snapshot.messages.push(player(++h.snapshot.currentSeq)); return { kind: 'narrate', text: 'Stale draft.' }; });
-  await h.tick(); assert.equal(h.writes.length, 0);
+  let h, generations = 0;
+  h = fixture(() => {
+    if (generations++ === 0) { h.snapshot.messages.push(player(++h.snapshot.currentSeq)); return { kind: 'narrate', text: 'Stale draft.' }; }
+    return { kind: 'done' };
+  });
+  await h.tick(); assert.equal(h.commits.length, 0);
   assert.equal(h.controller.state.queue.length, 1);
+  await h.tick(); assert.equal(h.modelCalls.length, 2); assert.equal(h.controller.state.queue[0].seq, h.snapshot.currentSeq);
 });
 
 test('wait does not call a model again until an event changes the sequence', async () => {

@@ -14,7 +14,12 @@ type ReceiptRow = {
 };
 function database() {
   const db = getDatabase();
-  db.exec(`CREATE TABLE IF NOT EXISTS narrator_commands (
+  // Read schema objects, not a memoized schema_version that can repeat after rollback.
+  const objects = db.prepare(`SELECT name FROM sqlite_master
+    WHERE type IN ('table', 'index') AND name IN ('narrator_commands', 'narrator_commands_recent')`).all() as Array<{ name: string }>;
+  const names = new Set(objects.map(({ name }) => name));
+  if (!names.has("narrator_commands") || !names.has("narrator_commands_recent")) {
+    db.exec(`CREATE TABLE IF NOT EXISTS narrator_commands (
     campaign_id TEXT NOT NULL REFERENCES campaigns(id) ON DELETE CASCADE,
     command_id TEXT NOT NULL,
     receipt_id TEXT NOT NULL,
@@ -25,6 +30,7 @@ function database() {
     created_at TEXT NOT NULL,
     PRIMARY KEY (campaign_id, command_id)
   ); CREATE INDEX IF NOT EXISTS narrator_commands_recent ON narrator_commands(campaign_id, committed_seq DESC);`);
+  }
   return db;
 }
 export function getNarratorReceipt(campaignId: string, commandId: string): NarratorReceipt | null {
