@@ -44,6 +44,27 @@ export const YOLO_ENGINE_ACTIONS = Object.freeze([
   "record_event",
 ]);
 
+// Spatial/location operations are available to the external narrator's YOLO
+// façade only when the campaign state makes them relevant. They stay separate
+// from YOLO_ENGINE_ACTIONS because the built-in server AI cannot own the human
+// DM spatial seat.
+export const YOLO_SPATIAL_ACTIONS = Object.freeze([
+  "location_enable",
+  "location_disable",
+  "location_create_room",
+  "location_link",
+  "location_move",
+  "location_narrate",
+  "location_observe",
+  "location_revoke",
+  "location_propagate",
+  "location_perceive",
+  "location_stealth_resolve",
+  "location_detect",
+  "location_lose_detection",
+  "location_set_floor",
+]);
+
 function objectValue(value) {
   return value && typeof value === "object" && !Array.isArray(value) ? value : null;
 }

@@ -36,7 +36,10 @@ function fixture(replies, options = {}) {
     },
     async callControl(action, params) {
       if (action === 'narrator.catalog') {
-        const names = ['request_roll', 'start_encounter', 'pc_attack', 'end_turn'];
+        const names = ['request_roll', 'start_encounter', 'pc_attack', 'end_turn',
+          'location_enable', 'location_disable', 'location_create_room', 'location_link', 'location_move',
+          'location_narrate', 'location_observe', 'location_revoke', 'location_propagate', 'location_perceive',
+          'location_stealth_resolve', 'location_detect', 'location_lose_detection', 'location_set_floor'];
         return { groups: [{ category: 'combat', ...(params.summaryOnly ? { actions: names.map(name => ({ name })) } : { entries: [{ name: params.action, fields: [] }] }) }] };
       }
       if (action === 'narrator.read') return structuredClone(this.snapshot);
@@ -67,6 +70,50 @@ test('real legacy player messages have no kind; referee receives IDs, state and 
   assert.equal(h.writes[1].params.content, 'Among the papers lies the clue.');
   assert.equal(h.controller.state.handledSeq, 2);
   await h.tick(); assert.equal(h.modelCalls.length, 3, 'idle polling must not spend model calls');
+});
+
+test('YOLO spatial catalog expands after enable without refetching the catalog', async () => {
+  const h = fixture([
+    { kind: 'invoke', action: 'game', args: { action: 'location_enable', args: { name: 'Tavern' } } },
+    { kind: 'done' },
+  ], { yolo: true });
+  h.onInvoke = (_action, params) => {
+    if (params.name === 'location_enable') {
+      h.snapshot.spatial = { enabled: true };
+      h.snapshot.spatialRooms = [{ id: 'room-a', name: 'Tavern' }];
+      return { enabled: true };
+    }
+    return { ok: true };
+  };
+  await h.tick();
+  const before = h.modelCalls[0].packet.actions[0].actions[0].operations.map(operation => operation.name);
+  assert.ok(before.includes('location_enable'));
+  assert.ok(!before.includes('location_disable'));
+  await h.tick();
+  const after = h.modelCalls[1].packet.actions[0].actions[0].operations.map(operation => operation.name);
+  assert.ok(!after.includes('location_enable'));
+  assert.ok(after.includes('location_disable'));
+  assert.ok(after.includes('location_narrate'));
+});
+
+test('YOLO accepts room player input and scopes plain narration through location_narrate', async () => {
+  const h = fixture([{ kind: 'narrate', text: 'Only the tavern hears this.' }], { yolo: true });
+  h.snapshot.spatial = { enabled: true };
+  h.snapshot.spatialRooms = [{ id: 'room-a', name: 'Tavern' }, { id: 'room-b', name: 'Street' }];
+  h.snapshot.messages = [{
+    id: 'room-message', seq: 2, authorType: 'player', userId: 'user', characterId: 'hero',
+    content: 'I whisper to the bartender.', roomId: 'room-a', channel: 'location', kind: 'say',
+  }];
+  await h.tick();
+  assert.equal(h.controller.state.paused, null);
+  assert.equal(h.modelCalls[0].packet.input.roomId, 'room-a');
+  const operations = h.modelCalls[0].packet.actions[0].actions[0].operations.map(operation => operation.name);
+  assert.ok(operations.includes('location_narrate'));
+  assert.ok(!operations.includes('location_enable'));
+  assert.equal(h.writes[0].action, 'narrator.invoke');
+  assert.equal(h.writes[0].params.name, 'location_narrate');
+  assert.equal(h.writes[0].params.args.roomId, 'room-a');
+  assert.equal(h.writes[0].params.scopeRoomId, 'room-a');
 });
 
 test('writer can be disabled for short combat narration', async () => {

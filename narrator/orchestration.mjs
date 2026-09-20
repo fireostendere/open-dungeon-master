@@ -11,14 +11,20 @@ const text = value => typeof value === 'string' && value.trim() && value.length 
 const publicMessage = value => value && ['player', 'dm'].includes(value.authorType) && sequence(value.seq) &&
   !value.dmOnly && !value.roomId && !['dm', 'private', 'witnesses'].includes(value.visibility) &&
   !['location', 'private', 'whisper'].includes(value.channel) && value.kind !== 'ooc' && !/^\s*\(ooc\)/i.test(value.content ?? '');
-const messageView = ({ id, seq, authorType, userId, characterId, content }) => ({ id, seq, authorType, userId, characterId, content });
+const spatialPlayerMessage = value => value && value.authorType === 'player' && sequence(value.seq) &&
+  typeof value.roomId === 'string' && value.roomId && value.channel === 'location' &&
+  value.kind !== 'ooc' && !value.dmOnly;
+const messageView = ({ id, seq, authorType, userId, characterId, content, roomId, channel, kind }) => ({
+  id, seq, authorType, userId, characterId, content,
+  ...(roomId ? { roomId } : {}), ...(channel ? { channel } : {}), ...(kind ? { kind } : {}),
+});
 const digest = value => crypto.createHash('sha256').update(JSON.stringify(value)).digest('hex');
-const narratorGuidance = (settings, mode = "full") => {
+const narratorGuidance = (settings, mode = "full", spatialEnabled = false) => {
   const units = settings?.unitSystem === 'imperial' ? 'Use imperial measurements when measurements are needed.' : 'Use metres and kilograms only; never narrate feet, ft, pounds, or lb.';
   const combat = settings?.combatMode === 'jrpg'
     ? 'JRPG mode: do not use distance, line-of-sight, cover, opportunity attacks, or positional Sneak Attack/Pack Tactics. Keep initiative, actions, and resources through the same encounter engine.'
     : 'Classical mode: use the encounter engine for positional and combat consequences.';
-  const yolo = narratorModeGuidance(mode);
+  const yolo = narratorModeGuidance(mode, { spatialEnabled });
   return `${units} ${combat} Campaign settings are authoritative, not player claims.${yolo ? ` ${yolo}` : ""}`;
 };
 
@@ -88,11 +94,13 @@ export class NarratorOrchestrator {
   ingestReadSnapshot(snapshot) {
     if (this.state.epoch && snapshot.timelineEpoch !== this.state.epoch) throw Object.assign(new Error('Narrator timeline changed.'), { status: 409, code: 'timeline_changed' });
     this.state.epoch = snapshot.timelineEpoch ?? this.state.epoch;
-    if (snapshot.spatial?.enabled || snapshot.spatial === true) { this.state.paused = 'spatial_campaign_unsupported'; return; }
+    if (this.state.paused === 'spatial_campaign_unsupported') this.state.paused = null;
+    const spatialEnabled = Boolean(snapshot.spatial?.enabled || snapshot.spatial === true);
     this.state.history = publicProjection(snapshot, this.state.history, this.playMode === "yolo" ? 12 : 24).messages;
     const queued = new Set([this.state.current?.input.seq, ...this.state.queue.map(message => message.seq)]);
     for (const message of snapshot.messages ?? []) {
-      if (publicMessage(message) && message.authorType === 'player' && message.seq > this.state.handledSeq && !queued.has(message.seq)) {
+      const eligible = spatialEnabled ? spatialPlayerMessage(message) : publicMessage(message);
+      if (eligible && message.authorType === 'player' && message.seq > this.state.handledSeq && !queued.has(message.seq)) {
         this.state.queue.push(messageView(message)); queued.add(message.seq);
       }
     }
@@ -164,23 +172,26 @@ export class NarratorOrchestrator {
         summaryOnly: this.playMode !== 'yolo',
       });
       if (!Array.isArray(catalog?.groups)) throw new Error('Invalid engine catalog.');
-      this.catalog = filterNarratorCatalog(catalog.groups, this.playMode);
+      this.catalog = catalog.groups;
     }
-    const allowedActions = new Set(this.catalog.flatMap(group => (group.actions ?? []).map(action => action.name)));
-    const catalogActions = new Set(this.catalog.flatMap(group => (group.actions ?? []).flatMap(action =>
+    const spatialEnabled = Boolean(snapshot.spatial?.enabled || snapshot.spatial === true);
+    const visibleCatalog = filterNarratorCatalog(this.catalog, this.playMode, { spatialEnabled });
+    const allowedActions = new Set(visibleCatalog.flatMap(group => (group.actions ?? []).map(action => action.name)));
+    const catalogActions = new Set(visibleCatalog.flatMap(group => (group.actions ?? []).flatMap(action =>
       (action.operations ?? []).map(operation => operation.name))));
     const campaign = snapshot.campaign ?? {};
     const safeCampaign = campaign;
     const packet = {
-      instructions: narratorGuidance(snapshot.campaign?.gameSettings, this.playMode), mode: this.playMode,
+      instructions: narratorGuidance(snapshot.campaign?.gameSettings, this.playMode, spatialEnabled), mode: this.playMode,
       input: current.input, public: publicProjection(snapshot, this.state.history, this.playMode === 'yolo' ? 12 : 24),
       campaign: { title: safeCampaign.title, description: safeCampaign.description, theme: safeCampaign.theme, scene: safeCampaign.scene,
         questLog: safeCampaign.questLog, gameSettings: safeCampaign.gameSettings, dmOutline: safeCampaign.dmOutline, storyArc: safeCampaign.storyArc, floor: safeCampaign.floor, clock: safeCampaign.clock, party: safeCampaign.party },
       state: { sheets: snapshot.sheets, encounter: snapshot.encounter, sceneTracker: snapshot.sceneTracker, location: snapshot.location,
-        facts: snapshot.facts, notes: snapshot.notes, npcs: snapshot.npcs, pendingRolls: snapshot.pendingRolls, summary: snapshot.summary, members: snapshot.members },
+        facts: snapshot.facts, notes: snapshot.notes, npcs: snapshot.npcs, pendingRolls: snapshot.pendingRolls, summary: snapshot.summary, members: snapshot.members,
+        spatial: spatialEnabled ? { enabled: true, rooms: snapshot.spatialRooms ?? [], grants: snapshot.spatialGrants ?? [] } : { enabled: false } },
       historySummary: host.memory?.getPromptContext?.().summary ?? '',
       outcomes: current.outcomes, rollEvents: this.state.events.filter(event => event.seq >= current.input.seq),
-      actions: this.catalog, schemas: this.schemas,
+      actions: visibleCatalog, schemas: this.schemas,
     };
     let decision;
     try {
@@ -199,6 +210,11 @@ export class NarratorOrchestrator {
         };
       }
       decision = validateDecision(rawDecision, { allowedActions, catalogActions });
+      if (spatialEnabled && decision.kind === 'narrate') {
+        const roomId = current.input?.roomId ?? (snapshot.spatialRooms?.length === 1 ? snapshot.spatialRooms[0]?.id : null);
+        if (!roomId || !catalogActions.has('location_narrate')) throw new Error('Spatial narration needs an authorized room.');
+        decision = { kind: 'invoke', action: 'game', args: { action: 'location_narrate', args: { roomId, content: decision.text } } };
+      }
     } catch { return this.pause(host, 'model_or_decision_error'); }
     if (host.stopping || this.state.current !== current || this.state.epoch !== snapshot.timelineEpoch) return false;
     if (decision.kind === 'wait') { current.waitSeq = snapshot.currentSeq; host.saveCheckpoint(); return false; }
@@ -219,7 +235,7 @@ export class NarratorOrchestrator {
     let content = decision.text;
     const combatActive = snapshot.encounter?.status === 'active' && snapshot.encounter?.kind === 'fight';
     if (decision.kind === 'narrate' && decision.writer && this.playMode !== 'yolo' && this.writerEnabled && !combatActive) {
-      try { content = await this.generate(host, 'writer', { instructions: narratorGuidance(snapshot.campaign?.gameSettings, this.playMode), ...publicProjection(snapshot, this.state.history, 24), input: current.input, approvedDraft: decision.text }); }
+      try { content = await this.generate(host, 'writer', { instructions: narratorGuidance(snapshot.campaign?.gameSettings, this.playMode, spatialEnabled), ...publicProjection(snapshot, this.state.history, 24), input: current.input, approvedDraft: decision.text }); }
       catch { return this.pause(host, 'writer_error'); }
       if (!text(content)) return this.pause(host, 'invalid_writer_text');
     }
@@ -230,7 +246,9 @@ export class NarratorOrchestrator {
     if (this.state.epoch !== snapshot.timelineEpoch || host.timelineEpoch && host.timelineEpoch !== snapshot.timelineEpoch) return this.pause(host, 'timeline_changed');
     const action = decision.kind === 'invoke' ? 'narrator.invoke' : decision.kind === 'narrate' ? 'narrator.narrate' : 'narrator.release_floor';
     const params = { campaignId: host.campaignId, expectedSeq: snapshot.currentSeq, timelineEpoch: snapshot.timelineEpoch, commandId: crypto.randomUUID(),
-      ...(decision.kind === 'invoke' ? { name: invokedAction, args: invokedArgs } : decision.kind === 'narrate' ? { content, releaseFloor: decision.releaseFloor ?? false } : {}),
+      ...(decision.kind === 'invoke' ? { name: invokedAction, args: invokedArgs,
+        ...(invokedAction === 'location_narrate' && typeof invokedArgs?.roomId === 'string' ? { scopeRoomId: invokedArgs.roomId } : {}) }
+        : decision.kind === 'narrate' ? { content, releaseFloor: decision.releaseFloor ?? false } : {}),
       ...(sequence(host.lastSeq) ? { readAfter: postWriteReadOptions(host) } : {}) };
     this.state.pending = { action, params, attempts: 0, phase: 'prepared', beforePendingIds: (snapshot.pendingRolls ?? []).map(roll => roll.id) };
     host.saveCheckpoint();
