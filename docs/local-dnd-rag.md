@@ -43,6 +43,9 @@ rebuilds, downloads, reads ODM/campaign SQLite, or emits text, document IDs,
 room IDs, prompts, secrets, or engine error messages. Citation identity hashes
 the real hit fields (`source`, `document_id`, `page_start`, `page_end`,
 `section`) only in memory. Empty/error results cannot pass deterministic checks.
+The captured variant uses `top_k=8, compact=True`; the local Codex instructions
+recommend `top_k=3`. These are reproducible kernel samples, not a recorded player
+query or a measurement of that three-hit instruction path.
 
 Run it with:
 

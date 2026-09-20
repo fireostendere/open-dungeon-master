@@ -1,0 +1,9 @@
+stage	role	count	p50Ms	p95Ms	bytes	inputBytes	outputBytes	responseBytes	modelCalls	mcpCalls	hits	loads	checkpointWrites	attempts	errors
+checkpoint_directory_fsync	-	483	1.338	1.813	0	0	0	0	0	0	0	0	0	0	0
+checkpoint_file_fsync	-	483	1.517	1.956	451149	0	0	0	0	0	0	0	0	0	0
+checkpoint_serialize	-	552	0.021	0.046	451149	0	0	0	0	0	0	0	0	0	0
+checkpoint_write	-	483	3.123	3.801	0	0	0	0	0	0	0	0	483	483	0
+narrator_model	referee	69	0.006	0.023	0	41304	5957	0	69	0	0	0	0	0	0
+packet	referee	69	0.017	0.035	41304	0	0	0	0	0	0	0	0	0	0
+post_write_read	-	69	0.157	0.433	0	0	0	0	0	0	0	0	0	0	0
+read_sections	-	80	0.226	1.261	0	0	0	0	0	0	237	83	0	0	0
