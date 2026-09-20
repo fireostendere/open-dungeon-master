@@ -443,16 +443,19 @@ export async function startDmTurn(campaignId: string) {
           ]),
         ),
         pins: listPins(campaignId).map((pin) => ({ text: pin.text })),
-        chapters: (yolo ? [] : listChapters(campaignId))
+        chapters: listChapters(campaignId)
           .filter((chapter) => chapter.status === "closed")
+          .slice(yolo ? -3 : 0)
           .map((chapter) => ({
             id: chapter.id,
             index: chapter.index,
             title: chapter.title,
             oneLiner: chapter.highlights[0] ?? "",
-            // The full sealed summary; the LOD renderer decides per chapter
-            // whether the prompt gets all of it or just its first sentence.
-            summary: chapter.summary || chapter.highlights[0] || "",
+            // YOLO keeps only a tiny chapter breadcrumb. Full mode retains
+            // the sealed summary and lets chapter LOD decide what to show.
+            summary: yolo
+              ? chapter.highlights[0] || chapter.title
+              : chapter.summary || chapter.highlights[0] || "",
           })),
         publicNotes: listPublicCampaignNotes(campaignId, yolo ? 4 : 10)
           .filter((note) => !yolo || note.pinned)
@@ -462,8 +465,9 @@ export async function startDmTurn(campaignId: string) {
           body: note.body,
         })),
         facts: listActiveFacts(campaignId)
-          .filter((fact) => !yolo || fact.pinned)
-          .slice(0, yolo ? 8 : undefined)
+          .filter((fact, index) => !yolo || fact.pinned || index < 6)
+          .sort((a, b) => yolo ? Number(b.pinned) - Number(a.pinned) : 0)
+          .slice(0, yolo ? 10 : undefined)
           .map((fact) => ({
           category: fact.category,
           subject: fact.subject,
