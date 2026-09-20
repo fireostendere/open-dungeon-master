@@ -9,6 +9,7 @@ USER node
 # Copy application runtime files needed for narrator host
 COPY --chown=node:node narrator /app/narrator
 COPY --chown=node:node mcp /app/mcp
+COPY --chown=node:node shared /app/shared
 
 VOLUME ["/app/state"]
 
