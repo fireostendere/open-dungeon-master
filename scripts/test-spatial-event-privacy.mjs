@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { stripTypeScriptTypes } from 'node:module';
 import { DatabaseSync } from 'node:sqlite';
@@ -13,10 +13,13 @@ async function fixture() {
   const sqlite = new DatabaseSync(':memory:');
   sqlite.exec(`CREATE TABLE campaigns(id TEXT PRIMARY KEY);
     INSERT INTO campaigns VALUES('c');
+    CREATE TABLE users(id TEXT PRIMARY KEY); INSERT INTO users VALUES('A'),('B'),('DM');
     CREATE TABLE members(user_id TEXT PRIMARY KEY, role TEXT);
     INSERT INTO members VALUES('A','player'),('B','player'),('DM','dm');
     CREATE TABLE campaign_events(campaign_id TEXT, seq INTEGER, type TEXT, payload_json TEXT, created_at TEXT, PRIMARY KEY(campaign_id,seq));
-    CREATE TABLE spatial_campaigns(campaign_id TEXT PRIMARY KEY); INSERT INTO spatial_campaigns VALUES('c');
+    CREATE TABLE spatial_campaigns(campaign_id TEXT PRIMARY KEY,start_seq INTEGER DEFAULT 0); INSERT INTO spatial_campaigns(campaign_id) VALUES('c');
+    CREATE TABLE character_sheets(id TEXT,campaign_id TEXT,user_id TEXT);
+    INSERT INTO character_sheets VALUES('pcA','c','A'),('pcB','c','B');
     CREATE TABLE spatial_presence(campaign_id TEXT,user_id TEXT,room_id TEXT);
     INSERT INTO spatial_presence VALUES('c','A','vault'),('c','B','street');`);
   let sequence = 0, authenticated = 'A', transactionId = 0;
@@ -35,26 +38,28 @@ async function fixture() {
     'node:crypto': crypto,
     '@/lib/db/core': { getDatabase: () => db, nowIso: () => '2026-09-18T00:00:00Z', parseJson: (value, fallback) => { try { return JSON.parse(value); } catch { return fallback; } } },
     '@/lib/db/campaigns': { allocateSeq: () => ++sequence, latestSeq: () => sequence, capsFor, getCampaignForUser,
+      getCampaignById: campaignId => campaignId === 'c' ? { id: 'c' } : null,
       listMembers: () => sqlite.prepare('SELECT user_id AS userId FROM members').all() },
-    '@/lib/db/commit-effects': { afterCommit: effect => effect() },
     '@/lib/campaign-api': {
       capsFor: member => capsFor(member.campaign, member.user.id), isErrorResponse: value => value instanceof Response,
       requireMember: async campaignId => getCampaignForUser(campaignId, authenticated) ? { campaign: { id: campaignId }, user: { id: authenticated } } : Response.json({ error: 'not found' }, { status: 404 }),
     },
   };
   const modules = new Map();
-  async function load(name) {
-    if (modules.has(name)) return modules.get(name);
+  async function load(name, parent) {
+    let key = stubs[name] || name.startsWith('node:') ? name : name.startsWith('@/')
+      ? new URL(`../src/${name.slice(2)}.ts`, import.meta.url).href : new URL(name, parent?.identifier ?? import.meta.url).href;
+    if (key.startsWith('file:') && !existsSync(fileURLToPath(key)) && existsSync(fileURLToPath(key) + '.ts')) key += '.ts';
+    if (modules.has(key)) return modules.get(key);
     let module;
-    if (stubs[name]) {
-      const values = stubs[name];
+    if (stubs[key] || key.startsWith('node:')) {
+      const values = stubs[key] ?? await import(key);
       module = new vm.SyntheticModule(Object.keys(values), function () { for (const [key, value] of Object.entries(values)) this.setExport(key, value); }, { context });
     } else {
-      const relative = name.startsWith('@/') ? `../src/${name.slice(2)}.ts` : name;
-      const source = readFileSync(fileURLToPath(new URL(relative, import.meta.url)), 'utf8');
-      module = new vm.SourceTextModule(stripTypeScriptTypes(source), { context, identifier: name });
+      const source = readFileSync(fileURLToPath(key), 'utf8');
+      module = new vm.SourceTextModule(stripTypeScriptTypes(source), { context, identifier: key });
     }
-    modules.set(name, module); await module.link(load); return module;
+    modules.set(key, module); await module.link(load); return module;
   }
   const events = await load('@/lib/events'); await events.evaluate();
   const timeline = await load('@/lib/spatial/timeline'); await timeline.evaluate();
@@ -169,7 +174,9 @@ test('R01: private ephemeral notifications stay private, even from the DM, and r
   try {
     a.length = b.length = dm.length = 0;
     f.events.publishUserEphemeral('c', 'A', 'ask_activity', { text: 'ASK_SECRET' });
-    assert.match(a.join(''), /ASK_SECRET/); assert.equal(b.length, 0); assert.equal(dm.length, 0);
+    assert.match(a.join(''), /event: ask_activity/);
+    assert.doesNotMatch(a.join(''), /ASK_SECRET/, 'activity is a content-free private wakeup, not the Ask payload');
+    assert.equal(b.length, 0); assert.equal(dm.length, 0);
     f.db.exec("DELETE FROM members WHERE user_id='A'"); a.length = 0;
     f.events.publishUserEphemeral('c', 'A', 'ask_activity', { text: 'AFTER_REVOKE' }); assert.equal(a.length, 0);
   } finally { for (const off of offs) off(); f.close(); }
@@ -199,7 +206,8 @@ test('R06: repeated rewind at the same sequence and timestamp gets a distinct du
     const initial = f.timeline.campaignTimelineEpoch('c');
     f.events.publishWithSeq('c', 1, 'campaign_rewound', { boundarySeq: 0 });
     const first = f.timeline.campaignTimelineEpoch('c');
-    f.db.exec('DELETE FROM campaign_events');
+    // The real spatial snapshot restore clears event views with the timeline.
+    f.db.exec('DELETE FROM spatial_event_views; DELETE FROM campaign_events');
     f.events.publishWithSeq('c', 1, 'campaign_rewound', { boundarySeq: 0 });
     const second = f.timeline.campaignTimelineEpoch('c');
     assert.notEqual(first, initial); assert.notEqual(second, first);

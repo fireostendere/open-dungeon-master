@@ -1,4 +1,5 @@
 import { readNarratorSnapshot } from './read-session.mjs';
+import { withLatencyTrace, withNewLatencyTrace } from '../mcp/latency-trace.mjs';
 
 /** One private Ask worker, separate from story decisions. The worker has its
  * own section cache and a fixed read scope; it never advances the story cursor.
@@ -32,20 +33,22 @@ export function startAskWorker(host, snapshot) {
     }
     if (current()) throw new Error('Ask queue page budget exceeded.');
   };
-  const task = Promise.resolve().then(work).catch(() => { if (current()) host.askError = 'ask_failed'; })
-    .finally(() => { if (host.askTask === task) host.askTask = null; });
+  const task = withNewLatencyTrace(() => Promise.resolve().then(work).catch(() => { if (current()) host.askError = 'ask_failed'; })
+    .finally(() => { if (host.askTask === task) host.askTask = null; }));
   host.askTask = task;
   return task;
 }
 
 export async function driveNarratorCycle(host) {
-  const snapshot = await host.drainStory();
-  host.askBlocked = [...host.pendingAskAttempts.values()].some(attempts => attempts >= 2);
-  const askTask = startAskWorker(host, snapshot);
-  // Story and Ask have separate model sessions and separate write endpoints.
-  // A stalled private answer must not hold the whole table's narration.
-  host.madeProgress = Boolean(host.storyController && await host.storyController.tick(host, snapshot));
-  if (!host.storyController && askTask) await askTask;
+  return withLatencyTrace(async () => {
+    const snapshot = await host.drainStory();
+    host.askBlocked = [...host.pendingAskAttempts.values()].some(attempts => attempts >= 2);
+    const askTask = startAskWorker(host, snapshot);
+    // Story and Ask have separate model sessions and separate write endpoints.
+    // A stalled private answer must not hold the whole table's narration.
+    host.madeProgress = Boolean(host.storyController && await host.storyController.tick(host, snapshot));
+    if (!host.storyController && askTask) await askTask;
+  });
 }
 export function narratorPollDelay(host) {
   return host.madeProgress && !host.lastError ? 0 : host.pollIntervalMs;

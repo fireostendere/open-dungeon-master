@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { loadSource, sqliteFixture } from './lib/readiness-harness.mjs';
 import { withOperationSignal } from '../src/lib/operation-scope.mjs';
 import * as operation from '../src/lib/operation-scope.mjs';
+import * as latencyTrace from '../mcp/latency-trace.mjs';
 
 function fixture() {
   const f = sqliteFixture();
@@ -13,6 +14,7 @@ function fixture() {
     '@/lib/db/commit-effects': f.effects, '@/lib/db/narrator-commands': receipts,
     '@/lib/dm/tool-transaction': f.transactions, '@/lib/dm/queue': queue,
     '@/lib/events': f.events, '@/lib/operation-scope.mjs': operation,
+    '../../../mcp/latency-trace.mjs': latencyTrace,
   });
   const state = { value: 0, nested: { gold: 3 } };
   const opts = {

@@ -135,7 +135,7 @@ test('actual adapter returns completed answer before DELETE and keeps sessions i
   assert.deepEqual(requests.filter(r => r.method === 'DELETE').map(r => r.path), ['/api/session/ses1', '/api/session/ses2']);
   cleanup.resolve(new Response(null, { status: 204 })); await adapter.close(); await tick();
   assert.equal(adapter.pendingCleanups.size, 0);
-  assert.ok(timings.every(value => Object.keys(value).sort().join(',') === 'durationMs,stage'));
+  assert.ok(timings.every(value => /^adapter_(session|policy|model|cleanup)$/.test(value.stage) && Number.isFinite(value.durationMs) && Number.isFinite(value.responseBytes)));
   assert.ok(!JSON.stringify(timings).includes('private input'));
 });
 

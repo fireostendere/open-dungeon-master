@@ -12,6 +12,8 @@ function narration(fixture) {
   return loadSource('src/lib/dm/human-narration.ts', {
     '@/lib/db/core': fixture.core, '@/lib/db/commit-effects': fixture.effects,
     '@/lib/db/campaigns': fixture.campaigns, '@/lib/db/messages': fixture.messages,
+    '@/lib/db/dm-turns': { listOpenPendingRolls: () => fixture.pendingRolls ?? [] },
+    '@/lib/dm/encounter-tools': { queueSkippedCombatTurn: () => {} },
     '@/lib/events': fixture.events,
     '@/lib/spatial/service': { spatialEnabled: () => false, SpatialError: class extends Error {} },
   }).persistHumanNarration;
@@ -45,6 +47,17 @@ test('M03: successful narration and hold are visible to subscribers only after c
     assert.equal(observations.length, 2);
     assert.ok(observations.every((row) => row.depth === 0 && row.floor.mode === 'hold'));
   } finally { stop(); f.close(); }
+});
+
+test('M03: pending physical rolls keep an already-held combat floor closed', () => {
+  const f = sqliteFixture();
+  f.pendingRolls = [{ id: 'physical-roll' }];
+  f.campaigns.setFloor('c1', { mode: 'hold', next: { mode: 'open' }, combat: { mechanicsResolved: true } });
+  try {
+    narration(f)(campaign(), 'The outcome is still pending.', 'dm');
+    assert.deepEqual(f.campaigns.getFloor('c1'), { mode: 'hold', next: { mode: 'open' }, combat: { mechanicsResolved: true } });
+    assert.equal(f.db.prepare("SELECT COUNT(*) AS n FROM campaign_events WHERE type='floor_changed'").get().n, 0);
+  } finally { f.close(); }
 });
 
 test('M06: real HTTP bridge forwards MCP metadata but never cookies or a caller-selected Host', async () => {
