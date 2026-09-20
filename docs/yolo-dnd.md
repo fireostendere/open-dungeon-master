@@ -54,10 +54,14 @@ trusted custom OpenCode adapter remain YOLO.
 - Retrieval, narration-repair, chapter summarization/compaction and background
   world simulation do not run in the normal internal YOLO turn.
 - Automatic image tool calls are disabled.
-- Out of combat the internal model receives a small action surface.
-- Active combat still uses the authoritative encounter engine.
-- The external narrator YOLO profile filters its catalog to the same class of
-  essential state/combat actions, uses a shorter public history, skips a
+- The internal model receives exactly one rules tool, `game`. Its compact menu
+  lists the currently legal engine operations; `game({action,args})` is
+  unwrapped server-side into the existing authoritative handler.
+- Active combat still uses the full authoritative encounter engine; combat
+  operations do not become a second implementation merely because the model
+  reaches them through `game`.
+- The external narrator YOLO profile exposes the same single `game` façade
+  over a compact operation catalog, uses a shorter public history, skips a
   separate writer pass and defaults to six referee steps instead of 24.
 
 Dice are sparse by design: routine or low-stakes actions should simply work. A
@@ -83,3 +87,29 @@ breadcrumbs.
 
 If a mechanic improves the scene or protects authoritative state, keep it. If it
 mainly makes the simulation more exact, omit it from the normal YOLO turn.
+
+
+## One public engine surface
+
+The model-facing API is now separate from the server's internal mechanics in
+both FULL and YOLO play. A narrator does not receive dozens of independent
+function schemas. It receives one `game` surface and selects an operation
+inside it:
+
+```json
+{"action":"pc_attack","args":{"characterId":"...","enemyId":"..."}}
+```
+
+The façade does not reimplement combat, dice, spells, inventory or persistence.
+The turn loop unwraps the request and sends it through the same existing
+handlers, transaction boundaries, per-turn caps, physical-dice parking and
+authoritative database state as the full DM. External narrators use the same
+shape and the narrator host unwraps it before calling `narrator.invoke`.
+
+This is primarily a context and tool-selection optimization: adding an internal
+mechanic no longer means adding another public LLM tool schema. FULL mode keeps
+the complete operation set and the long-form simulation/retrieval path behind
+the same `game` façade; YOLO exposes a smaller operation set and uses it much
+more sparingly. The external narrator can still request the detailed schema for
+one underlying operation on demand, so maximum-control play does not require
+shipping every schema on every model call.

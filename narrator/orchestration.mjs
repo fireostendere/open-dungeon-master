@@ -1,5 +1,6 @@
 import crypto from 'node:crypto';
 import { filterNarratorCatalog, narratorModeGuidance, resolveNarratorPlayMode } from './runtime-mode.mjs';
+import { parseGameFacadeArgs } from '../shared/dnd-game-facade.mjs';
 
 const clone = value => structuredClone(value);
 const sequence = value => Number.isSafeInteger(value) && value >= 0;
@@ -31,14 +32,15 @@ export function publicProjection(snapshot, history = [], limit = 24) {
   };
 }
 
-export function validateDecision(value, { allowedActions = new Set() } = {}) {
+export function validateDecision(value, { allowedActions = new Set(), catalogActions = allowedActions } = {}) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('Invalid referee decision.');
   const keys = {
     invoke: ['kind', 'action', 'args'], catalog: ['kind', 'action'],
     narrate: ['kind', 'text', 'writer', 'releaseFloor'], wait: ['kind'], done: ['kind'], release_floor: ['kind'],
   }[value.kind];
   if (!keys || Object.keys(value).some(key => !keys.includes(key))) throw new Error('Unsupported referee decision fields.');
-  if (['invoke', 'catalog'].includes(value.kind) && !allowedActions.has(value.action)) throw new Error('Disallowed engine action.');
+  if (value.kind === 'invoke' && !allowedActions.has(value.action)) throw new Error('Disallowed engine action.');
+  if (value.kind === 'catalog' && !catalogActions.has(value.action)) throw new Error('Disallowed catalog action.');
   if (value.kind === 'invoke' && (!value.args || typeof value.args !== 'object' || Array.isArray(value.args) ||
       ['campaignId', 'expectedSeq', 'commandId', 'timelineEpoch'].some(key => Object.hasOwn(value.args, key)))) throw new Error('Invalid engine arguments.');
   if (value.kind === 'narrate' && (!text(value.text) ||
@@ -144,11 +146,16 @@ export class NarratorOrchestrator {
     if (current.waitSeq === snapshot.currentSeq) return false;
     if (current.steps >= this.maxSteps) return this.pause(host, 'step_budget');
     if (!this.catalog) {
-      const catalog = await host.callControl('narrator.catalog', { campaignId: host.campaignId, summaryOnly: true });
+      const catalog = await host.callControl('narrator.catalog', {
+        campaignId: host.campaignId,
+        summaryOnly: this.playMode !== 'yolo',
+      });
       if (!Array.isArray(catalog?.groups)) throw new Error('Invalid engine catalog.');
       this.catalog = filterNarratorCatalog(catalog.groups, this.playMode);
     }
     const allowedActions = new Set(this.catalog.flatMap(group => (group.actions ?? []).map(action => action.name)));
+    const catalogActions = new Set(this.catalog.flatMap(group => (group.actions ?? []).flatMap(action =>
+      (action.operations ?? []).map(operation => operation.name))));
     const campaign = snapshot.campaign ?? {};
     const packet = {
       instructions: narratorGuidance(snapshot.campaign?.gameSettings, this.playMode), mode: this.playMode,
@@ -164,7 +171,20 @@ export class NarratorOrchestrator {
     let decision;
     try {
       current.steps++; host.saveCheckpoint();
-      decision = validateDecision(JSON.parse(await this.generate(host, 'referee', packet)), { allowedActions });
+      let rawDecision = JSON.parse(await this.generate(host, 'referee', packet));
+      // Compatibility lane for checkpoints/prompts produced before the one-game
+      // façade: normalize a directly named engine operation into game instead
+      // of forcing an otherwise-correct old narrator to fail mid-campaign.
+      if (rawDecision?.kind === 'invoke' &&
+          !allowedActions.has(rawDecision.action) &&
+          catalogActions.has(rawDecision.action)) {
+        rawDecision = {
+          kind: 'invoke',
+          action: 'game',
+          args: { action: rawDecision.action, args: rawDecision.args ?? {} },
+        };
+      }
+      decision = validateDecision(rawDecision, { allowedActions, catalogActions });
     } catch { return this.pause(host, 'model_or_decision_error'); }
     if (decision.kind === 'wait') { current.waitSeq = snapshot.currentSeq; host.saveCheckpoint(); return false; }
     if (decision.kind === 'catalog') {
@@ -172,7 +192,15 @@ export class NarratorOrchestrator {
       this.schemas[decision.action] = result.groups; return true;
     }
     if (decision.kind === 'done') { this.finish(host); return true; }
-    if (decision.kind === 'invoke' && decision.action === 'request_roll' && current.outcomes.some(outcome => outcome.name === decision.action && digest(outcome.args) === digest(decision.args) && !outcome.result?.error)) return this.pause(host, 'duplicate_check');
+    let invokedAction = decision.action;
+    let invokedArgs = decision.args;
+    if (decision.kind === 'invoke' && decision.action === 'game') {
+      const parsed = parseGameFacadeArgs(decision.args, catalogActions);
+      if (!parsed.ok) return this.pause(host, 'invalid_game_action');
+      invokedAction = parsed.action;
+      invokedArgs = parsed.args;
+    }
+    if (decision.kind === 'invoke' && invokedAction === 'request_roll' && current.outcomes.some(outcome => outcome.name === invokedAction && digest(outcome.args) === digest(invokedArgs) && !outcome.result?.error)) return this.pause(host, 'duplicate_check');
     let content = decision.text;
     if (decision.kind === 'narrate' && decision.writer && this.playMode !== 'yolo') {
       try { content = await this.generate(host, 'writer', { instructions: narratorGuidance(snapshot.campaign?.gameSettings, this.playMode), ...publicProjection(snapshot, this.state.history, 24), input: current.input, approvedDraft: decision.text }); }
@@ -185,7 +213,7 @@ export class NarratorOrchestrator {
     if (fresh.currentSeq !== snapshot.currentSeq) return true;
     const action = decision.kind === 'invoke' ? 'narrator.invoke' : decision.kind === 'narrate' ? 'narrator.narrate' : 'narrator.release_floor';
     const params = { campaignId: host.campaignId, expectedSeq: fresh.currentSeq, timelineEpoch: fresh.timelineEpoch, commandId: crypto.randomUUID(),
-      ...(decision.kind === 'invoke' ? { name: decision.action, args: decision.args } : decision.kind === 'narrate' ? { content, releaseFloor: decision.releaseFloor ?? false } : {}) };
+      ...(decision.kind === 'invoke' ? { name: invokedAction, args: invokedArgs } : decision.kind === 'narrate' ? { content, releaseFloor: decision.releaseFloor ?? false } : {}) };
     this.state.pending = { action, params, attempts: 0, phase: 'prepared', beforePendingIds: (fresh.pendingRolls ?? []).map(roll => roll.id) };
     host.saveCheckpoint();
     return this.write(host);

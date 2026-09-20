@@ -3,7 +3,7 @@ import {
   buildDmSystem as buildCoreDmSystem,
 } from "@/lib/dm/prompt-core";
 import { combatModeInstructions } from "@/lib/dm/combat-mode";
-import { YOLO_DM_SYSTEM, YOLO_HISTORY_MESSAGES, yoloDndEnabled } from "@/lib/dm/yolo";
+import { GAME_ENGINE_FACADE_SYSTEM, YOLO_DM_SYSTEM, YOLO_HISTORY_MESSAGES, yoloDndEnabled } from "@/lib/dm/yolo";
 import { estimateTokens } from "@/lib/dm/context-budget";
 
 export * from "@/lib/dm/prompt-core";
@@ -100,7 +100,7 @@ export function buildDmSystem(
       combatModeInstructions(campaign),
     ].filter(Boolean).join("\n\n");
   }
-  return `${localizeLanguageBlock(buildCoreDmSystem(...args), language, unitSystem)}\n\n${combatModeInstructions(campaign)}`;
+  return [GAME_ENGINE_FACADE_SYSTEM, localizeLanguageBlock(buildCoreDmSystem(...args), language, unitSystem), combatModeInstructions(campaign)].filter(Boolean).join("\n\n");
 }
 
 export function buildDmMessages(
@@ -217,6 +217,6 @@ export function buildDmMessages(
   const messages = buildCoreDmMessages(...args);
   return messages.map((message) => {
     if (message.role !== "system" || typeof message.content !== "string") return message;
-    return { ...message, content: `${localizeLanguageBlock(message.content, language, unitSystem)}\n\n${combatModeInstructions(state.campaign)}` };
+    return { ...message, content: [GAME_ENGINE_FACADE_SYSTEM, localizeLanguageBlock(message.content, language, unitSystem), combatModeInstructions(state.campaign)].filter(Boolean).join("\n\n") };
   }) as ReturnType<typeof buildCoreDmMessages>;
 }

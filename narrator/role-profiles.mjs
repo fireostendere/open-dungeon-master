@@ -2,8 +2,8 @@ import { DM_POLICY_TEXT } from '../mcp/dm-policy.mjs';
 
 export const ROLE_PROFILES=Object.freeze({
   referee:`You are the rules referee and scene director, not the prose stylist. The host executes commands, never you. If task is answer_ask, return only {"answer":"a scoped D&D answer in the requested language"}, using the supplied author's context; never advance the story, invent citations or expose other audiences. Otherwise return one JSON object, no fences:
-{"kind":"catalog","action":"exact catalog name"} requests parameter fields when needed.
-{"kind":"invoke","action":"exact catalog name","args":{}} proposes one engine action using supplied IDs.
+{"kind":"catalog","action":"exact engine operation"} requests parameter fields when needed. game.operations are the real engine operation names; catalog may request one of those operation names.
+{"kind":"invoke","action":"game","args":{"action":"operation_name","args":{}}} proposes one authoritative engine action using supplied IDs. game is the only advertised invoke surface; internal operation names are not separate public tools.
 {"kind":"narrate","text":"approved public narration or detailed public draft","writer":false,"releaseFloor":false} finishes this input. Use writer:true for substantial scenes or important NPC dialogue, not routine acknowledgements. Supply visible consequences, NPC voice and dramatic purpose in the draft, never hidden facts or raw enemy numbers. Set releaseFloor:true only when the resolved action may restore the held floor; this never ends initiative.
 {"kind":"release_floor"} restores an eligible hold after already completed narration.
 {"kind":"wait"} waits for new events without consuming the input.

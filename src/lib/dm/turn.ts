@@ -91,7 +91,14 @@ import { listPins } from "@/lib/db/pins";
 import { isStageEnabled } from "@/lib/dm/stages";
 import { renderVariantRules } from "@/lib/dm/rules-logic";
 import { dmThinkingEnabled, storyContextTokens } from "@/lib/model-client";
-import { YOLO_MAX_MODEL_CALLS, yoloDndEnabled, yoloThinkingEnabled, yoloToolAllowed } from "@/lib/dm/yolo";
+import {
+  YOLO_MAX_MODEL_CALLS,
+  buildGameEngineTool,
+  unwrapGameEngineCall,
+  yoloDndEnabled,
+  yoloThinkingEnabled,
+  yoloToolAllowed,
+} from "@/lib/dm/yolo";
 import { restoreMentionedNpcs } from "@/lib/dm/npc-archive";
 import { handleRecallStory } from "@/lib/dm/recall";
 import { handleSearchLore, searchLoreTool } from "@/lib/dm/lore-search";
@@ -623,52 +630,54 @@ async function runAdvance(context: TurnContext, turn: DmTurn) {
     // tools ignore DM_LEAN_TOOLS; they are the point of combat. Rest tools
     // only exist outside combat.
     const inEncounter = Boolean(getActiveEncounter(campaignId));
-    const tools = yolo
-      ? [
-          // Field-table surface: one generic roll tool, persistent state
-          // mutations that matter to players, and the real combat engine.
-          requestRollTool,
-          movePartyTool,
-          recordEventTool,
-          sendWhisperTool,
-          ...(inEncounter ? [splitDamageTool] : []),
-          ...encounterTools(inEncounter),
-          castBuffTool,
-          ...(inEncounter ? [] : restTools),
-          ...mutationTools,
-        ].filter((tool) =>
-          yoloToolAllowed(tool.function.name, ENCOUNTER_NAMES.has(tool.function.name)),
-        )
-      : [
-          requestRollTool,
-          requestPlayerInputTool,
-          movePartyTool,
-          updateLocationTool,
-          recordEventTool,
-          ...(isStageEnabled(campaign.gameSettings.stages, "recall") ? [recallStoryTool] : []),
-          searchLoreTool,
-          writeCampaignNoteTool,
-          sendWhisperTool,
-          ...(campaign.storyArc ? [completeBeatTool] : []),
-          ...checkTools,
-          ...hazardTools,
-          ...(inEncounter ? [splitDamageTool] : []),
-          ...petTools,
-          ...socialTools,
-          ...(inEncounter ? [] : relationshipTools(campaign)),
-          ...(inEncounter ? [] : worldTools),
-          ...(inEncounter ? [] : partyTools),
-          ...effectTools,
-          ...(inEncounter ? [] : sceneTools),
-          ...(campaign.gameSettings.ambienceEnabled ? ambienceTools : []),
-          ...(inEncounter ? [] : mountTools),
-          ...encounterTools(inEncounter),
-          castBuffTool,
-          ...(inEncounter ? [] : restTools),
-          ...companionTools(campaign),
-          ...(leanTools ? [] : mutationTools),
-          ...(imageEnabled ? [generateImageTool] : []),
-        ];
+    const fullInnerTools = [
+      requestRollTool,
+      requestPlayerInputTool,
+      movePartyTool,
+      updateLocationTool,
+      recordEventTool,
+      ...(isStageEnabled(campaign.gameSettings.stages, "recall") ? [recallStoryTool] : []),
+      searchLoreTool,
+      writeCampaignNoteTool,
+      sendWhisperTool,
+      ...(campaign.storyArc ? [completeBeatTool] : []),
+      ...checkTools,
+      ...hazardTools,
+      ...(inEncounter ? [splitDamageTool] : []),
+      ...petTools,
+      ...socialTools,
+      ...(inEncounter ? [] : relationshipTools(campaign)),
+      ...(inEncounter ? [] : worldTools),
+      ...(inEncounter ? [] : partyTools),
+      ...effectTools,
+      ...(inEncounter ? [] : sceneTools),
+      ...(campaign.gameSettings.ambienceEnabled ? ambienceTools : []),
+      ...(inEncounter ? [] : mountTools),
+      ...encounterTools(inEncounter),
+      castBuffTool,
+      ...(inEncounter ? [] : restTools),
+      ...companionTools(campaign),
+      ...(leanTools ? [] : mutationTools),
+      ...(imageEnabled ? [generateImageTool] : []),
+    ];
+    const yoloInnerTools = [
+      requestRollTool,
+      movePartyTool,
+      recordEventTool,
+      sendWhisperTool,
+      ...(inEncounter ? [splitDamageTool] : []),
+      ...encounterTools(inEncounter),
+      castBuffTool,
+      ...(inEncounter ? [] : restTools),
+      ...mutationTools,
+    ].filter((tool) =>
+      yoloToolAllowed(tool.function.name, ENCOUNTER_NAMES.has(tool.function.name)),
+    );
+    const innerTools = yolo ? yoloInnerTools : fullInnerTools;
+    // One public model tool in every internal DM mode. FULL vs YOLO now means
+    // which engine operations are available and how aggressively the narrator
+    // uses them, not how many separate function schemas the model must carry.
+    const tools = [buildGameEngineTool(innerTools)];
     // Model deltas are untrusted drafts: dice and the narration guard have
     // not run yet. Keep the thinking status, but publish prose only through
     // finalize() after the authoritative results have been checked.
@@ -735,7 +744,31 @@ async function runAdvance(context: TurnContext, turn: DmTurn) {
       function: { name: call.name, arguments: call.rawArguments },
     }));
     const offeredNames = new Set(tools.map((tool) => tool.function.name));
-    const toolCalls = allToolCalls.filter((call) => offeredNames.has(call.name));
+    const allowedInnerNames = new Set(innerTools.map((tool) => tool.function.name));
+    // Only "game" is advertised. Direct inner names remain a hidden
+    // compatibility lane for textual/XML salvage and old local providers; this
+    // preserves recovery without putting dozens of schemas back into context.
+    const acceptedToolCalls = allToolCalls.filter(
+      (call) => offeredNames.has(call.name) || allowedInnerNames.has(call.name),
+    );
+    const rejectedToolCalls = allToolCalls.filter(
+      (call) => !offeredNames.has(call.name) && !allowedInnerNames.has(call.name),
+    );
+    const facadeErrors = new Map<string, Record<string, unknown>>();
+    const toolCalls = acceptedToolCalls.flatMap((call) => {
+      if (call.name !== "game") return [call];
+      const unwrapped = unwrapGameEngineCall(call, allowedInnerNames);
+      if (!unwrapped.ok) {
+        facadeErrors.set(call.id, { error: unwrapped.error });
+        return [];
+      }
+      return [unwrapped.call];
+    });
+    const effectiveToolCalls = toolCalls.map((call) => ({
+      id: call.id,
+      type: "function" as const,
+      function: { name: call.name, arguments: call.rawArguments },
+    }));
     // tool_choice=none is a protocol boundary, not a promise by the model.
     // Reject the whole final batch before any bookkeeping or mutation runs.
     if (finalCall && allToolCalls.length) {
@@ -898,7 +931,7 @@ async function runAdvance(context: TurnContext, turn: DmTurn) {
       whisperResults.set(whisperCall.id ?? "send_whisper", result);
     }
     if (!turn.imageArgs) {
-      const parsedImage = parseGenerateImageToolCall(echoedToolCalls);
+      const parsedImage = parseGenerateImageToolCall(effectiveToolCalls);
       if (parsedImage?.prompt) {
         turn.imageArgs = { prompt: parsedImage.prompt, reason: parsedImage.reason };
       }
@@ -957,6 +990,22 @@ async function runAdvance(context: TurnContext, turn: DmTurn) {
     });
 
     const resultStart = turn.conversation.length;
+    for (const rejectedCall of rejectedToolCalls) {
+      turn.conversation.push({
+        role: "tool",
+        tool_call_id: rejectedCall.id,
+        content: JSON.stringify({
+          error: `Tool "${rejectedCall.name}" is not exposed directly. Use the single game tool with an available engine action.`,
+        }),
+      });
+    }
+    for (const [toolCallId, result] of facadeErrors) {
+      turn.conversation.push({
+        role: "tool",
+        tool_call_id: toolCallId,
+        content: JSON.stringify(result),
+      });
+    }
     for (const inputCall of inputCalls) {
       turn.conversation.push({
         role: "tool",

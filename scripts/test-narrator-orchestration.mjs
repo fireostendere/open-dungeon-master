@@ -59,7 +59,8 @@ test('real legacy player messages have no kind; referee receives IDs, state and 
   await h.tick();
   assert.equal(h.writes[0].params.args.characterId, 'hero');
   assert.equal(h.modelCalls[0].packet.state.sheets[0].id, 'hero');
-  assert.ok(h.modelCalls[0].packet.actions[0].actions.some(action => action.name === 'pc_attack'));
+  assert.equal(h.modelCalls[0].packet.actions[0].actions[0].name, 'game');
+  assert.ok(h.modelCalls[0].packet.actions[0].actions[0].operations.some(action => action.name === 'pc_attack'));
   await h.tick();
   assert.equal(h.writes[1].action, 'narrator.narrate');
   assert.equal(h.writes[1].params.content, 'Among the papers lies the clue.');
