@@ -106,6 +106,7 @@ export function spliceIntoOrder(
 export function pickEnemyTarget(
   attackerPosition: { x: number; y: number } | null,
   candidates: Array<{ characterId: string; ac: number; position: { x: number; y: number } | null }>,
+  usePosition = true,
 ): string | null {
   if (!candidates.length) {
     return null;
@@ -114,7 +115,7 @@ export function pickEnemyTarget(
     characterId: candidate.characterId,
     ac: candidate.ac,
     distance:
-      attackerPosition && candidate.position
+      usePosition && attackerPosition && candidate.position
         ? Math.max(
             Math.abs(attackerPosition.x - candidate.position.x),
             Math.abs(attackerPosition.y - candidate.position.y),

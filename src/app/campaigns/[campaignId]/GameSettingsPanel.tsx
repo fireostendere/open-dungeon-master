@@ -28,8 +28,10 @@ import { VoicePreviewButton } from "@/components/VoicePreviewButton";
 import type { GameSettings } from "@/lib/schemas/game-settings";
 import {
   CAMPAIGN_LENGTHS,
+  COMBAT_MODES,
   DM_DIFFICULTY_LEVELS,
   type CampaignLengthSetting,
+  type CombatModeSetting,
   type DicePolicy,
   type Genre,
   type UnitSystemSetting,
@@ -140,6 +142,10 @@ const COPY = {
     unitsPolicy: "Measurement units",
     unitsMetric: "Metric (m, kg)",
     unitsImperial: "Imperial (ft, lb)",
+    combat: "Combat",
+    combatTip: "Classical uses encounter position. JRPG is a campaign house-rule mode: targets in one encounter ignore distance, line of sight, cover, and opportunity-attack gates; initiative, dice, resources, HP, conditions, and privacy remain enforced.",
+    combatClassical: "Classical",
+    combatJrpg: "JRPG",
     narration: "Narration",
     on: "On",
     off: "Off",
@@ -295,6 +301,10 @@ const COPY = {
     dicePolicy: "Правила костей",
     units: "Единицы измерения",
     unitsTip: "Система мер в повествовании, на тактической карте и в описаниях. Метрическая (метры, кг) используется по умолчанию.",
+    combat: "Бой",
+    combatTip: "Классический режим учитывает позиции встречи. JRPG — правило кампании: цели одной встречи игнорируют дальность, линию обзора, укрытие и провоцированные атаки; инициатива, кости, ресурсы, HP, состояния и приватность сохраняются.",
+    combatClassical: "Классический",
+    combatJrpg: "JRPG",
     unitsPolicy: "Единицы измерения",
     unitsMetric: "Метрические (м, кг)",
     unitsImperial: "Имперские (фт, фнт)",
@@ -453,6 +463,10 @@ const COPY = {
     dicePolicy: "Zasady kości",
     units: "Jednostki",
     unitsTip: "Jednostki miary używane w narracji i na mapie bitewnej. Metryczne (metry, kg) są standardem.",
+    combat: "Walka",
+    combatTip: "Klasyczny tryb używa pozycji w spotkaniu. JRPG to zasada kampanii: cele jednego spotkania ignorują zasięg, linię widzenia, osłonę i ataki okazyjne; inicjatywa, kości, zasoby, PW, stany i prywatność pozostają egzekwowane.",
+    combatClassical: "Klasyczny",
+    combatJrpg: "JRPG",
     unitsPolicy: "Jednostki miary",
     unitsMetric: "Metryczne (m, kg)",
     unitsImperial: "Imperialne (ft, lb)",
@@ -833,6 +847,21 @@ export function GameSettingsPanel({
             >
               <option value="metric">{copy.unitsMetric}</option>
               <option value="imperial">{copy.unitsImperial}</option>
+            </select>
+          </Tooltip>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="w-16 text-stone-500">{copy.combat}</span>
+          <Tooltip content={copy.combatTip}>
+            <select
+              value={settings.combatMode}
+              onChange={(event) => patch({ combatMode: event.target.value as CombatModeSetting })}
+              className={selectClass}
+              aria-label={copy.combat}
+            >
+              <option value={COMBAT_MODES[0]}>{copy.combatClassical}</option>
+              <option value={COMBAT_MODES[1]}>{copy.combatJrpg}</option>
             </select>
           </Tooltip>
         </div>

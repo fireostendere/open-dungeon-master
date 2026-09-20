@@ -2,6 +2,7 @@ import {
   buildDmMessages as buildCoreDmMessages,
   buildDmSystem as buildCoreDmSystem,
 } from "@/lib/dm/prompt-core";
+import { combatModeInstructions } from "@/lib/dm/combat-mode";
 
 export * from "@/lib/dm/prompt-core";
 
@@ -39,7 +40,7 @@ function languageStandards(language: CampaignLanguage, unitSystem: CampaignUnitS
   if (language === "ru") {
     return `Language and Measurement Units:
 - Always narrate, describe scenes, answer actions, and voice NPCs in Russian (на русском языке), unless players explicitly write in another language.
-- Always use the METRIC SYSTEM for distances, sizes, ranges, and weights: 5 feet = 1.5 метра (1 клетка), 10 feet = 3 метра, 30 feet = 9 метров, and 1 lb ≈ 0.45 кг.
+ - Always use metric units for distances, sizes, ranges, and weights: metres and kilograms only. One map tile is 1.5 метра and standard speed is 9 метров; never output feet, pounds, ft, or lb.
 - Standard D&D abbreviations such as HP, AC, DC, STR, DEX, CON, INT, WIS, and CHA may stay in their conventional forms.
 - Preserve proper nouns, spell names, and official D&D terms in English when there is no established Russian equivalent.`;
   }
@@ -47,14 +48,14 @@ function languageStandards(language: CampaignLanguage, unitSystem: CampaignUnitS
   if (language === "pl") {
     return `Language and Measurement Units:
 - Always narrate, describe scenes, answer actions, and voice NPCs in Polish (po polsku). Keep the session consistently in Polish unless a player explicitly asks for another language in-character or out-of-character.
-- Use metric units by default for distances, sizes, ranges, and weights: 5 feet = 1.5 metra, 10 feet = 3 metry, 30 feet = 9 metrów, and 1 pound is approximately 0.45 kilograma.
+ - Use metric units only for distances, sizes, ranges, and weights: metres and kilograms. One map tile is 1.5 metra and standard speed is 9 metrów; never output feet, pounds, ft, or lb.
 - Use established Polish D&D terminology where it exists. Standard mechanical abbreviations and proper nouns may remain in their conventional forms when translating them would make the rules less clear.
 - Do not introduce Russian or Cyrillic text into Polish narration unless you are reproducing player-supplied text or a proper noun that intentionally uses Cyrillic.`;
   }
 
   return `Language and Measurement Units:
 - Always narrate, describe scenes, answer actions, and voice NPCs in English. Keep the session consistently in English unless a player explicitly asks for another language in-character or out-of-character.
-- Use metric units by default for distances, sizes, ranges, and weights: 5 feet = 1.5 meters, 10 feet = 3 meters, 30 feet = 9 meters, and 1 pound is approximately 0.45 kilograms.
+ - Use metric units only for distances, sizes, ranges, and weights: meters and kilograms. One map tile is 1.5 meters and standard speed is 9 meters; never output feet, pounds, ft, or lb.
 - Standard D&D abbreviations such as HP, AC, DC, STR, DEX, CON, INT, WIS, and CHA may stay in their conventional English forms.
 - Keep proper nouns, spell names, class names, conditions, and official D&D terminology in their standard English forms. Do not introduce Cyrillic text into English narration unless you are reproducing player-supplied text or a proper noun that intentionally uses Cyrillic.`;
 }
@@ -90,7 +91,7 @@ export function buildDmSystem(
   const [campaign] = args;
   const language = explicitLanguage(campaign.gameSettings.language) ?? "ru";
   const unitSystem = campaign.gameSettings.unitSystem === "imperial" ? "imperial" : "metric";
-  return localizeLanguageBlock(buildCoreDmSystem(...args), language, unitSystem);
+  return `${localizeLanguageBlock(buildCoreDmSystem(...args), language, unitSystem)}\n\n${combatModeInstructions(campaign)}`;
 }
 
 export function buildDmMessages(
@@ -102,6 +103,6 @@ export function buildDmMessages(
   const messages = buildCoreDmMessages(...args);
   return messages.map((message) => {
     if (message.role !== "system" || typeof message.content !== "string") return message;
-    return { ...message, content: localizeLanguageBlock(message.content, language, unitSystem) };
+    return { ...message, content: `${localizeLanguageBlock(message.content, language, unitSystem)}\n\n${combatModeInstructions(state.campaign)}` };
   }) as ReturnType<typeof buildCoreDmMessages>;
 }

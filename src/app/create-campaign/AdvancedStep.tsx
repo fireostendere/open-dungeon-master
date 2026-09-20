@@ -16,6 +16,11 @@ const COPY = {
     unitsMetricHint: "Meters and kilograms (default for all campaigns)",
     unitsImperial: "Imperial (ft, lb)",
     unitsImperialHint: "Feet and pounds",
+    combat: "Combat mode",
+    combatClassical: "Classical",
+    combatClassicalHint: "Position, range, cover, and opportunity attacks apply.",
+    combatJrpg: "JRPG",
+    combatJrpgHint: "All targets in one encounter are in range; a campaign house rule.",
   },
   ru: {
     bringPrep: "Импортировать подготовку",
@@ -24,6 +29,11 @@ const COPY = {
     unitsMetricHint: "Метры и килограммы (по умолчанию для всех кампаний)",
     unitsImperial: "Имперские (фт, фнт)",
     unitsImperialHint: "Футы и фунты",
+    combat: "Режим боя",
+    combatClassical: "Классический",
+    combatClassicalHint: "Действуют позиция, дальность, укрытие и провоцированные атаки.",
+    combatJrpg: "JRPG",
+    combatJrpgHint: "Все цели одной встречи в зоне действия; правило кампании.",
   },
   pl: {
     bringPrep: "Importuj przygotowanie",
@@ -32,6 +42,11 @@ const COPY = {
     unitsMetricHint: "Metry i kilogramy (domyślnie)",
     unitsImperial: "Imperialne (ft, lb)",
     unitsImperialHint: "Stopy i funty",
+    combat: "Tryb walki",
+    combatClassical: "Klasyczny",
+    combatClassicalHint: "Obowiązują pozycja, zasięg, osłona i ataki okazyjne.",
+    combatJrpg: "JRPG",
+    combatJrpgHint: "Wszystkie cele jednego spotkania są w zasięgu; zasada kampanii.",
   },
 } as const;
 
@@ -58,6 +73,14 @@ export function AdvancedStep({ draft, patch, gates }: StepProps) {
             label={copy.unitsImperial}
             hint={copy.unitsImperialHint}
           />
+        </div>
+      </div>
+
+      <div>
+        <FieldLabel className="mb-1.5">{copy.combat}</FieldLabel>
+        <div className="flex gap-2">
+          <ToggleCard active={draft.combatMode === "classical"} onClick={() => patch({ combatMode: "classical" })} label={copy.combatClassical} hint={copy.combatClassicalHint} />
+          <ToggleCard active={draft.combatMode === "jrpg"} onClick={() => patch({ combatMode: "jrpg" })} label={copy.combatJrpg} hint={copy.combatJrpgHint} />
         </div>
       </div>
 

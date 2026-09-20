@@ -1,6 +1,7 @@
 import { getDatabase, nowIso, parseJson } from "@/lib/db/core";
 import { touchCampaign } from "@/lib/db/campaigns";
 import type { GeneratedImage, ImageRequest } from "@/lib/types";
+import { normalizeNarrationUnits } from "@/lib/units/narration";
 
 export type CampaignMessage = {
   id: string;
@@ -77,6 +78,10 @@ export function insertCampaignMessage(input: {
   locationId?: string;
   dmTurnId?: string;
 }): CampaignMessage {
+  const settings = getDatabase().prepare(`SELECT game_settings_json FROM campaigns WHERE id = ?`).get(input.campaignId) as { game_settings_json?: string } | undefined;
+  const content = input.authorType === "dm" && parseJson<{ unitSystem?: string }>(settings?.game_settings_json, {}).unitSystem !== "imperial"
+    ? normalizeNarrationUnits(input.content)
+    : input.content;
   const id = crypto.randomUUID();
   getDatabase()
     .prepare(
@@ -95,7 +100,7 @@ export function insertCampaignMessage(input: {
       input.authorType,
       input.userId ?? null,
       input.characterId ?? null,
-      input.content,
+      content,
       input.imageRequest ? JSON.stringify(input.imageRequest) : null,
       input.locationId ?? null,
       input.dmTurnId ?? null,
@@ -223,6 +228,8 @@ export function findMessageForDmTurn(dmTurnId: string): CampaignMessage | null {
 // Lore-check accept: replaces a message's text in place (the lead applying
 // an approved consistency rewrite). The caller publishes message_updated.
 export function updateMessageContent(messageId: string, content: string): CampaignMessage | null {
+  const row = getDatabase().prepare(`SELECT author_type, campaign_id, game_settings_json FROM campaign_messages JOIN campaigns ON campaigns.id = campaign_messages.campaign_id WHERE campaign_messages.id = ?`).get(messageId) as { author_type: string; game_settings_json?: string } | undefined;
+  const normalized = row?.author_type === "dm" && parseJson<{ unitSystem?: string }>(row.game_settings_json, {}).unitSystem !== "imperial" ? normalizeNarrationUnits(content) : content;
   const result = getDatabase()
     .prepare(
       // Clearing the reroll takes keeps content === variants[variant_index]:
@@ -230,7 +237,7 @@ export function updateMessageContent(messageId: string, content: string): Campai
       // afterwards would silently undo the fix.
       `UPDATE campaign_messages SET content = ?, variants_json = NULL, variant_index = NULL WHERE id = ?`,
     )
-    .run(content, messageId);
+    .run(normalized, messageId);
   return result.changes > 0 ? getCampaignMessage(messageId) : null;
 }
 
@@ -253,7 +260,9 @@ export function setMessageVariants(
   variants: string[],
   index: number,
 ): CampaignMessage | null {
-  const selected = variants[index];
+  const row = getDatabase().prepare(`SELECT author_type, game_settings_json FROM campaign_messages JOIN campaigns ON campaigns.id = campaign_messages.campaign_id WHERE campaign_messages.id = ?`).get(messageId) as { author_type: string; game_settings_json?: string } | undefined;
+  const normalized = row?.author_type === "dm" && parseJson<{ unitSystem?: string }>(row.game_settings_json, {}).unitSystem !== "imperial" ? variants.map(value => normalizeNarrationUnits(value)) : variants;
+  const selected = normalized[index];
   if (selected === undefined) {
     return null;
   }
@@ -261,6 +270,6 @@ export function setMessageVariants(
     .prepare(
       `UPDATE campaign_messages SET variants_json = ?, variant_index = ?, content = ? WHERE id = ?`,
     )
-    .run(JSON.stringify(variants), index, selected, messageId);
+    .run(JSON.stringify(normalized), index, selected, messageId);
   return result.changes > 0 ? getCampaignMessage(messageId) : null;
 }

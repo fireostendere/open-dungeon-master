@@ -517,7 +517,7 @@ export function createSpatialStore(db, { nextSeq, now = () => new Date().toISOSt
 
   return {
     enabled,
-    command(actor, requestId, operation, input) {
+    command(actor, requestId, operation, input, normalizeInput = value => value) {
       authorize(actor);
       text(requestId, 100, "request ID");
       const fingerprint = createHash("sha256").update(JSON.stringify(canonical({ operation, input }))).digest("hex");
@@ -527,7 +527,7 @@ export function createSpatialStore(db, { nextSeq, now = () => new Date().toISOSt
           if (previous.fingerprint !== fingerprint) throw new SpatialError("Request ID was already used with different arguments.", 409);
           return JSON.parse(previous.result_json);
         }
-        const result = mutate(actor, operation, input);
+        const result = mutate(actor, operation, normalizeInput(input));
         run("INSERT INTO spatial_requests(campaign_id,actor_id,request_id,fingerprint,result_json) VALUES(?,?,?,?,?)", actor.campaignId, actor.userId, requestId, fingerprint, JSON.stringify(result));
         return result;
       })();

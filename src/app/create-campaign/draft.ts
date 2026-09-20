@@ -4,6 +4,7 @@ import { EMPTY_SELECTION, type ImportSelection } from "@/app/workshop/ContentImp
 import type { WorldPackSummary } from "@/lib/worlds/types";
 import type {
   CampaignLengthSetting,
+  CombatModeSetting,
   DicePolicy,
   DmDifficulty,
   DmModeSetting,
@@ -61,6 +62,7 @@ export type CampaignDraft = {
   maxGuests: number;
   voiceChat: GameSettings["voice"];
   unitSystem: UnitSystemSetting;
+  combatMode: CombatModeSetting;
 };
 
 export const DEFAULT_DRAFT: CampaignDraft = {
@@ -80,6 +82,7 @@ export const DEFAULT_DRAFT: CampaignDraft = {
   aiStorySetup: true,
   dicePolicy: "digital_only",
   unitSystem: "metric",
+  combatMode: "classical",
   dmDifficulty: 5,
   ttsEnabled: true,
   ttsVoice: "af_heart",

@@ -1,9 +1,12 @@
 import { getActiveEncounter } from "@/lib/db/encounters";
+import { getCampaignById } from "@/lib/db/campaigns";
 import { getBattleMapForEncounter, getTokenByRef } from "@/lib/db/battle-maps";
 import { listSheets } from "@/lib/db/sheets";
 import { computeSheetDerived } from "@/lib/srd";
 import { defenseRiders } from "@/lib/srd/feature-effects";
 import { chebyshev } from "@/lib/battlemap/types";
+import { isJrpgCombat } from "@/lib/dm/combat-mode";
+import { formatDistanceFeet } from "@/lib/units/narration";
 import type { CharacterSheet } from "@/lib/schemas/sheet";
 
 // Aura of Protection reaching allies. The paladin's own saves already carry
@@ -25,16 +28,19 @@ export function allySaveAura(
   campaignId: string,
   target: Pick<CharacterSheet, "id">,
 ): AuraSaveBonus | null {
+  const campaign = getCampaignById(campaignId);
+  if (!campaign) {
+    return null;
+  }
   const encounter = getActiveEncounter(campaignId);
   if (!encounter) {
     return null;
   }
+  const jrpg = isJrpgCombat(campaign);
+  const participants = new Set(encounter.order.flatMap(entry => entry.kind === "pc" ? [entry.characterId] : []));
   const map = getBattleMapForEncounter(encounter.id);
-  if (!map) {
-    return null;
-  }
-  const targetToken = getTokenByRef(map.id, target.id);
-  if (!targetToken) {
+  const targetToken = map ? getTokenByRef(map.id, target.id) : null;
+  if (jrpg ? !participants.has(target.id) : !targetToken) {
     return null;
   }
   let best: AuraSaveBonus | null = null;
@@ -52,18 +58,19 @@ export function allySaveAura(
     if (riders.saveBonus <= 0) {
       continue;
     }
-    const donorToken = getTokenByRef(map.id, donor.id);
-    if (!donorToken) {
+    const donorToken = map ? getTokenByRef(map.id, donor.id) : null;
+    if (jrpg ? !participants.has(donor.id) : !donorToken) {
       continue;
     }
     const range = auraRangeTiles(donor.level);
-    if (chebyshev(targetToken.x, targetToken.y, donorToken.x, donorToken.y) > range) {
+    // JRPG auras cover this encounter's participants, never the whole campaign.
+    if (!jrpg && targetToken && donorToken && chebyshev(targetToken.x, targetToken.y, donorToken.x, donorToken.y) > range) {
       continue;
     }
     if (!best || riders.saveBonus > best.bonus) {
       best = {
         bonus: riders.saveBonus,
-        note: `${donor.name}'s aura (within ${range * 5} ft): +${riders.saveBonus} on saving throws`,
+        note: `${donor.name}'s aura (${jrpg ? "same encounter" : `within ${formatDistanceFeet(range * 5, campaign.gameSettings.unitSystem)}`}): +${riders.saveBonus} on saving throws`,
       };
     }
   }

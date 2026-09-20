@@ -8,6 +8,7 @@ import { coverInEffect } from "@/lib/dm/delegation";
 import { isDmSeat } from "@/lib/dm/viewer";
 import { createSpatialStore, SpatialError, type SpatialActor, type SpatialStore } from "@/lib/spatial/store.mjs";
 import { capturePreSpatialEntities } from "@/lib/spatial/domain-migration";
+import { normalizeNarrationUnits } from "@/lib/units/narration";
 
 export { SpatialError } from "@/lib/spatial/store.mjs";
 const stores = new WeakMap<ReturnType<typeof getDatabase>, SpatialStore>();
@@ -81,7 +82,10 @@ export function runSpatialCommand(campaignId: string, userId: string, raw: unkno
   const { operation, requestId, ...input } = command;
   const result = getDatabase().transaction(() => {
     const previouslyEnabled = spatialStore().enabled(campaignId);
-    const result = spatialStore().command(actor, requestId, operation, input);
+    const result = spatialStore().command(actor, requestId, operation, input, (raw) =>
+      actor.isDm && ["send", "propagate", "perceive"].includes(operation) && typeof raw.content === "string"
+        ? { ...raw, content: normalizeNarrationUnits(raw.content, campaign.gameSettings.unitSystem) }
+        : raw);
     // Exact retry of enable must not capture newer text as pre-spatial history.
     if (operation === "enable" && !previouslyEnabled) capturePreSpatialEntities(campaignId);
     return result;

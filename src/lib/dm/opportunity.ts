@@ -6,6 +6,7 @@ import { getSheetById, listSheets, patchSheet } from "@/lib/db/sheets";
 import { insertRoll } from "@/lib/db/rolls";
 import { insertSheetAudit } from "@/lib/db/sheet-audit";
 import { chebyshev } from "@/lib/battlemap/types";
+import { isJrpgCombat } from "@/lib/dm/combat-mode";
 import { d20Expression, rollExpression } from "@/lib/dice";
 import { publishPersisted, publishWithSeq } from "@/lib/events";
 import {
@@ -70,7 +71,7 @@ export function resolveOpportunityAttacks(
   disengaged: boolean,
 ): OpportunityOutcome {
   const empty: OpportunityOutcome = { notes: [], downed: false };
-  if (disengaged) {
+  if (disengaged || isJrpgCombat(campaign)) {
     return empty;
   }
   const encounter = getActiveEncounter(campaign.id);
@@ -212,6 +213,9 @@ export function resolvePcOpportunityAttacks(
   from: { x: number; y: number },
   to: { x: number; y: number },
 ): string[] {
+  if (isJrpgCombat(campaign)) {
+    return [];
+  }
   const encounter = getActiveEncounter(campaign.id);
   if (!encounter) {
     return [];

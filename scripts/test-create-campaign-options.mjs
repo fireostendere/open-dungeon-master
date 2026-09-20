@@ -95,12 +95,17 @@ test("every intentional omission is documented in the dialog itself", () => {
 });
 
 test("the dialog sends the settings it collects", () => {
-  for (const key of ["relationships", "romance", "narrationGuard", "variantRules", "worldPack"]) {
+  for (const key of ["relationships", "romance", "narrationGuard", "variantRules", "worldPack", "combatMode"]) {
     assert.ok(
       new RegExp(`\\b${key}\\b`).test(dialog),
       `${key} is never referenced in CreateCampaignDialog`,
     );
   }
+});
+
+test("combat mode defaults to classical and rejects invalid values", () => {
+  assert.equal(gameSettingsSchema.parse({}).combatMode, "classical");
+  assert.equal(gameSettingsSchema.safeParse({ combatMode: "freeform" }).success, false);
 });
 
 test("romance cannot be sent on while bonds are off", () => {

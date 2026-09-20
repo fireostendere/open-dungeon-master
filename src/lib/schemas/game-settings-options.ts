@@ -77,3 +77,7 @@ export const UNIT_SYSTEM_LABELS: Record<UnitSystemSetting, string> = {
   imperial: "Imperial (feet, lbs)",
 };
 
+// Combat positioning is a campaign-wide rules choice, not a per-scene switch.
+export const COMBAT_MODES = ["classical", "jrpg"] as const;
+export type CombatModeSetting = (typeof COMBAT_MODES)[number];
+export const DEFAULT_COMBAT_MODE: CombatModeSetting = "classical";

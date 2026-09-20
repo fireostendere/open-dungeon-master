@@ -11,7 +11,7 @@ export type SpatialNarratorMessage = SpatialMessage & { witnessUserIds: string[]
 export type SpatialNarratorRead = Extract<SpatialView, { enabled: true }> & { messages: SpatialNarratorMessage[]; nextCursor: number; hasMore: boolean };
 export type SpatialStore = {
   enabled(campaignId: string): boolean;
-  command(actor: SpatialActor, requestId: string, operation: string, input: Record<string, unknown>): Record<string, unknown>;
+  command(actor: SpatialActor, requestId: string, operation: string, input: Record<string, unknown>, normalizeInput?: (input: Record<string, unknown>) => Record<string, unknown>): Record<string, unknown>;
   view(actor: SpatialActor): SpatialView;
   messages(actor: SpatialActor, options?: { roomId?: string | null; beforeSeq?: number; limit?: number }): SpatialPage;
   object(actor: SpatialActor, objectType: string, objectId: string): SpatialObjectProjection;

@@ -20,6 +20,8 @@ import { publishEphemeral } from "@/lib/events";
 import { resolveSheetRef } from "@/lib/dm/rolls";
 import { resolvePcOpportunityAttacks } from "@/lib/dm/opportunity";
 import { effectiveSpeed } from "@/lib/dm/condition-logic";
+import { isJrpgCombat } from "@/lib/dm/combat-mode";
+import { formatDistanceFeet } from "@/lib/units/narration";
 import type { CharacterSheet } from "@/lib/schemas/sheet";
 import { z } from "zod";
 
@@ -273,10 +275,12 @@ export function handleMoveToken(
 // Null map = no spatial information, so the caller falls back to the
 // advantage trigger alone rather than guessing.
 export function allyAdjacentToEnemy(
+  campaign: Campaign,
   encounterId: string,
   attackerCharacterId: string,
   enemyId: string,
 ): boolean {
+  if (isJrpgCombat(campaign)) return false;
   const map = getBattleMapForEncounter(encounterId);
   if (!map) {
     return false;
@@ -303,12 +307,16 @@ export function allyAdjacentToEnemy(
 export type AttackSpatials = { cover: 0 | 2 | 5; longRange: boolean };
 
 export function pcAttackSpatials(
+  campaign: Campaign,
   encounterId: string,
   characterId: string,
   enemyId: string,
   options: { ranged: boolean; rangeTiles: number; thrown: boolean },
 ): AttackSpatials {
   const none: AttackSpatials = { cover: 0, longRange: false };
+  if (isJrpgCombat(campaign)) {
+    return none;
+  }
   const map = getBattleMapForEncounter(encounterId);
   if (!map) {
     return none;
@@ -328,11 +336,15 @@ export function pcAttackSpatials(
 }
 
 export function checkPcAttackRange(
+  campaign: Campaign,
   encounterId: string,
   characterId: string,
   enemyId: string,
   options: { ranged: boolean; rangeTiles: number; reachTiles: number; thrown: boolean },
 ): string | null {
+  if (isJrpgCombat(campaign)) {
+    return null;
+  }
   const map = getBattleMapForEncounter(encounterId);
   if (!map) {
     return null;
@@ -363,9 +375,9 @@ export function checkPcAttackRange(
       : `${attacker.name} has no line of sight to ${target.name}; something blocks the shot. They must move their token to a sightline first or pick another target.`;
   }
   if (options.ranged || options.thrown) {
-    return `${attacker.name} is ${distance * 5} ft from ${target.name}, beyond this attack's ${options.rangeTiles * 10} ft maximum range. They must move their token closer or pick another target.`;
+    return `${attacker.name} is ${formatDistanceFeet(distance * 5, campaign.gameSettings.unitSystem)} from ${target.name}, beyond this attack's ${formatDistanceFeet(options.rangeTiles * 10, campaign.gameSettings.unitSystem)} maximum range. They must move their token closer or pick another target.`;
   }
-  return `${attacker.name} is ${distance * 5} ft from ${target.name}, out of melee reach (${options.reachTiles * 5} ft). They must move their token adjacent first or attack with a ranged weapon.`;
+  return `${attacker.name} is ${formatDistanceFeet(distance * 5, campaign.gameSettings.unitSystem)} from ${target.name}, out of melee reach (${formatDistanceFeet(options.reachTiles * 5, campaign.gameSettings.unitSystem)}). They must move their token adjacent first or attack with a ranged weapon.`;
 }
 
 // ---- spatial checks for enemy_attack ----
@@ -390,6 +402,9 @@ export function approachForAttack(
   targetCharacterId: string,
   attackName: string,
 ): { blocked?: Record<string, unknown>; movedTo?: string } | null {
+  if (isJrpgCombat(campaign)) {
+    return null;
+  }
   const map = getBattleMapForEncounter(encounterId);
   if (!map) {
     return null;

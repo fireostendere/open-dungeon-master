@@ -41,6 +41,7 @@ function runSubprocess(code, { preload = true, env = {} } = {}) {
       PRELOAD_MCP_TOOLS,
       assertRegisteredTools,
     } from "./mcp/server.mjs";
+    import { z } from "zod";
 
     const server = createVerifiedMcpServer({ expectPreload: true });
     const registered = Object.keys(server._registeredTools || {}).sort();
@@ -83,6 +84,29 @@ function runSubprocess(code, { preload = true, env = {} } = {}) {
     if (!narratorTool) {
       console.error("odm_narrator is not registered!");
       process.exit(6);
+    }
+
+    const campaignsTool = server._registeredTools["odm_campaigns"];
+    const settingsTool = server._registeredTools["odm_campaign_settings"];
+    const campaignJson = z.toJSONSchema(campaignsTool.config.inputSchema);
+    const settingsJson = z.toJSONSchema(settingsTool.config.inputSchema);
+    if (JSON.stringify(campaignJson.properties.gameSettings.properties.combatMode.enum) !== '["classical","jrpg"]' ||
+      JSON.stringify(settingsJson.properties.patch.properties.unitSystem.enum) !== '["metric","imperial"]') {
+      throw new Error("Campaign modes and units must be discoverable in tools/list schemas");
+    }
+    const validCampaign = campaignsTool.config.inputSchema.safeParse({
+      operation: "create", gameSettings: { combatMode: "jrpg", futureSetting: true },
+    });
+    const validPatch = settingsTool.config.inputSchema.safeParse({
+      operation: "game", campaignId: "11111111-1111-4111-8111-111111111111",
+      patch: { combatMode: "classical", futureSetting: true },
+    });
+    if (!validCampaign.success || validCampaign.data.gameSettings.futureSetting !== true ||
+      !validPatch.success || validPatch.data.patch.futureSetting !== true ||
+      campaignsTool.config.inputSchema.safeParse({operation:"create",gameSettings:{combatMode:"freeform"}}).success ||
+      settingsTool.config.inputSchema.safeParse({operation:"game",campaignId:"11111111-1111-4111-8111-111111111111",patch:{combatMode:"freeform"}}).success) {
+      console.error("campaign combat mode MCP contract did not validate or preserve game settings");
+      process.exit(8);
     }
 
     const validEpoch = "a".repeat(64);

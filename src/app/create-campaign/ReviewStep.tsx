@@ -37,6 +37,9 @@ const COPY = {
     units: "Units",
     unitsMetric: "Metric (m, kg)",
     unitsImperial: "Imperial (ft, lb)",
+    combat: "Combat",
+    combatClassical: "Classical",
+    combatJrpg: "JRPG",
     features: "Table features",
     featuresOn: (count: number) => `${count} on`,
     soloNext: "You'll drop into the lobby next to ready up.",
@@ -74,6 +77,9 @@ const COPY = {
     units: "Единицы измерения",
     unitsMetric: "Метрические (м, кг)",
     unitsImperial: "Имперские (фт, фнт)",
+    combat: "Бой",
+    combatClassical: "Классический",
+    combatJrpg: "JRPG",
     features: "Функции стола",
     featuresOn: (count: number) => `включено: ${count}`,
     soloNext: "После создания вы попадёте в лобби, где останется отметить готовность.",
@@ -111,6 +117,9 @@ const COPY = {
     units: "Jednostki",
     unitsMetric: "Metryczne (m, kg)",
     unitsImperial: "Imperialne (ft, lb)",
+    combat: "Walka",
+    combatClassical: "Klasyczny",
+    combatJrpg: "JRPG",
     features: "Funkcje stołu",
     featuresOn: (count: number) => `włączone: ${count}`,
     soloNext: "Po utworzeniu trafisz do lobby, gdzie pozostanie oznaczyć gotowość.",
@@ -153,6 +162,7 @@ export function ReviewStep({
         <Row label={copy.dmDifficulty}>{draft.dmDifficulty}/10</Row>
         <Row label={copy.dice}>{dice}</Row>
         <Row label={copy.units}>{draft.unitSystem === "imperial" ? copy.unitsImperial : copy.unitsMetric}</Row>
+        <Row label={copy.combat}>{draft.combatMode === "jrpg" ? copy.combatJrpg : copy.combatClassical}</Row>
         <Row label={copy.features}>{copy.featuresOn(featuresOn(draft, gates))}</Row>
       </dl>
       <p className="text-stone-400">{solo ? copy.soloNext : copy.partyNext}</p>

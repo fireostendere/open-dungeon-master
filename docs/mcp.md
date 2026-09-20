@@ -38,6 +38,44 @@ redirect refusal and streaming/cancellation. It does not substitute admin rights
 | `odm_assets` | packs, jobs, leases, scoped upload/download, asset links |
 | `odm_progress` | revision-checked progress, party sync, finish receipts |
 
+`odm_campaigns.create.gameSettings` and `odm_campaign_settings` game patches
+accept `combatMode`: `classical` (default) or `jrpg`. Unknown setting keys are
+forwarded unchanged for app compatibility. JRPG is an explicit campaign house
+rule: targets within the current encounter are distance-free and are not gated
+by line of sight, cover, or opportunity attacks; it still uses initiative,
+actions, server dice, resources, HP, conditions, and privacy. It never joins
+separate rooms or encounters and does not grant positional Sneak Attack, Pack
+Tactics, or flanking. It is not a difficulty relaxation. Only an authenticated
+operator or an authorized UI story seat changes this setting; player story, Ask,
+and whispers never authorize it.
+
+In JRPG, eligible party auras cover participants of the current encounter even
+without a tactical map, not characters in other rooms or encounters. Map movement
+may still illustrate positions but is not a prerequisite for an attack.
+
+The campaign wizard offers **Advanced → Measurement units** (metric by default)
+and **Combat mode** before creation. An authorized story seat can change both in
+the campaign's **Game settings** panel. `unitSystem` normalizes supported numeric
+GM output only; it does not rewrite source material or player text, and does not
+claim unsupported words or inch conversions.
+The narration conversion uses tabletop units (5 ft = 1.5 m and 1 lb = 0.45 kg),
+including numeric ranges, dimensions and fractions. Existing history, player
+messages, code blocks and source documents are not rewritten.
+
+```json
+{"operation":"create","title":"Ashes","gameSettings":{"unitSystem":"metric","combatMode":"classical"}}
+```
+
+```json
+{"operation":"game","campaignId":"<campaign-id>","patch":{"combatMode":"jrpg","unitSystem":"metric"}}
+```
+
+Read the persisted value back with:
+
+```json
+{"operation":"get","campaignId":"<campaign-id>"}
+```
+
 With the mandatory preload there are five resources:
 `odm://server/status`, `odm://server/capabilities`, `odm://narrator/instructions`,
 `odm://narrator/playbook`, and `odm://narrator/policy`. The first two use the

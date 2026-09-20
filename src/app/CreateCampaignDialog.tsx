@@ -253,6 +253,7 @@ export function CreateCampaignDialog({
       worldPack,
       voiceChat,
       unitSystem,
+      combatMode,
       houseRules,
       loreDrafts,
       contentImport,
@@ -299,6 +300,7 @@ export function CreateCampaignDialog({
             worldPack,
             voice: voiceChat,
             unitSystem,
+            combatMode,
             // Game settings fields deliberately not offered at initial creation:
             //
             // `stages` trades turn quality for speed on a slow local model,

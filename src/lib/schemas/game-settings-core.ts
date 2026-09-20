@@ -1,7 +1,9 @@
 import { z } from "zod";
 import {
   CAMPAIGN_LENGTHS,
+  COMBAT_MODES,
   COMPANION_SETTINGS,
+  DEFAULT_COMBAT_MODE,
   DICE_POLICIES,
   DM_DIFFICULTY_LEVELS,
   DEFAULT_DM_DIFFICULTY,
@@ -15,11 +17,13 @@ import {
 export {
   CAMPAIGN_LENGTH_LABELS,
   CAMPAIGN_LENGTHS,
+  COMBAT_MODES,
   COMPANION_LABELS,
   COMPANION_SETTINGS,
   DICE_POLICIES,
   DM_DIFFICULTY_LEVELS,
   DEFAULT_DM_DIFFICULTY,
+  DEFAULT_COMBAT_MODE,
   DM_MODE_HINTS,
   DM_MODE_LABELS,
   DM_MODES,
@@ -28,6 +32,7 @@ export {
   UNIT_SYSTEM_LABELS,
   DEFAULT_UNIT_SYSTEM,
   type CampaignLengthSetting,
+  type CombatModeSetting,
   type CompanionSetting,
   type DicePolicy,
   type DmDifficulty,
@@ -40,6 +45,9 @@ export {
 // separate from settings_json (the model/image StorySettings) so the two
 // never fight over shape.
 export const gameSettingsSchema = z.object({
+  // JRPG is an explicit campaign house-rule mode. The combat engine, rather
+  // than narration, decides which positional gates it relaxes.
+  combatMode: z.enum(COMBAT_MODES).default(DEFAULT_COMBAT_MODE),
   // Who runs the game. "ai" is the original behavior and the default.
   // "human" silences the AI narrator entirely: player actions queue for the
   // DM instead of waking a turn. "assisted" keeps the AI available for the

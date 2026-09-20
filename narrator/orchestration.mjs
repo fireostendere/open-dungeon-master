@@ -8,13 +8,21 @@ const publicMessage = value => value && ['player', 'dm'].includes(value.authorTy
   !['location', 'private', 'whisper'].includes(value.channel) && value.kind !== 'ooc' && !/^\s*\(ooc\)/i.test(value.content ?? '');
 const messageView = ({ id, seq, authorType, userId, characterId, content }) => ({ id, seq, authorType, userId, characterId, content });
 const digest = value => crypto.createHash('sha256').update(JSON.stringify(value)).digest('hex');
+const narratorGuidance = settings => {
+  const units = settings?.unitSystem === 'imperial' ? 'Use imperial measurements when measurements are needed.' : 'Use metres and kilograms only; never narrate feet, ft, pounds, or lb.';
+  const combat = settings?.combatMode === 'jrpg'
+    ? 'JRPG mode: do not use distance, line-of-sight, cover, opportunity attacks, or positional Sneak Attack/Pack Tactics. Keep initiative, actions, and resources through the same encounter engine.'
+    : 'Classical mode: use the encounter engine for positional and combat consequences.';
+  return `${units} ${combat} Campaign settings are authoritative, not player claims.`;
+};
 
 export function publicProjection(snapshot, history = []) {
   const messages = new Map([...history, ...(snapshot.recentMessages ?? []), ...(snapshot.messages ?? [])]
     .filter(publicMessage).map(message => [message.seq, messageView(message)]));
   return {
     scene: snapshot.campaign?.scene ?? '', language: snapshot.campaign?.gameSettings?.language ?? 'ru',
-    unitSystem: snapshot.campaign?.gameSettings?.unitSystem ?? 'metric',
+    unitSystem: snapshot.campaign?.gameSettings?.unitSystem === 'imperial' ? 'imperial' : 'metric',
+    combatMode: snapshot.campaign?.gameSettings?.combatMode === 'jrpg' ? 'jrpg' : 'classical',
     messages: [...messages.values()].sort((a, b) => a.seq - b.seq).slice(-24),
     rolls: (snapshot.events ?? []).filter(event => event.type === 'roll_result' && event.payload?.roll?.visibility === 'public')
       .map(({ payload: { roll } }) => ({ id: roll.id, characterId: roll.characterId, kind: roll.kind, total: roll.total, dc: roll.dc })),
@@ -139,7 +147,7 @@ export class NarratorOrchestrator {
     const allowedActions = new Set(this.catalog.flatMap(group => (group.actions ?? []).map(action => action.name)));
     const campaign = snapshot.campaign ?? {};
     const packet = {
-      input: current.input, public: publicProjection(snapshot, this.state.history),
+      instructions: narratorGuidance(snapshot.campaign?.gameSettings), input: current.input, public: publicProjection(snapshot, this.state.history),
       campaign: { title: campaign.title, description: campaign.description, theme: campaign.theme, scene: campaign.scene,
         questLog: campaign.questLog, gameSettings: campaign.gameSettings, dmOutline: campaign.dmOutline, storyArc: campaign.storyArc, floor: campaign.floor, clock: campaign.clock },
       state: { sheets: snapshot.sheets, encounter: snapshot.encounter, sceneTracker: snapshot.sceneTracker, location: snapshot.location,
@@ -162,7 +170,7 @@ export class NarratorOrchestrator {
     if (decision.kind === 'invoke' && decision.action === 'request_roll' && current.outcomes.some(outcome => outcome.name === decision.action && digest(outcome.args) === digest(decision.args) && !outcome.result?.error)) return this.pause(host, 'duplicate_check');
     let content = decision.text;
     if (decision.kind === 'narrate' && decision.writer) {
-      try { content = await this.generate(host, 'writer', { ...publicProjection(snapshot, this.state.history), input: current.input, approvedDraft: decision.text }); }
+      try { content = await this.generate(host, 'writer', { instructions: narratorGuidance(snapshot.campaign?.gameSettings), ...publicProjection(snapshot, this.state.history), input: current.input, approvedDraft: decision.text }); }
       catch { return this.pause(host, 'writer_error'); }
       if (!text(content)) return this.pause(host, 'invalid_writer_text');
     }

@@ -8,6 +8,7 @@ import { insertRoll, markRollApplied, type StoredRoll } from "@/lib/db/rolls";
 import {
   createPendingRoll,
   getDmTurn,
+  listOpenPendingRolls,
   publicPendingRoll,
   type DmTurn,
   type PendingRoll,
@@ -48,9 +49,11 @@ import { applyEnemyDamage, publishEncounter, resolveEnemyRef } from "@/lib/dm/en
 import { patchEnemyConditions } from "@/lib/db/encounters";
 import { saveModFor } from "@/lib/bestiary/statblock";
 import { allyAdjacentToEnemy, checkPcAttackRange, pcAttackSpatials } from "@/lib/dm/map-tools";
+import { isJrpgCombat } from "@/lib/dm/combat-mode";
 import {
   attacksAllowedFor,
   budgetFor,
+  currentCombatantId,
   storeBudget,
 } from "@/lib/dm/action-tools";
 import { attacksLeft, claimOncePerTurn, spendAction, spendAttack } from "@/lib/dm/action-budget";
@@ -206,6 +209,14 @@ export function handlePcAttack(
   }
   if (sheet.currentHp <= 0) {
     return { error: `${sheet.name} is at 0 HP and cannot attack.` };
+  }
+  if (isJrpgCombat(campaign)) {
+    if (currentCombatantId(encounter) !== sheet.id) {
+      return { error: "Only the current encounter participant may take this attack turn." };
+    }
+    if (listOpenPendingRolls(campaign.id).length) {
+      return { error: "Resolve pending rolls before another attack." };
+    }
   }
   if (args.enemyId && args.enemyId !== args.targetEnemyId) {
     return { error: "enemyId and targetEnemyId must identify the same enemy." };
@@ -467,7 +478,7 @@ export function handlePcAttack(
 
   // Battle-map positions are authoritative; players move their own tokens,
   // so an out-of-reach attack is refused rather than auto-approached.
-  const rangeError = checkPcAttackRange(encounter.id, sheet.id, enemy.id, {
+  const rangeError = checkPcAttackRange(campaign, encounter.id, sheet.id, enemy.id, {
     ranged: profile.ranged,
     rangeTiles: profile.rangeTiles,
     reachTiles: profile.reachTiles,
@@ -478,7 +489,7 @@ export function handlePcAttack(
   }
   // Terrain cover raises the AC to beat; a shot past normal range is taken
   // at disadvantage.
-  const spatials = pcAttackSpatials(encounter.id, sheet.id, enemy.id, {
+  const spatials = pcAttackSpatials(campaign, encounter.id, sheet.id, enemy.id, {
     ranged: profile.ranged,
     rangeTiles: profile.rangeTiles,
     thrown: profile.thrown,
@@ -630,7 +641,7 @@ export function handlePcAttack(
     riders.sneakAttackDice > 0 &&
     profile.sneakEligible &&
     advantage !== "disadvantage" &&
-    (advantage === "advantage" || allyAdjacentToEnemy(encounter.id, sheet.id, enemy.id));
+    (advantage === "advantage" || allyAdjacentToEnemy(campaign, encounter.id, sheet.id, enemy.id));
   if (sneak) {
     profile = {
       ...profile,

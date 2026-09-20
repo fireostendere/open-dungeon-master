@@ -82,6 +82,13 @@ const ownerRefFields = {
   ownerUsername: z.string().trim().min(1).max(80).optional().describe("Campaign/character owner username"),
 };
 
+// The known settings stay discoverable in tools/list while catchall preserves
+// application settings the sidecar does not own.
+const gameSettingsInputSchema = z.object({
+  combatMode: z.enum(["classical", "jrpg"]).optional(),
+  unitSystem: z.enum(["metric", "imperial"]).optional(),
+}).catchall(z.unknown());
+
 function ownerRef(args) {
   return { userId: args.ownerUserId, username: args.ownerUsername };
 }
@@ -284,7 +291,7 @@ questions, private whispers, DM outlines or other DM secrets to the table.
     {
       title: "ODM campaigns",
       description:
-        "Create, inspect and administer campaigns/workshops. Operations: list, get, create, update, delete, set_status, regenerate_invite. Delete requires confirm=true.",
+        "Create, inspect and administer campaigns/workshops. Operations: list, get, create, update, delete, set_status, regenerate_invite. gameSettings.combatMode is classical (default) or jrpg. Delete requires confirm=true.",
       inputSchema: z.object({
         operation: z.enum(["list", "get", "create", "update", "delete", "set_status", "regenerate_invite"]),
         campaignId: z.string().uuid().optional(),
@@ -296,7 +303,7 @@ questions, private whispers, DM outlines or other DM secrets to the table.
         maxPlayers: z.number().int().min(1).max(8).optional(),
         startingLevel: z.number().int().min(1).max(20).optional(),
         difficulty: z.enum(["easy", "normal", "hard", "deadly"]).optional(),
-        gameSettings: z.record(z.string(), z.unknown()).optional(),
+        gameSettings: gameSettingsInputSchema.optional(),
         status: z.enum(["lobby", "active", "ended"]).optional(),
         confirm: z.boolean().optional(),
       }),
@@ -342,11 +349,11 @@ questions, private whispers, DM outlines or other DM secrets to the table.
     {
       title: "ODM campaign settings",
       description:
-        "Change game rules, AI/text/image providers, or DM mode for a campaign. Story settings may write API keys but reads never reveal stored keys.",
+        "Change game rules, AI/text/image providers, or DM mode for a campaign. For game patches combatMode accepts classical (default) or jrpg; other game-setting keys pass through unchanged. Story settings may write API keys but reads never reveal stored keys.",
       inputSchema: z.object({
         operation: z.enum(["game", "story", "dm_mode"]),
         campaignId: z.string().uuid(),
-        patch: z.record(z.string(), z.unknown()).optional(),
+        patch: gameSettingsInputSchema.optional(),
         mode: z.enum(["ai", "human", "assisted"]).optional(),
         actorUserId: z.string().uuid().optional(),
         actorUsername: z.string().trim().min(1).max(80).optional(),

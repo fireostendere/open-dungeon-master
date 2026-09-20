@@ -52,6 +52,7 @@ import {
   moveTokenTool,
   publishBattleMapUpdate,
 } from "@/lib/dm/map-tools";
+import { isJrpgCombat } from "@/lib/dm/combat-mode";
 import {
   applyEnemyDamage,
   finishEncounter,
@@ -79,6 +80,7 @@ import {
 import {
   ACTION_TOOL_NAMES,
   actionTools,
+  currentCombatantId,
   handleTakeAction,
   handleUseReaction,
 } from "@/lib/dm/action-tools";
@@ -753,6 +755,8 @@ function handleEnemyAttack(
   rawArguments: string,
   sheets: CharacterSheet[],
   sheetsById: Map<string, CharacterSheet>,
+  // Only the server fallback may resolve an owed turn after advancing the pointer.
+  skippedTurn = false,
 ): Record<string, unknown> {
   const encounter = getActiveEncounter(campaign.id);
   if (!encounter) {
@@ -771,6 +775,15 @@ function handleEnemyAttack(
   if (enemy.status !== "alive") {
     return { error: `${enemy.displayName} is ${enemy.status} and cannot attack.` };
   }
+  if (isJrpgCombat(campaign)) {
+    if ((!skippedTurn && currentCombatantId(encounter) !== enemy.id) ||
+      !encounter.order.some(entry => entry.kind === "enemy" && entry.enemyId === enemy.id)) {
+      return { error: "Only the current encounter participant may take this attack turn." };
+    }
+    if (listOpenPendingRolls(campaign.id).length) {
+      return { error: "Resolve pending rolls before another attack." };
+    }
+  }
   const stoppedBy = incapacitatedBy(enemy.conditions);
   if (stoppedBy) {
     return {
@@ -785,6 +798,9 @@ function handleEnemyAttack(
   const target = staleTarget ? getSheetById(staleTarget.id) : null;
   if (!target) {
     return { error: "Unknown targetCharacterId; use one from GAME STATE." };
+  }
+  if (isJrpgCombat(campaign) && !encounter.order.some(entry => entry.kind === "pc" && entry.characterId === target.id)) {
+    return { error: "The target is not a participant in this encounter." };
   }
   const attack = pickAttack(enemy, args.attack);
   if (!attack) {
@@ -1186,6 +1202,7 @@ function autoActSkippedEnemies(
       continue;
     }
     const living = sheets.filter((sheet) => {
+      if (isJrpgCombat(campaign) && !encounter.order.some(entry => entry.kind === "pc" && entry.characterId === sheet.id)) return false;
       const fresh = getSheetById(sheet.id);
       return (fresh?.currentHp ?? 0) > 0;
     });
@@ -1204,6 +1221,7 @@ function autoActSkippedEnemies(
           position: token ? { x: token.x, y: token.y } : null,
         };
       }),
+      !isJrpgCombat(campaign),
     );
     if (!targetId) {
       break;
@@ -1214,6 +1232,7 @@ function autoActSkippedEnemies(
       JSON.stringify({ enemyId: enemy.id, targetCharacterId: targetId }),
       sheets,
       sheetsById,
+      true,
     );
     const targetName = sheetsById.get(targetId)?.name ?? "a hero";
     if ("error" in result) {
@@ -1334,7 +1353,7 @@ function companionAutoAct(
   const map = getBattleMapForEncounter(encounter.id);
   const myToken = map ? getTokenByRef(map.id, sheet.id) : null;
   let target = enemies[0];
-  if (map && myToken) {
+  if (!isJrpgCombat(campaign) && map && myToken) {
     let best = Number.POSITIVE_INFINITY;
     for (const enemy of enemies) {
       const token = getTokenByRef(map.id, enemy.id);
