@@ -10,6 +10,7 @@ import * as path from 'node:path';
 import * as url from 'node:url';
 import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
+import * as narratorSchema from '../mcp/narrator-schema.mjs';
 const require=createRequire(import.meta.url);
 const {z}=require('zod');
 if(z.__mergeTestAdapter)console.log('SCHEMA DEPENDENCY: local adapter; SDK registry is an explicit test double.');
@@ -31,6 +32,7 @@ async function fixture(){
     './control-client.mjs':{callControl:async(action,params)=>{calls.push({action,params});return{accepted:true};},
       withMcpCancellation:callback=>(...args)=>{args.at(-1)?.mcpReq?.signal?.throwIfAborted();return callback(...args);}},
     './http-boundary.mjs':{createSafeHttpListener:()=>{throw Error('listener must not start on import');}},
+    './narrator-schema.mjs':narratorSchema,
   };
   const sourceModule=new vm.SourceTextModule(fs.readFileSync(source,'utf8'),{context,identifier:source,initializeImportMeta(meta){meta.url=new URL('../mcp/server.mjs',import.meta.url).href;}});
   await sourceModule.link(async name=>{const exports=mocked[name];if(!exports)throw Error('Unexpected module: '+name);return new vm.SyntheticModule(Object.keys(exports),function(){for(const [key,value]of Object.entries(exports))this.setExport(key,value);},{context});});
@@ -64,7 +66,8 @@ test('new narrator operation still passes through the cancellation wrapper',asyn
 test('playbook preserves authoritative dice, drained cursors, private Ask and no automatic replay',async()=>{
   const f=await fixture();const uri='odm://narrator/playbook';const result=await f.server.resources[uri].callback(new URL(uri),{});
   const content=result.contents[0];assert.equal(content.uri,uri);assert.equal(content.mimeType,'text/markdown');
-  for(const term of ['hasMore is false','NEVER automatically replay','private','askId','The server owns dice'])assert.ok(content.text.includes(term),term);
+  for(const term of ['hasMore is false','never replay the effect','at most one immediate receipt-recovery retry',
+    'same UUID commandId, original expectedSeq, timelineEpoch','private','askId','The server owns dice'])assert.ok(content.text.includes(term),term);
   assert.ok(!content.text.includes('isolated-test-token'));assert.equal(f.calls.length,0);
 });
 
