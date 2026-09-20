@@ -1,8 +1,11 @@
+import { isYoloMode, type DndRuntimeSource } from "@/lib/dm/play-mode.mjs";
+
 // Lightweight "field table" profile for the yolo-dnd branch.
 //
-// This branch intentionally defaults YOLO mode ON. Set YOLO_DND=0 to run the
-// regular ODM pipeline without checking out another branch. The goal is not
-// "rules off"; it is "rules only when they improve the scene".
+// Runtime routing is source-aware: internal/web and non-OpenCode callers use
+// YOLO; the trusted custom OpenCode narrator uses the full path unless YOLO is
+// explicitly requested. The goal is not "rules off"; it is "rules only when
+// they improve the scene".
 
 export const YOLO_MAX_MODEL_CALLS = 2;
 export const YOLO_HISTORY_MESSAGES = 24;
@@ -10,8 +13,8 @@ export const YOLO_HISTORY_MESSAGES = 24;
 // Thinking is deliberately off by default. A small model should spend its
 // budget telling the story, not deliberating about which of dozens of tools to
 // call. Operators can opt it back in for a model that benefits from it.
-export function yoloDndEnabled(): boolean {
-  return process.env.YOLO_DND !== "0";
+export function yoloDndEnabled(source: DndRuntimeSource = "internal"): boolean {
+  return isYoloMode({ source });
 }
 
 export function yoloThinkingEnabled(): boolean {
