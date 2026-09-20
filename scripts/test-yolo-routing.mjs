@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { resolveDndPlayMode, explicitYoloRequested } from "../src/lib/dm/play-mode.mjs";
+import { resolveDndPlayMode, explicitYoloRequested } from "../shared/dnd-play-mode.mjs";
 import { resolveNarratorPlayMode, filterNarratorCatalog } from "../narrator/runtime-mode.mjs";
 import { NarratorOrchestrator } from "../narrator/orchestration.mjs";
 import { OpenCodeAdapter } from "../narrator/opencode-adapter.mjs";
