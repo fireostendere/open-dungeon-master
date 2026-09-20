@@ -110,7 +110,7 @@ test('a cancelled operation cannot start another control request', async () => {
 test('presentation options stay in the sidecar and do not break strict narrator schemas', async () => {
   const params = { campaignId: 'c', afterSeq: 7, compact: true, policyMode: 'compact', includePolicyText: false };
   const client = createControlClient({ token: 'test', fetchImpl: async (_url, init) => {
-    assert.deepEqual(JSON.parse(init.body), { action: 'narrator.read', params: { campaignId: 'c', afterSeq: 7 } });
+    assert.deepEqual(JSON.parse(init.body), { action: 'narrator.read', params: { campaignId: 'c', afterSeq: 7, projection: 'live', delta: true } });
     return Response.json({ ok: true, result: { currentSeq: 7, messages: [] } });
   } });
   const result = await client('narrator.read', params);
