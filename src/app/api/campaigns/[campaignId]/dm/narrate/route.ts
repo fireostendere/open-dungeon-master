@@ -1,9 +1,6 @@
 import { z } from "zod";
 import { isErrorResponse, requireDm } from "@/lib/campaign-api";
-import { maybeCloseChapter } from "@/lib/dm/chapter-close";
-import { maybeCompactHistory } from "@/lib/dm/compaction";
 import { persistHumanNarration } from "@/lib/dm/human-narration";
-import { enqueueDmJob } from "@/lib/dm/queue";
 import { enqueueNarrationAudio } from "@/lib/tts";
 
 export const runtime = "nodejs";
@@ -49,12 +46,6 @@ export async function POST(
     );
   }
 
-  // Chapter and compaction upkeep runs on the campaign queue, off the
-  // request, so a long summary never makes the DM wait to hit send.
-  enqueueDmJob(campaignId, async () => {
-    await maybeCloseChapter(campaignId, { beatCompleted: false });
-    await maybeCompactHistory(campaignId);
-  });
 
   return Response.json({ messageId: message.id }, { status: 201 });
 }

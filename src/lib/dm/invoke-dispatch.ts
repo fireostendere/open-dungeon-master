@@ -42,7 +42,7 @@ import {
   handleLocationCall,
   handleRecordEvent,
   handleRequestPlayerInput,
-} from "@/lib/dm/turn";
+} from "@/lib/dm/basic-adjudications";
 import { handleGenerateImage } from "@/lib/dm/images";
 import { handleRequestRoll } from "@/lib/dm/invoke-roll";
 import { handleSplitDamage } from "@/lib/dm/split-damage";
