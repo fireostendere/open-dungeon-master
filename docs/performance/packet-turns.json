@@ -1,0 +1,191 @@
+{
+  "kind": "SYNTHETIC",
+  "generatedAt": "2026-09-20T01:54:05.866Z",
+  "node": "v24.18.0",
+  "packetRows": [
+    {
+      "sheets": 4,
+      "before": {
+        "name": "baseline-7aa73c4",
+        "warmup": 20,
+        "samples": 100,
+        "p50Ms": 0.0323,
+        "p95Ms": 0.0697,
+        "bytes": 14667
+      },
+      "after": {
+        "name": "current-with-party-members",
+        "warmup": 20,
+        "samples": 100,
+        "p50Ms": 0.0085,
+        "p95Ms": 0.0167,
+        "bytes": 14724
+      }
+    },
+    {
+      "sheets": 8,
+      "before": {
+        "name": "baseline-7aa73c4",
+        "warmup": 20,
+        "samples": 100,
+        "p50Ms": 0.0291,
+        "p95Ms": 0.0713,
+        "bytes": 14843
+      },
+      "after": {
+        "name": "current-with-party-members",
+        "warmup": 20,
+        "samples": 100,
+        "p50Ms": 0.0094,
+        "p95Ms": 0.0223,
+        "bytes": 14900
+      }
+    }
+  ],
+  "writerPacket": {
+    "before": {
+      "name": "baseline-7aa73c4",
+      "warmup": 20,
+      "samples": 100,
+      "p50Ms": 0.0024,
+      "p95Ms": 0.0026,
+      "bytes": 458
+    },
+    "after": {
+      "name": "current",
+      "warmup": 20,
+      "samples": 100,
+      "p50Ms": 0.0008,
+      "p95Ms": 0.0008,
+      "bytes": 351
+    }
+  },
+  "turns": [
+    {
+      "scenario": "speech",
+      "before": {
+        "scenario": "speech",
+        "warmup": 3,
+        "repetitions": 20,
+        "p50Ms": 21.4937,
+        "p95Ms": 22.6902,
+        "counts": {
+          "modelCalls": 20,
+          "modelInputBytes": 9040,
+          "modelOutputBytes": 1480,
+          "mcpCalls": 40,
+          "mcpRequestBytes": 9080,
+          "mcpResponseBytes": 14130,
+          "checkpointAttempts": 160,
+          "checkpointWrites": 140,
+          "fsyncCalls": 280,
+          "fsyncMs": 399.54493200000024,
+          "rag": 0,
+          "embedding": 0,
+          "reranker": 0,
+          "dbLoads": 0
+        },
+        "stubbed": [
+          "rag",
+          "embedding",
+          "reranker",
+          "dbLoads"
+        ],
+        "note": "Fresh host/catalog per turn; controlled model, fake CAS and physical-roll result; real fsync. No provider or server latency."
+      },
+      "after": {
+        "scenario": "speech",
+        "warmup": 3,
+        "repetitions": 20,
+        "p50Ms": 23.4421,
+        "p95Ms": 25.8369,
+        "counts": {
+          "modelCalls": 20,
+          "modelInputBytes": 8520,
+          "modelOutputBytes": 1480,
+          "mcpCalls": 40,
+          "mcpRequestBytes": 9080,
+          "mcpResponseBytes": 14130,
+          "checkpointAttempts": 160,
+          "checkpointWrites": 140,
+          "fsyncCalls": 280,
+          "fsyncMs": 433.307180999999,
+          "rag": 0,
+          "embedding": 0,
+          "reranker": 0,
+          "dbLoads": 0
+        },
+        "stubbed": [
+          "rag",
+          "embedding",
+          "reranker",
+          "dbLoads"
+        ],
+        "note": "Fresh host/catalog per turn; controlled model, fake CAS and physical-roll result; real fsync. No provider or server latency."
+      }
+    },
+    {
+      "scenario": "mechanical",
+      "before": {
+        "scenario": "mechanical",
+        "warmup": 3,
+        "repetitions": 20,
+        "p50Ms": 46.1441,
+        "p95Ms": 47.9511,
+        "counts": {
+          "modelCalls": 40,
+          "modelInputBytes": 28430,
+          "modelOutputBytes": 3700,
+          "mcpCalls": 80,
+          "mcpRequestBytes": 18900,
+          "mcpResponseBytes": 39940,
+          "checkpointAttempts": 320,
+          "checkpointWrites": 280,
+          "fsyncCalls": 560,
+          "fsyncMs": 850.825045000005,
+          "rag": 0,
+          "embedding": 0,
+          "reranker": 0,
+          "dbLoads": 0
+        },
+        "stubbed": [
+          "rag",
+          "embedding",
+          "reranker",
+          "dbLoads"
+        ],
+        "note": "Fresh host/catalog per turn; controlled model, fake CAS and physical-roll result; real fsync. No provider or server latency."
+      },
+      "after": {
+        "scenario": "mechanical",
+        "warmup": 3,
+        "repetitions": 20,
+        "p50Ms": 45.6647,
+        "p95Ms": 48.8007,
+        "counts": {
+          "modelCalls": 40,
+          "modelInputBytes": 27390,
+          "modelOutputBytes": 3700,
+          "mcpCalls": 80,
+          "mcpRequestBytes": 18900,
+          "mcpResponseBytes": 39940,
+          "checkpointAttempts": 320,
+          "checkpointWrites": 280,
+          "fsyncCalls": 560,
+          "fsyncMs": 846.8551350000007,
+          "rag": 0,
+          "embedding": 0,
+          "reranker": 0,
+          "dbLoads": 0
+        },
+        "stubbed": [
+          "rag",
+          "embedding",
+          "reranker",
+          "dbLoads"
+        ],
+        "note": "Fresh host/catalog per turn; controlled model, fake CAS and physical-roll result; real fsync. No provider or server latency."
+      }
+    }
+  ]
+}
