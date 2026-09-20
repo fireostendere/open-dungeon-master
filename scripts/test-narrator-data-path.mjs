@@ -31,6 +31,21 @@ test('unchanged source avoids loader and keeps the content hash contract',()=>{
     const value=a.value();value[0].body='mutated';assert.equal(entry(cache).value()[0].body,'canon');
   }finally{db.close();}
 });
+
+test('rolled-back DDL cannot alias a later schema version and serve a dropped source',()=>{
+  const db=database();try {
+    db.prepare('INSERT INTO world_facts VALUES(?,?,?)').run('f','c','old canon');
+    const cache=new RevisionCache(db);entry(cache);
+    db.exec('BEGIN; CREATE TABLE unrelated_migration(id TEXT)');
+    assert.equal(entry(cache).value().length,1);
+    const observed=cache.schemaVersion();
+    db.exec('ROLLBACK; DROP TABLE world_facts');
+    assert.equal(cache.schemaVersion(),observed,'fixture must reproduce schema_version reuse');
+    assert.throws(()=>entry(cache),/no such table/,'missing source must not reuse the cached pre-drop rows');
+    db.exec('CREATE TABLE world_facts(id TEXT PRIMARY KEY,campaign_id TEXT,body TEXT)');
+    assert.deepEqual(entry(cache).value(),[]);
+  }finally{db.close();}
+});
 test('chat does not invalidate static data; insert/update/delete do',()=>{
   const db=database();try{
     const cache=new RevisionCache(db),a=entry(cache);

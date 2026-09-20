@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto';
+import { createHash, randomBytes } from 'node:crypto';
 
 const identifier = value => {
   if (!/^[a-z][a-z0-9_]*$/.test(value)) throw new Error('Invalid cache source');
@@ -25,15 +25,22 @@ export class RevisionCache {
   constructor(db, { maxEntries = 128, maxBytes = 16 * 1024 * 1024 } = {}) {
     if (![maxEntries, maxBytes].every(value => Number.isSafeInteger(value) && value > 0)) throw new Error('Invalid cache budget');
     this.db = db; this.maxEntries = maxEntries; this.maxBytes = maxBytes;
-    this.entries = new Map(); this.bytes = 0; this.schema = null; this.available = new Set();
+    this.entries = new Map(); this.bytes = 0; this.schema = null; this.schemaToken = null; this.available = new Set();
     this.stats = { hits: 0, misses: 0, loads: 0 };
   }
   clear() { this.entries.clear(); this.bytes = 0; }
   schemaVersion() { return this.db.prepare('PRAGMA schema_version').get().schema_version; }
   ensure() {
     const version = this.schemaVersion();
-    if (version === this.schema) return;
+    const readToken = () => this.db.prepare("SELECT token FROM odm_read_revisions WHERE source='schema' AND scope='*'").get()?.token;
+    if (version === this.schema) {
+      // schema_version can repeat after rolled-back DDL. The transactional
+      // marker distinguishes that branch without caching an uncommitted epoch.
+      try { if (readToken() === this.schemaToken) return; } catch { /* Metadata may itself have been rolled back. */ }
+    }
     this.clear(); this.available.clear();
+    this.db.exec('SAVEPOINT odm_read_cache_schema');
+    try {
     this.db.exec(`CREATE TABLE IF NOT EXISTS odm_read_revisions (
       source TEXT NOT NULL, scope TEXT NOT NULL, token TEXT NOT NULL,
       PRIMARY KEY(source,scope)
@@ -59,6 +66,16 @@ export class RevisionCache {
       this.available.add(table);
     }
     this.schema = this.schemaVersion();
+    const previous = readToken();
+    this.schemaToken = previous?.startsWith(`${this.schema}:`) ? previous : `${this.schema}:${randomBytes(16).toString('hex')}`;
+    if (this.schemaToken !== previous) this.db.prepare(`INSERT INTO odm_read_revisions(source,scope,token) VALUES('schema','*',?)
+      ON CONFLICT(source,scope) DO UPDATE SET token=excluded.token`).run(this.schemaToken);
+    this.db.exec('RELEASE odm_read_cache_schema');
+    } catch (error) {
+      try { this.db.exec('ROLLBACK TO odm_read_cache_schema; RELEASE odm_read_cache_schema'); } catch {}
+      this.clear(); this.available.clear(); this.schema = null; this.schemaToken = null;
+      throw error;
+    }
   }
   remove(key) {
     const prior = this.entries.get(key);

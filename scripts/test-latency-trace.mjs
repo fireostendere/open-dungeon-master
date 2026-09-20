@@ -4,6 +4,7 @@ import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { emitLatency, latencyEnabled, withLatencyTrace, withNewLatencyTrace } from '../mcp/latency-trace.mjs';
 import { createControlClient } from '../mcp/control-client.mjs';
 import { atomicWriteJson } from '../narrator/checkpoint-io.mjs';
@@ -71,10 +72,10 @@ test('trace nesting groups a turn while a private worker gets a separate opaque 
 test('failed checkpoint emits no successful write count after fsync failure', () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'odm-checkpoint-')), file = path.join(dir, 'state.json'), logged = [], originalLog = console.error, originalFsync = fs.fsyncSync;
   console.error = (...args) => logged.push(args.join(' '));
-  let calls = 0; fs.fsyncSync = fd => { if (++calls === 2) throw new Error('directory fsync failed'); return originalFsync(fd); };
+  let calls = 0; fs.fsyncSync = fd => { if (++calls === (process.platform === 'win32' ? 1 : 2)) throw new Error('fsync failed'); return originalFsync(fd); };
   try {
     process.env.ODM_LATENCY_LOG = '1';
-    assert.throws(() => atomicWriteJson(file, { formatVersion: 3, memory: {}, lastSeq: 1 }), /directory fsync failed/);
+    assert.throws(() => atomicWriteJson(file, { formatVersion: 3, memory: {}, lastSeq: 1 }), /fsync failed/);
   } finally { delete process.env.ODM_LATENCY_LOG; fs.fsyncSync = originalFsync; console.error = originalLog; fs.rmSync(dir, { recursive: true, force: true }); }
   const events = logged.map(line => JSON.parse(line.slice(14))), write = events.find(event => event.stage === 'checkpoint_write');
   assert.deepEqual({ writeCount: write.writeCount, attemptCount: write.attemptCount, errorCount: write.errorCount, ok: write.ok }, { writeCount: 0, attemptCount: 1, errorCount: 1, ok: false });
@@ -98,7 +99,7 @@ test('packaged sidecar import uses only flattened sibling modules', async () => 
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'odm-mcp-package-'));
   try {
     for (const file of ['control-client.mjs', 'dm-policy.mjs', 'latency-trace.mjs']) fs.copyFileSync(path.resolve(import.meta.dirname, '../mcp', file), path.join(dir, file));
-    await import(`${new URL(`file://${path.join(dir, 'control-client.mjs')}`).href}?package-test`);
+    await import(`${pathToFileURL(path.join(dir, 'control-client.mjs')).href}?package-test`);
   } finally { fs.rmSync(dir, { recursive: true, force: true }); }
 });
 
