@@ -109,11 +109,28 @@ test("expiry, revocation and changing position stop new observations but preserv
   assert.deepEqual(f.texts(f.bob, f.tavern), ["Heard", "Renewed"]);
 });
 
-test("players cannot self-grant observation, narrate, propagate, or create rooms", t => {
+test("players cannot self-grant observation, narrate, propagate, disable, or create rooms", t => {
   const f = fixture(); t.after(() => f.db.close());
-  for (const operation of ["observe", "revoke", "propagate", "perceive", "create_room", "link"]) denied(() => f.command(f.bob, operation, {}), 403);
+  for (const operation of ["observe", "revoke", "propagate", "perceive", "disable", "create_room", "link"]) denied(() => f.command(f.bob, operation, {}), 403);
   denied(() => f.command(f.bob, "send", { roomId: f.outside, kind: "narration", content: "I am the DM" }), 403);
   denied(() => f.store.narratorRead(f.bob), 403);
+});
+
+test("DM can disable location chat without changing campaign state", t => {
+  const f = fixture(); t.after(() => f.db.close());
+  f.db.exec("CREATE TABLE encounters(id TEXT PRIMARY KEY, campaign_id TEXT NOT NULL, room_id TEXT)");
+  f.db.prepare("INSERT INTO encounters(id,campaign_id,room_id) VALUES('encounter','game',?)").run(f.tavern);
+  f.move(f.alice, f.tavern); f.say(f.alice, "Private marker");
+  const before = f.db.prepare("SELECT next_seq FROM campaigns WHERE id='game'").get().next_seq;
+  const result = f.command(f.dm, "disable", {});
+  assert.deepEqual(result, { disabled: true, seq: before });
+  assert.equal(f.store.enabled("game"), false);
+  for (const table of ["spatial_campaigns", "spatial_rooms", "spatial_messages", "spatial_presence", "spatial_visits"]) {
+    assert.equal(f.db.prepare(`SELECT COUNT(*) AS n FROM ${table} WHERE campaign_id='game'`).get().n, 0, table);
+  }
+  assert.equal(f.db.prepare("SELECT COUNT(*) AS n FROM campaigns WHERE id='game'").get().n, 1);
+  assert.equal(f.db.prepare("SELECT room_id FROM encounters WHERE id='encounter'").get().room_id, null);
+  assert.deepEqual(f.command(f.dm, "disable", {}), { disabled: false, alreadyDisabled: true });
 });
 
 test("request IDs are idempotent and cannot be reused with different payloads", t => {
