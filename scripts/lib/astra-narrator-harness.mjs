@@ -7,6 +7,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { HostContextMemory } from '../../narrator/compaction.mjs';
 import * as reader from '../../narrator/read-session.mjs';
+import * as playMode from '../../shared/dnd-play-mode.mjs';
 export async function narratorHarness(options={}){
  const saved=[],calls=[],usage=[];
  const deps={
@@ -15,6 +16,7 @@ export async function narratorHarness(options={}){
   './semantic-gate.mjs':{classifyInput:()=>({decision:'allow'}),DM_REFUSALS:{ru:'Game only'}},
   './cost-tracker.mjs':{NarratorCostTracker:class{getMetrics(){return{};}recordUsage(value){usage.push(value);}}},
   './compaction.mjs':{HostContextMemory},'./read-session.mjs':reader,
+  '../shared/dnd-play-mode.mjs':playMode,
  };
  const context=vm.createContext({console:{...console,error(){}},process,Buffer,structuredClone,URL,AbortSignal,setTimeout,clearTimeout});
  const url=new URL('../../narrator/run.mjs',import.meta.url),vmModule=new vm.SourceTextModule(readFileSync(url,'utf8'),{context,initializeImportMeta:meta=>{meta.url=url.href;}});
