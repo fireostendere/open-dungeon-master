@@ -1,15 +1,13 @@
 import { z } from "zod";
 import { isErrorResponse, requireDm } from "@/lib/campaign-api";
 import { persistHumanNarration } from "@/lib/dm/human-narration";
-import { enqueueNarrationAudio } from "@/lib/tts";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 // The human DM's narration. This is the counterpart to the tail of
 // startDmTurn: the same message row, the same seq, the same event, the same
-// read-aloud and the same chapter bookkeeping, with the model and the tool
-// loop cut out. Keeping the shape identical is what lets every downstream
+// chapter bookkeeping, with inference and media generation kept out of the server. Keeping the shape identical is what lets every downstream
 // engine (chapters, compaction, retrieval, export, recap) keep working
 // without knowing who wrote the words.
 const narrateSchema = z.object({
@@ -36,16 +34,6 @@ export async function POST(
   }
 
   const message = persistHumanNarration(campaign, parsed.data.content, user.id);
-
-  if (campaign.gameSettings.ttsEnabled) {
-    void enqueueNarrationAudio(
-      campaignId,
-      message.id,
-      parsed.data.content,
-      campaign.gameSettings.ttsVoice,
-    );
-  }
-
 
   return Response.json({ messageId: message.id }, { status: 201 });
 }
