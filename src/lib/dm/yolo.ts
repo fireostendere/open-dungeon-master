@@ -1,4 +1,4 @@
-import { isYoloMode, type DndRuntimeSource } from "@/lib/dm/play-mode.mjs";
+import { isYoloMode, type DndRuntimeSource } from "../../../shared/dnd-play-mode.mjs";
 
 // Lightweight "field table" profile for the yolo-dnd branch.
 //
