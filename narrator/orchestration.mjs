@@ -50,10 +50,12 @@ export function validateDecision(value, { allowedActions = new Set() } = {}) {
 }
 
 export class NarratorOrchestrator {
-  constructor({ adapter, startAfterSeq = 0, maxSteps = 24, maxCallsPerHour = 240 } = {}) {
+  constructor({ adapter, startAfterSeq = 0, maxSteps = 24, maxCallsPerHour = 240,
+    writerEnabled = process.env.ODM_NARRATOR_WRITER_ENABLED !== '0' } = {}) {
     if (!adapter?.generate || !sequence(startAfterSeq) || !Number.isSafeInteger(maxSteps) || maxSteps < 1 ||
         !Number.isSafeInteger(maxCallsPerHour) || maxCallsPerHour < 1) throw new Error('Invalid narrator controller configuration.');
     this.adapter = adapter; this.maxSteps = maxSteps; this.maxCallsPerHour = maxCallsPerHour;
+    this.writerEnabled = writerEnabled === true;
     this.catalog = null; this.schemas = {};
     this.state = { version: 1, epoch: null, handledSeq: startAfterSeq, queue: [], current: null, pending: null,
       history: [], events: [], paused: null, usage: { calls: 0, inputBytes: 0, outputBytes: 0, times: [] } };
@@ -181,7 +183,8 @@ export class NarratorOrchestrator {
     if (decision.kind === 'done') { this.finish(host); return true; }
     if (decision.kind === 'invoke' && decision.action === 'request_roll' && current.outcomes.some(outcome => outcome.name === decision.action && digest(outcome.args) === digest(decision.args) && !outcome.result?.error)) return this.pause(host, 'duplicate_check');
     let content = decision.text;
-    if (decision.kind === 'narrate' && decision.writer) {
+    const combatActive = snapshot.encounter?.status === 'active' && snapshot.encounter?.kind === 'fight';
+    if (decision.kind === 'narrate' && decision.writer && this.writerEnabled && !combatActive) {
       try { content = await this.generate(host, 'writer', { instructions: narratorGuidance(snapshot.campaign?.gameSettings), ...publicProjection(snapshot, this.state.history), input: current.input, approvedDraft: decision.text }); }
       catch { return this.pause(host, 'writer_error'); }
       if (!text(content)) return this.pause(host, 'invalid_writer_text');

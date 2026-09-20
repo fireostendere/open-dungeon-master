@@ -64,6 +64,8 @@ services:
 
       # Verbose DM turn logging.
       DM_DEBUG: ${DM_DEBUG:-}
+      # Content-free latency JSONL for the app-side narrator path.
+      ODM_LATENCY_LOG: ${ODM_LATENCY_LOG:-}
     volumes:
       - odm-data:/app/data
       - odm-uploads:/app/public/uploads
@@ -90,6 +92,7 @@ services:
       ODM_MCP_TOKEN: ${ODM_MCP_TOKEN:-}
       ODM_MCP_HOST: 0.0.0.0
       ODM_MCP_PORT: 3006
+      ODM_LATENCY_LOG: ${ODM_LATENCY_LOG:-}
       # Browser-origin requests are rejected unless explicitly allowlisted.
       # Native MCP clients normally do not send Origin and need no entry.
       ODM_MCP_ALLOWED_ORIGINS: ${ODM_MCP_ALLOWED_ORIGINS:-}
