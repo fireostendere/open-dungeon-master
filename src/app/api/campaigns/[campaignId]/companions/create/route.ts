@@ -6,7 +6,6 @@ import { adaptSheetToLevel } from "@/lib/characters/adapt";
 import { insertCampaignMessage } from "@/lib/db/messages";
 import { listSheets } from "@/lib/db/sheets";
 import { companionMode, finalizeNewCompanion, listCompanions } from "@/lib/dm/companion-tools";
-import { requestDmTurn } from "@/lib/dm/loop";
 import { createSheetSchema } from "@/lib/schemas/sheet";
 import { publishWithSeq } from "@/lib/events";
 
@@ -100,7 +99,6 @@ export async function POST(
       content: `${context.user.username} brings a companion into the party: ${sheet.name}, a ${sheet.race.replaceAll("_", " ")} ${sheet.class}. Introduce them into the scene at the next natural moment.`,
     });
     publishWithSeq(campaignId, seq, "message_added", { message });
-    requestDmTurn(campaignId);
   }
 
   return Response.json({ ok: true, sheet }, { status: 201 });

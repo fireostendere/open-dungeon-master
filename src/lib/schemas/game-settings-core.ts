@@ -53,7 +53,7 @@ export const gameSettingsSchema = z.object({
   // DM instead of waking a turn. "assisted" keeps the AI available for the
   // parts the DM delegates. The seat itself (which member is the DM) lives
   // on the campaign row; this is only the mode.
-  dmMode: z.enum(DM_MODES).default("ai"),
+  dmMode: z.enum(DM_MODES).default("human"),
   // What "assisted" actually hands over, one capability at a time. Read
   // through delegated() in src/lib/dm/delegation.ts, which ignores all three
   // outside assisted mode, so a table that switches to "human" gets a silent
@@ -67,7 +67,7 @@ export const gameSettingsSchema = z.object({
       narration: z.boolean().default(true),
       cover: z.boolean().default(true),
     })
-    .default({ monsters: true, narration: true, cover: true }),
+    .default({ monsters: false, narration: false, cover: false }),
   genre: z.enum(GENRES).default("high_fantasy"),
   customGenreText: z.string().trim().max(500).default(""),
   // Selected pre-configured world (src/lib/worlds/packs), or "" for a plain
@@ -75,7 +75,7 @@ export const gameSettingsSchema = z.object({
   // every existing genre consumer keeps working and a pack that is later
   // removed from disk degrades silently back to its genre.
   worldPack: z.string().trim().max(50).default(""),
-  aiStorySetup: z.boolean().default(true),
+  aiStorySetup: z.boolean().default(false),
   campaignLength: z.enum(CAMPAIGN_LENGTHS).default("standard"),
   dicePolicy: z.enum(DICE_POLICIES).default("digital_only"),
   // Narrator strictness is independent from encounter-budget difficulty.
@@ -164,7 +164,7 @@ export const gameSettingsSchema = z.object({
   // deny, a damage figure no die produced), and spend one corrective model
   // call when the prose and the engine disagree (src/lib/dm/engine-boundary.ts).
   // On by default; off costs nothing but the check.
-  narrationGuard: z.boolean().default(true),
+  narrationGuard: z.boolean().default(false),
   // Optional 5e variant rules the server engines and DM prompt honor.
   // Rendered as one line each in the prompt by src/lib/dm/rules-logic.ts.
   // Optional turn stages (src/lib/dm/stages.ts). All default on; this exists
@@ -177,7 +177,7 @@ export const gameSettingsSchema = z.object({
       retrieval: z.boolean().default(true),
       chapterSummary: z.boolean().default(true),
     })
-    .default({ compaction: true, recall: true, retrieval: true, chapterSummary: true }),
+    .default({ compaction: false, recall: false, retrieval: false, chapterSummary: false }),
   // Workshop only (docs/workshop-plan.md): the party a DM is building prep
   // for, before any character sheet exists. The encounter calculator, the
   // odds panel and the map studio all read it instead of a live roster. A

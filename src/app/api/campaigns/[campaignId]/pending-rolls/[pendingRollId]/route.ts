@@ -12,9 +12,7 @@ import { defaultRng, expressionDice, rollExpression, rollExpressionWithDice } fr
 import { recordInitiativeRoll } from "@/lib/dm/encounter-tools";
 import { applyPendingDamageRoll } from "@/lib/dm/enemy-damage";
 import { resolvePendingPcAttack } from "@/lib/dm/pc-attack";
-import { resumeDmTurn } from "@/lib/dm/turn";
 import { resumeHumanTurn } from "@/lib/dm/invoke";
-import { enqueueDmJob } from "@/lib/dm/queue";
 import { publishWithSeq } from "@/lib/events";
 
 export const runtime = "nodejs";
@@ -172,12 +170,9 @@ export async function POST(
     (entry) => entry.status === "pending",
   );
   if (!remaining.length) {
-    // A turn a person opened has no model waiting on the answer: the roll
-    // already published itself and applied what it applies, so closing the
-    // turn is the whole of "resuming" it.
-    if (!resumeHumanTurn(pending.turnId)) {
-      enqueueDmJob(campaignId, () => resumeDmTurn(campaignId, pending.turnId));
-    }
+    // External/human adjudication has no server model to resume. The roll is
+    // already authoritative and visible; close the human turn if one owns it.
+    resumeHumanTurn(pending.turnId);
   }
 
   return Response.json({ roll });
