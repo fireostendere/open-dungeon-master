@@ -15,6 +15,7 @@ const en = {
   nextTurnShort: "It is now {name}'s turn.",
   endTurn: "{name} ends their turn.",
   skipTurn: "The party lead skipped {name}'s turn.",
+  skipTurns: "*{name} skips a turn (remaining: {count}).*",
 } as const;
 export type GameTextKey = keyof typeof en;
 export const GAME_TEXT: Record<GameLanguage, Record<GameTextKey, string>> = {
@@ -34,6 +35,7 @@ export const GAME_TEXT: Record<GameLanguage, Record<GameTextKey, string>> = {
     nextTurnShort: "Сейчас ход персонажа {name}.",
     endTurn: "{name} завершает свой ход.",
     skipTurn: "Лидер отряда пропустил ход персонажа {name}.",
+    skipTurns: "*{name} пропускает ход (осталось: {count}).*",
   },
   pl: {
     moment: "Chwila zawisa w oczekiwaniu na następny ruch drużyny.",
@@ -50,6 +52,7 @@ export const GAME_TEXT: Record<GameLanguage, Record<GameTextKey, string>> = {
     nextTurnShort: "Teraz kolej postaci {name}.",
     endTurn: "{name} kończy swoją turę.",
     skipTurn: "Lider drużyny pominął turę postaci {name}.",
+    skipTurns: "*{name} pomija turę (pozostało: {count}).*",
   },
 };
 
