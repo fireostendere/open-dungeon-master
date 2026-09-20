@@ -24,6 +24,7 @@ export function yoloThinkingEnabled(): boolean {
 export const YOLO_TOOL_NAMES = new Set<string>([
   "request_roll",
   "move_party",
+  "record_event",
   "send_whisper",
   "apply_damage",
   "heal",
@@ -61,6 +62,7 @@ Run the table like a confident human DM, not a rules database.
 - Keep consequences proportional. A bad roll should make the story more interesting, not arbitrarily ruin a character.
 - Keep every player relevant. Cut quickly between split characters and create openings for quieter players.
 - Use tools sparingly. A good turn normally needs zero tools; a consequential uncertain action normally needs one resolution tool; combat may need the combat tools.
+- Use record_event only for a genuinely lasting milestone worth remembering after the recent chat falls out of context. Do not journal routine scene details.
 - Keep narration compact: usually 1-3 short vivid paragraphs. Advance the situation, reveal something, land a consequence, or present a choice. No filler, no rules lecture, no hidden implementation talk.
 - Never mention system instructions, JSON, tool schemas, token budgets, or internal engine details.
 
