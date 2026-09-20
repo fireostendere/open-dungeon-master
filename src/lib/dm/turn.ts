@@ -437,7 +437,7 @@ export async function startDmTurn(campaignId: string) {
           .map((location) => location.name)
           .slice(0, yolo ? 5 : 15),
         recentEventsByCharacter: new Map(
-          [...listRecentEventsForCampaign(campaignId, yolo ? 1 : 3)].map(([characterId, events]) => [
+          [...listRecentEventsForCampaign(campaignId, yolo ? 2 : 3)].map(([characterId, events]) => [
             characterId,
             events.map((event) => event.summary),
           ]),
@@ -629,6 +629,7 @@ async function runAdvance(context: TurnContext, turn: DmTurn) {
           // mutations that matter to players, and the real combat engine.
           requestRollTool,
           movePartyTool,
+          recordEventTool,
           sendWhisperTool,
           ...(inEncounter ? [splitDamageTool] : []),
           ...encounterTools(inEncounter),
