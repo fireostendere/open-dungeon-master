@@ -168,3 +168,8 @@ runtime на стороне host требование «только D&D» не�
 https://modelcontextprotocol.io/specification/2025-06-18/basic/lifecycle
 https://cheatsheetseries.owasp.org/cheatsheets/LLM_Prompt_Injection_Prevention_Cheat_Sheet.html
 Это внешнее обоснование архитектуры, не свидетельство тестирования данного проекта.
+# D&D Edition privacy note
+
+Private Ask, whispers and room-only messages are never included in public
+memory, telemetry or another room's packet. Missing witness/audience information
+fails safe; spatial public text is published with an explicit room ID.

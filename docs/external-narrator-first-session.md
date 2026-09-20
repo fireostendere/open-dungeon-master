@@ -102,3 +102,11 @@ Mute блокирует новые Ask/actions/whispers, но не чтение 
 backup/restore SQLCipher с медиа и повторную сверку состояния. Непройденные
 шаги остаются непроверенными. Эта ветка сама не выполняла ни развёртывание,
 ни восстановление, ни проверку живой модели.
+# D&D Edition setup note
+
+For D&D Edition use a campaign-bound narrator token and `openai/gpt-5.6-dnd-edition`
+in an isolated workspace; the local adapter recognizes this alias and enables the
+bounded D&D runtime. Verify token-protected `/status` before seating players.
+Do not grant coding or admin tools to the narrator session. Run the narrator
+regression with `--experimental-vm-modules`; omitting it makes VM-harness tests
+fail before application code executes.

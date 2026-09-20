@@ -38,23 +38,34 @@ export class OpenCodeAdapter {
     const json = JSON.parse(Buffer.concat(chunks).toString('utf8'));
     return json?.data ?? json;
   }
-  async generate(role, prompt) {
+  async generate(role, prompt, route = undefined) {
     const instruction = trustedInstruction(role);
     if (typeof prompt !== 'string' || Buffer.byteLength(prompt) > 262144) throw new Error('Role input exceeds the byte budget; no facts were clipped.');
+    const model = route ? { providerID: route.providerID, id: route.model, variant: route.effort } : this.model;
+    if (route && (model.providerID !== 'openai' || !['gpt-5.6-sol', 'gpt-5.6-luna'].includes(model.id) || !['low', 'medium', 'high', 'max'].includes(model.variant))) throw new Error('D&D Edition requires an official OpenAI profile.');
     const agent = `narrator-${role}`;
-    const session = await this.request('/api/session', { body: { agent, model: this.model,
+    const session = await this.request('/api/session', { body: { agent, model,
       location: { directory: this.workspace }, permissions: [{ action: '*', resource: '*', effect: 'deny' }], title: `ODM ${role}` } });
     if (typeof session?.id !== 'string' || !/^ses[a-zA-Z0-9_-]+$/.test(session.id)) throw new Error('Invalid OpenCode session.');
-    const route = `/api/session/${encodeURIComponent(session.id)}`;
+    const sessionRoute = `/api/session/${encodeURIComponent(session.id)}`;
     try {
-      if (session.agent !== agent || ['providerID', 'id', 'variant'].some(key => session.model?.[key] !== this.model[key])) throw new Error('OpenCode did not preserve the selected role/model.');
+      if (session.agent !== agent || ['providerID', 'id', 'variant'].some(key => session.model?.[key] !== model[key])) throw new Error('OpenCode did not preserve the selected role/model.');
       await this.request(`/api/experimental/session/${encodeURIComponent(session.id)}/instructions/entries/odm-policy`, { method: 'PUT', body: { value: instruction } });
-      const reply = await this.request(`${route}/generate`, { body: { prompt } });
+      const started = Date.now();
+      const reply = await this.request(`${sessionRoute}/generate`, { body: { prompt } });
       if (typeof reply?.text !== 'string' || !reply.text.trim() || Buffer.byteLength(reply.text) > 32768) throw new Error('Malformed or oversized model output.');
+      // Native usage is optional; estimates are recorded by the orchestrator when absent.
+      const messages = route ? await this.request(`${sessionRoute}/message`, { method: 'GET' }).catch(() => null) : null;
+      const usage = reply.usage ?? messages?.usage ?? (Array.isArray(messages) ? messages.at(-1)?.usage : messages?.messages?.at?.(-1)?.usage);
+      const inputTokens = usage?.inputTokens ?? usage?.input_tokens, outputTokens = usage?.outputTokens ?? usage?.output_tokens;
+      this.lastUsage = Number.isSafeInteger(inputTokens) || Number.isSafeInteger(outputTokens)
+        ? { inputTokens, outputTokens, cacheTokens: usage?.cacheTokens ?? usage?.cache_tokens, reasoningTokens: usage?.reasoningTokens ?? usage?.reasoning_tokens,
+          cost: usage?.cost, totalMs: usage?.totalMs ?? Date.now() - started, ttftMs: usage?.ttftMs ?? usage?.ttft_ms, usageSource: 'exact' }
+        : { totalMs: Date.now() - started, usageSource: 'estimated' };
       return reply.text;
     } finally {
       // Only this adapter's own transient session is eligible for cleanup.
-      await this.request(route, { method: 'DELETE' }).catch(() => {});
+      await this.request(sessionRoute, { method: 'DELETE' }).catch(() => {});
     }
   }
 }

@@ -1,0 +1,267 @@
+{
+  "generatedAt": "2026-09-20T12:09:27.762Z",
+  "provider": "none",
+  "measurement": "deterministic zero-provider replay",
+  "metrics": {
+    "cases": 12,
+    "invariantsPassed": true,
+    "wallTimeMs": {
+      "p50": 0.12079200000000156,
+      "p95": 1.504998999999998
+    },
+    "tokenFields": "input estimates use context JSON bytes / 4; provider output, TTFT, inference latency and cost were not measured"
+  },
+  "baseline": {
+    "structural": "input + unbounded snapshot + full catalog JSON bytes"
+  },
+  "dndEdition": [
+    {
+      "name": "simple_npc",
+      "route": {
+        "effort": "medium",
+        "reason": "normal"
+      },
+      "contextBytes": 519,
+      "baselineBytes": 264,
+      "estimatedInputTokens": 130,
+      "providerOutputTokens": null,
+      "providerTtftMs": null,
+      "providerInferenceMs": null,
+      "tools": [
+        "request_roll"
+      ],
+      "rag": "not_needed",
+      "invariantChecks": 2,
+      "passed": true,
+      "wallMs": 0.43479500000000115
+    },
+    {
+      "name": "exploration",
+      "route": {
+        "effort": "medium",
+        "reason": "normal"
+      },
+      "contextBytes": 512,
+      "baselineBytes": 257,
+      "estimatedInputTokens": 128,
+      "providerOutputTokens": null,
+      "providerTtftMs": null,
+      "providerInferenceMs": null,
+      "tools": [
+        "request_roll"
+      ],
+      "rag": "not_needed",
+      "invariantChecks": 2,
+      "passed": true,
+      "wallMs": 0.0679009999999991
+    },
+    {
+      "name": "attack",
+      "route": {
+        "effort": "medium",
+        "reason": "normal"
+      },
+      "contextBytes": 518,
+      "baselineBytes": 280,
+      "estimatedInputTokens": 130,
+      "providerOutputTokens": null,
+      "providerTtftMs": null,
+      "providerInferenceMs": null,
+      "tools": [
+        "start_encounter",
+        "pc_attack",
+        "request_roll",
+        "end_turn"
+      ],
+      "rag": "not_needed",
+      "invariantChecks": 2,
+      "passed": true,
+      "wallMs": 0.030858999999999526
+    },
+    {
+      "name": "old_npc_small_rag",
+      "route": {
+        "effort": "medium",
+        "reason": "normal"
+      },
+      "contextBytes": 610,
+      "baselineBytes": 261,
+      "estimatedInputTokens": 153,
+      "providerOutputTokens": null,
+      "providerTtftMs": null,
+      "providerInferenceMs": null,
+      "tools": [
+        "request_roll"
+      ],
+      "rag": "ok",
+      "invariantChecks": 3,
+      "passed": true,
+      "wallMs": 0.2507710000000003
+    },
+    {
+      "name": "large_recall_compression",
+      "route": {
+        "effort": "medium",
+        "reason": "normal"
+      },
+      "contextBytes": 1170,
+      "baselineBytes": 4634,
+      "estimatedInputTokens": 293,
+      "providerOutputTokens": null,
+      "providerTtftMs": null,
+      "providerInferenceMs": null,
+      "tools": [
+        "request_roll"
+      ],
+      "rag": "not_needed",
+      "invariantChecks": 2,
+      "passed": true,
+      "wallMs": 0.17755000000000365
+    },
+    {
+      "name": "three_room_split",
+      "route": {
+        "effort": "high",
+        "reason": "party_split"
+      },
+      "contextBytes": 506,
+      "baselineBytes": 375,
+      "estimatedInputTokens": 127,
+      "providerOutputTokens": null,
+      "providerTtftMs": null,
+      "providerInferenceMs": null,
+      "tools": [
+        "request_roll"
+      ],
+      "rag": "not_needed",
+      "invariantChecks": 3,
+      "passed": true,
+      "wallMs": 0.08296900000000562
+    },
+    {
+      "name": "secret_invisible",
+      "route": {
+        "effort": "high",
+        "reason": "private_or_stealth"
+      },
+      "contextBytes": 503,
+      "baselineBytes": 421,
+      "estimatedInputTokens": 126,
+      "providerOutputTokens": null,
+      "providerTtftMs": null,
+      "providerInferenceMs": null,
+      "tools": [
+        "request_roll"
+      ],
+      "rag": "not_needed",
+      "invariantChecks": 3,
+      "passed": true,
+      "wallMs": 0.07814999999999372
+    },
+    {
+      "name": "private_ask",
+      "route": {
+        "effort": "high",
+        "reason": "private_or_stealth"
+      },
+      "contextBytes": 510,
+      "baselineBytes": 270,
+      "estimatedInputTokens": 128,
+      "providerOutputTokens": null,
+      "providerTtftMs": null,
+      "providerInferenceMs": null,
+      "tools": [
+        "request_roll"
+      ],
+      "rag": "not_needed",
+      "invariantChecks": 3,
+      "passed": true,
+      "wallMs": 0.036228999999998734
+    },
+    {
+      "name": "rag_unavailable",
+      "route": {
+        "effort": "medium",
+        "reason": "normal"
+      },
+      "contextBytes": 514,
+      "baselineBytes": 259,
+      "estimatedInputTokens": 129,
+      "providerOutputTokens": null,
+      "providerTtftMs": null,
+      "providerInferenceMs": null,
+      "tools": [
+        "request_roll"
+      ],
+      "rag": "unavailable",
+      "invariantChecks": 3,
+      "passed": true,
+      "wallMs": 0.12079200000000156
+    },
+    {
+      "name": "provider_timeout_no_duplicate_mutation",
+      "route": {
+        "effort": "medium",
+        "reason": "normal"
+      },
+      "contextBytes": 507,
+      "baselineBytes": 252,
+      "estimatedInputTokens": 127,
+      "providerOutputTokens": null,
+      "providerTtftMs": null,
+      "providerInferenceMs": null,
+      "tools": [
+        "request_roll"
+      ],
+      "rag": "not_needed",
+      "invariantChecks": 2,
+      "passed": true,
+      "wallMs": 1.504998999999998,
+      "attempts": 2,
+      "stableCommandId": true,
+      "paused": "ambiguous_write"
+    },
+    {
+      "name": "long_campaign_bounded_context",
+      "route": {
+        "effort": "medium",
+        "reason": "normal"
+      },
+      "contextBytes": 4664,
+      "baselineBytes": 138934,
+      "estimatedInputTokens": 1166,
+      "providerOutputTokens": null,
+      "providerTtftMs": null,
+      "providerInferenceMs": null,
+      "tools": [
+        "request_roll"
+      ],
+      "rag": "not_needed",
+      "invariantChecks": 2,
+      "passed": true,
+      "wallMs": 0.9605839999999972
+    },
+    {
+      "name": "chapter_boundary",
+      "route": {
+        "effort": "medium",
+        "reason": "normal"
+      },
+      "contextBytes": 514,
+      "baselineBytes": 259,
+      "estimatedInputTokens": 129,
+      "providerOutputTokens": null,
+      "providerTtftMs": null,
+      "providerInferenceMs": null,
+      "tools": [
+        "request_roll"
+      ],
+      "rag": "not_needed",
+      "invariantChecks": 3,
+      "passed": true,
+      "wallMs": 0.13299500000000108,
+      "memoryCalls": 1,
+      "plannerCalls": 1
+    }
+  ]
+}

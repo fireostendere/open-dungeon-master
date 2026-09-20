@@ -13,6 +13,7 @@ import { HostContextMemory } from './compaction.mjs';
 import { connectNarrator,drainNarratorStory,readNarratorSnapshot } from './read-session.mjs';
 const integer=(value,fallback,min,max)=>Number.isSafeInteger(Number(value))&&Number(value)>=min&&Number(value)<=max?Number(value):fallback;
 const hash=value=>crypto.createHash('sha256').update(value).digest();
+const runnerErrors=new Set(['connect_failed','poll_failed','ask_write_ambiguous','story_paused']);
 export class NarratorRunner {
   constructor(options={}) {
     this.campaignId=options.campaignId||process.env.ODM_CAMPAIGN_ID||process.env.ODM_MCP_NARRATOR_CAMPAIGN_ID||'';
@@ -64,6 +65,7 @@ export class NarratorRunner {
       }
     }
     if(saved.memory)this.memory.restoreState(saved.memory);
+    this.lastError=runnerErrors.has(saved.lastError)?saved.lastError:null;
     if(saved.storyController&&this.storyController?.restore)this.storyController.restore(saved.storyController);
     // A collector cursor proves delivery to memory, not resolution by a DM.
     else if(this.storyController)this.lastSeq=this.storyController.state.handledSeq;
@@ -74,7 +76,7 @@ export class NarratorRunner {
       pendingAskCommands:Object.fromEntries(Array.from(this.pendingAskCommands.entries()).slice(-200)),
       pendingAskAttempts:Object.fromEntries(Array.from(this.pendingAskAttempts.entries()).slice(-200)),storyController:this.storyController?.serialize?.(),
       memory:this.memory.serializeState(),metrics:this.costTracker.getMetrics(),updatedAt:new Date().toISOString(),
-      uptimeSeconds:Math.floor((Date.now()-this.startedAt)/1000),lastPollAt:this.lastPollAt||null,lastError:this.lastError?'poll_failed':null});
+      uptimeSeconds:Math.floor((Date.now()-this.startedAt)/1000),lastPollAt:this.lastPollAt||null,lastError:this.lastError});
   }
   async callControl(action,params={}, {timeoutMs=15000}={}) {
     if(!this.token)throw new Error('Narrator authentication token is missing.');
@@ -174,9 +176,12 @@ export class NarratorRunner {
         if(this.statusToken&&!crypto.timingSafeEqual(hash(request.headers.authorization??''),hash(`Bearer ${this.statusToken}`))){response.writeHead(401);response.end(JSON.stringify({error:'Unauthorized'}));return;}
         response.end(JSON.stringify({ok:!this.lastError,status:this.lastError?'degraded':'running',mode:this.mode,campaignId:this.campaignId,lastSeq:this.lastSeq,lastAskSeq:this.lastAskSeq,
           answeredAsksCount:this.answeredAsks.size,pendingAskCommandsCount:this.pendingAskCommands.size,lastPollAt:this.lastPollAt||null,
-          lastError:this.lastError?'poll_failed':null,metrics:this.costTracker.getMetrics(),
-          story:this.storyController?{paused:this.storyController.state.paused,queued:this.storyController.state.queue.length,
-            calls:this.storyController.state.usage.calls,inputBytes:this.storyController.state.usage.inputBytes,outputBytes:this.storyController.state.usage.outputBytes,tokens:null,cost:null}:null,
+          lastError:this.lastError,metrics:this.costTracker.getMetrics(),
+           story:this.storyController?{paused:this.storyController.state.paused,queued:this.storyController.state.queue.length,
+             calls:this.storyController.state.usage.calls,inputBytes:this.storyController.state.usage.inputBytes,outputBytes:this.storyController.state.usage.outputBytes,tokens:this.storyController.state.usage.tokens??null,cost:null,
+             profile:this.storyController.state.lastRoute?.profile??null,lastRoute:this.storyController.state.lastRoute??null,
+             contextBudget:this.storyController.state.lastContextBudget??null,lastTurn:this.storyController.state.usage.lastTurn??null,
+             latencyMs:this.storyController.state.usage.lastTurn?.totalMs??null,escalation:this.storyController.state.lastRoute?.effort??null,rag:this.storyController.state.lastRag??null}:null,
           memory:this.memory.serializeState({safe:true}),uptime:process.uptime()}));
       }else{response.writeHead(404);response.end(JSON.stringify({error:'Not found'}));}
     });
@@ -184,7 +189,7 @@ export class NarratorRunner {
   }
   async start(){
     await this.loadAdapter();this.loadCheckpoint();this.startHealthServer();this.running=true;
-    try{await this.connect();}catch{console.warn('[narrator-runner] Initial connect failed; collector will retry.');}
+    try{await this.connect();}catch{this.lastError='connect_failed';this.saveCheckpoint();console.warn('[narrator-runner] Initial connect failed; collector will retry.');}
     const schedule=()=>{if(this.running)this.timer=setTimeout(async()=>{await this.pollTick();schedule();},this.pollIntervalMs);};schedule();
   }
   async stop(){

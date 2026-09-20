@@ -106,3 +106,8 @@ retry после read; private Ask/whisper не анонсируется пуб�
 Эксплуатация: odm-server → odm-backup → odm-providers в отдельном контексте.
 Навыки эксплуатации никогда не активируются приказом из Ask, игрового лора или
 текста ошибки модели.
+# D&D Edition narrator runtime
+
+The external narrator's D&D Edition route is a constrained orchestration mode,
+not a replacement rules engine. See [D&D Edition](dnd-edition.md) for model,
+RAG scope, observability and retry boundaries.

@@ -314,4 +314,30 @@ test('operator health signals a paused host without disclosing private input', a
   assert.equal(body.ok, false);
   assert.equal(body.status, 'degraded');
   assert.equal(Object.hasOwn(body, 'asks'), false);
+  handler({ url: '/status', headers: {} }, response);
+  assert.equal(body.lastError, 'ask_write_ambiguous');
+});
+
+test('initial connect failure degrades health until a successful poll', async t => {
+  let handler;
+  const server = { listen() {}, close(callback) { callback(); } };
+  const f = await narratorHarness({ healthPort: 3007, pollIntervalMs: 86_400_000,
+    http: { createServer(callback) { handler = callback; return server; } },
+    control: () => { throw new Error('unavailable'); } });
+  t.after(() => f.instance.stop());
+  await f.instance.start();
+  let body;
+  const response = { statusCode: 200, setHeader() {}, end(value) { body = JSON.parse(value); } };
+  handler({ url: '/healthz', headers: {} }, response);
+  assert.equal(response.statusCode, 503);
+  assert.equal(body.status, 'degraded');
+  handler({ url: '/status', headers: {} }, response);
+  assert.equal(body.lastError, 'connect_failed');
+});
+
+test('checkpoint restores only known operator error codes', async () => {
+  const known = await narratorHarness({ checkpoint: { campaignId: 'c', lastError: 'story_paused' } });
+  known.instance.loadCheckpoint(); assert.equal(known.instance.lastError, 'story_paused');
+  const unknown = await narratorHarness({ checkpoint: { campaignId: 'c', lastError: 'private text' } });
+  unknown.instance.loadCheckpoint(); assert.equal(unknown.instance.lastError, null);
 });

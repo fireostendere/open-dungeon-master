@@ -65,6 +65,8 @@ export ODM_OPENCODE_WORKSPACE='/srv/odm-narrator-workspace'
 export ODM_OPENCODE_PROVIDER='operator-selected-provider'
 export ODM_OPENCODE_MODEL='operator-selected-model'
 # Optional: ODM_OPENCODE_VARIANT, preserving the explicitly selected variant.
+# D&D Edition: provider=openai, model=gpt-5.6-dnd-edition, variant=medium.
+# Optional scoped retrieval: ODM_NARRATOR_RAG_MODULE=file:///absolute/retriever.mjs
 export ODM_NARRATOR_START_AFTER_SEQ=0
 node narrator/run.mjs --campaign "$ODM_CAMPAIGN_ID"
 ```
@@ -160,3 +162,12 @@ host останавливает автоматическое повествов�
 Движок поддерживает не все правила; неоднозначные случаи остаются решениями DM.
 Локальные проверки используют заглушки моделей и реальные форматы протокола,
 не подтверждают художественное качество выбранной модели или боевое подключение.
+# D&D Edition runtime
+
+When `dndEdition` is enabled, each decision has one Sol narrator call, a bounded
+scene packet and a deterministic action subset. Writer, planner, memory and RAG
+helpers are off for ordinary and combat turns. Boundary maintenance is the only
+planner/memory trigger: scoped memory once after an observed scene change, and
+planner once after an observed chapter change. The initial observed boundaries
+are a no-call baseline. Optional RAG is loaded only from an explicit local module
+and must return exact campaign/audience scopes.
