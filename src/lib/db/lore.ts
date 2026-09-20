@@ -1,5 +1,4 @@
 import { getDatabase, nowIso, parseJson } from "@/lib/db/core";
-import { embed, vectorToBuffer } from "@/lib/embeddings";
 import {
   normalizeLoreVisibility,
   type LoreVisibility,
@@ -8,9 +7,8 @@ import {
 } from "@/lib/dm/world-lore-logic";
 import { isUploadedImagePath } from "@/lib/uploads";
 
-// World lore builder storage (lore_entries): lead-authored world bible
-// entries the DM prompt samples from and search_lore queries. Embeddings
-// fill in asynchronously; a NULL embedding only means keyword fallback.
+// World lore builder storage. Retrieval is lexical and deterministic; no
+// embedding model is loaded or called by the server.
 
 type LoreRow = {
   id: string;
@@ -93,7 +91,6 @@ export function insertLoreEntry(input: {
       now,
       now,
     );
-  void embedLoreEntry(id);
   return getLoreEntry(id)!;
 }
 
@@ -114,9 +111,6 @@ export function updateLoreEntry(
   if (!entry) {
     return null;
   }
-  const textChanged =
-    (patch.title !== undefined && patch.title !== entry.title) ||
-    (patch.body !== undefined && patch.body !== entry.body);
   const imagePath =
     patch.imagePath === undefined
       ? entry.imagePath
@@ -140,9 +134,6 @@ export function updateLoreEntry(
       nowIso(),
       entryId,
     );
-  if (textChanged) {
-    void embedLoreEntry(entryId);
-  }
   return getLoreEntry(entryId);
 }
 
@@ -150,44 +141,3 @@ export function deleteLoreEntry(entryId: string) {
   getDatabase().prepare(`DELETE FROM lore_entries WHERE id = ?`).run(entryId);
 }
 
-// Retrieval view: entries with their embedding buffers (NULL = not yet
-// indexed; callers fall back to keyword scoring).
-export function listLoreWithEmbeddings(
-  campaignId: string,
-): Array<{ entry: WorldLoreEntry; embedding: Buffer | null }> {
-  const rows = getDatabase()
-    .prepare(`SELECT ${LORE_COLUMNS}, embedding FROM lore_entries WHERE campaign_id = ?`)
-    .all(campaignId) as Array<LoreRow & { embedding: Buffer | null }>;
-  return rows.map((row) => ({ entry: mapEntry(row), embedding: row.embedding }));
-}
-
-// Background pass over every entry in a campaign that still has no vector.
-// Rows written in bulk (a workshop import) skip the per-insert embed so the
-// copy stays one transaction; this is how they catch up afterwards.
-export async function embedPendingLore(campaignId: string) {
-  const pending = getDatabase()
-    .prepare(`SELECT id FROM lore_entries WHERE campaign_id = ? AND embedding IS NULL`)
-    .all(campaignId) as Array<{ id: string }>;
-  for (const row of pending) {
-    await embedLoreEntry(row.id);
-  }
-}
-
-// Fire-and-forget MiniLM embedding of title+body; failures leave the
-// embedding NULL, which retrieval treats as keyword-only.
-async function embedLoreEntry(entryId: string) {
-  try {
-    const entry = getLoreEntry(entryId);
-    if (!entry) {
-      return;
-    }
-    const [vector] = await embed([`${entry.title}\n${entry.body}`]);
-    if (vector) {
-      getDatabase()
-        .prepare(`UPDATE lore_entries SET embedding = ? WHERE id = ?`)
-        .run(vectorToBuffer(vector), entryId);
-    }
-  } catch (error) {
-    console.error("[lore] embedding failed", error);
-  }
-}

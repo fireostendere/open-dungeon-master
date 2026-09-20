@@ -1,15 +1,9 @@
 # syntax=docker/dockerfile:1
 
-# Open Dungeon Master as a single image. Everything the app needs is baked in:
-# the Next.js build, the Open5e content pack, and the MiniLM embedding model.
-# Only the AI services stay outside (llama.cpp, ComfyUI, Kokoro TTS, STT).
+# Open Dungeon Master as a single deterministic server image.
+# The Next.js build and Open5e content pack are baked in; AI inference is external.
 #
-# Built on glibc rather than Alpine: better-sqlite3-multiple-ciphers and
-# onnxruntime-node both publish glibc prebuilds, and musl would force a slow
-# source compile of the first and has no build of the second at all. A
-# scanner that proposes an Alpine tag is proposing an image that cannot run
-# this app; OS-level fixes are taken with apt-get upgrade in both stages
-# instead, which pulls the patched Debian packages at build time.
+# Built on glibc rather than Alpine for the native SQLite/mediasoup dependencies.
 
 # --------------------------------------------------------------- dependencies
 FROM node:22.23.2-trixie-slim AS deps
@@ -25,8 +19,7 @@ COPY package.json package-lock.json ./
 # The postinstall hook runs this; copy it in before the rest of the source so
 # the install layer stays cached across ordinary code changes.
 COPY scripts/copy-dice-assets.mjs ./scripts/
-# A full install, not --ignore-scripts: better-sqlite3-multiple-ciphers and
-# onnxruntime-node fetch their native binaries from an install script.
+# A full install is required for the native runtime dependencies.
 RUN npm ci
 
 # --------------------------------------------------------------------- build
@@ -39,13 +32,8 @@ COPY . .
 # stage; rerunning is cheap and keeps this independent of the COPY order.
 RUN node scripts/copy-dice-assets.mjs
 
-# Bake the content pack (spells, monsters, items, feats, subclasses) and the
-# MiniLM embedding model, so a running container never needs the internet to
-# answer a rules lookup or a semantic story recall. The pack comes from this
-# version's GitHub release asset; only an unreleased build rebuilds it from
-# api.open5e.com, which goes down often enough to have failed a publish.
+# Bake the Open5e content pack so rules lookup is available offline.
 RUN node scripts/fetch-content-pack.mjs
-RUN npm run fetch-model
 
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN DOCKER_BUILD=1 npm run build
@@ -53,12 +41,7 @@ RUN DOCKER_BUILD=1 npm run build
 # Trim the standalone bundle here, not in the runner stage: deleting a file in a
 # later layer does not reclaim the bytes the earlier COPY already wrote.
 #
-# onnxruntime-node ships every platform plus the CUDA and TensorRT execution
-# providers (~400MB), and this app only ever embeds on CPU. File tracing also
-# drags in whole directories whenever it sees a path.join(process.cwd(), ...),
-# which is how data/, models/ and the repo docs end up here; the runner stage
-# re-adds the parts that are actually needed, at paths a volume cannot hide.
-RUN cd .next/standalone \
+RUN cd .next/standalone \\
   && rm -rf node_modules/onnxruntime-node/bin/napi-v6/darwin \
             node_modules/onnxruntime-node/bin/napi-v6/win32 \
             node_modules/onnxruntime-node/bin/napi-v6/linux/arm64 \
@@ -91,15 +74,12 @@ COPY --from=build --chown=node:node /app/.next/standalone ./
 COPY --from=build --chown=node:node /app/.next/static ./.next/static
 COPY --from=build --chown=node:node /app/public ./public
 
-# The embedding cache directory is hard-coded to <cwd>/models/embeddings in
-# src/lib/embeddings.ts, so it has to live here and must not be a mount point.
-COPY --from=build --chown=node:node /app/models/embeddings ./models/embeddings
 
 # The content pack lives outside /app/data so the data volume cannot hide it.
 COPY --from=build --chown=node:node /app/data/content/open5e.sqlite ./content/open5e.sqlite
 
 # Source and scripts, so maintenance commands work through `docker compose exec`
-# (make-admin.mjs and backfill-embeddings.mjs import TypeScript from src/).
+# (maintenance scripts import TypeScript from src/).
 COPY --from=build --chown=node:node /app/src ./src
 COPY --from=build --chown=node:node /app/shared ./shared
 COPY --from=build --chown=node:node /app/scripts ./scripts
@@ -107,9 +87,9 @@ COPY --from=build --chown=node:node /app/tsconfig.json ./tsconfig.json
 
 # Runtime state. Creating these before any volume is attached is what seeds a
 # fresh named volume with ownership the unprivileged user can write to.
-RUN mkdir -p data public/uploads public/generated public/generated-audio logs \
+RUN mkdir -p data public/uploads public/generated logs \
   && chmod +x scripts/docker-entrypoint.sh \
-  && chown node:node data public/uploads public/generated public/generated-audio logs
+  && chown node:node data public/uploads public/generated logs
 
 USER node
 EXPOSE 3005
