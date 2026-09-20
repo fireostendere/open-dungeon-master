@@ -11,6 +11,7 @@ import { classifyInput,DM_REFUSALS } from './semantic-gate.mjs';
 import { NarratorCostTracker } from './cost-tracker.mjs';
 import { HostContextMemory } from './compaction.mjs';
 import { connectNarrator,drainNarratorStory,readNarratorSnapshot } from './read-session.mjs';
+import { explicitYoloRequested } from '../src/lib/dm/play-mode.mjs';
 const integer=(value,fallback,min,max)=>Number.isSafeInteger(Number(value))&&Number(value)>=min&&Number(value)<=max?Number(value):fallback;
 const hash=value=>crypto.createHash('sha256').update(value).digest();
 export class NarratorRunner {
@@ -25,10 +26,12 @@ export class NarratorRunner {
     this.statusToken=(options.statusToken||process.env.ODM_NARRATOR_STATUS_TOKEN||'').trim();
     this.fetchImpl=options.fetchImpl||globalThis.fetch;
     this.askResponder=typeof options.askResponder==='function'?options.askResponder:null;
+    this.yoloRequested=explicitYoloRequested({requested:options.yolo});
     this.storyController=options.storyController||null;this.adapterModule=options.adapterModule||process.env.ODM_NARRATOR_ADAPTER_MODULE||'';
     this.deltaReads=options.deltaReads??true;this.sectionCache=null;
     this.resumeRequested=options.resume??false;this.resumeAfterSeq=options.resumeAfterSeq;
     this.mode=this.storyController?'local-role-orchestrator':this.askResponder?'collector-with-ask-adapter':'collector';
+    this.playMode=this.storyController?.playMode??(this.yoloRequested?'yolo':null);
     this.checkpointPath=options.checkpointPath||process.env.ODM_NARRATOR_CHECKPOINT_PATH||path.join(process.env.ODM_STATE_DIR||'./state',`narrator-checkpoint-${this.campaignId||'default'}.json`);
     this.costTracker=options.costTracker||new NarratorCostTracker({storagePath:path.join(path.dirname(this.checkpointPath),`narrator-cost-${this.campaignId||'default'}.json`)});
     this.memory=new HostContextMemory({campaignId:this.campaignId});
@@ -43,9 +46,9 @@ export class NarratorRunner {
     if(moduleUrl.protocol!=='file:')throw new Error('Narrator adapter must be an operator-installed local module.');
     const adapterModule=await import(moduleUrl.href),factory=adapterModule.createNarratorAdapter||adapterModule.default;
     if(typeof factory!=='function')throw new Error('Narrator adapter module must export createNarratorAdapter.');
-    const configured=await factory({campaignId:this.campaignId});
+    const configured=await factory({campaignId:this.campaignId,yolo:this.yoloRequested});
     if(!configured?.storyController?.tick)throw new Error('Narrator adapter has no storyController.');
-    this.storyController=configured.storyController;this.askResponder=configured.askResponder??this.askResponder;this.mode='local-role-orchestrator';
+    this.storyController=configured.storyController;this.askResponder=configured.askResponder??this.askResponder;this.mode='local-role-orchestrator';this.playMode=this.storyController.playMode??(this.yoloRequested?'yolo':null);
     if(!this.askResponder&&this.storyController.answerAsk)this.askResponder=(ask,context)=>this.storyController.answerAsk(this,ask,context);
   }
   loadCheckpoint() {
@@ -69,7 +72,7 @@ export class NarratorRunner {
     else if(this.storyController)this.lastSeq=this.storyController.state.handledSeq;
   }
   saveCheckpoint() {
-    atomicWriteJson(this.checkpointPath,{formatVersion:3,version:3,mode:this.mode,campaignId:this.campaignId,timelineEpoch:this.timelineEpoch,
+    atomicWriteJson(this.checkpointPath,{formatVersion:3,version:3,mode:this.mode,playMode:this.playMode,campaignId:this.campaignId,timelineEpoch:this.timelineEpoch,
       lastSeq:this.lastSeq,lastAskSeq:this.lastAskSeq,answeredAsks:Array.from(this.answeredAsks).slice(-200),
       pendingAskCommands:Object.fromEntries(Array.from(this.pendingAskCommands.entries()).slice(-200)),
       pendingAskAttempts:Object.fromEntries(Array.from(this.pendingAskAttempts.entries()).slice(-200)),storyController:this.storyController?.serialize?.(),
@@ -168,11 +171,11 @@ export class NarratorRunner {
       const url=new URL(request.url,'http://localhost');response.setHeader('content-type','application/json');response.setHeader('cache-control','no-store');
       if(url.pathname==='/healthz'){
         if(this.lastError)response.statusCode=503;
-        response.end(JSON.stringify({ok:!this.lastError,status:this.lastError?'degraded':'healthy',mode:this.mode,uptime:process.uptime()}));
+        response.end(JSON.stringify({ok:!this.lastError,status:this.lastError?'degraded':'healthy',mode:this.mode,playMode:this.playMode,uptime:process.uptime()}));
       }
       else if(url.pathname==='/status'){
         if(this.statusToken&&!crypto.timingSafeEqual(hash(request.headers.authorization??''),hash(`Bearer ${this.statusToken}`))){response.writeHead(401);response.end(JSON.stringify({error:'Unauthorized'}));return;}
-        response.end(JSON.stringify({ok:!this.lastError,status:this.lastError?'degraded':'running',mode:this.mode,campaignId:this.campaignId,lastSeq:this.lastSeq,lastAskSeq:this.lastAskSeq,
+        response.end(JSON.stringify({ok:!this.lastError,status:this.lastError?'degraded':'running',mode:this.mode,playMode:this.playMode,campaignId:this.campaignId,lastSeq:this.lastSeq,lastAskSeq:this.lastAskSeq,
           answeredAsksCount:this.answeredAsks.size,pendingAskCommandsCount:this.pendingAskCommands.size,lastPollAt:this.lastPollAt||null,
           lastError:this.lastError?'poll_failed':null,metrics:this.costTracker.getMetrics(),
           story:this.storyController?{paused:this.storyController.state.paused,queued:this.storyController.state.queue.length,
@@ -193,12 +196,12 @@ export class NarratorRunner {
   }
 }
 if(process.argv[1]&&fileURLToPath(import.meta.url)===path.resolve(process.argv[1])){
-  const args=process.argv.slice(2);let campaignId='',once=false,port,resume=false,resumeAfterSeq;
+  const args=process.argv.slice(2);let campaignId='',once=false,port,resume=false,resumeAfterSeq,yolo=false;
   for(let index=0;index<args.length;index++){
     if(args[index]==='--campaign'&&args[index+1])campaignId=args[++index];else if(args[index]==='--port'&&args[index+1])port=Number(args[++index]);else if(args[index]==='--once')once=true;
-    else if(args[index]==='--resume')resume=true;else if(args[index]==='--after'&&args[index+1])resumeAfterSeq=Number(args[++index]);
+    else if(args[index]==='--resume')resume=true;else if(args[index]==='--after'&&args[index+1])resumeAfterSeq=Number(args[++index]);else if(args[index]==='--yolo')yolo=true;
   }
-  const runner=new NarratorRunner({campaignId,healthPort:port,resume,resumeAfterSeq});
+  const runner=new NarratorRunner({campaignId,healthPort:port,resume,resumeAfterSeq,yolo});
   const shutdown=async()=>{await runner.stop();process.exit(0);};process.on('SIGINT',shutdown);process.on('SIGTERM',shutdown);
   if(once){await runner.loadAdapter();runner.loadCheckpoint();try{await runner.connect();const ok=await runner.pollTick();runner.saveCheckpoint();process.exit(ok?0:1);}catch{console.error('[narrator-runner] Collector once failed.');process.exit(1);}}
   else runner.start().catch(()=>{console.error('[narrator-runner] Collector start failed.');process.exit(1);});
