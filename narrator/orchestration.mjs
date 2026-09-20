@@ -1,6 +1,7 @@
 import crypto from 'node:crypto';
 import { postWriteReadOptions, consumePostWriteRead } from './read-session.mjs';
 import { compactRolePacket } from './role-packet.mjs';
+import { emitLatency, latencyEnabled } from '../mcp/latency-trace.mjs';
 
 const clone = value => structuredClone(value);
 const sequence = value => Number.isSafeInteger(value) && value >= 0;
@@ -96,18 +97,20 @@ export class NarratorOrchestrator {
     const usage = this.state.usage, now = Date.now();
     usage.times = usage.times.filter(time => time > now - 3600000);
     if (usage.times.length >= this.maxCallsPerHour) throw new Error('Narrator model call budget exhausted.');
+    const packetTiming=latencyEnabled(), packetStarted=packetTiming?performance.now():0;
     const prompt = JSON.stringify(compactRolePacket(role, packet));
+    if(packetTiming)emitLatency({stage:'packet',role,durationMs:performance.now()-packetStarted,bytes:Buffer.byteLength(prompt)});
     usage.calls++; usage.times.push(now); usage.inputBytes += Buffer.byteLength(prompt); host.saveCheckpoint();
-    const startedAt = performance.now();
+    const modelTiming=latencyEnabled(), startedAt = modelTiming?performance.now():0; let outputBytes=0;
     try {
       const response = await this.adapter.generate(role, prompt);
       if (typeof response !== 'string') throw new Error('Role did not return text.');
-      usage.outputBytes += Buffer.byteLength(response);
+      outputBytes=Buffer.byteLength(response);usage.outputBytes += outputBytes;
       // Output byte counters are advisory. The next decision boundary saves
       // them together with its mandatory state, not another full fsync here.
       return response;
     } finally {
-      if (process.env.ODM_LATENCY_LOG === '1') console.error('[odm-latency]', JSON.stringify({ stage: 'narrator_model', role, durationMs: Math.round(performance.now()-startedAt), inputBytes: Buffer.byteLength(prompt) }));
+      if (modelTiming) emitLatency({ stage: 'narrator_model', role, durationMs: performance.now()-startedAt, inputBytes: Buffer.byteLength(prompt), outputBytes, modelCalls: 1 });
     }
   }
   async answerAsk(host, ask, context) {
@@ -145,13 +148,13 @@ export class NarratorOrchestrator {
       this.catalog = catalog.groups;
     }
     const allowedActions = new Set(this.catalog.flatMap(group => (group.actions ?? []).map(action => action.name)));
-    const campaign = snapshot.campaign ?? {};
+    const safeCampaign = snapshot.campaign ?? {};
     const packet = {
       input: current.input, public: publicProjection(snapshot, this.state.history),
-      campaign: { title: campaign.title, description: campaign.description, theme: campaign.theme, scene: campaign.scene,
-        questLog: campaign.questLog, gameSettings: campaign.gameSettings, dmOutline: campaign.dmOutline, storyArc: campaign.storyArc, floor: campaign.floor, clock: campaign.clock },
+      campaign: { title: safeCampaign.title, description: safeCampaign.description, theme: safeCampaign.theme, scene: safeCampaign.scene,
+        questLog: safeCampaign.questLog, gameSettings: safeCampaign.gameSettings, dmOutline: safeCampaign.dmOutline, storyArc: safeCampaign.storyArc, floor: safeCampaign.floor, clock: safeCampaign.clock, party: safeCampaign.party },
       state: { sheets: snapshot.sheets, encounter: snapshot.encounter, sceneTracker: snapshot.sceneTracker, location: snapshot.location,
-        facts: snapshot.facts, notes: snapshot.notes, npcs: snapshot.npcs, pendingRolls: snapshot.pendingRolls, summary: snapshot.summary },
+        facts: snapshot.facts, notes: snapshot.notes, npcs: snapshot.npcs, pendingRolls: snapshot.pendingRolls, summary: snapshot.summary, members: snapshot.members },
       historySummary: host.memory?.getPromptContext?.().summary ?? '',
       outcomes: current.outcomes, rollEvents: this.state.events.filter(event => event.seq >= current.input.seq),
       actions: this.catalog, schemas: this.schemas,

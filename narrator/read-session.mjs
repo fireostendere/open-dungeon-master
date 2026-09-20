@@ -1,4 +1,5 @@
 import crypto from 'node:crypto';
+import { emitLatency, latencyEnabled } from '../mcp/latency-trace.mjs';
 const fail=(message,status=409,code)=>Object.assign(new Error(message),{status,code});
 const seq=value=>Number.isSafeInteger(value)&&value>=0;
 const epochOf=state=>typeof state?.timelineEpoch==='string'?state.timelineEpoch:null;
@@ -135,10 +136,12 @@ export function postWriteReadOptions(host) {
  * Never install a partial delta baseline or acknowledge unverified events.
  */
 export async function consumePostWriteRead(host,receipt) {
-  if(!receipt?.state||receipt.readRequired||!receipt.readAfter)return host.drainStory();
+  const timing=latencyEnabled(),started=timing?performance.now():0;
+  try {
+  if(!receipt?.state||receipt.readRequired||!receipt.readAfter)return await host.drainStory();
   const params=receipt.readAfter, baseline=host.sectionCache;
   if(params.campaignId!==host.campaignId||params.afterSeq!==host.lastSeq||
-     params.timelineEpoch&&params.timelineEpoch!==host.timelineEpoch)return host.drainStory();
+     params.timelineEpoch&&params.timelineEpoch!==host.timelineEpoch)return await host.drainStory();
   const reader={sectionCache:baseline,deltaReads:false,readPageRetries:host.readPageRetries??2,
     readMaxBytes:host.readMaxBytes??65536,callControl:host.callControl.bind(host)};
   try{
@@ -149,4 +152,5 @@ export async function consumePostWriteRead(host,receipt) {
     host.sectionCache=reader.sectionCache;
     return await drainNarratorStory(host,{firstSnapshot:state});
   }catch(error){host.sectionCache=baseline;throw error;}
+  } finally { if(timing)emitLatency({stage:'post_write_read',durationMs:performance.now()-started}); }
 }

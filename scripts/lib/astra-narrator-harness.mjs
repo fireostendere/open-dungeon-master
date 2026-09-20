@@ -7,6 +7,8 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { HostContextMemory } from '../../narrator/compaction.mjs';
 import * as reader from '../../narrator/read-session.mjs';
+import * as pollCycle from '../../narrator/poll-cycle.mjs';
+import * as latencyTrace from '../../mcp/latency-trace.mjs';
 export async function narratorHarness(options={}){
  const saved=[],calls=[],usage=[];
  const deps={
@@ -14,9 +16,10 @@ export async function narratorHarness(options={}){
   './checkpoint-io.mjs':{atomicWriteJson:(_file,value)=>{if(options.failCheckpoint)throw new Error('Checkpoint write failed');saved.push(structuredClone(value));},readJsonSafe:()=>options.checkpoint??null},
   './semantic-gate.mjs':{classifyInput:()=>({decision:'allow'}),DM_REFUSALS:{ru:'Game only'}},
   './cost-tracker.mjs':{NarratorCostTracker:class{getMetrics(){return{};}recordUsage(value){usage.push(value);}}},
-  './compaction.mjs':{HostContextMemory},'./read-session.mjs':reader,
- };
- const context=vm.createContext({console:{...console,error(){}},process,Buffer,structuredClone,URL,AbortSignal,setTimeout,clearTimeout});
+   './compaction.mjs':{HostContextMemory},'./read-session.mjs':reader,'./poll-cycle.mjs':pollCycle,
+   '../mcp/latency-trace.mjs':latencyTrace,
+  };
+  const context=vm.createContext({console:{...console,error(){}},process,Buffer,structuredClone,URL,AbortSignal,performance,setTimeout,clearTimeout});
  const url=new URL('../../narrator/run.mjs',import.meta.url),vmModule=new vm.SourceTextModule(readFileSync(url,'utf8'),{context,initializeImportMeta:meta=>{meta.url=url.href;}});
  await vmModule.link(name=>{assert.ok(deps[name],`Missing dependency ${name}`);return new vm.SyntheticModule(Object.keys(deps[name]),function(){for(const[key,value]of Object.entries(deps[name]))this.setExport(key,value);},{context});});
  await vmModule.evaluate();

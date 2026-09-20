@@ -7,6 +7,7 @@ import { withGameStateRollback } from "@/lib/dm/tool-transaction";
 import { enqueueDmJob } from "@/lib/dm/queue";
 import { publishPersisted } from "@/lib/events";
 import { currentOperationSignal } from "@/lib/operation-scope.mjs";
+import { emitLatency, latencyEnabled, withLatencyTrace } from "../../../mcp/latency-trace.mjs";
 
 export class NarratorCommandError extends Error {
   readonly status: number;
@@ -48,6 +49,7 @@ type CommandResult = { result: unknown; commandId: string; receiptId: string; co
  * cannot undo it: the identical request can recover its durable receipt.
  */
 export async function executeNarratorCommand<State extends object>(options: CommandOptions<State>): Promise<CommandResult> {
+  return withLatencyTrace(async () => {
   const startedAt = performance.now();
   let queueMs = 0;
   const signal = currentOperationSignal() as AbortSignal | undefined;
@@ -94,10 +96,11 @@ export async function executeNarratorCommand<State extends object>(options: Comm
       })()));
     } catch (error) { failure = error; }
   });
-  if (process.env.ODM_LATENCY_LOG === "1") console.error("[odm-latency]", JSON.stringify({ stage: "narrator_write", queueMs: Math.round(queueMs), durationMs: Math.round(performance.now() - startedAt), ok: !failure, replayed: outcome?.replayed ?? false }));
+  if (latencyEnabled()) emitLatency({ stage: "narrator_write", queueMs, durationMs: performance.now() - startedAt, ok: !failure, replayed: outcome?.replayed ?? false, attemptCount: 1, errorCount: failure ? 1 : 0 });
   if (failure) throw failure instanceof NarratorCommandError ? failure
     : new NarratorCommandError(failure instanceof Error ? failure.message : "Narrator command failed.", 500);
   if (!outcome) throw new NarratorCommandError("Narrator command did not execute.", 500);
   // Do not check cancellation here: the commit is already durable.
   return outcome;
+  });
 }

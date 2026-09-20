@@ -1,5 +1,6 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { withDmPolicy } from './dm-policy.mjs';
+import { emitLatency, mcpLatencyStage, withLatencyTrace } from './latency-trace.mjs';
 
 const operation = new AsyncLocalStorage();
 const storyWrites = new Set(['narrator.invoke', 'narrator.narrate', 'narrator.release_floor']);
@@ -40,13 +41,14 @@ export function createControlClient({
   onTiming = null,
 } = {}) {
   return async function callControl(action, params = {}, { signal, timeout = timeoutMs } = {}) {
-    if (!token) throw new Error('ODM_MCP_TOKEN is not configured. The control plane is disabled.');
-    const signals = [operation.getStore(), signal, AbortSignal.timeout(timeout)].filter(Boolean);
-    const requestSignal = AbortSignal.any(signals);
-    requestSignal.throwIfAborted();
-    const startedAt = performance.now();
-    let status = 0, responseBytes = 0;
-    try {
+    return withLatencyTrace(async () => {
+      if (!token) throw new Error('ODM_MCP_TOKEN is not configured. The control plane is disabled.');
+      const signals = [operation.getStore(), signal, AbortSignal.timeout(timeout)].filter(Boolean);
+      const requestSignal = AbortSignal.any(signals);
+      requestSignal.throwIfAborted();
+      const startedAt = performance.now();
+      let status = 0, responseBytes = 0;
+      try {
       const response = await fetchImpl(url, {
         method: 'POST', redirect: 'error',
         headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json', accept: 'application/json' },
@@ -66,11 +68,11 @@ export function createControlClient({
       });
       if (onTiming || process.env.ODM_LATENCY_LOG === '1') responseBytes = Buffer.byteLength(JSON.stringify(result) ?? '');
       return result;
-    } finally {
-      // No campaign/user IDs, text, credentials, prompts or tool arguments.
-      const timing = { stage: 'mcp_control', durationMs: Math.round(performance.now() - startedAt), status, responseBytes };
-      try { if (onTiming) onTiming(timing); else if (process.env.ODM_LATENCY_LOG === '1') console.error('[odm-latency]', JSON.stringify(timing)); } catch {}
-    }
+      } finally {
+        // No campaign/user IDs, text, credentials, prompts or tool arguments.
+        emitLatency({ stage: mcpLatencyStage(action), durationMs: performance.now() - startedAt, status, responseBytes, mcpCalls: 1 }, { onTiming, log: !onTiming });
+      }
+    });
   };
 }
 export const callControl = createControlClient();

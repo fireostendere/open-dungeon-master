@@ -66,7 +66,7 @@ All staged JavaScript modules passed `node --check`. The changed TypeScript file
 
 Synthetic benchmark fixture: 8 sheets, 250 facts, 20 notes and 100 NPCs. Over 100 repeated reads after warming, section loader calls fell from **400 to 0**. In the recorded local run the isolated section-building median was **2.700 ms vs 0.064 ms**, p95 **3.714 ms vs 0.153 ms**. These are synthetic data-path timings, not whole-turn/provider/RAG performance. 100 unchanged-state checkpoint attempts caused **1 durable write**. Script output includes its fixture and Node version; rerun on the target machine rather than treating these numbers as a service-level guarantee.
 
-`ODM_LATENCY_LOG=1` adds content-free `read_sections`, `checkpoint` and `narrator_model` stage metrics. Metrics contain counts/durations/byte lengths, not game prose or credentials.
+`ODM_LATENCY_LOG=1` adds the content-free trace described in `narrator-latency.md`, including `read_sections`, split checkpoint serialization/fsync stages and host model bytes. Metrics contain counts/durations/byte lengths, not game prose or credentials.
 
 ## Rollout
 

@@ -142,11 +142,14 @@ test('real HTTP control client preserves credential, adds policy and gets server
   });
   await new Promise(resolve=>http.listen(0,'127.0.0.1',resolve));t.after(()=>{http.closeAllConnections();http.close();});
   const client=createControlClient({url:`http://127.0.0.1:${http.address().port}`,token:DM});
-  const read=await client('narrator.read',{campaignId:A});assert.equal(read.dmPolicy.text,DM_POLICY_TEXT);assert.equal(read.currentSeq,2);
+  const read=await client('narrator.read',{campaignId:A});
+  assert.deepEqual(read.dmPolicy,{version:DM_POLICY_VERSION,uri:DM_POLICY_URI,scope:'player-originated-game-content',enforcement:'host-instruction-required; not-a-semantic-filter'});assert.equal(read.currentSeq,2);
+  const fullRead=await client('narrator.read',{campaignId:A,policyMode:'full'});assert.equal(fullRead.dmPolicy.text,DM_POLICY_TEXT);
+  const connect=await client('narrator.connect',{campaignId:A});assert.ok(connect.instructions.startsWith(DM_POLICY_TEXT));
   await assert.rejects(client('models.switch_remote',{campaignId:A,role:'operator'}),/not available/);
   await assert.rejects(client('narrator.read',{campaignId:B}),/different campaign/);
   const health=await client('server.status',{});assert.equal(health.ok,true);assert.equal(health.dmPolicy,undefined);
-  assert.equal(effects,1);assert.ok(calls.every(x=>x.role==='narrator'));
+  assert.equal(effects,3);assert.ok(calls.every(x=>x.role==='narrator'));
 });
 test('pre-aborted client makes no request and policy handling does not swallow errors',async()=>{
   let count=0;const client=createControlClient({token:DM,fetchImpl:async()=>{count++;throw Error('transport failed');}});

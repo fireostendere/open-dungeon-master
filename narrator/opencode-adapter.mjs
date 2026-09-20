@@ -1,5 +1,6 @@
 import path from 'node:path';
 import { trustedInstruction } from './role-profiles.mjs';
+import { emitLatency, latencyEnabled, withLatencyTrace } from '../mcp/latency-trace.mjs';
 
 export class OpenCodeAdapter {
   constructor(options = {}) {
@@ -22,12 +23,13 @@ export class OpenCodeAdapter {
     this.pendingCleanups = new Set();
     this.onTiming = typeof options.onTiming === 'function' ? options.onTiming : null;
   }
-  timing(stage, startedAt) {
+  timing(stage, startedAt, fields = {}) {
     // Telemetry is deliberately content-free and must never break a response.
-    try { this.onTiming?.({ stage, durationMs: Math.max(0, performance.now() - startedAt) }); } catch {}
+    emitLatency({ stage: `adapter_${stage}`, durationMs: Math.max(0, performance.now() - startedAt), ...fields }, { onTiming: this.onTiming, log: !this.onTiming });
   }
   async request(route, { method = 'POST', body, timeoutMs = this.timeoutMs, stage = 'request' } = {}) {
-    const startedAt = performance.now();
+    const timing = latencyEnabled() || this.onTiming, startedAt = timing ? performance.now() : 0;
+    let responseBytes = 0;
     try {
       const response = await this.fetch(new URL(route, this.endpoint), { method, redirect: 'error',
         headers: { accept: 'application/json', 'content-type': 'application/json', ...(this.token ? { authorization: `Bearer ${this.token}` } : {}) },
@@ -45,9 +47,9 @@ export class OpenCodeAdapter {
           chunks.push(Buffer.from(value));
         }
       } finally { reader.releaseLock(); }
-      const json = JSON.parse(Buffer.concat(chunks).toString('utf8'));
+      responseBytes = bytes; const json = JSON.parse(Buffer.concat(chunks).toString('utf8'));
       return json?.data ?? json;
-    } finally { this.timing(stage, startedAt); }
+    } finally { if (timing) this.timing(stage, startedAt, { responseBytes }); }
   }
   cleanup(route) {
     // Delete only this call's isolated session. Awaiting DELETE in generate's
@@ -58,23 +60,25 @@ export class OpenCodeAdapter {
   }
   async close() { await Promise.allSettled([...this.pendingCleanups]); }
   async generate(role, prompt) {
-    const instruction = trustedInstruction(role);
-    if (typeof prompt !== 'string' || Buffer.byteLength(prompt) > 262144) throw new Error('Role input exceeds the byte budget; no facts were clipped.');
-    // Bound outstanding cleanup work without reusing sessions across roles or
-    // private Ask audiences. Real fetches abort after cleanupTimeoutMs.
-    if (this.pendingCleanups.size >= 32) throw new Error('OpenCode cleanup capacity exhausted.');
-    const agent = `narrator-${role}`;
-    const session = await this.request('/api/session', { stage: 'session', body: { agent, model: this.model,
-      location: { directory: this.workspace }, permissions: [{ action: '*', resource: '*', effect: 'deny' }], title: `ODM ${role}` } });
-    if (typeof session?.id !== 'string' || !/^ses[a-zA-Z0-9_-]+$/.test(session.id)) throw new Error('Invalid OpenCode session.');
-    const route = `/api/session/${encodeURIComponent(session.id)}`;
-    try {
-      if (session.agent !== agent || ['providerID', 'id', 'variant'].some(key => session.model?.[key] !== this.model[key])) throw new Error('OpenCode did not preserve the selected role/model.');
-      await this.request(`/api/experimental/session/${encodeURIComponent(session.id)}/instructions/entries/odm-policy`, { method: 'PUT', stage: 'policy', body: { value: instruction } });
-      const reply = await this.request(`${route}/generate`, { stage: 'model', body: { prompt } });
-      if (typeof reply?.text !== 'string' || !reply.text.trim() || Buffer.byteLength(reply.text) > 32768) throw new Error('Malformed or oversized model output.');
-      return reply.text;
-    } finally { this.cleanup(route); }
+    return withLatencyTrace(async () => {
+      const instruction = trustedInstruction(role);
+      if (typeof prompt !== 'string' || Buffer.byteLength(prompt) > 262144) throw new Error('Role input exceeds the byte budget; no facts were clipped.');
+      // Bound outstanding cleanup work without reusing sessions across roles or
+      // private Ask audiences. Real fetches abort after cleanupTimeoutMs.
+      if (this.pendingCleanups.size >= 32) throw new Error('OpenCode cleanup capacity exhausted.');
+      const agent = `narrator-${role}`;
+      const session = await this.request('/api/session', { stage: 'session', body: { agent, model: this.model,
+        location: { directory: this.workspace }, permissions: [{ action: '*', resource: '*', effect: 'deny' }], title: `ODM ${role}` } });
+      if (typeof session?.id !== 'string' || !/^ses[a-zA-Z0-9_-]+$/.test(session.id)) throw new Error('Invalid OpenCode session.');
+      const route = `/api/session/${encodeURIComponent(session.id)}`;
+      try {
+        if (session.agent !== agent || ['providerID', 'id', 'variant'].some(key => session.model?.[key] !== this.model[key])) throw new Error('OpenCode did not preserve the selected role/model.');
+        await this.request(`/api/experimental/session/${encodeURIComponent(session.id)}/instructions/entries/odm-policy`, { method: 'PUT', stage: 'policy', body: { value: instruction } });
+        const reply = await this.request(`${route}/generate`, { stage: 'model', body: { prompt } });
+        if (typeof reply?.text !== 'string' || !reply.text.trim() || Buffer.byteLength(reply.text) > 32768) throw new Error('Malformed or oversized model output.');
+        return reply.text;
+      } finally { this.cleanup(route); }
+    });
   }
 }
 

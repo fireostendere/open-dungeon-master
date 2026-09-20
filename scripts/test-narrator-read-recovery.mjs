@@ -11,7 +11,7 @@ import { assembleReadPages } from '../narrator/read-session.mjs';
 // Actual runner/read session/memory/atomic checkpoint code; only model budget
 // and semantic classification are doubles. Control responses are protocol fixtures.
 async function runnerClass() {
-  const context = vm.createContext({ console: { ...console, error() {} }, process, Buffer, URL, TextEncoder, TextDecoder,
+  const context = vm.createContext({ console: { ...console, error() {} }, process, Buffer, URL, TextEncoder, TextDecoder, performance,
     AbortSignal, AbortController, fetch, structuredClone, setTimeout, clearTimeout });
   const cache = new Map();
   const stubs = {
@@ -28,9 +28,9 @@ async function runnerClass() {
     } else module = new vm.SourceTextModule(readFileSync(fileURLToPath(url), 'utf8'), {
       context, identifier: url, initializeImportMeta(meta) { meta.url = url; },
     });
-    cache.set(url, module); await module.link(load); return module;
+    cache.set(url, module); return module;
   }
-  const module = await load('../narrator/run.mjs'); await module.evaluate(); return module.namespace.NarratorRunner;
+  const module = await load('../narrator/run.mjs'); await module.link(load); await module.evaluate(); return module.namespace.NarratorRunner;
 }
 const Runner = await runnerClass();
 const message = (seq, marker = 'CURRENT') => ({ id: `m-${marker}-${seq}`, seq, roomId: 'vault', witnessUserIds: ['A'], kind: 'say', content: `${marker}_${seq}` });
@@ -127,7 +127,7 @@ test('R06: rewind with a higher new counter still resyncs via epoch and next pol
   try {
     await f.runner.connect(); f.runner.pendingAskCommands.set('old', { commandId: 'old', answer: 'FUTURE_ANSWER' });
     f.state.epoch = 'b'.repeat(64); f.state.messages = Array.from({ length: 5 }, (_, index) => message(index + 1, 'REWOUND'));
-    assert.equal(await f.runner.pollTick(), false); assert.equal(f.runner.lastSeq, 5);
+    assert.equal(await f.runner.pollTick(), true); assert.equal(f.runner.lastSeq, 5);
     assert.equal(f.runner.timelineEpoch, f.state.epoch); assert.equal(f.runner.pendingAskCommands.size, 0);
     assert.doesNotMatch(JSON.stringify(f.runner.memory.serializeState()), /CURRENT/);
     assert.equal(await f.runner.pollTick(), true);
@@ -173,9 +173,11 @@ test('R06: page integrity, duplicate scalars, array gaps and missing tails are r
 test('R06: an unconfirmed Ask conflict is not marked delivered', async () => {
   const f = fixture(0);
   try {
+    f.runner.askResponder = async () => ({ answer: 'Private answer.', citations: [] });
     f.state.intercept = action => action === 'narrator.answer_ask' ? Response.json({ error: 'conflict' }, { status: 409 }) : null;
-    await assert.rejects(f.runner.handlePendingAsk({ id: 'ask', version: 2, question: 'Question' }));
-    assert.equal(f.runner.answeredAsks.has('ask'), false); assert.equal(f.runner.pendingAskCommands.size, 1);
+    await f.runner.handlePendingAsk({ id: 'ask', version: 2, question: 'Question' });
+    assert.equal(f.runner.answeredAsks.has('ask'), false); assert.equal(f.runner.pendingAskCommands.size, 0);
+    assert.equal(f.state.requests.filter(request => request.action === 'narrator.answer_ask').length, 1);
     assert.equal(JSON.parse(readFileSync(f.options.checkpointPath)).answeredAsks.length, 0);
   } finally { f.close(); }
 });
@@ -191,7 +193,8 @@ test('R06: actual narrator dispatcher rejects stale epoch before command executi
   const chain = new Proxy({}, { get: (_target, key) => key === 'safeParse' ? data => ({ success: true, data }) : () => chain });
   const campaign = { id: campaignId, kind: 'campaign', status: 'active', dmUserId: 'DM', floor: { mode: 'open' }, gameSettings: { dmMode: 'human' } };
   const overrides = {
-    z: chain, getDatabase: () => sqlite, getCampaignById: () => campaign, coverInEffect: () => false,
+    z: chain, getDatabase: () => sqlite, getCampaignById: () => campaign, getFloor: () => ({ mode: 'hold', next: { mode: 'open' } }),
+    listOpenPendingRolls: () => [], queueSkippedCombatTurn: () => {}, coverInEffect: () => false,
     NarratorCommandError: CommandError, SPATIAL_NARRATOR_OPERATIONS: {}, SPATIAL_NARRATOR_CATALOG: [],
     executeNarratorCommand: args => { executions++; return args.work(args.loadState()); },
     consoleAdjudications: () => [], publishPersisted: () => {}, setFloor: () => {},

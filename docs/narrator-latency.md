@@ -60,7 +60,15 @@ OpenCode generation still uses isolated sessions for roles and private contexts.
 
 ## Diagnostics
 
-Set `ODM_LATENCY_LOG=1` in the web/MCP processes to log content-free control latency, response bytes, write queue duration and total write duration. No player text, campaign/user IDs, credentials, tool arguments or prompts are logged by these new metrics. OpenCodeAdapter also accepts an onTiming callback for session/policy/model/cleanup durations. Its callback failures cannot break generation.
+Set `ODM_LATENCY_LOG=1` in the web/MCP processes to emit content-free JSONL to stderr, prefixed with `[odm-latency]`. Every record has an opaque random `traceId`, an allowlisted stage and numeric duration/count/byte fields only; durations retain millisecond precision to three decimals. It never includes player text, prompts, private Ask values, room/campaign/user/command IDs, hashes, credentials, tool arguments or error text. Logging failures are isolated from the command.
+
+Current coverage: MCP-side calls report `mcp_read`, `mcp_engine`, `mcp_narration` and `mcp_ask`; the host records `post_write_read` while it validates and consumes an attached receipt state; `narrator_write` records server queue and total command time. Packet construction reports `packet`; section cache work reports `read_sections`; checkpoints separately report serialization (state-key hash plus payload JSON, excluding filesystem work), file fsync, directory fsync and one `checkpoint_write` only after the full durable boundary succeeds. The OpenCode adapter reports `adapter_session`, `adapter_policy`, `adapter_model` and `adapter_cleanup`; `narrator_model` adds host role/input/output bytes and a model-call count. Summarize captured files without replaying raw input:
+
+```sh
+node scripts/summarize-latency.mjs /path/to/odm.log
+```
+
+The summarizer accepts either raw JSONL or the stderr prefix and outputs p50/p95 by stage and role with distinct input/output/response bytes, model/MCP calls, cache hits/loads and successful checkpoint writes. It silently discards malformed lines and never prints them. A story cycle shares one in-process trace ID; each concurrent private Ask worker gets a separate ID. These IDs are process-local correlation only: no campaign, user or distributed request propagation is claimed. There is no instrumented browser delivery, input-acceptance, remote provider-internal or operator-local RAG stage; these are **unavailable**, not inferred or fabricated. OpenCodeAdapter's `onTiming` callback receives the same sanitized adapter events; callback failures cannot break generation.
 
 For an actual before/after comparison capture input acceptance, MCP read/write durations and response sizes, model/RAG duration, receipt time and browser delivery time. Do not infer provider throughput or RAG performance from unit-test durations.
 

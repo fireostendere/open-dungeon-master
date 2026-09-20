@@ -12,6 +12,7 @@ import { NarratorCostTracker } from './cost-tracker.mjs';
 import { HostContextMemory } from './compaction.mjs';
 import { connectNarrator,drainNarratorStory,readNarratorSnapshot } from './read-session.mjs';
 import { driveNarratorCycle,narratorPollDelay } from './poll-cycle.mjs';
+import { emitLatency, latencyEnabled, mcpLatencyStage, withLatencyTrace } from '../mcp/latency-trace.mjs';
 const integer=(value,fallback,min,max)=>Number.isSafeInteger(Number(value))&&Number(value)>=min&&Number(value)<=max?Number(value):fallback;
 const hash=value=>crypto.createHash('sha256').update(value).digest();
 export class NarratorRunner {
@@ -80,12 +81,18 @@ export class NarratorRunner {
       uptimeSeconds:Math.floor((Date.now()-this.startedAt)/1000),lastPollAt:this.lastPollAt||null,lastError:this.lastError?'poll_failed':null});
   }
   async callControl(action,params={}, {timeoutMs=15000}={}) {
-    if(!this.token)throw new Error('Narrator authentication token is missing.');
-    const response=await this.fetchImpl(this.controlUrl,{method:'POST',headers:{authorization:`Bearer ${this.token}`,'content-type':'application/json',accept:'application/json'},
-      body:JSON.stringify({action,params}),redirect:'error',signal:AbortSignal.timeout(timeoutMs)});
-    const body=await response.json().catch(()=>null);
-    if(!response.ok||body?.ok===false)throw Object.assign(new Error(body?.error||`Control returned HTTP ${response.status}`),{status:response.status,code:body?.code});
-    if(!body||!Object.hasOwn(body,'result'))throw new Error('Invalid control response.');return body.result;
+    return withLatencyTrace(async()=>{
+      if(!this.token)throw new Error('Narrator authentication token is missing.');
+      const timing=latencyEnabled(),started=timing?performance.now():0;let status=0,responseBytes=0;
+      try {
+        const response=await this.fetchImpl(this.controlUrl,{method:'POST',headers:{authorization:`Bearer ${this.token}`,'content-type':'application/json',accept:'application/json'},
+          body:JSON.stringify({action,params}),redirect:'error',signal:AbortSignal.timeout(timeoutMs)});
+        status=response.status;const body=await response.json().catch(()=>null);
+        if(timing)responseBytes=Buffer.byteLength(JSON.stringify(body?.result)??'');
+        if(!response.ok||body?.ok===false)throw Object.assign(new Error(body?.error||`Control returned HTTP ${response.status}`),{status:response.status,code:body?.code});
+        if(!body||!Object.hasOwn(body,'result'))throw new Error('Invalid control response.');return body.result;
+      } finally { if(timing)emitLatency({stage:mcpLatencyStage(action),durationMs:performance.now()-started,status,responseBytes,mcpCalls:1}); }
+    });
   }
   async connect(){
     this.connected=false;const result=await connectNarrator(this);
