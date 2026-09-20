@@ -42,6 +42,7 @@ const passage = { walkable: z.boolean().optional(), sound: z.boolean().optional(
 const revision = z.number().int().min(1).optional();
 export const spatialCommandSchema = z.discriminatedUnion("operation", [
   z.object({ ...base, operation: z.literal("enable"), name: z.string().trim().min(1).max(80) }).strict(),
+  z.object({ ...base, operation: z.literal("disable") }).strict(),
   z.object({ ...base, operation: z.literal("create_room"), name: z.string().trim().min(1).max(80), connectTo: id.optional(), ...passage }).strict(),
   z.object({ ...base, operation: z.literal("link"), sourceId: id, targetId: id, ...passage }).strict(),
   z.object({ ...base, operation: z.literal("move"), roomId: id, userIds: z.array(id).min(1).max(20).optional(), expectedRevision: revision }).strict(),

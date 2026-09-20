@@ -140,6 +140,13 @@ CREATE TABLE IF NOT EXISTS spatial_object_receipts (
   PRIMARY KEY(campaign_id,user_id,object_type,object_id)
 );`;
 
+const SPATIAL_CLEAR_TABLES = [
+  "spatial_receipts", "spatial_observers", "spatial_detections", "spatial_stealth_states",
+  "spatial_requests", "spatial_presence", "spatial_visits", "spatial_links", "spatial_messages",
+  "spatial_object_receipts", "spatial_object_scopes", "spatial_event_views", "spatial_object_versions",
+  "spatial_rooms", "spatial_campaigns",
+];
+
 function canonical(value) {
   if (Array.isArray(value)) return value.map(canonical);
   if (value && typeof value === "object") return Object.fromEntries(Object.keys(value).sort().map(key => [key, canonical(value[key])]));
@@ -184,6 +191,14 @@ export function createSpatialStore(db, { nextSeq, now = () => new Date().toISOSt
   const one = (sql, ...params) => db.prepare(sql).get(...params);
   const all = (sql, ...params) => db.prepare(sql).all(...params);
   const enabled = campaignId => Boolean(one("SELECT 1 FROM spatial_campaigns WHERE campaign_id=?", campaignId));
+  function clearSpatialState(campaignId) {
+    if (one("SELECT 1 FROM sqlite_master WHERE type='table' AND name='encounters'")) {
+      run("UPDATE encounters SET room_id=NULL WHERE campaign_id=?", campaignId);
+    }
+    for (const table of SPATIAL_CLEAR_TABLES) {
+      if (one("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?", table)) run(`DELETE FROM ${table} WHERE campaign_id=?`, campaignId);
+    }
+  }
   function authorize(actor) {
     if (!actor?.campaignId || !actor?.userId || !actor.memberIds.includes(actor.userId)) throw new SpatialError("Campaign not found.", 404);
   }
@@ -319,6 +334,13 @@ export function createSpatialStore(db, { nextSeq, now = () => new Date().toISOSt
       run("INSERT INTO spatial_rooms(id,campaign_id,name) VALUES(?,?,?)", roomId, actor.campaignId, name);
       for (const userId of actor.playerIds) moveOne(actor, userId, roomId, seq);
       return { roomId };
+    }
+    if (operation === "disable") {
+      if (!actor.isDm) throw new SpatialError("Only the Dungeon Master can disable location chat.", 403);
+      if (!enabled(actor.campaignId)) return { disabled: false, alreadyDisabled: true };
+      const seq = nextSeq(actor.campaignId);
+      clearSpatialState(actor.campaignId);
+      return { disabled: true, seq };
     }
     active(actor);
     if (operation === "send") {

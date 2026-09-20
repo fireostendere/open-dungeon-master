@@ -61,6 +61,11 @@ try {
   assert.equal(afterOoc.result.nextCursor, latestSeq(campaign.id));
   const catalog = await executeMcpNarratorControl("narrator.catalog", { campaignId: campaign.id });
   assert.ok(catalog.result.groups.flatMap(group => group.entries).some(entry => entry.name === "location_observe"));
+  assert.ok(catalog.result.groups.flatMap(group => group.entries).some(entry => entry.name === "location_disable"));
+  const disabled = await invoke("location_disable", {});
+  assert.equal(disabled.result.result.disabled, true);
+  const afterDisable = await executeMcpNarratorControl("narrator.read", { campaignId: campaign.id, afterSeq: latestSeq(campaign.id), projection: "live" });
+  assert.equal(afterDisable.result.spatial.enabled, false);
   console.log("Spatial application/narrator integration passed.");
 } finally {
   globalThis.fetch = nativeFetch;
