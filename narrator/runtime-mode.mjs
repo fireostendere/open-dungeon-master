@@ -1,4 +1,4 @@
-import { resolveDndPlayMode } from "../src/lib/dm/play-mode.mjs";
+import { resolveDndPlayMode } from "../shared/dnd-play-mode.mjs";
 
 export const NARRATOR_YOLO_ACTIONS = new Set([
   "start_encounter",
