@@ -1,0 +1,165 @@
+{
+  "kind": "local-integration-isolated-server-sqlite",
+  "baseline": "7aa73c4",
+  "node": "v24.18.0",
+  "before": {
+    "kind": "isolated-server-sqlite",
+    "node": "v24.18.0",
+    "fixture": {
+      "npcs": 125,
+      "facts": 30,
+      "sheets": 1
+    },
+    "scenarios": [
+      {
+        "name": "warm_full_mcp_read",
+        "reads": 25,
+        "wallMs": {
+          "p50": 1.035,
+          "p95": 1.644
+        },
+        "bytes": 25783,
+        "identicalWithinScenario": true,
+        "db": {
+          "prepareRequests": 825,
+          "distinctStatementHandles": 475,
+          "exec": 50,
+          "sqlReads": 825,
+          "npcRows": 0
+        },
+        "projectionLoads": 0,
+        "projectionHits": 100
+      },
+      {
+        "name": "changed_sheet",
+        "reads": 25,
+        "wallMs": {
+          "p50": 1.146,
+          "p95": 1.544
+        },
+        "bytes": 25783,
+        "identicalWithinScenario": false,
+        "db": {
+          "prepareRequests": 950,
+          "distinctStatementHandles": 525,
+          "exec": 50,
+          "sqlReads": 925,
+          "npcRows": 0
+        },
+        "projectionLoads": 25,
+        "projectionHits": 75
+      },
+      {
+        "name": "changed_fact_npc",
+        "reads": 25,
+        "wallMs": {
+          "p50": 2.288,
+          "p95": 3.943
+        },
+        "bytes": 25804,
+        "identicalWithinScenario": false,
+        "db": {
+          "prepareRequests": 1150,
+          "distinctStatementHandles": 625,
+          "exec": 50,
+          "sqlReads": 1100,
+          "npcRows": 3125
+        },
+        "projectionLoads": 50,
+        "projectionHits": 50
+      }
+    ],
+    "exactContent": {
+      "label": "SERVER EXACT CONTENT path, NOT local external D&D RAG",
+      "samples": 100,
+      "p50Ms": 0.015,
+      "p95Ms": 0.07,
+      "bytes": 234,
+      "sourceCitation": "SRD 5.1",
+      "documentSlug": "srd-2014",
+      "ragCalls": 0,
+      "modelCalls": 0,
+      "rerankerCalls": 0
+    }
+  },
+  "after": {
+    "kind": "isolated-server-sqlite",
+    "node": "v24.18.0",
+    "fixture": {
+      "npcs": 125,
+      "facts": 30,
+      "sheets": 1
+    },
+    "scenarios": [
+      {
+        "name": "warm_full_mcp_read",
+        "reads": 25,
+        "wallMs": {
+          "p50": 0.476,
+          "p95": 1.133
+        },
+        "bytes": 25783,
+        "identicalWithinScenario": true,
+        "db": {
+          "prepareRequests": 875,
+          "distinctStatementHandles": 19,
+          "exec": 0,
+          "sqlReads": 875,
+          "npcRows": 0
+        },
+        "projectionLoads": 0,
+        "projectionHits": 100
+      },
+      {
+        "name": "changed_sheet",
+        "reads": 25,
+        "wallMs": {
+          "p50": 0.518,
+          "p95": 0.718
+        },
+        "bytes": 25783,
+        "identicalWithinScenario": false,
+        "db": {
+          "prepareRequests": 1000,
+          "distinctStatementHandles": 21,
+          "exec": 0,
+          "sqlReads": 975,
+          "npcRows": 0
+        },
+        "projectionLoads": 25,
+        "projectionHits": 75
+      },
+      {
+        "name": "changed_fact_npc",
+        "reads": 25,
+        "wallMs": {
+          "p50": 1.067,
+          "p95": 2.049
+        },
+        "bytes": 25804,
+        "identicalWithinScenario": false,
+        "db": {
+          "prepareRequests": 1200,
+          "distinctStatementHandles": 25,
+          "exec": 0,
+          "sqlReads": 1150,
+          "npcRows": 2500
+        },
+        "projectionLoads": 50,
+        "projectionHits": 50
+      }
+    ],
+    "exactContent": {
+      "label": "SERVER EXACT CONTENT path, NOT local external D&D RAG",
+      "samples": 100,
+      "p50Ms": 0.015,
+      "p95Ms": 0.089,
+      "bytes": 234,
+      "sourceCitation": "SRD 5.1",
+      "documentSlug": "srd-2014",
+      "ragCalls": 0,
+      "modelCalls": 0,
+      "rerankerCalls": 0
+    }
+  }
+}
