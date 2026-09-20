@@ -1568,7 +1568,7 @@ async function ensureWhisperReplies(context: TurnContext, turn: DmTurn) {
       // and the next scene can carry the consequence.
       batch = prepareDmBatch(
         turn,
-        { role: "assistant", content: "", tool_calls: [] } as ModelReply,
+        { content: "", tool_calls: [] } as ModelReply,
         "whispers",
       );
     } else {
