@@ -163,7 +163,22 @@ function orchestrationSnapshot(raw: unknown) {
   );
 
   const rawState = {
-    campaign: safeCampaign(campaign),
+    // Deliberately narrower than narrator.read: secret story spine fields never
+    // enter the compact router projection, even transiently.
+    campaign: {
+      id: campaign.id,
+      title: campaign.title,
+      description: campaign.description,
+      status: campaign.status,
+      theme: campaign.theme,
+      scene: campaign.scene,
+      questLog: campaign.questLog,
+      difficulty: campaign.difficulty,
+      startingLevel: campaign.startingLevel,
+      gameSettings: campaign.gameSettings,
+      floor: campaign.floor,
+      clock: campaign.clock,
+    },
     currentSeq,
     timelineEpoch,
     spatial: spatial ?? { enabled: false },
