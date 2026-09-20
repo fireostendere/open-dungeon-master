@@ -39,6 +39,11 @@ for (const language of ['ru','pl']) {
     assert.equal(displaySystemText(authored,language),authored);
   });
 }
+test('skip-turn count notices use the active locale',()=>{
+  assert.equal(game.gameText('en','skipTurns',{name:'Hero',count:2}),'*Hero skips a turn (remaining: 2).*');
+  assert.equal(game.gameText('ru','skipTurns',{name:'Герой',count:2}),'*Герой пропускает ход (осталось: 2).*');
+  assert.equal(game.gameText('pl','skipTurns',{name:'Bohater',count:2}),'*Bohater pomija turę (pozostało: 2).*');
+});
 test('explicit campaign language wins and legacy inference matches the prompt rules',()=>{
   const history=[{authorType:'player',content:'Hello'},{authorType:'dm',content:'Русский ответ'}];
   assert.equal(game.resolveGameLanguage(undefined,history),'en');
