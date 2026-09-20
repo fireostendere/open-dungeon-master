@@ -29,8 +29,8 @@ const { extendControlResult } = await import("../src/lib/mcp-external-control.ts
 const { resumeHumanTurn } = await import("../src/lib/dm/invoke.ts");
 
 const capabilities = extendControlResult("server.capabilities", { actions: [] });
-assert.deepEqual(capabilities.actions.slice(0, 6), [
-  "narrator.connect", "narrator.read", "narrator.catalog", "narrator.invoke", "narrator.narrate", "narrator.release_floor",
+assert.deepEqual(capabilities.actions.slice(0, 7), [
+  "narrator.connect", "narrator.read", "narrator.snapshot", "narrator.catalog", "narrator.invoke", "narrator.narrate", "narrator.release_floor",
 ]);
 assert.equal(extendControlResult("server.status", { mcpControlActions: 0 }).mcpControlActions, capabilities.actions.length);
 
@@ -72,6 +72,34 @@ assert.equal(EXTERNAL_NARRATOR_ACTIONS.has("generate_image"), false);
 assert.equal(EXTERNAL_NARRATOR_ACTIONS.has("search_lore"), false);
 assert.equal(EXTERNAL_NARRATOR_ACTIONS.has("set_npc"), true);
 assert.equal(connected.result.state.campaign.gameSettings.mapsEnabled, false);
+
+const compactSnapshot = await executeMcpNarratorControl("narrator.snapshot", {
+  campaignId: campaign.id,
+  maxBytes: 8192,
+});
+assert.equal(compactSnapshot.handled, true);
+assert.equal(compactSnapshot.result.format, "odm.orchestration.v1");
+assert.equal(compactSnapshot.result.campaign.id, campaign.id);
+assert.ok(compactSnapshot.result.party.characters.some((entry) => entry.id === liveSheet.id));
+assert.ok(Buffer.byteLength(JSON.stringify(compactSnapshot.result), "utf8") <= 8192);
+assert.equal(JSON.stringify(compactSnapshot.result).includes("must-not-leak"), false);
+assert.equal(Object.hasOwn(compactSnapshot.result.campaign, "dmOutline"), false);
+assert.equal(Object.hasOwn(compactSnapshot.result.campaign, "storyArc"), false);
+
+const unchangedSnapshot = await executeMcpNarratorControl("narrator.snapshot", {
+  campaignId: campaign.id,
+  knownRevision: compactSnapshot.result.revision,
+});
+assert.equal(unchangedSnapshot.result.unchanged, true);
+assert.equal(unchangedSnapshot.result.revision, compactSnapshot.result.revision);
+assert.equal(Object.hasOwn(unchangedSnapshot.result, "party"), false);
+
+const combatOnlySnapshot = await executeMcpNarratorControl("narrator.snapshot", {
+  campaignId: campaign.id,
+  sections: ["combat"],
+});
+assert.equal(Object.hasOwn(combatOnlySnapshot.result, "party"), false);
+assert.ok(Array.isArray(combatOnlySnapshot.result.combat));
 
 const first = await executeMcpNarratorControl("narrator.read", { campaignId: campaign.id, afterSeq: 0, limit: 1 });
 assert.equal(first.result.hasMore, false);

@@ -219,9 +219,9 @@ questions, private whispers, DM outlines or other DM secrets to the table.
     "odm_narrator",
     {
       title: "External campaign narrator",
-      description: "Trusted external DM lifecycle for human mode with server LLM, TTS, and automatic maps disabled. Reread after errors; an ambiguous serialized write gets at most one immediate exact receipt-recovery retry with the same commandId, expectedSeq, timelineEpoch and arguments, never regenerated values. answer_ask also keeps exact expectedVersion. See odm://narrator/playbook.",
+      description: "Trusted external DM lifecycle for human mode with server LLM, TTS, and automatic maps disabled. Use snapshot for one-call compact orchestration state before deciding whether detailed reads are needed. Reread after errors; an ambiguous serialized write gets at most one immediate exact receipt-recovery retry with the same commandId, expectedSeq, timelineEpoch and arguments, never regenerated values. answer_ask also keeps exact expectedVersion. See odm://narrator/playbook.",
       inputSchema: z.object({
-        operation: z.enum(["connect", "read", "catalog", "invoke", "narrate", "release_floor", "answer_ask"]),
+        operation: z.enum(["connect", "read", "snapshot", "catalog", "invoke", "narrate", "release_floor", "answer_ask"]),
         campaignId: z.string().uuid(),
         afterSeq: z.number().int().min(0).optional(),
         limit: z.number().int().min(1).max(100).optional(),
@@ -238,6 +238,9 @@ questions, private whispers, DM outlines or other DM secrets to the table.
         }).strict()).max(50).optional(),
         projection: z.enum(["full", "live"]).optional().describe("Projection mode: full or live (prunes static/historical sections)"),
         maxBytes: z.number().int().min(4096).max(131072).optional().describe("Context byte budget (4096-131072)"),
+        sections: z.array(z.enum(["party", "combat", "location", "recent", "memory", "npcs"])).max(6).optional().describe("For snapshot: batch-select compact state sections"),
+        recentLimit: z.number().int().min(1).max(20).optional().describe("For snapshot: recent message/event cap"),
+        knownRevision: z.string().regex(/^[a-f0-9]{64}$/).optional().describe("For snapshot: return an unchanged receipt when the compact state revision matches"),
         releaseFloor: z.boolean().optional().describe("For narrate: automatically release floor to players"),
         summaryOnly: z.boolean().optional().describe("For catalog: return action summary without parameter schemas"),
         category: z.string().optional().describe("For catalog: filter actions by category"),

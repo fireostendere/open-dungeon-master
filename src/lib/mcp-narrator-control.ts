@@ -12,7 +12,7 @@ import { getCampaignById, getCampaignSummaryState, getFloor, latestSeq, listMemb
 import { listChapters } from "@/lib/db/chapters";
 import { getDmTurn, listOpenPendingRolls } from "@/lib/db/dm-turns";
 import { listRecentWhispersForPrompt, listPendingPlayerWhispers } from "@/lib/db/dm-whispers";
-import { getActiveEncounter, listEnemies } from "@/lib/db/encounters";
+import { getActiveEncounter, listActiveEncounters, listEnemies } from "@/lib/db/encounters";
 import { listActiveFacts } from "@/lib/db/facts";
 import { getCurrentLocation } from "@/lib/db/locations";
 import { listMessagesInSeqRange, listRecentMessages } from "@/lib/db/messages";
@@ -30,6 +30,7 @@ import { npcRosterForPrompt } from "@/lib/dm/social-tools";
 import { answerAsk, listPendingAsksForCampaign, AskQueueConflict } from "@/lib/db/asks";
 import { budgetRead, ReadBudgetError } from "@/lib/mcp-read-budget.mjs";
 import { listEventsSince, publishEphemeral, publishPersisted, publishUserEphemeral } from "@/lib/events";
+import { buildOrchestrationSnapshot } from "../../shared/orchestration-snapshot.mjs";
 export { NarratorCommandError as McpNarratorControlError } from "@/lib/dm/narrator-command";
 const id = z.string().uuid();
 const sectionDigest = z.string().regex(/^[a-f0-9]{64}$/);
@@ -41,6 +42,14 @@ const readSchema = z.object({
   delta: z.boolean().default(false), knownSeq: z.number().int().min(0).optional(),
   knownSections: z.object({ sheets: sectionDigest.optional(), facts: sectionDigest.optional(), notes: sectionDigest.optional(), npcs: sectionDigest.optional(),
     recentMessages: sectionDigest.optional(), recentRolls: sectionDigest.optional(), chapters: sectionDigest.optional() }).strict().optional(),
+}).strict();
+const orchestrationSnapshotSchema = z.object({
+  campaignId: id,
+  sections: z.array(z.enum(["party", "combat", "location", "recent", "memory", "npcs"])).max(6)
+    .default(["party", "combat", "location", "recent", "memory", "npcs"]),
+  recentLimit: z.number().int().min(1).max(20).default(8),
+  maxBytes: z.number().int().min(4096).max(131072).default(8192),
+  knownRevision: sectionDigest.optional(),
 }).strict();
 const writeBase = z.object({ campaignId: id, expectedSeq: z.number().int().min(0), commandId: id.optional() }).strict();
 // Future AI-producing adjudications remain unavailable unless explicitly listed.
@@ -136,6 +145,78 @@ function read(raw: unknown) {
   try { return budgetRead(state, p.data); }
   catch (error) { if (error instanceof ReadBudgetError) throw new McpNarratorControlError(error.message, error.status); throw error; }
 }
+function orchestrationSnapshot(raw: unknown) {
+  const p = orchestrationSnapshotSchema.safeParse(raw);
+  if (!p.success) throw new McpNarratorControlError(z.prettifyError(p.error));
+  const campaign = campaignOrHuman(p.data.campaignId);
+  const currentSeq = latestSeq(campaign.id);
+  const timelineEpoch = campaignTimelineEpoch(campaign.id);
+  const sections = new Set(p.data.sections);
+  const asks = listPendingAsksForCampaign(campaign.id, 0, 1);
+  const pendingRolls = listOpenPendingRolls(campaign.id);
+  const recentLimit = p.data.recentLimit;
+  const spatial = readSpatialForNarrator(
+    campaign.id,
+    campaign.dmUserId!,
+    Math.max(0, currentSeq - 256),
+    Math.min(20, recentLimit * 2),
+  );
+
+  const rawState = {
+    campaign: safeCampaign(campaign),
+    currentSeq,
+    timelineEpoch,
+    spatial: spatial ?? { enabled: false },
+    pending: {
+      rolls: pendingRolls,
+      whispers: listPendingPlayerWhispers(campaign.id).length,
+      asks: asks.items.length > 0 || asks.hasMore,
+    },
+    party: sections.has("party")
+      ? { members: listMembers(campaign.id), sheets: listSheets(campaign.id) }
+      : undefined,
+    combat: sections.has("combat")
+      ? listActiveEncounters(campaign.id)
+          .filter(encounter => encounter.kind === "fight")
+          .map(encounter => ({ encounter, enemies: listEnemies(encounter.id) }))
+      : undefined,
+    location: sections.has("location")
+      ? { location: getCurrentLocation(campaign.id), sceneTracker: getSceneTracker(campaign.id) }
+      : undefined,
+    recent: sections.has("recent")
+      ? {
+          messages: listRecentMessages(campaign.id, Math.min(40, recentLimit * 2))
+            .filter(message => !isOocMessage(message))
+            .slice(-recentLimit),
+          rolls: listRecentRolls(campaign.id, Math.min(6, recentLimit)),
+          events: listEventsSince(campaign.id, Math.max(0, currentSeq - 64), 64)
+            .filter(isNarratorEvent)
+            .slice(-recentLimit),
+        }
+      : undefined,
+    memory: sections.has("memory")
+      ? {
+          summary: getCampaignSummaryState(campaign.id),
+          facts: listActiveFacts(campaign.id).slice(0, 12),
+          notes: listPublicCampaignNotes(campaign.id, 8),
+        }
+      : undefined,
+    npcs: sections.has("npcs") ? npcRosterForPrompt(campaign.id).slice(0, 12) : undefined,
+  };
+
+  try {
+    return buildOrchestrationSnapshot(rawState, {
+      sections: p.data.sections,
+      maxBytes: p.data.maxBytes,
+      recentLimit,
+      knownRevision: p.data.knownRevision,
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Could not build orchestration snapshot.";
+    throw new McpNarratorControlError(message, /byte budget|maxBytes/i.test(message) ? 413 : 500);
+  }
+}
+
 function serializedWrite(params: z.infer<typeof writeBase>, operation: string, payload: unknown,
   work: (campaign: NonNullable<ReturnType<typeof getCampaignById>>) => Record<string, unknown>) {
   return executeNarratorCommand({ ...params, operation, payload, work, loadState: () => {
@@ -218,6 +299,7 @@ export async function executeMcpNarratorControl(action: string, raw: unknown): P
       return { handled: true, result: { instructions: "Read odm://narrator/playbook. Call narrator.read, drain until hasMore is false, then use its currentSeq as expectedSeq for exactly one invoke, narrate, or release_floor. Persist a unique UUID commandId before each story write. After an ambiguous error, retry only the identical commandId, expectedSeq and payload to recover its receipt, never regenerate or modify a command. Reread after every confirmed write. end_turn advances initiative itself; narration never advances it. For a private reply provide exact replyToWhisperIds from playerWhispers. Check the pending asks queue on every read even when the story cursor is unchanged. Page it using afterAskSeq and askQueue.nextCursor; a fresh Ask scan may start at zero. answer_ask requires the pending ask version as expectedVersion and a persisted UUID commandId; it changes no story/floor state. For bounded reads use paged:true and drain pageCursor/nextPage before advancing the story cursor. A changed snapshot requires restarting that read; never use incomplete pages. projection:live explicitly omits historical duplicate sections, not current state or new tool results. Carry the returned timelineEpoch on reads and writes; reconnect and discard incompatible pending work when it changes.", contractVersion: 2, timelineVersion: 1, state: read(p.data) } };
     }
     case "narrator.read": return { handled: true, result: read(raw) };
+    case "narrator.snapshot": return { handled: true, result: orchestrationSnapshot(raw) };
     case "narrator.catalog": {
       const p = z.object({ summaryOnly: z.boolean().optional(), category: z.string().optional(), action: z.string().optional(), actionFilter: z.string().optional(), name: z.string().optional() }).optional().safeParse(raw);
       const options = p.success && p.data ? { summaryOnly: p.data.summaryOnly, category: p.data.category, action: p.data.action || p.data.actionFilter || p.data.name } : {};
