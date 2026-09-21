@@ -8,8 +8,9 @@ import { publishWithSeq } from "@/lib/events";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-// Party lead story steering: inject a plot event or table direction the AI
-// DM must weave into the story. Optionally wakes the DM immediately.
+// Party-lead story steering. The direction is persisted in the transcript;
+ // the external narrator consumes durable campaign state instead of a
+ // server-hosted DM wake loop.
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ campaignId: string }> },
@@ -32,8 +33,6 @@ export async function POST(
   if (!content) {
     return Response.json({ error: "Write the direction first." }, { status: 400 });
   }
-  const wake = raw?.wake !== false;
-
   const seq = allocateSeq(campaignId);
   const message = insertCampaignMessage({
     campaignId,
@@ -44,8 +43,6 @@ export async function POST(
   });
   publishWithSeq(campaignId, seq, "message_added", { message });
 
-  if (wake) {
-  }
 
   return Response.json({ message }, { status: 201 });
 }
