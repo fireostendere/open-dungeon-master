@@ -30,6 +30,8 @@ test('one client exposes the narrator API and uses the configured HTTP transport
   assert.equal(calls.length, 4);
   assert.ok(calls.every(call => call.authorization === 'Bearer client-secret'));
   assert.ok(calls.every(call => call.body.params.campaignId === campaign));
+  assert.equal(calls[0].body.params.projection, 'live');
+  assert.equal(calls[0].body.params.maxBytes, 131072);
   assert.ok(timings.some(event => event.stage === 'odm_server'));
   assert.ok(timings.some(event => event.stage === 'odm_transport'));
   await client.close();

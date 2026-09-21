@@ -10,6 +10,7 @@ export function narratorParams(action, params = {}) {
   const result = { ...params };
   if (!action.startsWith('narrator.')) return result;
   for (const key of ['compact', 'policyMode', 'includePolicyText']) delete result[key];
+  if (action === 'narrator.connect') { result.projection ??= 'live'; result.maxBytes ??= 131072; }
   if (action === 'narrator.read') { result.projection ??= 'live'; result.delta ??= true; }
   if (action === 'narrator.catalog' && !result.action && !result.actionFilter && !result.name && !result.category) result.summaryOnly ??= true;
   return result;
