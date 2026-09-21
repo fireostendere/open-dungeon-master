@@ -42,11 +42,7 @@ const COPY = {
     partyNext: "You'll drop into the lobby next to share an invite code and ready up.",
   },
   ru: {
-    dmModes: {
-      ai: "ИИ-Мастер",
-      human: "Игру веду я",
-      assisted: "Игру веду я, с помощью ИИ",
-    },
+    runsGameValue: "Человек / внешний рассказчик",
     genres: {
       high_fantasy: "Высокое фэнтези",
       dark_fantasy: "Тёмное фэнтези",
@@ -80,11 +76,7 @@ const COPY = {
     partyNext: "После создания вы попадёте в лобби, где сможете отправить приглашение и отметить готовность.",
   },
   pl: {
-    dmModes: {
-      ai: "Mistrz Gry AI",
-      human: "Ja prowadzę grę",
-      assisted: "Ja prowadzę grę, z pomocą AI",
-    },
+    runsGameValue: "Człowiek / zewnętrzny narrator",
     genres: {
       high_fantasy: "High fantasy",
       dark_fantasy: "Dark fantasy",
