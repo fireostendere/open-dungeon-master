@@ -100,7 +100,7 @@ export class NarratorRunner {
     this.askBlocked=false;
     let cursor=0;
     for(let page=0;page<1000;page++){
-      const result=await this.readSnapshot({campaignId:this.campaignId,afterSeq:this.lastSeq,afterAskSeq:cursor,askLimit:20,limit:1,projection:'live',...(this.timelineEpoch?{timelineEpoch:this.timelineEpoch}:{})});
+      const result=await this.readSnapshot({campaignId:this.campaignId,afterSeq:this.lastSeq,afterAskSeq:cursor,askLimit:20,includeAsks:true,limit:1,projection:'live',...(this.timelineEpoch?{timelineEpoch:this.timelineEpoch}:{})});
       if(this.timelineEpoch&&result?.timelineEpoch&&result.timelineEpoch!==this.timelineEpoch)throw Object.assign(new Error('Narrator timeline changed.'),{status:409,code:'timeline_changed'});
       for(const item of result?.asks||result?.askQueue?.items||[])await this.handlePendingAsk(item);
       const queue=result?.askQueue||{},next=queue.nextCursor??cursor;
