@@ -126,14 +126,15 @@ export const gameSettingsSchema = z.object({
   // After each DM narration, block do and say for everyone until the party
   // lead opens responses. OOC and lead directions stay available.
   holdSubmissions: z.boolean().default(false),
-  // Global turn (round) pacing: each player may act (1 do + 1 say) per turn,
-  // timer runs on first action, and quorum accelerates the deadline with an input grace delay.
+  // Global turn (round) pacing: each player may act (1 do + 1 say) per turn.
+  // turnCollectionMinutes=0 means no time limit (quorum only);
+  // quorumDelayMinutes=0 means quorum seals the round immediately.
   globalTurn: z
     .object({
       enabled: z.boolean().default(false),
-      turnCollectionMinutes: z.number().int().min(1).max(120).default(10),
+      turnCollectionMinutes: z.number().int().min(0).max(120).default(10),
       quorumPlayers: z.number().int().min(1).max(10).default(2),
-      quorumDelayMinutes: z.number().int().min(1).max(30).default(2),
+      quorumDelayMinutes: z.number().int().min(0).max(30).default(2),
     })
     .default({
       enabled: false,
