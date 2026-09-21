@@ -116,18 +116,24 @@ export class NarratorOrchestrator {
     this.adapter = adapter; this.playMode = playMode; this.maxSteps = resolvedMaxSteps; this.maxCallsPerHour = maxCallsPerHour;
     this.writerEnabled = writerEnabled === true;
     this.catalog = null; this.schemas = {};
+    this.lastIngestCheckpointSeq = null;
+    this.lastIngestCheckpointEpoch = null;
     this.state = { version: 1, epoch: null, handledSeq: startAfterSeq, queue: [], current: null, pending: null,
       history: [], events: [], paused: null, usage: { calls: 0, inputBytes: 0, outputBytes: 0, times: [] } };
   }
   restore(state) {
     if (state?.version !== 1 || !sequence(state.handledSeq) || !Array.isArray(state.queue) || !state.usage) throw new Error('Unsupported orchestration checkpoint.');
     this.state = clone(state);
+    this.lastIngestCheckpointSeq = null;
+    this.lastIngestCheckpointEpoch = null;
   }
   serialize() { return clone(this.state); }
   reset(epoch) {
     const usage = this.state.usage;
     this.state = { version: 1, epoch, handledSeq: 0, queue: [], current: null, pending: null, history: [], events: [], paused: 'timeline_changed', usage };
     this.catalog = null; this.schemas = {};
+    this.lastIngestCheckpointSeq = null;
+    this.lastIngestCheckpointEpoch = null;
   }
   resume({ afterSeq } = {}) {
     if (this.state.pending?.attempts >= 2) throw new Error('Ambiguous write requires operator reconciliation, not another retry.');
@@ -229,7 +235,19 @@ export class NarratorOrchestrator {
     }
   }
   async tick(host, snapshot) {
-    this.ingestReadSnapshot(snapshot); host.saveCheckpoint();
+    this.ingestReadSnapshot(snapshot);
+    // Idle polls are read-only and used to fsync the exact same checkpoint
+    // every poll interval. Persist the authoritative read boundary once per
+    // new seq/epoch; all actual orchestration transitions still checkpoint
+    // explicitly at their mutation sites.
+    if (
+      snapshot.currentSeq !== this.lastIngestCheckpointSeq ||
+      snapshot.timelineEpoch !== this.lastIngestCheckpointEpoch
+    ) {
+      host.saveCheckpoint();
+      this.lastIngestCheckpointSeq = snapshot.currentSeq;
+      this.lastIngestCheckpointEpoch = snapshot.timelineEpoch;
+    }
     if (this.state.paused) return false;
     if (snapshot.hasMore || snapshot.nextCursor !== snapshot.currentSeq || snapshot.timelineEpoch !== this.state.epoch) throw new Error('Story must be fully drained before a decision.');
     if (this.state.pending) return this.write(host);
