@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { NarratorOrchestrator, validateDecision } from '../narrator/orchestration.mjs';
+import { compactRolePacket } from '../narrator/role-packet.mjs';
 import { OpenCodeAdapter } from '../narrator/opencode-adapter.mjs';
 import { readNarratorSnapshot } from '../narrator/read-session.mjs';
 import { HostContextMemory } from '../narrator/compaction.mjs';
@@ -57,6 +58,45 @@ function fixture(replies, options = {}) {
   };
   return host;
 }
+
+test('role packet drops transport metadata and duplicate actor context', () => {
+  const referee = compactRolePacket('referee', {
+    campaign: { gameSettings: { language: 'ru', unitSystem: 'metric', ttsEnabled: true } },
+    state: {},
+    public: { messages: [] },
+    input: { id: 'input', seq: 1, authorType: 'player', userId: 'u', characterId: 'c', content: 'go' },
+    outcomes: [
+      { name: 'pc_attack', args: { enemyId: 'e' }, result: { ok: true }, commandId: 'uuid', committedSeq: 99 },
+      { physicalRolls: [{ pendingRollId: 'p', roll: { id: 'r', total: 17, dc: 12, visibility: 'public', hugeDebug: 'DROP' } }] },
+    ],
+  });
+  assert.equal(Object.hasOwn(referee.outcomes[0], 'commandId'), false);
+  assert.equal(Object.hasOwn(referee.outcomes[0], 'committedSeq'), false);
+  assert.equal(Object.hasOwn(referee.outcomes[1].physicalRolls[0].roll, 'hugeDebug'), false);
+  assert.equal(Object.hasOwn(referee.campaign.gameSettings, 'ttsEnabled'), false);
+
+  const actor = compactRolePacket('actor', {
+    campaign: { gameSettings: { language: 'ru', unitSystem: 'metric', ttsEnabled: true } },
+    public: { messages: [{ id: 'm1', seq: 1, content: 'public' }, { id: 'm2', seq: 2, content: 'public2' }] },
+    context: {
+      summary: 'older',
+      recentMessages: [
+        { id: 'm1', seq: 1, content: 'public duplicate' },
+        { id: 'private', seq: 3, visibility: 'private', content: 'private clue' },
+      ],
+      recentRolls: [{ id: 'r', total: 10, debug: 'DROP' }],
+      summaryRecords: [{ id: 'large', content: 'DROP' }],
+      summarySegments: [{ id: 'large2', text: 'DROP' }],
+      characters: [{ id: 'duplicate-sheet', huge: 'DROP' }],
+    },
+  });
+  assert.deepEqual(actor.context.recentMessages.map(message => message.id), ['private']);
+  assert.equal(Object.hasOwn(actor.context, 'summaryRecords'), false);
+  assert.equal(Object.hasOwn(actor.context, 'summarySegments'), false);
+  assert.equal(Object.hasOwn(actor.context, 'characters'), false);
+  assert.equal(Object.hasOwn(actor.context.recentRolls[0], 'debug'), false);
+  assert.equal(Object.hasOwn(actor.campaign.gameSettings, 'ttsEnabled'), false);
+});
 
 test('real legacy player messages have no kind; referee receives IDs, state and actual catalog', async () => {
   const h = fixture([{ kind: 'invoke', action: 'request_roll', args: { characterId: 'hero', kind: 'skill_check', skill: 'investigation', dc: 12 } },
