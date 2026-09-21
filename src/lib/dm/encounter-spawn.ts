@@ -78,7 +78,7 @@ export const addEnemiesTool: ToolDef = {
   function: {
     name: "add_enemies",
     description:
-      "Bring NEW enemies into the ongoing fight: reinforcements arriving, summoned creatures, an ambusher revealing itself. Call this BEFORE narrating them appearing; they become real server-tracked combatants with initiative slots and map tokens. Never narrate a new combatant into existence without it.",
+      "Bring NEW enemies into the ongoing fight. monster selects hidden mechanics; name is the visible story identity. Preserve an existing NPC's narrated name/role when adding them, so a bartender using Rogue mechanics remains 'Бармен' in initiative and on the map.",
     parameters: {
       type: "object",
       additionalProperties: false,
@@ -92,11 +92,11 @@ export const addEnemiesTool: ToolDef = {
             properties: {
               monster: {
                 type: "string",
-                description: "Monster slug or name, e.g. 'goblin' or 'Gutter Punk'.",
+                description: "Mechanical stat-block slug/name only; it must not replace an existing story identity.",
               },
               name: {
                 type: "string",
-                description: "Optional in-world display name when reskinning.",
+                description: "In-world identity shown to players; preserve the name/role already established in narration.",
               },
               count: { type: "integer", minimum: 1, maximum: 8 },
               cr: {
