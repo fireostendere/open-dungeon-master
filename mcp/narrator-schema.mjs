@@ -17,7 +17,7 @@ const readFields = {
 // Keep the advertised MCP contract in sync with the strict application API.
 // In particular, never let Zod silently strip idempotency or paging fields.
 export const narratorInputSchema = z.object({
-  operation: z.enum(['connect', 'read', 'snapshot', 'catalog', 'invoke', 'narrate', 'release_floor', 'answer_ask']),
+  operation: z.enum(['connect', 'read', 'snapshot', 'catalog', 'invoke', 'narrate', 'companion_action', 'release_floor', 'answer_ask']),
   campaignId: z.string().uuid(), ...readFields,
   pageCursor: z.string().max(500).optional(),
   commandId: z.string().uuid().optional(),
@@ -25,6 +25,8 @@ export const narratorInputSchema = z.object({
   expectedSeq: seq().optional(), expectedVersion: seq().optional(),
   name: z.string().trim().min(1).max(100).optional(),
   args: z.record(z.string(), z.unknown()).optional(),
+  characterId: z.string().uuid().optional(),
+  kind: z.enum(['do', 'say']).optional(),
   content: z.string().trim().min(1).max(8000).optional(),
   turnId: z.string().uuid().optional(), askId: z.string().uuid().optional(),
   answer: z.string().trim().min(1).max(4000).optional(),

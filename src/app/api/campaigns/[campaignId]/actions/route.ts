@@ -7,6 +7,7 @@ import {
   canAct,
   getFloor,
   getGlobalTurnState,
+  listMembers,
   setFloor,
   type Floor,
 } from "@/lib/db/campaigns";
@@ -74,6 +75,13 @@ export async function POST(
   const limited = enforcePlayerIngress(campaignId, user.id, "action");
   if (limited) return limited;
   const { kind } = parsed.data;
+  const member = listMembers(campaignId).find((entry) => entry.userId === user.id);
+  if (kind !== "ooc" && member?.autopilot) {
+    return Response.json(
+      { error: "Автопилот управляет этим персонажем. Отключите его, чтобы действовать вручную." },
+      { status: 409 },
+    );
+  }
   const encounter = getActiveEncounter(campaignId);
 
   // Global-turn collection is a hard server gate, not just a disabled UI.

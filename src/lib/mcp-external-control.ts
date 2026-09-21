@@ -56,6 +56,7 @@ export const MCP_EXTENDED_ACTIONS = [
   "narrator.catalog",
   "narrator.invoke",
   "narrator.narrate",
+  "narrator.companion_action",
   "narrator.release_floor",
   "narrator.answer_ask",
   "assets.plan_campaign",

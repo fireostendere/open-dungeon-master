@@ -11,14 +11,14 @@ import { z } from "zod";
 import { queueSkippedCombatTurn } from "@/lib/dm/encounter-tools";
 import { isOocMessage } from "@/lib/campaign-types";
 import { isNarratorEvent } from "@/lib/mcp-event-filter";
-import { getCampaignById, getCampaignSummaryState, getFloor, getGlobalTurnState, latestSeq, listMembers, setFloor } from "@/lib/db/campaigns";
+import { allocateSeq, canAct, getCampaignById, getCampaignSummaryState, getFloor, getGlobalTurnState, latestSeq, listMembers, setFloor } from "@/lib/db/campaigns";
 import { listChapters } from "@/lib/db/chapters";
 import { getDmTurn, listOpenPendingRolls } from "@/lib/db/dm-turns";
 import { listRecentWhispersForPrompt, listPendingPlayerWhispers } from "@/lib/db/dm-whispers";
 import { getActiveEncounter, listActiveEncounters, listEnemies } from "@/lib/db/encounters";
 import { listActiveFacts } from "@/lib/db/facts";
 import { getCurrentLocation } from "@/lib/db/locations";
-import { listMessagesInSeqRange, listRecentMessages } from "@/lib/db/messages";
+import { insertCampaignMessage, listMessagesInSeqRange, listRecentMessages } from "@/lib/db/messages";
 import { listPublicCampaignNotes } from "@/lib/db/notes";
 import { listRecentRolls } from "@/lib/db/rolls";
 import { listSheets } from "@/lib/db/sheets";
@@ -27,14 +27,14 @@ import { consoleAdjudications } from "@/lib/dm/invoke-catalog";
 import { invokeEngineSynchronous } from "@/lib/dm/invoke";
 import { persistHumanNarration } from "@/lib/dm/human-narration";
 import { executeNarratorCommand, NarratorCommandError as McpNarratorControlError } from "@/lib/dm/narrator-command";
-import { completeGlobalTurn, startGlobalTurn } from "@/lib/dm/global-turn-logic";
+import { completeGlobalTurn, recordGlobalTurnAction, resolveGlobalTurn, startGlobalTurn } from "@/lib/dm/global-turn-logic";
 import { listNarratorReceipts } from "@/lib/db/narrator-commands";
 import { coverInEffect } from "@/lib/dm/delegation";
 import { npcRosterForPrompt } from "@/lib/dm/social-tools";
 import { answerAsk, listPendingAsksForCampaign, AskQueueConflict } from "@/lib/db/asks";
 import { narratorSnapshots } from "@/lib/mcp-snapshot-cache.mjs";
 import { budgetRead, ReadBudgetError } from "@/lib/mcp-read-budget.mjs";
-import { listEventsSince, publishEphemeral, publishPersisted, publishUserEphemeral } from "@/lib/events";
+import { listEventsSince, publishEphemeral, publishPersisted, publishUserEphemeral, publishWithSeq } from "@/lib/events";
 import { buildOrchestrationSnapshot } from "../../shared/orchestration-snapshot.mjs";
 export { NarratorCommandError as McpNarratorControlError } from "@/lib/dm/narrator-command";
 const id = z.string().uuid();
@@ -395,6 +395,58 @@ async function narrate(raw: unknown) {
   },
   );
 }
+async function companionAction(raw: unknown) {
+  const p = writeBase.extend({
+    characterId: id,
+    kind: z.enum(["do", "say"]),
+    content: z.string().trim().min(1).max(2000),
+  }).safeParse(raw);
+  if (!p.success) throw new McpNarratorControlError(z.prettifyError(p.error));
+  const result = await serializedWrite(
+    p.data,
+    "narrator.companion_action",
+    { characterId: p.data.characterId, kind: p.data.kind, content: p.data.content },
+    campaign => {
+      if (getActiveEncounter(campaign.id)) {
+        throw new McpNarratorControlError("Autopilot player actions require a separate combat interface while an encounter is active.", 409);
+      }
+      const sheet = listSheets(campaign.id).find(entry => entry.id === p.data.characterId);
+      if (!sheet) throw new McpNarratorControlError("Unknown character for this campaign.", 404);
+      const member = listMembers(campaign.id).find(entry => entry.userId === sheet.userId);
+      if (!member?.autopilot) throw new McpNarratorControlError("This character is not on autopilot.", 409);
+      if (!canAct(campaign.floor, member.userId, p.data.kind)) {
+        throw new McpNarratorControlError("The autopilot character cannot act on the current floor.", 409);
+      }
+      const turn = recordGlobalTurnAction(campaign.id, sheet.id, member.userId, p.data.kind);
+      if (!turn.allowed) throw new McpNarratorControlError(turn.error ?? "Autopilot action is unavailable this turn.", 409);
+      const content = p.data.kind === "say" ? `"${p.data.content}"` : p.data.content;
+      const seq = allocateSeq(campaign.id);
+      const message = insertCampaignMessage({
+        campaignId: campaign.id,
+        seq,
+        authorType: "player",
+        userId: member.userId,
+        characterId: sheet.id,
+        content,
+      });
+      publishWithSeq(campaign.id, seq, "message_added", { message });
+      return {
+        ok: true,
+        messageId: message.id,
+        characterId: sheet.id,
+        characterName: sheet.name,
+        seq,
+        ...(turn.shouldResolve ? { shouldResolve: true, roundNumber: turn.state?.roundNumber } : {}),
+      };
+    },
+  );
+  const payload = result.result as { shouldResolve?: boolean; roundNumber?: number };
+  if (payload.shouldResolve && payload.roundNumber !== undefined) {
+    await resolveGlobalTurn(p.data.campaignId, payload.roundNumber);
+  }
+  return result;
+}
+
 async function finishGlobalRound(raw: unknown) {
   const p = writeBase.extend({
     mode: z.enum(["start", "complete"]),
@@ -495,6 +547,7 @@ async function dispatchMcpNarratorControl(action: string, raw: unknown): Promise
     }
     case "narrator.invoke": return { handled: true, result: await invoke(raw) };
     case "narrator.narrate": return { handled: true, result: await narrate(raw) };
+    case "narrator.companion_action": return { handled: true, result: await companionAction(raw) };
     case "narrator.finish_global_round": return { handled: true, result: await finishGlobalRound(raw) };
     case "narrator.release_floor": return { handled: true, result: await releaseFloor(raw) };
     case "narrator.answer_ask": {
@@ -519,6 +572,7 @@ async function dispatchMcpNarratorControl(action: string, raw: unknown): Promise
 const storyWrites = new Set([
   "narrator.invoke",
   "narrator.narrate",
+  "narrator.companion_action",
   "narrator.finish_global_round",
   "narrator.release_floor",
 ]);
