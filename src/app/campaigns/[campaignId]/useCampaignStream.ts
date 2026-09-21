@@ -1019,6 +1019,22 @@ export function useCampaignStream(campaignId: string) {
           if (eventType === "facts_updated") {
             void refreshFacts();
           }
+          if (eventType === "campaign_updated") {
+            const changedSettings =
+              payload && typeof payload === "object"
+                ? (payload as { gameSettings?: Record<string, unknown> }).gameSettings
+                : undefined;
+            if (
+              changedSettings &&
+              (Object.hasOwn(changedSettings, "enemyHpVisibility") ||
+                Object.hasOwn(changedSettings, "enemyConditionVisibility"))
+            ) {
+              // Encounter projection is viewer- and room-scoped. Pull the
+              // caller's own view instead of broadcasting one global combat
+              // card, which would be wrong when spatial rooms host separate fights.
+              void refreshEncounter();
+            }
+          }
           // encounter_updated too: the map exists the moment
           // start_encounter lands, before any battle_map_updated ping.
           if (eventType === "battle_map_updated" || eventType === "encounter_updated") {
