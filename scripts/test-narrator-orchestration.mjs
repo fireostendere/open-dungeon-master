@@ -72,6 +72,35 @@ test('real legacy player messages have no kind; referee receives IDs, state and 
   await h.tick(); assert.equal(h.modelCalls.length, 3, 'idle polling must not spend model calls');
 });
 
+test('referee packet omits presentation and retired hosted-AI settings', async () => {
+  const h = fixture([{ kind: 'done' }]);
+  h.snapshot.campaign.gameSettings = {
+    language: 'ru',
+    unitSystem: 'metric',
+    combatMode: 'classical',
+    globalTurn: { enabled: false, turnCollectionMinutes: 10, quorumPlayers: 2, quorumDelayMinutes: 2 },
+    dmDifficulty: 7,
+    variantRules: { flanking: true, restVariant: 'standard' },
+    ttsEnabled: true,
+    ttsVoice: 'voice',
+    mapsEnabled: true,
+    enemyHpVisibility: 'exact',
+    enemyConditionVisibility: 'status_turns',
+    beatReminder: { messages: 10, rolls: 12 },
+    stages: { compaction: false, recall: false, retrieval: false, chapterSummary: false },
+    voice: { enabled: true, turnEnforcement: 'soft', rules: {} },
+  };
+  await h.tick();
+  const settings = h.modelCalls[0].packet.campaign.gameSettings;
+  assert.equal(settings.dmDifficulty, 7);
+  assert.equal(settings.variantRules.flanking, true);
+  assert.equal(Object.hasOwn(settings, 'ttsEnabled'), false);
+  assert.equal(Object.hasOwn(settings, 'mapsEnabled'), false);
+  assert.equal(Object.hasOwn(settings, 'voice'), false);
+  assert.equal(Object.hasOwn(settings, 'enemyHpVisibility'), false);
+  assert.equal(Object.hasOwn(settings, 'stages'), false);
+});
+
 test('global turn opening stays locked until MCP narration starts the round', async () => {
   const h = fixture([{ kind: 'narrate', text: 'The torchlight reveals the hall.' }]);
   h.snapshot.campaign.gameSettings.globalTurn = {
