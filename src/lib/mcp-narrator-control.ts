@@ -535,6 +535,20 @@ async function autopilotAction(raw: unknown) {
             characterId: sheet.id,
           });
           const message = result.message as { id?: string; seq?: number } | undefined;
+          const afterSpatialAction = getGlobalTurnState(campaign.id);
+          const deadlineMs = afterSpatialAction.deadlineAt
+            ? new Date(afterSpatialAction.deadlineAt).getTime()
+            : Number.POSITIVE_INFINITY;
+          if (
+            afterSpatialAction.roundNumber === p.data.roundNumber &&
+            afterSpatialAction.phase === "quorum_delay" &&
+            deadlineMs <= Date.now()
+          ) {
+            // spatial/service intentionally resolves outside its transaction.
+            // This narrator write already owns a serialized outer transaction,
+            // so seal a due zero-grace/all-answered round before returning.
+            sealGlobalTurnNow(campaign.id, p.data.roundNumber);
+          }
           return {
             characterId: sheet.id,
             roundNumber: p.data.roundNumber,
