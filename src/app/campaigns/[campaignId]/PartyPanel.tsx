@@ -337,6 +337,14 @@ export function PartyPanel({
                       aria-label="AI companion"
                     />
                   ) : null}
+                  {!sheet.isCompanion && members.find((m) => m.userId === sheet.userId)?.autopilot ? (
+                    <span
+                      title="External MCP autopilot enabled"
+                      className="rounded border border-sky-700/60 bg-sky-950/80 px-1 py-0.2 text-[10px] text-sky-300"
+                    >
+                      🤖 MCP
+                    </span>
+                  ) : null}
                   {!sheet.isCompanion && (members.find((m) => m.userId === sheet.userId)?.skipTurnsCount ?? 0) > 0 ? (
                     <span
                       title={`Пропуск ходов: осталось ${members.find((m) => m.userId === sheet.userId)?.skipTurnsCount}`}
@@ -393,6 +401,10 @@ export function PartyPanel({
                 canMute={canTransferLead && !mine && !sheet.isCompanion}
                 muted={Boolean(
                   members.find((member) => member.userId === sheet.userId)?.muted,
+                )}
+                canToggleAutopilot={!sheet.isCompanion && (mine || leadUserId === meUserId)}
+                autopilot={Boolean(
+                  members.find((member) => member.userId === sheet.userId)?.autopilot,
                 )}
               />
             </div>
