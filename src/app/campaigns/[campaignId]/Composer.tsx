@@ -383,7 +383,7 @@ function ComposerInner({
                   <span>⏭️ Пропуск ({myMember.skipTurnsCount})</span>
                   <button
                     type="button"
-                    disabled={skipBusy}
+                    disabled={skipBusy || globalTurnLocked}
                     onClick={() => void handleSetSkip(0)}
                     className="text-[10px] text-stone-400 hover:text-red-300 underline"
                   >
@@ -397,13 +397,14 @@ function ComposerInner({
                     min={1}
                     max={99}
                     value={skipCount}
+                    disabled={globalTurnLocked}
                     onChange={(e) => setSkipCount(Math.max(1, Math.min(99, Number(e.target.value))))}
                     className="w-10 rounded border border-stone-700 bg-stone-900 px-1 py-0.5 text-center text-[11px] text-stone-200"
                     title="Количество ходов для пропуска (1..99)"
                   />
                   <button
                     type="button"
-                    disabled={skipBusy}
+                    disabled={skipBusy || globalTurnLocked}
                     onClick={() => void handleSetSkip(skipCount)}
                     className="flex items-center gap-0.5 rounded border border-stone-700 bg-stone-900 px-1.5 py-0.5 text-[11px] text-stone-300 hover:text-stone-100"
                     title="Пропустить N ходов"
