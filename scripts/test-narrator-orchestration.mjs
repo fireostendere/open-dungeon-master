@@ -61,7 +61,41 @@ function fixture(replies, options = {}) {
 
 test('role packet drops transport metadata and duplicate actor context', () => {
   const referee = compactRolePacket('referee', {
-    campaign: { gameSettings: { language: 'ru', unitSystem: 'metric', ttsEnabled: true } },
+    campaign: {
+      gameSettings: { language: 'ru', unitSystem: 'metric', ttsEnabled: true },
+      storyArc: {
+        version: 3,
+        premise: 'Premise',
+        stakes: 'Stakes',
+        antagonist: 'Antagonist',
+        acts: 3,
+        beats: [
+          { text: 'OLD_FINISHED_SECRET', status: 'done', act: 1 },
+          { text: 'Current beat', status: 'active', act: 2 },
+          { text: 'Next beat', status: 'pending', act: 2 },
+          { text: 'Future beat', status: 'pending', act: 3 },
+        ],
+        finale: 'Finale',
+        saga: {
+          title: 'Saga', plannedActs: 5, sagaIndex: 1, priorSagas: [],
+          sketches: [
+            { act: 1, milestone: 'old', status: 'done' },
+            { act: 2, milestone: 'now', status: 'detailed' },
+            { act: 3, milestone: 'next', status: 'sketch' },
+            { act: 4, milestone: 'later', status: 'sketch' },
+            { act: 5, milestone: 'far', status: 'sketch' },
+          ],
+        },
+        cast: Array.from({ length: 9 }, (_, i) => ({ id: `n${i}`, name: `NPC ${i}`, status: 'active' })),
+        events: Array.from({ length: 7 }, (_, i) => ({ id: `e${i}`, name: `Event ${i}`, status: 'pending', actHint: i + 1 })),
+        subArcs: Array.from({ length: 6 }, (_, i) => ({ id: `s${i}`, name: `Quest ${i}`, status: 'active' })),
+        worldArcs: [{
+          id: 'wa1', name: 'Cult', driver: 'Priest', rung: 2, stance: 'ignoring', cadence: 12, status: 'building',
+          rungs: ['sign 0', 'sign 1', 'CURRENT_WORLD_RUNG', 'NEXT_WORLD_RUNG', 'FAR_WORLD_RUNG'],
+          consequences: ['old consequence', 'new consequence'],
+        }],
+      },
+    },
     state: {},
     public: { messages: [] },
     input: { id: 'input', seq: 1, authorType: 'player', userId: 'u', characterId: 'c', content: 'go' },
@@ -74,6 +108,13 @@ test('role packet drops transport metadata and duplicate actor context', () => {
   assert.equal(Object.hasOwn(referee.outcomes[0], 'committedSeq'), false);
   assert.equal(Object.hasOwn(referee.outcomes[1].physicalRolls[0].roll, 'hugeDebug'), false);
   assert.equal(Object.hasOwn(referee.campaign.gameSettings, 'ttsEnabled'), false);
+  assert.equal(referee.campaign.storyArc.currentBeatNumber, 2);
+  assert.doesNotMatch(JSON.stringify(referee.campaign.storyArc), /OLD_FINISHED_SECRET|FAR_WORLD_RUNG/);
+  assert.match(JSON.stringify(referee.campaign.storyArc), /Current beat|CURRENT_WORLD_RUNG|NEXT_WORLD_RUNG/);
+  assert.ok(referee.campaign.storyArc.cast.length <= 6);
+  assert.ok(referee.campaign.storyArc.events.length <= 4);
+  assert.ok(referee.campaign.storyArc.subArcs.length <= 4);
+  assert.ok(referee.campaign.storyArc.saga.sketches.length <= 3);
 
   const actor = compactRolePacket('actor', {
     campaign: { gameSettings: { language: 'ru', unitSystem: 'metric', ttsEnabled: true } },
