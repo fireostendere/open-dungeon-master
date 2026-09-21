@@ -29,7 +29,7 @@ function globalView(type, payload) {
   if (type === 'campaign_updated') return select(payload, ['status', 'title', 'description', 'theme', 'cover', 'maxPlayers', 'startingLevel', 'difficulty']);
   if (type === 'presence') return { online: Array.isArray(payload?.online) ? payload.online : [] };
   if (type === 'spatial_mode_changed') return { enabled: Boolean(payload?.enabled) };
-  if (type === 'member_updated' || type === 'member_joined') return { member: select(payload?.member, ['userId', 'username', 'avatar', 'role', 'ready', 'useRealDice', 'muted', 'joinedAt']) };
+  if (type === 'member_updated' || type === 'member_joined') return { member: select(payload?.member, ['userId', 'username', 'avatar', 'role', 'ready', 'useRealDice', 'muted', 'skipTurnsCount', 'autopilot', 'joinedAt']) };
   if (type === 'member_left' || type === 'member_removed') return select(payload, ['userId']);
   if (type === 'campaign_rewound') return { reason: 'campaign_rewound' };
   if (type === 'stream_checkpoint') return {};
