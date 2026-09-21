@@ -1,4 +1,4 @@
-import { stripReasoningArtifacts } from "../story-prompt.ts";
+import { stripReasoningArtifacts } from "../text-sanitize.ts";
 import {
   applyWorldArcUpdates,
   normalizeWorldArcs,
