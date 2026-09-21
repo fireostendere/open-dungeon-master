@@ -1,4 +1,4 @@
-import { stripReasoningArtifacts } from "../story-prompt.ts";
+import { stripReasoningArtifacts } from "../text-sanitize.ts";
 import { normalizeCandidate, type FactCandidate } from "./fact-logic.ts";
 
 // Pure chapter-close decisions, kept free of alias imports so node test
