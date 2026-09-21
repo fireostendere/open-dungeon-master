@@ -70,7 +70,8 @@ export ODM_OPENCODE_PROVIDER='operator-selected-provider'
 export ODM_OPENCODE_MODEL='operator-selected-model'
 # Optional role override for the lightweight autopilot actor:
 # ODM_OPENCODE_ACTOR_PROVIDER / ODM_OPENCODE_ACTOR_MODEL / ODM_OPENCODE_ACTOR_VARIANT
-# Actor generation is bounded to 30 s by default:
+# Actor generation is bounded to 30 s by default; actor session/policy
+# setup uses at most 5 s per local OpenCode request:
 # export ODM_OPENCODE_ACTOR_TIMEOUT_MS=30000
 # Optional: ODM_OPENCODE_VARIANT, preserving the explicitly selected variant.
 export ODM_NARRATOR_START_AFTER_SEQ=0
