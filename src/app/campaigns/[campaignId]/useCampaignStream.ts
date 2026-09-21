@@ -993,8 +993,6 @@ export function useCampaignStream(campaignId: string) {
       }
       void refreshSideChat();
       void refreshWhispers();
-      void refreshAsks();
-      void refreshFacts();
       void refreshBattleMap();
       source = new EventSource(`/api/campaigns/${campaignId}/events?lastSeq=${lastSeq}`);
       const handle = (eventType: string) => (event: MessageEvent) => {

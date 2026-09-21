@@ -1,7 +1,7 @@
 "use client";
 
 import { BookMarked, BookOpen, Heart, ScrollText, Users } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { DmConsolePanel } from "@/app/campaigns/[campaignId]/DmConsolePanel";
 import { LeadPanel } from "@/app/campaigns/[campaignId]/LeadPanel";
 import type { CampaignMessage } from "@/lib/db/messages";
@@ -182,6 +182,10 @@ export function SidePanelRouter({
   const { locale } = useI18n();
   const [partySection, setPartySection] = useState<PartySection>("party");
   const [storySection, setStorySection] = useState<StorySection>("story");
+
+  useEffect(() => {
+    if (tab === "story" && storySection === "facts") void refreshFacts();
+  }, [tab, storySection, refreshFacts]);
 
   const partySubTabs: SubTabDef<PartySection>[] = [
     ["party", locale === "ru" ? "Состав" : "Roster", Users],
