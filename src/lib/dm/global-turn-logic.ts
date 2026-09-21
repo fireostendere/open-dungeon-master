@@ -52,12 +52,12 @@ function respondedCount(
  * trigger moves that exact round into "active", publishes global_turn_started,
  * and only then may player actions/skips participate in quorum/timing.
  *
- * The first round is triggered when the campaign starts. Every later round is
- * triggered only after the previous MCP narration commits.
+ * The first round is triggered only after the opening MCP narration commits.
+ * Every later round is triggered only after the previous MCP narration commits.
  */
 export function startGlobalTurn(
   campaignId: string,
-  reason: "campaign_start" | "mcp_completed" | "enabled_mid_campaign" = "mcp_completed",
+  reason: "opening_narration" | "mcp_completed" | "enabled_mid_campaign" = "mcp_completed",
 ): GlobalTurnState | null {
   const campaign = getCampaignById(campaignId);
   if (
