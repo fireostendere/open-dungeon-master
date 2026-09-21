@@ -143,8 +143,11 @@ function read(raw: unknown) {
     loaders: {
       sheets: () => listSheets(campaign.id), facts: () => listActiveFacts(campaign.id),
       notes: () => listPublicCampaignNotes(campaign.id, 20), npcs: () => npcRosterForPrompt(campaign.id, 40),
-      recentMessages: () => listRecentMessages(campaign.id, 96).filter(msg => !isOocMessage(msg)),
-      recentRolls: () => listRecentRolls(campaign.id, 32), chapters: () => listChapters(campaign.id),
+      // Host memory already keeps an audience-aware rolling summary and the
+      // referee sees at most 24 public messages. Keep a 2x overlap for edits
+      // and reconnect repair instead of remapping/hashing 96 rows each read.
+      recentMessages: () => listRecentMessages(campaign.id, 48).filter(msg => !isOocMessage(msg)),
+      recentRolls: () => listRecentRolls(campaign.id, 24), chapters: () => listChapters(campaign.id),
     },
   });
   const receipts = listNarratorReceipts(campaign.id);
