@@ -129,10 +129,22 @@ function runSubprocess(code, { preload = true, env = {} } = {}) {
       kind: "do",
       content: "Hold the doorway.",
     });
+    const parsedDelete = narratorSchema.safeParse({
+      operation: "delete_message",
+      campaignId: "11111111-1111-4111-8111-111111111111",
+      expectedSeq: 12,
+      commandId: "22222222-2222-4222-8222-222222222222",
+      timelineEpoch: validEpoch,
+      messageId: "44444444-4444-4444-8444-444444444444",
+    });
     if (!parsedAutopilot.success || parsedAutopilot.data.characterId === undefined ||
         parsedAutopilot.data.roundNumber !== 4 || parsedAutopilot.data.kind !== "do") {
       console.error("odm_narrator autopilot_action schema is not discoverable");
       process.exit(11);
+    }
+    if (!parsedDelete.success || parsedDelete.data.messageId !== "44444444-4444-4444-8444-444444444444") {
+      console.error("odm_narrator delete_message schema is not discoverable");
+      process.exit(12);
     }
 
     if (!parsedNarrator.success || parsedNarrator.data.commandId === undefined ||

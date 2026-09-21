@@ -105,7 +105,7 @@ instructions, use a dedicated narrator context and test each chosen model.
 
 The application's `ODM_MCP_TOKEN` retains broad operator access. The optional
 `ODM_MCP_NARRATOR_TOKEN` is bound to `ODM_MCP_NARRATOR_CAMPAIGN_ID` and allows only
-the eight narrator operations in that campaign plus minimal health/capabilities.
+the advertised narrator operations in that campaign plus minimal health/capabilities.
 Other control actions are denied before domain dispatch. This is a DM credential,
 not a per-player credential: do not give it to players. Scoped access must be
 configured explicitly.

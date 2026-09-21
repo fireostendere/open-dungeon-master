@@ -122,6 +122,35 @@ export function getCampaignMessage(messageId: string): CampaignMessage | null {
   return row ? mapMessage(row) : null;
 }
 
+/**
+ * Remove one visible transcript message without rewinding game mechanics.
+ *
+ * Pins and human-DM beat copies are derived from the message text, so keeping
+ * them would make a deleted passage continue to influence narrator context.
+ * Rolls and moderation reports intentionally survive: dice are game state and
+ * reports are an audit record. The caller publishes message_deleted.
+ */
+export function deleteCampaignMessage(campaignId: string, messageId: string): CampaignMessage | null {
+  const db = getDatabase();
+  const row = db
+    .prepare(`SELECT * FROM campaign_messages WHERE id = ? AND campaign_id = ?`)
+    .get(messageId, campaignId) as MessageRow | undefined;
+  if (!row) return null;
+
+  db.transaction(() => {
+    db.prepare(`DELETE FROM campaign_pins WHERE campaign_id = ? AND message_id = ?`).run(campaignId, messageId);
+    db.prepare(`DELETE FROM dm_beats WHERE campaign_id = ? AND message_id = ?`).run(campaignId, messageId);
+    db.prepare(`UPDATE rolls SET message_id = NULL WHERE campaign_id = ? AND message_id = ?`).run(campaignId, messageId);
+    const deleted = db
+      .prepare(`DELETE FROM campaign_messages WHERE id = ? AND campaign_id = ?`)
+      .run(messageId, campaignId);
+    if (deleted.changes !== 1) throw new Error("Failed to delete campaign message.");
+    touchCampaign(campaignId);
+  })();
+
+  return mapMessage(row);
+}
+
 // Messages inside a seq span (chapter transcripts), ascending.
 export function listMessagesInSeqRange(
   campaignId: string,
