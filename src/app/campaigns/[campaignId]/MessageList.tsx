@@ -17,7 +17,6 @@ import {
   ShieldQuestion,
   Sparkles,
   UserPlus,
-  Volume2,
 } from "lucide-react";
 import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "@/lib/cn";
@@ -239,7 +238,6 @@ const MessageItem = memo(function MessageItem({
   locationsById,
   sheets,
   mediaStatus,
-  onReplayAudio,
   onPinCanon,
   onPinMemory,
   onEditSave,
@@ -270,9 +268,6 @@ const MessageItem = memo(function MessageItem({
   locationsById: Map<string, CampaignLocation>;
   sheets: CharacterSheet[];
   mediaStatus: Record<string, MediaStatus>;
-  // Plays the stored narration, rendering it first when this passage has
-  // never been voiced. Resolves to an error string on failure, null on success.
-  onReplayAudio?: (messageId: string) => Promise<string | null>;
   onPinCanon?: (message: CampaignMessage) => void;
   // Pin the current selection (or the whole message) into every future prompt.
   onPinMemory?: (message: CampaignMessage) => void;
@@ -292,9 +287,6 @@ const MessageItem = memo(function MessageItem({
   // Local to the row: only one narration is ever being corrected at a time,
   // and the draft should not survive the row unmounting.
   const [editing, setEditing] = useState(false);
-  // Stays true until the audio lands, at which point the replay button takes
-  // this one's place; cleared early only when the render actually failed.
-  const [narrating, setNarrating] = useState(false);
   // An uploaded picture on its way to this passage. The image itself arrives
   // through image_ready like a rendered one, so this only drives the spinner.
   const [attaching, setAttaching] = useState(false);
@@ -543,32 +535,6 @@ const MessageItem = memo(function MessageItem({
               </button>
             </>
           ) : null}
-          {onReplayAudio && message.authorType === "dm" ? (
-            <button
-              type="button"
-              disabled={narrating}
-              onClick={async () => {
-                setNarrating(true);
-                try {
-                  const error = await onReplayAudio(message.id);
-                  if (error) window.alert(error);
-                } catch {
-                  window.alert(messageText(locale, "Could not read that passage aloud."));
-                } finally {
-                  setNarrating(false);
-                }
-              }}
-              aria-label={messageText(locale, "Read this passage aloud")}
-              title={messageText(locale, "Read aloud")}
-              className={cn(ui.iconAction, "-my-1.5")}
-            >
-              {narrating ? (
-                <Loader2 className="size-3.5 animate-spin" />
-              ) : (
-                <Volume2 className="size-3.5" />
-              )}
-            </button>
-          ) : null}
           {onReport ? (
             <button
               type="button"
@@ -713,7 +679,6 @@ export function MessageList({
   dmStatus,
   dmDraft,
   mediaStatus = {},
-  onReplayAudio,
   onPinCanon,
   onPinMemory,
   onEditSave,
@@ -747,7 +712,6 @@ export function MessageList({
   dmStatus: DmStatus;
   dmDraft: string;
   mediaStatus?: Record<string, MediaStatus>;
-  onReplayAudio?: (messageId: string) => Promise<string | null>;
   onPinCanon?: (message: CampaignMessage) => void;
   // Pin the current selection (or the whole message) into every future prompt.
   onPinMemory?: (message: CampaignMessage) => void;
@@ -789,22 +753,6 @@ export function MessageList({
     [locations],
   );
   const blockedSet = useMemo(() => new Set(blockedUserIds), [blockedUserIds]);
-
-  // The parent passes an inline closure; route it through a ref so the
-  // memoized rows keep a stable identity and skip re-renders per token.
-  const replayRef = useRef(onReplayAudio);
-  useEffect(() => {
-    replayRef.current = onReplayAudio;
-  });
-  const hasReplay = Boolean(onReplayAudio);
-  const stableReplay = useMemo(
-    () =>
-      hasReplay
-        ? (messageId: string) =>
-            replayRef.current?.(messageId) ?? Promise.resolve<string | null>(null)
-        : undefined,
-    [hasReplay],
-  );
   const pinRef = useRef(onPinCanon);
   useEffect(() => {
     pinRef.current = onPinCanon;
@@ -933,7 +881,6 @@ export function MessageList({
             locationsById={locationsById}
             sheets={sheets}
             mediaStatus={mediaStatus}
-            onReplayAudio={stableReplay}
             onPinCanon={stablePin}
             onLoreCheck={stableLore}
             onPinMemory={stablePinMemory}
