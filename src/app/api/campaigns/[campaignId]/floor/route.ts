@@ -4,7 +4,6 @@ import { getFloor, setFloor, type Floor } from "@/lib/db/campaigns";
 import { listSheets } from "@/lib/db/sheets";
 import { queueSkippedCombatTurn, skipCurrentTurn } from "@/lib/dm/encounter-tools";
 import { listOpenPendingRolls } from "@/lib/db/dm-turns";
-import { requestDmTurn } from "@/lib/dm/loop";
 import { publishPersisted } from "@/lib/events";
 
 export const runtime = "nodejs";
@@ -89,7 +88,6 @@ export async function POST(
   // advances and the DM plays any intervening enemies.
   if (floor.mode === "initiative") {
     if (skipCurrentTurn(campaignId)) {
-      requestDmTurn(campaignId);
     }
     return Response.json({ ok: true });
   }
@@ -98,7 +96,6 @@ export async function POST(
   publishPersisted(campaignId, "floor_changed", { floor: next });
   queueSkippedCombatTurn(campaignId);
   if (floor.mode === "spotlight" && floor.respondedUserIds.length) {
-    requestDmTurn(campaignId);
   }
   return Response.json({ ok: true });
 }
