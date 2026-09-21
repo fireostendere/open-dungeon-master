@@ -67,12 +67,15 @@ export function composerGate({
   // Ask strip is never blocked, so this only has to spare OOC.
   const narrationBlocked = openingNarrationPlaying && kind !== "ooc";
 
-  // Global turn action limits: 1 do + 1 say per hero per turn
+  // Global-turn gate: a player has no composer at all before the round
+  // start trigger or while MCP is resolving a sealed round. This includes OOC
+  // in the shared composer: while locked, the only turn-level player choice is
+  // the explicit skip control. Once active, normal 1 do + 1 say limits apply.
   let turnActionBlocked = false;
   let turnActionReason = "";
-  if (!combat && globalTurnEnabled && globalTurnState && (kind === "do" || kind === "say")) {
+  if (!combat && globalTurnEnabled && globalTurnState) {
     const mySheet = sheets.find((s) => s.userId === meUserId && !s.isCompanion);
-    if (globalTurnState.phase === "waiting") {
+    if (mySheet && globalTurnState.phase === "waiting") {
       turnActionBlocked = true;
       turnActionReason =
         locale === "ru"
@@ -80,7 +83,10 @@ export function composerGate({
           : locale === "pl"
             ? "Tura nie jest jeszcze otwarta. MCP MG kończy scenę i otworzy następną rundę."
             : "The turn is not open yet. The MCP DM will unlock the next round after finishing the scene.";
-    } else if (globalTurnState.phase === "ready" || globalTurnState.phase === "resolving") {
+    } else if (
+      mySheet &&
+      (globalTurnState.phase === "ready" || globalTurnState.phase === "resolving")
+    ) {
       turnActionBlocked = true;
       turnActionReason =
         locale === "ru"
@@ -88,7 +94,7 @@ export function composerGate({
           : locale === "pl"
             ? "Runda została przekazana MCP Mistrzowi Gry. Poczekaj, aż zakończy turę."
             : "The round is with the MCP Dungeon Master. Wait until its turn is complete.";
-    } else if (mySheet) {
+    } else if (mySheet && (kind === "do" || kind === "say")) {
       const usage = globalTurnState.actionsByCharacter[mySheet.id];
       const hasDo = (usage?.actionsCount ?? 0) >= 1;
       const hasSay = (usage?.phrasesCount ?? 0) >= 1;
