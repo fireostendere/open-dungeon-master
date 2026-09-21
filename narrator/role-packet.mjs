@@ -145,6 +145,98 @@ function compactStoryArc(arc) {
   };
 }
 
+function compactEquipment(items) {
+  if (!Array.isArray(items)) return [];
+  return items.slice(0, 40).map(item => {
+    if (!item || typeof item !== 'object') return item;
+    return Object.fromEntries(
+      ['name', 'qty', 'slug', 'equipped', 'attuned', 'identified', 'gear']
+        .filter(key => Object.hasOwn(item, key))
+        .map(key => [key, item[key]]),
+    );
+  });
+}
+
+function compactFeatures(features) {
+  if (!Array.isArray(features)) return [];
+  return features.slice(0, 60).map(feature => {
+    if (!feature || typeof feature !== 'object') return feature;
+    return Object.fromEntries(
+      ['name', 'source', 'level', 'classId']
+        .filter(key => Object.hasOwn(feature, key))
+        .map(key => [key, feature[key]]),
+    );
+  });
+}
+
+function compactRefereeSheet(sheet, rich) {
+  if (!sheet || typeof sheet !== 'object') return sheet;
+  const status = {
+    id: sheet.id,
+    userId: sheet.userId,
+    name: sheet.name,
+    race: sheet.race,
+    class: sheet.class,
+    subclass: sheet.subclass,
+    classes: sheet.classes,
+    level: sheet.level,
+    currentHp: sheet.currentHp,
+    maxHp: sheet.maxHp,
+    tempHp: sheet.tempHp,
+    ac: sheet.ac,
+    speed: sheet.speed,
+    conditions: sheet.conditions,
+    conditionMeta: sheet.conditionMeta,
+    exhaustion: sheet.exhaustion,
+    deathSaves: sheet.deathSaves,
+    concentratingOn: sheet.concentratingOn,
+    resources: sheet.resources,
+    isCompanion: sheet.isCompanion,
+    companionKind: sheet.companionKind,
+    ...(sheet.isCompanion && sheet.personality
+      ? { personality: String(sheet.personality).slice(0, 600) }
+      : {}),
+  };
+  if (!rich) return status;
+  return {
+    ...status,
+    background: sheet.background,
+    alignment: sheet.alignment,
+    gender: sheet.gender,
+    xp: sheet.xp,
+    abilities: sheet.abilities,
+    hitDice: sheet.hitDice,
+    hitDicePools: sheet.hitDicePools,
+    proficiencies: sheet.proficiencies,
+    equipment: compactEquipment(sheet.equipment),
+    gold: sheet.gold,
+    copper: sheet.copper,
+    feats: Array.isArray(sheet.feats) ? sheet.feats.slice(0, 30) : sheet.feats,
+    features: compactFeatures(sheet.features),
+    spellcasting: sheet.spellcasting,
+    wildShape: sheet.wildShape,
+    pets: Array.isArray(sheet.pets) ? sheet.pets.slice(0, 3) : sheet.pets,
+    ...(sheet.backstory ? { backstory: String(sheet.backstory).slice(0, 1200) } : {}),
+  };
+}
+
+function focusedCharacterIds(packet) {
+  const ids = new Set();
+  const input = packet.input;
+  if (typeof input?.characterId === 'string' && input.characterId) ids.add(input.characterId);
+  if (Array.isArray(input?.messages)) {
+    for (const message of input.messages) {
+      if (typeof message?.characterId === 'string' && message.characterId) ids.add(message.characterId);
+    }
+  }
+  const encounter = packet.state?.encounter?.encounter ?? packet.state?.encounter;
+  if (typeof encounter?.currentActorId === 'string' && encounter.currentActorId) ids.add(encounter.currentActorId);
+  for (const pending of Array.isArray(packet.state?.pendingRolls) ? packet.state.pendingRolls : []) {
+    if (typeof pending?.characterId === 'string' && pending.characterId) ids.add(pending.characterId);
+  }
+  return ids;
+}
+
 function compactNarratorEvent(event) {
   if (!event || typeof event !== 'object') return event;
   if (event.type === 'roll_result') {
@@ -266,14 +358,14 @@ export function compactRolePacket(role, packet) {
   }
   const sheets = packet.state?.sheets;
   if (Array.isArray(sheets)) {
-    let changed = false;
-    const compactSheets = sheets.map(sheet => {
-      if (!sheet || typeof sheet !== 'object' || !Object.hasOwn(sheet, 'portrait')) return sheet;
-      changed = true;
-      const { portrait: _portrait, ...compact } = sheet;
-      return compact;
-    });
-    if (changed) result = { ...result, state: { ...packet.state, sheets: compactSheets } };
+    const focus = focusedCharacterIds(packet);
+    const allRich =
+      packet.input?.kind === 'global_turn_trigger' ||
+      packet.input?.kind === 'global_round' && focus.size >= sheets.length;
+    const compactSheets = sheets.map(sheet =>
+      compactRefereeSheet(sheet, allRich || focus.has(sheet?.id)),
+    );
+    result = { ...result, state: { ...result.state, sheets: compactSheets } };
   }
 
   const publicState = packet.public;
