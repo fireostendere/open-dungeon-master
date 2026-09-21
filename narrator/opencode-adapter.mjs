@@ -129,11 +129,16 @@ export class OpenCodeAdapter {
       this.cleanup(`/api/session/${encodeURIComponent(session.id)}`);
       throw new Error('OpenCode did not preserve the selected role/model.');
     }
-    if (!this.workspacePolicyRoles.has(role)) {
-      await this.request(`/api/experimental/session/${encodeURIComponent(session.id)}/instructions/entries/odm-policy`,
-        { method: 'PUT', stage: 'policy', body: { value: trustedInstruction(role) } });
+    try {
+      if (!this.workspacePolicyRoles.has(role)) {
+        await this.request(`/api/experimental/session/${encodeURIComponent(session.id)}/instructions/entries/odm-policy`,
+          { method: 'PUT', stage: 'policy', body: { value: trustedInstruction(role) } });
+      }
+      return session;
+    } catch (error) {
+      this.cleanup(`/api/session/${encodeURIComponent(session.id)}`);
+      throw error;
     }
-    return session;
   }
   async ensureWarm(role) {
     if (this.closed || this.idleSessions.has(role)) return this.idleSessions.get(role) ?? null;
