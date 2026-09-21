@@ -8,6 +8,7 @@ const sections = z.object(Object.fromEntries(
 const readFields = {
   afterSeq: seq().optional(), limit: z.number().int().min(1).max(100).optional(),
   afterAskSeq: seq().optional(), askLimit: z.number().int().min(1).max(50).optional(),
+  includeAsks: z.boolean().optional(),
   paged: z.boolean().optional(),
   projection: z.enum(['full', 'live']).optional(),
   maxBytes: z.number().int().min(4096).max(131072).optional(),
