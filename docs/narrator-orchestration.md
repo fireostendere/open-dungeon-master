@@ -25,6 +25,9 @@
   походить во время генерации, черновик actor отклоняется и не публикуется.
   Сервер не вызывает LLM/provider и не хранит отдельную story/utility-модель для
   автопилота; модель, variant и лимиты принадлежат внешнему OpenCode narrator-host.
+  Если actor недоступен, превышает свой deadline или возвращает невалидный JSON,
+  host не ставит весь narrator на паузу: публикуется один консервативный
+  безресурсный fallback-ход, чтобы общий раунд не завис навсегда.
 
 ## Подготовка
 
@@ -65,6 +68,10 @@ export ODM_OPENCODE_URL='http://127.0.0.1:4096'
 export ODM_OPENCODE_WORKSPACE='/srv/odm-narrator-workspace'
 export ODM_OPENCODE_PROVIDER='operator-selected-provider'
 export ODM_OPENCODE_MODEL='operator-selected-model'
+# Optional role override for the lightweight autopilot actor:
+# ODM_OPENCODE_ACTOR_PROVIDER / ODM_OPENCODE_ACTOR_MODEL / ODM_OPENCODE_ACTOR_VARIANT
+# Actor generation is bounded to 30 s by default:
+# export ODM_OPENCODE_ACTOR_TIMEOUT_MS=30000
 # Optional: ODM_OPENCODE_VARIANT, preserving the explicitly selected variant.
 export ODM_NARRATOR_START_AFTER_SEQ=0
 node narrator/run.mjs --campaign "$ODM_CAMPAIGN_ID"
