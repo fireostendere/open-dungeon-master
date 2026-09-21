@@ -33,6 +33,24 @@ function compactPhysicalRollEvent(event) {
   };
 }
 
+function compactNarratorEvent(event) {
+  if (!event || typeof event !== 'object') return event;
+  if (event.type === 'roll_result') {
+    return { seq: event.seq, type: event.type, payload: compactPhysicalRollEvent(event.payload) };
+  }
+  if (event.type === 'global_turn_ready' || event.type === 'global_turn_narrator_trigger') {
+    const payload = event.payload && typeof event.payload === 'object'
+      ? Object.fromEntries(
+          ['roundNumber', 'kind']
+            .filter(key => Object.hasOwn(event.payload, key))
+            .map(key => [key, event.payload[key]]),
+        )
+      : {};
+    return { seq: event.seq, type: event.type, payload };
+  }
+  return { seq: event.seq, type: event.type };
+}
+
 function compactOutcome(outcome) {
   if (!outcome || typeof outcome !== 'object') return outcome;
   if (Array.isArray(outcome.physicalRolls)) {
@@ -116,6 +134,9 @@ export function compactRolePacket(role, packet) {
   let result = packet;
   if (Array.isArray(packet.outcomes) && packet.outcomes.length) {
     result = { ...result, outcomes: packet.outcomes.map(compactOutcome) };
+  }
+  if (Array.isArray(packet.rollEvents) && packet.rollEvents.length) {
+    result = { ...result, rollEvents: packet.rollEvents.slice(-16).map(compactNarratorEvent) };
   }
   if (packet.campaign?.gameSettings) {
     result = {
