@@ -43,6 +43,7 @@ const sectionDigest = z.string().regex(/^[a-f0-9]{64}$/);
 const readSchema = z.object({
   campaignId: id, afterSeq: z.number().int().min(0).default(0), limit: z.number().int().min(1).max(100).default(50),
   afterAskSeq: z.number().int().min(0).default(0), askLimit: z.number().int().min(1).max(50).default(20),
+  includeAsks: z.boolean().default(true),
   paged: z.boolean().default(false), pageCursor: z.string().max(500).optional(),
   maxBytes: z.number().int().min(4096).max(131072).default(65536), projection: z.enum(["full", "live"]).default("full"),
   delta: z.boolean().default(false), knownSeq: z.number().int().min(0).optional(),
@@ -126,7 +127,10 @@ function read(raw: unknown) {
     ...message, campaignId: campaign.id, userId: message.authorUserId, characterId: null,
     authorType: message.kind === "narration" || message.kind === "perception" ? "dm" : "player", channel: "location" as const,
   }))].sort((a,b) => a.seq-b.seq);
-  const askPage = listPendingAsksForCampaign(campaign.id, p.data.afterAskSeq, p.data.askLimit), live = p.data.projection === "live";
+  const askPage = p.data.includeAsks
+    ? listPendingAsksForCampaign(campaign.id, p.data.afterAskSeq, p.data.askLimit)
+    : { items: [], nextCursor: p.data.afterAskSeq, hasMore: false };
+  const live = p.data.projection === "live";
   const delta = Boolean(p.data.delta), stateDelta = Boolean(p.data.stateDelta);
   const baselineSeq = p.data.knownSeq ?? (delta ? p.data.afterSeq : 0);
   // Cheap, transactional source revisions precede mapping and content hashing.
@@ -367,6 +371,7 @@ const storyWrites = new Set(["narrator.invoke", "narrator.narrate", "narrator.re
 const readAfterSchema = z.union([z.boolean(), z.object({
   afterSeq: z.number().int().min(0).optional(), limit: z.number().int().min(1).max(100).optional(),
   afterAskSeq: z.number().int().min(0).optional(), askLimit: z.number().int().min(1).max(50).optional(),
+  includeAsks: z.boolean().optional(),
   paged: z.boolean().optional(), projection: z.enum(["full", "live"]).optional(),
   maxBytes: z.number().int().min(4096).max(131072).optional(), delta: z.boolean().optional(),
   stateDelta: z.boolean().optional(), knownStateRevision: sectionDigest.optional(),
