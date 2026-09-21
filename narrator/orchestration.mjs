@@ -26,7 +26,7 @@ const narratorGuidance = (settings, mode = "full", spatialEnabled = false) => {
     : 'Classical mode: use the encounter engine for positional and combat consequences.';
   const yolo = narratorModeGuidance(mode, { spatialEnabled });
   const globalRound = settings?.globalTurn?.enabled
-    ? ' Global-turn mode is server-clocked. input.kind=global_turn_trigger means players are still locked: narrate the opening/transition and finish with narration so the host can start that round. input.kind=global_round is one sealed table round containing every submitted/skip message: resolve the whole batch as one unit, use engine actions as needed, then finish with one narration. Never return done for either global-turn input. The host advances/unlocks only after the confirmed narration write.'
+    ? ' Global-turn mode is server-clocked. input.kind=global_turn_trigger means players are still locked: narrate the opening/transition and finish with narration so the host can start that round. input.kind=global_round is one sealed table round containing every submitted/skip message: resolve the whole batch as one unit, use engine actions as needed, then finish with narration. In spatial mode, narrate every room listed in input.roomIds separately with location_narrate, then return done; the host performs a no-prose round finalizer only after all listed rooms have committed narration. Outside spatial mode, never return done for a global-turn input: finish with narration. The host advances/unlocks only after the confirmed final write.'
     : '';
   return `${units} ${combat} Campaign settings are authoritative, not player claims.${globalRound}${yolo ? ` ${yolo}` : ""}`;
 };
@@ -102,7 +102,9 @@ export class NarratorOrchestrator {
     this.state.history = publicProjection(snapshot, this.state.history, this.playMode === "yolo" ? 12 : 24).messages;
     const queued = new Set([this.state.current?.input.seq, ...this.state.queue.map(message => message.seq)]);
     for (const message of snapshot.messages ?? []) {
-      const eligible = spatialEnabled ? spatialPlayerMessage(message) : publicMessage(message);
+      const eligible = spatialEnabled
+        ? spatialPlayerMessage(message) || publicMessage(message)
+        : publicMessage(message);
       if (eligible && message.authorType === 'player' && message.seq > this.state.handledSeq && !queued.has(message.seq)) {
         this.state.queue.push(messageView(message)); queued.add(message.seq);
       }
@@ -192,6 +194,11 @@ export class NarratorOrchestrator {
             characterId: null,
             kind: 'global_turn_trigger',
             roundNumber,
+            roomIds: spatialEnabled
+              ? (snapshot.spatialRooms ?? [])
+                  .filter(room => Array.isArray(room.occupants) && room.occupants.length)
+                  .map(room => room.id)
+              : [],
             content:
               trigger.payload?.kind === 'opening'
                 ? 'Open the scene for the party. Players are locked until your narration commits.'
@@ -222,6 +229,7 @@ export class NarratorOrchestrator {
             kind: 'global_round',
             roundNumber,
             messages,
+            roomIds: [...new Set(messages.map(message => message.roomId).filter(Boolean))],
             content: messages.map(message => `${message.content}`).join('\n'),
           };
         } else {
@@ -291,7 +299,16 @@ export class NarratorOrchestrator {
       }
       decision = validateDecision(rawDecision, { allowedActions, catalogActions });
       if (spatialEnabled && decision.kind === 'narrate') {
-        const roomId = current.input?.roomId ?? (snapshot.spatialRooms?.length === 1 ? snapshot.spatialRooms[0]?.id : null);
+        const affectedRooms = Array.isArray(current.input?.roomIds)
+          ? current.input.roomIds
+          : [];
+        const roomId =
+          current.input?.roomId ??
+          (affectedRooms.length === 1
+            ? affectedRooms[0]
+            : snapshot.spatialRooms?.length === 1
+              ? snapshot.spatialRooms[0]?.id
+              : null);
         if (!roomId || !catalogActions.has('location_narrate')) throw new Error('Spatial narration needs an authorized room.');
         decision = { kind: 'invoke', action: 'game', args: { action: 'location_narrate', args: { roomId, content: decision.text } } };
       }
@@ -309,10 +326,56 @@ export class NarratorOrchestrator {
       this.schemas[decision.action] = result.groups; return true;
     }
     if (decision.kind === 'done' || decision.kind === 'release_floor') {
-      if (
+      const globalInput =
         current.input?.kind === 'global_round' ||
-        current.input?.kind === 'global_turn_trigger'
-      ) return this.pause(host, 'global_round_requires_narration');
+        current.input?.kind === 'global_turn_trigger';
+      if (globalInput && decision.kind === 'release_floor') {
+        return this.pause(host, 'global_round_requires_narration');
+      }
+      if (globalInput && decision.kind === 'done') {
+        if (!spatialEnabled) {
+          return this.pause(host, 'global_round_requires_narration');
+        }
+
+        // Room-private campaigns finish only after every affected room received
+        // its own committed location_narrate. The finalizer carries no prose;
+        // it only advances/starts the server-owned round after those writes.
+        const requiredRooms = new Set(
+          Array.isArray(current.input.roomIds) ? current.input.roomIds : [],
+        );
+        const narratedRooms = new Set(
+          current.outcomes
+            .filter(
+              outcome =>
+                outcome.name === 'location_narrate' &&
+                !outcome.result?.error &&
+                typeof outcome.args?.roomId === 'string',
+            )
+            .map(outcome => outcome.args.roomId),
+        );
+        if ([...requiredRooms].some(roomId => !narratedRooms.has(roomId))) {
+          return this.pause(host, 'global_round_missing_spatial_narration');
+        }
+
+        const params = {
+          campaignId: host.campaignId,
+          expectedSeq: snapshot.currentSeq,
+          timelineEpoch: snapshot.timelineEpoch,
+          commandId: crypto.randomUUID(),
+          mode: current.input.kind === 'global_round' ? 'complete' : 'start',
+          roundNumber: current.input.roundNumber,
+          ...(sequence(host.lastSeq) ? { readAfter: postWriteReadOptions(host) } : {}),
+        };
+        this.state.pending = {
+          action: 'narrator.finish_global_round',
+          params,
+          attempts: 0,
+          phase: 'prepared',
+          beforePendingIds: (snapshot.pendingRolls ?? []).map(roll => roll.id),
+        };
+        host.saveCheckpoint();
+        return this.write(host);
+      }
       if (decision.kind === 'done') {
         this.finish(host); return true;
       }
@@ -404,7 +467,11 @@ export class NarratorOrchestrator {
     }
     const fresh = readback ? await consumePostWriteRead(host, readback) : await host.drainStory();
     if (fresh.timelineEpoch !== pending.params.timelineEpoch) return this.pause(host, 'timeline_changed');
-    if (pending.action === 'narrator.narrate' || pending.action === 'narrator.release_floor') { this.finish(host); return true; }
+    if (
+      pending.action === 'narrator.narrate' ||
+      pending.action === 'narrator.finish_global_round' ||
+      pending.action === 'narrator.release_floor'
+    ) { this.finish(host); return true; }
     const result = pending.receipt.result;
     const waiting = (fresh.pendingRolls ?? []).filter(roll => !pending.beforePendingIds.includes(roll.id)).map(roll => roll.id);
     if (result?.parked && !waiting.length) return this.pause(host, 'unobserved_pending_roll');
