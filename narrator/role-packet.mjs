@@ -282,10 +282,6 @@ function compactRefereeSheet(sheet, rich) {
   if (!rich) return status;
   return {
     ...status,
-    background: sheet.background,
-    alignment: sheet.alignment,
-    gender: sheet.gender,
-    xp: sheet.xp,
     abilities: sheet.abilities,
     hitDice: sheet.hitDice,
     hitDicePools: sheet.hitDicePools,
@@ -298,7 +294,6 @@ function compactRefereeSheet(sheet, rich) {
     spellcasting: sheet.spellcasting,
     wildShape: sheet.wildShape,
     pets: Array.isArray(sheet.pets) ? sheet.pets.slice(0, 3) : sheet.pets,
-    ...(sheet.backstory ? { backstory: String(sheet.backstory).slice(0, 1200) } : {}),
   };
 }
 
