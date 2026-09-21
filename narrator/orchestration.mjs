@@ -92,12 +92,13 @@ function validateActorTurn(value) {
 export function validateDecision(value, { allowedActions = new Set(), catalogActions = allowedActions } = {}) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('Invalid referee decision.');
   const keys = {
-    invoke: ['kind', 'action', 'args'], catalog: ['kind', 'action'],
+    invoke: ['kind', 'action', 'args'], catalog: ['kind', 'action'], rules_lookup: ['kind', 'query'],
     narrate: ['kind', 'text', 'writer', 'releaseFloor'], wait: ['kind'], done: ['kind'], release_floor: ['kind'],
   }[value.kind];
   if (!keys || Object.keys(value).some(key => !keys.includes(key))) throw new Error('Unsupported referee decision fields.');
   if (value.kind === 'invoke' && !allowedActions.has(value.action)) throw new Error('Disallowed engine action.');
   if (value.kind === 'catalog' && !catalogActions.has(value.action)) throw new Error('Disallowed catalog action.');
+  if (value.kind === 'rules_lookup' && (typeof value.query !== 'string' || !value.query.trim() || value.query.trim().length > 500)) throw new Error('Invalid rules lookup query.');
   if (value.kind === 'invoke' && (!value.args || typeof value.args !== 'object' || Array.isArray(value.args) ||
       ['campaignId', 'expectedSeq', 'commandId', 'timelineEpoch'].some(key => Object.hasOwn(value.args, key)))) throw new Error('Invalid engine arguments.');
   if (value.kind === 'narrate' && (!text(value.text) ||
@@ -277,7 +278,11 @@ export class NarratorOrchestrator {
   }
   async answerAsk(host, ask, context) {
     try {
-      const reply=JSON.parse(await this.generate(host,'ask',{task:'answer_ask',question:ask.question,language:ask.locale??'ru',context}));
+      const rulesEvidence = ask?.scope === 'rules' && typeof host.lookupRules === 'function'
+        ? await host.lookupRules(ask.question)
+        : undefined;
+      const reply=JSON.parse(await this.generate(host,'ask',{task:'answer_ask',question:ask.question,language:ask.locale??'ru',context,
+        ...(rulesEvidence ? { rulesEvidence } : {})}));
       if(!reply||Object.keys(reply).some(key=>key!=='answer')||!text(reply.answer)||reply.answer.length>4000)throw new Error('Invalid private answer.');
       return {answer:reply.answer,citations:[]};
     } catch {
@@ -536,6 +541,28 @@ export class NarratorOrchestrator {
       // Only the schema requested for the next decision is relevant. Do not
       // accumulate every schema seen during a long campaign into all future prompts.
       this.schemas = { [decision.action]: result.groups }; return true;
+    }
+    if (decision.kind === 'rules_lookup') {
+      const query = decision.query.trim();
+      const normalized = query.toLocaleLowerCase('en-US');
+      const prior = current.outcomes.filter(outcome =>
+        outcome.name === 'rules_lookup' && typeof outcome.query === 'string' &&
+        outcome.query.toLocaleLowerCase('en-US') === normalized);
+      if (prior.length >= 2) return this.pause(host, 'duplicate_rules_lookup');
+      const epoch = this.state.epoch;
+      const result = prior.length
+        ? { ...clone(prior.at(-1).result), reused: true }
+        : typeof host.lookupRules === 'function'
+          ? await host.lookupRules(query)
+          : { ok: false, error: 'rules_rag_unavailable', retryable: false, untrusted: true };
+      if (host.stopping || this.state.current !== current || this.state.epoch !== epoch) {
+        this.releaseRefereeConversation();
+        return false;
+      }
+      current.outcomes.push({ name: 'rules_lookup', query, result });
+      this.schemas = {};
+      host.saveCheckpoint();
+      return true;
     }
     if (decision.kind === 'done' || decision.kind === 'release_floor') {
       const globalInput =
