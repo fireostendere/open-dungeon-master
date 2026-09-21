@@ -81,7 +81,9 @@ function safeCampaign(campaign: NonNullable<ReturnType<typeof getCampaignById>>)
   return {
     id: campaign.id, title: campaign.title, description: campaign.description, status: campaign.status, theme: campaign.theme, scene: campaign.scene, questLog: campaign.questLog,
     difficulty: campaign.difficulty, startingLevel: campaign.startingLevel, dmMode: campaign.gameSettings.dmMode, dmUserId: campaign.dmUserId,
-    gameSettings: campaign.gameSettings, globalTurnState: campaign.globalTurnState, dmOutline: campaign.dmOutline, storyArc: campaign.storyArc, floor: campaign.floor, clock: campaign.clock, party: campaign.party,
+    gameSettings: campaign.gameSettings, globalTurnState: campaign.globalTurnState,
+    dmOutline: campaign.storyArc ? "" : campaign.dmOutline, storyArc: campaign.storyArc,
+    floor: campaign.floor, clock: campaign.clock, party: campaign.party,
   };
 }
 type CatalogOptions = { summaryOnly?: boolean; category?: string; action?: string };
@@ -121,7 +123,9 @@ function read(raw: unknown) {
     try { return budgetRead(snapshot, p.data); }
     catch (error) { if (error instanceof ReadBudgetError) throw new McpNarratorControlError(error.message, error.status); throw error; }
   }
-  const fetched = listEventsSince(campaign.id, p.data.afterSeq, p.data.limit + 1);
+  const fetched = p.data.afterSeq === currentSeq
+    ? []
+    : listEventsSince(campaign.id, p.data.afterSeq, p.data.limit + 1);
   const spatial = readSpatialForNarrator(campaign.id, campaign.dmUserId!, p.data.afterSeq, p.data.limit);
   const { nextCursor, hasMore, events, roomMessages } = spatialNarratorBoundary({ afterSeq: p.data.afterSeq, currentSeq, limit: p.data.limit, events: fetched, spatial });
   const legacyMessages = nextCursor > p.data.afterSeq ? listMessagesInSeqRange(campaign.id, p.data.afterSeq + 1, nextCursor).filter(msg => !isOocMessage(msg)) : [];
@@ -153,7 +157,9 @@ function read(raw: unknown) {
       recentRolls: () => listRecentRolls(campaign.id, 24), chapters: () => listChapters(campaign.id),
     },
   });
-  const receipts = listNarratorReceipts(campaign.id);
+  const receipts = delta && baselineSeq >= currentSeq
+    ? []
+    : listNarratorReceipts(campaign.id);
   const state = {
     campaignId: campaign.id, campaign: safeCampaign(campaign), currentSeq, timelineEpoch, cursor: p.data.afterSeq, nextCursor, hasMore,
     events: events.filter(isNarratorEvent).map(event =>
