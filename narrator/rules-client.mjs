@@ -24,6 +24,7 @@ export class RulesMcpClient {
     this.timeoutMs=integer(options.timeoutMs,15000,1000,60000);
     this.topK=integer(options.topK,3,1,8);
     this.env={...process.env,...(options.env??{}),KB_DND_EDITION:this.edition,KB_DND_COLLECTION:this.collection};
+    this.spawn=options.spawnImpl??spawn;
     this.child=null;this.reader=null;this.pending=new Map();this.nextId=1;this.starting=null;this.closed=false;
     this.lastRevision=null;this.lastError=null;
   }
@@ -66,7 +67,7 @@ export class RulesMcpClient {
     if(this.child)return;
     if(this.starting)return this.starting;
     this.starting=(async()=>{
-      const child=spawn(this.python,['-m','knowledge_base.dnd_mcp_server'],{
+      const child=this.spawn(this.python,['-m','knowledge_base.dnd_mcp_server'],{
         cwd:this.cwd,env:this.env,stdio:['pipe','pipe','pipe'],shell:false,windowsHide:true,
       });
       this.child=child;
