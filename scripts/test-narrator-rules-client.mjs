@@ -74,6 +74,34 @@ test('rules MCP client negotiates exact read-only surface and sanitizes search e
   await client.close();
 });
 
+test('rules MCP child does not inherit narrator/OpenCode secrets', async () => {
+  const fixture = fakeRulesProcess();
+  const previousNarrator = process.env.ODM_MCP_NARRATOR_TOKEN;
+  const previousOpenCode = process.env.ODM_OPENCODE_TOKEN;
+  process.env.ODM_MCP_NARRATOR_TOKEN = 'narrator-secret-that-must-not-leak';
+  process.env.ODM_OPENCODE_TOKEN = 'opencode-secret-that-must-not-leak';
+  let spawnOptions;
+  try {
+    const client = new RulesMcpClient({
+      python: '/opt/test/python', edition: 'test-srd', collection: 'dnd_srd',
+      spawnImpl: (_command, _args, options) => { spawnOptions = options; return fixture.child; },
+      timeoutMs: 2000,
+    });
+    await client.start();
+    assert.equal(spawnOptions.env.ODM_MCP_NARRATOR_TOKEN, undefined);
+    assert.equal(spawnOptions.env.ODM_OPENCODE_TOKEN, undefined);
+    assert.equal(spawnOptions.env.KB_DND_EDITION, 'test-srd');
+    assert.equal(spawnOptions.env.KB_DND_COLLECTION, 'dnd_srd');
+    assert.equal(spawnOptions.env.KB_COLLECTION, 'dnd_srd');
+    await client.close();
+  } finally {
+    if (previousNarrator === undefined) delete process.env.ODM_MCP_NARRATOR_TOKEN;
+    else process.env.ODM_MCP_NARRATOR_TOKEN = previousNarrator;
+    if (previousOpenCode === undefined) delete process.env.ODM_OPENCODE_TOKEN;
+    else process.env.ODM_OPENCODE_TOKEN = previousOpenCode;
+  }
+});
+
 test('rules MCP client fails closed when subprocess advertises an extra tool', async () => {
   const fixture = fakeRulesProcess({ extraTool: 'knowledge_ingest' });
   const client = new RulesMcpClient({
