@@ -3,6 +3,12 @@ import { trustedInstruction } from './role-profiles.mjs';
 import { emitLatency, latencyEnabled, withLatencyTrace } from '../mcp/latency-trace.mjs';
 
 const nonNegativeInteger = value => Number.isSafeInteger(Number(value)) && Number(value) >= 0 ? Number(value) : null;
+function validModel(value) {
+  return value && typeof value === 'object' && !Array.isArray(value) &&
+    Object.keys(value).every(key => ['providerID', 'id', 'variant'].includes(key)) &&
+    ['providerID', 'id'].every(key => typeof value[key] === 'string' && value[key].trim()) &&
+    (value.variant === undefined || typeof value.variant === 'string');
+}
 function modelUsage(reply) {
   const source = reply?.usage ?? reply?.metadata?.usage ?? reply?.info?.usage ?? null;
   if (!source || typeof source !== 'object' || Array.isArray(source)) return null;
@@ -32,10 +38,23 @@ export class OpenCodeAdapter {
     this.token = (options.token ?? process.env.ODM_OPENCODE_TOKEN ?? '').trim();
     this.model = options.model ?? { providerID: process.env.ODM_OPENCODE_PROVIDER, id: process.env.ODM_OPENCODE_MODEL,
       ...(process.env.ODM_OPENCODE_VARIANT ? { variant: process.env.ODM_OPENCODE_VARIANT } : {}) };
-    if (!this.model || Object.keys(this.model).some(key => !['providerID', 'id', 'variant'].includes(key)) ||
-        !['providerID', 'id'].every(key => typeof this.model[key] === 'string' && this.model[key].trim()) ||
-        this.model.variant !== undefined && typeof this.model.variant !== 'string') throw new Error('Select an explicit provider/model/variant.');
+    if (!validModel(this.model)) throw new Error('Select an explicit provider/model/variant.');
     this.model = { ...this.model };
+    this.roleModels = {};
+    for (const role of ['referee', 'writer', 'ask', 'actor']) {
+      const explicit = options.roleModels?.[role];
+      const prefix = `ODM_OPENCODE_${role.toUpperCase()}_`;
+      const hasEnvOverride = process.env[`${prefix}PROVIDER`] || process.env[`${prefix}MODEL`] || process.env[`${prefix}VARIANT`];
+      const candidate = explicit ?? (hasEnvOverride ? {
+        providerID: process.env[`${prefix}PROVIDER`] || this.model.providerID,
+        id: process.env[`${prefix}MODEL`] || this.model.id,
+        ...(process.env[`${prefix}VARIANT`] !== undefined
+          ? { variant: process.env[`${prefix}VARIANT`] }
+          : this.model.variant !== undefined ? { variant: this.model.variant } : {}),
+      } : this.model);
+      if (!validModel(candidate)) throw new Error(`Invalid ${role} provider/model/variant.`);
+      this.roleModels[role] = { ...candidate };
+    }
     this.workspace = options.workspace ?? process.env.ODM_OPENCODE_WORKSPACE;
     if (typeof this.workspace !== 'string' || !path.isAbsolute(this.workspace)) throw new Error('Select an absolute isolated OpenCode workspace.');
     this.fetch = options.fetchImpl ?? globalThis.fetch;
@@ -81,6 +100,9 @@ export class OpenCodeAdapter {
     void task.finally(() => this.pendingCleanups.delete(task));
   }
   async close() { await Promise.allSettled([...this.pendingCleanups]); }
+  modelFor(role) {
+    return this.roleModels[role] ?? this.model;
+  }
   instructionBytes(role) {
     return Buffer.byteLength(trustedInstruction(role));
   }
@@ -90,12 +112,13 @@ export class OpenCodeAdapter {
       if (typeof prompt !== 'string' || Buffer.byteLength(prompt) > 262144) throw new Error('Role input exceeds the byte budget; no facts were clipped.');
       if (this.pendingCleanups.size >= 32) throw new Error('OpenCode cleanup capacity exhausted.');
       const agent = `narrator-${role}`;
-      const session = await this.request('/api/session', { stage: 'session', body: { agent, model: this.model,
+      const roleModel = this.modelFor(role);
+      const session = await this.request('/api/session', { stage: 'session', body: { agent, model: roleModel,
         location: { directory: this.workspace }, permissions: [{ action: '*', resource: '*', effect: 'deny' }], title: `ODM ${role}` } });
       if (typeof session?.id !== 'string' || !/^ses[a-zA-Z0-9_-]+$/.test(session.id)) throw new Error('Invalid OpenCode session.');
       const route = `/api/session/${encodeURIComponent(session.id)}`;
       try {
-        if (session.agent !== agent || ['providerID', 'id', 'variant'].some(key => session.model?.[key] !== this.model[key])) throw new Error('OpenCode did not preserve the selected role/model.');
+        if (session.agent !== agent || ['providerID', 'id', 'variant'].some(key => session.model?.[key] !== roleModel[key])) throw new Error('OpenCode did not preserve the selected role/model.');
         await this.request(`/api/experimental/session/${encodeURIComponent(session.id)}/instructions/entries/odm-policy`, { method: 'PUT', stage: 'policy', body: { value: instruction } });
         const reply = await this.request(`${route}/generate`, { stage: 'model', body: { prompt } });
         if (typeof reply?.text !== 'string' || !reply.text.trim() || Buffer.byteLength(reply.text) > 32768) throw new Error('Malformed or oversized model output.');
