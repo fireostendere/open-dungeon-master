@@ -193,14 +193,28 @@ export function EncounterPanel({
                 >
                    {enemy.status === "fled" ? copy.fled : enemy.health}
                 </span>
-                {/* DM only: publicEncounter attaches these for the seat that
-                    is allowed them, so their presence is the permission. */}
+                {/* Exact HP may be campaign-visible; AC remains DM-only. */}
                 {enemy.currentHp !== undefined && enemy.status === "alive" ? (
                   <span className="ml-1.5 shrink-0 rounded-full border border-amber-900/60 bg-amber-950/30 px-2 py-0.5 font-mono text-[10px] text-amber-200/90">
-                    {enemy.currentHp}/{enemy.maxHp} AC {enemy.ac}
+                    {enemy.currentHp}/{enemy.maxHp} HP{enemy.ac !== undefined ? ` · AC ${enemy.ac}` : ""}
                   </span>
                 ) : null}
               </div>
+              {enemy.hpPercent !== undefined && enemy.status === "alive" ? (
+                <div
+                  className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-stone-800"
+                  role="progressbar"
+                  aria-label={`${enemy.name} HP`}
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-valuenow={enemy.hpPercent}
+                >
+                  <div
+                    className="h-full rounded-full bg-red-700 transition-[width]"
+                    style={{ width: `${enemy.hpPercent}%` }}
+                  />
+                </div>
+              ) : null}
               {enemy.conditions?.length ? (
                 <div className="mt-1 flex flex-wrap gap-1">
                   {enemy.conditions.map((condition) => (
