@@ -198,8 +198,7 @@ test('real legacy player messages have no kind; referee receives IDs, state and 
   await h.tick();
   assert.equal(h.writes[0].params.args.characterId, 'hero');
   assert.equal(h.modelCalls[0].packet.state.sheets[0].id, 'hero');
-  assert.equal(h.modelCalls[0].packet.actions[0].actions[0].name, 'game');
-  assert.ok(h.modelCalls[0].packet.actions[0].actions[0].operations.some(action => action.name === 'pc_attack'));
+  assert.ok(h.modelCalls[0].packet.operations.includes('pc_attack'));
   await h.tick();
   assert.equal(h.writes[1].action, 'narrator.narrate');
   assert.equal(h.writes[1].params.content, 'Among the papers lies the clue.');
@@ -424,11 +423,11 @@ test('YOLO spatial catalog expands after enable without refetching the catalog',
     return { ok: true };
   };
   await h.tick();
-  const before = h.modelCalls[0].packet.actions[0].actions[0].operations.map(operation => operation.name);
+  const before = h.modelCalls[0].packet.operations;
   assert.ok(before.includes('location_enable'));
   assert.ok(!before.includes('location_disable'));
   await h.tick();
-  const after = h.modelCalls[1].packet.actions[0].actions[0].operations.map(operation => operation.name);
+  const after = h.modelCalls[1].packet.operations;
   assert.ok(!after.includes('location_enable'));
   assert.ok(after.includes('location_disable'));
   assert.ok(after.includes('location_narrate'));
@@ -445,7 +444,7 @@ test('YOLO accepts room player input and scopes plain narration through location
   await h.tick();
   assert.equal(h.controller.state.paused, null);
   assert.equal(h.modelCalls[0].packet.input.roomId, 'room-a');
-  const operations = h.modelCalls[0].packet.actions[0].actions[0].operations.map(operation => operation.name);
+  const operations = h.modelCalls[0].packet.operations;
   assert.ok(operations.includes('location_narrate'));
   assert.ok(!operations.includes('location_enable'));
   assert.equal(h.writes[0].action, 'narrator.invoke');
