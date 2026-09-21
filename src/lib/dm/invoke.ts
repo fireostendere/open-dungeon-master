@@ -109,7 +109,13 @@ export function normalizeArgs(
       continue;
     }
     if (key === "enemies") {
-      out.enemies = parseRoster(value);
+      // A model/external narrator sends the rich engine shape:
+      // { monster, name, count, cr }. parseRoster is only the human-console
+      // shorthand parser and intentionally knows only monster/count; running
+      // an already-structured array through it used to erase the in-world
+      // name and CR before start_encounter saw them, so "Barmaid" backed by a
+      // Rogue stat block appeared in combat as "Rogue".
+      out.enemies = Array.isArray(value) ? value : parseRoster(value);
       continue;
     }
     if (key === "targets" && entry.name === "split_damage") {
