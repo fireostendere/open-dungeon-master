@@ -5,6 +5,7 @@ import { registerDmPolicy } from "./dm-policy.mjs";
 
 const PATCHED = Symbol.for("odm.external-tools-preload.patched");
 const REGISTERED = Symbol.for("odm.external-tools-preload.registered");
+const NARRATOR_ONLY = /^(1|true)$/i.test(process.env.ODM_MCP_NARRATOR_ONLY?.trim() || "");
 function success(value) {
   const structuredContent = value && typeof value === "object" && !Array.isArray(value) ? value : { result: value };
   return { content: [{ type: "text", text: JSON.stringify(value, null, 2) }], structuredContent };
@@ -267,7 +268,8 @@ if (!McpServer.prototype[PATCHED]) {
   McpServer.prototype.registerTool = function patchedRegisterTool(...args) {
     if (!this[REGISTERED]) {
       Object.defineProperty(this, REGISTERED, { value: true });
-      registerExternalTools(this, originalRegisterTool);
+      if (NARRATOR_ONLY) registerDmPolicy(this, withMcpCancellation);
+      else registerExternalTools(this, originalRegisterTool);
     }
     // Extend the existing public schema at its mandatory registration boundary.
     // The callback in server.mjs forwards these fields unchanged to the scoped

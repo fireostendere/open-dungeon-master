@@ -13,8 +13,12 @@ import { narratorInputSchema } from "./narrator-schema.mjs";
 const VERSION = "0.1.0";
 const TOKEN = process.env.ODM_MCP_TOKEN?.trim() || "";
 const NARRATOR_TOKEN = process.env.ODM_MCP_NARRATOR_TOKEN?.trim() || "";
+const UPSTREAM_TOKEN = process.env.ODM_MCP_UPSTREAM_TOKEN?.trim() || TOKEN;
+const NARRATOR_ONLY = /^(1|true)$/i.test(process.env.ODM_MCP_NARRATOR_ONLY?.trim() || "");
+const NARRATOR_CAMPAIGN_ID = process.env.ODM_MCP_NARRATOR_CAMPAIGN_ID?.trim() || "";
 const HOST = process.env.ODM_MCP_HOST?.trim() || "127.0.0.1";
 const PORT = Number(process.env.ODM_MCP_PORT || 3006);
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function digest(value) {
   return createHash("sha256").update(value, "utf8").digest();
@@ -22,7 +26,8 @@ function digest(value) {
 
 function tokenMatches(value) {
   if (!value) return false;
-  return [TOKEN, NARRATOR_TOKEN].filter(Boolean).some(token => timingSafeEqual(digest(value), digest(token)));
+  const accepted = NARRATOR_ONLY ? [NARRATOR_TOKEN] : [TOKEN, NARRATOR_TOKEN];
+  return accepted.filter(Boolean).some(token => timingSafeEqual(digest(value), digest(token)));
 }
 
 function bearerFrom(headers) {
@@ -67,6 +72,9 @@ function failure(error) {
 
 async function run(action, params) {
   try {
+    if (NARRATOR_ONLY && (!action.startsWith("narrator.") || params?.campaignId !== NARRATOR_CAMPAIGN_ID)) {
+      throw new Error("This MCP is restricted to its configured narrator campaign.");
+    }
     const compact = params?.compact ?? (action.startsWith('narrator.') ? true : undefined);
     return result(await callControl(action, params), { compact });
   } catch (error) {
@@ -107,24 +115,26 @@ function createMcpServer() {
   const registerTool = (name, config, callback) => server.registerTool(name, config, withMcpCancellation(callback));
   const registerResource = (name, uri, config, callback) => server.registerResource(name, uri, config, withMcpCancellation(callback));
 
-  registerResource(
-    "server-status",
-    "odm://server/status",
-    {
-      title: "Open Dungeon Master server status",
-      description: "Live health and object counts for the connected ODM instance.",
-      mimeType: "application/json",
-    },
-    async (uri) => ({
-      contents: [
-        {
-          uri: uri.href,
-          mimeType: "application/json",
-          text: JSON.stringify(await callControl("server.status", {}), null, 2),
-        },
-      ],
-    }),
-  );
+  if (!NARRATOR_ONLY) {
+    registerResource(
+      "server-status",
+      "odm://server/status",
+      {
+        title: "Open Dungeon Master server status",
+        description: "Live health and object counts for the connected ODM instance.",
+        mimeType: "application/json",
+      },
+      async (uri) => ({
+        contents: [
+          {
+            uri: uri.href,
+            mimeType: "application/json",
+            text: JSON.stringify(await callControl("server.status", {}), null, 2),
+          },
+        ],
+      }),
+    );
+  }
 
   registerResource(
     "external-narrator-instructions",
@@ -208,24 +218,26 @@ questions, private whispers, DM outlines or other DM secrets to the table.
 ` }] }),
   );
 
-  registerResource(
-    "control-capabilities",
-    "odm://server/capabilities",
-    {
-      title: "Open Dungeon Master MCP control capabilities",
-      description: "The internal actions this MCP server can perform.",
-      mimeType: "application/json",
-    },
-    async (uri) => ({
-      contents: [
-        {
-          uri: uri.href,
-          mimeType: "application/json",
-          text: JSON.stringify(await callControl("server.capabilities", {}), null, 2),
-        },
-      ],
-    }),
-  );
+  if (!NARRATOR_ONLY) {
+    registerResource(
+      "control-capabilities",
+      "odm://server/capabilities",
+      {
+        title: "Open Dungeon Master MCP control capabilities",
+        description: "The internal actions this MCP server can perform.",
+        mimeType: "application/json",
+      },
+      async (uri) => ({
+        contents: [
+          {
+            uri: uri.href,
+            mimeType: "application/json",
+            text: JSON.stringify(await callControl("server.capabilities", {}), null, 2),
+          },
+        ],
+      }),
+    );
+  }
 
   registerTool(
     "odm_narrator",
@@ -241,6 +253,8 @@ questions, private whispers, DM outlines or other DM secrets to the table.
       return run(action, params);
     },
   );
+
+  if (NARRATOR_ONLY) return server;
 
   registerTool(
     "odm_server",
@@ -626,8 +640,13 @@ export function createVerifiedMcpServer(options = {}) {
     options.expectPreload ??
     (process.env.ODM_MCP_REQUIRE_PRELOAD !== "0" &&
       process.env.ODM_MCP_REQUIRE_PRELOAD !== "false");
-  if (requirePreload) {
+  if (requirePreload && !NARRATOR_ONLY) {
     assertRegisteredTools(server, { expectPreload: true });
+  } else if (NARRATOR_ONLY) {
+    const registered = Object.keys(server._registeredTools || {}).sort();
+    if (registered.length !== 1 || registered[0] !== "odm_narrator") {
+      throw new Error(`Narrator-only MCP registered unexpected tools: [${registered.join(", ")}]`);
+    }
   }
   return server;
 }
@@ -638,6 +657,9 @@ async function serveHttp() {
   }
   if (!TOKEN && !NARRATOR_TOKEN) {
     throw new Error("ODM_MCP_TOKEN or ODM_MCP_NARRATOR_TOKEN must be set before the HTTP MCP endpoint can start.");
+  }
+  if (NARRATOR_ONLY && (!NARRATOR_TOKEN || NARRATOR_TOKEN.length < 32 || /\s/.test(NARRATOR_TOKEN) || !UUID.test(NARRATOR_CAMPAIGN_ID) || !UPSTREAM_TOKEN)) {
+    throw new Error("Narrator-only MCP requires a distinct token, campaign UUID and upstream control token.");
   }
 
   const handler = createMcpHandler(createVerifiedMcpServer);
@@ -678,7 +700,7 @@ async function serveHttp() {
       return;
     }
 
-    await withMcpCredential(bearerFrom(req.headers), () => nodeHandler(req, res));
+    await withMcpCredential(NARRATOR_ONLY ? UPSTREAM_TOKEN : bearerFrom(req.headers), () => nodeHandler(req, res));
   }, {
     onError: (error) => console.error("MCP request failed:", error instanceof Error ? error.message : String(error)),
   }));

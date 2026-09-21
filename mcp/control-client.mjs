@@ -39,7 +39,7 @@ export function withMcpCancellation(callback) {
 }
 export function createOdmClient({
   url = process.env.ODM_URL?.trim() || process.env.ODM_MCP_CONTROL_URL?.trim() || 'http://127.0.0.1:3005/api/internal/mcp',
-  token = process.env.ODM_AUTH_TOKEN?.trim() || process.env.ODM_MCP_TOKEN?.trim() || '',
+  token = process.env.ODM_AUTH_TOKEN?.trim() || process.env.ODM_MCP_UPSTREAM_TOKEN?.trim() || process.env.ODM_MCP_TOKEN?.trim() || '',
   transport,
   timeoutMs = controlTimeout(),
   fetchImpl = globalThis.fetch,

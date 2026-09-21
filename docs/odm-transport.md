@@ -27,6 +27,20 @@ HTTPS sidecar endpoint instead:
 The sidecar still delegates every action to the same application authorization
 and narrator domain handlers; it is not a second game engine.
 
+During a live app measurement, `ODM_MCP_NARRATOR_ONLY=1` may be used on a
+parallel sidecar. It accepts only `ODM_MCP_NARRATOR_TOKEN`, exposes only
+`odm_narrator`, binds every request to `ODM_MCP_NARRATOR_CAMPAIGN_ID`, and uses
+`ODM_MCP_UPSTREAM_TOKEN` only for the unchanged internal app hop. This avoids
+an app restart; remove the bridge after the app can be rolled with its own
+narrator env.
+
+During a live app measurement, `ODM_MCP_NARRATOR_ONLY=1` may be used on a
+parallel sidecar. It accepts only `ODM_MCP_NARRATOR_TOKEN`, exposes only
+`odm_narrator`, binds every request to `ODM_MCP_NARRATOR_CAMPAIGN_ID`, and uses
+`ODM_MCP_UPSTREAM_TOKEN` only for the unchanged internal app hop. This avoids
+an app restart; remove the bridge after the app can be rolled with its own
+narrator env.
+
 ## Local and tunnel modes
 
 Local development keeps the existing application route behind the client:

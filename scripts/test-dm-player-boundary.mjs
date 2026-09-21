@@ -171,6 +171,9 @@ test('source wiring: access gate precedes domain dispatch and cannot fall throug
   assert.ok(!gateway.includes('executeMcpExtendedControl'));
   const sidecar=fs.readFileSync(new URL('../mcp/server.mjs',import.meta.url),'utf8');
   assert.ok(sidecar.includes('ODM_MCP_NARRATOR_TOKEN'));
+  assert.ok(sidecar.includes('ODM_MCP_NARRATOR_ONLY'));
+  assert.ok(sidecar.includes('ODM_MCP_UPSTREAM_TOKEN'));
+  assert.ok(sidecar.includes('restricted to its configured narrator campaign'));
   assert.ok(sidecar.includes('withMcpCredential'));
 });
 
