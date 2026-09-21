@@ -177,3 +177,31 @@ test('cleanup has an independent short abort deadline', async () => {
   adapter.cleanup('/api/session/ses1'); await new Promise(resolve => setTimeout(resolve, 15)); await adapter.close();
   assert.equal(signal.aborted, true); assert.equal(adapter.pendingCleanups.size, 0);
 });
+
+test('actor generation uses its own shorter abort deadline', async () => {
+  let actorSignal;
+  let sessions = 0;
+  const adapter = new adapterModule.OpenCodeAdapter({
+    endpoint: 'http://127.0.0.1:8000',
+    model: { providerID: 'test', id: 'test' },
+    workspace: process.cwd(),
+    timeoutMs: 120000,
+    actorTimeoutMs: 5,
+    cleanupTimeoutMs: 20,
+    fetchImpl: async (url, options) => {
+      if (options.method === 'DELETE') return new Response(null, { status: 204 });
+      if (url.pathname === '/api/session') {
+        const body = JSON.parse(options.body);
+        return Response.json({ id: `ses${++sessions}`, agent: body.agent, model: body.model });
+      }
+      if (options.method === 'PUT') return new Response(null, { status: 204 });
+      actorSignal = options.signal;
+      return new Promise((_resolve, reject) => {
+        actorSignal.addEventListener('abort', () => reject(actorSignal.reason), { once: true });
+      });
+    },
+  });
+  await assert.rejects(adapter.generate('actor', 'bounded actor input'));
+  assert.equal(actorSignal?.aborted, true);
+  await adapter.close();
+});
