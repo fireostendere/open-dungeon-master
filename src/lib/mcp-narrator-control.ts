@@ -128,7 +128,9 @@ function read(raw: unknown) {
     ...message, campaignId: campaign.id, userId: message.authorUserId, characterId: null,
     authorType: message.kind === "narration" || message.kind === "perception" ? "dm" : "player", channel: "location" as const,
   }))].sort((a,b) => a.seq-b.seq);
-  const askMeta = pendingAsksForCampaign(campaign.id);
+  const askMeta = p.data.includeAsks
+    ? pendingAsksForCampaign(campaign.id)
+    : { pending: false };
   const askPage = p.data.includeAsks
     ? listPendingAsksForCampaign(campaign.id, p.data.afterAskSeq, p.data.askLimit)
     : { items: [], nextCursor: p.data.afterAskSeq, hasMore: false };
@@ -162,7 +164,11 @@ function read(raw: unknown) {
     ),
     messages, spatial: spatial ? { enabled: true, instructions: SPATIAL_GUIDANCE } : { enabled: false }, spatialRooms: spatial?.rooms ?? [], spatialGrants: spatial?.grants ?? [],
     commands: delta && baselineSeq > 0 ? receipts.filter(receipt => receipt.committedSeq > baselineSeq) : receipts,
-    summary: getCampaignSummaryState(campaign.id), members: listMembers(campaign.id), pendingRolls: listOpenPendingRolls(campaign.id),
+    // Legacy story_summary was produced by the retired hosted compaction path.
+    // Keep it available in explicit full reads, but the live narrator uses its
+    // own audience-aware rolling memory and should not query/send it every poll.
+    ...(!live ? { summary: getCampaignSummaryState(campaign.id) } : {}),
+    members: listMembers(campaign.id), pendingRolls: listOpenPendingRolls(campaign.id),
     playerWhispers: listPendingPlayerWhispers(campaign.id), recentDmWhispers: live ? [] : listRecentWhispersForPrompt(campaign.id),
     omittedSections, asks: askPage.items, askQueue: { nextCursor: askPage.nextCursor, hasMore: askPage.hasMore, pending: askMeta.pending },
     ...sections, sectionVersions, location: getCurrentLocation(campaign.id), sceneTracker: getSceneTracker(campaign.id),
