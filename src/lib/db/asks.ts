@@ -1,6 +1,6 @@
 import { getDatabase, nowIso, parseJson } from "@/lib/db/core";
 import type { AskCitation, AskScope, AskVisibility } from "@/lib/dm/ask-logic";
-import { ASK_SELECT, checkAskCapacity, ensureAskQueue, registerAsk, listPendingAsks, answerQueuedAsk } from "@/lib/db/ask-queue.mjs";
+import { ASK_SELECT, checkAskCapacity, ensureAskQueue, registerAsk, listPendingAsks, pendingAskQueueMeta, answerQueuedAsk } from "@/lib/db/ask-queue.mjs";
 export { AskQueueConflict, AskQueueFull } from "@/lib/db/ask-queue.mjs";
 
 export type CampaignAsk = {
@@ -60,6 +60,9 @@ export function listRecentAsksForThread(campaignId: string, userId: string, limi
     WHERE a.campaign_id = ? AND a.user_id = ? AND COALESCE(q.state, a.status) = 'answered'
     ORDER BY a.created_at DESC, a.id DESC LIMIT ?`).all(campaignId, userId, boundedLimit(limit)) as AskRow[];
   return rows.reverse().map(mapAsk);
+}
+export function pendingAsksForCampaign(campaignId: string) {
+  return pendingAskQueueMeta(getDatabase(), campaignId);
 }
 export function listPendingAsksForCampaign(campaignId: string, after = 0, limit = 20) {
   const page = listPendingAsks(getDatabase(), campaignId, after, limit);
