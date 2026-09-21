@@ -55,9 +55,12 @@ payload до записи, затем перечитайте. При ambiguous o
 один атомарный `global_round`. Разрешите весь пакет через серверные действия и
 закончите публичной narration с `completeGlobalRound=<roundNumber>`. Сервер сам
 увеличивает счётчик и открывает следующий раунд только после commit этой
-narration. `done`, `wait`, `release_floor` и `request_player_input` не
-закрывают общий раунд. При ошибке/остановке модели раунд остаётся locked; не
-подменяйте это ручным «завершить ход».
+narration. `wait`, `release_floor` и `request_player_input` не закрывают общий
+раунд. В обычном общем чате `done` тоже не закрывает его: нужен финальный
+`narrate`. В spatial-режиме каждую комнату из `input.roomIds` сначала
+завершите отдельным `location_narrate`; только после этого `done` разрешает
+host выполнить внутренний no-prose finalizer раунда. При ошибке/остановке модели
+раунд остаётся locked; не подменяйте это ручным «завершить ход».
 
 `turnCollectionMinutes=0` означает отсутствие timeout, а
 `quorumDelayMinutes=0` — немедленное закрытие ввода при достижении кворума.
