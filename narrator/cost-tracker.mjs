@@ -20,9 +20,12 @@ export class NarratorCostTracker {
     this.dailyTokenLimit = Number(options.dailyTokenLimit ?? process.env.ODM_NARRATOR_DAILY_TOKENS ?? 1_000_000);
     this.dailyCostLimitUsd = Number(options.dailyCostLimitUsd ?? process.env.ODM_NARRATOR_DAILY_COST_USD ?? 10.00);
 
-    // Default rates if not specified: ~$0.0015 / 1K input, $0.006 / 1K output
-    this.ratePerThousandPrompt = Number(options.ratePerThousandPrompt ?? 0.0015);
-    this.ratePerThousandCompletion = Number(options.ratePerThousandCompletion ?? 0.006);
+    // Provider usage/cost wins when OpenCode exposes it. These are only the
+    // fallback/preflight rates and can be tuned for the selected provider.
+    this.ratePerThousandPrompt = Number(options.ratePerThousandPrompt ??
+      process.env.ODM_NARRATOR_PROMPT_USD_PER_1K ?? 0.0015);
+    this.ratePerThousandCompletion = Number(options.ratePerThousandCompletion ??
+      process.env.ODM_NARRATOR_COMPLETION_USD_PER_1K ?? 0.006);
 
     this.state = this._loadInitialState();
   }
@@ -48,6 +51,7 @@ export class NarratorCostTracker {
           hourTokens: Number(data.hourTokens || 0),
           totalTokens: Number(data.totalTokens || 0),
           totalCostUsd: Number(data.totalCostUsd || 0),
+          estimatedTokens: Number(data.estimatedTokens || 0),
         };
       }
     }
@@ -59,6 +63,7 @@ export class NarratorCostTracker {
       hourTokens: 0,
       totalTokens: 0,
       totalCostUsd: 0,
+      estimatedTokens: 0,
     };
   }
 
@@ -85,12 +90,19 @@ export class NarratorCostTracker {
   }
 
   /**
-   * Check if a proposed call within estimated tokens is permissible under budgets.
-   * @param {number} [estimatedTokens=2000]
-   * @returns {{ allowed: boolean, reason?: string, usage: object }}
+   * Check whether a proposed call fits the token and cost budgets. A number
+   * keeps the legacy contract (all tokens priced as prompt); new callers
+   * should pass separate prompt/completion estimates.
    */
-  checkBudget(estimatedTokens = 2000) {
+  checkBudget(estimate = 2000) {
     this._rolloverIfNeeded();
+    const promptTokens = typeof estimate === 'object' && estimate
+      ? Math.max(0, Number(estimate.promptTokens) || 0)
+      : Math.max(0, Number(estimate) || 0);
+    const completionTokens = typeof estimate === 'object' && estimate
+      ? Math.max(0, Number(estimate.completionTokens) || 0)
+      : 0;
+    const estimatedTokens = promptTokens + completionTokens;
 
     if (this.state.hourTokens + estimatedTokens > this.hourlyTokenLimit) {
       return {
@@ -108,7 +120,9 @@ export class NarratorCostTracker {
       };
     }
 
-    const estimatedCost = (estimatedTokens / 1000) * this.ratePerThousandPrompt;
+    const estimatedCost =
+      (promptTokens / 1000) * this.ratePerThousandPrompt +
+      (completionTokens / 1000) * this.ratePerThousandCompletion;
     if (this.state.dayCostUsd + estimatedCost > this.dailyCostLimitUsd) {
       return {
         allowed: false,
@@ -127,7 +141,7 @@ export class NarratorCostTracker {
    * Record actual token consumption and calculated dollar cost.
    * @param {{ promptTokens?: number, completionTokens?: number, costUsd?: number }} params
    */
-  recordUsage({ promptTokens = 0, completionTokens = 0, costUsd = null } = {}) {
+  recordUsage({ promptTokens = 0, completionTokens = 0, costUsd = null, estimated = false } = {}) {
     this._rolloverIfNeeded();
 
     const totalCallTokens = Math.max(0, promptTokens) + Math.max(0, completionTokens);
@@ -141,6 +155,7 @@ export class NarratorCostTracker {
     this.state.dayCostUsd += calculatedCost;
     this.state.totalTokens += totalCallTokens;
     this.state.totalCostUsd += calculatedCost;
+    if (estimated) this.state.estimatedTokens += totalCallTokens;
 
     this._persist();
 
@@ -158,6 +173,7 @@ export class NarratorCostTracker {
       dailyCostLimitUsd: this.dailyCostLimitUsd,
       totalTokens: this.state.totalTokens,
       totalCostUsd: Number(this.state.totalCostUsd.toFixed(4)),
+      estimatedTokens: this.state.estimatedTokens,
     };
   }
 }

@@ -121,6 +121,36 @@ test('R13: late completion from an old hook identity does not clear the new pend
   } finally { hooks.cleanup(); }
 });
 
+test('disabled location mode does not poll until an enable command succeeds', async () => {
+  const hooks = hookHarness(), gets = [], posts = [];
+  const fetcher = async (url, init = {}) => {
+    if (init.method === 'POST') {
+      posts.push({ url, ...init });
+      return ok();
+    }
+    gets.push({ url, ...init });
+    return Response.json({ enabled: true, rooms: [], messages: [], current: null, nextBefore: null });
+  };
+  const load = await loader({ react: hooks.react }, {
+    fetch: fetcher,
+    setTimeout: () => 1,
+    clearTimeout: () => {},
+  });
+  const { useLocationChat } = await load('../src/app/campaigns/[campaignId]/useLocationChat.ts');
+  try {
+    let chat = hooks.render(() => useLocationChat('c', 'A', false));
+    await pause();
+    assert.equal(gets.length, 0);
+    assert.equal(chat.loading, false);
+
+    assert.equal(await chat.command({ operation: 'enable', name: 'Tavern' }), true);
+    chat = hooks.render(() => useLocationChat('c', 'A', false));
+    await pause();
+    assert.equal(posts.length, 1);
+    assert.equal(gets.length, 1);
+  } finally { hooks.cleanup(); }
+});
+
 test('R12: model intent schema requires stable ID, room and revision; OOC is explicit', async () => {
   const load = await loader(); const { encodeWebMcpLocationIntent: encode } = await load('@/lib/spatial/client-intents');
   const first = JSON.stringify(encode(modelInput)); assert.equal(first, JSON.stringify(encode({ ...modelInput })));

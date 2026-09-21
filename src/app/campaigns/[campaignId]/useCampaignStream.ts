@@ -205,6 +205,10 @@ export type CampaignState = {
   // Bumped by the contentless schedule_updated ephemeral; the schedule
   // section refetches its list.
   scheduleVersion: number;
+  // Whether room-scoped location chat is active. The full room projection
+  // stays in the identity-bound location endpoint; this is only the global
+  // mode bit used to avoid polling that endpoint when it is disabled.
+  spatialEnabled: boolean;
   // Who has the campaign open in a live tab right now. Rides the stream
   // directly for the same reason the voice roster does: small, identical
   // for every seat, and nothing private.
@@ -263,6 +267,7 @@ const initialState: CampaignState = {
   voiceAudibilityVersion: 0,
   voiceMeshSignal: { to: "", version: 0 },
   online: [],
+  spatialEnabled: false,
   scheduleVersion: 0,
 };
 
@@ -671,6 +676,9 @@ function reducer(state: CampaignState, action: Action): CampaignState {
         case "presence":
           next.online = (payload.online as string[]) ?? [];
           return next;
+        case "spatial_mode_changed":
+          next.spatialEnabled = Boolean(payload.enabled);
+          return next;
         case "voice_speaking":
           next.voiceSpeaking = { userId: String(payload.userId ?? ""), at: Date.now() };
           return next;
@@ -761,6 +769,8 @@ const EPHEMERAL_EVENTS = [
   "voice_mesh_signal",
   // Contentless: the schedule section refetches.
   "schedule_updated",
+  // Starts/stops the private location long poll without carrying room data.
+  "spatial_mode_changed",
   // Who has the campaign open right now. Worthless after the fact, like the
   // voice roster, so it is never replayed.
   "presence",
@@ -834,6 +844,7 @@ export function useCampaignStream(campaignId: string) {
           utilityCalls: sortCalls(data.utilityCalls ?? []),
           narrationAudio: data.narrationAudio ?? {},
           ambience: data.ambience ?? EMPTY_AMBIENCE,
+          spatialEnabled: Boolean(data.spatial?.enabled),
           lastSeq,
         },
       });

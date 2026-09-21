@@ -2,7 +2,6 @@ import { z } from "zod";
 import { isErrorResponse, requireMember, requireVoice } from "@/lib/campaign-api";
 import { countPendingPlayerWhispers, countUnreadWhispers, insertPlayerWhisper, listWhispersForUser } from "@/lib/db/dm-whispers";
 import { getSheetForUser } from "@/lib/db/sheets";
-import { requestDmTurn } from "@/lib/dm/loop";
 import { publishEphemeral } from "@/lib/events";
 import { enforcePlayerIngress } from "@/lib/ingress-budget";
 export const runtime = "nodejs";
@@ -33,6 +32,5 @@ export async function POST(request: Request, { params }: { params: Promise<{ cam
     return Response.json({ error: "The DM has not answered your last private messages yet." }, { status: 429 });
   insertPlayerWhisper(campaignId, user.id, sheet.id, parsed.data.message);
   publishEphemeral(campaignId, "whisper_activity", {});
-  requestDmTurn(campaignId);
   return Response.json({ ok: true }, { status: 202 });
 }

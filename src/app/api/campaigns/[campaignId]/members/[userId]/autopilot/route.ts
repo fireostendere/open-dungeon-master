@@ -20,11 +20,11 @@ export async function POST(
     return context;
   }
 
-  // Self or party lead / DM can toggle autopilot
+  // State-only opt-in. The server never runs a model here; the external
+  // narrator host generates an actor intent and writes it through MCP.
   const isSelf = context.user.id === targetUserId;
   const isLeader = isLead(context);
   const isDm = steersStory(context);
-
   if (!isSelf && !isLeader && !isDm) {
     return Response.json(
       { error: "Only the player, party lead, or DM can change autopilot settings." },
@@ -38,12 +38,11 @@ export async function POST(
     return Response.json({ error: "Invalid autopilot request." }, { status: 400 });
   }
 
-  const updatedMember = setMemberAutopilot(campaignId, targetUserId, parsed.data.autopilot);
-  if (!updatedMember) {
+  const member = setMemberAutopilot(campaignId, targetUserId, parsed.data.autopilot);
+  if (!member) {
     return Response.json({ error: "Member not found." }, { status: 404 });
   }
 
-  publishPersisted(campaignId, "member_updated", { member: updatedMember });
-
-  return Response.json({ ok: true, member: updatedMember });
+  publishPersisted(campaignId, "member_updated", { member });
+  return Response.json({ ok: true, member });
 }

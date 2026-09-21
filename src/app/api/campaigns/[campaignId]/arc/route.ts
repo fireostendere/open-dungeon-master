@@ -1,7 +1,6 @@
 import { z } from "zod";
 import { isErrorResponse, requireStoryAuthority } from "@/lib/campaign-api";
 import { getCampaignById, setStoryArc } from "@/lib/db/campaigns";
-import { generateStoryArc } from "@/lib/dm/arc";
 import { enqueueDmJob } from "@/lib/dm/queue";
 import {
   MAX_BEAT_TEXT,
@@ -33,19 +32,19 @@ export async function GET(
   return Response.json({ arc: campaign.storyArc, dmOutline: campaign.dmOutline });
 }
 
-// Party lead: throw the arc away and generate a fresh one from the current
-// premise/outline. Runs on the DM queue so it never interleaves with a turn.
+// Arc generation used to call a hosted text model. Editing an existing arc is
+// still deterministic, but creation/regeneration belongs to the external DM.
 export async function POST(
   _request: Request,
   { params }: { params: Promise<{ campaignId: string }> },
 ) {
   const { campaignId } = await params;
   const context = await requireStoryAuthority(campaignId);
-  if (isErrorResponse(context)) {
-    return context;
-  }
-  enqueueDmJob(campaignId, () => generateStoryArc(campaignId, { force: true }));
-  return Response.json({ ok: true }, { status: 202 });
+  if (isErrorResponse(context)) return context;
+  return Response.json(
+    { error: "Server-side story-arc generation is not available. Author or update the arc externally." },
+    { status: 410 },
+  );
 }
 
 // Party lead: edit one main beat, without regenerating anything.

@@ -61,12 +61,11 @@ export type DispatchContext = {
 
 // These actions can await I/O. Keep them out of every synchronous SQL scope,
 // and out of the external narrator allowlist. New async actions must opt in.
-export const ASYNC_ADJUDICATIONS = new Set(["add_companion", "recall_story", "search_lore"]);
+export const ASYNC_ADJUDICATIONS = new Set(["recall_story", "search_lore"]);
 
 export async function dispatchAdjudication(name: string, rawArguments: string, context: DispatchContext): Promise<Record<string, unknown>> {
   const { campaign, sheets } = context;
   switch (name) {
-    case "add_companion": return handleAddCompanion(campaign, rawArguments, sheets);
     case "recall_story": return handleRecallStory(campaign.id, rawArguments);
     case "search_lore": return handleSearchLore(campaign.id, rawArguments);
     default: return dispatchSynchronousAdjudication(name, rawArguments, context);
@@ -92,6 +91,8 @@ export function dispatchSynchronousAdjudication(
   }
 
   switch (name) {
+    case "add_companion":
+      return handleAddCompanion(campaign, rawArguments, sheets);
     case "request_roll":
       return handleRequestRoll(
         campaign,

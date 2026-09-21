@@ -350,6 +350,17 @@ export function resolveGlobalTurn(
   return work;
 }
 
+/**
+ * Synchronous sealing primitive for trusted writes already running inside the
+ * narrator command transaction. It performs no model/provider work.
+ */
+export function sealGlobalTurnNow(
+  campaignId: string,
+  expectedRound?: number,
+): GlobalTurnState | null {
+  return resolveGlobalTurnOnce(campaignId, expectedRound);
+}
+
 function resolveGlobalTurnOnce(
   campaignId: string,
   expectedRound?: number,

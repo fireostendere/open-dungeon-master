@@ -1,15 +1,23 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
+import { randomUUID } from 'node:crypto';
 import { withDmPolicy } from './dm-policy.mjs';
 import { emitLatency, mcpLatencyStage, withLatencyTrace } from './latency-trace.mjs';
 import { createOdmTransport } from './transport.mjs';
 
 const operation = new AsyncLocalStorage();
 const credential = new AsyncLocalStorage();
+const configuredNarratorHostId = process.env.ODM_NARRATOR_HOST_ID?.trim() || '';
+const narratorHostId = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(configuredNarratorHostId)
+  ? configuredNarratorHostId
+  : randomUUID();
+export const ODM_NARRATOR_HOST_ID = narratorHostId;
 /** Transport defaults never change a command ID, cursor or effect payload. */
 export function narratorParams(action, params = {}) {
   const result = { ...params };
   if (!action.startsWith('narrator.')) return result;
   for (const key of ['compact', 'policyMode', 'includePolicyText']) delete result[key];
+  // Host identity is transport metadata, never model-controlled tool input.
+  result.narratorHostId = narratorHostId;
   if (action === 'narrator.connect') { result.projection ??= 'live'; result.maxBytes ??= 131072; }
   if (action === 'narrator.read') { result.projection ??= 'live'; result.delta ??= true; }
   if (action === 'narrator.catalog' && !result.action && !result.actionFilter && !result.name && !result.category) result.summaryOnly ??= true;

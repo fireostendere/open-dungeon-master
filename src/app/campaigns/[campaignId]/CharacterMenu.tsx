@@ -32,6 +32,8 @@ const COPY = {
     adjustStats: "Adjust stats",
     makeLead: "Make party lead",
     dismissCompanion: "Dismiss companion",
+    autopilotOn: "Enable MCP autopilot",
+    autopilotOff: "Disable MCP autopilot",
     unmute: "Unmute player",
     mute: "Mute player",
     report: "Report player",
@@ -46,6 +48,8 @@ const COPY = {
     adjustStats: "Изменить характеристики",
     makeLead: "Сделать лидером группы",
     dismissCompanion: "Отпустить спутника",
+    autopilotOn: "Включить MCP-автопилот",
+    autopilotOff: "Отключить MCP-автопилот",
     unmute: "Включить звук игрока",
     mute: "Заглушить игрока",
     report: "Пожаловаться на игрока",
@@ -60,6 +64,8 @@ const COPY = {
     adjustStats: "Dostosuj statystyki",
     makeLead: "Ustaw jako lidera drużyny",
     dismissCompanion: "Odpraw towarzysza",
+    autopilotOn: "Włącz autopilota MCP",
+    autopilotOff: "Wyłącz autopilota MCP",
     unmute: "Włącz dźwięk gracza",
     mute: "Wycisz gracza",
     report: "Zgłoś gracza",
@@ -83,8 +89,7 @@ export function CharacterMenu({
   canModerate = false,
   canMute = false,
   muted = false,
-  isLead = false,
-  meUserId = "",
+  canToggleAutopilot = false,
   autopilot = false,
 }: {
   sheet: CharacterSheet;
@@ -100,8 +105,7 @@ export function CharacterMenu({
   canModerate?: boolean;
   canMute?: boolean;
   muted?: boolean;
-  isLead?: boolean;
-  meUserId?: string;
+  canToggleAutopilot?: boolean;
   autopilot?: boolean;
 }) {
   const { locale } = useI18n();
@@ -198,10 +202,10 @@ export function CharacterMenu({
               <UserMinus className="size-3.5 text-red-400" /> {copy.dismissCompanion}
             </DropdownMenu.Item>
           ) : null}
-          {!sheet.isCompanion && (isLead || sheet.userId === meUserId) ? (
+          {canToggleAutopilot && !sheet.isCompanion ? (
             <DropdownMenu.Item className={item} onSelect={toggleAutopilot}>
               <Bot className="size-3.5 text-sky-400" />
-              {autopilot ? "Отключить автопилот" : "Включить автопилот"}
+              {autopilot ? copy.autopilotOff : copy.autopilotOn}
             </DropdownMenu.Item>
           ) : null}
           {canMute ? (

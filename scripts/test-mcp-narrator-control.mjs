@@ -33,8 +33,11 @@ assert.deepEqual(capabilities.actions.slice(0, 7), [
   "narrator.connect", "narrator.read", "narrator.snapshot", "narrator.catalog", "narrator.invoke", "narrator.narrate", "narrator.release_floor",
 ]);
 assert.equal(extendControlResult("server.status", { mcpControlActions: 0 }).mcpControlActions, capabilities.actions.length);
+assert.ok(capabilities.actions.includes("narrator.autopilot_action"), "external autopilot write must be advertised");
 
 const dm = createUser("external_dm", "hash");
+const narratorHostA = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+const narratorHostB = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
 const campaign = createCampaign(dm.id, {
   title: "No AI", description: "", theme: "", maxPlayers: 4, startingLevel: 1,
   difficulty: "normal", gameSettings: { dmMode: "human", ttsEnabled: false, mapsEnabled: false },
@@ -72,6 +75,24 @@ assert.equal(EXTERNAL_NARRATOR_ACTIONS.has("generate_image"), false);
 assert.equal(EXTERNAL_NARRATOR_ACTIONS.has("search_lore"), false);
 assert.equal(EXTERNAL_NARRATOR_ACTIONS.has("set_npc"), true);
 assert.equal(connected.result.state.campaign.gameSettings.mapsEnabled, false);
+await assert.rejects(
+  () => executeMcpNarratorControl("narrator.connect", { campaignId: campaign.id, stateDelta: true }),
+  error => error instanceof McpNarratorControlError && error.status === 400,
+  "v4 state delta must have transport-owned host identity",
+);
+const deltaConnected = await executeMcpNarratorControl("narrator.connect", { campaignId: campaign.id, stateDelta: true, narratorHostId: narratorHostA });
+assert.equal(deltaConnected.result.contractVersion, 4);
+assert.ok(deltaConnected.result.cursor.currentSeq >= 0);
+assert.match(deltaConnected.result.cursor.timelineEpoch, /^[a-f0-9]{64}$/);
+assert.equal(Object.hasOwn(deltaConnected.result, "state"), false, "delta connect must not echo a full state snapshot");
+await assert.rejects(
+  () => executeMcpNarratorControl("narrator.connect", { campaignId: campaign.id, stateDelta: true, narratorHostId: narratorHostB }),
+  error => error instanceof McpNarratorControlError && error.status === 409,
+  "a second live narrator process must not acquire the campaign lease",
+);
+for (const action of ["add_companion","dismiss_companion","mount_up","dismount","roll_treasure","damage_object","group_check","check_notice"]) {
+  assert.equal(EXTERNAL_NARRATOR_ACTIONS.has(action), true, action + " must be available to the external narrator");
+}
 
 const compactSnapshot = await executeMcpNarratorControl("narrator.snapshot", {
   campaignId: campaign.id,
@@ -203,14 +224,16 @@ await assert.rejects(
 );
 assert.equal(latestSeq(workshop.id), workshopSeq);
 
-const unsafeSettings = createCampaign(dm.id, {
-  title: "Unsafe settings", description: "", theme: "", maxPlayers: 1, startingLevel: 1,
-  difficulty: "normal", gameSettings: { dmMode: "human", ttsEnabled: true, mapsEnabled: false },
+const legacyMediaSettings = createCampaign(dm.id, {
+  title: "Legacy media flags", description: "", theme: "", maxPlayers: 1, startingLevel: 1,
+  difficulty: "normal", gameSettings: { dmMode: "human", ttsEnabled: true, mapsEnabled: true },
 });
-await assert.rejects(
-  () => executeMcpNarratorControl("narrator.connect", { campaignId: unsafeSettings.id }),
-  (error) => error instanceof McpNarratorControlError && error.status === 409,
-);
+setCampaignStatus(legacyMediaSettings.id, "active");
+const legacyMediaConnect = await executeMcpNarratorControl("narrator.connect", {
+  campaignId: legacyMediaSettings.id,
+});
+assert.equal(legacyMediaConnect.handled, true,
+  "retired hosted TTS/map flags must not block the external narrator");
 
 const oocCampaign = createCampaign(dm.id, {
   title: "OOC Filter Test", description: "", theme: "", maxPlayers: 4, startingLevel: 1,
@@ -278,6 +301,12 @@ const testAsk = insertAsk({
 
 const askRead = await executeMcpNarratorControl("narrator.read", { campaignId: oocCampaign.id, afterSeq: 0, limit: 10 });
 assert.ok(askRead.result.asks.some((a) => a.id === testAsk.id), "narrator.read must include asks");
+const storyOnlyRead = await executeMcpNarratorControl("narrator.read", {
+  campaignId: oocCampaign.id, afterSeq: 0, limit: 10, includeAsks: false,
+});
+assert.deepEqual(storyOnlyRead.result.asks, [], "story-only reads must not repeat pending Ask payloads");
+assert.equal(storyOnlyRead.result.askQueue.hasMore, false);
+assert.equal(storyOnlyRead.result.askQueue.nextCursor, 0);
 
 const answerCommandId = randomUUID();
 const askSequence = latestSeq(oocCampaign.id);
@@ -373,6 +402,14 @@ assert.ok(editedHistory.result.recentMessages.some(message => message.id === his
 
 // This intentionally bypasses event publication: old event-name heuristics
 // omitted the changed resources payload because the sequence did not advance.
+const stateDeltaBaseline = await executeMcpNarratorControl("narrator.read", {
+  campaignId: campaign.id, afterSeq: deltaBaseline.result.currentSeq, delta: true, stateDelta: true, narratorHostId: narratorHostA,
+});
+assert.equal(stateDeltaBaseline.result.stateDelta.full, true);
+assert.equal(stateDeltaBaseline.result.sectionVersions, undefined);
+assert.ok(Array.isArray(stateDeltaBaseline.result.sheets));
+const stateDeltaBaselineBytes = Buffer.byteLength(JSON.stringify(stateDeltaBaseline.result));
+
 getDatabase().prepare("UPDATE character_sheets SET resources_json = ? WHERE id = ?")
   .run(JSON.stringify({ test_resource: { current: 0, max: 1 } }), liveSheet.id);
 const changedDelta = await executeMcpNarratorControl("narrator.read", {
@@ -382,6 +419,24 @@ const changedDelta = await executeMcpNarratorControl("narrator.read", {
 assert.equal(changedDelta.result.sheets[0].resources.test_resource.current, 0);
 assert.equal(changedDelta.result.omittedSections.includes("sheets"), false);
 
+const entityDelta = await executeMcpNarratorControl("narrator.read", {
+  campaignId: campaign.id, afterSeq: stateDeltaBaseline.result.currentSeq, delta: true, stateDelta: true, narratorHostId: narratorHostA,
+  knownStateRevision: stateDeltaBaseline.result.stateDelta.revision,
+});
+assert.equal(entityDelta.result.stateDelta.full, false);
+assert.equal(Object.hasOwn(entityDelta.result, "sheets"), false, "entity delta must not resend the whole sheets array");
+assert.equal(entityDelta.result.stateDelta.patch.entities.sheets.upsert.length, 1);
+assert.equal(entityDelta.result.stateDelta.patch.entities.sheets.upsert[0].id, liveSheet.id);
+assert.equal(entityDelta.result.stateDelta.patch.entities.sheets.upsert[0].resources.test_resource.current, 0);
+assert.ok(Buffer.byteLength(JSON.stringify(entityDelta.result)) < stateDeltaBaselineBytes, "entity delta must shrink the wire payload");
+await assert.rejects(
+  () => executeMcpNarratorControl("narrator.read", {
+    campaignId: campaign.id, stateDelta: false, knownStateRevision: entityDelta.result.stateDelta.revision,
+  }),
+  error => error instanceof McpNarratorControlError && error.status === 400,
+);
+
+const tombstoneBase = entityDelta.result.stateDelta.revision;
 const changedBaseline = await executeMcpNarratorControl("narrator.read", { campaignId: campaign.id, delta: true });
 getDatabase().prepare("DELETE FROM character_sheets WHERE id = ?").run(liveSheet.id);
 const deletedDelta = await executeMcpNarratorControl("narrator.read", {
@@ -389,6 +444,12 @@ const deletedDelta = await executeMcpNarratorControl("narrator.read", {
 });
 assert.deepEqual(deletedDelta.result.sheets, [], "a changed section returns an empty array to clear the cache");
 assert.equal(deletedDelta.result.omittedSections.includes("sheets"), false);
+const deletedEntityDelta = await executeMcpNarratorControl("narrator.read", {
+  campaignId: campaign.id, delta: true, stateDelta: true, narratorHostId: narratorHostA, knownStateRevision: tombstoneBase,
+});
+assert.equal(deletedEntityDelta.result.stateDelta.full, false);
+assert.ok(deletedEntityDelta.result.stateDelta.patch.entities.sheets.remove.includes(liveSheet.id), "deletion must travel as a tombstone");
+assert.equal(Object.hasOwn(deletedEntityDelta.result, "sheets"), false);
 
 const scopedDelta = await executeMcpNarratorControl("narrator.read", {
   campaignId: oocCampaign.id, delta: true, knownSections: deltaBaseline.result.sectionVersions,

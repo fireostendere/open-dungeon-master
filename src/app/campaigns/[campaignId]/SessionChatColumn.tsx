@@ -11,7 +11,7 @@ import { cn } from "@/lib/cn";
 // Keep the established table unchanged until its DM explicitly enables the
 // location ledger. Switching is a server fact, not a local UI preference.
 export function SessionChatColumn(props: ComponentProps<typeof LegacySessionChatColumn>) {
-  const chat = useLocationChat(props.campaignId, props.meUserId);
+  const chat = useLocationChat(props.campaignId, props.meUserId, props.state.spatialEnabled);
   const { locale } = useI18n();
   const t = localeText(locale, {
     en: { enable: "Enable location chats", start: "Starting location", loading: "Loading location permissions…", retry: "Retry", history: "Shared mechanics, Ask and earlier story", note: "Text scenes for a human DM or external MCP narrator. Rolls, combat, facts and other legacy game projections are still shared, not location-private." },

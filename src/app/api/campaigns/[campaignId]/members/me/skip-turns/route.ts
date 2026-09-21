@@ -5,7 +5,6 @@ import { getSheetForUser } from "@/lib/db/sheets";
 import { publishPersisted } from "@/lib/events";
 import { refreshGlobalTurnReadiness, resolveGlobalTurn } from "@/lib/dm/global-turn-logic";
 import { skipOwnTurn } from "@/lib/dm/encounter-tools";
-import { requestDmTurn } from "@/lib/dm/loop";
 import { getActiveEncounter } from "@/lib/db/encounters";
 import { gameText, resolveGameLanguage } from "@/lib/i18n/game-text";
 
@@ -53,7 +52,6 @@ export async function POST(
   if (count > 0 && skipOwnTurn(campaignId, context.user.id)) {
     const updated = getMember(campaignId, context.user.id) ?? member;
     publishPersisted(campaignId, "member_updated", { member: updated });
-    requestDmTurn(campaignId);
     return Response.json({ ok: true, member: updated });
   }
   if (getActiveEncounter(campaignId)) return Response.json({ ok: true, member });

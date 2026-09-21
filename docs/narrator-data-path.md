@@ -12,11 +12,11 @@ Continues `astra` from `b6a75a1`. This document distinguishes implemented runtim
 
 `narrator/orchestration.mjs` now requests `readAfter` directly from the internal API, not just through the MCP transport. It consumes the returned first page rather than fetching it again. The read-session module validates the snapshot, campaign, timeline, acknowledged cursor, section hashes and subsequent byte/event pages before acknowledging input. A partial/damaged response does not install a new cache baseline.
 
-A committed command's small receipt is saved before processing readback. The attached full state is not duplicated into the checkpoint. A readback failure or restart resumes reading, never re-executes the committed effect. Ambiguous writes retain the same persisted UUID and request, with the existing two-attempt bound.
+A committed command's small receipt is saved before processing readback. The attached state delta is not duplicated into the checkpoint. A readback failure or restart resumes reading, never re-executes the committed effect. Ambiguous writes retain the same persisted UUID and request, with the existing two-attempt bound.
 
-The old pre-write network read is also removed. The write still carries the sequence of the actual decision snapshot, and the engine's transactional CAS rejects stale state before effects. This is not permission to apply a draft to a newer sequence. A 409 triggers a fresh read and reconsideration. In the single-page, uncontended path this removes the standalone pre-write and post-write read calls; the post-write database read still runs inside the command response.
+The old pre-write network read is also removed. The write still carries the sequence of the actual decision snapshot, and the engine's transactional CAS rejects stale state before effects. This is not permission to apply a draft to a newer sequence. A 409 triggers a fresh read and reconsideration. In the single-page, uncontended path this removes the standalone pre-write and post-write network reads; the application computes an authoritative post-write delta inside the command response.
 
-Stopping or changing the timeline while a role is generating discards its late decision. The optional automatic orchestrator's existing spatial-campaign guard remains; this patch does not claim that the automatic OpenCode orchestrator supports room campaigns. External Codex/MCP room play uses the application-side read optimizations.
+Stopping or changing the timeline while a role is generating discards its late decision. Spatial projections are audience-filtered before state revisions/diffs are produced; the host never diffs a global hidden state and filters it afterwards.
 
 ### Prepared SQL programs and versioned projections
 
@@ -34,6 +34,8 @@ For narrator reads, `readNarratorSections` uses small source revision tokens bef
 Revision tokens are updated by SQLite triggers in the same transaction as inserts, updates and deletes, including writers on other connections. Random tokens avoid reuse after rollback. Reassignment updates both campaign scopes. Insertions additionally change a source-wide token, conservatively covering implicit deletes from `INSERT OR REPLACE` even with recursive triggers disabled. Chat does not invalidate these source tables.
 
 The per-connection projection cache is bounded to 128 entries and 16 MiB of serialized bodies (JavaScript object overhead is additional). Its keys include campaign, timeline, narrator identity, section, schema and dependency versions. Schema changes or missing dependencies invalidate/bypass caching. If a source changes while its loader runs, that result is not stored under the old revision. Returned values are copies, not mutable shared references. The content-hash algorithm remains compatible with existing `knownSections` clients.
+
+Above that legacy cache, the state-delta cache keeps at most 128 audience-projected narrator baselines and 24 MiB of serialized state per application process. Revisions include campaign, timeline, narrator principal and projection. Entity arrays are diffed by stable ID; deletes are tombstones. The receiver verifies the reconstructed SHA-256 revision. Eviction or process restart degrades to one full resync, never to an unverified partial patch.
 
 A warm read with matching hashes does not re-run the section loaders, parse cached JSON or hash full section bodies again. It still checks revision tokens and live campaign state. Current authorization, player observations, room audiences, pending rolls, encounters and command effects are not served from this cache. The existing item-weight lookup is process-local; replacing content packs should still follow the application's normal restart procedure.
 

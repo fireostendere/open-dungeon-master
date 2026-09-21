@@ -1,6 +1,32 @@
+import fs from 'node:fs';
 import path from 'node:path';
 import { trustedInstruction } from './role-profiles.mjs';
 import { emitLatency, latencyEnabled, withLatencyTrace } from '../mcp/latency-trace.mjs';
+
+const nonNegativeInteger = value => Number.isSafeInteger(Number(value)) && Number(value) >= 0 ? Number(value) : null;
+function validModel(value) {
+  return value && typeof value === 'object' && !Array.isArray(value) &&
+    Object.keys(value).every(key => ['providerID', 'id', 'variant'].includes(key)) &&
+    ['providerID', 'id'].every(key => typeof value[key] === 'string' && value[key].trim()) &&
+    (value.variant === undefined || typeof value.variant === 'string');
+}
+function modelUsage(reply) {
+  const source = reply?.usage ?? reply?.metadata?.usage ?? reply?.info?.usage ?? null;
+  if (!source || typeof source !== 'object' || Array.isArray(source)) return null;
+  const promptTokens = [
+    source.promptTokens, source.prompt_tokens, source.inputTokens, source.input_tokens, source.input,
+  ].map(nonNegativeInteger).find(value => value !== null);
+  const completionTokens = [
+    source.completionTokens, source.completion_tokens, source.outputTokens, source.output_tokens, source.output,
+  ].map(nonNegativeInteger).find(value => value !== null);
+  if (promptTokens === undefined || completionTokens === undefined) return null;
+  const cost = Number(source.costUsd ?? source.cost_usd ?? source.cost);
+  return {
+    promptTokens,
+    completionTokens,
+    ...(Number.isFinite(cost) && cost >= 0 ? { costUsd: cost } : {}),
+  };
+}
 
 export class OpenCodeAdapter {
   constructor(options = {}) {
@@ -13,17 +39,48 @@ export class OpenCodeAdapter {
     this.token = (options.token ?? process.env.ODM_OPENCODE_TOKEN ?? '').trim();
     this.model = options.model ?? { providerID: process.env.ODM_OPENCODE_PROVIDER, id: process.env.ODM_OPENCODE_MODEL,
       ...(process.env.ODM_OPENCODE_VARIANT ? { variant: process.env.ODM_OPENCODE_VARIANT } : {}) };
-    if (!this.model || Object.keys(this.model).some(key => !['providerID', 'id', 'variant'].includes(key)) ||
-        !['providerID', 'id'].every(key => typeof this.model[key] === 'string' && this.model[key].trim()) ||
-        this.model.variant !== undefined && typeof this.model.variant !== 'string') throw new Error('Select an explicit provider/model/variant.');
+    if (!validModel(this.model)) throw new Error('Select an explicit provider/model/variant.');
     this.model = { ...this.model };
+    this.roleModels = {};
+    for (const role of ['referee', 'writer', 'ask', 'actor']) {
+      const explicit = options.roleModels?.[role];
+      const prefix = `ODM_OPENCODE_${role.toUpperCase()}_`;
+      const hasEnvOverride = process.env[`${prefix}PROVIDER`] || process.env[`${prefix}MODEL`] || process.env[`${prefix}VARIANT`];
+      const candidate = explicit ?? (hasEnvOverride ? {
+        providerID: process.env[`${prefix}PROVIDER`] || this.model.providerID,
+        id: process.env[`${prefix}MODEL`] || this.model.id,
+        ...(process.env[`${prefix}VARIANT`] !== undefined
+          ? { variant: process.env[`${prefix}VARIANT`] }
+          : this.model.variant !== undefined ? { variant: this.model.variant } : {}),
+      } : this.model);
+      if (!validModel(candidate)) throw new Error(`Invalid ${role} provider/model/variant.`);
+      this.roleModels[role] = { ...candidate };
+    }
     this.workspace = options.workspace ?? process.env.ODM_OPENCODE_WORKSPACE;
     if (typeof this.workspace !== 'string' || !path.isAbsolute(this.workspace)) throw new Error('Select an absolute isolated OpenCode workspace.');
+    // export-opencode-workspace installs the exact trusted role instruction as
+    // the agent system prompt. When it still matches byte-for-byte, installing
+    // the same text again through the session instruction API only duplicates
+    // model context and adds an HTTP round-trip. A stale/missing/custom
+    // workspace fails closed to the API-managed instruction path below.
+    this.workspacePolicyRoles = new Set();
+    try {
+      const config = JSON.parse(fs.readFileSync(path.join(this.workspace, 'opencode.json'), 'utf8'));
+      for (const role of ['referee', 'writer', 'ask', 'actor']) {
+        if (config?.agents?.[`narrator-${role}`]?.system === trustedInstruction(role)) {
+          this.workspacePolicyRoles.add(role);
+        }
+      }
+    } catch {}
     this.fetch = options.fetchImpl ?? globalThis.fetch;
     this.timeoutMs = options.timeoutMs ?? 120000;
     this.cleanupTimeoutMs = options.cleanupTimeoutMs ?? 2000;
     if (!Number.isSafeInteger(this.cleanupTimeoutMs) || this.cleanupTimeoutMs < 1 || this.cleanupTimeoutMs > 10000) throw new Error('Invalid cleanup timeout.');
     this.pendingCleanups = new Set();
+    this.idleSessions = new Map();
+    this.warmingSessions = new Map();
+    this.poolEnabled = false;
+    this.closed = false;
     this.onTiming = typeof options.onTiming === 'function' ? options.onTiming : null;
   }
   timing(stage, startedAt, fields = {}) {
@@ -61,27 +118,91 @@ export class OpenCodeAdapter {
     this.pendingCleanups.add(task);
     void task.finally(() => this.pendingCleanups.delete(task));
   }
-  async close() { await Promise.allSettled([...this.pendingCleanups]); }
-  async generate(role, prompt) {
+  async createSession(role) {
+    if (this.closed) throw new Error('OpenCode adapter is closed.');
+    const agent = `narrator-${role}`;
+    const roleModel = this.modelFor(role);
+    const session = await this.request('/api/session', { stage: 'session', body: { agent, model: roleModel,
+      location: { directory: this.workspace }, permissions: [{ action: '*', resource: '*', effect: 'deny' }], title: `ODM ${role}` } });
+    if (typeof session?.id !== 'string' || !/^ses[a-zA-Z0-9_-]+$/.test(session.id)) throw new Error('Invalid OpenCode session.');
+    if (session.agent !== agent || ['providerID', 'id', 'variant'].some(key => session.model?.[key] !== roleModel[key])) {
+      this.cleanup(`/api/session/${encodeURIComponent(session.id)}`);
+      throw new Error('OpenCode did not preserve the selected role/model.');
+    }
+    try {
+      if (!this.workspacePolicyRoles.has(role)) {
+        await this.request(`/api/experimental/session/${encodeURIComponent(session.id)}/instructions/entries/odm-policy`,
+          { method: 'PUT', stage: 'policy', body: { value: trustedInstruction(role) } });
+      }
+      return session;
+    } catch (error) {
+      this.cleanup(`/api/session/${encodeURIComponent(session.id)}`);
+      throw error;
+    }
+  }
+  async ensureWarm(role) {
+    if (this.closed || this.idleSessions.has(role)) return this.idleSessions.get(role) ?? null;
+    if (this.warmingSessions.has(role)) return this.warmingSessions.get(role);
+    const task = this.createSession(role)
+      .then(session => {
+        if (this.closed) this.cleanup(`/api/session/${encodeURIComponent(session.id)}`);
+        else this.idleSessions.set(role, session);
+        return session;
+      })
+      .finally(() => this.warmingSessions.delete(role));
+    this.warmingSessions.set(role, task);
+    return task;
+  }
+  async prepare(roles = ['referee', 'writer', 'ask']) {
+    this.poolEnabled = true;
+    await Promise.all(roles.map(role => this.ensureWarm(role)));
+  }
+  async takeSession(role) {
+    if (this.idleSessions.has(role)) {
+      const session = this.idleSessions.get(role);
+      this.idleSessions.delete(role);
+      if (this.poolEnabled) void this.ensureWarm(role).catch(() => {});
+      return session;
+    }
+    if (this.warmingSessions.has(role)) {
+      await this.warmingSessions.get(role);
+      if (this.idleSessions.has(role)) return this.takeSession(role);
+    }
+    const session = await this.createSession(role);
+    if (this.poolEnabled) void this.ensureWarm(role).catch(() => {});
+    return session;
+  }
+  async close() {
+    this.closed = true;
+    await Promise.allSettled([...this.warmingSessions.values()]);
+    for (const session of this.idleSessions.values()) {
+      this.cleanup(`/api/session/${encodeURIComponent(session.id)}`);
+    }
+    this.idleSessions.clear();
+    await Promise.allSettled([...this.pendingCleanups]);
+  }
+  modelFor(role) {
+    return this.roleModels[role] ?? this.model;
+  }
+  instructionBytes(role) {
+    return Buffer.byteLength(trustedInstruction(role));
+  }
+  async generateWithUsage(role, prompt) {
     return withLatencyTrace(async () => {
-      const instruction = trustedInstruction(role);
       if (typeof prompt !== 'string' || Buffer.byteLength(prompt) > 262144) throw new Error('Role input exceeds the byte budget; no facts were clipped.');
-      // Bound outstanding cleanup work without reusing sessions across roles or
-      // private Ask audiences. Real fetches abort after cleanupTimeoutMs.
       if (this.pendingCleanups.size >= 32) throw new Error('OpenCode cleanup capacity exhausted.');
-      const agent = `narrator-${role}`;
-      const session = await this.request('/api/session', { stage: 'session', body: { agent, model: this.model,
-        location: { directory: this.workspace }, permissions: [{ action: '*', resource: '*', effect: 'deny' }], title: `ODM ${role}` } });
-      if (typeof session?.id !== 'string' || !/^ses[a-zA-Z0-9_-]+$/.test(session.id)) throw new Error('Invalid OpenCode session.');
+      const session = await this.takeSession(role);
       const route = `/api/session/${encodeURIComponent(session.id)}`;
       try {
-        if (session.agent !== agent || ['providerID', 'id', 'variant'].some(key => session.model?.[key] !== this.model[key])) throw new Error('OpenCode did not preserve the selected role/model.');
-        await this.request(`/api/experimental/session/${encodeURIComponent(session.id)}/instructions/entries/odm-policy`, { method: 'PUT', stage: 'policy', body: { value: instruction } });
         const reply = await this.request(`${route}/generate`, { stage: 'model', body: { prompt } });
         if (typeof reply?.text !== 'string' || !reply.text.trim() || Buffer.byteLength(reply.text) > 32768) throw new Error('Malformed or oversized model output.');
-        return reply.text;
+        return { text: reply.text, usage: modelUsage(reply) };
       } finally { this.cleanup(route); }
     });
+  }
+  async generate(role, prompt) {
+    const result = await this.generateWithUsage(role, prompt);
+    return result.text;
   }
 }
 

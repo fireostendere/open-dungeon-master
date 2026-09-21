@@ -1,6 +1,6 @@
 "use client";
 
-import { Bot, Clock, Eye, EyeOff, Loader2, Send, SkipForward } from "lucide-react";
+import { Clock, Eye, EyeOff, Loader2, Send, SkipForward } from "lucide-react";
 import { memo, useEffect, useState } from "react";
 import type { Dispatch, FormEvent, RefObject, SetStateAction } from "react";
 import { cn } from "@/lib/cn";
@@ -195,7 +195,6 @@ function ComposerInner({
   const [skipCount, setSkipCount] = useState(1);
   const [skipBusy, setSkipBusy] = useState(false);
   const [skipError, setSkipError] = useState("");
-  const [autopilotBusy, setAutopilotBusy] = useState(false);
 
   useEffect(() => {
     if (!globalTurnEnabled || !globalTurnState?.deadlineAt) return;
@@ -252,19 +251,6 @@ function ComposerInner({
       setSkipError(locale === "ru" ? "Не удалось изменить пропуск ходов." : locale === "pl" ? "Nie udało się zmienić pomijania tur." : "Could not change skipped turns.");
     } finally {
       setSkipBusy(false);
-    }
-  }
-
-  async function handleToggleAutopilot() {
-    setAutopilotBusy(true);
-    try {
-      await fetch(`/api/campaigns/${campaignId}/members/${meUserId}/autopilot`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ autopilot: !myMember?.autopilot }),
-      });
-    } finally {
-      setAutopilotBusy(false);
     }
   }
 
@@ -360,23 +346,6 @@ function ComposerInner({
             </div>
 
             <div className="flex items-center gap-1.5">
-              {/* Autopilot toggle */}
-              <button
-                type="button"
-                disabled={autopilotBusy || globalTurnLocked}
-                onClick={handleToggleAutopilot}
-                className={cn(
-                  "flex items-center gap-1 rounded border px-2 py-0.5 text-[11px] transition-colors",
-                  myMember?.autopilot
-                    ? "border-sky-600 bg-sky-950/80 text-sky-200"
-                    : "border-stone-700 bg-stone-900 text-stone-400 hover:text-stone-200",
-                )}
-                title="Автопилот нейросети для вашего персонажа (Доппельгангер)"
-              >
-                <Bot className="size-3" />
-                {myMember?.autopilot ? "Автопилот: ВКЛ" : "Автопилот"}
-              </button>
-
               {/* Skip turns controls */}
               {myMember && myMember.skipTurnsCount > 0 ? (
                 <div className="flex items-center gap-1 rounded border border-amber-700/60 bg-amber-950/50 px-1.5 py-0.5 text-[11px]">

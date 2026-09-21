@@ -1,6 +1,5 @@
 "use client";
 
-import { cn } from "@/lib/cn";
 import { useI18n } from "@/lib/i18n";
 import { InfoButton } from "@/components/ui/InfoDialog";
 import { ToggleCard } from "@/app/create-campaign/fields";
@@ -136,64 +135,31 @@ const COPY = {
   },
 } as const;
 
-// Which of the table features are switched on, counting only the ones the
-// wizard actually showed: a hidden toggle is not a choice the table made.
-// The review step reads this so its "n on" agrees with the grid.
+// Which table features are enabled. Hosted text/image/speech generation is
+// intentionally absent; these are deterministic engine/table capabilities.
 export function featuresOn(draft: CampaignDraft, gates: WizardGates): number {
-  const { aiNarrates, solo } = gates;
   const bonds = draft.relationships !== "off";
   return [
-    aiNarrates && draft.aiStorySetup,
-    draft.ttsEnabled,
-    draft.mapsEnabled,
     draft.ambienceEnabled,
     draft.ambienceEnabled && draft.ambienceAuto,
     draft.multiclassingEnabled,
-    aiNarrates && draft.worldSimulation,
+    draft.worldSimulation,
     draft.inventoryApprovals,
     bonds,
     bonds && draft.romance !== "off",
-    aiNarrates && draft.narrationGuard,
-    !solo && draft.midGameJoinOpen,
-    !solo && draft.holdSubmissions,
+    !gates.solo && draft.midGameJoinOpen,
+    !gates.solo && draft.holdSubmissions,
   ].filter(Boolean).length;
 }
 
-// Step 4: the toggle grid, then the AI allies and narrator voice. Voice
-// narration and maps stay visible but disabled when the server lacks the
-// backend, because they are one server switch away rather than a feature
-// this install can never have; the AI-only rows hide when a human narrates.
 export function FeelStep(props: StepProps) {
   const { draft, patch, gates } = props;
   const { locale } = useI18n();
   const copy = COPY[locale];
-  const { aiNarrates, solo, ttsAvailable, mapsAvailable } = gates;
   const bonds = draft.relationships !== "off";
   return (
     <div className="space-y-4 text-sm">
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-        {aiNarrates ? (
-          <ToggleCard
-            active={draft.aiStorySetup}
-            onClick={() => patch({ aiStorySetup: !draft.aiStorySetup })}
-            label={copy.aiSetup}
-            hint={copy.aiSetupHint}
-          />
-        ) : null}
-        <ToggleCard
-          active={draft.ttsEnabled}
-          disabled={!ttsAvailable}
-          onClick={() => patch({ ttsEnabled: !draft.ttsEnabled })}
-          label={copy.narration}
-          hint={ttsAvailable ? copy.narrationHint : copy.narrationUnavailable}
-        />
-        <ToggleCard
-          active={draft.mapsEnabled}
-          disabled={!mapsAvailable}
-          onClick={() => patch({ mapsEnabled: !draft.mapsEnabled })}
-          label={copy.maps}
-          hint={mapsAvailable ? copy.mapsHint : copy.mapsUnavailable}
-        />
         <ToggleCard
           active={draft.ambienceEnabled}
           onClick={() => patch({ ambienceEnabled: !draft.ambienceEnabled })}
@@ -214,21 +180,15 @@ export function FeelStep(props: StepProps) {
           label={copy.multiclassing}
           hint={copy.multiclassingHint}
         />
-        {aiNarrates ? (
-          <div className="relative flex">
-            <ToggleCard
-              active={draft.worldSimulation}
-              onClick={() => patch({ worldSimulation: !draft.worldSimulation })}
-              label={copy.livingWorld}
-              hint={copy.livingWorldHint}
-            />
-            <InfoButton
-              label={copy.livingWorldLabel}
-              text={copy.livingWorldInfo}
-              className="absolute right-1.5 top-1.5"
-            />
-          </div>
-        ) : null}
+        <div className="relative flex">
+          <ToggleCard
+            active={draft.worldSimulation}
+            onClick={() => patch({ worldSimulation: !draft.worldSimulation })}
+            label={copy.livingWorld}
+            hint={copy.livingWorldHint}
+          />
+          <InfoButton label={copy.livingWorldLabel} text={copy.livingWorldInfo} className="absolute right-1.5 top-1.5" />
+        </div>
         <ToggleCard
           active={draft.inventoryApprovals}
           onClick={() => patch({ inventoryApprovals: !draft.inventoryApprovals })}
@@ -252,29 +212,10 @@ export function FeelStep(props: StepProps) {
               label={copy.romance}
               hint={copy.romanceHint}
             />
-            <InfoButton
-              label={copy.romanceLabel}
-              text={copy.romanceInfo}
-              className="absolute right-1.5 top-1.5"
-            />
+            <InfoButton label={copy.romanceLabel} text={copy.romanceInfo} className="absolute right-1.5 top-1.5" />
           </div>
         ) : null}
-        {aiNarrates ? (
-          <div className="relative flex">
-            <ToggleCard
-              active={draft.narrationGuard}
-              onClick={() => patch({ narrationGuard: !draft.narrationGuard })}
-              label={copy.outcome}
-              hint={copy.outcomeHint}
-            />
-            <InfoButton
-              label={copy.outcomeLabel}
-              text={copy.outcomeInfo}
-              className="absolute right-1.5 top-1.5"
-            />
-          </div>
-        ) : null}
-        {!solo ? (
+        {!gates.solo ? (
           <ToggleCard
             active={draft.midGameJoinOpen}
             onClick={() => patch({ midGameJoinOpen: !draft.midGameJoinOpen })}
@@ -282,7 +223,7 @@ export function FeelStep(props: StepProps) {
             hint={copy.midJoinHint}
           />
         ) : null}
-        {!solo ? (
+        {!gates.solo ? (
           <ToggleCard
             active={draft.holdSubmissions}
             onClick={() => patch({ holdSubmissions: !draft.holdSubmissions })}
@@ -292,7 +233,7 @@ export function FeelStep(props: StepProps) {
         ) : null}
       </div>
 
-      <NarratorFields {...props} className={cn(!aiNarrates && !draft.ttsEnabled && "hidden")} />
+      <NarratorFields {...props} />
     </div>
   );
 }

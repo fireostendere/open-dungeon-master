@@ -339,10 +339,10 @@ export function PartyPanel({
                   ) : null}
                   {!sheet.isCompanion && members.find((m) => m.userId === sheet.userId)?.autopilot ? (
                     <span
-                      title="Автопилот нейросети включен (Доппельгангер)"
+                      title="External MCP autopilot enabled"
                       className="rounded border border-sky-700/60 bg-sky-950/80 px-1 py-0.2 text-[10px] text-sky-300"
                     >
-                      🤖 Автопилот
+                      🤖 MCP
                     </span>
                   ) : null}
                   {!sheet.isCompanion && (members.find((m) => m.userId === sheet.userId)?.skipTurnsCount ?? 0) > 0 ? (
@@ -402,8 +402,7 @@ export function PartyPanel({
                 muted={Boolean(
                   members.find((member) => member.userId === sheet.userId)?.muted,
                 )}
-                isLead={leadUserId === meUserId}
-                meUserId={meUserId}
+                canToggleAutopilot={!sheet.isCompanion && (mine || leadUserId === meUserId)}
                 autopilot={Boolean(
                   members.find((member) => member.userId === sheet.userId)?.autopilot,
                 )}

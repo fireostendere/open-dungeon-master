@@ -1,14 +1,13 @@
 "use client";
 
 import * as AlertDialog from "@radix-ui/react-alert-dialog";
-import { ArrowDown, ArrowUp, BookOpen, Check, ChevronDown, ChevronRight, Compass, Crosshair, Loader2, Pencil, Plus, RefreshCw, Rewind, Scissors, SkipForward, Users, X } from "lucide-react";
+import { ArrowDown, ArrowUp, BookOpen, Check, ChevronDown, ChevronRight, Compass, Crosshair, Loader2, Pencil, Plus, Rewind, Scissors, SkipForward, Users, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/cn";
 import { ui } from "@/lib/ui";
 import type { Chapter } from "@/lib/db/chapters";
 import type { StoryArc } from "@/lib/dm/arc-logic";
 import { MAX_BEAT_TEXT, type BeatEdit } from "@/lib/dm/arc-edit-logic";
-import { offersStoryModel, useCapabilities } from "@/lib/use-capabilities";
 import { ExportMenu } from "./ExportMenu";
 import { NpcReviewPanel } from "./NpcReviewPanel";
 import { useI18n } from "@/lib/i18n";
@@ -261,7 +260,6 @@ function ArcCard({ campaignId }: { campaignId: string }) {
   });
   const [expanded, setExpanded] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [regenerating, setRegenerating] = useState(false);
   const [arc, setArc] = useState<StoryArc | null>(null);
   const [outline, setOutline] = useState("");
   // 1-based beat number being renamed, or an act number being added to.
@@ -270,9 +268,6 @@ function ArcCard({ campaignId }: { campaignId: string }) {
   const [draft, setDraft] = useState("");
   const [beatBusy, setBeatBusy] = useState(false);
   const [beatError, setBeatError] = useState("");
-  // Plotting an arc is the story model's work; with none configured the
-  // button and the promise that one gets written both go.
-  const canPlot = offersStoryModel(useCapabilities());
 
   async function editBeat(edit: BeatEdit) {
     setBeatBusy(true);
@@ -338,20 +333,6 @@ function ArcCard({ campaignId }: { campaignId: string }) {
     setExpanded(next);
     if (next) {
       void load();
-    }
-  }
-
-  async function regenerate() {
-    setRegenerating(true);
-    try {
-      await fetch(`/api/campaigns/${campaignId}/arc`, { method: "POST" });
-    } finally {
-      // The arc is written on the DM queue; a short hold avoids
-      // double-submits, then the view refetches.
-      setTimeout(() => {
-        setRegenerating(false);
-        void load();
-      }, 6_000);
     }
   }
 
@@ -694,31 +675,8 @@ function ArcCard({ campaignId }: { campaignId: string }) {
           ) : outline ? (
             <p className="whitespace-pre-wrap text-[11px] leading-4 text-stone-400">{outline}</p>
           ) : (
-            <p className="text-[11px] italic text-stone-600">
-              {canPlot
-                ? copy.emptyPlot
-                : copy.empty}
-            </p>
+            <p className="text-[11px] italic text-stone-600">{copy.empty}</p>
           )}
-          {!loading && canPlot ? (
-            <button
-              type="button"
-              onClick={regenerate}
-              disabled={regenerating}
-              title={copy.regenerateTitle}
-              className="flex items-center gap-1 rounded border border-stone-700 px-2 py-0.5 text-[11px] text-stone-400 hover:bg-stone-900 disabled:opacity-50"
-            >
-              {regenerating ? (
-                <>
-                  <Loader2 className="size-3 animate-spin" /> {copy.plotting}
-                </>
-              ) : (
-                <>
-                  <RefreshCw className="size-3" /> {copy.regenerate}
-                </>
-              )}
-            </button>
-          ) : null}
         </div>
       ) : null}
     </div>

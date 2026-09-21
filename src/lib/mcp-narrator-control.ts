@@ -1,24 +1,27 @@
 import { SPATIAL_NARRATOR_CATALOG, SPATIAL_NARRATOR_OPERATIONS, SPATIAL_GUIDANCE, readSpatialForNarrator, invokeSpatialForNarrator } from "@/lib/spatial/narrator";
 import { spatialNarratorBoundary } from "@/lib/spatial/narrator-page.mjs";
-import { spatialEnabled, spatialContext } from "@/lib/spatial/service";
+import { runSpatialCommand, spatialEnabled, spatialContext, SpatialError } from "@/lib/spatial/service";
 import { bindActiveBattleMapToRoom, scopeBattleMapInvocation } from "@/lib/spatial/battle-map";
 import { campaignTimelineEpoch } from "@/lib/spatial/timeline";
 import { getDatabase } from "@/lib/db/core";
+import { touchNarratorLease, NarratorLeaseConflict } from "@/lib/db/narrator-lease";
 import { unrelatedRoomChat } from "@/lib/spatial/narrator-concurrency.mjs";
 import { attachPostWriteRead } from "@/lib/mcp-post-write.mjs";
 import { readNarratorSections } from "@/lib/mcp-read-sections.mjs";
+import { projectNarratorStateDelta } from "@/lib/mcp-state-delta-cache.mjs";
+import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import { queueSkippedCombatTurn } from "@/lib/dm/encounter-tools";
 import { isOocMessage } from "@/lib/campaign-types";
 import { isNarratorEvent } from "@/lib/mcp-event-filter";
-import { getCampaignById, getCampaignSummaryState, getFloor, getGlobalTurnState, latestSeq, listMembers, setFloor } from "@/lib/db/campaigns";
+import { allocateSeq, canAct, getCampaignById, getCampaignSummaryState, getFloor, getGlobalTurnState, latestSeq, listMembers, setFloor } from "@/lib/db/campaigns";
 import { listChapters } from "@/lib/db/chapters";
 import { getDmTurn, listOpenPendingRolls } from "@/lib/db/dm-turns";
 import { listRecentWhispersForPrompt, listPendingPlayerWhispers } from "@/lib/db/dm-whispers";
 import { getActiveEncounter, listActiveEncounters, listEnemies } from "@/lib/db/encounters";
 import { listActiveFacts } from "@/lib/db/facts";
 import { getCurrentLocation } from "@/lib/db/locations";
-import { listMessagesInSeqRange, listRecentMessages } from "@/lib/db/messages";
+import { insertCampaignMessage, listMessagesInSeqRange, listRecentMessages } from "@/lib/db/messages";
 import { listPublicCampaignNotes } from "@/lib/db/notes";
 import { listRecentRolls } from "@/lib/db/rolls";
 import { listSheets } from "@/lib/db/sheets";
@@ -27,14 +30,14 @@ import { consoleAdjudications } from "@/lib/dm/invoke-catalog";
 import { invokeEngineSynchronous } from "@/lib/dm/invoke";
 import { persistHumanNarration } from "@/lib/dm/human-narration";
 import { executeNarratorCommand, NarratorCommandError as McpNarratorControlError } from "@/lib/dm/narrator-command";
-import { completeGlobalTurn, startGlobalTurn } from "@/lib/dm/global-turn-logic";
+import { completeGlobalTurn, recordGlobalTurnAction, sealGlobalTurnNow, startGlobalTurn } from "@/lib/dm/global-turn-logic";
 import { listNarratorReceipts } from "@/lib/db/narrator-commands";
 import { coverInEffect } from "@/lib/dm/delegation";
 import { npcRosterForPrompt } from "@/lib/dm/social-tools";
-import { answerAsk, listPendingAsksForCampaign, AskQueueConflict } from "@/lib/db/asks";
+import { answerAsk, listPendingAsksForCampaign, pendingAsksForCampaign, AskQueueConflict } from "@/lib/db/asks";
 import { narratorSnapshots } from "@/lib/mcp-snapshot-cache.mjs";
 import { budgetRead, ReadBudgetError } from "@/lib/mcp-read-budget.mjs";
-import { listEventsSince, publishEphemeral, publishPersisted, publishUserEphemeral } from "@/lib/events";
+import { listEventsSince, publishEphemeral, publishPersisted, publishUserEphemeral, publishWithSeq } from "@/lib/events";
 import { buildOrchestrationSnapshot } from "../../shared/orchestration-snapshot.mjs";
 export { NarratorCommandError as McpNarratorControlError } from "@/lib/dm/narrator-command";
 const id = z.string().uuid();
@@ -42,9 +45,11 @@ const sectionDigest = z.string().regex(/^[a-f0-9]{64}$/);
 const readSchema = z.object({
   campaignId: id, afterSeq: z.number().int().min(0).default(0), limit: z.number().int().min(1).max(100).default(50),
   afterAskSeq: z.number().int().min(0).default(0), askLimit: z.number().int().min(1).max(50).default(20),
+  includeAsks: z.boolean().default(true),
   paged: z.boolean().default(false), pageCursor: z.string().max(500).optional(),
   maxBytes: z.number().int().min(4096).max(131072).default(65536), projection: z.enum(["full", "live"]).default("full"),
   delta: z.boolean().default(false), knownSeq: z.number().int().min(0).optional(),
+  stateDelta: z.boolean().default(false), knownStateRevision: sectionDigest.optional(),
   knownSections: z.object({ sheets: sectionDigest.optional(), facts: sectionDigest.optional(), notes: sectionDigest.optional(), npcs: sectionDigest.optional(),
     recentMessages: sectionDigest.optional(), recentRolls: sectionDigest.optional(), chapters: sectionDigest.optional() }).strict().optional(),
 }).strict();
@@ -63,12 +68,12 @@ export const EXTERNAL_NARRATOR_ACTIONS = new Set([
   "apply_damage", "heal", "stabilize", "award_xp", "party_stash", "party_award", "modify_gold", "grant_item", "reveal_item", "remove_item", "use_item", "purchase", "use_resource", "set_condition", "set_effect", "clear_effect", "clear_condition", "use_spell_slot", "learn_spell", "update_sheet", "take_rest",
   "move_party", "update_location", "travel", "pass_time", "start_scene", "scene_check", "end_scene", "request_roll", "request_player_input", "send_whisper", "record_event", "complete_beat", "write_campaign_note", "set_ambience", "play_sting",
   "set_npc", "npc_reaction", "social_check", "relationship_beat", "romance_advance", "relationship_end", "summon_pet", "pet_attack", "damage_pet", "dismiss_pet",
+  "add_companion", "dismiss_companion", "mount_up", "dismount", "roll_treasure", "damage_object", "group_check", "check_notice",
 ]);
 function campaignOrHuman(campaignId: string) {
   const campaign = getCampaignById(campaignId);
   if (!campaign) throw new McpNarratorControlError("Campaign not found.", 404);
   if (campaign.gameSettings.dmMode !== "human" || !campaign.dmUserId || coverInEffect(campaign.gameSettings.dmMode, campaign.gameSettings.dmAssist, campaign.dmCover)) throw new McpNarratorControlError("External narration requires a human-DM campaign with a DM seat.", 409);
-  if (campaign.gameSettings.ttsEnabled || campaign.gameSettings.mapsEnabled) throw new McpNarratorControlError("External narration requires TTS and automatic maps to be disabled.", 409);
   return campaign;
 }
 function safeCampaign(campaign: NonNullable<ReturnType<typeof getCampaignById>>) {
@@ -102,6 +107,7 @@ function catalog(options: CatalogOptions = {}) {
 function read(raw: unknown) {
   const p = readSchema.safeParse(raw);
   if (!p.success) throw new McpNarratorControlError(z.prettifyError(p.error));
+  if (p.data.knownStateRevision && !p.data.stateDelta) throw new McpNarratorControlError("knownStateRevision requires stateDelta:true.", 400);
   const campaign = campaignOrHuman(p.data.campaignId), currentSeq = latestSeq(campaign.id);
   if (p.data.afterSeq > currentSeq || (p.data.knownSeq ?? 0) > currentSeq) throw new McpNarratorControlError("Narrator cursor is ahead of campaign state; reconnect from a fresh read.", 409);
   const timelineEpoch = campaignTimelineEpoch(campaign.id);
@@ -122,23 +128,28 @@ function read(raw: unknown) {
     ...message, campaignId: campaign.id, userId: message.authorUserId, characterId: null,
     authorType: message.kind === "narration" || message.kind === "perception" ? "dm" : "player", channel: "location" as const,
   }))].sort((a,b) => a.seq-b.seq);
-  const askPage = listPendingAsksForCampaign(campaign.id, p.data.afterAskSeq, p.data.askLimit), live = p.data.projection === "live";
-  const delta = Boolean(p.data.delta), baselineSeq = p.data.knownSeq ?? (delta ? p.data.afterSeq : 0);
+  const askMeta = pendingAsksForCampaign(campaign.id);
+  const askPage = p.data.includeAsks
+    ? listPendingAsksForCampaign(campaign.id, p.data.afterAskSeq, p.data.askLimit)
+    : { items: [], nextCursor: p.data.afterAskSeq, hasMore: false };
+  const live = p.data.projection === "live";
+  const delta = Boolean(p.data.delta), stateDelta = Boolean(p.data.stateDelta);
+  const baselineSeq = p.data.knownSeq ?? (delta ? p.data.afterSeq : 0);
   // Cheap, transactional source revisions precede mapping and content hashing.
   // User authorization, room audiences and current mechanics are never cached.
   const { sections, sectionVersions, omittedSections } = readNarratorSections({
     db: getDatabase(), campaignId: campaign.id, timelineEpoch, principal: campaign.dmUserId,
-    live, delta, knownSections: p.data.knownSections,
+    live, delta: delta && !stateDelta, knownSections: stateDelta ? {} : p.data.knownSections,
     loaders: {
       sheets: () => listSheets(campaign.id), facts: () => listActiveFacts(campaign.id),
-      notes: () => listPublicCampaignNotes(campaign.id, 20), npcs: () => npcRosterForPrompt(campaign.id, 100),
-      recentMessages: () => listRecentMessages(campaign.id, 400).filter(msg => !isOocMessage(msg)),
-      recentRolls: () => listRecentRolls(campaign.id, 100), chapters: () => listChapters(campaign.id),
+      notes: () => listPublicCampaignNotes(campaign.id, 20), npcs: () => npcRosterForPrompt(campaign.id, 40),
+      recentMessages: () => listRecentMessages(campaign.id, 96).filter(msg => !isOocMessage(msg)),
+      recentRolls: () => listRecentRolls(campaign.id, 32), chapters: () => listChapters(campaign.id),
     },
   });
   const receipts = listNarratorReceipts(campaign.id);
   const state = {
-    campaign: safeCampaign(campaign), currentSeq, timelineEpoch, cursor: p.data.afterSeq, nextCursor, hasMore,
+    campaignId: campaign.id, campaign: safeCampaign(campaign), currentSeq, timelineEpoch, cursor: p.data.afterSeq, nextCursor, hasMore,
     events: events.filter(isNarratorEvent).map(event =>
       event.type === "roll_result" ||
       event.type === "global_turn_ready" ||
@@ -150,14 +161,18 @@ function read(raw: unknown) {
     commands: delta && baselineSeq > 0 ? receipts.filter(receipt => receipt.committedSeq > baselineSeq) : receipts,
     summary: getCampaignSummaryState(campaign.id), members: listMembers(campaign.id), pendingRolls: listOpenPendingRolls(campaign.id),
     playerWhispers: listPendingPlayerWhispers(campaign.id), recentDmWhispers: live ? [] : listRecentWhispersForPrompt(campaign.id),
-    omittedSections, asks: askPage.items, askQueue: { nextCursor: askPage.nextCursor, hasMore: askPage.hasMore },
+    omittedSections, asks: askPage.items, askQueue: { nextCursor: askPage.nextCursor, hasMore: askPage.hasMore, pending: askMeta.pending },
     ...sections, sectionVersions, location: getCurrentLocation(campaign.id), sceneTracker: getSceneTracker(campaign.id),
     encounter: (() => { const encounter = getActiveEncounter(campaign.id); return encounter ? { encounter, enemies: listEnemies(encounter.id) } : null; })(),
     ...(delta ? { deltaState: { enabled: true, baselineSeq, pruned: ["sheets", "facts", "notes", "npcs"].every(key => omittedSections.includes(key)) } } : {}),
   };
+  const projectedState = stateDelta ? projectNarratorStateDelta(state, {
+    campaignId: campaign.id, timelineEpoch, principal: campaign.dmUserId!, projection: p.data.projection,
+    knownStateRevision: p.data.knownStateRevision,
+  }) : state;
   try {
-    const result = budgetRead(state, p.data);
-    if (p.data.paged && "nextPage" in result && result.nextPage && !narratorSnapshots.remember(state, cacheParams)) throw new McpNarratorControlError("Snapshot exceeds the bounded page cache; reduce the projection.", 413);
+    const result = budgetRead(projectedState, p.data);
+    if (p.data.paged && "nextPage" in result && result.nextPage && !narratorSnapshots.remember(projectedState, cacheParams)) throw new McpNarratorControlError("Snapshot exceeds the bounded page cache; reduce the projection.", 413);
     return result;
   } catch (error) { if (error instanceof ReadBudgetError) throw new McpNarratorControlError(error.message, error.status); throw error; }
 }
@@ -456,6 +471,129 @@ async function finishGlobalRound(raw: unknown) {
   );
 }
 
+async function autopilotAction(raw: unknown) {
+  const p = writeBase.extend({
+    characterId: id,
+    roundNumber: z.number().int().min(1),
+    kind: z.enum(["do", "say"]).default("do"),
+    content: z.string().trim().min(1).max(2000),
+  }).safeParse(raw);
+  if (!p.success) throw new McpNarratorControlError(z.prettifyError(p.error));
+
+  return serializedWrite(
+    p.data,
+    "narrator.autopilot_action",
+    {
+      characterId: p.data.characterId,
+      roundNumber: p.data.roundNumber,
+      kind: p.data.kind,
+      content: p.data.content,
+    },
+    campaign => {
+      if (!campaign.gameSettings.globalTurn?.enabled) {
+        throw new McpNarratorControlError("Autopilot player actions require global-turn mode.", 409);
+      }
+      if (getActiveEncounter(campaign.id)) {
+        throw new McpNarratorControlError("Global-turn autopilot does not impersonate combat initiative.", 409);
+      }
+
+      const globalTurn = getGlobalTurnState(campaign.id);
+      if (
+        globalTurn.roundNumber !== p.data.roundNumber ||
+        (globalTurn.phase !== "active" && globalTurn.phase !== "quorum_delay")
+      ) {
+        throw new McpNarratorControlError("This autopilot round is no longer accepting player input.", 409);
+      }
+
+      const sheet = listSheets(campaign.id).find(entry => entry.id === p.data.characterId);
+      if (!sheet || sheet.isCompanion || sheet.userId === campaign.dmUserId) {
+        throw new McpNarratorControlError("Autopilot character is not an eligible player character.", 409);
+      }
+      const member = listMembers(campaign.id).find(entry => entry.userId === sheet.userId);
+      if (!member?.autopilot) {
+        throw new McpNarratorControlError("Autopilot is no longer enabled for this player.", 409);
+      }
+      if (member.skipTurnsCount > 0) {
+        throw new McpNarratorControlError("This player is skipping the round instead of using autopilot.", 409);
+      }
+      if (member.muted) {
+        throw new McpNarratorControlError("This player is muted and cannot submit an autopilot turn.", 409);
+      }
+
+      const existing = globalTurn.actionsByCharacter[sheet.id];
+      if (existing && (existing.actionsCount > 0 || existing.phrasesCount > 0)) {
+        throw new McpNarratorControlError("This character has already responded in the current round.", 409);
+      }
+
+      if (spatialEnabled(campaign.id)) {
+        try {
+          const result = runSpatialCommand(campaign.id, sheet.userId, {
+            operation: "send",
+            requestId: p.data.commandId ?? randomUUID(),
+            kind: p.data.kind,
+            content: p.data.content,
+            characterId: sheet.id,
+          });
+          const message = result.message as { id?: string; seq?: number } | undefined;
+          return {
+            characterId: sheet.id,
+            roundNumber: p.data.roundNumber,
+            messageId: message?.id ?? null,
+            seq: message?.seq ?? null,
+            sealed: getGlobalTurnState(campaign.id).phase === "ready",
+          };
+        } catch (error) {
+          if (error instanceof SpatialError) {
+            throw new McpNarratorControlError(error.message, error.status);
+          }
+          throw error;
+        }
+      }
+
+      const floor = getFloor(campaign.id);
+      if (!canAct(floor, sheet.userId, p.data.kind)) {
+        throw new McpNarratorControlError("This player cannot act on the current floor.", 409);
+      }
+
+      const turn = recordGlobalTurnAction(
+        campaign.id,
+        sheet.id,
+        sheet.userId,
+        p.data.kind,
+      );
+      if (!turn.allowed) {
+        throw new McpNarratorControlError(
+          turn.error ?? "This round is not accepting the autopilot action.",
+          409,
+        );
+      }
+
+      const seq = allocateSeq(campaign.id);
+      const message = insertCampaignMessage({
+        campaignId: campaign.id,
+        seq,
+        authorType: "player",
+        userId: sheet.userId,
+        characterId: sheet.id,
+        content: p.data.kind === "say" ? `"${p.data.content}"` : p.data.content,
+      });
+      publishWithSeq(campaign.id, seq, "message_added", { message });
+
+      if (turn.shouldResolve && turn.state) {
+        sealGlobalTurnNow(campaign.id, turn.state.roundNumber);
+      }
+
+      return {
+        characterId: sheet.id,
+        roundNumber: p.data.roundNumber,
+        messageId: message.id,
+        seq,
+        sealed: getGlobalTurnState(campaign.id).phase === "ready",
+      };
+    },
+  );
+}
+
 async function releaseFloor(raw: unknown) {
   const p = writeBase.safeParse(raw);
   if (!p.success) throw new McpNarratorControlError(z.prettifyError(p.error));
@@ -481,10 +619,12 @@ async function dispatchMcpNarratorControl(action: string, raw: unknown): Promise
   }
   switch (action) {
     case "narrator.connect": {
-      const p = z.object({ campaignId: id, paged: z.boolean().optional(), maxBytes: z.number().int().min(4096).max(131072).optional(), projection: z.enum(["full", "live"]).optional() }).strict().safeParse(raw);
+      const p = z.object({ campaignId: id, paged: z.boolean().optional(), maxBytes: z.number().int().min(4096).max(131072).optional(), projection: z.enum(["full", "live"]).optional(), stateDelta: z.boolean().optional() }).strict().safeParse(raw);
       if (!p.success) throw new McpNarratorControlError(z.prettifyError(p.error));
-      campaignOrHuman(p.data.campaignId);
-      return { handled: true, result: { instructions: "Read odm://narrator/playbook. Call narrator.read, drain until hasMore is false, then use its currentSeq as expectedSeq for exactly one invoke, narrate, or release_floor. Persist a unique UUID commandId before each story write. After an ambiguous error, retry only the identical commandId, expectedSeq and payload to recover its receipt, never regenerate or modify a command. Consume the attached state after a confirmed write as its read, then drain any remaining pages/events. If readRequired is true, the write succeeded but its read failed: read again, never replay the effect. end_turn advances initiative itself; narration never advances it. For a private reply provide exact replyToWhisperIds from playerWhispers. With globalTurn enabled, the campaign starts locked: wait for global_turn_narrator_trigger, narrate the opening, and send startGlobalRound equal to its roundNumber; only that confirmed narration unlocks players. After that, collect player messages until global_turn_ready; resolve the whole batch through that event seq. In ordinary chat, narrate with completeGlobalRound set to its roundNumber so the confirmed MCP write advances and opens the next round atomically. In spatial mode, narrate every affected room separately with location_narrate; the trusted host performs the internal round finalizer only after all required room narrations commit. Do not narrate individual global-turn messages before the barrier. Check the pending asks queue on every read even when the story cursor is unchanged. Page it using afterAskSeq and askQueue.nextCursor; a fresh Ask scan may start at zero. answer_ask requires the pending ask version as expectedVersion and a persisted UUID commandId; it changes no story/floor state. For bounded reads use paged:true and drain pageCursor/nextPage before advancing the story cursor. Byte pages use a bounded frozen snapshot. Restart on expiry, a changed scope or timeline; never use incomplete pages. projection:live explicitly omits historical duplicate sections, not current state or new tool results. Carry the returned timelineEpoch on reads and writes; reconnect and discard incompatible pending work when it changes.", contractVersion: 3, timelineVersion: 1, features: { postWriteRead: true, frozenPages: true, liveDefaults: true }, state: read({ projection: "full", ...p.data }) } };
+      const campaign = campaignOrHuman(p.data.campaignId);
+      const metadata = { currentSeq: latestSeq(campaign.id), timelineEpoch: campaignTimelineEpoch(campaign.id) };
+      const base = { instructions: "Read odm://narrator/playbook. Call narrator.read, drain until hasMore is false, then use its currentSeq as expectedSeq for exactly one invoke, narrate, autopilot_action, or release_floor. Persist a unique UUID commandId before each story write. After an ambiguous error, retry only the identical commandId, expectedSeq and payload to recover its receipt, never regenerate or modify a command. Consume the attached state delta after a confirmed write as its read, then drain any remaining pages/events. If readRequired is true, the write succeeded but its read failed: read again, never replay the effect. end_turn advances initiative itself; narration never advances it. For a private reply provide exact replyToWhisperIds from playerWhispers. With globalTurn enabled, the campaign starts locked: wait for global_turn_narrator_trigger, narrate the opening, and send startGlobalRound equal to its roundNumber; only that confirmed narration unlocks players. After that, collect player messages until global_turn_ready; resolve the whole batch through that event seq. Autopilot player intent is generated only by the trusted host actor role and committed with autopilot_action; the server rechecks the player's live opt-in and round eligibility and never calls an LLM itself. In ordinary chat, narrate with completeGlobalRound set to its roundNumber so the confirmed MCP write advances and opens the next round atomically. In spatial mode, narrate every affected room separately with location_narrate; the trusted host performs the internal round finalizer only after all required room narrations commit. Do not narrate individual global-turn messages before the barrier. Check the pending asks queue on every read even when the story cursor is unchanged. Page it using afterAskSeq and askQueue.nextCursor; a fresh Ask scan may start at zero. answer_ask requires the pending ask version as expectedVersion and a persisted UUID commandId; it changes no story/floor state. For bounded reads use paged:true and drain pageCursor/nextPage before advancing the story cursor. Byte pages use a bounded frozen snapshot. stateDelta:true negotiates cached entity patches: keep the returned revision, apply patches only to the matching timeline/projection, and accept a full resync when the server no longer has the baseline. Carry the returned timelineEpoch on reads and writes; reconnect and discard incompatible pending work when it changes.", contractVersion: 4, timelineVersion: 1, features: { postWriteRead: true, frozenPages: true, liveDefaults: true, stateDelta: "odm.state.delta.v1", entityPatches: true } };
+      return { handled: true, result: p.data.stateDelta ? { ...base, cursor: metadata } : { ...base, state: read({ projection: "full", ...p.data }) } };
     }
     case "narrator.read": return { handled: true, result: read(raw) };
     case "narrator.snapshot": return { handled: true, result: orchestrationSnapshot(raw) };
@@ -495,6 +635,7 @@ async function dispatchMcpNarratorControl(action: string, raw: unknown): Promise
     }
     case "narrator.invoke": return { handled: true, result: await invoke(raw) };
     case "narrator.narrate": return { handled: true, result: await narrate(raw) };
+    case "narrator.autopilot_action": return { handled: true, result: await autopilotAction(raw) };
     case "narrator.finish_global_round": return { handled: true, result: await finishGlobalRound(raw) };
     case "narrator.release_floor": return { handled: true, result: await releaseFloor(raw) };
     case "narrator.answer_ask": {
@@ -519,17 +660,45 @@ async function dispatchMcpNarratorControl(action: string, raw: unknown): Promise
 const storyWrites = new Set([
   "narrator.invoke",
   "narrator.narrate",
+  "narrator.autopilot_action",
   "narrator.finish_global_round",
   "narrator.release_floor",
 ]);
 const readAfterSchema = z.union([z.boolean(), z.object({
   afterSeq: z.number().int().min(0).optional(), limit: z.number().int().min(1).max(100).optional(),
   afterAskSeq: z.number().int().min(0).optional(), askLimit: z.number().int().min(1).max(50).optional(),
+  includeAsks: z.boolean().optional(),
   paged: z.boolean().optional(), projection: z.enum(["full", "live"]).optional(),
   maxBytes: z.number().int().min(4096).max(131072).optional(), delta: z.boolean().optional(),
+  stateDelta: z.boolean().optional(), knownStateRevision: sectionDigest.optional(),
   knownSeq: z.number().int().min(0).optional(), knownSections: readSchema.shape.knownSections,
 }).strict()]);
+function leaseBoundRequest(action: string, raw: unknown) {
+  if (!action.startsWith("narrator.") || !raw || typeof raw !== "object" || Array.isArray(raw)) return { params: raw, hostId: undefined as string | undefined };
+  const record = raw as Record<string, unknown>;
+  const host = record.narratorHostId;
+  const wantsV4 = record.stateDelta === true ||
+    (record.readAfter && typeof record.readAfter === "object" && !Array.isArray(record.readAfter) &&
+      (record.readAfter as Record<string, unknown>).stateDelta === true);
+  if (host === undefined) {
+    if (wantsV4) throw new McpNarratorControlError("stateDelta requires a narrator host identity.", 400);
+    return { params: raw, hostId: undefined as string | undefined };
+  }
+  const parsedHost = id.safeParse(host), parsedCampaign = id.safeParse(record.campaignId);
+  if (!parsedHost.success || !parsedCampaign.success) throw new McpNarratorControlError("Invalid narrator host lease metadata.", 400);
+  campaignOrHuman(parsedCampaign.data);
+  try { touchNarratorLease(parsedCampaign.data, parsedHost.data); }
+  catch (error) {
+    if (error instanceof NarratorLeaseConflict) throw new McpNarratorControlError(error.message, error.status);
+    throw error;
+  }
+  const { narratorHostId: _ignored, ...params } = record;
+  return { params, hostId: parsedHost.data };
+}
+
 export async function executeMcpNarratorControl(action: string, raw: unknown): Promise<{ handled: false } | { handled: true; result: unknown }> {
+  const leased = leaseBoundRequest(action, raw);
+  raw = leased.params;
   if (!storyWrites.has(action) || !raw || typeof raw !== "object" || Array.isArray(raw) || !Object.hasOwn(raw, "readAfter")) return dispatchMcpNarratorControl(action, raw);
   const { readAfter, ...params } = raw as Record<string, unknown>;
   const options = readAfterSchema.safeParse(readAfter);

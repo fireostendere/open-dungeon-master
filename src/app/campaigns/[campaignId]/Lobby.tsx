@@ -19,7 +19,6 @@ import { LobbyParty } from "@/app/campaigns/[campaignId]/LobbyParty";
 import { LobbyRoomCode } from "@/app/campaigns/[campaignId]/LobbyRoomCode";
 import { LorePanel } from "@/app/campaigns/[campaignId]/LorePanel";
 import { RulesPanel } from "@/app/campaigns/[campaignId]/RulesPanel";
-import { StoryAiPanel } from "@/app/campaigns/[campaignId]/StoryAiPanel";
 import { VoicePanel } from "@/app/campaigns/[campaignId]/VoicePanel";
 import { resolveCompanionMode } from "@/lib/schemas/game-settings";
 import { isPrimaryDm, lobbyBlocker, partySlotCount, viewerCaps } from "@/lib/dm/viewer";
@@ -397,28 +396,6 @@ export function Lobby({ state, refresh }: { state: CampaignState; refresh: () =>
         settings={campaign.gameSettings}
         steersStory={steersStory}
       />
-
-      {/* Pre-game model choice: the story authority picks the text model
-          (saved wizard profiles) and the image backend BEFORE the adventure
-          opens, without digging through the admin panel. */}
-      {steersStory ? (
-        <details className="mb-6 rounded-lg border border-stone-800 bg-stone-950/60" open>
-          <summary className="cursor-pointer px-4 py-3 text-sm font-medium text-stone-300">
-            {localeText(locale, {
-              en: "Game models (text and images)",
-              ru: "Модели для игры (текст и картинки)",
-              pl: "Modele gry (tekst i obrazy)",
-            })}
-          </summary>
-          <div className="px-4 pb-4">
-            <StoryAiPanel
-              campaignId={campaign.id}
-              settings={campaign.settings}
-              steersStory={steersStory}
-            />
-          </div>
-        </details>
-      ) : null}
 
       <section className="mb-6 space-y-3">
         <RulesPanel

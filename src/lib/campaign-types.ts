@@ -173,7 +173,8 @@ export type CampaignMember = {
   muted: boolean;
   // How many consecutive turns this player chooses to skip (0..99).
   skipTurnsCount: number;
-  // AI autopilot / Doppelganger taking turns for this player when idle.
+  // External narrator actor may submit this player's global-turn intent.
+  // This is only an opt-in state flag; the server never runs a model for it.
   autopilot: boolean;
   joinedAt: string;
 };

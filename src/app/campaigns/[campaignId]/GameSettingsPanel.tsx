@@ -11,20 +11,15 @@ import {
   PackageCheck,
   Sparkles,
   UserPlus,
-  Volume2,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/cn";
 import { useI18n } from "@/lib/i18n";
-import { STAGES, isStageEnabled } from "@/lib/dm/stages";
-import { DELEGATIONS } from "@/lib/dm/delegation";
 import { Tooltip } from "@/components/ui/Tooltip";
 import { InfoButton } from "@/components/ui/InfoDialog";
 import { GENRE_PRESETS, genrePreset } from "@/lib/genres";
 import type { WorldPackSummary } from "@/lib/worlds/types";
 import { WorldPackGallery } from "@/components/WorldPackGallery";
-import { TTS_VOICES } from "@/lib/tts-voices";
-import { VoicePreviewButton } from "@/components/VoicePreviewButton";
 import type { GameSettings } from "@/lib/schemas/game-settings";
 import {
   CAMPAIGN_LENGTHS,
@@ -649,7 +644,6 @@ export function GameSettingsPanel({
 
   const preset = genrePreset(settings.genre);
   const selectedPack = packs.find((entry) => entry.id === settings.worldPack) ?? null;
-  const aiNarrates = settings.dmMode !== "human";
   const selectClass =
     "min-w-0 max-w-full truncate rounded-md border border-stone-700 bg-stone-900 px-2 py-1 text-xs outline-none focus:border-amber-600";
   const genreText = copy.genres[settings.genre] ?? { name: preset.name, blurb: preset.blurb };
@@ -675,14 +669,6 @@ export function GameSettingsPanel({
           <span className="flex items-center gap-1.5">
             <Hand className="size-3.5 text-amber-200" />
             {copy.dmDifficulty} {settings.dmDifficulty}/10
-          </span>
-          <span className="flex items-center gap-1.5">
-            <Volume2 className="size-3.5 text-amber-200" />
-            {settings.ttsEnabled
-              ? copy.narrationOn(
-                  TTS_VOICES.find((voice) => voice.id === settings.ttsVoice)?.label ?? settings.ttsVoice,
-                )
-              : copy.narrationOff}
           </span>
           <span className="flex items-center gap-1.5">
             <Music className="size-3.5 text-amber-200" />
@@ -736,29 +722,6 @@ export function GameSettingsPanel({
       <h2 className="mb-3 text-sm font-medium text-stone-300">{copy.gameSettings}</h2>
       {error ? <p className="mb-2 text-xs text-red-400">{error}</p> : null}
       <div className={cn("space-y-3 text-xs", busy && "opacity-70")}>
-        {settings.dmMode === "assisted" ? (
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="w-16 shrink-0 text-stone-500">{copy.aiHelps}</span>
-            {DELEGATIONS.map((which) => (
-              <Tooltip key={which} content={copy.delegations[which].tip}>
-                <button
-                  type="button"
-                  onClick={() =>
-                    patch({ dmAssist: { ...settings.dmAssist, [which]: !settings.dmAssist[which] } })
-                  }
-                  className={cn(
-                    "rounded-md border px-2 py-1",
-                    settings.dmAssist[which]
-                      ? "border-amber-700 bg-amber-950/50 text-amber-200"
-                      : "border-stone-700 text-stone-400",
-                  )}
-                >
-                  {copy.delegations[which].label}
-                </button>
-              </Tooltip>
-            ))}
-          </div>
-        ) : null}
 
         {packs.length ? (
           <div className="flex flex-wrap items-center gap-2">
@@ -816,8 +779,6 @@ export function GameSettingsPanel({
             />
           </div>
         ) : null}
-
-        {aiNarrates ? (
           <div className="flex flex-wrap items-center gap-2">
             <span className="w-16 text-stone-500">{copy.length}</span>
             <Tooltip content={copy.lengthTip}>
@@ -832,7 +793,6 @@ export function GameSettingsPanel({
               </select>
             </Tooltip>
           </div>
-        ) : null}
 
         <div className="flex flex-wrap items-center gap-2">
           <span className="w-16 text-stone-500">{copy.dmDifficulty}</span>
@@ -936,25 +896,6 @@ export function GameSettingsPanel({
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <span className="w-16 text-stone-500">{copy.narration}</span>
-          <button
-            type="button"
-            onClick={() => patch({ ttsEnabled: !settings.ttsEnabled })}
-            className={cn("rounded-md border px-2 py-1", settings.ttsEnabled ? "border-amber-700 bg-amber-950/50 text-amber-200" : "border-stone-700 text-stone-400")}
-          >
-            {settings.ttsEnabled ? copy.on : copy.off}
-          </button>
-          {settings.ttsEnabled ? (
-            <>
-              <select value={settings.ttsVoice} onChange={(event) => patch({ ttsVoice: event.target.value })} className={selectClass}>
-                {TTS_VOICES.map((voice) => <option key={voice.id} value={voice.id}>{voice.label}</option>)}
-              </select>
-              <VoicePreviewButton voice={settings.ttsVoice} />
-            </>
-          ) : null}
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2">
           <span className="w-16 text-stone-500">{copy.ambience}</span>
           <button
             type="button"
@@ -979,11 +920,6 @@ export function GameSettingsPanel({
 
         <div className="flex flex-wrap items-center gap-2">
           <span className="w-16 text-stone-500">{copy.extras}</span>
-          {aiNarrates ? (
-            <button type="button" onClick={() => patch({ aiStorySetup: !settings.aiStorySetup })} className={cn("rounded-md border px-2 py-1", settings.aiStorySetup ? "border-amber-700 bg-amber-950/50 text-amber-200" : "border-stone-700 text-stone-400")}>
-              {copy.aiStorySetup} {settings.aiStorySetup ? copy.on : copy.off}
-            </button>
-          ) : null}
           <button type="button" onClick={() => patch({ mapsEnabled: !settings.mapsEnabled })} className={cn("rounded-md border px-2 py-1", settings.mapsEnabled ? "border-amber-700 bg-amber-950/50 text-amber-200" : "border-stone-700 text-stone-400")}>
             {copy.maps} {settings.mapsEnabled ? copy.on : copy.off}
           </button>
@@ -1003,8 +939,6 @@ export function GameSettingsPanel({
             </button>
           </Tooltip>
         </div>
-
-        {settings.dmMode !== "ai" ? (
           <div className="flex flex-wrap items-center gap-2">
             <span className="w-16 text-stone-500">{copy.remind}</span>
             <Tooltip content={copy.remindTip}>
@@ -1025,33 +959,6 @@ export function GameSettingsPanel({
               {[0, 6, 12, 24, 48].map((count) => <option key={count} value={count}>{count === 0 ? copy.neverRolls : copy.afterRolls(count)}</option>)}
             </select>
           </div>
-        ) : null}
-
-        {aiNarrates ? (
-          <div className="flex flex-wrap items-start gap-2">
-            <span className="w-16 shrink-0 pt-1 text-stone-500">{copy.stages}</span>
-            <div className="flex min-w-0 flex-1 flex-wrap gap-1.5">
-              {STAGES.map((stage) => {
-                const on = isStageEnabled(settings.stages, stage.id);
-                const localized = copy.stagesData[stage.id];
-                return (
-                  <Tooltip key={stage.id} content={`${localized.description} ${localized.cost}`}>
-                    <button
-                      type="button"
-                      onClick={() => patch({ stages: { ...settings.stages, [stage.id]: !on } })}
-                      className={cn("rounded-md border px-2 py-1", on ? "border-amber-700 bg-amber-950/50 text-amber-200" : "border-stone-700 text-stone-400")}
-                    >
-                      {localized.label} {on ? copy.on : copy.off}
-                      <span className="ml-1 text-[10px] text-stone-500">{stage.callsModel ? copy.model : copy.engine}</span>
-                    </button>
-                  </Tooltip>
-                );
-              })}
-            </div>
-          </div>
-        ) : null}
-
-        {aiNarrates ? (
           <div className="flex flex-wrap items-center gap-2">
             <span className="w-16 text-stone-500">{copy.worldPack}</span>
             <Tooltip content={copy.livingWorldTip}>
@@ -1062,7 +969,6 @@ export function GameSettingsPanel({
             <InfoButton label={copy.livingWorldLabel} text={copy.livingWorldInfo} />
             <span className="text-stone-500">{settings.worldSimulation ? copy.livingOnHelp : copy.livingOffHelp}</span>
           </div>
-        ) : null}
 
         <div className="flex flex-wrap items-center gap-2">
           <span className="w-16 text-stone-500">{copy.items}</span>
@@ -1073,18 +979,6 @@ export function GameSettingsPanel({
           </Tooltip>
           <span className="text-stone-500">{settings.inventoryApprovals ? copy.itemOnHelp : copy.itemOffHelp}</span>
         </div>
-
-        {aiNarrates ? (
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="w-16 text-stone-500">{copy.prose}</span>
-            <Tooltip content={copy.outcomeTip}>
-              <button type="button" onClick={() => patch({ narrationGuard: !settings.narrationGuard })} className={cn("rounded-md border px-2 py-1", settings.narrationGuard ? "border-amber-700 bg-amber-950/50 text-amber-200" : "border-stone-700 text-stone-400")}>
-                {copy.outcome} {settings.narrationGuard ? copy.on : copy.off}
-              </button>
-            </Tooltip>
-            <span className="text-stone-500">{settings.narrationGuard ? copy.outcomeOnHelp : copy.outcomeOffHelp}</span>
-          </div>
-        ) : null}
 
         <div className="flex flex-wrap items-center gap-2">
           <span className="w-16 text-stone-500">{copy.voice}</span>
@@ -1159,8 +1053,6 @@ export function GameSettingsPanel({
           ) : null}
           <span className="text-stone-500">{settings.relationships === "off" ? copy.bondsOffHelp : settings.romance !== "off" ? copy.bondsRomanceHelp : copy.bondsOnlyHelp}</span>
         </div>
-
-        {aiNarrates ? (
           <div className="flex flex-wrap items-center gap-2">
             <span className="w-16 text-stone-500">{copy.allies}</span>
             <Tooltip content={copy.alliesTip}>
@@ -1185,7 +1077,6 @@ export function GameSettingsPanel({
               </>
             ) : null}
           </div>
-        ) : null}
       </div>
     </section>
   );

@@ -12,6 +12,7 @@ import { isDmSeat } from "@/lib/dm/viewer";
 import { createSpatialStore, SpatialError, type SpatialActor, type SpatialStore } from "@/lib/spatial/store.mjs";
 import { capturePreSpatialEntities } from "@/lib/spatial/domain-migration";
 import { normalizeNarrationUnits } from "@/lib/units/narration";
+import { publishEphemeral } from "@/lib/events";
 
 export { SpatialError } from "@/lib/spatial/store.mjs";
 const stores = new WeakMap<ReturnType<typeof getDatabase>, SpatialStore>();
@@ -85,6 +86,7 @@ export function runSpatialCommand(campaignId: string, userId: string, raw: unkno
   }
   const { operation, requestId, ...input } = command;
   let globalTurnResolution: { roundNumber: number } | null = null;
+  let spatialModeChanged: boolean | null = null;
   const result = getDatabase().transaction(() => {
     const previouslyEnabled = spatialStore().enabled(campaignId);
     const result = spatialStore().command(actor, requestId, operation, input, (raw) =>
@@ -119,6 +121,8 @@ export function runSpatialCommand(campaignId: string, userId: string, raw: unkno
 
     // Exact retry of enable must not capture newer text as pre-spatial history.
     if (operation === "enable" && !previouslyEnabled) capturePreSpatialEntities(campaignId);
+    const enabledNow = spatialStore().enabled(campaignId);
+    if (enabledNow !== previouslyEnabled) spatialModeChanged = enabledNow;
     return result;
   })();
   if (globalTurnResolution) {
@@ -127,6 +131,12 @@ export function runSpatialCommand(campaignId: string, userId: string, raw: unkno
     );
   }
   touchCampaign(campaignId);
+  if (spatialModeChanged !== null) {
+    // Mode itself is table-global metadata. Room contents still never enter
+    // the shared stream; this nudge only tells clients whether to start/stop
+    // their identity-bound location long poll.
+    publishEphemeral(campaignId, "spatial_mode_changed", { enabled: spatialModeChanged }, { kind: "global" });
+  }
   // Internal wakeup only, after the OUTERMOST narrator transaction commits.
   // Each waiting request reloads its authorized projection. An unchanged
   // projection stays pending: no private activity enters the global SSE bus.

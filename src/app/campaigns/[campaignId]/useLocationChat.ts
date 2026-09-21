@@ -6,7 +6,7 @@ import { LocationIntentSession, type IntentStatus } from "@/lib/spatial/client-i
 type Snapshot = { key: string; identity: string; view: SpatialView; page: SpatialPage };
 const EMPTY: SpatialPage = { messages: [], nextBefore: null };
 
-export function useLocationChat(campaignId: string, userId: string) {
+export function useLocationChat(campaignId: string, userId: string, enabledHint = false) {
   const identity = JSON.stringify([campaignId, userId]);
   const [navigation, setNavigation] = useState<{ identity: string; selected: string | null; before: number | null }>({ identity, selected: null, before: null });
   const selected = navigation.identity === identity ? navigation.selected : null;
@@ -15,10 +15,16 @@ export function useLocationChat(campaignId: string, userId: string) {
   const [pollError, setPollError] = useState({ identity, message: "" });
   const [intentStatus, setIntentStatus] = useState<IntentStatus>({ identity, pending: false, busy: false, error: "" });
   const [version, setVersion] = useState(0);
+  const [pollingEnabled, setPollingEnabled] = useState(enabledHint);
   const refresh = useCallback(() => setVersion(value => value + 1), []);
   const session = useMemo(() => new LocationIntentSession({ campaignId, userId, onSuccess: refresh }), [campaignId, userId, refresh]);
   const endpoint = session.endpoint;
   const key = JSON.stringify([campaignId, userId, selected, before]);
+
+  useEffect(() => {
+    setPollingEnabled(enabledHint);
+    if (!enabledHint) setSnapshot(null);
+  }, [identity, enabledHint]);
 
   // Runs on commit, before user events. Old callbacks keep the old, disposed
   // session and cannot retarget a pending draft to a new endpoint or account.
@@ -29,6 +35,7 @@ export function useLocationChat(campaignId: string, userId: string) {
   }, [session]);
 
   useEffect(() => {
+    if (!pollingEnabled) return;
     const abort = new AbortController();
     let timer: ReturnType<typeof setTimeout> | undefined;
     let etag: string | null = null;
@@ -72,9 +79,18 @@ export function useLocationChat(campaignId: string, userId: string) {
     }
     void poll();
     return () => { abort.abort(); if (timer) clearTimeout(timer); };
-  }, [endpoint, selected, before, key, version, identity, session, userId]);
+  }, [endpoint, selected, before, key, version, identity, session, userId, pollingEnabled]);
 
-  const command = useCallback((input: Record<string, unknown>) => session.send(input), [session]);
+  const command = useCallback(async (input: Record<string, unknown>) => {
+    const ok = await session.send(input);
+    if (!ok) return false;
+    if (input.operation === "enable") setPollingEnabled(true);
+    if (input.operation === "disable") {
+      setPollingEnabled(false);
+      setSnapshot(null);
+    }
+    return true;
+  }, [session]);
   const retry = useCallback(() => session.retry(), [session]);
   const select = useCallback((roomId: string) => { if (session.active) setNavigation({ identity, selected: roomId, before: null }); }, [identity, session]);
   const older = () => { if (session.active && snapshot?.key === key && snapshot.page.nextBefore) setNavigation({ identity, selected, before: snapshot.page.nextBefore }); };
@@ -82,7 +98,7 @@ export function useLocationChat(campaignId: string, userId: string) {
   const status = intentStatus.identity === identity ? intentStatus : null;
   return {
     view: sameIdentity ? snapshot?.view ?? null : null, campaignId, userId,
-    page: snapshot?.key === key ? snapshot.page : EMPTY, loading: !sameIdentity,
+    page: snapshot?.key === key ? snapshot.page : EMPTY, loading: pollingEnabled && !sameIdentity,
     selected, select, error: status?.error || (pollError.identity === identity ? pollError.message : ""),
     busy: status?.busy ?? false, command, refresh, older,
     showingOlder: before !== null,
