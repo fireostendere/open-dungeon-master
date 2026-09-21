@@ -66,7 +66,7 @@ export const EXTERNAL_NARRATOR_ACTIONS = new Set([
   "apply_damage", "heal", "stabilize", "award_xp", "party_stash", "party_award", "modify_gold", "grant_item", "reveal_item", "remove_item", "use_item", "purchase", "use_resource", "set_condition", "set_effect", "clear_effect", "clear_condition", "use_spell_slot", "learn_spell", "update_sheet", "take_rest",
   "move_party", "update_location", "travel", "pass_time", "start_scene", "scene_check", "end_scene", "request_roll", "request_player_input", "send_whisper", "record_event", "complete_beat", "write_campaign_note", "set_ambience", "play_sting",
   "set_npc", "npc_reaction", "social_check", "relationship_beat", "romance_advance", "relationship_end", "summon_pet", "pet_attack", "damage_pet", "dismiss_pet",
-  "dismiss_companion", "mount_up", "dismount", "roll_treasure", "damage_object", "group_check", "check_notice",
+  "add_companion", "dismiss_companion", "mount_up", "dismount", "roll_treasure", "damage_object", "group_check", "check_notice",
 ]);
 function campaignOrHuman(campaignId: string) {
   const campaign = getCampaignById(campaignId);
