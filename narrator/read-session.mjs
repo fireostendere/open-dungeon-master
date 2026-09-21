@@ -88,15 +88,31 @@ export function resetNarratorTimeline(host,epoch) {
 }
 export async function connectNarrator(host) {
   if(!host.campaignId)throw new Error('Cannot connect narrator withoutCampaignId.');
-  const result=await host.callControl('narrator.connect',{campaignId:host.campaignId,paged:true,maxBytes:host.readMaxBytes,projection:'live'});
-  // A handshake is not an acknowledgement. Assemble metadata, validate the
-  // epoch, then consume from the durable cursor rather than skipping to its tail.
-  const metadata=await host.readSnapshot({campaignId:host.campaignId,afterSeq:0,limit:1,projection:'live'});
-  if(!metadata||!seq(metadata.currentSeq))throw fail('Narrator metadata has no valid current sequence.',400);
-  const epoch=epochOf(metadata);
-  if(host.timelineEpoch!==null&&epoch!==null&&host.timelineEpoch!==epoch||host.lastSeq>metadata.currentSeq)resetNarratorTimeline(host,epoch);
-  else host.timelineEpoch=epoch??host.timelineEpoch;
-  await host.drainStory({ full: true });return result;
+  const result=await host.callControl('narrator.connect',{
+    campaignId:host.campaignId,paged:true,maxBytes:host.readMaxBytes,projection:'live',includeState:false,
+  });
+  // Normal reconnects need one authoritative read, not an embedded connect
+  // snapshot plus a metadata read plus the same story read again. Read at the
+  // durable cursor, validate the epoch, then hand that exact state to drain.
+  const originalCursor=host.lastSeq;
+  const readAt=afterSeq=>host.readSnapshot({
+    campaignId:host.campaignId,afterSeq,limit:50,projection:'full',
+  });
+  let first, reset=false;
+  try { first=await readAt(originalCursor); }
+  catch(error) {
+    if(!changed(error))throw error;
+    first=await readAt(0);reset=true;
+  }
+  if(!first||!seq(first.currentSeq))throw fail('Narrator metadata has no valid current sequence.',400);
+  const epoch=epochOf(first);
+  if(host.timelineEpoch!==null&&epoch!==null&&host.timelineEpoch!==epoch||originalCursor>first.currentSeq)reset=true;
+  if(reset) {
+    resetNarratorTimeline(host,epoch);
+    if(first.cursor!==0)first=await readAt(0);
+  } else host.timelineEpoch=epoch??host.timelineEpoch;
+  await host.drainStory({ full:true, firstSnapshot:first });
+  return result;
 }
 export async function drainNarratorStory(host, { full = false, firstSnapshot } = {}) {
   for(let page=0;page<1000;page++){
