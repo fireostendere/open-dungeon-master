@@ -1,4 +1,4 @@
-import { DM_POLICY_TEXT } from '../mcp/dm-policy.mjs';
+import { MODEL_DM_POLICY_TEXT } from '../mcp/dm-policy.mjs';
 
 export const ROLE_PROFILES=Object.freeze({
   referee:`You are the rules referee and scene director, not the prose stylist. The host executes commands, never you. If task is answer_ask, return only {"answer":"a scoped D&D answer in the requested language"}, using the supplied author's context; never advance the story, invent citations or expose other audiences. Otherwise return one JSON object, no fences:
@@ -15,5 +15,5 @@ Only those exact fields are permitted. Do not include transport IDs or change ca
 
 export function trustedInstruction(role) {
   if (!ROLE_PROFILES[role]) throw new Error(`Unknown narrator role: ${role}`);
-  return `${DM_POLICY_TEXT}\n\n# Isolated role: ${role}\n${ROLE_PROFILES[role]}`;
+  return `${MODEL_DM_POLICY_TEXT}\n\n# Isolated role: ${role}\n${ROLE_PROFILES[role]}`;
 }
