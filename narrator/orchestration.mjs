@@ -308,12 +308,14 @@ export class NarratorOrchestrator {
       const result = await host.callControl('narrator.catalog', { campaignId: host.campaignId, action: decision.action });
       this.schemas[decision.action] = result.groups; return true;
     }
-    if (decision.kind === 'done') {
+    if (decision.kind === 'done' || decision.kind === 'release_floor') {
       if (
         current.input?.kind === 'global_round' ||
         current.input?.kind === 'global_turn_trigger'
       ) return this.pause(host, 'global_round_requires_narration');
-      this.finish(host); return true;
+      if (decision.kind === 'done') {
+        this.finish(host); return true;
+      }
     }
     let invokedAction = decision.action;
     let invokedArgs = decision.args;
