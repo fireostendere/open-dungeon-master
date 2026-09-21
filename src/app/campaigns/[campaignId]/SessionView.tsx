@@ -218,13 +218,8 @@ export function SessionView({
     window.dispatchEvent(new Event(TOUR_SEEN_EVENT));
     setTour(null);
   }, [tourId]);
-  // The campaign's opening narration gets everyone's full attention: while
-  // it plays for this user, do/say/lead input waits (OOC stays open).
-  const firstDmMessageId = messages.find((message) => message.authorType === "dm")?.id;
-  const openingNarrationPlaying =
-    Boolean(firstDmMessageId) &&
-    narration.playingMessageId === firstDmMessageId &&
-    messages.filter((message) => message.authorType === "dm").length === 1;
+  // Hosted narration audio was retired; there is no server-side playback to gate.
+  const openingNarrationPlaying = false;
   const myName = mySheet?.name ?? "your character";
   const meId = me?.id ?? "";
   // Muted by the party lead: the server refuses the send, so the box says
