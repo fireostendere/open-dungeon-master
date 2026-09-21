@@ -223,14 +223,16 @@ await assert.rejects(
 );
 assert.equal(latestSeq(workshop.id), workshopSeq);
 
-const unsafeSettings = createCampaign(dm.id, {
-  title: "Unsafe settings", description: "", theme: "", maxPlayers: 1, startingLevel: 1,
-  difficulty: "normal", gameSettings: { dmMode: "human", ttsEnabled: true, mapsEnabled: false },
+const legacyMediaSettings = createCampaign(dm.id, {
+  title: "Legacy media flags", description: "", theme: "", maxPlayers: 1, startingLevel: 1,
+  difficulty: "normal", gameSettings: { dmMode: "human", ttsEnabled: true, mapsEnabled: true },
 });
-await assert.rejects(
-  () => executeMcpNarratorControl("narrator.connect", { campaignId: unsafeSettings.id }),
-  (error) => error instanceof McpNarratorControlError && error.status === 409,
-);
+setCampaignStatus(legacyMediaSettings.id, "active");
+const legacyMediaConnect = await executeMcpNarratorControl("narrator.connect", {
+  campaignId: legacyMediaSettings.id,
+});
+assert.equal(legacyMediaConnect.handled, true,
+  "retired hosted TTS/map flags must not block the external narrator");
 
 const oocCampaign = createCampaign(dm.id, {
   title: "OOC Filter Test", description: "", theme: "", maxPlayers: 4, startingLevel: 1,
