@@ -19,7 +19,7 @@ const { createCharacter, instantiateIntoCampaign } = await import("../src/lib/db
 const { createSheetSchema } = await import("../src/lib/schemas/sheet.ts");
 const { createDmTurn, createPendingRoll, resolvePendingRoll, saveDmTurn } = await import("../src/lib/db/dm-turns.ts");
 const { insertAsk } = await import("../src/lib/db/asks.ts");
-const { insertCampaignMessage } = await import("../src/lib/db/messages.ts");
+const { getCampaignMessage, insertCampaignMessage } = await import("../src/lib/db/messages.ts");
 const { getRoll, insertRoll, setRollSeq } = await import("../src/lib/db/rolls.ts");
 const { getDatabase } = await import("../src/lib/db/core.ts");
 const { publishWithSeq } = await import("../src/lib/events.ts");
@@ -29,11 +29,12 @@ const { extendControlResult } = await import("../src/lib/mcp-external-control.ts
 const { resumeHumanTurn } = await import("../src/lib/dm/invoke.ts");
 
 const capabilities = extendControlResult("server.capabilities", { actions: [] });
-assert.deepEqual(capabilities.actions.slice(0, 7), [
-  "narrator.connect", "narrator.read", "narrator.snapshot", "narrator.catalog", "narrator.invoke", "narrator.narrate", "narrator.release_floor",
+assert.deepEqual(capabilities.actions.slice(0, 8), [
+  "narrator.connect", "narrator.read", "narrator.snapshot", "narrator.catalog", "narrator.invoke", "narrator.narrate", "narrator.delete_message", "narrator.release_floor",
 ]);
 assert.equal(extendControlResult("server.status", { mcpControlActions: 0 }).mcpControlActions, capabilities.actions.length);
 assert.ok(capabilities.actions.includes("narrator.autopilot_action"), "external autopilot write must be advertised");
+assert.ok(capabilities.actions.includes("narrator.delete_message"), "external narrator must be able to delete transcript messages");
 
 const dm = createUser("external_dm", "hash");
 const narratorHostA = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
@@ -281,6 +282,30 @@ assert.equal(oocRead.result.messages.some((m) => m.id === icMsg2.id), true, "Sec
 
 assert.equal(oocRead.result.recentMessages.some((m) => m.id === oocMsg.id), false, "OOC message must not be in recentMessages");
 assert.equal(oocRead.result.recentMessages.some((m) => m.id === icMsg.id), true, "IC message must be in recentMessages");
+
+const deleteCommandId = randomUUID();
+const deleteRequest = {
+  campaignId: oocCampaign.id,
+  expectedSeq: latestSeq(oocCampaign.id),
+  commandId: deleteCommandId,
+  timelineEpoch: oocRead.result.timelineEpoch,
+  messageId: icMsg.id,
+};
+const deletedPlayerMessage = await executeMcpNarratorControl("narrator.delete_message", deleteRequest);
+assert.equal(deletedPlayerMessage.handled, true);
+assert.equal(deletedPlayerMessage.result.result.deleted.id, icMsg.id);
+assert.equal(deletedPlayerMessage.result.result.deleted.authorType, "player");
+assert.equal(getCampaignMessage(icMsg.id), null, "player transcript row must be removed");
+const replayedDelete = await executeMcpNarratorControl("narrator.delete_message", deleteRequest);
+assert.equal(replayedDelete.result.replayed, true, "identical delete retry must recover its receipt");
+const afterDeleteRead = await executeMcpNarratorControl("narrator.read", {
+  campaignId: oocCampaign.id,
+  afterSeq: oocRead.result.currentSeq,
+  limit: 50,
+});
+assert.equal(afterDeleteRead.result.events.some((event) => event.type === "message_deleted"), true);
+assert.equal(afterDeleteRead.result.recentMessages.some((message) => message.id === icMsg.id), false);
+
 
 const oocEvents = await executeMcpControl("campaigns.events", { campaignId: oocCampaign.id, afterSeq: 0, limit: 50 });
 assert.equal(oocEvents.events.some((e) => e.seq === oocSeq), false, "OOC event must not be returned by campaigns.events");
