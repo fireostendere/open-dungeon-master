@@ -2,6 +2,7 @@ import { AsyncLocalStorage } from 'node:async_hooks';
 import { getDatabase } from '@/lib/db/core';
 import { capsFor, getCampaignById, listMembers } from '@/lib/db/campaigns';
 import { projectSheetForViewer } from '@/lib/sheet-privacy';
+import type { CharacterSheet } from '@/lib/schemas/sheet';
 import { currentPublicationScope } from './publication-scope.mjs';
 import { projectEventForUser } from './event-privacy';
 import { createEventAccess, decodeEventChunk, ephemeralView, publicationView, type EventActor, type EventScope, type EventView } from './event-access.mjs';
@@ -64,7 +65,7 @@ export function campaignEventProjector(campaignId:string,userId:string) {
       ...event,
       payload: {
         ...(payload as Record<string, unknown>),
-        sheet: projectSheetForViewer(sheet as never, userId, { adjudicates: isDm }),
+        sheet: projectSheetForViewer(sheet as CharacterSheet, userId, { adjudicates: isDm }),
       },
     };
   };
