@@ -5,10 +5,18 @@
  */
 export function compactRolePacket(role, packet) {
   const input = packet.input;
-  const isCurrentInput = message => message && typeof input?.id === 'string' && input.id &&
-    Number.isSafeInteger(input.seq) && input.seq >= 0 &&
-    ['id', 'seq', 'authorType', 'userId', 'characterId', 'content'].every(key =>
-      message[key] === input[key]);
+  const roundSeqs = new Set(
+    input?.kind === 'global_round' && Array.isArray(input.messages)
+      ? input.messages.map(message => message?.seq).filter(Number.isSafeInteger)
+      : [],
+  );
+  const isCurrentInput = message => {
+    if (message && roundSeqs.has(message.seq)) return true;
+    return message && typeof input?.id === 'string' && input.id &&
+      Number.isSafeInteger(input.seq) && input.seq >= 0 &&
+      ['id', 'seq', 'authorType', 'userId', 'characterId', 'content'].every(key =>
+        message[key] === input[key]);
+  };
   const withoutCurrentInput = messages => {
     if (!Array.isArray(messages)) return messages;
     const compact = messages.filter(message => !isCurrentInput(message));
