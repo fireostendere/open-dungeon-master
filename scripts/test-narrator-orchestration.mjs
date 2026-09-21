@@ -72,6 +72,39 @@ test('real legacy player messages have no kind; referee receives IDs, state and 
   await h.tick(); assert.equal(h.modelCalls.length, 3, 'idle polling must not spend model calls');
 });
 
+test('global turn waits for ready barrier, batches the round, and closes it through MCP narration', async () => {
+  const h = fixture([{ kind: 'narrate', text: 'The party acts together.' }]);
+  h.snapshot.campaign.gameSettings.globalTurn = {
+    enabled: true,
+    turnCollectionMinutes: 0,
+    quorumPlayers: 2,
+    quorumDelayMinutes: 0,
+  };
+  h.snapshot.messages = [
+    player(2),
+    { ...player(3), id: 'message-3', userId: 'user-2', characterId: 'hero-2', content: 'I bar the door.' },
+  ];
+  h.snapshot.currentSeq = 3;
+  h.snapshot.nextCursor = 3;
+
+  assert.equal(await h.tick(), false);
+  assert.equal(h.modelCalls.length, 0, 'player messages must not wake the narrator before the round barrier');
+
+  h.snapshot.currentSeq = 4;
+  h.snapshot.nextCursor = 4;
+  h.snapshot.events = [{ seq: 4, type: 'global_turn_ready', payload: { roundNumber: 7 } }];
+  assert.equal(await h.tick(), true);
+
+  assert.equal(h.modelCalls.length, 1);
+  assert.equal(h.modelCalls[0].packet.input.kind, 'global_round');
+  assert.equal(h.modelCalls[0].packet.input.roundNumber, 7);
+  assert.deepEqual(h.modelCalls[0].packet.input.messages.map(message => message.seq), [2, 3]);
+  assert.deepEqual(h.modelCalls[0].packet.public.messages.map(message => message.seq), []);
+  assert.equal(h.writes[0].action, 'narrator.narrate');
+  assert.equal(h.writes[0].params.completeGlobalRound, 7);
+  assert.equal(h.controller.state.handledSeq, 4);
+});
+
 test('YOLO spatial catalog expands after enable without refetching the catalog', async () => {
   const h = fixture([
     { kind: 'invoke', action: 'game', args: { action: 'location_enable', args: { name: 'Tavern' } } },
