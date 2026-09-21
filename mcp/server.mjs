@@ -148,7 +148,7 @@ function createMcpServer() {
       contents: [{
         uri: uri.href,
         mimeType: "text/plain",
-        text: "Trusted DM only: connect, read until hasMore is false, then use the fully drained nextCursor/currentSeq as expectedSeq for one invoke, narrate, or release_floor. Inspect pendingRolls, roll_result events, and recentRolls; the server owns dice. After a write, consume its attached state as the read; if absent/incomplete, drain narrator.read. Always reread after a timeout or error. An ambiguous serialized write may have one immediate receipt-recovery retry only with the saved exact request: same UUID commandId, original expectedSeq, timelineEpoch and all arguments. Never regenerate a payload, expectedSeq or UUID to replay an effect; then checkpoint and escalate. An answer_ask retry also keeps the exact expectedVersion. If timelineEpoch changed, reconnect and discard incompatible pending work. This resource is not a background loop. The shared bearer is operator-wide, not player-scoped; never put it or DM secrets in player chat.",
+        text: "Trusted DM only: connect, read until hasMore is false, then use the fully drained nextCursor/currentSeq as expectedSeq for one invoke, narrate, or release_floor. Inspect pendingRolls, roll_result events, and recentRolls; the server owns dice. In global-turn mode, wait for global_turn_ready, treat all player messages through that event seq as one round, and narrate with completeGlobalRound equal to its roundNumber; that confirmed MCP write is what advances the round. After a write, consume its attached state as the read; if absent/incomplete, drain narrator.read. Always reread after a timeout or error. An ambiguous serialized write may have one immediate receipt-recovery retry only with the saved exact request: same UUID commandId, original expectedSeq, timelineEpoch and all arguments. Never regenerate a payload, expectedSeq or UUID to replay an effect; then checkpoint and escalate. An answer_ask retry also keeps the exact expectedVersion. If timelineEpoch changed, reconnect and discard incompatible pending work. This resource is not a background loop. The shared bearer is operator-wide, not player-scoped; never put it or DM secrets in player chat.",
       }],
     }),
   );
@@ -171,6 +171,10 @@ claim an action succeeded before the authoritative result has arrived.
 Call connect and read; follow nextCursor until hasMore is false. Filtering OOC
 messages can produce empty pages with a NEW cursor: keep draining them. Use the
 fully drained currentSeq as expectedSeq for one invoke, narrate or release_floor.
+When global-turn mode is enabled, do not resolve individual player messages as they arrive.
+Wait for global_turn_ready, batch all player messages through its seq, then send the
+round narration with completeGlobalRound=roundNumber. The server advances the round
+only after that MCP write commits.
 Consume the attached state after a write; drain missing pages/events with read.
 Always read after a timeout or error, including 409. A readRequired flag on a
 successful receipt means only the post-commit read failed: never replay the effect. An ambiguous serialized
