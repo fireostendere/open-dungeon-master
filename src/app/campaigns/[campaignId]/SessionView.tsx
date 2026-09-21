@@ -165,7 +165,7 @@ export function SessionView({
     window.dispatchEvent(new Event("odm-dice3d-pref"));
   }, [dice3d]);
 
-  const { narration, ambience } = useTableAudio(state);
+  const { ambience } = useTableAudio(state);
   // Chime on new private messages (side chats + DM whispers). The loaded
   // flags keep the page-load backlog silent.
   const chatUnreadTotal =
@@ -428,8 +428,6 @@ export function SessionView({
         }}
         dice3d={dice3d}
         onToggleDice3d={toggleDice3d}
-        ttsEnabled={Boolean(campaign.gameSettings?.ttsEnabled)}
-        narration={narration}
         ambienceEnabled={Boolean(campaign.gameSettings?.ambienceEnabled)}
         ambience={ambience}
         onHelp={() => setHelpOpen(true)}
@@ -441,7 +439,6 @@ export function SessionView({
           campaignId={campaign.id}
           meUserId={me.id}
           steersStory={steersStory}
-          narration={narration}
           visible={mobileView === "chat"}
           askOpen={askOpen}
           onAskOpenChange={setAskOpen}
