@@ -51,15 +51,15 @@ function allowedOrigin(origin) {
   }
 }
 
-function result(value, options = {}) {
-  const compact = options.compact ?? (process.env.ODM_MCP_COMPACT === "1" || process.env.ODM_MCP_COMPACT === "true");
+export function formatToolResult(value, options = {}) {
+  const pretty = /^(1|true)$/i.test(process.env.ODM_MCP_PRETTY?.trim() || "");
+  const compact = options.compact ?? !pretty;
   const text = compact ? JSON.stringify(value) : JSON.stringify(value, null, 2);
-  const structuredContent =
+  const response = { content: [{ type: "text", text }] };
+  const structured = options.structured ?? /^(1|true)$/i.test(process.env.ODM_MCP_STRUCTURED_RESULTS?.trim() || "");
+  if (structured) response.structuredContent =
     value && typeof value === "object" && !Array.isArray(value) ? value : { result: value };
-  return {
-    content: [{ type: "text", text }],
-    structuredContent,
-  };
+  return response;
 }
 
 function failure(error) {
@@ -76,7 +76,7 @@ async function run(action, params) {
       throw new Error("This MCP is restricted to its configured narrator campaign.");
     }
     const compact = params?.compact ?? (action.startsWith('narrator.') ? true : undefined);
-    return result(await callControl(action, params), { compact });
+    return formatToolResult(await callControl(action, params), { compact });
   } catch (error) {
     return failure(error);
   }
