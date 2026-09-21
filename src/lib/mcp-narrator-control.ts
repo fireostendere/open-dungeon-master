@@ -192,6 +192,7 @@ function orchestrationSnapshot(raw: unknown) {
       difficulty: campaign.difficulty,
       startingLevel: campaign.startingLevel,
       gameSettings: campaign.gameSettings,
+      globalTurnState: campaign.globalTurnState,
       floor: campaign.floor,
       clock: campaign.clock,
     },
