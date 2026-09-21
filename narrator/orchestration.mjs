@@ -412,7 +412,10 @@ export class NarratorOrchestrator {
     }
     if (current.waiting.some(id => !current.resolved[id]) || snapshot.pendingRolls?.length) return false;
     if (current.waiting.length) {
-      snapshot = await host.drainStory({ full: true });
+      // recentRolls is part of the verified state-delta projection. Do not
+      // discard the baseline and pull a full campaign snapshot after every
+      // physical roll in the hottest combat path.
+      snapshot = await host.drainStory();
       current.outcomes.push({ physicalRolls: clone(Object.values(current.resolved)), authoritativeRolls: (snapshot.recentRolls ?? []).filter(roll => Object.values(current.resolved).some(value => value.roll?.id === roll.id)) });
       current.waiting = []; current.resolved = {}; host.saveCheckpoint();
     }
