@@ -132,7 +132,7 @@ export async function connectNarrator(host) {
   // Contract v4 returns cursor metadata without echoing a full state snapshot.
   // Legacy servers are still accepted through one bounded metadata read.
   let metadata=result?.cursor;
-  if(!metadata||!seq(metadata.currentSeq))metadata=await host.readSnapshot({campaignId:host.campaignId,afterSeq:0,limit:1,projection:'live'});
+  if(!metadata||!seq(metadata.currentSeq))metadata=await host.readSnapshot({campaignId:host.campaignId,afterSeq:0,limit:1,projection:'live',includeAsks:false});
   if(!metadata||!seq(metadata.currentSeq))throw fail('Narrator metadata has no valid current sequence.',400);
   const epoch=epochOf(metadata);
   if(host.timelineEpoch!==null&&epoch!==null&&host.timelineEpoch!==epoch||host.lastSeq>metadata.currentSeq)resetNarratorTimeline(host,epoch);
@@ -142,7 +142,7 @@ export async function connectNarrator(host) {
 export async function drainNarratorStory(host, { full = false, firstSnapshot } = {}) {
   for(let page=0;page<1000;page++){
     const cursor=host.lastSeq;
-    const result=page===0&&firstSnapshot?firstSnapshot:await host.readSnapshot({campaignId:host.campaignId,afterSeq:cursor,limit:50,projection:full?'full':'live',...(host.timelineEpoch?{timelineEpoch:host.timelineEpoch}:{})});
+    const result=page===0&&firstSnapshot?firstSnapshot:await host.readSnapshot({campaignId:host.campaignId,afterSeq:cursor,limit:50,projection:full?'full':'live',includeAsks:false,...(host.timelineEpoch?{timelineEpoch:host.timelineEpoch}:{})});
     if(!result||!seq(result.currentSeq))throw fail('Narrator snapshot has no valid current sequence.',400);
     if(result.cursor!==undefined&&result.cursor!==cursor)throw fail('Read does not start at the acknowledged cursor.',409);
     if(result.campaign?.id&&result.campaign.id!==host.campaignId)throw fail('Read belongs to another campaign.',400);
@@ -170,7 +170,7 @@ export async function drainNarratorStory(host, { full = false, firstSnapshot } =
 export function postWriteReadOptions(host) {
   const cache=host.sectionCache,state=host.stateCache;
   const reusable=state&&state.projection==='live'&&state.timelineEpoch===host.timelineEpoch;
-  return {afterSeq:host.lastSeq,projection:'live',delta:true,stateDelta:true,paged:true,maxBytes:host.readMaxBytes??65536,
+  return {afterSeq:host.lastSeq,projection:'live',delta:true,stateDelta:true,includeAsks:false,paged:true,maxBytes:host.readMaxBytes??65536,
     ...(reusable?{knownStateRevision:state.revision}:cache?.scope===`${host.campaignId}:${host.timelineEpoch}`?{knownSections:{...cache.versions}}:{})};
 }
 /** Consume the receipt's read without requesting the first page again. A
