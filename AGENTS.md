@@ -351,6 +351,7 @@ ssh root@api.iroslyakov.com "/opt/odm/tools/watch-player.sh <LAST_PROCESSED_PLAY
 
 В репозитории `open-dungeon-master/.opencode/skills/` настроены готовые навыки:
 - `odm-narrator` — полный гайд по ведению сессий через MCP.
+- `yolo-dm` — драйвовое, кинематографичное ведение D&D (Fiction-First, Rule of Cool, высокий темп).
 - `odm-mcp` — управление сущностями сервера через MCP.
 - `dnd-session` — проведение сессий, подготовка сцен и итоги.
 - `dnd-encounters` — баланс и проектирование боевых столкновений.

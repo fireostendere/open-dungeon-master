@@ -94,6 +94,7 @@ retry после read; private Ask/whisper не анонсируется пуб�
 | [dnd-encounters](../.opencode/skills/dnd-encounters/SKILL.md) | Сцены и встречи | «Спроектируй погоню» |
 | [dnd-locations](../.opencode/skills/dnd-locations/SKILL.md) | Мир, подземелье, карта | «Опиши портовый квартал» |
 | [dnd-session](../.opencode/skills/dnd-session/SKILL.md) | Подготовка, игра, итог | «Сделай recap без спойлеров» |
+| [yolo-dm](../.opencode/skills/yolo-dm/SKILL.md) | Драйвовое ведение D&D (Fiction-First, Rule of Cool, высокий темп) | «Веди игру в стиле YOLO DM» |
 | [dnd-rules](../.opencode/skills/dnd-rules/SKILL.md) | RAW/RAI/домашнее решение | «Как работает укрытие?» |
 | [dnd-loot-homebrew](../.opencode/skills/dnd-loot-homebrew/SKILL.md) | Награды и homebrew | «Проверь предмет на злоупотребления» |
 | [dnd-doppelganger](../.opencode/skills/dnd-doppelganger/SKILL.md) | Автопилот и пропуск ходов | «Включи автопилот персонажа» |
