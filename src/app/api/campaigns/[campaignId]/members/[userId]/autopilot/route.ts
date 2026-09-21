@@ -22,20 +22,24 @@ export async function POST(
 
   // State-only opt-in. The server never runs a model here; the external
   // narrator host generates an actor intent and writes it through MCP.
-  const isSelf = context.user.id === targetUserId;
-  const isLeader = isLead(context);
-  const isDm = steersStory(context);
-  if (!isSelf && !isLeader && !isDm) {
-    return Response.json(
-      { error: "Only the player, party lead, or DM can change autopilot settings." },
-      { status: 403 },
-    );
-  }
-
   const raw = await request.json().catch(() => ({}));
   const parsed = autopilotSchema.safeParse(raw);
   if (!parsed.success) {
     return Response.json({ error: "Invalid autopilot request." }, { status: 400 });
+  }
+
+  const isSelf = context.user.id === targetUserId;
+  const canModerate = isLead(context) || steersStory(context);
+  // Enabling means consenting to let an isolated actor model author this
+  // character's turn. That consent is personal. Lead/DM may still disable an
+  // already enabled autopilot to keep the table moving or stop automation.
+  if (parsed.data.autopilot ? !isSelf : !isSelf && !canModerate) {
+    return Response.json(
+      { error: parsed.data.autopilot
+        ? "Only the player can enable autopilot for their own character."
+        : "Only the player, party lead, or DM can disable autopilot." },
+      { status: 403 },
+    );
   }
 
   const member = setMemberAutopilot(campaignId, targetUserId, parsed.data.autopilot);
