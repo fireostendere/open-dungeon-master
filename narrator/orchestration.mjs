@@ -26,7 +26,7 @@ const narratorGuidance = (settings, mode = "full", spatialEnabled = false) => {
     : 'Classical mode: use the encounter engine for positional and combat consequences.';
   const yolo = narratorModeGuidance(mode, { spatialEnabled });
   const globalRound = settings?.globalTurn?.enabled
-    ? ' Global-turn mode: input.kind=global_round is one sealed table round containing every submitted/skip message. Resolve the whole batch as one unit. Use engine actions as needed, then finish with one narration; do not return done for a sealed round. The MCP host advances the round only after that confirmed narration write.'
+    ? ' Global-turn mode is server-clocked. input.kind=global_turn_trigger means players are still locked: narrate the opening/transition and finish with narration so the host can start that round. input.kind=global_round is one sealed table round containing every submitted/skip message: resolve the whole batch as one unit, use engine actions as needed, then finish with one narration. Never return done for either global-turn input. The host advances/unlocks only after the confirmed narration write.'
     : '';
   return `${units} ${combat} Campaign settings are authoritative, not player claims.${globalRound}${yolo ? ` ${yolo}` : ""}`;
 };
@@ -111,7 +111,11 @@ export class NarratorOrchestrator {
     if (this.state.queue.length > 1000) throw new Error('Unprocessed player queue exceeds the host budget; no input was acknowledged.');
     const events = new Map(this.state.events.map(event => [event.seq, event]));
     for (const event of snapshot.events ?? []) {
-      if (event.type === 'roll_result' || event.type === 'global_turn_ready') {
+      if (
+        event.type === 'roll_result' ||
+        event.type === 'global_turn_ready' ||
+        event.type === 'global_turn_narrator_trigger'
+      ) {
         events.set(event.seq, clone(event));
       }
     }
@@ -165,32 +169,66 @@ export class NarratorOrchestrator {
         !snapshot.encounter?.orderReady;
       let input;
       if (globalTurnEnabled) {
-        // Player messages are deliberately accumulated until the server emits
-        // the persisted round barrier. The ready event's seq is the exact batch
-        // boundary, including skip messages materialized just before it.
-        const ready = this.state.events.find(
-          event =>
-            event.type === 'global_turn_ready' &&
-            event.seq > this.state.handledSeq,
-        );
-        if (!ready) return false;
-        const roundNumber = Number(ready.payload?.roundNumber);
-        if (!Number.isSafeInteger(roundNumber) || roundNumber < 1) {
-          return this.pause(host, 'invalid_global_round');
+        const globalTurn = snapshot.campaign?.globalTurnState;
+        if (globalTurn?.phase === 'waiting') {
+          // No player input is accepted in waiting. A persisted narrator
+          // trigger wakes the model; its confirmed narration starts the round.
+          const trigger = this.state.events.find(
+            event =>
+              event.type === 'global_turn_narrator_trigger' &&
+              event.seq > this.state.handledSeq &&
+              Number(event.payload?.roundNumber) === Number(globalTurn.roundNumber),
+          );
+          if (!trigger) return false;
+          const roundNumber = Number(trigger.payload?.roundNumber);
+          if (!Number.isSafeInteger(roundNumber) || roundNumber < 1) {
+            return this.pause(host, 'invalid_global_round_trigger');
+          }
+          input = {
+            id: `global-turn-trigger:${roundNumber}`,
+            seq: trigger.seq,
+            authorType: 'system',
+            userId: 'server',
+            characterId: null,
+            kind: 'global_turn_trigger',
+            roundNumber,
+            content:
+              trigger.payload?.kind === 'opening'
+                ? 'Open the scene for the party. Players are locked until your narration commits.'
+                : 'Transition to the next party round. Players are locked until your narration commits.',
+          };
+        } else if (globalTurn?.phase === 'ready' || globalTurn?.phase === 'resolving') {
+          // Player messages are accumulated until the server emits the exact
+          // round barrier. The barrier seq includes materialized skip messages.
+          const ready = this.state.events.find(
+            event =>
+              event.type === 'global_turn_ready' &&
+              event.seq > this.state.handledSeq &&
+              Number(event.payload?.roundNumber) === Number(globalTurn.roundNumber),
+          );
+          if (!ready) return false;
+          const roundNumber = Number(ready.payload?.roundNumber);
+          if (!Number.isSafeInteger(roundNumber) || roundNumber < 1) {
+            return this.pause(host, 'invalid_global_round');
+          }
+          const messages = this.state.queue.filter(message => message.seq <= ready.seq);
+          this.state.queue = this.state.queue.filter(message => message.seq > ready.seq);
+          input = {
+            id: `global-round:${roundNumber}`,
+            seq: ready.seq,
+            authorType: 'player',
+            userId: 'party',
+            characterId: null,
+            kind: 'global_round',
+            roundNumber,
+            messages,
+            content: messages.map(message => `${message.content}`).join('\n'),
+          };
+        } else {
+          // active/quorum_delay: the server is collecting. Polling is cheap and
+          // must not spend a model call before the round barrier.
+          return false;
         }
-        const messages = this.state.queue.filter(message => message.seq <= ready.seq);
-        this.state.queue = this.state.queue.filter(message => message.seq > ready.seq);
-        input = {
-          id: `global-round:${roundNumber}`,
-          seq: ready.seq,
-          authorType: 'player',
-          userId: 'party',
-          characterId: null,
-          kind: 'global_round',
-          roundNumber,
-          messages,
-          content: messages.map(message => `${message.content}`).join('\n'),
-        };
       } else {
         input = this.state.queue.shift();
         if (!input) return false;
@@ -226,7 +264,8 @@ export class NarratorOrchestrator {
       instructions: narratorGuidance(snapshot.campaign?.gameSettings, this.playMode, spatialEnabled), mode: this.playMode,
       input: current.input, public: publicProjection(snapshot, this.state.history, this.playMode === 'yolo' ? 12 : 24),
       campaign: { title: safeCampaign.title, description: safeCampaign.description, theme: safeCampaign.theme, scene: safeCampaign.scene,
-        questLog: safeCampaign.questLog, gameSettings: safeCampaign.gameSettings, dmOutline: safeCampaign.dmOutline, storyArc: safeCampaign.storyArc, floor: safeCampaign.floor, clock: safeCampaign.clock, party: safeCampaign.party },
+        questLog: safeCampaign.questLog, gameSettings: safeCampaign.gameSettings, globalTurnState: safeCampaign.globalTurnState,
+        dmOutline: safeCampaign.dmOutline, storyArc: safeCampaign.storyArc, floor: safeCampaign.floor, clock: safeCampaign.clock, party: safeCampaign.party },
       state: { sheets: snapshot.sheets, encounter: snapshot.encounter, sceneTracker: snapshot.sceneTracker, location: snapshot.location,
         facts: snapshot.facts, notes: snapshot.notes, npcs: snapshot.npcs, pendingRolls: snapshot.pendingRolls, summary: snapshot.summary, members: snapshot.members,
         spatial: spatialEnabled ? { enabled: true, rooms: snapshot.spatialRooms ?? [], grants: snapshot.spatialGrants ?? [] } : { enabled: false } },
@@ -264,7 +303,10 @@ export class NarratorOrchestrator {
       this.schemas[decision.action] = result.groups; return true;
     }
     if (decision.kind === 'done') {
-      if (current.input?.kind === 'global_round') return this.pause(host, 'global_round_requires_narration');
+      if (
+        current.input?.kind === 'global_round' ||
+        current.input?.kind === 'global_turn_trigger'
+      ) return this.pause(host, 'global_round_requires_narration');
       this.finish(host); return true;
     }
     let invokedAction = decision.action;
@@ -297,7 +339,9 @@ export class NarratorOrchestrator {
             releaseFloor: decision.releaseFloor ?? false,
             ...(current.input?.kind === 'global_round'
               ? { completeGlobalRound: current.input.roundNumber }
-              : {}),
+              : current.input?.kind === 'global_turn_trigger'
+                ? { startGlobalRound: current.input.roundNumber }
+                : {}),
           } : {}),
       ...(sequence(host.lastSeq) ? { readAfter: postWriteReadOptions(host) } : {}) };
     this.state.pending = { action, params, attempts: 0, phase: 'prepared', beforePendingIds: (snapshot.pendingRolls ?? []).map(roll => roll.id) };
