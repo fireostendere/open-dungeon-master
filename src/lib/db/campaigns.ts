@@ -497,7 +497,7 @@ export function listMembers(campaignId: string): CampaignMember[] {
   const rows = getDatabase()
     .prepare(
       `
-        SELECT m.user_id, u.username, u.avatar_json, m.role, m.ready, m.use_real_dice, m.muted, m.skip_turns_count, m.autopilot, m.joined_at
+        SELECT m.user_id, u.username, u.avatar_json, m.role, m.ready, m.use_real_dice, m.muted, m.skip_turns_count, m.joined_at
         FROM campaign_members m
         JOIN users u ON u.id = m.user_id
         WHERE m.campaign_id = ?
@@ -513,7 +513,6 @@ export function listMembers(campaignId: string): CampaignMember[] {
     use_real_dice: number;
     muted: number;
     skip_turns_count: number;
-    autopilot: number;
     joined_at: string;
   }>;
 
@@ -526,7 +525,6 @@ export function listMembers(campaignId: string): CampaignMember[] {
     useRealDice: Boolean(row.use_real_dice),
     muted: Boolean(row.muted),
     skipTurnsCount: Number(row.skip_turns_count ?? 0),
-    autopilot: Boolean(row.autopilot),
     joinedAt: row.joined_at,
   }));
 }
@@ -546,13 +544,6 @@ export function setGlobalTurnState(campaignId: string, state: GlobalTurnState) {
   getDatabase()
     .prepare(`UPDATE campaigns SET global_turn_json = ?, updated_at = ? WHERE id = ?`)
     .run(JSON.stringify(state), nowIso(), campaignId);
-}
-
-export function setMemberAutopilot(campaignId: string, userId: string, autopilot: boolean): CampaignMember | null {
-  getDatabase()
-    .prepare(`UPDATE campaign_members SET autopilot = ? WHERE campaign_id = ? AND user_id = ?`)
-    .run(autopilot ? 1 : 0, campaignId, userId);
-  return getMember(campaignId, userId);
 }
 
 export function setMemberSkipTurns(campaignId: string, userId: string, count: number): CampaignMember | null {
