@@ -78,6 +78,7 @@ export class OpenCodeAdapter {
     this.actorTimeoutMs = actorTimeoutRaw === undefined || actorTimeoutRaw === ''
       ? Math.min(this.timeoutMs, 30000)
       : Number(actorTimeoutRaw);
+    this.actorSetupTimeoutMs = Math.min(this.actorTimeoutMs, 5000);
     this.cleanupTimeoutMs = options.cleanupTimeoutMs ?? 2000;
     if (!Number.isSafeInteger(this.actorTimeoutMs) || this.actorTimeoutMs < 1 || this.actorTimeoutMs > 120000) throw new Error('Invalid actor timeout.');
     if (!Number.isSafeInteger(this.cleanupTimeoutMs) || this.cleanupTimeoutMs < 1 || this.cleanupTimeoutMs > 10000) throw new Error('Invalid cleanup timeout.');
@@ -127,7 +128,8 @@ export class OpenCodeAdapter {
     if (this.closed) throw new Error('OpenCode adapter is closed.');
     const agent = `narrator-${role}`;
     const roleModel = this.modelFor(role);
-    const session = await this.request('/api/session', { stage: 'session', body: { agent, model: roleModel,
+    const setupTimeoutMs = role === 'actor' ? this.actorSetupTimeoutMs : this.timeoutMs;
+    const session = await this.request('/api/session', { stage: 'session', timeoutMs: setupTimeoutMs, body: { agent, model: roleModel,
       location: { directory: this.workspace }, permissions: [{ action: '*', resource: '*', effect: 'deny' }], title: `ODM ${role}` } });
     if (typeof session?.id !== 'string' || !/^ses[a-zA-Z0-9_-]+$/.test(session.id)) throw new Error('Invalid OpenCode session.');
     if (session.agent !== agent || ['providerID', 'id', 'variant'].some(key => session.model?.[key] !== roleModel[key])) {
@@ -137,7 +139,7 @@ export class OpenCodeAdapter {
     try {
       if (!this.workspacePolicyRoles.has(role)) {
         await this.request(`/api/experimental/session/${encodeURIComponent(session.id)}/instructions/entries/odm-policy`,
-          { method: 'PUT', stage: 'policy', body: { value: trustedInstruction(role) } });
+          { method: 'PUT', stage: 'policy', timeoutMs: setupTimeoutMs, body: { value: trustedInstruction(role) } });
       }
       return session;
     } catch (error) {
