@@ -142,7 +142,7 @@ export class NarratorOrchestrator {
     const totalInputBytes = promptBytes + instructionBytes;
     const estimatedPromptTokens = Math.ceil(totalInputBytes / 3);
     const estimatedOutputTokens = role === 'writer' ? 2048 : role === 'referee' ? 2048 : 1024;
-    const budget = host.costTracker?.checkBudget?.(estimatedPromptTokens + estimatedOutputTokens);
+    const budget = host.costTracker?.checkBudget?.({ promptTokens: estimatedPromptTokens, completionTokens: estimatedOutputTokens });
     if (budget && !budget.allowed) throw new Error(`Narrator token budget exhausted: ${budget.reason}`);
     if(packetTiming)emitLatency({stage:'packet',role,durationMs:performance.now()-packetStarted,bytes:promptBytes,instructionBytes,totalInputBytes});
     usage.calls++; usage.times.push(now); usage.inputBytes += totalInputBytes; host.saveCheckpoint();
