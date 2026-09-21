@@ -33,6 +33,87 @@ function compactPhysicalRollEvent(event) {
   };
 }
 
+function compactStoryArc(arc) {
+  if (!arc || typeof arc !== 'object' || Array.isArray(arc)) return arc;
+  const beats = Array.isArray(arc.beats) ? arc.beats : [];
+  const activeIndex = beats.findIndex(beat => beat?.status === 'active');
+  const currentAct = activeIndex >= 0
+    ? Number(beats[activeIndex]?.act ?? 1)
+    : Number(arc.acts ?? 1);
+  const currentBeatNumber = activeIndex >= 0 ? activeIndex + 1 : null;
+
+  // Preserve the current detailed act and only unresolved material ahead.
+  // Settled historical acts are already represented by host memory and saga
+  // milestones, so repeating every old beat on each mechanical step is pure
+  // context inflation.
+  const compactBeats = beats
+    .map((beat, index) => ({ ...beat, number: index + 1 }))
+    .filter(beat =>
+      Number(beat.act ?? 1) === currentAct ||
+      (Number(beat.act ?? 1) > currentAct &&
+        !['done', 'skipped'].includes(String(beat.status))),
+    )
+    .slice(0, 12);
+
+  const saga = arc.saga && typeof arc.saga === 'object'
+    ? {
+        title: arc.saga.title,
+        plannedActs: arc.saga.plannedActs,
+        sagaIndex: arc.saga.sagaIndex,
+        currentAct,
+        priorSagas: Array.isArray(arc.saga.priorSagas)
+          ? arc.saga.priorSagas.slice(-2)
+          : [],
+        sketches: Array.isArray(arc.saga.sketches)
+          ? arc.saga.sketches
+              .filter(sketch => Number(sketch?.act ?? 0) >= currentAct)
+              .slice(0, 3)
+          : [],
+        ...(arc.saga.finaleBoss ? { finaleBoss: arc.saga.finaleBoss } : {}),
+      }
+    : null;
+
+  const cast = Array.isArray(arc.cast)
+    ? arc.cast.filter(npc => npc?.status !== 'gone').slice(0, 6)
+    : [];
+  const events = Array.isArray(arc.events)
+    ? [...arc.events]
+        .filter(event => event?.status === 'pending')
+        .sort((a, b) => Number(a?.actHint ?? currentAct) - Number(b?.actHint ?? currentAct))
+        .slice(0, 4)
+    : [];
+  const openSubArcs = Array.isArray(arc.subArcs)
+    ? arc.subArcs.filter(subArc => ['active', 'pending'].includes(String(subArc?.status))).slice(0, 4)
+    : [];
+  const settledSubArcs = Array.isArray(arc.subArcs)
+    ? arc.subArcs
+        .filter(subArc => ['resolved', 'abandoned'].includes(String(subArc?.status)))
+        .slice(-3)
+        .map(subArc => ({
+          id: subArc.id,
+          name: subArc.name,
+          status: subArc.status,
+          ...(subArc.resolution ? { resolution: subArc.resolution } : {}),
+        }))
+    : [];
+
+  return {
+    version: arc.version,
+    premise: arc.premise,
+    stakes: arc.stakes,
+    antagonist: arc.antagonist,
+    currentAct,
+    currentBeatNumber,
+    beats: compactBeats,
+    finale: arc.finale,
+    saga,
+    cast,
+    events,
+    subArcs: openSubArcs,
+    ...(settledSubArcs.length ? { settledSubArcs } : {}),
+  };
+}
+
 function compactNarratorEvent(event) {
   if (!event || typeof event !== 'object') return event;
   if (event.type === 'roll_result') {
@@ -138,12 +219,17 @@ export function compactRolePacket(role, packet) {
   if (Array.isArray(packet.rollEvents) && packet.rollEvents.length) {
     result = { ...result, rollEvents: packet.rollEvents.slice(-16).map(compactNarratorEvent) };
   }
-  if (packet.campaign?.gameSettings) {
+  if (packet.campaign?.gameSettings || packet.campaign?.storyArc) {
     result = {
       ...result,
       campaign: {
         ...packet.campaign,
-        gameSettings: compactGameSettings(packet.campaign.gameSettings),
+        ...(packet.campaign?.gameSettings
+          ? { gameSettings: compactGameSettings(packet.campaign.gameSettings) }
+          : {}),
+        ...(packet.campaign?.storyArc
+          ? { storyArc: compactStoryArc(packet.campaign.storyArc) }
+          : {}),
       },
     };
   }
