@@ -5,7 +5,6 @@ import { Inbox, Megaphone } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { Ribbon } from "@/components/ui/Ribbon";
 import { consoleAdjudications, type AdjudicationCategory } from "@/lib/dm/invoke-catalog";
-import { offersImages, useCapabilities } from "@/lib/use-capabilities";
 import { DmActionForm } from "@/app/campaigns/[campaignId]/DmActionForm";
 import { DmBeatComposer } from "@/app/campaigns/[campaignId]/DmBeatComposer";
 import { DmAssistPanel } from "@/app/campaigns/[campaignId]/DmAssistPanel";
@@ -130,23 +129,17 @@ export function DmConsolePanel({
   // The table's crit rules, for the assist rail's consequence preview.
   variantRules: CritRules;
 }) {
-  // Illustrate stays in the catalog (the AI DM and the dispatcher still know
-  // it) but leaves the console on a server with no image backend, where the
-  // form could only ever queue a render that fails. The upload alternative
-  // lives on each passage in the transcript.
-  const capabilities = useCapabilities();
-  const groups = useMemo(() => {
-    const all = consoleAdjudications();
-    if (offersImages(capabilities)) {
-      return all;
-    }
-    return all
+  // Hosted image generation is retired. Keep deterministic/manual map tools,
+  // but never expose the old generate_image adjudication.
+  const groups = useMemo(
+    () => consoleAdjudications()
       .map((group) => ({
         ...group,
         entries: group.entries.filter((entry) => entry.name !== "generate_image"),
       }))
-      .filter((group) => group.entries.length > 0);
-  }, [capabilities]);
+      .filter((group) => group.entries.length > 0),
+    [],
+  );
   // The rail carries the catalog's own categories plus two that are not
   // adjudications at all: the assist tools, which apply nothing, and the DM's
   // tables and monster lookup, which are reference.
