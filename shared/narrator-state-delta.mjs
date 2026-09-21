@@ -67,6 +67,7 @@ export function narratorStateRevision(scope, state) {
 
 const itemDigest = item => crypto.createHash('sha256').update(JSON.stringify(canonical(item))).digest('hex');
 const entityId = item => item && (typeof item.id === 'string' || typeof item.id === 'number') ? String(item.id) : null;
+const plainObject = value => Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 
 function entityPatch(before, after) {
   if (!Array.isArray(before) || !Array.isArray(after)) return null;
@@ -83,8 +84,33 @@ function entityPatch(before, after) {
   return { upsert, remove, ...(order ? { order } : {}) };
 }
 
+function deepPatch(before, after) {
+  const patch = { set: {}, unset: [], objects: {}, entities: {} };
+  const keys = new Set([...Object.keys(before ?? {}), ...Object.keys(after ?? {})]);
+  for (const key of keys) {
+    if (forbidden.has(key)) continue;
+    const hasBefore = Object.hasOwn(before ?? {}, key), hasAfter = Object.hasOwn(after ?? {}, key);
+    if (!hasAfter) { patch.unset.push(key); continue; }
+    if (!hasBefore) { patch.set[key] = clone(after[key]); continue; }
+    if (itemDigest(before[key]) === itemDigest(after[key])) continue;
+    const entities = entityPatch(before[key], after[key]);
+    if (entities) { patch.entities[key] = entities; continue; }
+    if (plainObject(before[key]) && plainObject(after[key])) {
+      const nested = deepPatch(before[key], after[key]);
+      if (Object.keys(nested).length) patch.objects[key] = nested;
+      continue;
+    }
+    patch.set[key] = clone(after[key]);
+  }
+  if (!Object.keys(patch.set).length) delete patch.set;
+  if (!patch.unset.length) delete patch.unset;
+  if (!Object.keys(patch.objects).length) delete patch.objects;
+  if (!Object.keys(patch.entities).length) delete patch.entities;
+  return patch;
+}
+
 export function createNarratorStatePatch(before, after) {
-  const patch = { format: NARRATOR_STATE_PATCH_FORMAT, set: {}, unset: [], entities: {} };
+  const patch = { format: NARRATOR_STATE_PATCH_FORMAT, set: {}, unset: [], objects: {}, entities: {} };
   const keys = new Set([...Object.keys(before ?? {}), ...Object.keys(after ?? {})]);
   for (const key of keys) {
     if (!NARRATOR_PATCHABLE_KEYS.includes(key) || forbidden.has(key)) continue;
@@ -93,13 +119,61 @@ export function createNarratorStatePatch(before, after) {
     if (!hasBefore) { patch.set[key] = clone(after[key]); continue; }
     if (itemDigest(before[key]) === itemDigest(after[key])) continue;
     const entities = entityArrayKeys.has(key) ? entityPatch(before[key], after[key]) : null;
-    if (entities) patch.entities[key] = entities;
-    else patch.set[key] = clone(after[key]);
+    if (entities) { patch.entities[key] = entities; continue; }
+    if (plainObject(before[key]) && plainObject(after[key])) {
+      const nested = deepPatch(before[key], after[key]);
+      if (Object.keys(nested).length) patch.objects[key] = nested;
+      continue;
+    }
+    patch.set[key] = clone(after[key]);
   }
   if (!Object.keys(patch.set).length) delete patch.set;
   if (!patch.unset.length) delete patch.unset;
+  if (!Object.keys(patch.objects).length) delete patch.objects;
   if (!Object.keys(patch.entities).length) delete patch.entities;
   return patch;
+}
+
+function applyEntityPatch(before, change) {
+  if (!Array.isArray(before)) throw new Error('Invalid narrator entity patch baseline.');
+  const items = new Map(before.map(item => [entityId(item), clone(item)]));
+  if ([...items.keys()].some(id => id === null)) throw new Error('Narrator entity baseline has no stable id.');
+  for (const id of change.remove ?? []) items.delete(String(id));
+  for (const item of change.upsert ?? []) {
+    const id = entityId(item);
+    if (id === null) throw new Error('Narrator entity patch has no stable id.');
+    items.set(id, clone(item));
+  }
+  const order = change.order ?? [...items.keys()];
+  if (!Array.isArray(order) || order.length !== items.size || new Set(order.map(String)).size !== items.size)
+    throw new Error('Invalid narrator entity order.');
+  return order.map(id => {
+    const item = items.get(String(id));
+    if (item === undefined) throw new Error('Narrator entity order references a missing id.');
+    return item;
+  });
+}
+
+function applyDeepPatch(before, patch) {
+  if (!plainObject(before)) throw new Error('Invalid narrator object patch baseline.');
+  const result = clone(before);
+  for (const key of patch.unset ?? []) {
+    if (forbidden.has(key)) throw new Error('Invalid narrator object patch key.');
+    delete result[key];
+  }
+  for (const [key, value] of Object.entries(patch.set ?? {})) {
+    if (forbidden.has(key)) throw new Error('Invalid narrator object patch key.');
+    result[key] = clone(value);
+  }
+  for (const [key, nested] of Object.entries(patch.objects ?? {})) {
+    if (forbidden.has(key) || !Object.hasOwn(result, key)) throw new Error('Invalid narrator nested object patch.');
+    result[key] = applyDeepPatch(result[key], nested);
+  }
+  for (const [key, change] of Object.entries(patch.entities ?? {})) {
+    if (forbidden.has(key) || !Object.hasOwn(result, key)) throw new Error('Invalid narrator nested entity patch.');
+    result[key] = applyEntityPatch(result[key], change);
+  }
+  return result;
 }
 
 export function applyNarratorStatePatch(before, patch) {
@@ -113,25 +187,14 @@ export function applyNarratorStatePatch(before, patch) {
     if (!NARRATOR_PATCHABLE_KEYS.includes(key) || forbidden.has(key)) throw new Error('Invalid narrator state patch key.');
     result[key] = clone(value);
   }
+  for (const [key, nested] of Object.entries(patch.objects ?? {})) {
+    if (!NARRATOR_PATCHABLE_KEYS.includes(key) || forbidden.has(key) || !Object.hasOwn(result, key))
+      throw new Error('Invalid narrator state object patch.');
+    result[key] = applyDeepPatch(result[key], nested);
+  }
   for (const [key, change] of Object.entries(patch.entities ?? {})) {
-    if (!entityArrayKeys.has(key) || forbidden.has(key) || !Array.isArray(result[key])) throw new Error('Invalid narrator entity patch.');
-    const items = new Map(result[key].map(item => [entityId(item), clone(item)]));
-    if ([...items.keys()].some(id => id === null)) throw new Error('Narrator entity baseline has no stable id.');
-    for (const id of change.remove ?? []) items.delete(String(id));
-    for (const item of change.upsert ?? []) {
-      const id = entityId(item);
-      if (id === null) throw new Error('Narrator entity patch has no stable id.');
-      items.set(id, clone(item));
-    }
-    const order = change.order ?? [...items.keys()];
-    if (!Array.isArray(order) || order.length !== items.size || new Set(order.map(String)).size !== items.size)
-      throw new Error('Invalid narrator entity order.');
-    const rebuilt = order.map(id => {
-      const item = items.get(String(id));
-      if (item === undefined) throw new Error('Narrator entity order references a missing id.');
-      return item;
-    });
-    result[key] = rebuilt;
+    if (!entityArrayKeys.has(key) || forbidden.has(key) || !Object.hasOwn(result, key)) throw new Error('Invalid narrator entity patch.');
+    result[key] = applyEntityPatch(result[key], change);
   }
   return result;
 }
