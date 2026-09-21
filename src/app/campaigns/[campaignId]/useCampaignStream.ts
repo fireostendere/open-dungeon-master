@@ -158,8 +158,6 @@ export type CampaignState = {
   // is only true while it is happening, so it is never replayed and the
   // player hook drops it once it has sounded.
   ambienceSting: { cue: string; at: number } | null;
-  narrationAudio: Record<string, string>;
-  latestTts: { messageId: string; url: string; seq: number } | null;
   latestRoll: { roll: StoredRoll; source: string; seq: number } | null;
   lastSeq: number;
   dmStatus: DmStatus;
@@ -251,8 +249,6 @@ const initialState: CampaignState = {
   mapPing: null,
   ambience: EMPTY_AMBIENCE,
   ambienceSting: null,
-  narrationAudio: {},
-  latestTts: null,
   latestRoll: null,
   lastSeq: 0,
   dmStatus: "idle",
@@ -431,16 +427,6 @@ function reducer(state: CampaignState, action: Action): CampaignState {
               location,
               (entry) => entry.id,
             );
-          }
-          return next;
-        }
-        case "tts_ready": {
-          const messageId = String(payload.messageId ?? "");
-          const url = String(payload.url ?? "");
-          if (messageId && url) {
-            next.narrationAudio = { ...state.narrationAudio, [messageId]: url };
-            next.latestTts = { messageId, url, seq: action.seq ?? 0 };
-            next.mediaStatus = withoutKey(state.mediaStatus, messageId);
           }
           return next;
         }
@@ -734,7 +720,6 @@ const PERSISTED_EVENTS = [
   "image_ready",
   "location_updated",
   "location_map_ready",
-  "tts_ready",
   "ambience_changed",
   "campaign_rewound",
   "item_proposal_added",
@@ -846,7 +831,6 @@ export function useCampaignStream(campaignId: string) {
           beats: data.beats ?? [],
           dmStatus: data.dmStatus ?? "idle",
           utilityCalls: sortCalls(data.utilityCalls ?? []),
-          narrationAudio: data.narrationAudio ?? {},
           ambience: data.ambience ?? EMPTY_AMBIENCE,
           spatialEnabled: Boolean(data.spatial?.enabled),
           lastSeq,
