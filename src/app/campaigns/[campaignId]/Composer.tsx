@@ -312,18 +312,36 @@ function ComposerInner({
               <span className="text-[11px] text-stone-400">
                 ({respondedPlayersCount}/{Math.max(1, playerSheets.length)} сходили)
               </span>
-              {globalTurnState?.deadlineAt ? (
+              {globalTurnState?.phase === "ready" || globalTurnState?.phase === "resolving" ? (
+                <span className="rounded bg-amber-950/80 px-1.5 py-0.5 text-[11px] text-amber-200">
+                  {locale === "ru"
+                    ? "MCP-Мастер разрешает раунд"
+                    : locale === "pl"
+                      ? "MCP MG rozstrzyga rundę"
+                      : "MCP DM is resolving the round"}
+                </span>
+              ) : globalTurnState?.deadlineAt ? (
                 <span
                   className={cn(
                     "rounded bg-stone-900/90 px-1.5 py-0.5 font-mono text-[11px]",
                     secsTotal <= 60 ? "text-red-400 animate-pulse" : "text-amber-300",
                   )}
                 >
-                  Осталось: {formattedCountdown}
+                  {locale === "ru" ? "Осталось" : locale === "pl" ? "Pozostało" : "Remaining"}: {formattedCountdown}
                 </span>
               ) : (
                 <span className="text-[11px] italic text-stone-400">
-                  (ждём 1-го хода)
+                  {globalTurnState?.firstActionAt
+                    ? locale === "ru"
+                      ? "(без таймера, ждём кворум)"
+                      : locale === "pl"
+                        ? "(bez limitu, czekamy na kworum)"
+                        : "(no timer, waiting for quorum)"
+                    : locale === "ru"
+                      ? "(ждём 1-го хода)"
+                      : locale === "pl"
+                        ? "(czekamy na pierwszy ruch)"
+                        : "(waiting for first action)"}
                 </span>
               )}
             </div>
