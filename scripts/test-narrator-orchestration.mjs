@@ -84,7 +84,9 @@ test('global turn opening stays locked until MCP narration starts the round', as
     roundNumber: 1, phase: 'waiting', startedAt: null,
     firstActionAt: null, deadlineAt: null, quorumReachedAt: null, actionsByCharacter: {},
   };
-  h.snapshot.messages = [];
+  // Simulate a stale pre-trigger player message from before global-turn mode
+  // was armed. It must never become part of round 1.
+  h.snapshot.messages = [player(1)];
   h.snapshot.currentSeq = 1;
   h.snapshot.nextCursor = 1;
 
@@ -105,6 +107,7 @@ test('global turn opening stays locked until MCP narration starts the round', as
   assert.equal(h.writes[0].action, 'narrator.narrate');
   assert.equal(h.writes[0].params.startGlobalRound, 1);
   assert.equal(h.writes[0].params.completeGlobalRound, undefined);
+  assert.equal(h.controller.state.queue.length, 0, 'pre-trigger input must be discarded at the start boundary');
 });
 
 test('global turn waits for ready barrier, batches the round, and closes it through MCP narration', async () => {
