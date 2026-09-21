@@ -32,7 +32,7 @@ export class NarratorRunner {
     this.askResponder=typeof options.askResponder==='function'?options.askResponder:null;
     this.yoloRequested=explicitYoloRequested({requested:options.yolo});
     this.storyController=options.storyController||null;this.adapterModule=options.adapterModule||process.env.ODM_NARRATOR_ADAPTER_MODULE||'';
-    this.deltaReads=options.deltaReads??true;this.sectionCache=null;
+    this.deltaReads=options.deltaReads??true;this.sectionCache=null;this.stateCache=null;
     this.resumeRequested=options.resume??false;this.resumeAfterSeq=options.resumeAfterSeq;
     this.mode=this.storyController?'local-role-orchestrator':this.askResponder?'collector-with-ask-adapter':'collector';
     this.playMode=this.storyController?.playMode??(this.yoloRequested?'yolo':null);
