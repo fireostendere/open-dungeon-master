@@ -7,8 +7,6 @@ import { publishPersisted } from "@/lib/events";
 import { normalizeEventKind } from "@/lib/dm/arg-coerce";
 import { resolveSheetRef } from "@/lib/dm/rolls";
 import { followSceneAmbience } from "@/lib/dm/ambience-tools";
-import { imageProducerReady } from "@/lib/image-generate";
-import { enqueueDmMediaIntent } from "@/lib/dm/media-jobs";
 import type { CharacterSheet } from "@/lib/schemas/sheet";
 
 function parseSpotlightUserIds(rawArguments: string, sheets: CharacterSheet[], sheetsById: Map<string, CharacterSheet>) {
@@ -57,9 +55,7 @@ export function handleLocationCall(campaign: Campaign, toolName: string, rawArgu
   try { args = JSON.parse(rawArguments || "{}"); } catch { return { error: "Invalid arguments." }; }
   const layoutDescription = typeof args.layoutDescription === "string" ? args.layoutDescription : undefined;
   const connections = Array.isArray(args.connections) ? args.connections.map(String).slice(0, 12) : undefined;
-  const visionClear = args.visionClear === true;
   let location;
-  let previousLayout = "";
   if (toolName === "move_party") {
     const name = typeof args.name === "string" ? args.name.trim() : "";
     if (!name) return { error: "move_party needs a location name." };
@@ -71,18 +67,10 @@ export function handleLocationCall(campaign: Campaign, toolName: string, rawArgu
     }
     setCampaignScene(campaign.id, location.name);
   } else {
-    previousLayout = getCurrentLocation(campaign.id)?.layoutDescription ?? "";
     location = updateCurrentLocationDetails(campaign.id, { layoutDescription, connections });
     if (!location) return { error: "No current location; call move_party first." };
   }
   publishPersisted(campaign.id, "location_updated", { location });
   followSceneAmbience(campaign, `${location.name} ${location.layoutDescription}`);
-  const layoutRevised = toolName === "update_location" && location.layoutDescription !== previousLayout;
-  const mapEnqueued = visionClear && campaign.gameSettings.mapsEnabled &&
-    imageProducerReady(campaign.settings.imageBackend, campaign.settings) && (!location.mapImage || layoutRevised);
-  if (mapEnqueued) enqueueDmMediaIntent(campaign.id, {
-    kind: "map", targetId: location.id, name: location.name, layout: location.layoutDescription,
-    previousImageId: location.mapImage?.id ?? null,
-  });
   return { ok: true, location: location.name, note: "Recorded. Continue the scene." };
 }
