@@ -11,7 +11,9 @@ const readFields = {
   paged: z.boolean().optional(),
   projection: z.enum(['full', 'live']).optional(),
   maxBytes: z.number().int().min(4096).max(131072).optional(),
-  delta: z.boolean().optional(), knownSeq: seq().optional(), knownSections: sections.optional(),
+  delta: z.boolean().optional(), stateDelta: z.boolean().optional(),
+  knownStateRevision: z.string().regex(/^[a-f0-9]{64}$/).optional(),
+  knownSeq: seq().optional(), knownSections: sections.optional(),
 };
 
 // Keep the advertised MCP contract in sync with the strict application API.
