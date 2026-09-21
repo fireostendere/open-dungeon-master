@@ -76,8 +76,7 @@ type Suggestion = {
 };
 
 // "The player said this. What am I supposed to press?" The shortlist comes
-// from a keyword pass over the catalog and arrives instantly; the model only
-// reorders it and fills the form in.
+// from a keyword/rules pass over the catalog and arrives instantly.
 function IntentSuggest({
   campaignId,
   sheets,
@@ -96,7 +95,7 @@ function IntentSuggest({
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [open, setOpen] = useState<Suggestion | null>(null);
 
-  async function ask(useModel: boolean) {
+  async function ask() {
     const text = intent.trim();
     if (!text) {
       return;
@@ -108,7 +107,7 @@ function IntentSuggest({
       const response = await fetch(`/api/campaigns/${campaignId}/dm/assist/suggest`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ intent: text, useModel }),
+        body: JSON.stringify({ intent: text }),
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) {
@@ -140,21 +139,12 @@ function IntentSuggest({
       <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
         <button
           type="button"
-          onClick={() => ask(true)}
+          onClick={() => void ask()}
           disabled={busy || !intent.trim()}
           className="inline-flex items-center gap-1.5 rounded-md border border-amber-700 bg-amber-950/50 px-2 py-1 text-xs text-amber-100 hover:bg-amber-900/50 disabled:opacity-40"
         >
           {busy ? <Loader2 className="size-3.5 animate-spin" /> : <Sparkles className="size-3.5" />}
           Suggest
-        </button>
-        <button
-          type="button"
-          onClick={() => ask(false)}
-          disabled={busy || !intent.trim()}
-          title="Skips the model and just matches keywords against the catalog."
-          className="rounded-md border border-stone-700 px-2 py-1 text-xs text-stone-400 hover:text-stone-200 disabled:opacity-40"
-        >
-          Without the model
         </button>
       </div>
       {error ? <p className="mt-1.5 text-xs text-red-400">{error}</p> : null}
