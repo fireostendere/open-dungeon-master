@@ -366,7 +366,16 @@ export class NarratorOrchestrator {
     return this.write(host);
   }
   finish(host) {
-    this.state.handledSeq = this.state.current.input.seq; this.state.current = null; this.state.pending = null; host.saveCheckpoint();
+    this.state.handledSeq = this.state.current.input.seq;
+    // A global-turn start trigger is also the lower input boundary for that
+    // round. Drop any pre-trigger player messages that were already queued
+    // before the hard gate was armed; they must never leak into the new round.
+    this.state.queue = this.state.queue.filter(
+      message => message.seq > this.state.handledSeq,
+    );
+    this.state.current = null;
+    this.state.pending = null;
+    host.saveCheckpoint();
   }
   async write(host) {
     const pending = this.state.pending;
