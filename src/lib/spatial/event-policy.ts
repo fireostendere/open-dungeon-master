@@ -1,6 +1,7 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { getDatabase } from '@/lib/db/core';
 import { capsFor, getCampaignById, listMembers } from '@/lib/db/campaigns';
+import { projectSheetForViewer } from '@/lib/sheet-privacy';
 import { currentPublicationScope } from './publication-scope.mjs';
 import { projectEventForUser } from './event-privacy';
 import { createEventAccess, decodeEventChunk, ephemeralView, publicationView, type EventActor, type EventScope, type EventView } from './event-access.mjs';
@@ -54,6 +55,19 @@ export function captureEventAudience(campaignId:string,event:EventView,explicit?
 }
 export function campaignEventProjector(campaignId:string,userId:string) {
   const fresh=()=>{const state=eventSpatialState(campaignId);return {state,actor:eventActorFor(campaignId,userId,state.enabled)};};
+  const privateSheetFields = (event:EventView, isDm:boolean):EventView => {
+    if (event.type !== 'sheet_updated') return event;
+    const payload = event.payload as {sheet?:unknown} | null;
+    const sheet = payload?.sheet;
+    if (!sheet || typeof sheet !== 'object' || Array.isArray(sheet)) return event;
+    return {
+      ...event,
+      payload: {
+        ...(payload as Record<string, unknown>),
+        sheet: projectSheetForViewer(sheet as never, userId, { adjudicates: isDm }),
+      },
+    };
+  };
   function projectEvent(event:EventView):EventView {
     const {state,actor}=fresh();
     if(!actor.member) throw new Error('Campaign stream access revoked.');
@@ -62,10 +76,13 @@ export function campaignEventProjector(campaignId:string,userId:string) {
     const saved=getDatabase().prepare('SELECT * FROM campaign_events WHERE campaign_id=? AND seq=?').get(campaignId,event.seq) as
       {type:string;payload_json:string;audience_json?:string|null}|undefined;
     if(!saved||saved.type!==event.type||saved.payload_json!==JSON.stringify(event.payload)) return checkpoint;
-    if(actor.isDm) return event;
+    if(actor.isDm) return privateSheetFields(event, true);
     if(hasTable('spatial_event_views')) {
       const present=getDatabase().prepare('SELECT 1 FROM spatial_event_views WHERE campaign_id=? AND seq=? AND user_id=?').get(campaignId,event.seq,userId);
-      if(present) return createEventAccess(getDatabase()).project(campaignId,event,actor,{enabled:true,startSeq:0});
+      if(present) return privateSheetFields(
+        createEventAccess(getDatabase()).project(campaignId,event,actor,{enabled:true,startSeq:0}),
+        false,
+      );
     }
     // Existing playwright-branch receipts are kept, never reconstructed from
     // today's occupants. New events also retain this compact compatibility form.
@@ -76,10 +93,10 @@ export function campaignEventProjector(campaignId:string,userId:string) {
       const legacy=projectEventForUser(campaignId,userId,{...event,audience:{version:1,userIds:audience.userIds as string[]}});
       if(!legacy || legacy.type==='stream_checkpoint') return checkpoint;
       const payload=publicationView(event.type,legacy.payload,actor,{kind:'users',userIds:[userId]});
-      return payload===null?checkpoint:{...event,payload};
+      return payload===null?checkpoint:privateSheetFields({...event,payload}, false);
     }
-    if(!state.enabled) return event;
-    return createEventAccess(getDatabase()).project(campaignId,event,actor,state);
+    if(!state.enabled) return privateSheetFields(event, false);
+    return privateSheetFields(createEventAccess(getDatabase()).project(campaignId,event,actor,state), false);
   }
   return {
     assertAccess(){if(!fresh().actor.member)throw new Error('Campaign stream access revoked.');},
