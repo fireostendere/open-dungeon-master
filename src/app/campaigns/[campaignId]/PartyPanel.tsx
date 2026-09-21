@@ -402,7 +402,7 @@ export function PartyPanel({
                 muted={Boolean(
                   members.find((member) => member.userId === sheet.userId)?.muted,
                 )}
-                canToggleAutopilot={!sheet.isCompanion && (mine || leadUserId === meUserId)}
+                canToggleAutopilot={!sheet.isCompanion && mine}
                 autopilot={Boolean(
                   members.find((member) => member.userId === sheet.userId)?.autopilot,
                 )}
