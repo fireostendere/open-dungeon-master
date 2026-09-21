@@ -137,16 +137,15 @@ test("updateStorySettings returns null for a missing campaign", () => {
   assert.equal(updateStorySettings("nope", { proseSize: "tiny" }), null);
 });
 
-test("the snapshot never carries a key the database still holds", () => {
+test("the browser snapshot omits retired story backend settings entirely", () => {
   updateStorySettings(campaign.id, { customApiKey: "sk-table", utilityApiKey: "uk-table" });
   const stored = getCampaignById(campaign.id);
   assert.equal(stored.settings.customApiKey, "sk-table");
   const shared = publicCampaign(stored);
-  assert.equal(shared.settings.customApiKey, "");
-  assert.equal(shared.settings.utilityApiKey, "");
+  assert.equal("settings" in shared, false);
   assert.equal("dmOutline" in shared, false);
   assert.equal("storyArc" in shared, false);
-  // The scrub must not have written through to the stored campaign.
+  // Internal legacy storage remains readable for old databases/imports.
   assert.equal(getCampaignById(campaign.id).settings.customApiKey, "sk-table");
 });
 
