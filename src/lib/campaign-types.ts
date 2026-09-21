@@ -150,7 +150,9 @@ export type GlobalTurnActionUsage = {
 
 export type GlobalTurnState = {
   roundNumber: number;
-  phase: "waiting" | "active" | "quorum_delay" | "resolving";
+  // "ready" is a sealed round waiting for the external MCP narrator.
+  // "resolving" is accepted for checkpoints written by the pre-MCP-loop build.
+  phase: "waiting" | "active" | "quorum_delay" | "ready" | "resolving";
   firstActionAt: string | null;
   deadlineAt: string | null;
   quorumReachedAt: string | null;
