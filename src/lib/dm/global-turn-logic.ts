@@ -12,8 +12,8 @@ import { publishPersisted, publishWithSeq } from "@/lib/events";
 import type { GlobalTurnState } from "@/lib/campaign-types";
 import { getActiveEncounter } from "@/lib/db/encounters";
 
-// In-memory timer references are only a latency optimization. jobs.ts also
-// scans persisted deadlines, so a process restart cannot lose a timed round.
+// In-memory timers are only a latency optimization. jobs.ts also scans
+// persisted deadlines, so process restarts cannot lose a timed round.
 const activeTurnTimers = new Map<string, NodeJS.Timeout>();
 // ponytail: deduplicate within one app process; use a DB lease before adding workers.
 const resolvingGlobalTurns = new Map<string, Promise<GlobalTurnState | null>>();
@@ -24,7 +24,9 @@ type ReadinessResult = {
 };
 
 function playerSheets(campaignId: string, dmUserId: string | null) {
-  return listSheets(campaignId).filter((sheet) => !sheet.isCompanion && sheet.userId !== dmUserId);
+  return listSheets(campaignId).filter(
+    (sheet) => !sheet.isCompanion && sheet.userId !== dmUserId,
+  );
 }
 
 function respondedCount(
@@ -43,6 +45,72 @@ function respondedCount(
   return { responded, total: Math.max(1, sheets.length) };
 }
 
+/**
+ * The only normal entry into a collectible round.
+ *
+ * "waiting" means the round counter exists but input is hard-locked. A start
+ * trigger moves that exact round into "active", publishes global_turn_started,
+ * and only then may player actions/skips participate in quorum/timing.
+ *
+ * The first round is triggered when the campaign starts. Every later round is
+ * triggered only after the previous MCP narration commits.
+ */
+export function startGlobalTurn(
+  campaignId: string,
+  reason: "campaign_start" | "mcp_completed" | "enabled_mid_campaign" = "mcp_completed",
+): GlobalTurnState | null {
+  const campaign = getCampaignById(campaignId);
+  if (
+    !campaign ||
+    campaign.status !== "active" ||
+    !campaign.gameSettings.globalTurn?.enabled ||
+    getActiveEncounter(campaignId)
+  ) {
+    return null;
+  }
+
+  const state = getGlobalTurnState(campaignId);
+  if (state.phase !== "waiting") return state;
+
+  const startedAt = new Date().toISOString();
+  const activeState: GlobalTurnState = {
+    roundNumber: state.roundNumber,
+    phase: "active",
+    startedAt,
+    firstActionAt: null,
+    deadlineAt: null,
+    quorumReachedAt: null,
+    actionsByCharacter: {},
+  };
+  setGlobalTurnState(campaignId, activeState);
+  publishPersisted(campaignId, "global_turn_updated", { globalTurnState: activeState });
+  publishPersisted(campaignId, "global_turn_started", {
+    roundNumber: activeState.roundNumber,
+    startedAt,
+    reason,
+  });
+
+  // A player may have pre-selected "skip N turns" while the table was locked.
+  // That preference becomes a response only now, after the start trigger.
+  if (listMembers(campaignId).some((member) => member.skipTurnsCount > 0)) {
+    const readiness = refreshGlobalTurnReadiness(campaignId);
+    if (readiness.shouldResolve) {
+      const timer = setTimeout(() => {
+        void resolveGlobalTurn(campaignId, readiness.state.roundNumber).catch((error) =>
+          console.error(
+            `[global-turn] Failed to seal immediately after round start in ${campaignId}:`,
+            error,
+          ),
+        );
+      }, 0);
+      timer.unref?.();
+    }
+    return readiness.state;
+  }
+
+  return activeState;
+}
+
 function evaluateReadiness(
   campaignId: string,
   inputState: GlobalTurnState,
@@ -53,9 +121,13 @@ function evaluateReadiness(
     return { state: inputState, shouldResolve: false };
   }
 
-  // A sealed round belongs to the MCP narrator. Player ingress must not reopen
-  // it or move its deadline while the narrator is adjudicating it.
-  if (inputState.phase === "ready" || inputState.phase === "resolving") {
+  // No collection before the explicit start trigger, and no mutation after
+  // the round has been sealed for MCP adjudication.
+  if (
+    inputState.phase === "waiting" ||
+    inputState.phase === "ready" ||
+    inputState.phase === "resolving"
+  ) {
     return { state: inputState, shouldResolve: false };
   }
 
@@ -65,16 +137,15 @@ function evaluateReadiness(
   let quorumReachedAt = inputState.quorumReachedAt;
   let phase: GlobalTurnState["phase"] = inputState.phase;
 
-  // A skip is a response too, so this function may be called without a player
-  // message. The first response starts the round. 0 collection minutes means
-  // no absolute timeout: only quorum/all-answered can seal it.
+  // The collection timer starts on the first actual response, not on the
+  // start trigger. 0 collection minutes means there is no absolute timeout:
+  // quorum is the only closure condition.
   if (!firstActionAt) {
     firstActionAt = new Date(now).toISOString();
     deadlineAt =
       settings.turnCollectionMinutes > 0
         ? new Date(now + settings.turnCollectionMinutes * 60_000).toISOString()
         : null;
-    phase = "active";
   }
 
   const counts = respondedCount(campaignId, inputState, campaign.dmUserId);
@@ -86,10 +157,8 @@ function evaluateReadiness(
   if (quorumReached) {
     if (!quorumReachedAt) quorumReachedAt = new Date(now).toISOString();
 
-    // Every player answered, or the configured grace is literally zero:
-    // freeze the collection immediately after the triggering message/skip is
-    // persisted. We still persist an immediate deadline as a crash/restart
-    // fallback until resolveGlobalTurn seals the round.
+    // Every player answered, or grace is literally zero: seal after the
+    // triggering message/skip has been persisted by its route.
     if (allAnswered || settings.quorumDelayMinutes === 0) {
       deadlineAt = new Date(now).toISOString();
       phase = "quorum_delay";
@@ -117,8 +186,8 @@ function evaluateReadiness(
   setGlobalTurnState(campaignId, state);
   publishPersisted(campaignId, "global_turn_updated", { globalTurnState: state });
 
-  // Even the zero-grace path gets a persisted/timer fallback. The action route
-  // normally seals synchronously after writing the triggering player message.
+  // Even a zero-grace round gets a persisted deadline as crash/restart
+  // fallback. The triggering route normally seals synchronously.
   if (deadlineAt) scheduleGlobalTurnTimer(campaignId, deadlineAt);
   else cancelGlobalTurnTimer(campaignId);
 
@@ -162,8 +231,8 @@ export function cancelGlobalTurnTimer(campaignId: string) {
 
 /**
  * Validates and records a player action in the current global round.
- * The caller must persist the accepted player message before calling
- * resolveGlobalTurn when shouldResolve=true.
+ * The caller persists the accepted message before calling resolveGlobalTurn
+ * when shouldResolve=true.
  */
 export function recordGlobalTurnAction(
   campaignId: string,
@@ -180,10 +249,16 @@ export function recordGlobalTurnAction(
   }
 
   const state = getGlobalTurnState(campaignId);
+  if (state.phase === "waiting") {
+    return {
+      allowed: false,
+      error: "Ход ещё не открыт. Дождитесь сигнала начала следующего раунда.",
+    };
+  }
   if (state.phase === "ready" || state.phase === "resolving") {
     return {
       allowed: false,
-      error: "Раунд уже передан Мастеру на разрешение. Дождитесь следующего хода.",
+      error: "Раунд уже передан MCP-Мастеру. Дождитесь завершения его хода.",
     };
   }
 
@@ -227,9 +302,9 @@ export function recordGlobalTurnAction(
 }
 
 /**
- * Re-evaluates quorum after a non-message response such as "skip this turn".
- * The skip itself remains in member state; it is materialized as a player
- * message only when the round is sealed, so the MCP batch contains it exactly once.
+ * Re-evaluates quorum after a non-message response such as a preselected skip.
+ * In "waiting" this is deliberately a no-op: skip preference is stored, but
+ * it is not collected until the round start trigger fires.
  */
 export function refreshGlobalTurnReadiness(campaignId: string): ReadinessResult {
   return evaluateReadiness(campaignId, getGlobalTurnState(campaignId));
@@ -238,10 +313,8 @@ export function refreshGlobalTurnReadiness(campaignId: string): ReadinessResult 
 /**
  * Seal a collected round for the external MCP narrator.
  *
- * This intentionally DOES NOT advance roundNumber. The server only collects
- * and freezes input. The MCP narrator reads global_turn_ready, adjudicates the
- * whole batch, writes narration through narrator.narrate, and that confirmed
- * MCP write calls completeGlobalTurn.
+ * This never advances roundNumber. It only freezes collection and emits the
+ * exact batch barrier the MCP narrator consumes.
  */
 export function resolveGlobalTurn(
   campaignId: string,
@@ -270,13 +343,14 @@ function resolveGlobalTurnOnce(
     cancelGlobalTurnTimer(campaignId);
     return state;
   }
-  if (state.phase === "ready") return state;
+  if (state.phase === "ready" || state.phase === "resolving") return state;
+  // A stale timer/job must never manufacture a round before the start trigger.
+  if (state.phase === "waiting") return state;
 
   cancelGlobalTurnTimer(campaignId);
 
-  // Materialize every committed skip before the ready event. The narrator's
-  // batch boundary is the ready event seq, so these messages are guaranteed to
-  // be inside the same round and never appear as a later stray input.
+  // Materialize every committed skip before the ready event. The ready seq is
+  // therefore the exact end of the round batch visible to the MCP narrator.
   const sheets = playerSheets(campaignId, campaign.dmUserId);
   const members = listMembers(campaignId);
   for (const sheet of sheets) {
@@ -310,6 +384,7 @@ function resolveGlobalTurnOnce(
   publishPersisted(campaignId, "global_turn_updated", { globalTurnState: readyState });
   publishPersisted(campaignId, "global_turn_ready", {
     roundNumber: state.roundNumber,
+    startedAt: readyState.startedAt,
     message: "Раунд собран и передан внешнему MCP Мастеру.",
   });
 
@@ -317,9 +392,14 @@ function resolveGlobalTurnOnce(
 }
 
 /**
- * Advance a round only after a confirmed MCP narrator write.
- * This is the second half of the round barrier: server seals -> MCP resolves ->
- * server advances. Players have no manual "finish round" authority.
+ * Advance the counter only after confirmed MCP narration.
+ *
+ * The transition is:
+ *   ready/resolving(N) --MCP narration commit--> waiting(N+1)
+ *   waiting(N+1) --automatic start trigger--> active(N+1)
+ *
+ * This means player input stays locked for the entire model/tool/narration
+ * cycle and opens only after the model's final narration has committed.
  */
 export function completeGlobalTurn(
   campaignId: string,
@@ -336,28 +416,25 @@ export function completeGlobalTurn(
   if (state.phase !== "ready" && state.phase !== "resolving") return state;
 
   cancelGlobalTurnTimer(campaignId);
-  const nextState: GlobalTurnState = {
+  const waitingState: GlobalTurnState = {
     roundNumber: state.roundNumber + 1,
     phase: "waiting",
+    startedAt: null,
     firstActionAt: null,
     deadlineAt: null,
     quorumReachedAt: null,
     actionsByCharacter: {},
   };
-  setGlobalTurnState(campaignId, nextState);
-  publishPersisted(campaignId, "global_turn_updated", { globalTurnState: nextState });
+  setGlobalTurnState(campaignId, waitingState);
+  publishPersisted(campaignId, "global_turn_updated", { globalTurnState: waitingState });
   publishPersisted(campaignId, "global_turn_resolved", {
     resolvedRound: state.roundNumber,
-    nextRound: nextState.roundNumber,
+    nextRound: waitingState.roundNumber,
     resolvedBy: "mcp_narrator",
   });
 
-  // Multi-turn skip commitments count as responses in the fresh round too.
-  // This can start a deadline (or a zero-grace immediate seal) without waiting
-  // for another active player to type first.
-  if (listMembers(campaignId).some((member) => member.skipTurnsCount > 0)) {
-    refreshGlobalTurnReadiness(campaignId);
-  }
-
-  return nextState;
+  // The successful MCP narration is itself the next-round trigger. This call
+  // emits global_turn_started and opens the composer only after the narration
+  // write has committed inside the serialized narrator command.
+  return startGlobalTurn(campaignId, "mcp_completed") ?? waitingState;
 }
