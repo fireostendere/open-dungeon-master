@@ -194,32 +194,70 @@ export class NarratorOrchestrator {
       }
     }
   }
-  pause(host, reason) { this.state.paused = reason; host.saveCheckpoint(); return false; }
+  pause(host, reason) { this.releaseRefereeConversation(); this.state.paused = reason; host.saveCheckpoint(); return false; }
   async generate(host, role, packet) {
     const usage = this.state.usage, now = Date.now();
     usage.times = usage.times.filter(time => time > now - 3600000);
     if (usage.times.length >= this.maxCallsPerHour) throw new Error('Narrator model call budget exhausted.');
+
     const packetTiming=latencyEnabled(), packetStarted=packetTiming?performance.now():0;
-    const prompt = JSON.stringify(compactRolePacket(role, packet));
+    const canonicalPacket = compactRolePacket(role, packet);
+    let prompt = JSON.stringify(canonicalPacket);
+    let sessionOptions = {};
+    let sticky = false;
+    let carriedContextBytes = 0;
+    let sentDelta = false;
+    let refereeKey = null;
+
+    if (role === 'referee' && this.state.current && typeof this.adapter.releaseConversation === 'function') {
+      refereeKey = this.refereeSessionKey();
+      if (this.refereeContext?.key && this.refereeContext.key !== refereeKey) this.releaseRefereeConversation();
+      if (this.refereeContext?.key === refereeKey) {
+        const delta = createRolePacketDelta(this.refereeContext.packet, canonicalPacket);
+        const deltaPrompt = JSON.stringify(delta);
+        if (Buffer.byteLength(deltaPrompt) + 128 < Buffer.byteLength(prompt)) {
+          prompt = deltaPrompt;
+          sentDelta = true;
+        }
+        carriedContextBytes = this.refereeContext.contextBytes ?? 0;
+      }
+      sticky = Boolean(refereeKey);
+      if (sticky) sessionOptions = { sessionKey: refereeKey };
+    }
+
     const promptBytes = Buffer.byteLength(prompt);
     const instructionBytes = typeof this.adapter.instructionBytes === 'function'
       ? Math.max(0, Number(this.adapter.instructionBytes(role)) || 0) : 0;
-    const totalInputBytes = promptBytes + instructionBytes;
+    // Sticky provider sessions still see their earlier turns; budget fallback
+    // therefore includes the accumulated context even though only the delta
+    // crosses the adapter boundary on this step.
+    const totalInputBytes = promptBytes + instructionBytes + carriedContextBytes;
     const estimatedPromptTokens = Math.ceil(totalInputBytes / 3);
     const estimatedOutputTokens = role === 'writer' ? 2048 : role === 'referee' ? 2048 : 1024;
     const budget = host.costTracker?.checkBudget?.({ promptTokens: estimatedPromptTokens, completionTokens: estimatedOutputTokens });
-    if (budget && !budget.allowed) throw new Error(`Narrator token budget exhausted: ${budget.reason}`);
-    if(packetTiming)emitLatency({stage:'packet',role,durationMs:performance.now()-packetStarted,bytes:promptBytes,instructionBytes,totalInputBytes});
+    if (budget && !budget.allowed) {
+      if (sticky) this.releaseRefereeConversation();
+      throw new Error(`Narrator token budget exhausted: ${budget.reason}`);
+    }
+    if(packetTiming)emitLatency({stage:'packet',role,durationMs:performance.now()-packetStarted,bytes:promptBytes,
+      instructionBytes,carriedContextBytes,totalInputBytes,delta:sentDelta});
     usage.calls++; usage.times.push(now); usage.inputBytes += totalInputBytes; host.saveCheckpoint();
     const modelTiming=latencyEnabled(), startedAt = modelTiming?performance.now():0; let outputBytes=0;
     try {
       const generated = typeof this.adapter.generateWithUsage === 'function'
-        ? await this.adapter.generateWithUsage(role, prompt)
-        : { text: await this.adapter.generate(role, prompt), usage: null };
+        ? await this.adapter.generateWithUsage(role, prompt, sessionOptions)
+        : { text: await this.adapter.generate(role, prompt, sessionOptions), usage: null };
       const response = typeof generated === 'string' ? generated : generated?.text;
       const providerUsage = typeof generated === 'object' && generated ? generated.usage : null;
       if (typeof response !== 'string') throw new Error('Role did not return text.');
       outputBytes=Buffer.byteLength(response);usage.outputBytes += outputBytes;
+      if (sticky) {
+        this.refereeContext = {
+          key: refereeKey,
+          packet: clone(canonicalPacket),
+          contextBytes: carriedContextBytes + promptBytes + outputBytes,
+        };
+      }
       if (host.costTracker?.recordUsage) {
         if (providerUsage && Number.isSafeInteger(providerUsage.promptTokens) && Number.isSafeInteger(providerUsage.completionTokens)) {
           host.costTracker.recordUsage(providerUsage);
@@ -231,12 +269,14 @@ export class NarratorOrchestrator {
           });
         }
       }
-      // Output byte counters are advisory. The next decision boundary saves
-      // them together with its mandatory state, not another full fsync here.
       return response;
+    } catch (error) {
+      if (sticky) this.releaseRefereeConversation();
+      throw error;
     } finally {
-      if (modelTiming) emitLatency({ stage: 'narrator_model', role, durationMs: performance.now()-startedAt,
-        inputBytes: totalInputBytes, promptBytes, instructionBytes, outputBytes, modelCalls: 1 });
+      if (modelTiming) emitLatency({ stage: 'narrator_model', role, durationMs:performance.now()-startedAt,
+        inputBytes: totalInputBytes, promptBytes, instructionBytes, carriedContextBytes, outputBytes,
+        delta:sentDelta, modelCalls: 1 });
     }
   }
   async answerAsk(host, ask, context) {
