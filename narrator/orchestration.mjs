@@ -555,7 +555,13 @@ export class NarratorOrchestrator {
       current.waitSeq = snapshot.currentSeq; host.saveCheckpoint(); return false;
     }
     if (decision.kind === 'catalog') {
-      const result = await host.callControl('narrator.catalog', { campaignId: host.campaignId, action: decision.action });
+      let result;
+      try {
+        result = await host.callControl('narrator.catalog', { campaignId: host.campaignId, action: decision.action });
+      } catch (error) {
+        this.releaseRefereeConversation();
+        throw error;
+      }
       // Only the schema requested for the next decision is relevant. Do not
       // accumulate every schema seen during a long campaign into all future prompts.
       this.schemas = { [decision.action]: result.groups }; return true;
@@ -568,11 +574,12 @@ export class NarratorOrchestrator {
         outcome.query.toLocaleLowerCase('en-US') === normalized);
       if (prior.length >= 2) return this.pause(host, 'duplicate_rules_lookup');
       const epoch = this.state.epoch;
-      const result = prior.length
-        ? { ...clone(prior.at(-1).result), reused: true }
-        : typeof host.lookupRules === 'function'
-          ? await host.lookupRules(query)
-          : { ok: false, error: 'rules_rag_unavailable', retryable: false, untrusted: true };
+      let result;
+      if (prior.length) result = { ...clone(prior.at(-1).result), reused: true };
+      else if (typeof host.lookupRules === 'function') {
+        try { result = await host.lookupRules(query); }
+        catch { result = { ok: false, error: 'rules_rag_failed', retryable: true, untrusted: true }; }
+      } else result = { ok: false, error: 'rules_rag_unavailable', retryable: false, untrusted: true };
       if (host.stopping || this.state.current !== current || this.state.epoch !== epoch) {
         this.releaseRefereeConversation();
         return false;
