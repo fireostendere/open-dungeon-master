@@ -148,7 +148,7 @@ function read(raw: unknown) {
   });
   const receipts = listNarratorReceipts(campaign.id);
   const state = {
-    campaign: safeCampaign(campaign), currentSeq, timelineEpoch, cursor: p.data.afterSeq, nextCursor, hasMore,
+    campaignId: campaign.id, campaign: safeCampaign(campaign), currentSeq, timelineEpoch, cursor: p.data.afterSeq, nextCursor, hasMore,
     events: events.filter(isNarratorEvent).map(event => event.type === "roll_result" ? { seq: event.seq, type: event.type, payload: event.payload } : { seq: event.seq, type: event.type }),
     messages, spatial: spatial ? { enabled: true, instructions: SPATIAL_GUIDANCE } : { enabled: false }, spatialRooms: spatial?.rooms ?? [], spatialGrants: spatial?.grants ?? [],
     commands: delta && baselineSeq > 0 ? receipts.filter(receipt => receipt.committedSeq > baselineSeq) : receipts,
