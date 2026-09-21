@@ -1,5 +1,4 @@
-import { isErrorResponse, isLead, requireMember, steersStory } from "@/lib/campaign-api";
-import { resolveGlobalTurn } from "@/lib/dm/global-turn-logic";
+import { isErrorResponse, requireMember } from "@/lib/campaign-api";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -10,19 +9,13 @@ export async function POST(
 ) {
   const { campaignId } = await params;
   const context = await requireMember(campaignId);
-  if (isErrorResponse(context)) {
-    return context;
-  }
+  if (isErrorResponse(context)) return context;
 
-  // Only the party lead or the DM can force resolve the turn
-  if (!isLead(context) && !steersStory(context)) {
-    return Response.json({ error: "Only the party lead or DM can resolve the turn." }, { status: 403 });
-  }
-
-  const result = await resolveGlobalTurn(campaignId);
-  if (!result) {
-    return Response.json({ error: "Failed to resolve turn." }, { status: 400 });
-  }
-
-  return Response.json({ ok: true, state: result });
+  return Response.json(
+    {
+      error:
+        "Global rounds close automatically by quorum/deadline and are resolved by the external MCP narrator. Players and the party lead may only submit or skip their turn.",
+    },
+    { status: 409 },
+  );
 }
