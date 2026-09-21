@@ -25,6 +25,7 @@ import { insertCampaignMessage, listMessagesInSeqRange, listRecentMessages } fro
 import { listPublicCampaignNotes } from "@/lib/db/notes";
 import { listRecentRolls } from "@/lib/db/rolls";
 import { listSheets } from "@/lib/db/sheets";
+import { projectSheetsForViewer } from "@/lib/sheet-privacy";
 import { getSceneTracker } from "@/lib/db/scene-tracker";
 import { consoleAdjudications } from "@/lib/dm/invoke-catalog";
 import { invokeEngineSynchronous } from "@/lib/dm/invoke";
@@ -143,7 +144,7 @@ function read(raw: unknown) {
     db: getDatabase(), campaignId: campaign.id, timelineEpoch, principal: campaign.dmUserId,
     live, delta: delta && !stateDelta, knownSections: stateDelta ? {} : p.data.knownSections,
     loaders: {
-      sheets: () => listSheets(campaign.id), facts: () => listActiveFacts(campaign.id),
+      sheets: () => projectSheetsForViewer(listSheets(campaign.id), campaign.dmUserId, { adjudicates: true }), facts: () => listActiveFacts(campaign.id),
       notes: () => listPublicCampaignNotes(campaign.id, 20), npcs: () => npcRosterForPrompt(campaign.id, 40),
       // Host memory already keeps an audience-aware rolling summary and the
       // referee sees at most 24 public messages. Keep a 2x overlap for edits
@@ -229,7 +230,7 @@ function orchestrationSnapshot(raw: unknown) {
       asks: asks.items.length > 0 || asks.hasMore,
     },
     party: sections.has("party")
-      ? { members: listMembers(campaign.id), sheets: listSheets(campaign.id) }
+      ? { members: listMembers(campaign.id), sheets: projectSheetsForViewer(listSheets(campaign.id), campaign.dmUserId, { adjudicates: true }) }
       : undefined,
     combat: sections.has("combat")
       ? listActiveEncounters(campaign.id)
