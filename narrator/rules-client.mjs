@@ -5,6 +5,23 @@ import readline from 'node:readline';
 const ALLOWED_TOOLS = new Set(['rules_search','rules_get','rules_sources','rules_status']);
 const REQUIRED_TOOLS = [...ALLOWED_TOOLS].sort();
 const clip = (value,max) => typeof value === 'string' ? value.slice(0,max) : '';
+const SAFE_ENV_KEYS = new Set([
+  'PATH','HOME','USERPROFILE','TMP','TEMP','TMPDIR','VIRTUAL_ENV','PYTHONPATH',
+  'SSL_CERT_FILE','SSL_CERT_DIR','REQUESTS_CA_BUNDLE','CURL_CA_BUNDLE',
+  'HTTP_PROXY','HTTPS_PROXY','NO_PROXY','http_proxy','https_proxy','no_proxy',
+]);
+const SAFE_ENV_PREFIXES = ['KB_','QDRANT_','HF_','HUGGINGFACE_','TRANSFORMERS_','TOKENIZERS_','CUDA_','OMP_','MKL_'];
+function childEnvironment(source=process.env, overrides={}){
+  const env={};
+  for(const [key,value] of Object.entries(source)){
+    if(value===undefined)continue;
+    if(SAFE_ENV_KEYS.has(key)||SAFE_ENV_PREFIXES.some(prefix=>key.startsWith(prefix)))env[key]=String(value);
+  }
+  for(const [key,value] of Object.entries(overrides??{})){
+    if(value!==undefined)env[key]=String(value);
+  }
+  return env;
+}
 
 function integer(value,fallback,min,max){
   const number=Number(value);
@@ -23,7 +40,12 @@ export class RulesMcpClient {
     if(!this.collection||this.collection.length>80)throw new Error('Invalid rules collection.');
     this.timeoutMs=integer(options.timeoutMs,15000,1000,60000);
     this.topK=integer(options.topK,3,1,8);
-    this.env={...process.env,...(options.env??{}),KB_DND_EDITION:this.edition,KB_DND_COLLECTION:this.collection,KB_COLLECTION:this.collection};
+    this.env=childEnvironment(process.env,{
+      ...(options.env??{}),
+      KB_DND_EDITION:this.edition,
+      KB_DND_COLLECTION:this.collection,
+      KB_COLLECTION:this.collection,
+    });
     this.spawn=options.spawnImpl??spawn;
     this.child=null;this.reader=null;this.pending=new Map();this.nextId=1;this.starting=null;this.closed=false;
     this.lastRevision=null;this.lastError=null;
