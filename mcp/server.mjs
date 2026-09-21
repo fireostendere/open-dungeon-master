@@ -51,15 +51,15 @@ function allowedOrigin(origin) {
   }
 }
 
-function result(value, options = {}) {
-  const compact = options.compact ?? (process.env.ODM_MCP_COMPACT === "1" || process.env.ODM_MCP_COMPACT === "true");
+export function formatToolResult(value, options = {}) {
+  const pretty = /^(1|true)$/i.test(process.env.ODM_MCP_PRETTY?.trim() || "");
+  const compact = options.compact ?? !pretty;
   const text = compact ? JSON.stringify(value) : JSON.stringify(value, null, 2);
-  const structuredContent =
+  const response = { content: [{ type: "text", text }] };
+  const structured = options.structured ?? /^(1|true)$/i.test(process.env.ODM_MCP_STRUCTURED_RESULTS?.trim() || "");
+  if (structured) response.structuredContent =
     value && typeof value === "object" && !Array.isArray(value) ? value : { result: value };
-  return {
-    content: [{ type: "text", text }],
-    structuredContent,
-  };
+  return response;
 }
 
 function failure(error) {
@@ -76,7 +76,7 @@ async function run(action, params) {
       throw new Error("This MCP is restricted to its configured narrator campaign.");
     }
     const compact = params?.compact ?? (action.startsWith('narrator.') ? true : undefined);
-    return result(await callControl(action, params), { compact });
+    return formatToolResult(await callControl(action, params), { compact });
   } catch (error) {
     return failure(error);
   }
@@ -148,7 +148,7 @@ function createMcpServer() {
       contents: [{
         uri: uri.href,
         mimeType: "text/plain",
-        text: "Trusted DM only: connect, read until hasMore is false, then use the fully drained nextCursor/currentSeq as expectedSeq for one invoke, narrate, or release_floor. Inspect pendingRolls, roll_result events, and recentRolls; the server owns dice. In global-turn mode, a waiting round keeps players locked: wait for global_turn_narrator_trigger and narrate with startGlobalRound equal to its roundNumber; that confirmed narration opens collection. Later wait for global_turn_ready, treat all player messages through that event seq as one round, and narrate with completeGlobalRound equal to its roundNumber; that confirmed MCP write advances and opens the next round. After a write, consume its attached state as the read; if absent/incomplete, drain narrator.read. Always reread after a timeout or error. An ambiguous serialized write may have one immediate receipt-recovery retry only with the saved exact request: same UUID commandId, original expectedSeq, timelineEpoch and all arguments. Never regenerate a payload, expectedSeq or UUID to replay an effect; then checkpoint and escalate. An answer_ask retry also keeps the exact expectedVersion. If timelineEpoch changed, reconnect and discard incompatible pending work. This resource is not a background loop. The shared bearer is operator-wide, not player-scoped; never put it or DM secrets in player chat.",
+        text: "Trusted DM only: connect with stateDelta:true, then read until hasMore is false. Keep stateDelta.revision and return it as knownStateRevision; changed entities arrive as upsert/remove/order patches and changed scalar state as set/unset. A full resyncRequired response replaces the baseline after restart/eviction. Use the fully drained nextCursor/currentSeq as expectedSeq for one invoke, narrate, or release_floor. Inspect pendingRolls, roll_result events, and recentRolls; the server owns dice. In global-turn mode, a waiting round keeps players locked: wait for global_turn_narrator_trigger and narrate with startGlobalRound equal to its roundNumber; that confirmed narration opens collection. Later wait for global_turn_ready, treat all player messages through that event seq as one round, and narrate with completeGlobalRound equal to its roundNumber; that confirmed MCP write advances and opens the next round. After a write, consume its attached authoritative state delta as the read; if absent/incomplete, drain narrator.read. Always reread after a timeout or error. An ambiguous serialized write may have one immediate receipt-recovery retry only with the saved exact request: same UUID commandId, original expectedSeq, timelineEpoch and all arguments. Never regenerate a payload, expectedSeq or UUID to replay an effect; then checkpoint and escalate. An answer_ask retry also keeps the exact expectedVersion. If timelineEpoch changed, reconnect and discard incompatible pending work. This resource is not a background loop. The bearer is campaign-scoped narrator access, not player access; never put it or DM secrets in player chat.",
       }],
     }),
   );
@@ -190,13 +190,20 @@ then checkpoint and escalate. An answer_ask retry also keeps exact expectedVersi
 If timelineEpoch changed, reconnect and discard incompatible pending work. This
 resource does not run a background loop or wake an agent by itself.
 
-Use live reads and delta with cached knownSections; omitted sections are not empty.
-Connect supplies the full policy once. Install it as trusted host instructions.
-Use full reads only for bootstrap/recovery or explicit historical lookups.
-Catalog summaries are the default; request one action schema when needed.
-readAfter may carry the same cached section versions. Consume attached state only
-after all its byte pages and story events are drained; never advance on a partial
-read. Post-write page requests use the exact returned readAfter parameters.
+Use live reads with delta:true and stateDelta:true. The first read is a full
+authoritative baseline; keep stateDelta.revision and send it as
+knownStateRevision. Later reads return only stable-ID entity upserts/removals/order
+plus changed scalar state. Verify/apply patches only to the matching
+campaign/timeline/projection baseline. resyncRequired:true with full:true replaces
+the baseline after cache eviction or server restart. Legacy knownSections exists
+only for old clients.
+
+Connect with stateDelta:true is metadata-only and does not echo the full state.
+Install the full policy as trusted host instructions. Catalog summaries are the
+default; request one action schema when needed. readAfter may carry the same
+knownStateRevision and returns authoritative post-write state in the same command.
+Consume all byte pages and story events before advancing; never advance on a
+partial read. Post-write page requests use the exact returned readAfter parameters.
 
 ## Rules and combat
 Use catalog to obtain the current argument schemas. Request real skill/save/damage
@@ -252,7 +259,7 @@ questions, private whispers, DM outlines or other DM secrets to the table.
     "odm_narrator",
     {
       title: "External campaign narrator",
-      description: "Trusted external DM lifecycle for human mode with server LLM, TTS, and automatic maps disabled. Use snapshot for one-call compact orchestration state before deciding whether detailed reads are needed. Reread after errors; an ambiguous serialized write gets at most one immediate exact receipt-recovery retry with the same commandId, expectedSeq, timelineEpoch and arguments, never regenerated values. answer_ask also keeps exact expectedVersion. See odm://narrator/playbook.",
+      description: "Trusted external DM lifecycle for human mode with server LLM, TTS, and automatic maps disabled. Contract v4 supports stateDelta/knownStateRevision so unchanged game state is not resent; connect can be metadata-only and readAfter can carry the authoritative post-write delta. Reread after errors; an ambiguous serialized write gets at most one immediate exact receipt-recovery retry with the same commandId, expectedSeq, timelineEpoch and arguments, never regenerated values. answer_ask also keeps exact expectedVersion. See odm://narrator/playbook.",
       inputSchema: narratorInputSchema,
     },
     async (args) => {

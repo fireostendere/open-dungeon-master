@@ -7,14 +7,18 @@ import { withLatencyTrace, withNewLatencyTrace } from '../mcp/latency-trace.mjs'
  */
 export function startAskWorker(host, snapshot) {
   if (host.askTask || host.stopping || !host.askResponder && !host.pendingAskCommands?.size) return host.askTask;
+  if (!snapshot?.askQueue?.pending && !host.pendingAskCommands?.size) return null;
   const epoch = host.timelineEpoch, campaignId = host.campaignId;
   const current = () => !host.stopping && host.timelineEpoch === epoch && host.campaignId === campaignId;
-  const reader = { deltaReads: host.deltaReads, sectionCache: host.sectionCache,
+  const reader = { deltaReads: host.deltaReads, sectionCache: host.sectionCache, stateCache: host.stateCache,
     readPageRetries: host.readPageRetries, readMaxBytes: host.readMaxBytes,
     callControl: host.callControl.bind(host) };
   host.askError = null;
   const work = async () => {
-    let page = snapshot, cursor = 0, handled = 0;
+    let cursor = 0, handled = 0;
+    let page = await readNarratorSnapshot(reader, { campaignId, afterSeq: snapshot.currentSeq,
+      afterAskSeq: 0, askLimit: 20, includeAsks: true, limit: 1, projection: 'live',
+      ...(epoch ? { timelineEpoch: epoch } : {}) });
     for (let count = 0; count < 1000 && current(); count++) {
       if (page.timelineEpoch && epoch && page.timelineEpoch !== epoch) throw new Error('Ask timeline changed.');
       for (const ask of page.asks ?? page.askQueue?.items ?? []) {
@@ -29,7 +33,7 @@ export function startAskWorker(host, snapshot) {
       if (!Number.isSafeInteger(next) || next <= cursor) throw new Error('Ask cursor did not advance.');
       cursor = next;
       page = await readNarratorSnapshot(reader, { campaignId, afterSeq: snapshot.currentSeq,
-        afterAskSeq: cursor, askLimit: 20, limit: 1, projection: 'live', ...(epoch ? { timelineEpoch: epoch } : {}) });
+        afterAskSeq: cursor, askLimit: 20, includeAsks: true, limit: 1, projection: 'live', ...(epoch ? { timelineEpoch: epoch } : {}) });
     }
     if (current()) throw new Error('Ask queue page budget exceeded.');
   };

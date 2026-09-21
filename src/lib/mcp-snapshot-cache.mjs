@@ -30,7 +30,9 @@ export class NarratorSnapshotCache {
     this.prune();
     const json = JSON.stringify(state), size = Buffer.byteLength(json);
     if (size > this.maxBytes) return false;
-    const scope = scopeOf(state.campaign.id, state.timelineEpoch, params), key = `${scope}:${hash(json)}`;
+    const campaignId = state.campaignId ?? state.campaign?.id;
+    if (typeof campaignId !== 'string' || !campaignId) return false;
+    const scope = scopeOf(campaignId, state.timelineEpoch, params), key = `${scope}:${hash(json)}`;
     if (this.entries.has(key)) return true;
     while (this.entries.size >= this.maxEntries || this.bytes + size > this.maxBytes) this.remove(this.entries.keys().next().value);
     this.entries.set(key, { json, bytes: size, expires: this.now() + this.ttlMs }); this.bytes += size;

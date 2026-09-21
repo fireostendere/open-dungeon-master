@@ -34,13 +34,6 @@ parallel sidecar. It accepts only `ODM_MCP_NARRATOR_TOKEN`, exposes only
 an app restart; remove the bridge after the app can be rolled with its own
 narrator env.
 
-During a live app measurement, `ODM_MCP_NARRATOR_ONLY=1` may be used on a
-parallel sidecar. It accepts only `ODM_MCP_NARRATOR_TOKEN`, exposes only
-`odm_narrator`, binds every request to `ODM_MCP_NARRATOR_CAMPAIGN_ID`, and uses
-`ODM_MCP_UPSTREAM_TOKEN` only for the unchanged internal app hop. This avoids
-an app restart; remove the bridge after the app can be rolled with its own
-narrator env.
-
 ## Local and tunnel modes
 
 Local development keeps the existing application route behind the client:
@@ -81,10 +74,25 @@ never retried automatically because the request may already have committed.
 `OdmClient` exposes generic calls plus `connect`, `read`, `getSnapshot`,
 `getDelta`, `catalog`, `invoke`, and `narrate`. One client owns one transport
 for its whole process. Catalog summaries are cached by the narrator host.
-Reads default to `projection: live` and `delta: true`; unchanged sections are
-identified by the existing `sectionVersions` digests. `readAfter` is explicit:
-the orchestration host asks for it when it needs authoritative post-write state,
-while ordinary receipts do not force a second read.
+Reads default to `projection: live` and `delta: true`. The in-repository host
+also negotiates `stateDelta:true`: after one full projection it sends only a
+single `knownStateRevision`, and the server returns stable-ID entity
+upserts/tombstones plus changed scalar state. A missing server baseline causes a
+full self-healing resync in the same response. Legacy `sectionVersions` remain
+supported.
+
+`readAfter` is explicit. The orchestration host sends its current revision with
+the story write and consumes the authoritative post-commit delta from the write
+result, so the normal uncontended write path does not require a second network
+read. Story/post-write reads use `includeAsks:false`; the independent Ask scanner
+is the only path that pages pending questions. The MCP sidecar emits one compact
+text payload by default; duplicate `structuredContent` is opt-in via
+`ODM_MCP_STRUCTURED_RESULTS=1`.
+
+Every narrator request sent by the sidecar/OdmClient also carries a
+transport-owned `narratorHostId`. The application strips it before strict domain
+schemas and uses it only for a short campaign-scoped SQLite lease. A concurrent
+second host receives 409; no OpenCode/tool-schema change is required.
 
 ## Zero-downtime cutover
 

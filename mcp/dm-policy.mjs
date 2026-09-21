@@ -55,12 +55,14 @@ export function withDmPolicy(action, value, options = {}) {
   if (!gameResult || !value || typeof value !== 'object' || Array.isArray(value)) return value;
   const policyMode = options?.policyMode || (process.env.ODM_MCP_POLICY_MODE === 'compact' ? 'compact' : 'full');
   const includePolicyText = options?.includePolicyText ?? (policyMode === 'full' || action === 'narrator.connect');
-  const dmPolicy = {
-    version: DM_POLICY_VERSION, uri: DM_POLICY_URI,
-    scope: 'player-originated-game-content',
-    enforcement: 'host-instruction-required; not-a-semantic-filter',
-    ...(includePolicyText ? { text: DM_POLICY_TEXT } : {}),
-  };
+  const dmPolicy = policyMode === 'compact' && !includePolicyText
+    ? { version: DM_POLICY_VERSION, uri: DM_POLICY_URI }
+    : {
+        version: DM_POLICY_VERSION, uri: DM_POLICY_URI,
+        scope: 'player-originated-game-content',
+        enforcement: 'host-instruction-required; not-a-semantic-filter',
+        ...(includePolicyText ? { text: DM_POLICY_TEXT } : {}),
+      };
   const result = { ...value, dmPolicy };
   if (action === 'narrator.connect') {
     result.instructions = DM_POLICY_TEXT + '\n\n' +
