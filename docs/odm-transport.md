@@ -84,8 +84,15 @@ supported.
 `readAfter` is explicit. The orchestration host sends its current revision with
 the story write and consumes the authoritative post-commit delta from the write
 result, so the normal uncontended write path does not require a second network
-read. The MCP sidecar emits one compact text payload by default; duplicate
-`structuredContent` is opt-in via `ODM_MCP_STRUCTURED_RESULTS=1`.
+read. Story/post-write reads use `includeAsks:false`; the independent Ask scanner
+is the only path that pages pending questions. The MCP sidecar emits one compact
+text payload by default; duplicate `structuredContent` is opt-in via
+`ODM_MCP_STRUCTURED_RESULTS=1`.
+
+Every narrator request sent by the sidecar/OdmClient also carries a
+transport-owned `narratorHostId`. The application strips it before strict domain
+schemas and uses it only for a short campaign-scoped SQLite lease. A concurrent
+second host receives 409; no OpenCode/tool-schema change is required.
 
 ## Zero-downtime cutover
 
