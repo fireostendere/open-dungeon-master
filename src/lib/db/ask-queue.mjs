@@ -68,6 +68,12 @@ export function registerAsk(db, askId, campaignId, state) {
     VALUES (?, ?, ?, ?, ?)`).run(askId, campaignId, state, state === 'pending' ? 0 : 1,
       state === 'pending' ? null : 'internal_dm');
 }
+export function pendingAskQueueMeta(db, campaignId) {
+  ensureAskQueue(db);
+  const row = db.prepare(`SELECT seq FROM campaign_ask_queue
+    WHERE campaign_id = ? AND state = 'pending' ORDER BY seq LIMIT 1`).get(campaignId);
+  return { pending: Boolean(row) };
+}
 export function listPendingAsks(db, campaignId, after = 0, limit = 20) {
   if (!Number.isSafeInteger(after) || after < 0 || !Number.isInteger(limit) || limit < 1 || limit > 50)
     throw new TypeError('Invalid Ask cursor or page size');
