@@ -35,6 +35,8 @@ assert.deepEqual(capabilities.actions.slice(0, 7), [
 assert.equal(extendControlResult("server.status", { mcpControlActions: 0 }).mcpControlActions, capabilities.actions.length);
 
 const dm = createUser("external_dm", "hash");
+const narratorHostA = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+const narratorHostB = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
 const campaign = createCampaign(dm.id, {
   title: "No AI", description: "", theme: "", maxPlayers: 4, startingLevel: 1,
   difficulty: "normal", gameSettings: { dmMode: "human", ttsEnabled: false, mapsEnabled: false },
@@ -72,11 +74,21 @@ assert.equal(EXTERNAL_NARRATOR_ACTIONS.has("generate_image"), false);
 assert.equal(EXTERNAL_NARRATOR_ACTIONS.has("search_lore"), false);
 assert.equal(EXTERNAL_NARRATOR_ACTIONS.has("set_npc"), true);
 assert.equal(connected.result.state.campaign.gameSettings.mapsEnabled, false);
-const deltaConnected = await executeMcpNarratorControl("narrator.connect", { campaignId: campaign.id, stateDelta: true });
+await assert.rejects(
+  () => executeMcpNarratorControl("narrator.connect", { campaignId: campaign.id, stateDelta: true }),
+  error => error instanceof McpNarratorControlError && error.status === 400,
+  "v4 state delta must have transport-owned host identity",
+);
+const deltaConnected = await executeMcpNarratorControl("narrator.connect", { campaignId: campaign.id, stateDelta: true, narratorHostId: narratorHostA });
 assert.equal(deltaConnected.result.contractVersion, 4);
 assert.ok(deltaConnected.result.cursor.currentSeq >= 0);
 assert.match(deltaConnected.result.cursor.timelineEpoch, /^[a-f0-9]{64}$/);
 assert.equal(Object.hasOwn(deltaConnected.result, "state"), false, "delta connect must not echo a full state snapshot");
+await assert.rejects(
+  () => executeMcpNarratorControl("narrator.connect", { campaignId: campaign.id, stateDelta: true, narratorHostId: narratorHostB }),
+  error => error instanceof McpNarratorControlError && error.status === 409,
+  "a second live narrator process must not acquire the campaign lease",
+);
 for (const action of ["dismiss_companion","mount_up","dismount","roll_treasure","damage_object","group_check","check_notice"]) {
   assert.equal(EXTERNAL_NARRATOR_ACTIONS.has(action), true, action + " must be available to the external narrator");
 }
@@ -382,7 +394,7 @@ assert.ok(editedHistory.result.recentMessages.some(message => message.id === his
 // This intentionally bypasses event publication: old event-name heuristics
 // omitted the changed resources payload because the sequence did not advance.
 const stateDeltaBaseline = await executeMcpNarratorControl("narrator.read", {
-  campaignId: campaign.id, afterSeq: deltaBaseline.result.currentSeq, delta: true, stateDelta: true,
+  campaignId: campaign.id, afterSeq: deltaBaseline.result.currentSeq, delta: true, stateDelta: true, narratorHostId: narratorHostA,
 });
 assert.equal(stateDeltaBaseline.result.stateDelta.full, true);
 assert.equal(stateDeltaBaseline.result.sectionVersions, undefined);
@@ -399,7 +411,7 @@ assert.equal(changedDelta.result.sheets[0].resources.test_resource.current, 0);
 assert.equal(changedDelta.result.omittedSections.includes("sheets"), false);
 
 const entityDelta = await executeMcpNarratorControl("narrator.read", {
-  campaignId: campaign.id, afterSeq: stateDeltaBaseline.result.currentSeq, delta: true, stateDelta: true,
+  campaignId: campaign.id, afterSeq: stateDeltaBaseline.result.currentSeq, delta: true, stateDelta: true, narratorHostId: narratorHostA,
   knownStateRevision: stateDeltaBaseline.result.stateDelta.revision,
 });
 assert.equal(entityDelta.result.stateDelta.full, false);
@@ -424,7 +436,7 @@ const deletedDelta = await executeMcpNarratorControl("narrator.read", {
 assert.deepEqual(deletedDelta.result.sheets, [], "a changed section returns an empty array to clear the cache");
 assert.equal(deletedDelta.result.omittedSections.includes("sheets"), false);
 const deletedEntityDelta = await executeMcpNarratorControl("narrator.read", {
-  campaignId: campaign.id, delta: true, stateDelta: true, knownStateRevision: tombstoneBase,
+  campaignId: campaign.id, delta: true, stateDelta: true, narratorHostId: narratorHostA, knownStateRevision: tombstoneBase,
 });
 assert.equal(deletedEntityDelta.result.stateDelta.full, false);
 assert.ok(deletedEntityDelta.result.stateDelta.patch.entities.sheets.remove.includes(liveSheet.id), "deletion must travel as a tombstone");
