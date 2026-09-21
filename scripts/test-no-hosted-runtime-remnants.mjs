@@ -38,6 +38,12 @@ const removedClientEndpoints = [
   "/encounter/end-turn",
   "/tts/preview",
   "/image-options",
+  "/story-settings",
+];
+
+const removedClientTokens = [
+  "StoryAiPanel",
+  "campaign.settings",
 ];
 
 const violations = [];
@@ -57,6 +63,9 @@ for (const rootName of runtimeRoots) {
         !rel.includes("/api/")) {
       for (const endpoint of removedClientEndpoints) {
         if (text.includes(endpoint)) violations.push(`${rel}: calls retired hosted endpoint ${endpoint}`);
+      }
+      for (const token of removedClientTokens) {
+        if (text.includes(token)) violations.push(`${rel}: references retired hosted Story AI surface ${token}`);
       }
     }
   }
