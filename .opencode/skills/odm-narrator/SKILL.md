@@ -41,6 +41,27 @@ payload до записи, затем перечитайте. При ambiguous o
 (включая `currentSeq`/`timelineEpoch`), а `read` возвращает собственный snapshot;
 аргументы механики остаются в `args`.
 
+## Общий ход через MCP
+
+При включённом `gameSettings.globalTurn.enabled` сервер, а не модель, владеет
+`roundNumber` и фазой раунда. Фаза `waiting` — жёсткий lock: игроки ещё не
+могут вводить действия. На старте/повторном включении дождитесь
+`global_turn_narrator_trigger`, опишите открывающую сцену и завершите запись
+`narrate` с `startGlobalRound=<roundNumber>`. Только подтверждённая запись
+открывает `active` и разблокирует ввод.
+
+Во время `active/quorum_delay` не отвечайте на отдельные player messages.
+Дождитесь `global_turn_ready`: все player messages до seq этого события образуют
+один атомарный `global_round`. Разрешите весь пакет через серверные действия и
+закончите публичной narration с `completeGlobalRound=<roundNumber>`. Сервер сам
+увеличивает счётчик и открывает следующий раунд только после commit этой
+narration. `done`, `wait`, `release_floor` и `request_player_input` не
+закрывают общий раунд. При ошибке/остановке модели раунд остаётся locked; не
+подменяйте это ручным «завершить ход».
+
+`turnCollectionMinutes=0` означает отсутствие timeout, а
+`quorumDelayMinutes=0` — немедленное закрытие ввода при достижении кворума.
+
 ## Бой и броски
 
 Читайте `gameSettings.unitSystem` из актуального `connect`/`read`, а не из
