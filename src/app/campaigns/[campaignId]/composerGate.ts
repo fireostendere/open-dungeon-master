@@ -72,7 +72,15 @@ export function composerGate({
   let turnActionReason = "";
   if (!combat && globalTurnEnabled && globalTurnState && (kind === "do" || kind === "say")) {
     const mySheet = sheets.find((s) => s.userId === meUserId && !s.isCompanion);
-    if (mySheet) {
+    if (globalTurnState.phase === "ready" || globalTurnState.phase === "resolving") {
+      turnActionBlocked = true;
+      turnActionReason =
+        locale === "ru"
+          ? "Раунд уже передан MCP-Мастеру. Дождитесь следующего хода."
+          : locale === "pl"
+            ? "Runda została przekazana MCP Mistrzowi Gry. Poczekaj na następną turę."
+            : "The round is with the MCP Dungeon Master. Wait for the next round.";
+    } else if (mySheet) {
       const usage = globalTurnState.actionsByCharacter[mySheet.id];
       const hasDo = (usage?.actionsCount ?? 0) >= 1;
       const hasSay = (usage?.phrasesCount ?? 0) >= 1;
