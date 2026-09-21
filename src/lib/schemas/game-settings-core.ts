@@ -4,6 +4,10 @@ import {
   COMBAT_MODES,
   COMPANION_SETTINGS,
   DEFAULT_COMBAT_MODE,
+  DEFAULT_ENEMY_CONDITION_VISIBILITY,
+  DEFAULT_ENEMY_HP_VISIBILITY,
+  ENEMY_CONDITION_VISIBILITY,
+  ENEMY_HP_VISIBILITY,
   DICE_POLICIES,
   DM_DIFFICULTY_LEVELS,
   DEFAULT_DM_DIFFICULTY,
@@ -24,9 +28,13 @@ export {
   DM_DIFFICULTY_LEVELS,
   DEFAULT_DM_DIFFICULTY,
   DEFAULT_COMBAT_MODE,
+  DEFAULT_ENEMY_CONDITION_VISIBILITY,
+  DEFAULT_ENEMY_HP_VISIBILITY,
   DM_MODE_HINTS,
   DM_MODE_LABELS,
   DM_MODES,
+  ENEMY_CONDITION_VISIBILITY,
+  ENEMY_HP_VISIBILITY,
   GENRES,
   UNIT_SYSTEMS,
   UNIT_SYSTEM_LABELS,
@@ -37,6 +45,8 @@ export {
   type DicePolicy,
   type DmDifficulty,
   type DmModeSetting,
+  type EnemyConditionVisibility,
+  type EnemyHpVisibility,
   type Genre,
   type UnitSystemSetting,
 } from "@/lib/schemas/game-settings-options";
@@ -48,6 +58,12 @@ export const gameSettingsSchema = z.object({
   // JRPG is an explicit campaign house-rule mode. The combat engine, rather
   // than narration, decides which positional gates it relaxes.
   combatMode: z.enum(COMBAT_MODES).default(DEFAULT_COMBAT_MODE),
+  // What players may see about enemy durability. The DM seat always gets
+  // exact numbers regardless of this presentation setting.
+  enemyHpVisibility: z.enum(ENEMY_HP_VISIBILITY).default(DEFAULT_ENEMY_HP_VISIBILITY),
+  // Enemy effects are independent from HP. "status" shows names only;
+  // "status_turns" additionally exposes the server-tracked remaining rounds.
+  enemyConditionVisibility: z.enum(ENEMY_CONDITION_VISIBILITY).default(DEFAULT_ENEMY_CONDITION_VISIBILITY),
   // Who runs the game. "ai" is the original behavior and the default.
   // "human" silences the AI narrator entirely: player actions queue for the
   // DM instead of waking a turn. "assisted" keeps the AI available for the

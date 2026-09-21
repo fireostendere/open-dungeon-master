@@ -81,3 +81,11 @@ export const UNIT_SYSTEM_LABELS: Record<UnitSystemSetting, string> = {
 export const COMBAT_MODES = ["classical", "jrpg"] as const;
 export type CombatModeSetting = (typeof COMBAT_MODES)[number];
 export const DEFAULT_COMBAT_MODE: CombatModeSetting = "classical";
+
+export const ENEMY_HP_VISIBILITY = ["state", "bar", "exact"] as const;
+export type EnemyHpVisibility = (typeof ENEMY_HP_VISIBILITY)[number];
+export const DEFAULT_ENEMY_HP_VISIBILITY: EnemyHpVisibility = "state";
+
+export const ENEMY_CONDITION_VISIBILITY = ["hidden", "status", "status_turns"] as const;
+export type EnemyConditionVisibility = (typeof ENEMY_CONDITION_VISIBILITY)[number];
+export const DEFAULT_ENEMY_CONDITION_VISIBILITY: EnemyConditionVisibility = "status_turns";

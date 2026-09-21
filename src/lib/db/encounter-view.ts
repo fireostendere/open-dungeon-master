@@ -11,17 +11,18 @@ import {
   type EnemyStatus,
 } from "@/lib/db/encounters";
 import { spatialEnabled, spatialStore } from "@/lib/spatial/service";
+import { getCampaignById } from "@/lib/db/campaigns";
+import type { EnemyConditionVisibility, EnemyHpVisibility } from "@/lib/schemas/game-settings-options";
 
 // What a client is allowed to know about a fight. Split out of
 // encounters.ts, which is persistence: this is the projection, and it is the
 // only shape that ever leaves the server.
 
-// Client-safe projection: vague health states only, no HP numbers, no stats.
-//
-// The one exception is the person running the fight. A human DM cannot run
-// an encounter from "bloodied", so when `enemyNumbers` is granted the real
-// hit points, AC and initiative ride along. That grant comes from
-// src/lib/dm/viewer.ts and is never a raw id comparison here.
+// Client-safe projection. Campaign settings may expose a health bar, exact HP,
+// condition names, or condition duration to players, but AC/initiative remain
+// DM-only. The DM seat always receives the full mechanical view regardless of
+// presentation settings. That grant comes from src/lib/dm/viewer.ts and is
+// never a raw id comparison here.
 export type PublicEncounter = {
   id: string;
   status: EncounterStatus;
@@ -59,9 +60,11 @@ export type PublicEncounter = {
     groupKey: string;
     conditions: string[];
     conditionRounds: Record<string, number>;
-    // DM view only; absent for every player.
+    // Player-visible only when the campaign enables an HP bar or exact HP.
+    hpPercent?: number;
     currentHp?: number;
     maxHp?: number;
+    // DM view only.
     ac?: number;
     initiative?: number | null;
   }>;
@@ -70,9 +73,20 @@ export type PublicEncounter = {
 export function publicEncounter(
   encounter: Encounter,
   enemies: EncounterEnemy[],
-  options: { enemyNumbers?: boolean; hiddenRefIds?: string[] } = {},
+  options: {
+    enemyNumbers?: boolean;
+    hiddenRefIds?: string[];
+    enemyHpVisibility?: EnemyHpVisibility;
+    enemyConditionVisibility?: EnemyConditionVisibility;
+  } = {},
 ): PublicEncounter {
   const showNumbers = options.enemyNumbers === true;
+  const hpVisibility = options.enemyHpVisibility ?? "state";
+  const conditionVisibility = options.enemyConditionVisibility ?? "status_turns";
+  const showHpBar = showNumbers || hpVisibility === "bar" || hpVisibility === "exact";
+  const showExactHp = showNumbers || hpVisibility === "exact";
+  const showConditions = showNumbers || conditionVisibility !== "hidden";
+  const showConditionTurns = showNumbers || conditionVisibility === "status_turns";
   // Hidden is one flag on the board token (src/lib/db/battle-maps.ts) and it
   // means the same thing in both places: an ambusher the players have not
   // met yet is neither on the map nor on the tracker.
@@ -117,30 +131,33 @@ export function publicEncounter(
       cr: enemy.cr,
       type: creatureTypeOf(enemy.stats),
       groupKey: enemy.slug,
-      conditions: enemy.status === "alive" ? enemy.conditions : [],
+      ...(showHpBar
+        ? { hpPercent: enemy.maxHp > 0 ? Math.max(0, Math.min(100, Math.round((enemy.currentHp / enemy.maxHp) * 100))) : 0 }
+        : {}),
+      conditions: showConditions && enemy.status === "alive" ? enemy.conditions : [],
       conditionRounds:
-        enemy.status === "alive"
+        showConditionTurns && enemy.status === "alive"
           ? Object.fromEntries(
               Object.entries(enemy.conditionMeta)
                 .filter(([, meta]) => typeof meta.rounds === "number")
                 .map(([name, meta]) => [name, meta.rounds as number]),
             )
           : {},
-      ...(showNumbers
-        ? {
-            currentHp: enemy.currentHp,
-            maxHp: enemy.maxHp,
-            ac: enemy.ac,
-            initiative: enemy.initiative,
-          }
-        : {}),
+      ...(showExactHp ? { currentHp: enemy.currentHp, maxHp: enemy.maxHp } : {}),
+      ...(showNumbers ? { ac: enemy.ac, initiative: enemy.initiative } : {}),
     })),
   };
 }
 
 export function activePublicEncounter(
   campaignId: string,
-  options: { enemyNumbers?: boolean; viewerUserId?: string; roomId?: string | null } = {},
+  options: {
+    enemyNumbers?: boolean;
+    viewerUserId?: string;
+    roomId?: string | null;
+    enemyHpVisibility?: EnemyHpVisibility;
+    enemyConditionVisibility?: EnemyConditionVisibility;
+  } = {},
 ): PublicEncounter | null {
   const encounter = getActiveEncounter(campaignId, options.roomId);
   if (!encounter) {
@@ -169,8 +186,11 @@ export function activePublicEncounter(
       }
     }
   }
+  const settings = getCampaignById(campaignId)?.gameSettings;
   return publicEncounter(encounter, listEnemies(encounter.id), {
     ...options,
+    enemyHpVisibility: options.enemyHpVisibility ?? settings?.enemyHpVisibility,
+    enemyConditionVisibility: options.enemyConditionVisibility ?? settings?.enemyConditionVisibility,
     hiddenRefIds: Array.from(hidden),
   });
 }
