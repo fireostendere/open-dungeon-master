@@ -123,18 +123,42 @@ export class NarratorOrchestrator {
     if (usage.times.length >= this.maxCallsPerHour) throw new Error('Narrator model call budget exhausted.');
     const packetTiming=latencyEnabled(), packetStarted=packetTiming?performance.now():0;
     const prompt = JSON.stringify(compactRolePacket(role, packet));
-    if(packetTiming)emitLatency({stage:'packet',role,durationMs:performance.now()-packetStarted,bytes:Buffer.byteLength(prompt)});
-    usage.calls++; usage.times.push(now); usage.inputBytes += Buffer.byteLength(prompt); host.saveCheckpoint();
+    const promptBytes = Buffer.byteLength(prompt);
+    const instructionBytes = typeof this.adapter.instructionBytes === 'function'
+      ? Math.max(0, Number(this.adapter.instructionBytes(role)) || 0) : 0;
+    const totalInputBytes = promptBytes + instructionBytes;
+    const estimatedPromptTokens = Math.ceil(totalInputBytes / 3);
+    const estimatedOutputTokens = role === 'writer' ? 2048 : role === 'referee' ? 2048 : 1024;
+    const budget = host.costTracker?.checkBudget?.(estimatedPromptTokens + estimatedOutputTokens);
+    if (budget && !budget.allowed) throw new Error(`Narrator token budget exhausted: ${budget.reason}`);
+    if(packetTiming)emitLatency({stage:'packet',role,durationMs:performance.now()-packetStarted,bytes:promptBytes,instructionBytes,totalInputBytes});
+    usage.calls++; usage.times.push(now); usage.inputBytes += totalInputBytes; host.saveCheckpoint();
     const modelTiming=latencyEnabled(), startedAt = modelTiming?performance.now():0; let outputBytes=0;
     try {
-      const response = await this.adapter.generate(role, prompt);
+      const generated = typeof this.adapter.generateWithUsage === 'function'
+        ? await this.adapter.generateWithUsage(role, prompt)
+        : { text: await this.adapter.generate(role, prompt), usage: null };
+      const response = typeof generated === 'string' ? generated : generated?.text;
+      const providerUsage = typeof generated === 'object' && generated ? generated.usage : null;
       if (typeof response !== 'string') throw new Error('Role did not return text.');
       outputBytes=Buffer.byteLength(response);usage.outputBytes += outputBytes;
+      if (host.costTracker?.recordUsage) {
+        if (providerUsage && Number.isSafeInteger(providerUsage.promptTokens) && Number.isSafeInteger(providerUsage.completionTokens)) {
+          host.costTracker.recordUsage(providerUsage);
+        } else {
+          host.costTracker.recordUsage({
+            promptTokens: estimatedPromptTokens,
+            completionTokens: Math.ceil(outputBytes / 3),
+            estimated: true,
+          });
+        }
+      }
       // Output byte counters are advisory. The next decision boundary saves
       // them together with its mandatory state, not another full fsync here.
       return response;
     } finally {
-      if (modelTiming) emitLatency({ stage: 'narrator_model', role, durationMs: performance.now()-startedAt, inputBytes: Buffer.byteLength(prompt), outputBytes, modelCalls: 1 });
+      if (modelTiming) emitLatency({ stage: 'narrator_model', role, durationMs: performance.now()-startedAt,
+        inputBytes: totalInputBytes, promptBytes, instructionBytes, outputBytes, modelCalls: 1 });
     }
   }
   async answerAsk(host, ask, context) {
