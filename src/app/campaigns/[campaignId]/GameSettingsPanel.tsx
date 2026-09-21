@@ -6,7 +6,6 @@ import {
   Globe,
   Hand,
   Heart,
-  Map,
   Music,
   PackageCheck,
   Sparkles,
@@ -80,8 +79,6 @@ const COPY = {
     ambienceOn: "Ambience on",
     ambienceFollows: "follows the scene",
     ambienceOff: "Ambience off",
-    mapsOn: "Maps on",
-    mapsOff: "Maps off",
     multiclassOn: "Multiclassing allowed",
     multiclassOff: "Multiclassing off",
     joiningOpen: "Mid-game joining open",
@@ -160,7 +157,6 @@ const COPY = {
     dmSets: "DM sets it",
     noAmbience: "No ambience audio is installed yet, so this plays silence. Run npm run fetch-ambience on the server; setting a FREESOUND_API_KEY first widens the sources.",
     extras: "Extras",
-    aiStorySetup: "AI story setup",
     maps: "Maps",
     multiclassing: "Multiclassing",
     multiclassTip: "Let characters take levels in a second or third class at level-up (5e multiclassing, prerequisites enforced)",
@@ -252,8 +248,6 @@ const COPY = {
     ambienceOn: "Атмосфера включена",
     ambienceFollows: "следует за сценой",
     ambienceOff: "Атмосфера выключена",
-    mapsOn: "Карты включены",
-    mapsOff: "Карты выключены",
     multiclassOn: "Мультиклассирование разрешено",
     multiclassOff: "Мультиклассирование выключено",
     joiningOpen: "Подключение по ходу игры открыто",
@@ -332,7 +326,6 @@ const COPY = {
     dmSets: "Выбирает Мастер",
     noAmbience: "На сервере пока не установлены аудиофайлы атмосферы, поэтому будет тишина. Запустите npm run fetch-ambience на сервере; FREESOUND_API_KEY расширяет доступные источники.",
     extras: "Дополнительно",
-    aiStorySetup: "Сюжет от ИИ",
     maps: "Карты",
     multiclassing: "Мультиклассирование",
     multiclassTip: "Разрешить персонажам брать уровни второго или третьего класса при повышении уровня с соблюдением требований 5e.",
@@ -424,8 +417,6 @@ const COPY = {
     ambienceOn: "Dźwięki otoczenia włączone",
     ambienceFollows: "podążają za sceną",
     ambienceOff: "Dźwięki otoczenia wyłączone",
-    mapsOn: "Mapy włączone",
-    mapsOff: "Mapy wyłączone",
     multiclassOn: "Wieloklasowość dozwolona",
     multiclassOff: "Wieloklasowość wyłączona",
     joiningOpen: "Dołączanie w trakcie gry otwarte",
@@ -504,7 +495,6 @@ const COPY = {
     dmSets: "Ustawia Mistrz Gry",
     noAmbience: "Na serwerze nie ma jeszcze zainstalowanych plików dźwięków otoczenia, więc będzie cisza. Uruchom npm run fetch-ambience na serwerze; FREESOUND_API_KEY rozszerza dostępne źródła.",
     extras: "Dodatki",
-    aiStorySetup: "Fabuła od AI",
     maps: "Mapy",
     multiclassing: "Wieloklasowość",
     multiclassTip: "Pozwól postaciom brać poziomy w drugiej lub trzeciej klasie przy awansie, z zachowaniem wymagań 5e.",
@@ -656,11 +646,8 @@ export function GameSettingsPanel({
           <span className="flex items-center gap-1.5">
             <Sparkles className="size-3.5 text-amber-200" />
             {selectedPack?.name ?? genreText.name}
-            {settings.dmMode === "human" ? ` · ${copy.humanDm}` : ""}
-            {settings.dmMode !== "human" && settings.aiStorySetup ? ` · ${copy.aiSetup}` : ""}
-            {settings.dmMode !== "human"
-              ? ` · ${copy.lengths[settings.campaignLength].split(" (")[0]} ${copy.campaignWord}`
-              : ""}
+            {` · ${copy.humanDm}`}
+            {` · ${copy.lengths[settings.campaignLength].split(" (")[0]} ${copy.campaignWord}`}
           </span>
           <span className="flex items-center gap-1.5">
             <Dices className="size-3.5 text-amber-200" />
@@ -675,10 +662,6 @@ export function GameSettingsPanel({
             {settings.ambienceEnabled
               ? `${copy.ambienceOn}${settings.ambienceAuto ? ` (${copy.ambienceFollows})` : ""}`
               : copy.ambienceOff}
-          </span>
-          <span className="flex items-center gap-1.5">
-            <Map className="size-3.5 text-amber-200" />
-            {settings.mapsEnabled ? copy.mapsOn : copy.mapsOff}
           </span>
           <span className="flex items-center gap-1.5">
             <Dices className="size-3.5 text-amber-200" />
@@ -920,9 +903,6 @@ export function GameSettingsPanel({
 
         <div className="flex flex-wrap items-center gap-2">
           <span className="w-16 text-stone-500">{copy.extras}</span>
-          <button type="button" onClick={() => patch({ mapsEnabled: !settings.mapsEnabled })} className={cn("rounded-md border px-2 py-1", settings.mapsEnabled ? "border-amber-700 bg-amber-950/50 text-amber-200" : "border-stone-700 text-stone-400")}>
-            {copy.maps} {settings.mapsEnabled ? copy.on : copy.off}
-          </button>
           <Tooltip content={copy.multiclassTip}>
             <button type="button" onClick={() => patch({ multiclassingEnabled: !settings.multiclassingEnabled })} className={cn("rounded-md border px-2 py-1", settings.multiclassingEnabled ? "border-amber-700 bg-amber-950/50 text-amber-200" : "border-stone-700 text-stone-400")}>
               {copy.multiclassing} {settings.multiclassingEnabled ? copy.on : copy.off}
