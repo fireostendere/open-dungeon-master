@@ -269,6 +269,20 @@ async function invoke(raw: unknown) {
     const outcome = invokeEngineSynchronous(campaign, { kind: "human", userId: campaign.dmUserId! }, { name: p.data.name, args: scoped.args });
     if (!outcome.ok) throw new McpNarratorControlError(outcome.error);
     if (scoped.roomId) bindActiveBattleMapToRoom(campaign.id, campaign.dmUserId!, scoped.roomId);
+
+    // A global round that transitioned into initiative stays armed in
+    // `waiting`. When the MCP narrator ends that encounter, emit the next
+    // narrator trigger inside the same committed command. Players remain
+    // locked until the follow-up narration starts the waiting round.
+    if (p.data.name === "end_encounter" && campaign.gameSettings.globalTurn?.enabled) {
+      const globalTurn = getGlobalTurnState(campaign.id);
+      if (globalTurn.phase === "waiting") {
+        publishPersisted(campaign.id, "global_turn_narrator_trigger", {
+          kind: "post_combat",
+          roundNumber: globalTurn.roundNumber,
+        });
+      }
+    }
     return outcome;
   }, p.data.scopeRoomId ? (campaign, currentSeq) => unrelatedRoomChat(getDatabase(), {
     campaignId: campaign.id, dmUserId: campaign.dmUserId!, roomId: p.data.scopeRoomId!, afterSeq: p.data.expectedSeq, currentSeq,
@@ -381,6 +395,67 @@ async function narrate(raw: unknown) {
   },
   );
 }
+async function finishGlobalRound(raw: unknown) {
+  const p = writeBase.extend({
+    mode: z.enum(["start", "complete"]),
+    roundNumber: z.number().int().min(1),
+  }).safeParse(raw);
+  if (!p.success) throw new McpNarratorControlError(z.prettifyError(p.error));
+  return serializedWrite(
+    p.data,
+    "narrator.finish_global_round",
+    { mode: p.data.mode, roundNumber: p.data.roundNumber },
+    campaign => {
+      // Non-spatial global rounds must close with narrator.narrate so the
+      // narration and round transition are one atomic write. This no-prose
+      // finalizer exists only after room-scoped location_narrate writes.
+      if (!spatialEnabled(campaign.id)) {
+        throw new McpNarratorControlError(
+          "Global-round finalizer is only valid for spatial narration.",
+          409,
+        );
+      }
+      if (!campaign.gameSettings.globalTurn?.enabled) {
+        throw new McpNarratorControlError("Global-turn mode is not enabled.", 409);
+      }
+      if (p.data.mode === "start") {
+        const current = getGlobalTurnState(campaign.id);
+        if (current.roundNumber !== p.data.roundNumber || current.phase !== "waiting") {
+          throw new McpNarratorControlError(
+            "Global round is not waiting for this start finalizer.",
+            409,
+          );
+        }
+        const started = startGlobalTurn(campaign.id, "mcp_trigger");
+        if (!started || started.roundNumber !== p.data.roundNumber) {
+          throw new McpNarratorControlError("Global round did not start.", 409);
+        }
+        return { globalRoundStarted: started.roundNumber, state: started };
+      }
+
+      const current = getGlobalTurnState(campaign.id);
+      if (
+        current.roundNumber !== p.data.roundNumber ||
+        (current.phase !== "ready" && current.phase !== "resolving")
+      ) {
+        throw new McpNarratorControlError(
+          "Global round is not sealed for this completion finalizer.",
+          409,
+        );
+      }
+      const completed = completeGlobalTurn(campaign.id, p.data.roundNumber);
+      if (!completed || completed.roundNumber <= p.data.roundNumber) {
+        throw new McpNarratorControlError("Global round did not advance.", 409);
+      }
+      return {
+        globalRoundCompleted: p.data.roundNumber,
+        nextGlobalRound: completed.roundNumber,
+        state: completed,
+      };
+    },
+  );
+}
+
 async function releaseFloor(raw: unknown) {
   const p = writeBase.safeParse(raw);
   if (!p.success) throw new McpNarratorControlError(z.prettifyError(p.error));
@@ -420,6 +495,7 @@ async function dispatchMcpNarratorControl(action: string, raw: unknown): Promise
     }
     case "narrator.invoke": return { handled: true, result: await invoke(raw) };
     case "narrator.narrate": return { handled: true, result: await narrate(raw) };
+    case "narrator.finish_global_round": return { handled: true, result: await finishGlobalRound(raw) };
     case "narrator.release_floor": return { handled: true, result: await releaseFloor(raw) };
     case "narrator.answer_ask": {
       const p = z.object({
@@ -440,7 +516,12 @@ async function dispatchMcpNarratorControl(action: string, raw: unknown): Promise
     default: return { handled: false };
   }
 }
-const storyWrites = new Set(["narrator.invoke", "narrator.narrate", "narrator.release_floor"]);
+const storyWrites = new Set([
+  "narrator.invoke",
+  "narrator.narrate",
+  "narrator.finish_global_round",
+  "narrator.release_floor",
+]);
 const readAfterSchema = z.union([z.boolean(), z.object({
   afterSeq: z.number().int().min(0).optional(), limit: z.number().int().min(1).max(100).optional(),
   afterAskSeq: z.number().int().min(0).optional(), askLimit: z.number().int().min(1).max(50).optional(),
