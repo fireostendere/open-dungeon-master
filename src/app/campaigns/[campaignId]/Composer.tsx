@@ -363,7 +363,7 @@ function ComposerInner({
               {/* Autopilot toggle */}
               <button
                 type="button"
-                disabled={autopilotBusy}
+                disabled={autopilotBusy || globalTurnLocked}
                 onClick={handleToggleAutopilot}
                 className={cn(
                   "flex items-center gap-1 rounded border px-2 py-0.5 text-[11px] transition-colors",
