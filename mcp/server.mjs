@@ -176,8 +176,10 @@ A waiting round accepts no player input. Wait for global_turn_narrator_trigger, 
 the opening/transition, and send startGlobalRound=roundNumber; only that committed MCP
 write opens collection. Then do not resolve player messages individually: wait for
 global_turn_ready, batch all player messages through its seq, and send the final round
-narration with completeGlobalRound=roundNumber. That committed write advances the
-counter and opens the next round.
+narration with completeGlobalRound=roundNumber. In location-private spatial mode,
+narrate every affected input.roomIds room with location_narrate; after all such
+writes the host uses an internal no-prose finalizer before unlocking. That final
+committed write advances the counter and opens the next round.
 Consume the attached state after a write; drain missing pages/events with read.
 Always read after a timeout or error, including 409. A readRequired flag on a
 successful receipt means only the post-commit read failed: never replay the effect. An ambiguous serialized
