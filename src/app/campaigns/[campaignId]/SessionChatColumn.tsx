@@ -22,7 +22,14 @@ export function SessionChatColumn(props: ComponentProps<typeof LegacySessionChat
     {chat.error ? <button type="button" onClick={chat.refresh}>{t.retry}</button> : null}</div>;
   const view = chat.view;
   if (view?.enabled) return <div className={cn("min-w-0 flex-1 flex-col overflow-y-auto", props.visible ? "flex" : "hidden lg:flex")}>
-    <LocationChat key={`${props.campaignId}:${props.meUserId}`} chat={chat} members={props.state.members} dmUserId={props.state.campaign?.dmUserId} />
+    <LocationChat
+      key={`${props.campaignId}:${props.meUserId}`}
+      chat={chat}
+      members={props.state.members}
+      dmUserId={props.state.campaign?.dmUserId}
+      globalTurnEnabled={Boolean(props.state.campaign?.gameSettings?.globalTurn?.enabled)}
+      globalTurnState={props.state.campaign?.globalTurnState ?? null}
+    />
     {chat.selected && chat.selected !== "ooc" ? <LocationNotes
       key={`${props.campaignId}:${props.meUserId}:${chat.selected}`}
       campaignId={props.campaignId} userId={props.meUserId} roomId={chat.selected}
