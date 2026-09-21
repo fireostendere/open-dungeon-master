@@ -2,6 +2,7 @@ import { isErrorResponse, isLead, requireMember, steersStory } from "@/lib/campa
 import { setDmMode, updateGameSettings } from "@/lib/db/campaigns";
 import { gameSettingsSchema } from "@/lib/schemas/game-settings";
 import { publishPersisted } from "@/lib/events";
+import { activePublicEncounter } from "@/lib/db/encounter-view";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -46,5 +47,11 @@ export async function PATCH(
     return Response.json({ error: "Campaign not found." }, { status: 404 });
   }
   publishPersisted(campaignId, "campaign_updated", { gameSettings });
+  // Visibility settings affect the wire shape of the live encounter. Push a
+  // freshly projected card immediately so players do not need to reload the
+  // campaign after changing HP/effect visibility mid-fight.
+  publishPersisted(campaignId, "encounter_updated", {
+    encounter: activePublicEncounter(campaignId),
+  });
   return Response.json({ gameSettings });
 }
