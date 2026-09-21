@@ -3,7 +3,6 @@ import { LEAD_NOTE_PREFIX } from "@/lib/campaign-types";
 import { allocateSeq, capsFor, getFloor } from "@/lib/db/campaigns";
 import { getActiveEncounter } from "@/lib/db/encounters";
 import { insertCampaignMessage } from "@/lib/db/messages";
-import { requestDmTurn } from "@/lib/dm/loop";
 import { publishWithSeq } from "@/lib/events";
 
 export const runtime = "nodejs";
@@ -46,7 +45,6 @@ export async function POST(
   publishWithSeq(campaignId, seq, "message_added", { message });
 
   if (wake) {
-    requestDmTurn(campaignId);
   }
 
   return Response.json({ message }, { status: 201 });
