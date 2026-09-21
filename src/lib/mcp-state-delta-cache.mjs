@@ -1,5 +1,6 @@
 import {
   NARRATOR_STATE_DELTA_FORMAT,
+  NARRATOR_STATE_PATCH_FORMAT,
   createNarratorStatePatch,
   extractNarratorState,
   narratorStateRevision,
@@ -89,4 +90,30 @@ export function projectNarratorStateDelta(state, {
     patch,
   };
   return response;
+}
+
+export function unchangedNarratorStateDelta({
+  campaignId,
+  timelineEpoch,
+  principal,
+  projection = 'live',
+  knownStateRevision,
+  cache = narratorStateDeltaCache,
+}) {
+  if (typeof knownStateRevision !== 'string' || !knownStateRevision) return null;
+  const scope = narratorStateScope({ campaignId, timelineEpoch, principal, projection });
+  const base = cache.restore(scope, knownStateRevision);
+  if (!base) return null;
+  if (narratorStateRevision(scope, base) !== knownStateRevision) return null;
+  return {
+    stateDelta: {
+      format: NARRATOR_STATE_DELTA_FORMAT,
+      baseRevision: knownStateRevision,
+      revision: knownStateRevision,
+      checksum: knownStateRevision,
+      full: false,
+      resyncRequired: false,
+      patch: { format: NARRATOR_STATE_PATCH_FORMAT },
+    },
+  };
 }
