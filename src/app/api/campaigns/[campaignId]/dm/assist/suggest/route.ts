@@ -8,14 +8,10 @@ export const dynamic = "force-dynamic";
 
 // "The player said this; what am I supposed to press?"
 //
-// Answers with a keyword shortlist from the adjudication catalog, plus one
-// model pick with its arguments prefilled when a model is reachable. Applies
-// nothing: the DM opens the proposed form and confirms it themselves.
+// Deterministic keyword/rules shortlist. Applies nothing: the DM opens a
+// proposed form and confirms it themselves.
 const suggestSchema = z.object({
   intent: z.string().trim().min(1).max(1000),
-  // Off skips the model entirely and returns the keyword shortlist, which is
-  // what a table on a slow local model will want most of the time.
-  useModel: z.boolean().default(true),
 });
 
 export async function POST(
@@ -36,7 +32,7 @@ export async function POST(
   const { suggestions, picked } = await suggestAdjudication(
     context.campaign,
     parsed.data.intent,
-    { inEncounter, useModel: parsed.data.useModel },
+    { inEncounter },
   );
   return Response.json({ suggestions, picked });
 }
