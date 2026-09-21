@@ -27,7 +27,7 @@ function host(overrides = {}) {
         asks: [{ id: 'q1' }, { id: 'q2' }], askQueue: { nextCursor: 2, hasMore: false } };
     },
     drainStory: async () => ({ currentSeq: 10, nextCursor: 10, hasMore: false, timelineEpoch: 'e',
-      asks: [], askQueue: { nextCursor: 0, hasMore: false } }),
+      asks: [], askQueue: { nextCursor: 0, hasMore: false, pending: true } }),
     storyController: { tick: async () => true }, ...overrides };
 }
 
@@ -44,6 +44,14 @@ test('productive steps do not sleep; idle and failed polls retain backoff', () =
   assert.equal(narratorPollDelay({ madeProgress: true, lastError: null, pollIntervalMs: 2000 }), 0);
   assert.equal(narratorPollDelay({ madeProgress: false, lastError: null, pollIntervalMs: 2000 }), 2000);
   assert.equal(narratorPollDelay({ madeProgress: true, lastError: 'failed', pollIntervalMs: 2000 }), 2000);
+});
+
+test('empty Ask metadata avoids a second MCP read', async () => {
+  let reads = 0;
+  const h = host({ callControl: async () => { reads++; throw new Error('Ask read should not run'); } });
+  const result = startAskWorker(h, { currentSeq: 10, timelineEpoch: 'e', asks: [], askQueue: { pending: false, hasMore: false } });
+  assert.equal(result, null);
+  assert.equal(reads, 0);
 });
 
 test('stalled Ask does not block story and only one Ask worker runs', async () => {
@@ -87,7 +95,7 @@ test('blocked Ask page advances using an isolated read cache and fixed cursor', 
       return { campaign: { id: 'c' }, currentSeq: 10, nextCursor: 10, hasMore: false,
         timelineEpoch: 'e', asks: [{ id: 'q3' }], askQueue: { hasMore: false, nextCursor: 9 } };
     } });
-  await startAskWorker(h, { currentSeq: 10, timelineEpoch: 'e', asks: [], askQueue: { hasMore: false } });
+  await startAskWorker(h, { currentSeq: 10, timelineEpoch: 'e', asks: [], askQueue: { hasMore: false, pending: true } });
   assert.deepEqual(ids, ['q3']);
   assert.equal(requests[0].params.afterSeq, 10); assert.equal(requests[0].params.afterAskSeq, 0);
   assert.equal(requests[0].params.includeAsks, true);
