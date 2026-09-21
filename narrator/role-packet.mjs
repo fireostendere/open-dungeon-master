@@ -1,3 +1,21 @@
+const MODEL_GAME_SETTING_KEYS = Object.freeze([
+  'language', 'unitSystem', 'combatMode',
+  'genre', 'customGenreText', 'worldPack',
+  'dicePolicy', 'dmDifficulty', 'multiclassingEnabled',
+  'worldSimulation', 'holdSubmissions', 'globalTurn',
+  'companions', 'maxCompanions', 'maxGuests',
+  'relationships', 'romance', 'inventoryApprovals', 'variantRules',
+]);
+
+function compactGameSettings(settings) {
+  if (!settings || typeof settings !== 'object' || Array.isArray(settings)) return settings;
+  return Object.fromEntries(
+    MODEL_GAME_SETTING_KEYS
+      .filter(key => Object.hasOwn(settings, key))
+      .map(key => [key, settings[key]]),
+  );
+}
+
 /**
  * Serializer-only projection: unchanged nested values can be shared because
  * callers synchronously JSON.stringify the returned packet. This is not a
@@ -31,6 +49,15 @@ export function compactRolePacket(role, packet) {
   if (role !== 'referee') return packet;
 
   let result = packet;
+  if (packet.campaign?.gameSettings) {
+    result = {
+      ...result,
+      campaign: {
+        ...packet.campaign,
+        gameSettings: compactGameSettings(packet.campaign.gameSettings),
+      },
+    };
+  }
   const sheets = packet.state?.sheets;
   if (Array.isArray(sheets)) {
     let changed = false;
