@@ -72,6 +72,8 @@ const plainObject = value => Boolean(value) && typeof value === 'object' && !Arr
 function entityPatch(before, after) {
   if (!Array.isArray(before) || !Array.isArray(after)) return null;
   if (![...before, ...after].every(item => entityId(item) !== null)) return null;
+  const beforeIds = before.map(entityId), afterIds = after.map(entityId);
+  if (new Set(beforeIds).size !== beforeIds.length || new Set(afterIds).size !== afterIds.length) return null;
   const previous = new Map(before.map(item => [entityId(item), item]));
   const current = new Map(after.map(item => [entityId(item), item]));
   const upsert = [];
@@ -79,7 +81,7 @@ function entityPatch(before, after) {
     if (!previous.has(id) || itemDigest(previous.get(id)) !== itemDigest(item)) upsert.push(clone(item));
   }
   const remove = [...previous.keys()].filter(id => !current.has(id));
-  const beforeOrder = before.map(entityId), afterOrder = after.map(entityId);
+  const beforeOrder = beforeIds, afterOrder = afterIds;
   const order = JSON.stringify(beforeOrder) === JSON.stringify(afterOrder) ? undefined : afterOrder;
   return { upsert, remove, ...(order ? { order } : {}) };
 }
