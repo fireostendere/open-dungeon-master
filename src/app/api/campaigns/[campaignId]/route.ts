@@ -59,6 +59,12 @@ export async function GET(
 
   const { campaign, user } = context;
   const caps = capsFor(context);
+  // Capture the replay watermark BEFORE assembling the multi-query snapshot.
+  // If a write lands while the snapshot is being built, the browser reconnects
+  // from this earlier seq and receives that event again (idempotent). Reading
+  // latestSeq at the end could instead acknowledge an event whose changed row
+  // was read before the write and permanently skip it.
+  const snapshotSeq = latestSeq(campaignId);
   const spatial = spatialEnabled(campaignId);
   const spatialActor = spatial ? spatialContext(campaignId, user.id).actor : null;
   const spatialView = spatialActor ? spatialStore().view(spatialActor) : null;
@@ -133,7 +139,7 @@ export async function GET(
     // served the list; the text itself is public either way, because a beat
     // is published as an ordinary DM passage (src/lib/dm/beats.ts).
     beats: caps.adjudicates ? listDmBeats(campaignId, 20) : [],
-    latestSeq: latestSeq(campaignId),
+    latestSeq: snapshotSeq,
     // Which messages already have narration on disk, so read-aloud plays them
     // straight from a fresh load instead of rendering a second take.
     // What is playing. The ambience_changed event keeps it live from here;
