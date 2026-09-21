@@ -1,6 +1,6 @@
 import { randomInt } from "node:crypto";
 import { getDatabase, nowIso, parseJson } from "@/lib/db/core";
-import { normalizeSettings, scrubStorySettings } from "@/lib/db/settings";
+import { normalizeSettings } from "@/lib/db/settings";
 import { configuredDefaultStorySettings } from "@/lib/runtime-defaults";
 import { normalizeGameSettings, type GameSettings } from "@/lib/schemas/game-settings";
 import { normalizeCampaignKind, type CampaignKind } from "@/lib/workshop/kind";
@@ -991,15 +991,15 @@ export function setCampaignSummaryState(campaignId: string, summary: string, cov
 // Strip server-only fields before sending a campaign to any client. The DM
 // outline and story arc are the story's secret spine; players must never
 // receive them.
-export function publicCampaign(campaign: Campaign): Omit<Campaign, "dmOutline" | "storyArc"> {
+export function publicCampaign(campaign: Campaign): Omit<Campaign, "dmOutline" | "storyArc" | "settings"> {
   const rest = { ...campaign } as Partial<Campaign>;
   delete rest.dmOutline;
   delete rest.storyArc;
-  // The per-campaign backend keys ride settings_json, but only the server may
-  // ever read them back; clients get an existence boolean from the
-  // story-settings route instead.
-  rest.settings = scrubStorySettings(campaign.settings);
-  return rest as Omit<Campaign, "dmOutline" | "storyArc">;
+  // Hosted text/image backends were retired. Keep settings_json internally
+  // for old databases/imports, but never pay to serialize its model endpoints,
+  // provider metadata or empty secret fields to browsers that cannot use it.
+  delete rest.settings;
+  return rest as Omit<Campaign, "dmOutline" | "storyArc" | "settings">;
 }
 
 export function touchCampaign(campaignId: string) {
