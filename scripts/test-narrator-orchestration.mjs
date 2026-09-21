@@ -148,6 +148,84 @@ test('global turn waits for ready barrier, batches the round, and closes it thro
   assert.equal(h.controller.state.handledSeq, 4);
 });
 
+test('spatial global round stays locked until every affected room is narrated and finalizer commits', async () => {
+  const h = fixture([
+    { kind: 'invoke', action: 'game', args: { action: 'location_narrate', args: { roomId: 'room-a', content: 'Room A resolves.' } } },
+    { kind: 'invoke', action: 'game', args: { action: 'location_narrate', args: { roomId: 'room-b', content: 'Room B resolves.' } } },
+    { kind: 'done' },
+  ]);
+  h.snapshot.campaign.gameSettings.globalTurn = {
+    enabled: true, turnCollectionMinutes: 0, quorumPlayers: 2, quorumDelayMinutes: 0,
+  };
+  h.snapshot.campaign.globalTurnState = {
+    roundNumber: 4, phase: 'ready', startedAt: '2026-01-01T00:00:00.000Z',
+    firstActionAt: '2026-01-01T00:00:01.000Z', deadlineAt: null,
+    quorumReachedAt: '2026-01-01T00:00:02.000Z', actionsByCharacter: {},
+  };
+  h.snapshot.spatial = { enabled: true };
+  h.snapshot.spatialRooms = [
+    { id: 'room-a', name: 'A', occupants: ['user'] },
+    { id: 'room-b', name: 'B', occupants: ['user-2'] },
+  ];
+  h.snapshot.messages = [
+    { ...player(2), roomId: 'room-a', channel: 'location', kind: 'do' },
+    { ...player(3), id: 'message-3', userId: 'user-2', characterId: 'hero-2',
+      content: 'I listen at the door.', roomId: 'room-b', channel: 'location', kind: 'say' },
+  ];
+  h.snapshot.currentSeq = 4;
+  h.snapshot.nextCursor = 4;
+  h.snapshot.events = [{ seq: 4, type: 'global_turn_ready', payload: { roundNumber: 4 } }];
+
+  await h.tick();
+  await h.tick();
+  await h.tick();
+
+  assert.deepEqual(
+    h.writes.slice(0, 2).map(write => write.params.name),
+    ['location_narrate', 'location_narrate'],
+  );
+  assert.equal(h.writes[2].action, 'narrator.finish_global_round');
+  assert.equal(h.writes[2].params.mode, 'complete');
+  assert.equal(h.writes[2].params.roundNumber, 4);
+  assert.equal(h.controller.state.current, null);
+});
+
+test('spatial global opening requires narration for every occupied room before start finalizer', async () => {
+  const h = fixture([
+    { kind: 'invoke', action: 'game', args: { action: 'location_narrate', args: { roomId: 'room-a', content: 'The tavern wakes.' } } },
+    { kind: 'invoke', action: 'game', args: { action: 'location_narrate', args: { roomId: 'room-b', content: 'Rain runs down the alley.' } } },
+    { kind: 'done' },
+  ]);
+  h.snapshot.campaign.gameSettings.globalTurn = {
+    enabled: true, turnCollectionMinutes: 0, quorumPlayers: 2, quorumDelayMinutes: 0,
+  };
+  h.snapshot.campaign.globalTurnState = {
+    roundNumber: 1, phase: 'waiting', startedAt: null, firstActionAt: null,
+    deadlineAt: null, quorumReachedAt: null, actionsByCharacter: {},
+  };
+  h.snapshot.spatial = { enabled: true };
+  h.snapshot.spatialRooms = [
+    { id: 'room-a', name: 'Tavern', occupants: ['user'] },
+    { id: 'room-b', name: 'Alley', occupants: ['user-2'] },
+  ];
+  h.snapshot.messages = [];
+  h.snapshot.currentSeq = 2;
+  h.snapshot.nextCursor = 2;
+  h.snapshot.events = [{
+    seq: 2, type: 'global_turn_narrator_trigger',
+    payload: { kind: 'opening', roundNumber: 1 },
+  }];
+
+  await h.tick();
+  await h.tick();
+  await h.tick();
+
+  assert.equal(h.writes[2].action, 'narrator.finish_global_round');
+  assert.equal(h.writes[2].params.mode, 'start');
+  assert.equal(h.writes[2].params.roundNumber, 1);
+  assert.equal(h.controller.state.current, null);
+});
+
 test('YOLO spatial catalog expands after enable without refetching the catalog', async () => {
   const h = fixture([
     { kind: 'invoke', action: 'game', args: { action: 'location_enable', args: { name: 'Tavern' } } },
