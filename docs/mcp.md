@@ -190,6 +190,12 @@ player chat. Drain using nextCursor/hasMore, not filtered-array length. `answer_
 updates a question in its own campaign, preserving visibility and without
 advancing scene/floor/sequence. Private notifications contain no question text.
 See [external-narrator.md](external-narrator.md) for the exact protocol.
+Contract v4 supports `stateDelta:true`: after one full audience-projected
+baseline, clients send a single `knownStateRevision` and receive only changed
+stable-ID entities/scalars. Deleted entities are tombstones and every reconstructed
+state is checksum-verified. A missing baseline becomes a full resync in the same
+response. Legacy `knownSections` remains accepted. The sidecar returns one compact
+text payload by default rather than duplicating it into `structuredContent`.
 
 Model probes share a total application deadline; the sidecar deadline is longer.
 Cancellation/disconnects reach probes, and profile persistence waits for completion.
