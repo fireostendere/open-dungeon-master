@@ -1,4 +1,4 @@
-import { stripReasoningArtifacts } from "../story-prompt.ts";
+import { stripReasoningArtifacts } from "../text-sanitize.ts";
 
 // Pure world-arc logic, kept free of alias imports so node test scripts
 // (scripts/test-world-arcs.mjs) can load it directly.
