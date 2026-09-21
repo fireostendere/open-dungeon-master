@@ -369,7 +369,6 @@ export function LeadPanel({
         campaign={campaign}
         members={members}
         sheets={sheets}
-        isLead={isLead}
       />
 
       {steersStory ? (
