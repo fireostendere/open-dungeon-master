@@ -4,6 +4,7 @@ import { spatialEnabled, spatialContext } from "@/lib/spatial/service";
 import { bindActiveBattleMapToRoom, scopeBattleMapInvocation } from "@/lib/spatial/battle-map";
 import { campaignTimelineEpoch } from "@/lib/spatial/timeline";
 import { getDatabase } from "@/lib/db/core";
+import { touchNarratorLease, NarratorLeaseConflict } from "@/lib/db/narrator-lease";
 import { unrelatedRoomChat } from "@/lib/spatial/narrator-concurrency.mjs";
 import { attachPostWriteRead } from "@/lib/mcp-post-write.mjs";
 import { readNarratorSections } from "@/lib/mcp-read-sections.mjs";
@@ -371,7 +372,32 @@ const readAfterSchema = z.union([z.boolean(), z.object({
   stateDelta: z.boolean().optional(), knownStateRevision: sectionDigest.optional(),
   knownSeq: z.number().int().min(0).optional(), knownSections: readSchema.shape.knownSections,
 }).strict()]);
+function leaseBoundRequest(action: string, raw: unknown) {
+  if (!action.startsWith("narrator.") || !raw || typeof raw !== "object" || Array.isArray(raw)) return { params: raw, hostId: undefined as string | undefined };
+  const record = raw as Record<string, unknown>;
+  const host = record.narratorHostId;
+  const wantsV4 = record.stateDelta === true ||
+    (record.readAfter && typeof record.readAfter === "object" && !Array.isArray(record.readAfter) &&
+      (record.readAfter as Record<string, unknown>).stateDelta === true);
+  if (host === undefined) {
+    if (wantsV4) throw new McpNarratorControlError("stateDelta requires a narrator host identity.", 400);
+    return { params: raw, hostId: undefined as string | undefined };
+  }
+  const parsedHost = id.safeParse(host), parsedCampaign = id.safeParse(record.campaignId);
+  if (!parsedHost.success || !parsedCampaign.success) throw new McpNarratorControlError("Invalid narrator host lease metadata.", 400);
+  campaignOrHuman(parsedCampaign.data);
+  try { touchNarratorLease(parsedCampaign.data, parsedHost.data); }
+  catch (error) {
+    if (error instanceof NarratorLeaseConflict) throw new McpNarratorControlError(error.message, error.status);
+    throw error;
+  }
+  const { narratorHostId: _ignored, ...params } = record;
+  return { params, hostId: parsedHost.data };
+}
+
 export async function executeMcpNarratorControl(action: string, raw: unknown): Promise<{ handled: false } | { handled: true; result: unknown }> {
+  const leased = leaseBoundRequest(action, raw);
+  raw = leased.params;
   if (!storyWrites.has(action) || !raw || typeof raw !== "object" || Array.isArray(raw) || !Object.hasOwn(raw, "readAfter")) return dispatchMcpNarratorControl(action, raw);
   const { readAfter, ...params } = raw as Record<string, unknown>;
   const options = readAfterSchema.safeParse(readAfter);
