@@ -109,6 +109,7 @@ const runner = await moduleAt('../narrator/run.mjs', {
   './cost-tracker.mjs': { NarratorCostTracker: class {} }, './compaction.mjs': { HostContextMemory: class {} },
   './read-session.mjs': { connectNarrator: () => {}, drainNarratorStory: () => {}, readNarratorSnapshot: () => {} },
   './poll-cycle.mjs': { driveNarratorCycle, narratorPollDelay },
+  './rules-client.mjs': { createRulesMcpClientFromEnv: () => null },
 });
 function askHost(responder) {
   return host({ askResponder: responder, memory: { getPromptContext: scope => ({ viewerUserId: scope.viewerUserId }) },
