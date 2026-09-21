@@ -1,6 +1,6 @@
 import { SPATIAL_NARRATOR_CATALOG, SPATIAL_NARRATOR_OPERATIONS, SPATIAL_GUIDANCE, readSpatialForNarrator, invokeSpatialForNarrator } from "@/lib/spatial/narrator";
 import { spatialNarratorBoundary } from "@/lib/spatial/narrator-page.mjs";
-import { spatialEnabled, spatialContext } from "@/lib/spatial/service";
+import { runSpatialCommand, spatialEnabled, spatialContext, SpatialError } from "@/lib/spatial/service";
 import { bindActiveBattleMapToRoom, scopeBattleMapInvocation } from "@/lib/spatial/battle-map";
 import { campaignTimelineEpoch } from "@/lib/spatial/timeline";
 import { getDatabase } from "@/lib/db/core";
@@ -9,18 +9,19 @@ import { unrelatedRoomChat } from "@/lib/spatial/narrator-concurrency.mjs";
 import { attachPostWriteRead } from "@/lib/mcp-post-write.mjs";
 import { readNarratorSections } from "@/lib/mcp-read-sections.mjs";
 import { projectNarratorStateDelta } from "@/lib/mcp-state-delta-cache.mjs";
+import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import { queueSkippedCombatTurn } from "@/lib/dm/encounter-tools";
 import { isOocMessage } from "@/lib/campaign-types";
 import { isNarratorEvent } from "@/lib/mcp-event-filter";
-import { getCampaignById, getCampaignSummaryState, getFloor, getGlobalTurnState, latestSeq, listMembers, setFloor } from "@/lib/db/campaigns";
+import { allocateSeq, canAct, getCampaignById, getCampaignSummaryState, getFloor, getGlobalTurnState, latestSeq, listMembers, setFloor } from "@/lib/db/campaigns";
 import { listChapters } from "@/lib/db/chapters";
 import { getDmTurn, listOpenPendingRolls } from "@/lib/db/dm-turns";
 import { listRecentWhispersForPrompt, listPendingPlayerWhispers } from "@/lib/db/dm-whispers";
 import { getActiveEncounter, listActiveEncounters, listEnemies } from "@/lib/db/encounters";
 import { listActiveFacts } from "@/lib/db/facts";
 import { getCurrentLocation } from "@/lib/db/locations";
-import { listMessagesInSeqRange, listRecentMessages } from "@/lib/db/messages";
+import { insertCampaignMessage, listMessagesInSeqRange, listRecentMessages } from "@/lib/db/messages";
 import { listPublicCampaignNotes } from "@/lib/db/notes";
 import { listRecentRolls } from "@/lib/db/rolls";
 import { listSheets } from "@/lib/db/sheets";
@@ -29,14 +30,14 @@ import { consoleAdjudications } from "@/lib/dm/invoke-catalog";
 import { invokeEngineSynchronous } from "@/lib/dm/invoke";
 import { persistHumanNarration } from "@/lib/dm/human-narration";
 import { executeNarratorCommand, NarratorCommandError as McpNarratorControlError } from "@/lib/dm/narrator-command";
-import { completeGlobalTurn, startGlobalTurn } from "@/lib/dm/global-turn-logic";
+import { completeGlobalTurn, recordGlobalTurnAction, sealGlobalTurnNow, startGlobalTurn } from "@/lib/dm/global-turn-logic";
 import { listNarratorReceipts } from "@/lib/db/narrator-commands";
 import { coverInEffect } from "@/lib/dm/delegation";
 import { npcRosterForPrompt } from "@/lib/dm/social-tools";
 import { answerAsk, listPendingAsksForCampaign, pendingAsksForCampaign, AskQueueConflict } from "@/lib/db/asks";
 import { narratorSnapshots } from "@/lib/mcp-snapshot-cache.mjs";
 import { budgetRead, ReadBudgetError } from "@/lib/mcp-read-budget.mjs";
-import { listEventsSince, publishEphemeral, publishPersisted, publishUserEphemeral } from "@/lib/events";
+import { listEventsSince, publishEphemeral, publishPersisted, publishUserEphemeral, publishWithSeq } from "@/lib/events";
 import { buildOrchestrationSnapshot } from "../../shared/orchestration-snapshot.mjs";
 export { NarratorCommandError as McpNarratorControlError } from "@/lib/dm/narrator-command";
 const id = z.string().uuid();
@@ -470,6 +471,129 @@ async function finishGlobalRound(raw: unknown) {
   );
 }
 
+async function autopilotAction(raw: unknown) {
+  const p = writeBase.extend({
+    characterId: id,
+    roundNumber: z.number().int().min(1),
+    kind: z.enum(["do", "say"]).default("do"),
+    content: z.string().trim().min(1).max(2000),
+  }).safeParse(raw);
+  if (!p.success) throw new McpNarratorControlError(z.prettifyError(p.error));
+
+  return serializedWrite(
+    p.data,
+    "narrator.autopilot_action",
+    {
+      characterId: p.data.characterId,
+      roundNumber: p.data.roundNumber,
+      kind: p.data.kind,
+      content: p.data.content,
+    },
+    campaign => {
+      if (!campaign.gameSettings.globalTurn?.enabled) {
+        throw new McpNarratorControlError("Autopilot player actions require global-turn mode.", 409);
+      }
+      if (getActiveEncounter(campaign.id)) {
+        throw new McpNarratorControlError("Global-turn autopilot does not impersonate combat initiative.", 409);
+      }
+
+      const globalTurn = getGlobalTurnState(campaign.id);
+      if (
+        globalTurn.roundNumber !== p.data.roundNumber ||
+        (globalTurn.phase !== "active" && globalTurn.phase !== "quorum_delay")
+      ) {
+        throw new McpNarratorControlError("This autopilot round is no longer accepting player input.", 409);
+      }
+
+      const sheet = listSheets(campaign.id).find(entry => entry.id === p.data.characterId);
+      if (!sheet || sheet.isCompanion || sheet.userId === campaign.dmUserId) {
+        throw new McpNarratorControlError("Autopilot character is not an eligible player character.", 409);
+      }
+      const member = listMembers(campaign.id).find(entry => entry.userId === sheet.userId);
+      if (!member?.autopilot) {
+        throw new McpNarratorControlError("Autopilot is no longer enabled for this player.", 409);
+      }
+      if (member.skipTurnsCount > 0) {
+        throw new McpNarratorControlError("This player is skipping the round instead of using autopilot.", 409);
+      }
+      if (member.muted) {
+        throw new McpNarratorControlError("This player is muted and cannot submit an autopilot turn.", 409);
+      }
+
+      const existing = globalTurn.actionsByCharacter[sheet.id];
+      if (existing && (existing.actionsCount > 0 || existing.phrasesCount > 0)) {
+        throw new McpNarratorControlError("This character has already responded in the current round.", 409);
+      }
+
+      if (spatialEnabled(campaign.id)) {
+        try {
+          const result = runSpatialCommand(campaign.id, sheet.userId, {
+            operation: "send",
+            requestId: p.data.commandId ?? randomUUID(),
+            kind: p.data.kind,
+            content: p.data.content,
+            characterId: sheet.id,
+          });
+          const message = result.message as { id?: string; seq?: number } | undefined;
+          return {
+            characterId: sheet.id,
+            roundNumber: p.data.roundNumber,
+            messageId: message?.id ?? null,
+            seq: message?.seq ?? null,
+            sealed: getGlobalTurnState(campaign.id).phase === "ready",
+          };
+        } catch (error) {
+          if (error instanceof SpatialError) {
+            throw new McpNarratorControlError(error.message, error.status);
+          }
+          throw error;
+        }
+      }
+
+      const floor = getFloor(campaign.id);
+      if (!canAct(floor, sheet.userId, p.data.kind)) {
+        throw new McpNarratorControlError("This player cannot act on the current floor.", 409);
+      }
+
+      const turn = recordGlobalTurnAction(
+        campaign.id,
+        sheet.id,
+        sheet.userId,
+        p.data.kind,
+      );
+      if (!turn.allowed) {
+        throw new McpNarratorControlError(
+          turn.error ?? "This round is not accepting the autopilot action.",
+          409,
+        );
+      }
+
+      const seq = allocateSeq(campaign.id);
+      const message = insertCampaignMessage({
+        campaignId: campaign.id,
+        seq,
+        authorType: "player",
+        userId: sheet.userId,
+        characterId: sheet.id,
+        content: p.data.kind === "say" ? `"${p.data.content}"` : p.data.content,
+      });
+      publishWithSeq(campaign.id, seq, "message_added", { message });
+
+      if (turn.shouldResolve && turn.state) {
+        sealGlobalTurnNow(campaign.id, turn.state.roundNumber);
+      }
+
+      return {
+        characterId: sheet.id,
+        roundNumber: p.data.roundNumber,
+        messageId: message.id,
+        seq,
+        sealed: getGlobalTurnState(campaign.id).phase === "ready",
+      };
+    },
+  );
+}
+
 async function releaseFloor(raw: unknown) {
   const p = writeBase.safeParse(raw);
   if (!p.success) throw new McpNarratorControlError(z.prettifyError(p.error));
@@ -511,6 +635,7 @@ async function dispatchMcpNarratorControl(action: string, raw: unknown): Promise
     }
     case "narrator.invoke": return { handled: true, result: await invoke(raw) };
     case "narrator.narrate": return { handled: true, result: await narrate(raw) };
+    case "narrator.autopilot_action": return { handled: true, result: await autopilotAction(raw) };
     case "narrator.finish_global_round": return { handled: true, result: await finishGlobalRound(raw) };
     case "narrator.release_floor": return { handled: true, result: await releaseFloor(raw) };
     case "narrator.answer_ask": {
@@ -535,6 +660,7 @@ async function dispatchMcpNarratorControl(action: string, raw: unknown): Promise
 const storyWrites = new Set([
   "narrator.invoke",
   "narrator.narrate",
+  "narrator.autopilot_action",
   "narrator.finish_global_round",
   "narrator.release_floor",
 ]);
