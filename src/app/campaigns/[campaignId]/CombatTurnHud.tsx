@@ -105,7 +105,6 @@ export function CombatTurnHud({ encounter, sheet, sheets, locked, sending, onSub
     <textarea aria-label={copy.prose} maxLength={1200} value={prose} onChange={(e) => setProse(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); submit(); } }} disabled={disabled} rows={2} placeholder={copy.hint} className="mt-2 w-full rounded border border-stone-700 bg-stone-900 p-2 text-sm" />
     <div className="mt-2 flex flex-wrap gap-2">
       <button type="button" disabled={disabled || !preview.ok || (!choices.length && !prose.trim())} onClick={submit} className="rounded bg-amber-400 px-3 py-2 font-medium text-amber-950 disabled:opacity-40">{sending ? copy.sending : copy.send}</button>
-      <button type="button" disabled={disabled || !preview.ok} onClick={submit} className="rounded border border-stone-600 px-3 py-2 text-stone-200 disabled:opacity-40">{copy.end}</button>
     </div>
   </section>;
 }
