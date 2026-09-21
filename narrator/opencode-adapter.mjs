@@ -76,7 +76,7 @@ export class OpenCodeAdapter {
     this.timeoutMs = options.timeoutMs ?? 120000;
     const actorTimeoutRaw = options.actorTimeoutMs ?? process.env.ODM_OPENCODE_ACTOR_TIMEOUT_MS;
     this.actorTimeoutMs = actorTimeoutRaw === undefined || actorTimeoutRaw === ''
-      ? Math.min(this.timeoutMs, 12000)
+      ? Math.min(this.timeoutMs, 30000)
       : Number(actorTimeoutRaw);
     this.actorSetupTimeoutMs = Math.min(this.actorTimeoutMs, 5000);
     this.cleanupTimeoutMs = options.cleanupTimeoutMs ?? 2000;
