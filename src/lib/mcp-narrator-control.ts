@@ -11,7 +11,7 @@ import { z } from "zod";
 import { queueSkippedCombatTurn } from "@/lib/dm/encounter-tools";
 import { isOocMessage } from "@/lib/campaign-types";
 import { isNarratorEvent } from "@/lib/mcp-event-filter";
-import { getCampaignById, getCampaignSummaryState, getFloor, latestSeq, listMembers, setFloor } from "@/lib/db/campaigns";
+import { getCampaignById, getCampaignSummaryState, getFloor, getGlobalTurnState, latestSeq, listMembers, setFloor } from "@/lib/db/campaigns";
 import { listChapters } from "@/lib/db/chapters";
 import { getDmTurn, listOpenPendingRolls } from "@/lib/db/dm-turns";
 import { listRecentWhispersForPrompt, listPendingPlayerWhispers } from "@/lib/db/dm-whispers";
@@ -27,6 +27,7 @@ import { consoleAdjudications } from "@/lib/dm/invoke-catalog";
 import { invokeEngineSynchronous } from "@/lib/dm/invoke";
 import { persistHumanNarration } from "@/lib/dm/human-narration";
 import { executeNarratorCommand, NarratorCommandError as McpNarratorControlError } from "@/lib/dm/narrator-command";
+import { completeGlobalTurn } from "@/lib/dm/global-turn-logic";
 import { listNarratorReceipts } from "@/lib/db/narrator-commands";
 import { coverInEffect } from "@/lib/dm/delegation";
 import { npcRosterForPrompt } from "@/lib/dm/social-tools";
@@ -74,7 +75,7 @@ function safeCampaign(campaign: NonNullable<ReturnType<typeof getCampaignById>>)
   return {
     id: campaign.id, title: campaign.title, description: campaign.description, status: campaign.status, theme: campaign.theme, scene: campaign.scene, questLog: campaign.questLog,
     difficulty: campaign.difficulty, startingLevel: campaign.startingLevel, dmMode: campaign.gameSettings.dmMode, dmUserId: campaign.dmUserId,
-    gameSettings: campaign.gameSettings, dmOutline: campaign.dmOutline, storyArc: campaign.storyArc, floor: campaign.floor, clock: campaign.clock, party: campaign.party,
+    gameSettings: campaign.gameSettings, globalTurnState: campaign.globalTurnState, dmOutline: campaign.dmOutline, storyArc: campaign.storyArc, floor: campaign.floor, clock: campaign.clock, party: campaign.party,
   };
 }
 type CatalogOptions = { summaryOnly?: boolean; category?: string; action?: string };
@@ -138,7 +139,11 @@ function read(raw: unknown) {
   const receipts = listNarratorReceipts(campaign.id);
   const state = {
     campaign: safeCampaign(campaign), currentSeq, timelineEpoch, cursor: p.data.afterSeq, nextCursor, hasMore,
-    events: events.filter(isNarratorEvent).map(event => event.type === "roll_result" ? { seq: event.seq, type: event.type, payload: event.payload } : { seq: event.seq, type: event.type }),
+    events: events.filter(isNarratorEvent).map(event =>
+      event.type === "roll_result" || event.type === "global_turn_ready"
+        ? { seq: event.seq, type: event.type, payload: event.payload }
+        : { seq: event.seq, type: event.type },
+    ),
     messages, spatial: spatial ? { enabled: true, instructions: SPATIAL_GUIDANCE } : { enabled: false }, spatialRooms: spatial?.rooms ?? [], spatialGrants: spatial?.grants ?? [],
     commands: delta && baselineSeq > 0 ? receipts.filter(receipt => receipt.committedSeq > baselineSeq) : receipts,
     summary: getCampaignSummaryState(campaign.id), members: listMembers(campaign.id), pendingRolls: listOpenPendingRolls(campaign.id),
@@ -267,9 +272,23 @@ async function invoke(raw: unknown) {
   }) : undefined);
 }
 async function narrate(raw: unknown) {
-  const p = writeBase.extend({ content: z.string().trim().min(1).max(8000), turnId: id.optional(), releaseFloor: z.boolean().optional() }).safeParse(raw);
+  const p = writeBase.extend({
+    content: z.string().trim().min(1).max(8000),
+    turnId: id.optional(),
+    releaseFloor: z.boolean().optional(),
+    completeGlobalRound: z.number().int().min(1).optional(),
+  }).safeParse(raw);
   if (!p.success) throw new McpNarratorControlError(z.prettifyError(p.error));
-  return serializedWrite(p.data, "narrator.narrate", { content: p.data.content, turnId: p.data.turnId, releaseFloor: p.data.releaseFloor }, campaign => {
+  return serializedWrite(
+    p.data,
+    "narrator.narrate",
+    {
+      content: p.data.content,
+      turnId: p.data.turnId,
+      releaseFloor: p.data.releaseFloor,
+      completeGlobalRound: p.data.completeGlobalRound,
+    },
+    campaign => {
     if (p.data.turnId) {
       const turn = getDmTurn(p.data.turnId);
       if (!turn || turn.campaignId !== campaign.id || turn.actor !== "human_dm") throw new McpNarratorControlError("Narration turn does not belong to this human-DM campaign.", 409);
@@ -280,6 +299,19 @@ async function narrate(raw: unknown) {
       if (listOpenPendingRolls(campaign.id).length) throw new McpNarratorControlError("Resolve pending physical rolls before releasing the floor.", 409);
       if (floor.mode === "hold" && floor.combat?.requiresEndTurn && !floor.combat.mechanicsResolved) throw new McpNarratorControlError("Combat mechanics must finish before the floor can be released.", 409);
     }
+    if (p.data.completeGlobalRound !== undefined) {
+      const globalTurn = getGlobalTurnState(campaign.id);
+      if (
+        !campaign.gameSettings.globalTurn?.enabled ||
+        globalTurn.roundNumber !== p.data.completeGlobalRound ||
+        (globalTurn.phase !== "ready" && globalTurn.phase !== "resolving")
+      ) {
+        throw new McpNarratorControlError(
+          "Global round is not sealed for this narrator command. Reread before narrating.",
+          409,
+        );
+      }
+    }
     const message = persistHumanNarration(campaign, p.data.content, campaign.dmUserId!);
     let floorResult;
     if (p.data.releaseFloor) {
@@ -289,8 +321,25 @@ async function narrate(raw: unknown) {
       queueSkippedCombatTurn(campaign.id);
       floorResult = { floorReleased: getFloor(campaign.id).mode !== "hold", floor: getFloor(campaign.id) };
     }
-    return { messageId: message.id, ...(p.data.turnId ? { turnId: p.data.turnId } : {}), ...(floorResult ?? {}) };
-  });
+    let globalTurnResult;
+    if (p.data.completeGlobalRound !== undefined) {
+      const completed = completeGlobalTurn(campaign.id, p.data.completeGlobalRound);
+      if (!completed || completed.roundNumber <= p.data.completeGlobalRound) {
+        throw new McpNarratorControlError("Global round did not advance.", 409);
+      }
+      globalTurnResult = {
+        globalRoundCompleted: p.data.completeGlobalRound,
+        nextGlobalRound: completed.roundNumber,
+      };
+    }
+    return {
+      messageId: message.id,
+      ...(p.data.turnId ? { turnId: p.data.turnId } : {}),
+      ...(floorResult ?? {}),
+      ...(globalTurnResult ?? {}),
+    };
+  },
+  );
 }
 async function releaseFloor(raw: unknown) {
   const p = writeBase.safeParse(raw);
