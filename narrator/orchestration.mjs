@@ -68,6 +68,16 @@ function nextAutopilotCandidate(snapshot) {
   return null;
 }
 
+function fallbackActorTurn(sheet, language = 'ru') {
+  const name = typeof sheet?.name === 'string' && sheet.name.trim() ? sheet.name.trim() : 'Персонаж';
+  const content = language === 'en'
+    ? `${name} stays close to the party, watches the surroundings, and avoids spending limited resources.`
+    : language === 'pl'
+      ? `${name} trzyma się blisko drużyny, obserwuje otoczenie i nie zużywa ograniczonych zasobów.`
+      : `${name} держится рядом с группой, наблюдает за обстановкой и не тратит ограниченные ресурсы.`;
+  return { kind: 'do', content };
+}
+
 function validateActorTurn(value) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('Invalid actor decision.');
   if (Object.keys(value).some(key => !['kind', 'content'].includes(key))) throw new Error('Unsupported actor decision fields.');
@@ -350,7 +360,13 @@ export class NarratorOrchestrator {
           },
         })));
       } catch {
-        return this.pause(host, 'actor_model_or_decision_error');
+        // Autopilot is explicitly opted in and must never freeze the narrator.
+        // A timed-out/unavailable/malformed actor degrades to one conservative
+        // no-resource action so quorum can still close and the game can move on.
+        actorTurn = fallbackActorTurn(
+          candidate.sheet,
+          snapshot.campaign?.gameSettings?.language ?? 'ru',
+        );
       }
       if (host.stopping || this.state.current !== current || this.state.epoch !== snapshot.timelineEpoch) return false;
 
