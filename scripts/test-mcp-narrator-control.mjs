@@ -89,7 +89,7 @@ await assert.rejects(
   error => error instanceof McpNarratorControlError && error.status === 409,
   "a second live narrator process must not acquire the campaign lease",
 );
-for (const action of ["dismiss_companion","mount_up","dismount","roll_treasure","damage_object","group_check","check_notice"]) {
+for (const action of ["add_companion","dismiss_companion","mount_up","dismount","roll_treasure","damage_object","group_check","check_notice"]) {
   assert.equal(EXTERNAL_NARRATOR_ACTIONS.has(action), true, action + " must be available to the external narrator");
 }
 
