@@ -23,7 +23,7 @@ export class RulesMcpClient {
     if(!this.collection||this.collection.length>80)throw new Error('Invalid rules collection.');
     this.timeoutMs=integer(options.timeoutMs,15000,1000,60000);
     this.topK=integer(options.topK,3,1,8);
-    this.env={...process.env,...(options.env??{}),KB_DND_EDITION:this.edition,KB_DND_COLLECTION:this.collection};
+    this.env={...process.env,...(options.env??{}),KB_DND_EDITION:this.edition,KB_DND_COLLECTION:this.collection,KB_COLLECTION:this.collection};
     this.spawn=options.spawnImpl??spawn;
     this.child=null;this.reader=null;this.pending=new Map();this.nextId=1;this.starting=null;this.closed=false;
     this.lastRevision=null;this.lastError=null;
