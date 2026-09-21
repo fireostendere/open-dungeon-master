@@ -20,8 +20,14 @@ async function moduleAt(relative, mocks) {
 function host(overrides = {}) {
   return { campaignId: 'c', timelineEpoch: 'e', stopping: false, askTask: null, askResponder: () => {},
     pendingAskCommands: new Map(), pendingAskAttempts: new Map(), answeredAsks: new Set(),
-    callControl: async () => { throw new Error('Unexpected control call'); },
-    drainStory: async () => ({ currentSeq: 10, timelineEpoch: 'e', asks: [{ id: 'q1' }, { id: 'q2' }], askQueue: { hasMore: false } }),
+    callControl: async (action, params) => {
+      assert.equal(action, 'narrator.read');
+      assert.equal(params.includeAsks, true);
+      return { campaign: { id: 'c' }, currentSeq: 10, nextCursor: 10, hasMore: false, timelineEpoch: 'e',
+        asks: [{ id: 'q1' }, { id: 'q2' }], askQueue: { nextCursor: 2, hasMore: false } };
+    },
+    drainStory: async () => ({ currentSeq: 10, nextCursor: 10, hasMore: false, timelineEpoch: 'e',
+      asks: [], askQueue: { nextCursor: 0, hasMore: false } }),
     storyController: { tick: async () => true }, ...overrides };
 }
 
@@ -74,9 +80,18 @@ test('blocked Ask page advances using an isolated read cache and fixed cursor', 
   const h = host({ sectionCache: cache, deltaReads: true, readPageRetries: 0, readMaxBytes: 65536,
     pendingAskAttempts: new Map([['q1', 2]]),
     handlePendingAsk: async ask => ids.push(ask.id),
-    callControl: async (action, params) => { requests.push({ action, params }); return { campaign: { id: 'c' }, timelineEpoch: 'e', asks: [{ id: 'q3' }], askQueue: { hasMore: false } }; } });
-  await startAskWorker(h, { currentSeq: 10, timelineEpoch: 'e', asks: [{ id: 'q1' }], askQueue: { hasMore: true, nextCursor: 8 } });
-  assert.deepEqual(ids, ['q3']); assert.equal(requests[0].params.afterSeq, 10); assert.equal(requests[0].params.afterAskSeq, 8);
+    callControl: async (action, params) => {
+      requests.push({ action, params });
+      if (requests.length === 1) return { campaign: { id: 'c' }, currentSeq: 10, nextCursor: 10, hasMore: false,
+        timelineEpoch: 'e', asks: [{ id: 'q1' }], askQueue: { hasMore: true, nextCursor: 8 } };
+      return { campaign: { id: 'c' }, currentSeq: 10, nextCursor: 10, hasMore: false,
+        timelineEpoch: 'e', asks: [{ id: 'q3' }], askQueue: { hasMore: false, nextCursor: 9 } };
+    } });
+  await startAskWorker(h, { currentSeq: 10, timelineEpoch: 'e', asks: [], askQueue: { hasMore: false } });
+  assert.deepEqual(ids, ['q3']);
+  assert.equal(requests[0].params.afterSeq, 10); assert.equal(requests[0].params.afterAskSeq, 0);
+  assert.equal(requests[0].params.includeAsks, true);
+  assert.equal(requests[1].params.afterAskSeq, 8);
   assert.equal(h.sectionCache, cache); assert.equal(h.askBlocked, true);
 });
 
