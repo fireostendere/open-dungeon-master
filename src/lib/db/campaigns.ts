@@ -232,7 +232,13 @@ export function normalizeGlobalTurnState(raw: unknown): GlobalTurnState {
   const obj = raw as Partial<GlobalTurnState>;
   return {
     roundNumber: typeof obj.roundNumber === "number" && obj.roundNumber >= 1 ? Math.floor(obj.roundNumber) : 1,
-    phase: obj.phase === "active" || obj.phase === "quorum_delay" || obj.phase === "resolving" ? obj.phase : "waiting",
+    phase:
+      obj.phase === "active" ||
+      obj.phase === "quorum_delay" ||
+      obj.phase === "ready" ||
+      obj.phase === "resolving"
+        ? obj.phase
+        : "waiting",
     firstActionAt: typeof obj.firstActionAt === "string" ? obj.firstActionAt : null,
     deadlineAt: typeof obj.deadlineAt === "string" ? obj.deadlineAt : null,
     quorumReachedAt: typeof obj.quorumReachedAt === "string" ? obj.quorumReachedAt : null,
