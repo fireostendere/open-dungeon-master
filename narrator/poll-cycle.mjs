@@ -7,6 +7,7 @@ import { withLatencyTrace, withNewLatencyTrace } from '../mcp/latency-trace.mjs'
  */
 export function startAskWorker(host, snapshot) {
   if (host.askTask || host.stopping || !host.askResponder && !host.pendingAskCommands?.size) return host.askTask;
+  if (!snapshot?.askQueue?.pending && !host.pendingAskCommands?.size) return null;
   const epoch = host.timelineEpoch, campaignId = host.campaignId;
   const current = () => !host.stopping && host.timelineEpoch === epoch && host.campaignId === campaignId;
   const reader = { deltaReads: host.deltaReads, sectionCache: host.sectionCache, stateCache: host.stateCache,
