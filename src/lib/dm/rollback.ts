@@ -8,7 +8,6 @@ import {
   restoreSnapshot,
 } from "@/lib/db/snapshots";
 import { rollbackWarnings, type RollbackScope } from "@/lib/dm/rollback-logic";
-import { resetChapterMemory } from "@/lib/dm/chapter-close";
 import { enqueueDmJob } from "@/lib/dm/queue";
 import { setDmStatus } from "@/lib/dm/status";
 import { publishPersisted, publishWithSeq } from "@/lib/events";
@@ -182,7 +181,6 @@ function rollbackNow(
   })();
 
   deleteBoundarySnapshotsAfter(campaignId, targetChapterIndex);
-  resetChapterMemory(campaignId);
   setDmStatus(campaignId, "idle");
 
   const seq = allocateSeq(campaignId);

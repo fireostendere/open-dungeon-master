@@ -2,7 +2,7 @@
   "name": "open-dungeon-master",
   "version": "0.17.1",
   "private": true,
-  "description": "Multiplayer D&D 5e campaigns with an AI Dungeon Master, fully on-device",
+  "description": "Multiplayer tabletop RPG server with deterministic D&D 5e rules and external narrator support",
   "license": "MIT",
   "engines": {
     "node": ">=22"
@@ -17,18 +17,14 @@
     "lint": "eslint",
     "test": "node scripts/test-all.mjs",
     "test:e2e:location": "node scripts/e2e/location-privacy.e2e.mjs",
-    "auth": "node scripts/odm-auth.mjs",
-    "test:providers": "node --test scripts/test-provider-core.mjs scripts/test-provider-transport.mjs scripts/test-provider-gateway.mjs scripts/test-provider-cloud.mjs scripts/test-provider-transitions.mjs",
     "resources:generate": "node scripts/generate-class-resources.mjs",
     "test:dice": "node scripts/test-dice.mjs",
     "i18n:check": "node scripts/test-i18n-coverage.mjs && node scripts/test-language-coverage.mjs",
-    "fetch-model": "node scripts/fetch-embedding-model.mjs",
     "fetch-ambience": "node scripts/fetch-ambience.mjs",
     "postinstall": "node scripts/copy-dice-assets.mjs"
   },
   "dependencies": {
     "@3d-dice/dice-box-threejs": "^0.0.12",
-    "@huggingface/transformers": "^4.2.0",
     "@radix-ui/react-alert-dialog": "^1.1.15",
     "@radix-ui/react-dialog": "^1.1.16",
     "@radix-ui/react-dropdown-menu": "^2.1.20",
@@ -64,8 +60,6 @@
   "allowScripts": {
     "better-sqlite3-multiple-ciphers@12.11.1": true,
     "mediasoup@3.26.0": true,
-    "onnxruntime-node@1.24.3": true,
-    "protobufjs@7.6.5": true,
     "sharp@0.34.5": true,
     "sharp@0.35.3": true,
     "unrs-resolver@1.12.2": true

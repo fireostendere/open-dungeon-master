@@ -1,10 +1,8 @@
 import { capsFor, isErrorResponse, requireStoryAuthority, requireMember } from "@/lib/campaign-api";
-import { ensureOpenChapter, listChapters } from "@/lib/db/chapters";
-import { listRewindableChapters } from "@/lib/db/snapshots";
+import { closeChapterRow, ensureOpenChapter, listChapters } from "@/lib/db/chapters";
+import { captureBoundarySnapshot, listRewindableChapters } from "@/lib/db/snapshots-store";
 import { countMessagesUpToSeq } from "@/lib/db/messages";
 import { latestSeq } from "@/lib/db/campaigns";
-import { maybeCloseChapter } from "@/lib/dm/chapter-close";
-import { enqueueDmJob } from "@/lib/dm/queue";
 import { projectSpatialChapters, spatialLegacyPolicy } from "@/lib/spatial/legacy-projection";
 
 export const runtime = "nodejs";
@@ -39,17 +37,24 @@ export async function GET(
   });
 }
 
-// Party lead: close the current chapter now. Runs on the DM queue so the
-// summarizing model call never interleaves with a turn in flight.
+// Party lead: close the current chapter now. No model is involved; title,
+ // summary and highlights remain editable through the chapter PATCH route.
 export async function POST(
   _request: Request,
   { params }: { params: Promise<{ campaignId: string }> },
 ) {
   const { campaignId } = await params;
   const context = await requireStoryAuthority(campaignId);
-  if (isErrorResponse(context)) {
-    return context;
-  }
-  enqueueDmJob(campaignId, () => maybeCloseChapter(campaignId, { beatCompleted: false, manual: true }));
-  return Response.json({ ok: true }, { status: 202 });
+  if (isErrorResponse(context)) return context;
+  const chapter = ensureOpenChapter(campaignId);
+  const seqEnd = latestSeq(campaignId);
+  const result = closeChapterRow(chapter.id, {
+    title: chapter.title || `Chapter ${chapter.index}`,
+    summary: chapter.summary,
+    highlights: chapter.highlights,
+    seqEnd,
+  });
+  if (!result) return Response.json({ error: "Chapter is no longer open." }, { status: 409 });
+  captureBoundarySnapshot(campaignId, result.opened.index, seqEnd);
+  return Response.json({ ok: true, closed: result.closed, opened: result.opened });
 }

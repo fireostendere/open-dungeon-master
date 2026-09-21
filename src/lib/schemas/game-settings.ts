@@ -19,5 +19,13 @@ export type GameSettings = z.infer<typeof gameSettingsSchema>;
 
 export function normalizeGameSettings(raw: unknown): GameSettings {
   const parsed = gameSettingsSchema.safeParse(raw ?? {});
-  return parsed.success ? parsed.data : gameSettingsSchema.parse({});
+  const normalized = parsed.success ? parsed.data : gameSettingsSchema.parse({});
+  return {
+    ...normalized,
+    dmMode: "human",
+    dmAssist: { monsters: false, narration: false, cover: false },
+    aiStorySetup: false,
+    narrationGuard: false,
+    stages: { ...normalized.stages, compaction: false, recall: false, retrieval: false, chapterSummary: false },
+  };
 }

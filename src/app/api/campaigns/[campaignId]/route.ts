@@ -29,13 +29,7 @@ import { listRecentAudit } from "@/lib/db/sheet-audit";
 import { insertCampaignMessage, listRecentMessages } from "@/lib/db/messages";
 import { listRollsVisibleTo } from "@/lib/db/rolls";
 import { listSheets } from "@/lib/db/sheets";
-import { requestDmTurn } from "@/lib/dm/loop";
-import { hasHumanDm, isPrimaryDm, lobbyBlocker } from "@/lib/dm/viewer";
-import { enqueueDmJob } from "@/lib/dm/queue";
-import { runStorySetup } from "@/lib/dm/setup";
-import { generateStoryArc } from "@/lib/dm/arc";
-import { getDmStatus } from "@/lib/dm/status";
-import { listUtilityCalls } from "@/lib/dm/call-tracker";
+import { isPrimaryDm, lobbyBlocker } from "@/lib/dm/viewer";
 import { listBlockedUserIds } from "@/lib/db/moderation";
 import { publishPersisted, publishWithSeq } from "@/lib/events";
 import { listNarrationAudio } from "@/lib/tts";
@@ -128,10 +122,10 @@ export async function GET(
     // ids and never shows a control the server would refuse.
     caps,
     // In-memory status so a reload mid-turn still shows the DM at work.
-    dmStatus: caps.adjudicates ? getDmStatus(campaignId) : null,
+    dmStatus: null,
     // Same reason, for background work: utility_calls is ephemeral, so a
     // client that reloads mid-compaction would otherwise see an empty strip.
-    utilityCalls: caps.adjudicates ? listUtilityCalls(campaignId) : [],
+    utilityCalls: [],
     spatial: spatialView,
   });
 }
@@ -236,45 +230,19 @@ export async function PATCH(
     }
   }
 
-  // Kick off the adventure: a table note the DM answers with the opening
-  // scene, introducing the party and the premise. When AI story setup is on,
-  // the setup pass runs first on the same queue (it writes the premise and
-  // the DM's secret outline before the kickoff narration reads them).
+  // Campaign activation is deterministic. The external MCP narrator reads
+  // this marker and the same campaign state; the server never invokes a model.
   if (nextStatus === "active") {
-    // With a person in the DM seat there is nothing to prompt: the kickoff
-    // note is addressed to the table, and the opening scene is theirs to
-    // write. The AI's premise pass and story-arc planner are skipped too,
-    // because a human DM's plan lives in their own notes, not in an outline
-    // the server invented.
-    const humanDm = hasHumanDm(campaignSeats(campaign));
     const seq = allocateSeq(campaignId);
     const message = insertCampaignMessage({
       campaignId,
       seq,
       authorType: "system",
-      content: humanDm
-        ? "The party is assembled and the adventure begins. The Dungeon Master opens the scene."
-        : "The party is assembled and the adventure begins. Introduce the opening scene, set the premise, and give the party their first decision.",
+      content: "The party is assembled and the adventure begins. The Dungeon Master opens the scene.",
     });
     publishWithSeq(campaignId, seq, "message_added", { message });
-    if (!humanDm && campaign.gameSettings.aiStorySetup) {
-      enqueueDmJob(campaignId, () => runStorySetup(campaignId));
-    }
-    // Every AI-run campaign gets a structured story arc built from the
-    // premise (whether the table wrote it or the setup pass just did); the
-    // kickoff narration behind it on the queue already steers by the arc.
-    if (!humanDm) {
-      enqueueDmJob(campaignId, () => generateStoryArc(campaignId));
-    }
-    // Chapter 1's rewind point: the settled pre-adventure world (setup and
-    // arc done, opening narration not yet written).
-    enqueueDmJob(campaignId, async () => {
-      ensureOpenChapter(campaignId);
-      captureBoundarySnapshot(campaignId, 1, latestSeq(campaignId));
-    });
-    // requestDmTurn guards human-DM tables itself (src/lib/dm/loop.ts), so
-    // the kickoff request is unconditional here like everywhere else.
-    requestDmTurn(campaignId);
+    ensureOpenChapter(campaignId);
+    captureBoundarySnapshot(campaignId, 1, latestSeq(campaignId));
   }
 
   return Response.json({ ok: true, status: nextStatus });

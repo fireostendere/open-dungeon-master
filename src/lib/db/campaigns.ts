@@ -283,7 +283,7 @@ function mapCampaign(row: CampaignRow): Campaign {
     theme: row.theme,
     ownerUserId: row.owner_user_id,
     leadUserId: row.party_lead_user_id ?? row.owner_user_id,
-    dmUserId: row.human_dm_user_id ?? null,
+    dmUserId: row.human_dm_user_id ?? row.owner_user_id,
     assistantDmUserId: row.assistant_dm_user_id ?? null,
     playerCount: Number(row.player_count ?? 0),
     role: row.member_role ?? (row.owner_user_id ? "player" : "player"),
@@ -334,7 +334,7 @@ export function createCampaign(
   // Creating a human-DM campaign seats the creator as the DM. Nothing else
   // would make sense: they chose to run it, and an empty seat would leave the
   // table with neither a narrator nor a way to appoint one.
-  const dmUserId = gameSettings.dmMode === "ai" ? null : ownerUserId;
+  const dmUserId = ownerUserId;
 
   db.transaction(() => {
     db.prepare(
@@ -697,27 +697,22 @@ export function updateStorySettings(
 // null for "ai") so the caller can announce the seat change.
 export function setDmMode(
   campaignId: string,
-  mode: DmMode,
-  // Who flipped the switch; they take the seat when leaving "ai" and the seat
-  // is empty, matching creation where the person who chose to run it runs it.
+  _mode: DmMode,
   actorUserId: string,
 ): { gameSettings: GameSettings; dmUserId: string | null } | null {
   const campaign = getCampaignById(campaignId);
-  if (!campaign) {
-    return null;
-  }
-  let dmUserId = campaign.dmUserId;
-  if (mode === "ai") {
-    setHumanDm(campaignId, null);
-    setAssistantDm(campaignId, null);
-    dmUserId = null;
-  } else if (!campaign.dmUserId && setHumanDm(campaignId, actorUserId)) {
-    dmUserId = actorUserId;
-  }
-  const gameSettings = updateGameSettings(campaignId, { dmMode: mode });
+  if (!campaign) return null;
+  const dmUserId = campaign.dmUserId ?? actorUserId;
+  if (!campaign.dmUserId && !setHumanDm(campaignId, dmUserId)) return null;
+  // Server-side AI modes are retired. Keep the legacy signature so old
+  // clients receive a harmless normalization rather than re-enabling them.
+  const gameSettings = updateGameSettings(campaignId, {
+    dmMode: "human",
+    dmAssist: { monsters: false, narration: false, cover: false },
+    aiStorySetup: false,
+  });
   return gameSettings ? { gameSettings, dmUserId } : null;
 }
-
 export function setDmOutline(campaignId: string, outline: string) {
   getDatabase()
     .prepare(`UPDATE campaigns SET dm_outline = ?, updated_at = ? WHERE id = ?`)
