@@ -33,6 +33,34 @@ function compactPhysicalRollEvent(event) {
   };
 }
 
+function compactWorldArcs(arcs) {
+  if (!Array.isArray(arcs)) return [];
+  return arcs
+    .filter(arc => arc && arc.status !== 'resolved')
+    .slice(0, 3)
+    .map(arc => {
+      const rung = Number.isInteger(arc.rung) ? arc.rung : -1;
+      const rungs = Array.isArray(arc.rungs) ? arc.rungs : [];
+      return {
+        id: arc.id,
+        name: arc.name,
+        driver: arc.driver,
+        rung,
+        stance: arc.stance,
+        cadence: arc.cadence,
+        status: arc.status,
+        ...(rung >= 0 && rungs[rung] ? { current: rungs[rung] } : {}),
+        ...(rung < 0 && rungs[0] ? { firstSign: rungs[0] } : {}),
+        ...(rung >= 0 && rung < rungs.length - 1 && rungs[rung + 1]
+          ? { next: rungs[rung + 1] }
+          : {}),
+        ...(Array.isArray(arc.consequences) && arc.consequences.length
+          ? { consequences: arc.consequences.slice(-2) }
+          : {}),
+      };
+    });
+}
+
 function compactStoryArc(arc) {
   if (!arc || typeof arc !== 'object' || Array.isArray(arc)) return arc;
   const beats = Array.isArray(arc.beats) ? arc.beats : [];
@@ -111,6 +139,9 @@ function compactStoryArc(arc) {
     events,
     subArcs: openSubArcs,
     ...(settledSubArcs.length ? { settledSubArcs } : {}),
+    ...(Array.isArray(arc.worldArcs) && arc.worldArcs.length
+      ? { worldArcs: compactWorldArcs(arc.worldArcs) }
+      : {}),
   };
 }
 
