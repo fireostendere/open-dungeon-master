@@ -110,6 +110,7 @@ export async function GET(
     // have (src/lib/dm/viewer.ts).
     rolls: visibleRolls,
     pendingRolls: visiblePendingRolls,
+    characterEvents: visibleCharacterEvents,
     auditLog: spatial && !caps.adjudicates ? [] : listRecentAudit(campaignId, 50),
     // Legacy location/map IDs are not interchangeable with spatial room IDs.
     // Until a room-scoped map projection is attached, never leak the current
