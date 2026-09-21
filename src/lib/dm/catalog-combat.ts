@@ -31,7 +31,7 @@ export const COMBAT_ADJUDICATIONS: CatalogEntry[] = [
     name: "start_encounter",
     label: "Start a fight",
     category: "combat",
-    summary: "Rolls initiative for everyone and opens the encounter.",
+    summary: "Rolls initiative and opens combat. Keep story identity separate from mechanics: for structured callers use {monster:'rogue', name:'Бармен'} so the stat block stays hidden and the visible combatant name matches narration.",
     fields: [
       {
         name: "enemies",
@@ -60,7 +60,7 @@ export const COMBAT_ADJUDICATIONS: CatalogEntry[] = [
     name: "add_enemies",
     label: "Reinforcements",
     category: "combat",
-    summary: "Adds enemies to the fight already running, rolling their initiative in.",
+    summary: "Adds reinforcements and rolls initiative. Structured callers must preserve narrated identity with name when monster is only the mechanical stat block.",
     needsEncounter: true,
     fields: [
       {
