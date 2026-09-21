@@ -261,7 +261,8 @@ class Controller:
         print('Building isolated release ' + sha[:12], flush=True)
         self.docker('build', '--pull', '-f', str(source / 'deploy' / 'Dockerfile'), '--label', 'odm.managed=1', '--label', 'odm.root=' + self.env['COMPOSE_PROJECT_NAME'],
             '--label', 'odm.release=' + sha, '-t', image, str(source), capture=False, timeout=3600)
-        self.docker('run', '--rm', '--entrypoint', 'npm', image, 'run', 'test:providers', timeout=180)
+        # Server-side provider inference was removed; the image build and
+        # Next/TypeScript production build are the release gate now.
         image_id = self.docker('image', 'inspect', '--format', '{{.Id}}', image).strip()
         if not re.fullmatch(r'sha256:[a-f0-9]{64}', image_id): raise OpsError('Invalid built image digest')
         release = {'sha': sha, 'image': image_id, 'compose': str(directory / ('compose-' + image_id[7:19] + '.json'))}
