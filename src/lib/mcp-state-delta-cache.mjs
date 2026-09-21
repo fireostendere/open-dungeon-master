@@ -58,6 +58,9 @@ export function projectNarratorStateDelta(state, {
   const current = extractNarratorState(state);
   const revision = cache.remember(scope, current);
   const response = { ...state };
+  delete response.sectionVersions;
+  delete response.omittedSections;
+  delete response.deltaState;
   const base = knownStateRevision ? cache.restore(scope, knownStateRevision) : null;
 
   if (!knownStateRevision || !base) {
