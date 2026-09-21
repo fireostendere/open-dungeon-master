@@ -243,6 +243,16 @@ export async function PATCH(
     publishWithSeq(campaignId, seq, "message_added", { message });
     ensureOpenChapter(campaignId);
     captureBoundarySnapshot(campaignId, 1, latestSeq(campaignId));
+
+    // Global-turn tables start locked. This persisted narrator trigger wakes
+    // the external MCP host for the opening scene; only that narration commit
+    // opens round #1 and unlocks player input.
+    if (campaign.gameSettings.globalTurn?.enabled) {
+      publishPersisted(campaignId, "global_turn_narrator_trigger", {
+        kind: "opening",
+        roundNumber: campaign.globalTurnState.roundNumber,
+      });
+    }
   }
 
   return Response.json({ ok: true, status: nextStatus });
