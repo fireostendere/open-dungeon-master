@@ -426,10 +426,7 @@ export class NarratorOrchestrator {
           snapshot.campaign?.gameSettings?.language ?? 'ru',
         );
       }
-      if (host.stopping || this.state.current !== current || this.state.epoch !== snapshot.timelineEpoch) {
-      this.releaseRefereeConversation();
-      return false;
-    }
+      if (host.stopping || this.state.current !== current || this.state.epoch !== snapshot.timelineEpoch) return false;
 
       const params = {
         campaignId: host.campaignId,
@@ -522,7 +519,10 @@ export class NarratorOrchestrator {
         decision = { kind: 'invoke', action: 'game', args: { action: 'location_narrate', args: { roomId, content: decision.text } } };
       }
     } catch { return this.pause(host, 'model_or_decision_error'); }
-    if (host.stopping || this.state.current !== current || this.state.epoch !== snapshot.timelineEpoch) return false;
+    if (host.stopping || this.state.current !== current || this.state.epoch !== snapshot.timelineEpoch) {
+      this.releaseRefereeConversation();
+      return false;
+    }
     if (decision.kind === 'wait') {
       if (
         current.input?.kind === 'global_round' ||
@@ -617,7 +617,10 @@ export class NarratorOrchestrator {
     // Generation is not a lock. The engine's transactional expectedSeq/epoch
     // check rejects a stale draft before effects. A redundant pre-write read
     // neither closes that race nor replaces CAS; keep the original read cursor.
-    if (host.stopping || this.state.current !== current) return false;
+    if (host.stopping || this.state.current !== current) {
+      this.releaseRefereeConversation();
+      return false;
+    }
     if (this.state.epoch !== snapshot.timelineEpoch || host.timelineEpoch && host.timelineEpoch !== snapshot.timelineEpoch) return this.pause(host, 'timeline_changed');
     const action = decision.kind === 'invoke' ? 'narrator.invoke' : decision.kind === 'narrate' ? 'narrator.narrate' : 'narrator.release_floor';
     const params = { campaignId: host.campaignId, expectedSeq: snapshot.currentSeq, timelineEpoch: snapshot.timelineEpoch, commandId: crypto.randomUUID(),
