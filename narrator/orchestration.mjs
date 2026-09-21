@@ -220,7 +220,9 @@ export class NarratorOrchestrator {
     if (decision.kind === 'wait') { current.waitSeq = snapshot.currentSeq; host.saveCheckpoint(); return false; }
     if (decision.kind === 'catalog') {
       const result = await host.callControl('narrator.catalog', { campaignId: host.campaignId, action: decision.action });
-      this.schemas[decision.action] = result.groups; return true;
+      // Only the schema requested for the next decision is relevant. Do not
+      // accumulate every schema seen during a long campaign into all future prompts.
+      this.schemas = { [decision.action]: result.groups }; return true;
     }
     if (decision.kind === 'done') { this.finish(host); return true; }
     let invokedAction = decision.action;
@@ -231,6 +233,7 @@ export class NarratorOrchestrator {
       invokedAction = parsed.action;
       invokedArgs = parsed.args;
     }
+    if (decision.kind !== 'catalog') this.schemas = {};
     if (decision.kind === 'invoke' && invokedAction === 'request_roll' && current.outcomes.some(outcome => outcome.name === invokedAction && digest(outcome.args) === digest(invokedArgs) && !outcome.result?.error)) return this.pause(host, 'duplicate_check');
     let content = decision.text;
     const combatActive = snapshot.encounter?.status === 'active' && snapshot.encounter?.kind === 'fight';
@@ -255,6 +258,7 @@ export class NarratorOrchestrator {
     return this.write(host);
   }
   finish(host) {
+    this.schemas = {};
     this.state.handledSeq = this.state.current.input.seq; this.state.current = null; this.state.pending = null; host.saveCheckpoint();
   }
   async write(host) {
