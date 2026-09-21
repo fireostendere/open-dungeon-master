@@ -145,6 +145,75 @@ function compactStoryArc(arc) {
   };
 }
 
+function compactFacts(facts) {
+  if (!Array.isArray(facts)) return facts;
+  const selected = [];
+  const seen = new Set();
+  const perCategory = new Map();
+  let budget = 2000;
+
+  const add = fact => {
+    if (!fact || typeof fact !== 'object') return;
+    const category = String(fact.category ?? '');
+    const semanticChars = String(fact.subject ?? '').length + String(fact.fact ?? '').length + 8;
+    if (!fact.pinned) {
+      const used = perCategory.get(category) ?? 0;
+      if (used >= 6 || semanticChars > budget) return;
+      perCategory.set(category, used + 1);
+      budget -= semanticChars;
+    }
+    const key = String(fact.id ?? `${category}:${fact.subject}:${fact.fact}`);
+    if (seen.has(key)) return;
+    seen.add(key);
+    selected.push({
+      ...(fact.id ? { id: fact.id } : {}),
+      category: fact.category,
+      subject: fact.subject,
+      fact: fact.fact,
+      knownBy: fact.knownBy,
+      pinned: Boolean(fact.pinned),
+      ...(Array.isArray(fact.witnessedBy) && fact.witnessedBy.length
+        ? { witnessedBy: fact.witnessedBy.slice(0, 12) }
+        : {}),
+    });
+  };
+
+  for (const fact of facts) if (fact?.pinned) add(fact);
+  for (const fact of facts) if (!fact?.pinned) add(fact);
+  return selected;
+}
+
+function compactNotes(notes) {
+  if (!Array.isArray(notes)) return notes;
+  return notes.slice(0, 20).map(note => {
+    if (!note || typeof note !== 'object') return note;
+    return {
+      id: note.id,
+      title: note.title,
+      body: note.body,
+      pinned: Boolean(note.pinned),
+      visibility: note.visibility,
+      status: note.status,
+    };
+  });
+}
+
+function compactNpcs(npcs) {
+  if (!Array.isArray(npcs)) return npcs;
+  return npcs.slice(0, 24).map(npc => {
+    if (!npc || typeof npc !== 'object') return npc;
+    return {
+      name: npc.name,
+      attitude: npc.attitude,
+      trait: npc.trait,
+      location: npc.location,
+      agency: npc.agency,
+      ...(Array.isArray(npc.aliases) && npc.aliases.length ? { aliases: npc.aliases.slice(0, 6) } : {}),
+      ...(npc.witnessNote ? { witnessNote: npc.witnessNote } : {}),
+    };
+  });
+}
+
 function compactEquipment(items) {
   if (!Array.isArray(items)) return [];
   return items.slice(0, 40).map(item => {
@@ -366,6 +435,15 @@ export function compactRolePacket(role, packet) {
       compactRefereeSheet(sheet, allRich || focus.has(sheet?.id)),
     );
     result = { ...result, state: { ...result.state, sheets: compactSheets } };
+  }
+  if (Array.isArray(packet.state?.facts)) {
+    result = { ...result, state: { ...result.state, facts: compactFacts(packet.state.facts) } };
+  }
+  if (Array.isArray(packet.state?.notes)) {
+    result = { ...result, state: { ...result.state, notes: compactNotes(packet.state.notes) } };
+  }
+  if (Array.isArray(packet.state?.npcs)) {
+    result = { ...result, state: { ...result.state, npcs: compactNpcs(packet.state.npcs) } };
   }
 
   const publicState = packet.public;
