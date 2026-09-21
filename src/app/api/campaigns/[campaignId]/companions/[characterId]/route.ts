@@ -3,7 +3,6 @@ import { allocateSeq } from "@/lib/db/campaigns";
 import { insertCampaignMessage } from "@/lib/db/messages";
 import { listSheets } from "@/lib/db/sheets";
 import { handleDismissCompanion } from "@/lib/dm/companion-tools";
-import { requestDmTurn } from "@/lib/dm/loop";
 import { publishWithSeq } from "@/lib/events";
 
 export const runtime = "nodejs";
@@ -37,6 +36,5 @@ export async function DELETE(
     content: `The party lead sends ${String(result.dismissed)} on their way; they leave the party.`,
   });
   publishWithSeq(campaignId, seq, "message_added", { message });
-  requestDmTurn(campaignId);
   return Response.json({ ok: true });
 }
