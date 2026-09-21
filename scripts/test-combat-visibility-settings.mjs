@@ -103,4 +103,12 @@ const encounterUi = fs.readFileSync(
 assert.match(encounterUi, /role="progressbar"/);
 assert.match(encounterUi, /enemy\.conditionRounds/);
 
+const streamUi = fs.readFileSync(
+  new URL("../src/app/campaigns/[campaignId]/useCampaignStream.ts", import.meta.url),
+  "utf8",
+);
+assert.match(streamUi, /enemyHpVisibility/);
+assert.match(streamUi, /enemyConditionVisibility/);
+assert.match(streamUi, /refreshEncounter\(\)/);
+
 console.log("combat visibility settings: passed");
