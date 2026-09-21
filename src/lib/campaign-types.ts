@@ -150,9 +150,12 @@ export type GlobalTurnActionUsage = {
 
 export type GlobalTurnState = {
   roundNumber: number;
-  // "ready" is a sealed round waiting for the external MCP narrator.
-  // "resolving" is accepted for checkpoints written by the pre-MCP-loop build.
+  // "waiting" is a hard gate: the round has not received its start trigger
+  // yet, so player actions are not accepted or collected.
+  // "active"/"quorum_delay" are the only collection phases.
+  // "ready"/"resolving" are sealed and stay locked until MCP narration commits.
   phase: "waiting" | "active" | "quorum_delay" | "ready" | "resolving";
+  startedAt: string | null;
   firstActionAt: string | null;
   deadlineAt: string | null;
   quorumReachedAt: string | null;
