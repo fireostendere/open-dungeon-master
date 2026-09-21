@@ -1,6 +1,6 @@
 "use client";
 
-import { Bot, Clock, Loader2 } from "lucide-react";
+import { Bot, Clock, Loader2, Square } from "lucide-react";
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/cn";
 import { useI18n } from "@/lib/i18n";
@@ -42,6 +42,10 @@ export function GlobalTurnCard({
       unlimited: "∞",
       timeRemaining: "Time remaining",
       responded: "Answered",
+      finishRound: "Finish turn now",
+      finishingRound: "Finishing...",
+      finishRoundHint: "Seal this round immediately and hand it to the MCP Dungeon Master.",
+      finishRoundError: "Could not finish the round.",
       autopilotTitle: "Party Autopilot (Doppelganger)",
       autopilotHint: "Hand character control to AI to wake up sleepy players.",
       on: "ON",
@@ -70,6 +74,10 @@ export function GlobalTurnCard({
       unlimited: "∞",
       timeRemaining: "До конца хода",
       responded: "Ответили",
+      finishRound: "Завершить ход",
+      finishingRound: "Завершаем...",
+      finishRoundHint: "Сразу закрыть ввод и передать текущий раунд MCP-Мастеру.",
+      finishRoundError: "Не удалось завершить ход.",
       autopilotTitle: "Автопилот игроков (Доппельгангер)",
       autopilotHint: "Передайте руление ИИ, чтобы не задерживать партию и растормошить спящих.",
       on: "ВКЛ",
@@ -98,6 +106,10 @@ export function GlobalTurnCard({
       unlimited: "∞",
       timeRemaining: "Pozostały czas",
       responded: "Odpowiedziało",
+      finishRound: "Zakończ turę teraz",
+      finishingRound: "Kończenie...",
+      finishRoundHint: "Natychmiast zamknij rundę i przekaż ją MCP Mistrzowi Gry.",
+      finishRoundError: "Nie udało się zakończyć tury.",
       autopilotTitle: "Autopilot postaci (Doppelganger)",
       autopilotHint: "Przekaż postać pod kontrolę SI, aby rozruszać śpiących graczy.",
       on: "WŁ",
@@ -121,6 +133,8 @@ export function GlobalTurnCard({
   const [graceMins, setGraceMins] = useState(globalTurnSettings.quorumDelayMinutes);
   const [saving, setSaving] = useState(false);
   const [busyUser, setBusyUser] = useState<string | null>(null);
+  const [forceClosing, setForceClosing] = useState(false);
+  const [forceCloseError, setForceCloseError] = useState<string | null>(null);
   const [now, setNow] = useState(Date.now());
 
   // Real-time ticker for deadline
@@ -168,6 +182,7 @@ export function GlobalTurnCard({
   const countdownMinutes = Math.floor(secsTotal / 60);
   const countdownSeconds = secsTotal % 60;
   const formattedCountdown = `${String(countdownMinutes).padStart(2, "0")}:${String(countdownSeconds).padStart(2, "0")}`;
+  const canForceFinish = turnState.phase === "active" || turnState.phase === "quorum_delay";
 
   async function updateTurnSettings(patch: {
     enabled?: boolean;
@@ -191,6 +206,28 @@ export function GlobalTurnCard({
       });
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function forceFinishRound() {
+    if (!canForceFinish || forceClosing) return;
+
+    setForceClosing(true);
+    setForceCloseError(null);
+    try {
+      const response = await fetch(`/api/campaigns/${campaignId}/global-turn/resolve`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ roundNumber: turnState.roundNumber }),
+      });
+      const payload = (await response.json().catch(() => ({}))) as { error?: string };
+      if (!response.ok) {
+        throw new Error(payload.error || copy.finishRoundError);
+      }
+    } catch (error) {
+      setForceCloseError(error instanceof Error ? error.message : copy.finishRoundError);
+    } finally {
+      setForceClosing(false);
     }
   }
 
@@ -344,6 +381,33 @@ export function GlobalTurnCard({
                 {turnState.firstActionAt ? copy.waitingQuorum : copy.waitingFirst}
               </p>
             )}
+
+            <div className="mt-2 border-t border-amber-900/30 pt-2">
+              <button
+                type="button"
+                disabled={!canForceFinish || forceClosing}
+                onClick={() => void forceFinishRound()}
+                className={cn(
+                  "flex w-full items-center justify-center gap-1.5 rounded border px-2 py-1.5 text-[11px] font-semibold transition-colors",
+                  canForceFinish
+                    ? "border-amber-700/70 bg-amber-950/50 text-amber-200 hover:bg-amber-900/60"
+                    : "cursor-not-allowed border-stone-800 bg-stone-900/50 text-stone-600",
+                )}
+              >
+                {forceClosing ? (
+                  <Loader2 className="size-3.5 animate-spin" />
+                ) : (
+                  <Square className="size-3.5" />
+                )}
+                {forceClosing ? copy.finishingRound : copy.finishRound}
+              </button>
+              <p className="mt-1 text-[10px] text-stone-500">{copy.finishRoundHint}</p>
+              {forceCloseError ? (
+                <p className="mt-1 text-[10px] text-red-400" role="alert">
+                  {forceCloseError}
+                </p>
+              ) : null}
+            </div>
           </div>
 
           {/* Autopilot Delegation Section */}
