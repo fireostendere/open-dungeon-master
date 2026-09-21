@@ -14,6 +14,7 @@ import { connectNarrator,drainNarratorStory,readNarratorSnapshot } from './read-
 import { explicitYoloRequested } from '../shared/dnd-play-mode.mjs';
 import { driveNarratorCycle,narratorPollDelay } from './poll-cycle.mjs';
 import { createOdmClient } from '../mcp/control-client.mjs';
+import { createRulesMcpClientFromEnv } from './rules-client.mjs';
 const integer=(value,fallback,min,max)=>Number.isSafeInteger(Number(value))&&Number(value)>=min&&Number(value)<=max?Number(value):fallback;
 const hash=value=>crypto.createHash('sha256').update(value).digest();
 export class NarratorRunner {
@@ -29,6 +30,7 @@ export class NarratorRunner {
     this.healthPort=integer(options.healthPort??process.env.ODM_NARRATOR_PORT,3007,0,65535);
     this.statusToken=(options.statusToken||process.env.ODM_NARRATOR_STATUS_TOKEN||'').trim();
     this.odmClient=createOdmClient({url:this.controlUrl,token:this.token,transport:options.transport||process.env.ODM_TRANSPORT,timeoutMs:135000,fetchImpl:options.fetchImpl||globalThis.fetch});
+    this.rulesClient=options.rulesClient===undefined?createRulesMcpClientFromEnv():options.rulesClient;
     this.askResponder=typeof options.askResponder==='function'?options.askResponder:null;
     this.yoloRequested=explicitYoloRequested({requested:options.yolo});
     this.storyController=options.storyController||null;this.adapterModule=options.adapterModule||process.env.ODM_NARRATOR_ADAPTER_MODULE||'';
@@ -85,6 +87,11 @@ export class NarratorRunner {
   }
   async callControl(action,params={}, {timeoutMs=15000}={}) {
     return this.odmClient(action,params,{timeout:timeoutMs});
+  }
+  async lookupRules(query) {
+    if(!this.rulesClient)return {ok:false,error:'rules_rag_unavailable',retryable:false,untrusted:true};
+    try{return await this.rulesClient.search(query);}
+    catch{return {ok:false,error:'rules_rag_failed',retryable:true,untrusted:true};}
   }
   async connect(){
     this.connected=false;const result=await connectNarrator(this);
@@ -185,6 +192,7 @@ export class NarratorRunner {
           lastError:this.lastError?'poll_failed':null,metrics:this.costTracker.getMetrics(),
           story:this.storyController?{paused:this.storyController.state.paused,queued:this.storyController.state.queue.length,
             calls:this.storyController.state.usage.calls,inputBytes:this.storyController.state.usage.inputBytes,outputBytes:this.storyController.state.usage.outputBytes,tokens:null,cost:null}:null,
+          rules:{enabled:Boolean(this.rulesClient),corpusRevision:this.rulesClient?.lastRevision??null,error:this.rulesClient?.lastError?'rules_mcp_failed':null},
           memory:this.memory.serializeState({safe:true}),uptime:process.uptime()}));
       }else{response.writeHead(404);response.end(JSON.stringify({error:'Not found'}));}
     });
@@ -201,6 +209,7 @@ export class NarratorRunner {
     this.stopping=true;this.running=false;if(this.timer){clearTimeout(this.timer);this.timer=null;}this.saveCheckpoint();
     if(this.healthServer){await new Promise(resolve=>this.healthServer.close(resolve));this.healthServer=null;}
     await this.storyController?.adapter?.close?.();
+    await this.rulesClient?.close?.();
     await this.odmClient.close();
   }
 }
