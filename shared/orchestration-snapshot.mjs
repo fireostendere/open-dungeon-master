@@ -54,6 +54,18 @@ function compactSettings(value) {
   });
 }
 
+function compactGlobalTurn(value) {
+  const turn = object(value);
+  return withoutUndefined({
+    roundNumber: number(turn.roundNumber),
+    phase: clip(turn.phase, 24),
+    startedAt: clip(turn.startedAt, 50),
+    firstActionAt: clip(turn.firstActionAt, 50),
+    deadlineAt: clip(turn.deadlineAt, 50),
+    quorumReachedAt: clip(turn.quorumReachedAt, 50),
+  });
+}
+
 function compactClock(value) {
   const clock = object(value);
   return withoutUndefined({
@@ -80,6 +92,7 @@ function compactCampaign(value) {
     difficulty: clip(campaign.difficulty, 20),
     startingLevel: number(campaign.startingLevel),
     gameSettings: compactSettings(campaign.gameSettings),
+    globalTurnState: compactGlobalTurn(campaign.globalTurnState),
     floor: compactFloor(campaign.floor),
     clock: compactClock(campaign.clock),
   });
