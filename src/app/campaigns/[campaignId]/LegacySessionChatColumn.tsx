@@ -59,6 +59,10 @@ export function SessionChatColumn({
     try { await write(suffix, fallback, body); return true; }
     catch (cause) { onError(errorText(cause, fallback)); return false; }
   };
+  const handleAskOpenChange = (open: boolean) => {
+    onAskOpenChange(open);
+    if (open && !state.asksLoaded) void refreshAsks();
+  };
 
   return (
     <div className={cn("min-w-0 flex-1 flex-col", visible ? "flex" : "hidden lg:flex")}>
@@ -114,7 +118,7 @@ export function SessionChatColumn({
       />
       <ItemProposalBar campaignId={campaignId} proposals={state.itemProposals} sheets={sheets} meUserId={meUserId} steersStory={steersStory} />
       <AskDock campaignId={campaignId} asks={state.asks} meUserId={meUserId} loaded={state.asksLoaded}
-        open={askOpen} onOpenChange={onAskOpenChange} onAsked={refreshAsks} />
+        open={askOpen} onOpenChange={handleAskOpenChange} onAsked={refreshAsks} />
       <UtilityCallStrip calls={visibleUtilityCalls} />
       <DmCoverNotice cover={campaign?.dmCover ?? null} />
       {steersStory && campaign ? <NarrationLanguageSetting key={campaignId} campaignId={campaignId} language={campaign.gameSettings.language} /> : null}
