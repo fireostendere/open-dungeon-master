@@ -27,7 +27,7 @@ import { consoleAdjudications } from "@/lib/dm/invoke-catalog";
 import { invokeEngineSynchronous } from "@/lib/dm/invoke";
 import { persistHumanNarration } from "@/lib/dm/human-narration";
 import { executeNarratorCommand, NarratorCommandError as McpNarratorControlError } from "@/lib/dm/narrator-command";
-import { completeGlobalTurn } from "@/lib/dm/global-turn-logic";
+import { completeGlobalTurn, startGlobalTurn } from "@/lib/dm/global-turn-logic";
 import { listNarratorReceipts } from "@/lib/db/narrator-commands";
 import { coverInEffect } from "@/lib/dm/delegation";
 import { npcRosterForPrompt } from "@/lib/dm/social-tools";
@@ -140,7 +140,9 @@ function read(raw: unknown) {
   const state = {
     campaign: safeCampaign(campaign), currentSeq, timelineEpoch, cursor: p.data.afterSeq, nextCursor, hasMore,
     events: events.filter(isNarratorEvent).map(event =>
-      event.type === "roll_result" || event.type === "global_turn_ready"
+      event.type === "roll_result" ||
+      event.type === "global_turn_ready" ||
+      event.type === "global_turn_narrator_trigger"
         ? { seq: event.seq, type: event.type, payload: event.payload }
         : { seq: event.seq, type: event.type },
     ),
@@ -277,6 +279,7 @@ async function narrate(raw: unknown) {
     turnId: id.optional(),
     releaseFloor: z.boolean().optional(),
     completeGlobalRound: z.number().int().min(1).optional(),
+    startGlobalRound: z.number().int().min(1).optional(),
   }).safeParse(raw);
   if (!p.success) throw new McpNarratorControlError(z.prettifyError(p.error));
   return serializedWrite(
@@ -287,6 +290,7 @@ async function narrate(raw: unknown) {
       turnId: p.data.turnId,
       releaseFloor: p.data.releaseFloor,
       completeGlobalRound: p.data.completeGlobalRound,
+      startGlobalRound: p.data.startGlobalRound,
     },
     campaign => {
     if (p.data.turnId) {
@@ -298,6 +302,28 @@ async function narrate(raw: unknown) {
       const floor = getFloor(campaign.id);
       if (listOpenPendingRolls(campaign.id).length) throw new McpNarratorControlError("Resolve pending physical rolls before releasing the floor.", 409);
       if (floor.mode === "hold" && floor.combat?.requiresEndTurn && !floor.combat.mechanicsResolved) throw new McpNarratorControlError("Combat mechanics must finish before the floor can be released.", 409);
+    }
+    if (
+      p.data.completeGlobalRound !== undefined &&
+      p.data.startGlobalRound !== undefined
+    ) {
+      throw new McpNarratorControlError(
+        "A narration cannot both start and complete a global round.",
+        400,
+      );
+    }
+    if (p.data.startGlobalRound !== undefined) {
+      const globalTurn = getGlobalTurnState(campaign.id);
+      if (
+        !campaign.gameSettings.globalTurn?.enabled ||
+        globalTurn.roundNumber !== p.data.startGlobalRound ||
+        globalTurn.phase !== "waiting"
+      ) {
+        throw new McpNarratorControlError(
+          "Global round is not waiting for this start trigger. Reread before narrating.",
+          409,
+        );
+      }
     }
     if (p.data.completeGlobalRound !== undefined) {
       const globalTurn = getGlobalTurnState(campaign.id);
@@ -322,6 +348,19 @@ async function narrate(raw: unknown) {
       floorResult = { floorReleased: getFloor(campaign.id).mode !== "hold", floor: getFloor(campaign.id) };
     }
     let globalTurnResult;
+    if (p.data.startGlobalRound !== undefined) {
+      const started = startGlobalTurn(campaign.id, "opening_narration");
+      if (
+        !started ||
+        started.roundNumber !== p.data.startGlobalRound ||
+        (started.phase !== "active" && started.phase !== "quorum_delay")
+      ) {
+        throw new McpNarratorControlError("Global round did not start.", 409);
+      }
+      globalTurnResult = {
+        globalRoundStarted: started.roundNumber,
+      };
+    }
     if (p.data.completeGlobalRound !== undefined) {
       const completed = completeGlobalTurn(campaign.id, p.data.completeGlobalRound);
       if (!completed || completed.roundNumber <= p.data.completeGlobalRound) {
@@ -369,7 +408,7 @@ async function dispatchMcpNarratorControl(action: string, raw: unknown): Promise
       const p = z.object({ campaignId: id, paged: z.boolean().optional(), maxBytes: z.number().int().min(4096).max(131072).optional(), projection: z.enum(["full", "live"]).optional() }).strict().safeParse(raw);
       if (!p.success) throw new McpNarratorControlError(z.prettifyError(p.error));
       campaignOrHuman(p.data.campaignId);
-      return { handled: true, result: { instructions: "Read odm://narrator/playbook. Call narrator.read, drain until hasMore is false, then use its currentSeq as expectedSeq for exactly one invoke, narrate, or release_floor. Persist a unique UUID commandId before each story write. After an ambiguous error, retry only the identical commandId, expectedSeq and payload to recover its receipt, never regenerate or modify a command. Consume the attached state after a confirmed write as its read, then drain any remaining pages/events. If readRequired is true, the write succeeded but its read failed: read again, never replay the effect. end_turn advances initiative itself; narration never advances it. For a private reply provide exact replyToWhisperIds from playerWhispers. With globalTurn enabled, collect player messages until global_turn_ready; resolve the whole batch through that event seq, then narrate with completeGlobalRound set to its roundNumber so the confirmed MCP write advances the round atomically. Do not narrate individual global-turn messages before the barrier. Check the pending asks queue on every read even when the story cursor is unchanged. Page it using afterAskSeq and askQueue.nextCursor; a fresh Ask scan may start at zero. answer_ask requires the pending ask version as expectedVersion and a persisted UUID commandId; it changes no story/floor state. For bounded reads use paged:true and drain pageCursor/nextPage before advancing the story cursor. Byte pages use a bounded frozen snapshot. Restart on expiry, a changed scope or timeline; never use incomplete pages. projection:live explicitly omits historical duplicate sections, not current state or new tool results. Carry the returned timelineEpoch on reads and writes; reconnect and discard incompatible pending work when it changes.", contractVersion: 3, timelineVersion: 1, features: { postWriteRead: true, frozenPages: true, liveDefaults: true }, state: read({ projection: "full", ...p.data }) } };
+      return { handled: true, result: { instructions: "Read odm://narrator/playbook. Call narrator.read, drain until hasMore is false, then use its currentSeq as expectedSeq for exactly one invoke, narrate, or release_floor. Persist a unique UUID commandId before each story write. After an ambiguous error, retry only the identical commandId, expectedSeq and payload to recover its receipt, never regenerate or modify a command. Consume the attached state after a confirmed write as its read, then drain any remaining pages/events. If readRequired is true, the write succeeded but its read failed: read again, never replay the effect. end_turn advances initiative itself; narration never advances it. For a private reply provide exact replyToWhisperIds from playerWhispers. With globalTurn enabled, the campaign starts locked: wait for global_turn_narrator_trigger, narrate the opening, and send startGlobalRound equal to its roundNumber; only that confirmed narration unlocks players. After that, collect player messages until global_turn_ready; resolve the whole batch through that event seq, then narrate with completeGlobalRound set to its roundNumber so the confirmed MCP write advances and opens the next round atomically. Do not narrate individual global-turn messages before the barrier. Check the pending asks queue on every read even when the story cursor is unchanged. Page it using afterAskSeq and askQueue.nextCursor; a fresh Ask scan may start at zero. answer_ask requires the pending ask version as expectedVersion and a persisted UUID commandId; it changes no story/floor state. For bounded reads use paged:true and drain pageCursor/nextPage before advancing the story cursor. Byte pages use a bounded frozen snapshot. Restart on expiry, a changed scope or timeline; never use incomplete pages. projection:live explicitly omits historical duplicate sections, not current state or new tool results. Carry the returned timelineEpoch on reads and writes; reconnect and discard incompatible pending work when it changes.", contractVersion: 3, timelineVersion: 1, features: { postWriteRead: true, frozenPages: true, liveDefaults: true }, state: read({ projection: "full", ...p.data }) } };
     }
     case "narrator.read": return { handled: true, result: read(raw) };
     case "narrator.snapshot": return { handled: true, result: orchestrationSnapshot(raw) };
