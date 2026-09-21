@@ -72,6 +72,16 @@ identified by the existing `sectionVersions` digests. `readAfter` is explicit:
 the orchestration host asks for it when it needs authoritative post-write state,
 while ordinary receipts do not force a second read.
 
+## Zero-downtime cutover
+
+For a host where Caddy also serves another application, use
+`deploy/live-caddyfile.example` as the path-routing template. Stage a new MCP
+sidecar on a second localhost port, pass its health check, then reload Caddy
+gracefully. Keep the old sidecar until an authenticated public MCP probe passes;
+the old port is the rollback target. Do not run the managed `odmctl update`
+during an active measurement: its current app-release transaction stops the
+proxy/app before replacement and is a maintenance-window operation.
+
 ## 404 and diagnostics
 
 `https://dnd.example.com/api/internal/mcp` returning the proxy's HTML 404 is
