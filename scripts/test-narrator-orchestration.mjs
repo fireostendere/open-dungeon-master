@@ -72,6 +72,41 @@ test('real legacy player messages have no kind; referee receives IDs, state and 
   await h.tick(); assert.equal(h.modelCalls.length, 3, 'idle polling must not spend model calls');
 });
 
+test('global turn opening stays locked until MCP narration starts the round', async () => {
+  const h = fixture([{ kind: 'narrate', text: 'The torchlight reveals the hall.' }]);
+  h.snapshot.campaign.gameSettings.globalTurn = {
+    enabled: true,
+    turnCollectionMinutes: 0,
+    quorumPlayers: 2,
+    quorumDelayMinutes: 0,
+  };
+  h.snapshot.campaign.globalTurnState = {
+    roundNumber: 1, phase: 'waiting', startedAt: null,
+    firstActionAt: null, deadlineAt: null, quorumReachedAt: null, actionsByCharacter: {},
+  };
+  h.snapshot.messages = [];
+  h.snapshot.currentSeq = 1;
+  h.snapshot.nextCursor = 1;
+
+  assert.equal(await h.tick(), false);
+  assert.equal(h.modelCalls.length, 0, 'waiting alone must not wake the model');
+
+  h.snapshot.currentSeq = 2;
+  h.snapshot.nextCursor = 2;
+  h.snapshot.events = [{
+    seq: 2,
+    type: 'global_turn_narrator_trigger',
+    payload: { kind: 'opening', roundNumber: 1 },
+  }];
+
+  assert.equal(await h.tick(), true);
+  assert.equal(h.modelCalls[0].packet.input.kind, 'global_turn_trigger');
+  assert.equal(h.modelCalls[0].packet.input.roundNumber, 1);
+  assert.equal(h.writes[0].action, 'narrator.narrate');
+  assert.equal(h.writes[0].params.startGlobalRound, 1);
+  assert.equal(h.writes[0].params.completeGlobalRound, undefined);
+});
+
 test('global turn waits for ready barrier, batches the round, and closes it through MCP narration', async () => {
   const h = fixture([{ kind: 'narrate', text: 'The party acts together.' }]);
   h.snapshot.campaign.gameSettings.globalTurn = {
@@ -79,6 +114,10 @@ test('global turn waits for ready barrier, batches the round, and closes it thro
     turnCollectionMinutes: 0,
     quorumPlayers: 2,
     quorumDelayMinutes: 0,
+  };
+  h.snapshot.campaign.globalTurnState = {
+    roundNumber: 7, phase: 'active', startedAt: '2026-01-01T00:00:00.000Z',
+    firstActionAt: null, deadlineAt: null, quorumReachedAt: null, actionsByCharacter: {},
   };
   h.snapshot.messages = [
     player(2),
@@ -92,6 +131,7 @@ test('global turn waits for ready barrier, batches the round, and closes it thro
 
   h.snapshot.currentSeq = 4;
   h.snapshot.nextCursor = 4;
+  h.snapshot.campaign.globalTurnState.phase = 'ready';
   h.snapshot.events = [{ seq: 4, type: 'global_turn_ready', payload: { roundNumber: 7 } }];
   assert.equal(await h.tick(), true);
 
