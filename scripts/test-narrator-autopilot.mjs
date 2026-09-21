@@ -230,6 +230,39 @@ test("orchestrator uses the isolated actor role and MCP write during an active g
   assert.equal(controller.state.current, null);
   assert.equal(controller.state.pending, null);
   assert.equal(controller.state.handledSeq, 0, "autopilot message must remain pending for the later global_turn_ready batch");
+
+  const fallbackCalls = [];
+  const fallbackController = new NarratorOrchestrator({
+    adapter: {
+      runtimeSource: "custom-opencode",
+      generate: async () => {
+        throw new Error("actor timed out");
+      },
+    },
+    startAfterSeq: 0,
+    maxSteps: 4,
+  });
+  const fallbackHost = {
+    ...host,
+    callControl: async (action, params) => {
+      fallbackCalls.push({ action, params });
+      return {
+        commandId: params.commandId,
+        receiptId: randomUUID(),
+        committedSeq: 12,
+        currentSeq: 12,
+        replayed: false,
+        result: { characterId: params.characterId, messageId: randomUUID(), sealed: false },
+      };
+    },
+  };
+  assert.equal(await fallbackController.tick(fallbackHost, snapshot), true);
+  assert.equal(fallbackController.state.paused, null, "actor failure must not pause the narrator host");
+  assert.equal(fallbackCalls.length, 1);
+  assert.equal(fallbackCalls[0].action, "narrator.autopilot_action");
+  assert.equal(fallbackCalls[0].params.kind, "do");
+  assert.match(fallbackCalls[0].params.content, /Игнат/);
+  assert.match(fallbackCalls[0].params.content, /не тратит ограниченные ресурсы/);
 });
 
 after(() => {
