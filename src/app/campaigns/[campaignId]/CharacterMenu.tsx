@@ -3,7 +3,6 @@
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import {
   BookUser,
-  Bot,
   Crown,
   Flag,
   MessageSquare,
@@ -83,9 +82,6 @@ export function CharacterMenu({
   canModerate = false,
   canMute = false,
   muted = false,
-  isLead = false,
-  meUserId = "",
-  autopilot = false,
 }: {
   sheet: CharacterSheet;
   steersStory: boolean;
@@ -100,9 +96,6 @@ export function CharacterMenu({
   canModerate?: boolean;
   canMute?: boolean;
   muted?: boolean;
-  isLead?: boolean;
-  meUserId?: string;
-  autopilot?: boolean;
 }) {
   const { locale } = useI18n();
   const copy = COPY[locale];
@@ -138,13 +131,6 @@ export function CharacterMenu({
     });
   }
 
-  async function toggleAutopilot() {
-    await fetch(`/api/campaigns/${sheet.campaignId}/members/${sheet.userId}/autopilot`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ autopilot: !autopilot }),
-    });
-  }
 
   const optionsLabel = copy.options(sheet.name);
 
@@ -196,12 +182,6 @@ export function CharacterMenu({
           {steersStory && sheet.isCompanion ? (
             <DropdownMenu.Item className={item} onSelect={dismissCompanion}>
               <UserMinus className="size-3.5 text-red-400" /> {copy.dismissCompanion}
-            </DropdownMenu.Item>
-          ) : null}
-          {!sheet.isCompanion && (isLead || sheet.userId === meUserId) ? (
-            <DropdownMenu.Item className={item} onSelect={toggleAutopilot}>
-              <Bot className="size-3.5 text-sky-400" />
-              {autopilot ? "Отключить автопилот" : "Включить автопилот"}
             </DropdownMenu.Item>
           ) : null}
           {canMute ? (
