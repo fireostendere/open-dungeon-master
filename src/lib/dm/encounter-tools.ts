@@ -124,7 +124,7 @@ const startEncounterTool: ToolDef = {
   function: {
     name: "start_encounter",
     description:
-      "Begin combat with real, server-tracked enemies. Call this BEFORE narrating the first hostile exchange. Use monster slugs or names from the Enemy picks list, or any 5e monster; give an in-world name to reskin one for this setting.",
+      "Begin combat with real, server-tracked enemies. monster selects hidden mechanics; name is the in-world identity shown in initiative, combat UI, and map. For any person/NPC already present in the story, preserve that exact story name or role in name instead of exposing a stat-block label.",
     parameters: {
       type: "object",
       additionalProperties: false,
@@ -138,11 +138,11 @@ const startEncounterTool: ToolDef = {
             properties: {
               monster: {
                 type: "string",
-                description: "Monster slug or name, e.g. 'goblin' or 'Gutter Punk'.",
+                description: "Mechanical stat-block slug/name only, e.g. 'rogue', 'guard', 'goblin'. This is not the combatant's story identity.",
               },
               name: {
                 type: "string",
-                description: "Optional in-world display name when reskinning.",
+                description: "In-world identity shown to players. Preserve the existing story name/role for narrated NPCs, e.g. monster='rogue', name='Бармен'. Optional only for truly generic creatures whose stat-block name is also their intended visible name.",
               },
               count: { type: "integer", minimum: 1, maximum: 8 },
               cr: {
