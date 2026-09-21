@@ -1,6 +1,5 @@
 import { getDatabase, nowIso, parseJson } from "@/lib/db/core";
 import { getCampaignById, updateGameSettings } from "@/lib/db/campaigns";
-import { embedPendingLore } from "@/lib/db/lore";
 import { listBeats } from "@/lib/db/workshop-beats";
 import { compileBoard } from "@/lib/workshop/board-compile";
 import {
@@ -450,12 +449,6 @@ export function runContentImport(input: {
     }
     // The variant flags travel with the prose: they are the same decision.
     updateGameSettings(campaignId, { variantRules: source.gameSettings.variantRules });
-  }
-
-  if (selected.has("lore")) {
-    void embedPendingLore(campaignId).catch(() => {
-      // A missing vector only means keyword fallback for that entry.
-    });
   }
 
   return { plan, copied, idMap };

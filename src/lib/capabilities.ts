@@ -9,6 +9,14 @@ export type Capabilities = {
   voice: { enabled: boolean; mode: VoiceMode };
 };
 
+export function storyConfigured(_settings: unknown): boolean {
+  return false;
+}
+
+export function imagesConfigured(..._args: unknown[]): boolean {
+  return false;
+}
+
 // Kept as a compatibility shape while clients migrate away from server-AI
 // capability checks. Every inference capability is deliberately false.
 export async function capabilitiesSnapshot(): Promise<Capabilities> {
