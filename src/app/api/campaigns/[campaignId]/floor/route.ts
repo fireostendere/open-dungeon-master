@@ -87,15 +87,12 @@ export async function POST(
   // In combat, "release" means skip the absent player's turn: the pointer
   // advances and the DM plays any intervening enemies.
   if (floor.mode === "initiative") {
-    if (skipCurrentTurn(campaignId)) {
-    }
+    skipCurrentTurn(campaignId);
     return Response.json({ ok: true });
   }
   const next: Floor = floor.mode === "hold" ? floor.next : { mode: "open" };
   setFloor(campaignId, next);
   publishPersisted(campaignId, "floor_changed", { floor: next });
   queueSkippedCombatTurn(campaignId);
-  if (floor.mode === "spotlight" && floor.respondedUserIds.length) {
-  }
   return Response.json({ ok: true });
 }
