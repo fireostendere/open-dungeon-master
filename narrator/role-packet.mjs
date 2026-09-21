@@ -145,6 +145,88 @@ function compactStoryArc(arc) {
   };
 }
 
+function compactFacts(facts) {
+  if (!Array.isArray(facts)) return facts;
+  const selected = [];
+  const seen = new Set();
+  const perCategory = new Map();
+  let budget = 2000;
+
+  const add = fact => {
+    if (!fact || typeof fact !== 'object') return;
+    const category = String(fact.category ?? '');
+    const semanticChars = String(fact.subject ?? '').length + String(fact.fact ?? '').length + 8;
+    if (!fact.pinned) {
+      const used = perCategory.get(category) ?? 0;
+      if (used >= 6 || semanticChars > budget) return;
+      perCategory.set(category, used + 1);
+      budget -= semanticChars;
+    }
+    const key = String(fact.id ?? `${category}:${fact.subject}:${fact.fact}`);
+    if (seen.has(key)) return;
+    seen.add(key);
+    selected.push({
+      ...(fact.id ? { id: fact.id } : {}),
+      category: fact.category,
+      subject: fact.subject,
+      fact: fact.fact,
+      knownBy: fact.knownBy,
+      pinned: Boolean(fact.pinned),
+      ...(Array.isArray(fact.witnessedBy) && fact.witnessedBy.length
+        ? { witnessedBy: fact.witnessedBy.slice(0, 12) }
+        : {}),
+    });
+  };
+
+  for (const fact of facts) if (fact?.pinned) add(fact);
+  for (const fact of facts) if (!fact?.pinned) add(fact);
+  return selected;
+}
+
+function compactNotes(notes) {
+  if (!Array.isArray(notes)) return notes;
+  const selected = [];
+  let budget = 6000;
+  const ordered = [
+    ...notes.filter(note => note?.pinned).slice(0, 8),
+    ...notes.filter(note => !note?.pinned),
+  ];
+  for (const note of ordered) {
+    if (selected.length >= 12 || budget <= 80 || !note || typeof note !== 'object') break;
+    const title = String(note.title ?? '').slice(0, 120);
+    const overhead = title.length + 32;
+    const bodyBudget = Math.max(0, Math.min(1200, budget - overhead));
+    if (bodyBudget < 80 && !note.pinned) continue;
+    const body = String(note.body ?? '').slice(0, bodyBudget);
+    selected.push({
+      id: note.id,
+      title,
+      body,
+      pinned: Boolean(note.pinned),
+      visibility: note.visibility,
+      status: note.status,
+    });
+    budget -= overhead + body.length;
+  }
+  return selected;
+}
+
+function compactNpcs(npcs) {
+  if (!Array.isArray(npcs)) return npcs;
+  return npcs.slice(0, 24).map(npc => {
+    if (!npc || typeof npc !== 'object') return npc;
+    return {
+      name: npc.name,
+      attitude: npc.attitude,
+      trait: npc.trait,
+      location: npc.location,
+      agency: npc.agency,
+      ...(Array.isArray(npc.aliases) && npc.aliases.length ? { aliases: npc.aliases.slice(0, 6) } : {}),
+      ...(npc.witnessNote ? { witnessNote: npc.witnessNote } : {}),
+    };
+  });
+}
+
 function compactEquipment(items) {
   if (!Array.isArray(items)) return [];
   return items.slice(0, 40).map(item => {
@@ -342,19 +424,19 @@ export function compactRolePacket(role, packet) {
   if (Array.isArray(packet.rollEvents) && packet.rollEvents.length) {
     result = { ...result, rollEvents: packet.rollEvents.slice(-16).map(compactNarratorEvent) };
   }
-  if (packet.campaign?.gameSettings || packet.campaign?.storyArc) {
-    result = {
-      ...result,
-      campaign: {
-        ...packet.campaign,
-        ...(packet.campaign?.gameSettings
-          ? { gameSettings: compactGameSettings(packet.campaign.gameSettings) }
-          : {}),
-        ...(packet.campaign?.storyArc
-          ? { storyArc: compactStoryArc(packet.campaign.storyArc) }
-          : {}),
-      },
+  if (packet.campaign?.gameSettings || packet.campaign?.storyArc || packet.campaign?.dmOutline) {
+    const campaign = {
+      ...packet.campaign,
+      ...(packet.campaign?.gameSettings
+        ? { gameSettings: compactGameSettings(packet.campaign.gameSettings) }
+        : {}),
+      ...(packet.campaign?.storyArc
+        ? { storyArc: compactStoryArc(packet.campaign.storyArc) }
+        : {}),
     };
+    if (packet.campaign?.storyArc) delete campaign.dmOutline;
+    else if (typeof campaign.dmOutline === 'string') campaign.dmOutline = campaign.dmOutline.slice(0, 4000);
+    result = { ...result, campaign };
   }
   const sheets = packet.state?.sheets;
   if (Array.isArray(sheets)) {
@@ -366,6 +448,15 @@ export function compactRolePacket(role, packet) {
       compactRefereeSheet(sheet, allRich || focus.has(sheet?.id)),
     );
     result = { ...result, state: { ...result.state, sheets: compactSheets } };
+  }
+  if (Array.isArray(packet.state?.facts)) {
+    result = { ...result, state: { ...result.state, facts: compactFacts(packet.state.facts) } };
+  }
+  if (Array.isArray(packet.state?.notes)) {
+    result = { ...result, state: { ...result.state, notes: compactNotes(packet.state.notes) } };
+  }
+  if (Array.isArray(packet.state?.npcs)) {
+    result = { ...result, state: { ...result.state, npcs: compactNpcs(packet.state.npcs) } };
   }
 
   const publicState = packet.public;
