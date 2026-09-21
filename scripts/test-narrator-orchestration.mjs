@@ -26,10 +26,11 @@ function fixture(replies, options = {}) {
   } };
   const controller = new NarratorOrchestrator({ adapter, ...options });
   const host = {
-    campaignId: 'c', snapshot: snapshot(), saved: null, writes, commits, modelCalls, controller,
+    campaignId: 'c', snapshot: snapshot(), saved: null, writes, commits, modelCalls, controller, drains: [],
     memory: { getPromptContext: () => ({ summary: 'Earlier public events.' }) },
     saveCheckpoint() { this.saved = this.controller.serialize(); },
-    async drainStory() {
+    async drainStory(options = {}) {
+      this.drains.push(structuredClone(options));
       this.snapshot.nextCursor = this.snapshot.currentSeq;
       this.controller.ingestReadSnapshot(this.snapshot);
       this.saveCheckpoint(); return structuredClone(this.snapshot);
@@ -332,6 +333,34 @@ test('matching physical roll_result is required; disappearance or another roll c
   h.snapshot.events.push({ seq: h.snapshot.currentSeq, type: 'roll_result', payload: { pendingRollId: 'pending', roll: { id: 'r', characterId: 'hero', kind: 'skill_check', visibility: 'public', total: 3 } } });
   await h.tick(); assert.equal(h.modelCalls.length, 2);
   assert.equal(h.writes.length, 2);
+});
+
+test('resolved physical roll does not trigger a redundant narrator read', async () => {
+  const h = fixture([
+    { kind: 'invoke', action: 'request_roll', args: { characterId: 'hero', kind: 'skill_check', skill: 'stealth' } },
+    { kind: 'done' },
+  ]);
+  h.onInvoke = action => {
+    if (action === 'narrator.invoke') {
+      h.snapshot.pendingRolls = [{ id: 'pending', characterId: 'hero' }];
+      return { ok: true, parked: true };
+    }
+    return { ok: true };
+  };
+  await h.tick();
+  h.drains.length = 0;
+  h.snapshot.pendingRolls = [];
+  h.snapshot.currentSeq++;
+  h.snapshot.nextCursor = h.snapshot.currentSeq;
+  h.snapshot.events = [{
+    seq: h.snapshot.currentSeq,
+    type: 'roll_result',
+    payload: { pendingRollId: 'pending', roll: { id: 'r1', characterId: 'hero', kind: 'skill_check', visibility: 'public', total: 12 } },
+  }];
+  await h.tick();
+  assert.equal(h.drains.length, 0, 'the already-drained roll_result is authoritative');
+  assert.equal(h.modelCalls.length, 2);
+  assert.equal(h.modelCalls[1].packet.outcomes[0].physicalRolls[0].roll.id, 'r1');
 });
 
 test('timeout recovery after restart sends the exact saved command without another model call', async () => {
