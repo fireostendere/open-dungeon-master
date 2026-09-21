@@ -146,6 +146,16 @@ const COPY = {
     combatTip: "Classical uses encounter position. JRPG is a campaign house-rule mode: targets in one encounter ignore distance, line of sight, cover, and opportunity-attack gates; initiative, dice, resources, HP, conditions, and privacy remain enforced.",
     combatClassical: "Classical",
     combatJrpg: "JRPG",
+    enemyHp: "Enemy HP",
+    enemyHpTip: "Controls what players see for enemy durability. The DM always sees exact HP.",
+    enemyHpState: "State only",
+    enemyHpBar: "Health bar",
+    enemyHpExact: "Exact HP",
+    enemyEffects: "Enemy effects",
+    enemyEffectsTip: "Controls whether players see active enemy conditions and their remaining server-tracked duration.",
+    enemyEffectsHidden: "Do not show",
+    enemyEffectsStatus: "Show status",
+    enemyEffectsTurns: "Status + duration",
     narration: "Narration",
     on: "On",
     off: "Off",
@@ -305,6 +315,16 @@ const COPY = {
     combatTip: "Классический режим учитывает позиции встречи. JRPG — правило кампании: цели одной встречи игнорируют дальность, линию обзора, укрытие и провоцированные атаки; инициатива, кости, ресурсы, HP, состояния и приватность сохраняются.",
     combatClassical: "Классический",
     combatJrpg: "JRPG",
+    enemyHp: "HP врагов",
+    enemyHpTip: "Определяет, что игроки видят о здоровье противников. Мастер всегда видит точные HP.",
+    enemyHpState: "Только состояние",
+    enemyHpBar: "Полоска HP",
+    enemyHpExact: "Точные HP",
+    enemyEffects: "Эффекты врагов",
+    enemyEffectsTip: "Определяет, видят ли игроки активные состояния противников и оставшуюся длительность, которую отслеживает сервер.",
+    enemyEffectsHidden: "Не показывать",
+    enemyEffectsStatus: "Показывать статус",
+    enemyEffectsTurns: "Статус + длительность",
     unitsPolicy: "Единицы измерения",
     unitsMetric: "Метрические (м, кг)",
     unitsImperial: "Имперские (фт, фнт)",
@@ -467,6 +487,16 @@ const COPY = {
     combatTip: "Klasyczny tryb używa pozycji w spotkaniu. JRPG to zasada kampanii: cele jednego spotkania ignorują zasięg, linię widzenia, osłonę i ataki okazyjne; inicjatywa, kości, zasoby, PW, stany i prywatność pozostają egzekwowane.",
     combatClassical: "Klasyczny",
     combatJrpg: "JRPG",
+    enemyHp: "PW przeciwników",
+    enemyHpTip: "Określa, co gracze widzą o wytrzymałości przeciwników. MG zawsze widzi dokładne PW.",
+    enemyHpState: "Tylko stan",
+    enemyHpBar: "Pasek PW",
+    enemyHpExact: "Dokładne PW",
+    enemyEffects: "Efekty przeciwników",
+    enemyEffectsTip: "Określa, czy gracze widzą aktywne stany przeciwników oraz ich pozostały czas śledzony przez serwer.",
+    enemyEffectsHidden: "Nie pokazuj",
+    enemyEffectsStatus: "Pokaż stan",
+    enemyEffectsTurns: "Stan + czas",
     unitsPolicy: "Jednostki miary",
     unitsMetric: "Metryczne (m, kg)",
     unitsImperial: "Imperialne (ft, lb)",
@@ -862,6 +892,45 @@ export function GameSettingsPanel({
             >
               <option value={COMBAT_MODES[0]}>{copy.combatClassical}</option>
               <option value={COMBAT_MODES[1]}>{copy.combatJrpg}</option>
+            </select>
+          </Tooltip>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="w-16 text-stone-500">{copy.enemyHp}</span>
+          <Tooltip content={copy.enemyHpTip}>
+            <select
+              value={settings.enemyHpVisibility}
+              onChange={(event) =>
+                patch({ enemyHpVisibility: event.target.value as GameSettings["enemyHpVisibility"] })
+              }
+              className={selectClass}
+              aria-label={copy.enemyHp}
+            >
+              <option value="state">{copy.enemyHpState}</option>
+              <option value="bar">{copy.enemyHpBar}</option>
+              <option value="exact">{copy.enemyHpExact}</option>
+            </select>
+          </Tooltip>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="w-16 text-stone-500">{copy.enemyEffects}</span>
+          <Tooltip content={copy.enemyEffectsTip}>
+            <select
+              value={settings.enemyConditionVisibility}
+              onChange={(event) =>
+                patch({
+                  enemyConditionVisibility:
+                    event.target.value as GameSettings["enemyConditionVisibility"],
+                })
+              }
+              className={selectClass}
+              aria-label={copy.enemyEffects}
+            >
+              <option value="hidden">{copy.enemyEffectsHidden}</option>
+              <option value="status">{copy.enemyEffectsStatus}</option>
+              <option value="status_turns">{copy.enemyEffectsTurns}</option>
             </select>
           </Tooltip>
         </div>
