@@ -1,15 +1,129 @@
-import { getCampaignById, getGlobalTurnState, listMembers, setGlobalTurnState, setMemberSkipTurns } from "@/lib/db/campaigns";
-import { allocateSeq } from "@/lib/db/campaigns";
+import {
+  allocateSeq,
+  getCampaignById,
+  getGlobalTurnState,
+  listMembers,
+  setGlobalTurnState,
+  setMemberSkipTurns,
+} from "@/lib/db/campaigns";
 import { insertCampaignMessage } from "@/lib/db/messages";
 import { listSheets } from "@/lib/db/sheets";
 import { publishPersisted, publishWithSeq } from "@/lib/events";
 import type { GlobalTurnState } from "@/lib/campaign-types";
 import { getActiveEncounter } from "@/lib/db/encounters";
 
-// In-memory timer references to fire turn completion exactly on deadline
+// In-memory timer references are only a latency optimization. jobs.ts also
+// scans persisted deadlines, so a process restart cannot lose a timed round.
 const activeTurnTimers = new Map<string, NodeJS.Timeout>();
 // ponytail: deduplicate within one app process; use a DB lease before adding workers.
 const resolvingGlobalTurns = new Map<string, Promise<GlobalTurnState | null>>();
+
+type ReadinessResult = {
+  state: GlobalTurnState;
+  shouldResolve: boolean;
+};
+
+function playerSheets(campaignId: string, dmUserId: string | null) {
+  return listSheets(campaignId).filter((sheet) => !sheet.isCompanion && sheet.userId !== dmUserId);
+}
+
+function respondedCount(
+  campaignId: string,
+  state: GlobalTurnState,
+  dmUserId: string | null,
+): { responded: number; total: number } {
+  const sheets = playerSheets(campaignId, dmUserId);
+  const members = listMembers(campaignId);
+  const responded = sheets.filter((sheet) => {
+    const usage = state.actionsByCharacter[sheet.id];
+    if (usage && (usage.actionsCount > 0 || usage.phrasesCount > 0)) return true;
+    const member = members.find((entry) => entry.userId === sheet.userId);
+    return Boolean(member && member.skipTurnsCount > 0);
+  }).length;
+  return { responded, total: Math.max(1, sheets.length) };
+}
+
+function evaluateReadiness(
+  campaignId: string,
+  inputState: GlobalTurnState,
+  now = Date.now(),
+): ReadinessResult {
+  const campaign = getCampaignById(campaignId);
+  if (!campaign || !campaign.gameSettings.globalTurn?.enabled || getActiveEncounter(campaignId)) {
+    return { state: inputState, shouldResolve: false };
+  }
+
+  // A sealed round belongs to the MCP narrator. Player ingress must not reopen
+  // it or move its deadline while the narrator is adjudicating it.
+  if (inputState.phase === "ready" || inputState.phase === "resolving") {
+    return { state: inputState, shouldResolve: false };
+  }
+
+  const settings = campaign.gameSettings.globalTurn;
+  let firstActionAt = inputState.firstActionAt;
+  let deadlineAt = inputState.deadlineAt;
+  let quorumReachedAt = inputState.quorumReachedAt;
+  let phase: GlobalTurnState["phase"] = inputState.phase;
+
+  // A skip is a response too, so this function may be called without a player
+  // message. The first response starts the round. 0 collection minutes means
+  // no absolute timeout: only quorum/all-answered can seal it.
+  if (!firstActionAt) {
+    firstActionAt = new Date(now).toISOString();
+    deadlineAt =
+      settings.turnCollectionMinutes > 0
+        ? new Date(now + settings.turnCollectionMinutes * 60_000).toISOString()
+        : null;
+    phase = "active";
+  }
+
+  const counts = respondedCount(campaignId, inputState, campaign.dmUserId);
+  const quorumTarget = Math.min(counts.total, settings.quorumPlayers);
+  const quorumReached = counts.responded >= quorumTarget;
+  const allAnswered = counts.responded >= counts.total;
+  let shouldResolve = false;
+
+  if (quorumReached) {
+    if (!quorumReachedAt) quorumReachedAt = new Date(now).toISOString();
+
+    // Every player answered, or the configured grace is literally zero:
+    // freeze the collection immediately after the triggering message/skip is
+    // persisted. We still persist an immediate deadline as a crash/restart
+    // fallback until resolveGlobalTurn seals the round.
+    if (allAnswered || settings.quorumDelayMinutes === 0) {
+      deadlineAt = new Date(now).toISOString();
+      phase = "quorum_delay";
+      shouldResolve = true;
+    } else {
+      const reachedAt = new Date(quorumReachedAt).getTime();
+      const quorumDeadline = new Date(
+        reachedAt + settings.quorumDelayMinutes * 60_000,
+      ).toISOString();
+      if (!deadlineAt || new Date(quorumDeadline).getTime() < new Date(deadlineAt).getTime()) {
+        deadlineAt = quorumDeadline;
+      }
+      phase = "quorum_delay";
+    }
+  }
+
+  const state: GlobalTurnState = {
+    ...inputState,
+    phase,
+    firstActionAt,
+    deadlineAt,
+    quorumReachedAt,
+  };
+
+  setGlobalTurnState(campaignId, state);
+  publishPersisted(campaignId, "global_turn_updated", { globalTurnState: state });
+
+  // Even the zero-grace path gets a persisted/timer fallback. The action route
+  // normally seals synchronously after writing the triggering player message.
+  if (deadlineAt) scheduleGlobalTurnTimer(campaignId, deadlineAt);
+  else cancelGlobalTurnTimer(campaignId);
+
+  return { state, shouldResolve };
+}
 
 export function scheduleGlobalTurnTimer(campaignId: string, deadlineIso: string | null) {
   const existing = activeTurnTimers.get(campaignId);
@@ -19,19 +133,21 @@ export function scheduleGlobalTurnTimer(campaignId: string, deadlineIso: string 
   }
   if (!deadlineIso) return;
 
-  const msRemaining = Math.max(500, new Date(deadlineIso).getTime() - Date.now());
-  // Do not schedule excessively distant timers (max 2 hours in memory)
+  const msRemaining = Math.max(0, new Date(deadlineIso).getTime() - Date.now());
+  // Persisted jobs own long waits; keeping a multi-hour JS timer buys nothing.
   if (msRemaining > 2 * 60 * 60 * 1000) return;
 
   const roundNumber = getGlobalTurnState(campaignId).roundNumber;
   const timer = setTimeout(() => {
     activeTurnTimers.delete(campaignId);
-    void resolveGlobalTurn(campaignId, roundNumber).catch((err) =>
-      console.error(`[global-turn] Failed to resolve turn on timer for ${campaignId}:`, err)
+    void resolveGlobalTurn(campaignId, roundNumber).catch((error) =>
+      console.error(
+        `[global-turn] Failed to seal round for MCP narrator in ${campaignId}:`,
+        error,
+      ),
     );
   }, msRemaining);
 
-  // Do not keep process open because of timer
   timer.unref?.();
   activeTurnTimers.set(campaignId, timer);
 }
@@ -45,215 +161,203 @@ export function cancelGlobalTurnTimer(campaignId: string) {
 }
 
 /**
- * Validates and records player action in the global turn.
- * Enforces RAW: maximum 1 do and 1 say per hero per global turn.
+ * Validates and records a player action in the current global round.
+ * The caller must persist the accepted player message before calling
+ * resolveGlobalTurn when shouldResolve=true.
  */
 export function recordGlobalTurnAction(
   campaignId: string,
   sheetId: string,
-  userId: string,
+  _userId: string,
   kind: "do" | "say" | "ooc",
-): { allowed: boolean; error?: string; state?: GlobalTurnState } {
-  if (kind === "ooc") {
-    return { allowed: true };
-  }
+): { allowed: boolean; error?: string; state?: GlobalTurnState; shouldResolve?: boolean } {
+  if (kind === "ooc") return { allowed: true };
 
   const campaign = getCampaignById(campaignId);
-  if (!campaign) {
-    return { allowed: false, error: "Campaign not found." };
-  }
-
-  const globalTurnSettings = campaign.gameSettings.globalTurn;
-  if (getActiveEncounter(campaignId)) return { allowed: true };
-  if (!globalTurnSettings?.enabled) {
+  if (!campaign) return { allowed: false, error: "Campaign not found." };
+  if (getActiveEncounter(campaignId) || !campaign.gameSettings.globalTurn?.enabled) {
     return { allowed: true };
   }
 
   const state = getGlobalTurnState(campaignId);
-  const usage = state.actionsByCharacter[sheetId] ?? { actionsCount: 0, phrasesCount: 0, updatedAt: new Date().toISOString() };
+  if (state.phase === "ready" || state.phase === "resolving") {
+    return {
+      allowed: false,
+      error: "Раунд уже передан Мастеру на разрешение. Дождитесь следующего хода.",
+    };
+  }
+
+  const usage = state.actionsByCharacter[sheetId] ?? {
+    actionsCount: 0,
+    phrasesCount: 0,
+    updatedAt: new Date().toISOString(),
+  };
 
   if (kind === "do" && usage.actionsCount >= 1) {
     return {
       allowed: false,
-      error: "В этом ходе вы уже совершили действие. За общий ход доступно максимум 1 действие и 1 фраза (Речь).",
+      error:
+        "В этом ходе вы уже совершили действие. За общий ход доступно максимум 1 действие и 1 фраза (Речь).",
     };
   }
-
   if (kind === "say" && usage.phrasesCount >= 1) {
     return {
       allowed: false,
-      error: "В этом ходе вы уже произнесли фразу. За общий ход доступно максимум 1 действие и 1 фраза (Речь).",
+      error:
+        "В этом ходе вы уже произнесли фразу. За общий ход доступно максимум 1 действие и 1 фраза (Речь).",
     };
   }
 
-  // Update hero action counts
   const nextUsage = {
     actionsCount: kind === "do" ? usage.actionsCount + 1 : usage.actionsCount,
     phrasesCount: kind === "say" ? usage.phrasesCount + 1 : usage.phrasesCount,
     lastActionKind: kind,
     updatedAt: new Date().toISOString(),
   };
-
-  const nextActions = {
-    ...state.actionsByCharacter,
-    [sheetId]: nextUsage,
+  const nextState: GlobalTurnState = {
+    ...state,
+    actionsByCharacter: {
+      ...state.actionsByCharacter,
+      [sheetId]: nextUsage,
+    },
   };
 
-  const now = Date.now();
-  let firstActionAt = state.firstActionAt;
-  let deadlineAt = state.deadlineAt;
-  let phase: GlobalTurnState["phase"] = state.phase;
-  let quorumReachedAt = state.quorumReachedAt;
-
-  // First action in round starts the collection timer (N minutes)
-  if (!firstActionAt) {
-    firstActionAt = new Date(now).toISOString();
-    const collectionMs = globalTurnSettings.turnCollectionMinutes * 60 * 1000;
-    deadlineAt = new Date(now + collectionMs).toISOString();
-    phase = "active";
-  }
-
-  // Check quorum of responded players
-  const sheets = listSheets(campaignId);
-  const playerSheets = sheets.filter((s) => !s.isCompanion && s.userId !== campaign.dmUserId);
-  const members = listMembers(campaignId);
-
-  const respondedCount = playerSheets.filter((s) => {
-    const u = nextActions[s.id];
-    if (u && (u.actionsCount > 0 || u.phrasesCount > 0)) return true;
-    const m = members.find((mem) => mem.userId === s.userId);
-    return Boolean(m && m.skipTurnsCount > 0);
-  }).length;
-
-  const totalPlayers = Math.max(1, playerSheets.length);
-  const quorumTarget = Math.min(totalPlayers, globalTurnSettings.quorumPlayers);
-
-  // If quorum reached, accelerate deadline to (now + Z minutes grace delay)
-  if (respondedCount >= quorumTarget && deadlineAt) {
-    const graceDelayMs = globalTurnSettings.quorumDelayMinutes * 60 * 1000;
-    const quorumDeadline = new Date(now + graceDelayMs).toISOString();
-    if (!quorumReachedAt) {
-      quorumReachedAt = new Date(now).toISOString();
-    }
-    if (new Date(quorumDeadline).getTime() < new Date(deadlineAt).getTime()) {
-      deadlineAt = quorumDeadline;
-      phase = "quorum_delay";
-    }
-  }
-
-  // If ALL players have acted, finish promptly
-  const allAnswered = respondedCount >= totalPlayers;
-  if (allAnswered) {
-    phase = "resolving";
-  }
-
-  const updatedState: GlobalTurnState = {
-    roundNumber: state.roundNumber,
-    phase,
-    firstActionAt,
-    deadlineAt,
-    quorumReachedAt,
-    actionsByCharacter: nextActions,
-  };
-
-  setGlobalTurnState(campaignId, updatedState);
-  publishPersisted(campaignId, "global_turn_updated", { globalTurnState: updatedState });
-
-  if (allAnswered) {
-    // Resolve immediately on next tick
-    setTimeout(() => {
-      void resolveGlobalTurn(campaignId, updatedState.roundNumber).catch((err) =>
-        console.error(`[global-turn] Immediate resolve failed for ${campaignId}:`, err)
-      );
-    }, 1000);
-  } else if (deadlineAt) {
-    scheduleGlobalTurnTimer(campaignId, deadlineAt);
-  }
-
-  return { allowed: true, state: updatedState };
+  const result = evaluateReadiness(campaignId, nextState);
+  return { allowed: true, state: result.state, shouldResolve: result.shouldResolve };
 }
 
 /**
- * Resolves the global turn round:
- * - Records deterministic skip turns for idle players
- * - Advances the round counter
- * - Notifies the human/external Dungeon Master
+ * Re-evaluates quorum after a non-message response such as "skip this turn".
+ * The skip itself remains in member state; it is materialized as a player
+ * message only when the round is sealed, so the MCP batch contains it exactly once.
  */
-export function resolveGlobalTurn(campaignId: string, expectedRound?: number): Promise<GlobalTurnState | null> {
+export function refreshGlobalTurnReadiness(campaignId: string): ReadinessResult {
+  return evaluateReadiness(campaignId, getGlobalTurnState(campaignId));
+}
+
+/**
+ * Seal a collected round for the external MCP narrator.
+ *
+ * This intentionally DOES NOT advance roundNumber. The server only collects
+ * and freezes input. The MCP narrator reads global_turn_ready, adjudicates the
+ * whole batch, writes narration through narrator.narrate, and that confirmed
+ * MCP write calls completeGlobalTurn.
+ */
+export function resolveGlobalTurn(
+  campaignId: string,
+  expectedRound?: number,
+): Promise<GlobalTurnState | null> {
   const pending = resolvingGlobalTurns.get(campaignId);
   if (pending) return pending;
-  const work = resolveGlobalTurnOnce(campaignId, expectedRound).finally(() => resolvingGlobalTurns.delete(campaignId));
+  const work = Promise.resolve(resolveGlobalTurnOnce(campaignId, expectedRound)).finally(() =>
+    resolvingGlobalTurns.delete(campaignId),
+  );
   resolvingGlobalTurns.set(campaignId, work);
   return work;
 }
 
-async function resolveGlobalTurnOnce(campaignId: string, expectedRound?: number): Promise<GlobalTurnState | null> {
+function resolveGlobalTurnOnce(
+  campaignId: string,
+  expectedRound?: number,
+): GlobalTurnState | null {
   const campaign = getCampaignById(campaignId);
   if (!campaign || campaign.status !== "active") return null;
+  if (!campaign.gameSettings.globalTurn?.enabled) return getGlobalTurnState(campaignId);
 
   const state = getGlobalTurnState(campaignId);
   if (expectedRound !== undefined && state.roundNumber !== expectedRound) return state;
-  if (getActiveEncounter(campaignId)) { cancelGlobalTurnTimer(campaignId); return state; }
+  if (getActiveEncounter(campaignId)) {
+    cancelGlobalTurnTimer(campaignId);
+    return state;
+  }
+  if (state.phase === "ready") return state;
 
   cancelGlobalTurnTimer(campaignId);
 
-  const sheets = listSheets(campaignId);
-  const playerSheets = sheets.filter((s) => !s.isCompanion && s.userId !== campaign.dmUserId);
-
-  // 1. Apply explicit skip-turn choices for idle players
-  for (const sheet of playerSheets) {
-    const current = getGlobalTurnState(campaignId);
-    if (current.roundNumber !== state.roundNumber) return current;
-    if (getCampaignById(campaignId)?.status !== "active") return null;
-    if (getActiveEncounter(campaignId)) return current;
-    const usage = current.actionsByCharacter[sheet.id];
+  // Materialize every committed skip before the ready event. The narrator's
+  // batch boundary is the ready event seq, so these messages are guaranteed to
+  // be inside the same round and never appear as a later stray input.
+  const sheets = playerSheets(campaignId, campaign.dmUserId);
+  const members = listMembers(campaignId);
+  for (const sheet of sheets) {
+    const usage = state.actionsByCharacter[sheet.id];
     const hasActed = Boolean(usage && (usage.actionsCount > 0 || usage.phrasesCount > 0));
-    const member = listMembers(campaignId).find((m) => m.userId === sheet.userId);
+    const member = members.find((entry) => entry.userId === sheet.userId);
+    if (hasActed || !member || member.skipTurnsCount <= 0) continue;
 
-    if (!hasActed && member?.skipTurnsCount > 0) {
-      const remaining = member.skipTurnsCount - 1;
-      setMemberSkipTurns(campaignId, member.userId, remaining);
-      const seq = allocateSeq(campaignId);
-      const msg = insertCampaignMessage({
-        campaignId,
-        seq,
-        authorType: "player",
-        userId: member.userId,
-        characterId: sheet.id,
-        content: `*${sheet.name} пропускает этот ход.*`,
-      });
-      publishWithSeq(campaignId, seq, "message_added", { message: msg });
-    }
+    const updated = setMemberSkipTurns(campaignId, member.userId, member.skipTurnsCount - 1);
+    if (updated) publishPersisted(campaignId, "member_updated", { member: updated });
+
+    const seq = allocateSeq(campaignId);
+    const message = insertCampaignMessage({
+      campaignId,
+      seq,
+      authorType: "player",
+      userId: member.userId,
+      characterId: sheet.id,
+      content: `*${sheet.name} пропускает этот ход.*`,
+    });
+    publishWithSeq(campaignId, seq, "message_added", { message });
   }
 
-  // 2. Prepare next round state
-  const latestCampaign = getCampaignById(campaignId);
-  if (!latestCampaign || latestCampaign.status !== "active") return null;
-  const latestState = getGlobalTurnState(campaignId);
-  if (latestState.roundNumber !== state.roundNumber) return latestState;
-  const nextRoundNumber = state.roundNumber + 1;
+  const readyState: GlobalTurnState = {
+    ...getGlobalTurnState(campaignId),
+    roundNumber: state.roundNumber,
+    phase: "ready",
+    deadlineAt: null,
+  };
+  setGlobalTurnState(campaignId, readyState);
+  publishPersisted(campaignId, "global_turn_updated", { globalTurnState: readyState });
+  publishPersisted(campaignId, "global_turn_ready", {
+    roundNumber: state.roundNumber,
+    message: "Раунд собран и передан внешнему MCP Мастеру.",
+  });
+
+  return readyState;
+}
+
+/**
+ * Advance a round only after a confirmed MCP narrator write.
+ * This is the second half of the round barrier: server seals -> MCP resolves ->
+ * server advances. Players have no manual "finish round" authority.
+ */
+export function completeGlobalTurn(
+  campaignId: string,
+  expectedRound: number,
+): GlobalTurnState | null {
+  const campaign = getCampaignById(campaignId);
+  if (!campaign || campaign.status !== "active" || !campaign.gameSettings.globalTurn?.enabled) {
+    return null;
+  }
+  if (getActiveEncounter(campaignId)) return getGlobalTurnState(campaignId);
+
+  const state = getGlobalTurnState(campaignId);
+  if (state.roundNumber !== expectedRound) return state;
+  if (state.phase !== "ready" && state.phase !== "resolving") return state;
+
+  cancelGlobalTurnTimer(campaignId);
   const nextState: GlobalTurnState = {
-    roundNumber: nextRoundNumber,
+    roundNumber: state.roundNumber + 1,
     phase: "waiting",
     firstActionAt: null,
     deadlineAt: null,
     quorumReachedAt: null,
     actionsByCharacter: {},
   };
-
   setGlobalTurnState(campaignId, nextState);
   publishPersisted(campaignId, "global_turn_updated", { globalTurnState: nextState });
   publishPersisted(campaignId, "global_turn_resolved", {
     resolvedRound: state.roundNumber,
-    nextRound: nextRoundNumber,
+    nextRound: nextState.roundNumber,
+    resolvedBy: "mcp_narrator",
   });
 
-  // 3. The server never narrates. Signal that the collected round is ready
-  // for the human/external MCP narrator.
-  publishPersisted(campaignId, "global_turn_ended", {
-    roundNumber: state.roundNumber,
-    message: "Все действия раунда собраны. Мастер может взять слово.",
-  });
+  // Multi-turn skip commitments count as responses in the fresh round too.
+  // This can start a deadline (or a zero-grace immediate seal) without waiting
+  // for another active player to type first.
+  if (listMembers(campaignId).some((member) => member.skipTurnsCount > 0)) {
+    refreshGlobalTurnReadiness(campaignId);
+  }
 
   return nextState;
 }
