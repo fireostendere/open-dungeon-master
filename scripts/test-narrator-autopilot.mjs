@@ -1,4 +1,4 @@
-import test from "node:test";
+import test, { after } from "node:test";
 import assert from "node:assert/strict";
 import { randomBytes, randomUUID } from "node:crypto";
 import fs from "node:fs";
@@ -27,6 +27,13 @@ const { createCharacter, instantiateIntoCampaign } = await import("../src/lib/db
 const { createSheetSchema } = await import("../src/lib/schemas/sheet.ts");
 const { startGlobalTurn } = await import("../src/lib/dm/global-turn-logic.ts");
 const { executeMcpNarratorControl, McpNarratorControlError } = await import("../src/lib/mcp-narrator-control.ts");
+
+const nativeFetch = globalThis.fetch;
+let fetchCalls = 0;
+globalThis.fetch = () => {
+  fetchCalls += 1;
+  throw new Error("server provider/network call is forbidden");
+};
 
 function characterInput(name) {
   return createSheetSchema.parse({
@@ -128,6 +135,7 @@ test("trusted MCP autopilot action requires live opt-in and seals quorum without
     content: "Игнат оглядывается и держится рядом с группой.",
   });
   assert.equal(replay.result.replayed, true, "receipt recovery must not duplicate the player action");
+  assert.equal(fetchCalls, 0, "server autopilot path must not call a model/provider/network");
 });
 
 test("orchestrator uses the isolated actor role and MCP write during an active global round", async () => {
@@ -224,5 +232,8 @@ test("orchestrator uses the isolated actor role and MCP write during an active g
   assert.equal(controller.state.handledSeq, 0, "autopilot message must remain pending for the later global_turn_ready batch");
 });
 
-removeTempDir(dir);
+after(() => {
+  globalThis.fetch = nativeFetch;
+  removeTempDir(dir);
+});
 console.log("PASS external MCP autopilot opt-in, actor orchestration, idempotency, and quorum sealing");
