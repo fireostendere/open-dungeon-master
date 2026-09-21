@@ -65,7 +65,7 @@ export function PageShell({
   // Right-side controls on the header row (a shortcut link, a back link).
   actions?: ReactNode;
   className?: string;
-  children: ReactNode;
+  children?: ReactNode;
 }) {
   return (
     <Column width={width} className={className}>
@@ -114,7 +114,7 @@ export function PageSection({
   className?: string;
   // Classes for the body wrapper, for sections that space their own prose.
   bodyClassName?: string;
-  children: ReactNode;
+  children?: ReactNode;
 }) {
   const danger = tone === "danger";
   const hasHead = heading || ribbon || actions;

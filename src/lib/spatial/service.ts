@@ -2,7 +2,7 @@ import { z } from "zod";
 import { getDatabase } from "@/lib/db/core";
 import { afterCommit } from "@/lib/db/commit-effects";
 import { notifySpatialChange } from "@/lib/spatial/updates.mjs";
-import { allocateSeq, campaignSeats, capsFor, getCampaignForUser, listMembers, touchCampaign } from "@/lib/db/campaigns";
+import { allocateSeq, campaignSeats, capsFor, getCampaignForUser, getGlobalTurnState, listMembers, touchCampaign } from "@/lib/db/campaigns";
 import { getSheetForUser } from "@/lib/db/sheets";
 import { getActiveEncounter } from "@/lib/db/encounters";
 import { isMemberMuted } from "@/lib/db/moderation";
@@ -114,8 +114,8 @@ export function runSpatialCommand(campaignId: string, userId: string, raw: unkno
       if (!turn.allowed) {
         throw new SpatialError(turn.error ?? "This round is not accepting input.", 409);
       }
-      if (turn.shouldResolve && turn.state) {
-        globalTurnResolution = { roundNumber: turn.state.roundNumber };
+      if (turn.shouldResolve) {
+        globalTurnResolution = { roundNumber: getGlobalTurnState(campaignId).roundNumber };
       }
     }
 
@@ -125,8 +125,9 @@ export function runSpatialCommand(campaignId: string, userId: string, raw: unkno
     if (enabledNow !== previouslyEnabled) spatialModeChanged = enabledNow;
     return result;
   })();
-  if (globalTurnResolution) {
-    void resolveGlobalTurn(campaignId, globalTurnResolution.roundNumber).catch((error) =>
+  const resolution = globalTurnResolution as { roundNumber: number } | null;
+  if (resolution) {
+    void resolveGlobalTurn(campaignId, resolution.roundNumber).catch((error) =>
       console.error("[global-turn] Failed to seal spatial round:", error),
     );
   }

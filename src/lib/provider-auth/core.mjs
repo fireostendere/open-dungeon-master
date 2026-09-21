@@ -7,6 +7,6 @@ export class ProviderError extends Error {
   }
 }
 
-export function requireVerifiedProfile() {
+export function requireVerifiedProfile(_profile) {
   throw new ProviderError("Server-side model control is disabled; use the external narrator.");
 }

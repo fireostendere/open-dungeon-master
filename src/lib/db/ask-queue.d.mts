@@ -12,6 +12,7 @@ export class AskQueueFull extends Error { status: number; }
 export const ASK_SELECT: string;
 export function ensureAskQueue(db: SqlDatabase): void;
 export function registerAsk(db: SqlDatabase, askId: string, campaignId: string, state: 'pending'|'answered'|'failed'): void;
+export function pendingAskQueueMeta(db: SqlDatabase, campaignId: string): { pending: boolean };
 export function listPendingAsks(db: SqlDatabase, campaignId: string, after?: number, limit?: number): { items: unknown[]; nextCursor: number; hasMore: boolean };
 export function checkAskCapacity(db: SqlDatabase, campaignId: string, userId: string): void;
 export function answerQueuedAsk(db: SqlDatabase, input: { campaignId: string; askId: string; answer: string; citations?: unknown[]; expectedVersion?: number; commandId?: string; author?: string; now?: string }): { row: unknown; replayed: boolean } | null;

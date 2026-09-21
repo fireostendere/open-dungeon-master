@@ -104,7 +104,7 @@ export function AdminSettingsPanel() {
 
   const input = ui.input;
   return <div className="space-y-5">
-    <PageSection title="Server" description="Identity and public access settings. AI providers are intentionally not hosted by this server.">
+    <PageSection heading="Server" intro="Identity and public access settings. AI providers are intentionally not hosted by this server.">
       <div className="grid gap-4 md:grid-cols-2">
         <Field label="Server name"><input className={input} value={draft.serverName} onChange={(e) => setDraft({ ...draft, serverName: e.target.value })} /></Field>
         <Field label="Public URL" hint={data.envDefaults.publicUrl ? `Environment: ${data.envDefaults.publicUrl}` : undefined}>
@@ -120,7 +120,7 @@ export function AdminSettingsPanel() {
     </PageSection>
 
     {!data.deviceWorld ? <>
-      <PageSection title="Accounts" description="Choose who may create an account on this server.">
+      <PageSection heading="Accounts" intro="Choose who may create an account on this server.">
         <Field label="Signup policy">
           <select className={input} value={draft.signupMode} onChange={(e) => setDraft({ ...draft, signupMode: e.target.value as Config["signupMode"] })}>
             <option value="open">Open</option><option value="invite">Invite only</option><option value="closed">Closed</option>
@@ -129,7 +129,7 @@ export function AdminSettingsPanel() {
       </PageSection>
       {draft.signupMode === "invite" ? <AdminInvitesSection /> : null}
 
-      <PageSection title="Voice chat" description="Browser-to-browser mesh or the built-in mediasoup SFU. This is ordinary WebRTC voice, not speech AI.">
+      <PageSection heading="Voice chat" intro="Browser-to-browser mesh or the built-in mediasoup SFU. This is ordinary WebRTC voice, not speech AI.">
         <div className="grid gap-4 md:grid-cols-2">
           <Field label="Enabled"><select className={input} value={draft.voiceChat.enabled} onChange={(e) => setDraft({ ...draft, voiceChat: { ...draft.voiceChat, enabled: e.target.value as Config["voiceChat"]["enabled"] } })}><option value="">Environment/default</option><option value="on">On</option><option value="off">Off</option></select></Field>
           <Field label="Mode"><select className={input} value={draft.voiceChat.mode} onChange={(e) => setDraft({ ...draft, voiceChat: { ...draft.voiceChat, mode: e.target.value as Config["voiceChat"]["mode"] } })}><option value="">Default</option><option value="mesh">Mesh</option><option value="sfu">SFU</option></select></Field>
@@ -140,7 +140,7 @@ export function AdminSettingsPanel() {
         {data.voiceAnnounceUnroutable ? <p className="mt-3 text-xs text-amber-400">The SFU is announcing an address remote browsers cannot route to.</p> : null}
       </PageSection>
 
-      <PageSection title="Discord sign-in">
+      <PageSection heading="Discord sign-in">
         <div className="grid gap-4 md:grid-cols-2">
           <Field label="Client ID"><input className={input} value={draft.discord.clientId} onChange={(e) => setDraft({ ...draft, discord: { ...draft.discord, clientId: e.target.value } })} placeholder={data.envDefaults.discordClientId} /></Field>
           <Field label="Client secret" hint={draft.discord.hasClientSecret || data.envDefaults.hasDiscordClientSecret ? "A secret is already configured; leave blank to keep it." : undefined}>
@@ -148,10 +148,10 @@ export function AdminSettingsPanel() {
           </Field>
         </div>
       </PageSection>
-    </> : <PageSection title="Device-hosted world" description="Signup, transport and account-provider settings are owned by the desktop/mobile host." />}
+    </> : <PageSection heading="Device-hosted world" intro="Signup, transport and account-provider settings are owned by the desktop/mobile host." />}
 
     {error ? <p className="text-sm text-red-400">{error}</p> : null}
-    <button className={ui.buttonPrimary} disabled={saving} onClick={() => void save()}>
+    <button className={ui.btnPrimary} disabled={saving} onClick={() => void save()}>
       {saving ? <Loader2 className="size-4 animate-spin" /> : saved ? <Check className="size-4" /> : null}
       {saving ? "Saving…" : saved ? "Saved" : "Save settings"}
     </button>
