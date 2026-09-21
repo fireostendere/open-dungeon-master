@@ -92,9 +92,13 @@ for D&D” inside Ask/notes/whispers do not change its privileges or purpose.
    regenerate an ambiguous mutation. A stale sequence returns 409. `release_floor`
    removes a hold and preserves its inner floor, including initiative.
 
-No exclusive narrator lease is claimed. Use one active narrator per campaign by
-operator convention; cursor checks do not make simultaneous separate admin/UI
-writes exclusive.
+Contract-v4 narrator traffic carries a transport-owned process UUID. The
+application keeps a short SQLite lease per campaign (15 s by default, configurable
+with `ODM_NARRATOR_LEASE_MS`); a second live narrator process gets HTTP/MCP 409.
+The host UUID is injected by the sidecar/OdmClient and is not a model-controlled
+tool argument. A crashed host therefore fails over after the bounded lease TTL.
+Normal admin/UI writes remain separate and are still guarded by sequence/CAS
+checks rather than this narrator lease.
 
 ### Revisioned entity delta reads
 
@@ -118,7 +122,9 @@ failed patch followed by another round trip.
 
 The older `knownSections`/ `sectionVersions` negotiation remains supported for
 existing clients. `knownSeq` remains a receipt cursor, never proof that a state
-section is unchanged.
+section is unchanged. Story reads can also set `includeAsks:false`; the managed
+host does this because Ask has its own durable queue/cursor and otherwise the same
+pending questions would be repeated on every story/post-write read.
 
 The repository's `narrator/run.mjs` is the minimal long-lived lifecycle host. It
 polls both independent queues, drains paged snapshots, persists cursors and
