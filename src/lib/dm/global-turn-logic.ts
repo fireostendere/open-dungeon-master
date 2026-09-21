@@ -57,7 +57,7 @@ function respondedCount(
  */
 export function startGlobalTurn(
   campaignId: string,
-  reason: "opening_narration" | "mcp_completed" | "enabled_mid_campaign" = "mcp_completed",
+  reason: "mcp_trigger" | "mcp_completed" = "mcp_completed",
 ): GlobalTurnState | null {
   const campaign = getCampaignById(campaignId);
   if (
@@ -109,6 +109,27 @@ export function startGlobalTurn(
   }
 
   return activeState;
+}
+
+/**
+ * Put the collector behind its hard gate without changing the authoritative
+ * round number. Used when global-turn mode is enabled/re-enabled mid-campaign.
+ */
+export function resetGlobalTurnGate(campaignId: string): GlobalTurnState {
+  cancelGlobalTurnTimer(campaignId);
+  const current = getGlobalTurnState(campaignId);
+  const waitingState: GlobalTurnState = {
+    roundNumber: current.roundNumber,
+    phase: "waiting",
+    startedAt: null,
+    firstActionAt: null,
+    deadlineAt: null,
+    quorumReachedAt: null,
+    actionsByCharacter: {},
+  };
+  setGlobalTurnState(campaignId, waitingState);
+  publishPersisted(campaignId, "global_turn_updated", { globalTurnState: waitingState });
+  return waitingState;
 }
 
 function evaluateReadiness(
