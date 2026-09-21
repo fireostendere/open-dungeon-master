@@ -163,7 +163,7 @@ export class NarratorOrchestrator {
   }
   async answerAsk(host, ask, context) {
     try {
-      const reply=JSON.parse(await this.generate(host,'referee',{task:'answer_ask',question:ask.question,language:ask.locale??'ru',context}));
+      const reply=JSON.parse(await this.generate(host,'ask',{task:'answer_ask',question:ask.question,language:ask.locale??'ru',context}));
       if(!reply||Object.keys(reply).some(key=>key!=='answer')||!text(reply.answer)||reply.answer.length>4000)throw new Error('Invalid private answer.');
       return {answer:reply.answer,citations:[]};
     } catch {
