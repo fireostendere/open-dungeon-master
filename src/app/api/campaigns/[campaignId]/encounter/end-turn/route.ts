@@ -1,6 +1,5 @@
 import { isErrorResponse, requireMember } from "@/lib/campaign-api";
 import { endOwnTurn } from "@/lib/dm/encounter-tools";
-import { requestDmTurn } from "@/lib/dm/loop";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -21,6 +20,5 @@ export async function POST(
   if (!endOwnTurn(campaignId, context.user.id)) {
     return Response.json({ error: "It is not your combat turn." }, { status: 409 });
   }
-  requestDmTurn(campaignId);
   return Response.json({ ok: true });
 }
