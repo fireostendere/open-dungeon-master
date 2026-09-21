@@ -18,12 +18,11 @@ import type { EnemyConditionVisibility, EnemyHpVisibility } from "@/lib/schemas/
 // encounters.ts, which is persistence: this is the projection, and it is the
 // only shape that ever leaves the server.
 
-// Client-safe projection: vague health states only, no HP numbers, no stats.
-//
-// The one exception is the person running the fight. A human DM cannot run
-// an encounter from "bloodied", so when `enemyNumbers` is granted the real
-// hit points, AC and initiative ride along. That grant comes from
-// src/lib/dm/viewer.ts and is never a raw id comparison here.
+// Client-safe projection. Campaign settings may expose a health bar, exact HP,
+// condition names, or condition duration to players, but AC/initiative remain
+// DM-only. The DM seat always receives the full mechanical view regardless of
+// presentation settings. That grant comes from src/lib/dm/viewer.ts and is
+// never a raw id comparison here.
 export type PublicEncounter = {
   id: string;
   status: EncounterStatus;
