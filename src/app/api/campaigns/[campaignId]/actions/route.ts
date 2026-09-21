@@ -12,7 +12,7 @@ import {
 import { insertCampaignMessage } from "@/lib/db/messages";
 import { getSheetForUser, listSheets } from "@/lib/db/sheets";
 import { publishPersisted, publishWithSeq } from "@/lib/events";
-import { recordGlobalTurnAction } from "@/lib/dm/global-turn-logic";
+import { recordGlobalTurnAction, resolveGlobalTurn } from "@/lib/dm/global-turn-logic";
 import { getActiveEncounter } from "@/lib/db/encounters";
 import { activePublicEncounter } from "@/lib/db/encounter-view";
 import { attacksAllowedFor, budgetFor } from "@/lib/dm/action-tools";
@@ -211,6 +211,13 @@ export async function POST(
     content,
   });
   publishWithSeq(campaignId, seq, "message_added", { message });
+
+  // Quorum with zero grace (or everybody answering) seals only after the
+  // triggering message is durable. From this point the round belongs to the
+  // external MCP narrator; no player/lead "finish turn" action is involved.
+  if (turnResult.shouldResolve && turnResult.state) {
+    await resolveGlobalTurn(campaignId, turnResult.state.roundNumber);
+  }
 
   // Non-OOC combat input is exclusive until a DM narration completes. A
   // bundle additionally requires explicit end_turn, so prose cannot advance
