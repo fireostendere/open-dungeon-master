@@ -1,4 +1,4 @@
-// Vague enemy health states, the only HP signal clients ever receive.
+// Vague enemy health states, retained as the legacy/default player signal.
 // Dependency-free so client components can import it.
 
 export type HealthState = "healthy" | "wounded" | "bloodied" | "near death" | "dead";
