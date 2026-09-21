@@ -3,6 +3,7 @@ import { filterNarratorCatalog, narratorModeGuidance, resolveNarratorPlayMode } 
 import { parseGameFacadeArgs } from '../shared/dnd-game-facade.mjs';
 import { postWriteReadOptions, consumePostWriteRead } from './read-session.mjs';
 import { compactRolePacket } from './role-packet.mjs';
+import { createRolePacketDelta } from './role-delta.mjs';
 import { emitLatency, latencyEnabled } from '../mcp/latency-trace.mjs';
 
 const clone = value => structuredClone(value);
@@ -91,12 +92,13 @@ function validateActorTurn(value) {
 export function validateDecision(value, { allowedActions = new Set(), catalogActions = allowedActions } = {}) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('Invalid referee decision.');
   const keys = {
-    invoke: ['kind', 'action', 'args'], catalog: ['kind', 'action'],
+    invoke: ['kind', 'action', 'args'], catalog: ['kind', 'action'], rules_lookup: ['kind', 'query'],
     narrate: ['kind', 'text', 'writer', 'releaseFloor'], wait: ['kind'], done: ['kind'], release_floor: ['kind'],
   }[value.kind];
   if (!keys || Object.keys(value).some(key => !keys.includes(key))) throw new Error('Unsupported referee decision fields.');
   if (value.kind === 'invoke' && !allowedActions.has(value.action)) throw new Error('Disallowed engine action.');
   if (value.kind === 'catalog' && !catalogActions.has(value.action)) throw new Error('Disallowed catalog action.');
+  if (value.kind === 'rules_lookup' && (typeof value.query !== 'string' || !value.query.trim() || value.query.trim().length > 500)) throw new Error('Invalid rules lookup query.');
   if (value.kind === 'invoke' && (!value.args || typeof value.args !== 'object' || Array.isArray(value.args) ||
       ['campaignId', 'expectedSeq', 'commandId', 'timelineEpoch'].some(key => Object.hasOwn(value.args, key)))) throw new Error('Invalid engine arguments.');
   if (value.kind === 'narrate' && (!text(value.text) ||
@@ -115,20 +117,32 @@ export class NarratorOrchestrator {
         !Number.isSafeInteger(maxCallsPerHour) || maxCallsPerHour < 1) throw new Error('Invalid narrator controller configuration.');
     this.adapter = adapter; this.playMode = playMode; this.maxSteps = resolvedMaxSteps; this.maxCallsPerHour = maxCallsPerHour;
     this.writerEnabled = writerEnabled === true;
-    this.catalog = null; this.schemas = {};
+    this.catalog = null; this.schemas = {}; this.refereeContext = null;
     this.lastIngestCheckpointSeq = null;
     this.lastIngestCheckpointEpoch = null;
     this.state = { version: 1, epoch: null, handledSeq: startAfterSeq, queue: [], current: null, pending: null,
       history: [], events: [], paused: null, usage: { calls: 0, inputBytes: 0, outputBytes: 0, times: [] } };
   }
+  refereeSessionKey() {
+    const input = this.state.current?.input;
+    if (!input) return null;
+    return `referee:${digest([this.state.epoch ?? '', input.id ?? '', input.seq ?? 0])}`;
+  }
+  releaseRefereeConversation() {
+    const key = this.refereeContext?.key;
+    if (key && typeof this.adapter.releaseConversation === 'function') this.adapter.releaseConversation(key);
+    this.refereeContext = null;
+  }
   restore(state) {
     if (state?.version !== 1 || !sequence(state.handledSeq) || !Array.isArray(state.queue) || !state.usage) throw new Error('Unsupported orchestration checkpoint.');
+    this.releaseRefereeConversation();
     this.state = clone(state);
     this.lastIngestCheckpointSeq = null;
     this.lastIngestCheckpointEpoch = null;
   }
   serialize() { return clone(this.state); }
   reset(epoch) {
+    this.releaseRefereeConversation();
     const usage = this.state.usage;
     this.state = { version: 1, epoch, handledSeq: 0, queue: [], current: null, pending: null, history: [], events: [], paused: 'timeline_changed', usage };
     this.catalog = null; this.schemas = {};
@@ -136,6 +150,7 @@ export class NarratorOrchestrator {
     this.lastIngestCheckpointEpoch = null;
   }
   resume({ afterSeq } = {}) {
+    this.releaseRefereeConversation();
     if (this.state.pending?.attempts >= 2) throw new Error('Ambiguous write requires operator reconciliation, not another retry.');
     if(this.state.paused==='timeline_changed'){
       if(!sequence(afterSeq))throw new Error('Select an acknowledged input cursor after a timeline change.');
