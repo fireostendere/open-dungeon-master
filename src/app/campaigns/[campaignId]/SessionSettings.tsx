@@ -73,14 +73,6 @@ export function SessionSettings({
         />
       ) : null}
 
-      {campaign.settings ? (
-        <StoryAiPanel
-          campaignId={campaign.id}
-          settings={campaign.settings}
-          steersStory={steersStory}
-        />
-      ) : null}
-
       {campaign.gameSettings ? (
         <div className="mt-3">
           <RulesPanel
