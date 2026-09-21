@@ -319,6 +319,44 @@ function focusedCharacterIds(packet) {
   return ids;
 }
 
+function spatialFocusRoomIds(packet) {
+  const ids = new Set();
+  const input = packet.input;
+  if (typeof input?.roomId === 'string' && input.roomId) ids.add(input.roomId);
+  if (Array.isArray(input?.roomIds)) {
+    for (const roomId of input.roomIds) if (typeof roomId === 'string' && roomId) ids.add(roomId);
+  }
+  if (Array.isArray(input?.messages)) {
+    for (const message of input.messages) {
+      if (typeof message?.roomId === 'string' && message.roomId) ids.add(message.roomId);
+    }
+  }
+  return ids;
+}
+
+function compactSpatialState(packet) {
+  const focus = spatialFocusRoomIds(packet);
+  const rooms = Array.isArray(packet.state?.spatialRooms)
+    ? packet.state.spatialRooms.map(room => ({
+        id: room.id,
+        name: room.name,
+        ...(room.active ? { active: true } : {}),
+        ...(focus.has(room.id) && Array.isArray(room.occupants) && room.occupants.length
+          ? { occupants: room.occupants }
+          : {}),
+      }))
+    : packet.state?.spatialRooms;
+  const grants = Array.isArray(packet.state?.spatialGrants)
+    ? packet.state.spatialGrants.map(grant => ({
+        id: grant.id,
+        userId: grant.userId,
+        roomId: grant.roomId,
+        mode: grant.mode,
+      }))
+    : packet.state?.spatialGrants;
+  return { rooms, grants };
+}
+
 function compactNarratorEvent(event) {
   if (!event || typeof event !== 'object') return event;
   if (event.type === 'roll_result') {
@@ -457,6 +495,17 @@ export function compactRolePacket(role, packet) {
   }
   if (Array.isArray(packet.state?.npcs)) {
     result = { ...result, state: { ...result.state, npcs: compactNpcs(packet.state.npcs) } };
+  }
+  if (Array.isArray(packet.state?.spatialRooms) || Array.isArray(packet.state?.spatialGrants)) {
+    const spatial = compactSpatialState(packet);
+    result = {
+      ...result,
+      state: {
+        ...result.state,
+        ...(spatial.rooms === undefined ? {} : { spatialRooms: spatial.rooms }),
+        ...(spatial.grants === undefined ? {} : { spatialGrants: spatial.grants }),
+      },
+    };
   }
 
   const publicState = packet.public;
