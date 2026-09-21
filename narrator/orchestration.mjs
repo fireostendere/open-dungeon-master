@@ -281,7 +281,11 @@ export class NarratorOrchestrator {
   }
   async answerAsk(host, ask, context) {
     try {
-      const reply=JSON.parse(await this.generate(host,'ask',{task:'answer_ask',question:ask.question,language:ask.locale??'ru',context}));
+      const rulesEvidence = ask?.scope === 'rules' && typeof host.lookupRules === 'function'
+        ? await host.lookupRules(ask.question)
+        : undefined;
+      const reply=JSON.parse(await this.generate(host,'ask',{task:'answer_ask',question:ask.question,language:ask.locale??'ru',context,
+        ...(rulesEvidence ? { rulesEvidence } : {})}));
       if(!reply||Object.keys(reply).some(key=>key!=='answer')||!text(reply.answer)||reply.answer.length>4000)throw new Error('Invalid private answer.');
       return {answer:reply.answer,citations:[]};
     } catch {
@@ -465,7 +469,10 @@ export class NarratorOrchestrator {
       host.saveCheckpoint();
       return this.write(host);
     }
-    if (current.waiting.some(id => !current.resolved[id]) || snapshot.pendingRolls?.length) return false;
+    if (current.waiting.some(id => !current.resolved[id]) || snapshot.pendingRolls?.length) {
+      this.releaseRefereeConversation();
+      return false;
+    }
     if (current.waiting.length) {
       // This tick already holds a fully drained authoritative snapshot and
       // ingestReadSnapshot correlated each required pendingRollId to its
@@ -535,12 +542,16 @@ export class NarratorOrchestrator {
         decision = { kind: 'invoke', action: 'game', args: { action: 'location_narrate', args: { roomId, content: decision.text } } };
       }
     } catch { return this.pause(host, 'model_or_decision_error'); }
-    if (host.stopping || this.state.current !== current || this.state.epoch !== snapshot.timelineEpoch) return false;
+    if (host.stopping || this.state.current !== current || this.state.epoch !== snapshot.timelineEpoch) {
+      this.releaseRefereeConversation();
+      return false;
+    }
     if (decision.kind === 'wait') {
       if (
         current.input?.kind === 'global_round' ||
         current.input?.kind === 'global_turn_trigger'
       ) return this.pause(host, 'global_round_cannot_wait_for_new_input');
+      this.releaseRefereeConversation();
       current.waitSeq = snapshot.currentSeq; host.saveCheckpoint(); return false;
     }
     if (decision.kind === 'catalog') {
@@ -548,6 +559,28 @@ export class NarratorOrchestrator {
       // Only the schema requested for the next decision is relevant. Do not
       // accumulate every schema seen during a long campaign into all future prompts.
       this.schemas = { [decision.action]: result.groups }; return true;
+    }
+    if (decision.kind === 'rules_lookup') {
+      const query = decision.query.trim();
+      const normalized = query.toLocaleLowerCase('en-US');
+      const prior = current.outcomes.filter(outcome =>
+        outcome.name === 'rules_lookup' && typeof outcome.query === 'string' &&
+        outcome.query.toLocaleLowerCase('en-US') === normalized);
+      if (prior.length >= 2) return this.pause(host, 'duplicate_rules_lookup');
+      const epoch = this.state.epoch;
+      const result = prior.length
+        ? { ...clone(prior.at(-1).result), reused: true }
+        : typeof host.lookupRules === 'function'
+          ? await host.lookupRules(query)
+          : { ok: false, error: 'rules_rag_unavailable', retryable: false, untrusted: true };
+      if (host.stopping || this.state.current !== current || this.state.epoch !== epoch) {
+        this.releaseRefereeConversation();
+        return false;
+      }
+      current.outcomes.push({ name: 'rules_lookup', query, result });
+      this.schemas = {};
+      host.saveCheckpoint();
+      return true;
     }
     if (decision.kind === 'done' || decision.kind === 'release_floor') {
       const globalInput =
@@ -629,7 +662,10 @@ export class NarratorOrchestrator {
     // Generation is not a lock. The engine's transactional expectedSeq/epoch
     // check rejects a stale draft before effects. A redundant pre-write read
     // neither closes that race nor replaces CAS; keep the original read cursor.
-    if (host.stopping || this.state.current !== current) return false;
+    if (host.stopping || this.state.current !== current) {
+      this.releaseRefereeConversation();
+      return false;
+    }
     if (this.state.epoch !== snapshot.timelineEpoch || host.timelineEpoch && host.timelineEpoch !== snapshot.timelineEpoch) return this.pause(host, 'timeline_changed');
     const action = decision.kind === 'invoke' ? 'narrator.invoke' : decision.kind === 'narrate' ? 'narrator.narrate' : 'narrator.release_floor';
     const params = { campaignId: host.campaignId, expectedSeq: snapshot.currentSeq, timelineEpoch: snapshot.timelineEpoch, commandId: crypto.randomUUID(),
@@ -654,6 +690,7 @@ export class NarratorOrchestrator {
     return this.write(host);
   }
   finish(host) {
+    this.releaseRefereeConversation();
     this.schemas = {};
     this.state.handledSeq = this.state.current.input.seq;
     // A global-turn start trigger is also the lower input boundary for that
@@ -688,6 +725,7 @@ export class NarratorOrchestrator {
           return true;
         }
         if (error.status === 409 && /^Stale narrator cursor/.test(error.message)) {
+          this.releaseRefereeConversation();
           this.state.pending = null; host.saveCheckpoint(); await host.drainStory(); return false;
         }
         if (error.status >= 400 && error.status < 500 && ![408, 429, 499].includes(error.status)) return this.pause(host, 'command_rejected');
@@ -721,6 +759,7 @@ export class NarratorOrchestrator {
     if (result?.parked && !waiting.length) return this.pause(host, 'unobserved_pending_roll');
     this.state.current.outcomes.push({ name: pending.params.name, args: pending.params.args, result, commandId: pending.params.commandId, committedSeq: pending.receipt.committedSeq });
     this.state.current.waiting = waiting; this.state.current.waitSeq = null;
+    if (waiting.length) this.releaseRefereeConversation();
     this.state.pending = null; host.saveCheckpoint(); return true;
   }
 }
