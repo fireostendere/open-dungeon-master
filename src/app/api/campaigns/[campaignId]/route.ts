@@ -29,6 +29,7 @@ import { listRecentAudit } from "@/lib/db/sheet-audit";
 import { insertCampaignMessage, listRecentMessages } from "@/lib/db/messages";
 import { listRollsVisibleTo } from "@/lib/db/rolls";
 import { listSheets } from "@/lib/db/sheets";
+import { projectSheetsForViewer } from "@/lib/sheet-privacy";
 import { isPrimaryDm, lobbyBlocker } from "@/lib/dm/viewer";
 import { listBlockedUserIds } from "@/lib/db/moderation";
 import { publishPersisted, publishWithSeq } from "@/lib/events";
@@ -61,7 +62,12 @@ export async function GET(
   const ownedCharacterIds = sheets
     .filter((sheet) => sheet.userId === user.id)
     .map((sheet) => sheet.id);
-  const visibleSheets = spatial && !caps.adjudicates ? sheets.filter((sheet) => sheet.userId === user.id) : sheets;
+  const scopedSheets = spatial && !caps.adjudicates
+    ? sheets.filter((sheet) => sheet.userId === user.id)
+    : sheets;
+  const visibleSheets = projectSheetsForViewer(scopedSheets, user.id, {
+    adjudicates: caps.adjudicates,
+  });
   const legacyPolicy = spatialLegacyPolicy({ campaignId, userId: user.id, adjudicates: caps.adjudicates, ownedCharacterIds });
   const visibleRolls = projectSpatialRolls(legacyPolicy, listRollsVisibleTo(campaignId, caps, ownedCharacterIds, 20));
   const visiblePendingRolls = listOpenPendingRolls(campaignId)

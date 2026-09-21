@@ -25,6 +25,7 @@ import { insertCampaignMessage, listMessagesInSeqRange, listRecentMessages } fro
 import { listPublicCampaignNotes } from "@/lib/db/notes";
 import { listRecentRolls } from "@/lib/db/rolls";
 import { listSheets } from "@/lib/db/sheets";
+import { projectSheetsForViewer } from "@/lib/sheet-privacy";
 import { getSceneTracker } from "@/lib/db/scene-tracker";
 import { consoleAdjudications } from "@/lib/dm/invoke-catalog";
 import { invokeEngineSynchronous } from "@/lib/dm/invoke";
@@ -80,7 +81,9 @@ function safeCampaign(campaign: NonNullable<ReturnType<typeof getCampaignById>>)
   return {
     id: campaign.id, title: campaign.title, description: campaign.description, status: campaign.status, theme: campaign.theme, scene: campaign.scene, questLog: campaign.questLog,
     difficulty: campaign.difficulty, startingLevel: campaign.startingLevel, dmMode: campaign.gameSettings.dmMode, dmUserId: campaign.dmUserId,
-    gameSettings: campaign.gameSettings, globalTurnState: campaign.globalTurnState, dmOutline: campaign.dmOutline, storyArc: campaign.storyArc, floor: campaign.floor, clock: campaign.clock, party: campaign.party,
+    gameSettings: campaign.gameSettings, globalTurnState: campaign.globalTurnState,
+    dmOutline: campaign.storyArc ? "" : campaign.dmOutline, storyArc: campaign.storyArc,
+    floor: campaign.floor, clock: campaign.clock, party: campaign.party,
   };
 }
 type CatalogOptions = { summaryOnly?: boolean; category?: string; action?: string };
@@ -120,7 +123,9 @@ function read(raw: unknown) {
     try { return budgetRead(snapshot, p.data); }
     catch (error) { if (error instanceof ReadBudgetError) throw new McpNarratorControlError(error.message, error.status); throw error; }
   }
-  const fetched = listEventsSince(campaign.id, p.data.afterSeq, p.data.limit + 1);
+  const fetched = p.data.afterSeq === currentSeq
+    ? []
+    : listEventsSince(campaign.id, p.data.afterSeq, p.data.limit + 1);
   const spatial = readSpatialForNarrator(campaign.id, campaign.dmUserId!, p.data.afterSeq, p.data.limit);
   const { nextCursor, hasMore, events, roomMessages } = spatialNarratorBoundary({ afterSeq: p.data.afterSeq, currentSeq, limit: p.data.limit, events: fetched, spatial });
   const legacyMessages = nextCursor > p.data.afterSeq ? listMessagesInSeqRange(campaign.id, p.data.afterSeq + 1, nextCursor).filter(msg => !isOocMessage(msg)) : [];
@@ -128,7 +133,9 @@ function read(raw: unknown) {
     ...message, campaignId: campaign.id, userId: message.authorUserId, characterId: null,
     authorType: message.kind === "narration" || message.kind === "perception" ? "dm" : "player", channel: "location" as const,
   }))].sort((a,b) => a.seq-b.seq);
-  const askMeta = pendingAsksForCampaign(campaign.id);
+  const askMeta = p.data.includeAsks
+    ? pendingAsksForCampaign(campaign.id)
+    : { pending: false };
   const askPage = p.data.includeAsks
     ? listPendingAsksForCampaign(campaign.id, p.data.afterAskSeq, p.data.askLimit)
     : { items: [], nextCursor: p.data.afterAskSeq, hasMore: false };
@@ -141,13 +148,18 @@ function read(raw: unknown) {
     db: getDatabase(), campaignId: campaign.id, timelineEpoch, principal: campaign.dmUserId,
     live, delta: delta && !stateDelta, knownSections: stateDelta ? {} : p.data.knownSections,
     loaders: {
-      sheets: () => listSheets(campaign.id), facts: () => listActiveFacts(campaign.id),
+      sheets: () => projectSheetsForViewer(listSheets(campaign.id), campaign.dmUserId, { adjudicates: true }), facts: () => listActiveFacts(campaign.id),
       notes: () => listPublicCampaignNotes(campaign.id, 20), npcs: () => npcRosterForPrompt(campaign.id, 40),
-      recentMessages: () => listRecentMessages(campaign.id, 96).filter(msg => !isOocMessage(msg)),
-      recentRolls: () => listRecentRolls(campaign.id, 32), chapters: () => listChapters(campaign.id),
+      // Host memory already keeps an audience-aware rolling summary and the
+      // referee sees at most 24 public messages. Keep a 2x overlap for edits
+      // and reconnect repair instead of remapping/hashing 96 rows each read.
+      recentMessages: () => listRecentMessages(campaign.id, 48).filter(msg => !isOocMessage(msg)),
+      recentRolls: () => listRecentRolls(campaign.id, 24), chapters: () => listChapters(campaign.id),
     },
   });
-  const receipts = listNarratorReceipts(campaign.id);
+  const receipts = delta && baselineSeq >= currentSeq
+    ? []
+    : listNarratorReceipts(campaign.id);
   const state = {
     campaignId: campaign.id, campaign: safeCampaign(campaign), currentSeq, timelineEpoch, cursor: p.data.afterSeq, nextCursor, hasMore,
     events: events.filter(isNarratorEvent).map(event =>
@@ -159,7 +171,11 @@ function read(raw: unknown) {
     ),
     messages, spatial: spatial ? { enabled: true, instructions: SPATIAL_GUIDANCE } : { enabled: false }, spatialRooms: spatial?.rooms ?? [], spatialGrants: spatial?.grants ?? [],
     commands: delta && baselineSeq > 0 ? receipts.filter(receipt => receipt.committedSeq > baselineSeq) : receipts,
-    summary: getCampaignSummaryState(campaign.id), members: listMembers(campaign.id), pendingRolls: listOpenPendingRolls(campaign.id),
+    // Legacy story_summary was produced by the retired hosted compaction path.
+    // Keep it available in explicit full reads, but the live narrator uses its
+    // own audience-aware rolling memory and should not query/send it every poll.
+    ...(!live ? { summary: getCampaignSummaryState(campaign.id) } : {}),
+    members: listMembers(campaign.id), pendingRolls: listOpenPendingRolls(campaign.id),
     playerWhispers: listPendingPlayerWhispers(campaign.id), recentDmWhispers: live ? [] : listRecentWhispersForPrompt(campaign.id),
     omittedSections, asks: askPage.items, askQueue: { nextCursor: askPage.nextCursor, hasMore: askPage.hasMore, pending: askMeta.pending },
     ...sections, sectionVersions, location: getCurrentLocation(campaign.id), sceneTracker: getSceneTracker(campaign.id),
@@ -220,7 +236,7 @@ function orchestrationSnapshot(raw: unknown) {
       asks: asks.items.length > 0 || asks.hasMore,
     },
     party: sections.has("party")
-      ? { members: listMembers(campaign.id), sheets: listSheets(campaign.id) }
+      ? { members: listMembers(campaign.id), sheets: projectSheetsForViewer(listSheets(campaign.id), campaign.dmUserId, { adjudicates: true }) }
       : undefined,
     combat: sections.has("combat")
       ? listActiveEncounters(campaign.id)

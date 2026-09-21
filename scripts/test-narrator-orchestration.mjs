@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { NarratorOrchestrator, validateDecision } from '../narrator/orchestration.mjs';
+import { compactRolePacket } from '../narrator/role-packet.mjs';
 import { OpenCodeAdapter } from '../narrator/opencode-adapter.mjs';
 import { readNarratorSnapshot } from '../narrator/read-session.mjs';
 import { HostContextMemory } from '../narrator/compaction.mjs';
@@ -26,10 +27,11 @@ function fixture(replies, options = {}) {
   } };
   const controller = new NarratorOrchestrator({ adapter, ...options });
   const host = {
-    campaignId: 'c', snapshot: snapshot(), saved: null, writes, commits, modelCalls, controller,
+    campaignId: 'c', snapshot: snapshot(), saved: null, saveCount: 0, writes, commits, modelCalls, controller, drains: [],
     memory: { getPromptContext: () => ({ summary: 'Earlier public events.' }) },
-    saveCheckpoint() { this.saved = this.controller.serialize(); },
-    async drainStory() {
+    saveCheckpoint() { this.saveCount++; this.saved = this.controller.serialize(); },
+    async drainStory(options = {}) {
+      this.drains.push(structuredClone(options));
       this.snapshot.nextCursor = this.snapshot.currentSeq;
       this.controller.ingestReadSnapshot(this.snapshot);
       this.saveCheckpoint(); return structuredClone(this.snapshot);
@@ -57,6 +59,126 @@ function fixture(replies, options = {}) {
   return host;
 }
 
+test('role packet drops transport metadata and duplicate actor context', () => {
+  const referee = compactRolePacket('referee', {
+    campaign: {
+      gameSettings: { language: 'ru', unitSystem: 'metric', ttsEnabled: true },
+      dmOutline: 'LEGACY_OUTLINE_SHOULD_NOT_DUPLICATE_STRUCTURED_ARC',
+      storyArc: {
+        version: 3,
+        premise: 'Premise',
+        stakes: 'Stakes',
+        antagonist: 'Antagonist',
+        acts: 3,
+        beats: [
+          { text: 'OLD_FINISHED_SECRET', status: 'done', act: 1 },
+          { text: 'Current beat', status: 'active', act: 2 },
+          { text: 'Next beat', status: 'pending', act: 2 },
+          { text: 'Future beat', status: 'pending', act: 3 },
+        ],
+        finale: 'Finale',
+        saga: {
+          title: 'Saga', plannedActs: 5, sagaIndex: 1, priorSagas: [],
+          sketches: [
+            { act: 1, milestone: 'old', status: 'done' },
+            { act: 2, milestone: 'now', status: 'detailed' },
+            { act: 3, milestone: 'next', status: 'sketch' },
+            { act: 4, milestone: 'later', status: 'sketch' },
+            { act: 5, milestone: 'far', status: 'sketch' },
+          ],
+        },
+        cast: Array.from({ length: 9 }, (_, i) => ({ id: `n${i}`, name: `NPC ${i}`, status: 'active' })),
+        events: Array.from({ length: 7 }, (_, i) => ({ id: `e${i}`, name: `Event ${i}`, status: 'pending', actHint: i + 1 })),
+        subArcs: Array.from({ length: 6 }, (_, i) => ({ id: `s${i}`, name: `Quest ${i}`, status: 'active' })),
+        worldArcs: [{
+          id: 'wa1', name: 'Cult', driver: 'Priest', rung: 2, stance: 'ignoring', cadence: 12, status: 'building',
+          rungs: ['sign 0', 'sign 1', 'CURRENT_WORLD_RUNG', 'NEXT_WORLD_RUNG', 'FAR_WORLD_RUNG'],
+          consequences: ['old consequence', 'new consequence'],
+        }],
+      },
+    },
+    state: {
+      sheets: [
+        {
+          id: 'c', userId: 'u', name: 'Focused', race: 'human', class: 'wizard', subclass: '',
+          classes: [], level: 5, currentHp: 20, maxHp: 30, tempHp: 0, ac: 13, speed: 30,
+          conditions: [], conditionMeta: {}, exhaustion: 0, deathSaves: null, concentratingOn: null,
+          resources: {}, abilities: { str: 8, dex: 14, con: 14, int: 18, wis: 12, cha: 10 },
+          proficiencies: { saves: ['int'], skills: ['arcana'], expertise: [], languages: ['common'], tools: [], armor: [], weapons: [] },
+          equipment: [{ name: 'FOCUSED_ITEM', qty: 1, weight: 999 }],
+          feats: [], features: [{ name: 'Arcane Recovery', source: 'class', debug: 'DROP' }],
+          spellcasting: { ability: 'int', slots: { '1': { max: 4, used: 1 } }, prepared: ['Magic Missile'], known: ['Shield'] },
+          hitDice: { die: 'd6', total: 5, spent: 0 }, hitDicePools: null, gold: 12, copper: 0,
+          wildShape: null, pets: [], backstory: 'FOCUSED_BACKSTORY', isCompanion: false, companionKind: null,
+        },
+        {
+          id: 'other', userId: 'other-user', name: 'Other', race: 'elf', class: 'rogue', subclass: '',
+          classes: [], level: 5, currentHp: 22, maxHp: 22, tempHp: 0, ac: 15, speed: 30,
+          conditions: [], conditionMeta: {}, exhaustion: 0, deathSaves: null, concentratingOn: null,
+          resources: {}, abilities: { str: 10, dex: 18, con: 12, int: 12, wis: 12, cha: 12 },
+          equipment: [{ name: 'OTHER_PRIVATE_BULK_ITEM', qty: 1 }],
+          feats: [], features: [], spellcasting: null, hitDice: { die: 'd8', total: 5, spent: 0 },
+          hitDicePools: null, gold: 0, copper: 0, wildShape: null, pets: [],
+          backstory: 'OTHER_BULK_BACKSTORY', isCompanion: false, companionKind: null,
+        },
+      ],
+      notes: Array.from({ length: 20 }, (_, i) => ({
+        id: `note-${i}`, title: `Note ${i}`, body: `NOTE_${i}_${'x'.repeat(1900)}`,
+        pinned: i < 2, visibility: 'public', status: 'active',
+      })),
+    },
+    public: { messages: [] },
+    input: { id: 'input', seq: 1, authorType: 'player', userId: 'u', characterId: 'c', content: 'go' },
+    outcomes: [
+      { name: 'pc_attack', args: { enemyId: 'e' }, result: { ok: true }, commandId: 'uuid', committedSeq: 99 },
+      { physicalRolls: [{ pendingRollId: 'p', roll: { id: 'r', total: 17, dc: 12, visibility: 'public', hugeDebug: 'DROP' } }] },
+    ],
+  });
+  assert.equal(Object.hasOwn(referee.outcomes[0], 'commandId'), false);
+  assert.equal(Object.hasOwn(referee.outcomes[0], 'committedSeq'), false);
+  assert.equal(Object.hasOwn(referee.outcomes[1].physicalRolls[0].roll, 'hugeDebug'), false);
+  assert.equal(Object.hasOwn(referee.campaign.gameSettings, 'ttsEnabled'), false);
+  assert.equal(referee.campaign.storyArc.currentBeatNumber, 2);
+  assert.doesNotMatch(JSON.stringify(referee.campaign.storyArc), /OLD_FINISHED_SECRET|FAR_WORLD_RUNG/);
+  assert.match(JSON.stringify(referee.campaign.storyArc), /Current beat|CURRENT_WORLD_RUNG|NEXT_WORLD_RUNG/);
+  assert.ok(referee.campaign.storyArc.cast.length <= 6);
+  assert.ok(referee.campaign.storyArc.events.length <= 4);
+  assert.ok(referee.campaign.storyArc.subArcs.length <= 4);
+  assert.ok(referee.campaign.storyArc.saga.sketches.length <= 3);
+  assert.equal(Object.hasOwn(referee.campaign, 'dmOutline'), false);
+  assert.equal(referee.state.sheets[0].equipment[0].name, 'FOCUSED_ITEM');
+  assert.equal(Object.hasOwn(referee.state.sheets[0].equipment[0], 'weight'), false);
+  assert.equal(referee.state.sheets[0].backstory, 'FOCUSED_BACKSTORY');
+  assert.equal(Object.hasOwn(referee.state.sheets[1], 'equipment'), false);
+  assert.equal(Object.hasOwn(referee.state.sheets[1], 'backstory'), false);
+  assert.doesNotMatch(JSON.stringify(referee.state.sheets[1]), /OTHER_PRIVATE_BULK_ITEM|OTHER_BULK_BACKSTORY/);
+  assert.ok(referee.state.notes.length <= 12);
+  assert.ok(referee.state.notes.reduce((sum, note) => sum + String(note.body ?? '').length + String(note.title ?? '').length, 0) <= 6000);
+  assert.equal(referee.state.notes[0].pinned, true);
+
+  const actor = compactRolePacket('actor', {
+    campaign: { gameSettings: { language: 'ru', unitSystem: 'metric', ttsEnabled: true } },
+    public: { messages: [{ id: 'm1', seq: 1, content: 'public' }, { id: 'm2', seq: 2, content: 'public2' }] },
+    context: {
+      summary: 'older',
+      recentMessages: [
+        { id: 'm1', seq: 1, content: 'public duplicate' },
+        { id: 'private', seq: 3, visibility: 'private', content: 'private clue' },
+      ],
+      recentRolls: [{ id: 'r', total: 10, debug: 'DROP' }],
+      summaryRecords: [{ id: 'large', content: 'DROP' }],
+      summarySegments: [{ id: 'large2', text: 'DROP' }],
+      characters: [{ id: 'duplicate-sheet', huge: 'DROP' }],
+    },
+  });
+  assert.deepEqual(actor.context.recentMessages.map(message => message.id), ['private']);
+  assert.equal(Object.hasOwn(actor.context, 'summaryRecords'), false);
+  assert.equal(Object.hasOwn(actor.context, 'summarySegments'), false);
+  assert.equal(Object.hasOwn(actor.context, 'characters'), false);
+  assert.equal(Object.hasOwn(actor.context.recentRolls[0], 'debug'), false);
+  assert.equal(Object.hasOwn(actor.campaign.gameSettings, 'ttsEnabled'), false);
+});
+
 test('real legacy player messages have no kind; referee receives IDs, state and actual catalog', async () => {
   const h = fixture([{ kind: 'invoke', action: 'request_roll', args: { characterId: 'hero', kind: 'skill_check', skill: 'investigation', dc: 12 } },
     { kind: 'narrate', text: 'You find the clue.', writer: true, releaseFloor: true }, 'Among the papers lies the clue.']);
@@ -70,6 +192,55 @@ test('real legacy player messages have no kind; referee receives IDs, state and 
   assert.equal(h.writes[1].params.content, 'Among the papers lies the clue.');
   assert.equal(h.controller.state.handledSeq, 2);
   await h.tick(); assert.equal(h.modelCalls.length, 3, 'idle polling must not spend model calls');
+});
+
+test('referee packet omits presentation and retired hosted-AI settings', async () => {
+  const h = fixture([{ kind: 'done' }]);
+  h.snapshot.campaign.gameSettings = {
+    language: 'ru',
+    unitSystem: 'metric',
+    combatMode: 'classical',
+    globalTurn: { enabled: false, turnCollectionMinutes: 10, quorumPlayers: 2, quorumDelayMinutes: 2 },
+    dmDifficulty: 7,
+    variantRules: { flanking: true, restVariant: 'standard' },
+    ttsEnabled: true,
+    ttsVoice: 'voice',
+    mapsEnabled: true,
+    enemyHpVisibility: 'exact',
+    enemyConditionVisibility: 'status_turns',
+    beatReminder: { messages: 10, rolls: 12 },
+    stages: { compaction: false, recall: false, retrieval: false, chapterSummary: false },
+    voice: { enabled: true, turnEnforcement: 'soft', rules: {} },
+  };
+  await h.tick();
+  const settings = h.modelCalls[0].packet.campaign.gameSettings;
+  assert.equal(settings.dmDifficulty, 7);
+  assert.equal(settings.variantRules.flanking, true);
+  assert.equal(Object.hasOwn(settings, 'ttsEnabled'), false);
+  assert.equal(Object.hasOwn(settings, 'mapsEnabled'), false);
+  assert.equal(Object.hasOwn(settings, 'voice'), false);
+  assert.equal(Object.hasOwn(settings, 'enemyHpVisibility'), false);
+  assert.equal(Object.hasOwn(settings, 'stages'), false);
+});
+
+test('idle narrator polls checkpoint only when the authoritative read boundary changes', async () => {
+  const h = fixture([]);
+  h.snapshot.messages = [];
+  h.snapshot.recentMessages = [];
+  h.snapshot.events = [];
+  h.snapshot.currentSeq = 4;
+  h.snapshot.nextCursor = 4;
+
+  assert.equal(await h.tick(), false);
+  const afterFirst = h.saveCount;
+  assert.ok(afterFirst > 0);
+  assert.equal(await h.tick(), false);
+  assert.equal(h.saveCount, afterFirst, 'same-seq idle poll must not fsync the same checkpoint again');
+
+  h.snapshot.currentSeq = 5;
+  h.snapshot.nextCursor = 5;
+  assert.equal(await h.tick(), false);
+  assert.equal(h.saveCount, afterFirst + 1, 'new authoritative boundary must be durable');
 });
 
 test('global turn opening stays locked until MCP narration starts the round', async () => {
@@ -303,6 +474,34 @@ test('matching physical roll_result is required; disappearance or another roll c
   h.snapshot.events.push({ seq: h.snapshot.currentSeq, type: 'roll_result', payload: { pendingRollId: 'pending', roll: { id: 'r', characterId: 'hero', kind: 'skill_check', visibility: 'public', total: 3 } } });
   await h.tick(); assert.equal(h.modelCalls.length, 2);
   assert.equal(h.writes.length, 2);
+});
+
+test('resolved physical roll does not trigger a redundant narrator read', async () => {
+  const h = fixture([
+    { kind: 'invoke', action: 'request_roll', args: { characterId: 'hero', kind: 'skill_check', skill: 'stealth' } },
+    { kind: 'done' },
+  ]);
+  h.onInvoke = action => {
+    if (action === 'narrator.invoke') {
+      h.snapshot.pendingRolls = [{ id: 'pending', characterId: 'hero' }];
+      return { ok: true, parked: true };
+    }
+    return { ok: true };
+  };
+  await h.tick();
+  h.drains.length = 0;
+  h.snapshot.pendingRolls = [];
+  h.snapshot.currentSeq++;
+  h.snapshot.nextCursor = h.snapshot.currentSeq;
+  h.snapshot.events = [{
+    seq: h.snapshot.currentSeq,
+    type: 'roll_result',
+    payload: { pendingRollId: 'pending', roll: { id: 'r1', characterId: 'hero', kind: 'skill_check', visibility: 'public', total: 12 } },
+  }];
+  await h.tick();
+  assert.equal(h.drains.length, 0, 'the already-drained roll_result is authoritative');
+  assert.equal(h.modelCalls.length, 2);
+  assert.equal(h.modelCalls[1].packet.outcomes[0].physicalRolls[0].roll.id, 'r1');
 });
 
 test('timeout recovery after restart sends the exact saved command without another model call', async () => {

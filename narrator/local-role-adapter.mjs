@@ -11,7 +11,12 @@ export async function createNarratorAdapter(options = {}) {
   // Build empty, deny-all, role-pinned sessions before gameplay. They contain
   // trusted instructions only; each is consumed once and replenished in the
   // background while the current model call runs.
-  await adapter.prepare(['referee', 'writer', 'ask', 'actor']);
+  // Referee is the only role required to start the host. Writer, Ask and
+  // autopilot actor are optional/degradable: warm them immediately, but a
+  // transient OpenCode failure in one of those roles must not keep the whole
+  // campaign narrator offline.
+  await adapter.prepare(['referee']);
+  for (const role of ['writer', 'ask', 'actor']) void adapter.ensureWarm(role).catch(() => {});
   const maxStepsRaw = options.maxSteps ?? process.env.ODM_NARRATOR_MAX_STEPS;
   const maxCallsRaw = options.maxCallsPerHour ?? process.env.ODM_NARRATOR_MAX_CALLS_PER_HOUR ?? 240;
 

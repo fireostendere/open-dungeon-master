@@ -122,7 +122,11 @@ export class NarratorRunner {
           await this.connect();
         }
       }
-      this.lastPollAt=Date.now();this.lastError=this.askError||this.askBlocked?'ask_failed':this.storyController?.state?.paused?'story_paused':null;this.saveCheckpoint();return !this.lastError;
+      this.lastPollAt=Date.now();this.lastError=this.askError||this.askBlocked?'ask_failed':this.storyController?.state?.paused?'story_paused':null;
+      // Successful idle polls are not durable state transitions. Story/Ask
+      // mutation sites checkpoint themselves; persisting lastPollAt every
+      // poll used to fsync the same game state continuously.
+      return !this.lastError;
     }catch{
       this.lastError='poll_failed';console.error('[narrator-runner] poll_failed');this.saveCheckpoint();return false;
     }finally{this.polling=false;}

@@ -37,12 +37,8 @@ export function filterNarratorCatalog(groups, mode, { spatialEnabled = false } =
   );
 
   return [{
-    category: "engine",
-    label: "Game engine",
     actions: [{
       name: YOLO_GAME_TOOL_NAME,
-      label: "Game",
-      summary: "Single façade over authoritative dice, combat, world and persistent state. Choose one operation from operations and pass {action, args}.",
       operations,
     }],
   }];
