@@ -16,17 +16,9 @@ function yoloActionAllowed(name, spatialEnabled) {
 }
 
 function compactOperation(action) {
-  const fields = (action.fields ?? []).map(field => ({
-    name: field.name,
-    ...(field.required ? { required: true } : {}),
-    ...(field.kind ? { kind: field.kind } : {}),
-  }));
-  return {
-    name: action.name,
-    ...(action.label ? { label: action.label } : {}),
-    ...(action.summary ? { summary: action.summary } : {}),
-    ...(fields.length ? { fields } : {}),
-  };
+  // The operation name is enough for routing. Parameter detail is fetched
+  // lazily through narrator.catalog only when the referee needs it.
+  return { name: action.name };
 }
 
 export function resolveNarratorPlayMode(adapter, { requested, env = process.env } = {}) {
