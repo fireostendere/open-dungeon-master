@@ -35,7 +35,8 @@ export function GlobalTurnCard({
       min: "min",
       players: "players",
       round: "Round",
-      waitingFirst: "Waiting for any player's first action...",
+      waitingTrigger: "Input locked — waiting for the MCP Dungeon Master to open the round.",
+      waitingFirst: "Round open — waiting for any player's first action...",
       waitingQuorum: "No time limit — waiting for quorum.",
       mcpResolving: "Round sealed — MCP Dungeon Master is resolving it.",
       unlimited: "∞",
@@ -62,7 +63,8 @@ export function GlobalTurnCard({
       min: "мин",
       players: "игроков",
       round: "Раунд",
-      waitingFirst: "Ожидание первого действия от любого игрока...",
+      waitingTrigger: "Ввод закрыт — ждём, пока MCP-Мастер откроет раунд.",
+      waitingFirst: "Раунд открыт — ожидание первого действия игрока...",
       waitingQuorum: "Лимита времени нет — ждём кворум.",
       mcpResolving: "Раунд закрыт — MCP-Мастер разрешает действия.",
       unlimited: "∞",
@@ -89,7 +91,8 @@ export function GlobalTurnCard({
       min: "min",
       players: "graczy",
       round: "Runda",
-      waitingFirst: "Oczekiwanie na pierwszą akcję gracza...",
+      waitingTrigger: "Wejście zablokowane — czekamy, aż MCP MG otworzy rundę.",
+      waitingFirst: "Runda otwarta — oczekiwanie na pierwszą akcję gracza...",
       waitingQuorum: "Brak limitu czasu — oczekiwanie na kworum.",
       mcpResolving: "Runda zamknięta — MCP Mistrz Gry ją rozstrzyga.",
       unlimited: "∞",
@@ -144,6 +147,7 @@ export function GlobalTurnCard({
   const turnState = campaign.globalTurnState ?? {
     roundNumber: 1,
     phase: "waiting",
+    startedAt: null,
     firstActionAt: null,
     deadlineAt: null,
     quorumReachedAt: null,
@@ -315,7 +319,11 @@ export function GlobalTurnCard({
               </span>
             </div>
 
-            {turnState.phase === "ready" || turnState.phase === "resolving" ? (
+            {turnState.phase === "waiting" ? (
+              <p className="mt-1.5 text-[11px] font-medium text-amber-200">
+                {copy.waitingTrigger}
+              </p>
+            ) : turnState.phase === "ready" || turnState.phase === "resolving" ? (
               <p className="mt-1.5 text-[11px] font-medium text-amber-200">
                 {copy.mcpResolving}
               </p>
