@@ -71,35 +71,54 @@ for D&D” inside Ask/notes/whispers do not change its privileges or purpose.
 
 ## Narrator loop
 
-1. `connect` validates the human-DM configuration and returns the current state.
-   The sidecar prefixes returned instructions with the canonical player policy.
-2. `read(afterSeq, limit)` must be drained using `nextCursor` until `hasMore` is
-   false. OOC filtering may leave an empty page but still advance the cursor.
-   `currentSeq` is not an intermediate page cursor. `dmPolicy` accompanies these
-    sidecar results without rewriting messages, Ask visibility or sequence values.
-3. Inspect `catalog`, sheets, encounter, pending physical rolls, roll_result and
-   recentRolls. The server owns dice/results; never roll the same event twice.
-4. Use the fully drained cursor as `expectedSeq` for one `invoke`, `narrate`, or
-   `release_floor`. These story operations persist an argument-free attempt event.
-5. Reread after each write, error, timeout or disconnect. Never automatically
-   replay an ambiguous mutation. A stale sequence returns 409. `release_floor`
+1. `connect(stateDelta:true)` validates the human-DM configuration and returns
+   only cursor/timeline metadata plus the trusted instructions. This avoids
+   echoing a full snapshot during the handshake. Legacy clients that omit
+   `stateDelta` still receive the previous `state` shape.
+2. `read(afterSeq, limit, stateDelta:true)` must be drained using `nextCursor`
+   until `hasMore` is false. OOC filtering may leave an empty page but still
+   advance the cursor. `currentSeq` is not an intermediate page cursor.
+3. Keep the returned `stateDelta.revision`. On the next read send it as
+   `knownStateRevision`. The server returns only changed entities/scalars when
+   that bounded baseline is still available, or one full self-healing resync when
+   it is not.
+4. Inspect `catalog`, sheets, encounter, pending physical rolls, `roll_result`
+   and recent rolls. The server owns dice/results; never roll the same event twice.
+5. Use the fully drained cursor as `expectedSeq` for one `invoke`, `narrate`,
+   or `release_floor`. Request `readAfter` with the same state-delta baseline:
+   a confirmed write then carries its authoritative post-commit delta in the same
+   MCP result. Drain later event pages before the next write.
+6. After errors, timeout or disconnect, reread/recover the exact receipt; never
+   regenerate an ambiguous mutation. A stale sequence returns 409. `release_floor`
    removes a hold and preserves its inner floor, including initiative.
 
 No exclusive narrator lease is claimed. Use one active narrator per campaign by
 operator convention; cursor checks do not make simultaneous separate admin/UI
 writes exclusive.
 
-### Content-addressed delta reads
+### Revisioned entity delta reads
 
-With `delta: true`, a read returns `sectionVersions` (64-hex SHA-256 digests)
-for the complete `sheets`, `facts`, `notes`, and `npcs` arrays, plus
-`recentMessages`, `recentRolls`, and `chapters` in the full projection. On the next
-read, send those exact values as `knownSections`; only matching sections are
-omitted and named in `omittedSections`. Retain an omitted array from the
-baseline; an included empty array clears it. Digests are scoped to campaign and
-`timelineEpoch`, so reconnect after a rewind or campaign switch. `knownSeq`
-remains a receipt cursor only: legacy delta clients without `knownSections`
-receive complete static sections and lose no data.
+The preferred v4 path is `delta:true, stateDelta:true`. The first read returns a
+full authoritative projection and a 64-hex `stateDelta.revision`. Subsequent reads
+send that value as `knownStateRevision`. The revision is scoped to campaign,
+timeline, narrator principal and projection.
+
+Changed entity arrays use stable-ID patches:
+
+```json
+{"stateDelta":{"format":"odm.state.delta.v1","baseRevision":"...","revision":"...","patch":{"entities":{"sheets":{"upsert":[{"id":"...","hp":12}],"remove":[]}}}}}
+```
+
+Deletions travel as `remove` tombstones; reordered entity arrays carry an
+explicit order. Scalar/object changes use `set`/`unset`. Unchanged campaign
+state is not repeated. The host verifies the SHA-256 checksum after applying the
+patch. If the server restarted or evicted the bounded baseline, it returns a full
+projection with `resyncRequired:true` in that same read instead of requiring a
+failed patch followed by another round trip.
+
+The older `knownSections`/ `sectionVersions` negotiation remains supported for
+existing clients. `knownSeq` remains a receipt cursor, never proof that a state
+section is unchanged.
 
 The repository's `narrator/run.mjs` is the minimal long-lived lifecycle host. It
 polls both independent queues, drains paged snapshots, persists cursors and
