@@ -298,6 +298,12 @@ const testAsk = insertAsk({
 
 const askRead = await executeMcpNarratorControl("narrator.read", { campaignId: oocCampaign.id, afterSeq: 0, limit: 10 });
 assert.ok(askRead.result.asks.some((a) => a.id === testAsk.id), "narrator.read must include asks");
+const storyOnlyRead = await executeMcpNarratorControl("narrator.read", {
+  campaignId: oocCampaign.id, afterSeq: 0, limit: 10, includeAsks: false,
+});
+assert.deepEqual(storyOnlyRead.result.asks, [], "story-only reads must not repeat pending Ask payloads");
+assert.equal(storyOnlyRead.result.askQueue.hasMore, false);
+assert.equal(storyOnlyRead.result.askQueue.nextCursor, 0);
 
 const answerCommandId = randomUUID();
 const askSequence = latestSeq(oocCampaign.id);
