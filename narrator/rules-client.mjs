@@ -7,6 +7,7 @@ const REQUIRED_TOOLS = [...ALLOWED_TOOLS].sort();
 const clip = (value,max) => typeof value === 'string' ? value.slice(0,max) : '';
 const SAFE_ENV_KEYS = new Set([
   'PATH','HOME','USERPROFILE','TMP','TEMP','TMPDIR','VIRTUAL_ENV','PYTHONPATH',
+  'LANG','LC_ALL','LC_CTYPE','PYTHONUTF8','PYTHONIOENCODING',
   'SSL_CERT_FILE','SSL_CERT_DIR','REQUESTS_CA_BUNDLE','CURL_CA_BUNDLE',
   'HTTP_PROXY','HTTPS_PROXY','NO_PROXY','http_proxy','https_proxy','no_proxy',
 ]);
