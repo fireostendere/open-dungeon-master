@@ -185,17 +185,30 @@ function compactFacts(facts) {
 
 function compactNotes(notes) {
   if (!Array.isArray(notes)) return notes;
-  return notes.slice(0, 20).map(note => {
-    if (!note || typeof note !== 'object') return note;
-    return {
+  const selected = [];
+  let budget = 6000;
+  const ordered = [
+    ...notes.filter(note => note?.pinned).slice(0, 8),
+    ...notes.filter(note => !note?.pinned),
+  ];
+  for (const note of ordered) {
+    if (selected.length >= 12 || budget <= 80 || !note || typeof note !== 'object') break;
+    const title = String(note.title ?? '').slice(0, 120);
+    const overhead = title.length + 32;
+    const bodyBudget = Math.max(0, Math.min(1200, budget - overhead));
+    if (bodyBudget < 80 && !note.pinned) continue;
+    const body = String(note.body ?? '').slice(0, bodyBudget);
+    selected.push({
       id: note.id,
-      title: note.title,
-      body: note.body,
+      title,
+      body,
       pinned: Boolean(note.pinned),
       visibility: note.visibility,
       status: note.status,
-    };
-  });
+    });
+    budget -= overhead + body.length;
+  }
+  return selected;
 }
 
 function compactNpcs(npcs) {
@@ -411,19 +424,19 @@ export function compactRolePacket(role, packet) {
   if (Array.isArray(packet.rollEvents) && packet.rollEvents.length) {
     result = { ...result, rollEvents: packet.rollEvents.slice(-16).map(compactNarratorEvent) };
   }
-  if (packet.campaign?.gameSettings || packet.campaign?.storyArc) {
-    result = {
-      ...result,
-      campaign: {
-        ...packet.campaign,
-        ...(packet.campaign?.gameSettings
-          ? { gameSettings: compactGameSettings(packet.campaign.gameSettings) }
-          : {}),
-        ...(packet.campaign?.storyArc
-          ? { storyArc: compactStoryArc(packet.campaign.storyArc) }
-          : {}),
-      },
+  if (packet.campaign?.gameSettings || packet.campaign?.storyArc || packet.campaign?.dmOutline) {
+    const campaign = {
+      ...packet.campaign,
+      ...(packet.campaign?.gameSettings
+        ? { gameSettings: compactGameSettings(packet.campaign.gameSettings) }
+        : {}),
+      ...(packet.campaign?.storyArc
+        ? { storyArc: compactStoryArc(packet.campaign.storyArc) }
+        : {}),
     };
+    if (packet.campaign?.storyArc) delete campaign.dmOutline;
+    else if (typeof campaign.dmOutline === 'string') campaign.dmOutline = campaign.dmOutline.slice(0, 4000);
+    result = { ...result, campaign };
   }
   const sheets = packet.state?.sheets;
   if (Array.isArray(sheets)) {
