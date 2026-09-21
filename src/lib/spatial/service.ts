@@ -7,6 +7,7 @@ import { getSheetForUser } from "@/lib/db/sheets";
 import { getActiveEncounter } from "@/lib/db/encounters";
 import { isMemberMuted } from "@/lib/db/moderation";
 import { coverInEffect } from "@/lib/dm/delegation";
+import { recordGlobalTurnAction, resolveGlobalTurn } from "@/lib/dm/global-turn-logic";
 import { isDmSeat } from "@/lib/dm/viewer";
 import { createSpatialStore, SpatialError, type SpatialActor, type SpatialStore } from "@/lib/spatial/store.mjs";
 import { capturePreSpatialEntities } from "@/lib/spatial/domain-migration";
@@ -83,16 +84,48 @@ export function runSpatialCommand(campaignId: string, userId: string, raw: unkno
     }
   }
   const { operation, requestId, ...input } = command;
+  let globalTurnResolution: { roundNumber: number } | null = null;
   const result = getDatabase().transaction(() => {
     const previouslyEnabled = spatialStore().enabled(campaignId);
     const result = spatialStore().command(actor, requestId, operation, input, (raw) =>
       actor.isDm && ["send", "propagate", "perceive"].includes(operation) && typeof raw.content === "string"
         ? { ...raw, content: normalizeNarrationUnits(raw.content, campaign.gameSettings.unitSystem) }
         : raw);
+
+    // Spatial player chat participates in the same global-round barrier as the
+    // legacy composer. Run this inside the same DB transaction so a locked
+    // round or duplicate do/say rolls the spatial message back as well.
+    if (
+      !actor.isDm &&
+      operation === "send" &&
+      (command.kind === "do" || command.kind === "say") &&
+      campaign.gameSettings.globalTurn?.enabled
+    ) {
+      const sheet = getSheetForUser(campaignId, userId);
+      if (!sheet) throw new SpatialError("You need a character to act.", 409);
+      const turn = recordGlobalTurnAction(
+        campaignId,
+        sheet.id,
+        userId,
+        command.kind,
+      );
+      if (!turn.allowed) {
+        throw new SpatialError(turn.error ?? "This round is not accepting input.", 409);
+      }
+      if (turn.shouldResolve && turn.state) {
+        globalTurnResolution = { roundNumber: turn.state.roundNumber };
+      }
+    }
+
     // Exact retry of enable must not capture newer text as pre-spatial history.
     if (operation === "enable" && !previouslyEnabled) capturePreSpatialEntities(campaignId);
     return result;
   })();
+  if (globalTurnResolution) {
+    void resolveGlobalTurn(campaignId, globalTurnResolution.roundNumber).catch((error) =>
+      console.error("[global-turn] Failed to seal spatial round:", error),
+    );
+  }
   touchCampaign(campaignId);
   // Internal wakeup only, after the OUTERMOST narrator transaction commits.
   // Each waiting request reloads its authorized projection. An unchanged
