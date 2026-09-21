@@ -2,6 +2,20 @@
     auto_https disable_redirects
 }
 
+# Full ODM browser UI. Keep it on a dedicated hostname: Next.js and the
+# existing LiveKit web app both own root-relative /api and /_next paths, so a
+# /dnd subpath on api.iroslyakov.com is not a safe proxy boundary.
+# Point dnd.iroslyakov.com at this host before reloading Caddy. For a managed
+# install that was originally created without --domain, also set
+# APP_PUBLIC_URL=https://dnd.iroslyakov.com, ODM_PUBLIC_ORIGIN=https://dnd.iroslyakov.com,
+# and COOKIE_SECURE=1 in /opt/odm/config/app.env before restarting ODM.
+dnd.iroslyakov.com {
+    @odm_web_internal path /api/internal /api/internal/*
+    respond @odm_web_internal 404
+
+    reverse_proxy 127.0.0.1:3005
+}
+
 api.iroslyakov.com {
     reverse_proxy /rtc* localhost:7880
     reverse_proxy /twirp/* localhost:7880

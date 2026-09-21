@@ -1,7 +1,7 @@
 "use client";
 
 import * as AlertDialog from "@radix-ui/react-alert-dialog";
-import { Check, Link2, Loader2, ShieldCheck, Trash2, Undo2, UserRound } from "lucide-react";
+import { Check, Copy, Link2, Loader2, ShieldCheck, Trash2, Undo2, UserRound } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/cn";
@@ -14,6 +14,7 @@ import { ChangePasswordForm } from "@/app/ChangePasswordForm";
 import { currentPathname, currentQuery, replaceAddress } from "@/lib/navigation";
 import { useI18n, type Locale } from "@/lib/i18n";
 import { localeText } from "@/lib/i18n/locale-text";
+import { readSeatSecret } from "@/lib/device-seat";
 
 type Me = {
   id: string;
@@ -61,6 +62,11 @@ export default function SettingsPage() {
       passwordDiscordHelp: "You sign in with Discord. Set a password to also log in with your username, for example in the desktop and mobile apps.",
       setPassword: "Set password",
       passwordSaved: "Password saved. Other devices were signed out.",
+      otherDevicesHeading: "Other devices",
+      otherDevicesHelp: "This local table seat uses a private seat key instead of a normal password. Copy it to a second browser once; each browser then keeps its own independent session. Treat the key like a password.",
+      seatKeyUnavailable: "This browser does not have the seat key. Open settings on a device that already joined this seat.",
+      copySeatKey: "Copy seat key",
+      seatKeyCopied: "Copied",
       discordLinked: "Linked. You can sign in with Discord.",
       linkDiscord: "Link Discord account",
       deletionScheduled: "Deletion scheduled",
@@ -104,6 +110,11 @@ export default function SettingsPage() {
       passwordDiscordHelp: "Вы входите через Discord. Задайте пароль, чтобы также входить по имени пользователя, например в настольном и мобильном приложениях.",
       setPassword: "Задать пароль",
       passwordSaved: "Пароль сохранён. На других устройствах выполнен выход.",
+      otherDevicesHeading: "Другие устройства",
+      otherDevicesHelp: "В локальном мире вместо обычного пароля используется приватный ключ места. Один раз скопируйте его во второй браузер — после входа у каждого устройства будет своя независимая сессия. Относитесь к ключу как к паролю.",
+      seatKeyUnavailable: "В этом браузере ключа места нет. Откройте настройки на устройстве, где это место уже было занято.",
+      copySeatKey: "Скопировать ключ места",
+      seatKeyCopied: "Скопировано",
       discordLinked: "Привязан. Теперь можно входить через Discord.",
       linkDiscord: "Привязать аккаунт Discord",
       deletionScheduled: "Удаление запланировано",
@@ -147,6 +158,11 @@ export default function SettingsPage() {
       passwordDiscordHelp: "Logujesz się przez Discord. Ustaw hasło, aby móc też logować się nazwą użytkownika, na przykład w aplikacji komputerowej i mobilnej.",
       setPassword: "Ustaw hasło",
       passwordSaved: "Hasło zapisano. Inne urządzenia zostały wylogowane.",
+      otherDevicesHeading: "Inne urządzenia",
+      otherDevicesHelp: "Lokalne miejsce przy stole używa prywatnego klucza zamiast zwykłego hasła. Skopiuj go raz do drugiej przeglądarki; potem każde urządzenie ma własną niezależną sesję. Traktuj klucz jak hasło.",
+      seatKeyUnavailable: "Ta przeglądarka nie ma klucza miejsca. Otwórz ustawienia na urządzeniu, które już używa tego miejsca.",
+      copySeatKey: "Kopiuj klucz miejsca",
+      seatKeyCopied: "Skopiowano",
       discordLinked: "Połączono. Możesz logować się przez Discord.",
       linkDiscord: "Połącz konto Discord",
       deletionScheduled: "Zaplanowano usunięcie",
@@ -179,6 +195,8 @@ export default function SettingsPage() {
   const [keeping, setKeeping] = useState(false);
   const [about, setAbout] = useState<{ serverName: string; version: string; graceDays: number } | null>(null);
   const [deviceWorld, setDeviceWorld] = useState(false);
+  const [seatKey, setSeatKey] = useState("");
+  const [seatCopied, setSeatCopied] = useState(false);
   const [discordNotice] = useState(() => {
     if (typeof window === "undefined") return "";
     const query = currentQuery();
@@ -190,7 +208,11 @@ export default function SettingsPage() {
   useEffect(() => {
     fetch("/api/auth/me")
       .then((response) => (response.ok ? response.json() : null))
-      .then((data) => setMe(data?.user ?? null))
+      .then((data) => {
+        const user = (data?.user ?? null) as Me | null;
+        setMe(user);
+        if (user) setSeatKey(readSeatSecret(user.username));
+      })
       .finally(() => setLoading(false));
     fetch("/api/auth/providers")
       .then((response) => (response.ok ? response.json() : null))
@@ -266,6 +288,17 @@ export default function SettingsPage() {
     setTimeout(() => setPasswordChanged(false), 2500);
   }
 
+  async function copySeatKey() {
+    if (!seatKey) return;
+    try {
+      await navigator.clipboard.writeText(seatKey);
+      setSeatCopied(true);
+      setTimeout(() => setSeatCopied(false), 2500);
+    } catch {
+      // The key remains selectable below when Clipboard API is unavailable.
+    }
+  }
+
   const deleteReady = me?.hasPassword ? deleteConfirm.length > 0 : deleteConfirm === "DELETE";
   const graceDays = about?.graceDays ?? 14;
   const graceCopy = graceDays === 0 ? copy.immediateGrace : copy.grace(graceDays);
@@ -338,7 +371,23 @@ export default function SettingsPage() {
         <p className="mt-3 text-xs text-stone-500">{copy.pictureHelp}</p>
       </PageSection>
 
-      {deviceWorld && !me.isAdmin ? null : (
+      {deviceWorld && !me.isAdmin ? (
+        <PageSection heading={copy.otherDevicesHeading} intro={copy.otherDevicesHelp}>
+          {seatKey ? (
+            <div className="space-y-2">
+              <code className="block select-all break-all rounded-lg border border-stone-700 bg-stone-950 px-3 py-2 font-mono text-xs text-stone-300">
+                {seatKey}
+              </code>
+              <button type="button" onClick={copySeatKey} className={ui.btnSmall}>
+                {seatCopied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
+                {seatCopied ? copy.seatKeyCopied : copy.copySeatKey}
+              </button>
+            </div>
+          ) : (
+            <p className="text-sm text-stone-500">{copy.seatKeyUnavailable}</p>
+          )}
+        </PageSection>
+      ) : (
         <PageSection heading={me.hasPassword === false ? copy.setPasswordHeading : copy.passwordHeading}>
           {me.hasPassword === false ? (
             <>

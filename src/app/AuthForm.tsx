@@ -10,6 +10,12 @@ import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { currentPathname, currentQuery, replaceAddress } from "@/lib/navigation";
 import { useI18n } from "@/lib/i18n";
 import type { Locale } from "@/lib/i18n/translations";
+import {
+  mintSeatSecret,
+  normalizeSeatSecret,
+  readSeatSecret,
+  rememberSeatSecret,
+} from "@/lib/device-seat";
 
 type AuthMode = "login" | "register";
 type SignupMode = "open" | "invite" | "closed";
@@ -24,6 +30,12 @@ function authCopy(locale: Locale) {
         invite_invalid: "Этот код приглашения недействителен или уже использован.",
       } as Record<string, string>,
       seatTaken: "Это имя уже занято за этим столом. Выберите другое или попросите владельца удалить старое место.",
+      seatKeyNeeded: "Это место уже существует. Введите ключ места, чтобы открыть его на этом устройстве.",
+      seatKeyWrong: "Ключ места не подходит к этому имени.",
+      seatKeyInvalid: "Ключ места должен состоять из 48 шестнадцатеричных символов.",
+      seatKeyLabel: "Ключ места",
+      seatKeyPlaceholder: "Вставьте ключ с другого устройства",
+      seatKeyHelp: "На устройстве, где это место уже открыто, зайдите в Настройки аккаунта → Другие устройства и скопируйте ключ.",
       genericError: "Что-то пошло не так.",
       unreachable: "Не удалось подключиться к серверу.",
       resetIntro: "Администратор сбросил ваш пароль. Задайте новый пароль, чтобы продолжить.",
@@ -46,6 +58,12 @@ function authCopy(locale: Locale) {
         invite_invalid: "Ten kod zaproszenia jest nieprawidłowy albo został już wykorzystany.",
       } as Record<string, string>,
       seatTaken: "Ta nazwa jest już zajęta przy tym stole. Wybierz inną albo poproś gospodarza o usunięcie starego miejsca.",
+      seatKeyNeeded: "To miejsce już istnieje. Wpisz jego klucz, aby użyć go na tym urządzeniu.",
+      seatKeyWrong: "Ten klucz miejsca nie pasuje do tej nazwy.",
+      seatKeyInvalid: "Klucz miejsca ma 48 znaków szesnastkowych.",
+      seatKeyLabel: "Klucz miejsca",
+      seatKeyPlaceholder: "Wklej klucz z innego zalogowanego urządzenia",
+      seatKeyHelp: "Na urządzeniu, które już używa tego miejsca, otwórz Ustawienia konta → Inne urządzenia i skopiuj klucz.",
       genericError: "Coś poszło nie tak.",
       unreachable: "Nie udało się połączyć z serwerem.",
       resetIntro: "Administrator zresetował twoje hasło. Ustaw nowe, aby kontynuować.",
@@ -67,6 +85,12 @@ function authCopy(locale: Locale) {
       invite_invalid: "That invite code is not valid (or has been used up).",
     } as Record<string, string>,
     seatTaken: "That name is already taken at this table. Pick another, or ask the host to remove the old seat.",
+    seatKeyNeeded: "That seat already exists. Enter its seat key to use it on this device.",
+    seatKeyWrong: "That seat key is not valid for this name.",
+    seatKeyInvalid: "A seat key is 48 hexadecimal characters.",
+    seatKeyLabel: "Seat key",
+    seatKeyPlaceholder: "Paste the key from another signed-in device",
+    seatKeyHelp: "On a device already using this seat, open Account settings → Other devices and copy the key.",
     genericError: "Something went wrong.",
     unreachable: "Could not reach the server.",
     resetIntro: "An admin reset your password. Pick a new one to continue.",
@@ -84,30 +108,6 @@ function authCopy(locale: Locale) {
 const FIELD = cn(ui.input, "h-11");
 const DISCORD_BTN =
   "inline-flex h-11 w-full items-center justify-center gap-2.5 rounded-lg border border-indigo-400/30 bg-[#5865f2]/15 px-4 text-sm text-indigo-100 transition-all duration-150 ease-snap hover:bg-[#5865f2]/25 hover:text-white active:scale-[0.98]";
-const SEAT_PREFIX = "odm-seat:";
-
-function seatSecret(name: string): string {
-  try {
-    return window.localStorage.getItem(`${SEAT_PREFIX}${name.toLowerCase()}`) ?? "";
-  } catch {
-    return "";
-  }
-}
-
-function rememberSeat(name: string, secret: string): void {
-  try {
-    window.localStorage.setItem(`${SEAT_PREFIX}${name.toLowerCase()}`, secret);
-  } catch {
-    // Private mode or storage off: the seat still works this once.
-  }
-}
-
-function mintSecret(): string {
-  const bytes = new Uint8Array(24);
-  window.crypto.getRandomValues(bytes);
-  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
-}
-
 function discordStartHref(inviteCode: string, joinCode?: string): string {
   const query = new URLSearchParams();
   if (inviteCode.trim()) query.set("invite", inviteCode.trim().toUpperCase());
@@ -150,6 +150,8 @@ export default function AuthForm({
   const [signupMode, setSignupMode] = useState<SignupMode>("open");
   const [deviceWorld, setDeviceWorld] = useState(false);
   const [inviteCode, setInviteCode] = useState(urlInvite);
+  const [seatKey, setSeatKey] = useState("");
+  const [seatKeyRequested, setSeatKeyRequested] = useState(false);
   const [pendingReset, setPendingReset] = useState<{ user: SessionUser; tempPassword: string } | null>(null);
 
   useEffect(() => {
@@ -178,8 +180,14 @@ export default function AuthForm({
     setError("");
     try {
       const name = username.trim();
-      const kept = seatJoin ? seatSecret(name) : "";
-      const secret = seatJoin ? kept || mintSecret() : password;
+      const kept = seatJoin ? readSeatSecret(name) : "";
+      const entered = seatJoin ? normalizeSeatSecret(seatKey) : "";
+      if (seatJoin && seatKey.trim() && !entered) {
+        setSeatKeyRequested(true);
+        setError(copy.seatKeyInvalid);
+        return;
+      }
+      const secret = seatJoin ? entered || kept || mintSeatSecret() : password;
       const payload: Record<string, string> = { username: name, password: secret };
       if (effectiveMode === "register" && inviteCode.trim()) payload.inviteCode = inviteCode.trim().toUpperCase();
       if (effectiveMode === "register" && joinCode) payload.joinCode = joinCode.trim().toUpperCase();
@@ -189,19 +197,36 @@ export default function AuthForm({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      if (seatJoin && response.status === 409 && kept) {
+      let resumedSeat = false;
+      if (seatJoin && response.status === 409) {
+        const resumeSecret = entered || kept;
+        if (!resumeSecret) {
+          setSeatKeyRequested(true);
+          setError(copy.seatKeyNeeded);
+          return;
+        }
+        resumedSeat = true;
         response = await fetch("/api/auth/login", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ username: name, password: kept }),
+          body: JSON.stringify({ username: name, password: resumeSecret }),
         });
       }
       const data = await response.json().catch(() => ({}));
       if (!response.ok) {
-        setError(seatJoin && response.status === 409 ? copy.seatTaken : copy.genericError);
+        setError(
+          seatJoin && resumedSeat
+            ? copy.seatKeyWrong
+            : seatJoin && response.status === 409
+              ? copy.seatTaken
+              : copy.genericError,
+        );
         return;
       }
-      if (seatJoin) rememberSeat(name, secret);
+      if (seatJoin) {
+        rememberSeatSecret(name, secret);
+        setSeatKeyRequested(false);
+      }
       if (data.user?.mustChangePassword) {
         setPendingReset({ user: data.user, tempPassword: password });
         return;
@@ -266,6 +291,22 @@ export default function AuthForm({
             className={FIELD}
           />
         </label>
+        {seatJoin && seatKeyRequested ? (
+          <label className="block">
+            <span className="mb-1.5 block text-xs text-stone-400">{copy.seatKeyLabel}</span>
+            <input
+              type="password"
+              value={seatKey}
+              onChange={(event) => setSeatKey(event.target.value)}
+              autoComplete="off"
+              required
+              spellCheck={false}
+              placeholder={copy.seatKeyPlaceholder}
+              className={cn(FIELD, "font-mono tracking-wider")}
+            />
+            <span className="mt-1.5 block text-xs text-stone-500">{copy.seatKeyHelp}</span>
+          </label>
+        ) : null}
         {seatJoin ? null : (
           <label className="block">
             <span className="mb-1.5 block text-xs text-stone-400">{t("auth.password")}</span>
