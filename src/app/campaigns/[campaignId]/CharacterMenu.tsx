@@ -3,6 +3,7 @@
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import {
   BookUser,
+  Bot,
   Crown,
   Flag,
   MessageSquare,
@@ -31,6 +32,8 @@ const COPY = {
     adjustStats: "Adjust stats",
     makeLead: "Make party lead",
     dismissCompanion: "Dismiss companion",
+    autopilotOn: "Enable MCP autopilot",
+    autopilotOff: "Disable MCP autopilot",
     unmute: "Unmute player",
     mute: "Mute player",
     report: "Report player",
@@ -45,6 +48,8 @@ const COPY = {
     adjustStats: "Изменить характеристики",
     makeLead: "Сделать лидером группы",
     dismissCompanion: "Отпустить спутника",
+    autopilotOn: "Включить MCP-автопилот",
+    autopilotOff: "Отключить MCP-автопилот",
     unmute: "Включить звук игрока",
     mute: "Заглушить игрока",
     report: "Пожаловаться на игрока",
@@ -59,6 +64,8 @@ const COPY = {
     adjustStats: "Dostosuj statystyki",
     makeLead: "Ustaw jako lidera drużyny",
     dismissCompanion: "Odpraw towarzysza",
+    autopilotOn: "Włącz autopilota MCP",
+    autopilotOff: "Wyłącz autopilota MCP",
     unmute: "Włącz dźwięk gracza",
     mute: "Wycisz gracza",
     report: "Zgłoś gracza",
@@ -82,6 +89,8 @@ export function CharacterMenu({
   canModerate = false,
   canMute = false,
   muted = false,
+  canToggleAutopilot = false,
+  autopilot = false,
 }: {
   sheet: CharacterSheet;
   steersStory: boolean;
@@ -96,6 +105,8 @@ export function CharacterMenu({
   canModerate?: boolean;
   canMute?: boolean;
   muted?: boolean;
+  canToggleAutopilot?: boolean;
+  autopilot?: boolean;
 }) {
   const { locale } = useI18n();
   const copy = COPY[locale];
@@ -131,6 +142,13 @@ export function CharacterMenu({
     });
   }
 
+  async function toggleAutopilot() {
+    await fetch(`/api/campaigns/${sheet.campaignId}/members/${sheet.userId}/autopilot`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ autopilot: !autopilot }),
+    });
+  }
 
   const optionsLabel = copy.options(sheet.name);
 
@@ -182,6 +200,12 @@ export function CharacterMenu({
           {steersStory && sheet.isCompanion ? (
             <DropdownMenu.Item className={item} onSelect={dismissCompanion}>
               <UserMinus className="size-3.5 text-red-400" /> {copy.dismissCompanion}
+            </DropdownMenu.Item>
+          ) : null}
+          {canToggleAutopilot && !sheet.isCompanion ? (
+            <DropdownMenu.Item className={item} onSelect={toggleAutopilot}>
+              <Bot className="size-3.5 text-sky-400" />
+              {autopilot ? copy.autopilotOff : copy.autopilotOn}
             </DropdownMenu.Item>
           ) : null}
           {canMute ? (
