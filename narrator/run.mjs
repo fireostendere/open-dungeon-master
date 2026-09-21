@@ -200,6 +200,7 @@ export class NarratorRunner {
   async stop(){
     this.stopping=true;this.running=false;if(this.timer){clearTimeout(this.timer);this.timer=null;}this.saveCheckpoint();
     if(this.healthServer){await new Promise(resolve=>this.healthServer.close(resolve));this.healthServer=null;}
+    await this.storyController?.adapter?.close?.();
     await this.odmClient.close();
   }
 }
