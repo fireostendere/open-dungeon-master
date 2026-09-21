@@ -431,8 +431,9 @@ export class NarratorOrchestrator {
     }
     const visibleCatalog = filterNarratorCatalog(this.catalog, this.playMode, { spatialEnabled });
     const allowedActions = new Set(visibleCatalog.flatMap(group => (group.actions ?? []).map(action => action.name)));
-    const catalogActions = new Set(visibleCatalog.flatMap(group => (group.actions ?? []).flatMap(action =>
-      (action.operations ?? []).map(operation => operation.name))));
+    const operationNames = visibleCatalog.flatMap(group => (group.actions ?? []).flatMap(action =>
+      (action.operations ?? []).map(operation => operation.name)));
+    const catalogActions = new Set(operationNames);
     const campaign = snapshot.campaign ?? {};
     const safeCampaign = campaign;
     const packet = {
@@ -446,7 +447,7 @@ export class NarratorOrchestrator {
         spatial: spatialEnabled ? { enabled: true, rooms: snapshot.spatialRooms ?? [], grants: snapshot.spatialGrants ?? [] } : { enabled: false } },
       historySummary: host.memory?.getPromptContext?.().summary ?? '',
       outcomes: current.outcomes, rollEvents: this.state.events.filter(event => event.seq >= current.input.seq),
-      actions: visibleCatalog, schemas: this.schemas,
+      operations: operationNames, schemas: this.schemas,
     };
     let decision;
     try {
