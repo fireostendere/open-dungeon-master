@@ -6,6 +6,7 @@ import {
   allocateSeq,
   canAct,
   getFloor,
+  getGlobalTurnState,
   setFloor,
   type Floor,
 } from "@/lib/db/campaigns";
@@ -73,6 +74,30 @@ export async function POST(
   const limited = enforcePlayerIngress(campaignId, user.id, "action");
   if (limited) return limited;
   const { kind } = parsed.data;
+  const encounter = getActiveEncounter(campaignId);
+
+  // Global-turn collection is a hard server gate, not just a disabled UI.
+  // Before global_turn_started and after global_turn_ready, no player composer
+  // input is accepted or allowed to mutate floor/quorum state.
+  if (
+    !encounter &&
+    campaign.gameSettings?.globalTurn?.enabled &&
+    kind !== "ooc"
+  ) {
+    const globalTurn = getGlobalTurnState(campaignId);
+    if (globalTurn.phase === "waiting") {
+      return Response.json(
+        { error: "The next round has not started yet." },
+        { status: 409 },
+      );
+    }
+    if (globalTurn.phase === "ready" || globalTurn.phase === "resolving") {
+      return Response.json(
+        { error: "The MCP Dungeon Master is resolving this round." },
+        { status: 409 },
+      );
+    }
+  }
 
   if (spatialEnabled(campaignId)) {
     if (kind !== "ooc") return Response.json({ error: "Choose a location and send through location-chat." }, { status: 409 });
@@ -132,7 +157,6 @@ export async function POST(
       { status: 409 },
     );
   }
-  const encounter = getActiveEncounter(campaignId);
   if (kind !== "ooc" && encounter) {
     const actor = encounter.order[encounter.turnIndex];
     if (!encounter.orderReady || floor.mode !== "initiative" || actor?.kind !== "pc" || actor.characterId !== sheet.id || listOpenPendingRolls(campaignId).length) {
