@@ -118,6 +118,23 @@ function runSubprocess(code, { preload = true, env = {} } = {}) {
       timelineEpoch: validEpoch, knownSections: { sheets: validEpoch },
       stateDelta: true, knownStateRevision: validEpoch,
     });
+    const parsedAutopilot = narratorSchema.safeParse({
+      operation: "autopilot_action",
+      campaignId: "11111111-1111-4111-8111-111111111111",
+      expectedSeq: 12,
+      commandId: "22222222-2222-4222-8222-222222222222",
+      timelineEpoch: validEpoch,
+      characterId: "33333333-3333-4333-8333-333333333333",
+      roundNumber: 4,
+      kind: "do",
+      content: "Hold the doorway.",
+    });
+    if (!parsedAutopilot.success || parsedAutopilot.data.characterId === undefined ||
+        parsedAutopilot.data.roundNumber !== 4 || parsedAutopilot.data.kind !== "do") {
+      console.error("odm_narrator autopilot_action schema is not discoverable");
+      process.exit(11);
+    }
+
     if (!parsedNarrator.success || parsedNarrator.data.commandId === undefined ||
       parsedNarrator.data.expectedVersion !== 3 || parsedNarrator.data.timelineEpoch !== validEpoch ||
       parsedNarrator.data.stateDelta !== true || parsedNarrator.data.knownStateRevision !== validEpoch ||
