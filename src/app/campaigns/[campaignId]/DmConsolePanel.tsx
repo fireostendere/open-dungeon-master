@@ -8,7 +8,6 @@ import { consoleAdjudications, type AdjudicationCategory } from "@/lib/dm/invoke
 import { offersImages, useCapabilities } from "@/lib/use-capabilities";
 import { DmActionForm } from "@/app/campaigns/[campaignId]/DmActionForm";
 import { DmBeatComposer } from "@/app/campaigns/[campaignId]/DmBeatComposer";
-import { DmDelegationPanel } from "@/app/campaigns/[campaignId]/DmDelegationPanel";
 import { DmAssistPanel } from "@/app/campaigns/[campaignId]/DmAssistPanel";
 import type { CritRules } from "@/app/campaigns/[campaignId]/DmOddsPanel";
 import { DmTablesPanel } from "@/app/campaigns/[campaignId]/DmTablesPanel";
@@ -22,7 +21,6 @@ import { DmWorkbenchPanel } from "@/app/campaigns/[campaignId]/DmWorkbenchPanel"
 import type { CampaignMessage } from "@/lib/db/messages";
 import type { DmBeat } from "@/lib/db/dm-beats";
 import type { PublicEncounter } from "@/lib/db/encounter-view";
-import type { DmCover } from "@/lib/dm/delegation";
 import type { CharacterSheet } from "@/lib/schemas/sheet";
 
 // The DM's console: the queue of what the players have done and not yet been
@@ -119,8 +117,6 @@ export function DmConsolePanel({
   floorMode,
   beats,
   variantRules,
-  delegations,
-  cover,
 }: {
   campaignId: string;
   sheets: CharacterSheet[];
@@ -133,11 +129,6 @@ export function DmConsolePanel({
   beats: DmBeat[];
   // The table's crit rules, for the assist rail's consequence preview.
   variantRules: CritRules;
-  // Assisted mode: which capabilities this table has handed to the AI, read
-  // through delegated() on the server side of every one of them.
-  delegations: { monsters: boolean; narration: boolean; cover: boolean };
-  // The stretch of answers currently handed over, or null.
-  cover: DmCover | null;
 }) {
   // Illustrate stays in the catalog (the AI DM and the dispatcher still know
   // it) but leaves the console on a server with no image backend, where the
@@ -201,22 +192,8 @@ export function DmConsolePanel({
       {/* Directly under the floor, because this is where the nudge sends
           them and a reminder that lands on a scroll is not a reminder. */}
       <div data-tour="dm-beats">
-        <DmBeatComposer campaignId={campaignId} beats={beats} canExpand={delegations.narration} />
+        <DmBeatComposer campaignId={campaignId} beats={beats} />
       </div>
-
-      {/* The anchor goes only where the panel draws: in pure human mode there
-          is nothing to hand over, and an empty anchored div would still give
-          the tour a zero-size target to spotlight and talk about. */}
-      {delegations.monsters || delegations.cover ? (
-        <div data-tour="dm-delegation">
-          <DmDelegationPanel
-            campaignId={campaignId}
-            cover={cover}
-            canMonsters={delegations.monsters}
-            canCover={delegations.cover}
-          />
-        </div>
-      ) : null}
 
       <section data-tour="dm-queue">
         <h3 className="mb-1.5 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-stone-500">
