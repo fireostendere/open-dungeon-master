@@ -446,6 +446,56 @@ test('workspace exporter emits V2 permission arrays and refuses to overwrite fil
   assert.notEqual(spawnSync(process.execPath, [script.pathname, dir]).status, 0);
 });
 
+test('OpenCode skips duplicate policy PUT only when exported workspace system is exact', async t => {
+  const dir = fs.mkdtempSync('/tmp/opencode/odm-policy-');
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  const script = new URL('../narrator/export-opencode-workspace.mjs', import.meta.url);
+  assert.equal(spawnSync(process.execPath, [script.pathname, dir]).status, 0);
+
+  const calls = [];
+  const model = { providerID: 'openai', id: 'selected-model' };
+  const adapter = new OpenCodeAdapter({
+    endpoint: 'http://127.0.0.1:4096',
+    workspace: dir,
+    model,
+    fetchImpl: async (url, options) => {
+      calls.push({ url: String(url), options });
+      if (options.method === 'DELETE') return new Response(null, { status: 204 });
+      if (String(url).endsWith('/api/session')) {
+        return Response.json({ data: { id: 'ses_owned', agent: 'narrator-referee', model } });
+      }
+      if (String(url).endsWith('/generate')) return Response.json({ data: { text: '{"kind":"done"}' } });
+      return Response.json({ data: {} });
+    },
+  });
+
+  await adapter.generate('referee', 'player-data');
+  assert.equal(calls.filter(call => call.url.includes('/instructions/')).length, 0);
+  assert.equal(calls.filter(call => call.url.endsWith('/generate')).length, 1);
+
+  const configPath = path.join(dir, 'opencode.json');
+  const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+  config.agents['narrator-referee'].system += '\nchanged';
+  fs.writeFileSync(configPath, JSON.stringify(config));
+  const fallbackCalls = [];
+  const fallback = new OpenCodeAdapter({
+    endpoint: 'http://127.0.0.1:4096',
+    workspace: dir,
+    model,
+    fetchImpl: async (url, options) => {
+      fallbackCalls.push({ url: String(url), options });
+      if (options.method === 'DELETE') return new Response(null, { status: 204 });
+      if (String(url).endsWith('/api/session')) {
+        return Response.json({ data: { id: 'ses_fallback', agent: 'narrator-referee', model } });
+      }
+      if (String(url).endsWith('/generate')) return Response.json({ data: { text: '{"kind":"done"}' } });
+      return Response.json({ data: {} });
+    },
+  });
+  await fallback.generate('referee', 'player-data');
+  assert.equal(fallbackCalls.filter(call => call.url.includes('/instructions/')).length, 1);
+});
+
 test('actual runner preserves queued input through connect, empty reads, writes and idle polls', async () => {
   const h = fixture([{ kind: 'invoke', action: 'request_roll', args: { characterId: 'hero', skill: 'investigation', dc: 12 } },
     { kind: 'narrate', text: 'The clue is found.' }]);
