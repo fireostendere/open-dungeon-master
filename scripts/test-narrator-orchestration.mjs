@@ -63,6 +63,7 @@ test('role packet drops transport metadata and duplicate actor context', () => {
   const referee = compactRolePacket('referee', {
     campaign: {
       gameSettings: { language: 'ru', unitSystem: 'metric', ttsEnabled: true },
+      dmOutline: 'LEGACY_OUTLINE_SHOULD_NOT_DUPLICATE_STRUCTURED_ARC',
       storyArc: {
         version: 3,
         premise: 'Premise',
@@ -96,7 +97,36 @@ test('role packet drops transport metadata and duplicate actor context', () => {
         }],
       },
     },
-    state: {},
+    state: {
+      sheets: [
+        {
+          id: 'c', userId: 'u', name: 'Focused', race: 'human', class: 'wizard', subclass: '',
+          classes: [], level: 5, currentHp: 20, maxHp: 30, tempHp: 0, ac: 13, speed: 30,
+          conditions: [], conditionMeta: {}, exhaustion: 0, deathSaves: null, concentratingOn: null,
+          resources: {}, abilities: { str: 8, dex: 14, con: 14, int: 18, wis: 12, cha: 10 },
+          proficiencies: { saves: ['int'], skills: ['arcana'], expertise: [], languages: ['common'], tools: [], armor: [], weapons: [] },
+          equipment: [{ name: 'FOCUSED_ITEM', qty: 1, weight: 999 }],
+          feats: [], features: [{ name: 'Arcane Recovery', source: 'class', debug: 'DROP' }],
+          spellcasting: { ability: 'int', slots: { '1': { max: 4, used: 1 } }, prepared: ['Magic Missile'], known: ['Shield'] },
+          hitDice: { die: 'd6', total: 5, spent: 0 }, hitDicePools: null, gold: 12, copper: 0,
+          wildShape: null, pets: [], backstory: 'FOCUSED_BACKSTORY', isCompanion: false, companionKind: null,
+        },
+        {
+          id: 'other', userId: 'other-user', name: 'Other', race: 'elf', class: 'rogue', subclass: '',
+          classes: [], level: 5, currentHp: 22, maxHp: 22, tempHp: 0, ac: 15, speed: 30,
+          conditions: [], conditionMeta: {}, exhaustion: 0, deathSaves: null, concentratingOn: null,
+          resources: {}, abilities: { str: 10, dex: 18, con: 12, int: 12, wis: 12, cha: 12 },
+          equipment: [{ name: 'OTHER_PRIVATE_BULK_ITEM', qty: 1 }],
+          feats: [], features: [], spellcasting: null, hitDice: { die: 'd8', total: 5, spent: 0 },
+          hitDicePools: null, gold: 0, copper: 0, wildShape: null, pets: [],
+          backstory: 'OTHER_BULK_BACKSTORY', isCompanion: false, companionKind: null,
+        },
+      ],
+      notes: Array.from({ length: 20 }, (_, i) => ({
+        id: `note-${i}`, title: `Note ${i}`, body: `NOTE_${i}_${'x'.repeat(1900)}`,
+        pinned: i < 2, visibility: 'public', status: 'active',
+      })),
+    },
     public: { messages: [] },
     input: { id: 'input', seq: 1, authorType: 'player', userId: 'u', characterId: 'c', content: 'go' },
     outcomes: [
@@ -115,6 +145,16 @@ test('role packet drops transport metadata and duplicate actor context', () => {
   assert.ok(referee.campaign.storyArc.events.length <= 4);
   assert.ok(referee.campaign.storyArc.subArcs.length <= 4);
   assert.ok(referee.campaign.storyArc.saga.sketches.length <= 3);
+  assert.equal(Object.hasOwn(referee.campaign, 'dmOutline'), false);
+  assert.equal(referee.state.sheets[0].equipment[0].name, 'FOCUSED_ITEM');
+  assert.equal(Object.hasOwn(referee.state.sheets[0].equipment[0], 'weight'), false);
+  assert.equal(referee.state.sheets[0].backstory, 'FOCUSED_BACKSTORY');
+  assert.equal(Object.hasOwn(referee.state.sheets[1], 'equipment'), false);
+  assert.equal(Object.hasOwn(referee.state.sheets[1], 'backstory'), false);
+  assert.doesNotMatch(JSON.stringify(referee.state.sheets[1]), /OTHER_PRIVATE_BULK_ITEM|OTHER_BULK_BACKSTORY/);
+  assert.ok(referee.state.notes.length <= 12);
+  assert.ok(referee.state.notes.reduce((sum, note) => sum + String(note.body ?? '').length + String(note.title ?? '').length, 0) <= 6000);
+  assert.equal(referee.state.notes[0].pinned, true);
 
   const actor = compactRolePacket('actor', {
     campaign: { gameSettings: { language: 'ru', unitSystem: 'metric', ttsEnabled: true } },
