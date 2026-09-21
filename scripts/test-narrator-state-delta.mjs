@@ -64,13 +64,50 @@ test('array order changes are explicit and deterministic',()=>{
   assert.deepEqual(applyNarratorStatePatch(before,patch),after);
 });
 
-test('scalar state uses set/unset without unrelated payloads',()=>{
+test('nested object state is deep-diffed instead of resending the whole object',()=>{
   const before=extractNarratorState(baseline);
   const after=extractNarratorState({...baseline,location:{id:'loc-b',name:'Vault'},encounter:{encounter:{id:'enc-1'},enemies:[]}});
   const patch=createNarratorStatePatch(before,after);
-  assert.deepEqual(patch.set.location,{id:'loc-b',name:'Vault'});
+  assert.deepEqual(patch.objects.location.set,{id:'loc-b',name:'Vault'});
   assert.deepEqual(patch.set.encounter,{encounter:{id:'enc-1'},enemies:[]});
   assert.equal(patch.entities,undefined);
+  assert.deepEqual(applyNarratorStatePatch(before,patch),after);
+});
+
+test('nested encounter entities patch one enemy without resending encounter metadata',()=>{
+  const start={...baseline,encounter:{
+    encounter:{id:'enc-1',round:2,turnIndex:1,orderReady:true},
+    enemies:[
+      {id:'goblin-a',name:'Goblin A',hp:10,ac:13},
+      {id:'goblin-b',name:'Goblin B',hp:8,ac:13},
+    ],
+  }};
+  const next={...start,encounter:{
+    ...start.encounter,
+    enemies:[
+      {id:'goblin-a',name:'Goblin A',hp:3,ac:13},
+      {id:'goblin-b',name:'Goblin B',hp:8,ac:13},
+    ],
+  }};
+  const before=extractNarratorState(start),after=extractNarratorState(next);
+  const patch=createNarratorStatePatch(before,after);
+  assert.equal(patch.set,undefined);
+  assert.equal(patch.objects.encounter.set,undefined);
+  assert.equal(patch.objects.encounter.objects,undefined);
+  assert.equal(patch.objects.encounter.entities.enemies.upsert.length,1);
+  assert.equal(patch.objects.encounter.entities.enemies.upsert[0].id,'goblin-a');
+  assert.equal(patch.objects.encounter.entities.enemies.upsert[0].hp,3);
+  assert.deepEqual(applyNarratorStatePatch(before,patch),after);
+});
+
+test('campaign object changes only carry changed nested fields',()=>{
+  const start={...baseline,campaign:{...baseline.campaign,clock:{day:3,hour:8},floor:{mode:'open'},questLog:['Find the gate']}};
+  const next={...start,campaign:{...start.campaign,clock:{day:3,hour:9}}};
+  const before=extractNarratorState(start),after=extractNarratorState(next);
+  const patch=createNarratorStatePatch(before,after);
+  assert.deepEqual(patch.objects.campaign.objects.clock.set,{hour:9});
+  assert.equal(patch.objects.campaign.objects.clock.set.day,undefined);
+  assert.equal(patch.objects.campaign.set,undefined);
   assert.deepEqual(applyNarratorStatePatch(before,patch),after);
 });
 
