@@ -7,6 +7,7 @@ import { getDatabase } from "@/lib/db/core";
 import { unrelatedRoomChat } from "@/lib/spatial/narrator-concurrency.mjs";
 import { attachPostWriteRead } from "@/lib/mcp-post-write.mjs";
 import { readNarratorSections } from "@/lib/mcp-read-sections.mjs";
+import { projectNarratorStateDelta } from "@/lib/mcp-state-delta-cache.mjs";
 import { z } from "zod";
 import { queueSkippedCombatTurn } from "@/lib/dm/encounter-tools";
 import { isOocMessage } from "@/lib/campaign-types";
@@ -44,6 +45,7 @@ const readSchema = z.object({
   paged: z.boolean().default(false), pageCursor: z.string().max(500).optional(),
   maxBytes: z.number().int().min(4096).max(131072).default(65536), projection: z.enum(["full", "live"]).default("full"),
   delta: z.boolean().default(false), knownSeq: z.number().int().min(0).optional(),
+  stateDelta: z.boolean().default(false), knownStateRevision: sectionDigest.optional(),
   knownSections: z.object({ sheets: sectionDigest.optional(), facts: sectionDigest.optional(), notes: sectionDigest.optional(), npcs: sectionDigest.optional(),
     recentMessages: sectionDigest.optional(), recentRolls: sectionDigest.optional(), chapters: sectionDigest.optional() }).strict().optional(),
 }).strict();
@@ -62,6 +64,7 @@ export const EXTERNAL_NARRATOR_ACTIONS = new Set([
   "apply_damage", "heal", "stabilize", "award_xp", "party_stash", "party_award", "modify_gold", "grant_item", "reveal_item", "remove_item", "use_item", "purchase", "use_resource", "set_condition", "set_effect", "clear_effect", "clear_condition", "use_spell_slot", "learn_spell", "update_sheet", "take_rest",
   "move_party", "update_location", "travel", "pass_time", "start_scene", "scene_check", "end_scene", "request_roll", "request_player_input", "send_whisper", "record_event", "complete_beat", "write_campaign_note", "set_ambience", "play_sting",
   "set_npc", "npc_reaction", "social_check", "relationship_beat", "romance_advance", "relationship_end", "summon_pet", "pet_attack", "damage_pet", "dismiss_pet",
+  "dismiss_companion", "mount_up", "dismount", "roll_treasure", "damage_object", "group_check", "check_notice",
 ]);
 function campaignOrHuman(campaignId: string) {
   const campaign = getCampaignById(campaignId);
@@ -101,6 +104,7 @@ function catalog(options: CatalogOptions = {}) {
 function read(raw: unknown) {
   const p = readSchema.safeParse(raw);
   if (!p.success) throw new McpNarratorControlError(z.prettifyError(p.error));
+  if (p.data.knownStateRevision && !p.data.stateDelta) throw new McpNarratorControlError("knownStateRevision requires stateDelta:true.", 400);
   const campaign = campaignOrHuman(p.data.campaignId), currentSeq = latestSeq(campaign.id);
   if (p.data.afterSeq > currentSeq || (p.data.knownSeq ?? 0) > currentSeq) throw new McpNarratorControlError("Narrator cursor is ahead of campaign state; reconnect from a fresh read.", 409);
   const timelineEpoch = campaignTimelineEpoch(campaign.id);
@@ -122,12 +126,13 @@ function read(raw: unknown) {
     authorType: message.kind === "narration" || message.kind === "perception" ? "dm" : "player", channel: "location" as const,
   }))].sort((a,b) => a.seq-b.seq);
   const askPage = listPendingAsksForCampaign(campaign.id, p.data.afterAskSeq, p.data.askLimit), live = p.data.projection === "live";
-  const delta = Boolean(p.data.delta), baselineSeq = p.data.knownSeq ?? (delta ? p.data.afterSeq : 0);
+  const delta = Boolean(p.data.delta), stateDelta = Boolean(p.data.stateDelta);
+  const baselineSeq = p.data.knownSeq ?? (delta ? p.data.afterSeq : 0);
   // Cheap, transactional source revisions precede mapping and content hashing.
   // User authorization, room audiences and current mechanics are never cached.
   const { sections, sectionVersions, omittedSections } = readNarratorSections({
     db: getDatabase(), campaignId: campaign.id, timelineEpoch, principal: campaign.dmUserId,
-    live, delta, knownSections: p.data.knownSections,
+    live, delta: delta && !stateDelta, knownSections: stateDelta ? {} : p.data.knownSections,
     loaders: {
       sheets: () => listSheets(campaign.id), facts: () => listActiveFacts(campaign.id),
       notes: () => listPublicCampaignNotes(campaign.id, 20), npcs: () => npcRosterForPrompt(campaign.id, 100),
@@ -148,9 +153,13 @@ function read(raw: unknown) {
     encounter: (() => { const encounter = getActiveEncounter(campaign.id); return encounter ? { encounter, enemies: listEnemies(encounter.id) } : null; })(),
     ...(delta ? { deltaState: { enabled: true, baselineSeq, pruned: ["sheets", "facts", "notes", "npcs"].every(key => omittedSections.includes(key)) } } : {}),
   };
+  const projectedState = stateDelta ? projectNarratorStateDelta(state, {
+    campaignId: campaign.id, timelineEpoch, principal: campaign.dmUserId!, projection: p.data.projection,
+    knownStateRevision: p.data.knownStateRevision,
+  }) : state;
   try {
-    const result = budgetRead(state, p.data);
-    if (p.data.paged && "nextPage" in result && result.nextPage && !narratorSnapshots.remember(state, cacheParams)) throw new McpNarratorControlError("Snapshot exceeds the bounded page cache; reduce the projection.", 413);
+    const result = budgetRead(projectedState, p.data);
+    if (p.data.paged && "nextPage" in result && result.nextPage && !narratorSnapshots.remember(projectedState, cacheParams)) throw new McpNarratorControlError("Snapshot exceeds the bounded page cache; reduce the projection.", 413);
     return result;
   } catch (error) { if (error instanceof ReadBudgetError) throw new McpNarratorControlError(error.message, error.status); throw error; }
 }
@@ -317,10 +326,10 @@ async function dispatchMcpNarratorControl(action: string, raw: unknown): Promise
   }
   switch (action) {
     case "narrator.connect": {
-      const p = z.object({ campaignId: id, paged: z.boolean().optional(), maxBytes: z.number().int().min(4096).max(131072).optional(), projection: z.enum(["full", "live"]).optional() }).strict().safeParse(raw);
+      const p = z.object({ campaignId: id, paged: z.boolean().optional(), maxBytes: z.number().int().min(4096).max(131072).optional(), projection: z.enum(["full", "live"]).optional(), stateDelta: z.boolean().optional() }).strict().safeParse(raw);
       if (!p.success) throw new McpNarratorControlError(z.prettifyError(p.error));
       campaignOrHuman(p.data.campaignId);
-      return { handled: true, result: { instructions: "Read odm://narrator/playbook. Call narrator.read, drain until hasMore is false, then use its currentSeq as expectedSeq for exactly one invoke, narrate, or release_floor. Persist a unique UUID commandId before each story write. After an ambiguous error, retry only the identical commandId, expectedSeq and payload to recover its receipt, never regenerate or modify a command. Consume the attached state after a confirmed write as its read, then drain any remaining pages/events. If readRequired is true, the write succeeded but its read failed: read again, never replay the effect. end_turn advances initiative itself; narration never advances it. For a private reply provide exact replyToWhisperIds from playerWhispers. Check the pending asks queue on every read even when the story cursor is unchanged. Page it using afterAskSeq and askQueue.nextCursor; a fresh Ask scan may start at zero. answer_ask requires the pending ask version as expectedVersion and a persisted UUID commandId; it changes no story/floor state. For bounded reads use paged:true and drain pageCursor/nextPage before advancing the story cursor. Byte pages use a bounded frozen snapshot. Restart on expiry, a changed scope or timeline; never use incomplete pages. projection:live explicitly omits historical duplicate sections, not current state or new tool results. Carry the returned timelineEpoch on reads and writes; reconnect and discard incompatible pending work when it changes.", contractVersion: 3, timelineVersion: 1, features: { postWriteRead: true, frozenPages: true, liveDefaults: true }, state: read({ projection: "full", ...p.data }) } };
+      return { handled: true, result: { instructions: "Read odm://narrator/playbook. Call narrator.read, drain until hasMore is false, then use its currentSeq as expectedSeq for exactly one invoke, narrate, or release_floor. Persist a unique UUID commandId before each story write. After an ambiguous error, retry only the identical commandId, expectedSeq and payload to recover its receipt, never regenerate or modify a command. Consume the attached state after a confirmed write as its read, then drain any remaining pages/events. If readRequired is true, the write succeeded but its read failed: read again, never replay the effect. end_turn advances initiative itself; narration never advances it. For a private reply provide exact replyToWhisperIds from playerWhispers. Check the pending asks queue on every read even when the story cursor is unchanged. Page it using afterAskSeq and askQueue.nextCursor; a fresh Ask scan may start at zero. answer_ask requires the pending ask version as expectedVersion and a persisted UUID commandId; it changes no story/floor state. For bounded reads use paged:true and drain pageCursor/nextPage before advancing the story cursor. Byte pages use a bounded frozen snapshot. Restart on expiry, a changed scope or timeline; never use incomplete pages. projection:live explicitly omits historical duplicate sections, not current state or new tool results. Carry the returned timelineEpoch on reads and writes; reconnect and discard incompatible pending work when it changes.", contractVersion: 4, timelineVersion: 1, features: { postWriteRead: true, frozenPages: true, liveDefaults: true, stateDelta: "odm.state.delta.v1", entityPatches: true }, state: read({ projection: "full", ...p.data }) } };
     }
     case "narrator.read": return { handled: true, result: read(raw) };
     case "narrator.snapshot": return { handled: true, result: orchestrationSnapshot(raw) };
@@ -357,6 +366,7 @@ const readAfterSchema = z.union([z.boolean(), z.object({
   afterAskSeq: z.number().int().min(0).optional(), askLimit: z.number().int().min(1).max(50).optional(),
   paged: z.boolean().optional(), projection: z.enum(["full", "live"]).optional(),
   maxBytes: z.number().int().min(4096).max(131072).optional(), delta: z.boolean().optional(),
+  stateDelta: z.boolean().optional(), knownStateRevision: sectionDigest.optional(),
   knownSeq: z.number().int().min(0).optional(), knownSections: readSchema.shape.knownSections,
 }).strict()]);
 export async function executeMcpNarratorControl(action: string, raw: unknown): Promise<{ handled: false } | { handled: true; result: unknown }> {
