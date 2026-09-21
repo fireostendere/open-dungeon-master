@@ -33,6 +33,7 @@ assert.deepEqual(capabilities.actions.slice(0, 7), [
   "narrator.connect", "narrator.read", "narrator.snapshot", "narrator.catalog", "narrator.invoke", "narrator.narrate", "narrator.release_floor",
 ]);
 assert.equal(extendControlResult("server.status", { mcpControlActions: 0 }).mcpControlActions, capabilities.actions.length);
+assert.ok(capabilities.actions.includes("narrator.autopilot_action"), "external autopilot write must be advertised");
 
 const dm = createUser("external_dm", "hash");
 const narratorHostA = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
