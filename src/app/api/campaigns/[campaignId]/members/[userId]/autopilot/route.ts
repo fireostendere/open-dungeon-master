@@ -2,6 +2,7 @@ import { z } from "zod";
 import { isErrorResponse, isLead, requireMember, steersStory } from "@/lib/campaign-api";
 import { setMemberAutopilot } from "@/lib/db/campaigns";
 import { publishPersisted } from "@/lib/events";
+import { mayChangeAutopilot } from "@/lib/autopilot-policy";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -33,7 +34,13 @@ export async function POST(
   // Enabling means consenting to let an isolated actor model author this
   // character's turn. That consent is personal. Lead/DM may still disable an
   // already enabled autopilot to keep the table moving or stop automation.
-  if (parsed.data.autopilot ? !isSelf : !isSelf && !canModerate) {
+  if (!mayChangeAutopilot({
+    actorUserId: context.user.id,
+    targetUserId,
+    enable: parsed.data.autopilot,
+    isLead: isLead(context),
+    isDm: steersStory(context),
+  })) {
     return Response.json(
       { error: parsed.data.autopilot
         ? "Only the player can enable autopilot for their own character."
