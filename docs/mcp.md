@@ -40,7 +40,7 @@ redirect refusal and streaming/cancellation. It does not substitute admin rights
 | `odm_characters` | library characters and campaign instantiation |
 | `odm_sheets` | live campaign sheets |
 | `odm_models` | list/test/apply models and switch endpoints |
-| `odm_narrator` | connect/read/catalog/invoke/narrate/release_floor/answer_ask |
+| `odm_narrator` | connect/read/catalog/invoke/narrate/autopilot_action/release_floor/answer_ask |
 | `odm_assets` | packs, jobs, leases, scoped upload/download, asset links |
 | `odm_progress` | revision-checked progress, party sync, finish receipts |
 

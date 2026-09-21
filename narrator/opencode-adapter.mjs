@@ -74,7 +74,13 @@ export class OpenCodeAdapter {
     } catch {}
     this.fetch = options.fetchImpl ?? globalThis.fetch;
     this.timeoutMs = options.timeoutMs ?? 120000;
+    const actorTimeoutRaw = options.actorTimeoutMs ?? process.env.ODM_OPENCODE_ACTOR_TIMEOUT_MS;
+    this.actorTimeoutMs = actorTimeoutRaw === undefined || actorTimeoutRaw === ''
+      ? Math.min(this.timeoutMs, 30000)
+      : Number(actorTimeoutRaw);
+    this.actorSetupTimeoutMs = Math.min(this.actorTimeoutMs, 5000);
     this.cleanupTimeoutMs = options.cleanupTimeoutMs ?? 2000;
+    if (!Number.isSafeInteger(this.actorTimeoutMs) || this.actorTimeoutMs < 1 || this.actorTimeoutMs > 120000) throw new Error('Invalid actor timeout.');
     if (!Number.isSafeInteger(this.cleanupTimeoutMs) || this.cleanupTimeoutMs < 1 || this.cleanupTimeoutMs > 10000) throw new Error('Invalid cleanup timeout.');
     this.pendingCleanups = new Set();
     this.idleSessions = new Map();
@@ -122,7 +128,8 @@ export class OpenCodeAdapter {
     if (this.closed) throw new Error('OpenCode adapter is closed.');
     const agent = `narrator-${role}`;
     const roleModel = this.modelFor(role);
-    const session = await this.request('/api/session', { stage: 'session', body: { agent, model: roleModel,
+    const setupTimeoutMs = role === 'actor' ? this.actorSetupTimeoutMs : this.timeoutMs;
+    const session = await this.request('/api/session', { stage: 'session', timeoutMs: setupTimeoutMs, body: { agent, model: roleModel,
       location: { directory: this.workspace }, permissions: [{ action: '*', resource: '*', effect: 'deny' }], title: `ODM ${role}` } });
     if (typeof session?.id !== 'string' || !/^ses[a-zA-Z0-9_-]+$/.test(session.id)) throw new Error('Invalid OpenCode session.');
     if (session.agent !== agent || ['providerID', 'id', 'variant'].some(key => session.model?.[key] !== roleModel[key])) {
@@ -132,7 +139,7 @@ export class OpenCodeAdapter {
     try {
       if (!this.workspacePolicyRoles.has(role)) {
         await this.request(`/api/experimental/session/${encodeURIComponent(session.id)}/instructions/entries/odm-policy`,
-          { method: 'PUT', stage: 'policy', body: { value: trustedInstruction(role) } });
+          { method: 'PUT', stage: 'policy', timeoutMs: setupTimeoutMs, body: { value: trustedInstruction(role) } });
       }
       return session;
     } catch (error) {
@@ -194,7 +201,11 @@ export class OpenCodeAdapter {
       const session = await this.takeSession(role);
       const route = `/api/session/${encodeURIComponent(session.id)}`;
       try {
-        const reply = await this.request(`${route}/generate`, { stage: 'model', body: { prompt } });
+        const reply = await this.request(`${route}/generate`, {
+          stage: 'model',
+          body: { prompt },
+          timeoutMs: role === 'actor' ? this.actorTimeoutMs : this.timeoutMs,
+        });
         if (typeof reply?.text !== 'string' || !reply.text.trim() || Buffer.byteLength(reply.text) > 32768) throw new Error('Malformed or oversized model output.');
         return { text: reply.text, usage: modelUsage(reply) };
       } finally { this.cleanup(route); }

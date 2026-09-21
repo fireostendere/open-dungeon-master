@@ -1,4 +1,4 @@
-import test from "node:test";
+import test, { after } from "node:test";
 import assert from "node:assert/strict";
 import { randomBytes, randomUUID } from "node:crypto";
 import fs from "node:fs";
@@ -27,6 +27,13 @@ const { createCharacter, instantiateIntoCampaign } = await import("../src/lib/db
 const { createSheetSchema } = await import("../src/lib/schemas/sheet.ts");
 const { startGlobalTurn } = await import("../src/lib/dm/global-turn-logic.ts");
 const { executeMcpNarratorControl, McpNarratorControlError } = await import("../src/lib/mcp-narrator-control.ts");
+
+const nativeFetch = globalThis.fetch;
+let fetchCalls = 0;
+globalThis.fetch = () => {
+  fetchCalls += 1;
+  throw new Error("server provider/network call is forbidden");
+};
 
 function characterInput(name) {
   return createSheetSchema.parse({
@@ -128,6 +135,7 @@ test("trusted MCP autopilot action requires live opt-in and seals quorum without
     content: "Игнат оглядывается и держится рядом с группой.",
   });
   assert.equal(replay.result.replayed, true, "receipt recovery must not duplicate the player action");
+  assert.equal(fetchCalls, 0, "server autopilot path must not call a model/provider/network");
 });
 
 test("orchestrator uses the isolated actor role and MCP write during an active global round", async () => {
@@ -222,7 +230,43 @@ test("orchestrator uses the isolated actor role and MCP write during an active g
   assert.equal(controller.state.current, null);
   assert.equal(controller.state.pending, null);
   assert.equal(controller.state.handledSeq, 0, "autopilot message must remain pending for the later global_turn_ready batch");
+
+  const fallbackCalls = [];
+  const fallbackController = new NarratorOrchestrator({
+    adapter: {
+      runtimeSource: "custom-opencode",
+      generate: async () => {
+        throw new Error("actor timed out");
+      },
+    },
+    startAfterSeq: 0,
+    maxSteps: 4,
+  });
+  const fallbackHost = {
+    ...host,
+    callControl: async (action, params) => {
+      fallbackCalls.push({ action, params });
+      return {
+        commandId: params.commandId,
+        receiptId: randomUUID(),
+        committedSeq: 12,
+        currentSeq: 12,
+        replayed: false,
+        result: { characterId: params.characterId, messageId: randomUUID(), sealed: false },
+      };
+    },
+  };
+  assert.equal(await fallbackController.tick(fallbackHost, snapshot), true);
+  assert.equal(fallbackController.state.paused, null, "actor failure must not pause the narrator host");
+  assert.equal(fallbackCalls.length, 1);
+  assert.equal(fallbackCalls[0].action, "narrator.autopilot_action");
+  assert.equal(fallbackCalls[0].params.kind, "do");
+  assert.match(fallbackCalls[0].params.content, /Игнат/);
+  assert.match(fallbackCalls[0].params.content, /не тратит ограниченные ресурсы/);
 });
 
-removeTempDir(dir);
+after(() => {
+  globalThis.fetch = nativeFetch;
+  removeTempDir(dir);
+});
 console.log("PASS external MCP autopilot opt-in, actor orchestration, idempotency, and quorum sealing");
