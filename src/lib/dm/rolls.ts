@@ -14,7 +14,12 @@ import { dcForDifficulty, normalizeDifficulty } from "@/lib/srd/dc";
 import { DM_TOOL_NAME_PATTERN, toolTextRegex, xmlToolCallRegex } from "@/lib/dm/tool-text";
 import { acBreakdownFor, computeSheetDerived, findSkill, SRD_SKILLS } from "@/lib/srd";
 import type { CharacterSheet } from "@/lib/schemas/sheet";
-import type { StreamedToolCall } from "@/lib/model-client";
+
+type StreamedToolCall = {
+  id?: string;
+  type?: string;
+  function?: { name?: string; arguments?: string };
+};
 
 export const rollArgsSchema = z.object({
   // Who may read the result. Only a human DM sets anything but "public";

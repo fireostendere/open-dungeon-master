@@ -1,9 +1,7 @@
 import { z } from "zod";
 import { isErrorResponse, requireStoryAuthority } from "@/lib/campaign-api";
-import { imagesAvailable } from "@/lib/capabilities";
 import { getLocation, setLocationMap } from "@/lib/db/locations";
 import { uploadedImageRecord } from "@/lib/dm/images";
-import { enqueueLocationMap } from "@/lib/dm/maps";
 import { publishPersisted } from "@/lib/events";
 import { isUploadedImagePath } from "@/lib/uploads";
 
@@ -53,16 +51,10 @@ export async function POST(
     return Response.json({ ok: true, image });
   }
 
-  // No image backend means the queue would only ever publish "failed"; say
-  // so up front, and the panel offers the upload instead.
-  if (!(await imagesAvailable())) {
-    return Response.json(
-      { error: "This server has no image model to draw with. Upload a map instead." },
-      { status: 409 },
-    );
-  }
-  void enqueueLocationMap(context.campaign, locationId);
-  return Response.json({ ok: true }, { status: 202 });
+  return Response.json(
+    { error: "Server-side map generation is not available. Upload a map instead." },
+    { status: 410 },
+  );
 }
 
 // The third choice beside upload and redraw: no map at all, which shows the

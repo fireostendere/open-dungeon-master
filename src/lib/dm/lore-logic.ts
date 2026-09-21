@@ -1,4 +1,4 @@
-import { stripReasoningArtifacts } from "../story-prompt.ts";
+import { stripReasoningArtifacts } from "../text-sanitize.ts";
 
 // Pure lore-check parsing, kept free of alias imports so node test scripts
 // (scripts/test-lore-check.mjs) can load it directly.

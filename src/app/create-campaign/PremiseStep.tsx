@@ -3,7 +3,6 @@
 import { useMemo } from "react";
 import OptionPicker, { type PickerGroup } from "@/app/characters/builder/OptionPicker";
 import { UnofficialPackNotice } from "@/components/UnofficialPackNotice";
-import { DM_MODES } from "@/lib/schemas/game-settings-options";
 import type { FranchiseGroup, WorldPackSummary } from "@/lib/worlds/types";
 import { useI18n } from "@/lib/i18n";
 import { FieldLabel, inputClass, ToggleCard } from "@/app/create-campaign/fields";
@@ -110,7 +109,6 @@ export function PremiseStep({
 }) {
   const { locale } = useI18n();
   const copy = COPY[locale];
-  const { storyKnownMissing, storyUnreachable, aiNarrates } = gates;
   // Every pack, each with its own blurb behind a ⓘ, so a world can be read
   // before it is chosen instead of after. A franchise with several eras keeps
   // them grouped under its name, exactly as the old <optgroup> did.
@@ -147,31 +145,17 @@ export function PremiseStep({
 
       <div>
         <FieldLabel className="mb-1.5">{copy.whoRuns}</FieldLabel>
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-          {DM_MODES.filter(
-            // A server that positively has no AI DM (provider "none")
-            // offers only the human seat; "assisted" leans on the same
-            // missing backend, so it goes too.
-            (mode) => mode === "human" || !storyKnownMissing,
-          ).map((mode) => (
-            <ToggleCard
-              key={mode}
-              active={draft.dmMode === mode}
-              onClick={() => patch({ dmMode: mode })}
-              label={copy.modeLabels[mode]}
-              hint={copy.modeHints[mode]}
-            />
-          ))}
-        </div>
-        {storyKnownMissing ? (
-          <p className="mt-1.5 text-xs text-stone-500">{copy.noAi}</p>
-        ) : null}
-        {storyUnreachable && aiNarrates ? (
-          <p className="mt-1.5 text-xs text-amber-300">{copy.aiOffline}</p>
-        ) : null}
-        {draft.dmMode !== "ai" ? (
-          <p className="mt-1.5 text-xs text-stone-500">{copy.humanSeat}</p>
-        ) : null}
+        <ToggleCard
+          active
+          onClick={() => patch({ dmMode: "human" })}
+          label={locale === "ru" ? "Человек / внешний рассказчик" : locale === "pl" ? "Człowiek / zewnętrzny narrator" : "Human / external narrator"}
+          hint={locale === "ru"
+            ? "Сервер хранит состояние и применяет правила; повествование ведёт человек или внешний MCP narrator."
+            : locale === "pl"
+              ? "Serwer przechowuje stan i egzekwuje zasady; narrację prowadzi człowiek lub zewnętrzny narrator MCP."
+              : "The server owns state and rules; narration is supplied by a human or external MCP narrator."}
+        />
+        <p className="mt-1.5 text-xs text-stone-500">{copy.humanSeat}</p>
       </div>
 
       {franchises.length ? (

@@ -66,7 +66,7 @@ export type CampaignDraft = {
 };
 
 export const DEFAULT_DRAFT: CampaignDraft = {
-  dmMode: "ai",
+  dmMode: "human",
   title: "",
   description: "",
   theme: "",
@@ -79,14 +79,14 @@ export const DEFAULT_DRAFT: CampaignDraft = {
   worldPack: "",
   themeTouched: false,
   descriptionTouched: false,
-  aiStorySetup: true,
+  aiStorySetup: false,
   dicePolicy: "digital_only",
   unitSystem: "metric",
   combatMode: "classical",
   dmDifficulty: 5,
-  ttsEnabled: true,
+  ttsEnabled: false,
   ttsVoice: "af_heart",
-  mapsEnabled: true,
+  mapsEnabled: false,
   ambienceEnabled: true,
   ambienceAuto: true,
   multiclassingEnabled: true,
@@ -94,7 +94,7 @@ export const DEFAULT_DRAFT: CampaignDraft = {
   inventoryApprovals: false,
   midGameJoinOpen: false,
   holdSubmissions: false,
-  narrationGuard: true,
+  narrationGuard: false,
   relationships: "on",
   romance: "on",
   variantRules: {

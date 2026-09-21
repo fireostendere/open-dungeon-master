@@ -48,6 +48,7 @@ export class NarratorCostTracker {
           hourTokens: Number(data.hourTokens || 0),
           totalTokens: Number(data.totalTokens || 0),
           totalCostUsd: Number(data.totalCostUsd || 0),
+          estimatedTokens: Number(data.estimatedTokens || 0),
         };
       }
     }
@@ -59,6 +60,7 @@ export class NarratorCostTracker {
       hourTokens: 0,
       totalTokens: 0,
       totalCostUsd: 0,
+      estimatedTokens: 0,
     };
   }
 
@@ -127,7 +129,7 @@ export class NarratorCostTracker {
    * Record actual token consumption and calculated dollar cost.
    * @param {{ promptTokens?: number, completionTokens?: number, costUsd?: number }} params
    */
-  recordUsage({ promptTokens = 0, completionTokens = 0, costUsd = null } = {}) {
+  recordUsage({ promptTokens = 0, completionTokens = 0, costUsd = null, estimated = false } = {}) {
     this._rolloverIfNeeded();
 
     const totalCallTokens = Math.max(0, promptTokens) + Math.max(0, completionTokens);
@@ -141,6 +143,7 @@ export class NarratorCostTracker {
     this.state.dayCostUsd += calculatedCost;
     this.state.totalTokens += totalCallTokens;
     this.state.totalCostUsd += calculatedCost;
+    if (estimated) this.state.estimatedTokens += totalCallTokens;
 
     this._persist();
 
@@ -158,6 +161,7 @@ export class NarratorCostTracker {
       dailyCostLimitUsd: this.dailyCostLimitUsd,
       totalTokens: this.state.totalTokens,
       totalCostUsd: Number(this.state.totalCostUsd.toFixed(4)),
+      estimatedTokens: this.state.estimatedTokens,
     };
   }
 }
