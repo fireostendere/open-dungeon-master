@@ -2,7 +2,7 @@ import { AsyncLocalStorage } from 'node:async_hooks';
 import crypto from 'node:crypto';
 
 const traceStorage = new AsyncLocalStorage();
-export const LATENCY_STAGES = new Set(['mcp_read', 'mcp_engine', 'mcp_narration', 'mcp_ask', 'mcp_control', 'packet', 'read_sections', 'post_write_read', 'checkpoint_serialize', 'checkpoint_file_fsync', 'checkpoint_directory_fsync', 'checkpoint_write', 'adapter_session', 'adapter_policy', 'adapter_model', 'adapter_cleanup', 'narrator_model', 'narrator_write']);
+export const LATENCY_STAGES = new Set(['mcp_read', 'mcp_engine', 'mcp_narration', 'mcp_ask', 'mcp_control', 'odm_transport', 'odm_server', 'packet', 'read_sections', 'post_write_read', 'checkpoint_serialize', 'checkpoint_file_fsync', 'checkpoint_directory_fsync', 'checkpoint_write', 'adapter_session', 'adapter_policy', 'adapter_model', 'adapter_cleanup', 'narrator_model', 'narrator_write']);
 const durations = new Set(['durationMs', 'queueMs']);
 const counts = ['bytes', 'inputBytes', 'outputBytes', 'responseBytes', 'modelCalls', 'mcpCalls', 'hits', 'loads', 'writeCount', 'attemptCount', 'errorCount', 'status'];
 

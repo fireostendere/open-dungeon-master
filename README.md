@@ -95,7 +95,13 @@ npm ci --prefix mcp
 node --import ./mcp/external-tools-preload.mjs ./mcp/server.mjs --stdio
 ```
 
-Задайте `ODM_MCP_TOKEN` и `ODM_MCP_CONTROL_URL` в окружении. Для управляемого контейнера используйте массив команды из `odm-mcpctl status`, включая `--import /app/external-tools-preload.mjs`. Не публикуйте порт 3006 напрямую; используйте TLS-прокси, частную сеть или SSH-туннель.
+Задайте `ODM_MCP_TOKEN` и `ODM_MCP_CONTROL_URL` в окружении. Для внешнего
+ведущего предпочтителен HTTPS `/mcp` или `/api/narrator` с отдельным
+`ODM_MCP_NARRATOR_TOKEN`; `/api/internal/mcp` намеренно остаётся приватным.
+Для управляемого контейнера используйте массив команды из `odm-mcpctl status`,
+включая `--import /app/external-tools-preload.mjs`. SSH допустим только как
+один постоянный туннельный процесс; он не является протоколом narrator. См.
+[transport architecture](docs/odm-transport.md).
 
 ## Локальный портал и язык
 

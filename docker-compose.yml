@@ -32,6 +32,8 @@ services:
 
       # MCP control plane. With no token the internal route fails closed (503).
       ODM_MCP_TOKEN: ${ODM_MCP_TOKEN:-}
+      ODM_MCP_NARRATOR_TOKEN: ${ODM_MCP_NARRATOR_TOKEN:-}
+      ODM_MCP_NARRATOR_CAMPAIGN_ID: ${ODM_MCP_NARRATOR_CAMPAIGN_ID:-}
       ODM_MCP_OWNER_USER_ID: ${ODM_MCP_OWNER_USER_ID:-}
       ODM_MCP_OWNER_USERNAME: ${ODM_MCP_OWNER_USERNAME:-}
 
@@ -90,6 +92,7 @@ services:
     environment:
       ODM_MCP_CONTROL_URL: http://open-dungeon-master:3005/api/internal/mcp
       ODM_MCP_TOKEN: ${ODM_MCP_TOKEN:-}
+      ODM_MCP_NARRATOR_TOKEN: ${ODM_MCP_NARRATOR_TOKEN:-}
       ODM_MCP_HOST: 0.0.0.0
       ODM_MCP_PORT: 3006
       ODM_LATENCY_LOG: ${ODM_LATENCY_LOG:-}

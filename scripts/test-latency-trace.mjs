@@ -98,7 +98,7 @@ test('post-write fallback timing waits for delayed resolution and rejection', as
 test('packaged sidecar import uses only flattened sibling modules', async () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'odm-mcp-package-'));
   try {
-    for (const file of ['control-client.mjs', 'dm-policy.mjs', 'latency-trace.mjs']) fs.copyFileSync(path.resolve(import.meta.dirname, '../mcp', file), path.join(dir, file));
+    for (const file of ['control-client.mjs', 'transport.mjs', 'dm-policy.mjs', 'latency-trace.mjs']) fs.copyFileSync(path.resolve(import.meta.dirname, '../mcp', file), path.join(dir, file));
     await import(`${pathToFileURL(path.join(dir, 'control-client.mjs')).href}?package-test`);
   } finally { fs.rmSync(dir, { recursive: true, force: true }); }
 });

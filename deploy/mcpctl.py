@@ -138,7 +138,8 @@ class McpController:
         changed = set_env(self.app_env, {"ODM_MCP_TOKEN": token,
             "ODM_MCP_OWNER_USERNAME": current.get("ODM_MCP_OWNER_USERNAME", "odm_admin"), "ODM_PUBLIC_URL": public_url})
         atomic(self.mcp_env, "ODM_MCP_CONTROL_URL=http://app:3005/api/internal/mcp\n"
-               f"ODM_MCP_TOKEN={token}\nODM_MCP_HOST=0.0.0.0\nODM_MCP_PORT=3006\n"
+               f"ODM_MCP_TOKEN={token}\nODM_MCP_NARRATOR_TOKEN={current.get('ODM_MCP_NARRATOR_TOKEN', '')}\n"
+               "ODM_MCP_HOST=0.0.0.0\nODM_MCP_PORT=3006\n"
                f"ODM_LATENCY_LOG={current.get('ODM_LATENCY_LOG', '')}\n", 0o600)
         return changed
 

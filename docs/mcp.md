@@ -6,6 +6,10 @@ route `/api/internal/mcp`. The application domain services remain the writers of
 campaign state. The sidecar grants no host shell, Docker socket or SQLite file;
 a narrator host must not separately attach those unrelated capabilities.
 
+The canonical application client and its HTTPS/local/persistent-tunnel transports
+are documented in [ODM transport](odm-transport.md). SSH is infrastructure only;
+it is never the narrator application protocol.
+
 ```text
 MCP agent -- Streamable HTTP/stdio --> MCP sidecar :3006
                                       |
@@ -17,6 +21,8 @@ MCP agent -- Streamable HTTP/stdio --> MCP sidecar :3006
 Managed Caddy returns 404 for `/api/internal` and descendants and routes `/mcp`
 to the sidecar. A directly published application port is not protected by that
 Caddy rule; the internal route must still authenticate and authorize its bearer.
+The public `/api/narrator` route is a separate campaign-scoped JSON gateway and
+never dispatches operator control actions.
 The optional application `/mcp` bridge forwards the caller's token unchanged to
 `ODM_MCP_PROXY_URL` (default `http://mcp:3006/mcp`), with bounded uploads,
 redirect refusal and streaming/cancellation. It does not substitute admin rights.
@@ -99,17 +105,18 @@ instructions, use a dedicated narrator context and test each chosen model.
 
 The application's `ODM_MCP_TOKEN` retains broad operator access. The optional
 `ODM_MCP_NARRATOR_TOKEN` is bound to `ODM_MCP_NARRATOR_CAMPAIGN_ID` and allows only
-the seven narrator operations in that campaign plus minimal health/capabilities.
+the eight narrator operations in that campaign plus minimal health/capabilities.
 Other control actions are denied before domain dispatch. This is a DM credential,
 not a per-player credential: do not give it to players. Scoped access must be
-configured explicitly; the existing managed operator sidecar is unchanged.
+configured explicitly.
 
-Use the restricted token as `ODM_MCP_TOKEN` **in a separate narrator sidecar**,
-while the application stores it under `ODM_MCP_NARRATOR_TOKEN`. Do not accidentally
-use the application's admin token in that narrator process. Detailed setup,
-port separation, failure behavior and host-tool allowlisting are in
-[dm-player-boundary.md](dm-player-boundary.md). A restricted tools/list may still
-advertise broader tools; server authorization remains decisive.
+The HTTP sidecar accepts both configured credentials, but forwards the request's
+actual bearer to the application. Therefore a public MCP client can use the
+scoped token without turning the sidecar's operator credential into an
+impersonation path. The application remains the final authorization boundary;
+a restricted tools/list may still advertise broader tools, but those calls are
+denied before domain dispatch. Detailed setup and host-tool allowlisting are in
+[dm-player-boundary.md](dm-player-boundary.md).
 
 ## Managed installation and release lifecycle
 

@@ -154,7 +154,7 @@ test('real HTTP control client preserves credential, adds policy and gets server
 test('pre-aborted client makes no request and policy handling does not swallow errors',async()=>{
   let count=0;const client=createControlClient({token:DM,fetchImpl:async()=>{count++;throw Error('transport failed');}});
   await assert.rejects(client('narrator.read',{campaignId:A},{signal:AbortSignal.abort()}),{name:'AbortError'});assert.equal(count,0);
-  await assert.rejects(client('narrator.read',{campaignId:A}),/transport failed/);assert.equal(count,1);
+  await assert.rejects(client('narrator.read',{campaignId:A}),/transport failed/);assert.equal(count,2);
 });
 
 test('source wiring: access gate precedes domain dispatch and cannot fall through to admin handlers',()=>{
@@ -165,6 +165,13 @@ test('source wiring: access gate precedes domain dispatch and cannot fall throug
   const preload=fs.readFileSync(new URL('../mcp/external-tools-preload.mjs',import.meta.url),'utf8');
   assert.ok(preload.includes('registerDmPolicy(server, withMcpCancellation)'));
   assert.ok(fs.readFileSync(new URL('../mcp/Dockerfile',import.meta.url),'utf8').includes('mcp/dm-policy.mjs'));
+  const gateway=fs.readFileSync(new URL('../src/app/api/narrator/route.ts',import.meta.url),'utf8');
+  assert.ok(gateway.includes('principal.role !== "narrator"'));
+  assert.ok(gateway.includes('executeMcpNarratorControl'));
+  assert.ok(!gateway.includes('executeMcpExtendedControl'));
+  const sidecar=fs.readFileSync(new URL('../mcp/server.mjs',import.meta.url),'utf8');
+  assert.ok(sidecar.includes('ODM_MCP_NARRATOR_TOKEN'));
+  assert.ok(sidecar.includes('withMcpCredential'));
 });
 
 test('narrator guidance documents one exact receipt-recovery retry',()=>{

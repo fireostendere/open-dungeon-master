@@ -30,7 +30,8 @@ async function fixture(){
     '@modelcontextprotocol/server/stdio':{serveStdio:()=>{throw Error('stdio must not start on import');}},
     '@modelcontextprotocol/node':{toNodeHandler:()=>{}},'zod/v4':z,
     './control-client.mjs':{callControl:async(action,params)=>{calls.push({action,params});return{accepted:true};},
-      withMcpCancellation:callback=>(...args)=>{args.at(-1)?.mcpReq?.signal?.throwIfAborted();return callback(...args);}},
+      withMcpCancellation:callback=>(...args)=>{args.at(-1)?.mcpReq?.signal?.throwIfAborted();return callback(...args);},
+      withMcpCredential:(_token,callback)=>callback()},
     './http-boundary.mjs':{createSafeHttpListener:()=>{throw Error('listener must not start on import');}},
     './narrator-schema.mjs':narratorSchema,
   };

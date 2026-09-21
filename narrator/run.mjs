@@ -13,14 +13,14 @@ import { HostContextMemory } from './compaction.mjs';
 import { connectNarrator,drainNarratorStory,readNarratorSnapshot } from './read-session.mjs';
 import { explicitYoloRequested } from '../shared/dnd-play-mode.mjs';
 import { driveNarratorCycle,narratorPollDelay } from './poll-cycle.mjs';
-import { emitLatency, latencyEnabled, mcpLatencyStage, withLatencyTrace } from '../mcp/latency-trace.mjs';
+import { createOdmClient } from '../mcp/control-client.mjs';
 const integer=(value,fallback,min,max)=>Number.isSafeInteger(Number(value))&&Number(value)>=min&&Number(value)<=max?Number(value):fallback;
 const hash=value=>crypto.createHash('sha256').update(value).digest();
 export class NarratorRunner {
   constructor(options={}) {
     this.campaignId=options.campaignId||process.env.ODM_CAMPAIGN_ID||process.env.ODM_MCP_NARRATOR_CAMPAIGN_ID||'';
-    this.controlUrl=(options.controlUrl||process.env.ODM_MCP_URL||process.env.ODM_MCP_CONTROL_URL||'http://127.0.0.1:3005/api/internal/mcp').trim();
-    this.token=(options.token||process.env.ODM_MCP_NARRATOR_TOKEN||process.env.ODM_MCP_TOKEN||'').trim();
+    this.controlUrl=(options.controlUrl||process.env.ODM_URL||process.env.ODM_MCP_URL||process.env.ODM_MCP_CONTROL_URL||'http://127.0.0.1:3005/api/internal/mcp').trim();
+    this.token=(options.token||process.env.ODM_AUTH_TOKEN||process.env.ODM_MCP_NARRATOR_TOKEN||process.env.ODM_MCP_TOKEN||'').trim();
     this.pollIntervalMs=integer(options.pollIntervalMs??process.env.ODM_NARRATOR_POLL_MS,2000,10,86400000);
     this.maxAsksPerTick=integer(options.maxAsksPerTick??process.env.ODM_NARRATOR_ASK_BATCH,1,1,20);
     this.askTask=null;this.askError=null;this.madeProgress=false;this.stopping=false;
@@ -28,7 +28,7 @@ export class NarratorRunner {
     this.readPageRetries=integer(options.readPageRetries??process.env.ODM_NARRATOR_READ_RETRIES,2,0,10);
     this.healthPort=integer(options.healthPort??process.env.ODM_NARRATOR_PORT,3007,0,65535);
     this.statusToken=(options.statusToken||process.env.ODM_NARRATOR_STATUS_TOKEN||'').trim();
-    this.fetchImpl=options.fetchImpl||globalThis.fetch;
+    this.odmClient=createOdmClient({url:this.controlUrl,token:this.token,transport:options.transport||process.env.ODM_TRANSPORT,timeoutMs:135000,fetchImpl:options.fetchImpl||globalThis.fetch});
     this.askResponder=typeof options.askResponder==='function'?options.askResponder:null;
     this.yoloRequested=explicitYoloRequested({requested:options.yolo});
     this.storyController=options.storyController||null;this.adapterModule=options.adapterModule||process.env.ODM_NARRATOR_ADAPTER_MODULE||'';
@@ -84,18 +84,7 @@ export class NarratorRunner {
       uptimeSeconds:Math.floor((Date.now()-this.startedAt)/1000),lastPollAt:this.lastPollAt||null,lastError:this.lastError?'poll_failed':null});
   }
   async callControl(action,params={}, {timeoutMs=15000}={}) {
-    return withLatencyTrace(async()=>{
-      if(!this.token)throw new Error('Narrator authentication token is missing.');
-      const timing=latencyEnabled(),started=timing?performance.now():0;let status=0,responseBytes=0;
-      try {
-        const response=await this.fetchImpl(this.controlUrl,{method:'POST',headers:{authorization:`Bearer ${this.token}`,'content-type':'application/json',accept:'application/json'},
-          body:JSON.stringify({action,params}),redirect:'error',signal:AbortSignal.timeout(timeoutMs)});
-        status=response.status;const body=await response.json().catch(()=>null);
-        if(timing)responseBytes=Buffer.byteLength(JSON.stringify(body?.result)??'');
-        if(!response.ok||body?.ok===false)throw Object.assign(new Error(body?.error||`Control returned HTTP ${response.status}`),{status:response.status,code:body?.code});
-        if(!body||!Object.hasOwn(body,'result'))throw new Error('Invalid control response.');return body.result;
-      } finally { if(timing)emitLatency({stage:mcpLatencyStage(action),durationMs:performance.now()-started,status,responseBytes,mcpCalls:1}); }
-    });
+    return this.odmClient(action,params,{timeout:timeoutMs});
   }
   async connect(){
     this.connected=false;const result=await connectNarrator(this);
@@ -211,6 +200,7 @@ export class NarratorRunner {
   async stop(){
     this.stopping=true;this.running=false;if(this.timer){clearTimeout(this.timer);this.timer=null;}this.saveCheckpoint();
     if(this.healthServer){await new Promise(resolve=>this.healthServer.close(resolve));this.healthServer=null;}
+    await this.odmClient.close();
   }
 }
 if(process.argv[1]&&fileURLToPath(import.meta.url)===path.resolve(process.argv[1])){

@@ -6,12 +6,13 @@ import { McpServer, createMcpHandler } from "@modelcontextprotocol/server";
 import { serveStdio } from "@modelcontextprotocol/server/stdio";
 import { toNodeHandler } from "@modelcontextprotocol/node";
 import * as z from "zod/v4";
-import { callControl, withMcpCancellation } from "./control-client.mjs";
+import { callControl, withMcpCancellation, withMcpCredential } from "./control-client.mjs";
 import { createSafeHttpListener } from "./http-boundary.mjs";
 import { narratorInputSchema } from "./narrator-schema.mjs";
 
 const VERSION = "0.1.0";
 const TOKEN = process.env.ODM_MCP_TOKEN?.trim() || "";
+const NARRATOR_TOKEN = process.env.ODM_MCP_NARRATOR_TOKEN?.trim() || "";
 const HOST = process.env.ODM_MCP_HOST?.trim() || "127.0.0.1";
 const PORT = Number(process.env.ODM_MCP_PORT || 3006);
 
@@ -20,8 +21,8 @@ function digest(value) {
 }
 
 function tokenMatches(value) {
-  if (!TOKEN || !value) return false;
-  return timingSafeEqual(digest(value), digest(TOKEN));
+  if (!value) return false;
+  return [TOKEN, NARRATOR_TOKEN].filter(Boolean).some(token => timingSafeEqual(digest(value), digest(token)));
 }
 
 function bearerFrom(headers) {
@@ -635,8 +636,8 @@ async function serveHttp() {
   if (!Number.isInteger(PORT) || PORT < 1 || PORT > 65535) {
     throw new Error("ODM_MCP_PORT must be a valid TCP port.");
   }
-  if (!TOKEN) {
-    throw new Error("ODM_MCP_TOKEN must be set before the HTTP MCP endpoint can start.");
+  if (!TOKEN && !NARRATOR_TOKEN) {
+    throw new Error("ODM_MCP_TOKEN or ODM_MCP_NARRATOR_TOKEN must be set before the HTTP MCP endpoint can start.");
   }
 
   const handler = createMcpHandler(createVerifiedMcpServer);
@@ -677,13 +678,14 @@ async function serveHttp() {
       return;
     }
 
-    await nodeHandler(req, res);
+    await withMcpCredential(bearerFrom(req.headers), () => nodeHandler(req, res));
   }, {
     onError: (error) => console.error("MCP request failed:", error instanceof Error ? error.message : String(error)),
   }));
 
   const shutdown = async () => {
     http.close();
+    await callControl.close?.();
     await handler.close().catch(() => undefined);
   };
   process.once("SIGTERM", shutdown);
