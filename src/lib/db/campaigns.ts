@@ -220,6 +220,7 @@ export function defaultGlobalTurnState(): GlobalTurnState {
   return {
     roundNumber: 1,
     phase: "waiting",
+    startedAt: null,
     firstActionAt: null,
     deadlineAt: null,
     quorumReachedAt: null,
@@ -239,6 +240,7 @@ export function normalizeGlobalTurnState(raw: unknown): GlobalTurnState {
       obj.phase === "resolving"
         ? obj.phase
         : "waiting",
+    startedAt: typeof obj.startedAt === "string" ? obj.startedAt : null,
     firstActionAt: typeof obj.firstActionAt === "string" ? obj.firstActionAt : null,
     deadlineAt: typeof obj.deadlineAt === "string" ? obj.deadlineAt : null,
     quorumReachedAt: typeof obj.quorumReachedAt === "string" ? obj.quorumReachedAt : null,
