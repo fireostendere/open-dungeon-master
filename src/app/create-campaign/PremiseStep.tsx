@@ -5,7 +5,7 @@ import OptionPicker, { type PickerGroup } from "@/app/characters/builder/OptionP
 import { UnofficialPackNotice } from "@/components/UnofficialPackNotice";
 import type { FranchiseGroup, WorldPackSummary } from "@/lib/worlds/types";
 import { useI18n } from "@/lib/i18n";
-import { FieldLabel, inputClass, ToggleCard } from "@/app/create-campaign/fields";
+import { FieldLabel, inputClass } from "@/app/create-campaign/fields";
 import type { StepProps } from "@/app/create-campaign/draft";
 
 const COPY = {
@@ -106,16 +106,18 @@ export function PremiseStep({
 
       <div>
         <FieldLabel className="mb-1.5">{copy.whoRuns}</FieldLabel>
-        <ToggleCard
-          active
-          onClick={() => {}}
-          label={locale === "ru" ? "Человек / внешний рассказчик" : locale === "pl" ? "Człowiek / zewnętrzny narrator" : "Human / external narrator"}
-          hint={locale === "ru"
-            ? "Сервер хранит состояние и применяет правила; повествование ведёт человек или внешний MCP narrator."
-            : locale === "pl"
-              ? "Serwer przechowuje stan i egzekwuje zasady; narrację prowadzi człowiek lub zewnętrzny narrator MCP."
-              : "The server owns state and rules; narration is supplied by a human or external MCP narrator."}
-        />
+        <div className="rounded-lg border border-amber-200/30 bg-amber-200/5 p-3">
+          <p className="font-medium text-amber-100">
+            {locale === "ru" ? "Человек / внешний рассказчик" : locale === "pl" ? "Człowiek / zewnętrzny narrator" : "Human / external narrator"}
+          </p>
+          <p className="mt-1 text-xs text-stone-400">
+            {locale === "ru"
+              ? "Сервер хранит состояние и применяет правила; повествование ведёт человек или внешний MCP narrator."
+              : locale === "pl"
+                ? "Serwer przechowuje stan i egzekwuje zasady; narrację prowadzi człowiek lub zewnętrzny narrator MCP."
+                : "The server owns state and rules; narration is supplied by a human or external MCP narrator."}
+          </p>
+        </div>
         <p className="mt-1.5 text-xs text-stone-500">{copy.humanSeat}</p>
       </div>
 
