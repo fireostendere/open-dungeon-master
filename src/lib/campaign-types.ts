@@ -173,8 +173,6 @@ export type CampaignMember = {
   muted: boolean;
   // How many consecutive turns this player chooses to skip (0..99).
   skipTurnsCount: number;
-  // AI autopilot / Doppelganger taking turns for this player when idle.
-  autopilot: boolean;
   joinedAt: string;
 };
 
