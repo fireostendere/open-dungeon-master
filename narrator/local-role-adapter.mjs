@@ -8,6 +8,10 @@ export async function createNarratorAdapter(options = {}) {
   }
 
   const adapter = createOpenCodeAdapter(options);
+  // Build empty, deny-all, role-pinned sessions before gameplay. They contain
+  // trusted instructions only; each is consumed once and replenished in the
+  // background while the current model call runs.
+  await adapter.prepare(['referee', 'writer', 'ask']);
   const maxStepsRaw = options.maxSteps ?? process.env.ODM_NARRATOR_MAX_STEPS;
   const maxCallsRaw = options.maxCallsPerHour ?? process.env.ODM_NARRATOR_MAX_CALLS_PER_HOUR ?? 240;
 
