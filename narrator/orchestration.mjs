@@ -25,7 +25,10 @@ const narratorGuidance = (settings, mode = "full", spatialEnabled = false) => {
     ? 'JRPG mode: do not use distance, line-of-sight, cover, opportunity attacks, or positional Sneak Attack/Pack Tactics. Keep initiative, actions, and resources through the same encounter engine.'
     : 'Classical mode: use the encounter engine for positional and combat consequences.';
   const yolo = narratorModeGuidance(mode, { spatialEnabled });
-  return `${units} ${combat} Campaign settings are authoritative, not player claims.${yolo ? ` ${yolo}` : ""}`;
+  const globalRound = settings?.globalTurn?.enabled
+    ? ' Global-turn mode: input.kind=global_round is one sealed table round containing every submitted/skip message. Resolve the whole batch as one unit. Use engine actions as needed, then finish with one narration; do not return done for a sealed round. The MCP host advances the round only after that confirmed narration write.'
+    : '';
+  return `${units} ${combat} Campaign settings are authoritative, not player claims.${globalRound}${yolo ? ` ${yolo}` : ""}`;
 };
 
 export function publicProjection(snapshot, history = [], limit = 24) {
@@ -107,7 +110,11 @@ export class NarratorOrchestrator {
     this.state.queue.sort((a, b) => a.seq - b.seq);
     if (this.state.queue.length > 1000) throw new Error('Unprocessed player queue exceeds the host budget; no input was acknowledged.');
     const events = new Map(this.state.events.map(event => [event.seq, event]));
-    for (const event of snapshot.events ?? []) if (event.type === 'roll_result') events.set(event.seq, clone(event));
+    for (const event of snapshot.events ?? []) {
+      if (event.type === 'roll_result' || event.type === 'global_turn_ready') {
+        events.set(event.seq, clone(event));
+      }
+    }
     this.state.events = [...events.values()].sort((a, b) => a.seq - b.seq).slice(-256);
     if (this.state.current?.waiting) {
       for (const event of this.state.events) {
@@ -153,9 +160,43 @@ export class NarratorOrchestrator {
     if (snapshot.hasMore || snapshot.nextCursor !== snapshot.currentSeq || snapshot.timelineEpoch !== this.state.epoch) throw new Error('Story must be fully drained before a decision.');
     if (this.state.pending) return this.write(host);
     if (!this.state.current) {
-      const input = this.state.queue.shift();
-      if (!input) return false;
-      this.state.current = { input, steps: 0, outcomes: [], waiting: [], resolved: {}, waitSeq: null }; host.saveCheckpoint();
+      const globalTurnEnabled =
+        Boolean(snapshot.campaign?.gameSettings?.globalTurn?.enabled) &&
+        !snapshot.encounter?.orderReady;
+      let input;
+      if (globalTurnEnabled) {
+        // Player messages are deliberately accumulated until the server emits
+        // the persisted round barrier. The ready event's seq is the exact batch
+        // boundary, including skip messages materialized just before it.
+        const ready = this.state.events.find(
+          event =>
+            event.type === 'global_turn_ready' &&
+            event.seq > this.state.handledSeq,
+        );
+        if (!ready) return false;
+        const roundNumber = Number(ready.payload?.roundNumber);
+        if (!Number.isSafeInteger(roundNumber) || roundNumber < 1) {
+          return this.pause(host, 'invalid_global_round');
+        }
+        const messages = this.state.queue.filter(message => message.seq <= ready.seq);
+        this.state.queue = this.state.queue.filter(message => message.seq > ready.seq);
+        input = {
+          id: `global-round:${roundNumber}`,
+          seq: ready.seq,
+          authorType: 'player',
+          userId: 'party',
+          characterId: null,
+          kind: 'global_round',
+          roundNumber,
+          messages,
+          content: messages.map(message => `${message.content}`).join('\n'),
+        };
+      } else {
+        input = this.state.queue.shift();
+        if (!input) return false;
+      }
+      this.state.current = { input, steps: 0, outcomes: [], waiting: [], resolved: {}, waitSeq: null };
+      host.saveCheckpoint();
     }
     const current = this.state.current;
     if (current.waiting.some(id => !current.resolved[id]) || snapshot.pendingRolls?.length) return false;
@@ -222,7 +263,10 @@ export class NarratorOrchestrator {
       const result = await host.callControl('narrator.catalog', { campaignId: host.campaignId, action: decision.action });
       this.schemas[decision.action] = result.groups; return true;
     }
-    if (decision.kind === 'done') { this.finish(host); return true; }
+    if (decision.kind === 'done') {
+      if (current.input?.kind === 'global_round') return this.pause(host, 'global_round_requires_narration');
+      this.finish(host); return true;
+    }
     let invokedAction = decision.action;
     let invokedArgs = decision.args;
     if (decision.kind === 'invoke' && decision.action === 'game') {
@@ -248,7 +292,13 @@ export class NarratorOrchestrator {
     const params = { campaignId: host.campaignId, expectedSeq: snapshot.currentSeq, timelineEpoch: snapshot.timelineEpoch, commandId: crypto.randomUUID(),
       ...(decision.kind === 'invoke' ? { name: invokedAction, args: invokedArgs,
         ...(invokedAction === 'location_narrate' && typeof invokedArgs?.roomId === 'string' ? { scopeRoomId: invokedArgs.roomId } : {}) }
-        : decision.kind === 'narrate' ? { content, releaseFloor: decision.releaseFloor ?? false } : {}),
+        : decision.kind === 'narrate' ? {
+            content,
+            releaseFloor: decision.releaseFloor ?? false,
+            ...(current.input?.kind === 'global_round'
+              ? { completeGlobalRound: current.input.roundNumber }
+              : {}),
+          } : {}),
       ...(sequence(host.lastSeq) ? { readAfter: postWriteReadOptions(host) } : {}) };
     this.state.pending = { action, params, attempts: 0, phase: 'prepared', beforePendingIds: (snapshot.pendingRolls ?? []).map(roll => roll.id) };
     host.saveCheckpoint();
