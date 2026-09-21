@@ -125,6 +125,10 @@ export async function GET(
     asks: listAsksForUser(campaignId, user.id),
     facts: visibleFacts,
     battleMap: spatialBattleMapView(campaignId, user.id, { fullVision: caps.fullMap }),
+    itemProposals: projectSpatialUserRows(
+      legacyPolicy,
+      listOpenItemProposals(campaignId),
+    ).map(publicItemProposal),
     encounter: legacyPolicy.scoped
       ? activePublicEncounter(campaignId, {
           enemyNumbers: caps.enemyNumbers,
