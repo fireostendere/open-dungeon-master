@@ -32,7 +32,7 @@ import { executeNarratorCommand, NarratorCommandError as McpNarratorControlError
 import { listNarratorReceipts } from "@/lib/db/narrator-commands";
 import { coverInEffect } from "@/lib/dm/delegation";
 import { npcRosterForPrompt } from "@/lib/dm/social-tools";
-import { answerAsk, listPendingAsksForCampaign, AskQueueConflict } from "@/lib/db/asks";
+import { answerAsk, listPendingAsksForCampaign, pendingAsksForCampaign, AskQueueConflict } from "@/lib/db/asks";
 import { narratorSnapshots } from "@/lib/mcp-snapshot-cache.mjs";
 import { budgetRead, ReadBudgetError } from "@/lib/mcp-read-budget.mjs";
 import { listEventsSince, publishEphemeral, publishPersisted, publishUserEphemeral } from "@/lib/events";
@@ -127,6 +127,7 @@ function read(raw: unknown) {
     ...message, campaignId: campaign.id, userId: message.authorUserId, characterId: null,
     authorType: message.kind === "narration" || message.kind === "perception" ? "dm" : "player", channel: "location" as const,
   }))].sort((a,b) => a.seq-b.seq);
+  const askMeta = pendingAsksForCampaign(campaign.id);
   const askPage = p.data.includeAsks
     ? listPendingAsksForCampaign(campaign.id, p.data.afterAskSeq, p.data.askLimit)
     : { items: [], nextCursor: p.data.afterAskSeq, hasMore: false };
@@ -153,7 +154,7 @@ function read(raw: unknown) {
     commands: delta && baselineSeq > 0 ? receipts.filter(receipt => receipt.committedSeq > baselineSeq) : receipts,
     summary: getCampaignSummaryState(campaign.id), members: listMembers(campaign.id), pendingRolls: listOpenPendingRolls(campaign.id),
     playerWhispers: listPendingPlayerWhispers(campaign.id), recentDmWhispers: live ? [] : listRecentWhispersForPrompt(campaign.id),
-    omittedSections, asks: askPage.items, askQueue: { nextCursor: askPage.nextCursor, hasMore: askPage.hasMore },
+    omittedSections, asks: askPage.items, askQueue: { nextCursor: askPage.nextCursor, hasMore: askPage.hasMore, pending: askMeta.pending },
     ...sections, sectionVersions, location: getCurrentLocation(campaign.id), sceneTracker: getSceneTracker(campaign.id),
     encounter: (() => { const encounter = getActiveEncounter(campaign.id); return encounter ? { encounter, enemies: listEnemies(encounter.id) } : null; })(),
     ...(delta ? { deltaState: { enabled: true, baselineSeq, pruned: ["sheets", "facts", "notes", "npcs"].every(key => omittedSections.includes(key)) } } : {}),
