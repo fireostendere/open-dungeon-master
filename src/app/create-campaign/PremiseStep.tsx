@@ -16,19 +16,6 @@ const COPY = {
     title: "Title",
     titlePlaceholder: "Curse of the Ash Kingdom",
     whoRuns: "Who runs this table?",
-    modeLabels: {
-      ai: "AI Dungeon Master",
-      human: "I run the game",
-      assisted: "I run the game, with AI help",
-    },
-    modeHints: {
-      ai: "The AI narrates, adjudicates and runs the world. The party lead steers it.",
-      human: "You narrate. The server still enforces every rule and rolls every die.",
-      assisted: "You own the story; hand the AI the monsters, the prose, or a stretch of turns.",
-    },
-    noAi: "This server has no AI storyteller, so a human runs the table.",
-    aiOffline:
-      "The AI backend is not answering right now. You can still create this campaign, but AI turns will fail until it is back.",
     humanSeat:
       "You take the Dungeon Master seat: no character, no party slot, and you see the sheets, the stat blocks and the whole map. The server still rolls every die and holds every number.",
     prebuiltWorld: "Pre-built world (optional)",
@@ -42,19 +29,6 @@ const COPY = {
     title: "Название",
     titlePlaceholder: "Проклятие Пепельного королевства",
     whoRuns: "Кто ведёт эту игру?",
-    modeLabels: {
-      ai: "ИИ-Мастер",
-      human: "Игру веду я",
-      assisted: "Игру веду я, с помощью ИИ",
-    },
-    modeHints: {
-      ai: "ИИ ведёт повествование, принимает решения по правилам и управляет миром. Лидер группы направляет его.",
-      human: "Вы ведёте повествование. Сервер по-прежнему применяет правила и бросает все кости.",
-      assisted: "История остаётся за вами; ИИ можно поручить монстров, текст повествования или несколько ходов.",
-    },
-    noAi: "На этом сервере нет ИИ-рассказчика, поэтому игру должен вести человек.",
-    aiOffline:
-      "ИИ-бэкенд сейчас не отвечает. Кампанию можно создать, но ходы ИИ не будут работать, пока соединение не восстановится.",
     humanSeat:
       "Вы занимаете место Мастера: у вас нет собственного персонажа и слота в группе, зато вы видите листы, статблоки и всю карту. Сервер всё равно бросает кости и хранит игровые значения.",
     prebuiltWorld: "Готовый мир (необязательно)",
@@ -68,19 +42,6 @@ const COPY = {
     title: "Tytuł",
     titlePlaceholder: "Klątwa Popielnego Królestwa",
     whoRuns: "Kto prowadzi ten stół?",
-    modeLabels: {
-      ai: "Mistrz Gry AI",
-      human: "Ja prowadzę grę",
-      assisted: "Ja prowadzę grę, z pomocą AI",
-    },
-    modeHints: {
-      ai: "AI prowadzi narrację, rozstrzyga zasady i zarządza światem. Lider drużyny nadaje kierunek.",
-      human: "Ty prowadzisz narrację. Serwer nadal egzekwuje zasady i wykonuje wszystkie rzuty.",
-      assisted: "Historia należy do ciebie; AI możesz przekazać potwory, narrację lub serię tur.",
-    },
-    noAi: "Ten serwer nie ma narratora AI, więc stół musi prowadzić człowiek.",
-    aiOffline:
-      "Backend AI obecnie nie odpowiada. Nadal możesz utworzyć kampanię, ale tury AI nie zadziałają, dopóki połączenie nie wróci.",
     humanSeat:
       "Zajmujesz miejsce Mistrza Gry: nie masz własnej postaci ani miejsca w drużynie, za to widzisz karty, bloki statystyk i całą mapę. Serwer nadal wykonuje wszystkie rzuty i przechowuje wartości mechaniczne.",
     prebuiltWorld: "Gotowy świat (opcjonalnie)",
@@ -89,7 +50,7 @@ const COPY = {
   },
 } as const;
 
-// Step 1: the name, who holds the DM seat, and an optional pre-built world.
+// Step 1: the name, the external/human DM boundary, and an optional pre-built world.
 // The pack select is hidden outright when the server has none installed.
 export function PremiseStep({
   draft,
@@ -147,7 +108,7 @@ export function PremiseStep({
         <FieldLabel className="mb-1.5">{copy.whoRuns}</FieldLabel>
         <ToggleCard
           active
-          onClick={() => patch({ dmMode: "human" })}
+          onClick={() => {}}
           label={locale === "ru" ? "Человек / внешний рассказчик" : locale === "pl" ? "Człowiek / zewnętrzny narrator" : "Human / external narrator"}
           hint={locale === "ru"
             ? "Сервер хранит состояние и применяет правила; повествование ведёт человек или внешний MCP narrator."
