@@ -69,7 +69,8 @@ function nextAutopilotCandidate(snapshot) {
 }
 
 function fallbackActorTurn(sheet, language = 'ru') {
-  const name = typeof sheet?.name === 'string' && sheet.name.trim() ? sheet.name.trim() : 'Персонаж';
+  const fallbackName = language === 'en' ? 'The character' : language === 'pl' ? 'Postać' : 'Персонаж';
+  const name = typeof sheet?.name === 'string' && sheet.name.trim() ? sheet.name.trim() : fallbackName;
   const content = language === 'en'
     ? `${name} stays close to the party, watches the surroundings, and avoids spending limited resources.`
     : language === 'pl'
