@@ -36,6 +36,8 @@ export const narratorInputSchema = z.object({
   recentLimit: z.number().int().min(1).max(20).optional(),
   knownRevision: z.string().regex(/^[a-f0-9]{64}$/).optional(),
   releaseFloor: z.boolean().optional(),
+  completeGlobalRound: z.number().int().min(1).optional()
+    .describe('Internal/global-turn hosts: complete this sealed round atomically with narration.'),
   summaryOnly: z.boolean().optional(), category: z.string().optional(), action: z.string().optional(),
   policyMode: z.enum(['full', 'compact']).optional(), includePolicyText: z.boolean().optional(),
   compact: z.boolean().optional(),
