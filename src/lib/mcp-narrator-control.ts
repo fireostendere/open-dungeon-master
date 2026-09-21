@@ -73,7 +73,6 @@ function campaignOrHuman(campaignId: string) {
   const campaign = getCampaignById(campaignId);
   if (!campaign) throw new McpNarratorControlError("Campaign not found.", 404);
   if (campaign.gameSettings.dmMode !== "human" || !campaign.dmUserId || coverInEffect(campaign.gameSettings.dmMode, campaign.gameSettings.dmAssist, campaign.dmCover)) throw new McpNarratorControlError("External narration requires a human-DM campaign with a DM seat.", 409);
-  if (campaign.gameSettings.ttsEnabled || campaign.gameSettings.mapsEnabled) throw new McpNarratorControlError("External narration requires TTS and automatic maps to be disabled.", 409);
   return campaign;
 }
 function safeCampaign(campaign: NonNullable<ReturnType<typeof getCampaignById>>) {
