@@ -88,18 +88,45 @@ test('R01: actual route replay and live fan-out hide a foreign sheet, with owner
   const f = await fixture(); const received = { A: [], B: [], DM: [] };
   const releases = Object.keys(received).map(user => f.events.subscribe('c', chunk => received[user].push(chunk), user));
   try {
-    f.events.publishPersisted('c', 'sheet_updated', { sheet: { id: 'pcA', userId: 'A', secret: 'SHEET_SECRET' } });
+    f.events.publishPersisted('c', 'sheet_updated', { sheet: {
+      id: 'pcA', userId: 'A', secret: 'SHEET_SECRET',
+      notes: 'OWNER_PRIVATE_NOTE', isCompanion: true, personality: 'DM_ONLY_PERSONALITY',
+    } });
     f.events.publishPersisted('c', 'public_control', { text: 'GLOBAL_CONTROL' }, { kind: 'global' });
     for (const user of ['A', 'B', 'DM']) {
       const bytes = await replay(f, user, 'GLOBAL_CONTROL');
       assert.equal(bytes.includes('SHEET_SECRET'), user !== 'B');
       assert.equal(received[user].join('').includes('SHEET_SECRET'), user !== 'B');
+      assert.equal(bytes.includes('OWNER_PRIVATE_NOTE'), user === 'A');
+      assert.equal(received[user].join('').includes('OWNER_PRIVATE_NOTE'), user === 'A');
+      assert.equal(bytes.includes('DM_ONLY_PERSONALITY'), user === 'DM');
+      assert.equal(received[user].join('').includes('DM_ONLY_PERSONALITY'), user === 'DM');
       assert.ok(bytes.includes('GLOBAL_CONTROL'));
     }
     assert.match(received.B.join(''), /id: 1\nevent: stream_checkpoint/);
     f.authenticate('outsider');
     assert.equal((await f.route.GET(new Request('http://localhost/events'), { params: Promise.resolve({ campaignId: 'c' }) })).status, 404);
   } finally { for (const release of releases) release(); f.close(); }
+});
+
+test('R01: non-spatial sheet updates keep private fields viewer-scoped', async () => {
+  const f = await fixture();
+  try {
+    f.db.exec("DELETE FROM spatial_campaigns");
+    f.events.publishPersisted('c', 'sheet_updated', { sheet: {
+      id: 'pcA', userId: 'A', notes: 'NONSPATIAL_PRIVATE_NOTE',
+      isCompanion: true, personality: 'NONSPATIAL_DM_PERSONALITY',
+      currentHp: 7, maxHp: 10,
+    } });
+    const a = JSON.stringify(f.events.listEventsSince('c', 0, 10, 'A'));
+    const b = JSON.stringify(f.events.listEventsSince('c', 0, 10, 'B'));
+    const dm = JSON.stringify(f.events.listEventsSince('c', 0, 10, 'DM'));
+    assert.match(a, /NONSPATIAL_PRIVATE_NOTE/);
+    assert.doesNotMatch(b, /NONSPATIAL_PRIVATE_NOTE|NONSPATIAL_DM_PERSONALITY/);
+    assert.doesNotMatch(dm, /NONSPATIAL_PRIVATE_NOTE/);
+    assert.match(dm, /NONSPATIAL_DM_PERSONALITY/);
+    assert.match(b, /"currentHp":7/);
+  } finally { f.close(); }
 });
 
 test('R01: write-time room audience survives movement; entering a room does not grant its past', async () => {
@@ -123,6 +150,20 @@ test('R01: unknown legacy audiences and payload-supplied room grants fail closed
     f.events.publishPersisted('c', 'scene', { text: 'FORGED_SECRET', roomId: 'street', userIds: ['B'] });
     assert.doesNotMatch(JSON.stringify(f.events.listEventsSince('c', -1, 500, 'B')), /SECRET/);
     assert.match(JSON.stringify(f.events.listEventsSince('c', -1, 500, 'DM')), /LEGACY_SECRET/);
+  } finally { f.close(); }
+});
+
+test('R01: spatial member updates keep skip/autopilot state for other devices', async () => {
+  const f = await fixture();
+  try {
+    f.events.publishPersisted('c', 'member_updated', { member: {
+      userId: 'A', username: 'Alice', role: 'player', ready: true,
+      useRealDice: false, muted: false, skipTurnsCount: 3, autopilot: true,
+      joinedAt: '2026-01-01T00:00:00Z',
+    } });
+    const b = JSON.stringify(f.events.listEventsSince('c', 0, 10, 'B'));
+    assert.match(b, /"skipTurnsCount":3/);
+    assert.match(b, /"autopilot":true/);
   } finally { f.close(); }
 });
 

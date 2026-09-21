@@ -496,8 +496,12 @@ function reducer(state: CampaignState, action: Action): CampaignState {
           return next;
         }
         case "member_updated": {
-          const member = payload.member as CampaignMember | undefined;
-          if (member) {
+          const patch = payload.member as Partial<CampaignMember> | undefined;
+          if (patch?.userId) {
+            const previous = state.members.find((member) => member.userId === patch.userId);
+            const member = previous
+              ? { ...previous, ...patch }
+              : patch as CampaignMember;
             next.members = upsertBy(state.members, member, (entry) => entry.userId);
           }
           return next;
