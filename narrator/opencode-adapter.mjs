@@ -2,6 +2,25 @@ import path from 'node:path';
 import { trustedInstruction } from './role-profiles.mjs';
 import { emitLatency, latencyEnabled, withLatencyTrace } from '../mcp/latency-trace.mjs';
 
+const nonNegativeInteger = value => Number.isSafeInteger(Number(value)) && Number(value) >= 0 ? Number(value) : null;
+function modelUsage(reply) {
+  const source = reply?.usage ?? reply?.metadata?.usage ?? reply?.info?.usage ?? null;
+  if (!source || typeof source !== 'object' || Array.isArray(source)) return null;
+  const promptTokens = [
+    source.promptTokens, source.prompt_tokens, source.inputTokens, source.input_tokens, source.input,
+  ].map(nonNegativeInteger).find(value => value !== null);
+  const completionTokens = [
+    source.completionTokens, source.completion_tokens, source.outputTokens, source.output_tokens, source.output,
+  ].map(nonNegativeInteger).find(value => value !== null);
+  if (promptTokens === undefined || completionTokens === undefined) return null;
+  const cost = Number(source.costUsd ?? source.cost_usd ?? source.cost);
+  return {
+    promptTokens,
+    completionTokens,
+    ...(Number.isFinite(cost) && cost >= 0 ? { costUsd: cost } : {}),
+  };
+}
+
 export class OpenCodeAdapter {
   constructor(options = {}) {
     // Trusted source marker used by the shared play-mode router. This is set by
@@ -62,12 +81,13 @@ export class OpenCodeAdapter {
     void task.finally(() => this.pendingCleanups.delete(task));
   }
   async close() { await Promise.allSettled([...this.pendingCleanups]); }
-  async generate(role, prompt) {
+  instructionBytes(role) {
+    return Buffer.byteLength(trustedInstruction(role));
+  }
+  async generateWithUsage(role, prompt) {
     return withLatencyTrace(async () => {
       const instruction = trustedInstruction(role);
       if (typeof prompt !== 'string' || Buffer.byteLength(prompt) > 262144) throw new Error('Role input exceeds the byte budget; no facts were clipped.');
-      // Bound outstanding cleanup work without reusing sessions across roles or
-      // private Ask audiences. Real fetches abort after cleanupTimeoutMs.
       if (this.pendingCleanups.size >= 32) throw new Error('OpenCode cleanup capacity exhausted.');
       const agent = `narrator-${role}`;
       const session = await this.request('/api/session', { stage: 'session', body: { agent, model: this.model,
@@ -79,9 +99,13 @@ export class OpenCodeAdapter {
         await this.request(`/api/experimental/session/${encodeURIComponent(session.id)}/instructions/entries/odm-policy`, { method: 'PUT', stage: 'policy', body: { value: instruction } });
         const reply = await this.request(`${route}/generate`, { stage: 'model', body: { prompt } });
         if (typeof reply?.text !== 'string' || !reply.text.trim() || Buffer.byteLength(reply.text) > 32768) throw new Error('Malformed or oversized model output.');
-        return reply.text;
+        return { text: reply.text, usage: modelUsage(reply) };
       } finally { this.cleanup(route); }
     });
+  }
+  async generate(role, prompt) {
+    const result = await this.generateWithUsage(role, prompt);
+    return result.text;
   }
 }
 
