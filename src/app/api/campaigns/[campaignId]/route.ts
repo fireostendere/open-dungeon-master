@@ -26,6 +26,10 @@ import { listOpenItemProposals } from "@/lib/db/item-proposals";
 import { publicItemProposal } from "@/lib/dm/proposal-intercept";
 import { listLocations } from "@/lib/db/locations";
 import { listRecentAudit } from "@/lib/db/sheet-audit";
+import { listThreadsForUser } from "@/lib/db/side-chat";
+import { countUnreadWhispers, listWhispersForUser } from "@/lib/db/dm-whispers";
+import { listAsksForUser } from "@/lib/db/asks";
+import { listFactsVisibleTo } from "@/lib/db/facts";
 import { insertCampaignMessage, listRecentMessages } from "@/lib/db/messages";
 import { listRollsVisibleTo } from "@/lib/db/rolls";
 import { listSheets } from "@/lib/db/sheets";
@@ -34,8 +38,9 @@ import { isPrimaryDm, lobbyBlocker } from "@/lib/dm/viewer";
 import { listBlockedUserIds } from "@/lib/db/moderation";
 import { publishPersisted, publishWithSeq } from "@/lib/events";
 import { spatialEnabled, spatialContext, spatialStore } from "@/lib/spatial/service";
+import { spatialBattleMapView } from "@/lib/spatial/battle-map";
 import {
-  projectSpatialCampaign, projectSpatialChapters, projectSpatialNotes, projectSpatialRolls,
+  projectSpatialCampaign, projectSpatialChapters, projectSpatialFacts, projectSpatialNotes, projectSpatialRolls,
   projectSpatialUserRows, spatialLegacyPolicy,
 } from "@/lib/spatial/legacy-projection";
 
@@ -78,6 +83,11 @@ export async function GET(
   const visibleMessages = spatial
     ? spatialStore().messages(spatialActor!, { roomId: null, limit: 100 }).messages
     : listRecentMessages(campaignId, 100);
+  const visibleFacts = projectSpatialFacts(
+    legacyPolicy,
+    listFactsVisibleTo(campaignId, ownedCharacterIds, false),
+  );
+  const whispers = listWhispersForUser(campaignId, user.id);
   return Response.json({
     campaign: projectSpatialCampaign(legacyPolicy, publicCampaign(campaign)),
     me: { id: user.id, username: user.username, avatar: user.avatar },
@@ -101,6 +111,14 @@ export async function GET(
     locations: spatial && !caps.adjudicates ? [] : listLocations(campaignId),
     chapters: projectSpatialChapters(legacyPolicy, listChapters(campaignId)),
     notes: projectSpatialNotes(legacyPolicy, listNotesVisibleTo(campaignId, user.id, caps.steersStory)),
+    // Per-user private projections ride the authenticated bootstrap once.
+    // Contentless SSE nudges still refetch only the projection that changed.
+    sideThreads: listThreadsForUser(campaignId, user.id),
+    whispers,
+    whisperUnread: countUnreadWhispers(campaignId, user.id),
+    asks: listAsksForUser(campaignId, user.id),
+    facts: visibleFacts,
+    battleMap: spatialBattleMapView(campaignId, user.id, { fullVision: caps.fullMap }),
     encounter: legacyPolicy.scoped
       ? activePublicEncounter(campaignId, {
           enemyNumbers: caps.enemyNumbers,
