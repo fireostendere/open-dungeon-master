@@ -79,7 +79,7 @@ export class OpenCodeAdapter {
       ? Math.min(this.timeoutMs, 30000)
       : Number(actorTimeoutRaw);
     this.cleanupTimeoutMs = options.cleanupTimeoutMs ?? 2000;
-    if (!Number.isSafeInteger(this.actorTimeoutMs) || this.actorTimeoutMs < 1000 || this.actorTimeoutMs > 120000) throw new Error('Invalid actor timeout.');
+    if (!Number.isSafeInteger(this.actorTimeoutMs) || this.actorTimeoutMs < 1 || this.actorTimeoutMs > 120000) throw new Error('Invalid actor timeout.');
     if (!Number.isSafeInteger(this.cleanupTimeoutMs) || this.cleanupTimeoutMs < 1 || this.cleanupTimeoutMs > 10000) throw new Error('Invalid cleanup timeout.');
     this.pendingCleanups = new Set();
     this.idleSessions = new Map();
