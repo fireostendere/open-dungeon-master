@@ -77,6 +77,10 @@ export class OpenCodeAdapter {
     this.cleanupTimeoutMs = options.cleanupTimeoutMs ?? 2000;
     if (!Number.isSafeInteger(this.cleanupTimeoutMs) || this.cleanupTimeoutMs < 1 || this.cleanupTimeoutMs > 10000) throw new Error('Invalid cleanup timeout.');
     this.pendingCleanups = new Set();
+    this.idleSessions = new Map();
+    this.warmingSessions = new Map();
+    this.poolEnabled = false;
+    this.closed = false;
     this.onTiming = typeof options.onTiming === 'function' ? options.onTiming : null;
   }
   timing(stage, startedAt, fields = {}) {
@@ -114,7 +118,64 @@ export class OpenCodeAdapter {
     this.pendingCleanups.add(task);
     void task.finally(() => this.pendingCleanups.delete(task));
   }
-  async close() { await Promise.allSettled([...this.pendingCleanups]); }
+  async createSession(role) {
+    if (this.closed) throw new Error('OpenCode adapter is closed.');
+    const agent = `narrator-${role}`;
+    const roleModel = this.modelFor(role);
+    const session = await this.request('/api/session', { stage: 'session', body: { agent, model: roleModel,
+      location: { directory: this.workspace }, permissions: [{ action: '*', resource: '*', effect: 'deny' }], title: `ODM ${role}` } });
+    if (typeof session?.id !== 'string' || !/^ses[a-zA-Z0-9_-]+$/.test(session.id)) throw new Error('Invalid OpenCode session.');
+    if (session.agent !== agent || ['providerID', 'id', 'variant'].some(key => session.model?.[key] !== roleModel[key])) {
+      this.cleanup(`/api/session/${encodeURIComponent(session.id)}`);
+      throw new Error('OpenCode did not preserve the selected role/model.');
+    }
+    if (!this.workspacePolicyRoles.has(role)) {
+      await this.request(`/api/experimental/session/${encodeURIComponent(session.id)}/instructions/entries/odm-policy`,
+        { method: 'PUT', stage: 'policy', body: { value: trustedInstruction(role) } });
+    }
+    return session;
+  }
+  async ensureWarm(role) {
+    if (this.closed || this.idleSessions.has(role)) return this.idleSessions.get(role) ?? null;
+    if (this.warmingSessions.has(role)) return this.warmingSessions.get(role);
+    const task = this.createSession(role)
+      .then(session => {
+        if (this.closed) this.cleanup(`/api/session/${encodeURIComponent(session.id)}`);
+        else this.idleSessions.set(role, session);
+        return session;
+      })
+      .finally(() => this.warmingSessions.delete(role));
+    this.warmingSessions.set(role, task);
+    return task;
+  }
+  async prepare(roles = ['referee', 'writer', 'ask']) {
+    this.poolEnabled = true;
+    await Promise.all(roles.map(role => this.ensureWarm(role)));
+  }
+  async takeSession(role) {
+    if (this.idleSessions.has(role)) {
+      const session = this.idleSessions.get(role);
+      this.idleSessions.delete(role);
+      if (this.poolEnabled) void this.ensureWarm(role).catch(() => {});
+      return session;
+    }
+    if (this.warmingSessions.has(role)) {
+      await this.warmingSessions.get(role);
+      if (this.idleSessions.has(role)) return this.takeSession(role);
+    }
+    const session = await this.createSession(role);
+    if (this.poolEnabled) void this.ensureWarm(role).catch(() => {});
+    return session;
+  }
+  async close() {
+    this.closed = true;
+    await Promise.allSettled([...this.warmingSessions.values()]);
+    for (const session of this.idleSessions.values()) {
+      this.cleanup(`/api/session/${encodeURIComponent(session.id)}`);
+    }
+    this.idleSessions.clear();
+    await Promise.allSettled([...this.pendingCleanups]);
+  }
   modelFor(role) {
     return this.roleModels[role] ?? this.model;
   }
@@ -123,20 +184,11 @@ export class OpenCodeAdapter {
   }
   async generateWithUsage(role, prompt) {
     return withLatencyTrace(async () => {
-      const instruction = trustedInstruction(role);
       if (typeof prompt !== 'string' || Buffer.byteLength(prompt) > 262144) throw new Error('Role input exceeds the byte budget; no facts were clipped.');
       if (this.pendingCleanups.size >= 32) throw new Error('OpenCode cleanup capacity exhausted.');
-      const agent = `narrator-${role}`;
-      const roleModel = this.modelFor(role);
-      const session = await this.request('/api/session', { stage: 'session', body: { agent, model: roleModel,
-        location: { directory: this.workspace }, permissions: [{ action: '*', resource: '*', effect: 'deny' }], title: `ODM ${role}` } });
-      if (typeof session?.id !== 'string' || !/^ses[a-zA-Z0-9_-]+$/.test(session.id)) throw new Error('Invalid OpenCode session.');
+      const session = await this.takeSession(role);
       const route = `/api/session/${encodeURIComponent(session.id)}`;
       try {
-        if (session.agent !== agent || ['providerID', 'id', 'variant'].some(key => session.model?.[key] !== roleModel[key])) throw new Error('OpenCode did not preserve the selected role/model.');
-        if (!this.workspacePolicyRoles.has(role)) {
-          await this.request(`/api/experimental/session/${encodeURIComponent(session.id)}/instructions/entries/odm-policy`, { method: 'PUT', stage: 'policy', body: { value: instruction } });
-        }
         const reply = await this.request(`${route}/generate`, { stage: 'model', body: { prompt } });
         if (typeof reply?.text !== 'string' || !reply.text.trim() || Buffer.byteLength(reply.text) > 32768) throw new Error('Malformed or oversized model output.');
         return { text: reply.text, usage: modelUsage(reply) };
