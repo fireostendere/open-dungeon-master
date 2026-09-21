@@ -219,6 +219,11 @@ function ComposerInner({
     return Boolean(mem && mem.skipTurnsCount > 0);
   }).length;
 
+  const globalTurnLocked = Boolean(
+    globalTurnEnabled &&
+      globalTurnState &&
+      ["waiting", "ready", "resolving"].includes(globalTurnState.phase),
+  );
   const usage = mySheet && globalTurnState ? globalTurnState.actionsByCharacter[mySheet.id] : null;
   const heroActionsCount = usage?.actionsCount ?? 0;
   const heroPhrasesCount = usage?.phrasesCount ?? 0;
@@ -312,13 +317,21 @@ function ComposerInner({
               <span className="text-[11px] text-stone-400">
                 ({respondedPlayersCount}/{Math.max(1, playerSheets.length)} сходили)
               </span>
-              {globalTurnState?.phase === "ready" || globalTurnState?.phase === "resolving" ? (
+              {globalTurnState?.phase === "waiting" ? (
                 <span className="rounded bg-amber-950/80 px-1.5 py-0.5 text-[11px] text-amber-200">
                   {locale === "ru"
-                    ? "MCP-Мастер разрешает раунд"
+                    ? "MCP-Мастер завершает ход — ввод закрыт"
                     : locale === "pl"
-                      ? "MCP MG rozstrzyga rundę"
-                      : "MCP DM is resolving the round"}
+                      ? "MCP MG kończy turę — wejście zablokowane"
+                      : "MCP DM is finishing the turn — input locked"}
+                </span>
+              ) : globalTurnState?.phase === "ready" || globalTurnState?.phase === "resolving" ? (
+                <span className="rounded bg-amber-950/80 px-1.5 py-0.5 text-[11px] text-amber-200">
+                  {locale === "ru"
+                    ? "MCP-Мастер разрешает раунд — ввод закрыт"
+                    : locale === "pl"
+                      ? "MCP MG rozstrzyga rundę — wejście zablokowane"
+                      : "MCP DM is resolving the round — input locked"}
                 </span>
               ) : globalTurnState?.deadlineAt ? (
                 <span
