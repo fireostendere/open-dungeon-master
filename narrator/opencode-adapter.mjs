@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 import path from 'node:path';
 import { trustedInstruction } from './role-profiles.mjs';
 import { emitLatency, latencyEnabled, withLatencyTrace } from '../mcp/latency-trace.mjs';
@@ -57,6 +58,20 @@ export class OpenCodeAdapter {
     }
     this.workspace = options.workspace ?? process.env.ODM_OPENCODE_WORKSPACE;
     if (typeof this.workspace !== 'string' || !path.isAbsolute(this.workspace)) throw new Error('Select an absolute isolated OpenCode workspace.');
+    // export-opencode-workspace installs the exact trusted role instruction as
+    // the agent system prompt. When it still matches byte-for-byte, installing
+    // the same text again through the session instruction API only duplicates
+    // model context and adds an HTTP round-trip. A stale/missing/custom
+    // workspace fails closed to the API-managed instruction path below.
+    this.workspacePolicyRoles = new Set();
+    try {
+      const config = JSON.parse(fs.readFileSync(path.join(this.workspace, 'opencode.json'), 'utf8'));
+      for (const role of ['referee', 'writer', 'ask', 'actor']) {
+        if (config?.agents?.[`narrator-${role}`]?.system === trustedInstruction(role)) {
+          this.workspacePolicyRoles.add(role);
+        }
+      }
+    } catch {}
     this.fetch = options.fetchImpl ?? globalThis.fetch;
     this.timeoutMs = options.timeoutMs ?? 120000;
     this.cleanupTimeoutMs = options.cleanupTimeoutMs ?? 2000;
@@ -119,7 +134,9 @@ export class OpenCodeAdapter {
       const route = `/api/session/${encodeURIComponent(session.id)}`;
       try {
         if (session.agent !== agent || ['providerID', 'id', 'variant'].some(key => session.model?.[key] !== roleModel[key])) throw new Error('OpenCode did not preserve the selected role/model.');
-        await this.request(`/api/experimental/session/${encodeURIComponent(session.id)}/instructions/entries/odm-policy`, { method: 'PUT', stage: 'policy', body: { value: instruction } });
+        if (!this.workspacePolicyRoles.has(role)) {
+          await this.request(`/api/experimental/session/${encodeURIComponent(session.id)}/instructions/entries/odm-policy`, { method: 'PUT', stage: 'policy', body: { value: instruction } });
+        }
         const reply = await this.request(`${route}/generate`, { stage: 'model', body: { prompt } });
         if (typeof reply?.text !== 'string' || !reply.text.trim() || Buffer.byteLength(reply.text) > 32768) throw new Error('Malformed or oversized model output.');
         return { text: reply.text, usage: modelUsage(reply) };
