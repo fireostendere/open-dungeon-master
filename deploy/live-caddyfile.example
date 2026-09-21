@@ -1,0 +1,31 @@
+{
+    auto_https disable_redirects
+}
+
+api.iroslyakov.com {
+    reverse_proxy /rtc* localhost:7880
+    reverse_proxy /twirp/* localhost:7880
+    reverse_proxy /livekit/webhook localhost:8765
+
+    # ODM is a path on the existing public host; the LiveKit web app stays
+    # the default upstream. Reloading this file is graceful and does not stop
+    # either application container.
+    @odm_mcp path /mcp /mcp/*
+    handle @odm_mcp {
+        reverse_proxy 127.0.0.1:3006
+    }
+
+    @odm_internal path /api/internal /api/internal/*
+    handle @odm_internal {
+        respond 404
+    }
+
+    @odm_narrator path /api/narrator
+    handle @odm_narrator {
+        reverse_proxy 127.0.0.1:3005
+    }
+
+    handle {
+        reverse_proxy localhost:3000
+    }
+}
