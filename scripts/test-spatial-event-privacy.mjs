@@ -153,6 +153,20 @@ test('R01: unknown legacy audiences and payload-supplied room grants fail closed
   } finally { f.close(); }
 });
 
+test('R01: spatial member updates keep skip/autopilot state for other devices', async () => {
+  const f = await fixture();
+  try {
+    f.events.publishPersisted('c', 'member_updated', { member: {
+      userId: 'A', username: 'Alice', role: 'player', ready: true,
+      useRealDice: false, muted: false, skipTurnsCount: 3, autopilot: true,
+      joinedAt: '2026-01-01T00:00:00Z',
+    } });
+    const b = JSON.stringify(f.events.listEventsSince('c', 0, 10, 'B'));
+    assert.match(b, /"skipTurnsCount":3/);
+    assert.match(b, /"autopilot":true/);
+  } finally { f.close(); }
+});
+
 test('R01: generic campaign updates redact scene/floor state but retain table metadata', async () => {
   const f = await fixture();
   try {
