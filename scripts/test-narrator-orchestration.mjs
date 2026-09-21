@@ -126,9 +126,16 @@ test('role packet drops transport metadata and duplicate actor context', () => {
         id: `note-${i}`, title: `Note ${i}`, body: `NOTE_${i}_${'x'.repeat(1900)}`,
         pinned: i < 2, visibility: 'public', status: 'active',
       })),
+      spatialRooms: [
+        { id: 'room-a', name: 'A', occupants: ['u', 'other-user'] },
+        { id: 'room-b', name: 'B', occupants: ['third-user'] },
+      ],
+      spatialGrants: [
+        { id: 'grant-a', userId: 'u', roomId: 'room-b', mode: 'speech', expiresAt: '2099-01-01T00:00:00Z' },
+      ],
     },
     public: { messages: [] },
-    input: { id: 'input', seq: 1, authorType: 'player', userId: 'u', characterId: 'c', content: 'go' },
+    input: { id: 'input', seq: 1, authorType: 'player', userId: 'u', characterId: 'c', roomId: 'room-a', content: 'go' },
     outcomes: [
       { name: 'pc_attack', args: { enemyId: 'e' }, result: { ok: true }, commandId: 'uuid', committedSeq: 99 },
       { physicalRolls: [{ pendingRollId: 'p', roll: { id: 'r', total: 17, dc: 12, visibility: 'public', hugeDebug: 'DROP' } }] },
@@ -155,6 +162,12 @@ test('role packet drops transport metadata and duplicate actor context', () => {
   assert.ok(referee.state.notes.length <= 12);
   assert.ok(referee.state.notes.reduce((sum, note) => sum + String(note.body ?? '').length + String(note.title ?? '').length, 0) <= 6000);
   assert.equal(referee.state.notes[0].pinned, true);
+  assert.deepEqual(referee.state.spatialRooms[0].occupants, ['u', 'other-user']);
+  assert.equal(Object.hasOwn(referee.state.spatialRooms[1], 'occupants'), false);
+  assert.deepEqual(referee.state.spatialRooms.map(room => [room.id, room.name]), [['room-a', 'A'], ['room-b', 'B']]);
+  assert.deepEqual(referee.state.spatialGrants[0], {
+    id: 'grant-a', userId: 'u', roomId: 'room-b', mode: 'speech',
+  });
 
   const actor = compactRolePacket('actor', {
     campaign: { gameSettings: { language: 'ru', unitSystem: 'metric', ttsEnabled: true } },

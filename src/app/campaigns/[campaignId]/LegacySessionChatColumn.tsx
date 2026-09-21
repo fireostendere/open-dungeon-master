@@ -13,14 +13,13 @@ import { AskDock } from "@/app/campaigns/[campaignId]/AskPanel";
 import { DmCoverNotice } from "@/app/campaigns/[campaignId]/DmDelegationPanel";
 import { NarrationLanguageSetting } from "@/app/campaigns/[campaignId]/NarrationLanguageSetting";
 import { ClosingMessageBanner } from "@/app/campaigns/[campaignId]/ClosingMessageBanner";
-import type { NarrationAudio } from "@/app/campaigns/[campaignId]/useNarrationAudio";
 import type { CampaignState } from "@/app/campaigns/[campaignId]/useCampaignStream";
 import type { CampaignMessage } from "@/lib/db/messages";
 
 // Message actions retain their authoritative routes and the original permission
 // gates. Shared request handling localizes both HTTP and network failures.
 export function SessionChatColumn({
-  state, campaignId, meUserId, steersStory, narration, visible, askOpen,
+  state, campaignId, meUserId, steersStory, visible, askOpen,
   onAskOpenChange, refreshAsks, refreshFacts, onError, onLoreCheck, onRenarrate, onPinned,
   onOpenClosingMessage, hasOpenedFinale, children,
 }: {
@@ -28,7 +27,6 @@ export function SessionChatColumn({
   campaignId: string;
   meUserId: string;
   steersStory: boolean;
-  narration: NarrationAudio;
   visible: boolean;
   askOpen: boolean;
   onAskOpenChange: (open: boolean) => void;
@@ -47,7 +45,6 @@ export function SessionChatColumn({
   const [reportTarget, setReportTarget] = useState<ReportTarget | null>(null);
   const [justBlocked, setJustBlocked] = useState<string[]>([]);
   const blockedUserIds = useMemo(() => [...new Set([...state.blockedUserIds, ...justBlocked])], [state.blockedUserIds, justBlocked]);
-  const ttsEnabled = Boolean(campaign?.gameSettings?.ttsEnabled);
   const visibleUtilityCalls = utilityCalls.filter(call => call.kind !== "ask");
   const selection = () => window.getSelection()?.toString().trim() ?? "";
   const errorText = (cause: unknown, fallback: SessionTextKey) => cause instanceof Error ? cause.message : sessionText(locale, fallback);
@@ -83,17 +80,6 @@ export function SessionChatColumn({
             label: sheet?.name ?? member?.username ?? sessionText(locale, "player") });
         }}
         locations={locations} dmStatus={dmStatus} dmDraft={dmDraft} mediaStatus={state.mediaStatus}
-        onReplayAudio={ttsEnabled ? async messageId => {
-          narration.unlock();
-          const known = state.narrationAudio[messageId];
-          if (known) { narration.play(messageId, known); return null; }
-          try {
-            const data = await write(`messages/${messageId}/narrate`, "audioFailed");
-            if (typeof data.url !== "string" || !data.url) return sessionText(locale, "audioFailed");
-            narration.play(messageId, data.url);
-            return null;
-          } catch (cause) { return errorText(cause, "audioFailed"); }
-        } : undefined}
         onLoreCheck={message => { const selected = selection(); onLoreCheck(message, selected.length > 3 ? selected : ""); }}
         onRenarrate={steersStory ? onRenarrate : undefined}
         onContinueScene={steersStory ? async message => { await reportWrite(`messages/${message.id}/continue`, "continueFailed"); } : undefined}

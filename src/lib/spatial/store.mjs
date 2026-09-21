@@ -558,13 +558,36 @@ export function createSpatialStore(db, { nextSeq, now = () => new Date().toISOSt
       authorize(actor);
       if (!enabled(actor.campaignId)) return { enabled: false };
       const current = position(actor);
-      const rooms = (actor.isDm
+      const roomRows = actor.isDm
         ? all("SELECT id,name FROM spatial_rooms WHERE campaign_id=? ORDER BY rowid", actor.campaignId)
         : all(`SELECT r.id,r.name FROM spatial_rooms r JOIN spatial_visits v ON v.campaign_id=r.campaign_id AND v.room_id=r.id
-            WHERE r.campaign_id=? AND v.user_id=? ORDER BY v.first_seq,r.id`, actor.campaignId, actor.userId))
-        .map(item => ({ ...item, active: current?.roomId === item.id,
-          // Never expose a remote room's live roster or activity count.
-          occupants: actor.isDm || current?.roomId === item.id ? occupants(actor, item.id) : [] }));
+            WHERE r.campaign_id=? AND v.user_id=? ORDER BY v.first_seq,r.id`, actor.campaignId, actor.userId);
+      // One presence query for the whole view instead of one per room. A
+      // non-DM still reads occupants only for their current room.
+      const occupantRoomIds = actor.isDm
+        ? roomRows.map(item => item.id)
+        : current?.roomId ? [current.roomId] : [];
+      const playerIds = new Set(actor.playerIds);
+      const occupantMap = new Map();
+      if (occupantRoomIds.length) {
+        const placeholders = occupantRoomIds.map(() => "?").join(",");
+        for (const row of all(
+          `SELECT room_id,user_id FROM spatial_presence WHERE campaign_id=? AND room_id IN (${placeholders})`,
+          actor.campaignId, ...occupantRoomIds,
+        )) {
+          if (!playerIds.has(row.user_id)) continue;
+          const list = occupantMap.get(row.room_id) ?? [];
+          list.push(row.user_id);
+          occupantMap.set(row.room_id, list);
+        }
+      }
+      const rooms = roomRows.map(item => ({
+        ...item,
+        active: current?.roomId === item.id,
+        occupants: actor.isDm || current?.roomId === item.id
+          ? occupantMap.get(item.id) ?? []
+          : [],
+      }));
       const exits = current ? all(`SELECT r.id,r.name FROM spatial_links l JOIN spatial_rooms r ON r.campaign_id=l.campaign_id AND r.id=l.target_id
         WHERE l.campaign_id=? AND l.source_id=? AND l.walkable=1 ORDER BY r.name`, actor.campaignId, current.roomId) : [];
       const grants = all(`SELECT o.id,o.user_id AS userId,o.source_id AS roomId,o.mode,o.expires_at AS expiresAt
@@ -651,8 +674,23 @@ export function createSpatialStore(db, { nextSeq, now = () => new Date().toISOSt
       integer(afterSeq, 0, Number.MAX_SAFE_INTEGER, "narrator cursor");
       integer(limit, 1, 100, "page size");
       const rows = all("SELECT * FROM spatial_messages WHERE campaign_id=? AND kind<>'ooc' AND seq>? ORDER BY seq LIMIT ?", actor.campaignId, afterSeq, limit + 1);
-      const messages = rows.slice(0, limit).map(row => ({ ...mapMessage(row),
-        witnessUserIds: all("SELECT user_id FROM spatial_receipts WHERE campaign_id=? AND message_id=?", actor.campaignId, row.id).map(receipt => receipt.user_id) }));
+      const pageRows = rows.slice(0, limit);
+      const receiptsByMessage = new Map();
+      if (pageRows.length) {
+        const placeholders = pageRows.map(() => "?").join(",");
+        for (const receipt of all(
+          `SELECT message_id,user_id FROM spatial_receipts WHERE campaign_id=? AND message_id IN (${placeholders}) ORDER BY message_id,user_id`,
+          actor.campaignId, ...pageRows.map(row => row.id),
+        )) {
+          const list = receiptsByMessage.get(receipt.message_id) ?? [];
+          list.push(receipt.user_id);
+          receiptsByMessage.set(receipt.message_id, list);
+        }
+      }
+      const messages = pageRows.map(row => ({
+        ...mapMessage(row),
+        witnessUserIds: receiptsByMessage.get(row.id) ?? [],
+      }));
       return { ...this.view(actor), messages, nextCursor: messages.at(-1)?.seq ?? afterSeq, hasMore: rows.length > limit };
     },
   };

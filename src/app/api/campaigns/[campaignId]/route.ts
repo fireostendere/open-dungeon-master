@@ -118,7 +118,6 @@ export async function GET(
     latestSeq: latestSeq(campaignId),
     // Which messages already have narration on disk, so read-aloud plays them
     // straight from a fresh load instead of rendering a second take.
-    narrationAudio: {},
     // What is playing. The ambience_changed event keeps it live from here;
     // without the snapshot a reload mid-scene would sit in silence until the
     // next place or fight changed it.

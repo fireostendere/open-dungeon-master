@@ -8,7 +8,7 @@ import { touchNarratorLease, NarratorLeaseConflict } from "@/lib/db/narrator-lea
 import { unrelatedRoomChat } from "@/lib/spatial/narrator-concurrency.mjs";
 import { attachPostWriteRead } from "@/lib/mcp-post-write.mjs";
 import { readNarratorSections } from "@/lib/mcp-read-sections.mjs";
-import { projectNarratorStateDelta } from "@/lib/mcp-state-delta-cache.mjs";
+import { projectNarratorStateDelta, unchangedNarratorStateDelta } from "@/lib/mcp-state-delta-cache.mjs";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import { queueSkippedCombatTurn } from "@/lib/dm/encounter-tools";
@@ -123,6 +123,41 @@ function read(raw: unknown) {
     try { return budgetRead(snapshot, p.data); }
     catch (error) { if (error instanceof ReadBudgetError) throw new McpNarratorControlError(error.message, error.status); throw error; }
   }
+
+  if (
+    p.data.stateDelta &&
+    p.data.projection === "live" &&
+    p.data.includeAsks === false &&
+    p.data.afterSeq === currentSeq &&
+    p.data.knownStateRevision
+  ) {
+    const unchanged = unchangedNarratorStateDelta({
+      campaignId: campaign.id,
+      timelineEpoch,
+      principal: campaign.dmUserId!,
+      projection: "live",
+      knownStateRevision: p.data.knownStateRevision,
+    });
+    if (unchanged) {
+      const state = {
+        campaignId: campaign.id,
+        currentSeq,
+        timelineEpoch,
+        cursor: currentSeq,
+        nextCursor: currentSeq,
+        hasMore: false,
+        events: [],
+        messages: [],
+        commands: [],
+        asks: [],
+        askQueue: { nextCursor: p.data.afterAskSeq, hasMore: false, pending: false },
+        ...unchanged,
+      };
+      try { return budgetRead(state, p.data); }
+      catch (error) { if (error instanceof ReadBudgetError) throw new McpNarratorControlError(error.message, error.status); throw error; }
+    }
+  }
+
   const fetched = p.data.afterSeq === currentSeq
     ? []
     : listEventsSince(campaign.id, p.data.afterSeq, p.data.limit + 1);

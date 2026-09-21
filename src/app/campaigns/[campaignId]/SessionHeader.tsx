@@ -8,8 +8,6 @@ import {
   DoorOpen,
   Music,
   Music2,
-  Volume2,
-  VolumeX,
   type LucideIcon,
 } from "lucide-react";
 import type { ComponentProps } from "react";
@@ -18,7 +16,6 @@ import { Tooltip } from "@/components/ui/Tooltip";
 import { headerButtonClass } from "@/app/campaigns/[campaignId]/headerButton";
 import { VoiceDock } from "@/app/campaigns/[campaignId]/VoiceDock";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
-import type { NarrationAudio } from "@/app/campaigns/[campaignId]/useNarrationAudio";
 import type { AmbienceAudio } from "@/app/campaigns/[campaignId]/useAmbienceAudio";
 import { useI18n } from "@/lib/i18n";
 import { localeText } from "@/lib/i18n/locale-text";
@@ -133,8 +130,6 @@ export function SessionHeader({
   voice,
   dice3d,
   onToggleDice3d,
-  ttsEnabled,
-  narration,
   ambienceEnabled,
   ambience,
   onHelp,
@@ -145,11 +140,7 @@ export function SessionHeader({
   voice: ComponentProps<typeof VoiceDock>;
   dice3d: boolean;
   onToggleDice3d: () => void;
-  // Narration audio only exists on a table with TTS on; the control is
-  // withheld, not disabled, when it is off.
-  ttsEnabled: boolean;
-  narration: NarrationAudio;
-  // Likewise ambience: on in settings and the pack installed on this server.
+  // Ambience is independent from the retired hosted narration/TTS path.
   ambienceEnabled: boolean;
   ambience: AmbienceAudio;
   onHelp: () => void;
@@ -182,24 +173,6 @@ export function SessionHeader({
             <Dices className="size-4" />
           </button>
         </Tooltip>
-        {ttsEnabled ? (
-          <HeaderAudioControl
-            onLabel="Mute narration"
-            offLabel="Unmute narration"
-            enableLabel="Enable narration audio"
-            volumeLabel="Narration volume"
-            unlocked={narration.unlocked}
-            muted={narration.muted}
-            volume={narration.volume}
-            onToggle={() => {
-              narration.unlock();
-              narration.setMuted(!narration.muted);
-            }}
-            onVolume={(value) => narration.setVolume(value)}
-            OnIcon={Volume2}
-            OffIcon={VolumeX}
-          />
-        ) : null}
         {ambienceEnabled && ambience.installed ? (
           <HeaderAudioControl
             onLabel="Mute ambience and music"

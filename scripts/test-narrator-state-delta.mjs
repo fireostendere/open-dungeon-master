@@ -8,7 +8,7 @@ import {
   narratorStateRevision,
   narratorStateScope,
 } from '../shared/narrator-state-delta.mjs';
-import { NarratorStateDeltaCache, projectNarratorStateDelta } from '../src/lib/mcp-state-delta-cache.mjs';
+import { NarratorStateDeltaCache, projectNarratorStateDelta, unchangedNarratorStateDelta } from '../src/lib/mcp-state-delta-cache.mjs';
 
 const epoch='a'.repeat(64);
 const principal='11111111-1111-4111-8111-111111111111';
@@ -135,6 +135,29 @@ test('server cache negotiates full snapshot, compact patch and self-healing full
   assert.equal(resync.stateDelta.full,true);
   assert.equal(resync.stateDelta.resyncRequired,true);
   assert.ok(Array.isArray(resync.sheets));
+});
+
+test('unchanged live delta reuses only a verified cached baseline',()=>{
+  const cache=new NarratorStateDeltaCache({maxEntries:4,maxBytes:1024*1024});
+  const full=projectNarratorStateDelta(baseline,{campaignId:'campaign',timelineEpoch:epoch,principal,projection:'live',cache});
+  const unchanged=unchangedNarratorStateDelta({
+    campaignId:'campaign',timelineEpoch:epoch,principal,projection:'live',
+    knownStateRevision:full.stateDelta.revision,cache,
+  });
+  assert.equal(unchanged.stateDelta.full,false);
+  assert.equal(unchanged.stateDelta.revision,full.stateDelta.revision);
+  assert.deepEqual(unchanged.stateDelta.patch,{format:'odm.state.patch.v1'});
+
+  cache.clear();
+  assert.equal(unchangedNarratorStateDelta({
+    campaignId:'campaign',timelineEpoch:epoch,principal,projection:'live',
+    knownStateRevision:full.stateDelta.revision,cache,
+  }),null);
+  assert.equal(unchangedNarratorStateDelta({
+    campaignId:'campaign',timelineEpoch:epoch,principal,projection:'full',
+    knownStateRevision:full.stateDelta.revision,
+    cache:new NarratorStateDeltaCache({maxEntries:4,maxBytes:1024*1024}),
+  }),null);
 });
 
 test('revision is scoped by campaign timeline principal and projection',()=>{
