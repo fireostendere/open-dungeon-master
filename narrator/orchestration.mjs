@@ -297,7 +297,13 @@ export class NarratorOrchestrator {
       }
     } catch { return this.pause(host, 'model_or_decision_error'); }
     if (host.stopping || this.state.current !== current || this.state.epoch !== snapshot.timelineEpoch) return false;
-    if (decision.kind === 'wait') { current.waitSeq = snapshot.currentSeq; host.saveCheckpoint(); return false; }
+    if (decision.kind === 'wait') {
+      if (
+        current.input?.kind === 'global_round' ||
+        current.input?.kind === 'global_turn_trigger'
+      ) return this.pause(host, 'global_round_cannot_wait_for_new_input');
+      current.waitSeq = snapshot.currentSeq; host.saveCheckpoint(); return false;
+    }
     if (decision.kind === 'catalog') {
       const result = await host.callControl('narrator.catalog', { campaignId: host.campaignId, action: decision.action });
       this.schemas[decision.action] = result.groups; return true;
@@ -317,6 +323,11 @@ export class NarratorOrchestrator {
       invokedAction = parsed.action;
       invokedArgs = parsed.args;
     }
+    if (
+      decision.kind === 'invoke' &&
+      invokedAction === 'request_player_input' &&
+      (current.input?.kind === 'global_round' || current.input?.kind === 'global_turn_trigger')
+    ) return this.pause(host, 'global_round_cannot_request_new_input');
     if (decision.kind === 'invoke' && invokedAction === 'request_roll' && current.outcomes.some(outcome => outcome.name === invokedAction && digest(outcome.args) === digest(invokedArgs) && !outcome.result?.error)) return this.pause(host, 'duplicate_check');
     let content = decision.text;
     const combatActive = snapshot.encounter?.status === 'active' && snapshot.encounter?.kind === 'fight';
@@ -341,7 +352,11 @@ export class NarratorOrchestrator {
               ? { completeGlobalRound: current.input.roundNumber }
               : current.input?.kind === 'global_turn_trigger'
                 ? { startGlobalRound: current.input.roundNumber }
-                : {}),
+                : snapshot.campaign?.gameSettings?.globalTurn?.enabled &&
+                    snapshot.campaign?.globalTurnState?.phase === 'waiting' &&
+                    !snapshot.encounter?.orderReady
+                  ? { startGlobalRound: snapshot.campaign.globalTurnState.roundNumber }
+                  : {}),
           } : {}),
       ...(sequence(host.lastSeq) ? { readAfter: postWriteReadOptions(host) } : {}) };
     this.state.pending = { action, params, attempts: 0, phase: 'prepared', beforePendingIds: (snapshot.pendingRolls ?? []).map(roll => roll.id) };
