@@ -7,7 +7,6 @@ import type {
   CombatModeSetting,
   DicePolicy,
   DmDifficulty,
-  DmModeSetting,
   GameSettings,
   Genre,
   UnitSystemSetting,
@@ -19,7 +18,6 @@ import type {
 // leaves for POST /api/campaigns is assembled in CreateCampaignDialog, not
 // here, so scripts/test-create-campaign-options.mjs keeps one file to audit.
 export type CampaignDraft = {
-  dmMode: DmModeSetting;
   title: string;
   description: string;
   theme: string;
@@ -34,12 +32,8 @@ export type CampaignDraft = {
   // choice; one the pack filled in is fair game to replace.
   themeTouched: boolean;
   descriptionTouched: boolean;
-  aiStorySetup: boolean;
   dicePolicy: DicePolicy;
   dmDifficulty: DmDifficulty;
-  ttsEnabled: boolean;
-  ttsVoice: string;
-  mapsEnabled: boolean;
   ambienceEnabled: boolean;
   // Scene-following is only meaningful once ambience is on, and is shown as
   // a second toggle beside it rather than buried.
@@ -49,7 +43,6 @@ export type CampaignDraft = {
   inventoryApprovals: boolean;
   midGameJoinOpen: boolean;
   holdSubmissions: boolean;
-  narrationGuard: boolean;
   relationships: GameSettings["relationships"];
   romance: GameSettings["romance"];
   variantRules: GameSettings["variantRules"];
@@ -66,7 +59,6 @@ export type CampaignDraft = {
 };
 
 export const DEFAULT_DRAFT: CampaignDraft = {
-  dmMode: "human",
   title: "",
   description: "",
   theme: "",
@@ -79,14 +71,10 @@ export const DEFAULT_DRAFT: CampaignDraft = {
   worldPack: "",
   themeTouched: false,
   descriptionTouched: false,
-  aiStorySetup: false,
   dicePolicy: "digital_only",
   unitSystem: "metric",
   combatMode: "classical",
   dmDifficulty: 5,
-  ttsEnabled: false,
-  ttsVoice: "af_heart",
-  mapsEnabled: false,
   ambienceEnabled: true,
   ambienceAuto: true,
   multiclassingEnabled: true,
@@ -94,7 +82,6 @@ export const DEFAULT_DRAFT: CampaignDraft = {
   inventoryApprovals: false,
   midGameJoinOpen: false,
   holdSubmissions: false,
-  narrationGuard: false,
   relationships: "on",
   romance: "on",
   variantRules: {
@@ -131,16 +118,9 @@ export type Patch = (changes: Partial<CampaignDraft>) => void;
 // What the server can do, as the wizard gates on it. null from the
 // capabilities endpoint collapses to "offer everything" before it gets here.
 export type WizardGates = {
+  // Solo only changes table/player-count presentation. Narration is supplied
+  // by a human or the external MCP narrator, never by a server-hosted model.
   solo: boolean;
-  // Everything the AI narrator brings with it. A table running its own game
-  // still gets the rules engine, the maps and the dice; what it does not get
-  // is a second author, so those settings are hidden rather than shown
-  // switched off with no explanation.
-  aiNarrates: boolean;
-  storyKnownMissing: boolean;
-  storyUnreachable: boolean;
-  ttsAvailable: boolean;
-  mapsAvailable: boolean;
 };
 
 export type StepProps = {
