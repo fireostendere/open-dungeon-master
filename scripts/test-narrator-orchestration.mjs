@@ -27,9 +27,9 @@ function fixture(replies, options = {}) {
   } };
   const controller = new NarratorOrchestrator({ adapter, ...options });
   const host = {
-    campaignId: 'c', snapshot: snapshot(), saved: null, writes, commits, modelCalls, controller, drains: [],
+    campaignId: 'c', snapshot: snapshot(), saved: null, saveCount: 0, writes, commits, modelCalls, controller, drains: [],
     memory: { getPromptContext: () => ({ summary: 'Earlier public events.' }) },
-    saveCheckpoint() { this.saved = this.controller.serialize(); },
+    saveCheckpoint() { this.saveCount++; this.saved = this.controller.serialize(); },
     async drainStory(options = {}) {
       this.drains.push(structuredClone(options));
       this.snapshot.nextCursor = this.snapshot.currentSeq;
@@ -140,6 +140,26 @@ test('referee packet omits presentation and retired hosted-AI settings', async (
   assert.equal(Object.hasOwn(settings, 'voice'), false);
   assert.equal(Object.hasOwn(settings, 'enemyHpVisibility'), false);
   assert.equal(Object.hasOwn(settings, 'stages'), false);
+});
+
+test('idle narrator polls checkpoint only when the authoritative read boundary changes', async () => {
+  const h = fixture([]);
+  h.snapshot.messages = [];
+  h.snapshot.recentMessages = [];
+  h.snapshot.events = [];
+  h.snapshot.currentSeq = 4;
+  h.snapshot.nextCursor = 4;
+
+  assert.equal(await h.tick(), false);
+  const afterFirst = h.saveCount;
+  assert.ok(afterFirst > 0);
+  assert.equal(await h.tick(), false);
+  assert.equal(h.saveCount, afterFirst, 'same-seq idle poll must not fsync the same checkpoint again');
+
+  h.snapshot.currentSeq = 5;
+  h.snapshot.nextCursor = 5;
+  assert.equal(await h.tick(), false);
+  assert.equal(h.saveCount, afterFirst + 1, 'new authoritative boundary must be durable');
 });
 
 test('global turn opening stays locked until MCP narration starts the round', async () => {
