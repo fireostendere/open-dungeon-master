@@ -1,6 +1,6 @@
 "use client";
 
-import { Bot, Check, Clock, FastForward, Loader2, Play, Power, Users } from "lucide-react";
+import { Bot, Clock, Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/cn";
 import { useI18n } from "@/lib/i18n";
@@ -14,13 +14,11 @@ export function GlobalTurnCard({
   campaign,
   members,
   sheets,
-  isLead,
 }: {
   campaignId: string;
   campaign: LeadCampaign & { globalTurnState?: GlobalTurnState };
   members: CampaignMember[];
   sheets: CharacterSheet[];
-  isLead: boolean;
 }) {
   const { locale } = useI18n();
   const copy = localeText(locale, {
@@ -29,19 +27,20 @@ export function GlobalTurnCard({
       enabled: "Enable global turn mode",
       desc: "Synchronizes party turns: 1 action + 1 phrase per hero per round.",
       slider1: "Turn collection window",
-      slider1Hint: "Timer starts on first player message (N minutes)",
+      slider1Hint: "0 = no timeout; the round then closes only by quorum.",
       slider2: "Quorum of players",
       slider2Hint: "When Y players answer, deadline accelerates",
       slider3: "Input grace delay",
-      slider3Hint: "Time window after quorum before turn closes (Z minutes)",
+      slider3Hint: "0 = close immediately when quorum is reached.",
       min: "min",
       players: "players",
       round: "Round",
       waitingFirst: "Waiting for any player's first action...",
+      waitingQuorum: "No time limit — waiting for quorum.",
+      mcpResolving: "Round sealed — MCP Dungeon Master is resolving it.",
+      unlimited: "∞",
       timeRemaining: "Time remaining",
       responded: "Answered",
-      forceResolve: "Force resolve turn now",
-      resolving: "Resolving turn...",
       autopilotTitle: "Party Autopilot (Doppelganger)",
       autopilotHint: "Hand character control to AI to wake up sleepy players.",
       on: "ON",
@@ -55,19 +54,20 @@ export function GlobalTurnCard({
       enabled: "Включить общий ход",
       desc: "Синхронизирует ходы отряда: 1 действие + 1 фраза за ход от героя.",
       slider1: "Время сбора хода",
-      slider1Hint: "Таймер после первого сообщения любого игрока (N минут)",
+      slider1Hint: "0 = без лимита времени: раунд закрывается только по кворуму.",
       slider2: "Кворум игроков",
       slider2Hint: "При ответе Y игроков таймер сокращается до задержки ввода",
       slider3: "Задержка ввода",
-      slider3Hint: "Окно на завершение ввода после кворума (Z минут)",
+      slider3Hint: "0 = сразу закрыть ввод и передать раунд MCP-Мастеру.",
       min: "мин",
       players: "игроков",
       round: "Раунд",
       waitingFirst: "Ожидание первого действия от любого игрока...",
+      waitingQuorum: "Лимита времени нет — ждём кворум.",
+      mcpResolving: "Раунд закрыт — MCP-Мастер разрешает действия.",
+      unlimited: "∞",
       timeRemaining: "До конца хода",
       responded: "Ответили",
-      forceResolve: "Завершить ход сейчас",
-      resolving: "Завершение хода...",
       autopilotTitle: "Автопилот игроков (Доппельгангер)",
       autopilotHint: "Передайте руление ИИ, чтобы не задерживать партию и растормошить спящих.",
       on: "ВКЛ",
@@ -81,19 +81,20 @@ export function GlobalTurnCard({
       enabled: "Włącz wspólną turę",
       desc: "Synchronizuje tury drużyny: 1 akcja + 1 wypowiedź na postać w turze.",
       slider1: "Czas zbierania tury",
-      slider1Hint: "Licznik po pierwszej wiadomości gracza (N minut)",
+      slider1Hint: "0 = bez limitu czasu; runda zamyka się tylko po kworum.",
       slider2: "Kworum graczy",
       slider2Hint: "Gdy odpowie Y graczy, czas skraca się do opóźnienia",
       slider3: "Opóźnienie wprowadzania",
-      slider3Hint: "Dodatkowy czas po kworum na dokończenie pisania (Z minut)",
+      slider3Hint: "0 = zamknij rundę natychmiast po osiągnięciu kworum.",
       min: "min",
       players: "graczy",
       round: "Runda",
       waitingFirst: "Oczekiwanie na pierwszą akcję gracza...",
+      waitingQuorum: "Brak limitu czasu — oczekiwanie na kworum.",
+      mcpResolving: "Runda zamknięta — MCP Mistrz Gry ją rozstrzyga.",
+      unlimited: "∞",
       timeRemaining: "Pozostały czas",
       responded: "Odpowiedziało",
-      forceResolve: "Zakończ turę teraz",
-      resolving: "Kończenie tury...",
       autopilotTitle: "Autopilot postaci (Doppelganger)",
       autopilotHint: "Przekaż postać pod kontrolę SI, aby rozruszać śpiących graczy.",
       on: "WŁ",
@@ -116,7 +117,6 @@ export function GlobalTurnCard({
   const [quorum, setQuorum] = useState(globalTurnSettings.quorumPlayers);
   const [graceMins, setGraceMins] = useState(globalTurnSettings.quorumDelayMinutes);
   const [saving, setSaving] = useState(false);
-  const [resolving, setResolving] = useState(false);
   const [busyUser, setBusyUser] = useState<string | null>(null);
   const [now, setNow] = useState(Date.now());
 
@@ -190,17 +190,6 @@ export function GlobalTurnCard({
     }
   }
 
-  async function forceResolve() {
-    setResolving(true);
-    try {
-      await fetch(`/api/campaigns/${campaignId}/global-turn/resolve`, {
-        method: "POST",
-      });
-    } finally {
-      setResolving(false);
-    }
-  }
-
   async function toggleAutopilot(userId: string, current: boolean) {
     setBusyUser(userId);
     try {
@@ -254,12 +243,12 @@ export function GlobalTurnCard({
             <div className="flex items-center justify-between text-xs">
               <span className="font-medium text-stone-300">{copy.slider1}</span>
               <span className="rounded bg-stone-900 px-1.5 py-0.5 font-mono text-amber-300">
-                {collectionMins} {copy.min}
+                {collectionMins === 0 ? copy.unlimited : `${collectionMins} ${copy.min}`}
               </span>
             </div>
             <input
               type="range"
-              min={1}
+              min={0}
               max={120}
               step={1}
               value={collectionMins}
@@ -303,7 +292,7 @@ export function GlobalTurnCard({
             </div>
             <input
               type="range"
-              min={1}
+              min={0}
               max={30}
               step={1}
               value={graceMins}
@@ -326,7 +315,11 @@ export function GlobalTurnCard({
               </span>
             </div>
 
-            {turnState.deadlineAt ? (
+            {turnState.phase === "ready" || turnState.phase === "resolving" ? (
+              <p className="mt-1.5 text-[11px] font-medium text-amber-200">
+                {copy.mcpResolving}
+              </p>
+            ) : turnState.deadlineAt ? (
               <div className="mt-2 flex items-center justify-between text-xs">
                 <span className="text-stone-400">{copy.timeRemaining}:</span>
                 <span
@@ -339,27 +332,10 @@ export function GlobalTurnCard({
                 </span>
               </div>
             ) : (
-              <p className="mt-1.5 text-[11px] italic text-stone-400">{copy.waitingFirst}</p>
+              <p className="mt-1.5 text-[11px] italic text-stone-400">
+                {turnState.firstActionAt ? copy.waitingQuorum : copy.waitingFirst}
+              </p>
             )}
-
-            {isLead ? (
-              <button
-                type="button"
-                disabled={resolving}
-                onClick={forceResolve}
-                className="mt-2.5 flex w-full items-center justify-center gap-1.5 rounded border border-amber-700/60 bg-amber-950/40 py-1 text-xs font-medium text-amber-200 hover:bg-amber-900/40 disabled:opacity-50"
-              >
-                {resolving ? (
-                  <>
-                    <Loader2 className="size-3 animate-spin" /> {copy.resolving}
-                  </>
-                ) : (
-                  <>
-                    <FastForward className="size-3 text-amber-300" /> {copy.forceResolve}
-                  </>
-                )}
-              </button>
-            ) : null}
           </div>
 
           {/* Autopilot Delegation Section */}
