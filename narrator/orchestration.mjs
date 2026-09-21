@@ -412,11 +412,11 @@ export class NarratorOrchestrator {
     }
     if (current.waiting.some(id => !current.resolved[id]) || snapshot.pendingRolls?.length) return false;
     if (current.waiting.length) {
-      // recentRolls is part of the verified state-delta projection. Do not
-      // discard the baseline and pull a full campaign snapshot after every
-      // physical roll in the hottest combat path.
-      snapshot = await host.drainStory();
-      current.outcomes.push({ physicalRolls: clone(Object.values(current.resolved)), authoritativeRolls: (snapshot.recentRolls ?? []).filter(roll => Object.values(current.resolved).some(value => value.roll?.id === roll.id)) });
+      // This tick already holds a fully drained authoritative snapshot and
+      // ingestReadSnapshot correlated each required pendingRollId to its
+      // persisted roll_result payload. Re-reading here used to add one full
+      // MCP/DB round-trip per physical roll for no new information.
+      current.outcomes.push({ physicalRolls: clone(Object.values(current.resolved)) });
       current.waiting = []; current.resolved = {}; host.saveCheckpoint();
     }
     if (current.waitSeq === snapshot.currentSeq) return false;
