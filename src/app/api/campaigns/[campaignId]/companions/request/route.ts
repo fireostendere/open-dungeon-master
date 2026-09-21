@@ -4,7 +4,6 @@ import { companionSlotsFree } from "@/lib/schemas/game-settings";
 import { insertCampaignMessage } from "@/lib/db/messages";
 import { getSheetForUser, listSheets } from "@/lib/db/sheets";
 import { companionMode, listCompanions } from "@/lib/dm/companion-tools";
-import { requestDmTurn } from "@/lib/dm/loop";
 import { hasHumanDm } from "@/lib/dm/viewer";
 import { publishWithSeq } from "@/lib/events";
 
@@ -62,6 +61,5 @@ export async function POST(
     content: `${who}'s player asks the DM to write ${mode === "guests" ? "a temporary ally" : "a companion"} into the story at the next natural moment.`,
   });
   publishWithSeq(campaignId, seq, "message_added", { message });
-  requestDmTurn(campaignId);
   return Response.json({ ok: true }, { status: 201 });
 }
