@@ -394,8 +394,6 @@ export function PartyPanel({
                 muted={Boolean(
                   members.find((member) => member.userId === sheet.userId)?.muted,
                 )}
-                isLead={leadUserId === meUserId}
-                meUserId={meUserId}
               />
             </div>
 
