@@ -825,6 +825,15 @@ export function useCampaignStream(campaignId: string) {
           locations: data.locations ?? [],
           chapters: data.chapters ?? [],
           notes: data.notes ?? [],
+          sideThreads: data.sideThreads ?? [],
+          sideChatLoaded: true,
+          whispers: data.whispers ?? [],
+          whisperUnread: data.whisperUnread ?? 0,
+          whispersLoaded: true,
+          asks: data.asks ?? [],
+          asksLoaded: true,
+          facts: data.facts ?? [],
+          battleMap: data.battleMap ?? null,
           characterEvents: data.characterEvents ?? [],
           encounter: data.encounter ?? null,
           itemProposals: data.itemProposals ?? [],
@@ -975,9 +984,6 @@ export function useCampaignStream(campaignId: string) {
       if (cancelled) {
         return;
       }
-      void refreshSideChat();
-      void refreshWhispers();
-      void refreshBattleMap();
       source = new EventSource(`/api/campaigns/${campaignId}/events?lastSeq=${lastSeq}`);
       const handle = (eventType: string) => (event: MessageEvent) => {
         try {
@@ -997,12 +1003,6 @@ export function useCampaignStream(campaignId: string) {
           // express; reload everything from the snapshot endpoint.
           if (eventType === "campaign_rewound") {
             void refresh();
-            void refreshNotes();
-            void refreshSideChat();
-            void refreshWhispers();
-            void refreshAsks();
-            void refreshFacts();
-            void refreshBattleMap();
           }
           if (eventType === "side_activity") {
             void refreshSideChat();
