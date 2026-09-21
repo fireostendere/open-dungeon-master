@@ -92,15 +92,6 @@ const COPY = {
   },
 } as const;
 
-// The slice of /api/capabilities this dialog gates on. null means the
-// endpoint never answered, and the dialog assumes everything is available:
-// a flaky capability check must never block creating a campaign.
-type ServerCapabilities = {
-  story: { configured: boolean; reachable: boolean };
-  images: { configured: boolean };
-  tts: { configured: boolean };
-};
-
 // The new-campaign wizard: six screens over one draft (src/app/create-
 // campaign/draft.ts), paced one decision at a time instead of one long form.
 // The steps only draw fields; every default, every gate and the payload that
@@ -129,34 +120,15 @@ export function CreateCampaignDialog({
   const copy = COPY[locale];
   const [draft, setDraft] = useState<CampaignDraft>(DEFAULT_DRAFT);
   const [packs, setPacks] = useState<WorldPackSummary[]>([]);
-  const [capabilities, setCapabilities] = useState<ServerCapabilities | null>(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
   const patch = (changes: Partial<CampaignDraft>) =>
     setDraft((current) => ({ ...current, ...changes }));
 
-  // Everything the AI narrator brings with it. A table running its own game
-  // still gets the rules engine, the maps and the dice; what it does not get
-  // is a second author, so those settings are hidden rather than shown
-  // switched off with no explanation.
-  const aiNarrates = draft.dmMode !== "human";
-
-  // "Known missing" is an admin's positive statement (provider "none" or no
-  // backend at all), which hides the AI seat. "Unreachable" is a configured
-  // backend that is not answering, which keeps the seat but warns.
-  const storyKnownMissing = capabilities ? !capabilities.story.configured : false;
-  const storyUnreachable = capabilities
-    ? capabilities.story.configured && !capabilities.story.reachable
-    : false;
-  const gates: WizardGates = {
-    solo,
-    aiNarrates,
-    storyKnownMissing,
-    storyUnreachable,
-    ttsAvailable: capabilities ? capabilities.tts.configured : true,
-    mapsAvailable: capabilities ? capabilities.images.configured : true,
-  };
+  // Narration is external/human. Creation gates only presentation differences
+  // for a one-player table; no server-side model capability can block it.
+  const gates: WizardGates = { solo };
 
   // Fetched rather than imported: the pack files are read off disk on the
   // server, and the summaries are all a picker needs.
@@ -174,26 +146,6 @@ export function CreateCampaignDialog({
       })
       .catch(() => {
         // No packs installed is a valid state; the section simply hides.
-      });
-    void fetch("/api/capabilities")
-      .then((response) => (response.ok ? response.json() : null))
-      .then((data: ServerCapabilities | null) => {
-        if (cancelled || !data?.story) {
-          return;
-        }
-        setCapabilities(data);
-        // Defaults follow reality: a table should not discover on turn one
-        // that the AI seat was never fillable.
-        setDraft((current) => ({
-          ...current,
-          dmMode: !data.story.configured || !data.story.reachable ? "human" : current.dmMode,
-          ttsEnabled: data.tts?.configured ? current.ttsEnabled : false,
-          mapsEnabled: data.images?.configured ? current.mapsEnabled : false,
-        }));
-      })
-      .catch(() => {
-        // No answer is not "no AI": without capabilities the dialog offers
-        // everything, exactly as it did before the endpoint existed.
       });
     return () => {
       cancelled = true;
@@ -216,7 +168,7 @@ export function CreateCampaignDialog({
     }));
 
   async function submit() {
-    if (busy || (solo && storyKnownMissing)) {
+    if (busy) {
       return;
     }
     const {
@@ -226,22 +178,16 @@ export function CreateCampaignDialog({
       maxPlayers,
       startingLevel,
       difficulty,
-      dmMode,
       genre,
       customGenreText,
-      aiStorySetup,
       campaignLength,
       dicePolicy,
       dmDifficulty,
-      ttsEnabled,
-      ttsVoice,
-      mapsEnabled,
       ambienceEnabled,
       ambienceAuto,
       multiclassingEnabled,
       midGameJoinOpen,
       holdSubmissions,
-      narrationGuard,
       relationships,
       romance,
       worldSimulation,
@@ -272,58 +218,34 @@ export function CreateCampaignDialog({
           startingLevel,
           difficulty,
           gameSettings: {
-            dmMode,
+            dmMode: "human",
             genre,
             customGenreText: customGenreText.trim(),
-            aiStorySetup: aiNarrates && aiStorySetup,
             campaignLength,
             dicePolicy,
             dmDifficulty,
-            ttsEnabled,
-            ttsVoice,
-            mapsEnabled,
             ambienceEnabled,
             ambienceAuto: ambienceEnabled && ambienceAuto,
             multiclassingEnabled,
             midGameJoinOpen,
             holdSubmissions,
-            narrationGuard: aiNarrates && narrationGuard,
             relationships,
             // Romance rides on the bond meter, so it cannot be on without it.
             romance: relationships === "off" ? "off" : romance,
-            worldSimulation: aiNarrates && worldSimulation,
+            worldSimulation,
             inventoryApprovals,
             variantRules,
-            companions: aiNarrates ? companions : "off",
+            companions,
             maxCompanions,
             maxGuests,
             worldPack,
             voice: voiceChat,
             unitSystem,
             combatMode,
-            // Game settings fields deliberately not offered at initial creation:
-            //
-            // `stages` trades turn quality for speed on a slow local model,
-            // which is an operator decision, not a table decision, so it
-            // stays in the lobby's settings panel where the labels can
-            // explain which stages actually save a model call.
-            //
-            // `beatReminder` is how often a human DM is nudged to write down
-            // the story they told out loud. Nobody knows their answer before
-            // they have run a session, and the nudge is the thing that
-            // teaches them they want one, so it lives in the settings panel
-            // they are already looking at when it fires.
-            //
-            // `dmAssist` is which parts of the game an assisted-mode DM hands
-            // to the AI. Picking "I run the game, with AI help" on the first
-            // step is already the answer to "do you want help"; which help,
-            // and when, is a question a person answers at the table with the
-            // console in front of them, so all three start on and the
-            // settings panel shows them only once the mode is assisted.
-            //
-            // `globalTurn` is pacing and turn timers (turn timeouts, quorum)
-            // for an active table, tuned in the Party and Lead panels during play
-            // rather than before characters or participants exist.
+            // Runtime-only/retired settings are deliberately omitted:
+            // hosted-AI assistance, hosted narration/image generation and
+            // model-pipeline stages no longer execute on the server.
+            // globalTurn pacing is configured on the live table.
           },
         }),
       });
@@ -406,7 +328,7 @@ export function CreateCampaignDialog({
         title: copy.reviewTitle,
         blurb: copy.reviewBlurb,
         content: <ReviewStep {...stepProps} selectedPack={selectedPack} error={error} />,
-        canContinue: !busy && !(solo && storyKnownMissing),
+        canContinue: !busy,
         applies: true,
       },
     ] satisfies Array<WizardStep & { applies: boolean }>
