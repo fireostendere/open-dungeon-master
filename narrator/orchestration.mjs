@@ -44,6 +44,39 @@ export function publicProjection(snapshot, history = [], limit = 24) {
   };
 }
 
+function floorAllowsAutopilot(floor, userId) {
+  if (!floor || floor.mode === 'open') return true;
+  if (floor.mode !== 'spotlight') return false;
+  return Array.isArray(floor.userIds) && floor.userIds.includes(userId) &&
+    !(floor.respondedUserIds ?? []).includes(userId);
+}
+
+function nextAutopilotCandidate(snapshot) {
+  const turn = snapshot.campaign?.globalTurnState;
+  if (!turn || !['active', 'quorum_delay'].includes(turn.phase)) return null;
+  const members = Array.isArray(snapshot.members) ? snapshot.members : [];
+  const sheets = Array.isArray(snapshot.sheets) ? snapshot.sheets : [];
+  for (const member of members) {
+    if (!member?.autopilot || member.muted || Number(member.skipTurnsCount ?? 0) > 0) continue;
+    const sheet = sheets.find(item => item?.userId === member.userId && !item.isCompanion);
+    if (!sheet || sheet.userId === snapshot.campaign?.dmUserId || sheet.deathSaves?.dead) continue;
+    const usage = turn.actionsByCharacter?.[sheet.id];
+    if (usage && (Number(usage.actionsCount ?? 0) > 0 || Number(usage.phrasesCount ?? 0) > 0)) continue;
+    if (!floorAllowsAutopilot(snapshot.campaign?.floor, sheet.userId)) continue;
+    return { member, sheet };
+  }
+  return null;
+}
+
+function validateActorTurn(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('Invalid actor decision.');
+  if (Object.keys(value).some(key => !['kind', 'content'].includes(key))) throw new Error('Unsupported actor decision fields.');
+  if (!['do', 'say'].includes(value.kind) || typeof value.content !== 'string') throw new Error('Invalid actor turn.');
+  const content = value.content.trim();
+  if (!content || content.length > 2000) throw new Error('Actor turn exceeds its content budget.');
+  return { kind: value.kind, content };
+}
+
 export function validateDecision(value, { allowedActions = new Set(), catalogActions = allowedActions } = {}) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('Invalid referee decision.');
   const keys = {
@@ -189,6 +222,7 @@ export class NarratorOrchestrator {
     if (this.state.paused) return false;
     if (snapshot.hasMore || snapshot.nextCursor !== snapshot.currentSeq || snapshot.timelineEpoch !== this.state.epoch) throw new Error('Story must be fully drained before a decision.');
     if (this.state.pending) return this.write(host);
+    const spatialEnabled = Boolean(snapshot.spatial?.enabled || snapshot.spatial === true);
     if (!this.state.current) {
       const globalTurnEnabled =
         Boolean(snapshot.campaign?.gameSettings?.globalTurn?.enabled) &&
@@ -256,9 +290,23 @@ export class NarratorOrchestrator {
             roomIds: [...new Set(messages.map(message => message.roomId).filter(Boolean))],
             content: messages.map(message => `${message.content}`).join('\n'),
           };
+        } else if (globalTurn?.phase === 'active' || globalTurn?.phase === 'quorum_delay') {
+          // Autopilot is external too: generate one opted-in player's intent,
+          // commit it through the trusted MCP write, then re-read before the
+          // next candidate. Ordinary human input still waits for the barrier.
+          const candidate = nextAutopilotCandidate(snapshot);
+          if (!candidate) return false;
+          input = {
+            id: `autopilot:${globalTurn.roundNumber}:${candidate.sheet.id}`,
+            seq: snapshot.currentSeq,
+            authorType: 'system',
+            userId: candidate.sheet.userId,
+            characterId: candidate.sheet.id,
+            kind: 'autopilot_turn',
+            roundNumber: globalTurn.roundNumber,
+            content: '',
+          };
         } else {
-          // active/quorum_delay: the server is collecting. Polling is cheap and
-          // must not spend a model call before the round barrier.
           return false;
         }
       } else {
@@ -269,6 +317,64 @@ export class NarratorOrchestrator {
       host.saveCheckpoint();
     }
     const current = this.state.current;
+    if (current.input?.kind === 'autopilot_turn') {
+      const candidate = nextAutopilotCandidate(snapshot);
+      if (
+        !candidate ||
+        candidate.sheet.id !== current.input.characterId ||
+        Number(snapshot.campaign?.globalTurnState?.roundNumber) !== Number(current.input.roundNumber)
+      ) {
+        this.state.current = null;
+        host.saveCheckpoint();
+        return true;
+      }
+
+      if (current.steps >= 1) return this.pause(host, 'actor_step_budget');
+      const { portrait: _portrait, ...character } = candidate.sheet;
+      let actorTurn;
+      try {
+        current.steps++;
+        const privateContext = host.memory?.getPromptContext?.({ viewerUserId: candidate.sheet.userId }) ?? {};
+        actorTurn = validateActorTurn(JSON.parse(await this.generate(host, 'actor', {
+          task: 'autopilot_turn',
+          roundNumber: current.input.roundNumber,
+          character,
+          public: publicProjection(snapshot, this.state.history, this.playMode === 'yolo' ? 12 : 24),
+          context: privateContext,
+          campaign: {
+            title: snapshot.campaign?.title,
+            theme: snapshot.campaign?.theme,
+            scene: snapshot.campaign?.scene,
+            gameSettings: snapshot.campaign?.gameSettings,
+            clock: snapshot.campaign?.clock,
+          },
+        })));
+      } catch {
+        return this.pause(host, 'actor_model_or_decision_error');
+      }
+      if (host.stopping || this.state.current !== current || this.state.epoch !== snapshot.timelineEpoch) return false;
+
+      const params = {
+        campaignId: host.campaignId,
+        expectedSeq: snapshot.currentSeq,
+        timelineEpoch: snapshot.timelineEpoch,
+        commandId: crypto.randomUUID(),
+        characterId: candidate.sheet.id,
+        roundNumber: current.input.roundNumber,
+        kind: actorTurn.kind,
+        content: actorTurn.content,
+        ...(sequence(host.lastSeq) ? { readAfter: postWriteReadOptions(host) } : {}),
+      };
+      this.state.pending = {
+        action: 'narrator.autopilot_action',
+        params,
+        attempts: 0,
+        phase: 'prepared',
+        beforePendingIds: [],
+      };
+      host.saveCheckpoint();
+      return this.write(host);
+    }
     if (current.waiting.some(id => !current.resolved[id]) || snapshot.pendingRolls?.length) return false;
     if (current.waiting.length) {
       snapshot = await host.drainStory({ full: true });
@@ -285,7 +391,6 @@ export class NarratorOrchestrator {
       if (!Array.isArray(catalog?.groups)) throw new Error('Invalid engine catalog.');
       this.catalog = catalog.groups;
     }
-    const spatialEnabled = Boolean(snapshot.spatial?.enabled || snapshot.spatial === true);
     const visibleCatalog = filterNarratorCatalog(this.catalog, this.playMode, { spatialEnabled });
     const allowedActions = new Set(visibleCatalog.flatMap(group => (group.actions ?? []).map(action => action.name)));
     const catalogActions = new Set(visibleCatalog.flatMap(group => (group.actions ?? []).flatMap(action =>
@@ -479,6 +584,16 @@ export class NarratorOrchestrator {
       try { receipt = await host.callControl(pending.action, pending.params); }
       catch (error) {
         if (error.code === 'timeline_changed') throw error;
+        if (error.status === 409 && pending.action === 'narrator.autopilot_action') {
+          // The player may have returned, disabled autopilot, skipped, acted,
+          // or advanced the round while the actor model was generating.
+          // Drop the draft and re-evaluate authoritative state; never force it.
+          this.state.pending = null;
+          this.state.current = null;
+          host.saveCheckpoint();
+          await host.drainStory();
+          return true;
+        }
         if (error.status === 409 && /^Stale narrator cursor/.test(error.message)) {
           this.state.pending = null; host.saveCheckpoint(); await host.drainStory(); return false;
         }
@@ -500,6 +615,14 @@ export class NarratorOrchestrator {
       pending.action === 'narrator.finish_global_round' ||
       pending.action === 'narrator.release_floor'
     ) { this.finish(host); return true; }
+    if (pending.action === 'narrator.autopilot_action') {
+      // Do not advance handledSeq: the generated player message belongs to the
+      // still-open global round and must later be consumed at global_turn_ready.
+      this.state.current = null;
+      this.state.pending = null;
+      host.saveCheckpoint();
+      return true;
+    }
     const result = pending.receipt.result;
     const waiting = (fresh.pendingRolls ?? []).filter(roll => !pending.beforePendingIds.includes(roll.id)).map(roll => roll.id);
     if (result?.parked && !waiting.length) return this.pause(host, 'unobserved_pending_roll');
