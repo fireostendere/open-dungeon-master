@@ -1,4 +1,4 @@
-import test from "node:test";
+import test, { after } from "node:test";
 import assert from "node:assert/strict";
 import { randomBytes, randomUUID } from "node:crypto";
 import fs from "node:fs";
@@ -224,5 +224,5 @@ test("orchestrator uses the isolated actor role and MCP write during an active g
   assert.equal(controller.state.handledSeq, 0, "autopilot message must remain pending for the later global_turn_ready batch");
 });
 
-removeTempDir(dir);
+after(() => removeTempDir(dir));
 console.log("PASS external MCP autopilot opt-in, actor orchestration, idempotency, and quorum sealing");
