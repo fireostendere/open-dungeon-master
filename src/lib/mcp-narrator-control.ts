@@ -349,7 +349,7 @@ async function narrate(raw: unknown) {
     }
     let globalTurnResult;
     if (p.data.startGlobalRound !== undefined) {
-      const started = startGlobalTurn(campaign.id, "opening_narration");
+      const started = startGlobalTurn(campaign.id, "mcp_trigger");
       if (
         !started ||
         started.roundNumber !== p.data.startGlobalRound ||
