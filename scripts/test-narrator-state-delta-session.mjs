@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readNarratorSnapshot } from '../narrator/read-session.mjs';
+import { drainNarratorStory, readNarratorSnapshot } from '../narrator/read-session.mjs';
 import { NarratorStateDeltaCache, projectNarratorStateDelta } from '../src/lib/mcp-state-delta-cache.mjs';
 
 const epoch='a'.repeat(64);
@@ -77,6 +77,33 @@ test('host accepts a full self-healing resync after server cache loss',async()=>
   assert.equal(healed.stateDelta.resyncRequired,true);
   assert.equal(healed.sheets[0].hp,9);
   assert.notEqual(host.stateCache.revision,old);
+});
+
+test('verified unchanged live delta performs no memory ingest or checkpoint write',async()=>{
+  const serverCache=new NarratorStateDeltaCache();
+  const state=snapshot(17);
+  let ingests=0,saves=0;
+  const host={
+    campaignId,timelineEpoch:epoch,lastSeq:7,deltaReads:true,sectionCache:null,stateCache:null,
+    readPageRetries:0,readMaxBytes:65536,
+    memory:{
+      ingestReadSnapshot(){ingests++;},
+      serializeState(){return {};},
+      restoreState(){},
+    },
+    saveCheckpoint(){saves++;},
+    callControl:async(_action,params)=>projectNarratorStateDelta(state,{
+      campaignId,timelineEpoch:epoch,principal:dm,projection:params.projection??'live',
+      knownStateRevision:params.knownStateRevision,cache:serverCache,
+    }),
+  };
+  host.readSnapshot=params=>readNarratorSnapshot(host,params);
+  await readNarratorSnapshot(host,{campaignId,afterSeq:7,projection:'live'});
+  ingests=0;saves=0;
+  const result=await drainNarratorStory(host);
+  assert.equal(result.currentSeq,7);
+  assert.equal(ingests,0);
+  assert.equal(saves,0);
 });
 
 test('host rejects a tampered patch and keeps its previous baseline',async()=>{
