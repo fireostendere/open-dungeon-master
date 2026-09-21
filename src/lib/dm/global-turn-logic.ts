@@ -430,7 +430,6 @@ export function completeGlobalTurn(
   if (!campaign || campaign.status !== "active" || !campaign.gameSettings.globalTurn?.enabled) {
     return null;
   }
-  if (getActiveEncounter(campaignId)) return getGlobalTurnState(campaignId);
 
   const state = getGlobalTurnState(campaignId);
   if (state.roundNumber !== expectedRound) return state;
@@ -454,8 +453,10 @@ export function completeGlobalTurn(
     resolvedBy: "mcp_narrator",
   });
 
-  // The successful MCP narration is itself the next-round trigger. This call
-  // emits global_turn_started and opens the composer only after the narration
-  // write has committed inside the serialized narrator command.
+  // If this round opened an encounter, initiative owns input now. Keep the
+  // next global round armed but locked; the post-combat MCP narration will
+  // trigger it. Otherwise the successful narration is itself the next-round
+  // trigger and opens collection atomically with this command.
+  if (getActiveEncounter(campaignId)) return waitingState;
   return startGlobalTurn(campaignId, "mcp_completed") ?? waitingState;
 }
