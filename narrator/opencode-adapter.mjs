@@ -74,7 +74,12 @@ export class OpenCodeAdapter {
     } catch {}
     this.fetch = options.fetchImpl ?? globalThis.fetch;
     this.timeoutMs = options.timeoutMs ?? 120000;
+    const actorTimeoutRaw = options.actorTimeoutMs ?? process.env.ODM_OPENCODE_ACTOR_TIMEOUT_MS;
+    this.actorTimeoutMs = actorTimeoutRaw === undefined || actorTimeoutRaw === ''
+      ? Math.min(this.timeoutMs, 30000)
+      : Number(actorTimeoutRaw);
     this.cleanupTimeoutMs = options.cleanupTimeoutMs ?? 2000;
+    if (!Number.isSafeInteger(this.actorTimeoutMs) || this.actorTimeoutMs < 1000 || this.actorTimeoutMs > 120000) throw new Error('Invalid actor timeout.');
     if (!Number.isSafeInteger(this.cleanupTimeoutMs) || this.cleanupTimeoutMs < 1 || this.cleanupTimeoutMs > 10000) throw new Error('Invalid cleanup timeout.');
     this.pendingCleanups = new Set();
     this.idleSessions = new Map();
@@ -194,7 +199,11 @@ export class OpenCodeAdapter {
       const session = await this.takeSession(role);
       const route = `/api/session/${encodeURIComponent(session.id)}`;
       try {
-        const reply = await this.request(`${route}/generate`, { stage: 'model', body: { prompt } });
+        const reply = await this.request(`${route}/generate`, {
+          stage: 'model',
+          body: { prompt },
+          timeoutMs: role === 'actor' ? this.actorTimeoutMs : this.timeoutMs,
+        });
         if (typeof reply?.text !== 'string' || !reply.text.trim() || Buffer.byteLength(reply.text) > 32768) throw new Error('Malformed or oversized model output.');
         return { text: reply.text, usage: modelUsage(reply) };
       } finally { this.cleanup(route); }
