@@ -85,6 +85,7 @@ export class OpenCodeAdapter {
     this.pendingCleanups = new Set();
     this.idleSessions = new Map();
     this.warmingSessions = new Map();
+    this.conversationSessions = new Map();
     this.poolEnabled = false;
     this.closed = false;
     this.onTiming = typeof options.onTiming === 'function' ? options.onTiming : null;
@@ -179,9 +180,29 @@ export class OpenCodeAdapter {
     if (this.poolEnabled) void this.ensureWarm(role).catch(() => {});
     return session;
   }
+  async takeConversation(role, sessionKey) {
+    if (typeof sessionKey !== 'string' || !sessionKey || sessionKey.length > 240) throw new Error('Invalid OpenCode conversation key.');
+    const existing = this.conversationSessions.get(sessionKey);
+    if (existing) {
+      if (existing.role !== role) throw new Error('OpenCode conversation role mismatch.');
+      return existing.session;
+    }
+    if (this.conversationSessions.size >= 16) throw new Error('OpenCode conversation capacity exhausted.');
+    const session = await this.takeSession(role);
+    this.conversationSessions.set(sessionKey, { role, session });
+    return session;
+  }
+  releaseConversation(sessionKey) {
+    const existing = this.conversationSessions.get(sessionKey);
+    if (!existing) return false;
+    this.conversationSessions.delete(sessionKey);
+    this.cleanup(`/api/session/${encodeURIComponent(existing.session.id)}`);
+    return true;
+  }
   async close() {
     this.closed = true;
     await Promise.allSettled([...this.warmingSessions.values()]);
+    for (const key of [...this.conversationSessions.keys()]) this.releaseConversation(key);
     for (const session of this.idleSessions.values()) {
       this.cleanup(`/api/session/${encodeURIComponent(session.id)}`);
     }
@@ -194,12 +215,15 @@ export class OpenCodeAdapter {
   instructionBytes(role) {
     return Buffer.byteLength(trustedInstruction(role));
   }
-  async generateWithUsage(role, prompt) {
+  async generateWithUsage(role, prompt, options = {}) {
     return withLatencyTrace(async () => {
       if (typeof prompt !== 'string' || Buffer.byteLength(prompt) > 262144) throw new Error('Role input exceeds the byte budget; no facts were clipped.');
       if (this.pendingCleanups.size >= 32) throw new Error('OpenCode cleanup capacity exhausted.');
-      const session = await this.takeSession(role);
+      const sessionKey = options?.sessionKey;
+      const sticky = typeof sessionKey === 'string' && Boolean(sessionKey);
+      const session = sticky ? await this.takeConversation(role, sessionKey) : await this.takeSession(role);
       const route = `/api/session/${encodeURIComponent(session.id)}`;
+      let succeeded = false;
       try {
         const reply = await this.request(`${route}/generate`, {
           stage: 'model',
@@ -207,12 +231,16 @@ export class OpenCodeAdapter {
           timeoutMs: role === 'actor' ? this.actorTimeoutMs : this.timeoutMs,
         });
         if (typeof reply?.text !== 'string' || !reply.text.trim() || Buffer.byteLength(reply.text) > 32768) throw new Error('Malformed or oversized model output.');
+        succeeded = true;
         return { text: reply.text, usage: modelUsage(reply) };
-      } finally { this.cleanup(route); }
+      } finally {
+        if (!sticky) this.cleanup(route);
+        else if (!succeeded) this.releaseConversation(sessionKey);
+      }
     });
   }
-  async generate(role, prompt) {
-    const result = await this.generateWithUsage(role, prompt);
+  async generate(role, prompt, options = {}) {
+    const result = await this.generateWithUsage(role, prompt, options);
     return result.text;
   }
 }
