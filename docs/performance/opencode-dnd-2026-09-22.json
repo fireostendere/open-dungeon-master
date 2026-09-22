@@ -1,0 +1,312 @@
+{
+  "date": "2026-09-22",
+  "scenario": "One local perception DC 12 check with authoritative server dice and committed narration; 12 seeded messages, one level-1 fighter. Real OpenCode/native provider/MCP/SQLite control route; no browser.",
+  "runs": {
+    "baseline": {
+      "wallMs": 100888,
+      "outcome": "succeeded",
+      "model": {
+        "id": "gpt-5.6-dnd-edition",
+        "providerID": "openai",
+        "variant": "default"
+      },
+      "assistantSteps": 13,
+      "toolCalls": 12,
+      "toolErrors": 4,
+      "tokens": {
+        "input": 40100,
+        "output": 1338,
+        "reasoning": 2267,
+        "cache": {
+          "read": 143360,
+          "write": 0
+        }
+      },
+      "inputIncludingCache": 183460,
+      "calls": [
+        {
+          "tool": "skill",
+          "operation": null,
+          "action": null,
+          "status": "completed"
+        },
+        {
+          "tool": "skill",
+          "operation": null,
+          "action": null,
+          "status": "completed"
+        },
+        {
+          "tool": "odm_narrator_odm_narrator",
+          "operation": "connect",
+          "action": "local-test-one-turn",
+          "status": "error"
+        },
+        {
+          "tool": "odm_narrator_odm_narrator",
+          "operation": "connect",
+          "action": null,
+          "status": "completed"
+        },
+        {
+          "tool": "odm_narrator_odm_narrator",
+          "operation": "catalog",
+          "action": null,
+          "status": "completed"
+        },
+        {
+          "tool": "odm_narrator_odm_narrator",
+          "operation": "read",
+          "action": null,
+          "status": "completed"
+        },
+        {
+          "tool": "odm_narrator_odm_narrator",
+          "operation": "catalog",
+          "action": null,
+          "status": "completed"
+        },
+        {
+          "tool": "odm_narrator_odm_narrator",
+          "operation": "invoke",
+          "action": "request_roll",
+          "status": "error"
+        },
+        {
+          "tool": "odm_narrator_odm_narrator",
+          "operation": "invoke",
+          "action": "request_roll",
+          "status": "completed"
+        },
+        {
+          "tool": "mcp_discover",
+          "operation": null,
+          "action": null,
+          "status": "error"
+        },
+        {
+          "tool": "odm_narrator_odm_narrator",
+          "operation": "narrate",
+          "action": null,
+          "status": "error"
+        },
+        {
+          "tool": "odm_narrator_odm_narrator",
+          "operation": "narrate",
+          "action": null,
+          "status": "completed"
+        }
+      ]
+    },
+    "optimized": {
+      "wallMs": 66828,
+      "outcome": "succeeded",
+      "model": {
+        "id": "gpt-5.6-dnd-edition",
+        "providerID": "openai",
+        "variant": "default"
+      },
+      "assistantSteps": 10,
+      "toolCalls": 9,
+      "toolErrors": 3,
+      "tokens": {
+        "input": 45326,
+        "output": 1670,
+        "reasoning": 1339,
+        "cache": {
+          "read": 83456,
+          "write": 0
+        }
+      },
+      "inputIncludingCache": 128782,
+      "calls": [
+        {
+          "tool": "mcp_discover",
+          "operation": null,
+          "action": null,
+          "status": "completed"
+        },
+        {
+          "tool": "odm_narrator_odm_narrator",
+          "operation": "connect",
+          "action": null,
+          "status": "error"
+        },
+        {
+          "tool": "odm_narrator_odm_narrator",
+          "operation": "connect",
+          "action": null,
+          "status": "completed"
+        },
+        {
+          "tool": "odm_narrator_odm_narrator",
+          "operation": "read",
+          "action": null,
+          "status": "error"
+        },
+        {
+          "tool": "odm_narrator_odm_narrator",
+          "operation": "read",
+          "action": null,
+          "status": "completed"
+        },
+        {
+          "tool": "odm_narrator_odm_narrator",
+          "operation": "catalog",
+          "action": "request_roll",
+          "status": "completed"
+        },
+        {
+          "tool": "odm_narrator_odm_narrator",
+          "operation": "invoke",
+          "action": "request_roll",
+          "status": "completed"
+        },
+        {
+          "tool": "odm_narrator_odm_narrator",
+          "operation": "narrate",
+          "action": null,
+          "status": "error"
+        },
+        {
+          "tool": "odm_narrator_odm_narrator",
+          "operation": "narrate",
+          "action": null,
+          "status": "completed"
+        }
+      ]
+    },
+    "final": {
+      "wallMs": 54122,
+      "outcome": "succeeded",
+      "model": {
+        "id": "gpt-5.6-dnd-edition",
+        "providerID": "openai",
+        "variant": "default"
+      },
+      "assistantSteps": 7,
+      "toolCalls": 6,
+      "toolErrors": 0,
+      "tokens": {
+        "input": 28349,
+        "output": 1191,
+        "reasoning": 1126,
+        "cache": {
+          "read": 58880,
+          "write": 0
+        }
+      },
+      "inputIncludingCache": 87229,
+      "calls": [
+        {
+          "tool": "mcp_discover",
+          "operation": null,
+          "action": null,
+          "status": "completed"
+        },
+        {
+          "tool": "odm_narrator_odm_narrator",
+          "operation": "connect",
+          "action": null,
+          "status": "completed"
+        },
+        {
+          "tool": "odm_narrator_odm_narrator",
+          "operation": "catalog",
+          "action": "request_roll",
+          "status": "completed"
+        },
+        {
+          "tool": "odm_narrator_odm_narrator",
+          "operation": "snapshot",
+          "action": null,
+          "status": "completed"
+        },
+        {
+          "tool": "odm_narrator_odm_narrator",
+          "operation": "invoke",
+          "action": "request_roll",
+          "status": "completed"
+        },
+        {
+          "tool": "odm_narrator_odm_narrator",
+          "operation": "narrate",
+          "action": null,
+          "status": "completed"
+        }
+      ]
+    }
+  },
+  "localActions": [
+    {
+      "action": "narrator.read",
+      "ms": 20.16,
+      "responseBytes": 10310,
+      "ok": true
+    },
+    {
+      "action": "grant_item",
+      "ms": 12.81,
+      "responseBytes": 6610,
+      "ok": true
+    },
+    {
+      "action": "modify_gold",
+      "ms": 8.04,
+      "responseBytes": 6610,
+      "ok": true
+    },
+    {
+      "action": "take_rest",
+      "ms": 8.56,
+      "responseBytes": 5614,
+      "ok": true
+    },
+    {
+      "action": "start_encounter",
+      "ms": 11.39,
+      "responseBytes": 6917,
+      "ok": true
+    },
+    {
+      "action": "request_roll",
+      "ms": 6.78,
+      "responseBytes": 7749,
+      "ok": true
+    }
+  ],
+  "escape": {
+    "singleEscapeToIdleMs": 55,
+    "providerDisconnected": true,
+    "fixtureProvider": true
+  },
+  "limitations": [
+    "One run per configuration; not p50/p95 or a billing comparison.",
+    "Baseline is after repairing MCP connectivity; original broken endpoint cannot finish a turn.",
+    "Intermediate run is retained, including its three schema errors.",
+    "Final run uses schema descriptions and precise operation fields; production sidecar was not redeployed.",
+    "The local fixture has no imported SRD corpus; RAG tools were disabled for this scenario.",
+    "Local actions additionally verified item grant; invalid out-of-range melee was rejected by the server."
+  ],
+  "routerRequests": [
+    {
+      "ms": 1817.81,
+      "route": "LUNA_LOW",
+      "fallback": "low-confidence"
+    },
+    {
+      "ms": 1.7,
+      "route": "LUNA_LOW",
+      "fallback": "low-confidence"
+    },
+    {
+      "ms": 1.53,
+      "route": "LUNA_LOW",
+      "fallback": "low-confidence"
+    }
+  ],
+  "bases": {
+    "custom_opencode": "6054271",
+    "open-dungeon-master": "547034d0"
+  }
+}

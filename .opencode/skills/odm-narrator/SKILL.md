@@ -5,13 +5,36 @@ description: "Внешний ведущий ODM: D&D-игра через MCP с 
 
 # Внешний ведущий Open Dungeon Master
 
-Прочитайте [общий контракт](../../../docs/agent-skills.md#общий-контракт-и-границы),
-[odm-dm-policy](../odm-dm-policy/SKILL.md), `odm://narrator/policy`,
-`odm://narrator/playbook`, актуальный catalog, [P2-STATUS](../../../P2-STATUS.md)
-и [первый внешний сеанс](../../../docs/external-narrator-first-session.md). Навык
-не запускает runtime: для live-игры нужен отдельно настроенный host. Требуются
-active human-DM campaign, service DM seat, выключенные TTS/автокарты и отсутствие
-AI cover.
+Сначала загрузите `odm-dm-policy`. Ниже — контракт игрового цикла; дополнительные
+[первый сеанс](../../../docs/external-narrator-first-session.md),
+[общий контракт](../../../docs/agent-skills.md#общий-контракт-и-границы) и
+`odm://narrator/playbook` нужны при настройке или неясном протоколе.
+Навык не запускает runtime. Требуются active human-DM campaign, service DM seat,
+выключенные TTS/автокарты и отсутствие AI cover.
+
+## Быстрый игровой цикл
+
+- Один `connect` на подключение: `campaignId`, `projection: "live"`, `paged:true`,
+  `maxBytes:131072`. Его полный `state` заменяет начальный read. `delta:true` и
+  `includeAsks` допустимы только в `read`, а `sections` — только в `snapshot`.
+  Полный catalog не нужен: запрашивайте `catalog` с `action` для нужной механики
+  и переиспользуйте её схему до смены контракта.
+- После полного чтения сохраняйте `sectionVersions`; передавайте их как
+  `knownSections` при следующем read и в `readAfter`. Пропущенные неизменившиеся
+  секции сохраняют прежние значения; это не пустые массивы. При смене
+  `timelineEpoch` сбросьте кэш и перечитайте. Без подтверждённой базовой версии
+  запрашивайте полный read, а не выдумывайте недостающие данные.
+- Для записи задавайте `readAfter: {afterSeq: <последний дочитанный cursor>,
+  projection: "live", delta: true, knownSections: <sectionVersions>,
+  maxBytes: 131072}`. Подтверждённые receipt + полный `state` заменяют отдельный
+  read после записи. Если `hasMore`, страницы или ошибка readback — дочитайте
+  перед следующей записью; не повторяйте уже подтверждённую мутацию.
+- `narrate` с `releaseFloor:true` публикует текст и освобождает hold одной
+  командой, когда передача игроку нужна по правилам. Это не `end_turn` и не
+  обход pending roll/инициативы. Если hold отсутствует, отдельный release не нужен.
+- RAG подключён под именем `dnd`: для правил используйте
+  `dnd_knowledge_search`, затем при необходимости `dnd_knowledge_get`.
+  Чтение всего корпуса и повторный поиск того же правила на каждом ходе не нужны.
 
 ## Граница роли
 
@@ -33,7 +56,7 @@ Ask сканируется независимо: начните с `afterAskSeq:
 убирает только перечисленные `omittedSections`, не текущие результаты и новые
 rolls. Храните `timelineEpoch`. Используйте
 последний `currentSeq` как `expectedSeq`, сохраните UUID `commandId` и точный
-payload до записи, затем перечитайте. При ambiguous outcome повторяется не более
+payload до записи, затем проверьте attached readAfter state либо перечитайте. При ambiguous outcome повторяется не более
 одного раза только идентичный payload с тем же `commandId`; иначе checkpoint и
 оператор. Metadata `commandId`, `expectedVersion` и `timelineEpoch` передаёт
 текущий sidecar только с mandatory `mcp/external-tools-preload.mjs`; plain
