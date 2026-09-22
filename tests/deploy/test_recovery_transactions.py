@@ -81,7 +81,7 @@ class RecoveryTransactions(unittest.TestCase):
         ops.write_json(admin, {'username': 'current', 'password': 'current-password'})
         before = {p: p.read_bytes() for p in (env, admin)}
         (self.root / 'state/data/local-roleplay.sqlite').write_text('current campaign')
-        with patch.object(self.c, 'wait_ready', side_effect=[ops.OpsError('candidate failed'), None]):
+        with patch.object(self.c, 'wait_ready', side_effect=[ops.OpsError('candidate failed'), None, None]):
             with self.assertRaises(ops.OpsError):
                 self.c.restore(snapshot, yes=True)
         for path, content in before.items():

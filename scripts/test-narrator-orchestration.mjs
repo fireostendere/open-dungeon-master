@@ -42,7 +42,7 @@ function fixture(replies, options = {}) {
           'location_enable', 'location_disable', 'location_create_room', 'location_link', 'location_move',
           'location_narrate', 'location_observe', 'location_revoke', 'location_propagate', 'location_perceive',
           'location_stealth_resolve', 'location_detect', 'location_lose_detection', 'location_set_floor'];
-        return { groups: [{ category: 'combat', ...(params.summaryOnly ? { actions: names.map(name => ({ name })) } : { entries: [{ name: params.action, fields: [] }] }) }] };
+        return { groups: [{ category: 'combat', ...(!params.action ? { actions: names.map(name => ({ name })) } : { entries: [{ name: params.action, fields: [] }] }) }] };
       }
       if (action === 'narrator.read') return structuredClone(this.snapshot);
       writes.push({ action, params: structuredClone(params) });
@@ -155,7 +155,7 @@ test('role packet drops transport metadata and duplicate actor context', () => {
   assert.equal(Object.hasOwn(referee.campaign, 'dmOutline'), false);
   assert.equal(referee.state.sheets[0].equipment[0].name, 'FOCUSED_ITEM');
   assert.equal(Object.hasOwn(referee.state.sheets[0].equipment[0], 'weight'), false);
-  assert.equal(referee.state.sheets[0].backstory, 'FOCUSED_BACKSTORY');
+  assert.equal(referee.state.sheets[0].backstory, undefined);
   assert.equal(Object.hasOwn(referee.state.sheets[1], 'equipment'), false);
   assert.equal(Object.hasOwn(referee.state.sheets[1], 'backstory'), false);
   assert.doesNotMatch(JSON.stringify(referee.state.sheets[1]), /OTHER_PRIVATE_BULK_ITEM|OTHER_BULK_BACKSTORY/);
@@ -513,7 +513,7 @@ test('resolved physical roll does not trigger a redundant narrator read', async 
   await h.tick();
   assert.equal(h.drains.length, 0, 'the already-drained roll_result is authoritative');
   assert.equal(h.modelCalls.length, 2);
-  assert.equal(h.modelCalls[1].packet.outcomes[0].physicalRolls[0].roll.id, 'r1');
+  assert.equal(h.modelCalls[1].packet.outcomes.find(outcome => outcome.physicalRolls).physicalRolls[0].roll.id, 'r1');
 });
 
 test('timeout recovery after restart sends the exact saved command without another model call', async () => {
@@ -571,9 +571,10 @@ test('wait does not call a model again until an event changes the sequence', asy
   h.snapshot.currentSeq++; await h.tick(); assert.equal(h.modelCalls.length, 2);
 });
 
-test('spatial campaigns pause, and public writer never receives raw private state', async () => {
-  const paused = fixture([]); paused.snapshot.spatial = { enabled: true }; await paused.tick();
-  assert.equal(paused.modelCalls.length, 0); assert.equal(paused.writes.length, 0);
+test('spatial campaigns accept room input, and public writer never receives raw private state', async () => {
+  const spatial = fixture([{ kind: 'wait' }]); spatial.snapshot.spatial = { enabled: true }; await spatial.tick();
+  assert.equal(spatial.modelCalls.length, 1); assert.equal(spatial.writes.length, 0);
+  assert.equal(spatial.controller.state.paused, null);
   const h = fixture([{ kind: 'narrate', text: 'An uneasy silence.', writer: true }, 'Silence settles over the chamber.']);
   Object.assign(h.snapshot, { asks: [{ question: 'ASK_SECRET' }], playerWhispers: ['WHISPER_SECRET'], facts: ['DM_SECRET'],
     sheets: [{ id: 'hero', notes: 'SHEET_SECRET' }], encounter: { enemies: [{ ac: 99, secret: 'ENEMY_SECRET' }] } });
