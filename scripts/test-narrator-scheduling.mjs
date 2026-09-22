@@ -18,7 +18,7 @@ async function moduleAt(relative, mocks) {
   await module.evaluate(); return module.namespace;
 }
 function host(overrides = {}) {
-  return { campaignId: 'c', timelineEpoch: 'e', stopping: false, askTask: null, askResponder: () => {},
+  return { campaignId: 'c', timelineEpoch: 'e', stopping: false, askTask: null, askResponder: () => {}, readPageRetries: 0,
     pendingAskCommands: new Map(), pendingAskAttempts: new Map(), answeredAsks: new Set(),
     callControl: async (action, params) => {
       assert.equal(action, 'narrator.read');

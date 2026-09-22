@@ -2,14 +2,16 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { applyRolePacketDelta, createRolePacketDelta, ROLE_DELTA_FORMAT } from '../narrator/role-delta.mjs';
 import { NarratorOrchestrator } from '../narrator/orchestration.mjs';
+import { compactRolePacket } from '../narrator/role-packet.mjs';
 
 const before={
-  instructions:'rules',
+  // Enough unchanged policy to exercise the beneficial-delta branch.
+  instructions:'Server mechanics are authoritative. Preserve initiative, confirmed dice, scopes and player agency. '.repeat(12),
   input:{id:'m1',seq:1,content:'attack'},
   campaign:{scene:'gate',clock:{day:1,hour:8}},
   state:{
-    sheets:[{id:'hero',hp:12,ac:16},{id:'cleric',hp:9,ac:15}],
-    encounter:{encounter:{id:'enc',round:1},enemies:[{id:'goblin',hp:7,ac:13}]},
+    sheets:[{id:'hero',currentHp:12,ac:16},{id:'cleric',currentHp:9,ac:15}],
+    encounter:{encounter:{id:'enc',round:1},enemies:[{id:'goblin',currentHp:7,ac:13}]},
     facts:[{id:'f1',fact:'door locked'}],
   },
   outcomes:[],
@@ -20,8 +22,8 @@ const after={
   campaign:{...before.campaign,clock:{day:1,hour:9}},
   state:{
     ...before.state,
-    sheets:[{id:'hero',hp:10,ac:16},{id:'cleric',hp:9,ac:15}],
-    encounter:{...before.state.encounter,enemies:[{id:'goblin',hp:2,ac:13}]},
+    sheets:[{id:'hero',currentHp:10,ac:16},{id:'cleric',currentHp:9,ac:15}],
+    encounter:{...before.state.encounter,enemies:[{id:'goblin',currentHp:2,ac:13}]},
   },
   outcomes:[{name:'pc_attack',result:{hit:true,damage:5}}],
 };
@@ -31,8 +33,8 @@ test('role packet delta reconstructs nested entity and scalar changes exactly',(
   assert.equal(delta.format,ROLE_DELTA_FORMAT);
   assert.deepEqual(applyRolePacketDelta(before,delta),after);
   assert.equal(delta.patch.objects.state.entities.sheets.upsert.length,1);
-  assert.equal(delta.patch.objects.state.entities.sheets.upsert[0].hp,10);
-  assert.equal(delta.patch.objects.state.objects.encounter.entities.enemies.upsert[0].hp,2);
+  assert.equal(delta.patch.objects.state.entities.sheets.upsert[0].currentHp,10);
+  assert.equal(delta.patch.objects.state.objects.encounter.entities.enemies.upsert[0].currentHp,2);
   assert.equal(delta.patch.objects.campaign.objects.clock.set.hour,9);
   assert.ok(Buffer.byteLength(JSON.stringify(delta)) < Buffer.byteLength(JSON.stringify(after)));
 });
@@ -63,7 +65,7 @@ test('orchestrator keeps one referee session and sends only a delta on the next 
   assert.notEqual(JSON.parse(prompts[0].prompt).format,ROLE_DELTA_FORMAT);
   const delta=JSON.parse(prompts[1].prompt);
   assert.equal(delta.format,ROLE_DELTA_FORMAT);
-  assert.deepEqual(applyRolePacketDelta(JSON.parse(prompts[0].prompt),delta),after);
+  assert.deepEqual(applyRolePacketDelta(JSON.parse(prompts[0].prompt),delta),JSON.parse(JSON.stringify(compactRolePacket('referee',after))));
   assert.equal(options[0].sessionKey,options[1].sessionKey);
   assert.match(options[0].sessionKey,/^referee:[a-f0-9]{64}$/);
   assert.ok(controller.refereeContext.contextBytes>Buffer.byteLength(prompts[1].prompt));
@@ -88,7 +90,7 @@ test('adapter without sticky capability keeps legacy full prompts',async()=>{
   assert.equal(prompts.length,2);
   assert.equal(prompts[0].format,undefined);
   assert.equal(prompts[1].format,undefined);
-  assert.deepEqual(prompts[1],after);
+  assert.deepEqual(prompts[1],JSON.parse(JSON.stringify(compactRolePacket('referee',after))));
 });
 
 
