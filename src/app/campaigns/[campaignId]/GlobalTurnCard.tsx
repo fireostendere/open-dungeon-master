@@ -1,6 +1,6 @@
 "use client";
 
-import { Bot, Clock, Loader2, Square } from "lucide-react";
+import { Bot, Clock, Loader2, Play } from "lucide-react";
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/cn";
 import { useI18n } from "@/lib/i18n";
@@ -14,11 +14,13 @@ export function GlobalTurnCard({
   campaign,
   members,
   sheets,
+  isLead,
 }: {
   campaignId: string;
   campaign: LeadCampaign & { globalTurnState?: GlobalTurnState };
   members: CampaignMember[];
   sheets: CharacterSheet[];
+  isLead: boolean;
 }) {
   const { locale } = useI18n();
   const copy = localeText(locale, {
@@ -42,10 +44,11 @@ export function GlobalTurnCard({
       unlimited: "∞",
       timeRemaining: "Time remaining",
       responded: "Answered",
-      finishRound: "Finish turn now",
-      finishingRound: "Finishing...",
-      finishRoundHint: "Seal this round immediately and hand it to the MCP Dungeon Master.",
-      finishRoundError: "Could not finish the round.",
+      startRound: "Start round",
+      reopenRound: "Re-open input",
+      startingRound: "Starting...",
+      startRoundHint: "Recovery control: opens the current round without changing its number. If already open, it re-publishes the round and clears a stale non-combat floor lock.",
+      startRoundError: "Could not start the round.",
       autopilotTitle: "Party Autopilot (Doppelganger)",
       autopilotHint: "Hand character control to AI to wake up sleepy players.",
       on: "ON",
@@ -74,10 +77,11 @@ export function GlobalTurnCard({
       unlimited: "∞",
       timeRemaining: "До конца хода",
       responded: "Ответили",
-      finishRound: "Завершить ход",
-      finishingRound: "Завершаем...",
-      finishRoundHint: "Сразу закрыть ввод и передать текущий раунд MCP-Мастеру.",
-      finishRoundError: "Не удалось завершить ход.",
+      startRound: "Стартовать раунд",
+      reopenRound: "Переоткрыть ввод",
+      startingRound: "Запускаем...",
+      startRoundHint: "Аварийная кнопка: открывает текущий раунд без смены номера. Если он уже открыт, повторно публикует состояние и снимает зависший внебоевой lock ввода.",
+      startRoundError: "Не удалось стартовать раунд.",
       autopilotTitle: "Автопилот игроков (Доппельгангер)",
       autopilotHint: "Передайте руление ИИ, чтобы не задерживать партию и растормошить спящих.",
       on: "ВКЛ",
@@ -106,10 +110,11 @@ export function GlobalTurnCard({
       unlimited: "∞",
       timeRemaining: "Pozostały czas",
       responded: "Odpowiedziało",
-      finishRound: "Zakończ turę teraz",
-      finishingRound: "Kończenie...",
-      finishRoundHint: "Natychmiast zamknij rundę i przekaż ją MCP Mistrzowi Gry.",
-      finishRoundError: "Nie udało się zakończyć tury.",
+      startRound: "Uruchom rundę",
+      reopenRound: "Otwórz wejście ponownie",
+      startingRound: "Uruchamianie...",
+      startRoundHint: "Sterowanie awaryjne: otwiera bieżącą rundę bez zmiany numeru. Gdy jest już otwarta, ponownie publikuje stan i usuwa zawieszony niebojowy lock wejścia.",
+      startRoundError: "Nie udało się uruchomić rundy.",
       autopilotTitle: "Autopilot postaci (Doppelganger)",
       autopilotHint: "Przekaż postać pod kontrolę SI, aby rozruszać śpiących graczy.",
       on: "WŁ",
@@ -133,8 +138,8 @@ export function GlobalTurnCard({
   const [graceMins, setGraceMins] = useState(globalTurnSettings.quorumDelayMinutes);
   const [saving, setSaving] = useState(false);
   const [busyUser, setBusyUser] = useState<string | null>(null);
-  const [forceClosing, setForceClosing] = useState(false);
-  const [forceCloseError, setForceCloseError] = useState<string | null>(null);
+  const [startingRound, setStartingRound] = useState(false);
+  const [startRoundError, setStartRoundError] = useState<string | null>(null);
   const [now, setNow] = useState(Date.now());
 
   // Real-time ticker for deadline
@@ -182,7 +187,11 @@ export function GlobalTurnCard({
   const countdownMinutes = Math.floor(secsTotal / 60);
   const countdownSeconds = secsTotal % 60;
   const formattedCountdown = `${String(countdownMinutes).padStart(2, "0")}:${String(countdownSeconds).padStart(2, "0")}`;
-  const canForceFinish = turnState.phase === "active" || turnState.phase === "quorum_delay";
+  const canStartRound =
+    isLead &&
+    (turnState.phase === "waiting" ||
+      turnState.phase === "active" ||
+      turnState.phase === "quorum_delay");
 
   async function updateTurnSettings(patch: {
     enabled?: boolean;
@@ -209,25 +218,25 @@ export function GlobalTurnCard({
     }
   }
 
-  async function forceFinishRound() {
-    if (!canForceFinish || forceClosing) return;
+  async function startRound() {
+    if (!canStartRound || startingRound) return;
 
-    setForceClosing(true);
-    setForceCloseError(null);
+    setStartingRound(true);
+    setStartRoundError(null);
     try {
-      const response = await fetch(`/api/campaigns/${campaignId}/global-turn/resolve`, {
+      const response = await fetch(`/api/campaigns/${campaignId}/global-turn/start`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ roundNumber: turnState.roundNumber }),
       });
       const payload = (await response.json().catch(() => ({}))) as { error?: string };
       if (!response.ok) {
-        throw new Error(payload.error || copy.finishRoundError);
+        throw new Error(payload.error || copy.startRoundError);
       }
     } catch (error) {
-      setForceCloseError(error instanceof Error ? error.message : copy.finishRoundError);
+      setStartRoundError(error instanceof Error ? error.message : copy.startRoundError);
     } finally {
-      setForceClosing(false);
+      setStartingRound(false);
     }
   }
 
@@ -382,32 +391,38 @@ export function GlobalTurnCard({
               </p>
             )}
 
-            <div className="mt-2 border-t border-amber-900/30 pt-2">
-              <button
-                type="button"
-                disabled={!canForceFinish || forceClosing}
-                onClick={() => void forceFinishRound()}
-                className={cn(
-                  "flex w-full items-center justify-center gap-1.5 rounded border px-2 py-1.5 text-[11px] font-semibold transition-colors",
-                  canForceFinish
-                    ? "border-amber-700/70 bg-amber-950/50 text-amber-200 hover:bg-amber-900/60"
-                    : "cursor-not-allowed border-stone-800 bg-stone-900/50 text-stone-600",
-                )}
-              >
-                {forceClosing ? (
-                  <Loader2 className="size-3.5 animate-spin" />
-                ) : (
-                  <Square className="size-3.5" />
-                )}
-                {forceClosing ? copy.finishingRound : copy.finishRound}
-              </button>
-              <p className="mt-1 text-[10px] text-stone-500">{copy.finishRoundHint}</p>
-              {forceCloseError ? (
-                <p className="mt-1 text-[10px] text-red-400" role="alert">
-                  {forceCloseError}
-                </p>
-              ) : null}
-            </div>
+            {isLead ? (
+              <div className="mt-2 border-t border-amber-900/30 pt-2">
+                <button
+                  type="button"
+                  disabled={!canStartRound || startingRound}
+                  onClick={() => void startRound()}
+                  className={cn(
+                    "flex w-full items-center justify-center gap-1.5 rounded border px-2 py-1.5 text-[11px] font-semibold transition-colors",
+                    canStartRound
+                      ? "border-emerald-700/70 bg-emerald-950/40 text-emerald-200 hover:bg-emerald-900/50"
+                      : "cursor-not-allowed border-stone-800 bg-stone-900/50 text-stone-600",
+                  )}
+                >
+                  {startingRound ? (
+                    <Loader2 className="size-3.5 animate-spin" />
+                  ) : (
+                    <Play className="size-3.5" />
+                  )}
+                  {startingRound
+                    ? copy.startingRound
+                    : turnState.phase === "waiting"
+                      ? copy.startRound
+                      : copy.reopenRound}
+                </button>
+                <p className="mt-1 text-[10px] text-stone-500">{copy.startRoundHint}</p>
+                {startRoundError ? (
+                  <p className="mt-1 text-[10px] text-red-400" role="alert">
+                    {startRoundError}
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
           </div>
 
           {/* Autopilot Delegation Section */}
