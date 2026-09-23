@@ -1,14 +1,18 @@
 #!/usr/bin/env python3
-"""Install project-scoped ODM MCP without copying tokens or changing global config."""
+"""Install project-scoped HTTPS ODM MCP without copying tokens into config."""
 import argparse
 import json
 import os
 from pathlib import Path
-import sys
+from urllib.parse import urlsplit
 
 ROOT = Path(__file__).resolve().parents[1]
 
-def configure(workspace, target):
+def configure(workspace, url, token_file=None):
+    endpoint = urlsplit(url)
+    if endpoint.scheme != 'https' or not endpoint.hostname or endpoint.username or endpoint.password or endpoint.query or endpoint.fragment:
+        raise ValueError('ODM MCP URL must be an absolute HTTPS URL without credentials or query')
+    token_file = str(Path(token_file).expanduser().resolve()) if token_file else '~/.config/odm/mcp.token'
     workspace = Path(workspace).resolve()
     path = workspace / 'opencode.json'
     config = json.loads(path.read_text()) if path.exists() else {}
@@ -17,8 +21,9 @@ def configure(workspace, target):
     servers = config.setdefault('mcp', {}).setdefault('servers', {})
     servers.pop('odm', None)  # Retired duplicate /mcp endpoint.
     servers['odm_narrator'] = {
-        'type': 'local', 'command': [sys.executable, str(ROOT / 'scripts/opencode-mcp.py'), '--ssh-target', target],
-        'cwd': str(ROOT), 'disabled': False, 'codemode': False,
+        'type': 'remote', 'url': url, 'oauth': False,
+        'headers': {'Authorization': f'Bearer {{file:{token_file}}}'},
+        'disabled': False, 'codemode': False,
         'timeout': {'startup': 30000, 'catalog': 15000, 'execution': 150000},
     }
     for name in ('kb', 'diptrace', 'fabric'):
@@ -43,7 +48,8 @@ def configure(workspace, target):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--workspace', type=Path, required=True)
-    parser.add_argument('--ssh-target', required=True)
+    parser.add_argument('--mcp-url', default='https://api.iroslyakov.com/mcp')
+    parser.add_argument('--token-file', type=Path)
     args = parser.parse_args()
-    configure(args.workspace, args.ssh_target)
+    configure(args.workspace, args.mcp_url, args.token_file)
     print('Project MCP configured:', args.workspace / 'opencode.json')

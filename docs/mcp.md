@@ -156,11 +156,14 @@ narrator sidecar. `stop` stops only managed MCP; the watchdog may repair it.
 ```sh
 odm-mcpctl token        # private file path only
 odm-mcpctl token --show # explicit secret output; private terminal only
+# Optional only when the instance has no HTTPS MCP ingress:
 ssh -L 3006:127.0.0.1:3006 user@your-server
 ```
 
-Configure the client with the corresponding endpoint and token. Use HTTPS/private
-tunneling, never a public plaintext bearer. Native clients normally omit Origin;
+The production project clients use `https://api.iroslyakov.com/mcp` directly with
+the bearer in a private local file; no SSH or container-bound stdio session is
+needed for MCP calls. Other instances may use HTTPS or private tunneling, never
+a public plaintext bearer. Native clients normally omit Origin;
 browser-style origins require an explicit `ODM_MCP_ALLOWED_ORIGINS` entry.
 Windows uses `%LOCALAPPDATA%\OpenDungeonMaster\mcpctl.cmd` and private `config`
 files; the user session and Docker Desktop must be running.

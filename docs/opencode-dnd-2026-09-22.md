@@ -1,18 +1,24 @@
 # OpenCode DnD Edition: project MCP and local measurements
 
-The obsolete remote `/mcp` URL returned HTML 404. The project now uses the
-canonical `odm_narrator` namespace over SSH stdio. The launcher queries
-`odm-mcpctl status` on every connection and executes its active sidecar command;
-container names and bearer tokens are not copied into configuration.
+The project uses the canonical `odm_narrator` namespace over the public HTTPS
+Streamable HTTP endpoint. An older `/mcp` deployment returned HTML 404; the
+current endpoint is authenticated and no SSH stdio process is needed per session.
+The bearer token stays in a private local file, not in project configuration.
 
 From this checkout, configure the directory where OpenCode is launched:
 
 ```sh
-python3 scripts/configure-opencode.py --workspace /path/to/dungeon_master --ssh-target user@odm-host
+set -o pipefail
+install -d -m 700 ~/.config/odm
+ssh root@api.iroslyakov.com 'cat /opt/odm/config/mcp.token' | install -m 600 /dev/stdin ~/.config/odm/mcp.token
+python3 scripts/configure-opencode.py --workspace /path/to/dungeon_master
 python3 scripts/test-opencode-project.py
+opencode2 mcp list
 ```
 
-The remote host must already provide SSH access, Python 3 and `odm-mcpctl`.
+SSH is needed only to obtain or rotate the token, not for MCP calls. Codex uses
+the same token file through `.codex/odm-mcp-headers.sh` and the project's
+`.codex/config.toml`; restart an existing Codex session to load the new transport.
 Setup preserves existing RAG connection details, uses this checkout's skills,
 disables unrelated inherited `kb`, `diptrace` and `fabric` servers for this project,
 and backs up an existing configuration once. An existing `dnd` RAG server and
