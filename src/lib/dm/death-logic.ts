@@ -12,8 +12,12 @@ export function freshDeathTrack(): DeathTrack {
   return { successes: 0, failures: 0, stable: false, dead: false };
 }
 
-// Instant death: the damage that dropped a character to 0 carried enough
-// overkill to equal their HP maximum.
+// Both counters reset on stabilization, including legacy stable rows.
+export function stabilizeDeathTrack(track: DeathTrack = freshDeathTrack()): DeathTrack {
+  return track.dead ? track : { ...freshDeathTrack(), stable: true };
+}
+
+// Instant death also applies to damage received while already at 0 HP.
 export function isMassiveDamage(overkill: number, maxHp: number): boolean {
   return overkill >= Math.max(1, maxHp);
 }
@@ -24,8 +28,9 @@ export function onDamageAtZero(track: DeathTrack, crit: boolean): DeathTrack {
   if (track.dead) {
     return track;
   }
-  const failures = Math.min(3, track.failures + (crit ? 2 : 1));
-  return { ...track, stable: false, failures, dead: failures >= 3 };
+  const current = track.stable ? freshDeathTrack() : track;
+  const failures = Math.min(3, current.failures + (crit ? 2 : 1));
+  return { ...current, stable: false, failures, dead: failures >= 3 };
 }
 
 export type DeathSaveOutcome = "revive" | "success" | "stable" | "failure" | "dead";
@@ -38,7 +43,7 @@ export function applyDeathSaveRoll(
   natural: number,
 ): { track: DeathTrack; outcome: DeathSaveOutcome } {
   if (track.dead || track.stable) {
-    return { track, outcome: track.dead ? "dead" : "stable" };
+    return { track: track.dead ? track : stabilizeDeathTrack(track), outcome: track.dead ? "dead" : "stable" };
   }
   if (natural === 20) {
     return { track: freshDeathTrack(), outcome: "revive" };
@@ -50,8 +55,8 @@ export function applyDeathSaveRoll(
   }
   if (natural >= 10) {
     const successes = Math.min(3, track.successes + 1);
-    const next = { ...track, successes, stable: successes >= 3 };
-    return { track: next, outcome: next.stable ? "stable" : "success" };
+    if (successes >= 3) return { track: stabilizeDeathTrack(track), outcome: "stable" };
+    return { track: { ...track, successes }, outcome: "success" };
   }
   const failures = Math.min(3, track.failures + 1);
   const next = { ...track, failures, dead: failures >= 3 };

@@ -46,7 +46,7 @@ export class HostContextMemory {
     this.processedSeq = -1; this.compactedThroughSeq = -1; this.lastCurrentSeq = null;
     this.summary = ''; this.summaries = new Map(); this.summaryRecords = []; this.messages = [];
     this.rolls = []; this.milestones = []; this.sheets = new Map(); this.encounter = null; this.encounters = [];
-    this.seenMessages = new Map();
+    this.seenMessages = new Map(); this.deletedMessages = new Map();
   }
   get summarySegments() {
     return this.summaryRecords.filter(item => !item.legacy).map(item => ({ ...clone(item), sourceId: item.id,
@@ -63,34 +63,19 @@ export class HostContextMemory {
     const campaignId = snapshot.campaignId ?? snapshot.campaign?.id ?? this.campaignId;
     if (this.campaignId && campaignId && campaignId !== this.campaignId) throw new Error('Narrator memory belongs to another campaign.');
     const epoch = snapshot.timelineEpoch ?? snapshot.epoch ?? snapshot.timelineId ?? snapshot.campaign?.timelineId ?? this.timelineEpoch;
-    if ((this.timelineEpoch !== null && epoch !== this.timelineEpoch) ||
-        (Number.isSafeInteger(snapshot.currentSeq) && this.lastCurrentSeq !== null && snapshot.currentSeq < this.lastCurrentSeq)) {
-      this.reset({ campaignId, timelineEpoch: epoch });
-    }
+    const changedEpoch = this.timelineEpoch !== null && epoch !== this.timelineEpoch;
+    const backwards = Number.isSafeInteger(snapshot.currentSeq) && this.lastCurrentSeq !== null && snapshot.currentSeq < this.lastCurrentSeq;
+    // An older read in the SAME explicit timeline is not a rewind. Do not
+    // discard tombstones and resurrect its text. Legacy epoch-less snapshots
+    // retain their historical sequence-reset behavior.
+    const explicitEpoch = snapshot.timelineEpoch ?? snapshot.epoch ?? snapshot.timelineId ?? snapshot.campaign?.timelineId;
+    if (backwards && !changedEpoch && explicitEpoch != null) return;
+    if (changedEpoch || backwards) this.reset({ campaignId, timelineEpoch: epoch });
     this.campaignId = campaignId; this.timelineEpoch = epoch; this.timelineId = epoch;
     if (Number.isSafeInteger(snapshot.currentSeq)) this.lastCurrentSeq = snapshot.currentSeq;
     if (Array.isArray(snapshot.sheets)) this.sheets = new Map(snapshot.sheets.filter(s => s?.id).slice(0, 256).map(s => [s.id, clone(s)]));
     if (snapshot.encounter !== undefined) { this.encounter = clone(snapshot.encounter); this.encounters = this.encounter ? [this.encounter] : []; }
     if (Array.isArray(snapshot.encounters)) this.encounters = clone(snapshot.encounters.slice(0, 128));
-    for (const event of snapshot.events ?? []) {
-      if (event.type !== 'message_updated' && event.type !== 'message_deleted') continue;
-      const raw = event.payload?.message;
-      const id = raw?.id ?? event.payload?.messageId;
-      if (typeof id !== 'string') continue;
-      const recent = this.messages.findIndex(message => message.id === id);
-      const folded = this.summaryRecords.findIndex(message => message.id === id);
-      if (event.type === 'message_updated' && raw && !isOoc(raw)) {
-        const message = { ...clone(raw), ...provenance(raw) };
-        if (recent >= 0) this.messages[recent] = message;
-        if (folded >= 0) this.summaryRecords[folded] = this._summaryRecord(message);
-        if (recent >= 0 || folded >= 0) this._checkMilestone(message);
-      } else {
-        if (recent >= 0) this.messages.splice(recent, 1);
-        if (folded >= 0) this.summaryRecords.splice(folded, 1);
-        this.milestones = this.milestones.filter(item => item.id !== id);
-        this.seenMessages.delete(id);
-      }
-    }
     const eventRolls = (snapshot.events ?? []).filter(event => event.type === 'roll_result').map(event => event.payload?.roll);
     for (const roll of [...eventRolls, ...(Array.isArray(snapshot.recentRolls) ? snapshot.recentRolls : [])]) {
       if (!roll?.id) continue;
@@ -99,7 +84,7 @@ export class HostContextMemory {
     }
     this.rolls = this.rolls.slice(-this.maxRecentRolls);
     const incoming = [...(Array.isArray(snapshot.recentMessages) ? snapshot.recentMessages : []), ...(Array.isArray(snapshot.messages) ? snapshot.messages : [])]
-      .filter(msg => msg?.id && !isOoc(msg)).sort((a, b) => seqOf(a) - seqOf(b));
+      .filter(msg => msg?.id && !isOoc(msg) && !this.deletedMessages.has(msg.id)).sort((a, b) => seqOf(a) - seqOf(b));
     const priorWatermark = this.processedSeq;
     for (const raw of incoming) {
       const msg = { ...clone(raw), ...provenance(raw) };
@@ -112,9 +97,40 @@ export class HostContextMemory {
       this.processedSeq = Math.max(this.processedSeq, seqOf(msg));
       this._checkMilestone(msg);
     }
+    // Apply revisions AFTER overlapping snapshot rows. A cached/replayed
+    // recentMessages section must not overwrite the newer event's text.
+    for (const event of [...(snapshot.events ?? [])].sort((a,b) => a.seq - b.seq)) {
+      if (event.type !== 'message_updated' && event.type !== 'message_deleted') continue;
+      const raw = event.payload?.message;
+      const id = raw?.id ?? event.payload?.messageId;
+      if (typeof id !== 'string' || !id) continue;
+      if (event.type === 'message_deleted') {
+        if (!this.deletedMessages.has(id) && this.deletedMessages.size >= this.maxSeenMessages) {
+          throw new Error('Narrator deletion ledger exceeds its budget; refusing to forget tombstones.');
+        }
+        this.deletedMessages.set(id, Number.isSafeInteger(event.payload?.messageSeq) ? event.payload.messageSeq : -1);
+      }
+      if (event.type === 'message_updated' && !event.payload?.removed && raw && !isOoc(raw) && !this.deletedMessages.has(id)) {
+        const message = { ...clone(raw), ...provenance(raw) };
+        const recent = this.messages.findIndex(item => item.id === id);
+        const folded = this.summaryRecords.findIndex(item => item.id === id);
+        if (recent >= 0) this.messages[recent] = message;
+        if (folded >= 0) this.summaryRecords[folded] = this._summaryRecord(message);
+        if (recent >= 0 || folded >= 0) this._checkMilestone(message);
+      } else this._forgetMessage(id, event.payload?.messageSeq ?? raw?.seq);
+    }
     this.messages.sort((a, b) => seqOf(a) - seqOf(b) || String(a.id).localeCompare(String(b.id)));
     this._compactIfNeeded();
     while (this.seenMessages.size > this.maxSeenMessages) this.seenMessages.delete(this.seenMessages.keys().next().value);
+  }
+  _forgetMessage(id, messageSeq) {
+    this.messages = this.messages.filter(item => item.id !== id);
+    // An old free-text summary has no individual sources to redact. Drop it
+    // conservatively rather than keeping a potentially withdrawn statement.
+    this.summaryRecords = this.summaryRecords.filter(item => item.id !== id && !item.legacy &&
+      !(item.sourceRange && (!Number.isSafeInteger(messageSeq) || messageSeq >= item.sourceRange[0] && messageSeq <= item.sourceRange[1])));
+    this.milestones = this.milestones.filter(item => item.id !== id && item.sourceId !== id);
+    this.seenMessages.delete(id);
   }
   _checkMilestone(msg) {
     const content = msg.content || '';
@@ -178,7 +194,7 @@ export class HostContextMemory {
       processedSeq: this.processedSeq, compactedThroughSeq: this.compactedThroughSeq, lastCurrentSeq: this.lastCurrentSeq,
       summary: this.summary, summaryRecords: this.summaryRecords, summarySegments: this.summarySegments,
       messages: this.messages, rolls: this.rolls, sheets: Array.from(this.sheets.values()), encounter: this.encounter,
-      encounters: this.encounters, milestones: this.milestones, seenMessages: Array.from(this.seenMessages) });
+      encounters: this.encounters, milestones: this.milestones, seenMessages: Array.from(this.seenMessages), deletedMessages: Array.from(this.deletedMessages) });
   }
   restoreState(state) {
     if (!state || typeof state !== 'object') return;
@@ -188,7 +204,8 @@ export class HostContextMemory {
       this.summaryRecords = clone(state.summaryRecords.filter(item => item?.id).map(item => ({ ...item, ...provenance(item) })));
     } else if (state.formatVersion === 2 && Array.isArray(state.summarySegments)) {
       this.summaryRecords = state.summarySegments.map((item,index) => ({ id:item.sourceId ?? `migrated-segment-${index}`,seq:item.fromSeq ?? -1,
-        updatedSeq:item.toSeq ?? item.fromSeq ?? -1,revision:item.version ?? null,...provenance(item),content:String(item.text ?? '') }));
+        updatedSeq:item.toSeq ?? item.fromSeq ?? -1,revision:item.version ?? null,...provenance(item),content:String(item.text ?? ''),
+        ...(!item.sourceId || item.fromSeq !== item.toSeq ? { sourceRange: [item.fromSeq ?? 0, item.toSeq ?? Number.MAX_SAFE_INTEGER] } : {}) }));
       this._legacy(state.legacySummary);
     } else this._legacy(state.summary || Object.values(state.summaries ?? {}).filter(v => typeof v === 'string').join('\n'));
     this.messages = clone((Array.isArray(state.messages) ? state.messages : []).filter(m => m?.id && !isOoc(m)).map(m => ({ ...m, ...provenance(m) })));
@@ -202,6 +219,11 @@ export class HostContextMemory {
       this.compactedThroughSeq, ...this.messages.map(seqOf), ...this.summaryRecords.map(seqOf));
     this.lastCurrentSeq = Number.isSafeInteger(state.lastCurrentSeq) ? state.lastCurrentSeq : null;
     this.seenMessages = new Map((Array.isArray(state.seenMessages) ? state.seenMessages : []).slice(-this.maxSeenMessages));
+    const deleted = Array.isArray(state.deletedMessages) ? state.deletedMessages : [];
+    if (deleted.length > this.maxSeenMessages) throw new Error('Narrator deletion ledger exceeds its budget.');
+    this.deletedMessages = new Map(deleted.filter(entry => Array.isArray(entry) && typeof entry[0] === 'string' && entry[0])
+      .map(([id,seq]) => [id, Number.isSafeInteger(seq) && seq >= 0 ? seq : -1]));
+    for (const [id,seq] of this.deletedMessages) this._forgetMessage(id, seq < 0 ? undefined : seq);
     for (const item of [...this.messages, ...this.summaryRecords]) this.seenMessages.set(item.id, seqOf(item));
     this._compactIfNeeded();
   }

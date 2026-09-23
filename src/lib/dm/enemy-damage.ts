@@ -217,7 +217,7 @@ export function applyEnemyDamage(
     const spell = enemy.concentration;
     if (math.dropped) {
       setEnemyConcentration(enemy.id, null);
-      clearSpellConditionsByName(campaign, spell);
+      clearSpellConditionsByName(campaign, spell, undefined, { casterId: enemy.id, casterKind: "enemy" }, turn.id);
       base.concentrationBroken = `${updated.displayName}'s ${spell} ends with its death; the spell's effects fade.`;
     } else {
       const dc = Math.max(10, Math.floor(adjusted.amount / 2));
@@ -225,7 +225,7 @@ export function applyEnemyDamage(
       const held = outcome.total >= dc;
       if (!held) {
         setEnemyConcentration(enemy.id, null);
-        clearSpellConditionsByName(campaign, spell);
+        clearSpellConditionsByName(campaign, spell, undefined, { casterId: enemy.id, casterKind: "enemy" }, turn.id);
       }
       base.concentration = held
         ? `${updated.displayName} keeps concentrating on ${spell} (CON save ${outcome.total} vs DC ${dc}).`

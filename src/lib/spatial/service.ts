@@ -99,8 +99,6 @@ export function runSpatialCommand(campaignId: string, userId: string, raw: unkno
     if (isMemberMuted(campaignId, userId)) throw new SpatialError("The party lead has muted you at this table.", 403);
     const store = spatialStore();
     const previouslyEnabled = store.enabled(campaignId);
-    const alreadyProcessed = getDatabase().prepare("SELECT 1 FROM spatial_requests WHERE campaign_id=? AND actor_id=? AND request_id=?")
-      .get(campaignId, userId, requestId);
     let playerInput: { sheetId: string; roomId: string; floor: Floor; inCombat: boolean } | null = null;
     return store.command(actor, requestId, operation, input, (rawInput) => {
       // This callback is deliberately fresh-command-only. Rechecking the
@@ -120,7 +118,12 @@ export function runSpatialCommand(campaignId: string, userId: string, raw: unkno
             throw new SpatialError("You can only act as your own character.", 403);
           }
           const position = store.getUserPosition(campaignId, userId);
-          if (!position || position.roomId !== rawInput.roomId || position.revision !== rawInput.expectedRevision) {
+          if (!position) throw new SpatialError("Place the player in a location before sending an action.", 409);
+          // Narrator autopilot intentionally omits both location assertions:
+          // resolve them together, inside this transaction, on first apply.
+          // Explicit or partial assertions must never silently retarget a send.
+          const useCurrentPosition = rawInput.roomId === undefined && rawInput.expectedRevision === undefined;
+          if (!useCurrentPosition && (position.roomId !== rawInput.roomId || position.revision !== rawInput.expectedRevision)) {
             throw new SpatialError("Your location changed. Refresh before sending.", 409);
           }
           const roomId = position.roomId;
@@ -142,7 +145,7 @@ export function runSpatialCommand(campaignId: string, userId: string, raw: unkno
               throw new SpatialError("This round is not accepting input. Wait for the MCP Dungeon Master.", 409);
             }
           }
-          normalized = { ...rawInput, characterId: sheet.id };
+          normalized = { ...rawInput, roomId, expectedRevision: position.revision, characterId: sheet.id };
           playerInput = { sheetId: sheet.id, roomId, floor, inCombat: Boolean(encounter) };
         }
       }
@@ -150,10 +153,10 @@ export function runSpatialCommand(campaignId: string, userId: string, raw: unkno
       return actor.isDm && ["send", "propagate", "perceive"].includes(operation) && typeof normalized.content === "string"
         ? { ...normalized, content: normalizeNarrationUnits(normalized.content, campaign.gameSettings.unitSystem) }
         : normalized;
-    }, (_result, normalized) => {
+    }, (commandResult, normalized) => {
       applied = true;
       if (operation === "send" && command.kind === "ooc") {
-        const message = (_result as { message: { id: string; content: string; createdAt: string } }).message;
+        const message = (commandResult as { message: { id: string; content: string; createdAt: string } }).message;
         oocMessage = {
           ...message,
           campaignId,
@@ -188,9 +191,9 @@ export function runSpatialCommand(campaignId: string, userId: string, raw: unkno
             characterId: sheetId, requiresEndTurn: false, mechanicsResolved: false,
           } }, roomId);
         }
-      }
-      if (!alreadyProcessed && !actor.isDm && operation === "send" && (command.kind === "do" || command.kind === "say")) {
-        const message = (_result as { message?: { id?: string } })?.message;
+        // Preserve main's private RakoBot feed. This reference is committed
+        // with the accepted action, never enqueued again on request replay.
+        const message = commandResult.message as { id?: string } | undefined;
         if (message?.id) queuePlayerAction(campaignId, "spatial", message.id, command.kind);
       }
       if (actor.isDm && operation === "send" && normalized.kind === "narration" && typeof normalized.roomId === "string") {

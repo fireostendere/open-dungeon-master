@@ -91,21 +91,32 @@ export function applyDamageDeathHook(
   // opportunity attack triggered by a player's own token move.
   turnId: string | null,
   preSheet: CharacterSheet,
-  math: { currentHp: number; dropped: boolean; overkill: number },
+  math: { currentHp: number; dropped: boolean; overkill: number; absorbed?: number },
   crit: boolean,
 ): Record<string, unknown> {
   if (math.currentHp > 0) {
     return {};
   }
   const fresh = getSheetById(preSheet.id);
-  if (!fresh) {
+  if (!fresh || fresh.deathSaves?.dead) {
     return {};
   }
 
-  // Already at 0 with a track: this damage adds automatic failures and
-  // breaks stabilization.
-  if (!math.dropped && fresh.deathSaves && !fresh.deathSaves.dead) {
-    const next = onDamageAtZero(fresh.deathSaves, crit);
+  // Instant death also applies to a creature that was already at 0 HP.
+  // Check it before adding ordinary failures, and record death only once.
+  if (isMassiveDamage(math.overkill, fresh.maxHp)) {
+    const track = { ...freshDeathTrack(), failures: 3, dead: true };
+    writeDeathState(campaign, turnId, fresh, track, "death_state", "massive damage");
+    recordDeath(campaign, fresh, "killed outright by massive damage");
+    tableNote(campaign, `${fresh.name} is killed outright by massive damage.`);
+    return { dead: true, note: `${fresh.name} is killed INSTANTLY (massive damage). This death is real; narrate it.` };
+  }
+
+  if (!math.dropped) {
+    // Immunity or an exactly depleted beast form can leave no damage for
+    // this HP pool. Damage absorbed by temporary HP still counts as a hit.
+    if (math.overkill + (math.absorbed ?? 0) <= 0) return {};
+    const next = onDamageAtZero(fresh.deathSaves ?? freshDeathTrack(), crit);
     writeDeathState(campaign, turnId, fresh, next, "death_state", "damage while dying");
     if (next.dead) {
       recordDeath(campaign, fresh, "wounds suffered while dying");
@@ -118,21 +129,11 @@ export function applyDamageDeathHook(
     };
   }
 
-  if (math.dropped) {
-    if (isMassiveDamage(math.overkill, fresh.maxHp)) {
-      const track = { ...freshDeathTrack(), failures: 3, dead: true };
-      writeDeathState(campaign, turnId, fresh, track, "death_state", "massive damage");
-      recordDeath(campaign, fresh, "killed outright by massive damage");
-      tableNote(campaign, `${fresh.name} is killed outright by massive damage.`);
-      return { dead: true, note: `${fresh.name} is killed INSTANTLY (massive damage). This death is real; narrate it.` };
-    }
-    writeDeathState(campaign, turnId, fresh, freshDeathTrack(), "death_state", "dropped to 0 HP");
-    return {
-      dying: true,
-      note: `${fresh.name} is unconscious and DYING at 0 HP. The server rolls their death saves automatically in combat. Healing any amount revives them; the stabilize tool stops the dying after a successful DC 10 Medicine check or a healer's kit.`,
-    };
-  }
-  return {};
+  writeDeathState(campaign, turnId, fresh, freshDeathTrack(), "death_state", "dropped to 0 HP");
+  return {
+    dying: true,
+    note: `${fresh.name} is unconscious and DYING at 0 HP. The server rolls their death saves automatically in combat. Healing any amount revives them; the stabilize tool stops the dying after a successful DC 10 Medicine check or a healer's kit.`,
+  };
 }
 
 // Called from heal after HP is restored: any healing ends the dying state.
