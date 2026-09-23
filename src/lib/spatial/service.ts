@@ -2,9 +2,10 @@ import { z } from "zod";
 import { getDatabase } from "@/lib/db/core";
 import { afterCommit } from "@/lib/db/commit-effects";
 import { notifySpatialChange } from "@/lib/spatial/updates.mjs";
-import { allocateSeq, campaignSeats, capsFor, getCampaignForUser, getGlobalTurnState, listMembers, touchCampaign } from "@/lib/db/campaigns";
+import { allocateSeq, campaignSeats, capsFor, getCampaignForUser, getGlobalTurnState, listMembers, touchCampaign, canAct, getFloor, normalizeFloor, setFloor, type Floor } from "@/lib/db/campaigns";
 import { getSheetForUser } from "@/lib/db/sheets";
 import { getActiveEncounter } from "@/lib/db/encounters";
+import { listOpenPendingRolls } from "@/lib/db/dm-turns";
 import { isMemberMuted } from "@/lib/db/moderation";
 import { coverInEffect } from "@/lib/dm/delegation";
 import { recordGlobalTurnAction, resolveGlobalTurn } from "@/lib/dm/global-turn-logic";
@@ -34,6 +35,7 @@ export function spatialContext(campaignId: string, userId: string) {
   if (!campaign) throw new SpatialError("Campaign not found.", 404);
   const members = listMembers(campaignId), seats = campaignSeats(campaign);
   const actor: SpatialActor = { campaignId, userId, isDm: capsFor(campaign, userId).role === "dm",
+    characterId: getSheetForUser(campaignId, userId)?.id ?? null,
     memberIds: members.map(member => member.userId),
     playerIds: members.filter(member => !isDmSeat(seats, member.userId)).map(member => member.userId) };
   return { campaign, actor };
@@ -60,97 +62,156 @@ export const spatialCommandSchema = z.discriminatedUnion("operation", [
   z.object({ ...base, operation: z.literal("set_floor"), roomId: id, floor: z.unknown().optional() }).strict(),
 ]);
 
+// Pending physical rolls are scene-scoped too: a roll in another room must
+// not lock this room. Initiative membership keeps a moved participant's
+// unresolved combat roll attached to its encounter.
+function hasPendingRoomRolls(campaignId: string, roomId: string) {
+  const encounter = getActiveEncounter(campaignId, roomId);
+  return listOpenPendingRolls(campaignId).some(roll =>
+    spatialStore().getUserRoom(campaignId, roll.userId) === roomId ||
+    Boolean(roll.characterId && encounter?.order.some(entry => entry.kind === "pc" && entry.characterId === roll.characterId)),
+  );
+}
+
 export function runSpatialCommand(campaignId: string, userId: string, raw: unknown) {
   const parsed = spatialCommandSchema.safeParse(raw);
   if (!parsed.success) throw new SpatialError(z.prettifyError(parsed.error));
-  const { campaign, actor } = spatialContext(campaignId, userId);
   const command = parsed.data;
-  const ooc = command.operation === "send" && command.kind === "ooc";
-  if (campaign.kind !== "campaign" || (campaign.status !== "active" && !ooc)) {
-    throw new SpatialError("Location actions require an active campaign.", 409);
-  }
-  if (campaign.gameSettings.dmMode !== "human" || !campaign.dmUserId) {
-    throw new SpatialError("Location chat requires a human DM seat (including an external MCP narrator).", 409);
-  }
-  if (!ooc && coverInEffect(campaign.gameSettings.dmMode, campaign.gameSettings.dmAssist, campaign.dmCover)) {
-    throw new SpatialError("End AI cover before using location chat.", 409);
-  }
-  if (isMemberMuted(campaignId, userId)) throw new SpatialError("The party lead has muted you at this table.", 403);
-  if (!actor.isDm && !ooc) {
-    if (!getSheetForUser(campaignId, userId)) throw new SpatialError("You need a character to act.", 409);
-    if (command.operation === "move") {
-      const userRoom = spatialStore().getUserRoom(campaignId, userId);
-      if (userRoom && getActiveEncounter(campaignId, userRoom)) {
-        throw new SpatialError("Ask the DM to adjudicate movement during an encounter.", 409);
-      }
-    }
-  }
   const { operation, requestId, ...input } = command;
+  const ooc = operation === "send" && command.kind === "ooc";
+  let applied = false;
   let globalTurnResolution: { roundNumber: number } | null = null;
   let spatialModeChanged: boolean | null = null;
   const result = getDatabase().transaction(() => {
-    const previouslyEnabled = spatialStore().enabled(campaignId);
-    const alreadyProcessed = getDatabase().prepare("SELECT 1 FROM spatial_requests WHERE campaign_id=? AND actor_id=? AND request_id=?")
-      .get(campaignId, userId, requestId);
-    const result = spatialStore().command(actor, requestId, operation, input, (raw) =>
-      actor.isDm && ["send", "propagate", "perceive"].includes(operation) && typeof raw.content === "string"
-        ? { ...raw, content: normalizeNarrationUnits(raw.content, campaign.gameSettings.unitSystem) }
-        : raw);
-
-    // Spatial player chat participates in the same global-round barrier as the
-    // legacy composer. Run this inside the same DB transaction so a locked
-    // round or duplicate do/say rolls the spatial message back as well.
-    if (
-      !actor.isDm &&
-      operation === "send" &&
-      (command.kind === "do" || command.kind === "say") &&
-      campaign.gameSettings.globalTurn?.enabled
-    ) {
-      const sheet = getSheetForUser(campaignId, userId);
-      if (!sheet) throw new SpatialError("You need a character to act.", 409);
-      const turn = recordGlobalTurnAction(
-        campaignId,
-        sheet.id,
-        userId,
-        command.kind,
-      );
-      if (!turn.allowed) {
-        throw new SpatialError(turn.error ?? "This round is not accepting input.", 409);
-      }
-      if (turn.shouldResolve) {
-        globalTurnResolution = { roundNumber: getGlobalTurnState(campaignId).roundNumber };
-      }
+    // Authorization is re-read inside the write transaction, including on a
+    // receipt replay. A removed member must never recover private receipts.
+    const { campaign, actor } = spatialContext(campaignId, userId);
+    if (campaign.kind !== "campaign" || (campaign.status !== "active" && !ooc)) {
+      throw new SpatialError("Location actions require an active campaign.", 409);
     }
-
-    // The action and its notification reference commit/roll back together.
-    // Never enqueue historical request replays after integration is enabled.
-    if (!alreadyProcessed && !actor.isDm && operation === "send" && (command.kind === "do" || command.kind === "say")) {
-      const message = result.message as { id?: string } | undefined;
-      if (message?.id) queuePlayerAction(campaignId, "spatial", message.id, command.kind);
+    if (campaign.gameSettings.dmMode !== "human" || !campaign.dmUserId) {
+      throw new SpatialError("Location chat requires a human DM seat (including an external MCP narrator).", 409);
     }
-
-    // Exact retry of enable must not capture newer text as pre-spatial history.
-    if (operation === "enable" && !previouslyEnabled) capturePreSpatialEntities(campaignId);
-    const enabledNow = spatialStore().enabled(campaignId);
-    if (enabledNow !== previouslyEnabled) spatialModeChanged = enabledNow;
-    return result;
+    if (!ooc && coverInEffect(campaign.gameSettings.dmMode, campaign.gameSettings.dmAssist, campaign.dmCover)) {
+      throw new SpatialError("End AI cover before using location chat.", 409);
+    }
+    if (isMemberMuted(campaignId, userId)) throw new SpatialError("The party lead has muted you at this table.", 403);
+    const store = spatialStore();
+    const previouslyEnabled = store.enabled(campaignId);
+    let playerInput: { sheetId: string; roomId: string; floor: Floor; inCombat: boolean } | null = null;
+    return store.command(actor, requestId, operation, input, (rawInput) => {
+      // This callback is deliberately fresh-command-only. Rechecking the
+      // current round/position for an old receipt would break idempotency.
+      let normalized = rawInput;
+      if (!actor.isDm && !ooc) {
+        const sheet = getSheetForUser(campaignId, userId);
+        if (!sheet) throw new SpatialError("You need a character to act.", 409);
+        if (operation === "move") {
+          const userRoom = store.getUserRoom(campaignId, userId);
+          if (userRoom && getActiveEncounter(campaignId, userRoom)) {
+            throw new SpatialError("Ask the DM to adjudicate movement during an encounter.", 409);
+          }
+        }
+        if (operation === "send") {
+          if (rawInput.characterId !== undefined && rawInput.characterId !== sheet.id) {
+            throw new SpatialError("You can only act as your own character.", 403);
+          }
+          const position = store.getUserPosition(campaignId, userId);
+          if (!position) throw new SpatialError("Place the player in a location before sending an action.", 409);
+          // Narrator autopilot intentionally omits both location assertions:
+          // resolve them together, inside this transaction, on first apply.
+          // Explicit or partial assertions must never silently retarget a send.
+          const useCurrentPosition = rawInput.roomId === undefined && rawInput.expectedRevision === undefined;
+          if (!useCurrentPosition && (position.roomId !== rawInput.roomId || position.revision !== rawInput.expectedRevision)) {
+            throw new SpatialError("Your location changed. Refresh before sending.", 409);
+          }
+          const roomId = position.roomId;
+          const floor = getFloor(campaignId, roomId);
+          if (!canAct(floor, userId, String(rawInput.kind)) ||
+            (floor.mode === "spotlight" && floor.respondedUserIds.includes(userId))) {
+            throw new SpatialError("Wait for the DM to open your responses. OOC remains available.", 409);
+          }
+          const encounter = getActiveEncounter(campaignId, roomId);
+          const turnActor = encounter?.order[encounter.turnIndex];
+          if (encounter && (!encounter.orderReady || floor.mode !== "initiative" ||
+            floor.encounterId !== encounter.id || floor.round !== encounter.round ||
+            turnActor?.kind !== "pc" || turnActor.characterId !== sheet.id || hasPendingRoomRolls(campaignId, roomId))) {
+            throw new SpatialError("Wait for your combat turn and pending rolls. OOC remains available.", 409);
+          }
+          if (!encounter && campaign.gameSettings.globalTurn?.enabled) {
+            const state = getGlobalTurnState(campaignId);
+            if (state.phase !== "active" && state.phase !== "quorum_delay") {
+              throw new SpatialError("This round is not accepting input. Wait for the MCP Dungeon Master.", 409);
+            }
+          }
+          normalized = { ...rawInput, roomId, expectedRevision: position.revision, characterId: sheet.id };
+          playerInput = { sheetId: sheet.id, roomId, floor, inCombat: Boolean(encounter) };
+        }
+      }
+      if (operation === "set_floor") normalized = { ...normalized, floor: normalizeFloor(rawInput.floor) };
+      return actor.isDm && ["send", "propagate", "perceive"].includes(operation) && typeof normalized.content === "string"
+        ? { ...normalized, content: normalizeNarrationUnits(normalized.content, campaign.gameSettings.unitSystem) }
+        : normalized;
+    }, (commandResult, normalized) => {
+      applied = true;
+      // The message, quota and floor are committed with ONE receipt. A retry
+      // cannot consume a later round or re-close an already released floor.
+      if (playerInput && (command.operation === "send") && (command.kind === "do" || command.kind === "say")) {
+        const { sheetId, roomId, floor, inCombat } = playerInput;
+        if (!inCombat && campaign.gameSettings.globalTurn?.enabled) {
+          const turn = recordGlobalTurnAction(campaignId, sheetId, userId, command.kind);
+          if (!turn.allowed) throw new SpatialError(turn.error ?? "This round is not accepting input.", 409);
+          if (turn.shouldResolve) globalTurnResolution = { roundNumber: getGlobalTurnState(campaignId).roundNumber };
+        }
+        if (floor.mode === "spotlight") {
+          const respondedUserIds = [...new Set([...floor.respondedUserIds, userId])];
+          setFloor(campaignId, floor.userIds.every(id => respondedUserIds.includes(id))
+            ? { mode: "open" } : { ...floor, respondedUserIds }, roomId);
+        }
+        if (inCombat && floor.mode === "initiative") {
+          const encounter = getActiveEncounter(campaignId, roomId)!;
+          setFloor(campaignId, { mode: "hold", next: floor, combat: {
+            encounterId: encounter.id, round: encounter.round, turnIndex: encounter.turnIndex,
+            characterId: sheetId, requiresEndTurn: false, mechanicsResolved: false,
+          } }, roomId);
+        }
+        // Preserve main's private RakoBot feed. This reference is committed
+        // with the accepted action, never enqueued again on request replay.
+        const message = commandResult.message as { id?: string } | undefined;
+        if (message?.id) queuePlayerAction(campaignId, "spatial", message.id, command.kind);
+      }
+      if (actor.isDm && operation === "send" && normalized.kind === "narration" && typeof normalized.roomId === "string") {
+        const roomId = normalized.roomId;
+        const floor = getFloor(campaignId, roomId);
+        if (floor.mode === "hold" && floor.combat &&
+          (!floor.combat.requiresEndTurn || floor.combat.mechanicsResolved) && !hasPendingRoomRolls(campaignId, roomId)) {
+          setFloor(campaignId, floor.next, roomId);
+        }
+        if (campaign.gameSettings.holdSubmissions) {
+          const current = getFloor(campaignId, roomId);
+          if (current.mode !== "hold") setFloor(campaignId, { mode: "hold", next: current }, roomId);
+        }
+      }
+      if (operation === "enable" && !previouslyEnabled) capturePreSpatialEntities(campaignId);
+      const enabledNow = store.enabled(campaignId);
+      if (enabledNow !== previouslyEnabled) spatialModeChanged = enabledNow;
+      touchCampaign(campaignId);
+    });
   })();
+  if (!applied) return result;
   const resolution = globalTurnResolution as { roundNumber: number } | null;
-  if (resolution) {
-    void resolveGlobalTurn(campaignId, resolution.roundNumber).catch((error) =>
-      console.error("[global-turn] Failed to seal spatial round:", error),
-    );
-  }
-  touchCampaign(campaignId);
-  if (spatialModeChanged !== null) {
-    // Mode itself is table-global metadata. Room contents still never enter
-    // the shared stream; this nudge only tells clients whether to start/stop
-    // their identity-bound location long poll.
-    publishEphemeral(campaignId, "spatial_mode_changed", { enabled: spatialModeChanged }, { kind: "global" });
-  }
-  // Internal wakeup only, after the OUTERMOST narrator transaction commits.
-  // Each waiting request reloads its authorized projection. An unchanged
-  // projection stays pending: no private activity enters the global SSE bus.
-  afterCommit(() => notifySpatialChange(campaignId));
+  // No wakeup, timer sealing or global mode signal can escape an outer
+  // narrator rollback. Private room content never enters the shared stream.
+  afterCommit(() => {
+    if (spatialModeChanged !== null) {
+      publishEphemeral(campaignId, "spatial_mode_changed", { enabled: spatialModeChanged }, { kind: "global" });
+    }
+    notifySpatialChange(campaignId);
+    if (resolution) {
+      void resolveGlobalTurn(campaignId, resolution.roundNumber).catch(error =>
+        console.error("[global-turn] Failed to seal spatial round:", error),
+      );
+    }
+  });
   return result;
 }
