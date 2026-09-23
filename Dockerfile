@@ -83,13 +83,14 @@ COPY --from=build --chown=node:node /app/data/content/open5e.sqlite ./content/op
 COPY --from=build --chown=node:node /app/src ./src
 COPY --from=build --chown=node:node /app/shared ./shared
 COPY --from=build --chown=node:node /app/scripts ./scripts
+COPY --from=build --chown=node:node /app/deploy/db-tool.mjs ./deploy/db-tool.mjs
 COPY --from=build --chown=node:node /app/tsconfig.json ./tsconfig.json
 
 # Runtime state. Creating these before any volume is attached is what seeds a
 # fresh named volume with ownership the unprivileged user can write to.
-RUN mkdir -p data public/uploads public/generated logs \
+RUN mkdir -p data models/embeddings public/uploads public/generated public/generated-audio logs provider-auth \
   && chmod +x scripts/docker-entrypoint.sh \
-  && chown node:node data public/uploads public/generated logs
+  && chown node:node data models/embeddings public/uploads public/generated public/generated-audio logs provider-auth
 
 USER node
 EXPOSE 3005

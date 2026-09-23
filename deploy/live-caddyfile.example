@@ -3,13 +3,18 @@
 }
 
 api.iroslyakov.com {
-    reverse_proxy /rtc* localhost:7880
-    reverse_proxy /twirp/* localhost:7880
-    reverse_proxy /livekit/webhook localhost:8765
+    handle /rtc* {
+        reverse_proxy localhost:7880
+    }
+    handle /twirp/* {
+        reverse_proxy localhost:7880
+    }
+    handle /livekit/webhook {
+        reverse_proxy localhost:8765
+    }
 
-    # ODM is a path on the existing public host; the LiveKit web app stays
-    # the default upstream. Reloading this file is graceful and does not stop
-    # either application container.
+    # ODM owns the main public host. The legacy LiveKit web app stays on :8443.
+    # Reloading this file is graceful and does not stop either application.
     @odm_mcp path /mcp /mcp/*
     handle @odm_mcp {
         reverse_proxy 127.0.0.1:3006
@@ -23,6 +28,23 @@ api.iroslyakov.com {
     @odm_narrator path /api/narrator
     handle @odm_narrator {
         reverse_proxy 127.0.0.1:3005
+    }
+
+    handle {
+        reverse_proxy 127.0.0.1:3005
+    }
+}
+
+# Keep the existing LiveKit web app available while ODM owns the main host.
+https://api.iroslyakov.com:8443 {
+    handle /rtc* {
+        reverse_proxy localhost:7880
+    }
+    handle /twirp/* {
+        reverse_proxy localhost:7880
+    }
+    handle /livekit/webhook {
+        reverse_proxy localhost:8765
     }
 
     handle {

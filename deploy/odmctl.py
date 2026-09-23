@@ -259,7 +259,7 @@ class Controller:
         if not source.exists(): self.run(['git', '-C', self.repo, 'worktree', 'add', '--detach', str(source), sha])
         image = 'odm-managed:' + self.env['COMPOSE_PROJECT_NAME'] + '-' + sha
         print('Building isolated release ' + sha[:12], flush=True)
-        self.docker('build', '--pull', '-f', str(source / 'deploy' / 'Dockerfile'), '--label', 'odm.managed=1', '--label', 'odm.root=' + self.env['COMPOSE_PROJECT_NAME'],
+        self.docker('build', '--pull', '-f', str(source / 'Dockerfile'), '--label', 'odm.managed=1', '--label', 'odm.root=' + self.env['COMPOSE_PROJECT_NAME'],
             '--label', 'odm.release=' + sha, '-t', image, str(source), capture=False, timeout=3600)
         # Server-side provider inference was removed; the image build and
         # Next/TypeScript production build are the release gate now.
