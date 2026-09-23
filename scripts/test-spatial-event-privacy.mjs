@@ -44,6 +44,10 @@ async function fixture() {
       capsFor: member => capsFor(member.campaign, member.user.id), isErrorResponse: value => value instanceof Response,
       requireMember: async campaignId => getCampaignForUser(campaignId, authenticated) ? { campaign: { id: campaignId }, user: { id: authenticated } } : Response.json({ error: 'not found' }, { status: 404 }),
     },
+    '@/lib/integrations/rakobot': { queueLegacyPlayerEvent() {}, queuePlayerAction() {} },
+    '@/lib/voice/location-access': { voiceAccess: () => ({ members: new Set(['A', 'B']) }) },
+    '@/lib/voice/location-policy': { mayShareVoice: () => true, projectVoiceRoster: () => [] },
+    '@/lib/voice/types': {},
   };
   const modules = new Map();
   async function load(name, parent) {

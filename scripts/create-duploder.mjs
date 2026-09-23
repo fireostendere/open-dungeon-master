@@ -119,7 +119,8 @@ const payload = {
 };
 
 const serverUrl = process.argv[2] || "http://127.0.0.1:3005";
-const token = process.argv[3] || "e8fedcacf08d327a53abdf98ae9df6cea858b8d89058e1878155958833b9c9cf";
+const token = process.env.ODM_MCP_TOKEN || process.argv[3];
+if (!token) throw new Error("Set ODM_MCP_TOKEN or pass token as argument 3.");
 
 console.log(`Connecting to ${serverUrl}/api/internal/mcp ...`);
 const res = await fetch(`${serverUrl}/api/internal/mcp`, {

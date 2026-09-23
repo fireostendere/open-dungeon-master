@@ -1,7 +1,7 @@
 "use client";
 
 import * as Dialog from "@radix-ui/react-dialog";
-import { Award, Dices, Sparkles, Trophy, X } from "lucide-react";
+import { Award, Dices, Sparkles, Trophy, X, Skull } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { ui } from "@/lib/ui";
 import { useI18n } from "@/lib/i18n";
@@ -16,6 +16,7 @@ export function ClosingMessageModal({
   campaignTitle,
   message,
   sheets = [],
+  defaultMode = "victory",
   onTriggerCelebration,
 }: {
   open: boolean;
@@ -23,7 +24,8 @@ export function ClosingMessageModal({
   campaignTitle: string;
   message?: CampaignMessage | null;
   sheets?: CharacterSheet[];
-  onTriggerCelebration?: () => void;
+  defaultMode?: "victory" | "defeat";
+  onTriggerCelebration?: (mode: "victory" | "defeat") => void;
 }) {
   const { locale } = useI18n();
   const copy = localeText(locale, {
@@ -34,7 +36,8 @@ export function ClosingMessageModal({
         "The dust settles upon the battlefield, and the echoes of triumph resonate throughout the realm. The heroes have braved perils untold, forged bonds unbroken, and etched their names into legend. Their deeds shall be sung by bards for generations to come.",
       partyTitle: "Heroes of the Realm",
       level: "Level",
-      replayFireworks: "Launch fireworks & dice salute",
+      replayFireworks: "Victory salute & fireworks",
+      playDefeat: "Defeat & falling 1s (Sad Trombone)",
       close: "Close and view table",
     },
     ru: {
@@ -44,7 +47,8 @@ export function ClosingMessageModal({
         "Пыль битвы оседает, и эхо триумфа разносится по всему королевству. Герои преодолели немыслимые опасности, скрепили нерушимые узы и вписали свои имена в легенды. Их подвиги будут воспевать барды многих грядущих эпох.",
       partyTitle: "Герои королевства",
       level: "Уровень",
-      replayFireworks: "Запустить салют из кубов и фейерверков",
+      replayFireworks: "Салют победы",
+      playDefeat: "Поражение и проёб (единички и тромбон)",
       close: "Закрыть и смотреть стол",
     },
   });
@@ -76,7 +80,11 @@ export function ClosingMessageModal({
             {/* Header */}
             <div className="text-center">
               <div className="mx-auto mb-3 flex size-14 items-center justify-center rounded-2xl border border-amber-400/40 bg-gradient-to-b from-amber-400/20 to-amber-600/10 text-amber-300 shadow-[0_0_20px_rgba(245,158,11,0.2)]">
-                <Trophy className="size-7 animate-pulse" />
+                {defaultMode === "defeat" ? (
+                  <Skull className="size-7 text-red-400 animate-pulse" />
+                ) : (
+                  <Trophy className="size-7 animate-pulse" />
+                )}
               </div>
               <p className="eyebrow text-xs font-semibold tracking-widest text-amber-400">
                 {campaignTitle}
@@ -146,7 +154,7 @@ export function ClosingMessageModal({
             ) : null}
 
             {/* Actions */}
-            <div className="mt-8 flex flex-col-reverse gap-2.5 sm:flex-row sm:justify-end">
+            <div className="mt-8 flex flex-col gap-2.5 sm:flex-row sm:justify-end">
               <button
                 type="button"
                 onClick={() => onOpenChange(false)}
@@ -158,9 +166,27 @@ export function ClosingMessageModal({
                 type="button"
                 onClick={() => {
                   onOpenChange(false);
-                  onTriggerCelebration?.();
+                  onTriggerCelebration?.("defeat");
                 }}
-                className={cn(ui.btnPrimary, "text-xs py-2 gap-1.5 shadow-[0_0_20px_rgba(245,158,11,0.3)]")}
+                className={cn(
+                  "inline-flex items-center justify-center gap-1.5 rounded-lg border border-red-800/60 bg-red-950/50 px-3 py-2 text-xs font-semibold text-red-200 shadow-sm transition hover:bg-red-900/60 hover:text-white",
+                  defaultMode === "defeat" && "ring-2 ring-red-500/50 shadow-[0_0_15px_rgba(239,68,68,0.3)]",
+                )}
+              >
+                <Skull className="size-4 text-red-400" />
+                {copy.playDefeat}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  onOpenChange(false);
+                  onTriggerCelebration?.("victory");
+                }}
+                className={cn(
+                  ui.btnPrimary,
+                  "text-xs py-2 gap-1.5 shadow-[0_0_20px_rgba(245,158,11,0.3)]",
+                  defaultMode === "victory" && "ring-2 ring-amber-400/60",
+                )}
               >
                 <Sparkles className="size-4 text-amber-950" />
                 {copy.replayFireworks}

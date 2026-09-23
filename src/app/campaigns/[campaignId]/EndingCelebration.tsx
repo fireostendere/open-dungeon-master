@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
-import { Sparkles, X, Volume2, VolumeX } from "lucide-react";
+import { Sparkles, X, Volume2, VolumeX, Skull, Scroll, Trophy } from "lucide-react";
+import { cn } from "@/lib/cn";
 import { useI18n } from "@/lib/i18n";
 import { localeText } from "@/lib/i18n/locale-text";
 
@@ -64,6 +65,7 @@ type DicePalette = {
   sparkleColor: string;
 };
 
+// Joyful victory palettes
 const DICE_PALETTES: DicePalette[] = [
   {
     name: "gold",
@@ -102,10 +104,95 @@ const DICE_PALETTES: DicePalette[] = [
   },
 ];
 
+// Gloomy sad palettes for defeat & 1s
+const SAD_DICE_PALETTES: DicePalette[] = [
+  {
+    name: "slate",
+    fillBase: [52, 60, 72],
+    edgeColor: "#94a3b8",
+    textColor: "#ef4444", // Bright red 1 on cold dark slate!
+    sparkleColor: "#64748b",
+  },
+  {
+    name: "obsidian",
+    fillBase: [26, 28, 36],
+    edgeColor: "#475569",
+    textColor: "#f87171",
+    sparkleColor: "#334155",
+  },
+  {
+    name: "rust",
+    fillBase: [82, 22, 22],
+    edgeColor: "#dc2626",
+    textColor: "#ffffff",
+    sparkleColor: "#7f1d1d",
+  },
+  {
+    name: "ash",
+    fillBase: [88, 84, 84],
+    edgeColor: "#cbd5e1",
+    textColor: "#b91c1c",
+    sparkleColor: "#64748b",
+  },
+  {
+    name: "mourning",
+    fillBase: [46, 26, 56],
+    edgeColor: "#a855f7",
+    textColor: "#fca5a5",
+    sparkleColor: "#581c87",
+  },
+];
+
 const FIREWORK_COLORS = [
   "#f59e0b", "#fbbf24", "#ef4444", "#f97316",
   "#a855f7", "#ec4899", "#3b82f6", "#10b981",
   "#06b6d4", "#f43f5e", "#eab308", "#ffffff",
+];
+
+const VICTORY_BANNERS_RU = {
+  ru: [
+    "★ НАТУРАЛЬНАЯ 20! ★",
+    "⚔️ ВЕЛИКАЯ ПОБЕДА! ⚔️",
+    "👑 ТРИУМФ ГЕРОЕВ! 👑",
+    "🏆 ЛЕГЕНДА СВЕРШИЛАСЬ 🏆",
+    "✨ СЛАВА ПОБЕДИТЕЛЯМ! ✨",
+    "🐉 ЗЛО ПОВЕРЖЕНО 🐉",
+    "🔥 КРИТИЧЕСКИЙ УСПЕХ 🔥",
+  ],
+}.ru;
+
+const VICTORY_BANNERS_EN = [
+  "★ NATURAL 20! ★",
+  "⚔️ VICTORY ⚔️",
+  "👑 CRITICAL TRIUMPH 👑",
+  "🏆 LEGENDARY FINALE 🏆",
+  "✨ HEROES OF THE REALM ✨",
+  "🐉 EVIL VANQUISHED 🐉",
+  "🔥 CRITICAL SUCCESS 🔥",
+];
+
+const DEFEAT_BANNERS_RU = {
+  ru: [
+    "💀 КРИТИЧЕСКИЙ ПРОВАЛ 💀",
+    "🎲 НАТУРАЛЬНАЯ 1 🎲",
+    "☠️ ПОЛНЫЙ ПРОЁБ ☠️",
+    "⚰️ ОТРЯД ПОВЕРЖЕН (TPK) ⚰️",
+    "🥀 ДА УПОКОЯТСЯ С МИРОМ... 🥀",
+    "🌧️ КУБИКИ БЫЛИ НЕУМОЛИМЫ 🌧️",
+    "🩸 ВАС ЗАПОМНЯТ... НО НЕ ТАК 🩸",
+    "⚡ ВСЕ ПАЛИ В БОЮ ⚡",
+  ],
+}.ru;
+
+const DEFEAT_BANNERS_EN = [
+  "💀 TOTAL PARTY WIPE 💀",
+  "🎲 NATURAL 1 🎲",
+  "☠️ CRITICAL FAILURE ☠️",
+  "⚰️ DEFEAT ⚰️",
+  "🥀 REST IN PEACE... 🥀",
+  "🌧️ THE DICE WERE MERCILESS 🌧️",
+  "🩸 A TRAGIC END 🩸",
+  "⚡ FATE WAS CRUEL ⚡",
 ];
 
 type FireworkRocket = {
@@ -150,6 +237,8 @@ type CelebrationDie = {
   value: string;
   alpha: number;
   sparkles: { x: number; y: number; alpha: number; color: string; size: number }[];
+  bounceCount: number;
+  isDefeat?: boolean;
 };
 
 type FloatingBanner = {
@@ -160,9 +249,40 @@ type FloatingBanner = {
   alpha: number;
   scale: number;
   color: string;
+  age: number;        // ms elapsed
+  fadeStart: number;  // ms until fade begins (e.g. 4500ms)
+  maxAge: number;     // ms until completely gone (e.g. 7000ms)
+  isDefeat?: boolean;
 };
 
-// Web Audio synthesizer for fireworks and celebrations
+type SadParticle = {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  length: number;
+  size: number;
+  color: string;
+  alpha: number;
+};
+
+type MudSplat = {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  color: string;
+  size: number;
+  alpha: number;
+  decay: number;
+  gravity: number;
+  isGroundPuddle?: boolean;
+  radiusX?: number;
+  radiusY?: number;
+  maxRadius?: number;
+};
+
+// Web Audio synthesizer for fireworks, fanfare and sad trombone
 class CelebrationAudio {
   private ctx: AudioContext | null = null;
   public enabled = true;
@@ -170,7 +290,9 @@ class CelebrationAudio {
   private getContext(): AudioContext | null {
     if (!this.enabled) return null;
     if (!this.ctx && typeof window !== "undefined") {
-      const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+      const AudioCtx =
+        window.AudioContext ||
+        (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
       if (AudioCtx) {
         this.ctx = new AudioCtx();
       }
@@ -260,16 +382,188 @@ class CelebrationAudio {
       setTimeout(() => this.playChime(freq), idx * 90);
     });
   }
+
+  // Authentic 4-note descending Sad Trombone ("wah-wah-wah-waaaah")
+  // Clean, distortion-free ending with smooth linear fade to absolute 0
+  public playSadTrombone() {
+    try {
+      const ctx = this.getContext();
+      if (!ctx) return;
+      const now = ctx.currentTime;
+
+      // 4 notes: D4 -> C#4 -> C4 -> B3 mournfully sliding down to E3
+      const notes = [
+        { freq: 293.66, start: 0, dur: 0.35 },
+        { freq: 277.18, start: 0.38, dur: 0.35 },
+        { freq: 261.63, start: 0.76, dur: 0.38 },
+        { freq: 246.94, start: 1.18, dur: 2.1, slideTo: 164.81 },
+      ];
+
+      for (const n of notes) {
+        const noteStart = now + n.start;
+        const noteDur = n.dur;
+
+        // Rich brass trombone timbre: warm triangle body + sawtooth buzz
+        const osc = ctx.createOscillator();
+        const osc2 = ctx.createOscillator();
+        osc.type = "sawtooth";
+        osc2.type = "triangle";
+
+        osc.frequency.setValueAtTime(n.freq, noteStart);
+        osc2.frequency.setValueAtTime(n.freq, noteStart);
+
+        // Slide down on the last note after holding pitch steady for a moment
+        if (n.slideTo) {
+          const slideStart = noteStart + 0.35;
+          const slideEnd = noteStart + noteDur * 0.92;
+          osc.frequency.setValueAtTime(n.freq, slideStart);
+          osc.frequency.exponentialRampToValueAtTime(n.slideTo, slideEnd);
+          osc2.frequency.setValueAtTime(n.freq, slideStart);
+          osc2.frequency.exponentialRampToValueAtTime(n.slideTo, slideEnd);
+        }
+
+        // Wah-wah plunger filter envelope: opens up ("wah") then mutes down warmly
+        const filter = ctx.createBiquadFilter();
+        filter.type = "lowpass";
+        filter.Q.setValueAtTime(2.2, noteStart); // warm, gentle resonance without harsh feedback
+        filter.frequency.setValueAtTime(420, noteStart);
+        filter.frequency.exponentialRampToValueAtTime(1400, noteStart + 0.08);
+
+        if (n.slideTo) {
+          filter.frequency.exponentialRampToValueAtTime(280, noteStart + noteDur * 0.85);
+        } else {
+          filter.frequency.exponentialRampToValueAtTime(450, noteStart + noteDur * 0.75);
+        }
+
+        // Volume envelope: smooth linear ramps to absolute 0 to prevent any clicks or pops
+        const gain = ctx.createGain();
+        gain.gain.setValueAtTime(0.0001, noteStart);
+        gain.gain.linearRampToValueAtTime(0.24, noteStart + 0.05);
+
+        if (n.slideTo) {
+          gain.gain.setValueAtTime(0.24, noteStart + 0.55);
+          gain.gain.linearRampToValueAtTime(0.16, noteStart + noteDur * 0.75);
+          gain.gain.linearRampToValueAtTime(0, noteStart + noteDur);
+        } else {
+          gain.gain.setValueAtTime(0.22, noteStart + noteDur * 0.65);
+          gain.gain.linearRampToValueAtTime(0, noteStart + noteDur);
+        }
+
+        osc.connect(filter);
+        osc2.connect(filter);
+        filter.connect(gain);
+        gain.connect(ctx.destination);
+
+        // Oscillators stop safely AFTER gain is completely 0
+        osc.start(noteStart);
+        osc.stop(noteStart + noteDur + 0.05);
+        osc2.start(noteStart);
+        osc2.stop(noteStart + noteDur + 0.05);
+      }
+    } catch {
+      // Audio optional
+    }
+  }
+
+  // Comical wet squelch / splat ("звук с которым наступаешь в говно")
+  public playSquish() {
+    try {
+      const ctx = this.getContext();
+      if (!ctx) return;
+      const now = ctx.currentTime;
+
+      // 1. Viscous low squelch impact (heavy wet drop)
+      const osc = ctx.createOscillator();
+      const oscGain = ctx.createGain();
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(160, now);
+      osc.frequency.exponentialRampToValueAtTime(42, now + 0.12);
+      oscGain.gain.setValueAtTime(0.28, now);
+      oscGain.gain.linearRampToValueAtTime(0, now + 0.12);
+      osc.connect(oscGain);
+      oscGain.connect(ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.14);
+
+      // 2. Wet suction / squirt burst (bandpass filtered noise)
+      const noiseBuffer = ctx.createBuffer(1, Math.floor(ctx.sampleRate * 0.14), ctx.sampleRate);
+      const data = noiseBuffer.getChannelData(0);
+      for (let i = 0; i < data.length; i++) {
+        data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (ctx.sampleRate * 0.04));
+      }
+      const noise = ctx.createBufferSource();
+      noise.buffer = noiseBuffer;
+
+      const bpFilter = ctx.createBiquadFilter();
+      bpFilter.type = "bandpass";
+      bpFilter.Q.setValueAtTime(5.5, now);
+      bpFilter.frequency.setValueAtTime(1450, now);
+      bpFilter.frequency.exponentialRampToValueAtTime(320, now + 0.13);
+
+      const noiseGain = ctx.createGain();
+      noiseGain.gain.setValueAtTime(0.35, now);
+      noiseGain.gain.linearRampToValueAtTime(0, now + 0.14);
+
+      noise.connect(bpFilter);
+      bpFilter.connect(noiseGain);
+      noiseGain.connect(ctx.destination);
+      noise.start(now);
+
+      // 3. Wet suction bubble release chirp ("shlup-pop")
+      const chirp = ctx.createOscillator();
+      const chirpGain = ctx.createGain();
+      chirp.type = "triangle";
+      const chirpStart = now + 0.02;
+      chirp.frequency.setValueAtTime(480, chirpStart);
+      chirp.frequency.exponentialRampToValueAtTime(85, chirpStart + 0.05);
+      chirpGain.gain.setValueAtTime(0.18, chirpStart);
+      chirpGain.gain.linearRampToValueAtTime(0, chirpStart + 0.05);
+      chirp.connect(chirpGain);
+      chirpGain.connect(ctx.destination);
+      chirp.start(chirpStart);
+      chirp.stop(chirpStart + 0.06);
+    } catch {
+      // Audio optional
+    }
+  }
+
+  // Hollow dull thud when sad dice hit bottom
+  public playSadThud() {
+    try {
+      const ctx = this.getContext();
+      if (!ctx) return;
+      const now = ctx.currentTime;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(110, now);
+      osc.frequency.exponentialRampToValueAtTime(40, now + 0.12);
+      gain.gain.setValueAtTime(0.14, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.13);
+    } catch {
+      // Audio optional
+    }
+  }
 }
 
 export function EndingCelebration({
   active,
   onClose,
   campaignTitle,
+  mode: initialMode = "victory",
+  closingMessage,
+  onModeChange,
 }: {
   active: boolean;
   onClose: () => void;
   campaignTitle?: string;
+  mode?: "victory" | "defeat";
+  closingMessage?: string | null;
+  onModeChange?: (mode: "victory" | "defeat") => void;
 }) {
   const { locale } = useI18n();
   const copy = localeText(locale, {
@@ -280,6 +574,18 @@ export function EndingCelebration({
       close: "Close celebration",
       audioOn: "Mute sound",
       audioOff: "Enable sound",
+      defeatConcluded: "Campaign Concluded: Party Defeated (TPK)",
+      defeatHeroesSalute: "The dice rolled ones... Rest in peace, brave adventurers.",
+      dropMoreDice: "Drop more dice!",
+      switchToVictory: "Switch to victory celebration",
+      switchToDefeat: "Switch to defeat & sad trombone",
+      readClosing: "Read DM's closing message",
+      hideClosing: "Hide message",
+      defeatBadge: "DEFEAT / PARTY WIPE",
+      victoryBadge: "VICTORY / TRIUMPH",
+      storyTitleVictory: "Triumph of the Heroes",
+      storyTitleDefeat: "Epitaph of the Fallen",
+      storyClose: "Collapse text",
     },
     ru: {
       concluded: "Приключение завершено!",
@@ -288,8 +594,27 @@ export function EndingCelebration({
       close: "Закрыть салют",
       audioOn: "Выключить звук",
       audioOff: "Включить звук",
+      defeatConcluded: "Кампания завершена: Поражение отряда (TPK)",
+      defeatHeroesSalute: "Кубики были неумолимы... На них выпали единички. Покойтесь с миром.",
+      dropMoreDice: "Уронить ещё единичек!",
+      switchToVictory: "Переключить на салют победы",
+      switchToDefeat: "Переключить на поражение и проёб",
+      readClosing: "Читать послание Мастера",
+      hideClosing: "Скрыть послание",
+      defeatBadge: "ПОРАЖЕНИЕ / ПРОЁБ",
+      victoryBadge: "ПОБЕДА / ТРИУМФ",
+      storyTitleVictory: "Триумф легендарных героев",
+      storyTitleDefeat: "Посмертная эпитафия павшим",
+      storyClose: "Свернуть текст",
     },
   });
+
+  const [mode, setMode] = useState<"victory" | "defeat">(initialMode);
+  const [showStory, setShowStory] = useState(false);
+
+  useEffect(() => {
+    setMode(initialMode);
+  }, [initialMode]);
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const audioRef = useRef<CelebrationAudio>(new CelebrationAudio());
@@ -299,8 +624,48 @@ export function EndingCelebration({
   const sparksRef = useRef<FireworkSpark[]>([]);
   const diceRef = useRef<CelebrationDie[]>([]);
   const bannersRef = useRef<FloatingBanner[]>([]);
+  const sadParticlesRef = useRef<SadParticle[]>([]);
+  const mudSplatsRef = useRef<MudSplat[]>([]);
   const animFrameRef = useRef<number | null>(null);
   const nextSpawnTimeRef = useRef(0);
+
+  // Comical mud / poop splat particles ("брызги говна / грязи")
+  const spawnMudSplat = useCallback((x: number, y: number) => {
+    const mudColors = ["#3d2314", "#4a2e1b", "#5a3825", "#6b4423", "#2c1810", "#78350f", "#451a03"];
+    const dropletCount = Math.floor(Math.random() * 8) + 14;
+    for (let k = 0; k < dropletCount; k++) {
+      const angle = -Math.PI * (0.15 + Math.random() * 0.7); // upward fan splash
+      const speed = Math.random() * 6.5 + 2.5;
+      mudSplatsRef.current.push({
+        x: x + (Math.random() - 0.5) * 16,
+        y: y - 2,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        color: mudColors[Math.floor(Math.random() * mudColors.length)],
+        size: Math.random() * 3.5 + 2,
+        alpha: 1,
+        decay: Math.random() * 0.018 + 0.012,
+        gravity: 0.22,
+      });
+    }
+
+    // Mud puddle ring on the floor
+    mudSplatsRef.current.push({
+      x,
+      y: y + 2,
+      vx: 0,
+      vy: 0,
+      color: mudColors[0],
+      size: 6,
+      alpha: 0.85,
+      decay: 0.015,
+      gravity: 0,
+      isGroundPuddle: true,
+      radiusX: 8,
+      radiusY: 3.5,
+      maxRadius: Math.random() * 14 + 22,
+    });
+  }, []);
 
   const toggleSound = useCallback(() => {
     setSoundEnabled((prev) => {
@@ -310,7 +675,7 @@ export function EndingCelebration({
     });
   }, []);
 
-  // Launch a new firework rocket
+  // Launch a new firework rocket (victory mode)
   const launchRocket = useCallback(
     (
       startX?: number,
@@ -323,7 +688,7 @@ export function EndingCelebration({
       const x = startX ?? (w * 0.15 + Math.random() * (w * 0.7));
       const tY = targetY ?? (h * 0.15 + Math.random() * (h * 0.35));
       const dist = h - tY;
-      const speed = Math.sqrt(2 * 0.22 * dist); // Physics: v = sqrt(2*g*h)
+      const speed = Math.sqrt(2 * 0.22 * dist);
       const color = FIREWORK_COLORS[Math.floor(Math.random() * FIREWORK_COLORS.length)];
 
       rocketsRef.current.push({
@@ -342,7 +707,7 @@ export function EndingCelebration({
     [],
   );
 
-  // Spawn a celebration die
+  // Spawn a die (victory or sad defeat)
   const spawnDie = useCallback(
     (
       x: number,
@@ -351,18 +716,29 @@ export function EndingCelebration({
       vy?: number,
       kind?: "d20" | "d8" | "d6",
       forcedValue?: string,
+      isDefeat?: boolean,
     ) => {
-      const palette = DICE_PALETTES[Math.floor(Math.random() * DICE_PALETTES.length)];
+      const paletteList = isDefeat ? SAD_DICE_PALETTES : DICE_PALETTES;
+      const palette = paletteList[Math.floor(Math.random() * paletteList.length)];
       const chosenKind = kind ?? (Math.random() < 0.65 ? "d20" : Math.random() < 0.5 ? "d8" : "d6");
       let val = forcedValue;
       if (!val) {
-        if (chosenKind === "d20") {
-          const rand = Math.random();
-          val = rand < 0.3 ? "20" : rand < 0.5 ? "NAT 20" : String(Math.floor(Math.random() * 19) + 1);
-        } else if (chosenKind === "d8") {
-          val = String(Math.floor(Math.random() * 8) + 1);
+        if (isDefeat) {
+          if (chosenKind === "d20") {
+            const rand = Math.random();
+            val = rand < 0.45 ? "1" : rand < 0.75 ? "NAT 1" : "1";
+          } else {
+            val = "1";
+          }
         } else {
-          val = String(Math.floor(Math.random() * 6) + 1);
+          if (chosenKind === "d20") {
+            const rand = Math.random();
+            val = rand < 0.3 ? "20" : rand < 0.5 ? "NAT 20" : String(Math.floor(Math.random() * 19) + 1);
+          } else if (chosenKind === "d8") {
+            val = String(Math.floor(Math.random() * 8) + 1);
+          } else {
+            val = String(Math.floor(Math.random() * 6) + 1);
+          }
         }
       }
 
@@ -370,19 +746,21 @@ export function EndingCelebration({
         kind: chosenKind,
         x,
         y,
-        vx: vx ?? (Math.random() - 0.5) * 8,
-        vy: vy ?? -(Math.random() * 6 + 4),
-        size: Math.random() * 12 + 32, // 32px to 44px radius
+        vx: vx ?? (Math.random() - 0.5) * (isDefeat ? 4 : 8),
+        vy: vy ?? (isDefeat ? Math.random() * 3 + 2.5 : -(Math.random() * 6 + 4)),
+        size: Math.random() * 12 + 32,
         rotX: Math.random() * Math.PI * 2,
         rotY: Math.random() * Math.PI * 2,
         rotZ: Math.random() * Math.PI * 2,
-        vRotX: (Math.random() - 0.5) * 0.08,
-        vRotY: (Math.random() - 0.5) * 0.08,
-        vRotZ: (Math.random() - 0.5) * 0.08,
+        vRotX: (Math.random() - 0.5) * (isDefeat ? 0.05 : 0.08),
+        vRotY: (Math.random() - 0.5) * (isDefeat ? 0.05 : 0.08),
+        vRotZ: (Math.random() - 0.5) * (isDefeat ? 0.05 : 0.08),
         palette,
         value: val,
         alpha: 1,
         sparkles: [],
+        bounceCount: 0,
+        isDefeat: !!isDefeat,
       });
     },
     [],
@@ -426,37 +804,59 @@ export function EndingCelebration({
             Math.sin(angle) * speed - 2.5,
             i === 0 ? "d20" : undefined,
             i === 0 ? "20" : undefined,
+            false,
           );
         }
 
-        // Floating celebratory badge
+        // Floating celebratory badge with 7s readable duration!
+        const pool = locale === "ru" ? VICTORY_BANNERS_RU : VICTORY_BANNERS_EN;
+        const bannerText = pool[Math.floor(Math.random() * pool.length)];
+
         bannersRef.current.push({
-          text: Math.random() < 0.4 ? "★ NAT 20! ★" : Math.random() < 0.7 ? "⚔ VICTORY ⚔" : "👑 CRITICAL TRIUMPH 👑",
+          text: bannerText,
           x: rocket.x,
           y: rocket.y - 20,
-          vy: -1.2,
+          vy: -0.3,
           alpha: 1,
-          scale: 0.7,
+          scale: 0.85,
           color: rocket.color,
+          age: 0,
+          fadeStart: 4500,
+          maxAge: 7000,
+          isDefeat: false,
         });
       }
     },
-    [spawnDie],
+    [locale, spawnDie],
   );
 
-  // Trigger a full celebration volley (2x more rockets, 2x more dice!)
+  // Trigger full celebration volley
   const triggerVolley = useCallback(() => {
     if (typeof window === "undefined") return;
     const w = window.innerWidth;
     const h = window.innerHeight;
 
-    // Reset old particles to cleanly start the grand animation from the beginning!
     rocketsRef.current = [];
     sparksRef.current = [];
     diceRef.current = [];
     bannersRef.current = [];
+    sadParticlesRef.current = [];
 
-    // Wave 1: 4 rockets across the bottom-mid screen (0ms - 360ms)
+    bannersRef.current.push({
+      text: locale === "ru" ? "⚔️ ВЕЛИКАЯ ПОБЕДА! ⚔️" : "⚔️ GRAND VICTORY ⚔️",
+      x: w / 2,
+      y: h * 0.35,
+      vy: -0.25,
+      alpha: 1,
+      scale: 1.1,
+      color: "#f59e0b",
+      age: 0,
+      fadeStart: 4500,
+      maxAge: 7000,
+      isDefeat: false,
+    });
+
+    // Wave 1: 4 rockets across screen
     const wave1 = [
       { x: w * 0.18, targetY: h * 0.28, delay: 0, payload: "dice_burst" as const },
       { x: w * 0.42, targetY: h * 0.22, delay: 120, payload: "normal" as const },
@@ -464,7 +864,7 @@ export function EndingCelebration({
       { x: w * 0.84, targetY: h * 0.30, delay: 360, payload: "normal" as const },
     ];
 
-    // Wave 2: 5 rockets exploding higher and wider (550ms - 1150ms)
+    // Wave 2: 5 rockets
     const wave2 = [
       { x: w * 0.28, targetY: h * 0.18, delay: 550, payload: "dice_burst" as const },
       { x: w * 0.50, targetY: h * 0.14, delay: 700, payload: "grand_finale" as const },
@@ -473,7 +873,7 @@ export function EndingCelebration({
       { x: w * 0.88, targetY: h * 0.24, delay: 1150, payload: "dice_burst" as const },
     ];
 
-    // Wave 3: 3 massive grand finale rockets (1400ms - 1800ms)
+    // Wave 3: 3 grand finale rockets
     const wave3 = [
       { x: w * 0.35, targetY: h * 0.15, delay: 1400, payload: "grand_finale" as const },
       { x: w * 0.65, targetY: h * 0.16, delay: 1600, payload: "grand_finale" as const },
@@ -487,29 +887,161 @@ export function EndingCelebration({
       }, r.delay);
     }
 
-    // Shoot up 6 ground-based celebratory dice fountains (at 250ms, 550ms, 850ms)
+    // Shoot up ground-based dice fountains
     setTimeout(() => {
-      spawnDie(w * 0.20, h, 2 + Math.random() * 3, -(Math.random() * 5 + 15), "d20", "20");
-      spawnDie(w * 0.80, h, -(2 + Math.random() * 3), -(Math.random() * 5 + 15), "d20", "NAT 20");
+      spawnDie(w * 0.20, h, 2 + Math.random() * 3, -(Math.random() * 5 + 15), "d20", "20", false);
+      spawnDie(w * 0.80, h, -(2 + Math.random() * 3), -(Math.random() * 5 + 15), "d20", "NAT 20", false);
     }, 250);
 
     setTimeout(() => {
-      spawnDie(w * 0.38, h, (Math.random() - 0.5) * 4, -(Math.random() * 6 + 16), "d20", "CRIT");
-      spawnDie(w * 0.62, h, (Math.random() - 0.5) * 4, -(Math.random() * 6 + 16), "d20", "20");
+      spawnDie(w * 0.38, h, (Math.random() - 0.5) * 4, -(Math.random() * 6 + 16), "d20", "CRIT", false);
+      spawnDie(w * 0.62, h, (Math.random() - 0.5) * 4, -(Math.random() * 6 + 16), "d20", "20", false);
     }, 550);
 
     setTimeout(() => {
-      spawnDie(w * 0.10, h, 3 + Math.random() * 3, -(Math.random() * 5 + 14), "d8", "8");
-      spawnDie(w * 0.90, h, -(3 + Math.random() * 3), -(Math.random() * 5 + 14), "d6", "6");
+      spawnDie(w * 0.10, h, 3 + Math.random() * 3, -(Math.random() * 5 + 14), "d8", "8", false);
+      spawnDie(w * 0.90, h, -(3 + Math.random() * 3), -(Math.random() * 5 + 14), "d6", "6", false);
     }, 850);
-  }, [launchRocket, spawnDie]);
+  }, [locale, launchRocket, spawnDie]);
+
+  // Trigger sad defeat volley ("грустная анимация с проёбом, падают кубики с единичками и грустный тромбон")
+  const triggerDefeatVolley = useCallback(() => {
+    if (typeof window === "undefined") return;
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+
+    rocketsRef.current = [];
+    sparksRef.current = [];
+    diceRef.current = [];
+    bannersRef.current = [];
+    sadParticlesRef.current = [];
+    mudSplatsRef.current = [];
+
+    // Sad Trombone Audio ("wah-wah-wah-waaaah" clean, distortion-free ending)
+    audioRef.current.playSadTrombone();
+
+    // Center defeat banner with 7s visible duration
+    bannersRef.current.push({
+      text: locale === "ru" ? "💀 ПОЛНЫЙ ПРОЁБ 💀" : "💀 TOTAL PARTY WIPE 💀",
+      x: w / 2,
+      y: h * 0.35,
+      vy: -0.2,
+      alpha: 1,
+      scale: 1.1,
+      color: "#ef4444",
+      age: 0,
+      fadeStart: 4500,
+      maxAge: 7000,
+      isDefeat: true,
+    });
+
+    // Atmospheric gloom: burst of dark embers/rain from the top
+    for (let i = 0; i < 60; i++) {
+      sadParticlesRef.current.push({
+        x: Math.random() * w,
+        y: -10 - Math.random() * 50,
+        vx: (Math.random() - 0.5) * 2,
+        vy: Math.random() * 5 + 4,
+        length: Math.random() * 18 + 8,
+        size: Math.random() * 2 + 1,
+        color: Math.random() < 0.35 ? "#991b1b" : Math.random() < 0.6 ? "#475569" : "#334155",
+        alpha: Math.random() * 0.5 + 0.4,
+      });
+    }
+
+    // Wave 1 (t = 0): 5 large 3D dice plummeting across screen
+    spawnDie(w * 0.15, -40, (Math.random() - 0.5) * 2, Math.random() * 2 + 2.2, "d20", "1", true);
+    spawnDie(w * 0.32, -50, (Math.random() - 0.5) * 2, Math.random() * 2 + 2.6, "d20", "NAT 1", true);
+    spawnDie(w * 0.50, -40, (Math.random() - 0.5) * 2, Math.random() * 2 + 3.0, "d20", "1", true);
+    spawnDie(w * 0.68, -45, (Math.random() - 0.5) * 2, Math.random() * 2 + 2.4, "d8", "1", true);
+    spawnDie(w * 0.85, -40, (Math.random() - 0.5) * 2, Math.random() * 2 + 2.8, "d6", "1", true);
+
+    // Wave 2 (t = 400ms): 4 more tumbling 3D dice
+    setTimeout(() => {
+      spawnDie(w * 0.24, -40, (Math.random() - 0.5) * 2, Math.random() * 2 + 2.5, "d20", "NAT 1", true);
+      spawnDie(w * 0.44, -45, (Math.random() - 0.5) * 2, Math.random() * 2 + 2.8, "d6", "1", true);
+      spawnDie(w * 0.62, -40, (Math.random() - 0.5) * 2, Math.random() * 2 + 2.4, "d20", "1", true);
+      spawnDie(w * 0.80, -45, (Math.random() - 0.5) * 2, Math.random() * 2 + 2.7, "d8", "1", true);
+    }, 400);
+
+    // Wave 3 (t = 850ms): 5 more falling dice + second banner
+    setTimeout(() => {
+      spawnDie(w * 0.12, -40, (Math.random() - 0.5) * 2, Math.random() * 2 + 3.0, "d20", "1", true);
+      spawnDie(w * 0.36, -45, (Math.random() - 0.5) * 2, Math.random() * 2 + 2.6, "d20", "NAT 1", true);
+      spawnDie(w * 0.52, -40, (Math.random() - 0.5) * 2, Math.random() * 2 + 3.2, "d20", "1", true);
+      spawnDie(w * 0.72, -45, (Math.random() - 0.5) * 2, Math.random() * 2 + 2.7, "d6", "1", true);
+      spawnDie(w * 0.90, -40, (Math.random() - 0.5) * 2, Math.random() * 2 + 2.9, "d20", "NAT 1", true);
+
+      bannersRef.current.push({
+        text: locale === "ru" ? "🎲 НАТУРАЛЬНАЯ 1 🎲" : "🎲 NATURAL 1 🎲",
+        x: w * 0.5,
+        y: h * 0.55,
+        vy: -0.2,
+        alpha: 1,
+        scale: 1.0,
+        color: "#94a3b8",
+        age: 0,
+        fadeStart: 4500,
+        maxAge: 7000,
+        isDefeat: true,
+      });
+    }, 850);
+
+    // Wave 4 (t = 1350ms): 4 more tumbling dice
+    setTimeout(() => {
+      spawnDie(w * 0.20, -40, (Math.random() - 0.5) * 2, Math.random() * 2 + 2.8, "d20", "1", true);
+      spawnDie(w * 0.40, -45, (Math.random() - 0.5) * 2, Math.random() * 2 + 3.1, "d8", "1", true);
+      spawnDie(w * 0.60, -40, (Math.random() - 0.5) * 2, Math.random() * 2 + 2.6, "d20", "NAT 1", true);
+      spawnDie(w * 0.82, -45, (Math.random() - 0.5) * 2, Math.random() * 2 + 3.0, "d6", "1", true);
+    }, 1350);
+
+    // Wave 5 (t = 1900ms): 4 more tumbling dice + third banner
+    setTimeout(() => {
+      spawnDie(w * 0.28, -40, (Math.random() - 0.5) * 2, Math.random() * 2 + 3.0, "d20", "NAT 1", true);
+      spawnDie(w * 0.48, -45, (Math.random() - 0.5) * 2, Math.random() * 2 + 2.8, "d20", "1", true);
+      spawnDie(w * 0.70, -40, (Math.random() - 0.5) * 2, Math.random() * 2 + 3.2, "d8", "1", true);
+      spawnDie(w * 0.88, -45, (Math.random() - 0.5) * 2, Math.random() * 2 + 2.9, "d20", "1", true);
+
+      bannersRef.current.push({
+        text: locale === "ru" ? "⚰️ ОТРЯД ПОВЕРЖЕН (TPK) ⚰️" : "⚰️ TOTAL PARTY WIPE (TPK) ⚰️",
+        x: w * 0.5,
+        y: h * 0.70,
+        vy: -0.2,
+        alpha: 1,
+        scale: 0.95,
+        color: "#dc2626",
+        age: 0,
+        fadeStart: 4500,
+        maxAge: 7000,
+        isDefeat: true,
+      });
+    }, 1900);
+  }, [locale, spawnDie]);
+
+  const switchMode = useCallback(
+    (nextMode: "victory" | "defeat") => {
+      setMode(nextMode);
+      onModeChange?.(nextMode);
+      if (nextMode === "defeat") {
+        triggerDefeatVolley();
+      } else {
+        triggerVolley();
+        audioRef.current.playFanfare();
+      }
+    },
+    [onModeChange, triggerDefeatVolley, triggerVolley],
+  );
 
   // Initial trigger upon becoming active
   useEffect(() => {
     if (!active) return;
-    triggerVolley();
-    audioRef.current.playFanfare();
-  }, [active, triggerVolley]);
+    if (mode === "defeat") {
+      triggerDefeatVolley();
+    } else {
+      triggerVolley();
+      audioRef.current.playFanfare();
+    }
+  }, [active, mode, triggerDefeatVolley, triggerVolley]);
 
   // Main animation loop
   useEffect(() => {
@@ -535,29 +1067,110 @@ export function EndingCelebration({
       const dt = Math.min((time - lastTime) / 1000, 0.1);
       lastTime = time;
 
-      // Semi-transparent clear for subtle motion blur
       ctx.clearRect(0, 0, width, height);
 
-      // Auto-schedule occasional celebratory fireworks while active
-      if (time > nextSpawnTimeRef.current) {
-        const payloadRand = Math.random();
-        const payload = payloadRand < 0.25 ? "grand_finale" : payloadRand < 0.65 ? "dice_burst" : "normal";
-        launchRocket(undefined, undefined, payload);
-        nextSpawnTimeRef.current = time + 1000 + Math.random() * 1200;
+      // Defeat mode: Gloomy background vignette
+      if (mode === "defeat") {
+        const vigGrad = ctx.createRadialGradient(
+          width / 2,
+          height / 2,
+          width * 0.2,
+          width / 2,
+          height / 2,
+          Math.max(width, height) * 0.75,
+        );
+        vigGrad.addColorStop(0, "rgba(0, 0, 0, 0.1)");
+        vigGrad.addColorStop(1, "rgba(25, 8, 12, 0.65)");
+        ctx.fillStyle = vigGrad;
+        ctx.fillRect(0, 0, width, height);
       }
 
-      // 1. UPDATE & DRAW ROCKETS
+      // Auto-schedule events while active
+      if (time > nextSpawnTimeRef.current) {
+        if (mode === "defeat") {
+          // Drop occasional sad dice
+          const w = window.innerWidth;
+          spawnDie(
+            w * 0.15 + Math.random() * (w * 0.7),
+            -40,
+            (Math.random() - 0.5) * 2,
+            Math.random() * 2 + 2,
+            Math.random() < 0.7 ? "d20" : "d6",
+            Math.random() < 0.4 ? "NAT 1" : "1",
+            true,
+          );
+          if (Math.random() < 0.4) {
+            const pool = locale === "ru" ? DEFEAT_BANNERS_RU : DEFEAT_BANNERS_EN;
+            bannersRef.current.push({
+              text: pool[Math.floor(Math.random() * pool.length)],
+              x: w * 0.2 + Math.random() * (w * 0.6),
+              y: window.innerHeight * (0.35 + Math.random() * 0.3),
+              vy: -0.2,
+              alpha: 1,
+              scale: 0.9,
+              color: "#ef4444",
+              age: 0,
+              fadeStart: 4500,
+              maxAge: 7000,
+              isDefeat: true,
+            });
+          }
+          nextSpawnTimeRef.current = time + 1800 + Math.random() * 2000;
+        } else {
+          // Victory rockets
+          const payloadRand = Math.random();
+          const payload =
+            payloadRand < 0.25 ? "grand_finale" : payloadRand < 0.65 ? "dice_burst" : "normal";
+          launchRocket(undefined, undefined, payload);
+          nextSpawnTimeRef.current = time + 1000 + Math.random() * 1200;
+        }
+      }
+
+      // 0. UPDATE & DRAW SAD PARTICLES (rain / falling ash in defeat mode)
+      if (mode === "defeat") {
+        while (sadParticlesRef.current.length < 80) {
+          sadParticlesRef.current.push({
+            x: Math.random() * width,
+            y: -20 - Math.random() * 40,
+            vx: (Math.random() - 0.5) * 1.5 - 0.5,
+            vy: Math.random() * 6 + 5,
+            length: Math.random() * 16 + 10,
+            size: Math.random() * 1.8 + 0.8,
+            color: Math.random() < 0.25 ? "#7f1d1d" : Math.random() < 0.5 ? "#64748b" : "#475569",
+            alpha: Math.random() * 0.4 + 0.3,
+          });
+        }
+
+        for (let i = sadParticlesRef.current.length - 1; i >= 0; i--) {
+          const p = sadParticlesRef.current[i];
+          p.x += p.vx;
+          p.y += p.vy;
+
+          if (p.y > height + 30) {
+            sadParticlesRef.current.splice(i, 1);
+            continue;
+          }
+
+          ctx.strokeStyle = p.color;
+          ctx.globalAlpha = p.alpha;
+          ctx.lineWidth = p.size;
+          ctx.beginPath();
+          ctx.moveTo(p.x, p.y);
+          ctx.lineTo(p.x - p.vx * 2, p.y - p.length);
+          ctx.stroke();
+        }
+      }
+
+      // 1. UPDATE & DRAW ROCKETS (Victory mode)
       for (let i = rocketsRef.current.length - 1; i >= 0; i--) {
         const r = rocketsRef.current[i];
         r.x += r.vx;
         r.y += r.vy;
-        r.vy += 0.22; // Gravity
+        r.vy += 0.22;
 
-        // Add trail
         r.trail.push({ x: r.x, y: r.y, alpha: 1, size: Math.random() * 2 + 2 });
         if (r.trail.length > 12) r.trail.shift();
 
-        // Draw trail
         ctx.beginPath();
         for (const pt of r.trail) {
           ctx.fillStyle = r.color;
@@ -568,14 +1181,12 @@ export function EndingCelebration({
           pt.alpha -= 0.08;
         }
 
-        // Draw rocket head
         ctx.fillStyle = "#ffffff";
         ctx.globalAlpha = 1;
         ctx.beginPath();
         ctx.arc(r.x, r.y, 3, 0, Math.PI * 2);
         ctx.fill();
 
-        // Check if reached apex or target
         if (r.vy >= 0 || r.y <= r.targetY) {
           explodeRocket(r);
           rocketsRef.current.splice(i, 1);
@@ -604,12 +1215,74 @@ export function EndingCelebration({
         ctx.fill();
       }
 
+      // 2.5 UPDATE & DRAW MUD / SQUELCH SPLATS ("брызги говна / грязи")
+      for (let i = mudSplatsRef.current.length - 1; i >= 0; i--) {
+        const splat = mudSplatsRef.current[i];
+        splat.x += splat.vx;
+        splat.y += splat.vy;
+        splat.vy += splat.gravity;
+        splat.alpha -= splat.decay;
+
+        if (splat.alpha <= 0) {
+          mudSplatsRef.current.splice(i, 1);
+          continue;
+        }
+
+        ctx.save();
+        ctx.globalAlpha = splat.alpha;
+        ctx.fillStyle = splat.color;
+
+        if (splat.isGroundPuddle) {
+          if (splat.radiusX && splat.maxRadius && splat.radiusX < splat.maxRadius) {
+            splat.radiusX += 1.2;
+            splat.radiusY = (splat.radiusY || 3) + 0.4;
+          }
+          ctx.beginPath();
+          ctx.ellipse(splat.x, splat.y, splat.radiusX || 12, splat.radiusY || 4, 0, 0, Math.PI * 2);
+          ctx.fill();
+        } else {
+          ctx.beginPath();
+          ctx.arc(splat.x, splat.y, splat.size, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.restore();
+      }
+
       // 3. UPDATE & DRAW 3D DICE
       for (let i = diceRef.current.length - 1; i >= 0; i--) {
         const die = diceRef.current[i];
         die.x += die.vx;
         die.y += die.vy;
-        die.vy += 0.28; // Gravity on dice
+
+        if (mode === "defeat" || die.isDefeat) {
+          die.vy += 0.24; // solid gravity pulling dice down
+          const groundY = height - die.size * 0.72;
+
+          // Single comical bounce off the bottom:
+          // Triggers strictly once when die hits bottom for the first time
+          if (die.y >= groundY && die.vy > 0 && die.bounceCount === 0) {
+            die.bounceCount = 1;
+            die.y = groundY;
+            // Exactly one bounce upward:
+            die.vy = -(Math.abs(die.vy) * 0.46 + 3.2);
+            die.vx = (Math.random() - 0.5) * 4;
+            // Increased comical spin tumble
+            die.vRotX = (Math.random() - 0.5) * 0.18;
+            die.vRotY = (Math.random() - 0.5) * 0.18;
+            die.vRotZ = (Math.random() - 0.5) * 0.18;
+
+            // Play the comical "stepping into shit" squelch sound!
+            audioRef.current.playSquish();
+
+            // Spawn mud & poop splat droplets and puddle ring
+            spawnMudSplat(die.x, groundY + die.size * 0.3);
+          }
+          // After bounceCount is 1:
+          // Die arcs up, gravity turns it back down, and on its second descent
+          // it does NOT bounce again! It flies straight down past height + 80 and disappears!
+        } else {
+          die.vy += 0.28; // gravity on fireworks dice
+        }
 
         die.rotX += die.vRotX;
         die.rotY += die.vRotY;
@@ -652,7 +1325,7 @@ export function EndingCelebration({
         ctx.translate(die.x, die.y);
         ctx.globalAlpha = die.alpha;
 
-        // Draw ambient glow behind die
+        // Glow behind die
         const glowRad = die.size * 1.5;
         const glowGrad = ctx.createRadialGradient(0, 0, die.size * 0.3, 0, 0, glowRad);
         glowGrad.addColorStop(0, die.palette.sparkleColor + "55");
@@ -662,30 +1335,25 @@ export function EndingCelebration({
         ctx.arc(0, 0, glowRad, 0, Math.PI * 2);
         ctx.fill();
 
-        // 3D Rotation matrices for vertices
+        // 3D Rotation matrices
         const cosX = Math.cos(die.rotX), sinX = Math.sin(die.rotX);
         const cosY = Math.cos(die.rotY), sinY = Math.sin(die.rotY);
         const cosZ = Math.cos(die.rotZ), sinZ = Math.sin(die.rotZ);
 
         const rotate3D = (v: [number, number, number]): [number, number, number] => {
-          // Around X
           let y1 = v[1] * cosX - v[2] * sinX;
           let z1 = v[1] * sinX + v[2] * cosX;
-          // Around Y
           let x2 = v[0] * cosY + z1 * sinY;
           let z2 = -v[0] * sinY + z1 * cosY;
-          // Around Z
           let x3 = x2 * cosZ - y1 * sinZ;
           let y3 = x2 * sinZ + y1 * cosZ;
           return [x3, y3, z2];
         };
 
-        const lightDir = [0.577, -0.577, 0.577]; // Normalized light vector
+        const lightDir = [0.577, -0.577, 0.577];
 
         if (die.kind === "d20") {
           const transformed = D20_VERTICES.map(rotate3D);
-
-          // Render triangular faces
           let bestFaceZ = -1;
           let bestFaceCenter: [number, number] = [0, 0];
 
@@ -694,21 +1362,18 @@ export function EndingCelebration({
             const p1 = transformed[face[1]];
             const p2 = transformed[face[2]];
 
-            // Compute normal: (p1 - p0) x (p2 - p0)
             const ax = p1[0] - p0[0], ay = p1[1] - p0[1], az = p1[2] - p0[2];
             const bx = p2[0] - p0[0], by = p2[1] - p0[1], bz = p2[2] - p0[2];
             const nx = ay * bz - az * by;
             const ny = az * bx - ax * bz;
             const nz = ax * by - ay * bx;
 
-            // Backface culling: nz > 0 means facing camera
             if (nz <= 0) continue;
 
             const nLen = Math.hypot(nx, ny, nz) || 1;
             const normX = nx / nLen, normY = ny / nLen, normZ = nz / nLen;
             const dot = Math.max(0.25, normX * lightDir[0] + normY * lightDir[1] + normZ * lightDir[2]);
 
-            // Shade face
             const r = Math.min(255, Math.floor(die.palette.fillBase[0] * (dot * 0.8 + 0.4)));
             const g = Math.min(255, Math.floor(die.palette.fillBase[1] * (dot * 0.8 + 0.4)));
             const b = Math.min(255, Math.floor(die.palette.fillBase[2] * (dot * 0.8 + 0.4)));
@@ -725,7 +1390,6 @@ export function EndingCelebration({
             ctx.fill();
             ctx.stroke();
 
-            // Track most prominent forward-facing face
             if (normZ > bestFaceZ) {
               bestFaceZ = normZ;
               bestFaceCenter = [
@@ -735,10 +1399,9 @@ export function EndingCelebration({
             }
           }
 
-          // Draw die numeral on the most forward-facing face
           if (bestFaceZ > 0.65) {
             ctx.fillStyle = die.palette.textColor;
-            ctx.font = `bold ${Math.round(die.size * 0.44)}px sans-serif`;
+            ctx.font = `bold ${Math.round(die.size * 0.44)}px -apple-system, sans-serif`;
             ctx.textAlign = "center";
             ctx.textBaseline = "middle";
             ctx.shadowColor = "#000000";
@@ -794,7 +1457,7 @@ export function EndingCelebration({
 
           if (bestFaceZ > 0.65) {
             ctx.fillStyle = die.palette.textColor;
-            ctx.font = `bold ${Math.round(die.size * 0.48)}px sans-serif`;
+            ctx.font = `bold ${Math.round(die.size * 0.48)}px -apple-system, sans-serif`;
             ctx.textAlign = "center";
             ctx.textBaseline = "middle";
             ctx.fillText(die.value, bestFaceCenter[0], bestFaceCenter[1]);
@@ -850,7 +1513,7 @@ export function EndingCelebration({
 
           if (bestFaceZ > 0.65) {
             ctx.fillStyle = die.palette.textColor;
-            ctx.font = `bold ${Math.round(die.size * 0.52)}px sans-serif`;
+            ctx.font = `bold ${Math.round(die.size * 0.52)}px -apple-system, sans-serif`;
             ctx.textAlign = "center";
             ctx.textBaseline = "middle";
             ctx.fillText(die.value, bestFaceCenter[0], bestFaceCenter[1]);
@@ -860,14 +1523,19 @@ export function EndingCelebration({
         ctx.restore();
       }
 
-      // 4. UPDATE & DRAW FLOATING BANNERS
+      // 4. UPDATE & DRAW FLOATING BANNERS (With 7-second readable duration & frosted pill card!)
       for (let i = bannersRef.current.length - 1; i >= 0; i--) {
         const b = bannersRef.current[i];
-        b.y += b.vy;
-        b.alpha -= 0.012;
-        b.scale = Math.min(1.1, b.scale + 0.02);
+        b.age += dt * 1000;
+        b.y += b.vy * (dt * 60);
 
-        if (b.alpha <= 0) {
+        if (b.age < b.fadeStart) {
+          b.alpha = 1; // Stay 100% visible and readable!
+        } else {
+          b.alpha = Math.max(0, 1 - (b.age - b.fadeStart) / (b.maxAge - b.fadeStart));
+        }
+
+        if (b.age >= b.maxAge || b.alpha <= 0) {
           bannersRef.current.splice(i, 1);
           continue;
         }
@@ -877,14 +1545,34 @@ export function EndingCelebration({
         ctx.scale(b.scale, b.scale);
         ctx.globalAlpha = b.alpha;
 
-        ctx.font = "bold 20px sans-serif";
+        ctx.font = "bold 20px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
+
+        const textMetrics = ctx.measureText(b.text);
+        const textWidth = textMetrics.width;
+        const boxWidth = textWidth + 36;
+        const boxHeight = 42;
+
+        // Draw pill backdrop
+        ctx.fillStyle = b.isDefeat ? "rgba(18, 12, 16, 0.9)" : "rgba(12, 10, 8, 0.88)";
+        ctx.strokeStyle = b.color;
+        ctx.lineWidth = 2;
         ctx.shadowColor = b.color;
-        ctx.shadowBlur = 10;
+        ctx.shadowBlur = 14;
+
+        ctx.beginPath();
+        if (typeof ctx.roundRect === "function") {
+          ctx.roundRect(-boxWidth / 2, -boxHeight / 2, boxWidth, boxHeight, 14);
+        } else {
+          ctx.rect(-boxWidth / 2, -boxHeight / 2, boxWidth, boxHeight);
+        }
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.shadowBlur = 0;
         ctx.fillStyle = "#ffffff";
         ctx.fillText(b.text, 0, 0);
-        ctx.shadowBlur = 0;
 
         ctx.restore();
       }
@@ -900,30 +1588,80 @@ export function EndingCelebration({
         cancelAnimationFrame(animFrameRef.current);
       }
     };
-  }, [active, launchRocket, explodeRocket]);
+  }, [active, mode, launchRocket, explodeRocket, spawnDie, locale]);
 
   if (!active) return null;
 
+  const isDefeat = mode === "defeat";
+
   return (
     <div className="pointer-events-none fixed inset-0 z-50 overflow-hidden">
-      {/* Canvas for fireworks and dice */}
+      {/* Canvas for fireworks, sad rain and 3D dice */}
       <canvas ref={canvasRef} className="absolute inset-0 block size-full" />
 
       {/* Floating Header Banner */}
       <div className="animate-fade-up pointer-events-auto absolute inset-x-0 top-6 flex justify-center px-4">
-        <div className="flex max-w-lg items-center gap-3 rounded-2xl border border-amber-500/40 bg-stone-950/85 px-4 py-2.5 shadow-[0_0_35px_rgba(245,158,11,0.25)] backdrop-blur-md">
-          <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 text-stone-950 shadow-inner">
-            <Sparkles className="size-5 animate-spin" style={{ animationDuration: "6s" }} />
+        <div
+          className={cn(
+            "flex max-w-xl items-center gap-3 rounded-2xl border px-4 py-2.5 backdrop-blur-md transition-all duration-300",
+            isDefeat
+              ? "border-red-900/60 bg-stone-950/90 shadow-[0_0_35px_rgba(239,68,68,0.25)]"
+              : "border-amber-500/40 bg-stone-950/85 shadow-[0_0_35px_rgba(245,158,11,0.25)]",
+          )}
+        >
+          <div
+            className={cn(
+              "flex size-9 shrink-0 items-center justify-center rounded-xl shadow-inner",
+              isDefeat
+                ? "bg-gradient-to-br from-red-600 to-stone-900 text-stone-100"
+                : "bg-gradient-to-br from-amber-400 to-amber-600 text-stone-950",
+            )}
+          >
+            {isDefeat ? (
+              <Skull className="size-5 animate-pulse text-red-100" />
+            ) : (
+              <Sparkles className="size-5 animate-spin" style={{ animationDuration: "6s" }} />
+            )}
           </div>
+
           <div className="min-w-0 flex-1">
-            <h3 className="truncate font-display text-sm font-bold tracking-wide text-amber-100">
+            <h3
+              className={cn(
+                "truncate font-display text-sm font-bold tracking-wide",
+                isDefeat ? "text-red-200" : "text-amber-100",
+              )}
+            >
               {campaignTitle ? `${campaignTitle} — ` : ""}
-              {copy.concluded}
+              {isDefeat ? copy.defeatConcluded : copy.concluded}
             </h3>
-            <p className="truncate text-xs text-amber-300/80">{copy.heroesSalute}</p>
+            <p
+              className={cn(
+                "truncate text-xs",
+                isDefeat ? "text-red-400/90" : "text-amber-300/80",
+              )}
+            >
+              {isDefeat ? copy.defeatHeroesSalute : copy.heroesSalute}
+            </p>
           </div>
 
           <div className="flex items-center gap-1">
+            {closingMessage ? (
+              <button
+                type="button"
+                onClick={() => setShowStory((prev) => !prev)}
+                className={cn(
+                  "rounded-lg p-1.5 transition",
+                  showStory
+                    ? "bg-amber-500/20 text-amber-200"
+                    : "text-stone-400 hover:bg-stone-800 hover:text-stone-200",
+                )}
+                title={showStory ? copy.hideClosing : copy.readClosing}
+                aria-label={showStory ? copy.hideClosing : copy.readClosing}
+              >
+                <Scroll className="size-4" />
+              </button>
+            ) : null}
+
             <button
               type="button"
               onClick={toggleSound}
@@ -934,13 +1672,45 @@ export function EndingCelebration({
               {soundEnabled ? <Volume2 className="size-4" /> : <VolumeX className="size-4" />}
             </button>
 
-            <button
-              type="button"
-              onClick={triggerVolley}
-              className="rounded-lg border border-amber-500/40 bg-amber-950/50 px-2.5 py-1 text-xs font-semibold text-amber-200 shadow-sm transition hover:bg-amber-900/60"
-            >
-              {copy.moreFireworks}
-            </button>
+            {isDefeat ? (
+              <>
+                <button
+                  type="button"
+                  onClick={triggerDefeatVolley}
+                  className="rounded-lg border border-red-800/60 bg-red-950/50 px-2.5 py-1 text-xs font-semibold text-red-200 shadow-sm transition hover:bg-red-900/60"
+                >
+                  {copy.dropMoreDice}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => switchMode("victory")}
+                  className="rounded-lg border border-amber-500/40 bg-amber-950/40 p-1.5 text-amber-300 transition hover:bg-amber-900/60"
+                  title={copy.switchToVictory}
+                  aria-label={copy.switchToVictory}
+                >
+                  <Sparkles className="size-4" />
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={triggerVolley}
+                  className="rounded-lg border border-amber-500/40 bg-amber-950/50 px-2.5 py-1 text-xs font-semibold text-amber-200 shadow-sm transition hover:bg-amber-900/60"
+                >
+                  {copy.moreFireworks}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => switchMode("defeat")}
+                  className="rounded-lg border border-red-900/50 bg-red-950/40 p-1.5 text-red-400 transition hover:bg-red-900/60"
+                  title={copy.switchToDefeat}
+                  aria-label={copy.switchToDefeat}
+                >
+                  <Skull className="size-4" />
+                </button>
+              </>
+            )}
 
             <button
               type="button"
@@ -954,6 +1724,57 @@ export function EndingCelebration({
           </div>
         </div>
       </div>
+
+      {/* Floating Center Parchment Story Card (so users never miss reading the final story) */}
+      {showStory && closingMessage ? (
+        <div className="pointer-events-auto absolute inset-0 z-40 flex items-center justify-center p-4">
+          <div
+            className={cn(
+              "relative w-full max-w-lg rounded-2xl border p-6 shadow-2xl backdrop-blur-md animate-in fade-in zoom-in-95 duration-200",
+              isDefeat
+                ? "border-red-900/70 bg-stone-950/95 text-stone-100 shadow-[0_0_50px_rgba(239,68,68,0.25)]"
+                : "border-amber-500/50 bg-stone-950/95 text-stone-100 shadow-[0_0_50px_rgba(245,158,11,0.25)]",
+            )}
+          >
+            <div className="flex items-center justify-between pb-3 border-b border-stone-800">
+              <div className="flex items-center gap-2">
+                {isDefeat ? (
+                  <Skull className="size-5 text-red-400" />
+                ) : (
+                  <Trophy className="size-5 text-amber-400" />
+                )}
+                <h4 className="font-display text-sm font-bold tracking-wide text-stone-200">
+                  {isDefeat ? copy.storyTitleDefeat : copy.storyTitleVictory}
+                </h4>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowStory(false)}
+                className="rounded-lg p-1 text-stone-400 hover:bg-stone-800 hover:text-stone-200 transition"
+                title={copy.storyClose}
+              >
+                <X className="size-4" />
+              </button>
+            </div>
+
+            <div className="my-4 max-h-64 overflow-y-auto pr-2">
+              <p className="whitespace-pre-wrap font-serif text-sm leading-relaxed text-stone-200 first-letter:text-2xl first-letter:font-bold first-letter:float-left first-letter:mr-1.5">
+                {closingMessage}
+              </p>
+            </div>
+
+            <div className="flex justify-end pt-2">
+              <button
+                type="button"
+                onClick={() => setShowStory(false)}
+                className="rounded-lg border border-stone-700 bg-stone-900 px-3 py-1.5 text-xs font-medium text-stone-300 hover:bg-stone-800 hover:text-white transition"
+              >
+                {copy.storyClose}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

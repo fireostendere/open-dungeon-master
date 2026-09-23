@@ -1,0 +1,1596 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Open Dungeon Master — Демонстрация победы и поражения</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+    body, html {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #09090b;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      color: #f4f4f5;
+    }
+
+    #canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+      z-index: 1;
+    }
+
+    /* Top Navigation & Controls */
+    .top-bar {
+      position: absolute;
+      top: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 20;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 18px;
+      border-radius: 16px;
+      background: rgba(18, 18, 22, 0.88);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(245, 158, 11, 0.4);
+      box-shadow: 0 0 35px rgba(245, 158, 11, 0.25);
+      transition: all 0.3s ease;
+      max-width: 95vw;
+    }
+
+    .top-bar.defeat-theme {
+      border-color: rgba(220, 38, 38, 0.5);
+      box-shadow: 0 0 35px rgba(220, 38, 38, 0.3);
+      background: rgba(20, 10, 14, 0.92);
+    }
+
+    .status-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+      box-shadow: inset 0 1px 2px rgba(255,255,255,0.4);
+    }
+
+    .top-bar.defeat-theme .status-icon {
+      background: linear-gradient(135deg, #dc2626, #7f1d1d);
+    }
+
+    .title-group {
+      display: flex;
+      flex-direction: column;
+      min-width: 180px;
+    }
+
+    .title-text {
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      color: #fef3c7;
+    }
+
+    .top-bar.defeat-theme .title-text {
+      color: #fecaca;
+    }
+
+    .subtitle-text {
+      font-size: 11px;
+      color: rgba(251, 191, 36, 0.8);
+    }
+
+    .top-bar.defeat-theme .subtitle-text {
+      color: rgba(248, 113, 113, 0.85);
+    }
+
+    .btn-group {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    button {
+      cursor: pointer;
+      border: none;
+      outline: none;
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 7px 12px;
+      border-radius: 8px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s ease;
+    }
+
+    .btn-mode-victory {
+      background: #78350f;
+      color: #fef3c7;
+      border: 1px solid rgba(245, 158, 11, 0.5);
+    }
+    .btn-mode-victory:hover {
+      background: #92400e;
+    }
+    .btn-mode-victory.active {
+      background: #f59e0b;
+      color: #1c1917;
+      box-shadow: 0 0 15px rgba(245, 158, 11, 0.5);
+    }
+
+    .btn-mode-defeat {
+      background: #450a0a;
+      color: #fecaca;
+      border: 1px solid rgba(239, 68, 68, 0.5);
+    }
+    .btn-mode-defeat:hover {
+      background: #7f1d1d;
+    }
+    .btn-mode-defeat.active {
+      background: #ef4444;
+      color: #ffffff;
+      box-shadow: 0 0 15px rgba(239, 68, 68, 0.6);
+    }
+
+    .btn-action {
+      background: #27272a;
+      color: #e4e4e7;
+      border: 1px solid #3f3f46;
+    }
+    .btn-action:hover {
+      background: #3f3f46;
+      color: #ffffff;
+    }
+
+    .btn-audio {
+      background: transparent;
+      color: #a1a1aa;
+      padding: 7px 9px;
+    }
+    .btn-audio:hover {
+      background: #27272a;
+      color: #ffffff;
+    }
+
+    /* Floating Center Story Card */
+    .story-card-overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 15;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      pointer-events: none;
+    }
+
+    .story-card {
+      pointer-events: auto;
+      max-width: 580px;
+      width: 100%;
+      border-radius: 18px;
+      background: rgba(15, 14, 18, 0.94);
+      backdrop-filter: blur(16px);
+      border: 2px solid rgba(245, 158, 11, 0.45);
+      box-shadow: 0 0 60px rgba(0, 0, 0, 0.8), 0 0 40px rgba(245, 158, 11, 0.2);
+      padding: 24px;
+      transition: all 0.3s ease;
+      animation: popIn 0.25s ease-out;
+    }
+
+    .story-card.defeat-card {
+      border-color: rgba(220, 38, 38, 0.55);
+      box-shadow: 0 0 60px rgba(0, 0, 0, 0.8), 0 0 40px rgba(220, 38, 38, 0.25);
+    }
+
+    @keyframes popIn {
+      from { opacity: 0; transform: scale(0.95); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    .story-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid #27272a;
+      padding-bottom: 12px;
+      margin-bottom: 16px;
+    }
+
+    .story-title {
+      font-size: 16px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .story-body {
+      font-family: Georgia, Cambria, "Times New Roman", Times, serif;
+      font-size: 15px;
+      line-height: 1.65;
+      color: #e4e4e7;
+      max-height: 220px;
+      overflow-y: auto;
+      padding-right: 8px;
+      margin-bottom: 16px;
+    }
+
+    .story-body::first-letter {
+      font-size: 28px;
+      font-weight: bold;
+      float: left;
+      margin-right: 6px;
+      color: #fbbf24;
+    }
+
+    .defeat-card .story-body::first-letter {
+      color: #f87171;
+    }
+
+    .story-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+
+    /* Audio visualizer hint */
+    .audio-hint {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 10;
+      font-size: 11px;
+      color: rgba(255, 255, 255, 0.45);
+      background: rgba(0, 0, 0, 0.6);
+      padding: 6px 14px;
+      border-radius: 20px;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+
+  <canvas id="canvas"></canvas>
+
+  <!-- Top bar -->
+  <div id="topBar" class="top-bar">
+    <div id="statusIcon" class="status-icon">🏆</div>
+    <div class="title-group">
+      <div id="titleText" class="title-text">Проклятие Страда — Великая Победа!</div>
+      <div id="subtitleText" class="subtitle-text">Салют легендарным героям! Все боги славят отряд.</div>
+    </div>
+
+    <div class="btn-group">
+      <button id="btnVictory" class="btn-mode-victory active" onclick="setMode('victory')">
+        🏆 Победа
+      </button>
+      <button id="btnDefeat" class="btn-mode-defeat" onclick="setMode('defeat')">
+        💀 Поражение (Проёб)
+      </button>
+    </div>
+
+    <div class="btn-group">
+      <button id="btnAction" class="btn-action" onclick="triggerCurrentAction()">
+        🎆 Запустить ещё салют!
+      </button>
+      <button class="btn-action" onclick="toggleStory()">
+        📜 Послание Мастера
+      </button>
+      <button class="btn-action" onclick="testTrombone()">
+        🎺 Тест тромбона
+      </button>
+      <button class="btn-action" onclick="testSquish()">
+        💩 Тест шлёпа
+      </button>
+      <button id="btnAudioToggle" class="btn-audio" onclick="toggleAudio()" title="Вкл/Выкл звук">
+        🔊
+      </button>
+    </div>
+  </div>
+
+  <!-- Story Parchment Card -->
+  <div id="storyOverlay" class="story-card-overlay">
+    <div id="storyCard" class="story-card">
+      <div class="story-header">
+        <div id="storyTitle" class="story-title">👑 Триумф легендарных героев</div>
+        <button class="btn-audio" onclick="toggleStory()">✕</button>
+      </div>
+      <div id="storyBody" class="story-body">
+        Пыль эпической битвы медленно оседает. Враг повержен, и замок Баровии озаряется первыми лучами рассвета за долгие столетия. Ваши имена вписаны в скрижали славы, и барды во всех уголках королевства будут слагать песни о вашей отваге, хитрости и нерушимом братстве. Кампания завершилась полным триумфом!
+      </div>
+      <div class="story-footer">
+        <button class="btn-action" onclick="toggleStory()">Свернуть и смотреть салют</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="audio-hint">
+    Нажмите в любом месте экрана для включения звука Web Audio (салют, фанфары или грустный тромбон)
+  </div>
+
+  <script>
+    // 3D Polyhedral Geometry (Icosahedron d20, Octahedron d8, Cube d6)
+    const PHI = (1 + Math.sqrt(5)) / 2;
+    const D20_RAW = [
+      [-1, PHI, 0], [1, PHI, 0], [-1, -PHI, 0], [1, -PHI, 0],
+      [0, -1, PHI], [0, 1, PHI], [0, -1, -PHI], [0, 1, -PHI],
+      [PHI, 0, -1], [PHI, 0, 1], [-PHI, 0, -1], [-PHI, 0, 1],
+    ];
+    const D20_VERTICES = D20_RAW.map(([x, y, z]) => {
+      const len = Math.hypot(x, y, z);
+      return [x / len, y / len, z / len];
+    });
+    const D20_FACES = [
+      [0, 11, 5], [0, 5, 1], [0, 1, 7], [0, 7, 10], [0, 10, 11],
+      [1, 5, 9], [5, 11, 4], [11, 10, 2], [10, 7, 6], [7, 1, 8],
+      [3, 9, 4], [3, 4, 2], [3, 2, 6], [3, 6, 8], [3, 8, 9],
+      [4, 9, 5], [2, 4, 11], [6, 2, 10], [8, 6, 7], [9, 8, 1],
+    ];
+
+    const D8_VERTICES = [
+      [1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1],
+    ];
+    const D8_FACES = [
+      [0, 2, 4], [2, 1, 4], [1, 3, 4], [3, 0, 4],
+      [2, 0, 5], [1, 2, 5], [3, 1, 5], [0, 3, 5],
+    ];
+
+    const D6_RAW = [
+      [-1, -1, -1], [1, -1, -1], [1, 1, -1], [-1, 1, -1],
+      [-1, -1, 1], [1, -1, 1], [1, 1, 1], [-1, 1, 1],
+    ];
+    const D6_VERTICES = D6_RAW.map(([x, y, z]) => {
+      const len = Math.hypot(x, y, z);
+      return [x / len, y / len, z / len];
+    });
+    const D6_FACES = [
+      [0, 1, 2, 3], [4, 7, 6, 5], [0, 4, 5, 1],
+      [2, 6, 7, 3], [0, 3, 7, 4], [1, 5, 6, 2],
+    ];
+
+    // Color Palettes
+    const VICTORY_DICE_PALETTES = [
+      { fill: [230, 160, 20], edge: "#fef08a", text: "#ffffff", sparkle: "#fde047" }, // Gold
+      { fill: [200, 30, 45], edge: "#fca5a5", text: "#ffffff", sparkle: "#ef4444" },  // Ruby
+      { fill: [140, 45, 200], edge: "#d8b4fe", text: "#ffffff", sparkle: "#c084fc" }, // Amethyst
+      { fill: [30, 120, 230], edge: "#93c5fd", text: "#ffffff", sparkle: "#60a5fa" }, // Sapphire
+      { fill: [25, 170, 95], edge: "#86efac", text: "#ffffff", sparkle: "#4ade80" },  // Emerald
+    ];
+
+    const SAD_DICE_PALETTES = [
+      { fill: [52, 60, 72], edge: "#94a3b8", text: "#ef4444", sparkle: "#64748b" }, // Slate
+      { fill: [26, 28, 36], edge: "#475569", text: "#f87171", sparkle: "#334155" }, // Obsidian
+      { fill: [82, 22, 22], edge: "#dc2626", text: "#ffffff", sparkle: "#7f1d1d" }, // Rust
+      { fill: [88, 84, 84], edge: "#cbd5e1", text: "#b91c1c", sparkle: "#64748b" }, // Ash
+      { fill: [46, 26, 56], edge: "#a855f7", text: "#fca5a5", sparkle: "#581c87" }, // Mourning
+    ];
+
+    const FIREWORK_COLORS = [
+      "#f59e0b", "#fbbf24", "#ef4444", "#f97316",
+      "#a855f7", "#ec4899", "#3b82f6", "#10b981",
+      "#06b6d4", "#f43f5e", "#eab308", "#ffffff"
+    ];
+
+    const VICTORY_BANNERS = [
+      "★ НАТУРАЛЬНАЯ 20! ★",
+      "⚔️ ВЕЛИКАЯ ПОБЕДА! ⚔️",
+      "👑 ТРИУМФ ГЕРОЕВ! 👑",
+      "🏆 ЛЕГЕНДА СВЕРШИЛАСЬ 🏆",
+      "✨ СЛАВА ПОБЕДИТЕЛЯМ! ✨",
+      "🐉 ЗЛО ПОВЕРЖЕНО 🐉",
+      "🔥 КРИТИЧЕСКИЙ УСПЕХ 🔥",
+    ];
+
+    const DEFEAT_BANNERS = [
+      "💀 ПОЛНЫЙ ПРОЁБ 💀",
+      "🎲 НАТУРАЛЬНАЯ 1 🎲",
+      "☠️ КРИТИЧЕСКИЙ ПРОВАЛ ☠️",
+      "⚰️ ОТРЯД ПОВЕРЖЕН (TPK) ⚰️",
+      "🥀 ДА УПОКОЯТСЯ С МИРОМ... 🥀",
+      "🌧️ КУБИКИ БЫЛИ НЕУМОЛИМЫ 🌧️",
+      "🩸 ВАС ЗАПОМНЯТ... НО НЕ ТАК 🩸",
+      "⚡ ВСЕ ПАЛИ В БОЮ ⚡",
+    ];
+
+    // Web Audio Synthesizer
+    class AudioSynth {
+      constructor() {
+        this.ctx = null;
+        this.enabled = true;
+      }
+
+      getContext() {
+        if (!this.enabled) return null;
+        if (!this.ctx && typeof window !== "undefined") {
+          const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+          if (AudioContextClass) this.ctx = new AudioContextClass();
+        }
+        if (this.ctx && this.ctx.state === "suspended") {
+          this.ctx.resume();
+        }
+        return this.ctx;
+      }
+
+      playLaunch() {
+        try {
+          const ctx = this.getContext();
+          if (!ctx) return;
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = "sine";
+          const now = ctx.currentTime;
+          osc.frequency.setValueAtTime(150, now);
+          osc.frequency.exponentialRampToValueAtTime(650, now + 0.35);
+          gain.gain.setValueAtTime(0.08, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.36);
+        } catch(e) {}
+      }
+
+      playExplosion() {
+        try {
+          const ctx = this.getContext();
+          if (!ctx) return;
+          const bufferSize = ctx.sampleRate * 0.4;
+          const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+          const data = buffer.getChannelData(0);
+          for (let i = 0; i < bufferSize; i++) {
+            data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (ctx.sampleRate * 0.08));
+          }
+          const noise = ctx.createBufferSource();
+          noise.buffer = buffer;
+          const filter = ctx.createBiquadFilter();
+          filter.type = "lowpass";
+          filter.frequency.setValueAtTime(450, ctx.currentTime);
+          filter.frequency.exponentialRampToValueAtTime(80, ctx.currentTime + 0.35);
+          const gain = ctx.createGain();
+          gain.gain.setValueAtTime(0.22, ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+          noise.connect(filter);
+          filter.connect(gain);
+          gain.connect(ctx.destination);
+          noise.start();
+        } catch(e) {}
+      }
+
+      playChime(freq = 523.25) {
+        try {
+          const ctx = this.getContext();
+          if (!ctx) return;
+          const now = ctx.currentTime;
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = "triangle";
+          osc.frequency.setValueAtTime(freq, now);
+          gain.gain.setValueAtTime(0.12, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.61);
+        } catch(e) {}
+      }
+
+      playFanfare() {
+        const notes = [523.25, 659.25, 783.99, 1046.5]; // C5, E5, G5, C6
+        notes.forEach((freq, idx) => setTimeout(() => this.playChime(freq), idx * 90));
+      }
+
+      // Authentic 4-note descending Sad Trombone ("wah-wah-wah-waaaah")
+      // Clean, distortion-free ending with smooth linear fade to absolute 0
+      playSadTrombone() {
+        try {
+          const ctx = this.getContext();
+          if (!ctx) return;
+          const now = ctx.currentTime;
+
+          // 4 notes: D4 -> C#4 -> C4 -> B3 mournfully sliding down to E3
+          const notes = [
+            { freq: 293.66, start: 0, dur: 0.35 },
+            { freq: 277.18, start: 0.38, dur: 0.35 },
+            { freq: 261.63, start: 0.76, dur: 0.38 },
+            { freq: 246.94, start: 1.18, dur: 2.1, slideTo: 164.81 },
+          ];
+
+          for (const n of notes) {
+            const noteStart = now + n.start;
+            const noteDur = n.dur;
+
+            // Rich brass trombone timbre: warm triangle body + sawtooth buzz
+            const osc = ctx.createOscillator();
+            const osc2 = ctx.createOscillator();
+            osc.type = "sawtooth";
+            osc2.type = "triangle";
+
+            osc.frequency.setValueAtTime(n.freq, noteStart);
+            osc2.frequency.setValueAtTime(n.freq, noteStart);
+
+            // Slide down on the last note after holding pitch steady for a moment
+            if (n.slideTo) {
+              const slideStart = noteStart + 0.35;
+              const slideEnd = noteStart + noteDur * 0.92;
+              osc.frequency.setValueAtTime(n.freq, slideStart);
+              osc.frequency.exponentialRampToValueAtTime(n.slideTo, slideEnd);
+              osc2.frequency.setValueAtTime(n.freq, slideStart);
+              osc2.frequency.exponentialRampToValueAtTime(n.slideTo, slideEnd);
+            }
+
+            // Wah-wah plunger filter envelope: opens up ("wah") then mutes down warmly
+            const filter = ctx.createBiquadFilter();
+            filter.type = "lowpass";
+            filter.Q.setValueAtTime(2.2, noteStart); // warm, gentle resonance without harsh feedback
+            filter.frequency.setValueAtTime(420, noteStart);
+            filter.frequency.exponentialRampToValueAtTime(1400, noteStart + 0.08);
+
+            if (n.slideTo) {
+              filter.frequency.exponentialRampToValueAtTime(280, noteStart + noteDur * 0.85);
+            } else {
+              filter.frequency.exponentialRampToValueAtTime(450, noteStart + noteDur * 0.75);
+            }
+
+            // Volume envelope: smooth linear ramps to absolute 0 to prevent any clicks or pops
+            const gain = ctx.createGain();
+            gain.gain.setValueAtTime(0.0001, noteStart);
+            gain.gain.linearRampToValueAtTime(0.24, noteStart + 0.05);
+
+            if (n.slideTo) {
+              gain.gain.setValueAtTime(0.24, noteStart + 0.55);
+              gain.gain.linearRampToValueAtTime(0.16, noteStart + noteDur * 0.75);
+              gain.gain.linearRampToValueAtTime(0, noteStart + noteDur);
+            } else {
+              gain.gain.setValueAtTime(0.22, noteStart + noteDur * 0.65);
+              gain.gain.linearRampToValueAtTime(0, noteStart + noteDur);
+            }
+
+            osc.connect(filter);
+            osc2.connect(filter);
+            filter.connect(gain);
+            gain.connect(ctx.destination);
+
+            // Oscillators stop safely AFTER gain is completely 0
+            osc.start(noteStart);
+            osc.stop(noteStart + noteDur + 0.05);
+            osc2.start(noteStart);
+            osc2.stop(noteStart + noteDur + 0.05);
+          }
+        } catch(e) {}
+      }
+
+      // Comical wet squelch / splat ("звук с которым наступаешь в говно")
+      playSquish() {
+        try {
+          const ctx = this.getContext();
+          if (!ctx) return;
+          const now = ctx.currentTime;
+
+          // 1. Viscous low squelch impact (heavy wet drop)
+          const osc = ctx.createOscillator();
+          const oscGain = ctx.createGain();
+          osc.type = "sine";
+          osc.frequency.setValueAtTime(160, now);
+          osc.frequency.exponentialRampToValueAtTime(42, now + 0.12);
+          oscGain.gain.setValueAtTime(0.28, now);
+          oscGain.gain.linearRampToValueAtTime(0, now + 0.12);
+          osc.connect(oscGain);
+          oscGain.connect(ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.14);
+
+          // 2. Wet suction / squirt burst (bandpass filtered noise)
+          const noiseBuffer = ctx.createBuffer(1, Math.floor(ctx.sampleRate * 0.14), ctx.sampleRate);
+          const data = noiseBuffer.getChannelData(0);
+          for (let i = 0; i < data.length; i++) {
+            data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (ctx.sampleRate * 0.04));
+          }
+          const noise = ctx.createBufferSource();
+          noise.buffer = noiseBuffer;
+
+          const bpFilter = ctx.createBiquadFilter();
+          bpFilter.type = "bandpass";
+          bpFilter.Q.setValueAtTime(5.5, now);
+          bpFilter.frequency.setValueAtTime(1450, now);
+          bpFilter.frequency.exponentialRampToValueAtTime(320, now + 0.13);
+
+          const noiseGain = ctx.createGain();
+          noiseGain.gain.setValueAtTime(0.35, now);
+          noiseGain.gain.linearRampToValueAtTime(0, now + 0.14);
+
+          noise.connect(bpFilter);
+          bpFilter.connect(noiseGain);
+          noiseGain.connect(ctx.destination);
+          noise.start(now);
+
+          // 3. Wet suction bubble release chirp ("shlup-pop")
+          const chirp = ctx.createOscillator();
+          const chirpGain = ctx.createGain();
+          chirp.type = "triangle";
+          const chirpStart = now + 0.02;
+          chirp.frequency.setValueAtTime(480, chirpStart);
+          chirp.frequency.exponentialRampToValueAtTime(85, chirpStart + 0.05);
+          chirpGain.gain.setValueAtTime(0.18, chirpStart);
+          chirpGain.gain.linearRampToValueAtTime(0, chirpStart + 0.05);
+          chirp.connect(chirpGain);
+          chirpGain.connect(ctx.destination);
+          chirp.start(chirpStart);
+          chirp.stop(chirpStart + 0.06);
+        } catch(e) {}
+      }
+
+      playSadThud() {
+        try {
+          const ctx = this.getContext();
+          if (!ctx) return;
+          const now = ctx.currentTime;
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = "sine";
+          osc.frequency.setValueAtTime(110, now);
+          osc.frequency.exponentialRampToValueAtTime(40, now + 0.12);
+          gain.gain.setValueAtTime(0.14, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.13);
+        } catch(e) {}
+      }
+    }
+
+    const audio = new AudioSynth();
+    document.addEventListener("click", () => audio.getContext(), { once: true });
+
+    // State
+    let currentMode = "victory"; // "victory" or "defeat"
+    let storyVisible = true;
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
+
+    let width = (canvas.width = window.innerWidth);
+    let height = (canvas.height = window.innerHeight);
+
+    window.addEventListener("resize", () => {
+      width = canvas.width = window.innerWidth;
+      height = canvas.height = window.innerHeight;
+    });
+
+    const rockets = [];
+    const sparks = [];
+    const dice = [];
+    const banners = [];
+    const sadParticles = [];
+    const mudSplats = [];
+    let nextSpawnTime = 0;
+
+    function spawnMudSplat(x, y) {
+      const mudColors = ["#3d2314", "#4a2e1b", "#5a3825", "#6b4423", "#2c1810", "#78350f", "#451a03"];
+      const dropletCount = Math.floor(Math.random() * 8) + 14;
+      for (let k = 0; k < dropletCount; k++) {
+        const angle = -Math.PI * (0.15 + Math.random() * 0.7);
+        const speed = Math.random() * 6.5 + 2.5;
+        mudSplats.push({
+          x: x + (Math.random() - 0.5) * 16,
+          y: y - 2,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          color: mudColors[Math.floor(Math.random() * mudColors.length)],
+          size: Math.random() * 3.5 + 2,
+          alpha: 1,
+          decay: Math.random() * 0.018 + 0.012,
+          gravity: 0.22,
+        });
+      }
+
+      mudSplats.push({
+        x: x,
+        y: y + 2,
+        vx: 0,
+        vy: 0,
+        color: mudColors[0],
+        size: 6,
+        alpha: 0.85,
+        decay: 0.015,
+        gravity: 0,
+        isGroundPuddle: true,
+        radiusX: 8,
+        radiusY: 3.5,
+        maxRadius: Math.random() * 14 + 22,
+      });
+    }
+
+    function launchRocket(startX, targetY, payload = "normal") {
+      const x = startX ?? (width * 0.15 + Math.random() * (width * 0.7));
+      const tY = targetY ?? (height * 0.15 + Math.random() * (height * 0.35));
+      const dist = height - tY;
+      const speed = Math.sqrt(2 * 0.22 * dist);
+      const color = FIREWORK_COLORS[Math.floor(Math.random() * FIREWORK_COLORS.length)];
+
+      rockets.push({
+        x,
+        y: height,
+        targetY: tY,
+        vx: (Math.random() - 0.5) * 1.5,
+        vy: -speed,
+        color,
+        trail: [],
+        burstPayload: payload,
+      });
+
+      audio.playLaunch();
+    }
+
+    function spawnDie(x, y, vx, vy, kind, forcedValue, isDefeat) {
+      const paletteList = isDefeat ? SAD_DICE_PALETTES : VICTORY_DICE_PALETTES;
+      const palette = paletteList[Math.floor(Math.random() * paletteList.length)];
+      const chosenKind = kind ?? (Math.random() < 0.65 ? "d20" : Math.random() < 0.5 ? "d8" : "d6");
+      let val = forcedValue;
+      if (!val) {
+        if (isDefeat) {
+          if (chosenKind === "d20") {
+            const rand = Math.random();
+            val = rand < 0.45 ? "1" : rand < 0.75 ? "NAT 1" : "1";
+          } else {
+            val = "1";
+          }
+        } else {
+          if (chosenKind === "d20") {
+            const rand = Math.random();
+            val = rand < 0.3 ? "20" : rand < 0.5 ? "NAT 20" : String(Math.floor(Math.random() * 19) + 1);
+          } else if (chosenKind === "d8") {
+            val = String(Math.floor(Math.random() * 8) + 1);
+          } else {
+            val = String(Math.floor(Math.random() * 6) + 1);
+          }
+        }
+      }
+
+      dice.push({
+        kind: chosenKind,
+        x,
+        y,
+        vx: vx ?? (Math.random() - 0.5) * (isDefeat ? 4 : 8),
+        vy: vy ?? (isDefeat ? Math.random() * 3 + 2.5 : -(Math.random() * 6 + 4)),
+        size: Math.random() * 12 + 32,
+        rotX: Math.random() * Math.PI * 2,
+        rotY: Math.random() * Math.PI * 2,
+        rotZ: Math.random() * Math.PI * 2,
+        vRotX: (Math.random() - 0.5) * (isDefeat ? 0.05 : 0.08),
+        vRotY: (Math.random() - 0.5) * (isDefeat ? 0.05 : 0.08),
+        vRotZ: (Math.random() - 0.5) * (isDefeat ? 0.05 : 0.08),
+        palette,
+        value: val,
+        alpha: 1,
+        sparkles: [],
+        bounceCount: 0,
+        isDefeat: !!isDefeat,
+      });
+    }
+
+    function explodeRocket(rocket) {
+      audio.playExplosion();
+
+      const particleCount = rocket.burstPayload === "grand_finale" ? 220 : 160;
+      for (let i = 0; i < particleCount; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = Math.random() * 9 + 2;
+        sparks.push({
+          x: rocket.x,
+          y: rocket.y,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          color: Math.random() < 0.2 ? "#ffffff" : rocket.color,
+          alpha: 1,
+          decay: Math.random() * 0.014 + 0.01,
+          size: Math.random() * 3.5 + 1.5,
+          gravity: 0.12,
+          friction: 0.96,
+          flicker: Math.random() < 0.35,
+        });
+      }
+
+      if (rocket.burstPayload === "dice_burst" || rocket.burstPayload === "grand_finale") {
+        audio.playFanfare();
+        const diceCount = rocket.burstPayload === "grand_finale" ? 9 : 5;
+        for (let i = 0; i < diceCount; i++) {
+          const angle = ((Math.PI * 2) / diceCount) * i + (Math.random() - 0.5) * 0.4;
+          const speed = Math.random() * 5.5 + 3.5;
+          spawnDie(
+            rocket.x,
+            rocket.y,
+            Math.cos(angle) * speed,
+            Math.sin(angle) * speed - 2.5,
+            i === 0 ? "d20" : undefined,
+            i === 0 ? "20" : undefined,
+            false,
+          );
+        }
+
+        const bannerText = VICTORY_BANNERS[Math.floor(Math.random() * VICTORY_BANNERS.length)];
+        banners.push({
+          text: bannerText,
+          x: rocket.x,
+          y: rocket.y - 20,
+          vy: -0.3,
+          alpha: 1,
+          scale: 0.85,
+          color: rocket.color,
+          age: 0,
+          fadeStart: 4500, // 4.5 seconds at 100% opacity!
+          maxAge: 7000,    // 7.0 seconds total lifespan
+          isDefeat: false,
+        });
+      }
+    }
+
+    function triggerVolley() {
+      rockets.length = 0;
+      sparks.length = 0;
+      dice.length = 0;
+      banners.length = 0;
+      sadParticles.length = 0;
+
+      banners.push({
+        text: "⚔️ ВЕЛИКАЯ ПОБЕДА! ⚔️",
+        x: width / 2,
+        y: height * 0.35,
+        vy: -0.25,
+        alpha: 1,
+        scale: 1.1,
+        color: "#f59e0b",
+        age: 0,
+        fadeStart: 4500,
+        maxAge: 7000,
+        isDefeat: false,
+      });
+
+      const wave1 = [
+        { x: width * 0.18, targetY: height * 0.28, delay: 0, payload: "dice_burst" },
+        { x: width * 0.42, targetY: height * 0.22, delay: 120, payload: "normal" },
+        { x: width * 0.65, targetY: height * 0.25, delay: 240, payload: "dice_burst" },
+        { x: width * 0.84, targetY: height * 0.30, delay: 360, payload: "normal" },
+      ];
+
+      const wave2 = [
+        { x: width * 0.28, targetY: height * 0.18, delay: 550, payload: "dice_burst" },
+        { x: width * 0.50, targetY: height * 0.14, delay: 700, payload: "grand_finale" },
+        { x: width * 0.72, targetY: height * 0.20, delay: 850, payload: "dice_burst" },
+        { x: width * 0.14, targetY: height * 0.26, delay: 1000, payload: "normal" },
+        { x: width * 0.88, targetY: height * 0.24, delay: 1150, payload: "dice_burst" },
+      ];
+
+      const wave3 = [
+        { x: width * 0.35, targetY: height * 0.15, delay: 1400, payload: "grand_finale" },
+        { x: width * 0.65, targetY: height * 0.16, delay: 1600, payload: "grand_finale" },
+        { x: width * 0.50, targetY: height * 0.12, delay: 1800, payload: "grand_finale" },
+      ];
+
+      [...wave1, ...wave2, ...wave3].forEach(r => {
+        setTimeout(() => launchRocket(r.x + (Math.random() - 0.5) * 40, r.targetY, r.payload), r.delay);
+      });
+
+      setTimeout(() => {
+        spawnDie(width * 0.20, height, 2 + Math.random() * 3, -(Math.random() * 5 + 15), "d20", "20", false);
+        spawnDie(width * 0.80, height, -(2 + Math.random() * 3), -(Math.random() * 5 + 15), "d20", "NAT 20", false);
+      }, 250);
+
+      setTimeout(() => {
+        spawnDie(width * 0.38, height, (Math.random() - 0.5) * 4, -(Math.random() * 6 + 16), "d20", "CRIT", false);
+        spawnDie(width * 0.62, height, (Math.random() - 0.5) * 4, -(Math.random() * 6 + 16), "d20", "20", false);
+      }, 550);
+
+      setTimeout(() => {
+        spawnDie(width * 0.10, height, 3 + Math.random() * 3, -(Math.random() * 5 + 14), "d8", "8", false);
+        spawnDie(width * 0.90, height, -(3 + Math.random() * 3), -(Math.random() * 5 + 14), "d6", "6", false);
+      }, 850);
+    }
+
+    function triggerDefeatVolley() {
+      rockets.length = 0;
+      sparks.length = 0;
+      dice.length = 0;
+      banners.length = 0;
+      sadParticles.length = 0;
+      mudSplats.length = 0;
+
+      // Sad Trombone Audio ("wah-wah-wah-waaaah" clean, distortion-free ending)
+      audio.playSadTrombone();
+
+      banners.push({
+        text: "💀 ПОЛНЫЙ ПРОЁБ 💀",
+        x: width / 2,
+        y: height * 0.35,
+        vy: -0.2,
+        alpha: 1,
+        scale: 1.1,
+        color: "#ef4444",
+        age: 0,
+        fadeStart: 4500, // 4.5 seconds at 100% opacity!
+        maxAge: 7000,    // 7.0 seconds total
+        isDefeat: true,
+      });
+
+      // Atmospheric gloom: burst of dark embers/rain from the top
+      for (let i = 0; i < 60; i++) {
+        sadParticles.push({
+          x: Math.random() * width,
+          y: -10 - Math.random() * 50,
+          vx: (Math.random() - 0.5) * 2,
+          vy: Math.random() * 5 + 4,
+          length: Math.random() * 18 + 8,
+          size: Math.random() * 2 + 1,
+          color: Math.random() < 0.35 ? "#991b1b" : Math.random() < 0.6 ? "#475569" : "#334155",
+          alpha: Math.random() * 0.5 + 0.4,
+        });
+      }
+
+      // Wave 1 (t = 0): 5 large 3D dice plummeting across screen
+      spawnDie(width * 0.15, -40, (Math.random() - 0.5) * 2, Math.random() * 2 + 2.2, "d20", "1", true);
+      spawnDie(width * 0.32, -50, (Math.random() - 0.5) * 2, Math.random() * 2 + 2.6, "d20", "NAT 1", true);
+      spawnDie(width * 0.50, -40, (Math.random() - 0.5) * 2, Math.random() * 2 + 3.0, "d20", "1", true);
+      spawnDie(width * 0.68, -45, (Math.random() - 0.5) * 2, Math.random() * 2 + 2.4, "d8", "1", true);
+      spawnDie(width * 0.85, -40, (Math.random() - 0.5) * 2, Math.random() * 2 + 2.8, "d6", "1", true);
+
+      // Wave 2 (t = 400ms): 4 more tumbling 3D dice
+      setTimeout(() => {
+        spawnDie(width * 0.24, -40, (Math.random() - 0.5) * 2, Math.random() * 2 + 2.5, "d20", "NAT 1", true);
+        spawnDie(width * 0.44, -45, (Math.random() - 0.5) * 2, Math.random() * 2 + 2.8, "d6", "1", true);
+        spawnDie(width * 0.62, -40, (Math.random() - 0.5) * 2, Math.random() * 2 + 2.4, "d20", "1", true);
+        spawnDie(width * 0.80, -45, (Math.random() - 0.5) * 2, Math.random() * 2 + 2.7, "d8", "1", true);
+      }, 400);
+
+      // Wave 3 (t = 850ms): 5 more falling dice + second banner
+      setTimeout(() => {
+        spawnDie(width * 0.12, -40, (Math.random() - 0.5) * 2, Math.random() * 2 + 3.0, "d20", "1", true);
+        spawnDie(width * 0.36, -45, (Math.random() - 0.5) * 2, Math.random() * 2 + 2.6, "d20", "NAT 1", true);
+        spawnDie(width * 0.52, -40, (Math.random() - 0.5) * 2, Math.random() * 2 + 3.2, "d20", "1", true);
+        spawnDie(width * 0.72, -45, (Math.random() - 0.5) * 2, Math.random() * 2 + 2.7, "d6", "1", true);
+        spawnDie(width * 0.90, -40, (Math.random() - 0.5) * 2, Math.random() * 2 + 2.9, "d20", "NAT 1", true);
+
+        banners.push({
+          text: "🎲 НАТУРАЛЬНАЯ 1 🎲",
+          x: width * 0.5,
+          y: height * 0.55,
+          vy: -0.2,
+          alpha: 1,
+          scale: 1.0,
+          color: "#94a3b8",
+          age: 0,
+          fadeStart: 4500,
+          maxAge: 7000,
+          isDefeat: true,
+        });
+      }, 850);
+
+      // Wave 4 (t = 1350ms): 4 more tumbling dice
+      setTimeout(() => {
+        spawnDie(width * 0.20, -40, (Math.random() - 0.5) * 2, Math.random() * 2 + 2.8, "d20", "1", true);
+        spawnDie(width * 0.40, -45, (Math.random() - 0.5) * 2, Math.random() * 2 + 3.1, "d8", "1", true);
+        spawnDie(width * 0.60, -40, (Math.random() - 0.5) * 2, Math.random() * 2 + 2.6, "d20", "NAT 1", true);
+        spawnDie(width * 0.82, -45, (Math.random() - 0.5) * 2, Math.random() * 2 + 3.0, "d6", "1", true);
+      }, 1350);
+
+      // Wave 5 (t = 1900ms): 4 more tumbling dice + third banner
+      setTimeout(() => {
+        spawnDie(width * 0.28, -40, (Math.random() - 0.5) * 2, Math.random() * 2 + 3.0, "d20", "NAT 1", true);
+        spawnDie(width * 0.48, -45, (Math.random() - 0.5) * 2, Math.random() * 2 + 2.8, "d20", "1", true);
+        spawnDie(width * 0.70, -40, (Math.random() - 0.5) * 2, Math.random() * 2 + 3.2, "d8", "1", true);
+        spawnDie(width * 0.88, -45, (Math.random() - 0.5) * 2, Math.random() * 2 + 2.9, "d20", "1", true);
+
+        banners.push({
+          text: "⚰️ ОТРЯД ПОВЕРЖЕН (TPK) ⚰️",
+          x: width * 0.5,
+          y: height * 0.70,
+          vy: -0.2,
+          alpha: 1,
+          scale: 0.95,
+          color: "#dc2626",
+          age: 0,
+          fadeStart: 4500,
+          maxAge: 7000,
+          isDefeat: true,
+        });
+      }, 1900);
+    }
+
+    function setMode(mode) {
+      currentMode = mode;
+      const topBar = document.getElementById("topBar");
+      const btnVictory = document.getElementById("btnVictory");
+      const btnDefeat = document.getElementById("btnDefeat");
+      const statusIcon = document.getElementById("statusIcon");
+      const titleText = document.getElementById("titleText");
+      const subtitleText = document.getElementById("subtitleText");
+      const btnAction = document.getElementById("btnAction");
+      const storyCard = document.getElementById("storyCard");
+      const storyTitle = document.getElementById("storyTitle");
+      const storyBody = document.getElementById("storyBody");
+
+      if (mode === "defeat") {
+        topBar.classList.add("defeat-theme");
+        btnVictory.classList.remove("active");
+        btnDefeat.classList.add("active");
+        statusIcon.textContent = "💀";
+        titleText.textContent = "Проклятие Страда — Поражение отряда (TPK)";
+        subtitleText.textContent = "Кубики были неумолимы... На них выпали единички. Покойтесь с миром.";
+        btnAction.textContent = "🎲 Уронить ещё единичек!";
+
+        storyCard.classList.add("defeat-card");
+        storyTitle.textContent = "⚰️ Посмертная эпитафия павшим героям";
+        storyBody.innerHTML = "Тьма сгустилась над Баровией. Последний герой пал, сжимая в руке расколотый клинок. Судьба бросила кости, и они выпали предательскими единичками. Ваши тела покроет холодный туман, но память о дерзкой попытке бросить вызов року останется в шёпоте теней. Отряд полностью разбит (TPK).";
+
+        triggerDefeatVolley();
+      } else {
+        topBar.classList.remove("defeat-theme");
+        btnDefeat.classList.remove("active");
+        btnVictory.classList.add("active");
+        statusIcon.textContent = "🏆";
+        titleText.textContent = "Проклятие Страда — Великая Победа!";
+        subtitleText.textContent = "Салют легендарным героям! Все боги славят отряд.";
+        btnAction.textContent = "🎆 Запустить ещё салют!";
+
+        storyCard.classList.remove("defeat-card");
+        storyTitle.textContent = "👑 Триумф легендарных героев";
+        storyBody.innerHTML = "Пыль эпической битвы медленно оседает. Враг повержен, и замок Баровии озаряется первыми лучами рассвета за долгие столетия. Ваши имена вписаны в скрижали славы, и барды во всех уголках королевства будут слагать песни о вашей отваге, хитрости и нерушимом братстве. Кампания завершилась полным триумфом!";
+
+        triggerVolley();
+        audio.playFanfare();
+      }
+    }
+
+    function triggerCurrentAction() {
+      if (currentMode === "defeat") {
+        triggerDefeatVolley();
+      } else {
+        triggerVolley();
+        audio.playFanfare();
+      }
+    }
+
+    function testTrombone() {
+      audio.playSadTrombone();
+    }
+
+    function testSquish() {
+      audio.playSquish();
+    }
+
+    function toggleAudio() {
+      audio.enabled = !audio.enabled;
+      document.getElementById("btnAudioToggle").textContent = audio.enabled ? "🔊" : "🔇";
+    }
+
+    function toggleStory() {
+      storyVisible = !storyVisible;
+      document.getElementById("storyOverlay").style.display = storyVisible ? "flex" : "none";
+    }
+
+    // Main animation loop
+    let lastTime = performance.now();
+
+    function render(time) {
+      const dt = Math.min((time - lastTime) / 1000, 0.1);
+      lastTime = time;
+
+      ctx.clearRect(0, 0, width, height);
+
+      // Defeat vignette
+      if (currentMode === "defeat") {
+        const vigGrad = ctx.createRadialGradient(
+          width / 2, height / 2, width * 0.2,
+          width / 2, height / 2, Math.max(width, height) * 0.75
+        );
+        vigGrad.addColorStop(0, "rgba(0, 0, 0, 0.1)");
+        vigGrad.addColorStop(1, "rgba(25, 8, 12, 0.65)");
+        ctx.fillStyle = vigGrad;
+        ctx.fillRect(0, 0, width, height);
+      }
+
+      // Auto-scheduler
+      if (time > nextSpawnTime) {
+        if (currentMode === "defeat") {
+          spawnDie(
+            width * 0.15 + Math.random() * (width * 0.7),
+            -40,
+            (Math.random() - 0.5) * 2,
+            Math.random() * 2 + 2,
+            Math.random() < 0.7 ? "d20" : "d6",
+            Math.random() < 0.4 ? "NAT 1" : "1",
+            true
+          );
+          if (Math.random() < 0.4) {
+            banners.push({
+              text: DEFEAT_BANNERS[Math.floor(Math.random() * DEFEAT_BANNERS.length)],
+              x: width * 0.2 + Math.random() * (width * 0.6),
+              y: height * (0.35 + Math.random() * 0.3),
+              vy: -0.2,
+              alpha: 1,
+              scale: 0.9,
+              color: "#ef4444",
+              age: 0,
+              fadeStart: 4500,
+              maxAge: 7000,
+              isDefeat: true,
+            });
+          }
+          nextSpawnTime = time + 1800 + Math.random() * 2000;
+        } else {
+          const payload = Math.random() < 0.25 ? "grand_finale" : Math.random() < 0.65 ? "dice_burst" : "normal";
+          launchRocket(undefined, undefined, payload);
+          nextSpawnTime = time + 1000 + Math.random() * 1200;
+        }
+      }
+
+      // 0. Sad falling rain & ash streaks
+      if (currentMode === "defeat") {
+        while (sadParticles.length < 80) {
+          sadParticles.push({
+            x: Math.random() * width,
+            y: -20 - Math.random() * 40,
+            vx: (Math.random() - 0.5) * 1.5 - 0.5,
+            vy: Math.random() * 6 + 5,
+            length: Math.random() * 16 + 10,
+            size: Math.random() * 1.8 + 0.8,
+            color: Math.random() < 0.25 ? "#7f1d1d" : Math.random() < 0.5 ? "#64748b" : "#475569",
+            alpha: Math.random() * 0.4 + 0.3,
+          });
+        }
+
+        for (let i = sadParticles.length - 1; i >= 0; i--) {
+          const p = sadParticles[i];
+          p.x += p.vx;
+          p.y += p.vy;
+
+          if (p.y > height + 30) {
+            sadParticles.splice(i, 1);
+            continue;
+          }
+
+          ctx.strokeStyle = p.color;
+          ctx.globalAlpha = p.alpha;
+          ctx.lineWidth = p.size;
+          ctx.beginPath();
+          ctx.moveTo(p.x, p.y);
+          ctx.lineTo(p.x - p.vx * 2, p.y - p.length);
+          ctx.stroke();
+        }
+      }
+
+      // 1. Rockets (Victory)
+      for (let i = rockets.length - 1; i >= 0; i--) {
+        const r = rockets[i];
+        r.x += r.vx;
+        r.y += r.vy;
+        r.vy += 0.22;
+
+        r.trail.push({ x: r.x, y: r.y, alpha: 1, size: Math.random() * 2 + 2 });
+        if (r.trail.length > 12) r.trail.shift();
+
+        for (const pt of r.trail) {
+          ctx.fillStyle = r.color;
+          ctx.globalAlpha = pt.alpha * 0.7;
+          ctx.beginPath();
+          ctx.arc(pt.x, pt.y, pt.size, 0, Math.PI * 2);
+          ctx.fill();
+          pt.alpha -= 0.08;
+        }
+
+        ctx.fillStyle = "#ffffff";
+        ctx.globalAlpha = 1;
+        ctx.beginPath();
+        ctx.arc(r.x, r.y, 3, 0, Math.PI * 2);
+        ctx.fill();
+
+        if (r.vy >= 0 || r.y <= r.targetY) {
+          explodeRocket(r);
+          rockets.splice(i, 1);
+        }
+      }
+
+      // 2. Sparks
+      for (let i = sparks.length - 1; i >= 0; i--) {
+        const s = sparks[i];
+        s.x += s.vx;
+        s.y += s.vy;
+        s.vx *= s.friction;
+        s.vy *= s.friction;
+        s.vy += s.gravity;
+        s.alpha -= s.decay;
+
+        if (s.alpha <= 0) {
+          sparks.splice(i, 1);
+          continue;
+        }
+
+        ctx.fillStyle = s.color;
+        ctx.globalAlpha = s.flicker && Math.random() < 0.3 ? s.alpha * 0.4 : s.alpha;
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // 2.5 UPDATE & DRAW MUD / SQUELCH SPLATS ("брызги говна / грязи")
+      for (let i = mudSplats.length - 1; i >= 0; i--) {
+        const splat = mudSplats[i];
+        splat.x += splat.vx;
+        splat.y += splat.vy;
+        splat.vy += splat.gravity;
+        splat.alpha -= splat.decay;
+
+        if (splat.alpha <= 0) {
+          mudSplats.splice(i, 1);
+          continue;
+        }
+
+        ctx.save();
+        ctx.globalAlpha = splat.alpha;
+        ctx.fillStyle = splat.color;
+
+        if (splat.isGroundPuddle) {
+          if (splat.radiusX && splat.maxRadius && splat.radiusX < splat.maxRadius) {
+            splat.radiusX += 1.2;
+            splat.radiusY = (splat.radiusY || 3) + 0.4;
+          }
+          ctx.beginPath();
+          ctx.ellipse(splat.x, splat.y, splat.radiusX || 12, splat.radiusY || 4, 0, 0, Math.PI * 2);
+          ctx.fill();
+        } else {
+          ctx.beginPath();
+          ctx.arc(splat.x, splat.y, splat.size, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.restore();
+      }
+
+      // 3. 3D Dice
+      for (let i = dice.length - 1; i >= 0; i--) {
+        const die = dice[i];
+        die.x += die.vx;
+        die.y += die.vy;
+
+        if (currentMode === "defeat" || die.isDefeat) {
+          die.vy += 0.24; // solid gravity pulling dice down
+          const groundY = height - die.size * 0.72;
+
+          // Single comical bounce off the bottom:
+          // Triggers strictly once when die hits bottom for the first time
+          if (die.y >= groundY && die.vy > 0 && die.bounceCount === 0) {
+            die.bounceCount = 1;
+            die.y = groundY;
+            // Exactly one bounce upward:
+            die.vy = -(Math.abs(die.vy) * 0.46 + 3.2);
+            die.vx = (Math.random() - 0.5) * 4;
+            // Increased comical spin tumble
+            die.vRotX = (Math.random() - 0.5) * 0.18;
+            die.vRotY = (Math.random() - 0.5) * 0.18;
+            die.vRotZ = (Math.random() - 0.5) * 0.18;
+
+            // Play the comical "stepping into shit" squelch sound!
+            audio.playSquish();
+
+            // Spawn mud & poop splat droplets and puddle ring
+            spawnMudSplat(die.x, groundY + die.size * 0.3);
+          }
+          // After bounceCount is 1:
+          // Die arcs up, gravity turns it back down, and on its second descent
+          // it does NOT bounce again! It flies straight down past height + 80 and disappears!
+        } else {
+          die.vy += 0.28;
+        }
+
+        die.rotX += die.vRotX;
+        die.rotY += die.vRotY;
+        die.rotZ += die.vRotZ;
+
+        if (Math.random() < 0.45) {
+          die.sparkles.push({
+            x: die.x + (Math.random() - 0.5) * die.size,
+            y: die.y + (Math.random() - 0.5) * die.size,
+            alpha: 1,
+            color: die.palette.sparkle,
+            size: Math.random() * 2.5 + 1,
+          });
+        }
+
+        for (let j = die.sparkles.length - 1; j >= 0; j--) {
+          const spk = die.sparkles[j];
+          spk.alpha -= 0.05;
+          if (spk.alpha <= 0) {
+            die.sparkles.splice(j, 1);
+            continue;
+          }
+          ctx.fillStyle = spk.color;
+          ctx.globalAlpha = spk.alpha * die.alpha;
+          ctx.beginPath();
+          ctx.arc(spk.x, spk.y, spk.size, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        if (die.y > height + 80) {
+          dice.splice(i, 1);
+          continue;
+        }
+
+        ctx.save();
+        ctx.translate(die.x, die.y);
+        ctx.globalAlpha = die.alpha;
+
+        const glowRad = die.size * 1.5;
+        const glowGrad = ctx.createRadialGradient(0, 0, die.size * 0.3, 0, 0, glowRad);
+        glowGrad.addColorStop(0, die.palette.sparkle + "55");
+        glowGrad.addColorStop(1, "transparent");
+        ctx.fillStyle = glowGrad;
+        ctx.beginPath();
+        ctx.arc(0, 0, glowRad, 0, Math.PI * 2);
+        ctx.fill();
+
+        const cosX = Math.cos(die.rotX), sinX = Math.sin(die.rotX);
+        const cosY = Math.cos(die.rotY), sinY = Math.sin(die.rotY);
+        const cosZ = Math.cos(die.rotZ), sinZ = Math.sin(die.rotZ);
+
+        const rotate3D = (v) => {
+          let y1 = v[1] * cosX - v[2] * sinX;
+          let z1 = v[1] * sinX + v[2] * cosX;
+          let x2 = v[0] * cosY + z1 * sinY;
+          let z2 = -v[0] * sinY + z1 * cosY;
+          let x3 = x2 * cosZ - y1 * sinZ;
+          let y3 = x2 * sinZ + y1 * cosZ;
+          return [x3, y3, z2];
+        };
+
+        const lightDir = [0.577, -0.577, 0.577];
+
+        if (die.kind === "d20") {
+          const transformed = D20_VERTICES.map(rotate3D);
+          let bestFaceZ = -1;
+          let bestFaceCenter = [0, 0];
+
+          for (const face of D20_FACES) {
+            const p0 = transformed[face[0]];
+            const p1 = transformed[face[1]];
+            const p2 = transformed[face[2]];
+
+            const ax = p1[0] - p0[0], ay = p1[1] - p0[1], az = p1[2] - p0[2];
+            const bx = p2[0] - p0[0], by = p2[1] - p0[1], bz = p2[2] - p0[2];
+            const nx = ay * bz - az * by;
+            const ny = az * bx - ax * bz;
+            const nz = ax * by - ay * bx;
+
+            if (nz <= 0) continue;
+
+            const nLen = Math.hypot(nx, ny, nz) || 1;
+            const normX = nx / nLen, normY = ny / nLen, normZ = nz / nLen;
+            const dot = Math.max(0.25, normX * lightDir[0] + normY * lightDir[1] + normZ * lightDir[2]);
+
+            const r = Math.min(255, Math.floor(die.palette.fill[0] * (dot * 0.8 + 0.4)));
+            const g = Math.min(255, Math.floor(die.palette.fill[1] * (dot * 0.8 + 0.4)));
+            const b = Math.min(255, Math.floor(die.palette.fill[2] * (dot * 0.8 + 0.4)));
+
+            ctx.fillStyle = `rgb(${r},${g},${b})`;
+            ctx.strokeStyle = die.palette.edge;
+            ctx.lineWidth = 1.2;
+
+            ctx.beginPath();
+            ctx.moveTo(p0[0] * die.size, p0[1] * die.size);
+            ctx.lineTo(p1[0] * die.size, p1[1] * die.size);
+            ctx.lineTo(p2[0] * die.size, p2[1] * die.size);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+
+            if (normZ > bestFaceZ) {
+              bestFaceZ = normZ;
+              bestFaceCenter = [
+                ((p0[0] + p1[0] + p2[0]) / 3) * die.size,
+                ((p0[1] + p1[1] + p2[1]) / 3) * die.size,
+              ];
+            }
+          }
+
+          if (bestFaceZ > 0.65) {
+            ctx.fillStyle = die.palette.text;
+            ctx.font = `bold ${Math.round(die.size * 0.44)}px -apple-system, sans-serif`;
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.shadowColor = "#000000";
+            ctx.shadowBlur = 4;
+            ctx.fillText(die.value, bestFaceCenter[0], bestFaceCenter[1]);
+            ctx.shadowBlur = 0;
+          }
+        } else if (die.kind === "d8") {
+          const transformed = D8_VERTICES.map(rotate3D);
+          let bestFaceZ = -1;
+          let bestFaceCenter = [0, 0];
+
+          for (const face of D8_FACES) {
+            const p0 = transformed[face[0]];
+            const p1 = transformed[face[1]];
+            const p2 = transformed[face[2]];
+
+            const ax = p1[0] - p0[0], ay = p1[1] - p0[1], az = p1[2] - p0[2];
+            const bx = p2[0] - p0[0], by = p2[1] - p0[1], bz = p2[2] - p0[2];
+            const nx = ay * bz - az * by;
+            const ny = az * bx - ax * bz;
+            const nz = ax * by - ay * bx;
+
+            if (nz <= 0) continue;
+
+            const nLen = Math.hypot(nx, ny, nz) || 1;
+            const normX = nx / nLen, normY = ny / nLen, normZ = nz / nLen;
+            const dot = Math.max(0.25, normX * lightDir[0] + normY * lightDir[1] + normZ * lightDir[2]);
+
+            const r = Math.min(255, Math.floor(die.palette.fill[0] * (dot * 0.8 + 0.4)));
+            const g = Math.min(255, Math.floor(die.palette.fill[1] * (dot * 0.8 + 0.4)));
+            const b = Math.min(255, Math.floor(die.palette.fill[2] * (dot * 0.8 + 0.4)));
+
+            ctx.fillStyle = `rgb(${r},${g},${b})`;
+            ctx.strokeStyle = die.palette.edge;
+            ctx.lineWidth = 1.2;
+
+            ctx.beginPath();
+            ctx.moveTo(p0[0] * die.size, p0[1] * die.size);
+            ctx.lineTo(p1[0] * die.size, p1[1] * die.size);
+            ctx.lineTo(p2[0] * die.size, p2[1] * die.size);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+
+            if (normZ > bestFaceZ) {
+              bestFaceZ = normZ;
+              bestFaceCenter = [
+                ((p0[0] + p1[0] + p2[0]) / 3) * die.size,
+                ((p0[1] + p1[1] + p2[1]) / 3) * die.size,
+              ];
+            }
+          }
+
+          if (bestFaceZ > 0.65) {
+            ctx.fillStyle = die.palette.text;
+            ctx.font = `bold ${Math.round(die.size * 0.48)}px -apple-system, sans-serif`;
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText(die.value, bestFaceCenter[0], bestFaceCenter[1]);
+          }
+        } else {
+          // d6 (Cube)
+          const transformed = D6_VERTICES.map(rotate3D);
+          let bestFaceZ = -1;
+          let bestFaceCenter = [0, 0];
+
+          for (const face of D6_FACES) {
+            const p0 = transformed[face[0]];
+            const p1 = transformed[face[1]];
+            const p2 = transformed[face[2]];
+            const p3 = transformed[face[3]];
+
+            const ax = p1[0] - p0[0], ay = p1[1] - p0[1], az = p1[2] - p0[2];
+            const bx = p2[0] - p0[0], by = p2[1] - p0[1], bz = p2[2] - p0[2];
+            const nx = ay * bz - az * by;
+            const ny = az * bx - ax * bz;
+            const nz = ax * by - ay * bx;
+
+            if (nz <= 0) continue;
+
+            const nLen = Math.hypot(nx, ny, nz) || 1;
+            const normX = nx / nLen, normY = ny / nLen, normZ = nz / nLen;
+            const dot = Math.max(0.25, normX * lightDir[0] + normY * lightDir[1] + normZ * lightDir[2]);
+
+            const r = Math.min(255, Math.floor(die.palette.fill[0] * (dot * 0.8 + 0.4)));
+            const g = Math.min(255, Math.floor(die.palette.fill[1] * (dot * 0.8 + 0.4)));
+            const b = Math.min(255, Math.floor(die.palette.fill[2] * (dot * 0.8 + 0.4)));
+
+            ctx.fillStyle = `rgb(${r},${g},${b})`;
+            ctx.strokeStyle = die.palette.edge;
+            ctx.lineWidth = 1.2;
+
+            ctx.beginPath();
+            ctx.moveTo(p0[0] * die.size, p0[1] * die.size);
+            ctx.lineTo(p1[0] * die.size, p1[1] * die.size);
+            ctx.lineTo(p2[0] * die.size, p2[1] * die.size);
+            ctx.lineTo(p3[0] * die.size, p3[1] * die.size);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+
+            if (normZ > bestFaceZ) {
+              bestFaceZ = normZ;
+              bestFaceCenter = [
+                ((p0[0] + p1[0] + p2[0] + p3[0]) / 4) * die.size,
+                ((p0[1] + p1[1] + p2[1] + p3[1]) / 4) * die.size,
+              ];
+            }
+          }
+
+          if (bestFaceZ > 0.65) {
+            ctx.fillStyle = die.palette.text;
+            ctx.font = `bold ${Math.round(die.size * 0.52)}px -apple-system, sans-serif`;
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText(die.value, bestFaceCenter[0], bestFaceCenter[1]);
+          }
+        }
+
+        ctx.restore();
+      }
+
+      // 4. Floating Banners (7s readable duration + frosted pill card)
+      for (let i = banners.length - 1; i >= 0; i--) {
+        const b = banners[i];
+        b.age += dt * 1000;
+        b.y += b.vy * (dt * 60);
+
+        if (b.age < b.fadeStart) {
+          b.alpha = 1;
+        } else {
+          b.alpha = Math.max(0, 1 - (b.age - b.fadeStart) / (b.maxAge - b.fadeStart));
+        }
+
+        if (b.age >= b.maxAge || b.alpha <= 0) {
+          banners.splice(i, 1);
+          continue;
+        }
+
+        ctx.save();
+        ctx.translate(b.x, b.y);
+        ctx.scale(b.scale, b.scale);
+        ctx.globalAlpha = b.alpha;
+
+        ctx.font = "bold 20px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+
+        const textMetrics = ctx.measureText(b.text);
+        const textWidth = textMetrics.width;
+        const boxWidth = textWidth + 36;
+        const boxHeight = 42;
+
+        ctx.fillStyle = b.isDefeat ? "rgba(18, 12, 16, 0.9)" : "rgba(12, 10, 8, 0.88)";
+        ctx.strokeStyle = b.color;
+        ctx.lineWidth = 2;
+        ctx.shadowColor = b.color;
+        ctx.shadowBlur = 14;
+
+        ctx.beginPath();
+        if (typeof ctx.roundRect === "function") {
+          ctx.roundRect(-boxWidth / 2, -boxHeight / 2, boxWidth, boxHeight, 14);
+        } else {
+          ctx.rect(-boxWidth / 2, -boxHeight / 2, boxWidth, boxHeight);
+        }
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = "#ffffff";
+        ctx.fillText(b.text, 0, 0);
+
+        ctx.restore();
+      }
+
+      requestAnimationFrame(render);
+    }
+
+    // Start initial victory volley
+    triggerVolley();
+    requestAnimationFrame(render);
+  </script>
+</body>
+</html>

@@ -34,6 +34,7 @@ function fixture() {
   const spatial = { spatialEnabled: () => false };
   const route = loadSource('src/app/api/campaigns/[campaignId]/actions/route.ts', {
     zod: { z }, '@/lib/spatial/service': spatial,
+    '@/lib/db/core': f.core, '@/lib/db/commit-effects': f.effects,
     '@/lib/i18n/locale-text': { localeText: (locale, values) => values[locale] },
     '@/lib/ingress-budget': { enforcePlayerIngress: () => null },
     '@/lib/campaign-api': { requireVoice: async () => ({ campaign, user: { id: userId } }), isErrorResponse: () => false },

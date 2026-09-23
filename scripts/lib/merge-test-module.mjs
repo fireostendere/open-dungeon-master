@@ -2,7 +2,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 const require = createRequire(import.meta.url);
 const ts = require('typescript');
 const srcRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../src');
@@ -29,7 +29,10 @@ export function loadModule(filename, mocks = {}) {
     }
     return localRequire(name);
   };
-  new Function('require', 'module', 'exports', '__filename', '__dirname', output.outputText)(
+  const code = output.outputText.includes('import.meta')
+    ? output.outputText.replace(/\bimport\.meta\.url\b/g, JSON.stringify(pathToFileURL(filename).href))
+    : output.outputText;
+  new Function('require', 'module', 'exports', '__filename', '__dirname', code)(
     resolveDep, localModule, localModule.exports, filename, path.dirname(filename));
   return localModule.exports;
 }

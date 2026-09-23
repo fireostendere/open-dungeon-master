@@ -1,7 +1,7 @@
 # bugfix2: review fixes and validation
 
-Base: `a4f3149843569a3dfc2a22aceff5ec984ce0eeac` (remote main observed at branch creation).
-The remote main did not yet contain the earlier `astra-bugfix` commit; its spatial changes were ported explicitly without dropping main's new RakoBot action feed. No main ref or live campaign was modified.
+Initial base: `a4f3149843569a3dfc2a22aceff5ec984ce0eeac` (remote main observed at branch creation).
+Final synchronization includes main `a8a961102f280aed3212cd189e804c67958db90f`, including the intervening astra-bugfix merge, voice-room changes, UI changes and test-harness updates. The overlapping spatial service preserves main's RakoBot feed while resolving autopilot positions and deduplicating side effects inside first-apply callbacks. Main's spatial store was verified identical to the reviewed store. No main ref or live campaign was modified.
 
 ## Coverage
 

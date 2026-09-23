@@ -22,7 +22,7 @@ export function SessionChatColumn({
   state, campaignId, meUserId, steersStory, visible, askOpen,
   loadOlderMessages,
   onAskOpenChange, refreshAsks, refreshFacts, onError, onLoreCheck, onRenarrate, onPinned,
-  onOpenClosingMessage, hasOpenedFinale, children,
+  onOpenClosingMessage, hasOpenedFinale, defaultMode, children,
 }: {
   state: CampaignState;
   loadOlderMessages: () => Promise<boolean>;
@@ -40,6 +40,7 @@ export function SessionChatColumn({
   onPinned: () => void;
   onOpenClosingMessage?: () => void;
   hasOpenedFinale?: boolean;
+  defaultMode?: "victory" | "defeat";
   children: ReactNode;
 }) {
   const { locale } = useI18n();
@@ -115,6 +116,7 @@ export function SessionChatColumn({
         <ClosingMessageBanner
           campaignTitle={campaign.title}
           hasOpened={Boolean(hasOpenedFinale)}
+          defaultMode={defaultMode}
           onOpenClosingMessage={onOpenClosingMessage ?? (() => {})}
         />
       ) : null}
