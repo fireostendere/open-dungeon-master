@@ -41,6 +41,9 @@ function fixture({ blocked = "", breakStatus = false, breakEvent = false } = {})
           db.exec("ALTER TABLE campaign_events ADD COLUMN audience_json TEXT");
       },
     },
+    "@/lib/integrations/rakobot": { queueLegacyPlayerEvent() {}, queuePlayerAction() {} },
+    "@/lib/voice/location-access": { voiceAccess: () => ({ scope: "global", members: new Set(), rooms: new Map() }), getVoiceScope: () => "global", setVoiceScope() {} },
+    "@/lib/voice/location-policy": { mayShareVoice: () => true, projectVoiceRoster: (_a, _u, p) => p },
   });
   const unsubscribe = events.subscribe("c", (chunk) => delivered.push(chunk));
   const service = load("src/lib/progress/service.ts", {

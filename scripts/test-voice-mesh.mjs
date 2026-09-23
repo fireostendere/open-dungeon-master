@@ -19,6 +19,8 @@ register("./lib/register-alias.mjs", import.meta.url);
 const { politeIn, stalePeerIds, meshRosterEntries, MESH_STALE_MS } = await import(
   "../src/lib/voice/mesh-logic.ts"
 );
+const { saveGlobalConfig } = await import("../src/lib/db/app-settings.ts");
+saveGlobalConfig({ voiceChat: { mode: "mesh" } });
 const { meshJoin, meshLeave, meshHeartbeat, meshSignal, meshSetState, meshRosterFor, meshJoined } =
   await import("../src/lib/voice/mesh.ts");
 const { subscribe } = await import("../src/lib/events.ts");

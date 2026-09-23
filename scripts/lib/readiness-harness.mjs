@@ -3,7 +3,7 @@
 // does not claim to boot Next, a browser, SQLCipher, or an external model.
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { createRequire } from 'node:module';
 import { DatabaseSync } from 'node:sqlite';
 import ts from 'typescript';
@@ -28,7 +28,10 @@ export function loadSource(relative, dependencies = {}) {
     if (name.startsWith('node:')) return nativeRequire(name);
     throw new Error(`Unsubstituted dependency ${name} in ${relative}`);
   };
-  new Function('module', 'exports', 'require', `${compiled.outputText}\n//# sourceURL=${filename}`)(localModule, localModule.exports, scopedRequire);
+  const code = compiled.outputText.includes('import.meta')
+    ? compiled.outputText.replace(/\bimport\.meta\.url\b/g, JSON.stringify(pathToFileURL(filename).href))
+    : compiled.outputText;
+  new Function('module', 'exports', 'require', `${code}\n//# sourceURL=${filename}`)(localModule, localModule.exports, scopedRequire);
   return localModule.exports;
 }
 
@@ -62,11 +65,18 @@ export function sqliteFixture() {
     setFloor: (id, floor) => db.prepare('UPDATE campaigns SET floor_json = ? WHERE id = ?').run(JSON.stringify(floor), id),
   };
   const effects = loadSource('src/lib/db/commit-effects.ts');
-  const events = loadSource('src/lib/events.ts', {
+  const eventsCore = loadSource('src/lib/events-core.ts', {
+    '@/lib/integrations/rakobot': { queueLegacyPlayerEvent() {} },
     '@/lib/db/core': core, '@/lib/db/campaigns': campaigns, '@/lib/db/commit-effects': effects,
     // This fixture is a non-spatial table. Spatial privacy has its own suites.
     '@/lib/spatial/event-policy': { captureEventAudience() {}, eventSpatialState: () => ({ enabled: false }), campaignEventProjector: () => ({ projectEvent: event => event, projectLive: chunk => chunk }) },
     '@/lib/spatial/event-privacy': { captureEventAudience: () => null, ensureEventAudienceColumn() {}, projectEventForUser: (_campaign, _user, event) => event },
+  });
+  const events = loadSource('src/lib/events.ts', {
+    '@/lib/events-core': eventsCore,
+    '@/lib/spatial/event-privacy': { captureEventAudience: () => null, ensureEventAudienceColumn() {}, projectEventForUser: (_campaign, _user, event) => event },
+    '@/lib/voice/location-access': { voiceAccess: () => ({ members: [] }) },
+    '@/lib/voice/location-policy': { mayShareVoice: () => true, projectVoiceRoster: () => [] },
   });
   const transactions = loadSource('src/lib/dm/tool-transaction.ts', { '@/lib/db/core': core, '@/lib/db/commit-effects': effects });
   const messages = {

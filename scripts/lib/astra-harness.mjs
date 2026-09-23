@@ -43,6 +43,7 @@ export async function astraHarness(t){
   capsFor:(campaign,userId)=>({role:db.prepare('SELECT role FROM members WHERE campaign_id=? AND user_id=?').get(campaign.id,userId)?.role}),
   allocateSeq:id=>db.prepare('UPDATE campaigns SET next_seq=next_seq+1 WHERE id=? RETURNING next_seq-1 AS seq').get(id).seq,
   latestSeq:id=>db.prepare('SELECT next_seq-1 AS seq FROM campaigns WHERE id=?').get(id).seq,
+  touchCampaign:()=>{},
  };
  campaigns.getCampaignForUser=(id,userId)=>campaigns.listMembers(id).some(m=>m.userId===userId)?campaigns.getCampaignById(id):null;
  const contextFor=id=>{const campaign=campaigns.getCampaignForUser(id,identity);return campaign?{user:{id:identity},campaign}:Response.json({error:'Not found'},{status:404});};
@@ -55,7 +56,7 @@ export async function astraHarness(t){
   runSpatialCommand:()=>({ok:true}),
  };
  const schema=new Proxy({}, {get:(_target,name)=>name==='safeParse'?data=>({success:data!==null&&data!==undefined,data:{title:'',...data}}):()=>schema});
- const sheets={getSheetById:id=>{const row=db.prepare('SELECT * FROM character_sheets WHERE id=?').get(id);return row?{id:row.id,userId:row.user_id,campaignId:row.campaign_id}:null;},listSheets:id=>db.prepare('SELECT id,user_id AS userId,campaign_id AS campaignId FROM character_sheets WHERE campaign_id=?').all(id)};
+ const sheets={getSheetById:id=>{const row=db.prepare('SELECT * FROM character_sheets WHERE id=?').get(id);return row?{id:row.id,userId:row.user_id,campaignId:row.campaign_id}:null;},listSheets:id=>db.prepare('SELECT id,user_id AS userId,campaign_id AS campaignId FROM character_sheets WHERE campaign_id=?').all(id),getSheetForUser:(campaignId,userId)=>{const row=db.prepare('SELECT * FROM character_sheets WHERE campaign_id=? AND user_id=?').get(campaignId,userId);return row?{id:row.id,userId:row.user_id,campaignId:row.campaign_id}:null;}};
  const embeddingCalls=[];
  const values={
   'node:crypto':{...crypto,default:crypto},'node:async_hooks':{AsyncLocalStorage},

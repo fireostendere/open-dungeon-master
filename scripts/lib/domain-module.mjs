@@ -4,6 +4,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
+import { pathToFileURL } from 'node:url';
 const require = createRequire(import.meta.url);
 const ts = require('typescript');
 const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '../..');
@@ -23,7 +24,10 @@ export function domainModules(mocks) {
     if(errors.length) throw new Error(ts.formatDiagnostics(errors,{getCanonicalFileName:f=>f,getCurrentDirectory:()=>root,getNewLine:()=> '\n'}));
     const module={exports:{}};cache.set(filename,module);
     const localRequire=dep=>dep.startsWith('.')?load(path.resolve(path.dirname(filename),dep)):load(dep);
-    new Function('require','module','exports',result.outputText)(localRequire,module,module.exports);
+    const code = result.outputText.includes('import.meta')
+      ? result.outputText.replace(/\bimport\.meta\.url\b/g, JSON.stringify(pathToFileURL(filename).href))
+      : result.outputText;
+    new Function('require','module','exports',code)(localRequire,module,module.exports);
     return module.exports;
   }
   return load;

@@ -57,7 +57,10 @@ function fixture(t) {
   const eventPrivacy=load('src/lib/spatial/event-privacy.ts',{'@/lib/db/core':core,'@/lib/db/campaigns':campaignApi});
   const eventPolicy={captureEventAudience(){},eventSpatialState:()=>({enabled:false,startSeq:0}),campaignEventProjector:()=>({projectEvent:event=>event,projectLive:chunk=>chunk})};
   const events=load('src/lib/events.ts',{'@/lib/db/core':core,'@/lib/db/campaigns':campaignApi,'@/lib/db/commit-effects':effects,
-    '@/lib/spatial/event-policy':eventPolicy,'@/lib/spatial/event-privacy':eventPrivacy});
+    '@/lib/spatial/event-policy':eventPolicy,'@/lib/spatial/event-privacy':eventPrivacy,
+    '@/lib/integrations/rakobot':{queueLegacyPlayerEvent(){},queuePlayerAction(){}},
+    '@/lib/voice/location-access':{voiceAccess:()=>({scope:'global',members:new Set(['alice','bob','dm']),rooms:new Map()}),getVoiceScope:()=>'global',setVoiceScope(){}},
+    '@/lib/voice/location-policy':{mayShareVoice:()=>true,projectVoiceRoster:(_a,_u,p)=>p}});
   const asks=load('src/lib/db/asks.ts',{'@/lib/db/core':core});
   const savedMessages=id=>db.prepare('SELECT seq,author_type AS authorType,content FROM campaign_messages WHERE campaign_id=? ORDER BY seq').all(id);
   const narrator=load('src/lib/mcp-narrator-control.ts',{

@@ -131,21 +131,13 @@ export function SessionView({
   const [helpOpen, setHelpOpen] = useState(false);
   const [closingModalOpen, setClosingModalOpen] = useState(false);
   const [celebrationActive, setCelebrationActive] = useState(false);
+  const [celebrationMode, setCelebrationMode] = useState<"victory" | "defeat">("victory");
   const [hasOpenedFinale, setHasOpenedFinale] = useState(false);
 
   useEffect(() => {
     if (typeof window !== "undefined" && campaign?.id) {
       const seen = window.localStorage.getItem(`odm:seen_finale_${campaign.id}`);
       setHasOpenedFinale(Boolean(seen));
-    }
-  }, [campaign?.id]);
-
-  const openClosingMessage = useCallback(() => {
-    setCelebrationActive(false);
-    setClosingModalOpen(true);
-    setHasOpenedFinale(true);
-    if (typeof window !== "undefined" && campaign?.id) {
-      window.localStorage.setItem(`odm:seen_finale_${campaign.id}`, "true");
     }
   }, [campaign?.id]);
 
@@ -158,6 +150,39 @@ export function SessionView({
     }
     return null;
   }, [campaign?.status, messages]);
+
+  const defaultCelebrationMode = useMemo<"victory" | "defeat">(() => {
+    const allDead =
+      sheets.length > 0 &&
+      sheets.every((s) => {
+        const hp = s.currentHp ?? (s as { hp?: { current?: number } }).hp?.current;
+        return hp !== undefined ? hp <= 0 : false;
+      });
+    if (allDead) return "defeat";
+
+    const content = closingDmMessage?.content?.toLowerCase() || "";
+    if (
+      /(поражени|погиб|разбит|провал|смерт|пали|пал |про[ёе]б|tpk|wipe|defeat|slain|died|perished|party fell)/i.test(
+        content,
+      )
+    ) {
+      return "defeat";
+    }
+    return "victory";
+  }, [sheets, closingDmMessage?.content]);
+
+  const openClosingMessage = useCallback(
+    (mode?: "victory" | "defeat") => {
+      setCelebrationActive(false);
+      setCelebrationMode(mode ?? defaultCelebrationMode);
+      setClosingModalOpen(true);
+      setHasOpenedFinale(true);
+      if (typeof window !== "undefined" && campaign?.id) {
+        window.localStorage.setItem(`odm:seen_finale_${campaign.id}`, "true");
+      }
+    },
+    [campaign?.id, defaultCelebrationMode],
+  );
 
   // The guided tour on screen, if any: the player's or the DM's.
   const [tour, setTour] = useState<"player" | "dm" | null>(null);
@@ -495,6 +520,7 @@ export function SessionView({
           onPinned={bumpPins}
           onOpenClosingMessage={openClosingMessage}
           hasOpenedFinale={hasOpenedFinale}
+          defaultMode={defaultCelebrationMode}
         >
           {needsCharacter ? (
             <CharacterGate campaignId={campaign.id} />
@@ -695,7 +721,9 @@ export function SessionView({
         campaignTitle={campaign.title}
         message={closingDmMessage}
         sheets={sheets}
-        onTriggerCelebration={() => {
+        defaultMode={defaultCelebrationMode}
+        onTriggerCelebration={(mode) => {
+          setCelebrationMode(mode ?? defaultCelebrationMode);
           setCelebrationActive(false);
           setTimeout(() => setCelebrationActive(true), 20);
         }}
@@ -703,8 +731,11 @@ export function SessionView({
 
       <EndingCelebration
         active={celebrationActive}
+        mode={celebrationMode}
         onClose={() => setCelebrationActive(false)}
         campaignTitle={campaign.title}
+        closingMessage={closingDmMessage?.content}
+        onModeChange={(nextMode) => setCelebrationMode(nextMode)}
       />
     </main>
   );

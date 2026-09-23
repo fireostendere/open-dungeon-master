@@ -12,6 +12,9 @@ export function publishEphemeral(campaignId: string, type: string, payload: unkn
     return bus.publishEphemeral(campaignId, type, payload, scope);
   }
   const access = voiceAccess(campaignId);
+  if (access.scope !== "location") {
+    return bus.publishEphemeral(campaignId, type, payload, scope);
+  }
   const body = payload as { peers?: VoiceRosterEntry[]; userId?: string } | null;
   for (const userId of access.members) {
     if (type === "voice_roster") {

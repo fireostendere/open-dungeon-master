@@ -18,7 +18,7 @@ const DICE_COPY = {
     advantage: "Advantage (2d20)", disadvantage: "Disadvantage (2d20)", tapDie: "Click the die to roll", dieResult: "🎲 Die result (d20)",
     total: "TOTAL:", noBonus: "A straight roll without modifiers", fate: "Fate decides...", rollDie: "ROLL THE DIE", tap3d: "or click the 3D die",
     criticalSuccess: "★ CRITICAL SUCCESS! ★", criticalFailure: "☠ CRITICAL FAILURE! ☠", success: "SUCCESS!", failure: "FAILURE!",
-    reroll: "REROLL WITH INSPIRATION", remaining: "Remaining:", dismiss: "Click anywhere to close",
+    reroll: "REROLL WITH INSPIRATION", remaining: "Remaining:", dismiss: "Click anywhere to close", reveal: "Click to reveal the result", closeAfterReveal: "Click again to close",
   },
   ru: {
     ability: "Характеристика", dexterity: "Ловкость", strength: "Сила", wisdom: "Мудрость", charisma: "Харизма", intelligence: "Интеллект",
@@ -29,7 +29,7 @@ const DICE_COPY = {
     advantage: "Преимущество (2d20)", disadvantage: "Помеха (2d20)", tapDie: "Нажмите на кубик, чтобы бросить", dieResult: "🎲 Результат кубика (d20)",
     total: "ИТОГ:", noBonus: "Чистый бросок без дополнительных модификаторов", fate: "Судьба решает...", rollDie: "БРОСИТЬ КУБИК", tap3d: "или нажмите прямо на 3D кубик",
     criticalSuccess: "★ КРИТИЧЕСКИЙ УСПЕХ! ★", criticalFailure: "☠ КРИТИЧЕСКИЙ ПРОВАЛ! ☠", success: "УСПЕХ!", failure: "НЕУДАЧА!",
-    reroll: "ПЕРЕБРОСИТЬ ЗА ВДОХНОВЕНИЕ", remaining: "Осталось:", dismiss: "Нажмите в любое место, чтобы закрыть",
+    reroll: "ПЕРЕБРОСИТЬ ЗА ВДОХНОВЕНИЕ", remaining: "Осталось:", dismiss: "Нажмите в любое место, чтобы закрыть", reveal: "Нажмите, чтобы показать результат", closeAfterReveal: "Нажмите ещё раз, чтобы закрыть",
   },
 } as const;
 type DiceCopy = { [K in keyof typeof DICE_COPY.en]: string };
@@ -279,6 +279,8 @@ export function Bg3DiceOverlay({
   const origTitleRef = useRef<string>("");
   const dismissedPendingIds = useRef<Set<string>>(new Set());
   const submittingRef = useRef<boolean>(false);
+  const skipAnimationRef = useRef(false);
+  const resultRevealClickedRef = useRef(false);
 
   if (!initializedRef.current) {
     initializedRef.current = true;
@@ -372,6 +374,8 @@ export function Bg3DiceOverlay({
 
   // --- Start 3D Rolling Animation ---
   const startRollAnimation = useCallback((rollData: Bg3RollData) => {
+    skipAnimationRef.current = false;
+    resultRevealClickedRef.current = false;
     setActiveRoll(rollData);
     setPhase("rolling");
 
@@ -425,6 +429,10 @@ export function Bg3DiceOverlay({
       const dt = Math.min(100, Math.max(0, now - lastFrameTime));
       lastFrameTime = now;
       activeElapsed += dt;
+      if (skipAnimationRef.current) {
+        activeElapsed = duration + 3000;
+        skipAnimationRef.current = false;
+      }
 
       const progress = Math.min(1, activeElapsed / duration);
       const easeOut = 1 - Math.pow(1 - progress, 3);
@@ -1002,9 +1010,14 @@ export function Bg3DiceOverlay({
 
   const headerTitle = activeDc !== null ? copy.dc : activeKind === "attack" ? copy.attack : activeKind === "saving_throw" ? copy.save : copy.check;
 
-  const handleCardClick = (e: React.MouseEvent | React.TouchEvent) => {
+  const handleCardClick = (e: React.MouseEvent) => {
     if (phase === "prompt") {
       e.stopPropagation();
+      return;
+    }
+    if ((phase === "rolling" || phase === "landed") && !resultRevealClickedRef.current) {
+      resultRevealClickedRef.current = true;
+      skipAnimationRef.current = true;
       return;
     }
     dismiss();
@@ -1015,7 +1028,6 @@ export function Bg3DiceOverlay({
       role="dialog"
       aria-modal="true"
       onClick={handleCardClick}
-      onTouchEnd={handleCardClick}
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md transition-opacity duration-300 animate-fade-in select-none cursor-pointer"
     >
       <div
@@ -1296,10 +1308,13 @@ export function Bg3DiceOverlay({
           {(phase === "verdict" || phase === "landed") ? (
             <button
               type="button"
-              onClick={dismiss}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleCardClick(e);
+              }}
               className="mt-3 text-center text-xs tracking-widest text-amber-200/60 hover:text-amber-200 uppercase transition-colors"
             >
-              {copy.dismiss}
+              {phase === "landed" ? copy.reveal : resultRevealClickedRef.current ? copy.closeAfterReveal : copy.dismiss}
             </button>
           ) : null}
         </div>
