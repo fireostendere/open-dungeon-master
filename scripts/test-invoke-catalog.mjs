@@ -46,6 +46,10 @@ function toolNamesIn(relative) {
   for (const match of source.matchAll(/^\s*tool\(\s*\n?\s*"([a-z_]+)"/gm)) {
     names.add(match[1]);
   }
+  // The shared dispatcher is authoritative after hosted inference was removed.
+  if (relative.endsWith("invoke-dispatch.ts")) {
+    for (const match of source.matchAll(/case\s+"([a-z_]+)"\s*:/g)) names.add(match[1]);
+  }
   return names;
 }
 
@@ -69,12 +73,10 @@ const TOOL_SOURCES = [
   "src/lib/dm/resource-tools.ts",
   "src/lib/dm/companion-tools.ts",
   "src/lib/dm/cast-tools.ts",
-  "src/lib/dm/prompt.ts",
-  "src/lib/dm/prompt-core.ts",
   "src/lib/dm/note-tools.ts",
   "src/lib/dm/lore-search.ts",
   "src/lib/dm/split-damage.ts",
-  "src/lib/image-tool.ts",
+  "src/lib/dm/invoke-dispatch.ts",
 ];
 
 const aiToolNames = new Set();
@@ -195,6 +197,12 @@ test("combat and roll forms expose the handler's real argument names", () => {
   const rollFields = new Set(roll.fields.map((field) => field.name));
   assert.ok(rollFields.has("expression"));
   assert.ok(rollFields.has("targetEnemyId"));
+
+  const notice = adjudication("check_notice");
+  const noticeFields = new Set(notice.fields.map((field) => field.name));
+  assert.ok(noticeFields.has("sense"));
+  assert.ok(noticeFields.has("difficulty"));
+  assert.equal(noticeFields.has("skill"), false);
 });
 
 test("the console offers every entry exactly once", () => {

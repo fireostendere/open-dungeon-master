@@ -36,6 +36,7 @@ assert.equal(extendControlResult("server.status", { mcpControlActions: 0 }).mcpC
 assert.ok(capabilities.actions.includes("narrator.autopilot_action"), "external autopilot write must be advertised");
 assert.ok(capabilities.actions.includes("narrator.delete_message"), "external narrator must be able to delete transcript messages");
 assert.ok(capabilities.actions.includes("narrator.edit_message"), "external narrator must be able to edit transcript messages");
+assert.ok(capabilities.actions.includes("narrator.finish_global_round"), "external narrator must expose the spatial round finalizer");
 
 const dm = createUser("external_dm", "hash");
 const narratorHostA = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
@@ -388,18 +389,18 @@ await assert.rejects(() => executeMcpNarratorControl("narrator.answer_ask", { ..
 assert.equal((await executeMcpNarratorControl("narrator.read", { campaignId: oocCampaign.id })).result.asks.some(a => a.id === testAsk.id), false);
 
 // Optimizations verification: catalog summary & filter
-const fullCatalog = await executeMcpNarratorControl("narrator.catalog", {});
-const summaryCatalog = await executeMcpNarratorControl("narrator.catalog", { summaryOnly: true });
+const fullCatalog = await executeMcpNarratorControl("narrator.catalog", { campaignId: oocCampaign.id });
+const summaryCatalog = await executeMcpNarratorControl("narrator.catalog", { campaignId: oocCampaign.id, summaryOnly: true });
 assert.ok(fullCatalog.result.groups.length > 0);
 assert.ok(summaryCatalog.result.groups.length > 0);
 assert.ok(JSON.stringify(summaryCatalog.result).length < JSON.stringify(fullCatalog.result).length / 5, "summary catalog must be at least 5x smaller than full");
-const combatOnly = await executeMcpNarratorControl("narrator.catalog", { category: "combat" });
+const combatOnly = await executeMcpNarratorControl("narrator.catalog", { campaignId: oocCampaign.id, category: "combat" });
 assert.ok(combatOnly.result.groups.every(g => g.category === "combat"));
 const startEncounter = combatOnly.result.groups.flatMap(g => g.entries).find(entry => entry.name === "start_encounter");
 const roomFields = startEncounter.fields.filter(field => field.name === "roomId");
 assert.equal(roomFields.length, 1, "narrator catalog exposes one roomId field");
 assert.match(roomFields[0].help, /Required after location_enable/);
-const attackOnly = await executeMcpNarratorControl("narrator.catalog", { action: "pc_attack" });
+const attackOnly = await executeMcpNarratorControl("narrator.catalog", { campaignId: oocCampaign.id, action: "pc_attack" });
 assert.equal(attackOnly.result.groups[0].entries.length, 1);
 assert.equal(attackOnly.result.groups[0].entries[0].name, "pc_attack");
 

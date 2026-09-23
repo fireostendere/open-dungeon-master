@@ -14,8 +14,8 @@ const roomId = '22222222-2222-4222-8222-222222222222';
 const modelInput = { intentId, roomId, expectedRevision: 1, kind: 'say', content: 'ONE_MESSAGE' };
 
 async function loader(stubs = {}, globals = {}) {
-  const context = vm.createContext({ console, fetch, Response, Request, URL, TextDecoder, TextEncoder, AbortController, AbortSignal,
-    crypto: crypto.webcrypto, setTimeout, clearTimeout, ...globals });
+  const context = vm.createContext({ console, fetch, Response, Request, URL, URLSearchParams, Headers, CustomEvent, TextDecoder, TextEncoder, AbortController, AbortSignal,
+    crypto: crypto.webcrypto, performance, setTimeout, clearTimeout, ...globals });
   const modules = new Map();
   async function load(name) {
     if (modules.has(name)) return modules.get(name);
@@ -24,9 +24,9 @@ async function loader(stubs = {}, globals = {}) {
       const values = stubs[name] || crypto;
       module = new vm.SyntheticModule(Object.keys(values), function () { for (const [key, value] of Object.entries(values)) this.setExport(key, value); }, { context });
     } else {
-      const path = name.startsWith('@/') ? `../src/${name.slice(2)}.ts` : name;
+      const path = name.startsWith('@/') ? `../src/${name.slice(2)}${/\.(?:ts|mjs)$/.test(name) ? '' : '.ts'}` : name;
       const source = readFileSync(new URL(path, import.meta.url), 'utf8');
-      module = new vm.SourceTextModule(stripTypeScriptTypes(source), { context, identifier: name });
+      module = new vm.SourceTextModule(path.endsWith('.ts') || path.endsWith('.tsx') ? stripTypeScriptTypes(source) : source, { context, identifier: name });
     }
     modules.set(name, module); await module.link(load); return module;
   }
@@ -175,20 +175,21 @@ test('R12: actual WebMCP callback retries a lost HTTP response without creating 
   });
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
   const origin = `http://127.0.0.1:${server.address().port}`;
-  const load = await loader({ react: { useEffect: effect => effects.push(effect) } }, {
-    document: { modelContext: { registerTool: async tool => { tools.push(tool); } } },
-    fetch: (url, init) => fetch(origin + url, init),
-  });
-  const { WebMcpLocationTools } = await load('../src/app/campaigns/[campaignId]/WebMcpLocationTools.tsx');
   let cleanup;
   try {
+    const load = await loader({ react: { useEffect: effect => effects.push(effect) } }, {
+      document: { modelContext: { registerTool: async tool => { tools.push(tool); } }, dispatchEvent: () => true },
+      fetch: (url, init) => fetch(origin + url, init),
+    });
+    const { WebMcpLocationTools } = await load('../src/app/campaigns/[campaignId]/WebMcpLocationTools.tsx');
     WebMcpLocationTools({ campaignId: 'c', userId: 'A' }); cleanup = effects[0](); await pause();
     const send = tools.find(tool => tool.name === 'odm_send_location_message'); assert.ok(send);
-    assert.ok(send.inputSchema.required.includes('intentId')); assert.ok(send.inputSchema.required.includes('expectedRevision'));
+    assert.ok(send.inputSchema.anyOf.some(branch => branch.required.includes('intentId')));
+    assert.ok(send.inputSchema.oneOf.some(branch => branch.required?.includes('expectedRevision')));
     await assert.rejects(send.execute(modelInput)); assert.equal((await send.execute(modelInput)).ok, true);
     assert.equal(commits, 1); assert.equal(bodies.length, 2); assert.equal(bodies[0], bodies[1]);
     cleanup(); await assert.rejects(send.execute(modelInput)); assert.equal(bodies.length, 2);
-  } finally { cleanup?.(); server.closeAllConnections(); await new Promise(resolve => server.close(resolve)); }
+  } finally { cleanup?.(); server.closeAllConnections(); server.close(); server.unref(); }
 });
 
 test('R13: actual HTTP route refuses a stale expected-user header before any read or command', async () => {

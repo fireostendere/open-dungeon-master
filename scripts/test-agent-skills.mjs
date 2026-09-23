@@ -39,7 +39,9 @@ for (const file of markdownFiles) {
 }
 const narrator = readFileSync(path.join(skillsRoot, "odm-narrator", "SKILL.md"), "utf8");
 const narratorContract = narrator.replace(/\s+/g, " ").toLowerCase();
-for (const phrase of ["start_encounter", "инициатив", "свежей генерации", "group_check"]) assert(narratorContract.includes(phrase), `narrator contract must mention ${phrase}`);
+for (const phrase of ["start_encounter", "инициатив", "свежей генерации", "group_check", "finish_global_round"]) assert(narratorContract.includes(phrase), `narrator contract must mention ${phrase}`);
 const policySkill = readFileSync(path.join(skillsRoot, "odm-dm-policy", "SKILL.md"), "utf8");
 assert(policySkill.includes("fun/freeform/cinematic-success"), "policy skill must prohibit implicit fun mode");
+const autopilot = readFileSync(path.join(skillsRoot, "dnd-doppelganger", "SKILL.md"), "utf8");
+assert(autopilot.includes("narrator.autopilot_action") && autopilot.includes("Сервер никогда не вызывает LLM"), "autopilot skill must preserve the host/server boundary");
 console.log(`agent skills: ${names.size} skills and local Markdown links verified`);

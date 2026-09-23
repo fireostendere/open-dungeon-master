@@ -15,15 +15,15 @@ description: "Внешний ведущий ODM: D&D-игра через MCP с 
 ## Быстрый игровой цикл
 
 - Один `connect` на подключение: `campaignId`, `projection: "live"`, `paged:true`,
-  `maxBytes:131072`. Его полный `state` заменяет начальный read. `delta:true` и
-  `includeAsks` допустимы только в `read`, а `sections` — только в `snapshot`.
+  `maxBytes:131072`, `stateDelta:true`. Он возвращает cursor metadata; baseline
+  состояния получите последующим полным `read`. `delta:true` и `includeAsks`
+  допустимы только в `read`, а `sections` — только в `snapshot`.
   Полный catalog не нужен: запрашивайте `catalog` с `action` для нужной механики
   и переиспользуйте её схему до смены контракта.
-- После полного чтения сохраняйте `sectionVersions`; передавайте их как
-  `knownSections` при следующем read и в `readAfter`. Пропущенные неизменившиеся
-  секции сохраняют прежние значения; это не пустые массивы. При смене
-  `timelineEpoch` сбросьте кэш и перечитайте. Без подтверждённой базовой версии
-  запрашивайте полный read, а не выдумывайте недостающие данные.
+- После полного чтения сохраняйте `stateDelta.revision`; передавайте его как
+  `knownStateRevision` при следующем read и в `readAfter`. Применяйте patch только
+  к совпадающим timeline/projection; `full:true` заменяет baseline. Legacy
+  `sectionVersions` остаётся допустимым. При смене `timelineEpoch` сбросьте кэш.
 - Для записи задавайте `readAfter: {afterSeq: <последний дочитанный cursor>,
   projection: "live", delta: true, knownSections: <sectionVersions>,
   maxBytes: 131072}`. Подтверждённые receipt + полный `state` заменяют отдельный
@@ -58,11 +58,11 @@ rolls. Храните `timelineEpoch`. Используйте
 последний `currentSeq` как `expectedSeq`, сохраните UUID `commandId` и точный
 payload до записи, затем проверьте attached readAfter state либо перечитайте. При ambiguous outcome повторяется не более
 одного раза только идентичный payload с тем же `commandId`; иначе checkpoint и
-оператор. Metadata `commandId`, `expectedVersion` и `timelineEpoch` передаёт
-текущий sidecar только с mandatory `mcp/external-tools-preload.mjs`; plain
-`server.mjs` этих полей не добавляет. `connect` возвращает snapshot в `result.state`
-(включая `currentSeq`/`timelineEpoch`), а `read` возвращает собственный snapshot;
-аргументы механики остаются в `args`.
+оператор. Публичная схема `odm_narrator` сохраняет `commandId`, `expectedVersion`
+и `timelineEpoch`; mandatory preload добавляет внешние tools и policy resource,
+но не владеет narrator-схемой. `connect(stateDelta:true)` возвращает cursor
+metadata, а baseline и последующие изменения приходят через `read`; аргументы
+механики остаются в `args`.
 
 `delete_message` — отдельная сериализованная story-write операция для удаления
 сообщения из основного transcript по точному `messageId`. Она может удалить
@@ -91,9 +91,10 @@ pins/beats, но не является откатом игры: броски, HP
 narration. `wait`, `release_floor` и `request_player_input` не закрывают общий
 раунд. В обычном общем чате `done` тоже не закрывает его: нужен финальный
 `narrate`. В spatial-режиме каждую комнату из `input.roomIds` сначала
-завершите отдельным `location_narrate`; только после этого `done` разрешает
-host выполнить внутренний no-prose finalizer раунда. При ошибке/остановке модели
-раунд остаётся locked; не подменяйте это ручным «завершить ход».
+завершите отдельным `location_narrate`; только после этого `done` разрешает host
+выполнить `finish_global_round` как no-prose finalizer. Он допустим только для
+spatial global-turn и требует тех же cursor/idempotency полей. При ошибке/остановке
+модели раунд остаётся locked; не подменяйте это ручным «завершить ход».
 
 `turnCollectionMinutes=0` означает отсутствие timeout, а
 `quorumDelayMinutes=0` — немедленное закрытие ввода при достижении кворума.
@@ -141,8 +142,9 @@ Tactics либо flanking автоматически. Ведущий не мен
 действием и ходом и ждите подтверждённый `roll_result`: исчезновение pending не
 является успехом. Не ловите перебросы: допустимы лишь предусмотренный правилом
 reroll или изменившиеся обстоятельства. Не повторяйте damage/resource spend.
-`group_check` не разрешён external narrator allowlist: используйте только текущий
-catalog и, когда правила требуют, индивидуальные `request_roll`.
+Если актуальный catalog содержит `group_check`, используйте его один раз для
+одной общей проверки нескольких персонажей. Для разных намерений или последствий
+используйте отдельные подходящие действия.
 
 ## Ask, шёпоты и отказ модели
 

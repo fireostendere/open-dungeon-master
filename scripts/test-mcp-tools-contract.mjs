@@ -20,7 +20,7 @@ function runSubprocess(code, { preload = true, env = {} } = {}) {
     ? `${mcpNodeModules}${path.delimiter}${existingNodePath}`
     : mcpNodeModules;
 
-  return spawnSync(process.execPath, args, {
+  const result = spawnSync(process.execPath, args, {
     cwd: root,
     env: {
       ...process.env,
@@ -29,9 +29,11 @@ function runSubprocess(code, { preload = true, env = {} } = {}) {
     },
     encoding: "utf8",
   });
+  if (result.error) throw result.error;
+  return result;
 }
 
-// 1. Verify that all 12 tools are registered when preload is active
+// 1. Verify that all 11 tools are registered when preload is active
 {
   const result = runSubprocess(`
     import {
@@ -73,13 +75,6 @@ function runSubprocess(code, { preload = true, env = {} } = {}) {
     if (!progressTool) {
       console.error("odm_progress is not registered!");
       process.exit(4);
-    }
-
-    // Verify odm_models is registered
-    const modelsTool = server._registeredTools["odm_models"];
-    if (!modelsTool) {
-      console.error("odm_models is not registered!");
-      process.exit(5);
     }
 
     const narratorTool = server._registeredTools["odm_narrator"];
@@ -144,8 +139,13 @@ function runSubprocess(code, { preload = true, env = {} } = {}) {
       content: "Corrected narration.",
     });
     const parsedFinalizer = narratorSchema.safeParse({
-      operation: "finish_global_round", campaignId: "11111111-1111-4111-8111-111111111111",
-      expectedSeq: 12, roundNumber: 4, mode: "complete",
+      operation: "finish_global_round",
+      campaignId: "11111111-1111-4111-8111-111111111111",
+      expectedSeq: 13,
+      commandId: "22222222-2222-4222-8222-222222222222",
+      timelineEpoch: validEpoch,
+      roundNumber: 4,
+      mode: "complete",
     });
     if (!parsedAutopilot.success || parsedAutopilot.data.characterId === undefined ||
         parsedAutopilot.data.roundNumber !== 4 || parsedAutopilot.data.kind !== "do") {
@@ -157,7 +157,8 @@ function runSubprocess(code, { preload = true, env = {} } = {}) {
       process.exit(12);
     }
     if (!parsedEdit.success || parsedEdit.data.content !== "Corrected narration." ||
-        !parsedFinalizer.success || parsedFinalizer.data.mode !== "complete") {
+        !parsedFinalizer.success || parsedFinalizer.data.mode !== "complete" ||
+        parsedFinalizer.data.roundNumber !== 4) {
       console.error("odm_narrator edit/finalizer schema is not discoverable");
       process.exit(13);
     }
@@ -192,14 +193,15 @@ function runSubprocess(code, { preload = true, env = {} } = {}) {
     0,
     `Preload test failed with status ${result.status}:\n${result.stderr || result.stdout}`
   );
+  assert.ok(result.stdout.trim(), `Preload test returned no payload:\n${result.stderr}`);
   const parsed = JSON.parse(result.stdout);
   assert.equal(parsed.ok, true);
-  assert.equal(parsed.toolsCount, 12);
+  assert.equal(parsed.toolsCount, 11);
   assert.ok(parsed.registered.includes("odm_assets"), "odm_assets must be registered");
   assert.ok(parsed.registered.includes("odm_progress"), "odm_progress must be registered");
-  assert.ok(parsed.registered.includes("odm_models"), "odm_models must be registered");
+  assert.ok(!parsed.registered.includes("odm_models"), "removed server model control must stay absent");
   assert.ok(parsed.registered.includes("odm_narrator"), "odm_narrator must be registered");
-  console.log("PASS mcp full tools contract with preload (12 tools verified)");
+  console.log("PASS mcp full tools contract with preload (11 tools verified)");
 }
 
 // 2. Verify that removing odm_assets or odm_progress throws contract violation
@@ -259,7 +261,7 @@ function runSubprocess(code, { preload = true, env = {} } = {}) {
     const server = createMcpServer();
     const registered = Object.keys(server._registeredTools || {}).sort();
 
-    // Verify all 10 base tools are registered
+    // Verify all 9 base tools are registered
     assertRegisteredTools(server, { expectPreload: false });
 
     // Verify that expecting preload fails
@@ -284,7 +286,7 @@ function runSubprocess(code, { preload = true, env = {} } = {}) {
   );
   const parsed = JSON.parse(result.stdout);
   assert.equal(parsed.ok, true);
-  assert.equal(parsed.baseCount, 10);
+  assert.equal(parsed.baseCount, 9);
   console.log("PASS base tools without preload correctly identified");
 }
 

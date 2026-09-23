@@ -133,6 +133,13 @@ class OpsTests(unittest.TestCase):
         manifest=self.c.manifest(self.c.active());app=manifest['services']['app']
         self.assertEqual(app['ports'],['127.0.0.1:13005:3005']);self.assertEqual(app['restart'],'unless-stopped')
         self.assertNotIn('replicas',json.dumps(manifest));self.assertNotIn('fixture-secret',json.dumps(manifest))
+    def test_managed_build_reuses_cached_multistage_dockerfile(self):
+        project=MODULE.parents[1];dockerfile=(project/'Dockerfile').read_text()
+        self.assertLess(dockerfile.index('COPY package.json package-lock.json ./'),dockerfile.index('RUN npm ci'))
+        self.assertLess(dockerfile.index('RUN npm ci'),dockerfile.index('COPY . .'))
+        self.assertIn('AS runner',dockerfile);self.assertIn('/app/deploy/db-tool.mjs ./deploy/db-tool.mjs',dockerfile)
+        controller=MODULE.read_text();self.assertIn("str(source / 'Dockerfile')",controller)
+        self.assertNotIn("source / 'deploy' / 'Dockerfile'",controller)
     def test_all_game_data_and_auth_are_persistent(self):
         mounts=self.c.manifest(self.c.active())['services']['app']['volumes']
         self.assertEqual(len(mounts),6);self.assertTrue(any(m['target']=='/app/provider-auth' for m in mounts))

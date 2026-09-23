@@ -2,7 +2,7 @@
 
 Основной способ установки — [два bootstrap-файла](installation.md), не запуск
 upstream образа `lebbi/open-dungeon-master:latest`. Управляемый образ собирается
-из выбранного коммита вашего форка через `deploy/Dockerfile`.
+из выбранного коммита вашего форка через корневой multi-stage `Dockerfile`.
 
 ## Размещение
 

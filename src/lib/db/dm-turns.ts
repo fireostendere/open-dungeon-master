@@ -1,5 +1,5 @@
 import { getDatabase, nowIso, parseJson } from "@/lib/db/core";
-import type { ChatMessage } from "@/lib/model-client";
+import type { ChatMessage } from "@/lib/dm/model";
 import type { Advantage } from "@/lib/dice";
 import type { RollKind } from "@/lib/db/rolls";
 import type { ContextTrace } from "@/lib/dm/context-budget";

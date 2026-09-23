@@ -34,12 +34,11 @@ redirect refusal and streaming/cancellation. It does not substitute admin rights
 | `odm_server` | health and capabilities |
 | `odm_users` | existing users and UUIDs |
 | `odm_campaigns` | campaigns/workshops, status, invitations |
-| `odm_campaign_settings` | rules, providers and DM mode |
+| `odm_campaign_settings` | rules, story/image settings and DM mode |
 | `odm_story` | scene, quests, outline, arc, events, notices |
 | `odm_members` | roster, join an existing user, party lead |
 | `odm_characters` | library characters and campaign instantiation |
 | `odm_sheets` | live campaign sheets |
-| `odm_models` | list/test/apply models and switch endpoints |
 | `odm_narrator` | connect/read/snapshot/catalog/invoke/narrate/edit_message/delete_message/autopilot_action/finish_global_round/set_floor/request_response/release_floor/answer_ask |
 | `odm_assets` | packs, jobs, leases, scoped upload/download, asset links |
 | `odm_progress` | revision-checked progress, party sync, finish receipts |

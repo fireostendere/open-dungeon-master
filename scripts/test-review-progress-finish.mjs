@@ -30,6 +30,17 @@ function fixture({ blocked = "", breakStatus = false, breakEvent = false } = {})
   const events = load("src/lib/events.ts", {
     "@/lib/db/core": { getDatabase: () => db, nowIso: () => new Date().toISOString(), parseJson: JSON.parse },
     "@/lib/db/campaigns": campaigns, "@/lib/db/commit-effects": effects,
+    "@/lib/spatial/event-policy": {
+      captureEventAudience() {}, eventSpatialState: () => ({ enabled: false }),
+      campaignEventProjector: () => ({ projectEvent: event => event, projectLive: chunk => chunk }),
+    },
+    "@/lib/spatial/event-privacy": {
+      captureEventAudience: () => null, projectEventForUser: (_campaignId, _userId, event) => event,
+      ensureEventAudienceColumn: () => {
+        if (!db.prepare("PRAGMA table_info(campaign_events)").all().some(column => column.name === "audience_json"))
+          db.exec("ALTER TABLE campaign_events ADD COLUMN audience_json TEXT");
+      },
+    },
   });
   const unsubscribe = events.subscribe("c", (chunk) => delivered.push(chunk));
   const service = load("src/lib/progress/service.ts", {

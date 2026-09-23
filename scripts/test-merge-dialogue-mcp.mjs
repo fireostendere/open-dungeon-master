@@ -51,15 +51,27 @@ function fixture(t) {
   const effects=load('src/lib/db/commit-effects.ts');
   const campaigns=new Map([A,B].map(id=>[id,{id,kind:'campaign',status:'active',dmUserId:'dm',gameSettings:{dmMode:'human',ttsEnabled:false,mapsEnabled:false,language:'ru'},floor:{mode:'open'}}]));
   let seq=0,invoked=0,modelCalls=0,voiceError;
-  const campaignApi={getCampaignById:id=>campaigns.get(id),latestSeq:()=>seq,allocateSeq:()=>++seq,
-    getCampaignSummaryState:()=>({summary:''}),listMembers:()=>[{userId:'alice'}],setFloor:(id,value)=>{campaigns.get(id).floor=value;}};
+  const campaignApi={getCampaignById:id=>campaigns.get(id),getCampaignForUser:id=>campaigns.get(id),capsFor:(_campaign,userId)=>({role:userId==='dm'?'dm':'player'}),latestSeq:()=>seq,allocateSeq:()=>++seq,
+    getCampaignSummaryState:()=>({summary:''}),listMembers:()=>[{userId:'alice'},{userId:'bob'},{userId:'dm'}],setFloor:(id,value)=>{campaigns.get(id).floor=value;}};
   globalThis.__odmEventBus=new Map();globalThis.__odmPresenceCounts=new Map();globalThis.__odmEventSubscriberUsers=new Map();
-  const events=load('src/lib/events.ts',{'@/lib/db/core':core,'@/lib/db/campaigns':campaignApi,'@/lib/db/commit-effects':effects});
+  const eventPrivacy=load('src/lib/spatial/event-privacy.ts',{'@/lib/db/core':core,'@/lib/db/campaigns':campaignApi});
+  const eventPolicy={captureEventAudience(){},eventSpatialState:()=>({enabled:false,startSeq:0}),campaignEventProjector:()=>({projectEvent:event=>event,projectLive:chunk=>chunk})};
+  const events=load('src/lib/events.ts',{'@/lib/db/core':core,'@/lib/db/campaigns':campaignApi,'@/lib/db/commit-effects':effects,
+    '@/lib/spatial/event-policy':eventPolicy,'@/lib/spatial/event-privacy':eventPrivacy});
   const asks=load('src/lib/db/asks.ts',{'@/lib/db/core':core});
   const savedMessages=id=>db.prepare('SELECT seq,author_type AS authorType,content FROM campaign_messages WHERE campaign_id=? ORDER BY seq').all(id);
   const narrator=load('src/lib/mcp-narrator-control.ts',{
     zod:{z},'@/lib/campaign-types':types,'@/lib/mcp-event-filter':filter,
+    '@/lib/spatial/narrator':{SPATIAL_NARRATOR_CATALOG:[],SPATIAL_NARRATOR_OPERATIONS:{},readSpatialForNarrator:()=>null},
+    '@/lib/spatial/narrator-page.mjs':{spatialNarratorBoundary:({currentSeq,limit,events:page})=>({nextCursor:page.length>limit?page[limit-1].seq:currentSeq,hasMore:page.length>limit,events:page.slice(0,limit),roomMessages:[]})},
+    '@/lib/spatial/service':{spatialEnabled:()=>false,SpatialError:class SpatialError extends Error{}},
+    '@/lib/spatial/battle-map':{},'@/lib/spatial/timeline':{campaignTimelineEpoch:()=> 'test-epoch'},
+    '@/lib/db/core':core,'@/lib/db/narrator-lease':{touchNarratorLease(){},NarratorLeaseConflict:class NarratorLeaseConflict extends Error{}},
+    '@/lib/spatial/narrator-concurrency.mjs':{},'@/lib/mcp-post-write.mjs':{},
+    '@/lib/mcp-read-sections.mjs':{readNarratorSections:({loaders})=>({sections:Object.fromEntries(Object.entries(loaders).map(([key,run])=>[key,run()])),sectionVersions:{},omittedSections:[]})},
+    '@/lib/mcp-state-delta-cache.mjs':{},'@/lib/dm/encounter-tools':{},
     '@/lib/db/campaigns':campaignApi,'@/lib/db/chapters':{listChapters:()=>[]},
+    '@/lib/db/director-arms':{getDirectorArm:()=>null},'@/lib/dm/director-logic':{buildDirectorBlock:()=>null},
     '@/lib/db/dm-turns':{listOpenPendingRolls:()=>[]},
     '@/lib/db/dm-whispers':{listRecentWhispersForPrompt:()=>[],listPendingPlayerWhispers:()=>[]},
     '@/lib/db/encounters':{getActiveEncounter:()=>null,listEnemies:()=>[]},
@@ -67,11 +79,17 @@ function fixture(t) {
     '@/lib/db/messages':{listMessagesInSeqRange:(id,low,high)=>savedMessages(id).filter(x=>x.seq>=low&&x.seq<=high),listRecentMessages:savedMessages},
     '@/lib/db/notes':{listPublicCampaignNotes:()=>[]},'@/lib/db/rolls':{listRecentRolls:()=>[]},
     '@/lib/db/scene-tracker':{getSceneTracker:()=>null},'@/lib/db/sheets':{listSheets:()=>[]},
+    '@/lib/dm/message-edit-logic':{},'@/lib/dm/renarrate-logic':{},'@/lib/sheet-privacy':{projectSheetsForViewer:sheets=>sheets},
     '@/lib/dm/invoke-catalog':{consoleAdjudications:()=>[{entries:[{name:'request_roll'},{name:'unknown_future_action'}]}]},
-    '@/lib/dm/invoke':{invokeEngine:async()=>{invoked++;return{ok:true};}},
+    '@/lib/dm/invoke':{invokeEngineSynchronous:()=>{invoked++;return{ok:true};}},
     '@/lib/dm/human-narration':{persistHumanNarration:()=>{throw Error('Unexpected story write');}},
-    '@/lib/dm/queue':{enqueueDmJob:async(_id,work)=>work()},'@/lib/dm/delegation':{coverInEffect:()=>false},
+    '@/lib/dm/narrator-command':{NarratorCommandError:class NarratorCommandError extends Error{constructor(message,status=400){super(message);this.status=status;}},executeNarratorCommand:(_id,_payload,work)=>work()},
+    '@/lib/dm/global-turn-logic':{},'@/lib/db/narrator-commands':{listNarratorReceipts:()=>[]},
+    '@/lib/dm/delegation':{coverInEffect:()=>false},
     '@/lib/dm/social-tools':{npcRosterForPrompt:()=>[]},'@/lib/db/asks':asks,'@/lib/events':events,
+    '@/lib/mcp-snapshot-cache.mjs':{narratorSnapshots:{restore:()=>null,remember:()=>true}},
+    '@/lib/mcp-read-budget.mjs':{budgetRead:state=>state,ReadBudgetError:class ReadBudgetError extends Error{}},
+    '../../shared/orchestration-snapshot.mjs':{},
   });
   const actionCalls=[];
   const control=load('src/lib/mcp-control.ts',{
@@ -87,7 +105,7 @@ function fixture(t) {
     '@/lib/db/campaigns':campaignApi,'@/lib/events':events,'@/lib/mcp-event-filter':filter,
   });
   const route=load('src/app/api/campaigns/[campaignId]/ask/route.ts',{
-    zod:{z},'@/lib/campaign-api':{requireVoice:async()=>voiceError??{user:{id:'alice'}},requireMember:async()=>voiceError??{user:{id:'bob'}},isErrorResponse:x=>x instanceof Response},
+    zod:{z},'@/lib/campaign-api':{requireVoice:async()=>voiceError??{campaign:campaigns.get(A),user:{id:'alice'}},requireMember:async()=>voiceError??{user:{id:'bob'}},isErrorResponse:x=>x instanceof Response},
     '@/lib/ingress-budget':{enforcePlayerIngress:()=>null},
     '@/lib/db/campaigns':campaignApi,'@/lib/db/asks':asks,'@/lib/db/sheets':{getSheetForUser:()=>({id:'sheet'})},
     '@/lib/events':events,'@/lib/dm/ask':{runAsk:async()=>{modelCalls++;return{answer:'AI response',citations:[]};}},
@@ -151,7 +169,7 @@ test('private human Ask submission cannot enter shared persisted/SSE payloads or
   const dm=await f.narrator.executeMcpNarratorControl('narrator.read',{campaignId:A});assert.equal(dm.result.asks[0].id,ask.id);
 });
 
-for(const [locale,fragment]of [['ru','Вопрос передан'],['en','Your question'],['pl','Pytanie zostało']])test(`human Ask acknowledgement: ${locale}`,async t=>{
+for(const [locale,fragment]of [['ru','Вопрос передан'],['en','Your question']])test(`human Ask acknowledgement: ${locale}`,async t=>{
   const f=fixture(t);const {ask}=await (await f.submit({question:'Question',visibility:'table'},locale)).json();
   assert.ok(ask.answer.includes(fragment));assert.equal(f.streams.bob.length,1);
   assert.equal(f.asks.listAsksForUser(A,'bob')[0].id,ask.id);
@@ -162,10 +180,10 @@ test('muted/unauthorized Ask request returns the existing denial before any writ
   assert.equal((await f.submit({question:'not allowed'})).status,403);assert.equal(f.asks.listAsksForCampaign(A).length,0);
 });
 
-test('AI-mode Ask retains the prior provider route and privacy behavior',async t=>{
+test('Ask never invokes a server model even for a legacy AI-mode campaign',async t=>{
   const f=fixture(t);f.campaigns.get(A).gameSettings.dmMode='ai';
-  const response=await f.submit({question:'AI question'});assert.equal((await response.json()).ask.answer,'AI response');assert.equal(f.modelCalls(),1);
-  for(const stream of Object.values(f.streams))assert.deepEqual(stream,[]);
+  const response=await f.submit({question:'AI question'});assert.equal(response.status,202);
+  assert.equal((await response.json()).ask.status,'pending');assert.equal(f.modelCalls(),0);
 });
 
 test('missing/wrong DM mode, stale sequence, invalid answer and unknown ask are rejected',async t=>{
@@ -183,15 +201,15 @@ for(const mode of ['narrator','control'])test(`OOC-only pages advance their unfi
   const first=await read(0);assert.equal(first.events.length,0);assert.equal(first.nextCursor,1);assert.equal(first.hasMore,true);
   const second=await read(first.nextCursor);assert.equal(second.events.length,0);assert.equal(second.nextCursor,2);assert.equal(second.hasMore,true);
   const third=await read(second.nextCursor);assert.equal(third.events[0].seq,3);assert.equal(third.nextCursor,3);assert.equal(third.hasMore,true);
-  const fourth=await read(third.nextCursor);assert.equal(fourth.events.length,0);assert.equal(fourth.nextCursor,8);assert.equal(fourth.hasMore,false);
+  const fourth=await read(third.nextCursor);assert.equal(fourth.events.length,mode==='narrator'?1:0);
+  if(mode==='narrator')assert.equal(fourth.events[0].payload.removed,true);
+  assert.equal(fourth.nextCursor,8);assert.equal(fourth.hasMore,false);
   if(mode==='narrator'){assert.deepEqual(first.messages,[]);assert.equal(third.messages[0].content,'An in-character action');assert.equal(first.recentMessages.length,1);}
   assert.equal(f.db.prepare('SELECT COUNT(*) n FROM campaign_messages').get().n,4,'OOC must remain in the actual chat');
 });
 
-test('control boundary retains probe-only policy and sheet/member update events',async t=>{
+test('control boundary retains sheet/member update events',async t=>{
   const f=fixture(t);
-  await f.control.executeMcpControl('models.test_and_connect',{campaignId:A,model:'test',apply:false});
-  assert.equal(f.actionCalls[0].action,'campaigns.get');assert.deepEqual(f.actionCalls[1].p,{model:'test',apply:false});
   await f.control.executeMcpControl('characters.instantiate',{campaignId:A});
   assert.deepEqual(f.events.listEventsSince(A,0).map(x=>x.type),['sheet_updated','member_updated']);
 });
@@ -218,7 +236,7 @@ function text(tree){if(tree==null||typeof tree==='boolean')return'';if(Array.isA
 function uiFixture(locale){
   const jsx=jsxRuntime();const icons=Object.fromEntries(['Bookmark','ChevronLeft','FastForward','Pencil','ChevronRight','Crown','EyeOff','Flag','ImageOff','ImagePlus','Loader2','Pin','RefreshCw','ShieldQuestion','UserPlus','Volume2','MessageSquare','Swords','Users'].map(name=>[name,name]));
   const style=load('src/app/campaigns/[campaignId]/PlayerMessageStyle.tsx',{'react/jsx-runtime':jsx,'lucide-react':icons,'@/lib/player-message':player});
-  const react={memo:x=>x,useEffect(){},useMemo:f=>f(),useRef:x=>({current:x}),useState:x=>[typeof x==='function'?x():x,()=>{}]};
+  const react={memo:x=>x,useEffect(){},useLayoutEffect(){},useMemo:f=>f(),useRef:x=>({current:x}),useState:x=>[typeof x==='function'?x():x,()=>{}]};
   const mocks={react,'react/jsx-runtime':jsx,'lucide-react':icons,'@/lib/cn':{cn:(...x)=>x.filter(Boolean).join(' ')},'@/lib/ui':{ui:{iconAction:'icon'}},
     '@/lib/placeholders':{avatarPlaceholder:()=>'/avatar',characterPlaceholder:()=>'/character'},'@/lib/campaign-types':types,
     '@/app/campaigns/[campaignId]/PlayerMessageStyle':style,'@/app/campaigns/[campaignId]/HaltedTurnBanner':{HaltedTurnBanner:'HaltedTurnBanner'},
@@ -236,7 +254,7 @@ function uiFixture(locale){
   };
   return{style,list,row};
 }
-for(const [locale,labels]of [['ru',['Речь','Действие','Вне игры']],['pl',['Mowa','Akcja','Poza grą']],['en',['Say','Action','OOC']]])test(`merged player styles and labels (${locale})`,()=>{
+for(const [locale,labels]of [['ru',['Речь','Действие','Вне игры']],['en',['Say','Action','OOC']]])test(`merged player styles and labels (${locale})`,()=>{
   const f=uiFixture(locale);
   for(const [i,content]of ['"Says"','*Acts*','(ooc) Table chat'].entries()){
     const message={id:'m',authorType:'player',userId:'alice',content};const before=structuredClone(message);let reported;

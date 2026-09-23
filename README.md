@@ -1,11 +1,7 @@
 # Dungeon Master — приватный AI D&D сервер
 
-> **Автоматический режим DM:** обычный web/internal AI и любой внешний host,
-> кроме доверенного встроенного OpenCode narrator, работают в лёгком
-> fiction-first **YOLO**. Встроенный custom OpenCode narrator получает полный
-> pipeline. Явный `--yolo`, `ODM_DND_MODE=yolo` или `YOLO_DND=1` всегда
-> принудительно включает YOLO, в том числе внутри OpenCode.
-> Подробности: [docs/yolo-dnd.md](docs/yolo-dnd.md).
+> Сервер не запускает собственную LLM. Игру ведёт доверенный внешний MCP-клиент
+> (например, OpenCode); сервер остаётся авторитетом для состояния, правил и костей.
 
 Приватный форк Open Dungeon Master: браузерные кампании D&D 5e, текстовый AI-ведущий, карты, боевой трекер, библиотека персонажей, постоянное хранилище и отдельный MCP-контур для внешних агентов.
 
@@ -31,25 +27,12 @@
 
 На хосте могут работать независимые Caddy, LiveKit, PostgreSQL и Redis. Установщик ODM не должен подменять их конфигурацию. Перед использованием `--domain` убедитесь, что порты 80/443 свободны либо интегрируйте маршрут в существующий прокси вручную. Дополнительный swap не гарантирует успешную сборку при нехватке памяти.
 
-## Первый вход и модели
+## Первый вход и внешний ведущий
 
-Откройте веб-приложение, войдите с первоначальными реквизитами из приватного `config/admin.json` и смените пароль. В Admin → Подключения LLM выберите провайдер, получите список доступных моделей и подключите точный ID. Затем создайте кампанию и приглашения игрокам.
-
-```sh
-sudo odmctl auth login chatgpt --device
-sudo odmctl auth models chatgpt
-sudo odmctl auth connect chatgpt --model MODEL_ID_FROM_LIST --apply
-
-sudo odmctl auth models qwen-local --base-url http://remote-gpu:11434/v1
-sudo odmctl auth connect qwen-local --model MODEL_ID_FROM_LIST --base-url http://remote-gpu:11434/v1 --apply
-
-sudo odmctl auth profiles
-sudo odmctl auth apply --profile-id PROFILE_ID
-```
-
-Идентификаторы в верхнем регистре — заполнители, их необходимо заменить результатами предыдущих команд. Вход в провайдера завершает сам пользователь. API-ключи передаются через предусмотренный CLI ввод `--key-stdin`, а не аргументом командной строки.
-
-Probe выполняет получение списка моделей, текстовый запрос, настоящий вызов инструмента и обработку его результата. Проверка имеет общий срок выполнения; отменённый запрос не должен создавать или применять профиль. `apply:false` не переключает кампанию. Применённые ограничения модели описаны в [model-runtime.md](docs/model-runtime.md).
+Войдите с первоначальными реквизитами из приватного `config/admin.json`, смените
+пароль и создайте human-DM кампанию. Модель и её credentials настраиваются во
+внешнем MCP-клиенте, не в ODM. Подключение и границы доступа описаны в
+[external-narrator.md](docs/external-narrator.md).
 
 ## Управление экземпляром
 
@@ -84,7 +67,10 @@ sudo odmctl rollback --yes
 
 ## MCP, арты и прогресс
 
-MCP предоставляет 12 инструментов, в том числе управление кампанией, листами, моделью, внешним ведущим, ассетами и прогрессом. Процесс не получает Docker socket или прямой доступ к БД; изменения проходят через внутренний API приложения.
+MCP предоставляет 11 инструментов для кампаний, листов, внешнего ведущего,
+ассетов и прогресса. Удалённый server-side model control через MCP не
+поддерживается. Процесс не получает Docker socket или прямой доступ к БД;
+изменения проходят через внутренний API приложения.
 
 Внешний агент получает работу через `odm_assets`, загружает результат по ограниченному гранту и связывает арт с объектом мира. `odm_progress` синхронизирует долговременный прогресс с библиотекой. Конфликтующие копии не перезаписываются молча; завершение всей партии с `requireAllSynced:true` атомарно. См. [восстановление прогресса](docs/progress-synchronization.md), [протокол ассетов](docs/external-assets-mcp.md) и [MCP](docs/mcp.md).
 
@@ -140,4 +126,4 @@ python3 scripts/test-review-ops.py
 
 ## Документация
 
-[Индекс](docs/README.md) · [Эксплуатация](docs/operations.md) · [Бэкапы](docs/backups.md) · [Конфигурация](docs/configuration.md) · [Модели](docs/llm-wizard.md) · [Изображения](docs/image-generation.md) · [Приёмочные проверки](docs/deployment-testing.md) · [Upstream](docs/upstream-readme.md)
+[Индекс](docs/README.md) · [Эксплуатация](docs/operations.md) · [Бэкапы](docs/backups.md) · [Конфигурация](docs/configuration.md) · [Внешний ведущий](docs/external-narrator.md) · [Изображения](docs/image-generation.md) · [Приёмочные проверки](docs/deployment-testing.md) · [Upstream](docs/upstream-readme.md)
