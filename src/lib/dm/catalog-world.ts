@@ -229,18 +229,20 @@ export const WORLD_ADJUDICATIONS: CatalogEntry[] = [
     name: "check_notice",
     label: "Passive notice",
     category: "world",
-    summary: "Compares passive Perception or Investigation against a DC without anyone rolling.",
+    summary: "Compares a passive Perception, Insight or Investigation score against a DC without rolling.",
     fields: [
-      { name: "dc", label: "DC", kind: "number", required: true, min: 1, max: 30 },
       {
-        name: "skill",
+        name: "sense",
         label: "Sense",
         kind: "select",
         options: [
           { value: "perception", label: "Perception" },
+          { value: "insight", label: "Insight" },
           { value: "investigation", label: "Investigation" },
         ],
       },
+      { name: "difficulty", label: "Difficulty", kind: "select", options: DIFFICULTIES },
+      { name: "dc", label: "Or an exact DC", kind: "number", min: 1, max: 30 },
       { name: "characterIds", label: "Who might notice", kind: "characters" },
       REASON,
     ],

@@ -188,10 +188,8 @@ for(const mode of ['narrator','control'])test(`OOC-only pages advance their unfi
   assert.equal(f.db.prepare('SELECT COUNT(*) n FROM campaign_messages').get().n,4,'OOC must remain in the actual chat');
 });
 
-test('control boundary retains probe-only policy and sheet/member update events',async t=>{
+test('control boundary retains sheet/member update events',async t=>{
   const f=fixture(t);
-  await f.control.executeMcpControl('models.test_and_connect',{campaignId:A,model:'test',apply:false});
-  assert.equal(f.actionCalls[0].action,'campaigns.get');assert.deepEqual(f.actionCalls[1].p,{model:'test',apply:false});
   await f.control.executeMcpControl('characters.instantiate',{campaignId:A});
   assert.deepEqual(f.events.listEventsSince(A,0).map(x=>x.type),['sheet_updated','member_updated']);
 });
@@ -218,7 +216,7 @@ function text(tree){if(tree==null||typeof tree==='boolean')return'';if(Array.isA
 function uiFixture(locale){
   const jsx=jsxRuntime();const icons=Object.fromEntries(['Bookmark','ChevronLeft','FastForward','Pencil','ChevronRight','Crown','EyeOff','Flag','ImageOff','ImagePlus','Loader2','Pin','RefreshCw','ShieldQuestion','UserPlus','Volume2','MessageSquare','Swords','Users'].map(name=>[name,name]));
   const style=load('src/app/campaigns/[campaignId]/PlayerMessageStyle.tsx',{'react/jsx-runtime':jsx,'lucide-react':icons,'@/lib/player-message':player});
-  const react={memo:x=>x,useEffect(){},useMemo:f=>f(),useRef:x=>({current:x}),useState:x=>[typeof x==='function'?x():x,()=>{}]};
+  const react={memo:x=>x,useEffect(){},useLayoutEffect(){},useMemo:f=>f(),useRef:x=>({current:x}),useState:x=>[typeof x==='function'?x():x,()=>{}]};
   const mocks={react,'react/jsx-runtime':jsx,'lucide-react':icons,'@/lib/cn':{cn:(...x)=>x.filter(Boolean).join(' ')},'@/lib/ui':{ui:{iconAction:'icon'}},
     '@/lib/placeholders':{avatarPlaceholder:()=>'/avatar',characterPlaceholder:()=>'/character'},'@/lib/campaign-types':types,
     '@/app/campaigns/[campaignId]/PlayerMessageStyle':style,'@/app/campaigns/[campaignId]/HaltedTurnBanner':{HaltedTurnBanner:'HaltedTurnBanner'},

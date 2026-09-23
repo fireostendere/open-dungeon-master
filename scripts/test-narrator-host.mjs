@@ -18,6 +18,7 @@ async function tempDir(fn) {
     fs.rmSync(dir, { recursive: true, force: true });
   }
 }
+const fakeResponse = (body, status = 200) => ({ ok: status >= 200 && status < 300, status, headers: new Headers(), json: async () => body });
 
 test('M10: Narrator runner lifecycle, checkpoint recovery, and health endpoint', () => tempDir(async dir => {
   const checkpointPath = path.join(dir, 'checkpoint.json');
@@ -48,6 +49,7 @@ test('M10: Narrator runner lifecycle, checkpoint recovery, and health endpoint',
             asks: pendingAsks,
             askQueue: {
               items: pendingAsks,
+              pending: pendingAsks.length,
               nextCursor: pendingAsks.length,
               hasMore: false,
             },
@@ -233,26 +235,22 @@ test('M10: runner drains independent Ask pages and resumes the nested connect st
         const request = JSON.parse(init.body);
         actions.push(request);
         if (request.action === 'narrator.connect') {
-          return { ok: true, status: 200, json: async () => ({ ok: true, result: { state: { currentSeq: 7, sheets: [] } } }) };
+          return fakeResponse({ ok: true, result: { state: { currentSeq: 7, sheets: [] } } });
         }
         if (request.action === 'narrator.answer_ask') {
-          return { ok: true, status: 200, json: async () => ({ ok: true, result: { replayed: false } }) };
+          return fakeResponse({ ok: true, result: { replayed: false } });
         }
         if (request.action === 'narrator.read') {
           const cursor = request.params.afterAskSeq ?? 0;
           const item = cursor === 0 ? asks[0] : asks[1];
           const last = cursor !== 0;
-          return {
-            ok: true,
-            status: 200,
-            json: async () => ({ ok: true, result: {
+          return fakeResponse({ ok: true, result: {
               currentSeq: 7,
               nextCursor: 7,
               hasMore: false,
               asks: [item],
-              askQueue: { nextCursor: last ? 2 : 1, hasMore: !last },
-            } }),
-          };
+              askQueue: { pending: 2, nextCursor: last ? 2 : 1, hasMore: !last },
+            } });
         }
         throw new Error(`unexpected action ${request.action}`);
       },
@@ -264,7 +262,7 @@ test('M10: runner drains independent Ask pages and resumes the nested connect st
     const reads = actions.filter((entry) => entry.action === 'narrator.read');
     assert.deepEqual(
       reads.filter((entry) => Object.hasOwn(entry.params, 'afterAskSeq')).map((entry) => entry.params.afterAskSeq),
-      [1], // Page zero is already present in the authoritative story read.
+      [0, 1],
     );
     const answers = actions.filter((entry) => entry.action === 'narrator.answer_ask');
     assert.equal(answers.length, 2);
@@ -298,16 +296,16 @@ test('M10: an Ask timeout replays the exact persisted command', async () => {
             firstAnswer = false;
             throw new Error('simulated transport timeout after commit');
           }
-          return { ok: true, status: 200, json: async () => ({ ok: true, result: { replayed: true } }) };
+          return fakeResponse({ ok: true, result: { replayed: true } });
         }
         if (request.action === 'narrator.read') {
-          return { ok: true, status: 200, json: async () => ({ ok: true, result: {
+          return fakeResponse({ ok: true, result: {
             currentSeq: 1, nextCursor: 1, hasMore: false, asks: [ask],
-            askQueue: { nextCursor: 5, hasMore: false },
-          } }) };
+            askQueue: { pending: 1, nextCursor: 5, hasMore: false },
+          } });
         }
         if (request.action === 'narrator.connect') {
-          return { ok: true, status: 200, json: async () => ({ ok: true, result: { currentSeq: 1 } }) };
+          return fakeResponse({ ok: true, result: { currentSeq: 1 } });
         }
         throw new Error(`unexpected action ${request.action}`);
       },
@@ -349,14 +347,14 @@ test('M10: paged reads are assembled and a changed hash restarts the page', asyn
       readRequests.push(request.params);
       if (request.params.pageCursor && conflict) {
         conflict = false;
-        return { ok: false, status: 409, json: async () => ({ ok: false, error: 'snapshot changed' }) };
+        return fakeResponse({ ok: false, error: 'snapshot changed' }, 409);
       }
       const page = budgetRead(state, {
         paged: true,
         maxBytes: request.params.maxBytes,
         ...(request.params.pageCursor ? { pageCursor: request.params.pageCursor } : {}),
       });
-      return { ok: true, status: 200, json: async () => ({ ok: true, result: page }) };
+      return fakeResponse({ ok: true, result: page });
     },
   });
 

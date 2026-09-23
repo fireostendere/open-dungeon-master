@@ -42,7 +42,9 @@ function fixture(replies, options = {}) {
           'location_enable', 'location_disable', 'location_create_room', 'location_link', 'location_move',
           'location_narrate', 'location_observe', 'location_revoke', 'location_propagate', 'location_perceive',
           'location_stealth_resolve', 'location_detect', 'location_lose_detection', 'location_set_floor'];
-        return { groups: [{ category: 'combat', ...(params.summaryOnly ? { actions: names.map(name => ({ name })) } : { entries: [{ name: params.action, fields: [] }] }) }] };
+        return { groups: [{ category: 'combat', ...(params.summaryOnly
+          ? { actions: names.map(name => ({ name })) }
+          : { entries: (params.action ? [params.action] : names).map(name => ({ name, fields: [] })) }) }] };
       }
       if (action === 'narrator.read') return structuredClone(this.snapshot);
       writes.push({ action, params: structuredClone(params) });
@@ -514,7 +516,7 @@ test('resolved physical roll does not trigger a redundant narrator read', async 
   await h.tick();
   assert.equal(h.drains.length, 0, 'the already-drained roll_result is authoritative');
   assert.equal(h.modelCalls.length, 2);
-  assert.equal(h.modelCalls[1].packet.outcomes[0].physicalRolls[0].roll.id, 'r1');
+  assert.equal(h.modelCalls[1].packet.outcomes.find(outcome => outcome.physicalRolls).physicalRolls[0].roll.id, 'r1');
 });
 
 test('timeout recovery after restart sends the exact saved command without another model call', async () => {
@@ -572,9 +574,7 @@ test('wait does not call a model again until an event changes the sequence', asy
   h.snapshot.currentSeq++; await h.tick(); assert.equal(h.modelCalls.length, 2);
 });
 
-test('spatial campaigns pause, and public writer never receives raw private state', async () => {
-  const paused = fixture([]); paused.snapshot.spatial = { enabled: true }; await paused.tick();
-  assert.equal(paused.modelCalls.length, 0); assert.equal(paused.writes.length, 0);
+test('public writer never receives raw private state', async () => {
   const h = fixture([{ kind: 'narrate', text: 'An uneasy silence.', writer: true }, 'Silence settles over the chamber.']);
   Object.assign(h.snapshot, { asks: [{ question: 'ASK_SECRET' }], playerWhispers: ['WHISPER_SECRET'], facts: ['DM_SECRET'],
     sheets: [{ id: 'hero', notes: 'SHEET_SECRET' }], encounter: { enemies: [{ ac: 99, secret: 'ENEMY_SECRET' }] } });

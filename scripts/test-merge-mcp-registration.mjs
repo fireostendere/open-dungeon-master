@@ -55,7 +55,7 @@ test('answer_ask schema and dispatch retain the campaign, answer and citations',
   const response=await tool.callback(parsed,{});
   const {operation,...params}=request;
   // Compare the JSON wire payload, not object prototypes from different VM realms.
-  assert.deepEqual(JSON.parse(JSON.stringify(f.calls)),[{action:'narrator.answer_ask',params}]);assert.equal(response.structuredContent.accepted,true);
+  assert.deepEqual(JSON.parse(JSON.stringify(f.calls)),[{action:'narrator.answer_ask',params}]);assert.equal(JSON.parse(response.content[0].text).accepted,true);
 });
 
 test('new narrator operation still passes through the cancellation wrapper',async()=>{
@@ -70,10 +70,4 @@ test('playbook preserves authoritative dice, drained cursors, private Ask and no
   for(const term of ['hasMore is false','never replay the effect','at most one immediate receipt-recovery retry',
     'same UUID commandId, original expectedSeq, timelineEpoch','private','askId','The server owns dice'])assert.ok(content.text.includes(term),term);
   assert.ok(!content.text.includes('isolated-test-token'));assert.equal(f.calls.length,0);
-});
-
-test('existing model probe-only operations retain apply:false on the wire',async()=>{
-  const f=await fixture();
-  await f.server._registeredTools.odm_models.callback({operation:'test_and_connect',provider:'qwen-local',model:'fixture',apply:false,campaignId:'11111111-1111-4111-8111-111111111111'},{});
-  assert.equal(f.calls[0].params.apply,false);assert.equal(f.calls[0].action,'models.test_and_connect');
 });

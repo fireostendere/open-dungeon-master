@@ -1,18 +1,6 @@
-// Setting-specific class catalog: definition invariants across every genre
-// file, feature-table sanity, and DM-prompt rendering of custom semantics.
+// Setting-specific class catalog definition and feature-table invariants.
 import assert from "node:assert/strict";
-import { randomBytes } from "node:crypto";
-import fs from "node:fs";
-import os from "node:os";
-import path from "node:path";
 import { register } from "node:module";
-
-// buildGameStateBlock reads the scene tracker off the campaign row, so the
-// prompt tests need a database. A throwaway encrypted one, so the run does
-// not depend on a developer's .env.server (CI has none).
-const dir = fs.mkdtempSync(path.join(os.tmpdir(), "odm-class-catalog-"));
-process.env.SQLITE_DB_PATH = path.join(dir, "test.sqlite");
-process.env.DB_ENCRYPTION_KEY = randomBytes(32).toString("hex");
 
 register("./lib/register-alias.mjs", import.meta.url);
 
@@ -20,7 +8,6 @@ const { CUSTOM_CLASSES, CUSTOM_CLASS_FEATURES, findCustomClass, classGenres, spe
   await import("../src/lib/classes/index.ts");
 const { SRD_CLASSES, ALL_CLASSES, findClass, spellSlotsFor } = await import("../src/lib/srd/index.ts");
 const { GENRES } = await import("../src/lib/schemas/game-settings.ts");
-const { buildGameStateBlock } = await import("../src/lib/dm/prompt.ts");
 
 let passed = 0;
 function test(name, fn) {
@@ -114,101 +101,6 @@ test("classGenres covers catalog tags and SRD tags", () => {
   assert.ok(classGenres("netrunner").includes("cyberpunk"));
   assert.ok(classGenres("rogue").includes("cyberpunk"));
   assert.deepEqual(classGenres("monk"), []);
-});
-
-function makeSheet(overrides = {}) {
-  return {
-    id: "sheet-1",
-    campaignId: "camp-1",
-    userId: "user-1",
-    libraryCharacterId: null,
-    name: "Testa",
-    race: "human",
-    class: "fighter",
-    subclass: "",
-    background: "",
-    alignment: "",
-    level: 1,
-    xp: 0,
-    abilities: { str: 16, dex: 12, con: 14, int: 10, wis: 10, cha: 10 },
-    maxHp: 12,
-    currentHp: 12,
-    tempHp: 0,
-    ac: 16,
-    speed: 30,
-    hitDice: { die: "d10", total: 1, spent: 0 },
-    proficiencies: { saves: ["str", "con"], skills: [], languages: [], tools: [], armor: [], weapons: [] },
-    equipment: [],
-    gold: 15,
-    feats: [],
-    spellcasting: null,
-    conditions: [],
-    portrait: null,
-    notes: "",
-    backstory: "",
-    createdAt: "2026-01-01",
-    updatedAt: "2026-01-01",
-    ...overrides,
-  };
-}
-
-function makeState(sheet) {
-  return {
-    campaign: {
-      id: "camp-1",
-      title: "Test Campaign",
-      description: "",
-      difficulty: "normal",
-      theme: "",
-      scene: "",
-      questLog: [],
-      dmOutline: "",
-      storyArc: null,
-      gameSettings: {
-        genre: "cyberpunk",
-        customGenreText: "",
-        aiStorySetup: true,
-        dicePolicy: "digital_only",
-        ttsEnabled: false,
-        ttsVoice: "af_heart",
-        mapsEnabled: false,
-        midGameJoinOpen: false,
-        holdSubmissions: false,
-      },
-    },
-    members: [
-      { userId: "user-1", username: "kaleb", role: "owner", ready: true, useRealDice: false, joinedAt: "2026-01-01" },
-    ],
-    sheets: [sheet],
-    recentRolls: [],
-    storySummary: "",
-  };
-}
-
-test("DM prompt carries the class primer and feature rules text for catalog classes", () => {
-  const sheet = makeSheet({
-    class: "netrunner",
-    hitDice: { die: "d6", total: 1, spent: 0 },
-    features: [
-      { name: "Deck Interface", source: "class", level: 1 },
-      { name: "Hot-Sim Focus", source: "class", level: 1 },
-    ],
-    spellcasting: { ability: "int", slots: { 1: { max: 2, used: 0 } }, prepared: ["Mage Armor"], known: [] },
-  });
-  const block = buildGameStateBlock(makeState(sheet));
-  assert.ok(block.includes("Class primer: Netrunner is a custom class"));
-  assert.ok(block.includes("wizard-list spells reflavored as Programs (INT)"));
-  assert.ok(block.includes("Hot-Sim Focus (May run any known program with the ritual tag"));
-});
-
-test("SRD sheets render without primers or feature glosses", () => {
-  const sheet = makeSheet({
-    features: [{ name: "Second Wind", source: "class", level: 1 }],
-  });
-  const block = buildGameStateBlock(makeState(sheet));
-  assert.ok(!block.includes("Class primer:"));
-  assert.ok(block.includes("Second Wind,") || block.includes("Second Wind\n") || /Second Wind(?! \()/.test(block));
-  assert.ok(!block.includes("Second Wind ("));
 });
 
 console.log(`test-class-catalog: ${passed} tests passed.`);

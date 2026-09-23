@@ -34,13 +34,12 @@ redirect refusal and streaming/cancellation. It does not substitute admin rights
 | `odm_server` | health and capabilities |
 | `odm_users` | existing users and UUIDs |
 | `odm_campaigns` | campaigns/workshops, status, invitations |
-| `odm_campaign_settings` | rules, providers and DM mode |
+| `odm_campaign_settings` | game/story settings and DM mode |
 | `odm_story` | scene, quests, outline, arc, events, notices |
 | `odm_members` | roster, join an existing user, party lead |
 | `odm_characters` | library characters and campaign instantiation |
 | `odm_sheets` | live campaign sheets |
-| `odm_models` | list/test/apply models and switch endpoints |
-| `odm_narrator` | connect/read/catalog/invoke/narrate/autopilot_action/release_floor/answer_ask |
+| `odm_narrator` | connect/read/snapshot/catalog/invoke/narrate/autopilot_action/finish_global_round/release_floor/answer_ask |
 | `odm_assets` | packs, jobs, leases, scoped upload/download, asset links |
 | `odm_progress` | revision-checked progress, party sync, finish receipts |
 
@@ -105,7 +104,7 @@ instructions, use a dedicated narrator context and test each chosen model.
 
 The application's `ODM_MCP_TOKEN` retains broad operator access. The optional
 `ODM_MCP_NARRATOR_TOKEN` is bound to `ODM_MCP_NARRATOR_CAMPAIGN_ID` and allows only
-the eight narrator operations in that campaign plus minimal health/capabilities.
+the ten narrator operations in that campaign plus minimal health/capabilities.
 Other control actions are denied before domain dispatch. This is a DM credential,
 not a per-player credential: do not give it to players. Scoped access must be
 configured explicitly.
@@ -183,7 +182,7 @@ Use the real container/argument array from status. Tokens belong in private file
 or process environment, not argv. Manual Compose `.env` and managed
 `config/app.env` are different configurations; do not overwrite either blindly.
 
-## Narrator, Ask, providers and recovery
+## Narrator, Ask and recovery
 
 OOC additions/edits are excluded from narrator projections, not deleted from
 player chat. Drain using nextCursor/hasMore, not filtered-array length. `answer_ask`
@@ -197,11 +196,8 @@ state is checksum-verified. A missing baseline becomes a full resync in the same
 response. Legacy `knownSections` remains accepted. The sidecar returns one compact
 text payload by default rather than duplicating it into `structuredContent`.
 
-Model probes share a total application deadline; the sidecar deadline is longer.
-Cancellation/disconnects reach probes, and profile persistence waits for completion.
-`apply:false` preserves settings. Intentional LAN endpoints remain supported;
-metadata/link-local addresses, forbidden DNS answers and redirects are guarded.
-Model administration is not allowed under the scoped narrator credential.
+The removed hosted model control plane is not advertised through MCP. Provider and
+model selection belong to the separately configured external narrator host.
 
 Media, plots, sheets and progression stay in the application's backed-up state.
 The sidecar has no independent game store. See [external-assets-mcp.md](external-assets-mcp.md).

@@ -9,7 +9,7 @@
 - **SSH подключение**: `root@api.iroslyakov.com` (доступ по ключу)
 - **Корневая папка на сервере**: `/opt/odm`
 - **Репозиторий на сервере**: `/opt/odm/repository`
-- **Веб-приложение**: `https://api.iroslyakov.com` (Next.js 15, Node 22, SQLite)
+- **Веб-приложение**: `https://api.iroslyakov.com` (Next.js 16, Node 22+, SQLite)
 - **Администратор веб-панели**: логин `odm_admin`, пароль в `/opt/odm/config/admin.json`
 - **MCP Control Plane**:
   - Внешний SSE/HTTP endpoint: `http://127.0.0.1:3006/mcp`
@@ -51,8 +51,8 @@
 2. **Фаза 2: Механическая проверка сервером (`narrator.invoke` -> `request_roll`)**:
    - Если исход действия неочевиден или несёт риск/последствия, Мастер вызывает
      доступное актуальное действие catalog: `request_roll` для проверки, но
-     `pc_attack`/заклинание для боевой атаки. `group_check` не входит в external
-     narrator allowlist; не придумывай его API.
+     `pc_attack`/заклинание для боевой атаки. Поля `group_check` и других действий
+     всегда бери из актуального `narrator.catalog`, не из примеров ниже.
    - **Сервер физически бросает d20**: генератор случайных чисел + характеристики из листа персонажа + владение навыком + бонусы/баффы (Bless, Bardic Inspiration) + преимущество/помеха (2d20kh1/kl1) + сравнение с DC.
    - Сервер сохраняет бросок и публикует событие `roll_result`. В интерфейсе стола появляется **отдельная карточка броска (`RollCard`)** с полной математикой, раскладкой кубов и цветовой подсветкой (золотое сияние при Натуральной 20, тлеющий багровый при Натуральной 1).
    - Ответ может оставить pending roll; последствия описываются только после
@@ -106,7 +106,8 @@
 
 ## 3. Протокол взаимодействия через MCP (`odm_narrator`)
 
-Инструмент `odm_narrator` (или вызовы `/api/internal/mcp` с Bearer-токеном) поддерживает 7 ключевых операций:
+Инструмент `odm_narrator` поддерживает 10 операций; актуальная схема находится в
+`mcp/narrator-schema.mjs`, а поля engine actions — в `narrator.catalog`.
 
 ### 3.1. `connect` — Подключение к кампании
 Запрашивает начальное состояние и проверяет готовность кампании.
@@ -279,7 +280,20 @@
 Снимает только `hold`, восстанавливая сохранённый `hold.next`; не открывает и не
 пропускает инициативу.
 
-### 3.8. `campaigns.set_status` — Завершение кампании
+### 3.8. `snapshot` — Компактный orchestration snapshot
+Возвращает выбранные секции `party/combat/location/recent/memory/npcs` для host.
+Это чтение, не замена обязательному дочитыванию story cursor через `read`.
+
+### 3.9. `autopilot_action` — Действие opt-in игрока
+Доступно только в активной фазе global-turn без боевой инициативы. Требует точные
+`characterId`, `roundNumber`, `expectedSeq`, `timelineEpoch` и сохранённый
+`commandId`; сервер повторно проверяет opt-in, skip/mute/floor и отсутствие хода.
+
+### 3.10. `finish_global_round` — Spatial finalizer без прозы
+Используется host только после отдельных `location_narrate` для всех затронутых
+комнат. В обычном чате раунд атомарно закрывает `narrate(completeGlobalRound)`.
+
+### 3.11. `campaigns.set_status` — Завершение кампании
 По окончании приключения статус переводится в завершённый:
 ```json
 { "action": "campaigns.set_status", "params": { "campaignId": "<id>", "status": "ended" } }

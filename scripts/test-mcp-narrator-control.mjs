@@ -29,11 +29,13 @@ const { extendControlResult } = await import("../src/lib/mcp-external-control.ts
 const { resumeHumanTurn } = await import("../src/lib/dm/invoke.ts");
 
 const capabilities = extendControlResult("server.capabilities", { actions: [] });
-assert.deepEqual(capabilities.actions.slice(0, 7), [
-  "narrator.connect", "narrator.read", "narrator.snapshot", "narrator.catalog", "narrator.invoke", "narrator.narrate", "narrator.release_floor",
+assert.deepEqual(capabilities.actions.slice(0, 10), [
+  "narrator.connect", "narrator.read", "narrator.snapshot", "narrator.catalog", "narrator.invoke", "narrator.narrate",
+  "narrator.finish_global_round", "narrator.release_floor", "narrator.answer_ask", "narrator.autopilot_action",
 ]);
 assert.equal(extendControlResult("server.status", { mcpControlActions: 0 }).mcpControlActions, capabilities.actions.length);
 assert.ok(capabilities.actions.includes("narrator.autopilot_action"), "external autopilot write must be advertised");
+assert.ok(capabilities.actions.includes("narrator.finish_global_round"), "spatial global-round finalizer must be advertised");
 
 const dm = createUser("external_dm", "hash");
 const narratorHostA = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
@@ -330,7 +332,7 @@ assert.equal((await executeMcpNarratorControl("narrator.read", { campaignId: ooc
 
 // Optimizations verification: catalog summary & filter
 const fullCatalog = await executeMcpNarratorControl("narrator.catalog", {});
-const summaryCatalog = await executeMcpNarratorControl("narrator.catalog", { summaryOnly: true });
+const summaryCatalog = await executeMcpNarratorControl("narrator.catalog", { campaignId: oocCampaign.id, summaryOnly: true });
 assert.ok(fullCatalog.result.groups.length > 0);
 assert.ok(summaryCatalog.result.groups.length > 0);
 assert.ok(JSON.stringify(summaryCatalog.result).length < JSON.stringify(fullCatalog.result).length / 5, "summary catalog must be at least 5x smaller than full");
@@ -343,6 +345,7 @@ assert.match(roomFields[0].help, /Required after location_enable/);
 const attackOnly = await executeMcpNarratorControl("narrator.catalog", { action: "pc_attack" });
 assert.equal(attackOnly.result.groups[0].entries.length, 1);
 assert.equal(attackOnly.result.groups[0].entries[0].name, "pc_attack");
+await assert.rejects(() => executeMcpNarratorControl("narrator.catalog", { campaignId: oocCampaign.id, unknown: true }), error => error.status === 400);
 
 // Optimizations verification: compound narration with floor release
 const preFloorSeq = latestSeq(oocCampaign.id);

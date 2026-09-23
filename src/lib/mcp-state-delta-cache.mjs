@@ -57,13 +57,12 @@ export function projectNarratorStateDelta(state, {
 }) {
   const scope = narratorStateScope({ campaignId, timelineEpoch, principal, projection });
   const current = extractNarratorState(state);
+  const base = knownStateRevision ? cache.restore(scope, knownStateRevision) : null;
   const revision = cache.remember(scope, current);
   const response = { ...state };
   delete response.sectionVersions;
   delete response.omittedSections;
   delete response.deltaState;
-  const base = knownStateRevision ? cache.restore(scope, knownStateRevision) : null;
-
   if (!knownStateRevision || !base) {
     response.stateDelta = {
       format: NARRATOR_STATE_DELTA_FORMAT,

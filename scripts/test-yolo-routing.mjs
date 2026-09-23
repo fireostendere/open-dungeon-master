@@ -6,14 +6,7 @@ import { resolveNarratorPlayMode, filterNarratorCatalog } from "../narrator/runt
 import { NarratorOrchestrator, validateDecision } from "../narrator/orchestration.mjs";
 import { OpenCodeAdapter } from "../narrator/opencode-adapter.mjs";
 
-const turnSource = fs.readFileSync(new URL("../src/lib/dm/turn.ts", import.meta.url), "utf8");
-const promptSource = fs.readFileSync(new URL("../src/lib/dm/prompt.ts", import.meta.url), "utf8");
 const toolTextSource = fs.readFileSync(new URL("../src/lib/dm/tool-text.ts", import.meta.url), "utf8");
-assert.match(turnSource, /const tools = \[buildGameEngineTool\(innerTools\)\]/);
-assert.match(turnSource, /parseGenerateImageToolCall\(effectiveToolCalls\)/);
-assert.match(turnSource, /if \(call\.name !== "game"\) return \[call\]/);
-assert.doesNotMatch(turnSource, /const tools = yolo\s*\?/);
-assert.match(promptSource, /GAME_ENGINE_FACADE_SYSTEM/);
 assert.match(toolTextSource, /"game\|request_roll\|/);
 
 const clean = {};
@@ -74,10 +67,7 @@ assert.deepEqual(filtered[0].actions[0].operations.map(operation => operation.na
   "record_event",
   "location_enable",
 ]);
-assert.deepEqual(filtered[0].actions[0].operations[0].fields, [
-  { name: "characterId", required: true, kind: "character" },
-  { name: "enemyId", required: true, kind: "enemy" },
-]);
+assert.deepEqual(filtered[0].actions[0].operations[0], { name: "pc_attack" });
 assert.equal(YOLO_SPATIAL_ACTIONS.length, 14);
 
 const spatialFiltered = filterNarratorCatalog([

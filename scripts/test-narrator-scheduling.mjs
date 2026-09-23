@@ -19,6 +19,7 @@ async function moduleAt(relative, mocks) {
 }
 function host(overrides = {}) {
   return { campaignId: 'c', timelineEpoch: 'e', stopping: false, askTask: null, askResponder: () => {},
+    deltaReads: true, sectionCache: null, stateCache: null, readPageRetries: 2, readMaxBytes: 65536,
     pendingAskCommands: new Map(), pendingAskAttempts: new Map(), answeredAsks: new Set(),
     callControl: async (action, params) => {
       assert.equal(action, 'narrator.read');
@@ -57,7 +58,7 @@ test('empty Ask metadata avoids a second MCP read', async () => {
 test('stalled Ask does not block story and only one Ask worker runs', async () => {
   const gate = deferred(); let calls = 0, stories = 0;
   const h = host({ handlePendingAsk: async () => { calls++; await gate.promise; }, storyController: { tick: async () => { stories++; return true; } } });
-  await driveNarratorCycle(h); await driveNarratorCycle(h);
+  await driveNarratorCycle(h); await driveNarratorCycle(h); await tick();
   assert.equal(stories, 2); assert.equal(calls, 1); assert.ok(h.askTask);
   const task = h.askTask; gate.resolve(); await task; assert.equal(h.askTask, null);
 });

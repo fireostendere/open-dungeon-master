@@ -1,7 +1,6 @@
 // Ask: scope inference, the archive-retrieval gate, reply parsing, and a
 // source-level guard that the evidence builder cannot leak DM secrets.
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
 import {
   QUESTION_MAX_CHARS,
   clampQuestion,
@@ -85,38 +84,6 @@ test("parseAskJson drops malformed citations but keeps the answer", () => {
   assert.equal(parsed.citations[0].quote, "kept");
   // A citation with no kind still gets a usable label.
   assert.equal(parsed.citations[0].kind, "record");
-});
-
-// A real end-to-end redaction test would need a seeded encrypted database,
-// which nothing else in scripts/ does. This checks the same property at the
-// source level instead, and it guards the exact edit that would leak: the
-// difference between listFactsVisibleTo (scoped) and listActiveFacts (all
-// facts, DM-only included) is one identifier.
-test("the evidence builder cannot reach DM-only material", () => {
-  const source = readFileSync(new URL("../src/lib/dm/ask.ts", import.meta.url), "utf8");
-  const code = source
-    .split("\n")
-    .filter((line) => !line.trim().startsWith("//"))
-    .join("\n");
-
-  assert.ok(
-    code.includes("listFactsVisibleTo"),
-    "facts must be read through the visibility-scoped helper",
-  );
-  assert.ok(
-    !code.includes("listActiveFacts"),
-    "listActiveFacts returns DM-only secrets and must never be used here",
-  );
-  assert.ok(
-    /listFactsVisibleTo\([^)]*false\s*\)/s.test(code),
-    "includeDmSecrets must be passed false",
-  );
-  for (const forbidden of ["dmOutline", "storyArc", "worldArcs", "enemies", "agency"]) {
-    assert.ok(
-      !code.includes(forbidden),
-      `${forbidden} is DM-side material and must not reach an Ask answer`,
-    );
-  }
 });
 
 console.log(`test-ask: ${passed} tests passed`);

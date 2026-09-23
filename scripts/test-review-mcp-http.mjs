@@ -73,7 +73,7 @@ test('disconnect cancels the downstream HTTP request without a later mutation', 
   }));
   const control = createControlClient({ url: backend.url, token: 'test-only-token' });
   const front = await listen(t, createSafeHttpListener(async (_req, res) => {
-    const result = await control('models.test_and_connect', {}); res.end(JSON.stringify(result));
+    const result = await control('campaigns.get', {}); res.end(JSON.stringify(result));
   }));
   const cancelled = new AbortController();
   const pending = fetch(front.url, { signal: cancelled.signal });
@@ -110,7 +110,9 @@ test('a cancelled operation cannot start another control request', async () => {
 test('presentation options stay in the sidecar and do not break strict narrator schemas', async () => {
   const params = { campaignId: 'c', afterSeq: 7, compact: true, policyMode: 'compact', includePolicyText: false };
   const client = createControlClient({ token: 'test', fetchImpl: async (_url, init) => {
-    assert.deepEqual(JSON.parse(init.body), { action: 'narrator.read', params: { campaignId: 'c', afterSeq: 7, projection: 'live', delta: true } });
+    const body = JSON.parse(init.body); const { narratorHostId, ...forwarded } = body.params;
+    assert.match(narratorHostId, /^[0-9a-f-]{36}$/);
+    assert.deepEqual({ ...body, params: forwarded }, { action: 'narrator.read', params: { campaignId: 'c', afterSeq: 7, projection: 'live', delta: true } });
     return Response.json({ ok: true, result: { currentSeq: 7, messages: [] } });
   } });
   const result = await client('narrator.read', params);

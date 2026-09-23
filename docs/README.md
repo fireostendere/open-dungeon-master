@@ -13,7 +13,7 @@
 - [Конфигурация и размещение данных](configuration.md)
 - [Запуск, обновление, откат, мониторинг и расписания](operations.md)
 - [Бэкапы, off-site и восстановление на новой машине](backups.md)
-- [Подключение ChatGPT, Gemini, Qwen и локальных runtime](llm-wizard.md)
+- [Подключение внешнего MCP-ведущего](external-narrator.md)
 - [Изображения, ComfyUI, карты и портреты](image-generation.md)
 - [Внешняя генерация артов через MCP: packs, jobs, binary upload, references](external-assets-mcp.md)
 - [Автотесты и точные границы проверки](deployment-testing.md)
@@ -37,5 +37,4 @@
 этого форка приоритет имеют инструкции первой секции.
 
 [Заметки старой локальной установки](local/README.md) не являются инструкцией
-чистого сервера. [Старый адрес отчёта provider-ветки](provider-branch-status.md)
-сохранён как переход к текущей инструкции: функция уже включена в main.
+чистого сервера.

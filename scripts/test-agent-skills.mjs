@@ -7,8 +7,8 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const skillsRoot = path.join(root, ".opencode", "skills");
 const catalog = path.join(root, "docs", "agent-skills.md");
 const expected = new Set([
-  "odm-dm-policy", "odm-development", "odm-server", "odm-backup", "odm-providers", "odm-mcp", "odm-narrator", "odm-content", "odm-assets",
-  "dnd-session-zero", "dnd-campaign", "dnd-characters", "dnd-npcs-factions", "dnd-encounters", "dnd-locations", "dnd-session", "dnd-rules", "dnd-loot-homebrew", "dnd-doppelganger",
+  "odm-dm-policy", "odm-development", "odm-server", "odm-backup", "odm-mcp", "odm-narrator", "odm-content", "odm-assets",
+  "dnd-session-zero", "dnd-campaign", "dnd-characters", "dnd-npcs-factions", "dnd-encounters", "dnd-locations", "dnd-session", "yolo-dm", "dnd-rules", "dnd-loot-homebrew", "dnd-doppelganger",
 ]);
 const files = readdirSync(skillsRoot).map((id) => path.join(skillsRoot, id, "SKILL.md"));
 assert.deepEqual(new Set(files.map((file) => path.basename(path.dirname(file)))), expected, "skill directories must match the catalog");
@@ -39,7 +39,9 @@ for (const file of markdownFiles) {
 }
 const narrator = readFileSync(path.join(skillsRoot, "odm-narrator", "SKILL.md"), "utf8");
 const narratorContract = narrator.replace(/\s+/g, " ").toLowerCase();
-for (const phrase of ["start_encounter", "инициатив", "свежей генерации", "group_check"]) assert(narratorContract.includes(phrase), `narrator contract must mention ${phrase}`);
+for (const phrase of ["start_encounter", "инициатив", "свежей генерации", "group_check", "finish_global_round"]) assert(narratorContract.includes(phrase), `narrator contract must mention ${phrase}`);
 const policySkill = readFileSync(path.join(skillsRoot, "odm-dm-policy", "SKILL.md"), "utf8");
 assert(policySkill.includes("fun/freeform/cinematic-success"), "policy skill must prohibit implicit fun mode");
+const autopilot = readFileSync(path.join(skillsRoot, "dnd-doppelganger", "SKILL.md"), "utf8");
+assert(autopilot.includes("narrator.autopilot_action") && autopilot.includes("Сервер никогда не вызывает LLM"), "autopilot skill must preserve the host/server boundary");
 console.log(`agent skills: ${names.size} skills and local Markdown links verified`);

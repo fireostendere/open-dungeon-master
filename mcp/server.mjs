@@ -148,7 +148,7 @@ function createMcpServer() {
       contents: [{
         uri: uri.href,
         mimeType: "text/plain",
-        text: "Trusted DM only: connect with stateDelta:true, then read until hasMore is false. Keep stateDelta.revision and return it as knownStateRevision; changed entities arrive as upsert/remove/order patches and changed scalar state as set/unset. A full resyncRequired response replaces the baseline after restart/eviction. Use the fully drained nextCursor/currentSeq as expectedSeq for one invoke, narrate, autopilot_action, or release_floor. Inspect pendingRolls, roll_result events, and recentRolls; the server owns dice. In global-turn mode, a waiting round keeps players locked: wait for global_turn_narrator_trigger and narrate with startGlobalRound equal to its roundNumber; that confirmed narration opens collection. Later wait for global_turn_ready, treat all player messages through that event seq as one round, and narrate with completeGlobalRound equal to its roundNumber; that confirmed MCP write advances and opens the next round. After a write, consume its attached authoritative state delta as the read; if absent/incomplete, drain narrator.read. Always reread after a timeout or error. An ambiguous serialized write may have one immediate receipt-recovery retry only with the saved exact request: same UUID commandId, original expectedSeq, timelineEpoch and all arguments. Never regenerate a payload, expectedSeq or UUID to replay an effect; then checkpoint and escalate. An answer_ask retry also keeps the exact expectedVersion. If timelineEpoch changed, reconnect and discard incompatible pending work. This resource is not a background loop. The bearer is campaign-scoped narrator access, not player access; never put it or DM secrets in player chat.",
+        text: "Trusted DM only: connect with stateDelta:true, then read until hasMore is false. Keep stateDelta.revision and return it as knownStateRevision; changed entities arrive as upsert/remove/order patches and changed scalar state as set/unset. A full resyncRequired response replaces the baseline after restart/eviction. Use the fully drained nextCursor/currentSeq as expectedSeq for one invoke, narrate, autopilot_action, finish_global_round, or release_floor. finish_global_round is only the no-prose spatial global-turn finalizer after every required room narration. Inspect pendingRolls, roll_result events, and recentRolls; the server owns dice. In global-turn mode, a waiting round keeps players locked: wait for global_turn_narrator_trigger and narrate with startGlobalRound equal to its roundNumber; that confirmed narration opens collection. Later wait for global_turn_ready, treat all player messages through that event seq as one round, and narrate with completeGlobalRound equal to its roundNumber; that confirmed MCP write advances and opens the next round. After a write, consume its attached authoritative state delta as the read; if absent/incomplete, drain narrator.read. Always reread after a timeout or error. An ambiguous serialized write may have one immediate receipt-recovery retry only with the saved exact request: same UUID commandId, original expectedSeq, timelineEpoch and all arguments. Never regenerate a payload, expectedSeq or UUID to replay an effect; then checkpoint and escalate. An answer_ask retry also keeps the exact expectedVersion. If timelineEpoch changed, reconnect and discard incompatible pending work. This resource is not a background loop. The bearer is campaign-scoped narrator access, not player access; never put it or DM secrets in player chat.",
       }],
     }),
   );
@@ -170,7 +170,9 @@ claim an action succeeded before the authoritative result has arrived.
 ## Read and write protocol
 Call connect and read; follow nextCursor until hasMore is false. Filtering OOC
 messages can produce empty pages with a NEW cursor: keep draining them. Use the
-fully drained currentSeq as expectedSeq for one invoke, narrate, autopilot_action or release_floor.
+fully drained currentSeq as expectedSeq for one invoke, narrate, autopilot_action,
+finish_global_round or release_floor. finish_global_round is only the no-prose
+spatial global-turn finalizer after every required room narration has committed.
 When global-turn mode is enabled, the server owns the round counter and input gate.
 A waiting round accepts no player input. Wait for global_turn_narrator_trigger, narrate
 the opening/transition, and send startGlobalRound=roundNumber; only that committed MCP
@@ -359,7 +361,7 @@ questions, private whispers, DM outlines or other DM secrets to the table.
     {
       title: "ODM campaign settings",
       description:
-        "Change game rules, AI/text/image providers, or DM mode for a campaign. For game patches combatMode accepts classical (default) or jrpg; other game-setting keys pass through unchanged. Story settings may write API keys but reads never reveal stored keys.",
+        "Change game rules, story/image settings, or DM mode for a campaign. For game patches combatMode accepts classical (default) or jrpg; other game-setting keys pass through unchanged. Story settings may write API keys but reads never reveal stored keys.",
       inputSchema: z.object({
         operation: z.enum(["game", "story", "dm_mode"]),
         campaignId: z.string().uuid(),
@@ -523,99 +525,6 @@ questions, private whispers, DM outlines or other DM secrets to the table.
     },
   );
 
-  registerTool(
-    "odm_models",
-    {
-      title: "ODM models and providers",
-      description:
-        "Inspect, list, test, and switch LLM text models/providers between local runtime and remote servers. Operations: status, list_models, test_and_connect, apply_profile, switch_remote.",
-      inputSchema: z.object({
-        operation: z
-          .enum(["status", "list_models", "test_and_connect", "apply_profile", "switch_remote"])
-          .default("status")
-          .describe("Operation to perform"),
-        provider: z
-          .enum(["qwen-local", "qwen", "gemini", "chatgpt"])
-          .optional()
-          .describe("LLM provider (default: qwen-local for local/remote Ollama, vLLM, etc.)"),
-        baseUrl: z
-          .string()
-          .max(500)
-          .optional()
-          .describe("Local or remote server URL (e.g. http://127.0.0.1:11434/v1 or http://gpu-server:11434/v1)"),
-        remoteUrl: z
-          .string()
-          .max(500)
-          .optional()
-          .describe("Remote server URL for switch_remote"),
-        model: z
-          .string()
-          .max(200)
-          .optional()
-          .describe("Exact model ID to test, connect or switch"),
-        apiKey: z
-          .string()
-          .max(400)
-          .optional()
-          .describe("API key if required by the provider/server"),
-        region: z
-          .enum(["international", "china", "token-plan"])
-          .optional()
-          .describe("Qwen cloud API region"),
-        profileId: z
-          .string()
-          .uuid()
-          .optional()
-          .describe("Saved profile ID to apply"),
-        apply: z
-          .boolean()
-          .optional()
-          .describe("Whether to apply immediately as default DM (default: true)"),
-        campaignId: z
-          .string()
-          .uuid()
-          .optional()
-          .describe("Optional campaign ID to apply the model specifically to"),
-      }),
-    },
-    async (args) => {
-      switch (args.operation) {
-        case "status":
-          return run("models.status", { campaignId: args.campaignId });
-        case "list_models":
-          return run("models.list", {
-            provider: args.provider || "qwen-local",
-            baseUrl: args.baseUrl,
-            apiKey: args.apiKey,
-            region: args.region,
-          });
-        case "test_and_connect":
-          return run("models.test_and_connect", {
-            provider: args.provider || "qwen-local",
-            model: args.model,
-            baseUrl: args.baseUrl,
-            apiKey: args.apiKey,
-            region: args.region,
-            apply: args.apply !== false,
-            campaignId: args.campaignId,
-          });
-        case "apply_profile":
-          return run("models.apply", {
-            profileId: args.profileId,
-            campaignId: args.campaignId,
-          });
-        case "switch_remote":
-          return run("models.switch_remote", {
-            remoteUrl: args.remoteUrl || args.baseUrl,
-            model: args.model,
-            apiKey: args.apiKey,
-            apply: args.apply !== false,
-            campaignId: args.campaignId,
-          });
-      }
-    },
-  );
-
   return server;
 }
 
@@ -628,7 +537,6 @@ export const BASE_MCP_TOOLS = Object.freeze([
   "odm_members",
   "odm_characters",
   "odm_sheets",
-  "odm_models",
   "odm_narrator",
 ]);
 

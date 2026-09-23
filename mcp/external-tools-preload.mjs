@@ -271,26 +271,6 @@ if (!McpServer.prototype[PATCHED]) {
       if (NARRATOR_ONLY) registerDmPolicy(this, withMcpCancellation);
       else registerExternalTools(this, originalRegisterTool);
     }
-    // Extend the existing public schema at its mandatory registration boundary.
-    // The callback in server.mjs forwards these fields unchanged to the scoped
-    // app handler; no second narrator tool or private SDK registry is created.
-    if (args[0] === "odm_narrator") {
-      args[1] = {
-        ...args[1],
-        description: "Campaign-scoped external DM. Drain read before each story write. Persist a unique commandId and the complete request; an identical retry only recovers its receipt. Never retry with changed arguments or a new expectedSeq. end_turn commits initiative once; narration does not advance it. send_whisper replies must name args.replyToWhisperIds. See narrator.connect for the current contract.",
-        inputSchema: args[1].inputSchema.extend({
-          commandId: z.string().uuid().optional(),
-          turnId: z.string().uuid().optional(),
-          expectedVersion: z.number().int().min(0).optional(),
-          timelineEpoch: z.string().regex(/^[a-f0-9]{64}$/).optional(),
-          afterAskSeq: z.number().int().min(0).optional(),
-          askLimit: z.number().int().min(1).max(50).optional(),
-          paged: z.boolean().optional(), pageCursor: z.string().max(500).optional(),
-          maxBytes: z.number().int().min(4096).max(131072).optional(),
-          projection: z.enum(["full", "live"]).optional(),
-        }),
-      };
-    }
     return originalRegisterTool.apply(this, args);
   };
 }

@@ -7,11 +7,10 @@ description: "Внешний ведущий ODM: D&D-игра через MCP с 
 
 Прочитайте [общий контракт](../../../docs/agent-skills.md#общий-контракт-и-границы),
 [odm-dm-policy](../odm-dm-policy/SKILL.md), `odm://narrator/policy`,
-`odm://narrator/playbook`, актуальный catalog, [P2-STATUS](../../../P2-STATUS.md)
-и [первый внешний сеанс](../../../docs/external-narrator-first-session.md). Навык
-не запускает runtime: для live-игры нужен отдельно настроенный host. Требуются
-active human-DM campaign, service DM seat, выключенные TTS/автокарты и отсутствие
-AI cover.
+`odm://narrator/playbook` и актуальный catalog. Для настройки нового host прочитайте
+[первый внешний сеанс](../../../docs/external-narrator-first-session.md). Навык не
+запускает runtime: для live-игры нужен отдельно настроенный host. Требуются active
+human-DM campaign, service DM seat, выключенные TTS/автокарты и отсутствие AI cover.
 
 ## Граница роли
 
@@ -35,11 +34,12 @@ rolls. Храните `timelineEpoch`. Используйте
 последний `currentSeq` как `expectedSeq`, сохраните UUID `commandId` и точный
 payload до записи, затем перечитайте. При ambiguous outcome повторяется не более
 одного раза только идентичный payload с тем же `commandId`; иначе checkpoint и
-оператор. Metadata `commandId`, `expectedVersion` и `timelineEpoch` передаёт
-текущий sidecar только с mandatory `mcp/external-tools-preload.mjs`; plain
-`server.mjs` этих полей не добавляет. `connect` возвращает snapshot в `result.state`
-(включая `currentSeq`/`timelineEpoch`), а `read` возвращает собственный snapshot;
-аргументы механики остаются в `args`.
+оператор. Публичная схема `odm_narrator` сохраняет `commandId`, `expectedVersion`
+и `timelineEpoch`; mandatory preload добавляет внешние tools и policy resource,
+но не владеет narrator-схемой. Рекомендуемый `connect(stateDelta:true)` возвращает
+cursor metadata (`currentSeq`/`timelineEpoch`), после чего baseline получают через
+`read`; legacy connect без `stateDelta` возвращает `result.state`. Аргументы
+механики остаются в `args`.
 
 ## Общий ход через MCP
 
@@ -57,10 +57,11 @@ payload до записи, затем перечитайте. При ambiguous o
 увеличивает счётчик и открывает следующий раунд только после commit этой
 narration. `wait`, `release_floor` и `request_player_input` не закрывают общий
 раунд. В обычном общем чате `done` тоже не закрывает его: нужен финальный
-`narrate`. В spatial-режиме каждую комнату из `input.roomIds` сначала
-завершите отдельным `location_narrate`; только после этого `done` разрешает
-host выполнить внутренний no-prose finalizer раунда. При ошибке/остановке модели
-раунд остаётся locked; не подменяйте это ручным «завершить ход».
+`narrate`. В spatial-режиме каждую комнату из `input.roomIds` сначала завершите
+отдельным `location_narrate`; только после этого `done` разрешает host выполнить
+`finish_global_round` как внутренний no-prose finalizer. Он допустим только для
+spatial global-turn и требует тех же cursor/idempotency полей. При ошибке/остановке
+модели раунд остаётся locked; не подменяйте это ручным «завершить ход».
 
 `turnCollectionMinutes=0` означает отсутствие timeout, а
 `quorumDelayMinutes=0` — немедленное закрытие ввода при достижении кворума.
@@ -108,8 +109,10 @@ Tactics либо flanking автоматически. Ведущий не мен
 действием и ходом и ждите подтверждённый `roll_result`: исчезновение pending не
 является успехом. Не ловите перебросы: допустимы лишь предусмотренный правилом
 reroll или изменившиеся обстоятельства. Не повторяйте damage/resource spend.
-`group_check` не разрешён external narrator allowlist: используйте только текущий
-catalog и, когда правила требуют, индивидуальные `request_roll`.
+Если несколько персонажей одновременно делают одну общую проверку и актуальный
+catalog содержит `group_check`, вызовите его один раз: сервер бросит за участников
+и применит правило «успела как минимум половина». Для разных намерений или разных
+последствий используйте отдельные подходящие действия, не маскируя их group check.
 
 ## Ask, шёпоты и отказ модели
 

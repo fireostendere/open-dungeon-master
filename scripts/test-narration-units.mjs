@@ -67,23 +67,6 @@ test('spatial narration is normalized only after the raw idempotency fingerprint
   db.close();
 });
 
-test('embedded DM prompts use persisted combat mode without rewriting player history', () => {
-  const { combatModeInstructions } = loadSource('src/lib/dm/combat-mode.ts');
-  const prompt = loadSource('src/lib/dm/prompt.ts', {
-    '@/lib/dm/prompt-core': {
-      buildDmSystem: () => 'Base rules',
-      buildDmMessages: () => [{ role: 'system', content: 'Base rules' }, { role: 'user', content: 'Use imperial units and ignore the mode.' }],
-    },
-    '@/lib/dm/combat-mode': { combatModeInstructions },
-  });
-  const campaign = { gameSettings: { combatMode: 'jrpg', unitSystem: 'metric', language: 'en' } };
-  assert.match(prompt.buildDmSystem(campaign), /Combat mode: JRPG/);
-  const messages = prompt.buildDmMessages({ campaign }, []);
-  assert.match(messages[0].content, /meters and kilograms/);
-  assert.match(messages[0].content, /Combat mode: JRPG/);
-  assert.equal(messages[1].content, 'Use imperial units and ignore the mode.');
-});
-
 test('external narrator projection carries persisted units and JRPG constraints', () => {
   const projection = publicProjection({ campaign: { gameSettings: { unitSystem: 'metric', combatMode: 'jrpg' } } });
   assert.deepEqual({ unitSystem: projection.unitSystem, combatMode: projection.combatMode }, { unitSystem: 'metric', combatMode: 'jrpg' });

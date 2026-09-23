@@ -18,7 +18,7 @@ function fixture() {
     '@/lib/dm/arc-logic': {}, '@/lib/dm/delegation': {}, '@/lib/dm/calendar': {},
     '@/lib/dm/party-logic': {}, '@/lib/dm/viewer': {},
   });
-  const floorDb = { ...f.campaigns, getFloor: campaigns.getFloor, setFloor: campaigns.setFloor, canAct: campaigns.canAct, campaignSeats: () => ({}) };
+  const floorDb = { ...f.campaigns, getFloor: campaigns.getFloor, setFloor: campaigns.setFloor, canAct: campaigns.canAct, getGlobalTurnState: () => ({ phase: 'active' }), campaignSeats: () => ({}), listMembers: () => [{ userId, autopilot: false }] };
   const sheets = [
     { id: heroId, userId: 'u1', name: 'First', equipment: [], resources: {}, conditions: [] },
     { id: 'other', userId: 'u2', name: 'Second', equipment: [], resources: {}, conditions: [] },
@@ -34,6 +34,7 @@ function fixture() {
   const spatial = { spatialEnabled: () => false };
   const route = loadSource('src/app/api/campaigns/[campaignId]/actions/route.ts', {
     zod: { z }, '@/lib/spatial/service': spatial,
+    '@/lib/i18n/locale-text': { localeText: (locale, values) => values[locale] },
     '@/lib/ingress-budget': { enforcePlayerIngress: () => null },
     '@/lib/campaign-api': { requireVoice: async () => ({ campaign, user: { id: userId } }), isErrorResponse: () => false },
     '@/lib/db/campaigns': floorDb, '@/lib/db/messages': { ...f.messages, countMessages: () => 1, listRecentMessages: () => [] },

@@ -1,7 +1,4 @@
-// Campaign cover art: the prompt builder, the cover column's round trip
-// through the real modules against a throwaway encrypted database, and the
-// one-query playingAs helper the shells' home screen reads (friends test
-// pattern).
+// Campaign cover column round trip and the playingAs helper.
 import assert from "node:assert/strict";
 import { randomBytes } from "node:crypto";
 import fs from "node:fs";
@@ -15,7 +12,6 @@ process.env.DB_ENCRYPTION_KEY = randomBytes(32).toString("hex");
 
 register("./lib/register-alias.mjs", import.meta.url);
 
-const { buildCoverPrompt, coverStatus } = await import("../src/lib/campaign-cover.ts");
 const { createUser } = await import("../src/lib/db/users.ts");
 const {
   createCampaign,
@@ -29,7 +25,6 @@ const { createSheet, markSheetAsCompanion, playingAsByCampaign } = await import(
   "../src/lib/db/sheets.ts"
 );
 const { createSheetSchema } = await import("../src/lib/schemas/sheet.ts");
-const { presetFor } = await import("../src/lib/worlds/preset.ts");
 
 let passed = 0;
 function test(name, fn) {
@@ -42,48 +37,6 @@ function test(name, fn) {
 function pause(ms) {
   Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
 }
-
-test("the prompt carries the campaign's words and the world's art style", () => {
-  const prompt = buildCoverPrompt({
-    title: "Ashes of Thornhold",
-    description: "A border keep falls silent and the crows will not land there.",
-    theme: "grim, autumnal",
-    genre: "high_fantasy",
-  });
-  assert.ok(prompt.includes('"Ashes of Thornhold"'));
-  assert.ok(prompt.includes("crows will not land"));
-  assert.ok(prompt.includes("grim, autumnal"));
-  assert.ok(prompt.includes(presetFor({ genre: "high_fantasy" }).portraitStyle));
-  assert.ok(prompt.includes("no text"));
-  assert.ok(prompt.startsWith("Tabletop RPG campaign cover art"));
-});
-
-test("empty fields drop out cleanly and a missing pack falls back to the genre", () => {
-  const prompt = buildCoverPrompt({
-    title: "",
-    description: "",
-    theme: "",
-    genre: "high_fantasy",
-    worldPack: "no-such-pack",
-  });
-  assert.ok(!prompt.includes('""'));
-  assert.ok(!prompt.includes(".."));
-  assert.equal(
-    prompt,
-    buildCoverPrompt({ title: "", description: "", theme: "", genre: "high_fantasy" }),
-  );
-});
-
-test("the prompt is deterministic and bounded", () => {
-  const input = {
-    title: "Long",
-    description: "x".repeat(2000),
-    theme: "",
-    genre: "high_fantasy",
-  };
-  assert.equal(buildCoverPrompt(input), buildCoverPrompt(input));
-  assert.ok(buildCoverPrompt(input).length < 700);
-});
 
 test("normalizeCampaignCover trusts only our own upload paths", () => {
   assert.equal(normalizeCampaignCover(null), null);
@@ -111,9 +64,8 @@ const campaign = createCampaign(alice.id, {
   difficulty: "normal",
 });
 
-test("a new campaign has no cover and no render in flight", () => {
+test("a new campaign has no cover", () => {
   assert.equal(campaign.cover, null);
-  assert.equal(coverStatus(campaign.id), null);
 });
 
 test("setting a cover stores it, touches updated_at, and lists it on the summary", () => {
