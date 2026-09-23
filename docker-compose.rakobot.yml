@@ -1,0 +1,7 @@
+# Optional feed; .env values must also be passed into the app container.
+# docker compose -f docker-compose.yml -f docker-compose.rakobot.yml up -d --build
+services:
+  open-dungeon-master:
+    environment:
+      RAKOBOT_FEED_TOKEN: ${RAKOBOT_FEED_TOKEN:-}
+      RAKOBOT_CAMPAIGN_IDS: ${RAKOBOT_CAMPAIGN_IDS:-}

@@ -1,3 +1,5 @@
+import { getDatabase } from "@/lib/db/core";
+import { withCommittedEffects } from "@/lib/db/commit-effects";
 import { spatialEnabled, runSpatialCommand, SpatialError } from "@/lib/spatial/service";
 import { localeText } from "@/lib/i18n/locale-text";
 import { z } from "zod";
@@ -229,16 +231,20 @@ export async function POST(
         ? `(ooc) ${parsed.data.content}`
         : parsed.data.content!);
 
-  const seq = allocateSeq(campaignId);
-  const message = insertCampaignMessage({
-    campaignId,
-    seq,
-    authorType: "player",
-    userId: user.id,
-    characterId: sheet.id,
-    content,
-  });
-  publishWithSeq(campaignId, seq, "message_added", { message });
+  const message = withCommittedEffects(() => getDatabase().transaction(() => {
+    const seq = allocateSeq(campaignId);
+    const message = insertCampaignMessage({
+      campaignId,
+      seq,
+      authorType: "player",
+      userId: user.id,
+      characterId: sheet.id,
+      content,
+    });
+    publishWithSeq(campaignId, seq, "message_added", { message });
+    return message;
+  })());
+  const seq = message.seq;
 
   // Quorum with zero grace (or everybody answering) seals only after the
   // triggering message is durable. From this point the round belongs to the

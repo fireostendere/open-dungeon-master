@@ -1,3 +1,4 @@
+import { queueLegacyPlayerEvent } from '@/lib/integrations/rakobot';
 import { randomUUID } from 'node:crypto';
 import { afterCommit, withCommittedEffects } from '@/lib/db/commit-effects';
 import { getDatabase, nowIso, parseJson } from '@/lib/db/core';
@@ -83,6 +84,8 @@ export function publishWithSeq(campaignId:string,seq:number,type:string,payload:
     const audience=eventSpatialState(campaignId).enabled||scope||recipients.length?{version:1 as const,userIds:recipients.map(row=>row.user_id).sort()}:null;
     db.prepare('INSERT INTO campaign_events(campaign_id,seq,type,payload_json,created_at,audience_json) VALUES(?,?,?,?,?,?)')
       .run(campaignId,seq,type,JSON.stringify(frozen),nowIso(),audience?JSON.stringify(audience):null);
+    // Durable export metadata shares this transaction, including MCP autopilot writes.
+    queueLegacyPlayerEvent(campaignId,type,frozen);
     const event:PrivateEvent={seq,type,payload:frozen,audience};
     afterCommit(()=>{fanOut(campaignId,event);globalThis.__odmVoiceEventHook?.(campaignId,type);});return seq;
   })());

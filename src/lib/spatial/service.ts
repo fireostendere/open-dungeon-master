@@ -13,6 +13,7 @@ import { createSpatialStore, SpatialError, type SpatialActor, type SpatialStore 
 import { capturePreSpatialEntities } from "@/lib/spatial/domain-migration";
 import { normalizeNarrationUnits } from "@/lib/units/narration";
 import { publishEphemeral } from "@/lib/events";
+import { queuePlayerAction } from "@/lib/integrations/rakobot";
 
 export { SpatialError } from "@/lib/spatial/store.mjs";
 const stores = new WeakMap<ReturnType<typeof getDatabase>, SpatialStore>();
@@ -89,6 +90,8 @@ export function runSpatialCommand(campaignId: string, userId: string, raw: unkno
   let spatialModeChanged: boolean | null = null;
   const result = getDatabase().transaction(() => {
     const previouslyEnabled = spatialStore().enabled(campaignId);
+    const alreadyProcessed = getDatabase().prepare("SELECT 1 FROM spatial_requests WHERE campaign_id=? AND actor_id=? AND request_id=?")
+      .get(campaignId, userId, requestId);
     const result = spatialStore().command(actor, requestId, operation, input, (raw) =>
       actor.isDm && ["send", "propagate", "perceive"].includes(operation) && typeof raw.content === "string"
         ? { ...raw, content: normalizeNarrationUnits(raw.content, campaign.gameSettings.unitSystem) }
@@ -117,6 +120,13 @@ export function runSpatialCommand(campaignId: string, userId: string, raw: unkno
       if (turn.shouldResolve) {
         globalTurnResolution = { roundNumber: getGlobalTurnState(campaignId).roundNumber };
       }
+    }
+
+    // The action and its notification reference commit/roll back together.
+    // Never enqueue historical request replays after integration is enabled.
+    if (!alreadyProcessed && !actor.isDm && operation === "send" && (command.kind === "do" || command.kind === "say")) {
+      const message = result.message as { id?: string } | undefined;
+      if (message?.id) queuePlayerAction(campaignId, "spatial", message.id, command.kind);
     }
 
     // Exact retry of enable must not capture newer text as pre-spatial history.
