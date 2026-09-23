@@ -1,3 +1,4 @@
+import { addConditionSource } from "@/lib/dm/condition-sources";
 import { z } from "zod";
 import { allocateSeq, type Campaign } from "@/lib/db/campaigns";
 import { getActiveEncounter, patchEnemyConditions, setEnemyConcentration } from "@/lib/db/encounters";
@@ -11,7 +12,7 @@ import { spellDamageFor, spellMechanicsFor, type ResolvedSpellMech } from "@/lib
 import { allySaveAura } from "@/lib/dm/aura";
 import { findBeastForm, formatCr } from "@/lib/srd/beast-forms";
 import { conditionEffectsFor } from "@/lib/srd/condition-effects";
-import { clearSpellConditionsByName, setConcentration } from "@/lib/dm/concentration";
+import { clearSpellConditionsByName, setConcentration, concentrationSourceFor } from "@/lib/dm/concentration";
 import { saveModFor, type SaveAbility } from "@/lib/bestiary/statblock";
 import { applyDmMutation, canonicalCondition } from "@/lib/dm/mutations";
 import { applyEnemyDamage, publishEncounter, resolveEnemyRef } from "@/lib/dm/enemy-damage";
@@ -380,14 +381,15 @@ export function handleCastAtEnemy(
 
   if (condition && !saved && !autoHit && !base.dead && !base.encounterOver) {
     const fresh = resolveEnemyRef(encounter.id, enemy.id);
-    if (fresh && fresh.status === "alive" && !fresh.conditions.includes(condition)) {
+    const conditionSource = concentrationSourceFor(campaign, sheet.id, "pc", args.spell);
+    if (fresh && fresh.status === "alive" && (!fresh.conditions.includes(condition) || conditionSource)) {
       const meta: ConditionMeta = conditionRounds
         ? { rounds: conditionRounds }
         : { saveEnds: { ability, dc } };
-      patchEnemyConditions(fresh.id, [...fresh.conditions, condition], {
-        ...fresh.conditionMeta,
-        [condition]: meta,
-      });
+      const next = conditionSource
+        ? addConditionSource(fresh.conditions, fresh.conditionMeta, condition, conditionSource, meta)
+        : { conditions: [...fresh.conditions, condition], meta: { ...fresh.conditionMeta, [condition]: meta } };
+      patchEnemyConditions(fresh.id, next.conditions, next.meta);
       publishEncounter(campaign.id);
       base.conditionApplied = condition;
       const summary = conditionEffectsFor(condition)?.summary;
@@ -627,6 +629,7 @@ export function handleCastBuff(
       };
     }
   }
+  const conditionSource = concentrationSourceFor(campaign, sheet.id, "pc", args.spell);
   const applied: string[] = [];
   for (const target of targetSheets) {
     if (isShillelagh) {
@@ -648,6 +651,7 @@ export function handleCastBuff(
         characterId: target.id,
         condition,
         rounds,
+        ...(conditionSource ? { conditionSource } : {}),
         reason: `${resolvedMech.name} cast by ${sheet.name}`,
       }),
       sheets,
@@ -666,6 +670,7 @@ export function handleCastBuff(
             beastMaxHp: polymorphForm.hp,
             beastAc: polymorphForm.ac,
             kind: "polymorph",
+            ...(conditionSource ? { concentrationSource: conditionSource } : {}),
             abilities: polymorphForm.abilities,
             speed: polymorphForm.speed,
             attacks: polymorphForm.attacks,
@@ -764,8 +769,8 @@ export function trackEnemyConcentration(
   if (!resolved?.concentration) {
     return null;
   }
-  if (enemy.concentration && enemy.concentration.toLowerCase() !== resolved.name.toLowerCase()) {
-    clearSpellConditionsByName(campaign, enemy.concentration);
+  if (enemy.concentration) {
+    clearSpellConditionsByName(campaign, enemy.concentration, undefined, { casterId: enemy.id, casterKind: "enemy" });
   }
   setEnemyConcentration(enemy.id, resolved.name);
   return `${enemy.displayName} is now concentrating on ${resolved.name}; damage to it forces a CON save and a break ends the effect.`;
@@ -880,6 +885,13 @@ export function handleCastAtPlayer(
     }
   }
 
+  // End previous owned effects before adding the new spell's condition.
+  // This also records concentration when the target succeeds on its save.
+  const tracked = trackEnemyConcentration(campaign, args.casterEnemyId, args.spell);
+  const sourceEncounter = tracked ? getActiveEncounter(campaign.id) : null;
+  const sourceEnemy = sourceEncounter && args.casterEnemyId ? resolveEnemyRef(sourceEncounter.id, args.casterEnemyId) : null;
+  const conditionSource = sourceEnemy && args.spell
+    ? concentrationSourceFor(campaign, sourceEnemy.id, "enemy", sourceEnemy.concentration ?? args.spell) : undefined;
   if (args.condition && !saved) {
     const condition = canonicalCondition(args.condition);
     const applied = applyDmMutation(
@@ -889,6 +901,7 @@ export function handleCastAtPlayer(
       JSON.stringify({
         characterId: sheet.id,
         condition,
+        ...(conditionSource ? { conditionSource } : {}),
         ...(args.rounds
           ? { rounds: args.rounds }
           : { saveAbility: args.saveAbility, saveDc: args.dc }),
@@ -907,9 +920,6 @@ export function handleCastAtPlayer(
   if (saved && args.condition) {
     base.note = `${sheet.name} shakes it off: no ${args.condition}.`;
   }
-  // A concentration spell cast by a named enemy is tracked even when the
-  // save succeeded (Hold Person holds nobody yet the hag still concentrates).
-  const tracked = trackEnemyConcentration(campaign, args.casterEnemyId, args.spell);
   if (tracked) {
     base.enemyConcentration = tracked;
   }

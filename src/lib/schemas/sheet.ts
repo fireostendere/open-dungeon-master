@@ -309,16 +309,25 @@ export type SheetResources = z.infer<typeof resourcesSchema>;
 // Duration/save metadata for active conditions, keyed by condition name.
 // Lives NEXT TO the plain `conditions` string list so its consumers never
 // change; the server maintains both together (src/lib/dm/condition-logic.ts).
+export const concentrationSourceSchema = z.object({
+  casterId: z.string().min(1).max(100),
+  casterKind: z.enum(["pc", "enemy"]),
+  spell: z.string().trim().min(1).max(80),
+  instanceId: z.string().uuid(),
+});
+export type ConcentrationSource = z.infer<typeof concentrationSourceSchema>;
+export const conditionDurationSchema = z.object({
+  rounds: z.number().int().min(1).max(100).optional(),
+  saveEnds: z.object({ ability: z.enum(ABILITIES), dc: z.number().int().min(1).max(30) }).optional(),
+});
 export const conditionMetaSchema = z.record(
   z.string().max(40),
-  z.object({
-    rounds: z.number().int().min(1).max(100).optional(),
-    saveEnds: z
-      .object({
-        ability: z.enum(ABILITIES),
-        dc: z.number().int().min(1).max(30),
-      })
-      .optional(),
+  conditionDurationSchema.extend({
+    // Kept inside the existing audited JSON field, including undo/backup.
+    // Sources have separate timers; the outer duration is only a UI mirror.
+    concentrationSources: z.array(concentrationSourceSchema.extend(conditionDurationSchema.shape)).max(128).optional(),
+    // An unrelated/manual/legacy instance must survive a caster's cleanup.
+    independent: conditionDurationSchema.optional(),
   }),
 );
 export type ConditionMetaMap = z.infer<typeof conditionMetaSchema>;
@@ -339,6 +348,7 @@ export const wildShapeSchema = z
     // "wildshape" keeps the character's mental stats; "polymorph" replaces
     // every score the form carries. Missing = "wildshape".
     kind: z.enum(["wildshape", "polymorph"]).optional(),
+    concentrationSource: concentrationSourceSchema.optional(),
     // The form's ability scores, overriding the sheet's while transformed.
     // Wild Shape stores only STR/DEX/CON; Polymorph stores all six.
     abilities: z

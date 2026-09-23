@@ -1,3 +1,4 @@
+import { addConditionSource, sourceMeta } from "@/lib/dm/condition-sources";
 import { z } from "zod";
 import { getSheetById, patchSheet } from "@/lib/db/sheets";
 import { insertSheetAudit } from "@/lib/db/sheet-audit";
@@ -14,6 +15,7 @@ import { conditionExtraActions } from "@/lib/srd/condition-effects";
 import { publishPersisted } from "@/lib/events";
 import {
   fullPatchSheetSchema,
+  concentrationSourceSchema,
   type CharacterSheet,
   type FullPatchSheetInput,
 } from "@/lib/schemas/sheet";
@@ -35,6 +37,7 @@ import {
   parseCoins,
 } from "@/lib/srd/currency";
 import { applyDamageDeathHook, healDeathHook } from "@/lib/dm/death";
+import { isMassiveDamage, stabilizeDeathTrack } from "@/lib/dm/death-logic";
 import { autoLevelCompanion } from "@/lib/dm/companion-tools";
 import {
   damageAdjust,
@@ -46,6 +49,7 @@ import {
 import { normalizeAbility, normalizeListAction } from "@/lib/dm/arg-coerce";
 import {
   breakConcentration,
+  concentrationSourceFor,
   concentrationDamageHook,
   setConcentration,
   spellRequiresConcentration,
@@ -222,6 +226,8 @@ export const mutationTools: ToolDef[] = [
       description: "Save-ends: ability re-saved at the end of each round.",
     },
     saveDc: { type: "integer", minimum: 1, maximum: 30, description: "Save-ends DC." },
+    casterId: { type: "string", description: "For an effect held by a PC's concentration, its caster's characterId. Send spell too; prefer cast_buff/cast_at_enemy for known spells." },
+    spell: { type: "string", description: "Concentration spell maintained by casterId. Both fields are required together to bind a manual/homebrew effect to its source." },
   }, ["condition"]),
   tool("clear_condition", "Remove a condition from a character the moment the fiction ends it (cured, dispelled, rested, shaken off). Use the condition name shown in GAME STATE.", {
     condition: { type: "string" },
@@ -368,6 +374,7 @@ const argsSchema = z.object({
   spell: z.string().optional(),
   // heal: who cast the healing spell, when it lands on someone else.
   casterId: z.string().optional(),
+  conditionSource: concentrationSourceSchema.optional(),
   // learn_spell: add|remove; purchase: buy|sell (synonyms normalized).
   action: z.preprocess(
     normalizeListAction,
@@ -640,9 +647,9 @@ export function applyDmMutation(
         "",
       );
       // Wild Shape: the beast's hit points take the blow first. While the
-      // form holds, the druid's own sheet is untouched and no death or
-      // concentration hook fires; when it breaks, only the excess carries
-      // through into the rest of this same call.
+      // form holds, only that pool changes. Concentration still checks the
+      // complete incoming damage once, including damage absorbed by temp HP.
+      // If the form breaks, only excess damage reaches the normal HP pool.
       let carried = adjusted.amount;
       let tempHpNow = sheet.tempHp;
       let shapeInfo: Record<string, unknown> = {};
@@ -690,6 +697,7 @@ export function applyDmMutation(
         );
         publishSheet(campaign, sheet.id);
         if (!shape.reverted) {
+          const concentrationInfo = concentrationDamageHook(campaign, turnId, sheet, adjusted.amount);
           return {
             result: {
               ok: true,
@@ -697,6 +705,7 @@ export function applyDmMutation(
               ...(adjusted.note ? { resistance: `${sheet.name} is ${adjusted.note}` } : {}),
               ...(shape.absorbed ? { tempHpAbsorbed: shape.absorbed } : {}),
               note: `The beast form absorbs it; ${sheet.name}'s own hit points are untouched.`,
+              ...concentrationInfo,
             },
           };
         }
@@ -719,19 +728,21 @@ export function applyDmMutation(
       // Relentless Endurance: a half-orc who would drop stays up at 1 HP
       // instead, once per long rest. The server burns the use itself, so
       // the death engine never sees the drop.
-      if (math.dropped) {
+      if (math.dropped && !isMassiveDamage(math.overkill, sheet.maxHp)) {
         const spent = spendRelentlessEndurance(sheet.resources);
         if (spent) {
           const patch: FullPatchSheetInput = { currentHp: 1, resources: spent };
           patchSheet(sheet.id, patch);
           audit(campaign, turnId, sheet, "apply_damage", { relentlessEndurance: true }, reason, patch);
           publishSheet(campaign, sheet.id);
+          const concentrationInfo = concentrationDamageHook(campaign, turnId, sheet, adjusted.amount);
           return {
             result: {
               ok: true,
               hp: `1/${sheet.maxHp}`,
               relentlessEndurance: true,
               ...shapeInfo,
+              ...concentrationInfo,
               note: `${sheet.name} should have fallen, but Relentless Endurance holds them at 1 HP. The feature is now spent until a long rest.`,
             },
           };
@@ -741,7 +752,8 @@ export function applyDmMutation(
       // Relentless Endurance, which keeps them on their feet still raging.
       let rageInfo: Record<string, unknown> = {};
       if (math.dropped && sheet.conditions.some((entry) => entry.toLowerCase() === RAGING)) {
-        const cleared = removeConditions(sheet.conditions, sheet.conditionMeta, [RAGING]);
+        const current = getSheetById(sheet.id) ?? sheet;
+        const cleared = removeConditions(current.conditions, current.conditionMeta, [RAGING]);
         const patch: FullPatchSheetInput = {
           conditions: cleared.conditions,
           conditionMeta: cleared.meta,
@@ -755,7 +767,7 @@ export function applyDmMutation(
       // already down adds automatic failures; massive damage kills.
       const deathInfo = applyDamageDeathHook(campaign, turnId, sheet, math, args.crit === true);
       // Concentration: damage forces the CON save server-side.
-      const concentrationInfo = concentrationDamageHook(campaign, turnId, sheet, carried);
+      const concentrationInfo = concentrationDamageHook(campaign, turnId, sheet, adjusted.amount);
       return {
         result: {
           ok: true,
@@ -868,10 +880,10 @@ export function applyDmMutation(
       if (!track || track.dead || sheet.currentHp > 0) {
         return { result: { error: `${sheet.name} is not dying; nothing to stabilize.` } };
       }
-      if (track.stable) {
+      if (track.stable && track.successes === 0 && track.failures === 0) {
         return { result: { ok: true, note: `${sheet.name} is already stable.` } };
       }
-      const nextTrack = { ...track, stable: true };
+      const nextTrack = stabilizeDeathTrack(track);
       patchSheet(sheet.id, { deathSaves: nextTrack });
       audit(campaign, turnId, sheet, "stabilize", { deathSaves: nextTrack }, reason, {
         deathSaves: nextTrack,
@@ -1164,24 +1176,35 @@ export function applyDmMutation(
           },
         };
       }
-      if (sheet.conditions.includes(normalized)) {
+      const timing = {
+        ...(args.rounds ? { rounds: args.rounds } : {}),
+        ...(args.saveAbility && args.saveDc ? { saveEnds: { ability: args.saveAbility, dc: args.saveDc } } : {}),
+      };
+      if (!args.conditionSource && Boolean(args.casterId) !== Boolean(args.spell)) {
+        return { result: { error: "Provide both casterId and spell for a concentration-held condition." } };
+      }
+      const requestedSource = args.conditionSource ?? (args.casterId && args.spell
+        ? { casterId: args.casterId, casterKind: "pc" as const, spell: args.spell, instanceId: undefined } : undefined);
+      const conditionSource = requestedSource ? concentrationSourceFor(campaign,
+        requestedSource.casterId, requestedSource.casterKind, requestedSource.spell, requestedSource.instanceId) : undefined;
+      if (requestedSource && !conditionSource) return { result: { error: "Condition source is not maintaining this spell in this campaign." } };
+      if (!conditionSource && sheet.conditions.includes(normalized) && !sheet.conditionMeta[normalized]?.concentrationSources?.length) {
         return { result: { ok: true, note: `${sheet.name} is already ${normalized}.` } };
       }
-      const withCondition = [...sheet.conditions, normalized].slice(0, 15);
-      // Duration metadata: timed conditions tick down at round wrap;
-      // save-ends conditions re-save server-side each round.
-      const meta =
-        args.rounds || (args.saveAbility && args.saveDc)
-          ? {
-              ...sheet.conditionMeta,
-              [normalized]: {
-                ...(args.rounds ? { rounds: args.rounds } : {}),
-                ...(args.saveAbility && args.saveDc
-                  ? { saveEnds: { ability: args.saveAbility, dc: args.saveDc } }
-                  : {}),
-              },
-            }
-          : sheet.conditionMeta;
+      if (!sheet.conditions.includes(normalized) && sheet.conditions.length >= 15) {
+        return { result: { error: "Character already has 15 conditions." } };
+      }
+      let withCondition: string[], meta: CharacterSheet["conditionMeta"];
+      if (conditionSource) {
+        try {
+          const next = addConditionSource(sheet.conditions, sheet.conditionMeta, normalized, conditionSource, timing);
+          withCondition = next.conditions; meta = next.meta;
+        } catch (error) { return { result: { error: error instanceof Error ? error.message : "Cannot add condition source." } }; }
+      } else {
+        withCondition = sheet.conditions.includes(normalized) ? sheet.conditions : [...sheet.conditions, normalized];
+        const sources = sheet.conditionMeta[normalized]?.concentrationSources;
+        meta = { ...sheet.conditionMeta, [normalized]: sources?.length ? sourceMeta(sources, timing)! : timing };
+      }
       patchSheet(sheet.id, { conditions: withCondition, conditionMeta: meta });
       audit(campaign, turnId, sheet, "set_condition", { condition: normalized }, reason, {
         conditions: withCondition,

@@ -1,3 +1,4 @@
+import { tickSourcedConditions, clearConditionSave, hasConcentrationSource } from "@/lib/dm/condition-sources";
 import { allocateSeq, type Campaign } from "@/lib/db/campaigns";
 import { listEnemies, patchEnemyConditions, type Encounter } from "@/lib/db/encounters";
 import { getSheetById, listSheets, patchSheet } from "@/lib/db/sheets";
@@ -8,7 +9,7 @@ import { publishPersisted, publishWithSeq } from "@/lib/events";
 import { computeSheetDerived } from "@/lib/srd";
 import { saveModFor } from "@/lib/bestiary/statblock";
 import { allySaveAura } from "@/lib/dm/aura";
-import { removeConditions, tickConditions } from "@/lib/dm/condition-logic";
+import { tickConditions } from "@/lib/dm/condition-logic";
 import { hasBrave } from "@/lib/srd/feature-effects";
 import { tickEffectRound } from "@/lib/db/active-effects";
 import { publishEncounter } from "@/lib/dm/enemy-damage";
@@ -34,7 +35,7 @@ export function tickEncounterConditions(campaign: Campaign, encounter: Encounter
     if (enemy.status !== "alive" || !enemy.conditions.length) {
       continue;
     }
-    const tick = tickConditions(enemy.conditions, enemy.conditionMeta);
+    const tick = tickSourcedConditions(enemy.conditions, enemy.conditionMeta, tickConditions);
     let conditions = tick.conditions;
     let meta = tick.meta;
     for (const name of tick.expired) {
@@ -46,11 +47,11 @@ export function tickEncounterConditions(campaign: Campaign, encounter: Encounter
       }
       const outcome = rollExpression(d20Expression(saveModFor(enemy.stats, due.ability)));
       if (outcome.total >= due.dc) {
-        const removed = removeConditions(conditions, meta, [due.name]);
+        const removed = clearConditionSave(conditions, meta, due);
         conditions = removed.conditions;
         meta = removed.meta;
         lines.push(
-          `${enemy.displayName} shakes off ${due.name} (${due.ability.toUpperCase()} save ${outcome.total} vs DC ${due.dc}).`,
+          `${enemy.displayName} resists one ${due.name} effect${conditions.includes(due.name) ? "; another source remains" : ""} (${due.ability.toUpperCase()} save ${outcome.total} vs DC ${due.dc}).`,
         );
       } else {
         lines.push(
@@ -71,7 +72,7 @@ export function tickEncounterConditions(campaign: Campaign, encounter: Encounter
     if (!sheet.conditions.length || !Object.keys(sheet.conditionMeta).length) {
       continue;
     }
-    const tick = tickConditions(sheet.conditions, sheet.conditionMeta);
+    const tick = tickSourcedConditions(sheet.conditions, sheet.conditionMeta, tickConditions);
     let conditions = tick.conditions;
     let meta = tick.meta;
     for (const name of tick.expired) {
@@ -105,11 +106,11 @@ export function tickEncounterConditions(campaign: Campaign, encounter: Encounter
         source: "digital",
       });
       if (outcome.total >= due.dc) {
-        const removed = removeConditions(conditions, meta, [due.name]);
+        const removed = clearConditionSave(conditions, meta, due);
         conditions = removed.conditions;
         meta = removed.meta;
         lines.push(
-          `${sheet.name} shakes off ${due.name} (${due.ability.toUpperCase()} save ${outcome.total} vs DC ${due.dc}).`,
+          `${sheet.name} resists one ${due.name} effect${conditions.includes(due.name) ? "; another source remains" : ""} (${due.ability.toUpperCase()} save ${outcome.total} vs DC ${due.dc}).`,
         );
       } else {
         lines.push(
@@ -126,7 +127,8 @@ export function tickEncounterConditions(campaign: Campaign, encounter: Encounter
       const polymorphEnded =
         sheet.wildShape?.kind === "polymorph" &&
         sheet.conditions.some((name) => name.toLowerCase() === "polymorphed") &&
-        !conditions.some((name) => name.toLowerCase() === "polymorphed");
+        (!conditions.some((name) => name.toLowerCase() === "polymorphed") ||
+          Boolean(sheet.wildShape.concentrationSource && !hasConcentrationSource(meta, sheet.wildShape.concentrationSource)));
       if (polymorphEnded) {
         lines.push(`${sheet.name} reverts to their own body as the polymorph ends.`);
       }

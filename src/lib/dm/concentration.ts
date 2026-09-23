@@ -1,22 +1,25 @@
+import { randomUUID } from "node:crypto";
+import { activePublicEncounter } from "@/lib/db/encounter-view";
+import { getDatabase } from "@/lib/db/core";
 import { allocateSeq, type Campaign } from "@/lib/db/campaigns";
 import { getSheetById, listSheets, patchSheet } from "@/lib/db/sheets";
-import { getActiveEncounter, listEnemies, patchEnemyConditions } from "@/lib/db/encounters";
+import { getEnemy, listEnemies, patchEnemyConditions } from "@/lib/db/encounters";
 import { insertSheetAudit } from "@/lib/db/sheet-audit";
 import { insertRoll } from "@/lib/db/rolls";
-import { findSpellByName, spellMechanicsFor } from "@/lib/content";
+import { findSpellByName } from "@/lib/content";
 import { allySaveAura } from "@/lib/dm/aura";
 import { computeSheetDerived } from "@/lib/srd";
 import { conditionConcentrationFloor } from "@/lib/srd/condition-effects";
-import { removeConditions } from "@/lib/dm/condition-logic";
+import { removeConcentrationSources, sameConcentrationOwner } from "@/lib/dm/condition-sources";
 import { d20Expression, rollExpression } from "@/lib/dice";
 import { publishPersisted, publishWithSeq } from "@/lib/events";
-import type { CharacterSheet } from "@/lib/schemas/sheet";
+import type { CharacterSheet, ConcentrationSource } from "@/lib/schemas/sheet";
 
 // Server-tracked concentration: casting a concentration spell sets it (and
 // breaks the previous one), taking damage forces the CON save server-side,
 // and dropping to 0 HP always ends it. This module must not import
-// mutations.ts (which imports it). Enemy concentration is out of scope;
-// enemies have no tracked spells.
+// mutations.ts (which imports it). Source-scoped cleanup is shared with
+// enemy concentration; spell names alone never authorize removing effects.
 
 // Whether a spell requires concentration: exact-name match against the
 // Open5e content pack plus the caster's homebrew. Null when unknown.
@@ -60,13 +63,14 @@ export function setConcentration(
   spell: string,
 ): { displaced: string | null } {
   const sheet = getSheetById(sheetId);
-  if (!sheet) {
+  if (!sheet || sheet.campaignId !== campaign.id) {
     return { displaced: null };
   }
-  const displaced = sheet.concentratingOn && sheet.concentratingOn !== spell
-    ? sheet.concentratingOn
-    : null;
-  writeConcentration(campaign, turnId, sheet, spell, `casting ${spell}`);
+  const displaced = sheet.concentratingOn;
+  // Recasting the same spell is a new application too. Clear the previous
+  // owner's instances BEFORE applying new targets, not all same-name buffs.
+  if (displaced) clearSpellConditionsByName(campaign, displaced, sheet.userId, { casterId: sheet.id, casterKind: "pc" }, turnId);
+  writeConcentration(campaign, turnId, getSheetById(sheet.id) ?? sheet, spell, `casting ${spell}`);
   return { displaced };
 }
 
@@ -77,7 +81,7 @@ export function breakConcentration(
   cause: string,
 ): string | null {
   const sheet = getSheetById(sheetId);
-  if (!sheet?.concentratingOn) {
+  if (!sheet?.concentratingOn || sheet.campaignId !== campaign.id) {
     return null;
   }
   const spell = sheet.concentratingOn;
@@ -85,70 +89,61 @@ export function breakConcentration(
   // The spell's lingering effect conditions end with the concentration:
   // Bless's dice, Haste's action, Hold Person's paralysis all stop here
   // instead of waiting for their duration to expire.
-  clearSpellConditionsByName(campaign, spell, sheet.userId);
+  clearSpellConditionsByName(campaign, spell, sheet.userId, { casterId: sheet.id, casterKind: "pc" }, turnId);
   return spell;
 }
 
-// Removes the effect conditions a broken concentration spell was holding in
-// place, from every party sheet and every living enemy in the active
-// encounter. Best effort: an unknown/homebrew spell simply clears nothing.
-// Shared by PC concentration (above) and enemy concentration breaks
-// (src/lib/dm/enemy-damage.ts), which have no caster userId.
+// A source is minted only for a real caster in this campaign who currently
+// maintains this spell. Internal casting tools share one ID across targets.
+export function concentrationSourceFor(
+  campaign: Campaign, casterId: string, casterKind: "pc" | "enemy", spell: string,
+  instanceId: string = randomUUID(),
+): ConcentrationSource | undefined {
+  const caster = casterKind === "pc" ? getSheetById(casterId) : getEnemy(casterId);
+  if (!caster || caster.campaignId !== campaign.id) return undefined;
+  const held = "concentratingOn" in caster ? caster.concentratingOn : caster.concentration;
+  if (!held || held.trim().toLowerCase() !== spell.trim().toLowerCase()) return undefined;
+  return { casterId, casterKind, spell: held, instanceId };
+}
+
+// Keep the exported name for existing callers, but an absent owner is a
+// deliberate no-op. Legacy unowned conditions need explicit DM clearing;
+// guessing from a spell name can destroy another caster's independent state.
 export function clearSpellConditionsByName(
   campaign: Campaign,
   spell: string,
-  userId?: string,
+  _userId?: string,
+  owner?: Pick<ConcentrationSource, "casterId" | "casterKind">,
+  turnId: string | null = null,
 ) {
-  const resolved = spellMechanicsFor({ spell, userId });
-  if (!resolved) {
-    return;
-  }
-  const wanted = new Set(
-    [
-      resolved.mech.buff?.condition,
-      ...(resolved.mech.buff?.variants ?? []),
-      resolved.mech.condition?.name,
-    ]
-      .filter((name): name is string => Boolean(name))
-      .map((name) => name.toLowerCase()),
-  );
-  if (!wanted.size) {
-    return;
-  }
+  if (!owner) return;
+  const identity = { ...owner, spell };
   for (const target of listSheets(campaign.id)) {
-    const held = target.conditions.filter((condition) => wanted.has(condition.toLowerCase()));
-    // A polymorphed target reverts to their own body with the condition.
-    const revertsForm =
-      wanted.has("polymorphed") && target.wildShape?.kind === "polymorph";
-    if (!held.length && !revertsForm) {
-      continue;
-    }
-    const cleared = removeConditions(target.conditions, target.conditionMeta, held);
-    const updated = patchSheet(target.id, {
-      conditions: cleared.conditions,
-      conditionMeta: cleared.meta,
-      ...(revertsForm ? { wildShape: null } : {}),
+    const cleared = removeConcentrationSources(target.conditions, target.conditionMeta, identity);
+    const revertsForm = target.wildShape?.kind === "polymorph" &&
+      target.wildShape.concentrationSource && sameConcentrationOwner(target.wildShape.concentrationSource, identity);
+    if (cleared.meta === target.conditionMeta && !revertsForm) continue;
+    const patch = { conditions: cleared.conditions, conditionMeta: cleared.meta, ...(revertsForm ? { wildShape: null } : {}) };
+    const updated = patchSheet(target.id, patch);
+    const entry = insertSheetAudit({
+      campaignId: campaign.id, characterId: target.id, turnId,
+      kind: "concentration_effects", delta: { casterId: owner.casterId, spell },
+      reason: `source concentration ended: ${spell}`, seq: allocateSeq(campaign.id), before: target, patch,
     });
-    if (updated) {
-      publishPersisted(campaign.id, "sheet_updated", { sheet: updated });
-    }
+    publishPersisted(campaign.id, "sheet_audit", { entry, characterName: target.name });
+    if (updated) publishPersisted(campaign.id, "sheet_updated", { sheet: updated });
   }
-  const encounter = getActiveEncounter(campaign.id);
-  if (!encounter) {
-    return;
+  // Read every encounter in this campaign, not an arbitrary active room.
+  // Only matching source IDs change; other rooms/casters remain untouched.
+  const encounters = getDatabase().prepare("SELECT id FROM encounters WHERE campaign_id = ?").all(campaign.id) as { id: string }[];
+  let enemiesChanged = false;
+  for (const encounter of encounters) for (const enemy of listEnemies(encounter.id)) {
+    const cleared = removeConcentrationSources(enemy.conditions, enemy.conditionMeta, identity);
+    if (cleared.meta === enemy.conditionMeta) continue;
+    patchEnemyConditions(enemy.id, cleared.conditions, cleared.meta);
+    enemiesChanged = true;
   }
-  for (const enemy of listEnemies(encounter.id)) {
-    if (enemy.status !== "alive") {
-      continue;
-    }
-    const held = (enemy.conditions ?? []).filter((condition) =>
-      wanted.has(condition.toLowerCase()),
-    );
-    if (held.length) {
-      const cleared = removeConditions(enemy.conditions ?? [], enemy.conditionMeta, held);
-      patchEnemyConditions(enemy.id, cleared.conditions, cleared.meta);
-    }
-  }
+  if (enemiesChanged) publishPersisted(campaign.id, "encounter_updated", { encounter: activePublicEncounter(campaign.id) });
 }
 
 // Called from apply_damage after HP lands. Rolls the CON save (DC 10 or
@@ -168,14 +163,17 @@ export function concentrationDamageHook(
     return {};
   }
   const spell = fresh.concentratingOn;
-  if (fresh.currentHp <= 0) {
+  if (fresh.deathSaves?.dead || (fresh.wildShape?.beastHp ?? fresh.currentHp) <= 0) {
     breakConcentration(campaign, turnId, fresh.id, "dropped to 0 HP");
     return { concentrationBroken: spell };
   }
   const dc = Math.max(10, Math.floor(damage / 2));
   // A nearby paladin's aura protects concentration checks too (map-scoped).
   const aura = allySaveAura(campaign.id, fresh);
-  const saveMod = computeSheetDerived(fresh).saves.con + (aura?.bonus ?? 0);
+  // A hit that destroys a form still used that form's CON when it landed.
+  // Read post-hit HP/concentration above, but preserve the incoming form stats.
+  const saveSheet = preSheet.wildShape ? { ...fresh, wildShape: preSheet.wildShape } : fresh;
+  const saveMod = computeSheetDerived(saveSheet).saves.con + (aura?.bonus ?? 0);
   const outcome = rollExpression(d20Expression(saveMod));
   // Starry Form (Dragon) and its kin floor a low concentration d20 at 10.
   const floor = conditionConcentrationFloor(fresh.conditions);
