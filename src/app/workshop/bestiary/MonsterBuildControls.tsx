@@ -44,7 +44,7 @@ export function MonsterBuildControls({
   genre?: string | null;
 }) {
   const { locale } = useI18n();
-  const copy = localeText(locale, { en: { build: "Build a monster", name: "Name", cr: "Starting CR", baseline: "Start from the baseline", existing: "Or start from something that exists", find: "Find" }, ru: { build: "Создать монстра", name: "Название", cr: "Начальный CR", baseline: "Начать с основы", existing: "Или начать с существующего", find: "Найти" }, pl: { build: "Stwórz potwora", name: "Nazwa", cr: "Początkowy CR", baseline: "Zacznij od podstawy", existing: "Albo zacznij od istniejącego", find: "Znajdź" } });
+  const copy = localeText(locale, { en: { build: "Build a monster", name: "Name", cr: "Starting CR", baseline: "Start from the baseline", existing: "Or start from something that exists", find: "Find" }, ru: { build: "Создать монстра", name: "Название", cr: "Начальный CR", baseline: "Начать с основы", existing: "Или начать с существующего", find: "Найти" } });
   const [newName, setNewName] = useState("");
   const [newCr, setNewCr] = useState(1);
 

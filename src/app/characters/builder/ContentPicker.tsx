@@ -36,7 +36,6 @@ export default function ContentPicker({
   const copy = localeText(locale, {
     en: { unavailable: "The content pack is not installed on this server, so there is nothing to search or browse. Whoever runs it can install it with: node scripts/import-open5e.mjs", noMatch: "Nothing matched", tryLess: "Try fewer letters, or pick from the full list.", homebrew: "homebrew" },
     ru: { unavailable: "Набор материалов не установлен на сервере, поэтому искать и просматривать пока нечего. Администратор может установить его командой: node scripts/import-open5e.mjs", noMatch: "Ничего не найдено по запросу", tryLess: "Попробуйте меньше букв или выберите из полного списка.", homebrew: "хоумбрю" },
-    pl: { unavailable: "Pakiet zawartości nie jest zainstalowany na tym serwerze, więc nie ma czego szukać ani przeglądać. Osoba zarządzająca serwerem może go zainstalować poleceniem: node scripts/import-open5e.mjs", noMatch: "Brak wyników dla", tryLess: "Wpisz mniej liter lub wybierz z pełnej listy.", homebrew: "homebrew" },
   });
   const { query, setQuery, results, setResults, open, setOpen, loading, unavailable } =
     useContentSearch(kind, extraParams);

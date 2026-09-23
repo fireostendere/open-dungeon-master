@@ -149,7 +149,6 @@ export function SessionHeader({
   const copy = localeText(locale, {
     en: { diceOn: "Turn on 3D dice animation", diceOff: "Turn off 3D dice animation", scene: "The adventure unfolds", help: "Help", helpTip: "How everything works, and the guided tours", campaigns: "All campaigns" },
     ru: { diceOn: "Включить 3D-анимацию кубиков", diceOff: "Выключить 3D-анимацию кубиков", scene: "Приключение начинается", help: "Помощь", helpTip: "Как всё устроено и как пройти обучение", campaigns: "Все кампании" },
-    pl: { diceOn: "Włącz animację kości 3D", diceOff: "Wyłącz animację kości 3D", scene: "Przygoda trwa", help: "Pomoc", helpTip: "Jak wszystko działa i samouczki", campaigns: "Wszystkie kampanie" },
   });
   const diceLabel = dice3d ? copy.diceOff : copy.diceOn;
   return (

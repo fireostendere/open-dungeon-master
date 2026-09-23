@@ -98,36 +98,6 @@ const COPY = {
     empty:
       "Пока ни у кого не сложилось заметного отношения. Оно будет формироваться по мере общения персонажей с NPC и спутниками и появится здесь.",
   },
-  pl: {
-    tiers: {
-      hostile: "Wrogość",
-      disliked: "Niechęć",
-      wary: "Nieufność",
-      neutral: "Neutralnie",
-      cordial: "Sympatia",
-      friendly: "Przyjaźń",
-      close: "Bliskość",
-      devoted: "Oddanie",
-    },
-    romance: {
-      none: "",
-      interested: "Zainteresowanie",
-      courting: "Zaloty",
-      together: "Razem",
-      betrothed: "Zaręczyny",
-      married: "Małżeństwo",
-    },
-    companion: "towarzysz",
-    npc: "NPC",
-    away: "poza drużyną",
-    chapterShort: "rozdz.",
-    ended: "zakończone",
-    romanceTitle: (stage: string) => `Romans: ${stage}`,
-    trackingOff:
-      "Śledzenie relacji jest wyłączone w tej kampanii. Lider drużyny może włączyć je w ustawieniach.",
-    empty:
-      "Nikt nie ma jeszcze wyraźnego stosunku do postaci. Relacje NPC i towarzyszy będą rozwijać się podczas gry i pojawią się tutaj.",
-  },
 } as const;
 
 function BondRow({ bond }: { bond: RelationshipView }) {

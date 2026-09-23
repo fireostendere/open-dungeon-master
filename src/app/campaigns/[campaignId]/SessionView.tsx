@@ -13,7 +13,8 @@ import {
 } from "react";
 import { JOIN_NOTE_PREFIX, latestUnintroducedJoin } from "@/lib/campaign-types";
 import { markTourSeen, tourSeen } from "@/lib/tours/logic";
-import { DM_TOUR, DM_TOUR_ID, PLAYER_TOUR, PLAYER_TOUR_ID } from "@/lib/tours/table";
+import { DM_TOUR_ID, PLAYER_TOUR_ID, tableTour } from "@/lib/tours/table";
+import { localeText } from "@/lib/i18n/locale-text";
 import { HelpDialog } from "@/components/HelpDialog";
 import { GuidedTour } from "@/components/ui/GuidedTour";
 import { CharacterGate } from "@/app/campaigns/[campaignId]/CharacterGate";
@@ -76,6 +77,7 @@ function subscribeTourSeen(callback: () => void) {
 // from sending and why, and the seat flags every panel reads.
 export function SessionView({
   state,
+  loadOlderMessages,
   refreshNotes,
   refreshFacts,
   refreshSideChat,
@@ -84,6 +86,7 @@ export function SessionView({
   refreshBattleMap,
 }: {
   state: CampaignState;
+  loadOlderMessages: () => Promise<boolean>;
   refreshNotes: () => Promise<void>;
   refreshFacts: () => Promise<void>;
   refreshSideChat: () => Promise<void>;
@@ -92,6 +95,10 @@ export function SessionView({
   refreshBattleMap: () => Promise<void>;
 }) {
   const { locale } = useI18n();
+  const tourCopy = localeText(locale, {
+    en: { table: "Tour the table", tableDetail: "How a player takes a turn, asks the DM, and finds the party, the story and the maps.", dm: "Tour the DM console", dmDetail: "The floor, story beats, hand-over switches, the queue and the tools.", mutedPlaceholder: "The party lead has muted you at this table." },
+    ru: { table: "Экскурсия по столу", tableDetail: "Ход игрока, вопросы ведущему, отряд, история и карты.", dm: "Экскурсия по панели ведущего", dmDetail: "Управление ходом, сюжетные записи, очередь действий и инструменты.", mutedPlaceholder: "Лидер отряда заглушил вас за этим столом." },
+  });
   const { campaign, me, sheets, messages, pendingRolls, auditLog, levelUps, locations, dmStatus, caps } =
     state;
   const [input, setInput] = useState("");
@@ -431,6 +438,7 @@ export function SessionView({
       <div className="flex min-h-0 flex-1">
         <SessionChatColumn
           state={state}
+          loadOlderMessages={loadOlderMessages}
           campaignId={campaign.id}
           meUserId={me.id}
           steersStory={steersStory}
@@ -465,7 +473,7 @@ export function SessionView({
               sending={sending}
               error={error}
               inputBlocked={gate.inputBlocked || muted}
-               placeholder={muted ? (locale === "ru" ? "Лидер отряда заглушил вас за этим столом." : locale === "pl" ? "Lider drużyny wyciszył cię przy tym stole." : "The party lead has muted you at this table.") : gate.placeholder}
+               placeholder={muted ? tourCopy.mutedPlaceholder : gate.placeholder}
               dmStatus={dmStatus}
               pendingRolls={pendingRolls}
               floor={floor}
@@ -569,15 +577,15 @@ export function SessionView({
         onOpenChange={setHelpOpen}
         tours={[
           {
-            label: "Tour the table",
-            detail: "How a player takes a turn, asks the DM, and finds the party, the story and the maps.",
+            label: tourCopy.table,
+            detail: tourCopy.tableDetail,
             onStart: () => setTour("player"),
           },
           ...(caps.adjudicates
             ? [
                 {
-                  label: "Tour the DM console",
-                  detail: "The floor, story beats, hand-over switches, the queue and the tools.",
+                  label: tourCopy.dm,
+                  detail: tourCopy.dmDetail,
                   onStart: () => setTour("dm"),
                 },
               ]
@@ -587,7 +595,7 @@ export function SessionView({
 
       <GuidedTour
         open={tour !== null}
-        steps={tour === "dm" ? DM_TOUR : PLAYER_TOUR}
+        steps={tableTour(locale, tour === "dm" ? "dm" : "player")}
         onPrepare={prepareTourStep}
         onClose={closeTour}
       />

@@ -40,15 +40,6 @@ export function ChangePasswordForm({
       failed: "Не удалось изменить пароль.",
       unreachable: "Не удалось связаться с сервером.",
     },
-    pl: {
-      changePassword: "Zmień hasło",
-      currentPassword: "Obecne hasło",
-      newPassword: "Nowe hasło",
-      confirmNewPassword: "Potwierdź nowe hasło",
-      mismatch: "Nowe hasła nie są takie same.",
-      failed: "Nie udało się zmienić hasła.",
-      unreachable: "Nie udało się połączyć z serwerem.",
-    },
   });
   const [currentPassword, setCurrentPassword] = useState(initialCurrent ?? "");
   const [newPassword, setNewPassword] = useState("");

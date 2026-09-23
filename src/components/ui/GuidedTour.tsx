@@ -44,7 +44,6 @@ export function GuidedTour({
   const copy = localeText(locale, {
     en: { label: "Guided tour", end: "End the tour", of: "of", back: "Back", next: "Next", done: "Done" },
     ru: { label: "Пошаговый тур", end: "Завершить тур", of: "из", back: "Назад", next: "Далее", done: "Готово" },
-    pl: { label: "Wycieczka z przewodnikiem", end: "Zakończ wycieczkę", of: "z", back: "Wstecz", next: "Dalej", done: "Gotowe" },
   });
   const [resolved, setResolved] = useState<ResolvedStep[] | null>(null);
   const [index, setIndex] = useState(0);

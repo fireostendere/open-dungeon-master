@@ -30,7 +30,6 @@ function PinItem({ pin, onUnpin }: { pin: PinRow; onUnpin: (id: string) => void 
   const copy = localeText(locale, {
     en: { full: "Full message", excerpt: "Excerpt", unpin: "Unpin", less: "Show less", more: "Show more", jump: "Jump to message" },
     ru: { full: "Всё сообщение", excerpt: "Фрагмент", unpin: "Открепить", less: "Свернуть", more: "Показать больше", jump: "Перейти к сообщению" },
-    pl: { full: "Cała wiadomość", excerpt: "Fragment", unpin: "Odepnij", less: "Pokaż mniej", more: "Pokaż więcej", jump: "Przejdź do wiadomości" },
   });
   const [expanded, setExpanded] = useState(false);
   const long = pin.text.length > COLLAPSE_AT;
@@ -89,7 +88,6 @@ export function PinsPanel({ campaignId, version }: { campaignId: string; version
   const copy = localeText(locale, {
     en: { title: "Pinned memories", empty: "Nothing pinned. Select text in one of the DM's messages and press the pin icon to put it in front of the DM every turn, whether or not it looks relevant." },
     ru: { title: "Закреплённые воспоминания", empty: "Пока ничего не закреплено. Выделите текст в сообщении мастера и нажмите значок закрепления, чтобы он попадал к мастеру каждый ход, даже если кажется неважным." },
-    pl: { title: "Przypięte wspomnienia", empty: "Nic nie przypięto. Zaznacz tekst w wiadomości MG i naciśnij ikonę pinezki, aby MG widział go w każdej turze, niezależnie od trafności." },
   });
   const [pins, setPins] = useState<PinRow[]>([]);
   const [reload, setReload] = useState(0);

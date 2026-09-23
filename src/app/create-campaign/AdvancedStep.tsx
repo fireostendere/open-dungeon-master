@@ -35,19 +35,6 @@ const COPY = {
     combatJrpg: "JRPG",
     combatJrpgHint: "Все цели одной встречи в зоне действия; правило кампании.",
   },
-  pl: {
-    bringPrep: "Importuj przygotowanie",
-    units: "Jednostki miary",
-    unitsMetric: "Metryczne (m, kg)",
-    unitsMetricHint: "Metry i kilogramy (domyślnie)",
-    unitsImperial: "Imperialne (ft, lb)",
-    unitsImperialHint: "Stopy i funty",
-    combat: "Tryb walki",
-    combatClassical: "Klasyczny",
-    combatClassicalHint: "Obowiązują pozycja, zasięg, osłona i ataki okazyjne.",
-    combatJrpg: "JRPG",
-    combatJrpgHint: "Wszystkie cele jednego spotkania są w zasięgu; zasada kampanii.",
-  },
 } as const;
 
 // Step 5: the decisions a first-timer can skip. Variant rules, house rules

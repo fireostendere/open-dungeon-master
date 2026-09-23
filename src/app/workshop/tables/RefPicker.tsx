@@ -45,7 +45,7 @@ export function RefPicker({
   onInsert: (line: string) => void;
 }) {
   const { locale } = useI18n();
-  const copy = localeText(locale, { en: { kind: "What kind of thing the row is", item: "Find an item to add as a row", monster: "Find a monster in the catalogue to add as a row", yours: "One of yours", add: "Add a row for", reading: "Reading...", empty: "Nothing of that kind in this workshop yet." }, ru: { kind: "Что представляет строка", item: "Найти предмет для добавления строкой", monster: "Найти монстра в каталоге для добавления строкой", yours: "Один из ваших", add: "Добавить строку для", reading: "Загрузка...", empty: "В этой мастерской пока нет ничего такого типа." }, pl: { kind: "Czym jest ten wiersz", item: "Znajdź przedmiot do dodania jako wiersz", monster: "Znajdź potwora w katalogu do dodania jako wiersz", yours: "Jeden z Twoich", add: "Dodaj wiersz dla", reading: "Wczytywanie...", empty: "W tym warsztacie nie ma jeszcze niczego tego rodzaju." } });
+  const copy = localeText(locale, { en: { kind: "What kind of thing the row is", item: "Find an item to add as a row", monster: "Find a monster in the catalogue to add as a row", yours: "One of yours", add: "Add a row for", reading: "Reading...", empty: "Nothing of that kind in this workshop yet." }, ru: { kind: "Что представляет строка", item: "Найти предмет для добавления строкой", monster: "Найти монстра в каталоге для добавления строкой", yours: "Один из ваших", add: "Добавить строку для", reading: "Загрузка...", empty: "В этой мастерской пока нет ничего такого типа." } });
   const [kind, setKind] = useState<RollRefKind>("table");
   const [npcs, setNpcs] = useState<Named[] | null>(null);
   const [lore, setLore] = useState<Named[] | null>(null);

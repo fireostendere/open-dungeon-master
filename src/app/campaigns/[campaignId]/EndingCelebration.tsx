@@ -289,14 +289,6 @@ export function EndingCelebration({
       audioOn: "Выключить звук",
       audioOff: "Включить звук",
     },
-    pl: {
-      concluded: "Przygoda zakończona!",
-      heroesSalute: "Salwa dla legendarnych bohaterów!",
-      moreFireworks: "Wystrzel więcej fajerwerków!",
-      close: "Zamknij fajerwerki",
-      audioOn: "Wycisz dźwięk",
-      audioOff: "Włącz dźwięk",
-    },
   });
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);

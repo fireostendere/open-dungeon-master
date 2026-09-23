@@ -35,7 +35,7 @@ export function HomebrewPanel({
   onChanged?: () => void;
 }) {
   const { locale } = useI18n();
-  const copy = localeText(locale, { en: { kind: "Kind of homebrew", search: "Search your", new: "New", empty: "Nothing of your own yet. Start from something in the books and change what you like.", noMatch: "Nothing by that name." }, ru: { kind: "Тип хоумбрю", search: "Поиск:", new: "Новое", empty: "Пока нет ваших материалов. Начните с чего-то из книг и измените как хотите.", noMatch: "Ничего с таким названием нет." }, pl: { kind: "Rodzaj homebrew", search: "Szukaj", new: "Nowy", empty: "Nie masz jeszcze własnych materiałów. Zacznij od czegoś z książek i zmień, co chcesz.", noMatch: "Nie ma nic o tej nazwie." } });
+  const copy = localeText(locale, { en: { kind: "Kind of homebrew", search: "Search your", new: "New", empty: "Nothing of your own yet. Start from something in the books and change what you like.", noMatch: "Nothing by that name." }, ru: { kind: "Тип хоумбрю", search: "Поиск:", new: "Новое", empty: "Пока нет ваших материалов. Начните с чего-то из книг и измените как хотите.", noMatch: "Ничего с таким названием нет." } });
   const [entries, setEntries] = useState<HomebrewEntryView[]>([]);
   const [kind, setKind] = useState<EditorKind>("item");
   const [query, setQuery] = useState("");

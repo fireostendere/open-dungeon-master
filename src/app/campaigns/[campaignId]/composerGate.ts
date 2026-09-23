@@ -80,9 +80,7 @@ export function composerGate({
       turnActionReason =
         locale === "ru"
           ? "Ход ещё не открыт. MCP-Мастер завершает сцену и сам откроет следующий раунд."
-          : locale === "pl"
-            ? "Tura nie jest jeszcze otwarta. MCP MG kończy scenę i otworzy następną rundę."
-            : "The turn is not open yet. The MCP DM will unlock the next round after finishing the scene.";
+          : "The turn is not open yet. The MCP DM will unlock the next round after finishing the scene.";
     } else if (
       mySheet &&
       (globalTurnState.phase === "ready" || globalTurnState.phase === "resolving")
@@ -91,9 +89,7 @@ export function composerGate({
       turnActionReason =
         locale === "ru"
           ? "Раунд уже передан MCP-Мастеру. Дождитесь завершения его хода."
-          : locale === "pl"
-            ? "Runda została przekazana MCP Mistrzowi Gry. Poczekaj, aż zakończy turę."
-            : "The round is with the MCP Dungeon Master. Wait until its turn is complete.";
+          : "The round is with the MCP Dungeon Master. Wait until its turn is complete.";
     } else if (mySheet && (kind === "do" || kind === "say")) {
       const usage = globalTurnState.actionsByCharacter[mySheet.id];
       const hasDo = (usage?.actionsCount ?? 0) >= 1;
@@ -104,25 +100,19 @@ export function composerGate({
         turnActionReason =
           locale === "ru"
             ? "Действие уже отправлено (1/1). Пока доступен OOC."
-            : locale === "pl"
-              ? "Akcja została już wysłana (1/1). OOC jest dostępne."
-              : "Action already submitted (1/1). OOC remains available.";
+            : "Action already submitted (1/1). OOC remains available.";
       } else if (kind === "say" && hasSay) {
         turnActionBlocked = true;
         turnActionReason =
           locale === "ru"
             ? "Фраза уже сказана в этом ходе (1/1). Используйте «Действие» или «OOC»."
-            : locale === "pl"
-              ? "Wypowiedź została już użyta w tej turze (1/1). Użyj «Akcja» lub «OOC»."
-              : "Speech already used in this turn (1/1). Use «Do» or «OOC».";
+            : "Speech already used in this turn (1/1). Use «Do» or «OOC».";
       } else if (hasDo && hasSay) {
         turnActionBlocked = true;
         turnActionReason =
           locale === "ru"
             ? "Вы совершили все действия хода. Ожидание завершения раунда..."
-            : locale === "pl"
-              ? "Wykonałeś wszystkie akcje w turze. Oczekiwanie na koniec rundy..."
-              : "All turn actions completed. Waiting for round to resolve...";
+            : "All turn actions completed. Waiting for round to resolve...";
       }
     }
   }
@@ -130,9 +120,7 @@ export function composerGate({
   const inputBlocked = floorBlocked || holdBlocked || initiativeBlocked || narrationBlocked || turnActionBlocked;
   const copy = locale === "ru"
     ? { narrating: "Мастер задаёт сцену... (OOC доступен)", held: "Лидер отряда удерживает право слова... (OOC доступен)", turn: "Ход {name} в бою... (OOC доступен)", waiting: "Ожидание: {names}... (OOC доступен)", action: "Что делает {name}?", say: "Что говорит {name}?", narrate: "Опишите сцену. Сервер всё равно бросает кости.", ooc: "Внеигровая заметка для стола", private: "Лично сообщите Мастеру, что делать в следующем ходу", lead: "Направьте сюжет: Мастер должен учесть это" }
-    : locale === "pl"
-      ? { narrating: "Mistrz Gry opisuje scenę... (OOC nadal dostępne)", held: "Lider drużyny zatrzymał kolejkę na rozmowę... (OOC nadal dostępne)", turn: "Tura {name} w walce... (OOC nadal dostępne)", waiting: "Czekanie na: {names}... (OOC nadal dostępne)", action: "Co robi {name}?", say: "Co mówi {name}?", narrate: "Opisz scenę. Serwer nadal rzuca wszystkimi kośćmi.", ooc: "Notatka poza postacią dla stołu", private: "Prywatnie powiedz MG, co ma zrobić w następnej turze", lead: "Nadaj kierunek historii: MG musi go uwzględnić" }
-      : { narrating: "The Dungeon Master is setting the scene... (OOC still open)", held: "The party lead has the floor held for discussion... (OOC still open)", turn: "{name}'s turn in combat... (OOC still open)", waiting: "Waiting on {names}... (OOC still open)", action: "What does {name} do?", say: "What does {name} say?", narrate: "Narrate the scene. The server still rolls every die.", ooc: "Out-of-character note to the table", private: "Tell the DM privately what to do with the next turn", lead: "Steer the story: a direction the DM must weave in" };
+    : { narrating: "The Dungeon Master is setting the scene... (OOC still open)", held: "The party lead has the floor held for discussion... (OOC still open)", turn: "{name}'s turn in combat... (OOC still open)", waiting: "Waiting on {names}... (OOC still open)", action: "What does {name} do?", say: "What does {name} say?", narrate: "Narrate the scene. The server still rolls every die.", ooc: "Out-of-character note to the table", private: "Tell the DM privately what to do with the next turn", lead: "Steer the story: a direction the DM must weave in" };
   const placeholder = turnActionBlocked
     ? turnActionReason
     : narrationBlocked

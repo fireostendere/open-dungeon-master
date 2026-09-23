@@ -30,7 +30,7 @@ export function ExportMenu({
   variant?: "button" | "tile-icon";
 }) {
   const { locale } = useI18n();
-  const copy = localeText(locale, { en: { export: "Export story", aria: "Export this campaign's story", as: "Export story as", html: "HTML page", odt: "OpenDocument (.odt)", docx: "Word (.docx)" }, ru: { export: "Экспорт истории", aria: "Экспортировать историю этой кампании", as: "Экспортировать историю как", html: "Страница HTML", odt: "OpenDocument (.odt)", docx: "Word (.docx)" }, pl: { export: "Eksportuj historię", aria: "Eksportuj historię tej kampanii", as: "Eksportuj historię jako", html: "Strona HTML", odt: "OpenDocument (.odt)", docx: "Word (.docx)" } });
+  const copy = localeText(locale, { en: { export: "Export story", aria: "Export this campaign's story", as: "Export story as", html: "HTML page", odt: "OpenDocument (.odt)", docx: "Word (.docx)" }, ru: { export: "Экспорт истории", aria: "Экспортировать историю этой кампании", as: "Экспортировать историю как", html: "Страница HTML", odt: "OpenDocument (.odt)", docx: "Word (.docx)" } });
   const options: { format: ExportFormat; label: string; icon: LucideIcon }[] = [{ format: "html", label: copy.html, icon: FileCode }, { format: "odt", label: copy.odt, icon: FileType }, { format: "docx", label: copy.docx, icon: FileText }];
   return (
     <DropdownMenu.Root>

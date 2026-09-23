@@ -21,7 +21,6 @@ export function HaltedTurnBanner({ campaignId, turnId, content, canRetry }: {
   const copy = localeText(locale, {
     en: { halted: "DM halted, context preserved", retry: "Retry the turn", retrying: "Picking the thread back up...", unavailable: "The party lead can send the DM back in from here.", restartFailed: "Could not restart that turn." },
     ru: { halted: "Мастер остановился, контекст сохранён", retry: "Повторить ход", retrying: "Возобновляем ход...", unavailable: "Лидер отряда может повторить ход Мастера.", restartFailed: "Не удалось повторить этот ход." },
-    pl: { halted: "MG zatrzymał się, kontekst zachowany", retry: "Ponów turę", retrying: "Wznawianie tury...", unavailable: "Lider drużyny może wznowić turę MG.", restartFailed: "Nie udało się wznowić tej tury." },
   });
   const [retrying, setRetrying] = useState(false);
   const [error, setError] = useState("");

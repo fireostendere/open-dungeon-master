@@ -64,18 +64,6 @@ export function DmTablesPanel({
       deleteTitle: "Удалить эту таблицу",
       save: "Сохранить таблицу", missingResult: "Ничего. Такого результата нет в таблице.", promptExample: "Слухи в Соляной пристани", coverage: (count: number, die: number) => `${count} строк, бросок d${die}.`, uncovered: (values: string) => ` Нет результата для ${values}.`, overlapping: (values: string) => ` Две строки покрывают ${values}.`, withoutReplacement: "Тянуть без повторов", reset: (count: number) => `Сбросить (${count} вытянуто)`, formatHint: "Обычные строки могут иметь вес (x3 Патруль гоблинов). Строка может ссылаться на объект: @table: Самоцветы также бросает эту таблицу; @monster: волк, @item: Зелье лечения, @npc: Марла задают его тип. Выбор выше добавляет такие строки.",
     },
-    pl: {
-      failed: "Nie udało się wykonać działania.",
-      tables: "Twoje tabele",
-      new: "Nowa tabela",
-      roll: "Rzuć",
-      loading: "Ładowanie...",
-      empty: "Nie ma jeszcze tabel. Wklej jedną poniżej.",
-      duplicate: "Duplikuj",
-      delete: "Usuń",
-      deleteTitle: "Usuń tę tabelę",
-      save: "Zapisz tabelę", missingResult: "Nic. Tego wyniku nie ma w tabeli.", promptExample: "Plotki w Solnym Nabrzeżu", coverage: (count: number, die: number) => `${count} wierszy, rzut d${die}.`, uncovered: (values: string) => ` Brak wyniku dla ${values}.`, overlapping: (values: string) => ` Dwa wiersze obejmują ${values}.`, withoutReplacement: "Losuj bez powtórzeń", reset: (count: number) => `Zresetuj (${count} wylosowano)`, formatHint: "Zwykłe wiersze mogą mieć wagę (x3 Patrol goblinów). Wiersz może być rzeczą: @table: Klejnoty też losuje tę tabelę; @monster: wilk, @item: Mikstura leczenia, @npc: Marla określają, czym jest. Selektor powyżej wpisuje takie wiersze.",
-    },
   });
   const [tables, setTables] = useState<RollTable[]>([]);
   const [loaded, setLoaded] = useState(false);

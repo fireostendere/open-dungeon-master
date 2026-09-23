@@ -1,5 +1,5 @@
 /** Server-generated game text, not authored narration or provider instructions. */
-export type GameLanguage = "ru" | "en" | "pl";
+export type GameLanguage = "ru" | "en";
 const en = {
   moment: "The moment hangs there, waiting on the party's next move.",
   whisper: "The DM takes in your words quietly and will weave them into the story.",
@@ -37,32 +37,14 @@ export const GAME_TEXT: Record<GameLanguage, Record<GameTextKey, string>> = {
     skipTurn: "Лидер отряда пропустил ход персонажа {name}.",
     skipTurns: "*{name} пропускает ход (осталось: {count}).*",
   },
-  pl: {
-    moment: "Chwila zawisa w oczekiwaniu na następny ruch drużyny.",
-    whisper: "Mistrz Gry uważnie przyjmuje twoje słowa i wplecie je w opowieść.",
-    internal: "Mistrz Gry napotkał wewnętrzny błąd i przerwał tę turę.",
-    backend: "Mistrz Gry nie mógł połączyć się z serwerem modelu.",
-    timeout: "Model nie zdążył ukończyć odpowiedzi. Można ponowić zapisaną turę.",
-    context: "Kontekst modelu jest za mały dla tej tury. Zwiększ ustawiony limit lub skróć przekazywany kontekst, a następnie ponów turę.",
-    toolsExhausted: "Model zwrócił działania po wyczerpaniu limitu wywołań narzędzi w tej turze.",
-    unauthorized: "Dostawca modelu odrzucił dane uwierzytelniające. Sprawdź ustawienia połączenia przed ponowną próbą.",
-    rateLimit: "Dostawca modelu ogranicza liczbę żądań. Spróbuj ponownie po zniesieniu limitu.",
-    unknownFailure: "Mistrz Gry nie mógł ukończyć tury. Sprawdź połączenie z modelem i ponów zapisaną turę.",
-    nextTurn: "Teraz kolej postaci {name} (runda {round}).",
-    nextTurnShort: "Teraz kolej postaci {name}.",
-    endTurn: "{name} kończy swoją turę.",
-    skipTurn: "Lider drużyny pominął turę postaci {name}.",
-    skipTurns: "*{name} pomija turę (pozostało: {count}).*",
-  },
 };
 
 export function resolveGameLanguage(value: unknown, history: readonly {authorType: string; content: string}[] = []): GameLanguage {
-  if (value === "ru" || value === "en" || value === "pl") return value;
+  if (value === "ru" || value === "en") return value;
   // Same legacy language inference as the DM prompt. Explicit campaign settings win.
   for (let i = history.length - 1; i >= 0; i--) {
     if (history[i].authorType === "dm") continue;
     if (/[А-Яа-яЁё]/.test(history[i].content)) return "ru";
-    if (/[ĄąĆćĘęŁłŃńÓóŚśŹźŻż]/.test(history[i].content)) return "pl";
     if (/[A-Za-z]/.test(history[i].content)) return "en";
   }
   return "ru";

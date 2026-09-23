@@ -40,7 +40,6 @@ export function LorePanel({
   const copy = localeText(locale, {
     en: { copy: "(copy)", newEntry: "New entry", lore: "World lore", add: "Add entry", loading: "Loading...", emptyLead: "No lore yet. Write your world's places, factions, and history; the DM treats it as canon.", empty: "The party lead has not written any world lore yet." },
     ru: { copy: "(копия)", newEntry: "Новая запись", lore: "Лор мира", add: "Добавить запись", loading: "Загрузка...", emptyLead: "Лора пока нет. Опишите места, фракции и историю мира — ведущий считает это каноном.", empty: "Лидер группы ещё не добавил лор мира." },
-    pl: { copy: "(kopia)", newEntry: "Nowy wpis", lore: "Wiedza o świecie", add: "Dodaj wpis", loading: "Ładowanie...", emptyLead: "Nie ma jeszcze wiedzy o świecie. Opisz miejsca, frakcje i historię — MG potraktuje je jako kanon.", empty: "Lider drużyny nie dodał jeszcze wiedzy o świecie." },
   });
   const [loading, setLoading] = useState(true);
   const [entries, setEntries] = useState<LoreEntryView[]>([]);

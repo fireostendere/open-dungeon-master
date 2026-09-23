@@ -16,6 +16,8 @@ const COPY = {
     title: "Title",
     titlePlaceholder: "Curse of the Ash Kingdom",
     whoRuns: "Who runs this table?",
+    humanLabel: "Human / external narrator",
+    humanHint: "The server owns state and rules; narration is supplied by a human or external MCP narrator.",
     humanSeat:
       "You take the Dungeon Master seat: no character, no party slot, and you see the sheets, the stat blocks and the whole map. The server still rolls every die and holds every number.",
     prebuiltWorld: "Pre-built world (optional)",
@@ -29,24 +31,13 @@ const COPY = {
     title: "Название",
     titlePlaceholder: "Проклятие Пепельного королевства",
     whoRuns: "Кто ведёт эту игру?",
+    humanLabel: "Человек / внешний рассказчик",
+    humanHint: "Сервер хранит состояние и применяет правила; повествование ведёт человек или внешний рассказчик.",
     humanSeat:
       "Вы занимаете место Мастера: у вас нет собственного персонажа и слота в группе, зато вы видите листы, статблоки и всю карту. Сервер всё равно бросает кости и хранит игровые значения.",
     prebuiltWorld: "Готовый мир (необязательно)",
     noPackHelp:
       "Готовый мир переименовывает расы, классы, заклинания и монстров под выбранный сеттинг и задаёт его тон для Мастера. Все правила остаются 5e.",
-  },
-  pl: {
-    noPackInfo:
-      "Gotowy świat to nowa warstwa fabularna na tych samych zasadach 5e. Zmienia nazwy ras, klas, czarów i potworów tak, aby pasowały do settingu, podpowiada Mistrzowi Gry, jak ma brzmieć ten świat, oraz przesuwa pasujące ludy i archetypy na początek list w kreatorze postaci. Niczego nie blokuje: nadal możesz zagrać czarodziejem w świecie, który nazywa tę rolę inaczej.\n\nBez pakietu otrzymujesz zwykły setting wynikający z wybranego gatunku i pełny katalog pod standardowymi nazwami.",
-    noPack: "Bez pakietu (zwykły setting)",
-    title: "Tytuł",
-    titlePlaceholder: "Klątwa Popielnego Królestwa",
-    whoRuns: "Kto prowadzi ten stół?",
-    humanSeat:
-      "Zajmujesz miejsce Mistrza Gry: nie masz własnej postaci ani miejsca w drużynie, za to widzisz karty, bloki statystyk i całą mapę. Serwer nadal wykonuje wszystkie rzuty i przechowuje wartości mechaniczne.",
-    prebuiltWorld: "Gotowy świat (opcjonalnie)",
-    noPackHelp:
-      "Gotowy świat zmienia nazwy ras, klas, czarów i potworów tak, aby pasowały do settingu, oraz określa jego ton dla Mistrza Gry. Wszystkie zasady pozostają 5e.",
   },
 } as const;
 
@@ -108,14 +99,10 @@ export function PremiseStep({
         <FieldLabel className="mb-1.5">{copy.whoRuns}</FieldLabel>
         <div className="rounded-lg border border-amber-200/30 bg-amber-200/5 p-3">
           <p className="font-medium text-amber-100">
-            {locale === "ru" ? "Человек / внешний рассказчик" : locale === "pl" ? "Człowiek / zewnętrzny narrator" : "Human / external narrator"}
+            {copy.humanLabel}
           </p>
           <p className="mt-1 text-xs text-stone-400">
-            {locale === "ru"
-              ? "Сервер хранит состояние и применяет правила; повествование ведёт человек или внешний MCP narrator."
-              : locale === "pl"
-                ? "Serwer przechowuje stan i egzekwuje zasady; narrację prowadzi człowiek lub zewnętrzny narrator MCP."
-                : "The server owns state and rules; narration is supplied by a human or external MCP narrator."}
+            {copy.humanHint}
           </p>
         </div>
         <p className="mt-1.5 text-xs text-stone-500">{copy.humanSeat}</p>

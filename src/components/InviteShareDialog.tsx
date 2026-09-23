@@ -88,39 +88,6 @@ const COPY = {
       `Пока вы не откроете доступ через интернет, подключиться к ${url} смогут только друзья в вашей Wi-Fi сети.`,
     shareAnywhere: "Откройте доступ через интернет — и друзья смогут подключиться по ссылке ниже откуда угодно.",
   },
-  pl: {
-    copyFailed: "Nie udało się skopiować. Zaznacz tekst i skopiuj go ręcznie.",
-    myCampaign: "mojej kampanii",
-    joinTitle: (title: string) => `Dołącz: ${title}`,
-    shareText: (title?: string) =>
-      `Dołącz do ${title ? `kampanii „${title}”` : "mojej kampanii"} w Open Dungeon Master`,
-    regenerateConfirm:
-      "Wygenerować nowy kod zaproszenia? Wszystkie dotychczas udostępnione linki i kody QR przestaną działać.",
-    regenerateFailed: "Nie udało się wygenerować nowego kodu zaproszenia.",
-    serverFailed: "Nie udało się połączyć z serwerem.",
-    title: "Zaproś graczy",
-    qrAlt: (url: string) => `Kod QR linku z zaproszeniem ${url}`,
-    roomCode: "Kod pokoju",
-    roomHelp:
-      "Gdy udostępnianie jest włączone, znajomy może wpisać ten kod w aplikacji i trafić tutaj.",
-    copied: "Skopiowano",
-    copyLink: "Kopiuj link",
-    copyCode: "Kopiuj kod",
-    share: "Udostępnij",
-    rotateTitle: "Unieważnij wszystkie udostępnione linki i kody QR przez zmianę kodu",
-    newCode: "Nowy kod (stare linki przestaną działać)",
-    openingPublic: "Otwieranie publicznego adresu, aby znajomi mogli dołączyć z dowolnego miejsca...",
-    sharedOnline: "Udostępniono online",
-    stopSharing: "Zatrzymaj udostępnianie",
-    sharedHelp: "Gdy aplikacja działa, znajomi z dowolnego miejsca mogą dołączyć przez poniższy link.",
-    shareFailed: "Nie udało się udostępnić online",
-    notShared: "Nieudostępnione online",
-    tryAgain: "Spróbuj ponownie",
-    shareOnline: "Udostępnij online",
-    lanOnly: (url: string) =>
-      `Dopóki nie włączysz udostępniania online, z adresem ${url} połączą się tylko znajomi w twojej sieci Wi-Fi.`,
-    shareAnywhere: "Udostępnij online, a znajomi z dowolnego miejsca będą mogli dołączyć przez poniższy link.",
-  },
 } as const;
 
 type InviteCopy = (typeof COPY)[Locale];

@@ -33,19 +33,6 @@ const COPY = {
     partyMembersAtOnce: "Постоянных спутников одновременно",
     guestsAtOnce: "Временных гостей одновременно",
   },
-  pl: {
-    allies: "Towarzysze",
-    companionLabels: {
-      auto: "Auto (solo: stali; wielu graczy: tylko goście)",
-      full: "Stali towarzysze i goście",
-      guests: "Tylko tymczasowi goście",
-      off: "Wył.",
-    },
-    soloHelp: "Stali towarzysze podróżują z drużyną do odprawienia; goście dołączają na scenę lub walkę.",
-    partyHelp: "Goście to przyjaźni NPC na scenę lub walkę; stali towarzysze zostają do odprawienia.",
-    partyMembersAtOnce: "Stałych towarzyszy jednocześnie",
-    guestsAtOnce: "Gości jednocześnie",
-  },
 } as const;
 
 export function NarratorFields({ draft, patch, gates, className }: StepProps & { className?: string }) {

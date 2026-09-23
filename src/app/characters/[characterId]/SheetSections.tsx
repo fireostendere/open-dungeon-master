@@ -22,13 +22,13 @@ export type CharacterEvent = {
   createdAt: string;
 };
 
-const KIND_LABELS: Record<string, Record<"en" | "ru" | "pl", string>> = {
-  achievement: { en: "Achievement", ru: "Достижение", pl: "Osiągnięcie" },
-  item: { en: "Treasure", ru: "Сокровище", pl: "Skarb" },
-  relationship: { en: "Bond", ru: "Связь", pl: "Więź" },
-  death: { en: "Death", ru: "Смерть", pl: "Śmierć" },
-  level_up: { en: "Level up", ru: "Новый уровень", pl: "Awans" },
-  story: { en: "Story", ru: "Сюжет", pl: "Fabuła" },
+const KIND_LABELS: Record<string, Record<"en" | "ru", string>> = {
+  achievement: { en: "Achievement", ru: "Достижение" },
+  item: { en: "Treasure", ru: "Сокровище" },
+  relationship: { en: "Bond", ru: "Связь" },
+  death: { en: "Death", ru: "Смерть" },
+  level_up: { en: "Level up", ru: "Новый уровень" },
+  story: { en: "Story", ru: "Сюжет" },
 };
 
 // A titled block of the read-only sheet: Ribbon rule, then whatever the
@@ -59,7 +59,6 @@ export function SheetSections({ sheet }: { sheet: CreateSheetInput }) {
   const copy = localeText(locale, {
     en: { abilities: "Abilities", speed: "Speed", gold: "Gold", spells: "Spells", equipment: "Equipment", features: "Features and traits", feats: "Feats", backstory: "Backstory", none: "None chosen.", story: "(story)", level: "Level", feet: "ft" },
     ru: { abilities: "Характеристики", speed: "Скорость", gold: "Золото", spells: "Заклинания", equipment: "Снаряжение", features: "Черты и особенности", feats: "Черты", backstory: "Предыстория", none: "Ничего не выбрано.", story: "(сюжет)", level: "Уровень", feet: "фт" },
-    pl: { abilities: "Cechy", speed: "Szybkość", gold: "Złoto", spells: "Zaklęcia", equipment: "Ekwipunek", features: "Cechy i zdolności", feats: "Atuty", backstory: "Historia", none: "Nic nie wybrano.", story: "(fabuła)", level: "Poziom", feet: "st." },
   });
   const abilities = sheet.abilities;
   return (
@@ -156,7 +155,6 @@ export function StorySoFar({ events }: { events: CharacterEvent[] }) {
   const copy = localeText(locale, {
     en: { title: "Story so far", empty: "Nothing recorded yet. Milestones from campaigns land here: victories, treasures, bonds, and worse." },
     ru: { title: "История персонажа", empty: "Пока ничего не записано. Здесь появятся победы, сокровища, связи и другие вехи кампаний." },
-    pl: { title: "Dotychczasowa historia", empty: "Nic jeszcze nie zapisano. Trafią tu zwycięstwa, skarby, więzi i inne wydarzenia z kampanii." },
   });
   return (
     <SheetPanel

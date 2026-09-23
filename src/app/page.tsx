@@ -84,7 +84,6 @@ function AuthScreen({ onAuthed }: { onAuthed: (user: SessionUser) => void }) {
   const licenses = localeText(locale, {
     en: "Licenses",
     ru: "Лицензии",
-    pl: "Licencje",
   });
 
   return (

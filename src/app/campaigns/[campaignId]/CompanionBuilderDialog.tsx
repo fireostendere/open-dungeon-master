@@ -40,20 +40,6 @@ const COPY = {
       `Спутник войдёт в игру на ${value}-м уровне и будет адаптирован так же, как персонаж игрока.`,
     submit: "Добавить спутника",
   },
-  pl: {
-    createFailed: "Nie udało się utworzyć towarzysza.",
-    serverFailed: "Nie udało się połączyć z serwerem.",
-    title: "Utwórz towarzysza",
-    humanHelp:
-      "Ten sojusznik dołącza do drużyny jako postać, którą prowadzisz z konsoli Mistrza Gry. W walce jego tura czeka na ciebie: wykonaj jego działania, a potem zakończ turę. Zaczyna na poziomie drużyny.",
-    aiHelp:
-      "Ten sojusznik dołącza do drużyny jako towarzysz AI prowadzony przez Mistrza Gry. Zaczyna na poziomie drużyny.",
-    fromLibrary: "Z twojej biblioteki",
-    level: (value: number) => `poziom ${value}`,
-    adapts: (value: number) =>
-      `Towarzysz wejdzie do gry na poziomie ${value}, dostosowany tak samo jak postać gracza.`,
-    submit: "Dodaj towarzysza",
-  },
 } as const;
 
 // Whoever steers the story (the party lead in an AI campaign, the DM in a

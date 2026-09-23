@@ -102,7 +102,6 @@ export default function CatalogBrowser({
   const copy = localeText(locale, {
     en: { narrow: "Narrow this list...", narrowAria: "Narrow the browsed list", unavailable: "The content pack is not installed on this server, so there is nothing to list. Whoever runs it can install it with: node scripts/import-open5e.mjs", empty: "Nothing here.", homebrew: "homebrew", showing: "Showing the first", searchRest: "Search by name above for the rest." },
     ru: { narrow: "Сузить список...", narrowAria: "Сузить просматриваемый список", unavailable: "Набор материалов не установлен на сервере, поэтому пока нечего показывать. Администратор может установить его командой: node scripts/import-open5e.mjs", empty: "Здесь ничего нет.", homebrew: "хоумбрю", showing: "Показаны первые", searchRest: "Остальные найдите поиском по названию выше." },
-    pl: { narrow: "Zawęź listę...", narrowAria: "Zawęź przeglądaną listę", unavailable: "Pakiet zawartości nie jest zainstalowany na tym serwerze, więc nie ma czego wyświetlić. Osoba zarządzająca serwerem może go zainstalować poleceniem: node scripts/import-open5e.mjs", empty: "Tu nic nie ma.", homebrew: "homebrew", showing: "Pokazano pierwsze", searchRest: "Pozostałe wyszukaj po nazwie powyżej." },
   });
   const [open, setOpen] = useState(defaultOpen);
   const [expanded, setExpanded] = useState<string[]>(openSections);

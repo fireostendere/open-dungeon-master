@@ -72,9 +72,7 @@ export function validateCombatTurnIntent(
   const usedItems: Record<string, number> = {};
   const copy = presentation?.language === "ru"
     ? { turn: "Боевой ход", attack: "Атака", dodge: "Защита: уклонение", resource: "Способность", item: "Предмет", target: "цель", end: "Завершаю ход после разрешения указанных действий." }
-    : presentation?.language === "pl"
-      ? { turn: "Tura walki", attack: "Atak", dodge: "Obrona: unik", resource: "Zdolność", item: "Przedmiot", target: "cel", end: "Kończę turę po rozstrzygnięciu wskazanych akcji." }
-      : { turn: "Combat turn", attack: "Attack", dodge: "Defence: Dodge", resource: "Ability", item: "Item", target: "target", end: "End my turn after resolving the declared actions." };
+    : { turn: "Combat turn", attack: "Attack", dodge: "Defence: Dodge", resource: "Ability", item: "Item", target: "target", end: "End my turn after resolving the declared actions." };
   const name = (id: string) => presentation?.names.get(id) ?? id;
   if (intent.choices.length > 12) return { ok: false, error: "Too many choices in one turn." };
   for (const choice of intent.choices) {

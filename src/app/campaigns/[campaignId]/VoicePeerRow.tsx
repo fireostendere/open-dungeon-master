@@ -50,7 +50,7 @@ export function VoicePeerRow({
   onMove: (channelId: string) => void;
 }) {
   const { locale } = useI18n();
-  const copy = localeText(locale, { en: { you: "(you)", wants: "Wants to speak", connecting: "connecting", loud: "How loud", forYou: "is for you", muted: "is muted for you", move: "Move", room: "to another room", unmute: "Unmute", mute: "Mute", normal: "Back to normal", off: "off" }, ru: { you: "(вы)", wants: "Хочет говорить", connecting: "подключается", loud: "Громкость", forYou: "для вас", muted: "отключён для вас", move: "Переместить", room: "в другую комнату", unmute: "Включить", mute: "Выключить", normal: "Вернуть обычную", off: "выкл." }, pl: { you: "(ty)", wants: "Chce mówić", connecting: "łączenie", loud: "Głośność", forYou: "dla ciebie", muted: "jest wyciszony dla ciebie", move: "Przenieś", room: "do innego pokoju", unmute: "Włącz", mute: "Wycisz", normal: "Wróć do normy", off: "wył." } });
+  const copy = localeText(locale, { en: { you: "(you)", wants: "Wants to speak", connecting: "connecting", loud: "How loud", forYou: "is for you", muted: "is muted for you", move: "Move", room: "to another room", unmute: "Unmute", mute: "Mute", normal: "Back to normal", off: "off" }, ru: { you: "(вы)", wants: "Хочет говорить", connecting: "подключается", loud: "Громкость", forYou: "для вас", muted: "отключён для вас", move: "Переместить", room: "в другую комнату", unmute: "Включить", mute: "Выключить", normal: "Вернуть обычную", off: "выкл." } });
   // You have no consumer for yourself, so there is nothing to turn down.
   const adjustable = !isMe;
   const untouched = isDefaultPeer(volume);

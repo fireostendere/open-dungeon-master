@@ -73,32 +73,6 @@ const COPY = {
     overTotal: (used: string, limit: string) =>
       `превышен общий бюджет контекста (${used} > ${limit} токенов)`,
   },
-  pl: {
-    kinds: {
-      contract: "Granica silnika",
-      rules: "Zasady",
-      state: "Stan gry",
-      retrieval: "Lore i zasady domowe",
-      chapters: "Rozdziały",
-      history: "Transkrypcja",
-    },
-    leadOnly: "Tylko dla lidera drużyny.",
-    loadFailed: "Nie udało się wczytać kontekstu.",
-    title: "Co wysłano Mistrzowi Gry",
-    lastTurn: "Ostatnia tura",
-    estimates: "Liczby tokenów są szacunkowe.",
-    refresh: "Odśwież",
-    empty:
-      "Nie rozegrano jeszcze żadnej tury. Po pierwszej rundzie zobaczysz tutaj wszystkie bloki wysłane Mistrzowi Gry, ich koszt oraz elementy odrzucone przez budżet kontekstu.",
-    tokens: "tokenów",
-    dropped: "odrzucono",
-    alwaysIncluded: "zawsze dołączane",
-    fits: "mieści się",
-    overKind: (kind: string, used: string, left: string) =>
-      `przekroczono budżet „${kind}” (${used} > zostało ${left} tokenów)`,
-    overTotal: (used: string, limit: string) =>
-      `przekroczono całkowity budżet kontekstu (${used} > ${limit} tokenów)`,
-  },
 } as const;
 
 function localizeReason(reason: string, kind: BlockKind, locale: Locale): string {

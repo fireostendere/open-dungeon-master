@@ -42,7 +42,7 @@ type ListProps = {
 
 export function CastChips({ npcs, selectedId, onOpen }: ListProps) {
   const { locale } = useI18n();
-  const copy = localeText(locale, { en: { cast: "The cast", new: "Someone new", empty: "Nobody written yet. Everything here also fills itself in as the party meets people." }, ru: { cast: "Персонажи", new: "Новый персонаж", empty: "Пока никого нет. Этот список также пополняется, когда группа знакомится с людьми." }, pl: { cast: "Postacie", new: "Nowa postać", empty: "Nie ma jeszcze postaci. Lista uzupełnia się też, gdy drużyna poznaje ludzi." } });
+  const copy = localeText(locale, { en: { cast: "The cast", new: "Someone new", empty: "Nobody written yet. Everything here also fills itself in as the party meets people." }, ru: { cast: "Персонажи", new: "Новый персонаж", empty: "Пока никого нет. Этот список также пополняется, когда группа знакомится с людьми." } });
   return (
     <section className="space-y-2 rounded-lg border border-stone-800 bg-stone-950/40 px-2.5 py-2">
       <p className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-stone-500">
@@ -118,7 +118,7 @@ function matches(npc: Npc, query: string): boolean {
 
 export function CastRows({ npcs, onOpen }: Omit<ListProps, "selectedId">) {
   const { locale } = useI18n();
-  const copy = localeText(locale, { en: { search: "Search the cast", searchLabel: "Search the cast by name or alias", new: "Someone new", archived: "set aside", relation: "relationship", relations: "relationships", wants: "wants", empty: "Nobody written yet. Everything here also fills itself in as the party meets people.", noMatch: "Nobody by that name or alias." }, ru: { search: "Поиск персонажей", searchLabel: "Искать персонажа по имени или прозвищу", new: "Новый персонаж", archived: "отложен", relation: "связь", relations: "связей", wants: "цель", empty: "Пока никого нет. Этот список также пополняется, когда группа знакомится с людьми.", noMatch: "Никого с таким именем или прозвищем нет." }, pl: { search: "Szukaj postaci", searchLabel: "Szukaj postaci po imieniu lub przydomku", new: "Nowa postać", archived: "odłożona", relation: "relacja", relations: "relacji", wants: "cel", empty: "Nie ma jeszcze postaci. Lista uzupełnia się też, gdy drużyna poznaje ludzi.", noMatch: "Nie ma postaci o tym imieniu ani przydomku." } });
+  const copy = localeText(locale, { en: { search: "Search the cast", searchLabel: "Search the cast by name or alias", new: "Someone new", archived: "set aside", relation: "relationship", relations: "relationships", wants: "wants", empty: "Nobody written yet. Everything here also fills itself in as the party meets people.", noMatch: "Nobody by that name or alias." }, ru: { search: "Поиск персонажей", searchLabel: "Искать персонажа по имени или прозвищу", new: "Новый персонаж", archived: "отложен", relation: "связь", relations: "связей", wants: "цель", empty: "Пока никого нет. Этот список также пополняется, когда группа знакомится с людьми.", noMatch: "Никого с таким именем или прозвищем нет." } });
   const [query, setQuery] = useState("");
   const shown = npcs.filter((npc) => matches(npc, query));
 

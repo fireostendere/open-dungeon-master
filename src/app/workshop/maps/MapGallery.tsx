@@ -27,7 +27,7 @@ export function MapGallery({
   onOpen: (map: PreparedMap) => void;
 }) {
   const { locale } = useI18n();
-  const copy = localeText(locale, { en: { empty: "Nothing in the drawer yet. Roll one, start from blank rock, or import a drawing.", open: "Open" }, ru: { empty: "В хранилище пока ничего нет. Сгенерируйте карту, начните с пустой скалы или импортируйте рисунок.", open: "Открыть" }, pl: { empty: "W szufladzie nie ma jeszcze map. Wylosuj mapę, zacznij od pustej skały lub zaimportuj rysunek.", open: "Otwórz" } });
+  const copy = localeText(locale, { en: { empty: "Nothing in the drawer yet. Roll one, start from blank rock, or import a drawing.", open: "Open" }, ru: { empty: "В хранилище пока ничего нет. Сгенерируйте карту, начните с пустой скалы или импортируйте рисунок.", open: "Открыть" } });
   if (!maps.length) {
     return (
       <p className="text-xs text-stone-500">

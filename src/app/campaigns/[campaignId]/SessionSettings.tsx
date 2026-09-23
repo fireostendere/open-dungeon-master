@@ -36,7 +36,6 @@ export function SessionSettings({
   const copy = localeText(locale, {
     en: { campaign: "Campaign", edit: "Edit details", editTitle: "Edit title, premise, setting, difficulty, and player slots", difficulty: "Difficulty {difficulty} · Level {level} start · Up to {players} players", setting: "Setting: {theme}" },
     ru: { campaign: "Кампания", edit: "Изменить данные", editTitle: "Изменить название, завязку, сеттинг, сложность и число игроков", difficulty: "Сложность: {difficulty} · старт с {level}-го уровня · до {players} игроков", setting: "Сеттинг: {theme}" },
-    pl: { campaign: "Kampania", edit: "Edytuj szczegóły", editTitle: "Edytuj tytuł, założenie, świat, poziom trudności i liczbę graczy", difficulty: "Trudność: {difficulty} · start na poziomie {level} · do {players} graczy", setting: "Świat: {theme}" },
   });
   const [editing, setEditing] = useState(false);
 

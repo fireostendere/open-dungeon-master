@@ -35,7 +35,7 @@ export function CatalogStart({
   scope?: Record<string, string>;
 }) {
   const { locale } = useI18n();
-  const copy = localeText(locale, { en: { class: "Class to browse", start: "Start from something in the books...", search: "Search the content pack to start from", none: "Nothing in the books matched" }, ru: { class: "Класс для просмотра", start: "Начать с чего-то из книг...", search: "Искать в наборе материалов", none: "В книгах ничего не найдено по запросу" }, pl: { class: "Klasa do przeglądania", start: "Zacznij od czegoś z książek...", search: "Szukaj w pakiecie materiałów", none: "W książkach nie znaleziono" } });
+  const copy = localeText(locale, { en: { class: "Class to browse", start: "Start from something in the books...", search: "Search the content pack to start from", none: "Nothing in the books matched" }, ru: { class: "Класс для просмотра", start: "Начать с чего-то из книг...", search: "Искать в наборе материалов", none: "В книгах ничего не найдено по запросу" } });
   const [classSlug, setClassSlug] = useState<string>("fighter");
   const extra: Record<string, string> = kind === "archetype" ? { class: classSlug } : { ...scope };
   const { query, setQuery, results, open, setOpen, loading, unavailable } = useContentSearch(
