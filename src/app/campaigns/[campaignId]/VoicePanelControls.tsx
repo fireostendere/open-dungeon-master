@@ -1,478 +1,288 @@
 "use client";
 
-import {
-  DoorOpen,
-  HeadphoneOff,
-  Hand,
-  Headphones,
-  Loader2,
-  Mic,
-  MicOff,
-  PhoneOff,
-  Radio,
-  Settings2,
-  ShieldBan,
-  Users,
-  WifiOff,
-} from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
-import { cn } from "@/lib/cn";
-import { useVoiceRoom } from "@/app/campaigns/[campaignId]/useVoiceRoom";
-import { VoicePeerRow } from "@/app/campaigns/[campaignId]/VoicePeerRow";
-import { MASTER_VOLUME_MAX, VOLUME_STEP } from "@/lib/voice/volume";
-import {
-  FLOOR_VOICE_LABELS,
-  TRANSMIT_BLOCK_LABELS,
-  mayTransmit,
-  type TurnEnforcement,
-  type VoiceFloorMode,
-} from "@/lib/voice/turn-logic";
-import type { VoiceChannelView, VoiceRosterEntry } from "@/lib/voice/types";
+import { useCallback, useEffect, useId, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { Activity, Check, Copy, Globe, Hand, HeadphoneOff, Headphones, LayoutGrid, List,
+  Loader2, MapPin, Mic, MicOff, PhoneOff, Radio, RefreshCw, RotateCcw, Search,
+  Settings2, Shield, Users, Volume2, VolumeX } from "lucide-react";
 import { useI18n } from "@/lib/i18n/context";
 import { localeText } from "@/lib/i18n/locale-text";
+import { useVoiceRoom } from "./useVoiceRoom";
+import { useVoiceAudioCheck } from "./useVoiceAudioCheck";
+import { voiceCopy } from "./voice-copy";
+import { MIC_GAIN_MAX, supportsOutputSelection, useMicGain, useOutputId, writeMicGain, writeOutputId } from "@/lib/audio-devices";
+import { DEFAULT_CALL_PREFERENCES, PTT_KEYS, readCallPreferences, subscribeCallPreferences, writeCallPreferences } from "@/lib/voice/call-preferences";
+import { EMPTY_DIAGNOSTICS, summarizeAudioStats, type AudioStat } from "@/lib/voice/call-diagnostics";
+import { MASTER_VOLUME_MAX, PEER_VOLUME_MAX, VOLUME_STEP } from "@/lib/voice/volume";
+import { mayTransmit, type TurnEnforcement, type VoiceFloorMode } from "@/lib/voice/turn-logic";
+import type { VoiceRosterEntry } from "@/lib/voice/types";
+import type { VoiceAccessSnapshot } from "@/lib/voice/call-types";
+import s from "./VoiceCall.module.css";
 
-// The voice menu. Shown in the lobby while people pick characters and in the
-// session side panel during play, from the same component, because "who is on
-// the call" is the same question in both places.
-export function VoicePanel({
-  campaignId,
-  meUserId,
-  roster,
-  speaking,
-  floorMode = "open",
-  floorUserIds = [],
-  turnEnforcement = "soft",
-  adjudicates = false,
-  steersStory = false,
-  sayRangeRule = false,
-  audibilityVersion = 0,
-  meshSignal = null,
-  compact = false,
-}: {
-  campaignId: string;
-  meUserId: string;
-  // From the campaign SSE stream; null until the first roster event.
-  roster: VoiceRosterEntry[] | null;
-  speaking?: { userId: string; at: number } | null;
-  floorMode?: VoiceFloorMode;
-  floorUserIds?: string[];
-  turnEnforcement?: TurnEnforcement;
-  adjudicates?: boolean;
-  // Gates the breakout-room controls. Separate from adjudicates because the
-  // channels route asks for story authority, which an AI campaign's lead
-  // holds without ever holding the DM seat.
-  steersStory?: boolean;
-  // Whether the say-range rule is on, which is the only thing that makes the
-  // whisper/shout selector meaningful.
-  sayRangeRule?: boolean;
-  audibilityVersion?: number;
-  // Mesh signaling nudge from the stream, threaded to the hook.
-  meshSignal?: { to: string; version: number } | null;
-  compact?: boolean;
-}) {
+export type VoicePanelProps = {
+  campaignId: string; meUserId: string; roster: VoiceRosterEntry[] | null;
+  speaking?: { userId: string; at: number } | null; floorMode?: VoiceFloorMode;
+  floorUserIds?: string[]; turnEnforcement?: TurnEnforcement; adjudicates?: boolean;
+  steersStory?: boolean; sayRangeRule?: boolean; audibilityVersion?: number;
+  meshSignal?: { to: string; version: number } | null; compact?: boolean; visible?: boolean;
+};
+type Props = VoicePanelProps & {
+  access: VoiceAccessSnapshot; stale: boolean; scopeBusy: boolean; scopeError: string;
+  onScopeChange: (scope: "global" | "location") => void; onRefresh: () => void;
+};
+const joinClasses = (...values: Array<string | false | undefined>) => values.filter(Boolean).join(" ");
+const initials = (name: string) => name.trim().split(/\s+/).slice(0, 2).map(word => [...word][0] ?? "").join("").toLocaleUpperCase() || "?";
+const elapsed = (seconds: number) => `${Math.floor(seconds / 60).toString().padStart(2, "0")}:${(seconds % 60).toString().padStart(2, "0")}`;
+
+export function VoicePanel({ campaignId, meUserId, roster, speaking, floorMode = "open", floorUserIds = [],
+  turnEnforcement = "soft", adjudicates = false, sayRangeRule = false, audibilityVersion = 0,
+  meshSignal = null, visible = true, access, stale, scopeBusy, scopeError, onScopeChange, onRefresh }: Props) {
   const { locale } = useI18n();
-  const copy = localeText(locale, { en: { off: "This server has voice chat switched off.", settings: "Turn it on in campaign settings to talk at this table.", lower: "Lower your hand", ask: "Ask to speak", range: "How far your voice carries", whisper: "Whisper", normal: "Normal", shout: "Shout", undeafen: "Turn the call back on", deafen: "Silence the call", silence: "Silence everyone (you keep transmitting)", holdTitle: "Hold to talk (or hold the ` key)", talking: "Talking", hold: "Hold", unmute: "Unmute", mute: "Mute", micSettings: "Microphone settings", leave: "Leave voice", volume: "How loud the whole call is", microphone: "Microphone", mode: "Mode", holdKey: "(hold ` or the button)", saved: "Saved in this browser.", system: "System default", openMic: "Open mic", ptt: "Push to talk", close: "Close", closeRoom: "and send everyone back to the table", newRoom: "New side room", open: "Open", recall: "Recall", recallTitle: "Bring everyone back to the table", empty: "Nobody is on the call yet." }, ru: { off: "Голосовой чат выключен на этом сервере.", settings: "Включите его в настройках кампании, чтобы говорить за этим столом.", lower: "Опустить руку", ask: "Попросить слово", range: "Как далеко слышен голос", whisper: "Шёпот", normal: "Обычно", shout: "Крик", undeafen: "Включить звук звонка", deafen: "Выключить звук звонка", silence: "Отключить всех (вы продолжите передавать)", holdTitle: "Удерживайте для разговора (или клавишу `)", talking: "Говорите", hold: "Удерживать", unmute: "Включить микрофон", mute: "Выключить микрофон", micSettings: "Настройки микрофона", leave: "Покинуть голосовой чат", volume: "Громкость всего звонка", microphone: "Микрофон", mode: "Режим", holdKey: "(удерживайте ` или кнопку)", saved: "Сохранено в этом браузере.", system: "Системный по умолчанию", openMic: "Открытый микрофон", ptt: "Нажми и говори", close: "Закрыть", closeRoom: "и вернуть всех за стол", newRoom: "Новая боковая комната", open: "Открыть", recall: "Вернуть", recallTitle: "Вернуть всех за стол", empty: "В звонке пока никого нет." } });
+  const copy = localeText(locale, voiceCopy);
+  const id = useId();
   const voice = useVoiceRoom(campaignId, roster, meUserId, audibilityVersion, meshSignal);
-  const [channels, setChannels] = useState<VoiceChannelView[]>([]);
-  const [newRoom, setNewRoom] = useState("");
-  const [showSettings, setShowSettings] = useState(false);
-  // Whose volume slider is open. One at a time, so a busy table does not turn
-  // the roster into a mixing desk.
-  const [volumeFor, setVolumeFor] = useState<string | null>(null);
-
-  // Breakout rooms are in-memory and change only when the DM acts, so the
-  // roster event is a good enough trigger to refetch the list. Written as a
-  // promise chain rather than an awaited helper so the state update plainly
-  // happens in a callback rather than in the effect body.
+  const [tab, setTab] = useState<"people" | "sound" | "connection">("people");
+  const [query, setQuery] = useState("");
+  const [seconds, setSeconds] = useState(0);
+  const [stats, setStats] = useState(EMPTY_DIAGNOSTICS);
+  const [clipboard, setClipboard] = useState("");
+  const [deviceError, setDeviceError] = useState("");
+  const preferences = useSyncExternalStore(subscribeCallPreferences, readCallPreferences, () => DEFAULT_CALL_PREFERENCES);
+  const outputId = useOutputId(), micGain = useMicGain();
+  const onCall = voice.connected || voice.reconnecting;
+  const audio = useVoiceAudioCheck(visible && tab === "sound", onCall, voice.micId, voice.getMicrophoneStream);
+  const tabRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  const alive = useRef(true);
+  useEffect(() => { alive.current = true; return () => { alive.current = false; }; }, []);
   useEffect(() => {
-    let cancelled = false;
-    fetch(`/api/campaigns/${campaignId}/voice/channels`)
-      .then((response) => (response.ok ? response.json() : null))
-      .then((data) => {
-        if (!cancelled && data) {
-          setChannels(data.channels ?? []);
-        }
-      })
-      .catch(() => {
-        // transient; the next roster change retries
-      });
-    return () => {
-      cancelled = true;
+    if (!visible || voice.startedAt === null || !onCall) return;
+    const update = () => setSeconds(Math.max(0, Math.floor((Date.now() - voice.startedAt!) / 1000)));
+    const timer = setInterval(update, 1000);
+    return () => clearInterval(timer);
+  }, [onCall, visible, voice.startedAt]);
+  useEffect(() => {
+    if (!visible || tab !== "connection" || !onCall) return;
+    let cancelled = false, before: AudioStat[] = [], timer: ReturnType<typeof setTimeout>;
+    const sample = async () => {
+      const current = await voice.getStats();
+      if (cancelled) return;
+      setStats(summarizeAudioStats(current, before)); before = current;
+      timer = setTimeout(sample, 2000);
     };
-  }, [campaignId, roster]);
+    void sample();
+    return () => { cancelled = true; clearTimeout(timer); };
+  }, [onCall, tab, visible, voice.getStats, voice.startedAt]);
+  const begin = async () => { audio.stop(); await voice.join({ muted: preferences.startMuted }); };
+  const reconnect = async () => { audio.stop(); await voice.leave(); if (alive.current) await voice.join({ muted: true }); };
+  const chooseOutput = async (deviceId: string) => {
+    setDeviceError("");
+    try {
+      const probe = new Audio() as HTMLAudioElement & { setSinkId?: (id: string) => Promise<void> };
+      if (!probe.setSinkId) throw new Error(copy.outputUnsupported);
+      await probe.setSinkId(deviceId);
+      if (alive.current) writeOutputId(deviceId);
+    } catch (cause) { if (alive.current) setDeviceError(cause instanceof Error ? cause.message : copy.error); }
+  };
+  const copyDiagnostics = async () => {
+    try {
+      await navigator.clipboard.writeText(JSON.stringify({ time: new Date().toISOString(), status: voice.status,
+        transport: access.mode, scope: access.scope, secureContext: window.isSecureContext,
+        microphoneApi: Boolean(navigator.mediaDevices?.getUserMedia), ...(onCall ? stats : EMPTY_DIAGNOSTICS) }, null, 2));
+      if (alive.current) setClipboard(copy.copied);
+    } catch { if (alive.current) setClipboard(copy.copyFailed); }
+  };
+  const peers = useMemo(() => stale ? [] : [...voice.peers].sort((a, b) => {
+    if (a.userId === meUserId) return -1; if (b.userId === meUserId) return 1;
+    return a.username.localeCompare(b.username);
+  }), [meUserId, stale, voice.peers]);
+  const filtered = peers.filter(peer => peer.username.toLocaleLowerCase().includes(query.toLocaleLowerCase()));
+  const statusLabel = voice.pending && voice.status === "idle" ? copy.finishing : ({ idle: copy.disconnected,
+    connecting: copy.joining, connected: copy.connected, reconnecting: copy.reconnecting, error: copy.failed }[voice.status]);
+  const verdict = mayTransmit(floorMode, floorUserIds, { userId: meUserId, adjudicates }, turnEnforcement);
+  const keyName = (key: string) => key === "Backquote" ? "`" : key === "Space" ? copy.space : key.replace("Key", "").replace("Numpad", "Num ");
+  const error = voice.error || audio.error || deviceError || scopeError;
+  const tabs = ["people", "sound", "connection"] as const;
+  const supports: MediaTrackSupportedConstraints = typeof navigator === "undefined" ? {} : navigator.mediaDevices?.getSupportedConstraints() ?? {};
+  const canChooseOutput = supportsOutputSelection();
+  const deviceList = (kind: MediaDeviceKind) => audio.devices.filter(device => device.kind === kind && device.deviceId && device.deviceId !== "default");
+  const chooseTab = useCallback((value: "people" | "sound" | "connection") => { setTab(value); }, []);
 
-  const channelAction = useCallback(
-    async (body: Record<string, unknown>) => {
-      const response = await fetch(`/api/campaigns/${campaignId}/voice/channels`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setChannels(data.channels ?? []);
-      }
-    },
-    [campaignId],
-  );
-
-  if (!voice.available) {
-    return (
-      <div className="rounded-lg border border-stone-800 bg-stone-950/60 px-4 py-3">
-        <p className="flex items-center gap-2 text-sm text-stone-400">
-          <Headphones className="size-4 shrink-0" />
-          Voice chat is off
-        </p>
-        <p className="mt-1 text-xs text-stone-500">
-          {voice.unavailableReason === "server"
-             ? copy.off : copy.settings}
-        </p>
+  return <section className={s.call} aria-label={copy.title} data-testid="voice-call">
+    <header className={s.header}>
+      <div className={s.headingRow}>
+        <span className={s.eyebrow}>{copy.title}</span>
+        <span className={joinClasses(s.status, voice.connected && s.live, voice.status === "error" && s.bad)} role="status">
+          <span className={s.dot} />{statusLabel}{onCall && voice.startedAt !== null ? <span aria-hidden="true"> · {elapsed(seconds)}</span> : null}
+        </span>
       </div>
-    );
-  }
-
-  // The server draws both edges of this (src/lib/voice/room.ts): it sends a
-  // userId when somebody starts and an empty one when they stop, so there is
-  // no clock to run here.
-  const isSpeaking = (userId: string) => speaking?.userId === userId;
-
-  // The same rule the server enforces, asked here only to label the UI. The
-  // server is what actually pauses a producer; this never gates anything on
-  // its own (src/lib/voice/turn-logic.ts).
-  const myVerdict = mayTransmit(
-    floorMode,
-    floorUserIds,
-    { userId: meUserId, adjudicates },
-    turnEnforcement,
-  );
-  const floorNote =
-    turnEnforcement === "off" || floorMode === "open" ? "" : FLOOR_VOICE_LABELS[floorMode];
-
-  return (
-    <div className={cn("rounded-lg border border-stone-800 bg-stone-950/60", compact ? "p-3" : "p-4")}>
-      <div className="flex items-center justify-between gap-3">
-        <p className="flex items-center gap-2 font-serif text-sm text-stone-200">
-          <Headphones className="size-4 text-amber-300" />
-          Voice
-          {voice.peers.length ? (
-            <span className="text-xs text-stone-500">{voice.peers.length} on the call</span>
-          ) : null}
-        </p>
-        <div className="flex items-center gap-2">
-          {voice.connected ? (
-            <>
-              {/* Asking for the floor without talking over whoever holds it.
-                  Hidden for the DM, who never has to queue for their own
-                  floor. */}
-              {!adjudicates && !myVerdict.mayTransmit ? (
-                <button
-                  type="button"
-                  onClick={() => void voice.toggleHand()}
-                  aria-label={voice.handRaised ? copy.lower : copy.ask}
-                  title={voice.handRaised ? copy.lower : copy.ask}
-                  className={cn(
-                    "rounded-md border p-2 transition-colors",
-                    voice.handRaised
-                      ? "border-amber-700 bg-amber-950/50 text-amber-200"
-                      : "border-stone-700 text-stone-300 hover:bg-stone-900",
-                  )}
-                >
-                  <Hand className="size-4" />
-                </button>
-              ) : null}
-              {/* How far your voice carries. Only meaningful while the rule
-                  is on, so it is hidden otherwise rather than being a control
-                  that does nothing. */}
-              {sayRangeRule ? (
-                <select
-                  value={voice.sayRange}
-                  onChange={(event) =>
-                    void voice.setSayRange(event.target.value as "whisper" | "normal" | "shout")
-                  }
-                  aria-label={copy.range}
-                  title={copy.range}
-                  className="rounded-md border border-stone-700 bg-stone-950 px-2 py-1.5 text-xs text-stone-300"
-                >
-                  <option value="whisper">{copy.whisper}</option><option value="normal">{copy.normal}</option><option value="shout">{copy.shout}</option>
-                </select>
-              ) : null}
-              {/* Deafen. Sits next to mute because that is the pair every
-                  voice app puts together, but it only silences what arrives:
-                  your microphone keeps transmitting, which is why the icon
-                  and the label both say headphones rather than mic. */}
-              <button
-                type="button"
-                onClick={voice.toggleDeafen}
-                aria-label={voice.deafened ? copy.undeafen : copy.deafen}
-                title={
-                  voice.deafened
-                    ? copy.undeafen : copy.silence
-                }
-                className={cn(
-                  "rounded-md border p-2 transition-colors",
-                  voice.deafened
-                    ? "border-red-800 bg-red-950/60 text-red-300"
-                    : "border-stone-700 text-stone-300 hover:bg-stone-900",
-                )}
-              >
-                {voice.deafened ? (
-                  <HeadphoneOff className="size-4" />
-                ) : (
-                  <Headphones className="size-4" />
-                )}
-              </button>
-              {/* In push-to-talk the same slot becomes a hold control, so
-                  there is never both a mute button and a talk button arguing
-                  about who owns the microphone. */}
-              {voice.micMode === "ptt" ? (
-                <button
-                  type="button"
-                  onPointerDown={(event) => {
-                    event.preventDefault();
-                    voice.setTalking(true);
-                  }}
-                  onPointerUp={() => voice.setTalking(false)}
-                  onPointerLeave={() => voice.setTalking(false)}
-                  onContextMenu={(event) => event.preventDefault()}
-                  title={copy.holdTitle}
-                  className={cn(
-                    "select-none touch-none rounded-md border px-3 py-2 text-xs transition-colors",
-                    voice.talking
-                      ? "border-emerald-700 bg-emerald-950/60 text-emerald-200"
-                      : "border-stone-700 text-stone-300 hover:bg-stone-900",
-                  )}
-                >
-                  <Radio className={cn("mr-1 inline size-3.5", voice.talking && "animate-pulse")} />
-                  {voice.talking ? copy.talking : copy.hold}
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => void voice.toggleMute()}
-                aria-label={voice.muted ? copy.unmute : copy.mute}
-                title={voice.muted ? copy.unmute : copy.mute}
-                  className={cn(
-                    "rounded-md border p-2 transition-colors",
-                    voice.muted
-                      ? "border-red-800 bg-red-950/60 text-red-300"
-                      : "border-stone-700 text-stone-300 hover:bg-stone-900",
-                  )}
-                >
-                  {voice.muted ? <MicOff className="size-4" /> : <Mic className="size-4" />}
-                </button>
-              )}
-              <button
-                type="button"
-                onClick={() => setShowSettings((open) => !open)}
-                aria-label={copy.micSettings}
-                title={copy.micSettings}
-                className={cn(
-                  "rounded-md border p-2 transition-colors",
-                  showSettings
-                    ? "border-amber-700 bg-amber-950/50 text-amber-200"
-                    : "border-stone-700 text-stone-300 hover:bg-stone-900",
-                )}
-              >
-                <Settings2 className="size-4" />
-              </button>
-              <button
-                type="button"
-                onClick={() => void voice.leave()}
-                aria-label={copy.leave}
-                title={copy.leave}
-                className="rounded-md border border-stone-700 p-2 text-stone-300 hover:bg-stone-900"
-              >
-                <PhoneOff className="size-4" />
-              </button>
-            </>
-          ) : (
-            <button
-              type="button"
-              disabled={voice.status === "connecting"}
-              onClick={() => void voice.join()}
-              className="flex items-center gap-2 rounded-lg bg-amber-200 px-3 py-1.5 text-sm font-medium text-stone-950 hover:bg-amber-100 disabled:opacity-50"
-            >
-              {voice.status === "connecting" ? (
-                <Loader2 className="size-4 animate-spin" />
-              ) : (
-                <Mic className="size-4" />
-              )}
-              Join
-            </button>
-          )}
-        </div>
+      <h2 className={s.title}>{access.scope === "location" ? <MapPin /> : <Headphones />}{access.scope === "location" ? copy.location : copy.global}</h2>
+      <p className={s.description}>{access.scope === "location" ? copy.locationNote : copy.globalNote}</p>
+      <div className={s.scopeSwitch} role="group" aria-label={copy.leader}>
+        <button type="button" aria-pressed={access.scope === "global"} disabled={!access.canManageScope || scopeBusy || stale}
+          onClick={() => onScopeChange("global")}><Globe />{copy.globalMode}</button>
+        <button type="button" aria-pressed={access.scope === "location"}
+          disabled={!access.canManageScope || !access.privateScopeAvailable || scopeBusy || stale}
+          title={!access.privateScopeAvailable ? copy.unavailablePrivate : undefined}
+          onClick={() => onScopeChange("location")}><Shield />{copy.locationMode}</button>
       </div>
+      <p className={s.note}>{!access.privateScopeAvailable ? copy.unavailablePrivate : copy.leader}</p>
+    </header>
 
-      {/* Whose turn it is. Shown under soft enforcement too, because saying so
-          is the entire point of soft: the table is told, not policed. */}
-      {floorNote ? (
-        <p className="mt-2 flex items-center gap-1.5 text-xs text-amber-200/80">
-          <ShieldBan className="size-3.5 shrink-0" />
-          {floorNote}
-          {voice.connected && !myVerdict.mayTransmit && myVerdict.block ? (
-            <span className="text-stone-500">
-              · {turnEnforcement === "strict" ? "you are muted" : TRANSMIT_BLOCK_LABELS[myVerdict.block]}
-            </span>
-          ) : null}
-        </p>
-      ) : null}
+    {stale ? <div className={s.notice} role="alert">{copy.stale}<br /><button className={s.button} onClick={onRefresh} type="button"><RefreshCw />{copy.refresh}</button></div> : null}
+    {access.scope === "location" && !access.assignedLocation ? <div className={s.notice}>{copy.unassigned}</div> : null}
+    {!access.available ? <div className={s.notice}>{access.unavailableReason === "server" ? copy.serverOff : access.unavailableReason === "privacy" ? copy.privacyOff : copy.campaignOff}</div> : null}
+    {access.warning ? <div className={s.notice}><details><summary>{copy.troubleshooting}</summary>{access.warning}</details></div> : null}
+    {error ? <div className={joinClasses(s.notice, s.error)} role="alert">{scopeError ? copy.scopeFailed : copy.error}
+      <details><summary>{copy.details}</summary>{error}</details></div> : null}
+    {voice.playbackBlocked ? <div className={s.notice} role="alert">{copy.autoplay}<br />
+      <button className={s.button} type="button" onClick={() => void voice.unlockPlayback()}><Volume2 />{copy.unlock}</button></div> : null}
 
-      {/* A dropped candidate pair is recovered by an ICE restart rather than
-          by rejoining, so this is a passing state and not a failure. */}
-      {voice.reconnecting ? (
-        <p className="mt-2 flex items-center gap-1.5 text-xs text-amber-300">
-          <WifiOff className="size-3.5 shrink-0" />
-          Connection dropped, reconnecting
-        </p>
-      ) : null}
+    <nav className={s.tabs} role="tablist" aria-label={copy.title}>
+      {tabs.map((value, index) => <button key={value} ref={node => { tabRefs.current[index] = node; }}
+        className={s.tab} type="button" role="tab" id={`${id}-${value}-tab`} aria-controls={`${id}-${value}-panel`}
+        aria-selected={tab === value} tabIndex={tab === value ? 0 : -1} onClick={() => chooseTab(value)}
+        onKeyDown={event => {
+          let next = index;
+          if (event.key === "ArrowRight") next = (index + 1) % tabs.length;
+          else if (event.key === "ArrowLeft") next = (index + tabs.length - 1) % tabs.length;
+          else if (event.key === "Home") next = 0; else if (event.key === "End") next = tabs.length - 1; else return;
+          event.preventDefault(); chooseTab(tabs[next]); tabRefs.current[next]?.focus();
+        }}>{value === "people" ? <Users /> : value === "sound" ? <Settings2 /> : <Activity />}{copy[value]}
+        {value === "people" ? <span className={s.count}>{peers.length}</span> : null}</button>)}
+    </nav>
 
-      {voice.error ? <p className="mt-2 text-xs text-red-400">{voice.error}</p> : null}
-
-      {showSettings && voice.connected ? (
-        <div className="mt-2 space-y-2 rounded border border-stone-800 bg-stone-950 p-2">
-          {/* Everyone at once. Lives in here rather than in the header
-              because the dock is 320px wide and the header has no room, and
-              because this block already says these settings are per browser.
-              Per-player sliders are on each row below. */}
-          <label className="block">
-            <span className="mb-1 block text-[11px] text-stone-500">
-              Everyone{"\u2019"}s volume
-            </span>
-            <input
-              type="range"
-              min={0}
-              max={MASTER_VOLUME_MAX}
-              step={VOLUME_STEP}
-              value={voice.masterVolume}
-              disabled={voice.deafened}
-              onChange={(event) => voice.setMasterVolume(Number(event.target.value))}
-              aria-label={copy.volume}
-              className="w-full accent-amber-600 disabled:opacity-40"
-            />
-          </label>
-          <label className="block">
-            <span className="mb-1 block text-[11px] text-stone-500">{copy.microphone}</span>
-            <select
-              value={voice.micId}
-              onChange={(event) => void voice.selectMic(event.target.value)}
-              className="w-full rounded border border-stone-800 bg-stone-950 px-2 py-1 text-xs text-stone-200"
-            >
-              <option value="">{copy.system}</option>
-              {voice.micDevices.map((device) => (
-                <option key={device.deviceId} value={device.deviceId}>
-                  {device.label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="block">
-            <span className="mb-1 block text-[11px] text-stone-500">
-               {copy.mode} {voice.micMode === "ptt" ? copy.holdKey : ""}
-            </span>
-            <select
-              value={voice.micMode}
-              onChange={(event) => voice.selectMicMode(event.target.value as "open" | "ptt")}
-              className="w-full rounded border border-stone-800 bg-stone-950 px-2 py-1 text-xs text-stone-200"
-            >
-              <option value="open">{copy.openMic}</option><option value="ptt">{copy.ptt}</option>
-            </select>
-          </label>
-          <p className="text-[11px] text-stone-600">
-             {copy.saved}
-          </p>
-        </div>
-      ) : null}
-
-      {/* Breakout rooms. Everyone can see the list and who is in each: a side
-          room nobody can see reads as a bug rather than a secret. Only story
-          authority can open one or move anybody. */}
-      {channels.length > 1 || steersStory ? (
-        <div className="mt-3 space-y-1.5 border-t border-stone-800 pt-2">
-          {channels.map((channel) => {
-            const occupants = voice.peers.filter((peer) => peer.channelId === channel.id);
-            return (
-              <div key={channel.id} className="flex items-center gap-2 text-xs">
-                <Users className="size-3.5 shrink-0 text-stone-600" />
-                <span className="truncate text-stone-400">{channel.name}</span>
-                <span className="text-stone-600">{occupants.length}</span>
-                {steersStory && channel.id !== "table" ? (
-                  <button
-                    type="button"
-                    onClick={() => void channelAction({ action: "close", channelId: channel.id })}
-                    aria-label={`${copy.close} ${channel.name} ${copy.closeRoom}`}
-                    title={`${copy.close} ${copy.closeRoom}`}
-                    className="ml-auto text-stone-600 hover:text-red-400"
-                  >
-                    <DoorOpen className="size-3.5" />
-                  </button>
-                ) : null}
+    <div className={s.body} role="tabpanel" id={`${id}-${tab}-panel`} aria-labelledby={`${id}-${tab}-tab`} tabIndex={0}>
+      {tab === "people" ? <>
+        {peers.length ? <div className={s.tools}>
+          <label className={s.search}><Search /><input aria-label={copy.search} placeholder={copy.search} value={query} onChange={event => setQuery(event.target.value)} /></label>
+          <div className={s.viewSwitch} role="group" aria-label={`${copy.grid} / ${copy.list}`}>
+            <button className={s.iconButton} type="button" aria-label={copy.grid} title={copy.grid} aria-pressed={preferences.layout === "grid"} onClick={() => writeCallPreferences({ layout: "grid" })}><LayoutGrid /></button>
+            <button className={s.iconButton} type="button" aria-label={copy.list} title={copy.list} aria-pressed={preferences.layout === "list"} onClick={() => writeCallPreferences({ layout: "list" })}><List /></button>
+          </div>
+        </div> : null}
+        {!peers.length ? <div className={s.empty}><div className={s.emptyIcon}><Headphones /></div><h3>{copy.empty}</h3><p>{copy.emptyNote}</p>
+          <button className={s.button} type="button" onClick={() => chooseTab("sound")}><Settings2 />{copy.test}</button></div> : null}
+        {peers.length && !filtered.length ? <p className={s.description}>{copy.noResults}</p> : null}
+        <div className={preferences.layout === "grid" ? s.grid : s.list}>
+          {filtered.map(peer => {
+            const me = peer.userId === meUserId, volume = voice.peerVolume(peer.userId);
+            const active = speaking?.userId === peer.userId && !peer.muted && !peer.forceMuted;
+            const label = peer.forceMuted ? copy.forceMuted : peer.muted ? copy.muted : !peer.producing ? copy.waiting : active ? copy.speaking : copy.ready;
+            return <article className={joinClasses(s.peer, active && s.peerSpeaking)} key={peer.userId} aria-label={`${peer.username}: ${label}`}>
+              <div className={s.peerMain}><div className={s.peerTop}><div className={s.avatar} aria-hidden="true">{initials(peer.username)}</div>
+                {peer.handRaisedAt ? <span className={s.badge} title={copy.raised}><Hand /></span> : me ? <span className={s.badge}>{copy.you}</span> : null}</div>
+                <h3 className={s.peerName} title={peer.username}>{peer.username}</h3>
+                <div className={s.peerState}>{peer.forceMuted ? <Shield /> : peer.muted ? <MicOff /> : active ? <Activity /> : <Headphones />}{label}</div>
               </div>
-            );
+              {!me ? <div className={s.peerControls}>
+                <button className={s.iconButton} type="button" aria-label={`${volume.muted ? copy.localUnmute : copy.localMute}: ${peer.username}`}
+                  title={volume.muted ? copy.localUnmute : copy.localMute} aria-pressed={volume.muted} onClick={() => voice.togglePeerMute(peer.userId)}>{volume.muted ? <VolumeX /> : <Volume2 />}</button>
+                <input className={s.slider} type="range" min={0} max={PEER_VOLUME_MAX} step={VOLUME_STEP} value={volume.volume}
+                  aria-label={`${copy.volume}: ${peer.username}`} onChange={event => voice.setPeerVolume(peer.userId, Number(event.target.value))} />
+                <span className={s.percent}>{Math.round(volume.volume * 100)}%</span>
+                <button className={s.iconButton} type="button" aria-label={`${copy.reset}: ${peer.username}`} title={copy.reset} onClick={() => voice.resetPeerVolume(peer.userId)}><RotateCcw /></button>
+              </div> : null}
+            </article>;
           })}
-          {steersStory ? (
-            <div className="flex gap-1.5 pt-1">
-              <input
-                value={newRoom}
-                onChange={(event) => setNewRoom(event.target.value)}
-                placeholder={copy.newRoom}
-                className="min-w-0 flex-1 rounded border border-stone-800 bg-stone-950 px-2 py-1 text-xs text-stone-200"
-              />
-              <button
-                type="button"
-                disabled={!newRoom.trim()}
-                onClick={() => {
-                  void channelAction({ action: "open", name: newRoom.trim() });
-                  setNewRoom("");
-                }}
-                className="rounded border border-stone-700 px-2 py-1 text-xs text-stone-300 hover:bg-stone-900 disabled:opacity-40"
-              >
-                {copy.open}
-              </button>
-              {channels.length > 1 ? (
-                <button
-                  type="button"
-                  onClick={() => void channelAction({ action: "recall" })}
-                  title={copy.recallTitle}
-                  className="rounded border border-stone-700 px-2 py-1 text-xs text-stone-300 hover:bg-stone-900"
-                >
-                  {copy.recall}
-                </button>
-              ) : null}
-            </div>
-          ) : null}
         </div>
-      ) : null}
+        {peers.length > 1 ? <p className={s.note}>{copy.localOnly}</p> : null}
+      </> : null}
 
-      {voice.peers.length ? (
-        <ul className="mt-3 space-y-1.5">
-          {voice.peers.map((peer) => (
-            <VoicePeerRow
-              key={peer.userId}
-              peer={peer}
-              isMe={peer.userId === meUserId}
-              speaking={isSpeaking(peer.userId)}
-              volume={voice.peerVolume(peer.userId)}
-              expanded={volumeFor === peer.userId}
-              channels={channels}
-              // The row's flag only gates its move-to-room select, and moving
-              // somebody POSTs to the channels route, which asks for story
-              // authority rather than the DM seat.
-              adjudicates={steersStory}
-              onToggleVolume={() =>
-                setVolumeFor((open) => (open === peer.userId ? null : peer.userId))
-              }
-              onVolume={(value) => voice.setPeerVolume(peer.userId, value)}
-              onToggleMute={() => voice.togglePeerMute(peer.userId)}
-              onReset={() => voice.resetPeerVolume(peer.userId)}
-              onMove={(channelId) =>
-                void channelAction({ action: "move", userId: peer.userId, channelId })
-              }
-            />
-          ))}
-        </ul>
-      ) : (
-         <p className="mt-2 text-xs text-stone-500">{copy.empty}</p>
-      )}
+      {tab === "sound" ? <>
+        <section className={s.section}>
+          <div className={s.sectionTitle}><span>{copy.microphone}</span><button type="button" className={s.iconButton} title={copy.refreshDevices} aria-label={copy.refreshDevices}
+            onClick={() => { void audio.refresh(); void voice.refreshDevices(); }}><RefreshCw /></button></div>
+          <label className={s.field}>{copy.microphone}<select className={s.select} aria-label={copy.microphone} value={voice.micId} onChange={event => voice.selectMic(event.target.value)}>
+            <option value="">{copy.system}</option>
+            {deviceList("audioinput").map((device, index) => <option key={device.deviceId} value={device.deviceId}>{device.label || `${copy.microphone} ${index + 1}`}</option>)}
+            {voice.micId && !deviceList("audioinput").some(d => d.deviceId === voice.micId) ? <option value={voice.micId}>{copy.microphone} · {copy.missing}</option> : null}
+          </select></label>
+          <label className={s.fieldRow}><span className={s.field}>{copy.micGain} <span className={s.percent}>{Math.round(micGain * 100)}%</span></span>
+            <input className={s.slider} type="range" min={0} max={MIC_GAIN_MAX} step={0.05} value={micGain} aria-label={copy.micGain} onChange={event => writeMicGain(Number(event.target.value))} /></label>
+          <div className={s.meterBox}><div className={s.meterLabel}><span>{onCall ? copy.liveMeter : copy.level}</span><span>{audio.level > .9 ? copy.clipping : `${Math.round(audio.level * 100)}%`}</span></div>
+            <div className={s.meter} role="meter" aria-label={copy.level} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(audio.level * 100)}>
+              {Array.from({ length: 24 }, (_, index) => <span key={index} data-on={audio.level * 24 > index} data-hot={index > 18} />)}
+            </div></div>
+          {!onCall ? <><div className={s.buttonRow}>
+            <button className={s.button} type="button" disabled={voice.pending} onClick={() => audio.testing || audio.requesting ? audio.stop() : void audio.start()}>
+              {audio.requesting ? <Loader2 className={s.spin} /> : <Mic />}{audio.testing || audio.requesting ? copy.stopTest : copy.test}</button>
+            {audio.testing ? <button type="button" className={s.button} aria-pressed={audio.monitoring} onClick={() => void audio.toggleMonitor()}><Headphones />{copy.monitor}</button> : null}
+          </div><p className={s.note}>{audio.requesting ? copy.requesting : copy.testNote}{audio.monitoring ? ` ${copy.monitorNote}` : ""}</p></> : null}
+          <p className={s.note}>{copy.devicesNote}</p>
+        </section>
+        <section className={s.section}>
+          <label className={s.field}>{copy.output}<select className={s.select} aria-label={copy.output} disabled={!canChooseOutput} value={outputId} onChange={event => void chooseOutput(event.target.value)}>
+            <option value="">{copy.system}</option>{deviceList("audiooutput").map((device, index) => <option key={device.deviceId} value={device.deviceId}>{device.label || `${copy.output} ${index + 1}`}</option>)}
+            {outputId && !deviceList("audiooutput").some(d => d.deviceId === outputId) ? <option value={outputId}>{copy.output} · {copy.missing}</option> : null}
+          </select></label>
+          {!canChooseOutput ? <p className={s.note}>{copy.outputUnsupported}</p> : null}
+          <div><button className={s.button} type="button" onClick={() => void audio.testOutput()}><Volume2 />{copy.outputTest}</button></div>
+        </section>
+        <section className={s.section}>
+          <label className={s.field}>{copy.micMode}<select className={s.select} aria-label={`${copy.openMic} / ${copy.ptt}`} value={voice.micMode} onChange={event => voice.selectMicMode(event.target.value as "open" | "ptt")}>
+            <option value="open">{copy.openMic}</option><option value="ptt">{copy.ptt}</option></select></label>
+          {voice.micMode === "ptt" ? <><label className={s.field}>{copy.pttKey}<select className={s.select} aria-label={copy.pttKey} value={preferences.pttKey} onChange={event => writeCallPreferences({ pttKey: event.target.value })}>
+            {PTT_KEYS.map(key => <option key={key} value={key}>{keyName(key)}</option>)}</select></label><p className={s.note}>{copy.pttNote}</p></> : null}
+          <label className={s.check}><input type="checkbox" checked={preferences.startMuted} onChange={event => writeCallPreferences({ startMuted: event.target.checked })} />{copy.startMuted}</label>
+          <p className={s.note}>{copy.startMutedNote}</p>
+        </section>
+        <section className={s.section}>
+          <h3 className={s.sectionTitle}>{copy.processing}</h3>
+          <div className={s.processing}>{([ ["noiseSuppression", copy.noise], ["echoCancellation", copy.echo], ["autoGainControl", copy.agc] ] as const).map(([key, label]) =>
+            <label className={s.check} key={key} title={!supports[key] ? copy.unsupported : undefined}><input type="checkbox" checked={preferences[key]} disabled={!supports[key]}
+              onChange={event => { audio.stop(); writeCallPreferences({ [key]: event.target.checked }); }} />{label}</label>)}</div>
+          <p className={s.note}>{copy.processingNote}</p><p className={s.note}>{copy.saved}</p>
+        </section>
+      </> : null}
+
+      {tab === "connection" ? <>
+        <section className={s.section}><h3 className={s.sectionTitle}>{copy.quality}</h3>
+          <div className={s.metrics}>{([
+            [copy.rtt, stats.rttMs, copy.ms], [copy.jitter, stats.jitterMs, copy.ms],
+            [copy.loss, stats.lossPercent, "%"], [copy.bitrate, stats.receiveKbps, copy.kbps],
+          ] as const).map(([label, value, unit]) => <div className={s.metric} key={label}><div className={s.metricValue}>{onCall && value !== null ? value.toFixed(value < 10 ? 1 : 0) : "—"}<small>{unit}</small></div><div className={s.metricLabel}>{label}</div></div>)}</div>
+          <p className={s.note}>{copy.statsNote}</p>
+          <div className={s.dataRow}><span>{copy.transport}</span><strong>{access.mode === "sfu" ? copy.sfu : copy.mesh}</strong></div>
+          <div className={s.dataRow}><span>{copy.secure}</span><strong>{typeof window !== "undefined" && window.isSecureContext ? copy.yes : copy.no}</strong></div>
+          <div className={s.dataRow}><span>{copy.microphoneApi}</span><strong>{typeof navigator !== "undefined" && navigator.mediaDevices?.getUserMedia ? copy.supported : copy.missing}</strong></div>
+          <div className={s.buttonRow}><button className={s.button} type="button" onClick={() => void copyDiagnostics()}>{clipboard === copy.copied ? <Check /> : <Copy />}{copy.copy}</button>
+            <button className={s.button} type="button" disabled={voice.pending || stale || !access.available} onClick={() => void reconnect()}><RefreshCw />{copy.retry}</button></div>
+          {clipboard ? <p className={s.note} role="status">{clipboard}</p> : null}<p className={s.note}>{copy.privacyDiagnostics}</p>
+        </section>
+        <section className={s.section}><h3 className={s.sectionTitle}>{copy.troubleshooting}</h3><p className={s.description}>{copy.troubleshootNote}</p></section>
+      </> : null}
     </div>
-  );
+
+    <footer className={s.footer}>
+      {onCall && !verdict.mayTransmit && turnEnforcement === "strict" ? <p className={s.note}>{copy.floorBlocked}</p> : null}
+      <div className={s.master}><Volume2 /><label htmlFor={`${id}-master`}>{copy.master}</label>
+        <input id={`${id}-master`} className={s.slider} type="range" min={0} max={MASTER_VOLUME_MAX} step={VOLUME_STEP} value={voice.masterVolume} onChange={event => voice.setMasterVolume(Number(event.target.value))} />
+        <span className={s.percent}>{Math.round(voice.masterVolume * 100)}%</span></div>
+      {onCall && voice.micMode === "ptt" ? <button type="button" className={s.ptt} aria-pressed={voice.talking} disabled={voice.muted || (!verdict.mayTransmit && turnEnforcement === "strict")}
+        onPointerDown={event => { event.preventDefault(); event.currentTarget.setPointerCapture(event.pointerId); voice.setTalking(true); }}
+        onPointerUp={() => voice.setTalking(false)} onPointerCancel={() => voice.setTalking(false)} onLostPointerCapture={() => voice.setTalking(false)}
+        onKeyDown={event => { if ((event.key === " " || event.key === "Enter") && !event.repeat) { event.preventDefault(); voice.setTalking(true, "button"); } }}
+        onKeyUp={event => { if (event.key === " " || event.key === "Enter") voice.setTalking(false, "button"); }}
+        onBlur={() => voice.setTalking(false, "button")} onContextMenu={event => event.preventDefault()}>
+        <Radio />{voice.talking && !voice.muted ? copy.held : copy.hold}<kbd className={s.keycap}>{keyName(preferences.pttKey)}</kbd></button> : null}
+      <div className={s.toolbar}>
+        {onCall ? <>
+          <button className={s.control} type="button" title={voice.muted ? copy.unmute : copy.mute} aria-label={voice.muted ? copy.unmute : copy.mute} aria-pressed={voice.muted}
+            onClick={() => void voice.toggleMute()}>{voice.muted ? <MicOff /> : <Mic />}<span>{copy.microphone}</span></button>
+          <button className={s.control} type="button" title={voice.deafened ? copy.undeafen : copy.deafen} aria-label={voice.deafened ? copy.undeafen : copy.deafen}
+            aria-pressed={voice.deafened} onClick={voice.toggleDeafen}>{voice.deafened ? <HeadphoneOff /> : <Headphones />}<span>{voice.deafened ? copy.audioOff : copy.sound}</span></button>
+          {!adjudicates ? <button className={s.control} type="button" title={voice.handRaised ? copy.lowerHand : copy.hand} aria-label={voice.handRaised ? copy.lowerHand : copy.hand}
+            aria-pressed={voice.handRaised} onClick={() => void voice.toggleHand()}><Hand /><span>{copy.hand}</span></button> : null}
+          <button className={joinClasses(s.control, s.leave)} type="button" title={copy.leave} aria-label={copy.leave} onClick={() => void voice.leave()}><PhoneOff /><span>{copy.leave}</span></button>
+        </> : <>
+          <button className={s.primary} type="button" disabled={!access.available || !voice.available || stale || voice.pending} onClick={() => void begin()}>
+            {voice.pending ? <Loader2 className={s.spin} /> : preferences.startMuted || voice.micMode === "ptt" ? <MicOff /> : <Mic />}{voice.status === "connecting" ? copy.joining : copy.join}</button>
+          {voice.pending ? <button type="button" className={s.button} onClick={() => void voice.leave()}>{copy.cancel}</button> : null}
+        </>}
+      </div>
+      {!onCall ? <label className={s.check} style={{ marginTop: 12 }}><input type="checkbox" checked={preferences.startMuted} onChange={event => writeCallPreferences({ startMuted: event.target.checked })} />{copy.startMuted}</label> : null}
+      {onCall && sayRangeRule ? <label className={s.field} style={{ marginTop: 12 }}>{copy.range}<select className={s.select} value={voice.sayRange} onChange={event => void voice.setSayRange(event.target.value as "whisper" | "normal" | "shout")}>
+        <option value="whisper">{copy.whisper}</option><option value="normal">{copy.normal}</option><option value="shout">{copy.shout}</option></select></label> : null}
+      <p className={s.footerNote}>{voice.deafened ? copy.deafenNote : copy.closeKeepsCall}</p>
+    </footer>
+  </section>;
 }

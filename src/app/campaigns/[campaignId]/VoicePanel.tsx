@@ -1,103 +1,69 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type ComponentProps } from "react";
-import { VoicePanel as VoiceControls } from "@/app/campaigns/[campaignId]/VoicePanelControls";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { VoicePanel as VoiceControls, type VoicePanelProps } from "./VoicePanelControls";
 import { useI18n } from "@/lib/i18n/context";
 import { localeText } from "@/lib/i18n/locale-text";
-import type { VoiceRosterEntry } from "@/lib/voice/types";
-import type { VoiceScope } from "@/lib/voice/location-policy";
+import { voiceCopy } from "./voice-copy";
+import type { VoiceAccessSnapshot } from "@/lib/voice/call-types";
+import s from "./VoiceCall.module.css";
 
-type Snapshot = {
-  scope: VoiceScope; mode: "sfu" | "mesh"; canManageScope: boolean;
-  privateScopeAvailable: boolean; assignedLocation: boolean;
-  peers: VoiceRosterEntry[];
-};
-// Keep the existing mic, PTT, device, volume and reconnect controls. The outer
-// panel owns only the leader selector and an identity-bound roster projection.
-export function VoicePanel(props: ComponentProps<typeof VoiceControls>) {
-  const { locale } = useI18n();
-  const copy = localeText(locale, {
-    en: { label: "Voice channel", global: "Global party voice", location: "Private location rooms",
-      note: "Only players in your current location can see and hear each other.",
-      lead: "The party lead chooses the voice mode.", unavailable: "Private rooms need enabled SFU voice and campaign location mode.",
-      unassigned: "No location assigned: you cannot hear or transmit to other rooms.",
-      loading: "Loading voice access…", failed: "Could not refresh voice access.", saveFailed: "Could not change voice mode." },
-    ru: { label: "Голосовой канал", global: "Общий голосовой чат", location: "Приватные комнаты по локациям",
-      note: "Видны и слышны только игроки в вашей текущей локации.",
-      lead: "Режим голосового чата выбирает лидер группы.", unavailable: "Для приватных комнат нужны включённый SFU и режим локаций кампании.",
-      unassigned: "Локация не назначена: другие комнаты вам недоступны.",
-      loading: "Проверка доступа к голосовому чату…", failed: "Не удалось обновить доступ к голосовому чату.", saveFailed: "Не удалось изменить режим чата." },
-  });
-  const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
-  const [stale, setStale] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
+// Remount the entire identity-bound session, not just its roster, on account
+// changes. The mounted dock may survive navigation/login changes.
+export function VoicePanel(props: VoicePanelProps) {
+  return <VoicePanelSession key={`${props.campaignId}:${props.meUserId}`} {...props} />;
+}
+function VoicePanelSession(props: VoicePanelProps) {
+  const { locale } = useI18n(); const copy = localeText(locale, voiceCopy);
+  const [snapshot, setSnapshot] = useState<VoiceAccessSnapshot | null>(null);
+  const [stale, setStale] = useState(false), [saving, setSaving] = useState(false), [error, setError] = useState("");
   const [revision, setRevision] = useState(0);
-  const sequence = useRef(0);
-  const serialized = useRef("");
-  const alive = useRef(true);
+  const serial = useRef(0), serialized = useRef("");
+  const alive = useRef(true), writing = useRef(false), controller = useRef<AbortController | null>(null);
   const refresh = useCallback(async () => {
-    const requestId = ++sequence.current;
+    controller.current?.abort();
+    const request = new AbortController(); controller.current = request;
+    const sequence = ++serial.current;
+    const timeout = setTimeout(() => request.abort(), 10_000);
     try {
-      const response = await fetch(`/api/campaigns/${props.campaignId}/voice`, { cache: "no-store" });
+      const response = await fetch(`/api/campaigns/${props.campaignId}/voice`, { cache: "no-store", signal: request.signal });
       if (!response.ok) throw new Error("Voice access denied");
-      const data = await response.json() as Snapshot;
-      if (!alive.current || requestId !== sequence.current) return;
+      const data = await response.json() as VoiceAccessSnapshot;
+      if (!alive.current || sequence !== serial.current) return;
+      if (!Array.isArray(data.peers) || (data.scope !== "global" && data.scope !== "location") || (data.mode !== "sfu" && data.mode !== "mesh")) throw new Error("Invalid voice snapshot");
       const next = JSON.stringify(data);
-      if (next !== serialized.current) {
-        serialized.current = next; setSnapshot(data); setRevision(value => value + 1);
-      }
+      if (next !== serialized.current) { serialized.current = next; setSnapshot(data); setRevision(value => value + 1); }
       setStale(false);
-    } catch {
-      if (alive.current && requestId === sequence.current) setStale(true);
-    }
+    } catch { if (alive.current && sequence === serial.current) setStale(true); }
+    finally { clearTimeout(timeout); }
   }, [props.campaignId]);
   useEffect(() => {
     alive.current = true;
-    let cancelled = false;
-    let timer: ReturnType<typeof setTimeout>;
-    const poll = async () => {
-      await refresh();
-      if (!cancelled) timer = setTimeout(poll, 1000);
-    };
+    let cancelled = false, timer: ReturnType<typeof setTimeout>;
+    const poll = async () => { await refresh(); if (!cancelled) timer = setTimeout(poll, 1000); };
     void poll();
-    return () => { cancelled = true; alive.current = false; sequence.current++; clearTimeout(timer); };
+    return () => { cancelled = true; alive.current = false; ++serial.current; controller.current?.abort(); clearTimeout(timer); };
   }, [refresh]);
-  const changeScope = async (scope: VoiceScope) => {
-    setSaving(true); setError("");
+  const changeScope = async (scope: "global" | "location") => {
+    if (writing.current || !snapshot?.canManageScope || stale || scope === snapshot.scope) return;
+    writing.current = true; setSaving(true); setError("");
     try {
-      const response = await fetch(`/api/campaigns/${props.campaignId}/voice/scope`, {
-        method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ scope }),
-      });
+      const response = await fetch(`/api/campaigns/${props.campaignId}/voice/scope`, { method: "PATCH",
+        headers: { "Content-Type": "application/json" }, body: JSON.stringify({ scope }), signal: AbortSignal.timeout(15_000) });
       const data = await response.json();
-      if (!response.ok) throw new Error(typeof data.error === "string" ? data.error : copy.saveFailed);
-      await refresh();
-    } catch (cause) { if (alive.current) setError(cause instanceof Error ? cause.message : copy.saveFailed); }
-    finally { if (alive.current) setSaving(false); }
+      if (!response.ok) throw new Error(typeof data.error === "string" ? data.error : copy.scopeFailed);
+      if (alive.current) await refresh();
+    } catch (cause) { if (alive.current) setError(cause instanceof Error ? cause.message : copy.scopeFailed); }
+    finally { writing.current = false; if (alive.current) setSaving(false); }
   };
-  const peers = stale ? [] : snapshot?.peers ?? [];
-  // Do not render a speaking identity from an old/global stream projection.
-  const speaking = peers.some(peer => peer.userId === props.speaking?.userId) ? props.speaking : null;
-  return <section className="space-y-2" data-testid="location-voice">
-    <div className="rounded-lg border border-stone-800 bg-stone-950/60 p-3">
-      <label className="flex flex-wrap items-center gap-2 text-sm text-stone-200">
-        {copy.label}
-        <select aria-label={copy.label} value={snapshot?.scope ?? "global"}
-          disabled={!snapshot?.canManageScope || saving || stale}
-          onChange={event => void changeScope(event.target.value as VoiceScope)}
-          className="min-w-0 max-w-full rounded border border-stone-700 bg-stone-950 p-2 disabled:opacity-60">
-          <option value="global">{copy.global}</option>
-          <option value="location" disabled={!snapshot?.privateScopeAvailable}>{copy.location}</option>
-        </select>
-      </label>
-      <p className="mt-2 text-xs text-stone-400">{snapshot?.scope === "location" ? copy.note : copy.lead}</p>
-      {snapshot && !snapshot.privateScopeAvailable ? <p className="mt-1 text-xs text-amber-300">{copy.unavailable}</p> : null}
-      {snapshot?.scope === "location" && !snapshot.assignedLocation ? <p className="mt-1 text-xs text-amber-300">{copy.unassigned}</p> : null}
-      {error || stale ? <p role="alert" className="mt-1 text-xs text-red-300">{error || copy.failed}</p> : null}
-    </div>
-    {snapshot ? <VoiceControls {...props} key={`${props.campaignId}:${snapshot.mode}`}
-      roster={peers} speaking={speaking} steersStory={false}
-      audibilityVersion={(props.audibilityVersion ?? 0) + revision} />
-      : <p className="text-xs text-stone-400">{copy.loading}</p>}
-  </section>;
+  // A failed refresh hides identities in the presentation but does not pretend
+  // the authoritative roster is empty, which would destroy healthy consumers.
+  // Revocation remains enforced by the SFU independently of this request.
+  return snapshot ? <VoiceControls {...props} key={`${snapshot.mode}:${snapshot.available}`}
+    access={snapshot} roster={snapshot.peers} stale={stale} scopeBusy={saving} scopeError={error}
+    speaking={snapshot.peers.some(peer => peer.userId === props.speaking?.userId) ? props.speaking : null}
+    audibilityVersion={(props.audibilityVersion ?? 0) + revision}
+    onScopeChange={scope => void changeScope(scope)} onRefresh={() => void refresh()} />
+    : <section className={s.call} aria-label={copy.title}><div className={s.empty} role="status"><h2>{copy.title}</h2>
+      <p>{stale ? copy.stale : copy.loading}</p>{stale ? <button type="button" className={s.button} onClick={() => void refresh()}>{copy.refresh}</button> : null}</div></section>;
 }
