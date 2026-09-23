@@ -58,6 +58,9 @@ export const gameSettingsSchema = z.object({
   // JRPG is an explicit campaign house-rule mode. The combat engine, rather
   // than narration, decides which positional gates it relaxes.
   combatMode: z.enum(COMBAT_MODES).default(DEFAULT_COMBAT_MODE),
+  // New campaigns may pin YOLO narration per table. Missing on older rows so
+  // they keep the deployment's existing runtime-mode behavior.
+  yolo21Enabled: z.boolean().optional(),
   // What players may see about enemy durability. The DM seat always gets
   // exact numbers regardless of this presentation setting.
   enemyHpVisibility: z.enum(ENEMY_HP_VISIBILITY).default(DEFAULT_ENEMY_HP_VISIBILITY),

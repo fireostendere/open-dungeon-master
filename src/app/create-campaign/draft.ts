@@ -56,6 +56,7 @@ export type CampaignDraft = {
   voiceChat: GameSettings["voice"];
   unitSystem: UnitSystemSetting;
   combatMode: CombatModeSetting;
+  yolo21Enabled: boolean;
 };
 
 export const DEFAULT_DRAFT: CampaignDraft = {
@@ -74,6 +75,7 @@ export const DEFAULT_DRAFT: CampaignDraft = {
   dicePolicy: "digital_only",
   unitSystem: "metric",
   combatMode: "classical",
+  yolo21Enabled: false,
   dmDifficulty: 5,
   ambienceEnabled: true,
   ambienceAuto: true,

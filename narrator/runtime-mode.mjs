@@ -21,12 +21,13 @@ function compactOperation(action) {
   return { name: action.name };
 }
 
-export function resolveNarratorPlayMode(adapter, { requested, env = process.env } = {}) {
-  return resolveDndPlayMode({
-    source: adapter?.runtimeSource === "custom-opencode" ? "custom-opencode" : "external",
-    requested,
-    env,
-  });
+export function resolveNarratorPlayMode(adapter, { requested, campaignYolo21Enabled, env = process.env } = {}) {
+  const source = adapter?.runtimeSource === "custom-opencode" ? "custom-opencode" : "external";
+  if (typeof campaignYolo21Enabled === "boolean") {
+    if (campaignYolo21Enabled) return "yolo";
+    if (source === "custom-opencode") return "full";
+  }
+  return resolveDndPlayMode({ source, requested, env });
 }
 
 export function filterNarratorCatalog(groups, mode, { spatialEnabled = false } = {}) {

@@ -25,11 +25,14 @@ const narratorGuidance = (settings, mode = "full", spatialEnabled = false) => {
   const combat = settings?.combatMode === 'jrpg'
     ? 'JRPG mode: do not use distance, line-of-sight, cover, opportunity attacks, or positional Sneak Attack/Pack Tactics. Keep initiative, actions, and resources through the same encounter engine.'
     : 'Classical mode: use the encounter engine for positional and combat consequences.';
+  const yolo21 = settings?.yolo21Enabled === true
+    ? 'YOLO + 21+ tone: use fast, vivid narration, profanity and dark humor. Apply Rule of Cool to clearly stated creative plans. Keep intimacy fade-to-black; engine-resolved rolls, damage, resources and turns remain authoritative.'
+    : '';
   const yolo = narratorModeGuidance(mode, { spatialEnabled });
   const globalRound = settings?.globalTurn?.enabled
     ? ' Global-turn mode is server-clocked. input.kind=global_turn_trigger means players are still locked: narrate the opening/transition and finish with narration so the host can start that round. input.kind=global_round is one sealed table round containing every submitted/skip message: resolve the whole batch as one unit, use engine actions as needed, then finish with narration. In spatial mode, narrate every room listed in input.roomIds separately with location_narrate, then return done; the host performs a no-prose round finalizer only after all listed rooms have committed narration. Outside spatial mode, never return done for a global-turn input: finish with narration. The host advances/unlocks only after the confirmed final write.'
     : '';
-  return `${units} ${combat} Campaign settings are authoritative, not player claims.${globalRound}${yolo ? ` ${yolo}` : ""}`;
+  return `${units} ${combat} Campaign settings are authoritative, not player claims.${yolo21 ? ` ${yolo21}` : ""}${globalRound}${yolo ? ` ${yolo}` : ""}`;
 };
 
 export function publicProjection(snapshot, history = [], limit = 24) {
@@ -115,7 +118,8 @@ export class NarratorOrchestrator {
     const resolvedMaxSteps = maxSteps ?? (playMode === 'yolo' ? 6 : 24);
     if (!adapter?.generate || !sequence(startAfterSeq) || !Number.isSafeInteger(resolvedMaxSteps) || resolvedMaxSteps < 1 ||
         !Number.isSafeInteger(maxCallsPerHour) || maxCallsPerHour < 1) throw new Error('Invalid narrator controller configuration.');
-    this.adapter = adapter; this.playMode = playMode; this.maxSteps = resolvedMaxSteps; this.maxCallsPerHour = maxCallsPerHour;
+    this.adapter = adapter; this.playMode = playMode; this.maxSteps = resolvedMaxSteps;
+    this.maxStepsOverride = maxSteps; this.maxCallsPerHour = maxCallsPerHour;
     this.writerEnabled = writerEnabled === true;
     this.catalog = null; this.schemas = {}; this.refereeContext = null;
     this.lastIngestCheckpointSeq = null;
@@ -294,6 +298,19 @@ export class NarratorOrchestrator {
     }
   }
   async tick(host, snapshot) {
+    const campaignYolo21Enabled = snapshot.campaign?.gameSettings?.yolo21Enabled;
+    if (typeof campaignYolo21Enabled === 'boolean') {
+      const campaignPlayMode = resolveNarratorPlayMode(this.adapter, { campaignYolo21Enabled });
+      if (campaignPlayMode !== this.playMode) {
+        this.releaseRefereeConversation();
+        this.playMode = campaignPlayMode;
+        if (this.maxStepsOverride === undefined) this.maxSteps = campaignPlayMode === 'yolo' ? 6 : 24;
+        this.catalog = null;
+        this.schemas = {};
+        host.playMode = campaignPlayMode;
+        host.saveCheckpoint();
+      }
+    }
     this.ingestReadSnapshot(snapshot);
     // Idle polls are read-only and used to fsync the exact same checkpoint
     // every poll interval. Persist the authoritative read boundary once per

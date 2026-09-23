@@ -178,6 +178,7 @@ export function CreateCampaignDialog({
       voiceChat,
       unitSystem,
       combatMode,
+      yolo21Enabled,
       houseRules,
       loreDrafts,
       contentImport,
@@ -220,6 +221,7 @@ export function CreateCampaignDialog({
             voice: voiceChat,
             unitSystem,
             combatMode,
+            yolo21Enabled,
             // Runtime-only/retired settings are deliberately omitted:
             // hosted-AI assistance, hosted narration/image generation and
             // model-pipeline stages no longer execute on the server.

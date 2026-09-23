@@ -36,6 +36,9 @@ const COPY = {
     combat: "Combat",
     combatClassical: "Classical",
     combatJrpg: "JRPG",
+    narration: "Narration",
+    yolo21: "YOLO + 21+",
+    standardNarration: "Standard",
     features: "Table features",
     featuresOn: (count: number) => `${count} on`,
     soloNext: "You'll drop into the lobby next to ready up.",
@@ -70,6 +73,9 @@ const COPY = {
     combat: "Бой",
     combatClassical: "Классический",
     combatJrpg: "JRPG",
+    narration: "Подача",
+    yolo21: "YOLO + 21+",
+    standardNarration: "Стандартная",
     features: "Функции стола",
     featuresOn: (count: number) => `включено: ${count}`,
     soloNext: "После создания вы попадёте в лобби, где останется отметить готовность.",
@@ -111,6 +117,7 @@ export function ReviewStep({
         <Row label={copy.dice}>{dice}</Row>
         <Row label={copy.units}>{draft.unitSystem === "imperial" ? copy.unitsImperial : copy.unitsMetric}</Row>
         <Row label={copy.combat}>{draft.combatMode === "jrpg" ? copy.combatJrpg : copy.combatClassical}</Row>
+        <Row label={copy.narration}>{draft.yolo21Enabled ? copy.yolo21 : copy.standardNarration}</Row>
         <Row label={copy.features}>{copy.featuresOn(featuresOn(draft, gates))}</Row>
       </dl>
       <p className="text-stone-400">{solo ? copy.soloNext : copy.partyNext}</p>
