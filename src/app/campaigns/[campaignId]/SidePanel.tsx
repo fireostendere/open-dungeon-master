@@ -5,30 +5,31 @@ import { memo, useMemo, useSyncExternalStore } from "react";
 import { cn } from "@/lib/cn";
 import { IconRail, type IconRailItem } from "@/components/ui/IconRail";
 import { Tooltip } from "@/components/ui/Tooltip";
+import { useI18n } from "@/lib/i18n";
+import { localeText } from "@/lib/i18n/locale-text";
 import {
   SidePanelRouter,
   type SidePanelRouterProps,
 } from "@/app/campaigns/[campaignId]/SidePanelRouter";
 import type { PanelTab, PanelTabDef } from "@/app/campaigns/[campaignId]/SessionTabs";
 
-// Two widths only: the default rail and a roomier one. Per-browser
-// localStorage via useSyncExternalStore, same pattern as useChatChime:
-// server render is narrow and the client snapshot takes over at hydration.
-const WIDE_KEY = "odm_side_panel_wide";
-const WIDE_EVENT = "odm-side-panel-width";
+// Keep the desktop collapse preference per browser, using the same external
+// store pattern as useChatChime.
+const COLLAPSED_KEY = "odm_side_panel_collapsed";
+const COLLAPSED_EVENT = "odm-side-panel-collapse";
 
-function subscribeWide(callback: () => void) {
-  window.addEventListener(WIDE_EVENT, callback);
-  return () => window.removeEventListener(WIDE_EVENT, callback);
+function subscribeCollapsed(callback: () => void) {
+  window.addEventListener(COLLAPSED_EVENT, callback);
+  return () => window.removeEventListener(COLLAPSED_EVENT, callback);
 }
 
-function readWide() {
-  return window.localStorage.getItem(WIDE_KEY) === "1";
+function readCollapsed() {
+  return window.localStorage.getItem(COLLAPSED_KEY) === "1";
 }
 
-function setWide(wide: boolean) {
-  window.localStorage.setItem(WIDE_KEY, wide ? "1" : "0");
-  window.dispatchEvent(new Event(WIDE_EVENT));
+function setCollapsed(collapsed: boolean) {
+  window.localStorage.setItem(COLLAPSED_KEY, collapsed ? "1" : "0");
+  window.dispatchEvent(new Event(COLLAPSED_EVENT));
 }
 
 // The session's context column: party sheets, the current area map, story
@@ -56,7 +57,12 @@ function SidePanelInner({
   // half is the banner above the composer (src/lib/dm/beat-cadence.ts).
   storyDue: boolean;
 }) {
-  const wide = useSyncExternalStore(subscribeWide, readWide, () => false);
+  const collapsed = useSyncExternalStore(subscribeCollapsed, readCollapsed, () => false);
+  const { locale } = useI18n();
+  const copy = localeText(locale, {
+    en: { collapse: "Hide panel", expand: "Show panel" },
+    ru: { collapse: "Скрыть панель", expand: "Показать панель" },
+  });
   const { tab, steersStory } = content;
 
   const items = useMemo<IconRailItem<PanelTab>[]>(
@@ -94,13 +100,17 @@ function SidePanelInner({
   return (
     <aside
       className={cn(
-        "shrink-0 bg-gradient-to-b from-stone-950/70 to-stone-950/30 lg:flex lg:flex-row lg:border-l lg:border-stone-700/50 lg:transition-[width] lg:duration-200",
+        "shrink-0 bg-gradient-to-b from-stone-950/70 to-stone-950/30 lg:flex lg:flex-row lg:border-l lg:border-stone-700/50",
         mobileVisible ? "flex w-full min-w-0 flex-col" : "hidden",
-        // The content keeps its old 20rem and 26rem; the rail adds 4rem.
-        wide ? "lg:w-[30rem]" : "lg:w-[24rem]",
       )}
     >
-      <div className="min-h-0 min-w-0 flex-1 overflow-y-auto p-3">
+      <div
+        id="side-panel-content"
+        className={cn(
+          "min-h-0 min-w-0 flex-1 overflow-y-auto p-3 lg:w-[clamp(24rem,42vw,48rem)] lg:min-w-[24rem] lg:max-w-[65vw] lg:flex-none lg:resize-x lg:overflow-auto",
+          collapsed && "lg:hidden",
+        )}
+      >
         <div className="mx-auto w-full max-w-2xl lg:max-w-none">
           <SidePanelRouter {...content} />
         </div>
@@ -109,17 +119,27 @@ function SidePanelInner({
           reads chat, context, then the switch between contexts. It scrolls
           on a short window rather than clipping the last tabs. */}
       <div className="hidden w-24 shrink-0 flex-col items-stretch gap-1 overflow-y-auto border-l border-stone-700/40 px-1.5 py-2 [scrollbar-width:none] lg:flex">
-        <Tooltip content={wide ? "Narrow the panel" : "Widen the panel"} side="left">
+        <Tooltip content={collapsed ? copy.expand : copy.collapse} side="left">
           <button
             type="button"
-            onClick={() => setWide(!wide)}
-            aria-label={wide ? "Narrow the panel" : "Widen the panel"}
-            className="flex h-8 items-center justify-center rounded-lg text-stone-500 transition-colors hover:bg-stone-900/60 hover:text-stone-300"
+            onClick={() => setCollapsed(!collapsed)}
+            aria-label={collapsed ? copy.expand : copy.collapse}
+            aria-expanded={!collapsed}
+            aria-controls="side-panel-content"
+            className="flex h-12 items-center justify-center rounded-xl border border-stone-700/60 bg-stone-900/60 text-stone-200 shadow-sm transition-colors hover:border-amber-500/50 hover:bg-stone-800 hover:text-amber-200"
           >
-            {wide ? <ChevronsRight className="size-4" /> : <ChevronsLeft className="size-4" />}
+            {collapsed ? <ChevronsLeft className="size-6" /> : <ChevronsRight className="size-6" />}
           </button>
         </Tooltip>
-        <IconRail items={items} value={tab} onChange={onTabChange} tipSide="left" />
+        <IconRail
+          items={items}
+          value={tab}
+          onChange={(nextTab) => {
+            if (collapsed) setCollapsed(false);
+            onTabChange(nextTab);
+          }}
+          tipSide="left"
+        />
       </div>
     </aside>
   );
