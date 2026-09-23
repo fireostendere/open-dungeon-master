@@ -20,7 +20,7 @@ const readFields = {
 // Keep the advertised MCP contract in sync with the strict application API.
 // In particular, never let Zod silently strip idempotency or paging fields.
 export const narratorInputSchema = z.object({
-  operation: z.enum(['connect', 'read', 'snapshot', 'catalog', 'invoke', 'narrate', 'delete_message', 'autopilot_action', 'finish_global_round', 'release_floor', 'answer_ask']),
+  operation: z.enum(['connect', 'read', 'snapshot', 'catalog', 'invoke', 'narrate', 'delete_message', 'edit_message', 'autopilot_action', 'finish_global_round', 'release_floor', 'set_floor', 'request_response', 'answer_ask']),
   campaignId: z.string().uuid(), ...readFields,
   pageCursor: z.string().max(500).optional(),
   commandId: z.string().uuid().optional(),
@@ -28,11 +28,13 @@ export const narratorInputSchema = z.object({
   expectedSeq: seq().optional(), expectedVersion: seq().optional(),
   name: z.string().trim().min(1).max(100).optional().describe('invoke only: exact engine action name from catalog, e.g. request_roll. Do not use action for invoke.'),
   args: z.record(z.string(), z.unknown()).optional(),
-  content: z.string().trim().min(1).max(8000).optional().describe('narrate or autopilot_action text. Narrate has no characterId, kind, name or action field.'),
+  content: z.string().trim().min(1).max(24000).optional().describe('Narration, edit_message or autopilot_action text; each operation applies its own tighter limit.'),
   characterId: z.string().uuid().optional().describe('autopilot_action only; invoke engine characterId belongs inside args.'),
   messageId: z.string().uuid().optional(),
-  roundNumber: z.number().int().min(1).optional(),
-  mode: z.enum(['start', 'complete']).optional().describe('finish_global_round only.'),
+  roundNumber: z.number().int().min(1).optional().describe('Global-round number; omit for sequential spotlight autopilot.'),
+  mode: z.enum(['start', 'complete', 'open', 'hold', 'spotlight']).optional().describe('finish_global_round: start/complete; set_floor: open/hold/spotlight.'),
+  characterIds: z.array(z.string().uuid()).max(12).optional().describe('set_floor spotlight: player character IDs.'),
+  prompt: z.string().trim().max(300).optional().describe('set_floor spotlight prompt.'),
   kind: z.enum(['do', 'say']).optional().describe('autopilot_action only; omit for narrate and connect.'),
   turnId: z.string().uuid().optional(), askId: z.string().uuid().optional(),
   answer: z.string().trim().min(1).max(4000).optional(),

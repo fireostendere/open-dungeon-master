@@ -1,9 +1,11 @@
-import { isErrorResponse, requireStoryAuthority } from "@/lib/campaign-api";
+import { isErrorResponse, requireLead } from "@/lib/campaign-api";
 import { LEAD_NOTE_PREFIX } from "@/lib/campaign-types";
-import { allocateSeq, capsFor, getFloor } from "@/lib/db/campaigns";
+import { allocateSeq, capsFor, getFloor, getGlobalTurnState } from "@/lib/db/campaigns";
 import { getActiveEncounter } from "@/lib/db/encounters";
 import { insertCampaignMessage } from "@/lib/db/messages";
-import { publishWithSeq } from "@/lib/events";
+import { publishPersisted, publishWithSeq } from "@/lib/events";
+import { sealGlobalTurnNow } from "@/lib/dm/global-turn-logic";
+import { enforcePlayerIngress } from "@/lib/ingress-budget";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -16,7 +18,7 @@ export async function POST(
   { params }: { params: Promise<{ campaignId: string }> },
 ) {
   const { campaignId } = await params;
-  const context = await requireStoryAuthority(campaignId);
+  const context = await requireLead(campaignId);
   if (isErrorResponse(context)) {
     return context;
   }
@@ -33,6 +35,8 @@ export async function POST(
   if (!content) {
     return Response.json({ error: "Write the direction first." }, { status: 400 });
   }
+  const limited = enforcePlayerIngress(campaignId, context.user.id, "action");
+  if (limited) return limited;
   const seq = allocateSeq(campaignId);
   const message = insertCampaignMessage({
     campaignId,
@@ -42,7 +46,12 @@ export async function POST(
     content: `${LEAD_NOTE_PREFIX}${content}`,
   });
   publishWithSeq(campaignId, seq, "message_added", { message });
-
+  if (context.campaign.gameSettings.globalTurn?.enabled) {
+    const round = getGlobalTurnState(campaignId);
+    if (round.phase === "active" || round.phase === "quorum_delay") sealGlobalTurnNow(campaignId, round.roundNumber);
+  } else {
+    publishPersisted(campaignId, "lead_response_requested", { leadUserId: context.user.id, messageId: message.id, note: content });
+  }
 
   return Response.json({ message }, { status: 201 });
 }

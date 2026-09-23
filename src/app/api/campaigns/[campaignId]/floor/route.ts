@@ -1,9 +1,10 @@
 import { z } from "zod";
-import { isErrorResponse, requireStoryAuthority } from "@/lib/campaign-api";
+import { isErrorResponse, isLead, requireMember, steersStory } from "@/lib/campaign-api";
 import { getFloor, setFloor, type Floor } from "@/lib/db/campaigns";
 import { listSheets } from "@/lib/db/sheets";
 import { queueSkippedCombatTurn, skipCurrentTurn } from "@/lib/dm/encounter-tools";
 import { listOpenPendingRolls } from "@/lib/db/dm-turns";
+import { getActiveEncounter } from "@/lib/db/encounters";
 import { publishPersisted } from "@/lib/events";
 
 export const runtime = "nodejs";
@@ -29,9 +30,13 @@ export async function POST(
   { params }: { params: Promise<{ campaignId: string }> },
 ) {
   const { campaignId } = await params;
-  const context = await requireStoryAuthority(campaignId);
+  const context = await requireMember(campaignId);
   if (isErrorResponse(context)) {
     return context;
+  }
+  if (!isLead(context) && !steersStory(context)) return Response.json({ error: "Only the party lead or DM can change the floor." }, { status: 403 });
+  if (context.campaign.gameSettings.globalTurn?.enabled && !getActiveEncounter(campaignId)) {
+    return Response.json({ error: "Global-turn pacing owns the floor; use the round control." }, { status: 409 });
   }
   const parsed = setFloorSchema.safeParse(await request.json().catch(() => ({})));
   const floor = getFloor(campaignId);
@@ -81,6 +86,9 @@ export async function POST(
     }
     setFloor(campaignId, next);
     publishPersisted(campaignId, "floor_changed", { floor: next });
+    if (floor.mode === "spotlight" && floor.respondedUserIds.length && !context.campaign.gameSettings.globalTurn?.enabled) {
+      publishPersisted(campaignId, "spotlight_ready", { releasedEarly: true });
+    }
     return Response.json({ ok: true, floor: next });
   }
 
@@ -93,6 +101,9 @@ export async function POST(
   const next: Floor = floor.mode === "hold" ? floor.next : { mode: "open" };
   setFloor(campaignId, next);
   publishPersisted(campaignId, "floor_changed", { floor: next });
+  if (floor.mode === "spotlight" && floor.respondedUserIds.length && !context.campaign.gameSettings.globalTurn?.enabled) {
+    publishPersisted(campaignId, "spotlight_ready", { releasedEarly: true });
+  }
   queueSkippedCombatTurn(campaignId);
   return Response.json({ ok: true });
 }

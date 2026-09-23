@@ -83,6 +83,15 @@ export function CombatLog({
       round: "Round",
       aliveEnemies: "Alive enemies",
       fallenEnemies: "Fallen",
+      hero: "Hero",
+      enemy: "Enemy",
+      character: "Character",
+      total: "Total",
+      damageAbbrev: "dmg",
+      success: "Success",
+      failure: "Failure",
+      tempHpAction: "Temporary HP",
+      conditionApplied: "Condition applied",
     },
     ru: {
       title: "Журнал боя",
@@ -108,6 +117,15 @@ export function CombatLog({
       round: "Раунд",
       aliveEnemies: "Живых врагов",
       fallenEnemies: "Повержено",
+      hero: "Герой",
+      enemy: "Враг",
+      character: "Персонаж",
+      total: "Итог",
+      damageAbbrev: "урона",
+      success: "Успех",
+      failure: "Провал",
+      tempHpAction: "Временные ОЗ",
+      conditionApplied: "Получено состояние",
     },
   });
 
@@ -146,13 +164,13 @@ export function CombatLog({
       const parsed = parseRollName(roll.detail);
       const isPlayerRoll = roll.requestedBy === "player" || (roll.characterId && sheetNameById.has(roll.characterId));
       const actorName = isPlayerRoll
-        ? (roll.characterId ? sheetNameById.get(roll.characterId) : undefined) ?? parsed.actor ?? "Герой"
-        : parsed.actor ?? "Враг";
+        ? (roll.characterId ? sheetNameById.get(roll.characterId) : undefined) ?? parsed.actor ?? copy.hero
+        : parsed.actor ?? copy.enemy;
 
       const targetName = roll.targetEnemyId
-        ? enemyNameById.get(roll.targetEnemyId) ?? "Враг"
+        ? enemyNameById.get(roll.targetEnemyId) ?? copy.enemy
         : !isPlayerRoll && roll.characterId
-          ? sheetNameById.get(roll.characterId) ?? "Герой"
+          ? sheetNameById.get(roll.characterId) ?? copy.hero
           : undefined;
 
       const time = roll.createdAt ? new Date(roll.createdAt).getTime() : (roll.eventSeq ?? 0);
@@ -189,7 +207,7 @@ export function CombatLog({
           actor: actorName,
           action: parsed.weapon ? `(${parsed.weapon})` : "",
           target: targetName,
-          resultText: `Итог: ${roll.total}`,
+          resultText: `${copy.total}: ${roll.total}`,
           resultClass: hit ? "text-emerald-300 font-semibold" : "text-stone-400",
         });
       } else if (roll.kind === "damage") {
@@ -200,7 +218,7 @@ export function CombatLog({
           icon: Flame,
           iconColor: "text-red-400",
           badgeClass: "border-red-800/60 bg-red-950/40 text-red-200 font-semibold",
-          badgeText: `${roll.total} ${locale === "ru" ? "урона" : "dmg"}`,
+          badgeText: `${roll.total} ${copy.damageAbbrev}`,
           actor: actorName,
           action: parsed.weapon ? `(${parsed.weapon})` : "",
           target: targetName,
@@ -220,7 +238,7 @@ export function CombatLog({
           badgeText: `${copy.save}: ${roll.total}${roll.dc ? ` vs DC ${roll.dc}` : ""}`,
           actor: actorName,
           action: roll.detail ? `(${roll.detail})` : "",
-          resultText: roll.success !== null ? (success ? "Успех" : "Провал") : undefined,
+          resultText: roll.success !== null ? (success ? copy.success : copy.failure) : undefined,
           resultClass: success ? "text-sky-300" : "text-red-400",
         });
       }
@@ -229,7 +247,7 @@ export function CombatLog({
     // 2. Process Audit Log (damage applied to party, heals, conditions)
     for (const entry of auditLog) {
       const time = entry.createdAt ? new Date(entry.createdAt).getTime() : entry.seq;
-      const charName = entry.characterName ?? (entry.characterId ? sheetNameById.get(entry.characterId) : undefined) ?? "Персонаж";
+      const charName = entry.characterName ?? (entry.characterId ? sheetNameById.get(entry.characterId) : undefined) ?? copy.character;
 
       if (entry.kind === "apply_damage") {
         const d = entry.delta as { amount?: number; currentHp?: number; type?: string };
@@ -278,7 +296,7 @@ export function CombatLog({
           badgeClass: "border-amber-700/60 bg-amber-950/40 text-amber-200",
           badgeText: `+${d.tempHp ?? 0} Temp HP`,
           actor: charName,
-          action: "Временные ОЗ",
+          action: copy.tempHpAction,
         });
       } else if (entry.kind === "set_condition") {
         const d = entry.delta as { condition?: string };
@@ -291,7 +309,7 @@ export function CombatLog({
           badgeClass: "border-amber-800/60 bg-amber-950/30 text-amber-300",
           badgeText: `${copy.condition}: ${d.condition ?? ""}`,
           actor: charName,
-          action: "Получено состояние",
+          action: copy.conditionApplied,
         });
       }
     }
@@ -310,7 +328,7 @@ export function CombatLog({
             badgeClass: "border-red-900 bg-red-950/80 text-red-200 font-bold",
             badgeText: copy.slain,
             actor: enemy.name,
-            action: `${copy.slain} в бою`,
+            action: copy.slain,
           });
         } else if (enemy.status === "fled") {
           items.push({
@@ -322,7 +340,7 @@ export function CombatLog({
             badgeClass: "border-stone-700 bg-stone-900 text-stone-300",
             badgeText: copy.fled,
             actor: enemy.name,
-            action: `${copy.fled} с поля боя`,
+            action: copy.fled,
           });
         }
       }

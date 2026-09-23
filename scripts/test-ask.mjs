@@ -1,5 +1,4 @@
-// Ask: scope inference, the archive-retrieval gate, reply parsing, and a
-// source-level guard that the evidence builder cannot leak DM secrets.
+// Ask scope inference and reply parsing. Live privacy is covered by the HTTP/MCP E2E.
 import assert from "node:assert/strict";
 import {
   QUESTION_MAX_CHARS,

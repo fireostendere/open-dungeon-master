@@ -72,6 +72,25 @@ export class HostContextMemory {
     if (Array.isArray(snapshot.sheets)) this.sheets = new Map(snapshot.sheets.filter(s => s?.id).slice(0, 256).map(s => [s.id, clone(s)]));
     if (snapshot.encounter !== undefined) { this.encounter = clone(snapshot.encounter); this.encounters = this.encounter ? [this.encounter] : []; }
     if (Array.isArray(snapshot.encounters)) this.encounters = clone(snapshot.encounters.slice(0, 128));
+    for (const event of snapshot.events ?? []) {
+      if (event.type !== 'message_updated' && event.type !== 'message_deleted') continue;
+      const raw = event.payload?.message;
+      const id = raw?.id ?? event.payload?.messageId;
+      if (typeof id !== 'string') continue;
+      const recent = this.messages.findIndex(message => message.id === id);
+      const folded = this.summaryRecords.findIndex(message => message.id === id);
+      if (event.type === 'message_updated' && raw && !isOoc(raw)) {
+        const message = { ...clone(raw), ...provenance(raw) };
+        if (recent >= 0) this.messages[recent] = message;
+        if (folded >= 0) this.summaryRecords[folded] = this._summaryRecord(message);
+        if (recent >= 0 || folded >= 0) this._checkMilestone(message);
+      } else {
+        if (recent >= 0) this.messages.splice(recent, 1);
+        if (folded >= 0) this.summaryRecords.splice(folded, 1);
+        this.milestones = this.milestones.filter(item => item.id !== id);
+        this.seenMessages.delete(id);
+      }
+    }
     const eventRolls = (snapshot.events ?? []).filter(event => event.type === 'roll_result').map(event => event.payload?.roll);
     for (const roll of [...eventRolls, ...(Array.isArray(snapshot.recentRolls) ? snapshot.recentRolls : [])]) {
       if (!roll?.id) continue;

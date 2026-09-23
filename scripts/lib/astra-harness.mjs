@@ -54,7 +54,7 @@ export async function astraHarness(t){
   spatialStore:()=>({view:actor=>({enabled:true,isDm:actor.isDm,current:db.prepare('SELECT room_id AS roomId FROM spatial_presence WHERE campaign_id=? AND user_id=?').get(actor.campaignId,actor.userId),rooms:db.prepare('SELECT id FROM spatial_rooms WHERE campaign_id=?').all(actor.campaignId)}),messages:()=>({messages:[]})}),
   runSpatialCommand:()=>({ok:true}),
  };
- const schema=new Proxy({}, {get:(_target,name)=>name==='safeParse'?data=>({success:!!data,data:{title:'',...data}}):()=>schema});
+ const schema=new Proxy({}, {get:(_target,name)=>name==='safeParse'?data=>({success:data!==null&&data!==undefined,data:{title:'',...data}}):()=>schema});
  const sheets={getSheetById:id=>{const row=db.prepare('SELECT * FROM character_sheets WHERE id=?').get(id);return row?{id:row.id,userId:row.user_id,campaignId:row.campaign_id}:null;},listSheets:id=>db.prepare('SELECT id,user_id AS userId,campaign_id AS campaignId FROM character_sheets WHERE campaign_id=?').all(id)};
  const embeddingCalls=[];
  const values={
@@ -68,7 +68,7 @@ export async function astraHarness(t){
   '@/lib/ingress-budget':{enforcePlayerIngress:()=>null},zod:{z:schema},
  };
  const aliases={notesRoute:'src/app/api/campaigns/[campaignId]/notes/route.ts',detailRoute:'src/app/api/campaigns/[campaignId]/notes/[noteId]/route.ts',eventRoute:'src/app/api/campaigns/[campaignId]/events/route.ts',locationRoute:'src/app/api/campaigns/[campaignId]/location-chat/route.ts'};
- const context=vm.createContext({console,Buffer,URL,Request,Response,TextEncoder,TextDecoder,ReadableStream,AbortController,AbortSignal,structuredClone,crypto:crypto.webcrypto,setTimeout,clearTimeout,setInterval,clearInterval});
+ const context=vm.createContext({console,Buffer,URL,Request,Response,TextEncoder,TextDecoder,ReadableStream,AbortController,AbortSignal,structuredClone,crypto:crypto.webcrypto,performance,setTimeout,clearTimeout,setInterval,clearInterval});
  const cache=new Map();
  function load(specifier,from=root+'/entry.mjs'){
   let key=specifier;

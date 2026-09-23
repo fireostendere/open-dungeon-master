@@ -41,7 +41,7 @@ RUN DOCKER_BUILD=1 npm run build
 # Trim the standalone bundle here, not in the runner stage: deleting a file in a
 # later layer does not reclaim the bytes the earlier COPY already wrote.
 #
-RUN cd .next/standalone \\
+RUN cd .next/standalone \
   && rm -rf node_modules/onnxruntime-node/bin/napi-v6/darwin \
             node_modules/onnxruntime-node/bin/napi-v6/win32 \
             node_modules/onnxruntime-node/bin/napi-v6/linux/arm64 \

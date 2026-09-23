@@ -10,7 +10,6 @@ import { normalizeSettings } from "@/lib/db/settings";
 import { requestUtilityMessage } from "@/lib/dm/model";
 import { enqueueDmJob } from "@/lib/dm/queue";
 import { describeContentEntry, glossaryTerms } from "@/lib/help";
-import { arcTextTimeoutMs } from "@/lib/model-client";
 import { rulingSources } from "@/lib/reference/rulings";
 import {
   DESK_SYSTEM,
@@ -152,7 +151,7 @@ export async function runRulesDesk(
           ].join("\n\n"),
         },
       ],
-      { timeoutMs: arcTextTimeoutMs() },
+      { timeoutMs: 30_000 },
     );
     if (error) {
       return;

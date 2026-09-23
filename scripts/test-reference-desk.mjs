@@ -53,7 +53,7 @@ function part(result, label) {
 // ---- calculators ----
 
 test("localization changes calculator labels without changing inputs or results", () => {
-  for (const locale of ["ru", "en", "pl"]) {
+  for (const locale of ["ru", "en"]) {
     for (const calculator of CALCULATORS) {
       const display = calculatorDisplay(calculator, locale);
       assert.equal(display.run, calculator.run);

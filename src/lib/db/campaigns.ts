@@ -144,6 +144,7 @@ export function canAct(floor: Floor, userId: string, kind: string): boolean {
   if (floor.mode === "hold") {
     return false;
   }
+  if (floor.mode === "spotlight") return floor.userIds.includes(userId) && !floor.respondedUserIds.includes(userId);
   return floor.userIds.includes(userId);
 }
 

@@ -16,12 +16,16 @@ import { isOocMessage } from "@/lib/campaign-types";
 import { isNarratorEvent } from "@/lib/mcp-event-filter";
 import { allocateSeq, canAct, getCampaignById, getCampaignSummaryState, getFloor, getGlobalTurnState, latestSeq, listMembers, setFloor } from "@/lib/db/campaigns";
 import { listChapters } from "@/lib/db/chapters";
+import { getDirectorArm, takeDirectorArm } from "@/lib/db/director-arms";
+import { buildDirectorBlock } from "@/lib/dm/director-logic";
 import { getDmTurn, listOpenPendingRolls } from "@/lib/db/dm-turns";
 import { listRecentWhispersForPrompt, listPendingPlayerWhispers } from "@/lib/db/dm-whispers";
 import { getActiveEncounter, listActiveEncounters, listEnemies } from "@/lib/db/encounters";
 import { listActiveFacts } from "@/lib/db/facts";
 import { getCurrentLocation } from "@/lib/db/locations";
-import { deleteCampaignMessage, insertCampaignMessage, listMessagesInSeqRange, listRecentMessages } from "@/lib/db/messages";
+import { deleteCampaignMessage, getCampaignMessage, insertCampaignMessage, listMessagesInSeqRange, listRecentMessages, setMessageVariants, updateMessageContent } from "@/lib/db/messages";
+import { MAX_EDITED_LENGTH, checkEdit, replaceSelectedTake } from "@/lib/dm/message-edit-logic";
+import { resolveVariantIndex, seedVariants } from "@/lib/dm/renarrate-logic";
 import { listPublicCampaignNotes } from "@/lib/db/notes";
 import { listRecentRolls } from "@/lib/db/rolls";
 import { listSheets } from "@/lib/db/sheets";
@@ -80,7 +84,7 @@ function campaignOrHuman(campaignId: string) {
 function safeCampaign(campaign: NonNullable<ReturnType<typeof getCampaignById>>) {
   return {
     id: campaign.id, title: campaign.title, description: campaign.description, status: campaign.status, theme: campaign.theme, scene: campaign.scene, questLog: campaign.questLog,
-    difficulty: campaign.difficulty, startingLevel: campaign.startingLevel, dmMode: campaign.gameSettings.dmMode, dmUserId: campaign.dmUserId,
+    difficulty: campaign.difficulty, startingLevel: campaign.startingLevel, dmMode: campaign.gameSettings.dmMode, dmUserId: campaign.dmUserId, leadUserId: campaign.leadUserId,
     gameSettings: campaign.gameSettings, globalTurnState: campaign.globalTurnState,
     dmOutline: campaign.storyArc ? "" : campaign.dmOutline, storyArc: campaign.storyArc,
     floor: campaign.floor, clock: campaign.clock, party: campaign.party,
@@ -197,11 +201,18 @@ function read(raw: unknown) {
     : listNarratorReceipts(campaign.id);
   const state = {
     campaignId: campaign.id, campaign: safeCampaign(campaign), currentSeq, timelineEpoch, cursor: p.data.afterSeq, nextCursor, hasMore,
-    events: events.filter(isNarratorEvent).map(event =>
+    events: events.filter(event => event.type === "message_updated" || isNarratorEvent(event)).map(event =>
       event.type === "roll_result" ||
       event.type === "global_turn_ready" ||
-      event.type === "global_turn_narrator_trigger"
+      event.type === "global_turn_narrator_trigger" ||
+      event.type === "message_deleted" ||
+      event.type === "lead_response_requested" ||
+      event.type === "spotlight_ready"
         ? { seq: event.seq, type: event.type, payload: event.payload }
+        : event.type === "message_updated"
+          ? isNarratorEvent(event)
+            ? { seq: event.seq, type: event.type, payload: event.payload }
+            : { seq: event.seq, type: event.type, payload: { messageId: (event.payload as { message?: { id?: string } })?.message?.id, removed: true } }
         : { seq: event.seq, type: event.type },
     ),
     messages, spatial: spatial ? { enabled: true, instructions: SPATIAL_GUIDANCE } : { enabled: false }, spatialRooms: spatial?.rooms ?? [], spatialGrants: spatial?.grants ?? [],
@@ -211,6 +222,7 @@ function read(raw: unknown) {
     // own audience-aware rolling memory and should not query/send it every poll.
     ...(!live ? { summary: getCampaignSummaryState(campaign.id) } : {}),
     members: listMembers(campaign.id), pendingRolls: listOpenPendingRolls(campaign.id),
+    directorDirective: buildDirectorBlock(getDirectorArm(campaign.id)),
     playerWhispers: listPendingPlayerWhispers(campaign.id), recentDmWhispers: live ? [] : listRecentWhispersForPrompt(campaign.id),
     omittedSections, asks: askPage.items, askQueue: { nextCursor: askPage.nextCursor, hasMore: askPage.hasMore, pending: askMeta.pending },
     ...sections, sectionVersions, location: getCurrentLocation(campaign.id), sceneTracker: getSceneTracker(campaign.id),
@@ -388,6 +400,25 @@ async function deleteMessage(raw: unknown) {
   );
 }
 
+async function editMessage(raw: unknown) {
+  const p = writeBase.extend({ messageId: id, content: z.string().min(1).max(MAX_EDITED_LENGTH * 2) }).safeParse(raw);
+  if (!p.success) throw new McpNarratorControlError(z.prettifyError(p.error));
+  return serializedWrite(p.data, "narrator.edit_message", { messageId: p.data.messageId, content: p.data.content }, campaign => {
+    const message = getCampaignMessage(p.data.messageId);
+    if (!message || message.campaignId !== campaign.id) throw new McpNarratorControlError("Message not found in this campaign.", 404);
+    const check = checkEdit(message.content, p.data.content);
+    if (!check.ok) throw new McpNarratorControlError(check.reason, 400);
+    const variants = seedVariants(message.variants ?? [], message.content);
+    const index = resolveVariantIndex(variants, message.variantIndex ?? 0);
+    const updated = message.authorType === "dm" && index >= 0 && variants.length > 1
+      ? setMessageVariants(message.id, replaceSelectedTake(variants, index, check.content), index)
+      : updateMessageContent(message.id, check.content);
+    if (!updated) throw new McpNarratorControlError("Could not save the edit.", 500);
+    publishPersisted(campaign.id, "message_updated", { message: updated });
+    return { message: updated };
+  });
+}
+
 async function narrate(raw: unknown) {
   const p = writeBase.extend({
     content: z.string().trim().min(1).max(8000),
@@ -454,6 +485,9 @@ async function narrate(raw: unknown) {
       }
     }
     const message = persistHumanNarration(campaign, p.data.content, campaign.dmUserId!);
+    if (takeDirectorArm(campaign.id)) {
+      publishPersisted(campaign.id, "director_armed", { armed: false, oneShot: null, absoluteCommand: "" });
+    }
     let floorResult;
     if (p.data.releaseFloor) {
       const current = getFloor(campaign.id);
@@ -530,6 +564,7 @@ async function finishGlobalRound(raw: unknown) {
         if (!started || started.roundNumber !== p.data.roundNumber) {
           throw new McpNarratorControlError("Global round did not start.", 409);
         }
+        if (takeDirectorArm(campaign.id)) publishPersisted(campaign.id, "director_armed", { armed: false, oneShot: null, absoluteCommand: "" });
         return { globalRoundStarted: started.roundNumber, state: started };
       }
 
@@ -547,6 +582,7 @@ async function finishGlobalRound(raw: unknown) {
       if (!completed || completed.roundNumber <= p.data.roundNumber) {
         throw new McpNarratorControlError("Global round did not advance.", 409);
       }
+      if (takeDirectorArm(campaign.id)) publishPersisted(campaign.id, "director_armed", { armed: false, oneShot: null, absoluteCommand: "" });
       return {
         globalRoundCompleted: p.data.roundNumber,
         nextGlobalRound: completed.roundNumber,
@@ -559,7 +595,7 @@ async function finishGlobalRound(raw: unknown) {
 async function autopilotAction(raw: unknown) {
   const p = writeBase.extend({
     characterId: id,
-    roundNumber: z.number().int().min(1),
+    roundNumber: z.number().int().min(1).optional(),
     kind: z.enum(["do", "say"]).default("do"),
     content: z.string().trim().min(1).max(2000),
   }).safeParse(raw);
@@ -575,18 +611,16 @@ async function autopilotAction(raw: unknown) {
       content: p.data.content,
     },
     campaign => {
-      if (!campaign.gameSettings.globalTurn?.enabled) {
-        throw new McpNarratorControlError("Autopilot player actions require global-turn mode.", 409);
-      }
       if (getActiveEncounter(campaign.id)) {
-        throw new McpNarratorControlError("Global-turn autopilot does not impersonate combat initiative.", 409);
+        throw new McpNarratorControlError("Autopilot does not impersonate combat initiative.", 409);
       }
 
-      const globalTurn = getGlobalTurnState(campaign.id);
-      if (
-        globalTurn.roundNumber !== p.data.roundNumber ||
-        (globalTurn.phase !== "active" && globalTurn.phase !== "quorum_delay")
-      ) {
+      const globalMode = Boolean(campaign.gameSettings.globalTurn?.enabled);
+      const globalTurn = globalMode ? getGlobalTurnState(campaign.id) : null;
+      if (globalMode && (
+        globalTurn?.roundNumber !== p.data.roundNumber ||
+        (globalTurn?.phase !== "active" && globalTurn?.phase !== "quorum_delay")
+      )) {
         throw new McpNarratorControlError("This autopilot round is no longer accepting player input.", 409);
       }
 
@@ -605,12 +639,12 @@ async function autopilotAction(raw: unknown) {
         throw new McpNarratorControlError("This player is muted and cannot submit an autopilot turn.", 409);
       }
 
-      const existing = globalTurn.actionsByCharacter[sheet.id];
+      const existing = globalTurn?.actionsByCharacter[sheet.id];
       if (existing && (existing.actionsCount > 0 || existing.phrasesCount > 0)) {
         throw new McpNarratorControlError("This character has already responded in the current round.", 409);
       }
 
-      if (spatialEnabled(campaign.id)) {
+      if (spatialEnabled(campaign.id) && globalMode) {
         try {
           const result = runSpatialCommand(campaign.id, sheet.userId, {
             operation: "send",
@@ -652,6 +686,25 @@ async function autopilotAction(raw: unknown) {
       const floor = getFloor(campaign.id);
       if (!canAct(floor, sheet.userId, p.data.kind)) {
         throw new McpNarratorControlError("This player cannot act on the current floor.", 409);
+      }
+      if (!globalMode) {
+        if (p.data.roundNumber !== undefined || floor.mode !== "spotlight" || spatialEnabled(campaign.id)) {
+          throw new McpNarratorControlError("Sequential autopilot requires an eligible spotlight and no roundNumber.", 409);
+        }
+        const responded = [...floor.respondedUserIds, sheet.userId];
+        const allAnswered = floor.userIds.every(userId => responded.includes(userId));
+        const nextFloor = allAnswered ? { mode: "hold" as const, next: { mode: "open" as const } } : { ...floor, respondedUserIds: responded };
+        setFloor(campaign.id, nextFloor);
+        publishPersisted(campaign.id, "floor_changed", { floor: nextFloor });
+        const seq = allocateSeq(campaign.id);
+        const message = insertCampaignMessage({ campaignId: campaign.id, seq, authorType: "player", userId: sheet.userId,
+          characterId: sheet.id, content: p.data.kind === "say" ? `"${p.data.content}"` : p.data.content });
+        publishWithSeq(campaign.id, seq, "message_added", { message });
+        if (allAnswered) {
+          publishPersisted(campaign.id, "dm_intent_queued", { messageId: message.id, userId: sheet.userId, characterId: sheet.id, seq });
+          publishPersisted(campaign.id, "spotlight_ready", { messageId: message.id, autoReleaseFloor: true });
+        }
+        return { characterId: sheet.id, messageId: message.id, seq, spotlightComplete: allAnswered };
       }
 
       const turn = recordGlobalTurnAction(
@@ -697,6 +750,9 @@ async function releaseFloor(raw: unknown) {
   const p = writeBase.safeParse(raw);
   if (!p.success) throw new McpNarratorControlError(z.prettifyError(p.error));
   return serializedWrite(p.data, "narrator.release_floor", {}, campaign => {
+    if (campaign.gameSettings.globalTurn?.enabled && !getActiveEncounter(campaign.id)) {
+      throw new McpNarratorControlError("Global-turn pacing owns the non-combat floor; use request_response.", 409);
+    }
     const current = getFloor(campaign.id);
     if (listOpenPendingRolls(campaign.id).length) throw new McpNarratorControlError("Resolve pending physical rolls before releasing the floor.", 409);
     if (current.mode === "hold" && current.combat) throw new McpNarratorControlError("Combat adjudication is still in progress.", 409);
@@ -704,6 +760,58 @@ async function releaseFloor(raw: unknown) {
     setFloor(campaign.id, floor); publishPersisted(campaign.id, "floor_changed", { floor });
     queueSkippedCombatTurn(campaign.id);
     return { floor: getFloor(campaign.id) };
+  });
+}
+
+async function setNarratorFloor(raw: unknown) {
+  const p = writeBase.extend({ mode: z.enum(["open", "hold", "spotlight"]),
+    characterIds: z.array(id).max(12).optional(), prompt: z.string().trim().max(300).optional() }).safeParse(raw);
+  if (!p.success) throw new McpNarratorControlError(z.prettifyError(p.error));
+  return serializedWrite(p.data, "narrator.set_floor", { mode: p.data.mode, characterIds: p.data.characterIds, prompt: p.data.prompt }, campaign => {
+    if (campaign.gameSettings.globalTurn?.enabled && !getActiveEncounter(campaign.id)) {
+      throw new McpNarratorControlError("Global-turn pacing owns the non-combat floor; use request_response.", 409);
+    }
+    const current = getFloor(campaign.id);
+    if (listOpenPendingRolls(campaign.id).length || getActiveEncounter(campaign.id) || current.mode === "initiative" ||
+        (current.mode === "hold" && (current.combat || current.next.mode === "initiative"))) {
+      throw new McpNarratorControlError("Resolve combat and pending rolls before changing the floor.", 409);
+    }
+    let floor: typeof current;
+    if (p.data.mode === "spotlight") {
+      const selected = new Set(p.data.characterIds ?? []);
+      const sheets = listSheets(campaign.id).filter(sheet => selected.has(sheet.id) && !sheet.isCompanion && sheet.userId !== campaign.dmUserId);
+      if (!sheets.length || sheets.length !== selected.size) throw new McpNarratorControlError("Choose eligible player characters for the spotlight.", 400);
+      floor = { mode: "spotlight", userIds: [...new Set(sheets.map(sheet => sheet.userId))],
+        prompt: p.data.prompt ?? "", respondedUserIds: [] };
+    } else floor = p.data.mode === "hold" ? { mode: "hold", next: { mode: "open" } } : { mode: "open" };
+    setFloor(campaign.id, floor);
+    publishPersisted(campaign.id, "floor_changed", { floor });
+    if (current.mode === "spotlight" && current.respondedUserIds.length && !campaign.gameSettings.globalTurn?.enabled) {
+      publishPersisted(campaign.id, "spotlight_ready", { releasedEarly: true });
+    }
+    return { floor };
+  });
+}
+
+async function requestNarratorResponse(raw: unknown) {
+  const p = writeBase.extend({ roundNumber: z.number().int().min(1).optional() }).safeParse(raw);
+  if (!p.success) throw new McpNarratorControlError(z.prettifyError(p.error));
+  return serializedWrite(p.data, "narrator.request_response", { roundNumber: p.data.roundNumber }, campaign => {
+    if (getActiveEncounter(campaign.id) || listOpenPendingRolls(campaign.id).length) {
+      throw new McpNarratorControlError("Resolve combat and pending rolls before requesting a response.", 409);
+    }
+    if (!campaign.gameSettings.globalTurn?.enabled) {
+      if (p.data.roundNumber !== undefined) throw new McpNarratorControlError("roundNumber requires global-turn mode.", 400);
+      const seq = publishPersisted(campaign.id, "lead_response_requested", { leadUserId: campaign.leadUserId });
+      return { requested: true, seq };
+    }
+    const turn = getGlobalTurnState(campaign.id);
+    if (turn.roundNumber !== p.data.roundNumber || !["active", "quorum_delay"].includes(turn.phase)) {
+      throw new McpNarratorControlError("This round is not collecting input.", 409);
+    }
+    const next = sealGlobalTurnNow(campaign.id, turn.roundNumber);
+    if (next?.phase !== "ready") throw new McpNarratorControlError("Could not seal this round.", 409);
+    return { requested: true, globalTurnState: next };
   });
 }
 async function dispatchMcpNarratorControl(action: string, raw: unknown): Promise<{ handled: false } | { handled: true; result: unknown }> {
@@ -737,9 +845,12 @@ async function dispatchMcpNarratorControl(action: string, raw: unknown): Promise
     case "narrator.invoke": return { handled: true, result: await invoke(raw) };
     case "narrator.narrate": return { handled: true, result: await narrate(raw) };
     case "narrator.delete_message": return { handled: true, result: await deleteMessage(raw) };
+    case "narrator.edit_message": return { handled: true, result: await editMessage(raw) };
     case "narrator.autopilot_action": return { handled: true, result: await autopilotAction(raw) };
     case "narrator.finish_global_round": return { handled: true, result: await finishGlobalRound(raw) };
     case "narrator.release_floor": return { handled: true, result: await releaseFloor(raw) };
+    case "narrator.set_floor": return { handled: true, result: await setNarratorFloor(raw) };
+    case "narrator.request_response": return { handled: true, result: await requestNarratorResponse(raw) };
     case "narrator.answer_ask": {
       const p = z.object({
         campaignId: id, askId: id, expectedVersion: z.number().int().min(0).default(0), commandId: id.optional(), expectedSeq: z.number().int().min(0).optional(),
@@ -763,6 +874,7 @@ const storyWrites = new Set([
   "narrator.invoke",
   "narrator.narrate",
   "narrator.delete_message",
+  "narrator.edit_message",
   "narrator.autopilot_action",
   "narrator.finish_global_round",
   "narrator.release_floor",

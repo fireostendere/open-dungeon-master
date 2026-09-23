@@ -41,12 +41,9 @@ import { localeText } from "@/lib/i18n/locale-text";
 // tab, rather than an invite block on Party, an approval queue on Notes,
 // floor buttons in the DM console and a transfer item in a character menu.
 //
-// Two authorities meet here and the sections follow them exactly
-// (src/lib/dm/viewer.ts). `isLead` owns the table: invites, the lead seat,
-// campaign details. `steersStory` owns the story: the floor, note approvals,
-// directions to the AI. In an AI campaign the lead holds both; at a human-DM
-// table the lead keeps the first set and the DM has the second, and this tab
-// simply shows fewer cards.
+// The lead owns table pacing and admission even when a technical human-DM
+// seat hosts the external narrator. Mechanical adjudication still belongs
+// to that DM seat and the server rules engine.
 
 export type LeadCampaign = Parameters<typeof EditCampaignDialog>[0]["campaign"] & {
   dmUserId?: string | null;
@@ -340,11 +337,9 @@ export function LeadPanel({
   });
   const [editing, setEditing] = useState(false);
   const pending = pendingCampaignNotes(notes);
-  // The director route accepts any story authority, but Direct only exists
-  // in the composer for a lead steering an AI narrator: a human DM has
-  // replaced the thing a direction would steer, so the card follows the
-  // composer rather than the route.
-  const directsAi = steersStory && (campaign.gameSettings?.dmMode ?? "ai") === "ai";
+  // The external narrator can occupy a technical human-DM seat; the lead's
+  // Direct control remains available there.
+  const directsAi = isLead;
   const dmUserIds = [campaign.dmUserId, campaign.assistantDmUserId].filter(
     (id): id is string => typeof id === "string" && id.length > 0,
   );
@@ -367,9 +362,10 @@ export function LeadPanel({
         members={members}
         sheets={sheets}
         isLead={isLead}
+        meUserId={meUserId}
       />
 
-      {steersStory ? (
+      {(isLead || steersStory) && (!campaign.gameSettings?.globalTurn?.enabled || encounter) ? (
         <LeadFloorControl
           campaignId={campaignId}
           floor={floor}
@@ -421,7 +417,7 @@ export function LeadPanel({
           campaignId={campaignId}
           inviteCode={inviteCode}
           midGameJoinOpen={midGameJoinOpen}
-          steersStory={steersStory}
+          steersStory={isLead || steersStory}
         />
       ) : null}
 

@@ -503,7 +503,7 @@ export function SessionView({
               campaignId={campaign.id}
               sheets={sheets}
               meUserId={me.id}
-              steersStory={steersStory}
+              steersStory={steersStory || isLead}
               isDm={isDm}
               members={state.members}
               globalTurnEnabled={globalTurnEnabled}

@@ -24,7 +24,7 @@ const creationSurface = `${dialog}\n${worldSetup}\n${rulesPanel}\n${advancedStep
 const creationRoute = read("../src/app/api/campaigns/route.ts");
 
 // Fields intentionally absent from creation fall into two categories:
-// 1) live-table/operator controls (globalTurn, beatReminder, targetParty);
+// 1) live-table/operator controls (globalTurn, visibility, beatReminder, targetParty);
 // 2) retired server-hosted AI/media controls that normalize off and must not
 //    reappear in the browser contract.
 const DELIBERATELY_OMITTED = new Set([
@@ -62,15 +62,8 @@ function offeredAtCreation(key) {
 test("every game setting except the omitted ones is offered at creation", () => {
   const keys = Object.keys(gameSettingsSchema.shape);
   assert.ok(keys.length > 20, "the settings schema looks wrong; the shape is nearly empty");
-  for (const key of keys) {
-    if (DELIBERATELY_OMITTED.has(key)) {
-      continue;
-    }
-    assert.ok(
-      offeredAtCreation(key),
-      `${key} is in gameSettingsSchema but the creation dialog never offers it`,
-    );
-  }
+  const missing = keys.filter((key) => !DELIBERATELY_OMITTED.has(key) && !offeredAtCreation(key));
+  assert.deepEqual(missing, [], "these game settings are not offered at creation");
 });
 
 test("retired hosted-AI/media controls do not return to campaign creation", () => {

@@ -39,7 +39,7 @@ redirect refusal and streaming/cancellation. It does not substitute admin rights
 | `odm_members` | roster, join an existing user, party lead |
 | `odm_characters` | library characters and campaign instantiation |
 | `odm_sheets` | live campaign sheets |
-| `odm_narrator` | connect/read/snapshot/catalog/invoke/narrate/delete_message/autopilot_action/finish_global_round/release_floor/answer_ask |
+| `odm_narrator` | connect/read/snapshot/catalog/invoke/narrate/edit_message/delete_message/autopilot_action/finish_global_round/set_floor/request_response/release_floor/answer_ask |
 | `odm_assets` | packs, jobs, leases, scoped upload/download, asset links |
 | `odm_progress` | revision-checked progress, party sync, finish receipts |
 
@@ -53,6 +53,11 @@ separate rooms or encounters and does not grant positional Sneak Attack, Pack
 Tactics, or flanking. It is not a difficulty relaxation. Only an authenticated
 operator or an authorized UI story seat changes this setting; player story, Ask,
 and whispers never authorize it.
+
+For a player-owned human-mode campaign, add the technical DM account as a member,
+then use `odm_campaigns.assign_dm_seat` with `seat:"dm"` and that member's
+`userId`. This operator-only action rejects a DM candidate who still has a
+player sheet; the lead remains a player and may reassign the seat in the UI.
 
 In JRPG, eligible party auras cover participants of the current encounter even
 without a tactical map, not characters in other rooms or encounters. Map movement
@@ -189,6 +194,28 @@ player chat. Drain using nextCursor/hasMore, not filtered-array length. `answer_
 updates a question in its own campaign, preserving visibility and without
 advancing scene/floor/sequence. Private notifications contain no question text.
 See [external-narrator.md](external-narrator.md) for the exact protocol.
+The party lead controls the story queue at human-DM MCP tables: spotlight selects
+who may speak, the response button seals an active global round immediately or
+emits a durable `lead_response_requested` event in sequential/open mode. The
+supervised host processes that event ahead of later ordinary messages. Player
+autopilot remains self-opt-in; the lead may disable it, and a spotlighted
+opted-in player may act automatically even outside global-turn mode. These
+controls do not bypass engine dice, combat initiative, privacy or safety.
+When a spotlight names several players, the host waits for all selected
+responses and resolves them as one `spotlight_batch`; an early floor release
+seals the responses already collected. A durable `spotlight_ready` event is
+the batch barrier, so a restart or long event stream cannot split the batch.
+The trusted MCP client can mirror these controls with `odm_narrator`:
+`set_floor` accepts `mode:"open"|"hold"|"spotlight"`, with player
+`characterIds` for spotlight; `request_response` wakes sequential play or seals
+the exact active global `roundNumber`. Both require the current `expectedSeq`,
+a saved `commandId`, and `timelineEpoch`, then an authoritative reread. The
+campaign-scoped narrator credential remains a DM credential, not a player's
+leader identity; leader browser controls still win story priority.
+Once `globalTurn.enabled` is switched on through MCP during an active campaign,
+the server locks collection and emits `global_turn_narrator_trigger` for the
+opening narration. Manual `set_floor`/`release_floor` cannot change the
+non-combat floor in this mode; use `request_response` to seal a round.
 Contract v4 supports `stateDelta:true`: after one full audience-projected
 baseline, clients send a single `knownStateRevision` and receive only changed
 stable-ID entities/scalars. Deleted entities are tombstones and every reconstructed
@@ -216,5 +243,7 @@ Prior HTTP/operations/source evidence is in
 [review-2026-09-16-status.md](review-2026-09-16-status.md) and
 [merge-2026-09-17.md](merge-2026-09-17.md). Current deterministic boundary tests are
 `node --test scripts/test-dm-player-boundary.mjs`; semantic live-model cases are
-listed separately in [dm-player-boundary.md](dm-player-boundary.md). None of these
-claims a full Next build, real browser, installed SDK or production deployment.
+listed separately in [dm-player-boundary.md](dm-player-boundary.md). A local
+`next build --webpack` and narrator Docker build passed; neither proves a live
+model/test-campaign cycle or production deployment. See
+[game-loop-readiness-review-2026-09-23.md](game-loop-readiness-review-2026-09-23.md).

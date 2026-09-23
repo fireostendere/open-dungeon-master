@@ -21,7 +21,7 @@ export class NarratorRunner {
   constructor(options={}) {
     this.campaignId=options.campaignId||process.env.ODM_CAMPAIGN_ID||process.env.ODM_MCP_NARRATOR_CAMPAIGN_ID||'';
     this.controlUrl=(options.controlUrl||process.env.ODM_URL||process.env.ODM_MCP_URL||process.env.ODM_MCP_CONTROL_URL||'http://127.0.0.1:3005/api/internal/mcp').trim();
-    this.token=(options.token||process.env.ODM_AUTH_TOKEN||process.env.ODM_MCP_NARRATOR_TOKEN||process.env.ODM_MCP_TOKEN||'').trim();
+    this.token=(options.token||process.env.ODM_MCP_NARRATOR_TOKEN||process.env.ODM_AUTH_TOKEN||process.env.ODM_MCP_TOKEN||'').trim();
     this.pollIntervalMs=integer(options.pollIntervalMs??process.env.ODM_NARRATOR_POLL_MS,2000,10,86400000);
     this.maxAsksPerTick=integer(options.maxAsksPerTick??process.env.ODM_NARRATOR_ASK_BATCH,1,1,20);
     this.askTask=null;this.askError=null;this.madeProgress=false;this.stopping=false;

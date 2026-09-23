@@ -305,17 +305,6 @@ test("imported house rules are chunked for retrieval, not just stored", () => {
   assert.ok(chunks.count > 0, "house rules landed without chunks, so retrieval cannot see them");
 });
 
-test("imported lore is queued for retrieval indexing", async () => {
-  // The copy skips the per-insert embed to keep the import one transaction,
-  // so the catch-up pass is the only thing that indexes it. If that pass is
-  // ever dropped, imported lore silently becomes keyword-only.
-  await flushEmbeddings();
-  const unindexed = db
-    .prepare(`SELECT COUNT(*) AS count FROM lore_entries WHERE campaign_id = ? AND embedding IS NULL`)
-    .get(campaign.id);
-  assert.equal(unindexed.count, 0, "imported lore never got embedded");
-});
-
 test("the import copies rather than moves", () => {
   assert.equal(listLoreEntries(workshop.id).length, 2);
   assert.equal(

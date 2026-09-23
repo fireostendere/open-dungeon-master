@@ -11,6 +11,8 @@ import {
   setCampaignScene,
   setCampaignStatus,
   setDmMode,
+  setHumanDm,
+  setAssistantDm,
   setDmOutline,
   setPartyLead,
   setQuestLog,
@@ -32,6 +34,7 @@ import { maskStorySettings } from "@/lib/db/settings";
 import { getSheetById, listSheets, patchSheet } from "@/lib/db/sheets";
 import { getUserById, getUserByUsername, listUsers, type User } from "@/lib/db/users";
 import { normalizeStoryArc } from "@/lib/dm/arc-logic";
+import { resetGlobalTurnGate } from "@/lib/dm/global-turn-logic";
 import { listEventsSince, publishPersisted } from "@/lib/events";
 import { gameSettingsSchema } from "@/lib/schemas/game-settings";
 import { createSheetSchema, fullPatchSheetSchema } from "@/lib/schemas/sheet";
@@ -165,6 +168,7 @@ export const MCP_CONTROL_ACTIONS = [
   "campaigns.update_game_settings",
   "campaigns.update_story_settings",
   "campaigns.set_dm_mode",
+  "campaigns.assign_dm_seat",
   "campaigns.set_scene",
   "campaigns.set_quest_log",
   "campaigns.set_outline",
@@ -353,10 +357,16 @@ export async function executeMcpControl(action: string, rawParams: unknown): Pro
         z.object({ campaignId: z.string().uuid(), patch: gameSettingsSchema.partial() }).strict(),
         rawParams,
       );
-      campaignOr404(params.campaignId);
+      const campaign = campaignOr404(params.campaignId);
+      const wasGlobal = Boolean(campaign.gameSettings.globalTurn?.enabled);
       const settings = updateGameSettings(params.campaignId, params.patch);
       if (!settings) throw new McpControlError("Campaign not found.", 404);
       publishPersisted(params.campaignId, "mcp_control", { action: "game_settings_changed" });
+      publishPersisted(params.campaignId, "campaign_updated", { gameSettings: settings });
+      if (campaign.status === "active" && !wasGlobal && settings.globalTurn?.enabled) {
+        const waiting = resetGlobalTurnGate(params.campaignId);
+        publishPersisted(params.campaignId, "global_turn_narrator_trigger", { kind: "resume", roundNumber: waiting.roundNumber });
+      }
       return { gameSettings: settings };
     }
 
@@ -394,6 +404,26 @@ export async function executeMcpControl(action: string, rawParams: unknown): Pro
         dmUserId: result.dmUserId,
       });
       return result;
+    }
+
+    case "campaigns.assign_dm_seat": {
+      const params = parse(z.object({ campaignId: z.string().uuid(), seat: z.enum(["dm", "assistant"]), userId: z.string().uuid().nullable() }).strict(), rawParams);
+      const campaign = campaignOr404(params.campaignId);
+      if (campaign.gameSettings.dmMode === "ai" || params.seat === "dm" && !params.userId) throw new McpControlError("A human-DM table needs a primary DM.", 400);
+      if (params.userId && !listMembers(params.campaignId).some(member => member.userId === params.userId)) throw new McpControlError("The seat holder must be a campaign member.", 400);
+      if (params.seat === "assistant" && params.userId === campaign.dmUserId) throw new McpControlError("The primary DM cannot also be an assistant.", 400);
+      if (params.seat === "dm" && params.userId && listSheets(params.campaignId).some(sheet => sheet.userId === params.userId)) {
+        throw new McpControlError("Move or remove that user's player sheet before assigning the DM seat.", 409);
+      }
+      getDatabase().transaction(() => {
+        if (params.seat === "dm" && params.userId === campaign.assistantDmUserId) setAssistantDm(params.campaignId, null);
+        const applied = params.seat === "dm" ? setHumanDm(params.campaignId, params.userId) : setAssistantDm(params.campaignId, params.userId);
+        if (!applied) throw new McpControlError("Could not assign that DM seat.", 409);
+      })();
+      publishPersisted(params.campaignId, "dm_seat_changed", { seat: params.seat, userId: params.userId });
+      const seats = campaignOr404(params.campaignId);
+      publishPersisted(params.campaignId, "campaign_updated", { dmUserId: seats.dmUserId, assistantDmUserId: seats.assistantDmUserId });
+      return { campaignId: params.campaignId, seat: params.seat, userId: params.userId };
     }
 
     case "campaigns.set_scene": {

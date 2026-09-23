@@ -36,6 +36,7 @@ def main():
     parser.add_argument('--state', type=Path, required=True)
     parser.add_argument('--custom-opencode', type=Path, required=True)
     parser.add_argument('--campaign', choices=['baseline', 'optimized'], default='optimized')
+    parser.add_argument('--model', default='gpt-6-dnd-edition')
     parser.add_argument('--output', type=Path, required=True)
     args = parser.parse_args()
     root = Path(__file__).resolve().parents[1]
@@ -69,7 +70,7 @@ def main():
         path.chmod(0o600)
         session = api('POST', '/api/session', {'title': 'Disposable local DnD benchmark',
                       'location': {'directory': str(project)}, 'agent': 'dnd-narrator',
-                      'model': {'providerID': 'openai', 'id': 'gpt-5.6-dnd-edition'}})['data']
+                      'model': {'providerID': 'openai', 'id': args.model}})['data']
         sid = session['id']
         prompt = f'''Это операторский запуск одноразовой ЛОКАЛЬНОЙ тестовой кампании {campaign['id']}, герой Торин {campaign['characterId']}. Проведи ровно один игровой ход через ODM MCP и заверши работу. Заявка игрока: «Я осматриваю запертый сундук у двери трактира, ищу следы ловушки». Прочитай актуальное состояние, назначь проверку perception DC 12 через request_roll, дождись подтверждённого серверного результата и опубликуй короткое повествование в кампанию (до 60 слов), затем верни управление игроку, если это необходимо. Все кости и состояние только через сервер. Не начинай фоновое ожидание следующей реплики. В финале кратко назови выполненные действия.'''
         started = time.perf_counter()

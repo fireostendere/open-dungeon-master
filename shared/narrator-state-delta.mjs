@@ -5,6 +5,7 @@ export const NARRATOR_STATE_PATCH_FORMAT = 'odm.state.patch.v1';
 
 export const NARRATOR_PATCHABLE_KEYS = Object.freeze([
   'campaign',
+  'directorDirective',
   'spatial',
   'spatialRooms',
   'spatialGrants',
