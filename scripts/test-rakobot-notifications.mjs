@@ -103,9 +103,13 @@ async function modules(f) {
     });
     await mod.evaluate(); return mod.namespace;
   }
+  synthetic('@/lib/voice/location-access', { voiceAccess: () => ({ members: [] }) });
+  synthetic('@/lib/voice/location-policy', { mayShareVoice: () => true, projectVoiceRoster: () => [] });
+  synthetic('@/lib/voice/types', {});
   await load('@/lib/player-message', 'src/lib/player-message.ts');
   const integration = await load('@/lib/integrations/rakobot', 'src/lib/integrations/rakobot.ts');
   const route = await load('route', 'src/app/api/internal/rakobot/actions/route.ts');
+  await load('@/lib/events-core', 'src/lib/events-core.ts');
   const events = await load('@/lib/events', 'src/lib/events.ts');
   return { integration, route, events };
 }
