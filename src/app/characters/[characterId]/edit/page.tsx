@@ -59,21 +59,6 @@ export default function EditCharacterPage({
       library: "Вернуться в библиотеку",
       charsRemaining: "Осталось символов: {count}",
     },
-    pl: {
-      back: "Wróć do postaci",
-      title: "Edytuj historię",
-      subtitle: "Opisz pochodzenie bohatera, jego osobowość i motywacje.",
-      placeholder: "Napisz historię postaci tutaj...",
-      level: "Poziom",
-      cancel: "Anuluj",
-      save: "Zapisz historię",
-      saving: "Zapisywanie...",
-      saveFailed: "Nie udało się zapisać historii.",
-      offline: "Nie udało się połączyć z serwerem.",
-      notFound: "Nie znaleziono postaci.",
-      library: "Wróć do biblioteki",
-      charsRemaining: "Pozostało znaków: {count}",
-    },
   });
 
   const [character, setCharacter] = useState<LibraryCharacter | null>(null);

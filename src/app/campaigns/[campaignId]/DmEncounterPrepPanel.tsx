@@ -69,7 +69,6 @@ export function DmEncounterPrepPanel({
   const copy = localeText(locale, {
     en: { failed: "That did not work.", prepared: "Prepared encounters", deploy: "Deploy", duplicate: "Duplicate", delete: "Delete", empty: "Nothing prepared. Write a roster below and it is one button at the table.", save: "Save", prepare: "Prepare it" },
     ru: { failed: "Не удалось выполнить действие.", prepared: "Подготовленные встречи", deploy: "Развернуть", duplicate: "Дублировать", delete: "Удалить", empty: "Встреч пока нет. Запишите состав ниже — и за столом останется нажать одну кнопку.", save: "Сохранить", prepare: "Подготовить" },
-    pl: { failed: "Nie udało się wykonać działania.", prepared: "Przygotowane spotkania", deploy: "Rozstaw", duplicate: "Duplikuj", delete: "Usuń", empty: "Nie przygotowano jeszcze spotkań. Wpisz skład poniżej, a przy stole wystarczy jeden przycisk.", save: "Zapisz", prepare: "Przygotuj" },
   });
   const [templates, setTemplates] = useState<PreparedEncounter[]>([]);
   const [draft, setDraft] = useState<EncounterDraft>(EMPTY_ENCOUNTER_DRAFT);

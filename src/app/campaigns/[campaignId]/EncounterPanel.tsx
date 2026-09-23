@@ -38,7 +38,7 @@ export function EncounterPanel({
   genre?: string | null;
 }) {
   const { locale } = useI18n();
-  const copy = localeText(locale, { en: { confirm: "End this encounter without a resolution? No XP is awarded.", combat: "Combat", round: "Round", rolling: "Rolling initiative", force: "Force-end the encounter (lead only)", end: "End encounter", of: "of", standing: "standing", fled: "fled", rounds: "rd", hidden: "hidden" }, ru: { confirm: "Завершить эту встречу без исхода? Опыт не начисляется.", combat: "Бой", round: "Раунд", rolling: "Бросок инициативы", force: "Принудительно завершить встречу (только ведущий)", end: "Завершить встречу", of: "из", standing: "на ногах", fled: "сбежал", rounds: "раунд.", hidden: "скрыт" }, pl: { confirm: "Zakończyć to starcie bez rozstrzygnięcia? Nie przyznano PD.", combat: "Walka", round: "Runda", rolling: "Rzut inicjatywy", force: "Wymuś zakończenie starcia (tylko prowadzący)", end: "Zakończ starcie", of: "z", standing: "stoi", fled: "uciekł", rounds: "r.", hidden: "ukryty" } });
+  const copy = localeText(locale, { en: { confirm: "End this encounter without a resolution? No XP is awarded.", combat: "Combat", round: "Round", rolling: "Rolling initiative", force: "Force-end the encounter (lead only)", end: "End encounter", of: "of", standing: "standing", fled: "fled", rounds: "rd", hidden: "hidden" }, ru: { confirm: "Завершить эту встречу без исхода? Опыт не начисляется.", combat: "Бой", round: "Раунд", rolling: "Бросок инициативы", force: "Принудительно завершить встречу (только ведущий)", end: "Завершить встречу", of: "из", standing: "на ногах", fled: "сбежал", rounds: "раунд.", hidden: "скрыт" } });
   const [ending, setEnding] = useState(false);
   const [openGroups, setOpenGroups] = useState<string[]>([]);
 

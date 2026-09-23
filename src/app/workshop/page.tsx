@@ -162,8 +162,8 @@ export default function WorkshopListPage() {
         onOpenChange={setHelpOpen}
         tours={[
           {
-            label: locale === "ru" ? "Тур по списку" : locale === "pl" ? "Wycieczka po liście" : "Tour the shelf",
-            detail: locale === "ru" ? "Создание мастерской, импорт набора и карточки." : locale === "pl" ? "Tworzenie warsztatu, import pakietu i karty." : "Starting a workshop, importing a bundle, and what the tiles do.",
+            label: locale === "ru" ? "Тур по списку" : "Tour the shelf",
+            detail: locale === "ru" ? "Создание мастерской, импорт набора и карточки." : "Starting a workshop, importing a bundle, and what the tiles do.",
             onStart: () => setTouring(true),
           },
         ]}

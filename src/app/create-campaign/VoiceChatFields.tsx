@@ -47,26 +47,6 @@ const COPY = {
     serverHint:
       "На сервере есть отдельный глобальный переключатель голосового чата. Если владелец сервера его выключил, эти настройки начнут действовать после включения.",
   },
-  pl: {
-    voiceChat: "Czat głosowy",
-    voiceHint: "Rozmawiaj na żywo w lobby i przy stole",
-    turnFloor: "Kolejność mówienia",
-    turnOff: "Tury: ignorowane",
-    turnSoft: "Tury: tylko pokazywane",
-    turnStrict: "Tury: egzekwowane",
-    proximity: "Słyszalność z odległości",
-    proximityHint: "Mapa walki decyduje, kto kogo słyszy",
-    hearingRange: "Zasięg słyszenia",
-    feet: (value: number) => `${value} stóp`,
-    sayRange: "Szept i krzyk",
-    sayRangeHint: "Mówiący wybiera, jak daleko niesie się jego głos",
-    walls: "Ściany tłumią",
-    wallsHint: "Ściana przycisza głos zamiast odcinać go całkowicie",
-    downed: "Nieprzytomni nie słyszą",
-    downedHint: "Przy 0 PW postać przestaje słyszeć stół",
-    serverHint:
-      "Serwer ma również własny globalny przełącznik dźwięku na żywo. Jeśli właściciel go wyłączył, te ustawienia zaczną działać dopiero po jego włączeniu.",
-  },
 } as const;
 
 // Live voice for a multiplayer table: the master switch, then the turn

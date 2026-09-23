@@ -60,7 +60,6 @@ export function OverworldPanel({
   const copy = localeText(locale, {
     en: { loading: "Charting the region...", holding: (name: string) => `Holding ${name}. Tap where it belongs.`, rename: "Rename it", erase: "Tap a line, a label or a pin to take it off the map.", help: "Drag to pan, scroll or pinch to zoom. Locations appear as the party discovers them.", error: "That did not work." },
     ru: { loading: "Строим карту региона...", holding: (name: string) => `Вы держите: ${name}. Нажмите там, где ему место.`, rename: "Переименовать", erase: "Нажмите на линию, подпись или метку, чтобы убрать её с карты.", help: "Перетаскивайте для панорамирования, прокручивайте или сведите пальцы для масштаба. Локации появляются по мере открытия группой.", error: "Не удалось выполнить действие." },
-    pl: { loading: "Tworzenie mapy regionu...", holding: (name: string) => `Trzymasz: ${name}. Kliknij miejsce, do którego należy.`, rename: "Zmień nazwę", erase: "Kliknij linię, etykietę lub znacznik, aby usunąć je z mapy.", help: "Przeciągaj, aby przesuwać, przewijaj lub szczyp, aby zmienić powiększenie. Lokacje pojawiają się, gdy drużyna je odkrywa.", error: "Nie udało się wykonać działania." },
   });
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);

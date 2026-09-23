@@ -86,9 +86,10 @@ export async function GET(
     .map(publicPendingRoll);
   const visibleCharacterEvents = listRecentCampaignEvents(campaignId, 30)
     .filter((event) => !spatial || caps.adjudicates || ownedCharacterIds.includes(event.campaignCharacterId));
-  const visibleMessages = spatial
+  const recentMessages = spatial
     ? spatialStore().messages(spatialActor!, { roomId: null, limit: 100 }).messages
-    : listRecentMessages(campaignId, 100);
+    : listRecentMessages(campaignId, 101);
+  const visibleMessages = recentMessages.slice(-100);
   const visibleFacts = projectSpatialFacts(
     legacyPolicy,
     listFactsVisibleTo(campaignId, ownedCharacterIds, false),
@@ -105,6 +106,7 @@ export async function GET(
     // player-visible transcript here is the separately authorized OOC ledger;
     // room prose is served by location-chat and never enters this snapshot.
     messages: visibleMessages,
+    hasOlderMessages: !spatial && recentMessages.length > 100,
     // Blind and DM-only rolls are redacted or dropped here, not in the UI;
     // a player's snapshot must never carry a number they are not meant to
     // have (src/lib/dm/viewer.ts).

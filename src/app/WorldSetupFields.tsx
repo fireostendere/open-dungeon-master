@@ -70,30 +70,6 @@ const COPY = {
     loreHelp:
       "Места, фракции и история, которые Мастер считает каноном. Их можно дополнять в любое время из лобби и вкладки «Факты».",
   },
-  pl: {
-    categories: {
-      geography: "Geografia",
-      factions: "Frakcje",
-      history: "Historia",
-      magic: "Magia",
-      culture: "Kultura",
-      religion: "Religia",
-      other: "Inne",
-    },
-    worldBuilding: "Budowanie świata",
-    optional: (filled: number) => `opcjonalne${filled ? `, uzupełniono: ${filled}` : ""}`,
-    houseRules: "Zasady domowe",
-    houseRulesPlaceholder:
-      "Ustalenia waszego stołu, pogrupowane nagłówkami, np.\n\nMikstury:\nWypicie mikstury jest akcją dodatkową.",
-    houseRulesHelp: "Mistrz Gry dostaje przypomnienie o odpowiednich zasadach w każdej turze. Później można je edytować w ustawieniach.",
-    worldLore: "Lore świata",
-    titlePlaceholder: "Tytuł (Popielna Liga, Rozdarcie...)",
-    remove: "Usuń ten wpis",
-    bodyPlaceholder: "Co zostało o tym ustalone...",
-    addLore: "Dodaj wpis lore",
-    loreHelp:
-      "Miejsca, frakcje i historia traktowane przez Mistrza Gry jako kanon. Możesz je rozwijać w dowolnej chwili z lobby i karty „Fakty”.",
-  },
 } as const;
 
 // Posts the drafts after creation; failures are silent (the lobby panels

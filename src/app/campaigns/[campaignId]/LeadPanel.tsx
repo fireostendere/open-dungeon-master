@@ -93,7 +93,6 @@ function InvitesCard({
   const copy = localeText(locale, {
     en: { saveFailed: "That change was not saved.", reachFailed: "Could not reach the table.", invites: "Invites", joining: "Joining", open: "open", closed: "closed", joinTitle: "Allow new players to join with the invite code mid-game", copy: "Copy the invite link", share: "Show the invite QR code and share options" },
     ru: { saveFailed: "Изменение не сохранено.", reachFailed: "Не удалось связаться со столом.", invites: "Приглашения", joining: "Присоединение", open: "открыто", closed: "закрыто", joinTitle: "Разрешить новым игрокам присоединяться по коду приглашения во время игры", copy: "Скопировать ссылку-приглашение", share: "Показать QR-код приглашения и варианты отправки" },
-    pl: { saveFailed: "Zmiana nie została zapisana.", reachFailed: "Nie udało się połączyć ze stołem.", invites: "Zaproszenia", joining: "Dołączanie", open: "otwarte", closed: "zamknięte", joinTitle: "Pozwól nowym graczom dołączyć kodem zaproszenia w trakcie gry", copy: "Kopiuj link zaproszenia", share: "Pokaż kod QR zaproszenia i opcje udostępniania" },
   });
   const [inviteCopied, setInviteCopied] = useState(false);
   const [inviteSharing, setInviteSharing] = useState(false);
@@ -228,7 +227,6 @@ function LeadSeatCard({
   const copy = localeText(locale, {
     en: { confirm: "Make {name} the party lead? You will lose this tab.", failed: "The lead did not change.", reachFailed: "Could not reach the table.", title: "The lead seat", as: "as", make: "Make lead", nobody: "Nobody else at the table to hand it to." },
     ru: { confirm: "Сделать {name} лидером группы? Вы потеряете доступ к этой вкладке.", failed: "Лидер группы не изменился.", reachFailed: "Не удалось связаться со столом.", title: "Место лидера", as: "как", make: "Сделать лидером", nobody: "За столом больше некому передать эту роль." },
-    pl: { confirm: "Uczynić {name} liderem drużyny? Utracisz tę kartę.", failed: "Lider drużyny się nie zmienił.", reachFailed: "Nie udało się połączyć ze stołem.", title: "Miejsce lidera", as: "jako", make: "Uczyń liderem", nobody: "Nie ma nikogo innego przy stole, komu można to przekazać." },
   });
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
@@ -336,7 +334,6 @@ export function LeadPanel({
   const copy = localeText(locale, {
     en: { only: "Lead only", steer: "You steer this table.", notes: "Notes to approve", waiting: "Nothing waiting for you.", direct: "Direct the story", directHint: "Pick Direct in the composer, then Private for a note only the DM sees.", details: "Campaign details", editTitle: "Edit title, premise, setting, difficulty, and player slots", edit: "Edit details", difficulty: "Difficulty", level: "Level", start: "start", upTo: "Up to", players: "players" },
     ru: { only: "Только для лидера", steer: "Вы ведёте этот стол.", notes: "Заметки на одобрение", waiting: "Ничего не ожидает вашего решения.", direct: "Направить историю", directHint: "Выберите «Направить» в редакторе, затем «Личное» для заметки, которую видит только мастер.", details: "Данные кампании", editTitle: "Изменить название, завязку, сеттинг, сложность и места для игроков", edit: "Изменить данные", difficulty: "Сложность", level: "Уровень", start: "начало", upTo: "До", players: "игроков" },
-    pl: { only: "Tylko dla lidera", steer: "Prowadzisz ten stół.", notes: "Notatki do zatwierdzenia", waiting: "Nic na ciebie nie czeka.", direct: "Kieruj historią", directHint: "Wybierz Kieruj w edytorze, a potem Prywatne dla notatki widocznej tylko dla MG.", details: "Szczegóły kampanii", editTitle: "Edytuj tytuł, założenie, scenerię, trudność i miejsca graczy", edit: "Edytuj szczegóły", difficulty: "Trudność", level: "Poziom", start: "na start", upTo: "Do", players: "graczy" },
   });
   const [editing, setEditing] = useState(false);
   const pending = pendingCampaignNotes(notes);

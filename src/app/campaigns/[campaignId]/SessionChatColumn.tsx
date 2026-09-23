@@ -15,8 +15,7 @@ export function SessionChatColumn(props: ComponentProps<typeof LegacySessionChat
   const { locale } = useI18n();
   const t = localeText(locale, {
     en: { enable: "Enable location chats", start: "Starting location", loading: "Loading location permissions…", retry: "Retry", history: "Shared mechanics, Ask and earlier story", note: "Text scenes for a human DM or external MCP narrator. Rolls, combat, facts and other legacy game projections are still shared, not location-private." },
-    ru: { enable: "Включить чаты локаций", start: "Начальная локация", loading: "Загрузка доступа к локациям…", retry: "Повторить", history: "Общие механики, Ask и прежняя история", note: "Текстовые сцены для ведущего или внешнего MCP-рассказчика. Броски, бой, факты и другие старые игровые представления пока общие, а не приватные по локациям." },
-    pl: { enable: "Włącz czaty lokacji", start: "Lokacja początkowa", loading: "Ładowanie uprawnień lokacji…", retry: "Ponów", history: "Wspólne mechaniki, Ask i wcześniejsza historia", note: "Sceny tekstowe dla MG lub narratora MCP. Rzuty, walka, fakty i inne starsze widoki gry są nadal wspólne, a nie prywatne dla lokacji." },
+    ru: { enable: "Включить чаты локаций", start: "Начальная локация", loading: "Загрузка доступа к локациям…", retry: "Повторить", history: "Общие механики, вопросы к ведущему и прежняя история", note: "Текстовые сцены для ведущего или внешнего MCP-рассказчика. Броски, бой, факты и другие старые игровые представления пока общие, а не приватные по локациям." },
   });
   if (chat.loading) return <div className="flex-1 p-4 text-sm text-stone-400"><p>{chat.error || t.loading}</p>
     {chat.error ? <button type="button" onClick={chat.refresh}>{t.retry}</button> : null}</div>;

@@ -12,6 +12,7 @@ const auditedRoots = [
   path.join(root, "src", "lib", "i18n"),
 ];
 const CYRILLIC = /[А-Яа-яЁё]/;
+const leakage = [];
 const SELF_NAMED_LANGUAGE_KEYS = new Set(["common.languageRussian"]);
 
 function unwrap(node) {
@@ -89,41 +90,30 @@ function loadCatalogs() {
   assert(initializer && ts.isObjectLiteralExpression(initializer), "translations must be a static object literal");
   const enNode = propertyInitializer(initializer, "en");
   const ruNode = propertyInitializer(initializer, "ru");
-  const plNode = propertyInitializer(initializer, "pl");
-  assert(enNode && ruNode && plNode, "translations must contain en, ru and pl catalogs");
+  assert(enNode && ruNode && !propertyInitializer(initializer, "pl"), "translations must contain only en and ru catalogs");
   return {
     en: flattenStatic(enNode),
     ru: flattenStatic(ruNode),
-    pl: flattenStatic(plNode),
   };
 }
 
-function compareCatalogs(en, ru, pl) {
+function compareCatalogs(en, ru) {
   const enKeys = [...en.keys()].sort();
   const ruKeys = [...ru.keys()].sort();
-  const plKeys = [...pl.keys()].sort();
   assert.deepEqual(ruKeys, enKeys, "English and Russian catalogs must contain exactly the same keys");
-  assert.deepEqual(plKeys, enKeys, "English and Polish catalogs must contain exactly the same keys");
 
   for (const key of enKeys) {
     const english = en.get(key);
     const russian = ru.get(key);
-    const polish = pl.get(key);
     assert(english?.trim(), `English translation ${key} is empty`);
     assert(russian?.trim(), `Russian translation ${key} is empty`);
-    assert(polish?.trim(), `Polish translation ${key} is empty`);
     if (!SELF_NAMED_LANGUAGE_KEYS.has(key)) {
       assert(
         !CYRILLIC.test(english),
         `English translation ${key} contains Cyrillic: ${JSON.stringify(english)}`,
       );
-      assert(
-        !CYRILLIC.test(polish),
-        `Polish translation ${key} contains Cyrillic outside a self-named language label: ${JSON.stringify(polish)}`,
-      );
     }
     assert.deepEqual(placeholders(russian), placeholders(english), `Russian placeholder mismatch for ${key}`);
-    assert.deepEqual(placeholders(polish), placeholders(english), `Polish placeholder mismatch for ${key}`);
   }
 }
 
@@ -150,8 +140,7 @@ function stringValue(node) {
   return ts.isStringLiteral(value) || ts.isNoSubstitutionTemplateLiteral(value) ? value.text : null;
 }
 
-// Returns whether the true branch is guaranteed to be Russian. With three
-// locales, `locale !== "en"` is no longer enough: it also includes Polish.
+// Returns whether the true branch is guaranteed to be Russian.
 function russianBranch(condition) {
   const value = unwrap(condition);
   if (!ts.isBinaryExpression(value)) return null;
@@ -165,8 +154,9 @@ function russianBranch(condition) {
   let literal = null;
   if (isLocaleExpression(value.left)) literal = stringValue(value.right);
   else if (isLocaleExpression(value.right)) literal = stringValue(value.left);
-  if (literal !== "ru") return null;
-  return { ruWhenTrue: equality };
+  if (literal === "ru") return { ruWhenTrue: equality };
+  if (literal === "en") return { ruWhenTrue: inequality };
+  return null;
 }
 
 function contains(ancestor, node) {
@@ -241,21 +231,18 @@ function auditLocalizedObject(node, file) {
   // Only treat an object as a locale dictionary if at least two locale
   // branches are present; ordinary objects can legitimately have an `en` key.
   if ([enNode, ruNode, plNode].filter(Boolean).length < 2) return;
-  assert(enNode && ruNode && plNode, `${path.relative(root, file)}: inline locale object must contain en, ru and pl`);
+  assert(enNode && ruNode && !plNode, `${path.relative(root, file)}: inline locale object must contain only en and ru`);
   if (
     !ts.isObjectLiteralExpression(enNode) ||
-    !ts.isObjectLiteralExpression(ruNode) ||
-    !ts.isObjectLiteralExpression(plNode)
+    !ts.isObjectLiteralExpression(ruNode)
   ) {
     return;
   }
   const en = flattenObjectStrings(enNode);
   const ru = flattenObjectStrings(ruNode);
-  const pl = flattenObjectStrings(plNode);
-  if (!en.size && !ru.size && !pl.size) return;
+  if (!en.size && !ru.size) return;
   const enKeys = [...en.keys()].sort();
   assert.deepEqual([...ru.keys()].sort(), enKeys, `${path.relative(root, file)}: inline EN/RU object keys differ`);
-  assert.deepEqual([...pl.keys()].sort(), enKeys, `${path.relative(root, file)}: inline EN/PL object keys differ`);
   for (const [key, text] of en) {
     if (!SELF_NAMED_LANGUAGE_KEYS.has(key)) {
       assert(!CYRILLIC.test(text), `${path.relative(root, file)}: English inline value ${key} contains Cyrillic`);
@@ -320,10 +307,7 @@ function auditUiFile(file, englishCatalog, usedKeys) {
     else if (ts.isTemplateExpression(node)) text = node.getText(sf);
 
     if (text && CYRILLIC.test(text)) {
-      assert(
-        isRussianScoped(node),
-        `${relative}:${sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1}: Cyrillic text is reachable outside an explicit Russian locale branch: ${JSON.stringify(text.slice(0, 120))}`,
-      );
+      if (!isRussianScoped(node)) leakage.push(`${relative}:${sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1}: ${JSON.stringify(text.slice(0, 80))}`);
     }
 
     ts.forEachChild(node, visit);
@@ -331,8 +315,8 @@ function auditUiFile(file, englishCatalog, usedKeys) {
   visit(sf);
 }
 
-const { en, ru, pl } = loadCatalogs();
-compareCatalogs(en, ru, pl);
+const { en, ru } = loadCatalogs();
+compareCatalogs(en, ru);
 
 for (const stale of [
   "src/lib/i18n/MarkerBoundary.tsx",
@@ -352,7 +336,8 @@ assert.equal(stagedCatalogs.length, 0, "unused public/i18n/*.b64 staging catalog
 const files = [...new Set(auditedRoots.flatMap((dir) => walk(dir)))].sort();
 const usedKeys = new Set();
 for (const file of files) auditUiFile(file, en, usedKeys);
+assert.deepEqual(leakage, [], `Cyrillic text is reachable outside Russian locale branches:\n${leakage.join("\n")}`);
 
 console.log(
-  `i18n coverage passed: ${en.size} synchronized EN/RU/PL catalog keys, ${usedKeys.size} referenced keys, ${files.length} audited source files; placeholders match and locale leakage is guarded.`,
+  `i18n coverage passed: ${en.size} synchronized EN/RU catalog keys, ${usedKeys.size} referenced keys, ${files.length} audited source files; placeholders match and locale leakage is guarded.`,
 );

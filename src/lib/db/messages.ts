@@ -187,6 +187,15 @@ export function listRecentMessages(campaignId: string, limit = 100): CampaignMes
   return rows.map(mapMessage);
 }
 
+export function listMessagesBefore(campaignId: string, beforeSeq: number, limit = 100): CampaignMessage[] {
+  const rows = getDatabase().prepare(`
+    SELECT * FROM (
+      SELECT * FROM campaign_messages WHERE campaign_id = ? AND seq < ? ORDER BY seq DESC LIMIT ?
+    ) ORDER BY seq ASC
+  `).all(campaignId, beforeSeq, limit) as MessageRow[];
+  return rows.map(mapMessage);
+}
+
 export function listAllMessages(campaignId: string): CampaignMessage[] {
   const rows = getDatabase()
     .prepare(`SELECT * FROM campaign_messages WHERE campaign_id = ? ORDER BY seq ASC`)

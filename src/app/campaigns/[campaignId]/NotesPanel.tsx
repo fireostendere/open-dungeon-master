@@ -53,7 +53,6 @@ function NoteCard({
   const copy = localeText(locale, {
     en: { title: "Title (optional)", save: "Save", cancel: "Cancel", approveTitle: "Approve: publish to the whole party", approve: "Approve", unpin: "Unpin", pin: "Pin to the top (the DM treats pinned notes as key canon)", edit: "Edit" },
     ru: { title: "Заголовок (необязательно)", save: "Сохранить", cancel: "Отмена", approveTitle: "Одобрить: опубликовать для всей группы", approve: "Одобрить", unpin: "Открепить", pin: "Закрепить сверху (мастер считает закреплённые заметки важным каноном)", edit: "Редактировать" },
-    pl: { title: "Tytuł (opcjonalnie)", save: "Zapisz", cancel: "Anuluj", approveTitle: "Zatwierdź: opublikuj dla całej drużyny", approve: "Zatwierdź", unpin: "Odepnij", pin: "Przypnij u góry (MG traktuje przypięte notatki jako ważny kanon)", edit: "Edytuj" },
   });
   const [editing, setEditing] = useState(false);
   const [title, setTitle] = useState(note.title);
@@ -208,7 +207,6 @@ export function NoteComposer({
   const copy = localeText(locale, {
     en: { party: "Party note", suggest: "Suggest party note", private: "Private note", saveFailed: "Could not save the note.", reachFailed: "Could not reach the server.", title: "Title (optional)", privateHint: "Only you will see this", publicHint: "Visible to the whole party", pendingHint: "Sent to the party lead for approval", add: "Add note" },
     ru: { party: "Заметка группы", suggest: "Предложить заметку группе", private: "Личная заметка", saveFailed: "Не удалось сохранить заметку.", reachFailed: "Не удалось связаться с сервером.", title: "Заголовок (необязательно)", privateHint: "Эту заметку увидите только вы", publicHint: "Видна всей группе", pendingHint: "Отправлена лидеру группы на одобрение", add: "Добавить заметку" },
-    pl: { party: "Notatka drużyny", suggest: "Zaproponuj notatkę drużyny", private: "Prywatna notatka", saveFailed: "Nie udało się zapisać notatki.", reachFailed: "Nie udało się połączyć z serwerem.", title: "Tytuł (opcjonalnie)", privateHint: "Tylko ty to zobaczysz", publicHint: "Widoczne dla całej drużyny", pendingHint: "Wysłano liderowi drużyny do zatwierdzenia", add: "Dodaj notatkę" },
   });
   const [visibility, setVisibility] = useState<"public" | "private">("private");
   const [title, setTitle] = useState("");
@@ -344,7 +342,6 @@ export function PendingNotesList({
   const copy = localeText(locale, {
     en: { unknown: "Unknown", dm: "The DM", reject: "Reject suggestion" },
     ru: { unknown: "Неизвестно", dm: "Мастер", reject: "Отклонить предложение" },
-    pl: { unknown: "Nieznany", dm: "MG", reject: "Odrzuć propozycję" },
   });
   const nameFor = (userId: string) =>
     members.find((member) => member.userId === userId)?.username ?? copy.unknown;
@@ -387,7 +384,6 @@ export function NotesPanel({
   const copy = localeText(locale, {
     en: { awaiting: "Suggestions awaiting you", mine: "My suggestions (awaiting the lead)", party: "Party notes", private: "My private notes", you: "You", withdraw: "Withdraw suggestion", delete: "Delete note", onlyYou: "Only you can see this", leadEmpty: "Pin key events and facts here; the DM treats them as canon.", playerEmpty: "Nothing recorded yet. Suggest a note and the party lead can publish it.", privateEmpty: "No private notes yet.", unknown: "Unknown" },
     ru: { awaiting: "Предложения ждут вас", mine: "Мои предложения (ожидают лидера)", party: "Заметки группы", private: "Мои личные заметки", you: "Вы", withdraw: "Отозвать предложение", delete: "Удалить заметку", onlyYou: "Эту заметку видите только вы", leadEmpty: "Закрепляйте здесь ключевые события и факты — мастер считает их каноном.", playerEmpty: "Пока ничего не записано. Предложите заметку, и лидер группы сможет её опубликовать.", privateEmpty: "Личных заметок пока нет.", unknown: "Неизвестно" },
-    pl: { awaiting: "Propozycje czekające na ciebie", mine: "Moje propozycje (czekają na lidera)", party: "Notatki drużyny", private: "Moje prywatne notatki", you: "Ty", withdraw: "Wycofaj propozycję", delete: "Usuń notatkę", onlyYou: "Tylko ty widzisz tę notatkę", leadEmpty: "Przypinaj tu kluczowe wydarzenia i fakty — MG traktuje je jako kanon.", playerEmpty: "Nic jeszcze nie zapisano. Zaproponuj notatkę, a lider drużyny może ją opublikować.", privateEmpty: "Brak prywatnych notatek.", unknown: "Nieznany" },
   });
   const nameFor = (userId: string) =>
     members.find((member) => member.userId === userId)?.username ?? copy.unknown;

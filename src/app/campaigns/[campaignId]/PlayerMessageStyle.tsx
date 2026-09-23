@@ -7,7 +7,6 @@ import { parsePlayerMessage, type PlayerMessageKind } from "@/lib/player-message
 const LABELS: Record<Locale, Record<PlayerMessageKind, string>> = {
   ru: { say: "Речь", do: "Действие", ooc: "Вне игры" },
   en: { say: "Say", do: "Action", ooc: "OOC" },
-  pl: { say: "Mowa", do: "Akcja", ooc: "Poza grą" },
 };
 
 export function PlayerMessageBadge({ content, locale }: { content: string; locale: Locale }) {

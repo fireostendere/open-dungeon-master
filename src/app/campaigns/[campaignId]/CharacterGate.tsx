@@ -15,11 +15,6 @@ const COPY = {
     body: "Создайте персонажа, чтобы войти в игру. Можно выбрать героя из своей библиотеки или создать нового.",
     action: "Создать персонажа",
   },
-  pl: {
-    title: "Przygoda już trwa.",
-    body: "Utwórz postać, aby wejść do gry. Możesz wybrać bohatera ze swojej biblioteki albo stworzyć nowego.",
-    action: "Utwórz postać",
-  },
 } as const;
 
 // Replaces the composer for a member who joined an active campaign but has

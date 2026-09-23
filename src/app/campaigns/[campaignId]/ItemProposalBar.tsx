@@ -25,7 +25,7 @@ export function ItemProposalBar({
   steersStory: boolean;
 }) {
   const { locale } = useI18n();
-  const copy = localeText(locale, { en: { failed: "That did not work.", character: "a character", accept: "Accept", decline: "Decline", withdraw: "Withdraw", waiting: "waiting on" }, ru: { failed: "Не получилось.", character: "персонажа", accept: "Принять", decline: "Отклонить", withdraw: "Отозвать", waiting: "ждём" }, pl: { failed: "To nie zadziałało.", character: "postać", accept: "Przyjmij", decline: "Odrzuć", withdraw: "Wycofaj", waiting: "czekamy na" } });
+  const copy = localeText(locale, { en: { failed: "That did not work.", character: "a character", accept: "Accept", decline: "Decline", withdraw: "Withdraw", waiting: "waiting on" }, ru: { failed: "Не получилось.", character: "персонажа", accept: "Принять", decline: "Отклонить", withdraw: "Отозвать", waiting: "ждём" } });
   const [busyId, setBusyId] = useState("");
   const [error, setError] = useState("");
 

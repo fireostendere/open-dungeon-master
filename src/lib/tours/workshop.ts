@@ -6,6 +6,7 @@
 // prepare runs. No "@/" imports here: scripts/test-tours.mjs loads this
 // straight from disk.
 import type { TourStep } from "./logic";
+import { workshopGuides } from "./workshop-guide";
 
 export const SHELF_TOUR_ID = "workshop-shelf";
 export const HUB_TOUR_ID = "workshop-hub";
@@ -88,16 +89,12 @@ export const HUB_TOUR: TourStep[] = [
 
 // Keep the durable English exports for the standalone tour check; UI callers
 // ask for a locale-specific copy before displaying a tour.
-export function workshopTour(locale: "en" | "ru" | "pl", tour: "shelf" | "hub"): TourStep[] {
+export function workshopTour(locale: "en" | "ru", tour: "shelf" | "hub"): TourStep[] {
   const source = tour === "shelf" ? SHELF_TOUR : HUB_TOUR;
   if (locale === "en") return source;
-  const text: [string, string][] = locale === "ru"
-    ? tour === "shelf"
+  const text = { ru: tour === "shelf"
       ? [["Полка мастерских", "Мастерская — место для подготовки без игроков и текущего сюжета. Здесь можно сделать карты, персонажей, монстров, встречи, таблицы и правила, а затем перенести их в кампанию."], ["Создайте мастерскую", "Дайте ей название и укажите группу. Расчёт встреч и шансов будет учитывать её уровень и размер."], ["Импортируйте набор", "Набор — это файл со всей мастерской, экспортированный здесь или на другом сервере. Импорт создаёт новую мастерскую, а не меняет кампанию."], ["Ваши мастерские", "Нажмите карточку, чтобы открыть её. Дублирование копирует всё содержимое для безопасной второй версии."], ["Справка и туры", "У каждого инструмента есть руководство и свой тур. Откройте их этой кнопкой."]]
-      : [["Внутри мастерской", "Двенадцать инструментов с карточками и количеством готовых материалов. Каждый инструмент впервые открывается с коротким туром."], ["Для кого подготовка", "Измените размер или уровень условной группы — все встречи будут пересчитаны. Панель остаётся в каждом инструменте."], ["Инструменты", "Сюжет, группа, карты, регион, встречи, персонажи, бестиарий, хоумбрю, лор и таблицы готовят разные материалы. Правила содержат домашние настройки, а Поделиться упаковывает всё."], ["Переименовать, копировать, удалить", "Карандаш меняет название, копирование создаёт полную копию, удаление окончательно удаляет мастерскую."], ["Импорт набора", "Загружает набор из другой мастерской или сервера как новую мастерскую."], ["Руководства и туры", "Справка открывает руководства и позволяет повторить любой тур."]]
-    : tour === "shelf"
-      ? [["Półka warsztatów", "Warsztat to miejsce przygotowań bez graczy i aktywnej fabuły. Twórz materiały, a potem przenieś je do kampanii."], ["Utwórz warsztat", "Nadaj nazwę i określ drużynę. Budżety spotkań będą mierzone względem niej."], ["Importuj pakiet", "Pakiet to plik z całym warsztatem. Import tworzy nowy warsztat, a nie zmienia kampanii."], ["Twoje warsztaty", "Otwórz kartę jednym kliknięciem. Duplikacja kopiuje całą zawartość."], ["Pomoc i wycieczki", "Każde narzędzie ma przewodnik i własną wycieczkę."]]
-      : [["Wewnątrz warsztatu", "Dwanaście narzędzi, każde z kartą i licznikiem gotowych materiałów."], ["Dla kogo przygotowujesz", "Zmień rozmiar lub poziom drużyny, aby przeliczyć spotkania."], ["Narzędzia", "Każde narzędzie przygotowuje inny rodzaj materiału; zasady przechowują warianty, a Udostępnij pakuje całość."], ["Zmień nazwę, kopiuj, usuń", "Ołówek zmienia nazwę, kopiowanie tworzy pełną kopię, a usunięcie jest ostateczne."], ["Import pakietu", "Wczytuje pakiet jako nowy warsztat."], ["Przewodniki i wycieczki", "Pomoc otwiera przewodniki i ponawia wycieczki."]];
+      : [["Внутри мастерской", "Двенадцать инструментов с карточками и количеством готовых материалов. Каждый инструмент впервые открывается с коротким туром."], ["Для кого подготовка", "Измените размер или уровень условной группы — все встречи будут пересчитаны. Панель остаётся в каждом инструменте."], ["Инструменты", "Сюжет, группа, карты, регион, встречи, персонажи, бестиарий, хоумбрю, лор и таблицы готовят разные материалы. Правила содержат домашние настройки, а Поделиться упаковывает всё."], ["Переименовать, копировать, удалить", "Карандаш меняет название, копирование создаёт полную копию, удаление окончательно удаляет мастерскую."], ["Импорт набора", "Загружает набор из другой мастерской или сервера как новую мастерскую."], ["Руководства и туры", "Справка открывает руководства и позволяет повторить любой тур."]] }[locale] as [string, string][];
   return source.map((step, index) => ({ ...step, title: text[index][0], body: text[index][1] }));
 }
 
@@ -485,14 +482,13 @@ export const SYSTEM_TOURS: Record<string, TourStep[]> = {
 
 // Tool tours keep their anchors and preparation behaviour; localized copy is
 // selected by the page rather than frozen when this module loads.
-export function systemTour(locale: "en" | "ru" | "pl", system: string): TourStep[] {
+export function systemTour(locale: "en" | "ru", system: string): TourStep[] {
   const source = SYSTEM_TOURS[system] ?? [];
   if (locale === "en") return source;
-  const text = locale === "ru"
-    ? { rail: ["Переход между инструментами", "Панель переключает инструменты без возврата в центр; ссылка выше возвращает к карточкам."], help: ["Справка", "Откройте руководство этого инструмента или повторите тур."], other: ["Работа с инструментом", "Этот шаг показывает следующий элемент управления и его назначение." ] }
-    : { rail: ["Przełączanie narzędzi", "Pasek przełącza narzędzia bez powrotu do centrum; link powyżej wraca do kart."], help: ["Pomoc", "Otwórz przewodnik tego narzędzia lub powtórz wycieczkę."], other: ["Praca z narzędziem", "Ten krok pokazuje kolejną kontrolkę i jej przeznaczenie." ] };
-  return source.map((step) => {
-    const [title, body] = step.id === "rail" ? text.rail : step.id === "help" ? text.help : text.other;
+  const text = { ru: { rail: ["Переход между инструментами", "Панель переключает инструменты без возврата в центр; ссылка выше возвращает к карточкам."], help: ["Справка", "Откройте руководство этого инструмента или повторите тур."], otherTitle: "Инструмент" } }[locale];
+  const guide = workshopGuides(locale).find(item => item.id === system);
+  return source.map((step, index) => {
+    const [title, body] = step.id === "rail" ? text.rail : step.id === "help" ? text.help : [guide?.title ?? text.otherTitle, guide?.steps[index - 1] ?? guide?.purpose ?? ""];
     return { ...step, title, body };
   });
 }

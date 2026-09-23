@@ -42,7 +42,6 @@ export function DmMapLibraryPanel({
   const copy = localeText(locale, {
     en: { failed: "That did not work.", refused: "That was refused.", deployed: "It is on the table.", opened: "The scene is open.", copyFailed: "The copy could not be painted.", imported: "Imported.", invalid: "That file is not a Universal VTT export this can read.", newMap: "New map", map: "Map", empty: "Nothing in the drawer yet. Roll one, start from blank rock, or import a drawing." },
     ru: { failed: "Не удалось выполнить действие.", refused: "Действие отклонено.", deployed: "Карта на столе.", opened: "Сцена открыта.", copyFailed: "Не удалось отрисовать копию.", imported: "Импортировано.", invalid: "Этот файл не является читаемым экспортом Universal VTT.", newMap: "Новая карта", map: "Карта", empty: "В ящике пока ничего нет. Создайте карту, начните с пустой скалы или импортируйте рисунок." },
-    pl: { failed: "Nie udało się wykonać działania.", refused: "Działanie zostało odrzucone.", deployed: "Mapa jest na stole.", opened: "Scena jest otwarta.", copyFailed: "Nie udało się narysować kopii.", imported: "Zaimportowano.", invalid: "Ten plik nie jest odczytywalnym eksportem Universal VTT.", newMap: "Nowa mapa", map: "Mapa", empty: "Szuflada jest jeszcze pusta. Utwórz mapę, zacznij od pustej skały lub zaimportuj rysunek." },
   });
   const [state, setState] = useState<LibraryState>({
     maps: [],

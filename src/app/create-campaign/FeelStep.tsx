@@ -91,48 +91,6 @@ const COPY = {
     held: "Отложенные действия",
     heldHint: "Никто не действует, пока лидер группы не откроет ход",
   },
-  pl: {
-    aiSetup: "AI tworzy fabułę",
-    aiSetupHint: "Mistrz Gry sam wymyśla główną historię",
-    narration: "Narracja głosowa",
-    narrationHint: "Mistrz Gry czyta narrację na głos",
-    narrationUnavailable: "Na tym serwerze nie ma usługi syntezy mowy",
-    maps: "Mapy",
-    mapsHint: "Mapy obszarów rysowane przez AI",
-    mapsUnavailable: "Na tym serwerze nie ma usługi generowania obrazów",
-    ambience: "Dźwięki otoczenia",
-    ambienceHint: "Tło, muzyka i krótkie akcenty dźwiękowe",
-    ambienceAuto: "Dźwięk podąża za sceną",
-    ambienceAutoHint: "Po wyłączeniu wybór pozostaje Mistrzowi Gry",
-    multiclassing: "Wieloklasowość",
-    multiclassingHint: "Można brać poziomy w drugiej klasie",
-    livingWorld: "Żyjący świat",
-    livingWorldHint: "Plany poza sceną i plotki rozwijają się samodzielnie",
-    livingWorldLabel: "Jak działa Żyjący świat?",
-    livingWorldInfo:
-      "Włączone: świat porusza się bez ciebie. W każdej turze wątki poza sceną rozwijają się przez ukryte rzuty, więc rywalizujące frakcje, zagrożenia i odległe wydarzenia nadal się zmieniają.\n\nNPC realizują własne cele między rozdziałami oraz podczas odpoczynku i podróży. Intrygi postępują, presja rośnie, a rywale mogą wejść ze sobą w konflikt.\n\nMistrz Gry po cichu zapisuje to, co wydarzyło się poza sceną, i wplata konsekwencje w przyszłe sceny, zasadzki i plotki. Te notatki są widoczne tylko dla Mistrza Gry, dopóki drużyna nie odkryje ich w grze.\n\nWyłączone: wszystko to zostaje wstrzymane. Świat zmienia się tylko wtedy, gdy działa drużyna albo wymaga tego główny wątek. Główna fabuła, rozdziały, zadania i PD działają tak samo w obu trybach.\n\nUstawienie można zmienić w dowolnej chwili. Po ponownym włączeniu symulacja rusza od obecnego stanu świata.",
-    itemOffers: "Potwierdzanie łupów",
-    itemOffersHint: "Gracze zatwierdzają zmiany przedmiotów i złota od Mistrza Gry",
-    bonds: "Relacje",
-    bondsHint: "NPC pamiętają, jak każda postać ich traktowała",
-    bondsLabel: "Jak działają relacje?",
-    bondsInfo:
-      "Serwer osobno śledzi stosunek każdego NPC i towarzysza AI do każdej postaci na jednej skali od wrogości przez neutralność do oddania.\n\nCzyny przesuwają tę skalę, a to samo działanie może zostać różnie odebrane przez różne osoby: miłosierdzie zyska sympatię dobrego uzdrowiciela, ale może zirytować zahartowanego najemnika.\n\nRelacja jest widoczna na karcie „Relacje” i wpływa na sposób odgrywania NPC przez Mistrza Gry. Po wyłączeniu osobiste relacje nie są śledzone, a NPC reagują na drużynę jako całość.",
-    romance: "Romans",
-    romanceHint: "Relacja może rozwinąć się w związek",
-    romanceLabel: "Jak działa romans?",
-    romanceInfo:
-      "Na skali relacji działa dodatkowa drabina romansu: zainteresowanie, zaloty, związek, zaręczyny, małżeństwo.\n\nRomans jest możliwy tylko z osobą, która już lubi postać; pierwszy krok zawsze wykonuje gracz, a intymne sceny zawsze kończą się dyskretnym fade-to-black.\n\nWymaga włączonych relacji.",
-    outcome: "Kontrola wyniku",
-    outcomeHint: "Narracja sprzeczna z kośćmi zostaje przepisana",
-    outcomeLabel: "Czym jest kontrola wyniku?",
-    outcomeInfo:
-      "Po każdej turze serwer porównuje narrację Mistrza Gry z tym, co naprawdę rozstrzygnęły kości i narzędzia: trafienie opisane po pudle, śmierć mimo pozostałych PW albo obrażenia, których nie było w rzucie.\n\nSprzeczność jest raz odsyłana do Mistrza Gry do poprawy. Żadna wartość na karcie postaci nie zmienia się przez tę kontrolę.\n\nPo wyłączeniu nie ma dodatkowego sprawdzenia, a narracja zostaje zapisana dokładnie tak, jak została napisana.",
-    midJoin: "Dołączanie w trakcie gry",
-    midJoinHint: "Nowi gracze mogą użyć kodu zaproszenia po rozpoczęciu kampanii",
-    held: "Wstrzymane działania",
-    heldHint: "Nikt nie działa, dopóki lider drużyny nie otworzy możliwości ruchu",
-  },
 } as const;
 
 // Which table features are enabled. Hosted text/image/speech generation is

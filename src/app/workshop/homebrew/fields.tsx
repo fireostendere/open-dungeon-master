@@ -73,7 +73,6 @@ export function TextField({
   const copy = localeText(locale, {
     en: { pick: "Pick" },
     ru: { pick: "Выбрать" },
-    pl: { pick: "Wybierz" },
   });
   const listId = useId();
   return (

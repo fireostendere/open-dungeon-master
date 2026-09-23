@@ -55,22 +55,6 @@ const COPY = {
     report: "Пожаловаться на игрока",
     block: "Заблокировать игрока",
   },
-  pl: {
-    options: (name: string) => `Opcje dla ${name}: karta, notatki, wiadomość i więcej`,
-    viewSheet: "Otwórz kartę",
-    notes: "Notatki",
-    message: "Wiadomość",
-    editBackstory: "Edytuj historię",
-    adjustStats: "Dostosuj statystyki",
-    makeLead: "Ustaw jako lidera drużyny",
-    dismissCompanion: "Odpraw towarzysza",
-    autopilotOn: "Włącz autopilota MCP",
-    autopilotOff: "Wyłącz autopilota MCP",
-    unmute: "Włącz dźwięk gracza",
-    mute: "Wycisz gracza",
-    report: "Zgłoś gracza",
-    block: "Zablokuj gracza",
-  },
 } as const;
 
 // Per-character options menu on each party card: sheet, notes, private

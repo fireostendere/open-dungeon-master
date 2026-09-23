@@ -61,7 +61,6 @@ export function LobbyRoomCode({
   const copy = localeText(locale, {
     en: { code: "Code", link: "Link", share: "Share" },
     ru: { code: "Код", link: "Ссылка", share: "Поделиться" },
-    pl: { code: "Kod", link: "Link", share: "Udostępnij" },
   });
 
   async function copyInvite() {

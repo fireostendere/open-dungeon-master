@@ -43,7 +43,7 @@ export function BeatEditor({
   onDelete?: () => void;
 }) {
   const { locale } = useI18n();
-  const copy = localeText(locale, { en: { save: "Save the card", body: "What actually happens, and what it means if the party is not there.", nobody: "nobody in particular", leads: "Leads to", delete: "Delete" }, ru: { save: "Сохранить карточку", body: "Что происходит на самом деле и что это значит, если группы там нет.", nobody: "никто конкретный", leads: "Ведёт к", delete: "Удалить" }, pl: { save: "Zapisz kartę", body: "Co naprawdę się dzieje i co to znaczy, jeśli drużyny tam nie ma.", nobody: "nikt konkretny", leads: "Prowadzi do", delete: "Usuń" } });
+  const copy = localeText(locale, { en: { save: "Save the card", body: "What actually happens, and what it means if the party is not there.", nobody: "nobody in particular", leads: "Leads to", delete: "Delete" }, ru: { save: "Сохранить карточку", body: "Что происходит на самом деле и что это значит, если группы там нет.", nobody: "никто конкретный", leads: "Ведёт к", delete: "Удалить" } });
   const saveButton = (
     <button
       type="button"

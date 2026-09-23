@@ -42,17 +42,6 @@ export function CharacterBackstoryDialog({
       offline: "Не удалось связаться с сервером.",
       charsRemaining: "Осталось символов: {count}",
     },
-    pl: {
-      title: "Edytuj historię",
-      subtitle: "Zaktualizuj historię postaci. Zmiany będą widoczne dla drużyny i MG.",
-      placeholder: "Napisz historię swojej postaci tutaj...",
-      cancel: "Anuluj",
-      save: "Zapisz",
-      saving: "Zapisywanie...",
-      failed: "Nie udało się zapisać historii.",
-      offline: "Nie udało się połączyć z serwerem.",
-      charsRemaining: "Pozostało znaków: {count}",
-    },
   });
 
   const [backstory, setBackstory] = useState(sheet.backstory ?? "");

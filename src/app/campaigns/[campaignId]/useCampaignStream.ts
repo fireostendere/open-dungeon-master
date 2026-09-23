@@ -23,6 +23,8 @@ import { capsForRole, type ViewerCaps } from "@/lib/dm/viewer";
 import type { CharacterSheet } from "@/lib/schemas/sheet";
 import type { VoiceRosterEntry } from "@/lib/voice/types";
 import { navigateTo } from "@/lib/navigation";
+import { useI18n } from "@/lib/i18n";
+import { sessionText } from "@/lib/i18n/session-text";
 
 export type DmStatus =
   | "idle"
@@ -116,6 +118,7 @@ export type CampaignState = {
   blockedUserIds: string[];
   sheets: CharacterSheet[];
   messages: CampaignMessage[];
+  hasOlderMessages: boolean;
   rolls: StoredRoll[];
   pendingRolls: PendingRoll[];
   auditLog: AuditEntry[];
@@ -226,6 +229,7 @@ const initialState: CampaignState = {
   blockedUserIds: [],
   sheets: [],
   messages: [],
+  hasOlderMessages: false,
   rolls: [],
   pendingRolls: [],
   auditLog: [],
@@ -268,7 +272,8 @@ const initialState: CampaignState = {
 };
 
 type Action =
-  | { type: "snapshot"; payload: Partial<CampaignState> & { lastSeq: number } }
+  | { type: "snapshot"; payload: Partial<CampaignState> & { lastSeq: number }; reset?: boolean }
+  | { type: "olderMessages"; messages: CampaignMessage[]; hasMore: boolean }
   | { type: "notes"; notes: Note[] }
   | { type: "sideThreads"; sideThreads: SideThread[] }
   | { type: "whispers"; whispers: DmWhisper[]; unread: number }
@@ -303,7 +308,22 @@ function upsertBy<T>(list: T[], item: T, key: (entry: T) => string): T[] {
 function reducer(state: CampaignState, action: Action): CampaignState {
   switch (action.type) {
     case "snapshot":
+      if (!action.reset && action.payload.lastSeq < state.lastSeq) return state;
+      if (!action.reset && state.campaign?.id === action.payload.campaign?.id && action.payload.messages) {
+        const merged = new Map(state.messages.map(message => [message.id, message]));
+        for (const message of action.payload.messages) merged.set(message.id, message);
+        return { ...state, ...action.payload, messages: [...merged.values()].sort((a, b) => a.seq - b.seq),
+          hasOlderMessages: state.hasOlderMessages, loading: false, error: "" };
+      }
       return { ...state, ...action.payload, loading: false, error: "" };
+    case "olderMessages": {
+      const existing = new Set(state.messages.map(message => message.id));
+      return {
+        ...state,
+        messages: [...action.messages.filter(message => !existing.has(message.id)), ...state.messages],
+        hasOlderMessages: action.hasMore,
+      };
+    }
     case "notes":
       return { ...state, notes: action.notes };
     case "sideThreads":
@@ -339,10 +359,7 @@ function reducer(state: CampaignState, action: Action): CampaignState {
       switch (action.eventType) {
         case "message_added": {
           const message = payload.message as CampaignMessage;
-          // Long sessions accumulate thousands of messages otherwise; cap
-          // like rolls/auditLog so render cost stays flat (the snapshot
-          // reload window is 100, so 200 keeps scrollback beyond it).
-          next.messages = upsertBy(state.messages, message, (entry) => entry.id).slice(-200);
+          next.messages = upsertBy(state.messages, message, (entry) => entry.id);
           // A halted-turn notice (system, linked to its dm_turns row) ends the
           // turn just like narration does. Without this the abandoned partial
           // draft stays on screen and a retry streams on top of it.
@@ -788,6 +805,7 @@ function answeringOrigin(url: string): string {
 }
 
 export function useCampaignStream(campaignId: string) {
+  const { locale } = useI18n();
   const [state, dispatch] = useReducer(reducer, initialState);
   // The SSE handlers are registered once, so they cannot close over `state`.
   // Caps are set by the snapshot and never change for a mounted session, but
@@ -799,7 +817,7 @@ export function useCampaignStream(campaignId: string) {
 
   // Loads the snapshot and returns its latestSeq so the event stream can
   // start exactly where the snapshot left off.
-  const refresh = useCallback(async (): Promise<number> => {
+  const refresh = useCallback(async (reset = false): Promise<number> => {
     try {
       const response = await fetch(`/api/campaigns/${campaignId}`);
       const answeredBy = answeringOrigin(response.url);
@@ -820,6 +838,7 @@ export function useCampaignStream(campaignId: string) {
       const lastSeq = data.latestSeq ?? 0;
       dispatch({
         type: "snapshot",
+        reset,
         payload: {
           answeredBy,
           campaign: data.campaign,
@@ -829,6 +848,7 @@ export function useCampaignStream(campaignId: string) {
           blockedUserIds: data.blockedUserIds ?? [],
           sheets: data.sheets,
           messages: data.messages,
+          hasOlderMessages: data.hasOlderMessages ?? false,
           rolls: data.rolls,
           pendingRolls: data.pendingRolls ?? [],
           auditLog: data.auditLog ?? [],
@@ -857,10 +877,24 @@ export function useCampaignStream(campaignId: string) {
       });
       return lastSeq;
     } catch {
-      dispatch({ type: "error", error: "Could not reach the server." });
+      dispatch({ type: "error", error: sessionText(locale, "networkFailed") });
       return 0;
     }
-  }, [campaignId]);
+  }, [campaignId, locale]);
+
+  const loadOlderMessages = useCallback(async (): Promise<boolean> => {
+    const beforeSeq = state.messages[0]?.seq;
+    if (!state.hasOlderMessages || !beforeSeq) return false;
+    try {
+      const response = await fetch(`/api/campaigns/${campaignId}/messages?beforeSeq=${beforeSeq}`);
+      if (!response.ok) return false;
+      const data = await response.json();
+      dispatch({ type: "olderMessages", messages: data.messages, hasMore: data.hasMore });
+      return true;
+    } catch {
+      return false;
+    }
+  }, [campaignId, state.hasOlderMessages, state.messages]);
 
   // Re-fetches just the caller's visible notes. Suggestion events carry no
   // content (privacy), so clients pull their own filtered list instead.
@@ -989,12 +1023,17 @@ export function useCampaignStream(campaignId: string) {
   useEffect(() => {
     let source: EventSource | null = null;
     let cancelled = false;
+    let fallback: ReturnType<typeof setInterval> | undefined;
 
     refresh().then((lastSeq) => {
       if (cancelled) {
         return;
       }
       source = new EventSource(`/api/campaigns/${campaignId}/events?lastSeq=${lastSeq}`);
+      source.onopen = () => { if (fallback) clearInterval(fallback); fallback = undefined; };
+      source.onerror = () => {
+        if (!fallback) fallback = setInterval(() => void refresh(), 5000);
+      };
       const handle = (eventType: string) => (event: MessageEvent) => {
         try {
           const payload = JSON.parse(event.data);
@@ -1012,7 +1051,13 @@ export function useCampaignStream(campaignId: string) {
           // A rewind mass-deletes state that incremental events cannot
           // express; reload everything from the snapshot endpoint.
           if (eventType === "campaign_rewound") {
-            void refresh();
+            void refresh(true);
+            void refreshNotes();
+            void refreshSideChat();
+            void refreshWhispers();
+            void refreshAsks();
+            void refreshFacts();
+            void refreshBattleMap();
           }
           if (eventType === "side_activity") {
             void refreshSideChat();
@@ -1077,6 +1122,7 @@ export function useCampaignStream(campaignId: string) {
     return () => {
       cancelled = true;
       source?.close();
+      if (fallback) clearInterval(fallback);
     };
   }, [
     campaignId,
@@ -1094,6 +1140,7 @@ export function useCampaignStream(campaignId: string) {
   return {
     state,
     refresh,
+    loadOlderMessages,
     refreshNotes,
     refreshSideChat,
     refreshWhispers,

@@ -36,7 +36,6 @@ function RealDiceToggle({
   const copy = localeText(locale, {
     en: { on: "Physical dice: ON", off: "Physical dice: off" },
     ru: { on: "Физические кубики: вкл.", off: "Физические кубики: выкл." },
-    pl: { on: "Fizyczne kości: wł.", off: "Fizyczne kości: wył." },
   });
   const [busy, setBusy] = useState(false);
   async function toggle() {
@@ -81,7 +80,6 @@ function RequestCompanionButton({ campaignId }: { campaignId: string }) {
   const copy = localeText(locale, {
     en: { request: "Request a companion", sent: "The DM has been asked" },
     ru: { request: "Попросить спутника", sent: "Мастер получил просьбу" },
-    pl: { request: "Poproś o towarzysza", sent: "MG otrzymał prośbę" },
   });
   const [state, setState] = useState<"idle" | "sending" | "sent">("idle");
   async function request() {
@@ -117,7 +115,6 @@ function SaveToLibraryButton({ campaignId }: { campaignId: string }) {
   const copy = localeText(locale, {
     en: { saved: "Saved", save: "Save to library" },
     ru: { saved: "Сохранено", save: "Сохранить в библиотеку" },
-    pl: { saved: "Zapisano", save: "Zapisz w bibliotece" },
   });
   const [state, setState] = useState<"idle" | "saving" | "saved">("idle");
   async function save() {
@@ -216,9 +213,8 @@ export function PartyPanel({
 }) {
   const { locale } = useI18n();
   const copy = localeText(locale, {
-    en: { party: "Party", members: "Campaign members & characters", changePortrait: "Change portrait", addPortrait: "Add portrait", build: "Build a companion", resource: "Limited-use resource: remaining/max", exhaustionTitle: "Exhaustion level (a long rest reduces it by one)", exhaustion: "exhaustion {level}", concentrating: "Concentrating on this spell", editBackstory: "Edit backstory" },
-    ru: { party: "Отряд", members: "Участники кампании и персонажи", changePortrait: "Сменить портрет", addPortrait: "Добавить портрет", build: "Создать спутника", resource: "Ограниченный ресурс: осталось/максимум", exhaustionTitle: "Уровень истощения (долгий отдых снижает его на один)", exhaustion: "истощение {level}", concentrating: "Концентрация на этом заклинании", editBackstory: "Редактировать предысторию" },
-    pl: { party: "Drużyna", members: "Członkowie kampanii i postacie", changePortrait: "Zmień portret", addPortrait: "Dodaj portret", build: "Stwórz towarzysza", resource: "Zasób o ograniczonych użyciach: pozostało/maksimum", exhaustionTitle: "Poziom wyczerpania (długi odpoczynek zmniejsza go o jeden)", exhaustion: "wyczerpanie {level}", concentrating: "Koncentracja na tym zaklęciu", editBackstory: "Edytuj historię" },
+    en: { party: "Party", members: "Campaign members & characters", changePortrait: "Change portrait", addPortrait: "Add portrait", build: "Build a companion", resource: "Limited-use resource: remaining/max", exhaustionTitle: "Exhaustion level (a long rest reduces it by one)", exhaustion: "exhaustion {level}", concentrating: "Concentrating on this spell", editBackstory: "Edit backstory", skipRemaining: "Skipped turns remaining: {count}", skip: "Skip" },
+    ru: { party: "Отряд", members: "Участники кампании и персонажи", changePortrait: "Сменить портрет", addPortrait: "Добавить портрет", build: "Создать спутника", resource: "Ограниченный ресурс: осталось/максимум", exhaustionTitle: "Уровень истощения (долгий отдых снижает его на один)", exhaustion: "истощение {level}", concentrating: "Концентрация на этом заклинании", editBackstory: "Редактировать предысторию", skipRemaining: "Пропуск ходов: осталось {count}", skip: "Пропуск" },
   });
   const packArt = usePackArt(worldPack);
   const [editingSheetId, setEditingSheetId] = useState("");
@@ -347,10 +343,10 @@ export function PartyPanel({
                   ) : null}
                   {!sheet.isCompanion && (members.find((m) => m.userId === sheet.userId)?.skipTurnsCount ?? 0) > 0 ? (
                     <span
-                      title={`Пропуск ходов: осталось ${members.find((m) => m.userId === sheet.userId)?.skipTurnsCount}`}
+                      title={copy.skipRemaining.replace("{count}", String(members.find((m) => m.userId === sheet.userId)?.skipTurnsCount ?? 0))}
                       className="rounded border border-amber-700/60 bg-amber-950/80 px-1 py-0.2 text-[10px] text-amber-300"
                     >
-                      ⏭️ Пропуск ({members.find((m) => m.userId === sheet.userId)?.skipTurnsCount})
+                      ⏭️ {copy.skip} ({members.find((m) => m.userId === sheet.userId)?.skipTurnsCount})
                     </span>
                   ) : null}
                 </span>

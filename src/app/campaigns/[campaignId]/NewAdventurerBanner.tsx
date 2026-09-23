@@ -19,7 +19,7 @@ export function NewAdventurerBanner({
   onDismiss: () => void;
 }) {
   const { locale } = useI18n();
-  const copy = localeText(locale, { en: { write: "Write intro", dm: "Let the DM do it", dismiss: "Dismiss" }, ru: { write: "Написать вступление", dm: "Пусть ведущий введёт", dismiss: "Скрыть" }, pl: { write: "Napisz wstęp", dm: "Niech MG to zrobi", dismiss: "Ukryj" } });
+  const copy = localeText(locale, { en: { write: "Write intro", dm: "Let the DM do it", dismiss: "Dismiss" }, ru: { write: "Написать вступление", dm: "Пусть ведущий введёт", dismiss: "Скрыть" } });
   const [sending, setSending] = useState(false);
 
   async function letDmIntroduce() {

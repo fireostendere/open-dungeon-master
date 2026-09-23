@@ -47,13 +47,6 @@ export function Dashboard({ user, onLogout }: { user: SessionUser; onLogout: () 
       couldNotDelete: "Не удалось удалить",
       couldNotCopy: "Не удалось создать копию.",
     },
-    pl: {
-      signedIn: "Zalogowano jako",
-      howToTooltip: "Czym jest ta aplikacja i jak działa gra przy stole",
-      deleteForEveryone: "dla wszystkich? Wszystkie postacie, wiadomości i postęp fabuły zostaną utracone. Tej operacji nie można cofnąć.",
-      couldNotDelete: "Nie udało się usunąć",
-      couldNotCopy: "Nie udało się utworzyć kopii.",
-    },
   });
   const [campaigns, setCampaigns] = useState<HomeCampaign[]>([]);
   const [workshops, setWorkshops] = useState<WorkshopSummary[]>([]);

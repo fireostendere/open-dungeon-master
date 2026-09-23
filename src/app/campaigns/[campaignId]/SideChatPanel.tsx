@@ -37,7 +37,6 @@ export function SideChatPanel({
   const copy = localeText(locale, {
     en: { chats: "Private chats", new: "New", muted: "Chime muted. Click to play a chime when a private message arrives.", chime: "The chime plays when a private message arrives. Click to mute.", privacy: "Only the people in a chat can read it. The Dungeon Master never sees these.", empty: "No side chats yet. Whisper a party member from their card, or start one here.", openFailed: "Could not open the chat.", reachFailed: "Could not reach the server.", someone: "someone" },
     ru: { chats: "Личные чаты", new: "Новый", muted: "Звук выключен. Нажмите, чтобы слышать сигнал при новом личном сообщении.", chime: "Сигнал звучит при новом личном сообщении. Нажмите, чтобы выключить.", privacy: "Чат видят только его участники. Мастер его не видит.", empty: "Личных чатов ещё нет. Напишите члену группы с его карточки или начните чат здесь.", openFailed: "Не удалось открыть чат.", reachFailed: "Не удалось связаться с сервером.", someone: "кто-то" },
-    pl: { chats: "Prywatne czaty", new: "Nowy", muted: "Dźwięk wyciszony. Kliknij, aby odtwarzać dźwięk przy nowej prywatnej wiadomości.", chime: "Dźwięk odtwarza się przy nowej prywatnej wiadomości. Kliknij, aby wyciszyć.", privacy: "Tylko osoby na czacie mogą go czytać. Mistrz Gry nigdy go nie widzi.", empty: "Nie ma jeszcze czatów pobocznych. Napisz do członka drużyny z jego karty albo zacznij tutaj.", openFailed: "Nie udało się otworzyć czatu.", reachFailed: "Nie udało się połączyć z serwerem.", someone: "ktoś" },
   });
   const [openThreadId, setOpenThreadId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
@@ -202,7 +201,6 @@ function NewChatForm({
   const copy = localeText(locale, {
     en: { pick: "Pick at least one member.", createFailed: "Could not create the chat.", reachFailed: "Could not reach the server.", who: "Who's in it?", group: "Group name (optional)", cancel: "Cancel", start: "Start chat" },
     ru: { pick: "Выберите хотя бы одного участника.", createFailed: "Не удалось создать чат.", reachFailed: "Не удалось связаться с сервером.", who: "Кто участвует?", group: "Название группы (необязательно)", cancel: "Отмена", start: "Начать чат" },
-    pl: { pick: "Wybierz co najmniej jednego członka.", createFailed: "Nie udało się utworzyć czatu.", reachFailed: "Nie udało się połączyć z serwerem.", who: "Kto w nim jest?", group: "Nazwa grupy (opcjonalnie)", cancel: "Anuluj", start: "Rozpocznij czat" },
   });
   const [selected, setSelected] = useState<string[]>([]);
   const [title, setTitle] = useState("");
@@ -306,7 +304,6 @@ function ThreadView({
   const copy = localeText(locale, {
     en: { all: "All chats", sendFailed: "Could not send.", reachFailed: "Could not reach the server.", someone: "someone", message: "Message" },
     ru: { all: "Все чаты", sendFailed: "Не удалось отправить.", reachFailed: "Не удалось связаться с сервером.", someone: "кто-то", message: "Сообщение" },
-    pl: { all: "Wszystkie czaty", sendFailed: "Nie udało się wysłać.", reachFailed: "Nie udało się połączyć z serwerem.", someone: "ktoś", message: "Wiadomość" },
   });
   const [messages, setMessages] = useState<SideMessage[]>([]);
   const [input, setInput] = useState("");

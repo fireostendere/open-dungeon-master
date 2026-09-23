@@ -125,61 +125,6 @@ const COPY = {
     stuckP1:
       "Раздел «Помощь» в меню аккаунта и в заголовке игровой сессии объясняет каждую кнопку и панель: вкладки боковой панели, вопросы Мастеру, действия над сообщениями, настройки костей, голос повествования, заметки, шёпот, наборы миров и возможности лидера группы. Если сцена с фокусом на одном персонаже остановила игру, лидер группы может снять этот фокус.",
   },
-  pl: {
-    title: "Jak grać",
-    whatTitle: "Czym jest ta aplikacja",
-    whatP1:
-      "Open Dungeon Master to stół do Dungeons & Dragons 5e, przy którym rolę Mistrza Gry pełni AI albo znajomy prowadzący sesję z AI jako asystentem. Ty i twoi znajomi gracie poszukiwaczami przygód. Aplikacja zajmuje się zasadami i kośćmi.",
-    whatP2:
-      "Każda sesja korzysta z zasad 5e. Miejsce akcji wybieracie sami: może to być wybrany przez was gatunek albo jeden z gotowych światów zainstalowanych na serwerze.",
-    gettingTitle: "Pierwsze kroki",
-    newCampaign: "Nowa kampania",
-    gettingP1a: " tworzy świat: wybierz gatunek, poziom trudności i poziom początkowy, a opcjonalnie podaj Mistrzowi Gry tajny zarys fabuły, który będzie znał tylko on. Jeśli serwer ma zainstalowane wtyczki kampanii, zamiast samego gatunku możesz wybrać gotowy świat z własnymi rasami, klasami, potworami i lore — bez zmiany zasad. Otrzymasz ośmioznakowy kod zaproszenia do udostępnienia znajomym.",
-    soloAdventure: "Przygoda solo",
-    gettingP2a: " działa tak samo, ale dla jednego gracza. Aby dołączyć do czyjegoś stołu, wklej kod w polu „Dołącz za pomocą kodu pokoju” albo otwórz przesłany link z zaproszeniem.",
-    gettingP3:
-      "Następnie utwórz postać w kreatorze albo użyj ponownie postaci zapisanej w sekcji „Postacie” w menu konta. W lobby wszyscy oznaczają gotowość, a właściciel kampanii rozpoczyna przygodę.",
-    runTitle: "Jak prowadzona jest gra",
-    runP1:
-      "Aplikacja wykonuje wszystkie obliczenia i przekazuje wynik Mistrzowi Gry, który wplata go w opowieść. Rzuty ataku, obrażenia, rzuty obronne, rzuty przeciw śmierci, stany, komórki czarów, odpoczynki, PD i awanse są rozstrzygane przez serwer zgodnie z zasadami 5e i od razu zapisywane na karcie postaci.",
-    runP2:
-      "Mistrz Gry opisuje, co te wyniki oznaczają w fabule. Nie może wymyślić rzutu ani po cichu przyznać bonusu, więc skupcie się na historii zamiast spierać się o liczby. Każdy rzut i każda zmiana statystyk trafiają do Dziennika na karcie „Historia”, gdzie można sprawdzić obliczenia.",
-    turnTitle: "Rozgrywanie swojej tury",
-    turnIntro: "Przyciski nad polem wiadomości określają znaczenie wysyłanego tekstu:",
-    doLabel: "Akcja",
-    doText:
-      "Opisz, co robi twoja postać. Mistrz Gry opisze rezultat i poprosi o rzut, gdy wymagają tego zasady.",
-    sayLabel: "Mowa",
-    sayText: "Mów jako postać. Tekst zostanie wysłany jako wypowiedziana kwestia.",
-    oocLabel: "OOC",
-    oocText: "Rozmowa poza postacią przy stole. Mistrz Gry jej nie czyta ani na nią nie odpowiada.",
-    askDm: "Zapytaj Mistrza Gry",
-    turnP2a: "Aby zapytać Mistrza Gry o fabułę, świat, zasady lub swoją kartę postaci, otwórz pasek „",
-    turnP2b:
-      "” tuż nad polem wiadomości. Odpowiedź odwołuje się do informacji zapisanych w kampanii, a ty wybierasz, czy zobaczysz ją tylko ty, czy cały stół. Pytanie nigdy nie przesuwa fabuły do przodu, więc działa nawet wtedy, gdy możliwość działania jest zablokowana.",
-    oneTurnTitle: "Jedna tura naraz",
-    oneTurnP1:
-      "Gdy Mistrz Gry zaczyna przygotowywać odpowiedź, czyta wszystko wysłane do tego momentu i tworzy jedną odpowiedź dla całego stołu. Wiadomości wysłane w trakcie generowania nie zmienią już tej odpowiedzi — zostaną uwzględnione w następnej turze razem z wiadomościami pozostałych graczy.",
-    oneTurnP2a: "Dlatego podczas gry w grupie ",
-    oneTurnEmphasis: "najpierw omówcie możliwości, a potem niech każdy wyśle jedno jasne działanie",
-    oneTurnP2b:
-      ". Dosyłanie kolejnych wiadomości w trakcie narracji nie przyspieszy Mistrza Gry ani nie wpłynie na odpowiedź, która już powstaje.",
-    oneTurnP3:
-      "OOC jest bezpiecznym kanałem do takiej rozmowy: nie uruchamia odpowiedzi Mistrza Gry i działa również wtedy, gdy podczas narracji możliwość działania jest zablokowana. Czasem Mistrz Gry skupia scenę na jednym graczu i czeka na jego ruch — baner wyjaśni, jeśli właśnie dlatego nie możesz teraz działać.",
-    badReplyTitle: "Gdy odpowiedź nie pasuje",
-    badReplyP1a:
-      "Nic, co napisze Mistrz Gry, nie jest nieodwracalne. Po najechaniu na jego wiadomość pojawia się rząd działań. Lider drużyny może poprosić o ",
-    reroll: "ponowne wygenerowanie",
-    badReplyP1b:
-      " tego momentu z tymi samymi kośćmi i tym samym wynikiem, zmieniając wyłącznie sposób opisu, a następnie przełączać się między wersjami i zostawić najlepszą dla całego stołu. Lider może też polecić ",
-    continue: "kontynuowanie",
-    badReplyP1c: " urwanej odpowiedzi albo ręcznie poprawić jej treść.",
-    badReplyP2:
-      "Dwie z tych czynności są dostępne dla wszystkich. Każdy może sprawdzić fragment względem faktów już ustalonych w kampanii, a także zaznaczyć zdanie i nacisnąć zakładkę, aby Mistrz Gry pamiętał ten szczegół przez resztę kampanii.",
-    stuckTitle: "Gdy nie wiesz, co zrobić",
-    stuckP1:
-      "Pozycja „Pomoc” w menu konta oraz w nagłówku podczas sesji objaśnia każdy przycisk i panel: karty panelu bocznego, pasek pytań do Mistrza Gry, działania na wiadomościach, opcje kości, głos narracji, notatki, szepty, pakiety światów i uprawnienia lidera drużyny. Jeśli skupienie sceny na jednej postaci zatrzymało grę, lider drużyny może je zwolnić.",
-  },
 } as const;
 
 // Onboarding read for newcomers: what the app is, how to get a table running,

@@ -1,14 +1,16 @@
 "use client";
-import { useState, type FormEvent } from "react";
+import { useLayoutEffect, useRef, useState, type FormEvent } from "react";
 import { useI18n } from "@/lib/i18n";
 import { localeText } from "@/lib/i18n/locale-text";
 import type { LocationChatController } from "./useLocationChat";
 import type { GlobalTurnState } from "@/lib/campaign-types";
 import { WebMcpLocationTools } from "./WebMcpLocationTools";
+import { cn } from "@/lib/cn";
+import { ui } from "@/lib/ui";
 
 type Member = { userId: string; username: string };
 const field = "rounded border border-stone-700 bg-stone-950 px-2 py-1 text-sm text-stone-100";
-const button = "rounded border border-stone-600 px-3 py-1 text-sm hover:bg-stone-800 disabled:opacity-40";
+const button = cn(ui.btnSmall, "min-w-0");
 
 export function LocationChat({
   chat,
@@ -24,10 +26,18 @@ export function LocationChat({
   globalTurnEnabled?: boolean;
 }) {
   const { locale } = useI18n();
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const nearBottomRef = useRef(true);
+  const selectedRef = useRef(chat.selected);
+  useLayoutEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    if (selectedRef.current !== chat.selected || nearBottomRef.current) el.scrollTop = el.scrollHeight;
+    selectedRef.current = chat.selected;
+  }, [chat.selected, chat.page.messages]);
   const t = localeText(locale, {
-    en: { title: "Locations", locked: "Input locked while the MCP Dungeon Master is finishing the turn.", ooc: "OOC · everyone", archive: "Archive — you are not here. New messages are not available unless the DM grants perception.", live: "You are here", observing: "Perception granted", empty: "No messages you witnessed here yet.", send: "Send", say: "Say", do: "Do", narration: "Narrate", travel: "Go to", older: "Older", newest: "Latest", retry: "Retry unconfirmed command", controls: "DM location controls", create: "Create location", link: "Connect locations", move: "Move players", observe: "Grant perception", revoke: "Revoke", propagate: "Loud / visible incident", perceive: "Private perceived fragment", name: "Location name", source: "Source location", target: "Destination", players: "Players", walk: "Open passage", sound: "Sound can cross", sight: "Visible across boundary", speech: "Eavesdropping: future speech only", scry: "Magic: future scene", reason: "Adjudication / reason", seconds: "Duration in seconds", summary: "Only what the recipients perceive, not the private source conversation", apply: "Apply", who: "Present", noPosition: "Ask the DM to place your character. OOC is available.", draft: "Message", global: "OOC is global and does not advance the story.", bounded: "History contains only messages delivered to you. Entering does not unlock earlier visits or absence gaps.", stealth: "Stealth", stealthNotice: "Hidden action: only you see this until DM adjudication. Observers with high Passive Perception may notice.", stealthPending: "Stealth (Pending)", stealthConfirmed: "Stealth (Hidden)", stealthRevealed: "Revealed", stealthFailed: "Stealth Failed", perceptionBadge: "Perception", resolveStealth: "Resolve Stealth", outcome: "Outcome", confirmed: "Confirmed (Remains hidden)", revealed: "Revealed to all in room", failed: "Failed (Action aborted)", detectingPlayers: "Detecting players", perceivedFragment: "Perceived description for detectors", sense: "Sense" },
-    ru: { title: "Локации", locked: "Ввод закрыт, пока MCP-Мастер завершает ход.", ooc: "OOC · для всех", archive: "Архив — вас здесь нет. Новые сообщения недоступны без разрешённого ведущим восприятия.", live: "Вы здесь", observing: "Разрешено восприятие", empty: "Здесь пока нет сообщений, свидетелем которых вы были.", send: "Отправить", say: "Речь", do: "Действие", narration: "Повествование", travel: "Перейти", older: "Раньше", newest: "Последние", retry: "Повторить неподтверждённую команду", controls: "Управление локациями для ведущего", create: "Создать локацию", link: "Соединить локации", move: "Переместить игроков", observe: "Разрешить восприятие", revoke: "Отозвать", propagate: "Громкое / видимое событие", perceive: "Приватный фрагмент восприятия", name: "Название локации", source: "Исходная локация", target: "Куда", players: "Игроки", walk: "Открытый проход", sound: "Звук проходит", sight: "Есть видимость", speech: "Подслушивание: только будущая речь", scry: "Магия: будущие события сцены", reason: "Решение ведущего / причина", seconds: "Длительность в секундах", summary: "Только то, что воспринимают получатели, без приватного разговора внутри", apply: "Применить", who: "Присутствуют", noPosition: "Попросите ведущего разместить вашего персонажа. OOC доступен.", draft: "Сообщение", global: "OOC общий для всех и не продвигает сюжет.", bounded: "В истории только сообщения, доступные лично вам. Вход не открывает прошлые разговоры или пропущенные события.", stealth: "Скрытно", stealthNotice: "Скрытное действие: видите только вы до решения ведущего. Персонажи с высоким пассивным восприятием могут заметить.", stealthPending: "Скрытно (Ожидание)", stealthConfirmed: "Скрытно (Успех)", stealthRevealed: "Раскрыто", stealthFailed: "Провал скрытности", perceptionBadge: "Замечено", resolveStealth: "Разрешить скрытность", outcome: "Исход", confirmed: "Подтверждено (Скрыт)", revealed: "Раскрыто для всей комнаты", failed: "Провал (Действие сорвано)", detectingPlayers: "Заметившие игроки", perceivedFragment: "Что замечают наблюдатели", sense: "Чувство" },
-    pl: { title: "Lokacje", locked: "Wejście zablokowane, dopóki MCP MG kończy turę.", ooc: "OOC · wszyscy", archive: "Archiwum — nie ma cię tutaj. Nowe wiadomości wymagają percepcji przyznanej przez MG.", live: "Jesteś tutaj", observing: "Przyznana percepcja", empty: "Nie masz jeszcze wiadomości z tej lokacji.", send: "Wyślij", say: "Mowa", do: "Działanie", narration: "Narracja", travel: "Przejdź", older: "Starsze", newest: "Najnowsze", retry: "Ponów niepotwierdzone polecenie", controls: "Zarządzanie lokacjami MG", create: "Utwórz lokację", link: "Połącz lokacje", move: "Przenieś graczy", observe: "Przyznaj percepcję", revoke: "Cofnij", propagate: "Głośne / widoczne zdarzenie", perceive: "Prywatny fragment percepcji", name: "Nazwa lokacji", source: "Lokacja źródłowa", target: "Cel", players: "Gracze", walk: "Otwarte przejście", sound: "Dźwięk przenika", sight: "Widoczność przez granicę", speech: "Podsłuch: tylko przyszła mowa", scry: "Magia: przyszłe zdarzenia", reason: "Rozstrzygnięcie / powód", seconds: "Czas w sekundach", summary: "Tylko to, co odbiorcy postrzegają, bez prywatnej rozmowy", apply: "Zastosuj", who: "Obecni", noPosition: "Poproś MG o umieszczenie postaci. OOC jest dostępny.", draft: "Wiadomość", global: "OOC jest wspólny i nie rozwija fabuły.", bounded: "Historia zawiera tylko wiadomości dostępne tobie. Wejście nie ujawnia przeszłości ani przerw w obecności.", stealth: "Ukrycie", stealthNotice: "Działanie w ukryciu: widzisz tylko ty do rozstrzygnięcia przez MG. Postacie z wysoką Percepcją Pasywną mogą cię zauważyć.", stealthPending: "Ukrycie (Oczekuje)", stealthConfirmed: "Ukrycie (Udane)", stealthRevealed: "Ujawnione", stealthFailed: "Nieudane ukrycie", perceptionBadge: "Dostrzeżone", resolveStealth: "Rozstrzygnij ukrycie", outcome: "Wynik", confirmed: "Potwierdzone (Ukryty)", revealed: "Ujawnione dla wszystkich w pokoju", failed: "Niepowodzenie (Przerwane)", detectingPlayers: "Gracze, którzy dostrzegli", perceivedFragment: "Opis dla obserwatorów", sense: "Zmysł" },
+    en: { title: "Locations", locked: "Input locked while the MCP Dungeon Master is finishing the turn.", ooc: "OOC · everyone", archive: "Archive — you are not here. New messages are not available unless the DM grants perception.", live: "You are here", observing: "Perception granted", empty: "No messages you witnessed here yet.", send: "Send", say: "Say", do: "Do", narration: "Narrate", travel: "Go to", older: "Older", newest: "Latest", retry: "Retry unconfirmed command", controls: "DM location controls", create: "Create location", link: "Connect locations", move: "Move players", observe: "Grant perception", revoke: "Revoke", propagate: "Loud / visible incident", perceive: "Private perceived fragment", name: "Location name", source: "Source location", target: "Destination", players: "Players", walk: "Open passage", sound: "Sound can cross", sight: "Visible across boundary", speech: "Eavesdropping: future speech only", scry: "Magic: future scene", reason: "Adjudication / reason", seconds: "Duration in seconds", summary: "Only what the recipients perceive, not the private source conversation", apply: "Apply", who: "Present", noPosition: "Ask the DM to place your character. OOC is available.", draft: "Message", global: "OOC is global and does not advance the story.", bounded: "History contains only messages delivered to you. Entering does not unlock earlier visits or absence gaps.", stealth: "Stealth", stealthNotice: "Hidden action: only you see this until DM adjudication. Observers with high Passive Perception may notice.", stealthPending: "Stealth (Pending)", stealthConfirmed: "Stealth (Hidden)", stealthRevealed: "Revealed", stealthFailed: "Stealth Failed", perceptionBadge: "Perception", resolveStealth: "Resolve Stealth", outcome: "Outcome", confirmed: "Confirmed (Remains hidden)", revealed: "Revealed to all in room", failed: "Failed (Action aborted)", detectingPlayers: "Detecting players", perceivedFragment: "Perceived description for detectors", sense: "Sense", messageId: "Message ID (UUID)", both: "Both" },
+    ru: { title: "Локации", locked: "Ввод закрыт, пока MCP-Мастер завершает ход.", ooc: "Вне игры · для всех", archive: "Архив — вас здесь нет. Новые сообщения недоступны без разрешённого ведущим восприятия.", live: "Вы здесь", observing: "Разрешено восприятие", empty: "Здесь пока нет сообщений, свидетелем которых вы были.", send: "Отправить", say: "Речь", do: "Действие", narration: "Повествование", travel: "Перейти", older: "Раньше", newest: "Последние", retry: "Повторить неподтверждённую команду", controls: "Управление локациями для ведущего", create: "Создать локацию", link: "Соединить локации", move: "Переместить игроков", observe: "Разрешить восприятие", revoke: "Отозвать", propagate: "Громкое / видимое событие", perceive: "Приватный фрагмент восприятия", name: "Название локации", source: "Исходная локация", target: "Куда", players: "Игроки", walk: "Открытый проход", sound: "Звук проходит", sight: "Есть видимость", speech: "Подслушивание: только будущая речь", scry: "Магия: будущие события сцены", reason: "Решение ведущего / причина", seconds: "Длительность в секундах", summary: "Только то, что воспринимают получатели, без приватного разговора внутри", apply: "Применить", who: "Присутствуют", noPosition: "Попросите ведущего разместить вашего персонажа. Режим «Вне игры» доступен.", draft: "Сообщение", global: "Режим «Вне игры» общий для всех и не продвигает сюжет.", bounded: "В истории только сообщения, доступные лично вам. Вход не открывает прошлые разговоры или пропущенные события.", stealth: "Скрытно", stealthNotice: "Скрытное действие: видите только вы до решения ведущего. Персонажи с высоким пассивным восприятием могут заметить.", stealthPending: "Скрытно (Ожидание)", stealthConfirmed: "Скрытно (Успех)", stealthRevealed: "Раскрыто", stealthFailed: "Провал скрытности", perceptionBadge: "Замечено", resolveStealth: "Разрешить скрытность", outcome: "Исход", confirmed: "Подтверждено (Скрыт)", revealed: "Раскрыто для всей комнаты", failed: "Провал (Действие сорвано)", detectingPlayers: "Заметившие игроки", perceivedFragment: "Что замечают наблюдатели", sense: "Чувство", messageId: "Идентификатор сообщения (UUID)", both: "Оба" },
   });
   const [content, setContent] = useState("");
   const [kind, setKind] = useState("say");
@@ -98,9 +108,9 @@ export function LocationChat({
     </select></label>
   );
   return <><>{webMcp}</><section data-testid="location-chat" className="flex min-h-0 flex-1 flex-col gap-2 p-3 text-stone-200" aria-label={t.title}>
-    <nav className="flex flex-wrap gap-1" aria-label={t.title}>
-      <button type="button" className={button} aria-pressed={ooc} onClick={() => chat.select("ooc")}>{t.ooc}</button>
-      {view.rooms.map(room => <button data-testid={`location-room-${room.id}`} type="button" key={room.id} className={button} aria-pressed={chat.selected === room.id}
+    <nav className="flex flex-wrap gap-2" aria-label={t.title}>
+      <button type="button" className={cn(button, ooc && "border-amber-500/50 bg-amber-500/15 text-amber-100")} aria-pressed={ooc} onClick={() => chat.select("ooc")}>{t.ooc}</button>
+      {view.rooms.map(room => <button data-testid={`location-room-${room.id}`} type="button" key={room.id} className={cn(button, chat.selected === room.id && "border-amber-500/50 bg-amber-500/15 text-amber-100")} aria-pressed={chat.selected === room.id}
         onClick={() => chat.select(room.id)}>{room.active ? "● " : ""}{room.name}</button>)}
     </nav>
     <p className="text-xs text-stone-400">
@@ -122,7 +132,7 @@ export function LocationChat({
       onClick={async () => { if (await chat.command({ operation: "move", roomId: exit.id, expectedRevision: view.current?.revision })) chat.select(exit.id); }}>{t.travel}: {exit.name}</button>)}</div> : null}
     {chat.error ? <p role="alert" className="text-sm text-red-300">{chat.error}</p> : null}
     {chat.pending ? <button type="button" className={button} disabled={chat.busy} onClick={() => void chat.retry()}>{t.retry}</button> : null}
-    <div className="min-h-36 flex-1 space-y-3 overflow-y-auto rounded border border-stone-800 p-3" aria-label={selected?.name ?? t.ooc}>
+    <div ref={scrollRef} onScroll={event => { const el = event.currentTarget; nearBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 120; }} className="min-h-36 flex-1 space-y-3 overflow-y-auto rounded border border-stone-800 p-3" aria-label={selected?.name ?? t.ooc}>
       <div className="flex gap-2">{chat.page.nextBefore ? <button type="button" className={button} onClick={chat.older}>{t.older}</button> : null}
         {chat.showingOlder ? <button type="button" className={button} onClick={chat.newest}>{t.newest}</button> : null}</div>
       {!chat.page.messages.length ? <p className="text-sm text-stone-500">{t.empty}</p> : null}
@@ -208,16 +218,16 @@ export function LocationChat({
           <input className={field} aria-label={t.reason} placeholder={t.reason} value={reason} onChange={event => setReason(event.target.value)} maxLength={500} required />
         </> : null}
         {operation === "stealth_resolve" ? <>
-          <input className={field} aria-label="Message ID" placeholder="Message ID (UUID)" value={stealthMsgId} onChange={event => setStealthMsgId(event.target.value)} required />
+          <input className={field} aria-label={t.messageId} placeholder={t.messageId} value={stealthMsgId} onChange={event => setStealthMsgId(event.target.value)} required />
           <select className={field} value={outcome} onChange={event => setOutcome(event.target.value)} aria-label={t.outcome}>
             <option value="confirmed">{t.confirmed}</option>
             <option value="revealed">{t.revealed}</option>
             <option value="failed">{t.failed}</option>
           </select>
           <select className={field} value={sense} onChange={event => setSense(event.target.value)} aria-label={t.sense}>
-            <option value="sight">Sight</option>
-            <option value="sound">Sound</option>
-            <option value="both">Both</option>
+            <option value="sight">{t.sight}</option>
+            <option value="sound">{t.sound}</option>
+            <option value="both">{t.both}</option>
           </select>
           <textarea className={field} aria-label={t.perceivedFragment} placeholder={t.perceivedFragment} value={perceivedText} onChange={event => setPerceivedText(event.target.value)} maxLength={2000} />
         </> : null}

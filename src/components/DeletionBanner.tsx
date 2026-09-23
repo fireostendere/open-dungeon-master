@@ -20,12 +20,6 @@ const COPY = {
       `Этот аккаунт будет удалён ${when}. Вместе с ним удалится всё, чем он владеет.`,
     keep: "Сохранить аккаунт",
   },
-  pl: {
-    serverError: "Nie udało się połączyć z serwerem. Spróbuj ponownie w ustawieniach konta.",
-    scheduled: (when: string) =>
-      `To konto zostanie usunięte ${when}. Wraz z nim zostanie usunięte wszystko, co do niego należy.`,
-    keep: "Zachowaj moje konto",
-  },
 } as const;
 
 // The notice every page shows while the account is scheduled for deletion

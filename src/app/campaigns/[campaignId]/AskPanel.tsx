@@ -63,32 +63,6 @@ const COPY = {
     placeholder: "Спросите Мастера о сюжете, мире, правилах или своём листе",
     ask: "Спросить",
   },
-  pl: {
-    scopes: { story: "Fabuła", rules: "Zasady", sheet: "Karta" },
-    pickerScopes: { auto: "Auto", story: "Fabuła", rules: "Zasady", sheet: "Moja karta" },
-    sharedMine: "Udostępniono całemu stołowi",
-    sharedOther: "Pytanie od stołu",
-    onlyYou: "Tylko ty",
-    answerFailedOne: "Mistrz Gry nie mógł odpowiedzieć na to pytanie.",
-    fromRecord: "Z zapisu",
-    answerFailed: "Mistrz Gry nie mógł odpowiedzieć.",
-    serverFailed: "Nie udało się połączyć z serwerem.",
-    title: "Zapytaj Mistrza Gry",
-    explainer:
-      "Pytania o fabułę, świat, zasady lub twoją kartę. Odpowiedzi opierają się na zapisie kampanii i nigdy nie przesuwają fabuły do przodu.",
-    loading: "Ładowanie...",
-    empty: "Nie zadano jeszcze żadnego pytania. Zadaj pytanie Mistrzowi Gry poniżej.",
-    checking: "Sprawdzanie zapisu (w kolejce za Mistrzem Gry)...",
-    about: "O czym",
-    seenBy: "Widoczne dla",
-    privateTip: "Tylko ty widzisz pytanie i odpowiedź.",
-    tableTip: "Cały stół widzi pytanie i odpowiedź.",
-    justMe: "Tylko ja",
-    table: "Cały stół",
-    noStoryMove: "Fabuła się nie przesuwa.",
-    placeholder: "Zapytaj Mistrza Gry o fabułę, świat, zasady lub swoją kartę",
-    ask: "Zapytaj",
-  },
 } as const;
 
 // The Ask thread: out-of-character questions to the DM and their grounded

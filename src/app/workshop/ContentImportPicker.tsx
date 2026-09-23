@@ -73,35 +73,6 @@ const COPY = {
     emptyWorkshop: "Эта мастерская пока пуста. Сначала подготовьте в ней материалы.",
     emptyCampaign: "В этой кампании пока нет подготовки, которую можно скопировать.",
   },
-  pl: {
-    kindLabels: {
-      lore: "Lore świata",
-      locations: "Miejsca",
-      overworld: "Mapa regionu",
-      encounters: "Przygotowane starcia",
-      tables: "Tabele rzutów",
-      npcs: "NPC",
-      maps: "Mapy walki",
-      storyboard: "Plan fabuły",
-      houseRules: "Zasady domowe i wariantowe",
-    },
-    importFailed: "Nie udało się zaimportować.",
-    brought: (count: number) => `Przeniesiono elementów: ${count}.`,
-    empty:
-      "Nie masz jeszcze skąd kopiować przygotowania. Zbuduj mapy, lore i starcia w Warsztacie albo poprowadź inną kampanię, a potem przenieś materiały tutaj.",
-    startFrom: "Źródło",
-    none: "Brak",
-    workshops: "Warsztaty",
-    campaigns: "Kampanie",
-    existingRules: "Istniejące zasady domowe",
-    replace: "Zastąp je",
-    append: "Zachowaj je i dodaj nowe",
-    bring: "Importuj",
-    creationHelp:
-      "Materiały trafią do kampanii zaraz po jej utworzeniu. Nic nie zostanie usunięte ze źródła.",
-    emptyWorkshop: "Ten warsztat jest jeszcze pusty. Najpierw przygotuj w nim materiały.",
-    emptyCampaign: "Ta kampania nie ma jeszcze przygotowania, które można skopiować.",
-  },
 } as const;
 
 // Choosing what crosses over into a table.
@@ -152,26 +123,7 @@ function localizeWarning(warning: ImportWarning, locale: Locale): string {
       return `Совпадений по имени: ${count}. Такие записи будут автоматически пронумерованы при импорте.`;
     }
   }
-  if (locale === "pl") {
-    if (warning.kind === "houseRules") {
-      return "Kampania ma już zasady domowe. Import je zastąpi, chyba że wybierzesz dołączenie nowych.";
-    }
-    if (warning.kind === "storyboard") {
-      return "Kampania ma już główny wątek. Miejsca, zadania, walki i notatki z planu fabuły zostaną przeniesione, ale jego punkty nie nadpiszą szkieletu historii, który stół już rozgrywa.";
-    }
-    if (warning.kind === "overworld" && warning.message.includes("already has a region map")) {
-      return "Kampania ma już mapę regionu. Import ją zastąpi.";
-    }
-    if (warning.kind === "overworld" && warning.message.includes("Places are not included")) {
-      return "Miejsca nie zostały wybrane do importu, więc mapa regionu trafi bez znaczników. Zostaną ponownie rozmieszczone podczas podróży drużyny.";
-    }
-    if (warning.kind === "encounters" && warning.message.includes("hand-built monsters")) {
-      return `${count || "Niektóre"} przygotowanych starć odwołuje się do własnych potworów. Pozostają one w bestiariuszu ich twórcy i poprawnie działają tylko wtedy, gdy właścicielem kampanii jest ten sam użytkownik.`;
-    }
-    if (count) {
-      return `Liczba kolizji nazw: ${count}. Takie wpisy zostaną automatycznie ponumerowane podczas importu.`;
-    }
-  }
+
   return warning.message;
 }
 

@@ -47,16 +47,6 @@ export function ClosingMessageModal({
       replayFireworks: "Запустить салют из кубов и фейерверков",
       close: "Закрыть и смотреть стол",
     },
-    pl: {
-      title: "Zamykające przesłanie Mistrza Gry",
-      subtitle: "Przygoda dotarła do swojego wielkiego finału",
-      fallbackProse:
-        "Opadają bitewne pyły, a echo tryumfu rozbrzmiewa w całym królestwie. Bohaterowie stawili czoła niewypowiedzianym niebezpieczeństwom i wyryli swoje imiona w legendach. Ich czyny będą opiewane przez pokolenia.",
-      partyTitle: "Bohaterowie królestwa",
-      level: "Poziom",
-      replayFireworks: "Wystrzel salwę kości i fajerwerków",
-      close: "Zamknij i zobacz stół",
-    },
   });
 
   const content = message?.content?.trim() || copy.fallbackProse;

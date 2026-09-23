@@ -9,7 +9,6 @@ export function HomeFooter() {
   const licenses = localeText(locale, {
     en: "Licenses and attribution",
     ru: "Лицензии и авторство",
-    pl: "Licencje i informacje o autorach",
   });
   return (
     <footer className="mt-12 flex flex-wrap items-center justify-center gap-4 border-t border-stone-900 pt-4">

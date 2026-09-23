@@ -79,15 +79,6 @@ export function DmStoryboardPanel({
       leads: "ведёт к",
       card: "Карточка", titleExample: "Дочь мельника не вернулась домой", compiled: (lines: string) => `После импорта в кампанию эта доска станет: ${lines}.`, nothingCompiled: "Пока ничего. Карточки превратятся в лор, задания, подготовленные встречи, заметки мастера и сюжетную арку.",
     },
-    pl: {
-      failed: "Nie udało się wykonać działania.",
-      empty:
-        "Na planszy nic jeszcze nie ma. Zacznij od powodu, dla którego drużyna gdzieś pójdzie.",
-      delete: "Usuń",
-      becomes: "W co to się zmieni",
-      leads: "prowadzi do",
-      card: "Karta", titleExample: "Córka młynarza nie wróciła do domu", compiled: (lines: string) => `Po zaimportowaniu do kampanii plansza stanie się: ${lines}.`, nothingCompiled: "Jeszcze nic. Karty staną się lore, zadaniami, przygotowanymi spotkaniami, notatkami mistrza i osią fabuły.",
-    },
   });
   const [data, setData] = useState<Payload | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);

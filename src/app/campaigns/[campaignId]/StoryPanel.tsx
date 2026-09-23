@@ -33,7 +33,6 @@ function ConfirmRewindDialog({
   const copy = localeText(locale, {
     en: { title: "Rewind to Chapter {chapter}?", warning: "The story returns to the start of Chapter {chapter}. Sheets, NPCs, facts, and the world roll back with it. This cannot be undone.", cancel: "Cancel", rewind: "Rewind" },
     ru: { title: "Вернуться к главе {chapter}?", warning: "История вернётся к началу главы {chapter}. Листы персонажей, NPC, факты и мир откатятся вместе с ней. Это нельзя отменить.", cancel: "Отмена", rewind: "Вернуться" },
-    pl: { title: "Cofnąć do rozdziału {chapter}?", warning: "Historia wróci do początku rozdziału {chapter}. Karty postaci, NPC, fakty i świat cofną się wraz z nią. Tego nie można cofnąć.", cancel: "Anuluj", rewind: "Cofnij" },
   });
   return (
     <AlertDialog.Root open onOpenChange={(open) => !open && onCancel()}>
@@ -88,7 +87,6 @@ function ChapterCard({
   const copy = localeText(locale, {
     en: { chapter: "Chapter", noSummary: "No summary recorded.", edit: "Edit", rewindTitle: "Rewind the whole campaign to the start of this chapter", rewind: "Rewind to start", save: "Save", cancel: "Cancel" },
     ru: { chapter: "Глава", noSummary: "Итог ещё не записан.", edit: "Редактировать", rewindTitle: "Откатить всю кампанию к началу этой главы", rewind: "Вернуться к началу", save: "Сохранить", cancel: "Отмена" },
-    pl: { chapter: "Rozdział", noSummary: "Nie zapisano podsumowania.", edit: "Edytuj", rewindTitle: "Cofnij całą kampanię do początku tego rozdziału", rewind: "Cofnij do początku", save: "Zapisz", cancel: "Anuluj" },
   });
   const [expanded, setExpanded] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -256,7 +254,6 @@ function ArcCard({ campaignId }: { campaignId: string }) {
   const copy = localeText(locale, {
     en: { editFailed: "That edit did not go through.", arc: "DM story arc (secret)", loading: "Loading...", saga: "Saga", sequel: "sequel", act: "act", of: "of", stakes: "Stakes:", antagonist: "Antagonist:", now: "(now)", skipped: "(skipped)", play: "Make this the beat in play", up: "Move up", down: "Move down", reword: "Reword this beat", skip: "Skip this beat", happens: "What happens in this beat", ahead: "Acts ahead (sketches)", cast: "Recurring cast", wants: "wants:", events: "Planned events (may never fire)", when: "when", threads: "Open threads", previous: "Previous sagas", emptyPlot: "No story arc yet. It is written when the adventure begins, or generate one now.", empty: "No story arc yet.", regenerateTitle: "Discard the current arc and have the DM plot a fresh one from the premise", plotting: "Plotting a new arc...", regenerate: "Generate story arc" },
     ru: { editFailed: "Не удалось изменить этот этап.", arc: "Арка истории мастера (секрет)", loading: "Загрузка...", saga: "Сага", sequel: "продолжение", act: "акт", of: "из", stakes: "Ставки:", antagonist: "Антагонист:", now: "(сейчас)", skipped: "(пропущено)", play: "Сделать текущим этапом", up: "Переместить выше", down: "Переместить ниже", reword: "Изменить формулировку этапа", skip: "Пропустить этап", happens: "Что происходит на этом этапе", ahead: "Будущие акты (наброски)", cast: "Постоянные NPC", wants: "хочет:", events: "Запланированные события (могут не произойти)", when: "когда", threads: "Открытые нити", previous: "Предыдущие саги", emptyPlot: "Арки истории пока нет. Она будет написана с началом приключения или сгенерирована сейчас.", empty: "Арки истории пока нет.", regenerateTitle: "Отбросить текущую арку и поручить мастеру построить новую из завязки", plotting: "Строим новую арку...", regenerate: "Создать арку истории" },
-    pl: { editFailed: "Ta zmiana nie przeszła.", arc: "Łuk historii MG (sekret)", loading: "Ładowanie...", saga: "Saga", sequel: "kontynuacja", act: "akt", of: "z", stakes: "Stawka:", antagonist: "Antagonista:", now: "(teraz)", skipped: "(pominięto)", play: "Uczyń to aktualnym punktem", up: "Przesuń w górę", down: "Przesuń w dół", reword: "Zmień opis punktu", skip: "Pomiń punkt", happens: "Co dzieje się w tym punkcie", ahead: "Przyszłe akty (szkice)", cast: "Powracające postacie", wants: "chce:", events: "Planowane wydarzenia (mogą nigdy nie nastąpić)", when: "gdy", threads: "Otwarte wątki", previous: "Poprzednie sagi", emptyPlot: "Nie ma jeszcze łuku historii. Zostanie napisany wraz z początkiem przygody albo wygeneruj go teraz.", empty: "Nie ma jeszcze łuku historii.", regenerateTitle: "Odrzuć bieżący łuk i zleć MG ułożenie nowego z założenia", plotting: "Układanie nowego łuku...", regenerate: "Wygeneruj łuk historii" },
   });
   const [expanded, setExpanded] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -696,7 +693,6 @@ export function StoryPanel({
   const copy = localeText(locale, {
     en: { notBegun: "The story has not begun. Chapters appear here as the adventure unfolds.", progress: "Chapter {chapter} in progress", seal: "Seal this chapter; the DM writes its title and summary", writing: "Writing the chapter...", close: "Close chapter", restartTitle: "Discard this chapter's progress and return to how it began", restart: "Restart this chapter" },
     ru: { notBegun: "История ещё не началась. Главы появятся здесь по мере развития приключения.", progress: "Глава {chapter} в процессе", seal: "Завершить главу; мастер напишет её название и итог", writing: "Мастер пишет главу...", close: "Завершить главу", restartTitle: "Отменить прогресс этой главы и вернуться к её началу", restart: "Начать эту главу заново" },
-    pl: { notBegun: "Historia jeszcze się nie zaczęła. Rozdziały pojawią się tu w miarę rozwoju przygody.", progress: "Rozdział {chapter} w toku", seal: "Zamknij ten rozdział; MG napisze jego tytuł i podsumowanie", writing: "MG pisze rozdział...", close: "Zamknij rozdział", restartTitle: "Odrzuć postęp tego rozdziału i wróć do jego początku", restart: "Rozpocznij ten rozdział od nowa" },
   });
   const [closing, setClosing] = useState(false);
   const [rewindable, setRewindable] = useState<number[]>([]);

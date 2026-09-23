@@ -28,12 +28,11 @@ export async function POST(request: Request, { params }: { params: Promise<{ cam
   const question = clampQuestion(parsed.data.question);
   const scope = parsed.data.scope === "auto" ? inferScope(question) : parsed.data.scope;
   const sheet = getSheetForUser(campaignId, user.id);
-  const language = /(?:^|;\s*)odm_locale=(ru|en|pl)(?:;|$)/.exec(request.headers.get("cookie") ?? "")?.[1]
+  const language = /(?:^|;\s*)odm_locale=(ru|en)(?:;|$)/.exec(request.headers.get("cookie") ?? "")?.[1]
     ?? campaign.gameSettings.language ?? "ru";
   const acknowledgement: Record<string, string> = {
     en: "Your question has been sent to the Dungeon Master…",
     ru: "Вопрос передан Мастеру стола…",
-    pl: "Pytanie zostało przekazane Mistrzowi Gry…",
   };
 
   try {

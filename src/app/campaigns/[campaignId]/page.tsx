@@ -18,12 +18,12 @@ export default function CampaignPage({
   const copy = localeText(locale, {
     en: { missing: "Campaign not found.", answered: "Answered by {name}", back: "Back to campaigns" },
     ru: { missing: "Кампания не найдена.", answered: "Ответил: {name}", back: "К кампаниям" },
-    pl: { missing: "Nie znaleziono kampanii.", answered: "Odpowiedział(a): {name}", back: "Wróć do kampanii" },
   });
   const { campaignId } = use(params);
   const {
     state,
     refresh,
+    loadOlderMessages,
     refreshNotes,
     refreshSideChat,
     refreshWhispers,
@@ -59,6 +59,7 @@ export default function CampaignPage({
   ) : (
     <SessionView
       state={state}
+      loadOlderMessages={loadOlderMessages}
       refreshNotes={refreshNotes}
       refreshFacts={refreshFacts}
       refreshSideChat={refreshSideChat}

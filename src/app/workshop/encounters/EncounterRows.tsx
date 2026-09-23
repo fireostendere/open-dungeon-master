@@ -61,7 +61,7 @@ function toneFor(verdict: string) {
 
 export function DifficultyPill({ readout }: { readout: TemplateReadout }) {
   const { locale } = useI18n();
-  const copy = localeText(locale, { en: { unknown: "unknown monster", trivial: "trivial", easy: "easy", medium: "medium", hard: "hard", deadly: "deadly", beyond: "beyond deadly" }, ru: { unknown: "неизвестный монстр", trivial: "ничтожная", easy: "лёгкая", medium: "средняя", hard: "тяжёлая", deadly: "смертельная", beyond: "запредельно смертельная" }, pl: { unknown: "nieznany potwór", trivial: "błaha", easy: "łatwa", medium: "średnia", hard: "trudna", deadly: "zabójcza", beyond: "ponad zabójcza" } });
+  const copy = localeText(locale, { en: { unknown: "unknown monster", trivial: "trivial", easy: "easy", medium: "medium", hard: "hard", deadly: "deadly", beyond: "beyond deadly" }, ru: { unknown: "неизвестный монстр", trivial: "ничтожная", easy: "лёгкая", medium: "средняя", hard: "тяжёлая", deadly: "смертельная", beyond: "запредельно смертельная" } });
   const verdict = readout.verdict.replace(/ for this party$/, "");
   const display = (verdict === "beyond deadly" ? copy.beyond : copy[verdict as "trivial" | "easy" | "medium" | "hard" | "deadly"]) ?? verdict;
   if (readout.unknownMonster) {
@@ -91,7 +91,7 @@ export function BudgetBar({
   thresholds: Thresholds | null;
 }) {
   const { locale } = useI18n();
-  const copy = localeText(locale, { en: { cannot: "Nothing in this world is called", costed: "so this cannot be costed.", adjusted: "adjusted XP against a", ceiling: "ceiling", creature: "creature", creatures: "creatures", against: "XP against a", easy: "Easy", medium: "medium", hard: "hard", deadly: "deadly", refuse: "The engine will refuse this as written." }, ru: { cannot: "В этом мире нет существа с именем", costed: "поэтому оценить его нельзя.", adjusted: "скорректированный опыт против лимита", ceiling: "лимит", creature: "существо", creatures: "существ", against: "ОП против лимита", easy: "Лёгкая", medium: "средняя", hard: "тяжёлая", deadly: "смертельная", refuse: "Движок отклонит встречу в таком виде." }, pl: { cannot: "W tym świecie nie ma stworzenia o nazwie", costed: "więc nie można go wycenić.", adjusted: "skorygowane PD wobec limitu", ceiling: "limit", creature: "stworzenie", creatures: "stworzeń", against: "PD wobec limitu", easy: "Łatwa", medium: "średnia", hard: "trudna", deadly: "zabójcza", refuse: "Silnik odrzuci spotkanie w tej postaci." } });
+  const copy = localeText(locale, { en: { cannot: "Nothing in this world is called", costed: "so this cannot be costed.", adjusted: "adjusted XP against a", ceiling: "ceiling", creature: "creature", creatures: "creatures", against: "XP against a", easy: "Easy", medium: "medium", hard: "hard", deadly: "deadly", refuse: "The engine will refuse this as written." }, ru: { cannot: "В этом мире нет существа с именем", costed: "поэтому оценить его нельзя.", adjusted: "скорректированный опыт против лимита", ceiling: "лимит", creature: "существо", creatures: "существ", against: "ОП против лимита", easy: "Лёгкая", medium: "средняя", hard: "тяжёлая", deadly: "смертельная", refuse: "Движок отклонит встречу в таком виде." } });
   if (readout.unknownMonster) {
     return (
       <p className="text-[11px] text-red-400">
@@ -163,7 +163,7 @@ export function EncounterRows({
   onDelete: (encounter: PreparedEncounter) => void;
 }) {
   const { locale } = useI18n();
-  const copy = localeText(locale, { en: { forgotten: "a map no longer in the drawer", generator: "Generator's choice", on: "On", deploy: "Deploy", duplicate: "Duplicate", delete: "Delete", new: "New encounter", empty: "Nothing prepared. Write a roster and it is one button at the table." }, ru: { forgotten: "карта, которой больше нет в хранилище", generator: "Выбор генератора", on: "На", deploy: "Развернуть", duplicate: "Дублировать", delete: "Удалить", new: "Новая встреча", empty: "Пока ничего не подготовлено. Заполните состав — и на столе останется одна кнопка." }, pl: { forgotten: "mapa, której nie ma już w szufladzie", generator: "Wybór generatora", on: "Na", deploy: "Rozstaw", duplicate: "Duplikuj", delete: "Usuń", new: "Nowe spotkanie", empty: "Nic nie przygotowano. Wpisz skład, a przy stole będzie jeden przycisk." } });
+  const copy = localeText(locale, { en: { forgotten: "a map no longer in the drawer", generator: "Generator's choice", on: "On", deploy: "Deploy", duplicate: "Duplicate", delete: "Delete", new: "New encounter", empty: "Nothing prepared. Write a roster and it is one button at the table." }, ru: { forgotten: "карта, которой больше нет в хранилище", generator: "Выбор генератора", on: "На", deploy: "Развернуть", duplicate: "Дублировать", delete: "Удалить", new: "Новая встреча", empty: "Пока ничего не подготовлено. Заполните состав — и на столе останется одна кнопка." } });
   // A linked map that has since been forgotten still says so, rather than
   // silently reading as the generator's choice, because deploy will fall
   // back to the generator and the DM should know before the table does.

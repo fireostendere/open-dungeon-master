@@ -6,6 +6,33 @@ import type { CharacterSheet } from "@/lib/schemas/sheet";
 import type { PendingRoll } from "@/app/campaigns/[campaignId]/useCampaignStream";
 import { cn } from "@/lib/cn";
 import { playBg3Sound } from "@/lib/dice/bg3-audio";
+import { useI18n } from "@/lib/i18n";
+
+const DICE_COPY = {
+  en: {
+    ability: "Ability", dexterity: "Dexterity", strength: "Strength", wisdom: "Wisdom", charisma: "Charisma", intelligence: "Intelligence",
+    modifier: "Modifier", proficiency: "Proficiency bonus", penalty: "Penalty / hindrance", die: "Die", dieBonus: "1d4 bonus",
+    guidance: "Guidance", bless: "Bless", bardic: "Bardic Inspiration", hero: "Hero",
+    inspirationAction: "*{name} spends an Inspiration point and rerolls the die!*", rollAlert: "🔔 [YOUR ROLL!] Make your check...",
+    dc: "DIFFICULTY CLASS", attack: "ATTACK ROLL", save: "SAVING THROW", check: "CHECK", rollTime: "Time to roll:", seconds: "sec",
+    advantage: "Advantage (2d20)", disadvantage: "Disadvantage (2d20)", tapDie: "Click the die to roll", dieResult: "🎲 Die result (d20)",
+    total: "TOTAL:", noBonus: "A straight roll without modifiers", fate: "Fate decides...", rollDie: "ROLL THE DIE", tap3d: "or click the 3D die",
+    criticalSuccess: "★ CRITICAL SUCCESS! ★", criticalFailure: "☠ CRITICAL FAILURE! ☠", success: "SUCCESS!", failure: "FAILURE!",
+    reroll: "REROLL WITH INSPIRATION", remaining: "Remaining:", dismiss: "Click anywhere to close",
+  },
+  ru: {
+    ability: "Характеристика", dexterity: "Ловкость", strength: "Сила", wisdom: "Мудрость", charisma: "Харизма", intelligence: "Интеллект",
+    modifier: "Модификатор", proficiency: "Бонус мастерства", penalty: "Штраф / помеха", die: "Кубик", dieBonus: "Бонус 1d4",
+    guidance: "Заклинание «Наставление»", bless: "Заклинание «Благословение»", bardic: "Вдохновение барда", hero: "Герой",
+    inspirationAction: "*{name} тратит очко Вдохновения и перебрасывает кубик!*", rollAlert: "🔔 [ВАШ БРОСОК!] Сделайте проверку...",
+    dc: "КЛАСС СЛОЖНОСТИ", attack: "БРОСОК АТАКИ", save: "СПАСБРОСОК", check: "ПРОВЕРКА", rollTime: "Время на бросок:", seconds: "сек",
+    advantage: "Преимущество (2d20)", disadvantage: "Помеха (2d20)", tapDie: "Нажмите на кубик, чтобы бросить", dieResult: "🎲 Результат кубика (d20)",
+    total: "ИТОГ:", noBonus: "Чистый бросок без дополнительных модификаторов", fate: "Судьба решает...", rollDie: "БРОСИТЬ КУБИК", tap3d: "или нажмите прямо на 3D кубик",
+    criticalSuccess: "★ КРИТИЧЕСКИЙ УСПЕХ! ★", criticalFailure: "☠ КРИТИЧЕСКИЙ ПРОВАЛ! ☠", success: "УСПЕХ!", failure: "НЕУДАЧА!",
+    reroll: "ПЕРЕБРОСИТЬ ЗА ВДОХНОВЕНИЕ", remaining: "Осталось:", dismiss: "Нажмите в любое место, чтобы закрыть",
+  },
+} as const;
+type DiceCopy = { [K in keyof typeof DICE_COPY.en]: string };
 
 // --- 3D D20 (Icosahedron) Math ---
 const PHI = (1 + Math.sqrt(5)) / 2;
@@ -158,23 +185,24 @@ function extractPendingBonuses(
   expression: string,
   kind: string,
   detail: string,
-  sheet?: CharacterSheet
+  sheet: CharacterSheet | undefined,
+  copy: DiceCopy,
 ): { bonuses: ItemizedBonus[]; flatMod: number } {
   const list: ItemizedBonus[] = [];
   let flatMod = 0;
 
   const detailLower = (detail || "").toLowerCase();
-  let abilityName = "Характеристика";
+  let abilityName = copy.ability;
   if (detailLower.includes("stealth") || detailLower.includes("acrobatics") || detailLower.includes("sleight")) {
-    abilityName = "Ловкость";
+    abilityName = copy.dexterity;
   } else if (detailLower.includes("athletics")) {
-    abilityName = "Сила";
+    abilityName = copy.strength;
   } else if (detailLower.includes("perception") || detailLower.includes("insight") || detailLower.includes("survival") || detailLower.includes("medicine")) {
-    abilityName = "Мудрость";
+    abilityName = copy.wisdom;
   } else if (detailLower.includes("persuasion") || detailLower.includes("deception") || detailLower.includes("intimidation") || detailLower.includes("performance")) {
-    abilityName = "Харизма";
+    abilityName = copy.charisma;
   } else if (detailLower.includes("arcana") || detailLower.includes("history") || detailLower.includes("investigation") || detailLower.includes("nature") || detailLower.includes("religion")) {
-    abilityName = "Интеллект";
+    abilityName = copy.intelligence;
   }
 
   const modMatch = /([+-]\s*\d+)$/.exec(expression.replaceAll(" ", ""));
@@ -183,18 +211,18 @@ function extractPendingBonuses(
     if (sheet && sheet.level) {
       const pb = Math.floor((sheet.level - 1) / 4) + 2;
       if (flatMod >= pb && (kind === "skill_check" || kind === "saving_throw")) {
-        list.push({ name: `Модификатор (${abilityName})`, val: flatMod - pb, icon: "🔹" });
-        list.push({ name: "Бонус мастерства", val: pb, icon: "⚔" });
+        list.push({ name: `${copy.modifier} (${abilityName})`, val: flatMod - pb, icon: "🔹" });
+        list.push({ name: copy.proficiency, val: pb, icon: "⚔" });
       } else {
         list.push({
-          name: flatMod >= 0 ? `Модификатор (${abilityName})` : "Штраф / помеха",
+          name: flatMod >= 0 ? `${copy.modifier} (${abilityName})` : copy.penalty,
           val: flatMod,
           icon: "🔹",
         });
       }
     } else {
       list.push({
-        name: flatMod >= 0 ? `Модификатор (${abilityName})` : "Штраф / помеха",
+        name: flatMod >= 0 ? `${copy.modifier} (${abilityName})` : copy.penalty,
         val: flatMod,
         icon: "🔹",
       });
@@ -202,13 +230,13 @@ function extractPendingBonuses(
   }
 
   if (sheet?.conditions?.some((c) => c.toLowerCase().includes("guidance"))) {
-    list.push({ name: "Заклинание «Наставление»", val: 0, icon: "🙏", diceLabel: "+1d4" });
+    list.push({ name: copy.guidance, val: 0, icon: "🙏", diceLabel: "+1d4" });
   }
   if (sheet?.conditions?.some((c) => c.toLowerCase().includes("bless"))) {
-    list.push({ name: "Заклинание «Благословение»", val: 0, icon: "✨", diceLabel: "+1d4" });
+    list.push({ name: copy.bless, val: 0, icon: "✨", diceLabel: "+1d4" });
   }
   if (sheet?.conditions?.some((c) => c.toLowerCase().includes("bardic inspiration"))) {
-    list.push({ name: "Вдохновение барда", val: 0, icon: "🎵", diceLabel: "+1d6" });
+    list.push({ name: copy.bardic, val: 0, icon: "🎵", diceLabel: "+1d6" });
   }
 
   return { bonuses: list, flatMod };
@@ -231,6 +259,8 @@ export function Bg3DiceOverlay({
   enabled?: boolean;
   onDismiss?: () => void;
 }) {
+  const { locale } = useI18n();
+  const copy: DiceCopy = DICE_COPY[locale];
   const [activePending, setActivePending] = useState<PendingRoll | null>(null);
   const [activeRoll, setActiveRoll] = useState<Bg3RollData | null>(null);
   const [phase, setPhase] = useState<"idle" | "prompt" | "rolling" | "landed" | "verdict">("idle");
@@ -294,28 +324,28 @@ export function Bg3DiceOverlay({
     const list: ItemizedBonus[] = [];
 
     const detailLower = (roll.detail || "").toLowerCase();
-    let abilityName = "Характеристика";
+    let abilityName = copy.ability;
     if (detailLower.includes("stealth") || detailLower.includes("acrobatics") || detailLower.includes("sleight")) {
-      abilityName = "Ловкость";
+      abilityName = copy.dexterity;
     } else if (detailLower.includes("athletics")) {
-      abilityName = "Сила";
+      abilityName = copy.strength;
     } else if (detailLower.includes("perception") || detailLower.includes("insight") || detailLower.includes("survival") || detailLower.includes("medicine")) {
-      abilityName = "Мудрость";
+      abilityName = copy.wisdom;
     } else if (detailLower.includes("persuasion") || detailLower.includes("deception") || detailLower.includes("intimidation") || detailLower.includes("performance")) {
-      abilityName = "Харизма";
+      abilityName = copy.charisma;
     } else if (detailLower.includes("arcana") || detailLower.includes("history") || detailLower.includes("investigation") || detailLower.includes("nature") || detailLower.includes("religion")) {
-      abilityName = "Интеллект";
+      abilityName = copy.intelligence;
     }
 
     for (const term of roll.breakdown.terms) {
       if (term.kind === "dice" && term.sides !== 20) {
-        let name = `Кубик d${term.sides}`;
+        let name = `${copy.die} d${term.sides}`;
         let icon = "🎲";
         if (term.sides === 4) {
-          name = sheet?.conditions?.some((c) => c.toLowerCase().includes("guidance")) ? "Заклинание «Наставление»" : sheet?.conditions?.some((c) => c.toLowerCase().includes("bless")) ? "Заклинание «Благословение»" : "Бонус 1d4";
+          name = sheet?.conditions?.some((c) => c.toLowerCase().includes("guidance")) ? copy.guidance : sheet?.conditions?.some((c) => c.toLowerCase().includes("bless")) ? copy.bless : copy.dieBonus;
           icon = "🙏";
         } else if (term.sides === 6 || term.sides === 8 || term.sides === 10) {
-          name = "Вдохновение барда";
+          name = copy.bardic;
           icon = "🎵";
         }
         list.push({ name, val: term.subtotal, icon });
@@ -324,13 +354,13 @@ export function Bg3DiceOverlay({
         if (sheet && sheet.level) {
           const pb = Math.floor((sheet.level - 1) / 4) + 2;
           if (totalMod >= pb && roll.kind === "skill_check") {
-            list.push({ name: `Модификатор (${abilityName})`, val: totalMod - pb, icon: "🔹" });
-            list.push({ name: "Бонус мастерства", val: pb, icon: "⚔" });
+            list.push({ name: `${copy.modifier} (${abilityName})`, val: totalMod - pb, icon: "🔹" });
+            list.push({ name: copy.proficiency, val: pb, icon: "⚔" });
             continue;
           }
         }
         list.push({
-          name: totalMod > 0 ? `Модификатор (${abilityName})` : "Штраф / помеха",
+          name: totalMod > 0 ? `${copy.modifier} (${abilityName})` : copy.penalty,
           val: totalMod,
           icon: "🔹",
         });
@@ -338,7 +368,7 @@ export function Bg3DiceOverlay({
     }
 
     return list;
-  }, []);
+  }, [copy]);
 
   // --- Start 3D Rolling Animation ---
   const startRollAnimation = useCallback((rollData: Bg3RollData) => {
@@ -803,7 +833,7 @@ export function Bg3DiceOverlay({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           kind: "do",
-          content: `*${character?.name || "Герой"} тратит очко Вдохновения и перебрасывает кубик!*`,
+          content: copy.inspirationAction.replace("{name}", character?.name || copy.hero),
         }),
       });
 
@@ -836,7 +866,7 @@ export function Bg3DiceOverlay({
     } finally {
       setIsRerolling(false);
     }
-  }, [campaignId, isRerolling, character, activeRoll, activePending]);
+  }, [campaignId, isRerolling, character, activeRoll, activePending, copy]);
 
   // --- Watch for Incoming Pending Rolls for Active Player ---
   useEffect(() => {
@@ -857,7 +887,8 @@ export function Bg3DiceOverlay({
         myPending.expression,
         myPending.kind,
         myPending.detail,
-        targetChar
+        targetChar,
+        copy,
       );
       setBonuses(parsedBonuses.bonuses);
 
@@ -867,7 +898,7 @@ export function Bg3DiceOverlay({
         origTitleRef.current = document.title;
         let step = 0;
         titleIntervalRef.current = setInterval(() => {
-          document.title = step++ % 2 === 0 ? "🔔 [ВАШ БРОСОК!] Сделайте проверку..." : origTitleRef.current;
+          document.title = step++ % 2 === 0 ? copy.rollAlert : origTitleRef.current;
         }, 1500);
       }
 
@@ -888,7 +919,7 @@ export function Bg3DiceOverlay({
 
       startIdleFloatingLoop();
     }
-  }, [pendingRolls, meUserId, enabled, phase, activeRoll, sheets, handleRollSubmit, startIdleFloatingLoop]);
+  }, [pendingRolls, meUserId, enabled, phase, activeRoll, sheets, handleRollSubmit, startIdleFloatingLoop, copy]);
 
   // --- Watch for Passive or Resolved Rolls ---
   useEffect(() => {
@@ -969,7 +1000,7 @@ export function Bg3DiceOverlay({
   const activeAdvantage = activeRoll?.roll.advantage ?? activePending?.advantage ?? "none";
   const activeReason = activePending?.reason ?? "";
 
-  const headerTitle = activeDc !== null ? "КЛАСС СЛОЖНОСТИ" : activeKind === "attack" ? "БРОСОК АТАКИ" : activeKind === "saving_throw" ? "СПАСБРОСОК" : "ПРОВЕРКА";
+  const headerTitle = activeDc !== null ? copy.dc : activeKind === "attack" ? copy.attack : activeKind === "saving_throw" ? copy.save : copy.check;
 
   const handleCardClick = (e: React.MouseEvent | React.TouchEvent) => {
     if (phase === "prompt") {
@@ -1039,10 +1070,10 @@ export function Bg3DiceOverlay({
               <div className="mb-1 flex items-center justify-between text-xs font-semibold">
                 <span className="flex items-center gap-1.5 text-amber-200/90">
                   <span className="inline-block size-2 rounded-full bg-amber-400 animate-ping" />
-                  Время на бросок:
+                  {copy.rollTime}
                 </span>
                 <span className={cn("font-mono font-bold tracking-wider", timeLeft <= 30 ? "text-rose-400 animate-pulse" : "text-amber-300")}>
-                  {timeLeft} сек
+                  {timeLeft} {copy.seconds}
                 </span>
               </div>
               <div className="h-2 w-full overflow-hidden rounded-full bg-stone-900/80 border border-amber-500/30">
@@ -1076,11 +1107,11 @@ export function Bg3DiceOverlay({
           {/* Advantage / Disadvantage badge */}
           {activeAdvantage === "advantage" ? (
             <span className="mb-1.5 rounded-full border border-sky-400 bg-sky-950/50 px-3 py-0.5 text-[10px] font-extrabold tracking-widest text-sky-200 uppercase">
-              Преимущество (2d20)
+              {copy.advantage}
             </span>
           ) : activeAdvantage === "disadvantage" ? (
             <span className="mb-1.5 rounded-full border border-orange-400 bg-orange-950/50 px-3 py-0.5 text-[10px] font-extrabold tracking-widest text-orange-200 uppercase">
-              Помеха (2d20)
+              {copy.disadvantage}
             </span>
           ) : null}
 
@@ -1117,7 +1148,7 @@ export function Bg3DiceOverlay({
               "relative my-1 flex h-[220px] w-full items-center justify-center group",
               phase === "prompt" && "cursor-pointer"
             )}
-            title={phase === "prompt" ? "Нажмите на кубик, чтобы бросить" : undefined}
+            title={phase === "prompt" ? copy.tapDie : undefined}
           >
             <div
               className={cn(
@@ -1140,7 +1171,7 @@ export function Bg3DiceOverlay({
               <div className="flex flex-col gap-1.5 animate-fade-in text-xs">
                 <div className="flex items-center justify-between rounded-lg border border-amber-500/20 bg-white/5 px-3 py-1.5">
                   <span className="flex items-center gap-2 text-stone-200">
-                    🎲 Результат кубика (d20)
+                    {copy.dieResult}
                   </span>
                   <span className="font-mono text-sm font-bold text-yellow-300">
                     {winningVal}
@@ -1159,7 +1190,7 @@ export function Bg3DiceOverlay({
                 ))}
 
                 <div className="flex items-center justify-between border-t border-amber-500/40 px-3 pt-2 font-bold">
-                  <span className="tracking-wider text-amber-200 uppercase">ИТОГ:</span>
+                  <span className="tracking-wider text-amber-200 uppercase">{copy.total}</span>
                   <span className="font-mono text-lg text-white drop-shadow-md">
                     {roll?.total ?? winningVal}
                   </span>
@@ -1180,13 +1211,13 @@ export function Bg3DiceOverlay({
                   ))
                 ) : (
                   <div className="text-center italic text-stone-400 text-xs py-1">
-                    Чистый бросок без дополнительных модификаторов
+                    {copy.noBonus}
                   </div>
                 )}
               </div>
             ) : (
               <div className="flex h-12 items-center justify-center text-xs italic text-amber-200/50 animate-pulse">
-                Судьба решает...
+                {copy.fate}
               </div>
             )}
           </div>
@@ -1205,12 +1236,12 @@ export function Bg3DiceOverlay({
               >
                 <span className="relative z-10 flex items-center justify-center gap-2">
                   <span className="text-xl">🎲</span>
-                  <span>БРОСИТЬ КУБИК</span>
+                  <span>{copy.rollDie}</span>
                 </span>
                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-amber-400/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
               </button>
               <div className="mt-1.5 text-center text-[10px] text-amber-200/50 uppercase tracking-widest">
-                или нажмите прямо на 3D кубик
+                {copy.tap3d}
               </div>
             </div>
           ) : null}
@@ -1221,19 +1252,19 @@ export function Bg3DiceOverlay({
               <div className="animate-scale-in">
                 {isCritSuccess ? (
                   <div className="font-serif text-2xl font-black tracking-widest text-amber-300 drop-shadow-[0_0_20px_rgba(250,204,21,0.9)] uppercase">
-                    ★ КРИТИЧЕСКИЙ УСПЕХ! ★
+                    {copy.criticalSuccess}
                   </div>
                 ) : isCritFail ? (
                   <div className="font-serif text-2xl font-black tracking-widest text-rose-600 drop-shadow-[0_0_20px_rgba(225,29,72,0.9)] uppercase">
-                    ☠ КРИТИЧЕСКИЙ ПРОВАЛ! ☠
+                    {copy.criticalFailure}
                   </div>
                 ) : isSuccess ? (
                   <div className="font-serif text-3xl font-black tracking-widest text-emerald-400 drop-shadow-[0_0_20px_rgba(52,211,153,0.8)] uppercase">
-                    УСПЕХ!
+                    {copy.success}
                   </div>
                 ) : (
                   <div className="font-serif text-3xl font-black tracking-widest text-rose-500 drop-shadow-[0_0_20px_rgba(244,63,94,0.8)] uppercase">
-                    НЕУДАЧА!
+                    {copy.failure}
                   </div>
                 )}
               </div>
@@ -1251,9 +1282,9 @@ export function Bg3DiceOverlay({
               >
                 <span className="relative z-10 flex items-center justify-center gap-2 text-yellow-300">
                   <span>★</span>
-                  <span>ПЕРЕБРОСИТЬ ЗА ВДОХНОВЕНИЕ</span>
+                  <span>{copy.reroll}</span>
                   <span className="rounded-full bg-purple-800/80 px-2 py-0.5 text-xs text-purple-100 border border-purple-400/40">
-                    Осталось: {inspirationCount}
+                    {copy.remaining} {inspirationCount}
                   </span>
                 </span>
                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-purple-400/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
@@ -1268,7 +1299,7 @@ export function Bg3DiceOverlay({
               onClick={dismiss}
               className="mt-3 text-center text-xs tracking-widest text-amber-200/60 hover:text-amber-200 uppercase transition-colors"
             >
-              Нажмите в любое место, чтобы закрыть
+              {copy.dismiss}
             </button>
           ) : null}
         </div>

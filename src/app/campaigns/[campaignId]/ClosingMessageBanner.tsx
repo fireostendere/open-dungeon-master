@@ -29,12 +29,6 @@ export function ClosingMessageBanner({
       openCta: "Открыть закрывающее сообщение и салют",
       reopenCta: "Посмотреть закрывающее послание и салют",
     },
-    pl: {
-      concluded: "Kampania zakończona",
-      subtitle: "Mistrz Gry przekazał końcowe przesłanie dla drużyny.",
-      openCta: "Otwórz zamykające przesłanie i salwę",
-      reopenCta: "Zobacz zamykające przesłanie i fajerwerki",
-    },
   });
 
   return (

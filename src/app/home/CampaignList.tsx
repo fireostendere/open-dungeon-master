@@ -36,7 +36,6 @@ export function CampaignList({
   const copy = localeText(locale, {
     en: { title: "Your campaigns", loadFailed: "Could not load your campaigns.", retry: "Try again" },
     ru: { title: "Ваши кампании", loadFailed: "Не удалось загрузить ваши кампании.", retry: "Попробовать снова" },
-    pl: { title: "Twoje kampanie", loadFailed: "Nie udało się wczytać twoich kampanii.", retry: "Spróbuj ponownie" },
   });
   return (
     <section className="mb-8">
@@ -115,18 +114,6 @@ function CampaignTile({
       duplicate: "Дублировать эту кампанию",
       deleteTip: "Удалить эту кампанию",
       delete: "Удалить эту кампанию",
-    },
-    pl: {
-      lobby: "poczekalnia",
-      active: "aktywna",
-      ended: "zakończona",
-      level: "Poziom",
-      start: "start",
-      solo: "solo",
-      duplicateTip: "Skopiuj świat do nowej kampanii bez historii rozmów",
-      duplicate: "Duplikuj tę kampanię",
-      deleteTip: "Usuń tę kampanię",
-      delete: "Usuń tę kampanię",
     },
   });
   const ended = campaign.status === "ended";

@@ -67,16 +67,6 @@ export function DmNpcForgePanel({
       forget: "Забыть",
       copied: "Не удалось скопировать.", replaceFace: "Заменить портрет", addFace: "Добавить портрет", placeholderHint: "Убрать изображение и показывать заглушку для роли", restoreHint: "Вернуть персонажа в запрос мастера", archiveHint: "Сохранить персонажа, но убрать из запроса мастера", save: "Сохранить",
     },
-    pl: {
-      failed: "Nie udało się wykonać działania.",
-      someone: "Nowa postać",
-      placeholder: "Użyj zastępnika",
-      restore: "Przywróć",
-      archive: "Odłóż",
-      duplicate: "Duplikuj",
-      forget: "Zapomnij",
-      copied: "Nie udało się skopiować.", replaceFace: "Zmień portret", addFace: "Dodaj portret", placeholderHint: "Usuń obraz i pokaż zastępnik roli", restoreHint: "Przywróć postać do promptu mistrza", archiveHint: "Zachowaj postać, ale usuń ją z promptu mistrza", save: "Zapisz",
-    },
   });
   const [npcs, setNpcs] = useState<Npc[]>([]);
   const [graph, setGraph] = useState<RelationGraph>({ nodes: [], edges: [] });

@@ -34,7 +34,7 @@ export function BeatBoard({
   onOpen: (node: BoardNode) => void;
 }) {
   const { locale } = useI18n();
-  const copy = localeText(locale, { en: { empty: "Nothing on the board. Start with a reason the party would go somewhere.", open: "Open", leads: "leads to" }, ru: { empty: "На доске пока ничего нет. Начните с причины, по которой группа куда-то отправится.", open: "Открыть", leads: "ведёт к" }, pl: { empty: "Na planszy jeszcze nic nie ma. Zacznij od powodu, dla którego drużyna gdzieś pójdzie.", open: "Otwórz", leads: "prowadzi do" } });
+  const copy = localeText(locale, { en: { empty: "Nothing on the board. Start with a reason the party would go somewhere.", open: "Open", leads: "leads to" }, ru: { empty: "На доске пока ничего нет. Начните с причины, по которой группа куда-то отправится.", open: "Открыть", leads: "ведёт к" } });
   if (board.nodes.length === 0) {
     return (
       <p className="text-xs text-stone-500">

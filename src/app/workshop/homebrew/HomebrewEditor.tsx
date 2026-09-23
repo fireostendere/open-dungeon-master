@@ -56,7 +56,7 @@ export function HomebrewEditor({
   onDelete: () => void;
 }) {
   const { locale } = useI18n();
-  const copy = localeText(locale, { en: { name: "Name", description: "Description", keep: "Keep it", save: "Save", duplicate: "Duplicate", forget: "Forget it" }, ru: { name: "Название", description: "Описание", keep: "Сохранить", save: "Сохранить", duplicate: "Дублировать", forget: "Удалить" }, pl: { name: "Nazwa", description: "Opis", keep: "Zachowaj", save: "Zapisz", duplicate: "Duplikuj", forget: "Usuń" } });
+  const copy = localeText(locale, { en: { name: "Name", description: "Description", keep: "Keep it", save: "Save", duplicate: "Duplicate", forget: "Forget it" }, ru: { name: "Название", description: "Описание", keep: "Сохранить", save: "Сохранить", duplicate: "Дублировать", forget: "Удалить" } });
   const findings = draftFindings(draft, variantRules);
   const refused = findings.some((finding) => finding.level === "error");
   const setData = (data: HomebrewDraft["data"]) => onDraft({ ...draft, data });

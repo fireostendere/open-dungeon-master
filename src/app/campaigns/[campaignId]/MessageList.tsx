@@ -18,7 +18,7 @@ import {
   Sparkles,
   UserPlus,
 } from "lucide-react";
-import { memo, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { cn } from "@/lib/cn";
 import { ui } from "@/lib/ui";
 import { avatarPlaceholder, characterPlaceholder } from "@/lib/placeholders";
@@ -347,7 +347,7 @@ const MessageItem = memo(function MessageItem({
       return (
         <div className="mx-auto max-w-xl rounded-lg border border-amber-900/60 bg-amber-950/30 px-4 py-2.5">
           <p className="mb-0.5 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-amber-300">
-             <Crown className="size-3.5" /> {locale === "ru" ? "Лидер отряда" : locale === "pl" ? "Lider drużyny" : "Party Lead"}
+             <Crown className="size-3.5" /> {messageText(locale, "Party Lead")}
           </p>
           <p className="text-sm text-amber-100/90">
             {message.content.slice(LEAD_NOTE_PREFIX.length)}
@@ -383,11 +383,7 @@ const MessageItem = memo(function MessageItem({
           {isClosingMessage ? (
             <span className="flex items-center gap-1.5 font-bold text-amber-300">
               <Sparkles className="size-3.5 text-amber-400" />
-              {locale === "ru"
-                ? "Заключительное послание Мастера · Финал приключения"
-                : locale === "pl"
-                  ? "Końcowe przesłanie Mistrza Gry · Finał przygody"
-                  : "DM's Closing Message · Adventure Finale"}
+              {messageText(locale, "DM's Closing Message · Adventure Finale")}
             </span>
           ) : (
             messageText(locale, "Dungeon Master")
@@ -400,7 +396,7 @@ const MessageItem = memo(function MessageItem({
               className="inline-flex items-center gap-1 rounded-md border border-amber-500/50 bg-amber-950/70 px-2.5 py-1 text-[11px] font-semibold text-amber-100 shadow-[0_0_12px_rgba(245,158,11,0.3)] transition hover:bg-amber-900/80 hover:text-white"
             >
               <Sparkles className="size-3 text-amber-300" />
-              {locale === "ru" ? "Салют и финал" : locale === "pl" ? "Salwa i finał" : "Salute & Finale"}
+              {messageText(locale, "Salute & Finale")}
             </button>
           ) : null}
           {(() => {
@@ -669,6 +665,8 @@ const MessageItem = memo(function MessageItem({
 
 export function MessageList({
   messages,
+  hasOlderMessages = false,
+  onLoadOlder,
   campaignId,
   canRetryTurn = false,
   canIllustrate = false,
@@ -693,6 +691,8 @@ export function MessageList({
   onOpenClosingMessage,
 }: {
   messages: CampaignMessage[];
+  hasOlderMessages?: boolean;
+  onLoadOlder?: () => Promise<boolean>;
   campaignId: string;
   meUserId?: string;
   // Players the viewer has blocked; their rows fold away.
@@ -725,9 +725,10 @@ export function MessageList({
 }) {
   const { locale } = useI18n();
   const containerRef = useRef<HTMLDivElement>(null);
-  const bottomRef = useRef<HTMLDivElement>(null);
   const nearBottomRef = useRef(true);
-  const scrollPendingRef = useRef(false);
+  const anchorRef = useRef<{ firstSeq: number; height: number; top: number } | null>(null);
+  const loadingOlderRef = useRef(false);
+  const [loadingOlder, setLoadingOlder] = useState(false);
   const statusPhrase = dmStatusPhrase(dmStatus, messages[messages.length - 1]?.id ?? "", locale);
   const rollsById = useMemo(() => new Map(rolls.map((roll) => [roll.id, roll])), [rolls]);
   const timeline = useMemo(() => buildTimeline(messages, rolls), [messages, rolls]);
@@ -825,33 +826,43 @@ export function MessageList({
     return "";
   }, [messages]);
 
-  // Follow the conversation only while the reader is already at the bottom;
-  // scrolling up to reread must not be yanked back. During narration
-  // streaming this effect fires per token, so scrolling is instant and
-  // coalesced through rAF instead of stacking smooth-scroll animations
-  // (a real jank source in Firefox).
-  useEffect(() => {
-    if (!nearBottomRef.current || scrollPendingRef.current) {
-      return;
+  useLayoutEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const anchor = anchorRef.current;
+    if (anchor && messages[0]?.seq !== anchor.firstSeq) {
+      el.scrollTop = anchor.top + el.scrollHeight - anchor.height;
+      anchorRef.current = null;
+    } else if (nearBottomRef.current) {
+      el.scrollTop = el.scrollHeight;
     }
-    scrollPendingRef.current = true;
-    const behavior: ScrollBehavior = dmDraft ? "auto" : "smooth";
-    requestAnimationFrame(() => {
-      scrollPendingRef.current = false;
-      bottomRef.current?.scrollIntoView({ behavior });
-    });
-  }, [messages.length, dmDraft, dmStatus]);
+  }, [messages, rolls, dmDraft, dmStatus]);
+
+  async function loadOlder() {
+    const el = containerRef.current;
+    if (!el || !onLoadOlder || loadingOlderRef.current || !hasOlderMessages) return;
+    loadingOlderRef.current = true;
+    setLoadingOlder(true);
+    nearBottomRef.current = false;
+    anchorRef.current = { firstSeq: messages[0]?.seq ?? 0, height: el.scrollHeight, top: el.scrollTop };
+    if (!await onLoadOlder()) anchorRef.current = null;
+    loadingOlderRef.current = false;
+    setLoadingOlder(false);
+  }
 
   function handleScroll() {
     const el = containerRef.current;
     if (el) {
       nearBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 120;
+      if (el.scrollTop < 80) void loadOlder();
     }
   }
 
   return (
-    <div ref={containerRef} onScroll={handleScroll} className="flex-1 overflow-y-auto">
+    <div ref={containerRef} onScroll={handleScroll} data-testid="campaign-messages" className="min-h-0 flex-1 overflow-y-auto">
       <div className="mx-auto max-w-3xl space-y-8 px-4 py-6 sm:px-6">
+      {hasOlderMessages ? <button type="button" className={ui.btnSmall} disabled={loadingOlder}
+        onClick={() => void loadOlder()}>{messageText(locale, "Load older messages")}</button> : null}
       {timeline.map((item) => {
         if (item.kind === "roll") {
           return (
@@ -924,7 +935,6 @@ export function MessageList({
         </p>
       ) : null}
 
-      <div ref={bottomRef} />
       </div>
     </div>
   );

@@ -32,7 +32,7 @@ export function InlineMessageEditor({
   onCancel: () => void;
 }) {
   const { locale } = useI18n();
-  const copy = localeText(locale, { en: { save: "Save", cancel: "Cancel", help: "Enter saves, Shift+Enter for a new line, Escape cancels. Keep the dice markers." }, ru: { save: "Сохранить", cancel: "Отмена", help: "Enter сохраняет, Shift+Enter добавляет строку, Escape отменяет. Сохраняйте маркеры кубов." }, pl: { save: "Zapisz", cancel: "Anuluj", help: "Enter zapisuje, Shift+Enter dodaje wiersz, Escape anuluje. Zachowaj znaczniki kości." } });
+  const copy = localeText(locale, { en: { save: "Save", cancel: "Cancel", help: "Enter saves, Shift+Enter for a new line, Escape cancels. Keep the dice markers." }, ru: { save: "Сохранить", cancel: "Отмена", help: "Enter сохраняет, Shift+Enter добавляет строку, Escape отменяет. Сохраняйте маркеры кубов." } });
   const ref = useRef<HTMLTextAreaElement | null>(null);
   const [draft, setDraft] = useState(initial);
   const [busy, setBusy] = useState(false);

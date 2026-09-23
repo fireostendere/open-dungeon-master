@@ -28,7 +28,7 @@ export const ui = {
   btnSecondary:
     "inline-flex min-h-10 max-w-full items-center justify-center gap-2 whitespace-normal rounded-lg border border-amber-500/25 bg-stone-900/50 px-3 py-2 text-center font-display text-[13px] uppercase tracking-[0.12em] text-stone-200 shadow-[0_1px_0_rgba(233,230,244,0.06)_inset,0_2px_6px_rgba(4,2,12,0.4)] transition-all duration-150 ease-snap hover:border-amber-500/50 hover:bg-stone-800/70 hover:text-amber-100 hover:shadow-glow-gold active:scale-[0.98] disabled:opacity-50",
   btnSmall:
-    "inline-flex max-w-full items-center justify-center gap-1.5 whitespace-normal rounded-lg border border-stone-600/60 bg-stone-900/50 px-3 py-1.5 text-center text-sm text-stone-300 shadow-[0_1px_0_rgba(233,230,244,0.05)_inset] transition-all duration-150 ease-snap hover:border-amber-500/40 hover:bg-stone-800/70 hover:text-amber-100 active:scale-[0.97] disabled:opacity-50",
+    "inline-flex min-h-9 max-w-full items-center justify-center gap-1.5 whitespace-normal rounded-lg border border-stone-600/60 bg-stone-900/50 px-3 py-1.5 text-center text-sm leading-tight text-stone-300 shadow-[0_1px_0_rgba(233,230,244,0.05)_inset] transition-all duration-150 ease-snap hover:border-amber-500/40 hover:bg-stone-800/70 hover:text-amber-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/60 active:scale-[0.97] disabled:opacity-50",
   // Small icon action pinned to a card or message. Fades in on hover for mouse
   // users and stays visible on touch (see .reveal-on-hover in globals.css).
   // The padding keeps the tap target reachable on a phone; add a negative

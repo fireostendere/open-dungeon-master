@@ -58,7 +58,6 @@ export default function FriendsPage() {
   const copy = localeText(locale, {
     en: { login: "Log in", loginSuffix: "to see your friends on this server.", title: "Friends", blurb: "People on this server; invite them to your campaigns.", addFriend: "Add a friend", placeholder: "Add by exact username", username: "Username", add: "Add", requests: "Requests for you", waitingOnYou: "Waiting on you", sent: "Sent requests", waiting: "Waiting", cancel: "Cancel", unfriend: "Unfriend", online: "Online now", invite: "Invite to campaign...", remove: "Remove {name} from your friends?", inviteSent: "Invite sent.", error: "Something went wrong." },
     ru: { login: "Войдите", loginSuffix: "чтобы увидеть друзей на этом сервере.", title: "Друзья", blurb: "Люди на этом сервере; приглашайте их в свои кампании.", addFriend: "Добавить друга", placeholder: "Точное имя пользователя", username: "Имя пользователя", add: "Добавить", requests: "Входящие запросы", waitingOnYou: "Ожидают вас", sent: "Отправленные запросы", waiting: "Ожидание", cancel: "Отменить", unfriend: "Удалить из друзей", online: "Сейчас в сети", invite: "Пригласить в кампанию...", remove: "Удалить {name} из друзей?", inviteSent: "Приглашение отправлено.", error: "Что-то пошло не так." },
-    pl: { login: "Zaloguj się", loginSuffix: "aby zobaczyć znajomych na tym serwerze.", title: "Znajomi", blurb: "Osoby na tym serwerze; zapraszaj je do kampanii.", addFriend: "Dodaj znajomego", placeholder: "Dokładna nazwa użytkownika", username: "Nazwa użytkownika", add: "Dodaj", requests: "Prośby do ciebie", waitingOnYou: "Czekają na ciebie", sent: "Wysłane prośby", waiting: "Oczekiwanie", cancel: "Anuluj", unfriend: "Usuń ze znajomych", online: "Teraz online", invite: "Zaproś do kampanii...", remove: "Usunąć {name} ze znajomych?", inviteSent: "Zaproszenie wysłane.", error: "Coś poszło nie tak." },
   });
   const [data, setData] = useState<FriendsData>({ friends: [], incoming: [], outgoing: [] });
   const [campaigns, setCampaigns] = useState<CampaignOption[]>([]);
@@ -252,14 +251,14 @@ export default function FriendsPage() {
                   onClick={() => respond(request.userId, true)}
                   className={ui.btnSmall}
                 >
-                  <Check className="size-4 text-emerald-300" /> {locale === "ru" ? "Принять" : locale === "pl" ? "Akceptuj" : "Accept"}
+                  <Check className="size-4 text-emerald-300" /> {locale === "ru" ? "Принять" : "Accept"}
                 </button>
                 <button
                   type="button"
                   onClick={() => respond(request.userId, false)}
                   className={ui.btnSmall}
                 >
-                  <X className="size-4 text-red-400" /> {locale === "ru" ? "Отклонить" : locale === "pl" ? "Odrzuć" : "Decline"}
+                  <X className="size-4 text-red-400" /> {locale === "ru" ? "Отклонить" : "Decline"}
                 </button>
               </li>
             ))}
@@ -273,10 +272,10 @@ export default function FriendsPage() {
             <IconChip icon={HeartHandshake} size="size-12" iconSize="size-5" />
             <div className="max-w-sm">
               <p className="text-balance font-serif text-2xl text-stone-200">
-                {locale === "ru" ? "Пока нет друзей вне вашей партии." : locale === "pl" ? "Nie ma jeszcze znajomych poza drużyną." : "No party outside the party yet."}
+                {locale === "ru" ? "Пока нет друзей вне вашей партии." : "No party outside the party yet."}
               </p>
               <p className="mt-2 text-pretty text-sm text-stone-500">
-                {locale === "ru" ? "Добавьте человека по точному имени на этом сервере." : locale === "pl" ? "Dodaj osobę po dokładnej nazwie użytkownika na tym serwerze." : "Add someone by their exact username on this server."}
+                {locale === "ru" ? "Добавьте человека по точному имени на этом сервере." : "Add someone by their exact username on this server."}
               </p>
             </div>
           </div>

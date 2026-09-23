@@ -87,23 +87,6 @@ export default function CharactersPage() {
       roster: "Список",
       portraitFor: "Портрет для",
     },
-    pl: {
-      loginPrefix: "Zaloguj się",
-      loginSuffix: "aby zobaczyć swoją bibliotekę postaci.",
-      title: "Twoje postacie",
-      subtitle: "Są zapisane w profilu i możesz zabrać je do dowolnej kampanii.",
-      importTitle: "Zaimportuj plik postaci wyeksportowany z tego lub innego serwera",
-      import: "Importuj postać",
-      newCharacter: "Nowa postać",
-      notJson: "nie jest plikiem JSON.",
-      importFailed: "Import nie powiódł się.",
-      deletePrefix: "Usuń",
-      deleteSuffix: "z biblioteki? Tej operacji nie można cofnąć.",
-      emptyTitle: "W spisie nie ma jeszcze bohaterów.",
-      emptyBody: "Utwórz postać tutaj albo dołącz do kampanii — wtedy zostanie zapisana automatycznie.",
-      roster: "Spis",
-      portraitFor: "Portret dla",
-    },
   });
   const [characters, setCharacters] = useState<LibraryCharacter[]>([]);
   const [loading, setLoading] = useState(true);
@@ -348,18 +331,6 @@ function CharacterCard({
       duplicate: "Дублировать",
       edit: "Изменить предысторию",
       editFor: "Изменить предысторию для",
-    },
-    pl: {
-      painting: "Tworzenie portretu...",
-      generationFailed: "Nie udało się wygenerować portretu",
-      level: "Poziom",
-      notInCampaign: "Nie uczestniczy jeszcze w kampanii.",
-      delete: "Usuń",
-      upload: "Prześlij portret",
-      uploadFor: "Prześlij portret dla",
-      duplicate: "Duplikuj",
-      edit: "Edytuj historię",
-      editFor: "Edytuj historię dla",
     },
   });
   return (

@@ -21,7 +21,6 @@ export function QuickTiles({
   const copy = localeText(locale, {
     en: { newCampaign: "New campaign", solo: "Solo adventure", join: "Join with a code" },
     ru: { newCampaign: "Новая кампания", solo: "Соло-приключение", join: "Войти по коду" },
-    pl: { newCampaign: "Nowa kampania", solo: "Przygoda solo", join: "Dołącz kodem" },
   });
   return (
     <div

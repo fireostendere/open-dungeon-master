@@ -76,14 +76,6 @@ export function AvatarCropDialog({
       choose: "Выбрать изображение",
       different: "Другое изображение",
     },
-    pl: {
-      invalidType: "Obsługiwane są tylko obrazy PNG, JPEG i WebP.",
-      tooLarge: "Obraz ma więcej niż 8 MB.",
-      uploadFailed: "Nie udało się przesłać obrazu.",
-      processFailed: "Nie udało się przetworzyć obrazu.",
-      choose: "Wybierz obraz",
-      different: "Inny obraz",
-    },
   });
   const [source, setSource] = useState("");
   const [fileName, setFileName] = useState("");

@@ -23,7 +23,6 @@ export function StoryNudge({
   const copy = localeText(locale, {
     en: { overdue: "The chapter summaries and the recap are built from it.", write: "Write it down", later: "Later" },
     ru: { overdue: "На его основе создаются итоги главы и предыдущее содержание.", write: "Записать", later: "Позже" },
-    pl: { overdue: "Na jego podstawie powstają podsumowania rozdziałów i przypomnienie.", write: "Zapisz", later: "Później" },
   });
   if (cadence.level === "quiet") {
     return null;
