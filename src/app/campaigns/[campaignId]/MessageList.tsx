@@ -29,6 +29,8 @@ import { InlineMessageEditor } from "@/app/campaigns/[campaignId]/InlineMessageE
 import { stripToolText } from "@/lib/dm/tool-text";
 import { ImageLightbox } from "@/components/ui/ImageLightbox";
 import type { CampaignMessage } from "@/lib/db/messages";
+import type { CampaignAsk } from "@/lib/db/asks";
+import { AskChatEntry } from "@/app/campaigns/[campaignId]/AskPanel";
 import type { StoredRoll } from "@/lib/db/rolls";
 import type { CharacterSheet } from "@/lib/schemas/sheet";
 import { D20Spinner } from "@/components/ui/D20Spinner";
@@ -126,7 +128,8 @@ const ROLL_MARKER = /\[roll:([0-9a-f-]{36})\]/g;
 
 type TimelineItem =
   | { kind: "message"; message: CampaignMessage; time: number }
-  | { kind: "roll"; roll: StoredRoll; time: number };
+  | { kind: "roll"; roll: StoredRoll; time: number }
+  | { kind: "ask"; ask: CampaignAsk; time: number };
 
 function parsedTime(value: string): number {
   const time = Date.parse(value);
@@ -144,15 +147,13 @@ function referencedRollIds(messages: CampaignMessage[]): Set<string> {
 }
 
 function compareTimelineItems(left: TimelineItem, right: TimelineItem): number {
-  const leftSeq = left.kind === "roll" ? left.roll.eventSeq : left.message.seq;
-  const rightSeq = right.kind === "roll" ? right.roll.eventSeq : right.message.seq;
-  if (leftSeq !== undefined && rightSeq !== undefined) {
-    return leftSeq - rightSeq;
-  }
   const byTime = left.time - right.time;
   if (byTime !== 0) {
     return byTime;
   }
+  const leftSeq = left.kind === "roll" ? left.roll.eventSeq : left.kind === "message" ? left.message.seq : undefined;
+  const rightSeq = right.kind === "roll" ? right.roll.eventSeq : right.kind === "message" ? right.message.seq : undefined;
+  if (leftSeq !== undefined && rightSeq !== undefined) return leftSeq - rightSeq;
   // Snapshot rolls have no event sequence. Keep them after the action that
   // caused them and before the DM passage that resolves that action.
   if (left.kind === "roll" && right.kind === "message") {
@@ -164,13 +165,14 @@ function compareTimelineItems(left: TimelineItem, right: TimelineItem): number {
   return 0;
 }
 
-function buildTimeline(messages: CampaignMessage[], rolls: StoredRoll[]): TimelineItem[] {
+function buildTimeline(messages: CampaignMessage[], rolls: StoredRoll[], asks: CampaignAsk[]): TimelineItem[] {
   const marked = referencedRollIds(messages);
   return [
     ...messages.map((message) => ({ kind: "message" as const, message, time: parsedTime(message.createdAt) })),
     ...rolls
       .filter((roll) => !marked.has(roll.id))
       .map((roll) => ({ kind: "roll" as const, roll, time: parsedTime(roll.createdAt) })),
+    ...asks.map((ask) => ({ kind: "ask" as const, ask, time: parsedTime(ask.createdAt) })),
   ].sort(compareTimelineItems);
 }
 
@@ -665,6 +667,7 @@ const MessageItem = memo(function MessageItem({
 
 export function MessageList({
   messages,
+  asks = [],
   hasOlderMessages = false,
   onLoadOlder,
   campaignId,
@@ -691,6 +694,7 @@ export function MessageList({
   onOpenClosingMessage,
 }: {
   messages: CampaignMessage[];
+  asks?: CampaignAsk[];
   hasOlderMessages?: boolean;
   onLoadOlder?: () => Promise<boolean>;
   campaignId: string;
@@ -731,7 +735,7 @@ export function MessageList({
   const [loadingOlder, setLoadingOlder] = useState(false);
   const statusPhrase = dmStatusPhrase(dmStatus, messages[messages.length - 1]?.id ?? "", locale);
   const rollsById = useMemo(() => new Map(rolls.map((roll) => [roll.id, roll])), [rolls]);
-  const timeline = useMemo(() => buildTimeline(messages, rolls), [messages, rolls]);
+  const timeline = useMemo(() => buildTimeline(messages, rolls, asks), [messages, rolls, asks]);
   const closingDmMessageId = useMemo(() => {
     if (campaignStatus !== "ended") return "";
     for (let index = messages.length - 1; index >= 0; index -= 1) {
@@ -836,7 +840,7 @@ export function MessageList({
     } else if (nearBottomRef.current) {
       el.scrollTop = el.scrollHeight;
     }
-  }, [messages, rolls, dmDraft, dmStatus]);
+  }, [messages, rolls, asks, dmDraft, dmStatus]);
 
   async function loadOlder() {
     const el = containerRef.current;
@@ -874,6 +878,13 @@ export function MessageList({
               />
             </div>
           );
+        }
+        if (item.kind === "ask") {
+          const askerName = item.ask.characterId
+            ? sheetsById.get(item.ask.characterId)?.name
+            : undefined;
+          return <AskChatEntry key={`ask-${item.ask.id}`} ask={item.ask}
+            askerName={askerName ?? membersById.get(item.ask.userId)?.username ?? (locale === "ru" ? "Игрок" : "Player")} />;
         }
         const message = item.message;
         return (

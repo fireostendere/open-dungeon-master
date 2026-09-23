@@ -7,6 +7,9 @@ import type { GlobalTurnState } from "@/lib/campaign-types";
 import { WebMcpLocationTools } from "./WebMcpLocationTools";
 import { cn } from "@/lib/cn";
 import { ui } from "@/lib/ui";
+import { AskChatEntry, AskOptions } from "@/app/campaigns/[campaignId]/AskPanel";
+import type { CampaignAsk } from "@/lib/db/asks";
+import type { AskScope, AskVisibility } from "@/lib/dm/ask-logic";
 
 type Member = { userId: string; username: string };
 const field = "rounded border border-stone-700 bg-stone-950 px-2 py-1 text-sm text-stone-100";
@@ -15,12 +18,16 @@ const button = cn(ui.btnSmall, "min-w-0");
 export function LocationChat({
   chat,
   members,
+  asks,
+  refreshAsks,
   dmUserId,
   globalTurnState,
   globalTurnEnabled = false,
 }: {
   chat: LocationChatController;
   members: Member[];
+  asks: CampaignAsk[];
+  refreshAsks: () => Promise<void>;
   dmUserId?: string | null;
   globalTurnState?: GlobalTurnState | null;
   globalTurnEnabled?: boolean;
@@ -34,13 +41,21 @@ export function LocationChat({
     if (!el) return;
     if (selectedRef.current !== chat.selected || nearBottomRef.current) el.scrollTop = el.scrollHeight;
     selectedRef.current = chat.selected;
-  }, [chat.selected, chat.page.messages]);
+  }, [chat.selected, chat.page.messages, asks]);
   const t = localeText(locale, {
-    en: { title: "Locations", locked: "Input locked while the MCP Dungeon Master is finishing the turn.", ooc: "OOC · everyone", archive: "Archive — you are not here. New messages are not available unless the DM grants perception.", live: "You are here", observing: "Perception granted", empty: "No messages you witnessed here yet.", send: "Send", say: "Say", do: "Do", narration: "Narrate", travel: "Go to", older: "Older", newest: "Latest", retry: "Retry unconfirmed command", controls: "DM location controls", create: "Create location", link: "Connect locations", move: "Move players", observe: "Grant perception", revoke: "Revoke", propagate: "Loud / visible incident", perceive: "Private perceived fragment", name: "Location name", source: "Source location", target: "Destination", players: "Players", walk: "Open passage", sound: "Sound can cross", sight: "Visible across boundary", speech: "Eavesdropping: future speech only", scry: "Magic: future scene", reason: "Adjudication / reason", seconds: "Duration in seconds", summary: "Only what the recipients perceive, not the private source conversation", apply: "Apply", who: "Present", noPosition: "Ask the DM to place your character. OOC is available.", draft: "Message", global: "OOC is global and does not advance the story.", bounded: "History contains only messages delivered to you. Entering does not unlock earlier visits or absence gaps.", stealth: "Stealth", stealthNotice: "Hidden action: only you see this until DM adjudication. Observers with high Passive Perception may notice.", stealthPending: "Stealth (Pending)", stealthConfirmed: "Stealth (Hidden)", stealthRevealed: "Revealed", stealthFailed: "Stealth Failed", perceptionBadge: "Perception", resolveStealth: "Resolve Stealth", outcome: "Outcome", confirmed: "Confirmed (Remains hidden)", revealed: "Revealed to all in room", failed: "Failed (Action aborted)", detectingPlayers: "Detecting players", perceivedFragment: "Perceived description for detectors", sense: "Sense", messageId: "Message ID (UUID)", both: "Both" },
-    ru: { title: "Локации", locked: "Ввод закрыт, пока MCP-Мастер завершает ход.", ooc: "Вне игры · для всех", archive: "Архив — вас здесь нет. Новые сообщения недоступны без разрешённого ведущим восприятия.", live: "Вы здесь", observing: "Разрешено восприятие", empty: "Здесь пока нет сообщений, свидетелем которых вы были.", send: "Отправить", say: "Речь", do: "Действие", narration: "Повествование", travel: "Перейти", older: "Раньше", newest: "Последние", retry: "Повторить неподтверждённую команду", controls: "Управление локациями для ведущего", create: "Создать локацию", link: "Соединить локации", move: "Переместить игроков", observe: "Разрешить восприятие", revoke: "Отозвать", propagate: "Громкое / видимое событие", perceive: "Приватный фрагмент восприятия", name: "Название локации", source: "Исходная локация", target: "Куда", players: "Игроки", walk: "Открытый проход", sound: "Звук проходит", sight: "Есть видимость", speech: "Подслушивание: только будущая речь", scry: "Магия: будущие события сцены", reason: "Решение ведущего / причина", seconds: "Длительность в секундах", summary: "Только то, что воспринимают получатели, без приватного разговора внутри", apply: "Применить", who: "Присутствуют", noPosition: "Попросите ведущего разместить вашего персонажа. Режим «Вне игры» доступен.", draft: "Сообщение", global: "Режим «Вне игры» общий для всех и не продвигает сюжет.", bounded: "В истории только сообщения, доступные лично вам. Вход не открывает прошлые разговоры или пропущенные события.", stealth: "Скрытно", stealthNotice: "Скрытное действие: видите только вы до решения ведущего. Персонажи с высоким пассивным восприятием могут заметить.", stealthPending: "Скрытно (Ожидание)", stealthConfirmed: "Скрытно (Успех)", stealthRevealed: "Раскрыто", stealthFailed: "Провал скрытности", perceptionBadge: "Замечено", resolveStealth: "Разрешить скрытность", outcome: "Исход", confirmed: "Подтверждено (Скрыт)", revealed: "Раскрыто для всей комнаты", failed: "Провал (Действие сорвано)", detectingPlayers: "Заметившие игроки", perceivedFragment: "Что замечают наблюдатели", sense: "Чувство", messageId: "Идентификатор сообщения (UUID)", both: "Оба" },
+    en: { title: "Locations", locked: "Input locked while the MCP Dungeon Master is finishing the turn.", ooc: "OOC · everyone", archive: "Archive — you are not here. New messages are not available unless the DM grants perception.", live: "You are here", observing: "Perception granted", empty: "No messages you witnessed here yet.", send: "Send", say: "Say", do: "Do", ask: "Ask DM", narration: "Narrate", travel: "Go to", older: "Older", newest: "Latest", retry: "Retry unconfirmed command", controls: "DM location controls", create: "Create location", link: "Connect locations", move: "Move players", observe: "Grant perception", revoke: "Revoke", propagate: "Loud / visible incident", perceive: "Private perceived fragment", name: "Location name", source: "Source location", target: "Destination", players: "Players", walk: "Open passage", sound: "Sound can cross", sight: "Visible across boundary", speech: "Eavesdropping: future speech only", scry: "Magic: future scene", reason: "Adjudication / reason", seconds: "Duration in seconds", summary: "Only what the recipients perceive, not the private source conversation", apply: "Apply", who: "Present", noPosition: "Ask the DM to place your character. OOC is available.", draft: "Message", global: "OOC is global and does not advance the story.", bounded: "History contains only messages delivered to you. Entering does not unlock earlier visits or absence gaps.", stealth: "Stealth", stealthNotice: "Hidden action: only you see this until DM adjudication. Observers with high Passive Perception may notice.", stealthPending: "Stealth (Pending)", stealthConfirmed: "Stealth (Hidden)", stealthRevealed: "Revealed", stealthFailed: "Stealth Failed", perceptionBadge: "Perception", resolveStealth: "Resolve Stealth", outcome: "Outcome", confirmed: "Confirmed (Remains hidden)", revealed: "Revealed to all in room", failed: "Failed (Action aborted)", detectingPlayers: "Detecting players", perceivedFragment: "Perceived description for detectors", sense: "Sense", messageId: "Message ID (UUID)", both: "Both" },
+    ru: { title: "Локации", locked: "Ввод закрыт, пока MCP-Мастер завершает ход.", ooc: "Вне игры · для всех", archive: "Архив — вас здесь нет. Новые сообщения недоступны без разрешённого ведущим восприятия.", live: "Вы здесь", observing: "Разрешено восприятие", empty: "Здесь пока нет сообщений, свидетелем которых вы были.", send: "Отправить", say: "Речь", do: "Действие", ask: "Спросить Мастера", narration: "Повествование", travel: "Перейти", older: "Раньше", newest: "Последние", retry: "Повторить неподтверждённую команду", controls: "Управление локациями для ведущего", create: "Создать локацию", link: "Соединить локации", move: "Переместить игроков", observe: "Разрешить восприятие", revoke: "Отозвать", propagate: "Громкое / видимое событие", perceive: "Приватный фрагмент восприятия", name: "Название локации", source: "Исходная локация", target: "Куда", players: "Игроки", walk: "Открытый проход", sound: "Звук проходит", sight: "Есть видимость", speech: "Подслушивание: только будущая речь", scry: "Магия: будущие события сцены", reason: "Решение ведущего / причина", seconds: "Длительность в секундах", summary: "Только то, что воспринимают получатели, без приватного разговора внутри", apply: "Применить", who: "Присутствуют", noPosition: "Попросите ведущего разместить вашего персонажа. Режим «Вне игры» доступен.", draft: "Сообщение", global: "Режим «Вне игры» общий для всех и не продвигает сюжет.", bounded: "В истории только сообщения, доступные лично вам. Вход не открывает прошлые разговоры или пропущенные события.", stealth: "Скрытно", stealthNotice: "Скрытное действие: видите только вы до решения ведущего. Персонажи с высоким пассивным восприятием могут заметить.", stealthPending: "Скрытно (Ожидание)", stealthConfirmed: "Скрытно (Успех)", stealthRevealed: "Раскрыто", stealthFailed: "Провал скрытности", perceptionBadge: "Замечено", resolveStealth: "Разрешить скрытность", outcome: "Исход", confirmed: "Подтверждено (Скрыт)", revealed: "Раскрыто для всей комнаты", failed: "Провал (Действие сорвано)", detectingPlayers: "Заметившие игроки", perceivedFragment: "Что замечают наблюдатели", sense: "Чувство", messageId: "Идентификатор сообщения (UUID)", both: "Оба" },
+  });
+  const askText = localeText(locale, {
+    en: { available: "Ask the DM without using a turn.", sendFailed: "Could not send your question.", networkFailed: "Could not reach the server." },
+    ru: { available: "Вопрос Мастеру не тратит ход.", sendFailed: "Не удалось отправить вопрос.", networkFailed: "Не удалось связаться с сервером." },
   });
   const [content, setContent] = useState("");
   const [kind, setKind] = useState("say");
+  const [askScope, setAskScope] = useState<AskScope | "auto">("auto");
+  const [askVisibility, setAskVisibility] = useState<AskVisibility>("private");
+  const [askSending, setAskSending] = useState(false);
+  const [askError, setAskError] = useState("");
   const [isStealth, setIsStealth] = useState(false);
   const [operation, setOperation] = useState("create_room");
   const [name, setName] = useState("");
@@ -72,20 +87,42 @@ export function LocationChat({
       globalTurnState &&
       ["waiting", "ready", "resolving"].includes(globalTurnState.phase),
   );
-  const canSend =
-    !globalTurnLocked && (ooc || Boolean(selected && (view.isDm || active)));
+  const canSend = kind === "ask" ? !view.isDm : !globalTurnLocked && (ooc || Boolean(selected && (view.isDm || active)));
   const memberName = (id: string | null) => members.find(member => member.userId === id)?.username ?? "—";
   const roomName = (id: string) => view.rooms.find(room => room.id === id)?.name ?? "—";
   async function send(event: FormEvent) {
     event.preventDefault();
     if (!canSend || !content.trim()) return;
+    if (kind === "ask") {
+      setAskSending(true);
+      setAskError("");
+      try {
+        const response = await fetch(`/api/campaigns/${chat.campaignId}/ask`, {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ question: content, scope: askScope, visibility: askVisibility }),
+        });
+        if (!response.ok) {
+          const data = await response.json().catch(() => ({}));
+          setAskError(data.error || askText.sendFailed);
+          return;
+        }
+        setContent("");
+        await refreshAsks();
+      } catch {
+        setAskError(askText.networkFailed);
+      } finally {
+        setAskSending(false);
+      }
+      return;
+    }
     const isDm = Boolean(view?.enabled && view.isDm);
+    const sendOoc = ooc || kind === "ooc";
     const revision = view?.enabled ? view.current?.revision : undefined;
-    if (await chat.command({ operation: "send", roomId: ooc ? null : chat.selected,
-      kind: ooc ? "ooc" : isDm ? "narration" : kind,
+    if (await chat.command({ operation: "send", roomId: sendOoc ? null : chat.selected,
+      kind: sendOoc ? "ooc" : isDm ? "narration" : kind,
       content,
-      ...(isStealth && !ooc && !isDm ? { stealth: true } : {}),
-      ...(!ooc && !isDm && revision !== undefined ? { expectedRevision: revision } : {}) })) {
+      ...(isStealth && !sendOoc && !isDm ? { stealth: true } : {}),
+      ...(!sendOoc && !isDm && revision !== undefined ? { expectedRevision: revision } : {}) })) {
       setContent("");
       setIsStealth(false);
     }
@@ -107,14 +144,39 @@ export function LocationChat({
       <option value="">—</option>{view.rooms.map(room => <option value={room.id} key={room.id}>{room.name}</option>)}
     </select></label>
   );
+  const timeline = ooc
+    ? [
+        ...chat.page.messages.map(message => ({ kind: "message" as const, time: Date.parse(message.createdAt), message })),
+        ...(!chat.showingOlder ? asks.map(ask => ({ kind: "ask" as const, time: Date.parse(ask.createdAt), ask })) : []),
+      ].sort((left, right) => left.time - right.time)
+    : chat.page.messages.map(message => ({ kind: "message" as const, time: Date.parse(message.createdAt), message }));
+  const renderMessage = (message: (typeof chat.page.messages)[number]) => {
+    const isHaze = Boolean(message.stealth);
+    const isPerception = message.kind === "perception";
+    return (
+      <article key={message.id} className={`border-b border-stone-800 pb-2 ${isHaze ? "rounded bg-indigo-950/20 border-l-2 border-indigo-500/60 pl-2 shadow-[0_0_12px_rgba(99,102,241,0.08)]" : isPerception ? "rounded bg-amber-950/20 border-l-2 border-amber-500/60 pl-2 shadow-[0_0_12px_rgba(245,158,11,0.08)]" : ""}`}>
+        <header className="flex flex-wrap items-center gap-1.5 text-xs text-stone-400">
+          <span>{memberName(message.authorUserId)} · {message.kind === "ooc" ? "OOC" : message.kind === "say" ? t.say : message.kind === "do" ? t.do : isPerception ? t.observing : t.narration}</span>
+          {isHaze ? <span className="inline-flex items-center rounded border border-indigo-700/50 bg-indigo-950/80 px-1.5 py-0.5 text-[10px] font-medium text-indigo-300">
+            {message.stealthStatus === "confirmed" ? t.stealthConfirmed : message.stealthStatus === "revealed" ? t.stealthRevealed : message.stealthStatus === "failed" ? t.stealthFailed : t.stealthPending}
+          </span> : null}
+          {isPerception ? <span className="inline-flex items-center rounded border border-amber-700/50 bg-amber-950/80 px-1.5 py-0.5 text-[10px] font-medium text-amber-300">[{t.perceptionBadge}]</span> : null}
+        </header>
+        <p className="whitespace-pre-wrap break-words text-sm">{message.content}</p>
+      </article>
+    );
+  };
+  const sendBlocked = !canSend || (kind === "ask" ? askSending : chat.busy || chat.pending);
   return <><>{webMcp}</><section data-testid="location-chat" className="flex min-h-0 flex-1 flex-col gap-2 p-3 text-stone-200" aria-label={t.title}>
     <nav className="flex flex-wrap gap-2" aria-label={t.title}>
-      <button type="button" className={cn(button, ooc && "border-amber-500/50 bg-amber-500/15 text-amber-100")} aria-pressed={ooc} onClick={() => chat.select("ooc")}>{t.ooc}</button>
+      <button type="button" className={cn(button, ooc && "border-amber-500/50 bg-amber-500/15 text-amber-100")} aria-pressed={ooc} onClick={() => { chat.select("ooc"); setKind("ooc"); }}>{t.ooc}</button>
       {view.rooms.map(room => <button data-testid={`location-room-${room.id}`} type="button" key={room.id} className={cn(button, chat.selected === room.id && "border-amber-500/50 bg-amber-500/15 text-amber-100")} aria-pressed={chat.selected === room.id}
-        onClick={() => chat.select(room.id)}>{room.active ? "● " : ""}{room.name}</button>)}
+        onClick={() => { chat.select(room.id); setKind(current => current === "ask" || current === "ooc" ? "say" : current); }}>{room.active ? "● " : ""}{room.name}</button>)}
     </nav>
     <p className="text-xs text-stone-400">
-      {globalTurnLocked
+      {kind === "ask"
+        ? askText.available
+        : globalTurnLocked
         ? t.locked
         : ooc
           ? t.global
@@ -135,39 +197,25 @@ export function LocationChat({
     <div ref={scrollRef} onScroll={event => { const el = event.currentTarget; nearBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 120; }} className="min-h-36 flex-1 space-y-3 overflow-y-auto rounded border border-stone-800 p-3" aria-label={selected?.name ?? t.ooc}>
       <div className="flex gap-2">{chat.page.nextBefore ? <button type="button" className={button} onClick={chat.older}>{t.older}</button> : null}
         {chat.showingOlder ? <button type="button" className={button} onClick={chat.newest}>{t.newest}</button> : null}</div>
-      {!chat.page.messages.length ? <p className="text-sm text-stone-500">{t.empty}</p> : null}
-      {chat.page.messages.map(message => {
-        const isHaze = Boolean(message.stealth);
-        const isPerception = message.kind === "perception";
-        return (
-          <article key={message.id} className={`border-b border-stone-800 pb-2 ${isHaze ? "rounded bg-indigo-950/20 border-l-2 border-indigo-500/60 pl-2 shadow-[0_0_12px_rgba(99,102,241,0.08)]" : isPerception ? "rounded bg-amber-950/20 border-l-2 border-amber-500/60 pl-2 shadow-[0_0_12px_rgba(245,158,11,0.08)]" : ""}`}>
-            <header className="flex flex-wrap items-center gap-1.5 text-xs text-stone-400">
-              <span>{memberName(message.authorUserId)} · {message.kind === "ooc" ? "OOC" : message.kind === "say" ? t.say : message.kind === "do" ? t.do : isPerception ? t.observing : t.narration}</span>
-              {isHaze ? (
-                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-indigo-950/80 text-indigo-300 border border-indigo-700/50">
-                  {message.stealthStatus === "confirmed" ? t.stealthConfirmed : message.stealthStatus === "revealed" ? t.stealthRevealed : message.stealthStatus === "failed" ? t.stealthFailed : t.stealthPending}
-                </span>
-              ) : null}
-              {isPerception ? (
-                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-950/80 text-amber-300 border border-amber-700/50">
-                  [{t.perceptionBadge}]
-                </span>
-              ) : null}
-            </header>
-            <p className="whitespace-pre-wrap break-words text-sm">{message.content}</p>
-          </article>
-        );
-      })}
+      {!timeline.length ? <p className="text-sm text-stone-500">{t.empty}</p> : null}
+      {timeline.map(item => item.kind === "ask"
+        ? <AskChatEntry key={`ask-${item.ask.id}`} ask={item.ask} askerName={memberName(item.ask.userId)} />
+        : renderMessage(item.message))}
     </div>
     <p className="text-xs text-stone-500">{t.bounded}</p>
     <form onSubmit={send} className="flex flex-col gap-2">
-      {!ooc && !view.isDm ? (
+      {!view.isDm ? (
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <select className={field} aria-label={t.draft} value={kind} onChange={event => setKind(event.target.value)} disabled={!canSend}>
-            <option value="say">{t.say}</option>
-            <option value="do">{t.do}</option>
+          <select className={field} aria-label={t.draft} value={kind} onChange={event => {
+            const next = event.target.value;
+            setKind(next);
+            if (next === "ask" || next === "ooc") chat.select("ooc");
+            if (next === "ask") setIsStealth(false);
+          }}>
+            {ooc ? <option value="ooc">{t.ooc}</option> : <><option value="say">{t.say}</option><option value="do">{t.do}</option></>}
+            <option value="ask">{t.ask}</option>
           </select>
-          <label className="flex items-center gap-1.5 text-xs cursor-pointer text-stone-300 select-none">
+          {kind === "do" ? <label className="flex items-center gap-1.5 text-xs cursor-pointer text-stone-300 select-none">
             <input
               type="checkbox"
               checked={isStealth}
@@ -176,10 +224,11 @@ export function LocationChat({
               className="rounded border-stone-700 text-indigo-600 focus:ring-indigo-500"
             />
             <span className={isStealth ? "font-semibold text-indigo-300" : ""}>{t.stealth}</span>
-          </label>
+          </label> : null}
         </div>
       ) : null}
-      {isStealth && !ooc && !view.isDm ? (
+      {kind === "ask" ? <AskOptions scope={askScope} onScopeChange={setAskScope} visibility={askVisibility} onVisibilityChange={setAskVisibility} /> : null}
+      {isStealth && !ooc && !view.isDm && kind === "do" ? (
         <p className="text-[11px] text-indigo-300/80 italic">{t.stealthNotice}</p>
       ) : null}
       <textarea
@@ -187,11 +236,12 @@ export function LocationChat({
         aria-label={t.draft}
         value={content}
         onChange={event => setContent(event.target.value)}
-        maxLength={view.isDm && !ooc ? 8000 : 2000}
+        maxLength={kind === "ask" ? 500 : view.isDm && !ooc ? 8000 : 2000}
         rows={3}
-        disabled={!canSend || chat.busy || chat.pending}
+        disabled={sendBlocked}
       />
-      <button className={button} disabled={!canSend || chat.busy || chat.pending || !content.trim()}>{t.send}</button>
+      {askError ? <p role="alert" className="text-sm text-red-300">{askError}</p> : null}
+      <button className={button} disabled={sendBlocked || !content.trim()}>{kind === "ask" ? t.ask : t.send}</button>
     </form>
     {view.isDm ? <details className="rounded border border-stone-700 p-2"><summary>{t.controls}</summary>
       <form onSubmit={control} className="mt-2 flex flex-col gap-2">

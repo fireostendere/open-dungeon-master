@@ -19,6 +19,7 @@ import { HelpDialog } from "@/components/HelpDialog";
 import { GuidedTour } from "@/components/ui/GuidedTour";
 import { CharacterGate } from "@/app/campaigns/[campaignId]/CharacterGate";
 import { Composer, type InputKind } from "@/app/campaigns/[campaignId]/Composer";
+import type { AskScope, AskVisibility } from "@/lib/dm/ask-logic";
 import { composerGate } from "@/app/campaigns/[campaignId]/composerGate";
 import { DiceOverlay } from "@/app/campaigns/[campaignId]/DiceOverlay";
 import { EndingCelebration } from "@/app/campaigns/[campaignId]/EndingCelebration";
@@ -109,9 +110,8 @@ export function SessionView({
   // Defaults to off, so Direct keeps behaving as it always has unless the
   // lead deliberately hides one.
   const [leadPrivate, setLeadPrivate] = useState(false);
-  // The Ask strip sits in the chat column and starts closed. It owns the rest
-  // of the feature itself; all this view keeps is whether it is expanded.
-  const [askOpen, setAskOpen] = useState(false);
+  const [askScope, setAskScope] = useState<AskScope | "auto">("auto");
+  const [askVisibility, setAskVisibility] = useState<AskVisibility>("private");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
   const [dismissedLevelUp, setDismissedLevelUp] = useState("");
@@ -347,7 +347,7 @@ export function SessionView({
             }
           : undefined
       );
-      if ((!content && !resolvedCombatTurn) || sending || gate.inputBlocked || muted) {
+      if ((!content && (kind === "ask" || !resolvedCombatTurn)) || sending || gate.inputBlocked || muted) {
         return;
       }
       setSending(true);
@@ -358,7 +358,9 @@ export function SessionView({
         // one-turn steer the event presets use, so no character hears it and
         // it never enters the transcript.
         const [route, body] =
-          kind === "narrate"
+          kind === "ask"
+            ? ["ask", { question: content, scope: askScope, visibility: askVisibility }]
+            : kind === "narrate"
             ? ["dm/narrate", { content }]
             : kind === "lead"
               ? leadPrivate
@@ -376,14 +378,15 @@ export function SessionView({
           return;
         }
         setInput("");
-        setCombatChoices([]);
+        if (kind === "ask") await refreshAsks();
+        else setCombatChoices([]);
       } catch {
         setError("Could not reach the server.");
       } finally {
         setSending(false);
       }
     },
-    [campaignId, input, sending, gate.inputBlocked, muted, kind, leadPrivate, ownCombatTurn, state.encounter, mySheet, combatChoices],
+    [campaignId, input, sending, gate.inputBlocked, muted, kind, askScope, askVisibility, leadPrivate, ownCombatTurn, state.encounter, mySheet, combatChoices, refreshAsks],
   );
 
   const clearChatTarget = useCallback(() => setChatTarget(null), []);
@@ -510,8 +513,6 @@ export function SessionView({
           meUserId={me.id}
           steersStory={steersStory}
           visible={mobileView === "chat"}
-          askOpen={askOpen}
-          onAskOpenChange={setAskOpen}
           refreshAsks={refreshAsks}
           refreshFacts={refreshFacts}
           onError={setError}
@@ -562,6 +563,10 @@ export function SessionView({
               onSubmit={submit}
               onCombatSubmit={(combatTurn) => void submit(null, combatTurn)}
               onOpenBattleTab={() => selectPanelView("battle")}
+              askScope={askScope}
+              onAskScopeChange={setAskScope}
+              askVisibility={askVisibility}
+              onAskVisibilityChange={setAskVisibility}
             />
           )}
         </SessionChatColumn>

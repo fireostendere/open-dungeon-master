@@ -9,7 +9,6 @@ import { MessageList } from "@/app/campaigns/[campaignId]/MessageList";
 import { ReportDialog, type ReportTarget } from "@/app/campaigns/[campaignId]/ReportDialog";
 import { ItemProposalBar } from "@/app/campaigns/[campaignId]/ItemProposalBar";
 import { UtilityCallStrip } from "@/app/campaigns/[campaignId]/UtilityCallStrip";
-import { AskDock } from "@/app/campaigns/[campaignId]/AskPanel";
 import { DmCoverNotice } from "@/app/campaigns/[campaignId]/DmDelegationPanel";
 import { NarrationLanguageSetting } from "@/app/campaigns/[campaignId]/NarrationLanguageSetting";
 import { ClosingMessageBanner } from "@/app/campaigns/[campaignId]/ClosingMessageBanner";
@@ -19,9 +18,9 @@ import type { CampaignMessage } from "@/lib/db/messages";
 // Message actions retain their authoritative routes and the original permission
 // gates. Shared request handling localizes both HTTP and network failures.
 export function SessionChatColumn({
-  state, campaignId, meUserId, steersStory, visible, askOpen,
+  state, campaignId, meUserId, steersStory, visible,
   loadOlderMessages,
-  onAskOpenChange, refreshAsks, refreshFacts, onError, onLoreCheck, onRenarrate, onPinned,
+  refreshFacts, onError, onLoreCheck, onRenarrate, onPinned,
   onOpenClosingMessage, hasOpenedFinale, defaultMode, children,
 }: {
   state: CampaignState;
@@ -30,8 +29,6 @@ export function SessionChatColumn({
   meUserId: string;
   steersStory: boolean;
   visible: boolean;
-  askOpen: boolean;
-  onAskOpenChange: (open: boolean) => void;
   refreshAsks: () => Promise<void>;
   refreshFacts: () => Promise<void>;
   onError: (message: string) => void;
@@ -59,17 +56,12 @@ export function SessionChatColumn({
     try { await write(suffix, fallback, body); return true; }
     catch (cause) { onError(errorText(cause, fallback)); return false; }
   };
-  const handleAskOpenChange = (open: boolean) => {
-    onAskOpenChange(open);
-    if (open && !state.asksLoaded) void refreshAsks();
-  };
-
   return (
     <div className={cn("min-w-0 flex-1 flex-col", visible ? "flex" : "hidden lg:flex")}>
       <ReportDialog campaignId={campaignId} target={reportTarget} onClose={() => setReportTarget(null)}
         onBlocked={userId => setJustBlocked(current => [...current, userId])} />
       <MessageList
-        messages={messages} hasOlderMessages={state.hasOlderMessages} onLoadOlder={loadOlderMessages}
+        messages={messages} asks={state.asks} hasOlderMessages={state.hasOlderMessages} onLoadOlder={loadOlderMessages}
         campaignId={campaignId} canRetryTurn={steersStory} canIllustrate={steersStory}
         rolls={rolls} sheets={sheets} members={state.members} meUserId={meUserId} blockedUserIds={blockedUserIds}
         campaignStatus={campaign?.status} onOpenClosingMessage={onOpenClosingMessage}
@@ -107,8 +99,6 @@ export function SessionChatColumn({
         } : undefined}
       />
       <ItemProposalBar campaignId={campaignId} proposals={state.itemProposals} sheets={sheets} meUserId={meUserId} steersStory={steersStory} />
-      <AskDock campaignId={campaignId} asks={state.asks} meUserId={meUserId} loaded={state.asksLoaded}
-        open={askOpen} onOpenChange={handleAskOpenChange} onAsked={refreshAsks} />
       <UtilityCallStrip calls={visibleUtilityCalls} />
       <DmCoverNotice cover={campaign?.dmCover ?? null} />
       {steersStory && campaign ? <NarrationLanguageSetting key={campaignId} campaignId={campaignId} language={campaign.gameSettings.language} /> : null}

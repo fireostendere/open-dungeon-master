@@ -104,42 +104,42 @@ const DICE_PALETTES: DicePalette[] = [
   },
 ];
 
-// Gloomy sad palettes for defeat & 1s
+// High-contrast, dramatic sad/cursed palettes for defeat & 1s
 const SAD_DICE_PALETTES: DicePalette[] = [
   {
-    name: "slate",
-    fillBase: [52, 60, 72],
-    edgeColor: "#94a3b8",
-    textColor: "#ef4444", // Bright red 1 on cold dark slate!
-    sparkleColor: "#64748b",
-  },
-  {
-    name: "obsidian",
-    fillBase: [26, 28, 36],
-    edgeColor: "#475569",
-    textColor: "#f87171",
-    sparkleColor: "#334155",
-  },
-  {
-    name: "rust",
-    fillBase: [82, 22, 22],
-    edgeColor: "#dc2626",
+    name: "cursed_blood",
+    fillBase: [140, 22, 32],
+    edgeColor: "#fca5a5",
     textColor: "#ffffff",
-    sparkleColor: "#7f1d1d",
+    sparkleColor: "#ef4444", // burning red aura
   },
   {
-    name: "ash",
-    fillBase: [88, 84, 84],
-    edgeColor: "#cbd5e1",
-    textColor: "#b91c1c",
-    sparkleColor: "#64748b",
+    name: "obsidian_crimson",
+    fillBase: [42, 44, 56],
+    edgeColor: "#f87171", // crisp glowing red edges outlining every facet!
+    textColor: "#ef4444", // glowing red 1
+    sparkleColor: "#dc2626",
   },
   {
-    name: "mourning",
-    fillBase: [46, 26, 56],
-    edgeColor: "#a855f7",
+    name: "eldritch_void",
+    fillBase: [80, 28, 110],
+    edgeColor: "#d8b4fe", // glowing purple edge facets
+    textColor: "#ffffff",
+    sparkleColor: "#c084fc",
+  },
+  {
+    name: "cold_crypt",
+    fillBase: [50, 72, 94],
+    edgeColor: "#93c5fd", // cold icy edge
+    textColor: "#ef4444", // stark red 1
+    sparkleColor: "#38bdf8",
+  },
+  {
+    name: "dark_verdigris",
+    fillBase: [30, 85, 80],
+    edgeColor: "#5eead4",
     textColor: "#fca5a5",
-    sparkleColor: "#581c87",
+    sparkleColor: "#14b8a6",
   },
 ];
 
@@ -193,6 +193,46 @@ const DEFEAT_BANNERS_EN = [
   "🌧️ THE DICE WERE MERCILESS 🌧️",
   "🩸 A TRAGIC END 🩸",
   "⚡ FATE WAS CRUEL ⚡",
+];
+
+const YOLO_VICTORY_BANNERS_RU = [
+  "🔥 ЕБАЛИ И РАЗЪЕБАЛИ! 🔥",
+  "👑 ВОТ ЭТО БЛЯТЬ ПОБЕДА! 👑",
+  "★ НАТУРАЛЬНАЯ 20, СУКА! ★",
+  "⚔️ ВРАГ В ГОВНЕ, МЫ В ШОКОЛАДЕ ⚔️",
+  "🏆 РАЗМОТАЛИ ЭТИХ ПИДОРАСОВ 🏆",
+  "✨ АБСОЛЮТНЫЙ РАЗЪЁБ! ✨",
+  "🐉 ДРАКОН ОТСОСАЛ ПО ПОЛНОЙ 🐉",
+  "🔥 СУПЕРКРИТ, НАХУЙ! 🔥",
+];
+
+const YOLO_VICTORY_BANNERS_EN = [
+  "🔥 WE FUCKING DID IT! 🔥",
+  "👑 ABSOLUTE BADASS VICTORY 👑",
+  "★ NATURAL 20, BITCHES! ★",
+  "⚔️ DESTROYED THEM COMPLETELY ⚔️",
+  "🏆 LEGENDARY BADASSES 🏆",
+  "✨ FUCKING GLORIOUS! ✨",
+];
+
+const YOLO_DEFEAT_BANNERS_RU = [
+  "☠️ ПОЛНЫЙ ПИЗДЕЦ И ПРОЁБ ☠️",
+  "💀 ОТРЯД ОБОСРАЛСЯ (TPK) 💀",
+  "🎲 НАТУРАЛЬНАЯ ЕДИНИЦА, БЛЯТЬ! 🎲",
+  "⚰️ ЗАКОПАЛИ НАХУЙ ВЕСЬ ОТРЯД ⚰️",
+  "🩸 ВСЁ ПОШЛО ПО ПИЗДЕ 🩸",
+  "💩 УТОНУЛИ В ГОВНЕ 💩",
+  "⚡ ЗАРУИНИЛИ ВСЮ КАМПАНИЮ ⚡",
+  "🥀 СДОХЛИ КАК ЛОХИ 🥀",
+];
+
+const YOLO_DEFEAT_BANNERS_EN = [
+  "☠️ TOTAL FUCKING DISASTER ☠️",
+  "💀 WE SHIT THE BED (TPK) 💀",
+  "🎲 NATURAL FUCKING 1 🎲",
+  "⚰️ EVERYBODY DIED LIKE MORONS ⚰️",
+  "🩸 EVERYTHING WENT TO HELL 🩸",
+  "💩 BURIED IN SHIT 💩",
 ];
 
 type FireworkRocket = {
@@ -746,15 +786,15 @@ export function EndingCelebration({
         kind: chosenKind,
         x,
         y,
-        vx: vx ?? (Math.random() - 0.5) * (isDefeat ? 4 : 8),
-        vy: vy ?? (isDefeat ? Math.random() * 3 + 2.5 : -(Math.random() * 6 + 4)),
+        vx: vx ?? (Math.random() - 0.5) * (isDefeat ? 6 : 8),
+        vy: vy ?? (isDefeat ? Math.random() * 5 + 8.5 : -(Math.random() * 6 + 4)),
         size: Math.random() * 12 + 32,
         rotX: Math.random() * Math.PI * 2,
         rotY: Math.random() * Math.PI * 2,
         rotZ: Math.random() * Math.PI * 2,
-        vRotX: (Math.random() - 0.5) * (isDefeat ? 0.05 : 0.08),
-        vRotY: (Math.random() - 0.5) * (isDefeat ? 0.05 : 0.08),
-        vRotZ: (Math.random() - 0.5) * (isDefeat ? 0.05 : 0.08),
+        vRotX: (Math.random() - 0.5) * (isDefeat ? 0.14 : 0.08),
+        vRotY: (Math.random() - 0.5) * (isDefeat ? 0.14 : 0.08),
+        vRotZ: (Math.random() - 0.5) * (isDefeat ? 0.14 : 0.08),
         palette,
         value: val,
         alpha: 1,
@@ -821,8 +861,8 @@ export function EndingCelebration({
           scale: 0.85,
           color: rocket.color,
           age: 0,
-          fadeStart: 4500,
-          maxAge: 7000,
+          fadeStart: 1000, // 1.0 second readable duration
+          maxAge: 1400,
           isDefeat: false,
         });
       }
@@ -851,8 +891,8 @@ export function EndingCelebration({
       scale: 1.1,
       color: "#f59e0b",
       age: 0,
-      fadeStart: 4500,
-      maxAge: 7000,
+      fadeStart: 1000,
+      maxAge: 1400,
       isDefeat: false,
     });
 
@@ -920,7 +960,7 @@ export function EndingCelebration({
     // Sad Trombone Audio ("wah-wah-wah-waaaah" clean, distortion-free ending)
     audioRef.current.playSadTrombone();
 
-    // Center defeat banner with 7s visible duration
+    // Center defeat banner with 1s visible duration
     bannersRef.current.push({
       text: locale === "ru" ? "💀 ПОЛНЫЙ ПРОЁБ 💀" : "💀 TOTAL PARTY WIPE 💀",
       x: w / 2,
@@ -930,8 +970,8 @@ export function EndingCelebration({
       scale: 1.1,
       color: "#ef4444",
       age: 0,
-      fadeStart: 4500,
-      maxAge: 7000,
+      fadeStart: 1000,
+      maxAge: 1400,
       isDefeat: true,
     });
 
@@ -949,28 +989,28 @@ export function EndingCelebration({
       });
     }
 
-    // Wave 1 (t = 0): 5 large 3D dice plummeting across screen
-    spawnDie(w * 0.15, -40, (Math.random() - 0.5) * 2, Math.random() * 2 + 2.2, "d20", "1", true);
-    spawnDie(w * 0.32, -50, (Math.random() - 0.5) * 2, Math.random() * 2 + 2.6, "d20", "NAT 1", true);
-    spawnDie(w * 0.50, -40, (Math.random() - 0.5) * 2, Math.random() * 2 + 3.0, "d20", "1", true);
-    spawnDie(w * 0.68, -45, (Math.random() - 0.5) * 2, Math.random() * 2 + 2.4, "d8", "1", true);
-    spawnDie(w * 0.85, -40, (Math.random() - 0.5) * 2, Math.random() * 2 + 2.8, "d6", "1", true);
+    // Wave 1 (t = 0): 5 large 3D dice plummeting fast across screen
+    spawnDie(w * 0.15, -50, (Math.random() - 0.5) * 3, Math.random() * 4 + 9.2, "d20", "1", true);
+    spawnDie(w * 0.32, -60, (Math.random() - 0.5) * 3, Math.random() * 4 + 9.8, "d20", "NAT 1", true);
+    spawnDie(w * 0.50, -50, (Math.random() - 0.5) * 3, Math.random() * 4 + 10.2, "d20", "1", true);
+    spawnDie(w * 0.68, -55, (Math.random() - 0.5) * 3, Math.random() * 4 + 9.4, "d8", "1", true);
+    spawnDie(w * 0.85, -50, (Math.random() - 0.5) * 3, Math.random() * 4 + 9.9, "d6", "1", true);
 
-    // Wave 2 (t = 400ms): 4 more tumbling 3D dice
+    // Wave 2 (t = 280ms): 4 more tumbling 3D dice
     setTimeout(() => {
-      spawnDie(w * 0.24, -40, (Math.random() - 0.5) * 2, Math.random() * 2 + 2.5, "d20", "NAT 1", true);
-      spawnDie(w * 0.44, -45, (Math.random() - 0.5) * 2, Math.random() * 2 + 2.8, "d6", "1", true);
-      spawnDie(w * 0.62, -40, (Math.random() - 0.5) * 2, Math.random() * 2 + 2.4, "d20", "1", true);
-      spawnDie(w * 0.80, -45, (Math.random() - 0.5) * 2, Math.random() * 2 + 2.7, "d8", "1", true);
-    }, 400);
+      spawnDie(w * 0.24, -50, (Math.random() - 0.5) * 3, Math.random() * 4 + 9.6, "d20", "NAT 1", true);
+      spawnDie(w * 0.44, -55, (Math.random() - 0.5) * 3, Math.random() * 4 + 9.9, "d6", "1", true);
+      spawnDie(w * 0.62, -50, (Math.random() - 0.5) * 3, Math.random() * 4 + 9.5, "d20", "1", true);
+      spawnDie(w * 0.80, -55, (Math.random() - 0.5) * 3, Math.random() * 4 + 9.8, "d8", "1", true);
+    }, 280);
 
-    // Wave 3 (t = 850ms): 5 more falling dice + second banner
+    // Wave 3 (t = 600ms): 5 more falling dice + second banner
     setTimeout(() => {
-      spawnDie(w * 0.12, -40, (Math.random() - 0.5) * 2, Math.random() * 2 + 3.0, "d20", "1", true);
-      spawnDie(w * 0.36, -45, (Math.random() - 0.5) * 2, Math.random() * 2 + 2.6, "d20", "NAT 1", true);
-      spawnDie(w * 0.52, -40, (Math.random() - 0.5) * 2, Math.random() * 2 + 3.2, "d20", "1", true);
-      spawnDie(w * 0.72, -45, (Math.random() - 0.5) * 2, Math.random() * 2 + 2.7, "d6", "1", true);
-      spawnDie(w * 0.90, -40, (Math.random() - 0.5) * 2, Math.random() * 2 + 2.9, "d20", "NAT 1", true);
+      spawnDie(w * 0.12, -50, (Math.random() - 0.5) * 3, Math.random() * 4 + 10.1, "d20", "1", true);
+      spawnDie(w * 0.36, -55, (Math.random() - 0.5) * 3, Math.random() * 4 + 9.6, "d20", "NAT 1", true);
+      spawnDie(w * 0.52, -50, (Math.random() - 0.5) * 3, Math.random() * 4 + 10.3, "d20", "1", true);
+      spawnDie(w * 0.72, -55, (Math.random() - 0.5) * 3, Math.random() * 4 + 9.7, "d6", "1", true);
+      spawnDie(w * 0.90, -50, (Math.random() - 0.5) * 3, Math.random() * 4 + 9.9, "d20", "NAT 1", true);
 
       bannersRef.current.push({
         text: locale === "ru" ? "🎲 НАТУРАЛЬНАЯ 1 🎲" : "🎲 NATURAL 1 🎲",
@@ -981,26 +1021,26 @@ export function EndingCelebration({
         scale: 1.0,
         color: "#94a3b8",
         age: 0,
-        fadeStart: 4500,
-        maxAge: 7000,
+        fadeStart: 1000,
+        maxAge: 1400,
         isDefeat: true,
       });
-    }, 850);
+    }, 600);
 
-    // Wave 4 (t = 1350ms): 4 more tumbling dice
+    // Wave 4 (t = 950ms): 4 more tumbling dice
     setTimeout(() => {
-      spawnDie(w * 0.20, -40, (Math.random() - 0.5) * 2, Math.random() * 2 + 2.8, "d20", "1", true);
-      spawnDie(w * 0.40, -45, (Math.random() - 0.5) * 2, Math.random() * 2 + 3.1, "d8", "1", true);
-      spawnDie(w * 0.60, -40, (Math.random() - 0.5) * 2, Math.random() * 2 + 2.6, "d20", "NAT 1", true);
-      spawnDie(w * 0.82, -45, (Math.random() - 0.5) * 2, Math.random() * 2 + 3.0, "d6", "1", true);
-    }, 1350);
+      spawnDie(w * 0.20, -50, (Math.random() - 0.5) * 3, Math.random() * 4 + 9.8, "d20", "1", true);
+      spawnDie(w * 0.40, -55, (Math.random() - 0.5) * 3, Math.random() * 4 + 10.2, "d8", "1", true);
+      spawnDie(w * 0.60, -50, (Math.random() - 0.5) * 3, Math.random() * 4 + 9.7, "d20", "NAT 1", true);
+      spawnDie(w * 0.82, -55, (Math.random() - 0.5) * 3, Math.random() * 4 + 10.1, "d6", "1", true);
+    }, 950);
 
-    // Wave 5 (t = 1900ms): 4 more tumbling dice + third banner
+    // Wave 5 (t = 1350ms): 4 more tumbling dice + third banner
     setTimeout(() => {
-      spawnDie(w * 0.28, -40, (Math.random() - 0.5) * 2, Math.random() * 2 + 3.0, "d20", "NAT 1", true);
-      spawnDie(w * 0.48, -45, (Math.random() - 0.5) * 2, Math.random() * 2 + 2.8, "d20", "1", true);
-      spawnDie(w * 0.70, -40, (Math.random() - 0.5) * 2, Math.random() * 2 + 3.2, "d8", "1", true);
-      spawnDie(w * 0.88, -45, (Math.random() - 0.5) * 2, Math.random() * 2 + 2.9, "d20", "1", true);
+      spawnDie(w * 0.28, -50, (Math.random() - 0.5) * 3, Math.random() * 4 + 10.1, "d20", "NAT 1", true);
+      spawnDie(w * 0.48, -55, (Math.random() - 0.5) * 3, Math.random() * 4 + 9.8, "d20", "1", true);
+      spawnDie(w * 0.70, -50, (Math.random() - 0.5) * 3, Math.random() * 4 + 10.3, "d8", "1", true);
+      spawnDie(w * 0.88, -55, (Math.random() - 0.5) * 3, Math.random() * 4 + 10.0, "d20", "1", true);
 
       bannersRef.current.push({
         text: locale === "ru" ? "⚰️ ОТРЯД ПОВЕРЖЕН (TPK) ⚰️" : "⚰️ TOTAL PARTY WIPE (TPK) ⚰️",
@@ -1011,11 +1051,11 @@ export function EndingCelebration({
         scale: 0.95,
         color: "#dc2626",
         age: 0,
-        fadeStart: 4500,
-        maxAge: 7000,
+        fadeStart: 1000,
+        maxAge: 1400,
         isDefeat: true,
       });
-    }, 1900);
+    }, 1350);
   }, [locale, spawnDie]);
 
   const switchMode = useCallback(
@@ -1092,9 +1132,9 @@ export function EndingCelebration({
           const w = window.innerWidth;
           spawnDie(
             w * 0.15 + Math.random() * (w * 0.7),
-            -40,
-            (Math.random() - 0.5) * 2,
-            Math.random() * 2 + 2,
+            -50,
+            (Math.random() - 0.5) * 3,
+            Math.random() * 4 + 9.5,
             Math.random() < 0.7 ? "d20" : "d6",
             Math.random() < 0.4 ? "NAT 1" : "1",
             true,
@@ -1110,8 +1150,8 @@ export function EndingCelebration({
               scale: 0.9,
               color: "#ef4444",
               age: 0,
-              fadeStart: 4500,
-              maxAge: 7000,
+              fadeStart: 1000,
+              maxAge: 1400,
               isDefeat: true,
             });
           }
@@ -1255,7 +1295,7 @@ export function EndingCelebration({
         die.y += die.vy;
 
         if (mode === "defeat" || die.isDefeat) {
-          die.vy += 0.24; // solid gravity pulling dice down
+          die.vy += 0.44; // fast, punchy gravity so dice plummet with real mass!
           const groundY = height - die.size * 0.72;
 
           // Single comical bounce off the bottom:
@@ -1264,12 +1304,12 @@ export function EndingCelebration({
             die.bounceCount = 1;
             die.y = groundY;
             // Exactly one bounce upward:
-            die.vy = -(Math.abs(die.vy) * 0.46 + 3.2);
-            die.vx = (Math.random() - 0.5) * 4;
+            die.vy = -(Math.abs(die.vy) * 0.45 + 5.0);
+            die.vx = (Math.random() - 0.5) * 5;
             // Increased comical spin tumble
-            die.vRotX = (Math.random() - 0.5) * 0.18;
-            die.vRotY = (Math.random() - 0.5) * 0.18;
-            die.vRotZ = (Math.random() - 0.5) * 0.18;
+            die.vRotX = (Math.random() - 0.5) * 0.22;
+            die.vRotY = (Math.random() - 0.5) * 0.22;
+            die.vRotZ = (Math.random() - 0.5) * 0.22;
 
             // Play the comical "stepping into shit" squelch sound!
             audioRef.current.playSquish();
@@ -1373,14 +1413,15 @@ export function EndingCelebration({
             const nLen = Math.hypot(nx, ny, nz) || 1;
             const normX = nx / nLen, normY = ny / nLen, normZ = nz / nLen;
             const dot = Math.max(0.25, normX * lightDir[0] + normY * lightDir[1] + normZ * lightDir[2]);
+            const spec = Math.pow(Math.max(0, dot), 5) * 55;
 
-            const r = Math.min(255, Math.floor(die.palette.fillBase[0] * (dot * 0.8 + 0.4)));
-            const g = Math.min(255, Math.floor(die.palette.fillBase[1] * (dot * 0.8 + 0.4)));
-            const b = Math.min(255, Math.floor(die.palette.fillBase[2] * (dot * 0.8 + 0.4)));
+            const r = Math.min(255, Math.floor(die.palette.fillBase[0] * (dot * 0.75 + 0.35) + spec));
+            const g = Math.min(255, Math.floor(die.palette.fillBase[1] * (dot * 0.75 + 0.35) + spec));
+            const b = Math.min(255, Math.floor(die.palette.fillBase[2] * (dot * 0.75 + 0.35) + spec));
 
             ctx.fillStyle = `rgb(${r},${g},${b})`;
             ctx.strokeStyle = die.palette.edgeColor;
-            ctx.lineWidth = 1.2;
+            ctx.lineWidth = die.isDefeat ? 1.6 : 1.2;
 
             ctx.beginPath();
             ctx.moveTo(p0[0] * die.size, p0[1] * die.size);
@@ -1399,13 +1440,13 @@ export function EndingCelebration({
             }
           }
 
-          if (bestFaceZ > 0.65) {
+          if (bestFaceZ > 0.55) {
             ctx.fillStyle = die.palette.textColor;
             ctx.font = `bold ${Math.round(die.size * 0.44)}px -apple-system, sans-serif`;
             ctx.textAlign = "center";
             ctx.textBaseline = "middle";
             ctx.shadowColor = "#000000";
-            ctx.shadowBlur = 4;
+            ctx.shadowBlur = 5;
             ctx.fillText(die.value, bestFaceCenter[0], bestFaceCenter[1]);
             ctx.shadowBlur = 0;
           }
@@ -1429,14 +1470,15 @@ export function EndingCelebration({
             const nLen = Math.hypot(nx, ny, nz) || 1;
             const normX = nx / nLen, normY = ny / nLen, normZ = nz / nLen;
             const dot = Math.max(0.25, normX * lightDir[0] + normY * lightDir[1] + normZ * lightDir[2]);
+            const spec = Math.pow(Math.max(0, dot), 5) * 55;
 
-            const r = Math.min(255, Math.floor(die.palette.fillBase[0] * (dot * 0.8 + 0.4)));
-            const g = Math.min(255, Math.floor(die.palette.fillBase[1] * (dot * 0.8 + 0.4)));
-            const b = Math.min(255, Math.floor(die.palette.fillBase[2] * (dot * 0.8 + 0.4)));
+            const r = Math.min(255, Math.floor(die.palette.fillBase[0] * (dot * 0.75 + 0.35) + spec));
+            const g = Math.min(255, Math.floor(die.palette.fillBase[1] * (dot * 0.75 + 0.35) + spec));
+            const b = Math.min(255, Math.floor(die.palette.fillBase[2] * (dot * 0.75 + 0.35) + spec));
 
             ctx.fillStyle = `rgb(${r},${g},${b})`;
             ctx.strokeStyle = die.palette.edgeColor;
-            ctx.lineWidth = 1.2;
+            ctx.lineWidth = die.isDefeat ? 1.6 : 1.2;
 
             ctx.beginPath();
             ctx.moveTo(p0[0] * die.size, p0[1] * die.size);
@@ -1455,12 +1497,15 @@ export function EndingCelebration({
             }
           }
 
-          if (bestFaceZ > 0.65) {
+          if (bestFaceZ > 0.55) {
             ctx.fillStyle = die.palette.textColor;
             ctx.font = `bold ${Math.round(die.size * 0.48)}px -apple-system, sans-serif`;
             ctx.textAlign = "center";
             ctx.textBaseline = "middle";
+            ctx.shadowColor = "#000000";
+            ctx.shadowBlur = 5;
             ctx.fillText(die.value, bestFaceCenter[0], bestFaceCenter[1]);
+            ctx.shadowBlur = 0;
           }
         } else {
           // d6 (Cube)
@@ -1484,14 +1529,15 @@ export function EndingCelebration({
             const nLen = Math.hypot(nx, ny, nz) || 1;
             const normX = nx / nLen, normY = ny / nLen, normZ = nz / nLen;
             const dot = Math.max(0.25, normX * lightDir[0] + normY * lightDir[1] + normZ * lightDir[2]);
+            const spec = Math.pow(Math.max(0, dot), 5) * 55;
 
-            const r = Math.min(255, Math.floor(die.palette.fillBase[0] * (dot * 0.8 + 0.4)));
-            const g = Math.min(255, Math.floor(die.palette.fillBase[1] * (dot * 0.8 + 0.4)));
-            const b = Math.min(255, Math.floor(die.palette.fillBase[2] * (dot * 0.8 + 0.4)));
+            const r = Math.min(255, Math.floor(die.palette.fillBase[0] * (dot * 0.75 + 0.35) + spec));
+            const g = Math.min(255, Math.floor(die.palette.fillBase[1] * (dot * 0.75 + 0.35) + spec));
+            const b = Math.min(255, Math.floor(die.palette.fillBase[2] * (dot * 0.75 + 0.35) + spec));
 
             ctx.fillStyle = `rgb(${r},${g},${b})`;
             ctx.strokeStyle = die.palette.edgeColor;
-            ctx.lineWidth = 1.2;
+            ctx.lineWidth = die.isDefeat ? 1.6 : 1.2;
 
             ctx.beginPath();
             ctx.moveTo(p0[0] * die.size, p0[1] * die.size);
@@ -1511,12 +1557,15 @@ export function EndingCelebration({
             }
           }
 
-          if (bestFaceZ > 0.65) {
+          if (bestFaceZ > 0.55) {
             ctx.fillStyle = die.palette.textColor;
             ctx.font = `bold ${Math.round(die.size * 0.52)}px -apple-system, sans-serif`;
             ctx.textAlign = "center";
             ctx.textBaseline = "middle";
+            ctx.shadowColor = "#000000";
+            ctx.shadowBlur = 5;
             ctx.fillText(die.value, bestFaceCenter[0], bestFaceCenter[1]);
+            ctx.shadowBlur = 0;
           }
         }
 
@@ -1600,57 +1649,90 @@ export function EndingCelebration({
       <canvas ref={canvasRef} className="absolute inset-0 block size-full" />
 
       {/* Floating Header Banner */}
-      <div className="animate-fade-up pointer-events-auto absolute inset-x-0 top-6 flex justify-center px-4">
+      <div className="animate-fade-up pointer-events-auto absolute inset-x-0 top-3 sm:top-6 flex justify-center px-2 sm:px-4">
         <div
           className={cn(
-            "flex max-w-xl items-center gap-3 rounded-2xl border px-4 py-2.5 backdrop-blur-md transition-all duration-300",
+            "flex w-full max-w-xl flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 rounded-2xl border p-2.5 sm:px-4 sm:py-2.5 backdrop-blur-md transition-all duration-300 shadow-2xl",
             isDefeat
-              ? "border-red-900/60 bg-stone-950/90 shadow-[0_0_35px_rgba(239,68,68,0.25)]"
-              : "border-amber-500/40 bg-stone-950/85 shadow-[0_0_35px_rgba(245,158,11,0.25)]",
+              ? "border-red-900/60 bg-stone-950/95 shadow-[0_0_35px_rgba(239,68,68,0.25)]"
+              : "border-amber-500/40 bg-stone-950/95 shadow-[0_0_35px_rgba(245,158,11,0.25)]",
           )}
         >
-          <div
-            className={cn(
-              "flex size-9 shrink-0 items-center justify-center rounded-xl shadow-inner",
-              isDefeat
-                ? "bg-gradient-to-br from-red-600 to-stone-900 text-stone-100"
-                : "bg-gradient-to-br from-amber-400 to-amber-600 text-stone-950",
-            )}
-          >
+          {/* Top row on mobile / Left group on desktop */}
+          <div className="flex items-center gap-2.5 min-w-0 flex-1">
+            <div
+              className={cn(
+                "flex size-8 sm:size-9 shrink-0 items-center justify-center rounded-xl shadow-inner",
+                isDefeat
+                  ? "bg-gradient-to-br from-red-600 to-stone-900 text-stone-100"
+                  : "bg-gradient-to-br from-amber-400 to-amber-600 text-stone-950",
+              )}
+            >
+              {isDefeat ? (
+                <Skull className="size-4 sm:size-5 animate-pulse text-red-100" />
+              ) : (
+                <Sparkles className="size-4 sm:size-5 animate-spin" style={{ animationDuration: "6s" }} />
+              )}
+            </div>
+
+            <div className="min-w-0 flex-1">
+              <h3
+                className={cn(
+                  "truncate font-display text-xs sm:text-sm font-bold tracking-wide",
+                  isDefeat ? "text-red-200" : "text-amber-100",
+                )}
+              >
+                {campaignTitle ? `${campaignTitle} — ` : ""}
+                {isDefeat ? copy.defeatConcluded : copy.concluded}
+              </h3>
+              <p
+                className={cn(
+                  "truncate text-[11px] sm:text-xs",
+                  isDefeat ? "text-red-400/90" : "text-amber-300/80",
+                )}
+              >
+                {isDefeat ? copy.defeatHeroesSalute : copy.heroesSalute}
+              </p>
+            </div>
+
+            {/* Mobile close button right in the top row */}
+            <button
+              type="button"
+              onClick={onClose}
+              className="sm:hidden rounded-lg p-1 text-stone-400 hover:bg-stone-800 hover:text-stone-200 shrink-0"
+              title={copy.close}
+              aria-label={copy.close}
+            >
+              <X className="size-4" />
+            </button>
+          </div>
+
+          {/* Action buttons row */}
+          <div className="flex items-center justify-end gap-1.5 sm:gap-1">
             {isDefeat ? (
-              <Skull className="size-5 animate-pulse text-red-100" />
+              <button
+                type="button"
+                onClick={triggerDefeatVolley}
+                className="flex-1 sm:flex-initial text-center justify-center rounded-lg border border-red-800/60 bg-red-950/60 px-2.5 py-1.5 sm:py-1 text-xs font-semibold text-red-200 shadow-sm transition hover:bg-red-900/60"
+              >
+                {copy.dropMoreDice}
+              </button>
             ) : (
-              <Sparkles className="size-5 animate-spin" style={{ animationDuration: "6s" }} />
+              <button
+                type="button"
+                onClick={triggerVolley}
+                className="flex-1 sm:flex-initial text-center justify-center rounded-lg border border-amber-500/40 bg-amber-950/60 px-2.5 py-1.5 sm:py-1 text-xs font-semibold text-amber-200 shadow-sm transition hover:bg-amber-900/60"
+              >
+                {copy.moreFireworks}
+              </button>
             )}
-          </div>
 
-          <div className="min-w-0 flex-1">
-            <h3
-              className={cn(
-                "truncate font-display text-sm font-bold tracking-wide",
-                isDefeat ? "text-red-200" : "text-amber-100",
-              )}
-            >
-              {campaignTitle ? `${campaignTitle} — ` : ""}
-              {isDefeat ? copy.defeatConcluded : copy.concluded}
-            </h3>
-            <p
-              className={cn(
-                "truncate text-xs",
-                isDefeat ? "text-red-400/90" : "text-amber-300/80",
-              )}
-            >
-              {isDefeat ? copy.defeatHeroesSalute : copy.heroesSalute}
-            </p>
-          </div>
-
-          <div className="flex items-center gap-1">
             {closingMessage ? (
               <button
                 type="button"
                 onClick={() => setShowStory((prev) => !prev)}
                 className={cn(
-                  "rounded-lg p-1.5 transition",
+                  "rounded-lg p-1.5 transition shrink-0",
                   showStory
                     ? "bg-amber-500/20 text-amber-200"
                     : "text-stone-400 hover:bg-stone-800 hover:text-stone-200",
@@ -1665,7 +1747,7 @@ export function EndingCelebration({
             <button
               type="button"
               onClick={toggleSound}
-              className="rounded-lg p-1.5 text-stone-400 hover:bg-stone-800 hover:text-stone-200"
+              className="rounded-lg p-1.5 text-stone-400 hover:bg-stone-800 hover:text-stone-200 shrink-0"
               title={soundEnabled ? copy.audioOn : copy.audioOff}
               aria-label={soundEnabled ? copy.audioOn : copy.audioOff}
             >
@@ -1673,49 +1755,32 @@ export function EndingCelebration({
             </button>
 
             {isDefeat ? (
-              <>
-                <button
-                  type="button"
-                  onClick={triggerDefeatVolley}
-                  className="rounded-lg border border-red-800/60 bg-red-950/50 px-2.5 py-1 text-xs font-semibold text-red-200 shadow-sm transition hover:bg-red-900/60"
-                >
-                  {copy.dropMoreDice}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => switchMode("victory")}
-                  className="rounded-lg border border-amber-500/40 bg-amber-950/40 p-1.5 text-amber-300 transition hover:bg-amber-900/60"
-                  title={copy.switchToVictory}
-                  aria-label={copy.switchToVictory}
-                >
-                  <Sparkles className="size-4" />
-                </button>
-              </>
+              <button
+                type="button"
+                onClick={() => switchMode("victory")}
+                className="rounded-lg border border-amber-500/40 bg-amber-950/40 p-1.5 text-amber-300 transition hover:bg-amber-900/60 shrink-0"
+                title={copy.switchToVictory}
+                aria-label={copy.switchToVictory}
+              >
+                <Sparkles className="size-4" />
+              </button>
             ) : (
-              <>
-                <button
-                  type="button"
-                  onClick={triggerVolley}
-                  className="rounded-lg border border-amber-500/40 bg-amber-950/50 px-2.5 py-1 text-xs font-semibold text-amber-200 shadow-sm transition hover:bg-amber-900/60"
-                >
-                  {copy.moreFireworks}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => switchMode("defeat")}
-                  className="rounded-lg border border-red-900/50 bg-red-950/40 p-1.5 text-red-400 transition hover:bg-red-900/60"
-                  title={copy.switchToDefeat}
-                  aria-label={copy.switchToDefeat}
-                >
-                  <Skull className="size-4" />
-                </button>
-              </>
+              <button
+                type="button"
+                onClick={() => switchMode("defeat")}
+                className="rounded-lg border border-red-900/50 bg-red-950/40 p-1.5 text-red-400 transition hover:bg-red-900/60 shrink-0"
+                title={copy.switchToDefeat}
+                aria-label={copy.switchToDefeat}
+              >
+                <Skull className="size-4" />
+              </button>
             )}
 
+            {/* Desktop close button */}
             <button
               type="button"
               onClick={onClose}
-              className="rounded-lg p-1.5 text-stone-400 hover:bg-stone-800 hover:text-stone-200"
+              className="hidden sm:inline-flex rounded-lg p-1.5 text-stone-400 hover:bg-stone-800 hover:text-stone-200 shrink-0"
               title={copy.close}
               aria-label={copy.close}
             >
@@ -1727,47 +1792,47 @@ export function EndingCelebration({
 
       {/* Floating Center Parchment Story Card (so users never miss reading the final story) */}
       {showStory && closingMessage ? (
-        <div className="pointer-events-auto absolute inset-0 z-40 flex items-center justify-center p-4">
+        <div className="pointer-events-auto absolute inset-0 z-40 flex items-center justify-center p-3 sm:p-4">
           <div
             className={cn(
-              "relative w-full max-w-lg rounded-2xl border p-6 shadow-2xl backdrop-blur-md animate-in fade-in zoom-in-95 duration-200",
+              "relative w-full max-w-lg max-h-[85vh] flex flex-col rounded-2xl border p-4 sm:p-6 shadow-2xl backdrop-blur-md animate-in fade-in zoom-in-95 duration-200",
               isDefeat
                 ? "border-red-900/70 bg-stone-950/95 text-stone-100 shadow-[0_0_50px_rgba(239,68,68,0.25)]"
                 : "border-amber-500/50 bg-stone-950/95 text-stone-100 shadow-[0_0_50px_rgba(245,158,11,0.25)]",
             )}
           >
-            <div className="flex items-center justify-between pb-3 border-b border-stone-800">
-              <div className="flex items-center gap-2">
+            <div className="flex items-center justify-between pb-3 border-b border-stone-800 shrink-0">
+              <div className="flex items-center gap-2 min-w-0">
                 {isDefeat ? (
-                  <Skull className="size-5 text-red-400" />
+                  <Skull className="size-5 text-red-400 shrink-0" />
                 ) : (
-                  <Trophy className="size-5 text-amber-400" />
+                  <Trophy className="size-5 text-amber-400 shrink-0" />
                 )}
-                <h4 className="font-display text-sm font-bold tracking-wide text-stone-200">
+                <h4 className="font-display text-sm font-bold tracking-wide text-stone-200 truncate">
                   {isDefeat ? copy.storyTitleDefeat : copy.storyTitleVictory}
                 </h4>
               </div>
               <button
                 type="button"
                 onClick={() => setShowStory(false)}
-                className="rounded-lg p-1 text-stone-400 hover:bg-stone-800 hover:text-stone-200 transition"
+                className="rounded-lg p-1 text-stone-400 hover:bg-stone-800 hover:text-stone-200 transition shrink-0"
                 title={copy.storyClose}
               >
                 <X className="size-4" />
               </button>
             </div>
 
-            <div className="my-4 max-h-64 overflow-y-auto pr-2">
+            <div className="my-3 sm:my-4 flex-1 overflow-y-auto pr-2">
               <p className="whitespace-pre-wrap font-serif text-sm leading-relaxed text-stone-200 first-letter:text-2xl first-letter:font-bold first-letter:float-left first-letter:mr-1.5">
                 {closingMessage}
               </p>
             </div>
 
-            <div className="flex justify-end pt-2">
+            <div className="flex justify-end pt-2 border-t border-stone-800/60 shrink-0">
               <button
                 type="button"
                 onClick={() => setShowStory(false)}
-                className="rounded-lg border border-stone-700 bg-stone-900 px-3 py-1.5 text-xs font-medium text-stone-300 hover:bg-stone-800 hover:text-white transition"
+                className="w-full sm:w-auto text-center justify-center rounded-lg border border-stone-700 bg-stone-900 px-3 py-1.5 text-xs font-medium text-stone-300 hover:bg-stone-800 hover:text-white transition"
               >
                 {copy.storyClose}
               </button>

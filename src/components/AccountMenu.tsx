@@ -21,6 +21,7 @@ import { HelpDialog } from "@/components/HelpDialog";
 import { Tooltip } from "@/components/ui/Tooltip";
 import { headerButtonClass } from "@/app/campaigns/[campaignId]/headerButton";
 import { cn } from "@/lib/cn";
+import { PIXEL_ICONS, PixelTile } from "@/lib/ui";
 import { shellHost, type ShellHost } from "@/lib/shell-host";
 import { useI18n } from "@/lib/i18n";
 
@@ -61,9 +62,17 @@ export function AppBrand({
     );
   }
   return (
-    <Link href="/" className={classes}>
+    <Link href="/" aria-label={t("language.appHomeAria")} className={classes}>
       {children}
     </Link>
+  );
+}
+
+export function AppHomeLogo({ className }: { className?: string }) {
+  return (
+    <AppBrand className={cn("size-12 justify-center gap-0", className)}>
+      <PixelTile src={PIXEL_ICONS.story} size="size-12" />
+    </AppBrand>
   );
 }
 

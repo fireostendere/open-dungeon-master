@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import { cn } from "@/lib/cn";
 import { useShellShare } from "@/lib/use-shell-share";
 import { CampaignCover } from "@/components/CampaignCover";
-import { AccountMenu } from "@/components/AccountMenu";
+import { AccountMenu, AppHomeLogo } from "@/components/AccountMenu";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { ScheduleSection } from "@/components/ScheduleSection";
 import { Tooltip } from "@/components/ui/Tooltip";
@@ -329,6 +329,7 @@ export function Lobby({ state, refresh }: { state: CampaignState; refresh: () =>
     <main className="mx-auto w-full max-w-2xl flex-1 p-4 sm:p-6">
       <header className="mb-6">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+          <AppHomeLogo />
           <Link
             href="/"
             className="inline-flex items-center gap-1.5 text-sm text-stone-500 transition-colors hover:text-amber-200"

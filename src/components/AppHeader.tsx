@@ -50,7 +50,7 @@ export function AppHeader({
     <header className={cn("mb-6", className)}>
       <div className="flex min-h-9 flex-wrap items-center justify-between gap-3">
       <AppBrand>
-        <PixelTile src={PIXEL_ICONS.story} size="size-8" />
+        <PixelTile src={PIXEL_ICONS.story} size="size-12" />
         <span className="text-balance font-display text-base leading-tight tracking-wide text-amber-50 sm:text-lg">
           Open Dungeon Master
         </span>

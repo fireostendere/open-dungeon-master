@@ -14,6 +14,7 @@ import type { CreateSheetInput } from "@/lib/schemas/sheet";
 import { navigateTo } from "@/lib/navigation";
 import { useI18n } from "@/lib/i18n";
 import { localeText } from "@/lib/i18n/locale-text";
+import { AppHomeLogo } from "@/components/AccountMenu";
 
 type LibraryCharacter = {
   id: string;
@@ -129,7 +130,8 @@ function CampaignCharacterPageInner({ campaignId }: { campaignId: string }) {
 
   if (level === null) {
     return (
-      <main className="mx-auto w-full max-w-3xl flex-1 p-4 sm:p-6">
+      <main className="relative mx-auto w-full max-w-3xl flex-1 p-4 sm:p-6">
+        <AppHomeLogo className="absolute left-4 top-4" />
         <div className="flex justify-center py-10">
           <Loader2 className="size-5 animate-spin text-stone-500" />
         </div>
@@ -140,9 +142,12 @@ function CampaignCharacterPageInner({ campaignId }: { campaignId: string }) {
   return (
     <main className="mx-auto w-full max-w-3xl flex-1 p-4 sm:p-6">
       <header className="mb-5">
-        <a href={`/campaigns/${campaignId}`} className="text-sm text-stone-500 hover:text-stone-300">
-          {copy.back}
-        </a>
+        <div className="mb-2 flex items-center gap-3">
+          <AppHomeLogo />
+          <a href={`/campaigns/${campaignId}`} className="text-sm text-stone-500 hover:text-stone-300">
+            {copy.back}
+          </a>
+        </div>
         <div className="mt-2 flex items-center gap-3">
           <PixelTile src={PIXEL_ICONS.characters} />
           <div>

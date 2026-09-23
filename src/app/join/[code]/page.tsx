@@ -7,6 +7,7 @@ import { CampaignCover } from "@/components/CampaignCover";
 import AuthForm from "@/app/AuthForm";
 import { navigateTo } from "@/lib/navigation";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { AppHomeLogo } from "@/components/AccountMenu";
 import { useI18n } from "@/lib/i18n";
 
 // Invite-link landing: /join/CODE. Logged-in users are joined and forwarded
@@ -87,6 +88,7 @@ export default function JoinPage({ params }: { params: Promise<{ code: string }>
 
   return (
     <main className="bg-starfield relative flex flex-1 items-center justify-center p-4 sm:p-6">
+      <AppHomeLogo className="absolute left-4 top-4 z-20" />
       <div className="absolute top-4 right-4 z-20">
         <LanguageSwitcher />
       </div>

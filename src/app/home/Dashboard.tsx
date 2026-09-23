@@ -151,7 +151,7 @@ export function Dashboard({ user, onLogout }: { user: SessionUser; onLogout: () 
       <div className="mx-auto w-full max-w-3xl p-4 sm:p-6">
         <header className="mb-8 flex flex-wrap items-center justify-between gap-3">
           <AppBrand className="gap-3">
-            <PixelTile src={PIXEL_ICONS.story} />
+            <PixelTile src={PIXEL_ICONS.story} size="size-12" />
             <span className="min-w-0">
               <span className="block text-balance font-display text-lg leading-tight tracking-wide text-amber-50 sm:text-xl">
                 {t("common.appName")}

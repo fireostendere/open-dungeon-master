@@ -11,7 +11,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import type { ComponentProps } from "react";
-import { AccountMenu, AppHomeButton, type AccountMenuUser } from "@/components/AccountMenu";
+import { AccountMenu, AppHomeButton, AppHomeLogo, type AccountMenuUser } from "@/components/AccountMenu";
 import { Tooltip } from "@/components/ui/Tooltip";
 import { headerButtonClass } from "@/app/campaigns/[campaignId]/headerButton";
 import { VoiceDock } from "@/app/campaigns/[campaignId]/VoiceDock";
@@ -152,14 +152,17 @@ export function SessionHeader({
   });
   const diceLabel = dice3d ? copy.diceOff : copy.diceOn;
   return (
-    <header className="glass z-10 flex items-center gap-3 border-b border-stone-700/40 px-4 pb-2 pt-[calc(0.5rem+env(safe-area-inset-top))]">
-      <div className="min-w-0 flex-1">
-        <h1 className="truncate font-display text-base leading-tight tracking-wide text-amber-50 sm:text-lg">
-          {title}
-        </h1>
-         <p className="truncate text-xs text-stone-500">{scene || copy.scene}</p>
+    <header className="glass z-10 flex flex-wrap items-center gap-3 border-b border-stone-700/40 px-4 pb-2 pt-[calc(0.5rem+env(safe-area-inset-top))]">
+      <div className="flex w-full min-w-0 items-center gap-3 sm:w-auto sm:flex-1">
+        <AppHomeLogo />
+        <div className="min-w-0 flex-1">
+          <h1 className="break-words font-display text-base leading-snug tracking-wide text-amber-50 sm:text-lg">
+            {title}
+          </h1>
+          <p className="truncate text-xs text-stone-500">{scene || copy.scene}</p>
+        </div>
       </div>
-      <div className="flex shrink-0 items-center gap-2 sm:gap-2.5">
+      <div className="ml-auto flex max-w-full shrink-0 items-center gap-2 sm:gap-2.5">
         <VoiceDock {...voice} />
         <Tooltip content={diceLabel} side="bottom">
           <button

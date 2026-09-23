@@ -7,6 +7,7 @@ import CharacterBuilder, { type BuilderResult } from "../builder/CharacterBuilde
 import { navigateTo } from "@/lib/navigation";
 import { useI18n } from "@/lib/i18n";
 import { localeText } from "@/lib/i18n/locale-text";
+import { AppHomeLogo } from "@/components/AccountMenu";
 
 export default function NewCharacterPage() {
   const { locale } = useI18n();
@@ -48,9 +49,12 @@ export default function NewCharacterPage() {
   return (
     <main className="mx-auto w-full max-w-3xl flex-1 p-4 sm:p-6">
       <header className="mb-5">
-        <Link href="/characters" className="text-sm text-stone-500 hover:text-stone-300">
-          &larr; {copy.back}
-        </Link>
+        <div className="mb-2 flex items-center gap-3">
+          <AppHomeLogo />
+          <Link href="/characters" className="text-sm text-stone-500 hover:text-stone-300">
+            &larr; {copy.back}
+          </Link>
+        </div>
         <div className="mt-2 flex items-center gap-3">
           <PixelTile src={PIXEL_ICONS.characters} />
           <div>

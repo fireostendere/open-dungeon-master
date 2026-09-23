@@ -9,6 +9,7 @@ import { navigateTo } from "@/lib/navigation";
 import { useI18n } from "@/lib/i18n";
 import { localeText } from "@/lib/i18n/locale-text";
 import { characterDisplay } from "@/lib/i18n/character-display";
+import { AppHomeLogo } from "@/components/AccountMenu";
 import type { CreateSheetInput } from "@/lib/schemas/sheet";
 
 type LibraryCharacter = {
@@ -104,7 +105,8 @@ export default function EditCharacterPage({
 
   if (loading) {
     return (
-      <main className="mx-auto w-full max-w-2xl flex-1 p-4 sm:p-6">
+      <main className="relative mx-auto w-full max-w-2xl flex-1 p-4 sm:p-6">
+        <AppHomeLogo className="absolute left-4 top-4" />
         <div className="flex justify-center py-10">
           <Loader2 className="size-5 animate-spin text-stone-500" />
         </div>
@@ -114,7 +116,8 @@ export default function EditCharacterPage({
 
   if (!character) {
     return (
-      <main className="mx-auto w-full max-w-2xl flex-1 p-4 sm:p-6">
+      <main className="relative mx-auto w-full max-w-2xl flex-1 p-4 sm:p-6">
+        <AppHomeLogo className="absolute left-4 top-4" />
         <p className="text-center text-stone-400">
           {copy.notFound}{" "}
           <Link href="/characters" className="text-amber-200 hover:text-amber-400">
@@ -131,12 +134,15 @@ export default function EditCharacterPage({
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 p-4 sm:p-6">
       <header className="mb-5">
-        <Link
-          href={`/characters/${characterId}`}
-          className="text-sm text-stone-500 hover:text-stone-300"
-        >
-          &larr; {copy.back}
-        </Link>
+        <div className="mb-2 flex items-center gap-3">
+          <AppHomeLogo />
+          <Link
+            href={`/characters/${characterId}`}
+            className="text-sm text-stone-500 hover:text-stone-300"
+          >
+            &larr; {copy.back}
+          </Link>
+        </div>
         <div className="mt-3 flex items-center gap-4">
           {character.sheet?.portrait?.url ? (
             // eslint-disable-next-line @next/next/no-img-element

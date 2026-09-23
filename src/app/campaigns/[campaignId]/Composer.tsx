@@ -16,8 +16,10 @@ import {
 import { PendingRollCard } from "@/app/campaigns/[campaignId]/PendingRollCard";
 import { PushToTalk } from "@/app/campaigns/[campaignId]/PushToTalk";
 import { StoryNudge } from "@/app/campaigns/[campaignId]/StoryNudge";
+import { AskOptions } from "@/app/campaigns/[campaignId]/AskPanel";
 import type { CombatChoice, CombatTurnIntent } from "@/lib/dm/combat-turn-intent";
 import type { BeatCadence } from "@/lib/dm/beat-cadence";
+import type { AskScope, AskVisibility } from "@/lib/dm/ask-logic";
 import type { CampaignState } from "@/app/campaigns/[campaignId]/useCampaignStream";
 
 import type { CampaignMember, GlobalTurnState, InputKind } from "@/lib/campaign-types";
@@ -32,6 +34,7 @@ const KIND_TIPS: Record<Locale, Record<InputKind, string>> = {
     do: "Act in the world. The DM narrates what happens.",
     say: "Speak in character. Sent as dialogue in quotes.",
     ooc: "Table talk. The DM does not respond, and it works even when the floor is locked.",
+    ask: "Ask the DM without using a turn. Choose who can see the question and answer.",
     lead: "Party lead only. Send the DM an authoritative story direction.",
     narrate: "Dungeon Master only. Write the passage the table reads.",
   },
@@ -39,6 +42,7 @@ const KIND_TIPS: Record<Locale, Record<InputKind, string>> = {
     do: "Действуйте в мире. Мастер опишет последствия.",
     say: "Говорите от лица персонажа. Текст отправится как прямая речь.",
     ooc: "Внеигровое обсуждение. Мастер не отвечает; режим работает даже при заблокированном ходе.",
+    ask: "Задайте вопрос Мастеру без траты хода. Выберите, кому видны вопрос и ответ.",
     lead: "Только лидер группы. Отправьте Мастеру обязательное направление сюжета.",
     narrate: "Только Мастер. Напишите фрагмент повествования, который увидит стол.",
   },
@@ -46,7 +50,7 @@ const KIND_TIPS: Record<Locale, Record<InputKind, string>> = {
 
 const COPY = {
   en: {
-    kinds: { do: "Do", say: "Say", ooc: "OOC", lead: "Direct", narrate: "Narrate" },
+    kinds: { do: "Do", say: "Say", ooc: "OOC", ask: "Ask DM", lead: "Direct", narrate: "Narrate" },
     statuses: {
       rolling: "DM rolling dice...",
       awaiting_rolls: "Waiting on real dice...",
@@ -59,7 +63,7 @@ const COPY = {
     privateOff: "The table sees this direction, and the DM acts on it now.",
     private: "Private",
     round: "Round #", acted: "acted", skip: "Skip", cancel: "Cancel", skipCount: "Number of turns to skip (1–99)", skipN: "Skip N turns",
-    combatLocked: "The DM is resolving and narrating the turn. Only OOC is available.", skipTurns: "Skip turns", cancelSkips: "Cancel skips",
+    combatLocked: "The DM is resolving and narrating the turn. Ask DM and OOC are available.", skipTurns: "Skip turns", cancelSkips: "Cancel skips",
     skipFailed: "Could not change skipped turns.", waiting: "MCP DM is finishing the turn — input locked", resolving: "MCP DM is resolving the round — input locked", remaining: "Remaining", noTimer: "(no timer, waiting for quorum)", firstAction: "(waiting for first action)",
     yourCombatTurn: "Your combat turn!",
     openBattleTab: "Battle Tab",
@@ -71,7 +75,7 @@ const COPY = {
     },
   },
   ru: {
-    kinds: { do: "Действие", say: "Речь", ooc: "Вне игры", lead: "Указание", narrate: "Повествование" },
+    kinds: { do: "Действие", say: "Речь", ooc: "Вне игры", ask: "Спросить Мастера", lead: "Указание", narrate: "Повествование" },
     statuses: {
       rolling: "Мастер бросает кости...",
       awaiting_rolls: "Ожидание реальных бросков...",
@@ -84,7 +88,7 @@ const COPY = {
     privateOff: "Указание видит весь стол, и Мастер применяет его прямо сейчас.",
     private: "Приватно",
     round: "Раунд №", acted: "сходили", skip: "Пропуск", cancel: "Отмена", skipCount: "Количество ходов для пропуска (1–99)", skipN: "Пропустить N ходов",
-    combatLocked: "Мастер разрешает ход и готовит повествование. Пока доступен только режим «Вне игры».", skipTurns: "Пропустить ходов", cancelSkips: "Отменить пропуск",
+    combatLocked: "Мастер разрешает ход и готовит повествование. Пока доступны вопросы Мастеру и режим «Вне игры».", skipTurns: "Пропустить ходов", cancelSkips: "Отменить пропуск",
     skipFailed: "Не удалось изменить пропуск ходов.", waiting: "Внешний мастер завершает ход — ввод закрыт", resolving: "Внешний мастер разрешает раунд — ввод закрыт", remaining: "Осталось", noTimer: "(без таймера, ждём кворум)", firstAction: "(ждём первого хода)",
     yourCombatTurn: "Ваш боевой ход!",
     openBattleTab: "Вкладка «Бой»",
@@ -99,11 +103,6 @@ const COPY = {
 
 // The action composer at the bottom of the game chat: pending-roll cards,
 // floor banners, the join notice, kind pills and the input row.
-//
-// Asking the DM a question is NOT a mode here. It lives entirely in the Ask
-// strip just above this composer (AskPanel.tsx), which has its own box. An
-// "Ask" pill in this row would be the same feature offered twice, inches
-// apart, which is exactly what it used to be.
 function ComposerInner({
   campaignId,
   sheets,
@@ -141,6 +140,10 @@ function ComposerInner({
   onSubmit,
   onCombatSubmit,
   onOpenBattleTab,
+  askScope,
+  onAskScopeChange,
+  askVisibility,
+  onAskVisibilityChange,
 }: {
   campaignId: string;
   sheets: CampaignState["sheets"];
@@ -179,6 +182,10 @@ function ComposerInner({
   onSubmit: (event: FormEvent) => void;
   onCombatSubmit?: (turn: CombatTurnIntent) => void;
   onOpenBattleTab?: () => void;
+  askScope: AskScope | "auto";
+  onAskScopeChange: (scope: AskScope | "auto") => void;
+  askVisibility: AskVisibility;
+  onAskVisibilityChange: (visibility: AskVisibility) => void;
 }) {
   const { locale } = useI18n();
   const copy = COPY[locale];
@@ -241,8 +248,8 @@ function ComposerInner({
   const composerOptions = isDm
     ? (["narrate", "ooc"] as const)
     : combatActive || combatLocked
-      ? (["do", "ooc"] as const)
-      : (["do", "ooc", ...(steersStory ? (["lead"] as const) : [])] as const);
+      ? (["do", "ask", "ooc"] as const)
+      : (["do", "ask", "ooc", ...(steersStory ? (["lead"] as const) : [])] as const);
 
   async function handleSetSkip(count: number) {
     setSkipBusy(true);
@@ -402,6 +409,11 @@ function ComposerInner({
             </span>
           ) : null}
         </div>
+        {kind === "ask" ? (
+          <div className="mb-2">
+            <AskOptions scope={askScope} onScopeChange={onAskScopeChange} visibility={askVisibility} onVisibilityChange={onAskVisibilityChange} />
+          </div>
+        ) : null}
         {kind === "lead" && steersStory ? (
           <div className="mb-2 flex flex-wrap items-center gap-1.5">
             <DirectorPresets campaignId={campaignId} />
@@ -467,6 +479,7 @@ function ComposerInner({
                 onSubmit(event);
               }
             }}
+            maxLength={kind === "ask" ? 500 : undefined}
             rows={2}
             disabled={inputBlocked}
             placeholder={placeholder}

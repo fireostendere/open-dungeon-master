@@ -11,6 +11,7 @@ import { Dashboard } from "@/app/home/Dashboard";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { useI18n } from "@/lib/i18n";
 import { localeText } from "@/lib/i18n/locale-text";
+import { AppBrand, AppHomeLogo } from "@/components/AccountMenu";
 
 export default function Home() {
   const [checking, setChecking] = useState(true);
@@ -38,7 +39,8 @@ export default function Home() {
 
   if (checking) {
     return (
-      <main className="flex flex-1 items-center justify-center">
+      <main className="relative flex flex-1 items-center justify-center">
+        <AppHomeLogo className="absolute left-4 top-4" />
         <Loader2 className="size-6 animate-spin text-stone-500" />
       </main>
     );
@@ -64,7 +66,8 @@ export default function Home() {
 function ForcedPasswordChange({ onChanged }: { onChanged: () => void }) {
   const { t } = useI18n();
   return (
-    <main className="bg-starfield flex flex-1 items-center justify-center p-4 sm:p-6">
+    <main className="bg-starfield relative flex flex-1 items-center justify-center p-4 sm:p-6">
+      <AppHomeLogo className="absolute left-4 top-4" />
       <div className="w-full max-w-sm animate-fade-up-slow">
         <div className="glass texture-noise rounded-xl p-6 shadow-elev-2">
           <h1 className="mb-1 font-display text-xl tracking-wide text-amber-50">
@@ -94,7 +97,9 @@ function AuthScreen({ onAuthed }: { onAuthed: (user: SessionUser) => void }) {
 
       <div className="w-full max-w-sm animate-fade-up-slow">
         <div className="mb-6 flex flex-col items-center gap-4 text-center">
-          <PixelTile src={PIXEL_ICONS.story} size="size-16" className="animate-twinkle" />
+          <AppBrand className="gap-0">
+            <PixelTile src={PIXEL_ICONS.story} size="size-12" className="animate-twinkle" />
+          </AppBrand>
           <div>
             <h1 className="text-balance font-display text-3xl tracking-wide text-amber-50">
               {t("common.appName")}

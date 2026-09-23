@@ -77,23 +77,17 @@ export type CampaignCover = { id: string; url: string };
 // "lead" is labelled "Direct" in the UI and posts to /lead-note; everything
 // else posts to /actions.
 //
-// Asking the DM a question is deliberately NOT in here. It is not a composer
-// mode: it lives entirely in the Ask strip above the composer, which posts to
-// /ask itself (src/app/campaigns/[campaignId]/AskPanel.tsx). Adding "ask"
-// back would put a second Ask entry point in the same column as the first.
+// "ask" posts to the separate Ask queue and never becomes a story action.
 // "narrate" is the DM seat's only authoring mode and posts to /dm/narrate.
-// It is in this union so the composer stays one component, and it can never
-// reach /actions because that route validates against its own narrower enum.
-export const INPUT_KINDS = ["do", "say", "ooc", "lead", "narrate"] as const;
+export const INPUT_KINDS = ["do", "say", "ooc", "ask", "lead", "narrate"] as const;
 export type InputKind = (typeof INPUT_KINDS)[number];
 
 // The modes that do not consume the floor: table talk and lead directions
 // work during a hold, a spotlight, another player's initiative turn, and
-// while the DM is narrating. Asking is exempt too, but it never routes
-// through here because it is not an InputKind.
+// while the DM is narrating. Asking is exempt too: it does not consume a turn.
 // The DM is never subject to the floor they control, so "narrate" joins the
 // exempt set alongside table talk and lead directions.
-export const FLOOR_EXEMPT_KINDS: readonly InputKind[] = ["ooc", "lead", "narrate"];
+export const FLOOR_EXEMPT_KINDS: readonly InputKind[] = ["ooc", "ask", "lead", "narrate"];
 
 export function isFloorExempt(kind: InputKind): boolean {
   return FLOOR_EXEMPT_KINDS.includes(kind);
@@ -178,4 +172,3 @@ export type CampaignMember = {
   autopilot: boolean;
   joinedAt: string;
 };
-

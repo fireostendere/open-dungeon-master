@@ -6,6 +6,7 @@ import { use } from "react";
 import { Lobby } from "@/app/campaigns/[campaignId]/Lobby";
 import { SessionView } from "@/app/campaigns/[campaignId]/SessionView";
 import { useCampaignStream } from "@/app/campaigns/[campaignId]/useCampaignStream";
+import { AppHomeLogo } from "@/components/AccountMenu";
 import { useI18n } from "@/lib/i18n";
 import { localeText } from "@/lib/i18n/locale-text";
 
@@ -34,7 +35,8 @@ export default function CampaignPage({
 
   if (state.loading) {
     return (
-      <main className="flex flex-1 items-center justify-center">
+      <main className="relative flex flex-1 items-center justify-center">
+        <AppHomeLogo className="absolute left-4 top-4" />
         <Loader2 className="size-6 animate-spin text-stone-500" />
       </main>
     );
@@ -42,7 +44,8 @@ export default function CampaignPage({
 
   if (state.error || !state.campaign || !state.me) {
     return (
-      <main className="flex flex-1 flex-col items-center justify-center gap-3 p-6">
+      <main className="relative flex flex-1 flex-col items-center justify-center gap-3 p-6">
+        <AppHomeLogo className="absolute left-4 top-4" />
         <p className="text-stone-400">{state.error || copy.missing}</p>
         {state.answeredBy ? (
           <p className="text-xs text-stone-500">{copy.answered.replace("{name}", state.answeredBy)}</p>

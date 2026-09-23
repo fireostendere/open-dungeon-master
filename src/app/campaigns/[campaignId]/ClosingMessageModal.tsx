@@ -59,8 +59,8 @@ export function ClosingMessageModal({
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-40 bg-black/75 backdrop-blur-sm transition-opacity animate-in fade-in-0 duration-200" />
-        <Dialog.Content className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
-          <div className="relative w-full max-w-2xl rounded-2xl border-2 border-amber-500/50 bg-gradient-to-b from-stone-900 via-stone-950 to-black p-6 sm:p-8 text-stone-100 shadow-[0_0_60px_rgba(245,158,11,0.25)] animate-in zoom-in-95 duration-200">
+        <Dialog.Content className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-6 overflow-y-auto">
+          <div className="relative w-full max-w-2xl rounded-2xl border-2 border-amber-500/50 bg-gradient-to-b from-stone-900 via-stone-950 to-black p-4 sm:p-8 text-stone-100 shadow-[0_0_60px_rgba(245,158,11,0.25)] animate-in zoom-in-95 duration-200">
             {/* Corner Ornamental Accents */}
             <div className="pointer-events-none absolute -top-1.5 -left-1.5 size-4 border-t-2 border-l-2 border-amber-300" />
             <div className="pointer-events-none absolute -top-1.5 -right-1.5 size-4 border-t-2 border-r-2 border-amber-300" />
@@ -71,7 +71,7 @@ export function ClosingMessageModal({
             <button
               type="button"
               onClick={() => onOpenChange(false)}
-              className="absolute right-4 top-4 rounded-lg p-1.5 text-stone-400 hover:bg-stone-800 hover:text-stone-100 transition"
+              className="absolute right-3 top-3 sm:right-4 sm:top-4 rounded-lg p-1.5 text-stone-400 hover:bg-stone-800 hover:text-stone-100 transition"
               aria-label={copy.close}
             >
               <X className="size-5" />
@@ -79,17 +79,17 @@ export function ClosingMessageModal({
 
             {/* Header */}
             <div className="text-center">
-              <div className="mx-auto mb-3 flex size-14 items-center justify-center rounded-2xl border border-amber-400/40 bg-gradient-to-b from-amber-400/20 to-amber-600/10 text-amber-300 shadow-[0_0_20px_rgba(245,158,11,0.2)]">
+              <div className="mx-auto mb-3 flex size-12 sm:size-14 items-center justify-center rounded-2xl border border-amber-400/40 bg-gradient-to-b from-amber-400/20 to-amber-600/10 text-amber-300 shadow-[0_0_20px_rgba(245,158,11,0.2)]">
                 {defaultMode === "defeat" ? (
-                  <Skull className="size-7 text-red-400 animate-pulse" />
+                  <Skull className="size-6 sm:size-7 text-red-400 animate-pulse" />
                 ) : (
-                  <Trophy className="size-7 animate-pulse" />
+                  <Trophy className="size-6 sm:size-7 animate-pulse" />
                 )}
               </div>
               <p className="eyebrow text-xs font-semibold tracking-widest text-amber-400">
                 {campaignTitle}
               </p>
-              <Dialog.Title className="mt-1 font-display text-2xl font-bold tracking-wide text-amber-100 sm:text-3xl">
+              <Dialog.Title className="mt-1 font-display text-xl sm:text-3xl font-bold tracking-wide text-amber-100">
                 {copy.title}
               </Dialog.Title>
               <Dialog.Description className="mt-1 text-xs text-amber-200/70 sm:text-sm">
@@ -98,22 +98,22 @@ export function ClosingMessageModal({
             </div>
 
             {/* Decorative Divider */}
-            <div className="my-6 flex items-center gap-3">
+            <div className="my-4 sm:my-6 flex items-center gap-3">
               <div className="h-px flex-1 bg-gradient-to-r from-transparent via-amber-500/50 to-transparent" />
               <Dices className="size-4 text-amber-400/80" />
               <div className="h-px flex-1 bg-gradient-to-r from-transparent via-amber-500/50 to-transparent" />
             </div>
 
             {/* DM's Message Content (Scroll/Parchment Style) */}
-            <div className="max-h-72 overflow-y-auto rounded-xl border border-amber-500/20 bg-amber-950/20 p-5 sm:p-6 shadow-inner">
-              <p className="whitespace-pre-wrap font-serif text-base sm:text-lg leading-relaxed text-amber-100/95 first-letter:text-3xl first-letter:font-bold first-letter:text-amber-300 first-letter:float-left first-letter:mr-2">
+            <div className="max-h-56 sm:max-h-72 overflow-y-auto rounded-xl border border-amber-500/20 bg-amber-950/20 p-4 sm:p-6 shadow-inner">
+              <p className="whitespace-pre-wrap font-serif text-sm sm:text-lg leading-relaxed text-amber-100/95 first-letter:text-2xl sm:first-letter:text-3xl first-letter:font-bold first-letter:text-amber-300 first-letter:float-left first-letter:mr-2">
                 {content}
               </p>
             </div>
 
             {/* Surviving Heroes Summary */}
             {sheets.length > 0 ? (
-              <div className="mt-6">
+              <div className="mt-4 sm:mt-6">
                 <p className="mb-2 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-amber-400/80">
                   <Award className="size-3.5" />
                   {copy.partyTitle}
@@ -154,11 +154,11 @@ export function ClosingMessageModal({
             ) : null}
 
             {/* Actions */}
-            <div className="mt-8 flex flex-col gap-2.5 sm:flex-row sm:justify-end">
+            <div className="mt-6 sm:mt-8 flex flex-col gap-2.5 sm:flex-row sm:justify-end">
               <button
                 type="button"
                 onClick={() => onOpenChange(false)}
-                className={cn(ui.btnSecondary, "text-xs py-2")}
+                className={cn(ui.btnSecondary, "w-full sm:w-auto text-xs py-2 text-center justify-center")}
               >
                 {copy.close}
               </button>
@@ -169,12 +169,12 @@ export function ClosingMessageModal({
                   onTriggerCelebration?.("defeat");
                 }}
                 className={cn(
-                  "inline-flex items-center justify-center gap-1.5 rounded-lg border border-red-800/60 bg-red-950/50 px-3 py-2 text-xs font-semibold text-red-200 shadow-sm transition hover:bg-red-900/60 hover:text-white",
+                  "inline-flex items-center justify-center gap-1.5 rounded-lg border border-red-800/60 bg-red-950/50 px-3 py-2 text-xs font-semibold text-red-200 shadow-sm transition hover:bg-red-900/60 hover:text-white w-full sm:w-auto text-center",
                   defaultMode === "defeat" && "ring-2 ring-red-500/50 shadow-[0_0_15px_rgba(239,68,68,0.3)]",
                 )}
               >
-                <Skull className="size-4 text-red-400" />
-                {copy.playDefeat}
+                <Skull className="size-4 shrink-0 text-red-400" />
+                <span>{copy.playDefeat}</span>
               </button>
               <button
                 type="button"
@@ -184,12 +184,12 @@ export function ClosingMessageModal({
                 }}
                 className={cn(
                   ui.btnPrimary,
-                  "text-xs py-2 gap-1.5 shadow-[0_0_20px_rgba(245,158,11,0.3)]",
+                  "text-xs py-2 gap-1.5 shadow-[0_0_20px_rgba(245,158,11,0.3)] w-full sm:w-auto text-center justify-center",
                   defaultMode === "victory" && "ring-2 ring-amber-400/60",
                 )}
               >
-                <Sparkles className="size-4 text-amber-950" />
-                {copy.replayFireworks}
+                <Sparkles className="size-4 shrink-0 text-amber-950" />
+                <span>{copy.replayFireworks}</span>
               </button>
             </div>
           </div>

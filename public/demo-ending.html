@@ -247,22 +247,56 @@
     .story-footer {
       display: flex;
       justify-content: flex-end;
-      gap: 10px;
-    }
-
-    /* Audio visualizer hint */
-    .audio-hint {
-      position: absolute;
-      bottom: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 10;
-      font-size: 11px;
-      color: rgba(255, 255, 255, 0.45);
-      background: rgba(0, 0, 0, 0.6);
-      padding: 6px 14px;
-      border-radius: 20px;
-      pointer-events: none;
+    /* Mobile responsiveness */
+    @media (max-width: 640px) {
+      .top-bar {
+        top: 8px;
+        width: calc(100vw - 16px);
+        max-width: calc(100vw - 16px);
+        padding: 8px 12px;
+        gap: 8px;
+        border-radius: 12px;
+      }
+      .status-icon {
+        width: 30px;
+        height: 30px;
+        font-size: 16px;
+      }
+      .title-group {
+        min-width: 0;
+        flex: 1;
+      }
+      .title-text {
+        font-size: 12px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .subtitle-text {
+        display: none;
+      }
+      .btn-group {
+        width: 100%;
+        display: flex;
+        justify-content: space-between;
+        gap: 4px;
+        flex-wrap: wrap;
+      }
+      button {
+        font-size: 11px;
+        padding: 5px 8px;
+        gap: 4px;
+        flex: 1 1 auto;
+        justify-content: center;
+      }
+      .story-card {
+        padding: 16px;
+        max-height: 80vh;
+      }
+      .story-body {
+        font-size: 13px;
+        max-height: 160px;
+      }
     }
   </style>
 </head>
@@ -376,11 +410,11 @@
     ];
 
     const SAD_DICE_PALETTES = [
-      { fill: [52, 60, 72], edge: "#94a3b8", text: "#ef4444", sparkle: "#64748b" }, // Slate
-      { fill: [26, 28, 36], edge: "#475569", text: "#f87171", sparkle: "#334155" }, // Obsidian
-      { fill: [82, 22, 22], edge: "#dc2626", text: "#ffffff", sparkle: "#7f1d1d" }, // Rust
-      { fill: [88, 84, 84], edge: "#cbd5e1", text: "#b91c1c", sparkle: "#64748b" }, // Ash
-      { fill: [46, 26, 56], edge: "#a855f7", text: "#fca5a5", sparkle: "#581c87" }, // Mourning
+      { fill: [140, 22, 32], edge: "#fca5a5", text: "#ffffff", sparkle: "#ef4444" }, // Cursed Blood
+      { fill: [42, 44, 56], edge: "#f87171", text: "#ef4444", sparkle: "#dc2626" },   // Obsidian Crimson
+      { fill: [80, 28, 110], edge: "#d8b4fe", text: "#ffffff", sparkle: "#c084fc" },  // Eldritch Void
+      { fill: [50, 72, 94], edge: "#93c5fd", text: "#ef4444", sparkle: "#38bdf8" },   // Cold Crypt
+      { fill: [30, 85, 80], edge: "#5eead4", text: "#fca5a5", sparkle: "#14b8a6" },   // Dark Verdigris
     ];
 
     const FIREWORK_COLORS = [
@@ -768,15 +802,15 @@
         kind: chosenKind,
         x,
         y,
-        vx: vx ?? (Math.random() - 0.5) * (isDefeat ? 4 : 8),
-        vy: vy ?? (isDefeat ? Math.random() * 3 + 2.5 : -(Math.random() * 6 + 4)),
+        vx: vx ?? (Math.random() - 0.5) * (isDefeat ? 6 : 8),
+        vy: vy ?? (isDefeat ? Math.random() * 5 + 8.5 : -(Math.random() * 6 + 4)),
         size: Math.random() * 12 + 32,
         rotX: Math.random() * Math.PI * 2,
         rotY: Math.random() * Math.PI * 2,
         rotZ: Math.random() * Math.PI * 2,
-        vRotX: (Math.random() - 0.5) * (isDefeat ? 0.05 : 0.08),
-        vRotY: (Math.random() - 0.5) * (isDefeat ? 0.05 : 0.08),
-        vRotZ: (Math.random() - 0.5) * (isDefeat ? 0.05 : 0.08),
+        vRotX: (Math.random() - 0.5) * (isDefeat ? 0.14 : 0.08),
+        vRotY: (Math.random() - 0.5) * (isDefeat ? 0.14 : 0.08),
+        vRotZ: (Math.random() - 0.5) * (isDefeat ? 0.14 : 0.08),
         palette,
         value: val,
         alpha: 1,
@@ -835,8 +869,8 @@
           scale: 0.85,
           color: rocket.color,
           age: 0,
-          fadeStart: 4500, // 4.5 seconds at 100% opacity!
-          maxAge: 7000,    // 7.0 seconds total lifespan
+          fadeStart: 1000, // 1.0 second readable duration
+          maxAge: 1400,
           isDefeat: false,
         });
       }
@@ -858,8 +892,8 @@
         scale: 1.1,
         color: "#f59e0b",
         age: 0,
-        fadeStart: 4500,
-        maxAge: 7000,
+        fadeStart: 1000,
+        maxAge: 1400,
         isDefeat: false,
       });
 
@@ -924,8 +958,8 @@
         scale: 1.1,
         color: "#ef4444",
         age: 0,
-        fadeStart: 4500, // 4.5 seconds at 100% opacity!
-        maxAge: 7000,    // 7.0 seconds total
+        fadeStart: 1000,
+        maxAge: 1400,
         isDefeat: true,
       });
 
@@ -943,28 +977,28 @@
         });
       }
 
-      // Wave 1 (t = 0): 5 large 3D dice plummeting across screen
-      spawnDie(width * 0.15, -40, (Math.random() - 0.5) * 2, Math.random() * 2 + 2.2, "d20", "1", true);
-      spawnDie(width * 0.32, -50, (Math.random() - 0.5) * 2, Math.random() * 2 + 2.6, "d20", "NAT 1", true);
-      spawnDie(width * 0.50, -40, (Math.random() - 0.5) * 2, Math.random() * 2 + 3.0, "d20", "1", true);
-      spawnDie(width * 0.68, -45, (Math.random() - 0.5) * 2, Math.random() * 2 + 2.4, "d8", "1", true);
-      spawnDie(width * 0.85, -40, (Math.random() - 0.5) * 2, Math.random() * 2 + 2.8, "d6", "1", true);
+      // Wave 1 (t = 0): 5 large 3D dice plummeting fast across screen
+      spawnDie(width * 0.15, -50, (Math.random() - 0.5) * 3, Math.random() * 4 + 9.2, "d20", "1", true);
+      spawnDie(width * 0.32, -60, (Math.random() - 0.5) * 3, Math.random() * 4 + 9.8, "d20", "NAT 1", true);
+      spawnDie(width * 0.50, -50, (Math.random() - 0.5) * 3, Math.random() * 4 + 10.2, "d20", "1", true);
+      spawnDie(width * 0.68, -55, (Math.random() - 0.5) * 3, Math.random() * 4 + 9.4, "d8", "1", true);
+      spawnDie(width * 0.85, -50, (Math.random() - 0.5) * 3, Math.random() * 4 + 9.9, "d6", "1", true);
 
-      // Wave 2 (t = 400ms): 4 more tumbling 3D dice
+      // Wave 2 (t = 280ms): 4 more tumbling 3D dice
       setTimeout(() => {
-        spawnDie(width * 0.24, -40, (Math.random() - 0.5) * 2, Math.random() * 2 + 2.5, "d20", "NAT 1", true);
-        spawnDie(width * 0.44, -45, (Math.random() - 0.5) * 2, Math.random() * 2 + 2.8, "d6", "1", true);
-        spawnDie(width * 0.62, -40, (Math.random() - 0.5) * 2, Math.random() * 2 + 2.4, "d20", "1", true);
-        spawnDie(width * 0.80, -45, (Math.random() - 0.5) * 2, Math.random() * 2 + 2.7, "d8", "1", true);
-      }, 400);
+        spawnDie(width * 0.24, -50, (Math.random() - 0.5) * 3, Math.random() * 4 + 9.6, "d20", "NAT 1", true);
+        spawnDie(width * 0.44, -55, (Math.random() - 0.5) * 3, Math.random() * 4 + 9.9, "d6", "1", true);
+        spawnDie(width * 0.62, -50, (Math.random() - 0.5) * 3, Math.random() * 4 + 9.5, "d20", "1", true);
+        spawnDie(width * 0.80, -55, (Math.random() - 0.5) * 3, Math.random() * 4 + 9.8, "d8", "1", true);
+      }, 280);
 
-      // Wave 3 (t = 850ms): 5 more falling dice + second banner
+      // Wave 3 (t = 600ms): 5 more falling dice + second banner
       setTimeout(() => {
-        spawnDie(width * 0.12, -40, (Math.random() - 0.5) * 2, Math.random() * 2 + 3.0, "d20", "1", true);
-        spawnDie(width * 0.36, -45, (Math.random() - 0.5) * 2, Math.random() * 2 + 2.6, "d20", "NAT 1", true);
-        spawnDie(width * 0.52, -40, (Math.random() - 0.5) * 2, Math.random() * 2 + 3.2, "d20", "1", true);
-        spawnDie(width * 0.72, -45, (Math.random() - 0.5) * 2, Math.random() * 2 + 2.7, "d6", "1", true);
-        spawnDie(width * 0.90, -40, (Math.random() - 0.5) * 2, Math.random() * 2 + 2.9, "d20", "NAT 1", true);
+        spawnDie(width * 0.12, -50, (Math.random() - 0.5) * 3, Math.random() * 4 + 10.1, "d20", "1", true);
+        spawnDie(width * 0.36, -55, (Math.random() - 0.5) * 3, Math.random() * 4 + 9.6, "d20", "NAT 1", true);
+        spawnDie(width * 0.52, -50, (Math.random() - 0.5) * 3, Math.random() * 4 + 10.3, "d20", "1", true);
+        spawnDie(width * 0.72, -55, (Math.random() - 0.5) * 3, Math.random() * 4 + 9.7, "d6", "1", true);
+        spawnDie(width * 0.90, -50, (Math.random() - 0.5) * 3, Math.random() * 4 + 9.9, "d20", "NAT 1", true);
 
         banners.push({
           text: "🎲 НАТУРАЛЬНАЯ 1 🎲",
@@ -975,26 +1009,26 @@
           scale: 1.0,
           color: "#94a3b8",
           age: 0,
-          fadeStart: 4500,
-          maxAge: 7000,
+          fadeStart: 1000,
+          maxAge: 1400,
           isDefeat: true,
         });
-      }, 850);
+      }, 600);
 
-      // Wave 4 (t = 1350ms): 4 more tumbling dice
+      // Wave 4 (t = 950ms): 4 more tumbling dice
       setTimeout(() => {
-        spawnDie(width * 0.20, -40, (Math.random() - 0.5) * 2, Math.random() * 2 + 2.8, "d20", "1", true);
-        spawnDie(width * 0.40, -45, (Math.random() - 0.5) * 2, Math.random() * 2 + 3.1, "d8", "1", true);
-        spawnDie(width * 0.60, -40, (Math.random() - 0.5) * 2, Math.random() * 2 + 2.6, "d20", "NAT 1", true);
-        spawnDie(width * 0.82, -45, (Math.random() - 0.5) * 2, Math.random() * 2 + 3.0, "d6", "1", true);
-      }, 1350);
+        spawnDie(width * 0.20, -50, (Math.random() - 0.5) * 3, Math.random() * 4 + 9.8, "d20", "1", true);
+        spawnDie(width * 0.40, -55, (Math.random() - 0.5) * 3, Math.random() * 4 + 10.2, "d8", "1", true);
+        spawnDie(width * 0.60, -50, (Math.random() - 0.5) * 3, Math.random() * 4 + 9.7, "d20", "NAT 1", true);
+        spawnDie(width * 0.82, -55, (Math.random() - 0.5) * 3, Math.random() * 4 + 10.1, "d6", "1", true);
+      }, 950);
 
-      // Wave 5 (t = 1900ms): 4 more tumbling dice + third banner
+      // Wave 5 (t = 1350ms): 4 more tumbling dice + third banner
       setTimeout(() => {
-        spawnDie(width * 0.28, -40, (Math.random() - 0.5) * 2, Math.random() * 2 + 3.0, "d20", "NAT 1", true);
-        spawnDie(width * 0.48, -45, (Math.random() - 0.5) * 2, Math.random() * 2 + 2.8, "d20", "1", true);
-        spawnDie(width * 0.70, -40, (Math.random() - 0.5) * 2, Math.random() * 2 + 3.2, "d8", "1", true);
-        spawnDie(width * 0.88, -45, (Math.random() - 0.5) * 2, Math.random() * 2 + 2.9, "d20", "1", true);
+        spawnDie(width * 0.28, -50, (Math.random() - 0.5) * 3, Math.random() * 4 + 10.1, "d20", "NAT 1", true);
+        spawnDie(width * 0.48, -55, (Math.random() - 0.5) * 3, Math.random() * 4 + 9.8, "d20", "1", true);
+        spawnDie(width * 0.70, -50, (Math.random() - 0.5) * 3, Math.random() * 4 + 10.3, "d8", "1", true);
+        spawnDie(width * 0.88, -55, (Math.random() - 0.5) * 3, Math.random() * 4 + 10.0, "d20", "1", true);
 
         banners.push({
           text: "⚰️ ОТРЯД ПОВЕРЖЕН (TPK) ⚰️",
@@ -1005,11 +1039,11 @@
           scale: 0.95,
           color: "#dc2626",
           age: 0,
-          fadeStart: 4500,
-          maxAge: 7000,
+          fadeStart: 1000,
+          maxAge: 1400,
           isDefeat: true,
         });
-      }, 1900);
+      }, 1350);
     }
 
     function setMode(mode) {
@@ -1110,9 +1144,9 @@
         if (currentMode === "defeat") {
           spawnDie(
             width * 0.15 + Math.random() * (width * 0.7),
-            -40,
-            (Math.random() - 0.5) * 2,
-            Math.random() * 2 + 2,
+            -50,
+            (Math.random() - 0.5) * 3,
+            Math.random() * 4 + 9.5,
             Math.random() < 0.7 ? "d20" : "d6",
             Math.random() < 0.4 ? "NAT 1" : "1",
             true
@@ -1127,8 +1161,8 @@
               scale: 0.9,
               color: "#ef4444",
               age: 0,
-              fadeStart: 4500,
-              maxAge: 7000,
+              fadeStart: 1000,
+              maxAge: 1400,
               isDefeat: true,
             });
           }
@@ -1268,7 +1302,7 @@
         die.y += die.vy;
 
         if (currentMode === "defeat" || die.isDefeat) {
-          die.vy += 0.24; // solid gravity pulling dice down
+          die.vy += 0.44; // fast, punchy gravity so dice plummet with real mass!
           const groundY = height - die.size * 0.72;
 
           // Single comical bounce off the bottom:
@@ -1277,12 +1311,12 @@
             die.bounceCount = 1;
             die.y = groundY;
             // Exactly one bounce upward:
-            die.vy = -(Math.abs(die.vy) * 0.46 + 3.2);
-            die.vx = (Math.random() - 0.5) * 4;
+            die.vy = -(Math.abs(die.vy) * 0.45 + 5.0);
+            die.vx = (Math.random() - 0.5) * 5;
             // Increased comical spin tumble
-            die.vRotX = (Math.random() - 0.5) * 0.18;
-            die.vRotY = (Math.random() - 0.5) * 0.18;
-            die.vRotZ = (Math.random() - 0.5) * 0.18;
+            die.vRotX = (Math.random() - 0.5) * 0.22;
+            die.vRotY = (Math.random() - 0.5) * 0.22;
+            die.vRotZ = (Math.random() - 0.5) * 0.22;
 
             // Play the comical "stepping into shit" squelch sound!
             audio.playSquish();
@@ -1380,14 +1414,15 @@
             const nLen = Math.hypot(nx, ny, nz) || 1;
             const normX = nx / nLen, normY = ny / nLen, normZ = nz / nLen;
             const dot = Math.max(0.25, normX * lightDir[0] + normY * lightDir[1] + normZ * lightDir[2]);
+            const spec = Math.pow(Math.max(0, dot), 5) * 55;
 
-            const r = Math.min(255, Math.floor(die.palette.fill[0] * (dot * 0.8 + 0.4)));
-            const g = Math.min(255, Math.floor(die.palette.fill[1] * (dot * 0.8 + 0.4)));
-            const b = Math.min(255, Math.floor(die.palette.fill[2] * (dot * 0.8 + 0.4)));
+            const r = Math.min(255, Math.floor(die.palette.fill[0] * (dot * 0.75 + 0.35) + spec));
+            const g = Math.min(255, Math.floor(die.palette.fill[1] * (dot * 0.75 + 0.35) + spec));
+            const b = Math.min(255, Math.floor(die.palette.fill[2] * (dot * 0.75 + 0.35) + spec));
 
             ctx.fillStyle = `rgb(${r},${g},${b})`;
             ctx.strokeStyle = die.palette.edge;
-            ctx.lineWidth = 1.2;
+            ctx.lineWidth = die.isDefeat ? 1.6 : 1.2;
 
             ctx.beginPath();
             ctx.moveTo(p0[0] * die.size, p0[1] * die.size);
@@ -1406,13 +1441,13 @@
             }
           }
 
-          if (bestFaceZ > 0.65) {
+          if (bestFaceZ > 0.55) {
             ctx.fillStyle = die.palette.text;
             ctx.font = `bold ${Math.round(die.size * 0.44)}px -apple-system, sans-serif`;
             ctx.textAlign = "center";
             ctx.textBaseline = "middle";
             ctx.shadowColor = "#000000";
-            ctx.shadowBlur = 4;
+            ctx.shadowBlur = 5;
             ctx.fillText(die.value, bestFaceCenter[0], bestFaceCenter[1]);
             ctx.shadowBlur = 0;
           }
@@ -1437,14 +1472,15 @@
             const nLen = Math.hypot(nx, ny, nz) || 1;
             const normX = nx / nLen, normY = ny / nLen, normZ = nz / nLen;
             const dot = Math.max(0.25, normX * lightDir[0] + normY * lightDir[1] + normZ * lightDir[2]);
+            const spec = Math.pow(Math.max(0, dot), 5) * 55;
 
-            const r = Math.min(255, Math.floor(die.palette.fill[0] * (dot * 0.8 + 0.4)));
-            const g = Math.min(255, Math.floor(die.palette.fill[1] * (dot * 0.8 + 0.4)));
-            const b = Math.min(255, Math.floor(die.palette.fill[2] * (dot * 0.8 + 0.4)));
+            const r = Math.min(255, Math.floor(die.palette.fill[0] * (dot * 0.75 + 0.35) + spec));
+            const g = Math.min(255, Math.floor(die.palette.fill[1] * (dot * 0.75 + 0.35) + spec));
+            const b = Math.min(255, Math.floor(die.palette.fill[2] * (dot * 0.75 + 0.35) + spec));
 
             ctx.fillStyle = `rgb(${r},${g},${b})`;
             ctx.strokeStyle = die.palette.edge;
-            ctx.lineWidth = 1.2;
+            ctx.lineWidth = die.isDefeat ? 1.6 : 1.2;
 
             ctx.beginPath();
             ctx.moveTo(p0[0] * die.size, p0[1] * die.size);
@@ -1463,12 +1499,15 @@
             }
           }
 
-          if (bestFaceZ > 0.65) {
+          if (bestFaceZ > 0.55) {
             ctx.fillStyle = die.palette.text;
             ctx.font = `bold ${Math.round(die.size * 0.48)}px -apple-system, sans-serif`;
             ctx.textAlign = "center";
             ctx.textBaseline = "middle";
+            ctx.shadowColor = "#000000";
+            ctx.shadowBlur = 5;
             ctx.fillText(die.value, bestFaceCenter[0], bestFaceCenter[1]);
+            ctx.shadowBlur = 0;
           }
         } else {
           // d6 (Cube)
@@ -1493,14 +1532,15 @@
             const nLen = Math.hypot(nx, ny, nz) || 1;
             const normX = nx / nLen, normY = ny / nLen, normZ = nz / nLen;
             const dot = Math.max(0.25, normX * lightDir[0] + normY * lightDir[1] + normZ * lightDir[2]);
+            const spec = Math.pow(Math.max(0, dot), 5) * 55;
 
-            const r = Math.min(255, Math.floor(die.palette.fill[0] * (dot * 0.8 + 0.4)));
-            const g = Math.min(255, Math.floor(die.palette.fill[1] * (dot * 0.8 + 0.4)));
-            const b = Math.min(255, Math.floor(die.palette.fill[2] * (dot * 0.8 + 0.4)));
+            const r = Math.min(255, Math.floor(die.palette.fill[0] * (dot * 0.75 + 0.35) + spec));
+            const g = Math.min(255, Math.floor(die.palette.fill[1] * (dot * 0.75 + 0.35) + spec));
+            const b = Math.min(255, Math.floor(die.palette.fill[2] * (dot * 0.75 + 0.35) + spec));
 
             ctx.fillStyle = `rgb(${r},${g},${b})`;
             ctx.strokeStyle = die.palette.edge;
-            ctx.lineWidth = 1.2;
+            ctx.lineWidth = die.isDefeat ? 1.6 : 1.2;
 
             ctx.beginPath();
             ctx.moveTo(p0[0] * die.size, p0[1] * die.size);
@@ -1520,12 +1560,15 @@
             }
           }
 
-          if (bestFaceZ > 0.65) {
+          if (bestFaceZ > 0.55) {
             ctx.fillStyle = die.palette.text;
             ctx.font = `bold ${Math.round(die.size * 0.52)}px -apple-system, sans-serif`;
             ctx.textAlign = "center";
             ctx.textBaseline = "middle";
+            ctx.shadowColor = "#000000";
+            ctx.shadowBlur = 5;
             ctx.fillText(die.value, bestFaceCenter[0], bestFaceCenter[1]);
+            ctx.shadowBlur = 0;
           }
         }
 

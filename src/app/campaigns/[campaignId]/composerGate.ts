@@ -9,8 +9,7 @@ import type { GlobalTurnState } from "@/lib/campaign-types";
 // they wait. Four things can hold the composer: the opening narration is
 // still playing for this user, the lead has the floor held, it is somebody
 // else's turn in combat, or the spotlight is on other players. Table talk
-// (OOC) and lead directions never wait on the floor, and neither does the
-// Ask strip, which does not come through this composer at all.
+// (OOC), Ask and lead directions never wait on the floor.
 //
 // Pure so the reading is easy to follow in one place; SessionView memoizes
 // the lists it hands in.
@@ -63,17 +62,16 @@ export function composerGate({
           .map((sheet) => sheet.name)
       : [];
   // The opening narration gets the table's attention. A question about it is
-  // exactly the kind of thing someone wants to ask while it plays, and the
-  // Ask strip is never blocked, so this only has to spare OOC.
-  const narrationBlocked = openingNarrationPlaying && kind !== "ooc";
+  // exactly the kind of thing someone wants to ask while it plays.
+  const narrationBlocked = openingNarrationPlaying && kind !== "ooc" && kind !== "ask";
 
   // Global-turn gate: a player has no composer at all before the round
   // start trigger or while MCP is resolving a sealed round. This includes OOC
-  // in the shared composer: while locked, the only turn-level player choice is
-  // the explicit skip control. Once active, normal 1 do + 1 say limits apply.
+  // in the shared composer: while locked, Ask stays available because it is
+  // outside the turn. Once active, normal 1 do + 1 say limits apply.
   let turnActionBlocked = false;
   let turnActionReason = "";
-  if (!combat && globalTurnEnabled && globalTurnState) {
+  if (kind !== "ask" && !combat && globalTurnEnabled && globalTurnState) {
     const mySheet = sheets.find((s) => s.userId === meUserId && !s.isCompanion);
     if (mySheet && globalTurnState.phase === "waiting") {
       turnActionBlocked = true;
@@ -119,8 +117,8 @@ export function composerGate({
 
   const inputBlocked = floorBlocked || holdBlocked || initiativeBlocked || narrationBlocked || turnActionBlocked;
   const copy = locale === "ru"
-    ? { narrating: "Мастер задаёт сцену... (OOC доступен)", held: "Лидер отряда удерживает право слова... (OOC доступен)", turn: "Ход {name} в бою... (OOC доступен)", waiting: "Ожидание: {names}... (OOC доступен)", action: "Что делает {name}?", say: "Что говорит {name}?", narrate: "Опишите сцену. Сервер всё равно бросает кости.", ooc: "Внеигровая заметка для стола", private: "Лично сообщите Мастеру, что делать в следующем ходу", lead: "Направьте сюжет: Мастер должен учесть это" }
-    : { narrating: "The Dungeon Master is setting the scene... (OOC still open)", held: "The party lead has the floor held for discussion... (OOC still open)", turn: "{name}'s turn in combat... (OOC still open)", waiting: "Waiting on {names}... (OOC still open)", action: "What does {name} do?", say: "What does {name} say?", narrate: "Narrate the scene. The server still rolls every die.", ooc: "Out-of-character note to the table", private: "Tell the DM privately what to do with the next turn", lead: "Steer the story: a direction the DM must weave in" };
+    ? { narrating: "Мастер задаёт сцену... (OOC доступен)", held: "Лидер отряда удерживает право слова... (OOC доступен)", turn: "Ход {name} в бою... (OOC доступен)", waiting: "Ожидание: {names}... (OOC доступен)", action: "Что делает {name}?", say: "Что говорит {name}?", ask: "Спросите Мастера; вопрос не тратит ход", narrate: "Опишите сцену. Сервер всё равно бросает кости.", ooc: "Внеигровая заметка для стола", private: "Лично сообщите Мастеру, что делать в следующем ходу", lead: "Направьте сюжет: Мастер должен учесть это" }
+    : { narrating: "The Dungeon Master is setting the scene... (OOC still open)", held: "The party lead has the floor held for discussion... (OOC still open)", turn: "{name}'s turn in combat... (OOC still open)", waiting: "Waiting on {names}... (OOC still open)", action: "What does {name} do?", say: "What does {name} say?", ask: "Ask the DM; it does not use your turn", narrate: "Narrate the scene. The server still rolls every die.", ooc: "Out-of-character note to the table", private: "Tell the DM privately what to do with the next turn", lead: "Steer the story: a direction the DM must weave in" };
   const placeholder = turnActionBlocked
     ? turnActionReason
     : narrationBlocked
@@ -135,8 +133,10 @@ export function composerGate({
               ? copy.action.replace("{name}", () => myName)
               : kind === "say"
                 ? copy.say.replace("{name}", () => myName)
-                : kind === "narrate"
+              : kind === "narrate"
                   ? copy.narrate
+                  : kind === "ask"
+                    ? copy.ask
                   : kind === "ooc"
                     ? copy.ooc
                     : leadPrivate

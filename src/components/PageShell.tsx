@@ -151,6 +151,7 @@ export function PageSection({
 export function PageLoading({ width = "wide" }: { width?: PageWidth }) {
   return (
     <Column width={width}>
+      <AppHeader />
       <div className="flex justify-center py-10">
         <Loader2 className="size-5 animate-spin text-stone-500" aria-label="Loading" />
       </div>

@@ -41,8 +41,8 @@ assert.ok(endingCode.includes("linearRampToValueAtTime(0, noteStart + noteDur)")
 assert.ok(!endingCode.includes("lfoGain.connect(osc.frequency)"), "Buggy LFO oscillator conflict still present in playSadTrombone");
 assert.ok(endingCode.includes("DEFEAT_BANNERS_RU"), "Missing DEFEAT_BANNERS_RU");
 assert.ok(endingCode.includes("💀 ПОЛНЫЙ ПРОЁБ 💀"), "Missing full defeat text banner");
-assert.ok(endingCode.includes("fadeStart: 4500"), "Missing extended readable banner duration");
-assert.ok(endingCode.includes("maxAge: 7000"), "Missing 7-second banner maxAge");
+assert.ok(endingCode.includes("fadeStart: 1000"), "Missing 1-second readable banner duration");
+assert.ok(endingCode.includes("maxAge: 1400"), "Missing 1.4-second banner maxAge");
 assert.ok(endingCode.includes("roundRect"), "Missing pill background rendering for banners");
 
 // Verify demo-ending.html files exist and match
@@ -53,6 +53,8 @@ assert.ok(rootDemo.includes("playSquish"), "demo-ending.html missing playSquish"
 assert.ok(rootDemo.includes("bounceCount"), "demo-ending.html missing bounceCount in dice physics");
 assert.ok(rootDemo.includes("spawnMudSplat"), "demo-ending.html missing spawnMudSplat");
 assert.ok(rootDemo.includes("💩 Тест шлёпа"), "demo-ending.html missing squish test button");
+assert.ok(rootDemo.includes("fadeStart: 1000"), "demo-ending.html missing 1-second banner fadeStart");
+assert.ok(rootDemo.includes("maxAge: 1400"), "demo-ending.html missing 1.4-second banner maxAge");
 
-console.log(`PASS: All 5 files transpiled cleanly and all 18 ending celebration, clean trombone, squelch sound, and single-bounce assertions verified.`);
+console.log(`PASS: All 5 files transpiled cleanly and all 20 ending celebration, clean trombone, squelch sound, fast defeat dice, and 1s banner assertions verified.`);
 

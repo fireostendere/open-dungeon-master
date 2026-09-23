@@ -18,6 +18,7 @@ import type { WorkshopSummary } from "@/app/workshop/types";
 import { useI18n } from "@/lib/i18n/context";
 import { interpolateWorkshop, workshopCopy } from "@/app/workshop/copy";
 import { workshopSystemText } from "@/app/workshop/[workshopId]/systems";
+import { AppHomeLogo } from "@/components/AccountMenu";
 
 // The workshop shell: a hub of system cards, or one system open.
 //
@@ -167,7 +168,8 @@ function WorkshopPageInner({ workshopId }: { workshopId: string }) {
 
   if (loading) {
     return (
-      <main className="flex flex-1 items-center justify-center">
+      <main className="relative flex flex-1 items-center justify-center">
+        <AppHomeLogo className="absolute left-4 top-4" />
         <Loader2 className="size-6 animate-spin text-stone-500" />
       </main>
     );
@@ -176,6 +178,7 @@ function WorkshopPageInner({ workshopId }: { workshopId: string }) {
   if (!workshop) {
     return (
       <main className="mx-auto w-full max-w-3xl flex-1 p-6">
+        <AppHomeLogo className="mb-4" />
         <Link
           href="/workshop"
           className="mb-4 inline-flex items-center gap-1.5 text-sm text-stone-500 hover:text-amber-200"
@@ -189,6 +192,7 @@ function WorkshopPageInner({ workshopId }: { workshopId: string }) {
 
   return (
     <main className="mx-auto w-full max-w-5xl flex-1 p-4 sm:p-6">
+      <AppHomeLogo className="mb-4" />
       {system ? null : (
         <WorkshopHeader
           workshop={workshop}
