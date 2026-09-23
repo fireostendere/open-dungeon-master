@@ -22,7 +22,7 @@ There is no automatic end-of-game history reveal. The DM can read all scenes; a 
 
 In the web session, the actual DM can choose **Enable location chats** beneath the ordinary composer. This creates a starting room and places the current player seats there. The DM's location controls create rooms and passages, move subgroups, grant/revoke observation and deliver perceived incidents. Players joining later must be placed by the DM.
 
-The new UI has English, Russian and Polish copy. The original table widgets, Ask, dice controls and shared history remain in a separate shared-mechanics panel. New location prose never enters that public transcript. An old client attempting an unscoped in-character POST receives 409 instead of accidentally broadcasting its scene. Legacy OOC sends are routed to the new global OOC ledger.
+The new UI has English, Russian and Polish copy. The original table widgets, dice controls and shared history remain in a separate shared-mechanics panel. Ask uses the chat composer; public questions and answers appear in global OOC, while private exchanges stay visible only to their author. New location prose never enters that public transcript. An old client attempting an unscoped in-character POST receives 409 instead of accidentally broadcasting its scene. Legacy OOC sends are routed to the new global OOC ledger.
 
 ### External MCP narrator
 

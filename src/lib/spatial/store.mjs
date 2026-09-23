@@ -347,7 +347,7 @@ export function createSpatialStore(db, { nextSeq, now = () => new Date().toISOSt
       const kind = input.kind;
       if (!["say", "do", "narration", "ooc"].includes(kind)) throw new SpatialError("Invalid message kind.");
       const content = text(input.content, kind === "narration" ? 8000 : 2000, "message");
-      if (kind === "ooc") return { message: append(actor, null, kind, content, []) };
+      if (kind === "ooc") return { message: { id: uuid(), roomId: null, seq: 0, kind, authorUserId: actor.userId, content, createdAt: now() } };
       if (kind === "narration") dm(actor);
       else if (actor.isDm) throw new SpatialError("The DM must use narration or OOC.", 403);
       room(actor, input.roomId);
@@ -561,8 +561,11 @@ export function createSpatialStore(db, { nextSeq, now = () => new Date().toISOSt
         // Quota/floor changes belong to the receipt, not to every HTTP retry.
         // Throwing here rolls back the message AND its associated state.
         afterApply(result, normalizedInput);
-        run("INSERT INTO spatial_requests(campaign_id,actor_id,request_id,fingerprint,result_json) VALUES(?,?,?,?,?)", actor.campaignId, actor.userId, requestId, fingerprint, JSON.stringify(result));
-        return result;
+        const receipt = operation === "send" && input.kind === "ooc"
+          ? { ...result, message: { ...result.message, content: "" } }
+          : result;
+        run("INSERT INTO spatial_requests(campaign_id,actor_id,request_id,fingerprint,result_json) VALUES(?,?,?,?,?)", actor.campaignId, actor.userId, requestId, fingerprint, JSON.stringify(receipt));
+        return receipt;
       })();
     },
     view(actor) {
@@ -630,6 +633,7 @@ export function createSpatialStore(db, { nextSeq, now = () => new Date().toISOSt
       active(actor);
       integer(beforeSeq, 1, Number.MAX_SAFE_INTEGER, "history cursor");
       integer(limit, 1, 100, "page size");
+      if (roomId === null) return { messages: [], nextBefore: null };
       if (roomId !== null && !known(actor, roomId)) throw new SpatialError("Location not found.", 404);
       const rows = all(`SELECT m.* FROM spatial_messages m WHERE m.campaign_id=? AND m.room_id IS ? AND m.seq<?
         ${actor.isDm || roomId === null ? "" : "AND EXISTS(SELECT 1 FROM spatial_receipts r WHERE r.campaign_id=m.campaign_id AND r.message_id=m.id AND r.user_id=?)"}

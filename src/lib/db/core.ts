@@ -154,6 +154,7 @@ function ensureSchema(db: SqliteDatabase) {
       content TEXT NOT NULL,
       image_request_json TEXT,
       generated_image_json TEXT,
+      narration_audio_url TEXT,
       created_at TEXT NOT NULL,
       UNIQUE (campaign_id, seq)
     );
@@ -1411,6 +1412,7 @@ function ensureSchema(db: SqliteDatabase) {
     // both, so the two uses never collide on a single row. Null on messages
     // written before this column existed.
     ["dm_turn_id", `TEXT`],
+    ["narration_audio_url", `TEXT`],
   ]);
 
   addColumns("dm_turns", [

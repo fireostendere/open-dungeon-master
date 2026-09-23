@@ -259,13 +259,16 @@ export function SessionView({
   const muted = Boolean(state.members.find((member) => member.userId === meId)?.muted);
   const globalTurnEnabled = Boolean(campaign?.gameSettings?.globalTurn?.enabled);
   const globalTurnState = campaign?.globalTurnState ?? null;
+  // Mid-game joiners may ask the DM before they finish creating a character.
+  const needsCharacter = caps.needsCharacter && !mySheet && campaign?.status === "active";
+  const composerKind = needsCharacter ? "ask" : kind;
   const gate = useMemo(
     () =>
       composerGate({
         floor,
         sheets,
         meUserId: meId,
-        kind,
+        kind: composerKind,
         myName,
         leadPrivate,
         openingNarrationPlaying,
@@ -273,11 +276,8 @@ export function SessionView({
         globalTurnState,
         locale,
       }),
-    [floor, sheets, meId, kind, myName, leadPrivate, openingNarrationPlaying, globalTurnEnabled, globalTurnState, locale],
+    [floor, sheets, meId, composerKind, myName, leadPrivate, openingNarrationPlaying, globalTurnEnabled, globalTurnState, locale],
   );
-  // A mid-game joiner without a character is gated to creation first. The DM
-  // runs no character, so the gate must never catch them.
-  const needsCharacter = caps.needsCharacter && !mySheet && campaign?.status === "active";
   // Lead prompt: a newcomer's join note the DM has not narrated past yet.
   const joinNotice = latestUnintroducedJoin(messages);
   const showJoinBanner = steersStory && joinNotice !== null && dismissedJoinNotice !== joinNotice.id;
@@ -347,7 +347,8 @@ export function SessionView({
             }
           : undefined
       );
-      if ((!content && (kind === "ask" || !resolvedCombatTurn)) || sending || gate.inputBlocked || muted) {
+      const sendKind = needsCharacter ? "ask" : kind;
+      if ((!content && (sendKind === "ask" || !resolvedCombatTurn)) || sending || (!needsCharacter && gate.inputBlocked) || muted) {
         return;
       }
       setSending(true);
@@ -358,15 +359,15 @@ export function SessionView({
         // one-turn steer the event presets use, so no character hears it and
         // it never enters the transcript.
         const [route, body] =
-          kind === "ask"
+          sendKind === "ask"
             ? ["ask", { question: content, scope: askScope, visibility: askVisibility }]
-            : kind === "narrate"
+            : sendKind === "narrate"
             ? ["dm/narrate", { content }]
-            : kind === "lead"
+            : sendKind === "lead"
               ? leadPrivate
                 ? ["director", { oneShot: null, absoluteCommand: content }]
                 : ["lead-note", { content }]
-              : ["actions", resolvedCombatTurn ? { kind: "do", combatTurn: resolvedCombatTurn } : { content, kind }];
+              : ["actions", resolvedCombatTurn ? { kind: "do", combatTurn: resolvedCombatTurn } : { content, kind: sendKind }];
         const response = await fetch(`/api/campaigns/${campaignId}/${route}`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -378,7 +379,7 @@ export function SessionView({
           return;
         }
         setInput("");
-        if (kind === "ask") await refreshAsks();
+        if (sendKind === "ask") await refreshAsks();
         else setCombatChoices([]);
       } catch {
         setError("Could not reach the server.");
@@ -386,7 +387,7 @@ export function SessionView({
         setSending(false);
       }
     },
-    [campaignId, input, sending, gate.inputBlocked, muted, kind, askScope, askVisibility, leadPrivate, ownCombatTurn, state.encounter, mySheet, combatChoices, refreshAsks],
+    [campaignId, input, sending, gate.inputBlocked, muted, kind, needsCharacter, askScope, askVisibility, leadPrivate, ownCombatTurn, state.encounter, mySheet, combatChoices, refreshAsks],
   );
 
   const clearChatTarget = useCallback(() => setChatTarget(null), []);
@@ -523,25 +524,24 @@ export function SessionView({
           hasOpenedFinale={hasOpenedFinale}
           defaultMode={defaultCelebrationMode}
         >
-          {needsCharacter ? (
-            <CharacterGate campaignId={campaign.id} />
-          ) : (
+          {needsCharacter ? <CharacterGate campaignId={campaign.id} /> : null}
             <Composer
               campaignId={campaign.id}
               sheets={sheets}
               meUserId={me.id}
               steersStory={steersStory || isLead}
               isDm={isDm}
+              needsCharacter={needsCharacter}
               members={state.members}
               globalTurnEnabled={globalTurnEnabled}
               globalTurnState={globalTurnState}
-              kind={kind}
+              kind={composerKind}
               onKindChange={setKind}
               input={input}
               setInput={setInput}
               sending={sending}
               error={error}
-              inputBlocked={gate.inputBlocked || muted}
+              inputBlocked={(!needsCharacter && gate.inputBlocked) || muted}
                placeholder={muted ? tourCopy.mutedPlaceholder : gate.placeholder}
               dmStatus={dmStatus}
               pendingRolls={pendingRolls}
@@ -568,7 +568,6 @@ export function SessionView({
               askVisibility={askVisibility}
               onAskVisibilityChange={setAskVisibility}
             />
-          )}
         </SessionChatColumn>
 
         <SidePanel

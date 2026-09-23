@@ -1,4 +1,5 @@
-import { createHash, timingSafeEqual } from "node:crypto";
+import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
+import { spawn } from "node:child_process";
 import { createServer as createHttpServer } from "node:http";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -77,6 +78,99 @@ async function run(action, params) {
     }
     const compact = params?.compact ?? (action.startsWith('narrator.') ? true : undefined);
     return formatToolResult(await callControl(action, params), { compact });
+  } catch (error) {
+    return failure(error);
+  }
+}
+
+const LOCAL_TTS_ENABLED = /^(1|true)$/i.test(process.env.ODM_LOCAL_TTS_ENABLED?.trim() || "");
+const LOCAL_TTS_URL = "http://127.0.0.1:" + (process.env.ODM_LOCAL_TTS_PORT?.trim() || "8875");
+let localTtsProcess;
+let localTtsToken;
+let localTtsStarting;
+
+async function localTtsHealth() {
+  if (!localTtsToken) return false;
+  try {
+    const response = await fetch(LOCAL_TTS_URL + "/healthz", {
+      headers: { Authorization: "Bearer " + localTtsToken },
+      signal: AbortSignal.timeout(1000),
+    });
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
+
+async function ensureLocalTts() {
+  if (!LOCAL_TTS_ENABLED) throw new Error("Local voiceover is not enabled in this narrator profile.");
+  if (await localTtsHealth()) return;
+  if (!localTtsStarting) {
+    localTtsToken ??= randomBytes(32).toString("hex");
+    const script = fileURLToPath(new URL("../scripts/local-tts-server.py", import.meta.url));
+    const appRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+    const cache = path.join(appRoot, "node_modules", ".cache", "odm-tts");
+    const python = process.env.ODM_LOCAL_TTS_PYTHON?.trim() || path.join(cache, ".venv", "bin", "python");
+    localTtsProcess = spawn(python, [script], {
+      stdio: ["ignore", "ignore", "inherit"],
+      env: {
+        PATH: process.env.PATH || "",
+        ODM_LOCAL_TTS_CACHE: cache,
+        ODM_LOCAL_TTS_PORT: process.env.ODM_LOCAL_TTS_PORT?.trim() || "8875",
+        ODM_LOCAL_TTS_TOKEN: localTtsToken,
+        PYTHONUNBUFFERED: "1",
+      },
+    });
+    localTtsProcess.once("exit", () => { localTtsProcess = undefined; });
+    localTtsProcess.once("error", () => { localTtsProcess = undefined; });
+    localTtsStarting = (async () => {
+      for (let attempt = 0; attempt < 900; attempt += 1) {
+        if (await localTtsHealth()) return;
+        if (!localTtsProcess || localTtsProcess.exitCode !== null) {
+          throw new Error("Local TTS process exited before it became ready.");
+        }
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+      throw new Error("Local TTS service did not become ready.");
+    })().finally(() => { localTtsStarting = undefined; });
+  }
+  await localTtsStarting;
+}
+
+process.once("exit", () => { localTtsProcess?.kill(); });
+
+async function localVoiceover(args) {
+  try {
+    if (!args.messageId || !args.voiceoverSegments?.length) {
+      throw new Error("Provide the exact DM messageId and its voiceover segments.");
+    }
+    const totalCharacters = args.voiceoverSegments.reduce((sum, segment) => sum + segment.text.length, 0);
+    if (totalCharacters > 3000) throw new Error("Narration is too long for one live voiceover.");
+    await ensureLocalTts();
+    const response = await fetch(LOCAL_TTS_URL + "/synthesize", {
+      method: "POST",
+      headers: {
+        Authorization: "Bearer " + localTtsToken,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ segments: args.voiceoverSegments }),
+      signal: AbortSignal.timeout(120_000),
+    });
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(error.slice(0, 1000) || "Local voice generation failed.");
+    }
+    const audio = Buffer.from(await response.arrayBuffer());
+    if (!audio.length || audio.length > 12 * 1024 * 1024) {
+      throw new Error("Generated voiceover exceeds the 12 MiB upload limit.");
+    }
+    const stored = await callControl("narrator.store_audio", {
+      campaignId: args.campaignId,
+      messageId: args.messageId,
+      mimeType: "audio/wav",
+      audioBase64: audio.toString("base64"),
+    });
+    return formatToolResult(stored, { compact: true });
   } catch (error) {
     return failure(error);
   }
@@ -282,6 +376,7 @@ questions, private whispers, DM outlines or other DM secrets to the table.
       inputSchema: narratorInputSchema,
     },
     async (args) => {
+      if (args.operation === "voiceover") return localVoiceover(args);
       const action = `narrator.${args.operation}`;
       const params = { ...args };
       delete params.operation;

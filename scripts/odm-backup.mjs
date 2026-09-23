@@ -57,7 +57,11 @@ for (const rel of include) {
   if (!fs.existsSync(src)) continue;
   const dst = path.join(stage, rel);
   fs.mkdirSync(path.dirname(dst), { recursive: true });
-  fs.cpSync(src, dst, { recursive: true });
+  // ponytail: expiring live WAVs stay out of long-lived archives; legacy audio is still backed up.
+  const options = rel === "public/generated-audio"
+    ? { recursive: true, filter: source => !source.toLowerCase().endsWith(".wav") }
+    : { recursive: true };
+  fs.cpSync(src, dst, options);
 }
 
 const archive = path.join(targetDir, `odm-backup-${stamp}.tar.gz`);

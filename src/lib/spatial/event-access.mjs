@@ -33,8 +33,8 @@ function globalView(type, payload) {
   if (type === 'member_left' || type === 'member_removed') return select(payload, ['userId']);
   if (type === 'campaign_rewound') return { reason: 'campaign_rewound' };
   if (type === 'stream_checkpoint') return {};
-  if (['message_added', 'message_updated'].includes(type) && /^\s*\(ooc\)/i.test(payload?.message?.content ?? '')) {
-    return { message: select(payload.message, ['id', 'campaignId', 'seq', 'authorType', 'userId', 'characterId', 'content', 'createdAt']) };
+  if (['message_added', 'message_updated', 'ooc_message'].includes(type) && /^\s*\(ooc\)/i.test(payload?.message?.content ?? '')) {
+    return { message: select(payload.message, ['id', 'campaignId', 'seq', 'authorType', 'userId', 'characterId', 'content', 'createdAt', 'kind', 'authorUserId', 'roomId']) };
   }
   return undefined;
 }

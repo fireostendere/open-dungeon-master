@@ -3,7 +3,6 @@
 import { Pin, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { cn } from "@/lib/cn";
-import { ui } from "@/lib/ui";
 import { PIN_TOKEN_CAP, pinTokens, totalPinTokens } from "@/lib/dm/pin-logic";
 import { useI18n } from "@/lib/i18n";
 import { localeText } from "@/lib/i18n/locale-text";
@@ -25,11 +24,11 @@ type PinRow = {
 
 const COLLAPSE_AT = 160;
 
-function PinItem({ pin, onUnpin }: { pin: PinRow; onUnpin: (id: string) => void }) {
+function PinItem({ pin, isLead, onDelete }: { pin: PinRow; isLead: boolean; onDelete: (id: string) => void }) {
   const { locale } = useI18n();
   const copy = localeText(locale, {
-    en: { full: "Full message", excerpt: "Excerpt", unpin: "Unpin", less: "Show less", more: "Show more", jump: "Jump to message" },
-    ru: { full: "Всё сообщение", excerpt: "Фрагмент", unpin: "Открепить", less: "Свернуть", more: "Показать больше", jump: "Перейти к сообщению" },
+    en: { full: "Full message", excerpt: "Excerpt", delete: "Delete", less: "Show less", more: "Show more", jump: "Jump to message" },
+    ru: { full: "Всё сообщение", excerpt: "Фрагмент", delete: "Удалить", less: "Свернуть", more: "Показать больше", jump: "Перейти к сообщению" },
   });
   const [expanded, setExpanded] = useState(false);
   const long = pin.text.length > COLLAPSE_AT;
@@ -45,14 +44,17 @@ function PinItem({ pin, onUnpin }: { pin: PinRow; onUnpin: (id: string) => void 
         <span className="ml-auto shrink-0 font-mono text-[10px] text-stone-500">
           {pinTokens(pin.text)}t
         </span>
-        <button
-          type="button"
-          onClick={() => onUnpin(pin.id)}
-          aria-label={copy.unpin}
-          className={cn(ui.iconAction, "-my-1 shrink-0 hover:text-red-400")}
-        >
-          <Trash2 className="size-3" />
-        </button>
+        {isLead ? (
+          <button
+            type="button"
+            onClick={() => onDelete(pin.id)}
+            aria-label={copy.delete}
+            title={copy.delete}
+            className="inline-flex min-h-7 shrink-0 items-center gap-1 rounded border border-red-900/50 px-2 text-[10px] text-stone-400 hover:border-red-500/50 hover:text-red-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400/60"
+          >
+            <Trash2 className="size-3" /> {copy.delete}
+          </button>
+        ) : null}
       </div>
       <p className="whitespace-pre-wrap break-words text-xs leading-relaxed text-stone-300">
         {shown}
@@ -83,7 +85,7 @@ function PinItem({ pin, onUnpin }: { pin: PinRow; onUnpin: (id: string) => void 
   );
 }
 
-export function PinsPanel({ campaignId, version }: { campaignId: string; version: number }) {
+export function PinsPanel({ campaignId, version, isLead }: { campaignId: string; version: number; isLead: boolean }) {
   const { locale } = useI18n();
   const copy = localeText(locale, {
     en: { title: "Pinned memories", empty: "Nothing pinned. Select text in one of the DM's messages and press the pin icon to put it in front of the DM every turn, whether or not it looks relevant." },
@@ -107,14 +109,14 @@ export function PinsPanel({ campaignId, version }: { campaignId: string; version
     };
   }, [campaignId, reload, version]);
 
-  const unpin = useCallback(
+  const deletePin = useCallback(
     async (pinId: string) => {
-      await fetch(`/api/campaigns/${campaignId}/pins`, {
+      const response = await fetch(`/api/campaigns/${campaignId}/pins`, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ pinId }),
       });
-      setReload((count) => count + 1);
+      if (response.ok) setReload((count) => count + 1);
     },
     [campaignId],
   );
@@ -156,7 +158,7 @@ export function PinsPanel({ campaignId, version }: { campaignId: string; version
       {pins.length ? (
         <ul className="space-y-1.5">
           {pins.map((pin) => (
-            <PinItem key={pin.id} pin={pin} onUnpin={unpin} />
+            <PinItem key={pin.id} pin={pin} isLead={isLead} onDelete={deletePin} />
           ))}
         </ul>
       ) : (

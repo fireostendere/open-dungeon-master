@@ -3,6 +3,7 @@ import { getDatabase } from '@/lib/db/core';
 import { capsFor, getCampaignById, listMembers } from '@/lib/db/campaigns';
 import { projectSheetForViewer } from '@/lib/sheet-privacy';
 import type { CharacterSheet } from '@/lib/schemas/sheet';
+import { isOocMessage } from '@/lib/campaign-types';
 import { currentPublicationScope } from './publication-scope.mjs';
 import { projectEventForUser } from './event-privacy';
 import { createEventAccess, decodeEventChunk, ephemeralView, publicationView, type EventActor, type EventScope, type EventView } from './event-access.mjs';
@@ -77,6 +78,8 @@ export function campaignEventProjector(campaignId:string,userId:string) {
     const saved=getDatabase().prepare('SELECT * FROM campaign_events WHERE campaign_id=? AND seq=?').get(campaignId,event.seq) as
       {type:string;payload_json:string;audience_json?:string|null}|undefined;
     if(!saved||saved.type!==event.type||saved.payload_json!==JSON.stringify(event.payload)) return checkpoint;
+    const message=(event.payload as {message?:{content?:string}}|null)?.message;
+    if(['message_added','message_updated'].includes(event.type)&&isOocMessage(message)) return checkpoint;
     if(actor.isDm) return privateSheetFields(event, true);
     if(hasTable('spatial_event_views')) {
       const present=getDatabase().prepare('SELECT 1 FROM spatial_event_views WHERE campaign_id=? AND seq=? AND user_id=?').get(campaignId,event.seq,userId);

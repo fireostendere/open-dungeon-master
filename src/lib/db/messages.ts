@@ -3,6 +3,8 @@ import { touchCampaign } from "@/lib/db/campaigns";
 import type { GeneratedImage, ImageRequest } from "@/lib/types";
 import { normalizeNarrationUnits } from "@/lib/units/narration";
 
+const NON_OOC = "lower(ltrim(content, char(9) || char(10) || char(13) || ' ')) NOT LIKE '(ooc)%'";
+
 export type CampaignMessage = {
   id: string;
   campaignId: string;
@@ -13,6 +15,7 @@ export type CampaignMessage = {
   content: string;
   imageRequest?: ImageRequest;
   generatedImage?: GeneratedImage;
+  narrationAudioUrl?: string;
   // Set on DM messages that moved the party somewhere new; the chat renders
   // that location's map inline (the map itself lives on the locations row).
   locationId?: string;
@@ -41,6 +44,7 @@ type MessageRow = {
   content: string;
   image_request_json: string | null;
   generated_image_json: string | null;
+  narration_audio_url: string | null;
   location_id: string | null;
   variants_json: string | null;
   variant_index: number | null;
@@ -59,6 +63,7 @@ function mapMessage(row: MessageRow): CampaignMessage {
     content: row.content,
     imageRequest: parseJson<ImageRequest | undefined>(row.image_request_json, undefined),
     generatedImage: parseJson<GeneratedImage | undefined>(row.generated_image_json, undefined),
+    narrationAudioUrl: row.narration_audio_url ?? undefined,
     locationId: row.location_id ?? undefined,
     variants: parseJson<string[] | undefined>(row.variants_json, undefined),
     variantIndex: row.variant_index ?? undefined,
@@ -159,7 +164,7 @@ export function listMessagesInSeqRange(
 ): CampaignMessage[] {
   const rows = getDatabase()
     .prepare(
-      `SELECT * FROM campaign_messages WHERE campaign_id = ? AND seq >= ? AND seq <= ? ORDER BY seq ASC`,
+      `SELECT * FROM campaign_messages WHERE campaign_id = ? AND seq >= ? AND seq <= ? AND ${NON_OOC} ORDER BY seq ASC`,
     )
     .all(campaignId, seqStart, seqEnd) as MessageRow[];
   return rows.map(mapMessage);
@@ -179,7 +184,7 @@ export function listRecentMessages(campaignId: string, limit = 100): CampaignMes
     .prepare(
       `
         SELECT * FROM (
-          SELECT * FROM campaign_messages WHERE campaign_id = ? ORDER BY seq DESC LIMIT ?
+          SELECT * FROM campaign_messages WHERE campaign_id = ? AND ${NON_OOC} ORDER BY seq DESC LIMIT ?
         ) ORDER BY seq ASC
       `,
     )
@@ -190,7 +195,7 @@ export function listRecentMessages(campaignId: string, limit = 100): CampaignMes
 export function listMessagesBefore(campaignId: string, beforeSeq: number, limit = 100): CampaignMessage[] {
   const rows = getDatabase().prepare(`
     SELECT * FROM (
-      SELECT * FROM campaign_messages WHERE campaign_id = ? AND seq < ? ORDER BY seq DESC LIMIT ?
+    SELECT * FROM campaign_messages WHERE campaign_id = ? AND seq < ? AND ${NON_OOC} ORDER BY seq DESC LIMIT ?
     ) ORDER BY seq ASC
   `).all(campaignId, beforeSeq, limit) as MessageRow[];
   return rows.map(mapMessage);
@@ -198,7 +203,7 @@ export function listMessagesBefore(campaignId: string, beforeSeq: number, limit 
 
 export function listAllMessages(campaignId: string): CampaignMessage[] {
   const rows = getDatabase()
-    .prepare(`SELECT * FROM campaign_messages WHERE campaign_id = ? ORDER BY seq ASC`)
+    .prepare(`SELECT * FROM campaign_messages WHERE campaign_id = ? AND ${NON_OOC} ORDER BY seq ASC`)
     .all(campaignId) as MessageRow[];
   return rows.map(mapMessage);
 }
@@ -241,6 +246,13 @@ export function setMessageGeneratedImage(messageId: string, image: GeneratedImag
     .prepare(`UPDATE campaign_messages SET generated_image_json = ? WHERE id = ?`)
     .run(JSON.stringify(image), messageId);
   return result.changes > 0;
+}
+
+export function setMessageNarrationAudioUrl(messageId: string, url: string | null) {
+  const result = getDatabase()
+    .prepare("UPDATE campaign_messages SET narration_audio_url = ? WHERE id = ?")
+    .run(url, messageId);
+  return result.changes > 0 ? getCampaignMessage(messageId) : null;
 }
 
 // Retry claim: drops a halted notice's link to its DM turn so the retry

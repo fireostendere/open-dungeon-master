@@ -425,7 +425,7 @@ export function SidePanelRouter({
         <SubTabs tabs={storySubTabs} value={storySection} onChange={setStorySection} />
         {storySection === "facts" ? (
           <div className="space-y-3">
-            <PinsPanel campaignId={campaignId} version={pinsVersion} />
+            <PinsPanel campaignId={campaignId} version={pinsVersion} isLead={isLead} />
             <FactsPanel
               campaignId={campaignId}
               facts={facts}

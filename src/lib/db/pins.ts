@@ -3,7 +3,7 @@ import type { Pin } from "@/lib/dm/pin-logic";
 
 // Pinned excerpts, one table per campaign. Deliberately not scoped per user:
 // a pin changes what the DM is told, so it is table-wide canon rather than a
-// personal bookmark, and every member can see and unpin one.
+// personal bookmark. Every member can see them; only the lead removes them.
 
 type PinRow = {
   id: string;
@@ -73,27 +73,12 @@ export function createPin(input: {
   };
 }
 
-// Unpinning is restricted to whoever pinned it, or the party lead.
-//
-// Pinning is open to the whole table by design, but a pin rides in EVERY
-// prompt under a shared token cap, so deleting one silently changes what the
-// DM remembers for everybody. Anyone being able to drop anyone's pin makes
-// that a griefing vector and, more mundanely, an easy accident. The lead
-// keeps an override because somebody has to be able to clear the board.
+// Removal is exposed only through the party-lead-gated API route.
 export function deletePin(
   campaignId: string,
   pinId: string,
-  actor: { userId: string; isLead: boolean },
 ): boolean {
-  const result = actor.isLead
-    ? getDatabase()
-        .prepare(`DELETE FROM campaign_pins WHERE id = ? AND campaign_id = ?`)
-        .run(pinId, campaignId)
-    : getDatabase()
-        .prepare(
-          `DELETE FROM campaign_pins
-           WHERE id = ? AND campaign_id = ? AND pinned_by_user_id = ?`,
-        )
-        .run(pinId, campaignId, actor.userId);
-  return result.changes > 0;
+  return getDatabase()
+    .prepare(`DELETE FROM campaign_pins WHERE id = ? AND campaign_id = ?`)
+    .run(pinId, campaignId).changes > 0;
 }

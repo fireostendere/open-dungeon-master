@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { isErrorResponse, steersStory, requireMember } from "@/lib/campaign-api";
+import { isErrorResponse, requireLead, requireMember } from "@/lib/campaign-api";
 import { createPin, deletePin, listPins } from "@/lib/db/pins";
 import { getCampaignMessage } from "@/lib/db/messages";
 import { publishPersisted } from "@/lib/events";
@@ -8,9 +8,8 @@ import { MAX_PIN_LENGTH, checkPin } from "@/lib/dm/pin-logic";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-// Pinned memories. Any member may pin or unpin: a pin is a note to the DM
-// about what matters, and gatekeeping that behind the lead would mean the
-// player whose character the detail concerns cannot flag it.
+// Pinned memories. Anyone may pin a detail for the DM; only the party lead
+// may remove it because pins affect the whole table's prompts.
 
 const createSchema = z.object({
   messageId: z.string().min(1).max(80),
@@ -78,27 +77,17 @@ export async function DELETE(
   { params }: { params: Promise<{ campaignId: string }> },
 ) {
   const { campaignId } = await params;
-  const context = await requireMember(campaignId);
+  const context = await requireLead(campaignId);
   if (isErrorResponse(context)) {
     return context;
   }
   const raw = await request.json().catch(() => ({}));
   const parsed = deleteSchema.safeParse(raw);
   if (!parsed.success) {
-    return Response.json({ error: "Invalid unpin." }, { status: 400 });
+    return Response.json({ error: "Invalid pin deletion." }, { status: 400 });
   }
-  // Own pin, or the lead. A pin rides in every prompt, so unpinning someone
-  // else's silently changes what the DM remembers for the whole table.
-  if (
-    !deletePin(campaignId, parsed.data.pinId, {
-      userId: context.user.id,
-      isLead: steersStory(context),
-    })
-  ) {
-    return Response.json(
-      { error: "That pin is not yours to remove." },
-      { status: 403 },
-    );
+  if (!deletePin(campaignId, parsed.data.pinId)) {
+    return Response.json({ error: "Pin not found." }, { status: 404 });
   }
   publishPersisted(campaignId, "pins_updated", { pinId: parsed.data.pinId });
   return Response.json({ ok: true });

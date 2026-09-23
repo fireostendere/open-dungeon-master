@@ -5,7 +5,7 @@ export class McpAccessError extends Error {
 }
 const NARRATOR_ACTIONS = Object.freeze([
   'narrator.connect', 'narrator.read', 'narrator.snapshot', 'narrator.catalog', 'narrator.invoke',
-  'narrator.narrate', 'narrator.delete_message', 'narrator.edit_message', 'narrator.autopilot_action', 'narrator.finish_global_round', 'narrator.release_floor', 'narrator.set_floor', 'narrator.request_response', 'narrator.answer_ask',
+  'narrator.narrate', 'narrator.store_audio', 'narrator.delete_message', 'narrator.edit_message', 'narrator.autopilot_action', 'narrator.finish_global_round', 'narrator.release_floor', 'narrator.set_floor', 'narrator.request_response', 'narrator.answer_ask',
 ]);
 const HEALTH_ACTIONS = new Set(['server.status', 'server.capabilities']);
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

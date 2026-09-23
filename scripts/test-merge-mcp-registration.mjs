@@ -5,6 +5,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 import * as crypto from 'node:crypto';
+import * as childProcess from 'node:child_process';
 import * as http from 'node:http';
 import * as path from 'node:path';
 import * as url from 'node:url';
@@ -25,7 +26,7 @@ async function fixture(){
   }
   const context=vm.createContext({console,URL,Response,AbortSignal,process:{argv:['node','/test/runner.mjs'],env:{ODM_MCP_TOKEN:'isolated-test-token'},once(){}}});
   const mocked={
-    'node:crypto':crypto,'node:http':http,'node:path':path,'node:url':url,
+    'node:crypto':crypto,'node:child_process':childProcess,'node:http':http,'node:path':path,'node:url':url,
     '@modelcontextprotocol/server':{McpServer:Registry,createMcpHandler:()=>{throw Error('HTTP must not start on import');}},
     '@modelcontextprotocol/server/stdio':{serveStdio:()=>{throw Error('stdio must not start on import');}},
     '@modelcontextprotocol/node':{toNodeHandler:()=>{}},'zod/v4':z,

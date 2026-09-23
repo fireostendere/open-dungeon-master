@@ -2,6 +2,7 @@ import { getCampaignById, listMembers } from "@/lib/db/campaigns";
 import { listChapters } from "@/lib/db/chapters";
 import { listAllMessages } from "@/lib/db/messages";
 import { listSheets } from "@/lib/db/sheets";
+import { isOocMessage } from "@/lib/campaign-types";
 
 // A serializer-independent view of a campaign's story, gathered once from the
 // database and then handed to the HTML/ODT/DOCX renderers. Player-safe by
@@ -61,6 +62,7 @@ export function buildStoryDocument(campaignId: string): StoryDocument | null {
           message.seq >= chapter.seqStart &&
           message.seq <= seqEnd &&
           message.authorType !== "system" &&
+          !isOocMessage(message) &&
           message.content.trim().length > 0,
       )
       .map((message) => ({

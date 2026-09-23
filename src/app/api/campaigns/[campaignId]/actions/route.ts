@@ -1,4 +1,4 @@
-import { getDatabase } from "@/lib/db/core";
+import { getDatabase, nowIso } from "@/lib/db/core";
 import { withCommittedEffects } from "@/lib/db/commit-effects";
 import { spatialEnabled, runSpatialCommand, SpatialError } from "@/lib/spatial/service";
 import { localeText } from "@/lib/i18n/locale-text";
@@ -16,7 +16,7 @@ import {
 } from "@/lib/db/campaigns";
 import { insertCampaignMessage } from "@/lib/db/messages";
 import { getSheetForUser, listSheets } from "@/lib/db/sheets";
-import { publishPersisted, publishWithSeq } from "@/lib/events";
+import { publishOocMessage, publishPersisted, publishWithSeq } from "@/lib/events";
 import { recordGlobalTurnAction, resolveGlobalTurn } from "@/lib/dm/global-turn-logic";
 import { getActiveEncounter } from "@/lib/db/encounters";
 import { activePublicEncounter } from "@/lib/db/encounter-view";
@@ -64,11 +64,6 @@ export async function POST(
     return Response.json({ error: "The adventure has not started yet." }, { status: 400 });
   }
 
-  const sheet = getSheetForUser(campaignId, user.id);
-  if (!sheet) {
-    return Response.json({ error: "You need a character to act." }, { status: 400 });
-  }
-
   const raw = await request.json().catch(() => ({}));
   const parsed = actionSchema.safeParse(raw);
   if (!parsed.success) {
@@ -78,6 +73,30 @@ export async function POST(
   const limited = enforcePlayerIngress(campaignId, user.id, "action");
   if (limited) return limited;
   const { kind } = parsed.data;
+  const sheet = getSheetForUser(campaignId, user.id);
+  if (kind === "ooc" && !spatialEnabled(campaignId)) {
+    const messageId = crypto.randomUUID();
+    publishOocMessage(campaignId, {
+      id: messageId,
+      campaignId,
+      seq: 0,
+      authorType: "player",
+      userId: user.id,
+      characterId: sheet?.id ?? null,
+      content: `(ooc) ${parsed.data.content!}`,
+      kind: "ooc",
+      authorUserId: user.id,
+      roomId: null,
+      createdAt: nowIso(),
+    });
+    return Response.json({ messageId }, { status: 202 });
+  }
+  // OOC without a character has already returned through the legacy or
+  // spatial OOC path above; every remaining action needs its character sheet.
+  if (!sheet) {
+    return Response.json({ error: "You need a character to act." }, { status: 400 });
+  }
+
   const member = listMembers(campaignId).find((entry) => entry.userId === user.id);
   if (kind !== "ooc" && member?.autopilot) {
     return Response.json(

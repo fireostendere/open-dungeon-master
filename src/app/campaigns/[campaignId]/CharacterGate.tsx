@@ -17,8 +17,7 @@ const COPY = {
   },
 } as const;
 
-// Replaces the composer for a member who joined an active campaign but has
-// no character yet: they must create one before acting.
+// Prompts a mid-game joiner to create a character before acting.
 export function CharacterGate({ campaignId }: { campaignId: string }) {
   const { locale } = useI18n();
   const copy = COPY[locale];

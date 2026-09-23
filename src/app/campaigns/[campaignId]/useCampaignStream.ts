@@ -118,6 +118,7 @@ export type CampaignState = {
   blockedUserIds: string[];
   sheets: CharacterSheet[];
   messages: CampaignMessage[];
+  oocMessages: CampaignMessage[];
   hasOlderMessages: boolean;
   rolls: StoredRoll[];
   pendingRolls: PendingRoll[];
@@ -229,6 +230,7 @@ const initialState: CampaignState = {
   blockedUserIds: [],
   sheets: [],
   messages: [],
+  oocMessages: [],
   hasOlderMessages: false,
   rolls: [],
   pendingRolls: [],
@@ -312,10 +314,12 @@ function reducer(state: CampaignState, action: Action): CampaignState {
       if (!action.reset && state.campaign?.id === action.payload.campaign?.id && action.payload.messages) {
         const merged = new Map(state.messages.map(message => [message.id, message]));
         for (const message of action.payload.messages) merged.set(message.id, message);
-        return { ...state, ...action.payload, messages: [...merged.values()].sort((a, b) => a.seq - b.seq),
+        return { ...state, ...action.payload, oocMessages: state.oocMessages, messages: [...merged.values()].sort((a, b) => a.seq - b.seq),
           hasOlderMessages: state.hasOlderMessages, loading: false, error: "" };
       }
-      return { ...state, ...action.payload, loading: false, error: "" };
+      return { ...state, ...action.payload,
+        oocMessages: action.reset || state.campaign?.id !== action.payload.campaign?.id ? [] : state.oocMessages,
+        loading: false, error: "" };
     case "olderMessages": {
       const existing = new Set(state.messages.map(message => message.id));
       return {
@@ -357,6 +361,11 @@ function reducer(state: CampaignState, action: Action): CampaignState {
       const payload = action.payload;
 
       switch (action.eventType) {
+        case "ooc_message": {
+          const message = payload.message as CampaignMessage;
+          next.oocMessages = upsertBy(state.oocMessages, message, entry => entry.id).slice(-200);
+          return next;
+        }
         case "message_added": {
           const message = payload.message as CampaignMessage;
           next.messages = upsertBy(state.messages, message, (entry) => entry.id);
@@ -761,6 +770,7 @@ const PERSISTED_EVENTS = [
   "dm_cover_changed",
 ];
 const EPHEMERAL_EVENTS = [
+  "ooc_message",
   "dm_status",
   "utility_calls",
   "dm_delta",

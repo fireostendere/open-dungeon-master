@@ -43,6 +43,7 @@ import { answerAsk, listPendingAsksForCampaign, pendingAsksForCampaign, AskQueue
 import { narratorSnapshots } from "@/lib/mcp-snapshot-cache.mjs";
 import { budgetRead, ReadBudgetError } from "@/lib/mcp-read-budget.mjs";
 import { listEventsSince, publishEphemeral, publishPersisted, publishUserEphemeral, publishWithSeq } from "@/lib/events";
+import { storeNarrationAudio } from "@/lib/narration-audio";
 import { buildOrchestrationSnapshot } from "../../shared/orchestration-snapshot.mjs";
 export { NarratorCommandError as McpNarratorControlError } from "@/lib/dm/narrator-command";
 const id = z.string().uuid();
@@ -844,6 +845,30 @@ async function dispatchMcpNarratorControl(action: string, raw: unknown): Promise
     }
     case "narrator.invoke": return { handled: true, result: await invoke(raw) };
     case "narrator.narrate": return { handled: true, result: await narrate(raw) };
+    case "narrator.store_audio": {
+      const p = z.object({
+        campaignId: id,
+        messageId: id,
+        mimeType: z.literal("audio/wav"),
+        audioBase64: z.string().min(4).max(16_777_216),
+      }).strict().safeParse(raw);
+      if (!p.success) throw new McpNarratorControlError(z.prettifyError(p.error));
+      const campaign = campaignOrHuman(p.data.campaignId);
+      const bytes = Buffer.from(p.data.audioBase64, "base64");
+      if (!bytes.length || bytes.toString("base64") !== p.data.audioBase64) {
+        throw new McpNarratorControlError("Narration audio must use canonical base64.", 400);
+      }
+      try {
+        const stored = storeNarrationAudio(campaign.id, p.data.messageId, bytes);
+        publishEphemeral(campaign.id, "message_updated", { message: stored.message });
+        return { handled: true, result: {
+          messageId: stored.message.id, audioUrl: stored.audioUrl,
+          expiresAt: stored.expiresAt, byteSize: stored.byteSize,
+        } };
+      } catch (error) {
+        throw new McpNarratorControlError(error instanceof Error ? error.message : "Could not store narration audio.", 400);
+      }
+    }
     case "narrator.delete_message": return { handled: true, result: await deleteMessage(raw) };
     case "narrator.edit_message": return { handled: true, result: await editMessage(raw) };
     case "narrator.autopilot_action": return { handled: true, result: await autopilotAction(raw) };

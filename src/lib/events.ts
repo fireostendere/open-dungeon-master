@@ -31,3 +31,7 @@ export function publishEphemeral(campaignId: string, type: string, payload: unkn
     }
   }
 }
+
+export function publishOocMessage(campaignId: string, message: Record<string, unknown>) {
+  publishEphemeral(campaignId, "ooc_message", { message }, { kind: "global" });
+}

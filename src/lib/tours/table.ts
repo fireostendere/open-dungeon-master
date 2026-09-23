@@ -42,7 +42,7 @@ export const PLAYER_TOUR: TourStep[] = [
   {
     id: "ask",
     title: "Ask the DM",
-    body: "Questions about the story, the rules or your sheet go here, not in the message box. Asking never moves the story on, so it works even while the floor is locked.",
+    body: "Choose Ask DM in the chat composer for questions about the story, rules or your sheet. Asking never moves the story on, so it works even while the floor is locked.",
     anchors: ["ask-dm"],
     prepare: "show-chat",
   },
@@ -178,7 +178,7 @@ const TOUR_TEXT: { ru: Record<"player" | "dm", Record<string, [string, string]>>
   modes: ["Как говорить", "Действие описывает поступок героя, Речь — его слова, Вне игры — разговор игроков. Выберите режим перед отправкой."],
   compose: ["Ваш ход", "Напишите действие и нажмите Enter. Ведущий ответит на сообщения, полученные к этому моменту."],
   talk: ["Продиктовать сообщение", "Удерживайте микрофон. Проверьте распознанный текст перед отправкой."],
-  ask: ["Спросить ведущего", "Вопросы о сюжете, правилах и листе задавайте здесь. Они не продвигают историю и доступны даже при закрытом ходе."],
+  ask: ["Спросить ведущего", "Выберите «Спросить Мастера» в композере чата, чтобы задать вопрос о сюжете, правилах или листе. Вопрос не продвигает историю и доступен даже при закрытом ходе."],
   party: ["Отряд", "Здесь листы персонажей, здоровье, состояния и порядок ходов в бою."],
   story: ["История", "Главы, закреплённые факты и журнал бросков и изменений персонажей."],
   map: ["Карты", "Карты сцены, региона и посещённых мест. Во время боя тактическая карта открывается отдельно."],

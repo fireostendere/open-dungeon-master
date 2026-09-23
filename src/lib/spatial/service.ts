@@ -13,7 +13,7 @@ import { isDmSeat } from "@/lib/dm/viewer";
 import { createSpatialStore, SpatialError, type SpatialActor, type SpatialStore } from "@/lib/spatial/store.mjs";
 import { capturePreSpatialEntities } from "@/lib/spatial/domain-migration";
 import { normalizeNarrationUnits } from "@/lib/units/narration";
-import { publishEphemeral } from "@/lib/events";
+import { publishEphemeral, publishOocMessage } from "@/lib/events";
 import { queuePlayerAction } from "@/lib/integrations/rakobot";
 
 export { SpatialError } from "@/lib/spatial/store.mjs";
@@ -80,6 +80,7 @@ export function runSpatialCommand(campaignId: string, userId: string, raw: unkno
   const { operation, requestId, ...input } = command;
   const ooc = operation === "send" && command.kind === "ooc";
   let applied = false;
+  let oocMessage: Record<string, unknown> | null = null;
   let globalTurnResolution: { roundNumber: number } | null = null;
   let spatialModeChanged: boolean | null = null;
   const result = getDatabase().transaction(() => {
@@ -151,6 +152,21 @@ export function runSpatialCommand(campaignId: string, userId: string, raw: unkno
         : normalized;
     }, (_result, normalized) => {
       applied = true;
+      if (operation === "send" && command.kind === "ooc") {
+        const message = (_result as { message: { id: string; content: string; createdAt: string } }).message;
+        oocMessage = {
+          ...message,
+          campaignId,
+          seq: 0,
+          authorType: "player",
+          userId,
+          characterId: actor.characterId ?? null,
+          content: `(ooc) ${message.content}`,
+          authorUserId: userId,
+          kind: "ooc",
+        };
+        return;
+      }
       // The message, quota and floor are committed with ONE receipt. A retry
       // cannot consume a later round or re-close an already released floor.
       if (playerInput && (command.operation === "send") && (command.kind === "do" || command.kind === "say")) {
@@ -192,18 +208,20 @@ export function runSpatialCommand(campaignId: string, userId: string, raw: unkno
       if (operation === "enable" && !previouslyEnabled) capturePreSpatialEntities(campaignId);
       const enabledNow = store.enabled(campaignId);
       if (enabledNow !== previouslyEnabled) spatialModeChanged = enabledNow;
-      touchCampaign(campaignId);
+      if (!ooc) touchCampaign(campaignId);
     });
   })();
   if (!applied) return result;
   const resolution = globalTurnResolution as { roundNumber: number } | null;
+  const pendingOocMessage = oocMessage;
   // No wakeup, timer sealing or global mode signal can escape an outer
   // narrator rollback. Private room content never enters the shared stream.
   afterCommit(() => {
+    if (pendingOocMessage) publishOocMessage(campaignId, pendingOocMessage);
     if (spatialModeChanged !== null) {
       publishEphemeral(campaignId, "spatial_mode_changed", { enabled: spatialModeChanged }, { kind: "global" });
     }
-    notifySpatialChange(campaignId);
+    if (!ooc) notifySpatialChange(campaignId);
     if (resolution) {
       void resolveGlobalTurn(campaignId, resolution.roundNumber).catch(error =>
         console.error("[global-turn] Failed to seal spatial round:", error),

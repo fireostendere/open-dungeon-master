@@ -109,6 +109,7 @@ function ComposerInner({
   meUserId,
   steersStory,
   isDm,
+  needsCharacter = false,
   kind,
   onKindChange,
   input,
@@ -151,6 +152,7 @@ function ComposerInner({
   steersStory: boolean;
   // The DM seat: narrates instead of acting, and never runs a character.
   isDm: boolean;
+  needsCharacter?: boolean;
   members?: CampaignMember[];
   globalTurnEnabled?: boolean;
   globalTurnState?: GlobalTurnState | null;
@@ -245,7 +247,9 @@ function ComposerInner({
   const combatActive = Boolean(encounter?.orderReady && initiativeFloor);
   const ownCombatTurn = Boolean(initiativeFloor && mySheet && encounter?.currentActorId === mySheet.id && initiativeFloor.userIds.includes(meUserId));
   const combatLocked = floor.mode === "hold" && Boolean(floor.combat);
-  const composerOptions = isDm
+  const composerOptions = needsCharacter
+    ? (["ask"] as const)
+    : isDm
     ? (["narrate", "ooc"] as const)
     : combatActive || combatLocked
       ? (["do", "ask", "ooc"] as const)
@@ -388,6 +392,7 @@ function ComposerInner({
               <button
                 type="button"
                 onClick={() => onKindChange(option)}
+                data-tour={option === "ask" ? "ask-dm" : undefined}
                 className={cn(
                   "rounded-full px-3.5 py-2 text-xs font-medium transition-all duration-150 ease-snap active:scale-95 sm:px-3 sm:py-1",
                   kind === option

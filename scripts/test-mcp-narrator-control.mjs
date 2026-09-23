@@ -27,13 +27,15 @@ const { executeMcpNarratorControl, McpNarratorControlError, EXTERNAL_NARRATOR_AC
 const { executeMcpControl } = await import("../src/lib/mcp-control.ts");
 const { extendControlResult } = await import("../src/lib/mcp-external-control.ts");
 const { resumeHumanTurn } = await import("../src/lib/dm/invoke.ts");
+const { narratorInputSchema } = await import("../mcp/narrator-schema.mjs");
 
 const capabilities = extendControlResult("server.capabilities", { actions: [] });
 assert.deepEqual(capabilities.actions.slice(0, 9), [
-  "narrator.connect", "narrator.read", "narrator.snapshot", "narrator.catalog", "narrator.invoke", "narrator.narrate", "narrator.delete_message", "narrator.edit_message", "narrator.finish_global_round",
+  "narrator.connect", "narrator.read", "narrator.snapshot", "narrator.catalog", "narrator.invoke", "narrator.narrate", "narrator.store_audio", "narrator.delete_message", "narrator.edit_message",
 ]);
 assert.equal(extendControlResult("server.status", { mcpControlActions: 0 }).mcpControlActions, capabilities.actions.length);
 assert.ok(capabilities.actions.includes("narrator.autopilot_action"), "external autopilot write must be advertised");
+assert.ok(capabilities.actions.includes("narrator.store_audio"), "external narrator must be able to attach generated narration audio");
 assert.ok(capabilities.actions.includes("narrator.delete_message"), "external narrator must be able to delete transcript messages");
 assert.ok(capabilities.actions.includes("narrator.edit_message"), "external narrator must be able to edit transcript messages");
 assert.ok(capabilities.actions.includes("narrator.finish_global_round"), "external narrator must expose the spatial round finalizer");
@@ -133,6 +135,19 @@ const narrated = await executeMcpNarratorControl("narrator.narrate", {
 });
 assert.equal(narrated.result.currentSeq, latestSeq(campaign.id));
 assert.ok(narrated.result.currentSeq > beforeNarrate);
+const audioMessageId = getDatabase().prepare("SELECT id FROM campaign_messages WHERE campaign_id=? AND author_type='dm' ORDER BY seq DESC LIMIT 1").get(campaign.id).id;
+const wav = Buffer.alloc(44);
+wav.write("RIFF", 0, "ascii"); wav.writeUInt32LE(36, 4); wav.write("WAVE", 8, "ascii");
+wav.write("fmt ", 12, "ascii"); wav.writeUInt32LE(16, 16); wav.writeUInt16LE(1, 20);
+wav.writeUInt16LE(1, 22); wav.writeUInt32LE(8000, 24); wav.writeUInt32LE(16000, 28);
+wav.writeUInt16LE(2, 32); wav.writeUInt16LE(16, 34); wav.write("data", 36, "ascii");
+const audioInput = { operation: "store_audio", campaignId: campaign.id, messageId: audioMessageId, mimeType: "audio/wav", audioBase64: wav.toString("base64") };
+assert.equal(narratorInputSchema.safeParse(audioInput).success, true, "MCP schema must expose the audio upload operation");
+const audio = await executeMcpNarratorControl("narrator.store_audio", {
+  campaignId: campaign.id, messageId: audioMessageId, mimeType: "audio/wav", audioBase64: wav.toString("base64"),
+});
+assert.equal(audio.result.audioUrl, `/generated-audio/${campaign.id}/${audioMessageId}.wav`);
+assert.equal(getCampaignMessage(audioMessageId).narrationAudioUrl, audio.result.audioUrl);
 
 const invoked = await executeMcpNarratorControl("narrator.invoke", {
   campaignId: campaign.id, expectedSeq: narrated.result.currentSeq, name: "set_npc", args: { name: "Mira", attitude: "friendly" },

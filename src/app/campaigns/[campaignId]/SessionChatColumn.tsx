@@ -25,6 +25,15 @@ export function SessionChatColumn(props: ComponentProps<typeof LegacySessionChat
       key={`${props.campaignId}:${props.meUserId}`}
       chat={chat}
       members={props.state.members}
+      oocMessages={props.state.oocMessages.map(message => ({
+        id: message.id,
+        roomId: null,
+        seq: message.seq,
+        kind: "ooc" as const,
+        authorUserId: message.userId,
+        content: message.content.replace(/^\s*\(ooc\)\s*/i, ""),
+        createdAt: message.createdAt,
+      }))}
       asks={props.state.asks}
       refreshAsks={props.refreshAsks}
       dmUserId={props.state.campaign?.dmUserId}
@@ -37,7 +46,7 @@ export function SessionChatColumn(props: ComponentProps<typeof LegacySessionChat
       active={view.current?.roomId === chat.selected} isDm={view.isDm} /> : null}
     <details className="m-3 min-h-0 rounded border border-stone-800 p-2 text-sm text-stone-400"><summary>{t.history}</summary>
       <p className="my-2 text-xs">{t.note}</p>
-      <LegacySessionChatColumn {...props}>{null}</LegacySessionChatColumn>
+      <LegacySessionChatColumn {...props} showAsks={false} showOoc={false}>{null}</LegacySessionChatColumn>
     </details>
   </div>;
   const mayEnable = props.state.caps?.role === "dm" && props.state.campaign?.gameSettings.dmMode === "human" && props.state.campaign.status === "active";

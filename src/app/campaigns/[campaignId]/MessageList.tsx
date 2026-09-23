@@ -22,7 +22,7 @@ import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState } from "rea
 import { cn } from "@/lib/cn";
 import { ui } from "@/lib/ui";
 import { avatarPlaceholder, characterPlaceholder } from "@/lib/placeholders";
-import { DM_HALTED_PREFIX, JOIN_NOTE_PREFIX, LEAD_NOTE_PREFIX, type CampaignMember } from "@/lib/campaign-types";
+import { DM_HALTED_PREFIX, JOIN_NOTE_PREFIX, LEAD_NOTE_PREFIX, isOocMessage, type CampaignMember } from "@/lib/campaign-types";
 import { PlayerMessageBadge, PlayerMessageBody } from "@/app/campaigns/[campaignId]/PlayerMessageStyle";
 import { HaltedTurnBanner } from "@/app/campaigns/[campaignId]/HaltedTurnBanner";
 import { InlineMessageEditor } from "@/app/campaigns/[campaignId]/InlineMessageEditor";
@@ -130,6 +130,7 @@ type TimelineItem =
   | { kind: "message"; message: CampaignMessage; time: number }
   | { kind: "roll"; roll: StoredRoll; time: number }
   | { kind: "ask"; ask: CampaignAsk; time: number };
+type StoryTimelineItem = Exclude<TimelineItem, { kind: "ask" }>;
 
 function parsedTime(value: string): number {
   const time = Date.parse(value);
@@ -146,14 +147,12 @@ function referencedRollIds(messages: CampaignMessage[]): Set<string> {
   return ids;
 }
 
-function compareTimelineItems(left: TimelineItem, right: TimelineItem): number {
-  const byTime = left.time - right.time;
-  if (byTime !== 0) {
-    return byTime;
-  }
-  const leftSeq = left.kind === "roll" ? left.roll.eventSeq : left.kind === "message" ? left.message.seq : undefined;
-  const rightSeq = right.kind === "roll" ? right.roll.eventSeq : right.kind === "message" ? right.message.seq : undefined;
+function compareStoryTimelineItems(left: StoryTimelineItem, right: StoryTimelineItem): number {
+  const leftSeq = left.kind === "roll" ? left.roll.eventSeq : left.message.seq;
+  const rightSeq = right.kind === "roll" ? right.roll.eventSeq : right.message.seq;
   if (leftSeq !== undefined && rightSeq !== undefined) return leftSeq - rightSeq;
+  const byTime = left.time - right.time;
+  if (byTime !== 0) return byTime;
   // Snapshot rolls have no event sequence. Keep them after the action that
   // caused them and before the DM passage that resolves that action.
   if (left.kind === "roll" && right.kind === "message") {
@@ -167,13 +166,20 @@ function compareTimelineItems(left: TimelineItem, right: TimelineItem): number {
 
 function buildTimeline(messages: CampaignMessage[], rolls: StoredRoll[], asks: CampaignAsk[]): TimelineItem[] {
   const marked = referencedRollIds(messages);
-  return [
+  const storyTimeline: StoryTimelineItem[] = [
     ...messages.map((message) => ({ kind: "message" as const, message, time: parsedTime(message.createdAt) })),
     ...rolls
       .filter((roll) => !marked.has(roll.id))
       .map((roll) => ({ kind: "roll" as const, roll, time: parsedTime(roll.createdAt) })),
-    ...asks.map((ask) => ({ kind: "ask" as const, ask, time: parsedTime(ask.createdAt) })),
-  ].sort(compareTimelineItems);
+  ];
+  const timeline: TimelineItem[] = storyTimeline.sort(compareStoryTimelineItems);
+  // ponytail: insert at most 100 visible asks into the existing ordered feed; use an indexed merge if this cap grows.
+  for (const ask of [...asks].sort((left, right) => parsedTime(left.answeredAt ?? left.createdAt) - parsedTime(right.answeredAt ?? right.createdAt))) {
+    const item = { kind: "ask" as const, ask, time: parsedTime(ask.answeredAt ?? ask.createdAt) };
+    const index = timeline.findIndex((entry) => entry.time > item.time);
+    timeline.splice(index < 0 ? timeline.length : index, 0, item);
+  }
+  return timeline;
 }
 
 function DmContent({ content, rollsById, sheetsById }: {
@@ -286,6 +292,7 @@ const MessageItem = memo(function MessageItem({
   onOpenClosingMessage?: () => void;
 }) {
   const { locale } = useI18n();
+  const ooc = isOocMessage(message);
   // Local to the row: only one narration is ever being corrected at a time,
   // and the draft should not survive the row unmounting.
   const [editing, setEditing] = useState(false);
@@ -432,7 +439,7 @@ const MessageItem = memo(function MessageItem({
               </span>
             );
           })()}
-          {onRenarrate ? (
+          {!ooc && onRenarrate ? (
             <button
               type="button"
               onClick={() => onRenarrate(message)}
@@ -443,7 +450,7 @@ const MessageItem = memo(function MessageItem({
               <RefreshCw className="size-3.5" />
             </button>
           ) : null}
-          {onContinueScene ? (
+          {!ooc && onContinueScene ? (
             <button
               type="button"
               onClick={() => onContinueScene(message)}
@@ -454,7 +461,7 @@ const MessageItem = memo(function MessageItem({
               <FastForward className="size-3.5" />
             </button>
           ) : null}
-          {onEditSave ? (
+          {!ooc && onEditSave ? (
             <button
               type="button"
               onClick={() => setEditing(true)}
@@ -465,7 +472,7 @@ const MessageItem = memo(function MessageItem({
               <Pencil className="size-3.5" />
             </button>
           ) : null}
-          {onPinMemory ? (
+          {!ooc && onPinMemory ? (
             <button
               type="button"
               onClick={() => onPinMemory(message)}
@@ -476,7 +483,7 @@ const MessageItem = memo(function MessageItem({
               <Bookmark className="size-3.5" />
             </button>
           ) : null}
-          {onLoreCheck ? (
+          {!ooc && onLoreCheck ? (
             <button
               type="button"
               onClick={() => onLoreCheck(message)}
@@ -487,7 +494,7 @@ const MessageItem = memo(function MessageItem({
               <ShieldQuestion className="size-3.5" />
             </button>
           ) : null}
-          {onPinCanon ? (
+          {!ooc && onPinCanon ? (
             <button
               type="button"
               onClick={() => onPinCanon(message)}
@@ -498,7 +505,7 @@ const MessageItem = memo(function MessageItem({
               <Pin className="size-3.5" />
             </button>
           ) : null}
-          {canIllustrate ? (
+          {!ooc && canIllustrate ? (
             <>
               <input
                 ref={pictureRef}
@@ -533,7 +540,7 @@ const MessageItem = memo(function MessageItem({
               </button>
             </>
           ) : null}
-          {onReport ? (
+          {!ooc && onReport ? (
             <button
               type="button"
               onClick={() => onReport(message)}
@@ -545,7 +552,7 @@ const MessageItem = memo(function MessageItem({
             </button>
           ) : null}
         </p>
-        {editing && onEditSave ? (
+        {!ooc && editing && onEditSave ? (
           <InlineMessageEditor
             initial={message.content}
             onCancel={() => setEditing(false)}
@@ -560,6 +567,9 @@ const MessageItem = memo(function MessageItem({
         ) : (
           <DmContent content={message.content} rollsById={rollsById} sheetsById={sheetsById} />
         )}
+        {message.narrationAudioUrl ? (
+          <audio className="mt-3 block w-full max-w-lg" controls preload="none" src={message.narrationAudioUrl} />
+        ) : null}
         {message.generatedImage ? (
           <ImageLightbox
             src={message.generatedImage.url}

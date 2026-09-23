@@ -1,5 +1,10 @@
 import * as z from 'zod/v4';
 
+const LOCAL_VOICEOVER = /^(1|true)$/i.test(process.env.ODM_LOCAL_TTS_ENABLED?.trim() || "");
+const voiceoverSegments = z.array(z.object({
+  speaker: z.enum(["aidar", "baya", "kseniya", "xenia", "eugene"]),
+  text: z.string().trim().min(1).max(2000),
+}).strict()).min(1).max(24);
 const seq = () => z.number().int().min(0).max(Number.MAX_SAFE_INTEGER);
 const sections = z.object(Object.fromEntries(
   ['sheets', 'facts', 'notes', 'npcs', 'recentMessages', 'recentRolls', 'chapters']
@@ -20,7 +25,7 @@ const readFields = {
 // Keep the advertised MCP contract in sync with the strict application API.
 // In particular, never let Zod silently strip idempotency or paging fields.
 export const narratorInputSchema = z.object({
-  operation: z.enum(['connect', 'read', 'snapshot', 'catalog', 'invoke', 'narrate', 'delete_message', 'edit_message', 'autopilot_action', 'finish_global_round', 'release_floor', 'set_floor', 'request_response', 'answer_ask']),
+  operation: z.enum(['connect', 'read', 'snapshot', 'catalog', 'invoke', 'narrate', 'store_audio', 'delete_message', 'edit_message', 'autopilot_action', 'finish_global_round', 'release_floor', 'set_floor', 'request_response', 'answer_ask', ...(LOCAL_VOICEOVER ? ['voiceover'] : [])]),
   campaignId: z.string().uuid(), ...readFields,
   pageCursor: z.string().max(500).optional(),
   commandId: z.string().uuid().optional(),
@@ -30,7 +35,9 @@ export const narratorInputSchema = z.object({
   args: z.record(z.string(), z.unknown()).optional(),
   content: z.string().trim().min(1).max(24000).optional().describe('Narration, edit_message or autopilot_action text; each operation applies its own tighter limit.'),
   characterId: z.string().uuid().optional().describe('autopilot_action only; invoke engine characterId belongs inside args.'),
-  messageId: z.string().uuid().optional(),
+  messageId: z.string().uuid().optional().describe('store_audio only: the DM narration message to attach the generated WAV to.'),
+  mimeType: z.literal('audio/wav').optional().describe('store_audio only: generated narration audio is stored as WAV.'),
+  audioBase64: z.string().min(4).max(16_777_216).optional().describe('store_audio only: base64-encoded WAV, maximum 12 MiB decoded.'),
   roundNumber: z.number().int().min(1).optional().describe('Global-round number; omit for sequential spotlight autopilot.'),
   mode: z.enum(['start', 'complete', 'open', 'hold', 'spotlight']).optional().describe('finish_global_round: start/complete; set_floor: open/hold/spotlight.'),
   characterIds: z.array(z.string().uuid()).max(12).optional().describe('set_floor spotlight: player character IDs.'),
@@ -57,4 +64,8 @@ export const narratorInputSchema = z.object({
     .describe('Story writes: return a bounded post-commit read with the receipt when explicitly requested. Merge verified deltas and drain hasMore/pages before the next write; a read failure never means the write failed.'),
   scopeRoomId: z.string().uuid().optional()
     .describe('Only location_narrate: permit provably unrelated room chat after expectedSeq. Shared-state changes and unknown sequence gaps still conflict.'),
+  ...(LOCAL_VOICEOVER ? {
+    voiceoverSegments: voiceoverSegments.optional()
+      .describe('Local Russian speech segments for a just-published public DM narration. Cover the exact narration in order; use one Silero speaker ID per segment.'),
+  } : {}),
 }).strict();

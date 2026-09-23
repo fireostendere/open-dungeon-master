@@ -18,7 +18,7 @@ import type { CampaignMessage } from "@/lib/db/messages";
 // Message actions retain their authoritative routes and the original permission
 // gates. Shared request handling localizes both HTTP and network failures.
 export function SessionChatColumn({
-  state, campaignId, meUserId, steersStory, visible,
+  state, campaignId, meUserId, steersStory, visible, showAsks = true, showOoc = true,
   loadOlderMessages,
   refreshFacts, onError, onLoreCheck, onRenarrate, onPinned,
   onOpenClosingMessage, hasOpenedFinale, defaultMode, children,
@@ -29,6 +29,8 @@ export function SessionChatColumn({
   meUserId: string;
   steersStory: boolean;
   visible: boolean;
+  showAsks?: boolean;
+  showOoc?: boolean;
   refreshAsks: () => Promise<void>;
   refreshFacts: () => Promise<void>;
   onError: (message: string) => void;
@@ -61,7 +63,7 @@ export function SessionChatColumn({
       <ReportDialog campaignId={campaignId} target={reportTarget} onClose={() => setReportTarget(null)}
         onBlocked={userId => setJustBlocked(current => [...current, userId])} />
       <MessageList
-        messages={messages} asks={state.asks} hasOlderMessages={state.hasOlderMessages} onLoadOlder={loadOlderMessages}
+        messages={showOoc ? [...messages, ...state.oocMessages] : messages} asks={showAsks ? state.asks : []} hasOlderMessages={state.hasOlderMessages} onLoadOlder={loadOlderMessages}
         campaignId={campaignId} canRetryTurn={steersStory} canIllustrate={steersStory}
         rolls={rolls} sheets={sheets} members={state.members} meUserId={meUserId} blockedUserIds={blockedUserIds}
         campaignStatus={campaign?.status} onOpenClosingMessage={onOpenClosingMessage}

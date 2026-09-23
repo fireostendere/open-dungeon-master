@@ -1,6 +1,7 @@
 import { currentUser, unauthorized } from "@/lib/auth";
 import { isCampaignMember } from "@/lib/db/campaigns";
 import { serveGeneratedFile } from "@/lib/serve-file";
+import { hasNarrationAudio } from "@/lib/narration-audio";
 import { spatialContext, spatialEnabled, spatialStore } from "@/lib/spatial/service";
 
 export const runtime = "nodejs";
@@ -23,12 +24,18 @@ export async function GET(
   if (!user.isAdmin && !isCampaignMember(campaignId, user.id)) {
     return Response.json({ error: "Not found." }, { status: 404 });
   }
+  const wavMatch = segments[1]?.match(/^([0-9a-f-]{36})\.wav$/i);
+  if (wavMatch && (segments.length !== 2 || !hasNarrationAudio(campaignId, wavMatch[1]))) {
+    return Response.json({ error: "Not found." }, { status: 404 });
+  }
   if (!user.isAdmin && spatialEnabled(campaignId)) {
     const { actor } = spatialContext(campaignId, user.id);
-    const messageId = (segments[1] ?? "").replace(/\.mp3$/i, "");
+    const messageId = (segments[1] ?? "").replace(/\.(?:mp3|wav)$/i, "");
     if (!actor.isDm && !spatialStore().canReadMessage(actor, messageId)) {
       return Response.json({ error: "Not found." }, { status: 404 });
     }
   }
-  return serveGeneratedFile("generated-audio", segments);
+  const response = serveGeneratedFile("generated-audio", segments);
+  if (wavMatch && response.ok) response.headers.set("Cache-Control", "private, no-store");
+  return response;
 }

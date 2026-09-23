@@ -74,17 +74,15 @@ export type CampaignCover = { id: string; url: string };
 // route re-declared its own narrower enum, so the two could drift, and a
 // mode the server did not recognise fell through to "do" silently.
 //
-// "lead" is labelled "Direct" in the UI and posts to /lead-note; everything
-// else posts to /actions.
-//
+// "lead" is labelled "Direct" and posts to /lead-note; do/say/ooc post to /actions.
 // "ask" posts to the separate Ask queue and never becomes a story action.
 // "narrate" is the DM seat's only authoring mode and posts to /dm/narrate.
 export const INPUT_KINDS = ["do", "say", "ooc", "ask", "lead", "narrate"] as const;
 export type InputKind = (typeof INPUT_KINDS)[number];
 
-// The modes that do not consume the floor: table talk and lead directions
+// The modes that do not consume the floor: table talk, Ask and lead directions
 // work during a hold, a spotlight, another player's initiative turn, and
-// while the DM is narrating. Asking is exempt too: it does not consume a turn.
+// while the DM is narrating.
 // The DM is never subject to the floor they control, so "narrate" joins the
 // exempt set alongside table talk and lead directions.
 export const FLOOR_EXEMPT_KINDS: readonly InputKind[] = ["ooc", "ask", "lead", "narrate"];
