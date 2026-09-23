@@ -76,12 +76,19 @@ function SidePanelInner({
             : (value === "notes" || (value === "lead" && steersStory)) && pendingCount
               ? pendingCount
               : undefined,
-        dot: value === "chat" && chatUnread > 0 ? "red" : value === "dm" && storyDue ? "amber" : undefined,
+        dot:
+          value === "chat" && chatUnread > 0
+            ? "red"
+            : value === "dm" && storyDue
+              ? "amber"
+              : value === "battle" && content.ownCombatTurn
+                ? "amber"
+                : undefined,
         // The one place in the rail that is not the DM's gold: the same
         // ember the composer's Direct pill wears (see tabAccentClass).
         accent: value === "lead" ? "ember" : "gold",
       })),
-    [tabs, chatUnread, pendingCount, steersStory, storyDue],
+    [tabs, chatUnread, pendingCount, steersStory, storyDue, content.ownCombatTurn],
   );
 
   return (

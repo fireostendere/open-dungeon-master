@@ -26,6 +26,8 @@ export type TableTabId =
 export type TableTabInput = {
   // A battle map is live, so the tactical tab has something to show.
   hasBattleMap: boolean;
+  // An encounter is active, so the combat overview, turn and log have something to show.
+  inCombat?: boolean;
   mapsEnabled: boolean;
   // The campaign has loaded; Setup (and Context) render from it.
   hasSettings: boolean;
@@ -51,6 +53,7 @@ export type TableTabInput = {
 // always has.
 export function visiblePanelTabs({
   hasBattleMap,
+  inCombat = false,
   mapsEnabled,
   hasSettings,
   secretStory,
@@ -65,7 +68,7 @@ export function visiblePanelTabs({
     tabs.push("lead");
   }
   tabs.push("party");
-  if (hasBattleMap) {
+  if (hasBattleMap || inCombat) {
     tabs.push("battle");
   }
   if (mapsEnabled) {

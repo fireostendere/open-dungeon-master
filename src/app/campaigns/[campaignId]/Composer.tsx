@@ -1,6 +1,6 @@
 "use client";
 
-import { Clock, Eye, EyeOff, Loader2, Send, SkipForward } from "lucide-react";
+import { Clock, Eye, EyeOff, Loader2, Send, SkipForward, Swords } from "lucide-react";
 import { memo, useEffect, useState } from "react";
 import type { Dispatch, FormEvent, RefObject, SetStateAction } from "react";
 import { cn } from "@/lib/cn";
@@ -16,7 +16,6 @@ import {
 import { PendingRollCard } from "@/app/campaigns/[campaignId]/PendingRollCard";
 import { PushToTalk } from "@/app/campaigns/[campaignId]/PushToTalk";
 import { StoryNudge } from "@/app/campaigns/[campaignId]/StoryNudge";
-import { CombatTurnHud } from "@/app/campaigns/[campaignId]/CombatTurnHud";
 import type { CombatTurnIntent } from "@/lib/dm/combat-turn-intent";
 import type { BeatCadence } from "@/lib/dm/beat-cadence";
 import type { CampaignState } from "@/app/campaigns/[campaignId]/useCampaignStream";
@@ -61,6 +60,7 @@ const COPY = {
     round: "Round #", acted: "acted", skip: "Skip", cancel: "Cancel", skipCount: "Number of turns to skip (1–99)", skipN: "Skip N turns",
     combatLocked: "The DM is resolving and narrating the turn. Only OOC is available.", skipTurns: "Skip turns", cancelSkips: "Cancel skips",
     skipFailed: "Could not change skipped turns.", waiting: "MCP DM is finishing the turn — input locked", resolving: "MCP DM is resolving the round — input locked", remaining: "Remaining", noTimer: "(no timer, waiting for quorum)", firstAction: "(waiting for first action)",
+    yourCombatTurn: "Your combat turn!", configureInBattleTab: "Configure actions and attacks in the Battle tab", openBattleTab: "Battle Tab",
   },
   ru: {
     kinds: { do: "Действие", say: "Речь", ooc: "Вне игры", lead: "Указание", narrate: "Повествование" },
@@ -78,6 +78,7 @@ const COPY = {
     round: "Раунд №", acted: "сходили", skip: "Пропуск", cancel: "Отмена", skipCount: "Количество ходов для пропуска (1–99)", skipN: "Пропустить N ходов",
     combatLocked: "Мастер разрешает ход и готовит повествование. Пока доступен только режим «Вне игры».", skipTurns: "Пропустить ходов", cancelSkips: "Отменить пропуск",
     skipFailed: "Не удалось изменить пропуск ходов.", waiting: "Внешний мастер завершает ход — ввод закрыт", resolving: "Внешний мастер разрешает раунд — ввод закрыт", remaining: "Осталось", noTimer: "(без таймера, ждём кворум)", firstAction: "(ждём первого хода)",
+    yourCombatTurn: "Ваш боевой ход!", configureInBattleTab: "Действия и атаки настраиваются во вкладке «Бой»", openBattleTab: "Вкладка «Бой»",
   },
 } as const;
 
@@ -122,6 +123,7 @@ function ComposerInner({
   globalTurnState = null,
   onSubmit,
   onCombatSubmit,
+  onOpenBattleTab,
 }: {
   campaignId: string;
   sheets: CampaignState["sheets"];
@@ -156,7 +158,8 @@ function ComposerInner({
   onCaptureStory: () => void;
   onSnoozeStory: () => void;
   onSubmit: (event: FormEvent) => void;
-  onCombatSubmit: (turn: CombatTurnIntent) => void;
+  onCombatSubmit?: (turn: CombatTurnIntent) => void;
+  onOpenBattleTab?: () => void;
 }) {
   const { locale } = useI18n();
   const copy = COPY[locale];
@@ -248,7 +251,7 @@ function ComposerInner({
   };
 
   return (
-    <form onSubmit={ownCombatTurn && kind === "do" ? (event) => event.preventDefault() : onSubmit} className="glass max-h-[75dvh] overflow-y-auto border-t border-stone-700/40 px-3 pb-3 pt-2.5">
+    <form onSubmit={onSubmit} className="glass max-h-[75dvh] overflow-y-auto border-t border-stone-700/40 px-3 pb-3 pt-2.5">
       <div className="mx-auto max-w-3xl sm:px-3">
         {pendingRolls.map((pending) => (
           <PendingRollCard
@@ -408,10 +411,28 @@ function ComposerInner({
           {myMember && myMember.skipTurnsCount > 0 ? <button type="button" disabled={skipBusy} onClick={() => void handleSetSkip(0)} className={ui.btnSmall}>{copy.cancelSkips} ({myMember.skipTurnsCount})</button> : null}
         </div> : null}
         {skipError ? <p role="alert" className="mb-2 text-xs text-red-300">{skipError}</p> : null}
-        {ownCombatTurn && encounter && mySheet ? <div hidden={kind !== "do"}><CombatTurnHud key={`${encounter.id}:${encounter.round}:${encounter.currentActorId}`} encounter={encounter} sheet={mySheet} sheets={sheets} locked={combatLocked || floor.mode === "hold" || (kind === "do" && inputBlocked)} sending={sending} onSubmit={onCombatSubmit} /></div> : null}
+        {ownCombatTurn && encounter && mySheet ? (
+          <div className="mb-2 flex items-center justify-between gap-2 rounded-xl border border-amber-600/60 bg-gradient-to-r from-amber-950/80 via-stone-900/90 to-amber-950/80 p-2.5 text-xs text-amber-100 shadow-elev-1">
+            <div className="flex items-center gap-2 min-w-0">
+              <Swords className="size-4 shrink-0 text-amber-400 animate-pulse" />
+              <span className="truncate">
+                <strong className="text-amber-200">{copy.yourCombatTurn}</strong> — {copy.configureInBattleTab}
+              </span>
+            </div>
+            {onOpenBattleTab ? (
+              <button
+                type="button"
+                onClick={onOpenBattleTab}
+                className="shrink-0 inline-flex items-center gap-1 rounded bg-amber-400 px-2.5 py-1 text-xs font-semibold text-stone-950 hover:bg-amber-300 transition-colors shadow-sm"
+              >
+                <Swords className="size-3" />
+                {copy.openBattleTab} ↗
+              </button>
+            ) : null}
+          </div>
+        ) : null}
         <div
           data-tour="composer-input"
-          style={ownCombatTurn && kind === "do" ? { display: "none" } : undefined}
           className="texture-noise flex items-end gap-2 rounded-2xl border border-stone-700/70 bg-stone-950/90 p-2 shadow-elev-1 transition-[border-color,box-shadow] duration-200 focus-within:border-amber-400/60 focus-within:shadow-[0_0_0_3px_rgba(212,171,58,0.1),0_2px_12px_rgba(4,2,12,0.5)]"
         >
           <textarea
@@ -425,7 +446,7 @@ function ComposerInner({
               }
             }}
             rows={2}
-            disabled={inputBlocked || (ownCombatTurn && kind === "do")}
+            disabled={inputBlocked}
             placeholder={placeholder}
             className="flex-1 resize-none bg-transparent px-2 py-1.5 text-sm text-stone-200 outline-none disabled:opacity-50"
           />
@@ -435,7 +456,7 @@ function ComposerInner({
           />
           <button
             type="submit"
-            disabled={sending || !input.trim() || inputBlocked || (ownCombatTurn && kind === "do")}
+            disabled={sending || !input.trim() || inputBlocked}
             className="rounded-lg bg-gradient-to-b from-amber-100 via-amber-200 to-amber-400 p-2.5 text-amber-950 shadow-[0_1px_0_rgba(253,247,231,0.6)_inset] transition-all duration-150 ease-snap hover:-translate-y-px hover:shadow-glow-gold-strong active:translate-y-0 active:scale-95 disabled:opacity-40 disabled:hover:translate-y-0 disabled:hover:shadow-none"
           >
             {sending ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
