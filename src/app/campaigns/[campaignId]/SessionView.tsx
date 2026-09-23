@@ -45,7 +45,7 @@ import { useI18n } from "@/lib/i18n";
 import { useChatChime } from "@/app/campaigns/[campaignId]/useChatChime";
 import { useTableAudio } from "@/app/campaigns/[campaignId]/useTableAudio";
 import type { CampaignState } from "@/app/campaigns/[campaignId]/useCampaignStream";
-import type { CombatTurnIntent } from "@/lib/dm/combat-turn-intent";
+import type { CombatChoice, CombatTurnIntent } from "@/lib/dm/combat-turn-intent";
 
 // The level-up dialog carries the class feature and resource tables of the
 // whole SRD; it loads the first time a character actually levels rather
@@ -274,6 +274,12 @@ export function SessionView({
     prevOwnCombatTurn.current = ownCombatTurn;
   }, [ownCombatTurn, setPanelTab]);
 
+  const [combatChoices, setCombatChoices] = useState<CombatChoice[]>([]);
+  const encounterTurnKey = `${state.encounter?.id}:${state.encounter?.round}:${state.encounter?.turnIndex}:${state.encounter?.currentActorId}`;
+  useEffect(() => {
+    setCombatChoices([]);
+  }, [encounterTurnKey]);
+
   const inCombat = Boolean(state.encounter && state.encounter.status === "active");
 
   const panelTabs = useMemo(
@@ -305,7 +311,18 @@ export function SessionView({
     async (event: FormEvent | null, combatTurn?: CombatTurnIntent) => {
       event?.preventDefault();
       const content = input.trim();
-      if ((!content && !combatTurn) || sending || gate.inputBlocked || muted) {
+      const resolvedCombatTurn = combatTurn ?? (
+        ownCombatTurn && state.encounter && mySheet && combatChoices.length > 0
+          ? {
+              encounterId: state.encounter.id,
+              round: state.encounter.round,
+              turnIndex: state.encounter.turnIndex,
+              choices: combatChoices,
+              prose: content || undefined,
+            }
+          : undefined
+      );
+      if ((!content && !resolvedCombatTurn) || sending || gate.inputBlocked || muted) {
         return;
       }
       setSending(true);
@@ -322,7 +339,7 @@ export function SessionView({
               ? leadPrivate
                 ? ["director", { oneShot: null, absoluteCommand: content }]
                 : ["lead-note", { content }]
-              : ["actions", combatTurn ? { kind: "do", combatTurn } : { content, kind }];
+              : ["actions", resolvedCombatTurn ? { kind: "do", combatTurn: resolvedCombatTurn } : { content, kind }];
         const response = await fetch(`/api/campaigns/${campaignId}/${route}`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -334,13 +351,14 @@ export function SessionView({
           return;
         }
         setInput("");
+        setCombatChoices([]);
       } catch {
         setError("Could not reach the server.");
       } finally {
         setSending(false);
       }
     },
-    [campaignId, input, sending, gate.inputBlocked, muted, kind, leadPrivate],
+    [campaignId, input, sending, gate.inputBlocked, muted, kind, leadPrivate, ownCombatTurn, state.encounter, mySheet, combatChoices],
   );
 
   const clearChatTarget = useCallback(() => setChatTarget(null), []);
@@ -513,6 +531,8 @@ export function SessionView({
               storyCadence={storyCadence}
               onCaptureStory={openStoryCapture}
               onSnoozeStory={snoozeStory}
+              combatInputMode={campaign.gameSettings?.combatInputMode ?? "hybrid"}
+              combatChoices={combatChoices}
               onSubmit={submit}
               onCombatSubmit={(combatTurn) => void submit(null, combatTurn)}
               onOpenBattleTab={() => selectPanelView("battle")}
@@ -577,6 +597,10 @@ export function SessionView({
           combatLocked={combatLocked}
           sending={sending}
           onCombatSubmit={(combatTurn) => void submit(null, combatTurn)}
+          combatChoices={combatChoices}
+          onCombatChoicesChange={setCombatChoices}
+          combatProse={input}
+          onCombatProseChange={setInput}
         />
       </div>
 
