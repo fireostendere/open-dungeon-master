@@ -22,9 +22,11 @@ import { WorldPackGallery } from "@/components/WorldPackGallery";
 import type { GameSettings } from "@/lib/schemas/game-settings";
 import {
   CAMPAIGN_LENGTHS,
+  COMBAT_INPUT_MODES,
   COMBAT_MODES,
   DM_DIFFICULTY_LEVELS,
   type CampaignLengthSetting,
+  type CombatInputModeSetting,
   type CombatModeSetting,
   type DicePolicy,
   type Genre,
@@ -129,6 +131,11 @@ const COPY = {
     combatTip: "Classical uses encounter position. JRPG is a campaign house-rule mode: targets in one encounter ignore distance, line of sight, cover, and opportunity-attack gates; initiative, dice, resources, HP, conditions, and privacy remain enforced.",
     combatClassical: "Classical",
     combatJrpg: "JRPG",
+    combatInput: "Combat turns",
+    combatInputTip: "Choose how players submit combat actions: Action builder (Battle tab buttons), Narrative text (freeform description in chat), or Hybrid (both available with synchronized text).",
+    combatInputHybrid: "Hybrid (builder + text)",
+    combatInputBuilder: "Action builder (tab)",
+    combatInputFreeform: "Narrative text (chat)",
     enemyHp: "Enemy HP",
     enemyHpTip: "Controls what players see for enemy durability. The DM always sees exact HP.",
     enemyHpState: "State only",
@@ -270,6 +277,11 @@ const COPY = {
     combatTip: "Классический режим учитывает позиции встречи. JRPG — правило кампании: цели одной встречи игнорируют дальность, линию обзора, укрытие и провоцированные атаки; инициатива, кости, ресурсы, HP, состояния и приватность сохраняются.",
     combatClassical: "Классический",
     combatJrpg: "JRPG",
+    combatInput: "Ход в бою",
+    combatInputTip: "Способ совершения боевого хода: Конструктор (кнопки во вкладке «Бой»), Текст (художественное описание в чате) или Гибридный (доступны оба варианта с синхронизацией текста).",
+    combatInputHybrid: "Гибридный (кнопки + текст)",
+    combatInputBuilder: "Конструктор (вкладка)",
+    combatInputFreeform: "Текст в чате (свободный)",
     enemyHp: "HP врагов",
     enemyHpTip: "Определяет, что игроки видят о здоровье противников. Мастер всегда видит точные HP.",
     enemyHpState: "Только состояние",
@@ -616,6 +628,24 @@ export function GameSettingsPanel({
             >
               <option value={COMBAT_MODES[0]}>{copy.combatClassical}</option>
               <option value={COMBAT_MODES[1]}>{copy.combatJrpg}</option>
+            </select>
+          </Tooltip>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="w-16 text-stone-500">{copy.combatInput}</span>
+          <Tooltip content={copy.combatInputTip}>
+            <select
+              value={settings.combatInputMode ?? "hybrid"}
+              onChange={(event) =>
+                patch({ combatInputMode: event.target.value as CombatInputModeSetting })
+              }
+              className={selectClass}
+              aria-label={copy.combatInput}
+            >
+              <option value="hybrid">{copy.combatInputHybrid}</option>
+              <option value="builder">{copy.combatInputBuilder}</option>
+              <option value="freeform">{copy.combatInputFreeform}</option>
             </select>
           </Tooltip>
         </div>

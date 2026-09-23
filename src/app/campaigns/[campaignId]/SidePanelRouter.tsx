@@ -130,6 +130,10 @@ export type SidePanelRouterProps = {
   combatLocked?: boolean;
   sending?: boolean;
   onCombatSubmit?: (turn: CombatTurnIntent) => void;
+  combatChoices?: CombatChoice[];
+  onCombatChoicesChange?: (choices: CombatChoice[]) => void;
+  combatProse?: string;
+  onCombatProseChange?: (prose: string) => void;
 };
 
 // Which panel the active tab shows. Every PanelTab has an explicit branch;
@@ -187,6 +191,10 @@ export function SidePanelRouter({
   combatLocked = false,
   sending = false,
   onCombatSubmit,
+  combatChoices,
+  onCombatChoicesChange,
+  combatProse,
+  onCombatProseChange,
 }: SidePanelRouterProps) {
   // Which section of Party and Story is showing. Local state: nothing outside
   // this panel reads or sets them.
@@ -363,6 +371,10 @@ export function SidePanelRouter({
               locked={Boolean(combatLocked || floor.mode === "hold")}
               sending={Boolean(sending)}
               onSubmit={onCombatSubmit}
+              choices={combatChoices}
+              onChoicesChange={onCombatChoicesChange}
+              prose={combatProse}
+              onProseChange={onCombatProseChange}
             />
           </div>
         ) : null}

@@ -16,11 +16,12 @@ import {
 import { PendingRollCard } from "@/app/campaigns/[campaignId]/PendingRollCard";
 import { PushToTalk } from "@/app/campaigns/[campaignId]/PushToTalk";
 import { StoryNudge } from "@/app/campaigns/[campaignId]/StoryNudge";
-import type { CombatTurnIntent } from "@/lib/dm/combat-turn-intent";
+import type { CombatChoice, CombatTurnIntent } from "@/lib/dm/combat-turn-intent";
 import type { BeatCadence } from "@/lib/dm/beat-cadence";
 import type { CampaignState } from "@/app/campaigns/[campaignId]/useCampaignStream";
 
 import type { CampaignMember, GlobalTurnState, InputKind } from "@/lib/campaign-types";
+import type { CombatInputModeSetting } from "@/lib/schemas/game-settings-options";
 import type { Locale } from "@/lib/i18n";
 import { useI18n } from "@/lib/i18n";
 
@@ -60,7 +61,14 @@ const COPY = {
     round: "Round #", acted: "acted", skip: "Skip", cancel: "Cancel", skipCount: "Number of turns to skip (1–99)", skipN: "Skip N turns",
     combatLocked: "The DM is resolving and narrating the turn. Only OOC is available.", skipTurns: "Skip turns", cancelSkips: "Cancel skips",
     skipFailed: "Could not change skipped turns.", waiting: "MCP DM is finishing the turn — input locked", resolving: "MCP DM is resolving the round — input locked", remaining: "Remaining", noTimer: "(no timer, waiting for quorum)", firstAction: "(waiting for first action)",
-    yourCombatTurn: "Your combat turn!", configureInBattleTab: "Configure actions and attacks in the Battle tab", openBattleTab: "Battle Tab",
+    yourCombatTurn: "Your combat turn!",
+    openBattleTab: "Battle Tab",
+    combatTurns: {
+      builder: "Configure actions and attacks in the Battle tab",
+      freeform: "Describe your action in chat below or switch to the Battle tab",
+      hybrid: "Configure in Battle tab or describe your action in chat below",
+      queued: (n: number) => `${n} action${n === 1 ? "" : "s"} queued. Send here or in Battle tab`,
+    },
   },
   ru: {
     kinds: { do: "Действие", say: "Речь", ooc: "Вне игры", lead: "Указание", narrate: "Повествование" },
@@ -78,7 +86,14 @@ const COPY = {
     round: "Раунд №", acted: "сходили", skip: "Пропуск", cancel: "Отмена", skipCount: "Количество ходов для пропуска (1–99)", skipN: "Пропустить N ходов",
     combatLocked: "Мастер разрешает ход и готовит повествование. Пока доступен только режим «Вне игры».", skipTurns: "Пропустить ходов", cancelSkips: "Отменить пропуск",
     skipFailed: "Не удалось изменить пропуск ходов.", waiting: "Внешний мастер завершает ход — ввод закрыт", resolving: "Внешний мастер разрешает раунд — ввод закрыт", remaining: "Осталось", noTimer: "(без таймера, ждём кворум)", firstAction: "(ждём первого хода)",
-    yourCombatTurn: "Ваш боевой ход!", configureInBattleTab: "Действия и атаки настраиваются во вкладке «Бой»", openBattleTab: "Вкладка «Бой»",
+    yourCombatTurn: "Ваш боевой ход!",
+    openBattleTab: "Вкладка «Бой»",
+    combatTurns: {
+      builder: "Действия и атаки настраиваются во вкладке «Бой»",
+      freeform: "Опишите действие в чате ниже или перейдите во вкладку «Бой»",
+      hybrid: "Настройте кнопки во вкладке «Бой» или опишите ход текстом ниже",
+      queued: (n: number) => `Запланировано действий: ${n}. Отправьте здесь или во вкладке «Бой»`,
+    },
   },
 } as const;
 
@@ -121,6 +136,8 @@ function ComposerInner({
   members = [],
   globalTurnEnabled = false,
   globalTurnState = null,
+  combatInputMode = "hybrid",
+  combatChoices = [],
   onSubmit,
   onCombatSubmit,
   onOpenBattleTab,
@@ -134,6 +151,8 @@ function ComposerInner({
   members?: CampaignMember[];
   globalTurnEnabled?: boolean;
   globalTurnState?: GlobalTurnState | null;
+  combatInputMode?: CombatInputModeSetting;
+  combatChoices?: CombatChoice[];
   kind: InputKind;
   onKindChange: (kind: InputKind) => void;
   input: string;
@@ -416,7 +435,10 @@ function ComposerInner({
             <div className="flex items-center gap-2 min-w-0">
               <Swords className="size-4 shrink-0 text-amber-400 animate-pulse" />
               <span className="truncate">
-                <strong className="text-amber-200">{copy.yourCombatTurn}</strong> — {copy.configureInBattleTab}
+                <strong className="text-amber-200">{copy.yourCombatTurn}</strong> —{" "}
+                {combatChoices && combatChoices.length > 0
+                  ? copy.combatTurns.queued(combatChoices.length)
+                  : copy.combatTurns[combatInputMode ?? "hybrid"]}
               </span>
             </div>
             {onOpenBattleTab ? (
@@ -456,7 +478,11 @@ function ComposerInner({
           />
           <button
             type="submit"
-            disabled={sending || !input.trim() || inputBlocked}
+            disabled={
+              sending ||
+              (!input.trim() && !(ownCombatTurn && combatChoices && combatChoices.length > 0)) ||
+              inputBlocked
+            }
             className="rounded-lg bg-gradient-to-b from-amber-100 via-amber-200 to-amber-400 p-2.5 text-amber-950 shadow-[0_1px_0_rgba(253,247,231,0.6)_inset] transition-all duration-150 ease-snap hover:-translate-y-px hover:shadow-glow-gold-strong active:translate-y-0 active:scale-95 disabled:opacity-40 disabled:hover:translate-y-0 disabled:hover:shadow-none"
           >
             {sending ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}

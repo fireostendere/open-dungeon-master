@@ -15,18 +15,44 @@ const COPY = {
   en: { title: "Your combat turn", draft: "Draft: the DM resolves your choices after submission", action: "Action", bonus: "Bonus action", reaction: "Reaction", attacks: "Attacks", spent: "spent", ready: "ready", locked: "The DM is resolving your turn. OOC remains available.", attack: "Attack", weapon: "Weapon", enemy: "Attack target", target: "Choose a target", queue: "Queue", dodge: "Defence: Dodge", ability: "Abilities", resource: "Ability", ally: "Ability target", item: "Consumables", choose: "Choose", queued: "Action order", empty: "Nothing selected yet", remove: "Remove action", prose: "Character actions and dialogue", hint: "Describe details or your character's words…", send: "Send Action", end: "End Turn", sending: "Sending…", unsupported: "Describe spells, special abilities and other items in the text. The DM adjudicates them.", self: "Self", rejected: "Unavailable choice: check your remaining actions, resource and target.", cost: "Cost", unarmed: "Unarmed strike", second_wind: "Second Wind", rage: "Rage", bardic_inspiration: "Bardic Inspiration", lay_on_hands: "Lay on Hands" },
 };
 
-export function CombatTurnHud({ encounter, sheet, sheets, locked, sending, onSubmit }: {
+export function CombatTurnHud({
+  encounter,
+  sheet,
+  sheets,
+  locked,
+  sending,
+  onSubmit,
+  choices: externalChoices,
+  onChoicesChange,
+  prose: externalProse,
+  onProseChange,
+}: {
   encounter: PublicEncounter;
   sheet: CharacterSheet;
   sheets: CharacterSheet[];
   locked: boolean;
   sending: boolean;
   onSubmit: (turn: CombatTurnIntent) => void;
+  choices?: CombatChoice[];
+  onChoicesChange?: (choices: CombatChoice[]) => void;
+  prose?: string;
+  onProseChange?: (prose: string) => void;
 }) {
   const { locale } = useI18n();
   const copy = COPY[locale];
-  const [choices, setChoices] = useState<CombatChoice[]>([]);
-  const [prose, setProse] = useState("");
+  const [internalChoices, setInternalChoices] = useState<CombatChoice[]>([]);
+  const choices = externalChoices !== undefined ? externalChoices : internalChoices;
+  const setChoices = (next: CombatChoice[] | ((prev: CombatChoice[]) => CombatChoice[])) => {
+    const updated = typeof next === "function" ? next(choices) : next;
+    if (onChoicesChange) onChoicesChange(updated);
+    else setInternalChoices(updated);
+  };
+  const [internalProse, setInternalProse] = useState("");
+  const prose = externalProse !== undefined ? externalProse : internalProse;
+  const setProse = (val: string) => {
+    if (onProseChange) onProseChange(val);
+    else setInternalProse(val);
+  };
   const [weapon, setWeapon] = useState("Unarmed strike");
   const [enemyId, setEnemyId] = useState("");
   const [resource, setResource] = useState("");
