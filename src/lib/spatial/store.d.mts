@@ -1,5 +1,5 @@
 import type { SqliteDatabase } from "../db/driver";
-export type SpatialActor = { campaignId: string; userId: string; isDm: boolean; memberIds: string[]; playerIds: string[] };
+export type SpatialActor = { campaignId: string; userId: string; isDm: boolean; characterId?: string | null; memberIds: string[]; playerIds: string[] };
 export type SpatialMessage = { id: string; roomId: string | null; seq: number; kind: "say" | "do" | "narration" | "perception" | "ooc"; authorUserId: string | null; content: string; createdAt: string; stealth?: boolean; stealthStatus?: "none" | "pending" | "confirmed" | "revealed" | "failed" };
 export type SpatialRoom = { id: string; name: string; active: boolean; occupants: string[] };
 export type SpatialPosition = { roomId: string; revision: number };
@@ -11,7 +11,7 @@ export type SpatialNarratorMessage = SpatialMessage & { witnessUserIds: string[]
 export type SpatialNarratorRead = Extract<SpatialView, { enabled: true }> & { messages: SpatialNarratorMessage[]; nextCursor: number; hasMore: boolean };
 export type SpatialStore = {
   enabled(campaignId: string): boolean;
-  command(actor: SpatialActor, requestId: string, operation: string, input: Record<string, unknown>, normalizeInput?: (input: Record<string, unknown>) => Record<string, unknown>): Record<string, unknown>;
+  command(actor: SpatialActor, requestId: string, operation: string, input: Record<string, unknown>, normalizeInput?: (input: Record<string, unknown>) => Record<string, unknown>, afterApply?: (result: Record<string, unknown>, input: Record<string, unknown>) => void): Record<string, unknown>;
   view(actor: SpatialActor): SpatialView;
   messages(actor: SpatialActor, options?: { roomId?: string | null; beforeSeq?: number; limit?: number }): SpatialPage;
   object(actor: SpatialActor, objectType: string, objectId: string): SpatialObjectProjection;
@@ -24,6 +24,7 @@ export type SpatialStore = {
   getStealthState(campaignId: string, characterId: string): { status: string; roomId: string; updatedAt: string } | null;
   getRoomFloor(campaignId: string, roomId: string): unknown;
   setRoomFloor(campaignId: string, roomId: string, floor: unknown): void;
+  getUserPosition(campaignId: string, userId: string): SpatialPosition | null;
   getUserRoom(campaignId: string, userId: string): string | null;
 };
 export class SpatialError extends Error { status: number; constructor(message: string, status?: number); }
