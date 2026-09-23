@@ -118,7 +118,12 @@ function SidePanelInner({
       {/* The rail sits on the outer edge, away from the chat, so the eye
           reads chat, context, then the switch between contexts. It scrolls
           on a short window rather than clipping the last tabs. */}
-      <div className="hidden w-24 shrink-0 flex-col items-stretch gap-1 overflow-y-auto border-l border-stone-700/40 px-1.5 py-2 [scrollbar-width:none] lg:flex">
+      <div
+        className={cn(
+          "hidden shrink-0 flex-col items-stretch gap-1 overflow-y-auto border-l border-stone-700/40 py-2 [scrollbar-width:none] lg:flex lg:transition-[width] lg:duration-200",
+          collapsed ? "w-14 px-1" : "w-24 px-1.5",
+        )}
+      >
         <Tooltip content={collapsed ? copy.expand : copy.collapse} side="left">
           <button
             type="button"
@@ -131,15 +136,7 @@ function SidePanelInner({
             {collapsed ? <ChevronsLeft className="size-6" /> : <ChevronsRight className="size-6" />}
           </button>
         </Tooltip>
-        <IconRail
-          items={items}
-          value={tab}
-          onChange={(nextTab) => {
-            if (collapsed) setCollapsed(false);
-            onTabChange(nextTab);
-          }}
-          tipSide="left"
-        />
+        {!collapsed ? <IconRail items={items} value={tab} onChange={onTabChange} tipSide="left" /> : null}
       </div>
     </aside>
   );
