@@ -26,7 +26,7 @@ const adminCredentials = remoteOrigin
   ? JSON.parse(fs.readFileSync(process.env.ODM_E2E_ADMIN_JSON, "utf8"))
   : null;
 const env = remoteOrigin ? null : {
-  ...process.env, NODE_ENV: "production", PORT: String(port), COOKIE_SECURE: "0",
+  ...process.env, NODE_ENV: "production", PORT: new URL(origin).port, COOKIE_SECURE: "0",
   SQLITE_DB_PATH: path.join(temp, "game.sqlite"), DB_ENCRYPTION_KEY: randomBytes(32).toString("hex"),
   ODM_MEDIA_ROOT: path.join(temp, "media"), ODM_LOCAL_ORIGIN: origin, ODM_PUBLIC_URL: origin,
   ODM_MCP_TOKEN: operatorToken, NEXT_TELEMETRY_DISABLED: "1", VOICE_ENABLED: "0",
