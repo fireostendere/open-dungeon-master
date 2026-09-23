@@ -256,17 +256,41 @@ export function SessionView({
   // Lead prompt: a newcomer's join note the DM has not narrated past yet.
   const joinNotice = latestUnintroducedJoin(messages);
   const showJoinBanner = steersStory && joinNotice !== null && dismissedJoinNotice !== joinNotice.id;
+  const combatFloor = floor.mode === "hold" ? floor.next : floor;
+  const initiativeFloor = combatFloor.mode === "initiative" ? combatFloor : null;
+  const ownCombatTurn = Boolean(
+    initiativeFloor &&
+      mySheet &&
+      state.encounter?.currentActorId === mySheet.id &&
+      initiativeFloor.userIds.includes(me?.id ?? ""),
+  );
+  const combatLocked = floor.mode === "hold" && Boolean(floor.combat);
+
+  const prevOwnCombatTurn = useRef(false);
+  useEffect(() => {
+    if (ownCombatTurn && !prevOwnCombatTurn.current) {
+      setPanelTab("battle");
+    }
+    prevOwnCombatTurn.current = ownCombatTurn;
+  }, [ownCombatTurn, setPanelTab]);
+
+  const inCombat = Boolean(state.encounter && state.encounter.status === "active");
+
   const panelTabs = useMemo(
     () =>
-      buildPanelTabs({
-        hasBattleMap: Boolean(state.battleMap),
-        mapsEnabled: campaign?.gameSettings?.mapsEnabled ?? true,
-        hasSettings: Boolean(campaign),
-        secretStory: caps.secretStory,
-        adjudicates: caps.adjudicates,
-        isLead,
-      }, locale),
-    [state.battleMap, campaign, caps.secretStory, caps.adjudicates, isLead, locale],
+      buildPanelTabs(
+        {
+          hasBattleMap: Boolean(state.battleMap),
+          inCombat,
+          mapsEnabled: campaign?.gameSettings?.mapsEnabled ?? true,
+          hasSettings: Boolean(campaign),
+          secretStory: caps.secretStory,
+          adjudicates: caps.adjudicates,
+          isLead,
+        },
+        locale,
+      ),
+    [state.battleMap, inCombat, campaign, caps.secretStory, caps.adjudicates, isLead, locale],
   );
   // Gates the Bonds sub-tab inside the Party panel.
   const relationshipsEnabled = campaign?.gameSettings?.relationships !== "off";
@@ -491,6 +515,7 @@ export function SessionView({
               onSnoozeStory={snoozeStory}
               onSubmit={submit}
               onCombatSubmit={(combatTurn) => void submit(null, combatTurn)}
+              onOpenBattleTab={() => selectPanelView("battle")}
             />
           )}
         </SessionChatColumn>
@@ -546,6 +571,12 @@ export function SessionView({
           relationshipsEnabled={relationshipsEnabled}
           beats={state.beats}
           storyDue={storyDue}
+          rolls={state.rolls}
+          ownCombatTurn={ownCombatTurn}
+          mySheet={mySheet}
+          combatLocked={combatLocked}
+          sending={sending}
+          onCombatSubmit={(combatTurn) => void submit(null, combatTurn)}
         />
       </div>
 

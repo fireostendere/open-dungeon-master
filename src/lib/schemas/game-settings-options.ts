@@ -82,6 +82,16 @@ export const COMBAT_MODES = ["classical", "jrpg"] as const;
 export type CombatModeSetting = (typeof COMBAT_MODES)[number];
 export const DEFAULT_COMBAT_MODE: CombatModeSetting = "classical";
 
+export const COMBAT_INPUT_MODES = ["hybrid", "builder", "freeform"] as const;
+export type CombatInputModeSetting = (typeof COMBAT_INPUT_MODES)[number];
+export const DEFAULT_COMBAT_INPUT_MODE: CombatInputModeSetting = "hybrid";
+
+export const COMBAT_INPUT_MODE_LABELS: Record<CombatInputModeSetting, string> = {
+  hybrid: "Hybrid (builder + text)",
+  builder: "Action builder (Battle tab)",
+  freeform: "Narrative text (freeform in chat)",
+};
+
 export const ENEMY_HP_VISIBILITY = ["state", "bar", "exact"] as const;
 export type EnemyHpVisibility = (typeof ENEMY_HP_VISIBILITY)[number];
 export const DEFAULT_ENEMY_HP_VISIBILITY: EnemyHpVisibility = "state";

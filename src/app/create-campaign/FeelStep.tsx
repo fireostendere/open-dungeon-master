@@ -10,6 +10,8 @@ const COPY = {
   en: {
     aiSetup: "AI story setup",
     aiSetupHint: "The DM invents the plot",
+    yolo21: "YOLO + 21+",
+    yolo21Hint: "Fast-paced Rule of Cool, profanity and dark humor; intimacy fades to black.",
     narration: "Voice narration",
     narrationHint: "Spoken DM narration",
     narrationUnavailable: "No speech service on this server",
@@ -52,6 +54,8 @@ const COPY = {
   ru: {
     aiSetup: "ИИ создаёт сюжет",
     aiSetupHint: "Мастер самостоятельно придумывает основную историю",
+    yolo21: "YOLO + 21+",
+    yolo21Hint: "Быстрый темп, Rule of Cool, мат и чёрный юмор; интим — за кадром.",
     narration: "Голосовая озвучка",
     narrationHint: "Мастер читает повествование вслух",
     narrationUnavailable: "На сервере не настроен синтез речи",
@@ -103,6 +107,7 @@ export function featuresOn(draft: CampaignDraft, gates: WizardGates): number {
     draft.multiclassingEnabled,
     draft.worldSimulation,
     draft.inventoryApprovals,
+    draft.yolo21Enabled,
     bonds,
     bonds && draft.romance !== "off",
     !gates.solo && draft.midGameJoinOpen,
@@ -118,6 +123,12 @@ export function FeelStep(props: StepProps) {
   return (
     <div className="space-y-4 text-sm">
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+        <ToggleCard
+          active={draft.yolo21Enabled}
+          onClick={() => patch({ yolo21Enabled: !draft.yolo21Enabled })}
+          label={copy.yolo21}
+          hint={copy.yolo21Hint}
+        />
         <ToggleCard
           active={draft.ambienceEnabled}
           onClick={() => patch({ ambienceEnabled: !draft.ambienceEnabled })}

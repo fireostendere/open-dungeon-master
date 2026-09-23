@@ -100,7 +100,7 @@ const TAB_PRESENTATION: Record<Locale, Record<PanelTab, [string, LucideIcon, str
       Users,
       "Character sheets, HP and conditions for the whole party, and their bonds with the people they have met.",
     ],
-    battle: ["Battle", Swords, "The tactical battle map. Move your token on your turn."],
+    battle: ["Battle", Swords, "Combat overview, your turn, enemy roster and combat log."],
     map: ["Map", MapIcon, "The scene map and discovered locations."],
     story: [
       "Story",
@@ -132,7 +132,7 @@ const TAB_PRESENTATION: Record<Locale, Record<PanelTab, [string, LucideIcon, str
       Users,
       "Листы персонажей, HP и состояния отряда, а также связи с NPC.",
     ],
-    battle: ["Бой", Swords, "Тактическая боевая карта. Перемещайте токен в свой ход."],
+    battle: ["Бой", Swords, "Управление боем, ваш ход, список врагов и журнал боя."],
     map: ["Карта", MapIcon, "Карта сцены и открытые локации."],
     story: [
       "Сюжет",

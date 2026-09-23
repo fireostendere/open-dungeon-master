@@ -64,9 +64,10 @@ test("context needs both a loaded campaign and story authority", () => {
   );
 });
 
-test("the battle tab exists only while a map is live", () => {
+test("the battle tab exists while a map is live or in combat", () => {
   assert.equal(visiblePanelTabs(base).includes("battle"), false);
   assert.equal(visiblePanelTabs({ ...base, hasBattleMap: true }).includes("battle"), true);
+  assert.equal(visiblePanelTabs({ ...base, inCombat: true }).includes("battle"), true);
 });
 
 test("maps off drops the map tab and nothing else", () => {

@@ -2,8 +2,10 @@ import { z } from "zod";
 import {
   CAMPAIGN_LENGTHS,
   COMBAT_MODES,
+  COMBAT_INPUT_MODES,
   COMPANION_SETTINGS,
   DEFAULT_COMBAT_MODE,
+  DEFAULT_COMBAT_INPUT_MODE,
   DEFAULT_ENEMY_CONDITION_VISIBILITY,
   DEFAULT_ENEMY_HP_VISIBILITY,
   ENEMY_CONDITION_VISIBILITY,
@@ -22,12 +24,15 @@ export {
   CAMPAIGN_LENGTH_LABELS,
   CAMPAIGN_LENGTHS,
   COMBAT_MODES,
+  COMBAT_INPUT_MODES,
+  COMBAT_INPUT_MODE_LABELS,
   COMPANION_LABELS,
   COMPANION_SETTINGS,
   DICE_POLICIES,
   DM_DIFFICULTY_LEVELS,
   DEFAULT_DM_DIFFICULTY,
   DEFAULT_COMBAT_MODE,
+  DEFAULT_COMBAT_INPUT_MODE,
   DEFAULT_ENEMY_CONDITION_VISIBILITY,
   DEFAULT_ENEMY_HP_VISIBILITY,
   DM_MODE_HINTS,
@@ -41,6 +46,7 @@ export {
   DEFAULT_UNIT_SYSTEM,
   type CampaignLengthSetting,
   type CombatModeSetting,
+  type CombatInputModeSetting,
   type CompanionSetting,
   type DicePolicy,
   type DmDifficulty,
@@ -58,6 +64,11 @@ export const gameSettingsSchema = z.object({
   // JRPG is an explicit campaign house-rule mode. The combat engine, rather
   // than narration, decides which positional gates it relaxes.
   combatMode: z.enum(COMBAT_MODES).default(DEFAULT_COMBAT_MODE),
+  // Player input style during combat: hybrid (both available), builder (turn builder on battle tab), or freeform (prose in chat)
+  combatInputMode: z.enum(COMBAT_INPUT_MODES).default(DEFAULT_COMBAT_INPUT_MODE),
+  // New campaigns may pin YOLO narration per table. Missing on older rows so
+  // they keep the deployment's existing runtime-mode behavior.
+  yolo21Enabled: z.boolean().optional(),
   // What players may see about enemy durability. The DM seat always gets
   // exact numbers regardless of this presentation setting.
   enemyHpVisibility: z.enum(ENEMY_HP_VISIBILITY).default(DEFAULT_ENEMY_HP_VISIBILITY),

@@ -33,6 +33,7 @@ const DELIBERATELY_OMITTED = new Set([
   "dmAssist",
   "targetParty",
   "globalTurn",
+  "combatInputMode",
   "enemyHpVisibility",
   "enemyConditionVisibility",
   "aiStorySetup",

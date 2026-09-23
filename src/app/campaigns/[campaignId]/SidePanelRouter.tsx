@@ -9,6 +9,10 @@ import type { DmBeat } from "@/lib/db/dm-beats";
 import { BattleMapPanel } from "@/app/campaigns/[campaignId]/BattleMapPanel";
 import { DmWhisperPanel } from "@/app/campaigns/[campaignId]/DmWhisperPanel";
 import { EncounterPanel } from "@/app/campaigns/[campaignId]/EncounterPanel";
+import { CombatTurnHud } from "@/app/campaigns/[campaignId]/CombatTurnHud";
+import { CombatLog } from "@/app/campaigns/[campaignId]/CombatLog";
+import type { StoredRoll } from "@/lib/db/rolls";
+import type { CombatChoice, CombatTurnIntent } from "@/lib/dm/combat-turn-intent";
 import { EventLog } from "@/app/campaigns/[campaignId]/EventLog";
 import { BondsPanel } from "@/app/campaigns/[campaignId]/BondsPanel";
 import { FactsPanel } from "@/app/campaigns/[campaignId]/FactsPanel";
@@ -120,6 +124,12 @@ export type SidePanelRouterProps = {
   // buildPanelTabs; Bonds is a Party section now, so the flag has to reach
   // this component instead.
   relationshipsEnabled: boolean;
+  rolls?: StoredRoll[];
+  ownCombatTurn?: boolean;
+  mySheet?: CharacterSheet | null;
+  combatLocked?: boolean;
+  sending?: boolean;
+  onCombatSubmit?: (turn: CombatTurnIntent) => void;
 };
 
 // Which panel the active tab shows. Every PanelTab has an explicit branch;
@@ -171,6 +181,12 @@ export function SidePanelRouter({
   floor,
   beats,
   directorArm,
+  rolls = [],
+  ownCombatTurn = false,
+  mySheet = null,
+  combatLocked = false,
+  sending = false,
+  onCombatSubmit,
 }: SidePanelRouterProps) {
   // Which section of Party and Story is showing. Local state: nothing outside
   // this panel reads or sets them.
@@ -323,18 +339,54 @@ export function SidePanelRouter({
       </>
     );
   }
-  if (tab === "battle" && battleMap) {
+  if (tab === "battle" && (encounter || battleMap)) {
     return (
-      <BattleMapPanel
-        campaignId={campaignId}
-        view={battleMap}
-        canDirect={adjudicates}
-        canFocusPing={steersStory}
-        ping={mapPing ?? null}
-        encounter={encounter ?? null}
-        sheets={sheets}
-        refreshBattleMap={refreshBattleMap}
-      />
+      <div className="space-y-4">
+        {encounter ? (
+          <EncounterPanel
+            campaignId={campaignId}
+            encounter={encounter}
+            steersStory={steersStory}
+            canEditOrder={adjudicates}
+            embedded
+            genre={campaign?.gameSettings?.genre}
+          />
+        ) : null}
+
+        {ownCombatTurn && encounter && mySheet && onCombatSubmit ? (
+          <div className="rounded-xl border border-amber-500/60 bg-stone-950/90 p-1 shadow-glow-gold-subtle">
+            <CombatTurnHud
+              key={`${encounter.id}:${encounter.round}:${encounter.currentActorId}`}
+              encounter={encounter}
+              sheet={mySheet}
+              sheets={sheets}
+              locked={Boolean(combatLocked || floor.mode === "hold")}
+              sending={Boolean(sending)}
+              onSubmit={onCombatSubmit}
+            />
+          </div>
+        ) : null}
+
+        {battleMap ? (
+          <BattleMapPanel
+            campaignId={campaignId}
+            view={battleMap}
+            canDirect={adjudicates}
+            canFocusPing={steersStory}
+            ping={mapPing ?? null}
+            encounter={encounter ?? null}
+            sheets={sheets}
+            refreshBattleMap={refreshBattleMap}
+          />
+        ) : null}
+
+        <CombatLog
+          encounter={encounter ?? null}
+          sheets={sheets}
+          rolls={rolls}
+          auditLog={auditLog}
+        />
+      </div>
     );
   }
   if (tab === "map") {
