@@ -20,10 +20,12 @@ import type { CampaignMessage } from "@/lib/db/messages";
 // gates. Shared request handling localizes both HTTP and network failures.
 export function SessionChatColumn({
   state, campaignId, meUserId, steersStory, visible, askOpen,
+  loadOlderMessages,
   onAskOpenChange, refreshAsks, refreshFacts, onError, onLoreCheck, onRenarrate, onPinned,
   onOpenClosingMessage, hasOpenedFinale, children,
 }: {
   state: CampaignState;
+  loadOlderMessages: () => Promise<boolean>;
   campaignId: string;
   meUserId: string;
   steersStory: boolean;
@@ -66,7 +68,8 @@ export function SessionChatColumn({
       <ReportDialog campaignId={campaignId} target={reportTarget} onClose={() => setReportTarget(null)}
         onBlocked={userId => setJustBlocked(current => [...current, userId])} />
       <MessageList
-        messages={messages} campaignId={campaignId} canRetryTurn={steersStory} canIllustrate={steersStory}
+        messages={messages} hasOlderMessages={state.hasOlderMessages} onLoadOlder={loadOlderMessages}
+        campaignId={campaignId} canRetryTurn={steersStory} canIllustrate={steersStory}
         rolls={rolls} sheets={sheets} members={state.members} meUserId={meUserId} blockedUserIds={blockedUserIds}
         campaignStatus={campaign?.status} onOpenClosingMessage={onOpenClosingMessage}
         onReport={message => {

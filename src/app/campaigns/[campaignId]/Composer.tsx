@@ -42,13 +42,6 @@ const KIND_TIPS: Record<Locale, Record<InputKind, string>> = {
     lead: "Только лидер группы. Отправьте Мастеру обязательное направление сюжета.",
     narrate: "Только Мастер. Напишите фрагмент повествования, который увидит стол.",
   },
-  pl: {
-    do: "Działaj w świecie. Mistrz Gry opisze, co się wydarzy.",
-    say: "Mów jako postać. Tekst zostanie wysłany jako dialog w cudzysłowie.",
-    ooc: "Rozmowa poza postacią. Mistrz Gry nie odpowiada; tryb działa również przy zablokowanej możliwości działania.",
-    lead: "Tylko lider drużyny. Wyślij Mistrzowi Gry wiążącą wytyczną fabularną.",
-    narrate: "Tylko Mistrz Gry. Napisz fragment narracji, który przeczyta stół.",
-  },
 };
 
 const COPY = {
@@ -65,9 +58,12 @@ const COPY = {
     privateOn: "Only the DM sees this. It steers the next turn and never enters the transcript.",
     privateOff: "The table sees this direction, and the DM acts on it now.",
     private: "Private",
+    round: "Round #", acted: "acted", skip: "Skip", cancel: "Cancel", skipCount: "Number of turns to skip (1–99)", skipN: "Skip N turns",
+    combatLocked: "The DM is resolving and narrating the turn. Only OOC is available.", skipTurns: "Skip turns", cancelSkips: "Cancel skips",
+    skipFailed: "Could not change skipped turns.", waiting: "MCP DM is finishing the turn — input locked", resolving: "MCP DM is resolving the round — input locked", remaining: "Remaining", noTimer: "(no timer, waiting for quorum)", firstAction: "(waiting for first action)",
   },
   ru: {
-    kinds: { do: "Действие", say: "Речь", ooc: "OOC", lead: "Указание", narrate: "Повествование" },
+    kinds: { do: "Действие", say: "Речь", ooc: "Вне игры", lead: "Указание", narrate: "Повествование" },
     statuses: {
       rolling: "Мастер бросает кости...",
       awaiting_rolls: "Ожидание реальных бросков...",
@@ -79,20 +75,9 @@ const COPY = {
     privateOn: "Это видит только Мастер. Указание направляет следующий ход и не попадает в стенограмму.",
     privateOff: "Указание видит весь стол, и Мастер применяет его прямо сейчас.",
     private: "Приватно",
-  },
-  pl: {
-    kinds: { do: "Akcja", say: "Mowa", ooc: "OOC", lead: "Wytyczna", narrate: "Narracja" },
-    statuses: {
-      rolling: "Mistrz Gry rzuca kośćmi...",
-      awaiting_rolls: "Oczekiwanie na prawdziwe kości...",
-      narrating: "Mistrz Gry tworzy narrację...",
-      writing_chapter: "Mistrz Gry pisze rozdział...",
-      plotting_arc: "Mistrz Gry planuje wątek fabularny...",
-      default: "Mistrz Gry pracuje...",
-    },
-    privateOn: "Tylko Mistrz Gry to widzi. Wytyczna kieruje następną turą i nigdy nie trafia do transkrypcji.",
-    privateOff: "Cały stół widzi tę wytyczną, a Mistrz Gry stosuje ją od razu.",
-    private: "Prywatnie",
+    round: "Раунд №", acted: "сходили", skip: "Пропуск", cancel: "Отмена", skipCount: "Количество ходов для пропуска (1–99)", skipN: "Пропустить N ходов",
+    combatLocked: "Мастер разрешает ход и готовит повествование. Пока доступен только режим «Вне игры».", skipTurns: "Пропустить ходов", cancelSkips: "Отменить пропуск",
+    skipFailed: "Не удалось изменить пропуск ходов.", waiting: "Внешний мастер завершает ход — ввод закрыт", resolving: "Внешний мастер разрешает раунд — ввод закрыт", remaining: "Осталось", noTimer: "(без таймера, ждём кворум)", firstAction: "(ждём первого хода)",
   },
 } as const;
 
@@ -248,7 +233,7 @@ function ComposerInner({
       });
       if (!response.ok) throw new Error("skip refused");
     } catch {
-      setSkipError(locale === "ru" ? "Не удалось изменить пропуск ходов." : locale === "pl" ? "Nie udało się zmienić pomijania tur." : "Could not change skipped turns.");
+      setSkipError(copy.skipFailed);
     } finally {
       setSkipBusy(false);
     }
@@ -299,25 +284,17 @@ function ComposerInner({
           <div className="mb-2 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-amber-900/50 bg-amber-950/25 px-2.5 py-1.5 text-xs text-amber-200">
             <div className="flex items-center gap-2 font-medium">
               <Clock className="size-3.5 text-amber-400" />
-              <span>Раунд #{globalTurnState?.roundNumber ?? 1}</span>
+              <span>{copy.round}{globalTurnState?.roundNumber ?? 1}</span>
               <span className="text-[11px] text-stone-400">
-                ({respondedPlayersCount}/{Math.max(1, playerSheets.length)} сходили)
+                ({respondedPlayersCount}/{Math.max(1, playerSheets.length)} {copy.acted})
               </span>
               {globalTurnState?.phase === "waiting" ? (
                 <span className="rounded bg-amber-950/80 px-1.5 py-0.5 text-[11px] text-amber-200">
-                  {locale === "ru"
-                    ? "MCP-Мастер завершает ход — ввод закрыт"
-                    : locale === "pl"
-                      ? "MCP MG kończy turę — wejście zablokowane"
-                      : "MCP DM is finishing the turn — input locked"}
+                  {copy.waiting}
                 </span>
               ) : globalTurnState?.phase === "ready" || globalTurnState?.phase === "resolving" ? (
                 <span className="rounded bg-amber-950/80 px-1.5 py-0.5 text-[11px] text-amber-200">
-                  {locale === "ru"
-                    ? "MCP-Мастер разрешает раунд — ввод закрыт"
-                    : locale === "pl"
-                      ? "MCP MG rozstrzyga rundę — wejście zablokowane"
-                      : "MCP DM is resolving the round — input locked"}
+                  {copy.resolving}
                 </span>
               ) : globalTurnState?.deadlineAt ? (
                 <span
@@ -326,21 +303,11 @@ function ComposerInner({
                     secsTotal <= 60 ? "text-red-400 animate-pulse" : "text-amber-300",
                   )}
                 >
-                  {locale === "ru" ? "Осталось" : locale === "pl" ? "Pozostało" : "Remaining"}: {formattedCountdown}
+                  {copy.remaining}: {formattedCountdown}
                 </span>
               ) : (
                 <span className="text-[11px] italic text-stone-400">
-                  {globalTurnState?.firstActionAt
-                    ? locale === "ru"
-                      ? "(без таймера, ждём кворум)"
-                      : locale === "pl"
-                        ? "(bez limitu, czekamy na kworum)"
-                        : "(no timer, waiting for quorum)"
-                    : locale === "ru"
-                      ? "(ждём 1-го хода)"
-                      : locale === "pl"
-                        ? "(czekamy na pierwszy ruch)"
-                        : "(waiting for first action)"}
+                  {globalTurnState?.firstActionAt ? copy.noTimer : copy.firstAction}
                 </span>
               )}
             </div>
@@ -349,14 +316,14 @@ function ComposerInner({
               {/* Skip turns controls */}
               {myMember && myMember.skipTurnsCount > 0 ? (
                 <div className="flex items-center gap-1 rounded border border-amber-700/60 bg-amber-950/50 px-1.5 py-0.5 text-[11px]">
-                  <span>⏭️ Пропуск ({myMember.skipTurnsCount})</span>
+                  <span>⏭️ {copy.skip} ({myMember.skipTurnsCount})</span>
                   <button
                     type="button"
                     disabled={skipBusy || globalTurnLocked}
                     onClick={() => void handleSetSkip(0)}
                     className="text-[10px] text-stone-400 hover:text-red-300 underline"
                   >
-                    Отмена
+                    {copy.cancel}
                   </button>
                 </div>
               ) : (
@@ -369,16 +336,16 @@ function ComposerInner({
                     disabled={globalTurnLocked}
                     onChange={(e) => setSkipCount(Math.max(1, Math.min(99, Number(e.target.value))))}
                     className="w-10 rounded border border-stone-700 bg-stone-900 px-1 py-0.5 text-center text-[11px] text-stone-200"
-                    title="Количество ходов для пропуска (1..99)"
+                    title={copy.skipCount}
                   />
                   <button
                     type="button"
                     disabled={skipBusy || globalTurnLocked}
                     onClick={() => void handleSetSkip(skipCount)}
                     className="flex items-center gap-0.5 rounded border border-stone-700 bg-stone-900 px-1.5 py-0.5 text-[11px] text-stone-300 hover:text-stone-100"
-                    title="Пропустить N ходов"
+                    title={copy.skipN}
                   >
-                    <SkipForward className="size-3" /> Пропустить
+                    <SkipForward className="size-3" /> {copy.skip}
                   </button>
                 </div>
               )}
@@ -386,7 +353,7 @@ function ComposerInner({
           </div>
         ) : null}
 
-        <div className="mb-2 flex gap-1.5" data-tour="composer-modes">
+        <div className="mb-2 flex flex-wrap gap-1.5" data-tour="composer-modes">
           {composerOptions.map((option) => (
             <Tooltip key={option} content={KIND_TIPS[locale][option]}>
               <button
@@ -434,11 +401,11 @@ function ComposerInner({
             </Tooltip>
           </div>
         ) : null}
-        {combatLocked && !isDm ? <p role="status" className="mb-2 rounded-lg border border-amber-800/50 bg-amber-950/30 p-2 text-xs text-amber-200">{locale === "ru" ? "Мастер разрешает ход и готовит повествование. Пока доступен только OOC." : locale === "pl" ? "MG rozstrzyga turę i opisuje wynik. Dostępne jest tylko OOC." : "The DM is resolving and narrating the turn. Only OOC is available."}</p> : null}
+        {combatLocked && !isDm ? <p role="status" className="mb-2 rounded-lg border border-amber-800/50 bg-amber-950/30 p-2 text-xs text-amber-200">{copy.combatLocked}</p> : null}
         {combatActive && !isDm ? <div className="mb-2 flex flex-wrap items-center gap-2 text-xs">
-          <label className="flex items-center gap-2">{locale === "ru" ? "Пропустить ходов" : locale === "pl" ? "Pomiń tury" : "Skip turns"}<input type="number" min={1} max={20} value={skipCount} onChange={(event) => setSkipCount(Math.min(20, Math.max(1, Number(event.target.value) || 1)))} className="w-14 rounded border border-stone-700 bg-stone-900 p-1.5" /></label>
-          <button type="button" disabled={skipBusy || (floor.mode === "hold" && !!floor.combat)} onClick={() => void handleSetSkip(skipCount)} className={ui.btnSmall}><SkipForward className="size-3" />{locale === "ru" ? "Пропустить" : locale === "pl" ? "Pomiń" : "Skip"}</button>
-          {myMember && myMember.skipTurnsCount > 0 ? <button type="button" disabled={skipBusy} onClick={() => void handleSetSkip(0)} className={ui.btnSmall}>{locale === "ru" ? "Отменить пропуск" : locale === "pl" ? "Anuluj pomijanie" : "Cancel skips"} ({myMember.skipTurnsCount})</button> : null}
+          <label className="flex items-center gap-2">{copy.skipTurns}<input type="number" min={1} max={20} value={skipCount} onChange={(event) => setSkipCount(Math.min(20, Math.max(1, Number(event.target.value) || 1)))} className="w-14 rounded border border-stone-700 bg-stone-900 p-1.5" /></label>
+          <button type="button" disabled={skipBusy || (floor.mode === "hold" && !!floor.combat)} onClick={() => void handleSetSkip(skipCount)} className={ui.btnSmall}><SkipForward className="size-3" />{copy.skip}</button>
+          {myMember && myMember.skipTurnsCount > 0 ? <button type="button" disabled={skipBusy} onClick={() => void handleSetSkip(0)} className={ui.btnSmall}>{copy.cancelSkips} ({myMember.skipTurnsCount})</button> : null}
         </div> : null}
         {skipError ? <p role="alert" className="mb-2 text-xs text-red-300">{skipError}</p> : null}
         {ownCombatTurn && encounter && mySheet ? <div hidden={kind !== "do"}><CombatTurnHud key={`${encounter.id}:${encounter.round}:${encounter.currentActorId}`} encounter={encounter} sheet={mySheet} sheets={sheets} locked={combatLocked || floor.mode === "hold" || (kind === "do" && inputBlocked)} sending={sending} onSubmit={onCombatSubmit} /></div> : null}

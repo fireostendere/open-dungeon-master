@@ -9,7 +9,6 @@ import { useI18n } from "@/lib/i18n";
 const COPY = {
   en: { step: "Step" },
   ru: { step: "Шаг" },
-  pl: { step: "Krok" },
 } as const;
 
 export type WizardStep = {

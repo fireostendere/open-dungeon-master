@@ -42,7 +42,6 @@ export function Lobby({ state, refresh }: { state: CampaignState; refresh: () =>
   const copy = localeText(locale, {
     en: { readyError: "Could not change your ready state.", server: "Could not reach the server.", startError: "Could not start the adventure.", seatError: "Could not move that seat.", removeError: "Could not remove the character.", companionError: "Could not remove the companion.", deleteError: "Could not delete the campaign.", waiting: "Waiting in the lobby", settings: "Edit campaign settings", realDice: "Real dice", digital: "Digital" },
     ru: { readyError: "Не удалось изменить статус готовности.", server: "Не удалось связаться с сервером.", startError: "Не удалось начать приключение.", seatError: "Не удалось переместить это место.", removeError: "Не удалось удалить персонажа.", companionError: "Не удалось удалить спутника.", deleteError: "Не удалось удалить кампанию.", waiting: "Ожидание в лобби", settings: "Настройки кампании", realDice: "Живые кости", digital: "Цифровые" },
-    pl: { readyError: "Nie udało się zmienić statusu gotowości.", server: "Nie udało się połączyć z serwerem.", startError: "Nie udało się rozpocząć przygody.", seatError: "Nie udało się przenieść tego miejsca.", removeError: "Nie udało się usunąć postaci.", companionError: "Nie udało się usunąć towarzysza.", deleteError: "Nie udało się usunąć kampanii.", waiting: "Oczekiwanie w lobby", settings: "Edytuj ustawienia kampanii", realDice: "Prawdziwe kości", digital: "Cyfrowe" },
   });
   const { campaign, me, members, sheets } = state;
   const [busy, setBusy] = useState(false);
@@ -334,7 +333,7 @@ export function Lobby({ state, refresh }: { state: CampaignState; refresh: () =>
             href="/"
             className="inline-flex items-center gap-1.5 text-sm text-stone-500 transition-colors hover:text-amber-200"
           >
-            <ArrowLeft className="size-4 shrink-0" /> {localeText(locale, { en: "All campaigns", ru: "Все кампании", pl: "Wszystkie kampanie" })}
+            <ArrowLeft className="size-4 shrink-0" /> {localeText(locale, { en: "All campaigns", ru: "Все кампании" })}
           </Link>
           <div className="flex items-center gap-2">
             <LanguageSwitcher />
@@ -367,7 +366,7 @@ export function Lobby({ state, refresh }: { state: CampaignState; refresh: () =>
               ) : null}
             </h1>
             <p className="mt-1 text-sm text-stone-400">
-              {localeText(locale, { en: `Level ${campaign.startingLevel} start · ${difficulty}`, ru: `Уровень: ${campaign.startingLevel} · ${difficulty}`, pl: `Początek na poziomie ${campaign.startingLevel} · ${difficulty}` })}
+              {localeText(locale, { en: `Level ${campaign.startingLevel} start · ${difficulty}`, ru: `Уровень: ${campaign.startingLevel} · ${difficulty}` })}
               {campaign.theme ? ` · ${campaign.theme}` : ""}
             </p>
             {campaign.description ? (

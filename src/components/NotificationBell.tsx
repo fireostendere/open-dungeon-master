@@ -24,15 +24,6 @@ const COPY = {
     unread: (value: number) => `Уведомления: непрочитанных ${value}`,
     empty: "Пока ничего. Спокойная неделя.",
   },
-  pl: {
-    justNow: "przed chwilą",
-    minutesAgo: (value: number) => `${value} min temu`,
-    hoursAgo: (value: number) => `${value} godz. temu`,
-    daysAgo: (value: number) => `${value} dni temu`,
-    notifications: "Powiadomienia",
-    unread: (value: number) => `Powiadomienia: ${value} nieprzeczytanych`,
-    empty: "Na razie nic. Spokojny tydzień.",
-  },
 } as const;
 
 // The bell: out-of-game news (sessions planned, moved, called off; someone

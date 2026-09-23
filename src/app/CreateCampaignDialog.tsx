@@ -68,28 +68,6 @@ const COPY = {
     createAdventure: "Создать приключение",
     createCampaign: "Создать кампанию",
   },
-  pl: {
-    createFailed: "Nie udało się utworzyć kampanii.",
-    serverFailed: "Nie udało się połączyć z serwerem.",
-    soloTitle: "Nowa przygoda solo",
-    campaignTitle: "Nowa kampania",
-    premiseTitle: "Założenia",
-    premiseSoloBlurb: "Nadaj przygodzie nazwę i zdecyduj, kto prowadzi narrację.",
-    premiseBlurb: "Nadaj kampanii nazwę i zdecyduj, kto prowadzi stół.",
-    worldTitle: "Świat",
-    worldBlurb: "Wybierz setting i określ, o czym będzie historia.",
-    partyTitle: "Drużyna",
-    partySoloBlurb: "Określ, gdzie zaczyna twój bohater.",
-    partyBlurb: "Kto wyrusza na przygodę i jak trudna będzie droga.",
-    feelTitle: "Styl rozgrywki",
-    feelBlurb: "Wybierz, co ma być aktywne przy stole. Wszystko można później zmienić w lobby.",
-    advancedTitle: "Zaawansowane",
-    advancedBlurb: "Zasady wariantowe i domowe, przygotowanie oraz czat głosowy. Wszystko opcjonalne.",
-    reviewTitle: "Podsumowanie",
-    reviewBlurb: "Przygotuj stół do gry.",
-    createAdventure: "Utwórz przygodę",
-    createCampaign: "Utwórz kampanię",
-  },
 } as const;
 
 // The slice of /api/capabilities this dialog gates on. null means the

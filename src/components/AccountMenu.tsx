@@ -125,12 +125,7 @@ export function AccountMenu({
   // client markup agree, and the entry appears right after hydration.
   const shell = useSyncExternalStore<ShellHost | null>(subscribeNever, shellHost, () => null);
   const router = useRouter();
-  const languageName =
-    locale === "ru"
-      ? t("language.russian")
-      : locale === "pl"
-        ? t("language.polish")
-        : t("language.english");
+  const languageName = locale === "ru" ? t("language.russian") : t("language.english");
 
   async function logout() {
     await fetch("/api/auth/logout", { method: "POST" });

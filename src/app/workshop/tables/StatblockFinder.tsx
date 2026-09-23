@@ -27,7 +27,7 @@ export function StatblockFinder({
   collapsible?: boolean;
 }) {
   const { locale } = useI18n();
-  const copy = localeText(locale, { en: { placeholder: "wolf, or leave empty for what fits the party", search: "Search", lookup: "Look up a monster", baseline: "DMG baseline", speed: "speed", hit: "to hit" }, ru: { placeholder: "волк или оставьте пустым для подходящего группе", search: "Найти", lookup: "Найти монстра", baseline: "базовые значения DMG", speed: "скорость", hit: "к попаданию" }, pl: { placeholder: "wilk albo puste, by dobrać do drużyny", search: "Szukaj", lookup: "Znajdź potwora", baseline: "wartości bazowe DMG", speed: "szybkość", hit: "do trafienia" } });
+  const copy = localeText(locale, { en: { placeholder: "wolf, or leave empty for what fits the party", search: "Search", lookup: "Look up a monster", baseline: "DMG baseline", speed: "speed", hit: "to hit" }, ru: { placeholder: "волк или оставьте пустым для подходящего группе", search: "Найти", lookup: "Найти монстра", baseline: "базовые значения DMG", speed: "скорость", hit: "к попаданию" } });
   const [query, setQuery] = useState("");
   const [matches, setMatches] = useState<StatblockMatch[]>([]);
   // The table's setting, for the boss plate on high-rating matches.

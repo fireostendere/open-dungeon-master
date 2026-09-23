@@ -3,7 +3,7 @@ import { GET as coreGET, POST as corePOST } from "./route-core";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-type CampaignLocale = "ru" | "en" | "pl";
+type CampaignLocale = "ru" | "en";
 type CampaignUnitSystem = "metric" | "imperial";
 
 export async function GET() {
@@ -12,8 +12,8 @@ export async function GET() {
 
 function localeFromCookie(request: Request): CampaignLocale {
   const cookie = request.headers.get("cookie") ?? "";
-  const match = cookie.match(/(?:^|;\s*)odm_locale=(ru|en|pl)(?:;|$)/);
-  return match?.[1] === "en" || match?.[1] === "pl" ? match[1] : "ru";
+  const match = cookie.match(/(?:^|;\s*)odm_locale=(ru|en)(?:;|$)/);
+  return match?.[1] === "en" ? "en" : "ru";
 }
 
 function unitSystemFromCookie(request: Request): CampaignUnitSystem {
@@ -31,8 +31,7 @@ export async function POST(request: Request) {
       : {};
   const language =
     currentSettings.language === "en" ||
-    currentSettings.language === "ru" ||
-    currentSettings.language === "pl"
+    currentSettings.language === "ru"
       ? currentSettings.language
       : localeFromCookie(request);
   const unitSystem =
@@ -50,4 +49,3 @@ export async function POST(request: Request) {
   });
   return corePOST(forwarded);
 }
-

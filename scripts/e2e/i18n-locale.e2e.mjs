@@ -85,11 +85,6 @@ function assertEnglishOnly(text, surface) {
   assertNoRawKeys(text, surface);
 }
 
-function assertPolishOnly(text, surface) {
-  assert.ok(!/[А-Яа-яЁё]/.test(text), `${surface} leaked Cyrillic while Polish locale was active`);
-  assertNoRawKeys(text, surface);
-}
-
 async function assertLayout(page, surface, labels) {
   for (const label of labels) {
     const target = page.getByText(label, { exact: true }).filter({ visible: true }).first();
@@ -125,13 +120,12 @@ async function assertLayout(page, surface, labels) {
 async function switchTo(page, locale) {
   const nextButton = {
     ru: "Переключить язык на Английский",
-    en: "Switch language to Polish",
-    pl: "Przełącz język na Rosyjski",
+    en: "Switch language to Russian",
   };
-  for (let turns = 0; turns < 3 && await page.evaluate(() => document.documentElement.lang) !== locale; turns += 1) {
+  for (let turns = 0; turns < 2 && await page.evaluate(() => document.documentElement.lang) !== locale; turns += 1) {
     const current = await page.evaluate(() => document.documentElement.lang);
     await page.getByRole("button", { name: nextButton[current] }).click();
-    await page.waitForFunction((next) => document.documentElement.lang === next, { ru: "en", en: "pl", pl: "ru" }[current]);
+    await page.waitForFunction((next) => document.documentElement.lang === next, { ru: "en", en: "ru" }[current]);
   }
   assert.equal(await page.evaluate(() => document.documentElement.lang), locale, `locale did not reach ${locale}`);
 }
@@ -200,7 +194,7 @@ try {
   await page.goto(`/campaigns/${localeCampaign.id}`);
   await page.getByRole("button", { name: "Account" }).waitFor();
   assertEnglishOnly(await page.locator("body").innerText(), "English campaign lobby");
-  for (const [button, menuText, next] of [["Account", "Language: English (EN)", "pl"], ["Konto", "Język: Polski (PL)", "ru"], ["Аккаунт", "Язык: Русский (RU)", "en"]]) {
+  for (const [button, menuText, next] of [["Account", "Language: English (EN)", "ru"], ["Аккаунт", "Язык: Русский (RU)", "en"]]) {
     await page.getByRole("button", { name: button }).click();
     const patch = page.waitForResponse((response) => response.url().endsWith(`/api/campaigns/${localeCampaign.id}/settings`) && response.request().method() === "PATCH");
     await page.getByText(menuText, { exact: true }).click();
@@ -208,7 +202,6 @@ try {
     assert.ok(response.ok(), `campaign language PATCH failed: ${response.status()}`);
     assert.deepEqual(response.request().postDataJSON(), { language: next });
     await page.waitForFunction((locale) => document.documentElement.lang === locale, next);
-    if (next === "pl") assertPolishOnly(await page.locator("body").innerText(), "Polish campaign lobby");
     if (next === "en") assertEnglishOnly(await page.locator("body").innerText(), "English campaign lobby after cycle");
   }
   const character = await context.request.post("/api/characters", { data: { level: 1, role: "pc", sheet } });
@@ -236,12 +229,36 @@ try {
   const active = await context.request.patch(`/api/campaigns/${campaignId}`, { data: { status: "active" } });
   assert.ok(active.ok(), `active-session fixture failed: ${active.status()} ${await active.text()}`);
 
+  await page.goto(`/campaigns/${campaignId}`);
+  const chat = page.getByTestId("campaign-messages");
+  await chat.waitFor();
+  for (let index = 1; index <= 103; index += 1) {
+    const response = await context.request.post(`/api/campaigns/${campaignId}/dm/narrate`, { data: { content: `Chat regression ${index}` } });
+    assert.ok(response.ok(), `narration ${index} failed: ${response.status()}`);
+  }
+  await page.getByText("Chat regression 103", { exact: true }).waitFor();
+  await chat.evaluate(element => { element.scrollTop = element.scrollHeight; });
+  const follow = await context.request.post(`/api/campaigns/${campaignId}/dm/narrate`, { data: { content: "Chat regression follow" } });
+  assert.ok(follow.ok());
+  await page.getByText("Chat regression follow", { exact: true }).waitFor();
+  assert.ok(await chat.evaluate(element => element.scrollHeight - element.scrollTop - element.clientHeight < 120), "chat should follow new messages while at bottom");
+  await chat.evaluate(element => { element.scrollTop = Math.max(0, element.scrollHeight - element.clientHeight - 300); });
+  const beforeScroll = await chat.evaluate(element => element.scrollTop);
+  assert.ok(beforeScroll > 0, "chat fixture must be scrollable");
+  const held = await context.request.post(`/api/campaigns/${campaignId}/dm/narrate`, { data: { content: "Chat regression held" } });
+  assert.ok(held.ok());
+  await page.getByText("Chat regression held", { exact: true }).waitFor({ state: "attached" });
+  const afterScroll = await chat.evaluate(element => element.scrollTop);
+  assert.ok(Math.abs(afterScroll - beforeScroll) < 2, `chat moved away from the reader's position: ${beforeScroll} → ${afterScroll}`);
+  await page.reload();
+  await page.getByTestId("campaign-messages").waitFor();
+  await page.getByRole("button", { name: "Load older messages" }).click();
+  await page.getByText("Chat regression 1", { exact: true }).waitFor({ state: "attached" });
+
   // The authenticated dashboard must still expose an immediately reachable language control.
   await page.goto("/");
-  await page.getByRole("button", { name: "Switch language to Polish" }).waitFor({ timeout: 10_000 });
-  await page.getByRole("button", { name: "Switch language to Polish" }).click();
-  await page.waitForFunction(() => document.documentElement.lang === "pl");
-  await page.getByRole("button", { name: "Przełącz język na Rosyjski" }).click();
+  await page.getByRole("button", { name: "Switch language to Russian" }).waitFor({ timeout: 10_000 });
+  await page.getByRole("button", { name: "Switch language to Russian" }).click();
   await page.waitForFunction(() => document.documentElement.lang === "ru");
   assert.equal(await page.evaluate(() => localStorage.getItem("odm_locale")), "ru");
   await page.reload();
@@ -257,7 +274,7 @@ try {
       }
     }
   }
-  console.log("PASS i18n locale E2E: EN/RU/PL PATCH cycle and RU/EN responsive acceptance");
+  console.log("PASS i18n locale E2E: EN/RU PATCH cycle and responsive acceptance");
 } catch (error) {
   const failure = path.join("/tmp/opencode", "odm-i18n-locale-failure.png");
   const page = browser?.contexts()[0]?.pages()[0];

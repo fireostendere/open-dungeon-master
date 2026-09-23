@@ -23,7 +23,7 @@ function CharacterActions({
   onRemove: () => void;
 }) {
   const { t, locale } = useI18n();
-  const copy = localeText(locale, { en: { switch: "Switch" }, ru: { switch: "Сменить" }, pl: { switch: "Zmień" } });
+  const copy = localeText(locale, { en: { switch: "Switch" }, ru: { switch: "Сменить" } });
   return (
     <div className="flex flex-wrap items-center justify-center gap-2 text-xs">
       <span className="text-stone-500">{sheet.name}:</span>
@@ -65,7 +65,7 @@ function StartBlock({
   onStart: () => void;
 }) {
   const { t, locale } = useI18n();
-  const copy = localeText(locale, { en: { wait: "The owner or the DM starts the adventure once everyone is ready." }, ru: { wait: "Владелец или мастер стола начинает приключение, когда все готовы." }, pl: { wait: "Właściciel lub MG rozpoczyna przygodę, gdy wszyscy są gotowi." } });
+  const copy = localeText(locale, { en: { wait: "The owner or the DM starts the adventure once everyone is ready." }, ru: { wait: "Владелец или мастер стола начинает приключение, когда все готовы." } });
   if (!canStart) {
     return (
       <p className="text-center text-sm text-stone-500">
@@ -135,10 +135,10 @@ export function LobbyActions({
       {isDm ? (
         <div className={cn(ui.card, "ornate flex flex-col items-center gap-2 px-6 py-6 text-center")}>
           <p className="font-display text-lg tracking-wide text-amber-50">
-            {localeText(locale, { en: "You are running this game.", ru: "Вы ведёте эту игру.", pl: "Prowadzisz tę grę." })}
+            {localeText(locale, { en: "You are running this game.", ru: "Вы ведёте эту игру." })}
           </p>
           <p className="max-w-sm text-balance text-sm text-stone-400">
-            {localeText(locale, { en: "No character, no party slot. Ready up when the table is set and the adventure is yours to open.", ru: "Без персонажа и слота партии. Нажмите готовность, когда стол собран.", pl: "Bez postaci i miejsca w drużynie. Zaznacz gotowość, gdy stół jest gotów do przygody." })}
+            {localeText(locale, { en: "No character, no party slot. Ready up when the table is set and the adventure is yours to open.", ru: "Без персонажа и слота партии. Нажмите готовность, когда стол собран." })}
           </p>
           <button type="button" onClick={onToggleReady} className={cn(ui.btnPrimary, "mt-1 px-6")}>
             {myMember?.ready ? t("common.notReady") : t("common.ready")}
@@ -148,7 +148,7 @@ export function LobbyActions({
         !mySheet ? (
           <div className={cn(ui.card, "ornate flex flex-col items-center gap-3 px-6 py-8 text-center")}>
             <p className="max-w-sm text-balance font-display text-xl tracking-wide text-amber-50">
-              {localeText(locale, { en: "Your adventure needs a hero.", ru: "Вашему приключению нужен герой.", pl: "Twoja przygoda potrzebuje bohatera." })}
+              {localeText(locale, { en: "Your adventure needs a hero.", ru: "Вашему приключению нужен герой." })}
             </p>
             <Link href={`/campaigns/${campaign.id}/character`} className={cn(ui.btnPrimary, "px-6")}>
               {t("campaign.createCharacter")}
@@ -200,7 +200,7 @@ export function LobbyActions({
             onRemove={onRemoveCharacter}
           />
           <p className="text-center text-xs text-stone-600">
-            {localeText(locale, { en: "Changing your character clears your ready status.", ru: "Смена персонажа сбрасывает статус готовности.", pl: "Zmiana postaci usuwa status gotowości." })}
+            {localeText(locale, { en: "Changing your character clears your ready status.", ru: "Смена персонажа сбрасывает статус готовности." })}
           </p>
         </>
       )}
@@ -217,7 +217,7 @@ export function LobbyActions({
           disabled={busy}
           className="mx-auto flex items-center gap-1.5 pt-2 text-xs text-stone-600 transition-colors hover:text-red-400 disabled:opacity-60"
         >
-          <Trash2 className="size-3.5" /> {localeText(locale, { en: "Delete this campaign", ru: "Удалить эту кампанию", pl: "Usuń tę kampanię" })}
+          <Trash2 className="size-3.5" /> {localeText(locale, { en: "Delete this campaign", ru: "Удалить эту кампанию" })}
         </button>
       ) : null}
     </section>

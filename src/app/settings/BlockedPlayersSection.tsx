@@ -30,12 +30,6 @@ export function BlockedPlayersSection() {
       empty: "Заблокированных игроков нет.",
       unblock: "Разблокировать",
     },
-    pl: {
-      heading: "Zablokowani gracze",
-      intro: "Wiadomości zablokowanych graczy przy stole są przed tobą ukryte; nie możecie też otworzyć prywatnego czatu ani wysłać sobie zaproszenia do znajomych. Gracza można zablokować z jego wiadomości lub z listy drużyny.",
-      empty: "Brak zablokowanych graczy.",
-      unblock: "Odblokuj",
-    },
   });
   const [blocked, setBlocked] = useState<Blocked[] | null>(null);
   const [busyId, setBusyId] = useState("");

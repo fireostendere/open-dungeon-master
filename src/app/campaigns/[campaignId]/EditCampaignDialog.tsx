@@ -46,7 +46,6 @@ export function EditCampaignDialog({
   const copy = localeText(locale, {
     en: { title: "Edit campaign", name: "Title", description: "Premise", setting: "Setting", players: "Player slots", level: "Starting level", difficulty: "Difficulty", cover: "Cover art", upload: "Upload", painting: "Painting", paint: "Paint one", remove: "Remove", coverFailed: "The cover did not paint. Try again, or upload one.", save: "Save changes", status: "Campaign status", active: "Active", ended: "Ended (concluded)" },
     ru: { title: "Изменить кампанию", name: "Название", description: "Завязка", setting: "Сеттинг", players: "Места для игроков", level: "Стартовый уровень", difficulty: "Сложность", cover: "Обложка", upload: "Загрузить", painting: "Рисуем", paint: "Создать", remove: "Удалить", coverFailed: "Не удалось создать обложку. Повторите попытку или загрузите свою.", save: "Сохранить изменения", status: "Статус кампании", active: "В процессе", ended: "Завершена (финал)" },
-    pl: { title: "Edytuj kampanię", name: "Tytuł", description: "Założenie", setting: "Świat", players: "Miejsca dla graczy", level: "Poziom początkowy", difficulty: "Trudność", cover: "Grafika okładki", upload: "Prześlij", painting: "Tworzenie", paint: "Utwórz", remove: "Usuń", coverFailed: "Nie udało się utworzyć okładki. Spróbuj ponownie lub prześlij własną.", save: "Zapisz zmiany", status: "Status kampanii", active: "W toku", ended: "Zakończona (finał)" },
   });
   const [title, setTitle] = useState(campaign.title);
   const [description, setDescription] = useState(campaign.description);

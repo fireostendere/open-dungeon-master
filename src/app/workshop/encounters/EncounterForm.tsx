@@ -39,7 +39,7 @@ export function EncounterForm({
   variant?: "card" | "sheet";
 }) {
   const { locale } = useI18n();
-  const copy = localeText(locale, { en: { name: "Encounter name", roster: "Roster", battle: "Battlefield", map: "On which map", generator: "Generator's choice", notes: "Notes", note: "One per line, name or slug, optional xN. Picking above and typing here are the same thing." }, ru: { name: "Название встречи", roster: "Состав", battle: "Поле боя", map: "На какой карте", generator: "Выбор генератора", notes: "Заметки", note: "По одному в строке: имя или идентификатор, можно xN. Выбор выше и ввод здесь означают одно и то же." }, pl: { name: "Nazwa spotkania", roster: "Skład", battle: "Pole bitwy", map: "Na której mapie", generator: "Wybór generatora", notes: "Notatki", note: "Po jednym w wierszu: nazwa lub identyfikator, opcjonalnie xN. Wybór powyżej i wpisywanie tutaj działają tak samo." } });
+  const copy = localeText(locale, { en: { name: "Encounter name", roster: "Roster", battle: "Battlefield", map: "On which map", generator: "Generator's choice", notes: "Notes", note: "One per line, name or slug, optional xN. Picking above and typing here are the same thing." }, ru: { name: "Название встречи", roster: "Состав", battle: "Поле боя", map: "На какой карте", generator: "Выбор генератора", notes: "Заметки", note: "По одному в строке: имя или идентификатор, можно xN. Выбор выше и ввод здесь означают одно и то же." } });
   const set = (patch: Partial<EncounterDraft>) => onChange({ ...value, ...patch });
   return (
     <section

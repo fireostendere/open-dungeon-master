@@ -366,7 +366,6 @@ export function ItemFields({ data, onChange }: { data: Data; onChange: (next: Da
   const copy = localeText(locale, {
     en: { kind: "Kind", rarity: "Rarity", mundane: "mundane", cost: "Cost", weight: "Weight (lb)", attunement: "Requires attunement", charges: "Charges", recharge: "Recharge", alsoWeapon: "It is also a weapon", alsoArmor: "It is also armour" },
     ru: { kind: "Вид", rarity: "Редкость", mundane: "обычный", cost: "Стоимость", weight: "Вес (фнт)", attunement: "Требует настройки", charges: "Заряды", recharge: "Восстановление", alsoWeapon: "Также является оружием", alsoArmor: "Также является доспехом" },
-    pl: { kind: "Rodzaj", rarity: "Rzadkość", mundane: "zwykły", cost: "Cena", weight: "Waga (funt)", attunement: "Wymaga zestrojenia", charges: "Ładunki", recharge: "Odnowienie", alsoWeapon: "Jest też bronią", alsoArmor: "Jest też pancerzem" },
   });
   const set = (patch: Data) => onChange({ ...data, ...patch });
   const itemKind = ITEM_KINDS.includes(data.itemKind as ItemKind) ? (data.itemKind as ItemKind) : "gear";

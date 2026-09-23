@@ -47,12 +47,4 @@ export const DM_STATUS_PHRASES_BY_LOCALE: Record<Locale, StatusPhrases> = {
     writing_chapter: ["Ведущий записывает главу в летопись…", "Чернила касаются пергамента…", "В хронике появляется новая страница…", "Летописец макает перо…", "Ведущий скрепляет главу восковой печатью…", "Эта история войдёт в летопись…"],
     plotting_arc: ["Ведущий намечает дальнейший путь…", "Ведущий разворачивает подозрительно большую карту…", "Нити судьбы сплетаются…", "На горизонте собираются тучи…", "Ведущий соединяет ещё две улики красной нитью…", "Ведущий замышляет то, о чём вы ещё пожалеете…"],
   },
-  pl: {
-    thinking: ["Mistrz Gry rozważa wynik…", "Mistrz Gry radzi się losu…", "Gdzieś k20 wstrzymuje oddech…", "Mistrz Gry gładzi wyimaginowaną brodę…", "Mistrz Gry rozmyśla o waszym losie…", "Ładowanie atmosfery…", "Test Mądrości przed ważną decyzją…"],
-    rolling: ["Kości stukają o stół…", "Kości toczą się w ciemność…", "Kości zostały rzucone…", "Los grzechocze w kubku…", "Kości odbijają się od pudełka po pizzy…", "Kości lecą…", "Wzywamy bogów przypadku…"],
-    awaiting_rolls: ["Stół czeka na prawdziwe kości…", "Chwytaj kości, wszyscy czekają…", "Mistrz Gry stuka w stół, czekając na rzut…", "Drużyna wstrzymuje oddech przed rzutem…", "Potrzebne są prawdziwe kości. Bez presji…", "Znajdźcie k20, która wpadła pod kanapę…"],
-    narrating: ["Powstaje następny fragment…", "Opowieść bierze kolejny oddech…", "Historia rozwija się dalej…", "Słowa zbierają się na skraju strony…", "Mistrz Gry szuka kolejnych słów…", "Scena nabiera wyrazistości…"],
-    writing_chapter: ["Mistrz Gry zapisuje rozdział w kronice…", "Atrament dotyka pergaminu…", "Kronika zyskuje kolejną stronę…", "Skryba zanurza pióro…", "Mistrz Gry pieczętuje rozdział woskiem…", "Ta historia trafia do annałów…"],
-    plotting_arc: ["Mistrz Gry planuje dalszą drogę…", "Mistrz Gry rozwija podejrzanie wielką mapę…", "Nici przeznaczenia splatają się…", "Na horyzoncie zbierają się chmury…", "Mistrz Gry łączy kolejne poszlaki czerwoną nicią…", "Mistrz Gry knuje coś, czego pożałujecie…"],
-  },
 };

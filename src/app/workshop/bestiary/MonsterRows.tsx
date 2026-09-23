@@ -40,7 +40,7 @@ export function MonsterRows({
   onDelete: (monster: Monster) => void;
 }) {
   const { locale } = useI18n();
-  const copy = localeText(locale, { en: { empty: "Nothing built yet. A monster made here answers to its name wherever a fight starts.", hp: "hp", swing: "swing", swings: "swings", turn: "a turn", dex: "Dex", duplicate: "Duplicate", delete: "Delete" }, ru: { empty: "Пока ничего не создано. Монстр отсюда отвечает на своё имя в любой начавшейся схватке.", hp: "ОЗ", swing: "атака", swings: "атак", turn: "за ход", dex: "ЛВК", duplicate: "Дублировать", delete: "Удалить" }, pl: { empty: "Nie zbudowano jeszcze niczego. Potwór stąd odpowiada na swoją nazwę, gdziekolwiek zacznie się walka.", hp: "PŻ", swing: "atak", swings: "ataki", turn: "na turę", dex: "ZR", duplicate: "Duplikuj", delete: "Usuń" } });
+  const copy = localeText(locale, { en: { empty: "Nothing built yet. A monster made here answers to its name wherever a fight starts.", hp: "hp", swing: "swing", swings: "swings", turn: "a turn", dex: "Dex", duplicate: "Duplicate", delete: "Delete" }, ru: { empty: "Пока ничего не создано. Монстр отсюда отвечает на своё имя в любой начавшейся схватке.", hp: "ОЗ", swing: "атака", swings: "атак", turn: "за ход", dex: "ЛВК", duplicate: "Дублировать", delete: "Удалить" } });
   if (!monsters.length) {
     return (
       <p className="text-xs text-stone-500">

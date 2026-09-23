@@ -61,32 +61,6 @@ const COPY = {
     noPackHelp:
       "Готовый мир переименовывает расы, классы, заклинания и монстров под выбранный сеттинг и задаёт его тон для Мастера. Все правила остаются 5e.",
   },
-  pl: {
-    noPackInfo:
-      "Gotowy świat to nowa warstwa fabularna na tych samych zasadach 5e. Zmienia nazwy ras, klas, czarów i potworów tak, aby pasowały do settingu, podpowiada Mistrzowi Gry, jak ma brzmieć ten świat, oraz przesuwa pasujące ludy i archetypy na początek list w kreatorze postaci. Niczego nie blokuje: nadal możesz zagrać czarodziejem w świecie, który nazywa tę rolę inaczej.\n\nBez pakietu otrzymujesz zwykły setting wynikający z wybranego gatunku i pełny katalog pod standardowymi nazwami.",
-    noPack: "Bez pakietu (zwykły setting)",
-    title: "Tytuł",
-    titlePlaceholder: "Klątwa Popielnego Królestwa",
-    whoRuns: "Kto prowadzi ten stół?",
-    modeLabels: {
-      ai: "Mistrz Gry AI",
-      human: "Ja prowadzę grę",
-      assisted: "Ja prowadzę grę, z pomocą AI",
-    },
-    modeHints: {
-      ai: "AI prowadzi narrację, rozstrzyga zasady i zarządza światem. Lider drużyny nadaje kierunek.",
-      human: "Ty prowadzisz narrację. Serwer nadal egzekwuje zasady i wykonuje wszystkie rzuty.",
-      assisted: "Historia należy do ciebie; AI możesz przekazać potwory, narrację lub serię tur.",
-    },
-    noAi: "Ten serwer nie ma narratora AI, więc stół musi prowadzić człowiek.",
-    aiOffline:
-      "Backend AI obecnie nie odpowiada. Nadal możesz utworzyć kampanię, ale tury AI nie zadziałają, dopóki połączenie nie wróci.",
-    humanSeat:
-      "Zajmujesz miejsce Mistrza Gry: nie masz własnej postaci ani miejsca w drużynie, za to widzisz karty, bloki statystyk i całą mapę. Serwer nadal wykonuje wszystkie rzuty i przechowuje wartości mechaniczne.",
-    prebuiltWorld: "Gotowy świat (opcjonalnie)",
-    noPackHelp:
-      "Gotowy świat zmienia nazwy ras, klas, czarów i potworów tak, aby pasowały do settingu, oraz określa jego ton dla Mistrza Gry. Wszystkie zasady pozostają 5e.",
-  },
 } as const;
 
 // Step 1: the name, who holds the DM seat, and an optional pre-built world.
@@ -148,12 +122,10 @@ export function PremiseStep({
         <ToggleCard
           active
           onClick={() => patch({ dmMode: "human" })}
-          label={locale === "ru" ? "Человек / внешний рассказчик" : locale === "pl" ? "Człowiek / zewnętrzny narrator" : "Human / external narrator"}
+          label={locale === "ru" ? "Человек / внешний рассказчик" : "Human / external narrator"}
           hint={locale === "ru"
             ? "Сервер хранит состояние и применяет правила; повествование ведёт человек или внешний MCP narrator."
-            : locale === "pl"
-              ? "Serwer przechowuje stan i egzekwuje zasady; narrację prowadzi człowiek lub zewnętrzny narrator MCP."
-              : "The server owns state and rules; narration is supplied by a human or external MCP narrator."}
+            : "The server owns state and rules; narration is supplied by a human or external MCP narrator."}
         />
         <p className="mt-1.5 text-xs text-stone-500">{copy.humanSeat}</p>
       </div>

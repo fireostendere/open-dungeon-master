@@ -32,16 +32,6 @@ export function ContinueHero({ campaign, userId }: { campaign: HomeCampaign; use
       solo: "соло",
       enter: "Войти в мир",
     },
-    pl: {
-      continue: "Kontynuuj",
-      lobby: "Poczekalnia",
-      playingAs: "Grasz jako",
-      running: "Prowadzisz stół",
-      noCharacter: "Nie wybrano jeszcze postaci",
-      party: "drużyna",
-      solo: "solo",
-      enter: "Wejdź do świata",
-    },
   });
   const seats = `${campaign.playerCount}/${campaign.maxPlayers}`;
   const party = campaign.maxPlayers === 1 ? copy.solo : `${seats} ${copy.party}`;
@@ -86,10 +76,6 @@ export function EmptyHero() {
     ru: {
       title: "Каждая кампания начинается с пустого стола.",
       body: "Создайте свою и пригласите друзей или присоединитесь к их игре по коду комнаты ниже.",
-    },
-    pl: {
-      title: "Każda kampania zaczyna się przy pustym stole.",
-      body: "Utwórz własną i zaproś znajomych albo dołącz do ich gry za pomocą kodu pokoju poniżej.",
     },
   });
   return (

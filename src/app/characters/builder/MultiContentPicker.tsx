@@ -37,7 +37,6 @@ export default function MultiContentPicker({
   const copy = localeText(locale, {
     en: { added: "already added", homebrew: "homebrew", custom: "Add", asCustom: "as custom", unavailable: "Content pack not installed; add entries by name instead.", remove: "Remove", add: "Add" },
     ru: { added: "уже добавлено", homebrew: "хоумбрю", custom: "Добавить", asCustom: "как своё", unavailable: "Набор материалов не установлен; добавьте записи по названию.", remove: "Удалить", add: "Добавить" },
-    pl: { added: "już dodano", homebrew: "homebrew", custom: "Dodaj", asCustom: "jako własne", unavailable: "Pakiet zawartości nie jest zainstalowany; dodaj wpisy po nazwie.", remove: "Usuń", add: "Dodaj" },
   });
   const { query, setQuery, results, setResults, open, setOpen, loading, unavailable } =
     useContentSearch(kind, extraParams);

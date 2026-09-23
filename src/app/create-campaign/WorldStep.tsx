@@ -56,29 +56,6 @@ const COPY = {
     cover: "Обложка",
     coverHelp: "После создания кампании обложку можно добавить в её сведениях.",
   },
-  pl: {
-    setting: "Setting",
-    settings: "Informacje o settingach",
-    settingInfo:
-      "Setting określa ton świata, wygląd map i portretów oraz które klasy i pochodzenia kreator postaci pokazuje na początku list. Nie zmienia zasad: każdy setting działa na 5e.",
-    genres: {
-      high_fantasy: { name: "High fantasy", blurb: "Klasyczne miecze, magia i świetliste królestwa." },
-      dark_fantasy: { name: "Dark fantasy", blurb: "Ponure krainy, gdzie nadzieja jest rzadka, a zwycięstwa mają cenę." },
-      mystery: { name: "Tajemnica", blurb: "Tropy, podejrzani i sekrety za każdymi drzwiami." },
-      horror: { name: "Horror", blurb: "Groza, izolacja i rzeczy, których lepiej nie oglądać." },
-      cyberpunk: { name: "Cyberpunk", blurb: "Neonowe ulice, chromowane ciała i korporacyjni bogowie. Zasady 5e w nowej oprawie." },
-      steampunk: { name: "Steampunk", blurb: "Mosiądz, para, sterowce i niemożliwe maszyny." },
-      post_apocalyptic: { name: "Postapokalipsa", blurb: "Zdobywaj zasoby, przetrwaj i odbudowuj świat pośród ruin." },
-      custom: { name: "Własny", blurb: "Opisz własny świat i jego ton." },
-    },
-    customPlaceholder: "Opisz świat i jego ton własnymi słowami...",
-    premise: "Założenie fabularne (opcjonalnie)",
-    premiseAi: "Założenie fabularne (opcjonalnie; AI uzupełni je, jeśli zostawisz puste)",
-    theme: "Notatki o świecie lub motywie",
-    themePlaceholder: "Surowe low fantasy, autorski dwór fae, zalana neonem megametropolia...",
-    cover: "Okładka",
-    coverHelp: "Po utworzeniu kampanii możesz dodać okładkę w jej szczegółach.",
-  },
 } as const;
 
 // Step 2: the setting, its custom description, the premise and theme notes.

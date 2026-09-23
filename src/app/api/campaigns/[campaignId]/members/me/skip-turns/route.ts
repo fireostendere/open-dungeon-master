@@ -26,7 +26,7 @@ export async function POST(
   }
 
   const locale = resolveGameLanguage(
-    /(?:^|;\s*)odm_locale=(ru|en|pl)(?:;|$)/.exec(request.headers.get("cookie") ?? "")?.[1]
+    /(?:^|;\s*)odm_locale=(ru|en)(?:;|$)/.exec(request.headers.get("cookie") ?? "")?.[1]
       ?? context.campaign.gameSettings.language,
   );
 

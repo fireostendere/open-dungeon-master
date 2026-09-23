@@ -47,23 +47,6 @@ const COPY = {
     buttonTitle: "Адрес этого сервера и QR-код",
     shareText: (name: string, address: string) => `Присоединяйся ко мне на ${name}: ${address}`,
   },
-  pl: {
-    dialogLabel: "Adres tego serwera",
-    thisServer: "Ten serwer",
-    close: "Zamknij",
-    qrAlt: (address: string) => `Kod QR dla ${address}`,
-    preparing: "Przygotowywanie kodu...",
-    shareAddress: "Który adres udostępnić",
-    copied: "Skopiowano",
-    copy: "Kopiuj",
-    share: "Udostępnij",
-    help:
-      "Zeskanuj kod aplikacją Open Dungeon Master, aby dodać ten serwer, albo aparatem telefonu, aby otworzyć go w przeglądarce.",
-    hideAddress: "Ukryj adres tego serwera",
-    showAddress: "Pokaż adres tego serwera",
-    buttonTitle: "Adres tego serwera i kod QR",
-    shareText: (name: string, address: string) => `Dołącz do mnie na ${name}: ${address}`,
-  },
 } as const;
 
 // The little button in the corner of every page: tap it and the server's

@@ -42,7 +42,6 @@ export function TargetPartyBar({
   const budgetCopy = localeText(locale, {
     en: "One fight is easy up to {easy} XP, medium to {medium}, hard to {hard}, deadly beyond {deadly}. Adjusted for how many creatures you field.",
     ru: "Один бой лёгкий до {easy} XP, средний до {medium}, тяжёлый до {hard}, смертельный выше {deadly}. Значения скорректированы по числу существ.",
-    pl: "Jedna walka jest łatwa do {easy} XP, średnia do {medium}, trudna do {hard}, a śmiertelna powyżej {deadly}. Wartości uwzględniają liczbę stworzeń.",
   });
   const [size, setSize] = useState(targetParty.size);
   const [level, setLevel] = useState(targetParty.level);
@@ -91,7 +90,7 @@ export function TargetPartyBar({
             </option>
           ))}
         </select>
-        <span className="text-sm text-stone-400">{size === 1 ? copy.hero : copy.heroes} {locale === "ru" ? "уровня" : locale === "pl" ? "na poziomie" : "at level"}</span>
+        <span className="text-sm text-stone-400">{size === 1 ? copy.hero : copy.heroes} {locale === "ru" ? "уровня" : "at level"}</span>
         <select
           value={level}
           onChange={(event) => {

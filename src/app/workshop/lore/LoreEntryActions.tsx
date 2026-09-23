@@ -28,7 +28,7 @@ export function LoreEntryActions({
   onDelete: () => void;
 }) {
   const { locale } = useI18n();
-  const copy = localeText(locale, { en: { edit: "Edit", pin: "Pin", pinned: "Pinned", duplicate: "Duplicate", delete: "Delete" }, ru: { edit: "Изменить", pin: "Закрепить", pinned: "Закреплено", duplicate: "Дублировать", delete: "Удалить" }, pl: { edit: "Edytuj", pin: "Przypnij", pinned: "Przypięte", duplicate: "Duplikuj", delete: "Usuń" } });
+  const copy = localeText(locale, { en: { edit: "Edit", pin: "Pin", pinned: "Pinned", duplicate: "Duplicate", delete: "Delete" }, ru: { edit: "Изменить", pin: "Закрепить", pinned: "Закреплено", duplicate: "Дублировать", delete: "Удалить" } });
   return (
     <div className="flex items-center gap-2.5">
       {onEdit ? (

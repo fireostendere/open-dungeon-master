@@ -61,7 +61,7 @@ export function VoiceDock({
   meshSignal: { to: string; version: number } | null;
 }) {
   const { locale } = useI18n();
-  const copy = localeText(locale, { en: { voice: "Voice", chat: "Voice chat", onCall: "on the call", person: "person", people: "people" }, ru: { voice: "Голос", chat: "Голосовой чат", onCall: "в звонке", person: "участник", people: "участников" }, pl: { voice: "Głos", chat: "Czat głosowy", onCall: "na rozmowie", person: "osoba", people: "osób" } });
+  const copy = localeText(locale, { en: { voice: "Voice", chat: "Voice chat", onCall: "on the call", person: "person", people: "people" }, ru: { voice: "Голос", chat: "Голосовой чат", onCall: "в звонке", person: "участник", people: "участников" } });
   const [open, setOpen] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);

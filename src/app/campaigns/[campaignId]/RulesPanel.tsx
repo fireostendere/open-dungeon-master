@@ -134,41 +134,6 @@ const COPY = {
     unpin: "Открепить: показывать только когда раздел уместен",
     pin: "Закрепить: включать в каждый ход Мастера",
   },
-  pl: {
-    variantRules: "Zasady wariantowe",
-    toggles: {
-      flanking: { label: "Oskrzydlanie", tip: "Dwaj sojusznicy po przeciwnych stronach stworzenia dają sobie przewagę w atakach wręcz przeciw niemu." },
-      criticalFumbles: { label: "Krytyczne pudła", tip: "Naturalna 1 w rzucie ataku powoduje drobną opisaną w narracji wpadkę." },
-      encumbrance: { label: "Obciążenie", tip: "Noszenie więcej niż 5 × Siła funtów zmniejsza szybkość postaci o 10 stóp." },
-      lingeringInjuries: { label: "Trwałe obrażenia", tip: "Trafienie krytyczne lub spadek do 0 PW może pozostawić trwały uraz śledzony przez Mistrza Gry." },
-      powerfulCritical: { label: "Potężny krytyk", tip: "Przy trafieniu krytycznym dodatkowe kości broni zadają maksymalną wartość zamiast być rzucane." },
-      criticalDamageMods: { label: "Modyfikatory krytyka", tip: "Przy trafieniu krytycznym stałe modyfikatory obrażeń podwajają się razem z kośćmi." },
-      ammunition: { label: "Amunicja", tip: "Strzały, bełty i pociski zużywają się przy strzale, a połowę można odzyskać po walce." },
-    },
-    rests: {
-      standard: "Standardowy odpoczynek (krótki 1 godz., długi 8 godz.)",
-      gritty: "Surowy realizm (krótki 8 godz., długi 7 dni)",
-      heroic: "Heroiczny (krótki 5 min, długi 1 godz.)",
-    },
-    restsTip: "Określa długość krótkiego i długiego odpoczynku. Narzędzie odpoczynku Mistrza Gry stosuje to ustawienie.",
-    on: "wł.",
-    off: "wył.",
-    noVariant: "Brak aktywnych zasad wariantowych.",
-    houseRules: "Zasady domowe",
-    loading: "Ładowanie...",
-    housePlaceholder:
-      "Zapisz zasady domowe waszego stołu i pogrupuj je nagłówkami, np.\n\nMikstury:\nWypicie mikstury jest akcją dodatkową.\n\nMistrz Gry pobiera w każdej turze tylko zasady pasujące do sytuacji.",
-    saveRules: "Zapisz zasady",
-    unsaved: "Niezapisane zmiany",
-    noHouseRules: "Nie ustawiono zasad domowych.",
-    ruleSections: "Sekcje zasad",
-    sectionsHelp:
-      "Mistrz Gry widzi tylko sekcje pasujące do danej tury. Przypnij sekcję, aby była dołączana zawsze, albo wyłącz ją, aby ją uciszyć bez usuwania tekstu.",
-    switchOff: "Wyłącz tę sekcję",
-    switchOn: "Włącz tę sekcję",
-    unpin: "Odepnij: pobieraj tylko wtedy, gdy jest istotna",
-    pin: "Przypnij: dołączaj do każdej tury Mistrza Gry",
-  },
 } as const;
 
 // The variant-rule controls on their own, so the campaign-creation dialog can

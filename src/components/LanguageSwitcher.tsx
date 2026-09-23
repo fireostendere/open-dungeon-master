@@ -8,12 +8,7 @@ import { cn } from "@/lib/cn";
 export function LanguageSwitcher({ className }: { className?: string }) {
   const { t, locale, toggleLocale, unitSystem, toggleUnitSystem } = useI18n();
   const next = nextLocale(locale);
-  const nextLanguageName =
-    next === "ru"
-      ? t("language.russian")
-      : next === "pl"
-        ? t("language.polish")
-        : t("language.english");
+  const nextLanguageName = next === "ru" ? t("language.russian") : t("language.english");
   const languageTooltip = t("language.switchShort", { language: nextLanguageName });
   const languageLabel = t("language.switchTo", { language: nextLanguageName });
   const unitsTooltip =

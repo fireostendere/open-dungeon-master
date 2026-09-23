@@ -16,12 +16,6 @@ const COPY = {
     fan: "Эта кампания создана фанатами и не связана с {holder}, не спонсируется и не одобряется правообладателем.",
     community: "Эта кампания создана сообществом и не входит в поставку Open Dungeon Master.",
   },
-  pl: {
-    title: "Nieoficjalna kampania społeczności",
-    inline: "Nieoficjalna kampania społeczności. ",
-    fan: "Ta kampania jest dziełem fanowskim i nie jest powiązana z {holder}, sponsorowana ani zatwierdzona przez właściciela praw.",
-    community: "Ta kampania została utworzona przez społeczność i nie jest dostarczana z Open Dungeon Master.",
-  },
 } as const;
 
 export function UnofficialPackNotice({

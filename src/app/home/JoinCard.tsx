@@ -24,13 +24,6 @@ export function JoinCard({ inputRef }: { inputRef: RefObject<HTMLInputElement | 
       join: "Войти",
       failed: "Не удалось присоединиться.",
     },
-    pl: {
-      title: "Dołącz kodem pokoju",
-      body: "Osoba prowadząca stół poda ci ośmioznakowy kod.",
-      joining: "Dołączanie...",
-      join: "Dołącz",
-      failed: "Nie udało się dołączyć.",
-    },
   });
   const [joinCode, setJoinCode] = useState("");
   const [joinError, setJoinError] = useState("");

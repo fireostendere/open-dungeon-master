@@ -49,34 +49,7 @@ function authCopy(locale: Locale) {
       closed: "Этот сервер сейчас не принимает новые регистрации.",
     };
   }
-  if (locale === "pl") {
-    return {
-      oauthErrors: {
-        discord: "Logowanie przez Discord nie powiodło się. Spróbuj ponownie.",
-        signups_disabled: "Rejestracja na tym serwerze jest wyłączona.",
-        invite_required: "Do utworzenia konta na tym serwerze potrzebny jest kod zaproszenia.",
-        invite_invalid: "Ten kod zaproszenia jest nieprawidłowy albo został już wykorzystany.",
-      } as Record<string, string>,
-      seatTaken: "Ta nazwa jest już zajęta przy tym stole. Wybierz inną albo poproś gospodarza o usunięcie starego miejsca.",
-      seatKeyNeeded: "To miejsce już istnieje. Wpisz jego klucz, aby użyć go na tym urządzeniu.",
-      seatKeyWrong: "Ten klucz miejsca nie pasuje do tej nazwy.",
-      seatKeyInvalid: "Klucz miejsca ma 48 znaków szesnastkowych.",
-      seatKeyLabel: "Klucz miejsca",
-      seatKeyPlaceholder: "Wklej klucz z innego zalogowanego urządzenia",
-      seatKeyHelp: "Na urządzeniu, które już używa tego miejsca, otwórz Ustawienia konta → Inne urządzenia i skopiuj klucz.",
-      genericError: "Coś poszło nie tak.",
-      unreachable: "Nie udało się połączyć z serwerem.",
-      resetIntro: "Administrator zresetował twoje hasło. Ustaw nowe, aby kontynuować.",
-      deviceWorld:
-        "Ten świat działa na urządzeniu gospodarza. Podaj nazwę używaną przy stole i możesz dołączyć; nie musisz zapamiętywać hasła.",
-      tableName: "Twoja nazwa przy tym stole",
-      continueDiscord: "Kontynuuj przez Discord",
-      signInDiscord: "Zaloguj się przez Discord",
-      newHere: "Jesteś tu pierwszy raz? ",
-      haveAccount: "Masz już konto? ",
-      closed: "Ten serwer obecnie nie przyjmuje nowych kont.",
-    };
-  }
+
   return {
     oauthErrors: {
       discord: "Discord sign-in failed. Try again.",

@@ -13,7 +13,6 @@ export default function NewCharacterPage() {
   const copy = localeText(locale, {
     en: { back: "Back to your characters", title: "Create a character", subtitle: "Saved to your library; bring them into any campaign later.", save: "Save to library", saveFailed: "Could not save the character.", offline: "Could not reach the server." },
     ru: { back: "Назад к персонажам", title: "Новый персонаж", subtitle: "Сохранится в библиотеке — затем его можно взять в любую кампанию.", save: "Сохранить в библиотеку", saveFailed: "Не удалось сохранить персонажа.", offline: "Не удалось связаться с сервером." },
-    pl: { back: "Wróć do postaci", title: "Nowa postać", subtitle: "Zostanie zapisana w bibliotece; później możesz zabrać ją do dowolnej kampanii.", save: "Zapisz w bibliotece", saveFailed: "Nie udało się zapisać postaci.", offline: "Nie udało się połączyć z serwerem." },
   });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");

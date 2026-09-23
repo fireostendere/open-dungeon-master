@@ -87,46 +87,6 @@ const COPY = {
     soloNoAi:
       "Для одиночного приключения нужен ИИ-рассказчик, а на этом сервере он не настроен. Сначала попросите владельца сервера подключить ИИ-бэкенд.",
   },
-  pl: {
-    dmModes: {
-      ai: "Mistrz Gry AI",
-      human: "Ja prowadzę grę",
-      assisted: "Ja prowadzę grę, z pomocą AI",
-    },
-    genres: {
-      high_fantasy: "High fantasy",
-      dark_fantasy: "Dark fantasy",
-      mystery: "Tajemnica",
-      horror: "Horror",
-      cyberpunk: "Cyberpunk",
-      steampunk: "Steampunk",
-      post_apocalyptic: "Postapokalipsa",
-      custom: "Własny",
-    },
-    difficulties: { easy: "Łatwy", normal: "Normalny", hard: "Trudny", deadly: "Śmiertelny" },
-    soloParty: (level: number) => `Solo · poziom ${level}`,
-    party: (players: number, level: number) => `${players} graczy · poziom ${level}`,
-    digitalOnly: "Tylko cyfrowe",
-    realDice: "Prawdziwe kości dozwolone",
-    runsGame: "Prowadzący",
-    setting: "Setting",
-    partyLabel: "Drużyna",
-    difficulty: "Poziom trudności",
-    dmDifficulty: "Surowość Mistrza Gry",
-    dice: "Kości",
-    units: "Jednostki",
-    unitsMetric: "Metryczne (m, kg)",
-    unitsImperial: "Imperialne (ft, lb)",
-    combat: "Walka",
-    combatClassical: "Klasyczny",
-    combatJrpg: "JRPG",
-    features: "Funkcje stołu",
-    featuresOn: (count: number) => `włączone: ${count}`,
-    soloNext: "Po utworzeniu trafisz do lobby, gdzie pozostanie oznaczyć gotowość.",
-    partyNext: "Po utworzeniu trafisz do lobby, gdzie możesz udostępnić kod zaproszenia i oznaczyć gotowość.",
-    soloNoAi:
-      "Przygoda solo wymaga narratora AI, a ten serwer go nie ma. Najpierw poproś właściciela serwera o skonfigurowanie backendu AI.",
-  },
 } as const;
 
 // Step 6: the choices that shape the table, read back before the row is

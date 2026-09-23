@@ -38,15 +38,6 @@ export function WorkshopSection({
       duplicate: "Дублировать",
       empty: "На верстаке пока пусто. Мастерская принадлежит только вам, и ничего из неё не попадёт в игру, пока вы сами это не перенесёте.",
     },
-    pl: {
-      body: "Przygotuj mapy, NPC, potwory, fabułę i zasady jeszcze przed utworzeniem stołu.",
-      open: "Otwórz warsztat",
-      partyOf: "Drużyna licząca",
-      atLevel: "na poziomie",
-      duplicateTip: "Skopiuj ten warsztat wraz z całą zawartością",
-      duplicate: "Duplikuj",
-      empty: "Na stole roboczym jest jeszcze pusto. Warsztat należy tylko do ciebie i nic nie trafi z niego do gry, dopóki sam tego nie przeniesiesz.",
-    },
   });
   return (
     <section className="mb-8">

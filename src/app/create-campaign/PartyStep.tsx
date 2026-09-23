@@ -88,42 +88,6 @@ const COPY = {
     realSoloHint: "Бросайте кости сами и вводите результаты",
     realPartyHint: "Игроки смогут выбрать реальные броски за столом",
   },
-  pl: {
-    partyHelp: "Drużyna powstaje z członków kampanii i przypisanych do nich postaci.",
-    players: "Gracze",
-    startLevel: "Poziom początkowy",
-    difficulty: "Poziom trudności",
-    difficultyInfoIntro:
-      "Poziom trudności jest wskazówką dla Mistrza Gry, a nie mnożnikiem obrażeń: wszystkie zasady pozostają 5e. Wpływa na trudność projektowanych starć i na to, jak dotkliwe mogą być skutki pechowego rzutu.",
-    difficultyInfoOutro: "Lider drużyny może później zmienić go w ustawieniach stołu.",
-    difficultyLabels: { easy: "Łatwy", normal: "Normalny", hard: "Trudny", deadly: "Śmiertelny" },
-    difficultyHints: {
-      easy: "Walki są raczej łatwe, a historia wybacza błędy. Dobry wybór na pierwszą sesję.",
-      normal: "Starcia są budowane zgodnie z podręcznikiem. Nieostrożna drużyna nadal może kogoś stracić.",
-      hard: "Większe starcia, mniej drugich szans i zasoby, które naprawdę się kończą.",
-      deadly: "Zakłada, że utrata postaci jest częścią gry. Planuj odwroty i przygotuj zapasowych bohaterów.",
-    },
-    dmDifficulty: "Surowość Mistrza Gry",
-    dmDifficultyInfo:
-      "To osobne od trudności starć. Przy 1 MG jest bardzo wyrozumiały; przy 10 jest pedantyczny i bezlitosny, a błędy mają pełną cenę. Kości nigdy nie są naginane.",
-    dmDifficultyHint: (value: number) => value <= 2 ? "Bardzo wyrozumiale" : value <= 4 ? "Uczciwie i łagodnie" : value <= 6 ? "Stanowczo" : value <= 8 ? "Twardo" : "Pedantycznie i bezlitośnie",
-    campaignLength: "Długość kampanii",
-    lengthInfo:
-      "Jak daleko Mistrz Gry planuje z wyprzedzeniem tajną fabułę: ile aktów obejmuje wątek oraz ilu przeciwników i pobocznych tematów zostaje zasianych na początku.\n\n**Krótka**: trzy akty, jedna skupiona przygoda. Kilka sesji.\n\n**Standardowa**: cztery lub pięć aktów. Domyślna forma kampanii.\n\n**Epicka**: sześć do ośmiu aktów i kilka równoległych wątków.\n\nŻadna długość nie kończy gry na siłę. Po finale kolejna saga podejmuje historię w miejscu, w którym skończyła się poprzednia.",
-    lengthLabels: {
-      short: "Krótka (3 akty, skupiona przygoda)",
-      standard: "Standardowa (4–5 aktów)",
-      epic: "Epicka (6–8 aktów, rozbudowana saga)",
-    },
-    lengthHelp:
-      "Określa, jak daleko Mistrz Gry planuje fabułę z wyprzedzeniem. Po finale kampania trwa dalej: kolejna saga podejmuje historię od poprzedniego zakończenia.",
-    dice: "Kości",
-    digitalOnly: "Tylko cyfrowe",
-    digitalHint: "Wszystkie rzuty wykonuje serwer",
-    realDice: "Zezwól na prawdziwe kości",
-    realSoloHint: "Rzucaj kośćmi przy biurku i wpisuj wyniki",
-    realPartyHint: "Gracze mogą zdecydować się na rzuty fizycznymi kośćmi",
-  },
 } as const;
 
 // Step 3: how many, how strong, how hard, how long, and whose dice. A solo

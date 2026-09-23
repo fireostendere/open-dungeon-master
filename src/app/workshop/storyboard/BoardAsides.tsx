@@ -62,7 +62,7 @@ export function SuggestionsCard({
   onAdd: (kind: BeatKind, title: string) => void;
 }) {
   const { locale } = useI18n();
-  const copy = localeText(locale, { en: { missing: "What this board is missing", counted: "Counted, not guessed. Nothing here asked a model what your story needs.", kinds: { setting: "Place", backstory: "What happened before", event: "Something happens", encounter: "A fight", hook: "A reason to go", secret: "Something hidden", npc_moment: "Somebody's moment" } }, ru: { missing: "Чего не хватает доске", counted: "Посчитано, а не угадано. Здесь не спрашивали модель, что нужно вашей истории.", kinds: { setting: "Место", backstory: "Что случилось раньше", event: "Событие", encounter: "Бой", hook: "Причина отправиться", secret: "Скрытое", npc_moment: "Момент персонажа" } }, pl: { missing: "Czego brakuje tej planszy", counted: "Policzone, nie zgadnięte. Nic tutaj nie pytało modelu, czego potrzebuje Twoja historia.", kinds: { setting: "Miejsce", backstory: "Co wydarzyło się wcześniej", event: "Coś się dzieje", encounter: "Walka", hook: "Powód, by ruszyć", secret: "Coś ukrytego", npc_moment: "Chwila postaci" } } });
+  const copy = localeText(locale, { en: { missing: "What this board is missing", counted: "Counted, not guessed. Nothing here asked a model what your story needs.", kinds: { setting: "Place", backstory: "What happened before", event: "Something happens", encounter: "A fight", hook: "A reason to go", secret: "Something hidden", npc_moment: "Somebody's moment" } }, ru: { missing: "Чего не хватает доске", counted: "Посчитано, а не угадано. Здесь не спрашивали модель, что нужно вашей истории.", kinds: { setting: "Место", backstory: "Что случилось раньше", event: "Событие", encounter: "Бой", hook: "Причина отправиться", secret: "Скрытое", npc_moment: "Момент персонажа" } } });
   if (!suggestions.length) {
     return null;
   }
@@ -90,7 +90,7 @@ export function SuggestionsCard({
 
 export function CompileCard({ summary }: { summary: CompileSummary }) {
   const { locale } = useI18n();
-  const copy = localeText(locale, { en: { title: "What this becomes", becomes: "Imported into a campaign, this board becomes", empty: "Nothing yet. Cards become lore, quests, prepared fights, DM notes and the story arc." }, ru: { title: "Чем это станет", becomes: "При импорте в кампанию эта доска станет", empty: "Пока ничем. Карточки превратятся в лор, задания, подготовленные встречи, заметки DM и сюжетную арку." }, pl: { title: "Czym to się stanie", becomes: "Po zaimportowaniu do kampanii ta plansza stanie się", empty: "Jeszcze niczym. Karty staną się wiedzą, zadaniami, przygotowanymi walkami, notatkami MG i łukiem fabularnym." } });
+  const copy = localeText(locale, { en: { title: "What this becomes", becomes: "Imported into a campaign, this board becomes", empty: "Nothing yet. Cards become lore, quests, prepared fights, DM notes and the story arc." }, ru: { title: "Чем это станет", becomes: "При импорте в кампанию эта доска станет", empty: "Пока ничем. Карточки превратятся в лор, задания, подготовленные встречи, заметки DM и сюжетную арку." } });
   return (
     <AsideCard title={copy.title} tour="storyboard-compile">
       <p className="text-[11px] text-stone-500">

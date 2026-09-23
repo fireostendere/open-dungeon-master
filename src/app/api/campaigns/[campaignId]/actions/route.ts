@@ -1,4 +1,5 @@
 import { spatialEnabled, runSpatialCommand, SpatialError } from "@/lib/spatial/service";
+import { localeText } from "@/lib/i18n/locale-text";
 import { z } from "zod";
 import { enforcePlayerIngress } from "@/lib/ingress-budget";
 import { isErrorResponse, requireVoice } from "@/lib/campaign-api";
@@ -55,7 +56,7 @@ export async function POST(
   }
 
   const { campaign, user } = context;
-  const locale = /(?:^|;\s*)odm_locale=(ru|en|pl)(?:;|$)/.exec(request.headers.get("cookie") ?? "")?.[1]
+  const locale = /(?:^|;\s*)odm_locale=(ru|en)(?:;|$)/.exec(request.headers.get("cookie") ?? "")?.[1]
     ?? campaign.gameSettings.language ?? "ru";
   if (campaign.status !== "active") {
     return Response.json({ error: "The adventure has not started yet." }, { status: 400 });
@@ -78,7 +79,10 @@ export async function POST(
   const member = listMembers(campaignId).find((entry) => entry.userId === user.id);
   if (kind !== "ooc" && member?.autopilot) {
     return Response.json(
-      { error: "Автопилот управляет этим персонажем. Отключите его, чтобы действовать вручную." },
+      { error: localeText(locale === "ru" ? "ru" : "en", {
+        ru: "Автопилот управляет этим персонажем. Отключите его, чтобы действовать вручную.",
+        en: "Autopilot controls this character. Turn it off to act manually.",
+      }) },
       { status: 409 },
     );
   }
@@ -221,7 +225,6 @@ export async function POST(
     const fallback = {
       en: "This action is unavailable this turn.",
       ru: "Действие недоступно в этом ходе.",
-      pl: "To działanie jest niedostępne w tej turze.",
     }[locale] ?? "This action is unavailable this turn.";
     return Response.json({ error: turnResult.error ?? fallback }, { status: 409 });
   }

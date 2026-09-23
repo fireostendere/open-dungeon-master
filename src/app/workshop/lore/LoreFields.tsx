@@ -24,7 +24,7 @@ export function VisibilitySelect({
   onChange: (next: LoreVisibility) => void;
 }) {
   const { locale } = useI18n();
-  const copy = localeText(locale, { en: { table: "The table reads it", dm: "Only I read it", secret: "A secret: the DM prompt knows it, the players never see it.", public: "Part of the world bible every player can open. With a picture, a handout." }, ru: { table: "Стол читает это", dm: "Только я читаю это", secret: "Секрет: мастер видит его в подсказке, игроки — никогда.", public: "Часть энциклопедии мира, которую может открыть каждый игрок. С изображением — раздатка." }, pl: { table: "Stół to czyta", dm: "Tylko ja to czytam", secret: "Sekret: prowadzący widzi go w podpowiedzi, gracze nigdy.", public: "Część kroniki świata dostępna dla każdego gracza. Ze zdjęciem staje się materiałem dla graczy." } });
+  const copy = localeText(locale, { en: { table: "The table reads it", dm: "Only I read it", secret: "A secret: the DM prompt knows it, the players never see it.", public: "Part of the world bible every player can open. With a picture, a handout." }, ru: { table: "Стол читает это", dm: "Только я читаю это", secret: "Секрет: мастер видит его в подсказке, игроки — никогда.", public: "Часть энциклопедии мира, которую может открыть каждый игрок. С изображением — раздатка." } });
   return (
     <div className="flex flex-wrap items-center gap-1">
       <button
@@ -66,7 +66,7 @@ export function LoreImageField({
   onChange: (path: string) => void;
 }) {
   const { locale } = useI18n();
-  const copy = localeText(locale, { en: { failed: "That image would not upload.", replace: "Replace the picture", add: "Add a picture", remove: "Take it away" }, ru: { failed: "Не удалось загрузить изображение.", replace: "Заменить изображение", add: "Добавить изображение", remove: "Убрать" }, pl: { failed: "Nie udało się przesłać obrazu.", replace: "Zastąp obraz", add: "Dodaj obraz", remove: "Usuń obraz" } });
+  const copy = localeText(locale, { en: { failed: "That image would not upload.", replace: "Replace the picture", add: "Add a picture", remove: "Take it away" }, ru: { failed: "Не удалось загрузить изображение.", replace: "Заменить изображение", add: "Добавить изображение", remove: "Убрать" } });
   const fileRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");

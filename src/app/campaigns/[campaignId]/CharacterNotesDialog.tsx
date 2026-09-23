@@ -38,19 +38,6 @@ const COPY = {
     myNotes: "Мои заметки (видны только вам)",
     noPrivateNotes: "Личных заметок пока нет.",
   },
-  pl: {
-    save: "Zapisz",
-    cancel: "Anuluj",
-    edit: "Edytuj",
-    deleteNote: "Usuń notatkę",
-    you: "Ty",
-    unknown: "Nieznany",
-    notesOn: (name: string) => `Notatki o ${name}`,
-    partyNotes: "Notatki drużyny",
-    noPartyNotes: (name: string) => `Nie ma jeszcze notatek drużyny o ${name}.`,
-    myNotes: "Moje notatki (widoczne tylko dla ciebie)",
-    noPrivateNotes: "Nie ma jeszcze prywatnych notatek.",
-  },
 } as const;
 
 // Notes attached to one character: public party notes (anyone can write;

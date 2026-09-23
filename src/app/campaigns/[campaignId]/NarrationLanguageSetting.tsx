@@ -10,16 +10,16 @@ import { ui } from "@/lib/ui";
 /** Render only for the story authority; the PATCH route enforces permission. */
 export function NarrationLanguageSetting({ campaignId, language }: {
   campaignId: string;
-  language?: Locale;
+  language?: Locale | "pl";
 }) {
   const { locale } = useI18n();
   const [choice, setChoice] = useState<Locale | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const [receipt, setReceipt] = useState<{ prior: Locale | undefined; value: Locale } | null>(null);
+  const [receipt, setReceipt] = useState<{ prior: Locale | "pl" | undefined; value: Locale } | null>(null);
   const pending = useRef(false);
   const acknowledged = receipt?.prior === language ? receipt?.value : null;
-  const value = choice ?? acknowledged ?? language ?? "";
+  const value = choice ?? acknowledged ?? (isLocale(language) ? language : "");
 
   async function save(event: FormEvent) {
     event.preventDefault();
@@ -53,7 +53,6 @@ export function NarrationLanguageSetting({ campaignId, language }: {
           {!value ? <option value="" disabled>—</option> : null}
           <option value="ru">{sessionText(locale, "russian")}</option>
           <option value="en">{sessionText(locale, "english")}</option>
-          <option value="pl">{sessionText(locale, "polish")}</option>
         </select>
         <button type="submit" className={ui.btnSmall} disabled={busy || !choice || choice === language}>
           {sessionText(locale, "save")}

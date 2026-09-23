@@ -42,7 +42,6 @@ export function DmBestiaryPanel({
   const copy = localeText(locale, {
     en: { buildFailed: "That could not be built.", saveFailed: "That could not be saved.", build: "Build a monster", monster: "Monster", empty: "Nothing built yet. A monster made here answers to its name wherever a fight starts.", duplicate: "Duplicate", delete: "Delete" },
     ru: { buildFailed: "Не удалось создать монстра.", saveFailed: "Не удалось сохранить монстра.", build: "Создать монстра", monster: "Монстр", empty: "Монстров пока нет. Монстр, созданный здесь, доступен по имени в каждом бою.", duplicate: "Дублировать", delete: "Удалить" },
-    pl: { buildFailed: "Nie udało się utworzyć potwora.", saveFailed: "Nie udało się zapisać potwora.", build: "Utwórz potwora", monster: "Potwór", empty: "Nie utworzono jeszcze potworów. Potwór zbudowany tutaj jest dostępny po nazwie w każdej walce.", duplicate: "Duplikuj", delete: "Usuń" },
   });
   const [monsters, setMonsters] = useState<Monster[]>([]);
   const [found, setFound] = useState<Found[]>([]);

@@ -27,7 +27,6 @@ function categoryLabels(locale: Parameters<typeof localeText>[0]): Record<FactCa
   return localeText(locale, {
     en: { location: "Places", npc: "People", promise: "Promises & debts", world: "World state", party: "The party", lore: "Lore & rules" },
     ru: { location: "Места", npc: "Персонажи", promise: "Обещания и долги", world: "Состояние мира", party: "Группа", lore: "Знания и правила" },
-    pl: { location: "Miejsca", npc: "Postacie", promise: "Obietnice i długi", world: "Stan świata", party: "Drużyna", lore: "Wiedza i zasady" },
   });
 }
 
@@ -47,7 +46,6 @@ function FactCard({
   const copy = localeText(locale, {
     en: { save: "Save", cancel: "Cancel", secret: "DM secret", unpin: "Unpin", pin: "Pin: always kept in front of the DM, never auto-replaced", edit: "Edit", retire: "Retire: the DM stops treating this as true" },
     ru: { save: "Сохранить", cancel: "Отмена", secret: "Секрет мастера", unpin: "Открепить", pin: "Закрепить: всегда показывать мастеру, никогда не заменять автоматически", edit: "Редактировать", retire: "Отправить в архив: мастер перестанет считать это правдой" },
-    pl: { save: "Zapisz", cancel: "Anuluj", secret: "Sekret MG", unpin: "Odepnij", pin: "Przypnij: zawsze pokazuj MG, nigdy nie zastępuj automatycznie", edit: "Edytuj", retire: "Wycofaj: MG przestanie traktować to jako prawdę" },
   });
   const [editing, setEditing] = useState(false);
   const [text, setText] = useState(fact.fact);
@@ -168,7 +166,6 @@ function FactComposer({
   const copy = localeText(locale, {
     en: { saveFailed: "Could not save the fact.", reachFailed: "Could not reach the server.", subject: "Subject (who or what it is about)", fact: "One sentence the DM must never contradict", pin: "Pin fact" },
     ru: { saveFailed: "Не удалось сохранить факт.", reachFailed: "Не удалось связаться с сервером.", subject: "Тема (о ком или о чём это)", fact: "Одно предложение, которому мастер никогда не должен противоречить", pin: "Закрепить факт" },
-    pl: { saveFailed: "Nie udało się zapisać faktu.", reachFailed: "Nie udało się połączyć z serwerem.", subject: "Temat (kogo lub czego dotyczy)", fact: "Jedno zdanie, któremu MG nie może nigdy zaprzeczyć", pin: "Przypnij fakt" },
   });
   const [category, setCategory] = useState<FactCategory>("world");
   const [subject, setSubject] = useState("");
@@ -267,7 +264,6 @@ export function FactsPanel({
   const copy = localeText(locale, {
     en: { pinned: "Pinned", empty: "Nothing recorded yet. The DM writes durable facts here as chapters close", pinYourself: ", or pin one yourself above", hideSecrets: "Hide DM secrets", showSecrets: "Show DM secrets (spoilers)", noSecrets: "No DM secrets recorded." },
     ru: { pinned: "Закреплённое", empty: "Пока ничего не записано. Мастер добавляет сюда устойчивые факты после завершения глав", pinYourself: ", или закрепите факт сами выше", hideSecrets: "Скрыть секреты мастера", showSecrets: "Показать секреты мастера (спойлеры)", noSecrets: "Секретов мастера пока нет." },
-    pl: { pinned: "Przypięte", empty: "Nic jeszcze nie zapisano. MG dodaje tu trwałe fakty po zamknięciu rozdziałów", pinYourself: ", albo przypnij własny powyżej", hideSecrets: "Ukryj sekrety MG", showSecrets: "Pokaż sekrety MG (spoilery)", noSecrets: "Brak zapisanych sekretów MG." },
   });
   // Lead-only peek at DM secrets: fetched separately so the spoilers never
   // sit in shared state, and merged in only while the toggle is on.

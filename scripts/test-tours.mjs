@@ -6,11 +6,11 @@ import { register } from "node:module";
 register("./lib/register-alias.mjs", import.meta.url);
 
 const { markTourSeen, placeCard, resolveSteps, tourSeen } = await import("../src/lib/tours/logic.ts");
-const { DM_TOUR, PLAYER_TOUR } = await import("../src/lib/tours/table.ts");
-const { HUB_TOUR, SHELF_TOUR, SYSTEM_TOURS, systemTourId, workshopTourAnchors } = await import(
+const { DM_TOUR, PLAYER_TOUR, tableTour } = await import("../src/lib/tours/table.ts");
+const { HUB_TOUR, SHELF_TOUR, SYSTEM_TOURS, systemTour, systemTourId, workshopTourAnchors } = await import(
   "../src/lib/tours/workshop.ts"
 );
-const { WORKSHOP_GUIDES, guideFor } = await import("../src/lib/tours/workshop-guide.ts");
+const { WORKSHOP_GUIDES, guideFor, workshopGuides } = await import("../src/lib/tours/workshop-guide.ts");
 const { appendTerm, appendLine, collectTags, insertAt } = await import("../src/lib/workshop/pickers.ts");
 const { readFileSync, readdirSync, statSync } = await import("node:fs");
 const { fileURLToPath } = await import("node:url");
@@ -60,6 +60,14 @@ test("the DM tour walks the console top to bottom before the shared tabs", () =>
       assert.equal(step.prepare, "open-dm", step.id);
     }
   }
+});
+
+test("Russian table tours and workshop guides have their own copy", () => {
+  assert.equal(tableTour("ru", "dm")[0].title, "Вы ведёте игру");
+  assert.equal(tableTour("ru", "player")[0].title, "Добро пожаловать за стол");
+  const guides = workshopGuides("ru");
+  assert.deepEqual(guides.map(guide => guide.id), WORKSHOP_GUIDES.map(guide => guide.id));
+  assert.ok(guides.every(guide => /[А-Яа-яЁё]/.test(guide.title + guide.purpose + guide.steps.join(" ") + guide.tips.join(" "))));
 });
 
 test("every step points at a known anchor or none", () => {
@@ -126,6 +134,9 @@ test("every workshop tool has a tour that opens on the rail and ends on help, an
     assert.equal(systemTourId(system), `workshop-${system}`);
     const guide = guideFor(system);
     assert.ok(guide && guide.steps.length >= 2 && guide.purpose, `${system} has a guide`);
+    const russian = systemTour("ru", system);
+    assert.deepEqual(russian.map(step => step.id), tour.map(step => step.id));
+    assert.ok(russian.every(step => /[А-Яа-яЁё]/.test(step.title + step.body)), `${system} has translated tour steps`);
   }
   assert.equal(WORKSHOP_GUIDES.length, SYSTEMS.length);
   assert.ok(SHELF_TOUR.length >= 3 && HUB_TOUR.length >= 3);

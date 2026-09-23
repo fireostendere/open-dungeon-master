@@ -127,20 +127,6 @@ export function CharacterSheetDialog({
       editBackstory: "Изменить предысторию",
       noBackstory: "Предыстория ещё не написана.",
     },
-    pl: {
-      baseSpeed: "Bazowa",
-      walkingSpeed: "Ich szybkość poruszania się.",
-      reducedByGear: "zmniejszona przez noszony ekwipunek",
-      andCarry: " i ciężar",
-      initiative: "Inic.",
-      passivePerception: "PW",
-      proficiencyBonus: "PB",
-      gold: "sz.",
-      level: "Poziom",
-      xpHitDice: "PD · Kości wytrzymałości", wildShape: "Dzika postać", beastHp: "PW bestii", ownHp: "własne PW", savingThrows: "Rzuty obronne", skills: "Umiejętności", slots: "Miejsca", spendSlot: "Użyj miejsca", hitDice: "Kości wytrzymałości", spendHitDie: "Użyj kości wytrzymałości", spendUse: "Użyj", equipment: "Ekwipunek", attuned: "dostrojony", attune: "dostrój", features: "Cechy i zdolności", story: "(fabuła)", feats: "Atuty", backstory: "Historia", notes: "Notatki (widzisz je tylko Ty)", downloadTitle: "Pobierz kartę postaci jako wypełnialny PDF", preparing: "Przygotowanie...", download: "Pobierz PDF", adjustTitle: "Dostosuj statystyki, przedmioty i zaklęcia tej postaci", adjust: "Dostosuj",
-      editBackstory: "Edytuj historię",
-      noBackstory: "Brak historii postaci.",
-    },
   });
   const speed = speedFor(sheet, { encumbrance: encumbranceRule });
   const load = encumbranceFor({

@@ -40,17 +40,6 @@ export default function AdminPage() {
       signedInAs: (username: string) => `Вы вошли как ${username}`,
       section: "Раздел администрирования",
     },
-    pl: {
-      settings: "Ustawienia serwera",
-      worlds: "Wtyczki kampanii",
-      users: "Użytkownicy",
-      reports: "Zgłoszenia",
-      adminsOnly: "Tylko dla administratorów.",
-      back: "Wróć do kampanii",
-      title: "Panel administratora",
-      signedInAs: (username: string) => `Zalogowano jako ${username}`,
-      section: "Sekcja administracyjna",
-    },
   });
   const tabs: SegmentedOption<Tab>[] = [
     { value: "settings", label: copy.settings, icon: Settings2 },
