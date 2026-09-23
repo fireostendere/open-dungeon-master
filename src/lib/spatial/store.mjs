@@ -364,7 +364,7 @@ export function createSpatialStore(db, { nextSeq, now = () => new Date().toISOSt
         const charId = typeof input.characterId === "string" ? input.characterId : actor.userId;
         run(`INSERT INTO spatial_stealth_states(campaign_id,character_id,user_id,room_id,status,updated_at)
           VALUES(?,?,?,?,?,?) ON CONFLICT(campaign_id,character_id) DO UPDATE SET
-          status='pending',room_id=excluded.room_id,updated_at=excluded.updated_at`,
+          status='pending',user_id=excluded.user_id,room_id=excluded.room_id,updated_at=excluded.updated_at`,
           actor.campaignId, charId, actor.userId, input.roomId, "pending", now());
         return { message: msg };
       }
@@ -458,7 +458,14 @@ export function createSpatialStore(db, { nextSeq, now = () => new Date().toISOSt
       if (!msg) throw new SpatialError("Message not found.", 404);
       run("UPDATE spatial_messages SET stealth_status=? WHERE campaign_id=? AND id=?", outcome, actor.campaignId, messageId);
       const targetUserId = msg.author_user_id;
-      const charId = typeof input.characterId === "string" ? input.characterId : (targetUserId || messageId);
+      // Player sends are keyed by the server-resolved sheet ID. A DM may
+      // omit characterId; resolve the existing key instead of creating a
+      // second user-ID-keyed row that leaves the original permanently hidden.
+      const previousStealth = targetUserId && msg.room_id
+        ? one("SELECT character_id FROM spatial_stealth_states WHERE campaign_id=? AND user_id=? AND room_id=? ORDER BY updated_at DESC LIMIT 1",
+          actor.campaignId, targetUserId, msg.room_id)
+        : null;
+      const charId = typeof input.characterId === "string" ? input.characterId : (previousStealth?.character_id || targetUserId || messageId);
       if (targetUserId && msg.room_id) {
         run(`INSERT INTO spatial_stealth_states(campaign_id,character_id,user_id,room_id,status,updated_at)
           VALUES(?,?,?,?,?,?) ON CONFLICT(campaign_id,character_id) DO UPDATE SET
@@ -539,7 +546,7 @@ export function createSpatialStore(db, { nextSeq, now = () => new Date().toISOSt
 
   return {
     enabled,
-    command(actor, requestId, operation, input, normalizeInput = value => value) {
+    command(actor, requestId, operation, input, normalizeInput = value => value, afterApply = () => {}) {
       authorize(actor);
       text(requestId, 100, "request ID");
       const fingerprint = createHash("sha256").update(JSON.stringify(canonical({ operation, input }))).digest("hex");
@@ -549,7 +556,11 @@ export function createSpatialStore(db, { nextSeq, now = () => new Date().toISOSt
           if (previous.fingerprint !== fingerprint) throw new SpatialError("Request ID was already used with different arguments.", 409);
           return JSON.parse(previous.result_json);
         }
-        const result = mutate(actor, operation, normalizeInput(input));
+        const normalizedInput = normalizeInput(input);
+        const result = mutate(actor, operation, normalizedInput);
+        // Quota/floor changes belong to the receipt, not to every HTTP retry.
+        // Throwing here rolls back the message AND its associated state.
+        afterApply(result, normalizedInput);
         run("INSERT INTO spatial_requests(campaign_id,actor_id,request_id,fingerprint,result_json) VALUES(?,?,?,?,?)", actor.campaignId, actor.userId, requestId, fingerprint, JSON.stringify(result));
         return result;
       })();
@@ -572,8 +583,21 @@ export function createSpatialStore(db, { nextSeq, now = () => new Date().toISOSt
       if (occupantRoomIds.length) {
         const placeholders = occupantRoomIds.map(() => "?").join(",");
         for (const row of all(
-          `SELECT room_id,user_id FROM spatial_presence WHERE campaign_id=? AND room_id IN (${placeholders})`,
+          `SELECT p.room_id,p.user_id FROM spatial_presence p
+            WHERE p.campaign_id=? AND p.room_id IN (${placeholders})
+            ${actor.isDm ? "" : `AND (p.user_id=? OR NOT EXISTS (
+              SELECT 1 FROM spatial_stealth_states s
+              WHERE s.campaign_id=p.campaign_id AND s.user_id=p.user_id
+                AND s.status IN ('pending','confirmed') AND NOT EXISTS (
+                  SELECT 1 FROM spatial_detections d
+                  WHERE d.campaign_id=s.campaign_id AND d.observer_id IN (?,?)
+                    AND d.target_id IN (s.character_id,p.user_id) AND d.state='detected'
+                    AND (d.expires_at IS NULL OR d.expires_at>?)
+                    AND (d.room_id IS NULL OR d.room_id=p.room_id)
+                )
+            ))`}`,
           actor.campaignId, ...occupantRoomIds,
+          ...(actor.isDm ? [] : [actor.userId, actor.userId, actor.characterId ?? actor.userId, now()]),
         )) {
           if (!playerIds.has(row.user_id)) continue;
           const list = occupantMap.get(row.room_id) ?? [];
@@ -663,6 +687,10 @@ export function createSpatialStore(db, { nextSeq, now = () => new Date().toISOSt
       if (!campaignId || !roomId) return;
       const json = floor ? JSON.stringify(floor) : null;
       run("UPDATE spatial_rooms SET floor_json=? WHERE campaign_id=? AND id=?", json, campaignId, roomId);
+    },
+    getUserPosition(campaignId, userId) {
+      if (!campaignId || !userId) return null;
+      return position({ campaignId, userId });
     },
     getUserRoom(campaignId, userId) {
       if (!campaignId || !userId) return null;
