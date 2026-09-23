@@ -14,7 +14,7 @@ export async function POST(
   return Response.json(
     {
       error:
-        "Global rounds close automatically by quorum/deadline and are resolved by the external MCP narrator. Players and the party lead may only submit or skip their turn.",
+        "Global rounds end automatically by quorum/deadline and are resolved by the MCP Dungeon Master. The party lead may only start/re-open a round.",
     },
     { status: 409 },
   );

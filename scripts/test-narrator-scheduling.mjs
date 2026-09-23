@@ -18,8 +18,7 @@ async function moduleAt(relative, mocks) {
   await module.evaluate(); return module.namespace;
 }
 function host(overrides = {}) {
-  return { campaignId: 'c', timelineEpoch: 'e', stopping: false, askTask: null, askResponder: () => {},
-    deltaReads: true, sectionCache: null, stateCache: null, readPageRetries: 2, readMaxBytes: 65536,
+  return { campaignId: 'c', timelineEpoch: 'e', stopping: false, askTask: null, askResponder: () => {}, readPageRetries: 0,
     pendingAskCommands: new Map(), pendingAskAttempts: new Map(), answeredAsks: new Set(),
     callControl: async (action, params) => {
       assert.equal(action, 'narrator.read');
@@ -58,7 +57,7 @@ test('empty Ask metadata avoids a second MCP read', async () => {
 test('stalled Ask does not block story and only one Ask worker runs', async () => {
   const gate = deferred(); let calls = 0, stories = 0;
   const h = host({ handlePendingAsk: async () => { calls++; await gate.promise; }, storyController: { tick: async () => { stories++; return true; } } });
-  await driveNarratorCycle(h); await driveNarratorCycle(h); await tick();
+  await driveNarratorCycle(h); await driveNarratorCycle(h);
   assert.equal(stories, 2); assert.equal(calls, 1); assert.ok(h.askTask);
   const task = h.askTask; gate.resolve(); await task; assert.equal(h.askTask, null);
 });
@@ -110,6 +109,7 @@ const runner = await moduleAt('../narrator/run.mjs', {
   './cost-tracker.mjs': { NarratorCostTracker: class {} }, './compaction.mjs': { HostContextMemory: class {} },
   './read-session.mjs': { connectNarrator: () => {}, drainNarratorStory: () => {}, readNarratorSnapshot: () => {} },
   './poll-cycle.mjs': { driveNarratorCycle, narratorPollDelay },
+  './rules-client.mjs': { createRulesMcpClientFromEnv: () => null },
 });
 function askHost(responder) {
   return host({ askResponder: responder, memory: { getPromptContext: scope => ({ viewerUserId: scope.viewerUserId }) },
@@ -161,6 +161,32 @@ test('actual adapter returns completed answer before DELETE and keeps sessions i
   assert.equal(adapter.pendingCleanups.size, 0);
   assert.ok(timings.every(value => /^adapter_(session|policy|model|cleanup)$/.test(value.stage) && Number.isFinite(value.durationMs) && Number.isFinite(value.responseBytes)));
   assert.ok(!JSON.stringify(timings).includes('private input'));
+});
+
+test('sticky referee generation reuses one session until explicit release', async () => {
+  const { adapter, cleanup, requests } = adapterFixture();
+  const key = 'referee:' + 'a'.repeat(64);
+  assert.equal(await adapter.generate('referee', 'full packet', { sessionKey: key }), 'approved prose');
+  assert.equal(await adapter.generate('referee', 'delta packet', { sessionKey: key }), 'approved prose');
+  assert.equal(requests.filter(r => r.path === '/api/session').length, 1);
+  assert.equal(requests.filter(r => r.method === 'DELETE').length, 0);
+  assert.equal(adapter.conversationSessions.size, 1);
+  assert.equal(adapter.releaseConversation(key), true);
+  assert.equal(adapter.conversationSessions.size, 0);
+  assert.deepEqual(requests.filter(r => r.method === 'DELETE').map(r => r.path), ['/api/session/ses1']);
+  cleanup.resolve(new Response(null, { status: 204 }));
+  await adapter.close();
+});
+
+test('failed sticky generation drops its session so a retry cannot inherit partial context', async () => {
+  const { adapter, cleanup, requests } = adapterFixture({ fail: true });
+  const key = 'referee:' + 'b'.repeat(64);
+  await assert.rejects(adapter.generate('referee', 'full packet', { sessionKey: key }), /Malformed/);
+  assert.equal(adapter.conversationSessions.size, 0);
+  assert.equal(requests.filter(r => r.path === '/api/session').length, 1);
+  assert.deepEqual(requests.filter(r => r.method === 'DELETE').map(r => r.path), ['/api/session/ses1']);
+  cleanup.resolve(new Response(null, { status: 204 }));
+  await adapter.close();
 });
 
 test('failed generation still cleans only its own session without masking the error', async () => {

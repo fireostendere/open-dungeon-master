@@ -3,6 +3,7 @@ import { filterNarratorCatalog, narratorModeGuidance, resolveNarratorPlayMode } 
 import { parseGameFacadeArgs } from '../shared/dnd-game-facade.mjs';
 import { postWriteReadOptions, consumePostWriteRead } from './read-session.mjs';
 import { compactRolePacket } from './role-packet.mjs';
+import { createRolePacketDelta } from './role-delta.mjs';
 import { emitLatency, latencyEnabled } from '../mcp/latency-trace.mjs';
 
 const clone = value => structuredClone(value);
@@ -91,12 +92,13 @@ function validateActorTurn(value) {
 export function validateDecision(value, { allowedActions = new Set(), catalogActions = allowedActions } = {}) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('Invalid referee decision.');
   const keys = {
-    invoke: ['kind', 'action', 'args'], catalog: ['kind', 'action'],
+    invoke: ['kind', 'action', 'args'], catalog: ['kind', 'action'], rules_lookup: ['kind', 'query'],
     narrate: ['kind', 'text', 'writer', 'releaseFloor'], wait: ['kind'], done: ['kind'], release_floor: ['kind'],
   }[value.kind];
   if (!keys || Object.keys(value).some(key => !keys.includes(key))) throw new Error('Unsupported referee decision fields.');
   if (value.kind === 'invoke' && !allowedActions.has(value.action)) throw new Error('Disallowed engine action.');
   if (value.kind === 'catalog' && !catalogActions.has(value.action)) throw new Error('Disallowed catalog action.');
+  if (value.kind === 'rules_lookup' && (typeof value.query !== 'string' || !value.query.trim() || value.query.trim().length > 500)) throw new Error('Invalid rules lookup query.');
   if (value.kind === 'invoke' && (!value.args || typeof value.args !== 'object' || Array.isArray(value.args) ||
       ['campaignId', 'expectedSeq', 'commandId', 'timelineEpoch'].some(key => Object.hasOwn(value.args, key)))) throw new Error('Invalid engine arguments.');
   if (value.kind === 'narrate' && (!text(value.text) ||
@@ -115,20 +117,32 @@ export class NarratorOrchestrator {
         !Number.isSafeInteger(maxCallsPerHour) || maxCallsPerHour < 1) throw new Error('Invalid narrator controller configuration.');
     this.adapter = adapter; this.playMode = playMode; this.maxSteps = resolvedMaxSteps; this.maxCallsPerHour = maxCallsPerHour;
     this.writerEnabled = writerEnabled === true;
-    this.catalog = null; this.schemas = {};
+    this.catalog = null; this.schemas = {}; this.refereeContext = null;
     this.lastIngestCheckpointSeq = null;
     this.lastIngestCheckpointEpoch = null;
     this.state = { version: 1, epoch: null, handledSeq: startAfterSeq, queue: [], current: null, pending: null,
       history: [], events: [], paused: null, usage: { calls: 0, inputBytes: 0, outputBytes: 0, times: [] } };
   }
+  refereeSessionKey() {
+    const input = this.state.current?.input;
+    if (!input) return null;
+    return `referee:${digest([this.state.epoch ?? '', input.id ?? '', input.seq ?? 0])}`;
+  }
+  releaseRefereeConversation() {
+    const key = this.refereeContext?.key;
+    if (key && typeof this.adapter.releaseConversation === 'function') this.adapter.releaseConversation(key);
+    this.refereeContext = null;
+  }
   restore(state) {
     if (state?.version !== 1 || !sequence(state.handledSeq) || !Array.isArray(state.queue) || !state.usage) throw new Error('Unsupported orchestration checkpoint.');
+    this.releaseRefereeConversation();
     this.state = clone(state);
     this.lastIngestCheckpointSeq = null;
     this.lastIngestCheckpointEpoch = null;
   }
   serialize() { return clone(this.state); }
   reset(epoch) {
+    this.releaseRefereeConversation();
     const usage = this.state.usage;
     this.state = { version: 1, epoch, handledSeq: 0, queue: [], current: null, pending: null, history: [], events: [], paused: 'timeline_changed', usage };
     this.catalog = null; this.schemas = {};
@@ -136,6 +150,7 @@ export class NarratorOrchestrator {
     this.lastIngestCheckpointEpoch = null;
   }
   resume({ afterSeq } = {}) {
+    this.releaseRefereeConversation();
     if (this.state.pending?.attempts >= 2) throw new Error('Ambiguous write requires operator reconciliation, not another retry.');
     if(this.state.paused==='timeline_changed'){
       if(!sequence(afterSeq))throw new Error('Select an acknowledged input cursor after a timeline change.');
@@ -179,32 +194,70 @@ export class NarratorOrchestrator {
       }
     }
   }
-  pause(host, reason) { this.state.paused = reason; host.saveCheckpoint(); return false; }
+  pause(host, reason) { this.releaseRefereeConversation(); this.state.paused = reason; host.saveCheckpoint(); return false; }
   async generate(host, role, packet) {
     const usage = this.state.usage, now = Date.now();
     usage.times = usage.times.filter(time => time > now - 3600000);
     if (usage.times.length >= this.maxCallsPerHour) throw new Error('Narrator model call budget exhausted.');
+
     const packetTiming=latencyEnabled(), packetStarted=packetTiming?performance.now():0;
-    const prompt = JSON.stringify(compactRolePacket(role, packet));
+    const canonicalPacket = compactRolePacket(role, packet);
+    let prompt = JSON.stringify(canonicalPacket);
+    let sessionOptions = {};
+    let sticky = false;
+    let carriedContextBytes = 0;
+    let sentDelta = false;
+    let refereeKey = null;
+
+    if (role === 'referee' && this.state.current && typeof this.adapter.releaseConversation === 'function') {
+      refereeKey = this.refereeSessionKey();
+      if (this.refereeContext?.key && this.refereeContext.key !== refereeKey) this.releaseRefereeConversation();
+      if (this.refereeContext?.key === refereeKey) {
+        const delta = createRolePacketDelta(this.refereeContext.packet, canonicalPacket);
+        const deltaPrompt = JSON.stringify(delta);
+        if (Buffer.byteLength(deltaPrompt) + 128 < Buffer.byteLength(prompt)) {
+          prompt = deltaPrompt;
+          sentDelta = true;
+        }
+        carriedContextBytes = this.refereeContext.contextBytes ?? 0;
+      }
+      sticky = Boolean(refereeKey);
+      if (sticky) sessionOptions = { sessionKey: refereeKey };
+    }
+
     const promptBytes = Buffer.byteLength(prompt);
     const instructionBytes = typeof this.adapter.instructionBytes === 'function'
       ? Math.max(0, Number(this.adapter.instructionBytes(role)) || 0) : 0;
-    const totalInputBytes = promptBytes + instructionBytes;
+    // Sticky provider sessions still see their earlier turns; budget fallback
+    // therefore includes the accumulated context even though only the delta
+    // crosses the adapter boundary on this step.
+    const totalInputBytes = promptBytes + instructionBytes + carriedContextBytes;
     const estimatedPromptTokens = Math.ceil(totalInputBytes / 3);
     const estimatedOutputTokens = role === 'writer' ? 2048 : role === 'referee' ? 2048 : 1024;
     const budget = host.costTracker?.checkBudget?.({ promptTokens: estimatedPromptTokens, completionTokens: estimatedOutputTokens });
-    if (budget && !budget.allowed) throw new Error(`Narrator token budget exhausted: ${budget.reason}`);
-    if(packetTiming)emitLatency({stage:'packet',role,durationMs:performance.now()-packetStarted,bytes:promptBytes,instructionBytes,totalInputBytes});
+    if (budget && !budget.allowed) {
+      if (sticky) this.releaseRefereeConversation();
+      throw new Error(`Narrator token budget exhausted: ${budget.reason}`);
+    }
+    if(packetTiming)emitLatency({stage:'packet',role,durationMs:performance.now()-packetStarted,bytes:promptBytes,
+      instructionBytes,carriedContextBytes,totalInputBytes,delta:sentDelta});
     usage.calls++; usage.times.push(now); usage.inputBytes += totalInputBytes; host.saveCheckpoint();
     const modelTiming=latencyEnabled(), startedAt = modelTiming?performance.now():0; let outputBytes=0;
     try {
       const generated = typeof this.adapter.generateWithUsage === 'function'
-        ? await this.adapter.generateWithUsage(role, prompt)
-        : { text: await this.adapter.generate(role, prompt), usage: null };
+        ? await this.adapter.generateWithUsage(role, prompt, sessionOptions)
+        : { text: await this.adapter.generate(role, prompt, sessionOptions), usage: null };
       const response = typeof generated === 'string' ? generated : generated?.text;
       const providerUsage = typeof generated === 'object' && generated ? generated.usage : null;
       if (typeof response !== 'string') throw new Error('Role did not return text.');
       outputBytes=Buffer.byteLength(response);usage.outputBytes += outputBytes;
+      if (sticky) {
+        this.refereeContext = {
+          key: refereeKey,
+          packet: clone(canonicalPacket),
+          contextBytes: carriedContextBytes + promptBytes + outputBytes,
+        };
+      }
       if (host.costTracker?.recordUsage) {
         if (providerUsage && Number.isSafeInteger(providerUsage.promptTokens) && Number.isSafeInteger(providerUsage.completionTokens)) {
           host.costTracker.recordUsage(providerUsage);
@@ -216,17 +269,23 @@ export class NarratorOrchestrator {
           });
         }
       }
-      // Output byte counters are advisory. The next decision boundary saves
-      // them together with its mandatory state, not another full fsync here.
       return response;
+    } catch (error) {
+      if (sticky) this.releaseRefereeConversation();
+      throw error;
     } finally {
-      if (modelTiming) emitLatency({ stage: 'narrator_model', role, durationMs: performance.now()-startedAt,
-        inputBytes: totalInputBytes, promptBytes, instructionBytes, outputBytes, modelCalls: 1 });
+      if (modelTiming) emitLatency({ stage: 'narrator_model', role, durationMs:performance.now()-startedAt,
+        inputBytes: totalInputBytes, promptBytes, instructionBytes, carriedContextBytes, outputBytes,
+        delta:sentDelta, modelCalls: 1 });
     }
   }
   async answerAsk(host, ask, context) {
     try {
-      const reply=JSON.parse(await this.generate(host,'ask',{task:'answer_ask',question:ask.question,language:ask.locale??'ru',context}));
+      const rulesEvidence = ask?.scope === 'rules' && typeof host.lookupRules === 'function'
+        ? await host.lookupRules(ask.question)
+        : undefined;
+      const reply=JSON.parse(await this.generate(host,'ask',{task:'answer_ask',question:ask.question,language:ask.locale??'ru',context,
+        ...(rulesEvidence ? { rulesEvidence } : {})}));
       if(!reply||Object.keys(reply).some(key=>key!=='answer')||!text(reply.answer)||reply.answer.length>4000)throw new Error('Invalid private answer.');
       return {answer:reply.answer,citations:[]};
     } catch {
@@ -410,7 +469,10 @@ export class NarratorOrchestrator {
       host.saveCheckpoint();
       return this.write(host);
     }
-    if (current.waiting.some(id => !current.resolved[id]) || snapshot.pendingRolls?.length) return false;
+    if (current.waiting.some(id => !current.resolved[id]) || snapshot.pendingRolls?.length) {
+      this.releaseRefereeConversation();
+      return false;
+    }
     if (current.waiting.length) {
       // This tick already holds a fully drained authoritative snapshot and
       // ingestReadSnapshot correlated each required pendingRollId to its
@@ -431,8 +493,9 @@ export class NarratorOrchestrator {
     }
     const visibleCatalog = filterNarratorCatalog(this.catalog, this.playMode, { spatialEnabled });
     const allowedActions = new Set(visibleCatalog.flatMap(group => (group.actions ?? []).map(action => action.name)));
-    const catalogActions = new Set(visibleCatalog.flatMap(group => (group.actions ?? []).flatMap(action =>
-      (action.operations ?? []).map(operation => operation.name))));
+    const operationNames = visibleCatalog.flatMap(group => (group.actions ?? []).flatMap(action =>
+      (action.operations ?? []).map(operation => operation.name)));
+    const catalogActions = new Set(operationNames);
     const campaign = snapshot.campaign ?? {};
     const safeCampaign = campaign;
     const packet = {
@@ -446,7 +509,7 @@ export class NarratorOrchestrator {
         spatial: spatialEnabled ? { enabled: true, rooms: snapshot.spatialRooms ?? [], grants: snapshot.spatialGrants ?? [] } : { enabled: false } },
       historySummary: host.memory?.getPromptContext?.().summary ?? '',
       outcomes: current.outcomes, rollEvents: this.state.events.filter(event => event.seq >= current.input.seq),
-      actions: visibleCatalog, schemas: this.schemas,
+      operations: operationNames, schemas: this.schemas,
     };
     let decision;
     try {
@@ -480,19 +543,52 @@ export class NarratorOrchestrator {
         decision = { kind: 'invoke', action: 'game', args: { action: 'location_narrate', args: { roomId, content: decision.text } } };
       }
     } catch { return this.pause(host, 'model_or_decision_error'); }
-    if (host.stopping || this.state.current !== current || this.state.epoch !== snapshot.timelineEpoch) return false;
+    if (host.stopping || this.state.current !== current || this.state.epoch !== snapshot.timelineEpoch) {
+      this.releaseRefereeConversation();
+      return false;
+    }
     if (decision.kind === 'wait') {
       if (
         current.input?.kind === 'global_round' ||
         current.input?.kind === 'global_turn_trigger'
       ) return this.pause(host, 'global_round_cannot_wait_for_new_input');
+      this.releaseRefereeConversation();
       current.waitSeq = snapshot.currentSeq; host.saveCheckpoint(); return false;
     }
     if (decision.kind === 'catalog') {
-      const result = await host.callControl('narrator.catalog', { campaignId: host.campaignId, action: decision.action });
+      let result;
+      try {
+        result = await host.callControl('narrator.catalog', { campaignId: host.campaignId, action: decision.action });
+      } catch (error) {
+        this.releaseRefereeConversation();
+        throw error;
+      }
       // Only the schema requested for the next decision is relevant. Do not
       // accumulate every schema seen during a long campaign into all future prompts.
       this.schemas = { [decision.action]: result.groups }; return true;
+    }
+    if (decision.kind === 'rules_lookup') {
+      const query = decision.query.trim();
+      const normalized = query.toLocaleLowerCase('en-US');
+      const prior = current.outcomes.filter(outcome =>
+        outcome.name === 'rules_lookup' && typeof outcome.query === 'string' &&
+        outcome.query.toLocaleLowerCase('en-US') === normalized);
+      if (prior.length >= 2) return this.pause(host, 'duplicate_rules_lookup');
+      const epoch = this.state.epoch;
+      let result;
+      if (prior.length) result = { ...clone(prior.at(-1).result), reused: true };
+      else if (typeof host.lookupRules === 'function') {
+        try { result = await host.lookupRules(query); }
+        catch { result = { ok: false, error: 'rules_rag_failed', retryable: true, untrusted: true }; }
+      } else result = { ok: false, error: 'rules_rag_unavailable', retryable: false, untrusted: true };
+      if (host.stopping || this.state.current !== current || this.state.epoch !== epoch) {
+        this.releaseRefereeConversation();
+        return false;
+      }
+      current.outcomes.push({ name: 'rules_lookup', query, result });
+      this.schemas = {};
+      host.saveCheckpoint();
+      return true;
     }
     if (decision.kind === 'done' || decision.kind === 'release_floor') {
       const globalInput =
@@ -574,7 +670,10 @@ export class NarratorOrchestrator {
     // Generation is not a lock. The engine's transactional expectedSeq/epoch
     // check rejects a stale draft before effects. A redundant pre-write read
     // neither closes that race nor replaces CAS; keep the original read cursor.
-    if (host.stopping || this.state.current !== current) return false;
+    if (host.stopping || this.state.current !== current) {
+      this.releaseRefereeConversation();
+      return false;
+    }
     if (this.state.epoch !== snapshot.timelineEpoch || host.timelineEpoch && host.timelineEpoch !== snapshot.timelineEpoch) return this.pause(host, 'timeline_changed');
     const action = decision.kind === 'invoke' ? 'narrator.invoke' : decision.kind === 'narrate' ? 'narrator.narrate' : 'narrator.release_floor';
     const params = { campaignId: host.campaignId, expectedSeq: snapshot.currentSeq, timelineEpoch: snapshot.timelineEpoch, commandId: crypto.randomUUID(),
@@ -599,6 +698,7 @@ export class NarratorOrchestrator {
     return this.write(host);
   }
   finish(host) {
+    this.releaseRefereeConversation();
     this.schemas = {};
     this.state.handledSeq = this.state.current.input.seq;
     // A global-turn start trigger is also the lower input boundary for that
@@ -633,6 +733,7 @@ export class NarratorOrchestrator {
           return true;
         }
         if (error.status === 409 && /^Stale narrator cursor/.test(error.message)) {
+          this.releaseRefereeConversation();
           this.state.pending = null; host.saveCheckpoint(); await host.drainStory(); return false;
         }
         if (error.status >= 400 && error.status < 500 && ![408, 429, 499].includes(error.status)) return this.pause(host, 'command_rejected');
@@ -666,6 +767,7 @@ export class NarratorOrchestrator {
     if (result?.parked && !waiting.length) return this.pause(host, 'unobserved_pending_roll');
     this.state.current.outcomes.push({ name: pending.params.name, args: pending.params.args, result, commandId: pending.params.commandId, committedSeq: pending.receipt.committedSeq });
     this.state.current.waiting = waiting; this.state.current.waitSeq = null;
+    if (waiting.length) this.releaseRefereeConversation();
     this.state.pending = null; host.saveCheckpoint(); return true;
   }
 }

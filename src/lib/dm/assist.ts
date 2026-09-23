@@ -19,7 +19,7 @@ export type SuggestedAdjudication = {
 export async function suggestAdjudication(
   _campaign: Campaign,
   intent: string,
-  options: { inEncounter: boolean; useModel?: boolean },
+  options: { inEncounter: boolean },
 ): Promise<{ suggestions: SuggestedAdjudication[]; picked: null }> {
   const ranked = rankAdjudications(intent, ADJUDICATIONS, {
     inEncounter: options.inEncounter,

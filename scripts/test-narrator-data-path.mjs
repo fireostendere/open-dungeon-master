@@ -154,9 +154,9 @@ test('failed fsync preserves prior checkpoint and removes temporary file',()=>te
   fs.fsyncSync=()=>{throw new Error('disk failure');};try{assert.throws(()=>atomicWriteJson(file,{...data,lastSeq:3}),/disk failure/);}finally{fs.fsyncSync=original;}
   assert.equal(readJsonSafe(file).lastSeq,2);assert.deepEqual(fs.readdirSync(path.dirname(file)),['state.json']);
 }));
-test('role projection retains mechanics, biography, rules and audience while removing rendering data',()=>{
-  const packet={input:{id:'m',seq:1,characterId:'p',content:'attack'},public:{messages:[{id:'m',seq:1,characterId:'p',content:'attack'},{id:'old',seq:0,content:'history'}]},state:{sheets:[{id:'p',portrait:{data:'x'.repeat(8000)},backstory:'important',resources:{slots:2},notes:'canon'}]},actions:[{name:'cast'}],schemas:{cast:{rules:'all'}}};
-  const result=compactRolePacket('referee',packet);assert.equal(result.state.sheets[0].portrait,undefined);assert.equal(result.state.sheets[0].backstory,'important');assert.deepEqual(result.state.sheets[0].resources,{slots:2});assert.equal(result.public.messages.length,1);assert.ok(packet.state.sheets[0].portrait);
+test('role projection retains mechanics, rules and audience while removing biography and rendering data',()=>{
+  const packet={input:{id:'m',seq:1,content:'attack'},public:{messages:[{id:'m',seq:1,content:'attack'},{id:'old',seq:0,content:'history'}]},state:{sheets:[{id:'p',portrait:{data:'x'.repeat(8000)},backstory:'important',resources:{slots:2},notes:'canon'}]},actions:[{name:'cast'}],schemas:{cast:{rules:'all'}}};
+  const result=compactRolePacket('referee',packet);assert.equal(result.state.sheets[0].portrait,undefined);assert.equal(result.state.sheets[0].backstory,undefined);assert.deepEqual(result.state.sheets[0].resources,{slots:2});assert.equal(result.public.messages.length,1);assert.ok(packet.state.sheets[0].portrait);
   assert.deepEqual(compactRolePacket('writer',packet),packet);assert.deepEqual(compactRolePacket('referee',{...packet,task:'answer_ask'}),{...packet,task:'answer_ask'});
 });
 

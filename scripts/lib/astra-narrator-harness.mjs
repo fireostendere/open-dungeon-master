@@ -19,6 +19,7 @@ export async function narratorHarness(options={}){
   './cost-tracker.mjs':{NarratorCostTracker:class{getMetrics(){return{};}recordUsage(value){usage.push(value);}}},
    './compaction.mjs':{HostContextMemory},'./read-session.mjs':reader,'./poll-cycle.mjs':pollCycle,
    '../mcp/latency-trace.mjs':latencyTrace,
+   './rules-client.mjs':{createRulesMcpClientFromEnv:()=>null},
    '../mcp/control-client.mjs':{createOdmClient:({fetchImpl})=>{const call=async(action,params={},options={})=>{const response=await fetchImpl('http://odm.test',{method:'POST',headers:{authorization:'Bearer test-only', 'content-type':'application/json'},body:JSON.stringify({action,params}),signal:options.signal});const body=await response.json();if(!response.ok)throw new Error(body?.error||`HTTP ${response.status}`);return body.result;};call.close=async()=>{};return call;}},
    '../shared/dnd-play-mode.mjs':playMode,
   };

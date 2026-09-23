@@ -1,6 +1,6 @@
 "use client";
 
-import { Bot, Clock, Loader2 } from "lucide-react";
+import { Bot, Clock, Loader2, Play } from "lucide-react";
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/cn";
 import { useI18n } from "@/lib/i18n";
@@ -14,11 +14,13 @@ export function GlobalTurnCard({
   campaign,
   members,
   sheets,
+  isLead,
 }: {
   campaignId: string;
   campaign: LeadCampaign & { globalTurnState?: GlobalTurnState };
   members: CampaignMember[];
   sheets: CharacterSheet[];
+  isLead: boolean;
 }) {
   const { locale } = useI18n();
   const copy = localeText(locale, {
@@ -42,6 +44,11 @@ export function GlobalTurnCard({
       unlimited: "∞",
       timeRemaining: "Time remaining",
       responded: "Answered",
+      startRound: "Start round",
+      reopenRound: "Re-open input",
+      startingRound: "Starting...",
+      startRoundHint: "Recovery control: opens the current round without changing its number. If already open, it re-publishes the round and clears a stale non-combat floor lock.",
+      startRoundError: "Could not start the round.",
       autopilotTitle: "Party Autopilot (Doppelganger)",
       autopilotHint: "Hand character control to AI to wake up sleepy players.",
       on: "ON",
@@ -70,6 +77,11 @@ export function GlobalTurnCard({
       unlimited: "∞",
       timeRemaining: "До конца хода",
       responded: "Ответили",
+      startRound: "Стартовать раунд",
+      reopenRound: "Переоткрыть ввод",
+      startingRound: "Запускаем...",
+      startRoundHint: "Аварийная кнопка: открывает текущий раунд без смены номера. Если он уже открыт, повторно публикует состояние и снимает зависший внебоевой lock ввода.",
+      startRoundError: "Не удалось стартовать раунд.",
       autopilotTitle: "Автопилот игроков (Доппельгангер)",
       autopilotHint: "Передайте руление ИИ, чтобы не задерживать партию и растормошить спящих.",
       on: "ВКЛ",
@@ -93,6 +105,8 @@ export function GlobalTurnCard({
   const [graceMins, setGraceMins] = useState(globalTurnSettings.quorumDelayMinutes);
   const [saving, setSaving] = useState(false);
   const [busyUser, setBusyUser] = useState<string | null>(null);
+  const [startingRound, setStartingRound] = useState(false);
+  const [startRoundError, setStartRoundError] = useState<string | null>(null);
   const [now, setNow] = useState(Date.now());
 
   // Real-time ticker for deadline
@@ -140,6 +154,11 @@ export function GlobalTurnCard({
   const countdownMinutes = Math.floor(secsTotal / 60);
   const countdownSeconds = secsTotal % 60;
   const formattedCountdown = `${String(countdownMinutes).padStart(2, "0")}:${String(countdownSeconds).padStart(2, "0")}`;
+  const canStartRound =
+    isLead &&
+    (turnState.phase === "waiting" ||
+      turnState.phase === "active" ||
+      turnState.phase === "quorum_delay");
 
   async function updateTurnSettings(patch: {
     enabled?: boolean;
@@ -163,6 +182,28 @@ export function GlobalTurnCard({
       });
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function startRound() {
+    if (!canStartRound || startingRound) return;
+
+    setStartingRound(true);
+    setStartRoundError(null);
+    try {
+      const response = await fetch(`/api/campaigns/${campaignId}/global-turn/start`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ roundNumber: turnState.roundNumber }),
+      });
+      const payload = (await response.json().catch(() => ({}))) as { error?: string };
+      if (!response.ok) {
+        throw new Error(payload.error || copy.startRoundError);
+      }
+    } catch (error) {
+      setStartRoundError(error instanceof Error ? error.message : copy.startRoundError);
+    } finally {
+      setStartingRound(false);
     }
   }
 
@@ -316,6 +357,39 @@ export function GlobalTurnCard({
                 {turnState.firstActionAt ? copy.waitingQuorum : copy.waitingFirst}
               </p>
             )}
+
+            {isLead ? (
+              <div className="mt-2 border-t border-amber-900/30 pt-2">
+                <button
+                  type="button"
+                  disabled={!canStartRound || startingRound}
+                  onClick={() => void startRound()}
+                  className={cn(
+                    "flex w-full items-center justify-center gap-1.5 rounded border px-2 py-1.5 text-[11px] font-semibold transition-colors",
+                    canStartRound
+                      ? "border-emerald-700/70 bg-emerald-950/40 text-emerald-200 hover:bg-emerald-900/50"
+                      : "cursor-not-allowed border-stone-800 bg-stone-900/50 text-stone-600",
+                  )}
+                >
+                  {startingRound ? (
+                    <Loader2 className="size-3.5 animate-spin" />
+                  ) : (
+                    <Play className="size-3.5" />
+                  )}
+                  {startingRound
+                    ? copy.startingRound
+                    : turnState.phase === "waiting"
+                      ? copy.startRound
+                      : copy.reopenRound}
+                </button>
+                <p className="mt-1 text-[10px] text-stone-500">{copy.startRoundHint}</p>
+                {startRoundError ? (
+                  <p className="mt-1 text-[10px] text-red-400" role="alert">
+                    {startRoundError}
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
           </div>
 
           {/* Autopilot Delegation Section */}

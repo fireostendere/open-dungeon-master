@@ -91,12 +91,12 @@ const COPY = {
 } as const;
 
 // Step 3: how many, how strong, how hard, how long, and whose dice. A solo
-// table has no player count (maxPlayers is pinned to 1 in the payload), and
-// only an AI narrator plans a story arc, so length hides with it.
+// table has no player count (maxPlayers is pinned to 1 in the payload).
+// Campaign length guides the human or external narrator's long-term arc.
 export function PartyStep({ draft, patch, gates }: StepProps) {
   const { locale } = useI18n();
   const copy = COPY[locale];
-  const { solo, aiNarrates } = gates;
+  const { solo } = gates;
   const difficultyInfo = `${copy.difficultyInfoIntro}\n\n${CAMPAIGN_DIFFICULTIES.map(
     (value) => `**${copy.difficultyLabels[value]}**: ${copy.difficultyHints[value]}`,
   ).join("\n\n")}\n\n${copy.difficultyInfoOutro}`;
@@ -172,7 +172,6 @@ export function PartyStep({ draft, patch, gates }: StepProps) {
         <p className="mt-1 text-xs text-stone-500">{copy.dmDifficultyHint(draft.dmDifficulty)}</p>
       </label>
 
-      {aiNarrates ? (
         <label className="block">
           <FieldLabel>
             <span className="flex items-center gap-1">
@@ -195,7 +194,6 @@ export function PartyStep({ draft, patch, gates }: StepProps) {
           </select>
           <p className="mt-1 text-xs text-stone-500">{copy.lengthHelp}</p>
         </label>
-      ) : null}
 
       <div>
         <FieldLabel className="mb-1.5">{copy.dice}</FieldLabel>

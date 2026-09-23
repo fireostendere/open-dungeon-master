@@ -139,6 +139,19 @@ export async function connectNarrator(host) {
   else host.timelineEpoch=epoch??host.timelineEpoch;
   await host.drainStory({ full: true });return result;
 }
+function isVerifiedUnchangedStateDelta(result, cursor, epoch) {
+  const delta=result?.stateDelta, patch=delta?.patch;
+  return result?.hasMore===false &&
+    result?.nextCursor===cursor &&
+    (result?.timelineEpoch??epoch)===epoch &&
+    Array.isArray(result?.events) && result.events.length===0 &&
+    Array.isArray(result?.messages) && result.messages.length===0 &&
+    delta?.full===false && delta?.resyncRequired===false &&
+    typeof delta?.revision==='string' && delta.revision===delta.baseRevision &&
+    patch && typeof patch==='object' && !Array.isArray(patch) &&
+    Object.keys(patch).length===1 && typeof patch.format==='string';
+}
+
 export async function drainNarratorStory(host, { full = false, firstSnapshot } = {}) {
   for(let page=0;page<1000;page++){
     const cursor=host.lastSeq;
@@ -152,6 +165,11 @@ export async function drainNarratorStory(host, { full = false, firstSnapshot } =
     const next=result.nextCursor??(result.hasMore?null:result.currentSeq);
     if(!seq(next)||next<cursor||next>result.currentSeq||result.hasMore&&next<=cursor||!result.hasMore&&next!==result.currentSeq)throw fail('Story cursor did not advance safely.',400);
     if((result.messages||[]).some(message=>!seq(message.seq)||message.seq<=cursor||message.seq>next))throw fail('Story message lies outside its acknowledged range.',400);
+    // A cryptographically verified empty delta means both story cursor and
+    // patchable live state are identical to the host baseline. Do not
+    // re-ingest the same objects or fsync an identical checkpoint on every
+    // idle poll.
+    if(!full && isVerifiedUnchangedStateDelta(result,cursor,host.timelineEpoch)) return result;
     const before=host.memory.serializeState(),previousEpoch=host.timelineEpoch,controller=host.storyController?.serialize?.();
     try{
       host.memory.ingestReadSnapshot(result);host.storyController?.ingestReadSnapshot?.(result);

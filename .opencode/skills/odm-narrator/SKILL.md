@@ -5,12 +5,36 @@ description: "Внешний ведущий ODM: D&D-игра через MCP с 
 
 # Внешний ведущий Open Dungeon Master
 
-Прочитайте [общий контракт](../../../docs/agent-skills.md#общий-контракт-и-границы),
-[odm-dm-policy](../odm-dm-policy/SKILL.md), `odm://narrator/policy`,
-`odm://narrator/playbook` и актуальный catalog. Для настройки нового host прочитайте
-[первый внешний сеанс](../../../docs/external-narrator-first-session.md). Навык не
-запускает runtime: для live-игры нужен отдельно настроенный host. Требуются active
-human-DM campaign, service DM seat, выключенные TTS/автокарты и отсутствие AI cover.
+Сначала загрузите `odm-dm-policy`. Ниже — контракт игрового цикла; дополнительные
+[первый сеанс](../../../docs/external-narrator-first-session.md),
+[общий контракт](../../../docs/agent-skills.md#общий-контракт-и-границы) и
+`odm://narrator/playbook` нужны при настройке или неясном протоколе.
+Навык не запускает runtime. Требуются active human-DM campaign, service DM seat,
+выключенные TTS/автокарты и отсутствие AI cover.
+
+## Быстрый игровой цикл
+
+- Один `connect` на подключение: `campaignId`, `projection: "live"`, `paged:true`,
+  `maxBytes:131072`, `stateDelta:true`. Он возвращает cursor metadata; baseline
+  состояния получите последующим полным `read`. `delta:true` и `includeAsks`
+  допустимы только в `read`, а `sections` — только в `snapshot`.
+  Полный catalog не нужен: запрашивайте `catalog` с `action` для нужной механики
+  и переиспользуйте её схему до смены контракта.
+- После полного чтения сохраняйте `stateDelta.revision`; передавайте его как
+  `knownStateRevision` при следующем read и в `readAfter`. Применяйте patch только
+  к совпадающим timeline/projection; `full:true` заменяет baseline. Legacy
+  `sectionVersions` остаётся допустимым. При смене `timelineEpoch` сбросьте кэш.
+- Для записи задавайте `readAfter: {afterSeq: <последний дочитанный cursor>,
+  projection: "live", delta: true, knownSections: <sectionVersions>,
+  maxBytes: 131072}`. Подтверждённые receipt + полный `state` заменяют отдельный
+  read после записи. Если `hasMore`, страницы или ошибка readback — дочитайте
+  перед следующей записью; не повторяйте уже подтверждённую мутацию.
+- `narrate` с `releaseFloor:true` публикует текст и освобождает hold одной
+  командой, когда передача игроку нужна по правилам. Это не `end_turn` и не
+  обход pending roll/инициативы. Если hold отсутствует, отдельный release не нужен.
+- RAG подключён под именем `dnd`: для правил используйте
+  `dnd_knowledge_search`, затем при необходимости `dnd_knowledge_get`.
+  Чтение всего корпуса и повторный поиск того же правила на каждом ходе не нужны.
 
 ## Граница роли
 
@@ -32,14 +56,23 @@ Ask сканируется независимо: начните с `afterAskSeq:
 убирает только перечисленные `omittedSections`, не текущие результаты и новые
 rolls. Храните `timelineEpoch`. Используйте
 последний `currentSeq` как `expectedSeq`, сохраните UUID `commandId` и точный
-payload до записи, затем перечитайте. При ambiguous outcome повторяется не более
+payload до записи, затем проверьте attached readAfter state либо перечитайте. При ambiguous outcome повторяется не более
 одного раза только идентичный payload с тем же `commandId`; иначе checkpoint и
 оператор. Публичная схема `odm_narrator` сохраняет `commandId`, `expectedVersion`
 и `timelineEpoch`; mandatory preload добавляет внешние tools и policy resource,
-но не владеет narrator-схемой. Рекомендуемый `connect(stateDelta:true)` возвращает
-cursor metadata (`currentSeq`/`timelineEpoch`), после чего baseline получают через
-`read`; legacy connect без `stateDelta` возвращает `result.state`. Аргументы
+но не владеет narrator-схемой. `connect(stateDelta:true)` возвращает cursor
+metadata, а baseline и последующие изменения приходят через `read`; аргументы
 механики остаются в `args`.
+
+`delete_message` — отдельная сериализованная story-write операция для удаления
+сообщения из основного transcript по точному `messageId`. Она может удалить
+сообщение игрока, DM или system; используйте только ID из актуального разрешённого
+read (либо явно переданный оператором) вместе с текущими `expectedSeq`,
+`timelineEpoch` и сохранённым `commandId`. Удаление убирает transcript-derived
+pins/beats, но не является откатом игры: броски, HP, ресурсы и уже применённые
+механические эффекты сохраняются, как и moderation audit. Для изменения механики
+используйте авторитетные engine actions или явный rewind, а после удаления
+перечитайте состояние.
 
 ## Общий ход через MCP
 
@@ -57,9 +90,9 @@ cursor metadata (`currentSeq`/`timelineEpoch`), после чего baseline п�
 увеличивает счётчик и открывает следующий раунд только после commit этой
 narration. `wait`, `release_floor` и `request_player_input` не закрывают общий
 раунд. В обычном общем чате `done` тоже не закрывает его: нужен финальный
-`narrate`. В spatial-режиме каждую комнату из `input.roomIds` сначала завершите
-отдельным `location_narrate`; только после этого `done` разрешает host выполнить
-`finish_global_round` как внутренний no-prose finalizer. Он допустим только для
+`narrate`. В spatial-режиме каждую комнату из `input.roomIds` сначала
+завершите отдельным `location_narrate`; только после этого `done` разрешает host
+выполнить `finish_global_round` как no-prose finalizer. Он допустим только для
 spatial global-turn и требует тех же cursor/idempotency полей. При ошибке/остановке
 модели раунд остаётся locked; не подменяйте это ручным «завершить ход».
 
@@ -109,10 +142,9 @@ Tactics либо flanking автоматически. Ведущий не мен
 действием и ходом и ждите подтверждённый `roll_result`: исчезновение pending не
 является успехом. Не ловите перебросы: допустимы лишь предусмотренный правилом
 reroll или изменившиеся обстоятельства. Не повторяйте damage/resource spend.
-Если несколько персонажей одновременно делают одну общую проверку и актуальный
-catalog содержит `group_check`, вызовите его один раз: сервер бросит за участников
-и применит правило «успела как минимум половина». Для разных намерений или разных
-последствий используйте отдельные подходящие действия, не маскируя их group check.
+Если актуальный catalog содержит `group_check`, используйте его один раз для
+одной общей проверки нескольких персонажей. Для разных намерений или последствий
+используйте отдельные подходящие действия.
 
 ## Ask, шёпоты и отказ модели
 

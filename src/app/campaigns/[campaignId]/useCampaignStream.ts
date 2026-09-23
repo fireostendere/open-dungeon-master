@@ -637,6 +637,15 @@ function reducer(state: CampaignState, action: Action): CampaignState {
             ? { ...state.campaign, dmCover: (payload.cover as Campaign["dmCover"]) ?? null }
             : state.campaign;
           return next;
+        case "message_deleted": {
+          const messageId = String(payload.messageId ?? "");
+          if (messageId) {
+            next.messages = state.messages.filter((message) => message.id !== messageId);
+            next.dmIntents = state.dmIntents.filter((intent) => intent.messageId !== messageId);
+            next.mediaStatus = withoutKey(state.mediaStatus, messageId);
+          }
+          return next;
+        }
         case "message_updated": {
           const updated = payload.message as CampaignMessage | undefined;
           if (updated) {
@@ -713,6 +722,7 @@ function reducer(state: CampaignState, action: Action): CampaignState {
 const PERSISTED_EVENTS = [
   "message_added",
   "message_updated",
+  "message_deleted",
   "roll_result",
   "roll_pending",
   "member_joined",
@@ -845,6 +855,15 @@ export function useCampaignStream(campaignId: string) {
           locations: data.locations ?? [],
           chapters: data.chapters ?? [],
           notes: data.notes ?? [],
+          sideThreads: data.sideThreads ?? [],
+          sideChatLoaded: true,
+          whispers: data.whispers ?? [],
+          whisperUnread: data.whisperUnread ?? 0,
+          whispersLoaded: true,
+          asks: data.asks ?? [],
+          asksLoaded: true,
+          facts: data.facts ?? [],
+          battleMap: data.battleMap ?? null,
           characterEvents: data.characterEvents ?? [],
           encounter: data.encounter ?? null,
           itemProposals: data.itemProposals ?? [],
@@ -1010,9 +1029,6 @@ export function useCampaignStream(campaignId: string) {
       if (cancelled) {
         return;
       }
-      void refreshSideChat();
-      void refreshWhispers();
-      void refreshBattleMap();
       source = new EventSource(`/api/campaigns/${campaignId}/events?lastSeq=${lastSeq}`);
       source.onopen = () => { if (fallback) clearInterval(fallback); fallback = undefined; };
       source.onerror = () => {

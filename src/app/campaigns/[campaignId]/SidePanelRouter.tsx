@@ -36,7 +36,6 @@ import type {
   MediaStatus,
 } from "@/app/campaigns/[campaignId]/useCampaignStream";
 import type { CampaignMember } from "@/lib/campaign-types";
-import { allDelegations, type DmCover } from "@/lib/dm/delegation";
 import type { Floor } from "@/lib/db/campaigns";
 import type { Chapter } from "@/lib/db/chapters";
 import type { PublicEncounter } from "@/lib/db/encounter-view";
@@ -109,9 +108,6 @@ export type SidePanelRouterProps = {
     dmUserId?: string | null;
     assistantDmUserId?: string | null;
   };
-  // Assisted mode: the stretch of answers the DM handed to the AI. Separate
-  // from `campaign` because that shape carries only what the settings panel edits.
-  dmCover?: DmCover | null;
   encounter?: PublicEncounter | null;
   battleMap?: PlayerMapView | null;
   mapPing?: MapPing | null;
@@ -162,7 +158,6 @@ export function SidePanelRouter({
   inviteCode,
   midGameJoinOpen,
   campaign,
-  dmCover,
   encounter,
   battleMap,
   mapPing,
@@ -222,11 +217,6 @@ export function SidePanelRouter({
         intents={dmIntents}
         floorMode={floor.mode}
         beats={beats}
-        delegations={allDelegations(
-          campaign?.gameSettings?.dmMode,
-          campaign?.gameSettings?.dmAssist,
-        )}
-        cover={dmCover ?? null}
         variantRules={{
           powerfulCritical: campaign?.gameSettings?.variantRules?.powerfulCritical ?? false,
           criticalDamageMods: campaign?.gameSettings?.variantRules?.criticalDamageMods ?? false,

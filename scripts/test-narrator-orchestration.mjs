@@ -42,9 +42,7 @@ function fixture(replies, options = {}) {
           'location_enable', 'location_disable', 'location_create_room', 'location_link', 'location_move',
           'location_narrate', 'location_observe', 'location_revoke', 'location_propagate', 'location_perceive',
           'location_stealth_resolve', 'location_detect', 'location_lose_detection', 'location_set_floor'];
-        return { groups: [{ category: 'combat', ...(params.summaryOnly
-          ? { actions: names.map(name => ({ name })) }
-          : { entries: (params.action ? [params.action] : names).map(name => ({ name, fields: [] })) }) }] };
+        return { groups: [{ category: 'combat', ...(!params.action ? { actions: names.map(name => ({ name })) } : { entries: [{ name: params.action, fields: [] }] }) }] };
       }
       if (action === 'narrator.read') return structuredClone(this.snapshot);
       writes.push({ action, params: structuredClone(params) });
@@ -157,7 +155,7 @@ test('role packet drops transport metadata and duplicate actor context', () => {
   assert.equal(Object.hasOwn(referee.campaign, 'dmOutline'), false);
   assert.equal(referee.state.sheets[0].equipment[0].name, 'FOCUSED_ITEM');
   assert.equal(Object.hasOwn(referee.state.sheets[0].equipment[0], 'weight'), false);
-  assert.equal(referee.state.sheets[0].backstory, 'FOCUSED_BACKSTORY');
+  assert.equal(referee.state.sheets[0].backstory, undefined);
   assert.equal(Object.hasOwn(referee.state.sheets[1], 'equipment'), false);
   assert.equal(Object.hasOwn(referee.state.sheets[1], 'backstory'), false);
   assert.doesNotMatch(JSON.stringify(referee.state.sheets[1]), /OTHER_PRIVATE_BULK_ITEM|OTHER_BULK_BACKSTORY/);
@@ -200,8 +198,7 @@ test('real legacy player messages have no kind; referee receives IDs, state and 
   await h.tick();
   assert.equal(h.writes[0].params.args.characterId, 'hero');
   assert.equal(h.modelCalls[0].packet.state.sheets[0].id, 'hero');
-  assert.equal(h.modelCalls[0].packet.actions[0].actions[0].name, 'game');
-  assert.ok(h.modelCalls[0].packet.actions[0].actions[0].operations.some(action => action.name === 'pc_attack'));
+  assert.ok(h.modelCalls[0].packet.operations.includes('pc_attack'));
   await h.tick();
   assert.equal(h.writes[1].action, 'narrator.narrate');
   assert.equal(h.writes[1].params.content, 'Among the papers lies the clue.');
@@ -426,11 +423,11 @@ test('YOLO spatial catalog expands after enable without refetching the catalog',
     return { ok: true };
   };
   await h.tick();
-  const before = h.modelCalls[0].packet.actions[0].actions[0].operations.map(operation => operation.name);
+  const before = h.modelCalls[0].packet.operations;
   assert.ok(before.includes('location_enable'));
   assert.ok(!before.includes('location_disable'));
   await h.tick();
-  const after = h.modelCalls[1].packet.actions[0].actions[0].operations.map(operation => operation.name);
+  const after = h.modelCalls[1].packet.operations;
   assert.ok(!after.includes('location_enable'));
   assert.ok(after.includes('location_disable'));
   assert.ok(after.includes('location_narrate'));
@@ -447,7 +444,7 @@ test('YOLO accepts room player input and scopes plain narration through location
   await h.tick();
   assert.equal(h.controller.state.paused, null);
   assert.equal(h.modelCalls[0].packet.input.roomId, 'room-a');
-  const operations = h.modelCalls[0].packet.actions[0].actions[0].operations.map(operation => operation.name);
+  const operations = h.modelCalls[0].packet.operations;
   assert.ok(operations.includes('location_narrate'));
   assert.ok(!operations.includes('location_enable'));
   assert.equal(h.writes[0].action, 'narrator.invoke');
@@ -574,7 +571,10 @@ test('wait does not call a model again until an event changes the sequence', asy
   h.snapshot.currentSeq++; await h.tick(); assert.equal(h.modelCalls.length, 2);
 });
 
-test('public writer never receives raw private state', async () => {
+test('spatial campaigns accept room input, and public writer never receives raw private state', async () => {
+  const spatial = fixture([{ kind: 'wait' }]); spatial.snapshot.spatial = { enabled: true }; await spatial.tick();
+  assert.equal(spatial.modelCalls.length, 1); assert.equal(spatial.writes.length, 0);
+  assert.equal(spatial.controller.state.paused, null);
   const h = fixture([{ kind: 'narrate', text: 'An uneasy silence.', writer: true }, 'Silence settles over the chamber.']);
   Object.assign(h.snapshot, { asks: [{ question: 'ASK_SECRET' }], playerWhispers: ['WHISPER_SECRET'], facts: ['DM_SECRET'],
     sheets: [{ id: 'hero', notes: 'SHEET_SECRET' }], encounter: { enemies: [{ ac: 99, secret: 'ENEMY_SECRET' }] } });

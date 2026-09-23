@@ -106,7 +106,7 @@
 
 ## 3. Протокол взаимодействия через MCP (`odm_narrator`)
 
-Инструмент `odm_narrator` поддерживает 10 операций; актуальная схема находится в
+Инструмент `odm_narrator` поддерживает 11 операций; актуальная схема находится в
 `mcp/narrator-schema.mjs`, а поля engine actions — в `narrator.catalog`.
 
 ### 3.1. `connect` — Подключение к кампании
@@ -261,7 +261,11 @@
 }
 ```
 
-### 3.6. `answer_ask` — Ответ на вопрос в панели «Спросите Мастера»
+### 3.6. `delete_message` — Удаление сообщения из transcript
+Удаляет точное `messageId` с актуальными `expectedSeq`, `timelineEpoch` и
+сохранённым `commandId`. Это не rewind: механические эффекты и audit сохраняются.
+
+### 3.7. `answer_ask` — Ответ на вопрос в панели «Спросите Мастера»
 Приватные вопросы игроков **не записываются** в `campaign_events` (P2 privacy). Они приходят в `narrator.read` в массиве `result.asks[]` со статусом `"pending"`. Мастер отвечает на вопрос:
 ```json
 {
@@ -276,24 +280,24 @@
 ```
 Ответ сразу появляется в панели игрока без продвижения времени, хода или блокировки стола.
 
-### 3.7. `release_floor` — Передача инициативы игрокам
+### 3.8. `release_floor` — Передача инициативы игрокам
 Снимает только `hold`, восстанавливая сохранённый `hold.next`; не открывает и не
 пропускает инициативу.
 
-### 3.8. `snapshot` — Компактный orchestration snapshot
+### 3.9. `snapshot` — Компактный orchestration snapshot
 Возвращает выбранные секции `party/combat/location/recent/memory/npcs` для host.
 Это чтение, не замена обязательному дочитыванию story cursor через `read`.
 
-### 3.9. `autopilot_action` — Действие opt-in игрока
+### 3.10. `autopilot_action` — Действие opt-in игрока
 Доступно только в активной фазе global-turn без боевой инициативы. Требует точные
 `characterId`, `roundNumber`, `expectedSeq`, `timelineEpoch` и сохранённый
 `commandId`; сервер повторно проверяет opt-in, skip/mute/floor и отсутствие хода.
 
-### 3.10. `finish_global_round` — Spatial finalizer без прозы
+### 3.11. `finish_global_round` — Spatial finalizer без прозы
 Используется host только после отдельных `location_narrate` для всех затронутых
 комнат. В обычном чате раунд атомарно закрывает `narrate(completeGlobalRound)`.
 
-### 3.11. `campaigns.set_status` — Завершение кампании
+### 3.12. `campaigns.set_status` — Завершение кампании
 По окончании приключения статус переводится в завершённый:
 ```json
 { "action": "campaigns.set_status", "params": { "campaignId": "<id>", "status": "ended" } }

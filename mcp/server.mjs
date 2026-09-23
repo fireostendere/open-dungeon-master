@@ -148,7 +148,7 @@ function createMcpServer() {
       contents: [{
         uri: uri.href,
         mimeType: "text/plain",
-        text: "Trusted DM only: connect with stateDelta:true, then read until hasMore is false. Keep stateDelta.revision and return it as knownStateRevision; changed entities arrive as upsert/remove/order patches and changed scalar state as set/unset. A full resyncRequired response replaces the baseline after restart/eviction. Use the fully drained nextCursor/currentSeq as expectedSeq for one invoke, narrate, autopilot_action, finish_global_round, or release_floor. finish_global_round is only the no-prose spatial global-turn finalizer after every required room narration. Inspect pendingRolls, roll_result events, and recentRolls; the server owns dice. In global-turn mode, a waiting round keeps players locked: wait for global_turn_narrator_trigger and narrate with startGlobalRound equal to its roundNumber; that confirmed narration opens collection. Later wait for global_turn_ready, treat all player messages through that event seq as one round, and narrate with completeGlobalRound equal to its roundNumber; that confirmed MCP write advances and opens the next round. After a write, consume its attached authoritative state delta as the read; if absent/incomplete, drain narrator.read. Always reread after a timeout or error. An ambiguous serialized write may have one immediate receipt-recovery retry only with the saved exact request: same UUID commandId, original expectedSeq, timelineEpoch and all arguments. Never regenerate a payload, expectedSeq or UUID to replay an effect; then checkpoint and escalate. An answer_ask retry also keeps the exact expectedVersion. If timelineEpoch changed, reconnect and discard incompatible pending work. This resource is not a background loop. The bearer is campaign-scoped narrator access, not player access; never put it or DM secrets in player chat.",
+        text: "Trusted DM only: connect with stateDelta:true, then read until hasMore is false. Keep stateDelta.revision and return it as knownStateRevision; changed entities arrive as upsert/remove/order patches and changed scalar state as set/unset. A full resyncRequired response replaces the baseline after restart/eviction. Use the fully drained nextCursor/currentSeq as expectedSeq for one invoke, narrate, delete_message, autopilot_action, finish_global_round, or release_floor. finish_global_round is only the no-prose spatial global-turn finalizer after every required room narration. Inspect pendingRolls, roll_result events, and recentRolls; the server owns dice. In global-turn mode, a waiting round keeps players locked: wait for global_turn_narrator_trigger and narrate with startGlobalRound equal to its roundNumber; that confirmed narration opens collection. Later wait for global_turn_ready, treat all player messages through that event seq as one round, and narrate with completeGlobalRound equal to its roundNumber; that confirmed MCP write advances and opens the next round. After a write, consume its attached authoritative state delta as the read; if absent/incomplete, drain narrator.read. Always reread after a timeout or error. An ambiguous serialized write may have one immediate receipt-recovery retry only with the saved exact request: same UUID commandId, original expectedSeq, timelineEpoch and all arguments. Never regenerate a payload, expectedSeq or UUID to replay an effect; then checkpoint and escalate. An answer_ask retry also keeps the exact expectedVersion. If timelineEpoch changed, reconnect and discard incompatible pending work. This resource is not a background loop. The bearer is campaign-scoped narrator access, not player access; never put it or DM secrets in player chat.",
       }],
     }),
   );
@@ -170,9 +170,9 @@ claim an action succeeded before the authoritative result has arrived.
 ## Read and write protocol
 Call connect and read; follow nextCursor until hasMore is false. Filtering OOC
 messages can produce empty pages with a NEW cursor: keep draining them. Use the
-fully drained currentSeq as expectedSeq for one invoke, narrate, autopilot_action,
-finish_global_round or release_floor. finish_global_round is only the no-prose
-spatial global-turn finalizer after every required room narration has committed.
+fully drained currentSeq as expectedSeq for one invoke, narrate, delete_message,
+autopilot_action, finish_global_round or release_floor. finish_global_round is only
+the no-prose spatial global-turn finalizer after every required room narration.
 When global-turn mode is enabled, the server owns the round counter and input gate.
 A waiting round accepts no player input. Wait for global_turn_narrator_trigger, narrate
 the opening/transition, and send startGlobalRound=roundNumber; only that committed MCP
@@ -187,6 +187,10 @@ narrate every affected input.roomIds room with location_narrate; after all such
 writes the host uses an internal no-prose finalizer before unlocking. That final
 committed write advances the counter and opens the next round.
 Consume the attached state after a write; drain missing pages/events with read.
+delete_message removes the exact main-transcript messageId, including player, DM or
+system messages. It removes transcript-derived pins/beats, but it is not a gameplay
+rewind: authoritative rolls and mechanical state survive, and moderation audit records
+remain. Use rules-engine actions or an explicit rewind when mechanics must change.
 Always read after a timeout or error, including 409. A readRequired flag on a
 successful receipt means only the post-commit read failed: never replay the effect. An ambiguous serialized
 write gets at most one immediate receipt-recovery retry with the saved exact
@@ -361,7 +365,7 @@ questions, private whispers, DM outlines or other DM secrets to the table.
     {
       title: "ODM campaign settings",
       description:
-        "Change game rules, story/image settings, or DM mode for a campaign. For game patches combatMode accepts classical (default) or jrpg; other game-setting keys pass through unchanged. Story settings may write API keys but reads never reveal stored keys.",
+        "Change game rules, AI/text/image providers, or DM mode for a campaign. For game patches combatMode accepts classical (default) or jrpg; other game-setting keys pass through unchanged. Story settings may write API keys but reads never reveal stored keys.",
       inputSchema: z.object({
         operation: z.enum(["game", "story", "dm_mode"]),
         campaignId: z.string().uuid(),

@@ -21,7 +21,7 @@ import { listRecentWhispersForPrompt, listPendingPlayerWhispers } from "@/lib/db
 import { getActiveEncounter, listActiveEncounters, listEnemies } from "@/lib/db/encounters";
 import { listActiveFacts } from "@/lib/db/facts";
 import { getCurrentLocation } from "@/lib/db/locations";
-import { insertCampaignMessage, listMessagesInSeqRange, listRecentMessages } from "@/lib/db/messages";
+import { deleteCampaignMessage, insertCampaignMessage, listMessagesInSeqRange, listRecentMessages } from "@/lib/db/messages";
 import { listPublicCampaignNotes } from "@/lib/db/notes";
 import { listRecentRolls } from "@/lib/db/rolls";
 import { listSheets } from "@/lib/db/sheets";
@@ -354,6 +354,40 @@ async function invoke(raw: unknown) {
     campaignId: campaign.id, dmUserId: campaign.dmUserId!, roomId: p.data.scopeRoomId!, afterSeq: p.data.expectedSeq, currentSeq,
   }) : undefined);
 }
+async function deleteMessage(raw: unknown) {
+  const p = writeBase.extend({ messageId: id }).safeParse(raw);
+  if (!p.success) throw new McpNarratorControlError(z.prettifyError(p.error));
+
+  return serializedWrite(
+    p.data,
+    "narrator.delete_message",
+    { messageId: p.data.messageId },
+    campaign => {
+      const deleted = deleteCampaignMessage(campaign.id, p.data.messageId);
+      if (!deleted) throw new McpNarratorControlError("Message not found in this campaign.", 404);
+
+      const eventSeq = publishPersisted(campaign.id, "message_deleted", {
+        messageId: deleted.id,
+        authorType: deleted.authorType,
+        userId: deleted.userId,
+        characterId: deleted.characterId,
+        messageSeq: deleted.seq,
+      });
+
+      return {
+        deleted: {
+          id: deleted.id,
+          authorType: deleted.authorType,
+          userId: deleted.userId,
+          characterId: deleted.characterId,
+          messageSeq: deleted.seq,
+        },
+        eventSeq,
+      };
+    },
+  );
+}
+
 async function narrate(raw: unknown) {
   const p = writeBase.extend({
     content: z.string().trim().min(1).max(8000),
@@ -688,20 +722,21 @@ async function dispatchMcpNarratorControl(action: string, raw: unknown): Promise
       if (!p.success) throw new McpNarratorControlError(z.prettifyError(p.error));
       const campaign = campaignOrHuman(p.data.campaignId);
       const metadata = { currentSeq: latestSeq(campaign.id), timelineEpoch: campaignTimelineEpoch(campaign.id) };
-      const base = { instructions: "Read odm://narrator/playbook. Call narrator.read, drain until hasMore is false, then use its currentSeq as expectedSeq for exactly one invoke, narrate, autopilot_action, finish_global_round, or release_floor. finish_global_round is only the no-prose spatial global-turn finalizer after every required room narration. Persist a unique UUID commandId before each story write. After an ambiguous error, retry only the identical commandId, expectedSeq and payload to recover its receipt, never regenerate or modify a command. Consume the attached state delta after a confirmed write as its read, then drain any remaining pages/events. If readRequired is true, the write succeeded but its read failed: read again, never replay the effect. end_turn advances initiative itself; narration never advances it. For a private reply provide exact replyToWhisperIds from playerWhispers. With globalTurn enabled, the campaign starts locked: wait for global_turn_narrator_trigger, narrate the opening, and send startGlobalRound equal to its roundNumber; only that confirmed narration unlocks players. After that, collect player messages until global_turn_ready; resolve the whole batch through that event seq. Autopilot player intent is generated only by the trusted host actor role and committed with autopilot_action; the server rechecks the player's live opt-in and round eligibility and never calls an LLM itself. In ordinary chat, narrate with completeGlobalRound set to its roundNumber so the confirmed MCP write advances and opens the next round atomically. In spatial mode, narrate every affected room separately with location_narrate; the trusted host performs the internal round finalizer only after all required room narrations commit. Do not narrate individual global-turn messages before the barrier. Check the pending asks queue on every read even when the story cursor is unchanged. Page it using afterAskSeq and askQueue.nextCursor; a fresh Ask scan may start at zero. answer_ask requires the pending ask version as expectedVersion and a persisted UUID commandId; it changes no story/floor state. For bounded reads use paged:true and drain pageCursor/nextPage before advancing the story cursor. Byte pages use a bounded frozen snapshot. stateDelta:true negotiates cached entity patches: keep the returned revision, apply patches only to the matching timeline/projection, and accept a full resync when the server no longer has the baseline. Carry the returned timelineEpoch on reads and writes; reconnect and discard incompatible pending work when it changes.", contractVersion: 4, timelineVersion: 1, features: { postWriteRead: true, frozenPages: true, liveDefaults: true, stateDelta: "odm.state.delta.v1", entityPatches: true } };
+      const base = { instructions: "Read odm://narrator/playbook. Call narrator.read, drain until hasMore is false, then use its currentSeq as expectedSeq for exactly one invoke, narrate, delete_message, autopilot_action, finish_global_round, or release_floor. finish_global_round is only the no-prose spatial global-turn finalizer after all required room narrations commit. Persist a unique UUID commandId before each story write. After an ambiguous error, retry only the identical commandId, expectedSeq and payload to recover its receipt, never regenerate or modify a command. Consume the attached state delta after a confirmed write as its read, then drain any remaining pages/events. If readRequired is true, the write succeeded but its read failed: read again, never replay the effect. end_turn advances initiative itself; narration never advances it. For a private reply provide exact replyToWhisperIds from playerWhispers. With globalTurn enabled, the campaign starts locked: wait for global_turn_narrator_trigger, narrate the opening, and send startGlobalRound equal to its roundNumber; only that confirmed narration unlocks players. After that, collect player messages until global_turn_ready; resolve the whole batch through that event seq. Autopilot player intent is generated only by the trusted host actor role and committed with autopilot_action; the server rechecks the player's live opt-in and round eligibility and never calls an LLM itself. In ordinary chat, narrate with completeGlobalRound set to its roundNumber so the confirmed MCP write advances and opens the next round atomically. In spatial mode, narrate every affected room separately with location_narrate; the trusted host performs the internal round finalizer only after all required room narrations commit. Do not narrate individual global-turn messages before the barrier. Check the pending asks queue on every read even when the story cursor is unchanged. Page it using afterAskSeq and askQueue.nextCursor; a fresh Ask scan may start at zero. answer_ask requires the pending ask version as expectedVersion and a persisted UUID commandId; it changes no story/floor state. For bounded reads use paged:true and drain pageCursor/nextPage before advancing the story cursor. Byte pages use a bounded frozen snapshot. stateDelta:true negotiates cached entity patches: keep the returned revision, apply patches only to the matching timeline/projection, and accept a full resync when the server no longer has the baseline. Carry the returned timelineEpoch on reads and writes; reconnect and discard incompatible pending work when it changes.", contractVersion: 4, timelineVersion: 1, features: { postWriteRead: true, frozenPages: true, liveDefaults: true, stateDelta: "odm.state.delta.v1", entityPatches: true } };
       return { handled: true, result: p.data.stateDelta ? { ...base, cursor: metadata } : { ...base, state: read({ projection: "full", ...p.data }) } };
     }
     case "narrator.read": return { handled: true, result: read(raw) };
     case "narrator.snapshot": return { handled: true, result: orchestrationSnapshot(raw) };
     case "narrator.catalog": {
-      const p = z.object({ campaignId: id.optional(), summaryOnly: z.boolean().optional(), category: z.string().optional(), action: z.string().optional(), actionFilter: z.string().optional(), name: z.string().optional() }).strict().optional().safeParse(raw);
+      const p = z.object({ campaignId: id.optional(), summaryOnly: z.boolean().optional(), category: z.string().optional(), action: z.string().optional(), actionFilter: z.string().optional(), name: z.string().optional() }).strict().safeParse(raw ?? {});
       if (!p.success) throw new McpNarratorControlError(z.prettifyError(p.error));
-      if (p.data?.campaignId) campaignOrHuman(p.data.campaignId);
-      const options = p.data ? { summaryOnly: p.data.summaryOnly, category: p.data.category, action: p.data.action || p.data.actionFilter || p.data.name } : {};
+      if (p.data.campaignId) campaignOrHuman(p.data.campaignId);
+      const options = { summaryOnly: p.data.summaryOnly, category: p.data.category, action: p.data.action || p.data.actionFilter || p.data.name };
       return { handled: true, result: { groups: catalog(options) } };
     }
     case "narrator.invoke": return { handled: true, result: await invoke(raw) };
     case "narrator.narrate": return { handled: true, result: await narrate(raw) };
+    case "narrator.delete_message": return { handled: true, result: await deleteMessage(raw) };
     case "narrator.autopilot_action": return { handled: true, result: await autopilotAction(raw) };
     case "narrator.finish_global_round": return { handled: true, result: await finishGlobalRound(raw) };
     case "narrator.release_floor": return { handled: true, result: await releaseFloor(raw) };
@@ -727,6 +762,7 @@ async function dispatchMcpNarratorControl(action: string, raw: unknown): Promise
 const storyWrites = new Set([
   "narrator.invoke",
   "narrator.narrate",
+  "narrator.delete_message",
   "narrator.autopilot_action",
   "narrator.finish_global_round",
   "narrator.release_floor",

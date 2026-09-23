@@ -7,22 +7,11 @@ import {
   Copy,
   Image as ImageIcon,
   ImageOff,
-  Loader2,
-  Sparkles,
-  Trash2,
+  Loader2,  Trash2,
 } from "lucide-react";
 import {
-  offersImages,
-  offersStoryModel,
-  useCapabilities,
-} from "@/lib/use-capabilities";
-import {
-  FIELD_LABELS,
-  applyGeneratedField,
   blankDraft,
-  draftFrom,
-  type GeneratableField,
-  type NpcDraft,
+  draftFrom,  type NpcDraft,
   type RelationGraph,
 } from "@/lib/npcs/forge";
 import { Sheet } from "@/components/ui/Sheet";
@@ -63,22 +52,20 @@ export function DmNpcForgePanel({
   const copy = localeText(locale, {
     en: {
       failed: "That did not work.",
-      someone: "Someone new",
-      paint: "Paint one", placeholder: "Use placeholder", restore: "Bring back", archive: "Set aside",
+      someone: "Someone new", placeholder: "Use placeholder", restore: "Bring back", archive: "Set aside",
       duplicate: "Duplicate",
       forget: "Forget them",
-      copied: "That could not be copied.", nothingSuggested: "The model had nothing to say.", suggest: "Ask the model for", replaceFace: "Replace face", addFace: "Add a face", renderHint: "Render one on the shared media queue", placeholderHint: "Take the picture away and show the stand-in for their role instead", restoreHint: "Put them back in the DM's prompt", archiveHint: "Keep them, but take them out of the DM's prompt", save: "Save them",
+      copied: "That could not be copied.", replaceFace: "Replace face", addFace: "Add a face", placeholderHint: "Take the picture away and show the stand-in for their role instead", restoreHint: "Put them back in the DM's prompt", archiveHint: "Keep them, but take them out of the DM's prompt", save: "Save them",
     },
     ru: {
       failed: "Не удалось выполнить действие.",
       someone: "Новый персонаж",
-      paint: "Создать портрет",
       placeholder: "Использовать заглушку",
       restore: "Вернуть",
       archive: "Отложить",
       duplicate: "Дублировать",
       forget: "Забыть",
-      copied: "Не удалось скопировать.", nothingSuggested: "Модель ничего не предложила.", suggest: "Попросить модель предложить", replaceFace: "Заменить портрет", addFace: "Добавить портрет", renderHint: "Создать портрет в общей очереди медиа", placeholderHint: "Убрать изображение и показывать заглушку для роли", restoreHint: "Вернуть персонажа в запрос мастера", archiveHint: "Сохранить персонажа, но убрать из запроса мастера", save: "Сохранить",
+      copied: "Не удалось скопировать.", replaceFace: "Заменить портрет", addFace: "Добавить портрет", placeholderHint: "Убрать изображение и показывать заглушку для роли", restoreHint: "Вернуть персонажа в запрос мастера", archiveHint: "Сохранить персонажа, но убрать из запроса мастера", save: "Сохранить",
     },
   });
   const [npcs, setNpcs] = useState<Npc[]>([]);
@@ -91,12 +78,8 @@ export function DmNpcForgePanel({
   const [draft, setDraft] = useState<NpcDraft>(blankDraft());
   const [editorOpen, setEditorOpen] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [generating, setGenerating] = useState<GeneratableField | "">("");
   const [error, setError] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
-  const capabilities = useCapabilities();
-  const canSuggest = offersStoryModel(capabilities);
-  const canPaint = offersImages(capabilities);
   const rows = layout === "rows";
 
   // The state lands in a .then callback rather than after an await, so the
@@ -291,42 +274,6 @@ export function DmNpcForgePanel({
     }
   }
 
-  // One field, never the whole person. Nothing is written: the suggestion
-  // lands in the draft on screen and the DM keeps it or types over it.
-  async function suggest(field: GeneratableField) {
-    setGenerating(field);
-    setError("");
-    try {
-      const response = await fetch(
-        `/api/campaigns/${campaignId}/dm/npcs/generate`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            field,
-            name: draft.name,
-            trait: draft.trait,
-            location: draft.location,
-            attitude: draft.attitude,
-          }),
-        },
-      );
-      const payload = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        setError(
-          (payload as { error?: string }).error ??
-            copy.nothingSuggested,
-        );
-        return;
-      }
-      setDraft((current) =>
-        applyGeneratedField(current, field, String(payload.text ?? "")),
-      );
-    } finally {
-      setGenerating("");
-    }
-  }
-
   async function uploadPortrait(file: File) {
     setBusy(true);
     setError("");
@@ -358,24 +305,6 @@ export function DmNpcForgePanel({
   const others = npcs
     .filter((npc) => npc.id !== selectedId)
     .map((npc) => npc.name);
-  const generateButton = (field: GeneratableField) =>
-    canSuggest ? (
-      <button
-        type="button"
-        disabled={generating !== "" || busy}
-        title={`${copy.suggest} ${FIELD_LABELS[field].toLowerCase()}`}
-        onClick={() => void suggest(field)}
-        className="flex shrink-0 items-center gap-1 rounded-md border border-stone-700 px-1.5 py-0.5 text-[10px] text-stone-400 hover:text-amber-200 disabled:opacity-40"
-      >
-        {generating === field ? (
-          <Loader2 className="size-3 animate-spin" />
-        ) : (
-          <Sparkles className="size-3" />
-        )}
-        Suggest
-      </button>
-    ) : null;
-
   const editor = (
     <div className="space-y-3">
       <NpcEditorFields
@@ -383,7 +312,7 @@ export function DmNpcForgePanel({
         onChange={setDraft}
         graph={graph}
         others={others}
-        suggest={generateButton}
+        suggest={() => null}
         genre={genre}
         places={places}
       />
@@ -423,17 +352,6 @@ export function DmNpcForgePanel({
               <ImageIcon className="size-3" />{" "}
               {selected.portraitUrl ? copy.replaceFace : copy.addFace}
             </button>
-            {canPaint ? (
-              <button
-                type="button"
-                disabled={busy}
-                title={copy.renderHint}
-                onClick={() => void patch({ draft, generatePortrait: true })}
-                className="flex items-center gap-1 rounded-md border border-stone-700 px-2 py-1 text-xs text-stone-300 hover:bg-stone-900 disabled:opacity-50"
-              >
-                <Sparkles className="size-3" /> {copy.paint}
-              </button>
-            ) : null}
             {selected.portraitUrl ? (
               <button
                 type="button"

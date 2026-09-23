@@ -8,11 +8,7 @@ import type { StepProps } from "@/app/create-campaign/draft";
 
 const COPY = {
   en: {
-    dmModes: {
-      ai: "AI Dungeon Master",
-      human: "I run the game",
-      assisted: "I run the game, with AI help",
-    },
+    runsGameValue: "Human / external narrator",
     genres: {
       high_fantasy: "High fantasy",
       dark_fantasy: "Dark fantasy",
@@ -44,15 +40,9 @@ const COPY = {
     featuresOn: (count: number) => `${count} on`,
     soloNext: "You'll drop into the lobby next to ready up.",
     partyNext: "You'll drop into the lobby next to share an invite code and ready up.",
-    soloNoAi:
-      "A solo adventure needs the AI storyteller, and this server does not have one. Ask the server owner to set up an AI backend first.",
   },
   ru: {
-    dmModes: {
-      ai: "ИИ-Мастер",
-      human: "Игру веду я",
-      assisted: "Игру веду я, с помощью ИИ",
-    },
+    runsGameValue: "Человек / внешний рассказчик",
     genres: {
       high_fantasy: "Высокое фэнтези",
       dark_fantasy: "Тёмное фэнтези",
@@ -84,8 +74,6 @@ const COPY = {
     featuresOn: (count: number) => `включено: ${count}`,
     soloNext: "После создания вы попадёте в лобби, где останется отметить готовность.",
     partyNext: "После создания вы попадёте в лобби, где сможете отправить приглашение и отметить готовность.",
-    soloNoAi:
-      "Для одиночного приключения нужен ИИ-рассказчик, а на этом сервере он не настроен. Сначала попросите владельца сервера подключить ИИ-бэкенд.",
   },
 } as const;
 
@@ -103,7 +91,7 @@ export function ReviewStep({
 }) {
   const { locale } = useI18n();
   const copy = COPY[locale];
-  const { solo, storyKnownMissing } = gates;
+  const { solo } = gates;
   const genreName = copy.genres[draft.genre];
   const setting = selectedPack ? `${selectedPack.name} (${genreName})` : genreName;
   const party = solo
@@ -115,7 +103,7 @@ export function ReviewStep({
   return (
     <div className="space-y-4 text-sm">
       <dl className="divide-y divide-stone-800/80 rounded-lg border border-stone-800 bg-stone-950/40">
-        <Row label={copy.runsGame}>{copy.dmModes[draft.dmMode]}</Row>
+        <Row label={copy.runsGame}>{copy.runsGameValue}</Row>
         <Row label={copy.setting}>{setting}</Row>
         <Row label={copy.partyLabel}>{party}</Row>
         <Row label={copy.difficulty}>{difficulty}</Row>
@@ -126,11 +114,6 @@ export function ReviewStep({
         <Row label={copy.features}>{copy.featuresOn(featuresOn(draft, gates))}</Row>
       </dl>
       <p className="text-stone-400">{solo ? copy.soloNext : copy.partyNext}</p>
-      {solo && storyKnownMissing ? (
-        <p className="rounded-lg border border-amber-900/50 bg-amber-950/30 p-3 text-amber-200">
-          {copy.soloNoAi}
-        </p>
-      ) : null}
       {error ? <p className="text-red-400">{error}</p> : null}
     </div>
   );

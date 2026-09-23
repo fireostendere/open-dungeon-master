@@ -503,7 +503,6 @@ export function SessionView({
           meUserId={me.id}
           steersStory={steersStory}
           adjudicates={caps.adjudicates}
-          dmCover={campaign.dmCover}
           messages={state.messages}
           dmIntents={state.dmIntents}
           floor={floor}

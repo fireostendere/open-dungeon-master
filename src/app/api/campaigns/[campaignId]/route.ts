@@ -26,6 +26,10 @@ import { listOpenItemProposals } from "@/lib/db/item-proposals";
 import { publicItemProposal } from "@/lib/dm/proposal-intercept";
 import { listLocations } from "@/lib/db/locations";
 import { listRecentAudit } from "@/lib/db/sheet-audit";
+import { listThreadsForUser } from "@/lib/db/side-chat";
+import { countUnreadWhispers, listWhispersForUser } from "@/lib/db/dm-whispers";
+import { listAsksForUser } from "@/lib/db/asks";
+import { listFactsVisibleTo } from "@/lib/db/facts";
 import { insertCampaignMessage, listRecentMessages } from "@/lib/db/messages";
 import { listRollsVisibleTo } from "@/lib/db/rolls";
 import { listSheets } from "@/lib/db/sheets";
@@ -34,8 +38,9 @@ import { isPrimaryDm, lobbyBlocker } from "@/lib/dm/viewer";
 import { listBlockedUserIds } from "@/lib/db/moderation";
 import { publishPersisted, publishWithSeq } from "@/lib/events";
 import { spatialEnabled, spatialContext, spatialStore } from "@/lib/spatial/service";
+import { spatialBattleMapView } from "@/lib/spatial/battle-map";
 import {
-  projectSpatialCampaign, projectSpatialChapters, projectSpatialNotes, projectSpatialRolls,
+  projectSpatialCampaign, projectSpatialChapters, projectSpatialFacts, projectSpatialNotes, projectSpatialRolls,
   projectSpatialUserRows, spatialLegacyPolicy,
 } from "@/lib/spatial/legacy-projection";
 
@@ -54,6 +59,12 @@ export async function GET(
 
   const { campaign, user } = context;
   const caps = capsFor(context);
+  // Capture the replay watermark BEFORE assembling the multi-query snapshot.
+  // If a write lands while the snapshot is being built, the browser reconnects
+  // from this earlier seq and receives that event again (idempotent). Reading
+  // latestSeq at the end could instead acknowledge an event whose changed row
+  // was read before the write and permanently skip it.
+  const snapshotSeq = latestSeq(campaignId);
   const spatial = spatialEnabled(campaignId);
   const spatialActor = spatial ? spatialContext(campaignId, user.id).actor : null;
   const spatialView = spatialActor ? spatialStore().view(spatialActor) : null;
@@ -79,6 +90,11 @@ export async function GET(
     ? spatialStore().messages(spatialActor!, { roomId: null, limit: 100 }).messages
     : listRecentMessages(campaignId, 101);
   const visibleMessages = recentMessages.slice(-100);
+  const visibleFacts = projectSpatialFacts(
+    legacyPolicy,
+    listFactsVisibleTo(campaignId, ownedCharacterIds, false),
+  );
+  const whispers = listWhispersForUser(campaignId, user.id);
   return Response.json({
     campaign: projectSpatialCampaign(legacyPolicy, publicCampaign(campaign)),
     me: { id: user.id, username: user.username, avatar: user.avatar },
@@ -96,6 +112,7 @@ export async function GET(
     // have (src/lib/dm/viewer.ts).
     rolls: visibleRolls,
     pendingRolls: visiblePendingRolls,
+    characterEvents: visibleCharacterEvents,
     auditLog: spatial && !caps.adjudicates ? [] : listRecentAudit(campaignId, 50),
     // Legacy location/map IDs are not interchangeable with spatial room IDs.
     // Until a room-scoped map projection is attached, never leak the current
@@ -103,6 +120,18 @@ export async function GET(
     locations: spatial && !caps.adjudicates ? [] : listLocations(campaignId),
     chapters: projectSpatialChapters(legacyPolicy, listChapters(campaignId)),
     notes: projectSpatialNotes(legacyPolicy, listNotesVisibleTo(campaignId, user.id, caps.steersStory)),
+    // Per-user private projections ride the authenticated bootstrap once.
+    // Contentless SSE nudges still refetch only the projection that changed.
+    sideThreads: listThreadsForUser(campaignId, user.id),
+    whispers,
+    whisperUnread: countUnreadWhispers(campaignId, user.id),
+    asks: listAsksForUser(campaignId, user.id),
+    facts: visibleFacts,
+    battleMap: spatialBattleMapView(campaignId, user.id, { fullVision: caps.fullMap }),
+    itemProposals: projectSpatialUserRows(
+      legacyPolicy,
+      listOpenItemProposals(campaignId),
+    ).map(publicItemProposal),
     encounter: legacyPolicy.scoped
       ? activePublicEncounter(campaignId, {
           enemyNumbers: caps.enemyNumbers,
@@ -117,7 +146,7 @@ export async function GET(
     // served the list; the text itself is public either way, because a beat
     // is published as an ordinary DM passage (src/lib/dm/beats.ts).
     beats: caps.adjudicates ? listDmBeats(campaignId, 20) : [],
-    latestSeq: latestSeq(campaignId),
+    latestSeq: snapshotSeq,
     // Which messages already have narration on disk, so read-aloud plays them
     // straight from a fresh load instead of rendering a second take.
     // What is playing. The ambience_changed event keeps it live from here;

@@ -6,18 +6,6 @@ import {
   type DmCover,
 } from "@/lib/dm/delegation";
 
-// Hosted DM delegation was removed. Keep this export temporarily so existing
-// callers do not need a synchronized component migration; external narrator
-// orchestration owns any model delegation now.
-export function DmDelegationPanel(_props: {
-  campaignId: string;
-  cover: DmCover | null;
-  canMonsters: boolean;
-  canCover: boolean;
-}) {
-  return null;
-}
-
 // A persisted cover record can survive an upgrade. Continue rendering the
 // table-visible notice until that legacy record is cleared; no new hosted
 // cover sessions can be created by this component.

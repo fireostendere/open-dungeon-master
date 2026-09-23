@@ -47,7 +47,7 @@ export function filterNarratorCatalog(groups, mode, { spatialEnabled = false } =
 export function narratorModeGuidance(mode, { spatialEnabled = false } = {}) {
   const facade = [
     "The public engine surface is one action named game. Invoke it as action=game with args={action:<operation name>,args:<operation fields>}.",
-    "The available engine operations are listed under game.operations. If a field is unclear, catalog that operation name, not game.",
+    "The available engine operation names are listed under operations. If a field is unclear, catalog that operation name, not game.",
     spatialEnabled
       ? "Location privacy is active. Keep room-scoped player input in its room: use location_narrate for room prose and the other offered location_* operations for movement, observation, perception, stealth and room state. Use location_disable only when the table is abandoning private-room play."
       : "Location privacy is off. location_enable is the only spatial operation offered; use it only when the table explicitly wants private-room play, not merely because characters separate in the fiction.",

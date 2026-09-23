@@ -5,7 +5,7 @@ import OptionPicker, { type PickerGroup } from "@/app/characters/builder/OptionP
 import { UnofficialPackNotice } from "@/components/UnofficialPackNotice";
 import type { FranchiseGroup, WorldPackSummary } from "@/lib/worlds/types";
 import { useI18n } from "@/lib/i18n";
-import { FieldLabel, inputClass, ToggleCard } from "@/app/create-campaign/fields";
+import { FieldLabel, inputClass } from "@/app/create-campaign/fields";
 import type { StepProps } from "@/app/create-campaign/draft";
 
 const COPY = {
@@ -16,19 +16,8 @@ const COPY = {
     title: "Title",
     titlePlaceholder: "Curse of the Ash Kingdom",
     whoRuns: "Who runs this table?",
-    modeLabels: {
-      ai: "AI Dungeon Master",
-      human: "I run the game",
-      assisted: "I run the game, with AI help",
-    },
-    modeHints: {
-      ai: "The AI narrates, adjudicates and runs the world. The party lead steers it.",
-      human: "You narrate. The server still enforces every rule and rolls every die.",
-      assisted: "You own the story; hand the AI the monsters, the prose, or a stretch of turns.",
-    },
-    noAi: "This server has no AI storyteller, so a human runs the table.",
-    aiOffline:
-      "The AI backend is not answering right now. You can still create this campaign, but AI turns will fail until it is back.",
+    humanLabel: "Human / external narrator",
+    humanHint: "The server owns state and rules; narration is supplied by a human or external MCP narrator.",
     humanSeat:
       "You take the Dungeon Master seat: no character, no party slot, and you see the sheets, the stat blocks and the whole map. The server still rolls every die and holds every number.",
     prebuiltWorld: "Pre-built world (optional)",
@@ -42,19 +31,8 @@ const COPY = {
     title: "Название",
     titlePlaceholder: "Проклятие Пепельного королевства",
     whoRuns: "Кто ведёт эту игру?",
-    modeLabels: {
-      ai: "ИИ-Мастер",
-      human: "Игру веду я",
-      assisted: "Игру веду я, с помощью ИИ",
-    },
-    modeHints: {
-      ai: "ИИ ведёт повествование, принимает решения по правилам и управляет миром. Лидер группы направляет его.",
-      human: "Вы ведёте повествование. Сервер по-прежнему применяет правила и бросает все кости.",
-      assisted: "История остаётся за вами; ИИ можно поручить монстров, текст повествования или несколько ходов.",
-    },
-    noAi: "На этом сервере нет ИИ-рассказчика, поэтому игру должен вести человек.",
-    aiOffline:
-      "ИИ-бэкенд сейчас не отвечает. Кампанию можно создать, но ходы ИИ не будут работать, пока соединение не восстановится.",
+    humanLabel: "Человек / внешний рассказчик",
+    humanHint: "Сервер хранит состояние и применяет правила; повествование ведёт человек или внешний рассказчик.",
     humanSeat:
       "Вы занимаете место Мастера: у вас нет собственного персонажа и слота в группе, зато вы видите листы, статблоки и всю карту. Сервер всё равно бросает кости и хранит игровые значения.",
     prebuiltWorld: "Готовый мир (необязательно)",
@@ -63,7 +41,7 @@ const COPY = {
   },
 } as const;
 
-// Step 1: the name, who holds the DM seat, and an optional pre-built world.
+// Step 1: the name, the external/human DM boundary, and an optional pre-built world.
 // The pack select is hidden outright when the server has none installed.
 export function PremiseStep({
   draft,
@@ -119,14 +97,14 @@ export function PremiseStep({
 
       <div>
         <FieldLabel className="mb-1.5">{copy.whoRuns}</FieldLabel>
-        <ToggleCard
-          active
-          onClick={() => patch({ dmMode: "human" })}
-          label={locale === "ru" ? "Человек / внешний рассказчик" : "Human / external narrator"}
-          hint={locale === "ru"
-            ? "Сервер хранит состояние и применяет правила; повествование ведёт человек или внешний MCP narrator."
-            : "The server owns state and rules; narration is supplied by a human or external MCP narrator."}
-        />
+        <div className="rounded-lg border border-amber-200/30 bg-amber-200/5 p-3">
+          <p className="font-medium text-amber-100">
+            {copy.humanLabel}
+          </p>
+          <p className="mt-1 text-xs text-stone-400">
+            {copy.humanHint}
+          </p>
+        </div>
         <p className="mt-1.5 text-xs text-stone-500">{copy.humanSeat}</p>
       </div>
 

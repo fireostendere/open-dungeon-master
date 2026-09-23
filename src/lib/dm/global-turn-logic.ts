@@ -1,8 +1,10 @@
 import {
   allocateSeq,
   getCampaignById,
+  getFloor,
   getGlobalTurnState,
   listMembers,
+  setFloor,
   setGlobalTurnState,
   setMemberSkipTurns,
 } from "@/lib/db/campaigns";
@@ -57,7 +59,7 @@ function respondedCount(
  */
 export function startGlobalTurn(
   campaignId: string,
-  reason: "mcp_trigger" | "mcp_completed" = "mcp_completed",
+  reason: "mcp_trigger" | "mcp_completed" | "lead_recovery" = "mcp_completed",
 ): GlobalTurnState | null {
   const campaign = getCampaignById(campaignId);
   if (
@@ -70,6 +72,24 @@ export function startGlobalTurn(
   }
 
   const state = getGlobalTurnState(campaignId);
+  if (state.phase === "ready" || state.phase === "resolving") return state;
+
+  // Global-turn start owns the non-combat input gate. A stale hold/spotlight
+  // left behind by narration used to make the round look active while the
+  // composer still refused player actions. Opening/re-opening a round repairs
+  // that condition without changing the round number or erasing submissions.
+  const floor = getFloor(campaignId);
+  if (floor.mode !== "open") {
+    setFloor(campaignId, { mode: "open" });
+    publishPersisted(campaignId, "floor_changed", { floor: { mode: "open" } });
+  }
+
+  // Lead recovery is idempotent for an already collecting round. Re-publish
+  // the authoritative state so stale clients get another SSE edge to heal on.
+  if (state.phase === "active" || state.phase === "quorum_delay") {
+    publishPersisted(campaignId, "global_turn_updated", { globalTurnState: state });
+    return state;
+  }
   if (state.phase !== "waiting") return state;
 
   const startedAt = new Date().toISOString();

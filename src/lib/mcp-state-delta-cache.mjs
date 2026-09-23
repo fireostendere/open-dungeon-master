@@ -63,6 +63,7 @@ export function projectNarratorStateDelta(state, {
   delete response.sectionVersions;
   delete response.omittedSections;
   delete response.deltaState;
+
   if (!knownStateRevision || !base) {
     response.stateDelta = {
       format: NARRATOR_STATE_DELTA_FORMAT,

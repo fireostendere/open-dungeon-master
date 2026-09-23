@@ -8,9 +8,9 @@ export async function createNarratorAdapter(options = {}) {
   }
 
   const adapter = createOpenCodeAdapter(options);
-  // Build empty, deny-all, role-pinned sessions before gameplay. They contain
-  // trusted instructions only; each is consumed once and replenished in the
-  // background while the current model call runs.
+  // Build empty, deny-all, role-pinned sessions before gameplay. Writer, Ask
+  // and actor calls stay one-shot. A referee session may be held only for the
+  // immediate multi-step resolution of one input, then is deleted.
   // Referee is the only role required to start the host. Writer, Ask and
   // autopilot actor are optional/degradable: warm them immediately, but a
   // transient OpenCode failure in one of those roles must not keep the whole

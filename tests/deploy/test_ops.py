@@ -153,7 +153,8 @@ class OpsTests(unittest.TestCase):
     def test_https_proxy_blocks_internal_control(self):
         self.c.config['domain']='table.test';m=self.c.manifest(self.c.active())
         self.assertEqual(m['services']['proxy']['ports'],['80:80','443:443'])
-        self.assertIn('/api/internal/*',(self.c.config_dir/'Caddyfile').read_text())
+        self.c.configure_proxy()
+        self.assertIn('/api/internal/*',(self.c.config_dir/'caddy/Caddyfile').read_text())
     def test_backup_pauses_and_resumes_writer(self):
         ident=self.c.backup();self.assertTrue(self.c.running);self.assertIn(ident,self.c.saved)
         self.assertEqual((self.c.saved[ident]/'state/uploads/portrait.png').read_bytes(),b'portrait fixture')

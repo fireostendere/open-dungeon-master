@@ -27,7 +27,6 @@ const COPY = {
     },
     customPlaceholder: "Describe the world and tone in your own words...",
     premise: "Premise (optional)",
-    premiseAi: "Premise (optional; the AI fills this in if left blank)",
     theme: "World or theme notes",
     themePlaceholder: "Low-magic gritty, homebrew fey court, neon-drenched megacity...",
     cover: "Cover art",
@@ -50,7 +49,6 @@ const COPY = {
     },
     customPlaceholder: "Опишите мир и его тон своими словами...",
     premise: "Завязка (необязательно)",
-    premiseAi: "Завязка (необязательно; если оставить пустой, её придумает ИИ)",
     theme: "Заметки о мире или теме",
     themePlaceholder: "Суровое низкое фэнтези, авторский двор фей, залитый неоном мегаполис...",
     cover: "Обложка",
@@ -65,7 +63,6 @@ const COPY = {
 export function WorldStep({
   draft,
   patch,
-  gates,
   onPickGenre,
 }: StepProps & {
   // Picking a bare genre by hand leaves the pack, so the dialog owns the
@@ -74,7 +71,6 @@ export function WorldStep({
 }) {
   const { locale } = useI18n();
   const copy = COPY[locale];
-  const showsAiFill = gates.aiNarrates && draft.aiStorySetup;
   const settingInfo = `${copy.settingInfo}\n\n${GENRE_PRESETS.map((preset) => {
     const localized = copy.genres[preset.id];
     return `**${localized.name}**: ${localized.blurb}`;
@@ -124,7 +120,7 @@ export function WorldStep({
       </div>
 
       <label className="block">
-        <FieldLabel>{showsAiFill ? copy.premiseAi : copy.premise}</FieldLabel>
+        <FieldLabel>{copy.premise}</FieldLabel>
         <textarea
           value={draft.description}
           onChange={(event) =>
