@@ -44,7 +44,7 @@ export function VoiceDock(props: VoicePanelProps) {
       title={copy.title} aria-haspopup="dialog" aria-expanded={open} data-tour="header-voice"
       className={headerButtonClass(open, "relative flex items-center gap-1.5 md:px-2.5")}>
       <Headphones className="size-4" /><span className="hidden text-sm md:inline">{copy.title}</span>
-      {count ? <span className={s.count}>{count}</span> : null}{onCall ? <span className={s.dot} style={{ background: "#76d7a5" }} /> : null}
+      {count ? <span className={s.count}>{count}</span> : null}{onCall ? <span className={`${s.dot} ${s.liveDot}`} /> : null}
     </button>
     {mounted ? createPortal(<div hidden={!open} className={s.dockLayer}>
       <div className={s.dockBackdrop} aria-hidden="true" onPointerDown={close} />
