@@ -14,7 +14,7 @@ process.chdir(dir);
 register("./lib/register-alias.mjs", import.meta.url);
 
 const { createUser } = await import("../src/lib/db/users.ts");
-const { allocateSeq, createCampaign, setCampaignStatus, latestSeq, updateStorySettings } = await import("../src/lib/db/campaigns.ts");
+const { allocateSeq, createCampaign, getCampaignById, getFloor, getGlobalTurnState, joinByInviteCode, setCampaignStatus, setMemberAutopilot, latestSeq, updateStorySettings } = await import("../src/lib/db/campaigns.ts");
 const { createCharacter, instantiateIntoCampaign } = await import("../src/lib/db/characters.ts");
 const { createSheetSchema } = await import("../src/lib/schemas/sheet.ts");
 const { createDmTurn, createPendingRoll, resolvePendingRoll, saveDmTurn } = await import("../src/lib/db/dm-turns.ts");
@@ -29,12 +29,13 @@ const { extendControlResult } = await import("../src/lib/mcp-external-control.ts
 const { resumeHumanTurn } = await import("../src/lib/dm/invoke.ts");
 
 const capabilities = extendControlResult("server.capabilities", { actions: [] });
-assert.deepEqual(capabilities.actions.slice(0, 8), [
-  "narrator.connect", "narrator.read", "narrator.snapshot", "narrator.catalog", "narrator.invoke", "narrator.narrate", "narrator.delete_message", "narrator.release_floor",
+assert.deepEqual(capabilities.actions.slice(0, 9), [
+  "narrator.connect", "narrator.read", "narrator.snapshot", "narrator.catalog", "narrator.invoke", "narrator.narrate", "narrator.delete_message", "narrator.edit_message", "narrator.finish_global_round",
 ]);
 assert.equal(extendControlResult("server.status", { mcpControlActions: 0 }).mcpControlActions, capabilities.actions.length);
 assert.ok(capabilities.actions.includes("narrator.autopilot_action"), "external autopilot write must be advertised");
 assert.ok(capabilities.actions.includes("narrator.delete_message"), "external narrator must be able to delete transcript messages");
+assert.ok(capabilities.actions.includes("narrator.edit_message"), "external narrator must be able to edit transcript messages");
 
 const dm = createUser("external_dm", "hash");
 const narratorHostA = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
@@ -283,6 +284,19 @@ assert.equal(oocRead.result.messages.some((m) => m.id === icMsg2.id), true, "Sec
 assert.equal(oocRead.result.recentMessages.some((m) => m.id === oocMsg.id), false, "OOC message must not be in recentMessages");
 assert.equal(oocRead.result.recentMessages.some((m) => m.id === icMsg.id), true, "IC message must be in recentMessages");
 
+const editRequest = {
+  campaignId: oocCampaign.id,
+  expectedSeq: latestSeq(oocCampaign.id),
+  commandId: randomUUID(),
+  timelineEpoch: oocRead.result.timelineEpoch,
+  messageId: icMsg2.id,
+  content: '"I hear you now."',
+};
+const edited = await executeMcpNarratorControl("narrator.edit_message", editRequest);
+assert.equal(edited.result.result.message.content, '"I hear you now."');
+assert.equal(getCampaignMessage(icMsg2.id).content, '"I hear you now."');
+assert.equal((await executeMcpNarratorControl("narrator.edit_message", editRequest)).result.replayed, true);
+
 const deleteCommandId = randomUUID();
 const deleteRequest = {
   campaignId: oocCampaign.id,
@@ -304,7 +318,27 @@ const afterDeleteRead = await executeMcpNarratorControl("narrator.read", {
   limit: 50,
 });
 assert.equal(afterDeleteRead.result.events.some((event) => event.type === "message_deleted"), true);
+assert.equal(afterDeleteRead.result.events.find((event) => event.type === "message_updated")?.payload?.message?.id, icMsg2.id);
+assert.equal(afterDeleteRead.result.events.find((event) => event.type === "message_deleted")?.payload?.messageId, icMsg.id);
 assert.equal(afterDeleteRead.result.recentMessages.some((message) => message.id === icMsg.id), false);
+
+const held = await executeMcpNarratorControl("narrator.set_floor", {
+  campaignId: oocCampaign.id, expectedSeq: latestSeq(oocCampaign.id),
+  commandId: randomUUID(), timelineEpoch: oocRead.result.timelineEpoch, mode: "hold",
+});
+assert.equal(held.result.result.floor.mode, "hold");
+const opened = await executeMcpNarratorControl("narrator.set_floor", {
+  campaignId: oocCampaign.id, expectedSeq: latestSeq(oocCampaign.id),
+  commandId: randomUUID(), timelineEpoch: oocRead.result.timelineEpoch, mode: "open",
+});
+assert.equal(opened.result.result.floor.mode, "open");
+const requested = await executeMcpNarratorControl("narrator.request_response", {
+  campaignId: oocCampaign.id, expectedSeq: latestSeq(oocCampaign.id),
+  commandId: randomUUID(), timelineEpoch: oocRead.result.timelineEpoch,
+});
+assert.equal(requested.result.result.requested, true);
+assert.equal((await executeMcpNarratorControl("narrator.read", { campaignId: oocCampaign.id, afterSeq: opened.result.currentSeq }))
+  .result.events.some(event => event.type === "lead_response_requested"), true);
 
 
 const oocEvents = await executeMcpControl("campaigns.events", { campaignId: oocCampaign.id, afterSeq: 0, limit: 50 });
@@ -500,6 +534,60 @@ await assert.rejects(
   McpNarratorControlError,
 );
 assert.equal(pagedDelta.result.deltaState?.enabled, true);
+
+const seatOwner = createUser("seat_owner", "hash");
+const technicalDm = createUser("technical_dm", "hash");
+const seatCampaign = createCampaign(seatOwner.id, {
+  title: "MCP seats", description: "", theme: "", maxPlayers: 4, startingLevel: 1,
+  difficulty: "normal", gameSettings: { dmMode: "human", ttsEnabled: false, mapsEnabled: false },
+});
+assert.equal("error" in joinByInviteCode(technicalDm.id, seatCampaign.inviteCode), false);
+const assigned = await executeMcpControl("campaigns.assign_dm_seat", { campaignId: seatCampaign.id, seat: "dm", userId: technicalDm.id });
+assert.equal(assigned.userId, technicalDm.id);
+assert.equal(getCampaignById(seatCampaign.id).dmUserId, technicalDm.id);
+assert.equal(JSON.parse(getDatabase().prepare("SELECT payload_json FROM campaign_events WHERE campaign_id = ? AND type = 'campaign_updated' ORDER BY seq DESC LIMIT 1").get(seatCampaign.id).payload_json).dmUserId, technicalDm.id);
+await assert.rejects(() => executeMcpControl("campaigns.assign_dm_seat", { campaignId: seatCampaign.id, seat: "dm", userId: null }),
+  error => error.status === 400);
+const ownerCharacter = createCharacter(seatOwner.id, 1, createSheetSchema.parse({
+  name: "Lead Hero", race: "human", class: "fighter", background: "soldier",
+  abilities: { str: 16, dex: 12, con: 14, int: 10, wis: 10, cha: 8 }, maxHp: 12, ac: 16, speed: 30,
+  hitDice: { die: "d10", total: 1, spent: 0 },
+  proficiencies: { saves: ["str", "con"], skills: ["athletics"], languages: ["common"], tools: [], armor: [], weapons: [] },
+  equipment: [], gold: 0, copper: 0,
+}));
+const ownerSheet = instantiateIntoCampaign(ownerCharacter.id, seatCampaign.id, seatOwner.id, 1);
+assert.ok(!("error" in ownerSheet));
+setCampaignStatus(seatCampaign.id, "active");
+const spotlight = await executeMcpNarratorControl("narrator.set_floor", {
+  campaignId: seatCampaign.id, expectedSeq: latestSeq(seatCampaign.id), mode: "spotlight",
+  characterIds: [ownerSheet.id], commandId: randomUUID(),
+});
+assert.deepEqual(spotlight.result.result.floor.userIds, [seatOwner.id]);
+setMemberAutopilot(seatCampaign.id, seatOwner.id, true);
+const autoSpotlight = await executeMcpNarratorControl("narrator.autopilot_action", {
+  campaignId: seatCampaign.id, expectedSeq: latestSeq(seatCampaign.id), commandId: randomUUID(),
+  characterId: ownerSheet.id, kind: "do", content: "I inspect the doorway.",
+});
+assert.equal(autoSpotlight.result.result.spotlightComplete, true);
+assert.equal(getFloor(seatCampaign.id).mode, "hold");
+assert.ok(getDatabase().prepare("SELECT 1 FROM campaign_events WHERE campaign_id = ? AND type = 'spotlight_ready'").get(seatCampaign.id));
+const autoNarration = await executeMcpNarratorControl("narrator.narrate", {
+  campaignId: seatCampaign.id, expectedSeq: latestSeq(seatCampaign.id), commandId: randomUUID(),
+  content: "The doorway remains quiet.", releaseFloor: true,
+});
+assert.equal(autoNarration.result.result.floorReleased, true);
+assert.equal(getFloor(seatCampaign.id).mode, "open");
+
+await executeMcpControl("campaigns.update_game_settings", { campaignId: seatCampaign.id,
+  patch: { globalTurn: { enabled: true, turnCollectionMinutes: 0, quorumPlayers: 1, quorumDelayMinutes: 0 } } });
+assert.equal(JSON.parse(getDatabase().prepare("SELECT payload_json FROM campaign_events WHERE campaign_id = ? AND type = 'campaign_updated' ORDER BY seq DESC LIMIT 1").get(seatCampaign.id).payload_json).gameSettings.globalTurn.enabled, true);
+assert.equal(getGlobalTurnState(seatCampaign.id).phase, "waiting", "MCP mode switch must lock collection until opening narration");
+assert.ok(getDatabase().prepare("SELECT 1 FROM campaign_events WHERE campaign_id = ? AND type = 'global_turn_narrator_trigger'").get(seatCampaign.id));
+const globalSeq = latestSeq(seatCampaign.id);
+await assert.rejects(() => executeMcpNarratorControl("narrator.set_floor", {
+  campaignId: seatCampaign.id, expectedSeq: globalSeq, mode: "spotlight", characterIds: [ownerSheet.id], commandId: randomUUID(),
+}), error => error instanceof McpNarratorControlError && error.status === 409);
+assert.equal(latestSeq(seatCampaign.id), globalSeq, "manual floor control must not corrupt global-turn pacing");
 
 assert.equal(fetchCalls, 0, "no server provider/network call may be attempted");
 

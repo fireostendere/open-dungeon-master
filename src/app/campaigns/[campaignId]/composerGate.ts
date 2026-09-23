@@ -44,7 +44,7 @@ export function composerGate({
     floor.mode === "spotlight"
       ? sheets.filter((sheet) => floor.userIds.includes(sheet.userId))
       : [];
-  const floorBlocked = floor.mode === "spotlight" && !floor.userIds.includes(meUserId) && !exempt;
+  const floorBlocked = floor.mode === "spotlight" && (!floor.userIds.includes(meUserId) || floor.respondedUserIds.includes(meUserId)) && !exempt;
   // Held responses: the lead has not opened the floor after the last DM
   // narration.
   const holdBlocked = floor.mode === "hold" && !exempt;

@@ -40,9 +40,9 @@ class NarratorController:
     def __init__(self, root: str | Path | None = None, campaign_id: str | None = None, port: int = 3007, yolo: bool = False):
         default_root = Path("/opt/odm") if Path("/opt/odm").is_dir() else Path.cwd()
         self.root = Path(root or os.environ.get("ODM_ROOT") or default_root).expanduser().resolve()
+        self.repository_dir = self.root / "repository" if (self.root / "repository" / "narrator" / "run.mjs").is_file() else self.root
         self.config_dir = self.root / "config"
-        self.state_dir = self.root / "state"
-        self.state_dir.mkdir(parents=True, exist_ok=True)
+        self.state_dir = self.root / "state" / "narrator"
         self.campaign_id = campaign_id or os.environ.get("ODM_CAMPAIGN_ID") or ""
         self.port = port
         requested_mode = (os.environ.get("ODM_DND_MODE") or "").strip().lower()
@@ -57,13 +57,14 @@ class NarratorController:
         self.checkpoint_file = self.state_dir / (
             f"narrator-checkpoint-{self.campaign_id}.json" if self.campaign_id else "narrator-checkpoint-default.json"
         )
+        self.legacy_checkpoint_file = self.root / "state" / self.checkpoint_file.name
 
-    def run_cmd(self, args: list[str], *, capture: bool = True, timeout: int = 60) -> str:
+    def run_cmd(self, args: list[str], *, capture: bool = True, timeout: int = 60, env: dict[str, str] | None = None) -> str:
         try:
             res = subprocess.run(args, text=True, encoding="utf-8", errors="replace",
                                  stdout=subprocess.PIPE if capture else None,
                                  stderr=subprocess.PIPE if capture else None,
-                                 timeout=timeout, check=False)
+                                 timeout=timeout, check=False, env=env)
             if res.returncode != 0:
                 raise NarratorOpsError(f"{args[0]} failed with code {res.returncode}: {res.stderr.strip() if res.stderr else ''}")
             return res.stdout or ""
@@ -123,17 +124,24 @@ class NarratorController:
     def start(self, detach: bool = True) -> bool:
         print(f"Starting narrator host for campaign '{self.campaign_id}' on port {self.port} (requested mode: {'yolo' if self.yolo else 'auto'})...", flush=True)
 
-        token = os.environ.get("ODM_MCP_NARRATOR_TOKEN") or os.environ.get("ODM_MCP_TOKEN")
+        if not self.campaign_id:
+            raise NarratorOpsError("Set the campaign ID before starting the narrator.")
+        if self.legacy_checkpoint_file.is_file() and not self.checkpoint_file.is_file():
+            raise NarratorOpsError(f"Move the existing checkpoint to {self.checkpoint_file} before starting; never reset its processed cursor implicitly.")
+        adapter = os.environ.get("ODM_NARRATOR_ADAPTER_MODULE", "").strip()
+        if not adapter:
+            raise NarratorOpsError("Set ODM_NARRATOR_ADAPTER_MODULE; a collector cannot run the game.")
+        token = os.environ.get("ODM_MCP_NARRATOR_TOKEN")
         if not token:
-            token_file = self.config_dir / "mcp.token"
-            if token_file.is_file():
-                token = token_file.read_text(encoding="utf-8").strip()
-            else:
-                app_env = parse_env(self.config_dir / "app.env")
-                token = app_env.get("ODM_MCP_NARRATOR_TOKEN") or app_env.get("ODM_MCP_TOKEN")
+            token = parse_env(self.config_dir / "app.env").get("ODM_MCP_NARRATOR_TOKEN")
 
         if not token:
-            raise NarratorOpsError("Narrator authentication token not found in env or config.")
+            raise NarratorOpsError("A campaign-scoped ODM_MCP_NARRATOR_TOKEN is required; the operator token is not a narrator credential.")
+        if adapter.endswith("/local-role-adapter.mjs"):
+            required = ["ODM_NARRATOR_START_AFTER_SEQ", "ODM_OPENCODE_URL", "ODM_OPENCODE_WORKSPACE", "ODM_OPENCODE_PROVIDER", "ODM_OPENCODE_MODEL"]
+            missing = [name for name in required if not os.environ.get(name)]
+            if missing:
+                raise NarratorOpsError("Missing narrator configuration: " + ", ".join(missing))
 
         # Check if docker is available and running
         has_docker = False
@@ -144,6 +152,24 @@ class NarratorController:
             has_docker = False
 
         if has_docker:
+            if not adapter.endswith("/local-role-adapter.mjs"):
+                raise NarratorOpsError("The managed Docker image includes only the built-in local-role adapter; run a custom adapter under an external supervisor.")
+            try:
+                self.docker("image", "inspect", self.image_tag, timeout=10)
+            except NarratorOpsError as exc:
+                raise NarratorOpsError("Build the local narrator image first: docker build -f narrator/Dockerfile -t odm-narrator:latest .") from exc
+            container_env = {**os.environ, "ODM_MCP_NARRATOR_TOKEN": token}
+            if adapter.endswith("/local-role-adapter.mjs"):
+                container_env["ODM_NARRATOR_ADAPTER_MODULE"] = "file:///app/narrator/local-role-adapter.mjs"
+            workspace = os.environ.get("ODM_OPENCODE_WORKSPACE", "")
+            if workspace and not Path(workspace).is_dir():
+                raise NarratorOpsError("ODM_OPENCODE_WORKSPACE must be an existing directory on the Docker host.")
+            if adapter.endswith("/local-role-adapter.mjs") and not os.environ["ODM_OPENCODE_URL"].startswith("https://"):
+                raise NarratorOpsError("A Docker narrator requires a reachable HTTPS OpenCode URL; loopback and plain HTTP are rejected by the adapter.")
+            self.state_dir.mkdir(parents=True, exist_ok=True)
+            if os.geteuid() == 0:
+                os.chown(self.state_dir, 1000, 1000)  # node user in narrator/Dockerfile
+            self.state_dir.chmod(0o700)
             # Clean up old container if present
             try:
                 self.docker("rm", "-f", self.container, timeout=15)
@@ -158,9 +184,11 @@ class NarratorController:
                 "-p", f"127.0.0.1:{self.port}:3007",
                 "-v", f"{self.state_dir}:/app/state",
                 "-e", f"ODM_CAMPAIGN_ID={self.campaign_id}",
-                "-e", f"ODM_MCP_TOKEN={token}",
+                "-e", "ODM_MCP_NARRATOR_TOKEN",
                 "-e", "ODM_MCP_URL=http://app:3005/api/internal/mcp",
                 "-e", "ODM_NARRATOR_PORT=3007",
+                *[item for name in ("ODM_NARRATOR_ADAPTER_MODULE", "ODM_NARRATOR_START_AFTER_SEQ", "ODM_OPENCODE_URL", "ODM_OPENCODE_WORKSPACE", "ODM_OPENCODE_PROVIDER", "ODM_OPENCODE_MODEL", "ODM_OPENCODE_VARIANT", "ODM_OPENCODE_TOKEN", "ODM_OPENCODE_ACTOR_PROVIDER", "ODM_OPENCODE_ACTOR_MODEL", "ODM_OPENCODE_ACTOR_VARIANT") if name in container_env for item in ("-e", name)],
+                *(["-v", f"{workspace}:{workspace}:ro"] if workspace else []),
                 *(["-e", "ODM_DND_MODE=yolo"] if self.yolo else []),
                 "--security-opt", "no-new-privileges:true",
                 "--cap-drop", "ALL",
@@ -169,23 +197,27 @@ class NarratorController:
                 self.image_tag,
             ]
             docker_args = [a for a in docker_args if a]
-            self.docker(*docker_args, timeout=60)
+            self.docker(*docker_args, timeout=60, env=container_env)
         else:
             # Fallback: run node process locally
-            run_script = self.root / "narrator" / "run.mjs"
+            self.state_dir.mkdir(parents=True, exist_ok=True)
+            self.state_dir.chmod(0o700)
+            run_script = self.repository_dir / "narrator" / "run.mjs"
             if not run_script.is_file():
                 raise NarratorOpsError(f"Narrator script not found at {run_script}")
 
             env = os.environ.copy()
+            env.pop("ODM_AUTH_TOKEN", None)
+            env.pop("ODM_MCP_TOKEN", None)
             env["ODM_CAMPAIGN_ID"] = self.campaign_id
-            env["ODM_MCP_TOKEN"] = token
+            env["ODM_MCP_NARRATOR_TOKEN"] = token
             env["ODM_NARRATOR_PORT"] = str(self.port)
             env["ODM_NARRATOR_CHECKPOINT_PATH"] = str(self.checkpoint_file)
             if self.yolo:
                 env["ODM_DND_MODE"] = "yolo"
 
             subprocess.Popen([sys.executable if sys.executable.endswith("node") else "node", str(run_script)],
-                             cwd=str(self.root), env=env)
+                             cwd=str(self.repository_dir), env=env)
 
         # Wait for health endpoint
         deadline = time.monotonic() + 30

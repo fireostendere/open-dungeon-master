@@ -206,6 +206,134 @@ test('real legacy player messages have no kind; referee receives IDs, state and 
   await h.tick(); assert.equal(h.modelCalls.length, 3, 'idle polling must not spend model calls');
 });
 
+test('party lead response request batches waiting input and carries the private direction', async () => {
+  const h = fixture([{ kind: 'narrate', text: 'The table hears the answer.' }]);
+  h.snapshot.messages = [player(2), player(3)];
+  h.snapshot.directorDirective = 'The lead wants the locked door addressed first.';
+  h.snapshot.events = [{ seq: 4, type: 'lead_response_requested', payload: { leadUserId: 'leader' } }];
+  await h.tick();
+  assert.equal(h.modelCalls[0].packet.input.kind, 'lead_response');
+  assert.deepEqual(h.modelCalls[0].packet.input.messages.map(message => message.seq), [2, 3]);
+  assert.match(h.modelCalls[0].packet.instructions, /locked door addressed first/);
+  assert.equal(h.controller.state.handledSeq, 4);
+  assert.equal(h.controller.state.queue.length, 0);
+});
+
+test('sequential spotlight waits for everyone, then resolves their replies as one batch', async () => {
+  const h = fixture([{ kind: 'narrate', text: 'Both replies change the scene.' }]);
+  h.snapshot.messages = [player(2)];
+  h.snapshot.currentSeq = h.snapshot.nextCursor = 2;
+  h.snapshot.campaign.floor = { mode: 'spotlight', userIds: ['user', 'user-2'], respondedUserIds: ['user'], prompt: '' };
+  assert.equal(await h.tick(), false);
+  assert.equal(h.modelCalls.length, 0);
+
+  h.snapshot.messages.push({ ...player(3), userId: 'user-2', characterId: 'hero-2', content: 'I bar the door.' });
+  h.snapshot.campaign.floor = { mode: 'hold', next: { mode: 'open' } };
+  h.snapshot.currentSeq = h.snapshot.nextCursor = 4;
+  h.snapshot.events = [{ seq: 4, type: 'spotlight_ready', payload: { messageId: 'message-3', autoReleaseFloor: true } }];
+  await h.tick();
+  assert.equal(h.modelCalls[0].packet.input.kind, 'spotlight_batch');
+  assert.deepEqual(h.modelCalls[0].packet.input.messages.map(message => message.seq), [2, 3]);
+  assert.equal(h.writes[0].params.releaseFloor, true, 'confirmed narration reopens the floor atomically');
+  assert.equal(h.controller.state.handledSeq, 4);
+  assert.equal(h.controller.state.queue.length, 0);
+});
+
+test('a queued spotlight barrier survives a long unread event stream', () => {
+  const h = fixture([]);
+  h.snapshot.messages = [player(2), player(3)];
+  h.snapshot.events = [
+    { seq: 4, type: 'spotlight_ready', payload: {} },
+    ...Array.from({ length: 300 }, (_, index) => ({ seq: index + 5, type: 'roll_result', payload: {} })),
+  ];
+  h.snapshot.currentSeq = h.snapshot.nextCursor = 304;
+  h.controller.ingestReadSnapshot(h.snapshot);
+  assert.equal(h.controller.state.events[0].type, 'spotlight_ready');
+});
+
+test('message edits and deletions reconcile the unhandled narrator queue', async () => {
+  const h = fixture([{ kind: 'narrate', text: 'Revised answer.' }]);
+  h.controller.ingestReadSnapshot(h.snapshot);
+  h.snapshot.messages = [];
+  h.snapshot.currentSeq = 6;
+  h.snapshot.nextCursor = 6;
+  h.snapshot.events = [
+    { seq: 5, type: 'message_updated', payload: { message: { ...player(2), content: 'I leave the chest closed.' } } },
+    { seq: 6, type: 'message_deleted', payload: { messageId: 'other-message' } },
+  ];
+  await h.tick();
+  assert.equal(h.modelCalls[0].packet.input.content, 'I leave the chest closed.');
+  const removed = fixture([]);
+  removed.controller.ingestReadSnapshot(removed.snapshot);
+  removed.snapshot.messages = [];
+  removed.snapshot.currentSeq = 5;
+  removed.snapshot.nextCursor = 5;
+  removed.snapshot.events = [{ seq: 5, type: 'message_deleted', payload: { messageId: 'message-2' } }];
+  assert.equal(await removed.tick(), false);
+  assert.equal(removed.modelCalls.length, 0);
+});
+
+test('message changes preserve an in-flight lead batch and its edited note', () => {
+  const h = fixture([]);
+  h.controller.state.current = { input: {
+    id: 'lead-response:4', seq: 4, kind: 'lead_response', noteMessageId: 'lead-note',
+    note: 'Party lead direction: Open the chest.',
+    messages: [player(2), player(3)],
+    content: 'Party lead direction: Open the chest.\nI search the chest.\nI search the chest.',
+  }, steps: 1, outcomes: [], waiting: [], resolved: {}, waitSeq: null };
+  h.snapshot.messages = [];
+  h.snapshot.currentSeq = h.snapshot.nextCursor = 7;
+  h.snapshot.events = [
+    { seq: 5, type: 'message_updated', payload: { message: { ...player(2), content: 'I leave it closed.' } } },
+    { seq: 6, type: 'message_deleted', payload: { messageId: 'message-3' } },
+    { seq: 7, type: 'message_updated', payload: { message: { id: 'lead-note', seq: 1,
+      authorType: 'system', userId: 'leader', content: '[Party lead direction] Wait outside.' } } },
+  ];
+  h.controller.ingestReadSnapshot(h.snapshot);
+  assert.equal(h.controller.state.current.input.kind, 'lead_response');
+  assert.deepEqual(h.controller.state.current.input.messages.map(message => message.id), ['message-2']);
+  assert.equal(h.controller.state.current.input.content, '[Party lead direction] Wait outside.\nI leave it closed.');
+  assert.equal(h.controller.state.current.steps, 0);
+});
+
+test('message edits and deletions also reconcile compacted host memory', () => {
+  const memory = new HostContextMemory({ campaignId: 'c', maxRecentMessages: 1 });
+  memory.ingestReadSnapshot(snapshot({ currentSeq: 3, recentMessages: [player(2), player(3)], messages: [], events: [] }));
+  assert.match(memory.getPromptContext().summary, /I search the chest/);
+  memory.ingestReadSnapshot(snapshot({ currentSeq: 4, recentMessages: [], messages: [], events: [
+    { seq: 4, type: 'message_updated', payload: { message: { ...player(2), content: 'I leave the chest closed.' } } },
+  ] }));
+  assert.match(memory.getPromptContext().summary, /I leave the chest closed/);
+  assert.doesNotMatch(memory.getPromptContext().summary, /I search the chest/);
+  memory.ingestReadSnapshot(snapshot({ currentSeq: 5, recentMessages: [], messages: [], events: [
+    { seq: 5, type: 'message_deleted', payload: { messageId: 'message-2' } },
+  ] }));
+  assert.doesNotMatch(JSON.stringify(memory.serializeState()), /I leave the chest closed/);
+});
+
+test('opted-in spotlight player gets one sequential autopilot turn', async () => {
+  const h = fixture([{ kind: 'do', content: 'I check the door.' }]);
+  h.snapshot.messages = [];
+  h.snapshot.members = [{ userId: 'user', autopilot: true, muted: false, skipTurnsCount: 0 }];
+  h.snapshot.sheets[0].userId = 'user';
+  h.snapshot.campaign.floor = { mode: 'spotlight', userIds: ['user'], respondedUserIds: [], prompt: '' };
+  await h.tick();
+  assert.equal(h.writes[0].action, 'narrator.autopilot_action');
+  assert.equal(h.writes[0].params.characterId, 'hero');
+  assert.equal(h.writes[0].params.roundNumber, undefined);
+});
+
+test('autopilot never acts while initiative is still being prepared', async () => {
+  const h = fixture([]);
+  h.snapshot.messages = [];
+  h.snapshot.members = [{ userId: 'user', autopilot: true, muted: false, skipTurnsCount: 0 }];
+  h.snapshot.sheets[0].userId = 'user';
+  h.snapshot.campaign.floor = { mode: 'spotlight', userIds: ['user'], respondedUserIds: [], prompt: '' };
+  h.snapshot.encounter = { id: 'pending-init', orderReady: false };
+  await h.tick();
+  assert.equal(h.writes.length, 0);
+});
+
 test('referee packet omits presentation and retired hosted-AI settings', async () => {
   const h = fixture([{ kind: 'done' }]);
   h.snapshot.campaign.gameSettings = {

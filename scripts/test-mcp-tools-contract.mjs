@@ -43,6 +43,7 @@ function runSubprocess(code, { preload = true, env = {} } = {}) {
       formatToolResult,
     } from "./mcp/server.mjs";
     import { z } from "zod";
+    import { writeSync } from "node:fs";
 
     const server = createVerifiedMcpServer({ expectPreload: true });
     const registered = Object.keys(server._registeredTools || {}).sort();
@@ -137,6 +138,15 @@ function runSubprocess(code, { preload = true, env = {} } = {}) {
       timelineEpoch: validEpoch,
       messageId: "44444444-4444-4444-8444-444444444444",
     });
+    const parsedEdit = narratorSchema.safeParse({
+      operation: "edit_message", campaignId: "11111111-1111-4111-8111-111111111111",
+      expectedSeq: 12, messageId: "44444444-4444-4444-8444-444444444444",
+      content: "Corrected narration.",
+    });
+    const parsedFinalizer = narratorSchema.safeParse({
+      operation: "finish_global_round", campaignId: "11111111-1111-4111-8111-111111111111",
+      expectedSeq: 12, roundNumber: 4, mode: "complete",
+    });
     if (!parsedAutopilot.success || parsedAutopilot.data.characterId === undefined ||
         parsedAutopilot.data.roundNumber !== 4 || parsedAutopilot.data.kind !== "do") {
       console.error("odm_narrator autopilot_action schema is not discoverable");
@@ -145,6 +155,11 @@ function runSubprocess(code, { preload = true, env = {} } = {}) {
     if (!parsedDelete.success || parsedDelete.data.messageId !== "44444444-4444-4444-8444-444444444444") {
       console.error("odm_narrator delete_message schema is not discoverable");
       process.exit(12);
+    }
+    if (!parsedEdit.success || parsedEdit.data.content !== "Corrected narration." ||
+        !parsedFinalizer.success || parsedFinalizer.data.mode !== "complete") {
+      console.error("odm_narrator edit/finalizer schema is not discoverable");
+      process.exit(13);
     }
 
     if (!parsedNarrator.success || parsedNarrator.data.commandId === undefined ||
@@ -169,7 +184,7 @@ function runSubprocess(code, { preload = true, env = {} } = {}) {
       process.exit(10);
     }
 
-    process.stdout.write(JSON.stringify({ ok: true, toolsCount: registered.length, registered }));
+    writeSync(1, JSON.stringify({ ok: true, toolsCount: registered.length, registered }));
   `);
 
   assert.equal(
@@ -191,6 +206,7 @@ function runSubprocess(code, { preload = true, env = {} } = {}) {
 {
   const result = runSubprocess(`
     import { createVerifiedMcpServer, assertRegisteredTools } from "./mcp/server.mjs";
+    import { writeSync } from "node:fs";
 
     const server = createVerifiedMcpServer({ expectPreload: true });
 
@@ -222,7 +238,7 @@ function runSubprocess(code, { preload = true, env = {} } = {}) {
       }
     }
 
-    process.stdout.write(JSON.stringify({ ok: true }));
+    writeSync(1, JSON.stringify({ ok: true }));
   `);
 
   assert.equal(
@@ -238,6 +254,7 @@ function runSubprocess(code, { preload = true, env = {} } = {}) {
   const result = runSubprocess(
     `
     import { createMcpServer, BASE_MCP_TOOLS, assertRegisteredTools } from "./mcp/server.mjs";
+    import { writeSync } from "node:fs";
 
     const server = createMcpServer();
     const registered = Object.keys(server._registeredTools || {}).sort();
@@ -255,7 +272,7 @@ function runSubprocess(code, { preload = true, env = {} } = {}) {
       }
     }
 
-    process.stdout.write(JSON.stringify({ ok: true, baseCount: registered.length }));
+    writeSync(1, JSON.stringify({ ok: true, baseCount: registered.length }));
   `,
     { preload: false, env: { ODM_MCP_REQUIRE_PRELOAD: "0" } }
   );

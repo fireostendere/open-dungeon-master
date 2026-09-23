@@ -24,7 +24,7 @@ const {
   setGlobalTurnState,
 } = await import("../src/lib/db/campaigns.ts");
 const { getDatabase } = await import("../src/lib/db/core.ts");
-const { startGlobalTurn } = await import("../src/lib/dm/global-turn-logic.ts");
+const { startGlobalTurn, sealGlobalTurnNow } = await import("../src/lib/dm/global-turn-logic.ts");
 
 const scriptsDir = path.dirname(fileURLToPath(import.meta.url));
 const read = (relative) => fs.readFileSync(path.resolve(scriptsDir, relative), "utf8");
@@ -95,6 +95,12 @@ try {
   assert.equal(reopened.actionsByCharacter.hero.actionsCount, 1);
   assert.deepEqual(getFloor(campaign.id), { mode: "open" }, "re-open must clear stale spotlight without wiping submissions");
 
+  const sealed = sealGlobalTurnNow(campaign.id, 1);
+  assert.equal(sealed.phase, "ready", "lead response request must seal the current collection window");
+  assert.equal(sealed.roundNumber, 1);
+  assert.equal(getGlobalTurnState(campaign.id).actionsByCharacter.hero.actionsCount, 1);
+  assert.ok(getDatabase().prepare("SELECT 1 FROM campaign_events WHERE campaign_id = ? AND type = 'global_turn_ready'").get(campaign.id));
+
   const route = read("../src/app/api/campaigns/[campaignId]/global-turn/start/route.ts");
   const resolveRoute = read("../src/app/api/campaigns/[campaignId]/global-turn/resolve/route.ts");
   const card = read("../src/app/campaigns/[campaignId]/GlobalTurnCard.tsx");
@@ -105,10 +111,11 @@ try {
   assert.match(card, /Стартовать раунд/);
   assert.match(card, /Переоткрыть ввод/);
   assert.match(card, /\/global-turn\/start/);
-  assert.doesNotMatch(card, /\/global-turn\/resolve/);
-  assert.doesNotMatch(resolveRoute, /resolveGlobalTurn\(/);
+  assert.match(card, /\/global-turn\/resolve/);
+  assert.match(resolveRoute, /requireLead\(campaignId\)/);
+  assert.match(resolveRoute, /sealGlobalTurnNow\(campaignId, before\.roundNumber\)/);
 
-  console.log("PASS lead can start/re-open the current global round without ending it");
+  console.log("PASS lead can recover, then seal a global round on demand");
 } finally {
   removeTempDir(dir);
 }

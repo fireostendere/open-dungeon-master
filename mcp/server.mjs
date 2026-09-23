@@ -148,7 +148,7 @@ function createMcpServer() {
       contents: [{
         uri: uri.href,
         mimeType: "text/plain",
-        text: "Trusted DM only: connect with stateDelta:true, then read until hasMore is false. Keep stateDelta.revision and return it as knownStateRevision; changed entities arrive as upsert/remove/order patches and changed scalar state as set/unset. A full resyncRequired response replaces the baseline after restart/eviction. Use the fully drained nextCursor/currentSeq as expectedSeq for one invoke, narrate, delete_message, autopilot_action, or release_floor. Inspect pendingRolls, roll_result events, and recentRolls; the server owns dice. In global-turn mode, a waiting round keeps players locked: wait for global_turn_narrator_trigger and narrate with startGlobalRound equal to its roundNumber; that confirmed narration opens collection. Later wait for global_turn_ready, treat all player messages through that event seq as one round, and narrate with completeGlobalRound equal to its roundNumber; that confirmed MCP write advances and opens the next round. After a write, consume its attached authoritative state delta as the read; if absent/incomplete, drain narrator.read. Always reread after a timeout or error. An ambiguous serialized write may have one immediate receipt-recovery retry only with the saved exact request: same UUID commandId, original expectedSeq, timelineEpoch and all arguments. Never regenerate a payload, expectedSeq or UUID to replay an effect; then checkpoint and escalate. An answer_ask retry also keeps the exact expectedVersion. If timelineEpoch changed, reconnect and discard incompatible pending work. This resource is not a background loop. The bearer is campaign-scoped narrator access, not player access; never put it or DM secrets in player chat.",
+        text: "Trusted DM only: connect with stateDelta:true, then read until hasMore is false. Keep stateDelta.revision and return it as knownStateRevision; changed entities arrive as upsert/remove/order patches and changed scalar state as set/unset. A full resyncRequired response replaces the baseline after restart/eviction. Use the fully drained nextCursor/currentSeq as expectedSeq for one invoke, narrate, edit_message, delete_message, set_floor, request_response, autopilot_action, or release_floor. Inspect pendingRolls, roll_result events, and recentRolls; the server owns dice. In global-turn mode, a waiting round keeps players locked: wait for global_turn_narrator_trigger and narrate with startGlobalRound equal to its roundNumber; that confirmed narration opens collection. Later wait for global_turn_ready, treat all player messages through that event seq as one round, and narrate with completeGlobalRound equal to its roundNumber; that confirmed MCP write advances and opens the next round. After a write, consume its attached authoritative state delta as the read; if absent/incomplete, drain narrator.read. Always reread after a timeout or error. An ambiguous serialized write may have one immediate receipt-recovery retry only with the saved exact request: same UUID commandId, original expectedSeq, timelineEpoch and all arguments. Never regenerate a payload, expectedSeq or UUID to replay an effect; then checkpoint and escalate. An answer_ask retry also keeps the exact expectedVersion. If timelineEpoch changed, reconnect and discard incompatible pending work. This resource is not a background loop. The bearer is campaign-scoped narrator access, not player access; never put it or DM secrets in player chat.",
       }],
     }),
   );
@@ -170,7 +170,7 @@ claim an action succeeded before the authoritative result has arrived.
 ## Read and write protocol
 Call connect and read; follow nextCursor until hasMore is false. Filtering OOC
 messages can produce empty pages with a NEW cursor: keep draining them. Use the
-fully drained currentSeq as expectedSeq for one invoke, narrate, delete_message, autopilot_action or release_floor.
+fully drained currentSeq as expectedSeq for one invoke, narrate, delete_message, edit_message, autopilot_action, finish_global_round, set_floor, request_response or release_floor.
 When global-turn mode is enabled, the server owns the round counter and input gate.
 A waiting round accepts no player input. Wait for global_turn_narrator_trigger, narrate
 the opening/transition, and send startGlobalRound=roundNumber; only that committed MCP
@@ -178,6 +178,11 @@ write opens collection. While collection is active, an explicitly opted-in membe
 be represented only by the host's isolated actor role using autopilot_action with the
 current characterId and roundNumber. Never invent an action for a non-opted-in player;
 the server rechecks opt-in, skip/mute/floor, round freshness and duplicate actions.
+Outside global-turn mode, a spotlighted opted-in player may act via autopilot_action
+without roundNumber. The lead chooses the spotlight; the host waits for the selected
+players before resolving ordinary input. A lead response request may wake the host
+earlier, and takes priority over later ordinary input. The lead's private director
+directive is visible only in the authenticated narrator read, never player chat.
 Then do not resolve player messages individually: wait for global_turn_ready, batch all
 player messages through its seq, and send the final round
 narration with completeGlobalRound=roundNumber. In location-private spatial mode,
@@ -189,6 +194,9 @@ delete_message removes the exact main-transcript messageId, including player, DM
 system messages. It removes transcript-derived pins/beats, but it is not a gameplay
 rewind: authoritative rolls and mechanical state survive, and moderation audit records
 remain. Use rules-engine actions or an explicit rewind when mechanics must change.
+edit_message changes exact main-transcript text while retaining its author and
+preserving every roll marker. Edits and deletions invalidate queued narrator text;
+reread before acting. Neither operation rewinds mechanics or private Ask/whispers.
 Always read after a timeout or error, including 409. A readRequired flag on a
 successful receipt means only the post-commit read failed: never replay the effect. An ambiguous serialized
 write gets at most one immediate receipt-recovery retry with the saved exact
@@ -305,9 +313,9 @@ questions, private whispers, DM outlines or other DM secrets to the table.
     {
       title: "ODM campaigns",
       description:
-        "Create, inspect and administer campaigns/workshops. Operations: list, get, create, update, delete, set_status, regenerate_invite. gameSettings.combatMode is classical (default) or jrpg. Delete requires confirm=true.",
+        "Create, inspect and administer campaigns/workshops. Operations: list, get, create, update, delete, set_status, regenerate_invite, assign_dm_seat. gameSettings.combatMode is classical (default) or jrpg. Delete requires confirm=true.",
       inputSchema: z.object({
-        operation: z.enum(["list", "get", "create", "update", "delete", "set_status", "regenerate_invite"]),
+        operation: z.enum(["list", "get", "create", "update", "delete", "set_status", "regenerate_invite", "assign_dm_seat"]),
         campaignId: z.string().uuid().optional(),
         kind: z.enum(["campaign", "workshop", "all"]).optional(),
         ...ownerRefFields,
@@ -319,6 +327,8 @@ questions, private whispers, DM outlines or other DM secrets to the table.
         difficulty: z.enum(["easy", "normal", "hard", "deadly"]).optional(),
         gameSettings: gameSettingsInputSchema.optional(),
         status: z.enum(["lobby", "active", "ended"]).optional(),
+        seat: z.enum(["dm", "assistant"]).optional(),
+        userId: z.string().uuid().nullable().optional(),
         confirm: z.boolean().optional(),
       }),
     },
@@ -354,6 +364,8 @@ questions, private whispers, DM outlines or other DM secrets to the table.
           return run("campaigns.set_status", { campaignId: args.campaignId, status: args.status });
         case "regenerate_invite":
           return run("campaigns.regenerate_invite", { campaignId: args.campaignId });
+        case "assign_dm_seat":
+          return run("campaigns.assign_dm_seat", { campaignId: args.campaignId, seat: args.seat, userId: args.userId });
       }
     },
   );

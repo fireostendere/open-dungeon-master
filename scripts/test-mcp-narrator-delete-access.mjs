@@ -25,6 +25,10 @@ test("narrator credential may delete a message only in its bound campaign", () =
 });
 
 test("narrator credential still cannot use operator administration actions", () => {
+  assert.doesNotThrow(() => authorizeMcpAction(narrator, "narrator.edit_message", { campaignId }));
+  assert.doesNotThrow(() => authorizeMcpAction(narrator, "narrator.finish_global_round", { campaignId }));
+  assert.doesNotThrow(() => authorizeMcpAction(narrator, "narrator.set_floor", { campaignId }));
+  assert.doesNotThrow(() => authorizeMcpAction(narrator, "narrator.request_response", { campaignId }));
   assert.throws(
     () => authorizeMcpAction(narrator, "campaigns.delete", { campaignId }),
     (error) => error instanceof McpAccessError && error.status === 403,

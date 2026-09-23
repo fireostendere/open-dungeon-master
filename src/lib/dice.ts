@@ -1,5 +1,3 @@
-import { randomInt } from "node:crypto";
-
 // Rolls one die: returns an integer in [1, sides]. Injectable for testing.
 export type DieRng = (sides: number) => number;
 
@@ -53,7 +51,12 @@ const TERM_PATTERN =
   /^(?:(\d{1,3})d(\d{1,3})(?:k([hl])(\d{1,3}))?(?:r(\d{1,3}))?(?:f(\d{1,3}))?|(\d{1,7}))$/i;
 
 export function defaultRng(sides: number) {
-  return randomInt(1, sides + 1);
+  if (!Number.isSafeInteger(sides) || sides < 2 || sides > MAX_SIDES) throw new RangeError("Invalid die size.");
+  const face = new Uint32Array(1);
+  const range = 0x1_0000_0000;
+  const limit = Math.floor(range / sides) * sides;
+  do { globalThis.crypto.getRandomValues(face); } while (face[0] >= limit);
+  return face[0] % sides + 1;
 }
 
 export type RollOptions = {

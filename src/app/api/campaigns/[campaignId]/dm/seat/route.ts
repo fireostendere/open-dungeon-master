@@ -1,6 +1,7 @@
 import { z } from "zod";
-import { isErrorResponse, requireMember } from "@/lib/campaign-api";
-import { campaignSeats, listMembers, setAssistantDm, setHumanDm } from "@/lib/db/campaigns";
+import { isErrorResponse, isLead, requireMember } from "@/lib/campaign-api";
+import { campaignSeats, getCampaignById, listMembers, setAssistantDm, setHumanDm } from "@/lib/db/campaigns";
+import { listSheets } from "@/lib/db/sheets";
 import { isPrimaryDm } from "@/lib/dm/viewer";
 import { publishPersisted } from "@/lib/events";
 
@@ -39,7 +40,7 @@ export async function GET(
     assistantDmUserId: campaign.assistantDmUserId,
     // Whether THIS viewer may move the seats, so the client renders the
     // control rather than offering a button the server will refuse.
-    canAssign: isPrimaryDm(campaignSeats(campaign), user.id) || campaign.ownerUserId === user.id,
+    canAssign: isLead(context) || isPrimaryDm(campaignSeats(campaign), user.id) || campaign.ownerUserId === user.id,
   });
 }
 
@@ -59,9 +60,9 @@ export async function POST(
       { status: 400 },
     );
   }
-  if (!isPrimaryDm(campaignSeats(campaign), user.id) && campaign.ownerUserId !== user.id) {
+  if (!isLead(context) && !isPrimaryDm(campaignSeats(campaign), user.id) && campaign.ownerUserId !== user.id) {
     return Response.json(
-      { error: "Only the Dungeon Master can hand out the DM seats." },
+      { error: "Only the party lead, owner, or primary DM can assign DM seats." },
       { status: 403 },
     );
   }
@@ -74,6 +75,9 @@ export async function POST(
 
   if (userId && !listMembers(campaignId).some((member) => member.userId === userId)) {
     return Response.json({ error: "That player is not at this table." }, { status: 400 });
+  }
+  if (seat === "dm" && listSheets(campaignId).some((sheet) => sheet.userId === userId)) {
+    return Response.json({ error: "Move or remove that user's player sheet before assigning the DM seat." }, { status: 409 });
   }
   // The two seats cannot be the same person: a co-DM who is also the DM is
   // just the DM, and the pair would then disagree about who may re-seat whom.
@@ -94,7 +98,6 @@ export async function POST(
       { status: 400 },
     );
   }
-
   const applied =
     seat === "dm" ? setHumanDm(campaignId, userId) : setAssistantDm(campaignId, userId);
   if (!applied) {
@@ -103,5 +106,10 @@ export async function POST(
   // Persisted and table-wide: who is running the game is not a private fact,
   // and a player whose adjudicator changed mid-session is owed the news.
   publishPersisted(campaignId, "dm_seat_changed", { seat, userId });
+  const updated = getCampaignById(campaignId)!;
+  publishPersisted(campaignId, "campaign_updated", {
+    dmUserId: updated.dmUserId,
+    assistantDmUserId: updated.assistantDmUserId,
+  });
   return Response.json({ ok: true, seat, userId });
 }

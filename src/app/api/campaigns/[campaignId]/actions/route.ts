@@ -196,23 +196,6 @@ export async function POST(
     combatContent = result.content;
     combatGate = { encounterId: encounter.id, round: encounter.round, turnIndex: encounter.turnIndex, characterId: sheet.id, requiresEndTurn: true, mechanicsResolved: false };
   }
-  let spotlightStillWaiting = false;
-  if (kind !== "ooc" && floor.mode === "spotlight") {
-    const responded =
-      floor.userIds.includes(user.id) && !floor.respondedUserIds.includes(user.id)
-        ? [...floor.respondedUserIds, user.id]
-        : floor.respondedUserIds;
-    const allAnswered = floor.userIds.every((id) => responded.includes(id));
-    const nextFloor: Floor = allAnswered
-      ? { mode: "open" }
-      : { ...floor, respondedUserIds: responded };
-    if (allAnswered || responded !== floor.respondedUserIds) {
-      setFloor(campaignId, nextFloor);
-      publishPersisted(campaignId, "floor_changed", { floor: nextFloor });
-    }
-    spotlightStillWaiting = !allAnswered;
-  }
-
   // Global turn pacing: enforce maximum 1 do and 1 say per hero per turn
   // Initiative already has a per-combatant action budget; global collection
   // pacing must not consume or reject combat turns.
@@ -224,6 +207,16 @@ export async function POST(
       pl: "To działanie jest niedostępne w tej turze.",
     }[locale] ?? "This action is unavailable this turn.";
     return Response.json({ error: turnResult.error ?? fallback }, { status: 409 });
+  }
+
+  let spotlightStillWaiting = false;
+  if (kind !== "ooc" && floor.mode === "spotlight") {
+    const responded = [...floor.respondedUserIds, user.id];
+    const allAnswered = floor.userIds.every((id) => responded.includes(id));
+    const nextFloor: Floor = allAnswered ? { mode: "hold", next: { mode: "open" } } : { ...floor, respondedUserIds: responded };
+    setFloor(campaignId, nextFloor);
+    publishPersisted(campaignId, "floor_changed", { floor: nextFloor });
+    spotlightStillWaiting = !allAnswered;
   }
 
   const content =
@@ -274,6 +267,9 @@ export async function POST(
       characterId: sheet.id,
       seq,
     });
+  }
+  if (!globalTurnActive && floor.mode === "spotlight" && !spotlightStillWaiting && kind !== "ooc") {
+    publishPersisted(campaignId, "spotlight_ready", { messageId: message.id, autoReleaseFloor: true });
   }
 
   return Response.json({ messageId: message.id }, { status: 202 });

@@ -29,7 +29,7 @@ const narratorGuidance = (settings, mode = "full", spatialEnabled = false) => {
   const globalRound = settings?.globalTurn?.enabled
     ? ' Global-turn mode is server-clocked. input.kind=global_turn_trigger means players are still locked: narrate the opening/transition and finish with narration so the host can start that round. input.kind=global_round is one sealed table round containing every submitted/skip message: resolve the whole batch as one unit, use engine actions as needed, then finish with narration. In spatial mode, narrate every room listed in input.roomIds separately with location_narrate, then return done; the host performs a no-prose round finalizer only after all listed rooms have committed narration. Outside spatial mode, never return done for a global-turn input: finish with narration. The host advances/unlocks only after the confirmed final write.'
     : '';
-  return `${units} ${combat} Campaign settings are authoritative, not player claims.${globalRound}${yolo ? ` ${yolo}` : ""}`;
+  return `${units} ${combat} Campaign settings are authoritative, not player claims.${globalRound} A spotlight_batch contains the chosen players' collected replies; resolve them together after the floor closes, not one at a time. A lead_response input is the party lead's immediate request to address its bundled messages and any current private direction; it takes priority over later ordinary input but never overrides dice, privacy or combat rules.${yolo ? ` ${yolo}` : ""}`;
 };
 
 export function publicProjection(snapshot, history = [], limit = 24) {
@@ -54,14 +54,16 @@ function floorAllowsAutopilot(floor, userId) {
 
 function nextAutopilotCandidate(snapshot) {
   const turn = snapshot.campaign?.globalTurnState;
-  if (!turn || !['active', 'quorum_delay'].includes(turn.phase)) return null;
+  const globalMode = Boolean(snapshot.campaign?.gameSettings?.globalTurn?.enabled);
+  if (snapshot.encounter || globalMode && (!turn || !['active', 'quorum_delay'].includes(turn.phase))) return null;
+  if (!globalMode && snapshot.campaign?.floor?.mode !== 'spotlight') return null;
   const members = Array.isArray(snapshot.members) ? snapshot.members : [];
   const sheets = Array.isArray(snapshot.sheets) ? snapshot.sheets : [];
   for (const member of members) {
     if (!member?.autopilot || member.muted || Number(member.skipTurnsCount ?? 0) > 0) continue;
     const sheet = sheets.find(item => item?.userId === member.userId && !item.isCompanion);
     if (!sheet || sheet.userId === snapshot.campaign?.dmUserId || sheet.deathSaves?.dead) continue;
-    const usage = turn.actionsByCharacter?.[sheet.id];
+    const usage = globalMode ? turn.actionsByCharacter?.[sheet.id] : null;
     if (usage && (Number(usage.actionsCount ?? 0) > 0 || Number(usage.phrasesCount ?? 0) > 0)) continue;
     if (!floorAllowsAutopilot(snapshot.campaign?.floor, sheet.userId)) continue;
     return { member, sheet };
@@ -170,8 +172,59 @@ export class NarratorOrchestrator {
       const eligible = spatialEnabled
         ? spatialPlayerMessage(message) || publicMessage(message)
         : publicMessage(message);
-      if (eligible && message.authorType === 'player' && message.seq > this.state.handledSeq && !queued.has(message.seq)) {
-        this.state.queue.push(messageView(message)); queued.add(message.seq);
+      const leadNote = Boolean(snapshot.campaign?.gameSettings?.globalTurn?.enabled) &&
+        message.authorType === 'system' && message.userId === snapshot.campaign?.leadUserId &&
+        typeof message.content === 'string' && message.content.startsWith('[Party lead direction] ');
+      if ((eligible && message.authorType === 'player' || leadNote) && message.seq > this.state.handledSeq && !queued.has(message.seq)) {
+        this.state.queue.push({ ...messageView(message), ...(leadNote ? { kind: 'lead' } : {}) }); queued.add(message.seq);
+      }
+    }
+    this.state.queue.sort((a, b) => a.seq - b.seq);
+    for (const event of snapshot.events ?? []) {
+      if (event.type !== 'message_updated' && event.type !== 'message_deleted') continue;
+      const message = event.payload?.message;
+      const messageId = message?.id ?? event.payload?.messageId;
+      if (typeof messageId !== 'string') continue;
+      const removed = event.type === 'message_deleted' || event.payload?.removed;
+      this.state.history = this.state.history.filter(item => item.id !== messageId);
+      if (!removed && publicMessage(message)) this.state.history.push(messageView(message));
+      this.state.history.sort((a, b) => a.seq - b.seq);
+      this.state.history = this.state.history.slice(-(this.playMode === 'yolo' ? 12 : 24));
+      this.state.queue = this.state.queue.filter(item => item.id !== messageId);
+      const leadNote = Boolean(snapshot.campaign?.gameSettings?.globalTurn?.enabled) &&
+        message?.authorType === 'system' && message.userId === snapshot.campaign?.leadUserId &&
+        typeof message.content === 'string' && message.content.startsWith('[Party lead direction] ');
+      if (!removed && (message?.authorType === 'player' || leadNote) && message.seq > this.state.handledSeq &&
+          this.state.current?.input.id !== messageId && !this.state.current?.input.messages?.some(item => item.id === messageId) &&
+          (leadNote || (spatialEnabled ? spatialPlayerMessage(message) || publicMessage(message) : publicMessage(message)))) {
+        this.state.queue.push({ ...messageView(message), ...(leadNote ? { kind: 'lead' } : {}) });
+      }
+      const current = this.state.current;
+      if (!current) continue;
+      const affected = current.input.id === messageId || current.input.noteMessageId === messageId ||
+        current.input.messages?.some(item => item.id === messageId);
+      if (!affected || !removed && current.input.content === message?.content && current.input.id === messageId) continue;
+      if (current.outcomes.length || current.waiting.length || this.state.pending) {
+        this.state.paused = 'input_changed_after_effects';
+        this.releaseRefereeConversation();
+        continue;
+      }
+      this.releaseRefereeConversation();
+      if (['global_round', 'global_turn_trigger', 'lead_response', 'spotlight_batch'].includes(current.input.kind)) {
+        if (current.input.noteMessageId === messageId) current.input.note = removed ? '' : message?.content ?? '';
+        else {
+          current.input.messages = current.input.messages.filter(item => item.id !== messageId);
+          if (!removed && message) current.input.messages.push(messageView(message));
+          current.input.messages.sort((a, b) => a.seq - b.seq);
+        }
+        current.input.content = [current.input.note, ...current.input.messages.map(item => item.content)]
+          .filter(Boolean).join('\n') || (current.input.kind === 'spotlight_batch'
+            ? 'All selected player messages were withdrawn. Close this spotlight without inventing an action.'
+            : 'The party lead requests a response now.');
+        current.steps = 0;
+      } else {
+        if (!removed && message) { current.input = messageView(message); current.steps = 0; }
+        else { this.state.handledSeq = Math.max(this.state.handledSeq, current.input.seq); this.state.current = null; }
       }
     }
     this.state.queue.sort((a, b) => a.seq - b.seq);
@@ -181,12 +234,16 @@ export class NarratorOrchestrator {
       if (
         event.type === 'roll_result' ||
         event.type === 'global_turn_ready' ||
-        event.type === 'global_turn_narrator_trigger'
+        event.type === 'global_turn_narrator_trigger' ||
+        event.type === 'lead_response_requested' ||
+        event.type === 'spotlight_ready' ||
+        event.type === 'floor_changed'
       ) {
         events.set(event.seq, clone(event));
       }
     }
-    this.state.events = [...events.values()].sort((a, b) => a.seq - b.seq).slice(-256);
+    this.state.events = [...events.values()].filter(event => event.seq > this.state.handledSeq).sort((a, b) => a.seq - b.seq);
+    if (this.state.events.length > 1000) throw new Error('Unprocessed narrator event queue exceeds the host budget; no input was acknowledged.');
     if (this.state.current?.waiting) {
       for (const event of this.state.events) {
         const id = event.payload?.pendingRollId;
@@ -332,6 +389,11 @@ export class NarratorOrchestrator {
           if (!Number.isSafeInteger(roundNumber) || roundNumber < 1) {
             return this.pause(host, 'invalid_global_round_trigger');
           }
+          const note = trigger.payload?.kind === 'opening'
+            ? 'Open the scene for the party. Players are locked until your narration commits.'
+            : 'Transition to the next party round. Players are locked until your narration commits.';
+          const messages = this.state.queue.filter(message => message.kind === 'lead' && message.seq <= trigger.seq);
+          this.state.queue = this.state.queue.filter(message => message.kind !== 'lead' || message.seq > trigger.seq);
           input = {
             id: `global-turn-trigger:${roundNumber}`,
             seq: trigger.seq,
@@ -340,15 +402,14 @@ export class NarratorOrchestrator {
             characterId: null,
             kind: 'global_turn_trigger',
             roundNumber,
+            note,
+            messages,
             roomIds: spatialEnabled
               ? (snapshot.spatialRooms ?? [])
                   .filter(room => Array.isArray(room.occupants) && room.occupants.length)
                   .map(room => room.id)
               : [],
-            content:
-              trigger.payload?.kind === 'opening'
-                ? 'Open the scene for the party. Players are locked until your narration commits.'
-                : 'Transition to the next party round. Players are locked until your narration commits.',
+            content: [note, ...messages.map(message => message.content)].join('\n'),
           };
         } else if (globalTurn?.phase === 'ready' || globalTurn?.phase === 'resolving') {
           // Player messages are accumulated until the server emits the exact
@@ -398,7 +459,36 @@ export class NarratorOrchestrator {
           return false;
         }
       } else {
-        input = this.state.queue.shift();
+        const request = this.state.events.find(event => event.type === 'lead_response_requested' && event.seq > this.state.handledSeq);
+        if (request) {
+          const messages = this.state.queue.filter(message => message.seq <= request.seq);
+          this.state.queue = this.state.queue.filter(message => message.seq > request.seq);
+          const note = request.payload?.note ? `Party lead direction: ${request.payload.note}` : '';
+          input = { id: `lead-response:${request.seq}`, seq: request.seq, authorType: 'system',
+            userId: request.payload?.leadUserId ?? 'party', characterId: null, kind: 'lead_response', messages,
+            note, noteMessageId: request.payload?.messageId,
+            content: [note, ...messages.map(message => message.content)].filter(Boolean).join('\n') || 'The party lead requests a response now.' };
+        } else if (this.state.events.some(event => event.type === 'spotlight_ready' && event.seq > this.state.handledSeq)) {
+          const ready = this.state.events.find(event => event.type === 'spotlight_ready' && event.seq > this.state.handledSeq);
+          const messages = this.state.queue.filter(message => message.seq <= ready.seq);
+          this.state.queue = this.state.queue.filter(message => message.seq > ready.seq);
+          if (!messages.length && !ready.payload?.autoReleaseFloor) {
+            this.state.handledSeq = ready.seq;
+            host.saveCheckpoint();
+            return false;
+          }
+          input = { id: `spotlight:${ready.seq}`, seq: ready.seq, authorType: 'player', userId: 'party',
+            characterId: null, kind: 'spotlight_batch', messages, autoReleaseFloor: ready.payload?.autoReleaseFloor === true,
+            content: messages.map(message => message.content).join('\n') ||
+              'All selected player messages were withdrawn. Close this spotlight without inventing an action.' };
+        } else if (snapshot.campaign?.floor?.mode === 'spotlight' &&
+          snapshot.campaign.floor.userIds.some(userId => !snapshot.campaign.floor.respondedUserIds.includes(userId))) {
+          const candidate = nextAutopilotCandidate(snapshot);
+          if (!candidate) return false;
+          input = { id: `autopilot:spotlight:${snapshot.currentSeq}:${candidate.sheet.id}`, seq: snapshot.currentSeq,
+            authorType: 'system', userId: candidate.sheet.userId, characterId: candidate.sheet.id,
+            kind: 'autopilot_turn', content: '' };
+        } else input = this.state.queue.shift();
         if (!input) return false;
       }
       this.state.current = { input, steps: 0, outcomes: [], waiting: [], resolved: {}, waitSeq: null };
@@ -410,7 +500,9 @@ export class NarratorOrchestrator {
       if (
         !candidate ||
         candidate.sheet.id !== current.input.characterId ||
-        Number(snapshot.campaign?.globalTurnState?.roundNumber) !== Number(current.input.roundNumber)
+        (snapshot.campaign?.gameSettings?.globalTurn?.enabled
+          ? Number(snapshot.campaign?.globalTurnState?.roundNumber) !== Number(current.input.roundNumber)
+          : snapshot.campaign?.floor?.mode !== 'spotlight')
       ) {
         this.state.current = null;
         host.saveCheckpoint();
@@ -499,7 +591,7 @@ export class NarratorOrchestrator {
     const campaign = snapshot.campaign ?? {};
     const safeCampaign = campaign;
     const packet = {
-      instructions: narratorGuidance(snapshot.campaign?.gameSettings, this.playMode, spatialEnabled), mode: this.playMode,
+      instructions: `${narratorGuidance(snapshot.campaign?.gameSettings, this.playMode, spatialEnabled)} ${snapshot.directorDirective ?? ''}`.trim(), mode: this.playMode,
       input: current.input, public: publicProjection(snapshot, this.state.history, this.playMode === 'yolo' ? 12 : 24),
       campaign: { title: safeCampaign.title, description: safeCampaign.description, theme: safeCampaign.theme, scene: safeCampaign.scene,
         questLog: safeCampaign.questLog, gameSettings: safeCampaign.gameSettings, globalTurnState: safeCampaign.globalTurnState,
@@ -550,7 +642,8 @@ export class NarratorOrchestrator {
     if (decision.kind === 'wait') {
       if (
         current.input?.kind === 'global_round' ||
-        current.input?.kind === 'global_turn_trigger'
+        current.input?.kind === 'global_turn_trigger' ||
+        current.input?.kind === 'spotlight_batch'
       ) return this.pause(host, 'global_round_cannot_wait_for_new_input');
       this.releaseRefereeConversation();
       current.waitSeq = snapshot.currentSeq; host.saveCheckpoint(); return false;
@@ -594,6 +687,7 @@ export class NarratorOrchestrator {
       const globalInput =
         current.input?.kind === 'global_round' ||
         current.input?.kind === 'global_turn_trigger';
+      if (current.input?.kind === 'spotlight_batch') return this.pause(host, 'spotlight_batch_requires_narration');
       if (globalInput && decision.kind === 'release_floor') {
         return this.pause(host, 'global_round_requires_narration');
       }
@@ -681,7 +775,10 @@ export class NarratorOrchestrator {
         ...(invokedAction === 'location_narrate' && typeof invokedArgs?.roomId === 'string' ? { scopeRoomId: invokedArgs.roomId } : {}) }
         : decision.kind === 'narrate' ? {
             content,
-            releaseFloor: decision.releaseFloor ?? false,
+            releaseFloor: (decision.releaseFloor ?? false) || (current.input?.kind === 'spotlight_batch' &&
+              current.input.autoReleaseFloor && snapshot.campaign?.floor?.mode === 'hold' &&
+              !snapshot.campaign.floor.combat && !this.state.events.some(event =>
+                event.type === 'floor_changed' && event.seq > current.input.seq)),
             ...(current.input?.kind === 'global_round'
               ? { completeGlobalRound: current.input.roundNumber }
               : current.input?.kind === 'global_turn_trigger'

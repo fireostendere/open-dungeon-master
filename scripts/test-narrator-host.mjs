@@ -185,7 +185,7 @@ test('M11: Narrator cost tracker enforces daily and hourly limits', () => tempDi
 }));
 
 test('M10: narratorctl.py CLI parses status and checkpoint under isolated root', () => tempDir(dir => {
-  const stateDir = path.join(dir, 'state');
+  const stateDir = path.join(dir, 'state', 'narrator');
   fs.mkdirSync(stateDir, { recursive: true });
   const cpPath = path.join(stateDir, 'narrator-checkpoint-c_test.json');
   fs.writeFileSync(cpPath, JSON.stringify({ campaignId: 'c_test', lastSeq: 42, lastAskSeq: 10 }), 'utf8');

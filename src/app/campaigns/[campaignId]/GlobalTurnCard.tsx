@@ -15,12 +15,14 @@ export function GlobalTurnCard({
   members,
   sheets,
   isLead,
+  meUserId,
 }: {
   campaignId: string;
   campaign: LeadCampaign & { globalTurnState?: GlobalTurnState };
   members: CampaignMember[];
   sheets: CharacterSheet[];
   isLead: boolean;
+  meUserId: string;
 }) {
   const { locale } = useI18n();
   const copy = localeText(locale, {
@@ -49,8 +51,11 @@ export function GlobalTurnCard({
       startingRound: "Starting...",
       startRoundHint: "Recovery control: opens the current round without changing its number. If already open, it re-publishes the round and clears a stale non-combat floor lock.",
       startRoundError: "Could not start the round.",
+      respondNow: "Request response now",
+      respondError: "Could not request a response.",
+      optInSelf: "Only this player can enable autopilot",
       autopilotTitle: "Party Autopilot (Doppelganger)",
-      autopilotHint: "Hand character control to AI to wake up sleepy players.",
+      autopilotHint: "Players opt in for themselves; the lead may switch it off. In sequential mode, AI acts when spotlighted.",
       on: "ON",
       off: "Off",
       acted: "Acted",
@@ -82,8 +87,11 @@ export function GlobalTurnCard({
       startingRound: "Запускаем...",
       startRoundHint: "Аварийная кнопка: открывает текущий раунд без смены номера. Если он уже открыт, повторно публикует состояние и снимает зависший внебоевой lock ввода.",
       startRoundError: "Не удалось стартовать раунд.",
+      respondNow: "Ответить сейчас",
+      respondError: "Не удалось запросить ответ.",
+      optInSelf: "Включить автопилот может только сам игрок",
       autopilotTitle: "Автопилот игроков (Доппельгангер)",
-      autopilotHint: "Передайте руление ИИ, чтобы не задерживать партию и растормошить спящих.",
+      autopilotHint: "Игрок включает автопилот сам; лидер может его выключить. При очередном ходе ИИ действует, когда игроку дано слово.",
       on: "ВКЛ",
       off: "Выкл",
       acted: "Сходил",
@@ -115,8 +123,11 @@ export function GlobalTurnCard({
       startingRound: "Uruchamianie...",
       startRoundHint: "Sterowanie awaryjne: otwiera bieżącą rundę bez zmiany numeru. Gdy jest już otwarta, ponownie publikuje stan i usuwa zawieszony niebojowy lock wejścia.",
       startRoundError: "Nie udało się uruchomić rundy.",
+      respondNow: "Odpowiedz teraz",
+      respondError: "Nie udało się poprosić o odpowiedź.",
+      optInSelf: "Tylko gracz może włączyć autopilota",
       autopilotTitle: "Autopilot postaci (Doppelganger)",
-      autopilotHint: "Przekaż postać pod kontrolę SI, aby rozruszać śpiących graczy.",
+      autopilotHint: "Gracz sam włącza autopilota; lider może go wyłączyć. W turze kolejnej SI działa po przyznaniu głosu.",
       on: "WŁ",
       off: "Wył",
       acted: "Wykonał",
@@ -140,6 +151,8 @@ export function GlobalTurnCard({
   const [busyUser, setBusyUser] = useState<string | null>(null);
   const [startingRound, setStartingRound] = useState(false);
   const [startRoundError, setStartRoundError] = useState<string | null>(null);
+  const [responding, setResponding] = useState(false);
+  const [respondError, setRespondError] = useState<string | null>(null);
   const [now, setNow] = useState(Date.now());
 
   // Real-time ticker for deadline
@@ -253,6 +266,26 @@ export function GlobalTurnCard({
     }
   }
 
+  async function respondNow() {
+    if (responding) return;
+    setResponding(true);
+    setRespondError(null);
+    try {
+      const response = await fetch(`/api/campaigns/${campaignId}/global-turn/resolve`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(enabled ? { roundNumber: turnState.roundNumber } : {}),
+      });
+      if (!response.ok) {
+        const result = await response.json().catch(() => ({}));
+        throw new Error(result.error || copy.respondError);
+      }
+    } catch (error) {
+      setRespondError(error instanceof Error ? error.message : copy.respondError);
+    } finally {
+      setResponding(false);
+    }
+  }
+
   return (
     <div className="mb-3 rounded-lg border border-stone-800 bg-stone-950/50 p-3">
       <div className="mb-2 flex items-center justify-between gap-2">
@@ -285,6 +318,15 @@ export function GlobalTurnCard({
         <span>{copy.enabled}</span>
       </label>
       <p className="mt-1 text-[11px] text-stone-400">{copy.desc}</p>
+      {isLead ? (
+        <div className="mt-2">
+          <button type="button" disabled={responding || enabled && !["active", "quorum_delay"].includes(turnState.phase)}
+            onClick={() => void respondNow()} className={cn("rounded border border-amber-700 px-2 py-1 text-xs text-amber-200", (responding || enabled && !["active", "quorum_delay"].includes(turnState.phase)) && "opacity-50")}>
+            {responding ? <Loader2 className="inline size-3 animate-spin" /> : <Play className="inline size-3" />} {copy.respondNow}
+          </button>
+          {respondError ? <p role="alert" className="mt-1 text-xs text-red-400">{respondError}</p> : null}
+        </div>
+      ) : null}
 
       {enabled ? (
         <div className="mt-3 space-y-3.5 border-t border-stone-800/80 pt-3">
@@ -425,8 +467,11 @@ export function GlobalTurnCard({
             ) : null}
           </div>
 
+        </div>
+      ) : null}
+
           {/* Autopilot Delegation Section */}
-          <div className="border-t border-stone-800/80 pt-2.5">
+          <div className="mt-3 border-t border-stone-800/80 pt-2.5">
             <div className="mb-1.5">
               <p className="flex items-center gap-1 text-xs font-medium text-stone-300">
                 <Bot className="size-3.5 text-sky-400" /> {copy.autopilotTitle}
@@ -470,7 +515,8 @@ export function GlobalTurnCard({
 
                     <button
                       type="button"
-                      disabled={busyUser === sheet.userId}
+                      disabled={busyUser === sheet.userId || !hasAutopilot && sheet.userId !== meUserId}
+                      title={!hasAutopilot && sheet.userId !== meUserId ? copy.optInSelf : undefined}
                       onClick={() => toggleAutopilot(sheet.userId, hasAutopilot)}
                       className={cn(
                         "shrink-0 rounded border px-2 py-0.5 text-[11px] transition-colors",
@@ -492,8 +538,6 @@ export function GlobalTurnCard({
               })}
             </ul>
           </div>
-        </div>
-      ) : null}
     </div>
   );
 }

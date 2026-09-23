@@ -18,7 +18,8 @@ function fixture() {
     '@/lib/dm/arc-logic': {}, '@/lib/dm/delegation': {}, '@/lib/dm/calendar': {},
     '@/lib/dm/party-logic': {}, '@/lib/dm/viewer': {},
   });
-  const floorDb = { ...f.campaigns, getFloor: campaigns.getFloor, setFloor: campaigns.setFloor, canAct: campaigns.canAct, campaignSeats: () => ({}) };
+  const floorDb = { ...f.campaigns, getFloor: campaigns.getFloor, setFloor: campaigns.setFloor, canAct: campaigns.canAct,
+    getGlobalTurnState: () => ({ phase: 'active' }), campaignSeats: () => ({}), listMembers: () => [] };
   const sheets = [
     { id: heroId, userId: 'u1', name: 'First', equipment: [], resources: {}, conditions: [] },
     { id: 'other', userId: 'u2', name: 'Second', equipment: [], resources: {}, conditions: [] },
@@ -40,7 +41,7 @@ function fixture() {
     '@/lib/db/sheets': sheetDb, '@/lib/dm/loop': { requestDmTurn: () => { throw new Error('No model in this test'); } },
     '@/lib/dm/delegation': { coverInEffect: () => false }, '@/lib/dm/viewer': { hasHumanDm: () => true },
     '@/lib/dm/queue': {}, '@/lib/dm/recap': {}, '@/lib/events': f.events,
-    '@/lib/dm/global-turn-logic': { recordGlobalTurnAction: () => { throw new Error('Combat must bypass global turns'); } },
+    '@/lib/dm/global-turn-logic': { recordGlobalTurnAction: () => { if (encounter) throw new Error('Combat must bypass global turns'); return { allowed: true }; } },
     '@/lib/db/encounters': { getActiveEncounter: () => encounter },
     '@/lib/db/encounter-view': { activePublicEncounter: () => ({ enemies: [] }) },
     '@/lib/dm/action-tools': { attacksAllowedFor: () => 1, budgetFor: () => freshBudget({ ownerId: heroId, round: 1 }) },
@@ -60,6 +61,24 @@ function fixture() {
     intent: { kind: 'do', combatTurn: { encounterId, round: 1, turnIndex: 0, choices: [], prose: 'Hold position' } },
   };
 }
+
+test('sequential spotlight emits one durable batch barrier after every selected player responds', async () => {
+  const f = fixture();
+  try {
+    f.encounter(null);
+    f.campaign.gameSettings.globalTurn.enabled = false;
+    f.campaigns.setFloor('c1', { mode: 'spotlight', userIds: ['u1', 'u2'], respondedUserIds: [], prompt: '' });
+    assert.equal((await f.send({ kind: 'do', content: 'I inspect the chest.' })).status, 202);
+    assert.deepEqual(f.campaigns.getFloor('c1').respondedUserIds, ['u1']);
+    assert.equal(f.db.prepare("SELECT COUNT(*) AS n FROM campaign_events WHERE type='spotlight_ready'").get().n, 0);
+    assert.equal((await f.send({ kind: 'do', content: 'I try again.' })).status, 409);
+    f.user('u2');
+    assert.equal((await f.send({ kind: 'say', content: 'Wait here.' })).status, 202);
+    assert.equal(f.campaigns.getFloor('c1').mode, 'hold', 'selected players stay locked until confirmed narration');
+    assert.equal(f.campaigns.getFloor('c1').next.mode, 'open');
+    assert.equal(f.db.prepare("SELECT COUNT(*) AS n FROM campaign_events WHERE type='spotlight_ready'").get().n, 1);
+  } finally { f.close(); }
+});
 
 test('combat CAS, owner admission, persistent gate, duplicate rejection and OOC', async () => {
   const f = fixture();
