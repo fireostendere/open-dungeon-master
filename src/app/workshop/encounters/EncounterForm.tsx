@@ -1,5 +1,6 @@
 "use client";
 
+import { useInlineText } from "@/lib/i18n/inline-text";
 import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { TEMPLATE_NAME_MAX } from "@/lib/dm/encounter-template-logic";
@@ -38,6 +39,7 @@ export function EncounterForm({
   onSubmit: () => void;
   variant?: "card" | "sheet";
 }) {
+  const uiText = useInlineText();
   const { locale } = useI18n();
   const copy = localeText(locale, { en: { name: "Encounter name", roster: "Roster", battle: "Battlefield", map: "On which map", generator: "Generator's choice", notes: "Notes", note: "One per line, name or slug, optional xN. Picking above and typing here are the same thing." }, ru: { name: "Название встречи", roster: "Состав", battle: "Поле боя", map: "На какой карте", generator: "Выбор генератора", notes: "Заметки", note: "По одному в строке: имя или идентификатор, можно xN. Выбор выше и ввод здесь означают одно и то же." } });
   const set = (patch: Partial<EncounterDraft>) => onChange({ ...value, ...patch });
@@ -53,7 +55,7 @@ export function EncounterForm({
         value={value.name}
         maxLength={TEMPLATE_NAME_MAX}
         onChange={(event) => set({ name: event.target.value })}
-        placeholder="Ambush at the ford"
+        placeholder={uiText("Ambush at the ford")}
         aria-label={copy.name}
         className={field}
       />
@@ -68,7 +70,7 @@ export function EncounterForm({
         value={value.enemies}
         onChange={(event) => set({ enemies: event.target.value })}
         rows={3}
-        placeholder={"goblin x4\nhobgoblin"}
+        placeholder={uiText("goblin x4\nhobgoblin")}
         aria-label={copy.roster}
         className={field}
       />
@@ -78,7 +80,7 @@ export function EncounterForm({
       <input
         value={value.battlefield}
         onChange={(event) => set({ battlefield: event.target.value })}
-        placeholder="a rope bridge over a gorge"
+        placeholder={uiText("a rope bridge over a gorge")}
         aria-label={copy.battle}
         className={field}
       />
@@ -108,7 +110,7 @@ export function EncounterForm({
         value={value.notes}
         onChange={(event) => set({ notes: event.target.value })}
         rows={2}
-        placeholder="Tactics, what they want, when they run."
+        placeholder={uiText("Tactics, what they want, when they run.")}
         aria-label={copy.notes}
         className={field}
       />

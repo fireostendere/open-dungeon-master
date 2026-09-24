@@ -4,7 +4,7 @@ import { Download, Loader2, Package, Share2 } from "lucide-react";
 import { useState } from "react";
 import { ui } from "@/lib/ui";
 import { UnofficialPackNotice } from "@/components/UnofficialPackNotice";
-import { BUNDLE_KIND_LABELS } from "@/lib/workshop/bundle";
+import { BUNDLE_KIND_LABELS, BUNDLE_KIND_LABELS_RU } from "@/lib/workshop/bundle";
 import { useI18n } from "@/lib/i18n/context";
 import { localeText } from "@/lib/i18n/locale-text";
 
@@ -45,6 +45,7 @@ export function DmSharePanel({ campaignId }: { campaignId: string }) {
     en: { failed: "That could not be built.", noPack: "Nothing in this workshop maps onto a world pack yet. Write some lore, places or hook cards first.", title: "Share this workshop", description: "A bundle is everything you prepared here as one file: lore, places, NPCs, fights, tables, map geometry, the board and your hand-built monsters. Pictures travel with it too, NPC faces and map backdrops alike, within the size caps. Nothing from any campaign does.", download: "Download bundle", compile: "Compile a world pack", refusalsTitle: "What did not fit in a world pack", required: "A name, a line about it and what it is inspired by are required before it can leave.", name: "Name", author: "Author", version: "Version", homepage: "Homepage (optional)", inspired: "Inspired by", rights: "Rights holder", blurb: "One line about it", nameExample: "The Sunken Vault", blurbExample: "A drowned dwarven city and the things that kept living in it.", inspiredExample: "Original work, or the setting this is a homage to", rightsExample: "Leave empty if this is your own world", rightsHint: "Fill this in if it is built on somebody else's setting. It is what turns the notice below into an explicit non-affiliation disclaimer." },
     ru: { failed: "Не удалось собрать пакет.", noPack: "В этой мастерской пока нет содержимого для пакета мира. Сначала добавьте лор, места или карточки зацепок.", title: "Поделиться мастерской", description: "Набор содержит всё подготовленное здесь в одном файле: лор, места, NPC, встречи, таблицы, геометрию карт, доску и созданных вручную монстров. В нём также передаются портреты NPC и фоны карт в пределах ограничений размера. Данные кампаний не включаются.", download: "Скачать набор", compile: "Собрать пакет мира", refusalsTitle: "Что не вошло в пакет мира", required: "Для экспорта нужны название, краткое описание и источник вдохновения.", name: "Название", author: "Автор", version: "Версия", homepage: "Сайт (необязательно)", inspired: "Вдохновлено", rights: "Правообладатель", blurb: "Краткое описание", nameExample: "Затонувшее хранилище", blurbExample: "Затопленный город дворфов и те, кто продолжал жить в нём.", inspiredExample: "Оригинальная работа или сеттинг, которому отдана дань", rightsExample: "Оставьте пустым, если это ваш собственный мир", rightsHint: "Заполните поле, если работа основана на чужом сеттинге. Так уведомление ниже явно укажет на отсутствие аффилиации." },
   });
+  const kindLabels = locale === "ru" ? BUNDLE_KIND_LABELS_RU : BUNDLE_KIND_LABELS;
   const [name, setName] = useState("");
   const [blurb, setBlurb] = useState("");
   const [author, setAuthor] = useState("");
@@ -261,7 +262,7 @@ export function DmSharePanel({ campaignId }: { campaignId: string }) {
                 key={kind}
                 className="rounded-full border border-stone-700 px-2.5 py-0.5 text-xs text-stone-400"
               >
-                {count} {BUNDLE_KIND_LABELS[kind] ?? kind}
+                {count} {kindLabels[kind] ?? kind}
               </li>
             ))}
         </ul>

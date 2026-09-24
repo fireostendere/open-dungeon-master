@@ -40,7 +40,7 @@ export function EncounterExtras({
   onChange: (next: TemplateExtras) => void;
 }) {
   const { locale } = useI18n();
-  const copy = localeText(locale, { en: { plan: "The plan", place: "Then tap the map where it starts", link: "Link a prepared map to place it", name: "name", hp: "hp", hidden: "Hidden when the fight opens", hide: "Hidden", seen: "Seen", entry: "Where the party comes in", roster: "Write the roster above and each creature gets a line here.", pick: "Pick a creature above, then tap where it starts. The party goes where the flag says.", tap: "Tap the tile. Tap the same tile again to clear it.", generator: "Link a prepared map above to place each creature on it. Without one the generator seats them.", rewards: "What the fight is worth", rewardsHint: "120 gp in a locked chest, the captain's signet ring, roll once on Marsh treasure.", phases: "What happens when", phaseHint: "When the shaman drops, the wolves flee.", remove: "Remove phase", add: "Add a phase", note: "Rewards and phases land as a note only you can read when the fight is deployed." }, ru: { plan: "План", place: "Затем нажмите на карте, где он начинает", link: "Привяжите подготовленную карту, чтобы разместить", name: "имя", hp: "ОЗ", hidden: "Скрыт при начале боя", hide: "Скрыт", seen: "Виден", entry: "Где входит группа", roster: "Заполните состав выше — у каждого существа появится строка.", pick: "Выберите существо выше и нажмите место старта. Группа появляется у флага.", tap: "Нажмите клетку. Нажмите ту же клетку ещё раз, чтобы очистить.", generator: "Привяжите подготовленную карту выше для размещения существ. Без неё их расставит генератор.", rewards: "Награда за бой", rewardsHint: "120 зм в запертом сундуке, перстень капитана, один бросок по сокровищам болота.", phases: "Что происходит, когда", phaseHint: "Когда шаман падает, волки бегут.", remove: "Удалить фазу", add: "Добавить фазу", note: "При развёртывании боя награды и фазы попадут в заметку, которую видите только вы." } });
+  const copy = localeText(locale, { en: { plan: "The plan", place: "Then tap the map where it starts", link: "Link a prepared map to place it", name: "name", hp: "hp", nameFor: "Name for {label}", hpFor: "Hit points for {label}", hidden: "Hidden when the fight opens", hide: "Hidden", seen: "Seen", entry: "Where the party comes in", roster: "Write the roster above and each creature gets a line here.", pick: "Pick a creature above, then tap where it starts. The party goes where the flag says.", tap: "Tap the tile. Tap the same tile again to clear it.", generator: "Link a prepared map above to place each creature on it. Without one the generator seats them.", rewards: "What the fight is worth", rewardsHint: "120 gp in a locked chest, the captain's signet ring, roll once on Marsh treasure.", phases: "What happens when", phaseHint: "When the shaman drops, the wolves flee.", remove: "Remove phase", add: "Add a phase", note: "Rewards and phases land as a note only you can read when the fight is deployed." }, ru: { plan: "План", place: "Затем нажмите на карте, где он начинает", link: "Привяжите подготовленную карту, чтобы разместить", name: "имя", hp: "ОЗ", nameFor: "Имя существа «{label}»", hpFor: "Хиты существа «{label}»", hidden: "Скрыт при начале боя", hide: "Скрыт", seen: "Виден", entry: "Где входит группа", roster: "Заполните состав выше — у каждого существа появится строка.", pick: "Выберите существо выше и нажмите место старта. Группа появляется у флага.", tap: "Нажмите клетку. Нажмите ту же клетку ещё раз, чтобы очистить.", generator: "Привяжите подготовленную карту выше для размещения существ. Без неё их расставит генератор.", rewards: "Награда за бой", rewardsHint: "120 зм в запертом сундуке, перстень капитана, один бросок по сокровищам болота.", phases: "Что происходит, когда", phaseHint: "Когда шаман падает, волки бегут.", remove: "Удалить фазу", add: "Добавить фазу", note: "При развёртывании боя награды и фазы попадут в заметку, которую видите только вы." } });
   const slots = expandRoster(parseRoster(roster));
   // Which slot the next tap on the map places; -1 is the party's entry.
   const [placing, setPlacing] = useState<number | null>(null);
@@ -115,7 +115,7 @@ export function EncounterExtras({
                   value={override?.name ?? ""}
                   placeholder={copy.name}
                   maxLength={EXTRAS_LIMITS.name}
-                  aria-label={`${slot.label} name`}
+                  aria-label={copy.nameFor.replace("{label}", slot.label)}
                   onChange={(event) => setOverride(slot.slot, { name: event.target.value })}
                   className={cn(field, "w-28")}
                 />
@@ -125,7 +125,7 @@ export function EncounterExtras({
                   placeholder={copy.hp}
                   min={1}
                   max={EXTRAS_LIMITS.hp}
-                  aria-label={`${slot.label} hit points`}
+                  aria-label={copy.hpFor.replace("{label}", slot.label)}
                   onChange={(event) =>
                     setOverride(slot.slot, { hp: event.target.value === "" ? undefined : Number(event.target.value) })
                   }

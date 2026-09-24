@@ -1,5 +1,6 @@
 "use client";
 
+import { useInlineText } from "@/lib/i18n/inline-text";
 import { useMemo, useState } from "react";
 import { BookOpen, Loader2, Scale, Sparkles, Swords } from "lucide-react";
 import { cn } from "@/lib/cn";
@@ -90,6 +91,7 @@ function IntentSuggest({
   intent: string;
   onIntentChange: (next: string) => void;
 }) {
+  const uiText = useInlineText();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
@@ -128,12 +130,12 @@ function IntentSuggest({
   const openEntry = open ? findAdjudication(ADJUDICATIONS, open.name) : null;
 
   return (
-    <Section icon={Sparkles} title="What should I press?">
+    <Section icon={Sparkles} title={uiText("What should I press?")}>
       <textarea
         value={intent}
         onChange={(event) => onIntentChange(event.target.value.slice(0, 1000))}
         rows={2}
-        placeholder="I try to talk the guard into letting us through."
+        placeholder={uiText("I try to talk the guard into letting us through.")}
         className={cn(inputClass, "resize-y")}
       />
       <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
@@ -144,7 +146,7 @@ function IntentSuggest({
           className="inline-flex items-center gap-1.5 rounded-md border border-amber-700 bg-amber-950/50 px-2 py-1 text-xs text-amber-100 hover:bg-amber-900/50 disabled:opacity-40"
         >
           {busy ? <Loader2 className="size-3.5 animate-spin" /> : <Sparkles className="size-3.5" />}
-          Suggest
+          {uiText("Suggest")}
         </button>
       </div>
       {error ? <p className="mt-1.5 text-xs text-red-400">{error}</p> : null}
@@ -167,7 +169,7 @@ function IntentSuggest({
                     onClick={() => setOpen(null)}
                     className="text-[11px] text-stone-500 hover:text-stone-300"
                   >
-                    Close
+                    {uiText("Close")}
                   </button>
                 </div>
               ) : (
@@ -180,7 +182,7 @@ function IntentSuggest({
                     {suggestion.label}
                     {suggestion.args ? (
                       <span className="ml-1.5 text-[10px] uppercase tracking-wide text-amber-300/80">
-                        filled in
+                        {uiText("filled in")}
                       </span>
                     ) : null}
                   </span>
@@ -199,8 +201,9 @@ function IntentSuggest({
 
 // The DMG's difficulty ladder, so "hard" is DC 20 in every scene.
 function DcLadder() {
+  const uiText = useInlineText();
   return (
-    <Section icon={Scale} title="What should this cost?">
+    <Section icon={Scale} title={uiText("What should this cost?")}>
       <div className="flex flex-wrap gap-1">
         {DIFFICULTY_TIERS.map((tier) => (
           <span
@@ -215,8 +218,7 @@ function DcLadder() {
         ))}
       </div>
       <p className="mt-1.5 text-[11px] text-stone-500">
-        Naming the tier rather than the number is what keeps a hard lock the
-        same difficulty in chapter one and chapter nine.
+        {uiText("Naming the tier rather than the number is what keeps a hard lock the same difficulty in chapter one and chapter nine.")}
       </p>
     </Section>
   );
@@ -230,6 +232,7 @@ function EncounterBudget({
   sheets: CharacterSheet[];
   encounter: PublicEncounter | null;
 }) {
+  const uiText = useInlineText();
   const evaluation = useMemo(() => {
     const levels = sheets.filter((sheet) => !sheet.deathSaves?.dead).map((sheet) => sheet.level);
     const crs = (encounter?.enemies ?? [])
@@ -243,27 +246,27 @@ function EncounterBudget({
 
   if (!evaluation) {
     return (
-      <Section icon={Swords} title="How hard is this fight?">
+      <Section icon={Swords} title={uiText("How hard is this fight?")}>
         <p className="text-xs text-stone-500">
-          Nothing on the board yet. Add enemies and this reads the budget as
-          they land.
+          {uiText("Nothing on the board yet. Add enemies and this reads the budget as they land.")}
         </p>
       </Section>
     );
   }
   return (
-    <Section icon={Swords} title="How hard is this fight?">
+    <Section icon={Swords} title={uiText("How hard is this fight?")}>
       <p className={cn("text-sm font-medium", VERDICT_TONE[evaluation.verdict])}>
         {VERDICT_LABELS[evaluation.verdict]}
       </p>
       <p className="mt-0.5 text-[11px] leading-snug text-stone-500">
-        {evaluation.adjustedXp.toLocaleString()} adjusted XP against thresholds
-        of {evaluation.thresholds.easy.toLocaleString()} easy,{" "}
-        {evaluation.thresholds.medium.toLocaleString()} medium,{" "}
-        {evaluation.thresholds.hard.toLocaleString()} hard,{" "}
-        {evaluation.thresholds.deadly.toLocaleString()} deadly. Raw XP is{" "}
-        {evaluation.totalXp.toLocaleString()}; the rest is the many-enemies
-        multiplier.
+        {uiText("{adjusted} adjusted XP against thresholds: easy {easy}, medium {medium}, hard {hard}, deadly {deadly}. Raw XP: {total}; the rest is the many-enemies multiplier.", {
+          adjusted: evaluation.adjustedXp.toLocaleString(),
+          easy: evaluation.thresholds.easy.toLocaleString(),
+          medium: evaluation.thresholds.medium.toLocaleString(),
+          hard: evaluation.thresholds.hard.toLocaleString(),
+          deadly: evaluation.thresholds.deadly.toLocaleString(),
+          total: evaluation.totalXp.toLocaleString(),
+        })}
       </p>
     </Section>
   );
@@ -278,6 +281,7 @@ function EncounterBudget({
 // rule_chunks, sorts pinned ones first, and tells the model they override the
 // standard rules.
 function RulesLookup({ campaignId }: { campaignId: string }) {
+  const uiText = useInlineText();
   const [question, setQuestion] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -314,7 +318,7 @@ function RulesLookup({ campaignId }: { campaignId: string }) {
   }
 
   return (
-    <Section icon={BookOpen} title="Look up a rule">
+    <Section icon={BookOpen} title={uiText("Look up a rule")}>
       <div className="flex gap-1.5">
         <input
           value={question}
@@ -324,7 +328,7 @@ function RulesLookup({ campaignId }: { campaignId: string }) {
               void look();
             }
           }}
-          placeholder="Can you cast a spell and use a bonus action?"
+          placeholder={uiText("Can you cast a spell and use a bonus action?")}
           className={inputClass}
         />
         <button
@@ -333,7 +337,7 @@ function RulesLookup({ campaignId }: { campaignId: string }) {
           disabled={busy || !question.trim()}
           className="shrink-0 rounded-md border border-stone-700 px-2 py-1 text-xs text-stone-300 hover:bg-stone-900 disabled:opacity-40"
         >
-          {busy ? <Loader2 className="size-3.5 animate-spin" /> : "Ask"}
+          {busy ? <Loader2 className="size-3.5 animate-spin" /> : uiText("Ask")}
         </button>
       </div>
       {error ? <p className="mt-1.5 text-xs text-red-400">{error}</p> : null}

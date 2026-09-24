@@ -1,5 +1,6 @@
 "use client";
 
+import { useInlineText } from "@/lib/i18n/inline-text";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Maximize2, Minus, Plus, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/cn";
@@ -153,6 +154,7 @@ export function TerrainCanvas({
   onDoor?: (x: number, y: number) => void;
   onPick?: (x: number, y: number) => void;
 }) {
+  const uiText = useInlineText();
   const wrapperRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [view, setView] = useState<View>(FIT);
@@ -457,9 +459,9 @@ export function TerrainCanvas({
       />
       {zoomable ? (
         <div className="absolute right-1.5 top-1.5 flex flex-col gap-1">
-          <ZoomButton label="Zoom in" icon={Plus} onClick={() => zoomAt(ZOOM.step, null)} />
-          <ZoomButton label="Zoom out" icon={Minus} onClick={() => zoomAt(1 / ZOOM.step, null)} />
-          <ZoomButton label="Fit the whole map" icon={Maximize2} onClick={() => setView(FIT)} />
+          <ZoomButton label={uiText("Zoom in")} icon={Plus} onClick={() => zoomAt(ZOOM.step, null)} />
+          <ZoomButton label={uiText("Zoom out")} icon={Minus} onClick={() => zoomAt(1 / ZOOM.step, null)} />
+          <ZoomButton label={uiText("Fit the whole map")} icon={Maximize2} onClick={() => setView(FIT)} />
         </div>
       ) : null}
     </div>

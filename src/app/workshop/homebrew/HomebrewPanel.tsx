@@ -15,9 +15,6 @@ import { localeText } from "@/lib/i18n/locale-text";
 import { blankDraft, type HomebrewDraft } from "@/app/workshop/homebrew/draft";
 import {
   HOMEBREW_EDITOR_KINDS,
-  KIND_BLURB,
-  KIND_LABELS,
-  KIND_SINGULAR,
   type EditorKind,
   type HomebrewEntryView,
 } from "@/app/workshop/homebrew/types";
@@ -35,7 +32,42 @@ export function HomebrewPanel({
   onChanged?: () => void;
 }) {
   const { locale } = useI18n();
-  const copy = localeText(locale, { en: { kind: "Kind of homebrew", search: "Search your", new: "New", empty: "Nothing of your own yet. Start from something in the books and change what you like.", noMatch: "Nothing by that name." }, ru: { kind: "Тип хоумбрю", search: "Поиск:", new: "Новое", empty: "Пока нет ваших материалов. Начните с чего-то из книг и измените как хотите.", noMatch: "Ничего с таким названием нет." } });
+  const copy = localeText(locale, {
+    en: {
+      kind: "Kind of homebrew",
+      search: "Search your {kind}",
+      empty: "Nothing of your own yet. Start from something in the books and change what you like.",
+      noMatch: "Nothing by that name.",
+      kindPlural: { item: "Items", spell: "Spells", feat: "Feats", background: "Backgrounds", race: "Species", archetype: "Subclasses" },
+      kindSingular: { item: "item", spell: "spell", feat: "feat", background: "background", race: "species", archetype: "subclass" },
+      newKind: { item: "New item", spell: "New spell", feat: "New feat", background: "New background", race: "New species", archetype: "New subclass" },
+      kindBlurb: {
+        item: "Weapons the attack roll reads, armour the AC engine wears, magic items whose effects apply while attuned.",
+        spell: "Spells the cast tools resolve: the save, the damage and the condition come from the block, not from memory.",
+        feat: "Feats the character builder offers beside the SRD ones.",
+        background: "Backgrounds the builder offers, with the skills they grant.",
+        race: "Species the builder offers, with their speed and ability bonuses.",
+        archetype: "Subclasses the builder offers under a class, with their features by level.",
+      },
+    },
+    ru: {
+      kind: "Тип хоумбрю",
+      search: "Поиск: {kind}",
+      empty: "Пока нет ваших материалов. Начните с чего-то из книг и измените как хотите.",
+      noMatch: "Ничего с таким названием нет.",
+      kindPlural: { item: "Предметы", spell: "Заклинания", feat: "Черты", background: "Предыстории", race: "Происхождения", archetype: "Подклассы" },
+      kindSingular: { item: "предмет", spell: "заклинание", feat: "черта", background: "предыстория", race: "происхождение", archetype: "подкласс" },
+      newKind: { item: "Новый предмет", spell: "Новое заклинание", feat: "Новая черта", background: "Новая предыстория", race: "Новое происхождение", archetype: "Новый подкласс" },
+      kindBlurb: {
+        item: "Оружие используется при броске атаки, доспехи влияют на КД, а магические предметы дают эффекты при настройке.",
+        spell: "Движок разрешает сотворение заклинания по его описанию: спасбросок, урон и состояние берутся из записи.",
+        feat: "Черты, которые конструктор персонажа предлагает наряду с вариантами SRD.",
+        background: "Предыстории, доступные в конструкторе персонажа, с предоставляемыми навыками.",
+        race: "Происхождения из конструктора персонажа с указанными скоростью и бонусами характеристик.",
+        archetype: "Подклассы для каждого класса и их умения по уровням.",
+      },
+    },
+  });
   const [entries, setEntries] = useState<HomebrewEntryView[]>([]);
   const [kind, setKind] = useState<EditorKind>("item");
   const [query, setQuery] = useState("");
@@ -79,6 +111,7 @@ export function HomebrewPanel({
         ),
       )
     : ofKind;
+  const kindSearch = copy.search.replace("{kind}", copy.kindPlural[kind].toLowerCase());
 
   function open(entry: HomebrewEntryView) {
     setError("");
@@ -167,7 +200,7 @@ export function HomebrewPanel({
         <SegmentedControl
           options={HOMEBREW_EDITOR_KINDS.map((value) => ({
             value,
-            label: `${KIND_LABELS[value]}${entries.some((entry) => entry.kind === value) ? ` ${entries.filter((entry) => entry.kind === value).length}` : ""}`,
+            label: `${copy.kindPlural[value]}${entries.some((entry) => entry.kind === value) ? ` ${entries.filter((entry) => entry.kind === value).length}` : ""}`,
           }))}
           value={kind}
           onChange={setKind}
@@ -176,15 +209,15 @@ export function HomebrewPanel({
         />
       </div>
 
-      <p className="text-[11px] text-stone-500">{KIND_BLURB[kind]}</p>
+      <p className="text-[11px] text-stone-500">{copy.kindBlurb[kind]}</p>
 
       <label className="relative block" data-tour="homebrew-search">
         <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-stone-500" />
         <input
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          placeholder={`${copy.search} ${KIND_LABELS[kind].toLowerCase()}`}
-          aria-label={`${copy.search} ${KIND_LABELS[kind].toLowerCase()}`}
+          placeholder={kindSearch}
+          aria-label={kindSearch}
           className={`${ui.input} pl-9`}
         />
       </label>
@@ -224,7 +257,7 @@ export function HomebrewPanel({
             <span className="flex size-9 shrink-0 items-center justify-center rounded-full border border-dashed border-stone-600">
               <Plus className="size-4" />
             </span>
-            <span className="font-display tracking-wide">{copy.new} {KIND_SINGULAR[kind]}</span>
+            <span className="font-display tracking-wide">{copy.newKind[kind]}</span>
           </button>
         </li>
       </ul>
@@ -244,7 +277,7 @@ export function HomebrewPanel({
             setEditing(null);
           }
         }}
-        title={editing?.id ? editing.draft.name || KIND_SINGULAR[kind] : `New ${KIND_SINGULAR[editing?.draft.kind ?? kind]}`}
+        title={editing?.id ? editing.draft.name || copy.kindSingular[kind] : copy.newKind[editing?.draft.kind ?? kind]}
         className="top-0 h-dvh max-h-none rounded-none lg:top-1/2 lg:h-auto lg:max-h-[92vh] lg:w-[min(96vw,56rem)] lg:rounded-xl"
       >
         {editing ? (

@@ -1,5 +1,6 @@
 "use client";
 
+import { useInlineText } from "@/lib/i18n/inline-text";
 import { useEffect } from "react";
 import { GameTerm } from "@/components/ui/GameTerm";
 import { InfoButton } from "@/components/ui/InfoDialog";
@@ -62,6 +63,7 @@ function SpellsSection({
   klass: ClassOption;
   pack: WorldPack | null;
 }) {
+  const uiText = useInlineText();
   const { spells, setSpells, setCantripNames } = state;
   const {
     spellAdvice,
@@ -128,13 +130,11 @@ function SpellsSection({
 
   return (
     <StepPanel
-      title="Spells"
+      title={uiText("Spells")}
       ornate
       help={
         <>
-          A <GameTerm id="cantrip">cantrip</GameTerm> is a small spell you can cast as often as
-          you like. The rest use your spell slots. The whole list is below with the recommended
-          picks first; tap ⓘ on any row to read what it does before choosing.
+          A <GameTerm id="cantrip">{uiText("cantrip")}</GameTerm> {uiText("is a small spell you can cast as often as you like. The rest use your spell slots. The whole list is below with the recommended picks first; tap ⓘ on any row to read what it does before choosing.")}
         </>
       }
     >
@@ -144,24 +144,24 @@ function SpellsSection({
       <div className="mb-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
         {cantripAdvice ? (
           <span className={cn(cantripsLeft === 0 ? "text-stone-500" : "text-amber-300")}>
-            Cantrips {chosenCantrips.length}/{cantripAdvice}
-            {cantripsLeft > 0 ? ` (${cantripsLeft} still to choose)` : ""}
+            {uiText("Cantrips")} {chosenCantrips.length}/{cantripAdvice}
+            {cantripsLeft > 0 ? ` (${cantripsLeft} ${uiText("still to choose")})` : ""}
           </span>
         ) : null}
         {spellAdvice ? (
           <span className={cn(spellsLeft === 0 ? "text-stone-500" : "text-amber-300")}>
             {spellAdvice.label} {levelled}/{spellAdvice.count}
-            {spellsLeft > 0 ? ` (${spellsLeft} still to choose)` : ""}
+            {spellsLeft > 0 ? ` (${spellsLeft} ${uiText("still to choose")})` : ""}
           </span>
         ) : null}
         <span className="text-stone-500">
-          Up to level {maxSpellLevel}.{klass.genres ? " Suggestions, not limits; homebrew varies." : ""}
+          {uiText("Up to level")} {maxSpellLevel}.{klass.genres ? ` ${uiText("Suggestions, not limits; homebrew varies.")}` : ""}
         </span>
       </div>
       {starters ? (
         <div className="mb-3 rounded-lg border border-stone-700/60 bg-stone-950/60 p-3">
           <p className="text-xs text-stone-400">{starters.why}</p>
-          <p className="eyebrow mt-2 mb-1.5 text-[10px] text-amber-400/80">Good picks if you are new</p>
+          <p className="eyebrow mt-2 mb-1.5 text-[10px] text-amber-400/80">{uiText("Good picks if you are new")}</p>
           <div className="flex flex-wrap gap-1.5">
             {[...starters.cantrips, ...starters.spells].map((entry) => {
               const chosen = spells.some((spell) => spell.toLowerCase() === entry.n.toLowerCase());
@@ -222,7 +222,7 @@ function SpellsSection({
             }}
             className="mt-2 text-xs text-amber-300 underline-offset-2 hover:underline"
           >
-            Add all recommended
+            {uiText("Add all recommended")}
           </button>
         </div>
       ) : null}
@@ -261,11 +261,11 @@ function SpellsSection({
         }
         metaOf={(entry) => entry.school ?? ""}
       />
-      <p className="mt-3 mb-1 text-xs text-stone-500">Or search by name:</p>
+      <p className="mt-3 mb-1 text-xs text-stone-500">{uiText("Or search by name:")}</p>
       <ContentPicker
         kind="spells"
         extraParams={{ class: spellSearchClass, level: String(maxSpellLevel) }}
-        placeholder="Search spells (e.g. cure wounds)"
+        placeholder={uiText("Search spells (e.g. cure wounds)")}
         onPick={pick}
         renderMeta={(entry) => (entry.level === 0 ? "cantrip" : `level ${entry.level}`)}
       />

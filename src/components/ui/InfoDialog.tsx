@@ -1,5 +1,6 @@
 "use client";
 
+import { useInlineText } from "@/lib/i18n/inline-text";
 import { Info, Loader2 } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { cn } from "@/lib/cn";
@@ -107,6 +108,7 @@ export function renderRules(text: string): ReactNode {
 // Loads a content-pack entry's description on first open, so opening a sheet
 // with forty spells on it costs nothing until one is actually inspected.
 function ContentBody({ reference }: { reference: ContentRef }) {
+  const uiText = useInlineText();
   const [state, setState] = useState<{ text: string | null; loading: boolean }>({
     text: null,
     loading: true,
@@ -158,15 +160,14 @@ function ContentBody({ reference }: { reference: ContentRef }) {
   if (state.loading) {
     return (
       <p className="flex items-center gap-2 text-sm text-stone-500">
-        <Loader2 className="size-4 animate-spin" /> Looking it up...
+        <Loader2 className="size-4 animate-spin" /> {uiText("Looking it up...")}
       </p>
     );
   }
   if (!state.text) {
     return (
       <p className="text-sm text-stone-500">
-        No description available. The content pack may not be installed, or this entry was added by
-        hand.
+        {uiText("No description available. The content pack may not be installed, or this entry was added by hand.")}
       </p>
     );
   }
@@ -192,6 +193,7 @@ export function InfoButton({
   className?: string;
   size?: "sm" | "md";
 }) {
+  const uiText = useInlineText();
   const [open, setOpen] = useState(false);
   // Nothing to say and nothing to look up: render no control at all rather
   // than a button that opens an empty box.
@@ -207,7 +209,7 @@ export function InfoButton({
           event.stopPropagation();
           setOpen(true);
         }}
-        aria-label={`What is ${label}?`}
+        aria-label={uiText("What is {label}?", { label })}
         className={cn(
           "inline-flex shrink-0 items-center justify-center rounded-full text-stone-500 transition-colors hover:text-amber-200",
           className,

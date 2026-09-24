@@ -1,5 +1,6 @@
 "use client";
 
+import { useInlineText } from "@/lib/i18n/inline-text";
 import { useRef, useState } from "react";
 import { Brush, Image as ImageIcon, Loader2, Shapes, Trash2 } from "lucide-react";
 import { cn } from "@/lib/cn";
@@ -36,10 +37,11 @@ export function BrushPalette({
   radius?: number;
   onRadius?: (radius: number) => void;
 }) {
+  const uiText = useInlineText();
   return (
     <div className="space-y-1">
       <p className="flex items-center gap-1.5 text-[11px] uppercase tracking-wide text-stone-500">
-        <Brush className="size-3.5" /> Paint the ground
+        <Brush className="size-3.5" /> {uiText("Paint the ground")}
       </p>
       <div className="flex flex-wrap items-center gap-1">
         {BRUSHES.map((option, index) => (
@@ -60,7 +62,7 @@ export function BrushPalette({
         ))}
         {radius !== undefined && onRadius ? (
           <label className="ml-1 flex items-center gap-1 text-[11px] text-stone-500">
-            Size
+            {uiText("Size")}
             <input
               type="range"
               min={0}
@@ -77,8 +79,8 @@ export function BrushPalette({
       </div>
       <p className="text-[10px] text-stone-600">
         {brush
-          ? "Drag across the map above. Every stroke is checked before it lands."
-          : "Pick a brush, then drag on the map."}
+          ? uiText("Drag across the map above. Every stroke is checked before it lands.")
+          : uiText("Pick a brush, then drag on the map.")}
       </p>
     </div>
   );
@@ -95,10 +97,11 @@ export function StampPalette({
   onPick: (stamp: StampKind | "") => void;
   onResize: (size: { width: number; height: number }) => void;
 }) {
+  const uiText = useInlineText();
   return (
     <div className="space-y-1">
       <p className="flex items-center gap-1.5 text-[11px] uppercase tracking-wide text-stone-500">
-        <Shapes className="size-3.5" /> Stamp a shape
+        <Shapes className="size-3.5" /> {uiText("Stamp a shape")}
       </p>
       <div className="flex flex-wrap gap-1">
         {STAMPS.map((option) => (
@@ -123,7 +126,7 @@ export function StampPalette({
           <div className="flex flex-wrap items-center gap-2 text-[11px] text-stone-500">
             {(["width", "height"] as const).map((side) => (
               <label key={side} className="flex items-center gap-1">
-                {side === "width" ? "Across" : "Down"}
+                {side === "width" ? uiText("Across") : uiText("Down")}
                 <input
                   type="range"
                   min={STAMP_SIZE.min}
@@ -139,12 +142,12 @@ export function StampPalette({
             ))}
           </div>
           <p className="text-[10px] text-stone-600">
-            Click once on the map. The outline shows where it will land.
+            {uiText("Click once on the map. The outline shows where it will land.")}
           </p>
         </>
       ) : (
         <p className="text-[10px] text-stone-600">
-          Rooms and corridors in one click, drawn in the same five tiles the rules read.
+          {uiText("Rooms and corridors in one click, drawn in the same five tiles the rules read.")}
         </p>
       )}
     </div>
@@ -164,6 +167,7 @@ export function BackdropControls({
   onChange: (next: { path: string; transform: BackdropTransform }) => void;
   busy?: boolean;
 }) {
+  const uiText = useInlineText();
   const fileRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
@@ -203,7 +207,7 @@ export function BackdropControls({
   return (
     <div className="space-y-1.5">
       <p className="flex items-center gap-1.5 text-[11px] uppercase tracking-wide text-stone-500">
-        <ImageIcon className="size-3.5" /> Picture under the grid
+        <ImageIcon className="size-3.5" /> {uiText("Picture under the grid")}
       </p>
       <div className="flex flex-wrap items-center gap-1.5">
         <input
@@ -226,7 +230,7 @@ export function BackdropControls({
           className="flex items-center gap-1 rounded-md border border-stone-700 px-2 py-1 text-xs text-stone-300 hover:bg-stone-900 disabled:opacity-50"
         >
           {uploading ? <Loader2 className="size-3 animate-spin" /> : <ImageIcon className="size-3" />}
-          {backdrop ? "Replace it" : "Add a picture"}
+          {backdrop ? uiText("Replace it") : uiText("Add a picture")}
         </button>
         {backdrop ? (
           <button
@@ -235,7 +239,7 @@ export function BackdropControls({
             onClick={() => onChange({ path: "", transform: DEFAULT_BACKDROP_TRANSFORM })}
             className="flex items-center gap-1 rounded-md border border-stone-700 px-2 py-1 text-xs text-stone-400 hover:bg-stone-900 disabled:opacity-50"
           >
-            <Trash2 className="size-3" /> Take it away
+            <Trash2 className="size-3" /> {uiText("Take it away")}
           </button>
         ) : null}
       </div>
@@ -244,7 +248,7 @@ export function BackdropControls({
         <>
           <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-[11px] text-stone-500">
             <label className="flex items-center gap-1">
-              Across
+              {uiText("Across")}
               <input
                 type="range"
                 min={-BACKDROP_LIMITS.maxOffset}
@@ -256,7 +260,7 @@ export function BackdropControls({
               />
             </label>
             <label className="flex items-center gap-1">
-              Down
+              {uiText("Down")}
               <input
                 type="range"
                 min={-BACKDROP_LIMITS.maxOffset}
@@ -268,7 +272,7 @@ export function BackdropControls({
               />
             </label>
             <label className="flex items-center gap-1">
-              Size
+              {uiText("Size")}
               <input
                 type="range"
                 min={BACKDROP_LIMITS.minScale}
@@ -280,7 +284,7 @@ export function BackdropControls({
               />
             </label>
             <label className="flex items-center gap-1">
-              Strength
+              {uiText("Strength")}
               <input
                 type="range"
                 min={0}
@@ -293,8 +297,7 @@ export function BackdropControls({
             </label>
           </div>
           <p className="text-[10px] text-stone-600">
-            The picture is scenery. The walls that stop a rogue are the ones painted into the
-            terrain, so line the two up and check them before anyone plays on it.
+            {uiText("The picture is scenery. The walls that stop a rogue are the ones painted into the terrain, so line the two up and check them before anyone plays on it.")}
           </p>
         </>
       ) : null}

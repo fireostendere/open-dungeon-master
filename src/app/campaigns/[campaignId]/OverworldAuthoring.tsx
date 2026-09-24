@@ -1,5 +1,6 @@
 "use client";
 
+import { useInlineText } from "@/lib/i18n/inline-text";
 import { useState } from "react";
 import { Loader2, Sparkles, Wand2 } from "lucide-react";
 import { cn } from "@/lib/cn";
@@ -41,6 +42,7 @@ export function OverworldAuthoring({
   data: OverworldData;
   onData: (next: OverworldData) => void;
 }) {
+  const uiText = useInlineText();
   const { locale } = useI18n();
   const copy = localeText(locale, {
     en: { error: "That did not work.", modelError: "The model had nothing for that.", shape: "Shape the region", description: "A chain of islands off a storm coast, pine forest inland.", read: "Read it into the dials", dials: "Dials set.", reroll: "Reroll below until the coastline falls where you want it.", roll: "Roll a world", add: (count: number) => `Add places: ${count}`, place: "Add a place", name: "The Salt Wharf", blurb: "What a traveller would say about it (optional)", put: "Put it on the map", notes: "Notes on the region", notesHint: "What lies past the edge. Which roads are watched.", private: "Yours alone; players never see this." },
@@ -190,14 +192,14 @@ export function OverworldAuthoring({
               type="button"
               disabled={busy}
               onClick={() => void patch({ regenerate: true, params, ...size })}
-              title="Reroll the terrain under these dials, at this size. Places, pins, lines and notes stay."
+              title={uiText("Reroll the terrain under these dials, at this size. Places, pins, lines and notes stay.")}
               className="rounded-md border border-amber-700 bg-amber-950/50 px-2 py-1 text-xs text-amber-100 disabled:opacity-40"
             >
               {copy.roll}
             </button>
             <select
               value={sizeId}
-              aria-label="Size of the next roll"
+              aria-label={uiText("Size of the next roll")}
               onChange={(event) => {
                 const preset = OVERWORLD_SIZES.find((entry) => entry.id === event.target.value);
                 if (preset) {

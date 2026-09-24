@@ -1,5 +1,6 @@
 "use client";
 
+import { useInlineText } from "@/lib/i18n/inline-text";
 import { memo, useEffect, useMemo, useRef } from "react";
 import { cn } from "@/lib/cn";
 import {
@@ -61,6 +62,7 @@ export const BattleMapGrid = memo(
     everyTileClickable?: boolean;
     overlay?: MapOverlay;
   }) {
+  const uiText = useInlineText();
     const clickRef = useRef(onTileClick);
     const hoverRef = useRef(onTileHover);
     const tokenRef = useRef(onTokenClick);
@@ -174,7 +176,7 @@ export const BattleMapGrid = memo(
         viewBox={`0 0 ${width * TILE} ${height * TILE}`}
         className="h-auto w-full select-none rounded-lg border border-stone-800 bg-stone-950"
         role="img"
-        aria-label="Battle map"
+        aria-label={uiText("Battle map")}
         onClick={handleSvgClick}
         onPointerDown={(event) => {
           pointerTypeRef.current = event.pointerType;

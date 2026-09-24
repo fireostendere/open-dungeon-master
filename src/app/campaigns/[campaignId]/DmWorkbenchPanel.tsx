@@ -1,5 +1,6 @@
 "use client";
 
+import { useInlineText } from "@/lib/i18n/inline-text";
 import { useState } from "react";
 import { Calculator, ChevronDown, ChevronRight, Loader2 } from "lucide-react";
 import { cn } from "@/lib/cn";
@@ -67,6 +68,7 @@ export function DmWorkbenchPanel({
   // the DM console renders as it always has.
   collapsible?: boolean;
 }) {
+  const uiText = useInlineText();
   const { locale } = useI18n();
   const copy = localeText(locale, {
     en: { costError: "That roster could not be costed.", weigh: "Weigh a fight", partyLevel: "Party level (what if)", partySize: "Party size", asIs: "as it is", run: "Work it out", hard: "How hard is this?", forParty: (size: number, levels: string) => `For ${size} characters at level ${levels}`, ceiling: "Past this campaign's ceiling. The engine will refuse to start it as written.", deploy: (count: number, maximum: number) => `${count} creatures. A fight takes ${maximum} or fewer, so this roster is a plan rather than something that will deploy.`, party: "Party", roster: "Roster", round: "a round" },
@@ -130,7 +132,7 @@ export function DmWorkbenchPanel({
           value={enemies}
           onChange={(event) => setEnemies(event.target.value)}
           rows={3}
-          placeholder={"goblin x4\nhobgoblin"}
+          placeholder={uiText("goblin x4\nhobgoblin")}
           data-tour="encounters-workbench-roster"
           className={cn(input, "w-full resize-y font-mono")}
         />

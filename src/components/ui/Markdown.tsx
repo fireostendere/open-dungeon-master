@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { useInlineText } from "@/lib/i18n/inline-text";
 import { cn } from "@/lib/cn";
 import { splitLoreLinks, type LoreLinkTarget } from "@/lib/dm/world-lore-logic";
 
@@ -68,7 +69,7 @@ function blocks(source: string): Block[] {
 
 const INLINE = /(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`)/g;
 
-function inline(text: string, targets: LoreLinkTarget[], onLink?: (target: LoreLinkTarget) => void): ReactNode[] {
+function inline(text: string, targets: LoreLinkTarget[], missingLabel: string, onLink?: (target: LoreLinkTarget) => void): ReactNode[] {
   const nodes: ReactNode[] = [];
   splitLoreLinks(text, targets).forEach((segment, index) => {
     if (segment.kind === "link") {
@@ -86,7 +87,7 @@ function inline(text: string, targets: LoreLinkTarget[], onLink?: (target: LoreL
           <span
             key={`link-${index}`}
             className={cn("rounded-sm", segment.target ? "text-amber-200" : "text-stone-400 line-through decoration-stone-600")}
-            title={segment.target ? `A ${segment.target.kind}` : "Nothing by this name yet"}
+            title={segment.target ? `A ${segment.target.kind}` : missingLabel}
           >
             {segment.name}
           </span>
@@ -125,6 +126,7 @@ export function Markdown({
   onLink?: (target: LoreLinkTarget) => void;
   className?: string;
 }) {
+  const uiText = useInlineText();
   const rendered = blocks(source);
   return (
     <div className={cn("space-y-1.5 text-[12px] leading-5 text-stone-300", className)}>
@@ -133,7 +135,7 @@ export function Markdown({
           const size = block.level === 1 ? "text-base" : block.level === 2 ? "text-sm" : "text-[13px]";
           return (
             <p key={index} className={cn("font-display tracking-wide text-amber-50", size)}>
-              {inline(block.text, targets, onLink)}
+              {inline(block.text, targets, uiText("Nothing by this name yet"), onLink)}
             </p>
           );
         }
@@ -142,12 +144,12 @@ export function Markdown({
           return (
             <Tag key={index} className={cn("space-y-0.5 pl-5", block.ordered ? "list-decimal" : "list-disc")}>
               {block.items.map((item, at) => (
-                <li key={at}>{inline(item, targets, onLink)}</li>
+                <li key={at}>{inline(item, targets, uiText("Nothing by this name yet"), onLink)}</li>
               ))}
             </Tag>
           );
         }
-        return <p key={index}>{inline(block.text, targets, onLink)}</p>;
+        return <p key={index}>{inline(block.text, targets, uiText("Nothing by this name yet"), onLink)}</p>;
       })}
     </div>
   );

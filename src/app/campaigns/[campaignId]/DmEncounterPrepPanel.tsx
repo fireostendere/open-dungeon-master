@@ -1,5 +1,6 @@
 "use client";
 
+import { useInlineText } from "@/lib/i18n/inline-text";
 import { useCallback, useEffect, useState } from "react";
 import { Copy, Swords, Trash2 } from "lucide-react";
 import { cn } from "@/lib/cn";
@@ -37,18 +38,23 @@ import {
 // party bar read, so the three never disagree about what "deadly" is.
 
 function DifficultyLine({ readout }: { readout: TemplateReadout }) {
+  const uiText = useInlineText();
   if (readout.unknownMonster) {
     return (
       <p className="text-[11px] text-red-400">
-        Nothing in this world is called &quot;{readout.unknownMonster}&quot;.
+        {uiText("No creature named “{name}” exists in this world.", { name: readout.unknownMonster })}
       </p>
     );
   }
   return (
     <p className={cn("text-[11px]", readout.tooDeadly ? "text-red-400" : "text-stone-500")}>
-      {readout.count} creature{readout.count === 1 ? "" : "s"}, {readout.verdict} ({readout.adjustedXp} XP
-      against a {readout.ceiling} ceiling)
-      {readout.tooDeadly ? ". The engine will refuse this as written." : ""}
+      {uiText("Creature count: {count}; {verdict} ({xp} XP against a ceiling of {ceiling}){refusal}", {
+        count: readout.count,
+        verdict: readout.verdict,
+        xp: readout.adjustedXp,
+        ceiling: readout.ceiling,
+        refusal: readout.tooDeadly ? uiText(" · the engine will reject it as written.") : "",
+      })}
     </p>
   );
 }

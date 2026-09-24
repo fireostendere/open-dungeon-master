@@ -61,6 +61,7 @@ export function GlobalTurnCard({
       acted: "Acted",
       waiting: "Waiting",
       skipped: "Skipping",
+      playerFallback: "player",
     },
     ru: {
       title: "Общий ход стола",
@@ -97,6 +98,7 @@ export function GlobalTurnCard({
       acted: "Сходил",
       waiting: "Ждёт",
       skipped: "Пропуск",
+      playerFallback: "игрок",
     },
   });
 
@@ -459,7 +461,7 @@ export function GlobalTurnCard({
                     <div className="min-w-0 flex-1">
                       <p className="truncate font-medium text-stone-200">
                         {sheet.name}{" "}
-                        <span className="text-[10px] text-stone-500">({member?.username ?? "player"})</span>
+                        <span className="text-[10px] text-stone-500">({member?.username ?? copy.playerFallback})</span>
                       </p>
                       <div className="flex items-center gap-1.5 text-[10px]">
                         {acted ? (

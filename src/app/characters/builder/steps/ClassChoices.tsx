@@ -1,5 +1,8 @@
 "use client";
 
+import { useInlineText } from "@/lib/i18n/inline-text";
+import { useI18n } from "@/lib/i18n";
+import { optionKindLabel } from "@/lib/i18n/option-kind";
 import { GameTerm } from "@/components/ui/GameTerm";
 import { InfoButton } from "@/components/ui/InfoDialog";
 import { cn } from "@/lib/cn";
@@ -34,22 +37,24 @@ export function ClassChoices({
   actions: BuilderActions;
   klass: ClassOption | undefined;
 }) {
+  const uiText = useInlineText();
+  const { locale } = useI18n();
   const { effectiveLevel, preview, styleSlots, optionSlots } = derived;
   const expertiseSlots = klass ? expertiseSlotsFor(klass.id, effectiveLevel) : 0;
   return (
     <>
       {klass && expertiseSlots > 0 && preview ? (
         <StepPanel
-          title={`Expertise (pick ${expertiseSlots})`}
+          title={uiText("Expertise (pick {count})", { count: expertiseSlots })}
           help={
             <>
               {expertiseSlots - state.expertisePicks.length > 0 ? (
                 <span className="text-amber-300">
-                  {expertiseSlots - state.expertisePicks.length} still to choose.{" "}
+                  {expertiseSlots - state.expertisePicks.length} {uiText("still to choose.")}{" "}
                 </span>
               ) : null}
-              <GameTerm id="expertise">Expertise</GameTerm> doubles your{" "}
-              <GameTerm id="proficiency_bonus">proficiency bonus</GameTerm> on the chosen skills.
+              <GameTerm id="expertise">{uiText("Expertise")}</GameTerm> {uiText("doubles your")}{" "}
+              <GameTerm id="proficiency_bonus">{uiText("proficiency bonus")}</GameTerm> {uiText("on the chosen skills.")}
             </>
           }
         >
@@ -83,12 +88,11 @@ export function ClassChoices({
 
       {styleSlots > 0 ? (
         <StepPanel
-          title={`Fighting style (pick ${styleSlots})`}
+          title={uiText("Fighting style (pick {count})", { count: styleSlots })}
           help={
             styleSlots - state.stylePicks.length > 0 ? (
               <span className="text-amber-300">
-                {styleSlots - state.stylePicks.length} still to choose. A fighting style is a
-                permanent edge with one kind of weapon or armour; read each card before picking.
+                {styleSlots - state.stylePicks.length} {uiText("still to choose. A fighting style is a permanent edge with one kind of weapon or armour; read each card before picking.")}
               </span>
             ) : undefined
           }
@@ -124,14 +128,13 @@ export function ClassChoices({
       {optionSlots.map((slot) => (
         <StepPanel
           key={slot.kind}
-          title={`${slot.label} (pick ${slot.total})`}
+          title={uiText("Choose {count}: {kind}", { count: slot.total, kind: optionKindLabel(slot.kind, locale) })}
           help={
             <>
               {slot.remaining > 0 ? (
-                <span className="text-amber-300">{slot.remaining} still to choose. </span>
+                <span className="text-amber-300">{slot.remaining} {uiText("still to choose.")} </span>
               ) : null}
-              These are real abilities your character gets. Tap the info button on any one to
-              read what it does.
+              {uiText("These are real abilities your character gets. Tap the info button on any one to read what it does.")}
             </>
           }
         >
@@ -150,13 +153,13 @@ export function ClassChoices({
                   >
                     <span className="block text-xs">{option.n}</span>
                     <span className="block text-[11px] text-stone-500">
-                      {option.req ? `Requires ${option.req}. ` : ""}
+                      {option.req ? `${uiText("Requires {requirement}.", { requirement: option.req })} ` : ""}
                       {option.d}
                     </span>
                   </button>
                   <InfoButton
                     label={option.n}
-                    meta={option.req ? `Requires ${option.req}` : undefined}
+                    meta={option.req ? uiText("Requires {requirement}", { requirement: option.req }) : undefined}
                     text={option.d}
                   />
                 </div>

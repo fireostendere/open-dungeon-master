@@ -1,5 +1,6 @@
 "use client";
 
+import { useInlineText } from "@/lib/i18n/inline-text";
 import { Loader2, Plus, UserRound, X } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -48,6 +49,7 @@ export function PartyPanel({
   targetParty: TargetParty;
   onChanged: () => void;
 }) {
+  const uiText = useInlineText();
   const { locale } = useI18n();
   const copy = localeText(locale, { en: { level: "Level", companion: "Companion", reading: "Reading the roster...", add: "Add to the roster", library: "A character from your library", from: "From your library...", addIt: "Add it", build: "Build a new one", none: "No pregens yet. Pick one from your library below, or build one and come back." }, ru: { level: "Уровень", companion: "Спутник", reading: "Загрузка списка...", add: "Добавить в список", library: "Персонаж из вашей библиотеки", from: "Из вашей библиотеки...", addIt: "Добавить", build: "Создать нового", none: "Пока нет готовых персонажей. Выберите одного из библиотеки ниже или создайте нового." } });
   const intro = localeText(locale, { en: "Built for {size} at level {level}; every encounter and odds preview budgets against that. The characters below are pregens: sheets ready for anyone who sits down without one. They ride along in the bundle.", ru: "Подготовлено для группы из {size} персонажей уровня {level}; все встречи и прогнозы шансов рассчитываются по ней. Ниже — готовые персонажи для тех, кто приходит без листа. Они входят в набор." });
@@ -145,7 +147,7 @@ export function PartyPanel({
                     ) : null}
                     {offLevel ? (
                       <span className={cn(chip, "border-amber-800 text-amber-300/90")}>
-                        Level {character.level}, the party is built for {targetParty.level}
+                        {uiText("Level")} {character.level}{uiText(", the party is built for")} {targetParty.level}
                       </span>
                     ) : null}
                   </span>
@@ -154,7 +156,7 @@ export function PartyPanel({
                   type="button"
                   disabled={busy}
                   onClick={() => void change("DELETE", character.id)}
-                  title="Take it off the roster. It stays in your library."
+                  title={uiText("Take it off the roster. It stays in your library.")}
                   className="rounded-md border border-stone-700 p-1 text-stone-400 hover:bg-stone-900 disabled:opacity-50"
                 >
                   <X className="size-3.5" />
@@ -183,7 +185,7 @@ export function PartyPanel({
             {available.map((character) => (
               <option key={character.id} value={character.id}>
                 {character.name}, {describe(character, copy.level).toLowerCase()}
-                {character.workshopId && character.workshopId !== workshopId ? " (in another workshop)" : ""}
+                {character.workshopId && character.workshopId !== workshopId ? uiText(" (in another workshop)") : ""}
               </option>
             ))}
           </select>
@@ -200,7 +202,7 @@ export function PartyPanel({
           </Link>
         </div>
         {available.length === 0 && library.length > 0 ? (
-          <p className="text-[11px] text-stone-500">Every character in your library is already on the roster.</p>
+          <p className="text-[11px] text-stone-500">{uiText("Every character in your library is already on the roster.")}</p>
         ) : null}
         {error ? <p className="text-[11px] text-red-400">{error}</p> : null}
       </div>

@@ -1,5 +1,6 @@
 "use client";
 
+import { useInlineText } from "@/lib/i18n/inline-text";
 import { BookMarked, EyeOff, Loader2, Pin, Plus, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useTourPrepare } from "@/lib/tours/prepare";
@@ -36,6 +37,7 @@ export function LorePanel({
   steersStory: boolean;
   layout?: "list" | "rows";
 }) {
+  const uiText = useInlineText();
   const { locale } = useI18n();
   const copy = localeText(locale, {
     en: { copy: "(copy)", newEntry: "New entry", lore: "World lore", add: "Add entry", loading: "Loading...", emptyLead: "No lore yet. Write your world's places, factions, and history; the DM treats it as canon.", empty: "The party lead has not written any world lore yet." },
@@ -308,7 +310,7 @@ export function LorePanel({
           value={draft.title}
           onChange={(event) => setDraft((current) => ({ ...current, title: event.target.value }))}
           maxLength={120}
-          placeholder="Title (The Ashen League, The Sundering...)"
+          placeholder={uiText("Title (The Ashen League, The Sundering...)")}
           className="flex-1 rounded border border-stone-700 bg-stone-900 px-2 py-1 text-[11px] outline-none focus:border-amber-600"
         />
       </div>
@@ -318,14 +320,14 @@ export function LorePanel({
         onChange={(event) => setDraft((current) => ({ ...current, body: event.target.value }))}
         rows={rows ? 8 : 4}
         maxLength={4000}
-        placeholder={"What is established about it...\n\n# Headings, **bold**, - lists, and [[The Mill]] to link another entry."}
+        placeholder={uiText("What is established about it...\n\n# Headings, **bold**, - lists, and [[The Mill]] to link another entry.")}
         data-tour="lore-body"
         className="w-full rounded border border-stone-700 bg-stone-900 px-2 py-1 text-[11px] leading-4 outline-none focus:border-amber-600"
       />
       {linkable.length ? (
         <div className="flex flex-wrap items-center gap-1.5" data-tour="lore-link">
           <AddFromList prompt="Link another entry" options={linkable} onPick={insertLink} />
-          <span className="text-[10px] text-stone-600">Drops a [[link]] where the cursor is.</span>
+          <span className="text-[10px] text-stone-600">{uiText("Drops a [[link]] where the cursor is.")}</span>
         </div>
       ) : null}
       <VisibilitySelect
@@ -340,7 +342,7 @@ export function LorePanel({
         <input
           value={draft.tags}
           onChange={(event) => setDraft((current) => ({ ...current, tags: event.target.value }))}
-          placeholder="Tags, comma separated (optional)"
+          placeholder={uiText("Tags, comma separated (optional)")}
           className="min-w-40 flex-1 rounded border border-stone-700 bg-stone-900 px-2 py-1 text-[11px] outline-none focus:border-amber-600"
         />
         <AddFromList
@@ -357,7 +359,7 @@ export function LorePanel({
           className="flex items-center gap-1 rounded border border-stone-700 px-2 py-0.5 text-[11px] text-stone-300 hover:bg-stone-900 disabled:opacity-50"
         >
           {busy ? <Loader2 className="size-3 animate-spin" /> : null}
-          {editingId ? "Save" : "Add"}
+          {editingId ? uiText("Save") : uiText("Add")}
         </button>
         <button
           type="button"
@@ -367,7 +369,7 @@ export function LorePanel({
           }}
           className="flex items-center gap-1 rounded border border-stone-700 px-2 py-0.5 text-[11px] text-stone-500 hover:bg-stone-900"
         >
-          <X className="size-3" /> Cancel
+          <X className="size-3" /> {uiText("Cancel")}
         </button>
       </div>
     </>
@@ -380,7 +382,7 @@ export function LorePanel({
       <div className="space-y-3">
         {loading ? (
           <p className="flex items-center gap-1 text-[11px] text-stone-500">
-            <Loader2 className="size-3 animate-spin" /> Loading...
+            <Loader2 className="size-3 animate-spin" /> {uiText("Loading...")}
           </p>
         ) : (
           <LoreRows

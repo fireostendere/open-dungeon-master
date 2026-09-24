@@ -2,6 +2,8 @@
 
 import { useId } from "react";
 import { cn } from "@/lib/cn";
+import { useI18n } from "@/lib/i18n/context";
+import { characterDisplay } from "@/lib/i18n/character-display";
 
 // A dropdown of every option a field accepts, beside a field that still
 // takes typing. Picking one hands the value to the caller (which appends it
@@ -28,6 +30,7 @@ export function AddFromList({
   className?: string;
   disabled?: boolean;
 }) {
+  const { locale } = useI18n();
   const id = useId();
   if (options.length === 0) return null;
   return (
@@ -44,7 +47,7 @@ export function AddFromList({
       <option value="">{prompt}...</option>
       {options.map((option) => {
         const value = typeof option === "string" ? option : option.value;
-        const label = typeof option === "string" ? option : option.label;
+        const label = typeof option === "string" ? characterDisplay(option, locale) : option.label;
         return (
           <option key={value} value={value}>
             {label}
@@ -58,11 +61,12 @@ export function AddFromList({
 // A datalist with the same option shape, for a single-value text input:
 // the input gets list={id}, the datalist renders beside it.
 export function Suggestions({ id, options }: { id: string; options: readonly AddOption[] }) {
+  const { locale } = useI18n();
   return (
     <datalist id={id}>
       {options.map((option) => {
         const value = typeof option === "string" ? option : option.value;
-        const label = typeof option === "string" ? undefined : option.label;
+        const label = typeof option === "string" ? characterDisplay(option, locale) : option.label;
         return <option key={value} value={value} label={label} />;
       })}
     </datalist>

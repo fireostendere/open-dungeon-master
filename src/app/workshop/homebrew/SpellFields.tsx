@@ -1,5 +1,6 @@
 "use client";
 
+import { useInlineText } from "@/lib/i18n/inline-text";
 import { CONDITIONS } from "@/lib/bestiary/kit";
 import { normalizeSpellMech } from "@/lib/homebrew/gear";
 import {
@@ -27,6 +28,7 @@ import { CONDITION_BLURBS, SPELL_SCHOOL_BLURBS, glossaryFor } from "@/lib/help/t
 import type { Data } from "@/app/workshop/homebrew/draft";
 import { useI18n } from "@/lib/i18n/context";
 import { localeText } from "@/lib/i18n/locale-text";
+import { characterDisplay } from "@/lib/i18n/character-display";
 
 // The spell form. The description is the part the engine reads its damage
 // out of, the same way it reads the SRD's, so the form shows what it found
@@ -37,6 +39,7 @@ import { localeText } from "@/lib/i18n/locale-text";
 type Mech = Record<string, unknown>;
 
 export function SpellFields({ data, onChange }: { data: Data; onChange: (next: Data) => void }) {
+  const uiText = useInlineText();
   const { locale } = useI18n();
   const copy = localeText(locale, {
     en: { level: "Level", cantrip: "0 is a cantrip.", school: "School", schools: "Schools of magic", casting: "Casting time", castingHint: "How long it takes to cast. Most spells take one action.", range: "Range", rangeHint: "How far away the target can be. Self means the caster only.", components: "Components", componentsHint: "V spoken words, S a free hand, M a material (name it after M in brackets).", duration: "Duration", durationHint: "How long the effect lasts. Concentration spells end when the caster loses focus.", concentration: "Concentration", ritual: "Ritual", classes: "Classes that can learn it", higher: "At higher levels", higherPlaceholder: "The damage increases by 1d6 for each slot level above 1st.", higherHint: "The engine scales the dice from this sentence when a spell is upcast.", reads: "From the description the engine reads: ", damage: "damage", heals: "heals", noDice: "no dice", save: "save", half: "half on a success", write: " Write it as \"takes 3d6 fire damage\" and it will.", resolves: "How it resolves", resolvesHint: "Set this and the cast tools trust it over the prose.", prose: "Let the engine read the prose", attack: "Spell attack roll", targetSaves: "Target saves", auto: "Hits without a roll", heal: "Restores hit points", buff: "Grants a condition to allies", summon: "Conjures creatures", utility: "Utility, narrated", none: "none", halfSuccess: "Half on a success", damageType: "Damage type", fromProse: "from the prose", condition: "Condition on a hit or failed save", rounds: "For rounds", roundsHint: "10 rounds is a minute.", granted: "Condition granted", on: "On", caster: "the caster", ally: "one ally", allies: "several allies", note: "Note for the DM", notePlaceholder: "Up to three targets." },
@@ -45,7 +48,7 @@ export function SpellFields({ data, onChange }: { data: Data; onChange: (next: D
   const resolutions = [
     { value: "", label: copy.prose }, { value: "attack", label: copy.attack }, { value: "save", label: copy.targetSaves }, { value: "auto", label: copy.auto }, { value: "heal", label: copy.heal }, { value: "buff", label: copy.buff }, { value: "summon", label: copy.summon }, { value: "utility", label: copy.utility },
   ] as const;
-  const abilityOptions = [{ value: "", label: copy.none }, ...(["str", "dex", "con", "int", "wis", "cha"] as const).map((value) => ({ value, label: value.toUpperCase() }))];
+  const abilityOptions = [{ value: "", label: copy.none }, ...(["str", "dex", "con", "int", "wis", "cha"] as const).map((value) => ({ value, label: characterDisplay(value, locale) }))];
   const set = (patch: Data) => onChange({ ...data, ...patch });
   const mech = (data.mech ?? {}) as Mech;
   const setMech = (patch: Mech) => {
@@ -78,7 +81,7 @@ export function SpellFields({ data, onChange }: { data: Data; onChange: (next: D
         <SelectField
           label={copy.school}
           value={String(data.school ?? "evocation")}
-          options={SPELL_SCHOOLS.map((value) => ({ value, label: value }))}
+          options={SPELL_SCHOOLS.map((value) => ({ value, label: characterDisplay(value, locale) }))}
           onChange={(school) => set({ school })}
           glossary={{ title: copy.schools, entries: glossaryFor(SPELL_SCHOOLS, SPELL_SCHOOL_BLURBS) }}
         />
@@ -126,9 +129,6 @@ export function SpellFields({ data, onChange }: { data: Data; onChange: (next: D
           options={CLASS_IDS}
           selected={Array.isArray(data.classes) ? (data.classes as string[]) : []}
           onChange={(classes) => set({ classes })}
-          labels={Object.fromEntries(
-            CLASS_IDS.map((id) => [id, id.charAt(0).toUpperCase() + id.slice(1)]),
-          )}
         />
       </div>
 
@@ -171,21 +171,21 @@ export function SpellFields({ data, onChange }: { data: Data; onChange: (next: D
                 </div>
               </>
             ) : null}
-            {["attack", "save", "auto"].includes(block.resolution) ? (
+            {[uiText("attack"), uiText("save"), uiText("auto")].includes(block.resolution) ? (
               <SelectField
                 label={copy.damageType}
                 value={String(mech.damageType ?? "")}
-                options={[{ value: "", label: copy.fromProse }, ...DAMAGE_TYPES.map((value) => ({ value, label: value }))]}
+                options={[{ value: "", label: copy.fromProse }, ...DAMAGE_TYPES.map((value) => ({ value, label: characterDisplay(value, locale) }))]}
                 onChange={(damageType) => setMech({ damageType: damageType || undefined })}
               />
             ) : null}
-            {["attack", "save", "auto"].includes(block.resolution) ? (
+            {[uiText("attack"), uiText("save"), uiText("auto")].includes(block.resolution) ? (
               <>
                 <TextField
                   label={copy.condition}
                   value={String(condition.name ?? "")}
                   onChange={(name) => setMech({ condition: name ? { ...condition, name } : undefined })}
-                  placeholder="frightened"
+                  placeholder={uiText("frightened")}
                   maxLength={40}
                   suggestions={CONDITIONS}
                   glossary={{ title: "Conditions", entries: glossaryFor(CONDITIONS, CONDITION_BLURBS) }}
@@ -208,7 +208,7 @@ export function SpellFields({ data, onChange }: { data: Data; onChange: (next: D
                   label={copy.granted}
                   value={String(buff.condition ?? "")}
                   onChange={(name) => setMech({ buff: { ...buff, condition: name } })}
-                  placeholder="blessed"
+                  placeholder={uiText("blessed")}
                   maxLength={40}
                   suggestions={["blessed", "hasted", "shielded", "invisible", "inspired", ...CONDITIONS]}
                 />

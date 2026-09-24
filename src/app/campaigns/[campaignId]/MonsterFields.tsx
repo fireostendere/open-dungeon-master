@@ -1,5 +1,8 @@
 "use client";
 
+import { useInlineText } from "@/lib/i18n/inline-text";
+import { useI18n } from "@/lib/i18n/context";
+import { characterDisplay } from "@/lib/i18n/character-display";
 import { useId } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import { cn } from "@/lib/cn";
@@ -69,6 +72,7 @@ export function AttackEditor({
   draft: MonsterDraft;
   onChange: (draft: MonsterDraft) => void;
 }) {
+  const uiText = useInlineText();
   // One list per mounted editor: a fixed id collided when two were open.
   const damageListId = useId();
   const attacks = draft.stats.attacks;
@@ -93,11 +97,11 @@ export function AttackEditor({
                 ),
               )
             }
-            placeholder="Bite"
+            placeholder={uiText("Bite")}
             className={cn(input, "w-28")}
           />
           <label className="flex items-center gap-1 text-[10px] text-stone-500">
-            to hit
+            {uiText("to hit")}
             <input
               type="number"
               min={-5}
@@ -138,14 +142,14 @@ export function AttackEditor({
                 ),
               )
             }
-            placeholder="slashing"
+            placeholder={uiText("slashing")}
             className={cn(input, "w-24")}
           />
           <button
             type="button"
             onClick={() => setAttacks(attacks.filter((_, at) => at !== index))}
             className="text-stone-600 hover:text-red-300"
-            aria-label={`Remove ${attack.name || "attack"}`}
+            aria-label={uiText("Remove {value}", { value: attack.name || uiText("attack") })}
           >
             <Trash2 className="size-3.5" />
           </button>
@@ -159,12 +163,11 @@ export function AttackEditor({
           }
           className="inline-flex w-fit items-center gap-1 rounded-md border border-stone-700 px-2 py-0.5 text-[11px] text-stone-400 hover:text-amber-100"
         >
-          <Plus className="size-3" /> Attack
+          <Plus className="size-3" /> {uiText("Attack")}
         </button>
       ) : null}
       <p className="text-[10px] text-stone-600">
-        The engine picks one attack and swings it as many times as the multiattack allows, capped
-        at three. Damage has to be something the dice roller can read.
+        {uiText("The engine picks one attack and swings it as many times as the multiattack allows, capped at three. Damage has to be something the dice roller can read.")}
       </p>
     </div>
   );
@@ -218,6 +221,7 @@ export function TraitEditor({
   draft: MonsterDraft;
   onChange: (draft: MonsterDraft) => void;
 }) {
+  const uiText = useInlineText();
   const traits = draft.stats.traits;
   const setTraits = (next: string[]) =>
     onChange({ ...draft, stats: { ...draft.stats, traits: next } });
@@ -230,14 +234,14 @@ export function TraitEditor({
             onChange={(event) =>
               setTraits(traits.map((row, at) => (at === index ? event.target.value : row)))
             }
-            placeholder="Fire Breath (Recharge 5-6): DC 15 Dex save, 6d6 fire, half on a success"
+            placeholder={uiText("Fire Breath (Recharge 5-6): DC 15 Dex save, 6d6 fire, half on a success")}
             className={cn(input, "flex-1")}
           />
           <button
             type="button"
             onClick={() => setTraits(traits.filter((_, at) => at !== index))}
             className="text-stone-600 hover:text-red-300"
-            aria-label="Remove trait"
+            aria-label={uiText("Remove trait")}
           >
             <Trash2 className="size-3.5" />
           </button>
@@ -249,7 +253,7 @@ export function TraitEditor({
           onClick={() => setTraits([...traits, ""])}
           className="inline-flex w-fit items-center gap-1 rounded-md border border-stone-700 px-2 py-0.5 text-[11px] text-stone-400 hover:text-amber-100"
         >
-          <Plus className="size-3" /> Trait, legendary action or lair action
+          <Plus className="size-3" /> {uiText("Trait, legendary action or lair action")}
         </button>
       ) : null}
     </div>
@@ -263,13 +267,15 @@ export function SizeAndDefences({
   draft: MonsterDraft;
   onChange: (draft: MonsterDraft) => void;
 }) {
+  const uiText = useInlineText();
+  const { locale } = useI18n();
   const set = (patch: Partial<MonsterDraft["stats"]>) =>
     onChange({ ...draft, stats: { ...draft.stats, ...patch } });
   return (
     <div className="flex flex-col gap-2.5">
       <div className="flex flex-wrap items-end gap-3">
         <label className="flex flex-col gap-0.5">
-          <span className="text-[10px] uppercase tracking-wide text-stone-500">Size</span>
+          <span className="text-[10px] uppercase tracking-wide text-stone-500">{uiText("Size")}</span>
           <select
             value={draft.stats.size ?? "Medium"}
             onChange={(event) => set({ size: event.target.value })}
@@ -277,7 +283,7 @@ export function SizeAndDefences({
           >
             {SIZES.map((size) => (
               <option key={size} value={size}>
-                {size}
+                {characterDisplay(size, locale)}
               </option>
             ))}
           </select>
@@ -286,7 +292,7 @@ export function SizeAndDefences({
             thumbnail: every list the monster appears in draws the plate for
             its type until somebody paints it a portrait. */}
         <label className="flex flex-col gap-0.5">
-          <span className="text-[10px] uppercase tracking-wide text-stone-500">Type</span>
+          <span className="text-[10px] uppercase tracking-wide text-stone-500">{uiText("Type")}</span>
           <select
             value={creatureTypeOf(draft.stats)}
             onChange={(event) => set({ type: event.target.value })}
@@ -294,7 +300,7 @@ export function SizeAndDefences({
           >
             {CREATURE_TYPES.map((type) => (
               <option key={type} value={type} className="capitalize">
-                {type}
+                {characterDisplay(type, locale)}
               </option>
             ))}
           </select>
@@ -308,10 +314,10 @@ export function SizeAndDefences({
           will hold every answer. */}
       {(
         [
-          ["resist", "Resistant to", DAMAGE_TYPES],
-          ["immune", "Immune to", DAMAGE_TYPES],
-          ["vulnerable", "Vulnerable to", DAMAGE_TYPES],
-          ["conditionImmune", "Condition immunities", CONDITIONS],
+          ["resist", uiText("Resistant to"), DAMAGE_TYPES],
+          ["immune", uiText("Immune to"), DAMAGE_TYPES],
+          ["vulnerable", uiText("Vulnerable to"), DAMAGE_TYPES],
+          ["conditionImmune", uiText("Condition immunities"), CONDITIONS],
         ] as const
       ).map(([field, label, known]) => (
         <TermPicker
@@ -353,13 +359,15 @@ export function Working({ parts, notes }: { parts: CrPart[]; notes: string[] }) 
 }
 
 export function RatingLine({ readout }: { readout: MonsterReadout }) {
+  const uiText = useInlineText();
   return (
     <p className={cn("text-[11px]", readout.agrees ? "text-stone-500" : "text-amber-300/80")}>
       {readout.agrees
-        ? `The numbers agree: CR ${crLabel(readout.statedCr)}.`
-        : `Written as CR ${crLabel(readout.statedCr)}; the numbers say CR ${crLabel(
-            readout.derived.cr,
-          )}.`}
+        ? uiText("The numbers agree: CR {cr}.", { cr: crLabel(readout.statedCr) })
+        : uiText("Written as CR {stated}; the numbers say CR {derived}.", {
+            stated: crLabel(readout.statedCr),
+            derived: crLabel(readout.derived.cr),
+          })}
     </p>
   );
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import { useInlineText } from "@/lib/i18n/inline-text";
 import { useCallback, useEffect, useState } from "react";
 import { Copy, Dices, Loader2, Plus, Sparkles, Trash2 } from "lucide-react";
 import { cn } from "@/lib/cn";
@@ -41,6 +42,7 @@ export function DmTablesPanel({
   campaignId: string;
   layout?: "list" | "rows";
 }) {
+  const uiText = useInlineText();
   const { locale } = useI18n();
   const copy = localeText(locale, {
     en: {
@@ -332,14 +334,14 @@ export function DmTablesPanel({
           <input
             value={prompt}
             onChange={(event) => setPrompt(event.target.value.slice(0, 300))}
-            placeholder="what the dockhands are whispering about"
+            placeholder={uiText("what the dockhands are whispering about")}
             className={inputClass}
           />
           <button
             type="button"
             onClick={draft}
             disabled={busy === "draft" || !prompt.trim()}
-            title="Drafts rows for you to edit. Nothing is saved until you save it."
+            title={uiText("Drafts rows for you to edit. Nothing is saved until you save it.")}
             className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-stone-700 px-2 py-1 text-xs text-stone-300 hover:bg-stone-900 disabled:opacity-40"
           >
             {busy === "draft" ? (
@@ -347,7 +349,7 @@ export function DmTablesPanel({
             ) : (
               <Sparkles className="size-3.5" />
             )}
-            Draft
+            {uiText("Draft")}
           </button>
         </div>
       ) : null}
@@ -356,7 +358,7 @@ export function DmTablesPanel({
         onChange={(event) => setText(event.target.value)}
         rows={rows ? 10 : 5}
         placeholder={
-          "1-3 A press gang is working the taproom.\n4. The harbourmaster has not been seen in a week.\nOr just paste a table straight out of a book."
+          uiText("1-3 A press gang is working the taproom.\n4. The harbourmaster has not been seen in a week.\nOr just paste a table straight out of a book.")
         }
         data-tour="tables-body"
         className={cn(inputClass, "mt-1.5 resize-y font-mono text-xs")}
@@ -452,7 +454,7 @@ export function DmTablesPanel({
       <section className="rounded-lg border border-stone-800 bg-stone-950/60 px-2.5 py-2">
         <p className="mb-1.5 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-stone-500">
           <Dices className="size-3.5" />
-          Your tables
+          {uiText("Your tables")}
         </p>
         {tables.length ? (
           <ul className="space-y-1.5">
@@ -527,7 +529,7 @@ export function DmTablesPanel({
       <section className="rounded-lg border border-stone-800 bg-stone-950/60 px-2.5 py-2">
         <p className="mb-1.5 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-stone-500">
           <Plus className="size-3.5" />
-          New table
+          {uiText("New table")}
         </p>
         {editor}
       </section>

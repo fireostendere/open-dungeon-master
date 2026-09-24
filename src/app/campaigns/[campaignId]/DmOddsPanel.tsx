@@ -1,5 +1,6 @@
 "use client";
 
+import { useInlineText } from "@/lib/i18n/inline-text";
 import { useMemo, useState } from "react";
 import { Calculator } from "lucide-react";
 import { asPercent, forecastAttack, roundsToDrop } from "@/lib/srd/odds";
@@ -48,6 +49,7 @@ export function OddsCalculator({
   // server would actually roll.
   variantRules: CritRules;
 }) {
+  const uiText = useInlineText();
   const { locale } = useI18n();
   const copy = localeText(locale, {
     en: { title: "What is this likely to do?", attack: "Attack bonus", ac: "Target AC", damage: "Damage", roll: "Roll", straight: "Straight", advantage: "Advantage", disadvantage: "Disadvantage", hp: "Target hit points", attacks: "Attacks per round", extra: "Extra dice on a crit", invalid: "That damage expression cannot be averaged, so only the odds below are real. The chance to hit never depended on it.", chance: "Chance to hit", crit: "crit", hit: "Damage on a hit", onCrit: "on a crit", average: "Average per round", rounds: "Rounds to drop", unknown: "unknown", never: "never" },
@@ -142,7 +144,7 @@ export function OddsCalculator({
             className={inputClass}
           />
         </label>
-        <label className="text-[11px] text-stone-500" title="Brutal Critical, Savage Attacks.">
+        <label className="text-[11px] text-stone-500" title={uiText("Brutal Critical, Savage Attacks.")}>
           {copy.extra}
           <input
             type="number"

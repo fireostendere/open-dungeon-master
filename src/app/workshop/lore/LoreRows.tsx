@@ -1,5 +1,6 @@
 "use client";
 
+import { useInlineText } from "@/lib/i18n/inline-text";
 import { useState } from "react";
 import { EyeOff, Image as ImageIcon, Pin, Plus, Search } from "lucide-react";
 import { cn } from "@/lib/cn";
@@ -43,6 +44,7 @@ export function LoreRows({
   onOpen: (entry: LoreEntryView) => void;
   onNew: () => void;
 }) {
+  const uiText = useInlineText();
   const { locale } = useI18n();
   const copy = localeText(locale, { en: { search: "Search the lore", searchLabel: "Search the lore by title, body or tag", secret: "Secret", handout: "Handout", entry: "New entry", empty: "No lore yet. Write your world's places, factions, and history; the DM treats it as canon.", noMatch: "Nothing by that title, body or tag." }, ru: { search: "Поиск лора", searchLabel: "Искать лор по названию, тексту или тегу", secret: "Секрет", handout: "Раздатка", entry: "Новая запись", empty: "Лора пока нет. Запишите места, фракции и историю мира — мастер будет считать это каноном.", noMatch: "Ничего с таким названием, текстом или тегом нет." } });
   const [query, setQuery] = useState("");
@@ -78,7 +80,7 @@ export function LoreRows({
                   {entry.pinned ? (
                     <Pin
                       className="size-3.5 shrink-0 text-amber-400"
-                      aria-label="Pinned: included in every DM turn"
+                      aria-label={uiText("Pinned: included in every DM turn")}
                     />
                   ) : null}
                   <span className="font-display tracking-wide text-amber-50">{entry.title}</span>
@@ -136,7 +138,7 @@ export function LoreRows({
         <p className="text-[11px] italic text-stone-600">
           {steersStory
             ? copy.empty
-            : "The party lead has not written any world lore yet."}
+            : uiText("The party lead has not written any world lore yet.")}
         </p>
       ) : shown.length === 0 ? (
         <p className="text-[11px] text-stone-500">{copy.noMatch}</p>

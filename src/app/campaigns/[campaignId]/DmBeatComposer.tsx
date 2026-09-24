@@ -1,5 +1,6 @@
 "use client";
 
+import { useInlineText } from "@/lib/i18n/inline-text";
 import { useState } from "react";
 import { NotebookPen } from "lucide-react";
 import { cn } from "@/lib/cn";
@@ -25,6 +26,7 @@ export function DmBeatComposer({
   // hosted-AI assisted-mode flag.
   canExpand?: boolean;
 }) {
+  const uiText = useInlineText();
   const [body, setBody] = useState("");
   const [kind, setKind] = useState<BeatKind>("scene");
   const [source, setSource] = useState<BeatSource>("typed");
@@ -60,18 +62,17 @@ export function DmBeatComposer({
     <section className="rounded-lg border border-stone-800 bg-stone-950/60 px-2.5 py-2">
       <p className="mb-1.5 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-stone-500">
         <NotebookPen className="size-3.5" />
-        Write down what happened
+        {uiText("Write down what happened")}
       </p>
       <p className="mb-2 text-[11px] leading-snug text-stone-500">
-        Anything narrated at the table. A sentence or two is enough; chapter summaries,
-        recaps and exports use this durable record.
+        {uiText("Anything narrated at the table. A sentence or two is enough; chapter summaries, recaps and exports use this durable record.")}
       </p>
 
       <textarea
         value={body}
         onChange={(event) => setBody(event.target.value.slice(0, BEAT_MAX_CHARS))}
         rows={3}
-        placeholder="They talked the reeve out of the toll and learned the mill burned last winter."
+        placeholder={uiText("They talked the reeve out of the toll and learned the mill burned last winter.")}
         className="w-full resize-y rounded-md border border-stone-700 bg-stone-950 px-2 py-1.5 text-sm text-stone-200 placeholder:text-stone-600 focus:border-amber-700 focus:outline-none"
       />
 
@@ -103,7 +104,7 @@ export function DmBeatComposer({
             "border-amber-700 bg-amber-950/50 text-amber-100 hover:bg-amber-900/50",
           )}
         >
-          {saving ? "Recording..." : "Record it"}
+          {saving ? uiText("Recording...") : uiText("Record it")}
         </button>
       </div>
 
@@ -113,7 +114,7 @@ export function DmBeatComposer({
         <ul className="mt-2 space-y-1 border-t border-stone-800 pt-2">
           {beats.slice(0, 3).map((beat) => (
             <li key={beat.id} className="text-[11px] leading-snug text-stone-500">
-              <span className="text-stone-400">{BEAT_KIND_LABELS[beat.kind] ?? "Beat"}:</span>{" "}
+              <span className="text-stone-400">{BEAT_KIND_LABELS[beat.kind] ?? uiText("Beat")}:</span>{" "}
               {beat.body.length > 140 ? `${beat.body.slice(0, 140)}...` : beat.body}
             </li>
           ))}

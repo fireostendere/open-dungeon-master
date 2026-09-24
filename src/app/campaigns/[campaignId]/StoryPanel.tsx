@@ -1,5 +1,6 @@
 "use client";
 
+import { useInlineText } from "@/lib/i18n/inline-text";
 import * as AlertDialog from "@radix-ui/react-alert-dialog";
 import { ArrowDown, ArrowUp, BookOpen, Check, ChevronDown, ChevronRight, Compass, Crosshair, Loader2, Pencil, Plus, Rewind, Scissors, SkipForward, Users, X } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -83,6 +84,7 @@ function ChapterCard({
   steersStory: boolean;
   onRewind?: () => void;
 }) {
+  const uiText = useInlineText();
   const { locale } = useI18n();
   const copy = localeText(locale, {
     en: { chapter: "Chapter", noSummary: "No summary recorded.", edit: "Edit", rewindTitle: "Rewind the whole campaign to the start of this chapter", rewind: "Rewind to start", save: "Save", cancel: "Cancel" },
@@ -192,7 +194,7 @@ function ChapterCard({
               className="flex items-center gap-1 rounded border border-stone-700 px-2 py-0.5 text-[11px] text-stone-300 hover:bg-stone-900"
             >
               {busy ? <Loader2 className="size-3 animate-spin" /> : <Check className="size-3" />}
-              Save
+              {uiText("Save")}
             </button>
             <button
               type="button"
@@ -203,7 +205,7 @@ function ChapterCard({
               }}
               className="flex items-center gap-1 rounded border border-stone-700 px-2 py-0.5 text-[11px] text-stone-500 hover:bg-stone-900"
             >
-              <X className="size-3" /> Cancel
+              <X className="size-3" /> {uiText("Cancel")}
             </button>
           </div>
         </div>
@@ -216,6 +218,7 @@ function ChapterCard({
 // Lead-only NPC roster hygiene, collapsed by default so it costs nothing
 // until asked for: the panel fetches the roster the moment it mounts.
 function NpcReviewCard({ campaignId }: { campaignId: string }) {
+  const uiText = useInlineText();
   const [expanded, setExpanded] = useState(false);
   return (
     <div className="rounded-lg border border-stone-800 bg-stone-950/40 p-2.5">
@@ -230,7 +233,7 @@ function NpcReviewCard({ campaignId }: { campaignId: string }) {
           <ChevronRight className="mt-0.5 size-3.5 shrink-0 text-stone-500" />
         )}
         <span className="flex items-center gap-1.5 text-xs font-medium text-amber-200">
-          <Users className="size-3.5 text-amber-600" /> NPC roster
+          <Users className="size-3.5 text-amber-600" /> {uiText("NPC roster")}
         </span>
       </button>
       {expanded ? (
@@ -250,6 +253,7 @@ function NpcReviewCard({ campaignId }: { campaignId: string }) {
 // of what happened at the table rather than a plan, and the server refuses
 // those edits regardless; the UI just does not offer them.
 function ArcCard({ campaignId }: { campaignId: string }) {
+  const uiText = useInlineText();
   const { locale } = useI18n();
   const copy = localeText(locale, {
     en: { editFailed: "That edit did not go through.", arc: "DM story arc (secret)", loading: "Loading...", saga: "Saga", sequel: "sequel", act: "act", of: "of", stakes: "Stakes:", antagonist: "Antagonist:", now: "(now)", skipped: "(skipped)", play: "Make this the beat in play", up: "Move up", down: "Move down", reword: "Reword this beat", skip: "Skip this beat", happens: "What happens in this beat", ahead: "Acts ahead (sketches)", cast: "Recurring cast", wants: "wants:", events: "Planned events (may never fire)", when: "when", threads: "Open threads", previous: "Previous sagas", emptyPlot: "No story arc yet. It is written when the adventure begins, or generate one now.", empty: "No story arc yet.", regenerateTitle: "Discard the current arc and have the DM plot a fresh one from the premise", plotting: "Plotting a new arc...", regenerate: "Generate story arc" },
@@ -391,7 +395,7 @@ function ArcCard({ campaignId }: { campaignId: string }) {
               ) : null}
               {actGroups.map((act) => (
                 <div key={act}>
-                  <p className="text-[11px] font-medium text-stone-400">Act {act}</p>
+                  <p className="text-[11px] font-medium text-stone-400">{uiText("Act")} {act}</p>
                   <ol className="mt-0.5 space-y-0.5">
                     {arc.beats.map((beat, index) => {
                       if (beat.act !== act) {
@@ -423,14 +427,14 @@ function ArcCard({ campaignId }: { campaignId: string }) {
                                 disabled={beatBusy || !draft.trim()}
                                 className={cn(ui.btnSmall, "px-2 py-0.5 text-[11px]")}
                               >
-                                <Check className="size-3" /> Save
+                                <Check className="size-3" /> {uiText("Save")}
                               </button>
                               <button
                                 type="button"
                                 onClick={closeEditor}
                                 className={cn(ui.btnSmall, "px-2 py-0.5 text-[11px]")}
                               >
-                                Cancel
+                                {uiText("Cancel")}
                               </button>
                             </div>
                           </li>
@@ -547,14 +551,14 @@ function ArcCard({ campaignId }: { campaignId: string }) {
                           disabled={beatBusy || !draft.trim()}
                           className={cn(ui.btnSmall, "px-2 py-0.5 text-[11px]")}
                         >
-                          <Check className="size-3" /> Add
+                          <Check className="size-3" /> {uiText("Add")}
                         </button>
                         <button
                           type="button"
                           onClick={closeEditor}
                           className={cn(ui.btnSmall, "px-2 py-0.5 text-[11px]")}
                         >
-                          Cancel
+                          {uiText("Cancel")}
                         </button>
                       </div>
                     </div>
@@ -567,7 +571,7 @@ function ArcCard({ campaignId }: { campaignId: string }) {
                       }}
                       className="mt-0.5 inline-flex items-center gap-1 text-[11px] text-stone-600 hover:text-amber-200"
                     >
-                      <Plus className="size-3" /> Add a beat
+                      <Plus className="size-3" /> {uiText("Add a beat")}
                     </button>
                   )}
                 </div>
@@ -579,15 +583,14 @@ function ArcCard({ campaignId }: { campaignId: string }) {
                   <ul className="mt-0.5 space-y-0.5">
                     {aheadSketches.map((sketch) => (
                       <li key={sketch.act} className="list-none text-[11px] leading-4 text-stone-500">
-                        Act {sketch.act}: {sketch.milestone}
+                        {uiText("Act")} {sketch.act}: {sketch.milestone}
                         {sketch.boss ? (
-                          <span className="text-stone-600"> &middot; boss: {sketch.boss.name}</span>
+                          <span className="text-stone-600"> {uiText("&middot; boss:")} {sketch.boss.name}</span>
                         ) : null}
                         {sketch.allies.length ? (
                           <span className="text-stone-600">
                             {" "}
-                            &middot; {sketch.allies.length} planned all
-                            {sketch.allies.length === 1 ? "y" : "ies"}
+                            &middot; {uiText("Allies planned: {count}", { count: sketch.allies.length })}
                           </span>
                         ) : null}
                       </li>
@@ -597,11 +600,11 @@ function ArcCard({ campaignId }: { campaignId: string }) {
               ) : null}
               {arc.finale ? (
                 <p className="text-[11px] leading-4 text-stone-400">
-                  Finale: {arc.finale}
+                  {uiText("Finale:")} {arc.finale}
                   {arc.saga?.finaleBoss ? (
                     <span className="text-stone-500">
                       {" "}
-                      &middot; final boss: {arc.saga.finaleBoss.name}
+                      {uiText("&middot; final boss:")} {arc.saga.finaleBoss.name}
                     </span>
                   ) : null}
                 </p>

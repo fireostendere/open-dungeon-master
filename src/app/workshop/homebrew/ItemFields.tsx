@@ -1,5 +1,6 @@
 "use client";
 
+import { useInlineText } from "@/lib/i18n/inline-text";
 import { Plus, X } from "lucide-react";
 import {
   ARMOR_CATEGORIES,
@@ -29,6 +30,7 @@ import type { Data } from "@/app/workshop/homebrew/draft";
 import { DAMAGE_TYPE_BLURBS, WEAPON_PROPERTY_BLURBS, glossaryFor } from "@/lib/help/terms";
 import { useI18n } from "@/lib/i18n/context";
 import { localeText } from "@/lib/i18n/locale-text";
+import { characterDisplay } from "@/lib/i18n/character-display";
 
 // "1d8 slashing" as the two things a DM actually decides. A type the list
 // does not know (a homebrew "1d6 chitin-shredding") stays in the dice box
@@ -51,13 +53,6 @@ function joinDamage(dice: string, type: string): string {
 // item's the effects magic-items.json speaks. The "start from" rows offer
 // the SRD tables themselves, because a +1 longsword is a longsword first.
 
-const KIND_LABELS: Record<ItemKind, string> = {
-  weapon: "Weapon",
-  armor: "Armour",
-  gear: "Gear",
-  magic_item: "Magic item",
-};
-
 type Weapon = Record<string, unknown>;
 type Armor = Record<string, unknown>;
 
@@ -65,16 +60,34 @@ function num(value: unknown): number | "" {
   return typeof value === "number" && Number.isFinite(value) ? value : "";
 }
 
+function describeEffectForUi(effect: MagicItemEffect, locale: "en" | "ru"): string {
+  return localeText(locale, {
+    en: describeEffect(effect),
+    ru: (() => {
+      const amount = "amount" in effect ? `${effect.amount >= 0 ? "+" : ""}${effect.amount}` : "";
+      switch (effect.kind) {
+        case "ac_bonus": return `КД ${amount}`;
+        case "ac_unarmored": return `КД ${amount} без доспеха`;
+        case "save_bonus": return `Спасброски ${amount}`;
+        case "set_ability": return `${characterDisplay(effect.ability, locale)} становится ${effect.score}`;
+        case "resistance": return `Сопротивление: ${effect.types.map((type) => characterDisplay(type, locale)).join(", ")}`;
+      }
+    })(),
+  });
+}
+
 function WeaponBlock({ weapon, onChange }: { weapon: Weapon; onChange: (next: Weapon) => void }) {
+  const uiText = useInlineText();
+  const { locale } = useI18n();
   const set = (patch: Weapon) => onChange({ ...weapon, ...patch });
   const properties = Array.isArray(weapon.properties) ? (weapon.properties as string[]) : [];
   return (
     <div className="space-y-2 rounded-md border border-stone-800 p-2">
       <div className="flex flex-wrap items-center gap-2">
-        <span className="text-[11px] uppercase tracking-wide text-stone-500">Weapon</span>
+        <span className="text-[11px] uppercase tracking-wide text-stone-500">{uiText("Weapon")}</span>
         <select
           value=""
-          aria-label="Start from an SRD weapon"
+          aria-label={uiText("Start from an SRD weapon")}
           onChange={(event) => {
             const srd = SRD_WEAPONS.find((entry) => entry.name === event.target.value);
             if (srd) {
@@ -89,7 +102,7 @@ function WeaponBlock({ weapon, onChange }: { weapon: Weapon; onChange: (next: We
           }}
           className={input}
         >
-          <option value="">Start from an SRD weapon...</option>
+          <option value="">{uiText("Start from an SRD weapon...")}</option>
           {SRD_WEAPONS.map((entry) => (
             <option key={entry.name} value={entry.name}>
               {entry.name} ({entry.damage})
@@ -99,13 +112,13 @@ function WeaponBlock({ weapon, onChange }: { weapon: Weapon; onChange: (next: We
       </div>
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
         <SelectField
-          label="Category"
+          label={uiText("Category")}
           value={String(weapon.category ?? "simple")}
-          options={WEAPON_CATEGORIES.map((value) => ({ value, label: value }))}
+          options={WEAPON_CATEGORIES.map((value) => ({ value, label: characterDisplay(value, locale) }))}
           onChange={(category) => set({ category })}
         />
         <SelectField
-          label="Reach"
+          label={uiText("Reach")}
           value={String(weapon.kind ?? "melee")}
           options={[
             { value: "melee", label: "melee" },
@@ -118,7 +131,7 @@ function WeaponBlock({ weapon, onChange }: { weapon: Weapon; onChange: (next: We
             list the monster editor already offers, so nobody has to spell a
             damage type from memory. */}
         <TextField
-          label="Damage dice"
+          label={uiText("Damage dice")}
           value={splitDamage(String(weapon.damage ?? "")).dice}
           onChange={(dice) =>
             set({ damage: joinDamage(dice, splitDamage(String(weapon.damage ?? "")).type) })
@@ -127,18 +140,18 @@ function WeaponBlock({ weapon, onChange }: { weapon: Weapon; onChange: (next: We
           maxLength={20}
         />
         <SelectField
-          label="Damage type"
+          label={uiText("Damage type")}
           value={splitDamage(String(weapon.damage ?? "")).type}
           options={[
             { value: "", label: "Pick a type..." },
-            ...DAMAGE_TYPES.map((value) => ({ value, label: value })),
+            ...DAMAGE_TYPES.map((value) => ({ value, label: characterDisplay(value, locale) })),
           ]}
           onChange={(type) => set({ damage: joinDamage(splitDamage(String(weapon.damage ?? "")).dice, type) })}
-          hint="Slashing, piercing and bludgeoning are the weapon types; the rest are for enchanted blades."
+          hint={uiText("Slashing, piercing and bludgeoning are the weapon types; the rest are for enchanted blades.")}
           glossary={{ title: "Damage types", entries: glossaryFor(DAMAGE_TYPES, DAMAGE_TYPE_BLURBS) }}
         />
         <NumberField
-          label="Range (ft)"
+          label={uiText("Range (ft)")}
           value={num(weapon.rangeFt)}
           min={0}
           max={600}
@@ -146,7 +159,7 @@ function WeaponBlock({ weapon, onChange }: { weapon: Weapon; onChange: (next: We
         />
       </div>
       <Field
-        label="Properties"
+        label={uiText("Properties")}
         glossary={{ title: "Weapon properties", entries: glossaryFor(WEAPON_PROPERTIES, WEAPON_PROPERTY_BLURBS) }}
       >
         <ToggleChips
@@ -160,15 +173,17 @@ function WeaponBlock({ weapon, onChange }: { weapon: Weapon; onChange: (next: We
 }
 
 function ArmorBlock({ armor, onChange }: { armor: Armor; onChange: (next: Armor) => void }) {
+  const uiText = useInlineText();
+  const { locale } = useI18n();
   const set = (patch: Armor) => onChange({ ...armor, ...patch });
   const category = String(armor.category ?? "light");
   return (
     <div className="space-y-2 rounded-md border border-stone-800 p-2">
       <div className="flex flex-wrap items-center gap-2">
-        <span className="text-[11px] uppercase tracking-wide text-stone-500">Armour</span>
+        <span className="text-[11px] uppercase tracking-wide text-stone-500">{uiText("Armour")}</span>
         <select
           value=""
-          aria-label="Start from SRD armour"
+          aria-label={uiText("Start from SRD armour")}
           onChange={(event) => {
             const srd = SRD_ARMOR.find((entry) => entry.name === event.target.value);
             if (srd) {
@@ -184,7 +199,7 @@ function ArmorBlock({ armor, onChange }: { armor: Armor; onChange: (next: Armor)
           }}
           className={input}
         >
-          <option value="">Start from SRD armour...</option>
+          <option value="">{uiText("Start from SRD armour...")}</option>
           {SRD_ARMOR.map((entry) => (
             <option key={entry.name} value={entry.name}>
               {entry.name} (AC {entry.baseAc})
@@ -194,13 +209,13 @@ function ArmorBlock({ armor, onChange }: { armor: Armor; onChange: (next: Armor)
       </div>
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
         <SelectField
-          label="Category"
+          label={uiText("Category")}
           value={category}
-          options={ARMOR_CATEGORIES.map((value) => ({ value, label: value }))}
+          options={ARMOR_CATEGORIES.map((value) => ({ value, label: characterDisplay(value, locale) }))}
           onChange={(next) => set({ category: next })}
         />
         <NumberField
-          label={category === "shield" ? "Adds to AC" : "Base AC"}
+          label={category === "shield" ? uiText("Adds to AC") : uiText("Base AC")}
           value={num(armor.baseAc)}
           min={category === "shield" ? 1 : GEAR_LIMITS.acMin}
           max={category === "shield" ? GEAR_LIMITS.shieldMax : GEAR_LIMITS.acMax}
@@ -208,17 +223,17 @@ function ArmorBlock({ armor, onChange }: { armor: Armor; onChange: (next: Armor)
         />
         {category === "medium" ? (
           <NumberField
-            label="DEX cap"
+            label={uiText("DEX cap")}
             value={num(armor.dexCap) === "" ? 2 : num(armor.dexCap)}
             min={0}
             max={5}
             onChange={(dexCap) => set({ dexCap: dexCap === "" ? 2 : dexCap })}
-            hint="Medium armour lets this much DEX through."
+            hint={uiText("Medium armour lets this much DEX through.")}
           />
         ) : null}
         {category === "heavy" || category === "medium" ? (
           <NumberField
-            label="Strength needed"
+            label={uiText("Strength needed")}
             value={num(armor.strengthRequirement)}
             min={0}
             max={30}
@@ -228,7 +243,7 @@ function ArmorBlock({ armor, onChange }: { armor: Armor; onChange: (next: Armor)
           />
         ) : null}
         <NumberField
-          label="Weight (lb)"
+          label={uiText("Weight (lb)")}
           value={num(armor.weightLb)}
           min={0}
           max={500}
@@ -237,7 +252,7 @@ function ArmorBlock({ armor, onChange }: { armor: Armor; onChange: (next: Armor)
       </div>
       {category !== "shield" ? (
         <CheckField
-          label="Disadvantage on Stealth"
+          label={uiText("Disadvantage on Stealth")}
           checked={armor.stealthDisadvantage === true}
           onChange={(stealthDisadvantage) => set({ stealthDisadvantage })}
         />
@@ -246,14 +261,6 @@ function ArmorBlock({ armor, onChange }: { armor: Armor; onChange: (next: Armor)
   );
 }
 
-const EFFECT_LABELS: Record<(typeof EFFECT_KINDS)[number], string> = {
-  ac_bonus: "AC bonus",
-  ac_unarmored: "AC bonus while unarmoured",
-  save_bonus: "Saving throw bonus",
-  set_ability: "Sets an ability score",
-  resistance: "Resistance",
-};
-
 function EffectsBlock({
   effects,
   onChange,
@@ -261,18 +268,20 @@ function EffectsBlock({
   effects: MagicItemEffect[];
   onChange: (next: MagicItemEffect[]) => void;
 }) {
+  const uiText = useInlineText();
+  const { locale } = useI18n();
   const update = (index: number, next: MagicItemEffect) =>
     onChange(effects.map((effect, at) => (at === index ? next : effect)));
   return (
     <div className="space-y-1.5">
       <span className="text-[10px] uppercase tracking-wide text-stone-500">
-        Standing effects (the engine applies these while the item is worn, and attuned if it needs it)
+        {uiText("Standing effects (the engine applies these while the item is worn, and attuned if it needs it)")}
       </span>
       {effects.map((effect, index) => (
         <div key={index} className="flex flex-wrap items-center gap-1.5">
           <select
             value={effect.kind}
-            aria-label="Effect kind"
+            aria-label={uiText("Effect kind")}
             onChange={(event) => {
               const kind = event.target.value as (typeof EFFECT_KINDS)[number];
               update(
@@ -288,14 +297,14 @@ function EffectsBlock({
           >
             {EFFECT_KINDS.map((kind) => (
               <option key={kind} value={kind}>
-                {EFFECT_LABELS[kind]}
+                {characterDisplay(kind, locale)}
               </option>
             ))}
           </select>
           {"amount" in effect ? (
             <input
               type="number"
-              aria-label="Amount"
+              aria-label={uiText("Amount")}
               value={effect.amount}
               min={-GEAR_LIMITS.bonusMax}
               max={GEAR_LIMITS.bonusMax}
@@ -307,7 +316,7 @@ function EffectsBlock({
             <>
               <select
                 value={effect.ability}
-                aria-label="Ability"
+                aria-label={uiText("Ability")}
                 onChange={(event) =>
                   update(index, { ...effect, ability: event.target.value as MagicItemEffect extends { ability: infer A } ? A : never })
                 }
@@ -315,13 +324,13 @@ function EffectsBlock({
               >
                 {(["str", "dex", "con", "int", "wis", "cha"] as const).map((ability) => (
                   <option key={ability} value={ability}>
-                    {ability.toUpperCase()}
+                    {characterDisplay(ability, locale)}
                   </option>
                 ))}
               </select>
               <input
                 type="number"
-                aria-label="Score"
+                aria-label={uiText("Score")}
                 value={effect.score}
                 min={3}
                 max={30}
@@ -337,10 +346,10 @@ function EffectsBlock({
               onChange={(types) => update(index, { ...effect, types })}
             />
           ) : null}
-          <span className="text-[11px] text-stone-500">{describeEffect(effect)}</span>
+          <span className="text-[11px] text-stone-500">{describeEffectForUi(effect, locale)}</span>
           <button
             type="button"
-            aria-label="Remove effect"
+            aria-label={uiText("Remove effect")}
             onClick={() => onChange(effects.filter((_, at) => at !== index))}
             className="rounded-md border border-stone-700 p-1 text-stone-500 hover:text-red-300"
           >
@@ -354,7 +363,7 @@ function EffectsBlock({
           onClick={() => onChange([...effects, { kind: "ac_bonus", amount: 1 }])}
           className="flex items-center gap-1 rounded-md border border-stone-700 px-2 py-1 text-[11px] text-stone-300 hover:bg-stone-900"
         >
-          <Plus className="size-3" /> Add an effect
+          <Plus className="size-3" /> {uiText("Add an effect")}
         </button>
       ) : null}
     </div>
@@ -362,6 +371,7 @@ function EffectsBlock({
 }
 
 export function ItemFields({ data, onChange }: { data: Data; onChange: (next: Data) => void }) {
+  const uiText = useInlineText();
   const { locale } = useI18n();
   const copy = localeText(locale, {
     en: { kind: "Kind", rarity: "Rarity", mundane: "mundane", cost: "Cost", weight: "Weight (lb)", attunement: "Requires attunement", charges: "Charges", recharge: "Recharge", alsoWeapon: "It is also a weapon", alsoArmor: "It is also armour" },
@@ -380,13 +390,13 @@ export function ItemFields({ data, onChange }: { data: Data; onChange: (next: Da
         <SelectField
           label={copy.kind}
           value={itemKind}
-          options={ITEM_KINDS.map((value) => ({ value, label: KIND_LABELS[value] }))}
+          options={ITEM_KINDS.map((value) => ({ value, label: characterDisplay(value, locale) }))}
           onChange={(next) => set({ itemKind: next })}
         />
         <SelectField
           label={copy.rarity}
           value={String(data.rarity ?? "")}
-          options={[{ value: "", label: copy.mundane }, ...RARITIES.map((value) => ({ value, label: value }))]}
+          options={[{ value: "", label: copy.mundane }, ...RARITIES.map((value) => ({ value, label: characterDisplay(value, locale) }))]}
           onChange={(rarity) => set({ rarity })}
         />
         <TextField label={copy.cost} value={String(data.cost ?? "")} onChange={(cost) => set({ cost })} placeholder="15 gp" maxLength={40} />
@@ -426,7 +436,7 @@ export function ItemFields({ data, onChange }: { data: Data; onChange: (next: Da
                 label={copy.recharge}
                 value={charges.recharge ?? "dawn"}
                 onChange={(recharge) => set({ charges: { ...charges, recharge } })}
-                placeholder="dawn"
+                placeholder={uiText("dawn")}
                 maxLength={80}
                 className="w-40"
                 suggestions={RECHARGE_TRIGGERS}

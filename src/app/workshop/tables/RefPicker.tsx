@@ -1,5 +1,6 @@
 "use client";
 
+import { useInlineText } from "@/lib/i18n/inline-text";
 import { useEffect, useState } from "react";
 import { Link2 } from "lucide-react";
 import { cn } from "@/lib/cn";
@@ -44,6 +45,7 @@ export function RefPicker({
   editingId: string;
   onInsert: (line: string) => void;
 }) {
+  const uiText = useInlineText();
   const { locale } = useI18n();
   const copy = localeText(locale, { en: { kind: "What kind of thing the row is", item: "Find an item to add as a row", monster: "Find a monster in the catalogue to add as a row", yours: "One of yours", add: "Add a row for", reading: "Reading...", empty: "Nothing of that kind in this workshop yet." }, ru: { kind: "Что представляет строка", item: "Найти предмет для добавления строкой", monster: "Найти монстра в каталоге для добавления строкой", yours: "Один из ваших", add: "Добавить строку для", reading: "Загрузка...", empty: "В этой мастерской пока нет ничего такого типа." } });
   const [kind, setKind] = useState<RollRefKind>("table");
@@ -122,7 +124,7 @@ export function RefPicker({
         <ContentPick
           kind="items"
           label={copy.item}
-          placeholder="Potion of Healing"
+          placeholder={uiText("Potion of Healing")}
           onPick={(entry) => insert(entry.name)}
           className="min-w-44 flex-1"
         />
@@ -136,7 +138,7 @@ export function RefPicker({
           <ContentPick
             kind="monsters"
             label={copy.monster}
-            placeholder="wolf"
+            placeholder={uiText("wolf")}
             onPick={(entry) => insert(entry.name)}
             className="min-w-44 flex-1"
           />

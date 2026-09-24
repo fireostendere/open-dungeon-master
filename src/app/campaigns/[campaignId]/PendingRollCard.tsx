@@ -1,5 +1,6 @@
 "use client";
 
+import { useInlineText } from "@/lib/i18n/inline-text";
 import { Dices, Loader2 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { cn } from "@/lib/cn";
@@ -38,6 +39,7 @@ export function PendingRollCard({
   meUserId: string;
   steersStory: boolean;
 }) {
+  const uiText = useInlineText();
   const { locale } = useI18n();
   const copy = localeText(locale, { en: { someone: "Someone", and: "and", enter: "Enter the bare die numbers; the", added: "is added for you.", submitFailed: "Could not submit the roll.", serverFailed: "Could not reach the server.", roll: "Roll", assigned: "Your assigned dice fill in on their own.", auto: "auto", rolled: "rolled for you", submit: "Submit roll", digital: "Roll digitally instead" }, ru: { someone: "Кто-то", and: "и", enter: "Введите только значения кубов;", added: "будет добавлен автоматически.", submitFailed: "Не удалось отправить бросок.", serverFailed: "Не удалось связаться с сервером.", roll: "Бросьте", assigned: "Назначенные кубы заполнятся сами.", auto: "авто", rolled: "брошен за вас", submit: "Отправить бросок", digital: "Бросить цифровым кубом" } });
   const [values, setValues] = useState<Record<number, string>>({});
@@ -194,7 +196,7 @@ export function PendingRollCard({
       <div className="mb-2 flex items-center justify-between rounded-md border border-amber-900/60 bg-amber-950/20 px-3 py-2 text-xs text-amber-200/90">
         <span className="flex items-center gap-2">
           <Dices className="size-4 animate-pulse text-amber-200" />
-          Waiting for {character?.name ?? "a player"} to roll {pending.expression} with real dice
+          {uiText("Waiting for")} {character?.name ?? uiText("a player")} {uiText("to roll")} {pending.expression} {uiText("with real dice")}
         </span>
         {steersStory && stale ? (
           <button
@@ -203,7 +205,7 @@ export function PendingRollCard({
             onClick={() => submit({ fallback: "digital" })}
             className="shrink-0 text-amber-200 hover:text-amber-300 disabled:opacity-50"
           >
-            Roll digitally
+            {uiText("Roll digitally")}
           </button>
         ) : null}
       </div>
@@ -215,7 +217,7 @@ export function PendingRollCard({
       <div className="flex items-center justify-between text-sm">
         <span className="flex items-center gap-2 text-amber-100">
           <Dices className="size-4 text-amber-200" />
-          Your roll: {label}
+          {uiText("Your roll:")} {label}
         </span>
         <span className="font-mono text-xs text-amber-400">{pending.expression}</span>
       </div>
@@ -226,9 +228,10 @@ export function PendingRollCard({
         <p className="mt-1 text-xs text-amber-100">
           {fullyAutomatic
             ? `${copy.roll} ${diceSummary}. ${copy.assigned}`
-            : `Roll ${diceSummary} at your table and enter each die below.${
-                modifierNote ? ` ${modifierNote}` : ""
-              } The game waits for your result.`}
+            : uiText("Roll {dice} at your table and enter each die below.{modifier} The game waits for your result.", {
+                dice: diceSummary,
+                modifier: modifierNote ? ` ${modifierNote}` : "",
+              })}
         </p>
       ) : null}
       {advantageNote ? (

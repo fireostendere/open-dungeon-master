@@ -1,5 +1,6 @@
 "use client";
 
+import { useInlineText } from "@/lib/i18n/inline-text";
 import { useState } from "react";
 import { Search, Skull } from "lucide-react";
 import { cn } from "@/lib/cn";
@@ -43,6 +44,7 @@ export function MonsterBuildControls({
   // The table's setting, so a high-rating find draws the boss plate.
   genre?: string | null;
 }) {
+  const uiText = useInlineText();
   const { locale } = useI18n();
   const copy = localeText(locale, { en: { build: "Build a monster", name: "Name", cr: "Starting CR", baseline: "Start from the baseline", existing: "Or start from something that exists", find: "Find" }, ru: { build: "Создать монстра", name: "Название", cr: "Начальный CR", baseline: "Начать с основы", existing: "Или начать с существующего", find: "Найти" } });
   const [newName, setNewName] = useState("");
@@ -73,7 +75,7 @@ export function MonsterBuildControls({
           <input
             value={newName}
             onChange={(event) => setNewName(event.target.value.slice(0, MONSTER_NAME_MAX))}
-            placeholder="Bone Tyrant"
+            placeholder={uiText("Bone Tyrant")}
             className={cn(input, "w-48")}
           />
         </label>
@@ -115,7 +117,7 @@ export function MonsterBuildControls({
                   onFind();
                 }
               }}
-              placeholder="owlbear"
+              placeholder={uiText("owlbear")}
               className={cn(input, "flex-1")}
             />
             <button

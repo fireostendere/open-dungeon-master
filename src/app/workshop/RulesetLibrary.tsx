@@ -1,5 +1,6 @@
 "use client";
 
+import { useInlineText } from "@/lib/i18n/inline-text";
 import { BookmarkPlus, Check, Loader2, Scale, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { cn } from "@/lib/cn";
@@ -23,8 +24,9 @@ type HomebrewRow = { id: string; name: string; kind: string };
 // library is untouched either way.
 
 function ChangeList({ changes }: { changes: RulesetChange[] }) {
+  const uiText = useInlineText();
   if (!changes.length) {
-    return <p className="text-xs text-stone-500">Nothing would change.</p>;
+    return <p className="text-xs text-stone-500">{uiText("Nothing would change.")}</p>;
   }
   return (
     <ul className="space-y-0.5 text-xs text-stone-400">
@@ -34,20 +36,19 @@ function ChangeList({ changes }: { changes: RulesetChange[] }) {
             <>
               {change.label}:{" "}
               <span className="text-stone-500">
-                {typeof change.from === "boolean" ? (change.from ? "on" : "off") : change.from}
+                {typeof change.from === "boolean" ? (change.from ? "on" : uiText("off")) : change.from}
               </span>{" "}
               to{" "}
               <span className="text-amber-200">
-                {typeof change.to === "boolean" ? (change.to ? "on" : "off") : change.to}
+                {typeof change.to === "boolean" ? (change.to ? "on" : uiText("off")) : change.to}
               </span>
             </>
           ) : (
             <>
-              House rules: {change.to} ruling{change.to === 1 ? "" : "s"}
+              {uiText("House rules:")} {change.to} {uiText("ruling")}{change.to === 1 ? "" : "s"}
               {change.replaces ? (
                 <span className="text-amber-300/90">
-                  {" "}
-                  replacing the {change.from} already written here
+                  {uiText(" (replaces the current ruling)")}
                 </span>
               ) : null}
             </>
@@ -66,6 +67,7 @@ export function RulesetLibrary({
   campaignId: string;
   onApplied?: () => void;
 }) {
+  const uiText = useInlineText();
   const { locale } = useI18n();
   const copy = localeText(locale, { en: { library: "Ruleset library", apply: "Apply", save: "Save", empty: "No saved rulesets yet. Set the rules below the way your table plays, then save them.", saveAs: "Save these rules as...", delete: "Delete", homebrew: "Homebrew this ruleset ships", applying: "Applying here would", mode: "How to handle existing house rules", replace: "Replace the house rules here", append: "Add to the house rules here" }, ru: { library: "Библиотека наборов правил", apply: "Применить", save: "Сохранить", empty: "Сохранённых наборов правил пока нет. Настройте правила стола ниже и сохраните их.", saveAs: "Сохранить эти правила как...", delete: "Удалить", homebrew: "Хоумбрю этого набора", applying: "При применении здесь", mode: "Как обработать существующие домашние правила", replace: "Заменить домашние правила здесь", append: "Добавить к домашним правилам здесь" } });
   const [rulesets, setRulesets] = useState<Ruleset[]>([]);
@@ -209,8 +211,7 @@ export function RulesetLibrary({
         <Scale className="size-3.5" /> {copy.library}
       </h2>
       <p className="mb-3 text-xs text-stone-500">
-        A ruleset is your table&apos;s variant rules and house rulings kept as one thing, reusable
-        across campaigns. Applying one copies it here; editing it later never reaches back.
+        {uiText("A ruleset is your table&apos;s variant rules and house rulings kept as one thing, reusable across campaigns. Applying one copies it here; editing it later never reaches back.")}
       </p>
 
       {loading ? (
@@ -285,12 +286,11 @@ export function RulesetLibrary({
                       </ul>
                     ) : (
                       <p className="text-xs text-stone-500">
-                        Nothing homebrewed yet. Entries made in the Homebrew tool appear here.
+                        {uiText("Nothing homebrewed yet. Entries made in the Homebrew tool appear here.")}
                       </p>
                     )}
                     <p className="mt-1 text-[10px] text-stone-600">
-                      Ticked entries are canon wherever this ruleset is applied; prepared monsters
-                      that lean on anything else get flagged.
+                      {uiText("Ticked entries are canon wherever this ruleset is applied; prepared monsters that lean on anything else get flagged.")}
                     </p>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">

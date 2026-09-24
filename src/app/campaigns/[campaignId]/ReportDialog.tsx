@@ -1,5 +1,6 @@
 "use client";
 
+import { useInlineText } from "@/lib/i18n/inline-text";
 import { Flag, Loader2, ShieldBan } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/cn";
@@ -42,6 +43,7 @@ export function ReportDialog({
   // The block landed; the caller hides that player's messages at once.
   onBlocked?: (userId: string) => void;
 }) {
+  const uiText = useInlineText();
   const [reason, setReason] = useState("harassment");
   const [details, setDetails] = useState("");
   const [block, setBlock] = useState(false);
@@ -117,7 +119,7 @@ export function ReportDialog({
     <Dialog
       open={Boolean(target)}
       onOpenChange={(open) => !open && close()}
-      title={blockOnly ? `Block ${target?.label ?? ""}` : `Report ${target?.label ?? ""}`}
+      title={blockOnly ? uiText("Block {name}", { name: target?.label ?? "" }) : uiText("Report {name}", { name: target?.label ?? "" })}
       icon={blockOnly ? <ShieldBan className="size-4 text-red-300" /> : <Flag className="size-4 text-amber-300" />}
     >
       {done ? (
@@ -125,21 +127,21 @@ export function ReportDialog({
           <p className="text-sm text-stone-300">{done}</p>
           <div className="flex justify-end">
             <button type="button" onClick={close} className={ui.btnPrimary}>
-              Done
+              {uiText("Done")}
             </button>
           </div>
         </div>
       ) : blockOnly ? (
         <div className="space-y-4">
           <p className="text-sm leading-6 text-stone-400">
-            Blocking hides {target?.label}&apos;s table messages from you on this server, and
-            stops either of you from opening a private chat or sending a friend request.
-            You can undo it any time from Account settings.
+            {uiText("Blocking prevents you from seeing {target}&apos;s table messages on this server, and stops either of you from opening a private chat or sending a friend request. You can undo it any time in Account settings.", {
+              target: target?.label ?? "",
+            })}
           </p>
           {error ? <p className="text-sm text-red-400">{error}</p> : null}
           <div className="flex justify-end gap-2">
             <button type="button" onClick={close} className={ui.btnSmall} disabled={busy}>
-              Cancel
+              {uiText("Cancel")}
             </button>
             <button
               type="button"
@@ -148,7 +150,7 @@ export function ReportDialog({
               className={cn(ui.btnPrimary, "from-red-200 via-red-300 to-red-500 text-red-950")}
             >
               {busy ? <Loader2 className="size-4 animate-spin" /> : <ShieldBan className="size-4" />}
-              Block
+              {uiText("Block")}
             </button>
           </div>
         </div>
@@ -156,11 +158,11 @@ export function ReportDialog({
         <div className="space-y-4">
           <p className="text-sm leading-6 text-stone-400">
             {target?.authorType === "dm"
-              ? "This flags the passage to the admins of this server. Generated narration is only as good as the model behind it, and this is how the operator finds out when it crosses a line."
-              : "This flags the message to the admins of this server, who can act on it. The player is not told who reported them."}
+              ? uiText("This flags the passage to the admins of this server. Generated narration is only as good as the model behind it, and this is how the operator finds out when it crosses a line.")
+              : uiText("This flags the message to the admins of this server, who can act on it. The player is not told who reported them.")}
           </p>
           <fieldset className="space-y-1.5">
-            <legend className="mb-1 text-xs uppercase tracking-wide text-stone-500">Reason</legend>
+            <legend className="mb-1 text-xs uppercase tracking-wide text-stone-500">{uiText("Reason")}</legend>
             {REASONS.map((entry) => (
               <label
                 key={entry.value}
@@ -179,7 +181,7 @@ export function ReportDialog({
             ))}
           </fieldset>
           <label className="block text-xs text-stone-400">
-            Anything the admins should know (optional)
+            {uiText("Anything the admins should know (optional)")}
             <textarea
               value={details}
               onChange={(event) => setDetails(event.target.value)}
@@ -196,17 +198,17 @@ export function ReportDialog({
                 onChange={(event) => setBlock(event.target.checked)}
                 className="accent-amber-400"
               />
-              Also block {target.label}
+              {uiText("Also block")} {target.label}
             </label>
           ) : null}
           {error ? <p className="text-sm text-red-400">{error}</p> : null}
           <div className="flex justify-end gap-2">
             <button type="button" onClick={close} className={ui.btnSmall} disabled={busy}>
-              Cancel
+              {uiText("Cancel")}
             </button>
             <button type="button" onClick={submit} disabled={busy} className={ui.btnPrimary}>
               {busy ? <Loader2 className="size-4 animate-spin" /> : <Flag className="size-4" />}
-              Send report
+              {uiText("Send report")}
             </button>
           </div>
         </div>

@@ -1,5 +1,6 @@
 "use client";
 
+import { useInlineText } from "@/lib/i18n/inline-text";
 import * as Dialog from "@radix-ui/react-dialog";
 import { Check, Loader2, ShieldQuestion, X } from "lucide-react";
 import { useState } from "react";
@@ -44,6 +45,7 @@ export function LoreCheckDialog({
   steersStory: boolean;
   onClose: () => void;
 }) {
+  const uiText = useInlineText();
   const [category, setCategory] = useState<LoreCheckCategory | null>(null);
   const [running, setRunning] = useState(false);
   const [accepting, setAccepting] = useState(false);
@@ -125,7 +127,7 @@ export function LoreCheckDialog({
         >
           <div className="mb-3 flex items-center justify-between">
             <Dialog.Title className="flex items-center gap-2 font-display text-lg tracking-wide text-amber-50">
-              <ShieldQuestion className="size-4 text-amber-300" /> Lore check
+              <ShieldQuestion className="size-4 text-amber-300" /> {uiText("Lore check")}
             </Dialog.Title>
             <Dialog.Close className="text-stone-500 hover:text-stone-300">
               <X className="size-4" />
@@ -140,8 +142,7 @@ export function LoreCheckDialog({
           {!result ? (
             <div className="space-y-2">
               <p className="text-xs text-stone-400">
-                What seems off? The server checks the passage against everything on
-                record: facts, chapter archives, past scenes, and NPC states.
+                {uiText("What seems off? The server checks the passage against everything on record: facts, chapter archives, past scenes, and NPC states.")}
               </p>
               <div className="flex flex-wrap gap-1.5">
                 {LORE_CHECK_CATEGORIES.map((value) => (
@@ -164,7 +165,7 @@ export function LoreCheckDialog({
               {running ? (
                 <p className="flex items-center gap-2 text-xs text-stone-500">
                   <Loader2 className="size-3.5 animate-spin" />
-                  Cross-referencing the record (queued behind the DM)...
+                  {uiText("Cross-referencing the record (queued behind the DM)...")}
                 </p>
               ) : null}
             </div>
@@ -184,7 +185,7 @@ export function LoreCheckDialog({
               {result.citations.length ? (
                 <div className="space-y-1">
                   <p className="text-[10px] font-medium uppercase tracking-wide text-stone-500">
-                    Evidence
+                    {uiText("Evidence")}
                   </p>
                   {result.citations.map((citation, index) => (
                     <p
@@ -203,14 +204,14 @@ export function LoreCheckDialog({
               {result.rewrite ? (
                 <div className="space-y-1.5">
                   <p className="text-[10px] font-medium uppercase tracking-wide text-stone-500">
-                    Suggested rewrite
+                    {uiText("Suggested rewrite")}
                   </p>
                   <p className="whitespace-pre-wrap rounded-lg border border-stone-800 bg-stone-950/40 p-2.5 font-serif text-xs leading-5 text-stone-200">
                     {result.rewrite}
                   </p>
                   {accepted ? (
                     <p className="flex items-center gap-1.5 text-xs text-emerald-400">
-                      <Check className="size-3.5" /> Applied; the message has been updated.
+                      <Check className="size-3.5" /> {uiText("Applied; the message has been updated.")}
                     </p>
                   ) : steersStory && message.authorType === "dm" ? (
                     <button
@@ -224,13 +225,13 @@ export function LoreCheckDialog({
                       ) : (
                         <Check className="size-3.5" />
                       )}
-                      Accept rewrite
+                      {uiText("Accept rewrite")}
                     </button>
                   ) : (
                     <p className="text-[11px] text-stone-600">
                       {message.authorType === "dm"
-                        ? "The party lead can accept this rewrite."
-                        : "Only DM narration can be rewritten."}
+                        ? uiText("The party lead can accept this rewrite.")
+                        : uiText("Only DM narration can be rewritten.")}
                     </p>
                   )}
                 </div>
@@ -244,7 +245,7 @@ export function LoreCheckDialog({
                 }}
                 className="text-[11px] text-stone-500 hover:text-stone-300"
               >
-                Check a different category
+                {uiText("Check a different category")}
               </button>
             </div>
           )}

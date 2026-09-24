@@ -1,5 +1,6 @@
 "use client";
 
+import { useInlineText } from "@/lib/i18n/inline-text";
 import * as RadixDialog from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
 import type { ReactNode } from "react";
@@ -29,6 +30,7 @@ export function Drawer({
   children: ReactNode;
   className?: string;
 }) {
+  const uiText = useInlineText();
   return (
     <RadixDialog.Root open={open} onOpenChange={onOpenChange}>
       <RadixDialog.Portal>
@@ -49,7 +51,7 @@ export function Drawer({
             </RadixDialog.Title>
             <RadixDialog.Close
               className="rounded-md p-1 text-stone-400 transition-colors hover:bg-stone-800 hover:text-stone-200"
-              aria-label="Close"
+              aria-label={uiText("Close")}
             >
               <X className="size-4" />
             </RadixDialog.Close>

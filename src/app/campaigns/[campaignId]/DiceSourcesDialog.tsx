@@ -1,5 +1,6 @@
 "use client";
 
+import { useInlineText } from "@/lib/i18n/inline-text";
 import { Bluetooth, Dices, Loader2, Sparkles, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { Dialog } from "@/components/ui/Dialog";
@@ -27,25 +28,26 @@ import {
 // physical roll: a tabletop die they type, a digital roll, or a specific
 // Pixels Bluetooth die. Opens from the party panel's physical-dice controls.
 export function DiceSourcesButton({ className }: { className?: string }) {
+  const uiText = useInlineText();
   const [open, setOpen] = useState(false);
   return (
     <>
       <button
         type="button"
         onClick={() => setOpen(true)}
-        title="Choose where each of your dice is rolled: typed, digital, or a Pixels Bluetooth die."
+        title={uiText("Choose where each of your dice is rolled: typed, digital, or a Pixels Bluetooth die.")}
         className={cn(
           "flex w-full items-center justify-center gap-1 rounded border border-stone-700 py-1 text-xs text-stone-400 hover:bg-stone-900",
           className,
         )}
       >
         <Bluetooth className="size-3" />
-        Dice sources
+        {uiText("Dice sources")}
       </button>
       <Dialog
         open={open}
         onOpenChange={setOpen}
-        title="Your dice sources"
+        title={uiText("Your dice sources")}
         icon={<Dices className="size-5 text-amber-300" />}
       >
         <DiceSourcesPanel />
@@ -59,6 +61,7 @@ const SOURCE_DIGITAL = "digital";
 
 // Also mounted by the apps' own Settings screen, outside any table.
 export function DiceSourcesPanel() {
+  const uiText = useInlineText();
   const [sources, setSource] = useDiceSources();
   const pixels = useSyncExternalStore(
     onPixelsChanged,
@@ -111,15 +114,14 @@ export function DiceSourcesPanel() {
     <div className="space-y-4 text-sm">
       {!supported ? (
         <p className="rounded-md border border-amber-900/60 bg-amber-950/20 px-3 py-2 text-xs text-amber-200/90">
-          Bluetooth dice need a Chromium browser (Chrome, Edge, or Opera). You
-          can still choose typed or digital sources below. On Linux, enable
+          {uiText("Bluetooth dice need a Chromium browser (Chrome, Edge, or Opera). You can still choose typed or digital sources below. On Linux, enable")}
           <span className="font-mono"> chrome://flags/#enable-web-bluetooth</span>.
         </p>
       ) : (
         <div>
           <div className="mb-2 flex items-center justify-between">
             <span className="text-xs font-medium uppercase tracking-wide text-stone-400">
-              Bluetooth dice
+              {uiText("Bluetooth dice")}
             </span>
             <button
               type="button"
@@ -132,7 +134,7 @@ export function DiceSourcesPanel() {
               ) : (
                 <Bluetooth className="size-3.5" />
               )}
-              Connect a Pixels die
+              {uiText("Connect a Pixels die")}
             </button>
           </div>
           {pixels.length ? (
@@ -152,8 +154,8 @@ export function DiceSourcesPanel() {
                     <button
                       type="button"
                       onClick={() => identifyPixel(pixel.systemId)}
-                      aria-label={`Blink ${pixel.name} so you can spot it`}
-                      title="Blink this die so you can spot it"
+                      aria-label={uiText("Blink {name} so you can spot it", { name: pixel.name })}
+                      title={uiText("Blink this die so you can spot it")}
                       className="rounded p-1 text-stone-400 hover:bg-stone-800 hover:text-amber-200"
                     >
                       <Sparkles className="size-3.5" />
@@ -161,8 +163,8 @@ export function DiceSourcesPanel() {
                     <button
                       type="button"
                       onClick={() => disconnectPixel(pixel.systemId)}
-                      aria-label={`Forget ${pixel.name}`}
-                      title="Forget this die"
+                      aria-label={uiText("Forget {name}", { name: pixel.name })}
+                      title={uiText("Forget this die")}
                       className="rounded p-1 text-stone-400 hover:bg-stone-800 hover:text-red-300"
                     >
                       <Trash2 className="size-3.5" />
@@ -173,7 +175,7 @@ export function DiceSourcesPanel() {
             </ul>
           ) : (
             <p className="text-xs text-stone-500">
-              No dice connected. Connect one to assign it below.
+              {uiText("No dice connected. Connect one to assign it below.")}
             </p>
           )}
           {error ? <p className="mt-1.5 text-xs text-red-400">{error}</p> : null}
@@ -182,7 +184,7 @@ export function DiceSourcesPanel() {
 
       <div>
         <span className="mb-2 block text-xs font-medium uppercase tracking-wide text-stone-400">
-          Roll each die with
+          {uiText("Roll each die with")}
         </span>
         <div className="space-y-1.5">
           {DIE_SIDES.map((sides) => (
@@ -196,8 +198,7 @@ export function DiceSourcesPanel() {
           ))}
         </div>
         <p className="mt-2 text-xs text-stone-500">
-          Assigned dice only apply while your physical-dice toggle is on. An
-          assigned Bluetooth die that is offline falls back to typing.
+          {uiText("Assigned dice only apply while your physical-dice toggle is on. An assigned Bluetooth die that is offline falls back to typing.")}
         </p>
       </div>
     </div>
@@ -215,6 +216,7 @@ function SourceRow({
   pixels: ConnectedPixel[];
   onChange: (source: string) => void;
 }) {
+  const uiText = useInlineText();
   const assignedId = pixelSystemId(value);
   const assignedOffline = assignedId
     ? !pixels.some((pixel) => pixel.systemId === assignedId)
@@ -227,15 +229,15 @@ function SourceRow({
         onChange={(event) => onChange(event.target.value)}
         className="flex-1 rounded-md border border-stone-700 bg-stone-900 px-2 py-1.5 text-xs text-stone-200 outline-none focus:border-amber-500"
       >
-        <option value={SOURCE_MANUAL}>Type it (tabletop die)</option>
-        <option value={SOURCE_DIGITAL}>Digital roll</option>
+        <option value={SOURCE_MANUAL}>{uiText("Type it (tabletop die)")}</option>
+        <option value={SOURCE_DIGITAL}>{uiText("Digital roll")}</option>
         {pixels.map((pixel) => (
           <option key={pixel.systemId} value={pixelSource(pixel.systemId)}>
             {pixel.name}
           </option>
         ))}
         {assignedOffline ? (
-          <option value={value}>Assigned Pixels die (offline)</option>
+          <option value={value}>{uiText("Assigned Pixels die (offline)")}</option>
         ) : null}
       </select>
     </label>

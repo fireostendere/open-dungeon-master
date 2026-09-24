@@ -1,5 +1,6 @@
 "use client";
 
+import { useInlineText } from "@/lib/i18n/inline-text";
 import * as AlertDialog from "@radix-ui/react-alert-dialog";
 import { Copy, KeyRound, Loader2, Shield, ShieldOff, Trash2, Undo2, UserRound } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
@@ -23,6 +24,7 @@ type AdminUser = {
 // User management: promote/demote admins, reset passwords (temp password
 // shown exactly once), delete accounts. All actions re-checked server-side.
 export function AdminUsersPanel({ meId }: { meId: string }) {
+  const uiText = useInlineText();
   const [users, setUsers] = useState<AdminUser[] | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState("");
@@ -113,8 +115,7 @@ export function AdminUsersPanel({ meId }: { meId: string }) {
       {tempPassword ? (
         <div className="panel rounded-xl border-amber-500/40 p-4">
           <p className="text-sm text-stone-200">
-            Temporary password for <span className="text-amber-200">{tempPassword.username}</span>.
-            It is shown only once; they must change it at next login.
+            {uiText("Temporary password for")} <span className="text-amber-200">{tempPassword.username}</span>{uiText(". It is shown only once; they must change it at next login.")}
           </p>
           <div className="mt-2 flex flex-wrap items-center gap-2">
             <code className="rounded-lg border border-stone-700 bg-stone-950/80 px-3 py-1.5 font-mono text-sm text-amber-100">
@@ -128,14 +129,14 @@ export function AdminUsersPanel({ meId }: { meId: string }) {
                 setCopied(true);
               }}
             >
-              <Copy className="size-3.5" /> {copied ? "Copied" : "Copy"}
+              <Copy className="size-3.5" /> {copied ? uiText("Copied") : uiText("Copy")}
             </button>
             <button
               type="button"
               className="text-xs text-stone-500 hover:text-stone-300"
               onClick={() => setTempPassword(null)}
             >
-              Dismiss
+              {uiText("Dismiss")}
             </button>
           </div>
         </div>
@@ -162,10 +163,10 @@ export function AdminUsersPanel({ meId }: { meId: string }) {
               <div className="min-w-0 flex-1">
                 <p className="flex flex-wrap items-center gap-2 text-sm text-stone-100">
                   {user.username}
-                  {user.id === meId ? <span className="text-xs text-stone-500">(you)</span> : null}
+                  {user.id === meId ? <span className="text-xs text-stone-500">{uiText("(you)")}</span> : null}
                   {user.isAdmin ? (
                     <span className="rounded border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-amber-300">
-                      Admin
+                      {uiText("Admin")}
                     </span>
                   ) : null}
                   {user.hasDiscord ? (
@@ -175,57 +176,59 @@ export function AdminUsersPanel({ meId }: { meId: string }) {
                   ) : null}
                   {user.mustChangePassword ? (
                     <span className="rounded border border-orange-500/40 bg-orange-500/10 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-orange-300">
-                      Reset pending
+                      {uiText("Reset pending")}
                     </span>
                   ) : null}
                   {user.deletionDueAt ? (
                     <span
-                      title={`Asked to delete their account; erased on ${new Date(user.deletionDueAt).toLocaleString()}`}
+                      title={uiText("Asked to delete their account; erased on {date}", {
+                        date: new Date(user.deletionDueAt).toLocaleString(),
+                      })}
                       className="rounded border border-red-500/40 bg-red-500/10 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-red-300"
                     >
-                      Deletion {new Date(user.deletionDueAt).toLocaleDateString()}
+                      {uiText("Deletion")} {new Date(user.deletionDueAt).toLocaleDateString()}
                     </span>
                   ) : null}
                 </p>
                 <p className="text-xs text-stone-500">
-                  {user.campaignCount} campaign{user.campaignCount === 1 ? "" : "s"} · joined{" "}
+                  {uiText("Campaigns: {count}", { count: user.campaignCount })} {uiText("· joined")}{" "}
                   {new Date(user.createdAt).toLocaleDateString()}
                 </p>
               </div>
               <div className="flex w-full flex-wrap items-center justify-end gap-1.5 sm:w-auto">
                 <button
                   type="button"
-                  title={user.isAdmin ? "Remove admin" : "Make admin"}
+                  title={user.isAdmin ? uiText("Remove admin") : uiText("Make admin")}
                   disabled={busyId === user.id}
                   onClick={() => toggleAdmin(user)}
                   className={ui.btnSmall}
                 >
                   {user.isAdmin ? <ShieldOff className="size-3.5" /> : <Shield className="size-3.5" />}
-                  {user.isAdmin ? "Demote" : "Admin"}
+                  {user.isAdmin ? uiText("Demote") : uiText("Admin")}
                 </button>
                 <button
                   type="button"
-                  title="Reset password"
+                  title={uiText("Reset password")}
                   disabled={busyId === user.id}
                   onClick={() => resetPassword(user)}
                   className={ui.btnSmall}
                 >
-                  <KeyRound className="size-3.5" /> Reset
+                  <KeyRound className="size-3.5" /> {uiText("Reset")}
                 </button>
                 {user.deletionDueAt ? (
                   <button
                     type="button"
-                    title="Call off the scheduled deletion"
+                    title={uiText("Call off the scheduled deletion")}
                     disabled={busyId === user.id}
                     onClick={() => keepAccount(user)}
                     className={ui.btnSmall}
                   >
-                    <Undo2 className="size-3.5" /> Keep
+                    <Undo2 className="size-3.5" /> {uiText("Keep")}
                   </button>
                 ) : null}
                 <button
                   type="button"
-                  title={user.deletionDueAt ? "Erase now instead of waiting" : "Delete user"}
+                  title={user.deletionDueAt ? uiText("Erase now instead of waiting") : uiText("Delete user")}
                   disabled={busyId === user.id || user.id === meId}
                   onClick={() => setDeleting(user)}
                   className={cn(ui.btnSmall, "hover:border-red-500/50 hover:text-red-400")}
@@ -249,15 +252,13 @@ export function AdminUsersPanel({ meId }: { meId: string }) {
               )}
             >
               <AlertDialog.Title className="font-display text-lg tracking-wide text-amber-50">
-                Delete {deleting.username}?
+                {uiText("Delete")} {deleting.username}?
               </AlertDialog.Title>
               <AlertDialog.Description className="mt-2 text-xs text-stone-400">
-                Their account, campaigns they own, characters, pictures and private chats are
-                erased right now, with no grace period. Messages they wrote in other people&apos;s
-                campaigns stay in those transcripts without their name.
+                {uiText("Their account, campaigns they own, characters, pictures and private chats are erased right now, with no grace period. Messages they wrote in other people&apos;s campaigns stay in those transcripts without their name.")}
               </AlertDialog.Description>
               <div className="mt-4 flex justify-end gap-2">
-                <AlertDialog.Cancel className={ui.btnSmall}>Cancel</AlertDialog.Cancel>
+                <AlertDialog.Cancel className={ui.btnSmall}>{uiText("Cancel")}</AlertDialog.Cancel>
                 <button
                   type="button"
                   onClick={() => deleteUser(deleting)}
@@ -265,7 +266,7 @@ export function AdminUsersPanel({ meId }: { meId: string }) {
                   className={cn(ui.btnPrimary, "from-red-200 via-red-300 to-red-500 text-red-950")}
                 >
                   {busyId === deleting.id ? <Loader2 className="size-4 animate-spin" /> : null}
-                  Delete forever
+                  {uiText("Delete forever")}
                 </button>
               </div>
             </AlertDialog.Content>

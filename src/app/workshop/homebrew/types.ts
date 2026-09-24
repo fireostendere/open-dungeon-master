@@ -23,35 +23,6 @@ export const HOMEBREW_EDITOR_KINDS = [
 
 export type EditorKind = (typeof HOMEBREW_EDITOR_KINDS)[number];
 
-export const KIND_LABELS: Record<EditorKind, string> = {
-  item: "Items",
-  spell: "Spells",
-  feat: "Feats",
-  background: "Backgrounds",
-  race: "Species",
-  archetype: "Subclasses",
-};
-
-export const KIND_SINGULAR: Record<EditorKind, string> = {
-  item: "item",
-  spell: "spell",
-  feat: "feat",
-  background: "background",
-  race: "species",
-  archetype: "subclass",
-};
-
-// One sentence per kind for the empty state, saying what the engine does
-// with the thing rather than what the form asks for.
-export const KIND_BLURB: Record<EditorKind, string> = {
-  item: "Weapons the attack roll reads, armour the AC engine wears, magic items whose effects apply while attuned.",
-  spell: "Spells the cast tools resolve: the save, the damage and the condition come from the block, not from memory.",
-  feat: "Feats the character builder offers beside the SRD ones.",
-  background: "Backgrounds the builder offers, with the skills it grants.",
-  race: "Species the builder offers, with their speed and ability bonuses.",
-  archetype: "Subclasses the builder offers under a class, with their features by level.",
-};
-
 // The SRD class ids a subclass can sit under, so the picker is a list rather
 // than a text box that has to be spelled the way features.ts spells it.
 export const CLASS_IDS = [

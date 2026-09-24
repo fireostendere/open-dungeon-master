@@ -1,5 +1,6 @@
 "use client";
 
+import { useInlineText } from "@/lib/i18n/inline-text";
 import { Check, Flag, Loader2, Undo2 } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
@@ -37,6 +38,7 @@ const REASON_LABEL: Record<string, string> = {
 // tab deletes accounts, the party lead mutes); this is where it is read
 // and closed.
 export function AdminReportsPanel() {
+  const uiText = useInlineText();
   const [reports, setReports] = useState<Report[] | null>(null);
   const [showAll, setShowAll] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -80,8 +82,7 @@ export function AdminReportsPanel() {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-sm text-stone-400">
-          Players flag Dungeon Master passages, messages and other players from the table.
-          Reports come to this server only; there is no central moderation behind the app.
+          {uiText("Players flag Dungeon Master passages, messages and other players from the table. Reports come to this server only; there is no central moderation behind the app.")}
         </p>
         <label className="flex items-center gap-2 text-xs text-stone-400">
           <input
@@ -90,7 +91,7 @@ export function AdminReportsPanel() {
             onChange={(event) => setShowAll(event.target.checked)}
             className="accent-amber-400"
           />
-          Show resolved
+          {uiText("Show resolved")}
         </label>
       </div>
 
@@ -98,7 +99,7 @@ export function AdminReportsPanel() {
 
       {reports.length === 0 ? (
         <p className="text-sm text-stone-500">
-          {showAll ? "No reports yet." : "Nothing waiting. Open reports show up here."}
+          {showAll ? uiText("No reports yet.") : uiText("Nothing waiting. Open reports show up here.")}
         </p>
       ) : (
         <section className={cn(ui.card, "texture-noise")}>
@@ -117,20 +118,20 @@ export function AdminReportsPanel() {
                   </span>
                   <span>
                     {report.authorType === "dm"
-                      ? "Dungeon Master passage"
+                      ? uiText("Dungeon Master passage")
                       : report.reportedUsername
-                        ? `Player ${report.reportedUsername}`
-                        : "Player (account deleted)"}
+                        ? `${uiText("Player")} ${report.reportedUsername}`
+                        : uiText("Player (account deleted)")}
                   </span>
                   <span className="text-xs text-stone-500">
-                    in{" "}
+                    {uiText("Campaign:")} {" "}
                     <Link
                       href={`/campaigns/${report.campaignId}`}
                       className="text-amber-200 hover:text-amber-100"
                     >
                       {report.campaignName}
                     </Link>
-                    , reported by {report.reporterUsername} on{" "}
+                    {" "}{uiText("· reported by")} {report.reporterUsername} ·{" "}
                     {new Date(report.createdAt).toLocaleString()}
                   </span>
                 </div>
@@ -141,7 +142,7 @@ export function AdminReportsPanel() {
                 ) : null}
                 {report.details ? (
                   <p className="text-sm text-stone-400">
-                    <span className="text-stone-500">Reporter says:</span> {report.details}
+                    <span className="text-stone-500">{uiText("Reporter says:")}</span> {report.details}
                   </p>
                 ) : null}
                 <div className="flex flex-wrap items-center justify-end gap-1.5">
@@ -152,7 +153,7 @@ export function AdminReportsPanel() {
                       onClick={() => setStatus(report, "resolved")}
                       className={ui.btnSmall}
                     >
-                      <Check className="size-3.5" /> Mark resolved
+                      <Check className="size-3.5" /> {uiText("Mark resolved")}
                     </button>
                   ) : (
                     <button
@@ -161,7 +162,7 @@ export function AdminReportsPanel() {
                       onClick={() => setStatus(report, "open")}
                       className={ui.btnSmall}
                     >
-                      <Undo2 className="size-3.5" /> Reopen
+                      <Undo2 className="size-3.5" /> {uiText("Reopen")}
                     </button>
                   )}
                 </div>

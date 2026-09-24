@@ -1,5 +1,6 @@
 "use client";
 
+import { useInlineText } from "@/lib/i18n/inline-text";
 import { useRef, useState } from "react";
 import { Dices, FileUp, Library, Loader2, Save } from "lucide-react";
 import { MAP_SIZE } from "@/lib/battlemap/generate";
@@ -28,6 +29,7 @@ export function MapCreateControls({
   onCreate: (body: Record<string, unknown>) => Promise<{ map?: PreparedMap } | null>;
   onImport: (file: File) => void;
 }) {
+  const uiText = useInlineText();
   const { locale } = useI18n();
   const copy = localeText(locale, { en: { drawer: "The map drawer", name: "Name it: the flooded crypt", hint: "what the place is like, for the generator", size: "Size", roll: "Roll one", rock: "Blank rock", ground: "Blank ground", import: "Import .dd2vtt", keep: "Keep the board", note: "Name it first. Nothing here touches the table until you put it there." }, ru: { drawer: "Хранилище карт", name: "Название: затопленный склеп", hint: "какое это место — подсказка генератору", size: "Размер", roll: "Сгенерировать", rock: "Пустая скала", ground: "Пустая земля", import: "Импорт .dd2vtt", keep: "Сохранить поле", note: "Сначала укажите название. Ничто отсюда не попадёт на стол, пока вы сами не добавите это." } });
   const [newName, setNewName] = useState("");
@@ -113,7 +115,7 @@ export function MapCreateControls({
             type="button"
             disabled={busy || !newName.trim()}
             title={
-              blank === "rock" ? "Solid rock to carve rooms out of" : "Open ground to put things on"
+              blank === "rock" ? uiText("Solid rock to carve rooms out of") : uiText("Open ground to put things on")
             }
             onClick={() => void create({ do: "create", ...size, blank })}
             className="rounded-md border border-stone-700 px-2 py-1 text-xs text-stone-300 hover:bg-stone-900 disabled:opacity-50"
@@ -137,7 +139,7 @@ export function MapCreateControls({
         <button
           type="button"
           disabled={busy}
-          title="A Universal VTT export from Dungeondraft and its neighbours"
+          title={uiText("A Universal VTT export from Dungeondraft and its neighbours")}
           onClick={() => fileRef.current?.click()}
           className="flex items-center gap-1 rounded-md border border-stone-700 px-2 py-1 text-xs text-stone-300 hover:bg-stone-900 disabled:opacity-50"
         >
@@ -147,7 +149,7 @@ export function MapCreateControls({
           <button
             type="button"
             disabled={busy || !newName.trim()}
-            title="Save the map that is on the table right now"
+            title={uiText("Save the map that is on the table right now")}
             onClick={() => void create({ do: "capture" })}
             className="flex items-center gap-1 rounded-md border border-stone-700 px-2 py-1 text-xs text-stone-300 hover:bg-stone-900 disabled:opacity-50"
           >

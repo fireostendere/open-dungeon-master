@@ -1,5 +1,6 @@
 "use client";
 
+import { useInlineText } from "@/lib/i18n/inline-text";
 import { useCallback, useEffect, useState } from "react";
 import { Lightbulb, Loader2, Plus, Trash2 } from "lucide-react";
 import { cn } from "@/lib/cn";
@@ -61,6 +62,7 @@ export function DmStoryboardPanel({
   campaignId: string;
   layout?: "list" | "board";
 }) {
+  const uiText = useInlineText();
   const { locale } = useI18n();
   const copy = localeText(locale, {
     en: {
@@ -193,7 +195,7 @@ export function DmStoryboardPanel({
       <div className="flex flex-wrap items-end gap-2">
         <label className="flex flex-col gap-0.5">
           <span className="text-[10px] uppercase tracking-wide text-stone-500">
-            Card
+            {uiText("Card")}
           </span>
           <select
             value={newKind}
@@ -209,7 +211,7 @@ export function DmStoryboardPanel({
         </label>
         <label className="flex flex-1 flex-col gap-0.5">
           <span className="text-[10px] uppercase tracking-wide text-stone-500">
-            In a few words
+            {uiText("In a few words")}
           </span>
           <input
             value={newTitle}
@@ -231,7 +233,7 @@ export function DmStoryboardPanel({
           onClick={() => void add(newKind, newTitle)}
           className="inline-flex items-center gap-1 rounded-md border border-amber-500/40 px-3 py-1 text-xs text-amber-100 hover:bg-stone-800 disabled:opacity-40"
         >
-          <Plus className="size-3.5" /> Add
+          <Plus className="size-3.5" /> {uiText("Add")}
         </button>
       </div>
       <p className="text-[10px] text-stone-600">{BEAT_HINTS[newKind]}</p>
@@ -318,11 +320,10 @@ export function DmStoryboardPanel({
       {data.suggestions.length ? (
         <div className="flex flex-col gap-1.5 rounded-lg border border-stone-800 bg-stone-900/40 p-3">
           <h3 className="flex items-center gap-1.5 text-sm text-amber-100">
-            <Lightbulb className="size-4" /> What this board is missing
+            <Lightbulb className="size-4" /> {uiText("What this board is missing")}
           </h3>
           <p className="text-[10px] text-stone-600">
-            Counted, not guessed. Nothing here asked a model what your story
-            needs.
+            {uiText("Counted, not guessed. Nothing here asked a model what your story needs.")}
           </p>
           {data.suggestions.map((suggestion) => (
             <div

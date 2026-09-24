@@ -1,5 +1,6 @@
 "use client";
 
+import { useInlineText } from "@/lib/i18n/inline-text";
 import * as Dialog from "@radix-ui/react-dialog";
 import { Footprints, Maximize2, MapPin, Swords, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
@@ -62,6 +63,7 @@ export function BattleMapPanel({
   canFocusPing?: boolean;
   ping?: MapPing | null;
 }) {
+  const uiText = useInlineText();
   const { locale, formatDistance } = useI18n();
   const copy = localeText(locale, { en: { denied: "That was not allowed.", reach: "Could not reach the table.", name: "Name it first.", measure: "That area could not be measured.", point: "Point at a tile", enlarge: "Enlarge battle map", directHeld: "Tap where it should stand. The round's movement is not charged for this.", measurePoint: "Now tap where it points.", measureStart: "Tap where the area starts.", pointTile: "Tap a tile and everyone looks at it.", place: "Name it, then tap a tile.", edit: "Tap a piece to pick it up or change it. Nothing here is charged against the round.", playerPoint: "Tap a tile to point at it.", sceneMove: "Tap anywhere you can walk. Nothing is being counted out here.", move: "Tap a highlighted tile to move", left: "left this round", turn: "You can move on your turn. The shroud shows what your character cannot see.", none: "You have no token on this field.", hidden: "hidden", ground: "The ground here", map: "Battle map, round" }, ru: { denied: "Это не разрешено.", reach: "Не удалось связаться со столом.", name: "Сначала укажите имя.", measure: "Не удалось измерить область.", point: "Указать на клетку", enlarge: "Развернуть карту боя", directHeld: "Нажмите, где он должен стоять. Перемещение в раунде не расходуется.", measurePoint: "Теперь нажмите, куда она указывает.", measureStart: "Нажмите, где начинается область.", pointTile: "Нажмите на клетку, и все увидят её.", place: "Назовите, затем нажмите клетку.", edit: "Нажмите на фигуру, чтобы выбрать или изменить её. Это не расходует перемещение в раунде.", playerPoint: "Нажмите на клетку, чтобы указать на неё.", sceneMove: "Нажмите куда хотите пойти. Здесь ничего не отсчитывается.", move: "Нажмите на подсвеченную клетку для перемещения", left: "осталось в этом раунде", turn: "Вы сможете двигаться в свой ход. Туман скрывает то, чего персонаж не видит.", none: "У вас нет токена на этом поле.", hidden: "скрыт", ground: "Земля здесь", map: "Карта боя, раунд" } });
   const [enlarged, setEnlarged] = useState(false);
@@ -336,15 +338,15 @@ export function BattleMapPanel({
           {scene ? (
             <>
               <Footprints className="size-4 text-amber-400" />
-              Exploring
+              {uiText("Exploring")}
             </>
           ) : (
             <>
               <Swords className="size-4 text-red-400" />
-              Round {view.round}
+              {uiText("Round")} {view.round}
               {view.currentTurnName ? (
                 <span className="text-xs font-normal text-stone-400">
-                  {view.currentTurnName}&apos;s turn
+                  {view.currentTurnName}{uiText("&apos;s turn")}
                 </span>
               ) : null}
             </>

@@ -35,7 +35,7 @@ export function CatalogStart({
   scope?: Record<string, string>;
 }) {
   const { locale } = useI18n();
-  const copy = localeText(locale, { en: { class: "Class to browse", start: "Start from something in the books...", search: "Search the content pack to start from", none: "Nothing in the books matched" }, ru: { class: "Класс для просмотра", start: "Начать с чего-то из книг...", search: "Искать в наборе материалов", none: "В книгах ничего не найдено по запросу" } });
+  const copy = localeText(locale, { en: { class: "Class to browse", start: "Start from something in the books...", search: "Search the content pack to start from", none: "Nothing in the books matched", level: "Level" }, ru: { class: "Класс для просмотра", start: "Начать с чего-то из книг...", search: "Искать в наборе материалов", none: "В книгах ничего не найдено по запросу", level: "Уровень" } });
   const [classSlug, setClassSlug] = useState<string>("fighter");
   const extra: Record<string, string> = kind === "archetype" ? { class: classSlug } : { ...scope };
   const { query, setQuery, results, open, setOpen, loading, unavailable } = useContentSearch(
@@ -105,7 +105,7 @@ export function CatalogStart({
               >
                 <span className={cn(entry.source === "homebrew" && "text-amber-300")}>{entry.name}</span>
                 <span className="text-[11px] text-stone-500">
-                  {entry.level !== undefined ? `level ${entry.level}` : entry.rarity || entry.kind || ""}
+                  {entry.level !== undefined ? `${copy.level} ${entry.level}` : entry.rarity || entry.kind || ""}
                 </span>
               </button>
               <InfoButton

@@ -1,5 +1,6 @@
 "use client";
 
+import { useInlineText } from "@/lib/i18n/inline-text";
 import { Box, Eye, EyeOff, Hand, MapPin, Ruler, Trash2, UserPlus } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { ADHOC_LABELS, ADHOC_HINTS, ADHOC_NAME_MAX } from "@/lib/dm/board-logic";
@@ -75,6 +76,7 @@ export function PlaceTokenForm({
   onKind: (kind: AdhocTokenKind) => void;
   onName: (name: string) => void;
 }) {
+  const uiText = useInlineText();
   return (
     <div className="space-y-1.5 rounded-lg border border-stone-800 bg-stone-950/60 px-2.5 py-2">
       <div className="flex gap-1">
@@ -99,13 +101,13 @@ export function PlaceTokenForm({
         value={name}
         onChange={(event) => onName(event.target.value)}
         maxLength={ADHOC_NAME_MAX}
-        placeholder={kind === "npc" ? "Marla the smith" : "Overturned cart"}
+        placeholder={kind === "npc" ? uiText("Marla the smith") : uiText("Overturned cart")}
         className="w-full rounded-md border border-stone-700 bg-stone-950 px-2 py-1 text-xs text-stone-200 placeholder:text-stone-600"
       />
       <p className="text-[11px] text-stone-500">
         {name.trim()
-          ? "Now tap the tile it stands on."
-          : "Name it first. An unlabelled circle is a puzzle for the whole table."}
+          ? uiText("Now tap the tile it stands on.")
+          : uiText("Name it first. An unlabelled circle is a puzzle for the whole table.")}
       </p>
     </div>
   );
@@ -128,6 +130,7 @@ export function MeasureControls({
   onSize: (feet: number) => void;
   onClear: () => void;
 }) {
+  const uiText = useInlineText();
   const enemyIds = caught.map((entry) => entry.enemyId).filter(Boolean).join(", ");
   return (
     <div className="space-y-1.5 rounded-lg border border-stone-800 bg-stone-950/60 px-2.5 py-2">
@@ -162,11 +165,11 @@ export function MeasureControls({
         <span className="w-12 text-right tabular-nums text-stone-300">{sizeFeet} ft</span>
       </label>
       <p className="text-[11px] leading-4 text-stone-500">
-        Tap where it starts, then tap where it points. Nobody else sees it.
+        {uiText("Tap where it starts, then tap where it points. Nobody else sees it.")}
       </p>
       {caught.length ? (
         <p className="text-[11px] leading-4 text-amber-300">
-          Caught: {caught.map((entry) => entry.name).join(", ")}
+          {uiText("Caught:")} {caught.map((entry) => entry.name).join(", ")}
         </p>
       ) : null}
       <div className="flex flex-wrap gap-1">
@@ -175,7 +178,7 @@ export function MeasureControls({
           onClick={onClear}
           className="rounded-md border border-stone-700 px-2 py-1 text-xs text-stone-400 hover:text-stone-200"
         >
-          Clear the measure
+          {uiText("Clear the measure")}
         </button>
         {/* The console's Area of effect takes enemy ids as comma-separated
             text, so measuring and resolving are two steps rather than one
@@ -187,7 +190,7 @@ export function MeasureControls({
             title={enemyIds}
             className="rounded-md border border-stone-700 px-2 py-1 text-xs text-stone-400 hover:text-stone-200"
           >
-            Copy the enemy ids
+            {uiText("Copy the enemy ids")}
           </button>
         ) : null}
       </div>
@@ -216,6 +219,7 @@ export function TokenCard({
   onRemove: () => void;
   onClose: () => void;
 }) {
+  const uiText = useInlineText();
   const adhoc = token.kind === "npc" || token.kind === "prop";
   return (
     <div className="space-y-1.5 rounded-lg border border-amber-900/60 bg-stone-950/90 px-2.5 py-2">
@@ -226,17 +230,17 @@ export function TokenCard({
           onClick={onClose}
           className="text-[11px] text-stone-500 hover:text-stone-300"
         >
-          Close
+          {uiText("Close")}
         </button>
       </div>
       <p className="text-[11px] text-stone-500">
         {token.kind === "pc"
-          ? "Player character"
+          ? uiText("Player character")
           : token.kind === "enemy"
-            ? "Enemy"
+            ? uiText("Enemy")
             : ADHOC_LABELS[token.kind as AdhocTokenKind]}
         {hp ? ` · ${hp.current} / ${hp.max} HP` : ""}
-        {token.hidden ? " · hidden from the party" : ""}
+        {token.hidden ? uiText(" · hidden from the party") : ""}
       </p>
       <div className="flex flex-wrap gap-1">
         <button
@@ -251,7 +255,7 @@ export function TokenCard({
           )}
         >
           <Hand className="size-3.5" />
-          {held ? "Put it back down" : "Pick it up"}
+          {held ? uiText("Put it back down") : uiText("Pick it up")}
         </button>
         {token.kind === "pc" ? null : (
           <button
@@ -261,7 +265,7 @@ export function TokenCard({
             className="flex items-center gap-1 rounded-md border border-stone-700 px-2 py-1 text-xs text-stone-400 hover:text-stone-200 disabled:opacity-40"
           >
             {token.hidden ? <Eye className="size-3.5" /> : <EyeOff className="size-3.5" />}
-            {token.hidden ? "Reveal" : "Hide"}
+            {token.hidden ? uiText("Reveal") : uiText("Hide")}
           </button>
         )}
         {adhoc ? (
@@ -272,14 +276,14 @@ export function TokenCard({
             className="flex items-center gap-1 rounded-md border border-red-900/60 px-2 py-1 text-xs text-red-300 hover:bg-red-950/40 disabled:opacity-40"
           >
             <Trash2 className="size-3.5" />
-            Take off
+            {uiText("Take off")}
           </button>
         ) : null}
       </div>
       {token.kind !== "pc" && !adhoc ? (
         <p className="flex items-center gap-1 text-[11px] text-stone-600">
           <UserPlus className="size-3" />
-          Enemies leave the board when they die.
+          {uiText("Enemies leave the board when they die.")}
         </p>
       ) : null}
     </div>

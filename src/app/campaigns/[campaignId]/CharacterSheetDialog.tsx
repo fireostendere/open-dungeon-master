@@ -1,5 +1,6 @@
 "use client";
 
+import { useInlineText } from "@/lib/i18n/inline-text";
 import { useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { FileDown, Heart, Minus, Plus, PawPrint, Pencil, Shield, Wrench, X } from "lucide-react";
@@ -79,6 +80,7 @@ export function CharacterSheetDialog({
   onEditBackstory?: () => void;
   onClose: () => void;
 }) {
+  const uiText = useInlineText();
   const derived = computeSheetDerived(sheet);
   const armor = acBreakdownFor(sheet);
   const attunedCount = sheet.equipment.filter((item) => item.attuned).length;
@@ -224,7 +226,7 @@ export function CharacterSheetDialog({
               className="flex items-center gap-1"
               title={
                 sheet.acOverride
-                  ? "Set by hand; armor does not change it."
+                  ? uiText("Set by hand; armor does not change it.")
                   : armor.parts.join(" + ")
               }
             >
@@ -238,8 +240,8 @@ export function CharacterSheetDialog({
               )}
               title={
                 encumbranceRule
-                  ? `${load.note ?? "Not encumbered"}. ${t("sheet.carryingCapacity")} ${formatWeight(load.capacityLb)}.${load.unweighed ? ` ${load.unweighed} item(s) uncounted.` : ""}`
-                  : `${t("sheet.carryingCapacity")} ${formatWeight(load.capacityLb)}.${load.unweighed ? ` ${load.unweighed} item(s) uncounted.` : ""}`
+                  ? `${load.note ?? uiText("Not encumbered")}. ${t("sheet.carryingCapacity")} ${formatWeight(load.capacityLb)}.${load.unweighed ? ` ${uiText("Items without recorded weight: {count}", { count: load.unweighed })}` : ""}`
+                  : `${t("sheet.carryingCapacity")} ${formatWeight(load.capacityLb)}.${load.unweighed ? ` ${uiText("Items without recorded weight: {count}", { count: load.unweighed })}` : ""}`
               }
             >
               {formatWeight(load.carriedLb)}
@@ -266,12 +268,15 @@ export function CharacterSheetDialog({
                 <PawPrint className="size-4" /> {copy.wildShape}: {sheet.wildShape.form}
               </span>
               <span className="font-mono text-xs">
-                {sheet.wildShape.beastHp}/{sheet.wildShape.beastMaxHp} beast HP
+                {sheet.wildShape.beastHp}/{sheet.wildShape.beastMaxHp} {uiText("beast HP")}
               </span>
-              <span className="font-mono text-xs">AC {sheet.wildShape.beastAc}</span>
+              <span className="font-mono text-xs">{uiText("AC")} {sheet.wildShape.beastAc}</span>
               <span className="w-full text-xs text-lime-400/80">
-                Damage hits the beast&apos;s hit points first. The {sheet.currentHp}/{sheet.maxHp} HP
-                above is what {sheet.name} returns to when the form breaks.
+                {uiText("Damage hits the beast&apos;s hit points first. The {current}/{max} HP above is what {name} returns to when the form breaks.", {
+                  current: sheet.currentHp,
+                  max: sheet.maxHp,
+                  name: sheet.name,
+                })}
               </span>
             </div>
           ) : null}
@@ -349,14 +354,14 @@ export function CharacterSheetDialog({
                 className="mb-1.5 text-xs font-medium uppercase tracking-wide text-stone-500"
                 title={
                   derived.parts.spellSaveDc.length
-                    ? `Save DC: ${explainParts(derived.parts.spellSaveDc)}. To hit: ${explainParts(derived.parts.spellAttack)}`
+                    ? `${uiText("Spell save difficulty")}: ${explainParts(derived.parts.spellSaveDc)}. ${uiText("Attack bonus")}: ${explainParts(derived.parts.spellAttack)}`
                     : undefined
                 }
               >
-                Spellcasting ({sheet.spellcasting.ability.toUpperCase()}
-                {derived.spellSaveDc ? ` · DC ${derived.spellSaveDc}` : ""}
+                {uiText("Spellcasting (")}{sheet.spellcasting.ability.toUpperCase()}
+                {derived.spellSaveDc ? ` · ${uiText("DC")} ${derived.spellSaveDc}` : ""}
                 {derived.spellAttack !== null
-                  ? ` · ${formatModifier(derived.spellAttack)} to hit`
+                  ? ` · ${formatModifier(derived.spellAttack)} ${uiText("to hit")}`
                   : ""}
                 )
               </h3>
@@ -389,7 +394,7 @@ export function CharacterSheetDialog({
                           type="button"
                           className={stepButton}
                           disabled={busy || inCombat || slot.used <= 0}
-                          title={inCombat ? "Slots recover at rests, not mid-combat" : "Recover a slot"}
+                          title={inCombat ? uiText("Slots recover at rests, not mid-combat") : uiText("Recover a slot")}
                           onClick={() => adjustUsage({ slots: { [slotLevel]: slot.used - 1 } })}
                         >
                           <Plus className="size-3" />
@@ -417,7 +422,7 @@ export function CharacterSheetDialog({
           {mine || Object.keys(sheet.resources).length ? (
             <section className="mt-4">
               <h3 className="mb-1.5 text-xs font-medium uppercase tracking-wide text-stone-500">
-                Hit Dice &amp; Resources
+                {uiText("Hit Dice &amp; Resources")}
               </h3>
               <div className="space-y-1.5 text-xs text-stone-300">
                 <div className="flex items-center gap-2">
@@ -444,7 +449,7 @@ export function CharacterSheetDialog({
                       className={stepButton}
                       disabled={busy || inCombat || sheet.hitDice.spent <= 0}
                       title={
-                        inCombat ? "Hit dice recover at rests, not mid-combat" : "Recover a hit die"
+                        inCombat ? uiText("Hit dice recover at rests, not mid-combat") : uiText("Recover a hit die")
                       }
                       onClick={() => adjustUsage({ hitDiceSpent: sheet.hitDice.spent - 1 })}
                     >
@@ -481,7 +486,7 @@ export function CharacterSheetDialog({
                         className={stepButton}
                         disabled={busy || inCombat || pool.used <= 0}
                         title={
-                          inCombat ? "Uses recover at rests, not mid-combat" : "Recover a use"
+                          inCombat ? uiText("Uses recover at rests, not mid-combat") : uiText("Recover a use")
                         }
                         onClick={() => adjustUsage({ resources: { [id]: pool.used - 1 } })}
                       >
@@ -493,9 +498,9 @@ export function CharacterSheetDialog({
               </div>
               {mine ? (
                 <p className="mt-1.5 text-[11px] text-stone-500">
-                  Minus spends, plus recovers.
-                  {inCombat ? " Recovery is locked during combat; rests refill automatically." : ""}{" "}
-                  Changes are logged to the session event log.
+                  {uiText("Minus spends, plus recovers.")}
+                  {inCombat ? ` ${uiText("Recovery is locked during combat; rests refill automatically.")}` : ""}{" "}
+                  {uiText("Changes are logged to the session event log.")}
                 </p>
               ) : null}
             </section>
@@ -504,7 +509,7 @@ export function CharacterSheetDialog({
           {sheet.equipment.length ? (
             <section className="mt-4">
               <h3 className="mb-1.5 text-xs font-medium uppercase tracking-wide text-stone-500">
-                Equipment
+                {uiText("Equipment")}
               </h3>
               <p className="text-xs text-stone-300">
                 {sheet.equipment
@@ -514,22 +519,22 @@ export function CharacterSheetDialog({
               {mine && wearable.length ? (
                 <div className="mt-2 space-y-1">
                   <p className="text-[11px] text-stone-500">
-                    Worn gear sets your AC ({sheet.acOverride ? "pinned by hand" : armor.parts.join(" + ")}
-                    ). Attuned {attunedCount}/{ATTUNEMENT_SLOTS}.
+                    {uiText("Worn gear sets your AC (")}{sheet.acOverride ? uiText("typed by hand; armor no longer changes it") : armor.parts.join(" + ")}
+                    {uiText("). Attuned")} {attunedCount}/{ATTUNEMENT_SLOTS}.
                   </p>
                   {magic.sources.length ? (
                     <p className="text-[11px] text-sky-400/80">
-                      Active magic:{" "}
+                      {uiText("Active magic:")}{" "}
                       {[
-                        magic.acBonus ? `+${magic.acBonus} AC` : null,
-                        magic.saveBonus ? `+${magic.saveBonus} saves` : null,
+                        magic.acBonus ? `+${magic.acBonus} ${uiText("AC")}` : null,
+                        magic.saveBonus ? `+${magic.saveBonus} ${uiText("saves")}` : null,
                         ...Object.entries(magic.abilitySet).map(
                           ([ability, score]) => `${ability.toUpperCase()} ${score}`,
                         ),
-                        magic.resistances.length ? `resist ${magic.resistances.join(", ")}` : null,
+                        magic.resistances.length ? `${uiText("resist")} ${magic.resistances.join(", ")}` : null,
                       ]
                         .filter(Boolean)
-                        .join(" \u00b7 ") || "worn"}
+                        .join(" \u00b7 ") || uiText("worn")}
                     </p>
                   ) : null}
                   {wearable.map((item) => {
@@ -552,7 +557,7 @@ export function CharacterSheetDialog({
                                 : "border-stone-700 text-stone-400",
                             )}
                           >
-                            {worn ? "worn" : "wear"}
+                            {worn ? uiText("worn") : uiText("wear")}
                           </button>
                         ) : null}
                         <button
@@ -597,7 +602,7 @@ export function CharacterSheetDialog({
           {sheet.feats.length ? (
             <section className="mt-4">
               <h3 className="mb-1.5 text-xs font-medium uppercase tracking-wide text-stone-500">
-                Feats
+                {uiText("Feats")}
               </h3>
               <InfoChipList
                 items={sheet.feats.map((feat) => ({

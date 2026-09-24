@@ -1,5 +1,6 @@
 "use client";
 
+import { useInlineText } from "@/lib/i18n/inline-text";
 import { Loader2 } from "lucide-react";
 import Link from "next/link";
 import { use, useCallback, useEffect, useState } from "react";
@@ -30,6 +31,7 @@ type Preview = {
 };
 
 export default function JoinPage({ params }: { params: Promise<{ code: string }> }) {
+  const uiText = useInlineText();
   const { code } = use(params);
   const roomCode = code.toUpperCase();
   const { t } = useI18n();
@@ -94,10 +96,10 @@ export default function JoinPage({ params }: { params: Promise<{ code: string }>
       </div>
 
       <div className="w-full max-w-sm animate-fade-up-slow">
-        <section className="mb-5" aria-label="Campaign invite">
+        <section className="mb-5" aria-label={uiText("Campaign invite")}>
           <CampaignCover
             cover={preview?.cover ? { id: "", url: preview.cover.url } : null}
-            title={preview?.title ?? `Room ${roomCode}`}
+            title={preview?.title ?? uiText("Room {code}", { code: roomCode })}
             genre={preview?.genre}
             seed={roomCode}
           />
@@ -112,7 +114,7 @@ export default function JoinPage({ params }: { params: Promise<{ code: string }>
               <p className="mt-1 text-xs text-stone-400">
                 {preview.playerCount}/{preview.maxPlayers} {t("campaign.players")} · {preview.genre} · {t("campaign.level")}{" "}
                 {preview.startingLevel}
-                {preview.seatOpen ? "" : " · not taking new players right now"}
+                {preview.seatOpen ? "" : uiText(" · not taking new players right now")}
               </p>
             ) : null}
             <p className="mt-2 text-sm text-stone-500">

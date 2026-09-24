@@ -28,7 +28,7 @@ export function LoreEntryActions({
   onDelete: () => void;
 }) {
   const { locale } = useI18n();
-  const copy = localeText(locale, { en: { edit: "Edit", pin: "Pin", pinned: "Pinned", duplicate: "Duplicate", delete: "Delete" }, ru: { edit: "Изменить", pin: "Закрепить", pinned: "Закреплено", duplicate: "Дублировать", delete: "Удалить" } });
+  const copy = localeText(locale, { en: { edit: "Edit", pin: "Pin", pinned: "Pinned", duplicate: "Duplicate", delete: "Delete", pinTip: "Pin: included in every DM turn", unpinTip: "Unpin: retrieved only when relevant" }, ru: { edit: "Изменить", pin: "Закрепить", pinned: "Закреплено", duplicate: "Дублировать", delete: "Удалить", pinTip: "Закрепить: включать в каждый ход Мастера", unpinTip: "Открепить: учитывать только при необходимости" } });
   return (
     <div className="flex items-center gap-2.5">
       {onEdit ? (
@@ -44,7 +44,7 @@ export function LoreEntryActions({
         type="button"
         onClick={onPin}
         title={
-          entry.pinned ? "Unpin: retrieved only when relevant" : "Pin: included in every DM turn"
+          entry.pinned ? copy.unpinTip : copy.pinTip
         }
         className={cn(
           "flex items-center gap-1 text-[11px]",

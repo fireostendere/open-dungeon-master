@@ -1,5 +1,6 @@
 "use client";
 
+import { useInlineText } from "@/lib/i18n/inline-text";
 import * as Dialog from "@radix-ui/react-dialog";
 import { Loader2, Trash2, Wrench, X } from "lucide-react";
 import { useState } from "react";
@@ -27,6 +28,7 @@ type ItemRow = { name: string; qty: string; slug?: string };
 // Removable name chips backing the spell and feat lists; adding goes
 // through the searchable multi-select pickers below each list.
 function ChipList({ values, onRemove }: { values: string[]; onRemove: (value: string) => void }) {
+  const uiText = useInlineText();
   if (!values.length) {
     return null;
   }
@@ -41,7 +43,7 @@ function ChipList({ values, onRemove }: { values: string[]; onRemove: (value: st
           <button
             type="button"
             onClick={() => onRemove(value)}
-            aria-label={`Remove ${value}`}
+            aria-label={uiText("Remove {value}", { value })}
             className="text-stone-500 hover:text-red-400"
           >
             <X className="size-3" />
@@ -64,6 +66,7 @@ export function LeadEditDialog({
   sheet: CharacterSheet;
   onClose: () => void;
 }) {
+  const uiText = useInlineText();
   const { locale } = useI18n();
   const copy = localeText(locale, {
     en: {
@@ -340,7 +343,7 @@ export function LeadEditDialog({
             <input
               value={conditions}
               onChange={(event) => setConditions(event.target.value)}
-              placeholder="poisoned, prone"
+              placeholder={uiText("poisoned, prone")}
               className={field}
             />
           </label>
@@ -370,7 +373,7 @@ export function LeadEditDialog({
                   type="button"
                   onClick={() => setItems((rows) => rows.filter((_, i) => i !== index))}
                   className="shrink-0 text-stone-500 hover:text-red-400"
-                  aria-label="Remove item"
+                  aria-label={uiText("Remove item")}
                 >
                   <Trash2 className="size-4" />
                 </button>

@@ -56,8 +56,8 @@ const ROW = "flex flex-wrap items-center gap-3 px-5 py-3";
 export default function FriendsPage() {
   const { locale } = useI18n();
   const copy = localeText(locale, {
-    en: { login: "Log in", loginSuffix: "to see your friends on this server.", title: "Friends", blurb: "People on this server; invite them to your campaigns.", addFriend: "Add a friend", placeholder: "Add by exact username", username: "Username", add: "Add", requests: "Requests for you", waitingOnYou: "Waiting on you", sent: "Sent requests", waiting: "Waiting", cancel: "Cancel", unfriend: "Unfriend", online: "Online now", invite: "Invite to campaign...", remove: "Remove {name} from your friends?", inviteSent: "Invite sent.", error: "Something went wrong." },
-    ru: { login: "Войдите", loginSuffix: "чтобы увидеть друзей на этом сервере.", title: "Друзья", blurb: "Люди на этом сервере; приглашайте их в свои кампании.", addFriend: "Добавить друга", placeholder: "Точное имя пользователя", username: "Имя пользователя", add: "Добавить", requests: "Входящие запросы", waitingOnYou: "Ожидают вас", sent: "Отправленные запросы", waiting: "Ожидание", cancel: "Отменить", unfriend: "Удалить из друзей", online: "Сейчас в сети", invite: "Пригласить в кампанию...", remove: "Удалить {name} из друзей?", inviteSent: "Приглашение отправлено.", error: "Что-то пошло не так." },
+    en: { login: "Log in", loginSuffix: "to see your friends on this server.", title: "Friends", blurb: "People on this server; invite them to your campaigns.", addFriend: "Add a friend", placeholder: "Add by exact username", username: "Username", add: "Add", requests: "Requests for you", waitingOnYou: "Waiting on you", sent: "Sent requests", waiting: "Waiting", cancel: "Cancel", unfriend: "Unfriend", online: "Online now", invite: "Invite to campaign...", inviteFriend: "Invite {name} to a campaign", remove: "Remove {name} from your friends?", inviteSent: "Invite sent.", error: "Something went wrong." },
+    ru: { login: "Войдите", loginSuffix: "чтобы увидеть друзей на этом сервере.", title: "Друзья", blurb: "Люди на этом сервере; приглашайте их в свои кампании.", addFriend: "Добавить друга", placeholder: "Точное имя пользователя", username: "Имя пользователя", add: "Добавить", requests: "Входящие запросы", waitingOnYou: "Ожидают вас", sent: "Отправленные запросы", waiting: "Ожидание", cancel: "Отменить", unfriend: "Удалить из друзей", online: "Сейчас в сети", invite: "Пригласить в кампанию...", inviteFriend: "Пригласить {name} в кампанию", remove: "Удалить {name} из друзей?", inviteSent: "Приглашение отправлено.", error: "Что-то пошло не так." },
   });
   const [data, setData] = useState<FriendsData>({ friends: [], incoming: [], outgoing: [] });
   const [campaigns, setCampaigns] = useState<CampaignOption[]>([]);
@@ -302,7 +302,7 @@ export default function FriendsPage() {
                           void invite(friend.userId, event.target.value);
                         }
                       }}
-                      aria-label={`Invite ${friend.username} to a campaign`}
+                      aria-label={copy.inviteFriend.replace("{name}", friend.username)}
                       className={cn(ui.input, "w-auto max-w-40 py-1.5 text-stone-300")}
                     >
                       <option value="">{copy.invite}</option>

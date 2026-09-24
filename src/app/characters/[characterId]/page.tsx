@@ -1,5 +1,6 @@
 "use client";
 
+import { useInlineText } from "@/lib/i18n/inline-text";
 import {
   Camera,
   Copy,
@@ -61,6 +62,7 @@ export default function CharacterDetailPage({
 }: {
   params: Promise<{ characterId: string }>;
 }) {
+  const uiText = useInlineText();
   const { characterId } = use(params);
   const { locale } = useI18n();
   const copy = localeText(locale, {
@@ -270,7 +272,7 @@ export default function CharacterDetailPage({
             />
           ) : portraitPending ? (
             <span
-              title="Painting portrait..."
+              title={uiText("Painting portrait...")}
               className="flex size-20 shrink-0 items-center justify-center rounded-xl border border-amber-500/30 bg-stone-900 sm:size-24"
             >
               <Loader2 className="size-5 animate-spin text-amber-200" />
@@ -341,7 +343,7 @@ export default function CharacterDetailPage({
             onClick={handleDownloadPdf}
             disabled={pdfBusy}
             className={ui.btnSmall}
-            title="Download this character sheet as a fillable PDF"
+            title={uiText("Download this character sheet as a fillable PDF")}
           >
             <FileDown className="size-4 shrink-0" /> {pdfBusy ? copy.preparing : copy.download}
           </button>
@@ -350,7 +352,7 @@ export default function CharacterDetailPage({
             onClick={handleExport}
             disabled={exporting}
             className={ui.btnSmall}
-            title="Save this character as a file you can import on another device or server"
+            title={uiText("Save this character as a file you can import on another device or server")}
           >
             <FileJson className="size-4 shrink-0" /> {exporting ? copy.exporting : copy.export}
           </button>
@@ -359,7 +361,7 @@ export default function CharacterDetailPage({
             onClick={handleDuplicate}
             disabled={cloning}
             className={ui.btnSmall}
-            title="Save a second copy of this character to your library"
+            title={uiText("Save a second copy of this character to your library")}
           >
             <Copy className="size-4 shrink-0" /> {cloning ? copy.copying : copy.duplicate}
           </button>
@@ -367,7 +369,7 @@ export default function CharacterDetailPage({
             type="button"
             onClick={() => setCropping(true)}
             className={ui.btnSmall}
-            title={sheet.portrait ? "Replace the portrait with a photo" : "Upload a portrait"}
+            title={sheet.portrait ? uiText("Replace the portrait with a photo") : uiText("Upload a portrait")}
           >
             <Camera className="size-4 shrink-0" /> {sheet.portrait ? copy.replacePortrait : copy.uploadPortrait}
           </button>
@@ -377,7 +379,7 @@ export default function CharacterDetailPage({
               onClick={() => void paintPortrait()}
               disabled={painting || portraitPending}
               className={ui.btnSmall}
-              title="Paint a new portrait on this server's image model"
+              title={uiText("Paint a new portrait on this server's image model")}
             >
               <Sparkles className="size-4 shrink-0" /> {portraitPending ? copy.painting : copy.paint}
             </button>
@@ -387,7 +389,7 @@ export default function CharacterDetailPage({
               type="button"
               onClick={() => void clearToPlaceholder()}
               className={ui.btnSmall}
-              title="Take the picture away and show the stand-in for this class or race"
+              title={uiText("Take the picture away and show the stand-in for this class or race")}
             >
               <ImageOff className="size-4 shrink-0" /> {copy.placeholder}
             </button>
@@ -404,7 +406,7 @@ export default function CharacterDetailPage({
 
       {cropping ? (
         <AvatarCropDialog
-          title={`Portrait for ${character.name}`}
+          title={uiText("Portrait for {name}", { name: character.name })}
           onUploaded={(image) => void handlePortraitUploaded(image)}
           onClose={() => setCropping(false)}
         />

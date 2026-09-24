@@ -1,5 +1,6 @@
 "use client";
 
+import { useInlineText } from "@/lib/i18n/inline-text";
 import { useMemo, useState } from "react";
 import { Inbox, Megaphone } from "lucide-react";
 import { cn } from "@/lib/cn";
@@ -39,6 +40,7 @@ function FloorControl({
   campaignId: string;
   mode: "open" | "hold" | "spotlight" | "initiative";
 }) {
+  const uiText = useInlineText();
   const [busy, setBusy] = useState(false);
 
   async function set(next: "open" | "hold") {
@@ -61,11 +63,11 @@ function FloorControl({
     <section className="rounded-lg border border-stone-800 bg-stone-950/60 px-2.5 py-2">
       <p className="mb-1.5 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-stone-500">
         <Megaphone className="size-3.5" />
-        The floor
+        {uiText("The floor")}
       </p>
       {mode === "initiative" ? (
         <p className="text-xs text-stone-500">
-          The initiative order has it while the fight runs.
+          {uiText("The initiative order has it while the fight runs.")}
         </p>
       ) : (
         <div className="flex flex-wrap gap-1">
@@ -82,16 +84,16 @@ function FloorControl({
                   : "border-stone-700 text-stone-400 hover:text-stone-200",
               )}
             >
-              {option === "open" ? "Anyone may act" : "Hold everyone"}
+              {option === "open" ? uiText("Anyone may act") : uiText("Hold everyone")}
             </button>
           ))}
           {mode === "spotlight" ? (
             <span className="rounded-md border border-amber-700 bg-amber-950/50 px-2 py-1 text-xs text-amber-100">
-              Spotlight
+              {uiText("Spotlight")}
             </span>
           ) : (
             <span className="self-center text-[11px] text-stone-600">
-              Give the floor to named players with Give the floor, under Story.
+              {uiText("Give the floor to named players with Give the floor, under Story.")}
             </span>
           )}
         </div>
@@ -129,6 +131,7 @@ export function DmConsolePanel({
   // The table's crit rules, for the assist rail's consequence preview.
   variantRules: CritRules;
 }) {
+  const uiText = useInlineText();
   // Hosted image generation is retired. Keep deterministic/manual map tools,
   // but never expose the old generate_image adjudication.
   const groups = useMemo(
@@ -176,7 +179,7 @@ export function DmConsolePanel({
     <div className="space-y-4">
       {/* Gold, the DM's colour: nobody else at the table has this tab, and
           the lead's desk wears ember so the two seats never blur. */}
-      <Ribbon tone="gold">Only you</Ribbon>
+      <Ribbon tone="gold">{uiText("Only you")}</Ribbon>
 
       <div data-tour="dm-floor">
         <FloorControl campaignId={campaignId} mode={floorMode} />
@@ -191,7 +194,7 @@ export function DmConsolePanel({
       <section data-tour="dm-queue">
         <h3 className="mb-1.5 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-stone-500">
           <Inbox className="size-3.5" />
-          Waiting on you
+          {uiText("Waiting on you")}
           {queue.length ? (
             <span className="rounded-full bg-amber-900/60 px-1.5 text-[10px] text-amber-200">
               {queue.length}
@@ -216,14 +219,14 @@ export function DmConsolePanel({
                   }}
                   className="mt-1 text-[11px] text-stone-500 hover:text-amber-200"
                 >
-                  What should I press?
+                  {uiText("What should I press?")}
                 </button>
               </li>
             ))}
           </ul>
         ) : (
           <p className="rounded-lg border border-stone-800 bg-stone-950/40 px-2.5 py-2 text-xs text-stone-500">
-            Nothing waiting. Everything the party has said has been answered.
+            {uiText("Nothing waiting. Everything the party has said has been answered.")}
           </p>
         )}
       </section>
@@ -301,7 +304,7 @@ export function DmConsolePanel({
                     onClick={() => setOpenAction("")}
                     className="text-[11px] text-stone-500 hover:text-stone-300"
                   >
-                    Close
+                    {uiText("Close")}
                   </button>
                 </div>
               ) : (

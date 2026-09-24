@@ -32,6 +32,7 @@ import { useBuilderState } from "./useBuilderState";
 import { usePickerGroups } from "./usePickerGroups";
 import { useI18n } from "@/lib/i18n";
 import { localeText } from "@/lib/i18n/locale-text";
+import { useInlineText } from "@/lib/i18n/inline-text";
 
 export type { BuilderResult } from "./submit";
 
@@ -76,6 +77,7 @@ export default function CharacterBuilder({
   role?: { value: BuilderRole; onChange: (role: BuilderRole) => void };
   className?: string;
 }) {
+  const uiText = useInlineText();
   const { locale } = useI18n();
   const copy = localeText(locale, {
     en: { newCharacter: "New character", identity: "Who is this?", ancestry: "Ancestry", ancestryBlurb: "Where are they from, and what does that grant?", calling: "Calling", callingBlurb: "The class decides how this character plays.", abilities: "Ability scores", abilitiesBlurb: "How do you roll?", spellsGear: "Spells and gear", gear: "Gear", spellsGearBlurb: "Pick what they can cast, then arm your hero.", gearBlurb: "Arm your hero.", finish: "Finishing touches", finishBlurb: "Who have you made?", yourCharacter: "your character" },
@@ -288,7 +290,7 @@ export default function CharacterBuilder({
       />
       {cropping ? (
         <AvatarCropDialog
-           title={`Portrait for ${state.name.trim() || copy.yourCharacter}`}
+          title={uiText("Portrait for {name}", { name: state.name.trim() || copy.yourCharacter })}
           onUploaded={(image) => {
             setCropping(false);
             state.setPortrait({ id: image.id, name: image.name, type: image.type, url: image.url });

@@ -1,5 +1,7 @@
 "use client";
 
+import { useInlineText } from "@/lib/i18n/inline-text";
+import { optionKindLabel } from "@/lib/i18n/option-kind";
 import * as Dialog from "@radix-ui/react-dialog";
 import { Dices, Loader2, Search, Sparkles, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
@@ -65,6 +67,7 @@ export function LevelUpDialog({
   multiclassAllowed?: boolean;
   onDone: () => void;
 }) {
+  const uiText = useInlineText();
   const { locale } = useI18n();
   const copy = localeText(locale, {
     en: { level: "Level {level}!", newAt: "New at level {level}:", average: "Take the average", roll: "Roll {dice}", rolled: "Rolled {value}", take: "Take +{value} HP", multiclass: "Multiclass into a new class", grants: "Grants: {value}", requires: "Requires {value}", known: "Already known. ", full: "full features", description: "description only", search: "Search your class's spell list", noSpells: "No matching spells.", spellName: "Spell name", add: "Add", learning: "Learning:", allowance: "(that is the full allowance at this level)", back: "Back", next: "Next", confirm: "Confirm level up", error: "Could not level up.", server: "Could not reach the server." },
@@ -545,12 +548,24 @@ export function LevelUpDialog({
           {step === "hp" ? (
             <>
               <p className="mb-3 text-sm text-stone-300">
-                {sheet.name} advances to level {targetLevel}
-                {isMulticlassPath
-                  ? ` as a ${chosenKlass?.name ?? classChoice} (${chosenKlass?.name ?? classChoice} level ${classLevelAfter})`
-                  : ""}
-                . Choose how to gain hit points ({levelsGained} d{hitDie}
-                {conMod ? ` ${conMod > 0 ? "+" : ""}${conMod} CON each` : ""}):
+                {locale === "ru" ? (
+                  <>
+                    {sheet.name} повышает уровень до {targetLevel}-го
+                    {isMulticlassPath
+                      ? ` по классу ${chosenKlass?.name ?? classChoice} (уровень класса: ${classLevelAfter})`
+                      : ""}. Выберите, как увеличить хиты ({levelsGained}к{hitDie}
+                    {conMod ? ` ${conMod > 0 ? "+" : ""}${conMod} к Телосложению за уровень` : ""}):
+                  </>
+                ) : (
+                  <>
+                    {sheet.name} advances to level {targetLevel}
+                    {isMulticlassPath
+                      ? ` as a ${chosenKlass?.name ?? classChoice} (${chosenKlass?.name ?? classChoice} level ${classLevelAfter})`
+                      : ""}
+                    . Choose how to gain hit points ({levelsGained} d{hitDie}
+                    {conMod ? ` ${conMod > 0 ? "+" : ""}${conMod} CON each` : ""}):
+                  </>
+                )}
               </p>
               {newFeatureNames.length ? (
                 <div className="mb-4 rounded-md border border-amber-900/50 bg-stone-950/60 px-3 py-2">
@@ -572,7 +587,7 @@ export function LevelUpDialog({
                   className="flex w-full items-center justify-between rounded-md border border-stone-700 px-4 py-2.5 text-sm hover:border-amber-700 hover:bg-stone-900 disabled:opacity-50"
                 >
                   <span>{copy.average}</span>
-                  <span className="font-mono text-amber-400">+{averageGain} HP</span>
+                  <span className="font-mono text-amber-400">+{averageGain} {locale === "ru" ? "ХП" : "HP"}</span>
                 </button>
                 <div className="flex gap-2">
                   <button
@@ -605,8 +620,9 @@ export function LevelUpDialog({
               {step === "class" ? (
                 <>
                   <p className="text-stone-300">
-                    Which class takes level {targetLevel}? Advance one {sheet.name} already has,
-                    or multiclass into a new one.
+                    {locale === "ru"
+                      ? `Какой класс повысить до ${targetLevel}-го уровня? Выберите уже имеющийся у ${sheet.name} или начните мультиклассирование в новом.`
+                      : `Which class takes level ${targetLevel}? Advance one ${sheet.name} already has, or multiclass into a new one.`}
                   </p>
                   <div className="space-y-1.5">
                     {classList.map((entry) => {
@@ -648,8 +664,7 @@ export function LevelUpDialog({
                         {copy.multiclass}
                       </p>
                       <p className="text-xs text-stone-500">
-                        A new class starts at level 1 with SOME of its training: no saving
-                        throws, and only the proficiencies the multiclass rules grant.
+                        {uiText("A new class starts at level 1 with SOME of its training: no saving throws, and only the proficiencies the multiclass rules grant.")}
                       </p>
                       <div className="max-h-48 space-y-1.5 overflow-y-auto pr-1">
                         {newClassOptions.map(({ option, check }) => {
@@ -683,7 +698,7 @@ export function LevelUpDialog({
                                   : check.error}
                               </span>
                               <span className="block text-[11px] text-stone-600">
-                                Requires {describePrereq(option.id)}
+                                {locale === "ru" ? "Требования: " : "Requires "}{describePrereq(option.id)}
                               </span>
                             </button>
                           );
@@ -694,7 +709,7 @@ export function LevelUpDialog({
                   {needsSkillPick ? (
                     <>
                       <p className="text-stone-300">
-                        {chosenKlass?.name ?? classChoice} grants one new skill. Pick it:
+                        {chosenKlass?.name ?? classChoice} {uiText("grants one new skill. Pick it:")}
                       </p>
                       <div className="flex flex-wrap gap-1.5">
                         {skillOptions.map((skillId) => {
@@ -730,8 +745,9 @@ export function LevelUpDialog({
               {step === "asi" ? (
                 <>
                   <p className="text-stone-300">
-                    +{hpGain} HP locked in. This level also grants
-                    {asiLevels.length === 1 ? " an ability score improvement" : " ability score improvements"}:
+                    {locale === "ru"
+                      ? `Зафиксировано +${hpGain} ХП. На этом уровне также доступно ${asiLevels.length === 1 ? "увеличение значения характеристики" : "увеличения значений характеристик"}:`
+                      : `+${hpGain} HP locked in. This level also grants${asiLevels.length === 1 ? " an ability score improvement" : " ability score improvements"}:`}
                   </p>
                   <AsiFeatEditor
                     slotLevels={asiLevels}
@@ -745,8 +761,9 @@ export function LevelUpDialog({
               {step === "expertise" ? (
                 <>
                   <p className="text-stone-300">
-                    Expertise: pick {Math.min(expertiseToPick, expertiseOptions.length)} of{" "}
-                    {sheet.name}&apos;s proficient skills to DOUBLE their proficiency bonus in:
+                    {locale === "ru"
+                      ? `Компетентность: выберите навыки персонажа ${sheet.name} (до ${Math.min(expertiseToPick, expertiseOptions.length)}), чтобы удвоить бонус мастерства:`
+                      : `Expertise: pick ${Math.min(expertiseToPick, expertiseOptions.length)} of ${sheet.name}'s proficient skills to DOUBLE their proficiency bonus in:`}
                   </p>
                   <div className="flex flex-wrap gap-1.5">
                     {expertiseOptions.map((skillId) => {
@@ -788,15 +805,16 @@ export function LevelUpDialog({
               {step === "options" ? (
                 <>
                   <p className="text-stone-300">
-                    New abilities for {sheet.name} to choose. These are real powers, not flavour,
-                    so read them before picking.
+                    {locale === "ru"
+                      ? `Новые умения для ${sheet.name} на выбор. Это настоящие способности, а не просто описание, поэтому прочитайте их перед выбором.`
+                      : `New abilities for ${sheet.name} to choose. These are real powers, not flavour, so read them before picking.`}
                   </p>
                   {openSlots
                     .filter((slot) => slot.remaining > 0 || slot.chosen.length > 0)
                     .map((slot) => (
                       <div key={slot.kind}>
                         <p className="mb-1 mt-2 text-xs uppercase tracking-wide text-amber-200/80">
-                          {slot.label}: {slot.chosen.length}/{slot.total} chosen
+                          {optionKindLabel(slot.kind, locale)}: {slot.chosen.length}/{slot.total} {uiText("chosen")}
                         </p>
                         <div className="max-h-56 space-y-1.5 overflow-y-auto pr-1">
                           {slot.options.map((option) => {
@@ -826,13 +844,13 @@ export function LevelUpDialog({
                                   <span className="block">{option.n}</span>
                                   <span className="block text-[11px] text-stone-500">
                                     {already ? copy.known : ""}
-                                    {option.req ? `Requires ${option.req}. ` : ""}
+                                    {option.req ? (locale === "ru" ? `Требование: ${option.req}. ` : `Requires ${option.req}. `) : ""}
                                     {option.d}
                                   </span>
                                 </button>
                                 <InfoButton
                                   label={option.n}
-                                  meta={option.req ? `Requires ${option.req}` : undefined}
+                                  meta={option.req ? (locale === "ru" ? `Требование: ${option.req}` : `Requires ${option.req}`) : undefined}
                                   text={option.d}
                                 />
                               </div>
@@ -847,8 +865,9 @@ export function LevelUpDialog({
               {step === "style" ? (
                 <>
                   <p className="text-stone-300">
-                    Fighting Style: pick {stylesToPick} for {sheet.name}. The server applies it
-                    to every attack from here on.
+                    {locale === "ru"
+                      ? `Боевой стиль: выберите ${stylesToPick} вариант для персонажа ${sheet.name}. Движок применит его ко всем дальнейшим атакам.`
+                      : `Fighting Style: pick ${stylesToPick} for ${sheet.name}. The server applies it to every attack from here on.`}
                   </p>
                   <div className="space-y-1.5">
                     {styleOptions.map((style) => {
@@ -885,12 +904,14 @@ export function LevelUpDialog({
               {step === "subclass" ? (
                 <>
                   <p className="text-stone-300">
-                    At level {subclassLevel}, every {klass?.name ?? sheet.class} chooses a
-                    specialization. Pick one for {sheet.name}:
+                    {locale === "ru"
+                      ? `На ${subclassLevel}-м уровне класс ${klass?.name ?? sheet.class} выбирает специализацию. Выберите её для персонажа ${sheet.name}:`
+                      : `At level ${subclassLevel}, every ${klass?.name ?? sheet.class} chooses a specialization. Pick one for ${sheet.name}:`}
                   </p>
                   <p className="text-xs text-stone-500">
-                    This choice shapes how {sheet.name} plays for the rest of the campaign. Read
-                    each one before deciding.
+                    {locale === "ru"
+                      ? `Этот выбор определит, как будет развиваться персонаж ${sheet.name} до конца кампании. Прочитайте описания перед выбором.`
+                      : `This choice shapes how ${sheet.name} plays for the rest of the campaign. Read each one before deciding.`}
                   </p>
                   <div className="max-h-64 space-y-1.5 overflow-y-auto pr-1">
                     {subclassOptions.map((name) => {
@@ -933,8 +954,7 @@ export function LevelUpDialog({
                     })}
                     {!subclassOptions.length ? (
                       <p className="text-xs text-stone-500">
-                        No known specializations for this class; the party lead can set one on
-                        the sheet later.
+                        {uiText("No known specializations for this class; the party lead can set one on the sheet later.")}
                       </p>
                     ) : null}
                   </div>
@@ -944,18 +964,11 @@ export function LevelUpDialog({
               {step === "spells" ? (
                 <>
                   <p className="text-stone-300">
-                    New spells for {sheet.name}
-                    {remainingPicks !== null && allowance ? (
-                      <>
-                        {" "}
-                        (up to{" "}
-                        <span className="text-amber-200">
-                          {remainingPicks} new {allowance.label}
-                        </span>{" "}
-                        at level {targetLevel})
-                      </>
-                    ) : null}
-                    :
+                    {locale === "ru" ? (
+                      `Новые заклинания для ${sheet.name}${remainingPicks !== null && allowance ? ` (до ${remainingPicks} заклинаний ${targetLevel}-го уровня)` : ""}:`
+                    ) : (
+                      <>New spells for {sheet.name}{remainingPicks !== null && allowance ? <> (up to <span className="text-amber-200">{remainingPicks} new {allowance.label}</span> at level {targetLevel})</> : null}:</>
+                    )}
                   </p>
                   {packInstalled ? (
                     <>
@@ -990,7 +1003,7 @@ export function LevelUpDialog({
                                 />
                                 <span className="flex-1">{spell.name}</span>
                                 <span className="text-xs text-stone-500">
-                                  {spell.level === 0 ? "cantrip" : `level ${spell.level}`}
+                                  {spell.level === 0 ? uiText("cantrip") : uiText("Level {level}", { level: spell.level })}
                                 </span>
                               </label>
                               {/* Nobody should have to accept a spell to find
@@ -1024,7 +1037,7 @@ export function LevelUpDialog({
                         }}
                         className="rounded-md border border-stone-700 px-3 py-2 text-sm hover:bg-stone-900 disabled:opacity-50"
                       >
-                        Add
+                        {uiText("Add")}
                       </button>
                     </div>
                   )}
@@ -1049,7 +1062,7 @@ export function LevelUpDialog({
                   onClick={() => setStepIndex(Math.max(0, stepIndex - 1))}
                   className="rounded-md border border-stone-700 px-4 py-2.5 text-sm text-stone-300 hover:bg-stone-900 disabled:opacity-50"
                 >
-                  Back
+                  {uiText("Back")}
                 </button>
                 <button
                   type="button"

@@ -1,5 +1,6 @@
 "use client";
 
+import { useInlineText } from "@/lib/i18n/inline-text";
 import * as Dialog from "@radix-ui/react-dialog";
 import { Download, X } from "lucide-react";
 import { useState } from "react";
@@ -33,6 +34,7 @@ export function ImageLightbox({
   caption?: string;
   className?: string;
 }) {
+  const uiText = useInlineText();
   const [open, setOpen] = useState(false);
   const label = caption || alt;
 
@@ -41,7 +43,7 @@ export function ImageLightbox({
       <Dialog.Trigger asChild>
         <button
           type="button"
-          aria-label={`Enlarge image: ${label}`}
+          aria-label={uiText("Enlarge image: {label}", { label })}
           className="block cursor-zoom-in transition-opacity hover:opacity-90"
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -65,7 +67,7 @@ export function ImageLightbox({
             <a
               href={src}
               download={downloadName(src, label)}
-              aria-label="Download image"
+              aria-label={uiText("Download image")}
               className={cn(
                 "rounded-md border border-stone-700 bg-stone-950/80 p-2",
                 "text-stone-400 hover:text-stone-100",
@@ -74,7 +76,7 @@ export function ImageLightbox({
               <Download className="size-4" />
             </a>
             <Dialog.Close
-              aria-label="Close image"
+              aria-label={uiText("Close image")}
               className={cn(
                 "rounded-md border border-stone-700 bg-stone-950/80 p-2",
                 "text-stone-400 hover:text-stone-100",

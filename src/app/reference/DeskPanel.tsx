@@ -18,20 +18,20 @@ import { localeText } from "@/lib/i18n/locale-text";
 
 type PreviewSource = { kind: string; ref: string; name: string; origin: string };
 
-const KIND_LABELS: Record<string, string> = {
-  spell: "spell",
-  monster: "monster",
-  item: "item",
-  condition: "condition",
-  feat: "feat",
-  glossary: "basics",
-  ruling: "your house rule",
-  variant: "your variant rule",
+const KIND_LABELS: Record<string, Record<"en" | "ru", string>> = {
+  spell: { en: "spell", ru: "заклинание" },
+  monster: { en: "monster", ru: "чудовище" },
+  item: { en: "item", ru: "предмет" },
+  condition: { en: "condition", ru: "состояние" },
+  feat: { en: "feat", ru: "черта" },
+  glossary: { en: "basics", ru: "основы" },
+  ruling: { en: "your house rule", ru: "домашнее правило" },
+  variant: { en: "your variant rule", ru: "вариантное правило" },
 };
 
 export function DeskPanel() {
   const { locale } = useI18n();
-  const copy = localeText(locale, { en: { ask: "Ask", placeholder: "Does a readied spell need concentration?", error: "The desk could not answer that.", intro: "Ask a rules question. Sources are checked against the material the desk actually received.", none: "Nothing on file bears on this yet", fallback: "The desk will still answer from general rules knowledge and say that it did.", uncited: "This answer cites nothing on file. Treat it as a starting point and check a book before settling anything at the table." }, ru: { ask: "Спросить", placeholder: "Требует ли подготовленное заклинание концентрации?", error: "Справочник не смог ответить.", intro: "Задайте вопрос по правилам. Источники сверяются с материалом, который действительно получил справочник.", none: "В сохранённых материалах пока ничего нет", fallback: "Справочник всё равно ответит из общих знаний правил и сообщит об этом.", uncited: "В ответе нет сохранённых источников. Считайте его отправной точкой и сверьтесь с книгой, прежде чем решать вопрос за столом." } });
+  const copy = localeText(locale, { en: { ask: "Ask", placeholder: "Does a readied spell need concentration?", error: "The desk could not answer that.", intro: "Ask a rules question. Sources are checked against the material the desk actually received.", none: "Nothing on file bears on this yet", fallback: "The desk will still answer from general rules knowledge and say that it did.", uncited: "This answer cites nothing on file. Treat it as a starting point and check a book before settling anything at the table.", sourcesCount: "{count} sources the desk would read" }, ru: { ask: "Спросить", placeholder: "Требует ли подготовленное заклинание концентрации?", error: "Справочник не смог ответить.", intro: "Задайте вопрос по правилам. Источники сверяются с материалом, который действительно получил справочник.", none: "В сохранённых материалах пока ничего нет", fallback: "Справочник всё равно ответит из общих знаний правил и сообщит об этом.", uncited: "В ответе нет сохранённых источников. Считайте его отправной точкой и сверьтесь с книгой, прежде чем решать вопрос за столом.", sourcesCount: "Материалов для ответа: {count}" } });
   const [question, setQuestion] = useState("");
   const [sources, setSources] = useState<PreviewSource[]>([]);
   const [answer, setAnswer] = useState<DeskAnswer | null>(null);
@@ -133,7 +133,7 @@ export function DeskPanel() {
         <div className="mb-4 rounded-lg border border-stone-800 bg-stone-950/40 p-3">
           <p className="mb-2 text-xs uppercase tracking-wide text-stone-500">
             {sources.length
-              ? `${sources.length} source${sources.length === 1 ? "" : "s"} the desk would read`
+          ? copy.sourcesCount.replace("{count}", String(sources.length))
               : copy.none}
           </p>
           {sources.length ? (
@@ -146,7 +146,7 @@ export function DeskPanel() {
                 >
                   <span className="text-stone-300">{source.name}</span>
                   <span className="ml-1.5 text-stone-600">
-                    {KIND_LABELS[source.kind] ?? source.kind}
+                    {KIND_LABELS[source.kind]?.[locale] ?? source.kind}
                   </span>
                 </li>
               ))}

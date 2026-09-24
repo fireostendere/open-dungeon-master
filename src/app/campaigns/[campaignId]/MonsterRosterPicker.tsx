@@ -1,5 +1,6 @@
 "use client";
 
+import { useInlineText } from "@/lib/i18n/inline-text";
 import { Loader2, Plus, Search } from "lucide-react";
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/cn";
@@ -29,6 +30,7 @@ export function MonsterRosterPicker({
   roster: string;
   onChange: (roster: string) => void;
 }) {
+  const uiText = useInlineText();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<
     Array<{ slug: string; name: string; cr: number; type: string; art?: string }>
@@ -104,7 +106,7 @@ export function MonsterRosterPicker({
         <input
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          placeholder="Search monsters to add: goblin, owlbear, the boss you built..."
+          placeholder={uiText("Search monsters to add: goblin, owlbear, the boss you built...")}
           className={cn(input, "w-full pl-7")}
         />
         {loading ? (

@@ -1,5 +1,6 @@
 "use client";
 
+import { useInlineText } from "@/lib/i18n/inline-text";
 import { Plus, Wand2 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/cn";
@@ -29,6 +30,8 @@ import {
 } from "@/lib/bestiary/kit";
 import { MAX_TRAITS, type MonsterDraft } from "@/lib/bestiary/monster-draft";
 import { proficiencyBonus } from "@/lib/srd";
+import { useI18n } from "@/lib/i18n/context";
+import { characterDisplay } from "@/lib/i18n/character-display";
 
 // The half of the monster editor that picks rather than types.
 //
@@ -63,6 +66,8 @@ export function TermPicker({
   // What the known terms mean, one line each, behind a ⓘ in the caption.
   glossary?: readonly GlossaryEntry[];
 }) {
+  const uiText = useInlineText();
+  const { locale } = useI18n();
   const extras = parseTerms(value).filter(
     (term) => !known.some((entry) => entry.toLowerCase() === term.toLowerCase()),
   );
@@ -88,7 +93,7 @@ export function TermPicker({
                   : "border-stone-700 text-stone-500 hover:text-stone-200",
               )}
             >
-              {term}
+              {characterDisplay(term, locale)}
             </button>
           );
         })}
@@ -98,7 +103,7 @@ export function TermPicker({
             type="button"
             aria-pressed
             onClick={() => onChange(toggleTerm(value, term))}
-            title="Your own; click to remove"
+            title={uiText("Your own; click to remove")}
             className={cn(chip, "border-amber-500/50 bg-stone-800 text-amber-100")}
           >
             {term}
@@ -108,7 +113,7 @@ export function TermPicker({
       <input
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        placeholder="or type your own, comma separated"
+        placeholder={uiText("or type your own, comma separated")}
         className={cn(input, "w-full")}
       />
     </div>
@@ -125,16 +130,18 @@ export function SpeedPicker({
   value: string;
   onChange: (value: string) => void;
 }) {
+  const uiText = useInlineText();
+  const { locale } = useI18n();
   const speeds = parseSpeed(value);
   const set = (mode: "walk" | (typeof MOVEMENT_MODES)[number], feet: number) =>
     onChange(formatSpeed({ ...speeds, [mode]: feet }));
   return (
     <div className="flex flex-col gap-1">
-      <span className="text-[10px] uppercase tracking-wide text-stone-500">Speed</span>
+      <span className="text-[10px] uppercase tracking-wide text-stone-500">{uiText("Speed")}</span>
       <div className="flex flex-wrap gap-2">
         {(["walk", ...MOVEMENT_MODES] as const).map((mode) => (
           <label key={mode} className="flex flex-col gap-0.5">
-            <span className="text-[10px] capitalize text-stone-600">{mode}</span>
+            <span className="text-[10px] capitalize text-stone-600">{characterDisplay(mode, locale)}</span>
             <input
               type="number"
               min={0}
@@ -147,7 +154,7 @@ export function SpeedPicker({
           </label>
         ))}
       </div>
-      <span className="text-[10px] text-stone-600">Reads as &quot;{value || "0"}&quot;. Zero hides a mode.</span>
+      <span className="text-[10px] text-stone-600">{uiText("Reads as &quot;")}{value || "0"}{uiText("&quot;. Zero hides a mode.")}</span>
     </div>
   );
 }
@@ -189,6 +196,7 @@ export function MonsterKitPanel({
   draft: MonsterDraft;
   onChange: (draft: MonsterDraft) => void;
 }) {
+  const uiText = useInlineText();
   const [ancestryId, setAncestryId] = useState("");
   const [classId, setClassId] = useState("");
   const [subclass, setSubclass] = useState("");
@@ -208,16 +216,15 @@ export function MonsterKitPanel({
   return (
     <div className="flex flex-col gap-3 rounded-lg border border-stone-800 bg-stone-950/50 p-3">
       <h4 className="flex items-center gap-1.5 text-xs text-amber-100">
-        <Wand2 className="size-3.5" /> Build it out of the catalogue
+        <Wand2 className="size-3.5" /> {uiText("Build it out of the catalogue")}
       </h4>
       <p className="text-[10px] text-stone-600">
-        Everything these add is an ordinary line on the block below: rename it, retune the
-        numbers, or delete it. Mix as many classes as you like.
+        {uiText("Everything these add is an ordinary line on the block below: rename it, retune the numbers, or delete it. Mix as many classes as you like.")}
       </p>
 
       <div className="flex flex-wrap items-end gap-2">
-        <Select label="Ancestry" value={ancestryId} onChange={setAncestryId}>
-          <option value="">Pick one</option>
+        <Select label={uiText("Ancestry")} value={ancestryId} onChange={setAncestryId}>
+          <option value="">{uiText("Pick one")}</option>
           {ANCESTRY_OPTIONS.map((ancestry) => (
             <option key={ancestry.id} value={ancestry.id}>
               {ancestry.name}
@@ -230,28 +237,28 @@ export function MonsterKitPanel({
           onClick={() => onChange(applyAncestry(draft, ancestryId))}
           className="rounded-md border border-stone-700 px-2 py-1 text-[11px] text-stone-300 hover:text-amber-100 disabled:opacity-40"
         >
-          Take its size, speed and traits
+          {uiText("Take its size, speed and traits")}
         </button>
       </div>
 
       <div className="flex flex-wrap items-end gap-2">
         <Select
-          label="Class"
+          label={uiText("Class")}
           value={classId}
           onChange={(next) => {
             setClassId(next);
             setSubclass("");
           }}
         >
-          <option value="">Pick one</option>
+          <option value="">{uiText("Pick one")}</option>
           {CLASS_KIT_OPTIONS.map((klass) => (
             <option key={klass.id} value={klass.id}>
               {klass.name}
             </option>
           ))}
         </Select>
-        <Select label="Subclass" value={subclass} onChange={setSubclass}>
-          <option value="">{subclasses.length ? "None" : "None available"}</option>
+        <Select label={uiText("Subclass")} value={subclass} onChange={setSubclass}>
+          <option value="">{subclasses.length ? uiText("None") : uiText("None available")}</option>
           {subclasses.map((name) => (
             <option key={name} value={name}>
               {name}
@@ -259,7 +266,7 @@ export function MonsterKitPanel({
           ))}
         </Select>
         <label className="flex flex-col gap-0.5">
-          <span className="text-[10px] uppercase tracking-wide text-stone-500">Level</span>
+          <span className="text-[10px] uppercase tracking-wide text-stone-500">{uiText("Level")}</span>
           <input
             type="number"
             min={1}
@@ -270,7 +277,7 @@ export function MonsterKitPanel({
           />
         </label>
         <label className="flex flex-col gap-0.5">
-          <span className="text-[10px] uppercase tracking-wide text-stone-500">CON</span>
+          <span className="text-[10px] uppercase tracking-wide text-stone-500">{uiText("CON")}</span>
           <input
             type="number"
             min={1}
@@ -286,7 +293,7 @@ export function MonsterKitPanel({
           onClick={() => onChange(applyClassChassis(draft, chassis))}
           className="rounded-md border border-stone-700 px-2 py-1 text-[11px] text-stone-300 hover:text-amber-100 disabled:opacity-40"
         >
-          Take its hit points, saves and swings
+          {uiText("Take its hit points, saves and swings")}
         </button>
       </div>
       {classId ? (
@@ -296,7 +303,7 @@ export function MonsterKitPanel({
       {features.length ? (
         <div className="flex flex-col gap-1">
           <span className="text-[10px] uppercase tracking-wide text-stone-500">
-            Its abilities at that level {traitsFull ? "(trait list full)" : "(click to add)"}
+            {uiText("Its abilities at that level")} {traitsFull ? uiText("(trait list full)") : uiText("(click to add)")}
           </span>
           <div className="flex flex-wrap gap-1">
             {features.map((feature) => {
@@ -308,7 +315,7 @@ export function MonsterKitPanel({
                   key={`${feature.name}-${feature.level}`}
                   type="button"
                   disabled={on || traitsFull}
-                  title={feature.text || `Gained at level ${feature.level}`}
+                  title={feature.text || uiText("Gained at level {level}", { level: feature.level })}
                   onClick={() => onChange(addTrait(draft, feature.line))}
                   className={cn(
                     chip,
@@ -328,8 +335,8 @@ export function MonsterKitPanel({
       ) : null}
 
       <div className="flex flex-wrap items-end gap-2">
-        <Select label="Armour" value={armorName} onChange={setArmorName}>
-          <option value="">Unarmoured</option>
+        <Select label={uiText("Armour")} value={armorName} onChange={setArmorName}>
+          <option value="">{uiText("Unarmoured")}</option>
           {armorOptionsFor(classId)
             .filter((armor) => armor.category !== "shield")
             .map((armor) => (
@@ -345,20 +352,20 @@ export function MonsterKitPanel({
             onChange={(event) => setShield(event.target.checked)}
             className="accent-amber-500"
           />
-          Shield
+          {uiText("Shield")}
         </label>
         <button
           type="button"
           onClick={() => onChange(applyArmor(draft, armorName, shield))}
           className="rounded-md border border-stone-700 px-2 py-1 text-[11px] text-stone-300 hover:text-amber-100"
         >
-          Set the armour class
+          {uiText("Set the armour class")}
         </button>
       </div>
 
       <div className="flex flex-wrap items-end gap-2">
-        <Select label="Weapon" value={weaponName} onChange={setWeaponName} className="w-44">
-          <option value="">Pick one</option>
+        <Select label={uiText("Weapon")} value={weaponName} onChange={setWeaponName} className="w-44">
+          <option value="">{uiText("Pick one")}</option>
           {weaponOptionsFor(classId).map((weapon) => (
             <option key={weapon.name} value={weapon.name}>
               {weapon.name} ({weapon.damage})
@@ -366,7 +373,7 @@ export function MonsterKitPanel({
           ))}
         </Select>
         <label className="flex flex-col gap-0.5">
-          <span className="text-[10px] uppercase tracking-wide text-stone-500">Ability mod</span>
+          <span className="text-[10px] uppercase tracking-wide text-stone-500">{uiText("Ability mod")}</span>
           <input
             type="number"
             min={0}
@@ -395,10 +402,10 @@ export function MonsterKitPanel({
           }}
           className="rounded-md border border-stone-700 px-2 py-1 text-[11px] text-stone-300 hover:text-amber-100 disabled:opacity-40"
         >
-          {attacksFull ? "Attack list full" : "Add it as an attack"}
+          {attacksFull ? uiText("Attack list full") : uiText("Add it as an attack")}
         </button>
         <span className="pb-1 text-[10px] text-stone-600">
-          To hit +{proficiencyBonus(level) + Math.max(0, weaponMod)} at level {level}.
+          {uiText("To hit +")}{proficiencyBonus(level) + Math.max(0, weaponMod)} {uiText("at level")} {level}.
         </span>
       </div>
     </div>

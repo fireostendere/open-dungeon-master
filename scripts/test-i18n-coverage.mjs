@@ -6,13 +6,16 @@ import ts from "typescript";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const translationPath = path.join(root, "src", "lib", "i18n", "translations.ts");
+const inlineCopyPath = path.join(root, "src", "lib", "i18n", "inline-copy.ts");
 const auditedRoots = [
   path.join(root, "src", "app"),
   path.join(root, "src", "components"),
   path.join(root, "src", "lib", "i18n"),
 ];
 const CYRILLIC = /[А-Яа-яЁё]/;
+const VISIBLE_JSX_ATTRIBUTES = /^(title|placeholder|aria-label|alt|label|description|helperText|tooltip|data-tooltip|heading|intro|hint|help|subtitle|caption|emptyText|text)$/;
 const leakage = [];
+const missingInline = [];
 const SELF_NAMED_LANGUAGE_KEYS = new Set(["common.languageRussian"]);
 const SHARED_LANGUAGE_LABELS = new Set([
   "common.appName",
@@ -100,6 +103,35 @@ function loadCatalogs() {
     en: flattenStatic(enNode),
     ru: flattenStatic(ruNode),
   };
+}
+
+function loadInlineCopy() {
+  const source = fs.readFileSync(inlineCopyPath, "utf8");
+  const sf = ts.createSourceFile(inlineCopyPath, source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
+  const declarations = new Map();
+  for (const statement of sf.statements) {
+    if (!ts.isVariableStatement(statement)) continue;
+    for (const declaration of statement.declarationList.declarations) {
+      if (ts.isIdentifier(declaration.name)) declarations.set(declaration.name.text, unwrap(declaration.initializer));
+    }
+  }
+  const copyNode = declarations.get("INLINE_COPY_RU");
+  const allowNode = declarations.get("INLINE_COPY_ALLOWLIST");
+  assert(copyNode && ts.isObjectLiteralExpression(copyNode), "INLINE_COPY_RU must be a static object");
+  assert(allowNode && ts.isNewExpression(allowNode) && ts.isArrayLiteralExpression(allowNode.arguments[0]), "INLINE_COPY_ALLOWLIST must be a static Set");
+  const copy = new Map();
+  for (const property of copyNode.properties) {
+    assert(ts.isPropertyAssignment(property), "inline Russian copy must use plain properties");
+    const key = propertyName(property.name);
+    const value = stringValue(property.initializer);
+    assert(key && value?.trim(), `inline Russian copy ${key || "<unnamed>"} must be a nonempty string`);
+    assert(!CYRILLIC.test(key), `inline Russian copy key contains Cyrillic: ${key}`);
+    assert(!copy.has(key), `duplicate inline Russian copy key: ${key}`);
+    assert.notEqual(value, key, `inline Russian copy ${key} is identical to English`);
+    copy.set(key, value);
+  }
+  const allow = new Set(allowNode.arguments[0].elements.map(stringValue));
+  return { copy, allow };
 }
 
 function compareCatalogs(en, ru) {
@@ -212,6 +244,26 @@ function isRussianScoped(node) {
   return false;
 }
 
+function isLocaleScoped(node) {
+  if (isRussianScoped(node)) return true;
+  let current = node.parent;
+  while (current) {
+    if (ts.isPropertyAssignment(current) && ["en", "ru"].includes(propertyName(current.name))) {
+      const object = unwrap(current.parent);
+      if (object && ts.isObjectLiteralExpression(object)) {
+        const names = object.properties.filter(ts.isPropertyAssignment).map(property => propertyName(property.name));
+        if (names.includes("en") && names.includes("ru")) return true;
+      }
+    }
+    if (ts.isConditionalExpression(current)) {
+      const branch = russianBranch(current.condition);
+      if (branch && (contains(current.whenTrue, node) || contains(current.whenFalse, node))) return true;
+    }
+    current = current.parent;
+  }
+  return false;
+}
+
 function flattenObjectStrings(node, prefix = "", out = new Map()) {
   const value = unwrap(node);
   if (ts.isStringLiteral(value) || ts.isNoSubstitutionTemplateLiteral(value)) {
@@ -273,7 +325,65 @@ function translationKeyPattern(node) {
   return { exact: null, pattern: new RegExp(`${source}$`) };
 }
 
-function auditUiFile(file, englishCatalog, usedKeys) {
+function visibleJsxContext(node) {
+  let current = node;
+  while (current.parent) {
+    const parent = current.parent;
+    if (ts.isJsxAttribute(parent)) {
+      return VISIBLE_JSX_ATTRIBUTES.test(parent.name.getText());
+    }
+    if (
+      ts.isCallExpression(parent) &&
+      ts.isIdentifier(parent.expression) &&
+      ["uiText", "t", "localeText", "sessionText", "messageText", "characterDisplay", "localizeReason", "displayName", "suggest", "deviceList", "cueOptions"].includes(parent.expression.text)
+    ) return false;
+    if (ts.isTypeNode(parent)) return false;
+    if (ts.isElementAccessExpression(parent) && contains(parent.argumentExpression, node)) return false;
+    if (ts.isStringLiteral(node) && /^\{[A-Za-z0-9_]+\}$/.test(node.text)) return false;
+    if (ts.isBinaryExpression(parent) && (contains(parent.left, node) || contains(parent.right, node))) {
+      const op = parent.operatorToken.kind;
+      if ([ts.SyntaxKind.EqualsEqualsEqualsToken, ts.SyntaxKind.EqualsEqualsToken, ts.SyntaxKind.ExclamationEqualsEqualsToken, ts.SyntaxKind.ExclamationEqualsToken].includes(op)) return false;
+    }
+    if (ts.isConditionalExpression(parent) && contains(parent.condition, node)) return false;
+    if (ts.isArrayLiteralExpression(parent)) {
+      let arrayOwner = parent;
+      while (
+        arrayOwner.parent &&
+        (ts.isAsExpression(arrayOwner.parent) || ts.isParenthesizedExpression(arrayOwner.parent))
+      ) arrayOwner = arrayOwner.parent;
+      const mapAccess = arrayOwner.parent;
+      if (
+        ts.isPropertyAccessExpression(mapAccess) &&
+        mapAccess.name.text === "map" &&
+        ts.isCallExpression(mapAccess.parent) &&
+        mapAccess.parent.expression === mapAccess
+      ) return false;
+    }
+    if (ts.isArrowFunction(parent)) {
+      if (ts.isBlock(parent.body)) {
+        let returned = false;
+        function findReturn(child) {
+          if (ts.isReturnStatement(child) && child.expression && contains(child.expression, node)) returned = true;
+          else if (!returned) ts.forEachChild(child, findReturn);
+        }
+        findReturn(parent.body);
+        if (!returned) return false;
+      }
+    }
+    if (ts.isJsxElement(parent) || ts.isJsxSelfClosingElement(parent)) return false;
+    if (ts.isJsxExpression(parent)) {
+      const host = parent.parent;
+      if (ts.isJsxAttribute(host)) {
+        return VISIBLE_JSX_ATTRIBUTES.test(host.name.getText());
+      }
+      if (ts.isJsxElement(host) || ts.isJsxSelfClosingElement(host)) return true;
+    }
+    current = parent;
+  }
+  return false;
+}
+
+function auditUiFile(file, englishCatalog, usedKeys, inlineCopy, inlineUsed) {
   const source = fs.readFileSync(file, "utf8");
   const sf = ts.createSourceFile(
     file,
@@ -289,6 +399,16 @@ function auditUiFile(file, englishCatalog, usedKeys) {
 
   function visit(node) {
     if (ts.isObjectLiteralExpression(node)) auditLocalizedObject(node, file);
+
+    if (ts.isCallExpression(node) && ts.isIdentifier(node.expression) && node.expression.text === "uiText") {
+      const sourceText = node.arguments[0] ? stringValue(node.arguments[0]) : null;
+      assert(sourceText, `${relative}: uiText() source must be a string literal`);
+      const key = sourceText.trim().replace(/\s+/g, " ");
+      if (!inlineCopy.copy.has(key) && !inlineCopy.allow.has(key)) {
+        missingInline.push(`${relative}: missing Russian inline copy ${JSON.stringify(key)}`);
+      }
+      inlineUsed.add(key);
+    }
 
     if (usesI18n && ts.isCallExpression(node) && ts.isIdentifier(node.expression) && node.expression.text === "t") {
       const keySpec = node.arguments[0] ? translationKeyPattern(node.arguments[0]) : null;
@@ -314,8 +434,30 @@ function auditUiFile(file, englishCatalog, usedKeys) {
     else if (ts.isJsxText(node)) text = node.getText(sf);
     else if (ts.isTemplateExpression(node)) text = node.getText(sf);
 
-    if (text && CYRILLIC.test(text)) {
+    if (relative !== "src/lib/i18n/inline-copy.ts" && text && CYRILLIC.test(text)) {
       if (!isRussianScoped(node)) leakage.push(`${relative}:${sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1}: ${JSON.stringify(text.slice(0, 80))}`);
+    }
+
+    if (relative !== "src/lib/i18n/inline-copy.ts" && !isLocaleScoped(node)) {
+      let visibleEnglish = null;
+      if (ts.isJsxText(node)) visibleEnglish = node.getText(sf).replace(/\s+/g, " ").trim();
+      else if (ts.isJsxAttribute(node) && ts.isIdentifier(node.name) && VISIBLE_JSX_ATTRIBUTES.test(node.name.text) && node.initializer) {
+        const value = ts.isJsxExpression(node.initializer) ? node.initializer.expression : node.initializer;
+        visibleEnglish = stringValue(value);
+      } else if (ts.isJsxExpression(node) && node.expression && node.parent && (ts.isJsxElement(node.parent) || ts.isJsxSelfClosingElement(node.parent))) {
+        visibleEnglish = stringValue(node.expression);
+      } else if (
+        (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node) || ts.isTemplateExpression(node)) &&
+        visibleJsxContext(node)
+      ) {
+        visibleEnglish = ts.isTemplateExpression(node)
+          ? node.head.text + node.templateSpans.map((span) => span.literal.text).join("")
+          : node.text;
+      }
+      const candidate = visibleEnglish?.replace(/\s+/g, " ").trim();
+      if (candidate && /[A-Za-z]{3}/.test(candidate) && !CYRILLIC.test(candidate) && !inlineCopy.allow.has(candidate)) {
+        leakage.push(`${relative}:${sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1}: English UI text ${JSON.stringify(candidate.slice(0, 80))}`);
+      }
     }
 
     ts.forEachChild(node, visit);
@@ -325,6 +467,7 @@ function auditUiFile(file, englishCatalog, usedKeys) {
 
 const { en, ru } = loadCatalogs();
 compareCatalogs(en, ru);
+const inlineCopy = loadInlineCopy();
 
 for (const stale of [
   "src/lib/i18n/MarkerBoundary.tsx",
@@ -343,7 +486,9 @@ assert.equal(stagedCatalogs.length, 0, "unused public/i18n/*.b64 staging catalog
 
 const files = [...new Set(auditedRoots.flatMap((dir) => walk(dir)))].sort();
 const usedKeys = new Set();
-for (const file of files) auditUiFile(file, en, usedKeys);
+const inlineUsed = new Set();
+for (const file of files) auditUiFile(file, en, usedKeys, inlineCopy, inlineUsed);
+assert.deepEqual(missingInline, [], `Russian inline copy is missing:\n${missingInline.join("\n")}`);
 assert.deepEqual(leakage, [], `Cyrillic text is reachable outside Russian locale branches:\n${leakage.join("\n")}`);
 
 console.log(

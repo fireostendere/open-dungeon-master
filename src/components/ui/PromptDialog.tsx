@@ -1,5 +1,6 @@
 "use client";
 
+import { useInlineText } from "@/lib/i18n/inline-text";
 import { useState } from "react";
 import { Dialog } from "@/components/ui/Dialog";
 import { ui } from "@/lib/ui";
@@ -34,6 +35,7 @@ function PromptForm({
   onSubmit,
   onClose,
 }: PromptProps) {
+  const uiText = useInlineText();
   const [value, setValue] = useState(defaultValue);
   const trimmed = value.trim();
   const canSubmit = allowEmpty || trimmed.length > 0;
@@ -63,7 +65,7 @@ function PromptForm({
       </label>
       <div className="flex justify-end gap-2">
         <button type="button" onClick={onClose} className={ui.btnSecondary}>
-          Cancel
+          {uiText("Cancel")}
         </button>
         <button type="submit" disabled={!canSubmit} className={ui.btnPrimary}>
           {submitLabel}

@@ -1,5 +1,6 @@
 "use client";
 
+import { useInlineText } from "@/lib/i18n/inline-text";
 import { Loader2, Mic } from "lucide-react";
 import { useRef, useState } from "react";
 import { cn } from "@/lib/cn";
@@ -17,6 +18,7 @@ export function PushToTalk({
   disabled: boolean;
   onTranscript: (text: string) => void;
 }) {
+  const uiText = useInlineText();
   const [state, setState] = useState<PttState>("idle");
   const [hint, setHint] = useState("");
   const recorderRef = useRef<MediaRecorder | null>(null);
@@ -112,8 +114,8 @@ export function PushToTalk({
         onPointerUp={stop}
         onPointerLeave={stop}
         onContextMenu={(event) => event.preventDefault()}
-        title="Hold to talk"
-        aria-label="Hold to talk"
+        title={uiText("Hold to talk")}
+        aria-label={uiText("Hold to talk")}
         data-tour="composer-talk"
         className={cn(
           "rounded-md border p-2.5 transition-colors select-none touch-none",

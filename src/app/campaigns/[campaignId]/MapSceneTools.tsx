@@ -1,5 +1,6 @@
 "use client";
 
+import { useInlineText } from "@/lib/i18n/inline-text";
 import { useId, useRef, useState } from "react";
 import { Image as ImageIcon, Loader2, Trash2 } from "lucide-react";
 import { cn } from "@/lib/cn";
@@ -27,14 +28,15 @@ export function LabelDial({
   count: number;
   onClear?: () => void;
 }) {
+  const uiText = useInlineText();
   return (
     <div className="space-y-1">
       <div className="flex flex-wrap items-center gap-2">
         <input
           value={value.text}
           maxLength={SCENE_LIMITS.labelText}
-          placeholder="1. Entry hall"
-          aria-label="Label text"
+          placeholder={uiText("1. Entry hall")}
+          aria-label={uiText("Label text")}
           onChange={(event) => onChange({ ...value, text: event.target.value })}
           className={cn(input, "min-w-40 flex-1")}
         />
@@ -45,17 +47,16 @@ export function LabelDial({
             onChange={(event) => onChange({ ...value, dmOnly: event.target.checked })}
             className="accent-amber-500"
           />
-          Only I see it
+          {uiText("Only I see it")}
         </label>
         {count && onClear ? (
           <button type="button" onClick={onClear} className="rounded-md border border-stone-700 px-2 py-0.5 text-[11px] text-stone-400 hover:text-red-300">
-            Clear all {count}
+            {uiText("Clear all")} {count}
           </button>
         ) : null}
       </div>
       <p className="text-[10px] text-stone-600">
-        Tap a tile to put the label there; tap a labelled tile to take it away. Players see the ones
-        not marked for you, and only where they have been.
+        {uiText("Tap a tile to put the label there; tap a labelled tile to take it away. Players see the ones not marked for you, and only where they have been.")}
       </p>
     </div>
   );
@@ -73,6 +74,7 @@ export function PropDial({
   // The cast, offered as a dropdown when the token is a bystander.
   npcNames?: readonly string[];
 }) {
+  const uiText = useInlineText();
   const listId = useId();
   const suggest = value.kind === "npc" && npcNames.length > 0;
   return (
@@ -81,8 +83,8 @@ export function PropDial({
         <input
           value={value.name}
           maxLength={SCENE_LIMITS.propName}
-          placeholder={value.kind === "npc" ? "Innkeeper" : "Barrel"}
-          aria-label="Prop name"
+          placeholder={value.kind === "npc" ? uiText("Innkeeper") : uiText("Barrel")}
+          aria-label={uiText("Prop name")}
           list={suggest ? listId : undefined}
           onChange={(event) => onChange({ ...value, name: event.target.value })}
           className={cn(input, "min-w-40 flex-1")}
@@ -106,14 +108,13 @@ export function PropDial({
                 value.kind === kind ? "border-amber-700 bg-amber-950/50 text-amber-100" : "border-stone-700 text-stone-400",
               )}
             >
-              {kind === "prop" ? "A thing" : "A bystander"}
+              {kind === "prop" ? uiText("A thing") : uiText("A bystander")}
             </button>
           ))}
         </span>
       </div>
       <p className="text-[10px] text-stone-600">
-        Furniture and bystanders go on the table with the map as the DM&apos;s own tokens; nothing in the
-        rules can target them. {count ? `${count} placed.` : ""} Up to {SCENE_LIMITS.props}.
+        {uiText("Furniture and bystanders go on the table with the map as the DM&apos;s own tokens; nothing in the rules can target them.")} {uiText("Placed: {count}. Up to {limit}.", { count, limit: SCENE_LIMITS.props })}
       </p>
     </div>
   );
@@ -130,6 +131,7 @@ export function ZoneDial({
   count: number;
   onClear?: () => void;
 }) {
+  const uiText = useInlineText();
   return (
     <div className="space-y-1">
       <div className="flex flex-wrap items-center gap-1">
@@ -155,23 +157,22 @@ export function ZoneDial({
         ))}
         {count && onClear ? (
           <button type="button" onClick={onClear} className="ml-2 rounded-md border border-stone-700 px-2 py-0.5 text-[11px] text-stone-400 hover:text-red-300">
-            Clear all {count}
+            {uiText("Clear all")} {count}
           </button>
         ) : null}
       </div>
       <p className="text-[10px] text-stone-600">
-        Drag a box. The light inside it overrides the map&apos;s: a lit shrine in a dark crypt, a dark alcove
-        in a bright hall. Later boxes win where they overlap. Up to {SCENE_LIMITS.zones}.
+        {uiText("Drag a box. The light inside it overrides the map&apos;s: a lit shrine in a dark crypt, a dark alcove in a bright hall. Later boxes win where they overlap. Up to")} {SCENE_LIMITS.zones}.
       </p>
     </div>
   );
 }
 
 export function DoorHint() {
+  const uiText = useInlineText();
   return (
     <p className="text-[10px] text-stone-600">
-      Tap a door to lock it, again to make it secret, again to open it. A locked or secret door is a
-      wall to everything that walks or looks until you open it; only you see which is which.
+      {uiText("Tap a door to lock it, again to make it secret, again to open it. A locked or secret door is a wall to everything that walks or looks until you open it; only you see which is which.")}
     </p>
   );
 }
@@ -183,17 +184,18 @@ export function AmbienceControls({
   value: SceneAmbience;
   onChange: (next: SceneAmbience) => void;
 }) {
+  const uiText = useInlineText();
   return (
     <div className="space-y-1">
-      <p className="text-[11px] uppercase tracking-wide text-stone-500">What it sounds like</p>
+      <p className="text-[11px] uppercase tracking-wide text-stone-500">{uiText("What it sounds like")}</p>
       <div className="flex flex-wrap gap-1.5">
         <select
           value={value.bed}
-          aria-label="Ambient bed"
+          aria-label={uiText("Ambient bed")}
           onChange={(event) => onChange({ ...value, bed: event.target.value })}
           className={input}
         >
-          <option value="">Leave the place sound alone</option>
+          <option value="">{uiText("Leave the place sound alone")}</option>
           {cueOptions("bed").map((option) => (
             <option key={option.value} value={option.value}>
               {option.label}
@@ -202,11 +204,11 @@ export function AmbienceControls({
         </select>
         <select
           value={value.music}
-          aria-label="Music"
+          aria-label={uiText("Music")}
           onChange={(event) => onChange({ ...value, music: event.target.value })}
           className={input}
         >
-          <option value="">Leave the music alone</option>
+          <option value="">{uiText("Leave the music alone")}</option>
           {cueOptions("music").map((option) => (
             <option key={option.value} value={option.value}>
               {option.label}
@@ -214,7 +216,7 @@ export function AmbienceControls({
           ))}
         </select>
       </div>
-      <p className="text-[10px] text-stone-600">Played when this map goes on the table.</p>
+      <p className="text-[10px] text-stone-600">{uiText("Played when this map goes on the table.")}</p>
     </div>
   );
 }
@@ -230,6 +232,7 @@ export function OverlayControls({
   busy?: boolean;
   onChange: (path: string) => void;
 }) {
+  const uiText = useInlineText();
   const fileRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
@@ -265,7 +268,7 @@ export function OverlayControls({
   return (
     <div className="space-y-1">
       <p className="flex items-center gap-1.5 text-[11px] uppercase tracking-wide text-stone-500">
-        <ImageIcon className="size-3.5" /> Your own overlay
+        <ImageIcon className="size-3.5" /> {uiText("Your own overlay")}
       </p>
       <div className="flex flex-wrap items-center gap-1.5">
         <input
@@ -288,7 +291,7 @@ export function OverlayControls({
           className="flex items-center gap-1 rounded-md border border-stone-700 px-2 py-1 text-xs text-stone-300 hover:bg-stone-900 disabled:opacity-50"
         >
           {uploading ? <Loader2 className="size-3 animate-spin" /> : <ImageIcon className="size-3" />}
-          {overlayPath ? "Replace it" : "Add the annotated picture"}
+          {overlayPath ? uiText("Replace it") : uiText("Add the annotated picture")}
         </button>
         {overlayPath ? (
           <button
@@ -297,13 +300,12 @@ export function OverlayControls({
             onClick={() => onChange("")}
             className="flex items-center gap-1 rounded-md border border-stone-700 px-2 py-1 text-xs text-stone-400 hover:bg-stone-900 disabled:opacity-50"
           >
-            <Trash2 className="size-3" /> Take it away
+            <Trash2 className="size-3" /> {uiText("Take it away")}
           </button>
         ) : null}
       </div>
       <p className="text-[10px] text-stone-600">
-        Drawn over the map in the same register as the picture under it, for your eyes only: the
-        version with the trap markings and the room numbers.
+        {uiText("Drawn over the map in the same register as the picture under it, for your eyes only: the version with the trap markings and the room numbers.")}
       </p>
       {error ? <p className="text-[11px] text-red-400">{error}</p> : null}
     </div>

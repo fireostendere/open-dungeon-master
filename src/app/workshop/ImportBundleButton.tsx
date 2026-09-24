@@ -4,10 +4,11 @@ import { FileUp, Loader2 } from "lucide-react";
 import { useRef, useState } from "react";
 import { ui } from "@/lib/ui";
 import { UnofficialPackNotice } from "@/components/UnofficialPackNotice";
-import { BUNDLE_KIND_LABELS, MAX_BUNDLE_BYTES } from "@/lib/workshop/bundle";
+import { BUNDLE_KIND_LABELS, BUNDLE_KIND_LABELS_RU, MAX_BUNDLE_BYTES } from "@/lib/workshop/bundle";
 import { navigateTo } from "@/lib/navigation";
 import { useI18n } from "@/lib/i18n/context";
 import { localeText } from "@/lib/i18n/locale-text";
+import { useInlineText } from "@/lib/i18n/inline-text";
 
 // Opening somebody else's workshop.
 //
@@ -41,8 +42,10 @@ export function ImportBundleButton({
   label?: string;
   className?: string;
 } = {}) {
+  const uiText = useInlineText();
   const { locale } = useI18n();
   const copy = localeText(locale, { en: { open: "Open a bundle", unreadable: "That bundle could not be read.", importFailed: "That bundle could not be imported.", by: "by", note: "This creates a new workshop of your own. Nothing is written into any campaign you already have.", empty: "Import an empty workshop", import: "Import it", cancel: "Cancel" }, ru: { open: "Открыть набор", unreadable: "Не удалось прочитать этот набор.", importFailed: "Не удалось импортировать этот набор.", by: "автор: ", note: "Это создаст новую мастерскую. Ни одна из ваших существующих кампаний не будет изменена.", empty: "Импортировать пустую мастерскую", import: "Импортировать", cancel: "Отмена" } });
+  const kindLabels = locale === "ru" ? BUNDLE_KIND_LABELS_RU : BUNDLE_KIND_LABELS;
   const input = useRef<HTMLInputElement>(null);
   const [text, setText] = useState("");
   const [preview, setPreview] = useState<Preview | null>(null);
@@ -163,7 +166,7 @@ export function ImportBundleButton({
                       className="accent-amber-500"
                     />
                     {kind === "rules" ? "" : `${preview.counts[kind]} `}
-                    {BUNDLE_KIND_LABELS[kind] ?? kind}
+                    {kindLabels[kind] ?? kind}
                   </label>
                 </li>
               );
@@ -197,7 +200,7 @@ export function ImportBundleButton({
                 ? copy.empty
                 : kinds.length === kindsOf(preview).length
                   ? copy.import
-                  : `Import ${kinds.length} of ${kindsOf(preview).length} kinds`}
+                : uiText("Import {count} of {total} kinds", { count: kinds.length, total: kindsOf(preview).length })}
             </button>
             <button
               type="button"

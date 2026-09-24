@@ -1,5 +1,6 @@
 "use client";
 
+import { useInlineText } from "@/lib/i18n/inline-text";
 import { X } from "lucide-react";
 import type { ReactNode } from "react";
 import { InfoButton, type ContentRef } from "@/components/ui/InfoDialog";
@@ -75,6 +76,7 @@ export function Chip({
   homebrew?: boolean;
   info?: InfoSource;
 }) {
+  const uiText = useInlineText();
   return (
     <span
       className={cn(
@@ -92,7 +94,7 @@ export function Chip({
         type="button"
         onClick={onRemove}
         className="text-stone-500 hover:text-red-400"
-        aria-label={`Remove ${label}`}
+        aria-label={uiText("Remove {value}", { value: label })}
       >
         <X className="size-3" />
       </button>

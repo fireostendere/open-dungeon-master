@@ -1,5 +1,6 @@
 "use client";
 
+import { useInlineText } from "@/lib/i18n/inline-text";
 import { X } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { cn } from "@/lib/cn";
@@ -44,6 +45,7 @@ export function DirectorArmedBanner({
   // until the first event, which is why we also fetch once on mount.
   armed?: ArmState | null;
 }) {
+  const uiText = useInlineText();
   // Two sources, and they carry different things. The stream says only
   // WHETHER something is armed, because that event reaches every player and
   // the directive's text is a spoiler. The directive itself comes from this
@@ -92,8 +94,10 @@ export function DirectorArmedBanner({
       </span>
       <span className="min-w-0 flex-1 truncate">
         {state.absoluteCommand
-          ? `Direction armed: "${state.absoluteCommand}"`
-          : `${state.oneShot ? oneShotLabel(state.oneShot) : "Event"} armed for the next turn`}
+          ? uiText("Direction armed: \"{command}\"", { command: state.absoluteCommand })
+          : uiText("{event} armed for the next turn", {
+              event: state.oneShot ? oneShotLabel(state.oneShot) : uiText("Event"),
+            })}
       </span>
       {steersStory ? (
         <button
@@ -112,7 +116,7 @@ export function DirectorArmedBanner({
               .finally(() => setBusy(false));
           }}
           className={cn(ui.iconAction, "-my-1 shrink-0 disabled:opacity-50")}
-          aria-label="Disarm"
+          aria-label={uiText("Disarm")}
         >
           <X className="size-3.5" />
         </button>

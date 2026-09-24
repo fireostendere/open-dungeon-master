@@ -303,6 +303,20 @@ export const BUNDLE_KIND_LABELS: Record<string, string> = {
   rules: "House rules",
 };
 
+export const BUNDLE_KIND_LABELS_RU: Record<string, string> = {
+  lore: "Сведения о мире",
+  locations: "Места",
+  npcs: "NPC",
+  encounters: "Подготовленные встречи",
+  tables: "Таблицы бросков",
+  maps: "Боевые карты",
+  storyboard: "Карточки сюжета",
+  monsters: "Созданные чудовища",
+  homebrew: "Предметы, заклинания и варианты хоумбрю",
+  pregens: "Готовые персонажи",
+  rules: "Домашние правила",
+};
+
 export type BundleCounts = Record<keyof typeof BUNDLE_LIMITS, number>;
 
 export function bundleCounts(bundle: WorkshopBundle): BundleCounts {

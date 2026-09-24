@@ -1,9 +1,9 @@
-import { Loader2 } from "lucide-react";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/cn";
 import { PixelTile, ui } from "@/lib/ui";
 import type { AccountMenuUser } from "@/components/AccountMenu";
 import { AppHeader } from "@/components/AppHeader";
+import { LocalizedLoader } from "@/components/LocalizedLoader";
 import { Ribbon } from "@/components/ui/Ribbon";
 
 // The shared frame for the flat signed-in pages (settings, admin, friends,
@@ -153,7 +153,7 @@ export function PageLoading({ width = "wide" }: { width?: PageWidth }) {
     <Column width={width}>
       <AppHeader />
       <div className="flex justify-center py-10">
-        <Loader2 className="size-5 animate-spin text-stone-500" aria-label="Loading" />
+        <LocalizedLoader className="size-5 animate-spin text-stone-500" />
       </div>
     </Column>
   );

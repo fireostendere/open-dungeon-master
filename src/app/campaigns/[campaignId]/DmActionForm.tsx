@@ -1,5 +1,6 @@
 "use client";
 
+import { useInlineText } from "@/lib/i18n/inline-text";
 import { useMemo, useState } from "react";
 import { Loader2, Play } from "lucide-react";
 import { cn } from "@/lib/cn";
@@ -70,6 +71,7 @@ export function DmActionForm({
   initialArgs?: Record<string, unknown>;
   onRan?: () => void;
 }) {
+  const uiText = useInlineText();
   const [values, setValues] = useState<Record<string, Value>>(() =>
     Object.fromEntries(
       entry.fields.map((field) => [
@@ -140,7 +142,7 @@ export function DmActionForm({
 
       {blocked ? (
         <p className="rounded-md border border-stone-800 bg-stone-900/60 px-2 py-1.5 text-xs text-stone-400">
-          Needs a fight running. Start one first.
+          {uiText("Needs a fight running. Start one first.")}
         </p>
       ) : null}
 
@@ -174,7 +176,7 @@ export function DmActionForm({
           )}
         >
           {busy ? <Loader2 className="size-3.5 animate-spin" /> : <Play className="size-3.5" />}
-          Run
+          {uiText("Run")}
         </button>
         {error ? <span className="text-xs text-red-300">{error}</span> : null}
         {outcome ? <span className="text-xs text-emerald-300">{outcome}</span> : null}
@@ -223,6 +225,7 @@ function FieldInput({
   sheets: CharacterSheet[];
   enemies: NonNullable<PublicEncounter["enemies"]>;
 }) {
+  const uiText = useInlineText();
   switch (field.kind) {
     case "character":
       return (
@@ -231,7 +234,7 @@ function FieldInput({
           onChange={(event) => onChange(event.target.value)}
           className={inputClass}
         >
-          <option value="">Pick a character</option>
+          <option value="">{uiText("Pick a character")}</option>
           {sheets.map((sheet) => (
             <option key={sheet.id} value={sheet.id}>
               {sheet.name}
@@ -264,7 +267,7 @@ function FieldInput({
             );
           })}
           {sheets.length === 0 ? (
-            <span className="text-xs text-stone-600">Nobody has a character yet.</span>
+            <span className="text-xs text-stone-600">{uiText("Nobody has a character yet.")}</span>
           ) : null}
         </div>
       );
@@ -276,7 +279,7 @@ function FieldInput({
           onChange={(event) => onChange(event.target.value)}
           className={inputClass}
         >
-          <option value="">Pick an enemy</option>
+          <option value="">{uiText("Pick an enemy")}</option>
           {enemies.map((enemy) => (
             <option key={enemy.id} value={enemy.id}>
               {enemy.name}
@@ -292,7 +295,7 @@ function FieldInput({
           onChange={(event) => onChange(event.target.value)}
           className={inputClass}
         >
-          <option value="">Not set</option>
+          <option value="">{uiText("Not set")}</option>
           {(field.options ?? []).map((option) => (
             <option key={option.value} value={option.value}>
               {option.label}

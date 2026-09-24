@@ -1,5 +1,6 @@
 "use client";
 
+import { useInlineText } from "@/lib/i18n/inline-text";
 import { AlertTriangle, Copy, Info, Loader2, OctagonX, Trash2 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import type { VariantRules } from "@/lib/rulesets/logic";
@@ -10,7 +11,6 @@ import { ItemFields } from "@/app/workshop/homebrew/ItemFields";
 import { OptionFields } from "@/app/workshop/homebrew/OptionFields";
 import { SpellFields } from "@/app/workshop/homebrew/SpellFields";
 import { draftFindings, draftFromCatalog, type HomebrewDraft } from "@/app/workshop/homebrew/draft";
-import { KIND_SINGULAR } from "@/app/workshop/homebrew/types";
 import { useI18n } from "@/lib/i18n/context";
 import { localeText } from "@/lib/i18n/locale-text";
 
@@ -55,6 +55,7 @@ export function HomebrewEditor({
   onDuplicate: () => void;
   onDelete: () => void;
 }) {
+  const uiText = useInlineText();
   const { locale } = useI18n();
   const copy = localeText(locale, { en: { name: "Name", description: "Description", keep: "Keep it", save: "Save", duplicate: "Duplicate", forget: "Forget it" }, ru: { name: "Название", description: "Описание", keep: "Сохранить", save: "Сохранить", duplicate: "Дублировать", forget: "Удалить" } });
   const findings = draftFindings(draft, variantRules);
@@ -75,7 +76,7 @@ export function HomebrewEditor({
         label={copy.name}
         value={draft.name}
         onChange={(name) => onDraft({ ...draft, name: name.slice(0, 80) })}
-        placeholder={`What this ${KIND_SINGULAR[draft.kind]} is called`}
+        placeholder={uiText("What this is called")}
         maxLength={80}
       />
 
@@ -92,10 +93,10 @@ export function HomebrewEditor({
         rows={draft.kind === "spell" ? 5 : 3}
         placeholder={
           draft.kind === "spell"
-            ? "Each creature in a 15-foot cone must make a Dexterity saving throw, taking 3d6 fire damage on a failed save, or half as much on a successful one."
-            : "What it is, in the words the players will read."
+            ? uiText("Each creature in a 15-foot cone must make a Dexterity saving throw, taking 3d6 fire damage on a failed save, or half as much on a successful one.")
+            : uiText("What it is, in the words the players will read.")
         }
-        hint={draft.kind === "spell" ? "The engine reads the damage, the save and the damage type out of this." : undefined}
+        hint={draft.kind === "spell" ? uiText("The engine reads the damage, the save and the damage type out of this.") : undefined}
       />
 
       {findings.length ? (

@@ -1,5 +1,6 @@
 "use client";
 
+import { useInlineText } from "@/lib/i18n/inline-text";
 import * as Dialog from "@radix-ui/react-dialog";
 import { Loader2, RefreshCw, X } from "lucide-react";
 import { useState } from "react";
@@ -28,6 +29,7 @@ export function RenarrateDialog({
   message: CampaignMessage;
   onClose: () => void;
 }) {
+  const uiText = useInlineText();
   const [guidance, setGuidance] = useState("");
   // NE-P opens its regenerate sheet at base + 0.1 and remembers a dragged
   // offset for the rest of the browse session. This dialog is per-reroll, so
@@ -75,7 +77,7 @@ export function RenarrateDialog({
         >
           <div className="mb-3 flex items-center justify-between">
             <Dialog.Title className="flex items-center gap-2 font-display text-lg tracking-wide text-amber-50">
-              <RefreshCw className="size-4 text-amber-300" /> Reroll the narration
+              <RefreshCw className="size-4 text-amber-300" /> {uiText("Reroll the narration")}
             </Dialog.Title>
             <Dialog.Close className="text-stone-500 hover:text-stone-300">
               <X className="size-4" />
@@ -83,14 +85,14 @@ export function RenarrateDialog({
           </div>
 
           <p className="mb-3 text-xs leading-5 text-stone-400">
-            The DM says the same moment in different words. Nothing else moves: the
-            same rolls, the same damage, the same outcome. Take {taken} of{" "}
-            {MAX_VARIANTS}.
-            {capped ? " That is every take; browse them and pick one." : ""}
+            {uiText("The DM retells the same moment in different words. Nothing else moves: the same rolls, damage and outcome. Take {taken} of {total}.", {
+              taken,
+              total: MAX_VARIANTS,
+            })}{capped ? ` ${uiText("All variants are ready; browse them and choose one.")}` : ""}
           </p>
 
           <label className="mb-1 flex items-center justify-between text-[10px] font-medium uppercase tracking-wide text-stone-500">
-            <span>Variation</span>
+            <span>{uiText("Variation")}</span>
             <span className="font-mono normal-case tracking-normal text-stone-400">
               +{tempOffset.toFixed(2)}
             </span>
@@ -104,18 +106,18 @@ export function RenarrateDialog({
             disabled={running}
             onChange={(event) => setTempOffset(Number(event.target.value))}
             className="mb-3 w-full accent-amber-500"
-            aria-label="How far this take may drift from the last"
+            aria-label={uiText("How far this take may drift from the last")}
           />
 
           <label className="mb-1 block text-[10px] font-medium uppercase tracking-wide text-stone-500">
-            Guidance for this take (optional)
+            {uiText("Guidance for this take (optional)")}
           </label>
           <input
             value={guidance}
             onChange={(event) => setGuidance(event.target.value)}
             maxLength={MAX_GUIDANCE_LENGTH}
             disabled={running}
-            placeholder="darker, more dialogue, shorter..."
+            placeholder={uiText("darker, more dialogue, shorter...")}
             className={ui.input}
           />
           <div className="mt-2 flex flex-wrap gap-1.5">
@@ -141,7 +143,7 @@ export function RenarrateDialog({
 
           <div className="mt-4 flex justify-end gap-2">
             <button type="button" onClick={onClose} disabled={running} className={ui.btnSmall}>
-              Cancel
+              {uiText("Cancel")}
             </button>
             <button
               type="button"
@@ -151,10 +153,10 @@ export function RenarrateDialog({
             >
               {running ? (
                 <>
-                  <Loader2 className="size-4 animate-spin" /> Writing...
+                  <Loader2 className="size-4 animate-spin" /> {uiText("Writing...")}
                 </>
               ) : (
-                "Reroll"
+                uiText("Reroll")
               )}
             </button>
           </div>

@@ -1,5 +1,6 @@
 "use client";
 
+import { useInlineText } from "@/lib/i18n/inline-text";
 import { UnofficialPackNotice } from "@/components/UnofficialPackNotice";
 import { InfoButton } from "@/components/ui/InfoDialog";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
@@ -41,13 +42,13 @@ export function IdentityStep({
   backgroundGroups: PickerGroup[];
   background: BackgroundOption | undefined;
 }) {
+  const uiText = useInlineText();
   return (
     <div className="space-y-4">
       {!packInstalled ? (
         <p className="rounded-lg border border-stone-700/60 bg-stone-900/60 p-3 text-xs text-stone-400">
-          Content pack not installed; showing SRD 5.1 basics only. Run
-          <span className="font-mono"> node scripts/import-open5e.mjs</span> on the server
-          for the full Open5e catalog.
+          {uiText("Content pack not installed; showing SRD 5.1 basics only. Run")}
+          <span className="font-mono"> node scripts/import-open5e.mjs</span> {uiText("on the server for the full Open5e catalog.")}
         </p>
       ) : null}
       {pack ? (
@@ -56,7 +57,7 @@ export function IdentityStep({
             <span className="font-medium">{pack.name}</span> · {pack.blurb}
           </p>
           <p className="mt-1 text-[11px] text-stone-400">
-            Names only. Every race, class, spell and item below plays by the same 5e rules.
+            {uiText("Names only. Every race, class, spell and item below plays by the same 5e rules.")}
           </p>
           <UnofficialPackNotice
             rightsHolder={pack.rightsHolder}
@@ -67,15 +68,15 @@ export function IdentityStep({
         </div>
       ) : null}
 
-      <StepPanel title="Name your hero" ornate>
+      <StepPanel title={uiText("Name your hero")} ornate>
         <input
           value={state.name}
           onChange={(event) => state.setName(event.target.value)}
           required
           maxLength={60}
-          placeholder={pack?.nameHints || "Thornwick Ashvale"}
+          placeholder={pack?.nameHints || uiText("Thornwick Ashvale")}
           className={inputClass}
-          aria-label="Name"
+          aria-label={uiText("Name")}
         />
         {pack?.nameSeeds.people.length ? (
           <span className="mt-2 flex flex-wrap gap-1">
@@ -93,9 +94,9 @@ export function IdentityStep({
         ) : null}
         {role ? (
           <div className="mt-4">
-            <span className="mb-1.5 block text-xs text-stone-400">Their place at the table</span>
+            <span className="mb-1.5 block text-xs text-stone-400">{uiText("Their place at the table")}</span>
             <SegmentedControl
-              label="Role"
+              label={uiText("Role")}
               value={role.value}
               onChange={role.onChange}
               options={[
@@ -106,31 +107,31 @@ export function IdentityStep({
             />
             <p className="mt-1.5 text-xs text-stone-500">
               {role.value === "companion"
-                ? "Companions are offered when a party adds one, at whatever level that table plays at. Nobody has to roll them up again."
-                : "Joins a campaign as yours to control."}
+                ? uiText("Companions are offered when a party adds one, at whatever level that table plays at. Nobody has to roll them up again.")
+                : uiText("Joins a campaign as yours to control.")}
             </p>
           </div>
         ) : null}
       </StepPanel>
 
-      <StepPanel title="Details">
+      <StepPanel title={uiText("Details")}>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <Field label="Gender">
+          <Field label={uiText("Gender")}>
             <select
               value={state.gender}
               onChange={(event) => state.setGender(event.target.value)}
               className={inputClass}
             >
-              <option value="">Unspecified</option>
+              <option value="">{uiText("Unspecified")}</option>
               {GENDERS.map((value) => (
                 <option key={value} value={value}>{value}</option>
               ))}
             </select>
           </Field>
-          <Field label="Level">
+          <Field label={uiText("Level")}>
             {fixedLevel ? (
               <span className="block rounded-lg border border-stone-700/70 bg-stone-950/60 px-3 py-2 text-sm text-stone-400">
-                {fixedLevel} (campaign)
+                {fixedLevel} {uiText("(campaign)")}
               </span>
             ) : (
               <select
@@ -144,7 +145,7 @@ export function IdentityStep({
               </select>
             )}
           </Field>
-          <Field label="Background">
+          <Field label={uiText("Background")}>
             <OptionPicker
               value={background?.id ?? ""}
               groups={backgroundGroups}
@@ -154,7 +155,7 @@ export function IdentityStep({
             {background ? (
               <span className="mt-1 flex items-start gap-1 text-xs text-stone-500">
                 <span className="grow">
-                  {background.skills.length ? "Grants " : null}
+                  {background.skills.length ? uiText("Grants ") : null}
                   {background.skills.length
                     ? background.skills.map((skillId, index) => {
                         const name =
@@ -170,7 +171,7 @@ export function IdentityStep({
                           </span>
                         );
                       })
-                    : "What your character did before adventuring."}
+                    : uiText("What your character did before adventuring.")}
                 </span>
                 <InfoButton
                   label={background.name}
@@ -183,8 +184,8 @@ export function IdentityStep({
           <Field
             label={
               <span className="flex items-center gap-1">
-                Alignment
-                <InfoButton label="Alignment" text={alignmentInfo} />
+                {uiText("Alignment")}
+                <InfoButton label={uiText("Alignment")} text={alignmentInfo} />
               </span>
             }
           >

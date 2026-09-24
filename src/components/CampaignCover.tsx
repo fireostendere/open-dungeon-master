@@ -1,5 +1,8 @@
+"use client";
+
 import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/cn";
+import { useInlineText } from "@/lib/i18n/inline-text";
 import type { CampaignCover as CampaignCoverRef } from "@/lib/campaign-types";
 import { campaignPlaceholder } from "@/lib/placeholders";
 
@@ -33,6 +36,7 @@ export function CampaignCover({
   status?: CoverStatus;
   className?: string;
 }) {
+  const uiText = useInlineText();
   const pending = status === "queued" || status === "generating";
   const url = cover?.url ?? campaignPlaceholder(genre, seed ?? "");
   return (
@@ -45,14 +49,14 @@ export function CampaignCover({
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={url}
-        alt={cover ? `${title} cover art` : ""}
-        aria-label={cover ? undefined : `${title} has no cover art yet`}
+        alt={cover ? uiText("{title} cover art", { title }) : ""}
+        aria-label={cover ? undefined : uiText("{title} has no cover art yet", { title })}
         className={cn("size-full object-cover", !cover && pending && "opacity-40")}
         loading="lazy"
       />
       {pending ? (
         <div className="absolute inset-0 flex items-center justify-center bg-black/40">
-          <Loader2 className="size-6 animate-spin text-amber-200" aria-label="Painting the cover" />
+          <Loader2 className="size-6 animate-spin text-amber-200" aria-label={uiText("Painting the cover")} />
         </div>
       ) : null}
     </div>

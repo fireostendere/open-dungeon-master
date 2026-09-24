@@ -1,11 +1,13 @@
 "use client";
 
+import { useInlineText } from "@/lib/i18n/inline-text";
 import { usePackArt } from "@/lib/worlds/use-pack-art";
 
 // The pictures a world pack carries for its places and factions, as a strip
 // under the world's name. Renders nothing at all for a pack with no art, so
 // a table on a plain pack sees exactly what it saw before.
 export function WorldPackGallery({ packId }: { packId: string }) {
+  const uiText = useInlineText();
   const art = usePackArt(packId);
   if (!art.pack) {
     return null;
@@ -21,8 +23,8 @@ export function WorldPackGallery({ packId }: { packId: string }) {
   }
   return (
     <div className="space-y-2">
-      {places.length ? <Strip label="Places" entries={places} wide /> : null}
-      {factions.length ? <Strip label="Factions" entries={factions} /> : null}
+      {places.length ? <Strip label={uiText("Places")} entries={places} wide /> : null}
+      {factions.length ? <Strip label={uiText("Factions")} entries={factions} /> : null}
     </div>
   );
 }

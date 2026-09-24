@@ -1,5 +1,6 @@
 "use client";
 
+import { useInlineText } from "@/lib/i18n/inline-text";
 import { useEffect, useRef } from "react";
 import { Loader2, Search } from "lucide-react";
 import { InfoButton } from "@/components/ui/InfoDialog";
@@ -37,6 +38,7 @@ export function ContentPick({
   className?: string;
   extraParams?: Record<string, string>;
 }) {
+  const uiText = useInlineText();
   const { query, setQuery, results, open, setOpen, loading, unavailable } = useContentSearch(
     kind,
     extraParams ?? {},
@@ -73,7 +75,7 @@ export function ContentPick({
       </div>
       {open && !results.length && query.trim() && !loading ? (
         <p className="mt-1 rounded-lg border border-stone-800 bg-stone-950/60 px-3 py-1.5 text-[11px] text-stone-500">
-          Nothing matched &quot;{query.trim()}&quot;. Try fewer letters.
+          {uiText("Nothing matched &quot;")}{query.trim()}{uiText("&quot;. Try fewer letters.")}
         </p>
       ) : null}
       {open && results.length ? (
@@ -91,7 +93,7 @@ export function ContentPick({
               >
                 <span className={cn(entry.source === "homebrew" && "text-amber-300")}>{entry.name}</span>
                 <span className="text-[11px] text-stone-500">
-                  {entry.level !== undefined ? `level ${entry.level}` : entry.rarity || entry.kind || ""}
+                  {entry.level !== undefined ? uiText("Level {level}", { level: entry.level }) : entry.rarity || entry.kind || ""}
                 </span>
               </button>
               <InfoButton

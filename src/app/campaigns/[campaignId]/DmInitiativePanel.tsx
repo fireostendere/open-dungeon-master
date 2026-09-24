@@ -1,5 +1,6 @@
 "use client";
 
+import { useInlineText } from "@/lib/i18n/inline-text";
 import { ChevronDown, ChevronUp, Clock, ListRestart, Plus, SkipBack, SkipForward, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/cn";
@@ -28,6 +29,7 @@ export function DmInitiativePanel({
   campaignId: string;
   encounter: PublicEncounter;
 }) {
+  const uiText = useInlineText();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [adding, setAdding] = useState(false);
@@ -63,7 +65,7 @@ export function DmInitiativePanel({
   if (!encounter.orderReady) {
     return (
       <p className="mt-2 text-[11px] text-stone-500">
-        The order locks once every initiative is in. The monsters have already rolled.
+        {uiText("The order locks once every initiative is in. The monsters have already rolled.")}
       </p>
     );
   }
@@ -72,14 +74,14 @@ export function DmInitiativePanel({
     <section className="mt-2 space-y-1.5 rounded-lg border border-stone-800 bg-stone-950/60 px-2.5 py-2">
       <div className="flex flex-wrap items-center gap-1">
         <p className="mr-auto text-xs font-medium uppercase tracking-wide text-stone-500">
-          The order
+          {uiText("The order")}
         </p>
         <button
           type="button"
           disabled={busy}
           onClick={() => void send({ op: "step", direction: "back" })}
-          aria-label="Back a turn"
-          title="Back a turn"
+          aria-label={uiText("Back a turn")}
+          title={uiText("Back a turn")}
           className="rounded-md border border-stone-700 p-1 text-stone-400 hover:text-stone-200 disabled:opacity-40"
         >
           <SkipBack className="size-3.5" />
@@ -88,8 +90,8 @@ export function DmInitiativePanel({
           type="button"
           disabled={busy}
           onClick={() => void send({ op: "step", direction: "forward" })}
-          aria-label="On a turn"
-          title="On a turn"
+          aria-label={uiText("On a turn")}
+          title={uiText("On a turn")}
           className="rounded-md border border-stone-700 p-1 text-stone-400 hover:text-stone-200 disabled:opacity-40"
         >
           <SkipForward className="size-3.5" />
@@ -102,8 +104,8 @@ export function DmInitiativePanel({
               void send({ op: "reset" });
             }
           }}
-          aria-label="Reset initiative"
-          title="Reset initiative"
+          aria-label={uiText("Reset initiative")}
+          title={uiText("Reset initiative")}
           className="rounded-md border border-stone-700 p-1 text-stone-400 hover:text-stone-200 disabled:opacity-40"
         >
           <ListRestart className="size-3.5" />
@@ -127,7 +129,7 @@ export function DmInitiativePanel({
               type="button"
               disabled={busy || entry.kind !== "pc" || index === encounter.turnIndex}
               onClick={() => void send({ op: "goto", id: entry.id })}
-              title={entry.kind === "pc" ? "Give them the turn" : "The turn rests on players only"}
+              title={entry.kind === "pc" ? uiText("Give them the turn") : uiText("The turn rests on players only")}
               className={cn(
                 "min-w-0 flex-1 truncate text-left text-xs disabled:cursor-default",
                 index === encounter.turnIndex ? "text-amber-100" : "text-stone-300",
@@ -137,15 +139,15 @@ export function DmInitiativePanel({
               {entry.name}
               <span className="ml-1.5 text-[10px] text-stone-600">
                 {KIND_LABELS[entry.kind] ?? entry.kind}
-                {entry.hidden ? " · hidden" : ""}
+                {entry.hidden ? uiText(" · hidden") : ""}
               </span>
             </button>
             <button
               type="button"
               disabled={busy}
               onClick={() => void send({ op: "move", id: entry.id, direction: "up" })}
-              aria-label={`Move ${entry.name} up the order`}
-              title="Up the order"
+              aria-label={uiText("Move {name} up the order", { name: entry.name })}
+              title={uiText("Up the order")}
               className="rounded p-0.5 text-stone-500 hover:text-stone-200 disabled:opacity-40"
             >
               <ChevronUp className="size-3.5" />
@@ -154,8 +156,8 @@ export function DmInitiativePanel({
               type="button"
               disabled={busy}
               onClick={() => void send({ op: "move", id: entry.id, direction: "down" })}
-              aria-label={`Move ${entry.name} down the order`}
-              title="Down the order"
+              aria-label={uiText("Move {name} down the order", { name: entry.name })}
+              title={uiText("Down the order")}
               className="rounded p-0.5 text-stone-500 hover:text-stone-200 disabled:opacity-40"
             >
               <ChevronDown className="size-3.5" />
@@ -164,8 +166,8 @@ export function DmInitiativePanel({
               type="button"
               disabled={busy}
               onClick={() => void send({ op: "delay", id: entry.id })}
-              aria-label={`Delay ${entry.name} to the bottom of the round`}
-              title="Delay to the bottom of the round"
+              aria-label={uiText("Delay {name} to the bottom of the round", { name: entry.name })}
+              title={uiText("Delay to the bottom of the round")}
               className="rounded p-0.5 text-stone-500 hover:text-stone-200 disabled:opacity-40"
             >
               <Clock className="size-3.5" />
@@ -174,8 +176,8 @@ export function DmInitiativePanel({
               type="button"
               disabled={busy}
               onClick={() => void send({ op: "remove", id: entry.id })}
-              aria-label={`Take ${entry.name} out of the order`}
-              title="Out of the order"
+              aria-label={uiText("Take {name} out of the order", { name: entry.name })}
+              title={uiText("Out of the order")}
               className="rounded p-0.5 text-stone-500 hover:text-red-300 disabled:opacity-40"
             >
               <Trash2 className="size-3.5" />
@@ -189,7 +191,7 @@ export function DmInitiativePanel({
             value={name}
             onChange={(event) => setName(event.target.value)}
             maxLength={ENTRY_NAME_MAX}
-            placeholder="Captain Vell"
+            placeholder={uiText("Captain Vell")}
             className="min-w-0 flex-1 rounded-md border border-stone-700 bg-stone-950 px-2 py-1 text-xs text-stone-200 placeholder:text-stone-600"
           />
           <input
@@ -213,14 +215,14 @@ export function DmInitiativePanel({
             }}
             className="rounded-md border border-amber-700 bg-amber-950/50 px-2 py-1 text-xs text-amber-100 disabled:opacity-40"
           >
-            Add
+            {uiText("Add")}
           </button>
           <button
             type="button"
             onClick={() => setAdding(false)}
             className="rounded-md border border-stone-700 px-2 py-1 text-xs text-stone-400 hover:text-stone-200"
           >
-            Cancel
+            {uiText("Cancel")}
           </button>
         </div>
       ) : (
@@ -230,12 +232,11 @@ export function DmInitiativePanel({
           className="flex items-center gap-1 rounded-md border border-stone-700 px-2 py-1 text-xs text-stone-400 hover:text-stone-200"
         >
           <Plus className="size-3.5" />
-          A slot of your own
+          {uiText("A slot of your own")}
         </button>
       )}
       <p className="text-[11px] leading-4 text-stone-600">
-        Stepping back moves the turn, not the world: hit points and conditions stay where
-        the fight left them.
+        {uiText("Stepping back moves the turn, not the world: hit points and conditions stay where the fight left them.")}
       </p>
       {error ? <p className="text-[11px] text-red-400">{error}</p> : null}
     </section>

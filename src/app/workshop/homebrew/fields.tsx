@@ -8,6 +8,7 @@ import { OptionGlossary } from "@/components/ui/OptionGlossary";
 import type { GlossaryEntry } from "@/lib/help/terms";
 import { useI18n } from "@/lib/i18n/context";
 import { localeText } from "@/lib/i18n/locale-text";
+import { characterDisplay } from "@/lib/i18n/character-display";
 
 // The three inputs every homebrew form is made of, labelled the same way
 // the monster editor labels its own, so the two read as one workshop.
@@ -231,6 +232,7 @@ export function ToggleChips<T extends string>({
   onChange: (next: T[]) => void;
   labels?: Partial<Record<T, string>>;
 }) {
+  const { locale } = useI18n();
   return (
     <div className="flex flex-wrap gap-1">
       {options.map((option) => {
@@ -254,7 +256,7 @@ export function ToggleChips<T extends string>({
                 : "border-stone-700 text-stone-400 hover:text-stone-200",
             )}
           >
-            {labels?.[option] ?? option}
+            {labels?.[option] ?? characterDisplay(option, locale)}
           </button>
         );
       })}
