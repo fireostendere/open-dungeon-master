@@ -34,7 +34,7 @@ function globalView(type, payload) {
   if (type === 'campaign_rewound') return { reason: 'campaign_rewound' };
   if (type === 'stream_checkpoint') return {};
   if (['message_added', 'message_updated', 'ooc_message'].includes(type) && /^\s*\(ooc\)/i.test(payload?.message?.content ?? '')) {
-    return { message: select(payload.message, ['id', 'campaignId', 'seq', 'authorType', 'userId', 'characterId', 'content', 'createdAt', 'kind', 'authorUserId', 'roomId']) };
+    return { message: select(payload.message, ['id', 'campaignId', 'seq', 'authorType', 'userId', 'characterId', 'content', 'createdAt', 'kind', 'authorUserId']) };
   }
   return undefined;
 }
