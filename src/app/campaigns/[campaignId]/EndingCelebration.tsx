@@ -195,7 +195,7 @@ const DEFEAT_BANNERS_EN = [
   "⚡ FATE WAS CRUEL ⚡",
 ];
 
-const YOLO_VICTORY_BANNERS_RU = [
+const YOLO_VICTORY_BANNERS_RU = { ru: [
   "🔥 ЕБАЛИ И РАЗЪЕБАЛИ! 🔥",
   "👑 ВОТ ЭТО БЛЯТЬ ПОБЕДА! 👑",
   "★ НАТУРАЛЬНАЯ 20, СУКА! ★",
@@ -204,7 +204,7 @@ const YOLO_VICTORY_BANNERS_RU = [
   "✨ АБСОЛЮТНЫЙ РАЗЪЁБ! ✨",
   "🐉 ДРАКОН ОТСОСАЛ ПО ПОЛНОЙ 🐉",
   "🔥 СУПЕРКРИТ, НАХУЙ! 🔥",
-];
+] }.ru;
 
 const YOLO_VICTORY_BANNERS_EN = [
   "🔥 WE FUCKING DID IT! 🔥",
@@ -215,7 +215,7 @@ const YOLO_VICTORY_BANNERS_EN = [
   "✨ FUCKING GLORIOUS! ✨",
 ];
 
-const YOLO_DEFEAT_BANNERS_RU = [
+const YOLO_DEFEAT_BANNERS_RU = { ru: [
   "☠️ ПОЛНЫЙ ПИЗДЕЦ И ПРОЁБ ☠️",
   "💀 ОТРЯД ОБОСРАЛСЯ (TPK) 💀",
   "🎲 НАТУРАЛЬНАЯ ЕДИНИЦА, БЛЯТЬ! 🎲",
@@ -224,7 +224,7 @@ const YOLO_DEFEAT_BANNERS_RU = [
   "💩 УТОНУЛИ В ГОВНЕ 💩",
   "⚡ ЗАРУИНИЛИ ВСЮ КАМПАНИЮ ⚡",
   "🥀 СДОХЛИ КАК ЛОХИ 🥀",
-];
+] }.ru;
 
 const YOLO_DEFEAT_BANNERS_EN = [
   "☠️ TOTAL FUCKING DISASTER ☠️",

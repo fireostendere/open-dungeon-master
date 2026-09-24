@@ -48,6 +48,7 @@ export function VoicePanel({ campaignId, meUserId, roster, speaking, floorMode =
   const [deviceError, setDeviceError] = useState("");
   const preferences = useSyncExternalStore(subscribeCallPreferences, readCallPreferences, () => DEFAULT_CALL_PREFERENCES);
   const outputId = useOutputId(), micGain = useMicGain();
+  const supportsMicrophone = typeof navigator !== "undefined" && "getUserMedia" in (navigator.mediaDevices ?? {});
   const onCall = voice.connected || voice.reconnecting;
   const audio = useVoiceAudioCheck(visible && tab === "sound", onCall, voice.micId, voice.getMicrophoneStream);
   const tabRefs = useRef<Array<HTMLButtonElement | null>>([]);
@@ -86,7 +87,7 @@ export function VoicePanel({ campaignId, meUserId, roster, speaking, floorMode =
     try {
       await navigator.clipboard.writeText(JSON.stringify({ time: new Date().toISOString(), status: voice.status,
         transport: access.mode, scope: access.scope, secureContext: window.isSecureContext,
-        microphoneApi: Boolean(navigator.mediaDevices?.getUserMedia), ...(onCall ? stats : EMPTY_DIAGNOSTICS) }, null, 2));
+        microphoneApi: supportsMicrophone, ...(onCall ? stats : EMPTY_DIAGNOSTICS) }, null, 2));
       if (alive.current) setClipboard(copy.copied);
     } catch { if (alive.current) setClipboard(copy.copyFailed); }
   };
@@ -243,7 +244,7 @@ export function VoicePanel({ campaignId, meUserId, roster, speaking, floorMode =
           <p className={s.note}>{copy.statsNote}</p>
           <div className={s.dataRow}><span>{copy.transport}</span><strong>{access.mode === "sfu" ? copy.sfu : copy.mesh}</strong></div>
           <div className={s.dataRow}><span>{copy.secure}</span><strong>{typeof window !== "undefined" && window.isSecureContext ? copy.yes : copy.no}</strong></div>
-          <div className={s.dataRow}><span>{copy.microphoneApi}</span><strong>{typeof navigator !== "undefined" && navigator.mediaDevices?.getUserMedia ? copy.supported : copy.missing}</strong></div>
+          <div className={s.dataRow}><span>{copy.microphoneApi}</span><strong>{supportsMicrophone ? copy.supported : copy.missing}</strong></div>
           <div className={s.buttonRow}><button className={s.button} type="button" onClick={() => void copyDiagnostics()}>{clipboard === copy.copied ? <Check /> : <Copy />}{copy.copy}</button>
             <button className={s.button} type="button" disabled={voice.pending || stale || !access.available} onClick={() => void reconnect()}><RefreshCw />{copy.retry}</button></div>
           {clipboard ? <p className={s.note} role="status">{clipboard}</p> : null}<p className={s.note}>{copy.privacyDiagnostics}</p>

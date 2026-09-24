@@ -14,6 +14,11 @@ const auditedRoots = [
 const CYRILLIC = /[А-Яа-яЁё]/;
 const leakage = [];
 const SELF_NAMED_LANGUAGE_KEYS = new Set(["common.languageRussian"]);
+const SHARED_LANGUAGE_LABELS = new Set([
+  "common.appName",
+  "nav.discord",
+  "auth.inviteCodePlaceholder",
+]);
 
 function unwrap(node) {
   let current = node;
@@ -107,6 +112,9 @@ function compareCatalogs(en, ru) {
     const russian = ru.get(key);
     assert(english?.trim(), `English translation ${key} is empty`);
     assert(russian?.trim(), `Russian translation ${key} is empty`);
+    if (!SHARED_LANGUAGE_LABELS.has(key)) {
+      assert.notEqual(russian, english, `Russian translation ${key} is identical to English`);
+    }
     if (!SELF_NAMED_LANGUAGE_KEYS.has(key)) {
       assert(
         !CYRILLIC.test(english),
