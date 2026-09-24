@@ -101,7 +101,7 @@ function SidePanelInner({
     <aside
       className={cn(
         "shrink-0 bg-gradient-to-b from-stone-950/70 to-stone-950/30 lg:flex lg:flex-row lg:border-l lg:border-stone-700/50",
-        mobileVisible ? "flex w-full min-w-0 flex-col" : "hidden",
+        mobileVisible ? "flex w-full min-w-0 flex-col lg:w-auto" : "hidden",
       )}
     >
       <div

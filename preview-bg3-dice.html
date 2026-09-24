@@ -57,6 +57,75 @@
       backdrop-filter: blur(14px);
     }
 
+    .custom-roll-panel {
+      position: fixed;
+      right: 20px;
+      bottom: 82px;
+      z-index: 60;
+      width: min(430px, calc(100vw - 24px));
+      max-height: calc(100dvh - 110px);
+      overflow-y: auto;
+      padding: 18px;
+      border: 1px solid rgba(212, 175, 55, 0.55);
+      border-radius: 20px;
+      background: rgba(18, 12, 24, 0.97);
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.85);
+      backdrop-filter: blur(16px);
+    }
+
+    .custom-roll-panel[hidden] { display: none; }
+
+    .custom-roll-panel h2 {
+      margin-bottom: 12px;
+      color: #f3e5ab;
+      font-size: 16px;
+    }
+
+    .custom-roll-panel label {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      margin-top: 10px;
+      color: #e7e5e4;
+      font-family: Arial, sans-serif;
+      font-size: 12px;
+    }
+
+    .custom-roll-panel input,
+    .custom-roll-panel select {
+      width: 100%;
+      min-height: 38px;
+      padding: 8px 10px;
+      border: 1px solid rgba(212, 175, 55, 0.35);
+      border-radius: 8px;
+      background: #130d1d;
+      color: #fff;
+      font: 14px monospace;
+      user-select: text;
+    }
+
+    .custom-roll-panel input:focus,
+    .custom-roll-panel select:focus { outline: 2px solid #d4af37; }
+
+    .custom-roll-hint {
+      margin-top: 6px;
+      color: #a8a29e;
+      font: 11px/1.45 Arial, sans-serif;
+    }
+
+    .custom-roll-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 14px;
+    }
+
+    .custom-roll-error {
+      min-height: 16px;
+      margin-top: 8px;
+      color: #fda4af;
+      font: 12px Arial, sans-serif;
+    }
+
     .btn-action {
       background: linear-gradient(180deg, rgba(50, 40, 65, 0.95) 0%, rgba(25, 18, 35, 0.95) 100%);
       color: #f3e5ab;
@@ -244,6 +313,43 @@
       z-index: 5;
     }
 
+    .side-dice-tray {
+      position: relative;
+      z-index: 6;
+      max-width: 100%;
+      max-height: 205px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      overflow-y: auto;
+      padding: 4px;
+    }
+
+    .side-dice-group { display: flex; flex-direction: column; align-items: center; gap: 5px; }
+    .side-dice-values { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
+
+    .side-die {
+      width: 56px;
+      height: 62px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid rgba(212, 175, 55, 0.7);
+      border-radius: 12px;
+      background: linear-gradient(180deg, #e2e8f0, #94a3b8);
+      color: #111827;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.45);
+      font-family: monospace;
+    }
+
+    .side-die-label { color: #475569; font-size: 10px; font-weight: 800; }
+    .side-die-value { font-size: 20px; font-weight: 900; }
+    .side-die.discarded { opacity: 0.4; text-decoration: line-through; }
+    .side-dice-subtotal { color: #fef3c7; font: 700 11px monospace; }
+
     /* Bonus Breakdown List (BG3 Style) */
     .bonus-list {
       width: 100%;
@@ -280,6 +386,8 @@
       color: #fde047;
       font-size: 13px;
     }
+
+    .bonus-name .discarded { opacity: 0.4; text-decoration: line-through; }
 
     .bonus-total-row {
       display: flex;
@@ -591,10 +699,11 @@
       <div class="divider-line"></div>
     </div>
 
-    <!-- Center Canvas Tray (Supports 1 or 2 dice!) -->
+    <!-- Center tray: 3D d20s, or real side-die faces when no d20 is rolled -->
     <div class="canvas-container" onclick="handleCanvasClick()">
       <div class="canvas-glow"></div>
       <canvas id="dice-canvas" width="400" height="230"></canvas>
+      <div id="side-dice-tray" class="side-dice-tray" style="display:none"></div>
     </div>
 
     <!-- Itemized Bonus Breakdown (BG3 Style) -->
@@ -624,8 +733,47 @@
     <div id="hint-label" class="hint-label">Нажмите на куб для повторного броска</div>
   </div>
 
+  <aside id="custom-roll-panel" class="custom-roll-panel" hidden>
+    <form onsubmit="runManualRoll(event)">
+      <h2>🧪 Ручной тест броска</h2>
+      <label>
+        Выражение костей и бонусов
+        <input id="custom-expression" value="1d8+1d8+3" autocomplete="off" spellcheck="false" required />
+      </label>
+      <div class="custom-roll-hint">Например: <code>1d20+1d8+5</code>, <code>2d20kh1+1d4+3</code>, <code>2d20kl1+2</code>. Поддерживаются NdS, kh/kl и плоские модификаторы.</div>
+      <label>
+        Выпавшие грани — по порядку кубиков в выражении
+        <input id="custom-faces" value="7, 8" autocomplete="off" spellcheck="false" />
+      </label>
+      <div class="custom-roll-hint">Для <code>1d20+1d8+5</code> введи, например, <code>18, 7</code>. Для преимущества <code>2d20kh1</code> укажи обе грани; оставшаяся будет помечена как отброшенная.</div>
+      <label>
+        Тип броска
+        <select id="custom-kind">
+          <option value="damage">Урон (без успеха/провала)</option>
+          <option value="check">Проверка</option>
+          <option value="attack">Атака</option>
+          <option value="other">Другое</option>
+        </select>
+      </label>
+      <label>
+        СЛ (необязательно; урон её игнорирует)
+        <input id="custom-dc" type="number" min="0" step="1" placeholder="например, 15" />
+      </label>
+      <label>
+        Подпись броска
+        <input id="custom-title" value="Олег · Деревянный боевой посох — урон" autocomplete="off" />
+      </label>
+      <div id="custom-roll-error" class="custom-roll-error" role="alert" aria-live="polite"></div>
+      <div class="custom-roll-actions">
+        <button class="btn-action" type="submit">🎲 Показать бросок</button>
+        <button class="btn-action" type="button" onclick="toggleDiceConfig(false)">Закрыть</button>
+      </div>
+    </form>
+  </aside>
+
   <!-- Control panel with rich scenarios -->
   <div class="controls-panel">
+    <button class="btn-action" onclick="toggleDiceConfig()">🧪 Свой бросок</button>
     <button class="btn-action" style="border-color:#fde047;background:linear-gradient(180deg, rgba(85, 45, 15, 0.95) 0%, rgba(45, 20, 5, 0.95) 100%);color:#fef08a" onclick="startInteractiveScenario()">
       🎮 Интерактивный BG3 (СЛ 15, Таймер 60с, Звуки, Переброс)
     </button>
@@ -646,8 +794,6 @@
     </button>
     <button class="btn-action btn-disadvantage" onclick="playScenario('disadvantage')">
       🛡 ПОМЕХА
-    </button>
-      🛡 ПОМЕХА (2d20: 4 и 16 → НЕУДАЧА!)
     </button>
     <button class="btn-action" onclick="playScenario('buffs')">
       ✨ Все бонусы (+3 Ловк, +2 Мастерство, +1d4 Наставление)
@@ -929,9 +1075,145 @@
     const verdictEl = document.getElementById('verdict-text');
     const modeBadgeContainer = document.getElementById('mode-badge-container');
     const charNameEl = document.getElementById('char-name');
+    const headerTitleEl = document.getElementById('header-title');
+    const verdictBoxEl = document.getElementById('verdict-box');
+    const sideDiceTrayEl = document.getElementById('side-dice-tray');
 
     let currentConfig = null;
     let animId = null;
+
+    function parseManualConfig() {
+      const expression = document.getElementById('custom-expression').value.trim();
+      const compact = expression.replace(/\s+/g, '').toLowerCase();
+      const rawTerms = compact.match(/[+-]?[^+-]+/g);
+      if (!compact || compact.length > 160 || !rawTerms || rawTerms.join('') !== compact) {
+        throw new Error('Проверь выражение. Например: 1d20+1d8+5.');
+      }
+
+      const facesText = document.getElementById('custom-faces').value.trim();
+      const faces = facesText ? facesText.split(/[,;\s]+/).map(Number) : [];
+      if (faces.some(value => !Number.isInteger(value))) throw new Error('Грани вводятся целыми числами через запятую.');
+
+      const diceTerms = [];
+      const bonuses = [];
+      let faceIndex = 0;
+      let total = 0;
+
+      for (const rawTerm of rawTerms) {
+        const sign = rawTerm.startsWith('-') ? -1 : 1;
+        const body = rawTerm.replace(/^[+-]/, '');
+        const match = /^(?:(\d{1,3})d(\d{1,3})(?:k([hl])(\d{1,3}))?|(\d{1,7}))$/i.exec(body);
+        if (!match) throw new Error(`Не понимаю часть выражения: ${rawTerm}`);
+
+        if (match[5] !== undefined) {
+          const value = Number(match[5]);
+          total += sign * value;
+          bonuses.push({ name: 'Модификатор', val: sign * value, icon: '🔹' });
+          continue;
+        }
+
+        const count = Number(match[1]);
+        const sides = Number(match[2]);
+        const keepCount = match[4] === undefined ? count : Number(match[4]);
+        if (count < 1 || count > 100 || sides < 2 || sides > 100 || keepCount < 1 || keepCount > count) {
+          throw new Error(`Некорректные параметры куба: ${rawTerm}`);
+        }
+        if (faceIndex + count > faces.length) throw new Error(`Не хватает значений граней: ${faceIndex + count - faces.length}.`);
+
+        const dice = Array.from({ length: count }, () => {
+          const val = faces[faceIndex++];
+          if (val < 1 || val > sides) throw new Error(`Значение d${sides} должно быть от 1 до ${sides}.`);
+          return { val, kept: true };
+        });
+        if (match[3]) {
+          const order = dice.map((die, index) => ({ die, index })).sort((a, b) =>
+            match[3] === 'h' ? b.die.val - a.die.val : a.die.val - b.die.val,
+          );
+          const kept = new Set(order.slice(0, keepCount).map(entry => entry.index));
+          dice.forEach((die, index) => { die.kept = kept.has(index); });
+        }
+
+        const subtotal = dice.reduce((sum, die) => sum + (die.kept ? die.val : 0), 0);
+        diceTerms.push({ sides, sign, subtotal, dice, keepMode: match[3] || null });
+        total += sign * subtotal;
+      }
+
+      if (faceIndex !== faces.length) throw new Error(`Лишних значений граней: ${faces.length - faceIndex}.`);
+
+      const firstD20 = diceTerms.find(term => term.sides === 20);
+      const mode = firstD20?.dice.length === 2 && firstD20.dice.filter(die => die.kept).length === 1
+        ? firstD20.keepMode === 'h' ? 'advantage' : firstD20.keepMode === 'l' ? 'disadvantage' : 'none'
+        : 'none';
+      const kind = document.getElementById('custom-kind').value;
+      const dcText = document.getElementById('custom-dc').value.trim();
+      const dc = dcText ? Number(dcText) : null;
+      if (dc !== null && (!Number.isInteger(dc) || dc < 0)) throw new Error('СЛ должна быть целым числом от нуля.');
+
+      return {
+        expression,
+        diceTerms,
+        dice: diceTerms.filter(term => term.sides === 20).flatMap(term => term.dice.map(die => ({ val: die.val, discarded: !die.kept }))),
+        bonuses,
+        total,
+        dc,
+        kind,
+        mode,
+        characterName: document.getElementById('custom-title').value.trim() || 'Тестовый бросок',
+      };
+    }
+
+    function renderSideDice(terms, reveal) {
+      sideDiceTrayEl.replaceChildren();
+      if (!terms.length) {
+        sideDiceTrayEl.textContent = 'В выражении нет костей';
+        return;
+      }
+      for (const term of terms) {
+        const group = document.createElement('div');
+        group.className = 'side-dice-group';
+        const values = document.createElement('div');
+        values.className = 'side-dice-values';
+        for (const die of term.dice) {
+          const card = document.createElement('div');
+          card.className = `side-die${die.kept ? '' : ' discarded'}`;
+          const label = document.createElement('span');
+          label.className = 'side-die-label';
+          label.textContent = `d${term.sides}`;
+          const value = document.createElement('span');
+          value.className = 'side-die-value';
+          value.textContent = reveal ? die.val : '?';
+          card.append(label, value);
+          values.append(card);
+        }
+        const subtotal = document.createElement('span');
+        subtotal.className = 'side-dice-subtotal';
+        subtotal.textContent = reveal ? `${term.sign < 0 ? '−' : '+'}${term.subtotal}` : '…';
+        group.append(values, subtotal);
+        sideDiceTrayEl.append(group);
+      }
+    }
+
+    function toggleDiceConfig(forceOpen) {
+      const panel = document.getElementById('custom-roll-panel');
+      panel.hidden = forceOpen === undefined ? !panel.hidden : !forceOpen;
+      if (!panel.hidden) document.getElementById('custom-expression').focus();
+    }
+
+    function runManualRoll(event) {
+      event?.preventDefault();
+      document.getElementById('custom-roll-error').textContent = '';
+      try {
+        isInteractiveMode = false;
+        interactivePhase = 'idle';
+        if (timerCountdownInterval) clearInterval(timerCountdownInterval);
+        timerContainer.style.display = 'none';
+        ctaContainer.style.display = 'none';
+        inspirationContainer.style.display = 'none';
+        runRoll(parseManualConfig());
+      } catch (error) {
+        document.getElementById('custom-roll-error').textContent = error instanceof Error ? error.message : String(error);
+      }
+    }
 
     function renderSingleDie(ctx, dieState, now, startTime, duration) {
       const elapsed = now - startTime;
@@ -1120,8 +1402,38 @@
       if (animId) cancelAnimationFrame(animId);
       currentConfig = config;
 
-      dcTargetEl.textContent = config.dc;
-      charNameEl.textContent = config.characterName || "Торин · Проверка";
+      const kind = config.kind || 'check';
+      const diceTerms = config.diceTerms || [{
+        sides: 20,
+        sign: 1,
+        subtotal: config.dice.reduce((sum, die) => sum + (die.discarded ? 0 : die.val), 0),
+        dice: config.dice.map(die => ({ val: die.val, kept: !die.discarded })),
+      }];
+      const dice = config.dice || diceTerms.filter(term => term.sides === 20)
+        .flatMap(term => term.dice.map(die => ({ val: die.val, discarded: !die.kept })));
+      const bonuses = config.bonuses || [];
+      const winningDie = dice.find(die => !die.discarded) || dice[0] || null;
+      const total = Number.isFinite(config.total)
+        ? config.total
+        : (winningDie?.val || 0) + bonuses.reduce((sum, bonus) => sum + bonus.val, 0);
+      const hasVerdict = kind !== 'damage' && config.dc !== null && config.dc !== undefined;
+      const success = hasVerdict ? total >= Number(config.dc) : null;
+      const isCrit20 = kind !== 'damage' && winningDie?.val === 20;
+      const isCrit1 = kind !== 'damage' && winningDie?.val === 1;
+
+      dcTargetEl.textContent = hasVerdict ? config.dc : config.expression || '';
+      dcTargetEl.style.display = dcTargetEl.textContent ? 'block' : 'none';
+      dcTargetEl.style.fontSize = hasVerdict ? '' : '28px';
+      dcTargetEl.style.color = hasVerdict ? '' : '#fef08a';
+      headerTitleEl.textContent = kind === 'damage' ? 'БРОСОК УРОНА'
+        : kind === 'attack' ? 'БРОСОК АТАКИ'
+        : hasVerdict ? 'КЛАСС СЛОЖНОСТИ' : 'БРОСОК КОСТЕЙ';
+      charNameEl.textContent = config.characterName || 'Торин · Проверка';
+
+      const hasD20 = dice.length > 0;
+      canvas.style.display = hasD20 ? 'block' : 'none';
+      sideDiceTrayEl.style.display = hasD20 ? 'none' : 'flex';
+      if (!hasD20) renderSideDice(diceTerms, false);
 
       // Advantage / Disadvantage badge
       if (config.mode === 'advantage') {
@@ -1135,22 +1447,23 @@
       bonusListEl.innerHTML = `<div class="bonus-item" style="justify-content:center;color:#a8a29e;font-style:italic">Судьба решает...</div>`;
       verdictEl.textContent = "";
       verdictEl.className = "verdict-text";
+      verdictBoxEl.style.display = 'none';
       plaqueEl.className = "bg3-plaque";
 
       playSound('tumble');
 
-      const diceList = config.dice.map((d, index) => {
-        const isMulti = config.dice.length > 1;
-        const cx = isMulti ? (index === 0 ? 120 : 280) : 200;
+      const diceList = dice.map((d, index) => {
+        const isMulti = dice.length > 1;
+        const cx = isMulti ? (400 * (index + 1)) / (dice.length + 1) : 200;
         const cy = 115;
-        const radius = isMulti ? 74 : 94;
+        const radius = isMulti ? Math.min(74, 140 / dice.length) : 94;
 
         return {
           val: d.val,
           discarded: d.discarded,
-          isCrit20: d.val === 20,
-          isCrit1: d.val === 1,
-          isWinningSuccess: config.success,
+          isCrit20: !d.discarded && isCrit20 && d.val === 20,
+          isCrit1: !d.discarded && isCrit1 && d.val === 1,
+          isWinningSuccess: success === null || success,
           cx,
           cy,
           radius,
@@ -1186,19 +1499,17 @@
         if (p >= 1 && elapsed > duration + 500 && !verdictDone) {
           verdictDone = true;
 
-          // Render itemized bonuses
           let html = "";
-          const winningDie = config.dice.find(d => !d.discarded) || config.dice[0];
-          html += `
-            <div class="bonus-item">
-              <span class="bonus-name">🎲 Результат кубика (d20)</span>
-              <span class="bonus-val">${winningDie.val}</span>
-            </div>
-          `;
+          if (hasD20) {
+            for (const term of diceTerms) {
+              const values = term.dice.map(die => `<span class="${die.kept ? '' : 'discarded'}" style="margin-right:4px">${die.val}</span>`).join('');
+              const label = term.sides === 20 ? 'Основной кубик (d20)' : `Кость d${term.sides}`;
+              const contribution = `${term.sign < 0 ? '−' : term.sides === 20 ? '' : '+'}${term.subtotal}`;
+              html += `<div class="bonus-item"><span class="bonus-name">🎲 ${label}: ${values}</span><span class="bonus-val">${contribution}</span></div>`;
+            }
+          }
 
-          let runningTotal = winningDie.val;
-          for (const b of config.bonuses) {
-            runningTotal += b.val;
+          for (const b of bonuses) {
             html += `
               <div class="bonus-item">
                 <span class="bonus-name">${b.icon || '🔹'} ${b.name}</span>
@@ -1210,16 +1521,15 @@
           html += `
             <div class="bonus-total-row">
               <span>ИТОГ:</span>
-              <span class="bonus-total-val">${runningTotal}</span>
+              <span class="bonus-total-val">${total}</span>
             </div>
           `;
           bonusListEl.innerHTML = html;
+          if (!hasD20) renderSideDice(diceTerms, true);
 
-          // Verdict Banner
-          const isCrit20 = winningDie.val === 20;
-          const isCrit1 = winningDie.val === 1;
-          const success = runningTotal >= config.dc;
-
+          if (hasVerdict || isCrit20 || isCrit1) {
+            verdictBoxEl.style.display = 'flex';
+          }
           if (isCrit20) {
             verdictEl.textContent = "★ КРИТИЧЕСКИЙ УСПЕХ! ★";
             verdictEl.className = "verdict-text verdict-crit";
@@ -1230,19 +1540,19 @@
             verdictEl.className = "verdict-text verdict-fail";
             plaqueEl.className = "bg3-plaque state-fail";
             playSound('crit_fail');
-          } else if (success) {
+          } else if (hasVerdict && success) {
             verdictEl.textContent = "УСПЕХ!";
             verdictEl.className = "verdict-text verdict-success";
             plaqueEl.className = "bg3-plaque state-success";
             playSound('success');
-          } else {
+          } else if (hasVerdict) {
             verdictEl.textContent = "НЕУДАЧА!";
             verdictEl.className = "verdict-text verdict-fail";
             plaqueEl.className = "bg3-plaque state-fail";
             playSound('failure');
           }
 
-          if (config.onComplete) {
+          if (config.onComplete && hasVerdict) {
             config.onComplete(success);
           }
         }
@@ -1273,6 +1583,13 @@
     function startInteractiveScenario() {
       if (animId) cancelAnimationFrame(animId);
       if (timerCountdownInterval) clearInterval(timerCountdownInterval);
+      toggleDiceConfig(false);
+      canvas.style.display = 'block';
+      sideDiceTrayEl.style.display = 'none';
+      verdictBoxEl.style.display = 'none';
+      dcTargetEl.style.display = 'block';
+      dcTargetEl.style.fontSize = '';
+      dcTargetEl.style.color = '';
 
       isInteractiveMode = true;
       interactivePhase = 'prompt';
@@ -1599,10 +1916,7 @@
       if (currentConfig) runRoll(currentConfig);
     }
 
-    window.addEventListener('DOMContentLoaded', () => {
-      startInteractiveScenario();
-    });
+    window.addEventListener('DOMContentLoaded', () => runManualRoll());
   </script>
 </body>
 </html>
-

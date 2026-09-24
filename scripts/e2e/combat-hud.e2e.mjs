@@ -21,6 +21,8 @@ try {
   page.on('pageerror', error => errors.push(error.message));
   await page.goto(`${base}/campaigns/${campaignId}`, { timeout: 120000 });
   await page.getByRole('button', { name: 'Закончить ход', exact: true }).waitFor({ timeout: 60000 });
+  const sidePanelWidth = await page.locator('#side-panel-content').evaluate(element => element.parentElement.getBoundingClientRect().width);
+  assert.ok(sidePanelWidth < 1440 * 0.8, `Desktop battle panel should not fill the viewport (${sidePanelWidth}px).`);
   // First-time onboarding appears asynchronously, after the table loads.
   const tour = page.getByRole('button', { name: 'Завершить тур', exact: true });
   if (await tour.waitFor({ timeout: 5000 }).then(() => true, () => false)) await tour.click();
