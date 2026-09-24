@@ -1,223 +1,105 @@
 "use client";
 
 import Link from "next/link";
-import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
-import {
-  CircleHelp,
-  Dices,
-  DoorOpen,
-  Music,
-  Music2,
-  type LucideIcon,
-} from "lucide-react";
-import type { ComponentProps } from "react";
+import { CircleHelp, Dices, DoorOpen, MoreHorizontal, Music, Music2, type LucideIcon } from "lucide-react";
+import { useRef, useState, type ComponentProps } from "react";
 import { AccountMenu, AppHomeButton, AppHomeLogo, type AccountMenuUser } from "@/components/AccountMenu";
 import { Tooltip } from "@/components/ui/Tooltip";
+import { Sheet } from "@/components/ui/Sheet";
 import { headerButtonClass } from "@/app/campaigns/[campaignId]/headerButton";
 import { VoiceDock } from "@/app/campaigns/[campaignId]/VoiceDock";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import type { AmbienceAudio } from "@/app/campaigns/[campaignId]/useAmbienceAudio";
 import { useI18n } from "@/lib/i18n";
 import { localeText } from "@/lib/i18n/locale-text";
+import { useSessionMobile } from "./SessionViewport";
 
-// One audio group in the header: narration or ambience. On sm+ it is the
-// familiar icon button with an inline slider. Below sm the header has no
-// spare width at all (the 320px budget in SessionTabs.tsx is already spent),
-// so the same icon becomes a menu holding the mute toggle and the slider:
-// the phone gets a reachable volume control without the header growing a
-// pixel, in the menu surface the rest of the app already uses.
-function HeaderAudioControl({
-  onLabel,
-  offLabel,
-  enableLabel,
-  volumeLabel,
-  unlocked,
-  muted,
-  volume,
-  onToggle,
-  onVolume,
-  OnIcon,
-  OffIcon,
-}: {
-  onLabel: string;
-  offLabel: string;
-  enableLabel: string;
-  volumeLabel: string;
-  unlocked: boolean;
-  muted: boolean;
-  volume: number;
-  onToggle: () => void;
-  onVolume: (value: number) => void;
-  OnIcon: LucideIcon;
-  OffIcon: LucideIcon;
+function HeaderAudioControl({ label, volumeLabel, active, volume, onToggle, onVolume, Icon }: {
+  label: string; volumeLabel: string; active: boolean; volume: number;
+  onToggle: () => void; onVolume: (value: number) => void; Icon: LucideIcon;
 }) {
-  const quiet = muted || !unlocked;
-  const toggleLabel = !unlocked ? enableLabel : muted ? offLabel : onLabel;
-  const buttonClass = headerButtonClass(!quiet);
-  const icon = quiet ? <OffIcon className="size-4" /> : <OnIcon className="size-4" />;
-  return (
-    <>
-      <div className="hidden items-center gap-1.5 sm:flex">
-        <Tooltip content={toggleLabel} side="bottom">
-          <button type="button" onClick={onToggle} aria-label={toggleLabel} className={buttonClass}>
-            {icon}
-          </button>
-        </Tooltip>
-        {unlocked && !muted ? (
-          <Tooltip content={volumeLabel} side="bottom">
-            <input
-              type="range"
-              min={0}
-              max={1}
-              step={0.05}
-              value={volume}
-              onChange={(event) => onVolume(Number(event.target.value))}
-              className="w-16 accent-amber-600"
-              aria-label={volumeLabel}
-            />
-          </Tooltip>
-        ) : null}
-      </div>
-      <div className="sm:hidden">
-        <DropdownMenu.Root>
-          <DropdownMenu.Trigger asChild>
-            <button type="button" aria-label={volumeLabel} className={buttonClass}>
-              {icon}
-            </button>
-          </DropdownMenu.Trigger>
-          <DropdownMenu.Portal>
-            <DropdownMenu.Content align="end" sideOffset={4} className="panel z-50 min-w-44 rounded-lg p-1">
-              <DropdownMenu.Item
-                className="cursor-pointer rounded-md px-2 py-1.5 text-sm text-stone-300 outline-none data-[highlighted]:bg-stone-800"
-                onSelect={onToggle}
-              >
-                {toggleLabel}
-              </DropdownMenu.Item>
-              {unlocked && !muted ? (
-                // A plain row rather than an Item so dragging the slider does
-                // not close the menu.
-                <div className="px-2 py-1.5">
-                  <input
-                    type="range"
-                    min={0}
-                    max={1}
-                    step={0.05}
-                    value={volume}
-                    onChange={(event) => onVolume(Number(event.target.value))}
-                    className="w-full accent-amber-600"
-                    aria-label={volumeLabel}
-                  />
-                </div>
-              ) : null}
-            </DropdownMenu.Content>
-          </DropdownMenu.Portal>
-        </DropdownMenu.Root>
-      </div>
-    </>
-  );
+  return <div className="flex items-center gap-1.5">
+    <Tooltip content={label} side="bottom">
+      <button type="button" onClick={onToggle} aria-label={label} aria-pressed={active} className={headerButtonClass(active)}>
+        <Icon className="size-4" />
+      </button>
+    </Tooltip>
+    {active ? <input type="range" min={0} max={1} step={0.05} value={volume}
+      onChange={event => onVolume(Number(event.target.value))} className="w-16 accent-amber-600" aria-label={volumeLabel} /> : null}
+  </div>;
 }
 
-// The table's header: the campaign title in the display face with the scene
-// line under it, and every table-wide control right-aligned after it. Voice
-// lives here rather than in a panel tab because the call must survive tab
-// switches (see VoiceDock). The account menu is the same one every other
-// page carries, so settings, characters, log out and the app's home screen
-// are one tap away from the table too.
-export function SessionHeader({
-  title,
-  scene,
-  user,
-  voice,
-  dice3d,
-  onToggleDice3d,
-  ambienceEnabled,
-  ambience,
-  onHelp,
-}: {
-  title: string;
-  scene: string;
-  user: AccountMenuUser;
-  voice: ComponentProps<typeof VoiceDock>;
-  dice3d: boolean;
-  onToggleDice3d: () => void;
-  // Ambience is independent from the retired hosted narration/TTS path.
-  ambienceEnabled: boolean;
-  ambience: AmbienceAudio;
-  onHelp: () => void;
+// VoiceDock has exactly one permanent position in this tree. Opening the tools,
+// reading the story or switching panels must not disconnect/rejoin the call.
+export function SessionHeader({ title, scene, user, voice, dice3d, onToggleDice3d, ambienceEnabled, ambience, onHelp }: {
+  title: string; scene: string; user: AccountMenuUser; voice: ComponentProps<typeof VoiceDock>;
+  dice3d: boolean; onToggleDice3d: () => void;
+  ambienceEnabled: boolean; ambience: AmbienceAudio; onHelp: () => void;
 }) {
   const { locale } = useI18n();
+  const mobile = useSessionMobile();
+  const [toolsOpen, setToolsOpen] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const copy = localeText(locale, {
-    en: { diceOn: "Turn on 3D dice animation", diceOff: "Turn off 3D dice animation", scene: "The adventure unfolds", help: "Help", helpTip: "How everything works, and the guided tours", campaigns: "All campaigns" },
-    ru: { diceOn: "Включить 3D-анимацию кубиков", diceOff: "Выключить 3D-анимацию кубиков", scene: "Приключение начинается", help: "Помощь", helpTip: "Как всё устроено и как пройти обучение", campaigns: "Все кампании" },
+    en: { diceOn: "Turn on 3D dice animation", diceOff: "Turn off 3D dice animation", scene: "The adventure unfolds", help: "Help", helpTip: "How everything works, and the guided tours", campaigns: "All campaigns", tools: "Table tools", account: "Your account", language: "Language", mute: "Mute ambience and music", unmute: "Enable ambience and music", volume: "Ambience and music volume" },
+    ru: { diceOn: "Включить 3D-анимацию кубиков", diceOff: "Выключить 3D-анимацию кубиков", scene: "Приключение начинается", help: "Помощь", helpTip: "Как всё устроено и как пройти обучение", campaigns: "Все кампании", tools: "Инструменты стола", account: "Ваш аккаунт", language: "Язык", mute: "Выключить музыку и звуки окружения", unmute: "Включить музыку и звуки окружения", volume: "Громкость музыки и окружения" },
   });
   const diceLabel = dice3d ? copy.diceOff : copy.diceOn;
-  return (
-    <header className="glass z-10 flex flex-wrap items-center gap-3 border-b border-stone-700/40 px-4 pb-2 pt-[calc(0.5rem+env(safe-area-inset-top))]">
-      <div className="flex w-full min-w-0 items-center gap-3 sm:w-auto sm:flex-1">
-        <AppHomeLogo />
-        <div className="min-w-0 flex-1">
-          <h1 className="break-words font-display text-base leading-snug tracking-wide text-amber-50 sm:text-lg">
-            {title}
-          </h1>
-          <p className="truncate text-xs text-stone-500">{scene || copy.scene}</p>
-        </div>
+  const audioActive = ambience.unlocked && !ambience.muted;
+  const audioLabel = audioActive ? copy.mute : copy.unmute;
+  const toggleAudio = () => { ambience.unlock(); ambience.setMuted(ambience.unlocked ? !ambience.muted : false); };
+  const AudioIcon = audioActive ? Music : Music2;
+  const changeTools = (open: boolean) => {
+    setToolsOpen(open);
+    if (!open) requestAnimationFrame(() => triggerRef.current?.focus({ preventScroll: true }));
+  };
+  return <header className="session-header glass z-10 flex items-center gap-3 border-b border-stone-700/40 px-4 pb-2 pt-[calc(0.5rem+env(safe-area-inset-top))]">
+    <div className="session-heading flex min-w-0 flex-1 items-center gap-3">
+      <AppHomeLogo />
+      <div className="min-w-0 flex-1">
+        <h1 className="session-title break-words font-display text-base leading-snug tracking-wide text-amber-50 lg:text-lg" title={title}>{title}</h1>
+        <p className="truncate text-xs text-stone-500" title={scene}>{scene || copy.scene}</p>
       </div>
-      <div className="ml-auto flex max-w-full shrink-0 items-center gap-2 sm:gap-2.5">
-        <VoiceDock {...voice} />
-        <Tooltip content={diceLabel} side="bottom">
-          <button
-            type="button"
-            onClick={onToggleDice3d}
-            aria-label={diceLabel}
-            data-tour="header-dice"
-            className={headerButtonClass(dice3d)}
-          >
-            <Dices className="size-4" />
-          </button>
-        </Tooltip>
-        {ambienceEnabled && ambience.installed ? (
-          <HeaderAudioControl
-            onLabel="Mute ambience and music"
-            offLabel="Unmute ambience and music"
-            enableLabel="Enable ambience"
-            volumeLabel="Ambience and music volume"
-            unlocked={ambience.unlocked}
-            muted={ambience.muted}
-            volume={ambience.volume}
-            onToggle={() => {
-              ambience.unlock();
-              ambience.setMuted(!ambience.muted);
-            }}
-            onVolume={(value) => ambience.setVolume(value)}
-            OnIcon={Music}
-            OffIcon={Music2}
-          />
-        ) : null}
-         <Tooltip content={copy.helpTip} side="bottom">
-          <button
-            type="button"
-            onClick={onHelp}
-             aria-label={copy.help}
-            data-tour="header-help"
-            className={headerButtonClass(false)}
-          >
-            <CircleHelp className="size-4" />
-          </button>
-        </Tooltip>
-         <Tooltip content={copy.campaigns} side="bottom">
-          <Link
-            href="/"
-             aria-label={copy.campaigns}
-            className="hidden items-center gap-1.5 rounded-lg border border-transparent p-2.5 text-sm text-stone-500 transition-colors hover:text-amber-200 sm:flex sm:p-1.5 md:border-stone-700/70 md:px-2.5"
-          >
-            <DoorOpen className="size-4" />
-             <span className="hidden md:inline">{copy.campaigns}</span>
-          </Link>
-        </Tooltip>
-        <LanguageSwitcher className="hidden sm:inline-flex" />
-        <AppHomeButton className="hidden sm:block" />
-        <AccountMenu user={user} onHelp={onHelp} />
+    </div>
+    <div className="session-header-actions ml-auto flex shrink-0 items-center gap-2">
+      <VoiceDock {...voice} />
+      <button ref={triggerRef} type="button" className="session-header-more session-icon-button" aria-label={copy.tools}
+        aria-haspopup="dialog" aria-expanded={toolsOpen && mobile} onClick={() => changeTools(true)}>
+        <MoreHorizontal className="size-5" />
+      </button>
+      {!mobile ? <div className="session-header-desktop flex items-center gap-2.5">
+        <Tooltip content={diceLabel} side="bottom"><button type="button" onClick={onToggleDice3d} aria-label={diceLabel} aria-pressed={dice3d}
+          data-tour="header-dice" className={headerButtonClass(dice3d)}><Dices className="size-4" /></button></Tooltip>
+        {ambienceEnabled && ambience.installed ? <HeaderAudioControl label={audioLabel} volumeLabel={copy.volume}
+          active={audioActive} volume={ambience.volume} onToggle={toggleAudio} onVolume={ambience.setVolume} Icon={AudioIcon} /> : null}
+        <Tooltip content={copy.helpTip} side="bottom"><button type="button" onClick={onHelp} aria-label={copy.help}
+          data-tour="header-help" className={headerButtonClass(false)}><CircleHelp className="size-4" /></button></Tooltip>
+        <Tooltip content={copy.campaigns} side="bottom"><Link href="/" aria-label={copy.campaigns}
+          className="flex items-center gap-1.5 rounded-lg border border-stone-700/70 px-2.5 py-1.5 text-sm text-stone-500 hover:text-amber-200">
+          <DoorOpen className="size-4" /><span>{copy.campaigns}</span>
+        </Link></Tooltip>
+        <LanguageSwitcher /><AppHomeButton /><AccountMenu user={user} onHelp={onHelp} />
+      </div> : null}
+    </div>
+    <Sheet open={toolsOpen && mobile} onOpenChange={changeTools} title={copy.tools} className="session-menu">
+      <p className="mb-1 break-words font-display text-lg text-amber-100">{title}</p>
+      <p className="mb-4 break-words text-sm text-stone-400">{scene || copy.scene}</p>
+      <div className="session-menu-list">
+        <button type="button" onClick={onToggleDice3d} aria-pressed={dice3d} data-tour="header-dice">
+          <Dices className="size-5" /><span>{diceLabel}</span>
+        </button>
+        {ambienceEnabled && ambience.installed ? <div className="session-audio-settings">
+          <button type="button" onClick={toggleAudio} aria-pressed={audioActive}><AudioIcon className="size-5" /><span>{audioLabel}</span></button>
+          <label className="flex flex-col gap-2 p-3 text-sm text-stone-300">{copy.volume}
+            <input type="range" min={0} max={1} step={0.05} value={ambience.volume}
+              onChange={event => ambience.setVolume(Number(event.target.value))} className="w-full accent-amber-500" />
+          </label>
+        </div> : null}
+        <button type="button" data-tour="header-help" onClick={() => { setToolsOpen(false); onHelp(); }}><CircleHelp className="size-5" /><span>{copy.help}</span></button>
+        <div className="session-menu-setting"><span>{copy.language}</span><LanguageSwitcher /></div>
+        <div className="session-menu-setting"><span>{copy.account}</span><AccountMenu user={user} onHelp={() => { setToolsOpen(false); onHelp(); }} /></div>
+        <Link href="/"><DoorOpen className="size-5" /><span>{copy.campaigns}</span></Link>
       </div>
-    </header>
-  );
+    </Sheet>
+  </header>;
 }
