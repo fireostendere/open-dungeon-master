@@ -244,6 +244,7 @@ function uiFixture(locale){
     '@/lib/placeholders':{avatarPlaceholder:()=>'/avatar',characterPlaceholder:()=>'/character'},'@/lib/campaign-types':types,
     '@/app/campaigns/[campaignId]/PlayerMessageStyle':style,'@/app/campaigns/[campaignId]/HaltedTurnBanner':{HaltedTurnBanner:'HaltedTurnBanner'},
     '@/app/campaigns/[campaignId]/InlineMessageEditor':{InlineMessageEditor:'InlineMessageEditor'},'@/lib/dm/tool-text':{stripToolText:x=>x},
+    '@/app/campaigns/[campaignId]/AskPanel':{AskChatEntry:'AskChatEntry'},
     '@/components/ui/ImageLightbox':{ImageLightbox:'ImageLightbox'},'@/components/ui/D20Spinner':{D20Spinner:'D20Spinner'},
     '@/app/campaigns/[campaignId]/RollCard':{RollCard:'RollCard'},'@/app/campaigns/[campaignId]/dmStatusPhrases':{DM_STATUS_PHRASES_BY_LOCALE:Object.fromEntries(['ru','en','pl'].map(l=>[l,{thinking:['thinking'],idle:[]}]))},
     '@/lib/i18n':{useI18n:()=>({locale})},'@/lib/i18n/message-text':{messageText:(l,key)=>`${l}:${key}`},
