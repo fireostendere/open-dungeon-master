@@ -86,7 +86,7 @@ const dependencies = {
   '@/lib/spatial/store.mjs':{createSpatialStore,SpatialError},
   '@/lib/spatial/domain-migration':{capturePreSpatialEntities:()=>{}},
   '@/lib/units/narration':{normalizeNarrationUnits:x=>x},
-  '@/lib/events':{publishEphemeral:()=>{}},
+  '@/lib/events':{publishEphemeral:()=>{},publishOocMessage:()=>{}},
   '@/lib/integrations/rakobot':{queuePlayerAction:()=>{}},
 };
 const source = readFileSync(new URL('../src/lib/spatial/service.ts',import.meta.url),'utf8');
