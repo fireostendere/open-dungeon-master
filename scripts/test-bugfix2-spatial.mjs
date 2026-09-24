@@ -85,7 +85,7 @@ const dependencies = {
   '@/lib/spatial/store.mjs':{createSpatialStore,SpatialError},
   '@/lib/spatial/domain-migration':{capturePreSpatialEntities:()=>{}},
   '@/lib/units/narration':{normalizeNarrationUnits:x=>x},
-  '@/lib/events':{publishEphemeral:()=>{}},
+  '@/lib/events':{publishEphemeral:()=>{},publishOocMessage:()=>{}},
   '@/lib/integrations/rakobot':{queuePlayerAction:(campaignId,source,id,kind)=>{
     assert.equal(campaignId,camp); assert.equal(source,'spatial');
     assert.ok(db.prepare('SELECT id FROM spatial_messages WHERE id=?').get(id));
