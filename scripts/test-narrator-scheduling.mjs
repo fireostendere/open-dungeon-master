@@ -46,12 +46,14 @@ test('productive steps do not sleep; idle and failed polls retain backoff', () =
   assert.equal(narratorPollDelay({ madeProgress: true, lastError: 'failed', pollIntervalMs: 2000 }), 2000);
 });
 
-test('empty Ask metadata avoids a second MCP read', async () => {
+test('empty story metadata probes Ask once per polling interval', async () => {
   let reads = 0;
-  const h = host({ callControl: async () => { reads++; throw new Error('Ask read should not run'); } });
-  const result = startAskWorker(h, { currentSeq: 10, timelineEpoch: 'e', asks: [], askQueue: { pending: false, hasMore: false } });
-  assert.equal(result, null);
-  assert.equal(reads, 0);
+  const h = host({ callControl: async () => { reads++; return { currentSeq: 10, nextCursor: 10, hasMore: false,
+    timelineEpoch: 'e', asks: [], askQueue: { pending: false, hasMore: false, nextCursor: 0 } }; } });
+  const snapshot = { currentSeq: 10, timelineEpoch: 'e', asks: [], askQueue: { pending: false, hasMore: false } };
+  await startAskWorker(h, snapshot);
+  assert.equal(startAskWorker(h, snapshot), null);
+  assert.equal(reads, 1);
 });
 
 test('stalled Ask does not block story and only one Ask worker runs', async () => {
