@@ -2,909 +2,468 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import type { Device } from "mediasoup-client";
-import type { Transport } from "mediasoup-client/types";
+import type { Consumer, Transport } from "mediasoup-client/types";
 import { micBlockMessage, micBlockReason } from "@/lib/secure-context";
 import type { VoiceRosterEntry } from "@/lib/voice/types";
-import {
-  DEFAULT_PEER_VOLUME,
-  effectiveVolume,
-  silenced,
-  type VoiceVolumePrefs,
-} from "@/lib/voice/volume";
-import {
-  PTT_KEY,
-  readMicId,
-  readMicMode,
-  readVolumePrefs,
-  subscribeMicPrefs,
-  useVoiceVolumes,
-  writeMicId,
-  writeMicMode,
-  type MicMode,
-} from "@/app/campaigns/[campaignId]/useVoicePrefs";
+import { DEFAULT_PEER_VOLUME, effectiveVolume, silenced, type VoiceVolumePrefs } from "@/lib/voice/volume";
+import { PTT_KEY, readMicId, readMicMode, readVolumePrefs, subscribeMicPrefs, useVoiceVolumes,
+  writeMicId, writeMicMode, type MicMode } from "@/app/campaigns/[campaignId]/useVoicePrefs";
 import { registerOutput, releaseOutput, withMicGain } from "@/lib/audio-devices";
+import { captureConstraints, DEFAULT_CALL_PREFERENCES, isTypingTarget, microphoneEnabled,
+  readCallPreferences, subscribeCallPreferences } from "@/lib/voice/call-preferences";
+import type { AudioStat } from "@/lib/voice/call-diagnostics";
 
 export type VoiceStatus = "idle" | "connecting" | "connected" | "error" | "reconnecting";
-
-// How the microphone is gated locally, and the key held in push-to-talk. Both
-// live with the rest of the per-browser preferences now; re-exported here
-// because they are part of this hook's surface.
 export type { MicMode };
 export { PTT_KEY };
-
-// Volume of each remote voice: the server's audibility matrix multiplied by
-// this listener's own sliders. Whether a voice arrives at all is enforced
-// server-side by pausing the consumer; this is only how loud the ones that do
-// arrive should be. Kept outside the hook so the elements being mutated are
-// plainly local to this function.
-function applyVolumes(
-  elements: Map<string, HTMLAudioElement>,
-  gains: Record<string, number>,
-  prefs: VoiceVolumePrefs,
-) {
+function applyVolumes(elements: Map<string, HTMLAudioElement>, gains: Record<string, number>, prefs: VoiceVolumePrefs) {
   for (const [userId, element] of elements) {
     const peer = prefs.peers[userId] ?? DEFAULT_PEER_VOLUME;
     element.volume = effectiveVolume(gains[userId] ?? 1, peer, prefs);
-    // volume alone would already silence them, but muted carries the intent
-    // separately, so a slider that happens to sit at zero and a deliberate
-    // mute stay distinguishable to the browser's own tab-audio indicator.
     element.muted = silenced(peer, prefs.deafened);
   }
 }
+const stopStream = (stream: MediaStream | null) => stream?.getTracks().forEach(track => track.stop());
 
-// Signaling rides plain POST routes and the campaign SSE stream, so there is
-// no WebSocket here. mediasoup's signaling is request/response by nature and
-// the only server-push need (the roster changed) is already a thing this app
-// does well (src/lib/events.ts).
-export function useVoiceRoom(
-  campaignId: string,
-  rosterFromStream: VoiceRosterEntry[] | null,
-  mePeerId = "",
-  // Bumped by the contentless voice_audibility_changed event.
-  audibilityVersion = 0,
-  // Mesh signaling nudge from the stream: someone left mail in a mailbox.
-  meshSignal: { to: string; version: number } | null = null,
-) {
+// One call controller, shared by the expanded and compact presentation. The
+// server still decides membership, room access, floor control and subscriptions.
+export function useVoiceRoom(campaignId: string, rosterFromStream: VoiceRosterEntry[] | null,
+  mePeerId = "", audibilityVersion = 0, meshSignal: { to: string; version: number } | null = null) {
   const [status, setStatus] = useState<VoiceStatus>("idle");
   const [error, setError] = useState("");
   const [muted, setMuted] = useState(false);
   const [handRaised, setHandRaised] = useState(false);
-  // The roster from this client's own first probe, used only until the stream
-  // delivers one. `peers` below prefers the stream, so this is never a second
-  // source of truth that could drift.
+  const [talking, setTalking] = useState(false);
+  const [pending, setPending] = useState(false);
+  const [playbackBlocked, setPlaybackBlocked] = useState(false);
+  const [startedAt, setStartedAt] = useState<number | null>(null);
   const [probedPeers, setProbedPeers] = useState<VoiceRosterEntry[]>([]);
   const [available, setAvailable] = useState(false);
   const [unavailableReason, setUnavailableReason] = useState("");
   const [micDevices, setMicDevices] = useState<Array<{ deviceId: string; label: string }>>([]);
   const micId = useSyncExternalStore(subscribeMicPrefs, readMicId, () => "");
-  const micMode = useSyncExternalStore(
-    subscribeMicPrefs,
-    readMicMode,
-    () => "open" as MicMode,
-  );
-  // True only while the talk control is actually held, in push-to-talk mode.
-  const [talking, setTalking] = useState(false);
-
+  const micMode = useSyncExternalStore(subscribeMicPrefs, readMicMode, () => "open" as MicMode);
+  const preferences = useSyncExternalStore(subscribeCallPreferences, readCallPreferences, () => DEFAULT_CALL_PREFERENCES);
   const deviceRef = useRef<Device | null>(null);
-  const sendTransportRef = useRef<Transport | null>(null);
-  const recvTransportRef = useRef<Transport | null>(null);
-  const micStreamRef = useRef<MediaStream | null>(null);
-  // Remote audio is attached to detached <audio> elements rather than rendered,
-  // because the elements only need to exist for the browser to play them and
-  // tying them to React's tree would risk a re-render tearing one down
-  // mid-sentence.
-  const audioElementsRef = useRef<Map<string, HTMLAudioElement>>(new Map());
-  // The device and mode the live capture was last set to, so a preference
-  // written elsewhere (the apps' Settings) is applied exactly once.
-  const activeMicRef = useRef("");
-  const activeModeRef = useRef<MicMode>("open");
-  const joinedRef = useRef(false);
-  // How loudly this client should play each other person, from the server's
-  // audibility matrix. Whether a voice arrives at all is enforced server-side
-  // by pausing the consumer; this is only the volume of what does arrive.
-  const gainsRef = useRef<Record<string, number>>({});
-  // Kept so the microphone can be swapped without rebuilding the transport:
-  // replaceTrack keeps the same producer, so nobody else renegotiates.
+  const sendRef = useRef<Transport | null>(null);
+  const recvRef = useRef<Transport | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
   const producerRef = useRef<Awaited<ReturnType<Transport["produce"]>> | null>(null);
-
-  // Which transport this server runs, learned from the availability probe.
-  // "mesh" is browser-to-browser WebRTC: one RTCPeerConnection per other
-  // player, signaled through the server's mailbox relay. A ref rather than
-  // state because only callbacks read it, and the probe resolves before the
-  // Join button can exist.
+  const consumersRef = useRef(new Map<string, Consumer>());
+  const resumeRef = useRef(new Set<string>());
+  const elementsRef = useRef(new Map<string, HTMLAudioElement>());
+  const gainsRef = useRef<Record<string, number>>({});
+  const joinedRef = useRef(false);
+  const busyRef = useRef(false);
+  const disposedRef = useRef(false);
+  const epochRef = useRef(0);
+  const micSwapRef = useRef(0);
+  const micQueueRef = useRef<Promise<void>>(Promise.resolve());
+  const replacingStreamsRef = useRef(new Set<MediaStream>());
+  const muteRef = useRef(false);
+  const holdsRef = useRef(new Set<string>());
+  const activeCaptureRef = useRef("");
+  const activeModeRef = useRef<MicMode>("open");
+  const stateQueueRef = useRef<Promise<unknown>>(Promise.resolve());
+  const consumeQueueRef = useRef<Promise<void>>(Promise.resolve());
   const modeRef = useRef<"sfu" | "mesh">("sfu");
-  type MeshConn = {
-    pc: RTCPeerConnection;
-    polite: boolean;
-    makingOffer: boolean;
-    ignoreOffer: boolean;
-  };
-  const meshConnsRef = useRef<Map<string, MeshConn>>(new Map());
-  const meshIceRef = useRef<RTCIceServer[]>([]);
-  const meshHeartbeatMsRef = useRef(10_000);
+  const joinTaskRef = useRef<Promise<void> | null>(null);
+  type MeshConn = { pc: RTCPeerConnection; polite: boolean; makingOffer: boolean; ignoreOffer: boolean };
+  const meshRef = useRef(new Map<string, MeshConn>());
+  const iceRef = useRef<RTCIceServer[]>([]);
+  const heartbeatRef = useRef(10_000);
+  const isCurrent = useCallback((epoch: number) => !disposedRef.current && epochRef.current === epoch, []);
 
-  const post = useCallback(
-    async (path: string, body?: unknown) => {
-      const response = await fetch(`/api/campaigns/${campaignId}/voice/${path}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body ?? {}),
-      });
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        throw new Error(data.error || "Voice request failed.");
-      }
-      return data;
-    },
-    [campaignId],
-  );
-
-  // Pulls in everyone this client is not already hearing. Idempotent on the
-  // server, so it is safe to call on every roster change.
-  const syncConsumers = useCallback(async () => {
-    const device = deviceRef.current;
-    const recvTransport = recvTransportRef.current;
-    if (!device || !recvTransport || !joinedRef.current) {
-      return;
-    }
-    const { consumers } = await post("consume", {
-      rtpCapabilities: device.rtpCapabilities,
+  const post = useCallback(async (path: string, body?: unknown) => {
+    const response = await fetch(`/api/campaigns/${campaignId}/voice/${path}`, {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body ?? {}),
+      signal: AbortSignal.timeout(15_000),
     });
-    const resumed: string[] = [];
-    for (const params of consumers ?? []) {
-      const consumer = await recvTransport.consume({
-        id: params.id,
-        producerId: params.producerId,
-        kind: params.kind,
-        rtpParameters: params.rtpParameters,
-      });
-      const element = registerOutput(new Audio());
-      element.autoplay = true;
-      // Distance and walls arrive as a gain; 1 when no proximity rule is on.
-      // This listener's own slider for them multiplies in here rather than in
-      // a later pass, so somebody turned down before they joined is already
-      // quiet on their first word.
-      const prefs = readVolumePrefs();
-      const peer = prefs.peers[params.producerUserId] ?? DEFAULT_PEER_VOLUME;
-      element.volume = effectiveVolume(
-        gainsRef.current[params.producerUserId] ?? 1,
-        peer,
-        prefs,
-      );
-      element.muted = silenced(peer, prefs.deafened);
-      element.srcObject = new MediaStream([consumer.track]);
-      // A rejected autoplay would otherwise surface as an unhandled rejection;
-      // the user gesture that opened the call normally satisfies the policy.
-      void element.play().catch(() => {});
-      audioElementsRef.current.get(params.producerUserId)?.pause();
-      audioElementsRef.current.set(params.producerUserId, element);
-      resumed.push(params.id);
-    }
-    if (resumed.length) {
-      // Server-side consumers start paused so no speech is lost in the window
-      // before this client had them built.
-      await post("resume", { consumerIds: resumed });
-    }
-  }, [post]);
-
-  // Pulls this client's own row of the audibility matrix and applies it to the
-  // audio elements already playing.
-  const refreshGains = useCallback(async () => {
-    if (!joinedRef.current) {
-      return;
-    }
-    try {
-      const response = await fetch(`/api/campaigns/${campaignId}/voice/audibility`);
-      if (!response.ok) {
-        return;
-      }
-      const data = await response.json();
-      const gains: Record<string, number> = data.gains ?? {};
-      gainsRef.current = gains;
-      applyVolumes(audioElementsRef.current, gains, readVolumePrefs());
-    } catch {
-      // transient; the next audibility event retries
-    }
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.error || "Voice request failed.");
+    return data;
   }, [campaignId]);
-
+  const removeAudio = useCallback((userId: string) => {
+    const consumer = consumersRef.current.get(userId);
+    if (consumer) { resumeRef.current.delete(consumer.id); consumer.close(); consumersRef.current.delete(userId); }
+    const element = elementsRef.current.get(userId);
+    if (element) { element.pause(); element.srcObject = null; releaseOutput(element); elementsRef.current.delete(userId); }
+  }, []);
   const teardown = useCallback(() => {
     joinedRef.current = false;
-    micStreamRef.current?.getTracks().forEach((track) => track.stop());
-    micStreamRef.current = null;
+    holdsRef.current.clear();
+    stopStream(streamRef.current); streamRef.current = null;
+    for (const stream of replacingStreamsRef.current) stopStream(stream);
+    replacingStreamsRef.current.clear();
     producerRef.current = null;
-    sendTransportRef.current?.close();
-    recvTransportRef.current?.close();
-    sendTransportRef.current = null;
-    recvTransportRef.current = null;
-    deviceRef.current = null;
-    for (const conn of meshConnsRef.current.values()) {
-      conn.pc.close();
-    }
-    meshConnsRef.current.clear();
-    for (const element of audioElementsRef.current.values()) {
-      element.pause();
-      element.srcObject = null;
-      releaseOutput(element);
-    }
-    audioElementsRef.current.clear();
-  }, []);
-
-  // ---- mesh transport ----
-
-  // A remote voice arriving over a peer connection plays exactly like one
-  // arriving from the SFU: a detached element in the same map, so gains,
-  // sliders and deafen need no second code path.
-  const attachRemoteTrack = useCallback((userId: string, track: MediaStreamTrack) => {
+    sendRef.current?.close(); recvRef.current?.close();
+    sendRef.current = null; recvRef.current = null; deviceRef.current = null;
+    for (const conn of meshRef.current.values()) conn.pc.close();
+    meshRef.current.clear();
+    for (const userId of [...elementsRef.current.keys()]) removeAudio(userId);
+    consumersRef.current.clear(); resumeRef.current.clear(); gainsRef.current = {};
+  }, [removeAudio]);
+  const playAudio = useCallback((element: HTMLAudioElement) => {
+    const epoch = epochRef.current;
+    void element.play().catch(() => { if (isCurrent(epoch) && element.srcObject) setPlaybackBlocked(true); });
+  }, [isCurrent]);
+  const attachAudio = useCallback((userId: string, track: MediaStreamTrack, consumer?: Consumer) => {
+    removeAudio(userId);
     const element = registerOutput(new Audio());
     element.autoplay = true;
-    const prefs = readVolumePrefs();
-    const peer = prefs.peers[userId] ?? DEFAULT_PEER_VOLUME;
-    element.volume = effectiveVolume(gainsRef.current[userId] ?? 1, peer, prefs);
-    element.muted = silenced(peer, prefs.deafened);
     element.srcObject = new MediaStream([track]);
-    void element.play().catch(() => {});
-    audioElementsRef.current.get(userId)?.pause();
-    audioElementsRef.current.set(userId, element);
+    elementsRef.current.set(userId, element);
+    if (consumer) consumersRef.current.set(userId, consumer);
+    applyVolumes(elementsRef.current, gainsRef.current, readVolumePrefs());
+    playAudio(element);
+  }, [playAudio, removeAudio]);
+  const unlockPlayback = useCallback(async () => {
+    const results = await Promise.allSettled([...elementsRef.current.values()].map(element => element.play()));
+    if (!disposedRef.current) setPlaybackBlocked(results.some(result => result.status === "rejected"));
   }, []);
-
-  const meshSend = useCallback(
-    (to: string, data: unknown) => {
-      void post("mesh/signal", { to, data }).catch(() => {
-        // The peer left between our offer and its delivery; the roster event
-        // that announced the departure also closes our side.
-      });
-    },
-    [post],
-  );
-
-  // One connection per other player, run by the perfect negotiation pattern:
-  // both sides may offer whenever their state changes, and the polite one
-  // yields when offers cross. Politeness is decided by user id order, so the
-  // two ends always disagree about who yields, which is the whole trick.
-  const ensureMeshConn = useCallback(
-    (userId: string): MeshConn => {
-      const existing = meshConnsRef.current.get(userId);
-      if (existing) {
-        return existing;
+  const refreshGains = useCallback(async () => {
+    if (!joinedRef.current) return;
+    const epoch = epochRef.current;
+    try {
+      const response = await fetch(`/api/campaigns/${campaignId}/voice/audibility`, { signal: AbortSignal.timeout(10_000) });
+      if (!response.ok) return;
+      const data = await response.json();
+      if (!isCurrent(epoch)) return;
+      gainsRef.current = data.gains ?? {};
+      applyVolumes(elementsRef.current, gainsRef.current, readVolumePrefs());
+    } catch { /* A later roster/audibility event retries. Server gates actual media. */ }
+  }, [campaignId, isCurrent]);
+  const syncConsumers = useCallback(() => {
+    const epoch = epochRef.current;
+    const work = consumeQueueRef.current.catch(() => {}).then(async () => {
+      const device = deviceRef.current, transport = recvRef.current;
+      if (!isCurrent(epoch) || !joinedRef.current || !device || !transport) return;
+      const { consumers } = await post("consume", { rtpCapabilities: device.rtpCapabilities });
+      if (!isCurrent(epoch)) return;
+      for (const params of consumers ?? []) {
+        const consumer = await transport.consume({ id: params.id, producerId: params.producerId,
+          kind: params.kind, rtpParameters: params.rtpParameters });
+        if (!isCurrent(epoch)) { consumer.close(); return; }
+        attachAudio(params.producerUserId, consumer.track, consumer);
+        resumeRef.current.add(consumer.id);
       }
-      const pc = new RTCPeerConnection({ iceServers: meshIceRef.current });
-      const conn: MeshConn = {
-        pc,
-        polite: mePeerId > userId,
-        makingOffer: false,
-        ignoreOffer: false,
-      };
-      meshConnsRef.current.set(userId, conn);
-      for (const track of micStreamRef.current?.getAudioTracks() ?? []) {
-        pc.addTrack(track, micStreamRef.current as MediaStream);
+      const ids = [...resumeRef.current];
+      if (ids.length && isCurrent(epoch)) {
+        await post("resume", { consumerIds: ids });
+        if (isCurrent(epoch)) for (const id of ids) resumeRef.current.delete(id);
       }
-      pc.ontrack = (event) => {
-        attachRemoteTrack(userId, event.track);
-      };
-      pc.onnegotiationneeded = async () => {
-        try {
-          conn.makingOffer = true;
-          await pc.setLocalDescription();
-          if (pc.localDescription) {
-            meshSend(userId, { description: pc.localDescription });
-          }
-        } catch {
-          // A torn-down connection mid-negotiation; nothing to recover.
-        } finally {
-          conn.makingOffer = false;
-        }
-      };
-      pc.onicecandidate = (event) => {
-        if (event.candidate) {
-          meshSend(userId, { candidate: event.candidate.toJSON() });
-        }
-      };
-      pc.onconnectionstatechange = () => {
-        if (pc.connectionState === "failed" && joinedRef.current) {
-          setStatus("reconnecting");
-          pc.restartIce();
-        } else if (pc.connectionState === "connected" && joinedRef.current) {
-          setStatus("connected");
-        }
-      };
-      return conn;
-    },
-    [attachRemoteTrack, mePeerId, meshSend],
-  );
-
-  const handleMeshSignal = useCallback(
-    async (from: string, data: unknown) => {
-      const note = data as {
-        description?: RTCSessionDescriptionInit;
-        candidate?: RTCIceCandidateInit;
-      };
-      const conn = ensureMeshConn(from);
-      const { pc } = conn;
-      try {
-        if (note?.description) {
-          const offerCollision =
-            note.description.type === "offer" &&
-            (conn.makingOffer || pc.signalingState !== "stable");
-          conn.ignoreOffer = !conn.polite && offerCollision;
-          if (conn.ignoreOffer) {
-            return;
-          }
-          await pc.setRemoteDescription(note.description);
-          if (note.description.type === "offer") {
-            await pc.setLocalDescription();
-            if (pc.localDescription) {
-              meshSend(from, { description: pc.localDescription });
-            }
-          }
-        } else if (note?.candidate) {
-          try {
-            await pc.addIceCandidate(note.candidate);
-          } catch (cause) {
-            if (!conn.ignoreOffer) {
-              throw cause;
-            }
-          }
-        }
-      } catch {
-        // A malformed or out-of-order note; the next negotiation heals it.
-      }
-    },
-    [ensureMeshConn, meshSend],
-  );
-
-  // Heartbeat and mailbox drain in one round trip. A 410 means the server
-  // reaped this seat (a laptop that slept through the timeout), which is not
-  // recoverable in place: say so and let the player rejoin.
-  const drainMeshSignals = useCallback(async () => {
-    if (!joinedRef.current || modeRef.current !== "mesh") {
-      return;
+    });
+    consumeQueueRef.current = work;
+    return work;
+  }, [attachAudio, isCurrent, post]);
+  const postState = useCallback((body: { muted?: boolean; sayRange?: "whisper" | "normal" | "shout" }) => {
+    const epoch = epochRef.current;
+    const work = stateQueueRef.current.catch(() => {}).then(() => {
+      if (isCurrent(epoch) && joinedRef.current) return post(modeRef.current === "mesh" ? "mesh/state" : "state", body);
+    });
+    stateQueueRef.current = work;
+    return work;
+  }, [isCurrent, post]);
+  const applyMicrophone = useCallback(() => {
+    const enabled = microphoneEnabled(muteRef.current, readMicMode(), holdsRef.current.size > 0);
+    for (const stream of [streamRef.current, ...replacingStreamsRef.current]) {
+      for (const track of stream?.getAudioTracks() ?? []) track.enabled = enabled;
     }
+    if (joinedRef.current) void postState({ muted: !enabled }).catch(() => {
+      if (!disposedRef.current) setError("Microphone state could not be confirmed. Retry or reconnect.");
+    });
+  }, [postState]);
+  const meshSend = useCallback((to: string, data: unknown) => { void post("mesh/signal", { to, data }).catch(() => {}); }, [post]);
+  const ensureMeshConn = useCallback((userId: string): MeshConn => {
+    const existing = meshRef.current.get(userId);
+    if (existing) return existing;
+    const pc = new RTCPeerConnection({ iceServers: iceRef.current });
+    const conn = { pc, polite: mePeerId > userId, makingOffer: false, ignoreOffer: false };
+    const epoch = epochRef.current;
+    meshRef.current.set(userId, conn);
+    for (const track of streamRef.current?.getAudioTracks() ?? []) pc.addTrack(track, streamRef.current!);
+    pc.ontrack = event => { if (isCurrent(epoch)) attachAudio(userId, event.track); };
+    pc.onnegotiationneeded = async () => {
+      try { conn.makingOffer = true; await pc.setLocalDescription();
+        if (isCurrent(epoch) && pc.localDescription) meshSend(userId, { description: pc.localDescription });
+      } catch { /* peer departed */ } finally { conn.makingOffer = false; }
+    };
+    pc.onicecandidate = event => { if (isCurrent(epoch) && event.candidate) meshSend(userId, { candidate: event.candidate.toJSON() }); };
+    pc.onconnectionstatechange = () => {
+      if (!isCurrent(epoch) || !joinedRef.current) return;
+      if (pc.connectionState === "failed") { setStatus("reconnecting"); pc.restartIce(); }
+      else if (pc.connectionState === "connected" && !busyRef.current) setStatus("connected");
+    };
+    return conn;
+  }, [attachAudio, isCurrent, mePeerId, meshSend]);
+  const handleMeshSignal = useCallback(async (from: string, data: unknown) => {
+    const note = data as { description?: RTCSessionDescriptionInit; candidate?: RTCIceCandidateInit };
+    const conn = ensureMeshConn(from), { pc } = conn;
+    try {
+      if (note?.description) {
+        conn.ignoreOffer = !conn.polite && note.description.type === "offer" && (conn.makingOffer || pc.signalingState !== "stable");
+        if (conn.ignoreOffer) return;
+        await pc.setRemoteDescription(note.description);
+        if (note.description.type === "offer") { await pc.setLocalDescription(); if (pc.localDescription) meshSend(from, { description: pc.localDescription }); }
+      } else if (note?.candidate) {
+        try { await pc.addIceCandidate(note.candidate); } catch (cause) { if (!conn.ignoreOffer) throw cause; }
+      }
+    } catch { /* A subsequent negotiation retries. */ }
+  }, [ensureMeshConn, meshSend]);
+  const drainMeshSignals = useCallback(async () => {
+    if (!joinedRef.current || modeRef.current !== "mesh") return;
+    const epoch = epochRef.current;
     try {
       const data = await post("mesh/heartbeat");
-      for (const signal of data.signals ?? []) {
-        await handleMeshSignal(String(signal.from ?? ""), signal.data);
-      }
+      if (!isCurrent(epoch)) return;
+      for (const signal of data.signals ?? []) { if (!isCurrent(epoch)) return; await handleMeshSignal(String(signal.from ?? ""), signal.data); }
     } catch (cause) {
-      if (cause instanceof Error && cause.message.includes("Not on the call")) {
-        teardown();
-        setError("The connection idled too long and the call let you go. Join again.");
-        setStatus("error");
+      if (isCurrent(epoch) && cause instanceof Error && cause.message.includes("Not on the call")) {
+        teardown(); setError("The connection idled too long. Join again."); setStatus("error");
       }
     }
-  }, [handleMeshSignal, post, teardown]);
+  }, [handleMeshSignal, isCurrent, post, teardown]);
 
-  const joinMesh = useCallback(async () => {
-    setStatus("connecting");
-    setError("");
-    try {
-      const savedMic = readMicId();
-      const stream = withMicGain(
-        await navigator.mediaDevices.getUserMedia({
-          audio: {
-            echoCancellation: true,
-            noiseSuppression: true,
-            autoGainControl: true,
-            ...(savedMic ? { deviceId: { ideal: savedMic } } : {}),
-          },
-        }),
-      );
-      micStreamRef.current = stream;
-      activeMicRef.current = savedMic;
-      activeModeRef.current = readMicMode();
-      const data = await post("mesh/join");
-      meshIceRef.current = (data.iceServers ?? []) as RTCIceServer[];
-      meshHeartbeatMsRef.current = Number(data.heartbeatMs) || 10_000;
-      joinedRef.current = true;
-      await refreshGains();
-      // The newcomer rings everyone already seated; adding the mic track
-      // fires negotiationneeded, which sends the offers.
-      for (const peer of data.peers ?? []) {
-        if (peer.userId !== mePeerId) {
-          ensureMeshConn(peer.userId);
-        }
-      }
-      setStatus("connected");
-      setMuted(false);
-      setHandRaised(false);
-    } catch (cause) {
-      teardown();
-      setError(cause instanceof Error ? cause.message : "Could not join voice chat.");
-      setStatus("error");
-    }
-  }, [ensureMeshConn, mePeerId, post, refreshGains, teardown]);
-
-  const join = useCallback(async () => {
-    if (joinedRef.current || status === "connecting") {
-      return;
-    }
+  const join = useCallback(async (options?: { muted?: boolean }) => {
+    if (joinedRef.current || busyRef.current || disposedRef.current) return;
     const blocked = micBlockReason();
-    if (blocked) {
-      setError(micBlockMessage(blocked));
-      setStatus("error");
-      return;
-    }
-    if (modeRef.current === "mesh") {
-      await joinMesh();
-      return;
-    }
-    setStatus("connecting");
-    setError("");
-    try {
-      // Ask for the mic before building any transports: if the player denies
-      // it there is nothing worth setting up, and the prompt is the slowest
-      // part of joining anyway.
-      const savedMic = readMicId();
-      const stream = withMicGain(
-        await navigator.mediaDevices.getUserMedia({
-          audio: {
-            echoCancellation: true,
-            noiseSuppression: true,
-            autoGainControl: true,
-            // A saved device that has since been unplugged would make this
-            // throw outright, so it is a preference rather than a requirement.
-            ...(savedMic ? { deviceId: { ideal: savedMic } } : {}),
-          },
-        }),
-      );
-      micStreamRef.current = stream;
-      activeMicRef.current = savedMic;
-      activeModeRef.current = readMicMode();
-
-      const { Device } = await import("mediasoup-client");
-      const data = await post("join");
-      const device = new Device();
-      await device.load({ routerRtpCapabilities: data.routerRtpCapabilities });
-      deviceRef.current = device;
-      joinedRef.current = true;
-
-      const sendTransport = device.createSendTransport(data.sendTransport);
-      const recvTransport = device.createRecvTransport(data.recvTransport);
-      sendTransportRef.current = sendTransport;
-      recvTransportRef.current = recvTransport;
-
-      for (const transport of [sendTransport, recvTransport]) {
-        transport.on("connect", ({ dtlsParameters }, callback, errback) => {
-          post("connect", { transportId: transport.id, dtlsParameters })
-            .then(() => callback())
-            .catch((cause) => errback(cause as Error));
-        });
-        // A laptop waking from sleep, or a phone moving between networks,
-        // breaks the candidate pair without ending the session. Restarting
-        // ICE keeps the producer, the consumers and the seat in the room;
-        // rejoining would drop the call for a hiccup lasting a second.
-        transport.on("connectionstatechange", (state) => {
-          if (state !== "failed" && state !== "disconnected") {
-            if (state === "connected" && joinedRef.current) {
-              setStatus("connected");
-            }
-            return;
-          }
-          if (!joinedRef.current) {
-            return;
-          }
-          setStatus("reconnecting");
-          post("ice-restart", { transportId: transport.id })
-            .then((data) => transport.restartIce({ iceParameters: data.iceParameters }))
-            .catch(() => {
-              // The next state change tries again; a peer whose transport
-              // never recovers is reaped server-side by the ICE timeout.
+    if (blocked) { setError(micBlockMessage(blocked)); setStatus("error"); return; }
+    busyRef.current = true; setPending(true); setStatus("connecting"); setError(""); setPlaybackBlocked(false);
+    const epoch = ++epochRef.current;
+    const task = (async () => {
+      let captured: MediaStream | null = null;
+      let serverJoined = false;
+      const current = () => { if (!isCurrent(epoch)) throw new DOMException("Call cancelled", "AbortError"); };
+      try {
+        await stateQueueRef.current.catch(() => {}); current();
+        const savedMic = readMicId();
+        captured = withMicGain(await navigator.mediaDevices.getUserMedia(captureConstraints(savedMic)));
+        current();
+        muteRef.current = readMicMode() === "ptt" ? false : (options?.muted ?? readCallPreferences().startMuted);
+        holdsRef.current.clear();
+        for (const track of captured.getAudioTracks()) track.enabled = microphoneEnabled(muteRef.current, readMicMode(), false);
+        streamRef.current = captured;
+        activeCaptureRef.current = JSON.stringify(captureConstraints(savedMic)); activeModeRef.current = readMicMode();
+        if (modeRef.current === "mesh") {
+          const data = await post("mesh/join"); serverJoined = true; current();
+          iceRef.current = data.iceServers ?? []; heartbeatRef.current = Number(data.heartbeatMs) || 10_000;
+          joinedRef.current = true;
+          await postState({ muted: !captured.getAudioTracks()[0]?.enabled }); current();
+          await refreshGains(); current();
+          for (const peer of data.peers ?? []) if (peer.userId !== mePeerId) ensureMeshConn(peer.userId);
+        } else {
+          const { Device } = await import("mediasoup-client"); current();
+          const data = await post("join"); serverJoined = true; current();
+          const device = new Device(); await device.load({ routerRtpCapabilities: data.routerRtpCapabilities }); current();
+          deviceRef.current = device; joinedRef.current = true;
+          const send = device.createSendTransport(data.sendTransport), recv = device.createRecvTransport(data.recvTransport);
+          sendRef.current = send; recvRef.current = recv;
+          for (const transport of [send, recv]) {
+            transport.on("connect", ({ dtlsParameters }, callback, errback) => {
+              post("connect", { transportId: transport.id, dtlsParameters }).then(() => callback()).catch(cause => errback(cause as Error));
             });
-        });
+            let restarting = false;
+            transport.on("connectionstatechange", state => {
+              if (!isCurrent(epoch) || !joinedRef.current) return;
+              if (state === "connected" && !busyRef.current) setStatus("connected");
+              if ((state === "failed" || state === "disconnected") && !restarting) {
+                setStatus("reconnecting"); restarting = true;
+                void post("ice-restart", { transportId: transport.id }).then(data => {
+                  if (isCurrent(epoch) && !transport.closed) return transport.restartIce({ iceParameters: data.iceParameters });
+                }).catch(() => {}).finally(() => { restarting = false; });
+              }
+            });
+          }
+          send.on("produce", ({ rtpParameters }, callback, errback) => {
+            post("produce", { transportId: send.id, rtpParameters }).then(result => callback({ id: result.producerId })).catch(cause => errback(cause as Error));
+          });
+          producerRef.current = await send.produce({ track: captured.getAudioTracks()[0] }); current();
+          await postState({ muted: !captured.getAudioTracks()[0]?.enabled }); current();
+          await refreshGains(); current(); await syncConsumers(); current();
+        }
+        setMuted(muteRef.current); setTalking(false); setHandRaised(false); setStartedAt(Date.now()); setStatus("connected");
+      } catch (cause) {
+        stopStream(captured);
+        if (isCurrent(epoch)) { teardown(); setError(cause instanceof Error ? cause.message : "Could not join voice chat."); setStatus("error"); }
+        // A cancelled HTTP join may still have created a server peer. New joins
+        // stay locked until cleanup finishes, so this cannot remove a newer call.
+        if (serverJoined) await post(modeRef.current === "mesh" ? "mesh/leave" : "leave").catch(() => {});
+      } finally {
+        busyRef.current = false;
+        if (!disposedRef.current) setPending(false);
       }
-      sendTransport.on("produce", ({ rtpParameters }, callback, errback) => {
-        post("produce", { transportId: sendTransport.id, rtpParameters })
-          .then((result) => callback({ id: result.producerId }))
-          .catch((cause) => errback(cause as Error));
-      });
-
-      producerRef.current = await sendTransport.produce({ track: stream.getAudioTracks()[0] });
-      // Gains before consumers, so the first audio plays at the right volume
-      // rather than blaring at full and being corrected a moment later.
-      await refreshGains();
-      await syncConsumers();
-      setStatus("connected");
-      setMuted(false);
-      setHandRaised(false);
-    } catch (cause) {
-      teardown();
-      setError(cause instanceof Error ? cause.message : "Could not join voice chat.");
-      setStatus("error");
-    }
-  }, [joinMesh, post, refreshGains, status, syncConsumers, teardown]);
-
+    })();
+    joinTaskRef.current = task;
+    await task;
+    if (joinTaskRef.current === task) joinTaskRef.current = null;
+  }, [ensureMeshConn, isCurrent, mePeerId, post, postState, refreshGains, syncConsumers, teardown]);
   const leave = useCallback(async () => {
-    const leavePath = modeRef.current === "mesh" ? "mesh/leave" : "leave";
-    teardown();
-    setStatus("idle");
-    // The roster is not cleared here: the server publishes the departure and
-    // the stream carries it back, which is also what every other client sees.
-    try {
-      await post(leavePath);
-    } catch {
-      // Already gone, or the server reaped the peer first. Either way the
-      // local side is down, which is what the button promised.
+    const wasJoined = joinedRef.current;
+    ++epochRef.current; ++micSwapRef.current;
+    teardown(); setStatus("idle"); setStartedAt(null); setTalking(false); setError(""); setPlaybackBlocked(false);
+    // Pending join cleans up its own eventual response. Do not remove a peer
+    // while that operation is still creating transports.
+    if (joinTaskRef.current) { await joinTaskRef.current; return; }
+    if (wasJoined) {
+      busyRef.current = true; setPending(true);
+      await stateQueueRef.current.catch(() => {});
+      await post(modeRef.current === "mesh" ? "mesh/leave" : "leave").catch(() => {});
+      busyRef.current = false; if (!disposedRef.current) setPending(false);
     }
   }, [post, teardown]);
-
-  // The mute/say-range route differs by transport; the body does not.
-  const postState = useCallback(
-    (body: { muted?: boolean; sayRange?: "whisper" | "normal" | "shout" }) =>
-      post(modeRef.current === "mesh" ? "mesh/state" : "state", body),
-    [post],
-  );
-
   const toggleMute = useCallback(async () => {
-    const next = !muted;
-    setMuted(next);
-    // The local track is stopped too, so the mute is visible in the browser's
-    // own recording indicator rather than being a server-side promise the
-    // player has to take on trust.
-    for (const track of micStreamRef.current?.getAudioTracks() ?? []) {
-      track.enabled = !next;
-    }
-    try {
-      await postState({ muted: next });
-    } catch {
-      setMuted(!next);
-    }
-  }, [muted, postState]);
-
-  // How far this player's voice carries, when the say-range rule is on.
-  const setSayRange = useCallback(
-    async (sayRange: "whisper" | "normal" | "shout") => {
+    muteRef.current = !muteRef.current; setMuted(muteRef.current); applyMicrophone();
+    // Never visually undo a local privacy mute after a network failure.
+  }, [applyMicrophone]);
+  const setTalking_ = useCallback((held: boolean, source = "pointer") => {
+    if (held && (!joinedRef.current || readMicMode() !== "ptt")) return;
+    if (held) holdsRef.current.add(source); else holdsRef.current.delete(source);
+    setTalking(holdsRef.current.size > 0); applyMicrophone();
+  }, [applyMicrophone]);
+  const releaseTalking = useCallback(() => { holdsRef.current.clear(); setTalking(false); applyMicrophone(); }, [applyMicrophone]);
+  const setSayRange = useCallback(async (sayRange: "whisper" | "normal" | "shout") => { await postState({ sayRange }).catch(() => {}); }, [postState]);
+  const selectMic = useCallback((deviceId: string) => writeMicId(deviceId), []);
+  const selectMicMode = useCallback((mode: MicMode) => writeMicMode(mode), []);
+  const swapMic = useCallback((deviceId: string) => {
+    const epoch = epochRef.current, revision = ++micSwapRef.current;
+    const requested = readCallPreferences();
+    // Serialize replaceTrack as well as capture. A late device switch must not
+    // replace the track installed by a newer request or reopen a muted mic.
+    const work = micQueueRef.current.catch(() => {}).then(async () => {
+      if (!joinedRef.current || !isCurrent(epoch) || revision !== micSwapRef.current) return;
+      let stream: MediaStream | null = null;
       try {
-        await postState({ sayRange });
-      } catch {
-        // the roster keeps the previous value
-      }
-    },
-    [postState],
-  );
-
-  // Swaps the microphone without touching the transport: replaceTrack keeps
-  // the same producer, so nobody else on the call renegotiates or hears a gap.
-  const swapMic = useCallback(
-    async (deviceId: string) => {
-      activeMicRef.current = deviceId;
-      if (!joinedRef.current) {
-        return;
-      }
-      const producer = producerRef.current;
-      const meshConns = [...meshConnsRef.current.values()];
-      if (!producer && meshConns.length === 0) {
-        return;
-      }
-      try {
-        const stream = withMicGain(
-          await navigator.mediaDevices.getUserMedia({
-            audio: {
-              echoCancellation: true,
-              noiseSuppression: true,
-              autoGainControl: true,
-              ...(deviceId ? { deviceId: { exact: deviceId } } : {}),
-            },
-          }),
-        );
+        stream = withMicGain(await navigator.mediaDevices.getUserMedia(captureConstraints(deviceId, true, requested)));
+        if (!isCurrent(epoch) || revision !== micSwapRef.current) { stopStream(stream); return; }
+        replacingStreamsRef.current.add(stream);
         const track = stream.getAudioTracks()[0];
-        if (producer) {
-          await producer.replaceTrack({ track });
+        track.enabled = microphoneEnabled(muteRef.current, readMicMode(), holdsRef.current.size > 0);
+        if (producerRef.current) await producerRef.current.replaceTrack({ track });
+        if (!isCurrent(epoch)) { stopStream(stream); return; }
+        for (const conn of meshRef.current.values()) {
+          const sender = conn.pc.getSenders().find(entry => entry.track?.kind === "audio");
+          if (sender) await sender.replaceTrack(track);
         }
-        // Mesh side of the same move: replaceTrack on each connection's audio
-        // sender, which renegotiates nothing and leaves no gap.
-        for (const conn of meshConns) {
-          const sender = conn.pc.getSenders().find((entry) => entry.track?.kind === "audio");
-          if (sender) {
-            await sender.replaceTrack(track);
-          }
-        }
-        // Only stop the old capture once the new one is live, so there is no
-        // moment where this player is transmitting nothing.
-        micStreamRef.current?.getTracks().forEach((old) => old.stop());
-        micStreamRef.current = stream;
+        if (!isCurrent(epoch)) { stopStream(stream); return; }
+        // Keep this intermediate working capture until the next queued switch
+        // succeeds; stopping it on supersession would leave a dead sender.
+        stopStream(streamRef.current); streamRef.current = stream;
+        activeCaptureRef.current = JSON.stringify(captureConstraints(deviceId, false, requested));
+        applyMicrophone();
       } catch {
-        setError("Could not switch microphone.");
+        if (stream !== streamRef.current) stopStream(stream);
+        if (isCurrent(epoch)) setError("Could not switch microphone. Retry or reconnect if audio stopped.");
+      } finally {
+        if (stream) replacingStreamsRef.current.delete(stream);
       }
-    },
-    [],
-  );
-
-  // The stored preference is the one source of truth: the panel here and
-  // the apps' own Settings screen both write it, and the live capture
-  // follows whichever wrote last.
-  const selectMic = useCallback((deviceId: string) => {
-    writeMicId(deviceId);
-  }, []);
-
+    });
+    micQueueRef.current = work;
+    return work;
+  }, [applyMicrophone, isCurrent]);
+  const captureKey = JSON.stringify(captureConstraints(micId, false, preferences));
   useEffect(() => {
-    if (!joinedRef.current || micId === activeMicRef.current) {
-      return;
-    }
-    void swapMic(micId);
-  }, [micId, swapMic]);
-
-  // Push-to-talk. The local track flips instantly so the player hears no lag
-  // on their own control, and the server mute follows to make it real for
-  // everyone else (a local-only gate would still transmit).
-  const setTalking_ = useCallback(
-    (held: boolean) => {
-      setTalking(held);
-      for (const track of micStreamRef.current?.getAudioTracks() ?? []) {
-        track.enabled = held;
-      }
-      void postState({ muted: !held }).catch(() => {});
-    },
-    [postState],
-  );
-
-  const applyMicMode = useCallback(
-    (mode: MicMode) => {
-      activeModeRef.current = mode;
-      // Leaving push-to-talk opens the microphone again; entering it closes
-      // the microphone until the control is held.
-      const open = mode === "open";
-      setTalking(false);
-      for (const track of micStreamRef.current?.getAudioTracks() ?? []) {
-        track.enabled = open;
-      }
-      if (joinedRef.current) {
-        void postState({ muted: !open }).catch(() => {});
-      }
-    },
-    [postState],
-  );
-
-  // Same one-source rule as the microphone: the mode is written to the
-  // preference, and the live call applies whatever the preference says.
-  const selectMicMode = useCallback((mode: MicMode) => {
-    writeMicMode(mode);
-  }, []);
-
+    if (joinedRef.current && captureKey !== activeCaptureRef.current) void swapMic(micId);
+  }, [captureKey, micId, swapMic]);
   useEffect(() => {
-    if (!joinedRef.current || micMode === activeModeRef.current) {
-      return;
-    }
-    applyMicMode(micMode);
-  }, [applyMicMode, micMode]);
-
-  // Asking for the floor. Never moves the floor by itself: the DM grants it
-  // through the controls they already have, so there is one way the floor
-  // changes rather than two.
-  const toggleHand = useCallback(async () => {
-    const next = !handRaised;
-    setHandRaised(next);
-    try {
-      await post("hand", { raised: next });
-    } catch {
-      setHandRaised(!next);
-    }
-  }, [handRaised, post]);
-
-  // Device labels are only readable once microphone permission has been
-  // granted, so the list is enumerated after joining rather than before, when
-  // every entry would be a blank string.
-  useEffect(() => {
-    if (status !== "connected" || !navigator.mediaDevices?.enumerateDevices) {
-      return;
-    }
-    let cancelled = false;
-    navigator.mediaDevices
-      .enumerateDevices()
-      .then((devices) => {
-        if (cancelled) {
-          return;
-        }
-        setMicDevices(
-          devices
-            .filter((device) => device.kind === "audioinput")
-            .map((device, index) => ({
-              deviceId: device.deviceId,
-              label: device.label || `Microphone ${index + 1}`,
-            })),
-        );
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-  }, [status]);
-
-  // The push-to-talk key. Ignored while typing, so holding it in the composer
-  // writes a character instead of opening the microphone.
-  useEffect(() => {
-    if (micMode !== "ptt" || status !== "connected") {
-      return;
-    }
-    const typing = (target: EventTarget | null) => {
-      const element = target as HTMLElement | null;
-      const tag = element?.tagName;
-      return tag === "INPUT" || tag === "TEXTAREA" || element?.isContentEditable === true;
-    };
-    const down = (event: KeyboardEvent) => {
-      if (event.code === PTT_KEY && !event.repeat && !typing(event.target)) {
-        event.preventDefault();
-        setTalking_(true);
-      }
-    };
-    const up = (event: KeyboardEvent) => {
-      if (event.code === PTT_KEY) {
-        setTalking_(false);
-      }
-    };
-    // Releasing the key after tabbing away would otherwise leave the mic open.
-    const blur = () => setTalking_(false);
-    window.addEventListener("keydown", down);
-    window.addEventListener("keyup", up);
-    window.addEventListener("blur", blur);
-    return () => {
-      window.removeEventListener("keydown", down);
-      window.removeEventListener("keyup", up);
-      window.removeEventListener("blur", blur);
-    };
-  }, [micMode, setTalking_, status]);
-
-  // Initial availability probe. Runs whether or not anyone is on the call, so
-  // the UI can explain a disabled feature instead of hiding it.
-  useEffect(() => {
-    let cancelled = false;
-    fetch(`/api/campaigns/${campaignId}/voice`)
-      .then((response) => (response.ok ? response.json() : null))
-      .then((data) => {
-        if (cancelled || !data) {
-          return;
-        }
-        setAvailable(Boolean(data.available));
-        setUnavailableReason(String(data.unavailableReason ?? ""));
-        setProbedPeers(data.peers ?? []);
-        modeRef.current = data.mode === "mesh" ? "mesh" : "sfu";
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-  }, [campaignId]);
-
-  // A token moved, a fight started, or the DM moved somebody between rooms.
-  useEffect(() => {
-    if (audibilityVersion > 0) {
-      void refreshGains();
-    }
-  }, [audibilityVersion, refreshGains]);
-
-  // The roster arrives on the campaign SSE stream. A new producer means there
-  // is someone new to hear, so this is also what drives subscription.
-  // Only the subscribe is an effect: the list itself is derived above rather
-  // than copied into state, so there is nothing to keep in sync.
-  // In mesh mode the roster's job is the reverse: newcomers ring us, so all
-  // this side does is hang up connections to people who left.
-  useEffect(() => {
-    if (!rosterFromStream || !joinedRef.current) {
-      return;
-    }
-    if (modeRef.current !== "mesh") {
-      void syncConsumers();
-      return;
-    }
-    const present = new Set(rosterFromStream.map((peer) => peer.userId));
-    for (const [userId, conn] of meshConnsRef.current) {
-      if (!present.has(userId)) {
-        conn.pc.close();
-        meshConnsRef.current.delete(userId);
-        const element = audioElementsRef.current.get(userId);
-        if (element) {
-          element.pause();
-          element.srcObject = null;
-          releaseOutput(element);
-          audioElementsRef.current.delete(userId);
-        }
-      }
-    }
-  }, [rosterFromStream, syncConsumers]);
-
-  // Mesh mailbox: drained on the stream's nudge when it names this user, and
-  // on the heartbeat that also keeps the seat alive. Deferred a tick because
-  // a failed drain flips status, and state changes must not launch
-  // synchronously from an effect body.
-  useEffect(() => {
-    if (!(meshSignal && meshSignal.to === mePeerId && meshSignal.version > 0)) {
-      return;
-    }
-    const timer = setTimeout(() => void drainMeshSignals(), 0);
+    if (micMode === activeModeRef.current) return;
+    activeModeRef.current = micMode;
+    const timer = setTimeout(releaseTalking, 0);
     return () => clearTimeout(timer);
-  }, [drainMeshSignals, mePeerId, meshSignal]);
-
+  }, [micMode, releaseTalking]);
+  const toggleHand = useCallback(async () => {
+    const entry = (rosterFromStream ?? probedPeers).find(peer => peer.userId === mePeerId);
+    const next = !(entry ? Boolean(entry.handRaisedAt) : handRaised); setHandRaised(next);
+    try { await post("hand", { raised: next }); } catch { if (!disposedRef.current) setHandRaised(!next); }
+  }, [handRaised, mePeerId, post, probedPeers, rosterFromStream]);
+  const refreshDevices = useCallback(async () => {
+    if (!navigator.mediaDevices?.enumerateDevices) return;
+    const devices = await navigator.mediaDevices.enumerateDevices().catch(() => []);
+    if (!disposedRef.current) setMicDevices(devices.filter(d => d.kind === "audioinput").map((d, i) => ({ deviceId: d.deviceId, label: d.label || `Microphone ${i + 1}` })));
+  }, []);
   useEffect(() => {
-    if (status !== "connected" && status !== "reconnecting") {
-      return;
+    void refreshDevices();
+    navigator.mediaDevices?.addEventListener("devicechange", refreshDevices);
+    return () => navigator.mediaDevices?.removeEventListener("devicechange", refreshDevices);
+  }, [refreshDevices, status]);
+  useEffect(() => {
+    if (micMode !== "ptt" || (status !== "connected" && status !== "reconnecting")) return;
+    const down = (event: KeyboardEvent) => {
+      if (event.code !== preferences.pttKey || event.repeat || event.ctrlKey || event.altKey || event.metaKey || isTypingTarget(event.target)) return;
+      event.preventDefault(); setTalking_(true, "key");
+    };
+    const up = (event: KeyboardEvent) => { if (event.code === preferences.pttKey) setTalking_(false, "key"); };
+    const visibility = () => { if (document.hidden) releaseTalking(); };
+    window.addEventListener("keydown", down); window.addEventListener("keyup", up);
+    window.addEventListener("blur", releaseTalking); document.addEventListener("visibilitychange", visibility);
+    return () => {
+      window.removeEventListener("keydown", down); window.removeEventListener("keyup", up);
+      window.removeEventListener("blur", releaseTalking); document.removeEventListener("visibilitychange", visibility);
+      holdsRef.current.clear(); applyMicrophone();
+      if (!disposedRef.current) setTalking(false);
+    };
+  }, [applyMicrophone, micMode, preferences.pttKey, releaseTalking, setTalking_, status]);
+  useEffect(() => {
+    const controller = new AbortController();
+    void fetch(`/api/campaigns/${campaignId}/voice`, { signal: controller.signal }).then(r => r.ok ? r.json() : null).then(data => {
+      if (controller.signal.aborted || !data) return;
+      setAvailable(Boolean(data.available)); setUnavailableReason(String(data.unavailableReason ?? ""));
+      setProbedPeers(data.peers ?? []); modeRef.current = data.mode === "mesh" ? "mesh" : "sfu";
+    }).catch(() => {});
+    return () => controller.abort();
+  }, [campaignId]);
+  useEffect(() => { if (audibilityVersion > 0) void refreshGains(); }, [audibilityVersion, refreshGains]);
+  useEffect(() => {
+    if (!rosterFromStream || !joinedRef.current) return;
+    const present = new Set(rosterFromStream.filter(peer => peer.producing).map(peer => peer.userId));
+    for (const userId of [...elementsRef.current.keys()]) if (!present.has(userId)) removeAudio(userId);
+    for (const [userId, conn] of meshRef.current) {
+      if (!rosterFromStream.some(peer => peer.userId === userId)) { conn.pc.close(); meshRef.current.delete(userId); }
     }
-    if (modeRef.current !== "mesh") {
-      return;
-    }
-    const timer = setInterval(() => void drainMeshSignals(), meshHeartbeatMsRef.current);
+    if (modeRef.current === "sfu") void syncConsumers().catch(() => {});
+  }, [removeAudio, rosterFromStream, syncConsumers]);
+  useEffect(() => {
+    if (meshSignal?.to === mePeerId && meshSignal.version > 0) void drainMeshSignals();
+  }, [drainMeshSignals, mePeerId, meshSignal]);
+  useEffect(() => {
+    if ((status !== "connected" && status !== "reconnecting") || modeRef.current !== "mesh") return;
+    const timer = setInterval(() => void drainMeshSignals(), heartbeatRef.current);
     return () => clearInterval(timer);
   }, [drainMeshSignals, status]);
-
-  // Fast-path cleanup. The reliable path is the server's ICE timeout, because
-  // a crashed tab sends nothing; this just spares everyone the ~30s wait in
-  // the normal case. keepalive rather than sendBeacon so the session cookie
-  // and the JSON content type both ride along.
   useEffect(() => {
-    const onUnload = () => {
-      if (!joinedRef.current) {
-        return;
-      }
-      const leavePath = modeRef.current === "mesh" ? "mesh/leave" : "leave";
-      void fetch(`/api/campaigns/${campaignId}/voice/${leavePath}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: "{}",
-        keepalive: true,
-      });
+    disposedRef.current = false;
+    const unload = () => {
+      const wasJoined = joinedRef.current;
+      ++epochRef.current; teardown();
+      if (wasJoined) void fetch(`/api/campaigns/${campaignId}/voice/${modeRef.current === "mesh" ? "mesh/leave" : "leave"}`, {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: "{}", keepalive: true,
+      }).catch(() => {});
     };
-    window.addEventListener("pagehide", onUnload);
-    return () => {
-      window.removeEventListener("pagehide", onUnload);
-      onUnload();
-      teardown();
-    };
+    window.addEventListener("pagehide", unload);
+    return () => { disposedRef.current = true; window.removeEventListener("pagehide", unload); unload(); };
   }, [campaignId, teardown]);
-
-  // The stream is authoritative once it has spoken; the probe only covers the
-  // gap before the first event.
+  const getMicrophoneStream = useCallback(() => streamRef.current, []);
+  const getStats = useCallback(async (): Promise<AudioStat[]> => {
+    const rows: AudioStat[] = [];
+    const sources = modeRef.current === "sfu" ? [sendRef.current, recvRef.current].filter((v): v is Transport => Boolean(v))
+      : [...meshRef.current.values()].map(conn => conn.pc);
+    await Promise.all(sources.map(async (source, index) => {
+      try { const report = await source.getStats(); report.forEach(stat => rows.push({ ...stat, id: `${index}:${stat.id}` })); } catch { /* closed transport */ }
+    }));
+    return rows;
+  }, []);
   const peers = rosterFromStream ?? probedPeers;
-
-  // The server lowers a hand by itself once its owner is given the floor, so
-  // the roster is authoritative and the local flag only covers the moment
-  // between clicking and the event coming back.
-  const myEntry = peers.find((peer) => peer.userId === mePeerId);
-
-  // What this listener wants to hear, which is a property of this browser
-  // rather than of the call, so it comes from localStorage and not the roster.
-  // The ids are handed over only so the stored map knows who to keep if it
-  // ever has to be trimmed.
-  const presentUserIds = useMemo(() => peers.map((peer) => peer.userId), [peers]);
-  const volumes = useVoiceVolumes(presentUserIds);
-
-  // Moving a slider has to reach audio that is already playing, not just the
-  // next element built.
-  useEffect(() => {
-    applyVolumes(audioElementsRef.current, gainsRef.current, volumes.prefs);
-  }, [volumes.prefs]);
-
+  const myEntry = peers.find(peer => peer.userId === mePeerId);
+  const presentIds = useMemo(() => peers.map(peer => peer.userId), [peers]);
+  const volumes = useVoiceVolumes(presentIds);
+  useEffect(() => { applyVolumes(elementsRef.current, gainsRef.current, volumes.prefs); }, [volumes.prefs]);
   return {
-    status,
-    error,
-    muted,
-    handRaised: myEntry ? Boolean(myEntry.handRaisedAt) : handRaised,
-    toggleHand,
-    sayRange: myEntry?.sayRange ?? "normal",
-    setSayRange,
-    micDevices,
-    micId,
-    selectMic,
-    micMode,
-    selectMicMode,
-    talking,
-    setTalking: setTalking_,
-    reconnecting: status === "reconnecting",
-    peers,
-    available,
-    unavailableReason,
-    join,
-    leave,
-    toggleMute,
-    connected: status === "connected",
-    // Output side: how loud everyone else is, in this browser only. Deafen
-    // deliberately does not touch the microphone. Coupling the two (as chat
-    // apps often do) would fight push-to-talk and the floor rules in
-    // turn-logic.ts, and would turn a private listening choice into something
-    // every other client sees on the roster.
-    peerVolume: volumes.peerVolume,
-    setPeerVolume: volumes.setPeerVolume,
-    togglePeerMute: volumes.togglePeerMute,
-    resetPeerVolume: volumes.resetPeer,
-    masterVolume: volumes.prefs.master,
-    setMasterVolume: volumes.setMaster,
-    deafened: volumes.prefs.deafened,
-    toggleDeafen: volumes.toggleDeafen,
+    status, error, muted, pending, startedAt, playbackBlocked, unlockPlayback, getMicrophoneStream, getStats,
+    handRaised: myEntry ? Boolean(myEntry.handRaisedAt) : handRaised, toggleHand,
+    sayRange: myEntry?.sayRange ?? "normal", setSayRange, micDevices, refreshDevices, micId, selectMic,
+    micMode, selectMicMode, talking, setTalking: setTalking_, reconnecting: status === "reconnecting",
+    peers, available, unavailableReason, join, leave, toggleMute, connected: status === "connected",
+    peerVolume: volumes.peerVolume, setPeerVolume: volumes.setPeerVolume, togglePeerMute: volumes.togglePeerMute,
+    resetPeerVolume: volumes.resetPeer, masterVolume: volumes.prefs.master, setMasterVolume: volumes.setMaster,
+    deafened: volumes.prefs.deafened, toggleDeafen: volumes.toggleDeafen,
   };
 }
