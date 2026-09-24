@@ -11,7 +11,7 @@ import {
 import { insertCampaignMessage } from "@/lib/db/messages";
 import { listSheets } from "@/lib/db/sheets";
 import { publishPersisted, publishWithSeq } from "@/lib/events";
-import type { GlobalTurnState } from "@/lib/campaign-types";
+import { globalTurnSubmitted, type GlobalTurnState } from "@/lib/campaign-types";
 import { getActiveEncounter } from "@/lib/db/encounters";
 
 // In-memory timers are only a latency optimization. jobs.ts also scans
@@ -40,7 +40,7 @@ function respondedCount(
   const members = listMembers(campaignId);
   const responded = sheets.filter((sheet) => {
     const usage = state.actionsByCharacter[sheet.id];
-    if (usage && (usage.actionsCount > 0 || usage.phrasesCount > 0)) return true;
+    if (globalTurnSubmitted(usage)) return true;
     const member = members.find((entry) => entry.userId === sheet.userId);
     return Boolean(member && member.skipTurnsCount > 0);
   }).length;
@@ -279,7 +279,7 @@ export function recordGlobalTurnAction(
   campaignId: string,
   sheetId: string,
   _userId: string,
-  kind: "do" | "say" | "ooc",
+  kind: "do" | "ooc",
 ): { allowed: boolean; error?: string; state?: GlobalTurnState; shouldResolve?: boolean } {
   if (kind === "ooc") return { allowed: true };
 
@@ -305,29 +305,19 @@ export function recordGlobalTurnAction(
 
   const usage = state.actionsByCharacter[sheetId] ?? {
     actionsCount: 0,
-    phrasesCount: 0,
     updatedAt: new Date().toISOString(),
   };
 
-  if (kind === "do" && usage.actionsCount >= 1) {
+  if (globalTurnSubmitted(usage)) {
     return {
       allowed: false,
-      error:
-        "В этом ходе вы уже совершили действие. За общий ход доступно максимум 1 действие и 1 фраза (Речь).",
-    };
-  }
-  if (kind === "say" && usage.phrasesCount >= 1) {
-    return {
-      allowed: false,
-      error:
-        "В этом ходе вы уже произнесли фразу. За общий ход доступно максимум 1 действие и 1 фраза (Речь).",
+      error: "Вы уже отправили свой ход. Дождитесь, пока MCP-Мастер завершит раунд и передаст управление игрокам.",
     };
   }
 
   const nextUsage = {
-    actionsCount: kind === "do" ? usage.actionsCount + 1 : usage.actionsCount,
-    phrasesCount: kind === "say" ? usage.phrasesCount + 1 : usage.phrasesCount,
-    lastActionKind: kind,
+    actionsCount: usage.actionsCount + 1,
+    lastActionKind: "do" as const,
     updatedAt: new Date().toISOString(),
   };
   const nextState: GlobalTurnState = {
@@ -407,7 +397,7 @@ function resolveGlobalTurnOnce(
   const members = listMembers(campaignId);
   for (const sheet of sheets) {
     const usage = state.actionsByCharacter[sheet.id];
-    const hasActed = Boolean(usage && (usage.actionsCount > 0 || usage.phrasesCount > 0));
+    const hasActed = globalTurnSubmitted(usage);
     const member = members.find((entry) => entry.userId === sheet.userId);
     if (hasActed || !member || member.skipTurnsCount <= 0) continue;
 

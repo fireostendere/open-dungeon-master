@@ -99,23 +99,28 @@ export function spliceIntoOrder(
   return { order: nextOrder, turnIndex: pointer };
 }
 
-// Target choice for the enemy auto-act fallback: the nearest living PC by
-// Chebyshev distance on the battle map, tie-break lowest AC, falling back to
-// the lowest-AC candidate when positions are unknown. Pure so the test
-// suite covers it; candidates are pre-filtered to living PCs.
+// Target choice for the enemy auto-act fallback. Classical combat picks the
+// nearest living PC and breaks distance ties by AC. JRPG has no meaningful
+// distance, so it rotates through the party instead of metagaming the same
+// lowest-AC hero every turn. Candidates are pre-filtered to living PCs.
 export function pickEnemyTarget(
   attackerPosition: { x: number; y: number } | null,
   candidates: Array<{ characterId: string; ac: number; position: { x: number; y: number } | null }>,
   usePosition = true,
+  rotationIndex = 0,
 ): string | null {
   if (!candidates.length) {
     return null;
+  }
+  if (!usePosition) {
+    const index = ((rotationIndex % candidates.length) + candidates.length) % candidates.length;
+    return candidates[index].characterId;
   }
   const scored = candidates.map((candidate) => ({
     characterId: candidate.characterId,
     ac: candidate.ac,
     distance:
-      usePosition && attackerPosition && candidate.position
+      attackerPosition && candidate.position
         ? Math.max(
             Math.abs(attackerPosition.x - candidate.position.x),
             Math.abs(attackerPosition.y - candidate.position.y),

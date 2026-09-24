@@ -26,7 +26,7 @@ Ensure the DM seat (`human_dm_user_id`) is assigned to a dedicated bot user (suc
 rather than any human player's account. Any account sitting in `human_dm_user_id` has its
 character sheet disabled by the web UI and receives DM composer controls ("Narrate" and "OOC").
 When the DM seat belongs to a dedicated bot, human participants (including the campaign creator)
-can join with their own character sheets and use player composer controls ("Do", "Say", "OOC").
+can join with their own character sheets and use player composer controls ("Do", including dialogue, and "OOC").
 
 Automatic map generation, TTS, LLM narration compaction and AI chapter closing
 are off this external-narrator path. A separate privileged operator can maintain

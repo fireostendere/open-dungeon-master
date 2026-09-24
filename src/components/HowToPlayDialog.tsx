@@ -38,9 +38,7 @@ const COPY = {
     turnIntro: "The buttons above the message box change what your message means:",
     doLabel: "Do",
     doText:
-      "Describe what your character does. The DM narrates the outcome and asks for a roll when the rules call for one.",
-    sayLabel: "Say",
-    sayText: "Speak in character. Your text is sent as spoken dialogue.",
+      "Describe what your character does or says. The DM narrates the outcome and asks for a roll when the rules call for one.",
     oocLabel: "OOC",
     oocText: "Out-of-character table talk. The DM does not read it or respond to it.",
     askDm: "Ask the DM",
@@ -93,9 +91,7 @@ const COPY = {
     turnIntro: "Кнопки над полем сообщения определяют, что означает ваше сообщение:",
     doLabel: "Действие",
     doText:
-      "Опишите, что делает персонаж. Мастер расскажет о результате и попросит бросок, когда этого требуют правила.",
-    sayLabel: "Речь",
-    sayText: "Говорите от лица персонажа. Текст отправляется как произнесённая реплика.",
+      "Опишите, что делает или говорит персонаж. Мастер расскажет о результате и попросит бросок, когда этого требуют правила.",
     oocLabel: "OOC",
     oocText: "Внеигровое обсуждение за столом. Мастер его не читает и не отвечает на него.",
     askDm: "Спросить Мастера",
@@ -173,7 +169,6 @@ export function HowToPlayDialog({
       <Section icon={MessageSquareText} title={copy.turnTitle}>
         <p>{copy.turnIntro}</p>
         <ModeRow label={copy.doLabel}>{copy.doText}</ModeRow>
-        <ModeRow label={copy.sayLabel}>{copy.sayText}</ModeRow>
         <ModeRow label={copy.oocLabel}>{copy.oocText}</ModeRow>
         <p>
           {copy.turnP2a}

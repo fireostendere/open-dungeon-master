@@ -57,7 +57,7 @@ function actionView(campaignId: string, source: ActionSource, messageId: string,
 export function queuePlayerAction(campaignId: string, source: ActionSource, messageId: string, kind: string): void {
   let config: ReturnType<typeof feedConfig>;
   try { config = feedConfig(); } catch { return; } // Misconfiguration disables export, not the game.
-  if (!config?.campaigns.has(campaignId) || (kind !== 'do' && kind !== 'say')) return;
+  if (!config?.campaigns.has(campaignId) || kind !== 'do') return;
   const view = actionView(campaignId, source, messageId, kind);
   if (!view) return;
   // Keep a denied tombstone too: retries/membership changes cannot retroactively
@@ -75,7 +75,7 @@ export function projectQueuedAction(row: OutboxRecord, campaigns: Set<string>): 
 }
 
 /** Legacy writes all publish message_added, including narrator autopilot actions.
- * Use the same Do/Say/OOC interpretation as the existing transcript UI. */
+ * Use the same Do/OOC interpretation as the existing transcript UI. */
 export function queueLegacyPlayerEvent(campaignId: string, type: string, payload: unknown): void {
   if (type !== 'message_added' || !payload || typeof payload !== 'object') return;
   const message = (payload as { message?: { id?: unknown; content?: unknown; authorType?: unknown } }).message;

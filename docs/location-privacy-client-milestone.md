@@ -8,7 +8,7 @@ The location HTTP API accepts the optional `X-ODM-Expected-User` assertion. A co
 
 ## WebMCP contract change
 
-`odm_send_location_message` now requires `intentId`, `roomId`, `expectedRevision`, `kind` and `content`. Choose one UUID intentId per intended message and reuse every argument unchanged after an uncertain result. For say/do, obtain current roomId and revision with the list tool first. For OOC, pass null for roomId and expectedRevision. An intentional second identical message requires a different intentId. The adapter no longer fetches a new revision or generates a new UUID during retry. Registration and invocation abort signals cancel stale tools; no private draft is persisted to browser storage.
+`odm_send_location_message` now requires `intentId`, `roomId`, `expectedRevision`, `kind` and `content`. Choose one UUID intentId per intended message and reuse every argument unchanged after an uncertain result. For Do, obtain current roomId and revision with the list tool first; dialogue belongs inside Do. For OOC, pass null for roomId and expectedRevision. An intentional second identical message requires a different intentId. The adapter no longer fetches a new revision or generates a new UUID during retry. Registration and invocation abort signals cancel stale tools; no private draft is persisted to browser storage.
 
 ## Executed validation
 

@@ -88,6 +88,9 @@ export class NarratorRunner {
   async callControl(action,params={}, {timeoutMs=15000}={}) {
     return this.odmClient(action,params,{timeout:timeoutMs});
   }
+  async setDmStatus(state) {
+    return this.callControl('narrator.status',{campaignId:this.campaignId,state});
+  }
   async lookupRules(query) {
     if(!this.rulesClient)return {ok:false,error:'rules_rag_unavailable',retryable:false,untrusted:true};
     try{return await this.rulesClient.search(query);}

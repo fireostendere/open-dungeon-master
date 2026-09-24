@@ -56,6 +56,7 @@ export const MCP_EXTENDED_ACTIONS = [
   "narrator.catalog",
   "narrator.invoke",
   "narrator.narrate",
+  "narrator.status",
   "narrator.store_audio",
   "narrator.delete_message",
   "narrator.edit_message",

@@ -1033,17 +1033,21 @@ export function useCampaignStream(campaignId: string) {
   useEffect(() => {
     let source: EventSource | null = null;
     let cancelled = false;
-    let fallback: ReturnType<typeof setInterval> | undefined;
+    const reconcile = () => {
+      if (document.visibilityState === "visible") void refresh();
+    };
+    const reconciliation = setInterval(reconcile, 5000);
+    window.addEventListener("focus", reconcile);
+    document.addEventListener("visibilitychange", reconcile);
 
     refresh().then((lastSeq) => {
       if (cancelled) {
         return;
       }
       source = new EventSource(`/api/campaigns/${campaignId}/events?lastSeq=${lastSeq}`);
-      source.onopen = () => { if (fallback) clearInterval(fallback); fallback = undefined; };
-      source.onerror = () => {
-        if (!fallback) fallback = setInterval(() => void refresh(), 5000);
-      };
+      // EventSource is the fast path. Periodic snapshots reconcile durable
+      // changes when a proxy or process drops a live notification.
+      source.onerror = reconcile;
       const handle = (eventType: string) => (event: MessageEvent) => {
         try {
           const payload = JSON.parse(event.data);
@@ -1132,7 +1136,9 @@ export function useCampaignStream(campaignId: string) {
     return () => {
       cancelled = true;
       source?.close();
-      if (fallback) clearInterval(fallback);
+      clearInterval(reconciliation);
+      window.removeEventListener("focus", reconcile);
+      document.removeEventListener("visibilitychange", reconcile);
     };
   }, [
     campaignId,

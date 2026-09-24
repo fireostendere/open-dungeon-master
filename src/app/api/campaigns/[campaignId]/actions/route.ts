@@ -30,7 +30,7 @@ export const dynamic = "force-dynamic";
 
 const actionSchema = z.object({
   content: z.string().trim().min(1).max(2000).optional(),
-  kind: z.enum(["do", "say", "ooc"]).default("do"),
+  kind: z.enum(["do", "ooc"]).default("do"),
   combatTurn: z.object({
     encounterId: z.string().uuid(),
     round: z.number().int().min(1),
@@ -221,7 +221,7 @@ export async function POST(
     combatContent = result.content;
     combatGate = { encounterId: encounter.id, round: encounter.round, turnIndex: encounter.turnIndex, characterId: sheet.id, requiresEndTurn: true, mechanicsResolved: false };
   }
-  // Global turn pacing: enforce maximum 1 do and 1 say per hero per turn
+  // Global turn pacing: the first Do is the hero's complete submission.
   // Initiative already has a per-combatant action budget; global collection
   // pacing must not consume or reject combat turns.
   const turnResult = encounter?.orderReady ? { allowed: true } : recordGlobalTurnAction(campaignId, sheet.id, user.id, kind);
@@ -244,9 +244,7 @@ export async function POST(
   }
 
   const content =
-      combatContent ?? (kind === "say"
-      ? `"${parsed.data.content}"`
-      : kind === "ooc"
+      combatContent ?? (kind === "ooc"
         ? `(ooc) ${parsed.data.content}`
         : parsed.data.content!);
 

@@ -244,7 +244,7 @@ function createMcpServer() {
       contents: [{
         uri: uri.href,
         mimeType: "text/plain",
-        text: "Trusted DM only: connect with stateDelta:true, then read until hasMore is false. Keep stateDelta.revision and return it as knownStateRevision; changed entities arrive as upsert/remove/order patches and changed scalar state as set/unset. A full resyncRequired response replaces the baseline after restart/eviction. Use the fully drained nextCursor/currentSeq as expectedSeq for one invoke, narrate, edit_message, delete_message, set_floor, request_response, autopilot_action, finish_global_round, or release_floor. finish_global_round is only the no-prose spatial global-turn finalizer after every required room narration. Inspect pendingRolls, roll_result events, and recentRolls; the server owns dice. In global-turn mode, a waiting round keeps players locked: wait for global_turn_narrator_trigger and narrate with startGlobalRound equal to its roundNumber; that confirmed narration opens collection. Later wait for global_turn_ready, treat all player messages through that event seq as one round, and narrate with completeGlobalRound equal to its roundNumber; that confirmed MCP write advances and opens the next round. After a write, consume its attached authoritative state delta as the read; if absent/incomplete, drain narrator.read. Always reread after a timeout or error. An ambiguous serialized write may have one immediate receipt-recovery retry only with the saved exact request: same UUID commandId, original expectedSeq, timelineEpoch and all arguments. Never regenerate a payload, expectedSeq or UUID to replay an effect; then checkpoint and escalate. An answer_ask retry also keeps the exact expectedVersion. If timelineEpoch changed, reconnect and discard incompatible pending work. This resource is not a background loop. The bearer is campaign-scoped narrator access, not player access; never put it or DM secrets in player chat.",
+        text: "Trusted DM only: connect with stateDelta:true, then read until hasMore is false. Keep stateDelta.revision and return it as knownStateRevision; changed entities arrive as upsert/remove/order patches and changed scalar state as set/unset. A full resyncRequired response replaces the baseline after restart/eviction. Use the fully drained nextCursor/currentSeq as expectedSeq for one invoke, narrate, edit_message, delete_message, set_floor, request_response, autopilot_action, finish_global_round, or release_floor. finish_global_round is only the no-prose spatial global-turn finalizer after every required room narration. Inspect pendingRolls, roll_result events, and recentRolls; the server owns dice. A player submits exactly one Do per turn, including dialogue. In combat, the first accepted Do leaves the floor held until DM resolution and end_turn. In global-turn mode, actionsByCharacter locks that character until round completion: a waiting round keeps players locked, so wait for global_turn_narrator_trigger and narrate with startGlobalRound equal to its roundNumber; that confirmed narration opens collection. Later wait for global_turn_ready, treat all player messages through that event seq as one round, and narrate with completeGlobalRound equal to its roundNumber; that confirmed MCP write advances and opens the next round. After a write, consume its attached authoritative state delta as the read; if absent/incomplete, drain narrator.read. Always reread after a timeout or error. An ambiguous serialized write may have one immediate receipt-recovery retry only with the saved exact request: same UUID commandId, original expectedSeq, timelineEpoch and all arguments. Never regenerate a payload, expectedSeq or UUID to replay an effect; then checkpoint and escalate. An answer_ask retry also keeps the exact expectedVersion. If timelineEpoch changed, reconnect and discard incompatible pending work. This resource is not a background loop. The bearer is campaign-scoped narrator access, not player access; never put it or DM secrets in player chat.",
       }],
     }),
   );
@@ -263,6 +263,9 @@ You describe the world and play NPCs. Players decide their own character actions
 The server owns dice, HP, slots, initiative and inventory. Never invent a roll or
 claim an action succeeded before the authoritative result has arrived.
 
+Set status=thinking immediately before an actual model-provider call and restore
+status=idle in a finally block. Do not show thinking merely because input is queued.
+
 ## Read and write protocol
 Call connect and read; follow nextCursor until hasMore is false. Filtering OOC
 messages can produce empty pages with a NEW cursor: keep draining them. Use the
@@ -271,6 +274,8 @@ edit_message, autopilot_action, finish_global_round, set_floor, request_response
 or release_floor. finish_global_round is only
 the no-prose spatial global-turn finalizer after every required room narration.
 When global-turn mode is enabled, the server owns the round counter and input gate.
+A player submits exactly one Do per turn, with dialogue included in that Do. The first
+accepted Do locks that character in actionsByCharacter until the DM completes the round.
 A waiting round accepts no player input. Wait for global_turn_narrator_trigger, narrate
 the opening/transition, and send startGlobalRound=roundNumber; only that committed MCP
 write opens collection. While collection is active, an explicitly opted-in member may

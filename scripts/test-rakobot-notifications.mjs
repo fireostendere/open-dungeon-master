@@ -222,7 +222,7 @@ try {
       assert.equal(f.outbox.page(cursor(head), row => api.projectQueuedAction(row, allowed)).entries[0].event, null);
     });
   }
-  for (const kind of ['do', 'say']) {
+  for (const kind of ['do']) {
     await test(`public spatial ${kind} works without a DM receipt`, async f => {
       const { integration: api } = await modules(f), head = f.outbox.head(), id = f.spatial(randomUUID(), ['p1', 'p2'], 0, 'none', kind);
       api.queuePlayerAction(campaignId, 'spatial', id, kind);
@@ -286,7 +286,7 @@ try {
       assert.equal((result.diagnostics ?? []).filter(d => d.category === ts.DiagnosticCategory.Error).length, 0);
     }
   });
-  for (const [content, kind] of [['Ищу дверь.', 'do'], ['"Откройте дверь!"', 'say'], ['(ooc) перерыв', null]]) {
+  for (const [content, kind] of [['Ищу дверь.', 'do'], ['"Откройте дверь!"', 'do'], ['(ooc) перерыв', null]]) {
     await test(`actual shared event publisher routes ${kind ?? 'no OOC'} (also MCP writers)`, async f => {
       const { events, integration: api } = await modules(f), head = f.outbox.head();
       const message = { id: randomUUID(), campaignId, seq: 1, authorType: 'player', userId: 'p1', content };

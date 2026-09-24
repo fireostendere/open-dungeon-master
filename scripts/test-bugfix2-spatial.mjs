@@ -53,13 +53,12 @@ const setFloor = (id,floor,roomId) => roomId
   ? db.prepare('UPDATE spatial_rooms SET floor_json=? WHERE campaign_id=? AND id=?').run(JSON.stringify(floor), id,roomId)
   : db.prepare('UPDATE campaigns SET floor_json=? WHERE id=?').run(JSON.stringify(floor),id);
 const canAct = (floor,userId,kind) => kind === 'ooc' || floor.mode === 'open' || floor.mode !== 'hold' && floor.userIds.includes(userId);
-const recordAction = (id,sheetId,userId,kind) => {
+const recordAction = (id,sheetId) => {
   const state = readRound();
   if (!['active','quorum_delay'].includes(state.phase)) return {allowed:false,error:'Round closed'};
-  const entry = state.actionsByCharacter[sheetId] ?? {actionsCount:0,phrasesCount:0};
-  const key = kind === 'do' ? 'actionsCount':'phrasesCount';
-  if (entry[key]) return {allowed:false,error:'Quota exhausted'};
-  entry[key]++; state.actionsByCharacter[sheetId] = entry;
+  const entry = state.actionsByCharacter[sheetId] ?? {actionsCount:0};
+  if (entry.actionsCount) return {allowed:false,error:'Quota exhausted'};
+  entry.actionsCount++; state.actionsByCharacter[sheetId] = entry;
   db.prepare('UPDATE campaigns SET global_turn_json=? WHERE id=?').run(JSON.stringify(state),id);
   return {allowed:true,state,shouldResolve:Object.keys(state.actionsByCharacter).length>=quorum};
 };
@@ -144,9 +143,9 @@ test('quota rejection rolls message, receipt, outbox and floor back together',()
   setRound('active',3); command(camp,a,retry); assert.deepEqual(floorOf(camp,room).respondedUserIds,[a]);
   setFloor(camp,{mode:'open'},room);
 });
-test('hold blocks do/say but not OOC; sealed global phases reject new input',()=>{
+test('hold blocks Do but not OOC; sealed global phases reject new input',()=>{
   setFloor(camp,{mode:'hold',next:{mode:'open'}},room);
-  for(const kind of ['do','say']) assert.throws(()=>command(camp,b,send(b,{kind})),e=>e.status===409);
+  assert.throws(()=>command(camp,b,send(b,{kind:'do'})),e=>e.status===409);
   const before=count('test_outbox'); command(camp,b,{...send(b),kind:'ooc',roomId:null}); assert.equal(count('test_outbox'),before);
   setFloor(camp,{mode:'open'},room);
   for(const phase of ['waiting','ready','resolving']) {setRound(phase);assert.throws(()=>command(camp,b,send(b)),e=>e.status===409);}
@@ -182,13 +181,12 @@ test('outer narrator rollback leaves no message, receipt, feed entry or wakeup',
   assert.throws(()=>db.transaction(()=>{command(camp,b,send(b));throw new Error('Narrator abort');})(),/Narrator abort/);
   assert.deepEqual(counts(),before);
 });
-test('autopilot-style send resolves omitted room and revision for do and say',()=>{
+test('autopilot-style send resolves omitted room and revision and locks a second Do',()=>{
   settings.globalTurn.enabled=true; setRound();
-  for(const kind of ['do','say']) {
-    const result=request(a,{operation:'send',kind,characterId:characterA,content:'Autopilot action'});
-    assert.equal(result.message.roomId,room); assert.equal(result.message.authorUserId,a);
-  }
-  assert.deepEqual(readRound().actionsByCharacter[characterA],{actionsCount:1,phrasesCount:1});
+  const result=request(a,{operation:'send',kind:'do',characterId:characterA,content:'Autopilot action'});
+  assert.equal(result.message.roomId,room); assert.equal(result.message.authorUserId,a);
+  assert.throws(()=>request(a,{operation:'send',kind:'do',characterId:characterA,content:'Second action'}),e=>e.status===409);
+  assert.deepEqual(readRound().actionsByCharacter[characterA],{actionsCount:1});
 });
 test('omitted-position retry stays pinned to its receipt after a move and new round',()=>{
   setRound(); const action={requestId:randomUUID(),operation:'send',kind:'do',characterId:characterA,content:'Autopilot action'};

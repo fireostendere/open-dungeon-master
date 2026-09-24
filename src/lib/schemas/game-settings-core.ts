@@ -134,10 +134,10 @@ export const gameSettingsSchema = z.object({
   // dice, surprise/encounter sparks, and NPC goal simulation during
   // timeskips. Off preserves pre-engine behavior exactly.
   worldSimulation: z.boolean().default(true),
-  // After each DM narration, block do and say for everyone until the party
+  // After each DM narration, block player actions until the party
   // lead opens responses. OOC and lead directions stay available.
   holdSubmissions: z.boolean().default(false),
-  // Global turn (round) pacing: each player may act (1 do + 1 say) per turn.
+  // Global turn (round) pacing: each player may submit one Do per turn.
   // turnCollectionMinutes=0 means no time limit (quorum only);
   // quorumDelayMinutes=0 means quorum seals the round immediately.
   globalTurn: z

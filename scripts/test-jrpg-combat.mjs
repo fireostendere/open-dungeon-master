@@ -50,13 +50,15 @@ test("JRPG mode is opt-in and legacy settings remain classical", () => {
   assert.equal(isJrpgCombat({ gameSettings: { combatMode: "jrpg" } }), true);
 });
 
-test("JRPG enemy target fallback ignores map distance but retains valid-target AC selection", () => {
+test("JRPG enemy target fallback rotates through living participants instead of farming lowest AC", () => {
   const candidates = [
     { characterId: "near-high-ac", ac: 18, position: { x: 1, y: 0 } },
     { characterId: "far-low-ac", ac: 12, position: { x: 99, y: 99 } },
   ];
   assert.equal(pickEnemyTarget({ x: 0, y: 0 }, candidates), "near-high-ac");
-  assert.equal(pickEnemyTarget({ x: 0, y: 0 }, candidates, false), "far-low-ac");
+  assert.equal(pickEnemyTarget({ x: 0, y: 0 }, candidates, false, 0), "near-high-ac");
+  assert.equal(pickEnemyTarget({ x: 0, y: 0 }, candidates, false, 1), "far-low-ac");
+  assert.equal(pickEnemyTarget({ x: 0, y: 0 }, candidates, false, 2), "near-high-ac");
 });
 
 test("PC and enemy attack spatial gates are bypassed only in JRPG", () => {

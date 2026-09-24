@@ -35,6 +35,14 @@ const DICE_COPY = {
 } as const;
 type DiceCopy = { [K in keyof typeof DICE_COPY.en]: string };
 
+const DIE_CLIP_PATH: Partial<Record<number, string>> = {
+  4: "polygon(50% 2%, 98% 92%, 2% 92%)",
+  8: "polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)",
+  10: "polygon(50% 0%, 95% 34%, 80% 100%, 20% 100%, 5% 34%)",
+  12: "polygon(50% 0%, 98% 35%, 80% 95%, 20% 95%, 2% 35%)",
+  100: "circle(50%)",
+};
+
 // --- 3D D20 (Icosahedron) Math ---
 const PHI = (1 + Math.sqrt(5)) / 2;
 const INV_LEN = 1 / Math.sqrt(1 + PHI * PHI);
@@ -1168,29 +1176,37 @@ export function Bg3DiceOverlay({
                 🎲 {activeExpression}
               </div>
             ) : phase !== "prompt" && roll && !primaryDiceTerm ? (
-              <div className="relative z-10 flex max-h-[205px] flex-wrap items-center justify-center gap-3 overflow-y-auto px-2">
+              <div className="no-scrollbar relative z-10 flex max-h-[205px] w-full flex-wrap items-center justify-center gap-3 overflow-y-auto px-2">
                 {diceTerms.map((term, termIndex) => (
                   <div key={`${termIndex}-${term.sides}`} className="flex flex-col items-center gap-1">
                     <div className="flex flex-wrap justify-center gap-1.5">
-                      {term.dice.map((die, dieIndex) => (
-                        <div
-                          key={`${termIndex}-${dieIndex}`}
-                          aria-label={phase === "rolling" ? `d${term.sides}` : `d${term.sides}: ${die.value}`}
-                          className={cn(
-                            "flex size-14 flex-col items-center justify-center rounded-xl border border-amber-400/50 bg-gradient-to-b from-slate-200 to-slate-400 text-slate-950 shadow-[0_4px_12px_rgba(0,0,0,0.45)]",
-                            !die.kept && "opacity-40 line-through",
-                          )}
-                        >
-                          <span className="text-[10px] font-bold uppercase text-slate-700">d{term.sides}</span>
-                          <span className="font-mono text-xl font-black">
-                            {phase === "rolling" ? "?" : die.rerolledFrom === undefined ? die.value : `${die.rerolledFrom}→${die.value}`}
-                          </span>
-                        </div>
-                      ))}
+                      {term.dice.map((die, dieIndex) => {
+                        const clipPath = DIE_CLIP_PATH[term.sides];
+                        return (
+                          <div
+                            key={`${termIndex}-${dieIndex}`}
+                            aria-label={phase === "rolling" ? `d${term.sides}` : `d${term.sides}: ${die.value}`}
+                            className={cn(
+                              "relative flex size-14 flex-col items-center justify-center text-slate-950 drop-shadow-[0_4px_6px_rgba(0,0,0,0.5)]",
+                              clipPath ? "bg-amber-400/60" : "rounded-xl border border-amber-400/50 bg-gradient-to-b from-slate-200 to-slate-400",
+                              !die.kept && "opacity-40 line-through",
+                            )}
+                            style={clipPath ? { clipPath } : undefined}
+                          >
+                            {clipPath ? <span className="absolute inset-[1px] bg-gradient-to-b from-slate-200 to-slate-400" style={{ clipPath }} /> : null}
+                            <span className={cn("relative text-[10px] font-bold uppercase text-slate-700", term.sides === 4 && "translate-y-1")}>d{term.sides}</span>
+                            <span className={cn("relative font-mono text-xl font-black", term.sides === 4 && "translate-y-1")}>
+                              {phase === "rolling" ? "?" : die.rerolledFrom === undefined ? die.value : `${die.rerolledFrom}→${die.value}`}
+                            </span>
+                          </div>
+                        );
+                      })}
                     </div>
-                    <span className="font-mono text-xs font-semibold text-amber-100/80">
-                      {term.sign < 0 ? "−" : "+"}{term.subtotal}
-                    </span>
+                    {term.dice.length > 1 ? (
+                      <span className="font-mono text-xs font-semibold text-amber-100/80">
+                        {term.sign < 0 ? "−" : "+"}{term.subtotal}
+                      </span>
+                    ) : null}
                   </div>
                 ))}
                 {diceTerms.length === 0 ? <span className="font-mono text-xl text-amber-200">{activeExpression}</span> : null}

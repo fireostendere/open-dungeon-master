@@ -101,7 +101,7 @@ export function encodeWebMcpLocationIntent(input: Record<string, unknown>): Reco
   if (Object.keys(input).some(key => !["intentId", "roomId", "expectedRevision", "kind", "content", "stealth"].includes(key))) throw new Error("Unknown message argument.");
   const { intentId, roomId, expectedRevision, kind, content, stealth } = input;
   if (typeof intentId !== "string" || !uuidPattern.test(intentId)) throw new Error("Provide one UUID intentId and reuse it unchanged on retry.");
-  if (!["say", "do", "ooc"].includes(String(kind)) || typeof content !== "string" || !content.trim() || content.length > 2000) throw new Error("Invalid location message.");
+  if (!["do", "ooc"].includes(String(kind)) || typeof content !== "string" || !content.trim() || content.length > 2000) throw new Error("Invalid location message.");
   if (kind === "ooc") {
     if (roomId !== null || expectedRevision !== null) throw new Error("OOC requires null roomId and expectedRevision.");
     return { operation: "send", requestId: intentId, roomId: null, kind, content };

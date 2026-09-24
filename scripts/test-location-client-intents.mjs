@@ -11,7 +11,7 @@ const ok = () => Response.json({ ok: true });
 const OOC = { operation: 'send', roomId: null, kind: 'ooc', content: 'PRIVATE_DRAFT' };
 const intentId = '11111111-1111-4111-8111-111111111111';
 const roomId = '22222222-2222-4222-8222-222222222222';
-const modelInput = { intentId, roomId, expectedRevision: 1, kind: 'say', content: 'ONE_MESSAGE' };
+const modelInput = { intentId, roomId, expectedRevision: 1, kind: 'do', content: 'ONE_MESSAGE' };
 
 async function loader(stubs = {}, globals = {}) {
   const context = vm.createContext({ console, fetch, Response, Request, URL, URLSearchParams, Headers, CustomEvent, TextDecoder, TextEncoder, AbortController, AbortSignal,
@@ -154,7 +154,7 @@ test('disabled location mode does not poll until an enable command succeeds', as
 test('R12: model intent schema requires stable ID, room and revision; OOC is explicit', async () => {
   const load = await loader(); const { encodeWebMcpLocationIntent: encode } = await load('@/lib/spatial/client-intents');
   const first = JSON.stringify(encode(modelInput)); assert.equal(first, JSON.stringify(encode({ ...modelInput })));
-  assert.throws(() => encode({ kind: 'say', content: 'missing' }));
+  assert.throws(() => encode({ ...modelInput, kind: 'say' }));
   assert.throws(() => encode({ ...modelInput, expectedRevision: null }));
   assert.throws(() => encode({ ...modelInput, roomId: null }));
   const ooc = encode({ ...modelInput, kind: 'ooc', roomId: null, expectedRevision: null });

@@ -1,7 +1,7 @@
 # RakoBot action notifications
 
 Opt-in, same-server integration with `fireostendere/rakobot`. The bot sends the
-campaign title, player name, character name and a quoted accepted Do/Say message
+campaign title, player name, character name and a quoted accepted Do message
 to exactly one configured Telegram forum topic. It does not wait for narration,
 call an LLM, invoke MCP, or open the encrypted game database.
 
@@ -54,10 +54,10 @@ public access to the app's internal port. Existing web/MCP addresses are unchang
 
 `events.ts::publishWithSeq` queues legacy player messages after saving their
 immutable audience and before that same transaction commits. This includes MCP
-autopilot publication. Do/Say/OOC classification uses the existing transcript
+autopilot publication. Do/OOC classification uses the existing transcript
 parser; the quoted stored text itself is not rewritten. The ordinary actions
 route now commits the message and event together. `runSpatialCommand` queues
-room Do/Say after acceptance inside its transaction, not on a request replay.
+room Do after acceptance inside its transaction, not on a request replay.
 
 Only messages visible to the whole party are exported. Spatial messages require
 stored receipts for every current player; DM seats already have role-based access

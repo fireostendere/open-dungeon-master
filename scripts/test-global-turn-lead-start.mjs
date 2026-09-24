@@ -21,10 +21,9 @@ const {
   getGlobalTurnState,
   setCampaignStatus,
   setFloor,
-  setGlobalTurnState,
 } = await import("../src/lib/db/campaigns.ts");
 const { getDatabase } = await import("../src/lib/db/core.ts");
-const { startGlobalTurn, sealGlobalTurnNow } = await import("../src/lib/dm/global-turn-logic.ts");
+const { recordGlobalTurnAction, startGlobalTurn, sealGlobalTurnNow } = await import("../src/lib/dm/global-turn-logic.ts");
 
 const scriptsDir = path.dirname(fileURLToPath(import.meta.url));
 const read = (relative) => fs.readFileSync(path.resolve(scriptsDir, relative), "utf8");
@@ -68,19 +67,11 @@ try {
 
   // Re-opening an already active round must be idempotent: no new round number
   // and no loss of already-collected action usage.
-  const current = getGlobalTurnState(campaign.id);
-  const withUsage = {
-    ...current,
-    actionsByCharacter: {
-      hero: {
-        actionsCount: 1,
-        phrasesCount: 0,
-        lastActionKind: "do",
-        updatedAt: new Date().toISOString(),
-      },
-    },
-  };
-  setGlobalTurnState(campaign.id, withUsage);
+  const first = recordGlobalTurnAction(campaign.id, "hero", owner.id, "do");
+  assert.equal(first.allowed, true);
+  assert.equal(first.state?.actionsByCharacter.hero.actionsCount, 1);
+  assert.equal(recordGlobalTurnAction(campaign.id, "hero", owner.id, "do").allowed, false,
+    "one submitted Do must lock the character until the DM completes the round");
   setFloor(campaign.id, {
     mode: "spotlight",
     userIds: ["stale-user"],

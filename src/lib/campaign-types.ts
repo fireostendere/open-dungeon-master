@@ -74,10 +74,10 @@ export type CampaignCover = { id: string; url: string };
 // route re-declared its own narrower enum, so the two could drift, and a
 // mode the server did not recognise fell through to "do" silently.
 //
-// "lead" is labelled "Direct" and posts to /lead-note; do/say/ooc post to /actions.
+// "lead" is labelled "Direct" and posts to /lead-note; do/ooc post to /actions.
 // "ask" posts to the separate Ask queue and never becomes a story action.
 // "narrate" is the DM seat's only authoring mode and posts to /dm/narrate.
-export const INPUT_KINDS = ["do", "say", "ooc", "ask", "lead", "narrate"] as const;
+export const INPUT_KINDS = ["do", "ooc", "ask", "lead", "narrate"] as const;
 export type InputKind = (typeof INPUT_KINDS)[number];
 
 // The modes that do not consume the floor: table talk, Ask and lead directions
@@ -134,11 +134,18 @@ export function latestUnintroducedJoin<
 }
 
 export type GlobalTurnActionUsage = {
+  // The first Do submits the character's whole turn and locks further input.
   actionsCount: number; // 0 or 1
-  phrasesCount: number; // 0 or 1
-  lastActionKind?: "do" | "say";
+  lastActionKind?: "do";
   updatedAt: string;
 };
+
+export function globalTurnSubmitted(usage: GlobalTurnActionUsage | null | undefined): boolean {
+  // Older persisted rounds may still contain phrasesCount from the removed
+  // Say mode. Keep those characters locked until that round naturally ends.
+  const legacyPhrases = Number((usage as unknown as { phrasesCount?: number } | undefined)?.phrasesCount ?? 0);
+  return Boolean(usage && (usage.actionsCount > 0 || legacyPhrases > 0));
+}
 
 export type GlobalTurnState = {
   roundNumber: number;

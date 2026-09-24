@@ -25,7 +25,7 @@ const readFields = {
 // Keep the advertised MCP contract in sync with the strict application API.
 // In particular, never let Zod silently strip idempotency or paging fields.
 export const narratorInputSchema = z.object({
-  operation: z.enum(['connect', 'read', 'snapshot', 'catalog', 'invoke', 'narrate', 'store_audio', 'delete_message', 'edit_message', 'autopilot_action', 'finish_global_round', 'release_floor', 'set_floor', 'request_response', 'answer_ask', ...(LOCAL_VOICEOVER ? ['voiceover'] : [])]),
+  operation: z.enum(['connect', 'read', 'snapshot', 'catalog', 'invoke', 'narrate', 'status', 'store_audio', 'delete_message', 'edit_message', 'autopilot_action', 'finish_global_round', 'release_floor', 'set_floor', 'request_response', 'answer_ask', ...(LOCAL_VOICEOVER ? ['voiceover'] : [])]),
   campaignId: z.string().uuid(), ...readFields,
   pageCursor: z.string().max(500).optional(),
   commandId: z.string().uuid().optional(),
@@ -40,9 +40,10 @@ export const narratorInputSchema = z.object({
   audioBase64: z.string().min(4).max(16_777_216).optional().describe('store_audio only: base64-encoded WAV, maximum 12 MiB decoded.'),
   roundNumber: z.number().int().min(1).optional().describe('Global-round number; omit for sequential spotlight autopilot.'),
   mode: z.enum(['start', 'complete', 'open', 'hold', 'spotlight']).optional().describe('finish_global_round: start/complete; set_floor: open/hold/spotlight.'),
+  state: z.enum(['idle', 'thinking', 'rolling', 'narrating', 'awaiting_rolls']).optional().describe('status only: current external narrator activity shown to the table.'),
   characterIds: z.array(z.string().uuid()).max(12).optional().describe('set_floor spotlight: player character IDs.'),
   prompt: z.string().trim().max(300).optional().describe('set_floor spotlight prompt.'),
-  kind: z.enum(['do', 'say']).optional().describe('autopilot_action only; omit for narrate and connect.'),
+  kind: z.literal('do').optional().describe('autopilot_action only; speech belongs inside Do content.'),
   turnId: z.string().uuid().optional(), askId: z.string().uuid().optional(),
   answer: z.string().trim().min(1).max(4000).optional(),
   citations: z.array(z.object({

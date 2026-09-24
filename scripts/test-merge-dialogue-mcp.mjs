@@ -18,11 +18,11 @@ const player = load('src/lib/player-message.ts', { '@/lib/campaign-types': types
 const filter = load('src/lib/mcp-event-filter.ts', { '@/lib/campaign-types': types });
 
 for (const [raw,kind,text] of [
-  ['"Hello"','say','Hello'],[' «Привет» ','say','Привет'],['“Cześć”','say','Cześć'],
+  ['"Hello"','do','"Hello"'],[' «Привет» ','do','«Привет»'],['“Cześć”','do','“Cześć”'],
   ['**Opens door**','do','Opens door'],['*Идёт*','do','Идёт'],['Just acts','do','Just acts'],
   ['  (OOC) outside chat','ooc','outside chat'],['(ooc)\n2 + 2','ooc','2 + 2'],
   ['**','do',''],['"unmatched','do','"unmatched'],['«mismatched”','do','«mismatched”'],
-  ['(oocish) text','do','(oocish) text'],['"(ooc) quoted speech"','say','(ooc) quoted speech'],
+  ['(oocish) text','do','(oocish) text'],['"(ooc) quoted speech"','do','"(ooc) quoted speech"'],
 ]) test(`player projection: ${JSON.stringify(raw)}`,()=>{
   const source={content:raw};const before=structuredClone(source);
   assert.deepEqual(player.parsePlayerMessage(source.content),{kind,text});assert.deepEqual(source,before);
@@ -257,13 +257,13 @@ function uiFixture(locale){
   };
   return{style,list,row};
 }
-for(const [locale,labels]of [['ru',['Речь','Действие','Вне игры']],['en',['Say','Action','OOC']]])test(`merged player styles and labels (${locale})`,()=>{
+for(const [locale,labels]of [['ru',['Действие','Действие','Вне игры']],['en',['Action','Action','OOC']]])test(`merged player styles and labels (${locale})`,()=>{
   const f=uiFixture(locale);
   for(const [i,content]of ['"Says"','*Acts*','(ooc) Table chat'].entries()){
     const message={id:'m',authorType:'player',userId:'alice',content};const before=structuredClone(message);let reported;
     const row=f.row(message,{onReport:m=>reported=m});
     const badge=walk(row,n=>n.type===f.style.PlayerMessageBadge)[0];assert.equal(text(badge.type(badge.props)).trim(),labels[i]);
-    const body=walk(row,n=>n.type===f.style.PlayerMessageBody)[0];assert.equal(body.type(body.props).props['data-message-kind'],['say','do','ooc'][i]);
+    const body=walk(row,n=>n.type===f.style.PlayerMessageBody)[0];assert.equal(body.type(body.props).props['data-message-kind'],['do','do','ooc'][i]);
     const report=walk(row,n=>n.type==='button')[0];assert.equal(report.props['aria-label'],`${locale}:Report this message`);report.props.onClick();assert.equal(reported,message);
     assert.deepEqual(message,before);
   }

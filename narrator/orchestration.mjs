@@ -88,7 +88,7 @@ function fallbackActorTurn(sheet, language = 'ru') {
 function validateActorTurn(value) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('Invalid actor decision.');
   if (Object.keys(value).some(key => !['kind', 'content'].includes(key))) throw new Error('Unsupported actor decision fields.');
-  if (!['do', 'say'].includes(value.kind) || typeof value.content !== 'string') throw new Error('Invalid actor turn.');
+  if (value.kind !== 'do' || typeof value.content !== 'string') throw new Error('Invalid actor turn.');
   const content = value.content.trim();
   if (!content || content.length > 2000) throw new Error('Actor turn exceeds its content budget.');
   return { kind: value.kind, content };
@@ -304,6 +304,8 @@ export class NarratorOrchestrator {
       instructionBytes,carriedContextBytes,totalInputBytes,delta:sentDelta});
     usage.calls++; usage.times.push(now); usage.inputBytes += totalInputBytes; host.saveCheckpoint();
     const modelTiming=latencyEnabled(), startedAt = modelTiming?performance.now():0; let outputBytes=0;
+    const tableActivity = role !== 'ask';
+    if (tableActivity) try { await host.setDmStatus?.('thinking'); } catch {}
     try {
       const generated = typeof this.adapter.generateWithUsage === 'function'
         ? await this.adapter.generateWithUsage(role, prompt, sessionOptions)
@@ -335,6 +337,7 @@ export class NarratorOrchestrator {
       if (sticky) this.releaseRefereeConversation();
       throw error;
     } finally {
+      if (tableActivity) try { await host.setDmStatus?.('idle'); } catch {}
       if (modelTiming) emitLatency({ stage: 'narrator_model', role, durationMs:performance.now()-startedAt,
         inputBytes: totalInputBytes, promptBytes, instructionBytes, carriedContextBytes, outputBytes,
         delta:sentDelta, modelCalls: 1 });

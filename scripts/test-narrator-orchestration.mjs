@@ -206,6 +206,14 @@ test('real legacy player messages have no kind; referee receives IDs, state and 
   await h.tick(); assert.equal(h.modelCalls.length, 3, 'idle polling must not spend model calls');
 });
 
+test('real model generation publishes thinking only while the provider is running', async () => {
+  const h = fixture([{ kind: 'done' }]);
+  const statuses = [];
+  h.setDmStatus = async state => statuses.push(state);
+  await h.tick();
+  assert.deepEqual(statuses, ['thinking', 'idle']);
+});
+
 test('party lead response request batches waiting input and carries the private direction', async () => {
   const h = fixture([{ kind: 'narrate', text: 'The table hears the answer.' }]);
   h.snapshot.messages = [player(2), player(3)];
@@ -481,7 +489,7 @@ test('spatial global round stays locked until every affected room is narrated an
   h.snapshot.messages = [
     { ...player(2), roomId: 'room-a', channel: 'location', kind: 'do' },
     { ...player(3), id: 'message-3', userId: 'user-2', characterId: 'hero-2',
-      content: 'I listen at the door.', roomId: 'room-b', channel: 'location', kind: 'say' },
+      content: 'I listen at the door.', roomId: 'room-b', channel: 'location', kind: 'do' },
   ];
   h.snapshot.currentSeq = 4;
   h.snapshot.nextCursor = 4;
@@ -567,7 +575,7 @@ test('YOLO accepts room player input and scopes plain narration through location
   h.snapshot.spatialRooms = [{ id: 'room-a', name: 'Tavern' }, { id: 'room-b', name: 'Street' }];
   h.snapshot.messages = [{
     id: 'room-message', seq: 2, authorType: 'player', userId: 'user', characterId: 'hero',
-    content: 'I whisper to the bartender.', roomId: 'room-a', channel: 'location', kind: 'say',
+    content: 'I whisper to the bartender.', roomId: 'room-a', channel: 'location', kind: 'do',
   }];
   await h.tick();
   assert.equal(h.controller.state.paused, null);
@@ -844,6 +852,7 @@ test('actual runner preserves queued input through connect, empty reads, writes 
     if (action === 'narrator.read') return { ...structuredClone(h.snapshot), cursor: params.afterSeq, nextCursor: h.snapshot.currentSeq,
       messages: h.snapshot.messages.filter(message => message.seq > params.afterSeq), recentMessages: h.snapshot.messages,
       asks: [], askQueue: { nextCursor: 0, hasMore: false } };
+    if (action === 'narrator.status') return { ok: true, state: params.state };
     return h.callControl(action, params);
   } });
   await f.instance.connect(); assert.equal(h.controller.state.queue.length, 1);
@@ -852,16 +861,20 @@ test('actual runner preserves queued input through connect, empty reads, writes 
   assert.equal(await f.instance.pollTick(), true);
   assert.equal(h.modelCalls.length, 2);
   assert.equal(h.writes.length, 2);
+  assert.deepEqual(f.calls.filter(call => call.action === 'narrator.status').map(call => call.params.state), ['thinking', 'idle', 'thinking', 'idle']);
   assert.equal(h.controller.state.handledSeq, 2);
   assert.equal(f.saved.at(-1).storyController.current, null);
 });
 
 test('private Ask uses only its supplied author context and never publishes a story command', async () => {
   const h = fixture([{ answer: 'You can attempt to hide if the circumstances permit it.' }]);
+  const statuses = [];
+  h.setDmStatus = async state => statuses.push(state);
   const reply = await h.controller.answerAsk(h, { id: 'q', userId: 'user', question: 'Can I hide?', locale: 'en' }, { summary: 'Known to this author.' });
   assert.equal(reply.citations.length, 0);
   assert.equal(h.modelCalls[0].packet.task, 'answer_ask');
   assert.equal(h.modelCalls[0].packet.context.summary, 'Known to this author.');
+  assert.deepEqual(statuses, [], 'private Ask activity must not be broadcast to the table');
   assert.equal(h.writes.length, 0);
   assert.equal(h.controller.state.current, null);
 });

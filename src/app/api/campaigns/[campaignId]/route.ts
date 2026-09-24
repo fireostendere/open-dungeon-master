@@ -37,6 +37,7 @@ import { projectSheetsForViewer } from "@/lib/sheet-privacy";
 import { isPrimaryDm, lobbyBlocker } from "@/lib/dm/viewer";
 import { listBlockedUserIds } from "@/lib/db/moderation";
 import { publishPersisted, publishWithSeq } from "@/lib/events";
+import { getDmStatus } from "@/lib/dm/status";
 import { spatialEnabled, spatialContext, spatialStore } from "@/lib/spatial/service";
 import { spatialBattleMapView } from "@/lib/spatial/battle-map";
 import {
@@ -157,7 +158,7 @@ export async function GET(
     // ids and never shows a control the server would refuse.
     caps,
     // In-memory status so a reload mid-turn still shows the DM at work.
-    dmStatus: null,
+    dmStatus: getDmStatus(campaignId),
     // Same reason, for background work: utility_calls is ephemeral, so a
     // client that reloads mid-compaction would otherwise see an empty strip.
     utilityCalls: [],

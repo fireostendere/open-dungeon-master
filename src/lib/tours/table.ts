@@ -21,7 +21,7 @@ export const PLAYER_TOUR: TourStep[] = [
   {
     id: "modes",
     title: "How you speak",
-    body: "Do describes what your character does. Say speaks in character. OOC is table talk the Dungeon Master ignores. Pick one, then write in the box below.",
+    body: "Do describes what your character does or says. OOC is table talk the Dungeon Master ignores. Pick one, then write in the box below.",
     anchors: ["composer-modes"],
     prepare: "show-chat",
   },
@@ -175,7 +175,7 @@ export const DM_TOUR: TourStep[] = [
 const TOUR_TEXT: { ru: Record<"player" | "dm", Record<string, [string, string]>> } = { ru: {
   player: {
   welcome: ["Добро пожаловать за стол", "Здесь проходит игра. Сюжет — в центре, персонаж и мир — на боковой панели. Этот тур можно повторить через справку."],
-  modes: ["Как говорить", "Действие описывает поступок героя, Речь — его слова, Вне игры — разговор игроков. Выберите режим перед отправкой."],
+  modes: ["Как говорить", "Действие описывает поступок или слова героя, Вне игры — разговор игроков. Выберите режим перед отправкой."],
   compose: ["Ваш ход", "Напишите действие и нажмите Enter. Ведущий ответит на сообщения, полученные к этому моменту."],
   talk: ["Продиктовать сообщение", "Удерживайте микрофон. Проверьте распознанный текст перед отправкой."],
   ask: ["Спросить ведущего", "Выберите «Спросить Мастера» в композере чата, чтобы задать вопрос о сюжете, правилах или листе. Вопрос не продвигает историю и доступен даже при закрытом ходе."],

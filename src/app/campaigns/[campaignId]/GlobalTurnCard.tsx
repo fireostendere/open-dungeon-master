@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { cn } from "@/lib/cn";
 import { useI18n } from "@/lib/i18n";
 import { localeText } from "@/lib/i18n/locale-text";
-import type { CampaignMember, GlobalTurnState } from "@/lib/campaign-types";
+import { globalTurnSubmitted, type CampaignMember, type GlobalTurnState } from "@/lib/campaign-types";
 import type { CharacterSheet } from "@/lib/schemas/sheet";
 import type { LeadCampaign } from "@/app/campaigns/[campaignId]/LeadPanel";
 
@@ -29,7 +29,7 @@ export function GlobalTurnCard({
     en: {
       title: "Global Turn & Cadence",
       enabled: "Enable global turn mode",
-      desc: "Synchronizes party turns: 1 action + 1 phrase per hero per round.",
+      desc: "Synchronizes party turns: one submission per hero per round.",
       slider1: "Turn collection window",
       slider1Hint: "0 = no timeout; the round then closes only by quorum.",
       slider2: "Quorum of players",
@@ -66,7 +66,7 @@ export function GlobalTurnCard({
     ru: {
       title: "Общий ход стола",
       enabled: "Включить общий ход",
-      desc: "Синхронизирует ходы отряда: 1 действие + 1 фраза за ход от героя.",
+      desc: "Синхронизирует ходы отряда: одна отправка от героя за раунд.",
       slider1: "Время сбора хода",
       slider1Hint: "0 = без лимита времени: раунд закрывается только по кворуму.",
       slider2: "Кворум игроков",
@@ -155,7 +155,7 @@ export function GlobalTurnCard({
   // Count responded players
   const respondedCount = playerSheets.filter((s) => {
     const u = turnState.actionsByCharacter?.[s.id];
-    if (u && (u.actionsCount > 0 || u.phrasesCount > 0)) return true;
+    if (globalTurnSubmitted(u)) return true;
     const m = members.find((mem) => mem.userId === s.userId);
     return Boolean(m && m.skipTurnsCount > 0);
   }).length;
@@ -451,7 +451,7 @@ export function GlobalTurnCard({
                 const hasAutopilot = Boolean(member?.autopilot);
                 const skips = member?.skipTurnsCount ?? 0;
                 const usage = turnState.actionsByCharacter?.[sheet.id];
-                const acted = Boolean(usage && (usage.actionsCount > 0 || usage.phrasesCount > 0));
+                const acted = globalTurnSubmitted(usage);
 
                 return (
                   <li

@@ -74,7 +74,7 @@ test('sequential spotlight emits one durable batch barrier after every selected 
     assert.equal(f.db.prepare("SELECT COUNT(*) AS n FROM campaign_events WHERE type='spotlight_ready'").get().n, 0);
     assert.equal((await f.send({ kind: 'do', content: 'I try again.' })).status, 409);
     f.user('u2');
-    assert.equal((await f.send({ kind: 'say', content: 'Wait here.' })).status, 202);
+    assert.equal((await f.send({ kind: 'do', content: 'I say: Wait here.' })).status, 202);
     assert.equal(f.campaigns.getFloor('c1').mode, 'hold', 'selected players stay locked until confirmed narration');
     assert.equal(f.campaigns.getFloor('c1').next.mode, 'open');
     assert.equal(f.db.prepare("SELECT COUNT(*) AS n FROM campaign_events WHERE type='spotlight_ready'").get().n, 1);

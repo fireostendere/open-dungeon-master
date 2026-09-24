@@ -44,9 +44,7 @@ const COPY = {
     talkingIntro: "The buttons above the message box change what your message means:",
     doLabel: "Do",
     doText:
-      "Describe what your character does. The DM narrates the outcome and asks for dice rolls when the rules call for them.",
-    sayLabel: "Say",
-    sayText: "Speak in character. Your text is sent as spoken dialogue, in quotes.",
+      "Describe what your character does or says. The DM narrates the outcome and asks for dice rolls when the rules call for them.",
     oocLabel: "OOC",
     oocText:
       "Out-of-character table talk. The DM does not respond to it, and it stays available even when the floor is locked during narration or a spotlight.",
@@ -113,7 +111,7 @@ const COPY = {
     ],
     humanTitle: "Playing with a human DM",
     human: [
-      "A campaign does not have to be run by AI. With a person in the DM seat, the table works like a kitchen-table game: the DM narrates in their own words, while the app keeps sheets, dice, maps and records straight underneath. Do and Say messages still enter the transcript, but instead of waking the AI they queue as intents for the DM. The DM occupies no party slot, owns the story secrets, and gets a console for initiative, monsters, maps, NPCs, roll tables and rulings, with an optional AI assistant for stat blocks and suggestions.",
+      "A campaign does not have to be run by AI. With a person in the DM seat, the table works like a kitchen-table game: the DM narrates in their own words, while the app keeps sheets, dice, maps and records straight underneath. Do messages still enter the transcript, but instead of waking the AI they queue as intents for the DM. The DM occupies no party slot, owns the story secrets, and gets a console for initiative, monsters, maps, NPCs, roll tables and rulings, with an optional AI assistant for stat blocks and suggestions.",
       "Assisted mode sits in between: the human DM keeps the story while handing bookkeeping to AI piece by piece. It can run monster turns, read the DM's notes as full prose, or cover the table for a counted stretch of replies while the DM steps away, following the outline left behind.",
       "Because narration happens out loud, the app occasionally nudges the DM to write a story beat: a line or two about what just happened. Chapter summaries, recaps and exported stories are built from beats, so a table that never writes them ends up with a transcript of intents but no narrative. Players can help by keeping actions in the composer rather than only in the voice call.",
     ],
@@ -161,9 +159,7 @@ const COPY = {
     talkingIntro: "Кнопки над полем сообщения определяют смысл вашего сообщения:",
     doLabel: "Действие",
     doText:
-      "Опишите, что делает персонаж. Мастер расскажет результат и попросит бросок, когда этого требуют правила.",
-    sayLabel: "Речь",
-    sayText: "Говорите от лица персонажа. Текст отправляется как произнесённая реплика в кавычках.",
+      "Опишите, что делает или говорит персонаж. Мастер расскажет результат и попросит бросок, когда этого требуют правила.",
     oocLabel: "OOC",
     oocText:
       "Внеигровое обсуждение. Мастер на него не отвечает; OOC остаётся доступным даже во время повествования или сцены с фокусом на другом игроке.",
@@ -230,7 +226,7 @@ const COPY = {
     ],
     humanTitle: "Игра с человеком-Мастером",
     human: [
-      "Кампанию не обязательно должен вести ИИ. Если место Мастера занимает человек, стол работает как обычная настольная сессия: Мастер говорит своими словами, а приложение ведёт листы, кости, карты и журнал. Сообщения «Действие» и «Речь» всё так же попадают в стенограмму, но вместо запуска ИИ становятся намерениями, на которые отвечает человек-Мастер. Мастер не занимает слот группы, владеет сюжетными тайнами и получает консоль инициативы, монстров, карт, NPC, таблиц бросков и решений, а при желании — ИИ-помощника для статблоков и идей.",
+      "Кампанию не обязательно должен вести ИИ. Если место Мастера занимает человек, стол работает как обычная настольная сессия: Мастер говорит своими словами, а приложение ведёт листы, кости, карты и журнал. Сообщения «Действие» всё так же попадают в стенограмму, но вместо запуска ИИ становятся намерениями, на которые отвечает человек-Мастер. Мастер не занимает слот группы, владеет сюжетными тайнами и получает консоль инициативы, монстров, карт, NPC, таблиц бросков и решений, а при желании — ИИ-помощника для статблоков и идей.",
       "Промежуточный вариант — режим с помощником: человек сохраняет контроль над историей, но по частям передаёт ИИ рутину. ИИ может проводить ходы монстров, превращать заметки Мастера в полноценное повествование или на ограниченное число ответов подменить Мастера, пока тот отошёл, следуя оставленному плану.",
       "Поскольку основное повествование звучит голосом, приложение время от времени предлагает Мастеру записать «сюжетный такт» — одну-две строки о произошедшем. Из них строятся сводки глав, пересказы и экспорт истории. Если такты никогда не записывать, останется стенограмма намерений без связного рассказа. Игроки помогают, если отправляют действия через поле ввода, а не только произносят их в звонке.",
     ],
@@ -383,7 +379,6 @@ export function HelpDialog({
       <Section icon={MessageSquareText} title={copy.talkingTitle}>
         <p>{copy.talkingIntro}</p>
         <ModeRow label={copy.doLabel}>{copy.doText}</ModeRow>
-        <ModeRow label={copy.sayLabel}>{copy.sayText}</ModeRow>
         <ModeRow label={copy.oocLabel}>{copy.oocText}</ModeRow>
         <ModeRow label={copy.directLabel} lead>
           {copy.directText}

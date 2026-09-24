@@ -114,7 +114,7 @@ try {
   console.log("PASS admin-only MCP, player seats and active table");
 
   const first = await http("POST", `/api/campaigns/${campaignId}/actions`, { kind: "do", content: "I search the stone arch." }, adminToken, 202);
-  await http("POST", `/api/campaigns/${campaignId}/actions`, { kind: "say", content: "I watch the doorway." }, playerToken, 202);
+  await http("POST", `/api/campaigns/${campaignId}/actions`, { kind: "do", content: "I say that I will watch the doorway." }, playerToken, 202);
   const ask = (await http("POST", `/api/campaigns/${campaignId}/ask`, { question: "What do I know of this arch?", visibility: "private" }, playerToken, 202)).ask;
   let state = await read();
   assert.ok(state.messages.some(message => message.id === first.messageId));
@@ -134,7 +134,7 @@ try {
   const playerView = await http("GET", `/api/campaigns/${campaignId}`, undefined, playerToken);
   assert.ok(JSON.stringify(playerView).includes("ancient dwarven seal"));
   assert.ok(!JSON.stringify(playerView).includes("I search the stone arch."));
-  console.log("PASS Do/Say, private Ask, engine roll, MCP narration/edit/delete");
+  console.log("PASS Do, private Ask, engine roll, MCP narration/edit/delete");
 
   await mcp("campaigns.update_game_settings", { campaignId, patch: { globalTurn: { enabled: true, turnCollectionMinutes: 0, quorumPlayers: 2, quorumDelayMinutes: 0 } } });
   state = await read();
@@ -145,7 +145,7 @@ try {
   await http("POST", `/api/campaigns/${campaignId}/actions`, { kind: "do", content: "I hold the lantern." }, playerToken, 202);
   state = await read();
   assert.equal(state.campaign.globalTurnState.phase, "ready");
-  await http("POST", `/api/campaigns/${campaignId}/actions`, { kind: "say", content: "Too late" }, playerToken, 409);
+  await http("POST", `/api/campaigns/${campaignId}/actions`, { kind: "do", content: "Too late" }, playerToken, 409);
   await write("narrator.narrate", { content: "The seal yields to the party's careful search.", completeGlobalRound: round });
   state = await read();
   assert.equal(state.campaign.globalTurnState.roundNumber, round + 1);

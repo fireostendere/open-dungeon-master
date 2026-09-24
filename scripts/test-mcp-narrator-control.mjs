@@ -23,6 +23,7 @@ const { getCampaignMessage, insertCampaignMessage } = await import("../src/lib/d
 const { getRoll, insertRoll, setRollSeq } = await import("../src/lib/db/rolls.ts");
 const { getDatabase } = await import("../src/lib/db/core.ts");
 const { publishWithSeq } = await import("../src/lib/events.ts");
+const { getDmStatus } = await import("../src/lib/dm/status.ts");
 const { executeMcpNarratorControl, McpNarratorControlError, EXTERNAL_NARRATOR_ACTIONS } = await import("../src/lib/mcp-narrator-control.ts");
 const { executeMcpControl } = await import("../src/lib/mcp-control.ts");
 const { extendControlResult } = await import("../src/lib/mcp-external-control.ts");
@@ -30,8 +31,8 @@ const { resumeHumanTurn } = await import("../src/lib/dm/invoke.ts");
 const { narratorInputSchema } = await import("../mcp/narrator-schema.mjs");
 
 const capabilities = extendControlResult("server.capabilities", { actions: [] });
-assert.deepEqual(capabilities.actions.slice(0, 9), [
-  "narrator.connect", "narrator.read", "narrator.snapshot", "narrator.catalog", "narrator.invoke", "narrator.narrate", "narrator.store_audio", "narrator.delete_message", "narrator.edit_message",
+assert.deepEqual(capabilities.actions.slice(0, 10), [
+  "narrator.connect", "narrator.read", "narrator.snapshot", "narrator.catalog", "narrator.invoke", "narrator.narrate", "narrator.status", "narrator.store_audio", "narrator.delete_message", "narrator.edit_message",
 ]);
 assert.equal(extendControlResult("server.status", { mcpControlActions: 0 }).mcpControlActions, capabilities.actions.length);
 assert.ok(capabilities.actions.includes("narrator.autopilot_action"), "external autopilot write must be advertised");
@@ -39,6 +40,7 @@ assert.ok(capabilities.actions.includes("narrator.store_audio"), "external narra
 assert.ok(capabilities.actions.includes("narrator.delete_message"), "external narrator must be able to delete transcript messages");
 assert.ok(capabilities.actions.includes("narrator.edit_message"), "external narrator must be able to edit transcript messages");
 assert.ok(capabilities.actions.includes("narrator.finish_global_round"), "external narrator must expose the spatial round finalizer");
+assert.ok(capabilities.actions.includes("narrator.status"), "external narrator activity must be advertised");
 
 const dm = createUser("external_dm", "hash");
 const narratorHostA = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
@@ -71,6 +73,13 @@ await assert.rejects(
 assert.equal(latestSeq(campaign.id), lobbySeq, "lobby rejection must not consume a cursor");
 setCampaignStatus(campaign.id, "active");
 
+const statusInput = { operation: "status", campaignId: campaign.id, state: "thinking" };
+assert.equal(narratorInputSchema.safeParse(statusInput).success, true, "MCP schema must expose narrator activity");
+await executeMcpNarratorControl("narrator.status", { campaignId: campaign.id, state: "thinking" });
+assert.equal(getDmStatus(campaign.id), "thinking");
+await executeMcpNarratorControl("narrator.status", { campaignId: campaign.id, state: "idle" });
+assert.equal(getDmStatus(campaign.id), "idle");
+
 const connected = await executeMcpNarratorControl("narrator.connect", { campaignId: campaign.id });
 assert.equal(connected.handled, true);
 assert.ok(connected.result.state.currentSeq >= 0);
@@ -83,10 +92,10 @@ assert.equal(connected.result.state.campaign.gameSettings.mapsEnabled, false);
 await assert.rejects(
   () => executeMcpNarratorControl("narrator.connect", { campaignId: campaign.id, stateDelta: true }),
   error => error instanceof McpNarratorControlError && error.status === 400,
-  "v4 state delta must have transport-owned host identity",
+  "state delta must have transport-owned host identity",
 );
 const deltaConnected = await executeMcpNarratorControl("narrator.connect", { campaignId: campaign.id, stateDelta: true, narratorHostId: narratorHostA });
-assert.equal(deltaConnected.result.contractVersion, 4);
+assert.equal(deltaConnected.result.contractVersion, 5);
 assert.ok(deltaConnected.result.cursor.currentSeq >= 0);
 assert.match(deltaConnected.result.cursor.timelineEpoch, /^[a-f0-9]{64}$/);
 assert.equal(Object.hasOwn(deltaConnected.result, "state"), false, "delta connect must not echo a full state snapshot");

@@ -1211,6 +1211,9 @@ function autoActSkippedEnemies(
     }
     const map = getBattleMapForEncounter(encounter.id);
     const attackerToken = map ? getTokenByRef(map.id, enemy.id) : null;
+    const enemyOrderIndex = encounter.order
+      .filter((entry) => entry.kind === "enemy")
+      .findIndex((entry) => entry.kind === "enemy" && entry.enemyId === enemy.id);
     const targetId = pickEnemyTarget(
       attackerToken ? { x: attackerToken.x, y: attackerToken.y } : null,
       living.map((sheet) => {
@@ -1222,6 +1225,7 @@ function autoActSkippedEnemies(
         };
       }),
       !isJrpgCombat(campaign),
+      encounter.round - 1 + Math.max(0, enemyOrderIndex),
     );
     if (!targetId) {
       break;

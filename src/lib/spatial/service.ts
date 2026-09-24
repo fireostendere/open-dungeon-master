@@ -51,7 +51,7 @@ export const spatialCommandSchema = z.discriminatedUnion("operation", [
   z.object({ ...base, operation: z.literal("create_room"), name: z.string().trim().min(1).max(80), connectTo: id.optional(), ...passage }).strict(),
   z.object({ ...base, operation: z.literal("link"), sourceId: id, targetId: id, ...passage }).strict(),
   z.object({ ...base, operation: z.literal("move"), roomId: id, userIds: z.array(id).min(1).max(20).optional(), expectedRevision: revision }).strict(),
-  z.object({ ...base, operation: z.literal("send"), roomId: id.nullable().optional(), kind: z.enum(["say", "do", "narration", "ooc"]), content: z.string().trim().min(1).max(8000), expectedRevision: revision, stealth: z.boolean().optional(), characterId: z.string().optional() }).strict(),
+  z.object({ ...base, operation: z.literal("send"), roomId: id.nullable().optional(), kind: z.enum(["do", "narration", "ooc"]), content: z.string().trim().min(1).max(8000), expectedRevision: revision, stealth: z.boolean().optional(), characterId: z.string().optional() }).strict(),
   z.object({ ...base, operation: z.literal("observe"), roomId: id, userId: id, mode: z.enum(["speech", "scry"]), seconds: z.number().int().min(1).max(3600), reason: z.string().trim().min(1).max(500) }).strict(),
   z.object({ ...base, operation: z.literal("revoke"), grantId: id }).strict(),
   z.object({ ...base, operation: z.literal("propagate"), roomId: id, medium: z.enum(["sound", "sight"]), content: z.string().trim().min(1).max(2000) }).strict(),
@@ -172,7 +172,7 @@ export function runSpatialCommand(campaignId: string, userId: string, raw: unkno
       }
       // The message, quota and floor are committed with ONE receipt. A retry
       // cannot consume a later round or re-close an already released floor.
-      if (playerInput && (command.operation === "send") && (command.kind === "do" || command.kind === "say")) {
+      if (playerInput && command.operation === "send" && command.kind === "do") {
         const { sheetId, roomId, floor, inCombat } = playerInput;
         if (!inCombat && campaign.gameSettings.globalTurn?.enabled) {
           const turn = recordGlobalTurnAction(campaignId, sheetId, userId, command.kind);

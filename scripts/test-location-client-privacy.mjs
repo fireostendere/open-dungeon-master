@@ -10,7 +10,7 @@ const options = (fetchImpl, other = {}) => ({ campaignId: 'campaign-A', userId: 
 test('R12: lost UI response retries the exact UUID and serialized payload', async () => {
   const sent = [];
   const client = new LocationCommandClient(options(async (_url, init) => { sent.push(init); if (sent.length === 1) throw new Error('connection lost after commit'); return response(); }));
-  const input = { operation: 'send', roomId, expectedRevision: 1, kind: 'say', content: 'ONLY_ONCE' };
+  const input = { operation: 'send', roomId, expectedRevision: 1, kind: 'do', content: 'ONLY_ONCE' };
   await assert.rejects(client.command(input));
   input.content = 'MUTATED_BY_CALLER';
   await client.retry();
@@ -58,7 +58,7 @@ test('R12: WebMCP repeating identical arguments sends identical commands without
     bodies.push(init.body); if (bodies.length === 1) throw new Error('lost after commit'); return response();
   }), signal: abort.signal });
   const send = tools.find(tool => tool.name === 'odm_send_location_message').execute;
-  const input = { requestId, kind: 'say', roomId, expectedRevision: 3, content: 'ONE_WEB_INTENT' };
+  const input = { requestId, kind: 'do', roomId, expectedRevision: 3, content: 'ONE_WEB_INTENT' };
   await assert.rejects(send(input)); await send(input);
   assert.equal(bodies[0], bodies[1]); assert.equal(JSON.parse(bodies[0]).requestId, requestId);
 });
@@ -67,8 +67,8 @@ test('R12: WebMCP rejects incomplete IC arguments before any request; global OOC
   let calls = 0;
   const tools = locationWebTools({ ...options(async () => { calls++; return response(); }), signal: new AbortController().signal });
   const send = tools.find(tool => tool.name === 'odm_send_location_message').execute;
-  assert.throws(() => send({ requestId, kind: 'say', content: 'No room' }), /roomId/);
-  assert.throws(() => send({ requestId, kind: 'say', roomId, content: 'No revision' }), /revision/);
+  assert.throws(() => send({ requestId, kind: 'do', content: 'No room' }), /roomId/);
+  assert.throws(() => send({ requestId, kind: 'do', roomId, content: 'No revision' }), /revision/);
   assert.throws(() => send({ kind: 'ooc', content: 'No stable ID' }), /Invalid/);
   assert.equal(calls, 0);
   await send({ requestId, kind: 'ooc', content: 'GLOBAL' });

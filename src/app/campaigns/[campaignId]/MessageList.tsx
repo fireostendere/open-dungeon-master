@@ -950,7 +950,7 @@ export function MessageList({
           </p>
         </div>
       ) : dmStatus !== "idle" ? (
-        <p className="flex items-center gap-2 font-serif text-base italic text-stone-500">
+        <p role="status" aria-live="polite" className="flex items-center gap-2 font-serif text-base italic text-stone-500">
           <D20Spinner className="size-5 shrink-0 text-amber-600" />
           <span className="animate-pulse">{statusPhrase}</span>
         </p>

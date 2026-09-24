@@ -22,7 +22,7 @@ import type { BeatCadence } from "@/lib/dm/beat-cadence";
 import type { AskScope, AskVisibility } from "@/lib/dm/ask-logic";
 import type { CampaignState } from "@/app/campaigns/[campaignId]/useCampaignStream";
 
-import type { CampaignMember, GlobalTurnState, InputKind } from "@/lib/campaign-types";
+import { globalTurnSubmitted, type CampaignMember, type GlobalTurnState, type InputKind } from "@/lib/campaign-types";
 import type { CombatInputModeSetting } from "@/lib/schemas/game-settings-options";
 import type { Locale } from "@/lib/i18n";
 import { useI18n } from "@/lib/i18n";
@@ -31,16 +31,14 @@ export type { InputKind };
 
 const KIND_TIPS: Record<Locale, Record<InputKind, string>> = {
   en: {
-    do: "Act in the world. The DM narrates what happens.",
-    say: "Speak in character. Sent as dialogue in quotes.",
+    do: "Describe what your character does or says. The DM narrates what happens.",
     ooc: "Table talk. The DM does not respond, and it works even when the floor is locked.",
     ask: "Ask the DM without using a turn. Choose who can see the question and answer.",
     lead: "Party lead only. Send the DM an authoritative story direction.",
     narrate: "Dungeon Master only. Write the passage the table reads.",
   },
   ru: {
-    do: "Действуйте в мире. Мастер опишет последствия.",
-    say: "Говорите от лица персонажа. Текст отправится как прямая речь.",
+    do: "Опишите, что персонаж делает или говорит. Мастер опишет последствия.",
     ooc: "Внеигровое обсуждение. Мастер не отвечает; режим работает даже при заблокированном ходе.",
     ask: "Задайте вопрос Мастеру без траты хода. Выберите, кому видны вопрос и ответ.",
     lead: "Только лидер группы. Отправьте Мастеру обязательное направление сюжета.",
@@ -50,7 +48,7 @@ const KIND_TIPS: Record<Locale, Record<InputKind, string>> = {
 
 const COPY = {
   en: {
-    kinds: { do: "Do", say: "Say", ooc: "OOC", ask: "Ask DM", lead: "Direct", narrate: "Narrate" },
+    kinds: { do: "Do", ooc: "OOC", ask: "Ask DM", lead: "Direct", narrate: "Narrate" },
     statuses: {
       rolling: "DM rolling dice...",
       awaiting_rolls: "Waiting on real dice...",
@@ -75,7 +73,7 @@ const COPY = {
     },
   },
   ru: {
-    kinds: { do: "Действие", say: "Речь", ooc: "Вне игры", ask: "Спросить Мастера", lead: "Указание", narrate: "Повествование" },
+    kinds: { do: "Действие", ooc: "Вне игры", ask: "Спросить Мастера", lead: "Указание", narrate: "Повествование" },
     statuses: {
       rolling: "Мастер бросает кости...",
       awaiting_rolls: "Ожидание реальных бросков...",
@@ -229,7 +227,7 @@ function ComposerInner({
   const playerSheets = sheets.filter((s) => !s.isCompanion);
   const respondedPlayersCount = playerSheets.filter((s) => {
     const u = globalTurnState?.actionsByCharacter?.[s.id];
-    if (u && (u.actionsCount > 0 || u.phrasesCount > 0)) return true;
+    if (globalTurnSubmitted(u)) return true;
     const mem = members.find((m) => m.userId === s.userId);
     return Boolean(mem && mem.skipTurnsCount > 0);
   }).length;
@@ -240,8 +238,7 @@ function ComposerInner({
       ["waiting", "ready", "resolving"].includes(globalTurnState.phase),
   );
   const usage = mySheet && globalTurnState ? globalTurnState.actionsByCharacter[mySheet.id] : null;
-  const heroActionsCount = usage?.actionsCount ?? 0;
-  const heroPhrasesCount = usage?.phrasesCount ?? 0;
+  const heroResponded = globalTurnSubmitted(usage);
   const combatFloor = floor.mode === "hold" ? floor.next : floor;
   const initiativeFloor = combatFloor.mode === "initiative" ? combatFloor : null;
   const combatActive = Boolean(encounter?.orderReady && initiativeFloor);
@@ -275,8 +272,7 @@ function ComposerInner({
   const optionLabel = (opt: InputKind) => {
     const base = copy.kinds[opt];
     if (!globalTurnEnabled || isDm || combatActive) return base;
-    if (opt === "do") return `${base} (${heroActionsCount}/1${heroActionsCount >= 1 ? " ✓" : ""})`;
-    if (opt === "say") return `${base} (${heroPhrasesCount}/1${heroPhrasesCount >= 1 ? " ✓" : ""})`;
+    if (opt === "do") return `${base} (${heroResponded ? 1 : 0}/1${heroResponded ? " ✓" : ""})`;
     return base;
   };
 
@@ -400,7 +396,7 @@ function ComposerInner({
                       ? "bg-gradient-to-b from-ember-400 to-ember-600 text-stone-950 shadow-glow-ember"
                       : "bg-gradient-to-b from-amber-100 to-amber-400 text-amber-950 shadow-glow-gold"
                     : "bg-stone-900/80 text-stone-400 hover:bg-stone-800 hover:text-stone-200",
-                  globalTurnEnabled && !isDm && option === "do" && heroActionsCount >= 1 && "opacity-60",
+                  globalTurnEnabled && !isDm && option === "do" && heroResponded && "opacity-60",
                 )}
               >
                 {optionLabel(option)}
@@ -408,7 +404,7 @@ function ComposerInner({
             </Tooltip>
           ))}
           {dmStatus !== "idle" ? (
-            <span className="ml-auto flex items-center gap-1.5 text-xs text-stone-500">
+            <span role="status" aria-live="polite" className="ml-auto flex items-center gap-1.5 text-xs text-stone-500">
               <D20Spinner className="size-3.5 shrink-0 text-amber-600" />
               {dmStatusText}
             </span>

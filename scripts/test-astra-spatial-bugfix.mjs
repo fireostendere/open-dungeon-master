@@ -52,13 +52,12 @@ const setFloor = (id,floor,roomId) => roomId
   ? db.prepare('UPDATE spatial_rooms SET floor_json=? WHERE campaign_id=? AND id=?').run(JSON.stringify(floor), id,roomId)
   : db.prepare('UPDATE campaigns SET floor_json=? WHERE id=?').run(JSON.stringify(floor),id);
 const canAct = (floor,userId,kind) => kind === 'ooc' || floor.mode === 'open' || floor.mode !== 'hold' && floor.userIds.includes(userId);
-const recordAction = (id,sheetId,userId,kind) => {
+const recordAction = (id,sheetId) => {
   const state = readRound();
   if (!['active','quorum_delay'].includes(state.phase)) return {allowed:false,error:'Round closed'};
-  const entry = state.actionsByCharacter[sheetId] ?? {actionsCount:0,phrasesCount:0};
-  const key = kind === 'do' ? 'actionsCount':'phrasesCount';
-  if (entry[key]) return {allowed:false,error:'Quota exhausted'};
-  entry[key]++; state.actionsByCharacter[sheetId] = entry;
+  const entry = state.actionsByCharacter[sheetId] ?? {actionsCount:0};
+  if (entry.actionsCount) return {allowed:false,error:'Quota exhausted'};
+  entry.actionsCount++; state.actionsByCharacter[sheetId] = entry;
   db.prepare('UPDATE campaigns SET global_turn_json=? WHERE id=?').run(JSON.stringify(state),id);
   return {allowed:true,state};
 };
@@ -149,9 +148,9 @@ test('a failing quota callback rolls back message, receipt and floor together',(
   assert.deepEqual(floorOf(camp,room).respondedUserIds,[a]);
   setFloor(camp,{mode:'open'},room);
 });
-test('hold blocks do/say but not OOC; closed global phases block fresh input',()=>{
+test('hold blocks Do but not OOC; closed global phases block fresh input',()=>{
   setFloor(camp,{mode:'hold',next:{mode:'open'}},room);
-  for(const kind of ['do','say']) assert.throws(()=>command(camp,b,send(b,{kind})),e=>e.status===409);
+  assert.throws(()=>command(camp,b,send(b,{kind:'do'})),e=>e.status===409);
   command(camp,b,{...send(b),kind:'ooc',roomId:null});
   setFloor(camp,{mode:'open'},room);
   for(const phase of ['waiting','ready','resolving']) {

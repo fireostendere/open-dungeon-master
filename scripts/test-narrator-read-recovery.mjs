@@ -33,7 +33,7 @@ async function runnerClass() {
   const module = await load('../narrator/run.mjs'); await module.link(load); await module.evaluate(); return module.namespace.NarratorRunner;
 }
 const Runner = await runnerClass();
-const message = (seq, marker = 'CURRENT') => ({ id: `m-${marker}-${seq}`, seq, roomId: 'vault', witnessUserIds: ['A'], kind: 'say', content: `${marker}_${seq}` });
+const message = (seq, marker = 'CURRENT') => ({ id: `m-${marker}-${seq}`, seq, roomId: 'vault', witnessUserIds: ['A'], kind: 'do', content: `${marker}_${seq}` });
 const hash = value => createHash('sha256').update(JSON.stringify(value)).digest('hex');
 function pagesFor(state, size = 12) {
   const shape = {}, entries = [];
