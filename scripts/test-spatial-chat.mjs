@@ -52,13 +52,13 @@ test("re-entry does not fill the absence gap, even with an arbitrary history cur
   assert.deepEqual(f.store.messages(f.bob, { roomId: f.tavern, beforeSeq: Number.MAX_SAFE_INTEGER }).messages.map(m => m.content), ["First visit", "Second visit"]);
 });
 
-test("OOC is global and available without a location", t => {
+test("OOC stays out of spatial history and is available without a location", t => {
   const f = fixture(); t.after(() => f.db.close());
-  f.move(f.alice, f.tavern); f.say(f.alice, "Pizza break", "ooc");
-  assert.deepEqual(f.texts(f.bob, null), ["Pizza break"]);
+  f.move(f.alice, f.tavern); const first = f.say(f.alice, "Pizza break", "ooc");
+  assert.equal(first.message.content, ""); assert.deepEqual(f.texts(f.bob, null), []);
   f.db.prepare("DELETE FROM spatial_presence WHERE user_id='carol'").run();
-  f.say(f.carol, "Joining shortly", "ooc");
-  assert.deepEqual(f.texts(f.alice, null), ["Pizza break", "Joining shortly"]);
+  const second = f.say(f.carol, "Joining shortly", "ooc");
+  assert.equal(second.message.content, ""); assert.deepEqual(f.texts(f.alice, null), []);
   assert.equal(f.store.narratorRead(f.dm).messages.length, 0);
 });
 
