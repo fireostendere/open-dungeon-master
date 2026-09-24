@@ -5,7 +5,6 @@ import { Loader2 } from "lucide-react";
 import { use } from "react";
 import { Lobby } from "@/app/campaigns/[campaignId]/Lobby";
 import { SessionView } from "@/app/campaigns/[campaignId]/SessionView";
-import { SessionViewport } from "@/app/campaigns/[campaignId]/SessionViewport";
 import { useCampaignStream } from "@/app/campaigns/[campaignId]/useCampaignStream";
 import { AppHomeLogo } from "@/components/AccountMenu";
 import { useI18n } from "@/lib/i18n";
@@ -61,17 +60,15 @@ export default function CampaignPage({
   return state.campaign.status === "lobby" ? (
     <Lobby state={state} refresh={refresh} />
   ) : (
-    <SessionViewport key={campaignId}>
-      <SessionView
-        state={state}
-        loadOlderMessages={loadOlderMessages}
-        refreshNotes={refreshNotes}
-        refreshFacts={refreshFacts}
-        refreshSideChat={refreshSideChat}
-        refreshWhispers={refreshWhispers}
-        refreshAsks={refreshAsks}
-        refreshBattleMap={refreshBattleMap}
-      />
-    </SessionViewport>
+    <SessionView
+      state={state}
+      loadOlderMessages={loadOlderMessages}
+      refreshNotes={refreshNotes}
+      refreshFacts={refreshFacts}
+      refreshSideChat={refreshSideChat}
+      refreshWhispers={refreshWhispers}
+      refreshAsks={refreshAsks}
+      refreshBattleMap={refreshBattleMap}
+    />
   );
 }
