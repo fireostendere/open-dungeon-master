@@ -109,11 +109,13 @@ async function ensureLocalTts() {
     localTtsToken ??= randomBytes(32).toString("hex");
     const script = fileURLToPath(new URL("../scripts/local-tts-server.py", import.meta.url));
     const appRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-    const cache = path.join(appRoot, "node_modules", ".cache", "odm-tts");
+    const cache = process.env.ODM_LOCAL_TTS_CACHE?.trim() || path.join(appRoot, "node_modules", ".cache", "odm-tts");
     const python = process.env.ODM_LOCAL_TTS_PYTHON?.trim() || path.join(cache, ".venv", "bin", "python");
     localTtsProcess = spawn(python, [script], {
       stdio: ["ignore", "ignore", "inherit"],
       env: {
+        // Do not inherit LD_LIBRARY_PATH: it may shadow this WSL's matching ROCm runtime.
+        HOME: process.env.HOME || "",
         PATH: process.env.PATH || "",
         ODM_LOCAL_TTS_CACHE: cache,
         ODM_LOCAL_TTS_PORT: process.env.ODM_LOCAL_TTS_PORT?.trim() || "8875",

@@ -334,6 +334,9 @@
       <button class="btn-action" onclick="testSquish()">
         💩 Тест шлёпа
       </button>
+      <button id="btnYolo" class="btn-action" onclick="toggleYolo()" title="Режим YOLO 21+">
+        😈 YOLO 21+: ВЫКЛ
+      </button>
       <button id="btnAudioToggle" class="btn-audio" onclick="toggleAudio()" title="Вкл/Выкл звук">
         🔊
       </button>
@@ -444,10 +447,35 @@
       "⚡ ВСЕ ПАЛИ В БОЮ ⚡",
     ];
 
+    const YOLO_VICTORY_BANNERS = [
+      "🔥 ЕБАЛИ И РАЗЪЕБАЛИ! 🔥",
+      "👑 ВОТ ЭТО БЛЯТЬ ПОБЕДА! 👑",
+      "★ НАТУРАЛЬНАЯ 20, СУКА! ★",
+      "⚔️ ВРАГ В ГОВНЕ, МЫ В ШОКОЛАДЕ ⚔️",
+      "🏆 РАЗМОТАЛИ ЭТИХ ПИДОРАСОВ 🏆",
+      "✨ АБСОЛЮТНЫЙ РАЗЪЁБ! ✨",
+      "🐉 ДРАКОН ОТСОСАЛ ПО ПОЛНОЙ 🐉",
+      "🔥 СУПЕРКРИТ, НАХУЙ! 🔥",
+    ];
+
+    const YOLO_DEFEAT_BANNERS = [
+      "☠️ ПОЛНЫЙ ПИЗДЕЦ И ПРОЁБ ☠️",
+      "💀 ОТРЯД ОБОСРАЛСЯ (TPK) 💀",
+      "🎲 НАТУРАЛЬНАЯ ЕДИНИЦА, БЛЯТЬ! 🎲",
+      "⚰️ ЗАКОПАЛИ НАХУЙ ВЕСЬ ОТРЯД ⚰️",
+      "🩸 ВСЁ ПОШЛО ПО ПИЗДЕ 🩸",
+      "💩 УТОНУЛИ В ГОВНЕ 💩",
+      "⚡ ЗАРУИНИЛИ ВСЮ КАМПАНИЮ ⚡",
+      "🥀 СДОХЛИ КАК ЛОХИ 🥀",
+    ];
+
     // Web Audio Synthesizer
     class AudioSynth {
       constructor() {
         this.ctx = null;
+        this.compressor = null;
+        this.masterGain = null;
+        this.activeTromboneGain = null;
         this.enabled = true;
       }
 
@@ -455,18 +483,47 @@
         if (!this.enabled) return null;
         if (!this.ctx && typeof window !== "undefined") {
           const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-          if (AudioContextClass) this.ctx = new AudioContextClass();
-        }
-        if (this.ctx && this.ctx.state === "suspended") {
-          this.ctx.resume();
+          if (AudioContextClass) {
+            this.ctx = new AudioContextClass();
+            this.compressor = this.ctx.createDynamicsCompressor();
+            this.compressor.threshold.setValueAtTime(-12, this.ctx.currentTime);
+            this.compressor.knee.setValueAtTime(8, this.ctx.currentTime);
+            this.compressor.ratio.setValueAtTime(14, this.ctx.currentTime);
+            this.compressor.attack.setValueAtTime(0.003, this.ctx.currentTime);
+            this.compressor.release.setValueAtTime(0.12, this.ctx.currentTime);
+
+            this.masterGain = this.ctx.createGain();
+            this.masterGain.gain.setValueAtTime(0.7, this.ctx.currentTime);
+
+            this.masterGain.connect(this.compressor);
+            this.compressor.connect(this.ctx.destination);
+          }
         }
         return this.ctx;
+      }
+
+      getDestination() {
+        const ctx = this.getContext();
+        if (!ctx) return null;
+        return this.masterGain || ctx.destination;
+      }
+
+      stopSadTrombone() {
+        if (this.activeTromboneGain && this.ctx) {
+          try {
+            const now = this.ctx.currentTime;
+            this.activeTromboneGain.gain.cancelScheduledValues(now);
+            this.activeTromboneGain.gain.linearRampToValueAtTime(0, now + 0.03);
+          } catch(e) {}
+          this.activeTromboneGain = null;
+        }
       }
 
       playLaunch() {
         try {
           const ctx = this.getContext();
           if (!ctx) return;
+          const dest = this.getDestination() || ctx.destination;
           const osc = ctx.createOscillator();
           const gain = ctx.createGain();
           osc.type = "sine";
@@ -476,7 +533,7 @@
           gain.gain.setValueAtTime(0.08, now);
           gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
           osc.connect(gain);
-          gain.connect(ctx.destination);
+          gain.connect(dest);
           osc.start(now);
           osc.stop(now + 0.36);
         } catch(e) {}
@@ -486,6 +543,7 @@
         try {
           const ctx = this.getContext();
           if (!ctx) return;
+          const dest = this.getDestination() || ctx.destination;
           const bufferSize = ctx.sampleRate * 0.4;
           const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
           const data = buffer.getChannelData(0);
@@ -503,7 +561,7 @@
           gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
           noise.connect(filter);
           filter.connect(gain);
-          gain.connect(ctx.destination);
+          gain.connect(dest);
           noise.start();
         } catch(e) {}
       }
@@ -512,6 +570,7 @@
         try {
           const ctx = this.getContext();
           if (!ctx) return;
+          const dest = this.getDestination() || ctx.destination;
           const now = ctx.currentTime;
           const osc = ctx.createOscillator();
           const gain = ctx.createGain();
@@ -520,7 +579,7 @@
           gain.gain.setValueAtTime(0.12, now);
           gain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
           osc.connect(gain);
-          gain.connect(ctx.destination);
+          gain.connect(dest);
           osc.start(now);
           osc.stop(now + 0.61);
         } catch(e) {}
@@ -533,10 +592,26 @@
 
       // Authentic 4-note descending Sad Trombone ("wah-wah-wah-waaaah")
       // Clean, distortion-free ending with smooth linear fade to absolute 0
-      playSadTrombone() {
+      // Fixes race condition where suspended AudioContext buffers all 4 notes and blasts ears upon resume!
+      async playSadTrombone() {
         try {
           const ctx = this.getContext();
           if (!ctx) return;
+          if (ctx.state === "suspended") {
+            try {
+              await ctx.resume();
+            } catch(e) {
+              return;
+            }
+          }
+          if (ctx.state !== "running") return;
+
+          this.stopSadTrombone();
+          const dest = this.getDestination() || ctx.destination;
+          const tromboneGain = ctx.createGain();
+          this.activeTromboneGain = tromboneGain;
+          tromboneGain.connect(dest);
+
           const now = ctx.currentTime;
 
           // 4 notes: D4 -> C#4 -> C4 -> B3 mournfully sliding down to E3
@@ -600,7 +675,7 @@
             osc.connect(filter);
             osc2.connect(filter);
             filter.connect(gain);
-            gain.connect(ctx.destination);
+            gain.connect(tromboneGain);
 
             // Oscillators stop safely AFTER gain is completely 0
             osc.start(noteStart);
@@ -616,6 +691,7 @@
         try {
           const ctx = this.getContext();
           if (!ctx) return;
+          const dest = this.getDestination() || ctx.destination;
           const now = ctx.currentTime;
 
           // 1. Viscous low squelch impact (heavy wet drop)
@@ -624,10 +700,10 @@
           osc.type = "sine";
           osc.frequency.setValueAtTime(160, now);
           osc.frequency.exponentialRampToValueAtTime(42, now + 0.12);
-          oscGain.gain.setValueAtTime(0.28, now);
+          oscGain.gain.setValueAtTime(0.25, now);
           oscGain.gain.linearRampToValueAtTime(0, now + 0.12);
           osc.connect(oscGain);
-          oscGain.connect(ctx.destination);
+          oscGain.connect(dest);
           osc.start(now);
           osc.stop(now + 0.14);
 
@@ -647,12 +723,12 @@
           bpFilter.frequency.exponentialRampToValueAtTime(320, now + 0.13);
 
           const noiseGain = ctx.createGain();
-          noiseGain.gain.setValueAtTime(0.35, now);
+          noiseGain.gain.setValueAtTime(0.3, now);
           noiseGain.gain.linearRampToValueAtTime(0, now + 0.14);
 
           noise.connect(bpFilter);
           bpFilter.connect(noiseGain);
-          noiseGain.connect(ctx.destination);
+          noiseGain.connect(dest);
           noise.start(now);
 
           // 3. Wet suction bubble release chirp ("shlup-pop")
@@ -662,10 +738,10 @@
           const chirpStart = now + 0.02;
           chirp.frequency.setValueAtTime(480, chirpStart);
           chirp.frequency.exponentialRampToValueAtTime(85, chirpStart + 0.05);
-          chirpGain.gain.setValueAtTime(0.18, chirpStart);
+          chirpGain.gain.setValueAtTime(0.16, chirpStart);
           chirpGain.gain.linearRampToValueAtTime(0, chirpStart + 0.05);
           chirp.connect(chirpGain);
-          chirpGain.connect(ctx.destination);
+          chirpGain.connect(dest);
           chirp.start(chirpStart);
           chirp.stop(chirpStart + 0.06);
         } catch(e) {}
@@ -675,6 +751,7 @@
         try {
           const ctx = this.getContext();
           if (!ctx) return;
+          const dest = this.getDestination() || ctx.destination;
           const now = ctx.currentTime;
           const osc = ctx.createOscillator();
           const gain = ctx.createGain();
@@ -684,7 +761,7 @@
           gain.gain.setValueAtTime(0.14, now);
           gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
           osc.connect(gain);
-          gain.connect(ctx.destination);
+          gain.connect(dest);
           osc.start(now);
           osc.stop(now + 0.13);
         } catch(e) {}
@@ -696,7 +773,20 @@
 
     // State
     let currentMode = "victory"; // "victory" or "defeat"
+    let isYolo = false;
     let storyVisible = true;
+
+    function toggleYolo() {
+      isYolo = !isYolo;
+      const btn = document.getElementById("btnYolo");
+      if (btn) {
+        btn.textContent = isYolo ? "😈 YOLO 21+: ВКЛ 🔥" : "😈 YOLO 21+: ВЫКЛ";
+        btn.style.borderColor = isYolo ? "#f43f5e" : "#3f3f46";
+        btn.style.color = isYolo ? "#fda4af" : "#e4e4e7";
+        btn.style.background = isYolo ? "#881337" : "#27272a";
+      }
+      setMode(currentMode);
+    }
     const canvas = document.getElementById("canvas");
     const ctx = canvas.getContext("2d");
 
@@ -859,7 +949,8 @@
           );
         }
 
-        const bannerText = VICTORY_BANNERS[Math.floor(Math.random() * VICTORY_BANNERS.length)];
+        const pool = isYolo ? YOLO_VICTORY_BANNERS : VICTORY_BANNERS;
+        const bannerText = pool[Math.floor(Math.random() * pool.length)];
         banners.push({
           text: bannerText,
           x: rocket.x,
@@ -884,7 +975,7 @@
       sadParticles.length = 0;
 
       banners.push({
-        text: "⚔️ ВЕЛИКАЯ ПОБЕДА! ⚔️",
+        text: isYolo ? "🔥 ЕБАЛИ И РАЗЪЕБАЛИ! 🔥" : "⚔️ ВЕЛИКАЯ ПОБЕДА! ⚔️",
         x: width / 2,
         y: height * 0.35,
         vy: -0.25,
@@ -950,7 +1041,7 @@
       audio.playSadTrombone();
 
       banners.push({
-        text: "💀 ПОЛНЫЙ ПРОЁБ 💀",
+        text: isYolo ? "☠️ ПОЛНЫЙ ПИЗДЕЦ И ПРОЁБ ☠️" : "💀 ПОЛНЫЙ ПРОЁБ 💀",
         x: width / 2,
         y: height * 0.35,
         vy: -0.2,
@@ -1001,7 +1092,7 @@
         spawnDie(width * 0.90, -50, (Math.random() - 0.5) * 3, Math.random() * 4 + 9.9, "d20", "NAT 1", true);
 
         banners.push({
-          text: "🎲 НАТУРАЛЬНАЯ 1 🎲",
+          text: isYolo ? "🎲 НАТУРАЛЬНАЯ ЕДИНИЦА, БЛЯТЬ! 🎲" : "🎲 НАТУРАЛЬНАЯ 1 🎲",
           x: width * 0.5,
           y: height * 0.55,
           vy: -0.2,
@@ -1031,7 +1122,7 @@
         spawnDie(width * 0.88, -55, (Math.random() - 0.5) * 3, Math.random() * 4 + 10.0, "d20", "1", true);
 
         banners.push({
-          text: "⚰️ ОТРЯД ПОВЕРЖЕН (TPK) ⚰️",
+          text: isYolo ? "⚰️ ЗАКОПАЛИ НАХУЙ ВЕСЬ ОТРЯД ⚰️" : "⚰️ ОТРЯД ПОВЕРЖЕН (TPK) ⚰️",
           x: width * 0.5,
           y: height * 0.70,
           vy: -0.2,
@@ -1064,13 +1155,19 @@
         btnVictory.classList.remove("active");
         btnDefeat.classList.add("active");
         statusIcon.textContent = "💀";
-        titleText.textContent = "Проклятие Страда — Поражение отряда (TPK)";
-        subtitleText.textContent = "Кубики были неумолимы... На них выпали единички. Покойтесь с миром.";
-        btnAction.textContent = "🎲 Уронить ещё единичек!";
+        titleText.textContent = isYolo
+          ? "Проклятие Страда — Полный проёб и TPK"
+          : "Проклятие Страда — Поражение отряда (TPK)";
+        subtitleText.textContent = isYolo
+          ? "Кубики выпали в единицы, отряд обосрался и сдох. Земля стекловатой."
+          : "Кубики были неумолимы... На них выпали единички. Покойтесь с миром.";
+        btnAction.textContent = isYolo ? "💩 Уронить ещё единичек в говно!" : "🎲 Уронить ещё единичек!";
 
         storyCard.classList.add("defeat-card");
-        storyTitle.textContent = "⚰️ Посмертная эпитафия павшим героям";
-        storyBody.innerHTML = "Тьма сгустилась над Баровией. Последний герой пал, сжимая в руке расколотый клинок. Судьба бросила кости, и они выпали предательскими единичками. Ваши тела покроет холодный туман, но память о дерзкой попытке бросить вызов року останется в шёпоте теней. Отряд полностью разбит (TPK).";
+        storyTitle.textContent = isYolo ? "⚰️ Посмертная эпитафия долбоёбам" : "⚰️ Посмертная эпитафия павшим героям";
+        storyBody.innerHTML = isYolo
+          ? "Тьма сгустилась над Баровией, и всё пошло по пизде. Последний боец обосрался и рухнул лицом в грязь. Судьба кинула единицы, и отряд закопали нахуй целиком (TPK). Земля стекловатой, неудачники."
+          : "Тьма сгустилась над Баровией. Последний герой пал, сжимая в руке расколотый клинок. Судьба бросила кости, и они выпали предательскими единичками. Ваши тела покроет холодный туман, но память о дерзкой попытке бросить вызов року останется в шёпоте теней. Отряд полностью разбит (TPK).";
 
         triggerDefeatVolley();
       } else {
@@ -1078,13 +1175,19 @@
         btnDefeat.classList.remove("active");
         btnVictory.classList.add("active");
         statusIcon.textContent = "🏆";
-        titleText.textContent = "Проклятие Страда — Великая Победа!";
-        subtitleText.textContent = "Салют легендарным героям! Все боги славят отряд.";
-        btnAction.textContent = "🎆 Запустить ещё салют!";
+        titleText.textContent = isYolo
+          ? "Проклятие Страда — Абсолютный Разъёб!"
+          : "Проклятие Страда — Великая Победа!";
+        subtitleText.textContent = isYolo
+          ? "Салют бешеным героям! Враг в говне, мы в шоколаде."
+          : "Салют легендарным героям! Все боги славят отряд.";
+        btnAction.textContent = isYolo ? "🔥 Ебануть ещё салют!" : "🎆 Запустить ещё салют!";
 
         storyCard.classList.remove("defeat-card");
-        storyTitle.textContent = "👑 Триумф легендарных героев";
-        storyBody.innerHTML = "Пыль эпической битвы медленно оседает. Враг повержен, и замок Баровии озаряется первыми лучами рассвета за долгие столетия. Ваши имена вписаны в скрижали славы, и барды во всех уголках королевства будут слагать песни о вашей отваге, хитрости и нерушимом братстве. Кампания завершилась полным триумфом!";
+        storyTitle.textContent = isYolo ? "👑 Триумф бешеных героев" : "👑 Триумф легендарных героев";
+        storyBody.innerHTML = isYolo
+          ? "Пыль битвы осела, и в воздухе стоит запах напалма и говна поверженных врагов. Герои разъебали Страда в щепки, переломали все кости его приспешникам и оставили за собой легенду. Барды охуеют это воспевать!"
+          : "Пыль эпической битвы медленно оседает. Враг повержен, и замок Баровии озаряется первыми лучами рассвета за долгие столетия. Ваши имена вписаны в скрижали славы, и барды во всех уголках королевства будут слагать песни о вашей отваге, хитрости и нерушимом братстве. Кампания завершилась полным триумфом!";
 
         triggerVolley();
         audio.playFanfare();
@@ -1152,8 +1255,9 @@
             true
           );
           if (Math.random() < 0.4) {
+            const pool = isYolo ? YOLO_DEFEAT_BANNERS : DEFEAT_BANNERS;
             banners.push({
-              text: DEFEAT_BANNERS[Math.floor(Math.random() * DEFEAT_BANNERS.length)],
+              text: pool[Math.floor(Math.random() * pool.length)],
               x: width * 0.2 + Math.random() * (width * 0.6),
               y: height * (0.35 + Math.random() * 0.3),
               vy: -0.2,

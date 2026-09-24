@@ -18,6 +18,7 @@ export function ClosingMessageModal({
   sheets = [],
   defaultMode = "victory",
   onTriggerCelebration,
+  isYolo = false,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -26,29 +27,32 @@ export function ClosingMessageModal({
   sheets?: CharacterSheet[];
   defaultMode?: "victory" | "defeat";
   onTriggerCelebration?: (mode: "victory" | "defeat") => void;
+  isYolo?: boolean;
 }) {
   const { locale } = useI18n();
   const copy = localeText(locale, {
     en: {
-      title: "Closing Message from the Dungeon Master",
-      subtitle: "The adventure has reached its grand conclusion",
-      fallbackProse:
-        "The dust settles upon the battlefield, and the echoes of triumph resonate throughout the realm. The heroes have braved perils untold, forged bonds unbroken, and etched their names into legend. Their deeds shall be sung by bards for generations to come.",
-      partyTitle: "Heroes of the Realm",
+      title: isYolo ? "Final Unhinged Words from the DM" : "Closing Message from the Dungeon Master",
+      subtitle: isYolo ? "The adventure has reached its fucking conclusion" : "The adventure has reached its grand conclusion",
+      fallbackProse: isYolo
+        ? "The dust settles upon the battlefield, reeking of gunpowder, blood, and vanquished foes. The madmen smashed through every obstacle, broke all the rules, and left absolute ruin in their wake. Bards will lose their minds singing this legend."
+        : "The dust settles upon the battlefield, and the echoes of triumph resonate throughout the realm. The heroes have braved perils untold, forged bonds unbroken, and etched their names into legend. Their deeds shall be sung by bards for generations to come.",
+      partyTitle: isYolo ? "The Badass Party" : "Heroes of the Realm",
       level: "Level",
-      replayFireworks: "Victory salute & fireworks",
-      playDefeat: "Defeat & falling 1s (Sad Trombone)",
+      replayFireworks: isYolo ? "Salute & Victory Badassery" : "Victory salute & fireworks",
+      playDefeat: isYolo ? "Total Disaster (Falling 1s & Trombone)" : "Defeat & falling 1s (Sad Trombone)",
       close: "Close and view table",
     },
     ru: {
-      title: "Закрывающее послание Мастера",
-      subtitle: "Приключение подошло к своему грандиозному финалу",
-      fallbackProse:
-        "Пыль битвы оседает, и эхо триумфа разносится по всему королевству. Герои преодолели немыслимые опасности, скрепили нерушимые узы и вписали свои имена в легенды. Их подвиги будут воспевать барды многих грядущих эпох.",
-      partyTitle: "Герои королевства",
+      title: isYolo ? "Финальный разъёб от Мастера" : "Закрывающее послание Мастера",
+      subtitle: isYolo ? "Приключение разъёбано до самого основания" : "Приключение подошло к своему грандиозному финалу",
+      fallbackProse: isYolo
+        ? "Пыль битвы осела, и в воздухе стоит запах напалма и поверженных врагов. Герои разъебали всё живое, переломали кости злодеям и оставили за собой легенду. Барды охуеют это воспевать."
+        : "Пыль битвы оседает, и эхо триумфа разносится по всему королевству. Герои преодолели немыслимые опасности, скрепили нерушимые узы и вписали свои имена в легенды. Их подвиги будут воспевать барды многих грядущих эпох.",
+      partyTitle: isYolo ? "Бешеные ублюдки (отряд)" : "Герои королевства",
       level: "Уровень",
-      replayFireworks: "Салют победы",
-      playDefeat: "Поражение и проёб (единички и тромбон)",
+      replayFireworks: isYolo ? "Салют разъёба и победы" : "Салют победы",
+      playDefeat: isYolo ? "Полный проёб (единицы в говно и тромбон)" : "Поражение и проёб (единички и тромбон)",
       close: "Закрыть и смотреть стол",
     },
   });

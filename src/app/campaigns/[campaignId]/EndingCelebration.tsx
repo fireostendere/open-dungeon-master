@@ -325,6 +325,9 @@ type MudSplat = {
 // Web Audio synthesizer for fireworks, fanfare and sad trombone
 class CelebrationAudio {
   private ctx: AudioContext | null = null;
+  private masterGain: GainNode | null = null;
+  private compressor: DynamicsCompressorNode | null = null;
+  private activeTromboneGain: GainNode | null = null;
   public enabled = true;
 
   private getContext(): AudioContext | null {
@@ -335,18 +338,45 @@ class CelebrationAudio {
         (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
       if (AudioCtx) {
         this.ctx = new AudioCtx();
+        this.compressor = this.ctx.createDynamicsCompressor();
+        this.compressor.threshold.setValueAtTime(-10, this.ctx.currentTime);
+        this.compressor.knee.setValueAtTime(8, this.ctx.currentTime);
+        this.compressor.ratio.setValueAtTime(14, this.ctx.currentTime);
+        this.compressor.attack.setValueAtTime(0.003, this.ctx.currentTime);
+        this.compressor.release.setValueAtTime(0.12, this.ctx.currentTime);
+
+        this.masterGain = this.ctx.createGain();
+        this.masterGain.gain.setValueAtTime(0.75, this.ctx.currentTime);
+
+        this.masterGain.connect(this.compressor);
+        this.compressor.connect(this.ctx.destination);
       }
     }
-    if (this.ctx && this.ctx.state === "suspended") {
-      void this.ctx.resume();
-    }
     return this.ctx;
+  }
+
+  private getDestination(): AudioNode | null {
+    const ctx = this.getContext();
+    if (!ctx) return null;
+    return this.masterGain ?? ctx.destination;
+  }
+
+  public stopSadTrombone() {
+    if (this.activeTromboneGain && this.ctx) {
+      try {
+        const now = this.ctx.currentTime;
+        this.activeTromboneGain.gain.cancelScheduledValues(now);
+        this.activeTromboneGain.gain.linearRampToValueAtTime(0, now + 0.03);
+      } catch {}
+      this.activeTromboneGain = null;
+    }
   }
 
   public playLaunch() {
     try {
       const ctx = this.getContext();
       if (!ctx) return;
+      const dest = this.getDestination() ?? ctx.destination;
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.type = "sine";
@@ -356,7 +386,7 @@ class CelebrationAudio {
       gain.gain.setValueAtTime(0.08, now);
       gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
       osc.connect(gain);
-      gain.connect(ctx.destination);
+      gain.connect(dest);
       osc.start(now);
       osc.stop(now + 0.36);
     } catch {
@@ -368,6 +398,7 @@ class CelebrationAudio {
     try {
       const ctx = this.getContext();
       if (!ctx) return;
+      const dest = this.getDestination() ?? ctx.destination;
       const bufferSize = ctx.sampleRate * 0.4;
       const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
       const data = buffer.getChannelData(0);
@@ -388,7 +419,7 @@ class CelebrationAudio {
 
       noise.connect(filter);
       filter.connect(gain);
-      gain.connect(ctx.destination);
+      gain.connect(dest);
 
       noise.start();
     } catch {
@@ -400,6 +431,7 @@ class CelebrationAudio {
     try {
       const ctx = this.getContext();
       if (!ctx) return;
+      const dest = this.getDestination() ?? ctx.destination;
       const now = ctx.currentTime;
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
@@ -408,7 +440,7 @@ class CelebrationAudio {
       gain.gain.setValueAtTime(0.12, now);
       gain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
       osc.connect(gain);
-      gain.connect(ctx.destination);
+      gain.connect(dest);
       osc.start(now);
       osc.stop(now + 0.61);
     } catch {
@@ -425,10 +457,26 @@ class CelebrationAudio {
 
   // Authentic 4-note descending Sad Trombone ("wah-wah-wah-waaaah")
   // Clean, distortion-free ending with smooth linear fade to absolute 0
-  public playSadTrombone() {
+  // Fixes race condition where suspended AudioContext buffers all 4 notes and blasts ears upon resume!
+  public async playSadTrombone() {
     try {
       const ctx = this.getContext();
       if (!ctx) return;
+      if (ctx.state === "suspended") {
+        try {
+          await ctx.resume();
+        } catch {
+          return;
+        }
+      }
+      if (ctx.state !== "running") return;
+
+      this.stopSadTrombone();
+      const dest = this.getDestination() ?? ctx.destination;
+      const tromboneGain = ctx.createGain();
+      this.activeTromboneGain = tromboneGain;
+      tromboneGain.connect(dest);
+
       const now = ctx.currentTime;
 
       // 4 notes: D4 -> C#4 -> C4 -> B3 mournfully sliding down to E3
@@ -492,7 +540,7 @@ class CelebrationAudio {
         osc.connect(filter);
         osc2.connect(filter);
         filter.connect(gain);
-        gain.connect(ctx.destination);
+        gain.connect(tromboneGain);
 
         // Oscillators stop safely AFTER gain is completely 0
         osc.start(noteStart);
@@ -510,6 +558,7 @@ class CelebrationAudio {
     try {
       const ctx = this.getContext();
       if (!ctx) return;
+      const dest = this.getDestination() ?? ctx.destination;
       const now = ctx.currentTime;
 
       // 1. Viscous low squelch impact (heavy wet drop)
@@ -518,10 +567,10 @@ class CelebrationAudio {
       osc.type = "sine";
       osc.frequency.setValueAtTime(160, now);
       osc.frequency.exponentialRampToValueAtTime(42, now + 0.12);
-      oscGain.gain.setValueAtTime(0.28, now);
+      oscGain.gain.setValueAtTime(0.25, now);
       oscGain.gain.linearRampToValueAtTime(0, now + 0.12);
       osc.connect(oscGain);
-      oscGain.connect(ctx.destination);
+      oscGain.connect(dest);
       osc.start(now);
       osc.stop(now + 0.14);
 
@@ -541,12 +590,12 @@ class CelebrationAudio {
       bpFilter.frequency.exponentialRampToValueAtTime(320, now + 0.13);
 
       const noiseGain = ctx.createGain();
-      noiseGain.gain.setValueAtTime(0.35, now);
+      noiseGain.gain.setValueAtTime(0.3, now);
       noiseGain.gain.linearRampToValueAtTime(0, now + 0.14);
 
       noise.connect(bpFilter);
       bpFilter.connect(noiseGain);
-      noiseGain.connect(ctx.destination);
+      noiseGain.connect(dest);
       noise.start(now);
 
       // 3. Wet suction bubble release chirp ("shlup-pop")
@@ -556,10 +605,10 @@ class CelebrationAudio {
       const chirpStart = now + 0.02;
       chirp.frequency.setValueAtTime(480, chirpStart);
       chirp.frequency.exponentialRampToValueAtTime(85, chirpStart + 0.05);
-      chirpGain.gain.setValueAtTime(0.18, chirpStart);
+      chirpGain.gain.setValueAtTime(0.16, chirpStart);
       chirpGain.gain.linearRampToValueAtTime(0, chirpStart + 0.05);
       chirp.connect(chirpGain);
-      chirpGain.connect(ctx.destination);
+      chirpGain.connect(dest);
       chirp.start(chirpStart);
       chirp.stop(chirpStart + 0.06);
     } catch {
@@ -572,6 +621,7 @@ class CelebrationAudio {
     try {
       const ctx = this.getContext();
       if (!ctx) return;
+      const dest = this.getDestination() ?? ctx.destination;
       const now = ctx.currentTime;
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
@@ -581,7 +631,7 @@ class CelebrationAudio {
       gain.gain.setValueAtTime(0.14, now);
       gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
       osc.connect(gain);
-      gain.connect(ctx.destination);
+      gain.connect(dest);
       osc.start(now);
       osc.stop(now + 0.13);
     } catch {
@@ -597,6 +647,7 @@ export function EndingCelebration({
   mode: initialMode = "victory",
   closingMessage,
   onModeChange,
+  isYolo = false,
 }: {
   active: boolean;
   onClose: () => void;
@@ -604,47 +655,48 @@ export function EndingCelebration({
   mode?: "victory" | "defeat";
   closingMessage?: string | null;
   onModeChange?: (mode: "victory" | "defeat") => void;
+  isYolo?: boolean;
 }) {
   const { locale } = useI18n();
   const copy = localeText(locale, {
     en: {
-      concluded: "Adventure Concluded!",
-      heroesSalute: "Salute to the legendary heroes!",
-      moreFireworks: "More fireworks!",
+      concluded: isYolo ? "Adventure Fucking Concluded!" : "Adventure Concluded!",
+      heroesSalute: isYolo ? "Salute to the badass legends!" : "Salute to the legendary heroes!",
+      moreFireworks: isYolo ? "Fire more fucking rockets!" : "More fireworks!",
       close: "Close celebration",
       audioOn: "Mute sound",
       audioOff: "Enable sound",
-      defeatConcluded: "Campaign Concluded: Party Defeated (TPK)",
-      defeatHeroesSalute: "The dice rolled ones... Rest in peace, brave adventurers.",
-      dropMoreDice: "Drop more dice!",
-      switchToVictory: "Switch to victory celebration",
-      switchToDefeat: "Switch to defeat & sad trombone",
-      readClosing: "Read DM's closing message",
+      defeatConcluded: isYolo ? "Campaign Concluded: Total Party Fucking Wipe (TPK)" : "Campaign Concluded: Party Defeated (TPK)",
+      defeatHeroesSalute: isYolo ? "Rolled ones across the board, shit the bed and died." : "The dice rolled ones... Rest in peace, brave adventurers.",
+      dropMoreDice: isYolo ? "Drop more 1s into the mud!" : "Drop more dice!",
+      switchToVictory: isYolo ? "Switch to victory & badassery" : "Switch to victory celebration",
+      switchToDefeat: isYolo ? "Switch to complete disaster & sad trombone" : "Switch to defeat & sad trombone",
+      readClosing: isYolo ? "Read DM's final unhinged speech" : "Read DM's closing message",
       hideClosing: "Hide message",
-      defeatBadge: "DEFEAT / PARTY WIPE",
-      victoryBadge: "VICTORY / TRIUMPH",
-      storyTitleVictory: "Triumph of the Heroes",
-      storyTitleDefeat: "Epitaph of the Fallen",
+      defeatBadge: isYolo ? "TOTAL DISASTER / TPK" : "DEFEAT / PARTY WIPE",
+      victoryBadge: isYolo ? "ABSOLUTE BADASSERY" : "VICTORY / TRIUMPH",
+      storyTitleVictory: isYolo ? "Triumph of the Absolute Madmen" : "Triumph of the Heroes",
+      storyTitleDefeat: isYolo ? "Epitaph for the Dumbasses" : "Epitaph of the Fallen",
       storyClose: "Collapse text",
     },
     ru: {
-      concluded: "Приключение завершено!",
-      heroesSalute: "Салют легендарным героям!",
-      moreFireworks: "Запустить ещё салют!",
+      concluded: isYolo ? "Приключение разъёбано!" : "Приключение завершено!",
+      heroesSalute: isYolo ? "Салют бешеным героям!" : "Салют легендарным героям!",
+      moreFireworks: isYolo ? "Ебануть ещё салют!" : "Запустить ещё салют!",
       close: "Закрыть салют",
       audioOn: "Выключить звук",
       audioOff: "Включить звук",
-      defeatConcluded: "Кампания завершена: Поражение отряда (TPK)",
-      defeatHeroesSalute: "Кубики были неумолимы... На них выпали единички. Покойтесь с миром.",
-      dropMoreDice: "Уронить ещё единичек!",
-      switchToVictory: "Переключить на салют победы",
-      switchToDefeat: "Переключить на поражение и проёб",
-      readClosing: "Читать послание Мастера",
+      defeatConcluded: isYolo ? "Кампания завершена: Полный проёб отряда (TPK)" : "Кампания завершена: Поражение отряда (TPK)",
+      defeatHeroesSalute: isYolo ? "Кубики выпали в единицы, отряд обосрался и сдох. Земля стекловатой." : "Кубики были неумолимы... На них выпали единички. Покойтесь с миром.",
+      dropMoreDice: isYolo ? "Уронить ещё единичек в говно!" : "Уронить ещё единичек!",
+      switchToVictory: isYolo ? "Переключить на разъёб и победу" : "Переключить на салют победы",
+      switchToDefeat: isYolo ? "Переключить на полный проёб" : "Переключить на поражение и проёб",
+      readClosing: isYolo ? "Читать финальный разъёб от Мастера" : "Читать послание Мастера",
       hideClosing: "Скрыть послание",
-      defeatBadge: "ПОРАЖЕНИЕ / ПРОЁБ",
-      victoryBadge: "ПОБЕДА / ТРИУМФ",
-      storyTitleVictory: "Триумф легендарных героев",
-      storyTitleDefeat: "Посмертная эпитафия павшим",
+      defeatBadge: isYolo ? "ПОЛНЫЙ ПРОЁБ / TPK" : "ПОРАЖЕНИЕ / ПРОЁБ",
+      victoryBadge: isYolo ? "АБСОЛЮТНЫЙ РАЗЪЁБ" : "ПОБЕДА / ТРИУМФ",
+      storyTitleVictory: isYolo ? "Триумф бешеных героев" : "Триумф легендарных героев",
+      storyTitleDefeat: isYolo ? "Посмертная эпитафия долбоёбам" : "Посмертная эпитафия павшим",
       storyClose: "Свернуть текст",
     },
   });
@@ -848,8 +900,14 @@ export function EndingCelebration({
           );
         }
 
-        // Floating celebratory badge with 7s readable duration!
-        const pool = locale === "ru" ? VICTORY_BANNERS_RU : VICTORY_BANNERS_EN;
+        // Floating celebratory badge with 1s readable duration!
+        const pool = isYolo
+          ? locale === "ru"
+            ? YOLO_VICTORY_BANNERS_RU
+            : YOLO_VICTORY_BANNERS_EN
+          : locale === "ru"
+            ? VICTORY_BANNERS_RU
+            : VICTORY_BANNERS_EN;
         const bannerText = pool[Math.floor(Math.random() * pool.length)];
 
         bannersRef.current.push({
@@ -867,7 +925,7 @@ export function EndingCelebration({
         });
       }
     },
-    [locale, spawnDie],
+    [locale, isYolo, spawnDie],
   );
 
   // Trigger full celebration volley
@@ -883,7 +941,13 @@ export function EndingCelebration({
     sadParticlesRef.current = [];
 
     bannersRef.current.push({
-      text: locale === "ru" ? "⚔️ ВЕЛИКАЯ ПОБЕДА! ⚔️" : "⚔️ GRAND VICTORY ⚔️",
+      text: isYolo
+        ? locale === "ru"
+          ? "🔥 ЕБАЛИ И РАЗЪЕБАЛИ! 🔥"
+          : "🔥 WE FUCKING DID IT! 🔥"
+        : locale === "ru"
+          ? "⚔️ ВЕЛИКАЯ ПОБЕДА! ⚔️"
+          : "⚔️ GRAND VICTORY ⚔️",
       x: w / 2,
       y: h * 0.35,
       vy: -0.25,
@@ -942,7 +1006,7 @@ export function EndingCelebration({
       spawnDie(w * 0.10, h, 3 + Math.random() * 3, -(Math.random() * 5 + 14), "d8", "8", false);
       spawnDie(w * 0.90, h, -(3 + Math.random() * 3), -(Math.random() * 5 + 14), "d6", "6", false);
     }, 850);
-  }, [locale, launchRocket, spawnDie]);
+  }, [locale, isYolo, launchRocket, spawnDie]);
 
   // Trigger sad defeat volley ("грустная анимация с проёбом, падают кубики с единичками и грустный тромбон")
   const triggerDefeatVolley = useCallback(() => {
@@ -962,7 +1026,13 @@ export function EndingCelebration({
 
     // Center defeat banner with 1s visible duration
     bannersRef.current.push({
-      text: locale === "ru" ? "💀 ПОЛНЫЙ ПРОЁБ 💀" : "💀 TOTAL PARTY WIPE 💀",
+      text: isYolo
+        ? locale === "ru"
+          ? "☠️ ПОЛНЫЙ ПИЗДЕЦ И ПРОЁБ ☠️"
+          : "☠️ TOTAL FUCKING DISASTER ☠️"
+        : locale === "ru"
+          ? "💀 ПОЛНЫЙ ПРОЁБ 💀"
+          : "💀 TOTAL PARTY WIPE 💀",
       x: w / 2,
       y: h * 0.35,
       vy: -0.2,
@@ -1140,7 +1210,13 @@ export function EndingCelebration({
             true,
           );
           if (Math.random() < 0.4) {
-            const pool = locale === "ru" ? DEFEAT_BANNERS_RU : DEFEAT_BANNERS_EN;
+            const pool = isYolo
+              ? locale === "ru"
+                ? YOLO_DEFEAT_BANNERS_RU
+                : YOLO_DEFEAT_BANNERS_EN
+              : locale === "ru"
+                ? DEFEAT_BANNERS_RU
+                : DEFEAT_BANNERS_EN;
             bannersRef.current.push({
               text: pool[Math.floor(Math.random() * pool.length)],
               x: w * 0.2 + Math.random() * (w * 0.6),

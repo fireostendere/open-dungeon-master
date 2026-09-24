@@ -726,6 +726,7 @@ export function SessionView({
         message={closingDmMessage}
         sheets={sheets}
         defaultMode={defaultCelebrationMode}
+        isYolo={Boolean(campaign.gameSettings?.yolo21Enabled)}
         onTriggerCelebration={(mode) => {
           setCelebrationMode(mode ?? defaultCelebrationMode);
           setCelebrationActive(false);
@@ -740,6 +741,7 @@ export function SessionView({
         campaignTitle={campaign.title}
         closingMessage={closingDmMessage?.content}
         onModeChange={(nextMode) => setCelebrationMode(nextMode)}
+        isYolo={Boolean(campaign.gameSettings?.yolo21Enabled)}
       />
     </main>
   );

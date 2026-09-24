@@ -11,33 +11,43 @@ export function ClosingMessageBanner({
   hasOpened,
   defaultMode = "victory",
   onOpenClosingMessage,
+  isYolo = false,
 }: {
   campaignTitle: string;
   hasOpened: boolean;
   defaultMode?: "victory" | "defeat";
   onOpenClosingMessage: () => void;
+  isYolo?: boolean;
 }) {
   const { locale } = useI18n();
   const copy = localeText(locale, {
     en: {
-      concludedVictory: "Campaign Concluded",
-      concludedDefeat: "Campaign Concluded: Defeat",
-      subtitleVictory: "The Dungeon Master has delivered the final closing message for the party.",
-      subtitleDefeat: "The party has fallen. The Dungeon Master left a final epitaph.",
-      openCtaVictory: "Open Closing Message & Salute",
-      openCtaDefeat: "Open Final Message & Defeat",
-      reopenCtaVictory: "View Closing Message & Fireworks",
-      reopenCtaDefeat: "View Final Message & Defeat",
+      concludedVictory: isYolo ? "Campaign Fucking Won!" : "Campaign Concluded",
+      concludedDefeat: isYolo ? "Campaign Concluded: Total Party Fucking Wipe" : "Campaign Concluded: Defeat",
+      subtitleVictory: isYolo
+        ? "The Dungeon Master dropped the final victory verdict for the badasses."
+        : "The Dungeon Master has delivered the final closing message for the party.",
+      subtitleDefeat: isYolo
+        ? "Everyone died like dumbasses. The Dungeon Master left a parting epitaph."
+        : "The party has fallen. The Dungeon Master left a final epitaph.",
+      openCtaVictory: isYolo ? "Open Final Message & Salute!" : "Open Closing Message & Salute",
+      openCtaDefeat: isYolo ? "Open Disastrous Finale & Trombone" : "Open Final Message & Defeat",
+      reopenCtaVictory: isYolo ? "View Final Message & Fireworks" : "View Closing Message & Fireworks",
+      reopenCtaDefeat: isYolo ? "View Disastrous Finale & Trombone" : "View Final Message & Defeat",
     },
     ru: {
-      concludedVictory: "Кампания завершена",
-      concludedDefeat: "Кампания завершена: Поражение отряда",
-      subtitleVictory: "Мастер оставил итоговое закрывающее послание для отряда.",
-      subtitleDefeat: "Отряд пал в бою. Мастер оставил финальную эпитафию.",
-      openCtaVictory: "Открыть закрывающее послание и салют",
-      openCtaDefeat: "Открыть закрывающее послание и финал",
-      reopenCtaVictory: "Посмотреть закрывающее послание и салют",
-      reopenCtaDefeat: "Посмотреть закрывающее послание и финал",
+      concludedVictory: isYolo ? "Кампания разъёбана в щепки!" : "Кампания завершена",
+      concludedDefeat: isYolo ? "Кампания завершена: Полный проёб и TPK" : "Кампания завершена: Поражение отряда",
+      subtitleVictory: isYolo
+        ? "Мастер выкатил финальное напутствие победителям."
+        : "Мастер оставил итоговое закрывающее послание для отряда.",
+      subtitleDefeat: isYolo
+        ? "Все сдохли. Мастер оставил посмертное напутствие неудачникам."
+        : "Отряд пал в бою. Мастер оставил финальную эпитафию.",
+      openCtaVictory: isYolo ? "Открыть финальный разъёб и салют" : "Открыть закрывающее послание и салют",
+      openCtaDefeat: isYolo ? "Открыть закрывающий проёб и тромбон" : "Открыть закрывающее послание и финал",
+      reopenCtaVictory: isYolo ? "Посмотреть финальный разъёб и салют" : "Посмотреть закрывающее послание и салют",
+      reopenCtaDefeat: isYolo ? "Посмотреть закрывающий проёб и тромбон" : "Посмотреть закрывающее послание и финал",
     },
   });
 

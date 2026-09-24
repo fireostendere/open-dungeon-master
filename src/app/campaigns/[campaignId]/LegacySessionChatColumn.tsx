@@ -109,6 +109,7 @@ export function SessionChatColumn({
           campaignTitle={campaign.title}
           hasOpened={Boolean(hasOpenedFinale)}
           defaultMode={defaultMode}
+          isYolo={Boolean(campaign?.gameSettings?.yolo21Enabled)}
           onOpenClosingMessage={onOpenClosingMessage ?? (() => {})}
         />
       ) : null}

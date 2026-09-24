@@ -86,9 +86,11 @@ server refuses to start without `DB_ENCRYPTION_KEY` in `.env.server`.
   transcription).
 - Table voice chat and push-to-talk transcription use the services above.
 - External narrator voiceover runs on the host that launches its MCP sidecar,
-  not in the app container. See `scripts/setup-local-tts.sh`; generated WAVs
-  are attached to public DM narration and expire after seven days. Long-lived
-  backups omit these temporary WAVs.
+  not in the app container. On WSL with AMD ROCm 7.2.0 and Python 3.12, run
+  `sh scripts/setup-local-tts.sh`; it installs the GPU PyTorch wheel and Russian
+  Silero model (no CPU fallback). `ODM_LOCAL_TTS_CACHE` overrides the default
+  `node_modules/.cache/odm-tts` location. Generated WAVs attach to public DM
+  narration and expire after seven days; long-lived backups omit these WAVs.
 
 ## Playing from your phone
 
