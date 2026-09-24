@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { loadSource, sqliteFixture } from './lib/readiness-harness.mjs';
 import * as operation from '../src/lib/operation-scope.mjs';
+import { parseCompleteTurn, combatCompletionDisposition } from '../src/lib/dm/combat-completion.ts';
 
 // Domain rules/catalog/turn mapper are explicit fixtures. The facade, rollback,
 // lifecycle, scope mapper, SQL and events are production modules. This tests
@@ -56,6 +57,7 @@ function fixture() {
     '@/lib/dm/encounter-template-logic': { parseRoster: (value) => value },
     '@/lib/dm/tool-transaction': f.transactions, '@/lib/db/human-adjudication-scopes': scopes,
     '@/lib/db/encounters': encounters, '@/lib/dm/human-turn-lifecycle': lifecycle,
+    '@/lib/dm/combat-completion': { parseCompleteTurn, combatCompletionDisposition },
     '@/lib/operation-scope.mjs': operation,
   });
   return { ...f, ...invoke, ...lifecycle, campaign, turns, sheets, pending, encounters,
