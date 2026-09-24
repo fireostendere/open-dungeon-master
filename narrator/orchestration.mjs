@@ -305,7 +305,7 @@ export class NarratorOrchestrator {
     usage.calls++; usage.times.push(now); usage.inputBytes += totalInputBytes; host.saveCheckpoint();
     const modelTiming=latencyEnabled(), startedAt = modelTiming?performance.now():0; let outputBytes=0;
     const tableActivity = role !== 'ask';
-    if (tableActivity) try { await host.setDmStatus?.('thinking'); } catch {}
+    if (tableActivity && typeof host.setDmStatus === 'function') try { await host.setDmStatus('thinking'); } catch {}
     try {
       const generated = typeof this.adapter.generateWithUsage === 'function'
         ? await this.adapter.generateWithUsage(role, prompt, sessionOptions)
@@ -337,7 +337,7 @@ export class NarratorOrchestrator {
       if (sticky) this.releaseRefereeConversation();
       throw error;
     } finally {
-      if (tableActivity) try { await host.setDmStatus?.('idle'); } catch {}
+      if (tableActivity && typeof host.setDmStatus === 'function') try { await host.setDmStatus('idle'); } catch {}
       if (modelTiming) emitLatency({ stage: 'narrator_model', role, durationMs:performance.now()-startedAt,
         inputBytes: totalInputBytes, promptBytes, instructionBytes, carriedContextBytes, outputBytes,
         delta:sentDelta, modelCalls: 1 });
