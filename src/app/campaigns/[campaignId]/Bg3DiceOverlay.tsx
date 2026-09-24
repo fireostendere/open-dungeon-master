@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { StoredRoll } from "@/lib/db/rolls";
+import type { DiceTerm } from "@/lib/dice";
 import type { CharacterSheet } from "@/lib/schemas/sheet";
 import type { PendingRoll } from "@/app/campaigns/[campaignId]/useCampaignStream";
 import { cn } from "@/lib/cn";
@@ -11,22 +12,22 @@ import { useI18n } from "@/lib/i18n";
 const DICE_COPY = {
   en: {
     ability: "Ability", dexterity: "Dexterity", strength: "Strength", wisdom: "Wisdom", charisma: "Charisma", intelligence: "Intelligence",
-    modifier: "Modifier", proficiency: "Proficiency bonus", penalty: "Penalty / hindrance", die: "Die", dieBonus: "1d4 bonus",
+    modifier: "Modifier", proficiency: "Proficiency bonus", penalty: "Penalty / hindrance", die: "Die", primaryDie: "Primary die (d20)", damage: "DAMAGE ROLL", dieBonus: "1d4 bonus",
     guidance: "Guidance", bless: "Bless", bardic: "Bardic Inspiration", hero: "Hero",
     inspirationAction: "*{name} spends an Inspiration point and rerolls the die!*", rollAlert: "🔔 [YOUR ROLL!] Make your check...",
     dc: "DIFFICULTY CLASS", attack: "ATTACK ROLL", save: "SAVING THROW", check: "CHECK", rollTime: "Time to roll:", seconds: "sec",
-    advantage: "Advantage (2d20)", disadvantage: "Disadvantage (2d20)", tapDie: "Click the die to roll", dieResult: "🎲 Die result (d20)",
+    advantage: "Advantage (2d20)", disadvantage: "Disadvantage (2d20)", tapDie: "Click the die to roll",
     total: "TOTAL:", noBonus: "A straight roll without modifiers", fate: "Fate decides...", rollDie: "ROLL THE DIE", tap3d: "or click the 3D die",
     criticalSuccess: "★ CRITICAL SUCCESS! ★", criticalFailure: "☠ CRITICAL FAILURE! ☠", success: "SUCCESS!", failure: "FAILURE!",
     reroll: "REROLL WITH INSPIRATION", remaining: "Remaining:", dismiss: "Click anywhere to close", reveal: "Click to reveal the result", closeAfterReveal: "Click again to close",
   },
   ru: {
     ability: "Характеристика", dexterity: "Ловкость", strength: "Сила", wisdom: "Мудрость", charisma: "Харизма", intelligence: "Интеллект",
-    modifier: "Модификатор", proficiency: "Бонус мастерства", penalty: "Штраф / помеха", die: "Кубик", dieBonus: "Бонус 1d4",
+    modifier: "Модификатор", proficiency: "Бонус мастерства", penalty: "Штраф / помеха", die: "Кубик", primaryDie: "Основной кубик (d20)", damage: "БРОСОК УРОНА", dieBonus: "Бонус 1d4",
     guidance: "Заклинание «Наставление»", bless: "Заклинание «Благословение»", bardic: "Вдохновение барда", hero: "Герой",
     inspirationAction: "*{name} тратит очко Вдохновения и перебрасывает кубик!*", rollAlert: "🔔 [ВАШ БРОСОК!] Сделайте проверку...",
     dc: "КЛАСС СЛОЖНОСТИ", attack: "БРОСОК АТАКИ", save: "СПАСБРОСОК", check: "ПРОВЕРКА", rollTime: "Время на бросок:", seconds: "сек",
-    advantage: "Преимущество (2d20)", disadvantage: "Помеха (2d20)", tapDie: "Нажмите на кубик, чтобы бросить", dieResult: "🎲 Результат кубика (d20)",
+    advantage: "Преимущество (2d20)", disadvantage: "Помеха (2d20)", tapDie: "Нажмите на кубик, чтобы бросить",
     total: "ИТОГ:", noBonus: "Чистый бросок без дополнительных модификаторов", fate: "Судьба решает...", rollDie: "БРОСИТЬ КУБИК", tap3d: "или нажмите прямо на 3D кубик",
     criticalSuccess: "★ КРИТИЧЕСКИЙ УСПЕХ! ★", criticalFailure: "☠ КРИТИЧЕСКИЙ ПРОВАЛ! ☠", success: "УСПЕХ!", failure: "НЕУДАЧА!",
     reroll: "ПЕРЕБРОСИТЬ ЗА ВДОХНОВЕНИЕ", remaining: "Осталось:", dismiss: "Нажмите в любое место, чтобы закрыть", reveal: "Нажмите, чтобы показать результат", closeAfterReveal: "Нажмите ещё раз, чтобы закрыть",
@@ -326,7 +327,7 @@ export function Bg3DiceOverlay({
     const list: ItemizedBonus[] = [];
 
     const detailLower = (roll.detail || "").toLowerCase();
-    let abilityName = copy.ability;
+    let abilityName: string | null = null;
     if (detailLower.includes("stealth") || detailLower.includes("acrobatics") || detailLower.includes("sleight")) {
       abilityName = copy.dexterity;
     } else if (detailLower.includes("athletics")) {
@@ -340,33 +341,19 @@ export function Bg3DiceOverlay({
     }
 
     for (const term of roll.breakdown.terms) {
-      if (term.kind === "dice" && term.sides !== 20) {
-        let name = `${copy.die} d${term.sides}`;
-        let icon = "🎲";
-        if (term.sides === 4) {
-          name = sheet?.conditions?.some((c) => c.toLowerCase().includes("guidance")) ? copy.guidance : sheet?.conditions?.some((c) => c.toLowerCase().includes("bless")) ? copy.bless : copy.dieBonus;
-          icon = "🙏";
-        } else if (term.sides === 6 || term.sides === 8 || term.sides === 10) {
-          name = copy.bardic;
-          icon = "🎵";
-        }
-        list.push({ name, val: term.subtotal, icon });
-      } else if (term.kind === "modifier") {
-        const totalMod = term.sign * term.value;
-        if (sheet && sheet.level) {
-          const pb = Math.floor((sheet.level - 1) / 4) + 2;
-          if (totalMod >= pb && roll.kind === "skill_check") {
-            list.push({ name: `${copy.modifier} (${abilityName})`, val: totalMod - pb, icon: "🔹" });
-            list.push({ name: copy.proficiency, val: pb, icon: "⚔" });
-            continue;
-          }
-        }
-        list.push({
-          name: totalMod > 0 ? `${copy.modifier} (${abilityName})` : copy.penalty,
-          val: totalMod,
-          icon: "🔹",
-        });
+      if (term.kind !== "modifier") continue;
+      const totalMod = term.sign * term.value;
+      const pb = sheet?.level ? Math.floor((sheet.level - 1) / 4) + 2 : 0;
+      if (pb > 0 && totalMod >= pb && roll.kind === "skill_check") {
+        list.push({ name: abilityName ? `${copy.modifier} (${abilityName})` : copy.modifier, val: totalMod - pb, icon: "🔹" });
+        list.push({ name: copy.proficiency, val: pb, icon: "⚔" });
+        continue;
       }
+      list.push({
+        name: totalMod < 0 ? copy.penalty : abilityName && roll.kind !== "damage" ? `${copy.modifier} (${abilityName})` : copy.modifier,
+        val: totalMod,
+        icon: "🔹",
+      });
     }
 
     return list;
@@ -380,28 +367,30 @@ export function Bg3DiceOverlay({
     setPhase("rolling");
 
     const roll = rollData.roll;
+    const hasVerdict = roll.success !== null || roll.dc !== null;
+    const isSuccess = roll.success ?? (roll.dc !== null && roll.total >= roll.dc);
     const itemized = extractItemizedBonuses(roll, character);
     setBonuses(itemized);
 
     playBg3Sound("tumble");
 
     const primaryDiceTerm = roll.breakdown.terms.find((t) => t.kind === "dice" && t.sides === 20);
-    const diceResults = primaryDiceTerm && primaryDiceTerm.kind === "dice" ? primaryDiceTerm.dice : [{ sides: 20, value: Math.max(1, Math.min(20, roll.total)), kept: true }];
+    const diceResults = primaryDiceTerm?.kind === "dice" ? primaryDiceTerm.dice : [];
 
     const isMulti = diceResults.length > 1;
     const canvasWidth = 400;
     const canvasHeight = 220;
 
     const diceSimList: DieSimState[] = diceResults.map((d, idx) => {
-      const cx = isMulti ? (idx === 0 ? 120 : 280) : 200;
+      const cx = isMulti ? (canvasWidth * (idx + 1)) / (diceResults.length + 1) : 200;
       const cy = 110;
-      const radius = isMulti ? 74 : 92;
+      const radius = isMulti ? Math.min(74, 140 / diceResults.length) : 92;
 
       return {
         val: d.value,
         discarded: !d.kept,
-        isCrit20: d.value === 20,
-        isCrit1: d.value === 1,
+        isCrit20: roll.breakdown.crit === "nat20" && d.kept && d.value === 20,
+        isCrit1: roll.breakdown.crit === "nat1" && d.kept && d.value === 1,
         cx,
         cy,
         radius,
@@ -565,7 +554,6 @@ export function Bg3DiceOverlay({
           ctx.textBaseline = "middle";
 
           if (isCenter) {
-            const isSuccess = roll.success === true || (roll.dc !== null && roll.total >= roll.dc);
             const fontSize = Math.round(Math.min(inRadius * 1.35, radius * 0.40));
             ctx.font = `900 ${fontSize}px 'Cinzel', serif, Georgia`;
 
@@ -577,7 +565,7 @@ export function Bg3DiceOverlay({
               ctx.fillStyle = "#fffbeb";
               ctx.shadowColor = "#f59e0b";
               ctx.shadowBlur = 24;
-            } else if (die.isCrit1 || !isSuccess) {
+            } else if (die.isCrit1 || (hasVerdict && !isSuccess)) {
               ctx.fillStyle = "#fb7185";
               ctx.shadowColor = "#e11d48";
               ctx.shadowBlur = 22;
@@ -623,7 +611,6 @@ export function Bg3DiceOverlay({
       if (progress >= 1 && activeElapsed > duration + 500 && !verdictSoundDone) {
         verdictSoundDone = true;
         setPhase("verdict");
-        const isSuccess = roll.success === true || (roll.dc !== null && roll.total >= roll.dc);
         const isCrit20 = roll.breakdown.crit === "nat20";
         const isCrit1 = roll.breakdown.crit === "nat1";
 
@@ -631,9 +618,9 @@ export function Bg3DiceOverlay({
           playBg3Sound("crit_success");
         } else if (isCrit1) {
           playBg3Sound("crit_fail");
-        } else if (isSuccess) {
+        } else if (hasVerdict && isSuccess) {
           playBg3Sound("success");
-        } else {
+        } else if (hasVerdict) {
           playBg3Sound("failure");
         }
       }
@@ -925,7 +912,7 @@ export function Bg3DiceOverlay({
         });
       }, 1000);
 
-      startIdleFloatingLoop();
+      if (/\d+d20/i.test(myPending.expression)) startIdleFloatingLoop();
     }
   }, [pendingRolls, meUserId, enabled, phase, activeRoll, sheets, handleRollSubmit, startIdleFloatingLoop, copy]);
 
@@ -993,13 +980,13 @@ export function Bg3DiceOverlay({
   if (phase === "idle" && !activeRoll && !activePending) return null;
 
   const roll = activeRoll?.roll;
-  const isSuccess = roll ? roll.success === true || (roll.dc !== null && roll.total >= roll.dc) : false;
+  const hasVerdict = !!roll && (roll.success !== null || roll.dc !== null);
+  const isSuccess = roll ? roll.success ?? (roll.dc !== null && roll.total >= roll.dc) : false;
   const isCritSuccess = roll?.breakdown.crit === "nat20";
   const isCritFail = roll?.breakdown.crit === "nat1";
 
-  const primaryDiceTerm = roll?.breakdown.terms.find((t) => t.kind === "dice" && t.sides === 20);
-  const winningDie = primaryDiceTerm && primaryDiceTerm.kind === "dice" ? primaryDiceTerm.dice.find((d) => d.kept) ?? primaryDiceTerm.dice[0] : null;
-  const winningVal = winningDie?.value ?? roll?.total ?? 20;
+  const diceTerms = roll?.breakdown.terms.filter((term): term is DiceTerm => term.kind === "dice") ?? [];
+  const primaryDiceTerm = diceTerms.find((term) => term.sides === 20);
 
   const activeDc = activeRoll?.roll.dc ?? activePending?.dc ?? null;
   const activeExpression = activeRoll?.roll.expression ?? activePending?.expression ?? "1d20";
@@ -1008,7 +995,8 @@ export function Bg3DiceOverlay({
   const activeAdvantage = activeRoll?.roll.advantage ?? activePending?.advantage ?? "none";
   const activeReason = activePending?.reason ?? "";
 
-  const headerTitle = activeDc !== null ? copy.dc : activeKind === "attack" ? copy.attack : activeKind === "saving_throw" ? copy.save : copy.check;
+  const promptHasD20 = /\d+d20/i.test(activeExpression);
+  const headerTitle = activeKind === "damage" ? copy.damage : activeDc !== null ? copy.dc : activeKind === "attack" ? copy.attack : activeKind === "saving_throw" ? copy.save : copy.check;
 
   const handleCardClick = (e: React.MouseEvent) => {
     if (phase === "prompt") {
@@ -1039,7 +1027,7 @@ export function Bg3DiceOverlay({
         className={cn(
           "relative w-[440px] max-w-[94vw] overflow-hidden rounded-[2.5rem] border border-[#a18146]/55 bg-gradient-to-b from-[#1c1228]/95 via-[#130d1d]/97 to-[#0b0612]/99 p-6 shadow-[0_0_80px_rgba(0,0,0,0.95),0_0_35px_rgba(168,85,247,0.2)] backdrop-blur-xl transition-all duration-400",
           phase === "verdict" && isCritSuccess && "shadow-[0_0_85px_rgba(250,204,21,0.45)] ring-2 ring-amber-400/75",
-          phase === "verdict" && (isCritFail || !isSuccess) && "shadow-[0_0_85px_rgba(225,29,72,0.4)] ring-1 ring-rose-500/65"
+          phase === "verdict" && (isCritFail || (hasVerdict && !isSuccess)) && "shadow-[0_0_85px_rgba(225,29,72,0.4)] ring-1 ring-rose-500/65"
         )}
       >
         {/* SVG Filigree Frame */}
@@ -1173,22 +1161,64 @@ export function Bg3DiceOverlay({
               ref={canvasRef}
               width={400}
               height={220}
-              className="relative z-10 w-full"
+              className={cn("relative z-10 w-full", (phase === "prompt" && !promptHasD20) || (phase !== "prompt" && roll && !primaryDiceTerm) ? "hidden" : "")}
             />
+            {phase === "prompt" && !promptHasD20 ? (
+              <div className="relative z-10 rounded-2xl border border-amber-500/30 bg-[#1c1228]/80 px-6 py-4 font-mono text-2xl font-bold text-amber-200">
+                🎲 {activeExpression}
+              </div>
+            ) : phase !== "prompt" && roll && !primaryDiceTerm ? (
+              <div className="relative z-10 flex max-h-[205px] flex-wrap items-center justify-center gap-3 overflow-y-auto px-2">
+                {diceTerms.map((term, termIndex) => (
+                  <div key={`${termIndex}-${term.sides}`} className="flex flex-col items-center gap-1">
+                    <div className="flex flex-wrap justify-center gap-1.5">
+                      {term.dice.map((die, dieIndex) => (
+                        <div
+                          key={`${termIndex}-${dieIndex}`}
+                          aria-label={phase === "rolling" ? `d${term.sides}` : `d${term.sides}: ${die.value}`}
+                          className={cn(
+                            "flex size-14 flex-col items-center justify-center rounded-xl border border-amber-400/50 bg-gradient-to-b from-slate-200 to-slate-400 text-slate-950 shadow-[0_4px_12px_rgba(0,0,0,0.45)]",
+                            !die.kept && "opacity-40 line-through",
+                          )}
+                        >
+                          <span className="text-[10px] font-bold uppercase text-slate-700">d{term.sides}</span>
+                          <span className="font-mono text-xl font-black">
+                            {phase === "rolling" ? "?" : die.rerolledFrom === undefined ? die.value : `${die.rerolledFrom}→${die.value}`}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                    <span className="font-mono text-xs font-semibold text-amber-100/80">
+                      {term.sign < 0 ? "−" : "+"}{term.subtotal}
+                    </span>
+                  </div>
+                ))}
+                {diceTerms.length === 0 ? <span className="font-mono text-xl text-amber-200">{activeExpression}</span> : null}
+              </div>
+            ) : null}
           </div>
 
           {/* Itemized Bonus Breakdown */}
           <div className="my-2 w-full px-2">
             {phase === "verdict" || phase === "landed" ? (
               <div className="flex flex-col gap-1.5 animate-fade-in text-xs">
-                <div className="flex items-center justify-between rounded-lg border border-amber-500/20 bg-white/5 px-3 py-1.5">
-                  <span className="flex items-center gap-2 text-stone-200">
-                    {copy.dieResult}
-                  </span>
-                  <span className="font-mono text-sm font-bold text-yellow-300">
-                    {winningVal}
-                  </span>
-                </div>
+                {primaryDiceTerm ? diceTerms.map((term, termIndex) => (
+                  <div key={`${termIndex}-${term.sides}`} className="flex items-center justify-between rounded-lg border border-amber-500/20 bg-white/5 px-3 py-1.5">
+                    <span className="flex min-w-0 items-center gap-2 text-stone-200">
+                      <span className="shrink-0">{term.sides === 20 ? copy.primaryDie : `${copy.die} (d${term.sides})`}</span>
+                      <span className="flex flex-wrap gap-1 font-mono text-sm font-bold text-yellow-300">
+                        {term.dice.map((die, dieIndex) => (
+                          <span key={dieIndex} className={cn("rounded bg-black/25 px-1.5", !die.kept && "opacity-40 line-through")}>
+                            {die.rerolledFrom === undefined ? die.value : `${die.rerolledFrom}→${die.value}`}
+                          </span>
+                        ))}
+                      </span>
+                    </span>
+                    <span className="shrink-0 pl-2 font-mono text-sm font-bold text-yellow-300">
+                      {term.sides === 20 && term.sign > 0 ? term.subtotal : `${term.sign < 0 ? "−" : "+"}${term.subtotal}`}
+                    </span>
+                  </div>
+                )) : null}
 
                 {bonuses.map((b, i) => (
                   <div key={i} className="flex items-center justify-between rounded-lg border border-amber-500/20 bg-white/5 px-3 py-1.5">
@@ -1204,7 +1234,7 @@ export function Bg3DiceOverlay({
                 <div className="flex items-center justify-between border-t border-amber-500/40 px-3 pt-2 font-bold">
                   <span className="tracking-wider text-amber-200 uppercase">{copy.total}</span>
                   <span className="font-mono text-lg text-white drop-shadow-md">
-                    {roll?.total ?? winningVal}
+                    {roll?.total ?? "—"}
                   </span>
                 </div>
               </div>
@@ -1260,7 +1290,7 @@ export function Bg3DiceOverlay({
 
           {/* Verdict Banner */}
           <div className="min-h-[48px] flex items-center justify-center text-center">
-            {phase === "verdict" ? (
+            {phase === "verdict" && (hasVerdict || isCritSuccess || isCritFail) ? (
               <div className="animate-scale-in">
                 {isCritSuccess ? (
                   <div className="font-serif text-2xl font-black tracking-widest text-amber-300 drop-shadow-[0_0_20px_rgba(250,204,21,0.9)] uppercase">
@@ -1284,7 +1314,7 @@ export function Bg3DiceOverlay({
           </div>
 
           {/* Inspiration Reroll Button (on Failure) */}
-          {phase === "verdict" && !isSuccess && !isCritSuccess && inspirationCount > 0 ? (
+          {phase === "verdict" && hasVerdict && !isSuccess && !isCritSuccess && inspirationCount > 0 ? (
             <div className="w-full px-2 mt-2">
               <button
                 type="button"
