@@ -278,7 +278,7 @@ try {
     const legacy = readFileSync(new URL('src/app/api/campaigns/[campaignId]/actions/route.ts', root), 'utf8');
     const spatial = readFileSync(new URL('src/lib/spatial/service.ts', root), 'utf8');
     assert.match(legacy, /withCommittedEffects\(\(\) => getDatabase\(\)\.transaction\(\(\) => \{[\s\S]*publishWithSeq/);
-    assert.match(spatial, /!alreadyProcessed && !actor\.isDm && operation === "send"/);
+    assert.match(spatial, /return store\.command\([\s\S]*\(commandResult, normalized\) => \{[\s\S]*queuePlayerAction/);
     assert.match(spatial, /queuePlayerAction\(campaignId, "spatial", message\.id, command\.kind\)/);
     for (const [name, source] of [['actions.ts', legacy], ['service.ts', spatial]]) {
       const result = ts.transpileModule(source, { fileName: name, reportDiagnostics: true,
