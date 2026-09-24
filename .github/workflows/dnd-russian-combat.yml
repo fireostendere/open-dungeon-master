@@ -1,0 +1,34 @@
+name: D&D Russian combat regression
+
+on:
+  push:
+    paths:
+      - '.github/workflows/dnd-russian-combat.yml'
+      - 'scripts/test-russian-combat-flow.mjs'
+      - 'src/lib/dm/**'
+      - 'narrator/**'
+      - 'shared/narrator-state-delta.mjs'
+      - 'mcp/latency-trace.mjs'
+  pull_request:
+    paths:
+      - '.github/workflows/dnd-russian-combat.yml'
+      - 'scripts/test-russian-combat-flow.mjs'
+      - 'src/lib/dm/**'
+      - 'narrator/**'
+      - 'shared/narrator-state-delta.mjs'
+      - 'mcp/latency-trace.mjs'
+
+permissions:
+  contents: read
+
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+      - name: Test real helpers and facade with deterministic dependencies
+        run: node --experimental-vm-modules scripts/test-russian-combat-flow.mjs
