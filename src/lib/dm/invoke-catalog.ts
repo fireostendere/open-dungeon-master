@@ -10,6 +10,7 @@
 // scripts/test-invoke-catalog.mjs fails the build when the two drift.
 import { COMBAT_ADJUDICATIONS } from "@/lib/dm/catalog-combat";
 import { PARTY_ADJUDICATIONS } from "@/lib/dm/catalog-party";
+import { COMPLETE_TURN_ACTIONS } from "@/lib/dm/combat-completion";
 import {
   SOCIAL_ADJUDICATIONS,
   STORY_ADJUDICATIONS,
@@ -26,7 +27,7 @@ import {
 export type { CatalogEntry, CatalogField, AdjudicationCategory } from "@/lib/dm/catalog-types";
 export { CATEGORY_LABELS, checkArgs } from "@/lib/dm/catalog-types";
 
-export const ADJUDICATIONS: CatalogEntry[] = [
+const BASE_ADJUDICATIONS: CatalogEntry[] = [
   ...COMBAT_ADJUDICATIONS,
   ...PARTY_ADJUDICATIONS,
   ...WORLD_ADJUDICATIONS,
@@ -34,6 +35,21 @@ export const ADJUDICATIONS: CatalogEntry[] = [
   ...STORY_ADJUDICATIONS,
   ...TABLE_ADJUDICATIONS,
 ];
+
+// This optional external/human façade field reuses end_turn. It is not a new
+// rules action and does not silently alter legacy callers or off-turn attacks.
+export const ADJUDICATIONS: CatalogEntry[] = BASE_ADJUDICATIONS.map(entry =>
+  COMPLETE_TURN_ACTIONS.includes(entry.name) ? {
+    ...entry,
+    summary: `${entry.summary} External/human callers: completeTurn:true on the LAST declared action also runs the ordinary end_turn without another model decision; inspect result.turnCompletion before narrating.`,
+    fields: [...entry.fields, {
+      name: "completeTurn",
+      label: "Завершить объявленный ход после атаки",
+      kind: "boolean" as const,
+      help: "Только последнее действие всей заявки текущего персонажа. Не ставить перед ещё объявленным действием или для реакции. Pending rolls сохраняют ход; completed означает, что повторный end_turn не нужен.",
+    }],
+  } : entry,
+);
 
 export const ADJUDICATION_NAMES: string[] = ADJUDICATIONS.map((entry) => entry.name);
 

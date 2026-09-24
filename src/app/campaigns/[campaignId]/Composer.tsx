@@ -1,6 +1,6 @@
 "use client";
 
-import { Clock, Eye, EyeOff, Loader2, Send, SkipForward, Swords } from "lucide-react";
+import { ChevronDown, Clock, Eye, EyeOff, Loader2, Send, SkipForward, Swords } from "lucide-react";
 import { memo, useEffect, useState } from "react";
 import type { Dispatch, FormEvent, RefObject, SetStateAction } from "react";
 import { cn } from "@/lib/cn";
@@ -48,6 +48,8 @@ const KIND_TIPS: Record<Locale, Record<InputKind, string>> = {
 
 const COPY = {
   en: {
+    hideChat: "Hide chat",
+    showChat: "Show chat",
     kinds: { do: "Do", ooc: "OOC", ask: "Ask DM", lead: "Direct", narrate: "Narrate" },
     statuses: {
       rolling: "DM rolling dice...",
@@ -73,6 +75,8 @@ const COPY = {
     },
   },
   ru: {
+    hideChat: "Скрыть чат",
+    showChat: "Показать чат",
     kinds: { do: "Действие", ooc: "Вне игры", ask: "Спросить Мастера", lead: "Указание", narrate: "Повествование" },
     statuses: {
       rolling: "Мастер бросает кости...",
@@ -189,6 +193,7 @@ function ComposerInner({
 }) {
   const { locale } = useI18n();
   const copy = COPY[locale];
+  const [chatExpanded, setChatExpanded] = useState(true);
 
   const dmStatusText =
     dmStatus === "rolling"
@@ -276,7 +281,18 @@ function ComposerInner({
     return base;
   };
 
+  // Native disclosure keeps the form and pending dice mounted while hidden.
   return (
+    <details
+      open={chatExpanded}
+      onToggle={(event) => setChatExpanded(event.currentTarget.open)}
+      className="shrink-0 border-t border-stone-700/40 bg-stone-950/80"
+      data-tour="table-chat-toggle"
+    >
+      <summary className="flex min-h-11 cursor-pointer select-none list-none items-center justify-end gap-2 px-4 py-2 text-xs font-medium text-amber-200 hover:bg-stone-900/70 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-amber-400 [&::-webkit-details-marker]:hidden">
+        {chatExpanded ? copy.hideChat : copy.showChat}
+        <ChevronDown aria-hidden="true" className={cn("size-4 shrink-0", !chatExpanded && "rotate-180")} />
+      </summary>
     <form onSubmit={onSubmit} className="glass max-h-[75dvh] overflow-y-auto border-t border-stone-700/40 px-3 pb-3 pt-2.5">
       <div className="mx-auto max-w-3xl sm:px-3">
         {pendingRolls.map((pending) => (
@@ -505,6 +521,7 @@ function ComposerInner({
         {error ? <p className="mt-1.5 text-sm text-red-400">{error}</p> : null}
       </div>
     </form>
+    </details>
   );
 }
 

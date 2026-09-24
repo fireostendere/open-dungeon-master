@@ -12,7 +12,7 @@
 // are rails on a model that might loop, not rules of the game, so they do
 // not apply to a person. Saying that here, once, is better than the two
 // paths quietly differing.
-import { getCampaignById, type Campaign } from "@/lib/db/campaigns";
+import { getCampaignById, getFloor, type Campaign } from "@/lib/db/campaigns";
 import { createDmTurn, getDmTurn, saveDmTurn, type DmTurn } from "@/lib/db/dm-turns";
 import { listMembers } from "@/lib/db/campaigns";
 import { listSheets } from "@/lib/db/sheets";
@@ -23,6 +23,7 @@ import { executeDmTool } from "@/lib/dm/tool-transaction";
 import { scopedHumanTurn } from "@/lib/db/human-adjudication-scopes";
 import { getActiveEncounter } from "@/lib/db/encounters";
 import { finishHumanAdjudication } from "@/lib/dm/human-turn-lifecycle";
+import { parseCompleteTurn, combatCompletionDisposition, type CombatTurnKey } from "@/lib/dm/combat-completion";
 import { currentOperationSignal } from "@/lib/operation-scope.mjs";
 // "goblin x4" is the same shorthand a prepared encounter is saved in, so the
 // live form and the saved roster share one parser.
@@ -184,6 +185,15 @@ function humanTurnFor(campaignId: string): DmTurn {
   return pending ?? createDmTurn(campaignId, [], "human_dm");
 }
 
+function currentPcTurnKey(campaignId: string): CombatTurnKey | null {
+  const encounter = getActiveEncounter(campaignId);
+  if (!encounter?.orderReady) return null;
+  const current = encounter.order[encounter.turnIndex];
+  if (current?.kind !== "pc") return null;
+  return { encounterId: encounter.id, round: encounter.round,
+    turnIndex: encounter.turnIndex, characterId: current.characterId };
+}
+
 /** Deterministic entry point used by external commands. No await is permitted
  * between the first mutation and commit; returned refusals roll back too.
  */
@@ -191,13 +201,27 @@ export function invokeEngineSynchronous(campaign: Campaign, actor: Actor, call: 
   const entry = adjudication(call.name);
   if (!entry) return { ok: false, error: `Unknown action "${call.name}".` };
   if (ASYNC_ADJUDICATIONS.has(entry.name)) return { ok: false, error: "This action requires the asynchronous operator path." };
+  const completion = parseCompleteTurn(entry.name, call.args?.completeTurn, actor.kind);
+  if (!completion.ok) return completion;
   const args = normalizeArgs(entry, call.args ?? {});
   const complaint = checkArgs(entry, args);
   if (complaint) return { ok: false, error: complaint };
+  // A façade option, not an argument to the attack/rules handler itself.
+  delete args.completeTurn;
   try {
     currentOperationSignal()?.throwIfAborted();
     return executeDmTool<InvokeOutcome>([campaign], () => {
       currentOperationSignal()?.throwIfAborted();
+      const anchor = completion.requested ? currentPcTurnKey(campaign.id) : null;
+      if (completion.requested) {
+        const floor = getFloor(campaign.id);
+        const initiative = floor.mode === "hold" ? floor.next : floor;
+        if (!anchor || anchor.characterId !== args.characterId || initiative.mode !== "initiative" ||
+            initiative.encounterId !== anchor.encounterId || initiative.round !== anchor.round ||
+            listOpenPendingRolls(campaign.id).length) {
+          return { ok: false, error: "completeTurn requires this character's current initiative turn with no outstanding roll." };
+        }
+      }
       const turn = actor.kind === "ai" ? getDmTurn(actor.turnId) : humanTurnFor(campaign.id);
       if (!turn || turn.campaignId !== campaign.id) return { ok: false, error: "That DM turn no longer exists in this campaign." };
       const sheets = listSheets(campaign.id);
@@ -212,6 +236,25 @@ export function invokeEngineSynchronous(campaign: Campaign, actor: Actor, call: 
         if (actor.kind === "human") {
           finishHumanAdjudication(campaign, turn, entry.name);
           if (entry.name === "end_turn") result.note = "Initiative advancement committed. Narrate confirmed outcomes; narration will not advance it again.";
+          if (completion.requested && anchor) {
+            const disposition = combatCompletionDisposition(anchor, currentPcTurnKey(campaign.id), listOpenPendingRolls(campaign.id).length);
+            if (disposition === "complete") {
+              // Reuse the existing scoped end_turn path under this same outer
+              // command/receipt. No extra LLM decision and no duplicate rules.
+              // A failed finalizer rolls back only its nested transaction: the
+              // confirmed attack is returned and MUST NOT be rolled again.
+              const ended = invokeEngineSynchronous(campaign, actor, {
+                name: "end_turn", args: { characterId: anchor.characterId },
+              });
+              result.turnCompletion = ended.ok
+                ? { status: "completed", result: ended.result }
+                : { status: "blocked", error: ended.error };
+            } else {
+              // Physical dice keep their existing continuation; an attack
+              // that changed/ended the encounter must not end the NEW actor.
+              result.turnCompletion = { status: disposition };
+            }
+          }
         }
         else saveDmTurn(turn);
         return { ok: true, result, turnId: turn.id };

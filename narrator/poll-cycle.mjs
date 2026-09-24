@@ -7,7 +7,18 @@ import { withLatencyTrace, withNewLatencyTrace } from '../mcp/latency-trace.mjs'
  */
 export function startAskWorker(host, snapshot) {
   if (host.askTask || host.stopping || !host.askResponder && !host.pendingAskCommands?.size) return host.askTask;
-  if (!snapshot?.askQueue?.pending && !host.pendingAskCommands?.size) return null;
+  // Story reads use includeAsks:false: pending:false there is NOT proof that
+  // the private queue is empty. Probe it independently, at the normal polling
+  // cadence rather than on every zero-delay combat/mechanics tick.
+  const now = Date.now();
+  const scope = `${host.campaignId}:${host.timelineEpoch}`;
+  const urgent = snapshot?.askQueue?.pending || host.pendingAskCommands?.size;
+  if (!urgent && host.askPollScope === scope && now < (host.nextAskPollAt ?? 0)) return null;
+  if (!Number.isSafeInteger(snapshot?.currentSeq) || snapshot.currentSeq < 0) return null;
+  host.askPollScope = scope;
+  const configuredInterval = Number(host.pollIntervalMs);
+  const interval = Number.isFinite(configuredInterval) && configuredInterval > 0 ? configuredInterval : 1000;
+  host.nextAskPollAt = now + Math.max(250, interval);
   const epoch = host.timelineEpoch, campaignId = host.campaignId;
   const current = () => !host.stopping && host.timelineEpoch === epoch && host.campaignId === campaignId;
   const reader = { deltaReads: host.deltaReads, sectionCache: host.sectionCache, stateCache: host.stateCache,

@@ -1,5 +1,6 @@
 import crypto from 'node:crypto';
 import { emitLatency, latencyEnabled } from '../mcp/latency-trace.mjs';
+import { normalizeEncounterSnapshot } from './encounter-state.mjs';
 import {
   NARRATOR_STATE_DELTA_FORMAT,
   applyNarratorStatePatch,
@@ -107,11 +108,11 @@ export async function readNarratorSnapshot(host,params,{firstPage,exactParams=fa
           if(pages.length)throw fail('A paged read changed format.');
           if(!result||typeof result!=='object'||Array.isArray(result))throw fail('Invalid narrator read response.',400);
           if(Buffer.byteLength(JSON.stringify(result))>4*1024*1024)throw fail('Narrator read exceeds the host memory budget.',413);
-          return restoreSections(host,restoreStateDelta(host,result,params,stateBaseline),params,baseline);
+          return normalizeEncounterSnapshot(restoreSections(host,restoreStateDelta(host,result,params,stateBaseline),params,baseline));
         }
         if(result.format!=='odm.read.page.v1')throw fail('Unsupported narrator read format.',400);
         bytes+=Buffer.byteLength(JSON.stringify(result));if(bytes>4*1024*1024)throw fail('Narrator read exceeds the host memory budget.',413);
-        pages.push(result);if(result.complete)return restoreSections(host,restoreStateDelta(host,assembleReadPages(pages),params,stateBaseline),params,baseline);
+        pages.push(result);if(result.complete)return normalizeEncounterSnapshot(restoreSections(host,restoreStateDelta(host,assembleReadPages(pages),params,stateBaseline),params,baseline));
         if(typeof result.nextPage!=='string'||!result.nextPage||cursors.has(result.nextPage))throw fail('Narrator byte-page cursor did not advance.',400);
         cursors.add(result.nextPage);pageCursor=result.nextPage;
       }
