@@ -53,15 +53,15 @@ test('persisted payloads are frozen before deferred publication and outer rollba
 });
 test('real stream replays only permitted records and rejects membership revocation',async t=>{
  const f=await astraHarness(t);f.move('b','street');f.login('b');const abort=new AbortController();t.after(()=>abort.abort());
- f.events.publishPersisted('c','sheet_updated',{sheet:{id:'sheet-a',userId:'a',secret:'PRIVATE'}});f.events.publishPersisted('c','message_added',{message:{content:'(ooc) PUBLIC_END'}});
+ f.events.publishPersisted('c','sheet_updated',{sheet:{id:'sheet-a',userId:'a',secret:'PRIVATE'}});f.events.publishPersisted('c','campaign_updated',{title:'PUBLIC_END'},{kind:'global'});
  const response=await f.route.GET(new Request('http://local/events',{signal:abort.signal}),{params:Promise.resolve({campaignId:'c'})}),reader=response.body.getReader();let body='';
  while(!body.includes('PUBLIC_END')){const part=await reader.read();assert.equal(part.done,false);body+=new TextDecoder().decode(part.value);}
  assert.doesNotMatch(body,/PRIVATE/);
  // Consume the replay checkpoint and its refresh frames before testing a live wait.
  for(let i=0;i<7;i++)await reader.read();
- f.events.publishPersisted('c','message_added',{message:{content:'(ooc) BEFORE_REVOKE'}});
+ f.events.publishPersisted('c','campaign_updated',{title:'BEFORE_REVOKE'},{kind:'global'});
  let drained='';while(!drained.includes('BEFORE_REVOKE')){const part=await reader.read();assert.equal(part.done,false);drained+=new TextDecoder().decode(part.value);}
- const pending=reader.read();f.db.prepare("DELETE FROM members WHERE user_id='b'").run();f.events.publishPersisted('c','message_added',{message:{content:'(ooc) AFTER_KICK'}});
+ const pending=reader.read();f.db.prepare("DELETE FROM members WHERE user_id='b'").run();f.events.publishPersisted('c','campaign_updated',{title:'AFTER_KICK'},{kind:'global'});
  await assert.rejects(pending,/revoked/);
 });
 test('both browser identity header contracts reject stale reads and writes',async t=>{
