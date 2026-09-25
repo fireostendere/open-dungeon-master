@@ -412,6 +412,11 @@ ssh root@api.iroslyakov.com "/opt/odm/tools/watch-player.sh <LAST_PROCESSED_PLAY
 
 ## 7. Локальные навыки репозитория (.opencode/skills)
 
+**Каталог навыков и карта покрытия:** [`docs/agent-skills.md`](docs/agent-skills.md).
+Перед выбором навыка или оценкой пробелов в наборе просматривай его таблицу
+«Навигация»: там перечислены доступные ODM/D&D-навыки, назначение каждого и
+типичные задачи. Сверяйся с каталогом, а не только с кратким списком ниже.
+
 В репозитории `open-dungeon-master/.opencode/skills/` настроены готовые навыки:
 - `odm-narrator` — полный гайд по ведению сессий через MCP.
 - `yolo-dm` — драйвовое, кинематографичное ведение D&D (Fiction-First, Rule of Cool, высокий темп).
