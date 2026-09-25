@@ -13,9 +13,15 @@ import { register } from "node:module";
 
 register("./lib/register-alias.mjs", import.meta.url);
 
-const { CALCULATORS, calculatorById, runCalculator, calculatorDisplay, localizeCalculatorResult } = await import(
-  "../src/lib/reference/calculators.ts"
-);
+const {
+  CALCULATORS,
+  calculatorById,
+  runCalculator,
+  calculatorDisplay,
+  localizeCalculatorResult,
+  travelDistanceDisplayValue,
+  travelDistanceStoredValue,
+} = await import("../src/lib/reference/calculators.ts");
 const { buildCompare, MAX_COMPARE } = await import("../src/lib/reference/compare.ts");
 const {
   checkCitations,
@@ -41,9 +47,9 @@ function test(name, fn) {
   passed += 1;
 }
 
-function run(id, input) {
+function run(id, input, unitSystem = "metric", locale = "en") {
   const calculator = calculatorById(id);
-  return calculator.run({ ...calculator.defaults, ...input });
+  return calculator.run({ ...calculator.defaults, ...input }, unitSystem, locale);
 }
 
 function part(result, label) {
@@ -175,12 +181,35 @@ test("individual treasure is a tenth of a hoard and carries no items", () => {
   assert.notEqual(part(hoard, "Magic items").value, "none");
 });
 
-test("travel distance divides by the pace the PHB prints", () => {
+test("travel shows metric units by default and preserves imperial selection", () => {
   const result = run("travel", { miles: 48, pace: "normal", hours: 8 });
   assert.equal(paceSpeed("normal").milesPerHour, 3);
-  // 3 miles an hour over 8 hours is 24 a day, so 48 miles is two days.
+  assert.equal(result.parts[0].value, "4,828 m/h");
+  assert.equal(result.parts[0].detail, "91.4 m/min");
+  assert.equal(part(result, "Covered a day").value, "38,624 m");
   assert.equal(result.headline, "2 days");
-  assert.equal(part(result, "Covered a day").value, "24 miles");
+  assert.doesNotMatch(JSON.stringify(result), /\b(?:miles|feet|mi\/h|ft\/min)\b/);
+
+  const imperial = run("travel", { miles: 48, pace: "normal", hours: 8 }, "imperial");
+  assert.equal(imperial.parts[0].value, "3 mi/h");
+  assert.equal(imperial.parts[0].detail, "300 ft/min");
+  assert.equal(part(imperial, "Covered a day").value, "24 mi");
+
+  const calculator = calculatorById("travel");
+  assert.equal(calculatorDisplay(calculator, "en", "metric").fields[0].suffix, "m");
+  assert.equal(calculatorDisplay(calculator, "en", "imperial").fields[0].suffix, "mi");
+  assert.equal(calculatorDisplay(calculator, "ru", "metric").fields[0].suffix, "м");
+  assert.equal(travelDistanceDisplayValue(60, "metric"), "96561");
+  assert.ok(Math.abs(Number(travelDistanceStoredValue("96561", "metric")) - 60) < 0.001);
+  assert.equal(travelDistanceDisplayValue("", "metric"), "");
+  assert.equal(travelDistanceDisplayValue(60, "imperial"), "60");
+  const oneMeterInMiles = travelDistanceDisplayValue(travelDistanceStoredValue("1", "metric"), "imperial");
+  assert.equal(oneMeterInMiles, "0.000621");
+  assert.equal(
+    travelDistanceDisplayValue(travelDistanceStoredValue(oneMeterInMiles, "imperial"), "metric"),
+    "1",
+  );
+  assert.equal(calculatorDisplay(calculator, "en", "imperial").fields[0].step, "any");
 });
 
 test("a fast pace costs passive Perception and a slow one buys stealth", () => {
@@ -214,15 +243,27 @@ test("a spell DC reads back onto the difficulty ladder", () => {
   );
 });
 
-test("carrying capacity is Strength times fifteen, scaled by size", () => {
-  assert.equal(run("carrying", { strength: 16, size: "medium" }).headline, "240 lb");
+test("carrying capacity uses metric output by default and keeps imperial available", () => {
+  const metric = run("carrying", { strength: 14, coins: 500 });
+  assert.equal(metric.headline, "95.3 kg");
+  assert.equal(part(metric, "Encumbered past").value, "31.8 kg");
+  assert.equal(part(metric, "Heavily encumbered past").value, "63.5 kg");
+  assert.equal(part(metric, "Push, drag or lift").value, "190.5 kg");
+  assert.equal(part(metric, "Coins").value, "4.5 kg");
+  assert.doesNotMatch(JSON.stringify(metric), /\b(?:lb|feet|pound)\b/);
+  const russian = run("carrying", { strength: 14 }, "metric", "ru");
+  assert.equal(russian.headline, "95,3 кг");
+  assert.equal(part(russian, "Encumbered past").detail, "Скорость снижается на 3 м");
+
+  const imperial = run("carrying", { strength: 16, size: "medium" }, "imperial");
+  assert.equal(imperial.headline, "240 lb");
   assert.equal(carryMultiplier("large"), 2);
-  assert.equal(run("carrying", { strength: 16, size: "large" }).headline, "480 lb");
-  assert.equal(run("carrying", { strength: 16, size: "tiny" }).headline, "120 lb");
+  assert.equal(run("carrying", { strength: 16, size: "large" }, "imperial").headline, "480 lb");
+  assert.equal(run("carrying", { strength: 16, size: "tiny" }, "imperial").headline, "120 lb");
 });
 
 test("coins weigh fifty to the pound", () => {
-  assert.equal(part(run("carrying", { coins: 500 }), "Coins").value, "10 lb");
+  assert.equal(part(run("carrying", { coins: 500 }, "imperial"), "Coins").value, "10 lb");
 });
 
 test("a missing input falls back rather than becoming zero", () => {
@@ -231,13 +272,13 @@ test("a missing input falls back rather than becoming zero", () => {
   // Strength field into a character who can carry nothing.
   for (const bad of [null, undefined, "", "  ", "abc", NaN]) {
     const result = run("carrying", { strength: bad });
-    assert.equal(result.headline, "210 lb", `strength ${String(bad)} did not fall back to 14`);
+    assert.equal(result.headline, "95.3 kg", `strength ${String(bad)} did not fall back to 14`);
   }
 });
 
 test("an out-of-range input is clamped, not passed through", () => {
-  assert.equal(run("carrying", { strength: 900 }).headline, "450 lb");
-  assert.equal(run("carrying", { strength: -5 }).headline, "15 lb");
+  assert.equal(run("carrying", { strength: 900 }).headline, "204.1 kg");
+  assert.equal(run("carrying", { strength: -5 }).headline, "6.8 kg");
 });
 
 // ---- compare ----

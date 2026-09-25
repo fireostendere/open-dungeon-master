@@ -227,6 +227,11 @@ export const translations = {
       kilograms: "kg",
       pounds: "lb",
       tiles: "tiles",
+      miles: "mi",
+      milesPerHour: "mi/h",
+      metersPerHour: "m/h",
+      metersPerMinute: "m/min",
+      feetPerMinute: "ft/min",
     },
   },
   ru: {
@@ -444,6 +449,11 @@ export const translations = {
       kilograms: "кг",
       pounds: "фнт",
       tiles: "кл.",
+      miles: "миль",
+      milesPerHour: "миль/ч",
+      metersPerHour: "м/ч",
+      metersPerMinute: "м/мин",
+      feetPerMinute: "фт/мин",
     },
   },
 } as const;
