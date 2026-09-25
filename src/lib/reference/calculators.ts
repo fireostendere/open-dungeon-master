@@ -16,7 +16,7 @@ import {
   type TravelPace,
 } from "@/lib/srd/travel";
 import { crLabel } from "@/lib/bestiary/derive-cr";
-import type { Locale } from "@/lib/i18n";
+import { translations, type Locale, type UnitSystem } from "@/lib/i18n/translations";
 
 // Every table calculation a DM does by hand between sessions, on one screen.
 //
@@ -37,7 +37,7 @@ export type CalcField =
       kind: "number";
       min: number;
       max: number;
-      step?: number;
+      step?: number | "any";
       suffix?: string;
     }
   | {
@@ -69,8 +69,39 @@ export type Calculator = {
   blurb: string;
   fields: ReadonlyArray<CalcField>;
   defaults: CalcInput;
-  run: (input: CalcInput) => CalcResult;
+  run: (input: CalcInput, unitSystem?: UnitSystem, locale?: Locale) => CalcResult;
 };
+
+const METERS_PER_MILE = 1609.344;
+const METERS_PER_FOOT = 0.3048;
+
+function localizedNumber(value: number, locale: Locale, maximumFractionDigits: number): string {
+  return value.toLocaleString(locale, { maximumFractionDigits });
+}
+
+function formatWeight(pounds: number, unitSystem: UnitSystem, locale: Locale): string {
+  if (unitSystem === "imperial") {
+    return `${localizedNumber(Math.round(pounds * 100) / 100, locale, 2)} ${translations[locale].units.pounds}`;
+  }
+  const kilograms = Math.round(pounds * 0.453592 * 10) / 10;
+  return `${localizedNumber(kilograms, locale, 1)} ${translations[locale].units.kilograms}`;
+}
+
+export function travelDistanceDisplayValue(value: string | number, unitSystem: UnitSystem): string {
+  const raw = String(value);
+  if (!raw.trim()) return raw;
+  const miles = Number(raw);
+  if (!Number.isFinite(miles)) return raw;
+  return unitSystem === "metric"
+    ? String(Math.round(miles * METERS_PER_MILE))
+    : String(Number(miles.toFixed(6)));
+}
+
+export function travelDistanceStoredValue(value: string, unitSystem: UnitSystem): string {
+  if (unitSystem === "imperial" || !value.trim()) return value;
+  const meters = Number(value);
+  return Number.isFinite(meters) ? String(meters / METERS_PER_MILE) : value;
+}
 
 // Inputs arrive from a text field, so everything is a string until proven
 // otherwise. Same reasoning as monster-draft.ts: null, undefined and "" all
@@ -279,8 +310,8 @@ const travelTime: Calculator = {
     { key: "hours", label: "Hours a day", kind: "number", min: 1, max: 24, suffix: "hours" },
   ],
   defaults: { miles: 60, pace: "normal", hours: 8 },
-  run(input) {
-    const miles = num(input, "miles", 60, 1, 5000);
+  run(input, unitSystem = "metric", locale = "en") {
+    const miles = num(input, "miles", 60, 1 / METERS_PER_MILE, 5000);
     const pace = choice(input, "pace", ["slow", "normal", "fast"] as const, "normal") as TravelPace;
     const hours = int(input, "hours", NORMAL_TRAVEL_HOURS, 1, 24);
     const speed = paceSpeed(pace);
@@ -288,16 +319,26 @@ const travelTime: Calculator = {
     const perDay = speed.milesPerHour * hours;
     const days = Math.ceil(miles / perDay);
     const forced = forcedMarchHours(hours);
+    const units = translations[locale].units;
+    const pacePerHour = unitSystem === "metric"
+      ? `${localizedNumber(speed.milesPerHour * METERS_PER_MILE, locale, 0)} ${units.metersPerHour}`
+      : `${speed.milesPerHour} ${units.milesPerHour}`;
+    const pacePerMinute = unitSystem === "metric"
+      ? `${localizedNumber(speed.feetPerMinute * METERS_PER_FOOT, locale, 1)} ${units.metersPerMinute}`
+      : `${speed.feetPerMinute} ${units.feetPerMinute}`;
+    const distancePerDay = unitSystem === "metric"
+      ? `${localizedNumber(Math.round(perDay * METERS_PER_MILE), locale, 0)} ${units.meters}`
+      : `${perDay} ${units.miles}`;
     const parts: CalcPart[] = [
       {
         label: "Pace",
-        value: `${speed.milesPerHour} miles an hour`,
-        detail: `${speed.feetPerMinute} feet a minute`,
+        value: pacePerHour,
+        detail: pacePerMinute,
       },
       {
         label: "Covered a day",
-        value: `${perDay} miles`,
-        detail: `${hours} hours at ${speed.milesPerHour} miles an hour`,
+        value: distancePerDay,
+        detail: `${hours} hours at ${pacePerHour}`,
       },
       {
         label: "Watch",
@@ -394,7 +435,7 @@ const carryingCapacity: Calculator = {
     { key: "coins", label: "Coins carried", kind: "number", min: 0, max: 100000 },
   ],
   defaults: { strength: 14, size: "medium", coins: 0 },
-  run(input) {
+  run(input, unitSystem = "metric", locale = "en") {
     const strength = int(input, "strength", 14, 1, 30);
     const size = String(input.size ?? "medium");
     const coins = int(input, "coins", 0, 0, 100000);
@@ -406,28 +447,43 @@ const carryingCapacity: Calculator = {
     const encumbered = strength * 5 * multiplier;
     const heavily = strength * 10 * multiplier;
     const coinWeight = Math.round((coins / COINS_PER_POUND) * 100) / 100;
+    const units = translations[locale].units;
+    const movementDrop = (feet: number) => {
+      const distance = unitSystem === "metric" ? (feet / 5) * 1.5 : feet;
+      const label = unitSystem === "metric" ? units.meters : units.feet;
+      return locale === "ru"
+        ? `Скорость снижается на ${localizedNumber(distance, locale, 1)} ${label}`
+        : `Speed drops by ${localizedNumber(distance, locale, 1)} ${label}`;
+    };
+    const coinDetail = unitSystem === "metric"
+      ? locale === "ru"
+        ? `Каждые 50 монет весят ${formatWeight(1, unitSystem, locale)}`
+        : `Every 50 coins weigh ${formatWeight(1, unitSystem, locale)}`
+      : locale === "ru"
+        ? `${coins.toLocaleString(locale)} монет по ${COINS_PER_POUND} на фунт`
+        : `${coins.toLocaleString(locale)} coins at ${COINS_PER_POUND} to the pound`;
     return {
-      headline: `${capacity} lb`,
+      headline: formatWeight(capacity, unitSystem, locale),
       parts: [
         {
           label: "Encumbered past",
-          value: `${encumbered} lb`,
-          detail: "Speed drops by 10 feet",
+          value: formatWeight(encumbered, unitSystem, locale),
+          detail: movementDrop(10),
         },
         {
           label: "Heavily encumbered past",
-          value: `${heavily} lb`,
-          detail: "Speed drops by 20 feet, disadvantage on STR, DEX and CON rolls",
+          value: formatWeight(heavily, unitSystem, locale),
+          detail: `${movementDrop(20)}, disadvantage on STR, DEX and CON rolls`,
         },
         {
           label: "Push, drag or lift",
-          value: `${capacity * 2} lb`,
+          value: formatWeight(capacity * 2, unitSystem, locale),
           detail: "Twice the carrying capacity, at half speed",
         },
         {
           label: "Coins",
-          value: `${coinWeight} lb`,
-          detail: `${coins.toLocaleString()} coins at ${COINS_PER_POUND} to the pound`,
+          value: formatWeight(coinWeight, unitSystem, locale),
+          detail: coinDetail,
         },
       ],
       note:
@@ -450,18 +506,31 @@ export function calculatorById(id: string): Calculator | null {
   return CALCULATORS.find((calculator) => calculator.id === id) ?? null;
 }
 
-export function runCalculator(id: string, input: CalcInput): CalcResult | { error: string } {
+export function runCalculator(
+  id: string,
+  input: CalcInput,
+  unitSystem: UnitSystem = "metric",
+  locale: Locale = "en",
+): CalcResult | { error: string } {
   const calculator = calculatorById(id);
   if (!calculator) {
     return { error: `There is no "${id}" calculator.` };
   }
-  return calculator.run(input);
+  return calculator.run(input, unitSystem, locale);
 }
 
-// Keep calculation data and identifiers stable; only this display boundary varies by locale.
-export function calculatorDisplay(calculator: Calculator, locale: Locale): Calculator {
-  if (locale === "en") return calculator;
-  const text = CALCULATOR_COPY[locale][calculator.id];
+// Keep rule inputs stable; only this display boundary varies by locale and unit preference.
+export function calculatorDisplay(
+  calculator: Calculator,
+  locale: Locale,
+  unitSystem: UnitSystem = "metric",
+): Calculator {
+  const text = locale === "en" ? null : CALCULATOR_COPY[locale][calculator.id];
+  const travelDistanceUnit = calculator.id === "travel"
+    ? unitSystem === "metric"
+      ? translations[locale].units.meters
+      : translations[locale].units.miles
+    : null;
   return {
     ...calculator,
     label: text?.label ?? calculator.label,
@@ -469,6 +538,14 @@ export function calculatorDisplay(calculator: Calculator, locale: Locale): Calcu
     fields: calculator.fields.map((field) => ({
       ...field,
       label: text?.fields[field.key] ?? field.label,
+      ...(calculator.id === "travel" && field.key === "miles" && field.kind === "number"
+        ? {
+            min: unitSystem === "metric" ? 1 : 1 / METERS_PER_MILE,
+            max: unitSystem === "metric" ? 5000 * METERS_PER_MILE : 5000,
+            step: unitSystem === "metric" ? 1 : "any",
+            suffix: travelDistanceUnit ?? field.suffix,
+          }
+        : {}),
       ...(field.kind === "choice"
         ? { options: field.options.map((option) => ({ ...option, label: text?.options[option.value] ?? option.label })) }
         : {}),

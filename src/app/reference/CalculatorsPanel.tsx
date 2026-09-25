@@ -7,6 +7,8 @@ import {
   CALCULATORS,
   calculatorDisplay,
   localizeCalculatorResult,
+  travelDistanceDisplayValue,
+  travelDistanceStoredValue,
   type CalcInput,
 } from "@/lib/reference/calculators";
 
@@ -18,7 +20,7 @@ import {
 // which input produced it.
 
 export function CalculatorsPanel() {
-  const { locale } = useI18n();
+  const { locale, unitSystem } = useI18n();
   const [openId, setOpenId] = useState(CALCULATORS[0]?.id ?? "");
   const [inputs, setInputs] = useState<Record<string, CalcInput>>(() =>
     Object.fromEntries(CALCULATORS.map((calculator) => [calculator.id, { ...calculator.defaults }])),
@@ -26,8 +28,12 @@ export function CalculatorsPanel() {
 
   const calculator = CALCULATORS.find((entry) => entry.id === openId) ?? CALCULATORS[0];
   const input = inputs[calculator.id] ?? calculator.defaults;
-  const display = calculatorDisplay(calculator, locale);
-  const result = localizeCalculatorResult(calculator.id, calculator.run(input), locale);
+  const display = calculatorDisplay(calculator, locale, unitSystem);
+  const result = localizeCalculatorResult(
+    calculator.id,
+    calculator.run(input, unitSystem, locale),
+    locale,
+  );
 
   function set(key: string, value: string) {
     setInputs((previous) => ({
@@ -51,7 +57,7 @@ export function CalculatorsPanel() {
                 : "border-stone-700 text-stone-400 hover:border-amber-800 hover:text-stone-200",
             )}
           >
-            {calculatorDisplay(entry, locale).label}
+            {calculatorDisplay(entry, locale, unitSystem).label}
           </button>
         ))}
       </div>
@@ -71,8 +77,19 @@ export function CalculatorsPanel() {
                 min={field.min}
                 max={field.max}
                 step={field.step ?? 1}
-                value={String(input[field.key] ?? "")}
-                onChange={(event) => set(field.key, event.target.value)}
+                value={
+                  calculator.id === "travel" && field.key === "miles"
+                    ? travelDistanceDisplayValue(input[field.key] ?? "", unitSystem)
+                    : String(input[field.key] ?? "")
+                }
+                onChange={(event) =>
+                  set(
+                    field.key,
+                    calculator.id === "travel" && field.key === "miles"
+                      ? travelDistanceStoredValue(event.target.value, unitSystem)
+                      : event.target.value,
+                  )
+                }
                 className="w-full rounded-lg border border-stone-800 bg-stone-950 px-3 py-2 text-sm text-stone-200 outline-none focus:border-amber-300"
               />
             ) : (
