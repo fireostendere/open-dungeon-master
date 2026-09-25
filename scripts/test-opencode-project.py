@@ -14,7 +14,7 @@ def module(name):
 setup = module('configure-opencode')
 with tempfile.TemporaryDirectory() as directory:
     path = Path(directory) / 'opencode.json'
-    path.write_text(json.dumps({'skills': ['./open-dungeon-master/.opencode/skills'], 'mcp': {'servers': {
+    path.write_text(json.dumps({'skills': ['./open-dungeon-master/skills', './open-dungeon-master/.opencode/skills', str(Path(directory) / 'astra-perf/.opencode/skills'), './custom-skills'], 'mcp': {'servers': {
         'odm': {'type': 'remote', 'url': 'https://old.invalid/mcp'},
         'dnd': {'type': 'local', 'command': ['existing-rag'], 'environment': {'KB_COLLECTION': 'dnd_srd'}},
     }}}))
@@ -24,7 +24,7 @@ with tempfile.TemporaryDirectory() as directory:
     setup.configure(directory, 'https://odm.example/mcp', token_file)
     assert path.read_bytes() == first
     config = json.loads(first); servers = config['mcp']['servers']
-    assert 'odm' not in servers and len(config['skills']) == 1
+    assert 'odm' not in servers and config['skills'] == ['./custom-skills', str(setup.ROOT / '.opencode/skills')]
     assert servers['odm_narrator']['type'] == 'remote'
     assert servers['odm_narrator']['url'] == 'https://odm.example/mcp'
     assert servers['odm_narrator']['oauth'] is False

@@ -10,14 +10,14 @@ const expected = new Set([
   "odm-dm-policy", "odm-development", "odm-server", "odm-backup", "odm-mcp", "odm-narrator", "odm-content", "odm-assets",
   "dnd-session-zero", "dnd-campaign", "dnd-characters", "dnd-npcs-factions", "dnd-encounters", "dnd-locations", "dnd-session", "yolo-dm", "dnd-rules", "dnd-loot-homebrew", "dnd-doppelganger",
 ]);
-const files = readdirSync(skillsRoot).map((id) => path.join(skillsRoot, id, "SKILL.md"));
+const files = readdirSync(skillsRoot, { withFileTypes: true }).filter((entry) => entry.isDirectory()).map((entry) => path.join(skillsRoot, entry.name, "SKILL.md"));
 assert.deepEqual(new Set(files.map((file) => path.basename(path.dirname(file)))), expected, "skill directories must match the catalog");
 const catalogText = readFileSync(catalog, "utf8");
 const link = /\[[^\]]+\]\(([^)]+)\)/g;
 const catalogLinks = new Set([...catalogText.matchAll(link)].map((match) => match[1].split("#", 1)[0]));
 for (const id of expected) assert(catalogLinks.has(`../.opencode/skills/${id}/SKILL.md`), `catalog must link ${id}`);
 const names = new Set();
-const markdownFiles = [...files, catalog, path.join(root, "AGENTS.md"), path.join(root, "docs", "README.md")];
+const markdownFiles = [...files, catalog, path.join(root, "skills", "README.md"), path.join(root, "prompts", "README.md"), path.join(root, "AGENTS.md"), path.join(root, "docs", "README.md")];
 for (const file of files) {
   const text = readFileSync(file, "utf8").replace(/\r\n/g, "\n");
   const match = text.match(/^---\nname: ([a-z0-9-]+)\ndescription: "([^"\n]+)"\n---\n/);

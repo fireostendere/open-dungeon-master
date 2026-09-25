@@ -17,7 +17,21 @@ def configure(workspace, url, token_file=None):
     path = workspace / 'opencode.json'
     config = json.loads(path.read_text()) if path.exists() else {}
     config.setdefault('$schema', 'https://opencode.ai/config.json')
-    config['skills'] = list(dict.fromkeys([*[item for item in config.get('skills', []) if item != './open-dungeon-master/.opencode/skills'], str(ROOT / '.opencode/skills')]))
+    managed_skill_dirs = {
+        (ROOT / '.opencode/skills').resolve(),
+        (ROOT / 'skills').resolve(),
+        (workspace / 'open-dungeon-master/skills').resolve(),
+        (workspace / 'open-dungeon-master/.opencode/skills').resolve(),
+        (workspace / 'astra-perf/.opencode/skills').resolve(),
+    }
+    configured_skills = []
+    for item in config.get('skills', []):
+        skill_dir = Path(item).expanduser()
+        if not skill_dir.is_absolute():
+            skill_dir = workspace / skill_dir
+        if skill_dir.resolve() not in managed_skill_dirs:
+            configured_skills.append(item)
+    config['skills'] = list(dict.fromkeys([*configured_skills, str(ROOT / '.opencode/skills')]))
     servers = config.setdefault('mcp', {}).setdefault('servers', {})
     servers.pop('odm', None)  # Retired duplicate /mcp endpoint.
     servers['odm_narrator'] = {
