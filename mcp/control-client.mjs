@@ -21,6 +21,9 @@ export function narratorParams(action, params = {}) {
   if (action === 'narrator.connect') { result.projection ??= 'live'; result.maxBytes ??= 131072; }
   if (action === 'narrator.read') { result.projection ??= 'live'; result.delta ??= true; }
   if (action === 'narrator.catalog' && !result.action && !result.actionFilter && !result.name && !result.category) result.summaryOnly ??= true;
+  if (['narrator.invoke', 'narrator.narrate', 'narrator.release_floor', 'narrator.delete_message', 'narrator.edit_message', 'narrator.autopilot_action', 'narrator.finish_global_round'].includes(action) && result.readAfter === undefined) {
+    result.readAfter = { projection: 'live', delta: true, paged: true, maxBytes: 131072 };
+  }
   return result;
 }
 export function controlTimeout(value = process.env.ODM_MCP_CONTROL_TIMEOUT_MS) {

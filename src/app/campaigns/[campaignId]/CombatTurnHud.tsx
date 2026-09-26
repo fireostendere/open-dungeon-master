@@ -66,7 +66,7 @@ export function CombatTurnHud({
   const [spell, setSpell] = useState("");
   const [slotLevel, setSlotLevel] = useState("");
   const [spellTarget, setSpellTarget] = useState("");
-  const [targetCharacterId, setTargetCharacterId] = useState(sheet.id);
+  const [targetCharacterId, setTargetCharacterId] = useState("");
   const [itemTarget, setItemTarget] = useState(sheet.id);
   const [rejected, setRejected] = useState(false);
   const descriptors = combatChoiceDescriptors(sheet);
@@ -92,7 +92,7 @@ export function CombatTurnHud({
     setRejected(!result.ok);
     if (result.ok) setChoices(next);
   };
-  const submit = () => { if (!locked && !sending && preview.ok) onSubmit(intent()); };
+  const submit = () => { if (!locked && !sending && preview.ok && (choices.length || prose.trim())) onSubmit(intent()); };
   const disabled = locked || sending;
   const meter = preview.ok ? preview.budget : baseBudget;
   const resourceName = (id: string) => copy[id as "second_wind"] ?? id;
@@ -109,7 +109,8 @@ export function CombatTurnHud({
       <strong className="flex items-center gap-1.5"><Swords className="size-4" /> {sheet.name} · {locale === "ru" ? "Раунд" : "Round"} {encounter.round}</strong>
       <span className="text-xs text-stone-400">{copy.draft}</span>
     </div>
-    <p className="mb-2 text-xs text-stone-300">{locale === "ru" ? "Соберите весь план и отправьте один раз. Атака, бонусное действие и команда питомцу — части одного хода. После их разрешения очередь перейдёт дальше." : "Build your whole plan and send it once. Attacks, a bonus action and a pet command are parts of one turn. Initiative advances after resolution."}</p>
+    <p className="mb-2 text-xs text-stone-300">{locale === "ru" ? "Добавьте конкретные действия в план или просто опишите замысел своими словами. Описание к выбранным действиям необязательно. Весь план отправляется одним ходом." : "Add specific actions to the plan or describe your intent in your own words. Description is optional for queued actions. Submit the whole plan as one turn."}</p>
+    <p className="mb-2 text-xs text-sky-200">{locale === "ru" ? "Списки ниже — просмотр. Действие выбирается только кнопкой «Добавить» и появляется в плане. Просмотр способности не означает её применение." : "The lists below are for browsing. Only Queue adds an action to the plan. Viewing an ability does not activate it."}</p>
     <div className="mb-3 flex flex-wrap gap-1.5 text-xs" aria-live="polite">
       {([[copy.action, meter.actionUsed], [copy.bonus, meter.bonusUsed], [copy.reaction, meter.reactionUsed]] as const).map(([name, spent]) => <span key={name} className={`rounded border px-2 py-1 ${spent ? "border-stone-700 text-stone-500" : "border-amber-800 text-amber-200"}`}>{name}: {spent ? copy.spent : copy.ready}</span>)}
       <span className="rounded bg-stone-800 px-2 py-1">{copy.attacks}: {attacksLeft(meter)} {locale === "ru" ? "осталось" : "remaining"}</span>
@@ -127,10 +128,11 @@ export function CombatTurnHud({
         <b className="text-sky-200">{copy.ability}</b>
         {resources.length || features.length ? <>
         <select aria-label={copy.resource} value={resource} onChange={(e) => setResource(e.target.value)} disabled={disabled} className={selectClass}><option value="">{copy.choose}</option>{resources.map((entry) => <option key={entry.id} value={entry.id}>{resourceName(entry.id)} ({entry.left})</option>)}<optgroup label={locale === "ru" ? "Особенности листа — заявка мастеру" : "Sheet features — DM request"}>{features.map(entry => <option key={entry.name} value={`feature:${entry.name}`}>{entry.name}</option>)}</optgroup></select>
-        {selectedResource?.target !== "self" ? <select aria-label={copy.ally} value={targetCharacterId} onChange={(e) => setTargetCharacterId(e.target.value)} disabled={disabled} className={selectClass}>{allies.map((ally) => <option key={ally.id} value={ally.id} disabled={selectedResource?.target === "other" && ally.id === sheet.id}>{ally.name}</option>)}</select> : null}
+        {selectedFeature || selectedResource?.target && selectedResource.target !== "self" ? <select aria-label={copy.ally} value={targetCharacterId} onChange={(e) => setTargetCharacterId(e.target.value)} disabled={disabled} className={selectClass}><option value="">{copy.target}</option>{(selectedFeature ? [...enemies, ...allies] : allies).map((ally) => <option key={ally.id} value={ally.id} disabled={selectedResource?.target === "other" && ally.id === sheet.id}>{ally.name}</option>)}</select> : null}
+        {resource ? <p role="status" className="mt-1 text-xs text-sky-200">{locale === "ru" ? "Просмотр способности — чтобы применить, добавьте её в план." : "Browsing ability — queue it to request its use."}</p> : null}
         <p className="mt-1 text-xs text-stone-400">{selectedFeature ? adjudication : selectedResource ? `${copy.cost}: ${selectedResource.cost === "bonus" ? copy.bonus : copy.action}` : copy.choose}</p>
         {selectedFeature?.description ? <p className="mt-1 text-xs text-stone-300">{selectedFeature.description}</p> : null}
-        <button type="button" disabled={disabled || !resource} onClick={() => add(selectedFeature ? { type: "feature", feature: selectedFeature.name, targetId: targetCharacterId } : { type: "resource", resource, targetCharacterId: selectedResource?.target === "self" ? sheet.id : targetCharacterId })} className={queueClass}>{copy.queue}</button>
+        <button type="button" disabled={disabled || !resource} onClick={() => add(selectedFeature ? { type: "feature", feature: selectedFeature.name, ...(targetCharacterId ? { targetId: targetCharacterId } : {}) } : { type: "resource", resource, targetCharacterId: selectedResource?.target === "self" ? sheet.id : targetCharacterId })} className={queueClass}>{copy.queue}</button>
         </> : <p className="mt-2 text-xs text-stone-400">{locale === "ru" ? "В листе нет способностей с ресурсом или особенностей." : "No resources or features on this sheet."}</p>}
       </div>
       {sheet.spellcasting ? <div className="min-w-0 rounded-lg border border-violet-800/80 p-2 sm:col-span-2">
@@ -166,9 +168,9 @@ export function CombatTurnHud({
         return <button key={action} type="button" className={queueClass} disabled={disabled || !validate([...choices, choice]).ok} onClick={() => add(choice)}>{actionNames[action]}</button>;
       })}</div>
     </details>
-    <div className="mt-2 rounded bg-stone-900/80 p-2 text-xs"><b>{copy.queued}:</b>
+    <div className="mt-2 rounded border border-amber-700/60 bg-stone-900/80 p-2 text-xs" role="region" aria-label={copy.queued} aria-live="polite"><b>{copy.queued} ({choices.length}):</b>
       <ol className="mt-1 space-y-1">{choices.map((choice, index) => <li key={index} className="flex items-center justify-between gap-2 rounded bg-stone-800 p-1.5"><span>{index + 1}. {choice.type === "attack" ? `${copy.attack}: ${weaponName(choice.weapon)} → ${enemies.find(enemy => enemy.id === choice.targetEnemyId)?.name ?? copy.target}` : choice.type === "pet_order" ? `${choice.petName}: ${choice.order}` : choice.type === "spell" ? `${spellLabel}: ${choice.spell}${choice.slotLevel ? ` (${choice.slotLevel})` : ""}${choice.targetId ? ` → ${[...enemies, ...allies].find(target => target.id === choice.targetId)?.name ?? copy.target}` : ""}` : choice.type === "feature" ? choice.feature : choice.type === "pet" ? `${choice.petName}: ${choice.attack}` : choice.type === "action" ? actionNames[choice.action] : choice.type === "item" ? choice.item : choice.type === "resource" ? resourceName(choice.resource) : copy.dodge}</span><button type="button" aria-label={`${copy.remove} ${index + 1}`} disabled={disabled} onClick={() => { setChoices((current) => current.filter((_, i) => i !== index)); setRejected(false); }} className="rounded p-1.5 hover:bg-stone-700"><X className="size-4" /></button></li>)}</ol>
-      {!choices.length ? <span className="ml-2 text-stone-500">{copy.empty}</span> : null}
+      {!choices.length ? <p className="mt-1 text-stone-300">{locale === "ru" ? "Действия не добавлены. Отправится только ваш текст; мастер определит механику по нему." : "No queued actions. Only your text will be sent; the DM will interpret it."}</p> : <p className="mt-2 text-amber-200">{locale === "ru" ? "Мастер получит этот порядок как явный выбор. Описание ниже дополняет план." : "The DM receives this order as your explicit choice. The description below supplements it."}</p>}
     </div>
     {rejected || !preview.ok ? <p role="alert" className="mt-1 text-xs text-red-300">{copy.rejected}</p> : null}
     <p className="mt-2 text-xs text-stone-500">{locale === "ru" ? "Выбор — заявка, а не выполненное действие. Детали, область заклинания и условия способностей опишите ниже; мастер разрешит их по правилам." : "Choices are requests, not resolved actions. Describe details, spell areas and feature conditions below; the DM adjudicates them under the rules."}</p>

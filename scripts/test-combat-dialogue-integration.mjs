@@ -148,4 +148,53 @@ for (const hit of [false, true]) {
   const { getDatabase } = await import('../src/lib/db/core.ts');
   getDatabase().prepare("UPDATE pending_rolls SET status='submitted'").run();
 }
-console.log('combat-dialogue-integration: compound turns, receipt replay, healing, cantrips, pets, clarification, physical Smite passed');
+// Merely having Sneak Attack must not opt the player into an optional rider.
+for (const declared of [false, true]) {
+  reset();
+  patchSheet(hero.id, { class: 'rogue', features: [{ name: 'Sneak Attack' }], equipment: [{ name: 'Dagger', qty: 1, equipped: true }] });
+  const rogue = getSheetById(hero.id), turn = createDmTurn(campaign.id, []);
+  const result = handlePcAttack(campaign, turn, JSON.stringify({ characterId: hero.id, targetEnemyId: enemy.id,
+    weapon: 'Dagger', advantage: 'advantage', ...(declared ? { sneakAttack: true } : {}) }), [rogue, ally], new Map([[hero.id, rogue], [ally.id, ally]]), new Set([user.id]), 'sneak');
+  assert.equal(result._parked, true);
+  const pending = listPendingForTurn(turn.id).at(-1);
+  assert.equal(pending.attack.damageExpression.includes('+2d6'), declared, 'optional rider requires explicit intent even with advantage');
+  const { getDatabase } = await import('../src/lib/db/core.ts');
+  getDatabase().prepare("UPDATE pending_rolls SET status='submitted'").run();
+}
+
+function mercy() {
+  reset();
+  patchSheet(hero.id, { class: 'monk', features: [{ name: 'Martial Arts' }, { name: 'Hand of Healing' }], resources: { ki: { max: 3, used: 0 } } });
+}
+mercy();
+const mercyPayload = { name: 'combat_turn', args: { characterId: hero.id, steps: [
+  { name: 'pc_attack', args: { targetEnemyId: enemy.id, weapon: 'Unarmed strike' } },
+  { name: 'use_resource', args: { resource: 'ki', variant: 'flurry_of_healing', targetCharacterId: ally.id } },
+  { name: 'pc_attack', args: { targetEnemyId: enemy.id, weapon: 'Unarmed strike', flurry: true } },
+] } };
+const mercyCommand = { campaignId: campaign.id, expectedSeq: latestSeq(campaign.id), commandId: randomUUID(), operation: 'narrator.invoke', payload: mercyPayload,
+  loadState: () => campaign, work: () => invoke(campaign, dm, mercyPayload) };
+const mercyReceipt = await executeNarratorCommand(mercyCommand);
+assert.equal(mercyReceipt.result.result.status, 'completed', JSON.stringify(mercyReceipt));
+assert.equal(getSheetById(hero.id).resources.ki.used, 1);
+assert.ok(getSheetById(ally.id).currentHp >= 5 && getSheetById(ally.id).currentHp <= 8, 'server rolls d4 + Wisdom 3');
+assert.equal(getEncounter(encounter.id).turnIndex, 1);
+const mercyState = { hp: getSheetById(ally.id).currentHp, seq: latestSeq(campaign.id) };
+assert.equal((await executeNarratorCommand(mercyCommand)).replayed, true);
+assert.deepEqual({ hp: getSheetById(ally.id).currentHp, seq: latestSeq(campaign.id) }, mercyState);
+mercy();
+assert.equal(call('use_resource', { characterId: hero.id, resource: 'ki', variant: 'flurry_of_healing', targetCharacterId: ally.id }).ok, false, 'Flurry requires the Attack action');
+assert.equal(getSheetById(hero.id).resources.ki.used, 0);
+const hand = { characterId: hero.id, resource: 'ki', variant: 'hand_of_healing', targetCharacterId: ally.id };
+assert.equal(call('use_resource', hand).ok, true);
+assert.equal(getEncounter(encounter.id).turnBudget.actionUsed, true);
+assert.equal(call('use_resource', hand).ok, false, 'no second healing action');
+assert.equal(getSheetById(hero.id).resources.ki.used, 1);
+mercy(); patchSheet(hero.id, { features: [{ name: 'Martial Arts' }] });
+assert.equal(call('use_resource', hand).ok, false, 'requires the healing feature');
+mercy(); patchSheet(hero.id, { resources: { ki: { max: 3, used: 3 } } });
+assert.equal(call('use_resource', hand).ok, false, 'no free healing with exhausted ki');
+assert.equal(getSheetById(ally.id).currentHp, 1);
+mercy();
+assert.equal(call('pc_attack', { characterId: hero.id, targetEnemyId: enemy.id, weapon: 'Unarmed strike', flurry: true }).ok, false, 'no free Flurry attack');
+console.log('combat-dialogue-integration: compound turns, replay, healing, cantrips, pets, clarification, explicit Sneak Attack, Mercy/Flurry passed');

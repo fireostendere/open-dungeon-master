@@ -33,6 +33,39 @@ try {
   assert.ok(sidePanelWidth < 1440 * 0.8, `Desktop battle panel should not fill the viewport (${sidePanelWidth}px).`);
   assert.equal(await page.getByRole('button', { name: 'Речь', exact: true }).count(), 0);
   assert.equal(await page.getByRole('combobox', { name: 'Оружие', exact: true }).inputValue(), 'Longsword', 'carried weapon is the default, not an unarmed strike');
+  // Inspect two real browser submissions without committing either fixture turn.
+  // Rejected submissions retain the draft; the final scenario below uses the API.
+  const captured = [];
+  const actionsRoute = `**/api/campaigns/${campaignId}/actions`;
+  await page.route(actionsRoute, async route => {
+    if (route.request().method() !== 'POST') return route.continue();
+    captured.push(route.request().postDataJSON());
+    await route.fulfill({ status: 400, contentType: 'application/json', body: JSON.stringify({ error: 'Local draft inspection' }) });
+  });
+  const plan = page.getByRole('region', { name: 'Порядок действий', exact: true });
+  const prose = page.getByRole('textbox', { name: 'Действия и реплики персонажа', exact: true });
+  const sendDraft = async () => {
+    const response = page.waitForResponse(r => r.url().endsWith('/actions') && r.request().method() === 'POST');
+    await page.getByRole('button', { name: 'Отправить действие', exact: true }).click();
+    await response;
+    await page.getByRole('button', { name: 'Отправить действие', exact: true }).waitFor();
+  };
+  await page.getByRole('combobox', { name: 'Способность', exact: true }).selectOption('second_wind');
+  assert.equal(await plan.getByRole('listitem').count(), 0, 'browsing never queues an ability');
+  await prose.fill('Рублю мечом эту рогатую сволочь!');
+  await sendDraft();
+  assert.deepEqual(captured[0].combatTurn.choices, []);
+  assert.equal(captured[0].combatTurn.prose, 'Рублю мечом эту рогатую сволочь!');
+  await prose.fill('');
+  await page.getByRole('combobox', { name: 'Цель атаки', exact: true }).selectOption({ index: 1 });
+  await page.getByRole('button', { name: 'Добавить', exact: true }).nth(0).click();
+  await sendDraft();
+  assert.equal(captured[1].combatTurn.choices.length, 1);
+  assert.equal(captured[1].combatTurn.choices[0].type, 'attack');
+  assert.equal(captured[1].combatTurn.prose, undefined, 'explicit action needs no prose');
+  assert.equal(JSON.stringify(captured[1]).includes('second_wind'), false, 'inspected ability is not silently attached to an attack');
+  await page.getByRole('button', { name: 'Убрать действие 1', exact: true }).click();
+  await page.unroute(actionsRoute);
   await page.getByRole('combobox', { name: 'Оружие', exact: true }).selectOption('Longsword');
   await page.getByRole('combobox', { name: 'Цель атаки', exact: true }).selectOption({ index: 1 });
   await page.getByText('Манёвры', { exact: true }).click();
@@ -86,12 +119,16 @@ try {
   await page.getByRole('button', { name: 'Отправить действие', exact: true }).click();
   const submitted = await response;
   assert.equal(submitted.status(), 202, await submitted.text());
+  const sentPlan = submitted.request().postDataJSON().combatTurn;
+  assert.deepEqual(sentPlan.choices.map(choice => choice.type), ['attack', 'resource']);
+  assert.equal(sentPlan.choices[1].resource, 'second_wind', 'only the explicit Queue click selects the ability');
+  assert.equal(sentPlan.prose, 'Держитесь! Прикрываю отряд.');
   await page.getByRole('button', { name: 'Стол', exact: true }).click();
   await page.getByText('Мастер разрешает ход и готовит повествование. Пока доступны вопросы Мастеру и режим «Вне игры».', { exact: true }).waitFor();
   await page.getByRole('button', { name: 'Вне игры', exact: true }).click();
   assert.equal(await page.locator('[data-tour="composer-input"] textarea').isEditable(), true);
   assert.deepEqual(errors, []);
-  console.log('PASS combat HUD: separate pet panel, independent targets, shared budget, owner-only commands, visible off-turn, desktop/mobile, draft, OOC and processing lock.');
+  console.log('PASS combat HUD: browsing is not selection; free-text / explicit-only / combined submissions; separate pets, shared budget, desktop/mobile, draft, OOC and processing lock.');
 } finally {
   await browser.close();
 }

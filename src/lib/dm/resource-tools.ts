@@ -6,6 +6,9 @@ import { computeSheetDerived } from "@/lib/srd";
 import { findBeastForm, formatCr, wildShapeCapsFor } from "@/lib/srd/beast-forms";
 import { matchResource, resourceLevel } from "@/lib/srd/class-resources";
 import { classLevelFor, classListFor } from "@/lib/srd/multiclass";
+import { martialArtsDie } from "@/lib/srd/feature-effects";
+import { KI_ACTIONS } from "@/lib/dm/resource-action-cost";
+import { incapacitatedBy } from "@/lib/dm/condition-logic";
 import { conditionEffectsFor } from "@/lib/srd/condition-effects";
 import { consumableEffect, findCarriedItem } from "@/lib/dm/item-logic";
 import { goldMath, grantItemMath, removeItemMath } from "@/lib/dm/mutation-math";
@@ -102,7 +105,7 @@ export const resourceTools: ToolDef[] = [
           variant: {
             type: "string",
             description:
-              "For features with a choice (Starry Form's archer/chalice/dragon, Spirit Totem's bear/hawk/unicorn): the chosen option.",
+              "Chosen option. Ki (2014): hand_of_healing (action), flurry_of_blows (bonus after Attack), flurry_of_healing (bonus after Attack, heals target instead of one strike). One ki; healing dice and HP are atomic. Remaining Flurry strikes use pc_attack(flurry:true).",
           },
           formHp: {
             type: "integer",
@@ -428,6 +431,25 @@ export function computeUseResource(
   // Multiclass: an effect's level-scaled dice read the owning class's level
   // (Second Wind heals 1d10 + FIGHTER level), not the summed character level.
   const fxLevel = resourceLevel(def, sheet);
+  const kiAction = def.id === "ki" && variant && Object.hasOwn(KI_ACTIONS, variant) ? KI_ACTIONS[variant] : undefined;
+  if (kiAction) {
+    const monkLevel = classLevelFor(sheet, "monk");
+    if (amount !== 1 || monkLevel < 2 || incapacitatedBy(sheet.conditions)) return { error: "This Ki option requires a conscious monk and exactly one ki point." };
+    if (kiAction.healing) {
+      if (monkLevel < 3 || !sheet.features.some(feature => /hand of healing|рука исцеления|исцеляющ.*ладон/i.test(feature.name))) {
+        return { error: "Hand of Healing requires the monk's level-3 Way of Mercy feature on the sheet." };
+      }
+      if (target.deathSaves?.dead) return { error: `${target.name} is DEAD; Hand of Healing cannot help.` };
+      const mod = derived.abilityMods.wis;
+      const total = Math.max(0, rollHealing(campaign, target, "Hand of Healing", `1${martialArtsDie(monkLevel)}${mod >= 0 ? "+" : ""}${mod}`));
+      if (total > 0) outcome.healTarget = { characterId: target.id, amount: total };
+      outcome.result.healingRolled = total;
+      outcome.result.healed = total;
+    }
+    outcome.result.effect = kiAction.name;
+    outcome.result.flurryAttacksRemaining = kiAction.strikes;
+    return outcome;
+  }
   switch (def.effect.kind) {
     case "heal_self": {
       const expression = def.effect.dice(fxLevel, derived.abilityMods);

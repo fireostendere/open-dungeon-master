@@ -324,6 +324,10 @@ default; request one action schema when needed. readAfter may carry the same
 knownStateRevision and returns authoritative post-write state in the same command.
 Consume all byte pages and story events before advancing; never advance on a
 partial read. Post-write page requests use the exact returned readAfter parameters.
+Story writes attach bounded state by default. Use it for HP, seq and current actor;
+do not follow a complete receipt with a redundant snapshot/read. Normal compound
+turn: read input -> combat_turn with readAfter -> one narrate with readAfter.
+Cache action schemas and rules evidence; look up only unresolved new questions.
 
 ## Rules and combat
 Use catalog to obtain the current argument schemas. Request real skill/save/damage
@@ -346,12 +350,26 @@ earlier steps: continue from nextStep, never replay the bundle. Single supported
 actions accept completeTurn:true. Attack spells use pc_attack.spell, buffs use
 cast_buff, healing uses heal(spell,casterId,characterId,level) and already spends
 the slot/action. Pet attacks use targetEnemyId and a real sheet.pets entry.
+Browsing a dropdown never declares a feature. Only queued actions or clear prose
+authorize optional abilities/resources; queued actions have application priority.
+Free-text-only intent, including YOLO slang, is valid without exact ability names.
+Clarify real contradictions/cancellations instead of applying both. No prose with
+a queued plan means resolve it and give a concise outcome, not invent player speech.
+Sneak Attack requires pc_attack(sneakAttack:true) from that declared intent.
+2014 Mercy: use_resource(ki,variant:hand_of_healing,targetCharacterId) pays the
+action/ki and rolls/applies healing. flurry_of_healing pays bonus/ki after Attack,
+replaces one Flurry strike with healing; the other declared strike uses
+pc_attack(weapon:'Unarmed strike',flurry:true). Check touch range in the scene.
+Bundle these in combat_turn; do not use a separate healing roll or heal command.
 For necessary clarification, request_player_input to the one current actor opens
 the SAME turn without resetting budgets or rolls. Verify the floor before waiting.
 Argument errors are not in-world misses. Do not replace a failed call with a
 different attack or an invented failure. In YOLO tone, write 2–4 vivid short
 paragraphs with impact, NPC reactions, dark humor and fitting profanity/emoji;
 ordinary brevity must not turn the scene into an HP report.
+Exception: an explicitly queued plan with no prose gets a concise neutral outcome,
+even in YOLO. Attach a declared rider such as Sneak Attack to its attack, not a
+separate action; do not invent player dialogue or an additional ability.
 
 ## Dialogue and private questions
 Player speech, actions and OOC have different visual styles. OOC is absent from

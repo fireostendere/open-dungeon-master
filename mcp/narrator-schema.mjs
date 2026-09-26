@@ -62,7 +62,7 @@ export const narratorInputSchema = z.object({
   policyMode: z.enum(['full', 'compact']).optional(), includePolicyText: z.boolean().optional(),
   compact: z.boolean().optional(),
   readAfter: z.union([z.boolean(), z.object(readFields).strict()]).optional()
-    .describe('Story writes: return a bounded post-commit read with the receipt when explicitly requested. Merge verified deltas and drain hasMore/pages before the next write; a read failure never means the write failed.'),
+    .describe('Story writes include a bounded post-commit state by default: consume it instead of another snapshot/read. Pass your cached read cursor/revision for smaller deltas, or false to opt out. Drain hasMore/pages before the next write; readRequired means read again, never repeat the effect.'),
   scopeRoomId: z.string().uuid().optional()
     .describe('Only location_narrate: permit provably unrelated room chat after expectedSeq. Shared-state changes and unknown sequence gaps still conflict.'),
   ...(LOCAL_VOICEOVER ? {

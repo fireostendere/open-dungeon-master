@@ -81,7 +81,8 @@ upserts/tombstones plus changed scalar state. A missing server baseline causes a
 full self-healing resync in the same response. Legacy `sectionVersions` remain
 supported.
 
-`readAfter` is explicit. The orchestration host sends its current revision with
+Story writes default to a bounded live `readAfter` (128 KiB, paged); `false`
+opts out. The orchestration host sends its current revision explicitly with
 the story write and consumes the authoritative post-commit delta from the write
 result, so the normal uncontended write path does not require a second network
 read. Story/post-write reads use `includeAsks:false`; the independent Ask scanner

@@ -10,7 +10,7 @@ import { RAGING, matchResource, spendRelentlessEndurance } from "@/lib/srd/class
 import { getActiveEncounter, saveEncounter } from "@/lib/db/encounters";
 import { listOpenPendingRolls } from "@/lib/db/dm-turns";
 import { budgetApplies, freshBudget, spendAction, spendSpell, type ActionKind } from "@/lib/dm/action-budget";
-import { RESOURCE_ACTIONS } from "@/lib/dm/resource-action-cost";
+import { KI_ACTIONS, RESOURCE_ACTIONS } from "@/lib/dm/resource-action-cost";
 import { combatRiders } from "@/lib/srd/feature-effects";
 import { conditionExtraActions } from "@/lib/srd/condition-effects";
 import { authoredSpellRow } from "@/lib/srd/spell-mechanics";
@@ -622,7 +622,8 @@ export function applyDmMutation(
   const encounter = toolName === "use_item" || toolName === "use_resource" ? getActiveEncounter(campaign.id) : null;
   const actor = encounter?.orderReady ? encounter.order[encounter.turnIndex] : null;
   const resourceId = toolName === "use_resource" ? matchResource(args.resource ?? args.name ?? "")?.id : undefined;
-  const resourceAction = resourceId && Object.hasOwn(RESOURCE_ACTIONS, resourceId) ? RESOURCE_ACTIONS[resourceId] : undefined;
+  const kiAction = resourceId === "ki" && args.variant && Object.hasOwn(KI_ACTIONS, args.variant) ? KI_ACTIONS[args.variant] : undefined;
+  const resourceAction = kiAction ?? (resourceId && Object.hasOwn(RESOURCE_ACTIONS, resourceId) ? RESOURCE_ACTIONS[resourceId] : undefined);
   const cost = toolName === "use_item" ? "action" : resourceAction?.cost;
   if (encounter && cost && (!encounter.orderReady || actor?.kind !== "pc" || actor.characterId !== sheet.id ||
       sheet.currentHp <= 0 || incapacitatedBy(sheet.conditions) || listOpenPendingRolls(campaign.id).length)) {
@@ -635,6 +636,9 @@ export function applyDmMutation(
     }), cost, resourceAction?.name ?? "Use an item", sheet.name)
     : null;
   if (resourceBudget && !resourceBudget.ok) return { result: { error: resourceBudget.error } };
+  if (kiAction?.cost === "bonus" && (!encounter || !budgetApplies(encounter.turnBudget, sheet.id, encounter.round) || !encounter.turnBudget.attacksMade)) {
+    return { result: { error: "Flurry of Blows requires taking the Attack action on this turn first." } };
+  }
 
   switch (toolName) {
     case "apply_damage": {
@@ -1108,7 +1112,7 @@ export function applyDmMutation(
         return { result: outcome };
       }
       if (encounter && resourceBudget?.ok) {
-        encounter.turnBudget = resourceBudget.budget;
+        encounter.turnBudget = { ...resourceBudget.budget, ...(kiAction?.strikes ? { flurryAttacksRemaining: kiAction.strikes } : {}) };
         saveEncounter(encounter);
         publishPersisted(campaign.id, "encounter_updated", {});
       }

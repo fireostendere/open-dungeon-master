@@ -39,6 +39,8 @@ export type TurnBudget = {
   // SRD 5.1/2014: a bonus-action spell permits only an action cantrip as
   // another spell on this turn. Weapon attacks remain independent.
   spellsCast?: Array<{ cost: ActionKind; level: number }>;
+  // SRD 2014 Flurry: paid bonus-action unarmed strikes, separate from Attack.
+  flurryAttacksRemaining?: number;
 };
 
 export function freshBudget(input: {

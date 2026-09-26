@@ -99,6 +99,8 @@ export const COMBAT_ADJUDICATIONS: CatalogEntry[] = [
       { name: "spell", label: "Attack-roll spell", kind: "text", help: "Eldritch Blast, Fire Bolt, etc. Use spell, not weapon. The engine spends its action and any slot." },
       { name: "level", label: "Spell slot level", kind: "number", min: 0, max: 9 },
       { name: "offHand", label: "Off-hand attack", kind: "boolean", help: "Uses the bonus action, not another Attack action." },
+      { name: "sneakAttack", label: "Declared Sneak Attack", kind: "boolean", help: "Opt-in only from the player's queued feature or prose, never from browsing. Engine checks eligibility." },
+      { name: "flurry", label: "Paid Flurry strike", kind: "boolean", help: "One remaining strike from use_resource(ki,flurry_of_blows/flurry_of_healing). Requires weapon='Unarmed strike'." },
       { name: "twoHanded", label: "Two-handed grip", kind: "boolean" },
       { name: "advantage", label: "Roll", kind: "select", options: ADVANTAGE },
       { name: "maneuver", label: "Maneuver", kind: "text", help: "Battle Master only; spends a Superiority Die." },

@@ -121,6 +121,8 @@ export const pcAttackTool: ToolDef = {
           description:
             "This is the bonus-action second attack of two-weapon fighting with a light weapon.",
         },
+        sneakAttack: { type: "boolean", description: "Only true when the player requests Sneak Attack (queued or in prose). Eligibility and once-per-turn are still checked." },
+        flurry: { type: "boolean", description: "Use one remaining unarmed strike from paid Flurry of Blows; requires weapon='Unarmed strike'." },
         smite: {
           type: "integer",
           minimum: 1,
@@ -154,6 +156,8 @@ const pcAttackArgsSchema = z.object({
   ),
   twoHanded: z.coerce.boolean().optional(),
   offHand: z.coerce.boolean().optional(),
+  sneakAttack: z.boolean().optional(),
+  flurry: z.boolean().optional(),
   smite: z.coerce.number().int().min(1).max(9).optional(),
   maneuver: z.string().max(60).optional(),
 });
@@ -221,6 +225,10 @@ export function handlePcAttack(
   }
   if (args.enemyId && args.enemyId !== args.targetEnemyId) {
     return { error: "enemyId and targetEnemyId must identify the same enemy." };
+  }
+  if (args.flurry && (args.spell || args.offHand || args.weapon !== "Unarmed strike" ||
+      (encounter.turnBudget?.flurryAttacksRemaining ?? 0) < 1 || encounter.turnBudget?.ownerId !== sheet.id || encounter.turnBudget.round !== encounter.round)) {
+    return { error: "Flurry requires a paid remaining strike and weapon='Unarmed strike'; it cannot cast or use an off-hand weapon." };
   }
   const stoppedBy = incapacitatedBy(sheet.conditions);
   if (stoppedBy) {
@@ -643,11 +651,10 @@ export function handlePcAttack(
     ...(smallWithHeavy ? ["disadvantage" as const] : []),
   ]);
 
-  // Sneak Attack, decided here because it turns on the final advantage
-  // state: a finesse or ranged attack made with advantage, or with an ally
-  // adjacent to the target and no disadvantage. Once per turn is enforced by
-  // the model calling it on one swing; the dice ride the damage roll.
+  // Optional rider: possession / browsing alone is not player consent.
+  // The engine still checks final advantage, weapon and once-per-turn budget.
   const sneak =
+    args.sneakAttack === true &&
     riders.sneakAttackDice > 0 &&
     profile.sneakEligible &&
     advantage !== "disadvantage" &&
@@ -718,6 +725,8 @@ export function handlePcAttack(
   if (budget) {
     const spend = args.spell && !granted
       ? { ok: true as const, budget }
+      : args.flurry
+      ? { ok: true as const, budget: { ...budget, flurryAttacksRemaining: budget.flurryAttacksRemaining! - 1 } }
       : grantedBonusAction
       ? spendAction(budget, "bonus", `the ${profile.weapon} attack`, sheet.name)
       : args.offHand

@@ -202,7 +202,7 @@ export const PARTY_ADJUDICATIONS: CatalogEntry[] = [
     fields: [
       { name: "characterId", label: "Character", kind: "character", required: true },
       { name: "resource", label: "Resource", kind: "text", required: true },
-      { name: "variant", label: "Option", kind: "text", help: "For a feature with choices." },
+      { name: "variant", label: "Option", kind: "text", help: "Ki (2014): hand_of_healing (action), flurry_of_blows (bonus after Attack), flurry_of_healing (bonus after Attack with one healing replacement). Spends one ki, rolls/applies healing atomically; remaining strikes use pc_attack(flurry:true). DM verifies touch range." },
       { name: "targetCharacterId", label: "Target", kind: "character" },
       REASON,
     ],

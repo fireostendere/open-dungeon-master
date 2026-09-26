@@ -194,9 +194,12 @@ export function validateCombatTurnIntent(
     }
   }
   const prose = intent.prose?.trim();
+  const declaration = selections.length
+    ? `${ru ? "Явно выбранные действия (приоритет применения)" : "Explicitly queued actions (application priority)"}:\n${selections.map((selection, index) => `${index + 1}. ${selection}`).join("\n")}\n\n${prose ? `${ru ? "Описание игрока" : "Player description"}: ${prose}` : (ru ? "Без дополнительного описания." : "No additional description.")}`
+    : prose ? `${ru ? "Свободная заявка" : "Free-text intent"}: ${prose}` : (ru ? "Пропускаю ход." : "I pass my turn.");
   return {
     ok: true,
     budget: next,
-    content: `${copy.turn}: ${sheet.name}\n${selections.map((selection, index) => `${index + 1}. ${selection}`).join("\n")}${prose ? `\n\n${prose}` : ""}\n\n${copy.end}`,
+    content: `${copy.turn}: ${sheet.name}\n${declaration}\n\n${copy.end}`,
   };
 }

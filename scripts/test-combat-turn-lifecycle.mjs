@@ -97,6 +97,18 @@ test('warlock spell and direct pet order survive the real action route without s
   } finally { f.close(); }
 });
 
+test('free-text combat submission never declares a feature just because it is on the sheet', async () => {
+  const f = fixture();
+  try {
+    f.sheets[0].features = [{ name: 'Sneak Attack' }];
+    assert.equal((await f.send({ ...f.intent, combatTurn: { ...f.intent.combatTurn, prose: 'Тычу кинжалом в дьявола!' } })).status, 202);
+    const { content } = f.db.prepare('SELECT content FROM campaign_messages').get();
+    assert.match(content, /Свободная заявка: Тычу кинжалом/);
+    assert.doesNotMatch(content, /Sneak Attack/);
+    assert.equal(f.campaigns.getFloor('c1').combat.mechanicsResolved, false);
+  } finally { f.close(); }
+});
+
 test('sequential spotlight emits one durable batch barrier after every selected player responds', async () => {
   const f = fixture();
   try {

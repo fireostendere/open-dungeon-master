@@ -59,7 +59,7 @@ test('SSH fallback starts one persistent session and retries only a read after r
   assert.equal(closes, 1);
 });
 
-test('SSH fallback never retries a mutation and does not add post-write reads', async () => {
+test('SSH fallback never retries a mutation; receipt includes a bounded read by default', async () => {
   let starts = 0, requests = 0;
   const client = createOdmClient({
     transport: 'ssh-tunnel', url: 'http://127.0.0.1:39005/api/internal/mcp', token: 'mutation-secret',
@@ -69,8 +69,18 @@ test('SSH fallback never retries a mutation and does not add post-write reads', 
   await assert.rejects(client.invoke({ campaignId: campaign, expectedSeq: 1, name: 'end_turn', args: {}, commandId: '22222222-2222-4222-8222-222222222222' }), /connection reset/);
   assert.equal(requests, 1);
   assert.equal(starts, 1);
-  assert.equal(narratorParams('narrator.invoke', { campaignId: campaign, expectedSeq: 1, name: 'end_turn', args: {} }).readAfter, undefined);
+  assert.deepEqual(narratorParams('narrator.invoke', { campaignId: campaign, expectedSeq: 1, name: 'end_turn', args: {} }).readAfter,
+    { projection: 'live', delta: true, paged: true, maxBytes: 131072 });
   await client.close();
+});
+
+test('post-write defaults preserve explicit cursor/cache options, opt-out and private Ask shape', () => {
+  const readAfter = { afterSeq: 7, stateDelta: true, knownStateRevision: 'a'.repeat(64) };
+  for (const action of ['narrator.invoke', 'narrator.narrate', 'narrator.release_floor']) {
+    assert.deepEqual(narratorParams(action, { readAfter }).readAfter, readAfter);
+    assert.equal(narratorParams(action, { readAfter: false }).readAfter, false);
+  }
+  assert.equal(narratorParams('narrator.answer_ask', {}).readAfter, undefined);
 });
 
 test('HTTPS reads may recover one connection reset but mutations do not', async () => {

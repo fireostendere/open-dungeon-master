@@ -69,4 +69,12 @@ assert.deepEqual(combatSpellSlots({ ...warlock, spellcasting: { ...warlock.spell
 assert.deepEqual(combatSpellNames({ ...warlock, spellcasting: { ...warlock.spellcasting, casters: [{ known: ['Healing Word'], prepared: ['Hex'] }] } }), ['Eldritch Blast', 'Hex', 'Healing Word']);
 assert.equal(validateCombatTurnIntent(intent([order]), warlock, new Set(['enemy']), new Set(['hero']), { ...budget(), oncePerTurn: ['pet:федя'] }).ok, false);
 assert.deepEqual(warlock.spellcasting.slots, { 2: { max: 2, used: 2 } }, 'draft never changes the sheet');
+const freeText = validateCombatTurnIntent({ ...intent([]), prose: 'Врежу дьяволу кинжалом, чтоб искры из задницы!' }, warlock,
+  new Set(['enemy']), new Set(['hero']), budget(), { language: 'ru', names: new Map(), spells });
+assert.equal(freeText.ok, true);
+assert.match(freeText.content, /Свободная заявка/);
+assert.doesNotMatch(freeText.content, /Eldritch Blast|Pact Boon/, 'browsing / possessing an ability is never a declared action');
+const explicit = warlockCheck([cast]);
+assert.match(explicit.content, /Явно выбранные действия/);
+assert.match(explicit.content, /Без дополнительного описания/);
 console.log('test-combat-turn-intent: passed');
