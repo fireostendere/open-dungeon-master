@@ -27,6 +27,7 @@ export function CombatPetsPanel({ encounter, sheets, mySheet, canCommand, choice
 }) {
   const { locale, formatSpeed } = useI18n();
   const copy = COPY[locale];
+  const orderLabel = locale === "ru" ? "Прямой приказ" : "Direct order";
   const [targets, setTargets] = useState<Record<string, string>>({});
   const [orders, setOrders] = useState<Record<string, string>>({});
   const participants = new Set(encounter.order.filter(entry => entry.kind === "pc").map(entry => entry.id));
@@ -36,7 +37,7 @@ export function CombatPetsPanel({ encounter, sheets, mySheet, canCommand, choice
     attacksAllowed: 1 + combatRiders(mySheet).extraAttacks, extraActions: conditionExtraActions(mySheet.conditions) })) : null;
   const validate = (next: CombatChoice[]) => mySheet && budget && validateCombatTurnIntent({
     encounterId: encounter.id, round: encounter.round, turnIndex: encounter.turnIndex, choices: next,
-   }, mySheet, new Set(enemies.map(enemy => enemy.id)), new Set(sheets.filter(sheet => !sheet.deathSaves?.dead).map(sheet => sheet.id)), budget, { language: locale, names: new Map(), spells: spellOptions }).ok;
+  }, mySheet, new Set(enemies.map(enemy => enemy.id)), new Set(sheets.filter(sheet => !sheet.deathSaves?.dead).map(sheet => sheet.id)), budget, { language: locale, names: new Map(), spells: spellOptions }).ok;
   const canQueue = (owner: CharacterSheet, choice: CombatChoice) => canCommand && !!onChoicesChange &&
     owner.id === mySheet?.id && owner.currentHp > 0 && validate([...choices, choice]);
 
@@ -78,8 +79,8 @@ export function CombatPetsPanel({ encounter, sheets, mySheet, canCommand, choice
           })}</div>
         </div> : null}
         {owned ? <div className="mt-3 border-t border-stone-700 pt-2">
-          <label className="block text-xs text-violet-200">{locale === "ru" ? "Прямой приказ" : "Direct order"}: {pet.name}
-            <textarea aria-label={`${locale === "ru" ? "Прямой приказ" : "Direct order"}: ${pet.name}`} value={orders[key] ?? ""} maxLength={500} rows={2} disabled={!canCommand || pet.hp <= 0 || queued || !!spent} onChange={event => setOrders(current => ({ ...current, [key]: event.target.value }))} placeholder={locale === "ru" ? "Например: стань невидимым и разведай проход…" : "For example: turn invisible and scout the passage…"} className="mt-1 w-full rounded border border-stone-700 bg-stone-950 p-2 text-sm disabled:opacity-50" />
+          <label className="block text-xs text-violet-200">{orderLabel}: {pet.name}
+            <textarea aria-label={`${orderLabel}: ${pet.name}`} value={orders[key] ?? ""} maxLength={500} rows={2} disabled={!canCommand || pet.hp <= 0 || queued || !!spent} onChange={event => setOrders(current => ({ ...current, [key]: event.target.value }))} placeholder={locale === "ru" ? "Например: стань невидимым и разведай проход…" : "For example: turn invisible and scout the passage…"} className="mt-1 w-full rounded border border-stone-700 bg-stone-950 p-2 text-sm disabled:opacity-50" />
           </label>
           <p className="mt-1 text-xs text-stone-400">{locale === "ru" ? "Заявка мастеру: допустимость, стоимость и результат приказа определяются правилами питомца." : "Request for the DM: the pet's rules determine legality, cost and outcome."}</p>
           <button type="button" disabled={!!spent || !canQueue(owner, order)} onClick={() => { if (!spent && canQueue(owner, order)) onChoicesChange?.([...choices, order]); }} className="mt-2 rounded border border-violet-700 px-3 py-2 text-xs text-violet-100 disabled:opacity-40">{locale === "ru" ? "Добавить приказ" : "Queue order"}: {pet.name}</button>

@@ -101,6 +101,7 @@ export function CombatTurnHud({
   const queueClass = "mt-2 rounded border border-stone-600 px-3 py-1.5 text-xs text-stone-200 hover:border-amber-500 disabled:opacity-40";
   const actionNames = locale === "ru" ? { dash: "Рывок", disengage: "Отход", hide: "Скрыться", help: "Помочь союзнику", grapple: "Захватить", shove: "Сбить с ног" } : { dash: "Dash", disengage: "Disengage", hide: "Hide", help: "Help ally", grapple: "Grapple", shove: "Shove prone" };
   const spellLabel = locale === "ru" ? "Заклинание" : "Spell";
+  const spellLevelLabel = locale === "ru" ? "ур." : "lv.";
   const adjudication = locale === "ru" ? "Заявка мастеру: применимость, стоимость и эффект определяются правилами особенности; пассивные эффекты не становятся отдельными действиями." : "DM request: the feature's rules determine applicability, cost and effect; passive effects do not become separate actions.";
 
   return <section className="mb-2 rounded-xl border border-amber-700/60 bg-stone-950/95 p-3 text-sm shadow-elev-1" aria-label={copy.title}>
@@ -136,7 +137,7 @@ export function CombatTurnHud({
         <b className="text-violet-200">{locale === "ru" ? "Заклинания и заговоры" : "Spells and cantrips"}</b>
         {spellsLoading ? <p role="status">{locale === "ru" ? "Загрузка заклинаний…" : "Loading spells…"}</p> : spellsError ? <p role="alert">{locale === "ru" ? "Не удалось загрузить заклинания. Обновите страницу." : "Could not load spells. Refresh the page."}</p> : <>
           <select aria-label={spellLabel} value={spell} onChange={event => { setSpell(event.target.value); setSlotLevel(""); }} disabled={disabled} className={selectClass}>
-            <option value="">{copy.choose}</option>{spellOptions.map(entry => <option key={entry.name} value={entry.name}>{entry.name} · {entry.level === 0 ? (locale === "ru" ? "заговор" : "cantrip") : entry.level === null ? "?" : `${locale === "ru" ? "ур." : "lv."} ${entry.level}`}{entry.level && !combatSpellSlots(sheet, entry.level).length ? (locale === "ru" ? " — нет ячеек" : " — no slots") : ""}</option>)}
+            <option value="">{copy.choose}</option>{spellOptions.map(entry => <option key={entry.name} value={entry.name}>{entry.name} · {entry.level === 0 ? (locale === "ru" ? "заговор" : "cantrip") : entry.level === null ? "?" : `${spellLevelLabel} ${entry.level}`}{entry.level && !combatSpellSlots(sheet, entry.level).length ? (locale === "ru" ? " — нет ячеек" : " — no slots") : ""}</option>)}
           </select>
           {selectedSpell ? <>
             <p className="mt-1 text-xs text-violet-200">{copy.cost}: {selectedSpell.cost === "action" ? copy.action : selectedSpell.cost === "bonus" ? copy.bonus : selectedSpell.cost === "reaction" ? copy.reaction : (locale === "ru" ? "уточняет мастер" : "DM adjudicates")}{selectedSpell.level === 0 ? (locale === "ru" ? " · без ячейки" : " · no slot") : ""}</p>
