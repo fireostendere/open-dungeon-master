@@ -19,8 +19,6 @@ import { applyEnemyDamage, publishEncounter, resolveEnemyRef } from "@/lib/dm/en
 import { resolveRollExpression, resolveSheetRef } from "@/lib/dm/rolls";
 import { normalizeAbility } from "@/lib/dm/arg-coerce";
 import { resolveAttackWeapon } from "@/lib/dm/attack-logic";
-import { attacksAllowedFor, budgetFor, currentCombatantId, storeBudget } from "@/lib/dm/action-tools";
-import { spendAction } from "@/lib/dm/action-budget";
 import type { ConditionMeta } from "@/lib/dm/condition-logic";
 import type { CharacterSheet } from "@/lib/schemas/sheet";
 
@@ -157,7 +155,7 @@ export function castRedirect(
     case "buff":
       return `${name} grants an effect, it forces no save; cast it with cast_buff.`;
     case "heal":
-      return `${name} heals; spend the slot with use_spell_slot and apply it with heal (the server rolls the dice).`;
+      return `${name} heals; use heal with spell, casterId and level. It spends the slot/action and rolls healing atomically; do not call use_spell_slot separately.`;
     case "summon":
       return `${name} conjures creatures; spend the slot with use_spell_slot and bring them in with add_enemies or add_companion.`;
     case "auto":
@@ -290,14 +288,14 @@ export function handleCastAtEnemy(
 
   // Spend the slot first (spell-list validation and concentration come with
   // it); a refused spend refuses the cast.
-  if (args.level) {
+  {
     const spend = applyDmMutation(
       campaign,
       turn.id,
       "use_spell_slot",
       JSON.stringify({
         characterId: sheet.id,
-        level: args.level,
+        level: args.level ?? resolvedMech?.spellLevel ?? 0,
         spell: args.spell,
         reason: (args.reason ?? "").slice(0, 200),
       }),
@@ -306,17 +304,6 @@ export function handleCastAtEnemy(
     ).result;
     if ("error" in spend) {
       return spend;
-    }
-  } else {
-    // Cantrip path: no slot, but the spell must still be on their list.
-    const spellList = [...sheet.spellcasting.known, ...sheet.spellcasting.prepared];
-    const onList = spellList.some(
-      (entry) =>
-        entry.toLowerCase().includes(args.spell.toLowerCase()) ||
-        args.spell.toLowerCase().includes(entry.toLowerCase()),
-    );
-    if (!onList) {
-      return { error: `${args.spell} is not on ${sheet.name}'s spell list; they cannot cast it.` };
     }
   }
 
@@ -545,17 +532,17 @@ export function handleCastBuff(
     };
   }
 
-  // Spend the slot (spell-list validation and concentration come with it);
-  // a refused spend refuses the cast. Cantrips validate the list only.
+  // One cast path for spell-list validation, action economy and slot spending;
+  // cantrips pay their casting action but no slot.
   const slotLevel = resolvedMech.spellLevel >= 1 ? (args.level ?? resolvedMech.spellLevel) : null;
-  if (slotLevel) {
+  {
     const spend = applyDmMutation(
       campaign,
       turn.id,
       "use_spell_slot",
       JSON.stringify({
         characterId: sheet.id,
-        level: slotLevel,
+        level: slotLevel ?? 0,
         spell: args.spell,
         reason: (args.reason ?? "").slice(0, 200),
       }),
@@ -565,38 +552,12 @@ export function handleCastBuff(
     if ("error" in spend) {
       return spend;
     }
-  } else {
-    const spellList = [...sheet.spellcasting.known, ...sheet.spellcasting.prepared];
-    const onList = spellList.some(
-      (entry) =>
-        entry.toLowerCase().includes(args.spell.toLowerCase()) ||
-        args.spell.toLowerCase().includes(entry.toLowerCase()),
-    );
-    if (!onList) {
-      return { error: `${args.spell} is not on ${sheet.name}'s spell list; they cannot cast it.` };
-    }
+  }
+  if (!slotLevel) {
     // Cantrip concentration effects (Guidance, True Strike) never touch a
     // slot, so concentration is set here instead.
     if (resolvedMech.concentration) {
       setConcentration(campaign, turn.id, sheet.id, resolvedMech.name);
-    }
-  }
-
-  // Shillelagh is the exceptional buff cast as a bonus action. Its cantrip
-  // validation above has already completed, so a refused action never alters
-  // equipment, conditions, or slots.
-  if (isShillelagh) {
-    const encounter = getActiveEncounter(campaign.id);
-    if (encounter && (!encounter.orderReady || currentCombatantId(encounter) !== sheet.id)) {
-      return { error: "Shillelagh can be cast only on the caster's current combat turn." };
-    }
-    const budget = budgetFor(encounter, sheet.id, attacksAllowedFor(sheet));
-    if (budget) {
-      const spent = spendAction(budget, "bonus", "casting Shillelagh", sheet.name);
-      if (!spent.ok) {
-        return { error: spent.error };
-      }
-      storeBudget(encounter!, spent.budget);
     }
   }
 

@@ -62,7 +62,7 @@ def configure(workspace, url, token_file=None):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--workspace', type=Path, required=True)
-    parser.add_argument('--mcp-url', default='https://api.iroslyakov.com/mcp')
+    parser.add_argument('--mcp-url', default='https://dnd.iroslyakov.com/mcp')
     parser.add_argument('--token-file', type=Path)
     args = parser.parse_args()
     configure(args.workspace, args.mcp_url, args.token_file)

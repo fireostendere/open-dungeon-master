@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 import vm from 'node:vm';
 import ts from 'typescript';
 import * as crypto from 'node:crypto';
+import * as actionBudget from '../src/lib/dm/action-budget.ts';
 
 const clone = value => JSON.parse(JSON.stringify(value));
 const sheets = new Map(), enemies = new Map();
@@ -69,12 +70,12 @@ const fixtures = {
     patchEnemyConditions: (id,conditions,conditionMeta)=>enemies.set(id,{...enemies.get(id),conditions:clone(conditions),conditionMeta:clone(conditionMeta)}),
     setEnemyConcentration: (id,concentration)=>enemies.set(id,{...enemies.get(id),concentration}),
     patchEnemyHp: (id,currentHp,status)=>{enemies.set(id,{...enemies.get(id),currentHp,status});return clone(enemies.get(id));},
-    saveEncounter: unused('saveEncounter'), endEncounter: unused('endEncounter'),
+    saveEncounter: value => { activeEncounter = value; }, endEncounter: unused('endEncounter'),
   },
   '@/lib/db/core':{getDatabase:()=>({prepare:sql=>{assert.equal(sql,'SELECT id FROM encounters WHERE campaign_id = ?');return {all:id=>[...encounters.values()].filter(e=>e.campaignId===id).map(clone)};}})},
   '@/lib/db/encounter-view':{activePublicEncounter:()=>null},
   '@/lib/content': { listConditions: () => [], findSpellByName: name => spellData(name), spellMechanicsFor: ({spell}) => spellData(spell),
-    searchSpells: () => [], spellDamageFor: () => null, spellNameMatches: unused('spellNameMatches') },
+    searchSpells: ({q}) => spellData(q) ? [{ name: q, level: spellData(q).spellLevel, data: { casting_time: '1 action' } }] : [], spellDamageFor: () => null, spellNameMatches: (entry, name) => entry.name === name },
   '@/lib/srd': { levelForXp: () => 1, abilityMod: score => Math.floor((score - 10) / 2), findClass: () => null,
     spellSaveDcFor:()=>13, computeSheetDerived: sheet => ({ saves: { str:0,dex:0,wis:0,int:0,cha:0,con: Math.floor(((sheet.wildShape?.abilities?.con ?? sheet.abilities.con) - 10) / 2) } }) },
   '@/lib/srd/class-resources': { RAGING: 'raging', matchResource: () => null,
@@ -82,14 +83,15 @@ const fixtures = {
       const value = resources.relentless_endurance;
       return value && value.used < value.max ? { ...resources, relentless_endurance: { ...value, used: value.used + 1 } } : null;
     } },
-  '@/lib/dm/action-budget': { budgetApplies: unused('budgetApplies'), freshBudget: unused('freshBudget'), spendAction: unused('spendAction') },
+  '@/lib/dm/action-budget': actionBudget,
   '@/lib/dm/resource-action-cost': { RESOURCE_ACTIONS: {} },
-  '@/lib/srd/feature-effects': {hasBrave:()=>false, combatRiders: unused('combatRiders') },
+  '@/lib/srd/feature-effects': {hasBrave:()=>false, combatRiders: () => ({ extraAttacks: 0 }) },
   '@/lib/srd/condition-effects': { conditionEffectsFor:()=>null, conditionExtraActions: () => 0, conditionConcentrationFloor: () => 0 },
+  '@/lib/srd/spell-mechanics': { authoredSpellRow: () => null },
   '@/lib/schemas/sheet': { fullPatchSheetSchema: schema, concentrationSourceSchema:schema },
   '@/lib/srd/currency': { addCopper: unused('addCopper'), COPPER_PER_GOLD: 100, formatCopper: unused('formatCopper'), formatPurse: unused('formatPurse'), parseCoins: unused('parseCoins') },
   '@/lib/dm/companion-tools': { autoLevelCompanion: unused('autoLevelCompanion') },
-  '@/lib/dm/condition-logic': { removeConditions, tickConditions: (conditions,meta)=>{
+  '@/lib/dm/condition-logic': { incapacitatedBy: () => null, removeConditions, tickConditions: (conditions,meta)=>{
     const nextMeta={},expired=[],savesDue=[];
     for(const name of conditions){const entry=meta?.[name];if(!entry)continue;
       if(typeof entry.rounds==='number'){const left=entry.rounds-1;if(left<=0){expired.push(name);continue;}nextMeta[name]={...entry,rounds:left};}else nextMeta[name]=entry;
@@ -114,7 +116,7 @@ Object.assign(fixtures,{
   '@/lib/dm/attack-logic':{resolveAttackWeapon:unused('resolveAttackWeapon')},
   '@/lib/dm/action-tools':{attacksAllowedFor:()=>1,budgetFor:()=>null,currentCombatantId:()=>null,storeBudget:unused('storeBudget')},
   '@/lib/db/active-effects':{tickEffectRound:()=>[]},
-  '@/lib/db/dm-turns':{getDmTurn:unused('getDmTurn')},
+  '@/lib/db/dm-turns':{getDmTurn:unused('getDmTurn'), listOpenPendingRolls: () => []},
   '@/lib/db/battle-maps':{getBattleMapForEncounter:()=>null,removeTokenByRef:unused('removeTokenByRef')},
   '@/lib/bestiary/health':{healthState:()=> 'healthy'},
   '@/lib/srd/ammunition':{ammoCount:unused('ammoCount'),recoveredAmmo:unused('recoveredAmmo'),withAmmoCount:unused('withAmmoCount')},
@@ -135,9 +137,9 @@ function load(specifier) {
     compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS }, reportDiagnostics: true,
   });
   assert.equal(output.diagnostics?.length ?? 0, 0, `Syntax diagnostics in ${name}`);
-  const module = { exports: {} }; cache.set(name, module);
-  vm.runInNewContext(output.outputText, { require: load, module, exports: module.exports, console }, { filename });
-  return module.exports;
+  const record = { exports: {} }; cache.set(name, record);
+  vm.runInNewContext(output.outputText, { require: load, module: record, exports: record.exports, console }, { filename });
+  return record.exports;
 }
 const mutations = load('@/lib/dm/mutations');
 const death = load('@/lib/dm/death');
@@ -304,7 +306,10 @@ test('per-source timers survive JSON persistence and expiration of the other ins
 });
 test('successful periodic save removes its instance, not another caster with a higher DC',()=>{
   prepareParty();fight();enemy('E');natural=1;
-  for(const id of ['A','B']) assert.equal(casts.handleCastAtEnemy(campaign,turn,JSON.stringify({characterId:id,targetEnemyId:'E',spell:'Hold Person',level:2,saveAbility:'wis'}),party(),partyMap()).ok,true);
+  for(const id of ['A','B']) {
+    activeEncounter.order = [{ kind: 'pc', characterId: id }]; activeEncounter.turnBudget = null;
+    assert.equal(casts.handleCastAtEnemy(campaign,turn,JSON.stringify({characterId:id,targetEnemyId:'E',spell:'Hold Person',level:2,saveAbility:'wis'}),party(),partyMap()).ok,true);
+  }
   const effect=enemies.get('E').conditionMeta.paralyzed;
   assert.equal(effect.concentrationSources.length,2);effect.concentrationSources[0].saveEnds.dc=5;effect.concentrationSources[1].saveEnds.dc=20;
   natural=10;upkeep.tickEncounterConditions(campaign,activeEncounter);

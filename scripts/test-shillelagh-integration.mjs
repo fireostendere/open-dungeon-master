@@ -16,7 +16,7 @@ const { createUser } = await import("../src/lib/db/users.ts");
 const { createCampaign } = await import("../src/lib/db/campaigns.ts");
 const { createSheet, getSheetById, patchSheet } = await import("../src/lib/db/sheets.ts");
 const { createSheetSchema } = await import("../src/lib/schemas/sheet.ts");
-const { createDmTurn, listPendingForTurn } = await import("../src/lib/db/dm-turns.ts");
+const { createDmTurn, listPendingForTurn, resolvePendingRoll } = await import("../src/lib/db/dm-turns.ts");
 const { createEncounter, insertEnemy, getEncounter, saveEncounter } = await import("../src/lib/db/encounters.ts");
 const { handleCastBuff } = await import("../src/lib/dm/cast-tools.ts");
 const { handlePcAttack, PC_ATTACK_PARKED } = await import("../src/lib/dm/pc-attack.ts");
@@ -98,6 +98,7 @@ assert.ok(!fresh.conditions.some((entry) => entry.toLowerCase().startsWith("shil
 assert.ok(!Object.keys(fresh.conditionMeta).some((entry) => entry.toLowerCase().startsWith("shillelagh (")));
 
 // Simulate Oleg's next turn: a new round creates a fresh budget for its current actor.
+resolvePendingRoll(pending.id, "fallback", null);
 combat = getEncounter(encounter.id);
 combat.round += 1;
 combat.turnBudget = null;

@@ -80,6 +80,8 @@ const TOOL_SOURCES = [
 ];
 
 const aiToolNames = new Set();
+// External/human compound façade delegates every step to the same dispatcher.
+aiToolNames.add("combat_turn");
 for (const source of TOOL_SOURCES) {
   for (const name of toolNamesIn(source)) {
     aiToolNames.add(name);
@@ -99,6 +101,7 @@ function namedList(relative, constName) {
 }
 
 const routedBySet = new Set([
+  "combat_turn",
   ...namedList("src/lib/dm/mutations.ts", "MUTATION_TOOL_NAMES"),
   ...namedList("src/lib/dm/encounter-tools.ts", "ENCOUNTER_TOOL_NAMES"),
   ...namedList("src/lib/dm/encounter-tools-extra.ts", "EXTRA_ENCOUNTER_TOOL_NAMES"),

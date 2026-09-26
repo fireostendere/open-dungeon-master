@@ -1135,11 +1135,11 @@ function advancePointer(
   // The action economy belongs to whoever was acting; the next combatant
   // starts clean (src/lib/dm/action-budget.ts).
   encounter.turnBudget = null;
+  const incoming = encounter.order[encounter.turnIndex];
+  if (incoming) encounter.reactionsUsed = encounter.reactionsUsed.filter(id => id !== orderEntryId(incoming));
   if (next.wrapped) {
     encounter.round += 1;
-    // Reactions come back at the top of each combatant's turn; one round is
-    // the granularity the server tracks them at.
-    encounter.reactionsUsed = [];
+    // Other combatants keep their spent reactions until their own next turn.
     // Surprise costs exactly one turn, so it is spent by the time round 1
     // has gone all the way around.
     encounter.surprisedIds = [];

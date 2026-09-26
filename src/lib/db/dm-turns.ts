@@ -222,6 +222,7 @@ export type PendingAttack = {
   critRange?: number;
   // Great Weapon Fighting: reroll damage dice at or below this value.
   rerollBelow?: number;
+  spentOnHit?: string[];
 };
 
 export type PendingRoll = {

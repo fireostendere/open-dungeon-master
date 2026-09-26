@@ -101,10 +101,14 @@ test('combat CAS, owner admission, persistent gate, duplicate rejection and OOC'
   } finally { f.close(); }
 });
 
-test('legacy combat prose unlocks after narration; victory still waits for narration', async () => {
+test('text and button submissions both stay locked until turn resolution; victory waits for narration', async () => {
   const f = fixture();
   try {
     assert.equal((await f.send({ kind: 'do', content: 'I speak while fighting' })).status, 202);
+    f.narrate(); assert.equal(f.campaigns.getFloor('c1').mode, 'hold');
+    assert.equal((await f.send({ kind: 'do', content: 'a second action' })).status, 409);
+    const first = f.campaigns.getFloor('c1');
+    f.campaigns.setFloor('c1', { ...first, combat: { ...first.combat, mechanicsResolved: true } });
     f.narrate(); assert.equal(f.campaigns.getFloor('c1').mode, 'initiative');
     assert.equal((await f.send(f.intent)).status, 202);
     const held = f.campaigns.getFloor('c1');
@@ -160,7 +164,7 @@ test('Skip N queues one normal turn per arrival, never advances enemies or decre
 });
 
 test('actual resource mutation spends shared action economy before any effect or dice', () => {
-  const sheet = { id: heroId, name: 'First', conditions: [] };
+  const sheet = { id: heroId, name: 'First', currentHp: 10, conditions: [] };
   const encounter = { id: encounterId, orderReady: true, round: 1, turnIndex: 0, order: [{ kind: 'pc', characterId: heroId }], turnBudget: null };
   let effects = 0;
   const compute = () => { effects++; return { patch: {}, result: { ok: true } }; };
@@ -173,11 +177,13 @@ test('actual resource mutation spends shared action economy before any effect or
     '@/lib/dm/action-budget': actionBudget, '@/lib/dm/resource-action-cost': { RESOURCE_ACTIONS },
     '@/lib/srd/feature-effects': { combatRiders: () => ({ extraAttacks: 1 }) },
     '@/lib/srd/condition-effects': { conditionExtraActions: () => 0 }, '@/lib/events': { publishPersisted() {} },
+    '@/lib/srd/spell-mechanics': {},
+    '@/lib/db/dm-turns': { listOpenPendingRolls: () => [] },
     '@/lib/dm/condition-sources': { addConditionSource: () => ({ conditions: [], meta: {} }), sourceMeta: () => null },
     '@/lib/schemas/sheet': { fullPatchSheetSchema: { pick: () => z.any() }, concentrationSourceSchema: z.any() },
     '@/lib/dm/mutation-math': {}, '@/lib/srd/currency': {}, '@/lib/dm/death': {},
     '@/lib/dm/death-logic': {},
-    '@/lib/dm/companion-tools': {}, '@/lib/dm/condition-logic': {},
+    '@/lib/dm/companion-tools': {}, '@/lib/dm/condition-logic': { incapacitatedBy: () => null },
     '@/lib/dm/arg-coerce': { normalizeAbility: value => value, normalizeListAction: value => value },
     '@/lib/dm/concentration': {}, '@/lib/dm/resource-tools': { resourceTools: [], computeUseItem: compute, computeUseResource: compute },
     '@/lib/content/mechanics': {}, '@/lib/classes': {}, '@/lib/db/rolls': {}, '@/lib/dice': {},

@@ -160,7 +160,7 @@ odm-mcpctl token --show # explicit secret output; private terminal only
 ssh -L 3006:127.0.0.1:3006 user@your-server
 ```
 
-The production project clients use `https://api.iroslyakov.com/mcp` directly with
+The production project clients use `https://dnd.iroslyakov.com/mcp` directly with
 the bearer in a private local file; no SSH or container-bound stdio session is
 needed for MCP calls. Other instances may use HTTPS or private tunneling, never
 a public plaintext bearer. Native clients normally omit Origin;

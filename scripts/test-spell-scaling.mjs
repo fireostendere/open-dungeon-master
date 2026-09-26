@@ -47,6 +47,12 @@ test("base dice come out of the description", () => {
   assert.equal(baseDamageDice("You speak a word of comfort."), null);
 });
 
+test("a fixed spell without an upcast paragraph still resolves its base dice", () => {
+  assert.equal(scaledSpellDice({ spellLevel: 1, desc: CURE_WOUNDS.desc, higherLevel: '', casterLevel: 3 }).dice, '1d8');
+  assert.equal(scaledSpellDice({ spellLevel: 0, desc: FIRE_BOLT.desc, higherLevel: '', casterLevel: 3 }).dice, '1d10');
+  assert.equal(scaledSpellDice({ spellLevel: 1, desc: MAGIC_MISSILE.desc, higherLevel: MAGIC_MISSILE.higher_level, casterLevel: 3 }), null, 'unknown dart scaling must not silently become one dart');
+});
+
 test("a cantrip grows at 5th, 11th, and 17th level", () => {
   const at = (level) => cantripDamage(FIRE_BOLT.desc, FIRE_BOLT.higher_level, level).dice;
   assert.equal(at(1), "1d10");

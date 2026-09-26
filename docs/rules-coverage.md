@@ -59,6 +59,8 @@ table can switch it off with the `narrationGuard` game setting.
 | Great Weapon Fighting reroll | enforced | `dice.ts rerollBelow` |
 | Rage (resistance, bonus damage, advantage) | enforced | `srd/class-resources.ts`, `dm/condition-logic.ts` |
 | Action economy (action / bonus / reaction / attacks) | enforced | `dm/action-budget.ts` |
+| Complete declared turn, including healing/pet-only plans | enforced submission gate + narrator policy | Text and HUD share the same hold; `combat_turn` executes bounded ordered steps and ends once; partial receipts preserve earlier steps |
+| Clarify a held combat submission | enforced | `request_player_input` reopens only the current PC, with no pending roll and no reset of budget/rolls |
 | Dodge, Dash, Disengage, Hide, Help, Grapple, Shove | enforced | `dm/action-tools.ts take_action` |
 | Reactions (Shield, Uncanny Dodge, Counterspell, ...) | enforced (economy) + guidance (effect) | `dm/action-tools.ts use_reaction` |
 | Opportunity attacks, both sides | enforced | `dm/opportunity.ts` |
@@ -103,6 +105,9 @@ table can switch it off with the `narrationGuard` game setting.
 | Cantrip level scaling, upcast scaling (from content pack) | enforced | `srd/spell-scaling.ts` |
 | Save DC, spell attack bonus | enforced | `srd/index.ts` |
 | Healing spells rolled server-side | enforced | `dm/mutations.ts heal` |
+| Named healing spell: slot, action and HP in one transaction | enforced | `heal(spell,casterId,characterId,level)`; do not separately call `use_spell_slot` |
+| SRD 5.1/2014 bonus-action spell restriction | enforced | `spendSpell` in the shared slot/cast path; action cantrip allowed in either order, weapon attacks unaffected. This is not a 2024 edition switch |
+| Smite charges survive misses and non-qualifying attacks | enforced | `conditionOnHitDice.spentOnHit`, digital and physical `pc_attack`; secondary saves/ongoing effects still require separate adjudication, mixed damage types still share the original combined damage expression |
 | Spells known / prepared limits | enforced | `dm/mutations.ts learn_spell`, level-up, PATCH route |
 | Arcane/Natural Recovery, Song of Rest | enforced | `dm/rest-tools.ts` |
 | Concentration on enemy spells | enforced (best effort) | tracked when cast through the tools with casterEnemyId |
@@ -119,7 +124,7 @@ table can switch it off with the `narrationGuard` game setting.
 | Subclass spell lists (domain, circle, oath, patron) | enforced | `srd/features.ts subclassSpellsFor`, granted at creation and level-up |
 | Wild Shape (full engine: authored beast table, CR/movement caps by druid level incl. Moon, stat swap, natural attacks, beast AC vs enemies, casting gate) | enforced | `srd/beast-forms.ts`, `dm/resource-tools.ts`, `srd/index.ts computeSheetDerived` |
 | Polymorph (form via cast_buff variant, CR <= target level, concentration-linked, damage reverts) | enforced | `dm/cast-tools.ts`, `srd/beast-forms.ts`, `dm/condition-tick.ts` |
-| Familiars, Beast Master companions, Drakewarden drakes, story pets | enforced | `dm/pet-tools.ts` (summon validation, pet_attack dice, damage_pet pool, long-rest heal) |
+| Familiars, Beast Master companions, Drakewarden drakes, story pets | partial enforcement | `dm/pet-tools.ts`: summon validation, attack dice/critical dice, separate HP, command costs, current-owner gate and one command per pet/owner turn. Story combat pets require explicit stats and command cost. Independent familiar initiative, pet map movement/LOS and automatic pet reactions are not implemented |
 | Relentless Endurance (auto-burn at 0 HP) | enforced | `dm/mutations.ts` |
 
 ## Exploration

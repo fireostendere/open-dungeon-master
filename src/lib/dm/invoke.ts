@@ -155,6 +155,11 @@ export function normalizeArgs(
   if (entry.name === "pc_attack" && out.targetEnemyId && !out.enemyId) {
     out.enemyId = out.targetEnemyId;
   }
+  if (entry.name === "pet_attack" && !out.targetEnemyId && out.enemyId) out.targetEnemyId = out.enemyId;
+  if (entry.name === "use_spell_slot" && !out.spell && out.name) out.spell = out.name;
+  if (entry.name === "summon_pet" && typeof out.attacks === "string") {
+    try { out.attacks = JSON.parse(out.attacks); } catch { /* The handler rejects invalid arrays. */ }
+  }
   return out;
 }
 
@@ -198,6 +203,7 @@ function currentPcTurnKey(campaignId: string): CombatTurnKey | null {
  * between the first mutation and commit; returned refusals roll back too.
  */
 export function invokeEngineSynchronous(campaign: Campaign, actor: Actor, call: Adjudication): InvokeOutcome {
+  if (call.name === "combat_turn") return invokeCombatTurn(campaign, actor, call.args);
   const entry = adjudication(call.name);
   if (!entry) return { ok: false, error: `Unknown action "${call.name}".` };
   if (ASYNC_ADJUDICATIONS.has(entry.name)) return { ok: false, error: "This action requires the asynchronous operator path." };
@@ -216,7 +222,8 @@ export function invokeEngineSynchronous(campaign: Campaign, actor: Actor, call: 
       if (completion.requested) {
         const floor = getFloor(campaign.id);
         const initiative = floor.mode === "hold" ? floor.next : floor;
-        if (!anchor || anchor.characterId !== args.characterId || initiative.mode !== "initiative" ||
+        const actorId = entry.name === "heal" ? args.casterId ?? args.characterId : args.characterId;
+        if (!anchor || anchor.characterId !== actorId || initiative.mode !== "initiative" ||
             initiative.encounterId !== anchor.encounterId || initiative.round !== anchor.round ||
             listOpenPendingRolls(campaign.id).length) {
           return { ok: false, error: "completeTurn requires this character's current initiative turn with no outstanding roll." };
@@ -263,6 +270,53 @@ export function invokeEngineSynchronous(campaign: Campaign, actor: Actor, call: 
   } catch (error) {
     return { ok: false, error: error instanceof Error ? error.message : "The engine could not resolve that." };
   }
+}
+
+// One receipt, one model decision for a compound turn. A refused later step
+// does not roll back or repeat an earlier confirmed attack.
+function invokeCombatTurn(campaign: Campaign, actor: Actor, args: Record<string, unknown>): InvokeOutcome {
+  if (actor.kind !== "human") return { ok: false, error: "combat_turn requires external/human adjudication." };
+  const anchor = currentPcTurnKey(campaign.id);
+  const floor = getFloor(campaign.id);
+  const initiative = floor.mode === "hold" ? floor.next : floor;
+  if (!anchor || anchor.characterId !== args.characterId || initiative.mode !== "initiative" ||
+      initiative.encounterId !== anchor.encounterId || initiative.round !== anchor.round || listOpenPendingRolls(campaign.id).length) {
+    return { ok: false, error: "combat_turn requires the current actor with no pending roll." };
+  }
+  let steps = args.steps;
+  if (typeof steps === "string") { try { steps = JSON.parse(steps); } catch { return { ok: false, error: "steps must be a JSON array." }; } }
+  if (!Array.isArray(steps) || !steps.length || steps.length > 8) return { ok: false, error: "Provide 1–8 declared steps." };
+  const allowed = new Set(["pc_attack", "cast_at_enemy", "cast_buff", "heal", "pet_attack", "take_action", "use_item", "use_resource"]);
+  const calls: Adjudication[] = [];
+  for (const step of steps) {
+    if (!step || typeof step !== "object" || !allowed.has(step.name) || !step.args || typeof step.args !== "object" || Array.isArray(step.args)) {
+      return { ok: false, error: "Each step needs a supported name and args object." };
+    }
+    const field = step.name === "heal" ? "casterId" : "characterId";
+    if ((step.args[field] !== undefined && step.args[field] !== anchor.characterId) || step.args.completeTurn !== undefined) {
+      return { ok: false, error: "Every step belongs to the current actor; only the bundle ends the turn." };
+    }
+    calls.push({ name: step.name, args: { ...step.args, [field]: anchor.characterId } });
+  }
+  return executeDmTool<InvokeOutcome>([campaign], () => {
+    const results: Array<{ index: number; name: string; result: Record<string, unknown> }> = [];
+    let turnId = "";
+    for (const [index, step] of calls.entries()) {
+      const disposition = combatCompletionDisposition(anchor, currentPcTurnKey(campaign.id), listOpenPendingRolls(campaign.id).length);
+      if (disposition !== "complete") return { ok: true, turnId, result: { steps: results, nextStep: index, status: disposition } };
+      const outcome = invokeEngineSynchronous(campaign, actor, step);
+      if (!outcome.ok) return results.length
+        ? { ok: true, turnId, result: { steps: results, nextStep: index, status: "blocked", failure: { message: outcome.error }, note: "Earlier steps committed. Do not repeat them." } }
+        : outcome;
+      turnId = outcome.turnId;
+      results.push({ index, name: step.name, result: outcome.result });
+    }
+    const disposition = combatCompletionDisposition(anchor, currentPcTurnKey(campaign.id), listOpenPendingRolls(campaign.id).length);
+    if (disposition !== "complete") return { ok: true, turnId, result: { steps: results, nextStep: calls.length, status: disposition } };
+    const ended = invokeEngineSynchronous(campaign, actor, { name: "end_turn", args: { characterId: anchor.characterId } });
+    return { ok: true, turnId, result: { steps: results, nextStep: calls.length,
+      status: ended.ok ? "completed" : "blocked", turnCompletion: ended.ok ? ended.result : { error: ended.error } } };
+  });
 }
 
 export async function invokeEngine(

@@ -38,6 +38,8 @@ const actionSchema = z.object({
     choices: z.array(z.discriminatedUnion("type", [
       z.object({ type: z.literal("attack"), targetEnemyId: z.string().uuid(), weapon: z.string().trim().min(1).max(80) }),
       z.object({ type: z.literal("dodge") }),
+      z.object({ type: z.literal("action"), action: z.enum(["dash", "disengage", "hide", "help", "grapple", "shove"]), targetEnemyId: z.string().uuid().optional(), targetCharacterId: z.string().uuid().optional() }),
+      z.object({ type: z.literal("pet"), petName: z.string().trim().min(1).max(60), attack: z.string().trim().min(1).max(40), targetEnemyId: z.string().uuid() }),
       z.object({ type: z.literal("resource"), resource: z.string().trim().min(1).max(80), targetCharacterId: z.string().uuid().optional() }),
       z.object({ type: z.literal("item"), item: z.string().trim().min(1).max(80), targetCharacterId: z.string().uuid().optional() }),
     ])).max(8),
@@ -276,7 +278,7 @@ export async function POST(
   if (kind !== "ooc" && floor.mode === "initiative") {
     const gate = combatGate ?? {
       encounterId: floor.encounterId, round: floor.round, turnIndex: encounter?.turnIndex ?? 0,
-      characterId: sheet.id, requiresEndTurn: false, mechanicsResolved: false,
+      characterId: sheet.id, requiresEndTurn: true, mechanicsResolved: false,
     };
     const held: Floor = { mode: "hold", next: floor, combat: gate };
     setFloor(campaignId, held);

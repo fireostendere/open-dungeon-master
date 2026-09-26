@@ -2,7 +2,7 @@
     auto_https disable_redirects
 }
 
-api.iroslyakov.com {
+api.iroslyakov.com, dnd.iroslyakov.com {
     handle /rtc* {
         reverse_proxy localhost:7880
     }
@@ -13,7 +13,8 @@ api.iroslyakov.com {
         reverse_proxy localhost:8765
     }
 
-    # ODM owns the main public host. The legacy LiveKit web app stays on :8443.
+    # ODM is served on both names; dnd.iroslyakov.com is canonical. The legacy
+    # LiveKit web app stays on :8443.
     # Reloading this file is graceful and does not stop either application.
     @odm_mcp path /mcp /mcp/*
     handle @odm_mcp {

@@ -13,11 +13,11 @@
 
 ## Справочная конфигурация сервера
 
-В проекте ранее был настроен хост `api.iroslyakov.com` и каталог `/opt/odm`. Эти сведения описывают конфигурацию, а не подтверждают текущую доступность сервера. Проверяйте установленную версию и состояние командами `odmctl status` и `odm-mcpctl status`.
+Публичный хост ODM — `dnd.iroslyakov.com`; прежний `api.iroslyakov.com` оставлен совместимым alias. Каталог сервера — `/opt/odm`. Проверяйте установленную версию и состояние командами `odmctl status` и `odm-mcpctl status`.
 
 | Компонент | Адрес или каталог |
 | --- | --- |
-| Веб-приложение | `http://api.iroslyakov.com:3005` |
+| Веб-приложение | `https://dnd.iroslyakov.com` |
 | MCP на самом сервере | `http://127.0.0.1:3006/mcp`, Bearer-аутентификация |
 | Git-зеркало | `/opt/odm/repository` |
 | База игры | `/opt/odm/state/data/local-roleplay.sqlite` |

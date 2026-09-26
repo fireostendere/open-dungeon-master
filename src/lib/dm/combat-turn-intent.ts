@@ -1,10 +1,21 @@
 import { spendAction, spendAttack, type TurnBudget } from "./action-budget.ts";
 import { RESOURCE_ACTIONS } from "./resource-action-cost.ts";
 import { matchWeapon } from "../srd/weapons.ts";
+import { spendPetCommand, type PetCombatant } from "./pet-combat.ts";
+import type { PublicEncounter } from "../db/encounter-view.ts";
+
+// Both combat panels preview the same authoritative budget, never another actor's.
+export function combatIntentBudget(encounter: Pick<PublicEncounter, "currentActorId" | "turnBudget">, fresh: TurnBudget): TurnBudget {
+  return encounter.currentActorId === fresh.ownerId && encounter.turnBudget
+    ? { ...fresh, ...encounter.turnBudget, oncePerTurn: encounter.turnBudget.oncePerTurn ?? [] }
+    : fresh;
+}
 
 export type CombatChoice =
   | { type: "attack"; targetEnemyId: string; weapon: string }
   | { type: "dodge" }
+  | { type: "action"; action: "dash" | "disengage" | "hide" | "help" | "grapple" | "shove"; targetEnemyId?: string; targetCharacterId?: string }
+  | { type: "pet"; petName: string; attack: string; targetEnemyId: string }
   | { type: "resource"; resource: string; targetCharacterId?: string }
   | { type: "item"; item: string; targetCharacterId?: string };
 
@@ -19,8 +30,9 @@ export type CombatTurnIntent = {
 export type CombatIntentSheet = {
   id: string;
   name: string;
-  equipment: Array<{ name: string; qty: number; gear?: { weapon?: unknown } }>;
+  equipment: Array<{ name: string; qty: number; equipped?: boolean; gear?: { weapon?: unknown } }>;
   resources: Record<string, { max: number; used: number }>;
+  pets?: PetCombatant[];
 };
 
 export type CombatChoiceDescriptor =
@@ -35,7 +47,7 @@ const consumableName = /potion|vial|elixir|flask|draught|philter|scroll|ration|t
 // Client-safe: it only reads the sheet data already delivered to the owner.
 export function combatChoiceDescriptors(sheet: CombatIntentSheet): CombatChoiceDescriptor[] {
   const weapons = sheet.equipment
-    .filter((item) => item.qty > 0 && (Boolean(item.gear?.weapon) || matchWeapon(item.name)))
+    .filter((item) => item.qty > 0 && item.equipped !== false && (Boolean(item.gear?.weapon) || matchWeapon(item.name)))
     .map((item) => ({ type: "weapon" as const, name: item.name }));
   return [
     ...weapons,
@@ -54,7 +66,7 @@ export function combatChoiceDescriptors(sheet: CombatIntentSheet): CombatChoiceD
 
 function knownWeapon(sheet: CombatIntentSheet, weapon: string) {
   return /^(unarmed strike|unarmed|fist|punch|kick)$/i.test(weapon) || sheet.equipment.some(
-    (item) => item.qty > 0 && item.name === weapon && (Boolean(item.gear?.weapon) || matchWeapon(item.name)),
+    (item) => item.qty > 0 && item.equipped !== false && item.name === weapon && (Boolean(item.gear?.weapon) || matchWeapon(item.name)),
   );
 }
 
@@ -88,6 +100,22 @@ export function validateCombatTurnIntent(
       if (!spent.ok) return spent;
       next = spent.budget;
       selections.push(copy.dodge);
+    } else if (choice.type === "pet") {
+      const pet = sheet.pets?.find(entry => entry.name === choice.petName);
+      if (!pet || !pet.attacks.some(attack => attack.name === choice.attack) || !visibleEnemyIds.has(choice.targetEnemyId)) return { ok: false, error: "Choose a living pet's available attack and a visible enemy." };
+      const spent = spendPetCommand(next, pet, sheet.name);
+      if (!spent.ok) return spent;
+      next = spent.budget;
+      selections.push(`${pet.name}: ${choice.attack}; ${copy.target}: ${name(choice.targetEnemyId)}`);
+    } else if (choice.type === "action") {
+      const specialAttack = choice.action === "grapple" || choice.action === "shove";
+      if (specialAttack && !visibleEnemyIds.has(choice.targetEnemyId ?? "")) return { ok: false, error: "Choose a visible enemy." };
+      if (choice.action === "help" && (!allyIds.has(choice.targetCharacterId ?? "") || choice.targetCharacterId === sheet.id)) return { ok: false, error: "Help requires another ally." };
+      const spent = specialAttack ? spendAttack(next, sheet.name, false) : spendAction(next, "action", choice.action, sheet.name, ["dash", "hide", "disengage"].includes(choice.action));
+      if (!spent.ok) return spent;
+      next = spent.budget;
+      const labels = { dash: "Рывок", disengage: "Отход", hide: "Скрыться", help: "Помощь", grapple: "Захват", shove: "Толчок" };
+      selections.push(`${presentation?.language === "ru" ? labels[choice.action] : choice.action}${choice.targetEnemyId || choice.targetCharacterId ? `; ${copy.target}: ${name(choice.targetEnemyId ?? choice.targetCharacterId!)}` : ""}`);
     } else if (choice.type === "resource") {
       const state = Object.hasOwn(sheet.resources, choice.resource) ? sheet.resources[choice.resource] : undefined;
       const action = Object.hasOwn(RESOURCE_ACTIONS, choice.resource) ? RESOURCE_ACTIONS[choice.resource] : undefined;

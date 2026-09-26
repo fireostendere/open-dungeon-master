@@ -9,10 +9,11 @@
 - **SSH подключение**: `root@api.iroslyakov.com` (доступ по ключу)
 - **Корневая папка на сервере**: `/opt/odm`
 - **Репозиторий на сервере**: `/opt/odm/repository`
-- **Веб-приложение**: `https://api.iroslyakov.com` (Next.js 16, Node 22+, SQLite)
+- **Веб-приложение**: `https://dnd.iroslyakov.com` (Next.js 16, Node 22+, SQLite; прежний адрес `api.iroslyakov.com` оставлен как alias)
 - **Администратор веб-панели**: логин `odm_admin`, пароль в `/opt/odm/config/admin.json`
 - **MCP Control Plane**:
-  - Внешний SSE/HTTP endpoint: `http://127.0.0.1:3006/mcp`
+  - Внешний HTTPS endpoint: `https://dnd.iroslyakov.com/mcp`
+  - Loopback endpoint на сервере: `http://127.0.0.1:3006/mcp`
   - Внутренний Control API: `http://127.0.0.1:3005/api/internal/mcp`
   - Токен авторизации (Bearer): `/opt/odm/config/mcp.token`
 - **База данных**: SQLite в `/opt/odm/state/data/local-roleplay.sqlite` (ключ `DB_ENCRYPTION_KEY` в `/opt/odm/config/app.env`)

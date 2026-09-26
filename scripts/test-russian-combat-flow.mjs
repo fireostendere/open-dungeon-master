@@ -234,11 +234,11 @@ async function link(specifier) {
   if (modules.has(specifier)) return modules.get(specifier);
   const values = mocks[specifier];
   if (!values) throw new Error(`Unmocked dependency: ${specifier}`);
-  const module = new vm.SyntheticModule(Object.keys(values), function () {
+  const record = new vm.SyntheticModule(Object.keys(values), function () {
     for (const [key, value] of Object.entries(values)) this.setExport(key, value);
   }, { context, identifier: specifier });
-  modules.set(specifier, module);
-  return module;
+  modules.set(specifier, record);
+  return record;
 }
 await lifecycle.link(link);
 await lifecycle.evaluate();
@@ -326,6 +326,23 @@ await test('Spell attack uses the same final-action completion path', () => {
   const result = invoke({ completeTurn: true }, 'cast_at_enemy');
   assert.equal(result.result.turnCompletion.status, 'completed');
   assert.deepEqual(calls.map(call => call.name), ['cast_at_enemy', 'end_turn']);
+});
+
+await test('Compound turn parks at its first physical roll without starting later actions', () => {
+  reset({ physical: true });
+  const result = invoke({ steps: [{ name: 'pc_attack', args: { targetEnemyId: 'enemy' } }, { name: 'pc_attack', args: { targetEnemyId: 'enemy' } }] }, 'combat_turn');
+  assert.equal(result.ok, true);
+  assert.equal(result.result.status, 'awaiting_rolls');
+  assert.equal(result.result.nextStep, 1);
+  assert.deepEqual(calls.map(call => call.name), ['pc_attack']);
+  assert.equal(state.encounter.turnIndex, 0);
+});
+await test('Compound turn rejects nested completion and another character before dice', () => {
+  reset();
+  for (const args of [{ characterId: 'pc-b' }, { completeTurn: true }]) {
+    assert.equal(invoke({ steps: [{ name: 'pc_attack', args }] }, 'combat_turn').ok, false);
+    assert.equal(calls.length, 0);
+  }
 });
 
 console.log(`test-russian-combat-flow: ${passed} tests passed; provider/gameplay quality is not evaluated by these deterministic tests.`);

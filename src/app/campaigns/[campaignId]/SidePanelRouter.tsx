@@ -10,6 +10,7 @@ import { BattleMapPanel } from "@/app/campaigns/[campaignId]/BattleMapPanel";
 import { DmWhisperPanel } from "@/app/campaigns/[campaignId]/DmWhisperPanel";
 import { EncounterPanel } from "@/app/campaigns/[campaignId]/EncounterPanel";
 import { CombatTurnHud } from "@/app/campaigns/[campaignId]/CombatTurnHud";
+import { CombatPetsPanel } from "@/app/campaigns/[campaignId]/CombatPetsPanel";
 import { CombatLog } from "@/app/campaigns/[campaignId]/CombatLog";
 import type { StoredRoll } from "@/lib/db/rolls";
 import type { CombatChoice, CombatTurnIntent } from "@/lib/dm/combat-turn-intent";
@@ -360,6 +361,16 @@ export function SidePanelRouter({
             genre={campaign?.gameSettings?.genre}
           />
         ) : null}
+
+        {encounter ? <CombatPetsPanel
+          key={`pets:${encounter.id}:${encounter.round}:${encounter.turnIndex}`}
+          encounter={encounter}
+          sheets={sheets}
+          mySheet={mySheet}
+          canCommand={Boolean(ownCombatTurn && !combatLocked && floor.mode !== "hold" && !sending)}
+          choices={combatChoices}
+          onChoicesChange={onCombatChoicesChange}
+        /> : null}
 
         {ownCombatTurn && encounter && mySheet && onCombatSubmit ? (
           <div className="rounded-xl border border-amber-500/60 bg-stone-950/90 p-1 shadow-glow-gold-subtle">

@@ -10,7 +10,7 @@ import {
 } from "@/lib/db/encounters";
 import { getSheetById, patchSheet } from "@/lib/db/sheets";
 import { insertRoll } from "@/lib/db/rolls";
-import type { DmTurn } from "@/lib/db/dm-turns";
+import { listOpenPendingRolls, type DmTurn } from "@/lib/db/dm-turns";
 import { d20Expression, rollExpression } from "@/lib/dice";
 import { publishPersisted, publishWithSeq } from "@/lib/events";
 import { acBreakdownFor, computeSheetDerived, sizeForRace } from "@/lib/srd";
@@ -24,6 +24,7 @@ import {
   budgetApplies,
   freshBudget,
   spendAction,
+  spendAttack,
   type ActionKind,
   type TurnBudget,
 } from "@/lib/dm/action-budget";
@@ -32,7 +33,7 @@ import { resolveEnemyRef, publishEncounter } from "@/lib/dm/enemy-damage";
 // For the Shield spell's slot spend; mutations never imports back.
 import { applyDmMutation } from "@/lib/dm/mutations";
 import { resolveSheetRef } from "@/lib/dm/rolls";
-import { DODGING } from "@/lib/dm/condition-logic";
+import { DODGING, incapacitatedBy } from "@/lib/dm/condition-logic";
 import type { CharacterSheet } from "@/lib/schemas/sheet";
 
 // The rest of a 5e turn: the actions that are not attacks or spells, plus
@@ -249,11 +250,14 @@ export function handleTakeAction(
   if (!sheet) {
     return { error: "Unknown characterId; use one from GAME STATE." };
   }
-  if (sheet.currentHp <= 0) {
-    return { error: `${sheet.name} is at 0 HP and takes no actions.` };
+  if (sheet.currentHp <= 0 || incapacitatedBy(sheet.conditions)) {
+    return { error: `${sheet.name} cannot take actions while unconscious or incapacitated.` };
   }
 
   const encounter = getActiveEncounter(campaign.id);
+  if (encounter && (currentCombatantId(encounter) !== sheet.id || listOpenPendingRolls(campaign.id).length)) {
+    return { error: "Take actions only on the current combat turn, after pending rolls resolve." };
+  }
   const budget = budgetFor(
     encounter,
     sheet.id,
@@ -261,7 +265,9 @@ export function handleTakeAction(
     conditionExtraActions(sheet.conditions),
   );
   if (budget && encounter) {
-    const spend = spendAction(budget, ACTION_COST[args.action], args.action, sheet.name);
+    const spend = args.action === "grapple" || args.action === "shove"
+      ? spendAttack(budget, sheet.name, false)
+      : spendAction(budget, ACTION_COST[args.action], args.action, sheet.name, ["dash", "disengage", "hide"].includes(args.action));
     if (!spend.ok) {
       return { error: spend.error };
     }
@@ -513,11 +519,11 @@ export function handleUseReaction(
   }
 
   // A reaction is spent on someone ELSE's turn, so it cannot live in the
-  // acting combatant's turn budget. Both sides of the table share
-  // encounter.reactionsUsed, which empties when the round wraps.
+  // acting combatant's turn budget. Both sides share encounter.reactionsUsed;
+  // each entry clears at the start of that combatant's next turn.
   if (encounter.reactionsUsed.includes(sheet.id)) {
     return {
-      error: `${sheet.name} has already used their reaction this round; it comes back at the start of their next turn. ${args.feature} does not happen.`,
+      error: `${sheet.name} has already used their reaction; it comes back at the start of their next turn. ${args.feature} does not happen.`,
     };
   }
 
@@ -544,8 +550,6 @@ export function handleUseReaction(
     if ("error" in spend) {
       return spend;
     }
-    encounter.reactionsUsed = [...encounter.reactionsUsed, sheet.id];
-    saveEncounter(encounter);
     addSheetCondition(campaign, sheet, "shielded", 1);
     const updated = getSheetById(sheet.id);
     return {

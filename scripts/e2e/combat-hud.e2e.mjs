@@ -20,22 +20,62 @@ try {
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
   await page.goto(`${base}/campaigns/${campaignId}`, { timeout: 120000 });
-  await page.getByRole('button', { name: 'Закончить ход', exact: true }).waitFor({ timeout: 60000 });
-  const sidePanelWidth = await page.locator('#side-panel-content').evaluate(element => element.parentElement.getBoundingClientRect().width);
-  assert.ok(sidePanelWidth < 1440 * 0.8, `Desktop battle panel should not fill the viewport (${sidePanelWidth}px).`);
-  // First-time onboarding appears asynchronously, after the table loads.
+  // Onboarding may switch to the party tab after the combat auto-focus.
   const tour = page.getByRole('button', { name: 'Завершить тур', exact: true });
   if (await tour.waitFor({ timeout: 5000 }).then(() => true, () => false)) await tour.click();
+  await page.getByRole('button', { name: 'Вкладка «Бой» ↗', exact: true }).click();
+  await page.getByRole('button', { name: 'Закончить ход', exact: true }).waitFor({ timeout: 60000 }).catch(async error => {
+    await page.screenshot({ path: '/tmp/opencode/odm-combat-hud-failure.png', fullPage: true });
+    console.error('Combat page:', await page.locator('body').innerText());
+    throw error;
+  });
+  const sidePanelWidth = await page.locator('#side-panel-content').evaluate(element => element.parentElement.getBoundingClientRect().width);
+  assert.ok(sidePanelWidth < 1440 * 0.8, `Desktop battle panel should not fill the viewport (${sidePanelWidth}px).`);
   assert.equal(await page.getByRole('button', { name: 'Речь', exact: true }).count(), 0);
+  assert.equal(await page.getByRole('combobox', { name: 'Оружие', exact: true }).inputValue(), 'Longsword', 'carried weapon is the default, not an unarmed strike');
   await page.getByRole('combobox', { name: 'Оружие', exact: true }).selectOption('Longsword');
   await page.getByRole('combobox', { name: 'Цель атаки', exact: true }).selectOption({ index: 1 });
+  await page.getByText('Манёвры', { exact: true }).click();
+  assert.equal(await page.getByRole('button', { name: 'Рывок', exact: true }).isEnabled(), true);
+  if (process.env.ODM_E2E_PET_NAME) {
+    const pets = page.getByRole('region', { name: 'Питомцы в бою', exact: true });
+    await pets.waitFor({ timeout: 10000 });
+    assert.equal(await page.getByRole('region', { name: 'Ваш боевой ход', exact: true }).getByRole('region', { name: 'Питомцы в бою', exact: true }).count(), 0, 'pet panel is separate from the hero HUD');
+    const petTarget = pets.getByRole('combobox', { name: `Цель питомца: ${process.env.ODM_E2E_PET_NAME}`, exact: true });
+    assert.equal(await petTarget.inputValue(), '', 'pet target is independent of the hero attack target');
+    const bite = pets.getByRole('button', { name: `Приказать ${process.env.ODM_E2E_PET_NAME}: Bite`, exact: true });
+    assert.equal(await bite.isDisabled(), true);
+    await petTarget.selectOption({ index: 1 });
+    await bite.click();
+    assert.equal(await bite.isDisabled(), true, 'a pet cannot be queued twice');
+    assert.equal(await pets.getByText('Команда в плане хода', { exact: true }).isVisible(), true);
+    assert.equal(await page.getByText('Доп. действие: использовано', { exact: true }).isVisible(), true, 'pet and hero panels share one budget');
+    await page.getByRole('button', { name: 'Убрать действие 1', exact: true }).click();
+    assert.equal(await bite.isEnabled(), true);
+  }
+  if (process.env.ODM_E2E_OTHER_USERNAME) {
+    const other = await browser.newContext({ viewport: { width: 1440, height: 1050 } });
+    await other.addCookies([{ name: 'odm_locale', value: 'ru', url: base }]);
+    assert.equal((await other.request.post(`${base}/api/auth/login`, { data: { username: process.env.ODM_E2E_OTHER_USERNAME, password: process.env.ODM_E2E_PASSWORD } })).status(), 200);
+    const observer = await other.newPage();
+    await observer.goto(`${base}/campaigns/${campaignId}`);
+    const otherTour = observer.getByRole('button', { name: 'Завершить тур', exact: true });
+    if (await otherTour.waitFor({ timeout: 5000 }).then(() => true, () => false)) await otherTour.click();
+    await observer.locator('[data-tour="tab-battle"]').filter({ visible: true }).click();
+    const pets = observer.getByRole('region', { name: 'Питомцы в бою', exact: true });
+    await pets.waitFor();
+    assert.equal(await observer.getByRole('region', { name: 'Ваш боевой ход', exact: true }).count(), 0);
+    assert.equal(await pets.getByRole('button', { name: `Приказать ${process.env.ODM_E2E_PET_NAME}: Bite`, exact: true }).count(), 0, 'no commands for another player pet');
+    assert.equal(await pets.getByRole('button', { name: 'Приказать Buddy: Bite', exact: true }).isDisabled(), true, 'own pet waits for the owner turn');
+    await other.close();
+  }
   await page.getByRole('button', { name: 'Добавить', exact: true }).nth(0).click();
   await page.getByRole('combobox', { name: 'Способность', exact: true }).selectOption('second_wind');
   await page.getByRole('button', { name: 'Добавить', exact: true }).nth(1).click();
   assert.equal(await page.getByText('Доп. действие: использовано', { exact: true }).isVisible(), true);
   await page.getByRole('textbox', { name: 'Действия и реплики персонажа', exact: true }).fill('Держитесь! Прикрываю отряд.');
   await page.screenshot({ path: '/tmp/opencode/odm-combat-desktop.png', fullPage: true });
-  await page.getByRole('button', { name: 'OOC', exact: true }).click();
+  await page.getByRole('button', { name: 'Вне игры', exact: true }).click();
   assert.equal(await page.locator('[data-tour="composer-input"] textarea').isEditable(), true);
   await page.getByRole('button', { name: 'Действие', exact: true }).click();
   assert.equal(await page.getByRole('button', { name: 'Убрать действие 2', exact: true }).isVisible(), true);
@@ -46,11 +86,12 @@ try {
   await page.getByRole('button', { name: 'Отправить действие', exact: true }).click();
   const submitted = await response;
   assert.equal(submitted.status(), 202, await submitted.text());
-  await page.getByText('Мастер разрешает ход и готовит повествование. Пока доступен только OOC.', { exact: true }).waitFor();
-  await page.getByRole('button', { name: 'OOC', exact: true }).click();
+  await page.getByRole('button', { name: 'Стол', exact: true }).click();
+  await page.getByText('Мастер разрешает ход и готовит повествование. Пока доступны вопросы Мастеру и режим «Вне игры».', { exact: true }).waitFor();
+  await page.getByRole('button', { name: 'Вне игры', exact: true }).click();
   assert.equal(await page.locator('[data-tour="composer-input"] textarea').isEditable(), true);
   assert.deepEqual(errors, []);
-  console.log('PASS combat HUD: desktop/mobile, action + bonus draft, no Say, OOC, counters, preserved draft, submit, processing lock.');
+  console.log('PASS combat HUD: separate pet panel, independent targets, shared budget, owner-only commands, visible off-turn, desktop/mobile, draft, OOC and processing lock.');
 } finally {
   await browser.close();
 }

@@ -2,7 +2,7 @@
 // The narrator sets completeTurn only on the LAST declared action; the ordinary
 // end_turn handler remains the only implementation of initiative advancement.
 export const COMPLETE_TURN_ACTIONS: readonly string[] = Object.freeze([
-  "pc_attack", "cast_at_enemy",
+  "pc_attack", "cast_at_enemy", "cast_buff", "heal", "pet_attack", "take_action", "use_item", "use_resource",
 ]);
 
 export type CombatTurnKey = {

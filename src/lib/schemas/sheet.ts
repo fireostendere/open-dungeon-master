@@ -386,6 +386,8 @@ export type WildShape = z.infer<typeof wildShapeSchema>;
 // drives it through the pet tools (src/lib/dm/pet-tools.ts) and damage can
 // be routed at it by name through apply_damage.
 export const petSchema = z.object({
+  // Only for explicitly authored story pets; class pets use their feature.
+  commandCost: z.enum(["action", "bonus", "attack"]).optional(),
   name: z.string().trim().min(1).max(60),
   kind: z.enum(["familiar", "beast_companion", "drake", "other"]),
   // The species/form behind the name ("owl", "wolf", "drake").

@@ -119,6 +119,9 @@ const RUSSIAN_WEAPON_ALIASES: Record<string, string> = {
 };
 
 const byName = new Map(SRD_WEAPONS.map((weapon) => [normalize(weapon.name), weapon]));
+const namedRussianWeapons = Object.entries(RUSSIAN_WEAPON_ALIASES)
+  .sort(([a], [b]) => b.length - a.length)
+  .map(([name, weapon]) => ({ pattern: new RegExp(`(?:^|[^\\p{L}\\p{N}])${name}(?=$|[^\\p{L}\\p{N}])`, "u"), weapon }));
 
 // "Longswords" / "quarterstaffs" / "Hand crossbows" -> canonical lookup key.
 function normalize(term: string) {
@@ -136,6 +139,7 @@ function normalizeMatch(term: string) {
 // both land on the Longsword. Longer names win so "hand crossbow" never
 // matches a plain crossbow entry first.
 export function matchWeapon(term: string): SrdWeapon | null {
+  if (/(?:^|[\s,(])[+-](?:0|[4-9]|\d{2,})(?!\d)/.test(term)) return null;
   const wanted = normalizeMatch(term);
   if (!wanted) {
     return null;
@@ -148,6 +152,10 @@ export function matchWeapon(term: string): SrdWeapon | null {
   if (alias) {
     return byName.get(normalize(alias)) ?? null;
   }
+  // Named equipment keeps the longest complete weapon term, never a substring
+  // such as «булава» inside «булавами».
+  const namedAlias = namedRussianWeapons.find(({ pattern }) => pattern.test(wanted));
+  if (namedAlias) return byName.get(normalize(namedAlias.weapon)) ?? null;
   const candidates = SRD_WEAPONS.filter((weapon) => {
     const name = normalize(weapon.name);
     return wanted.includes(name) || name.includes(wanted);

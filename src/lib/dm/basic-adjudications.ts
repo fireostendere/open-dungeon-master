@@ -1,6 +1,7 @@
 import type { Campaign } from "@/lib/db/campaigns";
 import { allocateSeq, getFloor, setCampaignScene, setFloor } from "@/lib/db/campaigns";
 import { getActiveEncounter } from "@/lib/db/encounters";
+import { listOpenPendingRolls } from "@/lib/db/dm-turns";
 import { hasRecentIdenticalEvent, insertCharacterEvent, CHARACTER_EVENT_KINDS, type CharacterEventKind } from "@/lib/db/character-events";
 import { getCurrentLocation, updateCurrentLocationDetails, upsertCurrentLocation } from "@/lib/db/locations";
 import { publishPersisted } from "@/lib/events";
@@ -24,9 +25,23 @@ function parseSpotlightUserIds(rawArguments: string, sheets: CharacterSheet[], s
 export function handleRequestPlayerInput(campaign: Campaign, rawArguments: string, sheets: CharacterSheet[], sheetsById: Map<string, CharacterSheet>): Record<string, unknown> {
   const currentFloor = getFloor(campaign.id);
   const effectiveFloor = currentFloor.mode === "hold" ? currentFloor.next : currentFloor;
-  if (getActiveEncounter(campaign.id) || effectiveFloor.mode === "initiative") return { error: "The initiative order has the floor while the fight runs." };
   const parsed = parseSpotlightUserIds(rawArguments, sheets, sheetsById);
   if (!parsed) return { error: "Name at least one player character to give the floor to." };
+  const encounter = getActiveEncounter(campaign.id);
+  if (encounter || effectiveFloor.mode === "initiative") {
+    const actor = encounter?.orderReady ? encounter.order[encounter.turnIndex] : null;
+    if (currentFloor.mode !== "hold" || !currentFloor.combat || currentFloor.combat.mechanicsResolved ||
+        effectiveFloor.mode !== "initiative" || !encounter || effectiveFloor.encounterId !== encounter.id ||
+        currentFloor.combat.round !== encounter.round || currentFloor.combat.turnIndex !== encounter.turnIndex ||
+        actor?.kind !== "pc" || currentFloor.combat.characterId !== actor.characterId ||
+        parsed.userIds.length !== 1 || parsed.userIds[0] !== actor.userId || listOpenPendingRolls(campaign.id).length) {
+      return { error: "Clarification requires the held current player's turn and no pending roll; it cannot advance or reset initiative." };
+    }
+    setFloor(campaign.id, effectiveFloor);
+    publishPersisted(campaign.id, "floor_changed", { floor: effectiveFloor });
+    return { ok: true, clarification: true, characterId: actor.characterId, prompt: parsed.prompt,
+      note: "The current player can clarify this same turn. Spent actions, resources and confirmed rolls remain spent; do not replay them." };
+  }
   const floor = { mode: "spotlight" as const, userIds: parsed.userIds, prompt: parsed.prompt, respondedUserIds: [] };
   setFloor(campaign.id, floor);
   publishPersisted(campaign.id, "floor_changed", { floor });

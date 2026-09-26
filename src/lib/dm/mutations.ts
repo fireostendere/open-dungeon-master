@@ -8,10 +8,12 @@ import { listConditions } from "@/lib/content";
 import { levelForXp } from "@/lib/srd";
 import { RAGING, matchResource, spendRelentlessEndurance } from "@/lib/srd/class-resources";
 import { getActiveEncounter, saveEncounter } from "@/lib/db/encounters";
-import { budgetApplies, freshBudget, spendAction } from "@/lib/dm/action-budget";
+import { listOpenPendingRolls } from "@/lib/db/dm-turns";
+import { budgetApplies, freshBudget, spendAction, spendSpell, type ActionKind } from "@/lib/dm/action-budget";
 import { RESOURCE_ACTIONS } from "@/lib/dm/resource-action-cost";
 import { combatRiders } from "@/lib/srd/feature-effects";
 import { conditionExtraActions } from "@/lib/srd/condition-effects";
+import { authoredSpellRow } from "@/lib/srd/spell-mechanics";
 import { publishPersisted } from "@/lib/events";
 import {
   fullPatchSheetSchema,
@@ -45,6 +47,7 @@ import {
   pcResistances,
   pruneMeta,
   removeConditions,
+  incapacitatedBy,
 } from "@/lib/dm/condition-logic";
 import { normalizeAbility, normalizeListAction } from "@/lib/dm/arg-coerce";
 import {
@@ -61,7 +64,7 @@ import {
   resourceTools,
   rollHealing,
 } from "@/lib/dm/resource-tools";
-import { searchSpells, spellDamageFor, spellNameMatches } from "@/lib/content";
+import { searchSpells, spellDamageFor, spellNameMatches, spellMechanicsFor } from "@/lib/content";
 import { suggestedSpellCount } from "@/lib/content/mechanics";
 import { abilityMod, computeSheetDerived, findClass } from "@/lib/srd";
 import { spellClassFor } from "@/lib/classes";
@@ -621,6 +624,10 @@ export function applyDmMutation(
   const resourceId = toolName === "use_resource" ? matchResource(args.resource ?? args.name ?? "")?.id : undefined;
   const resourceAction = resourceId && Object.hasOwn(RESOURCE_ACTIONS, resourceId) ? RESOURCE_ACTIONS[resourceId] : undefined;
   const cost = toolName === "use_item" ? "action" : resourceAction?.cost;
+  if (encounter && cost && (!encounter.orderReady || actor?.kind !== "pc" || actor.characterId !== sheet.id ||
+      sheet.currentHp <= 0 || incapacitatedBy(sheet.conditions) || listOpenPendingRolls(campaign.id).length)) {
+    return { result: { error: "Use this item or ability only on the conscious current actor's turn, with no pending roll." } };
+  }
   const resourceBudget = encounter && actor?.kind === "pc" && actor.characterId === sheet.id && cost
     ? spendAction(budgetApplies(encounter.turnBudget, sheet.id, encounter.round) ? encounter.turnBudget : freshBudget({
       ownerId: sheet.id, round: encounter.round, attacksAllowed: 1 + combatRiders(sheet).extraAttacks,
@@ -793,20 +800,29 @@ export function applyDmMutation(
       let amount = args.amount ?? 0;
       let healNote: string | null = null;
       const healSpell = (args.spell ?? "").trim();
+      if (sheet.deathSaves?.dead) return { result: { error: `${sheet.name} is DEAD; ordinary healing cannot help.` } };
       if (healSpell) {
-        const caster = (args.casterId ? resolve(args.casterId) : null) ?? sheet;
+        const caster = args.casterId ? resolve(args.casterId) : sheet;
+        if (!caster) return { result: { error: "Unknown casterId." } };
+        const mechanics = spellMechanicsFor({ spell: healSpell, userId: caster.userId });
+        if (mechanics?.mech.resolution !== "heal") return { result: { error: `${healSpell} is not a supported healing spell.` } };
         const scaled = spellDamageFor({
           spell: healSpell,
           userId: caster.userId,
           casterLevel: caster.level,
-          slotLevel: args.level,
+          slotLevel: args.level ?? mechanics.spellLevel,
         });
+        if (!scaled) return { result: { error: `No validated healing dice for ${healSpell}; repair its content definition before casting.` } };
         if (scaled) {
+          const spent = applyDmMutation(campaign, turnId, "use_spell_slot", JSON.stringify({
+            characterId: caster.id, spell: healSpell, level: args.level ?? mechanics.spellLevel,
+          }), sheets, sheetsById).result;
+          if ("error" in spent) return { result: spent };
           const derived = computeSheetDerived(caster);
           const modifier = caster.spellcasting
             ? derived.abilityMods[caster.spellcasting.ability]
             : 0;
-          const expression = modifier > 0 ? `${scaled.dice}+${modifier}` : scaled.dice;
+          const expression = modifier > 0 ? `${scaled.dice}+${modifier}` : modifier < 0 ? `${scaled.dice}${modifier}` : scaled.dice;
           const outcome = rollExpression(expression);
           const roll = insertRoll({
             campaignId: campaign.id,
@@ -830,13 +846,6 @@ export function applyDmMutation(
             error: healSpell
               ? `The server could not derive ${healSpell}'s healing; send heal again with an explicit amount.`
               : "heal needs a positive amount, or a spell name to roll.",
-          },
-        };
-      }
-      if (sheet.deathSaves?.dead) {
-        return {
-          result: {
-            error: `${sheet.name} is DEAD. Healing cannot help; only the party lead can reverse a death.`,
           },
         };
       }
@@ -1382,11 +1391,49 @@ export function applyDmMutation(
             (entry) => spellNameMatches(entry, spell),
           )
         : undefined;
-      if (known && known.level === 0) {
+      // Casting and slot spending share one transaction. Nameless expenditure
+      // remains resource-only (Divine Smite and other non-spell features).
+      if (spell) {
+        if (!sheet.spellcasting || sheet.currentHp <= 0 || incapacitatedBy(sheet.conditions)) {
+          return { result: { error: `${sheet.name} cannot cast in their current state.` } };
+        }
+        const combat = getActiveEncounter(campaign.id);
+        if (combat) {
+          const source = known?.data ?? authoredSpellRow(spell);
+          const time = String(source?.casting_time ?? "").toLowerCase();
+          const castingCost: ActionKind | null = /^1 bonus action/.test(time) ? "bonus" : /^1 reaction/.test(time) ? "reaction" : /^1 action/.test(time) ? "action" : null;
+          if (args.ritual || !castingCost) return { result: { error: `Cannot resolve ${spell}'s casting time as one combat action; check its source.` } };
+          const current = combat.orderReady ? combat.order[combat.turnIndex] : null;
+          if (!combat.orderReady || (castingCost !== "reaction" && listOpenPendingRolls(campaign.id).length)) {
+            return { result: { error: "Resolve initiative and pending rolls before casting." } };
+          }
+          if (castingCost === "reaction" && combat.reactionsUsed.includes(sheet.id)) {
+            return { result: { error: `${sheet.name} has already used their reaction.` } };
+          }
+          if (castingCost !== "reaction" && (current?.kind !== "pc" || current.characterId !== sheet.id)) {
+            return { result: { error: "Cast an action or bonus-action spell only on the caster's current combat turn." } };
+          }
+          if (current?.kind === "pc" && current.characterId === sheet.id) {
+            const budget = budgetApplies(combat.turnBudget, sheet.id, combat.round) ? combat.turnBudget : freshBudget({
+              ownerId: sheet.id, round: combat.round, attacksAllowed: 1 + combatRiders(sheet).extraAttacks,
+              extraActions: conditionExtraActions(sheet.conditions),
+            });
+            const spent = spendSpell(budget, castingCost, known?.level ?? authoredSpellRow(spell)?.level ?? level, spell, sheet.name);
+            if (!spent.ok) return { result: { error: spent.error } };
+            combat.turnBudget = spent.budget;
+            saveEncounter(combat);
+          }
+          if (castingCost === "reaction") {
+            combat.reactionsUsed = [...combat.reactionsUsed, sheet.id];
+            saveEncounter(combat);
+          }
+        }
+      }
+      if ((known?.level ?? authoredSpellRow(spell)?.level) === 0) {
         return {
           result: {
             ok: true,
-            note: `${spell} is a cantrip: no spell slot is spent. Cantrips are unlimited.`,
+            note: `${spell} is a cantrip: no spell slot is spent; its combat casting time still applies.`,
           },
         };
       }

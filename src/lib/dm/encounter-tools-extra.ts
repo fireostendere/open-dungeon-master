@@ -411,7 +411,7 @@ function handleAoeDamage(
   if (args.spell && casterSheet) {
     const resolved = spellMechanicsFor({ spell: args.spell, userId: casterSheet.userId });
     if (resolved?.mech.resolution === "save") {
-      if (resolved.spellLevel >= 1) {
+      {
         const spend = applyDmMutation(
           campaign,
           turn.id,

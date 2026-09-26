@@ -188,10 +188,12 @@ export function tabBadgeClass(tab: PanelTab): string {
 export function useSessionTabs({
   chatTarget,
   battleMap,
+  hasEncounter,
   isLead,
 }: {
   chatTarget: string | null;
   battleMap?: PlayerMapView | null;
+  hasEncounter: boolean;
   // The lead tab disappears when the seat is handed to someone else, so a
   // stale selection falls back exactly as battle does when the map goes.
   isLead: boolean;
@@ -217,7 +219,7 @@ export function useSessionTabs({
     setPanelTab("battle");
     setMobileView("panel");
   }
-  if (!battleMap && panelTab === "battle") {
+  if (!battleMap && !hasEncounter && panelTab === "battle") {
     setPanelTab("party");
   }
   if (!isLead && panelTab === "lead") {

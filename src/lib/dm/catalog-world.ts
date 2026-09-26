@@ -420,7 +420,7 @@ export const STORY_ADJUDICATIONS: CatalogEntry[] = [
     name: "request_player_input",
     label: "Give the floor",
     category: "story",
-    summary: "Hands the moment to named players and waits for them.",
+    summary: "Outside combat gives spotlight. In combat reopens only the held current player's SAME turn for a necessary clarification, preserving spent actions/resources/rolls. Requires no pending roll. Publish the question first; never use this to grant a second turn.",
     fields: [
       { name: "characterIds", label: "Characters", kind: "characters", required: true },
       { name: "prompt", label: "What you need", kind: "text" },

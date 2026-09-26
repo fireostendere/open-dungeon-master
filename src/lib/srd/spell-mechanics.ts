@@ -58,6 +58,7 @@ export type SpellMech = {
 type AuthoredSpellRow = {
   name: string;
   level: number;
+  casting_time?: string;
   concentration?: boolean;
   duration?: string;
   desc: string;

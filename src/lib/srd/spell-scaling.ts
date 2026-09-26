@@ -240,8 +240,11 @@ export function scaledSpellDice(input: {
   casterLevel: number;
   slotLevel?: number;
 }): { dice: string; note: string } | null {
-  if (input.spellLevel === 0) {
-    return cantripDamage(input.desc, input.higherLevel, input.casterLevel);
-  }
-  return upcastDamage(input.desc, input.higherLevel, input.slotLevel ?? input.spellLevel);
+  const scaled = input.spellLevel === 0
+    ? cantripDamage(input.desc, input.higherLevel, input.casterLevel)
+    : upcastDamage(input.desc, input.higherLevel, input.slotLevel ?? input.spellLevel);
+  if (scaled) return scaled;
+  if (input.higherLevel.trim()) return null; // Unparsed scaling is not permission to drop dice or extra targets.
+  const base = baseHealingDice(input.desc) ?? baseDamageDice(input.desc);
+  return base ? { dice: base, note: `${base} from the spell description; no parsed scaling` } : null;
 }

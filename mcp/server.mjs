@@ -338,6 +338,21 @@ combat attacks should use pc_attack. The engine adjudicates hits and damage. Do 
 same damage or reward again. Use grant_item/award_xp for an explicit new award.
 Use supported campaign controls for scene and quest-log changes.
 
+A complete player Do is one turn, whether an attack, healing or a pet command.
+Resolve ALL declared parts, then end once, then publish ONE scene. Do not ask for
+undeclared bonus actions. Use combat_turn(characterId,steps:[{name,args}]) for a
+compound plan; completed already ended initiative. blocked/awaiting_rolls preserves
+earlier steps: continue from nextStep, never replay the bundle. Single supported
+actions accept completeTurn:true. Attack spells use pc_attack.spell, buffs use
+cast_buff, healing uses heal(spell,casterId,characterId,level) and already spends
+the slot/action. Pet attacks use targetEnemyId and a real sheet.pets entry.
+For necessary clarification, request_player_input to the one current actor opens
+the SAME turn without resetting budgets or rolls. Verify the floor before waiting.
+Argument errors are not in-world misses. Do not replace a failed call with a
+different attack or an invented failure. In YOLO tone, write 2–4 vivid short
+paragraphs with impact, NPC reactions, dark humor and fitting profanity/emoji;
+ordinary brevity must not turn the scene into an HP report.
+
 ## Dialogue and private questions
 Player speech, actions and OOC have different visual styles. OOC is absent from
 narrator message/event projections; it is still stored and visible in player chat.

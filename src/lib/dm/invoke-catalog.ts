@@ -44,7 +44,7 @@ export const ADJUDICATIONS: CatalogEntry[] = BASE_ADJUDICATIONS.map(entry =>
     summary: `${entry.summary} External/human callers: completeTurn:true on the LAST declared action also runs the ordinary end_turn without another model decision; inspect result.turnCompletion before narrating.`,
     fields: [...entry.fields, {
       name: "completeTurn",
-      label: "Завершить объявленный ход после атаки",
+      label: "Завершить объявленный ход после действия",
       kind: "boolean" as const,
       help: "Только последнее действие всей заявки текущего персонажа. Не ставить перед ещё объявленным действием или для реакции. Pending rolls сохраняют ход; completed означает, что повторный end_turn не нужен.",
     }],

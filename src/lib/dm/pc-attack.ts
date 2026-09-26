@@ -49,7 +49,6 @@ import { applyEnemyDamage, publishEncounter, resolveEnemyRef } from "@/lib/dm/en
 import { patchEnemyConditions } from "@/lib/db/encounters";
 import { saveModFor } from "@/lib/bestiary/statblock";
 import { allyAdjacentToEnemy, checkPcAttackRange, pcAttackSpatials } from "@/lib/dm/map-tools";
-import { isJrpgCombat } from "@/lib/dm/combat-mode";
 import {
   attacksAllowedFor,
   budgetFor,
@@ -99,8 +98,9 @@ export const pcAttackTool: ToolDef = {
         spell: {
           type: "string",
           description:
-            "Attack-roll spell (e.g. Fire Bolt) instead of a weapon; requires damage.",
+            "Attack-roll spell (e.g. Fire Bolt or Eldritch Blast) instead of a weapon. The server derives damage and spends the action and any slot.",
         },
+        level: { type: "integer", minimum: 0, maximum: 9, description: "Spell slot level; omit for the spell's base level. Cantrips spend no slot." },
         damage: {
           type: "string",
           description: "Spell attacks only: the spell's damage dice, e.g. '1d10' or '4d6'.",
@@ -147,6 +147,7 @@ const pcAttackArgsSchema = z.object({
   spell: z.string().max(80).optional(),
   damage: z.string().max(30).optional(),
   damageType: z.string().max(30).optional(),
+  level: z.number().int().min(0).max(9).optional(),
   advantage: z.preprocess(
     normalizeAdvantage,
     z.enum(["none", "advantage", "disadvantage"]).optional(),
@@ -210,7 +211,7 @@ export function handlePcAttack(
   if (sheet.currentHp <= 0) {
     return { error: `${sheet.name} is at 0 HP and cannot attack.` };
   }
-  if (isJrpgCombat(campaign)) {
+  {
     if (currentCombatantId(encounter) !== sheet.id) {
       return { error: "Only the current encounter participant may take this attack turn." };
     }
@@ -224,6 +225,14 @@ export function handlePcAttack(
   const stoppedBy = incapacitatedBy(sheet.conditions);
   if (stoppedBy) {
     return { error: `${sheet.name} is ${stoppedBy} and cannot attack.` };
+  }
+  // A known spell passed in the weapon field is an unambiguous caller error,
+  // not an improvised weapon. Preserve explicitly carried/granted weapons.
+  if (!args.spell && args.weapon && !sheet.equipment.some(item => item.name.toLowerCase() === args.weapon!.toLowerCase()) &&
+      !grantedAttackFor(sheet.conditions, args.weapon) &&
+      [...(sheet.spellcasting?.known ?? []), ...(sheet.spellcasting?.prepared ?? [])].some(name => name.toLowerCase() === args.weapon!.toLowerCase())) {
+    args.spell = args.weapon;
+    delete args.weapon;
   }
   const enemy = resolveEnemyRef(encounter.id, args.targetEnemyId);
   if (!enemy) {
@@ -308,6 +317,7 @@ export function handlePcAttack(
       spell: spellName,
       userId: sheet.userId,
       casterLevel: sheet.level,
+      slotLevel: args.level,
     });
     const damageArg = scaled?.dice ?? (args.damage ?? "").trim();
     if (!damageArg || !isValidExpression(damageArg)) {
@@ -438,7 +448,7 @@ export function handlePcAttack(
   // Effect conditions riding the attacker's hits (Divine Favor's +1d4
   // radiant, Hunter's Mark, Hex, enlarged/reduced) fold into the damage
   // expression so both dice paths carry them.
-  const onHit = conditionOnHitDice(sheet.conditions);
+  const onHit = conditionOnHitDice(sheet.conditions, { weapon: !args.spell && !granted, melee: !profile.ranged });
   if (onHit.suffix) {
     profile = {
       ...profile,
@@ -691,6 +701,14 @@ export function handlePcAttack(
   // The action economy: the first swing spends the Attack action, the rest
   // come out of Extra Attack, and the off-hand swing is a bonus action. Only
   // binds the character whose turn it actually is.
+  if (args.spell && !granted) {
+    const resolved = spellMechanicsFor({ spell: args.spell, userId: sheet.userId });
+    const spent = applyDmMutation(campaign, turn.id, "use_spell_slot", JSON.stringify({
+      characterId: sheet.id, spell: args.spell, level: args.level ?? resolved?.spellLevel ?? 0,
+    }), sheets, sheetsById).result;
+    if ("error" in spent) return spent;
+    encounter.turnBudget = getActiveEncounter(campaign.id)?.turnBudget ?? null;
+  }
   let budget = budgetFor(
     encounter,
     sheet.id,
@@ -698,7 +716,9 @@ export function handlePcAttack(
     conditionExtraActions(sheet.conditions),
   );
   if (budget) {
-    const spend = grantedBonusAction
+    const spend = args.spell && !granted
+      ? { ok: true as const, budget }
+      : grantedBonusAction
       ? spendAction(budget, "bonus", `the ${profile.weapon} attack`, sheet.name)
       : args.offHand
         ? spendAction(budget, "bonus", "an off-hand attack", sheet.name)
@@ -835,6 +855,7 @@ export function handlePcAttack(
         ...(conditionContext.autoCrit ? { autoCrit: true } : {}),
         ...(riders.critRange < 20 ? { critRange: riders.critRange } : {}),
         ...(rerollBelow ? { rerollBelow } : {}),
+        ...(onHit.spentOnHit.length ? { spentOnHit: onHit.spentOnHit } : {}),
       },
     });
     publishPersisted(campaign.id, "roll_pending", { pendingRoll: publicPendingRoll(pending) });
@@ -892,6 +913,8 @@ export function handlePcAttack(
       note: "The attack misses; narrate the miss.",
     };
   }
+
+  consumeHitConditions(campaign.id, sheet.id, onHit.spentOnHit);
 
   const damageExpression = crit ? critExpression : profile.damageExpression;
   const damageOutcome = rollExpression(damageExpression, undefined, { rerollBelow });
@@ -1008,6 +1031,7 @@ export function resolvePendingPcAttack(pending: PendingRoll, roll: StoredRoll): 
   if (!enemy || enemy.status !== "alive") {
     return `${context.attacker}'s ${context.weapon} attack rolled ${roll.total} vs AC ${context.targetAc}: HIT, but the target is already gone; narrate around it.`;
   }
+  if (pending.characterId) consumeHitConditions(pending.campaignId, pending.characterId, context.spentOnHit ?? []);
   const expression = crit ? context.critDamageExpression : context.damageExpression;
   const sheets = listSheets(pending.campaignId);
   const sheet = sheets.find((entry) => entry.id === pending.characterId);
@@ -1040,4 +1064,13 @@ export function resolvePendingPcAttack(pending: PendingRoll, roll: StoredRoll): 
       ? `, rerolling any die of ${context.rerollBelow} or less once for Great Weapon Fighting`
       : ""
   }; the server will apply it to ${enemy.displayName} automatically.`;
+}
+
+function consumeHitConditions(campaignId: string, characterId: string, conditions: string[]) {
+  if (!conditions.length) return;
+  const sheet = getSheetById(characterId);
+  if (!sheet || sheet.campaignId !== campaignId) return;
+  const next = removeConditions(sheet.conditions, sheet.conditionMeta, conditions);
+  const updated = patchSheet(sheet.id, { conditions: next.conditions, conditionMeta: next.meta });
+  if (updated) publishPersisted(campaignId, "sheet_updated", { sheet: updated });
 }

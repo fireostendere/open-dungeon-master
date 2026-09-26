@@ -63,7 +63,7 @@ export type ConditionEffectRow = {
   initiativeDie?: string;
   // The rider is spent by its first qualifying roll; the engine clears the
   // condition afterwards (guidance, resistance, true strike, the smites).
-  consumedBy?: "attack" | "save" | "check";
+  consumedBy?: "attack" | "save" | "check" | "weapon_hit" | "melee_weapon_hit";
   // Advantage on the holder's own attack rolls (true strike).
   attackAdvantage?: boolean;
   // Damage resistances while the condition holds (blade ward, stoneskin).
@@ -400,49 +400,49 @@ export const CONDITION_EFFECTS: ConditionEffectRow[] = [
     id: "thunderous_smite",
     match: ["thunderous smite"],
     summary:
-      "Thunderous Smite: the next weapon hit deals +2d6 thunder and forces a STR save or the target is pushed 10 feet and knocked prone; the charge is spent on the swing.",
+      "Thunderous Smite: the next melee weapon hit deals +2d6 thunder; a miss preserves the charge. The STR-save push/prone rider requires separate adjudication.",
     onHitDice: { dice: "2d6", type: "thunder" },
-    consumedBy: "attack",
+    consumedBy: "melee_weapon_hit",
   },
   {
     id: "wrathful_smite",
     match: ["wrathful smite"],
     summary:
-      "Wrathful Smite: the next weapon hit deals +1d6 psychic and forces a WIS save or the target is frightened; the charge is spent on the swing.",
+      "Wrathful Smite: the next melee weapon hit deals +1d6 psychic; a miss preserves the charge. The WIS-save frightened rider requires separate adjudication.",
     onHitDice: { dice: "1d6", type: "psychic" },
-    consumedBy: "attack",
+    consumedBy: "melee_weapon_hit",
   },
   {
     id: "searing_smite",
     match: ["searing smite"],
     summary:
-      "Searing Smite: the next weapon hit deals +1d6 fire and ignites the target (1d6 fire at the start of its turns, CON save ends); the charge is spent on the swing.",
+      "Searing Smite: the next melee weapon hit deals +1d6 fire; a miss preserves the charge. Ongoing fire requires separate adjudication.",
     onHitDice: { dice: "1d6", type: "fire" },
-    consumedBy: "attack",
+    consumedBy: "melee_weapon_hit",
   },
   {
     id: "blinding_smite",
     match: ["blinding smite"],
     summary:
-      "Blinding Smite: the next weapon hit deals +3d8 radiant and forces a CON save or the target is blinded; the charge is spent on the swing.",
+      "Blinding Smite: the next melee weapon hit deals +3d8 radiant; a miss preserves the charge. The CON-save blindness rider requires separate adjudication.",
     onHitDice: { dice: "3d8", type: "radiant" },
-    consumedBy: "attack",
+    consumedBy: "melee_weapon_hit",
   },
   {
     id: "staggering_smite",
     match: ["staggering smite"],
     summary:
-      "Staggering Smite: the next weapon hit deals +4d6 psychic and forces a WIS save or the target reels (disadvantage on attacks and checks, no reactions, for a turn); the charge is spent on the swing.",
+      "Staggering Smite: the next melee weapon hit deals +4d6 psychic; a miss preserves the charge. The WIS-save rider requires separate adjudication.",
     onHitDice: { dice: "4d6", type: "psychic" },
-    consumedBy: "attack",
+    consumedBy: "melee_weapon_hit",
   },
   {
     id: "banishing_smite",
     match: ["banishing smite"],
     summary:
-      "Banishing Smite: the next weapon hit deals +5d10 force, banishing the target if that leaves it at 50 HP or fewer; the charge is spent on the swing.",
+      "Banishing Smite: the next weapon hit deals +5d10 force; a miss preserves the charge. Banishment requires separate adjudication.",
     onHitDice: { dice: "5d10", type: "force" },
-    consumedBy: "attack",
+    consumedBy: "weapon_hit",
   },
   {
     id: "blazing_stride",
@@ -911,15 +911,21 @@ function matchesRollKind(
 // Extra on-hit damage dice the holder's conditions add to a landed attack.
 // Positive dice are appended, a leading "-" subtracts. Types are advisory
 // (the roll rides the attack's expression); notes carry them.
-export function conditionOnHitDice(conditions: string[]): {
+export function conditionOnHitDice(conditions: string[], attack: { weapon: boolean; melee: boolean } = { weapon: true, melee: true }): {
   suffix: string;
   notes: string[];
+  spentOnHit: string[];
 } {
   let suffix = "";
   const notes: string[] = [];
+  const spentOnHit: string[] = [];
   for (const { row, condition } of activeConditionEffects(conditions)) {
     if (!row.onHitDice) {
       continue;
+    }
+    if (row.consumedBy === "weapon_hit" || row.consumedBy === "melee_weapon_hit") {
+      if (!attack.weapon || (row.consumedBy === "melee_weapon_hit" && !attack.melee)) continue;
+      spentOnHit.push(condition);
     }
     const { dice, type } = row.onHitDice;
     if (dice.startsWith("-")) {
@@ -930,7 +936,7 @@ export function conditionOnHitDice(conditions: string[]): {
       notes.push(`${condition}: +${dice}${type ? ` ${type}` : ""} damage`);
     }
   }
-  return { suffix, notes };
+  return { suffix, notes, spentOnHit };
 }
 
 // Attack-roll state granted by the TARGET's conditions (blur, faerie fire,

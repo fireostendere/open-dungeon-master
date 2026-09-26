@@ -36,6 +36,9 @@ export type TurnBudget = {
   // Extra actions still available this turn (Haste grants one, usable for
   // one weapon attack, Dash, Disengage, Hide, or Use an Object).
   extraActions?: number;
+  // SRD 5.1/2014: a bonus-action spell permits only an action cantrip as
+  // another spell on this turn. Weapon attacks remain independent.
+  spellsCast?: Array<{ cost: ActionKind; level: number }>;
 };
 
 export function freshBudget(input: {
@@ -94,9 +97,10 @@ export function spendAction(
   kind: ActionKind,
   what: string,
   who: string,
+  hasteEligible = false,
 ): SpendResult {
   if (kind === "action" && budget.actionUsed) {
-    const extra = spendExtraAction(budget, what, who);
+    const extra = hasteEligible ? spendExtraAction(budget, what, who) : null;
     if (extra) {
       return extra;
     }
@@ -133,11 +137,11 @@ export function spendAction(
 // One swing of the Attack action. The first attack spends the action; the
 // rest come free until Extra Attack runs out. Off-hand attacks are a bonus
 // action instead and go through spendAction.
-export function spendAttack(budget: TurnBudget, who: string): SpendResult {
+export function spendAttack(budget: TurnBudget, who: string, hasteEligible = true): SpendResult {
   if (budget.attacksMade >= budget.attacksAllowed || (budget.attacksMade === 0 && budget.actionUsed)) {
     // The normal Attack action is gone; the Haste extra action buys exactly
     // one more weapon attack.
-    const extra = spendExtraAction(budget, "one weapon attack", who);
+    const extra = hasteEligible ? spendExtraAction(budget, "one weapon attack", who) : null;
     if (extra && extra.ok) {
       return {
         ...extra,
@@ -176,7 +180,19 @@ export function spendAttack(budget: TurnBudget, who: string): SpendResult {
 
 // How many attacks are left, for the reminder the tool result carries.
 export function attacksLeft(budget: TurnBudget): number {
+  if (budget.actionUsed && budget.attacksMade === 0) return 0;
   return Math.max(0, budget.attacksAllowed - budget.attacksMade);
+}
+
+export function spendSpell(budget: TurnBudget, cost: ActionKind, level: number, spell: string, who: string): SpendResult {
+  const spent = spendAction(budget, cost, spell, who);
+  if (!spent.ok) return spent;
+  const casts = budget.spellsCast ?? [];
+  if ((cost === "bonus" && casts.some(cast => cast.cost !== "action" || cast.level !== 0)) ||
+      (casts.some(cast => cast.cost === "bonus") && (cost !== "action" || level !== 0))) {
+    return { ok: false, error: `${who}: a bonus-action spell allows only an action cantrip as another spell on this turn (SRD 5.1). Weapon attacks are still allowed.` };
+  }
+  return spent.ok ? { ...spent, budget: { ...spent.budget, spellsCast: [...casts, { cost, level }] } } : spent;
 }
 
 // Once-per-turn riders (Sneak Attack). Returns null when already spent.

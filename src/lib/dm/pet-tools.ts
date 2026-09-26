@@ -11,6 +11,13 @@ import { findBeastForm } from "@/lib/srd/beast-forms";
 import { applyEnemyDamage, publishEncounter, resolveEnemyRef } from "@/lib/dm/enemy-damage";
 import { resolveSheetRef } from "@/lib/dm/rolls";
 import type { CharacterSheet, SheetPet } from "@/lib/schemas/sheet";
+import { petSchema } from "@/lib/schemas/sheet";
+import { attacksAllowedFor, budgetFor, currentCombatantId, storeBudget } from "@/lib/dm/action-tools";
+import { petCommandCost, spendPetCommand } from "@/lib/dm/pet-combat";
+import { incapacitatedBy } from "@/lib/dm/condition-logic";
+import { critDamageExpression } from "@/lib/dm/encounter-logic";
+import { listOpenPendingRolls } from "@/lib/db/dm-turns";
+import { isValidExpression } from "@/lib/dice";
 
 // The creatures bound to a character: familiars (Find Familiar, Pact of the
 // Chain), the Beast Master's companion, the Drakewarden's drake, and story
@@ -73,6 +80,8 @@ export const petTools: ToolDef[] = [
           name: { type: "string", description: "The pet's given name; defaults to the form." },
           hp: { type: "integer", minimum: 1, maximum: 300, description: "kind=other only." },
           ac: { type: "integer", minimum: 1, maximum: 30, description: "kind=other only." },
+          commandCost: { type: "string", enum: ["action", "bonus", "attack"], description: "kind=other only: cost from the explicitly adopted creature rules." },
+          attacks: { type: "array", maxItems: 3, items: { type: "object", properties: { name: { type: "string" }, toHit: { type: "integer" }, damage: { type: "string" }, type: { type: "string" } }, required: ["name", "toHit", "damage", "type"], additionalProperties: false }, description: "kind=other only: source-backed stat-block attacks." },
           reason: { type: "string", description: "Short in-fiction cause." },
         },
         required: ["characterId", "kind", "form"],
@@ -84,7 +93,7 @@ export const petTools: ToolDef[] = [
     function: {
       name: "pet_attack",
       description:
-        "A character's pet attacks an enemy: the server checks the pet may attack at all (plain familiars cannot; Pact of the Chain forms, companions and drakes can), rolls to-hit and damage with the pet's real numbers, and applies the result. Commanding a Beast Master companion costs the ranger's action, a drake the bonus action; the server notes it.",
+        "A sheet pet attacks an enemy on its owner's turn: real to-hit, damage and HP. The server spends the command cost, not just prose: Beast Master action, drake bonus action, Chain familiar one Attack-action attack. Each pet acts once per owner turn; ordinary familiars cannot attack.",
       parameters: {
         type: "object",
         additionalProperties: false,
@@ -145,6 +154,8 @@ const summonSchema = z.object({
   name: z.string().trim().max(60).optional(),
   hp: z.coerce.number().int().min(1).max(300).optional(),
   ac: z.coerce.number().int().min(1).max(30).optional(),
+  attacks: petSchema.shape.attacks.optional(),
+  commandCost: petSchema.shape.commandCost,
   reason: z.string().optional(),
 });
 
@@ -209,16 +220,17 @@ function hasDrakeFeature(sheet: CharacterSheet): boolean {
 function findPet(sheet: CharacterSheet, petName?: string): SheetPet | null {
   const wanted = (petName ?? "").trim().toLowerCase();
   if (!wanted) {
-    return sheet.pets[0] ?? null;
+    return sheet.pets.length === 1 ? sheet.pets[0] : null;
   }
-  return (
-    sheet.pets.find(
+  const exact = sheet.pets.find(pet => pet.name.toLowerCase() === wanted);
+  if (exact) return exact;
+  const matches = sheet.pets.filter(
       (pet) =>
         pet.name.toLowerCase().includes(wanted) ||
         wanted.includes(pet.name.toLowerCase()) ||
         pet.form.toLowerCase().includes(wanted),
-    ) ?? null
-  );
+    );
+  return matches.length === 1 ? matches[0] : null;
 }
 
 function publishSheet(campaign: Campaign, sheetId: string) {
@@ -237,6 +249,8 @@ export function buildPet(
     name?: string;
     hp?: number;
     ac?: number;
+    attacks?: SheetPet["attacks"];
+    commandCost?: SheetPet["commandCost"];
   },
 ): SheetPet | { error: string } {
   const level = sheet.level;
@@ -331,7 +345,8 @@ export function buildPet(
     maxHp: args.hp,
     ac: args.ac,
     speed: 30,
-    attacks: [],
+    attacks: args.attacks ?? [],
+    ...(args.commandCost ? { commandCost: args.commandCost } : {}),
     notes: "",
   };
 }
@@ -415,6 +430,9 @@ export function handlePetAttack(
   if (!encounter) {
     return { error: "pet_attack needs an active encounter and a target." };
   }
+  if (currentCombatantId(encounter) !== sheet.id) return { error: "Command a pet only on its owner's current combat turn." };
+  if (listOpenPendingRolls(campaign.id).length) return { error: "Resolve pending rolls before commanding a pet." };
+  if (sheet.currentHp <= 0 || incapacitatedBy(sheet.conditions)) return { error: `${sheet.name} cannot command an attack in their current state.` };
   const enemy = resolveEnemyRef(encounter.id, args.targetEnemyId);
   if (!enemy || enemy.status !== "alive") {
     return { error: "pet_attack needs a living targetEnemyId from GAME STATE." };
@@ -426,7 +444,13 @@ export function handlePetAttack(
         wantedAttack &&
         (entry.name.toLowerCase().includes(wantedAttack) ||
           wantedAttack.includes(entry.name.toLowerCase())),
-    ) ?? pet.attacks[0];
+    ) ?? (!wantedAttack ? pet.attacks[0] : undefined);
+  if (!attack) return { error: `${pet.name} has no attack called ${args.attack}; available: ${pet.attacks.map(entry => entry.name).join(", ")}.` };
+  if (!isValidExpression(attack.damage)) return { error: "The pet's damage expression is invalid." };
+  const budget = budgetFor(encounter, sheet.id, attacksAllowedFor(sheet))!;
+  const spent = spendPetCommand(budget, pet, sheet.name);
+  if (!spent.ok) return { error: spent.error };
+  storeBudget(encounter, spent.budget);
 
   const hitOutcome = rollExpression(d20Expression(attack.toHit));
   const hitRoll = insertRoll({
@@ -444,9 +468,9 @@ export function handlePetAttack(
   turn.rollIds.push(hitRoll.id);
 
   const economy =
-    pet.kind === "beast_companion"
+    petCommandCost(pet) === "action"
       ? `Commanding ${pet.name} used ${sheet.name}'s action.`
-      : pet.kind === "drake"
+      : petCommandCost(pet) === "bonus"
         ? `Commanding ${pet.name} used ${sheet.name}'s bonus action.`
         : `${pet.name} attacked with its own reaction (${sheet.name} forgoes one of their attacks).`;
 
@@ -462,7 +486,10 @@ export function handlePetAttack(
       economy,
     };
   }
-  const damageOutcome = rollExpression(crit ? `${attack.damage}+${attack.damage}` : attack.damage);
+  const damageOutcome = rollExpression(crit ? critDamageExpression(attack.damage, 0, {
+    powerfulCritical: campaign.gameSettings.variantRules.powerfulCritical,
+    multiplyNumeric: campaign.gameSettings.variantRules.criticalDamageMods,
+  }) : attack.damage);
   const damageRoll = insertRoll({
     campaignId: campaign.id,
     characterId: sheet.id,

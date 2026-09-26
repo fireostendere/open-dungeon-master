@@ -136,7 +136,7 @@ const payload = {
   },
 };
 
-const serverUrl = process.argv[2] || "http://api.iroslyakov.com:3005";
+const serverUrl = process.argv[2] || "http://dnd.iroslyakov.com:3005";
 const token = process.env.ODM_MCP_TOKEN || process.argv[3];
 if (!token) throw new Error("Set ODM_MCP_TOKEN or pass token as argument 3.");
 

@@ -37,7 +37,7 @@ export const PARTY_ADJUDICATIONS: CatalogEntry[] = [
     name: "heal",
     label: "Heal",
     category: "party",
-    summary: "Flat hit points, or a healing spell the server rolls with the caster's modifier.",
+    summary: "Flat hit points, or an atomic healing spell: validates caster, spends slot and action, rolls healing and updates HP. With spell, do NOT call use_spell_slot separately.",
     fields: [
       { name: "characterId", label: "Character", kind: "character", required: true },
       { name: "amount", label: "Hit points", kind: "number", min: 1, max: 200 },
@@ -380,4 +380,3 @@ export const PARTY_ADJUDICATIONS: CatalogEntry[] = [
     ],
   },
 ];
-

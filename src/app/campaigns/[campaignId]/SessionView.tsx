@@ -214,6 +214,7 @@ export function SessionView({
   const { panelTab, setPanelTab, mobileView, setMobileView } = useSessionTabs({
     chatTarget,
     battleMap: state.battleMap,
+    hasEncounter: Boolean(state.encounter),
     isLead,
   });
 
