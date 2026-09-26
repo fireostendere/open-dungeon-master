@@ -4,7 +4,7 @@ import { spatialEnabled, runSpatialCommand, SpatialError } from "@/lib/spatial/s
 import { localeText } from "@/lib/i18n/locale-text";
 import { z } from "zod";
 import { enforcePlayerIngress } from "@/lib/ingress-budget";
-import { isErrorResponse, requireVoice } from "@/lib/campaign-api";
+import { isErrorResponse, requireMember, requireVoice } from "@/lib/campaign-api";
 import {
   allocateSeq,
   canAct,
@@ -21,12 +21,35 @@ import { recordGlobalTurnAction, resolveGlobalTurn } from "@/lib/dm/global-turn-
 import { getActiveEncounter } from "@/lib/db/encounters";
 import { activePublicEncounter } from "@/lib/db/encounter-view";
 import { attacksAllowedFor, budgetFor } from "@/lib/dm/action-tools";
-import { validateCombatTurnIntent } from "@/lib/dm/combat-turn-intent";
+import { combatSpellNames, validateCombatTurnIntent, type CombatSpellDescriptor } from "@/lib/dm/combat-turn-intent";
+import { findSpellByName } from "@/lib/content";
+import { authoredSpellRow } from "@/lib/srd/spell-mechanics";
+import type { CharacterSheet } from "@/lib/schemas/sheet";
 import { conditionExtraActions } from "@/lib/srd/condition-effects";
 import { listOpenPendingRolls } from "@/lib/db/dm-turns";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+function spellsFor(sheet: CharacterSheet): CombatSpellDescriptor[] {
+  return combatSpellNames(sheet).map(name => {
+    const entry = findSpellByName(name, sheet.userId);
+    const authored = authoredSpellRow(name);
+    const time = String(entry?.data.casting_time ?? authored?.casting_time ?? "").toLowerCase();
+    return { type: "spell", name, level: entry?.level ?? authored?.level ?? null,
+      cost: /^1 bonus action/.test(time) ? "bonus" : /^1 reaction/.test(time) ? "reaction" : /^1 action/.test(time) ? "action" : null };
+  });
+}
+
+// Only the member's own spell list. The POST derives the same metadata afresh;
+// neither casting times nor spell levels are accepted from the client.
+export async function GET(_request: Request, { params }: { params: Promise<{ campaignId: string }> }) {
+  const { campaignId } = await params;
+  const context = await requireMember(campaignId);
+  if (isErrorResponse(context)) return context;
+  const sheet = getSheetForUser(campaignId, context.user.id);
+  return Response.json({ spells: sheet ? spellsFor(sheet) : [] });
+}
 
 const actionSchema = z.object({
   content: z.string().trim().min(1).max(2000).optional(),
@@ -40,9 +63,12 @@ const actionSchema = z.object({
       z.object({ type: z.literal("dodge") }),
       z.object({ type: z.literal("action"), action: z.enum(["dash", "disengage", "hide", "help", "grapple", "shove"]), targetEnemyId: z.string().uuid().optional(), targetCharacterId: z.string().uuid().optional() }),
       z.object({ type: z.literal("pet"), petName: z.string().trim().min(1).max(60), attack: z.string().trim().min(1).max(40), targetEnemyId: z.string().uuid() }),
+      z.object({ type: z.literal("pet_order"), petName: z.string().trim().min(1).max(60), order: z.string().trim().min(1).max(500) }),
+      z.object({ type: z.literal("spell"), spell: z.string().trim().min(1).max(80), slotLevel: z.number().int().min(1).max(9).optional(), targetId: z.string().uuid().optional() }),
+      z.object({ type: z.literal("feature"), feature: z.string().trim().min(1).max(120), targetId: z.string().uuid().optional() }),
       z.object({ type: z.literal("resource"), resource: z.string().trim().min(1).max(80), targetCharacterId: z.string().uuid().optional() }),
       z.object({ type: z.literal("item"), item: z.string().trim().min(1).max(80), targetCharacterId: z.string().uuid().optional() }),
-    ])).max(8),
+    ])).max(12),
     prose: z.string().trim().max(1200).optional(),
   }).strict().optional(),
 }).strict()
@@ -218,6 +244,7 @@ export async function POST(
     const result = validateCombatTurnIntent(intent, sheet, new Set(visibleEnemies.map((enemy) => enemy.id)), new Set(allies.map((entry) => entry.id)), budget, {
       language: campaign.gameSettings.language ?? "ru",
       names: new Map([...allies, ...visibleEnemies].map((entry) => [entry.id, entry.name])),
+      spells: spellsFor(sheet),
     });
     if (!result.ok) return Response.json({ error: result.error }, { status: 400 });
     combatContent = result.content;

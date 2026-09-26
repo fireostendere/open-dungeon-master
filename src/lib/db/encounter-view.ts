@@ -32,7 +32,7 @@ export type PublicEncounter = {
   // Never infer this from a filtered initiative list. A hidden enemy yields
   // null, so its identity does not leak to player clients.
   currentActorId: string | null;
-  turnBudget: { actionUsed: boolean; bonusUsed: boolean; reactionUsed: boolean; attacksMade: number; attacksAllowed: number; extraActions?: number; oncePerTurn?: string[] } | null;
+  turnBudget: { actionUsed: boolean; bonusUsed: boolean; reactionUsed: boolean; attacksMade: number; attacksAllowed: number; extraActions?: number; oncePerTurn?: string[]; spellsCast?: Array<{ cost: "action" | "bonus" | "reaction"; level: number }> } | null;
   order: Array<{
     kind: "pc" | "enemy" | "npc";
     id: string;
@@ -102,7 +102,7 @@ export function publicEncounter(
     orderReady: encounter.orderReady,
     currentActorId: currentVisible ? currentId : null,
     turnBudget: currentVisible && current?.kind === "pc" && encounter.turnBudget?.ownerId === current.characterId && encounter.turnBudget.round === encounter.round
-      ? { actionUsed: encounter.turnBudget.actionUsed, bonusUsed: encounter.turnBudget.bonusUsed, reactionUsed: encounter.reactionsUsed.includes(current.characterId) || encounter.turnBudget.reactionUsed, attacksMade: encounter.turnBudget.attacksMade, attacksAllowed: encounter.turnBudget.attacksAllowed, extraActions: encounter.turnBudget.extraActions, oncePerTurn: encounter.turnBudget.oncePerTurn.filter(key => key.startsWith("pet:")) }
+      ? { actionUsed: encounter.turnBudget.actionUsed, bonusUsed: encounter.turnBudget.bonusUsed, reactionUsed: encounter.reactionsUsed.includes(current.characterId) || encounter.turnBudget.reactionUsed, attacksMade: encounter.turnBudget.attacksMade, attacksAllowed: encounter.turnBudget.attacksAllowed, extraActions: encounter.turnBudget.extraActions, oncePerTurn: encounter.turnBudget.oncePerTurn.filter(key => key.startsWith("pet:")), spellsCast: encounter.turnBudget.spellsCast }
       : null,
     order: encounter.orderReady
       ? encounter.order

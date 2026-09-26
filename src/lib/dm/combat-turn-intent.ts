@@ -1,8 +1,9 @@
-import { spendAction, spendAttack, type TurnBudget } from "./action-budget.ts";
+import { spendAction, spendAttack, spendSpell, type ActionKind, type TurnBudget } from "./action-budget.ts";
 import { RESOURCE_ACTIONS } from "./resource-action-cost.ts";
 import { matchWeapon } from "../srd/weapons.ts";
 import { spendPetCommand, type PetCombatant } from "./pet-combat.ts";
 import type { PublicEncounter } from "../db/encounter-view.ts";
+import type { Spellcasting } from "../schemas/sheet.ts";
 
 // Both combat panels preview the same authoritative budget, never another actor's.
 export function combatIntentBudget(encounter: Pick<PublicEncounter, "currentActorId" | "turnBudget">, fresh: TurnBudget): TurnBudget {
@@ -16,6 +17,9 @@ export type CombatChoice =
   | { type: "dodge" }
   | { type: "action"; action: "dash" | "disengage" | "hide" | "help" | "grapple" | "shove"; targetEnemyId?: string; targetCharacterId?: string }
   | { type: "pet"; petName: string; attack: string; targetEnemyId: string }
+  | { type: "pet_order"; petName: string; order: string }
+  | { type: "spell"; spell: string; slotLevel?: number; targetId?: string }
+  | { type: "feature"; feature: string; targetId?: string }
   | { type: "resource"; resource: string; targetCharacterId?: string }
   | { type: "item"; item: string; targetCharacterId?: string };
 
@@ -33,10 +37,29 @@ export type CombatIntentSheet = {
   equipment: Array<{ name: string; qty: number; equipped?: boolean; gear?: { weapon?: unknown } }>;
   resources: Record<string, { max: number; used: number }>;
   pets?: PetCombatant[];
+  features?: Array<{ name: string; description?: string }>;
+  spellcasting?: Spellcasting;
 };
+
+export type CombatSpellDescriptor = { type: "spell"; name: string; level: number | null; cost: ActionKind | null };
+
+export function combatSpellNames(sheet: CombatIntentSheet): string[] {
+  const casting = sheet.spellcasting;
+  return [...new Set([...(casting?.known ?? []), ...(casting?.prepared ?? []),
+    ...(casting?.casters ?? []).flatMap(caster => [...caster.known, ...caster.prepared])])];
+}
+
+export function combatSpellSlots(sheet: CombatIntentSheet, level: number): Array<{ level: number; left: number }> {
+  if (level === 0) return [];
+  const slots = new Map(Object.entries(sheet.spellcasting?.slots ?? {}).map(([key, slot]) => [Number(key), Math.max(0, slot.max - slot.used)]));
+  const pact = sheet.spellcasting?.pact;
+  if (pact) slots.set(pact.level, (slots.get(pact.level) ?? 0) + Math.max(0, pact.max - pact.used));
+  return [...slots].filter(([key, left]) => key >= level && left > 0).sort(([a], [b]) => a - b).map(([key, left]) => ({ level: key, left }));
+}
 
 export type CombatChoiceDescriptor =
   | { type: "weapon"; name: string }
+  | { type: "feature"; name: string; description?: string }
   | { type: "resource"; id: string; name: string; left: number; cost: "action" | "bonus"; target: "self" | "ally" | "other" }
   | { type: "item"; name: string; qty: number };
 
@@ -52,6 +75,7 @@ export function combatChoiceDescriptors(sheet: CombatIntentSheet): CombatChoiceD
   return [
     ...weapons,
     { type: "weapon", name: "Unarmed strike" },
+    ...(sheet.features ?? []).map(feature => ({ type: "feature" as const, ...feature })),
     ...Object.entries(sheet.resources).flatMap(([id, state]) => {
       const action = Object.hasOwn(RESOURCE_ACTIONS, id) ? RESOURCE_ACTIONS[id] : undefined;
       return action && state.used < state.max
@@ -76,19 +100,49 @@ export function validateCombatTurnIntent(
   visibleEnemyIds: Set<string>,
   allyIds: Set<string>,
   budget: TurnBudget,
-  presentation?: { language: string; names: ReadonlyMap<string, string> },
+  presentation?: { language: string; names: ReadonlyMap<string, string>; spells?: CombatSpellDescriptor[] },
 ): CombatIntentResult {
   let next = budget;
   const selections: string[] = [];
   const usedResources: Record<string, number> = {};
   const usedItems: Record<string, number> = {};
+  const usedSlots = new Map<number, number>();
+  const commandedPets = new Set<string>();
+  const ru = presentation?.language === "ru";
+  const adjudication = ru ? "заявка мастеру; стоимость и эффект определяются правилами" : "request for DM adjudication; rules determine cost and effect";
   const copy = presentation?.language === "ru"
     ? { turn: "Боевой ход", attack: "Атака", dodge: "Защита: уклонение", resource: "Способность", item: "Предмет", target: "цель", end: "Завершаю ход после разрешения указанных действий." }
     : { turn: "Combat turn", attack: "Attack", dodge: "Defence: Dodge", resource: "Ability", item: "Item", target: "target", end: "End my turn after resolving the declared actions." };
   const name = (id: string) => presentation?.names.get(id) ?? id;
   if (intent.choices.length > 12) return { ok: false, error: "Too many choices in one turn." };
   for (const choice of intent.choices) {
-    if (choice.type === "attack") {
+    if (choice.type === "spell") {
+      const spell = presentation?.spells?.find(entry => entry.name === choice.spell);
+      if (!combatSpellNames(sheet).includes(choice.spell) || !spell) return { ok: false, error: "Choose a spell on your character sheet." };
+      if (choice.targetId && !visibleEnemyIds.has(choice.targetId) && !allyIds.has(choice.targetId)) return { ok: false, error: "Choose a visible spell target." };
+      if (spell.cost === "reaction") return { ok: false, error: "A reaction spell requires its trigger; describe it to the DM when triggered." };
+      if (spell.level !== null && spell.level > 0) {
+        const slot = combatSpellSlots(sheet, spell.level).find(entry => entry.level === choice.slotLevel);
+        if (!slot || slot.left <= (usedSlots.get(slot.level) ?? 0)) return { ok: false, error: "Choose an available spell slot." };
+        usedSlots.set(slot.level, (usedSlots.get(slot.level) ?? 0) + 1);
+      } else if (choice.slotLevel !== undefined) return { ok: false, error: "This spell does not take a selected slot." };
+      if (spell.cost && spell.level !== null) {
+        const spent = spendSpell(next, spell.cost, spell.level, spell.name, sheet.name);
+        if (!spent.ok) return spent;
+        next = spent.budget;
+      }
+      selections.push(`${ru ? "Заклинание" : "Spell"}: ${spell.name}${choice.slotLevel ? ` (${ru ? "ячейка" : "slot"} ${choice.slotLevel})` : ""}${choice.targetId ? `; ${copy.target}: ${name(choice.targetId)}` : ""}${!spell.cost || spell.level === null ? `; ${adjudication}` : ""}`);
+    } else if (choice.type === "feature") {
+      if (!sheet.features?.some(feature => feature.name === choice.feature)) return { ok: false, error: "Choose a feature on your character sheet." };
+      if (choice.targetId && !visibleEnemyIds.has(choice.targetId) && !allyIds.has(choice.targetId)) return { ok: false, error: "Choose a visible feature target." };
+      selections.push(`${copy.resource}: ${choice.feature}${choice.targetId ? `; ${copy.target}: ${name(choice.targetId)}` : ""}; ${adjudication}`);
+    } else if (choice.type === "pet_order") {
+      const pet = sheet.pets?.find(entry => entry.name === choice.petName);
+      if (!pet || pet.hp <= 0 || !choice.order.trim() || choice.order.length > 500 || commandedPets.has(pet.name) || next.oncePerTurn.includes(`pet:${pet.name.toLowerCase()}`)) return { ok: false, error: "Choose your living pet and enter one order." };
+      commandedPets.add(pet.name);
+      // A free-text order is an intent, never a free mechanical pet action.
+      selections.push(`${ru ? "Приказ" : "Order"}: ${pet.name} — ${choice.order.trim()}; ${adjudication}`);
+    } else if (choice.type === "attack") {
       if (!visibleEnemyIds.has(choice.targetEnemyId)) return { ok: false, error: "Choose a visible living enemy." };
       if (!knownWeapon(sheet, choice.weapon)) return { ok: false, error: "Choose a weapon on your character sheet." };
       const spent = spendAttack(next, sheet.name);
@@ -102,10 +156,11 @@ export function validateCombatTurnIntent(
       selections.push(copy.dodge);
     } else if (choice.type === "pet") {
       const pet = sheet.pets?.find(entry => entry.name === choice.petName);
-      if (!pet || !pet.attacks.some(attack => attack.name === choice.attack) || !visibleEnemyIds.has(choice.targetEnemyId)) return { ok: false, error: "Choose a living pet's available attack and a visible enemy." };
+      if (!pet || commandedPets.has(pet.name) || !pet.attacks.some(attack => attack.name === choice.attack) || !visibleEnemyIds.has(choice.targetEnemyId)) return { ok: false, error: "Choose a living pet's available attack and a visible enemy." };
       const spent = spendPetCommand(next, pet, sheet.name);
       if (!spent.ok) return spent;
       next = spent.budget;
+      commandedPets.add(pet.name);
       selections.push(`${pet.name}: ${choice.attack}; ${copy.target}: ${name(choice.targetEnemyId)}`);
     } else if (choice.type === "action") {
       const specialAttack = choice.action === "grapple" || choice.action === "shove";

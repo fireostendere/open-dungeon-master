@@ -13,7 +13,7 @@ import { CombatTurnHud } from "@/app/campaigns/[campaignId]/CombatTurnHud";
 import { CombatPetsPanel } from "@/app/campaigns/[campaignId]/CombatPetsPanel";
 import { CombatLog } from "@/app/campaigns/[campaignId]/CombatLog";
 import type { StoredRoll } from "@/lib/db/rolls";
-import type { CombatChoice, CombatTurnIntent } from "@/lib/dm/combat-turn-intent";
+import type { CombatChoice, CombatSpellDescriptor, CombatTurnIntent } from "@/lib/dm/combat-turn-intent";
 import { EventLog } from "@/app/campaigns/[campaignId]/EventLog";
 import { BondsPanel } from "@/app/campaigns/[campaignId]/BondsPanel";
 import { FactsPanel } from "@/app/campaigns/[campaignId]/FactsPanel";
@@ -202,6 +202,19 @@ export function SidePanelRouter({
   const { locale } = useI18n();
   const [partySection, setPartySection] = useState<PartySection>("party");
   const [storySection, setStorySection] = useState<StorySection>("story");
+  const spellKey = `${campaignId}:${mySheet?.id}:${mySheet?.updatedAt}`;
+  const hasSpellcasting = Boolean(mySheet?.spellcasting);
+  const [spellData, setSpellData] = useState<{ key: string; spells: CombatSpellDescriptor[]; error?: boolean } | null>(null);
+  const spellOptions = spellData?.key === spellKey ? spellData.spells : [];
+  useEffect(() => {
+    if (!ownCombatTurn || !hasSpellcasting) return;
+    const controller = new AbortController();
+    fetch(`/api/campaigns/${campaignId}/actions`, { signal: controller.signal })
+      .then(response => { if (!response.ok) throw new Error("Spell list unavailable"); return response.json(); })
+      .then(data => { if (!controller.signal.aborted) setSpellData({ key: spellKey, spells: data.spells }); })
+      .catch(() => { if (!controller.signal.aborted) setSpellData({ key: spellKey, spells: [], error: true }); });
+    return () => controller.abort();
+  }, [campaignId, spellKey, hasSpellcasting, ownCombatTurn]);
 
   useEffect(() => {
     if (tab === "story" && storySection === "facts") void refreshFacts();
@@ -370,6 +383,7 @@ export function SidePanelRouter({
           canCommand={Boolean(ownCombatTurn && !combatLocked && floor.mode !== "hold" && !sending)}
           choices={combatChoices}
           onChoicesChange={onCombatChoicesChange}
+          spellOptions={spellOptions}
         /> : null}
 
         {ownCombatTurn && encounter && mySheet && onCombatSubmit ? (
@@ -386,6 +400,9 @@ export function SidePanelRouter({
               onChoicesChange={onCombatChoicesChange}
               prose={combatProse}
               onProseChange={onCombatProseChange}
+              spellOptions={spellOptions}
+              spellsLoading={hasSpellcasting && spellData?.key !== spellKey}
+              spellsError={spellData?.key === spellKey && spellData.error}
             />
           </div>
         ) : null}

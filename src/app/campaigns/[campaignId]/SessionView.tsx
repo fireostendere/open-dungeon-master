@@ -337,8 +337,9 @@ export function SessionView({
     async (event: FormEvent | null, combatTurn?: CombatTurnIntent) => {
       event?.preventDefault();
       const content = input.trim();
+      const sendKind = combatTurn ? "do" : needsCharacter ? "ask" : kind;
       const resolvedCombatTurn = combatTurn ?? (
-        ownCombatTurn && state.encounter && mySheet && combatChoices.length > 0
+        sendKind === "do" && ownCombatTurn && state.encounter && mySheet && combatChoices.length > 0
           ? {
               encounterId: state.encounter.id,
               round: state.encounter.round,
@@ -348,7 +349,6 @@ export function SessionView({
             }
           : undefined
       );
-      const sendKind = needsCharacter ? "ask" : kind;
       if ((!content && (sendKind === "ask" || !resolvedCombatTurn)) || sending || (!needsCharacter && gate.inputBlocked) || muted) {
         return;
       }
@@ -381,7 +381,7 @@ export function SessionView({
         }
         setInput("");
         if (sendKind === "ask") await refreshAsks();
-        else setCombatChoices([]);
+        else if (sendKind === "do") setCombatChoices([]);
       } catch {
         setError("Could not reach the server.");
       } finally {

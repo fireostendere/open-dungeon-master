@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { z } from 'zod';
 import { loadSource, sqliteFixture } from './lib/readiness-harness.mjs';
-import { validateCombatTurnIntent } from '../src/lib/dm/combat-turn-intent.ts';
+import { combatSpellNames, validateCombatTurnIntent } from '../src/lib/dm/combat-turn-intent.ts';
 import { freshBudget } from '../src/lib/dm/action-budget.ts';
 import * as actionBudget from '../src/lib/dm/action-budget.ts';
 import { RESOURCE_ACTIONS } from '../src/lib/dm/resource-action-cost.ts';
@@ -37,7 +37,7 @@ function fixture() {
     '@/lib/db/core': f.core, '@/lib/db/commit-effects': f.effects,
     '@/lib/i18n/locale-text': { localeText: (locale, values) => values[locale] },
     '@/lib/ingress-budget': { enforcePlayerIngress: () => null },
-    '@/lib/campaign-api': { requireVoice: async () => ({ campaign, user: { id: userId } }), isErrorResponse: () => false },
+    '@/lib/campaign-api': { requireMember: async () => ({ campaign, user: { id: userId } }), requireVoice: async () => ({ campaign, user: { id: userId } }), isErrorResponse: () => false },
     '@/lib/db/campaigns': floorDb, '@/lib/db/messages': { ...f.messages, countMessages: () => 1, listRecentMessages: () => [] },
     '@/lib/db/sheets': sheetDb, '@/lib/dm/loop': { requestDmTurn: () => { throw new Error('No model in this test'); } },
     '@/lib/dm/delegation': { coverInEffect: () => false }, '@/lib/dm/viewer': { hasHumanDm: () => true },
@@ -46,7 +46,9 @@ function fixture() {
     '@/lib/db/encounters': { getActiveEncounter: () => encounter },
     '@/lib/db/encounter-view': { activePublicEncounter: () => ({ enemies: [] }) },
     '@/lib/dm/action-tools': { attacksAllowedFor: () => 1, budgetFor: () => freshBudget({ ownerId: heroId, round: 1 }) },
-    '@/lib/dm/combat-turn-intent': { validateCombatTurnIntent },
+    '@/lib/dm/combat-turn-intent': { combatSpellNames, validateCombatTurnIntent },
+    '@/lib/content': { findSpellByName: name => name === 'Eldritch Blast' ? { level: 0, data: { casting_time: '1 action' } } : name === 'Hex' ? { level: 1, data: { casting_time: '1 bonus action' } } : null },
+    '@/lib/srd/spell-mechanics': { authoredSpellRow: () => null },
     '@/lib/srd/condition-effects': { conditionExtraActions: () => 0 }, '@/lib/db/dm-turns': turns,
   });
   const narration = loadSource('src/lib/dm/human-narration.ts', {
@@ -55,13 +57,45 @@ function fixture() {
     '@/lib/db/dm-turns': turns, '@/lib/events': f.events,
     '@/lib/dm/encounter-tools': { queueSkippedCombatTurn() {} },
   });
-  return { ...f, campaigns, floor, campaign,
+  return { ...f, campaigns, floor, campaign, sheets,
+    options: () => route.GET(new Request('http://localhost/actions'), { params: Promise.resolve({ campaignId: 'c1' }) }),
     send: body => route.POST(new Request('http://localhost/actions', { method: 'POST', body: JSON.stringify(body) }), { params: Promise.resolve({ campaignId: 'c1' }) }),
     user: value => { userId = value; }, pending: value => { pending = value; }, encounter: value => { encounter = value; },
     narrate: () => narration.persistHumanNarration(campaign, 'Resolved outcome', 'dm'),
     intent: { kind: 'do', combatTurn: { encounterId, round: 1, turnIndex: 0, choices: [], prose: 'Hold position' } },
   };
 }
+
+test('warlock spell and direct pet order survive the real action route without spending resources', async () => {
+  const f = fixture();
+  try {
+    const hero = f.sheets[0];
+    hero.spellcasting = { known: ['Eldritch Blast', 'Hex'], prepared: ['Eldritch Blast'], slots: { 2: { max: 2, used: 2 } } };
+    hero.pets = [{ name: 'Федя', kind: 'familiar', hp: 7, attacks: [] }];
+    hero.features = [{ name: 'Pact of the Chain' }];
+    const options = await (await f.options()).json();
+    assert.deepEqual(options.spells.map(spell => spell.name), ['Eldritch Blast', 'Hex']);
+    assert.equal(options.spells[0].level, 0);
+    assert.equal(options.spells[1].cost, 'bonus');
+    f.user('u2'); assert.deepEqual((await (await f.options()).json()).spells, [], 'another member never gets the warlock list');
+    f.user('u1');
+    const send = choices => f.send({ ...f.intent, combatTurn: { ...f.intent.combatTurn, choices } });
+    assert.equal((await send([{ type: 'spell', spell: 'Fireball' }])).status, 400);
+    assert.equal((await send([{ type: 'spell', spell: 'Hex', slotLevel: 2 }])).status, 400);
+    assert.equal((await send([{ type: 'pet_order', petName: 'Not mine', order: 'Scout' }])).status, 400);
+    assert.equal((await send([{ type: 'feature', feature: 'Invented' }])).status, 400);
+    assert.equal(f.campaigns.getFloor('c1').mode, 'initiative', 'invalid choices never hold the turn');
+    const choices = [{ type: 'spell', spell: 'Eldritch Blast' }, { type: 'pet_order', petName: 'Федя', order: 'Стань невидимым' }, { type: 'feature', feature: 'Pact of the Chain' }];
+    const response = await send(choices);
+    assert.equal(response.status, 202, await response.text());
+    const message = f.db.prepare('SELECT content FROM campaign_messages').get();
+    assert.match(message.content, /Заклинание: Eldritch Blast/);
+    assert.match(message.content, /Приказ: Федя — Стань невидимым/);
+    assert.match(message.content, /стоимость и эффект определяются правилами/);
+    assert.equal(hero.spellcasting.slots[2].used, 2);
+    assert.equal(f.campaigns.getFloor('c1').combat.mechanicsResolved, false);
+  } finally { f.close(); }
+});
 
 test('sequential spotlight emits one durable batch barrier after every selected player responds', async () => {
   const f = fixture();

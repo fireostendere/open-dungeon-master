@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { freshBudget } from "../src/lib/dm/action-budget.ts";
-import { combatChoiceDescriptors, combatIntentBudget, validateCombatTurnIntent } from "../src/lib/dm/combat-turn-intent.ts";
+import { combatChoiceDescriptors, combatIntentBudget, combatSpellNames, combatSpellSlots, validateCombatTurnIntent } from "../src/lib/dm/combat-turn-intent.ts";
 
 const sheet = {
   id: "hero", name: "Vex", equipment: [{ name: "Longsword", qty: 1 }, { name: "Potion of Healing", qty: 2 }],
@@ -32,4 +32,41 @@ assert.equal(combatIntentBudget({ currentActorId: 'other', turnBudget: spentBudg
 const shared = combatIntentBudget({ currentActorId: 'hero', turnBudget: spentBudget }, budget());
 assert.equal(shared.bonusUsed, true);
 assert.deepEqual(shared.oncePerTurn, ['pet:fedya']);
-console.log("test-combat-turn-intent: 18 passed");
+// Regression: the live warlock has no class resources and exhausted slots,
+// but still needs cantrips, sheet features and a non-attack familiar order.
+const warlock = { ...sheet, equipment: [{ name: 'Кинжал', qty: 1 }], resources: {},
+  features: [{ name: 'Pact Boon: Pact of the Chain' }],
+  spellcasting: { ability: 'cha', known: ['Eldritch Blast', 'Hex'], prepared: ['Eldritch Blast', 'Hex'], slots: { 2: { max: 2, used: 2 } } },
+  pets: [{ ...pet, name: 'Федя', kind: 'familiar' }],
+};
+const spells = [
+  { type: 'spell', name: 'Eldritch Blast', level: 0, cost: 'action' },
+  { type: 'spell', name: 'Hex', level: 1, cost: 'bonus' },
+];
+const cast = { type: 'spell', spell: 'Eldritch Blast', targetId: 'enemy' };
+const order = { type: 'pet_order', petName: 'Федя', order: 'Стань невидимым и разведай проход' };
+const warlockCheck = (choices, source = warlock) => validateCombatTurnIntent(intent(choices), source, new Set(['enemy']), new Set(['hero']), budget(), { language: 'ru', names: new Map([['enemy', 'Дьявол']]), spells });
+assert.ok(combatChoiceDescriptors(warlock).some(entry => entry.type === 'feature' && entry.name === warlock.features[0].name), 'features must not disappear when resources is empty');
+assert.equal(warlockCheck([cast, order]).ok, true, 'exhausted slots do not block cantrips or declarative pet orders');
+assert.match(warlockCheck([cast, order]).content, /Eldritch Blast.*Дьявол/);
+assert.match(warlockCheck([cast, order]).content, /Федя.*Стань невидимым/);
+assert.equal(warlockCheck([{ ...cast, spell: 'Fireball' }]).ok, false, 'cannot inject an unknown spell');
+assert.equal(warlockCheck([{ ...cast, targetId: 'hidden' }]).ok, false);
+assert.equal(warlockCheck([{ type: 'spell', spell: 'Hex', slotLevel: 2, targetId: 'enemy' }]).ok, false, 'cannot queue exhausted slots');
+assert.equal(warlockCheck([cast, { type: 'attack', weapon: 'Кинжал', targetEnemyId: 'enemy' }]).ok, false, 'cantrip spends the action');
+assert.equal(warlockCheck([cast, { type: 'pet', petName: 'Федя', attack: 'Bite', targetEnemyId: 'enemy' }]).ok, false, 'Chain attack replaces an attack, not a free bonus action');
+assert.equal(warlockCheck([{ ...order, petName: 'Someone else' }]).ok, false);
+assert.equal(warlockCheck([order, order]).ok, false);
+assert.equal(warlockCheck([order], { ...warlock, pets: [{ ...warlock.pets[0], hp: 0 }] }).ok, false);
+assert.equal(warlockCheck([{ type: 'feature', feature: warlock.features[0].name }]).ok, true);
+assert.equal(warlockCheck([{ type: 'feature', feature: 'Invented power' }]).ok, false);
+const rested = { ...warlock, spellcasting: { ...warlock.spellcasting, slots: { 2: { max: 2, used: 1 } } } };
+const hex = { type: 'spell', spell: 'Hex', slotLevel: 2, targetId: 'enemy' };
+assert.equal(warlockCheck([cast, hex], rested).ok, true, 'action cantrip plus bonus spell');
+assert.equal(warlockCheck([hex, cast], rested).ok, true, 'same legal combo in the other order');
+assert.equal(warlockCheck([hex, hex], rested).ok, false, 'cannot overdraw slots in a draft');
+assert.deepEqual(combatSpellSlots({ ...warlock, spellcasting: { ...warlock.spellcasting, pact: { level: 2, max: 2, used: 1 } } }, 1), [{ level: 2, left: 1 }]);
+assert.deepEqual(combatSpellNames({ ...warlock, spellcasting: { ...warlock.spellcasting, casters: [{ known: ['Healing Word'], prepared: ['Hex'] }] } }), ['Eldritch Blast', 'Hex', 'Healing Word']);
+assert.equal(validateCombatTurnIntent(intent([order]), warlock, new Set(['enemy']), new Set(['hero']), { ...budget(), oncePerTurn: ['pet:федя'] }).ok, false);
+assert.deepEqual(warlock.spellcasting.slots, { 2: { max: 2, used: 2 } }, 'draft never changes the sheet');
+console.log('test-combat-turn-intent: passed');
