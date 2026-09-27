@@ -33,6 +33,7 @@ import { projectSheetsForViewer } from "@/lib/sheet-privacy";
 import { getSceneTracker } from "@/lib/db/scene-tracker";
 import { consoleAdjudications } from "@/lib/dm/invoke-catalog";
 import { invokeEngineSynchronous } from "@/lib/dm/invoke";
+import { handleRequestPlayerInput } from "@/lib/dm/basic-adjudications";
 import { persistHumanNarration } from "@/lib/dm/human-narration";
 import { setDmStatus } from "@/lib/dm/status";
 import { executeNarratorCommand, NarratorCommandError as McpNarratorControlError } from "@/lib/dm/narrator-command";
@@ -388,6 +389,16 @@ async function deleteMessage(raw: unknown) {
         messageSeq: deleted.seq,
       });
 
+      const floor = getFloor(campaign.id);
+      let inputReopened = false;
+      if (deleted.authorType === "player" && deleted.characterId && floor.mode === "hold" &&
+          floor.combat?.submissionMessageId === deleted.id) {
+        const sheets = listSheets(campaign.id);
+        const reopened = handleRequestPlayerInput(campaign, JSON.stringify({ characterIds: [deleted.characterId] }),
+          sheets, new Map(sheets.map(sheet => [sheet.id, sheet])));
+        inputReopened = reopened.clarification === true;
+      }
+
       return {
         deleted: {
           id: deleted.id,
@@ -397,6 +408,7 @@ async function deleteMessage(raw: unknown) {
           messageSeq: deleted.seq,
         },
         eventSeq,
+        inputReopened,
       };
     },
   );

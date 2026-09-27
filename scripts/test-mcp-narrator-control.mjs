@@ -14,12 +14,13 @@ process.chdir(dir);
 register("./lib/register-alias.mjs", import.meta.url);
 
 const { createUser } = await import("../src/lib/db/users.ts");
-const { allocateSeq, createCampaign, getCampaignById, getFloor, getGlobalTurnState, joinByInviteCode, setCampaignStatus, setMemberAutopilot, latestSeq, updateStorySettings } = await import("../src/lib/db/campaigns.ts");
+const { allocateSeq, createCampaign, getCampaignById, getFloor, getGlobalTurnState, joinByInviteCode, setCampaignStatus, setFloor, setMemberAutopilot, latestSeq, updateStorySettings } = await import("../src/lib/db/campaigns.ts");
 const { createCharacter, instantiateIntoCampaign } = await import("../src/lib/db/characters.ts");
 const { createSheetSchema } = await import("../src/lib/schemas/sheet.ts");
 const { createDmTurn, createPendingRoll, resolvePendingRoll, saveDmTurn } = await import("../src/lib/db/dm-turns.ts");
 const { insertAsk } = await import("../src/lib/db/asks.ts");
 const { getCampaignMessage, insertCampaignMessage } = await import("../src/lib/db/messages.ts");
+const { createEncounter, saveEncounter } = await import("../src/lib/db/encounters.ts");
 const { getRoll, insertRoll, setRollSeq } = await import("../src/lib/db/rolls.ts");
 const { getDatabase } = await import("../src/lib/db/core.ts");
 const { publishWithSeq } = await import("../src/lib/events.ts");
@@ -348,6 +349,42 @@ assert.equal(afterDeleteRead.result.events.some((event) => event.type === "messa
 assert.equal(afterDeleteRead.result.events.find((event) => event.type === "message_updated")?.payload?.message?.id, icMsg2.id);
 assert.equal(afterDeleteRead.result.events.find((event) => event.type === "message_deleted")?.payload?.messageId, icMsg.id);
 assert.equal(afterDeleteRead.result.recentMessages.some((message) => message.id === icMsg.id), false);
+
+const combatCampaign = createCampaign(dm.id, {
+  title: "Combat deletion", description: "", theme: "", maxPlayers: 1, startingLevel: 1,
+  difficulty: "normal", gameSettings: { dmMode: "human", ttsEnabled: false, mapsEnabled: false },
+});
+setCampaignStatus(combatCampaign.id, "active");
+const combatSheet = instantiateIntoCampaign(libraryCharacter.id, combatCampaign.id, dm.id, 1);
+assert.ok(!("error" in combatSheet));
+const combatEncounter = createEncounter(combatCampaign.id, "Test fight");
+assert.ok(combatEncounter);
+combatEncounter.order = [{ kind: "pc", characterId: combatSheet.id, userId: dm.id, name: combatSheet.name, initiative: 10 }];
+combatEncounter.orderReady = true;
+saveEncounter(combatEncounter);
+const combatFloor = { mode: "initiative", encounterId: combatEncounter.id, userIds: [dm.id], currentName: combatSheet.name, round: combatEncounter.round };
+const unrelatedMessage = insertCampaignMessage({ campaignId: combatCampaign.id, seq: allocateSeq(combatCampaign.id),
+  authorType: "player", userId: dm.id, characterId: combatSheet.id, content: "Earlier message" });
+const submittedMessage = insertCampaignMessage({ campaignId: combatCampaign.id, seq: allocateSeq(combatCampaign.id),
+  authorType: "player", userId: dm.id, characterId: combatSheet.id, content: "Accidental action" });
+setFloor(combatCampaign.id, { mode: "hold", next: combatFloor, combat: {
+  encounterId: combatEncounter.id, round: combatEncounter.round, turnIndex: combatEncounter.turnIndex,
+  characterId: combatSheet.id, submissionMessageId: submittedMessage.id, requiresEndTurn: true, mechanicsResolved: false,
+} });
+const combatRead = await executeMcpNarratorControl("narrator.read", { campaignId: combatCampaign.id, afterSeq: 0 });
+const unrelatedDelete = await executeMcpNarratorControl("narrator.delete_message", {
+  campaignId: combatCampaign.id, expectedSeq: latestSeq(combatCampaign.id), commandId: randomUUID(),
+  timelineEpoch: combatRead.result.timelineEpoch, messageId: unrelatedMessage.id,
+});
+assert.equal(unrelatedDelete.result.result.inputReopened, false);
+assert.equal(getFloor(combatCampaign.id).mode, "hold", "deleting an older message must not reopen the current turn");
+const submissionDelete = await executeMcpNarratorControl("narrator.delete_message", {
+  campaignId: combatCampaign.id, expectedSeq: latestSeq(combatCampaign.id), commandId: randomUUID(),
+  timelineEpoch: combatRead.result.timelineEpoch, messageId: submittedMessage.id,
+});
+assert.equal(submissionDelete.result.result.inputReopened, true);
+assert.deepEqual(getFloor(combatCampaign.id), combatFloor, "only the same actor's current turn reopens");
+assert.equal(getCampaignMessage(submittedMessage.id), null);
 
 const held = await executeMcpNarratorControl("narrator.set_floor", {
   campaignId: oocCampaign.id, expectedSeq: latestSeq(oocCampaign.id),

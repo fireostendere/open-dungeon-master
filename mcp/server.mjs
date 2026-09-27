@@ -297,7 +297,10 @@ Consume the attached state after a write; drain missing pages/events with read.
 delete_message removes the exact main-transcript messageId, including player, DM or
 system messages. It removes transcript-derived pins/beats, but it is not a gameplay
 rewind: authoritative rolls and mechanical state survive, and moderation audit records
-remain. Use rules-engine actions or an explicit rewind when mechanics must change.
+remain. If it deletes the exact held combat submission, inputReopened confirms whether
+the same player's turn was reopened; check the floor before telling the player to act.
+If it is still held, use request_player_input for that same actor only when its combat
+guards allow it. Spent actions and rolls stay spent. Use rules-engine actions or an explicit rewind when mechanics must change.
 edit_message changes exact main-transcript text while retaining its author and
 preserving every roll marker. Edits and deletions invalidate queued narrator text;
 reread before acting. Neither operation rewinds mechanics or private Ask/whispers.

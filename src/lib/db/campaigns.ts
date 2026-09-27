@@ -52,6 +52,7 @@ export type CombatSubmissionGate = {
   round: number;
   turnIndex: number;
   characterId: string;
+  submissionMessageId?: string;
   requiresEndTurn: boolean;
   mechanicsResolved: boolean;
 };

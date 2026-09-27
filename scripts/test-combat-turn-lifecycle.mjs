@@ -87,13 +87,14 @@ test('warlock spell and direct pet order survive the real action route without s
     assert.equal(f.campaigns.getFloor('c1').mode, 'initiative', 'invalid choices never hold the turn');
     const choices = [{ type: 'spell', spell: 'Eldritch Blast' }, { type: 'pet_order', petName: 'Федя', order: 'Стань невидимым' }, { type: 'feature', feature: 'Pact of the Chain' }];
     const response = await send(choices);
-    assert.equal(response.status, 202, await response.text());
+    assert.equal(response.status, 202, await response.clone().text());
     const message = f.db.prepare('SELECT content FROM campaign_messages').get();
     assert.match(message.content, /Заклинание: Eldritch Blast/);
     assert.match(message.content, /Приказ: Федя — Стань невидимым/);
     assert.match(message.content, /стоимость и эффект определяются правилами/);
     assert.equal(hero.spellcasting.slots[2].used, 2);
     assert.equal(f.campaigns.getFloor('c1').combat.mechanicsResolved, false);
+    assert.equal(f.campaigns.getFloor('c1').combat.submissionMessageId, (await response.json()).messageId);
   } finally { f.close(); }
 });
 

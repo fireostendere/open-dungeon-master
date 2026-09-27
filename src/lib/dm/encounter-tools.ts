@@ -1424,7 +1424,7 @@ export function endOwnTurn(campaignId: string, userId: string, skipped = false):
   publishWithSeq(campaignId, seq, "message_added", { message });
   const held = { mode: "hold" as const, next: floor, combat: {
     encounterId: encounter.id, round: encounter.round, turnIndex: encounter.turnIndex,
-    characterId: current.characterId, requiresEndTurn: true, mechanicsResolved: false,
+    characterId: current.characterId, submissionMessageId: message.id, requiresEndTurn: true, mechanicsResolved: false,
   } };
   setFloor(campaignId, held);
   publishPersisted(campaignId, "floor_changed", { floor: held });
