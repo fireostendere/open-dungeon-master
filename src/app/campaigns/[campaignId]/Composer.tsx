@@ -14,6 +14,7 @@ import {
   DirectorPresets,
 } from "@/app/campaigns/[campaignId]/DirectorPanel";
 import { PendingRollCard } from "@/app/campaigns/[campaignId]/PendingRollCard";
+import { ActionPreviewDialog } from "@/app/campaigns/[campaignId]/ActionPreviewDialog";
 import { PushToTalk } from "@/app/campaigns/[campaignId]/PushToTalk";
 import { StoryNudge } from "@/app/campaigns/[campaignId]/StoryNudge";
 import { AskOptions } from "@/app/campaigns/[campaignId]/AskPanel";
@@ -26,6 +27,7 @@ import { globalTurnSubmitted, type CampaignMember, type GlobalTurnState, type In
 import type { CombatInputModeSetting } from "@/lib/schemas/game-settings-options";
 import type { Locale } from "@/lib/i18n";
 import { useI18n } from "@/lib/i18n";
+import { avatarPlaceholder, characterPlaceholder } from "@/lib/placeholders";
 
 export type { InputKind };
 
@@ -183,7 +185,7 @@ function ComposerInner({
   storyCadence: BeatCadence;
   onCaptureStory: () => void;
   onSnoozeStory: () => void;
-  onSubmit: (event: FormEvent) => void;
+  onSubmit: (event: FormEvent | null, confirmedContent?: string) => void;
   onCombatSubmit?: (turn: CombatTurnIntent) => void;
   onOpenBattleTab?: () => void;
   askScope: AskScope | "auto";
@@ -194,6 +196,7 @@ function ComposerInner({
   const { locale } = useI18n();
   const copy = COPY[locale];
   const [chatExpanded, setChatExpanded] = useState(true);
+  const [preview, setPreview] = useState<string | null>(null);
 
   const dmStatusText =
     dmStatus === "rolling"
@@ -210,6 +213,9 @@ function ComposerInner({
 
   const mySheet = sheets.find((s) => s.userId === meUserId && !s.isCompanion);
   const myMember = members.find((m) => m.userId === meUserId);
+  const portraitUrl = mySheet?.portrait?.url ?? myMember?.avatar?.url ?? (mySheet
+    ? characterPlaceholder({ race: mySheet.race, class: mySheet.class, gender: mySheet.gender })
+    : avatarPlaceholder(meUserId));
   const [now, setNow] = useState(() => new Date().getTime());
   const [skipCount, setSkipCount] = useState(1);
   const [skipBusy, setSkipBusy] = useState(false);
@@ -281,6 +287,20 @@ function ComposerInner({
     return base;
   };
 
+  function handleSubmit(event: FormEvent) {
+    event.preventDefault();
+    if (kind === "do" && !sending && !inputBlocked && (input.trim() || (ownCombatTurn && combatChoices.length > 0))) {
+      setPreview(input.trim());
+      return;
+    }
+    onSubmit(event);
+  }
+
+  function editPreview() {
+    setPreview(null);
+    window.setTimeout(() => composerRef.current?.focus(), 0);
+  }
+
   // Native disclosure keeps the form and pending dice mounted while hidden.
   return (
     <details
@@ -293,7 +313,7 @@ function ComposerInner({
         {chatExpanded ? copy.hideChat : copy.showChat}
         <ChevronDown aria-hidden="true" className={cn("size-4 shrink-0", !chatExpanded && "rotate-180")} />
       </summary>
-    <form onSubmit={onSubmit} className="glass max-h-[75dvh] overflow-y-auto border-t border-stone-700/40 px-3 pb-3 pt-2.5">
+    <form onSubmit={handleSubmit} className="glass max-h-[75dvh] overflow-y-auto border-t border-stone-700/40 px-3 pb-3 pt-2.5">
       <div className="mx-auto max-w-3xl sm:px-3">
         {pendingRolls.map((pending) => (
           <PendingRollCard
@@ -493,7 +513,7 @@ function ComposerInner({
             onKeyDown={(event) => {
               if (event.key === "Enter" && !event.shiftKey) {
                 event.preventDefault();
-                onSubmit(event);
+                handleSubmit(event);
               }
             }}
             maxLength={kind === "ask" ? 500 : undefined}
@@ -521,6 +541,18 @@ function ComposerInner({
         {error ? <p className="mt-1.5 text-sm text-red-400">{error}</p> : null}
       </div>
     </form>
+    {preview !== null ? (
+      <ActionPreviewDialog
+        content={preview}
+        name={mySheet?.name ?? myMember?.username ?? (locale === "ru" ? "Игрок" : "Player")}
+        portraitUrl={portraitUrl}
+        locale={locale}
+        queuedActions={ownCombatTurn ? combatChoices.length : 0}
+        onEdit={editPreview}
+        onSend={() => { setPreview(null); onSubmit(null, preview); }}
+        disabled={sending || inputBlocked}
+      />
+    ) : null}
     </details>
   );
 }

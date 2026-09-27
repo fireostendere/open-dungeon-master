@@ -4,6 +4,11 @@ import { useI18n } from "@/lib/i18n";
 import { localeText } from "@/lib/i18n/locale-text";
 import type { LocationChatController } from "./useLocationChat";
 import type { GlobalTurnState } from "@/lib/campaign-types";
+import type { CampaignMember } from "@/lib/campaign-types";
+import type { CharacterSheet } from "@/lib/schemas/sheet";
+import { avatarPlaceholder, characterPlaceholder } from "@/lib/placeholders";
+import { ActionPreviewDialog } from "./ActionPreviewDialog";
+import { PlayerMessageBadge, PlayerMessageBody } from "./PlayerMessageStyle";
 import { WebMcpLocationTools } from "./WebMcpLocationTools";
 import { cn } from "@/lib/cn";
 import { ui } from "@/lib/ui";
@@ -11,13 +16,13 @@ import { AskChatEntry, AskOptions } from "@/app/campaigns/[campaignId]/AskPanel"
 import type { CampaignAsk } from "@/lib/db/asks";
 import type { AskScope, AskVisibility } from "@/lib/dm/ask-logic";
 
-type Member = { userId: string; username: string };
 const field = "rounded border border-stone-700 bg-stone-950 px-2 py-1 text-sm text-stone-100";
 const button = cn(ui.btnSmall, "min-w-0");
 
 export function LocationChat({
   chat,
   members,
+  sheets,
   oocMessages,
   asks,
   refreshAsks,
@@ -26,7 +31,8 @@ export function LocationChat({
   globalTurnEnabled = false,
 }: {
   chat: LocationChatController;
-  members: Member[];
+  members: CampaignMember[];
+  sheets: CharacterSheet[];
   oocMessages: LocationChatController["page"]["messages"];
   asks: CampaignAsk[];
   refreshAsks: () => Promise<void>;
@@ -36,6 +42,7 @@ export function LocationChat({
 }) {
   const { locale } = useI18n();
   const scrollRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const nearBottomRef = useRef(true);
   const selectedRef = useRef(chat.selected);
   useLayoutEffect(() => {
@@ -53,6 +60,7 @@ export function LocationChat({
     ru: { available: "Вопрос Мастеру не тратит ход.", sendFailed: "Не удалось отправить вопрос.", networkFailed: "Не удалось связаться с сервером." },
   });
   const [content, setContent] = useState("");
+  const [preview, setPreview] = useState<{ text: string; roomId: string | null } | null>(null);
   const [kind, setKind] = useState("do");
   const [askScope, setAskScope] = useState<AskScope | "auto">("auto");
   const [askVisibility, setAskVisibility] = useState<AskVisibility>("private");
@@ -91,17 +99,30 @@ export function LocationChat({
   );
   const canSend = kind === "ask" ? !view.isDm : !globalTurnLocked && (ooc || Boolean(selected && (view.isDm || active)));
   const memberName = (id: string | null) => members.find(member => member.userId === id)?.username ?? "—";
+  const portraitFor = (id: string | null) => {
+    if (!id) return undefined;
+    const sheet = sheets.find(entry => entry.userId === id && !entry.isCompanion);
+    return sheet?.portrait?.url ?? members.find(member => member.userId === id)?.avatar?.url ?? (sheet
+      ? characterPlaceholder({ race: sheet.race, class: sheet.class, gender: sheet.gender })
+      : avatarPlaceholder(id));
+  };
   const roomName = (id: string) => view.rooms.find(room => room.id === id)?.name ?? "—";
-  async function send(event: FormEvent) {
-    event.preventDefault();
-    if (!canSend || !content.trim()) return;
+  async function send(event: FormEvent | null, confirmedContent?: string) {
+    event?.preventDefault();
+    const draft = (confirmedContent ?? content).trim();
+    if (!canSend || sendBlocked || !draft) return;
+    const isDm = Boolean(view?.enabled && view.isDm);
+    if (kind === "do" && !ooc && !isDm && confirmedContent === undefined) {
+      setPreview({ text: draft, roomId: chat.selected });
+      return;
+    }
     if (kind === "ask") {
       setAskSending(true);
       setAskError("");
       try {
         const response = await fetch(`/api/campaigns/${chat.campaignId}/ask`, {
           method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ question: content, scope: askScope, visibility: askVisibility }),
+          body: JSON.stringify({ question: draft, scope: askScope, visibility: askVisibility }),
         });
         if (!response.ok) {
           const data = await response.json().catch(() => ({}));
@@ -117,12 +138,11 @@ export function LocationChat({
       }
       return;
     }
-    const isDm = Boolean(view?.enabled && view.isDm);
     const sendOoc = ooc || kind === "ooc";
     const revision = view?.enabled ? view.current?.revision : undefined;
     if (await chat.command({ operation: "send", roomId: sendOoc ? null : chat.selected,
       kind: sendOoc ? "ooc" : isDm ? "narration" : kind,
-      content,
+      content: draft,
       ...(isStealth && !sendOoc && !isDm ? { stealth: true } : {}),
       ...(!sendOoc && !isDm && revision !== undefined ? { expectedRevision: revision } : {}) })) {
       setContent("");
@@ -156,10 +176,28 @@ export function LocationChat({
   const renderMessage = (message: (typeof chat.page.messages)[number]) => {
     const isHaze = Boolean(message.stealth);
     const isPerception = message.kind === "perception";
+    if (message.kind === "do" || message.kind === "say") {
+      const sheet = sheets.find(entry => entry.userId === message.authorUserId && !entry.isCompanion);
+      const portraitUrl = portraitFor(message.authorUserId);
+      return <article key={message.id} className={`border-b border-stone-800 pb-2 ${isHaze ? "rounded border-l-2 border-indigo-500/60 bg-indigo-950/20 pl-2" : ""}`}>
+        <div className="ml-auto max-w-[92%] sm:max-w-2xl">
+          <p className="mb-1 flex flex-wrap items-center justify-end gap-1.5 text-right text-xs font-medium text-amber-200/80">
+            {portraitUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={portraitUrl} alt="" className="size-6 rounded-full border border-amber-500/30 object-cover" />
+            ) : null}
+            <PlayerMessageBadge content={message.content} locale={locale} />
+            {sheet?.name ?? memberName(message.authorUserId)}
+            {isHaze ? <span className="text-[10px] text-indigo-300">{message.stealthStatus === "confirmed" ? t.stealthConfirmed : message.stealthStatus === "revealed" ? t.stealthRevealed : message.stealthStatus === "failed" ? t.stealthFailed : t.stealthPending}</span> : null}
+          </p>
+          <PlayerMessageBody content={message.content} />
+        </div>
+      </article>;
+    }
     return (
       <article key={message.id} className={`border-b border-stone-800 pb-2 ${isHaze ? "rounded bg-indigo-950/20 border-l-2 border-indigo-500/60 pl-2 shadow-[0_0_12px_rgba(99,102,241,0.08)]" : isPerception ? "rounded bg-amber-950/20 border-l-2 border-amber-500/60 pl-2 shadow-[0_0_12px_rgba(245,158,11,0.08)]" : ""}`}>
         <header className="flex flex-wrap items-center gap-1.5 text-xs text-stone-400">
-          <span>{memberName(message.authorUserId)} · {message.kind === "ooc" ? t.oocShort : message.kind === "say" || message.kind === "do" ? t.do : isPerception ? t.observing : t.narration}</span>
+          <span>{memberName(message.authorUserId)} · {message.kind === "ooc" ? t.oocShort : isPerception ? t.observing : t.narration}</span>
           {isHaze ? <span className="inline-flex items-center rounded border border-indigo-700/50 bg-indigo-950/80 px-1.5 py-0.5 text-[10px] font-medium text-indigo-300">
             {message.stealthStatus === "confirmed" ? t.stealthConfirmed : message.stealthStatus === "revealed" ? t.stealthRevealed : message.stealthStatus === "failed" ? t.stealthFailed : t.stealthPending}
           </span> : null}
@@ -170,7 +208,17 @@ export function LocationChat({
     );
   };
   const sendBlocked = !canSend || (kind === "ask" ? askSending : chat.busy || chat.pending);
-  return <><>{webMcp}</><section data-testid="location-chat" className="flex min-h-0 flex-1 flex-col gap-2 p-3 text-stone-200" aria-label={t.title}>
+  return <><>{webMcp}</>{preview !== null ? <ActionPreviewDialog
+    content={preview.text}
+    name={sheets.find(entry => entry.userId === chat.userId && !entry.isCompanion)?.name ?? memberName(chat.userId)}
+    portraitUrl={portraitFor(chat.userId)}
+    locale={locale}
+    queuedActions={0}
+    note={isStealth ? t.stealthNotice : undefined}
+    disabled={sendBlocked || chat.selected !== preview.roomId}
+    onEdit={() => { setPreview(null); window.setTimeout(() => textareaRef.current?.focus(), 0); }}
+    onSend={() => { if (chat.selected !== preview.roomId) return; const draft = preview.text; setPreview(null); void send(null, draft); }}
+  /> : null}<section data-testid="location-chat" className="flex min-h-0 flex-1 flex-col gap-2 p-3 text-stone-200" aria-label={t.title}>
     <nav className="flex flex-wrap gap-2" aria-label={t.title}>
       <button type="button" className={cn(button, ooc && "border-amber-500/50 bg-amber-500/15 text-amber-100")} aria-pressed={ooc} onClick={() => { chat.select("ooc"); setKind("ooc"); }}>{t.ooc}</button>
       {view.rooms.map(room => <button data-testid={`location-room-${room.id}`} type="button" key={room.id} className={cn(button, chat.selected === room.id && "border-amber-500/50 bg-amber-500/15 text-amber-100")} aria-pressed={chat.selected === room.id}
@@ -206,7 +254,7 @@ export function LocationChat({
         : renderMessage(item.message))}
     </div>
     <p className="text-xs text-stone-500">{t.bounded}</p>
-    <form onSubmit={send} className="flex flex-col gap-2">
+    <form onSubmit={(event) => void send(event)} className="flex flex-col gap-2">
       {!view.isDm ? (
         <div className="flex flex-wrap items-center justify-between gap-2">
           <select className={field} aria-label={t.draft} data-tour="ask-dm" value={kind} onChange={event => {
@@ -235,6 +283,7 @@ export function LocationChat({
         <p className="text-[11px] text-indigo-300/80 italic">{t.stealthNotice}</p>
       ) : null}
       <textarea
+        ref={textareaRef}
         className={`${field} ${isStealth && !ooc && !view.isDm ? "ring-1 ring-indigo-500/50 border-indigo-500/50 bg-gradient-to-r from-stone-950 via-slate-900/60 to-stone-950 shadow-[0_0_12px_rgba(99,102,241,0.15)] motion-safe:transition-all" : ""}`}
         aria-label={t.draft}
         value={content}

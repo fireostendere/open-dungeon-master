@@ -25,6 +25,7 @@ export function SessionChatColumn(props: ComponentProps<typeof LegacySessionChat
       key={`${props.campaignId}:${props.meUserId}`}
       chat={chat}
       members={props.state.members}
+      sheets={props.state.sheets}
       oocMessages={props.state.oocMessages.map(message => ({
         id: message.id,
         roomId: null,

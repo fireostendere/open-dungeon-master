@@ -334,9 +334,9 @@ export function SessionView({
   }, [campaignId]);
 
   const submit = useCallback(
-    async (event: FormEvent | null, combatTurn?: CombatTurnIntent) => {
+    async (event: FormEvent | null, combatTurn?: CombatTurnIntent, confirmedContent?: string) => {
       event?.preventDefault();
-      const content = input.trim();
+      const content = (confirmedContent ?? input).trim();
       const sendKind = combatTurn ? "do" : needsCharacter ? "ask" : kind;
       const resolvedCombatTurn = combatTurn ?? (
         sendKind === "do" && ownCombatTurn && state.encounter && mySheet && combatChoices.length > 0
@@ -561,7 +561,7 @@ export function SessionView({
               onSnoozeStory={snoozeStory}
               combatInputMode={campaign.gameSettings?.combatInputMode ?? "hybrid"}
               combatChoices={combatChoices}
-              onSubmit={submit}
+              onSubmit={(event, confirmedContent) => void submit(event, undefined, confirmedContent)}
               onCombatSubmit={(combatTurn) => void submit(null, combatTurn)}
               onOpenBattleTab={() => selectPanelView("battle")}
               askScope={askScope}

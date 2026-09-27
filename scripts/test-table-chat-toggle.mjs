@@ -45,8 +45,47 @@ for (const open of [false, false, true, false, true]) {
   onToggle({ currentTarget: { open } });
   assert.equal(expanded, open, "Open state follows native toggles without gameplay actions");
 }
-assert.match(form.getText(file), /onSubmit=\{onSubmit\}/);
+assert.match(form.getText(file), /onSubmit=\{handleSubmit\}/);
 assert.match(form.getText(file), /disabled=\{inputBlocked\}/);
 assert.match(form.getText(file), /value=\{input\}/);
 assert.match(form.getText(file), /<PendingRollCard/);
-console.log("Table chat disclosure: syntax, local state, persistent form and input gates passed.");
+const composer = file.statements.find(node => ts.isFunctionDeclaration(node) && node.name?.text === "ComposerInner");
+const submitHandler = composer.body.statements.find(node => ts.isFunctionDeclaration(node) && node.name?.text === "handleSubmit");
+const handlerJs = ts.transpileModule(`(${submitHandler.getText(file)})`, { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
+for (const [kind, input, blocked, expectedPreview, expectedSubmit] of [
+  ["do", "  I draw my sword  ", false, "I draw my sword", 0],
+  ["ooc", "hello", false, null, 1],
+  ["do", "hello", true, null, 1],
+]) {
+  let preview = null, submissions = 0, prevented = 0;
+  const handleSubmit = vm.runInNewContext(handlerJs, {
+    kind, input, inputBlocked: blocked, sending: false, ownCombatTurn: false, combatChoices: [],
+    setPreview: value => { preview = value; }, onSubmit: () => { submissions += 1; },
+  });
+  handleSubmit({ preventDefault: () => { prevented += 1; } });
+  assert.equal(prevented, 1);
+  assert.equal(preview, expectedPreview);
+  assert.equal(submissions, expectedSubmit);
+}
+assert.match(source, /onSubmit\(null, preview\)/, "Confirmation sends the reviewed draft");
+const locationSource = await readFile(new URL("../src/app/campaigns/[campaignId]/LocationChat.tsx", import.meta.url), "utf8");
+const locationFile = ts.createSourceFile("LocationChat.tsx", locationSource, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+const locationComponent = locationFile.statements.find(node => ts.isFunctionDeclaration(node) && node.name?.text === "LocationChat");
+const spatialSend = locationComponent.body.statements.find(node => ts.isFunctionDeclaration(node) && node.name?.text === "send");
+const spatialJs = ts.transpileModule(`(${spatialSend.getText(locationFile)})`, { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
+let spatialPreview = null;
+const commands = [];
+const chat = { selected: "room-a", campaignId: "campaign-a", command: async payload => { commands.push(payload); return true; } };
+const send = vm.runInNewContext(spatialJs, {
+  content: "  I draw my sword  ", kind: "do", ooc: false, view: { enabled: true, isDm: false, current: { revision: 7 } },
+  canSend: true, sendBlocked: false, chat, isStealth: false,
+  setPreview: value => { spatialPreview = value; }, setContent: () => {}, setIsStealth: () => {},
+});
+await send({ preventDefault() {} });
+assert.deepEqual(JSON.parse(JSON.stringify(spatialPreview)), { text: "I draw my sword", roomId: "room-a" });
+assert.equal(commands.length, 0, "Spatial action waits for confirmation");
+await send(null, spatialPreview.text);
+assert.equal(commands.length, 1);
+assert.equal(commands[0].roomId, "room-a");
+assert.equal(commands[0].content, spatialPreview.text);
+console.log("Table chat disclosure and both action confirmation paths passed.");
