@@ -22,6 +22,8 @@ const { handlePcAttack, resolvePendingPcAttack } = await import('../src/lib/dm/p
 const { handleRequestPlayerInput } = await import('../src/lib/dm/basic-adjudications.ts');
 const { conditionRollRiders, conditionOnHitDice } = await import('../src/lib/srd/condition-effects.ts');
 const { executeNarratorCommand } = await import('../src/lib/dm/narrator-command.ts');
+const { persistHumanNarration } = await import('../src/lib/dm/human-narration.ts');
+const { listRecentMessages } = await import('../src/lib/db/messages.ts');
 
 const user = createUser('combat-regression', 'x');
 const allyUser = createUser('combat-ally', 'x');
@@ -55,6 +57,7 @@ function reset() {
 }
 
 reset();
+const turnStartSeq = latestSeq(campaign.id);
 const combo = call('combat_turn', { characterId: hero.id, steps: [
   { name: 'heal', args: { characterId: ally.id, spell: 'Healing Word', level: 1 } },
   { name: 'pc_attack', args: { targetEnemyId: enemy.id, weapon: 'Булава «Аргумент»' } },
@@ -66,6 +69,13 @@ assert.equal(getSheetById(hero.id).spellcasting.slots['1'].used, 1);
 assert.ok(getSheetById(ally.id).currentHp > 1);
 assert.equal(getEncounter(encounter.id).turnIndex, 1, 'one compound turn advances exactly once');
 assert.equal(getFloor(campaign.id).mode, 'hold', 'narration still owns the final publication gate');
+persistHumanNarration(campaign, 'Hero finishes the strike.', user.id);
+assert.deepEqual(listRecentMessages(campaign.id, 20).filter(message => message.seq > turnStartSeq &&
+  (message.content === 'Hero finishes the strike.' || message.content.startsWith('It is now ')))
+  .map(message => [message.authorType, message.content]), [
+  ['dm', 'Hero finishes the strike.'],
+  ['system', `It is now ${ally.name}'s turn (round ${getEncounter(encounter.id).round}).`],
+], 'the DM result must be published before the next turn is announced');
 
 reset();
 const payload = { name: 'combat_turn', args: { characterId: hero.id, steps: [{ name: 'heal', args: { characterId: ally.id, spell: 'Healing Word', level: 1 } }] } };

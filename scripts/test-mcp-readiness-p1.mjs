@@ -13,7 +13,7 @@ function narration(fixture) {
     '@/lib/db/core': fixture.core, '@/lib/db/commit-effects': fixture.effects,
     '@/lib/db/campaigns': fixture.campaigns, '@/lib/db/messages': fixture.messages,
     '@/lib/db/dm-turns': { listOpenPendingRolls: () => fixture.pendingRolls ?? [] },
-    '@/lib/dm/encounter-tools': { queueSkippedCombatTurn: () => {} },
+    '@/lib/dm/encounter-tools': { announceCurrentTurn: () => {}, queueSkippedCombatTurn: () => {} },
     '@/lib/events': fixture.events,
     '@/lib/spatial/service': { spatialEnabled: () => false, SpatialError: class extends Error {} },
   }).persistHumanNarration;

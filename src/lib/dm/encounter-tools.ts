@@ -1156,21 +1156,9 @@ function advancePointer(
   saveEncounter(encounter);
   setInitiativeFloor(campaign, encounter);
   publishEncounter(campaign.id);
-  // The pointer move is announced as a table note so the transcript can
-  // never silently disagree with the banner about whose turn it is.
-  if (options?.announce !== false) {
-    const nextEntry = encounter.order[encounter.turnIndex];
-    if (nextEntry) {
-      const seq = allocateSeq(campaign.id);
-      const message = insertCampaignMessage({
-        campaignId: campaign.id,
-        seq,
-        authorType: "system",
-        content: `It is now ${nextEntry.name}'s turn (round ${encounter.round}).`,
-      });
-      publishWithSeq(campaign.id, seq, "message_added", { message });
-    }
-  }
+  // A held player submission publishes its result first; narration announces
+  // the already-selected actor when it opens the gate.
+  if (options?.announce !== false) announceCurrentTurn(campaign);
   // Downed PCs the pointer skipped make their death saves now, once per
   // pass, announced to the table as system messages and dice cards.
   for (const characterId of next.pcsPassed) {
@@ -1277,10 +1265,10 @@ function autoActSkippedEnemies(
 // table talk and questions never steal anyone's turn. Enemies the pointer
 // passes that the model never attacked with auto-act via the server
 // fallback.
-export function advanceAfterTurn(campaign: Campaign, turn?: DmTurn) {
+export function advanceAfterTurn(campaign: Campaign, turn?: DmTurn, options?: { announce?: boolean }) {
   const held = getFloor(campaign.id);
-  // A bundle is held while the DM adjudicates it. Once end_turn confirms the
-  // mechanics, narration may advance its stored initiative floor exactly once.
+  // A bundle is held while the DM adjudicates it. end_turn may move the
+  // pointer, but narration still owns the public handoff and floor release.
   const floor = held.mode === "hold" && held.combat?.requiresEndTurn && held.combat.mechanicsResolved
     ? held.next
     : held;
@@ -1310,7 +1298,7 @@ export function advanceAfterTurn(campaign: Campaign, turn?: DmTurn) {
       return;
     }
   }
-  const advanced = advancePointer(campaign, encounter);
+  const advanced = advancePointer(campaign, encounter, options);
   if (advanced && turn) {
     const sheets = listSheets(campaign.id);
     const sheetsById = new Map(sheets.map((sheet) => [sheet.id, sheet]));
@@ -1332,6 +1320,20 @@ export function advanceAfterTurn(campaign: Campaign, turn?: DmTurn) {
       wakeDm(campaign.id);
     }
   }
+}
+
+export function announceCurrentTurn(campaign: Campaign): void {
+  const encounter = getActiveEncounter(campaign.id);
+  const current = encounter?.orderReady ? encounter.order[encounter.turnIndex] : null;
+  if (!encounter || !current) return;
+  const seq = allocateSeq(campaign.id);
+  const message = insertCampaignMessage({
+    campaignId: campaign.id,
+    seq,
+    authorType: "system",
+    content: `It is now ${current.name}'s turn (round ${encounter.round}).`,
+  });
+  publishWithSeq(campaign.id, seq, "message_added", { message });
 }
 
 // The companion analog of autoActSkippedEnemies: nearest living enemy,

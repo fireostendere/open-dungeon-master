@@ -27,7 +27,7 @@ export function finishHumanAdjudication(campaign: Campaign, turn: DmTurn, action
     // moving initiative. All intermediate state/events commit atomically.
     if (floor.mode === "hold") setFloor(campaign.id, initiative);
     const previous = { id: before.id, round: before.round, turnIndex: before.turnIndex };
-    advanceAfterTurn(campaign, turn);
+    advanceAfterTurn(campaign, turn, { announce: floor.mode !== "hold" });
     const after = getActiveEncounter(campaign.id);
     if (after?.id === previous.id && after.round === previous.round && after.turnIndex === previous.turnIndex) {
       throw new Error("The engine could not advance initiative; the command was rolled back.");

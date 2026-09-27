@@ -55,7 +55,7 @@ function fixture() {
     '@/lib/spatial/service': spatial, '@/lib/db/campaigns': floorDb, '@/lib/db/core': f.core,
     '@/lib/db/commit-effects': f.effects, '@/lib/db/messages': f.messages,
     '@/lib/db/dm-turns': turns, '@/lib/events': f.events,
-    '@/lib/dm/encounter-tools': { queueSkippedCombatTurn() {} },
+    '@/lib/dm/encounter-tools': { announceCurrentTurn() {}, queueSkippedCombatTurn() {} },
   });
   return { ...f, campaigns, floor, campaign, sheets,
     options: () => route.GET(new Request('http://localhost/actions'), { params: Promise.resolve({ campaignId: 'c1' }) }),
