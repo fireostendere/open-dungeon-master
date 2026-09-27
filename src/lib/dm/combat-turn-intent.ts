@@ -31,6 +31,30 @@ export type CombatTurnIntent = {
   prose?: string;
 };
 
+export function combatChoiceLabel(choice: CombatChoice, language: "ru" | "en", names: ReadonlyMap<string, string> = new Map()): string {
+  const ru = language === "ru";
+  const target = (id?: string) => id ? ` → ${names.get(id) ?? (ru ? "цель" : "target")}` : "";
+  if (choice.type === "attack") return `${ru ? "Атака" : "Attack"}: ${choice.weapon === "Unarmed strike" && ru ? "Безоружный удар" : choice.weapon}${target(choice.targetEnemyId)}`;
+  if (choice.type === "dodge") return ru ? "Защита: уклонение" : "Defence: Dodge";
+  if (choice.type === "action") {
+    const labels = ru
+      ? { dash: "Рывок", disengage: "Отход", hide: "Скрыться", help: "Помощь", grapple: "Захват", shove: "Толчок" }
+      : { dash: "Dash", disengage: "Disengage", hide: "Hide", help: "Help", grapple: "Grapple", shove: "Shove" };
+    return `${labels[choice.action]}${target(choice.targetEnemyId ?? choice.targetCharacterId)}`;
+  }
+  if (choice.type === "spell") return `${ru ? "Заклинание" : "Spell"}: ${choice.spell}${choice.slotLevel ? ` (${ru ? "ячейка" : "slot"} ${choice.slotLevel})` : ""}${target(choice.targetId)}`;
+  if (choice.type === "feature") return `${choice.feature}${target(choice.targetId)}`;
+  if (choice.type === "resource") {
+    const labels: Record<string, string> = ru
+      ? { second_wind: "Второе дыхание", rage: "Ярость", bardic_inspiration: "Бардовское вдохновение", lay_on_hands: "Наложение рук" }
+      : { second_wind: "Second Wind", rage: "Rage", bardic_inspiration: "Bardic Inspiration", lay_on_hands: "Lay on Hands" };
+    return `${labels[choice.resource] ?? choice.resource}${target(choice.targetCharacterId)}`;
+  }
+  if (choice.type === "item") return `${ru ? "Предмет" : "Item"}: ${choice.item}${target(choice.targetCharacterId)}`;
+  if (choice.type === "pet") return `${choice.petName}: ${choice.attack}${target(choice.targetEnemyId)}`;
+  return `${ru ? "Приказ" : "Order"}: ${choice.petName} — ${choice.order}`;
+}
+
 export type CombatIntentSheet = {
   id: string;
   name: string;

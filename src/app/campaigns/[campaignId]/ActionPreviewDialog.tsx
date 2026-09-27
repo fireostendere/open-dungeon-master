@@ -14,6 +14,7 @@ export function ActionPreviewDialog({
   portraitUrl,
   locale,
   queuedActions,
+  queuedActionLabels = [],
   note,
   onEdit,
   onSend,
@@ -24,15 +25,16 @@ export function ActionPreviewDialog({
   portraitUrl?: string;
   locale: Locale;
   queuedActions: number;
+  queuedActionLabels?: string[];
   note?: string;
   onEdit: () => void;
   onSend: () => void;
   disabled: boolean;
 }) {
   const copy = locale === "ru"
-    ? { title: "Проверить действие", edit: "Редактировать", send: "Отправить", replay: "Зачитать ещё раз", stop: "Остановить чтение", queued: `Также отправятся запланированные боевые действия: ${queuedActions}. Их итоговый текст составит сервер.` }
-    : { title: "Review action", edit: "Edit", send: "Send", replay: "Read aloud again", stop: "Stop reading", queued: `${queuedActions} queued combat actions will also be sent. The server will compose their final text.` };
-  const previewText = content || (locale === "ru" ? "Запланированные боевые действия" : "Queued combat actions");
+    ? { title: "Проверить действие", edit: "Редактировать", send: "Отправить", replay: "Зачитать ещё раз", stop: "Остановить чтение", plan: "В план хода отправятся:", queued: `Также отправятся запланированные боевые действия: ${queuedActions}. Их итоговый текст составит сервер.`, noText: "Ход без дополнительного описания." }
+    : { title: "Review action", edit: "Edit", send: "Send", replay: "Read aloud again", stop: "Stop reading", plan: "Actions in this turn:", queued: `${queuedActions} queued combat actions will also be sent. The server will compose their final text.`, noText: "Turn without additional description." };
+  const previewText = content || (queuedActionLabels.length ? copy.noText : locale === "ru" ? "Запланированные боевые действия" : "Queued combat actions");
   const speak = useCallback(() => {
     if (!("speechSynthesis" in window)) return;
     window.speechSynthesis.cancel();
@@ -61,7 +63,10 @@ export function ActionPreviewDialog({
         </p>
         <PlayerMessageBody content={previewText} />
       </div>
-      {queuedActions > 0 ? <p className="mt-3 text-xs text-amber-200/80">{copy.queued}</p> : null}
+      {queuedActionLabels.length ? <div className="mt-3 rounded-lg border border-amber-800/60 bg-amber-950/30 p-3 text-sm text-amber-100">
+        <b>{copy.plan}</b>
+        <ol className="mt-1 list-inside list-decimal space-y-1">{queuedActionLabels.map((label, index) => <li key={`${index}:${label}`}>{label}</li>)}</ol>
+      </div> : queuedActions > 0 ? <p className="mt-3 text-xs text-amber-200/80">{copy.queued}</p> : null}
       {note ? <p className="mt-3 text-xs text-amber-200/80">{note}</p> : null}
       <div className="mt-5 flex flex-wrap items-center gap-2">
         {typeof window !== "undefined" && "speechSynthesis" in window ? <>

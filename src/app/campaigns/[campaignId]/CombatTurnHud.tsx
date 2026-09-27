@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { Shield, Swords, X } from "lucide-react";
-import { combatChoiceDescriptors, combatIntentBudget, combatSpellSlots, validateCombatTurnIntent, type CombatChoice, type CombatSpellDescriptor, type CombatTurnIntent } from "@/lib/dm/combat-turn-intent";
+import { ActionPreviewDialog } from "@/app/campaigns/[campaignId]/ActionPreviewDialog";
+import { combatChoiceDescriptors, combatChoiceLabel, combatIntentBudget, combatSpellSlots, validateCombatTurnIntent, type CombatChoice, type CombatSpellDescriptor, type CombatTurnIntent } from "@/lib/dm/combat-turn-intent";
 import { attacksLeft, freshBudget } from "@/lib/dm/action-budget";
 import { useI18n } from "@/lib/i18n";
 import { combatRiders } from "@/lib/srd/feature-effects";
@@ -11,8 +12,8 @@ import type { PublicEncounter } from "@/lib/db/encounter-view";
 import type { CharacterSheet } from "@/lib/schemas/sheet";
 
 const COPY = {
-  ru: { title: "Ваш боевой ход", draft: "Черновик: мастер разрешит выбранное после отправки", action: "Действие", bonus: "Доп. действие", reaction: "Реакция", attacks: "Атаки", spent: "использовано", ready: "доступно", locked: "Мастер обрабатывает ход. OOC остаётся доступен.", attack: "Атака", weapon: "Оружие", enemy: "Цель атаки", target: "Выберите цель", queue: "Добавить", dodge: "Защита: уклонение", ability: "Способности", resource: "Способность", ally: "Цель способности", item: "Расходуемые предметы", choose: "Выберите", queued: "Порядок действий", empty: "Пока ничего не выбрано", remove: "Убрать действие", prose: "Действия и реплики персонажа", hint: "Опишите детали или реплику героя…", send: "Отправить действие", end: "Закончить ход", sending: "Отправка…", unsupported: "Заклинания, особые способности и другие предметы опишите текстом. Их разрешает мастер.", self: "На себя", rejected: "Выбор недоступен: проверьте оставшиеся действия, ресурс и цель.", cost: "Стоимость", unarmed: "Безоружный удар", second_wind: "Второе дыхание", rage: "Ярость", bardic_inspiration: "Бардовское вдохновение", lay_on_hands: "Наложение рук" },
-  en: { title: "Your combat turn", draft: "Draft: the DM resolves your choices after submission", action: "Action", bonus: "Bonus action", reaction: "Reaction", attacks: "Attacks", spent: "spent", ready: "ready", locked: "The DM is resolving your turn. OOC remains available.", attack: "Attack", weapon: "Weapon", enemy: "Attack target", target: "Choose a target", queue: "Queue", dodge: "Defence: Dodge", ability: "Abilities", resource: "Ability", ally: "Ability target", item: "Consumables", choose: "Choose", queued: "Action order", empty: "Nothing selected yet", remove: "Remove action", prose: "Character actions and dialogue", hint: "Describe details or your character's words…", send: "Send Action", end: "End Turn", sending: "Sending…", unsupported: "Describe spells, special abilities and other items in the text. The DM adjudicates them.", self: "Self", rejected: "Unavailable choice: check your remaining actions, resource and target.", cost: "Cost", unarmed: "Unarmed strike", second_wind: "Second Wind", rage: "Rage", bardic_inspiration: "Bardic Inspiration", lay_on_hands: "Lay on Hands" },
+  ru: { title: "Ваш боевой ход", draft: "Черновик: мастер разрешит выбранное после отправки", action: "Действие", bonus: "Бонусное действие", reaction: "Реакция", attacks: "Атаки", spent: "использовано", ready: "доступно", locked: "Мастер обрабатывает ход. OOC остаётся доступен.", attack: "Атака", weapon: "Оружие", enemy: "Цель атаки", target: "Выберите цель", queue: "Добавить", dodge: "Защита: уклонение", ability: "Способности", resource: "Способность", ally: "Цель способности", item: "Расходуемые предметы", choose: "Выберите", queued: "Порядок действий", empty: "Пока ничего не выбрано", remove: "Убрать действие", prose: "Действия и реплики персонажа", hint: "Опишите детали или реплику героя…", send: "Отправить действие", end: "Закончить ход", sending: "Отправка…", unsupported: "Заклинания, особые способности и другие предметы опишите текстом. Их разрешает мастер.", self: "На себя", rejected: "Выбор недоступен: проверьте оставшиеся действия, ресурс и цель.", cost: "Стоимость", unarmed: "Безоружный удар", second_wind: "Второе дыхание", rage: "Ярость", bardic_inspiration: "Бардовское вдохновение", lay_on_hands: "Наложение рук", maneuvers: "Тактика и манёвры", spells: "Заклинания", features: "Особенности листа", movement: "Перемещение", reactionHelp: "Реакция доступна только при её условии. Опишите срабатывание мастеру; реакционные заклинания пока нельзя заявить заранее.", movementHelp: "Перемещение не тратит действие. Выберите клетку на боевой карте или опишите движение мастеру." },
+  en: { title: "Your combat turn", draft: "Draft: the DM resolves your choices after submission", action: "Action", bonus: "Bonus action", reaction: "Reaction", attacks: "Attacks", spent: "spent", ready: "ready", locked: "The DM is resolving your turn. OOC remains available.", attack: "Attack", weapon: "Weapon", enemy: "Attack target", target: "Choose a target", queue: "Queue", dodge: "Defence: Dodge", ability: "Abilities", resource: "Ability", ally: "Ability target", item: "Consumables", choose: "Choose", queued: "Action order", empty: "Nothing selected yet", remove: "Remove action", prose: "Character actions and dialogue", hint: "Describe details or your character's words…", send: "Send Action", end: "End Turn", sending: "Sending…", unsupported: "Describe spells, special abilities and other items in the text. The DM adjudicates them.", self: "Self", rejected: "Unavailable choice: check your remaining actions, resource and target.", cost: "Cost", unarmed: "Unarmed strike", second_wind: "Second Wind", rage: "Rage", bardic_inspiration: "Bardic Inspiration", lay_on_hands: "Lay on Hands", maneuvers: "Tactics and maneuvers", spells: "Spells", features: "Sheet features", movement: "Movement", reactionHelp: "A reaction is available only when its trigger occurs. Describe the trigger to the DM; reaction spells cannot currently be declared in advance.", movementHelp: "Movement does not spend an action. Choose a square on the battle map or describe your movement to the DM." },
 };
 
 export function CombatTurnHud({
@@ -60,8 +61,11 @@ export function CombatTurnHud({
     else setInternalProse(val);
   };
   const [weapon, setWeapon] = useState(() => combatChoiceDescriptors(sheet).find(entry => entry.type === "weapon" && entry.name !== "Unarmed strike")?.name ?? "Unarmed strike");
-  const [enemyId, setEnemyId] = useState("");
+  const [attackTargetId, setAttackTargetId] = useState("");
+  const [maneuverEnemyId, setManeuverEnemyId] = useState("");
+  const [maneuverAllyId, setManeuverAllyId] = useState("");
   const [resource, setResource] = useState("");
+  const [featureName, setFeatureName] = useState("");
   const [item, setItem] = useState("");
   const [spell, setSpell] = useState("");
   const [slotLevel, setSlotLevel] = useState("");
@@ -69,19 +73,28 @@ export function CombatTurnHud({
   const [targetCharacterId, setTargetCharacterId] = useState("");
   const [itemTarget, setItemTarget] = useState(sheet.id);
   const [rejected, setRejected] = useState(false);
+  const [confirming, setConfirming] = useState(false);
   const descriptors = combatChoiceDescriptors(sheet);
   const weapons = descriptors.filter((entry) => entry.type === "weapon");
   const resources = descriptors.filter((entry) => entry.type === "resource");
   const features = descriptors.filter((entry) => entry.type === "feature");
   const items = descriptors.filter((entry) => entry.type === "item");
-  const selectedResource = resources.find((entry) => entry.id === resource);
-  const selectedFeature = features.find(entry => `feature:${entry.name}` === resource);
-  const selectedSpell = spellOptions.find(entry => entry.name === spell);
-  const slots = selectedSpell?.level ? combatSpellSlots(sheet, selectedSpell.level) : [];
-  const chosenSlot = slots.find(entry => String(entry.level) === slotLevel)?.level ?? slots[0]?.level;
-  const spellChoice: CombatChoice = { type: "spell", spell, ...(chosenSlot ? { slotLevel: chosenSlot } : {}), ...(spellTarget ? { targetId: spellTarget } : {}) };
+  const actionResources = resources.filter(entry => entry.cost === "action");
+  const bonusResources = resources.filter(entry => entry.cost === "bonus");
+  const usableSpells = spellOptions.filter(entry => entry.level === 0 || entry.level === null || combatSpellSlots(sheet, entry.level).length > 0);
+  const actionSpells = usableSpells.filter(entry => entry.cost !== "bonus" && entry.cost !== "reaction");
+  const bonusSpells = usableSpells.filter(entry => entry.cost === "bonus");
+  const reactionSpells = spellOptions.filter(entry => entry.cost === "reaction");
+  const selectedFeature = features.find(entry => entry.name === featureName);
+  const spellChoiceFor = (spellName: string, preferredSlot?: number, targetId = ""): CombatChoice => {
+    const descriptor = spellOptions.find(entry => entry.name === spellName);
+    const available = descriptor?.level ? combatSpellSlots(sheet, descriptor.level) : [];
+    const slotLevel = available.find(entry => entry.level === preferredSlot)?.level ?? available[0]?.level;
+    return { type: "spell", spell: spellName, ...(slotLevel ? { slotLevel } : {}), ...(targetId ? { targetId } : {}) };
+  };
   const enemies = encounter.enemies.filter((enemy) => enemy.status === "alive");
   const allies = sheets.filter((entry) => !entry.deathSaves?.dead);
+  const targetNames = new Map([...allies, ...enemies].map(entry => [entry.id, entry.name] as const));
   const baseBudget = combatIntentBudget(encounter, freshBudget({ ownerId: sheet.id, round: encounter.round, attacksAllowed: 1 + combatRiders(sheet).extraAttacks, extraActions: conditionExtraActions(sheet.conditions) }));
   const intent = (entries = choices): CombatTurnIntent => ({ encounterId: encounter.id, round: encounter.round, turnIndex: encounter.turnIndex, choices: entries, prose: prose.trim() || undefined });
   const validate = (entries: CombatChoice[]) => validateCombatTurnIntent(intent(entries), sheet, new Set(enemies.map((enemy) => enemy.id)), new Set(allies.map((ally) => ally.id)), baseBudget, { language: locale, names: new Map(), spells: spellOptions });
@@ -92,7 +105,18 @@ export function CombatTurnHud({
     setRejected(!result.ok);
     if (result.ok) setChoices(next);
   };
-  const submit = () => { if (!locked && !sending && preview.ok && (choices.length || prose.trim())) onSubmit(intent()); };
+  const updateLatest = (matches: (choice: CombatChoice) => boolean, choice: CombatChoice) => {
+    let index = -1;
+    choices.forEach((entry, current) => { if (matches(entry)) index = current; });
+    if (index < 0) return undefined;
+    const next = [...choices];
+    next[index] = choice;
+    const result = validate(next);
+    setRejected(!result.ok);
+    if (result.ok) setChoices(next);
+    return result.ok;
+  };
+  const submit = () => { if (!locked && !sending && preview.ok && (choices.length || prose.trim())) setConfirming(true); };
   const disabled = locked || sending;
   const meter = preview.ok ? preview.budget : baseBudget;
   const resourceName = (id: string) => copy[id as "second_wind"] ?? id;
@@ -103,73 +127,129 @@ export function CombatTurnHud({
   const spellLabel = locale === "ru" ? "Заклинание" : "Spell";
   const spellLevelLabel = locale === "ru" ? "ур." : "lv.";
   const adjudication = locale === "ru" ? "Заявка мастеру: применимость, стоимость и эффект определяются правилами особенности; пассивные эффекты не становятся отдельными действиями." : "DM request: the feature's rules determine applicability, cost and effect; passive effects do not become separate actions.";
+  const branchClass = "rounded-lg border border-stone-700 p-2";
+  const summaryClass = "cursor-pointer font-medium text-stone-100";
+  const chooseResource = (value: string, entries: typeof resources) => {
+    setResource(value);
+    setTargetCharacterId("");
+    const selected = entries.find(entry => entry.id === value);
+    if (selected?.target === "self") {
+      add({ type: "resource", resource: value, targetCharacterId: sheet.id });
+      setResource("");
+    }
+  };
+  const renderResources = (entries: typeof resources, label: string) => {
+    const selected = entries.find(entry => entry.id === resource);
+    return <>
+      <select aria-label={label} value={selected?.id ?? ""} onChange={event => chooseResource(event.target.value, entries)} disabled={disabled} className={selectClass}>
+        <option value="">{copy.choose}</option>{entries.map(entry => <option key={entry.id} value={entry.id}>{resourceName(entry.id)} ({entry.left})</option>)}
+      </select>
+      {selected && selected.target !== "self" ? <select aria-label={copy.ally} value={targetCharacterId} onChange={event => {
+        const targetId = event.target.value;
+        setTargetCharacterId(targetId);
+        if (targetId) {
+          add({ type: "resource", resource: selected.id, targetCharacterId: targetId });
+          setResource("");
+        }
+      }} disabled={disabled} className={selectClass}><option value="">{copy.target}</option>{allies.filter(ally => selected.target !== "other" || ally.id !== sheet.id).map(ally => <option key={ally.id} value={ally.id}>{ally.id === sheet.id ? copy.self : ally.name}</option>)}</select> : null}
+      {selected?.target !== "self" && selected ? <p role="status" className="mt-1 text-xs text-sky-200">{locale === "ru" ? "Выберите цель — способность сразу добавится в план." : "Choose a target; the ability is immediately added to the plan."}</p> : null}
+    </>;
+  };
+  const renderSpellPicker = (options: CombatSpellDescriptor[], label: string, costLabel: string) => {
+    const activeSpell = options.find(entry => entry.name === spell);
+    const activeSlots = activeSpell?.level ? combatSpellSlots(sheet, activeSpell.level) : [];
+    const activeSlot = activeSlots.find(entry => String(entry.level) === slotLevel)?.level ?? activeSlots[0]?.level;
+    return <details className={branchClass}>
+      <summary className={summaryClass}>{label}</summary>
+      <select aria-label={`${spellLabel} (${costLabel})`} value={activeSpell?.name ?? ""} onChange={event => { const value = event.target.value; setSpell(value); setSlotLevel(""); setSpellTarget(""); if (value) add(spellChoiceFor(value)); }} disabled={disabled} className={selectClass}>
+        <option value="">{copy.choose}</option>{options.map(entry => <option key={entry.name} value={entry.name}>{entry.name} · {entry.level === 0 ? (locale === "ru" ? "заговор" : "cantrip") : entry.level === null ? "?" : `${spellLevelLabel} ${entry.level}`}</option>)}
+      </select>
+      {activeSpell ? <>
+        <p className="mt-1 text-xs text-violet-200">{copy.cost}: {activeSpell.cost === "action" ? copy.action : activeSpell.cost === "bonus" ? copy.bonus : (locale === "ru" ? "уточняет мастер" : "DM adjudicates")}{activeSpell.level === 0 ? (locale === "ru" ? " · без ячейки" : " · no slot") : ""}</p>
+        {activeSpell.level !== null && activeSpell.level > 0 ? activeSlots.length ? <select aria-label={locale === "ru" ? "Ячейка заклинания" : "Spell slot"} value={activeSlot ?? ""} onChange={event => { const value = Number(event.target.value); setSlotLevel(String(value)); updateLatest(entry => entry.type === "spell" && entry.spell === spell, spellChoiceFor(spell, value, spellTarget)); }} disabled={disabled} className={selectClass}>{activeSlots.map(entry => <option key={entry.level} value={entry.level}>{locale === "ru" ? "Уровень" : "Level"} {entry.level} · {entry.left} {locale === "ru" ? "осталось" : "left"}</option>)}</select> : <p className="mt-1 text-xs text-amber-300">{locale === "ru" ? "Нет свободных подходящих ячеек." : "No suitable spell slots left."}</p> : null}
+        <select aria-label={locale === "ru" ? "Цель заклинания" : "Spell target"} value={spellTarget} onChange={event => { const value = event.target.value; setSpellTarget(value); updateLatest(entry => entry.type === "spell" && entry.spell === spell, spellChoiceFor(spell, activeSlot, value)); }} disabled={disabled} className={selectClass}><option value="">{locale === "ru" ? "Цель / область — описать в тексте" : "Target / area — describe in text"}</option>{[...enemies, ...allies].map(target => <option key={target.id} value={target.id}>{target.id === sheet.id ? copy.self : target.name}</option>)}</select>
+        <p role="status" className="mt-1 text-xs text-sky-200">{locale === "ru" ? "Заклинание уже в плане; цель и ячейку можно уточнить здесь." : "Spell added to the plan; adjust its target or slot here."}</p>
+      </> : null}
+    </details>;
+  };
 
   return <section className="mb-2 rounded-xl border border-amber-700/60 bg-stone-950/95 p-3 text-sm shadow-elev-1" aria-label={copy.title}>
     <div className="mb-2 flex flex-wrap items-center justify-between gap-2 text-amber-100">
       <strong className="flex items-center gap-1.5"><Swords className="size-4" /> {sheet.name} · {locale === "ru" ? "Раунд" : "Round"} {encounter.round}</strong>
       <span className="text-xs text-stone-400">{copy.draft}</span>
     </div>
-    <p className="mb-2 text-xs text-stone-300">{locale === "ru" ? "Добавьте конкретные действия в план или просто опишите замысел своими словами. Описание к выбранным действиям необязательно. Весь план отправляется одним ходом." : "Add specific actions to the plan or describe your intent in your own words. Description is optional for queued actions. Submit the whole plan as one turn."}</p>
-    <p className="mb-2 text-xs text-sky-200">{locale === "ru" ? "Списки ниже — просмотр. Действие выбирается только кнопкой «Добавить» и появляется в плане. Просмотр способности не означает её применение." : "The lists below are for browsing. Only Queue adds an action to the plan. Viewing an ability does not activate it."}</p>
+    <p className="mb-2 text-xs text-stone-300">{locale === "ru" ? "Выбор действия автоматически добавляется в план, когда заполнены нужные поля. Можно также просто описать замысел. Перед отправкой появится подтверждение всего плана." : "Choosing an action adds it to the plan as soon as its required fields are complete. You can also describe your intent. The full plan appears for confirmation before sending."}</p>
     <div className="mb-3 flex flex-wrap gap-1.5 text-xs" aria-live="polite">
       {([[copy.action, meter.actionUsed], [copy.bonus, meter.bonusUsed], [copy.reaction, meter.reactionUsed]] as const).map(([name, spent]) => <span key={name} className={`rounded border px-2 py-1 ${spent ? "border-stone-700 text-stone-500" : "border-amber-800 text-amber-200"}`}>{name}: {spent ? copy.spent : copy.ready}</span>)}
       <span className="rounded bg-stone-800 px-2 py-1">{copy.attacks}: {attacksLeft(meter)} {locale === "ru" ? "осталось" : "remaining"}</span>
     </div>
     {locked ? <p role="status" className="mb-2 rounded bg-amber-950/50 p-2 text-xs text-amber-200">{copy.locked}</p> : null}
-    <div className="grid gap-2 sm:grid-cols-2">
-      <div className="min-w-0 rounded-lg border border-stone-700 p-2">
-        <b>{copy.attack}</b><span className="ml-2 text-xs text-amber-300">{copy.action}</span>
-        <select aria-label={copy.weapon} value={weapon} onChange={(e) => setWeapon(e.target.value)} disabled={disabled} className={selectClass}>{weapons.map((entry) => <option key={entry.name} value={entry.name}>{weaponName(entry.name)}</option>)}</select>
-        <select aria-label={copy.enemy} value={enemyId} onChange={(e) => setEnemyId(e.target.value)} disabled={disabled} className={selectClass}><option value="">{copy.target}</option>{enemies.map((enemy) => <option key={enemy.id} value={enemy.id}>{enemy.name}</option>)}</select>
-        <button type="button" disabled={disabled || !enemyId || !validate([...choices, { type: "attack", targetEnemyId: enemyId, weapon }]).ok} onClick={() => add({ type: "attack", targetEnemyId: enemyId, weapon })} className={queueClass}>{copy.queue}</button>
-        <button type="button" disabled={disabled || meter.actionUsed} onClick={() => add({ type: "dodge" })} className={`${queueClass} ml-2`}><Shield className="mr-1 inline size-3" />{copy.dodge}</button>
-      </div>
-      <div className="min-w-0 rounded-lg border border-sky-900/80 p-2">
-        <b className="text-sky-200">{copy.ability}</b>
-        {resources.length || features.length ? <>
-        <select aria-label={copy.resource} value={resource} onChange={(e) => setResource(e.target.value)} disabled={disabled} className={selectClass}><option value="">{copy.choose}</option>{resources.map((entry) => <option key={entry.id} value={entry.id}>{resourceName(entry.id)} ({entry.left})</option>)}<optgroup label={locale === "ru" ? "Особенности листа — заявка мастеру" : "Sheet features — DM request"}>{features.map(entry => <option key={entry.name} value={`feature:${entry.name}`}>{entry.name}</option>)}</optgroup></select>
-        {selectedFeature || selectedResource?.target && selectedResource.target !== "self" ? <select aria-label={copy.ally} value={targetCharacterId} onChange={(e) => setTargetCharacterId(e.target.value)} disabled={disabled} className={selectClass}><option value="">{copy.target}</option>{(selectedFeature ? [...enemies, ...allies] : allies).map((ally) => <option key={ally.id} value={ally.id} disabled={selectedResource?.target === "other" && ally.id === sheet.id}>{ally.name}</option>)}</select> : null}
-        {resource ? <p role="status" className="mt-1 text-xs text-sky-200">{locale === "ru" ? "Просмотр способности — чтобы применить, добавьте её в план." : "Browsing ability — queue it to request its use."}</p> : null}
-        <p className="mt-1 text-xs text-stone-400">{selectedFeature ? adjudication : selectedResource ? `${copy.cost}: ${selectedResource.cost === "bonus" ? copy.bonus : copy.action}` : copy.choose}</p>
-        {selectedFeature?.description ? <p className="mt-1 text-xs text-stone-300">{selectedFeature.description}</p> : null}
-        <button type="button" disabled={disabled || !resource} onClick={() => add(selectedFeature ? { type: "feature", feature: selectedFeature.name, ...(targetCharacterId ? { targetId: targetCharacterId } : {}) } : { type: "resource", resource, targetCharacterId: selectedResource?.target === "self" ? sheet.id : targetCharacterId })} className={queueClass}>{copy.queue}</button>
-        </> : <p className="mt-2 text-xs text-stone-400">{locale === "ru" ? "В листе нет способностей с ресурсом или особенностей." : "No resources or features on this sheet."}</p>}
-      </div>
-      {sheet.spellcasting ? <div className="min-w-0 rounded-lg border border-violet-800/80 p-2 sm:col-span-2">
-        <b className="text-violet-200">{locale === "ru" ? "Заклинания и заговоры" : "Spells and cantrips"}</b>
-        {spellsLoading ? <p role="status">{locale === "ru" ? "Загрузка заклинаний…" : "Loading spells…"}</p> : spellsError ? <p role="alert">{locale === "ru" ? "Не удалось загрузить заклинания. Обновите страницу." : "Could not load spells. Refresh the page."}</p> : <>
-          <select aria-label={spellLabel} value={spell} onChange={event => { setSpell(event.target.value); setSlotLevel(""); }} disabled={disabled} className={selectClass}>
-            <option value="">{copy.choose}</option>{spellOptions.map(entry => <option key={entry.name} value={entry.name}>{entry.name} · {entry.level === 0 ? (locale === "ru" ? "заговор" : "cantrip") : entry.level === null ? "?" : `${spellLevelLabel} ${entry.level}`}{entry.level && !combatSpellSlots(sheet, entry.level).length ? (locale === "ru" ? " — нет ячеек" : " — no slots") : ""}</option>)}
-          </select>
-          {selectedSpell ? <>
-            <p className="mt-1 text-xs text-violet-200">{copy.cost}: {selectedSpell.cost === "action" ? copy.action : selectedSpell.cost === "bonus" ? copy.bonus : selectedSpell.cost === "reaction" ? copy.reaction : (locale === "ru" ? "уточняет мастер" : "DM adjudicates")}{selectedSpell.level === 0 ? (locale === "ru" ? " · без ячейки" : " · no slot") : ""}</p>
-            {selectedSpell.cost === "reaction" ? <p className="mt-1 text-xs text-stone-400">{locale === "ru" ? "Реакция требует своего условия срабатывания. Сообщите мастеру, когда оно выполнено." : "A reaction requires its trigger. Tell the DM when it occurs."}</p> : null}
-            {selectedSpell.level !== null && selectedSpell.level > 0 ? slots.length ? <select aria-label={locale === "ru" ? "Ячейка заклинания" : "Spell slot"} value={chosenSlot ?? ""} onChange={event => setSlotLevel(event.target.value)} disabled={disabled} className={selectClass}>{slots.map(entry => <option key={entry.level} value={entry.level}>{locale === "ru" ? "Уровень" : "Level"} {entry.level} · {entry.left} {locale === "ru" ? "осталось" : "left"}</option>)}</select> : <p className="mt-1 text-xs text-amber-300">{locale === "ru" ? "Нет свободных подходящих ячеек. Заговоры доступны без ячеек." : "No suitable spell slots left. Cantrips need no slots."}</p> : null}
-            <select aria-label={locale === "ru" ? "Цель заклинания" : "Spell target"} value={spellTarget} onChange={event => setSpellTarget(event.target.value)} disabled={disabled} className={selectClass}><option value="">{locale === "ru" ? "Цель / область — описать в тексте" : "Target / area — describe in text"}</option>{[...enemies, ...allies].map(target => <option key={target.id} value={target.id}>{target.id === sheet.id ? copy.self : target.name}</option>)}</select>
-          </> : null}
-          <button type="button" disabled={disabled || !spell || !validate([...choices, spellChoice]).ok} onClick={() => add(spellChoice)} className={queueClass}>{locale === "ru" ? "Добавить заклинание" : "Queue spell"}</button>
-        </>}
-      </div> : null}
-      <div className="min-w-0 rounded-lg border border-emerald-900/80 p-2 sm:col-span-2">
-        <b className="text-emerald-200">{copy.item}</b><span className="ml-2 text-xs text-amber-300">{copy.action}</span>
-        {items.length ? <>
-        <div className="grid gap-1 sm:grid-cols-2">
-          <select aria-label={copy.item} value={item} onChange={(e) => setItem(e.target.value)} disabled={disabled} className={selectClass}><option value="">{copy.choose}</option>{items.map((entry) => <option key={entry.name} value={entry.name}>{entry.name} ({entry.qty})</option>)}</select>
-          <select aria-label={`${copy.item}: ${copy.target}`} value={itemTarget} onChange={(e) => setItemTarget(e.target.value)} disabled={disabled} className={selectClass}>{allies.map((ally) => <option key={ally.id} value={ally.id}>{ally.id === sheet.id ? copy.self : ally.name}</option>)}</select>
+    <div className="space-y-2">
+      <details open className="rounded-lg border border-amber-800/70 p-2">
+        <summary className="cursor-pointer font-semibold text-amber-100">{copy.action}</summary>
+        <div className="mt-2 grid gap-2 sm:grid-cols-2">
+          <details className={branchClass}>
+            <summary className={summaryClass}>{copy.attack}</summary>
+            <select aria-label={copy.weapon} value={weapon} onChange={event => setWeapon(event.target.value)} disabled={disabled} className={selectClass}>{weapons.map(entry => <option key={entry.name} value={entry.name}>{weaponName(entry.name)}</option>)}</select>
+            <select aria-label={copy.enemy} value={attackTargetId} onChange={event => { const targetId = event.target.value; setAttackTargetId(""); if (targetId) add({ type: "attack", targetEnemyId: targetId, weapon }); }} disabled={disabled} className={selectClass}><option value="">{copy.target}</option>{enemies.map(enemy => <option key={enemy.id} value={enemy.id}>{enemy.name}</option>)}</select>
+            <p className="mt-1 text-xs text-stone-400">{locale === "ru" ? "Выбор цели сразу добавит атаку в план." : "Selecting a target adds the attack to your plan."}</p>
+            <button type="button" disabled={disabled || meter.actionUsed} onClick={() => add({ type: "dodge" })} className={queueClass}><Shield className="mr-1 inline size-3" />{copy.dodge}</button>
+          </details>
+          {(actionResources.length > 0 || features.length > 0) ? <details className={branchClass}>
+            <summary className={summaryClass}>{copy.ability}</summary>
+            {actionResources.length ? <div className="mt-1"><p className="text-xs text-stone-400">{copy.action}</p>{renderResources(actionResources, `${copy.resource} (${copy.action})`)}</div> : null}
+            {features.length ? <div className="mt-2 border-t border-stone-700 pt-2">
+              <label className="block text-xs text-stone-300">{copy.features} — {locale === "ru" ? "уточнить у мастера" : "DM adjudicates"}
+                <select aria-label={copy.features} value={featureName} onChange={event => { const value = event.target.value; setFeatureName(value); setTargetCharacterId(""); const feature = features.find(entry => entry.name === value); if (feature) add({ type: "feature", feature: feature.name }); }} disabled={disabled} className={selectClass}><option value="">{copy.choose}</option>{features.map(entry => <option key={entry.name} value={entry.name}>{entry.name}</option>)}</select>
+              </label>
+              {selectedFeature ? <>
+                <select aria-label={copy.ally} value={targetCharacterId} onChange={event => { const targetId = event.target.value; setTargetCharacterId(targetId); if (targetId) { const choice: CombatChoice = { type: "feature", feature: selectedFeature.name, targetId }; if (updateLatest(entry => entry.type === "feature" && entry.feature === selectedFeature.name, choice) === undefined) add(choice); } }} disabled={disabled} className={selectClass}><option value="">{locale === "ru" ? "Цель (если нужна)" : "Target (if needed)"}</option>{[...enemies, ...allies].map(target => <option key={target.id} value={target.id}>{target.id === sheet.id ? copy.self : target.name}</option>)}</select>
+                <p role="status" className="mt-1 text-xs text-sky-200">{locale === "ru" ? "Особенность добавлена как заявка; пассивные эффекты не применяются отдельно." : "Feature added as a request; passive effects are not applied separately."}</p>
+                <p className="mt-1 text-xs text-stone-400">{adjudication}</p>
+              </> : null}
+            </div> : null}
+          </details> : null}
+          {sheet.spellcasting && (actionSpells.length > 0 || spellsLoading || spellsError) ? <div className="space-y-2">
+            {spellsLoading ? <details open className={branchClass}><summary className={summaryClass}>{copy.spells}</summary><p role="status" className="mt-1">{locale === "ru" ? "Загрузка заклинаний…" : "Loading spells…"}</p></details> : spellsError ? <details open className={branchClass}><summary className={summaryClass}>{copy.spells}</summary><p role="alert" className="mt-1">{locale === "ru" ? "Не удалось загрузить заклинания. Обновите страницу." : "Could not load spells. Refresh the page."}</p></details> : actionSpells.length ? renderSpellPicker(actionSpells, copy.spells, copy.action) : null}
+          </div> : null}
+          {items.length ? <details className={branchClass}>
+            <summary className={summaryClass}>{copy.item}</summary>
+            <p className="mt-1 text-xs text-amber-300">{copy.action}</p>
+            <select aria-label={copy.item} value={item} onChange={event => { const value = event.target.value; setItem(value); if (value) add({ type: "item", item: value, targetCharacterId: itemTarget }); }} disabled={disabled} className={selectClass}><option value="">{copy.choose}</option>{items.map(entry => <option key={entry.name} value={entry.name}>{entry.name} ({entry.qty})</option>)}</select>
+            <select aria-label={`${copy.item}: ${copy.target}`} value={itemTarget} onChange={event => { const targetId = event.target.value; setItemTarget(targetId); if (item) updateLatest(entry => entry.type === "item" && entry.item === item, { type: "item", item, targetCharacterId: targetId }); }} disabled={disabled} className={selectClass}>{allies.map(ally => <option key={ally.id} value={ally.id}>{ally.id === sheet.id ? copy.self : ally.name}</option>)}</select>
+          </details> : null}
+          <details className={branchClass}>
+            <summary className={summaryClass}>{copy.maneuvers}</summary>
+            <div className="mt-1 flex flex-wrap gap-2">{(Object.keys(actionNames) as Array<keyof typeof actionNames>).map(action => {
+              const choice: CombatChoice = { type: "action", action, ...(action === "help" ? { targetCharacterId: maneuverAllyId } : action === "grapple" || action === "shove" ? { targetEnemyId: maneuverEnemyId } : {}) };
+              return <button key={action} type="button" className={queueClass} disabled={disabled || !validate([...choices, choice]).ok} onClick={() => add(choice)}>{actionNames[action]}</button>;
+            })}</div>
+            <div className="mt-2 grid gap-2 sm:grid-cols-2">
+              <select aria-label={locale === "ru" ? "Цель манёвра" : "Maneuver target"} value={maneuverEnemyId} onChange={event => setManeuverEnemyId(event.target.value)} disabled={disabled} className={selectClass}><option value="">{copy.target}</option>{enemies.map(enemy => <option key={enemy.id} value={enemy.id}>{enemy.name}</option>)}</select>
+              <select aria-label={locale === "ru" ? "Союзник для помощи" : "Ally to help"} value={maneuverAllyId} onChange={event => setManeuverAllyId(event.target.value)} disabled={disabled} className={selectClass}><option value="">{copy.target}</option>{allies.filter(ally => ally.id !== sheet.id).map(ally => <option key={ally.id} value={ally.id}>{ally.name}</option>)}</select>
+            </div>
+          </details>
         </div>
-        <button type="button" disabled={disabled || !item || meter.actionUsed} onClick={() => add({ type: "item", item, targetCharacterId: itemTarget })} className={queueClass}>{copy.queue}</button>
-        </> : <p className="mt-2 text-xs text-stone-400">{locale === "ru" ? "В инвентаре нет распознанных расходников. Использование другого предмета опишите ниже." : "No recognized consumables in your inventory. Describe another item's use below."}</p>}
-      </div>
+      </details>
+      {(bonusResources.length > 0 || bonusSpells.length > 0) ? <details className="rounded-lg border border-sky-900/80 p-2">
+        <summary className="cursor-pointer font-semibold text-sky-200">{copy.bonus}</summary>
+        <div className="mt-2 grid gap-2 sm:grid-cols-2">
+          {bonusResources.length ? <details className={branchClass}><summary className={summaryClass}>{copy.ability}</summary><p className="mt-1 text-xs text-stone-400">{copy.bonus}</p>{renderResources(bonusResources, `${copy.resource} (${copy.bonus})`)}</details> : null}
+          {sheet.spellcasting && bonusSpells.length ? renderSpellPicker(bonusSpells, copy.spells, copy.bonus) : null}
+        </div>
+      </details> : null}
+      <details className="rounded-lg border border-stone-700 p-2">
+        <summary className="cursor-pointer font-semibold text-stone-200">{copy.reaction}</summary>
+        <p className="mt-1 text-xs text-stone-400">{copy.reactionHelp}</p>
+        {reactionSpells.length ? <ul className="mt-1 list-inside list-disc text-xs text-stone-300">{reactionSpells.map(entry => <li key={entry.name}>{entry.name}</li>)}</ul> : null}
+      </details>
+      <details className="rounded-lg border border-stone-700 p-2">
+        <summary className="cursor-pointer font-semibold text-stone-200">{copy.movement}</summary>
+        <p className="mt-1 text-xs text-stone-400">{copy.movementHelp}</p>
+      </details>
     </div>
-    <details className="mt-2 rounded border border-stone-700 p-2">
-      <summary className="cursor-pointer text-amber-100">{locale === "ru" ? "Манёвры" : "Maneuvers"}</summary>
-      <div className="flex flex-wrap gap-2">{(Object.keys(actionNames) as Array<keyof typeof actionNames>).map(action => {
-        const choice: CombatChoice = { type: "action", action, ...(action === "help" ? { targetCharacterId } : action === "grapple" || action === "shove" ? { targetEnemyId: enemyId } : {}) };
-        return <button key={action} type="button" className={queueClass} disabled={disabled || !validate([...choices, choice]).ok} onClick={() => add(choice)}>{actionNames[action]}</button>;
-      })}</div>
-    </details>
     <div className="mt-2 rounded border border-amber-700/60 bg-stone-900/80 p-2 text-xs" role="region" aria-label={copy.queued} aria-live="polite"><b>{copy.queued} ({choices.length}):</b>
-      <ol className="mt-1 space-y-1">{choices.map((choice, index) => <li key={index} className="flex items-center justify-between gap-2 rounded bg-stone-800 p-1.5"><span>{index + 1}. {choice.type === "attack" ? `${copy.attack}: ${weaponName(choice.weapon)} → ${enemies.find(enemy => enemy.id === choice.targetEnemyId)?.name ?? copy.target}` : choice.type === "pet_order" ? `${choice.petName}: ${choice.order}` : choice.type === "spell" ? `${spellLabel}: ${choice.spell}${choice.slotLevel ? ` (${choice.slotLevel})` : ""}${choice.targetId ? ` → ${[...enemies, ...allies].find(target => target.id === choice.targetId)?.name ?? copy.target}` : ""}` : choice.type === "feature" ? choice.feature : choice.type === "pet" ? `${choice.petName}: ${choice.attack}` : choice.type === "action" ? actionNames[choice.action] : choice.type === "item" ? choice.item : choice.type === "resource" ? resourceName(choice.resource) : copy.dodge}</span><button type="button" aria-label={`${copy.remove} ${index + 1}`} disabled={disabled} onClick={() => { setChoices((current) => current.filter((_, i) => i !== index)); setRejected(false); }} className="rounded p-1.5 hover:bg-stone-700"><X className="size-4" /></button></li>)}</ol>
+      <ol className="mt-1 space-y-1">{choices.map((choice, index) => <li key={index} className="flex items-center justify-between gap-2 rounded bg-stone-800 p-1.5"><span>{index + 1}. {combatChoiceLabel(choice, locale, targetNames)}</span><button type="button" aria-label={`${copy.remove} ${index + 1}`} disabled={disabled} onClick={() => { setChoices((current) => current.filter((_, i) => i !== index)); setRejected(false); }} className="rounded p-1.5 hover:bg-stone-700"><X className="size-4" /></button></li>)}</ol>
       {!choices.length ? <p className="mt-1 text-stone-300">{locale === "ru" ? "Действия не добавлены. Отправится только ваш текст; мастер определит механику по нему." : "No queued actions. Only your text will be sent; the DM will interpret it."}</p> : <p className="mt-2 text-amber-200">{locale === "ru" ? "Мастер получит этот порядок как явный выбор. Описание ниже дополняет план." : "The DM receives this order as your explicit choice. The description below supplements it."}</p>}
     </div>
     {rejected || !preview.ok ? <p role="alert" className="mt-1 text-xs text-red-300">{copy.rejected}</p> : null}
@@ -179,5 +259,15 @@ export function CombatTurnHud({
       <button type="button" disabled={disabled || !preview.ok || (!choices.length && !prose.trim())} onClick={submit} className="rounded bg-amber-400 px-3 py-2 font-medium text-amber-950 disabled:opacity-40">{sending ? copy.sending : copy.send}</button>
       {!choices.length && !prose.trim() ? <button type="button" disabled={disabled} onClick={() => onSubmit(intent([]))} className={queueClass}>{copy.end}</button> : null}
     </div>
+    {confirming ? <ActionPreviewDialog
+      content={prose.trim()}
+      name={sheet.name}
+      locale={locale}
+      queuedActions={choices.length}
+      queuedActionLabels={choices.map(choice => combatChoiceLabel(choice, locale, targetNames))}
+      onEdit={() => setConfirming(false)}
+      onSend={() => { setConfirming(false); onSubmit(intent()); }}
+      disabled={locked || sending}
+    /> : null}
   </section>;
 }

@@ -18,7 +18,7 @@ import { ActionPreviewDialog } from "@/app/campaigns/[campaignId]/ActionPreviewD
 import { PushToTalk } from "@/app/campaigns/[campaignId]/PushToTalk";
 import { StoryNudge } from "@/app/campaigns/[campaignId]/StoryNudge";
 import { AskOptions } from "@/app/campaigns/[campaignId]/AskPanel";
-import type { CombatChoice, CombatTurnIntent } from "@/lib/dm/combat-turn-intent";
+import { combatChoiceLabel, type CombatChoice, type CombatTurnIntent } from "@/lib/dm/combat-turn-intent";
 import type { BeatCadence } from "@/lib/dm/beat-cadence";
 import type { AskScope, AskVisibility } from "@/lib/dm/ask-logic";
 import type { CampaignState } from "@/app/campaigns/[campaignId]/useCampaignStream";
@@ -255,6 +255,8 @@ function ComposerInner({
   const combatActive = Boolean(encounter?.orderReady && initiativeFloor);
   const ownCombatTurn = Boolean(initiativeFloor && mySheet && encounter?.currentActorId === mySheet.id && initiativeFloor.userIds.includes(meUserId));
   const combatLocked = floor.mode === "hold" && Boolean(floor.combat);
+  const combatNames = new Map([...sheets.map(sheet => [sheet.id, sheet.name] as const), ...(encounter?.enemies ?? []).map(enemy => [enemy.id, enemy.name] as const)]);
+  const combatActionLabels = combatChoices.map(choice => combatChoiceLabel(choice, locale, combatNames));
   const composerOptions = needsCharacter
     ? (["ask"] as const)
     : isDm
@@ -548,6 +550,7 @@ function ComposerInner({
         portraitUrl={portraitUrl}
         locale={locale}
         queuedActions={ownCombatTurn ? combatChoices.length : 0}
+        queuedActionLabels={ownCombatTurn ? combatActionLabels : []}
         onEdit={editPreview}
         onSend={() => { setPreview(null); onSubmit(null, preview); }}
         disabled={sending || inputBlocked}

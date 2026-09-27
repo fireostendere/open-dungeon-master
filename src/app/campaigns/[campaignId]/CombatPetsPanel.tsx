@@ -41,8 +41,9 @@ export function CombatPetsPanel({ encounter, sheets, mySheet, canCommand, choice
   const canQueue = (owner: CharacterSheet, choice: CombatChoice) => canCommand && !!onChoicesChange &&
     owner.id === mySheet?.id && owner.currentHp > 0 && validate([...choices, choice]);
 
-  return <section aria-label={copy.title} className="rounded-xl border border-violet-700/60 bg-stone-950/90 p-3 shadow-elev-1">
-    <h3 className="mb-3 flex items-center gap-2 font-semibold text-violet-200"><PawPrint className="size-5" aria-hidden="true" />{copy.title}</h3>
+  return <details className="rounded-xl border border-violet-700/60 bg-stone-950/90 p-3 shadow-elev-1">
+    <summary className="flex cursor-pointer items-center gap-2 font-semibold text-violet-200"><PawPrint className="size-5" aria-hidden="true" />{copy.title}</summary>
+    <section aria-label={copy.title} className="mt-3 border-t border-stone-700 pt-3">
     {!owners.length ? <p className="text-sm text-stone-400">{copy.empty}</p> : null}
     <div className="space-y-3">{owners.flatMap(owner => owner.pets.map(pet => {
       const key = `${owner.id}:${pet.name}`;
@@ -89,5 +90,6 @@ export function CombatPetsPanel({ encounter, sheets, mySheet, canCommand, choice
       </article>;
     }))}</div>
     {owners.some(owner => owner.id === mySheet?.id) ? <p className="mt-3 text-xs text-stone-400">{copy.hint}</p> : null}
-  </section>;
+    </section>
+  </details>;
 }
