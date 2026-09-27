@@ -16,7 +16,7 @@ const COPY = {
   en: { title: "Pets in combat", empty: "Combat participants have no pets on their sheets yet.", owner: "Owner", ac: "AC", speed: "Speed", target: "Pet target", choose: "Choose a target", command: "Command", cost: "Command cost", action: "Owner's action", bonus: "Owner's bonus action", attack: "Replaces one owner's attack", unknown: "Cost requires the pet's rule", down: "Unconscious", noAttack: "Cannot attack", waiting: "Waiting for owner", ready: "Ready for a command", queued: "Command queued", spent: "Command already resolved", blocked: "No action available now", hint: "The command joins your turn plan. Submit it with your character's other actions.", details: "Traits", attackLabel: "Attacks" },
 };
 
-export function CombatPetsPanel({ encounter, sheets, mySheet, canCommand, choices = [], onChoicesChange, spellOptions = [] }: {
+export function CombatPetsPanel({ encounter, sheets, mySheet, canCommand, choices = [], onChoicesChange, spellOptions = [], embedded = false }: {
   encounter: PublicEncounter;
   sheets: CharacterSheet[];
   mySheet: CharacterSheet | null;
@@ -24,6 +24,7 @@ export function CombatPetsPanel({ encounter, sheets, mySheet, canCommand, choice
   choices?: CombatChoice[];
   onChoicesChange?: (choices: CombatChoice[]) => void;
   spellOptions?: CombatSpellDescriptor[];
+  embedded?: boolean;
 }) {
   const { locale, formatSpeed } = useI18n();
   const copy = COPY[locale];
@@ -41,9 +42,8 @@ export function CombatPetsPanel({ encounter, sheets, mySheet, canCommand, choice
   const canQueue = (owner: CharacterSheet, choice: CombatChoice) => canCommand && !!onChoicesChange &&
     owner.id === mySheet?.id && owner.currentHp > 0 && validate([...choices, choice]);
 
-  return <details className="rounded-xl border border-violet-700/60 bg-stone-950/90 p-3 shadow-elev-1">
-    <summary className="flex cursor-pointer items-center gap-2 font-semibold text-violet-200"><PawPrint className="size-5" aria-hidden="true" />{copy.title}</summary>
-    <section aria-label={copy.title} className="mt-3 border-t border-stone-700 pt-3">
+  const panel = <section aria-label={copy.title} className="rounded-lg border border-violet-700/60 bg-stone-950/90 p-3 shadow-elev-1">
+    {embedded ? <h3 className="mb-3 flex items-center gap-2 font-semibold text-violet-200"><PawPrint className="size-5" aria-hidden="true" />{copy.title}</h3> : null}
     {!owners.length ? <p className="text-sm text-stone-400">{copy.empty}</p> : null}
     <div className="space-y-3">{owners.flatMap(owner => owner.pets.map(pet => {
       const key = `${owner.id}:${pet.name}`;
@@ -90,6 +90,9 @@ export function CombatPetsPanel({ encounter, sheets, mySheet, canCommand, choice
       </article>;
     }))}</div>
     {owners.some(owner => owner.id === mySheet?.id) ? <p className="mt-3 text-xs text-stone-400">{copy.hint}</p> : null}
-    </section>
+  </section>;
+  return embedded ? panel : <details className="rounded-xl border border-violet-700/60 bg-stone-950/90 p-3 shadow-elev-1">
+    <summary className="flex cursor-pointer items-center gap-2 font-semibold text-violet-200"><PawPrint className="size-5" aria-hidden="true" />{copy.title}</summary>
+    <div className="mt-3 border-t border-stone-700 pt-3">{panel}</div>
   </details>;
 }

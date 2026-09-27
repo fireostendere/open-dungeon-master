@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Shield, Swords, X } from "lucide-react";
 import { ActionPreviewDialog } from "@/app/campaigns/[campaignId]/ActionPreviewDialog";
 import { combatChoiceDescriptors, combatChoiceLabel, combatIntentBudget, combatSpellSlots, validateCombatTurnIntent, type CombatChoice, type CombatSpellDescriptor, type CombatTurnIntent } from "@/lib/dm/combat-turn-intent";
@@ -12,8 +12,8 @@ import type { PublicEncounter } from "@/lib/db/encounter-view";
 import type { CharacterSheet } from "@/lib/schemas/sheet";
 
 const COPY = {
-  ru: { title: "Ваш боевой ход", draft: "Черновик: мастер разрешит выбранное после отправки", action: "Действие", bonus: "Бонусное действие", reaction: "Реакция", attacks: "Атаки", spent: "использовано", ready: "доступно", locked: "Мастер обрабатывает ход. OOC остаётся доступен.", attack: "Атака", weapon: "Оружие", enemy: "Цель атаки", target: "Выберите цель", queue: "Добавить", dodge: "Защита: уклонение", ability: "Способности", resource: "Способность", ally: "Цель способности", item: "Расходуемые предметы", choose: "Выберите", queued: "Порядок действий", empty: "Пока ничего не выбрано", remove: "Убрать действие", prose: "Действия и реплики персонажа", hint: "Опишите детали или реплику героя…", send: "Отправить действие", end: "Закончить ход", sending: "Отправка…", unsupported: "Заклинания, особые способности и другие предметы опишите текстом. Их разрешает мастер.", self: "На себя", rejected: "Выбор недоступен: проверьте оставшиеся действия, ресурс и цель.", cost: "Стоимость", unarmed: "Безоружный удар", second_wind: "Второе дыхание", rage: "Ярость", bardic_inspiration: "Бардовское вдохновение", lay_on_hands: "Наложение рук", maneuvers: "Тактика и манёвры", spells: "Заклинания", features: "Особенности листа", movement: "Перемещение", reactionHelp: "Реакция доступна только при её условии. Опишите срабатывание мастеру; реакционные заклинания пока нельзя заявить заранее.", movementHelp: "Перемещение не тратит действие. Выберите клетку на боевой карте или опишите движение мастеру." },
-  en: { title: "Your combat turn", draft: "Draft: the DM resolves your choices after submission", action: "Action", bonus: "Bonus action", reaction: "Reaction", attacks: "Attacks", spent: "spent", ready: "ready", locked: "The DM is resolving your turn. OOC remains available.", attack: "Attack", weapon: "Weapon", enemy: "Attack target", target: "Choose a target", queue: "Queue", dodge: "Defence: Dodge", ability: "Abilities", resource: "Ability", ally: "Ability target", item: "Consumables", choose: "Choose", queued: "Action order", empty: "Nothing selected yet", remove: "Remove action", prose: "Character actions and dialogue", hint: "Describe details or your character's words…", send: "Send Action", end: "End Turn", sending: "Sending…", unsupported: "Describe spells, special abilities and other items in the text. The DM adjudicates them.", self: "Self", rejected: "Unavailable choice: check your remaining actions, resource and target.", cost: "Cost", unarmed: "Unarmed strike", second_wind: "Second Wind", rage: "Rage", bardic_inspiration: "Bardic Inspiration", lay_on_hands: "Lay on Hands", maneuvers: "Tactics and maneuvers", spells: "Spells", features: "Sheet features", movement: "Movement", reactionHelp: "A reaction is available only when its trigger occurs. Describe the trigger to the DM; reaction spells cannot currently be declared in advance.", movementHelp: "Movement does not spend an action. Choose a square on the battle map or describe your movement to the DM." },
+  ru: { title: "Ваш боевой ход", draft: "Черновик: мастер разрешит выбранное после отправки", action: "Действие", bonus: "Бонусное действие", reaction: "Реакция", attacks: "Атаки", spent: "использовано", ready: "доступно", locked: "Мастер обрабатывает ход. OOC остаётся доступен.", attack: "Атака", weapon: "Оружие", enemy: "Цель атаки", target: "Выберите цель", queue: "Добавить", dodge: "Защита: уклонение", ability: "Способности", resource: "Способность", ally: "Цель способности", item: "Расходуемые предметы", choose: "Выберите", queued: "Порядок действий", empty: "Пока ничего не выбрано", remove: "Убрать действие", prose: "Действия и реплики персонажа", hint: "Опишите детали или реплику героя…", send: "Отправить действие", end: "Закончить ход", sending: "Отправка…", unsupported: "Заклинания, особые способности и другие предметы опишите текстом. Их разрешает мастер.", self: "На себя", rejected: "Выбор недоступен: проверьте оставшиеся действия, ресурс и цель.", cost: "Стоимость", unarmed: "Безоружный удар", second_wind: "Второе дыхание", rage: "Ярость", bardic_inspiration: "Бардовское вдохновение", lay_on_hands: "Наложение рук", maneuvers: "Тактика и манёвры", spells: "Заклинания", features: "Особенности листа", petActions: "Питомцы", movement: "Перемещение", reactionHelp: "Реакция доступна только при её условии. Опишите срабатывание мастеру; реакционные заклинания пока нельзя заявить заранее.", movementHelp: "Перемещение не тратит действие. Выберите клетку на боевой карте или опишите движение мастеру." },
+  en: { title: "Your combat turn", draft: "Draft: the DM resolves your choices after submission", action: "Action", bonus: "Bonus action", reaction: "Reaction", attacks: "Attacks", spent: "spent", ready: "ready", locked: "The DM is resolving your turn. OOC remains available.", attack: "Attack", weapon: "Weapon", enemy: "Attack target", target: "Choose a target", queue: "Queue", dodge: "Defence: Dodge", ability: "Abilities", resource: "Ability", ally: "Ability target", item: "Consumables", choose: "Choose", queued: "Action order", empty: "Nothing selected yet", remove: "Remove action", prose: "Character actions and dialogue", hint: "Describe details or your character's words…", send: "Send Action", end: "End Turn", sending: "Sending…", unsupported: "Describe spells, special abilities and other items in the text. The DM adjudicates them.", self: "Self", rejected: "Unavailable choice: check your remaining actions, resource and target.", cost: "Cost", unarmed: "Unarmed strike", second_wind: "Second Wind", rage: "Rage", bardic_inspiration: "Bardic Inspiration", lay_on_hands: "Lay on Hands", maneuvers: "Tactics and maneuvers", spells: "Spells", features: "Sheet features", petActions: "Pets", movement: "Movement", reactionHelp: "A reaction is available only when its trigger occurs. Describe the trigger to the DM; reaction spells cannot currently be declared in advance.", movementHelp: "Movement does not spend an action. Choose a square on the battle map or describe your movement to the DM." },
 };
 
 export function CombatTurnHud({
@@ -30,6 +30,7 @@ export function CombatTurnHud({
   spellOptions = [],
   spellsLoading = false,
   spellsError = false,
+  petPanel,
 }: {
   encounter: PublicEncounter;
   sheet: CharacterSheet;
@@ -44,6 +45,7 @@ export function CombatTurnHud({
   spellOptions?: CombatSpellDescriptor[];
   spellsLoading?: boolean;
   spellsError?: boolean;
+  petPanel?: ReactNode;
 }) {
   const { locale } = useI18n();
   const copy = COPY[locale];
@@ -229,6 +231,7 @@ export function CombatTurnHud({
               <select aria-label={locale === "ru" ? "Союзник для помощи" : "Ally to help"} value={maneuverAllyId} onChange={event => setManeuverAllyId(event.target.value)} disabled={disabled} className={selectClass}><option value="">{copy.target}</option>{allies.filter(ally => ally.id !== sheet.id).map(ally => <option key={ally.id} value={ally.id}>{ally.name}</option>)}</select>
             </div>
           </details>
+          {petPanel ? <details className={branchClass}><summary className={summaryClass}>{copy.petActions}</summary><div className="mt-2">{petPanel}</div></details> : null}
         </div>
       </details>
       {(bonusResources.length > 0 || bonusSpells.length > 0) ? <details className="rounded-lg border border-sky-900/80 p-2">

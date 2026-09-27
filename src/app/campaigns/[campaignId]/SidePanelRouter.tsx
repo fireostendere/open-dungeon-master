@@ -375,7 +375,7 @@ export function SidePanelRouter({
           />
         ) : null}
 
-        {encounter ? <CombatPetsPanel
+        {encounter && !ownCombatTurn ? <CombatPetsPanel
           key={`pets:${encounter.id}:${encounter.round}:${encounter.turnIndex}`}
           encounter={encounter}
           sheets={sheets}
@@ -403,6 +403,16 @@ export function SidePanelRouter({
               spellOptions={spellOptions}
               spellsLoading={hasSpellcasting && spellData?.key !== spellKey}
               spellsError={spellData?.key === spellKey && spellData.error}
+              petPanel={sheets.some(entry => entry.pets?.length) ? <CombatPetsPanel
+                encounter={encounter}
+                sheets={sheets}
+                mySheet={mySheet}
+                canCommand={Boolean(!combatLocked && floor.mode !== "hold" && !sending)}
+                choices={combatChoices}
+                onChoicesChange={onCombatChoicesChange}
+                spellOptions={spellOptions}
+                embedded
+              /> : undefined}
             />
           </div>
         ) : null}

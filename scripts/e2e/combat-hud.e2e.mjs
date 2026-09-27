@@ -83,10 +83,11 @@ try {
   await page.getByText('Тактика и манёвры', { exact: true }).click();
   assert.equal(await page.getByRole('button', { name: 'Рывок', exact: true }).isEnabled(), true);
   if (process.env.ODM_E2E_PET_NAME) {
-    await page.locator('summary').filter({ hasText: 'Питомцы в бою' }).click();
-    const pets = page.getByRole('region', { name: 'Питомцы в бою', exact: true });
+    const hud = page.getByRole('region', { name: 'Ваш боевой ход', exact: true });
+    await hud.locator('summary').filter({ hasText: 'Питомцы' }).click();
+    const pets = hud.getByRole('region', { name: 'Питомцы в бою', exact: true });
     await pets.waitFor({ timeout: 10000 });
-    assert.equal(await page.getByRole('region', { name: 'Ваш боевой ход', exact: true }).getByRole('region', { name: 'Питомцы в бою', exact: true }).count(), 0, 'pet panel is separate from the hero HUD');
+    assert.equal(await pets.count(), 1, 'pet commands are nested in the hero action tree');
     const petTarget = pets.getByRole('combobox', { name: `Цель питомца: ${process.env.ODM_E2E_PET_NAME}`, exact: true });
     assert.equal(await petTarget.inputValue(), '', 'pet target is independent of the hero attack target');
     const bite = pets.getByRole('button', { name: `Приказать ${process.env.ODM_E2E_PET_NAME}: Bite`, exact: true });
@@ -151,7 +152,7 @@ try {
   await page.getByRole('button', { name: 'Вне игры', exact: true }).click();
   assert.equal(await page.locator('[data-tour="composer-input"] textarea').isEditable(), true);
   assert.deepEqual(errors, []);
-  console.log('PASS combat HUD: automatic queued choices; free-text / explicit-only / combined submissions; confirmation details; separate pets, shared budget, desktop/mobile, draft, OOC and processing lock.');
+  console.log('PASS combat HUD: action tree; automatic queued choices; confirmation details; nested pet commands, shared budget, desktop/mobile, draft, OOC and processing lock.');
 } finally {
   await browser.close();
 }
