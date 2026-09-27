@@ -78,12 +78,12 @@ export async function astraHarness(t){
    if(!existsSync(key)){const candidate=['.ts','.mjs','.tsx'].map(ext=>key+ext).find(existsSync);assert.ok(candidate,`Missing ${key}`);key=candidate;}
   }
   if(cache.has(key))return cache.get(key);
-  let module;
-  if(values[key])module=new vm.SyntheticModule(Object.keys(values[key]),function(){for(const [k,v]of Object.entries(values[key]))this.setExport(k,v);},{context,identifier:key});
+  let vmModule;
+  if(values[key])vmModule=new vm.SyntheticModule(Object.keys(values[key]),function(){for(const [k,v]of Object.entries(values[key]))this.setExport(k,v);},{context,identifier:key});
   else{
-   const source=readFileSync(key,'utf8');module=new vm.SourceTextModule(key.endsWith('.ts')?stripTypeScriptTypes(source):source,{context,identifier:key});
+   const source=readFileSync(key,'utf8');vmModule=new vm.SourceTextModule(key.endsWith('.ts')?stripTypeScriptTypes(source):source,{context,identifier:key});
   }
-  cache.set(key,module);return module;
+  cache.set(key,vmModule);return vmModule;
  }
  const entry=new vm.SourceTextModule("import * as notes from '@/lib/db/notes';import * as events from '@/lib/events';import * as policy from '@/lib/spatial/event-policy';import * as domain from '@/lib/spatial/domain';import * as effects from '@/lib/db/commit-effects';import * as listRoute from 'notesRoute';import * as detailRoute from 'detailRoute';import * as route from 'eventRoute';import * as locationRoute from 'locationRoute';export {notes,events,policy,domain,effects,listRoute,detailRoute,route,locationRoute};",{context,identifier:root+'/entry.mjs'});
  await entry.link((specifier,parent)=>load(specifier,parent.identifier));await entry.evaluate();

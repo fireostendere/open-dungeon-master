@@ -529,12 +529,7 @@ export function EndingCelebration({
     };
     window.addEventListener("resize", onResize);
 
-    let lastTime = performance.now();
-
     const render = (time: number) => {
-      const dt = Math.min((time - lastTime) / 1000, 0.1);
-      lastTime = time;
-
       // Semi-transparent clear for subtle motion blur
       ctx.clearRect(0, 0, width, height);
 
@@ -669,14 +664,14 @@ export function EndingCelebration({
 
         const rotate3D = (v: [number, number, number]): [number, number, number] => {
           // Around X
-          let y1 = v[1] * cosX - v[2] * sinX;
-          let z1 = v[1] * sinX + v[2] * cosX;
+          const y1 = v[1] * cosX - v[2] * sinX;
+          const z1 = v[1] * sinX + v[2] * cosX;
           // Around Y
-          let x2 = v[0] * cosY + z1 * sinY;
-          let z2 = -v[0] * sinY + z1 * cosY;
+          const x2 = v[0] * cosY + z1 * sinY;
+          const z2 = -v[0] * sinY + z1 * cosY;
           // Around Z
-          let x3 = x2 * cosZ - y1 * sinZ;
-          let y3 = x2 * sinZ + y1 * cosZ;
+          const x3 = x2 * cosZ - y1 * sinZ;
+          const y3 = x2 * sinZ + y1 * cosZ;
           return [x3, y3, z2];
         };
 

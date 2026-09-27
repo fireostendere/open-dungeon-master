@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import type { StoredRoll } from "@/lib/db/rolls";
 import type { CharacterSheet } from "@/lib/schemas/sheet";
 import type { PendingRoll } from "@/app/campaigns/[campaignId]/useCampaignStream";
@@ -166,6 +166,24 @@ type ItemizedBonus = {
   diceLabel?: string;
 };
 
+type DicePhase = "idle" | "rolling" | "landed" | "verdict";
+type DiceViewState = { activeRoll: Bg3RollData | null; phase: DicePhase };
+type DiceViewAction =
+  | { type: "start-roll"; roll: Bg3RollData }
+  | { type: "set-phase"; phase: DicePhase }
+  | { type: "dismiss" };
+
+function diceViewReducer(state: DiceViewState, action: DiceViewAction): DiceViewState {
+  switch (action.type) {
+    case "start-roll":
+      return { activeRoll: action.roll, phase: "rolling" };
+    case "set-phase":
+      return { ...state, phase: action.phase };
+    case "dismiss":
+      return { activeRoll: null, phase: "idle" };
+  }
+}
+
 type DieSimState = {
   val: number;
   discarded: boolean;
@@ -261,14 +279,24 @@ export function Bg3DiceOverlay({
 }) {
   const { locale } = useI18n();
   const copy: DiceCopy = DICE_COPY[locale];
-  const [activePending, setActivePending] = useState<PendingRoll | null>(null);
-  const [activeRoll, setActiveRoll] = useState<Bg3RollData | null>(null);
-  const [phase, setPhase] = useState<"idle" | "prompt" | "rolling" | "landed" | "verdict">("idle");
-  const [bonuses, setBonuses] = useState<ItemizedBonus[]>([]);
-  const [timeLeft, setTimeLeft] = useState<number>(60);
-  const [reminderActive, setReminderActive] = useState<boolean>(false);
-  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [viewState, dispatchView] = useReducer(diceViewReducer, { activeRoll: null, phase: "idle" });
+  const { activeRoll } = viewState;
+  const [submittedPending, setSubmittedPending] = useState<PendingRoll | null>(null);
+  const [dismissedPendingIds, setDismissedPendingIds] = useState<Set<string>>(() => new Set());
+  const pendingPrompt = viewState.phase === "idle" && !activeRoll && enabled && meUserId
+    ? pendingRolls.find((pending) => pending.userId === meUserId && !dismissedPendingIds.has(pending.id)) ?? null
+    : null;
+  const pendingPromptId = pendingPrompt?.id ?? null;
+  const activePending = submittedPending ?? pendingPrompt;
+  const phase: DicePhase | "prompt" = viewState.phase === "idle" && pendingPrompt ? "prompt" : viewState.phase;
+  const [countdown, setCountdown] = useState<{ pendingId: string; seconds: number } | null>(null);
+  const timeLeft = countdown && countdown.pendingId === activePending?.id ? countdown.seconds : 60;
+  const [reminderPendingId, setReminderPendingId] = useState<string | null>(null);
+  const reminderActive = reminderPendingId === activePending?.id;
+  const [submittingPendingId, setSubmittingPendingId] = useState<string | null>(null);
+  const isSubmitting = submittingPendingId === activePending?.id && activePending !== null;
   const [isRerolling, setIsRerolling] = useState<boolean>(false);
+  const rollAlertRef = useRef(copy.rollAlert);
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const animFrameRef = useRef<number | null>(null);
@@ -277,25 +305,30 @@ export function Bg3DiceOverlay({
   const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const titleIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const origTitleRef = useRef<string>("");
-  const dismissedPendingIds = useRef<Set<string>>(new Set());
   const submittingRef = useRef<boolean>(false);
 
-  if (!initializedRef.current) {
+  useEffect(() => {
+    if (initializedRef.current) return;
     initializedRef.current = true;
     let initialSeq = latestRoll?.seq ?? 0;
     if (typeof window !== "undefined") {
-      const stored = window.sessionStorage.getItem("odm:bg3-last-dismissed-roll-seq");
-      if (stored) {
-        initialSeq = Number(stored);
-      } else if (latestRoll) {
-        const rollAgeMs = Date.now() - new Date(latestRoll.roll.createdAt).getTime();
-        if (rollAgeMs < 45000) {
-          initialSeq = Math.max(0, latestRoll.seq - 1);
+      try {
+        const stored = window.sessionStorage.getItem("odm:bg3-last-dismissed-roll-seq");
+        const storedSeq = stored === null ? null : Number(stored);
+        if (storedSeq !== null && Number.isSafeInteger(storedSeq) && storedSeq >= 0) {
+          initialSeq = storedSeq;
+        } else if (latestRoll) {
+          const rollAgeMs = Date.now() - new Date(latestRoll.roll.createdAt).getTime();
+          if (rollAgeMs < 45000) {
+            initialSeq = Math.max(0, latestRoll.seq - 1);
+          }
         }
+      } catch {
+        // Storage may be unavailable; the current stream cursor remains usable.
       }
     }
     seenSeqRef.current = initialSeq;
-  }
+  }, [latestRoll]);
 
   const rollQueueRef = useRef<Bg3RollData[]>([]);
 
@@ -370,14 +403,18 @@ export function Bg3DiceOverlay({
     return list;
   }, [copy]);
 
+  const bonuses = activeRoll
+    ? extractItemizedBonuses(activeRoll.roll, character)
+    : activePending
+      ? extractPendingBonuses(activePending.expression, activePending.kind, activePending.detail, character, copy).bonuses
+      : [];
+
   // --- Start 3D Rolling Animation ---
   const startRollAnimation = useCallback((rollData: Bg3RollData) => {
-    setActiveRoll(rollData);
-    setPhase("rolling");
+    if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
+    dispatchView({ type: "start-roll", roll: rollData });
 
     const roll = rollData.roll;
-    const itemized = extractItemizedBonuses(roll, character);
-    setBonuses(itemized);
 
     playBg3Sound("tumble");
 
@@ -608,13 +645,13 @@ export function Bg3DiceOverlay({
 
       if (progress >= 1 && !landingSoundDone) {
         landingSoundDone = true;
-        setPhase("landed");
+        dispatchView({ type: "set-phase", phase: "landed" });
         playBg3Sound("land");
       }
 
       if (progress >= 1 && activeElapsed > duration + 500 && !verdictSoundDone) {
         verdictSoundDone = true;
-        setPhase("verdict");
+        dispatchView({ type: "set-phase", phase: "verdict" });
         const isSuccess = roll.success === true || (roll.dc !== null && roll.total >= roll.dc);
         const isCrit20 = roll.breakdown.crit === "nat20";
         const isCrit1 = roll.breakdown.crit === "nat1";
@@ -636,7 +673,7 @@ export function Bg3DiceOverlay({
     };
 
     animFrameRef.current = requestAnimationFrame(renderLoop);
-  }, [character, extractItemizedBonuses]);
+  }, []);
 
   // --- Idle Floating Loop for Preparation Phase ---
   const startIdleFloatingLoop = useCallback(() => {
@@ -689,8 +726,6 @@ export function Bg3DiceOverlay({
       });
 
       faceDepths.sort((a, b) => a.avgZ - b.avgZ);
-
-      const faceValues = getFaceValuesForRoll(20);
 
       for (const item of faceDepths) {
         if (!item.visible) continue;
@@ -759,7 +794,7 @@ export function Bg3DiceOverlay({
   }, []);
 
   // --- Dismiss Modal ---
-  const dismiss = useCallback(() => {
+  const dismiss = () => {
     if (animFrameRef.current) {
       cancelAnimationFrame(animFrameRef.current);
       animFrameRef.current = null;
@@ -776,30 +811,29 @@ export function Bg3DiceOverlay({
       } catch {}
     }
     if (activePending) {
-      dismissedPendingIds.current.add(activePending.id);
+      setDismissedPendingIds((previous) => new Set(previous).add(activePending.id));
     }
 
-    setActiveRoll(null);
-    setActivePending(null);
-    setPhase("idle");
-    setBonuses([]);
-    setTimeLeft(60);
-    setReminderActive(false);
+    dispatchView({ type: "dismiss" });
+    setSubmittedPending(null);
+    setCountdown(null);
+    setReminderPendingId(null);
+    setSubmittingPendingId(null);
     submittingRef.current = false;
-    setIsSubmitting(false);
     onDismiss?.();
 
     if (rollQueueRef.current.length > 0) {
       const next = rollQueueRef.current.shift()!;
       startRollAnimation(next);
     }
-  }, [activeRoll, activePending, onDismiss, restoreTitle, startRollAnimation]);
+  };
 
   // --- Submit Digital Roll (Click or Auto 60s) ---
-  const handleRollSubmit = useCallback(async () => {
+  const handleRollSubmit = async () => {
     if (submittingRef.current || !activePending || !campaignId) return;
     submittingRef.current = true;
-    setIsSubmitting(true);
+    setSubmittedPending(activePending);
+    setSubmittingPendingId(activePending.id);
 
     if (countdownIntervalRef.current) {
       clearInterval(countdownIntervalRef.current);
@@ -808,7 +842,7 @@ export function Bg3DiceOverlay({
     restoreTitle();
 
     playBg3Sound("tumble");
-    setPhase("rolling");
+    dispatchView({ type: "set-phase", phase: "rolling" });
 
     try {
       await fetch(`/api/campaigns/${campaignId}/pending-rolls/${activePending.id}`, {
@@ -819,10 +853,22 @@ export function Bg3DiceOverlay({
     } catch (err) {
       console.error("Failed to submit digital roll:", err);
     }
-  }, [activePending, campaignId, restoreTitle]);
+  };
+
+  const handleRollSubmitRef = useRef(handleRollSubmit);
+  const dismissRef = useRef<() => void>(() => {});
+  const phaseRef = useRef(phase);
+  useEffect(() => {
+    handleRollSubmitRef.current = handleRollSubmit;
+    dismissRef.current = dismiss;
+    phaseRef.current = phase;
+  });
+  useEffect(() => {
+    rollAlertRef.current = copy.rollAlert;
+  }, [copy.rollAlert]);
 
   // --- Reroll with Inspiration ---
-  const handleInspirationReroll = useCallback(async () => {
+  const handleInspirationReroll = async () => {
     if (!campaignId || isRerolling) return;
     setIsRerolling(true);
     playBg3Sound("inspire_buff");
@@ -853,7 +899,7 @@ export function Bg3DiceOverlay({
       }
 
       const expr = activeRoll?.roll.expression || activePending?.expression || "1d20";
-      setPhase("rolling");
+      dispatchView({ type: "set-phase", phase: "rolling" });
       playBg3Sound("tumble");
 
       await fetch(`/api/campaigns/${campaignId}/rolls`, {
@@ -866,60 +912,47 @@ export function Bg3DiceOverlay({
     } finally {
       setIsRerolling(false);
     }
-  }, [campaignId, isRerolling, character, activeRoll, activePending, copy]);
+  };
 
   // --- Watch for Incoming Pending Rolls for Active Player ---
   useEffect(() => {
-    if (!enabled || !meUserId) return;
-    const myPending = pendingRolls.find((p) => p.userId === meUserId);
-    if (!myPending || dismissedPendingIds.current.has(myPending.id)) return;
+    if (!pendingPromptId) return;
+    playBg3Sound("bell_prompt");
 
-    if (phase === "idle" && !activeRoll) {
-      setActivePending(myPending);
-      setPhase("prompt");
-      setTimeLeft(60);
-      setReminderActive(false);
-      submittingRef.current = false;
-      setIsSubmitting(false);
-
-      const targetChar = sheets.find((s) => s.id === myPending.characterId);
-      const parsedBonuses = extractPendingBonuses(
-        myPending.expression,
-        myPending.kind,
-        myPending.detail,
-        targetChar,
-        copy,
-      );
-      setBonuses(parsedBonuses.bonuses);
-
-      playBg3Sound("bell_prompt");
-
-      if (typeof document !== "undefined") {
-        origTitleRef.current = document.title;
-        let step = 0;
-        titleIntervalRef.current = setInterval(() => {
-          document.title = step++ % 2 === 0 ? copy.rollAlert : origTitleRef.current;
-        }, 1500);
-      }
-
-      countdownIntervalRef.current = setInterval(() => {
-        setTimeLeft((prev) => {
-          if (prev <= 1) {
-            if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
-            void handleRollSubmit();
-            return 0;
-          }
-          if (prev === 31) {
-            playBg3Sound("bell_reminder");
-            setReminderActive(true);
-          }
-          return prev - 1;
-        });
-      }, 1000);
-
-      startIdleFloatingLoop();
+    if (typeof document !== "undefined") {
+      origTitleRef.current = document.title;
+      let step = 0;
+      titleIntervalRef.current = setInterval(() => {
+        document.title = step++ % 2 === 0 ? rollAlertRef.current : origTitleRef.current;
+      }, 1500);
     }
-  }, [pendingRolls, meUserId, enabled, phase, activeRoll, sheets, handleRollSubmit, startIdleFloatingLoop, copy]);
+
+    let seconds = 60;
+    const timer = setInterval(() => {
+      if (seconds <= 1) {
+        seconds = 0;
+        setCountdown({ pendingId: pendingPromptId, seconds });
+        clearInterval(timer);
+        if (countdownIntervalRef.current === timer) countdownIntervalRef.current = null;
+        void handleRollSubmitRef.current();
+        return;
+      }
+      seconds -= 1;
+      setCountdown({ pendingId: pendingPromptId, seconds });
+      if (seconds === 31) {
+        playBg3Sound("bell_reminder");
+        setReminderPendingId(pendingPromptId);
+      }
+    }, 1000);
+    countdownIntervalRef.current = timer;
+    startIdleFloatingLoop();
+
+    return () => {
+      clearInterval(timer);
+      if (countdownIntervalRef.current === timer) countdownIntervalRef.current = null;
+      restoreTitle();
+    };
+  }, [pendingPromptId, restoreTitle, startIdleFloatingLoop]);
 
   // --- Watch for Passive or Resolved Rolls ---
   useEffect(() => {
@@ -962,17 +995,17 @@ export function Bg3DiceOverlay({
   // Keybindings
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
-      if ((phase === "verdict" || phase === "landed") && (e.key === "Escape" || e.key === " ")) {
+      if ((phaseRef.current === "verdict" || phaseRef.current === "landed") && (e.key === "Escape" || e.key === " ")) {
         e.preventDefault();
-        dismiss();
-      } else if (phase === "prompt" && (e.key === "Enter" || e.key === " ")) {
+        dismissRef.current();
+      } else if (phaseRef.current === "prompt" && (e.key === "Enter" || e.key === " ")) {
         e.preventDefault();
-        void handleRollSubmit();
+        void handleRollSubmitRef.current();
       }
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [phase, dismiss, handleRollSubmit]);
+  }, []);
 
   useEffect(() => {
     return () => {

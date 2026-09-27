@@ -35,7 +35,7 @@ function kindsOf(preview: Preview): string[] {
 // `label` and `className` let the hub header show the same control as a
 // small "Import a bundle" action; the shelf keeps the defaults.
 export function ImportBundleButton({
-  label = "Open a bundle",
+  label,
   className = ui.btnSecondary,
 }: {
   label?: string;
@@ -122,7 +122,7 @@ export function ImportBundleButton({
         ) : (
           <FileUp className="size-4" />
         )}
-        {label}
+        {label ?? copy.open}
       </button>
 
       {error ? <p className="mt-2 text-sm text-red-300">{error}</p> : null}

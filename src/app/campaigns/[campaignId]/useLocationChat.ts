@@ -15,16 +15,13 @@ export function useLocationChat(campaignId: string, userId: string, enabledHint 
   const [pollError, setPollError] = useState({ identity, message: "" });
   const [intentStatus, setIntentStatus] = useState<IntentStatus>({ identity, pending: false, busy: false, error: "" });
   const [version, setVersion] = useState(0);
-  const [pollingEnabled, setPollingEnabled] = useState(enabledHint);
+  const pollingScope = JSON.stringify([identity, enabledHint]);
+  const [pollingOverride, setPollingOverride] = useState<{ scope: string; enabled: boolean } | null>(null);
+  const pollingEnabled = pollingOverride?.scope === pollingScope ? pollingOverride.enabled : enabledHint;
   const refresh = useCallback(() => setVersion(value => value + 1), []);
   const session = useMemo(() => new LocationIntentSession({ campaignId, userId, onSuccess: refresh }), [campaignId, userId, refresh]);
   const endpoint = session.endpoint;
-  const key = JSON.stringify([campaignId, userId, selected, before]);
-
-  useEffect(() => {
-    setPollingEnabled(enabledHint);
-    if (!enabledHint) setSnapshot(null);
-  }, [identity, enabledHint]);
+  const key = JSON.stringify([campaignId, userId, selected, before, pollingScope]);
 
   // Runs on commit, before user events. Old callbacks keep the old, disposed
   // session and cannot retarget a pending draft to a new endpoint or account.
@@ -84,21 +81,21 @@ export function useLocationChat(campaignId: string, userId: string, enabledHint 
   const command = useCallback(async (input: Record<string, unknown>) => {
     const ok = await session.send(input);
     if (!ok) return false;
-    if (input.operation === "enable") setPollingEnabled(true);
+    if (input.operation === "enable") setPollingOverride({ scope: pollingScope, enabled: true });
     if (input.operation === "disable") {
-      setPollingEnabled(false);
+      setPollingOverride({ scope: pollingScope, enabled: false });
       setSnapshot(null);
     }
     return true;
-  }, [session]);
+  }, [session, pollingScope, setPollingOverride, setSnapshot]);
   const retry = useCallback(() => session.retry(), [session]);
-  const select = useCallback((roomId: string) => { if (session.active) setNavigation({ identity, selected: roomId, before: null }); }, [identity, session]);
+  const select = useCallback((roomId: string) => { if (session.active) setNavigation({ identity, selected: roomId, before: null }); }, [identity, session, setNavigation]);
   const older = () => { if (session.active && snapshot?.key === key && snapshot.page.nextBefore) setNavigation({ identity, selected, before: snapshot.page.nextBefore }); };
-  const sameIdentity = snapshot?.identity === identity;
+  const currentSnapshot = snapshot?.identity === identity && snapshot.key === key;
   const status = intentStatus.identity === identity ? intentStatus : null;
   return {
-    view: sameIdentity ? snapshot?.view ?? null : null, campaignId, userId,
-    page: snapshot?.key === key ? snapshot.page : EMPTY, loading: pollingEnabled && !sameIdentity,
+    view: pollingEnabled && currentSnapshot ? snapshot.view : null, campaignId, userId,
+    page: pollingEnabled && currentSnapshot ? snapshot.page : EMPTY, loading: pollingEnabled && !currentSnapshot,
     selected, select, error: status?.error || (pollError.identity === identity ? pollError.message : ""),
     busy: status?.busy ?? false, command, refresh, older,
     showingOlder: before !== null,

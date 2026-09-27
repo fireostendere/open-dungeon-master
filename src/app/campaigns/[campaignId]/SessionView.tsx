@@ -71,6 +71,18 @@ function subscribeTourSeen(callback: () => void) {
   return () => window.removeEventListener(TOUR_SEEN_EVENT, callback);
 }
 
+const FINALE_SEEN_EVENT = "odm-finale-seen";
+const EMPTY_COMBAT_CHOICES: CombatChoice[] = [];
+
+function subscribeFinaleSeen(callback: () => void) {
+  window.addEventListener(FINALE_SEEN_EVENT, callback);
+  window.addEventListener("storage", callback);
+  return () => {
+    window.removeEventListener(FINALE_SEEN_EVENT, callback);
+    window.removeEventListener("storage", callback);
+  };
+}
+
 // The play table. Header, the story column, the docked context column and
 // the dialogs that float over all three. What lives here is the state the
 // columns share: which tab is open, what the composer holds, who is blocked
@@ -101,6 +113,7 @@ export function SessionView({
   });
   const { campaign, me, sheets, messages, pendingRolls, auditLog, levelUps, locations, dmStatus, caps } =
     state;
+  const campaignId = campaign?.id;
   const [input, setInput] = useState("");
   const [kind, setKind] = useState<InputKind>("do");
   // The DM has no character, so "do" would be a mode they can never use.
@@ -131,23 +144,20 @@ export function SessionView({
   const [helpOpen, setHelpOpen] = useState(false);
   const [closingModalOpen, setClosingModalOpen] = useState(false);
   const [celebrationActive, setCelebrationActive] = useState(false);
-  const [hasOpenedFinale, setHasOpenedFinale] = useState(false);
-
-  useEffect(() => {
-    if (typeof window !== "undefined" && campaign?.id) {
-      const seen = window.localStorage.getItem(`odm:seen_finale_${campaign.id}`);
-      setHasOpenedFinale(Boolean(seen));
-    }
-  }, [campaign?.id]);
+  const hasOpenedFinale = useSyncExternalStore(
+    subscribeFinaleSeen,
+    () => campaignId ? window.localStorage.getItem(`odm:seen_finale_${campaignId}`) === "true" : false,
+    () => false,
+  );
 
   const openClosingMessage = useCallback(() => {
     setCelebrationActive(false);
     setClosingModalOpen(true);
-    setHasOpenedFinale(true);
-    if (typeof window !== "undefined" && campaign?.id) {
-      window.localStorage.setItem(`odm:seen_finale_${campaign.id}`, "true");
+    if (campaignId) {
+      window.localStorage.setItem(`odm:seen_finale_${campaignId}`, "true");
+      window.dispatchEvent(new Event(FINALE_SEEN_EVENT));
     }
-  }, [campaign?.id]);
+  }, [campaignId]);
 
   const closingDmMessage = useMemo(() => {
     if (campaign?.status !== "ended") return null;
@@ -274,10 +284,17 @@ export function SessionView({
     prevOwnCombatTurn.current = ownCombatTurn;
   }, [ownCombatTurn, setPanelTab]);
 
-  const [combatChoices, setCombatChoices] = useState<CombatChoice[]>([]);
   const encounterTurnKey = `${state.encounter?.id}:${state.encounter?.round}:${state.encounter?.turnIndex}:${state.encounter?.currentActorId}`;
-  useEffect(() => {
-    setCombatChoices([]);
+  const [combatChoiceState, setCombatChoiceState] = useState({
+    key: encounterTurnKey,
+    choices: [] as CombatChoice[],
+  });
+  if (combatChoiceState.key !== encounterTurnKey) {
+    setCombatChoiceState({ key: encounterTurnKey, choices: [] });
+  }
+  const combatChoices = combatChoiceState.key === encounterTurnKey ? combatChoiceState.choices : EMPTY_COMBAT_CHOICES;
+  const setCombatChoices = useCallback((choices: CombatChoice[]) => {
+    setCombatChoiceState({ key: encounterTurnKey, choices });
   }, [encounterTurnKey]);
 
   const inCombat = Boolean(state.encounter && state.encounter.status === "active");
@@ -300,8 +317,6 @@ export function SessionView({
   );
   // Gates the Bonds sub-tab inside the Party panel.
   const relationshipsEnabled = campaign?.gameSettings?.relationships !== "off";
-
-  const campaignId = campaign?.id;
 
   const releaseFloor = useCallback(async () => {
     await fetch(`/api/campaigns/${campaignId}/floor`, { method: "POST" });
@@ -358,7 +373,7 @@ export function SessionView({
         setSending(false);
       }
     },
-    [campaignId, input, sending, gate.inputBlocked, muted, kind, leadPrivate, ownCombatTurn, state.encounter, mySheet, combatChoices],
+    [campaignId, input, sending, gate.inputBlocked, muted, kind, leadPrivate, ownCombatTurn, state.encounter, mySheet, combatChoices, setCombatChoices],
   );
 
   const clearChatTarget = useCallback(() => setChatTarget(null), []);

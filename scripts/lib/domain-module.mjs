@@ -21,10 +21,10 @@ export function domainModules(mocks) {
       compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS,esModuleInterop:true}});
     const errors=(result.diagnostics??[]).filter(x=>x.category===ts.DiagnosticCategory.Error);
     if(errors.length) throw new Error(ts.formatDiagnostics(errors,{getCanonicalFileName:f=>f,getCurrentDirectory:()=>root,getNewLine:()=> '\n'}));
-    const module={exports:{}};cache.set(filename,module);
+    const cachedModule={exports:{}};cache.set(filename,cachedModule);
     const localRequire=dep=>dep.startsWith('.')?load(path.resolve(path.dirname(filename),dep)):load(dep);
-    new Function('require','module','exports',result.outputText)(localRequire,module,module.exports);
-    return module.exports;
+    new Function('require','module','exports',result.outputText)(localRequire,cachedModule,cachedModule.exports);
+    return cachedModule.exports;
   }
   return load;
 }
