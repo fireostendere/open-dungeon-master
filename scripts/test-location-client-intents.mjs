@@ -19,18 +19,18 @@ async function loader(stubs = {}, globals = {}) {
   const modules = new Map();
   async function load(name) {
     if (modules.has(name)) return modules.get(name);
-    let module;
+    let vmModule;
     if (stubs[name] || name === 'node:crypto') {
       const values = stubs[name] || crypto;
-      module = new vm.SyntheticModule(Object.keys(values), function () { for (const [key, value] of Object.entries(values)) this.setExport(key, value); }, { context });
+      vmModule = new vm.SyntheticModule(Object.keys(values), function () { for (const [key, value] of Object.entries(values)) this.setExport(key, value); }, { context });
     } else {
       const path = name.startsWith('@/') ? `../src/${name.slice(2)}${/\.(?:ts|mjs)$/.test(name) ? '' : '.ts'}` : name;
       const source = readFileSync(new URL(path, import.meta.url), 'utf8');
-      module = new vm.SourceTextModule(path.endsWith('.ts') || path.endsWith('.tsx') ? stripTypeScriptTypes(source) : source, { context, identifier: name });
+      vmModule = new vm.SourceTextModule(path.endsWith('.ts') || path.endsWith('.tsx') ? stripTypeScriptTypes(source) : source, { context, identifier: name });
     }
-    modules.set(name, module); await module.link(load); return module;
+    modules.set(name, vmModule); await vmModule.link(load); return vmModule;
   }
-  return async name => { const module = await load(name); await module.evaluate(); return module.namespace; };
+  return async name => { const loaded = await load(name); await loaded.evaluate(); return loaded.namespace; };
 }
 
 function hookHarness() {

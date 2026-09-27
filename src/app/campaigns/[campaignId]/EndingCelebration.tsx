@@ -1172,11 +1172,9 @@ export function EndingCelebration({
     window.addEventListener("resize", onResize);
 
     let lastTime = performance.now();
-
     const render = (time: number) => {
       const dt = Math.min((time - lastTime) / 1000, 0.1);
       lastTime = time;
-
       ctx.clearRect(0, 0, width, height);
 
       // Defeat mode: Gloomy background vignette
@@ -1457,12 +1455,15 @@ export function EndingCelebration({
         const cosZ = Math.cos(die.rotZ), sinZ = Math.sin(die.rotZ);
 
         const rotate3D = (v: [number, number, number]): [number, number, number] => {
-          let y1 = v[1] * cosX - v[2] * sinX;
-          let z1 = v[1] * sinX + v[2] * cosX;
-          let x2 = v[0] * cosY + z1 * sinY;
-          let z2 = -v[0] * sinY + z1 * cosY;
-          let x3 = x2 * cosZ - y1 * sinZ;
-          let y3 = x2 * sinZ + y1 * cosZ;
+          // Around X
+          const y1 = v[1] * cosX - v[2] * sinX;
+          const z1 = v[1] * sinX + v[2] * cosX;
+          // Around Y
+          const x2 = v[0] * cosY + z1 * sinY;
+          const z2 = -v[0] * sinY + z1 * cosY;
+          // Around Z
+          const x3 = x2 * cosZ - y1 * sinZ;
+          const y3 = x2 * sinZ + y1 * cosZ;
           return [x3, y3, z2];
         };
 

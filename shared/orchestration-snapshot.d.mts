@@ -6,4 +6,4 @@ export type OrchestrationSnapshotOptions = {
   recentLimit?: number;
   knownRevision?: string;
 };
-export function buildOrchestrationSnapshot(raw: Record<string, unknown>, options?: OrchestrationSnapshotOptions): Record<string, any>;
+export function buildOrchestrationSnapshot(raw: Record<string, unknown>, options?: OrchestrationSnapshotOptions): Record<string, unknown>;

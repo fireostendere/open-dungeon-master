@@ -109,36 +109,36 @@ export function GlobalTurnCard({
     quorumDelayMinutes: 2,
   };
 
-  const [enabled, setEnabled] = useState(globalTurnSettings.enabled);
-  const [collectionMins, setCollectionMins] = useState(globalTurnSettings.turnCollectionMinutes);
-  const [quorum, setQuorum] = useState(globalTurnSettings.quorumPlayers);
-  const [graceMins, setGraceMins] = useState(globalTurnSettings.quorumDelayMinutes);
+  const settingsKey = [
+    globalTurnSettings.enabled,
+    globalTurnSettings.turnCollectionMinutes,
+    globalTurnSettings.quorumPlayers,
+    globalTurnSettings.quorumDelayMinutes,
+  ].join(":");
+  const [draft, setDraft] = useState(globalTurnSettings);
+  const [previousSettingsKey, setPreviousSettingsKey] = useState(settingsKey);
+  if (settingsKey !== previousSettingsKey) {
+    setPreviousSettingsKey(settingsKey);
+    setDraft(globalTurnSettings);
+  }
+  const { enabled, turnCollectionMinutes: collectionMins, quorumPlayers: quorum, quorumDelayMinutes: graceMins } = draft;
   const [saving, setSaving] = useState(false);
   const [busyUser, setBusyUser] = useState<string | null>(null);
   const [startingRound, setStartingRound] = useState(false);
   const [startRoundError, setStartRoundError] = useState<string | null>(null);
   const [responding, setResponding] = useState(false);
   const [respondError, setRespondError] = useState<string | null>(null);
-  const [now, setNow] = useState(Date.now());
+  const [now, setNow] = useState<number | null>(null);
 
   // Real-time ticker for deadline
   useEffect(() => {
-    const timer = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(timer);
+    const initialTick = window.setTimeout(() => setNow(Date.now()), 0);
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => {
+      window.clearTimeout(initialTick);
+      window.clearInterval(timer);
+    };
   }, []);
-
-  // Sync props to state if updated remotely
-  useEffect(() => {
-    setEnabled(globalTurnSettings.enabled);
-    setCollectionMins(globalTurnSettings.turnCollectionMinutes);
-    setQuorum(globalTurnSettings.quorumPlayers);
-    setGraceMins(globalTurnSettings.quorumDelayMinutes);
-  }, [
-    globalTurnSettings.enabled,
-    globalTurnSettings.turnCollectionMinutes,
-    globalTurnSettings.quorumPlayers,
-    globalTurnSettings.quorumDelayMinutes,
-  ]);
 
   const playerSheets = sheets.filter((s) => !s.isCompanion && s.userId !== campaign.dmUserId);
   const maxPartySize = Math.max(1, playerSheets.length);
@@ -161,11 +161,15 @@ export function GlobalTurnCard({
   }).length;
 
   // Compute countdown
-  const msRemaining = turnState.deadlineAt ? Math.max(0, new Date(turnState.deadlineAt).getTime() - now) : 0;
-  const secsTotal = Math.floor(msRemaining / 1000);
+  const msRemaining = turnState.deadlineAt && now !== null
+    ? Math.max(0, new Date(turnState.deadlineAt).getTime() - now)
+    : null;
+  const secsTotal = msRemaining === null ? Number.POSITIVE_INFINITY : Math.floor(msRemaining / 1000);
   const countdownMinutes = Math.floor(secsTotal / 60);
   const countdownSeconds = secsTotal % 60;
-  const formattedCountdown = `${String(countdownMinutes).padStart(2, "0")}:${String(countdownSeconds).padStart(2, "0")}`;
+  const formattedCountdown = msRemaining === null
+    ? "--:--"
+    : `${String(countdownMinutes).padStart(2, "0")}:${String(countdownSeconds).padStart(2, "0")}`;
   const canStartRound =
     isLead &&
     (turnState.phase === "waiting" ||
@@ -276,8 +280,9 @@ export function GlobalTurnCard({
           checked={enabled}
           disabled={saving}
           onChange={(e) => {
-            setEnabled(e.target.checked);
-            void updateTurnSettings({ enabled: e.target.checked });
+            const value = e.target.checked;
+            setDraft((current) => ({ ...current, enabled: value }));
+            void updateTurnSettings({ enabled: value });
           }}
           className="size-4 rounded border-stone-700 bg-stone-900 text-amber-500 focus:ring-amber-500"
         />
@@ -310,7 +315,7 @@ export function GlobalTurnCard({
               max={120}
               step={1}
               value={collectionMins}
-              onChange={(e) => setCollectionMins(Number(e.target.value))}
+              onChange={(e) => setDraft((current) => ({ ...current, turnCollectionMinutes: Number(e.target.value) }))}
               onMouseUp={() => void updateTurnSettings({ turnCollectionMinutes: collectionMins })}
               onTouchEnd={() => void updateTurnSettings({ turnCollectionMinutes: collectionMins })}
               className="mt-1.5 h-1.5 w-full cursor-pointer accent-amber-400"
@@ -332,7 +337,7 @@ export function GlobalTurnCard({
               max={maxPartySize}
               step={1}
               value={Math.min(quorum, maxPartySize)}
-              onChange={(e) => setQuorum(Number(e.target.value))}
+              onChange={(e) => setDraft((current) => ({ ...current, quorumPlayers: Number(e.target.value) }))}
               onMouseUp={() => void updateTurnSettings({ quorumPlayers: quorum })}
               onTouchEnd={() => void updateTurnSettings({ quorumPlayers: quorum })}
               className="mt-1.5 h-1.5 w-full cursor-pointer accent-amber-400"
@@ -354,7 +359,7 @@ export function GlobalTurnCard({
               max={30}
               step={1}
               value={graceMins}
-              onChange={(e) => setGraceMins(Number(e.target.value))}
+              onChange={(e) => setDraft((current) => ({ ...current, quorumDelayMinutes: Number(e.target.value) }))}
               onMouseUp={() => void updateTurnSettings({ quorumDelayMinutes: graceMins })}
               onTouchEnd={() => void updateTurnSettings({ quorumDelayMinutes: graceMins })}
               className="mt-1.5 h-1.5 w-full cursor-pointer accent-amber-400"

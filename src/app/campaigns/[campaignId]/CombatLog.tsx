@@ -2,9 +2,6 @@
 
 import { useMemo, useState } from "react";
 import {
-  AlertTriangle,
-  CheckCircle2,
-  Filter,
   Flame,
   Heart,
   RotateCcw,
@@ -14,7 +11,6 @@ import {
   Skull,
   Sparkles,
   Swords,
-  XCircle,
   Zap,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
@@ -145,7 +141,7 @@ export function CombatLog({
       }
     }
     return map;
-  }, [encounter?.enemies]);
+  }, [encounter]);
 
   const parseRollName = (detail: string): { actor?: string; weapon: string } => {
     if (!detail) return { weapon: "" };
@@ -314,14 +310,19 @@ export function CombatLog({
       }
     }
 
+    // Keep status-only rows next to the newest recorded event without using wall-clock time.
+    const latestEventTimestamp = items.reduce(
+      (latest, item) => Math.max(latest, item.timestamp),
+      0,
+    );
+
     // 3. Process fallen enemies
     if (encounter?.enemies) {
       for (const enemy of encounter.enemies) {
         if (enemy.status === "dead") {
           items.push({
             id: `enemy-dead-${enemy.id}`,
-            // Place near top if recently dropped
-            timestamp: Date.now() - 500,
+            timestamp: latestEventTimestamp + 1,
             category: "casualties",
             icon: Skull,
             iconColor: "text-red-400",
@@ -333,7 +334,7 @@ export function CombatLog({
         } else if (enemy.status === "fled") {
           items.push({
             id: `enemy-fled-${enemy.id}`,
-            timestamp: Date.now() - 600,
+            timestamp: latestEventTimestamp,
             category: "casualties",
             icon: RotateCcw,
             iconColor: "text-stone-400",
@@ -348,7 +349,7 @@ export function CombatLog({
 
     // Sort newest first
     return items.sort((a, b) => b.timestamp - a.timestamp);
-  }, [rolls, auditLog, encounter?.enemies, sheetNameById, enemyNameById, locale, copy]);
+  }, [rolls, auditLog, encounter?.enemies, sheetNameById, enemyNameById, copy]);
 
   const filteredItems = useMemo(() => {
     if (filter === "all") return feedItems;

@@ -10,12 +10,12 @@ const deferred = () => { let resolve; const promise = new Promise(r => { resolve
 async function moduleAt(relative, mocks) {
   const url = new URL(relative, import.meta.url);
   const context = vm.createContext({ URL, Buffer, AbortSignal, structuredClone, performance, console, process, setTimeout, clearTimeout });
-  const module = new vm.SourceTextModule(fs.readFileSync(url, 'utf8'), { context, identifier: fileURLToPath(url), initializeImportMeta: meta => { meta.url = url.href; } });
-  await module.link(async name => {
+  const testModule = new vm.SourceTextModule(fs.readFileSync(url, 'utf8'), { context, identifier: fileURLToPath(url), initializeImportMeta: meta => { meta.url = url.href; } });
+  await testModule.link(async name => {
     const values = mocks[name] ?? await import(name);
     return new vm.SyntheticModule(Object.keys(values), function () { for (const [key, value] of Object.entries(values)) this.setExport(key, value); }, { context });
   });
-  await module.evaluate(); return module.namespace;
+  await testModule.evaluate(); return testModule.namespace;
 }
 function host(overrides = {}) {
   return { campaignId: 'c', timelineEpoch: 'e', stopping: false, askTask: null, askResponder: () => {}, readPageRetries: 0,

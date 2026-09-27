@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, readFileSync, rmSync, statSync } from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
 import vm from 'node:vm';
 import { assembleReadPages } from '../narrator/read-session.mjs';
@@ -21,16 +21,16 @@ async function runnerClass() {
   async function load(name, parent) {
     const url = name.startsWith('node:') ? name : new URL(name, parent?.identifier ?? import.meta.url).href;
     if (cache.has(url)) return cache.get(url);
-    const stub = stubs[url.split('/').at(-1)]; let module;
+    const stub = stubs[url.split('/').at(-1)]; let vmModule;
     if (url.startsWith('node:') || stub) {
       const values = stub || await import(url);
-      module = new vm.SyntheticModule(Object.keys(values), function () { for (const [key, value] of Object.entries(values)) this.setExport(key, value); }, { context, identifier: url });
-    } else module = new vm.SourceTextModule(readFileSync(fileURLToPath(url), 'utf8'), {
+      vmModule = new vm.SyntheticModule(Object.keys(values), function () { for (const [key, value] of Object.entries(values)) this.setExport(key, value); }, { context, identifier: url });
+    } else vmModule = new vm.SourceTextModule(readFileSync(fileURLToPath(url), 'utf8'), {
       context, identifier: url, initializeImportMeta(meta) { meta.url = url; },
     });
-    cache.set(url, module); return module;
+    cache.set(url, vmModule); return vmModule;
   }
-  const module = await load('../narrator/run.mjs'); await module.link(load); await module.evaluate(); return module.namespace.NarratorRunner;
+  const runModule = await load('../narrator/run.mjs'); await runModule.link(load); await runModule.evaluate(); return runModule.namespace.NarratorRunner;
 }
 const Runner = await runnerClass();
 const message = (seq, marker = 'CURRENT') => ({ id: `m-${marker}-${seq}`, seq, roomId: 'vault', witnessUserIds: ['A'], kind: 'do', content: `${marker}_${seq}` });
@@ -211,16 +211,16 @@ test('R06: actual narrator dispatcher rejects stale epoch before command executi
   const cache = new Map();
   async function resolve(name) {
     if (cache.has(name)) return cache.get(name);
-    let module;
+    let vmModule;
     if (name === '@/lib/spatial/timeline') {
-      module = new vm.SourceTextModule(stripTypeScriptTypes(readFileSync(new URL('../src/lib/spatial/timeline.ts', import.meta.url), 'utf8')), { context });
+      vmModule = new vm.SourceTextModule(stripTypeScriptTypes(readFileSync(new URL('../src/lib/spatial/timeline.ts', import.meta.url), 'utf8')), { context });
     } else {
       const native = name.startsWith('node:') ? await import(name) : {};
       const names = name.startsWith('node:') ? Object.keys(native) : [...(exportsByModule.get(name) || ['getDatabase'])];
       const values = Object.fromEntries(names.map(key => [key, native[key] ?? overrides[key] ?? (() => undefined)]));
-      module = new vm.SyntheticModule(names, function () { for (const key of names) this.setExport(key, values[key]); }, { context });
+      vmModule = new vm.SyntheticModule(names, function () { for (const key of names) this.setExport(key, values[key]); }, { context });
     }
-    cache.set(name, module); await module.link(resolve); return module;
+    cache.set(name, vmModule); await vmModule.link(resolve); return vmModule;
   }
   try {
     const dispatcher = new vm.SourceTextModule(source, { context }); await dispatcher.link(resolve); await dispatcher.evaluate();

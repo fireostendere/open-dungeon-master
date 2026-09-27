@@ -22,13 +22,13 @@ export function domainModules(mocks) {
       compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS,esModuleInterop:true}});
     const errors=(result.diagnostics??[]).filter(x=>x.category===ts.DiagnosticCategory.Error);
     if(errors.length) throw new Error(ts.formatDiagnostics(errors,{getCanonicalFileName:f=>f,getCurrentDirectory:()=>root,getNewLine:()=> '\n'}));
-    const module={exports:{}};cache.set(filename,module);
+    const cachedModule={exports:{}};cache.set(filename,cachedModule);
     const localRequire=dep=>dep.startsWith('.')?load(path.resolve(path.dirname(filename),dep)):load(dep);
     const code = result.outputText.includes('import.meta')
       ? result.outputText.replace(/\bimport\.meta\.url\b/g, JSON.stringify(pathToFileURL(filename).href))
       : result.outputText;
-    new Function('require','module','exports',code)(localRequire,module,module.exports);
-    return module.exports;
+    new Function('require','module','exports',code)(localRequire,cachedModule,cachedModule.exports);
+    return cachedModule.exports;
   }
   return load;
 }

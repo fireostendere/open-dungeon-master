@@ -55,15 +55,15 @@ async function fixture() {
       ? new URL(`../src/${name.slice(2)}.ts`, import.meta.url).href : new URL(name, parent?.identifier ?? import.meta.url).href;
     if (key.startsWith('file:') && !existsSync(fileURLToPath(key)) && existsSync(fileURLToPath(key) + '.ts')) key += '.ts';
     if (modules.has(key)) return modules.get(key);
-    let module;
+    let vmModule;
     if (stubs[key] || key.startsWith('node:')) {
       const values = stubs[key] ?? await import(key);
-      module = new vm.SyntheticModule(Object.keys(values), function () { for (const [key, value] of Object.entries(values)) this.setExport(key, value); }, { context });
+      vmModule = new vm.SyntheticModule(Object.keys(values), function () { for (const [key, value] of Object.entries(values)) this.setExport(key, value); }, { context });
     } else {
       const source = readFileSync(fileURLToPath(key), 'utf8');
-      module = new vm.SourceTextModule(stripTypeScriptTypes(source), { context, identifier: key });
+      vmModule = new vm.SourceTextModule(stripTypeScriptTypes(source), { context, identifier: key });
     }
-    modules.set(key, module); await module.link(load); return module;
+    modules.set(key, vmModule); await vmModule.link(load); return vmModule;
   }
   const events = await load('@/lib/events'); await events.evaluate();
   const timeline = await load('@/lib/spatial/timeline'); await timeline.evaluate();
