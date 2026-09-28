@@ -8,6 +8,7 @@ import { serveStdio } from "@modelcontextprotocol/server/stdio";
 import { toNodeHandler } from "@modelcontextprotocol/node";
 import * as z from "zod/v4";
 import { callControl, withMcpCancellation, withMcpCredential } from "./control-client.mjs";
+import { createEventsProxy } from "./events-proxy.mjs";
 import { createSafeHttpListener } from "./http-boundary.mjs";
 import { narratorInputSchema } from "./narrator-schema.mjs";
 
@@ -753,7 +754,14 @@ async function serveHttp() {
 
   const handler = createMcpHandler(createVerifiedMcpServer);
   const nodeHandler = toNodeHandler(handler);
-  const http = createHttpServer(createSafeHttpListener(async (req, res, pathname) => {
+  // Narrator doorbell relay; same control URL precedence as the tool client.
+  const proxyEvents = createEventsProxy({
+    controlUrl: process.env.ODM_URL?.trim() || process.env.ODM_MCP_CONTROL_URL?.trim() || "http://127.0.0.1:3005/api/internal/mcp",
+    narratorOnly: NARRATOR_ONLY,
+    narratorCampaignId: NARRATOR_CAMPAIGN_ID,
+    upstreamToken: UPSTREAM_TOKEN,
+  });
+  const http = createHttpServer(createSafeHttpListener(async (req, res, pathname, signal) => {
 
     if (pathname === "/healthz") {
       try {
@@ -767,9 +775,16 @@ async function serveHttp() {
       return;
     }
 
-    if (pathname !== "/mcp") {
+    const events = pathname === "/mcp/events";
+    if (pathname !== "/mcp" && !events) {
       res.writeHead(404, { "content-type": "application/json" });
       res.end('{"error":"Not found"}');
+      return;
+    }
+
+    if (events && req.method !== "GET") {
+      res.writeHead(405, { "content-type": "application/json", "cache-control": "no-store", allow: "GET" });
+      res.end('{"error":"Method not allowed"}');
       return;
     }
 
@@ -786,6 +801,11 @@ async function serveHttp() {
         "www-authenticate": 'Bearer realm="open-dungeon-master-mcp"',
       });
       res.end('{"error":"Unauthorized"}');
+      return;
+    }
+
+    if (events) {
+      await proxyEvents(req, res, { bearer: bearerFrom(req.headers), signal });
       return;
     }
 

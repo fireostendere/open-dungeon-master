@@ -150,6 +150,11 @@ model adapter that turns new story events into narration still runs in the
 trusted narrator host. `watch-player.sh`, where installed, is only a wake-up
 optimization and must not be the sole source of events.
 
+`GET /mcp/events?campaignId=<id>&afterSeq=<n>` on the HTTP sidecar (same bearer
+as `/mcp`; `Last-Event-ID` resumes) is a push doorbell: SSE frames carry only
+`{type, seq}` plus `authorType`/`kind` for messages, never text or payloads. On
+each wake, drain `read` as usual; the stream never replaces the authoritative read.
+
 ## Ask is not a story turn
 
 Inspect `asks` on every read even when story sequence is unchanged. The current
