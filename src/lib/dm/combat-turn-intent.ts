@@ -4,6 +4,7 @@ import { matchWeapon } from "../srd/weapons.ts";
 import { spendPetCommand, type PetCombatant } from "./pet-combat.ts";
 import type { PublicEncounter } from "../db/encounter-view.ts";
 import type { Spellcasting } from "../schemas/sheet.ts";
+import { effectsFor } from "../srd/feature-effects.ts";
 
 // Both combat panels preview the same authoritative budget, never another actor's.
 export function combatIntentBudget(encounter: Pick<PublicEncounter, "currentActorId" | "turnBudget">, fresh: TurnBudget): TurnBudget {
@@ -13,7 +14,7 @@ export function combatIntentBudget(encounter: Pick<PublicEncounter, "currentActo
 }
 
 export type CombatChoice =
-  | { type: "attack"; targetEnemyId: string; weapon: string }
+  | { type: "attack"; targetEnemyId: string; weapon: string; sneakAttack?: boolean }
   | { type: "dodge" }
   | { type: "action"; action: "dash" | "disengage" | "hide" | "help" | "grapple" | "shove"; targetEnemyId?: string; targetCharacterId?: string }
   | { type: "pet"; petName: string; attack: string; targetEnemyId: string }
@@ -34,7 +35,7 @@ export type CombatTurnIntent = {
 export function combatChoiceLabel(choice: CombatChoice, language: "ru" | "en", names: ReadonlyMap<string, string> = new Map()): string {
   const ru = language === "ru";
   const target = (id?: string) => id ? ` → ${names.get(id) ?? (ru ? "цель" : "target")}` : "";
-  if (choice.type === "attack") return `${ru ? "Атака" : "Attack"}: ${choice.weapon === "Unarmed strike" && ru ? "Безоружный удар" : choice.weapon}${target(choice.targetEnemyId)}`;
+  if (choice.type === "attack") return `${ru ? "Атака" : "Attack"}: ${choice.weapon === "Unarmed strike" && ru ? "Безоружный удар" : choice.weapon}${target(choice.targetEnemyId)}${choice.sneakAttack ? (ru ? " · Скрытая атака" : " · Sneak Attack") : ""}`;
   if (choice.type === "dodge") return ru ? "Защита: уклонение" : "Defence: Dodge";
   if (choice.type === "action") {
     const labels = ru
@@ -58,10 +59,11 @@ export function combatChoiceLabel(choice: CombatChoice, language: "ru" | "en", n
 export type CombatIntentSheet = {
   id: string;
   name: string;
+  class?: string;
   equipment: Array<{ name: string; qty: number; equipped?: boolean; gear?: { weapon?: unknown } }>;
   resources: Record<string, { max: number; used: number }>;
   pets?: PetCombatant[];
-  features?: Array<{ name: string; description?: string }>;
+  features?: Array<{ name: string; description?: string; classId?: string }>;
   spellcasting?: Spellcasting;
 };
 
@@ -91,15 +93,22 @@ export type CombatIntentResult = { ok: true; content: string; budget: TurnBudget
 
 const consumableName = /potion|vial|elixir|flask|draught|philter|scroll|ration|torch|зель|эликсир|свиток|рацион|факел/i;
 
+function resolvedFeatureEffects(sheet: CombatIntentSheet) {
+  return effectsFor({ class: sheet.class ?? "", features: sheet.features ?? [] });
+}
+
 // Client-safe: it only reads the sheet data already delivered to the owner.
 export function combatChoiceDescriptors(sheet: CombatIntentSheet): CombatChoiceDescriptor[] {
   const weapons = sheet.equipment
     .filter((item) => item.qty > 0 && item.equipped !== false && (Boolean(item.gear?.weapon) || matchWeapon(item.name)))
     .map((item) => ({ type: "weapon" as const, name: item.name }));
+  const engineResolvedFeatures = new Set(resolvedFeatureEffects(sheet)
+    .filter(({ effect }) => effect.kind !== "narrative")
+    .map(({ feature }) => feature.trim().toLowerCase()));
   return [
     ...weapons,
     { type: "weapon", name: "Unarmed strike" },
-    ...(sheet.features ?? []).map(feature => ({ type: "feature" as const, ...feature })),
+    ...(sheet.features ?? []).filter(feature => !engineResolvedFeatures.has(feature.name.trim().toLowerCase())).map(feature => ({ type: "feature" as const, ...feature })),
     ...Object.entries(sheet.resources).flatMap(([id, state]) => {
       const action = Object.hasOwn(RESOURCE_ACTIONS, id) ? RESOURCE_ACTIONS[id] : undefined;
       return action && state.used < state.max
@@ -132,6 +141,12 @@ export function validateCombatTurnIntent(
   const usedItems: Record<string, number> = {};
   const usedSlots = new Map<number, number>();
   const commandedPets = new Set<string>();
+  const featureEffects = resolvedFeatureEffects(sheet);
+  const engineResolvedFeatures = new Set(featureEffects
+    .filter(({ effect }) => effect.kind !== "narrative")
+    .map(({ feature }) => feature.trim().toLowerCase()));
+  const hasSneakAttack = featureEffects.some(({ effect }) => effect.kind === "sneak_attack");
+  let sneakAttackUsed = budget.oncePerTurn.includes("sneak_attack");
   const ru = presentation?.language === "ru";
   const adjudication = ru ? "заявка мастеру; стоимость и эффект определяются правилами" : "request for DM adjudication; rules determine cost and effect";
   const copy = presentation?.language === "ru"
@@ -158,6 +173,7 @@ export function validateCombatTurnIntent(
       selections.push(`${ru ? "Заклинание" : "Spell"}: ${spell.name}${choice.slotLevel ? ` (${ru ? "ячейка" : "slot"} ${choice.slotLevel})` : ""}${choice.targetId ? `; ${copy.target}: ${name(choice.targetId)}` : ""}${!spell.cost || spell.level === null ? `; ${adjudication}` : ""}`);
     } else if (choice.type === "feature") {
       if (!sheet.features?.some(feature => feature.name === choice.feature)) return { ok: false, error: "Choose a feature on your character sheet." };
+      if (engineResolvedFeatures.has(choice.feature.trim().toLowerCase())) return { ok: false, error: "This feature is already applied by the rules; attach it to its triggering action instead." };
       if (choice.targetId && !visibleEnemyIds.has(choice.targetId) && !allyIds.has(choice.targetId)) return { ok: false, error: "Choose a visible feature target." };
       selections.push(`${copy.resource}: ${choice.feature}${choice.targetId ? `; ${copy.target}: ${name(choice.targetId)}` : ""}; ${adjudication}`);
     } else if (choice.type === "pet_order") {
@@ -169,10 +185,13 @@ export function validateCombatTurnIntent(
     } else if (choice.type === "attack") {
       if (!visibleEnemyIds.has(choice.targetEnemyId)) return { ok: false, error: "Choose a visible living enemy." };
       if (!knownWeapon(sheet, choice.weapon)) return { ok: false, error: "Choose a weapon on your character sheet." };
+      if (choice.sneakAttack && !hasSneakAttack) return { ok: false, error: "This character has no Sneak Attack feature." };
+      if (choice.sneakAttack && sneakAttackUsed) return { ok: false, error: "Sneak Attack can be declared only once per turn." };
       const spent = spendAttack(next, sheet.name);
       if (!spent.ok) return spent;
       next = spent.budget;
-      selections.push(`${copy.attack}: ${choice.weapon}; ${copy.target}: ${name(choice.targetEnemyId)}`);
+      if (choice.sneakAttack) sneakAttackUsed = true;
+      selections.push(`${copy.attack}: ${choice.weapon}; ${copy.target}: ${name(choice.targetEnemyId)}${choice.sneakAttack ? `; ${ru ? "Скрытая атака, если соблюдены условия" : "Sneak Attack, if eligible"}` : ""}`);
     } else if (choice.type === "dodge") {
       const spent = spendAction(next, "action", "Dodge", sheet.name);
       if (!spent.ok) return spent;

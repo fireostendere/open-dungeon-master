@@ -121,7 +121,7 @@ export const pcAttackTool: ToolDef = {
           description:
             "This is the bonus-action second attack of two-weapon fighting with a light weapon.",
         },
-        sneakAttack: { type: "boolean", description: "Only true when the player requests Sneak Attack (queued or in prose). Eligibility and once-per-turn are still checked." },
+        sneakAttack: { type: "boolean", description: "Only true when the player declares Sneak Attack as a rider on a queued attack or in prose. Eligibility and once-per-turn are still checked." },
         flurry: { type: "boolean", description: "Use one remaining unarmed strike from paid Flurry of Blows; requires weapon='Unarmed strike'." },
         smite: {
           type: "integer",

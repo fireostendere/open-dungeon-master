@@ -1,11 +1,14 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { register } from 'node:module';
 import { z } from 'zod';
 import { loadSource, sqliteFixture } from './lib/readiness-harness.mjs';
-import { combatSpellNames, validateCombatTurnIntent } from '../src/lib/dm/combat-turn-intent.ts';
 import { freshBudget } from '../src/lib/dm/action-budget.ts';
 import * as actionBudget from '../src/lib/dm/action-budget.ts';
 import { RESOURCE_ACTIONS } from '../src/lib/dm/resource-action-cost.ts';
+
+register('./lib/register-alias.mjs', import.meta.url);
+const { combatSpellNames, validateCombatTurnIntent } = await import('../src/lib/dm/combat-turn-intent.ts');
 
 const encounterId = '00000000-0000-4000-8000-000000000001';
 const heroId = '00000000-0000-4000-8000-000000000002';
@@ -26,6 +29,7 @@ function fixture() {
   const campaign = { id: 'c1', status: 'active', gameSettings: { dmMode: 'human', globalTurn: { enabled: true } } };
   let userId = 'u1';
   let pending = [];
+  let visibleEnemies = [];
   let encounter = { id: encounterId, round: 1, turnIndex: 0, orderReady: true, order: [{ kind: 'pc', characterId: heroId, userId: 'u1' }] };
   const floor = { mode: 'initiative', encounterId, userIds: ['u1'], currentName: 'First', round: 1 };
   campaigns.setFloor('c1', floor);
@@ -44,7 +48,7 @@ function fixture() {
     '@/lib/dm/queue': {}, '@/lib/dm/recap': {}, '@/lib/events': f.events,
     '@/lib/dm/global-turn-logic': { recordGlobalTurnAction: () => { if (encounter) throw new Error('Combat must bypass global turns'); return { allowed: true }; } },
     '@/lib/db/encounters': { getActiveEncounter: () => encounter },
-    '@/lib/db/encounter-view': { activePublicEncounter: () => ({ enemies: [] }) },
+    '@/lib/db/encounter-view': { activePublicEncounter: () => ({ enemies: visibleEnemies }) },
     '@/lib/dm/action-tools': { attacksAllowedFor: () => 1, budgetFor: () => freshBudget({ ownerId: heroId, round: 1 }) },
     '@/lib/dm/combat-turn-intent': { combatSpellNames, validateCombatTurnIntent },
     '@/lib/content': { findSpellByName: name => name === 'Eldritch Blast' ? { level: 0, data: { casting_time: '1 action' } } : name === 'Hex' ? { level: 1, data: { casting_time: '1 bonus action' } } : null },
@@ -60,7 +64,7 @@ function fixture() {
   return { ...f, campaigns, floor, campaign, sheets,
     options: () => route.GET(new Request('http://localhost/actions'), { params: Promise.resolve({ campaignId: 'c1' }) }),
     send: body => route.POST(new Request('http://localhost/actions', { method: 'POST', body: JSON.stringify(body) }), { params: Promise.resolve({ campaignId: 'c1' }) }),
-    user: value => { userId = value; }, pending: value => { pending = value; }, encounter: value => { encounter = value; },
+     user: value => { userId = value; }, pending: value => { pending = value; }, encounter: value => { encounter = value; }, enemies: value => { visibleEnemies = value; },
     narrate: () => narration.persistHumanNarration(campaign, 'Resolved outcome', 'dm'),
     intent: { kind: 'do', combatTurn: { encounterId, round: 1, turnIndex: 0, choices: [], prose: 'Hold position' } },
   };
@@ -107,6 +111,31 @@ test('free-text combat submission never declares a feature just because it is on
     assert.match(content, /Свободная заявка: Тычу кинжалом/);
     assert.doesNotMatch(content, /Sneak Attack/);
     assert.equal(f.campaigns.getFloor('c1').combat.mechanicsResolved, false);
+  } finally { f.close(); }
+});
+
+test('Sneak Attack is a once-per-turn rider on a declared attack, not another action', async () => {
+  const f = fixture();
+  try {
+    const targetEnemyId = '00000000-0000-4000-8000-000000000099';
+    const hero = f.sheets[0];
+    hero.class = 'rogue';
+    hero.level = 5;
+    hero.features = [{ name: 'Sneak Attack' }];
+    hero.equipment = [{ name: 'Dagger', qty: 1 }];
+    f.enemies([{ id: targetEnemyId, name: 'Barbed Devil', status: 'alive' }]);
+    const invalid = await f.send({ ...f.intent, combatTurn: { ...f.intent.combatTurn, choices: [
+      { type: 'attack', targetEnemyId, weapon: 'Dagger' },
+      { type: 'feature', feature: 'Sneak Attack' },
+    ] } });
+    assert.equal(invalid.status, 400, 'the server rejects the old two-entry pattern');
+    const valid = await f.send({ ...f.intent, combatTurn: { ...f.intent.combatTurn, choices: [
+      { type: 'attack', targetEnemyId, weapon: 'Dagger', sneakAttack: true },
+    ] } });
+    assert.equal(valid.status, 202, await valid.text());
+    const { content } = f.db.prepare('SELECT content FROM campaign_messages').get();
+    assert.match(content, /Атака: Dagger; цель: Barbed Devil; Скрытая атака, если соблюдены условия/);
+    assert.equal(content.match(/Скрытая атака/g)?.length, 1);
   } finally { f.close(); }
 });
 

@@ -64,6 +64,7 @@ export function CombatTurnHud({
   };
   const [weapon, setWeapon] = useState(() => combatChoiceDescriptors(sheet).find(entry => entry.type === "weapon" && entry.name !== "Unarmed strike")?.name ?? "Unarmed strike");
   const [attackTargetId, setAttackTargetId] = useState("");
+  const [sneakAttack, setSneakAttack] = useState(false);
   const [maneuverAction, setManeuverAction] = useState<"dash" | "disengage" | "hide" | "help" | "grapple" | "shove" | null>(null);
   const [resource, setResource] = useState("");
   const [featureName, setFeatureName] = useState("");
@@ -83,8 +84,6 @@ export function CombatTurnHud({
   const actionResources = resources.filter(entry => entry.cost === "action");
   const bonusResources = resources.filter(entry => entry.cost === "bonus");
   const usableSpells = spellOptions.filter(entry => entry.level === 0 || entry.level === null || combatSpellSlots(sheet, entry.level).length > 0);
-  const actionSpells = usableSpells.filter(entry => entry.cost !== "bonus" && entry.cost !== "reaction");
-  const bonusSpells = usableSpells.filter(entry => entry.cost === "bonus");
   const reactionSpells = spellOptions.filter(entry => entry.cost === "reaction");
   const selectedFeature = features.find(entry => entry.name === featureName);
   const spellChoiceFor = (spellName: string, preferredSlot?: number, targetId = ""): CombatChoice => {
@@ -101,6 +100,19 @@ export function CombatTurnHud({
   const baseBudget = combatIntentBudget(encounter, freshBudget({ ownerId: sheet.id, round: encounter.round, attacksAllowed: 1 + combatRiders(sheet).extraAttacks, extraActions: conditionExtraActions(sheet.conditions) }));
   const intent = (entries = choices): CombatTurnIntent => ({ encounterId: encounter.id, round: encounter.round, turnIndex: encounter.turnIndex, choices: entries, prose: prose.trim() || undefined });
   const validate = (entries: CombatChoice[]) => validateCombatTurnIntent(intent(entries), sheet, new Set(enemies.map((enemy) => enemy.id)), new Set(allies.map((ally) => ally.id)), baseBudget, { language: locale, names: new Map(), spells: spellOptions });
+  const canQueue = (choice: CombatChoice) => validate([...choices, choice]).ok;
+  const availableSpells = usableSpells.filter(entry => choices.some(choice => choice.type === "spell" && choice.spell === entry.name) || canQueue(spellChoiceFor(entry.name)));
+  const actionSpells = availableSpells.filter(entry => entry.cost !== "bonus" && entry.cost !== "reaction");
+  const bonusSpells = availableSpells.filter(entry => entry.cost === "bonus");
+  const availableResources = (entries: typeof resources) => entries.filter(entry => {
+    const targets = entry.target === "self" ? [sheet.id] : allies.filter(ally => entry.target !== "other" || ally.id !== sheet.id).map(ally => ally.id);
+    return targets.some(targetCharacterId => canQueue({ type: "resource", resource: entry.id, targetCharacterId }));
+  });
+  const availableActionResources = availableResources(actionResources);
+  const availableBonusResources = availableResources(bonusResources);
+  const availableItems = items.filter(entry => canQueue({ type: "item", item: entry.name, targetCharacterId: sheet.id }));
+  const canQueueDodge = canQueue({ type: "dodge" });
+  const canDeclareSneakAttack = combatRiders(sheet).sneakAttackDice > 0 && !baseBudget.oncePerTurn.includes("sneak_attack") && !choices.some(choice => choice.type === "attack" && choice.sneakAttack);
   const preview = validate(choices);
   const add = (choice: CombatChoice) => {
     const next = [...choices, choice];
@@ -109,7 +121,9 @@ export function CombatTurnHud({
     if (result.ok) {
       setChoices(next);
       setManeuverAction(null);
+      return true;
     }
+    return false;
   };
   const updateLatest = (matches: (choice: CombatChoice) => boolean, choice: CombatChoice) => {
     let index = -1;
@@ -130,6 +144,7 @@ export function CombatTurnHud({
   const selectClass = "mt-1 w-full min-w-0 rounded border border-stone-700 bg-stone-900 p-2 text-sm disabled:opacity-50";
   const queueClass = "mt-2 rounded border border-stone-600 px-3 py-1.5 text-xs text-stone-200 hover:border-amber-500 disabled:opacity-40";
   const actionNames = locale === "ru" ? { dash: "Рывок", disengage: "Отход", hide: "Скрыться", help: "Помочь союзнику", grapple: "Захватить", shove: "Сбить с ног" } : { dash: "Dash", disengage: "Disengage", hide: "Hide", help: "Help ally", grapple: "Grapple", shove: "Shove prone" };
+  const canQueueAttack = Boolean(enemies[0] && weapons.some(entry => entry.name === weapon) && canQueue({ type: "attack", targetEnemyId: enemies[0].id, weapon }));
   const maneuverOptions = (Object.keys(actionNames) as Array<keyof typeof actionNames>).filter(action => {
     const targetCharacterId = action === "help" ? otherAllies[0]?.id : undefined;
     const targetEnemyId = action === "grapple" || action === "shove" ? enemies[0]?.id : undefined;
@@ -200,16 +215,17 @@ export function CombatTurnHud({
       <details open className="rounded-lg border border-amber-800/70 p-2">
         <summary className="cursor-pointer font-semibold text-amber-100">{copy.action}</summary>
         <div className="mt-2 grid gap-2 sm:grid-cols-2">
-          <details className={branchClass}>
+          {canQueueAttack ? <details className={branchClass}>
             <summary className={summaryClass}>{copy.attack}</summary>
             <select aria-label={copy.weapon} value={weapon} onChange={event => setWeapon(event.target.value)} disabled={disabled} className={selectClass}>{weapons.map(entry => <option key={entry.name} value={entry.name}>{weaponName(entry.name)}</option>)}</select>
-            <select aria-label={copy.enemy} value={attackTargetId} onChange={event => { const targetId = event.target.value; setAttackTargetId(""); if (targetId) add({ type: "attack", targetEnemyId: targetId, weapon }); }} disabled={disabled} className={selectClass}><option value="">{copy.target}</option>{enemies.map(enemy => <option key={enemy.id} value={enemy.id}>{enemy.name}</option>)}</select>
-            <p className="mt-1 text-xs text-stone-400">{locale === "ru" ? "Выбор цели сразу добавит атаку в план." : "Selecting a target adds the attack to your plan."}</p>
-            <button type="button" disabled={disabled || meter.actionUsed} onClick={() => add({ type: "dodge" })} className={queueClass}><Shield className="mr-1 inline size-3" />{copy.dodge}</button>
-          </details>
-          {(actionResources.length > 0 || features.length > 0) ? <details className={branchClass}>
+            {canDeclareSneakAttack ? <label className="mt-2 flex items-start gap-2 text-xs text-amber-200"><input type="checkbox" checked={sneakAttack} onChange={event => setSneakAttack(event.target.checked)} disabled={disabled} /><span>{locale === "ru" ? "Заявить Скрытую атаку к этому удару (если условия выполнены)" : "Request Sneak Attack on this swing (if eligible)"}</span></label> : null}
+            <select aria-label={copy.enemy} value={attackTargetId} onChange={event => { const targetId = event.target.value; setAttackTargetId(""); if (targetId) { const added = add({ type: "attack", targetEnemyId: targetId, weapon, ...(sneakAttack ? { sneakAttack: true } : {}) }); if (added) setSneakAttack(false); } }} disabled={disabled} className={selectClass}><option value="">{copy.target}</option>{enemies.map(enemy => <option key={enemy.id} value={enemy.id}>{enemy.name}</option>)}</select>
+            <p className="mt-1 text-xs text-stone-400">{locale === "ru" ? "Выбор цели добавляет один удар; дополнительный откроется только при Extra Attack в листе." : "Selecting a target queues one swing; another is available only with Extra Attack on the sheet."}</p>
+          </details> : null}
+          {canQueueDodge ? <button type="button" disabled={disabled} onClick={() => add({ type: "dodge" })} className={queueClass}><Shield className="mr-1 inline size-3" />{copy.dodge}</button> : null}
+          {(availableActionResources.length > 0 || features.length > 0) ? <details className={branchClass}>
             <summary className={summaryClass}>{copy.ability}</summary>
-            {actionResources.length ? <div className="mt-1"><p className="text-xs text-stone-400">{copy.action}</p>{renderResources(actionResources, `${copy.resource} (${copy.action})`)}</div> : null}
+            {availableActionResources.length ? <div className="mt-1"><p className="text-xs text-stone-400">{copy.action}</p>{renderResources(availableActionResources, `${copy.resource} (${copy.action})`)}</div> : null}
             {features.length ? <div className="mt-2 border-t border-stone-700 pt-2">
               <label className="block text-xs text-stone-300">{copy.features} — {locale === "ru" ? "уточнить у мастера" : "DM adjudicates"}
                 <select aria-label={copy.features} value={featureName} onChange={event => { const value = event.target.value; setFeatureName(value); setTargetCharacterId(""); const feature = features.find(entry => entry.name === value); if (feature) add({ type: "feature", feature: feature.name }); }} disabled={disabled} className={selectClass}><option value="">{copy.choose}</option>{features.map(entry => <option key={entry.name} value={entry.name}>{entry.name}</option>)}</select>
@@ -224,10 +240,10 @@ export function CombatTurnHud({
           {sheet.spellcasting && (actionSpells.length > 0 || spellsLoading || spellsError) ? <div className="space-y-2">
             {spellsLoading ? <details open className={branchClass}><summary className={summaryClass}>{copy.spells}</summary><p role="status" className="mt-1">{locale === "ru" ? "Загрузка заклинаний…" : "Loading spells…"}</p></details> : spellsError ? <details open className={branchClass}><summary className={summaryClass}>{copy.spells}</summary><p role="alert" className="mt-1">{locale === "ru" ? "Не удалось загрузить заклинания. Обновите страницу." : "Could not load spells. Refresh the page."}</p></details> : actionSpells.length ? renderSpellPicker(actionSpells, copy.spells, copy.action) : null}
           </div> : null}
-          {items.length ? <details className={branchClass}>
+          {availableItems.length ? <details className={branchClass}>
             <summary className={summaryClass}>{copy.item}</summary>
             <p className="mt-1 text-xs text-amber-300">{copy.action}</p>
-            <select aria-label={copy.item} value={item} onChange={event => { const value = event.target.value; setItem(value); if (value) add({ type: "item", item: value, targetCharacterId: itemTarget }); }} disabled={disabled} className={selectClass}><option value="">{copy.choose}</option>{items.map(entry => <option key={entry.name} value={entry.name}>{entry.name} ({entry.qty})</option>)}</select>
+            <select aria-label={copy.item} value={item} onChange={event => { const value = event.target.value; setItem(value); if (value) add({ type: "item", item: value, targetCharacterId: itemTarget }); }} disabled={disabled} className={selectClass}><option value="">{copy.choose}</option>{availableItems.map(entry => <option key={entry.name} value={entry.name}>{entry.name} ({entry.qty})</option>)}</select>
             <select aria-label={`${copy.item}: ${copy.target}`} value={itemTarget} onChange={event => { const targetId = event.target.value; setItemTarget(targetId); if (item) updateLatest(entry => entry.type === "item" && entry.item === item, { type: "item", item, targetCharacterId: targetId }); }} disabled={disabled} className={selectClass}>{allies.map(ally => <option key={ally.id} value={ally.id}>{ally.id === sheet.id ? copy.self : ally.name}</option>)}</select>
           </details> : null}
           {maneuverOptions.length ? <details className={branchClass}>
@@ -259,10 +275,10 @@ export function CombatTurnHud({
           {petPanel ? <details className={branchClass}><summary className={summaryClass}>{copy.petActions}</summary><div className="mt-2">{petPanel}</div></details> : null}
         </div>
       </details>
-      {(bonusResources.length > 0 || bonusSpells.length > 0) ? <details className="rounded-lg border border-sky-900/80 p-2">
+      {(availableBonusResources.length > 0 || bonusSpells.length > 0) ? <details className="rounded-lg border border-sky-900/80 p-2">
         <summary className="cursor-pointer font-semibold text-sky-200">{copy.bonus}</summary>
         <div className="mt-2 grid gap-2 sm:grid-cols-2">
-          {bonusResources.length ? <details className={branchClass}><summary className={summaryClass}>{copy.ability}</summary><p className="mt-1 text-xs text-stone-400">{copy.bonus}</p>{renderResources(bonusResources, `${copy.resource} (${copy.bonus})`)}</details> : null}
+          {availableBonusResources.length ? <details className={branchClass}><summary className={summaryClass}>{copy.ability}</summary><p className="mt-1 text-xs text-stone-400">{copy.bonus}</p>{renderResources(availableBonusResources, `${copy.resource} (${copy.bonus})`)}</details> : null}
           {sheet.spellcasting && bonusSpells.length ? renderSpellPicker(bonusSpells, copy.spells, copy.bonus) : null}
         </div>
       </details> : null}

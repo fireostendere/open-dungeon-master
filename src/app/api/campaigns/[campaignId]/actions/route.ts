@@ -59,7 +59,7 @@ const actionSchema = z.object({
     round: z.number().int().min(1),
     turnIndex: z.number().int().min(0),
     choices: z.array(z.discriminatedUnion("type", [
-      z.object({ type: z.literal("attack"), targetEnemyId: z.string().uuid(), weapon: z.string().trim().min(1).max(80) }),
+      z.object({ type: z.literal("attack"), targetEnemyId: z.string().uuid(), weapon: z.string().trim().min(1).max(80), sneakAttack: z.boolean().optional() }),
       z.object({ type: z.literal("dodge") }),
       z.object({ type: z.literal("action"), action: z.enum(["dash", "disengage", "hide", "help", "grapple", "shove"]), targetEnemyId: z.string().uuid().optional(), targetCharacterId: z.string().uuid().optional() }),
       z.object({ type: z.literal("pet"), petName: z.string().trim().min(1).max(60), attack: z.string().trim().min(1).max(40), targetEnemyId: z.string().uuid() }),

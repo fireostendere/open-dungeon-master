@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
-import { freshBudget } from "../src/lib/dm/action-budget.ts";
-import { combatChoiceDescriptors, combatIntentBudget, combatSpellNames, combatSpellSlots, validateCombatTurnIntent } from "../src/lib/dm/combat-turn-intent.ts";
+import { register } from "node:module";
+
+register("./lib/register-alias.mjs", import.meta.url);
+
+const { freshBudget } = await import("../src/lib/dm/action-budget.ts");
+const { combatChoiceDescriptors, combatChoiceLabel, combatIntentBudget, combatSpellNames, combatSpellSlots, validateCombatTurnIntent } = await import("../src/lib/dm/combat-turn-intent.ts");
 
 const sheet = {
   id: "hero", name: "Vex", equipment: [{ name: "Longsword", qty: 1 }, { name: "Potion of Healing", qty: 2 }],
@@ -9,7 +13,13 @@ const sheet = {
 const budget = () => freshBudget({ ownerId: sheet.id, round: 1, attacksAllowed: 2 });
 const intent = (choices) => ({ encounterId: "encounter", round: 1, turnIndex: 0, choices });
 
-assert.equal(validateCombatTurnIntent(intent([{ type: "attack", targetEnemyId: "enemy", weapon: "Longsword" }, { type: "attack", targetEnemyId: "enemy", weapon: "Longsword" }]), sheet, new Set(["enemy"]), new Set(["hero"]), budget()).ok, true);
+const fighterWithExtraAttack = { ...sheet, class: 'fighter', level: 5, features: [{ name: 'Extra Attack' }] };
+assert.equal(validateCombatTurnIntent(intent([{ type: "attack", targetEnemyId: "enemy", weapon: "Longsword" }, { type: "attack", targetEnemyId: "enemy", weapon: "Longsword" }]), fighterWithExtraAttack, new Set(["enemy"]), new Set(["hero"]), budget()).ok, true);
+assert.equal(combatChoiceDescriptors(fighterWithExtraAttack).some(choice => choice.type === 'feature' && choice.name === 'Extra Attack'), false, 'Extra Attack is part of attack capacity, not a separate queued action');
+assert.equal(validateCombatTurnIntent(intent([{ type: 'feature', feature: 'Extra Attack' }]), fighterWithExtraAttack, new Set(['enemy']), new Set(['hero']), budget()).ok, false);
+const oneAttackBudget = freshBudget({ ownerId: sheet.id, round: 1, attacksAllowed: 1 });
+assert.equal(validateCombatTurnIntent(intent([{ type: "attack", targetEnemyId: "enemy", weapon: "Longsword" }, { type: "attack", targetEnemyId: "enemy", weapon: "Longsword" }]), sheet, new Set(["enemy"]), new Set(["hero"]), oneAttackBudget).ok, false, 'a character without Extra Attack cannot queue a second swing');
+assert.equal(validateCombatTurnIntent(intent(Array.from({ length: 3 }, () => ({ type: "attack", targetEnemyId: "enemy", weapon: "Longsword" }))), sheet, new Set(["enemy"]), new Set(["hero"]), budget()).ok, false, 'Extra Attack does not permit more swings than the sheet grants');
 assert.match(validateCombatTurnIntent(intent([{ type: "attack", targetEnemyId: "hidden", weapon: "Longsword" }]), sheet, new Set(["enemy"]), new Set(["hero"]), budget()).error, /visible/);
 assert.match(validateCombatTurnIntent(intent([{ type: "item", item: "Potion of Healing" }, { type: "dodge" }]), sheet, new Set(["enemy"]), new Set(["hero"]), budget()).error, /already used their action/);
 assert.equal(validateCombatTurnIntent(intent([{ type: "resource", resource: "second_wind" }]), sheet, new Set(["enemy"]), new Set(["hero"]), budget()).ok, true);
@@ -27,6 +37,15 @@ assert.equal(check([petChoice], { ...sheet, pets: [{ ...pet, hp: 0 }] }).ok, fal
 assert.equal(check([{ type: 'action', action: 'grapple', targetEnemyId: 'enemy' }, { type: 'attack', targetEnemyId: 'enemy', weapon: 'Longsword' }]).ok, true);
 assert.equal(check([{ type: 'action', action: 'help', targetCharacterId: 'hero' }]).ok, false);
 assert.equal(check([{ type: 'attack', targetEnemyId: 'enemy', weapon: 'Longsword' }], { ...sheet, equipment: [{ name: 'Longsword', qty: 1, equipped: false }] }).ok, false);
+const rogue = { ...sheet, class: 'rogue', level: 5, features: [{ name: 'Sneak Attack' }], equipment: [{ name: 'Dagger', qty: 1 }] };
+const rogueCheck = choices => validateCombatTurnIntent(intent(choices), rogue, new Set(['enemy']), new Set(['hero']), oneAttackBudget, { language: 'ru', names: new Map([['enemy', 'Дьявол']]) });
+assert.equal(combatChoiceDescriptors(rogue).some(choice => choice.type === 'feature' && choice.name === 'Sneak Attack'), false, 'an attack rider is not offered as a separate action');
+assert.equal(rogueCheck([{ type: 'attack', targetEnemyId: 'enemy', weapon: 'Dagger' }, { type: 'feature', feature: 'Sneak Attack' }]).ok, false, 'cannot queue Sneak Attack as a second standalone action');
+assert.equal(rogueCheck([{ type: 'attack', targetEnemyId: 'enemy', weapon: 'Dagger', sneakAttack: true }]).ok, true, 'Sneak Attack rides the declared weapon attack');
+assert.match(rogueCheck([{ type: 'attack', targetEnemyId: 'enemy', weapon: 'Dagger', sneakAttack: true }]).content, /Атака: Dagger; цель: Дьявол; Скрытая атака/);
+assert.equal(combatChoiceLabel({ type: 'attack', targetEnemyId: 'enemy', weapon: 'Dagger', sneakAttack: true }, 'ru', new Map([['enemy', 'Дьявол']])), 'Атака: Dagger → Дьявол · Скрытая атака');
+assert.equal(check([{ type: 'attack', targetEnemyId: 'enemy', weapon: 'Longsword', sneakAttack: true }]).ok, false, 'a character without the feature cannot request the rider');
+assert.equal(rogueCheck([{ type: 'attack', targetEnemyId: 'enemy', weapon: 'Dagger', sneakAttack: true }, { type: 'attack', targetEnemyId: 'enemy', weapon: 'Dagger', sneakAttack: true }]).ok, false, 'Sneak Attack is once per turn even with Extra Attack');
 const spentBudget = { actionUsed: true, bonusUsed: true, reactionUsed: false, attacksMade: 2, attacksAllowed: 2, oncePerTurn: ['pet:fedya'] };
 assert.equal(combatIntentBudget({ currentActorId: 'other', turnBudget: spentBudget }, budget()).bonusUsed, false, 'do not borrow another actor budget');
 const shared = combatIntentBudget({ currentActorId: 'hero', turnBudget: spentBudget }, budget());
