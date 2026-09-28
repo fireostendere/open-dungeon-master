@@ -246,7 +246,7 @@ class Controller:
             env['RESTIC_PASSWORD_FILE'] = str(self.config_dir / 'remote.password')
         return self.run(['restic', '-r', repository, *args], env=env, **kw)
 
-    def build(self, ref=None, fetch=True):
+    def build(self, ref=None, fetch=True, refresh_base=False):
         self.disk_ok(6 * 1024**3)
         if fetch: self.run(['git', '-C', self.repo, 'fetch', '--prune', 'origin'], timeout=300)
         ref = ref or ('refs/remotes/origin/' + self.config['branch'])
@@ -259,7 +259,7 @@ class Controller:
         if not source.exists(): self.run(['git', '-C', self.repo, 'worktree', 'add', '--detach', str(source), sha])
         image = 'odm-managed:' + self.env['COMPOSE_PROJECT_NAME'] + '-' + sha
         print('Building isolated release ' + sha[:12], flush=True)
-        self.docker('build', '--pull', '-f', str(source / 'Dockerfile'), '--label', 'odm.managed=1', '--label', 'odm.root=' + self.env['COMPOSE_PROJECT_NAME'],
+        self.docker('build', *(('--pull',) if refresh_base else ()), '-f', str(source / 'Dockerfile'), '--label', 'odm.managed=1', '--label', 'odm.root=' + self.env['COMPOSE_PROJECT_NAME'],
             '--label', 'odm.release=' + sha, '-t', image, str(source), capture=False, timeout=3600)
         # Server-side provider inference was removed; the image build and
         # Next/TypeScript production build are the release gate now.
@@ -268,7 +268,7 @@ class Controller:
         release = {'sha': sha, 'image': image_id, 'compose': str(directory / ('compose-' + image_id[7:19] + '.json'))}
         write_json(Path(release['compose']), self.manifest(release))
         mcp = self.mcp_controller(release)
-        if mcp: release['mcpImage'] = mcp.build()
+        if mcp: release['mcpImage'] = mcp.build(refresh_base=refresh_base)
         write_json(directory / 'release.json', release)
         self.docker('compose', '-f', release['compose'], 'config', '--quiet')
         return release
@@ -355,14 +355,13 @@ class Controller:
         self.wait_ready()
         return mcp
 
-    def release_cleanup(self):
-        # Failure to prune old files must not roll back a healthy game release.
+    def finalize_release(self):
+        # Retention is scheduled separately; only remove the superseded MCP container here.
         try:
             mcp = self.mcp_controller()
             if mcp: mcp.finalize()
-            self.retention(apply=True)
         except Exception as exc:
-            self.alert('retention-pending', 'Release is healthy; managed cleanup needs attention: ' + type(exc).__name__)
+            self.alert('release-cleanup-pending', 'Release is healthy; old MCP container cleanup needs attention: ' + type(exc).__name__)
 
     def retention(self, apply=False, prune=False):
         from retention import apply_retention
@@ -407,20 +406,24 @@ class Controller:
         old = transaction['old']
         self.pause_mcp(transaction['target'])
         self.compose('stop', 'app', *(['proxy'] if self.config['domain'] else []), release=transaction['target'])
-        target, source = self.stage_restore(transaction['snapshot'])
-        try:
-            self.check_restored(source, old); self.replace_state(source)
-            write_json(Path(old['compose']), self.manifest(old))
-            self.prepare_mcp_env(old)
-            self.compose('up', '-d', '--no-deps', 'app', release=old)
-            self.release_gate(old)
-            write_json(self.config_dir / 'active.json', old)
-            self.restore_previous_metadata(transaction)
-            self.sync_tools()
-            self.configure_proxy(old)
-            journal.unlink()
-            self.alert('interrupted-update-recovered', 'Recovered the previous web/MCP release and database after an interrupted transition')
-        finally: shutil.rmtree(target, ignore_errors=True)
+        snapshot = transaction.get('snapshot')
+        if snapshot:
+            target, source = self.stage_restore(snapshot)
+            try:
+                self.check_restored(source, old); self.replace_state(source)
+            finally: shutil.rmtree(target, ignore_errors=True)
+        write_json(Path(old['compose']), self.manifest(old))
+        self.prepare_mcp_env(old)
+        self.compose('up', '-d', '--no-deps', 'app', release=old)
+        self.release_gate(old)
+        write_json(self.config_dir / 'active.json', old)
+        self.restore_previous_metadata(transaction)
+        self.sync_tools()
+        self.configure_proxy(old)
+        journal.unlink()
+        message = ('Recovered the previous web/MCP release and database after an interrupted transition'
+                   if snapshot else 'Recovered the previous release after an interrupted fast update; database was not restored')
+        self.alert('interrupted-update-recovered', message)
 
     def stop(self):
         atomic(self.config_dir / 'stopped', timestamp())
@@ -611,7 +614,7 @@ class Controller:
             shutil.rmtree(candidate, ignore_errors=True)
         return old  # Preserve the displaced state for operator review, if present.
 
-    def upgrade(self, release):
+    def upgrade(self, release, fast=False):
         old = self.active()
         if not old: raise OpsError('Install before updating')
         if all(release.get(key) == old.get(key) for key in ('sha', 'image', 'mcpImage')):
@@ -621,7 +624,8 @@ class Controller:
         try:
             # MCP bytes and dependency registration are prepared before downtime.
             self.prepare_mcp_env(release)
-            snapshot = self.backup(resume=False, tag='pre-update')
+            if not fast:
+                snapshot = self.backup(resume=False, tag='pre-update')
             transaction['snapshot'] = snapshot
             write_json(self.config_dir / 'transaction.json', transaction)
             if self.config['domain']: self.compose('stop', 'proxy', release=old)
@@ -635,9 +639,9 @@ class Controller:
             (self.config_dir / 'transaction.json').unlink(missing_ok=True)
             print('Updated web and MCP to ' + release['sha'])
         except BaseException:
+            self.pause_mcp(release)
+            self.compose('stop', 'app', *(['proxy'] if self.config['domain'] else []), release=release)
             if snapshot:
-                self.pause_mcp(release)
-                self.compose('stop', 'app', *(['proxy'] if self.config['domain'] else []), release=release)
                 target, source = self.stage_restore(snapshot)
                 try:
                     self.check_restored(source, old); self.replace_state(source)
@@ -652,15 +656,16 @@ class Controller:
             self.configure_proxy(old)
             # Keep the journal if either rollback health gate fails above.
             (self.config_dir / 'transaction.json').unlink(missing_ok=True)
-            self.alert('update-rolled-back', 'Update failed; previous web/MCP images and database restored')
+            message = ('Update failed; previous web/MCP images and database restored'
+                       if snapshot else 'Fast update failed; previous release restored without database rollback')
+            self.alert('update-rolled-back', message)
             raise
-        self.release_cleanup()
-        if (self.config_dir / 'remote.json').exists(): self.sync_remote()
+        self.finalize_release()
 
-    def update(self, ref=None):
+    def update(self, ref=None, fast=False, refresh_base=False):
         if (self.config_dir / 'stopped').exists(): raise OpsError('Installation intentionally stopped; no update performed')
         self.recover_pending()
-        self.upgrade(self.build(ref))
+        self.upgrade(self.build(ref, refresh_base=refresh_base), fast=fast)
 
     def restore(self, snapshot, yes=False, remote=False, check_only=False):
         if not check_only and not yes: raise OpsError('Restore replaces current game state; repeat with --yes after reviewing the snapshot')
@@ -724,7 +729,7 @@ class Controller:
                 (self.config_dir / 'transaction.json').unlink(missing_ok=True)
                 raise
             print('Restored; displaced state retained at ' + str(old_state))
-            self.release_cleanup()
+            self.finalize_release()
         finally: shutil.rmtree(target, ignore_errors=True)
 
     def status(self):
@@ -885,6 +890,8 @@ def parser():
     retention = sub.add_parser('retention'); retention.add_argument('--apply', action='store_true')
     retention.add_argument('--prune', action='store_true')
     update = sub.add_parser('update'); update.add_argument('--ref')
+    update.add_argument('--fast', action='store_true', help='Skip the pre-update database snapshot; only for schema-compatible changes')
+    update.add_argument('--refresh-base', action='store_true', help='Pull current Docker base images instead of using the local cache')
     for name in ('restore', 'restore-check'):
         restore = sub.add_parser(name); restore.add_argument('snapshot'); restore.add_argument('--yes', action='store_true'); restore.add_argument('--remote', action='store_true')
     rollback = sub.add_parser('rollback'); rollback.add_argument('--yes', action='store_true')
@@ -914,11 +921,12 @@ def main():
             if args.bootstrap_tools: install_ops_tools(c.root, Path(__file__).resolve().parent)
             c.install(args); return 0
         c.require()
-        if args.command == 'update': c.update(args.ref)
+        if args.command == 'update': c.update(args.ref, fast=args.fast, refresh_base=args.refresh_base)
         elif args.command in ('restore', 'restore-check'): c.restore(args.snapshot, args.yes, args.remote, args.command == 'restore-check')
         elif args.command == 'rollback':
             prev = read_json(c.config_dir / 'previous.json')
             if not prev: raise OpsError('No previous deployment snapshot')
+            if not prev.get('snapshot'): raise OpsError('This release used --fast and has no database rollback snapshot')
             c.restore(prev['snapshot'], args.yes)
         elif args.command == 'remote-config': c.remote_config(args.repository, args.password_file, args.credentials_file)
         elif args.command == 'alerts-config':

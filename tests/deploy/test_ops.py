@@ -137,6 +137,8 @@ class OpsTests(unittest.TestCase):
         project=MODULE.parents[1];dockerfile=(project/'Dockerfile').read_text()
         self.assertLess(dockerfile.index('COPY package.json package-lock.json ./'),dockerfile.index('RUN npm ci'))
         self.assertLess(dockerfile.index('RUN npm ci'),dockerfile.index('COPY . .'))
+        self.assertLess(dockerfile.index('RUN node scripts/fetch-content-pack.mjs'),dockerfile.index('COPY . .'))
+        self.assertIn('COPY src/lib/srd/ ./src/lib/srd/',dockerfile)
         self.assertIn('AS runner',dockerfile);self.assertIn('/app/deploy/db-tool.mjs ./deploy/db-tool.mjs',dockerfile)
         controller=MODULE.read_text();self.assertIn("str(source / 'Dockerfile')",controller)
         self.assertNotIn("source / 'deploy' / 'Dockerfile'",controller)
@@ -181,6 +183,13 @@ class OpsTests(unittest.TestCase):
         self.c.start()
         self.assertEqual((self.root/'state/data/local-roleplay.sqlite').read_text(),'characters and campaign before update')
         self.assertFalse((self.c.config_dir/'transaction.json').exists());self.assertTrue(self.c.probe())
+    def test_interrupted_fast_update_recovers_code_without_database_snapshot(self):
+        old=self.c.active();bad=release(self.root,BAD)
+        ops.write_json(self.c.config_dir/'transaction.json',{'old':old,'target':bad,'snapshot':None})
+        self.c.recover_pending()
+        self.assertEqual(self.c.active()['sha'],GOOD)
+        self.assertEqual((self.root/'state/data/local-roleplay.sqlite').read_text(),'characters and campaign before update')
+        self.assertFalse((self.c.config_dir/'transaction.json').exists());self.assertTrue(self.c.probe())
     def test_committed_transition_is_not_rolled_back(self):
         snapshot=self.c.backup();old=self.c.active();new=release(self.root,BAD)
         ops.write_json(self.c.config_dir/'active.json',new)
@@ -191,6 +200,18 @@ class OpsTests(unittest.TestCase):
         self.c.upgrade(release(self.root,BAD));self.assertEqual(self.c.active()['sha'],BAD)
         previous=ops.read_json(self.c.config_dir/'previous.json');self.assertEqual(previous['release']['sha'],GOOD)
         self.assertIn(previous['snapshot'],self.c.saved)
+    def test_fast_update_skips_backup_retention_and_offsite_sync(self):
+        with patch.object(self.c,'retention') as retention,patch.object(self.c,'sync_remote') as offsite:
+            self.c.upgrade(release(self.root,BAD),fast=True)
+        retention.assert_not_called();offsite.assert_not_called()
+        self.assertFalse(any(call[0]=='restic' and call[1][0]=='backup' for call in self.c.calls))
+        self.assertIsNone(ops.read_json(self.c.config_dir/'previous.json')['snapshot'])
+    def test_failed_fast_update_restores_code_but_leaves_database_untouched_by_rollback(self):
+        self.c.fail_sha=BAD
+        with self.assertRaises(ops.OpsError): self.c.upgrade(release(self.root,BAD),fast=True)
+        self.assertEqual(self.c.active()['sha'],GOOD)
+        self.assertEqual((self.root/'state/data/local-roleplay.sqlite').read_text(),'failed migration')
+        self.assertIn('without database rollback',ops.read_json(self.root/'logs/last-alert.json')['message'])
     def test_failed_update_restores_actual_files_and_old_release(self):
         self.c.fail_sha=BAD
         with self.assertRaises(ops.OpsError):self.c.upgrade(release(self.root,BAD))
@@ -266,6 +287,8 @@ class OpsTests(unittest.TestCase):
     def test_cli_command_parsing(self):
         p=ops.parser();self.assertEqual(p.parse_args(['auth','login','chatgpt','--device']).args,['login','chatgpt','--device'])
         self.assertTrue(p.parse_args(['restore','latest','--yes']).yes)
+        update=p.parse_args(['update','--fast','--refresh-base'])
+        self.assertTrue(update.fast);self.assertTrue(update.refresh_base)
     @unittest.skipIf(os.name=='nt','Bash belongs to Linux installer')
     def test_standalone_server_dry_plan(self):
         script=MODULE.parents[1]/'install-server.sh'

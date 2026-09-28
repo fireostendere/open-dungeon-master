@@ -26,14 +26,19 @@ RUN npm ci
 FROM deps AS build
 WORKDIR /app
 
+# Keep the slow, versioned Open5e pack in a cacheable layer. App source changes
+# should not make every deploy download/rebuild this database again.
+COPY package.json ./
+COPY scripts/fetch-content-pack.mjs scripts/import-open5e.mjs ./scripts/
+COPY scripts/lib/open5e-normalize.mjs ./scripts/lib/
+COPY src/lib/srd/ ./src/lib/srd/
+RUN node scripts/fetch-content-pack.mjs
+
 COPY . .
 
 # 3D dice textures and sounds. The postinstall hook already ran in the deps
 # stage; rerunning is cheap and keeps this independent of the COPY order.
 RUN node scripts/copy-dice-assets.mjs
-
-# Bake the Open5e content pack so rules lookup is available offline.
-RUN node scripts/fetch-content-pack.mjs
 
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN DOCKER_BUILD=1 npm run build

@@ -147,10 +147,10 @@ class McpController:
         try: self.docker('image', 'inspect', self.image, timeout=30); return True
         except McpOpsError: return False
 
-    def build(self) -> str:
-        if not self.image_exists():
+    def build(self, refresh_base: bool = False) -> str:
+        if refresh_base or not self.image_exists():
             print("Building MCP sidecar for " + self.sha[:12], flush=True)
-            self.docker("build", "--pull", "-f", str(self.source / "mcp" / "Dockerfile"),
+            self.docker("build", *(('--pull',) if refresh_base else ()), "-f", str(self.source / "mcp" / "Dockerfile"),
                 "--label", "odm.managed=1", "--label", "odm.root=" + self.project,
                 "--label", "odm.release=" + self.sha, "-t", self.image_tag, str(self.source),
                 capture=False, timeout=1800)
