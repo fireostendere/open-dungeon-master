@@ -19,7 +19,7 @@ const COPY = {
     attack: "Атака", dodge: "Уклонение", dash: "Рывок", disengage: "Отход", hide: "Скрыться", help: "Помочь союзнику",
     grapple: "Захватить", shove: "Сбить с ног", cunning: "Хитрое действие", spell: "Заклинание", resource: "Способность",
     item: "Использовать предмет", pet: "Команда питомцу", sneak: "Заявить Скрытую атаку, если условия выполнены",
-    queued: "Выбрано", remove: "Убрать действие", send: "Отправить ход", end: "Закончить ход", sending: "Отправка…",
+    queued: "Выбрано", remove: "Убрать действие", send: "Отправить ход", end: "Пропустить ход", skipIntent: "Я пропускаю боевой ход.", sending: "Отправка…",
     locked: "Мастер обрабатывает ход.", unavailable: "Нет доступных действий с текущими ресурсами и целями.",
     rejected: "Это действие сейчас недоступно.", self: "На себя", spellTarget: "Цель заклинания", itemTarget: "Кому применить предмет",
   },
@@ -29,7 +29,7 @@ const COPY = {
     attack: "Attack", dodge: "Dodge", dash: "Dash", disengage: "Disengage", hide: "Hide", help: "Help an ally",
     grapple: "Grapple", shove: "Shove prone", cunning: "Cunning Action", spell: "Spell", resource: "Ability",
     item: "Use an item", pet: "Command a pet", sneak: "Request Sneak Attack if eligible",
-    queued: "Selected", remove: "Remove action", send: "Submit turn", end: "End turn", sending: "Sending…",
+    queued: "Selected", remove: "Remove action", send: "Submit turn", end: "Skip turn", skipIntent: "I skip my combat turn.", sending: "Sending…",
     locked: "The DM is resolving this turn.", unavailable: "No actions are available with the current resources and targets.",
     rejected: "This action is not available right now.", self: "Self", spellTarget: "Spell target", itemTarget: "Use item on",
   },
@@ -226,7 +226,7 @@ export function CombatTurnHud({
     setRejected(false);
   };
   const cancelSelection = () => { setSelectedKey(""); setTargetId(""); setSlotLevel(""); setSneakAttack(false); setRejected(false); };
-  const submit = () => { if (!selected && !disabled && preview.ok && choices.length) setConfirming(true); };
+  const submit = () => { if (!selected && !disabled && preview.ok) setConfirming(true); };
   const actionOptions = options.filter((option) => option.cost === "action");
   const bonusOptions = options.filter((option) => option.cost === "bonus");
   const selectClass = "mt-1 w-full rounded border border-stone-700 bg-stone-900 p-2 text-sm disabled:opacity-50";
@@ -283,10 +283,10 @@ export function CombatTurnHud({
     </div> : null}
     <div className="mt-3 flex flex-wrap gap-2">
       {choices.length ? <button type="button" disabled={disabled || Boolean(selected) || !preview.ok} onClick={submit} className="rounded bg-amber-400 px-3 py-2 font-medium text-amber-950 disabled:opacity-40">{sending ? copy.sending : copy.send}</button> : null}
-      {!choices.length && !selected ? <button type="button" disabled={disabled} onClick={() => onSubmit(intent([]))} className="rounded border border-stone-600 px-3 py-2 text-xs text-stone-300">{copy.end}</button> : null}
+      {!choices.length && !selected ? <button type="button" disabled={disabled} onClick={submit} className="rounded border border-stone-600 px-3 py-2 text-xs text-stone-300">{copy.end}</button> : null}
     </div>
     {confirming ? <ActionPreviewDialog
-      content=""
+      content={choices.length ? "" : copy.skipIntent}
       name={sheet.name}
       locale={locale}
       queuedActions={choices.length}

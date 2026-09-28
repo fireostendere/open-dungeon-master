@@ -103,6 +103,20 @@ assert.equal(getEncounter(encounter.id).turnIndex, 0);
 assert.equal(getEncounter(encounter.id).turnBudget.bonusUsed, true);
 
 reset();
+patchSheet(hero.id, { class: 'rogue', level: 3, features: [{ name: 'Sneak Attack' }, { name: 'Cunning Action' }],
+  equipment: [{ name: 'Dagger', qty: 1, equipped: true }] });
+const rogueCombo = call('combat_turn', { characterId: hero.id, steps: [
+  { name: 'pc_attack', args: { targetEnemyId: enemy.id, weapon: 'Dagger', advantage: 'advantage', sneakAttack: true } },
+  { name: 'take_action', args: { action: 'hide', cunningAction: true } },
+] });
+assert.equal(rogueCombo.ok, true, JSON.stringify(rogueCombo));
+assert.equal(rogueCombo.result.status, 'completed', JSON.stringify(rogueCombo));
+assert.deepEqual(rogueCombo.result.steps.map(step => step.name), ['pc_attack', 'take_action']);
+assert.equal(rogueCombo.result.steps[1].result.action, 'Hide', 'Cunning Action remains legal after the declared Sneak Attack');
+assert.equal(getEncounter(encounter.id).turnIndex, 1, 'the declared compound turn advances exactly once');
+
+reset();
+patchSheet(hero.id, { class: base.class, features: [], equipment: base.equipment });
 const wrongCaster = call('heal', { characterId: hero.id, casterId: ally.id, spell: 'Healing Word', level: 1 });
 assert.equal(wrongCaster.ok, false);
 assert.equal(getSheetById(ally.id).spellcasting.slots['1'].used, 0);
@@ -207,4 +221,4 @@ assert.equal(call('use_resource', hand).ok, false, 'no free healing with exhaust
 assert.equal(getSheetById(ally.id).currentHp, 1);
 mercy();
 assert.equal(call('pc_attack', { characterId: hero.id, targetEnemyId: enemy.id, weapon: 'Unarmed strike', flurry: true }).ok, false, 'no free Flurry attack');
-console.log('combat-dialogue-integration: compound turns, replay, healing, cantrips, pets, clarification, explicit Sneak Attack, Mercy/Flurry passed');
+console.log('combat-dialogue-integration: compound turns, replay, healing, cantrips, pets, clarification, Sneak Attack/Cunning Action, Mercy/Flurry passed');

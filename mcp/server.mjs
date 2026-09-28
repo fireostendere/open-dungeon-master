@@ -353,6 +353,11 @@ earlier steps: continue from nextStep, never replay the bundle. Single supported
 actions accept completeTurn:true. Attack spells use pc_attack.spell, buffs use
 cast_buff, healing uses heal(spell,casterId,characterId,level) and already spends
 the slot/action. Pet attacks use targetEnemyId and a real sheet.pets entry.
+If a player message includes the validated combatTurn object, use its ordered choices
+and IDs exactly; do not infer a different plan from the display text. Copy
+action.cunningAction as take_action.cunningAction:true, attach attack.sneakAttack to
+that pc_attack, and resolve the declared list in one combat_turn call. A completed
+receipt already ended initiative; an argument refusal is not a fictional miss.
 Browsing a dropdown never declares a feature. Only queued actions or clear prose
 authorize optional abilities/resources; queued actions have application priority.
 Free-text-only intent, including YOLO slang, is valid without exact ability names.

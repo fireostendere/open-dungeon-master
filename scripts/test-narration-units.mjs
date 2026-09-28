@@ -27,7 +27,7 @@ test('imperial campaigns and protected/player-like literals remain unchanged', (
 test('public DM inserts and variants are normalized while player text and imperial DM text are retained', () => {
   const db = new DatabaseSync(':memory:');
   db.exec(`CREATE TABLE campaigns (id TEXT PRIMARY KEY, game_settings_json TEXT NOT NULL);
-    CREATE TABLE campaign_messages (id TEXT PRIMARY KEY, campaign_id TEXT, seq INTEGER, author_type TEXT, user_id TEXT, character_id TEXT, content TEXT, image_request_json TEXT, generated_image_json TEXT, location_id TEXT, variants_json TEXT, variant_index INTEGER, dm_turn_id TEXT, created_at TEXT);
+    CREATE TABLE campaign_messages (id TEXT PRIMARY KEY, campaign_id TEXT, seq INTEGER, author_type TEXT, user_id TEXT, character_id TEXT, content TEXT, combat_turn_json TEXT, image_request_json TEXT, generated_image_json TEXT, location_id TEXT, variants_json TEXT, variant_index INTEGER, dm_turn_id TEXT, created_at TEXT);
     INSERT INTO campaigns VALUES ('metric', '{"unitSystem":"metric"}'), ('imperial', '{"unitSystem":"imperial"}');`);
   const messages = loadSource('src/lib/db/messages.ts', {
     '@/lib/db/core': { getDatabase: () => db, nowIso: () => 'now', parseJson: (value, fallback) => { try { return JSON.parse(value); } catch { return fallback; } } },
@@ -35,10 +35,12 @@ test('public DM inserts and variants are normalized while player text and imperi
     '@/lib/units/narration': { normalizeNarrationUnits },
   });
   const dm = messages.insertCampaignMessage({ campaignId: 'metric', seq: 1, authorType: 'dm', content: 'The door is 10 ft away.' });
-  const player = messages.insertCampaignMessage({ campaignId: 'metric', seq: 2, authorType: 'player', content: 'I move 10 ft.' });
+  const combatTurn = { encounterId: 'encounter', round: 1, turnIndex: 2, choices: [{ type: 'action', action: 'hide', cunningAction: true }] };
+  const player = messages.insertCampaignMessage({ campaignId: 'metric', seq: 2, authorType: 'player', content: 'I move 10 ft.', combatTurn });
   const imperial = messages.insertCampaignMessage({ campaignId: 'imperial', seq: 1, authorType: 'dm', content: 'The door is 10 ft away.' });
   assert.equal(dm.content, 'The door is 3 m away.');
   assert.equal(player.content, 'I move 10 ft.');
+  assert.deepEqual(messages.getCampaignMessage(player.id).combatTurn, combatTurn, 'the validated combat plan survives persistence for narrator reads');
   assert.equal(imperial.content, 'The door is 10 ft away.');
   assert.equal(messages.updateMessageContent(dm.id, 'A 20 ft bridge.').content, 'A 6 m bridge.');
   assert.equal(messages.updateMessageContent(player.id, 'I move 20 ft.').content, 'I move 20 ft.');

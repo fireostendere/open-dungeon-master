@@ -93,6 +93,12 @@ try {
     await page.getByRole('button', { name: 'Добавить в план', exact: true }).click();
     await page.getByRole('button', { name: 'Убрать действие 1', exact: true }).click();
   }
+  await page.getByRole('button', { name: 'Пропустить ход', exact: true }).click();
+  const skipConfirmation = page.getByRole('dialog');
+  await skipConfirmation.waitFor();
+  assert.match(await skipConfirmation.innerText(), /Я пропускаю боевой ход\./);
+  await skipConfirmation.getByRole('button', { name: 'Редактировать', exact: true }).click();
+  await skipConfirmation.waitFor({ state: 'hidden' });
   if (process.env.ODM_E2E_PET_NAME) {
     const hud = page.getByRole('region', { name: 'Конструктор боевого хода', exact: true });
     await actionPicker.selectOption(`pet:${process.env.ODM_E2E_PET_NAME}`);
@@ -142,6 +148,9 @@ try {
   await page.getByRole('button', { name: 'Отправить ход', exact: true }).click();
   const chatConfirmation = page.getByRole('dialog');
   await chatConfirmation.waitFor();
+  const editRect = await chatConfirmation.getByRole('button', { name: 'Редактировать', exact: true }).evaluate(element => element.getBoundingClientRect());
+  const sendRect = await chatConfirmation.getByRole('button', { name: 'Отправить', exact: true }).evaluate(element => element.getBoundingClientRect());
+  assert.ok(Math.abs(editRect.y - sendRect.y) < 1 && sendRect.x > editRect.x, 'mobile confirmation actions stay side by side');
   const chatConfirmationText = await chatConfirmation.innerText();
   assert.match(chatConfirmationText, /Атака: Longsword → Dummy/);
   assert.match(chatConfirmationText, /Второе дыхание/);

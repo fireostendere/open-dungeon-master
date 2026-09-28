@@ -299,6 +299,7 @@ export async function POST(
       userId: user.id,
       characterId: sheet.id,
       content,
+      combatTurn: parsed.data.combatTurn,
     });
     publishWithSeq(campaignId, seq, "message_added", { message });
     return message;

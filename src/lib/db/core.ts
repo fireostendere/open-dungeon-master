@@ -152,6 +152,7 @@ function ensureSchema(db: SqliteDatabase) {
       user_id TEXT,
       character_id TEXT,
       content TEXT NOT NULL,
+      combat_turn_json TEXT,
       image_request_json TEXT,
       generated_image_json TEXT,
       narration_audio_url TEXT,
@@ -1162,6 +1163,10 @@ function ensureSchema(db: SqliteDatabase) {
     // Party-lead mute: the member stays at the table and can read, but the
     // server refuses their actions, asks and side chats until it is lifted.
     ["muted", `INTEGER NOT NULL DEFAULT 0`],
+  ]);
+
+  addColumns("campaign_messages", [
+    ["combat_turn_json", `TEXT`],
   ]);
 
   addColumns("campaigns", [

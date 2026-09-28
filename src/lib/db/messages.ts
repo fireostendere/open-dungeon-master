@@ -2,6 +2,7 @@ import { getDatabase, nowIso, parseJson } from "@/lib/db/core";
 import { touchCampaign } from "@/lib/db/campaigns";
 import type { GeneratedImage, ImageRequest } from "@/lib/types";
 import { normalizeNarrationUnits } from "@/lib/units/narration";
+import type { CombatTurnIntent } from "@/lib/dm/combat-turn-intent";
 
 const NON_OOC = "lower(ltrim(content, char(9) || char(10) || char(13) || ' ')) NOT LIKE '(ooc)%'";
 
@@ -13,6 +14,7 @@ export type CampaignMessage = {
   userId: string | null;
   characterId: string | null;
   content: string;
+  combatTurn?: CombatTurnIntent;
   imageRequest?: ImageRequest;
   generatedImage?: GeneratedImage;
   narrationAudioUrl?: string;
@@ -42,6 +44,7 @@ type MessageRow = {
   user_id: string | null;
   character_id: string | null;
   content: string;
+  combat_turn_json: string | null;
   image_request_json: string | null;
   generated_image_json: string | null;
   narration_audio_url: string | null;
@@ -61,6 +64,7 @@ function mapMessage(row: MessageRow): CampaignMessage {
     userId: row.user_id,
     characterId: row.character_id,
     content: row.content,
+    combatTurn: parseJson<CombatTurnIntent | undefined>(row.combat_turn_json, undefined),
     imageRequest: parseJson<ImageRequest | undefined>(row.image_request_json, undefined),
     generatedImage: parseJson<GeneratedImage | undefined>(row.generated_image_json, undefined),
     narrationAudioUrl: row.narration_audio_url ?? undefined,
@@ -79,6 +83,7 @@ export function insertCampaignMessage(input: {
   userId?: string | null;
   characterId?: string | null;
   content: string;
+  combatTurn?: CombatTurnIntent;
   imageRequest?: ImageRequest;
   locationId?: string;
   dmTurnId?: string;
@@ -93,9 +98,9 @@ export function insertCampaignMessage(input: {
       `
         INSERT INTO campaign_messages (
           id, campaign_id, seq, author_type, user_id, character_id, content,
-          image_request_json, location_id, dm_turn_id, created_at
+          combat_turn_json, image_request_json, location_id, dm_turn_id, created_at
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `,
     )
     .run(
@@ -106,6 +111,7 @@ export function insertCampaignMessage(input: {
       input.userId ?? null,
       input.characterId ?? null,
       content,
+      input.combatTurn ? JSON.stringify(input.combatTurn) : null,
       input.imageRequest ? JSON.stringify(input.imageRequest) : null,
       input.locationId ?? null,
       input.dmTurnId ?? null,

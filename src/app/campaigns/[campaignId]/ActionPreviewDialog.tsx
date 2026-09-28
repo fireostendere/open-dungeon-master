@@ -5,6 +5,7 @@ import { Volume2, VolumeX } from "lucide-react";
 import { Dialog } from "@/components/ui/Dialog";
 import { PlayerMessageBadge, PlayerMessageBody } from "@/app/campaigns/[campaignId]/PlayerMessageStyle";
 import { parsePlayerMessage } from "@/lib/player-message";
+import { cn } from "@/lib/cn";
 import { ui } from "@/lib/ui";
 import type { Locale } from "@/lib/i18n";
 
@@ -71,13 +72,15 @@ export function ActionPreviewDialog({
         <ol className="mt-1 list-inside list-decimal space-y-1">{queuedActionLabels.map((label, index) => <li key={`${index}:${label}`}>{label}</li>)}</ol>
       </div> : queuedActions > 0 ? <p className="mt-3 text-xs text-amber-200/80">{copy.queued}</p> : null}
       {note ? <p className="mt-3 text-xs text-amber-200/80">{note}</p> : null}
-      <div className="mt-5 flex flex-wrap items-center gap-2">
+      <div className="mt-5 flex items-center gap-2">
         {PREVIEW_TTS_ENABLED && typeof window !== "undefined" && "speechSynthesis" in window ? <>
           <button type="button" onClick={speak} className={ui.btnSmall} aria-label={copy.replay} title={copy.replay}><Volume2 className="size-4" /></button>
           <button type="button" onClick={() => window.speechSynthesis.cancel()} className={ui.btnSmall} aria-label={copy.stop} title={copy.stop}><VolumeX className="size-4" /></button>
         </> : null}
-        <button type="button" onClick={onEdit} className={`${ui.btnSecondary} ml-auto`}>{copy.edit}</button>
-        <button type="button" onClick={onSend} disabled={disabled} className={ui.btnPrimary}>{copy.send}</button>
+        <div className="ml-auto grid min-w-0 flex-1 grid-cols-2 gap-2 sm:flex sm:flex-initial">
+          <button type="button" onClick={onEdit} className={cn(ui.btnSecondary, "min-w-0 w-full px-2 text-[11px] tracking-normal sm:w-auto sm:px-3 sm:text-[13px] sm:tracking-[0.12em]")}>{copy.edit}</button>
+          <button type="button" onClick={onSend} disabled={disabled} className={cn(ui.btnPrimary, "min-w-0 w-full px-2 text-[11px] tracking-normal sm:w-auto sm:px-4 sm:text-[13px] sm:tracking-[0.14em]")}>{copy.send}</button>
+        </div>
       </div>
     </Dialog>
   );
