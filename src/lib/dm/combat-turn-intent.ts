@@ -4,7 +4,7 @@ import { matchWeapon } from "../srd/weapons.ts";
 import { spendPetCommand, type PetCombatant } from "./pet-combat.ts";
 import type { PublicEncounter } from "../db/encounter-view.ts";
 import type { Spellcasting } from "../schemas/sheet.ts";
-import { effectsFor } from "../srd/feature-effects.ts";
+import { effectsFor, hasCunningAction } from "../srd/feature-effects.ts";
 
 // Both combat panels preview the same authoritative budget, never another actor's.
 export function combatIntentBudget(encounter: Pick<PublicEncounter, "currentActorId" | "turnBudget">, fresh: TurnBudget): TurnBudget {
@@ -16,20 +16,19 @@ export function combatIntentBudget(encounter: Pick<PublicEncounter, "currentActo
 export type CombatChoice =
   | { type: "attack"; targetEnemyId: string; weapon: string; sneakAttack?: boolean }
   | { type: "dodge" }
-  | { type: "action"; action: "dash" | "disengage" | "hide" | "help" | "grapple" | "shove"; targetEnemyId?: string; targetCharacterId?: string }
+  | { type: "action"; action: "dash" | "disengage" | "hide" | "help" | "grapple" | "shove"; targetEnemyId?: string; targetCharacterId?: string; cunningAction?: boolean }
   | { type: "pet"; petName: string; attack: string; targetEnemyId: string }
   | { type: "pet_order"; petName: string; order: string }
-  | { type: "spell"; spell: string; slotLevel?: number; targetId?: string }
+  | { type: "spell"; spell: string; slotLevel?: number; targetId: string }
   | { type: "feature"; feature: string; targetId?: string }
   | { type: "resource"; resource: string; targetCharacterId?: string }
-  | { type: "item"; item: string; targetCharacterId?: string };
+  | { type: "item"; item: string; targetCharacterId: string };
 
 export type CombatTurnIntent = {
   encounterId: string;
   round: number;
   turnIndex: number;
   choices: CombatChoice[];
-  prose?: string;
 };
 
 export function combatChoiceLabel(choice: CombatChoice, language: "ru" | "en", names: ReadonlyMap<string, string> = new Map()): string {
@@ -41,7 +40,8 @@ export function combatChoiceLabel(choice: CombatChoice, language: "ru" | "en", n
     const labels = ru
       ? { dash: "Рывок", disengage: "Отход", hide: "Скрыться", help: "Помощь", grapple: "Захват", shove: "Толчок" }
       : { dash: "Dash", disengage: "Disengage", hide: "Hide", help: "Help", grapple: "Grapple", shove: "Shove" };
-    return `${labels[choice.action]}${target(choice.targetEnemyId ?? choice.targetCharacterId)}`;
+    const prefix = choice.cunningAction ? (ru ? "Хитрое действие: " : "Cunning Action: ") : "";
+    return `${prefix}${labels[choice.action]}${target(choice.targetEnemyId ?? choice.targetCharacterId)}`;
   }
   if (choice.type === "spell") return `${ru ? "Заклинание" : "Spell"}: ${choice.spell}${choice.slotLevel ? ` (${ru ? "ячейка" : "slot"} ${choice.slotLevel})` : ""}${target(choice.targetId)}`;
   if (choice.type === "feature") return `${choice.feature}${target(choice.targetId)}`;
@@ -68,7 +68,8 @@ export type CombatIntentSheet = {
   spellcasting?: Spellcasting;
 };
 
-export type CombatSpellDescriptor = { type: "spell"; name: string; level: number | null; cost: ActionKind | null };
+export type CombatSpellTarget = "enemy" | "ally" | "self";
+export type CombatSpellDescriptor = { type: "spell"; name: string; level: number | null; cost: ActionKind | null; target?: CombatSpellTarget | null };
 
 export function combatSpellNames(sheet: CombatIntentSheet): string[] {
   const casting = sheet.spellcasting;
@@ -98,25 +99,14 @@ function resolvedFeatureEffects(sheet: CombatIntentSheet) {
   return effectsFor({ class: sheet.class ?? "", features: sheet.features ?? [] });
 }
 
-function isLanguageFeature(sheet: CombatIntentSheet, feature: string) {
-  const normalize = (value: string) => value.trim().toLowerCase().replace(/[’‘]/g, "'");
-  const name = normalize(feature);
-  return name === "druidic" || name === "thieves' cant" ||
-    (sheet.proficiencies?.languages ?? []).some(language => normalize(language) === name);
-}
-
 // Client-safe: it only reads the sheet data already delivered to the owner.
 export function combatChoiceDescriptors(sheet: CombatIntentSheet): CombatChoiceDescriptor[] {
   const weapons = sheet.equipment
     .filter((item) => item.qty > 0 && item.equipped !== false && (Boolean(item.gear?.weapon) || matchWeapon(item.name)))
     .map((item) => ({ type: "weapon" as const, name: item.name }));
-  const engineResolvedFeatures = new Set(resolvedFeatureEffects(sheet)
-    .filter(({ effect }) => effect.kind !== "narrative")
-    .map(({ feature }) => feature.trim().toLowerCase()));
   return [
     ...weapons,
     { type: "weapon", name: "Unarmed strike" },
-    ...(sheet.features ?? []).filter(feature => !engineResolvedFeatures.has(feature.name.trim().toLowerCase()) && !isLanguageFeature(sheet, feature.name)).map(feature => ({ type: "feature" as const, ...feature })),
     ...Object.entries(sheet.resources).flatMap(([id, state]) => {
       const action = Object.hasOwn(RESOURCE_ACTIONS, id) ? RESOURCE_ACTIONS[id] : undefined;
       return action && state.used < state.max
@@ -150,9 +140,6 @@ export function validateCombatTurnIntent(
   const usedSlots = new Map<number, number>();
   const commandedPets = new Set<string>();
   const featureEffects = resolvedFeatureEffects(sheet);
-  const engineResolvedFeatures = new Set(featureEffects
-    .filter(({ effect }) => effect.kind !== "narrative")
-    .map(({ feature }) => feature.trim().toLowerCase()));
   const hasSneakAttack = featureEffects.some(({ effect }) => effect.kind === "sneak_attack");
   let sneakAttackUsed = budget.oncePerTurn.includes("sneak_attack");
   const ru = presentation?.language === "ru";
@@ -166,8 +153,10 @@ export function validateCombatTurnIntent(
     if (choice.type === "spell") {
       const spell = presentation?.spells?.find(entry => entry.name === choice.spell);
       if (!combatSpellNames(sheet).includes(choice.spell) || !spell) return { ok: false, error: "Choose a spell on your character sheet." };
-      if (choice.targetId && !visibleEnemyIds.has(choice.targetId) && !allyIds.has(choice.targetId)) return { ok: false, error: "Choose a visible spell target." };
-      if (spell.cost === "reaction") return { ok: false, error: "A reaction spell requires its trigger; describe it to the DM when triggered." };
+      if (!spell.target || spell.cost === null || spell.cost === "reaction" || spell.level === null) return { ok: false, error: "This spell is not available in the structured combat builder." };
+      if (spell.target === "enemy" && !visibleEnemyIds.has(choice.targetId)) return { ok: false, error: "Choose a visible enemy spell target." };
+      if (spell.target === "ally" && !allyIds.has(choice.targetId)) return { ok: false, error: "Choose an ally spell target." };
+      if (spell.target === "self" && choice.targetId !== sheet.id) return { ok: false, error: "This spell targets only its caster." };
       if (spell.level !== null && spell.level > 0) {
         const slot = combatSpellSlots(sheet, spell.level).find(entry => entry.level === choice.slotLevel);
         if (!slot || slot.left <= (usedSlots.get(slot.level) ?? 0)) return { ok: false, error: "Choose an available spell slot." };
@@ -178,13 +167,9 @@ export function validateCombatTurnIntent(
         if (!spent.ok) return spent;
         next = spent.budget;
       }
-      selections.push(`${ru ? "Заклинание" : "Spell"}: ${spell.name}${choice.slotLevel ? ` (${ru ? "ячейка" : "slot"} ${choice.slotLevel})` : ""}${choice.targetId ? `; ${copy.target}: ${name(choice.targetId)}` : ""}${!spell.cost || spell.level === null ? `; ${adjudication}` : ""}`);
+      selections.push(`${ru ? "Заклинание" : "Spell"}: ${spell.name}${choice.slotLevel ? ` (${ru ? "ячейка" : "slot"} ${choice.slotLevel})` : ""}; ${copy.target}: ${name(choice.targetId)}`);
     } else if (choice.type === "feature") {
-      if (!sheet.features?.some(feature => feature.name === choice.feature)) return { ok: false, error: "Choose a feature on your character sheet." };
-      if (isLanguageFeature(sheet, choice.feature)) return { ok: false, error: "A language is not a standalone combat feature." };
-      if (engineResolvedFeatures.has(choice.feature.trim().toLowerCase())) return { ok: false, error: "This feature is already applied by the rules; attach it to its triggering action instead." };
-      if (choice.targetId && !visibleEnemyIds.has(choice.targetId) && !allyIds.has(choice.targetId)) return { ok: false, error: "Choose a visible feature target." };
-      selections.push(`${copy.resource}: ${choice.feature}${choice.targetId ? `; ${copy.target}: ${name(choice.targetId)}` : ""}; ${adjudication}`);
+      return { ok: false, error: "Unstructured feature requests are not available during combat; choose a supported action." };
     } else if (choice.type === "pet_order") {
       const pet = sheet.pets?.find(entry => entry.name === choice.petName);
       if (!pet || pet.hp <= 0 || !choice.order.trim() || choice.order.length > 500 || commandedPets.has(pet.name) || next.oncePerTurn.includes(`pet:${pet.name.toLowerCase()}`)) return { ok: false, error: "Choose your living pet and enter one order." };
@@ -216,18 +201,26 @@ export function validateCombatTurnIntent(
       selections.push(`${pet.name}: ${choice.attack}; ${copy.target}: ${name(choice.targetEnemyId)}`);
     } else if (choice.type === "action") {
       const specialAttack = choice.action === "grapple" || choice.action === "shove";
-      if (specialAttack && !visibleEnemyIds.has(choice.targetEnemyId ?? "")) return { ok: false, error: "Choose a visible enemy." };
-      if (choice.action === "help" && (!allyIds.has(choice.targetCharacterId ?? "") || choice.targetCharacterId === sheet.id)) return { ok: false, error: "Help requires another ally." };
-      const spent = specialAttack ? spendAttack(next, sheet.name, false) : spendAction(next, "action", choice.action, sheet.name, ["dash", "hide", "disengage"].includes(choice.action));
+      const cunningActions = ["dash", "disengage", "hide"];
+      if (choice.cunningAction && (!cunningActions.includes(choice.action) || !hasCunningAction(sheet))) return { ok: false, error: "Cunning Action requires that feature and can only Dash, Disengage or Hide." };
+      if (specialAttack && (!visibleEnemyIds.has(choice.targetEnemyId ?? "") || choice.targetCharacterId)) return { ok: false, error: "Choose a visible enemy." };
+      if (choice.action === "help" && (!allyIds.has(choice.targetCharacterId ?? "") || choice.targetCharacterId === sheet.id || choice.targetEnemyId)) return { ok: false, error: "Help requires another ally." };
+      if (!specialAttack && choice.action !== "help" && (choice.targetCharacterId || choice.targetEnemyId)) return { ok: false, error: "This action does not take a target." };
+      const spent = specialAttack
+        ? spendAttack(next, sheet.name, false)
+        : spendAction(next, choice.cunningAction ? "bonus" : "action", choice.action, sheet.name, !choice.cunningAction && ["dash", "hide", "disengage"].includes(choice.action));
       if (!spent.ok) return spent;
       next = spent.budget;
       const labels = { dash: "Рывок", disengage: "Отход", hide: "Скрыться", help: "Помощь", grapple: "Захват", shove: "Толчок" };
-      selections.push(`${presentation?.language === "ru" ? labels[choice.action] : choice.action}${choice.targetEnemyId || choice.targetCharacterId ? `; ${copy.target}: ${name(choice.targetEnemyId ?? choice.targetCharacterId!)}` : ""}`);
+      const prefix = choice.cunningAction ? (ru ? "Хитрое действие: " : "Cunning Action: ") : "";
+      selections.push(`${prefix}${presentation?.language === "ru" ? labels[choice.action] : choice.action}${choice.targetEnemyId || choice.targetCharacterId ? `; ${copy.target}: ${name(choice.targetEnemyId ?? choice.targetCharacterId!)}` : ""}`);
     } else if (choice.type === "resource") {
       const state = Object.hasOwn(sheet.resources, choice.resource) ? sheet.resources[choice.resource] : undefined;
       const action = Object.hasOwn(RESOURCE_ACTIONS, choice.resource) ? RESOURCE_ACTIONS[choice.resource] : undefined;
       if (!action || !state || state.used + (usedResources[choice.resource] ?? 0) >= state.max) return { ok: false, error: "Choose an available supported resource." };
-      const target = action.target === "self" ? sheet.id : choice.targetCharacterId ?? sheet.id;
+      if (action.target !== "self" && !choice.targetCharacterId) return { ok: false, error: "Choose an eligible ally for that resource." };
+      if (action.target === "self" && choice.targetCharacterId && choice.targetCharacterId !== sheet.id) return { ok: false, error: "This resource targets only its owner." };
+      const target = action.target === "self" ? sheet.id : choice.targetCharacterId!;
       if (!allyIds.has(target) || (action.target === "other" && target === sheet.id)) return { ok: false, error: "Choose an eligible ally for that resource." };
       const spent = spendAction(next, action.cost, action.name, sheet.name);
       if (!spent.ok) return spent;
@@ -237,7 +230,7 @@ export function validateCombatTurnIntent(
     } else {
       const item = sheet.equipment.find((entry) => entry.name === choice.item && entry.qty > 0);
       if (!item || !consumableName.test(item.name) || item.qty <= (usedItems[item.name] ?? 0)) return { ok: false, error: "Choose an available consumable." };
-      if (choice.targetCharacterId && !allyIds.has(choice.targetCharacterId)) return { ok: false, error: "Choose an eligible ally for that item." };
+      if (!choice.targetCharacterId || !allyIds.has(choice.targetCharacterId)) return { ok: false, error: "Choose an eligible ally for that item." };
       const spent = spendAction(next, "action", `use ${item.name}`, sheet.name);
       if (!spent.ok) return spent;
       next = spent.budget;
@@ -245,10 +238,9 @@ export function validateCombatTurnIntent(
       selections.push(`${copy.item}: ${item.name}; ${copy.target}: ${name(choice.targetCharacterId ?? sheet.id)}`);
     }
   }
-  const prose = intent.prose?.trim();
   const declaration = selections.length
-    ? `${ru ? "Явно выбранные действия (приоритет применения)" : "Explicitly queued actions (application priority)"}:\n${selections.map((selection, index) => `${index + 1}. ${selection}`).join("\n")}\n\n${prose ? `${ru ? "Описание игрока" : "Player description"}: ${prose}` : (ru ? "Без дополнительного описания." : "No additional description.")}`
-    : prose ? `${ru ? "Свободная заявка" : "Free-text intent"}: ${prose}` : (ru ? "Пропускаю ход." : "I pass my turn.");
+    ? `${ru ? "Явно выбранные действия (приоритет применения)" : "Explicitly queued actions (application priority)"}:\n${selections.map((selection, index) => `${index + 1}. ${selection}`).join("\n")}`
+    : (ru ? "Пропускаю ход." : "I pass my turn.");
   return {
     ok: true,
     budget: next,

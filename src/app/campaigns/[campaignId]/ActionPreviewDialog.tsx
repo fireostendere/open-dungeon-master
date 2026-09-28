@@ -8,6 +8,8 @@ import { parsePlayerMessage } from "@/lib/player-message";
 import { ui } from "@/lib/ui";
 import type { Locale } from "@/lib/i18n";
 
+const PREVIEW_TTS_ENABLED = process.env.NEXT_PUBLIC_ACTION_PREVIEW_TTS === "1";
+
 export function ActionPreviewDialog({
   content,
   name,
@@ -44,6 +46,7 @@ export function ActionPreviewDialog({
   }, [locale, previewText]);
 
   useEffect(() => {
+    if (!PREVIEW_TTS_ENABLED) return;
     speak();
     return () => {
       if ("speechSynthesis" in window) window.speechSynthesis.cancel();
@@ -69,7 +72,7 @@ export function ActionPreviewDialog({
       </div> : queuedActions > 0 ? <p className="mt-3 text-xs text-amber-200/80">{copy.queued}</p> : null}
       {note ? <p className="mt-3 text-xs text-amber-200/80">{note}</p> : null}
       <div className="mt-5 flex flex-wrap items-center gap-2">
-        {typeof window !== "undefined" && "speechSynthesis" in window ? <>
+        {PREVIEW_TTS_ENABLED && typeof window !== "undefined" && "speechSynthesis" in window ? <>
           <button type="button" onClick={speak} className={ui.btnSmall} aria-label={copy.replay} title={copy.replay}><Volume2 className="size-4" /></button>
           <button type="button" onClick={() => window.speechSynthesis.cancel()} className={ui.btnSmall} aria-label={copy.stop} title={copy.stop}><VolumeX className="size-4" /></button>
         </> : null}

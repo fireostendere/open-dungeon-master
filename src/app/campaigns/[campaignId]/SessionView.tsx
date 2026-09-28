@@ -352,17 +352,11 @@ export function SessionView({
       event?.preventDefault();
       const content = (confirmedContent ?? input).trim();
       const sendKind = combatTurn ? "do" : needsCharacter ? "ask" : kind;
-      const resolvedCombatTurn = combatTurn ?? (
-        sendKind === "do" && ownCombatTurn && state.encounter && mySheet && combatChoices.length > 0
-          ? {
-              encounterId: state.encounter.id,
-              round: state.encounter.round,
-              turnIndex: state.encounter.turnIndex,
-              choices: combatChoices,
-              prose: content || undefined,
-            }
-          : undefined
-      );
+      const resolvedCombatTurn = combatTurn;
+      if (sendKind === "do" && ownCombatTurn && !resolvedCombatTurn) {
+        setError(locale === "ru" ? "Соберите ход во вкладке «Бой»." : "Configure your turn in the Battle tab.");
+        return;
+      }
       if ((!content && (sendKind === "ask" || !resolvedCombatTurn)) || sending || (!needsCharacter && gate.inputBlocked) || muted) {
         return;
       }
@@ -402,7 +396,7 @@ export function SessionView({
         setSending(false);
       }
     },
-    [campaignId, input, sending, gate.inputBlocked, muted, kind, needsCharacter, askScope, askVisibility, leadPrivate, ownCombatTurn, state.encounter, mySheet, combatChoices, setCombatChoices, refreshAsks],
+    [campaignId, input, sending, gate.inputBlocked, muted, kind, needsCharacter, askScope, askVisibility, leadPrivate, ownCombatTurn, locale, setCombatChoices, refreshAsks],
   );
 
   const clearChatTarget = useCallback(() => setChatTarget(null), []);
@@ -573,10 +567,8 @@ export function SessionView({
               storyCadence={storyCadence}
               onCaptureStory={openStoryCapture}
               onSnoozeStory={snoozeStory}
-              combatInputMode={campaign.gameSettings?.combatInputMode ?? "hybrid"}
               combatChoices={combatChoices}
               onSubmit={(event, confirmedContent) => void submit(event, undefined, confirmedContent)}
-              onCombatSubmit={(combatTurn) => void submit(null, combatTurn)}
               onOpenBattleTab={() => selectPanelView("battle")}
               askScope={askScope}
               onAskScopeChange={setAskScope}
@@ -644,8 +636,6 @@ export function SessionView({
           onCombatSubmit={(combatTurn) => void submit(null, combatTurn)}
           combatChoices={combatChoices}
           onCombatChoicesChange={setCombatChoices}
-          combatProse={input}
-          onCombatProseChange={setInput}
         />
       </div>
 

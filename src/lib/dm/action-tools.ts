@@ -18,7 +18,7 @@ import {
   conditionBlocksReactions,
   conditionExtraActions,
 } from "@/lib/srd/condition-effects";
-import { combatRiders } from "@/lib/srd/feature-effects";
+import { combatRiders, hasCunningAction } from "@/lib/srd/feature-effects";
 import { passivePerceptionFor, saveModFor, sizeRank } from "@/lib/bestiary/statblock";
 import {
   budgetApplies,
@@ -68,7 +68,7 @@ export const actionTools: ToolDef[] = [
     function: {
       name: "take_action",
       description:
-        "A character takes one of the standard 5e actions that is not an attack or a spell: Dodge, Dash, Disengage, Hide, Help, Grapple, or Shove. The server spends the action from their turn, rolls any contest the action calls for, and applies the real effect (Dodge makes attacks against them roll at disadvantage, a won Grapple applies grappled, a won Shove knocks prone or pushes). Call this BEFORE narrating the action; narrate exactly what it reports.",
+        "A character takes one of the standard 5e actions that is not an attack or a spell: Dodge, Dash, Disengage, Hide, Help, Grapple, or Shove. The server spends the action from their turn, except a player-selected Cunning Action spends a bonus action for Dash, Disengage or Hide. It rolls any contest the action calls for and applies the real effect. Call this BEFORE narrating; narrate exactly what it reports.",
       parameters: {
         type: "object",
         additionalProperties: false,
@@ -78,6 +78,7 @@ export const actionTools: ToolDef[] = [
             type: "string",
             enum: ["dodge", "dash", "disengage", "hide", "help", "grapple", "shove"],
           },
+          cunningAction: { type: "boolean", description: "True only when the player selected Cunning Action for Dash, Disengage or Hide; the character must have that feature." },
           targetEnemyId: {
             type: "string",
             description: "Grapple and Shove: the exact enemyId being seized or pushed.",
@@ -129,6 +130,7 @@ const takeActionSchema = z.object({
   action: z.enum(["dodge", "dash", "disengage", "hide", "help", "grapple", "shove"]),
   targetEnemyId: z.string().optional(),
   targetCharacterId: z.string().optional(),
+  cunningAction: z.boolean().optional(),
   shove: z.enum(["prone", "push"]).optional(),
   reason: z.string().optional(),
 });
@@ -253,6 +255,9 @@ export function handleTakeAction(
   if (sheet.currentHp <= 0 || incapacitatedBy(sheet.conditions)) {
     return { error: `${sheet.name} cannot take actions while unconscious or incapacitated.` };
   }
+  if (args.cunningAction && (!["dash", "disengage", "hide"].includes(args.action) || !hasCunningAction(sheet))) {
+    return { error: "Cunning Action requires that feature and can only Dash, Disengage or Hide." };
+  }
 
   const encounter = getActiveEncounter(campaign.id);
   if (encounter && (currentCombatantId(encounter) !== sheet.id || listOpenPendingRolls(campaign.id).length)) {
@@ -267,7 +272,8 @@ export function handleTakeAction(
   if (budget && encounter) {
     const spend = args.action === "grapple" || args.action === "shove"
       ? spendAttack(budget, sheet.name, false)
-      : spendAction(budget, ACTION_COST[args.action], args.action, sheet.name, ["dash", "disengage", "hide"].includes(args.action));
+      : spendAction(budget, args.cunningAction ? "bonus" : ACTION_COST[args.action], args.action, sheet.name,
+        !args.cunningAction && ["dash", "disengage", "hide"].includes(args.action));
     if (!spend.ok) {
       return { error: spend.error };
     }

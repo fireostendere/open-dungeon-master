@@ -652,6 +652,10 @@ export type CombatRiders = {
   cantripAbilityRiders: Array<{ feature: string; spell: string; ability: string }>;
 };
 
+export function hasCunningAction(sheet: { features?: Array<{ name: string }> }): boolean {
+  return (sheet.features ?? []).some(({ name }) => /cunning\s+action|хитрое\s+действие/i.test(name));
+}
+
 export function combatRiders(sheet: {
   class: string;
   level: number;

@@ -179,6 +179,7 @@ test("a select refuses a value outside its options", () => {
     /must be one of/,
   );
   assert.equal(checkArgs(action, { characterId: "c1", action: "dodge" }), null);
+  assert.ok(action.fields.some((field) => field.name === "cunningAction"), "the shared action tool exposes Cunning Action selection");
 });
 
 test("combat and roll forms expose the handler's real argument names", () => {

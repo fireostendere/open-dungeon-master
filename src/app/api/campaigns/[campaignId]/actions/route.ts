@@ -22,7 +22,7 @@ import { getActiveEncounter } from "@/lib/db/encounters";
 import { activePublicEncounter } from "@/lib/db/encounter-view";
 import { attacksAllowedFor, budgetFor } from "@/lib/dm/action-tools";
 import { combatSpellNames, validateCombatTurnIntent, type CombatSpellDescriptor } from "@/lib/dm/combat-turn-intent";
-import { findSpellByName } from "@/lib/content";
+import { findSpellByName, spellMechanicsFor } from "@/lib/content";
 import { authoredSpellRow } from "@/lib/srd/spell-mechanics";
 import type { CharacterSheet } from "@/lib/schemas/sheet";
 import { conditionExtraActions } from "@/lib/srd/condition-effects";
@@ -35,10 +35,20 @@ function spellsFor(sheet: CharacterSheet): CombatSpellDescriptor[] {
   return combatSpellNames(sheet).map(name => {
     const entry = findSpellByName(name, sheet.userId);
     const authored = authoredSpellRow(name);
+    const mechanics = spellMechanicsFor({ spell: name, userId: sheet.userId });
     const time = String(entry?.data.casting_time ?? authored?.casting_time ?? "").toLowerCase();
-    return { type: "spell", name, level: entry?.level ?? authored?.level ?? null,
-      cost: /^1 bonus action/.test(time) ? "bonus" : /^1 reaction/.test(time) ? "reaction" : /^1 action/.test(time) ? "action" : null };
-  });
+    const range = String(entry?.data.range ?? authored?.range ?? "");
+    const areaTarget = /\b(cone|cube|line|sphere|cylinder|radius|hemisphere|wall)\b/i.test(range);
+    const target = areaTarget ? null
+      : mechanics?.mech.resolution === "attack" || mechanics?.mech.resolution === "save" || mechanics?.mech.resolution === "auto" ? "enemy"
+      : mechanics?.mech.resolution === "heal" ? "ally"
+      : mechanics?.mech.resolution === "buff" && mechanics.mech.buff?.target === "self" ? "self"
+      : mechanics?.mech.resolution === "buff" && mechanics.mech.buff?.target === "ally" && !mechanics.mech.buff.variants ? "ally"
+      : null;
+    const cost: CombatSpellDescriptor["cost"] = /^1 bonus action/.test(time) ? "bonus" : /^1 reaction/.test(time) ? "reaction" : /^1 action/.test(time) ? "action" : null;
+    const targetType: CombatSpellDescriptor["target"] = target;
+    return { type: "spell" as const, name, level: entry?.level ?? authored?.level ?? null, cost, target: targetType };
+  }).filter(spell => spell.target !== null && spell.level !== null && spell.cost !== null && spell.cost !== "reaction");
 }
 
 // Only the member's own spell list. The POST derives the same metadata afresh;
@@ -61,19 +71,19 @@ const actionSchema = z.object({
     choices: z.array(z.discriminatedUnion("type", [
       z.object({ type: z.literal("attack"), targetEnemyId: z.string().uuid(), weapon: z.string().trim().min(1).max(80), sneakAttack: z.boolean().optional() }),
       z.object({ type: z.literal("dodge") }),
-      z.object({ type: z.literal("action"), action: z.enum(["dash", "disengage", "hide", "help", "grapple", "shove"]), targetEnemyId: z.string().uuid().optional(), targetCharacterId: z.string().uuid().optional() }),
+      z.object({ type: z.literal("action"), action: z.enum(["dash", "disengage", "hide", "help", "grapple", "shove"]), targetEnemyId: z.string().uuid().optional(), targetCharacterId: z.string().uuid().optional(), cunningAction: z.boolean().optional() }).strict(),
       z.object({ type: z.literal("pet"), petName: z.string().trim().min(1).max(60), attack: z.string().trim().min(1).max(40), targetEnemyId: z.string().uuid() }),
       z.object({ type: z.literal("pet_order"), petName: z.string().trim().min(1).max(60), order: z.string().trim().min(1).max(500) }),
-      z.object({ type: z.literal("spell"), spell: z.string().trim().min(1).max(80), slotLevel: z.number().int().min(1).max(9).optional(), targetId: z.string().uuid().optional() }),
+      z.object({ type: z.literal("spell"), spell: z.string().trim().min(1).max(80), slotLevel: z.number().int().min(1).max(9).optional(), targetId: z.string().uuid() }),
       z.object({ type: z.literal("feature"), feature: z.string().trim().min(1).max(120), targetId: z.string().uuid().optional() }),
       z.object({ type: z.literal("resource"), resource: z.string().trim().min(1).max(80), targetCharacterId: z.string().uuid().optional() }),
-      z.object({ type: z.literal("item"), item: z.string().trim().min(1).max(80), targetCharacterId: z.string().uuid().optional() }),
+      z.object({ type: z.literal("item"), item: z.string().trim().min(1).max(80), targetCharacterId: z.string().uuid() }),
     ])).max(12),
-    prose: z.string().trim().max(1200).optional(),
   }).strict().optional(),
 }).strict()
   .refine((value) => Boolean(value.content || value.combatTurn), "An action needs content or a combat turn.")
-  .refine((value) => !value.combatTurn || value.kind === "do", "Combat turns must be actions.");
+  .refine((value) => !value.combatTurn || value.kind === "do", "Combat turns must be actions.")
+  .refine((value) => !value.combatTurn || !value.content, "Combat turns cannot contain free-form action text.");
 
 export async function POST(
   request: Request,
@@ -222,6 +232,9 @@ export async function POST(
     const actor = encounter.order[encounter.turnIndex];
     if (!encounter.orderReady || floor.mode !== "initiative" || actor?.kind !== "pc" || actor.characterId !== sheet.id || listOpenPendingRolls(campaignId).length) {
       return Response.json({ error: "Wait for your combat turn and pending rolls. OOC remains available." }, { status: 409 });
+    }
+    if (!parsed.data.combatTurn) {
+      return Response.json({ error: "Use the combat action builder to submit a complete turn." }, { status: 400 });
     }
   }
   let combatContent: string | null = null;

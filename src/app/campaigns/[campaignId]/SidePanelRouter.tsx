@@ -133,8 +133,6 @@ export type SidePanelRouterProps = {
   onCombatSubmit?: (turn: CombatTurnIntent) => void;
   combatChoices?: CombatChoice[];
   onCombatChoicesChange?: (choices: CombatChoice[]) => void;
-  combatProse?: string;
-  onCombatProseChange?: (prose: string) => void;
 };
 
 // Which panel the active tab shows. Every PanelTab has an explicit branch;
@@ -194,8 +192,6 @@ export function SidePanelRouter({
   onCombatSubmit,
   combatChoices,
   onCombatChoicesChange,
-  combatProse,
-  onCombatProseChange,
 }: SidePanelRouterProps) {
   // Which section of Party and Story is showing. Local state: nothing outside
   // this panel reads or sets them.
@@ -387,7 +383,6 @@ export function SidePanelRouter({
         /> : null}
 
         {ownCombatTurn && encounter && mySheet && onCombatSubmit ? (
-          <div className="rounded-xl border border-amber-500/60 bg-stone-950/90 p-1 shadow-glow-gold-subtle">
             <CombatTurnHud
               key={`${encounter.id}:${encounter.round}:${encounter.currentActorId}`}
               encounter={encounter}
@@ -398,8 +393,6 @@ export function SidePanelRouter({
               onSubmit={onCombatSubmit}
               choices={combatChoices}
               onChoicesChange={onCombatChoicesChange}
-              prose={combatProse}
-              onProseChange={onCombatProseChange}
               spellOptions={spellOptions}
               spellsLoading={hasSpellcasting && spellData?.key !== spellKey}
               spellsError={spellData?.key === spellKey && spellData.error}
@@ -414,7 +407,6 @@ export function SidePanelRouter({
                 embedded
               /> : undefined}
             />
-          </div>
         ) : null}
 
         {battleMap ? (

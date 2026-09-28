@@ -5,6 +5,7 @@ register("./lib/register-alias.mjs", import.meta.url);
 
 const { freshBudget } = await import("../src/lib/dm/action-budget.ts");
 const { combatChoiceDescriptors, combatChoiceLabel, combatIntentBudget, combatSpellNames, combatSpellSlots, validateCombatTurnIntent } = await import("../src/lib/dm/combat-turn-intent.ts");
+const { hasCunningAction } = await import("../src/lib/srd/feature-effects.ts");
 
 const sheet = {
   id: "hero", name: "Vex", equipment: [{ name: "Longsword", qty: 1 }, { name: "Potion of Healing", qty: 2 }],
@@ -21,14 +22,14 @@ const oneAttackBudget = freshBudget({ ownerId: sheet.id, round: 1, attacksAllowe
 assert.equal(validateCombatTurnIntent(intent([{ type: "attack", targetEnemyId: "enemy", weapon: "Longsword" }, { type: "attack", targetEnemyId: "enemy", weapon: "Longsword" }]), sheet, new Set(["enemy"]), new Set(["hero"]), oneAttackBudget).ok, false, 'a character without Extra Attack cannot queue a second swing');
 assert.equal(validateCombatTurnIntent(intent(Array.from({ length: 3 }, () => ({ type: "attack", targetEnemyId: "enemy", weapon: "Longsword" }))), sheet, new Set(["enemy"]), new Set(["hero"]), budget()).ok, false, 'Extra Attack does not permit more swings than the sheet grants');
 assert.match(validateCombatTurnIntent(intent([{ type: "attack", targetEnemyId: "hidden", weapon: "Longsword" }]), sheet, new Set(["enemy"]), new Set(["hero"]), budget()).error, /visible/);
-assert.match(validateCombatTurnIntent(intent([{ type: "item", item: "Potion of Healing" }, { type: "dodge" }]), sheet, new Set(["enemy"]), new Set(["hero"]), budget()).error, /already used their action/);
+assert.match(validateCombatTurnIntent(intent([{ type: "item", item: "Potion of Healing", targetCharacterId: "hero" }, { type: "dodge" }]), sheet, new Set(["enemy"]), new Set(["hero"]), budget()).error, /already used their action/);
 assert.equal(validateCombatTurnIntent(intent([{ type: "resource", resource: "second_wind" }]), sheet, new Set(["enemy"]), new Set(["hero"]), budget()).ok, true);
 const check = (choices, source = sheet) => validateCombatTurnIntent(intent(choices), source, new Set(["enemy"]), new Set(["hero", "ally"]), budget());
 assert.equal(check([{ type: "attack", targetEnemyId: "enemy", weapon: "Longsword" }, { type: "resource", resource: "second_wind" }]).budget.bonusUsed, true);
 assert.equal(check([{ type: "resource", resource: "second_wind" }, { type: "resource", resource: "second_wind" }]).ok, false);
 assert.equal(check([{ type: "resource", resource: "bardic_inspiration", targetCharacterId: "hero" }], { ...sheet, resources: { bardic_inspiration: { max: 3, used: 0 } } }).ok, false);
 assert.equal(combatChoiceDescriptors(sheet).some(choice => choice.type === "item" && choice.name === "Longsword"), false);
-assert.equal(check([{ type: "item", item: "Longsword" }]).ok, false);
+assert.equal(check([{ type: "item", item: "Longsword", targetCharacterId: "hero" }]).ok, false);
 const pet = { name: 'Fedya', kind: 'drake', hp: 12, attacks: [{ name: 'Bite', toHit: 4, damage: '1d6+2', type: 'piercing' }] };
 const petChoice = { type: 'pet', petName: 'Fedya', attack: 'Bite', targetEnemyId: 'enemy' };
 assert.equal(check([petChoice, { type: 'attack', targetEnemyId: 'enemy', weapon: 'Longsword' }], { ...sheet, pets: [pet] }).ok, true);
@@ -36,8 +37,16 @@ assert.equal(check([petChoice, petChoice], { ...sheet, pets: [pet] }).ok, false)
 assert.equal(check([petChoice], { ...sheet, pets: [{ ...pet, hp: 0 }] }).ok, false);
 assert.equal(check([{ type: 'action', action: 'grapple', targetEnemyId: 'enemy' }, { type: 'attack', targetEnemyId: 'enemy', weapon: 'Longsword' }]).ok, true);
 assert.equal(check([{ type: 'action', action: 'help', targetCharacterId: 'hero' }]).ok, false);
+assert.equal(check([{ type: 'action', action: 'help' }]).ok, false, 'Help cannot be sent without choosing an ally');
+assert.equal(check([{ type: 'action', action: 'grapple' }]).ok, false, 'Grapple cannot be sent without choosing an enemy');
 assert.equal(check([{ type: 'attack', targetEnemyId: 'enemy', weapon: 'Longsword' }], { ...sheet, equipment: [{ name: 'Longsword', qty: 1, equipped: false }] }).ok, false);
 const rogue = { ...sheet, class: 'rogue', level: 5, features: [{ name: 'Sneak Attack' }], equipment: [{ name: 'Dagger', qty: 1 }] };
+const cunningRogue = { ...rogue, features: [...rogue.features, { name: 'Хитрое действие (Cunning Action)' }] };
+assert.equal(hasCunningAction(cunningRogue), true);
+assert.equal(hasCunningAction(sheet), false);
+assert.equal(validateCombatTurnIntent(intent([{ type: 'action', action: 'hide', cunningAction: true }]), cunningRogue, new Set(['enemy']), new Set(['hero']), budget()).ok, true, 'Cunning Action spends the bonus action');
+assert.equal(validateCombatTurnIntent(intent([{ type: 'action', action: 'help', cunningAction: true, targetCharacterId: 'ally' }]), cunningRogue, new Set(['enemy']), new Set(['hero', 'ally']), budget()).ok, false, 'Cunning Action only grants Dash, Disengage or Hide');
+assert.equal(validateCombatTurnIntent(intent([{ type: 'action', action: 'dash', cunningAction: true }]), sheet, new Set(['enemy']), new Set(['hero']), budget()).ok, false, 'Cunning Action cannot be invented for a character without the feature');
 const rogueCheck = choices => validateCombatTurnIntent(intent(choices), rogue, new Set(['enemy']), new Set(['hero']), oneAttackBudget, { language: 'ru', names: new Map([['enemy', 'Дьявол']]) });
 assert.equal(combatChoiceDescriptors(rogue).some(choice => choice.type === 'feature' && choice.name === 'Sneak Attack'), false, 'an attack rider is not offered as a separate action');
 const rogueWithCant = { ...rogue, proficiencies: { languages: ['Common', "Thieves' Cant"] }, features: [...rogue.features, { name: "Thieves' Cant" }] };
@@ -62,25 +71,27 @@ const warlock = { ...sheet, equipment: [{ name: 'Кинжал', qty: 1 }], resou
   pets: [{ ...pet, name: 'Федя', kind: 'familiar' }],
 };
 const spells = [
-  { type: 'spell', name: 'Eldritch Blast', level: 0, cost: 'action' },
-  { type: 'spell', name: 'Hex', level: 1, cost: 'bonus' },
+  { type: 'spell', name: 'Eldritch Blast', level: 0, cost: 'action', target: 'enemy' },
+  { type: 'spell', name: 'Hex', level: 1, cost: 'bonus', target: 'enemy' },
 ];
 const cast = { type: 'spell', spell: 'Eldritch Blast', targetId: 'enemy' };
 const order = { type: 'pet_order', petName: 'Федя', order: 'Стань невидимым и разведай проход' };
 const warlockCheck = (choices, source = warlock) => validateCombatTurnIntent(intent(choices), source, new Set(['enemy']), new Set(['hero']), budget(), { language: 'ru', names: new Map([['enemy', 'Дьявол']]), spells });
-assert.ok(combatChoiceDescriptors(warlock).some(entry => entry.type === 'feature' && entry.name === warlock.features[0].name), 'features must not disappear when resources is empty');
+assert.equal(combatChoiceDescriptors(warlock).some(entry => entry.type === 'feature'), false, 'features without structured combat rules are not offered as actions');
 assert.equal(warlockCheck([cast, order]).ok, true, 'exhausted slots do not block cantrips or declarative pet orders');
 assert.match(warlockCheck([cast, order]).content, /Eldritch Blast.*Дьявол/);
 assert.match(warlockCheck([cast, order]).content, /Федя.*Стань невидимым/);
 assert.equal(warlockCheck([{ ...cast, spell: 'Fireball' }]).ok, false, 'cannot inject an unknown spell');
 assert.equal(warlockCheck([{ ...cast, targetId: 'hidden' }]).ok, false);
+assert.equal(warlockCheck([{ type: 'spell', spell: 'Eldritch Blast' }]).ok, false, 'a spell target is required before submission');
+assert.equal(warlockCheck([{ ...cast, targetId: 'hero' }]).ok, false, 'an enemy spell cannot be aimed at an ally');
 assert.equal(warlockCheck([{ type: 'spell', spell: 'Hex', slotLevel: 2, targetId: 'enemy' }]).ok, false, 'cannot queue exhausted slots');
 assert.equal(warlockCheck([cast, { type: 'attack', weapon: 'Кинжал', targetEnemyId: 'enemy' }]).ok, false, 'cantrip spends the action');
 assert.equal(warlockCheck([cast, { type: 'pet', petName: 'Федя', attack: 'Bite', targetEnemyId: 'enemy' }]).ok, false, 'Chain attack replaces an attack, not a free bonus action');
 assert.equal(warlockCheck([{ ...order, petName: 'Someone else' }]).ok, false);
 assert.equal(warlockCheck([order, order]).ok, false);
 assert.equal(warlockCheck([order], { ...warlock, pets: [{ ...warlock.pets[0], hp: 0 }] }).ok, false);
-assert.equal(warlockCheck([{ type: 'feature', feature: warlock.features[0].name }]).ok, true);
+assert.equal(warlockCheck([{ type: 'feature', feature: warlock.features[0].name }]).ok, false);
 assert.equal(warlockCheck([{ type: 'feature', feature: 'Invented power' }]).ok, false);
 const rested = { ...warlock, spellcasting: { ...warlock.spellcasting, slots: { 2: { max: 2, used: 1 } } } };
 const hex = { type: 'spell', spell: 'Hex', slotLevel: 2, targetId: 'enemy' };
@@ -91,12 +102,7 @@ assert.deepEqual(combatSpellSlots({ ...warlock, spellcasting: { ...warlock.spell
 assert.deepEqual(combatSpellNames({ ...warlock, spellcasting: { ...warlock.spellcasting, casters: [{ known: ['Healing Word'], prepared: ['Hex'] }] } }), ['Eldritch Blast', 'Hex', 'Healing Word']);
 assert.equal(validateCombatTurnIntent(intent([order]), warlock, new Set(['enemy']), new Set(['hero']), { ...budget(), oncePerTurn: ['pet:федя'] }).ok, false);
 assert.deepEqual(warlock.spellcasting.slots, { 2: { max: 2, used: 2 } }, 'draft never changes the sheet');
-const freeText = validateCombatTurnIntent({ ...intent([]), prose: 'Врежу дьяволу кинжалом, чтоб искры из задницы!' }, warlock,
-  new Set(['enemy']), new Set(['hero']), budget(), { language: 'ru', names: new Map(), spells });
-assert.equal(freeText.ok, true);
-assert.match(freeText.content, /Свободная заявка/);
-assert.doesNotMatch(freeText.content, /Eldritch Blast|Pact Boon/, 'browsing / possessing an ability is never a declared action');
 const explicit = warlockCheck([cast]);
 assert.match(explicit.content, /Явно выбранные действия/);
-assert.match(explicit.content, /Без дополнительного описания/);
+assert.doesNotMatch(explicit.content, /Описание игрока/, 'combat intent has no free-text action bypass');
 console.log('test-combat-turn-intent: passed');

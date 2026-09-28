@@ -51,7 +51,10 @@ function fixture() {
     '@/lib/db/encounter-view': { activePublicEncounter: () => ({ enemies: visibleEnemies }) },
     '@/lib/dm/action-tools': { attacksAllowedFor: () => 1, budgetFor: () => freshBudget({ ownerId: heroId, round: 1 }) },
     '@/lib/dm/combat-turn-intent': { combatSpellNames, validateCombatTurnIntent },
-    '@/lib/content': { findSpellByName: name => name === 'Eldritch Blast' ? { level: 0, data: { casting_time: '1 action' } } : name === 'Hex' ? { level: 1, data: { casting_time: '1 bonus action' } } : null },
+     '@/lib/content': {
+       findSpellByName: name => name === 'Eldritch Blast' ? { level: 0, data: { casting_time: '1 action' } } : name === 'Hex' ? { level: 1, data: { casting_time: '1 bonus action' } } : null,
+       spellMechanicsFor: ({ spell }) => spell === 'Eldritch Blast' ? { mech: { resolution: 'attack' } } : spell === 'Hex' ? { mech: { resolution: 'buff', buff: { target: 'ally' } } } : null,
+     },
     '@/lib/srd/spell-mechanics': { authoredSpellRow: () => null },
     '@/lib/srd/condition-effects': { conditionExtraActions: () => 0 }, '@/lib/db/dm-turns': turns,
   });
@@ -66,7 +69,7 @@ function fixture() {
     send: body => route.POST(new Request('http://localhost/actions', { method: 'POST', body: JSON.stringify(body) }), { params: Promise.resolve({ campaignId: 'c1' }) }),
      user: value => { userId = value; }, pending: value => { pending = value; }, encounter: value => { encounter = value; }, enemies: value => { visibleEnemies = value; },
     narrate: () => narration.persistHumanNarration(campaign, 'Resolved outcome', 'dm'),
-    intent: { kind: 'do', combatTurn: { encounterId, round: 1, turnIndex: 0, choices: [], prose: 'Hold position' } },
+     intent: { kind: 'do', combatTurn: { encounterId, round: 1, turnIndex: 0, choices: [] } },
   };
 }
 
@@ -74,6 +77,8 @@ test('warlock spell and direct pet order survive the real action route without s
   const f = fixture();
   try {
     const hero = f.sheets[0];
+    const targetEnemyId = '00000000-0000-4000-8000-000000000099';
+    f.enemies([{ id: targetEnemyId, name: 'Training target', status: 'alive' }]);
     hero.spellcasting = { known: ['Eldritch Blast', 'Hex'], prepared: ['Eldritch Blast'], slots: { 2: { max: 2, used: 2 } } };
     hero.pets = [{ name: 'Федя', kind: 'familiar', hp: 7, attacks: [] }];
     hero.features = [{ name: 'Pact of the Chain' }];
@@ -89,7 +94,7 @@ test('warlock spell and direct pet order survive the real action route without s
     assert.equal((await send([{ type: 'pet_order', petName: 'Not mine', order: 'Scout' }])).status, 400);
     assert.equal((await send([{ type: 'feature', feature: 'Invented' }])).status, 400);
     assert.equal(f.campaigns.getFloor('c1').mode, 'initiative', 'invalid choices never hold the turn');
-    const choices = [{ type: 'spell', spell: 'Eldritch Blast' }, { type: 'pet_order', petName: 'Федя', order: 'Стань невидимым' }, { type: 'feature', feature: 'Pact of the Chain' }];
+    const choices = [{ type: 'spell', spell: 'Eldritch Blast', targetId: targetEnemyId }, { type: 'pet_order', petName: 'Федя', order: 'Стань невидимым' }];
     const response = await send(choices);
     assert.equal(response.status, 202, await response.clone().text());
     const message = f.db.prepare('SELECT content FROM campaign_messages').get();
@@ -102,15 +107,14 @@ test('warlock spell and direct pet order survive the real action route without s
   } finally { f.close(); }
 });
 
-test('free-text combat submission never declares a feature just because it is on the sheet', async () => {
+test('raw text and legacy combat prose are rejected during initiative', async () => {
   const f = fixture();
   try {
     f.sheets[0].features = [{ name: 'Sneak Attack' }];
-    assert.equal((await f.send({ ...f.intent, combatTurn: { ...f.intent.combatTurn, prose: 'Тычу кинжалом в дьявола!' } })).status, 202);
-    const { content } = f.db.prepare('SELECT content FROM campaign_messages').get();
-    assert.match(content, /Свободная заявка: Тычу кинжалом/);
-    assert.doesNotMatch(content, /Sneak Attack/);
-    assert.equal(f.campaigns.getFloor('c1').combat.mechanicsResolved, false);
+    assert.equal((await f.send({ kind: 'do', content: 'Тычу кинжалом в дьявола!' })).status, 400);
+    assert.equal((await f.send({ ...f.intent, combatTurn: { ...f.intent.combatTurn, prose: 'Тычу кинжалом в дьявола!' } })).status, 400);
+    assert.equal(f.db.prepare('SELECT COUNT(*) AS n FROM campaign_messages').get().n, 0);
+    assert.equal(f.campaigns.getFloor('c1').mode, 'initiative');
   } finally { f.close(); }
 });
 
@@ -136,6 +140,22 @@ test('Sneak Attack is a once-per-turn rider on a declared attack, not another ac
     const { content } = f.db.prepare('SELECT content FROM campaign_messages').get();
     assert.match(content, /Атака: Dagger; цель: Barbed Devil; Скрытая атака, если соблюдены условия/);
     assert.equal(content.match(/Скрытая атака/g)?.length, 1);
+  } finally { f.close(); }
+});
+
+test('action route rejects missing clarifications and resolves Cunning Action as a bonus action', async () => {
+  const f = fixture();
+  try {
+    const enemyId = '00000000-0000-4000-8000-000000000099';
+    f.enemies([{ id: enemyId, name: 'Target', status: 'alive' }]);
+    const hero = f.sheets[0];
+    hero.features = [{ name: 'Хитрое действие (Cunning Action)' }];
+    const send = choices => f.send({ ...f.intent, combatTurn: { ...f.intent.combatTurn, choices } });
+    assert.equal((await send([{ type: 'action', action: 'help' }])).status, 400, 'missing ally target is rejected before the turn is held');
+    assert.equal((await send([{ type: 'action', action: 'grapple' }])).status, 400, 'missing enemy target is rejected before the turn is held');
+    const response = await send([{ type: 'action', action: 'hide', cunningAction: true }]);
+    assert.equal(response.status, 202, await response.text());
+    assert.match(f.db.prepare('SELECT content FROM campaign_messages').get().content, /Хитрое действие: Скрыться/);
   } finally { f.close(); }
 });
 
@@ -180,7 +200,8 @@ test('combat CAS, owner admission, persistent gate, duplicate rejection and OOC'
 test('text and button submissions both stay locked until turn resolution; victory waits for narration', async () => {
   const f = fixture();
   try {
-    assert.equal((await f.send({ kind: 'do', content: 'I speak while fighting' })).status, 202);
+    assert.equal((await f.send({ kind: 'do', content: 'I speak while fighting' })).status, 400);
+    assert.equal((await f.send(f.intent)).status, 202, 'the completed builder request can submit a pass');
     f.narrate(); assert.equal(f.campaigns.getFloor('c1').mode, 'hold');
     assert.equal((await f.send({ kind: 'do', content: 'a second action' })).status, 409);
     const first = f.campaigns.getFloor('c1');

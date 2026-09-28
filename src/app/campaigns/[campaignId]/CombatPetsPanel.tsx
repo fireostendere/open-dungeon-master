@@ -32,7 +32,7 @@ export function CombatPetsPanel({ encounter, sheets, mySheet, canCommand, choice
   const [targets, setTargets] = useState<Record<string, string>>({});
   const [orders, setOrders] = useState<Record<string, string>>({});
   const participants = new Set(encounter.order.filter(entry => entry.kind === "pc").map(entry => entry.id));
-  const owners = sheets.filter(sheet => sheet.pets?.length && (!encounter.orderReady || participants.has(sheet.id)));
+  const owners = sheets.filter(sheet => sheet.pets?.length && (!encounter.orderReady || participants.has(sheet.id)) && (!canCommand || sheet.id === mySheet?.id));
   const enemies = encounter.enemies.filter(enemy => enemy.status === "alive");
   const budget = mySheet ? combatIntentBudget(encounter, freshBudget({ ownerId: mySheet.id, round: encounter.round,
     attacksAllowed: 1 + combatRiders(mySheet).extraAttacks, extraActions: conditionExtraActions(mySheet.conditions) })) : null;

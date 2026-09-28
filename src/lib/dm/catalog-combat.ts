@@ -283,6 +283,7 @@ export const COMBAT_ADJUDICATIONS: CatalogEntry[] = [
       },
       { name: "targetEnemyId", label: "Enemy", kind: "enemy" },
       { name: "targetCharacterId", label: "Ally", kind: "character" },
+      { name: "cunningAction", label: "Use Cunning Action bonus action", kind: "boolean", help: "Only for Dash, Disengage or Hide when the character has Cunning Action and the player chose this bonus action." },
       {
         name: "shove",
         label: "Shove to",

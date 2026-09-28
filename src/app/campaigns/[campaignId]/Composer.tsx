@@ -18,13 +18,12 @@ import { ActionPreviewDialog } from "@/app/campaigns/[campaignId]/ActionPreviewD
 import { PushToTalk } from "@/app/campaigns/[campaignId]/PushToTalk";
 import { StoryNudge } from "@/app/campaigns/[campaignId]/StoryNudge";
 import { AskOptions } from "@/app/campaigns/[campaignId]/AskPanel";
-import { combatChoiceLabel, type CombatChoice, type CombatTurnIntent } from "@/lib/dm/combat-turn-intent";
+import { combatChoiceLabel, type CombatChoice } from "@/lib/dm/combat-turn-intent";
 import type { BeatCadence } from "@/lib/dm/beat-cadence";
 import type { AskScope, AskVisibility } from "@/lib/dm/ask-logic";
 import type { CampaignState } from "@/app/campaigns/[campaignId]/useCampaignStream";
 
 import { globalTurnSubmitted, type CampaignMember, type GlobalTurnState, type InputKind } from "@/lib/campaign-types";
-import type { CombatInputModeSetting } from "@/lib/schemas/game-settings-options";
 import type { Locale } from "@/lib/i18n";
 import { useI18n } from "@/lib/i18n";
 import { avatarPlaceholder, characterPlaceholder } from "@/lib/placeholders";
@@ -71,9 +70,7 @@ const COPY = {
     openBattleTab: "Battle Tab",
     combatTurns: {
       builder: "Configure actions and attacks in the Battle tab",
-      freeform: "Describe your action in chat below or switch to the Battle tab",
-      hybrid: "Configure in Battle tab or describe your action in chat below",
-      queued: (n: number) => `${n} action${n === 1 ? "" : "s"} queued. Send here or in Battle tab`,
+      queued: (n: number) => `${n} action${n === 1 ? "" : "s"} queued in the Battle tab`,
     },
   },
   ru: {
@@ -98,9 +95,7 @@ const COPY = {
     openBattleTab: "Вкладка «Бой»",
     combatTurns: {
       builder: "Действия и атаки настраиваются во вкладке «Бой»",
-      freeform: "Опишите действие в чате ниже или перейдите во вкладку «Бой»",
-      hybrid: "Настройте кнопки во вкладке «Бой» или опишите ход текстом ниже",
-      queued: (n: number) => `Запланировано действий: ${n}. Отправьте здесь или во вкладке «Бой»`,
+      queued: (n: number) => `В плане во вкладке «Бой»: ${n}`,
     },
   },
 } as const;
@@ -140,10 +135,8 @@ function ComposerInner({
   members = [],
   globalTurnEnabled = false,
   globalTurnState = null,
-  combatInputMode = "hybrid",
   combatChoices = [],
   onSubmit,
-  onCombatSubmit,
   onOpenBattleTab,
   askScope,
   onAskScopeChange,
@@ -160,7 +153,6 @@ function ComposerInner({
   members?: CampaignMember[];
   globalTurnEnabled?: boolean;
   globalTurnState?: GlobalTurnState | null;
-  combatInputMode?: CombatInputModeSetting;
   combatChoices?: CombatChoice[];
   kind: InputKind;
   onKindChange: (kind: InputKind) => void;
@@ -186,7 +178,6 @@ function ComposerInner({
   onCaptureStory: () => void;
   onSnoozeStory: () => void;
   onSubmit: (event: FormEvent | null, confirmedContent?: string) => void;
-  onCombatSubmit?: (turn: CombatTurnIntent) => void;
   onOpenBattleTab?: () => void;
   askScope: AskScope | "auto";
   onAskScopeChange: (scope: AskScope | "auto") => void;
@@ -291,6 +282,7 @@ function ComposerInner({
 
   function handleSubmit(event: FormEvent) {
     event.preventDefault();
+    if (ownCombatTurn && kind === "do") return;
     if (kind === "do" && !sending && !inputBlocked && (input.trim() || (ownCombatTurn && combatChoices.length > 0))) {
       setPreview(input.trim());
       return;
@@ -489,7 +481,7 @@ function ComposerInner({
                 <strong className="text-amber-200">{copy.yourCombatTurn}</strong> —{" "}
                 {combatChoices && combatChoices.length > 0
                   ? copy.combatTurns.queued(combatChoices.length)
-                  : copy.combatTurns[combatInputMode ?? "hybrid"]}
+                  : copy.combatTurns.builder}
               </span>
             </div>
             {onOpenBattleTab ? (
@@ -504,7 +496,7 @@ function ComposerInner({
             ) : null}
           </div>
         ) : null}
-        <div
+        {ownCombatTurn && kind === "do" ? null : <div
           data-tour="composer-input"
           className="texture-noise flex items-end gap-2 rounded-2xl border border-stone-700/70 bg-stone-950/90 p-2 shadow-elev-1 transition-[border-color,box-shadow] duration-200 focus-within:border-amber-400/60 focus-within:shadow-[0_0_0_3px_rgba(212,171,58,0.1),0_2px_12px_rgba(4,2,12,0.5)]"
         >
@@ -539,7 +531,7 @@ function ComposerInner({
           >
             {sending ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
           </button>
-        </div>
+        </div>}
         {error ? <p className="mt-1.5 text-sm text-red-400">{error}</p> : null}
       </div>
     </form>
