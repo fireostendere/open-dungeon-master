@@ -20,7 +20,7 @@ export function SessionChatColumn(props: ComponentProps<typeof LegacySessionChat
   if (chat.loading) return <div className="flex-1 p-4 text-sm text-stone-400"><p>{chat.error || t.loading}</p>
     {chat.error ? <button type="button" onClick={chat.refresh}>{t.retry}</button> : null}</div>;
   const view = chat.view;
-  if (view?.enabled) return <div className={cn("min-w-0 flex-1 flex-col overflow-y-auto", props.visible ? "flex" : "hidden lg:flex")}>
+  if (view?.enabled) return <div className={cn("min-h-0 min-w-0 flex-1 flex-col overflow-y-auto", props.visible ? "flex" : "hidden lg:flex")}>
     <LocationChat
       key={`${props.campaignId}:${props.meUserId}`}
       chat={chat}

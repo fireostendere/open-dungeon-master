@@ -59,7 +59,7 @@ export function SessionChatColumn({
     catch (cause) { onError(errorText(cause, fallback)); return false; }
   };
   return (
-    <div className={cn("min-w-0 flex-1 flex-col", visible ? "flex" : "hidden lg:flex")}>
+    <div className={cn("min-h-0 min-w-0 flex-1 flex-col", visible ? "flex" : "hidden lg:flex")}>
       <ReportDialog campaignId={campaignId} target={reportTarget} onClose={() => setReportTarget(null)}
         onBlocked={userId => setJustBlocked(current => [...current, userId])} />
       <MessageList

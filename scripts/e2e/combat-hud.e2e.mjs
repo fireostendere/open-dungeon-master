@@ -81,7 +81,25 @@ try {
   await page.unroute(actionsRoute);
   await page.getByRole('combobox', { name: 'Оружие', exact: true }).selectOption('Longsword');
   await page.getByText('Тактика и манёвры', { exact: true }).click();
+  assert.equal(await page.getByRole('combobox', { name: /Цель манёвра|Союзник для помощи/ }).count(), 0, 'maneuver targets stay hidden until a target-requiring action is selected');
   assert.equal(await page.getByRole('button', { name: 'Рывок', exact: true }).isEnabled(), true);
+  await page.getByRole('button', { name: 'Рывок', exact: true }).click();
+  assert.equal(await page.getByRole('button', { name: 'Отход', exact: true }).count(), 0, 'unavailable maneuvers are hidden after spending the action');
+  await page.getByRole('button', { name: 'Убрать действие 1', exact: true }).click();
+  await page.getByRole('button', { name: 'Захватить', exact: true }).click();
+  assert.equal(await page.getByRole('combobox', { name: /Цель манёвра/ }).count(), 1, 'grapple asks only for an enemy');
+  assert.equal(await page.getByRole('combobox', { name: 'Союзник для помощи', exact: true }).count(), 0);
+  await page.getByRole('combobox', { name: /Цель манёвра/ }).selectOption({ index: 1 });
+  assert.equal(await page.getByRole('region', { name: 'Порядок действий', exact: true }).getByRole('listitem').count(), 1);
+  await page.getByRole('button', { name: 'Убрать действие 1', exact: true }).click();
+  const helpManeuver = page.getByRole('button', { name: 'Помочь союзнику', exact: true });
+  if (await helpManeuver.count()) {
+    await helpManeuver.click();
+    assert.equal(await page.getByRole('combobox', { name: 'Союзник для помощи', exact: true }).count(), 1, 'Help asks only for an ally');
+    assert.equal(await page.getByRole('combobox', { name: /Цель манёвра/ }).count(), 0);
+    await page.getByRole('combobox', { name: 'Союзник для помощи', exact: true }).selectOption({ index: 1 });
+    await page.getByRole('button', { name: 'Убрать действие 1', exact: true }).click();
+  }
   if (process.env.ODM_E2E_PET_NAME) {
     const hud = page.getByRole('region', { name: 'Ваш боевой ход', exact: true });
     await hud.locator('summary').filter({ hasText: 'Питомцы' }).click();
@@ -132,6 +150,11 @@ try {
   await page.getByRole('button', { name: 'Стол', exact: true }).click();
   const chatInput = page.locator('[data-tour="composer-input"] textarea');
   assert.equal(await chatInput.isVisible(), true);
+  await chatInput.focus();
+  await page.setViewportSize({ width: 390, height: 460 });
+  const inputBottom = await chatInput.evaluate(element => element.getBoundingClientRect().bottom);
+  assert.ok(inputBottom <= 460, `chat input should stay above a resized mobile keyboard viewport (${inputBottom}px)`);
+  await page.setViewportSize({ width: 390, height: 844 });
   await page.locator('[data-tour="composer-input"] button[type="submit"]').click();
   const chatConfirmation = page.getByRole('dialog');
   await chatConfirmation.waitFor();

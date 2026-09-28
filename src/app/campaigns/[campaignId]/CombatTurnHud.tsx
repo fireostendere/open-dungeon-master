@@ -64,8 +64,7 @@ export function CombatTurnHud({
   };
   const [weapon, setWeapon] = useState(() => combatChoiceDescriptors(sheet).find(entry => entry.type === "weapon" && entry.name !== "Unarmed strike")?.name ?? "Unarmed strike");
   const [attackTargetId, setAttackTargetId] = useState("");
-  const [maneuverEnemyId, setManeuverEnemyId] = useState("");
-  const [maneuverAllyId, setManeuverAllyId] = useState("");
+  const [maneuverAction, setManeuverAction] = useState<"dash" | "disengage" | "hide" | "help" | "grapple" | "shove" | null>(null);
   const [resource, setResource] = useState("");
   const [featureName, setFeatureName] = useState("");
   const [item, setItem] = useState("");
@@ -95,7 +94,9 @@ export function CombatTurnHud({
     return { type: "spell", spell: spellName, ...(slotLevel ? { slotLevel } : {}), ...(targetId ? { targetId } : {}) };
   };
   const enemies = encounter.enemies.filter((enemy) => enemy.status === "alive");
-  const allies = sheets.filter((entry) => !entry.deathSaves?.dead);
+  const combatantIds = new Set(encounter.order.filter(entry => entry.kind === "pc").map(entry => entry.id));
+  const allies = sheets.filter((entry) => !entry.deathSaves?.dead && (!encounter.orderReady || combatantIds.has(entry.id)));
+  const otherAllies = allies.filter(ally => ally.id !== sheet.id);
   const targetNames = new Map([...allies, ...enemies].map(entry => [entry.id, entry.name] as const));
   const baseBudget = combatIntentBudget(encounter, freshBudget({ ownerId: sheet.id, round: encounter.round, attacksAllowed: 1 + combatRiders(sheet).extraAttacks, extraActions: conditionExtraActions(sheet.conditions) }));
   const intent = (entries = choices): CombatTurnIntent => ({ encounterId: encounter.id, round: encounter.round, turnIndex: encounter.turnIndex, choices: entries, prose: prose.trim() || undefined });
@@ -105,7 +106,10 @@ export function CombatTurnHud({
     const next = [...choices, choice];
     const result = validate(next);
     setRejected(!result.ok);
-    if (result.ok) setChoices(next);
+    if (result.ok) {
+      setChoices(next);
+      setManeuverAction(null);
+    }
   };
   const updateLatest = (matches: (choice: CombatChoice) => boolean, choice: CombatChoice) => {
     let index = -1;
@@ -126,6 +130,12 @@ export function CombatTurnHud({
   const selectClass = "mt-1 w-full min-w-0 rounded border border-stone-700 bg-stone-900 p-2 text-sm disabled:opacity-50";
   const queueClass = "mt-2 rounded border border-stone-600 px-3 py-1.5 text-xs text-stone-200 hover:border-amber-500 disabled:opacity-40";
   const actionNames = locale === "ru" ? { dash: "Рывок", disengage: "Отход", hide: "Скрыться", help: "Помочь союзнику", grapple: "Захватить", shove: "Сбить с ног" } : { dash: "Dash", disengage: "Disengage", hide: "Hide", help: "Help ally", grapple: "Grapple", shove: "Shove prone" };
+  const maneuverOptions = (Object.keys(actionNames) as Array<keyof typeof actionNames>).filter(action => {
+    const targetCharacterId = action === "help" ? otherAllies[0]?.id : undefined;
+    const targetEnemyId = action === "grapple" || action === "shove" ? enemies[0]?.id : undefined;
+    if ((action === "help" && !targetCharacterId) || ((action === "grapple" || action === "shove") && !targetEnemyId)) return false;
+    return validate([...choices, { type: "action", action, ...(targetCharacterId ? { targetCharacterId } : {}), ...(targetEnemyId ? { targetEnemyId } : {}) }]).ok;
+  });
   const spellLabel = locale === "ru" ? "Заклинание" : "Spell";
   const spellLevelLabel = locale === "ru" ? "ур." : "lv.";
   const adjudication = locale === "ru" ? "Заявка мастеру: применимость, стоимость и эффект определяются правилами особенности; пассивные эффекты не становятся отдельными действиями." : "DM request: the feature's rules determine applicability, cost and effect; passive effects do not become separate actions.";
@@ -220,17 +230,32 @@ export function CombatTurnHud({
             <select aria-label={copy.item} value={item} onChange={event => { const value = event.target.value; setItem(value); if (value) add({ type: "item", item: value, targetCharacterId: itemTarget }); }} disabled={disabled} className={selectClass}><option value="">{copy.choose}</option>{items.map(entry => <option key={entry.name} value={entry.name}>{entry.name} ({entry.qty})</option>)}</select>
             <select aria-label={`${copy.item}: ${copy.target}`} value={itemTarget} onChange={event => { const targetId = event.target.value; setItemTarget(targetId); if (item) updateLatest(entry => entry.type === "item" && entry.item === item, { type: "item", item, targetCharacterId: targetId }); }} disabled={disabled} className={selectClass}>{allies.map(ally => <option key={ally.id} value={ally.id}>{ally.id === sheet.id ? copy.self : ally.name}</option>)}</select>
           </details> : null}
-          <details className={branchClass}>
+          {maneuverOptions.length ? <details className={branchClass}>
             <summary className={summaryClass}>{copy.maneuvers}</summary>
-            <div className="mt-1 flex flex-wrap gap-2">{(Object.keys(actionNames) as Array<keyof typeof actionNames>).map(action => {
-              const choice: CombatChoice = { type: "action", action, ...(action === "help" ? { targetCharacterId: maneuverAllyId } : action === "grapple" || action === "shove" ? { targetEnemyId: maneuverEnemyId } : {}) };
-              return <button key={action} type="button" className={queueClass} disabled={disabled || !validate([...choices, choice]).ok} onClick={() => add(choice)}>{actionNames[action]}</button>;
+            <div className="mt-1 flex flex-wrap gap-2">{maneuverOptions.map(action => {
+              const needsTarget = action === "help" || action === "grapple" || action === "shove";
+              return <button key={action} type="button" className={queueClass} disabled={disabled} onClick={() => {
+                if (needsTarget) setManeuverAction(action);
+                else add({ type: "action", action });
+              }}>{actionNames[action]}</button>;
             })}</div>
-            <div className="mt-2 grid gap-2 sm:grid-cols-2">
-              <select aria-label={locale === "ru" ? "Цель манёвра" : "Maneuver target"} value={maneuverEnemyId} onChange={event => setManeuverEnemyId(event.target.value)} disabled={disabled} className={selectClass}><option value="">{copy.target}</option>{enemies.map(enemy => <option key={enemy.id} value={enemy.id}>{enemy.name}</option>)}</select>
-              <select aria-label={locale === "ru" ? "Союзник для помощи" : "Ally to help"} value={maneuverAllyId} onChange={event => setManeuverAllyId(event.target.value)} disabled={disabled} className={selectClass}><option value="">{copy.target}</option>{allies.filter(ally => ally.id !== sheet.id).map(ally => <option key={ally.id} value={ally.id}>{ally.name}</option>)}</select>
-            </div>
-          </details>
+            {maneuverAction && maneuverOptions.includes(maneuverAction) ? <select
+              aria-label={maneuverAction === "help"
+                ? (locale === "ru" ? "Союзник для помощи" : "Ally to help")
+                : `${locale === "ru" ? "Цель манёвра" : "Maneuver target"}: ${actionNames[maneuverAction]}`}
+              value=""
+              onChange={event => {
+                const targetId = event.target.value;
+                if (!targetId) return;
+                add({ type: "action", action: maneuverAction, ...(maneuverAction === "help" ? { targetCharacterId: targetId } : { targetEnemyId: targetId }) });
+              }}
+              disabled={disabled}
+              className={selectClass}
+            >
+              <option value="">{copy.target}</option>
+              {(maneuverAction === "help" ? otherAllies : enemies).map(target => <option key={target.id} value={target.id}>{target.name}</option>)}
+            </select> : null}
+          </details> : null}
           {petPanel ? <details className={branchClass}><summary className={summaryClass}>{copy.petActions}</summary><div className="mt-2">{petPanel}</div></details> : null}
         </div>
       </details>
