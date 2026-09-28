@@ -40,6 +40,9 @@ assert.equal(check([{ type: 'attack', targetEnemyId: 'enemy', weapon: 'Longsword
 const rogue = { ...sheet, class: 'rogue', level: 5, features: [{ name: 'Sneak Attack' }], equipment: [{ name: 'Dagger', qty: 1 }] };
 const rogueCheck = choices => validateCombatTurnIntent(intent(choices), rogue, new Set(['enemy']), new Set(['hero']), oneAttackBudget, { language: 'ru', names: new Map([['enemy', 'Дьявол']]) });
 assert.equal(combatChoiceDescriptors(rogue).some(choice => choice.type === 'feature' && choice.name === 'Sneak Attack'), false, 'an attack rider is not offered as a separate action');
+const rogueWithCant = { ...rogue, proficiencies: { languages: ['Common', "Thieves' Cant"] }, features: [...rogue.features, { name: "Thieves' Cant" }] };
+assert.equal(combatChoiceDescriptors(rogueWithCant).some(choice => choice.type === 'feature' && choice.name === "Thieves' Cant"), false, 'languages are not offered as standalone combat features');
+assert.equal(validateCombatTurnIntent(intent([{ type: 'feature', feature: "Thieves' Cant", targetId: 'enemy' }]), rogueWithCant, new Set(['enemy']), new Set(['hero']), oneAttackBudget).ok, false, 'the server rejects a language queued as a combat action');
 assert.equal(rogueCheck([{ type: 'attack', targetEnemyId: 'enemy', weapon: 'Dagger' }, { type: 'feature', feature: 'Sneak Attack' }]).ok, false, 'cannot queue Sneak Attack as a second standalone action');
 assert.equal(rogueCheck([{ type: 'attack', targetEnemyId: 'enemy', weapon: 'Dagger', sneakAttack: true }]).ok, true, 'Sneak Attack rides the declared weapon attack');
 assert.match(rogueCheck([{ type: 'attack', targetEnemyId: 'enemy', weapon: 'Dagger', sneakAttack: true }]).content, /Атака: Dagger; цель: Дьявол; Скрытая атака/);

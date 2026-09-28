@@ -60,6 +60,7 @@ export type CombatIntentSheet = {
   id: string;
   name: string;
   class?: string;
+  proficiencies?: { languages?: string[] };
   equipment: Array<{ name: string; qty: number; equipped?: boolean; gear?: { weapon?: unknown } }>;
   resources: Record<string, { max: number; used: number }>;
   pets?: PetCombatant[];
@@ -97,6 +98,13 @@ function resolvedFeatureEffects(sheet: CombatIntentSheet) {
   return effectsFor({ class: sheet.class ?? "", features: sheet.features ?? [] });
 }
 
+function isLanguageFeature(sheet: CombatIntentSheet, feature: string) {
+  const normalize = (value: string) => value.trim().toLowerCase().replace(/[’‘]/g, "'");
+  const name = normalize(feature);
+  return name === "druidic" || name === "thieves' cant" ||
+    (sheet.proficiencies?.languages ?? []).some(language => normalize(language) === name);
+}
+
 // Client-safe: it only reads the sheet data already delivered to the owner.
 export function combatChoiceDescriptors(sheet: CombatIntentSheet): CombatChoiceDescriptor[] {
   const weapons = sheet.equipment
@@ -108,7 +116,7 @@ export function combatChoiceDescriptors(sheet: CombatIntentSheet): CombatChoiceD
   return [
     ...weapons,
     { type: "weapon", name: "Unarmed strike" },
-    ...(sheet.features ?? []).filter(feature => !engineResolvedFeatures.has(feature.name.trim().toLowerCase())).map(feature => ({ type: "feature" as const, ...feature })),
+    ...(sheet.features ?? []).filter(feature => !engineResolvedFeatures.has(feature.name.trim().toLowerCase()) && !isLanguageFeature(sheet, feature.name)).map(feature => ({ type: "feature" as const, ...feature })),
     ...Object.entries(sheet.resources).flatMap(([id, state]) => {
       const action = Object.hasOwn(RESOURCE_ACTIONS, id) ? RESOURCE_ACTIONS[id] : undefined;
       return action && state.used < state.max
@@ -173,6 +181,7 @@ export function validateCombatTurnIntent(
       selections.push(`${ru ? "Заклинание" : "Spell"}: ${spell.name}${choice.slotLevel ? ` (${ru ? "ячейка" : "slot"} ${choice.slotLevel})` : ""}${choice.targetId ? `; ${copy.target}: ${name(choice.targetId)}` : ""}${!spell.cost || spell.level === null ? `; ${adjudication}` : ""}`);
     } else if (choice.type === "feature") {
       if (!sheet.features?.some(feature => feature.name === choice.feature)) return { ok: false, error: "Choose a feature on your character sheet." };
+      if (isLanguageFeature(sheet, choice.feature)) return { ok: false, error: "A language is not a standalone combat feature." };
       if (engineResolvedFeatures.has(choice.feature.trim().toLowerCase())) return { ok: false, error: "This feature is already applied by the rules; attach it to its triggering action instead." };
       if (choice.targetId && !visibleEnemyIds.has(choice.targetId) && !allyIds.has(choice.targetId)) return { ok: false, error: "Choose a visible feature target." };
       selections.push(`${copy.resource}: ${choice.feature}${choice.targetId ? `; ${copy.target}: ${name(choice.targetId)}` : ""}; ${adjudication}`);
