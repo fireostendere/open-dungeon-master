@@ -291,3 +291,6 @@ action отправляется разрешённым player interface, зат�
 `watch-player.sh` — лишь ускоритель пробуждения. После него всё равно сделайте
 authoritative read; передавайте только seq последней фактически обработанной
 реплики игрока, а не `currentSeq` после записей мастера.
+`GET /mcp/events?campaignId=…&afterSeq=…` (тот же bearer, что у `/mcp`) — такой же
+SSE-звонок без содержимого: только `{type, seq}` и `authorType`/`kind` у сообщений.
+После сигнала всё равно делайте read.

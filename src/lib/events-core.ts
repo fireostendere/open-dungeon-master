@@ -10,11 +10,15 @@ declare global {
   var __odmEventBus:Map<string,Set<Subscriber>>|undefined;
   var __odmEventSubscriberUsers:Map<string,WeakMap<Subscriber,string>>|undefined;
   var __odmRawEventSubscribers:WeakSet<Subscriber>|undefined;
+  var __odmEventObserverUsers:WeakMap<Subscriber,string>|undefined;
   var __odmPresenceCounts:Map<string,Map<string,number>>|undefined;
   var __odmVoiceEventHook:((campaignId:string,type:string)=>void)|undefined;
 }
 const bus=()=>globalThis.__odmEventBus??=new Map<string,Set<Subscriber>>();
 const rawSubscribers=()=>globalThis.__odmRawEventSubscribers??=new WeakSet<Subscriber>();
+// Service observers receive the ephemeral frames of the user they act for
+// (the narrator in the DM seat) without being counted in presence.
+const observerUsers=()=>globalThis.__odmEventObserverUsers??=new WeakMap<Subscriber,string>();
 function subscriberUsers(campaignId:string) {
   const campaigns=globalThis.__odmEventSubscriberUsers??=new Map<string,WeakMap<Subscriber,string>>();
   let users=campaigns.get(campaignId);if(!users){users=new WeakMap();campaigns.set(campaignId,users);}return users;
@@ -29,7 +33,7 @@ function freezeEvent(campaignId:string,type:string,payload:unknown,scope?:EventS
 function fanOut(campaignId:string,event:PrivateEvent,onlyUserId?:string) {
   const subscribers=bus().get(campaignId);if(!subscribers)return;
   for(const subscriber of subscribers) {
-    const userId=subscriberUsers(campaignId).get(subscriber);
+    const userId=subscriberUsers(campaignId).get(subscriber)??observerUsers().get(subscriber);
     if(onlyUserId&&userId!==onlyUserId)continue;
     try {
       if(rawSubscribers().has(subscriber)&&event.seq!==undefined) {
@@ -51,9 +55,10 @@ function fanOut(campaignId:string,event:PrivateEvent,onlyUserId?:string) {
   }
 }
 function announcePresence(campaignId:string){fanOut(campaignId,freezeEvent(campaignId,'presence',{online:onlineUserIds(campaignId)}));}
-function subscribeInternal(campaignId:string,subscriber:Subscriber,userId?:string,raw=false):()=>void {
+function subscribeInternal(campaignId:string,subscriber:Subscriber,userId?:string,raw=false,observerUserId?:string):()=>void {
   let subscribers=bus().get(campaignId);if(!subscribers){subscribers=new Set();bus().set(campaignId,subscribers);}subscribers.add(subscriber);
   if(raw)rawSubscribers().add(subscriber);else rawSubscribers().delete(subscriber);
+  if(!userId&&observerUserId)observerUsers().set(subscriber,observerUserId);else observerUsers().delete(subscriber);
   if(userId){
     subscriberUsers(campaignId).set(subscriber,userId);
     let counts=presenceCounts().get(campaignId);if(!counts){counts=new Map();presenceCounts().set(campaignId,counts);}
@@ -61,7 +66,7 @@ function subscribeInternal(campaignId:string,subscriber:Subscriber,userId?:strin
   }else subscriberUsers(campaignId).delete(subscriber);
   let released=false;
   return ()=>{
-    if(released)return;released=true;subscribers.delete(subscriber);subscriberUsers(campaignId).delete(subscriber);rawSubscribers().delete(subscriber);
+    if(released)return;released=true;subscribers.delete(subscriber);subscriberUsers(campaignId).delete(subscriber);rawSubscribers().delete(subscriber);observerUsers().delete(subscriber);
     if(!subscribers.size){bus().delete(campaignId);globalThis.__odmEventSubscriberUsers?.delete(campaignId);}
     if(userId){const counts=presenceCounts().get(campaignId);if(counts){const left=(counts.get(userId)??0)-1;
       if(left<=0)counts.delete(userId);else counts.set(userId,left);if(!counts.size)presenceCounts().delete(campaignId);if(left<=0)announcePresence(campaignId);}}
@@ -72,6 +77,12 @@ export function subscribe(campaignId:string,subscriber:Subscriber,userId?:string
  * at dequeue; raw frames must never be attached directly to a public response.
  */
 export function subscribeRaw(campaignId:string,subscriber:Subscriber,userId?:string):()=>void{return subscribeInternal(campaignId,subscriber,userId,true);}
+/** Trusted raw feed for a service principal acting for `observerUserId`:
+ * persisted frames arrive raw, ephemeral frames are filtered exactly as for
+ * that user, and presence is never announced. HTTP callers MUST still project
+ * or reduce every frame before it reaches a response.
+ */
+export function subscribeRawObserver(campaignId:string,subscriber:Subscriber,observerUserId?:string|null):()=>void{return subscribeInternal(campaignId,subscriber,undefined,true,observerUserId??undefined);}
 export function publishWithSeq(campaignId:string,seq:number,type:string,payload:unknown,scope?:EventScope) {
   return withCommittedEffects(()=>getDatabase().transaction(()=>{
     ensureEventAudienceColumn();

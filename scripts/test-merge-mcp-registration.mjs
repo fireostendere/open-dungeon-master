@@ -34,6 +34,7 @@ async function fixture(){
       withMcpCancellation:callback=>(...args)=>{args.at(-1)?.mcpReq?.signal?.throwIfAborted();return callback(...args);},
       withMcpCredential:(_token,callback)=>callback()},
     './http-boundary.mjs':{createSafeHttpListener:()=>{throw Error('listener must not start on import');}},
+    './events-proxy.mjs':{createEventsProxy:()=>{throw Error('events proxy must not start on import');}},
     './narrator-schema.mjs':narratorSchema,
   };
   const sourceModule=new vm.SourceTextModule(fs.readFileSync(source,'utf8'),{context,identifier:source,initializeImportMeta(meta){meta.url=new URL('../mcp/server.mjs',import.meta.url).href;}});
