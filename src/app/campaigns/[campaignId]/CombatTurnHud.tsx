@@ -19,7 +19,7 @@ const COPY = {
     attack: "Атака", dodge: "Уклонение", dash: "Рывок", disengage: "Отход", hide: "Скрыться", help: "Помочь союзнику",
     grapple: "Захватить", shove: "Сбить с ног", cunning: "Хитрое действие", spell: "Заклинание", resource: "Способность",
     item: "Использовать предмет", pet: "Команда питомцу", sneak: "Заявить Скрытую атаку, если условия выполнены",
-    queued: "Выбрано", remove: "Убрать действие", send: "Отправить ход", end: "Пропустить ход", skipIntent: "Я пропускаю боевой ход.", sending: "Отправка…",
+    queued: "Выбрано", description: "Описание хода (необязательно)", descriptionPlaceholder: "Что делает или говорит персонаж?", remove: "Убрать действие", send: "Отправить ход", end: "Пропустить ход", skipIntent: "Я пропускаю боевой ход.", sending: "Отправка…",
     locked: "Мастер обрабатывает ход.", unavailable: "Нет доступных действий с текущими ресурсами и целями.",
     rejected: "Это действие сейчас недоступно.", self: "На себя", spellTarget: "Цель заклинания", itemTarget: "Кому применить предмет",
   },
@@ -29,7 +29,7 @@ const COPY = {
     attack: "Attack", dodge: "Dodge", dash: "Dash", disengage: "Disengage", hide: "Hide", help: "Help an ally",
     grapple: "Grapple", shove: "Shove prone", cunning: "Cunning Action", spell: "Spell", resource: "Ability",
     item: "Use an item", pet: "Command a pet", sneak: "Request Sneak Attack if eligible",
-    queued: "Selected", remove: "Remove action", send: "Submit turn", end: "Skip turn", skipIntent: "I skip my combat turn.", sending: "Sending…",
+    queued: "Selected", description: "Turn description (optional)", descriptionPlaceholder: "What does your character do or say?", remove: "Remove action", send: "Submit turn", end: "Skip turn", skipIntent: "I skip my combat turn.", sending: "Sending…",
     locked: "The DM is resolving this turn.", unavailable: "No actions are available with the current resources and targets.",
     rejected: "This action is not available right now.", self: "Self", spellTarget: "Spell target", itemTarget: "Use item on",
   },
@@ -49,7 +49,7 @@ type WizardOption = {
 };
 
 export function CombatTurnHud({
-  encounter, sheet, sheets, locked, sending, onSubmit, choices: externalChoices, onChoicesChange,
+  encounter, sheet, sheets, locked, sending, onSubmit, choices: externalChoices, onChoicesChange, description, onDescriptionChange,
   spellOptions = [], spellsLoading = false, spellsError = false, petPanel,
 }: {
   encounter: PublicEncounter;
@@ -60,6 +60,8 @@ export function CombatTurnHud({
   onSubmit: (turn: CombatTurnIntent) => void;
   choices?: CombatChoice[];
   onChoicesChange?: (choices: CombatChoice[]) => void;
+  description: string;
+  onDescriptionChange: (description: string) => void;
   spellOptions?: CombatSpellDescriptor[];
   spellsLoading?: boolean;
   spellsError?: boolean;
@@ -91,7 +93,8 @@ export function CombatTurnHud({
     attacksAllowed: 1 + combatRiders(sheet).extraAttacks,
     extraActions: conditionExtraActions(sheet.conditions),
   }));
-  const intent = (entries = choices): CombatTurnIntent => ({ encounterId: encounter.id, round: encounter.round, turnIndex: encounter.turnIndex, choices: entries });
+  const intent = (entries = choices): CombatTurnIntent => ({ encounterId: encounter.id, round: encounter.round, turnIndex: encounter.turnIndex, choices: entries,
+    ...(entries.length && description.trim() ? { description: description.trim() } : {}) });
   const validate = (entries: CombatChoice[]) => validateCombatTurnIntent(
     intent(entries), sheet, new Set(enemies.map((enemy) => enemy.id)), new Set(allies.map((ally) => ally.id)), budget,
     { language: locale, names: new Map(), spells: spellOptions },
@@ -281,12 +284,15 @@ export function CombatTurnHud({
         <button type="button" aria-label={`${copy.remove} ${index + 1}`} disabled={disabled} onClick={() => setChoices(choices.filter((_, current) => current !== index))} className="rounded p-1 hover:bg-stone-700"><X className="size-4" /></button>
       </li>)}</ol>
     </div> : null}
+    {choices.length ? <label className="mt-3 block text-xs text-stone-300">{copy.description}
+      <textarea aria-label={copy.description} value={description} onChange={event => onDescriptionChange(event.target.value)} maxLength={2000} rows={3} disabled={disabled} placeholder={copy.descriptionPlaceholder} className="mt-1 w-full resize-y rounded border border-stone-700 bg-stone-900 p-2 text-sm text-stone-100 disabled:opacity-50" />
+    </label> : null}
     <div className="mt-3 flex flex-wrap gap-2">
       {choices.length ? <button type="button" disabled={disabled || Boolean(selected) || !preview.ok} onClick={submit} className="rounded bg-amber-400 px-3 py-2 font-medium text-amber-950 disabled:opacity-40">{sending ? copy.sending : copy.send}</button> : null}
       {!choices.length && !selected ? <button type="button" disabled={disabled} onClick={submit} className="rounded border border-stone-600 px-3 py-2 text-xs text-stone-300">{copy.end}</button> : null}
     </div>
     {confirming ? <ActionPreviewDialog
-      content={choices.length ? "" : copy.skipIntent}
+      content={choices.length ? description.trim() : copy.skipIntent}
       name={sheet.name}
       locale={locale}
       queuedActions={choices.length}

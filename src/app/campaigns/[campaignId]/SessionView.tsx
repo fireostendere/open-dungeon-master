@@ -313,13 +313,18 @@ export function SessionView({
   const [combatChoiceState, setCombatChoiceState] = useState({
     key: encounterTurnKey,
     choices: [] as CombatChoice[],
+    description: "",
   });
   if (combatChoiceState.key !== encounterTurnKey) {
-    setCombatChoiceState({ key: encounterTurnKey, choices: [] });
+    setCombatChoiceState({ key: encounterTurnKey, choices: [], description: "" });
   }
   const combatChoices = combatChoiceState.key === encounterTurnKey ? combatChoiceState.choices : EMPTY_COMBAT_CHOICES;
+  const combatDescription = combatChoiceState.key === encounterTurnKey ? combatChoiceState.description : "";
   const setCombatChoices = useCallback((choices: CombatChoice[]) => {
-    setCombatChoiceState({ key: encounterTurnKey, choices });
+    setCombatChoiceState(current => ({ key: encounterTurnKey, choices, description: current.key === encounterTurnKey ? current.description : "" }));
+  }, [encounterTurnKey]);
+  const setCombatDescription = useCallback((description: string) => {
+    setCombatChoiceState(current => ({ key: encounterTurnKey, choices: current.key === encounterTurnKey ? current.choices : [], description }));
   }, [encounterTurnKey]);
 
   const inCombat = Boolean(state.encounter && state.encounter.status === "active");
@@ -389,14 +394,14 @@ export function SessionView({
         }
         setInput("");
         if (sendKind === "ask") await refreshAsks();
-        else if (sendKind === "do") setCombatChoices([]);
+        else if (sendKind === "do") { setCombatChoices([]); setCombatDescription(""); }
       } catch {
         setError("Could not reach the server.");
       } finally {
         setSending(false);
       }
     },
-    [campaignId, input, sending, gate.inputBlocked, muted, kind, needsCharacter, askScope, askVisibility, leadPrivate, ownCombatTurn, locale, setCombatChoices, refreshAsks],
+    [campaignId, input, sending, gate.inputBlocked, muted, kind, needsCharacter, askScope, askVisibility, leadPrivate, ownCombatTurn, locale, setCombatChoices, setCombatDescription, refreshAsks],
   );
 
   const clearChatTarget = useCallback(() => setChatTarget(null), []);
@@ -636,6 +641,8 @@ export function SessionView({
           onCombatSubmit={(combatTurn) => void submit(null, combatTurn)}
           combatChoices={combatChoices}
           onCombatChoicesChange={setCombatChoices}
+          combatDescription={combatDescription}
+          onCombatDescriptionChange={setCombatDescription}
         />
       </div>
 

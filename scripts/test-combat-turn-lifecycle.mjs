@@ -113,8 +113,29 @@ test('raw text and legacy combat prose are rejected during initiative', async ()
     f.sheets[0].features = [{ name: 'Sneak Attack' }];
     assert.equal((await f.send({ kind: 'do', content: 'Тычу кинжалом в дьявола!' })).status, 400);
     assert.equal((await f.send({ ...f.intent, combatTurn: { ...f.intent.combatTurn, prose: 'Тычу кинжалом в дьявола!' } })).status, 400);
+    assert.equal((await f.send({ ...f.intent, combatTurn: { ...f.intent.combatTurn, choices: [], description: 'Атакую!' } })).status, 400, 'description alone cannot bypass the builder');
     assert.equal(f.db.prepare('SELECT COUNT(*) AS n FROM campaign_messages').get().n, 0);
     assert.equal(f.campaigns.getFloor('c1').mode, 'initiative');
+  } finally { f.close(); }
+});
+
+test('optional combat description accompanies selected actions without replacing them', async () => {
+  const f = fixture();
+  try {
+    const targetEnemyId = '00000000-0000-4000-8000-000000000099';
+    f.enemies([{ id: targetEnemyId, name: 'Dummy', status: 'alive' }]);
+    f.sheets[0].equipment = [{ name: 'Longsword', qty: 1 }];
+    const choice = { type: 'attack', targetEnemyId, weapon: 'Longsword' };
+    const turn = { ...f.intent.combatTurn, choices: [choice], description: '  Кричу: Держитесь!  ' };
+    assert.equal((await f.send({ kind: 'do', combatTurn: { ...turn, description: 'x'.repeat(2001) } })).status, 400);
+    assert.equal((await f.send({ kind: 'do', combatTurn: turn, content: 'Вторая атака' })).status, 400, 'top-level combat text stays forbidden');
+    assert.equal((await f.send({ kind: 'do', combatTurn: turn })).status, 202);
+    const message = f.db.prepare('SELECT content FROM campaign_messages').get();
+    assert.match(message.content, /Атака: Longsword; цель: Dummy/);
+    assert.match(message.content, /Описание игрока: Кричу: Держитесь!/);
+    const event = JSON.parse(f.db.prepare("SELECT payload_json FROM campaign_events WHERE type='message_added'").get().payload_json);
+    assert.deepEqual(event.message.combatTurn.choices, [choice]);
+    assert.equal(event.message.combatTurn.description, 'Кричу: Держитесь!');
   } finally { f.close(); }
 });
 

@@ -24,7 +24,8 @@ try {
   const tour = page.getByRole('button', { name: 'Завершить тур', exact: true });
   if (await tour.waitFor({ timeout: 5000 }).then(() => true, () => false)) await tour.click();
   await page.getByRole('button', { name: 'Вкладка «Бой» ↗', exact: true }).click();
-  await page.getByRole('button', { name: 'Закончить ход', exact: true }).waitFor({ timeout: 60000 }).catch(async error => {
+  const hud = page.getByRole('region', { name: 'Конструктор боевого хода', exact: true });
+  await hud.getByRole('button', { name: 'Пропустить ход', exact: true }).waitFor({ timeout: 60000 }).catch(async error => {
     await page.screenshot({ path: '/tmp/opencode/odm-combat-hud-failure.png', fullPage: true });
     console.error('Combat page:', await page.locator('body').innerText());
     throw error;
@@ -33,6 +34,8 @@ try {
   assert.ok(sidePanelWidth < 1440 * 0.8, `Desktop battle panel should not fill the viewport (${sidePanelWidth}px).`);
   assert.equal(await page.getByRole('button', { name: 'Речь', exact: true }).count(), 0);
   const actionPicker = page.getByRole('combobox', { name: 'Выберите действие', exact: true });
+  const description = page.getByRole('textbox', { name: 'Описание хода (необязательно)', exact: true });
+  assert.equal(await description.count(), 0, 'description appears only after choosing an action');
   const availableActions = await actionPicker.locator('option').allTextContents();
   assert.ok(availableActions.some(option => option.includes('Атака: Longsword')));
   assert.equal(availableActions.some(option => option.includes('Cunning Action')), false, 'unowned actions are not offered');
@@ -64,13 +67,15 @@ try {
   await actionPicker.selectOption('attack:Longsword');
   assert.equal(await page.getByRole('button', { name: 'Добавить в план', exact: true }).isDisabled(), true, 'an attack cannot be added before a target is chosen');
   assert.equal(await page.getByRole('button', { name: 'Отправить ход', exact: true }).count(), 0, 'an incomplete selection blocks turn submission');
-  assert.equal(await page.getByRole('button', { name: 'Закончить ход', exact: true }).count(), 0, 'an incomplete selection cannot be bypassed by ending the turn');
+  assert.equal(await hud.getByRole('button', { name: 'Пропустить ход', exact: true }).count(), 0, 'an incomplete selection cannot be bypassed by skipping the turn');
   await page.getByRole('combobox', { name: 'Выберите цель', exact: true }).selectOption({ index: 1 });
   await page.getByRole('button', { name: 'Добавить в план', exact: true }).click();
+  assert.equal(await description.count(), 1, 'description is available after choosing an action');
   await sendDraft('Атака: Longsword → Dummy');
   assert.equal(captured[0].combatTurn.choices.length, 1);
   assert.equal(captured[0].combatTurn.choices[0].type, 'attack');
   assert.equal(Object.hasOwn(captured[0].combatTurn, 'prose'), false, 'combat turns carry no free-form action text');
+  assert.equal(Object.hasOwn(captured[0].combatTurn, 'description'), false, 'description is optional');
   assert.match(await plan.innerText(), /Атака: Longsword/);
   await plan.getByRole('button', { name: 'Убрать действие 1', exact: true }).click();
   assert.equal(JSON.stringify(captured[0]).includes('second_wind'), false, 'inspected ability is not silently attached to an attack');
@@ -93,14 +98,13 @@ try {
     await page.getByRole('button', { name: 'Добавить в план', exact: true }).click();
     await page.getByRole('button', { name: 'Убрать действие 1', exact: true }).click();
   }
-  await page.getByRole('button', { name: 'Пропустить ход', exact: true }).click();
+  await hud.getByRole('button', { name: 'Пропустить ход', exact: true }).click();
   const skipConfirmation = page.getByRole('dialog');
   await skipConfirmation.waitFor();
   assert.match(await skipConfirmation.innerText(), /Я пропускаю боевой ход\./);
   await skipConfirmation.getByRole('button', { name: 'Редактировать', exact: true }).click();
   await skipConfirmation.waitFor({ state: 'hidden' });
   if (process.env.ODM_E2E_PET_NAME) {
-    const hud = page.getByRole('region', { name: 'Конструктор боевого хода', exact: true });
     await actionPicker.selectOption(`pet:${process.env.ODM_E2E_PET_NAME}`);
     const pets = hud.getByRole('region', { name: 'Питомцы в бою', exact: true });
     await pets.waitFor({ timeout: 10000 });
@@ -136,11 +140,13 @@ try {
   await page.getByRole('button', { name: 'Добавить в план', exact: true }).click();
   await actionPicker.selectOption('resource:second_wind');
   await page.getByRole('button', { name: 'Добавить в план', exact: true }).click();
+  await description.fill('Держитесь! Прикрываю отряд.');
   await page.screenshot({ path: '/tmp/opencode/odm-combat-desktop.png', fullPage: true });
   await page.getByRole('button', { name: 'Вне игры', exact: true }).click();
   assert.equal(await page.locator('[data-tour="composer-input"] textarea').isEditable(), true);
   await page.getByRole('button', { name: 'Действие', exact: true }).click();
   assert.equal(await page.getByRole('button', { name: 'Убрать действие 2', exact: true }).isVisible(), true);
+  assert.equal(await description.inputValue(), 'Держитесь! Прикрываю отряд.', 'description stays with the draft when switching composer modes');
   assert.equal(await page.locator('[data-tour="composer-input"] textarea').count(), 0, 'combat Do has no free-form text input');
   await page.setViewportSize({ width: 390, height: 844 });
   await page.screenshot({ path: '/tmp/opencode/odm-combat-mobile.png', fullPage: true });
@@ -148,13 +154,12 @@ try {
   await page.getByRole('button', { name: 'Отправить ход', exact: true }).click();
   const chatConfirmation = page.getByRole('dialog');
   await chatConfirmation.waitFor();
-  const editRect = await chatConfirmation.getByRole('button', { name: 'Редактировать', exact: true }).evaluate(element => element.getBoundingClientRect());
-  const sendRect = await chatConfirmation.getByRole('button', { name: 'Отправить', exact: true }).evaluate(element => element.getBoundingClientRect());
-  assert.ok(Math.abs(editRect.y - sendRect.y) < 1 && sendRect.x > editRect.x, 'mobile confirmation actions stay side by side');
+  const [editRect, sendRect] = await chatConfirmation.getByRole('button', { name: 'Редактировать', exact: true }).evaluate(element => [element.getBoundingClientRect().toJSON(), element.nextElementSibling.getBoundingClientRect().toJSON()]);
+  assert.ok(Math.abs(editRect.y - sendRect.y) < 1 && sendRect.x > editRect.x, `mobile confirmation actions stay side by side: edit=${JSON.stringify(editRect)}, send=${JSON.stringify(sendRect)}`);
   const chatConfirmationText = await chatConfirmation.innerText();
   assert.match(chatConfirmationText, /Атака: Longsword → Dummy/);
   assert.match(chatConfirmationText, /Второе дыхание/);
-  assert.doesNotMatch(chatConfirmationText, /Держитесь! Прикрываю отряд\./);
+  assert.match(chatConfirmationText, /Держитесь! Прикрываю отряд\./);
   const response = page.waitForResponse(result => result.url().endsWith('/actions') && result.request().method() === 'POST');
   await chatConfirmation.getByRole('button', { name: 'Отправить', exact: true }).click();
   const submitted = await response;
@@ -163,6 +168,7 @@ try {
   assert.deepEqual(sentPlan.choices.map(choice => choice.type), ['attack', 'resource']);
   assert.equal(sentPlan.choices[1].resource, 'second_wind');
   assert.equal(Object.hasOwn(sentPlan, 'prose'), false);
+  assert.equal(sentPlan.description, 'Держитесь! Прикрываю отряд.');
   await page.getByRole('button', { name: 'Стол', exact: true }).click();
   await page.getByText('Мастер разрешает ход и готовит повествование. Пока доступны вопросы Мастеру и режим «Вне игры».', { exact: true }).waitFor();
   await page.getByRole('button', { name: 'Вне игры', exact: true }).click();

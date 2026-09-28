@@ -105,4 +105,8 @@ assert.deepEqual(warlock.spellcasting.slots, { 2: { max: 2, used: 2 } }, 'draft 
 const explicit = warlockCheck([cast]);
 assert.match(explicit.content, /Явно выбранные действия/);
 assert.doesNotMatch(explicit.content, /Описание игрока/, 'combat intent has no free-text action bypass');
+const withDescription = validateCombatTurnIntent({ ...intent([cast]), description: '  Кричу: Берегись!  ' }, warlock, new Set(['enemy']), new Set(['hero']), budget(), { language: 'ru', names: new Map([['enemy', 'Дьявол']]), spells });
+assert.equal(withDescription.ok, true);
+assert.match(withDescription.content, /Описание игрока: Кричу: Берегись!/);
+assert.equal(validateCombatTurnIntent({ ...intent([]), description: 'Бью ещё раз' }, warlock, new Set(['enemy']), new Set(['hero']), budget(), { language: 'ru', names: new Map(), spells }).ok, false);
 console.log('test-combat-turn-intent: passed');

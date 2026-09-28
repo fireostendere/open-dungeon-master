@@ -68,6 +68,7 @@ const actionSchema = z.object({
     encounterId: z.string().uuid(),
     round: z.number().int().min(1),
     turnIndex: z.number().int().min(0),
+    description: z.string().trim().min(1).max(2000).optional(),
     choices: z.array(z.discriminatedUnion("type", [
       z.object({ type: z.literal("attack"), targetEnemyId: z.string().uuid(), weapon: z.string().trim().min(1).max(80), sneakAttack: z.boolean().optional() }),
       z.object({ type: z.literal("dodge") }),
@@ -79,7 +80,7 @@ const actionSchema = z.object({
       z.object({ type: z.literal("resource"), resource: z.string().trim().min(1).max(80), targetCharacterId: z.string().uuid().optional() }),
       z.object({ type: z.literal("item"), item: z.string().trim().min(1).max(80), targetCharacterId: z.string().uuid() }),
     ])).max(12),
-  }).strict().optional(),
+  }).strict().refine(value => !value.description || value.choices.length > 0, "Choose an action before adding a description.").optional(),
 }).strict()
   .refine((value) => Boolean(value.content || value.combatTurn), "An action needs content or a combat turn.")
   .refine((value) => !value.combatTurn || value.kind === "do", "Combat turns must be actions.")

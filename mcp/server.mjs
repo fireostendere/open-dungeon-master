@@ -354,7 +354,8 @@ actions accept completeTurn:true. Attack spells use pc_attack.spell, buffs use
 cast_buff, healing uses heal(spell,casterId,characterId,level) and already spends
 the slot/action. Pet attacks use targetEnemyId and a real sheet.pets entry.
 If a player message includes the validated combatTurn object, use its ordered choices
-and IDs exactly; do not infer a different plan from the display text. Copy
+and IDs exactly; the optional description adds dialogue/flavor, not an extra
+mechanical action. Clarify contradictions rather than invent steps. Copy
 action.cunningAction as take_action.cunningAction:true, attach attack.sneakAttack to
 that pc_attack, and resolve the declared list in one combat_turn call. A completed
 receipt already ended initiative; an argument refusal is not a fictional miss.

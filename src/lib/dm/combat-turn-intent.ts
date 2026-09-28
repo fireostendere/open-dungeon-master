@@ -29,6 +29,7 @@ export type CombatTurnIntent = {
   round: number;
   turnIndex: number;
   choices: CombatChoice[];
+  description?: string;
 };
 
 export function combatChoiceLabel(choice: CombatChoice, language: "ru" | "en", names: ReadonlyMap<string, string> = new Map()): string {
@@ -149,6 +150,10 @@ export function validateCombatTurnIntent(
     : { turn: "Combat turn", attack: "Attack", dodge: "Defence: Dodge", resource: "Ability", item: "Item", target: "target", end: "End my turn after resolving the declared actions." };
   const name = (id: string) => presentation?.names.get(id) ?? id;
   if (intent.choices.length > 12) return { ok: false, error: "Too many choices in one turn." };
+  const description = intent.description?.trim();
+  if (intent.description !== undefined && (!description || description.length > 2000 || !intent.choices.length)) {
+    return { ok: false, error: "A description needs a selected action and must be 1–2000 characters." };
+  }
   for (const choice of intent.choices) {
     if (choice.type === "spell") {
       const spell = presentation?.spells?.find(entry => entry.name === choice.spell);
@@ -244,6 +249,6 @@ export function validateCombatTurnIntent(
   return {
     ok: true,
     budget: next,
-    content: `${copy.turn}: ${sheet.name}\n${declaration}\n\n${copy.end}`,
+    content: `${copy.turn}: ${sheet.name}\n${declaration}${description ? `\n\n${ru ? "Описание игрока" : "Player description"}: ${description}` : ""}\n\n${copy.end}`,
   };
 }
