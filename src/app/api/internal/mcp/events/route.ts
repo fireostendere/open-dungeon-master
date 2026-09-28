@@ -1,5 +1,6 @@
 import { createCampaignStream } from "@/lib/campaign-stream";
 import { getCampaignById, latestSeq } from "@/lib/db/campaigns";
+import { acquireNarratorPresence } from "@/lib/dm/narrator-presence";
 import { listEventsSince, subscribeRawObserver } from "@/lib/events";
 import { authenticateMcp, authorizeMcpAction, McpAccessError, type McpPrincipal } from "@/lib/mcp-access.mjs";
 import { narratorSignalChunk, parseNarratorCursor, reduceNarratorLiveChunk } from "@/lib/narrator-signal-stream.mjs";
@@ -60,7 +61,13 @@ export async function GET(request: Request) {
     subscribe: send => {
       const releaseEvents = subscribeRawObserver(campaignId, send, observer);
       const releaseSpatial = subscribeSpatialChanges(campaignId, () => { try { send(SPATIAL_ACTIVITY); } catch { /* stream closed */ } });
-      return () => { releaseSpatial(); releaseEvents(); };
+      // An open doorbell is what "the narrator is on the line" means for the
+      // players' header lamp. The stream's single cleanup (abort, cancel, a
+      // failed write, a revoked seat) calls this release exactly once; an
+      // abruptly vanished client is only noticed when a write fails
+      // (src/lib/dm/narrator-presence.ts).
+      const releasePresence = acquireNarratorPresence(campaignId);
+      return () => { releasePresence(); releaseSpatial(); releaseEvents(); };
     },
     // Replay, checkpoint and refresh frames are serialized as signals; live
     // frames are reduced at dequeue. Neither path can emit a payload body.

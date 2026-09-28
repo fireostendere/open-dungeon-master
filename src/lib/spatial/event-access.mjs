@@ -28,6 +28,8 @@ const ownUser = (payload, actor) => {
 function globalView(type, payload) {
   if (type === 'campaign_updated') return select(payload, ['status', 'title', 'description', 'theme', 'cover', 'maxPlayers', 'startingLevel', 'difficulty']);
   if (type === 'presence') return { online: Array.isArray(payload?.online) ? payload.online : [] };
+  // Whether the external narrator is listening: table-wide, no room or prose.
+  if (type === 'narrator_presence') return { online: payload?.online === true, since: Number.isSafeInteger(payload?.since) ? payload.since : null };
   if (type === 'spatial_mode_changed') return { enabled: Boolean(payload?.enabled) };
   if (type === 'member_updated' || type === 'member_joined') return { member: select(payload?.member, ['userId', 'username', 'avatar', 'role', 'ready', 'useRealDice', 'muted', 'skipTurnsCount', 'autopilot', 'joinedAt']) };
   if (type === 'member_left' || type === 'member_removed') return select(payload, ['userId']);

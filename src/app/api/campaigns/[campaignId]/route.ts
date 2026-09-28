@@ -38,6 +38,7 @@ import { isPrimaryDm, lobbyBlocker } from "@/lib/dm/viewer";
 import { listBlockedUserIds } from "@/lib/db/moderation";
 import { publishPersisted, publishWithSeq } from "@/lib/events";
 import { getDmStatus } from "@/lib/dm/status";
+import { getNarratorPresence } from "@/lib/dm/narrator-presence";
 import { spatialEnabled, spatialContext, spatialStore } from "@/lib/spatial/service";
 import { spatialBattleMapView } from "@/lib/spatial/battle-map";
 import {
@@ -159,6 +160,9 @@ export async function GET(
     caps,
     // In-memory status so a reload mid-turn still shows the DM at work.
     dmStatus: getDmStatus(campaignId),
+    // Whether the external narrator's doorbell is connected, for the header
+    // lamp; narrator_presence keeps it live from here.
+    narratorPresence: getNarratorPresence(campaignId),
     // Same reason, for background work: utility_calls is ephemeral, so a
     // client that reloads mid-compaction would otherwise see an empty strip.
     utilityCalls: [],

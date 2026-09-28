@@ -85,6 +85,13 @@ test('R01: ephemeral DM drafts and unknown fields do not leak into player notifi
   assert.equal(ephemeralView('dm_delta', { delta: 'SECRET' }, dm, true).payload.delta, 'SECRET');
 });
 
+test('narrator presence reaches every spatial seat as a bare online/since pair', () => {
+  assert.deepEqual(ephemeralView('narrator_presence', { online: true, since: 1700000000000, roomId: 'SECRET', host: 'SECRET' }, b, true),
+    { type: 'narrator_presence', payload: { online: true, since: 1700000000000 } });
+  assert.deepEqual(ephemeralView('narrator_presence', { online: 'yes', since: 'SECRET' }, b, true),
+    { type: 'narrator_presence', payload: { online: false, since: null } });
+});
+
 test('R01: stream drains more than one hidden page and still delivers the following authorized event', async t => {
   const { access } = fixture(t), abort = new AbortController(); t.after(() => abort.abort());
   const events = Array.from({ length: 601 }, (_, i) => ({ seq: i + 1, type: 'narration', payload: { content: `SECRET_${i}` } }));

@@ -154,6 +154,9 @@ optimization and must not be the sole source of events.
 as `/mcp`; `Last-Event-ID` resumes) is a push doorbell: SSE frames carry only
 `{type, seq}` plus `authorType`/`kind` for messages, never text or payloads. On
 each wake, drain `read` as usual; the stream never replaces the authoritative read.
+While at least one doorbell stream is open, players see the narrator as online in
+the table header; about 5 s after the last one closes the lamp turns grey (a
+reconnect inside that window is not shown). Keep it open while the host listens.
 
 ## Ask is not a story turn
 

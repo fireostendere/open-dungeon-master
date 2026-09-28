@@ -15,6 +15,8 @@ import { AccountMenu, AppHomeButton, AppHomeLogo, type AccountMenuUser } from "@
 import { Tooltip } from "@/components/ui/Tooltip";
 import { Sheet } from "@/components/ui/Sheet";
 import { headerButtonClass } from "@/app/campaigns/[campaignId]/headerButton";
+import { NarratorLamp, NarratorLampRow } from "@/app/campaigns/[campaignId]/NarratorLamp";
+import type { NarratorLamp as NarratorLampView } from "@/app/campaigns/[campaignId]/narratorLampState";
 import { VoiceDock } from "@/app/campaigns/[campaignId]/VoiceDock";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import type { AmbienceAudio } from "@/app/campaigns/[campaignId]/useAmbienceAudio";
@@ -77,12 +79,13 @@ function HeaderAudioControl({
 }
 
 // Mobile deliberately stays one compact row: logo, truncated campaign title,
-// voice, and one overflow menu. The rest of the table controls live in the
-// sheet so the story starts immediately below the header.
+// the narrator lamp's dot, voice, and one overflow menu. The rest of the table
+// controls live in the sheet so the story starts immediately below the header.
 export function SessionHeader({
   title,
   scene,
   user,
+  narrator,
   voice,
   dice3d,
   onToggleDice3d,
@@ -93,6 +96,7 @@ export function SessionHeader({
   title: string;
   scene: string;
   user: AccountMenuUser;
+  narrator: NarratorLampView;
   voice: ComponentProps<typeof VoiceDock>;
   dice3d: boolean;
   onToggleDice3d: () => void;
@@ -170,6 +174,7 @@ export function SessionHeader({
       </div>
 
       <div className="ml-auto flex shrink-0 items-center gap-2">
+        <NarratorLamp lamp={narrator} />
         <VoiceDock {...voice} />
 
         <button
@@ -252,6 +257,8 @@ export function SessionHeader({
         <p className="mb-4 break-words text-sm text-stone-400">{scene || copy.scene}</p>
 
         <div className="flex flex-col gap-2">
+          <NarratorLampRow lamp={narrator} />
+
           <button
             type="button"
             onClick={onToggleDice3d}

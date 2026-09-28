@@ -20,6 +20,8 @@ import { EMPTY_AMBIENCE, type AmbienceState } from "@/lib/ambience/logic";
 import type { PlayerMapView } from "@/lib/battlemap/view";
 import type { MapPing } from "@/lib/dm/board-logic";
 import { capsForRole, type ViewerCaps } from "@/lib/dm/viewer";
+import type { NarratorPresence } from "@/lib/dm/narrator-presence";
+import { narratorPresenceFrom, OFFLINE_PRESENCE } from "@/app/campaigns/[campaignId]/narratorLampState";
 import type { CharacterSheet } from "@/lib/schemas/sheet";
 import type { VoiceRosterEntry } from "@/lib/voice/types";
 import { navigateTo } from "@/lib/navigation";
@@ -165,6 +167,10 @@ export type CampaignState = {
   latestRoll: { roll: StoredRoll; source: string; seq: number } | null;
   lastSeq: number;
   dmStatus: DmStatus;
+  // Whether the external narrator's doorbell stream is connected, and since
+  // when (server ms). From the snapshot, then narrator_presence; the header
+  // lamp combines it with dmStatus (narratorLampState.ts).
+  narratorPresence: NarratorPresence;
   // Background utility work in flight (compaction, chapter seal, world tick,
   // lore check, Ask). Separate from dmStatus, which describes the TURN: these
   // run outside one, several can overlap, and each carries its own label.
@@ -217,7 +223,7 @@ export type CampaignState = {
   online: string[];
 };
 
-const initialState: CampaignState = {
+export const initialCampaignState: CampaignState = {
   loading: true,
   error: "",
   answeredBy: "",
@@ -258,6 +264,7 @@ const initialState: CampaignState = {
   latestRoll: null,
   lastSeq: 0,
   dmStatus: "idle",
+  narratorPresence: OFFLINE_PRESENCE,
   utilityCalls: [],
   dmDraft: "",
   directorArm: null,
@@ -307,7 +314,7 @@ function upsertBy<T>(list: T[], item: T, key: (entry: T) => string): T[] {
   return next;
 }
 
-function reducer(state: CampaignState, action: Action): CampaignState {
+export function campaignStreamReducer(state: CampaignState, action: Action): CampaignState {
   switch (action.type) {
     case "snapshot":
       if (!action.reset && action.payload.lastSeq < state.lastSeq) return state;
@@ -675,6 +682,9 @@ function reducer(state: CampaignState, action: Action): CampaignState {
         case "dm_status":
           next.dmStatus = payload.state as DmStatus;
           return next;
+        case "narrator_presence":
+          next.narratorPresence = narratorPresenceFrom(payload);
+          return next;
         case "utility_calls":
           // The server sends the whole in-flight set each time, so a dropped
           // event self-heals on the next one rather than leaving a stuck chip.
@@ -772,6 +782,9 @@ const PERSISTED_EVENTS = [
 const EPHEMERAL_EVENTS = [
   "ooc_message",
   "dm_status",
+  // The narrator's doorbell came or went (debounced server-side). The
+  // snapshot carries the current value, so it is never replayed.
+  "narrator_presence",
   "utility_calls",
   "dm_delta",
   "media_status",
@@ -816,7 +829,7 @@ function answeringOrigin(url: string): string {
 
 export function useCampaignStream(campaignId: string) {
   const { locale } = useI18n();
-  const [state, dispatch] = useReducer(reducer, initialState);
+  const [state, dispatch] = useReducer(campaignStreamReducer, initialCampaignState);
   // The SSE handlers are registered once, so they cannot close over `state`.
   // Caps are set by the snapshot and never change for a mounted session, but
   // the handlers still need to read them after that first load.
@@ -879,6 +892,7 @@ export function useCampaignStream(campaignId: string) {
           itemProposals: data.itemProposals ?? [],
           beats: data.beats ?? [],
           dmStatus: data.dmStatus ?? "idle",
+          narratorPresence: narratorPresenceFrom(data.narratorPresence),
           utilityCalls: sortCalls(data.utilityCalls ?? []),
           ambience: data.ambience ?? EMPTY_AMBIENCE,
           spatialEnabled: Boolean(data.spatial?.enabled),
