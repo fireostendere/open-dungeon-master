@@ -543,3 +543,18 @@ optgroup {
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
+
+/* Composer notices on a phone (src/app/campaigns/[campaignId]/Composer.tsx):
+   collapsed to the first, most urgent card with a chip for the rest, and
+   never taller than a third of the screen when opened, so the input stays
+   on screen. */
+@media (max-width: 1023.98px) {
+  .composer-notices {
+    max-height: 34dvh;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  .composer-notices[data-collapsed="true"] > :not(:first-child) {
+    display: none;
+  }
+}

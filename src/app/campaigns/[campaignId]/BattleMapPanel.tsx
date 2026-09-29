@@ -478,7 +478,7 @@ export function BattleMapPanel({
       <Dialog.Root open={enlarged} onOpenChange={setEnlarged}>
         <Dialog.Portal>
           <Dialog.Overlay className="fixed inset-0 z-40 bg-black/80" />
-          <Dialog.Content className="fixed left-1/2 top-1/2 z-50 max-h-[92vh] w-[min(94vw,64rem)] -translate-x-1/2 -translate-y-1/2 overflow-auto panel rounded-xl p-4">
+          <Dialog.Content className="fixed left-1/2 top-1/2 z-50 max-h-[92dvh] w-[min(94vw,64rem)] -translate-x-1/2 -translate-y-1/2 overflow-auto panel rounded-xl p-4">
             <div className="mb-2 flex items-center justify-between">
               <Dialog.Title className="font-serif text-stone-100">
                  {scene ? copy.ground : `${copy.map} ${view.round}`}

@@ -7,6 +7,7 @@ import {
   Map as MapIcon,
   MessageSquareText,
   MessagesSquare,
+  MoreHorizontal,
   Gauge,
   Settings2,
   StickyNote,
@@ -25,6 +26,8 @@ import {
 } from "@/lib/dm/table-tabs";
 import type { Locale } from "@/lib/i18n";
 import { useI18n } from "@/lib/i18n";
+import { localeText } from "@/lib/i18n/locale-text";
+import { Sheet } from "@/components/ui/Sheet";
 
 // The id list is owned by src/lib/dm/table-tabs.ts, where the visibility
 // rules are testable without React; this alias keeps the name the rest of
@@ -182,9 +185,11 @@ export function tabBadgeClass(tab: PanelTab): string {
 }
 
 // Owns which panel tab is active (shared by rail and mobile) and which column
-// shows below lg. The auto-jumps mirror the old SidePanel behavior and pull
-// mobile users onto the panel column too: an incoming chat target opens the
-// chat tab, combat starting opens the battle map.
+// shows below lg. The auto-jumps mirror the old SidePanel behavior: an
+// incoming chat target opens the chat tab (and the panel column on a phone),
+// combat starting selects the battle map. On a phone the battle map does not
+// pull the player off the story; SessionView switches them over when their
+// own turn comes.
 export function useSessionTabs({
   chatTarget,
   battleMap,
@@ -217,7 +222,6 @@ export function useSessionTabs({
   if (battleMap && battleMap.mapId !== seenMapId) {
     setSeenMapId(battleMap.mapId);
     setPanelTab("battle");
-    setMobileView("panel");
   }
   if (!battleMap && !hasEncounter && panelTab === "battle") {
     setPanelTab("party");
@@ -229,8 +233,32 @@ export function useSessionTabs({
   return { panelTab, setPanelTab, mobileView, setMobileView };
 }
 
-// Mobile-only navigation: the main game chat ("Table") plus every panel tab,
-// each filling the screen when selected. Hidden at lg and up.
+// Mobile-only navigation: the main game chat ("Table") plus the panel tabs,
+// each filling the screen when selected. Hidden at lg and up. A phone fits
+// six readable cells; past that the least-used tabs move into a "More" sheet
+// (the open tab always keeps its place in the bar).
+const MAX_BAR_CELLS = 6;
+const BAR_PRIORITY: PanelTab[] = ["battle", "dm", "lead", "party", "chat", "story", "map", "notes", "context", "settings"];
+
+function barCells(tabs: PanelTabDef[], active: PanelTab | null): { bar: PanelTabDef[]; more: PanelTabDef[] } {
+  if (tabs.length + 1 <= MAX_BAR_CELLS) return { bar: tabs, more: [] };
+  const rank = (tab: PanelTab) => {
+    const i = BAR_PRIORITY.indexOf(tab);
+    return i < 0 ? BAR_PRIORITY.length : i;
+  };
+  const slots = MAX_BAR_CELLS - 2; // "Table" and "More" take two
+  const chosen = new Set([...tabs].sort((a, b) => rank(a[0]) - rank(b[0])).slice(0, slots).map(([id]) => id));
+  if (active && !chosen.has(active) && tabs.some(([id]) => id === active)) {
+    const weakest = [...chosen].sort((a, b) => rank(b) - rank(a))[0];
+    chosen.delete(weakest);
+    chosen.add(active);
+  }
+  return { bar: tabs.filter(([id]) => chosen.has(id)), more: tabs.filter(([id]) => !chosen.has(id)) };
+}
+
+const barCellClass = "min-h-[3.25rem] min-w-0 flex-1 basis-0 gap-1 px-1 py-1.5";
+const barLabelClass = "max-w-full truncate text-[11px] font-medium leading-none";
+
 function BottomTabBarInner({
   tabs,
   mobileView,
@@ -257,17 +285,46 @@ function BottomTabBarInner({
   steersStory: boolean;
 }) {
   const { locale } = useI18n();
+  const [moreOpen, setMoreOpen] = useState(false);
+  const copy = localeText(locale, {
+    en: { table: "Table", more: "More", moreTitle: "More panels" },
+    ru: { table: "Стол", more: "Ещё", moreTitle: "Другие разделы" },
+  });
+  const { bar, more } = barCells(tabs, mobileView === "panel" ? panelTab : null);
+  const marks = (value: PanelTab) => ({
+    unread: value === "chat" && chatUnread > 0,
+    due: value === "dm" && storyDue,
+    count: (value === "notes" || (value === "lead" && steersStory)) && pendingCount ? pendingCount : value === "chat" && chatUnread ? chatUnread : 0,
+  });
+  const moreMarked = more.some(([value]) => {
+    const m = marks(value);
+    return m.unread || m.due || m.count > 0;
+  });
+  const moreActive = mobileView === "panel" && more.some(([value]) => value === panelTab);
+
+  const cellBadges = (value: PanelTab) => {
+    const m = marks(value);
+    return (
+      <>
+        {m.unread ? <span className="absolute left-1.5 top-1 size-1.5 rounded-full bg-red-500" /> : null}
+        {m.due ? <span className="absolute right-1.5 top-1 size-1.5 rounded-full bg-amber-400" /> : null}
+        {m.count ? <span className={tabBadgeClass(value)}>{m.count}</span> : null}
+      </>
+    );
+  };
+
   return (
-    <nav className="glass no-scrollbar flex items-stretch gap-1 overflow-x-auto border-t border-stone-700/40 px-1 pb-[max(0.25rem,env(safe-area-inset-bottom))] pt-1 lg:hidden">
+    <nav className="glass flex items-stretch gap-0.5 border-t border-stone-700/40 px-1 pb-[max(0.25rem,env(safe-area-inset-bottom))] pt-1 lg:hidden">
       <button
         type="button"
         onClick={onSelectChat}
-        className={cn(ui.railCell, "shrink-0 grow basis-auto", mobileView === "chat" && ui.railCellActive)}
+        aria-current={mobileView === "chat" ? "page" : undefined}
+        className={cn(ui.railCell, barCellClass, mobileView === "chat" && ui.railCellActive)}
       >
-        <MessageSquareText className="size-5" />
-         <span className="eyebrow whitespace-nowrap text-[9px] leading-none">{locale === "ru" ? "Стол" : "Table"}</span>
+        <MessageSquareText className="size-5 shrink-0" />
+        <span className={barLabelClass}>{copy.table}</span>
       </button>
-      {tabs.map(([value, label, Icon]) => {
+      {bar.map(([value, label, Icon]) => {
         const active = mobileView === "panel" && panelTab === value;
         return (
           <button
@@ -275,27 +332,57 @@ function BottomTabBarInner({
             type="button"
             onClick={() => onSelectPanel(value)}
             data-tour={`tab-${value}`}
-            className={cn(ui.railCell, "shrink-0 grow basis-auto", tabAccentClass(value, active))}
+            aria-current={active ? "page" : undefined}
+            className={cn(ui.railCell, barCellClass, tabAccentClass(value, active))}
           >
-            <Icon
-              className={cn("size-5", value === "chat" && chatUnread > 0 && "animate-wiggle")}
-            />
-            <span className="eyebrow whitespace-nowrap text-[9px] leading-none">{label}</span>
-            {value === "chat" && chatUnread > 0 ? (
-              <span className="absolute left-1.5 top-1 size-1.5 rounded-full bg-red-500" />
-            ) : null}
-            {value === "dm" && storyDue ? (
-              <span className="absolute right-1.5 top-1 size-1.5 rounded-full bg-amber-400" />
-            ) : null}
-            {(value === "notes" || (value === "lead" && steersStory)) && pendingCount ? (
-              <span className={tabBadgeClass(value)}>{pendingCount}</span>
-            ) : null}
-            {value === "chat" && chatUnread ? (
-              <span className={tabBadgeClass(value)}>{chatUnread}</span>
-            ) : null}
+            <Icon className={cn("size-5 shrink-0", value === "chat" && chatUnread > 0 && "animate-wiggle")} />
+            <span className={barLabelClass}>{label}</span>
+            {cellBadges(value)}
           </button>
         );
       })}
+      {more.length ? (
+        <button
+          type="button"
+          onClick={() => setMoreOpen(true)}
+          aria-haspopup="dialog"
+          aria-expanded={moreOpen}
+          className={cn(ui.railCell, barCellClass, moreActive && ui.railCellActive)}
+        >
+          <MoreHorizontal className="size-5 shrink-0" />
+          <span className={barLabelClass}>{copy.more}</span>
+          {moreMarked ? <span className="absolute right-1.5 top-1 size-2 rounded-full bg-amber-400" /> : null}
+        </button>
+      ) : null}
+      {more.length ? (
+        <Sheet open={moreOpen} onOpenChange={setMoreOpen} title={copy.moreTitle} className="lg:hidden">
+          <div className="grid grid-cols-3 gap-2">
+            {more.map(([value, label, Icon, tip]) => {
+              const active = mobileView === "panel" && panelTab === value;
+              return (
+                <button
+                  key={value}
+                  type="button"
+                  data-tour={`tab-${value}`}
+                  title={tip}
+                  onClick={() => {
+                    setMoreOpen(false);
+                    onSelectPanel(value);
+                  }}
+                  className={cn(
+                    "relative flex min-h-[4.5rem] flex-col items-center justify-center gap-1.5 rounded-xl bg-stone-900 px-2 py-2 text-center text-xs text-stone-300",
+                    active && "bg-amber-400/10 text-amber-300",
+                  )}
+                >
+                  <Icon className="size-5" />
+                  <span className="leading-tight">{label}</span>
+                  {cellBadges(value)}
+                </button>
+              );
+            })}
+          </div>
+        </Sheet>
+      ) : null}
     </nav>
   );
 }

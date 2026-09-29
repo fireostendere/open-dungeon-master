@@ -294,10 +294,12 @@ export function SessionView({
   const prevOwnCombatTurn = useRef(false);
   useEffect(() => {
     if (ownCombatTurn && !prevOwnCombatTurn.current) {
+      // Phones too: the turn builder lives on the battle tab.
       setPanelTab("battle");
+      setMobileView("panel");
     }
     prevOwnCombatTurn.current = ownCombatTurn;
-  }, [ownCombatTurn, setPanelTab]);
+  }, [ownCombatTurn, setPanelTab, setMobileView]);
 
   const encounterTurnKey = `${state.encounter?.id}:${state.encounter?.round}:${state.encounter?.turnIndex}:${state.encounter?.currentActorId}`;
   const [combatChoiceState, setCombatChoiceState] = useState({

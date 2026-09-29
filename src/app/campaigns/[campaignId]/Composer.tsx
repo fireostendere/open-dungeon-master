@@ -1,7 +1,7 @@
 "use client";
 
 import { ChevronDown, Clock, Eye, EyeOff, Loader2, Send, SkipForward, Swords } from "lucide-react";
-import { memo, useEffect, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import type { Dispatch, FormEvent, RefObject, SetStateAction } from "react";
 import { cn } from "@/lib/cn";
 import { ui } from "@/lib/ui";
@@ -68,6 +68,8 @@ const COPY = {
     skipFailed: "Could not change skipped turns.", waiting: "MCP DM is finishing the turn — input locked", resolving: "MCP DM is resolving the round — input locked", remaining: "Remaining", noTimer: "(no timer, waiting for quorum)", firstAction: "(waiting for first action)",
     yourCombatTurn: "Your combat turn!",
     openBattleTab: "Battle Tab",
+    moreNotices: "{n} more above the input",
+    fewerNotices: "Show only the first",
     combatTurns: {
       builder: "Configure actions and attacks in the Battle tab",
       queued: (n: number) => `${n} action${n === 1 ? "" : "s"} queued in the Battle tab`,
@@ -93,6 +95,8 @@ const COPY = {
     skipFailed: "Не удалось изменить пропуск ходов.", waiting: "Внешний мастер завершает ход — ввод закрыт", resolving: "Внешний мастер разрешает раунд — ввод закрыт", remaining: "Осталось", noTimer: "(без таймера, ждём кворум)", firstAction: "(ждём первого хода)",
     yourCombatTurn: "Ваш боевой ход!",
     openBattleTab: "Вкладка «Бой»",
+    moreNotices: "Ещё над полем ввода: {n}",
+    fewerNotices: "Показать только первое",
     combatTurns: {
       builder: "Действия и атаки настраиваются во вкладке «Бой»",
       queued: (n: number) => `В плане во вкладке «Бой»: ${n}`,
@@ -188,6 +192,22 @@ function ComposerInner({
   const copy = COPY[locale];
   const [chatExpanded, setChatExpanded] = useState(true);
   const [preview, setPreview] = useState<string | null>(null);
+  // On a phone the cards and banners above the input collapse to the first
+  // one (the most urgent) with a chip for the rest, so the input is never
+  // pushed off screen (rules in globals.css). Counted from the DOM: each
+  // banner decides for itself whether it renders.
+  const noticesRef = useRef<HTMLDivElement>(null);
+  const [noticeCount, setNoticeCount] = useState(0);
+  const [noticesOpen, setNoticesOpen] = useState(false);
+  useEffect(() => {
+    const node = noticesRef.current;
+    if (!node) return;
+    const count = () => setNoticeCount(node.childElementCount);
+    count();
+    const observer = new MutationObserver(count);
+    observer.observe(node, { childList: true });
+    return () => observer.disconnect();
+  }, []);
 
   const dmStatusText =
     dmStatus === "rolling"
@@ -309,6 +329,7 @@ function ComposerInner({
       </summary>
     <form onSubmit={handleSubmit} className="glass max-h-[75dvh] overflow-y-auto border-t border-stone-700/40 px-3 pb-3 pt-2.5">
       <div className="mx-auto max-w-3xl sm:px-3">
+        <div ref={noticesRef} data-collapsed={noticeCount > 1 && !noticesOpen} className="composer-notices">
         {pendingRolls.map((pending) => (
           <PendingRollCard
             key={pending.id}
@@ -412,6 +433,18 @@ function ComposerInner({
           </div>
         ) : null}
 
+        </div>
+        {noticeCount > 1 ? (
+          <button
+            type="button"
+            onClick={() => setNoticesOpen((open) => !open)}
+            aria-expanded={noticesOpen}
+            className="mb-2 inline-flex min-h-9 items-center gap-1.5 rounded-full border border-stone-700/70 bg-stone-900/80 px-3 text-xs text-stone-300 hover:text-amber-200 lg:hidden"
+          >
+            {noticesOpen ? copy.fewerNotices : copy.moreNotices.replace("{n}", String(noticeCount - 1))}
+            <ChevronDown aria-hidden="true" className={cn("size-3.5", noticesOpen && "rotate-180")} />
+          </button>
+        ) : null}
         <div className="mb-2 flex flex-wrap gap-1.5" data-tour="composer-modes">
           {composerOptions.map((option) => (
             <Tooltip key={option} content={KIND_TIPS[locale][option]}>
