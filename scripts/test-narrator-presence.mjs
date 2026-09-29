@@ -84,9 +84,10 @@ async function presenceModule(globals) {
   } };
   const load = await loader({ '@/lib/events': events }, { globals });
   const presence = await load('@/lib/dm/narrator-presence');
+  const status = await load('@/lib/dm/status');
   const clock = fakeClock(presence);
   const state = campaignId => ({ ...presence.getNarratorPresence(campaignId) });
-  return { presence, published, failures, clock, state };
+  return { presence, status, published, failures, clock, state };
 }
 
 test('counts doorbell streams per campaign; only 0 -> 1 publishes online', async () => {
@@ -143,6 +144,21 @@ test('offline is debounced; a reconnect inside the window is a silent flap', asy
   const third = presence.acquireNarratorPresence(CAMPAIGN);
   assert.deepEqual(published.at(-1)[2], { online: true, since: 80_000 }, 'back online after a confirmed offline publishes again');
   third();
+});
+
+test('a narrator that left no longer shows turn activity to the table', async () => {
+  const { presence, status, published, clock } = await presenceModule();
+  const release = presence.acquireNarratorPresence(CAMPAIGN);
+  status.setDmStatus(CAMPAIGN, 'thinking');
+  release();
+  clock.advance(5000);
+  assert.equal(status.getDmStatus(CAMPAIGN), 'idle', 'a crashed host mid-turn must not leave "thinking" forever');
+  assert.deepEqual(published.at(-1).slice(0, 3), [CAMPAIGN, 'dm_status', { state: 'idle' }]);
+  const again = presence.acquireNarratorPresence(CAMPAIGN);
+  status.setDmStatus(CAMPAIGN, 'awaiting_rolls');
+  again();
+  clock.advance(5000);
+  assert.equal(status.getDmStatus(CAMPAIGN), 'awaiting_rolls', 'waiting for players stays: it is the table\'s move');
 });
 
 test('a failing event bus never breaks the stream that acquired or released', async () => {

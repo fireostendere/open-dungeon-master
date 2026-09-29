@@ -1,3 +1,4 @@
+import { getDmStatus, setDmStatus, type DmStatusState } from "@/lib/dm/status";
 import { publishEphemeral } from "@/lib/events";
 
 // Whether the external narrator's host is listening, per campaign. The signal
@@ -28,6 +29,9 @@ export type NarratorPresenceClock = {
 type Entry = { streams: number; online: boolean; since: number | null; offlineAt: number | null; offlineTimer: unknown };
 
 export const NARRATOR_OFFLINE_GRACE_MS = 5_000;
+// Turn activity only the external narrator reports; a host that left cannot
+// still be doing it, so the table must not show "thinking" forever.
+const NARRATOR_TURN_STATES = new Set<DmStatusState>(["thinking", "rolling", "narrating"]);
 
 declare global {
   var __odmNarratorPresence: Map<string, Entry> | undefined;
@@ -78,6 +82,11 @@ function goOffline(campaignId: string) {
   entry.since = entry.offlineAt ?? clock().now();
   entry.offlineAt = null;
   publish(campaignId, entry);
+  try {
+    if (NARRATOR_TURN_STATES.has(getDmStatus(campaignId))) setDmStatus(campaignId, "idle");
+  } catch (error) {
+    console.error("[narrator-presence] status reset failed", error);
+  }
 }
 
 /**
