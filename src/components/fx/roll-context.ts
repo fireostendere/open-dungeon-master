@@ -22,6 +22,8 @@ export type RollTarget = {
   /** Enemy health band when the campaign shows it ("bloodied", ...). */
   health?: string;
   hpPercent?: number;
+  /** Armour class, only when this seat may see it (the DM's view). */
+  ac?: number;
 };
 
 export type RollContext = {
@@ -30,7 +32,8 @@ export type RollContext = {
   /** Short action label: weapon, skill, ability, spell. */
   action: string;
   target: RollTarget | null;
-  stakes: { kind: "dc"; value: number } | { kind: "ac" } | { kind: "none" };
+  /** What the roll must beat: a DC, the target's AC (null while hidden), or nothing. */
+  stakes: { kind: "dc"; value: number } | { kind: "ac"; value: number | null } | { kind: "none" };
   requestedBy: "dm" | "player";
   reason: string | null;
   /** Where the dice come from: your hand, another seat, or the DM's side. */
@@ -57,7 +60,7 @@ export type ContextSheet = {
   portrait?: { url: string } | null;
 };
 
-export type ContextEnemy = { id: string; name: string; health?: string; hpPercent?: number; hidden?: boolean };
+export type ContextEnemy = { id: string; name: string; health?: string; hpPercent?: number; ac?: number; hidden?: boolean };
 
 export type ContextLocale = {
   skill: (id: string) => string | undefined;
@@ -157,14 +160,18 @@ export function describeRoll(
 
   if (input.targetEnemyId) {
     const enemy = env.enemies.find((e) => e.id === input.targetEnemyId);
-    if (enemy) target = { name: enemy.name, kind: "enemy", health: enemy.health, hpPercent: enemy.hpPercent };
+    if (enemy) target = { name: enemy.name, kind: "enemy", health: enemy.health, hpPercent: enemy.hpPercent, ac: enemy.ac };
   } else if (target?.kind === "enemy") {
     const enemy = env.enemies.find((e) => e.name.toLowerCase() === target!.name.toLowerCase());
-    if (enemy) target = { ...target, health: enemy.health, hpPercent: enemy.hpPercent };
+    if (enemy) target = { ...target, health: enemy.health, hpPercent: enemy.hpPercent, ac: enemy.ac };
   }
 
   const stakes: RollContext["stakes"] =
-    input.dc !== null && input.dc !== undefined ? { kind: "dc", value: input.dc } : icon === "attack" ? { kind: "ac" } : { kind: "none" };
+    input.dc !== null && input.dc !== undefined
+      ? { kind: "dc", value: input.dc }
+      : icon === "attack"
+        ? { kind: "ac", value: target?.ac ?? null }
+        : { kind: "none" };
 
   return {
     actor,

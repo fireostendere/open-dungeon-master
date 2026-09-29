@@ -124,7 +124,9 @@ assert.equal(attack.throwFrom, "bottom");
 assert.equal(attack.action, "Longbow");
 assert.equal(attack.target.name, "Goblin Archer");
 assert.equal(attack.target.hpPercent, 40, "the target's HP bar comes from the encounter");
-assert.equal(attack.stakes.kind, "ac");
+assert.deepEqual(attack.stakes, { kind: "ac", value: null }, "players do not see the target's AC");
+const dmView = describeRoll({ kind: "attack", detail: "Эйра: Longbow vs Goblin Archer", dc: null, characterId: "pc-1" }, { ...env, enemies: [{ ...env.enemies[0], ac: 13 }] });
+assert.deepEqual(dmView.stakes, { kind: "ac", value: 13 }, "the DM's projection shows the real AC");
 
 const ally = describeRoll({ kind: "saving_throw", detail: "Торин: DEX save vs Fireball", dc: 15, characterId: "pc-2" }, env);
 assert.equal(ally.actor.kind, "ally");

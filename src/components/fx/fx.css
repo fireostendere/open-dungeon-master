@@ -363,11 +363,8 @@
   color: #fff3d0;
   text-shadow: 0 0 18px rgba(255, 190, 90, 0.55), 0 2px 0 rgba(60, 30, 0, 0.8);
 }
-.fx-medal__shield {
-  position: relative;
-  margin-top: 12px;
-  color: #f3d27a;
-  filter: drop-shadow(0 0 10px rgba(255, 190, 90, 0.5));
+.fx-medal__value--sm {
+  font-size: 32px;
 }
 .fx-medal__value--expr {
   font-size: 22px;
@@ -375,6 +372,9 @@
 }
 .fx-medal--beaten {
   animation: fx-medal-beaten 900ms var(--fx-ease) both;
+}
+.fx-medal--revealed {
+  animation: fx-medal-reveal 700ms var(--fx-ease-back) both;
 }
 .fx-medal--held {
   animation: fx-medal-held 520ms ease-in-out both;
@@ -1460,6 +1460,11 @@
   30% { transform: scale(1.18); filter: brightness(1.8); }
   100% { transform: scale(0.92); opacity: 0.55; filter: saturate(0.4); }
 }
+@keyframes fx-medal-reveal {
+  0% { transform: scale(1); filter: brightness(1); }
+  35% { transform: scale(1.16); filter: brightness(1.9); }
+  100% { transform: none; filter: brightness(1.1); }
+}
 @keyframes fx-medal-held {
   0%, 100% { transform: none; }
   20% { transform: translateX(-7px) rotate(-3deg); }
@@ -1632,6 +1637,9 @@
   }
   .fx-medal__value {
     font-size: 36px;
+  }
+  .fx-medal__value.fx-medal__value--sm {
+    font-size: 26px;
   }
   .fx-total__value {
     font-size: 52px;

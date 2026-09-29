@@ -34,6 +34,7 @@ const COPY = {
     asks: "The DM asks",
     dc: "DC",
     vsAc: "Target AC",
+    acHidden: "The target's armour class is hidden. After the roll you learn whether it is at most your total (hit) or above it (miss).",
     armor: "target's armor",
     total: "Total",
     die: "d{n}",
@@ -71,6 +72,7 @@ const COPY = {
     asks: "Мастер просит",
     dc: "СЛ",
     vsAc: "КД цели",
+    acHidden: "Класс доспеха цели скрыт. После броска станет ясно: он не выше вашего итога (попадание) или выше (промах).",
     armor: "доспеха цели",
     total: "Итог",
     die: "к{n}",
@@ -851,6 +853,17 @@ export function DiceRollOverlay({
   const chips = roll ? buildChips(roll, copy, hiddenDice) : [];
   const icon = context?.icon ?? "custom";
   const dc = roll?.dc ?? activePending?.dc ?? null;
+  // The target's AC: known to the DM; for players "?" until the verdict,
+  // which reveals a bound (a hit means AC <= total, a miss AC > total).
+  const acKnown = context?.stakes.kind === "ac" ? context.stakes.value : null;
+  const acText =
+    acKnown !== null
+      ? String(acKnown)
+      : roll && verdict === "success"
+        ? `≤${roll.total}`
+        : roll && verdict === "fail"
+          ? `>${roll.total}`
+          : "?";
   const verdictTone =
     verdict === "crit" || verdict === "success" || verdict === "initiative" ? "gold"
     : verdict === "fumble" || verdict === "fail" || verdict === "damage" ? "crimson"
@@ -957,9 +970,12 @@ export function DiceRollOverlay({
           {context?.stakes.kind !== "none" ? (
             <div
               ref={medalRef}
+              title={context?.stakes.kind === "ac" && acKnown === null ? copy.acHidden : undefined}
               className={cn(
                 "fx-medal",
-                verdict === "success" || verdict === "crit" ? "fx-medal--beaten" : verdict === "fail" || verdict === "fumble" ? "fx-medal--held" : "",
+                verdict === "success" || verdict === "crit"
+                  ? context?.stakes.kind === "ac" ? "fx-medal--revealed" : "fx-medal--beaten"
+                  : verdict === "fail" || verdict === "fumble" ? "fx-medal--held" : "",
               )}
             >
               <svg viewBox="0 0 116 116">
@@ -1002,7 +1018,7 @@ export function DiceRollOverlay({
               ) : context?.stakes.kind === "ac" ? (
                 <>
                   <span className="fx-medal__label">{copy.vsAc}</span>
-                  <FxIcon name="shield" size={34} className="fx-medal__shield" />
+                  <span className={cn("fx-medal__value", acText.length > 2 && "fx-medal__value--sm")}>{acText}</span>
                 </>
               ) : null}
               {verdict === "success" || verdict === "crit" ? <span className="fx-medal__shock" /> : null}

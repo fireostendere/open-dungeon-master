@@ -29,7 +29,8 @@ export function DiceOverlay({
     () =>
       (encounter?.enemies ?? [])
         .filter((enemy) => !enemy.hidden)
-        .map((enemy) => ({ id: enemy.id, name: enemy.name, health: enemy.health, hpPercent: enemy.hpPercent })),
+        // `ac` only reaches the DM's projection; players see "?" and learn a bound.
+        .map((enemy) => ({ id: enemy.id, name: enemy.name, health: enemy.health, hpPercent: enemy.hpPercent, ac: enemy.ac })),
     [encounter?.enemies],
   );
   return (
