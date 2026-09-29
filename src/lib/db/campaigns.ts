@@ -7,7 +7,9 @@ import { normalizeCampaignKind, type CampaignKind } from "@/lib/workshop/kind";
 import type {
   CampaignCover,
   CampaignDifficulty,
+  CampaignEnding,
   CampaignMember,
+  CampaignOutcome,
   CampaignStatus,
   CampaignSummary,
   GlobalTurnState,
@@ -55,6 +57,8 @@ export type CombatSubmissionGate = {
   submissionMessageId?: string;
   requiresEndTurn: boolean;
   mechanicsResolved: boolean;
+  // When the table went on hold, so a stuck handoff can be recognized.
+  heldAt?: string;
 };
 export type Floor =
   | { mode: "open" }
@@ -86,6 +90,8 @@ export type Campaign = CampaignSummary & {
   // XP, marching order (src/lib/dm/party-logic.ts).
   party: PartyState;
   globalTurnState: GlobalTurnState;
+  // Epilogue and who closed it, once ended (outcome itself is on the summary).
+  ending: CampaignEnding | null;
 };
 
 type CampaignRow = {
@@ -115,6 +121,8 @@ type CampaignRow = {
   scene: string;
   quest_log_json: string;
   cover_json: string | null;
+  outcome?: string | null;
+  ending_json?: string | null;
   created_at: string;
   updated_at: string;
   player_count?: number;
@@ -299,6 +307,8 @@ function mapCampaign(row: CampaignRow): Campaign {
     role: row.member_role ?? (row.owner_user_id ? "player" : "player"),
     cover: normalizeCampaignCover(parseJson(row.cover_json ?? "", null)),
     genre: gameSettings.genre,
+    outcome: row.status === "ended" && (row.outcome === "victory" || row.outcome === "defeat") ? row.outcome : null,
+    ending: row.status === "ended" ? normalizeEnding(parseJson(row.ending_json ?? "", null)) : null,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     scene: row.scene,
@@ -662,6 +672,26 @@ export function setCampaignStatus(campaignId: string, status: CampaignStatus) {
   getDatabase()
     .prepare(`UPDATE campaigns SET status = ?, updated_at = ? WHERE id = ?`)
     .run(status, nowIso(), campaignId);
+}
+
+// Status "ended" plus how it ended, in one write. Callers do the cleanup and
+// publish (src/lib/dm/campaign-ending.ts).
+export function setCampaignEnding(campaignId: string, outcome: CampaignOutcome, ending: CampaignEnding) {
+  getDatabase()
+    .prepare(`UPDATE campaigns SET status = 'ended', outcome = ?, ending_json = ?, updated_at = ? WHERE id = ?`)
+    .run(outcome, JSON.stringify(ending), nowIso(), campaignId);
+}
+
+function normalizeEnding(raw: unknown): CampaignEnding | null {
+  if (!raw || typeof raw !== "object") return null;
+  const value = raw as Partial<CampaignEnding>;
+  const endedBy = value.endedBy === "narrator" || value.endedBy === "dm" || value.endedBy === "owner" || value.endedBy === "operator"
+    ? value.endedBy : "owner";
+  return {
+    epilogue: typeof value.epilogue === "string" ? value.epilogue.slice(0, 12000) : "",
+    endedAt: typeof value.endedAt === "string" ? value.endedAt : "",
+    endedBy,
+  };
 }
 
 export function updateGameSettings(

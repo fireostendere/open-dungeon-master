@@ -35,6 +35,9 @@ import { consoleAdjudications } from "@/lib/dm/invoke-catalog";
 import { invokeEngineSynchronous } from "@/lib/dm/invoke";
 import { handleRequestPlayerInput } from "@/lib/dm/basic-adjudications";
 import { persistHumanNarration } from "@/lib/dm/human-narration";
+import { closeCampaign } from "@/lib/dm/campaign-ending";
+import { assertPlayerFacingArgs, assertPlayerFacingText, NarrationGuardError } from "@/lib/dm/narration-guard";
+import { combatHandoffState, passCombatTurn } from "@/lib/dm/human-turn-lifecycle";
 import { setDmStatus } from "@/lib/dm/status";
 import { executeNarratorCommand, NarratorCommandError as McpNarratorControlError } from "@/lib/dm/narrator-command";
 import { completeGlobalTurn, recordGlobalTurnAction, sealGlobalTurnNow, startGlobalTurn } from "@/lib/dm/global-turn-logic";
@@ -86,12 +89,25 @@ function campaignOrHuman(campaignId: string) {
 }
 function safeCampaign(campaign: NonNullable<ReturnType<typeof getCampaignById>>) {
   return {
-    id: campaign.id, title: campaign.title, description: campaign.description, status: campaign.status, theme: campaign.theme, scene: campaign.scene, questLog: campaign.questLog,
+    id: campaign.id, title: campaign.title, description: campaign.description, status: campaign.status,
+    outcome: campaign.outcome, ending: campaign.ending, theme: campaign.theme, scene: campaign.scene, questLog: campaign.questLog,
     difficulty: campaign.difficulty, startingLevel: campaign.startingLevel, dmMode: campaign.gameSettings.dmMode, dmUserId: campaign.dmUserId, leadUserId: campaign.leadUserId,
     gameSettings: campaign.gameSettings, globalTurnState: campaign.globalTurnState,
     dmOutline: campaign.storyArc ? "" : campaign.dmOutline, storyArc: campaign.storyArc,
     floor: campaign.floor, clock: campaign.clock, party: campaign.party,
+    turnLock: narratorTurnLock(campaign),
   };
+}
+// The combat hold, spelled out for the narrator: players are locked and the
+// next actor gets the floor only on the narrator's explicit handoff.
+function narratorTurnLock(campaign: NonNullable<ReturnType<typeof getCampaignById>>) {
+  const handoff = combatHandoffState(campaign.id, campaign.floor);
+  if (handoff.state === "none") return null;
+  return handoff.state === "ready"
+    ? { state: "awaiting_pass", characterId: handoff.characterId,
+      note: "Turn resolved, initiative not moved yet; players are locked. Finish the narration and send the last message with passTurn:true (or call release_floor)." }
+    : { state: "resolving", characterId: handoff.characterId, pendingRolls: handoff.pendingRolls,
+      note: "A player's combat turn is submitted and waits for you: resolve it (engine actions, then end_turn), narrate, and hand it over with passTurn:true." };
 }
 type CatalogOptions = { summaryOnly?: boolean; category?: string; action?: string };
 function catalog(options: CatalogOptions = {}) {
@@ -330,6 +346,12 @@ function orchestrationSnapshot(raw: unknown) {
   }
 }
 
+// Refuse player-visible text that carries protocol or operator talk before
+// the write is admitted: nothing is stored and the seq does not move.
+function guardPlayerText(check: () => void) {
+  try { check(); }
+  catch (error) { if (error instanceof NarrationGuardError) throw new McpNarratorControlError(error.message, 400); throw error; }
+}
 function serializedWrite(params: z.infer<typeof writeBase>, operation: string, payload: unknown,
   work: (campaign: NonNullable<ReturnType<typeof getCampaignById>>) => Record<string, unknown>,
   acceptUnrelated?: (campaign: NonNullable<ReturnType<typeof getCampaignById>>, currentSeq: number) => boolean) {
@@ -344,6 +366,7 @@ async function invoke(raw: unknown) {
   if (!p.success) throw new McpNarratorControlError(z.prettifyError(p.error));
   if (!EXTERNAL_NARRATOR_ACTIONS.has(p.data.name)) throw new McpNarratorControlError("That action is not available to an external narrator.", 403);
   if (p.data.scopeRoomId && (p.data.name !== "location_narrate" || p.data.args.roomId !== p.data.scopeRoomId)) throw new McpNarratorControlError("Room concurrency scope is only valid for location_narrate in that room.", 400);
+  guardPlayerText(() => assertPlayerFacingArgs(p.data.name, p.data.args));
   return serializedWrite(p.data, "narrator.invoke", { name: p.data.name, args: p.data.args, ...(p.data.scopeRoomId ? { scopeRoomId: p.data.scopeRoomId } : {}) }, campaign => {
     if (Object.hasOwn(SPATIAL_NARRATOR_OPERATIONS, p.data.name)) return invokeSpatialForNarrator(campaign.id, campaign.dmUserId!, p.data.name, p.data.args, p.data.commandId);
     const scoped = scopeBattleMapInvocation(campaign.id, campaign.dmUserId!, p.data.name, p.data.args);
@@ -417,6 +440,7 @@ async function deleteMessage(raw: unknown) {
 async function editMessage(raw: unknown) {
   const p = writeBase.extend({ messageId: id, content: z.string().min(1).max(MAX_EDITED_LENGTH * 2) }).safeParse(raw);
   if (!p.success) throw new McpNarratorControlError(z.prettifyError(p.error));
+  guardPlayerText(() => assertPlayerFacingText(p.data.content, "edit"));
   return serializedWrite(p.data, "narrator.edit_message", { messageId: p.data.messageId, content: p.data.content }, campaign => {
     const message = getCampaignMessage(p.data.messageId);
     if (!message || message.campaignId !== campaign.id) throw new McpNarratorControlError("Message not found in this campaign.", 404);
@@ -438,10 +462,15 @@ async function narrate(raw: unknown) {
     content: z.string().trim().min(1).max(8000),
     turnId: id.optional(),
     releaseFloor: z.boolean().optional(),
+    passTurn: z.boolean().optional(),
     completeGlobalRound: z.number().int().min(1).optional(),
     startGlobalRound: z.number().int().min(1).optional(),
   }).safeParse(raw);
   if (!p.success) throw new McpNarratorControlError(z.prettifyError(p.error));
+  guardPlayerText(() => assertPlayerFacingText(p.data.content, "narration"));
+  // A combat turn a player submitted is handed on only by the narrator's
+  // last message about it; releaseFloor means the same thing there.
+  const handOver = Boolean(p.data.passTurn || p.data.releaseFloor);
   return serializedWrite(
     p.data,
     "narrator.narrate",
@@ -449,6 +478,7 @@ async function narrate(raw: unknown) {
       content: p.data.content,
       turnId: p.data.turnId,
       releaseFloor: p.data.releaseFloor,
+      ...(p.data.passTurn !== undefined ? { passTurn: p.data.passTurn } : {}),
       completeGlobalRound: p.data.completeGlobalRound,
       startGlobalRound: p.data.startGlobalRound,
     },
@@ -458,10 +488,11 @@ async function narrate(raw: unknown) {
       if (!turn || turn.campaignId !== campaign.id || turn.actor !== "human_dm") throw new McpNarratorControlError("Narration turn does not belong to this human-DM campaign.", 409);
     }
     if (spatialEnabled(campaign.id)) throw new McpNarratorControlError("Use narrator.invoke location_narrate with an explicit roomId for this campaign.", 409);
-    if (p.data.releaseFloor) {
-      const floor = getFloor(campaign.id);
-      if (listOpenPendingRolls(campaign.id).length) throw new McpNarratorControlError("Resolve pending physical rolls before releasing the floor.", 409);
-      if (floor.mode === "hold" && floor.combat?.requiresEndTurn && !floor.combat.mechanicsResolved) throw new McpNarratorControlError("Combat mechanics must finish before the floor can be released.", 409);
+    if (handOver) {
+      if (listOpenPendingRolls(campaign.id).length) throw new McpNarratorControlError("Resolve pending physical rolls before passing the turn; nothing was written.", 409);
+      if (combatHandoffState(campaign.id).state === "resolving") {
+        throw new McpNarratorControlError("This combat turn is not resolved yet: call end_turn (or completeTurn) for the acting character first, then send this narration with passTurn:true. Nothing was written.", 409);
+      }
     }
     if (
       p.data.completeGlobalRound !== undefined &&
@@ -498,7 +529,8 @@ async function narrate(raw: unknown) {
         );
       }
     }
-    const message = persistHumanNarration(campaign, p.data.content, campaign.dmUserId!);
+    const heldBefore = combatHandoffState(campaign.id).state !== "none";
+    const message = persistHumanNarration(campaign, p.data.content, campaign.dmUserId!, { passTurn: handOver });
     if (takeDirectorArm(campaign.id)) {
       publishPersisted(campaign.id, "director_armed", { armed: false, oneShot: null, absoluteCommand: "" });
     }
@@ -534,11 +566,18 @@ async function narrate(raw: unknown) {
         nextGlobalRound: completed.roundNumber,
       };
     }
+    const handoff = combatHandoffState(campaign.id);
+    const turnHandoff = handoff.state === "ready"
+      ? { status: "awaiting_pass", note: "Players are still locked (nobody's turn). Post any remaining narration for this turn, and send the last message with passTurn:true (or call release_floor) to move initiative." }
+      : handoff.state === "resolving"
+        ? { status: "resolving", note: "Players are locked until this turn is resolved: finish its mechanics and end_turn, then narrate with passTurn:true." }
+        : heldBefore ? { status: "passed" } : undefined;
     return {
       messageId: message.id,
       ...(p.data.turnId ? { turnId: p.data.turnId } : {}),
       ...(floorResult ?? {}),
       ...(globalTurnResult ?? {}),
+      ...(turnHandoff ? { turnHandoff } : {}),
     };
   },
   );
@@ -760,6 +799,31 @@ async function autopilotAction(raw: unknown) {
   );
 }
 
+// Closes the campaign with a victory or a defeat from any state: mid-fight,
+// with dice or Asks outstanding, under a held turn. Allowed on an ended
+// campaign too, to correct the outcome or epilogue (and so a retried command
+// still finds its receipt).
+async function endCampaign(raw: unknown) {
+  const p = writeBase.extend({
+    outcome: z.enum(["victory", "defeat"]),
+    epilogue: z.string().trim().max(12000).optional(),
+  }).safeParse(raw);
+  if (!p.success) throw new McpNarratorControlError(z.prettifyError(p.error));
+  const { outcome, epilogue, ...base } = p.data;
+  guardPlayerText(() => assertPlayerFacingText(epilogue, "epilogue"));
+  return executeNarratorCommand({
+    ...base,
+    operation: "narrator.end_campaign",
+    payload: { outcome, ...(epilogue !== undefined ? { epilogue } : {}) },
+    loadState: () => {
+      const campaign = campaignOrHuman(base.campaignId);
+      if (campaign.kind !== "campaign") throw new McpNarratorControlError("Only a campaign can be ended.", 409);
+      return campaign;
+    },
+    work: campaign => closeCampaign(campaign, { outcome, epilogue, endedBy: "narrator" }) as unknown as Record<string, unknown>,
+  });
+}
+
 async function releaseFloor(raw: unknown) {
   const p = writeBase.safeParse(raw);
   if (!p.success) throw new McpNarratorControlError(z.prettifyError(p.error));
@@ -769,7 +833,12 @@ async function releaseFloor(raw: unknown) {
     }
     const current = getFloor(campaign.id);
     if (listOpenPendingRolls(campaign.id).length) throw new McpNarratorControlError("Resolve pending physical rolls before releasing the floor.", 409);
-    if (current.mode === "hold" && current.combat) throw new McpNarratorControlError("Combat adjudication is still in progress.", 409);
+    if (current.mode === "hold" && current.combat) {
+      // The narrator is done writing about a resolved combat turn: hand it on.
+      if (combatHandoffState(campaign.id, current).state !== "ready") throw new McpNarratorControlError("Combat adjudication is still in progress: call end_turn for the acting character first.", 409);
+      passCombatTurn(campaign);
+      return { floor: getFloor(campaign.id), turnHandoff: { status: "passed" } };
+    }
     const floor = current.mode === "hold" ? current.next : current;
     setFloor(campaign.id, floor); publishPersisted(campaign.id, "floor_changed", { floor });
     queueSkippedCombatTurn(campaign.id);
@@ -844,9 +913,9 @@ async function dispatchMcpNarratorControl(action: string, raw: unknown): Promise
       if (!p.success) throw new McpNarratorControlError(z.prettifyError(p.error));
       const campaign = campaignOrHuman(p.data.campaignId);
       const metadata = { currentSeq: latestSeq(campaign.id), timelineEpoch: campaignTimelineEpoch(campaign.id) };
-      const base = { instructions: "Read odm://narrator/playbook. Call narrator.read, drain until hasMore is false, then use its currentSeq as expectedSeq for exactly one invoke, narrate, delete_message, autopilot_action, finish_global_round, or release_floor. finish_global_round is only the no-prose spatial global-turn finalizer after all required room narrations commit. Persist a unique UUID commandId before each story write. After an ambiguous error, retry only the identical commandId, expectedSeq and payload to recover its receipt, never regenerate or modify a command. Consume the attached state delta after a confirmed write as its read, then drain any remaining pages/events. If readRequired is true, the write succeeded but its read failed: read again, never replay the effect. A player submits exactly one Do per turn, including dialogue. The first accepted Do leaves combat held until DM resolution and end_turn; in global-turn mode actionsByCharacter locks that character until round completion. end_turn advances initiative itself; narration never advances it. For a private reply provide exact replyToWhisperIds from playerWhispers. With globalTurn enabled, the campaign starts locked: wait for global_turn_narrator_trigger, narrate the opening, and send startGlobalRound equal to its roundNumber; only that confirmed narration unlocks players. After that, collect player messages until global_turn_ready; resolve the whole batch through that event seq. Autopilot player intent is generated only by the trusted host actor role and committed with autopilot_action; the server rechecks the player's live opt-in and round eligibility and never calls an LLM itself. In ordinary chat, narrate with completeGlobalRound set to its roundNumber so the confirmed MCP write advances and opens the next round atomically. In spatial mode, narrate every affected room separately with location_narrate; the trusted host performs the internal round finalizer only after all required room narrations commit. Do not narrate individual global-turn messages before the barrier. Check the pending asks queue on every read even when the story cursor is unchanged. Page it using afterAskSeq and askQueue.nextCursor; a fresh Ask scan may start at zero. answer_ask requires the pending ask version as expectedVersion and a persisted UUID commandId; it changes no story/floor state. For bounded reads use paged:true and drain pageCursor/nextPage before advancing the story cursor. Byte pages use a bounded frozen snapshot. stateDelta:true negotiates cached entity patches: keep the returned revision, apply patches only to the matching timeline/projection, and accept a full resync when the server no longer has the baseline. Carry the returned timelineEpoch on reads and writes; reconnect and discard incompatible pending work when it changes. Combat contract v6: refresh cached action schemas. Named heal now spends its own slot and casting action; do not separately use_spell_slot. combat_turn resolves an ordered declared plan with one receipt; preserve confirmed steps on blocked/awaiting_rolls. request_player_input can reopen only the same current actor for clarification, without a budget reset.",
-        contractVersion: 7, timelineVersion: 1,
-        features: { postWriteRead: true, frozenPages: true, liveDefaults: true, stateDelta: "odm.state.delta.v1", entityPatches: true, compoundCombatTurn: true, atomicHealing: true, explicitSneakAttack: true, mercyHealing2014: true } };
+      const base = { instructions: "Read odm://narrator/playbook. Call narrator.read, drain until hasMore is false, then use its currentSeq as expectedSeq for exactly one invoke, narrate, delete_message, autopilot_action, finish_global_round, or release_floor. finish_global_round is only the no-prose spatial global-turn finalizer after all required room narrations commit. Persist a unique UUID commandId before each story write. After an ambiguous error, retry only the identical commandId, expectedSeq and payload to recover its receipt, never regenerate or modify a command. Consume the attached state delta after a confirmed write as its read, then drain any remaining pages/events. If readRequired is true, the write succeeded but its read failed: read again, never replay the effect. A player submits exactly one Do per turn, including dialogue. In combat the first accepted Do holds the table: nobody may act (campaign.turnLock) until you hand the turn over. Resolve it with engine actions, including the enemies that act before the next hero, then end_turn or completeTurn: that records the resolution but does NOT move initiative. Post every narration message for the turn and send the LAST one with passTurn:true (or call release_floor); only that moves initiative, lets the server play enemies you skipped and announces the next actor. Never announce whose turn it is yourself. In global-turn mode actionsByCharacter locks that character until round completion. For a private reply provide exact replyToWhisperIds from playerWhispers. With globalTurn enabled, the campaign starts locked: wait for global_turn_narrator_trigger, narrate the opening, and send startGlobalRound equal to its roundNumber; only that confirmed narration unlocks players. After that, collect player messages until global_turn_ready; resolve the whole batch through that event seq. Autopilot player intent is generated only by the trusted host actor role and committed with autopilot_action; the server rechecks the player's live opt-in and round eligibility and never calls an LLM itself. In ordinary chat, narrate with completeGlobalRound set to its roundNumber so the confirmed MCP write advances and opens the next round atomically. In spatial mode, narrate every affected room separately with location_narrate; the trusted host performs the internal round finalizer only after all required room narrations commit. Do not narrate individual global-turn messages before the barrier. Check the pending asks queue on every read even when the story cursor is unchanged. Page it using afterAskSeq and askQueue.nextCursor; a fresh Ask scan may start at zero. answer_ask requires the pending ask version as expectedVersion and a persisted UUID commandId; it changes no story/floor state. For bounded reads use paged:true and drain pageCursor/nextPage before advancing the story cursor. Byte pages use a bounded frozen snapshot. stateDelta:true negotiates cached entity patches: keep the returned revision, apply patches only to the matching timeline/projection, and accept a full resync when the server no longer has the baseline. Carry the returned timelineEpoch on reads and writes; reconnect and discard incompatible pending work when it changes. Combat contract v6: refresh cached action schemas. Named heal now spends its own slot and casting action; do not separately use_spell_slot. combat_turn resolves an ordered declared plan with one receipt; preserve confirmed steps on blocked/awaiting_rolls. request_player_input can reopen only the same current actor for clarification, without a budget reset.",
+        contractVersion: 8, timelineVersion: 1,
+        features: { explicitTurnHandoff: true, campaignOutcome: true, postWriteRead: true, frozenPages: true, liveDefaults: true, stateDelta: "odm.state.delta.v1", entityPatches: true, compoundCombatTurn: true, atomicHealing: true, explicitSneakAttack: true, mercyHealing2014: true } };
       return { handled: true, result: p.data.stateDelta ? { ...base, cursor: metadata } : { ...base, state: read({ projection: "full", ...p.data }) } };
     }
     case "narrator.read": return { handled: true, result: read(raw) };
@@ -899,6 +968,7 @@ async function dispatchMcpNarratorControl(action: string, raw: unknown): Promise
     case "narrator.autopilot_action": return { handled: true, result: await autopilotAction(raw) };
     case "narrator.finish_global_round": return { handled: true, result: await finishGlobalRound(raw) };
     case "narrator.release_floor": return { handled: true, result: await releaseFloor(raw) };
+    case "narrator.end_campaign": return { handled: true, result: await endCampaign(raw) };
     case "narrator.set_floor": return { handled: true, result: await setNarratorFloor(raw) };
     case "narrator.request_response": return { handled: true, result: await requestNarratorResponse(raw) };
     case "narrator.answer_ask": {
@@ -909,6 +979,7 @@ async function dispatchMcpNarratorControl(action: string, raw: unknown): Promise
       }).strict().safeParse(raw);
       if (!p.success) throw new McpNarratorControlError(z.prettifyError(p.error));
       const campaign = campaignOrHuman(p.data.campaignId);
+      guardPlayerText(() => assertPlayerFacingText(p.data.answer, "Ask answer"));
       if (p.data.expectedSeq !== undefined && p.data.expectedSeq !== latestSeq(campaign.id)) throw new McpNarratorControlError("Stale narrator cursor; reread before answering.", 409);
       let updated;
       try { updated = answerAsk(campaign.id, p.data.askId, p.data.answer, p.data.citations, { expectedVersion: p.data.expectedVersion, commandId: p.data.commandId }); }
@@ -928,6 +999,7 @@ const storyWrites = new Set([
   "narrator.autopilot_action",
   "narrator.finish_global_round",
   "narrator.release_floor",
+  "narrator.end_campaign",
 ]);
 const readAfterSchema = z.union([z.boolean(), z.object({
   afterSeq: z.number().int().min(0).optional(), limit: z.number().int().min(1).max(100).optional(),

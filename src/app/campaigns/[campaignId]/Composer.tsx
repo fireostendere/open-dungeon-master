@@ -320,10 +320,13 @@ function ComposerInner({
           />
         ))}
         <FloorBanners
+          campaignId={campaignId}
           floor={floor}
           spotlighted={spotlighted}
           heldSpotlightNames={heldSpotlightNames}
           encounter={encounter}
+          sheets={sheets}
+          pendingRollCount={pendingRolls.length}
           steersStory={steersStory}
           onRelease={onReleaseFloor}
         />

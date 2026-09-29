@@ -22,7 +22,7 @@ import { ASYNC_ADJUDICATIONS, dispatchAdjudication, dispatchSynchronousAdjudicat
 import { executeDmTool } from "@/lib/dm/tool-transaction";
 import { scopedHumanTurn } from "@/lib/db/human-adjudication-scopes";
 import { getActiveEncounter } from "@/lib/db/encounters";
-import { finishHumanAdjudication } from "@/lib/dm/human-turn-lifecycle";
+import { combatHandoffState, finishHumanAdjudication } from "@/lib/dm/human-turn-lifecycle";
 import { parseCompleteTurn, combatCompletionDisposition, type CombatTurnKey } from "@/lib/dm/combat-completion";
 import { currentOperationSignal } from "@/lib/operation-scope.mjs";
 // "goblin x4" is the same shorthand a prepared encounter is saved in, so the
@@ -242,7 +242,13 @@ export function invokeEngineSynchronous(campaign: Campaign, actor: Actor, call: 
         if ("error" in result) return { ok: false, error: typeof result.error === "string" ? result.error : JSON.stringify(result.error) ?? "The engine refused this action." };
         if (actor.kind === "human") {
           finishHumanAdjudication(campaign, turn, entry.name);
-          if (entry.name === "end_turn") result.note = "Initiative advancement committed. Narrate confirmed outcomes; narration will not advance it again.";
+          if (entry.name === "end_turn") {
+            const handoff = combatHandoffState(campaign.id);
+            result.note = handoff.state === "none"
+              ? "Initiative advancement committed; the next actor is announced."
+              : "Turn resolved, initiative NOT moved: the table is nobody's until you hand it over. Play the enemies that act before the next hero now, post every narration message for this turn, and send the last one with passTurn:true (or call release_floor).";
+            result.turnHandoff = handoff.state === "none" ? "advanced" : "awaiting_pass";
+          }
           if (completion.requested && anchor) {
             const disposition = combatCompletionDisposition(anchor, currentPcTurnKey(campaign.id), listOpenPendingRolls(campaign.id).length);
             if (disposition === "complete") {

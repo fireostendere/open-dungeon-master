@@ -67,9 +67,14 @@ assert.equal(combo.result.status, 'completed', JSON.stringify(combo));
 assert.equal(combo.result.steps.length, 2);
 assert.equal(getSheetById(hero.id).spellcasting.slots['1'].used, 1);
 assert.ok(getSheetById(ally.id).currentHp > 1);
-assert.equal(getEncounter(encounter.id).turnIndex, 1, 'one compound turn advances exactly once');
+assert.equal(getEncounter(encounter.id).turnIndex, 0, 'a resolved turn waits for the handoff');
 assert.equal(getFloor(campaign.id).mode, 'hold', 'narration still owns the final publication gate');
+persistHumanNarration(campaign, 'The mace rises.', user.id, { passTurn: false });
+assert.equal(getEncounter(encounter.id).turnIndex, 0, 'a narration without the handoff keeps the table held');
+assert.equal(getFloor(campaign.id).mode, 'hold');
 persistHumanNarration(campaign, 'Hero finishes the strike.', user.id);
+assert.equal(getEncounter(encounter.id).turnIndex, 1, 'one compound turn advances exactly once, on the handoff');
+assert.equal(getFloor(campaign.id).mode, 'initiative');
 assert.deepEqual(listRecentMessages(campaign.id, 20).filter(message => message.seq > turnStartSeq &&
   (message.content === 'Hero finishes the strike.' || message.content.startsWith('It is now ')))
   .map(message => [message.authorType, message.content]), [
@@ -113,7 +118,7 @@ assert.equal(rogueCombo.ok, true, JSON.stringify(rogueCombo));
 assert.equal(rogueCombo.result.status, 'completed', JSON.stringify(rogueCombo));
 assert.deepEqual(rogueCombo.result.steps.map(step => step.name), ['pc_attack', 'take_action']);
 assert.equal(rogueCombo.result.steps[1].result.action, 'Hide', 'Cunning Action remains legal after the declared Sneak Attack');
-assert.equal(getEncounter(encounter.id).turnIndex, 1, 'the declared compound turn advances exactly once');
+assert.equal(getEncounter(encounter.id).turnIndex, 0, 'the declared compound turn waits for the handoff');
 
 reset();
 patchSheet(hero.id, { class: base.class, features: [], equipment: base.equipment });
@@ -153,6 +158,8 @@ const reactionState = getEncounter(encounter.id);
 reactionState.reactionsUsed = [hero.id, ally.id];
 saveEncounter(reactionState);
 assert.equal(call('end_turn', { characterId: hero.id }).ok, true);
+assert.deepEqual(getEncounter(encounter.id).reactionsUsed, [hero.id, ally.id], 'nothing refreshes before the handoff');
+persistHumanNarration(campaign, 'Hero steps back.', user.id);
 assert.deepEqual(getEncounter(encounter.id).reactionsUsed, [hero.id], 'only the incoming actor refreshes its reaction');
 
 // Physical dice preserve a hit-triggered Smite on a miss; a hit consumes it.
@@ -202,7 +209,7 @@ const mercyReceipt = await executeNarratorCommand(mercyCommand);
 assert.equal(mercyReceipt.result.result.status, 'completed', JSON.stringify(mercyReceipt));
 assert.equal(getSheetById(hero.id).resources.ki.used, 1);
 assert.ok(getSheetById(ally.id).currentHp >= 5 && getSheetById(ally.id).currentHp <= 8, 'server rolls d4 + Wisdom 3');
-assert.equal(getEncounter(encounter.id).turnIndex, 1);
+assert.equal(getEncounter(encounter.id).turnIndex, 0);
 const mercyState = { hp: getSheetById(ally.id).currentHp, seq: latestSeq(campaign.id) };
 assert.equal((await executeNarratorCommand(mercyCommand)).replayed, true);
 assert.deepEqual({ hp: getSheetById(ally.id).currentHp, seq: latestSeq(campaign.id) }, mercyState);

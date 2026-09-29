@@ -3,13 +3,17 @@ import { allocateSeq, getFloor, setFloor, type Campaign } from "@/lib/db/campaig
 import { getDatabase } from "@/lib/db/core";
 import { withCommittedEffects } from "@/lib/db/commit-effects";
 import { insertCampaignMessage } from "@/lib/db/messages";
-import { listOpenPendingRolls } from "@/lib/db/dm-turns";
 import { publishPersisted, publishWithSeq } from "@/lib/events";
-import { announceCurrentTurn, queueSkippedCombatTurn } from "@/lib/dm/encounter-tools";
+import { queueSkippedCombatTurn } from "@/lib/dm/encounter-tools";
+import { combatHandoffState, passCombatTurn } from "@/lib/dm/human-turn-lifecycle";
 
 // The shared, synchronous part of a human narration. Callers own optional
 // follow-up work (TTS and model-backed upkeep must stay out of external MCP).
-export function persistHumanNarration(campaign: Campaign, content: string, userId: string) {
+// `passTurn` says whether this message may hand a resolved combat turn to the
+// next actor. The DM console's single message does; the external narrator
+// passes it only on the last of its messages about the turn, so the table
+// stays nobody's while it writes.
+export function persistHumanNarration(campaign: Campaign, content: string, userId: string, options: { passTurn?: boolean } = {}) {
   if (spatialEnabled(campaign.id)) throw new SpatialError("Choose a location before narrating in this campaign.", 409);
   return withCommittedEffects(() => getDatabase().transaction(() => {
     const seq = allocateSeq(campaign.id);
@@ -22,16 +26,9 @@ export function persistHumanNarration(campaign: Campaign, content: string, userI
     });
     publishWithSeq(campaign.id, seq, "message_added", { message });
 
-    // A human DM may end the mechanics before writing narration. Keep the
-    // submitted turn closed until this message, then expose the already-
-    // advanced initiative floor.
-    const combatGate = getFloor(campaign.id);
-    if (combatGate.mode === "hold" && combatGate.combat &&
-      (!combatGate.combat.requiresEndTurn || combatGate.combat.mechanicsResolved) && !listOpenPendingRolls(campaign.id).length) {
-      setFloor(campaign.id, combatGate.next);
-      publishPersisted(campaign.id, "floor_changed", { floor: combatGate.next });
-      if (combatGate.combat.requiresEndTurn) announceCurrentTurn(campaign);
-    }
+    // A submitted combat turn stays closed until its mechanics are resolved
+    // and the handing-over message lands; only then does initiative move.
+    if ((options.passTurn ?? true) && combatHandoffState(campaign.id).state === "ready") passCombatTurn(campaign);
 
     if (campaign.gameSettings.holdSubmissions) {
       const current = getFloor(campaign.id);

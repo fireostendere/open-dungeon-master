@@ -155,7 +155,7 @@ export function SessionView({
     () => campaignId ? window.localStorage.getItem(`odm:seen_finale_${campaignId}`) === "true" : false,
     () => false,
   );
-  const closingDmMessage = useMemo(() => {
+  const lastDmMessage = useMemo(() => {
     if (campaign?.status !== "ended") return null;
     for (let i = messages.length - 1; i >= 0; i--) {
       if (messages[i].authorType === "dm") {
@@ -164,8 +164,19 @@ export function SessionView({
     }
     return null;
   }, [campaign?.status, messages]);
+  // The epilogue the DM closed the campaign with wins over the last message.
+  const epilogue = campaign?.status === "ended" ? campaign.ending?.epilogue?.trim() ?? "" : "";
+  const closingDmMessage = useMemo<CampaignMessage | null>(() => {
+    if (!epilogue) return lastDmMessage;
+    return lastDmMessage
+      ? { ...lastDmMessage, content: epilogue }
+      : { id: "epilogue", campaignId: campaignId ?? "", seq: 0, authorType: "dm", userId: null, characterId: null, content: epilogue, createdAt: campaign?.ending?.endedAt ?? "" };
+  }, [epilogue, lastDmMessage, campaignId, campaign?.ending?.endedAt]);
 
   const defaultCelebrationMode = useMemo<"victory" | "defeat">(() => {
+    // The recorded outcome decides; the guesses below only serve campaigns
+    // that ended before it was recorded.
+    if (campaign?.outcome) return campaign.outcome;
     const allDead =
       sheets.length > 0 &&
       sheets.every((s) => {
@@ -183,7 +194,7 @@ export function SessionView({
       return "defeat";
     }
     return "victory";
-  }, [sheets, closingDmMessage?.content]);
+  }, [campaign?.outcome, sheets, closingDmMessage?.content]);
 
   const openClosingMessage = useCallback(
     (mode?: "victory" | "defeat") => {
@@ -197,6 +208,15 @@ export function SessionView({
     },
     [campaignId, defaultCelebrationMode],
   );
+
+  // The DM just closed the campaign (or it closed while this player was
+  // away): open the finale once, without waiting for a click on the banner.
+  const finaleReady = campaign?.status === "ended" && Boolean(campaign.outcome) && !hasOpenedFinale;
+  useEffect(() => {
+    if (!finaleReady) return;
+    const timer = window.setTimeout(() => openClosingMessage(), 1500);
+    return () => window.clearTimeout(timer);
+  }, [finaleReady, openClosingMessage]);
 
   // The guided tour on screen, if any: the player's or the DM's.
   const [tour, setTour] = useState<"player" | "dm" | null>(null);

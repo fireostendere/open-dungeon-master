@@ -41,6 +41,9 @@ export async function POST(
   if (isErrorResponse(context)) {
     return context;
   }
+  if (context.campaign.status !== "active") {
+    return Response.json({ error: "The campaign is not running." }, { status: 409 });
+  }
 
   // Body parsing happens before the pending-roll lookup on purpose: with no
   // await between the status check and resolvePendingRoll below, concurrent

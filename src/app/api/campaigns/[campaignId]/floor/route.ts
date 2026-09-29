@@ -1,14 +1,25 @@
 import { z } from "zod";
 import { isErrorResponse, isLead, requireMember, steersStory } from "@/lib/campaign-api";
-import { getFloor, setFloor, type Floor } from "@/lib/db/campaigns";
+import { allocateSeq, getFloor, setFloor, type Floor } from "@/lib/db/campaigns";
 import { listSheets } from "@/lib/db/sheets";
 import { queueSkippedCombatTurn, skipCurrentTurn } from "@/lib/dm/encounter-tools";
 import { listOpenPendingRolls } from "@/lib/db/dm-turns";
 import { getActiveEncounter } from "@/lib/db/encounters";
-import { publishPersisted } from "@/lib/events";
+import { publishPersisted, publishWithSeq } from "@/lib/events";
+import { getDatabase } from "@/lib/db/core";
+import { withCommittedEffects } from "@/lib/db/commit-effects";
+import { enqueueDmJob } from "@/lib/dm/queue";
+import { insertCampaignMessage } from "@/lib/db/messages";
+import { combatHandoffState, passCombatTurn } from "@/lib/dm/human-turn-lifecycle";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+// What the table reads when the lead moves on without the DM.
+const FORCED_PASS = {
+  en: "The party lead passed the turn on without the DM's resolution.",
+  ru: "Лидер отряда передал ход дальше, не дождавшись мастера.",
+};
 
 // A person running the table wants the opposite verb too: not only "let
 // them go" but "hold it", and "you two, now". `set` takes the floor
@@ -16,6 +27,11 @@ export const dynamic = "force-dynamic";
 // behavior, so nothing that already calls it changes.
 const setFloorSchema = z.object({
   set: z.enum(["open", "hold", "spotlight"]).optional(),
+  // A held combat turn: hand it to the next actor. Without `force` only a
+  // turn the DM has resolved; with it, the escape hatch for a narrator that
+  // went silent mid-turn (the submitted action is dropped unresolved).
+  passTurn: z.boolean().optional(),
+  force: z.boolean().optional(),
   // spotlight only.
   characterIds: z.array(z.string()).max(12).optional(),
   prompt: z.string().trim().max(300).optional(),
@@ -44,7 +60,32 @@ export async function POST(
     return Response.json({ error: "Resolve pending physical rolls before changing the floor." }, { status: 409 });
   }
   if (floor.mode === "hold" && floor.combat) {
-    return Response.json({ error: "Combat adjudication is still in progress. Only OOC is available." }, { status: 409 });
+    const handoff = combatHandoffState(campaignId, floor);
+    const force = Boolean(parsed.success && parsed.data.force);
+    if (!(parsed.success && parsed.data.passTurn) || (handoff.state !== "ready" && !force)) {
+      return Response.json({ error: "Combat adjudication is still in progress. Only OOC is available." }, { status: 409 });
+    }
+    let failure: unknown = null;
+    await enqueueDmJob(campaignId, async () => {
+      try {
+        withCommittedEffects(() => getDatabase().transaction(() => {
+          const current = getFloor(campaignId);
+          if (current.mode !== "hold" || !current.combat) return;
+          if (combatHandoffState(campaignId, current).state !== "ready") {
+            // Forced: the DM never resolved it. Say so at the table, then
+            // move on as if it had been resolved.
+            setFloor(campaignId, { ...current, combat: { ...current.combat, mechanicsResolved: true } });
+            const seq = allocateSeq(campaignId);
+            const message = insertCampaignMessage({ campaignId, seq, authorType: "system",
+              content: FORCED_PASS[context.campaign.gameSettings.language === "en" ? "en" : "ru"] });
+            publishWithSeq(campaignId, seq, "message_added", { message });
+          }
+          passCombatTurn(context.campaign);
+        })());
+      } catch (error) { failure = error; }
+    });
+    if (failure) return Response.json({ error: failure instanceof Error ? failure.message : "Could not pass the turn." }, { status: 409 });
+    return Response.json({ ok: true, floor: getFloor(campaignId) });
   }
 
   const wanted = parsed.success ? parsed.data.set : undefined;

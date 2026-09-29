@@ -1255,6 +1255,11 @@ function ensureSchema(db: SqliteDatabase) {
     // a bare url column so it can grow (crop, credit) without another ALTER.
     // Readers validate the url through isUploadedImagePath, same as portraits.
     ["cover_json", `TEXT`],
+    // How an ended campaign ended ('victory' | 'defeat', NULL while it runs)
+    // and its closing record {epilogue, endedAt, endedBy}. No CHECK on the
+    // outcome: mapCampaign normalizes it, like `kind`.
+    ["outcome", `TEXT`],
+    ["ending_json", `TEXT`],
   ]);
 
   const userColumns = db.prepare(`PRAGMA table_info(users)`).all() as Array<{ name: string }>;

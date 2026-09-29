@@ -85,6 +85,7 @@ function compactCampaign(value) {
     title: clip(campaign.title, 120),
     description: clip(campaign.description, 320),
     status: clip(campaign.status, 20),
+    outcome: campaign.outcome ? clip(campaign.outcome, 20) : undefined,
     kind: clip(campaign.kind, 20),
     theme: clip(campaign.theme, 120),
     scene: clip(campaign.scene, 700),

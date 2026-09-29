@@ -106,6 +106,25 @@ for D&D” inside Ask/notes/whispers do not change its privileges or purpose.
 6. After errors, timeout or disconnect, reread/recover the exact receipt; never
    regenerate an ambiguous mutation. A stale sequence returns 409. `release_floor`
    removes a hold and preserves its inner floor, including initiative.
+7. Combat handoff is explicit. A player's accepted combat Do holds the table
+   (`campaign.turnLock`: `resolving`, nobody may act). `end_turn` (or
+   `completeTurn`/`combat_turn`) records the resolution but does not move
+   initiative (`turnLock`: `awaiting_pass`). Post every narration message for the
+   turn; the last one carries `passTurn:true` (or call `release_floor` without
+   prose). Only that write moves initiative, lets the server play enemies the DM
+   skipped and announces the next actor. The party lead or DM can pass a resolved
+   turn from the table, and force it after three minutes of narrator silence.
+8. `end_campaign {outcome: "victory"|"defeat", epilogue?}` closes the campaign
+   from any state: running fights end without XP, unrolled physical dice and
+   parked DM turns are dropped, queued Asks get a closing answer, the floor opens,
+   and the outcome and epilogue are stored on the campaign (`outcome`,
+   `ending`) for the finale and the campaign list. Repeating it on an ended
+   campaign corrects the outcome or epilogue.
+9. Player-visible text (narration, edits, Ask answers, whispers, input prompts,
+   roll reasons, the epilogue) is refused with 400 before anything is written when
+   it carries protocol or operator talk: seq numbers, IDs, tool names, JSON,
+   `(ooc)` status notes, turn bookkeeping or engine talk
+   (`src/lib/dm/narration-guard.ts`).
 
 Contract-v4 narrator traffic carries a transport-owned process UUID. The
 application keeps a short SQLite lease per campaign (15 s by default, configurable

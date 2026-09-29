@@ -67,7 +67,7 @@ export function projectEventForUser(campaignId: string, userId: string, event: P
     // is global; never smuggle scene state through a generic campaign envelope.
     const source = record(event.payload);
     const payload: Record<string, unknown> = {};
-    for (const key of ["title", "description", "theme", "status", "maxPlayers", "startingLevel", "difficulty"]) {
+    for (const key of ["title", "description", "theme", "status", "outcome", "ending", "maxPlayers", "startingLevel", "difficulty"]) {
       if (Object.hasOwn(source, key)) payload[key] = source[key];
     }
     return { ...visible, payload };

@@ -322,7 +322,7 @@ export async function POST(
       encounterId: floor.encounterId, round: floor.round, turnIndex: encounter?.turnIndex ?? 0,
       characterId: sheet.id, requiresEndTurn: true, mechanicsResolved: false,
     };
-    const held: Floor = { mode: "hold", next: floor, combat: { ...gate, submissionMessageId: message.id } };
+    const held: Floor = { mode: "hold", next: floor, combat: { ...gate, submissionMessageId: message.id, heldAt: new Date().toISOString() } };
     setFloor(campaignId, held);
     publishPersisted(campaignId, "floor_changed", { floor: held });
   }

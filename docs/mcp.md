@@ -39,7 +39,7 @@ redirect refusal and streaming/cancellation. It does not substitute admin rights
 | `odm_members` | roster, join an existing user, party lead |
 | `odm_characters` | library characters and campaign instantiation |
 | `odm_sheets` | live campaign sheets |
-| `odm_narrator` | connect/read/snapshot/catalog/invoke/narrate/edit_message/delete_message/autopilot_action/finish_global_round/set_floor/request_response/release_floor/answer_ask |
+| `odm_narrator` | connect/read/snapshot/catalog/invoke/narrate/edit_message/delete_message/autopilot_action/finish_global_round/set_floor/request_response/release_floor/answer_ask/end_campaign |
 | `odm_assets` | packs, jobs, leases, scoped upload/download, asset links |
 | `odm_progress` | revision-checked progress, party sync, finish receipts |
 

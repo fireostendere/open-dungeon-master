@@ -1051,7 +1051,7 @@ function handleEndTurn(
   }
   return {
     ok: true,
-    note: "Turn recorded. Narrate the result and stop; the server hands the floor onward.",
+    note: "Turn recorded. Narrate the result; the turn passes to the next actor only when you hand it over.",
   };
 }
 
@@ -1427,6 +1427,7 @@ export function endOwnTurn(campaignId: string, userId: string, skipped = false):
   const held = { mode: "hold" as const, next: floor, combat: {
     encounterId: encounter.id, round: encounter.round, turnIndex: encounter.turnIndex,
     characterId: current.characterId, submissionMessageId: message.id, requiresEndTurn: true, mechanicsResolved: false,
+    heldAt: new Date().toISOString(),
   } };
   setFloor(campaignId, held);
   publishPersisted(campaignId, "floor_changed", { floor: held });

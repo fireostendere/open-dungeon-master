@@ -599,6 +599,11 @@ export function campaignStreamReducer(state: CampaignState, action: Action): Cam
           next.campaign = state.campaign
             ? { ...state.campaign, ...(payload as Partial<Campaign>) }
             : state.campaign;
+          // Closing the campaign drops every unrolled die and ends the fight.
+          if (payload.status === "ended") {
+            next.pendingRolls = [];
+            next.encounter = null;
+          }
           return next;
         case "item_proposal_added": {
           const proposal = payload.proposal as ItemProposal | undefined;

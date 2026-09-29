@@ -343,7 +343,7 @@ export const COMBAT_ADJUDICATIONS: CatalogEntry[] = [
     name: "end_turn",
     label: "End a turn",
     category: "combat",
-    summary: "Moves the initiative pointer on from one combatant.",
+    summary: "Records that the current hero's turn is resolved. After a player's submitted turn, initiative does not move until your last narration about it carries passTurn:true (or release_floor); an unsubmitted turn advances at once.",
     needsEncounter: true,
     fields: [{ name: "characterId", label: "Whose turn", kind: "character", required: true }],
   },

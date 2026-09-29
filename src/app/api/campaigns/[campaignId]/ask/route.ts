@@ -20,6 +20,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ cam
   const context = await requireVoice(campaignId);
   if (isErrorResponse(context)) return context;
   const { campaign, user } = context;
+  if (campaign.status === "ended") return Response.json({ error: "The campaign has ended." }, { status: 409 });
   const parsed = askSchema.safeParse(await request.json().catch(() => ({})));
   if (!parsed.success) return Response.json({ error: "Invalid question." }, { status: 400 });
   const limited = enforcePlayerIngress(campaignId, user.id, "ask");

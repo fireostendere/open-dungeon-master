@@ -41,8 +41,10 @@ function fixture() {
     encounters.save(enc);
     f.events.publishPersisted('c1', 'encounter_updated', {});
   } };
-  const lifecycle = loadSource('src/lib/dm/human-turn-lifecycle.ts', { '@/lib/db/campaigns': f.campaigns, '@/lib/db/dm-turns': turns, '@/lib/db/encounters': encounters, '@/lib/dm/encounter-tools': encounterTools, '@/lib/events': f.events });
   const scopes = loadSource('src/lib/db/human-adjudication-scopes.ts', { '@/lib/db/core': f.core, '@/lib/db/dm-turns': turns });
+  let announcements = 0;
+  Object.assign(encounterTools, { announceCurrentTurn: () => { announcements++; }, queueSkippedCombatTurn() {} });
+  const lifecycle = loadSource('src/lib/dm/human-turn-lifecycle.ts', { '@/lib/db/campaigns': f.campaigns, '@/lib/db/dm-turns': turns, '@/lib/db/encounters': encounters, '@/lib/db/human-adjudication-scopes': scopes, '@/lib/dm/encounter-tools': encounterTools, '@/lib/events': f.events });
   const sheets = [{ id: 'pc1', slots: 3 }];
   let handler = () => ({ success: true });
   const dispatcher = {
@@ -61,7 +63,7 @@ function fixture() {
     '@/lib/operation-scope.mjs': operation,
   });
   return { ...f, ...invoke, ...lifecycle, campaign, turns, sheets, pending, encounters,
-    setHandler: (next) => { handler = next; }, counts: () => ({ advanceCalls, enemyAttacks }),
+    setHandler: (next) => { handler = next; }, counts: () => ({ advanceCalls, enemyAttacks }), announcements: () => announcements,
     invoke: (name, args = {}) => invoke.invokeEngineSynchronous(campaign, { kind: 'human', userId: 'dm' }, { name, args }),
   };
 }
@@ -138,6 +140,42 @@ test('M01: holding submissions preserves hold while committing one initiative tr
   assert.equal(f.encounters.getActiveEncounter().turnIndex, 1);
   assert.equal(f.campaigns.getFloor('c1').mode, 'hold');
   assert.equal(f.counts().advanceCalls, 1); f.close();
+});
+
+test('a submitted combat turn stays nobody\'s after end_turn until the explicit handoff', () => {
+  const f = fixture(); start(f);
+  const gate = { encounterId: 'enc', round: 1, turnIndex: 0, characterId: 'pc1', requiresEndTurn: true, mechanicsResolved: false };
+  f.campaigns.setFloor('c1', { mode: 'hold', next: { mode: 'initiative', encounterId: 'enc' }, combat: gate });
+  assert.equal(f.combatHandoffState('c1').state, 'resolving');
+  assert.throws(() => f.passCombatTurn(f.campaign), /not resolved yet/, 'no handoff before the DM resolves the turn');
+  const attack = f.invoke('pc_attack', { characterId: 'pc1' });
+  // The handler marks the gate resolved the way handleEndTurn does.
+  f.setHandler((name, raw, ctx) => {
+    const args = JSON.parse(raw);
+    if (name === 'end_turn') {
+      ctx.turn.resolvedCharacterIds.push(args.characterId);
+      const floor = f.campaigns.getFloor('c1');
+      f.campaigns.setFloor('c1', { ...floor, combat: { ...floor.combat, mechanicsResolved: true } });
+    }
+    return { ok: true };
+  });
+  const end = f.invoke('end_turn', { characterId: 'pc1' });
+  assert.equal(end.ok, true); assert.equal(end.turnId, attack.turnId);
+  assert.equal(end.result.turnHandoff, 'awaiting_pass');
+  assert.equal(f.encounters.getActiveEncounter().turnIndex, 0, 'initiative does not move on end_turn');
+  assert.equal(f.campaigns.getFloor('c1').mode, 'hold', 'players stay locked while the DM writes');
+  assert.equal(f.counts().advanceCalls, 0);
+  assert.equal(f.combatHandoffState('c1').state, 'ready');
+  f.pending.push({ turnId: 'other' });
+  assert.throws(() => f.passCombatTurn(f.campaign), /pending physical rolls/);
+  f.pending.length = 0;
+  assert.equal(f.passCombatTurn(f.campaign), true);
+  assert.equal(f.counts().advanceCalls, 1);
+  assert.equal(f.encounters.getActiveEncounter().turnIndex, 1);
+  assert.equal(f.campaigns.getFloor('c1').mode, 'initiative');
+  assert.equal(f.announcements(), 1, 'the next actor is announced once, by the handoff');
+  assert.equal(f.passCombatTurn(f.campaign), false, 'nothing is held any more');
+  f.close();
 });
 
 test('M01: pending physical roll prevents turn end without leaving resolved bookkeeping', () => {

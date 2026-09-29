@@ -159,7 +159,7 @@ function reset(options = {}) {
     encounter: { id: 'enc', orderReady: true, round: 1, turnIndex: 0,
       order: [{ kind: 'pc', characterId: 'pc-a' }, { kind: 'pc', characterId: 'pc-b' }] },
     floor: { mode: 'hold', next: { mode: 'initiative', encounterId: 'enc', round: 1 },
-      combat: { characterId: 'pc-a', requiresEndTurn: true, mechanicsResolved: false } },
+      combat: { encounterId: 'enc', round: 1, turnIndex: 0, characterId: 'pc-a', requiresEndTurn: true, mechanicsResolved: false } },
     pending: [], turn: { id: 'dm-turn', campaignId: 'campaign', actor: 'human_dm', status: 'done', resolvedCharacterIds: [] },
     damage: 0, ...options,
   };
@@ -217,6 +217,8 @@ const mocks = {
       state.encounter.turnIndex++;
       state.floor = { mode: 'initiative', encounterId: 'enc', round: 1 };
     },
+    announceCurrentTurn: () => { calls.push({ name: 'announce' }); },
+    queueSkippedCombatTurn: () => {},
   },
   '@/lib/events': { publishPersisted: () => {} },
   '@/lib/operation-scope.mjs': { currentOperationSignal: () => undefined },
@@ -256,8 +258,13 @@ await test('Final simple attack resolves and closes exactly once in one façade 
   assert.deepEqual(calls.map(call => call.name), ['pc_attack', 'end_turn']);
   assert.equal(Object.hasOwn(calls[0].args, 'completeTurn'), false, 'do not leak façade flags into rules handlers');
   assert.equal(state.damage, 3);
-  assert.equal(state.encounter.turnIndex, 1);
+  assert.equal(state.encounter.turnIndex, 0, 'resolved, but initiative waits for the handoff');
   assert.equal(state.floor.combat.mechanicsResolved, true);
+  assert.equal(result.result.turnCompletion.result.turnHandoff, 'awaiting_pass');
+  assert.equal(lifecycle.namespace.passCombatTurn(campaign), true);
+  assert.equal(state.encounter.turnIndex, 1);
+  assert.equal(state.floor.mode, 'initiative');
+  assert.deepEqual(calls.map(call => call.name), ['pc_attack', 'end_turn', 'announce']);
 });
 await test('Legacy/partial attacks keep the same actor for further declared actions', () => {
   reset();
@@ -303,7 +310,14 @@ await test('A refused attack never advances initiative', () => {
   assert.equal(state.encounter.turnIndex, 0);
   assert.deepEqual(calls.map(call => call.name), ['pc_attack']);
 });
-for (const option of ['blockEnd', 'throwAdvance']) await test(`${option}: keep the confirmed attack, not a reroll`, () => {
+await test('A failed handoff leaves the table held and the turn resolved', () => {
+  reset({ throwAdvance: true });
+  const result = invoke({ completeTurn: true });
+  assert.equal(result.result.turnCompletion.status, 'completed', 'end_turn itself no longer moves initiative');
+  assert.throws(() => lifecycle.namespace.passCombatTurn(campaign), /test advancement failure/);
+  assert.equal(state.encounter.turnIndex, 0);
+});
+for (const option of ['blockEnd']) await test(`${option}: keep the confirmed attack, not a reroll`, () => {
   reset({ [option]: true });
   const result = invoke({ completeTurn: true });
   assert.equal(result.ok, true);

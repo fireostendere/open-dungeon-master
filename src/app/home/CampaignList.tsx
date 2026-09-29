@@ -95,6 +95,8 @@ function CampaignTile({
       lobby: "lobby",
       active: "active",
       ended: "ended",
+      victory: "victory",
+      defeat: "defeat",
       level: "Level",
       start: "start",
       solo: "solo",
@@ -107,6 +109,8 @@ function CampaignTile({
       lobby: "лобби",
       active: "активна",
       ended: "завершена",
+      victory: "победа",
+      defeat: "поражение",
       level: "Уровень",
       start: "старт",
       solo: "соло",
@@ -117,7 +121,9 @@ function CampaignTile({
     },
   });
   const ended = campaign.status === "ended";
-  const statusLabel = campaign.status === "lobby" ? copy.lobby : campaign.status === "active" ? copy.active : copy.ended;
+  const outcome = ended ? campaign.outcome : null;
+  const statusLabel = campaign.status === "lobby" ? copy.lobby : campaign.status === "active" ? copy.active
+    : outcome === "victory" ? `🏆 ${copy.victory}` : outcome === "defeat" ? `💀 ${copy.defeat}` : copy.ended;
   return (
     <a
       href={`/campaigns/${campaign.id}`}
@@ -138,7 +144,9 @@ function CampaignTile({
             campaign.status === "lobby" && "border-sky-500/40 bg-sky-950/60 text-sky-300",
             campaign.status === "active" &&
               "border-emerald-500/40 bg-emerald-950/60 text-emerald-300",
-            ended && "border-stone-600/50 bg-stone-900 text-stone-400",
+            ended && !outcome && "border-stone-600/50 bg-stone-900 text-stone-400",
+            outcome === "victory" && "border-amber-500/50 bg-amber-950/60 text-amber-200",
+            outcome === "defeat" && "border-red-600/50 bg-red-950/60 text-red-300",
           )}
         >
           {statusLabel}

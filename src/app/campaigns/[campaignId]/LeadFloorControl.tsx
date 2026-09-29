@@ -33,7 +33,7 @@ function modeLabel(floor: Floor, copy: ReturnType<typeof floorCopy>): string {
     case "open":
       return copy.openDescription;
     case "hold":
-      return copy.heldDescription;
+      return floor.combat ? copy.resolvingDescription : copy.heldDescription;
     case "spotlight":
       return copy.spotlightDescription;
     case "initiative":
@@ -43,8 +43,8 @@ function modeLabel(floor: Floor, copy: ReturnType<typeof floorCopy>): string {
 
 function floorCopy(locale: Parameters<typeof localeText>[0]) {
   return localeText(locale, {
-    en: { floor: "The floor", openDescription: "Open: anyone may act.", heldDescription: "Held: nobody acts until you open it.", spotlightDescription: "Spotlight: only the named players may act.", initiativeDescription: "The initiative order has the floor while the fight runs.", changeFailed: "The floor did not change.", reachFailed: "Could not reach the table.", round: "Round", turn: "turn", skipTitle: "Skip the current player's turn", skip: "Skip turn", openTitle: "Let anyone act", open: "Open floor", holdTitle: "Hold every response while the table talks it over", hold: "Hold for talk", releaseTo: "On release: spotlight on", someone: "someone", answered: "answered", waiting: "waiting", releaseTitle: "Open the floor now; whatever has been answered goes to the DM", release: "Release", give: "Give the floor", noCharacters: "No player characters yet.", prompt: "What are you asking them? (optional)", spotlightTitle: "Only the picked players may act until each has answered or you release", spotlight: "Spotlight" },
-    ru: { floor: "Очередь слова", openDescription: "Открыта: действовать может любой.", heldDescription: "Приостановлена: никто не действует, пока вы её не откроете.", spotlightDescription: "В центре внимания: действовать могут только выбранные игроки.", initiativeDescription: "Во время боя очередь определяет порядок инициативы.", changeFailed: "Очередь слова не изменилась.", reachFailed: "Не удалось связаться со столом.", round: "Раунд", turn: "ход", skipTitle: "Пропустить ход текущего игрока", skip: "Пропустить ход", openTitle: "Разрешить действовать всем", open: "Открыть очередь", holdTitle: "Приостановить ответы, пока стол обсуждает", hold: "Пауза для обсуждения", releaseTo: "После открытия — внимание на", someone: "кого-то", answered: "ответил", waiting: "ожидает", releaseTitle: "Открыть очередь сейчас; полученные ответы уйдут мастеру", release: "Открыть", give: "Передать слово", noCharacters: "Персонажей игроков ещё нет.", prompt: "О чём вы их спрашиваете? (необязательно)", spotlightTitle: "Действовать смогут только выбранные игроки, пока все не ответят или вы не откроете очередь", spotlight: "В центр внимания" },
+    en: { floor: "The floor", resolvingDescription: "The DM is resolving a combat turn: nobody acts until they hand it on. The pass button appears above the message box once the turn is resolved.", openDescription: "Open: anyone may act.", heldDescription: "Held: nobody acts until you open it.", spotlightDescription: "Spotlight: only the named players may act.", initiativeDescription: "The initiative order has the floor while the fight runs.", changeFailed: "The floor did not change.", reachFailed: "Could not reach the table.", round: "Round", turn: "turn", skipTitle: "Skip the current player's turn", skip: "Skip turn", openTitle: "Let anyone act", open: "Open floor", holdTitle: "Hold every response while the table talks it over", hold: "Hold for talk", releaseTo: "On release: spotlight on", someone: "someone", answered: "answered", waiting: "waiting", releaseTitle: "Open the floor now; whatever has been answered goes to the DM", release: "Release", give: "Give the floor", noCharacters: "No player characters yet.", prompt: "What are you asking them? (optional)", spotlightTitle: "Only the picked players may act until each has answered or you release", spotlight: "Spotlight" },
+    ru: { floor: "Очередь слова", resolvingDescription: "Мастер разрешает боевой ход: никто не действует, пока он не передаст ход. Кнопка передачи появится над полем ввода, когда ход будет разрешён.", openDescription: "Открыта: действовать может любой.", heldDescription: "Приостановлена: никто не действует, пока вы её не откроете.", spotlightDescription: "В центре внимания: действовать могут только выбранные игроки.", initiativeDescription: "Во время боя очередь определяет порядок инициативы.", changeFailed: "Очередь слова не изменилась.", reachFailed: "Не удалось связаться со столом.", round: "Раунд", turn: "ход", skipTitle: "Пропустить ход текущего игрока", skip: "Пропустить ход", openTitle: "Разрешить действовать всем", open: "Открыть очередь", holdTitle: "Приостановить ответы, пока стол обсуждает", hold: "Пауза для обсуждения", releaseTo: "После открытия — внимание на", someone: "кого-то", answered: "ответил", waiting: "ожидает", releaseTitle: "Открыть очередь сейчас; полученные ответы уйдут мастеру", release: "Открыть", give: "Передать слово", noCharacters: "Персонажей игроков ещё нет.", prompt: "О чём вы их спрашиваете? (необязательно)", spotlightTitle: "Действовать смогут только выбранные игроки, пока все не ответят или вы не откроете очередь", spotlight: "В центр внимания" },
   });
 }
 
@@ -149,7 +149,7 @@ export function LeadFloorControl({
             {copy.skip}
           </button>
         </div>
-      ) : (
+      ) : floor.mode === "hold" && floor.combat ? null : (
         <>
           <div className="mt-2 flex flex-wrap gap-1.5">
             <button

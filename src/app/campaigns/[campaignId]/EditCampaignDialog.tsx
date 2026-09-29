@@ -39,13 +39,14 @@ export function EditCampaignDialog({
     // Same reason: the preview falls back to the generic plate without it.
     genre?: string;
     status?: "lobby" | "active" | "ended";
+    outcome?: "victory" | "defeat" | null;
   };
   onClose: () => void;
 }) {
   const { locale } = useI18n();
   const copy = localeText(locale, {
-    en: { title: "Edit campaign", name: "Title", description: "Premise", setting: "Setting", players: "Player slots", level: "Starting level", difficulty: "Difficulty", cover: "Cover art", upload: "Upload", painting: "Painting", paint: "Paint one", remove: "Remove", coverFailed: "The cover did not paint. Try again, or upload one.", save: "Save changes", status: "Campaign status", active: "Active", ended: "Ended (concluded)" },
-    ru: { title: "Изменить кампанию", name: "Название", description: "Завязка", setting: "Сеттинг", players: "Места для игроков", level: "Стартовый уровень", difficulty: "Сложность", cover: "Обложка", upload: "Загрузить", painting: "Рисуем", paint: "Создать", remove: "Удалить", coverFailed: "Не удалось создать обложку. Повторите попытку или загрузите свою.", save: "Сохранить изменения", status: "Статус кампании", active: "В процессе", ended: "Завершена (финал)" },
+    en: { title: "Edit campaign", name: "Title", description: "Premise", setting: "Setting", players: "Player slots", level: "Starting level", difficulty: "Difficulty", cover: "Cover art", upload: "Upload", painting: "Painting", paint: "Paint one", remove: "Remove", coverFailed: "The cover did not paint. Try again, or upload one.", save: "Save changes", status: "Campaign status", active: "Active", ended: "Ended (concluded)", outcome: "How did it end?", victory: "Victory", defeat: "Defeat", endNote: "Ending closes any running fight, unrolled dice and open questions." },
+    ru: { title: "Изменить кампанию", name: "Название", description: "Завязка", setting: "Сеттинг", players: "Места для игроков", level: "Стартовый уровень", difficulty: "Сложность", cover: "Обложка", upload: "Загрузить", painting: "Рисуем", paint: "Создать", remove: "Удалить", coverFailed: "Не удалось создать обложку. Повторите попытку или загрузите свою.", save: "Сохранить изменения", status: "Статус кампании", active: "В процессе", ended: "Завершена (финал)", outcome: "Чем всё закончилось?", victory: "Победа", defeat: "Поражение", endNote: "Завершение закроет идущий бой, неброшенные кубики и открытые вопросы." },
   });
   const [title, setTitle] = useState(campaign.title);
   const [description, setDescription] = useState(campaign.description);
@@ -54,6 +55,7 @@ export function EditCampaignDialog({
   const [startingLevel, setStartingLevel] = useState(campaign.startingLevel);
   const [difficulty, setDifficulty] = useState<CampaignDifficulty>(campaign.difficulty);
   const [status, setStatus] = useState<"lobby" | "active" | "ended" | undefined>(campaign.status);
+  const [outcome, setOutcome] = useState<"victory" | "defeat">(campaign.outcome ?? "victory");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -165,15 +167,19 @@ export function EditCampaignDialog({
       const response = await fetch(`/api/campaigns/${campaign.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: title.trim(),
-          description: description.trim(),
-          theme: theme.trim(),
-          maxPlayers,
-          startingLevel,
-          difficulty,
-          ...(status && status !== campaign.status ? { status } : {}),
-        }),
+        // An ended campaign takes no info edits, only a corrected outcome.
+        body: JSON.stringify(campaign.status === "ended"
+          ? { status: "ended", outcome }
+          : {
+              title: title.trim(),
+              description: description.trim(),
+              theme: theme.trim(),
+              maxPlayers,
+              startingLevel,
+              difficulty,
+              ...(status && status !== campaign.status ? { status } : {}),
+              ...(status === "ended" ? { outcome } : {}),
+            }),
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) {
@@ -365,6 +371,32 @@ export function EditCampaignDialog({
                     {copy.ended}
                   </button>
                 </div>
+                {status === "ended" ? (
+                  <div className="mt-2">
+                    <p className="mb-1 text-xs text-stone-400">{copy.outcome}</p>
+                    <div className="flex gap-2">
+                      {(["victory", "defeat"] as const).map((value) => (
+                        <button
+                          key={value}
+                          type="button"
+                          onClick={() => setOutcome(value)}
+                          aria-pressed={outcome === value}
+                          className={cn(
+                            "flex-1 rounded-lg border px-3 py-2 text-xs font-medium transition",
+                            outcome === value
+                              ? value === "victory"
+                                ? "border-emerald-500 bg-emerald-950/50 text-emerald-200"
+                                : "border-red-500 bg-red-950/50 text-red-200"
+                              : "border-stone-800 bg-stone-900/40 text-stone-400 hover:text-stone-200",
+                          )}
+                        >
+                          {value === "victory" ? copy.victory : copy.defeat}
+                        </button>
+                      ))}
+                    </div>
+                    {campaign.status !== "ended" ? <p className="mt-1 text-[11px] text-stone-500">{copy.endNote}</p> : null}
+                  </div>
+                ) : null}
               </div>
             ) : null}
 

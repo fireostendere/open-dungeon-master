@@ -25,7 +25,7 @@ const readFields = {
 // Keep the advertised MCP contract in sync with the strict application API.
 // In particular, never let Zod silently strip idempotency or paging fields.
 export const narratorInputSchema = z.object({
-  operation: z.enum(['connect', 'read', 'snapshot', 'catalog', 'invoke', 'narrate', 'status', 'store_audio', 'delete_message', 'edit_message', 'autopilot_action', 'finish_global_round', 'release_floor', 'set_floor', 'request_response', 'answer_ask', ...(LOCAL_VOICEOVER ? ['voiceover'] : [])]),
+  operation: z.enum(['connect', 'read', 'snapshot', 'catalog', 'invoke', 'narrate', 'status', 'store_audio', 'delete_message', 'edit_message', 'autopilot_action', 'finish_global_round', 'release_floor', 'set_floor', 'request_response', 'answer_ask', 'end_campaign', ...(LOCAL_VOICEOVER ? ['voiceover'] : [])]),
   campaignId: z.string().uuid(), ...readFields,
   pageCursor: z.string().max(500).optional(),
   commandId: z.string().uuid().optional(),
@@ -33,7 +33,7 @@ export const narratorInputSchema = z.object({
   expectedSeq: seq().optional(), expectedVersion: seq().optional(),
   name: z.string().trim().min(1).max(100).optional().describe('invoke only: exact engine action name from catalog, e.g. request_roll. Do not use action for invoke.'),
   args: z.record(z.string(), z.unknown()).optional(),
-  content: z.string().trim().min(1).max(24000).optional().describe('Narration, edit_message or autopilot_action text; each operation applies its own tighter limit.'),
+  content: z.string().trim().min(1).max(24000).optional().describe('Narration, edit_message or autopilot_action text; each operation applies its own tighter limit. Shown verbatim to players: in-world prose and short mechanics lines only, never IDs, seq numbers, tool names, JSON, (ooc) status notes or anything addressed to the operator.'),
   characterId: z.string().uuid().optional().describe('autopilot_action only; invoke engine characterId belongs inside args.'),
   messageId: z.string().uuid().optional().describe('store_audio only: the DM narration message to attach the generated WAV to.'),
   mimeType: z.literal('audio/wav').optional().describe('store_audio only: generated narration audio is stored as WAV.'),
@@ -54,6 +54,12 @@ export const narratorInputSchema = z.object({
   recentLimit: z.number().int().min(1).max(20).optional(),
   knownRevision: z.string().regex(/^[a-f0-9]{64}$/).optional(),
   releaseFloor: z.boolean().optional(),
+  passTurn: z.boolean().optional()
+    .describe('narrate only: this is the LAST message about a held combat turn; hand initiative to the next actor. Without it players stay locked.'),
+  outcome: z.enum(['victory', 'defeat']).optional()
+    .describe('end_campaign only: how the whole campaign ended.'),
+  epilogue: z.string().trim().max(12000).optional()
+    .describe('end_campaign only: in-world epilogue shown in the finale.'),
   completeGlobalRound: z.number().int().min(1).optional()
     .describe('Global-turn host: complete this sealed round atomically with narration.'),
   startGlobalRound: z.number().int().min(1).optional()
