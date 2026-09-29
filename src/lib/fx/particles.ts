@@ -444,7 +444,7 @@ export class FxCanvas {
       const fade = t < 0.1 ? t / 0.1 : 1 - Math.max(0, (t - 0.65) / 0.35);
       switch (p.kind) {
         case "smoke": {
-          const a = p.alpha * 0.22 * Math.sin(Math.PI * t);
+          const a = p.alpha * (p.size > 30 ? 0.22 : 0.12) * Math.sin(Math.PI * t);
           const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.size);
           const [r, gg, b] = parseColor(p.color);
           g.addColorStop(0, `rgba(${r},${gg},${b},${a})`);
@@ -595,7 +595,7 @@ export const Bursts = {
     fx.burst(x, y, { count, kind: "ember", colors: [...colors], speed: [30, 120], angle: -Math.PI / 2, spread: 1.2, life: [1.2, 2.6], size: [1.2, 3], gravity: -30, drag: 0.8, jitter: width });
   },
   dust(fx: FxCanvas, x: number, y: number, strength: number) {
-    fx.burst(x, y, { count: Math.round(4 + strength * 10), kind: "smoke", colors: ["#b8a9d9"], speed: [20, 70 * (0.5 + strength)], angle: -Math.PI / 2, spread: Math.PI * 0.9, life: [0.5, 0.9], size: [10, 22], drag: 3, jitter: 16 });
+    fx.burst(x, y, { count: Math.round(3 + strength * 6), kind: "smoke", colors: ["#6f5f96"], speed: [30, 90 * (0.5 + strength)], angle: -Math.PI / 2, spread: Math.PI * 0.8, life: [0.35, 0.6], size: [6, 12], drag: 4, jitter: 18 });
     if (strength > 0.4) fx.burst(x, y, { count: Math.round(strength * 8), kind: "spark", colors: ["#ffe7b0"], speed: [60, 200], angle: -Math.PI / 2, spread: Math.PI * 0.8, life: [0.2, 0.45], size: [1, 1.6], gravity: 500, drag: 1 });
   },
   confettiCannon(fx: FxCanvas, x: number, y: number, angle: number, count = 90, colors: readonly string[] = ["#ffd76b", "#f5b73b", "#fff4c2", "#c084fc", "#7dd3fc", "#ff7a8a", "#6ee7b7"]) {

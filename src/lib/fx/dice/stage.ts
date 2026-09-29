@@ -55,11 +55,16 @@ export type DieOutcome = "neutral" | "success" | "fail" | "crit" | "fumble" | "d
 
 export type StageLayout = { x: number; y: number; width: number; height: number };
 
+/** The side of the screen dice fly in from: who is throwing them. */
+export type ThrowSide = "bottom" | "left" | "right" | "top";
+
 export type DiceStageOptions = {
   onImpact?: (strength: number, x: number, y: number) => void;
   reducedMotion?: boolean;
   /** Tests drive time through `tick()` instead of requestAnimationFrame. */
   manualClock?: boolean;
+  /** Smallest table half-extent framed; lower values show dice larger. */
+  minExtent?: { hx: number; hz: number };
 };
 
 type Tween = { from: number; to: number; start: number; dur: number; set: (v: number) => void; ease: (t: number) => number };
@@ -346,14 +351,15 @@ export class DiceStage {
   }
 
   private extent(): { hx: number; hz: number } {
-    if (this.dice.length === 0) return { hx: 2.2, hz: 1.5 };
+    const min = this.opts.minExtent ?? { hx: 2.1, hz: 1.4 };
+    if (this.dice.length === 0) return { hx: min.hx, hz: min.hz };
     let hx = 0;
     let hz = 0;
     for (const d of this.dice) {
       hx = Math.max(hx, Math.abs(d.target.x) + d.size * 1.3);
       hz = Math.max(hz, Math.abs(d.target.z) + d.size * 1.3);
     }
-    return { hx: Math.max(hx, 2.1), hz: Math.max(hz, 1.4) };
+    return { hx: Math.max(hx, min.hx), hz: Math.max(hz, min.hz) };
   }
 
   private frame(): void {
@@ -534,7 +540,7 @@ export class DiceStage {
     specs.forEach((spec, i) => {
       const d = this.makeDie(spec, sizes[i]);
       d.target.copy(targets[i]);
-      d.hoverBase.set(targets[i].x, 1.35 + d.size * 0.4, targets[i].z * 0.6);
+      d.hoverBase.set(targets[i].x, 0.75 + d.size * 0.45, targets[i].z * 0.6);
       d.pos.copy(d.hoverBase);
       d.quat.copy(this.restFor(d, 0)).premultiply(new Quaternion().setFromAxisAngle(new Vector3(1, 0, 0), 0.9));
       d.omega.set(0.25, 0.7, 0.1);
@@ -554,7 +560,7 @@ export class DiceStage {
       if (d.mode !== "hover") continue;
       d.mode = "tossed";
       const from = d.pos.clone();
-      const to = new Vector3(d.pos.x, 2.3 + d.size * 0.5, d.pos.z);
+      const to = new Vector3(d.pos.x, 1.5 + d.size * 0.5, d.pos.z);
       this.tween(0, 1, 0.45, (v) => d.pos.lerpVectors(from, to, v), easeOutCubic);
       const axis = new Vector3(this.rng() - 0.5, this.rng() - 0.5, this.rng() - 0.5).normalize();
       const w0 = d.omega.clone();
@@ -568,7 +574,7 @@ export class DiceStage {
    * from where they are; otherwise they fly in from below the frame.
    * Resolves once every die has come to rest.
    */
-  throw(specs: StageDie[]): Promise<void> {
+  throw(specs: StageDie[], opts: { from?: ThrowSide } = {}): Promise<void> {
     const reuse = this.dice.length === specs.length && this.dice.every((d, i) => d.spec.kind === specs[i].kind && (d.mode === "hover" || d.mode === "tossed"));
     const previous = reuse ? this.dice : [];
     if (!reuse) this.clearDice();
@@ -586,7 +592,7 @@ export class DiceStage {
       if (reuse) {
         start = { pos: d.pos.clone(), quat: d.quat.clone(), vel: new Vector3(0, -0.5, 0), omega: d.omega.clone() };
       } else {
-        const from = this.offscreenOrigin(targets[i], i, specs.length);
+        const from = this.offscreenOrigin(targets[i], i, specs.length, opts.from ?? "bottom");
         start = { pos: from, quat: new Quaternion().setFromAxisAngle(new Vector3(this.rng(), this.rng(), this.rng()).normalize(), this.rng() * 6), vel: new Vector3(0, 1.5, 0) };
         d.pos.copy(from);
         d.quat.copy(start.quat);
@@ -625,20 +631,23 @@ export class DiceStage {
     return Math.min(3.4, Math.max(1.8, Math.max(hx, hz * 1.4) * 0.8));
   }
 
-  /** A point below the bottom edge of the frame, on the way to `target`. */
-  private offscreenOrigin(target: Vector3, i: number, n: number): Vector3 {
-    const W = this.canvas.clientWidth || window.innerWidth;
-    const H = this.canvas.clientHeight || window.innerHeight;
+  /** A point just outside the frame on `side`, on the way to `target`. */
+  private offscreenOrigin(target: Vector3, i: number, n: number, side: ThrowSide): Vector3 {
     const spread = n > 1 ? (i / (n - 1) - 0.5) * 0.5 : (this.rng() - 0.5) * 0.3;
-    const sx = (0.5 + spread) * W;
-    const ndc = new Vector3((sx / W) * 2 - 1, -1.12, 0.5).unproject(this.camera);
-    const dir = ndc.sub(this.camera.position).normalize();
+    const ndc =
+      side === "bottom" ? new Vector3(spread * 2, -1.12, 0.5)
+      : side === "top" ? new Vector3(spread * 2, 1.1, 0.5)
+      : new Vector3(side === "left" ? -1.12 : 1.12, -0.2 + spread + this.rng() * 0.3, 0.5);
+    const dir = ndc.unproject(this.camera).sub(this.camera.position).normalize();
     const height = 1.6 + this.rng() * 0.8;
-    const t = (height - this.camera.position.y) / dir.y;
+    const t = (height - this.camera.position.y) / Math.min(-0.05, dir.y);
     const p = this.camera.position.clone().add(dir.multiplyScalar(t));
-    // Keep the arc short enough to land on its spot.
-    p.x = target.x + (p.x - target.x) * 0.6;
-    return p;
+    // Keep the flight short enough to read: at most ~7 units of travel.
+    const flat = new Vector3(p.x - target.x, 0, p.z - target.z);
+    const maxRun = 7;
+    if (flat.length() > maxRun) flat.setLength(maxRun);
+    if (side === "bottom") flat.x *= 0.6;
+    return new Vector3(target.x + flat.x, height, target.z + flat.z);
   }
 
   /** Visual verdict for one die. */
@@ -837,6 +846,28 @@ export class DiceStage {
       this.camera.position.x += (Math.random() - 0.5) * s;
       this.camera.position.y += (Math.random() - 0.5) * s;
     }
+  }
+
+  /** Skips the rest of every throw: dice drop straight onto their faces. */
+  finish(): void {
+    for (const d of this.dice) {
+      if (d.mode === "throw" && d.plan) {
+        d.planStart = this.time - d.plan.duration;
+        d.impactIndex = d.plan.impacts.length;
+      }
+    }
+  }
+
+  /** Stops rendering while the overlay is hidden; `resume` picks up again. */
+  pause(): void {
+    cancelAnimationFrame(this.raf);
+    this.raf = 0;
+  }
+
+  resume(): void {
+    if (this.disposed || this.raf || this.opts.manualClock) return;
+    this.last = performance.now();
+    this.raf = requestAnimationFrame(this.loop);
   }
 
   isThrowing(): boolean {

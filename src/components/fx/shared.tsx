@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useSyncExternalStore, type CSSProperties, type RefObject } from "react";
+import { useEffect, useRef, useSyncExternalStore, type CSSProperties, type RefObject } from "react";
 import { FxCanvas } from "@/lib/fx/particles";
 import { FX_PREFS_EVENT, fxMuted, setFxMuted } from "@/lib/fx/sound";
 import "./fx.css";
@@ -17,16 +17,23 @@ export function FxLetters({
   delayMs?: number;
   className?: string;
 }) {
-  const letters = Array.from(text);
+  // Letters animate one by one, but words stay whole when the title wraps.
+  const words = text.split(" ");
+  let index = 0;
   return (
     <span
       className={`fx-letters ${variant === "drop" ? "fx-letters--drop" : variant === "slam" ? "fx-letters--slam" : ""} ${className}`}
       aria-label={text}
       style={{ "--d": `${delayMs}ms` } as CSSProperties}
     >
-      {letters.map((ch, i) => (
-        <span key={i} aria-hidden="true" style={{ "--i": i } as CSSProperties}>
-          {ch}
+      {words.map((word, wi) => (
+        <span key={wi} className="fx-word" aria-hidden="true">
+          {Array.from(word).map((ch, ci) => (
+            <span key={ci} style={{ "--i": index++ } as CSSProperties}>
+              {ch}
+            </span>
+          ))}
+          {wi < words.length - 1 ? <span style={{ "--i": index++ } as CSSProperties}>{" "}</span> : null}
         </span>
       ))}
     </span>
@@ -58,21 +65,21 @@ export function FxTitle({
 
 /** A full-screen particle canvas bound to the component's lifetime. */
 export function useFxCanvas(ref: RefObject<HTMLCanvasElement | null>, active = true): RefObject<FxCanvas | null> {
-  const fx = useRef<FxCanvas | null>(null);
+  const particlesRef = useRef<FxCanvas | null>(null);
   useEffect(() => {
     const canvas = ref.current;
     if (!active || !canvas) return;
     const instance = new FxCanvas(canvas);
-    fx.current = instance;
+    particlesRef.current = instance;
     const onResize = () => instance.resize();
     window.addEventListener("resize", onResize);
     return () => {
       window.removeEventListener("resize", onResize);
       instance.dispose();
-      fx.current = null;
+      particlesRef.current = null;
     };
   }, [ref, active]);
-  return fx;
+  return particlesRef;
 }
 
 function subscribeReducedMotion(cb: () => void) {
@@ -105,22 +112,12 @@ export function useFxMuted(): [boolean, (muted: boolean) => void] {
   return [muted, setFxMuted];
 }
 
-/** Runs `steps` in order, each after its delay; cancelled on unmount. */
-export function useTimeline(active: boolean, steps: [number, () => void][], deps: unknown[] = []) {
-  const stepsRef = useRef(steps);
-  stepsRef.current = steps;
-  useEffect(() => {
-    if (!active) return;
-    const timers = stepsRef.current.map(([ms, fn]) => window.setTimeout(fn, ms));
-    return () => timers.forEach((t) => window.clearTimeout(t));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [active, ...deps]);
-}
-
 /** Escape (and optionally a click) closes an overlay. */
 export function useDismissKeys(active: boolean, onDismiss: () => void) {
   const cb = useRef(onDismiss);
-  cb.current = onDismiss;
+  useEffect(() => {
+    cb.current = onDismiss;
+  });
   useEffect(() => {
     if (!active) return;
     const onKey = (e: KeyboardEvent) => {
@@ -129,25 +126,4 @@ export function useDismissKeys(active: boolean, onDismiss: () => void) {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [active]);
-}
-
-/** Mounts children, then keeps them for a short fade-out after `open` drops. */
-export function usePresence(open: boolean, exitMs = 320): { mounted: boolean; leaving: boolean } {
-  const [mounted, setMounted] = useState(open);
-  const [leaving, setLeaving] = useState(false);
-  useEffect(() => {
-    if (open) {
-      setMounted(true);
-      setLeaving(false);
-      return;
-    }
-    if (!mounted) return;
-    setLeaving(true);
-    const t = window.setTimeout(() => {
-      setMounted(false);
-      setLeaving(false);
-    }, exitMs);
-    return () => window.clearTimeout(t);
-  }, [open, mounted, exitMs]);
-  return { mounted, leaving };
 }

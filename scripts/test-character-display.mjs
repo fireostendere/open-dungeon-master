@@ -32,8 +32,8 @@ const submitted = composerGate({
 });
 assert.equal(submitted.inputBlocked, true);
 assert.match(submitted.placeholder, /Ход уже отправлен/);
-const diceOverlay = readFileSync(new URL("../src/app/campaigns/[campaignId]/Bg3DiceOverlay.tsx", import.meta.url), "utf8");
-assert.match(diceOverlay, /no-scrollbar[^"\n]*overflow-y-auto/);
-assert.match(diceOverlay, /term\.dice\.length > 1/);
-assert.match(diceOverlay, /4: "polygon\(50% 2%, 98% 92%, 2% 92%\)"/);
+// Multi-dice terms are itemised per die in the roll overlay's tally chips.
+const diceOverlay = readFileSync(new URL("../src/app/campaigns/[campaignId]/DiceRollOverlay.tsx", import.meta.url), "utf8");
+assert.match(diceOverlay, /kept\.length > 1/, "several kept dice of one size share a chip");
+assert.match(diceOverlay, /fx-flat-dice/, "the overlay keeps a flat fallback when WebGL is unavailable");
 console.log("character display: ok");

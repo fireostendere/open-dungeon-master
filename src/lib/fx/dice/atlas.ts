@@ -96,7 +96,7 @@ export const DICE_PALETTES = {
   },
   gilded: {
     id: "gilded",
-    face: ["#f6d77c", "#9a6b17"],
+    face: ["#ffe9a8", "#c08a26"],
     swirl: ["rgba(255, 255, 255, 0.18)", "rgba(120, 70, 0, 0.2)"],
     fleck: "",
     ink: ["#2a1802", "#120a00"],
@@ -104,7 +104,7 @@ export const DICE_PALETTES = {
     edge: "rgba(255, 250, 220, 0.7)",
     shade: "rgba(70, 40, 0, 0.45)",
     glow: "#fff1b8",
-    material: { roughness: 0.2, metalness: 0.85, clearcoat: 0.8, clearcoatRoughness: 0.12 },
+    material: { roughness: 0.28, metalness: 0.6, clearcoat: 0.8, clearcoatRoughness: 0.12 },
   },
   cursed: {
     id: "cursed",

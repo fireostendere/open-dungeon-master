@@ -155,6 +155,7 @@ function chord(freqs: number[], type: OscillatorType, env: Omit<Env, "at">, dela
 function bell(freq: number, delay = 0, peak = 0.16, wet = 0.5) {
   // Inharmonic partials of a small bell.
   [1, 2.76, 5.4, 8.93].forEach((m, i) => {
+    if (freq * m > 16000) return;
     tone("sine", freq * m, { at: at(delay), a: 0.002, d: 1.4 / (i + 1), peak: peak / (i + 1.3) }, { wet });
   });
 }

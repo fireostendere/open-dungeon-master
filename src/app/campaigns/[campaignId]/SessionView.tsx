@@ -22,7 +22,9 @@ import { Composer, type InputKind } from "@/app/campaigns/[campaignId]/Composer"
 import type { AskScope, AskVisibility } from "@/lib/dm/ask-logic";
 import { composerGate } from "@/app/campaigns/[campaignId]/composerGate";
 import { DiceOverlay } from "@/app/campaigns/[campaignId]/DiceOverlay";
-import { EndingCelebration } from "@/app/campaigns/[campaignId]/EndingCelebration";
+import { EndingCinematic } from "@/components/fx/cinematics/EndingCinematic";
+import { LevelUpCinematic } from "@/components/fx/cinematics/Moments";
+import { FxDirector } from "@/app/campaigns/[campaignId]/FxDirector";
 import { ClosingMessageModal } from "@/app/campaigns/[campaignId]/ClosingMessageModal";
 import { LoreCheckDialog } from "@/app/campaigns/[campaignId]/LoreCheckDialog";
 import { RenarrateDialog } from "@/app/campaigns/[campaignId]/RenarrateDialog";
@@ -129,6 +131,8 @@ export function SessionView({
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
   const [dismissedLevelUp, setDismissedLevelUp] = useState("");
+  // The level-up cinematic plays once per notice, then hands over to the dialog.
+  const [levelUpIntroDone, setLevelUpIntroDone] = useState("");
   const [dismissedJoinNotice, setDismissedJoinNotice] = useState("");
   // "Message" on a party card: SidePanel switches to the chat tab and opens
   // the 1:1 thread with this user.
@@ -674,6 +678,7 @@ export function SessionView({
           meUserId={me?.id ?? ""}
           latestRoll={state.latestRoll}
           sheets={state.sheets}
+          encounter={state.encounter}
           enabled
         />
       ) : null}
@@ -728,7 +733,18 @@ export function SessionView({
         />
       ) : null}
 
-      {myLevelUp && mySheet && dismissedLevelUp !== `${myLevelUp.characterId}:${myLevelUp.level}` ? (
+      {myLevelUp && mySheet && dismissedLevelUp !== `${myLevelUp.characterId}:${myLevelUp.level}` && levelUpIntroDone !== `${myLevelUp.characterId}:${myLevelUp.level}` ? (
+        <LevelUpCinematic
+          active
+          name={mySheet.name}
+          className={mySheet.class}
+          fromLevel={mySheet.level}
+          toLevel={myLevelUp.level}
+          onContinue={() => setLevelUpIntroDone(`${myLevelUp.characterId}:${myLevelUp.level}`)}
+        />
+      ) : null}
+
+      {myLevelUp && mySheet && dismissedLevelUp !== `${myLevelUp.characterId}:${myLevelUp.level}` && levelUpIntroDone === `${myLevelUp.characterId}:${myLevelUp.level}` ? (
         <Suspense fallback={null}>
           <LevelUpDialog
             campaignId={campaign.id}
@@ -755,7 +771,15 @@ export function SessionView({
         }}
       />
 
-      <EndingCelebration
+      <FxDirector
+        encounter={state.encounter}
+        ownCombatTurn={ownCombatTurn}
+        sheets={state.sheets}
+        meId={me?.id}
+        auditLog={state.auditLog}
+      />
+
+      <EndingCinematic
         active={celebrationActive}
         mode={celebrationMode}
         onClose={() => setCelebrationActive(false)}

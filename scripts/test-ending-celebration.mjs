@@ -2,68 +2,48 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import ts from "typescript";
 
-// Verify all modified TSX files parse and transpile cleanly
+// The finale and its neighbours parse and transpile cleanly.
 const files = [
-  "src/app/campaigns/[campaignId]/EndingCelebration.tsx",
+  "src/components/fx/cinematics/EndingCinematic.tsx",
+  "src/components/fx/cinematics/ending-copy.ts",
   "src/app/campaigns/[campaignId]/ClosingMessageModal.tsx",
   "src/app/campaigns/[campaignId]/ClosingMessageBanner.tsx",
   "src/app/campaigns/[campaignId]/LegacySessionChatColumn.tsx",
-  "src/app/campaigns/[campaignId]/SessionView.tsx"
+  "src/app/campaigns/[campaignId]/SessionView.tsx",
 ];
-
 for (const f of files) {
-  const code = fs.readFileSync(f, "utf8");
-  const res = ts.transpileModule(code, {
-    compilerOptions: { jsx: ts.JsxEmit.ReactJSX, module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ESNext }
+  const res = ts.transpileModule(fs.readFileSync(f, "utf8"), {
+    compilerOptions: { jsx: ts.JsxEmit.ReactJSX, module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ESNext },
   });
   assert.ok(res.outputText.length > 0, `${f} produced empty output`);
 }
 
-// Check sad trombone frequencies and audio notes
-const d4 = 293.66;
-const cs4 = 277.18;
-const c4 = 261.63;
-const b3 = 246.94;
-const e3 = 164.81;
+// Banner pools, including the YOLO 21+ table voice, survived the rewrite.
+const copy = fs.readFileSync("src/components/fx/cinematics/ending-copy.ts", "utf8");
+for (const pool of ["VICTORY_BANNERS_RU", "DEFEAT_BANNERS_RU", "YOLO_VICTORY_BANNERS_RU", "YOLO_DEFEAT_BANNERS_RU", "VICTORY_BANNERS_EN", "YOLO_DEFEAT_BANNERS_EN"]) {
+  assert.ok(copy.includes(`export const ${pool}`), `missing ${pool}`);
+}
+assert.ok(copy.includes("💀 ПОЛНЫЙ ПРОЁБ 💀") || copy.includes("☠️ ПОЛНЫЙ ПРОЁБ ☠️"), "missing the defeat banner");
+assert.ok(copy.includes("🔥 ЕБАЛИ И РАЗЪЕБАЛИ! 🔥"), "missing the YOLO victory banner");
+assert.ok(copy.includes("☠️ ПОЛНЫЙ ПИЗДЕЦ И ПРОЁБ ☠️"), "missing the YOLO defeat banner");
 
-assert.ok(d4 > cs4 && cs4 > c4 && c4 > b3 && b3 > e3);
-assert.ok(Math.abs(d4 - 293.66) < 0.1);
-assert.ok(Math.abs(e3 - 164.81) < 0.1);
+// The cinematic keeps its controls and plays the right cues.
+const ending = fs.readFileSync("src/components/fx/cinematics/EndingCinematic.tsx", "utf8");
+assert.ok(ending.includes("sfxSadTrombone"), "YOLO defeat plays the sad trombone");
+assert.ok(ending.includes("sfxBrassFanfare"), "victory plays the fanfare");
+assert.ok(ending.includes('outcome: defeat ? "fumble" : "crit"'), "the last roll lands on 1 or 20");
+assert.ok(ending.includes("copy.dropMoreDice") && ending.includes("copy.moreFireworks"), "both encore buttons remain");
+assert.ok(ending.includes("closingMessage") && ending.includes("fx-scroll__paper"), "the DM's closing message opens on a scroll");
+assert.ok(ending.includes("onModeChange?.(next)"), "switching victory/defeat is reported up");
 
-// Verify banner text collections, YOLO mode, and audio in EndingCelebration.tsx
-const endingCode = fs.readFileSync("src/app/campaigns/[campaignId]/EndingCelebration.tsx", "utf8");
-assert.ok(endingCode.includes("playSadTrombone"), "Missing playSadTrombone method");
-assert.ok(endingCode.includes("playSquish"), "Missing playSquish method for poop step squelch");
-assert.ok(endingCode.includes("playSadThud"), "Missing playSadThud method");
-assert.ok(endingCode.includes("bounceCount"), "Missing bounceCount property in dice physics");
-assert.ok(endingCode.includes("spawnMudSplat"), "Missing spawnMudSplat for splatter particles");
-assert.ok(endingCode.includes("linearRampToValueAtTime(0, noteStart + noteDur)"), "Missing clean linear ramp to 0 in playSadTrombone");
-assert.ok(!endingCode.includes("lfoGain.connect(osc.frequency)"), "Buggy LFO oscillator conflict still present in playSadTrombone");
-assert.ok(endingCode.includes("DEFEAT_BANNERS_RU"), "Missing DEFEAT_BANNERS_RU");
-assert.ok(endingCode.includes("💀 ПОЛНЫЙ ПРОЁБ 💀"), "Missing full defeat text banner");
-assert.ok(endingCode.includes("YOLO_VICTORY_BANNERS_RU"), "Missing YOLO_VICTORY_BANNERS_RU");
-assert.ok(endingCode.includes("YOLO_DEFEAT_BANNERS_RU"), "Missing YOLO_DEFEAT_BANNERS_RU");
-assert.ok(endingCode.includes("🔥 ЕБАЛИ И РАЗЪЕБАЛИ! 🔥"), "Missing YOLO victory banner");
-assert.ok(endingCode.includes("☠️ ПОЛНЫЙ ПИЗДЕЦ И ПРОЁБ ☠️"), "Missing YOLO defeat banner");
-assert.ok(endingCode.includes("createDynamicsCompressor"), "Missing DynamicsCompressorNode to prevent blasting ears");
-assert.ok(endingCode.includes("stopSadTrombone"), "Missing stopSadTrombone method");
-assert.ok(endingCode.includes("fadeStart: 1000"), "Missing 1-second readable banner duration");
-assert.ok(endingCode.includes("maxAge: 1400"), "Missing 1.4-second banner maxAge");
-assert.ok(endingCode.includes("roundRect"), "Missing pill background rendering for banners");
+// The shared sound kit guards the ears and the trombone's last note wobbles cleanly.
+const sound = fs.readFileSync("src/lib/fx/sound.ts", "utf8");
+assert.ok(sound.includes("createDynamicsCompressor"), "a compressor sits on the master bus");
+assert.ok(sound.includes("export function sfxSadTrombone"));
+assert.ok(sound.includes("fxMuted()"), "every cue respects the FX mute");
 
-// The served demo page carries the same audio and physics as the component.
-const rootDemo = fs.readFileSync("public/demo-ending.html", "utf8");
-assert.ok(rootDemo.includes("playSquish"), "demo-ending.html missing playSquish");
-assert.ok(rootDemo.includes("bounceCount"), "demo-ending.html missing bounceCount in dice physics");
-assert.ok(rootDemo.includes("spawnMudSplat"), "demo-ending.html missing spawnMudSplat");
-assert.ok(rootDemo.includes("💩 Тест шлёпа"), "demo-ending.html missing squish test button");
-assert.ok(rootDemo.includes("btnYolo"), "demo-ending.html missing YOLO button");
-assert.ok(rootDemo.includes("YOLO_VICTORY_BANNERS"), "demo-ending.html missing YOLO victory banners");
-assert.ok(rootDemo.includes("YOLO_DEFEAT_BANNERS"), "demo-ending.html missing YOLO defeat banners");
-assert.ok(rootDemo.includes("createDynamicsCompressor"), "demo-ending.html missing dynamics compressor");
-assert.ok(rootDemo.includes("stopSadTrombone"), "demo-ending.html missing stopSadTrombone");
-assert.ok(rootDemo.includes("fadeStart: 1000"), "demo-ending.html missing 1-second banner fadeStart");
-assert.ok(rootDemo.includes("maxAge: 1400"), "demo-ending.html missing 1.4-second banner maxAge");
+const session = fs.readFileSync("src/app/campaigns/[campaignId]/SessionView.tsx", "utf8");
+assert.ok(session.includes("<EndingCinematic"), "SessionView mounts the new finale");
+assert.ok(!session.includes("EndingCelebration"), "the old finale is gone");
 
-console.log(`PASS: All 5 files transpiled cleanly and all 28 ending celebration, YOLO 21+, compressor, trombone race-fix, and mobile responsive assertions verified.`);
-
+console.log("PASS: finale cinematic, banners, cues and wiring verified.");

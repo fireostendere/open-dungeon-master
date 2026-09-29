@@ -22,7 +22,8 @@
     "test:dice": "node scripts/test-dice.mjs",
     "i18n:check": "node scripts/test-i18n-coverage.mjs && node scripts/test-language-coverage.mjs",
     "fetch-ambience": "node scripts/fetch-ambience.mjs",
-    "postinstall": "node scripts/copy-dice-assets.mjs"
+    "postinstall": "node scripts/copy-dice-assets.mjs",
+    "fx:lab": "node scripts/build-fx-lab.mjs"
   },
   "dependencies": {
     "@3d-dice/dice-box-threejs": "^0.0.12",
