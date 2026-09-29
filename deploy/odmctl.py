@@ -362,6 +362,28 @@ class Controller:
             if mcp: mcp.finalize()
         except Exception as exc:
             self.alert('release-cleanup-pending', 'Release is healthy; old MCP container cleanup needs attention: ' + type(exc).__name__)
+        self.prune_old_images()
+
+    def prune_old_images(self):
+        # Every update builds two images and a pile of build cache; on a small
+        # host that filled the disk. Keep the running release and the previous
+        # one (the rollback target), drop every other release image and the cache.
+        try:
+            keep = set()
+            for name in ('active.json', 'previous.json'):
+                data = read_json(self.config_dir / name) or {}
+                release = data.get('release', data)
+                if isinstance(release, dict) and release.get('sha'): keep.add(release['sha'])
+            listing = self.docker('images', '--format', '{{.Repository}}:{{.Tag}}', timeout=60)
+            tags = [t for t in listing.split() if t.split(':')[0] in ('odm-managed', 'odm-mcp-managed', 'odm-mcp')]
+            stale = [t for t in tags if not any(sha in t for sha in keep)]
+            if keep:
+                for tag in stale:
+                    try: self.docker('rmi', tag, timeout=120)
+                    except OpsError: pass  # still in use by a container; leave it
+            self.docker('builder', 'prune', '-af', timeout=300)
+        except Exception as exc:
+            self.alert('release-cleanup-pending', 'Release is healthy; old image cleanup needs attention: ' + type(exc).__name__)
 
     def retention(self, apply=False, prune=False):
         from retention import apply_retention
