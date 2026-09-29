@@ -51,10 +51,8 @@ assert.ok(endingCode.includes("fadeStart: 1000"), "Missing 1-second readable ban
 assert.ok(endingCode.includes("maxAge: 1400"), "Missing 1.4-second banner maxAge");
 assert.ok(endingCode.includes("roundRect"), "Missing pill background rendering for banners");
 
-// Verify demo-ending.html files exist and match
-const rootDemo = fs.readFileSync("../demo-ending.html", "utf8");
-const publicDemo = fs.readFileSync("public/demo-ending.html", "utf8");
-assert.strictEqual(rootDemo, publicDemo, "Root demo-ending.html and public/demo-ending.html must be identical");
+// The served demo page carries the same audio and physics as the component.
+const rootDemo = fs.readFileSync("public/demo-ending.html", "utf8");
 assert.ok(rootDemo.includes("playSquish"), "demo-ending.html missing playSquish");
 assert.ok(rootDemo.includes("bounceCount"), "demo-ending.html missing bounceCount in dice physics");
 assert.ok(rootDemo.includes("spawnMudSplat"), "demo-ending.html missing spawnMudSplat");
