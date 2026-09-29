@@ -211,7 +211,7 @@ test('campaign snapshot serves narratorPresence next to dmStatus', async () => {
       capsFor: () => ({ adjudicates: false, steersStory: false, fullMap: false, enemyNumbers: false }),
       isLead: () => false,
     },
-    '@/lib/campaign-types': { CAMPAIGN_DIFFICULTIES: ['easy', 'normal', 'hard'] },
+    '@/lib/campaign-types': { CAMPAIGN_DIFFICULTIES: ['easy', 'normal', 'hard'], CAMPAIGN_OUTCOMES: ['victory', 'defeat'] },
     '@/lib/spatial/service': { spatialEnabled: () => false, spatialContext: () => ({}), spatialStore: () => ({}) },
     '@/lib/db/campaigns': Object.fromEntries(['allocateSeq', 'campaignSeats', 'deleteCampaign', 'listMembers', 'setCampaignStatus', 'updateCampaignInfo']
       .map(name => [name, () => []]).concat([['latestSeq', () => 42], ['publicCampaign', campaign => campaign]])),
