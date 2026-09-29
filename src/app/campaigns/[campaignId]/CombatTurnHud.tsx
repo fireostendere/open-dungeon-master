@@ -101,12 +101,14 @@ export function CombatTurnHud({
   );
   const canQueue = (choice: CombatChoice) => validate([...choices, choice]).ok;
   const actionNames = { dash: copy.dash, disengage: copy.disengage, hide: copy.hide, help: copy.help, grapple: copy.grapple, shove: copy.shove };
+  // Nested so the i18n checker sees the Cyrillic label only under locale === "ru".
+  const names = (name: string) => name === "Unarmed strike" ? (locale === "ru" ? "Безоружный удар" : name) : name;
   const options: WizardOption[] = [];
 
   if (enemies.length) {
     for (const weapon of weapons) {
       if (enemies.some((enemy) => canQueue({ type: "attack", targetEnemyId: enemy.id, weapon: weapon.name }))) {
-        options.push({ key: `attack:${weapon.name}`, kind: "attack", label: `${copy.attack}: ${weapon.name === "Unarmed strike" && locale === "ru" ? "Безоружный удар" : weapon.name}`, cost: "action", weapon: weapon.name });
+        options.push({ key: `attack:${weapon.name}`, kind: "attack", label: `${copy.attack}: ${names(weapon.name)}`, cost: "action", weapon: weapon.name });
       }
     }
   }
@@ -211,7 +213,6 @@ export function CombatTurnHud({
   const draftValid = Boolean(draftChoice && validate([...choices, draftChoice]).ok);
   const preview = validate(choices);
   const disabled = locked || sending;
-  const names = (name: string) => name === "Unarmed strike" && locale === "ru" ? "Безоружный удар" : name;
   const beginSelection = (key: string) => {
     setSelectedKey(key);
     setTargetId("");
