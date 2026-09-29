@@ -72,7 +72,8 @@ export function CombatStart({
         }
       }, 620),
       window.setTimeout(() => sfx.sfxWarDrum(0), 1100),
-      window.setTimeout(() => done.current(), reduced ? 1600 : 2950),
+      // The same hold with reduced motion: the calm version still has to be read.
+      window.setTimeout(() => done.current(), 2950),
     ];
     return () => timers.forEach((t) => window.clearTimeout(t));
   }, [active, particlesRef, reduced]);
@@ -83,11 +84,12 @@ export function CombatStart({
   const sorted = (hasNumbers ? [...order].sort((a, b) => (b.initiative ?? 0) - (a.initiative ?? 0)) : order).slice(0, 10);
   return (
     <div className="fx-layer" style={{ zIndex: 72 }} aria-live="polite">
+      <div className="fx-scrim fx-scrim--combat" />
       <div className="fx-edge-flash" />
       <div className="fx-letterbox fx-letterbox--top" />
       <div className="fx-letterbox fx-letterbox--bottom" />
       <canvas ref={canvasRef} className="fx-canvas" />
-      <div className="fx-center fx-combat-out" style={{ paddingBottom: "8vh" }}>
+      <div className="fx-center fx-combat-center fx-combat-out">
         <div className="fx-swords">
           <Sword className="fx-sword--left" />
           <Sword className="fx-sword--right" />

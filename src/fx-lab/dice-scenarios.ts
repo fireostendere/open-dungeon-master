@@ -164,6 +164,12 @@ export const DICE_SCENARIOS: DiceScenario[] = [
     roll: () => makeRoll({ kind: "custom", detail: "Всплеск дикой магии", expression: "1d100", characterId: "pc-lis" }),
   },
   {
+    id: "secret",
+    label: "Тайный бросок",
+    hint: "Слепой бросок Мастера: игроку приходит без чисел — только плашка",
+    roll: () => ({ ...makeRoll({ kind: "skill_check", detail: "insight", expression: "1d20+4", characterId: "pc-torin", dc: 14 }), total: null, success: null, breakdown: null, dc: null, visibility: "blind", hidden: true }) as unknown as StoredRoll,
+  },
+  {
     id: "all",
     label: "Все кости",
     hint: "к4, к6, к8, к10, к12, к20",

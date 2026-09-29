@@ -62,6 +62,8 @@
 /* ------------------------------------------------------------ type */
 
 .fx-title {
+  --fx-grad: linear-gradient(180deg, var(--fx-gold-1, #fff6d3) 0%, var(--fx-gold-2, #f3d27a) 42%, var(--fx-gold-3, #c9922d) 70%, var(--fx-gold-4, #7a5212) 100%);
+  --fx-solid: #f3d27a;
   margin: 0;
   font-family: var(--fx-display);
   font-weight: 900;
@@ -69,7 +71,7 @@
   letter-spacing: 0.08em;
   line-height: 1;
   text-align: center;
-  background: linear-gradient(180deg, var(--fx-gold-1) 0%, var(--fx-gold-2) 42%, var(--fx-gold-3) 70%, var(--fx-gold-4) 100%);
+  background-image: var(--fx-grad);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -77,23 +79,52 @@
 }
 
 .fx-title--crimson {
-  background-image: linear-gradient(180deg, #ffe1e1 0%, #ff8a8a 35%, #d11a2d 70%, #5c0610 100%);
+  --fx-grad: linear-gradient(180deg, #ffe1e1 0%, #ff8a8a 35%, #d11a2d 70%, #5c0610 100%);
+  --fx-solid: #ff8a8a;
   filter: drop-shadow(0 2px 0 rgba(40, 0, 6, 0.6)) drop-shadow(0 0 22px rgba(255, 40, 60, 0.45));
 }
 
 .fx-title--emerald {
-  background-image: linear-gradient(180deg, #eafff5 0%, #9cf5cd 38%, #1fbf82 72%, #0b5238 100%);
+  --fx-grad: linear-gradient(180deg, #eafff5 0%, #9cf5cd 38%, #1fbf82 72%, #0b5238 100%);
+  --fx-solid: #9cf5cd;
   filter: drop-shadow(0 2px 0 rgba(0, 30, 16, 0.55)) drop-shadow(0 0 20px rgba(60, 230, 160, 0.4));
 }
 
 .fx-title--steel {
-  background-image: linear-gradient(180deg, #f4f2f8 0%, #b9b4c9 40%, #6b6580 72%, #2a2638 100%);
+  --fx-grad: linear-gradient(180deg, #f4f2f8 0%, #b9b4c9 40%, #6b6580 72%, #2a2638 100%);
+  --fx-solid: #d6d2e2;
   filter: drop-shadow(0 2px 0 rgba(0, 0, 0, 0.6)) drop-shadow(0 0 14px rgba(160, 150, 200, 0.25));
 }
 
 .fx-title--frost {
-  background-image: linear-gradient(180deg, #ffffff 0%, #c9ecff 40%, #5fb6ec 72%, #16456e 100%);
+  --fx-grad: linear-gradient(180deg, #ffffff 0%, #c9ecff 40%, #5fb6ec 72%, #16456e 100%);
+  --fx-solid: #c9ecff;
   filter: drop-shadow(0 2px 0 rgba(0, 16, 40, 0.6)) drop-shadow(0 0 20px rgba(120, 200, 255, 0.4));
+}
+
+/* Each letter carries the gradient itself. WebKit does not clip a parent's
+   text background to children that animate on their own layers, so on an
+   iPhone a title painted on the parent came out fully transparent. */
+.fx-title--letters {
+  background-image: none;
+}
+.fx-title--letters .fx-word > span {
+  background-image: var(--fx-grad);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+}
+@supports not ((-webkit-background-clip: text) or (background-clip: text)) {
+  .fx-title,
+  .fx-title--letters .fx-word > span {
+    background: none;
+    color: var(--fx-solid);
+    -webkit-text-fill-color: currentColor;
+  }
+  .fx-shine::after {
+    display: none;
+  }
 }
 
 /* A bright band sweeps across metallic text. */
@@ -260,6 +291,11 @@
   justify-items: center;
   padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom));
   pointer-events: none;
+}
+
+.fx-roll__slot {
+  width: 100%;
+  min-height: 0;
 }
 
 .fx-roll__head {
@@ -506,8 +542,8 @@
 }
 .fx-verdict__rays {
   position: absolute;
-  width: 520px;
-  height: 520px;
+  width: min(520px, 130vw);
+  height: min(520px, 130vw);
   left: 50%;
   top: 50%;
   translate: -50% -50%;
@@ -564,6 +600,10 @@
   box-shadow: 0 0 10px rgba(255, 220, 140, 0.6);
 }
 
+.fx-flat-dice--overlay {
+  position: absolute;
+  inset: 30% 0;
+}
 .fx-flat-dice {
   display: flex;
   flex-wrap: wrap;
@@ -805,22 +845,79 @@
   100% { transform: none; filter: none; }
 }
 
+/* Phones: the plate becomes two tidy rows (who; what → at whom) instead of
+   a centred wrap, names shrink with the screen, and no label drops under
+   11px. */
 @media (max-width: 640px) {
   .fx-plate {
-    gap: 8px 10px;
-    padding: 8px 12px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    grid-template-areas:
+      "actor actor actor"
+      "action arrow target";
+    align-items: center;
+    gap: 8px 6px;
+    padding: 8px 10px;
+    width: 100%;
+    border-radius: 16px;
+  }
+  .fx-plate__actor {
+    grid-area: actor;
+    justify-self: center;
+    max-width: 100%;
   }
   .fx-plate__action {
+    grid-area: action;
+    min-width: 0;
     padding-left: 0;
     border-left: 0;
   }
-  .fx-avatar {
-    width: 38px;
-    height: 38px;
-    font-size: 16px;
+  .fx-plate__action:last-child {
+    grid-column: 1 / -1;
+    justify-self: center;
+  }
+  .fx-plate__action > div {
+    min-width: 0;
   }
   .fx-plate__arrow {
-    width: 28px;
+    grid-area: arrow;
+    width: 22px;
+  }
+  .fx-plate__target {
+    grid-area: target;
+    min-width: 0;
+  }
+  .fx-plate__name,
+  .fx-plate__what {
+    max-width: 100%;
+  }
+  .fx-plate__name {
+    font-size: 15px;
+  }
+  .fx-plate__what {
+    font-size: 14px;
+  }
+  .fx-plate__target .fx-plate__name {
+    font-size: 14px;
+  }
+  .fx-plate__kind,
+  .fx-plate__sub,
+  .fx-owner,
+  .fx-badge {
+    font-size: 11px;
+    letter-spacing: 0.1em;
+  }
+  .fx-hp {
+    width: 100%;
+    max-width: 96px;
+  }
+  .fx-avatar {
+    width: 36px;
+    height: 36px;
+    font-size: 16px;
+  }
+  .fx-request {
+    font-size: 13px;
   }
 }
 
@@ -834,8 +931,38 @@
   align-items: center;
   justify-content: center;
   gap: 14px;
-  padding: 24px 16px;
+  padding: max(24px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(24px, env(safe-area-inset-bottom))
+    max(16px, env(safe-area-inset-left));
   text-align: center;
+}
+.fx-combat-center {
+  padding-bottom: 8vh;
+  padding-bottom: max(8svh, env(safe-area-inset-bottom));
+}
+.fx-rest-center {
+  justify-content: flex-start;
+  padding-top: 40vh;
+  padding-top: 40svh;
+}
+.fx-rest-center--short {
+  padding-top: 30vh;
+  padding-top: 30svh;
+}
+
+/* A dark pool behind moments that play over the live table, so their
+   titles read over chat text and maps. */
+.fx-scrim {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.fx-scrim--combat {
+  background: radial-gradient(ellipse 90% 64% at 50% 50%, rgba(8, 4, 14, 0.92), rgba(8, 4, 14, 0.78) 60%, rgba(8, 4, 14, 0.5));
+  animation: fx-scrim 2.9s ease-out both;
+}
+.fx-scrim--slain {
+  background: radial-gradient(ellipse 110% 30% at 50% 50%, rgba(12, 2, 6, 0.94), rgba(12, 2, 6, 0.78) 55%, rgba(12, 2, 6, 0.2) 100%);
+  animation: fx-scrim 2.4s ease-out both;
 }
 
 .fx-vignette {
@@ -919,6 +1046,7 @@
   position: relative;
   width: min(560px, 100%);
   max-height: min(78vh, 720px);
+  max-height: min(78dvh, 720px);
   overflow: auto;
   padding: 34px 30px 28px;
   border-radius: 6px;
@@ -1041,6 +1169,7 @@
   left: 0;
   right: 0;
   height: 11vh;
+  height: 11svh;
   background: #000;
   z-index: 2;
 }
@@ -1134,7 +1263,7 @@
   display: grid;
   place-items: center;
   padding: 18px 16px;
-  background: linear-gradient(90deg, transparent, rgba(12, 8, 28, 0.9) 18%, rgba(12, 8, 28, 0.9) 82%, transparent);
+  background: linear-gradient(90deg, rgba(12, 8, 28, 0.55), rgba(12, 8, 28, 0.94) 12%, rgba(12, 8, 28, 0.94) 88%, rgba(12, 8, 28, 0.55));
   border-top: 1px solid rgba(243, 210, 122, 0.45);
   border-bottom: 1px solid rgba(243, 210, 122, 0.45);
   animation: fx-ribbon 2.4s var(--fx-ease) both;
@@ -1149,6 +1278,10 @@
 }
 .fx-ribbon .fx-title {
   font-size: clamp(30px, 6vw, 58px);
+}
+.fx-ribbon__sub {
+  margin-top: 8px;
+  animation: fx-fade-in 400ms ease-out 0.4s both;
 }
 
 /* Level up */
@@ -1168,8 +1301,8 @@
   position: absolute;
   left: 50%;
   top: 50%;
-  width: min(520px, 88vw);
-  height: min(520px, 88vw);
+  width: min(520px, 88vw, 88svh);
+  height: min(520px, 88vw, 88svh);
   translate: -50% -46%;
   opacity: 0.85;
   animation: fx-emblem-in 900ms var(--fx-ease) 200ms both;
@@ -1253,6 +1386,9 @@
 .fx-slain {
   animation: fx-slain 2.2s var(--fx-ease) 0.2s both;
 }
+.fx-slain .fx-midtitle {
+  font-size: clamp(40px, 9vw, 72px);
+}
 
 /* Loot */
 .fx-card {
@@ -1330,6 +1466,9 @@
   background: linear-gradient(180deg, #050316 0%, #120a32 55%, #2a1440 100%);
   animation: fx-sky 5.2s ease-in-out both;
 }
+.fx-sky--short {
+  animation: fx-fade-in 800ms ease-out both;
+}
 .fx-sky__stars {
   position: absolute;
   inset: 0;
@@ -1386,12 +1525,14 @@
   right: 0;
   bottom: 0;
   height: 26vh;
+  height: 26svh;
   background: linear-gradient(180deg, transparent, rgba(6, 3, 14, 0.95) 45%);
 }
 .fx-campfire {
   position: absolute;
   left: 50%;
   bottom: 13vh;
+  bottom: 13svh;
   width: 60px;
   height: 60px;
   translate: -50% 0;
@@ -1634,10 +1775,301 @@
   to { transform: scale(1.06, 1.14); opacity: 1; }
 }
 
+@keyframes fx-scrim {
+  0% { opacity: 0; }
+  10%, 82% { opacity: 1; }
+  100% { opacity: 0; }
+}
+@keyframes fx-toast-in {
+  from { opacity: 0; transform: translateY(-10px) scale(0.97); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes fx-rm-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes fx-rm-glow {
+  from { opacity: 0; }
+  to { opacity: 0.45; }
+}
+
+/* ------------------------------------------------------------ roll toasts */
+
+.fx-toasts {
+  z-index: 66;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: calc(env(safe-area-inset-top) + 64px) max(10px, env(safe-area-inset-right)) 0 max(10px, env(safe-area-inset-left));
+}
+.fx-toast {
+  pointer-events: auto;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  width: min(420px, 100%);
+  min-height: 52px;
+  margin: 0;
+  padding: 7px 12px 7px 8px;
+  border-radius: 14px;
+  border: 1px solid rgba(243, 210, 122, 0.35);
+  background: linear-gradient(180deg, #221a3e, #0e091c);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.55);
+  color: #f2eefc;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  animation: fx-toast-in 320ms var(--fx-ease) both;
+}
+.fx-toast:focus-visible {
+  outline: 2px solid #fff1c4;
+  outline-offset: 2px;
+}
+.fx-toast--enemy,
+.fx-toast--dm {
+  border-color: rgba(255, 96, 96, 0.5);
+  background: linear-gradient(180deg, #3e101a, #18060c);
+}
+.fx-toast__avatar {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  overflow: hidden;
+  border-radius: 50%;
+  border: 2px solid rgba(243, 210, 122, 0.7);
+  background: radial-gradient(circle at 35% 30%, #4b3a82, #1a1133);
+  font-family: var(--fx-display);
+  font-weight: 900;
+  font-size: 16px;
+  color: #ffe7a8;
+}
+.fx-toast__avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.fx-toast--enemy .fx-toast__avatar,
+.fx-toast--dm .fx-toast__avatar {
+  border-color: rgba(255, 110, 110, 0.8);
+  background: radial-gradient(circle at 35% 30%, #7a1f2c, #25060c);
+  color: #ffd0d0;
+}
+.fx-toast__body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.fx-toast__who {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+}
+.fx-toast__who b {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--fx-display);
+  font-size: 14px;
+  font-weight: 900;
+  color: #fff;
+}
+.fx-toast__owner {
+  flex: none;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(243, 210, 122, 0.8);
+}
+.fx-toast__what {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  font-size: 12px;
+  color: rgba(226, 214, 255, 0.75);
+}
+.fx-toast__what svg {
+  flex: none;
+  color: #f3d27a;
+}
+.fx-toast__what span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.fx-toast__result {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
+}
+.fx-toast__total {
+  font-family: var(--fx-display);
+  font-weight: 900;
+  font-size: 26px;
+  line-height: 1;
+  color: #fff;
+  text-shadow: 0 0 14px rgba(255, 210, 120, 0.5);
+}
+.fx-toast__verdict,
+.fx-toast__expr {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: rgba(226, 214, 255, 0.7);
+}
+.fx-toast__expr {
+  text-transform: none;
+  font-weight: 600;
+}
+.fx-toast--gold .fx-toast__verdict {
+  color: #ffd76b;
+}
+.fx-toast--crimson .fx-toast__verdict {
+  color: #ff8a8a;
+}
+
+/* ------------------------------------------------------------ settings panel */
+
+.fx-prefs {
+  display: flex;
+  flex-direction: column;
+  font-size: 14px;
+  color: #e7e5e4;
+}
+.fx-prefs__row,
+.fx-prefs__choice {
+  border-bottom: 1px solid rgba(68, 64, 60, 0.55);
+}
+.fx-prefs__row:last-child,
+.fx-prefs__choice:last-child {
+  border-bottom: 0;
+}
+.fx-prefs__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 52px;
+  padding: 7px 0;
+}
+.fx-prefs__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.fx-prefs__label {
+  font-size: 14px;
+  line-height: 1.3;
+  color: #f5f5f4;
+}
+.fx-prefs__hint {
+  font-size: 12px;
+  line-height: 1.35;
+  color: #a8a29e;
+}
+.fx-prefs__switch {
+  position: relative;
+  flex: none;
+  width: 46px;
+  height: 28px;
+  padding: 0;
+  border-radius: 999px;
+  border: 1px solid #57534e;
+  background: #292524;
+  cursor: pointer;
+  transition: background-color 160ms ease, border-color 160ms ease;
+}
+.fx-prefs__switch::before {
+  content: "";
+  position: absolute;
+  inset: -9px -4px;
+}
+.fx-prefs__switch[aria-checked="true"] {
+  border-color: #fbbf24;
+  background: linear-gradient(180deg, #fde68a, #f59e0b);
+}
+.fx-prefs__knob {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #d6d3d1;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+  transition: transform 160ms ease;
+}
+.fx-prefs__switch[aria-checked="true"] .fx-prefs__knob {
+  transform: translateX(18px);
+  background: #1c1917;
+}
+.fx-prefs__choice {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 0;
+}
+.fx-prefs__segments {
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+  border-radius: 10px;
+  border: 1px solid #44403c;
+  background: #0c0a09;
+}
+.fx-prefs__segment {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 38px;
+  padding: 4px 6px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #a8a29e;
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.15;
+  cursor: pointer;
+}
+.fx-prefs__segment:hover {
+  color: #fef3c7;
+}
+.fx-prefs__segment[aria-checked="true"] {
+  background: linear-gradient(180deg, #fef3c7, #fbbf24);
+  color: #451a03;
+  font-weight: 600;
+}
+.fx-prefs__switch:focus-visible,
+.fx-prefs__segment:focus-visible {
+  outline: 2px solid #fbbf24;
+  outline-offset: 2px;
+}
+
+/* ------------------------------------------------------------ phones */
+
 @media (max-width: 640px) {
+  .fx-roll__hud {
+    grid-template-rows: auto minmax(140px, 1fr) auto;
+    padding: max(10px, env(safe-area-inset-top)) max(10px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom))
+      max(10px, env(safe-area-inset-left));
+  }
+  .fx-roll__head {
+    gap: 5px;
+    width: 100%;
+  }
   .fx-medal {
-    width: 96px;
-    height: 96px;
+    width: 92px;
+    height: 92px;
   }
   .fx-medal__value {
     font-size: 36px;
@@ -1649,22 +2081,299 @@
     font-size: 52px;
   }
   .fx-roll__foot {
-    min-height: 130px;
+    gap: 10px;
+    min-height: 124px;
+  }
+  .fx-chip {
+    padding: 5px 10px;
   }
   .fx-skins {
     right: 50%;
     translate: 50% 0;
     bottom: max(8px, env(safe-area-inset-bottom));
   }
+  .fx-hint,
+  .fx-sub {
+    letter-spacing: 0.16em;
+  }
+  .fx-flat-die small,
+  .fx-saves__row,
+  .fx-card__rarity {
+    font-size: 11px;
+  }
+  .fx-toasts {
+    padding-top: calc(env(safe-area-inset-top) + 58px);
+  }
 }
 
+/* Short screens (small phones, and any phone on its side). */
+@media (max-height: 740px) {
+  .fx-medal {
+    width: 80px;
+    height: 80px;
+    margin-top: 0;
+  }
+  .fx-medal__value {
+    font-size: 32px;
+  }
+  .fx-medal__value.fx-medal__value--sm {
+    font-size: 24px;
+  }
+  .fx-total__value {
+    font-size: 46px;
+  }
+  .fx-roll__foot {
+    min-height: 112px;
+    gap: 8px;
+  }
+  .fx-stakes__hint {
+    font-size: 12px;
+  }
+  .fx-button--big {
+    min-height: 50px;
+    padding: 12px 26px;
+    font-size: 16px;
+  }
+}
+
+/* A phone on its side: plate and stakes on the left, dice on the right,
+   the tally under the plate. Nothing may scroll or fall off the bottom. */
+@media (max-height: 560px) and (orientation: landscape) {
+  .fx-roll__hud {
+    grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+    grid-template-areas:
+      "head slot"
+      "foot slot";
+    column-gap: 12px;
+    padding: max(8px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom))
+      max(12px, env(safe-area-inset-left));
+  }
+  .fx-roll__head {
+    grid-area: head;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    align-content: flex-start;
+    gap: 6px 10px;
+    width: 100%;
+  }
+  .fx-roll__head > .fx-plate,
+  .fx-roll__head > .fx-request {
+    flex-basis: 100%;
+  }
+  .fx-plate {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    grid-template-areas:
+      "actor actor actor"
+      "action arrow target";
+    gap: 4px 6px;
+    padding: 6px 10px;
+  }
+  .fx-plate__actor {
+    grid-area: actor;
+    justify-self: center;
+  }
+  .fx-plate__action {
+    grid-area: action;
+    min-width: 0;
+    padding-left: 0;
+    border-left: 0;
+  }
+  .fx-plate__action:last-child {
+    grid-column: 1 / -1;
+    justify-self: center;
+  }
+  .fx-plate__arrow {
+    grid-area: arrow;
+    width: 22px;
+  }
+  .fx-plate__target {
+    grid-area: target;
+    min-width: 0;
+  }
+  .fx-avatar {
+    width: 32px;
+    height: 32px;
+    font-size: 14px;
+  }
+  .fx-medal {
+    width: 64px;
+    height: 64px;
+  }
+  .fx-medal__value {
+    font-size: 26px;
+  }
+  .fx-medal__value.fx-medal__value--sm {
+    font-size: 19px;
+  }
+  .fx-stakes {
+    align-items: flex-start;
+    text-align: left;
+    max-width: calc(100% - 80px);
+  }
+  .fx-roll__slot {
+    grid-area: slot;
+    height: 100%;
+  }
+  .fx-roll__foot {
+    grid-area: foot;
+    align-self: end;
+    width: 100%;
+    min-height: 0;
+    gap: 6px;
+  }
+  .fx-total__value {
+    font-size: 40px;
+  }
+  .fx-verdict .fx-title {
+    font-size: clamp(24px, 9svh, 40px);
+  }
+  .fx-verdict__rays {
+    width: 300px;
+    height: 300px;
+  }
+  .fx-button--big {
+    min-height: 44px;
+    padding: 8px 20px;
+    font-size: 14px;
+  }
+  .fx-skins {
+    right: max(12px, env(safe-area-inset-right));
+    translate: none;
+  }
+  .fx-flat-dice--overlay {
+    inset: 18% 0 18% 52%;
+  }
+  /* Cinematics */
+  .fx-center {
+    gap: 8px;
+  }
+  .fx-swords {
+    width: min(240px, 44vw);
+    height: min(96px, 24svh);
+  }
+  .fx-bigtitle {
+    font-size: clamp(32px, 13svh, 64px);
+  }
+  .fx-midtitle {
+    font-size: clamp(28px, 11svh, 52px);
+  }
+  .fx-init-card {
+    min-width: 64px;
+    padding: 5px 8px;
+  }
+  .fx-init-card b {
+    font-size: 16px;
+  }
+  .fx-ribbon {
+    top: 30%;
+    padding: 10px 16px;
+  }
+  .fx-card {
+    width: min(160px, 28vw);
+  }
+  .fx-card__icon {
+    font-size: 40px;
+  }
+  .fx-card__name {
+    font-size: 16px;
+  }
+  .fx-level__new {
+    font-size: clamp(60px, 26svh, 120px);
+  }
+  .fx-toasts {
+    padding-top: calc(env(safe-area-inset-top) + 52px);
+  }
+}
+
+/* ------------------------------------------------------------ lite quality */
+
+/* Lite (phones and weak GPUs on Auto, or chosen): no full-screen blur, no
+   endless decorative loops, one cheap shadow on titles. */
+html[data-fx-quality="lite"] .fx-layer .fx-backdrop {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  background:
+    radial-gradient(ellipse 70% 55% at 50% 48%, rgba(56, 36, 120, 0.3), transparent 70%),
+    rgba(6, 4, 16, 0.94);
+}
+html[data-fx-quality="lite"] .fx-layer .fx-desaturate {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  background: rgba(10, 9, 14, 0.62);
+}
+html[data-fx-quality="lite"] .fx-layer .fx-button--ghost {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+html[data-fx-quality="lite"] .fx-layer .fx-pillar {
+  filter: none;
+}
+html[data-fx-quality="lite"] .fx-layer .fx-title {
+  filter: drop-shadow(0 2px 0 rgba(0, 0, 0, 0.6));
+}
+html[data-fx-quality="lite"] .fx-layer .fx-shine::after,
+html[data-fx-quality="lite"] .fx-layer .fx-button::after {
+  display: none;
+}
+html[data-fx-quality="lite"] .fx-layer :is(.fx-medal__ring, .fx-plate__arrow, .fx-runes__outer, .fx-runes__inner, .fx-vignette--blood, .fx-campfire, .fx-button--pulse, .fx-stakes__timer--urgent) {
+  animation: none;
+}
+html[data-fx-quality="lite"] .fx-layer .fx-verdict--fumble .fx-title {
+  animation: fx-shake-x 460ms ease-in-out 0.4s both;
+}
+html[data-fx-quality="lite"] .fx-layer :is(.fx-verdict__rays, .fx-card__beams, .fx-rays) {
+  animation: fx-fade-in 600ms ease-out both;
+}
+
+/* ------------------------------------------------------------ reduced motion */
+
+/* Reduced motion (the player's choice, or the system's on Auto): every
+   animation jumps straight to its end pose. Moments that used to leave by
+   animating out (combat start, your turn, slain, victory) instead fade in
+   and stay for their hold, so they are calm but still there. */
+html[data-fx-motion="reduce"] .fx-layer *,
+html[data-fx-motion="reduce"] .fx-layer *::before,
+html[data-fx-motion="reduce"] .fx-layer *::after {
+  animation-duration: 1ms !important;
+  animation-delay: 0ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 1ms !important;
+}
+html[data-fx-motion="reduce"] .fx-layer :is(.fx-combat-out, .fx-ribbon, .fx-slain, .fx-letterbox, .fx-joke, .fx-scrim, .fx-toast) {
+  animation: fx-rm-in 400ms ease-out both !important;
+}
+html[data-fx-motion="reduce"] .fx-layer .fx-edge-flash {
+  animation: fx-rm-glow 400ms ease-out both !important;
+}
+html[data-fx-motion="reduce"] .fx-layer .fx-slash,
+html[data-fx-motion="reduce"] .fx-layer .fx-ribbon::before,
+html[data-fx-motion="reduce"] .fx-layer .fx-shine::after {
+  display: none;
+}
+
+/* Before the page has read the player's choice, follow the system. */
 @media (prefers-reduced-motion: reduce) {
-  .fx-layer *,
-  .fx-layer *::before,
-  .fx-layer *::after {
+  html:not([data-fx-motion]) .fx-layer *,
+  html:not([data-fx-motion]) .fx-layer *::before,
+  html:not([data-fx-motion]) .fx-layer *::after {
     animation-duration: 1ms !important;
     animation-delay: 0ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 1ms !important;
+  }
+  html:not([data-fx-motion]) .fx-layer :is(.fx-combat-out, .fx-ribbon, .fx-slain, .fx-letterbox, .fx-joke, .fx-scrim, .fx-toast) {
+    animation: fx-rm-in 400ms ease-out both !important;
+  }
+  html:not([data-fx-motion]) .fx-layer .fx-edge-flash {
+    animation: fx-rm-glow 400ms ease-out both !important;
+  }
+  html:not([data-fx-motion]) .fx-layer .fx-slash,
+  html:not([data-fx-motion]) .fx-layer .fx-ribbon::before,
+  html:not([data-fx-motion]) .fx-layer .fx-shine::after {
+    display: none;
   }
 }
