@@ -102,14 +102,16 @@ export function composerGate({
 
   const inputBlocked = floorBlocked || holdBlocked || initiativeBlocked || narrationBlocked || turnActionBlocked;
   const copy = locale === "ru"
-    ? { narrating: "Мастер задаёт сцену... (OOC доступен)", held: "Лидер отряда удерживает право слова... (OOC доступен)", turn: "Ход {name} в бою... (OOC доступен)", waiting: "Ожидание: {names}... (OOC доступен)", action: "Что делает или говорит {name}?", ask: "Спросите Мастера; вопрос не тратит ход", narrate: "Опишите сцену. Сервер всё равно бросает кости.", ooc: "Внеигровая заметка для стола", private: "Лично сообщите Мастеру, что делать в следующем ходу", lead: "Направьте сюжет: Мастер должен учесть это" }
-    : { narrating: "The Dungeon Master is setting the scene... (OOC still open)", held: "The party lead has the floor held for discussion... (OOC still open)", turn: "{name}'s turn in combat... (OOC still open)", waiting: "Waiting on {names}... (OOC still open)", action: "What does {name} do or say?", ask: "Ask the DM; it does not use your turn", narrate: "Narrate the scene. The server still rolls every die.", ooc: "Out-of-character note to the table", private: "Tell the DM privately what to do with the next turn", lead: "Steer the story: a direction the DM must weave in" };
+    ? { narrating: "Мастер задаёт сцену... (OOC доступен)", resolving: "Ход {name} у Мастера — сейчас ничей ход. Следующий откроется, когда Мастер допишет. (OOC доступен)", held: "Лидер отряда удерживает право слова... (OOC доступен)", turn: "Ход {name} в бою... (OOC доступен)", waiting: "Ожидание: {names}... (OOC доступен)", action: "Что делает или говорит {name}?", ask: "Спросите Мастера; вопрос не тратит ход", narrate: "Опишите сцену. Сервер всё равно бросает кости.", ooc: "Внеигровая заметка для стола", private: "Лично сообщите Мастеру, что делать в следующем ходу", lead: "Направьте сюжет: Мастер должен учесть это" }
+    : { narrating: "The Dungeon Master is setting the scene... (OOC still open)", resolving: "The DM is resolving {name}'s turn — it is nobody's turn until they finish. (OOC still open)", held: "The party lead has the floor held for discussion... (OOC still open)", turn: "{name}'s turn in combat... (OOC still open)", waiting: "Waiting on {names}... (OOC still open)", action: "What does {name} do or say?", ask: "Ask the DM; it does not use your turn", narrate: "Narrate the scene. The server still rolls every die.", ooc: "Out-of-character note to the table", private: "Tell the DM privately what to do with the next turn", lead: "Steer the story: a direction the DM must weave in" };
   const placeholder = turnActionBlocked
     ? turnActionReason
     : narrationBlocked
       ? copy.narrating
       : holdBlocked
-        ? copy.held
+        ? floor.mode === "hold" && floor.combat
+          ? copy.resolving.replace("{name}", () => sheets.find((sheet) => floor.mode === "hold" && sheet.id === floor.combat?.characterId)?.name ?? "…")
+          : copy.held
         : initiativeBlocked
           ? copy.turn.replace("{name}", () => floor.mode === "initiative" ? floor.currentName : "Another hero")
         : floorBlocked

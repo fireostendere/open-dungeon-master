@@ -58,11 +58,27 @@ function fixture() {
     '@/lib/srd/spell-mechanics': { authoredSpellRow: () => null },
     '@/lib/srd/condition-effects': { conditionExtraActions: () => 0 }, '@/lib/db/dm-turns': turns,
   });
+  // The handoff moves initiative; this fixture's engine stand-in wraps the
+  // one-hero order into the next round and keeps whoever the floor names.
+  const lifecycle = loadSource('src/lib/dm/human-turn-lifecycle.ts', {
+    '@/lib/db/campaigns': floorDb, '@/lib/db/encounters': { getActiveEncounter: () => encounter },
+    '@/lib/db/dm-turns': { ...turns, saveDmTurn() {} },
+    '@/lib/db/human-adjudication-scopes': { scopedHumanTurn: () => ({ resolvedCharacterIds: [] }) },
+    '@/lib/dm/encounter-tools': {
+      advanceAfterTurn() {
+        encounter = { ...encounter, round: encounter.round + 1 };
+        campaigns.setFloor('c1', { ...campaigns.getFloor('c1'), round: encounter.round });
+      },
+      announceCurrentTurn() {}, queueSkippedCombatTurn() {},
+    },
+    '@/lib/events': f.events,
+  });
   const narration = loadSource('src/lib/dm/human-narration.ts', {
     '@/lib/spatial/service': spatial, '@/lib/db/campaigns': floorDb, '@/lib/db/core': f.core,
     '@/lib/db/commit-effects': f.effects, '@/lib/db/messages': f.messages,
     '@/lib/db/dm-turns': turns, '@/lib/events': f.events,
-    '@/lib/dm/encounter-tools': { announceCurrentTurn() {}, queueSkippedCombatTurn() {} },
+    '@/lib/dm/encounter-tools': { queueSkippedCombatTurn() {} },
+    '@/lib/dm/human-turn-lifecycle': lifecycle,
   });
   return { ...f, campaigns, floor, campaign, sheets,
     options: () => route.GET(new Request('http://localhost/actions'), { params: Promise.resolve({ campaignId: 'c1' }) }),
@@ -228,7 +244,9 @@ test('text and button submissions both stay locked until turn resolution; victor
     const first = f.campaigns.getFloor('c1');
     f.campaigns.setFloor('c1', { ...first, combat: { ...first.combat, mechanicsResolved: true } });
     f.narrate(); assert.equal(f.campaigns.getFloor('c1').mode, 'initiative');
-    assert.equal((await f.send(f.intent)).status, 202);
+    assert.equal(f.campaigns.getFloor('c1').round, 2, 'the handing-over narration moves initiative');
+    assert.equal((await f.send(f.intent)).status, 409, 'the old turn is gone');
+    assert.equal((await f.send({ ...f.intent, combatTurn: { ...f.intent.combatTurn, round: 2 } })).status, 202);
     const held = f.campaigns.getFloor('c1');
     f.encounter(null);
     f.campaigns.setFloor('c1', { ...held, next: { mode: 'open' }, combat: { ...held.combat, mechanicsResolved: true } });

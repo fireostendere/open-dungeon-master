@@ -13,6 +13,17 @@ export type SessionUser = {
 
 export type CampaignStatus = "lobby" | "active" | "ended";
 
+// How an ended campaign ended. Set together with status "ended" by whoever
+// closes it (the narrator's end_campaign, the owner's End button, the
+// operator); null while it runs and for tables closed before this existed.
+export const CAMPAIGN_OUTCOMES = ["victory", "defeat"] as const;
+export type CampaignOutcome = (typeof CAMPAIGN_OUTCOMES)[number];
+export function normalizeCampaignOutcome(raw: unknown): CampaignOutcome | null {
+  return raw === "victory" || raw === "defeat" ? raw : null;
+}
+// The closing record: the epilogue shown in the finale and who closed it.
+export type CampaignEnding = { epilogue: string; endedAt: string; endedBy: "narrator" | "dm" | "owner" | "operator" };
+
 export const CAMPAIGN_DIFFICULTIES = ["easy", "normal", "hard", "deadly"] as const;
 export type CampaignDifficulty = (typeof CAMPAIGN_DIFFICULTIES)[number];
 
@@ -63,6 +74,8 @@ export type CampaignSummary = {
   // plate for its genre, and the home screen picks that without opening the
   // table. Read through src/lib/placeholders.ts, never compared by hand.
   genre: string;
+  // Victory or defeat once the campaign has ended; null otherwise.
+  outcome: CampaignOutcome | null;
   createdAt: string;
   updatedAt: string;
 };

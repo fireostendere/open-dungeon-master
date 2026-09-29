@@ -5,6 +5,7 @@ import type { StoredRoll } from "@/lib/db/rolls";
 import type { CharacterSheet } from "@/lib/schemas/sheet";
 import type { PublicEncounter } from "@/lib/db/encounter-view";
 import type { PendingRoll } from "@/app/campaigns/[campaignId]/useCampaignStream";
+import { FxErrorBoundary } from "@/components/fx/FxErrorBoundary";
 import { DiceRollOverlay } from "./DiceRollOverlay";
 
 export function DiceOverlay({
@@ -33,15 +34,18 @@ export function DiceOverlay({
         .map((enemy) => ({ id: enemy.id, name: enemy.name, health: enemy.health, hpPercent: enemy.hpPercent, ac: enemy.ac })),
     [encounter?.enemies],
   );
+  // A broken roll must not take the table with it; the next roll retries.
   return (
-    <DiceRollOverlay
-      campaignId={campaignId}
-      pendingRolls={pendingRolls}
-      meUserId={meUserId}
-      latestRoll={latestRoll}
-      sheets={sheets}
-      enemies={enemies}
-      enabled={enabled}
-    />
+    <FxErrorBoundary resetKey={latestRoll?.roll.id ?? null}>
+      <DiceRollOverlay
+        campaignId={campaignId}
+        pendingRolls={pendingRolls}
+        meUserId={meUserId}
+        latestRoll={latestRoll}
+        sheets={sheets}
+        enemies={enemies}
+        enabled={enabled}
+      />
+    </FxErrorBoundary>
   );
 }

@@ -25,6 +25,9 @@ export async function POST(
   if (isErrorResponse(context)) {
     return context;
   }
+  if (context.campaign.status !== "active") {
+    return Response.json({ error: "The campaign is not running." }, { status: 409 });
+  }
   const parsed = bodySchema.safeParse(await request.json().catch(() => ({})));
   if (!parsed.success) {
     return Response.json({ error: "Invalid action." }, { status: 400 });

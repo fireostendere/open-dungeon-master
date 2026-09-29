@@ -9,17 +9,17 @@ import { Bursts, FIREWORK_COLORS } from "@/lib/fx/particles";
 import * as sfx from "@/lib/fx/sound";
 import { FxTitle, useFxCanvas, useReducedMotion } from "../shared";
 
+// Reduced motion keeps the same hold: the calm version still has to be read.
 function useAutoDone(active: boolean, ms: number, onDone: () => void) {
   const done = useRef(onDone);
   useEffect(() => {
     done.current = onDone;
   });
-  const reduced = useReducedMotion();
   useEffect(() => {
     if (!active) return;
-    const t = window.setTimeout(() => done.current(), reduced ? Math.min(ms, 1400) : ms);
+    const t = window.setTimeout(() => done.current(), ms);
     return () => window.clearTimeout(t);
-  }, [active, ms, reduced]);
+  }, [active, ms]);
 }
 
 /** A gilded ribbon sweeps across: "Your turn", or any short headline. */
@@ -50,11 +50,7 @@ export function TurnBanner({
     <div className="fx-layer" style={{ zIndex: 72 }} aria-live="polite">
       <div className="fx-ribbon">
         <FxTitle text={text} tone={tone} variant="rise" delayMs={120} />
-        {subtitle ? (
-          <p className="fx-sub" style={{ marginTop: 8, animation: "fx-fade-in 400ms ease-out 0.4s both" }}>
-            {subtitle}
-          </p>
-        ) : null}
+        {subtitle ? <p className="fx-sub fx-ribbon__sub">{subtitle}</p> : null}
       </div>
     </div>
   );
@@ -85,6 +81,7 @@ export function SlainBanner({ active, name, onDone }: { active: boolean; name: s
   if (!active) return null;
   return (
     <div className="fx-layer" style={{ zIndex: 72 }} aria-live="polite">
+      <div className="fx-scrim fx-scrim--slain" />
       <div className="fx-slash" />
       <canvas ref={canvasRef} className="fx-canvas" />
       <div className="fx-center fx-slain">

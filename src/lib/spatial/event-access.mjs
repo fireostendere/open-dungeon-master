@@ -26,7 +26,7 @@ const ownUser = (payload, actor) => {
     [p.characterId, p.roll?.characterId, p.sheet?.id, p.pendingRoll?.characterId].some(id => id && actor.ownedCharacterIds.includes(id));
 };
 function globalView(type, payload) {
-  if (type === 'campaign_updated') return select(payload, ['status', 'title', 'description', 'theme', 'cover', 'maxPlayers', 'startingLevel', 'difficulty']);
+  if (type === 'campaign_updated') return select(payload, ['status', 'outcome', 'ending', 'title', 'description', 'theme', 'cover', 'maxPlayers', 'startingLevel', 'difficulty']);
   if (type === 'presence') return { online: Array.isArray(payload?.online) ? payload.online : [] };
   // Whether the external narrator is listening: table-wide, no room or prose.
   if (type === 'narrator_presence') return { online: payload?.online === true, since: Number.isSafeInteger(payload?.since) ? payload.since : null };

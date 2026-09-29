@@ -30,6 +30,7 @@ import {
   updateCharacter,
 } from "@/lib/db/characters";
 import { getDatabase } from "@/lib/db/core";
+import { closeCampaignNow } from "@/lib/dm/campaign-ending";
 import { maskStorySettings } from "@/lib/db/settings";
 import { getSheetById, listSheets, patchSheet } from "@/lib/db/sheets";
 import { getUserById, getUserByUsername, listUsers, type User } from "@/lib/db/users";
@@ -302,10 +303,20 @@ export async function executeMcpControl(action: string, rawParams: unknown): Pro
 
     case "campaigns.set_status": {
       const params = parse(
-        z.object({ campaignId: z.string().uuid(), status: z.enum(["lobby", "active", "ended"]) }).strict(),
+        z.object({
+          campaignId: z.string().uuid(), status: z.enum(["lobby", "active", "ended"]),
+          outcome: z.enum(["victory", "defeat"]).optional(), epilogue: z.string().trim().max(12000).optional(),
+        }).strict(),
         rawParams,
       );
-      campaignOr404(params.campaignId);
+      const current = campaignOr404(params.campaignId);
+      if (params.status === "ended" && params.outcome) {
+        // The full close: fights, dice, Asks and the floor are cleaned up and
+        // the table hears the outcome.
+        const closed = await closeCampaignNow(current.id, { outcome: params.outcome, epilogue: params.epilogue, endedBy: "operator" });
+        return { campaign: mcpCampaign(campaignOr404(params.campaignId)), closed: closed.closed };
+      }
+      if (params.outcome || params.epilogue) throw new McpControlError("outcome and epilogue go with status ended.", 400);
       setCampaignStatus(params.campaignId, params.status);
       publishPersisted(params.campaignId, "mcp_control", { action: "status_changed", status: params.status });
       return { campaign: mcpCampaign(campaignOr404(params.campaignId)) };

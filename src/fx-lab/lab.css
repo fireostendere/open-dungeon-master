@@ -37,3 +37,5 @@ button { font: inherit; }
   .lab-table { display: none; }
   .lab-panel { position: static; width: auto; border-right: 0; min-height: 100vh; }
 }
+.lab-prefs { margin-top: 14px; padding: 8px 12px; border-radius: 12px; border: 1px solid #302853; background: #0f0c1f; }
+.lab-prefs summary { cursor: pointer; font-size: 13px; color: #f4e0a6; padding: 4px 0; }

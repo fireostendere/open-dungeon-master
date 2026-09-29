@@ -96,7 +96,7 @@ await assert.rejects(
   "state delta must have transport-owned host identity",
 );
 const deltaConnected = await executeMcpNarratorControl("narrator.connect", { campaignId: campaign.id, stateDelta: true, narratorHostId: narratorHostA });
-assert.equal(deltaConnected.result.contractVersion, 7);
+assert.equal(deltaConnected.result.contractVersion, 8);
 assert.equal(deltaConnected.result.features.compoundCombatTurn, true);
 assert.equal(deltaConnected.result.features.atomicHealing, true);
 assert.ok(deltaConnected.result.cursor.currentSeq >= 0);

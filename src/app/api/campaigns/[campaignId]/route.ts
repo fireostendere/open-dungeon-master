@@ -2,7 +2,8 @@ import { rm } from "node:fs/promises";
 import path from "node:path";
 import { z } from "zod";
 import { capsFor, isErrorResponse, isLead, requireMember } from "@/lib/campaign-api";
-import { CAMPAIGN_DIFFICULTIES } from "@/lib/campaign-types";
+import { CAMPAIGN_DIFFICULTIES, CAMPAIGN_OUTCOMES } from "@/lib/campaign-types";
+import { closeCampaignNow } from "@/lib/dm/campaign-ending";
 import {
   allocateSeq,
   campaignSeats,
@@ -17,7 +18,6 @@ import { ensureOpenChapter, listChapters } from "@/lib/db/chapters";
 import { getAmbience } from "@/lib/db/ambience";
 import { captureBoundarySnapshot } from "@/lib/db/snapshots";
 import { listRecentCampaignEvents } from "@/lib/db/character-events";
-import { syncProgressToLibrary } from "@/lib/db/characters";
 import { activePublicEncounter } from "@/lib/db/encounter-view";
 import { listNotesVisibleTo } from "@/lib/db/notes";
 import { listOpenPendingRolls, publicPendingRoll } from "@/lib/db/dm-turns";
@@ -172,6 +172,10 @@ export async function GET(
 
 const patchSchema = z.object({
   status: z.enum(["active", "ended"]).optional(),
+  // With status "ended": how it ended. Closing with an outcome also cleans
+  // up running fights, dice and Asks (src/lib/dm/campaign-ending.ts).
+  outcome: z.enum(CAMPAIGN_OUTCOMES).optional(),
+  epilogue: z.string().trim().max(12000).optional(),
   title: z.string().trim().min(1).max(80).optional(),
   description: z.string().trim().max(500).optional(),
   theme: z.string().trim().max(120).optional(),
@@ -198,7 +202,7 @@ export async function PATCH(
     return Response.json({ error: "Invalid update." }, { status: 400 });
   }
 
-  const { status: nextStatus, ...info } = parsed.data;
+  const { status: nextStatus, outcome, epilogue, ...info } = parsed.data;
   const infoKeys = Object.keys(info) as Array<keyof typeof info>;
 
   // Campaign info edits: party lead only, any time before the campaign
@@ -257,18 +261,21 @@ export async function PATCH(
     }
   }
 
-  setCampaignStatus(campaignId, nextStatus);
-  publishPersisted(campaignId, "campaign_updated", { status: nextStatus });
-
-  // Campaign over: write durable progression back to each player's library
-  // character (level, XP, gold, gear, spells; never HP or conditions).
   if (nextStatus === "ended") {
-    for (const sheet of listSheets(campaignId)) {
-      if (sheet.libraryCharacterId) {
-        syncProgressToLibrary(sheet.id);
-      }
+    // Victory or defeat (a table closed without choosing counts as a win, as
+    // the old finale guessed): everything still open is closed with it, and
+    // progression goes back to the library inside closeCampaign.
+    const endedBy = isPrimaryDm(seats, user.id) ? "dm" : "owner";
+    try {
+      const closed = await closeCampaignNow(campaignId, { outcome: outcome ?? "victory", epilogue, endedBy });
+      return Response.json({ ok: true, status: "ended", outcome: closed.outcome });
+    } catch (error) {
+      return Response.json({ error: error instanceof Error ? error.message : "Could not end the campaign." }, { status: 500 });
     }
   }
+
+  setCampaignStatus(campaignId, nextStatus);
+  publishPersisted(campaignId, "campaign_updated", { status: nextStatus });
 
   // Campaign activation is deterministic. The external MCP narrator reads
   // this marker and the same campaign state; the server never invokes a model.

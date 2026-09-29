@@ -13,7 +13,13 @@ function narration(fixture) {
     '@/lib/db/core': fixture.core, '@/lib/db/commit-effects': fixture.effects,
     '@/lib/db/campaigns': fixture.campaigns, '@/lib/db/messages': fixture.messages,
     '@/lib/db/dm-turns': { listOpenPendingRolls: () => fixture.pendingRolls ?? [] },
-    '@/lib/dm/encounter-tools': { announceCurrentTurn: () => {}, queueSkippedCombatTurn: () => {} },
+    '@/lib/dm/encounter-tools': { queueSkippedCombatTurn: () => {} },
+    '@/lib/dm/human-turn-lifecycle': loadSource('src/lib/dm/human-turn-lifecycle.ts', {
+      '@/lib/db/campaigns': fixture.campaigns, '@/lib/db/encounters': { getActiveEncounter: () => null },
+      '@/lib/db/dm-turns': { listOpenPendingRolls: () => fixture.pendingRolls ?? [], saveDmTurn() {} },
+      '@/lib/db/human-adjudication-scopes': {}, '@/lib/events': fixture.events,
+      '@/lib/dm/encounter-tools': { advanceAfterTurn() {}, announceCurrentTurn() {}, queueSkippedCombatTurn() {} },
+    }),
     '@/lib/events': fixture.events,
     '@/lib/spatial/service': { spatialEnabled: () => false, SpatialError: class extends Error {} },
   }).persistHumanNarration;

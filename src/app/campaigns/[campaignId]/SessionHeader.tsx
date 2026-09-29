@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import {
+  ChevronDown,
   CircleHelp,
-  Dices,
   DoorOpen,
   MoreHorizontal,
   Music,
   Music2,
+  Sparkles,
   type LucideIcon,
 } from "lucide-react";
 import { useRef, useState, type ComponentProps } from "react";
@@ -20,8 +21,11 @@ import type { NarratorLamp as NarratorLampView } from "@/app/campaigns/[campaign
 import { VoiceDock } from "@/app/campaigns/[campaignId]/VoiceDock";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import type { AmbienceAudio } from "@/app/campaigns/[campaignId]/useAmbienceAudio";
+import { FxSettingsPanel } from "@/components/fx/FxSettingsPanel";
 import { useI18n } from "@/lib/i18n";
 import { localeText } from "@/lib/i18n/locale-text";
+import { useFxSettings } from "@/lib/fx/prefs";
+import { cn } from "@/lib/cn";
 
 function HeaderAudioControl({
   onLabel,
@@ -87,8 +91,6 @@ export function SessionHeader({
   user,
   narrator,
   voice,
-  dice3d,
-  onToggleDice3d,
   ambienceEnabled,
   ambience,
   onHelp,
@@ -98,20 +100,25 @@ export function SessionHeader({
   user: AccountMenuUser;
   narrator: NarratorLampView;
   voice: ComponentProps<typeof VoiceDock>;
-  dice3d: boolean;
-  onToggleDice3d: () => void;
   ambienceEnabled: boolean;
   ambience: AmbienceAudio;
   onHelp: () => void;
 }) {
   const { locale } = useI18n();
   const [toolsOpen, setToolsOpen] = useState(false);
+  const [fxOpen, setFxOpen] = useState(false);
+  const [fxSectionOpen, setFxSectionOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
+  const fxTriggerRef = useRef<HTMLButtonElement>(null);
+  const fx = useFxSettings();
 
   const copy = localeText(locale, {
     en: {
-      diceOn: "Turn on 3D dice animation",
-      diceOff: "Turn off 3D dice animation",
+      animations: "Animations",
+      animationsTip: "Your dice, cinematics and effects on this device",
+      animationsAllOff: "Off",
+      animationsLite: "Lite",
+      animationsFull: "Full",
       scene: "The adventure unfolds",
       help: "Help",
       helpTip: "How everything works, and the guided tours",
@@ -125,8 +132,11 @@ export function SessionHeader({
       volume: "Ambience and music volume",
     },
     ru: {
-      diceOn: "Включить 3D-анимацию кубиков",
-      diceOff: "Выключить 3D-анимацию кубиков",
+      animations: "Анимации",
+      animationsTip: "Ваши кубики, заставки и эффекты на этом устройстве",
+      animationsAllOff: "Выкл",
+      animationsLite: "Лёгкие",
+      animationsFull: "Полные",
       scene: "Приключение начинается",
       help: "Помощь",
       helpTip: "Как всё устроено и как пройти обучение",
@@ -141,7 +151,8 @@ export function SessionHeader({
     },
   });
 
-  const diceLabel = dice3d ? copy.diceOff : copy.diceOn;
+  const fxLit = fx.dice || fx.cinematics;
+  const fxSummary = !fxLit ? copy.animationsAllOff : fx.lite ? copy.animationsLite : copy.animationsFull;
   const audioActive = ambience.unlocked && !ambience.muted;
   const audioLabel = audioActive ? copy.ambienceOn : copy.ambienceOff;
   const AudioIcon = audioActive ? Music : Music2;
@@ -154,6 +165,11 @@ export function SessionHeader({
   const changeTools = (open: boolean) => {
     setToolsOpen(open);
     if (!open) requestAnimationFrame(() => triggerRef.current?.focus({ preventScroll: true }));
+  };
+
+  const changeFx = (open: boolean) => {
+    setFxOpen(open);
+    if (!open) requestAnimationFrame(() => fxTriggerRef.current?.focus({ preventScroll: true }));
   };
 
   return (
@@ -190,18 +206,6 @@ export function SessionHeader({
         </button>
 
         <div className="hidden items-center gap-2.5 lg:flex">
-          <Tooltip content={diceLabel} side="bottom">
-            <button
-              type="button"
-              onClick={onToggleDice3d}
-              aria-label={diceLabel}
-              data-tour="header-dice"
-              className={headerButtonClass(dice3d)}
-            >
-              <Dices className="size-4" />
-            </button>
-          </Tooltip>
-
           {ambienceEnabled && ambience.installed ? (
             <HeaderAudioControl
               onLabel={copy.ambienceOn}
@@ -241,11 +245,31 @@ export function SessionHeader({
             </Link>
           </Tooltip>
 
+          <Tooltip content={copy.animationsTip} side="bottom">
+            <button
+              ref={fxTriggerRef}
+              type="button"
+              onClick={() => changeFx(true)}
+              aria-label={copy.animations}
+              aria-haspopup="dialog"
+              aria-expanded={fxOpen}
+              data-tour="header-dice"
+              className={headerButtonClass(fxLit, "flex items-center gap-1.5")}
+            >
+              <Sparkles className="size-4" />
+              <span className="hidden text-xs xl:inline">{copy.animations}</span>
+            </button>
+          </Tooltip>
+
           <LanguageSwitcher />
           <AppHomeButton />
           <AccountMenu user={user} onHelp={onHelp} />
         </div>
       </div>
+
+      <Sheet open={fxOpen} onOpenChange={changeFx} title={copy.animations} desktop="popover" className="hidden lg:flex">
+        <FxSettingsPanel />
+      </Sheet>
 
       <Sheet
         open={toolsOpen}
@@ -259,16 +283,25 @@ export function SessionHeader({
         <div className="flex flex-col gap-2">
           <NarratorLampRow lamp={narrator} />
 
-          <button
-            type="button"
-            onClick={onToggleDice3d}
-            aria-pressed={dice3d}
-            data-tour="header-dice"
-            className="flex min-h-12 w-full items-center gap-3 rounded-xl bg-stone-900 px-3 py-2 text-left text-sm text-stone-200"
-          >
-            <Dices className="size-5" />
-            <span>{diceLabel}</span>
-          </button>
+          <div className="rounded-xl bg-stone-900" data-tour="header-dice">
+            <button
+              type="button"
+              onClick={() => setFxSectionOpen((open) => !open)}
+              aria-expanded={fxSectionOpen}
+              aria-controls="session-fx-settings"
+              className="flex min-h-12 w-full items-center gap-3 px-3 py-2 text-left text-sm text-stone-200"
+            >
+              <Sparkles className={cn("size-5", fxLit ? "text-amber-300" : "text-stone-500")} />
+              <span className="flex-1">{copy.animations}</span>
+              <span className="text-xs text-stone-400">{fxSummary}</span>
+              <ChevronDown aria-hidden="true" className={cn("size-4 shrink-0 text-stone-400 transition-transform", fxSectionOpen && "rotate-180")} />
+            </button>
+            {fxSectionOpen ? (
+              <div id="session-fx-settings" className="border-t border-stone-800 px-3 pb-3 pt-1">
+                <FxSettingsPanel />
+              </div>
+            ) : null}
+          </div>
 
           {ambienceEnabled && ambience.installed ? (
             <div className="rounded-xl bg-stone-900">

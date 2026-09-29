@@ -245,7 +245,7 @@ function createMcpServer() {
       contents: [{
         uri: uri.href,
         mimeType: "text/plain",
-        text: "Trusted DM only: connect with stateDelta:true, then read until hasMore is false. Keep stateDelta.revision and return it as knownStateRevision; changed entities arrive as upsert/remove/order patches and changed scalar state as set/unset. A full resyncRequired response replaces the baseline after restart/eviction. Use the fully drained nextCursor/currentSeq as expectedSeq for one invoke, narrate, edit_message, delete_message, set_floor, request_response, autopilot_action, finish_global_round, or release_floor. finish_global_round is only the no-prose spatial global-turn finalizer after every required room narration. Inspect pendingRolls, roll_result events, and recentRolls; the server owns dice. A player submits exactly one Do per turn, including dialogue. In combat, the first accepted Do leaves the floor held until DM resolution and end_turn. In global-turn mode, actionsByCharacter locks that character until round completion: a waiting round keeps players locked, so wait for global_turn_narrator_trigger and narrate with startGlobalRound equal to its roundNumber; that confirmed narration opens collection. Later wait for global_turn_ready, treat all player messages through that event seq as one round, and narrate with completeGlobalRound equal to its roundNumber; that confirmed MCP write advances and opens the next round. After a write, consume its attached authoritative state delta as the read; if absent/incomplete, drain narrator.read. Always reread after a timeout or error. An ambiguous serialized write may have one immediate receipt-recovery retry only with the saved exact request: same UUID commandId, original expectedSeq, timelineEpoch and all arguments. Never regenerate a payload, expectedSeq or UUID to replay an effect; then checkpoint and escalate. An answer_ask retry also keeps the exact expectedVersion. If timelineEpoch changed, reconnect and discard incompatible pending work. This resource is not a background loop. The bearer is campaign-scoped narrator access, not player access; never put it or DM secrets in player chat.",
+        text: "Trusted DM only: connect with stateDelta:true, then read until hasMore is false. Keep stateDelta.revision and return it as knownStateRevision; changed entities arrive as upsert/remove/order patches and changed scalar state as set/unset. A full resyncRequired response replaces the baseline after restart/eviction. Use the fully drained nextCursor/currentSeq as expectedSeq for one invoke, narrate, edit_message, delete_message, set_floor, request_response, autopilot_action, finish_global_round, or release_floor. finish_global_round is only the no-prose spatial global-turn finalizer after every required room narration. Inspect pendingRolls, roll_result events, and recentRolls; the server owns dice. A player submits exactly one Do per turn, including dialogue. In combat, the first accepted Do holds the table (campaign.turnLock, nobody may act) until you hand it over: resolve it and the enemies acting before the next hero, end_turn (initiative does NOT move yet), post all narration, and send the LAST narration with passTurn:true (or release_floor); only that moves initiative and announces the next actor. end_campaign with outcome victory or defeat (optional epilogue) closes the campaign from any state and cleans up fights, pending dice and Asks. Everything written by narrate, edit_message, answer_ask or request text is shown to players verbatim: in-world prose only, never IDs, seq, tool names, JSON, (ooc) status notes or operator talk. In global-turn mode, actionsByCharacter locks that character until round completion: a waiting round keeps players locked, so wait for global_turn_narrator_trigger and narrate with startGlobalRound equal to its roundNumber; that confirmed narration opens collection. Later wait for global_turn_ready, treat all player messages through that event seq as one round, and narrate with completeGlobalRound equal to its roundNumber; that confirmed MCP write advances and opens the next round. After a write, consume its attached authoritative state delta as the read; if absent/incomplete, drain narrator.read. Always reread after a timeout or error. An ambiguous serialized write may have one immediate receipt-recovery retry only with the saved exact request: same UUID commandId, original expectedSeq, timelineEpoch and all arguments. Never regenerate a payload, expectedSeq or UUID to replay an effect; then checkpoint and escalate. An answer_ask retry also keeps the exact expectedVersion. If timelineEpoch changed, reconnect and discard incompatible pending work. This resource is not a background loop. The bearer is campaign-scoped narrator access, not player access; never put it or DM secrets in player chat.",
       }],
     }),
   );
@@ -295,6 +295,31 @@ narrate every affected input.roomIds room with location_narrate; after all such
 writes the host uses an internal no-prose finalizer before unlocking. That final
 committed write advances the counter and opens the next round.
 Consume the attached state after a write; drain missing pages/events with read.
+
+## Combat turn handoff
+A submitted combat Do holds the table: campaign.turnLock is "resolving" until
+end_turn (or completeTurn / combat_turn) records the resolution, then
+"awaiting_pass". Initiative does not move on end_turn. Play the enemies that act
+before the next hero inside this hold, post every narration message about the
+turn, and send the last one with passTurn:true (release_floor does the same
+without prose). Only that write moves initiative, lets the server auto-play
+enemies you skipped, opens the next hero's turn and announces it. Never announce
+whose turn it is yourself. A narration without passTurn keeps players locked.
+
+## Ending the campaign
+end_campaign {outcome: "victory"|"defeat", epilogue?} closes the campaign in one
+write from any state: it ends running fights without XP, drops unrolled dice,
+answers queued Asks with a closing note, opens the floor and records the outcome
+and epilogue the finale shows. Narrate the final scene first, then end_campaign.
+Calling it again on an ended campaign corrects the outcome or epilogue.
+
+## What players see
+narrate, edit_message, answer_ask, send_whisper, request_player_input prompts
+and request_roll reasons are shown to players verbatim. Write in-world prose and
+short mechanics lines only. Never put IDs, seq numbers, tool or operation names,
+JSON, (ooc) status notes, apologies about the engine or anything addressed to
+the operator there; technical problems go to the operator, never to the table.
+
 delete_message removes the exact main-transcript messageId, including player, DM or
 system messages. It removes transcript-derived pins/beats, but it is not a gameplay
 rewind: authoritative rolls and mechanical state survive, and moderation audit records
@@ -422,7 +447,7 @@ questions, private whispers, DM outlines or other DM secrets to the table.
     "odm_narrator",
     {
       title: "External campaign narrator",
-      description: "Trusted external DM lifecycle for human mode with server LLM, TTS, and automatic maps disabled. Contract v4 supports stateDelta/knownStateRevision so unchanged game state is not resent; connect can be metadata-only and readAfter can carry the authoritative post-write delta. Reread after errors; an ambiguous serialized write gets at most one immediate exact receipt-recovery retry with the same commandId, expectedSeq, timelineEpoch and arguments, never regenerated values. answer_ask also keeps exact expectedVersion. See odm://narrator/playbook.",
+      description: "Trusted external DM lifecycle for human mode with server LLM, TTS, and automatic maps disabled. Text you write to the campaign is shown to players verbatim: in-world prose only, technical notes go to your operator. In combat a submitted turn stays locked until your LAST narration about it carries passTurn:true. end_campaign closes the campaign with outcome victory|defeat from any state. Contract v4 supports stateDelta/knownStateRevision so unchanged game state is not resent; connect can be metadata-only and readAfter can carry the authoritative post-write delta. Reread after errors; an ambiguous serialized write gets at most one immediate exact receipt-recovery retry with the same commandId, expectedSeq, timelineEpoch and arguments, never regenerated values. answer_ask also keeps exact expectedVersion. See odm://narrator/playbook.",
       inputSchema: narratorInputSchema,
     },
     async (args) => {
@@ -461,7 +486,7 @@ questions, private whispers, DM outlines or other DM secrets to the table.
     {
       title: "ODM campaigns",
       description:
-        "Create, inspect and administer campaigns/workshops. Operations: list, get, create, update, delete, set_status, regenerate_invite, assign_dm_seat. gameSettings.combatMode is classical (default) or jrpg. Delete requires confirm=true.",
+        "Create, inspect and administer campaigns/workshops. Operations: list, get, create, update, delete, set_status, regenerate_invite, assign_dm_seat. set_status ended takes outcome victory|defeat (+ optional epilogue) and closes the campaign cleanly from any state. gameSettings.combatMode is classical (default) or jrpg. Delete requires confirm=true.",
       inputSchema: z.object({
         operation: z.enum(["list", "get", "create", "update", "delete", "set_status", "regenerate_invite", "assign_dm_seat"]),
         campaignId: z.string().uuid().optional(),
@@ -475,6 +500,8 @@ questions, private whispers, DM outlines or other DM secrets to the table.
         difficulty: z.enum(["easy", "normal", "hard", "deadly"]).optional(),
         gameSettings: gameSettingsInputSchema.optional(),
         status: z.enum(["lobby", "active", "ended"]).optional(),
+        outcome: z.enum(["victory", "defeat"]).optional().describe("set_status ended: how the campaign ended; closes fights, dice and Asks."),
+        epilogue: z.string().trim().max(12000).optional().describe("set_status ended: epilogue shown in the finale."),
         seat: z.enum(["dm", "assistant"]).optional(),
         userId: z.string().uuid().nullable().optional(),
         confirm: z.boolean().optional(),
@@ -509,7 +536,7 @@ questions, private whispers, DM outlines or other DM secrets to the table.
         case "delete":
           return run("campaigns.delete", { campaignId: args.campaignId, confirm: args.confirm });
         case "set_status":
-          return run("campaigns.set_status", { campaignId: args.campaignId, status: args.status });
+          return run("campaigns.set_status", { campaignId: args.campaignId, status: args.status, ...(args.outcome ? { outcome: args.outcome } : {}), ...(args.epilogue ? { epilogue: args.epilogue } : {}) });
         case "regenerate_invite":
           return run("campaigns.regenerate_invite", { campaignId: args.campaignId });
         case "assign_dm_seat":

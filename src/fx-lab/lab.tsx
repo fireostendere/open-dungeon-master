@@ -1,13 +1,14 @@
 // Animations lab: a standalone page (animations-lab.html) that mounts the
 // real game overlays with fake campaign data. Build: npm run fx:lab
 
-import { StrictMode, useCallback, useRef, useState, type ReactNode } from "react";
+import { StrictMode, useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { createRoot } from "react-dom/client";
 import { I18nProvider, useI18n } from "@/lib/i18n";
 import type { PendingRoll } from "@/app/campaigns/[campaignId]/useCampaignStream";
 import type { CharacterSheet } from "@/lib/schemas/sheet";
 import { DiceRollOverlay, type DiceRollData } from "@/app/campaigns/[campaignId]/DiceRollOverlay";
 import { useFxMuted } from "@/components/fx/shared";
+import { FxSettingsPanel } from "@/components/fx/FxSettingsPanel";
 import { CINEMATIC_SCENARIOS, type CinematicScenario } from "./cinematic-scenarios";
 import { DICE_SCENARIOS, LAB_ENEMIES, LAB_ME, LAB_SHEETS, type DiceScenario } from "./dice-scenarios";
 import "./lab.css";
@@ -83,6 +84,25 @@ function Lab() {
     setCinematic({ scenario, key: keys.current++ });
   };
 
+  // For scripted screenshots: window.fxLab.run("dice", "attack").
+  const runRef = useRef({ runDice, runCinematic });
+  useEffect(() => {
+    runRef.current = { runDice, runCinematic };
+  });
+  useEffect(() => {
+    (window as unknown as { fxLab?: unknown }).fxLab = {
+      run(kind: string, id: string) {
+        if (kind === "dice") {
+          const s = DICE_SCENARIOS.find((d) => d.id === id);
+          if (s) runRef.current.runDice(s);
+        } else {
+          const c = CINEMATIC_SCENARIOS.find((d) => d.id === id);
+          if (c) runRef.current.runCinematic(c);
+        }
+      },
+    };
+  }, []);
+
   return (
     <div className="lab">
       <FakeTable />
@@ -96,6 +116,10 @@ function Lab() {
             <button type="button" aria-pressed={yolo} onClick={() => setYolo(!yolo)}>{yolo ? "YOLO 21+ вкл" : "YOLO 21+ выкл"}</button>
           </div>
         </header>
+        <details className="lab-prefs">
+          <summary>Настройки анимаций (как в шапке игры)</summary>
+          <FxSettingsPanel />
+        </details>
         <Section title="Кубики">
           {DICE_SCENARIOS.map((s) => (
             <button key={s.id} type="button" className="lab-card" onClick={() => runDice(s)}>
