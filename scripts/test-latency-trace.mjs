@@ -6,7 +6,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { emitLatency, latencyEnabled, withLatencyTrace, withNewLatencyTrace } from '../mcp/latency-trace.mjs';
-import { createControlClient } from '../mcp/control-client.mjs';
+import { createOdmClient } from '../mcp/control-client.mjs';
 import { atomicWriteJson } from '../narrator/checkpoint-io.mjs';
 import { consumePostWriteRead } from '../narrator/read-session.mjs';
 
@@ -35,7 +35,7 @@ test('disabled tracing does not emit or create a trace', () => {
 
 test('control timing never exposes request or private response values and callback failures are isolated', async () => {
   const timings = [];
-  const client = createControlClient({ token: 'secret-token', onTiming: event => { timings.push(event); throw new Error('telemetry failed'); },
+  const client = createOdmClient({ token: 'secret-token', onTiming: event => { timings.push(event); throw new Error('telemetry failed'); },
     fetchImpl: async () => Response.json({ ok: true, result: { answer: 'private Ask', content: 'player text', roomId: 'private room' } }) });
   const result = await client('narrator.read', { campaignId: 'campaign secret', prompt: 'model prompt', content: 'player text', ask: 'private Ask' });
   assert.equal(result.answer, 'private Ask');

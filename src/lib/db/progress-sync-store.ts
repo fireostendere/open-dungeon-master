@@ -401,4 +401,3 @@ export function syncPartyProgress(
   };
 }
 
-export const bulkSyncCampaignProgress = syncPartyProgress;

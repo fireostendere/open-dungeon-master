@@ -6,7 +6,7 @@ import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
 import { DM_POLICY_TEXT, DM_POLICY_VERSION, DM_POLICY_URI, DM_REFUSALS, withDmPolicy, registerDmPolicy } from '../mcp/dm-policy.mjs';
-import { createControlClient, withMcpCancellation } from '../mcp/control-client.mjs';
+import { createOdmClient, withMcpCancellation } from '../mcp/control-client.mjs';
 import { authenticateMcp, authorizeMcpAction, narratorServiceResult, McpAccessError } from '../src/lib/mcp-access.mjs';
 
 const A='11111111-1111-4111-8111-111111111111';
@@ -70,8 +70,10 @@ test('compact policy mode omits redundant text for turns but keeps version and u
   assert.equal(read.dmPolicy.uri,DM_POLICY_URI);
   assert.equal(read.dmPolicy.text,undefined);
 
-  const connect=withDmPolicy('narrator.connect',{currentSeq:5},{policyMode:'compact'});
-  assert.equal(connect.dmPolicy.text,DM_POLICY_TEXT);
+  const connect=withDmPolicy('narrator.connect',{currentSeq:5,instructions:'Drain the cursor.'},{policyMode:'compact'});
+  assert.equal(connect.dmPolicy.text,DM_POLICY_TEXT);assert.ok(connect.instructions.startsWith(DM_POLICY_TEXT));
+  const pointerOnly=withDmPolicy('narrator.connect',{currentSeq:5,instructions:'Drain the cursor.'},{policyMode:'compact',includePolicyText:false});
+  assert.deepEqual(pointerOnly.dmPolicy,{version:DM_POLICY_VERSION,uri:DM_POLICY_URI});assert.equal(pointerOnly.instructions,'Drain the cursor.');
 
   const withExplicit=withDmPolicy('narrator.read',{currentSeq:5},{policyMode:'compact',includePolicyText:true});
   assert.equal(withExplicit.dmPolicy.text,DM_POLICY_TEXT);
@@ -141,18 +143,20 @@ test('real HTTP control client preserves credential, adds policy and gets server
     } catch(error) {outgoing.writeHead(error.status||500,{'content-type':'application/json'});outgoing.end(JSON.stringify({ok:false,error:error.message}));}
   });
   await new Promise(resolve=>http.listen(0,'127.0.0.1',resolve));t.after(()=>{http.closeAllConnections();http.close();});
-  const client=createControlClient({url:`http://127.0.0.1:${http.address().port}`,token:DM});
+  const client=createOdmClient({url:`http://127.0.0.1:${http.address().port}`,token:DM});
   const read=await client('narrator.read',{campaignId:A});
   assert.deepEqual(read.dmPolicy,{version:DM_POLICY_VERSION,uri:DM_POLICY_URI});assert.equal(read.currentSeq,2);
   const fullRead=await client('narrator.read',{campaignId:A,policyMode:'full'});assert.equal(fullRead.dmPolicy.text,DM_POLICY_TEXT);
-  const connect=await client('narrator.connect',{campaignId:A});assert.ok(connect.instructions.startsWith(DM_POLICY_TEXT));
+  const connect=await client('narrator.connect',{campaignId:A});assert.deepEqual(connect.dmPolicy,{version:DM_POLICY_VERSION,uri:DM_POLICY_URI});
+  assert.ok(!String(connect.instructions??'').includes(DM_POLICY_TEXT.slice(0,40)));
+  const fullConnect=await client('narrator.connect',{campaignId:A,policyMode:'full'});assert.ok(fullConnect.instructions.startsWith(DM_POLICY_TEXT));
   await assert.rejects(client('campaigns.delete',{campaignId:A,role:'operator'}),/not available/);
   await assert.rejects(client('narrator.read',{campaignId:B}),/different campaign/);
   const health=await client('server.status',{});assert.equal(health.ok,true);assert.equal(health.dmPolicy,undefined);
-  assert.equal(effects,3);assert.ok(calls.every(x=>x.role==='narrator'));
+  assert.equal(effects,4);assert.ok(calls.every(x=>x.role==='narrator'));
 });
 test('pre-aborted client makes no request and policy handling does not swallow errors',async()=>{
-  let count=0;const client=createControlClient({token:DM,fetchImpl:async()=>{count++;throw Error('transport failed');}});
+  let count=0;const client=createOdmClient({token:DM,fetchImpl:async()=>{count++;throw Error('transport failed');}});
   await assert.rejects(client('narrator.read',{campaignId:A},{signal:AbortSignal.abort()}),{name:'AbortError'});assert.equal(count,0);
   await assert.rejects(client('narrator.read',{campaignId:A}),/transport failed/);assert.equal(count,2);
 });

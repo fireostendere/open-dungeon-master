@@ -134,9 +134,9 @@ function read(raw: unknown) {
   if (
     p.data.stateDelta &&
     p.data.projection === "live" &&
-    p.data.includeAsks === false &&
     p.data.afterSeq === currentSeq &&
-    p.data.knownStateRevision
+    p.data.knownStateRevision &&
+    (!p.data.includeAsks || !pendingAsksForCampaign(campaign.id).pending)
   ) {
     const unchanged = unchangedNarratorStateDelta({
       campaignId: campaign.id,

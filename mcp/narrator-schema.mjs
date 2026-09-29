@@ -59,8 +59,6 @@ export const narratorInputSchema = z.object({
   startGlobalRound: z.number().int().min(1).optional()
     .describe('Global-turn host: start this locked round atomically with narration.'),
   summaryOnly: z.boolean().optional(), category: z.string().optional(), action: z.string().optional().describe('catalog only: return the schema for this one engine action. invoke uses name instead.'),
-  policyMode: z.enum(['full', 'compact']).optional(), includePolicyText: z.boolean().optional(),
-  compact: z.boolean().optional(),
   readAfter: z.union([z.boolean(), z.object(readFields).strict()]).optional()
     .describe('Story writes include a bounded post-commit state by default: consume it instead of another snapshot/read. Pass your cached read cursor/revision for smaller deltas, or false to opt out. Drain hasMore/pages before the next write; readRequired means read again, never repeat the effect.'),
   scopeRoomId: z.string().uuid().optional()

@@ -97,7 +97,9 @@ export function withDmPolicy(action, value, options = {}) {
         ...(includePolicyText ? { text: DM_POLICY_TEXT } : {}),
       };
   const result = { ...value, dmPolicy };
-  if (action === 'narrator.connect') {
+  // Compact hosts (the default sidecar mode) already carry the policy as a
+  // preloaded skill; resending its 11 KB on every reconnect only costs tokens.
+  if (action === 'narrator.connect' && includePolicyText) {
     result.instructions = DM_POLICY_TEXT + '\n\n' +
       (typeof value.instructions === 'string' ? value.instructions : '');
   }

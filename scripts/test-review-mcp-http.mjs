@@ -4,7 +4,7 @@ import { createServer } from 'node:http';
 import { connect } from 'node:net';
 import { setTimeout as delay } from 'node:timers/promises';
 import { createSafeHttpListener, requestPath, BadRequestError } from '../mcp/http-boundary.mjs';
-import { createControlClient, withControlSignal, withMcpCancellation, controlTimeout } from '../mcp/control-client.mjs';
+import { createOdmClient, withControlSignal, withMcpCancellation, controlTimeout } from '../mcp/control-client.mjs';
 
 async function listen(t, handler) {
   const server = createServer(handler);
@@ -71,7 +71,7 @@ test('disconnect cancels the downstream HTTP request without a later mutation', 
     try { await delay(100, undefined, { signal }); mutations++; res.end('{"ok":true}'); }
     catch { aborted = signal.aborted; }
   }));
-  const control = createControlClient({ url: backend.url, token: 'test-only-token' });
+  const control = createOdmClient({ url: backend.url, token: 'test-only-token' });
   const front = await listen(t, createSafeHttpListener(async (_req, res) => {
     const result = await control('campaigns.get', {}); res.end(JSON.stringify(result));
   }));
@@ -84,7 +84,7 @@ test('disconnect cancels the downstream HTTP request without a later mutation', 
 });
 test('SDK v2 protocol cancellation reaches a stdio tool callback', async () => {
   const cancelled = new AbortController(); let calls = 0;
-  const client = createControlClient({ token: 'test', fetchImpl: async (_url, init) => {
+  const client = createOdmClient({ token: 'test', fetchImpl: async (_url, init) => {
     calls++; await delay(100, undefined, { signal: init.signal }); return Response.json({ ok: true, result: {} });
   } });
   const tool = withMcpCancellation(() => client('test'));
@@ -93,23 +93,23 @@ test('SDK v2 protocol cancellation reaches a stdio tool callback', async () => {
 });
 test('control budget cancels body consumption and never follows redirects', async t => {
   const { url } = await listen(t, (_req, res) => { res.writeHead(200, { 'content-type': 'application/json' }); res.write('{'); });
-  const client = createControlClient({ url, token: 'test', timeoutMs: 30 });
+  const client = createOdmClient({ url, token: 'test', timeoutMs: 30 });
   await assert.rejects(client('test'), { name: 'TimeoutError' });
-  const redirected = createControlClient({ token: 'test', fetchImpl: async (_url, init) => {
+  const redirected = createOdmClient({ token: 'test', fetchImpl: async (_url, init) => {
     assert.equal(init.redirect, 'error'); return Response.json({ ok: true, result: 'ok' });
   } });
   assert.equal(await redirected('test'), 'ok');
 });
 test('a cancelled operation cannot start another control request', async () => {
   let called = false;
-  const client = createControlClient({ token: 'test', fetchImpl: async () => { called = true; } });
+  const client = createOdmClient({ token: 'test', fetchImpl: async () => { called = true; } });
   assert.throws(() => withControlSignal(AbortSignal.abort(), () => client('test')), { name: 'AbortError' });
   assert.equal(called, false);
 });
 
 test('presentation options stay in the sidecar and do not break strict narrator schemas', async () => {
   const params = { campaignId: 'c', afterSeq: 7, compact: true, policyMode: 'compact', includePolicyText: false };
-  const client = createControlClient({ token: 'test', fetchImpl: async (_url, init) => {
+  const client = createOdmClient({ token: 'test', fetchImpl: async (_url, init) => {
     const body = JSON.parse(init.body); const { narratorHostId, ...forwarded } = body.params;
     assert.match(narratorHostId, /^[0-9a-f-]{36}$/);
     assert.deepEqual({ ...body, params: forwarded }, { action: 'narrator.read', params: { campaignId: 'c', afterSeq: 7, projection: 'live', delta: true } });

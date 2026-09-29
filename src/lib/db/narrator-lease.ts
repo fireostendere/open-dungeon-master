@@ -13,14 +13,18 @@ export const NARRATOR_LEASE_MS = Number.isFinite(configured)
   ? Math.min(120_000, Math.max(5_000, Math.floor(configured)))
   : 15_000;
 
+const prepared = new WeakSet<object>();
 function database() {
   const db = getDatabase();
-  db.exec(`CREATE TABLE IF NOT EXISTS narrator_host_leases (
-    campaign_id TEXT PRIMARY KEY REFERENCES campaigns(id) ON DELETE CASCADE,
-    host_id TEXT NOT NULL,
-    expires_at_ms INTEGER NOT NULL,
-    updated_at_ms INTEGER NOT NULL
-  );`);
+  if (!prepared.has(db)) {
+    db.exec(`CREATE TABLE IF NOT EXISTS narrator_host_leases (
+      campaign_id TEXT PRIMARY KEY REFERENCES campaigns(id) ON DELETE CASCADE,
+      host_id TEXT NOT NULL,
+      expires_at_ms INTEGER NOT NULL,
+      updated_at_ms INTEGER NOT NULL
+    );`);
+    prepared.add(db);
+  }
   return db;
 }
 

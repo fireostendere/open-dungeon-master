@@ -33,20 +33,23 @@ export function budgetRead(state, { paged = false, pageCursor, maxBytes = DEFAUL
     if (cursor.hash !== hash) throw new ReadBudgetError('Snapshot changed while paging; restart the read without a pageCursor.', 409);
     offset = cursor.offset;
   }
+  const pageCursorFor = next => Buffer.from(JSON.stringify({ hash, offset: next })).toString('base64url');
   const response = { format: 'odm.read.page.v1', hash, shape, offset, entries: [], nextPage: null,
     complete: false, currentSeq: state.currentSeq, nextCursor: state.nextCursor, hasMore: state.hasMore };
-  let index = offset;
+  // Size each entry once. The envelope is measured with the longest cursor it
+  // can carry, so the accumulated total never underestimates the final page.
+  const envelope = bytes({ ...response, nextPage: pageCursorFor(entries.length) });
+  let used = envelope, index = offset;
   for (; index < entries.length; index++) {
-    response.entries.push(entries[index]);
-    const next = index + 1 < entries.length ? Buffer.from(JSON.stringify({ hash, offset: index + 1 })).toString('base64url') : null;
-    const candidate = { ...response, nextPage: next, complete: next === null };
-    if (bytes(candidate) > maxBytes) {
-      response.entries.pop();
+    const cost = bytes(entries[index]) + (response.entries.length ? 1 : 0);
+    if (used + cost > maxBytes) {
       if (index === offset) throw new ReadBudgetError(`A complete ${entries[index].key} item exceeds maxBytes; raise the budget within its hard limit or pause for operator review.`);
       break;
     }
+    response.entries.push(entries[index]);
+    used += cost;
   }
-  response.nextPage = index < entries.length ? Buffer.from(JSON.stringify({ hash, offset: index })).toString('base64url') : null;
+  response.nextPage = index < entries.length ? pageCursorFor(index) : null;
   response.complete = response.nextPage === null;
   if (bytes(response) > maxBytes) throw new ReadBudgetError('Snapshot metadata exceeds maxBytes.');
   return response;

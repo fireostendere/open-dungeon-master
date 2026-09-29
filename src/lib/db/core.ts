@@ -188,6 +188,10 @@ function ensureSchema(db: SqliteDatabase) {
       created_at TEXT NOT NULL,
       PRIMARY KEY (campaign_id, seq)
     );
+    -- campaignTimelineEpoch runs on every narrator request; without this the
+    -- usual "no rewind yet" answer walks the whole campaign backwards.
+    CREATE INDEX IF NOT EXISTS idx_campaign_events_rewound
+      ON campaign_events(campaign_id, seq) WHERE type = 'campaign_rewound';
 
     CREATE TABLE IF NOT EXISTS homebrew_entries (
       id TEXT PRIMARY KEY,
@@ -284,6 +288,7 @@ function ensureSchema(db: SqliteDatabase) {
     );
 
     CREATE INDEX IF NOT EXISTS idx_pending_rolls_turn ON pending_rolls(turn_id, status);
+    CREATE INDEX IF NOT EXISTS idx_pending_rolls_campaign ON pending_rolls(campaign_id, status);
 
     -- Audit trail of DM-driven sheet mutations (damage, loot, XP, ...).
     CREATE TABLE IF NOT EXISTS sheet_audit (

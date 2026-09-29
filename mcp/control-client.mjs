@@ -119,5 +119,4 @@ export function createOdmClient({
   return call;
 }
 
-export const createControlClient = createOdmClient;
-export const callControl = createControlClient();
+export const callControl = createOdmClient();
