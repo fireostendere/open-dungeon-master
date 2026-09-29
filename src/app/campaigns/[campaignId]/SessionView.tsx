@@ -60,14 +60,8 @@ const LevelUpDialog = lazy(() =>
   })),
 );
 
-function subscribeDicePref(callback: () => void) {
-  window.addEventListener("odm-dice3d-pref", callback);
-  return () => window.removeEventListener("odm-dice3d-pref", callback);
-}
-
-// The once-only flag of each table tour, read the way the dice preference
-// is: from localStorage as an external store, so finishing a tour in one
-// tab is known to every other.
+// The once-only flag of each table tour, read from localStorage as an
+// external store, so finishing a tour in one tab is known to every other.
 const TOUR_SEEN_EVENT = "odm-tour-seen";
 
 function subscribeTourSeen(callback: () => void) {
@@ -201,15 +195,6 @@ export function SessionView({
   // The guided tour on screen, if any: the player's or the DM's.
   const [tour, setTour] = useState<"player" | "dm" | null>(null);
   const composerRef = useRef<HTMLTextAreaElement>(null);
-  const dice3d = useSyncExternalStore(
-    subscribeDicePref,
-    () => window.localStorage.getItem("odm:dice3d") !== "off",
-    () => true,
-  );
-  const toggleDice3d = useCallback(() => {
-    window.localStorage.setItem("odm:dice3d", dice3d ? "off" : "on");
-    window.dispatchEvent(new Event("odm-dice3d-pref"));
-  }, [dice3d]);
 
   const { ambience } = useTableAudio(state);
   // Chime on new private messages (side chats + DM whispers). The loaded
@@ -526,8 +511,6 @@ export function SessionView({
           audibilityVersion: state.voiceAudibilityVersion,
           meshSignal: state.voiceMeshSignal,
         }}
-        dice3d={dice3d}
-        onToggleDice3d={toggleDice3d}
         ambienceEnabled={Boolean(campaign.gameSettings?.ambienceEnabled)}
         ambience={ambience}
         onHelp={() => setHelpOpen(true)}
@@ -671,17 +654,16 @@ export function SessionView({
         steersStory={steersStory}
       />
 
-      {dice3d ? (
-        <DiceOverlay
-          campaignId={campaignId}
-          pendingRolls={pendingRolls}
-          meUserId={me?.id ?? ""}
-          latestRoll={state.latestRoll}
-          sheets={state.sheets}
-          encounter={state.encounter}
-          enabled
-        />
-      ) : null}
+      {/* Dice, toasts and their switches: src/lib/fx/prefs.ts (header → Animations). */}
+      <DiceOverlay
+        campaignId={campaignId}
+        pendingRolls={pendingRolls}
+        meUserId={me?.id ?? ""}
+        latestRoll={state.latestRoll}
+        sheets={state.sheets}
+        encounter={state.encounter}
+        enabled
+      />
 
       <HelpDialog
         open={helpOpen}

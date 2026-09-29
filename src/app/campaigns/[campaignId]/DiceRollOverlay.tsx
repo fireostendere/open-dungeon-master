@@ -6,6 +6,12 @@
 // Flow: prompt (my pending roll: dice hover, 60s timer) → rolling (dice in
 // the air; the stage lands them on the server's faces) → landed (chips and
 // the total count up) → verdict (success / crit / fumble / damage effects).
+//
+// Only the player's own rolls (and their pending prompts) always take the
+// whole screen. Everyone else's follow the player's animation settings:
+// the full overlay, a small toast (the phone default), or nothing. Rolls
+// this seat may not read (blind, DM-only) arrive without their numbers and
+// are only ever told as a toast.
 
 import { useCallback, useEffect, useEffectEvent, useMemo, useReducer, useRef, useState, type CSSProperties } from "react";
 import type { StoredRoll } from "@/lib/db/rolls";
@@ -21,7 +27,8 @@ import * as sfx from "@/lib/fx/sound";
 import { FxIcon } from "@/components/fx/icons";
 import { describeRoll, type ContextEnemy, type RollContext, type RollIcon } from "@/components/fx/roll-context";
 import { diceTerms, stageExpression, stageRoll, type StagedRoll } from "@/components/fx/roll-dice";
-import { FxTitle, useFxCanvas, useReducedMotion } from "@/components/fx/shared";
+import { RollToasts, type RollToastItem } from "@/components/fx/RollToast";
+import { FxTitle, useFxCanvas, useFxSettings } from "@/components/fx/shared";
 
 const COPY = {
   en: {
@@ -69,6 +76,9 @@ const COPY = {
     },
     inspirationAction: "*{name} spends Inspiration and rerolls the die!*",
     rollAlert: "🔔 [YOUR ROLL!] Make your check...",
+    hiddenRoll: "Secret roll",
+    toasts: "Rolls at the table",
+    toastClose: "Hide this roll",
   },
   ru: {
     kinds: { attack: "Бросок атаки", damage: "Урон", skill: "Проверка навыка", save: "Спасбросок", ability: "Проверка характеристики", initiative: "Инициатива", death: "Спасбросок от смерти", custom: "Бросок" } as Record<RollIcon, string>,
@@ -115,6 +125,9 @@ const COPY = {
     },
     inspirationAction: "*{name} тратит очко Вдохновения и перебрасывает кубик!*",
     rollAlert: "🔔 [ВАШ БРОСОК!] Сделайте проверку...",
+    hiddenRoll: "Тайный бросок",
+    toasts: "Броски за столом",
+    toastClose: "Скрыть бросок",
   },
 };
 type Copy = (typeof COPY)["en"];
@@ -129,7 +142,12 @@ const ABILITY_NAMES: Record<string, string> = {
 };
 
 const SKIN_KEY = "odm:dice-skin";
-const DISMISSED_KEY = "odm:bg3-last-dismissed-roll-seq";
+// Seqs are per campaign, so the last dismissed one is remembered per campaign
+// too; a shared key let one long campaign silence every other in the tab.
+const DISMISSED_KEY = "odm:fx-dismissed-roll-seq:";
+/** Rolls waiting behind the one on screen; older ones are told as toasts. */
+const MAX_WAITING = 2;
+const MAX_TOASTS = 3;
 const SKINS: DicePaletteId[] = ["arcane", "crimson", "frost", "verdant", "bone", "gilded"];
 
 export type DiceRollData = { roll: StoredRoll; source?: string; seq: number };
@@ -164,7 +182,13 @@ function fmt(template: string, vars: Record<string, string | number>): string {
   return template.replace(/\{(\w+)\}/g, (_, k: string) => String(vars[k] ?? ""));
 }
 
+/** A roll redacted for this seat: no breakdown and no total. */
+function isHiddenRoll(roll: StoredRoll): boolean {
+  return !roll.breakdown || typeof roll.total !== "number" || (roll as { hidden?: boolean }).hidden === true;
+}
+
 function verdictFor(roll: StoredRoll, icon: RollIcon): Verdict {
+  if (isHiddenRoll(roll)) return "neutral";
   const crit = roll.breakdown.crit;
   const hasVerdict = roll.success !== null || roll.dc !== null;
   const ok = roll.success ?? (roll.dc !== null && roll.total >= roll.dc);
@@ -186,6 +210,7 @@ function verdictText(v: Verdict, icon: RollIcon, total: number, copy: Copy): str
 
 function buildChips(roll: StoredRoll, copy: Copy, hidden: number): Chip[] {
   const chips: Chip[] = [];
+  if (isHiddenRoll(roll)) return chips;
   diceTerms(roll.breakdown).forEach((term: DiceTerm, ti) => {
     // Kept dice add up in one chip; dice dropped by advantage get their own,
     // struck-through chip right after it.
@@ -280,7 +305,11 @@ export function DiceRollOverlay({
 }) {
   const { locale, t } = useI18n();
   const copy: Copy = COPY[locale] ?? COPY.en;
-  const reducedMotion = useReducedMotion();
+  const fx = useFxSettings();
+  const reducedMotion = fx.reducedMotion;
+  // Dice switched off in the animation settings silence the overlay entirely,
+  // prompts included: the pending-roll card in the composer still works.
+  const active = enabled && fx.dice;
   const [view, dispatch] = useReducer(viewReducer, { active: null, phase: "idle" });
   const [submitted, setSubmitted] = useState<PendingRoll | null>(null);
   const [dismissedPending, setDismissedPending] = useState<Set<string>>(() => new Set());
@@ -295,6 +324,11 @@ export function DiceRollOverlay({
   const [stageState, setStageState] = useState<"none" | "loading" | "ready" | "failed">("none");
   const [targetHit, setTargetHit] = useState(0);
   const [hiddenDice, setHiddenDice] = useState(0);
+  // A new key mounts a fresh canvas: a canvas whose WebGL context was lost,
+  // or created with other quality settings, cannot be reused.
+  const [glKey, setGlKey] = useState(0);
+  const [stageRetry, setStageRetry] = useState(0);
+  const [toasts, setToasts] = useState<RollToastItem[]>([]);
 
   const rootRef = useRef<HTMLDivElement | null>(null);
   const glRef = useRef<HTMLCanvasElement | null>(null);
@@ -306,8 +340,15 @@ export function DiceRollOverlay({
   const stageRef = useRef<DiceStage | null>(null);
   const stagedRef = useRef<StagedRoll | null>(null);
   const queueRef = useRef<DiceRollData[]>([]);
-  const seenSeqRef = useRef(0);
+  // Rolls at or below this seq were on the table before the overlay was.
+  const baselineSeqRef = useRef(0);
+  const seenIdsRef = useRef<string[]>([]);
   const initRef = useRef(false);
+  const unmountedRef = useRef(false);
+  const creatingRef = useRef(false);
+  const glKeyRef = useRef(0);
+  const lostRef = useRef(false);
+  const stageConfigRef = useRef<{ lite: boolean; reducedMotion: boolean } | null>(null);
   const timersRef = useRef<number[]>([]);
   const submittingRef = useRef(false);
   const skipRef = useRef(false);
@@ -316,9 +357,10 @@ export function DiceRollOverlay({
   const origTitleRef = useRef("");
 
   const particlesRef = useFxCanvas(particleCanvasRef);
+  const particlesOn = fx.particles;
 
   const pendingPrompt =
-    view.phase === "idle" && !view.active && enabled && meUserId
+    view.phase === "idle" && !view.active && active && meUserId
       ? pendingRolls.find((p) => p.userId === meUserId && !dismissedPending.has(p.id)) ?? null
       : null;
   const activePending = submitted ?? pendingPrompt;
@@ -329,6 +371,24 @@ export function DiceRollOverlay({
   const characterId = roll?.characterId ?? activePending?.characterId ?? null;
   const sheet = sheets.find((s) => s.id === characterId);
 
+  const contextLocale = useMemo(
+    () => ({
+      skill: (id: string) => {
+        const v = t(`sheet.skills.${id}`);
+        return v === `sheet.skills.${id}` ? undefined : v;
+      },
+      ability: (id: string) => {
+        // Full names ("Dexterity"), not the sheet's three-letter tags.
+        const full = ABILITY_NAMES[id] ?? id;
+        const v = t(`sheet.abilities.${full}`);
+        return v === `sheet.abilities.${full}` ? undefined : v;
+      },
+      dm: copy.dm,
+      unknownHero: copy.hero,
+    }),
+    [t, copy.dm, copy.hero],
+  );
+
   const context: RollContext | null = useMemo(() => {
     const src = roll
       ? { kind: roll.kind, detail: roll.detail, dc: roll.dc, characterId: roll.characterId, requestedBy: roll.requestedBy, targetEnemyId: roll.targetEnemyId, reason: activePending?.reason ?? null }
@@ -336,27 +396,8 @@ export function DiceRollOverlay({
         ? { kind: activePending.kind, detail: activePending.detail, dc: activePending.dc, characterId: activePending.characterId, requestedBy: "dm" as const, reason: activePending.reason }
         : null;
     if (!src) return null;
-    return describeRoll(src, {
-      sheets,
-      enemies,
-      meUserId,
-      mySkin: skin,
-      locale: {
-        skill: (id) => {
-          const v = t(`sheet.skills.${id}`);
-          return v === `sheet.skills.${id}` ? undefined : v;
-        },
-        ability: (id) => {
-          // Full names ("Dexterity"), not the sheet's three-letter tags.
-          const full = ABILITY_NAMES[id] ?? id;
-          const v = t(`sheet.abilities.${full}`);
-          return v === `sheet.abilities.${full}` ? undefined : v;
-        },
-        dm: copy.dm,
-        unknownHero: copy.hero,
-      },
-    });
-  }, [roll, activePending, sheets, enemies, meUserId, skin, t, copy.dm, copy.hero]);
+    return describeRoll(src, { sheets, enemies, meUserId, mySkin: skin, locale: contextLocale });
+  }, [roll, activePending, sheets, enemies, meUserId, skin, contextLocale]);
 
   const inspiration = sheet?.resources?.inspiration
     ? Math.max(0, sheet.resources.inspiration.max - sheet.resources.inspiration.used)
@@ -375,37 +416,89 @@ export function DiceRollOverlay({
   // ---------------------------------------------------------------- stage
 
   useEffect(() => {
-    if (!visible || stageState !== "none" || !glRef.current) return;
+    unmountedRef.current = false;
+    return () => {
+      unmountedRef.current = true;
+      stageRef.current?.dispose();
+      stageRef.current = null;
+    };
+  }, []);
+
+  useEffect(() => {
+    glKeyRef.current = glKey;
+  }, [glKey]);
+
+  // The GPU took the context away (iOS does this to background tabs): finish
+  // the current roll with flat dice and build a new stage next time.
+  const loseStage = useCallback(() => {
+    lostRef.current = true;
+    stageRef.current?.dispose();
+    stageRef.current = null;
+    stageConfigRef.current = null;
+    setGlKey((k) => k + 1);
+    setStageState("failed");
+  }, []);
+
+  // Created once the overlay first shows. Deliberately not cancelled by its
+  // own "loading" state change: chunk loading is a real network round trip
+  // in the app, and a self-cancelling effect left the dice stuck in the air.
+  useEffect(() => {
+    if (!visible || stageState !== "none" || creatingRef.current) return;
+    const canvas = glRef.current;
+    if (!canvas) return;
+    creatingRef.current = true;
     setStageState("loading");
-    let cancelled = false;
+    const key = glKeyRef.current;
+    const config = { lite: fx.lite, reducedMotion };
+    const stale = () => unmountedRef.current || glKeyRef.current !== key;
     (async () => {
       try {
         const mod = await import("@/lib/fx/dice/stage");
-        if (cancelled || !glRef.current) return;
+        if (stale()) return;
         if (!mod.webglAvailable()) throw new Error("no webgl");
-        const stage = await mod.DiceStage.create(glRef.current, {
-          reducedMotion,
+        const stage = await mod.DiceStage.create(canvas, {
+          reducedMotion: config.reducedMotion,
+          lite: config.lite,
           onImpact: (strength, x, y) => {
             sfx.sfxDieClack(strength);
-            if (particlesRef.current && !reducedMotion) Bursts.dust(particlesRef.current, x, y, strength);
+            const f = particlesRef.current;
+            if (f && !config.reducedMotion) Bursts.dust(f, x, y, strength);
+          },
+          onContextLost: () => {
+            if (stageRef.current === stage) loseStage();
           },
         });
-        if (cancelled) {
+        if (stale()) {
           stage.dispose();
           return;
         }
         stageRef.current = stage;
+        stageConfigRef.current = config;
         setStageState("ready");
       } catch {
-        if (!cancelled) setStageState("failed");
+        if (!stale()) setStageState("failed");
+      } finally {
+        creatingRef.current = false;
+        // A canvas swap while this was loading: try again on the new one.
+        if (!unmountedRef.current && glKeyRef.current !== key) setStageRetry((n) => n + 1);
       }
     })();
-    return () => {
-      cancelled = true;
-    };
-  }, [visible, stageState, reducedMotion, particlesRef]);
+  }, [visible, stageState, stageRetry, fx.lite, reducedMotion, particlesRef, loseStage]);
 
-  useEffect(() => () => stageRef.current?.dispose(), []);
+  // Between rolls: a stage lost to the GPU, or built for other settings, is
+  // replaced before the next one.
+  useEffect(() => {
+    if (visible) return;
+    const config = stageConfigRef.current;
+    if (lostRef.current || (stageRef.current && config && (config.lite !== fx.lite || config.reducedMotion !== reducedMotion))) {
+      lostRef.current = false;
+      stageRef.current?.dispose();
+      stageRef.current = null;
+      stageConfigRef.current = null;
+      setGlKey((k) => k + 1);
+      setStageState("none");
+    }
+  }, [visible, fx.lite, reducedMotion]);
 
   useEffect(() => {
     const stage = stageRef.current;
@@ -467,7 +560,8 @@ export function DiceRollOverlay({
       });
       const f = particlesRef.current;
       const shake = () => {
-        if (reducedMotion) return;
+        // Screen shake belongs with the particles switch.
+        if (reducedMotion || !particlesOn) return;
         rootRef.current?.animate(
           [
             { transform: "none" },
@@ -563,7 +657,7 @@ export function DiceRollOverlay({
           sfx.sfxBell();
       }
     },
-    [particlesRef, reducedMotion],
+    [particlesRef, reducedMotion, particlesOn],
   );
 
   // ---------------------------------------------------------------- tally
@@ -614,10 +708,10 @@ export function DiceRollOverlay({
       const r = data.roll;
       return describeRoll(
         { kind: r.kind, detail: r.detail, dc: r.dc, characterId: r.characterId, requestedBy: r.requestedBy, targetEnemyId: r.targetEnemyId },
-        { sheets, enemies, meUserId, mySkin: skin, locale: { skill: () => undefined, ability: () => undefined, dm: copy.dm, unknownHero: copy.hero } },
+        { sheets, enemies, meUserId, mySkin: skin, locale: contextLocale },
       );
     },
-    [sheets, enemies, meUserId, skin, copy.dm, copy.hero],
+    [sheets, enemies, meUserId, skin, contextLocale],
   );
 
   const startRoll = useCallback(
@@ -632,7 +726,7 @@ export function DiceRollOverlay({
       const r = data.roll;
       const ctx = describeFor(data);
       const palette = ctx?.palette ?? "arcane";
-      const staged = stageRoll(r.breakdown, palette);
+      const staged: StagedRoll = isHiddenRoll(r) ? { dice: [], hero: null, hidden: 0 } : stageRoll(r.breakdown, palette);
       stagedRef.current = staged;
       setHiddenDice(staged.hidden);
       sfx.sfxWhoosh(0.5);
@@ -650,6 +744,75 @@ export function DiceRollOverlay({
     [clearTimers, runTally, later, reducedMotion, stageState, describeFor],
   );
 
+  // ---------------------------------------------------------------- toasts & queue
+
+  const toastFor = useCallback(
+    (data: DiceRollData, ctx: RollContext | null): RollToastItem => {
+      const r = data.roll;
+      const hidden = isHiddenRoll(r);
+      const icon = ctx?.icon ?? "custom";
+      const v = verdictFor(r, icon);
+      const actorView = ctx?.actor ?? null;
+      const owner =
+        actorView?.kind === "me" ? copy.you : actorView?.kind === "ally" ? copy.ally : actorView?.kind === "enemy" ? copy.enemy : copy.dm;
+      return {
+        id: `${r.id}:${data.seq}`,
+        actor: actorView,
+        ownerLabel: hidden ? copy.hiddenRoll : owner,
+        kindLabel: copy.kinds[icon],
+        icon,
+        action: ctx?.action ?? "",
+        target: ctx?.target?.name ?? null,
+        expression: r.expression,
+        total: hidden ? null : r.total,
+        verdict: v === "neutral" || v === "damage" || v === "initiative" ? null : verdictText(v, icon, r.total, copy),
+        tone: v === "crit" || v === "success" ? "gold" : v === "fail" || v === "fumble" || v === "damage" ? "crimson" : "steel",
+        hidden,
+      };
+    },
+    [copy],
+  );
+
+  const pushToast = useCallback(
+    (data: DiceRollData) => {
+      const item = toastFor(data, describeFor(data));
+      setToasts((prev) => [item, ...prev.filter((entry) => entry.id !== item.id)].slice(0, MAX_TOASTS));
+      sfx.sfxDieClack(0.35);
+    },
+    [toastFor, describeFor],
+  );
+  const closeToast = useCallback((id: string) => setToasts((prev) => prev.filter((entry) => entry.id !== id)), []);
+
+  // Only a couple of rolls wait behind the one on screen; anything older is
+  // told as a toast instead of replaying minutes of dice back to back.
+  const enqueue = useCallback(
+    (data: DiceRollData) => {
+      queueRef.current.push(data);
+      while (queueRef.current.length > MAX_WAITING) {
+        const old = queueRef.current.shift();
+        if (old) pushToast(old);
+      }
+    },
+    [pushToast],
+  );
+
+  // The next roll to play: the newest of the player's own, else the newest;
+  // everything else in the backlog collapses into toasts.
+  const takeQueued = useCallback((): DiceRollData | null => {
+    const waiting = queueRef.current;
+    queueRef.current = [];
+    if (!waiting.length) return null;
+    let pick = waiting[waiting.length - 1];
+    for (let i = waiting.length - 1; i >= 0; i--) {
+      if (describeFor(waiting[i])?.actor.kind === "me") {
+        pick = waiting[i];
+        break;
+      }
+    }
+    waiting.filter((entry) => entry !== pick).slice(-MAX_TOASTS).forEach(pushToast);
+    return pick;
+  }, [describeFor, pushToast]);
+
   // ---------------------------------------------------------------- dismiss
 
   const restoreTitle = useCallback(() => {
@@ -661,9 +824,9 @@ export function DiceRollOverlay({
   const dismiss = useCallback(() => {
     clearTimers();
     restoreTitle();
-    if (view.active && persistDismissed) {
+    if (view.active && persistDismissed && campaignId) {
       try {
-        window.sessionStorage.setItem(DISMISSED_KEY, String(view.active.seq));
+        window.sessionStorage.setItem(DISMISSED_KEY + campaignId, String(view.active.seq));
       } catch {
         // Session storage is optional.
       }
@@ -678,9 +841,13 @@ export function DiceRollOverlay({
     setVerdict(null);
     submittingRef.current = false;
     onDismiss?.();
-    const next = queueRef.current.shift();
+    const next = takeQueued();
     if (next) window.setTimeout(() => startRoll(next), 60);
-  }, [clearTimers, restoreTitle, view.active, persistDismissed, activePending, particlesRef, onDismiss, startRoll]);
+  }, [clearTimers, restoreTitle, view.active, persistDismissed, campaignId, activePending, particlesRef, onDismiss, startRoll, takeQueued]);
+  const dismissRef = useRef(dismiss);
+  useEffect(() => {
+    dismissRef.current = dismiss;
+  }, [dismiss]);
 
   // ---------------------------------------------------------------- prompt
 
@@ -747,39 +914,59 @@ export function DiceRollOverlay({
     initRef.current = true;
     let seq = latestRoll?.seq ?? 0;
     try {
-      const stored = persistDismissed ? window.sessionStorage.getItem(DISMISSED_KEY) : null;
+      const stored = persistDismissed && campaignId ? window.sessionStorage.getItem(DISMISSED_KEY + campaignId) : null;
       const storedSeq = stored === null ? null : Number(stored);
       if (storedSeq !== null && Number.isSafeInteger(storedSeq) && storedSeq >= 0) seq = storedSeq;
       else if (latestRoll && Date.now() - new Date(latestRoll.roll.createdAt).getTime() < 45000) seq = Math.max(0, latestRoll.seq - 1);
     } catch {
       // Keep the stream cursor.
     }
-    seenSeqRef.current = seq;
-  }, [latestRoll, persistDismissed]);
+    baselineSeqRef.current = seq;
+  }, [latestRoll, persistDismissed, campaignId]);
 
-  // A new roll_result: play it now if the table is free (or it is the roll
-  // the dice are already in the air for), otherwise queue it.
+  // A new roll_result. The player's own roll takes the screen: now if the
+  // table is free (or it is the roll the dice are already in the air for),
+  // otherwise after the current one. Everyone else's follows the settings.
   const onIncomingRoll = useEffectEvent((data: DiceRollData) => {
+    const ctx = describeFor(data);
+    const mine = ctx?.actor.kind === "me";
+    const mode = mine ? "full" : fx.othersRolls;
+    if (mode === "off") return;
+    if (isHiddenRoll(data.roll) || mode === "compact") {
+      // A secret roll can still be the answer to dice already thrown.
+      if (mine && phase === "rolling" && !view.active) dismiss();
+      pushToast(data);
+      return;
+    }
     if (document.hidden) {
-      queueRef.current.push(data);
+      enqueue(data);
       return;
     }
     const resolvesPrompt = phase === "prompt" && pendingPrompt && data.roll.characterId === pendingPrompt.characterId;
-    if (phase === "rolling" && !view.active) startRoll(data);
+    // Dice already in the air wait for this player's result, not the next
+    // roll anyone at the table makes.
+    const answersThrow = phase === "rolling" && !view.active && (mine || (submitted !== null && data.roll.characterId === submitted.characterId));
+    if (answersThrow) startRoll(data);
     else if (phase === "idle" || resolvesPrompt) startRoll(data, resolvesPrompt ? pendingPrompt : undefined);
-    else queueRef.current.push(data);
+    else enqueue(data);
   });
 
   useEffect(() => {
-    if (!latestRoll || !enabled || latestRoll.seq <= seenSeqRef.current) return;
-    seenSeqRef.current = latestRoll.seq;
+    if (!latestRoll) return;
+    const id = latestRoll.roll.id;
+    if (latestRoll.seq <= baselineSeqRef.current || seenIdsRef.current.includes(id)) return;
+    seenIdsRef.current = [...seenIdsRef.current.slice(-49), id];
+    // Dice switched off: the roll counts as seen and does not replay later.
+    if (!active) return;
+    // A roll arriving on the stream is the external event this reacts to.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     onIncomingRoll(latestRoll);
-  }, [latestRoll, enabled]);
+  }, [latestRoll, active]);
 
   useEffect(() => {
     const onVisible = () => {
       if (document.hidden || view.active || phase === "prompt") return;
-      const next = queueRef.current.shift();
+      const next = takeQueued();
       if (next) startRoll(next);
     };
     document.addEventListener("visibilitychange", onVisible);
@@ -788,7 +975,12 @@ export function DiceRollOverlay({
       document.removeEventListener("visibilitychange", onVisible);
       window.removeEventListener("focus", onVisible);
     };
-  }, [view.active, phase, startRoll]);
+  }, [view.active, phase, startRoll, takeQueued]);
+
+  // Switching the dice off mid-roll closes the overlay.
+  useEffect(() => {
+    if (!active && view.active) dismissRef.current();
+  }, [active, view.active]);
 
   // ---------------------------------------------------------------- input
 
@@ -913,8 +1105,21 @@ export function DiceRollOverlay({
   const ownerLabel = actor?.kind === "me" ? copy.you : actor?.kind === "ally" ? copy.ally : actor?.kind === "enemy" ? copy.enemy : copy.dm;
   const R = 50;
   const C = 2 * Math.PI * R;
+  const offerReroll = phase === "verdict" && (verdict === "fail" || verdict === "fumble") && inspiration > 0 && actor?.kind === "me";
+  const actorKind = actor?.kind;
+
+  // Someone else's roll never waits for a tap, and on a phone neither does
+  // the player's own once it has been read, unless a reroll is on offer.
+  useEffect(() => {
+    if (phase !== "verdict" || offerReroll) return;
+    const mine = actorKind === "me";
+    if (mine && !fx.compact) return;
+    const timer = window.setTimeout(() => dismissRef.current(), mine ? 5000 : 4000);
+    return () => window.clearTimeout(timer);
+  }, [phase, offerReroll, actorKind, fx.compact]);
 
   return (
+    <>
     <div
       ref={rootRef}
       role="dialog"
@@ -925,9 +1130,9 @@ export function DiceRollOverlay({
       onClick={onRootClick}
     >
       <div className="fx-backdrop" />
-      <canvas ref={glRef} className="fx-canvas" />
+      <canvas key={glKey} ref={glRef} className="fx-canvas" />
       {stageState === "failed" && roll ? (
-        <div className="fx-flat-dice" style={{ position: "absolute", inset: "30% 0" }}>
+        <div className="fx-flat-dice fx-flat-dice--overlay">
           {diceTerms(roll.breakdown).flatMap((term, ti) =>
             term.dice.map((d, di) => (
               <div key={`${ti}-${di}`} className="fx-flat-die" style={{ "--i": ti * 4 + di, opacity: d.kept ? 1 : 0.4 } as CSSProperties}>
@@ -1075,7 +1280,8 @@ export function DiceRollOverlay({
 
         <div
           ref={slotRef}
-          style={{ width: "100%", pointerEvents: phase === "prompt" ? "auto" : "none", cursor: phase === "prompt" ? "pointer" : undefined }}
+          className="fx-roll__slot"
+          style={{ pointerEvents: phase === "prompt" ? "auto" : "none", cursor: phase === "prompt" ? "pointer" : undefined }}
           onClick={(e) => {
             if (phase !== "prompt") return;
             e.stopPropagation();
@@ -1136,7 +1342,7 @@ export function DiceRollOverlay({
             </div>
           ) : null}
 
-          {phase === "verdict" && (verdict === "fail" || verdict === "fumble") && inspiration > 0 && actor?.kind === "me" ? (
+          {offerReroll ? (
             <div className="fx-actions" onClick={(e) => e.stopPropagation()}>
               <button type="button" className="fx-button fx-button--violet" disabled={rerolling} onClick={() => void reroll()}>
                 ★ {copy.reroll} · {fmt(copy.remaining, { n: inspiration })}
@@ -1165,6 +1371,8 @@ export function DiceRollOverlay({
         </div>
       ) : null}
     </div>
+    <RollToasts items={toasts} onDone={closeToast} label={copy.toasts} closeLabel={copy.toastClose} />
+    </>
   );
 }
 
