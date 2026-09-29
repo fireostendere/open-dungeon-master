@@ -2,29 +2,22 @@
 // cue is built from oscillators and filtered noise, routed through one master
 // bus with a compressor and a generated reverb so the cues sit together.
 
-const MUTE_KEY = "odm:fx-muted";
-export const FX_PREFS_EVENT = "odm-fx-prefs";
+import { FX_PREFS_EVENT, readFxPrefs, writeFxPrefs } from "./prefs";
+
+export { FX_PREFS_EVENT };
 
 let ctx: AudioContext | null = null;
 let master: GainNode | null = null;
 let reverbSend: GainNode | null = null;
 let noiseBuffer: AudioBuffer | null = null;
 
+/** The FX sound switch lives in the per-device animation preferences. */
 export function fxMuted(): boolean {
-  try {
-    return window.localStorage.getItem(MUTE_KEY) === "1";
-  } catch {
-    return false;
-  }
+  return !readFxPrefs().sound;
 }
 
 export function setFxMuted(muted: boolean): void {
-  try {
-    window.localStorage.setItem(MUTE_KEY, muted ? "1" : "0");
-  } catch {
-    // The choice still applies to this tab through the event below.
-  }
-  window.dispatchEvent(new Event(FX_PREFS_EVENT));
+  writeFxPrefs({ sound: !muted });
 }
 
 function audio(): { ctx: AudioContext; out: GainNode; wet: GainNode } | null {
@@ -64,6 +57,40 @@ function audio(): { ctx: AudioContext; out: GainNode; wet: GainNode } | null {
   }
   if (ctx.state === "suspended") ctx.resume().catch(() => {});
   return { ctx, out: master!, wet: reverbSend! };
+}
+
+/**
+ * Browsers (iOS above all) only let audio start inside a user gesture, and a
+ * context created outside one stays suspended. The first tap or key press
+ * anywhere on the page creates and resumes the context and plays one silent
+ * sample, so the first cinematic after it is audible.
+ */
+export function installFxAudioUnlock(): () => void {
+  if (typeof window === "undefined") return () => {};
+  const unlock = () => {
+    if (fxMuted()) return;
+    const a = audio();
+    if (!a) return;
+    try {
+      const silent = a.ctx.createBuffer(1, 1, a.ctx.sampleRate);
+      const src = a.ctx.createBufferSource();
+      src.buffer = silent;
+      src.connect(a.ctx.destination);
+      src.start(0);
+    } catch {
+      // Nothing to unlock with; the next cue retries resume().
+    }
+    if (a.ctx.state === "running") remove();
+  };
+  const remove = () => {
+    window.removeEventListener("pointerdown", unlock, true);
+    window.removeEventListener("keydown", unlock, true);
+    window.removeEventListener("touchend", unlock, true);
+  };
+  window.addEventListener("pointerdown", unlock, true);
+  window.addEventListener("keydown", unlock, true);
+  window.addEventListener("touchend", unlock, true);
+  return remove;
 }
 
 type Env = { a?: number; d: number; peak: number; at?: number };

@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useSyncExternalStore, type CSSProperties, type RefObject } from "react";
+import { useEffect, useRef, type CSSProperties, type RefObject } from "react";
 import { FxCanvas } from "@/lib/fx/particles";
-import { FX_PREFS_EVENT, fxMuted, setFxMuted } from "@/lib/fx/sound";
+import { useFxPrefs, useFxSettings } from "@/lib/fx/prefs";
 import "./fx.css";
+
+export { useFxPrefs, useFxSettings };
 
 /** Splits a title into per-letter spans so CSS can stagger them. */
 export function FxLetters({
@@ -57,19 +59,24 @@ export function FxTitle({
   as?: "h1" | "h2" | "h3" | "div";
 }) {
   return (
-    <Tag className={`fx-title fx-shine ${tone === "gold" ? "" : `fx-title--${tone}`} ${className}`} data-text={text}>
+    <Tag className={`fx-title fx-title--letters fx-shine ${tone === "gold" ? "" : `fx-title--${tone}`} ${className}`} data-text={text}>
       <FxLetters text={text} variant={variant} delayMs={delayMs} />
     </Tag>
   );
 }
 
-/** A full-screen particle canvas bound to the component's lifetime. */
+/**
+ * A full-screen particle canvas bound to the component's lifetime. Null while
+ * the player has particles switched off; Lite quality gets a small budget and
+ * a 1x canvas.
+ */
 export function useFxCanvas(ref: RefObject<HTMLCanvasElement | null>, active = true): RefObject<FxCanvas | null> {
   const particlesRef = useRef<FxCanvas | null>(null);
+  const { particles, lite } = useFxSettings();
   useEffect(() => {
     const canvas = ref.current;
-    if (!active || !canvas) return;
-    const instance = new FxCanvas(canvas);
+    if (!active || !canvas || !particles) return;
+    const instance = new FxCanvas(canvas, lite ? { maxParticles: 300, density: 0.35, maxDpr: 1 } : {});
     particlesRef.current = instance;
     const onResize = () => instance.resize();
     window.addEventListener("resize", onResize);
@@ -78,38 +85,57 @@ export function useFxCanvas(ref: RefObject<HTMLCanvasElement | null>, active = t
       instance.dispose();
       particlesRef.current = null;
     };
-  }, [ref, active]);
+  }, [ref, active, particles, lite]);
   return particlesRef;
 }
 
-function subscribeReducedMotion(cb: () => void) {
-  if (typeof window === "undefined" || !window.matchMedia) return () => {};
-  const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
-  mq.addEventListener("change", cb);
-  return () => mq.removeEventListener("change", cb);
-}
-
+/** Reduced motion: the player's choice, or the system's when set to Auto. */
 export function useReducedMotion(): boolean {
-  return useSyncExternalStore(
-    subscribeReducedMotion,
-    () => (typeof window !== "undefined" && window.matchMedia ? window.matchMedia("(prefers-reduced-motion: reduce)").matches : false),
-    () => false,
-  );
-}
-
-function subscribeFxPrefs(cb: () => void) {
-  window.addEventListener(FX_PREFS_EVENT, cb);
-  window.addEventListener("storage", cb);
-  return () => {
-    window.removeEventListener(FX_PREFS_EVENT, cb);
-    window.removeEventListener("storage", cb);
-  };
+  return useFxSettings().reducedMotion;
 }
 
 /** Shared mute switch for every cinematic sound effect. */
 export function useFxMuted(): [boolean, (muted: boolean) => void] {
-  const muted = useSyncExternalStore(subscribeFxPrefs, fxMuted, () => false);
-  return [muted, setFxMuted];
+  const [prefs, setPrefs] = useFxPrefs();
+  return [!prefs.sound, (muted: boolean) => setPrefs({ sound: !muted })];
+}
+
+/**
+ * How long a moment stays up: its full hold, or a shorter one in Lite.
+ * Reduced motion keeps the full hold: calm is not the same as brief.
+ */
+export function useFxHold(full: number, lite: number): number {
+  return useFxSettings().lite ? lite : full;
+}
+
+/**
+ * On a phone a non-essential moment must not trap the table: it lets taps
+ * through to the page and any tap (which still reaches whatever is under
+ * the finger) ends it early.
+ */
+export function useTapThrough(active: boolean, onDone: () => void): boolean {
+  const { compact } = useFxSettings();
+  const cb = useRef(onDone);
+  useEffect(() => {
+    cb.current = onDone;
+  });
+  useEffect(() => {
+    if (!active || !compact) return;
+    // Arm on the next frame so the tap that caused the moment does not end it.
+    let armed = false;
+    const raf = requestAnimationFrame(() => {
+      armed = true;
+    });
+    const onTap = () => {
+      if (armed) cb.current();
+    };
+    window.addEventListener("pointerdown", onTap, true);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("pointerdown", onTap, true);
+    };
+  }, [active, compact]);
+  return compact;
 }
 
 /** Escape (and optionally a click) closes an overlay. */

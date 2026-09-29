@@ -111,10 +111,15 @@ export class FxCanvas {
   private dpr = 1;
   private disposed = false;
   readonly maxParticles: number;
+  /** Scales every burst's particle count (Lite quality runs well below 1). */
+  readonly density: number;
+  private readonly maxDpr: number;
 
-  constructor(private canvas: HTMLCanvasElement, opts: { maxParticles?: number } = {}) {
+  constructor(private canvas: HTMLCanvasElement, opts: { maxParticles?: number; density?: number; maxDpr?: number } = {}) {
     this.ctx = canvas.getContext("2d")!;
     this.maxParticles = opts.maxParticles ?? 2600;
+    this.density = Math.max(0.05, Math.min(1, opts.density ?? 1));
+    this.maxDpr = opts.maxDpr ?? 2;
     this.resize();
   }
 
@@ -126,7 +131,7 @@ export class FxCanvas {
   }
 
   resize(): void {
-    this.dpr = Math.min(window.devicePixelRatio || 1, 2);
+    this.dpr = Math.min(window.devicePixelRatio || 1, this.maxDpr);
     this.w = this.canvas.clientWidth || window.innerWidth;
     this.h = this.canvas.clientHeight || window.innerHeight;
     this.canvas.width = Math.round(this.w * this.dpr);
@@ -179,7 +184,11 @@ export class FxCanvas {
   }
 
   burst(x: number, y: number, o: BurstOptions): void {
-    for (let i = 0; i < o.count; i++) {
+    // Thinned proportionally; the fraction is rolled so trickle emitters
+    // (one particle per call) thin out too instead of rounding back up.
+    const scaled = o.count * this.density;
+    const count = this.density >= 1 ? o.count : Math.floor(scaled) + (Math.random() < scaled % 1 ? 1 : 0);
+    for (let i = 0; i < count; i++) {
       const a = o.angle === undefined ? Math.random() * Math.PI * 2 : o.angle + (Math.random() - 0.5) * (o.spread ?? Math.PI * 2);
       const s = rand(o.speed[0], o.speed[1]);
       const kind = o.kind;

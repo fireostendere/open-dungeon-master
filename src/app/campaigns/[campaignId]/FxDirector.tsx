@@ -8,12 +8,19 @@
 // every few seconds), so every trigger is a change between the previous and
 // the current value, with a baseline taken on first sight so reloading the
 // page mid-session never replays anything.
+//
+// Which of these play at all is the player's choice (the Animations menu in
+// the header, src/lib/fx/prefs.ts), read live.
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { PublicEncounter } from "@/lib/db/encounter-view";
 import type { CharacterSheet } from "@/lib/schemas/sheet";
 import type { AuditEntry } from "@/app/campaigns/[campaignId]/useCampaignStream";
 import { useI18n } from "@/lib/i18n";
+import { useFxSettings } from "@/lib/fx/prefs";
+import { fightEnding } from "@/lib/fx/moments";
+import { installFxAudioUnlock } from "@/lib/fx/sound";
+import { FxErrorBoundary } from "@/components/fx/FxErrorBoundary";
 import { CombatStart, type InitiativeEntry } from "@/components/fx/cinematics/CombatStart";
 import { SlainBanner, TurnBanner } from "@/components/fx/cinematics/Banners";
 import { FallenCinematic, LootReveal, RestCinematic } from "@/components/fx/cinematics/Moments";
@@ -31,7 +38,6 @@ type Item =
 type NewItem = Item extends infer T ? (T extends Item ? Omit<T, "id"> : never) : never;
 
 const SEEN_ENCOUNTERS = "odm:fx-seen-encounters";
-const OFF_KEY = "odm:cinematics";
 
 function readSeen(): Set<string> {
   try {
@@ -49,19 +55,24 @@ function writeSeen(seen: Set<string>) {
   }
 }
 
-export function FxDirector({
-  encounter,
-  ownCombatTurn,
-  sheets,
-  meId,
-  auditLog,
-}: {
+type FxDirectorProps = {
   encounter: PublicEncounter | null;
   ownCombatTurn: boolean;
   sheets: CharacterSheet[];
   meId: string | undefined;
   auditLog: AuditEntry[];
-}) {
+};
+
+/** A crash in a cinematic hides the layer instead of the table; a new fight retries. */
+export function FxDirector(props: FxDirectorProps) {
+  return (
+    <FxErrorBoundary resetKey={props.encounter?.id ?? null}>
+      <FxDirectorInner {...props} />
+    </FxErrorBoundary>
+  );
+}
+
+function FxDirectorInner({ encounter, ownCombatTurn, sheets, meId, auditLog }: FxDirectorProps) {
   const { locale } = useI18n();
   const copy =
     locale === "ru"
@@ -69,15 +80,20 @@ export function FxDirector({
       : { round: "Round", won: "Victory", wonSub: "Every foe has fallen" };
   const [queue, setQueue] = useState<Item[]>([]);
   const nextId = useRef(1);
-  const enabled = useRef(true);
-
+  const { cinematics } = useFxSettings();
+  const enabled = useRef(cinematics);
   useEffect(() => {
-    try {
-      enabled.current = window.localStorage.getItem(OFF_KEY) !== "off";
-    } catch {
-      enabled.current = true;
-    }
-  }, []);
+    enabled.current = cinematics;
+  }, [cinematics]);
+  // Switched off mid-moment: clear the stage now, not after the queue.
+  const [queuedWith, setQueuedWith] = useState(cinematics);
+  if (queuedWith !== cinematics) {
+    setQueuedWith(cinematics);
+    if (!cinematics) setQueue([]);
+  }
+
+  // Mobile browsers only start audio inside a tap; unlock it on the first one.
+  useEffect(() => installFxAudioUnlock(), []);
 
   const push = useCallback((item: NewItem) => {
     if (!enabled.current || document.hidden) return;
@@ -89,10 +105,15 @@ export function FxDirector({
   const seenRef = useRef<Set<string> | null>(null);
   const enemyStatus = useRef(new Map<string, string>());
   const lastEncounter = useRef<PublicEncounter | null>(null);
+  // The newest audit entry while the fight was last seen running: XP awarded
+  // after it belongs to the fight's ending.
+  const lastActiveAuditSeq = useRef(0);
   const wonTimer = useRef<number | null>(null);
   const latestEncounter = useRef(encounter);
+  const latestAudit = useRef(auditLog);
   useEffect(() => {
     latestEncounter.current = encounter;
+    latestAudit.current = auditLog;
   });
 
   useEffect(() => {
@@ -124,22 +145,32 @@ export function FxDirector({
         enemyStatus.current.set(enemy.id, enemy.status);
       }
       lastEncounter.current = encounter;
+      lastActiveAuditSeq.current = latestAudit.current.reduce((m, e) => Math.max(m, e.seq), 0);
       if (wonTimer.current) {
         window.clearTimeout(wonTimer.current);
         wonTimer.current = null;
       }
     } else if (lastEncounter.current && !wonTimer.current) {
       // Some emitters briefly null the encounter; only a fight that stays
-      // gone, with every visible enemy down, counts as won.
+      // gone counts as ended.
       const last = lastEncounter.current;
+      const since = lastActiveAuditSeq.current;
       wonTimer.current = window.setTimeout(() => {
         wonTimer.current = null;
         const now = latestEncounter.current;
         if (now && now.status === "active") return;
         lastEncounter.current = null;
-        const visible = last.enemies.filter((e) => !e.hidden);
-        const statuses = visible.map((e) => enemyStatus.current.get(e.id) ?? e.status);
-        if (visible.length && statuses.every((s) => s !== "alive") && statuses.some((s) => s === "dead")) push({ kind: "won" });
+        // The last foe often never shows up dead (see fightEnding): it gets
+        // its Slain here, right before the Victory.
+        const { victory, lastStanding } = fightEnding({
+          enemies: last.enemies.filter((e) => !e.hidden),
+          statusOf: (e) => enemyStatus.current.get(e.id) ?? e.status,
+          audit: latestAudit.current,
+          since,
+        });
+        if (!victory) return;
+        for (const enemy of lastStanding.slice(0, 2)) push({ kind: "slain", name: enemy.name });
+        push({ kind: "won" });
       }, 1800);
     }
   }, [encounter, push]);

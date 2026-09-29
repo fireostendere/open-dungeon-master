@@ -7,7 +7,7 @@ import type { ReactNode } from "react";
 import { cn } from "@/lib/cn";
 
 // Responsive Radix dialog. Below lg it is a bottom sheet: grip bar, rounded
-// top, slides up from the fold, capped at 85vh with safe-area padding. From
+// top, slides up from the fold, capped at 85dvh with safe-area padding. From
 // lg up it becomes either a centered dialog (like Dialog.tsx) or a popover
 // pinned top-right under the app header, 320px wide.
 //
@@ -59,11 +59,11 @@ export function Sheet({
             }
           }}
           className={cn(
-            "sheet texture-noise fixed inset-x-0 bottom-0 z-[60] flex max-h-[85vh] flex-col rounded-t-2xl border border-stone-600/50 bg-stone-950 px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-2 shadow-elev-2",
+            "sheet texture-noise fixed inset-x-0 bottom-0 z-[60] flex max-h-[85dvh] flex-col rounded-t-2xl border border-stone-600/50 bg-stone-950 px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-2 shadow-elev-2",
             "lg:bottom-auto lg:rounded-xl lg:p-6",
             popover
-              ? "lg:left-auto lg:right-4 lg:top-16 lg:w-80 lg:max-h-[calc(100vh-5rem)]"
-              : "lg:left-1/2 lg:right-auto lg:top-1/2 lg:w-[min(92vw,34rem)] lg:max-h-[90vh] lg:-translate-x-1/2 lg:-translate-y-1/2",
+              ? "lg:left-auto lg:right-4 lg:top-16 lg:w-80 lg:max-h-[calc(100dvh-5rem)]"
+              : "lg:left-1/2 lg:right-auto lg:top-1/2 lg:w-[min(92vw,34rem)] lg:max-h-[90dvh] lg:-translate-x-1/2 lg:-translate-y-1/2",
             className,
           )}
         >

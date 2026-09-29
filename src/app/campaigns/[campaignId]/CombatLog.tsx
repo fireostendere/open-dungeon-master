@@ -421,7 +421,7 @@ export function CombatLog({
           <p>{copy.empty}</p>
         </div>
       ) : (
-        <ol className="space-y-1.5 max-h-[460px] overflow-y-auto pr-1">
+        <ol className="max-h-[min(460px,45dvh)] space-y-1.5 overflow-y-auto overscroll-contain pr-1">
           {filteredItems.map((item) => {
             const Icon = item.icon;
             return (

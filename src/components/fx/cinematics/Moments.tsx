@@ -6,7 +6,7 @@ import { useEffect, useRef, type CSSProperties } from "react";
 import { useI18n } from "@/lib/i18n";
 import { Bursts, FIREWORK_COLORS } from "@/lib/fx/particles";
 import * as sfx from "@/lib/fx/sound";
-import { FxTitle, useDismissKeys, useFxCanvas, useReducedMotion } from "../shared";
+import { FxTitle, useDismissKeys, useFxCanvas, useFxHold, useFxSettings, useReducedMotion, useTapThrough } from "../shared";
 
 function useDoneRef(onDone: () => void) {
   const ref = useRef(onDone);
@@ -58,9 +58,16 @@ export function LevelUpCinematic({
   const reduced = useReducedMotion();
   const done = useDoneRef(onContinue);
   useDismissKeys(active, () => done.current());
+  const { cinematics } = useFxSettings();
+  const skip = active && !cinematics;
+
+  // Cinematics switched off: straight on to the level-up choices.
+  useEffect(() => {
+    if (skip) done.current();
+  }, [skip, done]);
 
   useEffect(() => {
-    if (!active) return;
+    if (!active || skip) return;
     sfx.sfxChoir();
     const f = particlesRef.current;
     const stops: (() => void)[] = [];
@@ -90,9 +97,9 @@ export function LevelUpCinematic({
       stops.forEach((s) => s());
       timers.forEach((t) => window.clearTimeout(t));
     };
-  }, [active, particlesRef, reduced]);
+  }, [active, skip, particlesRef, reduced]);
 
-  if (!active) return null;
+  if (!active || skip) return null;
   return (
     <div className="fx-layer fx-interactive" style={{ zIndex: 72 }} role="dialog" aria-modal="true" aria-label={copy.title}>
       <div className="fx-backdrop" style={{ background: "radial-gradient(ellipse at 50% 40%, rgba(90, 60, 10, 0.35), rgba(6, 4, 16, 0.9) 70%)" }} />
@@ -149,6 +156,8 @@ export function FallenCinematic({
   const particlesRef = useFxCanvas(canvasRef, active);
   const reduced = useReducedMotion();
   const done = useDoneRef(onDone);
+  const hold = useFxHold(dead ? 5200 : 4200, dead ? 3400 : 2800);
+  const through = useTapThrough(active, () => done.current());
 
   useEffect(() => {
     if (!active) return;
@@ -161,13 +170,18 @@ export function FallenCinematic({
         f.burst(f.width / 2, f.height * 0.5, { count: 40, kind: "ash", colors: ["#6b6580", "#3a3440", "#8a2a34"], speed: [30, 120], angle: -Math.PI / 2, spread: 2.4, life: [2, 3.5], size: [2, 5], gravity: 20, drag: 0.8, jitter: 300 });
       }, 700);
     }
-    const t = window.setTimeout(() => done.current(), reduced ? 2000 : dead ? 5200 : 4200);
+    const t = window.setTimeout(() => done.current(), hold);
     return () => window.clearTimeout(t);
-  }, [active, dead, particlesRef, reduced, done]);
+  }, [active, dead, particlesRef, reduced, done, hold]);
 
   if (!active) return null;
   return (
-    <div className="fx-layer fx-interactive" style={{ zIndex: 72, cursor: "pointer" }} onClick={() => done.current()} aria-live="assertive">
+    <div
+      className={through ? "fx-layer" : "fx-layer fx-interactive"}
+      style={{ zIndex: 72, cursor: through ? undefined : "pointer" }}
+      onClick={through ? undefined : () => done.current()}
+      aria-live="assertive"
+    >
       <div className="fx-desaturate" />
       <div className="fx-vignette fx-vignette--blood" />
       <canvas ref={canvasRef} className="fx-canvas" />
@@ -228,6 +242,8 @@ export function LootReveal({
   const reduced = useReducedMotion();
   const done = useDoneRef(onDone);
   useDismissKeys(active, () => done.current());
+  const hold = useFxHold(5200, 3200);
+  const through = useTapThrough(active, () => done.current());
 
   useEffect(() => {
     if (!active) return;
@@ -241,14 +257,20 @@ export function LootReveal({
           Bursts.sparks(f, f.width / 2, f.height * 0.45, [r.color, "#fff4c2"], 60, 1);
         }
       }, 1250),
-      window.setTimeout(() => done.current(), reduced ? 2500 : 5200),
+      window.setTimeout(() => done.current(), hold),
     ];
     return () => timers.forEach((t) => window.clearTimeout(t));
-  }, [active, particlesRef, reduced, r.color, done]);
+  }, [active, particlesRef, reduced, r.color, done, hold]);
 
   if (!active) return null;
   return (
-    <div className="fx-layer fx-interactive" style={{ zIndex: 72, cursor: "pointer" }} onClick={() => done.current()} role="dialog" aria-label={item}>
+    <div
+      className={through ? "fx-layer" : "fx-layer fx-interactive"}
+      style={{ zIndex: 72, cursor: through ? undefined : "pointer" }}
+      onClick={through ? undefined : () => done.current()}
+      role="status"
+      aria-label={item}
+    >
       <div className="fx-backdrop" />
       <canvas ref={canvasRef} className="fx-canvas" />
       <div className="fx-center">
@@ -285,6 +307,8 @@ export function RestCinematic({ active, kind, onDone }: { active: boolean; kind:
   const particlesRef = useFxCanvas(canvasRef, active);
   const reduced = useReducedMotion();
   const done = useDoneRef(onDone);
+  const hold = useFxHold(kind === "long" ? 6000 : 3800, kind === "long" ? 4200 : 2600);
+  const through = useTapThrough(active, () => done.current());
 
   useEffect(() => {
     if (!active) return;
@@ -297,18 +321,23 @@ export function RestCinematic({ active, kind, onDone }: { active: boolean; kind:
         if (Math.random() < dt * 30) Bursts.embersRise(c, c.width / 2, c.height * 0.84, FIREWORK_COLORS.ember, 1, 30);
       });
     }
-    const t = window.setTimeout(() => done.current(), reduced ? 2400 : kind === "long" ? 6000 : 3800);
+    const t = window.setTimeout(() => done.current(), hold);
     return () => {
       stop?.();
       window.clearTimeout(t);
     };
-  }, [active, kind, particlesRef, reduced, done]);
+  }, [active, kind, particlesRef, reduced, done, hold]);
 
   if (!active) return null;
   const long = kind === "long";
   return (
-    <div className="fx-layer fx-interactive" style={{ zIndex: 72, cursor: "pointer" }} onClick={() => done.current()} aria-live="polite">
-      <div className="fx-sky" style={long ? undefined : { animation: "fx-fade-in 800ms ease-out both" }} />
+    <div
+      className={through ? "fx-layer" : "fx-layer fx-interactive"}
+      style={{ zIndex: 72, cursor: through ? undefined : "pointer" }}
+      onClick={through ? undefined : () => done.current()}
+      aria-live="polite"
+    >
+      <div className={long ? "fx-sky" : "fx-sky fx-sky--short"} />
       {long ? <div className="fx-sky__stars" /> : null}
       {long ? <div className="fx-dawn" /> : null}
       {long ? (
@@ -320,7 +349,7 @@ export function RestCinematic({ active, kind, onDone }: { active: boolean; kind:
       <div className="fx-horizon" />
       <div className="fx-campfire" />
       <canvas ref={canvasRef} className="fx-canvas" />
-      <div className="fx-center" style={{ justifyContent: "flex-start", paddingTop: long ? "40vh" : "30vh" }}>
+      <div className={long ? "fx-center fx-rest-center" : "fx-center fx-rest-center fx-rest-center--short"}>
         <FxTitle text={long ? copy.long : copy.short} tone={long ? "gold" : "frost"} variant="rise" delayMs={long ? 2600 : 300} className="fx-midtitle" />
         <p className="fx-sub" style={{ animation: `fx-fade-in 700ms ease-out ${long ? 3.2 : 0.9}s both` }}>
           {long ? copy.longSub : copy.shortSub}
