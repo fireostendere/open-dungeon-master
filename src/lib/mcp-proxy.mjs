@@ -39,7 +39,8 @@ async function boundedBody(request, signal, maximum) {
 }
 
 /** Dependency injection is for tests/server configuration only, never HTTP input. */
-export function createMcpProxy({ upstream = 'http://mcp:3006/mcp', fetchImpl = globalThis.fetch, timeoutMs = 140_000, maximumBytes = 1_048_576 } = {}) {
+// 8 MiB target images need base64 overhead plus the JSON-RPC envelope.
+export function createMcpProxy({ upstream = 'http://mcp:3006/mcp', fetchImpl = globalThis.fetch, timeoutMs = 140_000, maximumBytes = 12 * 1024 * 1024 } = {}) {
   const target = new URL(upstream);
   if (!['http:', 'https:'].includes(target.protocol) || target.username || target.password || target.pathname !== '/mcp' || target.search || target.hash) throw new Error('Invalid server MCP proxy destination');
   return async function proxyMcp(request) {

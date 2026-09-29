@@ -64,6 +64,15 @@ test('oversized declared and streamed bodies are bounded before upstream transmi
   assert.equal(calls,0);
 });
 
+test('default bridge accepts an 8 MiB target image with base64 overhead and still caps the body',async()=>{
+  const body=JSON.stringify({method:'tools/call',params:{name:'odm_assets',arguments:{operation:'set_image',data_base64:Buffer.alloc(8*1024*1024).toString('base64')}}});
+  let received=0;
+  const proxy=createMcpProxy({fetchImpl:async(_url,init)=>{received=init.body.byteLength;return Response.json({ok:true});}});
+  assert.equal((await proxy(request('POST',body))).status,200);
+  assert.equal(received,Buffer.byteLength(body));
+  assert.equal((await proxy(request('POST','{}',{'content-length':String(12*1024*1024+1)}))).status,413);
+});
+
 test('redirects never move the bearer to another destination',async t=>{
   let leaked=0;const destination=await server(t,(_req,res)=>{leaked++;res.end('leaked');});
   const upstream=await server(t,(_req,res)=>{res.writeHead(302,{location:destination});res.end();});
