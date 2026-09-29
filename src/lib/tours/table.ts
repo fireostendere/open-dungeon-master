@@ -76,8 +76,8 @@ export const PLAYER_TOUR: TourStep[] = [
   },
   {
     id: "dice",
-    title: "Dice",
-    body: "Every roll is made by the server, never invented. With this on, each roll tumbles across the screen before the result lands in the chat.",
+    title: "Animations",
+    body: "Every roll is made by the server, never invented. Here you choose for yourself what plays on screen: 3D dice, cinematics, effects, sounds, lighter quality for a phone, and how other players' rolls show.",
     anchors: ["header-dice"],
   },
   {
@@ -183,7 +183,7 @@ const TOUR_TEXT: { ru: Record<"player" | "dm", Record<string, [string, string]>>
   story: ["История", "Главы, закреплённые факты и журнал бросков и изменений персонажей."],
   map: ["Карты", "Карты сцены, региона и посещённых мест. Во время боя тактическая карта открывается отдельно."],
   chat: ["Шёпот и боковой чат", "Личные сообщения ведущему и разговор игроков вне стенограммы приключения."],
-  dice: ["Кубики", "Все броски делает сервер. Здесь можно включить их анимацию перед показом результата."],
+  dice: ["Анимации", "Все броски делает сервер. Здесь каждый сам выбирает, что показывать: 3D-кубики, заставки, эффекты, звуки, лёгкое качество для телефона и как видны чужие броски."],
   voice: ["Голосовая связь", "Подключитесь к разговору за столом; связь сохранится при переключении панелей."],
   help: ["Справка и настройки", "Справка объясняет кнопки, а меню аккаунта открывает настройки и выход."],
   },
