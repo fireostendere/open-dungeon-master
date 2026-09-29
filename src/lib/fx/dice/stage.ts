@@ -65,6 +65,14 @@ export type DiceStageOptions = {
   manualClock?: boolean;
   /** Smallest table half-extent framed; lower values show dice larger. */
   minExtent?: { hx: number; hz: number };
+  /** Phones and weak GPUs: no antialiasing, no shadow maps, a low pixel ratio. */
+  lite?: boolean;
+  /**
+   * The GPU dropped the WebGL context (iOS does this to background tabs).
+   * The stage stops drawing; the owner should fall back to flat dice and
+   * build a fresh stage on a new canvas later.
+   */
+  onContextLost?: () => void;
 };
 
 type Tween = { from: number; to: number; start: number; dur: number; set: (v: number) => void; ease: (t: number) => number };
@@ -251,6 +259,7 @@ export class DiceStage {
   private last = 0;
   private raf = 0;
   private disposed = false;
+  private contextLost = false;
   private layout: StageLayout = { x: 0, y: 0, width: 1, height: 1 };
   private glowTex: CanvasTexture;
   private rune: Mesh;
@@ -274,14 +283,16 @@ export class DiceStage {
   private constructor(canvas: HTMLCanvasElement, opts: DiceStageOptions) {
     this.canvas = canvas;
     this.opts = opts;
-    this.renderer = new WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: "high-performance" });
+    const lite = Boolean(opts.lite);
+    this.renderer = new WebGLRenderer({ canvas, antialias: !lite, alpha: true, powerPreference: lite ? "default" : "high-performance" });
     this.renderer.setClearColor(0x000000, 0);
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75));
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, lite ? 1.25 : 1.75));
     this.renderer.toneMapping = ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 1.15;
     this.renderer.outputColorSpace = SRGBColorSpace;
-    this.renderer.shadowMap.enabled = true;
+    this.renderer.shadowMap.enabled = !lite;
     this.renderer.shadowMap.type = PCFShadowMap;
+    canvas.addEventListener("webglcontextlost", this.onContextLost, false);
 
     this.scene.environment = buildEnvironment(this.renderer);
     this.scene.add(new HemisphereLight(0x9d8cff, 0x1a0f30, 0.55));
@@ -289,7 +300,7 @@ export class DiceStage {
 
     const key = new DirectionalLight(0xffe2b8, 2.4);
     key.position.set(-3.5, 9, 5);
-    key.castShadow = true;
+    key.castShadow = !lite;
     key.shadow.mapSize.set(1024, 1024);
     key.shadow.camera.left = -8;
     key.shadow.camera.right = 8;
@@ -453,7 +464,7 @@ export class DiceStage {
     };
     material.customProgramCacheKey = () => "odm-die-face-glow";
     const mesh = new Mesh(geometryFor(shape), material);
-    mesh.castShadow = true;
+    mesh.castShadow = !this.opts.lite;
     mesh.scale.setScalar(size);
     this.scene.add(mesh);
 
@@ -764,7 +775,7 @@ export class DiceStage {
   }
 
   private loop = (now: number) => {
-    if (this.disposed) return;
+    if (this.disposed || this.contextLost) return;
     this.tick(Math.min(0.05, Math.max(0, (now - this.last) / 1000)));
     this.last = now;
     this.raf = requestAnimationFrame(this.loop);
@@ -860,6 +871,24 @@ export class DiceStage {
     }
   }
 
+  private onContextLost = () => {
+    if (this.disposed || this.contextLost) return;
+    this.contextLost = true;
+    cancelAnimationFrame(this.raf);
+    this.raf = 0;
+    // Nothing will draw again on this canvas; let every waiting throw go on
+    // to its tally with the flat dice.
+    const waiters = this.settleWaiters;
+    this.settleWaiters = [];
+    waiters.forEach((w) => w());
+    this.opts.onContextLost?.();
+  };
+
+  /** True once the GPU dropped this stage's context. */
+  isContextLost(): boolean {
+    return this.contextLost;
+  }
+
   /** Stops rendering while the overlay is hidden; `resume` picks up again. */
   pause(): void {
     cancelAnimationFrame(this.raf);
@@ -867,7 +896,7 @@ export class DiceStage {
   }
 
   resume(): void {
-    if (this.disposed || this.raf || this.opts.manualClock) return;
+    if (this.disposed || this.contextLost || this.raf || this.opts.manualClock) return;
     this.last = performance.now();
     this.raf = requestAnimationFrame(this.loop);
   }
@@ -886,6 +915,7 @@ export class DiceStage {
   dispose(): void {
     this.disposed = true;
     cancelAnimationFrame(this.raf);
+    this.canvas.removeEventListener("webglcontextlost", this.onContextLost, false);
     this.clear();
     for (const t of this.textures.values()) {
       t.map.dispose();
@@ -901,13 +931,24 @@ export class DiceStage {
   }
 }
 
-/** True when WebGL is usable; the overlay falls back to flat dice otherwise. */
+let webglProbe: boolean | null = null;
+
+/**
+ * True when WebGL is usable; the overlay falls back to flat dice otherwise.
+ * Probed once per page, and the probe's context is released straight away:
+ * browsers cap live contexts (iOS at a handful) and an abandoned probe would
+ * count against the stage's own.
+ */
 export function webglAvailable(): boolean {
+  if (webglProbe !== null) return webglProbe;
   try {
     const c = document.createElement("canvas");
-    return !!(c.getContext("webgl2") || c.getContext("webgl"));
+    const gl = (c.getContext("webgl2") || c.getContext("webgl")) as WebGLRenderingContext | null;
+    webglProbe = Boolean(gl) && !gl!.isContextLost();
+    gl?.getExtension("WEBGL_lose_context")?.loseContext();
   } catch {
-    return false;
+    webglProbe = false;
   }
+  return webglProbe;
 }
 

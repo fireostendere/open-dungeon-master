@@ -5,6 +5,7 @@ import type { DicePaletteId } from "@/lib/fx/dice/atlas";
 import type { DieOutcome, DiceStage, ThrowSide } from "@/lib/fx/dice/stage";
 import type { DieKind } from "@/lib/fx/dice/geometry";
 import { sfxDieClack } from "@/lib/fx/sound";
+import { useFxSettings } from "@/lib/fx/prefs";
 
 export type HeroThrow = {
   /** Changes to throw again (e.g. "drop more dice"). */
@@ -31,6 +32,7 @@ export function HeroDie({
 }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const stageRef = useRef<DiceStage | null>(null);
+  const { lite } = useFxSettings();
   const specRef = useRef(throwSpec);
   const landedRef = useRef(onLanded);
   useEffect(() => {
@@ -70,6 +72,7 @@ export function HeroDie({
       if (cancelled || !canvasRef.current || !mod.webglAvailable()) return;
       const stage = await mod.DiceStage.create(canvasRef.current, {
         reducedMotion,
+        lite,
         minExtent: { hx: 1.25, hz: 0.9 },
         onImpact: (s) => sfxDieClack(s),
       });
@@ -89,7 +92,7 @@ export function HeroDie({
       stageRef.current?.dispose();
       stageRef.current = null;
     };
-  }, [reducedMotion]);
+  }, [reducedMotion, lite]);
 
   useEffect(() => {
     if (throwSpec.key > 0) throwRef.current();
