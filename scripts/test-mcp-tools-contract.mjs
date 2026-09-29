@@ -69,6 +69,20 @@ function runSubprocess(code, { preload = true, env = {} } = {}) {
       console.error("odm_assets is not registered!");
       process.exit(3);
     }
+    for (const operation of ["get_image", "set_image", "delete_image"]) {
+      const parsed = assetsTool.config.inputSchema.safeParse({
+        operation, target: { type: "library_character", id: "11111111-1111-4111-8111-111111111111" },
+        data_base64: "cG5n", mime_type: "image/png", expected_url: null, include_data: true, confirm: true,
+      });
+      if (!parsed.success || parsed.data.target.type !== "library_character" || parsed.data.expected_url !== null || parsed.data.data_base64 !== "cG5n") {
+        throw new Error("Direct target image contract is missing: " + operation);
+      }
+    }
+    const transfer = server._registeredTools.odm_characters.config.inputSchema.safeParse({
+      operation: "transfer", characterId: "11111111-1111-4111-8111-111111111111", ownerUsername: "admin",
+      expectedOwnerUserId: "22222222-2222-4222-8222-222222222222", confirm: true,
+    });
+    if (!transfer.success || !transfer.data.expectedOwnerUserId) throw new Error("Original ownership transfer is missing");
 
     // Verify operations schema on odm_progress
     const progressTool = server._registeredTools["odm_progress"];

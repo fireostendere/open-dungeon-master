@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { ASSET_MIME_TYPES } from "@/lib/assets/image";
+import { deleteTargetImage, expectedImageUrlSchema, getTargetImage, imageTargetSchema, setTargetImage } from "@/lib/assets/target-images";
 import { planCampaignAssets } from "@/lib/assets/planner";
 import { getCampaignById } from "@/lib/db/campaigns";
 import {
@@ -87,6 +88,9 @@ export const MCP_EXTENDED_ACTIONS = [
   "assets.delete_pack",
   "assets.create_download",
   "assets.health",
+  "images.get",
+  "images.set",
+  "images.delete",
   "characters.sync_progress",
   "campaigns.sync_party_progress",
   "campaigns.finish_and_sync_party",
@@ -157,7 +161,7 @@ function wrapDomainError(error: unknown): never {
   const message = error instanceof Error ? error.message : "MCP extended control action failed.";
   if (/not found|unavailable/i.test(message)) throw new McpExtendedControlError(message, 404);
   if (/too large|size limit/i.test(message)) throw new McpExtendedControlError(message, 413);
-  if (/claimed|claimable|expired|already|conflict|cannot|refusing|linked|requires confirm|must be|does not belong/i.test(message)) {
+  if (/claimed|claimable|expired|already|conflict|changed|cannot|refusing|linked|requires confirm|must be|does not belong/i.test(message)) {
     throw new McpExtendedControlError(message, 409);
   }
   if (/invalid|unsupported|required|provide|missing/i.test(message)) throw new McpExtendedControlError(message, 400);
@@ -170,6 +174,19 @@ export async function executeMcpExtendedControl(
 ): Promise<{ handled: false } | { handled: true; result: unknown }> {
   try {
     switch (action) {
+      case "images.get": {
+        const p = parse(z.object({ target: imageTargetSchema, includeData: z.boolean().optional() }).strict(), rawParams);
+        return { handled: true, result: await getTargetImage(p.target, p.includeData) };
+      }
+      case "images.set": {
+        const p = parse(z.object({ target: imageTargetSchema, dataBase64: z.string(), mimeType: assetMime,
+          name: z.string().trim().min(1).max(120).optional(), expectedUrl: expectedImageUrlSchema }).strict(), rawParams);
+        return { handled: true, result: await setTargetImage(p) };
+      }
+      case "images.delete": {
+        const p = parse(z.object({ target: imageTargetSchema, confirm: z.literal(true), expectedUrl: expectedImageUrlSchema }).strict(), rawParams);
+        return { handled: true, result: deleteTargetImage(p.target, p.expectedUrl) };
+      }
       case "assets.plan_campaign": {
         const p = parse(z.object({ campaignId: id }).strict(), rawParams);
         campaignOr404(p.campaignId);
@@ -497,6 +514,14 @@ export function extendControlResult(action: string, result: unknown) {
         finishCampaign: "campaigns.finish_and_sync_party",
         durableOnly: true,
         optimisticRevision: true,
+      },
+      targetImages: {
+        operations: ["images.get", "images.set", "images.delete"],
+        targets: ["library_character", "sheet", "npc", "campaign"],
+        supportedMimeTypes: [...ASSET_MIME_TYPES],
+        maxFileBytes: 8 * 1024 * 1024,
+        encoding: "base64",
+        sharedFileProtection: true,
       },
     };
   }

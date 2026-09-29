@@ -1,5 +1,3 @@
-import fs from "node:fs";
-import path from "node:path";
 import { getGlobalConfig } from "@/lib/db/app-settings";
 import { deleteCampaign } from "@/lib/db/campaigns";
 import { getDatabase, parseJson } from "@/lib/db/core";
@@ -11,6 +9,7 @@ import {
   markDeletionRequested,
 } from "@/lib/db/users";
 import { isUploadedImagePath } from "@/lib/uploads";
+import { deleteUploadedImageIfUnreferenced } from "@/lib/uploads-store";
 
 // Self-service account deletion, in two steps. The request stamps a due
 // date on the user row and signs them out everywhere; the purge (run by the
@@ -91,7 +90,7 @@ function uploadsOwnedBy(userId: string): string[] {
       .prepare(`SELECT avatar_json AS json FROM users WHERE id = ?`)
       .all(userId) as Array<{ json: string | null }>),
     ...(db
-      .prepare(`SELECT portrait_json AS json FROM library_characters WHERE user_id = ?`)
+      .prepare(`SELECT json_extract(sheet_json, '$.portrait') AS json FROM library_characters WHERE user_id = ?`)
       .all(userId) as Array<{ json: string | null }>),
     ...(db
       .prepare(`SELECT portrait_json AS json FROM character_sheets WHERE user_id = ?`)
@@ -105,54 +104,6 @@ function uploadsOwnedBy(userId: string): string[] {
     }
   }
   return [...urls];
-}
-
-// Text columns that can carry an image path. Portraits are shared by
-// reference when a character or NPC is copied between campaigns, so a file
-// is only removed once no row anywhere points at it.
-function imageBearingColumns(): Array<[table: string, column: string]> {
-  const db = getDatabase();
-  const tables = db
-    .prepare(`SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'`)
-    .all() as Array<{ name: string }>;
-  const columns: Array<[string, string]> = [];
-  for (const { name: table } of tables) {
-    const info = db.prepare(`PRAGMA table_info("${table}")`).all() as Array<{
-      name: string;
-      type: string;
-    }>;
-    for (const column of info) {
-      if (/^TEXT/i.test(column.type) && /_(json|path|url)$/.test(column.name)) {
-        columns.push([table, column.name]);
-      }
-    }
-  }
-  return columns;
-}
-
-function uploadStillReferenced(url: string, columns: Array<[string, string]>): boolean {
-  const db = getDatabase();
-  for (const [table, column] of columns) {
-    const hit = db
-      .prepare(`SELECT 1 FROM "${table}" WHERE "${column}" LIKE ? LIMIT 1`)
-      .get(`%${url}%`);
-    if (hit) {
-      return true;
-    }
-  }
-  return false;
-}
-
-function removeUploadFile(url: string) {
-  // isUploadedImagePath already pinned the shape to /uploads/<uuid>.<ext>,
-  // so the filename cannot climb out of the uploads directory.
-  const filename = url.slice("/uploads/".length);
-  const file = path.join(process.cwd(), "public", "uploads", filename);
-  try {
-    fs.rmSync(file, { force: true });
-  } catch (error) {
-    console.error(`[account-deletion] could not remove ${url}`, error);
-  }
 }
 
 // Erases the account now, whatever its due date says. Also what the admin
@@ -213,12 +164,5 @@ export function purgeAccount(userId: string) {
     db.prepare(`DELETE FROM users WHERE id = ?`).run(userId);
   })();
 
-  if (uploads.length > 0) {
-    const columns = imageBearingColumns();
-    for (const url of uploads) {
-      if (!uploadStillReferenced(url, columns)) {
-        removeUploadFile(url);
-      }
-    }
-  }
+  for (const url of uploads) deleteUploadedImageIfUnreferenced(url);
 }

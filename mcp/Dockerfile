@@ -10,7 +10,7 @@ COPY mcp/package.json mcp/package-lock.json ./
 RUN npm ci --omit=dev --ignore-scripts --no-audit --no-fund \
     && npm cache clean --force
 
-COPY mcp/server.mjs mcp/control-client.mjs mcp/transport.mjs mcp/http-boundary.mjs mcp/events-proxy.mjs mcp/dm-policy.mjs mcp/narrator-schema.mjs mcp/latency-trace.mjs ./
+COPY mcp/server.mjs mcp/control-client.mjs mcp/transport.mjs mcp/http-boundary.mjs mcp/events-proxy.mjs mcp/dm-policy.mjs mcp/narrator-schema.mjs mcp/latency-trace.mjs mcp/tool-result.mjs ./
 COPY mcp/external-tools-preload.mjs ./external-tools-preload.mjs
 
 RUN chown -R node:node /app

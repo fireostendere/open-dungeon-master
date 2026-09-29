@@ -12,6 +12,7 @@ import * as url from 'node:url';
 import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
 import * as narratorSchema from '../mcp/narrator-schema.mjs';
+import * as toolResult from '../mcp/tool-result.mjs';
 const require=createRequire(import.meta.url);
 const {z}=require('zod');
 if(z.__mergeTestAdapter)console.log('SCHEMA DEPENDENCY: local adapter; SDK registry is an explicit test double.');
@@ -36,6 +37,7 @@ async function fixture(){
     './http-boundary.mjs':{createSafeHttpListener:()=>{throw Error('listener must not start on import');}},
     './events-proxy.mjs':{createEventsProxy:()=>{throw Error('events proxy must not start on import');}},
     './narrator-schema.mjs':narratorSchema,
+    './tool-result.mjs':toolResult,
   };
   const sourceModule=new vm.SourceTextModule(fs.readFileSync(source,'utf8'),{context,identifier:source,initializeImportMeta(meta){meta.url=new URL('../mcp/server.mjs',import.meta.url).href;}});
   await sourceModule.link(async name=>{const exports=mocked[name];if(!exports)throw Error('Unexpected module: '+name);return new vm.SyntheticModule(Object.keys(exports),function(){for(const [key,value]of Object.entries(exports))this.setExport(key,value);},{context});});

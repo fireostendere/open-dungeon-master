@@ -11,6 +11,8 @@ import { callControl, withMcpCancellation, withMcpCredential } from "./control-c
 import { createEventsProxy } from "./events-proxy.mjs";
 import { createSafeHttpListener } from "./http-boundary.mjs";
 import { narratorInputSchema } from "./narrator-schema.mjs";
+import { formatToolResult } from "./tool-result.mjs";
+export { formatToolResult } from "./tool-result.mjs";
 
 const VERSION = "0.1.0";
 const TOKEN = process.env.ODM_MCP_TOKEN?.trim() || "";
@@ -51,17 +53,6 @@ function allowedOrigin(origin) {
   } catch {
     return false;
   }
-}
-
-export function formatToolResult(value, options = {}) {
-  const pretty = /^(1|true)$/i.test(process.env.ODM_MCP_PRETTY?.trim() || "");
-  const compact = options.compact ?? !pretty;
-  const text = compact ? JSON.stringify(value) : JSON.stringify(value, null, 2);
-  const response = { content: [{ type: "text", text }] };
-  const structured = options.structured ?? /^(1|true)$/i.test(process.env.ODM_MCP_STRUCTURED_RESULTS?.trim() || "");
-  if (structured) response.structuredContent =
-    value && typeof value === "object" && !Array.isArray(value) ? value : { result: value };
-  return response;
 }
 
 function failure(error) {
@@ -475,7 +466,7 @@ questions, private whispers, DM outlines or other DM secrets to the table.
     "odm_users",
     {
       title: "ODM users",
-      description: "List users and their UUIDs. Use this before creating a campaign for a particular player when more than one admin exists.",
+      description: "List users and their UUIDs when the intended owner is unknown. Campaign/character operations accept ownerUsername directly; a known owner does not require this lookup.",
       inputSchema: z.object({}),
     },
     async () => run("users.list", {}),
@@ -486,7 +477,7 @@ questions, private whispers, DM outlines or other DM secrets to the table.
     {
       title: "ODM campaigns",
       description:
-        "Create, inspect and administer campaigns/workshops. Operations: list, get, create, update, delete, set_status, regenerate_invite, assign_dm_seat. set_status ended takes outcome victory|defeat (+ optional epilogue) and closes the campaign cleanly from any state. gameSettings.combatMode is classical (default) or jrpg. Delete requires confirm=true.",
+        "Create, inspect and administer campaigns/workshops. Create needs a title and known owner (username/ID); other inputs have server defaults, and its result already includes the persisted campaign and owner. Operations: list, get, create, update, delete, set_status, regenerate_invite, assign_dm_seat. set_status ended takes outcome victory|defeat (+ optional epilogue) and closes the campaign cleanly from any state. gameSettings.combatMode is classical (default) or jrpg. Delete requires confirm=true.",
       inputSchema: z.object({
         operation: z.enum(["list", "get", "create", "update", "delete", "set_status", "regenerate_invite", "assign_dm_seat"]),
         campaignId: z.string().uuid().optional(),
@@ -648,11 +639,12 @@ questions, private whispers, DM outlines or other DM secrets to the table.
     {
       title: "ODM character library",
       description:
-        "Manage library characters and instantiate them into a campaign. Creating/updating requires a complete ODM create-sheet object. Delete requires confirm=true.",
+        "Manage library characters and instantiate them into a campaign. Create/update return the persisted full character; inspect that result without a redundant get. transfer moves the original to ownerUserId/ownerUsername while preserving ID/sheet; requires expectedOwnerUserId and confirm=true, and rejects linked campaign/workshop characters. Creating/updating requires an ODM create-sheet object. Delete requires confirm=true.",
       inputSchema: z.object({
-        operation: z.enum(["list", "get", "create", "update", "delete", "instantiate"]),
+        operation: z.enum(["list", "get", "create", "update", "delete", "instantiate", "transfer"]),
         ...ownerRefFields,
         characterId: z.string().uuid().optional(),
+        expectedOwnerUserId: z.string().uuid().optional(),
         campaignId: z.string().uuid().optional(),
         level: z.number().int().min(1).max(20).optional(),
         targetLevel: z.number().int().min(1).max(20).optional(),
@@ -684,6 +676,8 @@ questions, private whispers, DM outlines or other DM secrets to the table.
           });
         case "delete":
           return run("characters.delete", { characterId: args.characterId, confirm: args.confirm });
+        case "transfer":
+          return run("characters.transfer", { characterId: args.characterId, owner: ownerRef(args), expectedOwnerUserId: args.expectedOwnerUserId, confirm: args.confirm });
         case "instantiate":
           return run("characters.instantiate", {
             characterId: args.characterId,

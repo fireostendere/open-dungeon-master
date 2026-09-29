@@ -37,10 +37,10 @@ redirect refusal and streaming/cancellation. It does not substitute admin rights
 | `odm_campaign_settings` | rules, story/image settings and DM mode |
 | `odm_story` | scene, quests, outline, arc, events, notices |
 | `odm_members` | roster, join an existing user, party lead |
-| `odm_characters` | library characters and campaign instantiation |
+| `odm_characters` | library characters, original ownership transfer, campaign instantiation |
 | `odm_sheets` | live campaign sheets |
 | `odm_narrator` | connect/read/snapshot/catalog/invoke/narrate/edit_message/delete_message/autopilot_action/finish_global_round/set_floor/request_response/release_floor/answer_ask/end_campaign |
-| `odm_assets` | packs, jobs, leases, scoped upload/download, asset links |
+| `odm_assets` | direct target images, packs, jobs, leases, scoped upload/download, asset links |
 | `odm_progress` | revision-checked progress, party sync, finish receipts |
 
 `odm_campaigns.create.gameSettings` and `odm_campaign_settings` game patches
@@ -53,6 +53,57 @@ separate rooms or encounters and does not grant positional Sneak Attack, Pack
 Tactics, or flanking. It is not a difficulty relaxation. Only an authenticated
 operator or an authorized UI story seat changes this setting; player story, Ask,
 and whispers never authorize it.
+
+### Direct target images
+
+For an existing image, `odm_assets` offers `get_image`, `set_image` and
+`delete_image` without creating a campaign pack/job/lease. This is operator-only,
+not a scoped narrator operation. Targets are explicit:
+
+- `library_character`: `sheet.portrait`, mirrored to linked campaign sheets.
+- `sheet`: that campaign sheet's portrait only.
+- `npc`: that NPC's portrait.
+- `campaign`: that campaign/workshop's cover.
+
+```json
+{"operation":"set_image","target":{"type":"library_character","id":"<uuid>"},"data_base64":"<file bytes encoded as base64>","mime_type":"image/png","name":"portrait.png","expected_url":null}
+```
+
+Read/encode the file on the authorized client's machine; the sidecar has no host
+filesystem access. Only canonical base64 PNG/JPEG/WebP up to 8 MiB is accepted.
+The application inspects signatures, dimensions and integrity before storing;
+declared MIME must match. No local paths, remote URLs or user-supplied filenames
+become storage paths. Set returns the persisted attachment plus size/hash/dimensions.
+
+```json
+{"operation":"get_image","target":{"type":"library_character","id":"<uuid>"},"include_data":true}
+```
+
+`get_image` defaults to metadata; `include_data` adds `dataBase64` for reading the
+bytes. `available:false` distinguishes empty/missing files. Replacement/deletion
+can use `expected_url` from the previous read; `null` expects an empty field.
+On a conflict, reread rather than retrying blindly. `delete_image` requires
+`confirm:true` and clears the target field. Cleanup removes only unreferenced
+uploads: shared records, persisted events and snapshots retain their files.
+
+### Fast creation and original transfer
+
+Create/update responses already contain persisted objects, so a successful full
+response can be verified directly without a redundant `get`. Resolve capabilities
+and owner once per batch. Known `ownerUsername` does not require `odm_users`.
+Campaign creation needs only title/owner; optional defaults are level 1, normal
+difficulty, 5 players, empty description/theme, metric units and classical combat.
+Offer the unit/combat choices and reuse decisions already confirmed by the operator.
+An ambiguous create must be resolved by reading the owner's library/list first.
+
+`odm_characters.transfer` moves the original library record without recreating its
+ID, XP or sheet. It requires `confirm:true`, the inspected `expectedOwnerUserId`
+and an explicit destination `ownerUsername`/`ownerUserId`. Linked campaign sheets
+or workshop pregens block transfer; their membership and progress are separate.
+
+```json
+{"operation":"transfer","characterId":"<uuid>","ownerUsername":"odm_admin","expectedOwnerUserId":"<source-owner-uuid>","confirm":true}
+```
 
 For a player-owned human-mode campaign, add the technical DM account as a member,
 then use `odm_campaigns.assign_dm_seat` with `seat:"dm"` and that member's

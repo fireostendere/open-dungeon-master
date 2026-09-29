@@ -2,22 +2,18 @@ import { McpServer } from "@modelcontextprotocol/server";
 import * as z from "zod/v4";
 import { callControl, withMcpCancellation } from "./control-client.mjs";
 import { registerDmPolicy } from "./dm-policy.mjs";
+import { formatToolResult } from "./tool-result.mjs";
 
 const PATCHED = Symbol.for("odm.external-tools-preload.patched");
 const REGISTERED = Symbol.for("odm.external-tools-preload.registered");
 const NARRATOR_ONLY = /^(1|true)$/i.test(process.env.ODM_MCP_NARRATOR_ONLY?.trim() || "");
-function success(value) {
-  const structuredContent = value && typeof value === "object" && !Array.isArray(value) ? value : { result: value };
-  return { content: [{ type: "text", text: JSON.stringify(value, null, 2) }], structuredContent };
-}
-
 function failure(error) {
   return { content: [{ type: "text", text: error instanceof Error ? error.message : String(error) }], isError: true };
 }
 
 async function run(action, params) {
   try {
-    return success(await callControl(action, params));
+    return formatToolResult(await callControl(action, params));
   } catch (error) {
     return failure(error);
   }
@@ -70,9 +66,12 @@ function registerExternalTools(server, originalRegisterTool) {
     {
       title: "ODM external asset pipeline",
       description:
-        "Provider-neutral art packs/jobs for external image agents. Plan a campaign backlog, claim work with a lease, request scoped binary upload/download grants, submit variants and attach ready assets to game entities.",
+        "Upload/read/replace/delete target images directly via get_image/set_image/delete_image (no campaign job required), or plan provider-neutral campaign packs/jobs with leases and variants. Direct library_character writes sheet.portrait and mirrors campaign copies; sheet/npc write portraits, campaign writes cover. Send file bytes as data_base64, never a host path or remote URL. Delete requires confirm=true; expected_url guards replacements. get_image returns metadata, include_data opts into base64 bytes.",
       inputSchema: z.object({
         operation: z.enum([
+          "get_image",
+          "set_image",
+          "delete_image",
           "plan_campaign",
           "create_pack",
           "get_pack",
@@ -95,6 +94,12 @@ function registerExternalTools(server, originalRegisterTool) {
           "health",
         ]),
         campaign_id: z.string().min(1).max(128).optional(),
+        target: z.object({ type: z.enum(["library_character", "sheet", "npc", "campaign"]), id: z.string().uuid() }).strict().optional(),
+        data_base64: z.string().max(4 * Math.ceil(8 * 1024 * 1024 / 3)).optional(),
+        mime_type: z.enum(["image/png", "image/jpeg", "image/webp"]).optional(),
+        name: z.string().trim().min(1).max(120).optional(),
+        expected_url: z.string().max(300).startsWith("/uploads/").nullable().optional(),
+        include_data: z.boolean().optional(),
         pack_id: z.string().min(1).max(128).optional(),
         job_id: z.string().min(1).max(128).optional(),
         asset_id: z.string().min(1).max(128).optional(),
@@ -129,6 +134,12 @@ function registerExternalTools(server, originalRegisterTool) {
     },
     async (args) => {
       switch (args.operation) {
+        case "get_image":
+          return run("images.get", { target: args.target, includeData: args.include_data });
+        case "set_image":
+          return run("images.set", { target: args.target, dataBase64: args.data_base64, mimeType: args.mime_type, name: args.name, expectedUrl: args.expected_url });
+        case "delete_image":
+          return run("images.delete", { target: args.target, confirm: args.confirm, expectedUrl: args.expected_url });
         case "plan_campaign":
           return run("assets.plan_campaign", { campaignId: args.campaign_id });
         case "create_pack":

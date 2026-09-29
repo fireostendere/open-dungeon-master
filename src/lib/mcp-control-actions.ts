@@ -179,6 +179,7 @@ export const MCP_CONTROL_ACTIONS = [
   "characters.list",
   "characters.get",
   "characters.create",
+  "characters.transfer",
   "characters.update",
   "characters.delete",
   "characters.instantiate",
@@ -560,6 +561,28 @@ export async function executeMcpControl(action: string, rawParams: unknown): Pro
       const character = updateCharacter(existing.userId, existing.id, params.level, params.sheet);
       if (!character) throw new McpControlError("Character update failed.", 500);
       return { character };
+    }
+
+    case "characters.transfer": {
+      const params = parse(z.object({
+        characterId: z.string().uuid(), owner: userRefSchema,
+        expectedOwnerUserId: z.string().uuid(), confirm: z.literal(true),
+      }).strict(), rawParams);
+      const owner = userOr404(params.owner);
+      return getDatabase().transaction(() => {
+        const character = getCharacter(params.characterId);
+        if (!character) throw new McpControlError("Character not found.", 404);
+        if (character.userId === owner.id) return { character, transferred: false };
+        if (character.userId !== params.expectedOwnerUserId) throw new McpControlError("Character owner changed; read it again.", 409);
+        // Existing campaign copies/progress and workshop pregens still belong
+        // to the source owner. A library transfer cannot silently move those.
+        if (character.workshopId || getDatabase().prepare("SELECT 1 FROM character_sheets WHERE library_character_id = ? LIMIT 1").get(character.id)) {
+          throw new McpControlError("Cannot transfer a character linked to a campaign or workshop.", 409);
+        }
+        getDatabase().prepare("UPDATE library_characters SET user_id = ?, updated_at = ? WHERE id = ?")
+          .run(owner.id, new Date().toISOString(), character.id);
+        return { character: getCharacter(character.id), transferred: true, previousOwnerUserId: character.userId };
+      })();
     }
 
     case "characters.delete": {

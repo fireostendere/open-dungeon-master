@@ -4,8 +4,10 @@
 // backdrop; this module is Node-only and is what /api/upload and the
 // character export/import routes call.
 import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { rmSync } from "node:fs";
 import path from "node:path";
 import { isUploadedImagePath } from "@/lib/uploads";
+import { getDatabase } from "@/lib/db/core";
 
 // The one size cap for anything that lands in public/uploads, whether it
 // arrives by upload form or inside a character bundle.
@@ -61,5 +63,32 @@ export async function readUploadedImage(
     return { bytes, type: mimeForExtension(extension === "jpeg" ? "jpg" : extension) };
   } catch {
     return null;
+  }
+}
+
+// Shared with account deletion: copies, replayable events and snapshots can
+// still need the same file after the visible portrait has been cleared.
+export function deleteUploadedImageIfUnreferenced(url: unknown): boolean {
+  if (!isUploadedImagePath(url)) return false;
+  const db = getDatabase();
+  const quote = (name: string) => `"${name.replaceAll('"', '""')}"`;
+  const tables = db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'")
+    .all() as Array<{ name: string }>;
+  // ponytail: scan image-bearing text columns; index references if cleanup becomes frequent.
+  for (const { name } of tables) {
+    const columns = db.prepare(`PRAGMA table_info(${quote(name)})`).all() as Array<{ name: string; type: string }>;
+    for (const column of columns) {
+      if (/^TEXT/i.test(column.type) && /_(json|path|url)$/.test(column.name) &&
+        db.prepare(`SELECT 1 FROM ${quote(name)} WHERE instr(${quote(column.name)}, ?) > 0 LIMIT 1`).get(url)) {
+        return false;
+      }
+    }
+  }
+  try {
+    rmSync(path.join(uploadsDir(), url.slice("/uploads/".length)), { force: true });
+    return true;
+  } catch (error) {
+    console.error(`[uploads] could not remove ${url}`, error);
+    return false;
   }
 }
