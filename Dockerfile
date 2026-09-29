@@ -41,7 +41,8 @@ COPY . .
 RUN node scripts/copy-dice-assets.mjs
 
 ENV NEXT_TELEMETRY_DISABLED=1
-RUN DOCKER_BUILD=1 npm run build
+# The type check alone outgrows Node's default heap on the 2 GB host; swap covers the rest.
+RUN NODE_OPTIONS=--max-old-space-size=3072 DOCKER_BUILD=1 npm run build
 
 # Trim the standalone bundle here, not in the runner stage: deleting a file in a
 # later layer does not reclaim the bytes the earlier COPY already wrote.
