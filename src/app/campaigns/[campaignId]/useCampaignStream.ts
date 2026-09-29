@@ -314,19 +314,63 @@ function upsertBy<T>(list: T[], item: T, key: (entry: T) => string): T[] {
   return next;
 }
 
+// The dice overlay plays whatever becomes latestRoll. A roll_result event can
+// lose the race to a snapshot (the 5 s reconciliation, or the SSE link down
+// and replaying after a reconnect); the seq guard then drops the event and
+// the roll would never be seen. Both paths below still announce such a roll.
+// The first snapshot of a campaign is a baseline and announces nothing.
+function snapshotLatestRoll(
+  state: CampaignState,
+  payload: Partial<CampaignState> & { lastSeq: number },
+  reset: boolean | undefined,
+): CampaignState["latestRoll"] {
+  if (reset || !payload.rolls?.length || !state.campaign || state.campaign.id !== payload.campaign?.id) return state.latestRoll;
+  const time = (roll: StoredRoll) => Date.parse(roll.createdAt) || 0;
+  const known = new Set(state.rolls.map((roll) => roll.id));
+  let newest = 0;
+  for (const roll of state.rolls) newest = Math.max(newest, time(roll));
+  if (state.latestRoll) {
+    known.add(state.latestRoll.roll.id);
+    newest = Math.max(newest, time(state.latestRoll.roll));
+  }
+  let pick: StoredRoll | null = null;
+  for (const roll of payload.rolls) {
+    if (known.has(roll.id) || time(roll) <= newest) continue;
+    if (!pick || time(roll) > time(pick)) pick = roll;
+  }
+  if (!pick) return state.latestRoll;
+  return { roll: pick, source: "digital", seq: Math.max(pick.eventSeq ?? 0, payload.lastSeq, state.latestRoll?.seq ?? 0) };
+}
+
+function replayedRoll(state: CampaignState, seq: number, payload: Record<string, unknown>): CampaignState {
+  const roll = payload.roll as StoredRoll | undefined;
+  if (!roll?.id || seq <= (state.latestRoll?.seq ?? 0) || state.latestRoll?.roll.id === roll.id) return state;
+  const displayRoll = { ...roll, eventSeq: seq };
+  return {
+    ...state,
+    rolls: upsertBy(state.rolls, displayRoll, (entry) => entry.id).slice(-30),
+    latestRoll: { roll: displayRoll, source: String(payload.source ?? "digital"), seq },
+    pendingRolls: payload.pendingRollId
+      ? state.pendingRolls.filter((pending) => pending.id !== payload.pendingRollId)
+      : state.pendingRolls,
+  };
+}
+
 export function campaignStreamReducer(state: CampaignState, action: Action): CampaignState {
   switch (action.type) {
-    case "snapshot":
+    case "snapshot": {
       if (!action.reset && action.payload.lastSeq < state.lastSeq) return state;
+      const latestRoll = snapshotLatestRoll(state, action.payload, action.reset);
       if (!action.reset && state.campaign?.id === action.payload.campaign?.id && action.payload.messages) {
         const merged = new Map(state.messages.map(message => [message.id, message]));
         for (const message of action.payload.messages) merged.set(message.id, message);
-        return { ...state, ...action.payload, oocMessages: state.oocMessages, messages: [...merged.values()].sort((a, b) => a.seq - b.seq),
+        return { ...state, ...action.payload, latestRoll, oocMessages: state.oocMessages, messages: [...merged.values()].sort((a, b) => a.seq - b.seq),
           hasOlderMessages: state.hasOlderMessages, loading: false, error: "" };
       }
-      return { ...state, ...action.payload,
+      return { ...state, ...action.payload, latestRoll,
         oocMessages: action.reset || state.campaign?.id !== action.payload.campaign?.id ? [] : state.oocMessages,
         loading: false, error: "" };
+    }
     case "olderMessages": {
       const existing = new Set(state.messages.map(message => message.id));
       return {
@@ -362,7 +406,8 @@ export function campaignStreamReducer(state: CampaignState, action: Action): Cam
       // Persisted events are idempotent by seq; ephemeral ones (seq null)
       // always apply.
       if (action.seq !== null && action.seq <= state.lastSeq) {
-        return state;
+        // Covered by a snapshot already; only a roll nobody announced is news.
+        return action.eventType === "roll_result" ? replayedRoll(state, action.seq, action.payload) : state;
       }
       const next = action.seq !== null ? { ...state, lastSeq: action.seq } : { ...state };
       const payload = action.payload;
