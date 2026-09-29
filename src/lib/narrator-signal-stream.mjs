@@ -4,10 +4,14 @@
 // sheets, whisper/ask content and player prose never reach this wire; the
 // narrator reads real state through narrator.read after it wakes.
 
-/** Live frames that carry no story activity for the narrator. */
+/**
+ * Live frames that carry no story activity for the narrator. narrator_presence
+ * is the doorbell's own connect/disconnect: ringing on it would wake the
+ * narrator for its own reconnect.
+ */
 export const NARRATOR_SIGNAL_NOISE = Object.freeze([
   'presence', 'voice_roster', 'voice_speaking', 'voice_audibility_changed', 'voice_mesh_signal',
-  'map_ping', 'ambience_changed', 'ambience_sting',
+  'map_ping', 'ambience_changed', 'ambience_sting', 'narrator_presence',
 ]);
 const NOISE = new Set(NARRATOR_SIGNAL_NOISE);
 const MESSAGE_TYPES = new Set(['message_added', 'message_updated']);

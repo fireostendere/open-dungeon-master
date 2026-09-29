@@ -51,7 +51,7 @@ test('other persisted events carry only type and seq', () => {
 });
 
 test('noise frames are dropped in both live and replay form', () => {
-  assert.deepEqual([...NARRATOR_SIGNAL_NOISE].sort(), ['ambience_changed', 'ambience_sting', 'map_ping', 'presence', 'voice_audibility_changed', 'voice_mesh_signal', 'voice_roster', 'voice_speaking']);
+  assert.deepEqual([...NARRATOR_SIGNAL_NOISE].sort(), ['ambience_changed', 'ambience_sting', 'map_ping', 'narrator_presence', 'presence', 'voice_audibility_changed', 'voice_mesh_signal', 'voice_roster', 'voice_speaking']);
   for (const type of NARRATOR_SIGNAL_NOISE) {
     assert.equal(reduceNarratorLiveChunk(`event: ${type}\ndata: {"online":["A"]}\n\n`), null, type);
     assert.equal(reduceNarratorLiveChunk(`id: 5\nevent: ${type}\ndata: {}\n\n`), null, type);
@@ -97,6 +97,22 @@ test('cursor: Last-Event-ID overrides afterSeq; only non-negative safe integers'
 });
 
 // ------------------------------------------------- internal route (real modules)
+// Deterministic clock for the offline debounce: timers fire only on advance().
+function fakeClock(presence, graceMs = 5000) {
+  const clock = { now: 1_000, timers: new Map(), id: 0 };
+  clock.advance = ms => {
+    clock.now += ms;
+    for (const [id, timer] of [...clock.timers].sort((a, b) => a[1].at - b[1].at)) {
+      if (timer.at <= clock.now) { clock.timers.delete(id); timer.callback(); }
+    }
+  };
+  presence.configureNarratorPresence({
+    now: () => clock.now, graceMs,
+    setTimeout: (callback, ms) => { const id = ++clock.id; clock.timers.set(id, { callback, at: clock.now + ms }); return id; },
+    clearTimeout: id => { clock.timers.delete(id); },
+  });
+  return clock;
+}
 async function routeFixture({ spatial = false } = {}) {
   const sqlite = new DatabaseSync(':memory:');
   sqlite.exec(`CREATE TABLE campaigns(id TEXT PRIMARY KEY); INSERT INTO campaigns VALUES('${CAMPAIGN}');
@@ -122,7 +138,7 @@ async function routeFixture({ spatial = false } = {}) {
   };
   const member = userId => sqlite.prepare('SELECT role FROM members WHERE user_id=?').get(userId);
   const env = { ODM_MCP_TOKEN: OP, ODM_MCP_NARRATOR_TOKEN: NARRATOR, ODM_MCP_NARRATOR_CAMPAIGN_ID: CAMPAIGN };
-  const context = vm.createContext({ console, TextEncoder, TextDecoder, ReadableStream, Response, Request, URL, AbortController, setInterval, clearInterval });
+  const context = vm.createContext({ console, TextEncoder, TextDecoder, ReadableStream, Response, Request, URL, AbortController, setInterval, clearInterval, setTimeout, clearTimeout });
   const stubs = {
     'node:crypto': crypto,
     '@/lib/db/core': { getDatabase: () => db, nowIso: () => '2026-09-29T00:00:00Z', parseJson: (value, fallback) => { try { return JSON.parse(value); } catch { return fallback; } } },
@@ -161,8 +177,12 @@ async function routeFixture({ spatial = false } = {}) {
   const events = await evaluate('@/lib/events');
   const updates = await evaluate('@/lib/spatial/updates.mjs');
   const route = await evaluate('../src/app/api/internal/mcp/events/route.ts');
+  // Same module instance the route imported (keyed by resolved URL).
+  const presence = await evaluate('@/lib/dm/narrator-presence');
+  // Debounce timers only fire on clock.advance(), never after close().
+  const clock = fakeClock(presence);
   const readers = new Set();
-  return { sqlite, state, events, updates, route, readers,
+  return { sqlite, state, events, updates, route, presence, clock, readers,
     close: async () => { for (const reader of readers) await reader.cancel().catch(() => {}); sqlite.close(); } };
 }
 
@@ -317,11 +337,83 @@ test('route: in spatial campaigns the narrator still hears table ephemerals via 
   } finally { await f.close(); }
 });
 
+const presenceFrames = chunks => chunks.filter(chunk => chunk.includes('event: narrator_presence\n')).map(data);
+
+test('route: open doorbells are narrator presence; offline is debounced and a quick reconnect is silent', async () => {
+  const f = await routeFixture(); const { events, presence, clock } = f;
+  const playerFrames = [];
+  const releasePlayer = events.subscribe(CAMPAIGN, chunk => playerFrames.push(chunk), 'A');
+  try {
+    assert.deepEqual({ ...presence.getNarratorPresence(CAMPAIGN) }, { online: false, since: null });
+    const first = await get(f);
+    assert.deepEqual({ ...presence.getNarratorPresence(CAMPAIGN) }, { online: true, since: 1000 });
+    assert.deepEqual(presenceFrames(playerFrames), [{ online: true, since: 1000 }], 'players hear 0 -> 1');
+
+    clock.now = 2000;
+    const second = await get(f, { token: OP });
+    await first.body.cancel();
+    assert.equal(presenceFrames(playerFrames).length, 1, 'a second stream and closing one of two publish nothing');
+    assert.equal(clock.timers.size, 0);
+
+    clock.now = 3000;
+    await second.body.cancel();
+    assert.equal(clock.timers.size, 1, 'last close arms the offline debounce');
+    assert.deepEqual({ ...presence.getNarratorPresence(CAMPAIGN) }, { online: true, since: 1000 }, 'still online inside the grace window');
+    clock.advance(4000);
+    const third = await get(f);
+    assert.equal(clock.timers.size, 0, 'a reconnect inside the window cancels it');
+    clock.advance(10_000);
+    assert.equal(presenceFrames(playerFrames).length, 1, 'no events for the flap');
+    assert.deepEqual({ ...presence.getNarratorPresence(CAMPAIGN) }, { online: true, since: 1000 });
+
+    clock.now = 20_000;
+    await third.body.cancel();
+    clock.advance(4999);
+    assert.equal(presenceFrames(playerFrames).length, 1);
+    clock.advance(1);
+    assert.deepEqual(presenceFrames(playerFrames), [{ online: true, since: 1000 }, { online: false, since: 20_000 }],
+      '1 -> 0 after the grace; since is when the last stream closed');
+    assert.deepEqual({ ...presence.getNarratorPresence(CAMPAIGN) }, { online: false, since: 20_000 });
+
+    // Every close path of one stream releases once: cancel then abort of the
+    // same request cannot drive the count negative or hide a live stream.
+    clock.now = 30_000;
+    const controller = new AbortController();
+    const doubled = await f.route.GET(new Request(`http://app/api/internal/mcp/events?campaignId=${CAMPAIGN}`,
+      { headers: { authorization: `Bearer ${NARRATOR}` }, signal: controller.signal }));
+    const live = await get(f);
+    await doubled.body.cancel(); controller.abort();
+    clock.advance(60_000);
+    assert.deepEqual({ ...presence.getNarratorPresence(CAMPAIGN) }, { online: true, since: 30_000 }, 'the other stream still counts');
+    await live.body.cancel();
+    clock.advance(5000);
+    assert.deepEqual({ ...presence.getNarratorPresence(CAMPAIGN) }, { online: false, since: 90_000 });
+  } finally { releasePlayer(); await f.close(); }
+});
+
+test('route: the doorbell never rings the narrator for its own presence', async () => {
+  const f = await routeFixture();
+  try {
+    const response = await get(f);
+    const reader = response.reader(), state = { text: '' };
+    await readUntil(reader, state, text => text.includes('event: relationships_updated'));
+    // Its own 0 -> 1 frame was already dropped above; so is any later transition.
+    f.events.publishEphemeral(CAMPAIGN, 'narrator_presence', { online: false, since: 1 }, { kind: 'global' });
+    f.events.publishPersisted(CAMPAIGN, 'floor_changed', { floor: {} });
+    await readUntil(reader, state, text => text.includes('event: floor_changed'));
+    assert.doesNotMatch(state.text, /narrator_presence/);
+    await reader.cancel();
+  } finally { await f.close(); }
+});
+
 test('route source: access gate runs before the stream and never subscribes as a presence user', () => {
   const source = readFileSync(new URL('../src/app/api/internal/mcp/events/route.ts', import.meta.url), 'utf8');
   assert.ok(source.indexOf('authenticateMcp(') < source.indexOf('createCampaignStream('));
   assert.ok(source.indexOf('authorizeMcpAction(principal, "narrator.read"') < source.indexOf('createCampaignStream('));
   assert.ok(source.includes('subscribeRawObserver(campaignId, send, observer)'));
+  // Presence is counted inside subscribe and released by its return value,
+  // the one cleanup every close path of createCampaignStream runs.
+  assert.match(source, /subscribe: send => \{[\s\S]*const releasePresence = acquireNarratorPresence\(campaignId\);[\s\S]*return \(\) => \{ releasePresence\(\);/);
   assert.ok(!/subscribe(Raw)?\(campaignId, send, /.test(source));
   assert.ok(source.includes('sseChunk: narratorSignalChunk') && source.includes('projectLive: reduceNarratorLiveChunk'));
   assert.ok(!source.includes('viewerUserId') && !/listEventsSince\(campaignId, cursor, limit, /.test(source));

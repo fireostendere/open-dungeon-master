@@ -41,6 +41,7 @@ import {
 } from "@/app/campaigns/[campaignId]/SessionTabs";
 import { SessionChatColumn } from "@/app/campaigns/[campaignId]/SessionChatColumn";
 import { SessionHeader } from "@/app/campaigns/[campaignId]/SessionHeader";
+import { narratorLamp } from "@/app/campaigns/[campaignId]/narratorLampState";
 import { SidePanel } from "@/app/campaigns/[campaignId]/SidePanel";
 import { useI18n } from "@/lib/i18n";
 import { useChatChime } from "@/app/campaigns/[campaignId]/useChatChime";
@@ -491,6 +492,13 @@ export function SessionView({
   }
 
   const storyDue = storyCadence.level !== "quiet";
+  const serverNarrator = campaign.gameSettings?.dmMode === "ai" || Boolean(campaign.dmCover);
+  const narrator = narratorLamp({
+    presence: state.narratorPresence,
+    dmStatus,
+    serverNarrator,
+    dmSeatOnline: !serverNarrator && Boolean(campaign.dmUserId && state.online.includes(campaign.dmUserId)),
+  });
 
   return (
     <main className="flex h-dvh flex-col">
@@ -498,6 +506,7 @@ export function SessionView({
         title={campaign.title}
         scene={campaign.scene}
         user={me}
+        narrator={narrator}
         voice={{
           campaignId: campaign.id,
           meUserId: me.id,
