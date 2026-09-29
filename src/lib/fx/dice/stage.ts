@@ -500,6 +500,8 @@ export class DiceStage {
     this.tweens = [];
     this.verdictLight.intensity = 0;
     this.runeMat.opacity = 0;
+    // The last verdict's tint (red after a fumble) must not carry over.
+    this.runeMat.color.set(0xffcf6b);
   }
 
   private sizeFor(kind: DieKind, count: number): number {

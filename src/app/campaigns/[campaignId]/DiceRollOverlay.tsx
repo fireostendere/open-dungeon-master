@@ -32,9 +32,17 @@ const COPY = {
     dm: "Dungeon Master",
     hero: "Hero",
     asks: "The DM asks",
-    dc: "DC",
-    vsAc: "Target AC",
-    acHidden: "The target's armour class is hidden. After the roll you learn whether it is at most your total (hit) or above it (miss).",
+    dcLabel: "Difficulty",
+    dcHint: "Roll {dc} or higher to succeed",
+    acLabel: "Target's armour",
+    acHidden: "Hits if the total reaches the target's armour class",
+    acKnown: "Hits on {ac} or higher",
+    acHit: "{total} got through the armour",
+    acMiss: "{total} did not get through the armour",
+    acCrit: "A natural 20 always hits",
+    acFumble: "A natural 1 always misses",
+    acTooltip: "Armour class (AC): how hard the target is to hit. Only the DM knows it; the roll shows whether your total reached it.",
+    need: "need {n}",
     armor: "target's armor",
     total: "Total",
     die: "d{n}",
@@ -70,9 +78,17 @@ const COPY = {
     dm: "Мастер",
     hero: "Герой",
     asks: "Мастер просит",
-    dc: "СЛ",
-    vsAc: "КД цели",
-    acHidden: "Класс доспеха цели скрыт. После броска станет ясно: он не выше вашего итога (попадание) или выше (промах).",
+    dcLabel: "Сложность",
+    dcHint: "Нужно выбросить {dc} или больше",
+    acLabel: "Доспех цели",
+    acHidden: "Попадание, если итог не ниже доспеха цели",
+    acKnown: "Попадание при {ac} или больше",
+    acHit: "Итог {total} пробил доспех",
+    acMiss: "Итог {total} не пробил доспех",
+    acCrit: "Натуральная 20 попадает всегда",
+    acFumble: "Натуральная 1 всегда мимо",
+    acTooltip: "Класс доспеха (КД): насколько трудно попасть по цели. Его знает только Мастер; бросок показывает, дотянул ли ваш итог.",
+    need: "нужно {n}",
     armor: "доспеха цели",
     total: "Итог",
     die: "к{n}",
@@ -102,6 +118,15 @@ const COPY = {
   },
 };
 type Copy = (typeof COPY)["en"];
+
+const ABILITY_NAMES: Record<string, string> = {
+  str: "strength",
+  dex: "dexterity",
+  con: "constitution",
+  int: "intelligence",
+  wis: "wisdom",
+  cha: "charisma",
+};
 
 const SKIN_KEY = "odm:dice-skin";
 const DISMISSED_KEY = "odm:bg3-last-dismissed-roll-seq";
@@ -322,8 +347,10 @@ export function DiceRollOverlay({
           return v === `sheet.skills.${id}` ? undefined : v;
         },
         ability: (id) => {
-          const v = t(`sheet.abilities.${id}`);
-          return v === `sheet.abilities.${id}` ? undefined : v;
+          // Full names ("Dexterity"), not the sheet's three-letter tags.
+          const full = ABILITY_NAMES[id] ?? id;
+          const v = t(`sheet.abilities.${full}`);
+          return v === `sheet.abilities.${full}` ? undefined : v;
         },
         dm: copy.dm,
         unknownHero: copy.hero,
@@ -864,6 +891,20 @@ export function DiceRollOverlay({
         : roll && verdict === "fail"
           ? `>${roll.total}`
           : "?";
+  const stakesHint =
+    context?.stakes.kind === "dc"
+      ? fmt(copy.dcHint, { dc: context.stakes.value })
+      : acKnown !== null
+        ? fmt(copy.acKnown, { ac: acKnown })
+        : roll && verdict === "crit"
+          ? copy.acCrit
+          : roll && verdict === "fumble"
+            ? copy.acFumble
+            : roll && verdict === "success"
+              ? fmt(copy.acHit, { total: roll.total })
+              : roll && verdict === "fail"
+                ? fmt(copy.acMiss, { total: roll.total })
+                : copy.acHidden;
   const verdictTone =
     verdict === "crit" || verdict === "success" || verdict === "initiative" ? "gold"
     : verdict === "fumble" || verdict === "fail" || verdict === "damage" ? "crimson"
@@ -970,7 +1011,7 @@ export function DiceRollOverlay({
           {context?.stakes.kind !== "none" ? (
             <div
               ref={medalRef}
-              title={context?.stakes.kind === "ac" && acKnown === null ? copy.acHidden : undefined}
+              title={context?.stakes.kind === "ac" ? copy.acTooltip : undefined}
               className={cn(
                 "fx-medal",
                 verdict === "success" || verdict === "crit"
@@ -1011,20 +1052,23 @@ export function DiceRollOverlay({
                 ) : null}
               </svg>
               {context?.stakes.kind === "dc" ? (
-                <>
-                  <span className="fx-medal__label">{copy.dc}</span>
-                  <span className="fx-medal__value">{dc}</span>
-                </>
+                <span className="fx-medal__value">{dc}</span>
               ) : context?.stakes.kind === "ac" ? (
-                <>
-                  <span className="fx-medal__label">{copy.vsAc}</span>
-                  <span className={cn("fx-medal__value", acText.length > 2 && "fx-medal__value--sm")}>{acText}</span>
-                </>
+                <span className={cn("fx-medal__value", acText.length > 2 && "fx-medal__value--sm")}>{acText}</span>
               ) : null}
               {verdict === "success" || verdict === "crit" ? <span className="fx-medal__shock" /> : null}
-              {phase === "prompt" ? (
-                <span className={cn("fx-medal__timer-text", timeLeft <= 30 && "fx-medal__timer-text--urgent")}>{fmt(copy.timeLeft, { n: timeLeft })}</span>
-              ) : null}
+            </div>
+          ) : null}
+
+          {context && context.stakes.kind !== "none" ? (
+            <div className="fx-stakes" title={context.stakes.kind === "ac" ? copy.acTooltip : undefined}>
+              <span className="fx-stakes__label">{context.stakes.kind === "dc" ? copy.dcLabel : copy.acLabel}</span>
+              <span className="fx-stakes__hint">
+                {stakesHint}
+                {phase === "prompt" ? (
+                  <b className={cn("fx-stakes__timer", timeLeft <= 30 && "fx-stakes__timer--urgent")}> · {fmt(copy.timeLeft, { n: timeLeft })}</b>
+                ) : null}
+              </span>
             </div>
           ) : null}
         </header>
@@ -1071,9 +1115,7 @@ export function DiceRollOverlay({
                   {shownTotal ?? "…"}
                 </span>
                 {dc !== null ? (
-                  <span className="fx-total__vs">
-                    {copy.dc} {dc}
-                  </span>
+                  <span className="fx-total__vs">{fmt(copy.need, { n: dc })}</span>
                 ) : null}
               </div>
             </>

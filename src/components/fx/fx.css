@@ -344,22 +344,12 @@
 .fx-medal__timer {
   transition: stroke-dashoffset 1s linear, stroke 400ms ease;
 }
-.fx-medal__label {
-  position: absolute;
-  top: 25px;
-  font-family: var(--fx-display);
-  font-size: 9px;
-  font-weight: 800;
-  letter-spacing: 0.24em;
-  color: rgba(244, 224, 166, 0.8);
-}
 .fx-medal__value {
   position: relative;
   font-family: var(--fx-display);
   font-weight: 900;
   font-size: 44px;
   line-height: 1;
-  margin-top: 10px;
   color: #fff3d0;
   text-shadow: 0 0 18px rgba(255, 190, 90, 0.55), 0 2px 0 rgba(60, 30, 0, 0.8);
 }
@@ -383,25 +373,42 @@
   color: #ffd0d0;
   text-shadow: 0 0 18px rgba(255, 60, 60, 0.6), 0 2px 0 rgba(60, 0, 0, 0.8);
 }
+.fx-stakes {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  margin-top: -2px;
+  text-align: center;
+  cursor: help;
+  pointer-events: auto;
+}
+.fx-stakes__label {
+  font-family: var(--fx-display);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: #f3d27a;
+}
+.fx-stakes__hint {
+  font-size: 13px;
+  color: rgba(236, 226, 255, 0.78);
+}
+.fx-stakes__timer {
+  font-weight: 700;
+  color: #f3d27a;
+}
+.fx-stakes__timer--urgent {
+  color: #ff7b7b;
+  animation: fx-pulse 1s ease-in-out infinite;
+}
 .fx-medal__shock {
   position: absolute;
   inset: 0;
   border-radius: 50%;
   border: 3px solid rgba(255, 220, 140, 0.9);
   animation: fx-shock 900ms var(--fx-ease) both;
-}
-.fx-medal__timer-text {
-  position: absolute;
-  bottom: -18px;
-  font-family: var(--fx-display);
-  font-weight: 800;
-  font-size: 12px;
-  letter-spacing: 0.1em;
-  color: #f3d27a;
-}
-.fx-medal__timer-text--urgent {
-  color: #ff7b7b;
-  animation: fx-pulse 1s ease-in-out infinite;
 }
 
 .fx-roll__foot {
@@ -1631,9 +1638,6 @@
   .fx-medal {
     width: 96px;
     height: 96px;
-  }
-  .fx-medal__label {
-    top: 20px;
   }
   .fx-medal__value {
     font-size: 36px;
