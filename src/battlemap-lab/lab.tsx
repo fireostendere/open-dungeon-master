@@ -79,7 +79,11 @@ function Lab() {
     if (!next.fog) p.set("fog", "0");
     if (next.across) p.set("across", "1");
     if (next.art) p.set("art", "1");
-    window.history.replaceState(null, "", `#${p.toString()}`);
+    try {
+      window.history.replaceState(null, "", `#${p.toString()}`);
+    } catch {
+      // A host that owns the address bar: the choice still lives in the page.
+    }
   };
 
   const styles: MapStyle[] = state.style === "all" ? [...MAP_STYLES] : [state.style];

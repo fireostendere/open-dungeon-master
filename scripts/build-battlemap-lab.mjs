@@ -30,6 +30,23 @@ const result = await build({
 const js = result.outputFiles.find((f) => f.path.endsWith(".js"))?.text ?? "";
 const css = result.outputFiles.find((f) => f.path.endsWith(".css"))?.text ?? "";
 
+const safeJs = js.replaceAll("</script", "<\\/script");
+
+// --fragment=FILE writes the page body only (title, style, root, script), for
+// hosts that wrap the page in their own document, such as a published artifact.
+const fragment = process.argv.find((arg) => arg.startsWith("--fragment="))?.slice("--fragment=".length);
+if (fragment) {
+  const body = `<title>Стили карты боя</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+<style>${css}</style>
+<div id="root"></div>
+<script>${safeJs}</script>
+`;
+  writeFileSync(fragment, body);
+  console.log(`[battlemap-lab] wrote fragment ${fragment} (${(body.length / 1024).toFixed(0)} KB)`);
+  process.exit(0);
+}
+
 const html = `<!doctype html>
 <html lang="ru">
 <head>
@@ -43,7 +60,7 @@ const html = `<!doctype html>
 </head>
 <body>
 <div id="root"></div>
-<script>${js.replaceAll("</script", "<\\/script")}</script>
+<script>${safeJs}</script>
 </body>
 </html>
 `;
