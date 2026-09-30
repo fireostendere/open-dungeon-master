@@ -1,0 +1,17 @@
+{
+  "creatureId": "abbanith-giant",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-09-30",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy bestiary ABBANITH GIANT portrait. A bulky muscular subterranean giant with a BROAD FLAT FACE and unusually SMALL eyes, heavy neck and shoulders. Exactly two humanoid arms; each THUMB ends in a conspicuous huge black digging claw, while the other fingers are ordinary thick blunt giant fingers. These specialized black thumb claws are the key identifying feature. Wears a simple rough fungus-fiber tunic, earthy gray-tan skin, no horns, no extra eyes, no extra arms. Thoughtful wary underground dweller rather than mindless brute. Polished realistic painterly fantasy, rich stone/skin/fungal-fiber texture, cinematic cave light, centered waist-up or bust with at least one thumb claw clearly visible. One giant, no text/letters/logo/watermark/border/grid, no gore, original art no artist imitation. Normal variant01. Three-quarter left-facing broad-faced giant with cropped dark hair, one hand resting on newly excavated rock and its long black THUMB claw angled clearly outward. Ancient crystal-lined tunnel, cold blue crystal light and warm mineral reflections, calm powerful expression.",
+  "designReferences": [
+    {
+      "url": "https://github.com/open5e/open5e-api/blob/staging/data/v1/tob2/Monster.json",
+      "use": "Abbanith Giant anatomical identity; original artwork, no source artwork copied"
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

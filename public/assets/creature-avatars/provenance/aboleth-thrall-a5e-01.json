@@ -1,0 +1,17 @@
+{
+  "creatureId": "aboleth-thrall-a5e",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-09-30",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy bestiary avatar, polished realistic painterly illustration with cinematic light and exceptional material detail. One adult human Aboleth Thrall, magically enslaved aquatic humanoid still recognizably human, soaking wet skin and clothes, unnervingly vacant gaze, faint otherworldly teal psychic reflection in eyes. Carries a short knife stained with black poison ink. Sea-changed amphibious servant in a flooded underground settlement. Chest-up portrait with face large and clear, believable anatomy, exactly two arms. No lettering, logos, frame, collage, extra figures or watermark. Normal variant 01: adult male dockworker, short dark hair, weathered olive complexion, wet leather vest and frayed linen, left three-quarter view, standing waist-deep in a stone canal with cold teal reflected water and amber lamp behind, knife held low.",
+  "designReferences": [
+    {
+      "url": "https://a5e.tools/node/1435",
+      "use": "Humanoid sea-changed thrall, water dependency and poison-ink knife; original visual interpretation"
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

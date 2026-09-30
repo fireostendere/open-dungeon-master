@@ -1,0 +1,17 @@
+{
+  "creatureId": "aboleth-nihilith",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-09-30",
+  "prompt": "Use case: stylized-concept. Original square bestiary avatar, polished dark-fantasy realistic painterly art, rich tactile detail, cinematic lighting. A Nihilith undead Aboleth, monstrous ancient aquatic aberration turned undead: elongated eel-fish body, broad alien head with exactly THREE eyes stacked vertically down its forehead, wide toothed mouth, four long prehensile tentacles, no human limbs. Supernatural cold mist and void-purple necromantic aura distinguish it from living aboleth. Head fills central half with readable tentacles, one creature, no text, watermark, frame or collage. YOLO04: void-purple ethereal undead aboleth looks absurdly offended as it attempts to drink from a tiny elegant porcelain teacup with one tentacle; tea passes straight through its ghostly body and splashes onto a very small ornate saucer below. Tiny crooked funeral veil perched behind its THREE vertically stacked glowing eyes, unmistakable eel-fish monster not humanoid, dark absurd humor, cinematic polished fantasy.\nCorrection: Edit ONLY the earlier purple ghost Nihilith portrait drinking tea with a tiny funeral veil and teacup, not the two ivory-headed portraits. The purple tea portrait currently has three vertically stacked central eyes PLUS two unwanted side eyes. Remove those two side eyes completely and replace them with seamless matching purple skin wrinkles. Keep exactly the THREE central vertically stacked purple eyes; preserve angry comic expression, tiny hat, tea passing through spectral body into saucer, tentacles, composition and lighting. Exactly three eyes total, no humanlike side-eye pair. No other changes.",
+  "designReferences": [
+    {
+      "url": "https://koboldpress.com/creature-codex-nihileth-aboleth/",
+      "use": "Undead aboleth with solid and purple ethereal forms; original illustration"
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

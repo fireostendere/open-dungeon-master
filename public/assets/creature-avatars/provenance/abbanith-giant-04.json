@@ -1,0 +1,17 @@
+{
+  "creatureId": "abbanith-giant",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-09-30",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy bestiary ABBANITH GIANT portrait. A bulky muscular subterranean giant with a BROAD FLAT FACE and unusually SMALL eyes, heavy neck and shoulders. Exactly two humanoid arms; each THUMB ends in a conspicuous huge black digging claw, while the other fingers are ordinary thick blunt giant fingers. These specialized black thumb claws are the key identifying feature. Wears a simple rough fungus-fiber tunic, earthy gray-tan skin, no horns, no extra eyes, no extra arms. Thoughtful wary underground dweller rather than mindless brute. Polished realistic painterly fantasy, rich stone/skin/fungal-fiber texture, cinematic cave light, centered waist-up or bust with at least one thumb claw clearly visible. One giant, no text/letters/logo/watermark/border/grid, no gore, original art no artist imitation. YOLO absurd dark comedy variant04. This massive expert tunneling giant is attempting delicate pottery and has accidentally poked two gigantic thumb-claw holes through a tiny ridiculous clay teacup. It holds the ruined cup with both ordinary fingers while the two huge black THUMB claws protrude, staring with comical disappointed concentration. Tiny flowered apron over rough fungus tunic, gloomy underground workshop, epic lighting treats failed craft as tragedy. Keep broad flat face, small eyes and exactly two arms.",
+  "designReferences": [
+    {
+      "url": "https://github.com/open5e/open5e-api/blob/staging/data/v1/tob2/Monster.json",
+      "use": "Abbanith Giant anatomical identity; original artwork, no source artwork copied"
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

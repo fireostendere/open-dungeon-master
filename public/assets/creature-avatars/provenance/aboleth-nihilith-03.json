@@ -1,0 +1,17 @@
+{
+  "creatureId": "aboleth-nihilith",
+  "variantId": "03",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-09-30",
+  "prompt": "Use case: stylized-concept. Original square bestiary avatar, polished dark-fantasy realistic painterly art, rich tactile detail, cinematic lighting. A Nihilith undead Aboleth, monstrous ancient aquatic aberration turned undead: elongated eel-fish body, broad alien head with exactly THREE eyes stacked vertically down its forehead, wide toothed mouth, four long prehensile tentacles, no human limbs. Supernatural cold mist and void-purple necromantic aura distinguish it from living aboleth. Head fills central half with readable tentacles, one creature, no text, watermark, frame or collage. Normal03: solid ancient leathery charcoal and pallid bone-colored undead fish head, right three-quarter close portrait, exactly three vertically aligned amber eyes, four decayed-looking tentacles without graphic gore, ruined underwater columns and pale green light, oppressive quiet intelligence.\nCorrection: Edit the most recent image, the corporeal ivory-headed undead Nihilith with amber eyes in green-lit submerged ruins. Remove ONLY the tiny extra fourth eye at the very top of its forehead and replace it with matching uninterrupted cracked ivory skin. Keep the THREE large amber eyes stacked below it, all tentacles, mouth, body, lighting, composition and environment unchanged. Exactly three eyes total, no other eyes anywhere. Preserve polished dark-fantasy portrait quality.",
+  "designReferences": [
+    {
+      "url": "https://koboldpress.com/creature-codex-nihileth-aboleth/",
+      "use": "Undead aboleth with solid and purple ethereal forms; original illustration"
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}
