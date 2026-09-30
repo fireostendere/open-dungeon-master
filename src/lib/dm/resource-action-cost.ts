@@ -5,6 +5,7 @@ export const RESOURCE_ACTIONS: Record<string, { name: string; cost: "action" | "
   rage: { name: "Rage", cost: "bonus", target: "self" },
   bardic_inspiration: { name: "Bardic Inspiration", cost: "bonus", target: "other" },
   lay_on_hands: { name: "Lay on Hands", cost: "action", target: "ally" },
+  homebrew_speak_with_dead: { name: "Speak with Dead (homebrew)", cost: "action", target: "self" },
 };
 
 // 2014 monk / Way of Mercy: one replacement heal, with the other strike

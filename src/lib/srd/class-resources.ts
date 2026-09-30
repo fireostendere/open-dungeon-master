@@ -504,6 +504,17 @@ export const RESOURCE_DEFS: ResourceDef[] = [
   ...SRD_RESOURCE_DEFS,
   ...CUSTOM_RESOURCE_DEFS,
   ...SUBCLASS_RESOURCE_DEFS,
+  {
+    id: "homebrew_speak_with_dead",
+    match: ["speak with dead (homebrew)"],
+    exact: true,
+    displayName: "Speak with Dead (homebrew)",
+    maxFor: () => 1,
+    recharge: "short",
+    effect: { kind: "narrative" },
+    guidance:
+      "Opt-in house rule: cast Speak with Dead as an action without a spell slot, once per short or long rest. Apply the normal 2014 spell requirements: a corpse with a mouth, not undead; up to five questions over 10 minutes; only knowledge from its life, no compelled truth; the same corpse cannot be questioned again for 10 days. The DM validates the corpse before spending and supplies its answers, not invented dice results.",
+  },
 ];
 
 export type ResourceState = { max: number; used: number };

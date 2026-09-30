@@ -126,6 +126,7 @@ table can switch it off with the `narrationGuard` game setting.
 | Polymorph (form via cast_buff variant, CR <= target level, concentration-linked, damage reverts) | enforced | `dm/cast-tools.ts`, `srd/beast-forms.ts`, `dm/condition-tick.ts` |
 | Familiars, Beast Master companions, Drakewarden drakes, story pets | partial enforcement | `dm/pet-tools.ts`: summon validation, attack dice/critical dice, separate HP, command costs, current-owner gate and one command per pet/owner turn. Story combat pets require explicit stats and command cost. Independent familiar initiative, pet map movement/LOS and automatic pet reactions are not implemented |
 | Relentless Endurance (auto-burn at 0 HP) | enforced | `dm/mutations.ts` |
+| Opt-in `Speak with Dead (homebrew)`: one slot-free use per short/long rest | enforced counter and combat action; corpse eligibility, questions and 10-day corpse cooldown are DM guidance | `srd/class-resources.ts`, `dm/resource-action-cost.ts`; granted only by the explicit homebrew feature, never by race or the ordinary spell |
 
 ## Exploration
 

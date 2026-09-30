@@ -191,7 +191,35 @@ test("Relentless Endurance spends once, then refuses", () => {
   assert.equal(spendRelentlessEndurance(undefined), null);
 });
 
-const { parseFontOfMagic } = await import("../src/lib/dm/resource-tools.ts");
+const { computeUseResource, parseFontOfMagic } = await import("../src/lib/dm/resource-tools.ts");
+const { RESOURCE_ACTIONS } = await import("../src/lib/dm/resource-action-cost.ts");
+
+test("opt-in Speak with Dead spends no slot, refuses a second use, and recharges on rest", () => {
+  const id = "homebrew_speak_with_dead";
+  const features = [{ name: "Speak with Dead (homebrew)", source: "story" }];
+  const resources = populateResources(features, 3, mods, undefined);
+  assert.deepEqual(resources[id], { max: 1, used: 0 });
+  assert.equal(populateResources([{ name: "Speak with Dead" }], 3, mods, undefined)[id], undefined);
+  assert.equal(populateResources([{ name: "Loxodon Serenity" }], 3, mods, undefined)[id], undefined);
+  assert.equal(RESOURCE_ACTIONS[id].cost, "action");
+  const sheet = {
+    name: "Kak", class: "wizard", level: 3, currentHp: 23, features, resources,
+    abilities: { str: 8, dex: 12, con: 16, int: 15, wis: 14, cha: 10 },
+    proficiencies: { saves: ["int", "wis"], skills: [], expertise: [] },
+    spellcasting: { ability: "int", slots: { 1: { max: 4, used: 0 } } },
+  };
+  const first = computeUseResource({}, sheet, sheet, id, 1);
+  assert.equal(first.result.ok, true);
+  assert.deepEqual(first.patch.resources[id], { max: 1, used: 1 });
+  assert.equal(first.patch.spellcasting, undefined);
+  const spentSheet = { ...sheet, ...first.patch };
+  assert.ok(computeUseResource({}, spentSheet, spentSheet, id, 1).error);
+  assert.deepEqual(populateResources(features, 4, mods, first.patch.resources)[id], { max: 1, used: 1 });
+  for (const rest of ["short", "long"]) {
+    const rested = { ...spentSheet, resources: refillResources(spentSheet.resources, rest) };
+    assert.equal(computeUseResource({}, rested, rested, id, 1).result.ok, true);
+  }
+});
 
 test("Font of Magic variants parse direction and slot level", () => {
   assert.deepEqual(parseFontOfMagic("create a 2nd-level slot"), {
