@@ -1,0 +1,21 @@
+{
+  "creatureId": "accursed-defiler",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-09-30",
+  "prompt": "Use case: stylized-concept. Asset type: one original square bestiary avatar. Polished dark-fantasy realistic painterly art, cinematic lighting, rich material textures, clear silhouette and face readable at small size. One creature only, no text, letters, logos, watermark, border, collage or copied source artwork. Subject: an Accursed Defiler, a Medium human-shaped desert undead with extremely gaunt limbs, cracked desiccated leathery skin over bones, dark hollow-looking eyes and a ragged black mantle. It retains flesh and human anatomy, not a clean skeleton or smoke ghost. A compact supernatural sandstorm swirls around its body, expressing eternal thirst. No fresh injuries or graphic gore. Normal01: tightly framed frontal head and shoulders in a torn black hood, cracked dark ochre skin, empty black eyes, clenched dusty jaw. Sand whips across one cheek but face remains clear. Blinding desert sun rims mantle against a deep rust-colored dune.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/accursed-defiler-3pp-2",
+      "use": "Open identity facts: gaunt desiccated undead, black mantle, supernatural sand and thirst; original art"
+    },
+    {
+      "url": "https://koboldpress.com/tome-unleashed-accursed-defiler/",
+      "use": "Publisher lore and desert identity"
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

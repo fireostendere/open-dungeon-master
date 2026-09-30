@@ -1,0 +1,21 @@
+{
+  "creatureId": "accursed-defiler",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-09-30",
+  "prompt": "Use case: stylized-concept. Asset type: one original square bestiary avatar. Polished dark-fantasy realistic painterly art, cinematic lighting, rich material textures, clear silhouette and face readable at small size. One creature only, no text, letters, logos, watermark, border, collage or copied source artwork. Subject: an Accursed Defiler, a Medium human-shaped desert undead with extremely gaunt limbs, cracked desiccated leathery skin over bones, dark hollow-looking eyes and a ragged black mantle. It retains flesh and human anatomy, not a clean skeleton or smoke ghost. A compact supernatural sandstorm swirls around its body, expressing eternal thirst. No fresh injuries or graphic gore. YOLO04: absurd dry dark comedy. The same furious desiccated corpse in its ragged black mantle tries to drink an absurdly fancy cocktail from a delicate stemmed glass. The glass is full of dry sand instead of liquid. A tiny colorful paper parasol has blown backward in its personal sandstorm. It glares with dead-serious outrage, one leathery hand holds glass, clear readable face and gag.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/accursed-defiler-3pp-2",
+      "use": "Open identity facts: gaunt desiccated undead, black mantle, supernatural sand and thirst; original art"
+    },
+    {
+      "url": "https://koboldpress.com/tome-unleashed-accursed-defiler/",
+      "use": "Publisher lore and desert identity"
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}
