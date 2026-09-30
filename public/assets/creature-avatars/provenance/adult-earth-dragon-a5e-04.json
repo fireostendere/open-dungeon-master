@@ -1,0 +1,21 @@
+{
+  "creatureId": "adult-earth-dragon-a5e",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-09-30",
+  "prompt": "Use case: stylized-concept. One original square dark-fantasy bestiary portrait. Polished realistic painterly fantasy, cinematic light, tactile materials, one adult dragon, head and upper body dominate the frame, readable at small avatar size. No text, logos, watermark, borders, collage, source artwork copies or artist imitation. An adult A5E EARTH DRAGON, a massive low rocky reptilian dragon with broad powerful head, heavy compact shoulders and stout forelimbs, long armored tail mostly outside frame, jagged dorsal plates. Looks like a living natural rock outcrop. NO visible membrane wings in this portrait. Normal living eyes, not blind. Mountain forms have sharp scales and desert forms smoother serpent-like scales. Geological palette and horn shapes are original locality-based design choices. YOLO04: immense sleepy rock-armored earth dragon wearing a ridiculously tiny knitted sleeping cap. A miniature tourist viewing platform with tiny coin-operated binoculars has been built on its broad stony brow. Dragon rolls its living eyes upward at this indignity; no tourists, no text, no wings. Heavy rock head and shoulders dominate, absurd landscape-creature joke.",
+  "designReferences": [
+    {
+      "url": "https://a5e.tools/node/1551",
+      "use": "Official A5E outcrop camouflage, environment-adapted scales, stone burrowing and sand-stone breath"
+    },
+    {
+      "url": "https://a5e.tools/sites/default/files/monsters/dragon-earth%20-%20Gui%20Sommer.png",
+      "use": "Publisher-linked anatomy reference inspected for heavy rocky body and stout limbs only; no source pose or artwork copied"
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

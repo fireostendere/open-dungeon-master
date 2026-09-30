@@ -1,0 +1,17 @@
+{
+  "creatureId": "adult-cave-dragon",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-09-30",
+  "prompt": "Use case: stylized-concept. One original square dark-fantasy bestiary portrait. Polished realistic painterly fantasy, cinematic light, tactile materials, one adult dragon, head and upper body dominate the frame, readable at small avatar size. No text, logos, watermark, borders, collage, source artwork copies or artist imitation. An adult CAVE DRAGON: truly EYELESS with smooth uninterrupted skin where eyes would normally be, NO eyes, NO pupils, NO eye sockets. Long narrow dragon snout, glossy eel-like skin mottled brown and black rather than conventional reptile scales, long thin black tactile spikes and sensory feelers, darkness radiating around body. Heavy forelimbs; flightless adult with only tiny vestigial shoulder feelers, NEVER broad wing membranes. No rocks for skin, no conventional visible eyes. Normal01: tunnel listener, long eyeless muzzle in close three-quarter profile, glossy mottled eel-like hide, thin tactile black spikes near head touching cave wall, soft blue mineral-reflected light, continuous blank skin over both eye positions.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/dragon-cave-adult-3pp/",
+      "use": "Licensed eyeless cave-dragon anatomy, eel-like hide, sensory spikes, vestigial wings and black poison gas"
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}
