@@ -1,0 +1,21 @@
+{
+  "creatureId": "agnibarra",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-09-30",
+  "prompt": "Use case: stylized-concept. One original square dark-fantasy painted monster avatar, tactile cinematic realistic illustration with vivid firelight, crisp expressive face prominent and legible at 512 pixels, no frame, text, watermark or collage. An Agnibarra from Creature Codex: Small physical monstrosity with a hide coated in continually burning viscous black tar, a batlike face with broad wrinkled muzzle and pointed leathery ears, sharp little teeth and gleeful bright eyes, visible clawed hands. A squat creature under the tar, not made purely of flames; burning tar sticks and gleams on the cheeks and shoulders, real yellow-orange fire dances around it. A delighted mischievous pyromaniac monster rather than a human or baby, not a winged generic devil. Close face/shoulders/claws framing leaves unseen lower body out of view; do not add wings, horns, tail, clothes or accessories unless the scene specifies a joke prop. Original design interpretation from creature text and bat-face artist metadata, no copied published image. YOLO absurd variant 04. Same small bat-faced black-tar monstrosity has proudly placed an absurdly tall birthday cake on a stone platter and is trying to blow out a single candle; its fiery breath has instead set every cake layer spectacularly alight. Its expression is outrageously pleased with this apparent improvement, one claw gives a smug little flourish beside the burning frosting. A tiny scorched paper chef hat balances between the pointed ears. Black tar skin still physically readable, orange flame halo and face dominant, dark-fantasy painterly humor, no human victims, no letters or numbers.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/agnibarra/",
+      "note": "Creature Codex Agnibarra: Small monstrosity, burning tar-like hide, claws and spit fire, volcanic/fire-temple habitat."
+    },
+    {
+      "url": "https://www.deviantart.com/willobrien/art/Agnibarra-765065509",
+      "note": "Official commissioned artist Will O'Brien identifies batface in metadata. Image unavailable for visual inspection; exact ears/limbs/tail/wings unverified. Original close portrait deliberately omits unseen-body claims."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

@@ -1,0 +1,21 @@
+{
+  "creatureId": "agnibarra",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-09-30",
+  "prompt": "Use case: stylized-concept. One original square dark-fantasy painted monster avatar, tactile cinematic realistic illustration with vivid firelight, crisp expressive face prominent and legible at 512 pixels, no frame, text, watermark or collage. An Agnibarra from Creature Codex: Small physical monstrosity with a hide coated in continually burning viscous black tar, a batlike face with broad wrinkled muzzle and pointed leathery ears, sharp little teeth and gleeful bright eyes, visible clawed hands. A squat creature under the tar, not made purely of flames; burning tar sticks and gleams on the cheeks and shoulders, real yellow-orange fire dances around it. A delighted mischievous pyromaniac monster rather than a human or baby, not a winged generic devil. Close face/shoulders/claws framing leaves unseen lower body out of view; do not add wings, horns, tail, clothes or accessories unless the scene specifies a joke prop. Original design interpretation from creature text and bat-face artist metadata, no copied published image. Serious normal variant 02. Nearly frontal close portrait of the Agnibarra guardian at a stone fire-temple altar. Its wrinkled batlike muzzle tilts toward viewer, sharp teeth revealed in a broad unsettling smile, black tar glazing face and two shoulders, strong flames rising behind ears. One burning claw rests beside a ritual brazier, soot and muted brass altar blur behind, orange-white fire versus deep charcoal, no visible text or symbols.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/agnibarra/",
+      "note": "Creature Codex Agnibarra: Small monstrosity, burning tar-like hide, claws and spit fire, volcanic/fire-temple habitat."
+    },
+    {
+      "url": "https://www.deviantart.com/willobrien/art/Agnibarra-765065509",
+      "note": "Official commissioned artist Will O'Brien identifies batface in metadata. Image unavailable for visual inspection; exact ears/limbs/tail/wings unverified. Original close portrait deliberately omits unseen-body claims."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

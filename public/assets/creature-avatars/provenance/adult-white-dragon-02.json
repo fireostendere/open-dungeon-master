@@ -1,0 +1,25 @@
+{
+  "creatureId": "adult-white-dragon",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-09-30",
+  "prompt": "Use case: stylized-concept. One original square dark-fantasy creature portrait with tactile painterly realism and cinematic light, readable face in a 512-pixel avatar. Adult White Dragon: heavy low quadruped torso, FOUR strong clawed legs plus TWO separate broad leathery membrane wings, long tapering armored tail. Matte ivory-white to icy-blue reptilian scales, thick neck and broad powerful predatory wedge-shaped jaws; backward-swept broad high central head crest, cheek crest and spined throat dewlap, dorsal ridge. NOT shiny metallic silver, no chin beard of long silver needles, no fur. Frost breath and cruel animal intelligence. Face should dominate, anatomy coherent. No text, frame, watermark, logos or collage. Original composition, never copy publisher art. Serious normal 02. Almost frontal close face and forequarters erupting from a snowbank at night, angry adult white dragon shaking loose powdered snow. Its blunt wide jaws, low powerful cheekbones, thick neck and swept head crest sharply readable; one burrowing foreclaw in the foreground, wings folded tight to the body. Subtle green aurora overhead and deep ultramarine sky, snow dust, predatory alarm, no gore.",
+  "designReferences": [
+    {
+      "url": "https://www.dndbeyond.com/monsters/16773-adult-white-dragon",
+      "note": "Official core adult White Dragon: Huge, cold breath, claws, tail, wings, burrowing/ice climbing."
+    },
+    {
+      "url": "https://a5e.tools/node/1547",
+      "note": "Official A5E adult White Dragon confirms cold identity; edition-specific extra effects not claimed universal."
+    },
+    {
+      "url": "https://www.dndbeyond.com/avatars/thumbnails/30782/433/1000/1000/638061962219215658.png",
+      "note": "Official 2014 art directly inspected: four legs and separate two wings, heavy torso, wedge head, swept crest, throat spines and matte ivory/blue scales. No copied pose."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}
