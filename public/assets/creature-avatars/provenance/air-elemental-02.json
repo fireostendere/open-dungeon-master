@@ -1,0 +1,25 @@
+{
+  "creatureId": "air-elemental",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-09-30",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy painted creature avatar, cinematic highly detailed swirling atmosphere, expressive focal face readable at 512 pixels, no frame, letters, watermark or collage. A Large Air Elemental: a living tapering whirlwind made entirely of translucent spiraling air, mist and cloud, a vaguely facial presence emerges from the upper cloud mass with luminous eye-like hollows and a turbulent mouth shape. No solid flesh, no real human skin, no bones, no clothes, no biological wings, no solid feet; temporary arm-like gusts remain vapor streams. Elegant energetic wind ribbons and dust or leaves trace circular flow, background glimpsed through its body. Elemental presence, not a humanoid wizard or ghost wearing robes. Original composition from common core/A5E identity, not copied publisher art. Serious normal 02. Nearly frontal face of a dust-laden living cyclone rising inside a ruined sandstone courtyard. Its face forms from dense translucent amber dust and pale flowing wind, eyes luminous through the swirl; a few tiny pebbles and leaves orbit without turning body to stone. Upper whirling face dominates, lower vortex trails out of frame, fractured column silhouettes visible through thin outer mist. Warm ochre sun versus cool blue arch shadows, ominous.",
+  "designReferences": [
+    {
+      "url": "https://www.dndbeyond.com/monsters/16774-air-elemental",
+      "note": "Core 2014: funnel-shaped whirling cloud with vaguely facial presence; no wings inferred from flight."
+    },
+    {
+      "url": "https://a5e.tools/node/1595",
+      "note": "A5E permits varied air forms; choosing cloud-face/tornado rather than edition-specific winged humanoid/eagle."
+    },
+    {
+      "url": "https://bfrd.net/monsters/air-elemental",
+      "note": "Black Flag air/whirlwind identity; optional lightning and cloud camouflage not necessary for shared depiction."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

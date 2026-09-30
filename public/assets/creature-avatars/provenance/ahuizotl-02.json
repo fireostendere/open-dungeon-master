@@ -1,0 +1,21 @@
+{
+  "creatureId": "ahuizotl",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-09-30",
+  "prompt": "Use case: stylized-concept. One original square dark-fantasy painted monster avatar, refined realistic tactile skin and hair with cinematic lighting, face sharp and readable at 512 pixels, no text, frame, watermark or collage. Ahuizotl from Creature Codex: SMALL amphibious monstrosity, compact low aquatic mammal-like quadruped, four short clawed legs, black rubbery hide and dark hair clustered into sharp defensive spikes, biting muzzle. Original otter/dog-like face interpretation, no giant beast. Its distinctive LONG TAIL ENDS IN A SINGLE CLAWED GRASPING HAND, organically continuous with the tail, clearly visible curling up beside its head. Tail hand is separate from the four normal paws; it is not a tentacle or human arm. Wet glossy black skin between spike-like hair clusters, shrewd yellow eyes, long powerful tapering tail, no wings or horns. Anatomy grounded in written entry, no copied artwork. Keep face and unique tail-hand prominent together. Serious normal 02. Front three-quarter crouching portrait on a muddy riverbank, compact black rubbery creature glaring protectively over a stolen ornate silver hand mirror. Its two visible forepaws are planted firmly on ground while its long curled tail, visibly connected behind the body, ends in a clawed hand gripping the mirror handle beside its face. Sharp black hair clusters down neck, gold dusk rim and cool river backdrop, face and tail-hand both readable, no jewelry worn.\n\nTargeted image_gen edit applied to the generated master: Precise anatomy correction only. In this original Ahuizotl portrait, there must be exactly ONE clawed hand at the end of the long tail. Keep the existing upper tail-hand that grasps the TOP RIM of the silver mirror, and keep its continuous curved tail attachment. REMOVE the accidental extra detached hand wrapped around the mirror HANDLE lower down. The mirror handle should hang empty and fully visible below the glass, with natural background visible around it. Do not add any new digits, tail branches or hands. Preserve the creature's four normal ground paws, face, body, spiky black coat, eye expression, mirror, dusk lighting, composition and all other details unchanged. No text, no watermark.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/ahuizotl/",
+      "note": "Use only opening Creature Codex description and Small statblock: black rubbery hide, dark hair clustered into defensive spikes, long tail with clawed hand, amphibious. Ignore unrelated appended giant-size/mimicry prose."
+    },
+    {
+      "url": "https://forum.rpg.net/index.php?threads%2Flets-read-kobold-presss-creature-codex.839349%2F=",
+      "note": "Contemporary secondary book review describes four-legged body. Otter/dog-like proportions are original interpretation, not claimed fixed publisher morphology."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

@@ -1,0 +1,21 @@
+{
+  "creatureId": "ahu-nixta-drudge",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-09-30",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy creature portrait, cinematic tactile painted realism, clear at 512-pixel avatar size, no text, logos, watermark or frame. Ahu-Nixta Drudge from Tome of Beasts 2: a Medium living amorphous alien worker enclosed in a compact clockwork engineer orb. Not an empty robot: glimpses of a moist purplish organic eye and pulpy tissue remain visible behind a small glass viewing port. It cannot leave this shell alive. Simple worn brass-and-steel orb casing with utilitarian articulated grippers and whirring cutter blades; several short segmented mechanical manipulators, no fixed limb count claimed. Compact worker silhouette, lighter and simpler than a large standard ahu-nixta, no huge exposed maw and no heavy cannon armor. No wings or fixed tripod, no humanoid body or knight helmet, no glowing gem-heart instead of a pilot. The biological occupant stays mostly enclosed. Original design based on text, no copied published art. Serious normal 02. Frontal compact orb portrait in a cramped ancient voidship maintenance conduit. Two visible gripper tools are braced around a hatch as the shell squeezes through, other manipulators folded and partly occluded, no exact species count asserted. Moist organic eye behind a little round viewing port, simple dents and repaired seams, retracted cutter glints below, pale aquamarine rim lighting and black cable passage, eerie worker intelligence.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/ahu-nixta-drudge/",
+      "note": "ToB2 living Medium aberration, least-evolved worker; cannot survive outside clockwork armor, whirring blade tools. No fixed appendage count."
+    },
+    {
+      "url": "https://koboldpress.com/maze-mondays-take-your-campaign-world-apart-and-build-it-into-something-more-monstrous-with-the-ahu-nixta/",
+      "note": "Primary publisher describes drudges as engineer orbs. Compact simpler shell is original interpretation; source-specific art not verified."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

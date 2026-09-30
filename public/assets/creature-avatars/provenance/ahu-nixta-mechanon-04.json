@@ -1,0 +1,17 @@
+{
+  "creatureId": "ahu-nixta-mechanon",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-09-30",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy painted creature avatar with detailed tactile antique clockwork and cinematic lighting, crisp recognizable silhouette at 512 pixels, no text, watermark, logo or border. Ahu-Nixta Mechanon from Tome of Beasts 3: Medium CONSTRUCT, a spherical clockwork automaton standing on EXACTLY THREE articulated mechanical legs in a stable tripod, not two and not four. ONE interchangeable utility arm projects from its spherical body, distinct from the three weight-bearing legs. Powered by a glowing jewel heart containing a soul, seen through a central faceted crystal aperture; jewel light cyan-teal is original palette choice. Brass and weathered steel orb with riveted plates, no human face, NO organic eyes, NO fleshy pilot, NO living maw or tentacles. Not a Drudge or Cataphract, no wing, no cannon, no humanoid torso. Compose orb large with all THREE legs separately readable and ONE tool arm, avoid extra duplicate appendages. Original design based on written mechanics, do not copy publisher art. YOLO absurd 04. Same spherical three-legged automaton has become an overly ambitious cafe waiter. A ridiculously tiny bow tie is clipped under its jewel-core aperture, its one telekinetic-projector utility arm floats an impossibly tall wobbling stack of delicate teacups above a tray. Exact three tripod legs and one utility arm visible; tilted orb body conveys concerned concentration without an organic face. Tiny napkin draped on one leg, cups all separate and precarious, dark fantasy tea-room brass and candlelight, no people, no letters or logos.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/ahu-nixta-mechanon/",
+      "note": "ToB3 Medium Construct: spherical automaton, explicitly three mechanical legs, interchangeable utility appendage, glowing soul-containing gem heart. No fleshy ahu-nixta pilot. Exact aperture/metal palette is original design."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}
