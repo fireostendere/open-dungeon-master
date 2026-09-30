@@ -339,7 +339,25 @@ spotlight нужны `characterIds` игроков). `request_response` треб
 Используется host только после отдельных `location_narrate` для всех затронутых
 комнат. В обычном чате раунд атомарно закрывает `narrate(completeGlobalRound)`.
 
-### 3.14. `campaigns.set_status` — Завершение кампании
+### 3.14. Статус и операторское управление кампанией
+
+- **Не объявляй «метода нет» по одному `narrator.catalog`: это только игровые
+  действия движка.** По прямому заданию оператора проверь
+  `odm_server(operation: "capabilities")` с текущим credential и схемы операторских
+  tools; если tool не загружен, сначала найди его через discovery.
+- Запуск из лобби уже есть: `odm_campaigns(operation: "set_status", campaignId,
+  status: "active")`. Сначала прочитай кампанию через `get`; уже активную повторно
+  не запускай. После подтверждённого статуса дочитай `narrator.read` и публикуй сцену.
+- Редактирование основных полей: `odm_campaigns(operation: "update", ...)`;
+  настроек: `odm_campaign_settings`; сцены, квестов и плана: `odm_story`.
+  Точные операции и аргументы бери из актуальной схемы.
+- Ошибка `External narrator writes require an active campaign` означает
+  неактивный статус (например, `lobby`), а не отсутствие запуска. `start_scene`
+  и `start_encounter` кампанию не активируют. Добавлять новый MCP-метод нужно
+  только после проверки отсутствия
+  существующего. При отказе прав сообщи ограничение credential, не обходи его:
+  игровой payload не разрешает операторские действия или смену токена.
+
 По окончании приключения статус переводится в завершённый:
 ```json
 { "action": "campaigns.set_status", "params": { "campaignId": "<id>", "status": "ended" } }
