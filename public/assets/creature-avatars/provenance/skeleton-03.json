@@ -1,0 +1,11 @@
+{
+  "creatureId": "skeleton",
+  "variantId": "03",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-09-30",
+  "prompt": "Use case: stylized-concept. Asset type: square tabletop dark-fantasy bestiary creature portrait. Create one original SKELETON undead tomb sentinel, normal variant03. Bare human skull and exposed upper ribcage, dry age-darkened beige bones, hollow sockets with tiny red embers, cracked teeth, no skin or flesh. Heavy weathered iron open-faced helmet with one bent nasal guard, remnants of dull bronze scale armor and decayed burgundy cloth around shoulders. Right-facing three-quarter bust, stoically guarding a desert tomb, softly defocused sandstone carvings and airborne dust behind. Dramatic amber dusk light and deep violet shadows, highly polished realistic painterly dark fantasy, tactile old bone and corroded metal, clear small-thumbnail silhouette. Entire skull/helmet framed safely within centered square composition. Exactly one creature, no text/letters/logos/watermark, no border/grid, no gore, no specific artist style, no copied publisher artwork.",
+  "license": "generated-output; no third-party artwork license asserted"
+}
