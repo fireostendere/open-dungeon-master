@@ -1,5 +1,6 @@
 import type { MapTheme } from "@/lib/battlemap/generate";
 import type { PlayerMapView } from "@/lib/battlemap/view";
+import { hashNoise, shade } from "@/lib/battlemap/map-geometry";
 
 // The terrain layer of the battle map: palettes, textures, wall decoration
 // and the three stacked passes that make a row-major string of tile
@@ -73,27 +74,12 @@ export const PALETTES: Record<MapTheme, Palette> = {
   },
 };
 
-// Lighten (positive) or darken (negative) a #rrggbb color by a fixed step.
-export function shade(hex: string, amt: number): string {
-  const n = parseInt(hex.slice(1), 16);
-  const clamp = (v: number) => Math.max(0, Math.min(255, v));
-  const r = clamp(((n >> 16) & 255) + amt);
-  const g = clamp(((n >> 8) & 255) + amt);
-  const b = clamp((n & 255) + amt);
-  return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
-}
+export { hashNoise, shade };
 
 // Deterministic per-tile jitter so floors get a subtle hand-laid texture
 // without re-rendering differently each time.
 function tileNoise(x: number, y: number): number {
   const n = Math.sin(x * 127.1 + y * 311.7) * 43758.5453;
-  return n - Math.floor(n);
-}
-
-// A second salted hash for decoration jitter and scatter, so trees, boulders,
-// and rubble stay put across re-renders but don't line up with tileNoise.
-export function hashNoise(x: number, y: number, salt: number): number {
-  const n = Math.sin((x + salt * 57.3) * 269.5 + (y - salt * 19.7) * 183.3) * 43758.5453;
   return n - Math.floor(n);
 }
 
@@ -160,7 +146,7 @@ function WallDecoration({ kind, x, y }: { kind: Palette["wallDeco"]; x: number; 
 // black square, so the backdrop drawn beneath is covered exactly where the
 // terrain would have been hidden and a player cannot see the dungeon they
 // have not walked into (src/lib/battlemap/backdrop.ts).
-function artTile(idx: number, px: number, py: number, ch: string, palette: Palette) {
+export function artTile(idx: number, px: number, py: number, ch: string, palette: Palette) {
   if (ch === "#") {
     return (
       <g key={idx} pointerEvents="none">

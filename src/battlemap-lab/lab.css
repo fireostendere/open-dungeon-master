@@ -1,0 +1,24 @@
+:root { color-scheme: dark; }
+* { box-sizing: border-box; }
+html, body { margin: 0; min-height: 100%; background: #0c0a09; color: #e7e5e4; font-family: "Inter", "Segoe UI", system-ui, sans-serif; }
+button { font: inherit; }
+.lab { max-width: 1500px; margin: 0 auto; padding: 20px 20px 60px; }
+.lab h1 { margin: 0 0 4px; font-family: "Cinzel", Georgia, serif; font-size: 24px; letter-spacing: .06em; color: #f4e0a6; }
+.lab > p { margin: 0 0 16px; color: #a8a29e; font-size: 14px; max-width: 70ch; line-height: 1.45; }
+.bar { display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: center; margin: 0 0 18px; }
+.bar b { font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: #d4ab3a; margin-right: 4px; }
+.seg { display: inline-flex; flex-wrap: wrap; gap: 4px; }
+.seg button { padding: 6px 11px; border-radius: 9px; border: 1px solid #44403c; background: #1c1917; color: #d6d3d1; cursor: pointer; font-size: 13px; }
+.seg button:hover { border-color: #d4ab3a; }
+.seg button[aria-pressed="true"] { background: linear-gradient(#fde68a, #d4ab3a); color: #1c1917; border-color: #d4ab3a; font-weight: 600; }
+.maps { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 640px), 1fr)); gap: 22px; }
+.maps.single { grid-template-columns: minmax(0, 1100px); }
+.card { display: flex; flex-direction: column; gap: 6px; }
+.card h2 { margin: 0; font-size: 13px; letter-spacing: .14em; text-transform: uppercase; color: #fcd34d; }
+.card h2 span { color: #a8a29e; letter-spacing: 0; text-transform: none; font-weight: 400; margin-left: 8px; }
+.card svg { display: block; width: 100%; height: auto; border-radius: 10px; border: 1px solid #292524; }
+.animate-pulse { animation: pulse 2s cubic-bezier(.4, 0, .6, 1) infinite; }
+@keyframes pulse { 50% { opacity: .5; } }
+@keyframes ping { 75%, 100% { transform: scale(2); opacity: 0; } }
+.animate-ping { animation: ping 1s cubic-bezier(0, 0, .2, 1) infinite; transform-box: fill-box; transform-origin: center; }
+@media (prefers-reduced-motion: reduce) { .animate-pulse, .animate-ping { animation: none; } }

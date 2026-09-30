@@ -1,7 +1,7 @@
 "use client";
 
 import { useInlineText } from "@/lib/i18n/inline-text";
-import { memo, useEffect, useMemo, useRef } from "react";
+import { memo, useEffect, useId, useMemo, useRef } from "react";
 import { cn } from "@/lib/cn";
 import {
   buildCells,
@@ -9,6 +9,10 @@ import {
   shade,
   TILE,
 } from "@/app/campaigns/[campaignId]/battleMapCells";
+import { buildPaintedCells } from "@/app/campaigns/[campaignId]/battleMapStyles";
+import { TokenBody } from "@/app/campaigns/[campaignId]/battleMapTokens";
+import { DEFAULT_MAP_STYLE, type MapStyle } from "@/lib/battlemap/map-style";
+import { useFxSettings } from "@/lib/fx/prefs";
 import { backdropRect } from "@/lib/battlemap/backdrop";
 import type { PlayerMapView } from "@/lib/battlemap/view";
 import type { CharacterSheet } from "@/lib/schemas/sheet";
@@ -21,6 +25,11 @@ import type { CharacterSheet } from "@/lib/schemas/sheet";
 // layered water, a fractal-noise grain pass) never leaks past the fog: the
 // projection blanks unexplored tiles to " ", so neighbour lookups below stop
 // cleanly at explored edges.
+//
+// The look is a per-device choice (src/lib/battlemap/map-style.ts). The
+// classic style is the flat tile layer below; the others paint whole regions
+// (battleMapStyles.tsx). They read the same projection and draw the same
+// fog, so which one is worn changes nothing about what anyone can see.
 //
 // Everything above the terrain is an overlay the parent hands down: a
 // measured template, a drag ruler, live pings, the token the DM has picked
@@ -50,6 +59,7 @@ export const BattleMapGrid = memo(
     onTokenClick,
     everyTileClickable = false,
     overlay,
+    mapStyle = DEFAULT_MAP_STYLE,
   }: {
     view: PlayerMapView;
     sheets: CharacterSheet[];
@@ -61,6 +71,7 @@ export const BattleMapGrid = memo(
     // the board too, which is what this turns on.
     everyTileClickable?: boolean;
     overlay?: MapOverlay;
+    mapStyle?: MapStyle;
   }) {
   const uiText = useInlineText();
     const clickRef = useRef(onTileClick);
@@ -92,9 +103,23 @@ export const BattleMapGrid = memo(
     );
     const currentName = view.currentTurnName.toLowerCase();
 
+    // Ids are per instance: the panel and its enlarged dialog can both be
+    // mounted, and a gradient or clip defined in a hidden copy does not
+    // resolve in the visible one.
+    const uid = `bm${useId().replace(/[^a-zA-Z0-9_-]/g, "")}`;
+    const calm = useFxSettings().reducedMotion;
+
     // The terrain/fog/reachable cell layer only changes when the view
     // projection itself changes; token/light layers below stay cheap.
-    const cells = useMemo(() => buildCells(view, palette), [view, palette]);
+    const layers = useMemo(
+      () =>
+        mapStyle === "classic"
+          ? { defs: null, cells: buildCells(view, palette) }
+          : buildPaintedCells(view, palette, mapStyle, uid, calm),
+      [view, palette, mapStyle, uid, calm],
+    );
+    const cells = layers.cells;
+    const classic = mapStyle === "classic";
 
     // A transparent grid that makes every tile a click and hover target.
     // It sits UNDER the tokens so that clicking a figure still reaches the
@@ -185,39 +210,44 @@ export const BattleMapGrid = memo(
         onMouseLeave={onTileHover ? () => hoverRef.current?.(0, null) : undefined}
       >
         <defs>
-          <radialGradient id="torchglow">
-            <stop offset="0%" stopColor="#fbbf24" stopOpacity={0.3} />
-            <stop offset="70%" stopColor="#f59e0b" stopOpacity={0.1} />
-            <stop offset="100%" stopColor="#f59e0b" stopOpacity={0} />
-          </radialGradient>
           <radialGradient id="mapvignette">
             <stop offset="55%" stopColor="#000" stopOpacity={0} />
             <stop offset="100%" stopColor="#000" stopOpacity={0.45} />
           </radialGradient>
-          {/* Fractal grain overlaid on terrain for a hand-laid surface. */}
-          <filter id={`grain-${view.theme}`} x="0" y="0" width="100%" height="100%">
-            <feTurbulence
-              type="fractalNoise"
-              baseFrequency="0.9"
-              numOctaves={2}
-              seed={7}
-              stitchTiles="stitch"
-              result="n"
-            />
-            <feColorMatrix in="n" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.5 0" />
-          </filter>
-          <linearGradient id={`water-${view.theme}`} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor={shade(palette.water, 26)} />
-            <stop offset="100%" stopColor={shade(palette.water, -18)} />
-          </linearGradient>
-          <linearGradient id="castN" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#000" stopOpacity={0.5} />
-            <stop offset="100%" stopColor="#000" stopOpacity={0} />
-          </linearGradient>
-          <linearGradient id="castW" x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0%" stopColor="#000" stopOpacity={0.42} />
-            <stop offset="100%" stopColor="#000" stopOpacity={0} />
-          </linearGradient>
+          {layers.defs}
+          {classic ? (
+            <>
+              <radialGradient id="torchglow">
+                <stop offset="0%" stopColor="#fbbf24" stopOpacity={0.3} />
+                <stop offset="70%" stopColor="#f59e0b" stopOpacity={0.1} />
+                <stop offset="100%" stopColor="#f59e0b" stopOpacity={0} />
+              </radialGradient>
+              {/* Fractal grain overlaid on terrain for a hand-laid surface. */}
+              <filter id={`grain-${view.theme}`} x="0" y="0" width="100%" height="100%">
+                <feTurbulence
+                  type="fractalNoise"
+                  baseFrequency="0.9"
+                  numOctaves={2}
+                  seed={7}
+                  stitchTiles="stitch"
+                  result="n"
+                />
+                <feColorMatrix in="n" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.5 0" />
+              </filter>
+              <linearGradient id={`water-${view.theme}`} x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={shade(palette.water, 26)} />
+                <stop offset="100%" stopColor={shade(palette.water, -18)} />
+              </linearGradient>
+              <linearGradient id="castN" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#000" stopOpacity={0.5} />
+                <stop offset="100%" stopColor="#000" stopOpacity={0} />
+              </linearGradient>
+              <linearGradient id="castW" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0%" stopColor="#000" stopOpacity={0.42} />
+                <stop offset="100%" stopColor="#000" stopOpacity={0} />
+              </linearGradient>
+            </>
+          ) : null}
           {view.tokens.map((token) =>
             portraitsByRef.has(token.refId) ? (
               <clipPath key={`clip-${token.id}`} id={`token-clip-${token.id}`}>
@@ -258,7 +288,7 @@ export const BattleMapGrid = memo(
           />
         ) : null}
         {catcher}
-        {view.lights.map((light, index) => (
+        {(classic ? view.lights : []).map((light, index) => (
           <circle
             key={`light-${index}`}
             cx={light.x * TILE + TILE / 2}
@@ -304,7 +334,19 @@ export const BattleMapGrid = memo(
                 opacity={0.35}
                 pointerEvents="none"
               />
-              {token.kind === "prop" ? (
+              {!classic ? (
+                <TokenBody
+                  style={mapStyle}
+                  uid={uid}
+                  kind={token.kind}
+                  down={token.down}
+                  cx={cx}
+                  cy={cy}
+                  ring={held || token.mine ? "#fbbf24" : null}
+                  hidden={token.hidden}
+                  emphasis={isCurrent || held}
+                />
+              ) : token.kind === "prop" ? (
                 // A prop is a thing, not a person, so it is not a circle.
                 <rect
                   x={cx - TILE / 2 + 4}
@@ -348,6 +390,7 @@ export const BattleMapGrid = memo(
                   fontSize={13}
                   fontWeight={700}
                   fill={token.down ? "#a8a29e" : token.kind === "enemy" ? "#fca5a5" : "#e7e5e4"}
+                  {...(classic ? {} : { stroke: "#000", strokeOpacity: 0.55, strokeWidth: 2.5, paintOrder: "stroke" })}
                 >
                   {token.name.charAt(0).toUpperCase()}
                 </text>
@@ -561,6 +604,7 @@ export const BattleMapGrid = memo(
     // every render would defeat the memo. BattleMapPanel memoizes it.
     prev.overlay === next.overlay &&
     prev.everyTileClickable === next.everyTileClickable &&
+    prev.mapStyle === next.mapStyle &&
     // Only presence matters; the handlers themselves are read through refs.
     (prev.onTileClick === undefined) === (next.onTileClick === undefined) &&
     (prev.onTileHover === undefined) === (next.onTileHover === undefined) &&
