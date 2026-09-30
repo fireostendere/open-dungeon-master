@@ -120,7 +120,13 @@
 .fx-title--letters {
   background-image: none;
 }
+/* Cinzel has no Cyrillic: Russian letters come from its next/font fallback,
+   Times New Roman at 137%, whose capitals (and the breve of Й) stand far
+   above a 1em line box. background-clip: text paints only inside the box,
+   so the padding gives the glyphs room and the margin takes it back. */
 .fx-title--letters .fx-word > span {
+  padding-block: 0.4em 0.15em;
+  margin-block: -0.4em -0.15em;
   background-image: var(--fx-grad);
   -webkit-background-clip: text;
   background-clip: text;

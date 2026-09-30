@@ -101,6 +101,10 @@ type LiveDie = {
 };
 
 const easeOutCubic = (t: number) => 1 - Math.pow(1 - t, 3);
+/** Camera move onto the deciding die: duration and how much closer it gets. */
+const FOCUS_SECONDS = 0.9;
+const FOCUS_ZOOM = 1.3;
+
 const easeInOut = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
 const easeOutBack = (t: number) => {
   const c1 = 1.4;
@@ -269,6 +273,12 @@ export class DiceStage {
   private shake = 0;
   /** Camera pitch in degrees: lower while dice fly, overhead once they rest. */
   private elevation = 56;
+  /**
+   * The die that decides the roll when several are thrown (advantage): once
+   * they rest the camera slides over and closes in on it. `start` is when
+   * that move began; Infinity until the dice settle.
+   */
+  private focus: { die: LiveDie; start: number } | null = null;
   private settleWaiters: (() => void)[] = [];
   private rng = mulberry32(Date.now() & 0xffff);
   private readonly opts: DiceStageOptions;
@@ -382,10 +392,13 @@ export class DiceStage {
     const lw = Math.max(80, this.layout.width);
     const lh = Math.max(80, this.layout.height);
     // Pixels per world unit that fit the tray (plus hover height) in the box.
-    const ppu = Math.min(lw / (2 * hx * 1.08), lh / ((2 * hz * Math.sin(elev) + 2.2 * Math.cos(elev)) * 1.1));
+    const k = this.focus ? easeInOut(Math.min(1, Math.max(0, (this.time - this.focus.start) / FOCUS_SECONDS))) : 0;
+    const ppu = Math.min(lw / (2 * hx * 1.08), lh / ((2 * hz * Math.sin(elev) + 2.2 * Math.cos(elev)) * 1.1)) * (1 + (FOCUS_ZOOM - 1) * k);
     const dist = H / (2 * ppu * Math.tan(fov / 2));
-    this.camera.position.set(0, Math.sin(elev) * dist, Math.cos(elev) * dist);
-    this.camera.lookAt(0, 0.25, 0);
+    const fx = this.focus ? this.focus.die.target.x * k : 0;
+    const fz = this.focus ? this.focus.die.target.z * k : 0;
+    this.camera.position.set(fx, Math.sin(elev) * dist, fz + Math.cos(elev) * dist);
+    this.camera.lookAt(fx, 0.25, fz);
     const cx = this.layout.x + this.layout.width / 2;
     const cy = this.layout.y + this.layout.height / 2;
     this.camera.setViewOffset(W, H, W / 2 - cx, H / 2 - cy, W, H);
@@ -509,8 +522,10 @@ export class DiceStage {
     }
     this.dice = [];
     this.tweens = [];
+    this.focus = null;
     this.verdictLight.intensity = 0;
     this.runeMat.opacity = 0;
+    this.rune.position.set(0, 0.004, 0);
     // The last verdict's tint (red after a fumble) must not carry over.
     this.runeMat.color.set(0xffcf6b);
   }
@@ -585,9 +600,10 @@ export class DiceStage {
   /**
    * Throws the dice onto the table. Dice already hovering/tossed continue
    * from where they are; otherwise they fly in from below the frame.
-   * Resolves once every die has come to rest.
+   * Resolves once every die has come to rest. `focus` names the die the
+   * camera closes in on after that, when there is more than one.
    */
-  throw(specs: StageDie[], opts: { from?: ThrowSide } = {}): Promise<void> {
+  throw(specs: StageDie[], opts: { from?: ThrowSide; focus?: number | null } = {}): Promise<void> {
     const reuse = this.dice.length === specs.length && this.dice.every((d, i) => d.spec.kind === specs[i].kind && (d.mode === "hover" || d.mode === "tossed"));
     const previous = reuse ? this.dice : [];
     if (!reuse) this.clearDice();
@@ -627,6 +643,8 @@ export class DiceStage {
         d.impactIndex = d.plan.impacts.length;
       }
     });
+    const focusDie = opts.focus != null && this.dice.length > 1 ? this.dice[opts.focus] : undefined;
+    this.focus = focusDie ? { die: focusDie, start: Infinity } : null;
     this.rune.scale.setScalar(this.runeRadius() * 2);
     this.tween(this.runeMat.opacity, 0.12, 0.6, (v) => (this.runeMat.opacity = v));
     this.tween(this.elevation, 54, 0.5, (v) => (this.elevation = v), easeInOut);
@@ -749,7 +767,8 @@ export class DiceStage {
     const camQuat = this.camera.quaternion.clone();
     this.elevation = saved;
     this.frame();
-    const to = new Vector3(d.target.x * 0.6, 1.25 + d.size, d.target.z + 0.6);
+    // A focused die rises on its own spot, the camera is already over it.
+    const to = new Vector3(this.focus?.die === d ? d.target.x : d.target.x * 0.6, 1.25 + d.size, d.target.z + 0.6);
     const camDir = camPos.sub(to).normalize();
     const camUp = new Vector3(0, 1, 0).applyQuaternion(camQuat);
     camUp.sub(camDir.clone().multiplyScalar(camUp.dot(camDir))).normalize();
@@ -850,6 +869,7 @@ export class DiceStage {
       waiters.forEach((w) => w());
       // Rise overhead so the resting faces read square-on.
       this.tween(this.elevation, this.restElevation(), 0.9, (v) => (this.elevation = v), easeInOut);
+      if (this.focus && this.focus.start === Infinity) this.focus.start = this.opts.reducedMotion ? -Infinity : this.time;
     }
 
     this.frame();
@@ -869,6 +889,8 @@ export class DiceStage {
         d.impactIndex = d.plan.impacts.length;
       }
     }
+    // The verdict follows at once: the camera must already be on the hero.
+    if (this.focus) this.focus.start = -Infinity;
   }
 
   private onContextLost = () => {

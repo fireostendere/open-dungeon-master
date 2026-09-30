@@ -128,6 +128,12 @@ export const DICE_SCENARIOS: DiceScenario[] = [
     roll: () => makeRoll({ kind: "skill_check", detail: "perception", expression: "2d20kh1+5", characterId: "pc-eira", dc: 12, advantage: "advantage" }),
   },
   {
+    id: "adv-crit",
+    label: "Преимущество: 20 и 13",
+    hint: "Камера наезжает на оставленный кубик",
+    roll: () => makeRoll({ kind: "skill_check", detail: "survival", expression: "2d20kh1+2", characterId: "pc-eira", dc: 15, advantage: "advantage", forced: [20, 13] }),
+  },
+  {
     id: "dis",
     label: "Помеха",
     hint: "Два d20, лучший гаснет",

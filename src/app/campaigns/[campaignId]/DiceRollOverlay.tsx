@@ -733,7 +733,7 @@ export function DiceRollOverlay({
       const land = () => {
         const stage = stageRef.current;
         if (stage && staged.dice.length) {
-          void stage.throw(staged.dice, { from: ctx?.throwFrom ?? "bottom" }).then(() => runTally(data, ctx));
+          void stage.throw(staged.dice, { from: ctx?.throwFrom ?? "bottom", focus: staged.hero }).then(() => runTally(data, ctx));
         } else {
           later(reducedMotion ? 0 : 900, () => runTally(data, ctx));
         }
