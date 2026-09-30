@@ -1,0 +1,25 @@
+{
+  "creatureId": "adult-gold-dragon",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-09-30",
+  "prompt": "Use case: stylized-concept. One original square dark-fantasy bestiary avatar, polished realistic painterly illustration, cinematic light, rich tactile detail. One adult dragon, face and head-and-neck dominate the square and remain readable at small size. No text, lettering, logo, watermark, border, collage, copied publisher art or artist imitation. An adult GOLD DRAGON with lustrous metallic GOLD scales, flexible whisker-like facial spines and long flowing barbels, backward-sweeping horns, TWO long neck frills and SAIL-LIKE wings beginning at shoulders. Noble calculating calm, dragon muzzle not human face. Original stable art direction: two main swept horns and two long prominent mouth barbels plus fine chin filaments. Surface is reflective metal, not opalescent; distinguish from wingless Imperial dragon. Normal02: lake guardian, low three-quarter close-up at waterline, wet metallic gold scales and long trailing barbels, sail-wing edge rising behind neck, cool blue lake reflections and subtle mist, thoughtful amber-gold eyes.",
+  "designReferences": [
+    {
+      "url": "https://wizkids.com/dd-icons-of-the-realms-adult-gold-dragon/",
+      "use": "Licensed whisker-like spines, swept-back horns, paired neck frills and sail wings"
+    },
+    {
+      "url": "https://www.dndbeyond.com/monsters/16769-adult-gold-dragon",
+      "use": "Core adult gold dragon identity"
+    },
+    {
+      "url": "https://a5e.tools/node/1588",
+      "use": "Official A5E gold scale identity; avoids asserting A5E breath for every edition"
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

@@ -1,0 +1,21 @@
+{
+  "creatureId": "adult-emerald-dragon-a5e",
+  "variantId": "03",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-09-30",
+  "prompt": "Use case: stylized-concept. One original square dark-fantasy bestiary avatar, polished realistic painterly illustration, cinematic light, rich tactile detail. One adult dragon, face and head-and-neck dominate the square and remain readable at small size. No text, lettering, logo, watermark, border, collage, copied publisher art or artist imitation. An adult A5E EMERALD DRAGON: multicolored scales with an original emerald-dominant faceted surface treatment, scintillating gemstone eyes, compact angular horn crown as an original consistent design choice, dragon muzzle and separate wings at shoulders. A living psychic gemstone dragon, not entirely transparent crystal, not a forest green dragon. It uses destructive SONIC and PSIONIC screaming, never poison gas. Normal03: buried mind, extreme eye-level frontal close portrait emerging from fractured gray stone, dirt caught between emerald and teal scales, focused gemstone stare, faint abstract psychic refractions, compact angular horns and folded wing edges, cold mineral light.",
+  "designReferences": [
+    {
+      "url": "https://a5e.tools/rules/gem-dragons",
+      "use": "Official A5E multicolored gem scales, gemstone eyes and wings"
+    },
+    {
+      "url": "https://a5e.tools/node/1567",
+      "use": "Official emerald sonic-psionic scream and activated red eye flash; horn design and emerald-dominant palette are original choices"
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

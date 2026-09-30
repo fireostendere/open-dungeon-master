@@ -1,0 +1,17 @@
+{
+  "creatureId": "adult-flame-dragon",
+  "variantId": "03",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-09-30",
+  "prompt": "Use case: stylized-concept. One original square dark-fantasy bestiary avatar, polished realistic painterly illustration, cinematic light, rich tactile detail. One adult dragon, face and head-and-neck dominate the square and remain readable at small size. No text, lettering, logo, watermark, border, collage, copied publisher art or artist imitation. An adult FLAME DRAGON from Tome of Beasts: CHARRED BLACK scales with dull RED LIGHT glowing between them. During a roar those seams blaze orange from neck toward mouth. Preserve mostly black scale surfaces, not a uniformly scarlet red dragon. Heated living body, functional dragon wings, claws and tail. Original design: two broad blunt swept-back charcoal horns, glowing amber eyes, low obsidian dorsal ridges. Normal03: trophy-room schemer, right side-three-quarter narrow smug expression beside a blurred melted-gold trophy in background, black scales under cold silver rimlight, dim internal red glow, broad swept horns, intelligent dangerous stillness rather than a breath blast.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/dragon-flame-adult-3pp/",
+      "use": "Licensed charred-black scales with red inner glow and orange ignition; wings and heated elemental nature"
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}
