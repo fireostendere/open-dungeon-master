@@ -2,7 +2,7 @@
 
 import * as Dialog from "@radix-ui/react-dialog";
 import { Loader2, X } from "lucide-react";
-import { type FormEvent, useEffect, useRef, useState } from "react";
+import { type FormEvent, type ReactNode, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { cn } from "@/lib/cn";
 import { ui } from "@/lib/ui";
 import {
@@ -21,6 +21,57 @@ import { localeText } from "@/lib/i18n/locale-text";
 // job the server never resolves cannot poll forever.
 const COVER_POLL_MS = 2500;
 const COVER_POLL_LIMIT = 240;
+
+// A labelled field. The label sits on its own line above the control, with an
+// optional counter on the right, so every control in the dialog lines up the
+// same way whatever the label length.
+function Field({ label, hint, className, children }: { label: string; hint?: ReactNode; className?: string; children: ReactNode }) {
+  return (
+    <label className={cn("flex min-w-0 flex-col gap-1.5", className)}>
+      <span className="flex items-baseline justify-between gap-2">
+        <span className="text-xs font-medium text-stone-300">{label}</span>
+        {hint ? <span className="text-[11px] tabular-nums text-stone-500">{hint}</span> : null}
+      </span>
+      {children}
+    </label>
+  );
+}
+
+// A textarea that grows to fit what is typed, so no line of the premise is
+// ever hidden behind an inner scrollbar (the text is larger on a phone).
+function AutoTextarea({ value, onChange, minRows, maxLength }: { value: string; onChange: (value: string) => void; minRows: number; maxLength: number }) {
+  const ref = useRef<HTMLTextAreaElement>(null);
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const fit = () => {
+      el.style.height = "auto";
+      el.style.height = `${el.scrollHeight + (el.offsetHeight - el.clientHeight)}px`;
+    };
+    fit();
+    window.addEventListener("resize", fit);
+    return () => window.removeEventListener("resize", fit);
+  }, [value]);
+  return (
+    <textarea
+      ref={ref}
+      value={value}
+      onChange={(event) => onChange(event.target.value)}
+      rows={minRows}
+      maxLength={maxLength}
+      className={cn(ui.input, "resize-none overflow-hidden leading-relaxed")}
+    />
+  );
+}
+
+function Section({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <section className="space-y-3 py-5 first:pt-0 last:pb-0">
+      <h3 className={ui.sectionEyebrow}>{title}</h3>
+      {children}
+    </section>
+  );
+}
 
 // Party-lead edit of the campaign's core settings, available in the lobby
 // and mid-game (the DM prompt reads them fresh each turn); game settings
@@ -45,8 +96,8 @@ export function EditCampaignDialog({
 }) {
   const { locale } = useI18n();
   const copy = localeText(locale, {
-    en: { title: "Edit campaign", name: "Title", description: "Premise", setting: "Setting", players: "Player slots", level: "Starting level", difficulty: "Difficulty", cover: "Cover art", upload: "Upload", painting: "Painting", paint: "Paint one", remove: "Remove", coverFailed: "The cover did not paint. Try again, or upload one.", save: "Save changes", status: "Campaign status", active: "Active", ended: "Ended (concluded)", outcome: "How did it end?", victory: "Victory", defeat: "Defeat", endNote: "Ending closes any running fight, unrolled dice and open questions." },
-    ru: { title: "Изменить кампанию", name: "Название", description: "Завязка", setting: "Сеттинг", players: "Места для игроков", level: "Стартовый уровень", difficulty: "Сложность", cover: "Обложка", upload: "Загрузить", painting: "Рисуем", paint: "Создать", remove: "Удалить", coverFailed: "Не удалось создать обложку. Повторите попытку или загрузите свою.", save: "Сохранить изменения", status: "Статус кампании", active: "В процессе", ended: "Завершена (финал)", outcome: "Чем всё закончилось?", victory: "Победа", defeat: "Поражение", endNote: "Завершение закроет идущий бой, неброшенные кубики и открытые вопросы." },
+    en: { title: "Edit campaign", close: "Close", subtitle: "Title, premise, setting and the rules of the table", basics: "Basics", table: "Table", difficulties: { easy: "Easy", normal: "Normal", hard: "Hard", deadly: "Deadly" }, name: "Title", description: "Premise", setting: "Setting", players: "Player slots", level: "Starting level", difficulty: "Difficulty", cover: "Cover art", upload: "Upload", painting: "Painting", paint: "Paint one", remove: "Remove", coverFailed: "The cover did not paint. Try again, or upload one.", save: "Save changes", status: "Campaign status", active: "Active", ended: "Ended (concluded)", outcome: "How did it end?", victory: "Victory", defeat: "Defeat", endNote: "Ending closes any running fight, unrolled dice and open questions." },
+    ru: { title: "Изменить кампанию", close: "Закрыть", subtitle: "Название, завязка, сеттинг и правила стола", basics: "Основное", table: "Стол", difficulties: { easy: "Лёгкая", normal: "Обычная", hard: "Высокая", deadly: "Смертельная" }, name: "Название", description: "Завязка", setting: "Сеттинг", players: "Места для игроков", level: "Стартовый уровень", difficulty: "Сложность", cover: "Обложка", upload: "Загрузить", painting: "Рисуем", paint: "Создать", remove: "Удалить", coverFailed: "Не удалось создать обложку. Повторите попытку или загрузите свою.", save: "Сохранить изменения", status: "Статус кампании", active: "В процессе", ended: "Завершена (финал)", outcome: "Чем всё закончилось?", victory: "Победа", defeat: "Поражение", endNote: "Завершение закроет идущий бой, неброшенные кубики и открытые вопросы." },
   });
   const [title, setTitle] = useState(campaign.title);
   const [description, setDescription] = useState(campaign.description);
@@ -195,216 +246,163 @@ export function EditCampaignDialog({
   }
 
   const inputClass = ui.input;
+  const segment = (on: boolean, tone: "amber" | "emerald" | "red" = "amber") =>
+    cn(
+      "min-h-10 flex-1 rounded-lg border px-3 py-2 text-sm font-medium transition",
+      on
+        ? tone === "emerald"
+          ? "border-emerald-500 bg-emerald-950/50 text-emerald-200"
+          : tone === "red"
+            ? "border-red-500 bg-red-950/50 text-red-200"
+            : "border-amber-500 bg-amber-950/60 text-amber-200 shadow-[0_0_15px_rgba(245,158,11,0.2)]"
+        : "border-stone-800 bg-stone-900/40 text-stone-400 hover:text-stone-200",
+    );
 
   return (
     <Dialog.Root open onOpenChange={(open) => !open && onClose()}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-black/60" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 max-h-[90vh] w-[min(92vw,28rem)] -translate-x-1/2 -translate-y-1/2 overflow-y-auto panel rounded-xl p-6">
-          <div className="mb-4 flex items-center justify-between">
-            <Dialog.Title className="font-display text-lg tracking-wide text-amber-50">
-              {copy.title}
-            </Dialog.Title>
-            <Dialog.Close className="rounded p-1 text-stone-400 hover:bg-stone-900">
+        <Dialog.Content className="panel fixed left-1/2 top-1/2 z-50 flex max-h-[92dvh] w-[min(94vw,36rem)] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-xl">
+          {/* The header and the save bar stay put; only the fields scroll. */}
+          <div className="flex shrink-0 items-start justify-between gap-4 border-b border-stone-800/70 px-5 py-4 sm:px-6">
+            <div className="min-w-0">
+              <Dialog.Title className="font-display text-lg tracking-wide text-amber-50">{copy.title}</Dialog.Title>
+              <Dialog.Description className="mt-0.5 text-xs text-stone-400">{copy.subtitle}</Dialog.Description>
+            </div>
+            <Dialog.Close className="-mr-1.5 -mt-0.5 rounded-lg p-2 text-stone-400 transition hover:bg-stone-900 hover:text-stone-200" aria-label={copy.close}>
               <X className="size-4" />
             </Dialog.Close>
           </div>
 
-          <form onSubmit={submit} className="space-y-4 text-sm">
-            <label className="block">
-              <span className="mb-1 block text-stone-400">{copy.name}</span>
-              <input
-                value={title}
-                onChange={(event) => setTitle(event.target.value)}
-                required
-                maxLength={80}
-                className={inputClass}
-              />
-            </label>
-            <label className="block">
-              <span className="mb-1 block text-stone-400">{copy.description}</span>
-              <textarea
-                value={description}
-                onChange={(event) => setDescription(event.target.value)}
-                rows={2}
-                maxLength={500}
-                className={inputClass}
-              />
-            </label>
-            <label className="block">
-              <span className="mb-1 block text-stone-400">{copy.setting}</span>
-              <input
-                value={theme}
-                onChange={(event) => setTheme(event.target.value)}
-                maxLength={120}
-                className={inputClass}
-              />
-            </label>
-            <div className="grid grid-cols-3 gap-3">
-              <label className="block">
-                <span className="mb-1 block text-stone-400">{copy.players}</span>
-                <input
-                  type="number"
-                  min={1}
-                  max={8}
-                  value={maxPlayers}
-                  onChange={(event) => setMaxPlayers(Number(event.target.value))}
-                  className={inputClass}
-                />
-              </label>
-              <label className="block">
-                <span className="mb-1 block text-stone-400">{copy.level}</span>
-                <input
-                  type="number"
-                  min={1}
-                  max={20}
-                  value={startingLevel}
-                  onChange={(event) => setStartingLevel(Number(event.target.value))}
-                  className={inputClass}
-                />
-              </label>
-              <label className="block">
-                <span className="mb-1 block text-stone-400">{copy.difficulty}</span>
-                <select
-                  value={difficulty}
-                  onChange={(event) => setDifficulty(event.target.value as CampaignDifficulty)}
-                  className={inputClass}
-                >
-                  {CAMPAIGN_DIFFICULTIES.map((value) => (
-                    <option key={value} value={value}>
-                      {value}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </div>
+          <form onSubmit={submit} className="flex min-h-0 flex-1 flex-col text-sm">
+            <div className="min-h-0 flex-1 divide-y divide-stone-800/60 overflow-y-auto overscroll-contain px-5 py-5 sm:px-6">
+              <Section title={copy.basics}>
+                <Field label={copy.name} hint={`${title.length}/80`}>
+                  <input value={title} onChange={(event) => setTitle(event.target.value)} required maxLength={80} className={inputClass} />
+                </Field>
+                <Field label={copy.description} hint={`${description.length}/500`}>
+                  <AutoTextarea value={description} onChange={setDescription} minRows={4} maxLength={500} />
+                </Field>
+                <Field label={copy.setting} hint={`${theme.length}/120`}>
+                  <AutoTextarea value={theme} onChange={setTheme} minRows={1} maxLength={120} />
+                </Field>
+              </Section>
 
-            <div>
-              <span className="mb-1 block text-stone-400">{copy.cover}</span>
-              <CampaignCover
-                cover={cover}
-                title={title || campaign.title}
-                genre={campaign.genre}
-                seed={campaign.id}
-                status={coverStatus}
-              />
-              <input
-                ref={fileInput}
-                type="file"
-                accept="image/png,image/jpeg,image/webp"
-                className="hidden"
-                onChange={(event) => {
-                  const file = event.target.files?.[0];
-                  event.target.value = "";
-                  if (file) {
-                    void uploadCover(file);
-                  }
-                }}
-              />
-              <div className="mt-2 flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  disabled={coverBusy || coverPending}
-                  onClick={() => fileInput.current?.click()}
-                  className={ui.btnSmall}
-                >
-                  {copy.upload}
-                </button>
-                {offersImages(capabilities) ? (
-                  <button
-                    type="button"
-                    disabled={coverBusy || coverPending}
-                    onClick={() => void coverRequest("POST")}
-                    className={ui.btnSmall}
-                  >
-                    {coverPending ? <Loader2 className="size-3.5 animate-spin" /> : null}
-                    {coverPending ? copy.painting : copy.paint}
-                  </button>
-                ) : null}
-                {cover ? (
-                  <button
-                    type="button"
-                    disabled={coverBusy || coverPending}
-                    onClick={() => void coverRequest("DELETE")}
-                    className={ui.btnSmall}
-                  >
-                    {copy.remove}
-                  </button>
-                ) : null}
-              </div>
-              {coverStatus === "failed" ? (
-                <p className="mt-1 text-xs text-red-400">
-                  {copy.coverFailed}
-                </p>
-              ) : null}
-              {coverError ? <p className="mt-1 text-xs text-red-400">{coverError}</p> : null}
-            </div>
-
-            {campaign.status === "active" || campaign.status === "ended" ? (
-              <div>
-                <label className="mb-1 block text-xs font-medium text-stone-300">
-                  {copy.status}
-                </label>
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setStatus("active")}
-                    className={cn(
-                      "flex-1 rounded-lg border px-3 py-2 text-xs font-medium transition",
-                      status === "active"
-                        ? "border-amber-500 bg-amber-950/60 text-amber-200"
-                        : "border-stone-800 bg-stone-900/40 text-stone-400 hover:text-stone-200",
-                    )}
-                  >
-                    {copy.active}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setStatus("ended")}
-                    className={cn(
-                      "flex-1 rounded-lg border px-3 py-2 text-xs font-medium transition",
-                      status === "ended"
-                        ? "border-amber-500 bg-amber-950/60 text-amber-200 shadow-[0_0_15px_rgba(245,158,11,0.2)]"
-                        : "border-stone-800 bg-stone-900/40 text-stone-400 hover:text-stone-200",
-                    )}
-                  >
-                    {copy.ended}
-                  </button>
-                </div>
-                {status === "ended" ? (
-                  <div className="mt-2">
-                    <p className="mb-1 text-xs text-stone-400">{copy.outcome}</p>
-                    <div className="flex gap-2">
-                      {(["victory", "defeat"] as const).map((value) => (
-                        <button
-                          key={value}
-                          type="button"
-                          onClick={() => setOutcome(value)}
-                          aria-pressed={outcome === value}
-                          className={cn(
-                            "flex-1 rounded-lg border px-3 py-2 text-xs font-medium transition",
-                            outcome === value
-                              ? value === "victory"
-                                ? "border-emerald-500 bg-emerald-950/50 text-emerald-200"
-                                : "border-red-500 bg-red-950/50 text-red-200"
-                              : "border-stone-800 bg-stone-900/40 text-stone-400 hover:text-stone-200",
-                          )}
-                        >
-                          {value === "victory" ? copy.victory : copy.defeat}
-                        </button>
+              <Section title={copy.table}>
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                  <Field label={copy.players}>
+                    <input
+                      type="number"
+                      inputMode="numeric"
+                      min={1}
+                      max={8}
+                      value={maxPlayers}
+                      onChange={(event) => setMaxPlayers(Number(event.target.value))}
+                      className={cn(inputClass, "h-10")}
+                    />
+                  </Field>
+                  <Field label={copy.level}>
+                    <input
+                      type="number"
+                      inputMode="numeric"
+                      min={1}
+                      max={20}
+                      value={startingLevel}
+                      onChange={(event) => setStartingLevel(Number(event.target.value))}
+                      className={cn(inputClass, "h-10")}
+                    />
+                  </Field>
+                  <Field label={copy.difficulty} className="col-span-2 sm:col-span-1">
+                    <select
+                      value={difficulty}
+                      onChange={(event) => setDifficulty(event.target.value as CampaignDifficulty)}
+                      className={cn(inputClass, "h-10")}
+                    >
+                      {CAMPAIGN_DIFFICULTIES.map((value) => (
+                        <option key={value} value={value}>
+                          {copy.difficulties[value]}
+                        </option>
                       ))}
-                    </div>
-                    {campaign.status !== "ended" ? <p className="mt-1 text-[11px] text-stone-500">{copy.endNote}</p> : null}
-                  </div>
-                ) : null}
-              </div>
-            ) : null}
+                    </select>
+                  </Field>
+                </div>
+              </Section>
 
-            {error ? <p className="text-red-400">{error}</p> : null}
-            <button type="submit" disabled={busy} className={cn(ui.btnPrimary, "w-full")}>
-              {busy ? <Loader2 className="size-4 animate-spin" /> : null}
-              {copy.save}
-            </button>
+              <Section title={copy.cover}>
+                <CampaignCover cover={cover} title={title || campaign.title} genre={campaign.genre} seed={campaign.id} status={coverStatus} />
+                <input
+                  ref={fileInput}
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  className="hidden"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    event.target.value = "";
+                    if (file) {
+                      void uploadCover(file);
+                    }
+                  }}
+                />
+                <div className="flex flex-wrap gap-2">
+                  <button type="button" disabled={coverBusy || coverPending} onClick={() => fileInput.current?.click()} className={ui.btnSmall}>
+                    {copy.upload}
+                  </button>
+                  {offersImages(capabilities) ? (
+                    <button type="button" disabled={coverBusy || coverPending} onClick={() => void coverRequest("POST")} className={ui.btnSmall}>
+                      {coverPending ? <Loader2 className="size-3.5 animate-spin" /> : null}
+                      {coverPending ? copy.painting : copy.paint}
+                    </button>
+                  ) : null}
+                  {cover ? (
+                    <button type="button" disabled={coverBusy || coverPending} onClick={() => void coverRequest("DELETE")} className={ui.btnSmall}>
+                      {copy.remove}
+                    </button>
+                  ) : null}
+                </div>
+                {coverStatus === "failed" ? <p className="text-xs text-red-400">{copy.coverFailed}</p> : null}
+                {coverError ? <p className="text-xs text-red-400">{coverError}</p> : null}
+              </Section>
+
+              {campaign.status === "active" || campaign.status === "ended" ? (
+                <Section title={copy.status}>
+                  <div className="flex gap-2">
+                    <button type="button" aria-pressed={status === "active"} onClick={() => setStatus("active")} className={segment(status === "active")}>
+                      {copy.active}
+                    </button>
+                    <button type="button" aria-pressed={status === "ended"} onClick={() => setStatus("ended")} className={segment(status === "ended")}>
+                      {copy.ended}
+                    </button>
+                  </div>
+                  {status === "ended" ? (
+                    <div className="space-y-2">
+                      <p className="text-xs font-medium text-stone-300">{copy.outcome}</p>
+                      <div className="flex gap-2">
+                        {(["victory", "defeat"] as const).map((value) => (
+                          <button
+                            key={value}
+                            type="button"
+                            onClick={() => setOutcome(value)}
+                            aria-pressed={outcome === value}
+                            className={segment(outcome === value, value === "victory" ? "emerald" : "red")}
+                          >
+                            {value === "victory" ? copy.victory : copy.defeat}
+                          </button>
+                        ))}
+                      </div>
+                      {campaign.status !== "ended" ? <p className="text-[11px] text-stone-500">{copy.endNote}</p> : null}
+                    </div>
+                  ) : null}
+                </Section>
+              ) : null}
+            </div>
+
+            <div className="shrink-0 space-y-2 border-t border-stone-800/70 bg-stone-950/40 px-5 py-4 sm:px-6">
+              {error ? <p className="text-red-400">{error}</p> : null}
+              <button type="submit" disabled={busy} className={cn(ui.btnPrimary, "w-full")}>
+                {busy ? <Loader2 className="size-4 animate-spin" /> : null}
+                {copy.save}
+              </button>
+            </div>
           </form>
         </Dialog.Content>
       </Dialog.Portal>
