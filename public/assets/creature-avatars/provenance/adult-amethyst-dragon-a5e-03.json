@@ -1,0 +1,21 @@
+{
+  "creatureId": "adult-amethyst-dragon-a5e",
+  "variantId": "03",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-09-30",
+  "prompt": "Use case: stylized-concept. Asset type: one original square bestiary avatar. Polished dark-fantasy realistic painterly art, rich tactile scales, dramatic cinematic lighting. One adult dragon only, head and upper body dominate square frame, facial anatomy clear. Conventional body plan of four legs, two separate wings and one tail, mostly outside crop. No text, letters, logo, watermark, border, collage, copied source artwork or artist imitation. Subject: an adult A5E Amethyst Dragon, controlled and calculating psychic gemstone dragon. Angular lustrous multicolored scales in a chosen violet, amethyst and indigo palette, sparkling gemstone eyes. Original design choice: two attached swept-back faceted crystal horns and a low crystalline head ridge; no floating horn fragments. Powerful long dragon muzzle, not a humanoid face. Psionic effects appear as subtle transparent pressure distortions. Normal03: concussive sentinel, low-angle right side-three-quarter close portrait, chin raised, jaws slightly open as a transparent telekinetic pressure ring distorts floating dust beside its mouth. Pale lavender neck plates and dark purple facial scales, two attached swept-back horns, cold moonlit mountain ruins behind.",
+  "designReferences": [
+    {
+      "url": "https://a5e.tools/node/1563",
+      "use": "Official adult A5E psionic amethyst dragon, telekinetic breath; palette and attached horn design are original choices"
+    },
+    {
+      "url": "https://a5e.tools/rules/gem-dragons",
+      "use": "A5E lustrous multicolored scales and gemstone eyes"
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

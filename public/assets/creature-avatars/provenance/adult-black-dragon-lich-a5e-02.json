@@ -1,0 +1,21 @@
+{
+  "creatureId": "adult-black-dragon-lich-a5e",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-09-30",
+  "prompt": "Use case: stylized-concept. Asset type: one original square bestiary avatar. Polished dark-fantasy realistic painterly art, rich tactile scales, dramatic cinematic lighting. One adult dragon only, head and upper body dominate square frame, facial anatomy clear. Conventional body plan of four legs, two separate wings and one tail, mostly outside crop. No text, letters, logo, watermark, border, collage, copied source artwork or artist imitation. Subject: an adult A5E Black Dragon Lich, an undead black dragon with an unmistakably exposed dragon skeleton. Elongated skull-like dragon muzzle, exactly TWO main side horns curved forward, exposed pale old bone, empty nasal opening, visible cervical vertebrae, pinprick unnatural cold eye lights, deteriorating remnants of black scaled hide and ragged wing membrane. Not a living dragon, no human skull, no fresh gore. Acid and necrotic breath, treasured jeweled soul vessel motif. Normal02: last remnants, left three-quarter portrait, one cheek still covered in shriveled black scales and the other entirely exposed aged bone, visible gaps between cervical vertebrae and ragged wing remnants. Subdued green necrotic haze lit from below, oppressive ruined mausoleum setting.",
+  "designReferences": [
+    {
+      "url": "https://a5e.tools/node/1524",
+      "use": "Official adult black dragon lich, skeletal transformation, acid-necrotic breath and soul vessel"
+    },
+    {
+      "url": "https://a5e.tools/rules/dragon-lich-template",
+      "use": "A5E dragon lich undead identity and fading flesh/scales"
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}
