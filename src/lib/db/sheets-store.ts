@@ -258,6 +258,7 @@ export function createSheet(
     ? input.ac
     : deriveAc({
         class: input.class,
+        race: input.race,
         level,
         classes: classList.length > 1 ? classList : undefined,
         abilities: input.abilities,
@@ -585,6 +586,7 @@ export function patchSheet(sheetId: string, patch: FullPatchSheetInput): Charact
   if (!next.acOverride) {
     next.ac = deriveAc({
       class: next.class,
+      race: next.race,
       level: next.level,
       classes: next.classes.length ? next.classes : undefined,
       abilities: next.abilities,

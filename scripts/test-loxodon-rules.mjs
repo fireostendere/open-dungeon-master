@@ -1,5 +1,13 @@
 import assert from "node:assert/strict";
 import { register } from "node:module";
+import { randomBytes } from "node:crypto";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+
+const dir = fs.mkdtempSync(path.join(os.tmpdir(), "odm-loxodon-"));
+process.env.SQLITE_DB_PATH = path.join(dir, "test.sqlite");
+process.env.DB_ENCRYPTION_KEY = randomBytes(32).toString("hex");
 
 register("./lib/register-alias.mjs", import.meta.url);
 
@@ -133,4 +141,30 @@ assert.ok(describeFeature("wizard", "School of Necromancy", "Grim Harvest", "ru"
 assert.equal(describeContentEntry({ desc: "English", desc_ru: "Русское описание" }, "ru"), "Русское описание");
 assert.equal(hasLoxodonSerenity({ race: "Loxodon" }), true);
 assert.equal(hasLoxodonKeenSmell({ race: "Loxodon" }), true);
+
+const { getDatabase } = await import("../src/lib/db/core.ts");
+const { createUser } = await import("../src/lib/db/users.ts");
+const { createCampaign } = await import("../src/lib/db/campaigns.ts");
+const { createSheet, patchSheet } = await import("../src/lib/db/sheets.ts");
+const { createSheetSchema } = await import("../src/lib/schemas/sheet.ts");
+try {
+  const user = createUser("loxodon-test", "test");
+  const campaign = createCampaign(user.id, {
+    title: "Loxodon AC", description: "", theme: "", maxPlayers: 1, startingLevel: 3, difficulty: "normal",
+  });
+  const sheet = createSheet(campaign.id, user.id, 3, createSheetSchema.parse({
+    name: "Kak", race: "loxodon", class: "wizard", maxHp: 23, ac: 15, acOverride: false,
+    abilities: { str: 8, dex: 12, con: 16, int: 15, wis: 14, cha: 10 },
+    hitDice: { die: "d6", total: 3, spent: 0 },
+    proficiencies: { saves: ["int", "wis"], skills: [], languages: [], tools: [], armor: [], weapons: [] },
+  }));
+  assert.equal(sheet.ac, 15, "creation passes the race into the AC engine");
+  assert.equal(patchSheet(sheet.id, { abilities: { ...sheet.abilities, con: 18 } }).ac, 16,
+    "patching recomputes Natural Armor from CON");
+  assert.equal(patchSheet(sheet.id, { race: "human", features: [] }).ac, 11,
+    "changing race must not retain Loxodon Natural Armor");
+} finally {
+  getDatabase().close();
+  fs.rmSync(dir, { recursive: true, force: true });
+}
 console.log("PASS Loxodon catalog, traits, AC, Powerful Build and Russian help coverage");
