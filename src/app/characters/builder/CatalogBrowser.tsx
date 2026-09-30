@@ -4,7 +4,7 @@ import { Check, ChevronDown, ChevronRight, Loader2, Plus } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { InfoButton } from "@/components/ui/InfoDialog";
 import { cn } from "@/lib/cn";
-import { contentSlug, describeContentEntry, spellSummary } from "@/lib/help";
+import { contentSlug, describeContentEntry, localizedContentName, spellSummary } from "@/lib/help";
 import type { PickerEntry } from "./useContentSearch";
 import { useI18n } from "@/lib/i18n/context";
 import { localeText } from "@/lib/i18n/locale-text";
@@ -360,7 +360,7 @@ export default function CatalogBrowser({
                                           entry.source === "homebrew" && !on && "text-amber-300",
                                         )}
                                       >
-                                        {entry.name}
+                                        {localizedContentName(kind, entry.name, locale)}
                                       </span>
                                     </span>
                                     <span className="shrink-0 text-[11px] text-stone-500">
@@ -372,9 +372,9 @@ export default function CatalogBrowser({
                                   {/* The row already carries the full entry, so
                                       reading it before adding costs nothing. */}
                                   <InfoButton
-                                    label={entry.name}
+                                    label={localizedContentName(kind, entry.name, locale)}
                                     meta={kind === "spells" ? spellSummary(entry.data) : undefined}
-                                    text={describeContentEntry(entry.data)}
+                                    text={describeContentEntry(entry.data, locale, { kind, name: entry.name, slug: entry.slug })}
                                     reference={
                                       entry.source === "homebrew"
                                         ? undefined

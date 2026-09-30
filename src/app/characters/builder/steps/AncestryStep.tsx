@@ -2,7 +2,7 @@
 
 import { InfoButton } from "@/components/ui/InfoDialog";
 import { STANDARD_LANGUAGES } from "@/lib/content/mechanics";
-import { describeRace } from "@/lib/help";
+import { describeRace, localizedRaceName } from "@/lib/help";
 import OptionPicker, { type PickerGroup } from "../OptionPicker";
 import { RacialChoicesSection } from "../RacialChoicesSection";
 import type { BackgroundOption, RaceOption } from "../useBuilderOptions";
@@ -12,8 +12,13 @@ import { Field, StepPanel, inputClass } from "./shared";
 import { useI18n } from "@/lib/i18n/context";
 import { localeText } from "@/lib/i18n/locale-text";
 
-function languageHelp(race: RaceOption, background: BackgroundOption | undefined, copy: { speaks: string; and: string; plus: string; choice: string; more: string; fromBackground: string }): string {
-  const parts = [`${race.name} ${copy.speaks} ${race.languages.join(` ${copy.and} `)}`];
+function languageHelp(
+  race: RaceOption,
+  background: BackgroundOption | undefined,
+  copy: { speaks: string; and: string; plus: string; choice: string; more: string; fromBackground: string },
+  raceName: string,
+): string {
+  const parts = [`${raceName} ${copy.speaks} ${race.languages.join(` ${copy.and} `)}`];
   if (race.bonusLanguages > 0) {
     parts.push(`${copy.plus} ${race.bonusLanguages} ${copy.choice}`);
   }
@@ -60,8 +65,8 @@ export function AncestryStep({
             <span className="mt-1 flex items-start gap-1 text-xs text-stone-500">
               <span className="line-clamp-2 grow">{race.note}</span>
               <InfoButton
-                label={race.name}
-                text={describeRace(race.id) ?? race.note}
+                  label={localizedRaceName(race.id, race.name, locale)}
+                 text={describeRace(race.id, locale) ?? race.note}
                 reference={{ kind: "races", slug: race.id }}
               />
             </span>
@@ -80,7 +85,7 @@ export function AncestryStep({
               />
             </span>
           }
-           help={languageHelp(race, background, copy)}
+           help={languageHelp(race, background, copy, localizedRaceName(race.id, race.name, locale))}
         >
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             {Array.from({ length: languageCount }, (_, index) => (

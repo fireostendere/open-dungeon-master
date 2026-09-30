@@ -22,6 +22,7 @@ import { usePackArt } from "@/lib/worlds/use-pack-art";
 import { useI18n } from "@/lib/i18n";
 import { localeText } from "@/lib/i18n/locale-text";
 import { characterDisplay } from "@/lib/i18n/character-display";
+import { localizedRaceName } from "@/lib/help";
 
 // Mid-game physical-dice opt-in/out; the same per-member preference the
 // Lobby toggle writes. Turning it ON means the DM pauses on your rolls and
@@ -356,7 +357,7 @@ export function PartyPanel({
                   ) : null}
                 </span>
                 <span className="block text-xs text-stone-400">
-                   {characterDisplay(sheet.race, locale)}{" "}
+                    {localizedRaceName(sheet.race, sheet.race, locale)}{" "}
                   {(sheet.classes?.length ?? 0) > 1
                      ? (sheet.classes ?? []).map((entry) => `${characterDisplay(entry.id, locale)} ${entry.level}`).join(" / ")
                      : `${characterDisplay(sheet.class, locale)} ${sheet.level}`}

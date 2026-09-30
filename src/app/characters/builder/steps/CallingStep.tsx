@@ -2,7 +2,13 @@
 
 import { GameTerm } from "@/components/ui/GameTerm";
 import { InfoButton } from "@/components/ui/InfoDialog";
-import { describeFeature, describeSkill } from "@/lib/help";
+import {
+  describeFeature,
+  describeSkill,
+  describeSubclass,
+  localizedFeatureName,
+  localizedSubclassName,
+} from "@/lib/help";
 import { SRD_SKILLS } from "@/lib/srd";
 import { displayName } from "@/lib/worlds/reskin-logic";
 import type { WorldPack } from "@/lib/worlds/types";
@@ -14,6 +20,7 @@ import { ClassChoices } from "./ClassChoices";
 import { Field, PickPill, StepPanel, inputClass } from "./shared";
 import { useI18n } from "@/lib/i18n/context";
 import { localeText } from "@/lib/i18n/locale-text";
+import { characterDisplay } from "@/lib/i18n/character-display";
 
 // Step 3: the class, its subclass once the level allows one, what the pair
 // grants at this level, and the class skill picks. Expertise, fighting
@@ -72,7 +79,7 @@ export function CallingStep({
                 </>
               ) : null}
               <InfoButton
-                label={klass.name}
+                label={characterDisplay(klass.name, locale)}
                 text={klass.blurb || klass.desc}
                 reference={{ kind: "classes", slug: klass.id }}
               />
@@ -97,8 +104,8 @@ export function CallingStep({
                        : copy.specialization}
                   </span>
                   <InfoButton
-                    label={subclass}
-                    text={chosenArchetype?.desc}
+                    label={localizedSubclassName(klass?.id ?? "", subclass, locale)}
+                    text={describeSubclass(klass?.id ?? "", subclass, locale) ?? chosenArchetype?.desc}
                     reference={
                       chosenArchetype ? { kind: "archetypes", slug: chosenArchetype.id } : undefined
                     }
@@ -126,11 +133,13 @@ export function CallingStep({
                 key={`${feature.name}-${feature.level ?? 0}`}
                 className="flex items-center gap-1 text-xs text-stone-300"
               >
-                {displayName(pack, "features", feature.name)}
+                {localizedFeatureName(klass?.id ?? "", subclass, feature.name, locale) === feature.name
+                  ? characterDisplay(displayName(pack, "features", feature.name), locale)
+                  : localizedFeatureName(klass?.id ?? "", subclass, feature.name, locale)}
                 <InfoButton
                   label={feature.name}
                    meta={feature.level ? `${copy.level} ${feature.level}` : undefined}
-                  text={klass ? describeFeature(klass.id, subclass, feature.name) : null}
+                  text={klass ? describeFeature(klass.id, subclass, feature.name, locale) : null}
                 />
               </span>
             ))}

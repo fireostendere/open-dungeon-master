@@ -5,7 +5,8 @@ import { useEffect, useRef } from "react";
 import { Loader2, Search } from "lucide-react";
 import { InfoButton } from "@/components/ui/InfoDialog";
 import { cn } from "@/lib/cn";
-import { describeContentEntry, spellSummary } from "@/lib/help";
+import { describeContentEntry, localizedContentName, spellSummary } from "@/lib/help";
+import { useI18n } from "@/lib/i18n/context";
 import { useContentSearch, type PickerEntry } from "@/app/characters/builder/useContentSearch";
 
 // Search-and-pick over the content pack (/api/content/<kind>): spells,
@@ -39,6 +40,7 @@ export function ContentPick({
   extraParams?: Record<string, string>;
 }) {
   const uiText = useInlineText();
+  const { locale } = useI18n();
   const { query, setQuery, results, open, setOpen, loading, unavailable } = useContentSearch(
     kind,
     extraParams ?? {},
@@ -91,15 +93,17 @@ export function ContentPick({
                 }}
                 className="flex grow items-center justify-between gap-2 px-3 py-1.5 text-left text-sm"
               >
-                <span className={cn(entry.source === "homebrew" && "text-amber-300")}>{entry.name}</span>
+                <span className={cn(entry.source === "homebrew" && "text-amber-300")}>
+                  {localizedContentName(kind, entry.name, locale)}
+                </span>
                 <span className="text-[11px] text-stone-500">
                   {entry.level !== undefined ? uiText("Level {level}", { level: entry.level }) : entry.rarity || entry.kind || ""}
                 </span>
               </button>
               <InfoButton
-                label={entry.name}
+                label={localizedContentName(kind, entry.name, locale)}
                 meta={kind === "spells" ? spellSummary(entry.data) : undefined}
-                text={describeContentEntry(entry.data)}
+                text={describeContentEntry(entry.data, locale, { kind, name: entry.name, slug: entry.slug })}
                 reference={
                   entry.source === "homebrew" ? undefined : { kind, slug: entry.slug, name: entry.name }
                 }

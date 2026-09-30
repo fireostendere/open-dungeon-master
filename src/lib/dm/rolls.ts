@@ -8,11 +8,20 @@ import {
   halfProficiencyCovers,
   hasBrave,
   hasHalflingLuck,
+  hasLoxodonKeenSmell,
+  hasLoxodonSerenity,
 } from "@/lib/srd/feature-effects";
 import { normalizeAbility, normalizeAdvantage, normalizeRollKind } from "@/lib/dm/arg-coerce";
 import { dcForDifficulty, normalizeDifficulty } from "@/lib/srd/dc";
 import { DM_TOOL_NAME_PATTERN, toolTextRegex, xmlToolCallRegex } from "@/lib/dm/tool-text";
-import { acBreakdownFor, computeSheetDerived, findSkill, SRD_SKILLS } from "@/lib/srd";
+import {
+  acBreakdownFor,
+  computeSheetDerived,
+  findSkill,
+  powerfulBuildForRace,
+  SRD_SKILLS,
+  sizeForRace,
+} from "@/lib/srd";
 import type { CharacterSheet } from "@/lib/schemas/sheet";
 
 type StreamedToolCall = {
@@ -498,6 +507,16 @@ export function resolveRollExpression(
     derivationKind === "saving_throw" &&
     /frighten|fear/i.test(args.against ?? "") &&
     Boolean(sheet && hasBrave(sheet));
+  const serenitySave =
+    derivationKind === "saving_throw" &&
+    /charm|frighten|fear/i.test(args.against ?? "") &&
+    Boolean(sheet && hasLoxodonSerenity(sheet));
+  const skillId = (args.skill ?? "").trim().toLowerCase().replace(/[\s-]+/g, "_");
+  const keenSmellCheck =
+    derivationKind === "skill_check" &&
+    ["perception", "survival", "investigation"].includes(skillId) &&
+    /smell|scent|odor|odour|запах|обонян|нюх/i.test(args.reason ?? "") &&
+    Boolean(sheet && hasLoxodonKeenSmell(sheet));
   // What the character is wearing, for the armor rules below. Test doubles
   // and partial sheets without equipment skip these.
   const wornBreakdown =
@@ -518,6 +537,8 @@ export function resolveRollExpression(
           strength: sheet.abilities.str,
           equipment: sheet.equipment ?? [],
           coins: sheet.gold ?? 0,
+          size: sizeForRace(sheet.race),
+          powerfulBuild: powerfulBuildForRace(sheet.race),
         })
       : null;
   const overloaded =
@@ -546,6 +567,7 @@ export function resolveRollExpression(
     ...(helped ? ["advantage" as const] : []),
     ...(dangerSense ? ["advantage" as const] : []),
     ...(braveSave ? ["advantage" as const] : []),
+    ...(serenitySave || keenSmellCheck ? ["advantage" as const] : []),
     ...(armorUntrained ? ["disadvantage" as const] : []),
     ...(overloaded ? ["disadvantage" as const] : []),
   ]);
@@ -567,6 +589,8 @@ export function resolveRollExpression(
     ...(helped ? ["spends the Help their ally gave them: advantage"] : []),
     ...(dangerSense ? [`Danger Sense: advantage on ${derivationAbility?.toUpperCase()} saves`] : []),
     ...(braveSave ? ["Brave: advantage on saves against being frightened"] : []),
+    ...(serenitySave ? ["Loxodon Serenity: advantage on saves against being charmed or frightened"] : []),
+    ...(keenSmellCheck ? ["Keen Smell: advantage on this smell-based check"] : []),
     ...(armorUntrained
       ? ["wearing armor they are not trained in: disadvantage on STR and DEX rolls"]
       : []),

@@ -115,9 +115,10 @@ export function encumbranceFor(input: {
   equipment: CarriedItem[];
   coins?: number;
   size?: string;
+  powerfulBuild?: boolean;
 }): Encumbrance {
   const strength = Math.max(1, Math.floor(input.strength || 1));
-  const multiplier = carryMultiplier(input.size);
+  const multiplier = carryMultiplier(input.size) * (input.powerfulBuild ? 2 : 1);
   const { pounds, unweighed } = carriedWeight(input.equipment ?? [], input.coins ?? 0);
   const encumberedAtLb = round2(strength * 5 * multiplier);
   const heavilyEncumberedAtLb = round2(strength * 10 * multiplier);

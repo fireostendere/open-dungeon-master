@@ -7,7 +7,7 @@ import { Dices, Loader2, Search, Sparkles, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { cn } from "@/lib/cn";
 import { InfoButton, InfoChipList } from "@/components/ui/InfoDialog";
-import { describeFeature, describeSkill } from "@/lib/help";
+import { describeFeature, describeSkill, localizedFeatureName } from "@/lib/help";
 import {
   openOptionSlots,
   optionFeatureName,
@@ -572,8 +572,8 @@ export function LevelUpDialog({
                   <p className="mb-1 text-xs text-amber-200">{copy.newAt.replace("{level}", String(targetLevel))}</p>
                   <InfoChipList
                     items={newFeatureNames.map((name) => ({
-                      name,
-                      text: describeFeature(classChoice, effectiveSubclass, name),
+                      name: localizedFeatureName(classChoice, effectiveSubclass, name, locale),
+                      text: describeFeature(classChoice, effectiveSubclass, name, locale),
                     }))}
                   />
                 </div>

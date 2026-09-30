@@ -4,7 +4,7 @@ import { Loader2, Plus } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { cn } from "@/lib/cn";
 import { InfoButton } from "@/components/ui/InfoDialog";
-import { describeContentEntry, spellSummary } from "@/lib/help";
+import { describeContentEntry, localizedContentName, spellSummary } from "@/lib/help";
 import { useContentSearch, type PickerEntry } from "./useContentSearch";
 import { useI18n } from "@/lib/i18n/context";
 import { localeText } from "@/lib/i18n/locale-text";
@@ -100,7 +100,7 @@ export default function ContentPicker({
                   <span
                     className={cn(entry.source === "homebrew" && "text-amber-300")}
                   >
-                    {entry.name}
+                    {localizedContentName(kind, entry.name, locale)}
                   </span>
                 </span>
                 <span className="shrink-0 text-xs text-stone-500">
@@ -112,9 +112,9 @@ export default function ContentPicker({
               {/* The row already carries the full entry, so reading a spell
                   before adding it costs no extra request. */}
               <InfoButton
-                label={entry.name}
+                label={localizedContentName(kind, entry.name, locale)}
                 meta={kind === "spells" ? spellSummary(entry.data) : undefined}
-                text={describeContentEntry(entry.data)}
+                text={describeContentEntry(entry.data, locale, { kind, name: entry.name, slug: entry.slug })}
                 reference={
                   entry.source === "homebrew" ? undefined : { kind, slug: entry.slug }
                 }

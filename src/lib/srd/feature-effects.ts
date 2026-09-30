@@ -932,6 +932,26 @@ export function hasBrave(sheet: {
   });
 }
 
+export function hasLoxodonSerenity(sheet: {
+  race?: string;
+  features?: Array<{ name: string; source?: string }>;
+}): boolean {
+  if ((sheet.race ?? "").toLowerCase().includes("loxodon")) return true;
+  return (sheet.features ?? []).some((feature) =>
+    feature.name.toLowerCase().includes("loxodon serenity"),
+  );
+}
+
+export function hasLoxodonKeenSmell(sheet: {
+  race?: string;
+  features?: Array<{ name: string; source?: string }>;
+}): boolean {
+  if ((sheet.race ?? "").toLowerCase().includes("loxodon")) return true;
+  return (sheet.features ?? []).some((feature) =>
+    feature.name.toLowerCase().includes("keen smell"),
+  );
+}
+
 // Elven Accuracy (feat): with advantage on an attack roll using Dexterity,
 // Intelligence, Wisdom, or Charisma, reroll one of the dice, i.e. roll a
 // third d20 and keep the highest. The caller gates it on the attack ability.

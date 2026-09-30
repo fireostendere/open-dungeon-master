@@ -10,7 +10,7 @@ import { computeSheetDerived } from "@/lib/srd";
 import { saveModFor } from "@/lib/bestiary/statblock";
 import { allySaveAura } from "@/lib/dm/aura";
 import { tickConditions } from "@/lib/dm/condition-logic";
-import { hasBrave } from "@/lib/srd/feature-effects";
+import { hasBrave, hasLoxodonSerenity } from "@/lib/srd/feature-effects";
 import { tickEffectRound } from "@/lib/db/active-effects";
 import { publishEncounter } from "@/lib/dm/enemy-damage";
 
@@ -87,7 +87,8 @@ export function tickEncounterConditions(campaign: Campaign, encounter: Encounter
       const saveMod = computeSheetDerived(sheet).saves[due.ability] + (aura?.bonus ?? 0);
       // Brave: advantage on the save to shake off being frightened.
       const brave = due.name.toLowerCase().includes("frighten") && hasBrave(sheet);
-      const advantage = brave ? "advantage" : "none";
+      const serenity = /charm|frighten|fear/i.test(due.name) && hasLoxodonSerenity(sheet);
+      const advantage = brave || serenity ? "advantage" : "none";
       const outcome = rollExpression(d20Expression(saveMod, advantage));
       const roll = insertRoll({
         campaignId: campaign.id,
@@ -95,10 +96,10 @@ export function tickEncounterConditions(campaign: Campaign, encounter: Encounter
         requestedBy: "dm",
         kind: "saving_throw",
         detail: `${due.ability.toUpperCase()} save to end ${due.name}${
-          brave ? " (Brave: advantage)" : ""
+          brave ? " (Brave: advantage)" : serenity ? " (Loxodon Serenity: advantage)" : ""
         }`,
         dc: due.dc,
-        ...(brave ? { advantage: "advantage" as const } : {}),
+        ...(brave || serenity ? { advantage: "advantage" as const } : {}),
         result: outcome,
       });
       publishWithSeq(campaign.id, allocateSeq(campaign.id), "roll_result", {

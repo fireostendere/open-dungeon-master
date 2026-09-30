@@ -5,6 +5,7 @@ import { Info, Loader2 } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { cn } from "@/lib/cn";
 import { Dialog } from "@/components/ui/Dialog";
+import { useI18n } from "@/lib/i18n";
 
 // The "what does this do?" affordance, used everywhere a game term appears.
 //
@@ -109,6 +110,7 @@ export function renderRules(text: string): ReactNode {
 // with forty spells on it costs nothing until one is actually inspected.
 function ContentBody({ reference }: { reference: ContentRef }) {
   const uiText = useInlineText();
+  const { locale } = useI18n();
   const [state, setState] = useState<{ text: string | null; loading: boolean }>({
     text: null,
     loading: true,
@@ -124,7 +126,11 @@ function ContentBody({ reference }: { reference: ContentRef }) {
         );
         if (response.ok) {
           const data = await response.json();
-          const text = describeContentEntry(data?.entry?.data);
+          const text = describeContentEntry(data?.entry?.data, locale, {
+            kind: reference.kind,
+            name: reference.name,
+            slug: reference.slug,
+          });
           if (text) {
             if (!cancelled) {
               setState({ text, loading: false });
@@ -143,7 +149,14 @@ function ContentBody({ reference }: { reference: ContentRef }) {
           (entry: { name: string }) => entry.name.trim().toLowerCase() === wanted,
         );
         if (!cancelled) {
-          setState({ text: describeContentEntry(hit?.data), loading: false });
+          setState({
+            text: describeContentEntry(hit?.data, locale, {
+              kind: reference.kind,
+              name: reference.name,
+              slug: reference.slug,
+            }),
+            loading: false,
+          });
         }
       } catch {
         if (!cancelled) {
@@ -155,7 +168,7 @@ function ContentBody({ reference }: { reference: ContentRef }) {
     return () => {
       cancelled = true;
     };
-  }, [reference.kind, reference.slug, reference.name]);
+  }, [reference.kind, reference.slug, reference.name, locale]);
 
   if (state.loading) {
     return (

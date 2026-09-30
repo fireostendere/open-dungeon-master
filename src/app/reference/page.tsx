@@ -10,6 +10,7 @@ import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import {
   describeContentEntry,
   glossaryTerms,
+  localizedContentName,
   spellSummary,
   type GlossaryTerm,
 } from "@/lib/help";
@@ -160,9 +161,9 @@ export default function ReferencePage() {
 
   function openRow(row: Row) {
     setOpen({
-      title: row.name,
+      title: localizedContentName(kind, row.name, locale),
       meta: kind === "spells" ? spellSummary(row.data) : undefined,
-      text: describeContentEntry(row.data) ?? copy.noDescription,
+      text: describeContentEntry(row.data, locale, { kind, name: row.name, slug: row.slug }) ?? copy.noDescription,
     });
   }
 

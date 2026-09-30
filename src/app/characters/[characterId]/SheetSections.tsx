@@ -6,7 +6,14 @@ import { GameTerm } from "@/components/ui/GameTerm";
 import { InfoChipList } from "@/components/ui/InfoDialog";
 import { Ribbon } from "@/components/ui/Ribbon";
 import { cn } from "@/lib/cn";
-import { contentSlug, describeFeature } from "@/lib/help";
+import {
+  contentSlug,
+  describeFeature,
+  describeRaceTrait,
+  localizedContentName,
+  localizedFeatureName,
+  localizedRaceTraitName,
+} from "@/lib/help";
 import type { CreateSheetInput } from "@/lib/schemas/sheet";
 import { abilityMod, formatModifier } from "@/lib/srd";
 import { ui } from "@/lib/ui";
@@ -94,7 +101,7 @@ export function SheetSections({ sheet }: { sheet: CreateSheetInput }) {
             items={[
               ...new Set([...sheet.spellcasting.known, ...sheet.spellcasting.prepared]),
             ].map((spell) => ({
-              name: spell,
+              name: localizedContentName("spells", spell, locale),
               reference: { kind: "spells", slug: contentSlug(spell), name: spell },
             }))}
              emptyText={copy.none}
@@ -116,10 +123,16 @@ export function SheetSections({ sheet }: { sheet: CreateSheetInput }) {
          <SheetPanel title={copy.features}>
           <InfoChipList
             items={sheet.features.map((feature) => ({
-              name: feature.name,
+              name: feature.source === "race"
+                ? localizedRaceTraitName(feature.name, locale)
+                : localizedFeatureName(sheet.class, sheet.subclass, feature.name, locale) === feature.name
+                  ? characterDisplay(feature.name, locale)
+                  : localizedFeatureName(sheet.class, sheet.subclass, feature.name, locale),
                note: feature.source === "story" ? copy.story : undefined,
                meta: feature.level ? `${copy.level} ${feature.level}` : undefined,
-              text: describeFeature(sheet.class, sheet.subclass, feature.name),
+              text: feature.source === "race"
+                ? describeRaceTrait(sheet.race, feature.name, locale)
+                : describeFeature(sheet.class, sheet.subclass, feature.name, locale),
             }))}
           />
         </SheetPanel>
@@ -129,8 +142,8 @@ export function SheetSections({ sheet }: { sheet: CreateSheetInput }) {
          <SheetPanel title={copy.feats}>
           <InfoChipList
             items={sheet.feats.map((feat) => ({
-              name: feat,
-              text: describeFeature(sheet.class, sheet.subclass, feat),
+              name: localizedContentName("feats", feat, locale),
+              text: describeFeature(sheet.class, sheet.subclass, feat, locale),
               reference: { kind: "feats", slug: contentSlug(feat), name: feat },
             }))}
           />

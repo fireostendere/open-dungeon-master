@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Loader2, Search } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { InfoButton } from "@/components/ui/InfoDialog";
-import { describeContentEntry, spellSummary } from "@/lib/help";
+import { describeContentEntry, localizedContentName, spellSummary } from "@/lib/help";
 import { useContentSearch, type PickerEntry } from "@/app/characters/builder/useContentSearch";
 import { CLASS_IDS, input, type EditorKind } from "@/app/workshop/homebrew/types";
 import { useI18n } from "@/lib/i18n/context";
@@ -103,15 +103,21 @@ export function CatalogStart({
                 }}
                 className="flex grow items-center justify-between gap-2 px-3 py-1.5 text-left text-sm"
               >
-                <span className={cn(entry.source === "homebrew" && "text-amber-300")}>{entry.name}</span>
+                <span className={cn(entry.source === "homebrew" && "text-amber-300")}>
+                  {localizedContentName(CONTENT_KIND[kind], entry.name, locale)}
+                </span>
                 <span className="text-[11px] text-stone-500">
                   {entry.level !== undefined ? `${copy.level} ${entry.level}` : entry.rarity || entry.kind || ""}
                 </span>
               </button>
               <InfoButton
-                label={entry.name}
+                label={localizedContentName(CONTENT_KIND[kind], entry.name, locale)}
                 meta={kind === "spell" ? spellSummary(entry.data) : undefined}
-                text={describeContentEntry(entry.data)}
+                text={describeContentEntry(entry.data, locale, {
+                  kind: CONTENT_KIND[kind],
+                  name: entry.name,
+                  slug: entry.slug,
+                })}
               />
             </li>
           ))}

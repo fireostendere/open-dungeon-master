@@ -173,8 +173,7 @@ export function useBuilderOptions() {
         setPackInstalled(true);
         const raceRows = (racesData.results ?? []) as ContentRow[];
         if (raceRows.length) {
-          setRaces(
-            raceRows.map((row) => {
+          const packRaces = raceRows.map((row) => {
               const mechanics = raceMechanics(row.data);
               return {
                 id: row.slug,
@@ -182,8 +181,9 @@ export function useBuilderOptions() {
                 ...mechanics,
                 note: mechanics.traitsSummary,
               };
-            }),
-          );
+            });
+          const packIds = new Set(packRaces.map((race) => race.id));
+          setRaces([...packRaces, ...srdRaceOptions().filter((race) => !packIds.has(race.id))]);
         }
         const classRows = (classesData.results ?? []) as ContentRow[];
         if (classRows.length) {

@@ -712,8 +712,46 @@
         "Common",
         "Draconic"
       ],
+      "naturalArmor": {
+        "source": "Lizardfolk Natural Armor",
+        "base": 13,
+        "ability": null,
+        "dexterity": true,
+        "allowsShield": true
+      },
       "skillChoice": {
         "count": 2
+      }
+    },
+    {
+      "id": "loxodon",
+      "name": "Loxodon",
+      "nameRu": "Локсодон",
+      "source": "Guildmasters' Guide to Ravnica (2018)",
+      "speed": 30,
+      "size": "Medium",
+      "asi": {
+        "con": 2,
+        "wis": 1
+      },
+      "traits": [
+        "Loxodon Serenity",
+        "Natural Armor",
+        "Powerful Build",
+        "Trunk",
+        "Keen Smell"
+      ],
+      "languages": [
+        "Common",
+        "Loxodon"
+      ],
+      "powerfulBuild": true,
+      "naturalArmor": {
+        "source": "Loxodon Natural Armor",
+        "base": 12,
+        "ability": "con",
+        "dexterity": false,
+        "allowsShield": true
       }
     }
   ],

@@ -6,7 +6,7 @@ import type { RaceOption } from "@/app/characters/builder/useBuilderOptions";
 import { GameTerm } from "@/components/ui/GameTerm";
 import { InfoButton } from "@/components/ui/InfoDialog";
 import { ALL_SKILLS } from "@/lib/content/mechanics";
-import { contentSlug, describeSkill } from "@/lib/help";
+import { contentSlug, describeSkill, localizedRaceName } from "@/lib/help";
 import { SRD_SKILLS } from "@/lib/srd";
 import { ABILITIES, type Ability } from "@/lib/schemas/sheet";
 import { useI18n } from "@/lib/i18n/context";
@@ -75,7 +75,7 @@ export function RacialChoicesSection({
 
   return (
     <div className="space-y-3 rounded-lg border border-amber-900/40 bg-amber-950/10 p-3">
-       <p className="text-xs text-amber-200/90">{race.name}: {copy.choices}</p>
+       <p className="text-xs text-amber-200/90">{localizedRaceName(race.id, race.name, locale)}: {copy.choices}</p>
 
       {race.asiChoice ? (
         <div>

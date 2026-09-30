@@ -289,6 +289,10 @@ test("every racial trait is enforced, a resource, or acknowledged", () => {
     "One skill proficiency of your choice",
     "Long-Limbed (5 extra feet of reach on melee attacks on your turn)",
     "Surprise Attack (2d6 extra damage on a surprised creature in the first round)",
+    // Loxodon: Serenity and Keen Smell alter qualifying rolls, Natural Armor
+    // and Powerful Build feed derived sheet mechanics, and Trunk is explained
+    // on the character sheet.
+    "Loxodon Serenity", "Natural Armor", "Powerful Build", "Trunk", "Keen Smell",
   ]);
   const uncovered = [];
   for (const race of races) {

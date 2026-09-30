@@ -9,6 +9,7 @@ import type { CampaignMember } from "@/lib/campaign-types";
 import type { CharacterSheet } from "@/lib/schemas/sheet";
 import { useI18n } from "@/lib/i18n";
 import { localeText } from "@/lib/i18n/locale-text";
+import { localizedRaceName } from "@/lib/help";
 
 // Small gold badge on a party row: DM, co-DM, party lead, owner, real dice.
 function SeatBadge({ children, tip }: { children: ReactNode; tip?: string }) {
@@ -137,7 +138,7 @@ export function LobbyParty({
                     </p>
                     <p className="truncate text-sm text-stone-400">
                       {sheet
-                        ? `${sheet.name} · ${sheet.race.replaceAll("_", " ")} ${sheet.class} ${sheet.level}`
+                         ? `${sheet.name} · ${localizedRaceName(sheet.race, sheet.race, locale)} ${sheet.class} ${sheet.level}`
                         : localeText(locale, { en: "No character yet", ru: "Персонаж ещё не создан" })}
                     </p>
                   </div>

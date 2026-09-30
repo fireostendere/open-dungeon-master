@@ -37,6 +37,8 @@ export type SrdClass = {
 export type SrdRace = {
   id: string;
   name: string;
+  nameRu?: string;
+  source?: string;
   speed: number;
   size: string;
   asi: Partial<Record<Ability, number>>;
@@ -56,6 +58,14 @@ export type SrdRace = {
   // armor, drow and wood elf weapons).
   armor?: string[];
   weapons?: string[];
+  powerfulBuild?: boolean;
+  naturalArmor?: {
+    source: string;
+    base: number;
+    ability: "con" | "wis" | null;
+    dexterity: boolean;
+    allowsShield: boolean;
+  };
 };
 export type SrdBackground = {
   id: string;
@@ -87,7 +97,12 @@ export function findClass(id: string) {
 }
 
 export function findRace(id: string) {
-  return SRD_RACES.find((entry) => entry.id === id) ?? null;
+  const normalized = id.trim().toLowerCase().replace(/[^a-z0-9]+/g, "_");
+  return SRD_RACES.find((entry) => entry.id === normalized) ?? null;
+}
+
+export function powerfulBuildForRace(raceId: string): boolean {
+  return findRace(raceId)?.powerfulBuild === true;
 }
 
 export function findBackground(id: string) {
@@ -137,6 +152,7 @@ export function spellSlotsFor(classId: string, level: number): Record<string, nu
 // character builder can pass a half-built character before one exists.
 export type AcSource = {
   class: string;
+  race?: string;
   abilities: AbilityScores;
   proficiencies: Pick<Proficiencies, "armor">;
   equipment: Array<{ name: string; equipped?: boolean; attuned?: boolean }>;
@@ -180,6 +196,12 @@ export function acBreakdownFor(source: AcSource): AcBreakdown {
         ? source.classes.map((entry) => entry.id)
         : source.class,
       source.features,
+      source.race,
+      {
+        dex: abilityMod(abilities.dex),
+        con: abilityMod(abilities.con),
+        wis: abilityMod(abilities.wis),
+      },
     ),
   };
   // The Defense fighting style only counts while actually wearing armor, so
@@ -294,6 +316,7 @@ export function speedFor(
           equipment,
           coins: source.gold ?? 0,
           size: source.race ? sizeForRace(source.race) : undefined,
+          powerfulBuild: source.race ? powerfulBuildForRace(source.race) : false,
         }).speedPenalty
       : 0;
   return Math.max(0, source.speed + bonus - breakdown.speedPenalty - load);

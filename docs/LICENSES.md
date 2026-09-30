@@ -22,6 +22,15 @@ This work includes material taken from the System Reference Document 5.1
 ("SRD 5.1") by Wizards of the Coast LLC. The SRD 5.1 is licensed under the
 Creative Commons Attribution 4.0 International License.
 
+Russian rule descriptions in `src/lib/help/srd-rules.ru.json` are extracted
+from the Russian SRD 5.1 edition published by OmnisGM-App in
+[OmnisGM Rules](https://github.com/OmnisGM-App/OmnisGM-Rules/tree/main/src/dnd/srd-5.1/ru)
+(source revision `aa46df41369b40ae2733b5a031f4be6d149dfa01`). Sections and
+headings were extracted from Markdown into a lookup catalog. This material is
+licensed under CC-BY-4.0 and requires this attribution:
+
+> This work includes material taken from the System Reference Document 5.1 ("SRD 5.1") by Wizards of the Coast LLC and available at https://dnd.wizards.com/resources/systems-reference-document. The SRD 5.1 is licensed under the Creative Commons Attribution 4.0 International License available at https://creativecommons.org/licenses/by/4.0/legalcode.
+
 ## Ambience and music
 
 **No audio ships with this project.** `src/lib/ambience/catalog.ts` names the
@@ -61,7 +70,9 @@ Master, Assassin, Sharpshooter and the rest. We implement them ourselves.
 
 These live in:
 
-- `src/lib/srd/subclasses.json` (subclass feature tables and rules text)
+- `src/lib/srd/subclasses.json` (subclass feature tables and ODM-authored rules notes)
+- `src/lib/help/expanded-feature-help.ru.json` (Russian translations/adaptations
+  of those ODM-authored notes; no publisher prose is reproduced)
 - `src/lib/srd/authored-resources.json` (their limited-use counters)
 - `src/lib/srd/authored-spells.json`, `src/lib/srd/authored-feats.json`
 - the lineages added below the SRD nine in `src/lib/srd/races.json`

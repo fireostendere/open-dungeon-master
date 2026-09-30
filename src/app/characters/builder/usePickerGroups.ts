@@ -3,7 +3,14 @@
 import { useMemo } from "react";
 import { classGenres } from "@/lib/classes";
 import { GENRE_PRESETS } from "@/lib/genres";
-import { describeRace } from "@/lib/help";
+import {
+  describeRace,
+  describeSubclass,
+  localizedRaceName,
+  localizedSubclassName,
+} from "@/lib/help";
+import { characterDisplay } from "@/lib/i18n/character-display";
+import { useI18n } from "@/lib/i18n";
 import type { Genre } from "@/lib/schemas/game-settings";
 import { SRD_SKILLS } from "@/lib/srd";
 import { subclassLevelFor, subclassNamesFor } from "@/lib/srd/features";
@@ -155,6 +162,7 @@ export function usePickerGroups({
   effectiveLevel: number;
   archetypes: ArchetypeOption[];
 }) {
+  const { locale } = useI18n();
   const steered = genre && genre !== "custom" && genre !== "high_fantasy" ? genre : null;
 
   const raceTier = useMemo(
@@ -214,11 +222,15 @@ export function usePickerGroups({
   const raceGroups = useMemo<PickerGroup[]>(() => {
     const toOption = (entry: Reskinned<RaceOption>): PickerOption => ({
       id: entry.id,
-      name: entry.name,
+      name: localizedRaceName(entry.id, entry.name, locale),
       // Under a reskin the canonical name goes in the meta column, so a
       // player always knows which SRD race they are actually taking.
       meta: entry.packName ? canonicalName(rawRaces, entry.id) : undefined,
-      infoText: entry.packBlurb || describeRace(entry.id) || entry.note,
+      infoText:
+        (locale === "ru" ? describeRace(entry.id, locale) : null) ||
+        entry.packBlurb ||
+        describeRace(entry.id, locale) ||
+        entry.note,
       reference: { kind: "races", slug: entry.id, name: entry.name },
     });
     if (raceTier.recommended.length) {
@@ -228,12 +240,12 @@ export function usePickerGroups({
       ];
     }
     return [{ label: null, options: races.map(toOption) }];
-  }, [races, rawRaces, raceTier, pack]);
+  }, [races, rawRaces, raceTier, pack, locale]);
 
   const classGroups = useMemo<PickerGroup[]>(() => {
     const toOption = (entry: Reskinned<ClassOption>): PickerOption => ({
       id: entry.id,
-      name: entry.name,
+      name: characterDisplay(entry.name, locale),
       meta: entry.packName
         ? `d${entry.hitDie} · ${canonicalName(rawClasses, entry.id)}`
         : entry.spellAbility
@@ -264,7 +276,7 @@ export function usePickerGroups({
       ];
     }
     return [{ label: null, options: classTier.other.map(toOption) }];
-  }, [classTier, rawClasses, pack]);
+  }, [classTier, rawClasses, pack, locale]);
 
   // The subclasses we have real feature tables for, offered once the chosen
   // level reaches the class's subclass level. Content-pack archetypes are
@@ -303,8 +315,8 @@ export function usePickerGroups({
           );
           return {
             id: subclassName,
-            name: subclassName,
-            infoText: match?.desc,
+            name: localizedSubclassName(klass?.id ?? "", subclassName, locale),
+            infoText: describeSubclass(klass?.id ?? "", subclassName, locale) ?? match?.desc,
             reference: match
               ? { kind: "archetypes", slug: match.id, name: subclassName }
               : undefined,
@@ -324,7 +336,7 @@ export function usePickerGroups({
       });
     }
     return groups;
-  }, [builtInSubclasses, packOnlyArchetypes, archetypes]);
+  }, [builtInSubclasses, packOnlyArchetypes, archetypes, klass, locale]);
 
   const backgroundGroups = useMemo<PickerGroup[]>(() => {
     const toOption = (entry: Reskinned<BackgroundOption>): PickerOption => ({

@@ -7,6 +7,8 @@
 // changed it; buying plate did nothing. computeSheetDerived now computes it
 // from what the character actually wears.
 
+import racesJson from "@/lib/srd/races.json";
+
 export type ArmorCategory = "light" | "medium" | "heavy" | "shield";
 
 export type SrdArmor = {
@@ -160,7 +162,13 @@ export type UnarmoredFormula = {
   ability: "con" | "wis" | null;
   // Barbarian's version allows a shield; the monk's does not.
   allowsShield: boolean;
+  // Most formulas add DEX; the loxodon's 12 + CON formula does not.
+  dexterity?: boolean;
 };
+
+const RACIAL_ARMOR = (racesJson as {
+  races: Array<{ id: string; naturalArmor?: UnarmoredFormula }>;
+}).races;
 
 // The SRD unarmored-AC features, keyed by the feature names populateFeatures
 // puts on sheets. Batch 2 moves this data into the feature-effects table;
@@ -191,7 +199,14 @@ const UNARMORED_FORMULAS: Array<{ match: string; classes: string[]; formula: Una
 export function unarmoredFormulaFor(
   classId: string | string[],
   features: Array<{ name: string }>,
+  raceId?: string,
+  abilityMods?: { dex: number; con: number; wis: number },
 ): UnarmoredFormula | null {
+  let racialFormula: UnarmoredFormula | null = null;
+  if (raceId) {
+    const normalizedRace = raceId.trim().toLowerCase().replace(/[^a-z0-9]+/g, "_");
+    racialFormula = RACIAL_ARMOR.find((race) => race.id === normalizedRace)?.naturalArmor ?? null;
+  }
   const names = features.map((feature) => feature.name.trim().toLowerCase());
   const wantedClasses = (Array.isArray(classId) ? classId : [classId]).map((entry) =>
     entry.trim().toLowerCase(),
@@ -199,13 +214,21 @@ export function unarmoredFormulaFor(
   const candidates = UNARMORED_FORMULAS.filter((entry) =>
     names.some((name) => name === entry.match || name.startsWith(`${entry.match} `)),
   );
+  let classFormula: UnarmoredFormula | null = null;
   for (const wanted of wantedClasses) {
     const owned = candidates.find((entry) => entry.classes.includes(wanted));
     if (owned) {
-      return owned.formula;
+      classFormula = owned.formula;
+      break;
     }
   }
-  return candidates.find((entry) => entry.classes.length === 0)?.formula ?? null;
+  classFormula ??= candidates.find((entry) => entry.classes.length === 0)?.formula ?? null;
+  if (!racialFormula || !classFormula || !abilityMods) return racialFormula ?? classFormula;
+  const acFor = (formula: UnarmoredFormula) =>
+    formula.base +
+    (formula.dexterity === false ? 0 : abilityMods.dex) +
+    (formula.ability ? abilityMods[formula.ability] : 0);
+  return acFor(racialFormula) >= acFor(classFormula) ? racialFormula : classFormula;
 }
 
 export type AcBreakdown = {
@@ -287,10 +310,11 @@ export function computeArmorClass(input: {
     }
   } else if (input.unarmored) {
     const extra = input.unarmored.ability ? input.abilityMods[input.unarmored.ability] : 0;
-    ac = input.unarmored.base + input.dexMod + extra;
+    const dex = input.unarmored.dexterity === false ? 0 : input.dexMod;
+    ac = input.unarmored.base + dex + extra;
     parts.push(`${input.unarmored.source} ${input.unarmored.base}`);
-    if (input.dexMod !== 0) {
-      parts.push(`DEX ${input.dexMod >= 0 ? "+" : ""}${input.dexMod}`);
+    if (dex !== 0) {
+      parts.push(`DEX ${dex >= 0 ? "+" : ""}${dex}`);
     }
     if (extra !== 0 && input.unarmored.ability) {
       parts.push(`${input.unarmored.ability.toUpperCase()} ${extra >= 0 ? "+" : ""}${extra}`);

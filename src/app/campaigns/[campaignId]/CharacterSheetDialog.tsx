@@ -14,8 +14,10 @@ import {
   acBreakdownFor,
   computeSheetDerived,
   formatModifier,
+  powerfulBuildForRace,
   speedFor,
   SRD_SKILLS,
+  sizeForRace,
   type DerivedPart,
 } from "@/lib/srd";
 import { ATTUNEMENT_SLOTS, matchArmor } from "@/lib/srd/armor";
@@ -24,7 +26,15 @@ import { matchMagicItem, magicItemRiders } from "@/lib/srd/magic-items";
 import { RESOURCE_DEFS } from "@/lib/srd/class-resources";
 import { GameTerm } from "@/components/ui/GameTerm";
 import { InfoButton, InfoChipList } from "@/components/ui/InfoDialog";
-import { contentSlug, describeFeature } from "@/lib/help";
+import {
+  contentSlug,
+  describeFeature,
+  describeRaceTrait,
+  localizedContentName,
+  localizedFeatureName,
+  localizedRaceName,
+  localizedRaceTraitName,
+} from "@/lib/help";
 import { useI18n } from "@/lib/i18n";
 import { localeText } from "@/lib/i18n/locale-text";
 import { characterDisplay } from "@/lib/i18n/character-display";
@@ -135,6 +145,8 @@ export function CharacterSheetDialog({
     strength: sheet.abilities.str,
     equipment: sheet.equipment,
     coins: sheet.gold,
+    size: sizeForRace(sheet.race),
+    powerfulBuild: powerfulBuildForRace(sheet.race),
   });
   const anyEquipped = sheet.equipment.some((item) => item.equipped);
   const speedNote =
@@ -200,7 +212,7 @@ export function CharacterSheetDialog({
                   {sheet.name}
                 </Dialog.Title>
                 <p className="text-xs text-stone-400">
-                   {copy.level} {sheet.level} {characterDisplay(sheet.race, locale)}{" "}
+                    {copy.level} {sheet.level} {localizedRaceName(sheet.race, sheet.race, locale)}{" "}
                   {(sheet.classes?.length ?? 0) > 1
                     ? (sheet.classes ?? [])
                          .map((entry) => `${characterDisplay(entry.id, locale)} ${entry.level}`)
@@ -410,7 +422,7 @@ export function CharacterSheetDialog({
                     items={[
                       ...new Set([...sheet.spellcasting.known, ...sheet.spellcasting.prepared]),
                     ].map((spell) => ({
-                      name: spell,
+                      name: localizedContentName("spells", spell, locale),
                       reference: { kind: "spells", slug: contentSlug(spell), name: spell },
                     }))}
                   />
@@ -590,10 +602,16 @@ export function CharacterSheetDialog({
               </h3>
               <InfoChipList
                 items={sheet.features.map((feature) => ({
-                  name: feature.name,
+                  name: feature.source === "race"
+                    ? localizedRaceTraitName(feature.name, locale)
+                    : localizedFeatureName(sheet.class, sheet.subclass, feature.name, locale) === feature.name
+                      ? characterDisplay(feature.name, locale)
+                      : localizedFeatureName(sheet.class, sheet.subclass, feature.name, locale),
                   note: feature.source === "story" ? copy.story : undefined,
                   meta: feature.level ? `${copy.level} ${feature.level}` : undefined,
-                  text: describeFeature(sheet.class, sheet.subclass, feature.name),
+                  text: feature.source === "race"
+                    ? describeRaceTrait(sheet.race, feature.name, locale)
+                    : describeFeature(sheet.class, sheet.subclass, feature.name, locale),
                 }))}
               />
             </section>
@@ -606,8 +624,8 @@ export function CharacterSheetDialog({
               </h3>
               <InfoChipList
                 items={sheet.feats.map((feat) => ({
-                  name: feat,
-                  text: describeFeature(sheet.class, sheet.subclass, feat),
+                  name: localizedContentName("feats", feat, locale),
+                  text: describeFeature(sheet.class, sheet.subclass, feat, locale),
                   reference: { kind: "feats", slug: contentSlug(feat), name: feat },
                 }))}
               />

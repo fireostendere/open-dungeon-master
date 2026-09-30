@@ -15,7 +15,7 @@ import {
 } from "@/lib/db/dm-turns";
 import { d20Expression, isValidExpression, rollExpression, type Advantage } from "@/lib/dice";
 import { publishPersisted, publishWithSeq } from "@/lib/events";
-import { computeSheetDerived, sizeForRace, spellAttackFor } from "@/lib/srd";
+import { computeSheetDerived, powerfulBuildForRace, sizeForRace, spellAttackFor } from "@/lib/srd";
 import { classLevelFor } from "@/lib/srd/multiclass";
 import { spellDamageFor, spellMechanicsFor } from "@/lib/content";
 import { castRedirect } from "@/lib/dm/cast-tools";
@@ -634,10 +634,12 @@ export function handlePcAttack(
   // ammunition check above.
   const load = campaign.gameSettings.variantRules.encumbrance
     ? encumbranceFor({
-        strength: sheet.abilities.str,
-        equipment: sheet.equipment ?? [],
-        coins: sheet.gold ?? 0,
-      })
+          strength: sheet.abilities.str,
+          equipment: sheet.equipment ?? [],
+          coins: sheet.gold ?? 0,
+          size: sizeForRace(sheet.race),
+          powerfulBuild: powerfulBuildForRace(sheet.race),
+        })
     : null;
   if (load?.disadvantage && load.note) {
     conditionContext.notes.push(load.note);
