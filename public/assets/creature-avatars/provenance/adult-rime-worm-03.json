@@ -1,0 +1,17 @@
+{
+  "creatureId": "adult-rime-worm",
+  "variantId": "03",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-09-30",
+  "prompt": "Use case: stylized-concept. Original square bestiary avatar, polished dark-fantasy realistic painterly illustration, cinematic lighting, tactile detail, one clear main creature. Face and upper body dominate the composition unless whole-body framing is specified. No text, lettering, logos, watermark, border, collage, copied publisher artwork or artist imitation. Adult RIME WORM, Large elemental: a LIMBLESS broad SLUG-LIKE creature, pale nearly translucent skin, ICE-ENCRUSTED BACK with sharp icy dorsal crystals. Upturned flanged GAPING TERMINAL MOUTH with NUMEROUS long fleshy mouth tendrils. No visible eyes, no cartoon eyeballs, no dragon face, no legs, no arms, no wings. Whole-creature portrait crop in square, body compactly coiled, mouth is focal point. Frigid cold and black-ice spray, not fire. Normal03: Under-Ice Coil, whole slug body in loose spiral below a shallow clear ice sheet, flanged mouth angled upward with many pinkish-pale tendrils, translucent skin lit from beneath by aquamarine water, ice crystals encrust back, no limbs, no eyes.",
+  "designReferences": [
+    {
+      "url": "https://koboldpress.com/wp-content/uploads/2016/08/Tome-of-Beasts-Rime-Worms.pdf",
+      "use": "Official adult/grub text and illustration: pale limbless icy slug, mouth tendrils, flanged rim, adult black-ice spray; no visible eyes"
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

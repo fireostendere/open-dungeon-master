@@ -1,0 +1,21 @@
+{
+  "creatureId": "adult-light-dragon",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-09-30",
+  "prompt": "Use case: stylized-concept. Original square bestiary avatar, polished dark-fantasy realistic painterly illustration, cinematic lighting, tactile detail, one clear main creature. Face and upper body dominate the composition unless whole-body framing is specified. No text, lettering, logos, watermark, border, collage, copied publisher artwork or artist imitation. Adult LIGHT DRAGON from Creature Codex, a luminous partly immaterial living dragon with a long neck, readable alert eyes, clawed forelimbs and actual separate dragon wings. Pale body with softly translucent outer contours; original color treatment ivory/pearl with warm coral wing membranes and delicate backward head spines. Not a skeleton or undead ghost. Head and upper chest visible, avoid overexposure washing out facial details. YOLO04: Living Ring Light. A solemn luminous dragon conducts a glamour photo shoot for ONE tiny moth perched on a very small stool. Its face is framed by an absurdly oversized circular photographic reflector hung around its neck; one draconic foreclaw holds a comically tiny camera. Pale luminous scales, eyes, long neck and real wings remain clear, dead-serious artistic concentration, no writing.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/dragon-light-adult/",
+      "use": "Licensed adult light dragon, luminous incorporeal nature and explicit wings"
+    },
+    {
+      "url": "https://marketplace.roll20.net/browse/set/12759/monsters-dragons-and-drakes",
+      "use": "Official publisher adult token color family inspected; original pose and details"
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

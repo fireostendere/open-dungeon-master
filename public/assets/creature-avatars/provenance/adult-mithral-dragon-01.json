@@ -1,0 +1,21 @@
+{
+  "creatureId": "adult-mithral-dragon",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-09-30",
+  "prompt": "Use case: stylized-concept. Original square bestiary avatar, polished dark-fantasy realistic painterly illustration, cinematic lighting, tactile detail, one clear main creature. Face and upper body dominate the composition unless whole-body framing is specified. No text, lettering, logos, watermark, border, collage, copied publisher artwork or artist imitation. Adult MITHRAL DRAGON, extremely slender thin body and long fine neck, NARROW dragon head with SMALL SLIT-SHAPED eyes and nostrils, glossy SILVER-WHITE scales. Two unusually SMALL delicate translucent wings fold close and spread like pleated FANS, not enormous bat wings. Four slim clawed legs and long curling tail largely outside crop. Calm mediation and scholarly intelligence. Minimal small cranial ridges, no giant horn crown. Normal01: Quiet Arbitrator, straight-on narrow head above an exceptionally long slim neck, eyes focused narrow slits, two tiny translucent folded wing fans trace shoulder outlines. Soft neutral silver lighting against a dark marble mediation hall, poised elegant body.",
+  "designReferences": [
+    {
+      "url": "https://koboldpress.com/wp-content/uploads/2016/07/Tome-of-Beasts-Mithral-Dragon.pdf",
+      "use": "Official thin frame, narrow slit-eyed head, tiny fan-folding translucent wings and illustration anatomy"
+    },
+    {
+      "url": "https://www.5esrd.com/database/creature/dragon-mithral-adult-3pp/",
+      "use": "Licensed 2023 adult identity and metallic shard breath"
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

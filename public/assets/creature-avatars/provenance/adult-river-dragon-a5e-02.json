@@ -1,0 +1,21 @@
+{
+  "creatureId": "adult-river-dragon-a5e",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-09-30",
+  "prompt": "Use case: stylized-concept. Original square bestiary avatar, polished dark-fantasy realistic painterly illustration, cinematic lighting, tactile detail, one clear main creature. Face and upper body dominate the composition unless whole-body framing is specified. No text, lettering, logos, watermark, border, collage, copied publisher artwork or artist imitation. Adult A5E RIVER DRAGON, WINGLESS elongated aquatic dragon with four clawed legs, very long tapering tail, long sleek neck, low dorsal fins/spines and streamlined head with two eyes. No wing membranes despite magical flight. Shimmering blue-green scales are an original variation of publisher art-observed iridescence. Small low cranial ridges rather than towering horns. Amphibious freshwater sovereign, water breath and whirlpool magic. Normal02: River Sovereign, long sleek neck rises in an S above narrow shoulders, direct watchful eyes, drifting mist and a narrow spiral of flowing water behind head, silver-teal scales, wet river cliffs, no wings or towering horns.",
+  "designReferences": [
+    {
+      "url": "https://a5e.tools/node/1555",
+      "use": "Official A5E river identity, shimmering scales, water breath and whirlpool magic"
+    },
+    {
+      "url": "https://a5e.tools/sites/default/files/monsters/Dragon%2C%20river%20-%20Gui%20Sommer.png",
+      "use": "Official illustration inspected for winglessness, four limbs, long tail and low dorsal ridge only; no source pose copied"
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}
