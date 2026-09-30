@@ -1,0 +1,11 @@
+{
+  "creatureId": "owlbear",
+  "variantId": "03",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-09-30",
+  "prompt": "Use case: stylized-concept. Asset type: square dark fantasy bestiary creature avatar. Create one original OWLBEAR monster, normal variant03. Hulking heavy bear body, muscular furred shoulders and forelimbs with massive claws, chestnut rust-brown shaggy fur, large eagle-owl head and feathered ruff naturally merging into fur. Fierce copper-gold owl eyes, prominent curved black beak, large pointed feather tufts, barred russet face feathers. No wings, no human anatomy. Right-facing three-quarter head and upper-body portrait, one forepaw gripping a fallen log, dark mossy ravine after rain softly blurred behind. Dramatic golden late-afternoon beam amid deep cool green shadows, polished realistic painterly dark-fantasy textures and imposing animal anatomy, clear recognizable hybrid silhouette. Full face and feather tufts fit comfortably within square margins. One creature only, no people, clothes, text, letters, watermark, logo, border or grid, no gore, original art no named artist style.",
+  "license": "generated-output; no third-party artwork license asserted"
+}

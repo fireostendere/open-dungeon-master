@@ -1,0 +1,11 @@
+{
+  "creatureId": "owlbear",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-09-30",
+  "prompt": "Use case: stylized-concept. Asset type: square dark-fantasy bestiary portrait. One original OWLBEAR monster, normal variant02. Huge stout muscular bear torso and forelimbs covered in pale tawny-silver fur, blending into owl feathered neck and a broad barn-owl-like heart-shaped creamy facial disk, large intense amber eyes, powerful hooked ivory-black beak, small feather tufts. Giant bear paws have long black claws, no wings and no humanoid body. Front-facing upper-body portrait in a snowy ruined mountain shrine, wet frost on dense fur, stern predatory stare, slightly lowered head. Distinct individual and composition from brown forest owlbear. Polished realistic painterly dark fantasy, cold blue dawn, soft warm reflected light on face, rich feathers and fur, imposing animal weight. Head/shoulders centered with safe square margins, clear at thumbnail size. Exactly one creature, no clothes/armor, no humans/text/letters/border/grid/logo/watermark, no blood or gore, original art no specific artist style.",
+  "license": "generated-output; no third-party artwork license asserted"
+}
