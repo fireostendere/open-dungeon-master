@@ -1,0 +1,11 @@
+{
+  "creatureId": "fire-elemental",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-09-30",
+  "prompt": "Use case: stylized-concept. One original square dark-fantasy bestiary portrait of a FIRE ELEMENTAL: a towering living humanoid-shaped mass of swirling flame and glowing embers, a suggestion of face and blazing eyes within the fire, flowing flame arms and torso, no solid human skin or armor, no horns or devil anatomy. Its body IS fire and smoke. Polished realistic painterly fantasy, physically convincing luminous flame and dramatic cinematic contrast, clear centered upper-body silhouette with margins. One elemental only, no people, gore, text/letters/logos/watermarks/grid/border. Original art, no specific artist imitation. YOLO absurd dark-comedy variant04. Magnificent dangerous living fire elemental nervously roasting a tiny marshmallow on a long metal skewer held away from its own body, while wearing an absurdly small scorched chef hat hovering above its flame head. Its fiery face looks deeply worried about overcooking. A charred black marshmallow already dangles at the skewer tip. Gloomy dungeon kitchen, epic lighting treats this useless culinary anxiety as heroic struggle. Body remains visibly made of flame, no human skin.",
+  "license": "generated-output; no third-party artwork license asserted"
+}

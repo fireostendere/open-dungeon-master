@@ -1,0 +1,11 @@
+{
+  "creatureId": "unicorn",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-09-30",
+  "prompt": "Use case: stylized-concept. One original square dark-fantasy bestiary avatar of a UNICORN: majestic adult white horse with realistic equine anatomy, a single long elegant spiraling ivory horn centered on forehead, flowing pale mane, wise luminous eyes and noble face. No wings, no antlers, no other horns, not a pony. Polished realistic painterly fantasy, cinematic light, tactile fur/mane/horn texture, centered head-and-neck portrait with whole horn and ears fitting inside safe margins. One unicorn only, no people, gore, text/letters/logos/watermarks/borders/grids. Original artwork, no named artist style. Normal variant02. Front-facing noble adult unicorn with thick slightly wavy ivory mane, warm golden-brown eyes and pearl-white coat, in ruined mossy sanctuary at rose dawn. Fine dew droplets, softly glowing horn without exaggerated effects, poised alert expression.",
+  "license": "generated-output; no third-party artwork license asserted"
+}

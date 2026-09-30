@@ -1,0 +1,11 @@
+{
+  "creatureId": "treant",
+  "variantId": "03",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-09-30",
+  "prompt": "Use case: stylized-concept. Square dark-fantasy bestiary avatar, one original TREANT: massive living walking tree with humanoid face emerging naturally from bark, deep intelligent eyes, branch arms, rootlike hands, trunk torso and leafy crown. Recognizable tree creature, not a human in costume. Polished realistic painterly fantasy, cinematic light, rich bark/moss/leaf texture, readable centered portrait with safe margins around crown. One creature only, no text/letters/logo/watermark/grid/border, no blood or gore, no named artist imitation. Normal variant03. Gnarled broad yew treant, reddish-brown deeply furrowed bark, thick twisting root arms, sparse dark needle foliage, beard of hanging lichen, warm amber intelligent eyes. Right-facing three-quarter upper-body portrait guarding mossy stone circle in rainy twilight, cool wet bark highlights and dramatic muted purple sky.",
+  "license": "generated-output; no third-party artwork license asserted"
+}

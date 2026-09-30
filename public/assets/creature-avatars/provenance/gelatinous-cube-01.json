@@ -1,0 +1,11 @@
+{
+  "creatureId": "gelatinous-cube",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-09-30",
+  "prompt": "Use case: stylized-concept. One original square dark-fantasy bestiary portrait of a GELATINOUS CUBE: huge almost-transparent cube of clear jelly occupying a dungeon corridor, rounded but visibly cubic edges, rippling glossy gelatin surface, tiny bubbles, a few suspended old metal objects inside. No face, eyes, mouth, limbs or humanoid anatomy. Whole cube remains clearly visible in a centered square composition with margins. Realistic painterly dark-fantasy rendering, cinematic atmospheric light, physically convincing translucent refraction, richly textured dungeon. One cube only, no people, blood, gore, text, letters, watermark, logos, borders or grid. Original artwork, no named artist style. Normal variant01. Three-quarter front-left cube in a damp stone crypt; faint cool blue-green jelly tint, a rusty empty helmet and two old coins suspended inside, wet floor reflections, warm torch behind shines through body. Threatening silent presence.",
+  "license": "generated-output; no third-party artwork license asserted"
+}

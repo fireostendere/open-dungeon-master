@@ -1,0 +1,11 @@
+{
+  "creatureId": "fire-elemental",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-09-30",
+  "prompt": "Use case: stylized-concept. One original square dark-fantasy bestiary portrait of a FIRE ELEMENTAL: a towering living humanoid-shaped mass of swirling flame and glowing embers, a suggestion of face and blazing eyes within the fire, flowing flame arms and torso, no solid human skin or armor, no horns or devil anatomy. Its body IS fire and smoke. Polished realistic painterly fantasy, physically convincing luminous flame and dramatic cinematic contrast, clear centered upper-body silhouette with margins. One elemental only, no people, gore, text/letters/logos/watermarks/grid/border. Original art, no specific artist imitation. Normal variant02. Front-facing tall fire spirit with gold-white core, translucent orange flame arms, curling red wisps and drifting sparks, inside a vast cold black volcanic cavern. Symmetrical imposing silhouette, eyes are bright white pinpoints, dark rock frames it without obscuring fire.",
+  "license": "generated-output; no third-party artwork license asserted"
+}
