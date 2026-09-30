@@ -120,7 +120,8 @@ try {
   assert.equal(afterHandoff.mode, "initiative");
   assert.deepEqual(afterHandoff.userIds, [two.id]);
   const tail = listRecentMessages(campaign.id, 10).map((message) => [message.authorType, message.content]);
-  const narrationAt = tail.findIndex(([, content]) => content.startsWith("Чучело покачнулось"));
+  assert.equal(last.result.messageId, firstPart.result.messageId, "both parts of the turn's narration are one scene message");
+  const narrationAt = tail.findIndex(([, content]) => content === "Клинок входит в солому по рукоять.\n\nЧучело покачнулось. Солома летит во все стороны.");
   const announceAt = tail.findIndex(([author, content]) => author === "system" && content.startsWith(`It is now ${second.name}'s turn`));
   assert.ok(narrationAt >= 0 && announceAt > narrationAt, "the next actor is announced only after the DM's last message");
   assert.equal((await read()).campaign.turnLock, null);

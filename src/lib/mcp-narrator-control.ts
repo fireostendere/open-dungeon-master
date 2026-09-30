@@ -379,6 +379,13 @@ function serializedWrite(params: z.infer<typeof writeBase>, operation: string, p
   } });
 }
 async function invoke(raw: unknown) {
+  // The advertised MCP schema has a top-level characterId (for autopilot_action);
+  // models copy it onto invoke. Fold it into args instead of refusing the call.
+  if (raw && typeof raw === "object" && !Array.isArray(raw) && "characterId" in raw) {
+    const { characterId, ...rest } = raw as Record<string, unknown>;
+    const args = rest.args && typeof rest.args === "object" && !Array.isArray(rest.args) ? rest.args as Record<string, unknown> : {};
+    raw = { ...rest, args: { characterId, ...args } };
+  }
   const p = writeBase.extend({ name: z.string().trim().min(1).max(100), args: z.record(z.string(), z.unknown()).default({}), scopeRoomId: id.optional() }).safeParse(raw);
   if (!p.success) throw new McpNarratorControlError(z.prettifyError(p.error));
   if (!EXTERNAL_NARRATOR_ACTIONS.has(p.data.name)) throw new McpNarratorControlError("That action is not available to an external narrator.", 403);
@@ -547,7 +554,7 @@ async function narrate(raw: unknown) {
       }
     }
     const heldBefore = combatHandoffState(campaign.id).state !== "none";
-    const message = persistHumanNarration(campaign, p.data.content, campaign.dmUserId!, { passTurn: handOver });
+    const message = persistHumanNarration(campaign, p.data.content, campaign.dmUserId!, { passTurn: handOver, continueScene: true });
     if (takeDirectorArm(campaign.id)) {
       publishPersisted(campaign.id, "director_armed", { armed: false, oneShot: null, absoluteCommand: "" });
     }
@@ -591,6 +598,7 @@ async function narrate(raw: unknown) {
         : heldBefore ? { status: "passed" } : undefined;
     return {
       messageId: message.id,
+      ...(message.appended ? { appendedToScene: true } : {}),
       ...(p.data.turnId ? { turnId: p.data.turnId } : {}),
       ...(floorResult ?? {}),
       ...(globalTurnResult ?? {}),

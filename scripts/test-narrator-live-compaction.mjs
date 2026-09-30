@@ -17,7 +17,7 @@ const { createUser } = await import("../src/lib/db/users.ts");
 const { allocateSeq, createCampaign, setCampaignStatus } = await import("../src/lib/db/campaigns.ts");
 const { createCharacter, instantiateIntoCampaign } = await import("../src/lib/db/characters.ts");
 const { createSheetSchema } = await import("../src/lib/schemas/sheet.ts");
-const { insertCampaignMessage } = await import("../src/lib/db/messages.ts");
+const { insertCampaignMessage, listMessagesInSeqRange } = await import("../src/lib/db/messages.ts");
 const { publishWithSeq } = await import("../src/lib/events.ts");
 const { executeMcpNarratorControl } = await import("../src/lib/mcp-narrator-control.ts");
 const { getBattleMapForEncounter, listTokens } = await import("../src/lib/db/battle-maps.ts");
@@ -74,7 +74,33 @@ try {
   const tokens = listTokens(getBattleMapForEncounter(order.id).id);
   const [pc, foe] = ["pc", "enemy"].map(kind => tokens.find(token => token.kind === kind));
   assert.ok(Math.max(Math.abs(pc.x - foe.x), Math.abs(pc.y - foe.y)) <= 1, "an engaged fight starts at arm's length, not across the map");
-  console.log("Live narrator compaction passed: speaker names, compact rolls, no own-write echo, one-call initiative");
+  // Resolve, start the fight, describe the clash: one scene for the players, not two DM posts.
+  const narrateNow = async content => {
+    const now = (await executeMcpNarratorControl("narrator.read", { campaignId: campaign.id, afterSeq: 0, projection: "live" })).result;
+    return (await executeMcpNarratorControl("narrator.narrate", {
+      campaignId: campaign.id, expectedSeq: now.currentSeq, timelineEpoch: now.timelineEpoch, commandId: randomUUID(), content, readAfter: { projection: "live" },
+    })).result;
+  };
+  const clash = await narrateNow("Гоблин вылетает из ящика прямо на Грога.");
+  assert.equal(clash.result.messageId, receipt.result.messageId, "the fight's opening continues the scene message");
+  assert.equal(clash.result.appendedToScene, true);
+  const scene = listMessagesInSeqRange(campaign.id, 0, 10_000).filter(message => message.authorType === "dm");
+  assert.equal(scene.length, 1, "players see one DM post for the whole resolution");
+  assert.equal(scene[0].content, "Цепь лопается с визгом.\n\nГоблин вылетает из ящика прямо на Грога.");
+  const updated = clash.state.events.find(event => event.type === "message_updated");
+  assert.equal(updated.payload.message.content, null, "the appended scene is not echoed back either");
+  const next = allocateSeq(campaign.id);
+  publishWithSeq(campaign.id, next, "message_added", { message: insertCampaignMessage({ campaignId: campaign.id, seq: next, authorType: "player", userId: dm.id, characterId: hero.id, content: "Бью гоблина." }) });
+  assert.notEqual((await narrateNow("Топор входит в гоблина.")).result.messageId, receipt.result.messageId, "a player's turn starts a new scene");
+  {
+    // A model copies the schema's top-level characterId onto invoke; a missing arg is named as the tool expects it.
+    const now = (await executeMcpNarratorControl("narrator.read", { campaignId: campaign.id, afterSeq: 0, projection: "live" })).result;
+    const write = extra => executeMcpNarratorControl("narrator.invoke", { campaignId: campaign.id, expectedSeq: now.currentSeq, timelineEpoch: now.timelineEpoch, commandId: randomUUID(), readAfter: false, ...extra });
+    await assert.rejects(write({ name: "request_roll", args: { kind: "ability_check", ability: "str", dc: 10 } }), /\(characterId\)/);
+    const rolled = (await write({ name: "request_roll", characterId: hero.id, args: { kind: "ability_check", ability: "str", dc: 10, reason: "Цепь" } })).result;
+    assert.ok(rolled.result.ok, "a top-level characterId is folded into args");
+  }
+  console.log("Live narrator compaction passed: speaker names, compact rolls, no own-write echo, one-call initiative, one scene per resolution, lenient invoke");
 } finally {
   removeTempDir(dir);
 }

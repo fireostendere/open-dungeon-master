@@ -101,7 +101,7 @@ export function checkArgs(
       (typeof value === "string" && value.trim() === "") ||
       (Array.isArray(value) && value.length === 0);
     if (field.required && missing) {
-      return `${entry.label} needs ${field.label.toLowerCase()}.`;
+      return `${entry.label} needs ${field.label.toLowerCase()} (${field.name}).`;
     }
     if (missing) {
       continue;

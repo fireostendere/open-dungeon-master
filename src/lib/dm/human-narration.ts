@@ -2,7 +2,7 @@ import { spatialEnabled, SpatialError } from "@/lib/spatial/service";
 import { allocateSeq, getFloor, setFloor, type Campaign } from "@/lib/db/campaigns";
 import { getDatabase } from "@/lib/db/core";
 import { withCommittedEffects } from "@/lib/db/commit-effects";
-import { insertCampaignMessage } from "@/lib/db/messages";
+import { insertCampaignMessage, latestMessage, updateMessageContent } from "@/lib/db/messages";
 import { publishPersisted, publishWithSeq } from "@/lib/events";
 import { queueSkippedCombatTurn } from "@/lib/dm/encounter-tools";
 import { combatHandoffState, passCombatTurn } from "@/lib/dm/human-turn-lifecycle";
@@ -13,18 +13,36 @@ import { combatHandoffState, passCombatTurn } from "@/lib/dm/human-turn-lifecycl
 // next actor. The DM console's single message does; the external narrator
 // passes it only on the last of its messages about the turn, so the table
 // stays nobody's while it writes.
-export function persistHumanNarration(campaign: Campaign, content: string, userId: string, options: { passTurn?: boolean } = {}) {
+const SCENE_JOIN_MS = 5 * 60_000;
+const SCENE_MAX_CHARS = 8000;
+
+// `continueScene`: a narration written before anyone else has spoken extends the
+// narrator's previous scene message instead of stacking a second DM post (the
+// usual case: resolve the declarations, start the fight, describe the first clash).
+export function persistHumanNarration(campaign: Campaign, content: string, userId: string, options: { passTurn?: boolean; continueScene?: boolean } = {}) {
   if (spatialEnabled(campaign.id)) throw new SpatialError("Choose a location before narrating in this campaign.", 409);
   return withCommittedEffects(() => getDatabase().transaction(() => {
-    const seq = allocateSeq(campaign.id);
-    const message = insertCampaignMessage({
-      campaignId: campaign.id,
-      seq,
-      authorType: "dm",
-      userId,
-      content,
-    });
-    publishWithSeq(campaign.id, seq, "message_added", { message });
+    const last = options.continueScene ? latestMessage(campaign.id) : null;
+    const joined = last && last.authorType === "dm" && last.userId === userId &&
+      Date.now() - Date.parse(last.createdAt) < SCENE_JOIN_MS &&
+      last.content.length + content.length + 2 <= SCENE_MAX_CHARS
+      ? updateMessageContent(last.id, `${last.content}\n\n${content}`)
+      : null;
+    let message: ReturnType<typeof insertCampaignMessage> & { appended?: true };
+    if (joined) {
+      message = Object.assign(joined, { appended: true as const });
+      publishPersisted(campaign.id, "message_updated", { message: joined });
+    } else {
+      const seq = allocateSeq(campaign.id);
+      message = insertCampaignMessage({
+        campaignId: campaign.id,
+        seq,
+        authorType: "dm",
+        userId,
+        content,
+      });
+      publishWithSeq(campaign.id, seq, "message_added", { message });
+    }
 
     // A submitted combat turn stays closed until its mechanics are resolved
     // and the handing-over message lands; only then does initiative move.

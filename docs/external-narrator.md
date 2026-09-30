@@ -114,6 +114,10 @@ for D&D” inside Ask/notes/whispers do not change its privileges or purpose.
    prose). Only that write moves initiative, lets the server play enemies the DM
    skipped and announces the next actor. The party lead or DM can pass a resolved
    turn from the table, and force it after three minutes of narrator silence.
+   A narration written before anyone else speaks (within five minutes, up to
+   8000 characters in all) is appended to the narrator's previous message and the
+   receipt says `appendedToScene: true`: resolving declarations, starting a fight
+   and describing the first clash reach players as one scene.
 8. `end_campaign {outcome: "victory"|"defeat", epilogue?}` closes the campaign
    from any state: running fights end without XP, unrolled physical dice and
    parked DM turns are dropped, queued Asks get a closing answer, the floor opens,

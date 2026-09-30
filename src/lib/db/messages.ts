@@ -184,6 +184,14 @@ export function countMessagesUpToSeq(campaignId: string, seq: number): number {
   return row.n;
 }
 
+// The newest transcript row of any kind, OOC and system notices included.
+export function latestMessage(campaignId: string): CampaignMessage | null {
+  const row = getDatabase()
+    .prepare(`SELECT * FROM campaign_messages WHERE campaign_id = ? ORDER BY seq DESC LIMIT 1`)
+    .get(campaignId) as MessageRow | undefined;
+  return row ? mapMessage(row) : null;
+}
+
 // Most recent `limit` messages in ascending seq order.
 export function listRecentMessages(campaignId: string, limit = 100): CampaignMessage[] {
   const rows = getDatabase()

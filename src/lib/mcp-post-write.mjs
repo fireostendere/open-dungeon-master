@@ -15,7 +15,11 @@ export function omitOwnMessages(state, receipt) {
   const own = new Set([receipt?.result?.messageId, ...(receipt?.result?.messageIds ?? [])].filter(Boolean));
   if (!own.size || !state || typeof state !== 'object') return state;
   const stub = message => own.has(message?.id) ? { id: message.id, seq: message.seq, authorType: message.authorType, content: null, ownWrite: true } : message;
-  if (Array.isArray(state.entries)) return { ...state, entries: state.entries.map(entry => entry.key === 'messages' ? { ...entry, value: stub(entry.value) } : entry) };
-  if (Array.isArray(state.messages)) return { ...state, messages: state.messages.map(stub) };
+  // A narration appended to the scene arrives as message_updated with the whole text.
+  const event = value => value?.type === 'message_updated' && own.has(value.payload?.message?.id)
+    ? { ...value, payload: { ...value.payload, message: stub(value.payload.message) } } : value;
+  if (Array.isArray(state.entries)) return { ...state, entries: state.entries.map(entry =>
+    entry.key === 'messages' ? { ...entry, value: stub(entry.value) } : entry.key === 'events' ? { ...entry, value: event(entry.value) } : entry) };
+  if (Array.isArray(state.messages) || Array.isArray(state.events)) return { ...state, messages: state.messages?.map(stub), events: state.events?.map(event) };
   return state;
 }
