@@ -10,15 +10,27 @@ import { localeText } from "@/lib/i18n/locale-text";
 // alone (src/lib/battlemap/map-style.ts): nobody else's board changes, and
 // nothing about what is shown or what is allowed does either.
 
-export function MapStyleMenu({ value, onChange }: { value: MapStyle; onChange: (style: MapStyle) => void }) {
+export function MapStyleMenu({
+  value,
+  onChange,
+  tilt,
+  onTilt,
+}: {
+  value: MapStyle;
+  onChange: (style: MapStyle) => void;
+  tilt: boolean;
+  onTilt: (tilt: boolean) => void;
+}) {
   const { locale } = useI18n();
   const copy = localeText(locale, {
     en: {
       title: "Map style",
       only: "Only on this device",
+      tilt: "Tilt the table",
       styles: {
         classic: ["Classic", "Flat tiles"],
         flagstone: ["Flagstone", "Textured stone, shadows"],
+        relief: ["Relief", "Walls with height, standing pieces"],
         torchlit: ["Torchlit", "Dark, with living fire"],
         parchment: ["Parchment", "Ink on old paper"],
         blueprint: ["Blueprint", "Flat, light, easy to read"],
@@ -27,9 +39,11 @@ export function MapStyleMenu({ value, onChange }: { value: MapStyle; onChange: (
     ru: {
       title: "Стиль карты",
       only: "Только на этом устройстве",
+      tilt: "Наклонить стол",
       styles: {
         classic: ["Классика", "Плоские плитки"],
         flagstone: ["Каменные плиты", "Текстуры и тени"],
+        relief: ["Объём", "Стены с высотой, фигурки стоят"],
         torchlit: ["Свет факелов", "Тёмный, с живым огнём"],
         parchment: ["Пергамент", "Чернила на старой бумаге"],
         blueprint: ["Чертёж", "Плоский, лёгкий, читаемый"],
@@ -76,6 +90,19 @@ export function MapStyleMenu({ value, onChange }: { value: MapStyle; onChange: (
               </DropdownMenu.RadioItem>
             ))}
           </DropdownMenu.RadioGroup>
+          <DropdownMenu.Separator className="my-1 h-px bg-stone-700/60" />
+          <DropdownMenu.CheckboxItem
+            checked={tilt}
+            onCheckedChange={onTilt}
+            className="flex cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-sm text-stone-300 outline-none data-[highlighted]:bg-stone-800 data-[highlighted]:text-amber-100"
+          >
+            <span className="flex size-4 items-center justify-center text-amber-300">
+              <DropdownMenu.ItemIndicator>
+                <Check className="size-3.5" />
+              </DropdownMenu.ItemIndicator>
+            </span>
+            {copy.tilt}
+          </DropdownMenu.CheckboxItem>
         </DropdownMenu.Content>
       </DropdownMenu.Portal>
     </DropdownMenu.Root>

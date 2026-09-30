@@ -15,7 +15,8 @@ import "./lab.css";
 
 const STYLE_NAME: Record<MapStyle, [string, string]> = {
   classic: ["Классика", "как сейчас"],
-  flagstone: ["Каменные плиты", "текстуры, тени, объём"],
+  flagstone: ["Каменные плиты", "текстуры и тени"],
+  relief: ["Объём", "стены с высотой, фигурки стоят"],
   torchlit: ["Свет факелов", "тёмный, с живым огнём"],
   parchment: ["Пергамент", "чернила на старой бумаге"],
   blueprint: ["Чертёж", "плоский, лёгкий, читаемый"],
@@ -30,7 +31,7 @@ const THEME_NAME: Record<MapTheme, string> = {
 };
 const AMBIENT_NAME: Record<AmbientLight | "auto", string> = { auto: "как у карты", bright: "день", dim: "сумерки", dark: "темно" };
 
-type State = { theme: MapTheme; style: MapStyle | "all"; ambient: AmbientLight | "auto"; fog: boolean; across: boolean; art: boolean };
+type State = { theme: MapTheme; style: MapStyle | "all"; ambient: AmbientLight | "auto"; fog: boolean; across: boolean; art: boolean; tilt: boolean };
 
 function readHash(): State {
   const p = new URLSearchParams(window.location.hash.slice(1));
@@ -44,6 +45,7 @@ function readHash(): State {
     fog: p.get("fog") !== "0",
     across: p.get("across") === "1",
     art: p.get("art") === "1",
+    tilt: p.get("tilt") === "1",
   };
 }
 
@@ -79,6 +81,7 @@ function Lab() {
     if (!next.fog) p.set("fog", "0");
     if (next.across) p.set("across", "1");
     if (next.art) p.set("art", "1");
+    if (next.tilt) p.set("tilt", "1");
     try {
       window.history.replaceState(null, "", `#${p.toString()}`);
     } catch {
@@ -97,7 +100,7 @@ function Lab() {
       <h1>Карта боя — варианты оформления</h1>
       <p>
         Это настоящий рендерер карты из игры на сгенерированной схватке: часть поля в тумане, часть в поле зрения, золотая клетка — ваш токен, подсвечены клетки, куда можно шагнуть. Стиль
-        выбирается в игре кнопкой «палитра» рядом с разворотом карты и запоминается на устройстве.
+        выбирается в игре кнопкой «палитра» рядом с разворотом карты, там же включается небольшой наклон стола; оба выбора запоминаются на устройстве.
       </p>
       <div className="bar">
         <Seg label="Стиль" value={state.style} options={[["all", "Все"], ...MAP_STYLES.map((s) => [s, STYLE_NAME[s][0]] as [MapStyle, string])]} onChange={(style) => set({ style })} />
@@ -107,6 +110,7 @@ function Lab() {
         <Seg label="Свет" value={state.ambient} options={(["auto", "bright", "dim", "dark"] as const).map((a) => [a, AMBIENT_NAME[a]] as [AmbientLight | "auto", string])} onChange={(ambient) => set({ ambient })} />
         <Seg label="Туман" value={state.fog ? "on" : "off"} options={[["on", "Игрок"], ["off", "Мастер"]]} onChange={(v) => set({ fog: v === "on" })} />
         <Seg label="Подложка" value={state.art ? "on" : "off"} options={[["off", "Нет"], ["on", "Картинка"]]} onChange={(v) => set({ art: v === "on" })} />
+        <Seg label="Наклон" value={state.tilt ? "on" : "off"} options={[["off", "Нет"], ["on", "Немного"]]} onChange={(v) => set({ tilt: v === "on" })} />
         <Seg label="Показ" value={state.across ? "themes" : "one"} options={[["one", "Одна местность"], ["themes", "Все местности"]]} onChange={(v) => set({ across: v === "themes" })} />
       </div>
       <div className={`maps${cards.length === 1 ? " single" : ""}`}>
@@ -123,6 +127,7 @@ function Lab() {
               view={sampleView(theme, { ambient: state.ambient === "auto" ? undefined : state.ambient, fog: state.fog, art: state.art })}
               sheets={[]}
               mapStyle={style}
+              tilt={state.tilt}
               onTileClick={() => {}}
             />
           </section>

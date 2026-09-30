@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import type { MapStyle } from "@/lib/battlemap/map-style";
 import type { TokenKind } from "@/lib/battlemap/types";
+import { shade } from "@/lib/battlemap/map-geometry";
 import { cn } from "@/lib/cn";
 
 // The body of a token in the painted styles: a coloured base, a shaded face
@@ -22,6 +23,9 @@ type Skin = {
   halo: string | null;
   // The outline round the base.
   edge: string;
+  // Stands up off the board: a coin with a visible edge on a base, and a
+  // crate with a lid and a front, instead of flat discs.
+  stand?: boolean;
 };
 
 const DARK_FACES: Skin["face"] = {
@@ -38,6 +42,13 @@ const SKINS: Record<PaintedStyle, Skin> = {
     rim: { pc: "#8fb0e0", enemy: "#f0524f", npc: "#3fd3c1", prop: "#b8ab94" },
     halo: null,
     edge: "#000",
+  },
+  relief: {
+    face: DARK_FACES,
+    rim: { pc: "#8fb0e0", enemy: "#f0524f", npc: "#3fd3c1", prop: "#b8ab94" },
+    halo: null,
+    edge: "#000",
+    stand: true,
   },
   torchlit: {
     face: DARK_FACES,
@@ -125,7 +136,35 @@ export function TokenBody({
           className={cn("animate-pulse")}
         />
       ) : null}
-      {kind === "prop" ? (
+      {skin.stand && kind === "prop" ? (
+        <>
+          {/* A crate seen from the front and above: lid, then the front. */}
+          <rect x={cx - 11} y={cy - 10} width={22} height={22} rx={3} fill="#000" opacity={0.3} />
+          <rect x={cx - 11} y={cy - 1} width={22} height={12} rx={2} fill={shade("#6b4f2a", -20)} stroke={skin.edge} strokeOpacity={0.6} strokeDasharray={dash} />
+          <path d={`M${cx - 11} ${cy + 3.5}h22M${cx - 11} ${cy + 7.5}h22`} stroke="#000" strokeOpacity={0.3} fill="none" />
+          <rect x={cx - 12} y={cy - 12} width={24} height={13} rx={2.5} fill={rim} stroke={skin.edge} strokeOpacity={0.6} strokeDasharray={dash} />
+          <rect x={cx - 9.5} y={cy - 9.5} width={19} height={8} rx={1.5} fill={face} />
+          <path d={`M${cx - 9.5} ${cy - 9}h19`} stroke="#fff" strokeOpacity={0.3} />
+        </>
+      ) : skin.stand ? (
+        <>
+          {/* A coin standing on its base: the base, the coin's edge, the face. */}
+          <ellipse cx={cx} cy={cy + 11.5} rx={13} ry={4.4} fill={shade(rim, -70)} />
+          <ellipse cx={cx} cy={cy + 10.3} rx={13} ry={4.4} fill={rim} stroke={skin.edge} strokeOpacity={0.55} strokeDasharray={dash} />
+          <circle cx={cx} cy={cy + 2.4} r={14.4} fill={shade(rim, -75)} />
+          <circle cx={cx} cy={cy} r={14.4} fill={rim} stroke={skin.edge} strokeOpacity={0.6} strokeWidth={1} strokeDasharray={dash} />
+          <circle cx={cx} cy={cy} r={12} fill={face} />
+          <circle cx={cx} cy={cy} r={12} fill="none" stroke="#fff" strokeOpacity={0.22} strokeWidth={1} />
+          <path
+            d={`M${cx - 8} ${cy - 3.5}a9 9 0 0 1 10-6`}
+            fill="none"
+            stroke="#fff"
+            strokeOpacity={0.35}
+            strokeWidth={1.6}
+            strokeLinecap="round"
+          />
+        </>
+      ) : kind === "prop" ? (
         <>
           <rect x={cx - 12} y={cy - 12} width={24} height={24} rx={3.5} fill={rim} stroke={skin.edge} strokeOpacity={0.65} strokeDasharray={dash} />
           <rect x={cx - 9.5} y={cy - 9.5} width={19} height={19} rx={2} fill={face} />

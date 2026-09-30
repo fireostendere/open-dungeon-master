@@ -25,7 +25,7 @@ import {
 } from "@/app/campaigns/[campaignId]/battleMapPatterns";
 import { tokenDefs, type PaintedStyle } from "@/app/campaigns/[campaignId]/battleMapTokens";
 
-// The painted battle-map styles: flagstone, torchlit, parchment, blueprint.
+// The painted battle-map styles: flagstone, relief, torchlit, parchment, blueprint.
 //
 // Like the classic layer (battleMapCells.tsx) this draws only what the
 // projection says is true: the same terrain string, the same explored and
@@ -343,8 +343,17 @@ function grade(look: Look, amt: number): Look {
   };
 }
 
-function stoneLayers(c: Ctx, theme: MapTheme, torch: boolean, calm: boolean): PaintedLayers {
+// Relief is flagstone with height: a wall is a block with a lit top and a
+// visible front, and a tree stands on a trunk. The top and the front share
+// the tile the wall occupies, so nothing spills onto its neighbours and no
+// piece is ever hidden behind a wall.
+const FRONT = 11;
+const SIDE = 3;
+
+function stoneLayers(c: Ctx, theme: MapTheme, mode: "flagstone" | "relief" | "torchlit", calm: boolean): PaintedLayers {
   const { uid, width: w, height: h } = c;
+  const torch = mode === "torchlit";
+  const relief = mode === "relief";
   const base = LOOKS[theme] ?? LOOKS.field;
   const look = torch ? grade(base, -30) : base;
   const seed = THEME_SEED[theme] ?? 7;
@@ -367,6 +376,9 @@ function stoneLayers(c: Ctx, theme: MapTheme, torch: boolean, calm: boolean): Pa
   const canopy = ["", "", "", ""];
   let treeShadow = "";
   let treeOutline = "";
+  let trunks = "";
+  let blockTop = "";
+  let blockLip = "";
   let doors: ReactNode[] = [];
   for (let y = 0; y < h; y += 1) {
     for (let x = 0; x < w; x += 1) {
@@ -387,12 +399,28 @@ function stoneLayers(c: Ctx, theme: MapTheme, torch: boolean, calm: boolean): Pa
         const cx = px + TILE / 2 + jx;
         const cy = py + TILE / 2 + jy;
         const big = 14 + hashNoise(x, y, 6) * 4.5;
-        treeShadow += ellipsePath(cx + 3, cy + 6, big * 0.95, big * 0.75);
-        treeOutline += circlePath(cx, cy, big + 0.8);
-        canopy[0] += circlePath(cx, cy, big);
-        canopy[1] += circlePath(cx - 4.5, cy + 2.5, big * 0.7);
-        canopy[2] += circlePath(cx + 5, cy - 1, big * 0.56);
-        canopy[3] += circlePath(cx - 2, cy - 6, big * 0.34);
+        // Relief lifts the crown off the ground and shows the trunk below it.
+        const top = relief ? cy - 4 : cy;
+        treeShadow += relief ? ellipsePath(cx + 4, cy + big * 0.55, big * 0.95, big * 0.42) : ellipsePath(cx + 3, cy + 6, big * 0.95, big * 0.75);
+        if (relief) {
+          trunks += `M${(cx - 2.6).toFixed(1)} ${(top + big * 0.5).toFixed(1)}h5.2v${(big * 0.5 + 3).toFixed(1)}h-5.2z`;
+        }
+        treeOutline += circlePath(cx, top, big + 0.8);
+        canopy[0] += circlePath(cx, top, big);
+        canopy[1] += circlePath(cx - 4.5, top + 2.5, big * 0.7);
+        canopy[2] += circlePath(cx + 5, top - 1, big * 0.56);
+        canopy[3] += circlePath(cx - 2, top - 6, big * 0.34);
+      } else if (relief && c.wall(x, y)) {
+        // A block: the top stops short of the tile's south and east edges
+        // where they face open ground, and what is left is its front and side.
+        const southOpen = c.open(x, y + 1);
+        const eastOpen = c.open(x + 1, y);
+        const bw = TILE - (eastOpen ? SIDE : 0);
+        const bh = TILE - (southOpen ? FRONT : 0);
+        blockTop += `M${px} ${py}h${bw}v${bh}h${-bw}z`;
+        if (southOpen) {
+          blockLip += `M${px} ${py + bh}h${bw}`;
+        }
       } else if (c.door(x, y)) {
         const across = c.wall(x - 1, y) && c.wall(x + 1, y);
         const [rx, ry, rw, rh] = across ? [px + 1, py + 11, TILE - 2, 10] : [px + 11, py + 1, 10, TILE - 2];
@@ -413,6 +441,25 @@ function stoneLayers(c: Ctx, theme: MapTheme, torch: boolean, calm: boolean): Pa
     }
   }
 
+  // The lit-from-above fall-off on the front of each run of blocks.
+  const fronts: ReactNode[] = [];
+  if (relief) {
+    for (let y = 0; y < h; y += 1) {
+      let x = 0;
+      while (x < w) {
+        if (!(c.wall(x, y) && c.open(x, y + 1))) {
+          x += 1;
+          continue;
+        }
+        const start = x;
+        while (x < w && c.wall(x, y) && c.open(x, y + 1)) {
+          x += 1;
+        }
+        fronts.push(<rect key={`f-${start}-${y}`} x={start * TILE} y={(y + 1) * TILE - FRONT} width={(x - start) * TILE} height={FRONT} fill={`url(#${uid}-front)`} />);
+      }
+    }
+  }
+
   const rimOf = (sides: Array<"n" | "e" | "s" | "w">) => edgesPath(w, h, TILE, c.wall, c.open, sides);
   const wallFace = look.wallKind === "brick" ? `${uid}-brick` : look.wallKind === "rock" ? `${uid}-rockwall` : `${uid}-litter`;
 
@@ -425,6 +472,10 @@ function stoneLayers(c: Ctx, theme: MapTheme, torch: boolean, calm: boolean): Pa
           ? rockWallPattern({ id: `${uid}-rockwall`, colors: look.wall, seed: seed + 1 })
           : litterPattern({ id: `${uid}-litter`, colors: look.wall, seed: seed + 1 })}
       {ripplePattern(`${uid}-ripple`, "#eaf7ff")}
+      <linearGradient id={`${uid}-front`} x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stopColor="#000" stopOpacity={0.05} />
+        <stop offset="100%" stopColor="#000" stopOpacity={0.5} />
+      </linearGradient>
       <linearGradient id={`${uid}-water`} x1="0" y1="0" x2="0" y2="1">
         <stop offset="0%" stopColor={shade(look.water, 14)} />
         <stop offset="100%" stopColor={shade(look.water, -14)} />
@@ -434,7 +485,7 @@ function stoneLayers(c: Ctx, theme: MapTheme, torch: boolean, calm: boolean): Pa
         <path d={openD} />
       </clipPath>
       {lightDefs(c)}
-      {tokenDefs(uid, torch ? "torchlit" : "flagstone")}
+      {tokenDefs(uid, mode)}
     </>
   );
 
@@ -494,15 +545,25 @@ function stoneLayers(c: Ctx, theme: MapTheme, torch: boolean, calm: boolean): Pa
 
       {wallD ? (
         <>
-          <path d={wallD} fill="#000" opacity={0.5} transform="translate(2 3.5)" filter={`url(#${uid}-b3)`} />
+          <path d={wallD} fill="#000" opacity={relief ? 0.55 : 0.5} transform={relief ? "translate(3 5)" : "translate(2 3.5)"} filter={`url(#${uid}-b3)`} />
           <path d={wallD} fill="#000" opacity={0.32} filter={`url(#${uid}-b6)`} />
           <path d={wallD} fill={`url(#${wallFace})`} />
-          {look.wallKind === "brick" ? (
+          {relief && look.wallKind !== "trees" ? (
+            <>
+              <path d={wallD} fill="#000" opacity={0.4} />
+              {fronts}
+              <path d={blockTop} fill={`url(#${wallFace})`} />
+              <path d={blockTop} fill="#fff" opacity={0.1} />
+              <path d={blockLip} fill="none" stroke={look.wall.light} strokeOpacity={0.55} strokeWidth={1.5} strokeLinecap="round" />
+            </>
+          ) : null}
+          {!relief && look.wallKind === "brick" ? (
             <path d={path(c, c.wall, 1.5)} fill="#fff" fillOpacity={0.045} stroke="#000" strokeOpacity={0.3} strokeWidth={1} />
           ) : null}
           {look.wallKind === "trees" ? (
             <>
               <path d={treeShadow} fill="#000" opacity={0.42} filter={`url(#${uid}-b3)`} />
+              {trunks ? <path d={trunks} fill="#33230f" stroke="#000" strokeOpacity={0.5} strokeWidth={0.8} /> : null}
               <path d={treeOutline} fill="#050b04" opacity={0.7} />
               <path d={canopy[0]} fill={look.canopy[0]} />
               <path d={canopy[1]} fill={look.canopy[1]} />
@@ -860,9 +921,9 @@ export function buildPaintedCells(
   }
   switch (style) {
     case "flagstone":
-      return stoneLayers(c, view.theme, false, calm);
+    case "relief":
     case "torchlit":
-      return stoneLayers(c, view.theme, true, calm);
+      return stoneLayers(c, view.theme, style, calm);
     case "parchment":
       return parchmentLayers(c, view.theme, calm);
     case "blueprint":

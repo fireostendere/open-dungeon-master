@@ -113,7 +113,7 @@ test("the style choice is per device, validated, and announced", () => {
 });
 
 const PAINTED = m.MAP_STYLES.filter((s) => s !== "classic");
-const FOG = { flagstone: "#040406", torchlit: "#040406", parchment: "#1c150e", blueprint: "#050b13" };
+const FOG = { flagstone: "#040406", relief: "#040406", torchlit: "#040406", parchment: "#1c150e", blueprint: "#050b13" };
 
 function render(view, style) {
   const { defs, cells } = m.buildPaintedCells(view, m.PALETTES[view.theme], style, "t", false);
@@ -156,6 +156,31 @@ for (const style of PAINTED) {
     }
   });
 }
+
+test("the tilt is a per-device switch, off unless chosen, and never leaves the board's box", () => {
+  assert.equal(m.readMapTilt(), false);
+  m.writeMapTilt(true);
+  assert.equal(store.get(m.MAP_TILT_KEY), "1");
+  assert.equal(m.readMapTilt(), true);
+  assert.ok(events.includes(m.MAP_TILT_EVENT));
+  m.writeMapTilt(false);
+  assert.equal(m.readMapTilt(), false);
+  store.set(m.MAP_TILT_KEY, "banana");
+  assert.equal(m.readMapTilt(), false, "an unknown stored value is off");
+  // Tilting about the bottom edge keeps the far side inside the near side's width,
+  // measured in the board's own width so every size leans alike.
+  const wide = m.mapTiltStyle(0.7);
+  assert.equal(wide.transformOrigin, "50% 100%");
+  assert.match(wide.transform, /perspective\(\d+cqw\) rotateX\((\d+)deg\)/);
+  assert.ok(Number(wide.transform.match(/rotateX\((\d+)deg\)/)[1]) <= 25, "a little, not a lot");
+  assert.equal(m.MAP_TILT_HOST_STYLE.containerType, "inline-size");
+  // The band above the far edge is taken back, and is always less than the board.
+  for (const aspect of [0.4, 0.5, 0.7, 0.9, 1.25]) {
+    const margin = parseFloat(m.mapTiltStyle(aspect).marginTop);
+    assert.ok(margin < 0 && -margin < aspect * 100 * 0.25, `aspect ${aspect}: ${margin}cqw`);
+  }
+  assert.ok(parseFloat(m.mapTiltStyle(1.25).marginTop) < parseFloat(m.mapTiltStyle(0.5).marginTop), "a taller board leaves a bigger band");
+});
 
 test("the painted layers are a few dozen nodes, not one per tile", () => {
   const view = m.sampleView("forest", { fog: false });

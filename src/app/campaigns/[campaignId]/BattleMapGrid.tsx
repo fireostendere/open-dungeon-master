@@ -11,7 +11,7 @@ import {
 } from "@/app/campaigns/[campaignId]/battleMapCells";
 import { buildPaintedCells } from "@/app/campaigns/[campaignId]/battleMapStyles";
 import { TokenBody } from "@/app/campaigns/[campaignId]/battleMapTokens";
-import { DEFAULT_MAP_STYLE, type MapStyle } from "@/lib/battlemap/map-style";
+import { DEFAULT_MAP_STYLE, MAP_TILT_HOST_STYLE, mapTiltStyle, type MapStyle } from "@/lib/battlemap/map-style";
 import { useFxSettings } from "@/lib/fx/prefs";
 import { backdropRect } from "@/lib/battlemap/backdrop";
 import type { PlayerMapView } from "@/lib/battlemap/view";
@@ -60,6 +60,7 @@ export const BattleMapGrid = memo(
     everyTileClickable = false,
     overlay,
     mapStyle = DEFAULT_MAP_STYLE,
+    tilt = false,
   }: {
     view: PlayerMapView;
     sheets: CharacterSheet[];
@@ -72,6 +73,8 @@ export const BattleMapGrid = memo(
     everyTileClickable?: boolean;
     overlay?: MapOverlay;
     mapStyle?: MapStyle;
+    // The table leans a little toward the viewer (map-style.ts).
+    tilt?: boolean;
   }) {
   const uiText = useInlineText();
     const clickRef = useRef(onTileClick);
@@ -196,10 +199,11 @@ export const BattleMapGrid = memo(
       hoverRef.current(x, y);
     }
 
-    return (
+    const board = (
       <svg
         viewBox={`0 0 ${width * TILE} ${height * TILE}`}
         className="h-auto w-full select-none rounded-lg border border-stone-800 bg-stone-950"
+        style={tilt ? mapTiltStyle(height / width) : undefined}
         role="img"
         aria-label={uiText("Battle map")}
         onClick={handleSvgClick}
@@ -596,6 +600,7 @@ export const BattleMapGrid = memo(
         />
       </svg>
     );
+    return tilt ? <div style={MAP_TILT_HOST_STYLE}>{board}</div> : board;
   },
   (prev, next) =>
     prev.view === next.view &&
@@ -605,6 +610,7 @@ export const BattleMapGrid = memo(
     prev.overlay === next.overlay &&
     prev.everyTileClickable === next.everyTileClickable &&
     prev.mapStyle === next.mapStyle &&
+    prev.tilt === next.tilt &&
     // Only presence matters; the handlers themselves are read through refs.
     (prev.onTileClick === undefined) === (next.onTileClick === undefined) &&
     (prev.onTileHover === undefined) === (next.onTileHover === undefined) &&
