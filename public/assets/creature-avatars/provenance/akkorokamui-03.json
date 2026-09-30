@@ -1,0 +1,17 @@
+{
+  "creatureId": "akkorokamui",
+  "variantId": "03",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-09-30",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy painted celestial creature avatar, cinematic realistic marine textures and magnificent scale, expressive head strongly readable at 512 pixels, no text, border, watermark or collage. Akkorokamui from Tome of Beasts 3: Gargantuan aquatic celestial titan with EXACTLY EIGHT massive RED tentacles, every tentacle can reveal a magical fleshy hook. Vast ancient wise yet fickle guardian associated with radiant seawater and healing, not a demonic blood monster. Original conservative cephalopodlike head interpretation: broad rounded crimson mantle, wise gold eyes low on either side, deeply textured wet red skin, no human torso, no wings or angel body, no spider armor claimed as canon. Eight tentacles belong to one body, no branching extra limbs; several may be naturally cropped or submerged in close portrait. A few curved dark-red organic hooks visible on tentacle undersides, no metal harpoons, no gore. Noble marine presence in original composition, do not copy publisher artwork. Serious normal 03. Dawn rescue scene cropped closely around the titanic red guardian's head and one protective curling arm. A tiny fishing skiff rests safely within a calm circle of radiant seawater near the lower edge, the rest of the storm held away. Gargantuan crimson mantle with compassionate watchful gold eye dominates, eight-tentacle creature with others fading into ocean mist, subtle fleshy hook folded harmlessly away from boat. Rose dawn, deep red skin, aqua-gold light, no injured people.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/akkorokamui/",
+      "note": "ToB3 explicitly eight massive red tentacles, each 100ft with magical fleshy hook; Gargantuan aquatic celestial guardian with radiant water and healing. Exact head/eyes/suckers/spider features unverified, cephalopodlike head is original interpretation, not anatomy claimed from art."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

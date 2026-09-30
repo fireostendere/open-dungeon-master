@@ -1,0 +1,21 @@
+{
+  "creatureId": "akyishigal-tob1-2023",
+  "variantId": "03",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-09-30",
+  "prompt": "Use case: stylized-concept. One original square dark-fantasy demon creature avatar, tactile cinematic painterly realism, face sharp and readable at 512 pixels, no words, border, watermark or collage. Akyishigal, Demon Lord of Cockroaches, Tome of Beasts 2023: Large insectoid fiend, true demonic COCKROACH identity. Reddish-brown filthy chitin armor as body, large glossy black faceted compound eyes, paired powerful dirty mandibles, long segmented antennae and tall hornlike upper chitin projections, narrow segmented throat, spiny articulated insect forelimbs with claws. Ragged blue-gray cloth draped behind thorax, not a human face or horned human in armor. Small cockroaches swarm from shadowed mouth and body seams without blood or graphic wounds. No fixed limb count implied by attacks; portrait crops lower limbs, no unsupported exposed wings. Sinister abyssal sovereign, original composition from textual identity and publisher-art motifs, never copy illustration. Serious normal 03. Left-angled close portrait of the rag-cloaked cockroach demon sovereign beneath an abyssal arch. Tall upper chitin projections and segmented antennae outlined by cold blue rim light; huge black faceted eye, filthy paired mandibles and spiked forelimb with claw dominate. Reddish-brown hard shell textures, torn blue-gray cloth and a few small roaches on collar seam, sickly green distant light, no human face or wings.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/demon-lord-of-cockroaches-3pp/",
+      "note": "ToB1 2023 copyright confirmed: Large insectoid Akyishigal, mandibles/claws and body-emerging insects. Attack/fly count not used for appendage claims."
+    },
+    {
+      "url": "https://www.nosolorol.com/noticias/akyishigal-en-tomo-de-las-bestias",
+      "note": "Publisher depiction visually inspected: reddish-brown chitin, large black faceted eyes, mandibles, antennae, hornlike upper projections, segmented throat, ragged blue-gray cloth, spiny limbs. 2025 Spanish article does not establish exact English 2023 art version; composition original."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

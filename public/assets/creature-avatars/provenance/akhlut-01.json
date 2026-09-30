@@ -1,0 +1,21 @@
+{
+  "creatureId": "akhlut",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-09-30",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy beast portrait, tactile painterly realism with cinematic cold polar light, creature face readable at 512 pixels, no frame, text, watermark or collage. Akhlut from Tome of Beasts 2: Large polar land-and-sea beast with the HEAD, BODY and TAIL of a killer whale, combined with powerful wolf-like weight-bearing LEGS. Head must be unmistakably ORCA, blunt smooth whale snout, white eye patch, big conical teeth; NOT wolf head. Smooth wet black and creamy-white whale skin, dorsal fin, broad orca tail flukes. Muscular legs have smooth skin and broad splayed WEBBED CLAWED feet; no furry wolf forebody or wolf ears. Low quadruped interpretation, close portrait includes head and one or two visible forelegs with remaining anatomy naturally occluded. Cunning predatory creature with playful curiosity, coherent anatomy, no wings, no antlers, not a shapeshifting ordinary wolf. Original image from species traits, no copied book composition. Serious normal 01. Close frontal three-quarter portrait bursting through blue-white pack ice, roaring ORCA face large in foreground, teeth and creamy jaw exposed, small dark eye adjacent to white eyepatch. One muscular smooth-skinned foreleg with broad webbed clawed paw braces on broken ice, black dorsal fin rising behind the head. Sea spray and pale cyan ice shards, blue rim light and somber polar sky, no blood.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/akhlut/",
+      "note": "ToB2: Large beast with killer-whale head/body/tail and powerful wolf-like legs. Not wolf-headed mythology variation or shapeshifter."
+    },
+    {
+      "url": "https://www.theloremistress.co.uk/post/monster-monday-22-akhlut",
+      "note": "ToB2 p12 art reproduced and inspected: smooth black/cream orca skin/head/eyepatch/dorsal fin and smooth muscular leg with splayed webbed clawed foot. Total legs/toes obscured; original portrait keeps these partially occluded."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

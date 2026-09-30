@@ -1,0 +1,21 @@
+{
+  "creatureId": "aklea-a5e",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-09-30",
+  "prompt": "Use case: stylized-concept. One original square dark-fantasy painted character avatar, cinematic tactile realism, expressive mature adult female face dominant and crisp at 512 pixels, no text, frame, watermark or collage. Aklea from Level Up Advanced 5e: a Gargantuan female empyrean celestial titan, daughter of a war god, formidable muscular humanoid woman in substantial breastplate armor carrying a colossal maul. Wandering the stars seeking atonement and control of her terrible battle fury. Original consistent design: warm bronze skin, angular strong mature face, slightly pointed ears, long dark flowing hair, weathered purple-bronze breastplate with gold trim, a purple helmet bearing two upward-curving ornamental horns (HELMET ornaments, not biological horns), worn gold cloak and enormous dark iron maul. No wings, no demon tail, no exposed sexualized armor or nudity. Heroic penitent celestial warrior, not a tiefling merely because a helmet has horns. Original rendering, not copying official-page art or any actor. Serious normal 02. Nearly frontal battle-ready close head-and-shoulder portrait, helmet ON with two clearly attached ornamental horn crests, brows tense and mouth set in controlled fury. Lightning reflected across her strong face and purple-bronze armor, dark wind-torn hair and gold cape behind, large maul haft gripped in one gauntleted hand at edge. No battle victims, no blood, powerful celestial presence trying to stay calm, indigo storm and warm gold eye light.",
+  "designReferences": [
+    {
+      "url": "https://a5e.tools/node/1801",
+      "note": "Primary A5E Aklea: female empyrean war-god daughter, breastplate/maul, astral penitent battling rage, size-changing celestial. Flight does not establish wings."
+    },
+    {
+      "url": "https://a5e.tools/node/1801",
+      "note": "Official-page art visually inspected for optional design motifs: dark hair, pointed ears, purple armor, horned HELMET, gold cape/trim, massive maul. Art filename Tiefling_Woman_Warrior is not evidence Aklea has natural horns/tiefling anatomy. Skin/palette and pose original."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}
