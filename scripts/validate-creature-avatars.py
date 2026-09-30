@@ -8,13 +8,22 @@ from PIL import Image
 ROOT = Path(__file__).resolve().parents[1]
 ASSETS = ROOT / 'public/assets/creature-avatars'
 m = json.loads((ASSETS / 'manifest.json').read_text())
-assert m['schemaVersion'] == 1
+assert m['schemaVersion'] == 2
 assert m['variantPolicy'] == {'normal': 3, 'yolo': 1}
 assert len(m['creatures']) == m['sourceRoster']['creatureCount'] == 2308
 seen = set()
 counts = {'complete': 0, 'partial': 0, 'pending': 0}
 assets = 0
-for slug, creature in m['creatures'].items():
+catalogs = {key: json.loads((ASSETS / path).read_text()) for key, path in m['catalogShards'].items()}
+assert set().union(*(set(c) for c in catalogs.values())) == set(m['creatures'])
+assert sum(map(len, catalogs.values())) == len(m['creatures'])
+assert set(m['variantRecords']).issubset(m['creatures'])
+for slug, shard in m['creatures'].items():
+    creature = dict(catalogs[str(shard)][slug])
+    if slug in m['variantRecords']:
+        creature.update(json.loads((ASSETS / m['variantRecords'][slug]).read_text()))
+    else:
+        creature.update(status='pending', variants=[], modes={'normal': [], 'yolo': []})
     assert slug == creature['id']
     ids = set()
     for v in creature['variants']:

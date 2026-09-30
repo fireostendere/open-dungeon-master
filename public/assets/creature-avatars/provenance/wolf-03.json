@@ -1,0 +1,11 @@
+{
+  "creatureId": "wolf",
+  "variantId": "03",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-09-30",
+  "prompt": "Use case: stylized-concept. Asset type: square fantasy bestiary avatar. One original natural adult WOLF portrait, normal variant03. Dark charcoal almost-black wolf with brown-gray muzzle and throat, amber eyes, long sharp natural canine muzzle, pricked triangular ears, thick wet fur, natural adult wolf proportions rather than dog, werewolf or oversized dire wolf. Right-facing three-quarter head-and-shoulders, lips subtly raised in restrained warning, wet amber autumn woodland and mossy ruined stones out of focus behind. Dramatic overcast light with warm autumn reflections and blue shadows, polished realistic painterly dark-fantasy finish, rich fur detail, readable portrait silhouette. Whole head and both ears inside centered square with comfortable margins. No collar, clothing or fantasy adornments, no humans, one wolf only, no text/letters/logo/watermark/border/grid or gore, original art no artist imitation.",
+  "license": "generated-output; no third-party artwork license asserted"
+}

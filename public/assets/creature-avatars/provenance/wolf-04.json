@@ -1,0 +1,11 @@
+{
+  "creatureId": "wolf",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-09-30",
+  "prompt": "Use case: stylized-concept. Asset type: square bestiary avatar, YOLO absurd dark comedy in polished realistic dark-fantasy style. One unmistakably natural adult gray WOLF with amber eyes, long canine muzzle, triangular ears and thick rough gray fur, quadruped anatomy, not werewolf or dog. The fearsome alpha predator has stolen an absurdly enormous sausage garland and holds the wooden string handle proudly in its mouth, several sausages draped messily around its neck like royal medals; a tiny ridiculous wilted flower crown is stuck on one ear. Stern self-important stare directly at viewer, as if this is the greatest hunt in history. Damp medieval village edge and dark forest blurred behind, dramatic moonlight and warm tavern glow, epic ominous lighting applied to pathetic sausage thief. Head and shoulders with all ears and garland readable, centered square avatar framing with margins. Exactly one wolf, original art, no blood or gore, no people, no text/letters/grid/border/logo/watermark, no specific artist style.",
+  "license": "generated-output; no third-party artwork license asserted"
+}
