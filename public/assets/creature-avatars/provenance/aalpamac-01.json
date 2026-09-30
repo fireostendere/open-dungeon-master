@@ -1,0 +1,22 @@
+{
+  "creatureId": "aalpamac",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-09-30",
+  "prompt": "Use case: stylized-concept. One original square dark-fantasy bestiary AALPAMAC portrait. Crucial hybrid anatomy: fierce wolverine mammal head with short rounded ears, broad snarling muzzle, dark brown fur and pale facial markings; TWO muscular furred front legs ending in powerful claws. Behind the shoulders its body becomes a HUGE TROUT with silvery spotted fish scales, visible fins and a broad forked fish tail, NO mammalian hind legs. Its eyes glow emerald green. Subtle lenslike bending of the watery background suggests its distance-distortion aura. Clearly a wolverine-trout hybrid, not a bear, otter, seal or four-legged wolf. Polished realistic painterly dark fantasy, cinematic light, wet fur and iridescent scales, centered square composition shows head, foreclaws and recognizably fish body/tail with margins. One creature only, no people/gore/text/letters/logo/watermark/grid/border, original art no artist imitation. Normal variant01. Three-quarter left view lunging halfway out of an icy alpine lake, one claw grips wet boulder, long trout body curves visibly behind, deep teal water and cold moonlight with silver highlights, dangerous predatory glare.",
+  "designReferences": [
+    {
+      "url": "https://github.com/open5e/open5e-api/blob/staging/data/v1/tob2/Monster.json",
+      "blobSha": "525bb80e5e7b8490fffe58b374150e8274abe258",
+      "use": "Creature appearance facts; no source prose or artwork copied"
+    },
+    {
+      "url": "https://koboldpress.com/tools/kobold-press-monsters/",
+      "use": "Source, size and aquatic habitat"
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

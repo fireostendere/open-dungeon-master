@@ -1,0 +1,21 @@
+{
+  "creatureId": "abaasy",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-09-30",
+  "prompt": "Use case: stylized-concept. One original square dark-fantasy bestiary ABAASY portrait using the Tome of Beasts 3 identity: a huge brutal OGRE-LIKE GIANT with EXACTLY FOUR muscular arms, an upper pair at shoulders and a lower pair at ribs, and EXACTLY ONE large central eye. One head, broad blunt nose, heavy tusked jaw, coarse gray-brown skin. Weathered mismatched iron armor plates fixed against skin with blunt rivets, old healed marks only, no gore or fresh wounds. Two round shields are part of its scavenged equipment. Clearly distinguish all four arms and the single eye; not a normal two-armed cyclops, not four eyes. Polished realistic painterly fantasy, dramatic lighting, rich skin and battered metal texture. Waist-up centered composition with room for four arms and head inside square. One giant only, no text/letters/logo/watermark/border/grid, no victims, original art no artist imitation. Normal variant02. Slight left-facing scarred gray giant with dark matted hair and rusty armor scraps, four distinct arms held outward, two lower hands with round shields, upper hands empty and clenched. Single greenish central eye. Cold dawn in rocky canyon, muted bronze rimlight, stern scowling face.",
+  "designReferences": [
+    {
+      "url": "https://kpogl.wikidot.com/monster%3Aabaasy",
+      "use": "Identity facts: one eye, four arms, scavenged armor and two shields; no source prose or art copied"
+    },
+    {
+      "url": "https://koboldpress.com/tools/kobold-press-monsters/",
+      "use": "Tome of Beasts 3 source and giant type"
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

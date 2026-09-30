@@ -1,0 +1,21 @@
+{
+  "creatureId": "abaasy",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-09-30",
+  "prompt": "Use case: stylized-concept. One original square dark-fantasy bestiary ABAASY portrait using the Tome of Beasts 3 identity: a huge brutal OGRE-LIKE GIANT with EXACTLY FOUR muscular arms, an upper pair at shoulders and a lower pair at ribs, and EXACTLY ONE large central eye. One head, broad blunt nose, heavy tusked jaw, coarse gray-brown skin. Weathered mismatched iron armor plates fixed against skin with blunt rivets, old healed marks only, no gore or fresh wounds. Two round shields are part of its scavenged equipment. Clearly distinguish all four arms and the single eye; not a normal two-armed cyclops, not four eyes. Polished realistic painterly fantasy, dramatic lighting, rich skin and battered metal texture. Waist-up centered composition with room for four arms and head inside square. One giant only, no text/letters/logo/watermark/border/grid, no victims, original art no artist imitation. YOLO absurd dark comedy variant04. This gigantic one-eyed four-armed armored bully is attempting to knit a ridiculously tiny pink scarf and has tangled bright yarn around ALL FOUR hands. One pair holds knitting needles, lower pair hopelessly tries to untangle the yarn. Two round shields lean behind its flanks rather than hide arms. Its single eye squints in furious concentration. Tiny knitted pompom cap on enormous head. Epic gloomy fortress lighting turns pathetic handicraft failure into solemn tragedy. Clearly four arms and one eye.",
+  "designReferences": [
+    {
+      "url": "https://kpogl.wikidot.com/monster%3Aabaasy",
+      "use": "Identity facts: one eye, four arms, scavenged armor and two shields; no source prose or art copied"
+    },
+    {
+      "url": "https://koboldpress.com/tools/kobold-press-monsters/",
+      "use": "Tome of Beasts 3 source and giant type"
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}
