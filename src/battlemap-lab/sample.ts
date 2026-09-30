@@ -8,7 +8,7 @@ import { TERRAIN, tileIndex, type AmbientLight, type TokenKind } from "@/lib/bat
 import type { PlayerMapView } from "@/lib/battlemap/view";
 
 const PCS = ["Эйра", "Торин", "Мира", "Гром"];
-const ENEMIES = ["Гоблин", "Волк", "Огр"];
+const ENEMIES = ["Гоблин", "Волк", "Огр", "Скелет", "Паук-охотник"];
 
 // A stand-in for a DM's painted picture: a flagged hall in flat colour.
 const ART = `data:image/svg+xml;utf8,${encodeURIComponent(
@@ -17,8 +17,9 @@ const ART = `data:image/svg+xml;utf8,${encodeURIComponent(
 
 export function sampleView(
   theme: MapTheme,
-  opts: { ambient?: AmbientLight; fog?: boolean; seed?: string; art?: boolean } = {},
+  opts: { ambient?: AmbientLight; fog?: boolean; seed?: string; art?: boolean; foes?: string[] } = {},
 ): PlayerMapView {
+  const enemies = opts.foes?.length ? opts.foes : ENEMIES;
   const width = 20;
   const height = 14;
   const map = generateBattleMap({
@@ -28,7 +29,7 @@ export function sampleView(
     theme,
     ambient: opts.ambient,
     pcCount: PCS.length,
-    enemyCount: ENEMIES.length,
+    enemyCount: enemies.length,
   });
   const terrain = map.terrain.split("");
   const at = (x: number, y: number) => terrain[tileIndex(width, x, y)];
@@ -47,7 +48,7 @@ export function sampleView(
 
   const open = (x: number, y: number) => x > 0 && y > 0 && x < width - 1 && y < height - 1 && at(x, y) !== "#" && at(x, y) !== "~";
   const pcs = map.pcSpawns.slice(0, PCS.length);
-  const foes = map.enemySpawns.slice(0, ENEMIES.length);
+  const foes = map.enemySpawns.slice(0, enemies.length);
   const taken = new Set([...pcs, ...foes].map((p) => tileIndex(width, p.x, p.y)));
   const spare: Array<{ x: number; y: number }> = [];
   const cx = Math.round(width / 2);
@@ -67,7 +68,7 @@ export function sampleView(
   const add = (kind: TokenKind, name: string, p: { x: number; y: number }, extra: Partial<PlayerMapView["tokens"][number]> = {}) =>
     tokens.push({ id: `${kind}-${tokens.length}`, kind, refId: `${kind}-${tokens.length}`, name, x: p.x, y: p.y, mine: false, down: false, hidden: false, ...extra });
   pcs.forEach((p, i) => add("pc", PCS[i], p, { mine: i === 0, down: i === 3 }));
-  foes.forEach((p, i) => add("enemy", ENEMIES[i], p));
+  foes.forEach((p, i) => add("enemy", enemies[i], p));
   if (spare[0]) add("npc", "Трактирщик", spare[0]);
   if (spare[1]) add("prop", "Бочка", spare[1]);
 

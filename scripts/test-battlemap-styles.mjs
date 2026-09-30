@@ -169,17 +169,17 @@ test("the tilt is a per-device switch, off unless chosen, and never leaves the b
   assert.equal(m.readMapTilt(), false, "an unknown stored value is off");
   // Tilting about the bottom edge keeps the far side inside the near side's width,
   // measured in the board's own width so every size leans alike.
-  const wide = m.mapTiltStyle(0.7);
-  assert.equal(wide.transformOrigin, "50% 100%");
-  assert.match(wide.transform, /perspective\(\d+cqw\) rotateX\((\d+)deg\)/);
-  assert.ok(Number(wide.transform.match(/rotateX\((\d+)deg\)/)[1]) <= 25, "a little, not a lot");
+  const lean = m.mapTiltStyle();
+  assert.equal(lean.transformOrigin, "50% 100%");
+  assert.match(lean.transform, /perspective\(\d+cqw\) rotateX\((\d+)deg\)/);
+  assert.ok(Number(lean.transform.match(/rotateX\((\d+)deg\)/)[1]) <= 25, "a little, not a lot");
   assert.equal(m.MAP_TILT_HOST_STYLE.containerType, "inline-size");
-  // The band above the far edge is taken back, and is always less than the board.
+  // The band above the far edge is positive and never more than a quarter of the window.
   for (const aspect of [0.4, 0.5, 0.7, 0.9, 1.25]) {
-    const margin = parseFloat(m.mapTiltStyle(aspect).marginTop);
-    assert.ok(margin < 0 && -margin < aspect * 100 * 0.25, `aspect ${aspect}: ${margin}cqw`);
+    const band = m.mapTiltBand(aspect);
+    assert.ok(band > 0 && band < aspect * 100 * 0.25, `aspect ${aspect}: ${band}cqw`);
   }
-  assert.ok(parseFloat(m.mapTiltStyle(1.25).marginTop) < parseFloat(m.mapTiltStyle(0.5).marginTop), "a taller board leaves a bigger band");
+  assert.ok(m.mapTiltBand(1.25) > m.mapTiltBand(0.5), "a taller window leaves a bigger band");
 });
 
 test("the painted layers are a few dozen nodes, not one per tile", () => {

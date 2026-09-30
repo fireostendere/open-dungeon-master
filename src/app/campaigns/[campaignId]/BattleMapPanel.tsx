@@ -319,7 +319,9 @@ export function BattleMapPanel({
     pointing || (canDirect && (tool !== "handle" || held !== null));
 
   const card = cardTokenId ? tokensById.get(cardTokenId) : undefined;
-  const grid = (
+  // The same board twice: in the panel, and enlarged (which on a phone is the
+  // whole screen, and where the wheel zooms without a modifier key).
+  const renderGrid = (expanded: boolean) => (
     <BattleMapGrid
       view={view}
       sheets={sheets}
@@ -334,6 +336,7 @@ export function BattleMapPanel({
       overlay={overlay}
       mapStyle={mapStyle}
       tilt={mapTilt}
+      expanded={expanded}
     />
   );
 
@@ -365,7 +368,7 @@ export function BattleMapPanel({
               onClick={() => setPointing((current) => !current)}
               title={copy.point}
               aria-pressed={pointing}
-              className={`rounded p-1 ${
+              className={`rounded p-1 max-md:p-2 ${
                 pointing ? "bg-amber-950/60 text-amber-300" : "text-stone-400 hover:bg-stone-900"
               }`}
             >
@@ -376,7 +379,7 @@ export function BattleMapPanel({
           <button
             type="button"
             onClick={() => setEnlarged(true)}
-            className="rounded p-1 text-stone-400 hover:bg-stone-900 hover:text-stone-200"
+            className="rounded p-1 text-stone-400 hover:bg-stone-900 hover:text-stone-200 max-md:p-2"
             aria-label={copy.enlarge}
           >
             <Maximize2 className="size-4" />
@@ -394,7 +397,7 @@ export function BattleMapPanel({
           disabled={busy}
         />
       ) : null}
-      {grid}
+      {renderGrid(false)}
       {canDirect && tool === "place" ? (
         <PlaceTokenForm
           kind={placeKind}
@@ -485,16 +488,16 @@ export function BattleMapPanel({
       <Dialog.Root open={enlarged} onOpenChange={setEnlarged}>
         <Dialog.Portal>
           <Dialog.Overlay className="fixed inset-0 z-40 bg-black/80" />
-          <Dialog.Content className="fixed left-1/2 top-1/2 z-50 max-h-[92dvh] w-[min(94vw,64rem)] -translate-x-1/2 -translate-y-1/2 overflow-auto panel rounded-xl p-4">
+          <Dialog.Content aria-describedby={undefined} className="fixed left-1/2 top-1/2 z-50 max-h-[92dvh] w-[min(94vw,64rem)] -translate-x-1/2 -translate-y-1/2 overflow-auto panel rounded-xl p-4 max-md:left-0 max-md:top-0 max-md:h-dvh max-md:max-h-none max-md:w-dvw max-md:translate-x-0 max-md:translate-y-0 max-md:rounded-none max-md:p-2">
             <div className="mb-2 flex items-center justify-between">
               <Dialog.Title className="font-serif text-stone-100">
                  {scene ? copy.ground : `${copy.map} ${view.round}`}
               </Dialog.Title>
-              <Dialog.Close className="rounded p-1 text-stone-400 hover:bg-stone-900">
+              <Dialog.Close className="rounded p-1 text-stone-400 hover:bg-stone-900 max-md:p-2">
                 <X className="size-4" />
               </Dialog.Close>
             </div>
-            {grid}
+            {renderGrid(true)}
           </Dialog.Content>
         </Dialog.Portal>
       </Dialog.Root>

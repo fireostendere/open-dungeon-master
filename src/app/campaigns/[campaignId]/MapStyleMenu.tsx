@@ -57,7 +57,7 @@ export function MapStyleMenu({
           type="button"
           aria-label={copy.title}
           title={copy.title}
-          className="rounded p-1 text-stone-400 hover:bg-stone-900 hover:text-stone-200"
+          className="rounded p-1 text-stone-400 hover:bg-stone-900 hover:text-stone-200 max-md:p-2"
         >
           <Palette className="size-4" />
         </button>

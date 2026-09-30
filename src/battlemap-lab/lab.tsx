@@ -7,6 +7,7 @@ import { StrictMode, useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { I18nProvider } from "@/lib/i18n";
 import { BattleMapGrid } from "@/app/campaigns/[campaignId]/BattleMapGrid";
+import { BattleMapPanel } from "@/app/campaigns/[campaignId]/BattleMapPanel";
 import { MAP_THEMES, type MapTheme } from "@/lib/battlemap/generate";
 import { MAP_STYLES, type MapStyle } from "@/lib/battlemap/map-style";
 import type { AmbientLight } from "@/lib/battlemap/types";
@@ -31,7 +32,7 @@ const THEME_NAME: Record<MapTheme, string> = {
 };
 const AMBIENT_NAME: Record<AmbientLight | "auto", string> = { auto: "как у карты", bright: "день", dim: "сумерки", dark: "темно" };
 
-type State = { theme: MapTheme; style: MapStyle | "all"; ambient: AmbientLight | "auto"; fog: boolean; across: boolean; art: boolean; tilt: boolean };
+type State = { theme: MapTheme; style: MapStyle | "all"; ambient: AmbientLight | "auto"; fog: boolean; across: boolean; art: boolean; tilt: boolean; foes: string[]; panel: boolean };
 
 function readHash(): State {
   const p = new URLSearchParams(window.location.hash.slice(1));
@@ -46,6 +47,8 @@ function readHash(): State {
     across: p.get("across") === "1",
     art: p.get("art") === "1",
     tilt: p.get("tilt") === "1",
+    panel: p.get("panel") === "1",
+    foes: (p.get("foes") ?? "").split(",").map((s) => s.trim()).filter(Boolean),
   };
 }
 
@@ -62,6 +65,13 @@ function Seg<T extends string>({ label, value, options, onChange }: { label: str
       </span>
     </div>
   );
+}
+
+// The lab has no game behind it, so what the map reports is kept on the window
+// for a person (or a test) to look at.
+function record(name: "taps" | "hovers", value: [number, number | null]) {
+  const w = window as unknown as Record<string, unknown[]>;
+  (w[`__${name}`] ??= []).push(value);
 }
 
 function Lab() {
@@ -82,6 +92,7 @@ function Lab() {
     if (next.across) p.set("across", "1");
     if (next.art) p.set("art", "1");
     if (next.tilt) p.set("tilt", "1");
+    if (next.foes.length) p.set("foes", next.foes.join(","));
     try {
       window.history.replaceState(null, "", `#${p.toString()}`);
     } catch {
@@ -99,6 +110,10 @@ function Lab() {
     <div className="lab">
       <h1>Карта боя — варианты оформления</h1>
       <p>
+        Карту можно приближать (колесо с Ctrl, щипок двумя пальцами, кнопки «+» и «−») и двигать перетаскиванием; на телефоне она сразу крупная и открывается на вашей фигуре. В стиле «Объём»
+        враги и NPC стоят фигурками из 3D-бестиария.
+      </p>
+      <p>
         Это настоящий рендерер карты из игры на сгенерированной схватке: часть поля в тумане, часть в поле зрения, золотая клетка — ваш токен, подсвечены клетки, куда можно шагнуть. Стиль
         выбирается в игре кнопкой «палитра» рядом с разворотом карты, там же включается небольшой наклон стола; оба выбора запоминаются на устройстве.
       </p>
@@ -113,6 +128,20 @@ function Lab() {
         <Seg label="Наклон" value={state.tilt ? "on" : "off"} options={[["off", "Нет"], ["on", "Немного"]]} onChange={(v) => set({ tilt: v === "on" })} />
         <Seg label="Показ" value={state.across ? "themes" : "one"} options={[["one", "Одна местность"], ["themes", "Все местности"]]} onChange={(v) => set({ across: v === "themes" })} />
       </div>
+      {state.panel ? (
+        // The game's own map panel (the one with the palette menu, the
+        // enlarge button and the full-screen phone dialog), for checking it.
+        <div style={{ maxWidth: 460 }}>
+          <BattleMapPanel
+            campaignId="lab"
+            view={sampleView(state.theme, { ambient: state.ambient === "auto" ? undefined : state.ambient, fog: state.fog, art: state.art, foes: state.foes })}
+            encounter={null}
+            sheets={[]}
+            refreshBattleMap={async () => {}}
+          />
+        </div>
+      ) : null}
+      {state.panel ? null : (
       <div className={`maps${cards.length === 1 ? " single" : ""}`}>
         {cards.map(({ theme, style }) => (
           <section className="card" key={`${theme}-${style}`}>
@@ -124,15 +153,17 @@ function Lab() {
               </span>
             </h2>
             <BattleMapGrid
-              view={sampleView(theme, { ambient: state.ambient === "auto" ? undefined : state.ambient, fog: state.fog, art: state.art })}
+              view={sampleView(theme, { ambient: state.ambient === "auto" ? undefined : state.ambient, fog: state.fog, art: state.art, foes: state.foes })}
               sheets={[]}
               mapStyle={style}
               tilt={state.tilt}
-              onTileClick={() => {}}
+              onTileClick={(x, y) => record("taps", [x, y])}
+              onTileHover={(x, y) => record("hovers", [x, y])}
             />
           </section>
         ))}
       </div>
+      )}
     </div>
   );
 }

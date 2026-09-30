@@ -1,6 +1,7 @@
 "use client";
 
 import { useInlineText } from "@/lib/i18n/inline-text";
+import { useI18n } from "@/lib/i18n/context";
 import { memo, useEffect, useId, useMemo, useRef } from "react";
 import { cn } from "@/lib/cn";
 import {
@@ -11,7 +12,9 @@ import {
 } from "@/app/campaigns/[campaignId]/battleMapCells";
 import { buildPaintedCells } from "@/app/campaigns/[campaignId]/battleMapStyles";
 import { TokenBody } from "@/app/campaigns/[campaignId]/battleMapTokens";
-import { DEFAULT_MAP_STYLE, MAP_TILT_HOST_STYLE, mapTiltStyle, type MapStyle } from "@/lib/battlemap/map-style";
+import { useFigures } from "@/app/campaigns/[campaignId]/useFigures";
+import { MapControls, useMapCamera } from "@/app/campaigns/[campaignId]/useMapCamera";
+import { DEFAULT_MAP_STYLE, MAP_TILT_HOST_STYLE, mapTiltBand, mapTiltStyle, type MapStyle } from "@/lib/battlemap/map-style";
 import { useFxSettings } from "@/lib/fx/prefs";
 import { backdropRect } from "@/lib/battlemap/backdrop";
 import type { PlayerMapView } from "@/lib/battlemap/view";
@@ -61,6 +64,7 @@ export const BattleMapGrid = memo(
     overlay,
     mapStyle = DEFAULT_MAP_STYLE,
     tilt = false,
+    expanded = false,
   }: {
     view: PlayerMapView;
     sheets: CharacterSheet[];
@@ -75,8 +79,12 @@ export const BattleMapGrid = memo(
     mapStyle?: MapStyle;
     // The table leans a little toward the viewer (map-style.ts).
     tilt?: boolean;
+    // The map has a screen to itself (the enlarged view): on a phone it fills
+    // the screen, and the wheel zooms without a modifier key.
+    expanded?: boolean;
   }) {
   const uiText = useInlineText();
+  const { locale } = useI18n();
     const clickRef = useRef(onTileClick);
     const hoverRef = useRef(onTileHover);
     const tokenRef = useRef(onTokenClick);
@@ -110,7 +118,37 @@ export const BattleMapGrid = memo(
     // mounted, and a gradient or clip defined in a hidden copy does not
     // resolve in the visible one.
     const uid = `bm${useId().replace(/[^a-zA-Z0-9_-]/g, "")}`;
-    const calm = useFxSettings().reducedMotion;
+    const { reducedMotion: calm, compact } = useFxSettings();
+    // Miniatures stand in for enemies and NPCs in the style that has height.
+    const figureFor = useFigures(view.tokens, mapStyle === "relief");
+
+    // The window onto the board: zoom, and pan with a finger. It starts on the
+    // player's own piece, or on whoever's turn it is.
+    const focusToken =
+      view.tokens.find((token) => token.id === view.myTokenId) ??
+      view.tokens.find((token) => !token.down && currentName !== "" && token.name.toLowerCase() === currentName);
+    const focus = focusToken ? { x: focusToken.x * TILE + TILE / 2, y: focusToken.y * TILE + TILE / 2 } : null;
+    const camera = useMapCamera({
+      mapId: view.mapId,
+      W: width * TILE,
+      H: height * TILE,
+      tile: TILE,
+      compact,
+      focus,
+      turnKey: `${view.mapId}:${view.round}:${view.currentTurnName}`,
+      wheelZoom: expanded,
+    });
+    // A tilted board leaves an empty band above its far edge, which the
+    // window takes back. Not on a phone: its window is tall and the band
+    // would eat a fifth of it.
+    const tilted = tilt && !compact;
+    const band = tilted && camera.box.w > 0 ? mapTiltBand(camera.box.h / camera.box.w) : 0;
+    const controlLabels = {
+      zoomIn: uiText("Zoom in"),
+      zoomOut: uiText("Zoom out"),
+      fit: uiText("Fit the whole map"),
+      locate: locale === "ru" ? "К моей фигуре" : "Centre on my piece",
+    };
 
     // The terrain/fog/reachable cell layer only changes when the view
     // projection itself changes; token/light layers below stay cheap.
@@ -158,9 +196,12 @@ export const BattleMapGrid = memo(
       const target = event.target as SVGElement;
       const x = target.dataset?.tileX;
       const y = target.dataset?.tileY;
+      // A token is a group of shapes: the click lands on one of them, and the
+      // id is on the group.
+      const tokenId = (target.closest?.("[data-token-id]") as SVGElement | null)?.dataset?.tokenId;
       return x !== undefined && y !== undefined
-        ? { x: Number(x), y: Number(y), tokenId: target.dataset?.tokenId }
-        : { x: null, y: null, tokenId: target.dataset?.tokenId };
+        ? { x: Number(x), y: Number(y), tokenId }
+        : { x: null, y: null, tokenId };
     }
 
     function handleSvgClick(event: React.MouseEvent<SVGSVGElement>) {
@@ -199,11 +240,24 @@ export const BattleMapGrid = memo(
       hoverRef.current(x, y);
     }
 
-    const board = (
+    return (
+      <div style={MAP_TILT_HOST_STYLE}>
+        <div
+          ref={camera.wrapRef}
+          // On a phone the window is tall and the board is big inside it;
+          // on a desk it is the board's own shape. Either way a finger moves
+          // it, so the page must not scroll under one.
+          className={cn("relative w-full touch-none select-none", expanded ? "max-md:h-[calc(100dvh-6rem)]" : "max-md:h-[62dvh]")}
+          style={{ aspectRatio: `${width} / ${height}`, marginTop: band ? `${(-band).toFixed(2)}cqw` : undefined }}
+          {...camera.handlers}
+        >
       <svg
-        viewBox={`0 0 ${width * TILE} ${height * TILE}`}
-        className="h-auto w-full select-none rounded-lg border border-stone-800 bg-stone-950"
-        style={tilt ? mapTiltStyle(height / width) : undefined}
+        viewBox={camera.viewBox}
+        className="absolute inset-0 h-full w-full select-none rounded-lg border border-stone-800 bg-stone-950"
+        // The SVG's own overflow does not hold back what its blurred layers
+        // spill past the window (Chrome), and zoomed in that is a strip of
+        // map over whatever sits above it. The clip does, and keeps the corners.
+        style={{ clipPath: "inset(0 round 0.5rem)", ...(tilted ? mapTiltStyle() : {}) }}
         role="img"
         aria-label={uiText("Battle map")}
         onClick={handleSvgClick}
@@ -219,6 +273,11 @@ export const BattleMapGrid = memo(
             <stop offset="100%" stopColor="#000" stopOpacity={0.45} />
           </radialGradient>
           {layers.defs}
+          {/* The terrain stops at the board's edge: its glows and soft shadows must
+              not spill into the empty space a zoomed-out window shows round it. */}
+          <clipPath id={`${uid}-map`}>
+            <rect x={0} y={0} width={width * TILE} height={height * TILE} />
+          </clipPath>
           {classic ? (
             <>
               <radialGradient id="torchglow">
@@ -277,7 +336,7 @@ export const BattleMapGrid = memo(
             pointerEvents="none"
           />
         ) : null}
-        {cells}
+        <g clipPath={`url(#${uid}-map)`}>{cells}</g>
         {/* The DM's overlay, the annotated picture, in the backdrop's
             register. Only the DM's projection carries it. */}
         {view.overlayPath ? (
@@ -317,6 +376,11 @@ export const BattleMapGrid = memo(
                 ? "#fbbf24"
                 : RING_BY_KIND[token.kind];
           const hp = view.tokenHp?.[token.id];
+          const figure = figureFor(token);
+          // Where the miniature stands and how big it draws: its feet on the base.
+          const figureSize = figure ? TILE * 1.7 * figure.scale : 0;
+          // Hit points sit under the plinth of a miniature, not across it.
+          const hpY = figure ? cy + 14 : cy + TILE / 2 - 6;
           return (
             <g
               key={token.id}
@@ -349,6 +413,7 @@ export const BattleMapGrid = memo(
                   ring={held || token.mine ? "#fbbf24" : null}
                   hidden={token.hidden}
                   emphasis={isCurrent || held}
+                  figure={Boolean(figure)}
                 />
               ) : token.kind === "prop" ? (
                 // A prop is a thing, not a person, so it is not a circle.
@@ -375,7 +440,22 @@ export const BattleMapGrid = memo(
                   className={cn((isCurrent || held) && "animate-pulse")}
                 />
               )}
-              {portrait ? (
+              {figure ? (
+                <>
+                  {/* The whole tile is the target; the picture is only paint. */}
+                  <circle cx={cx} cy={cy} r={TILE / 2} fill="transparent" />
+                  <image
+                    href={figure.url}
+                    x={cx - figureSize / 2}
+                    y={cy + 10.5 - figureSize * 0.95}
+                    width={figureSize}
+                    height={figureSize}
+                    preserveAspectRatio="xMidYMax meet"
+                    pointerEvents="none"
+                    opacity={token.down ? 0.45 : 1}
+                  />
+                </>
+              ) : portrait ? (
                 <image
                   href={portrait}
                   x={token.x * TILE + 4}
@@ -418,7 +498,7 @@ export const BattleMapGrid = memo(
                 <g pointerEvents="none">
                   <rect
                     x={cx - TILE / 2 + 4}
-                    y={cy + TILE / 2 - 6}
+                    y={hpY}
                     width={TILE - 8}
                     height={3}
                     rx={1.5}
@@ -427,7 +507,7 @@ export const BattleMapGrid = memo(
                   />
                   <rect
                     x={cx - TILE / 2 + 4}
-                    y={cy + TILE / 2 - 6}
+                    y={hpY}
                     width={Math.max(0, Math.min(1, hp.current / hp.max)) * (TILE - 8)}
                     height={3}
                     rx={1.5}
@@ -599,8 +679,15 @@ export const BattleMapGrid = memo(
           pointerEvents="none"
         />
       </svg>
+          <MapControls
+            camera={camera}
+            canLocate={Boolean(focus)}
+            top={band ? `calc(${band.toFixed(2)}cqw + 0.5rem)` : "0.5rem"}
+            labels={controlLabels}
+          />
+        </div>
+      </div>
     );
-    return tilt ? <div style={MAP_TILT_HOST_STYLE}>{board}</div> : board;
   },
   (prev, next) =>
     prev.view === next.view &&
@@ -611,6 +698,7 @@ export const BattleMapGrid = memo(
     prev.everyTileClickable === next.everyTileClickable &&
     prev.mapStyle === next.mapStyle &&
     prev.tilt === next.tilt &&
+    prev.expanded === next.expanded &&
     // Only presence matters; the handlers themselves are read through refs.
     (prev.onTileClick === undefined) === (next.onTileClick === undefined) &&
     (prev.onTileHover === undefined) === (next.onTileHover === undefined) &&

@@ -14,7 +14,7 @@ import { useSyncExternalStore } from "react";
 export const MAP_STYLES = ["classic", "flagstone", "relief", "torchlit", "parchment", "blueprint"] as const;
 export type MapStyle = (typeof MAP_STYLES)[number];
 
-export const DEFAULT_MAP_STYLE: MapStyle = "flagstone";
+export const DEFAULT_MAP_STYLE: MapStyle = "relief";
 
 export const MAP_STYLE_KEY = "odm:map-style:v1";
 /** Fired on window whenever the style changes in this tab. */
@@ -132,25 +132,28 @@ export function useMapTilt(): [boolean, (tilt: boolean) => void] {
 // the board's own box, and the browser maps clicks through it, so tiles are
 // still hit where they are drawn.
 //
-// Everything is measured in the board's own width (the host below makes it a
-// container), so a small board and a full-screen one lean by the same amount.
-// Leaning about the bottom leaves an empty band above the far edge; the
-// negative top margin takes that band back, so the board does not sit under
-// a gap.
+// Everything is measured in the board's own width (its host is a container),
+// so a small board and a full-screen one lean by the same amount. Leaning
+// about the bottom leaves an empty band above the far edge; the board's
+// window takes it back with a negative top margin of `mapTiltBand`, so it
+// does not sit under a gap.
 const TILT = { degrees: 14, perspective: 1.5 } as const;
 
-// Wrap the board in this when it is tilted.
+// Wrap the board's window in this so `cqw` means the board's width.
 export const MAP_TILT_HOST_STYLE = { containerType: "inline-size" } as const;
 
-// `aspect` is the board's height over its width.
-export function mapTiltStyle(aspect: number) {
-  const radians = (TILT.degrees * Math.PI) / 180;
-  // Where the far edge lands, as a share of the board's height.
-  const far = Math.cos(radians) / (1 + (Math.sin(radians) * aspect) / TILT.perspective);
-  const band = (1 - far) * aspect * 100;
+// `aspect` is the window's height over its width.
+export function mapTiltStyle() {
   return {
     transform: `perspective(${TILT.perspective * 100}cqw) rotateX(${TILT.degrees}deg)`,
     transformOrigin: "50% 100%",
-    marginTop: `${(-band).toFixed(2)}cqw`,
   } as const;
+}
+
+// The empty band above the far edge, in cqw, for a window of this aspect.
+export function mapTiltBand(aspect: number): number {
+  const radians = (TILT.degrees * Math.PI) / 180;
+  // Where the far edge lands, as a share of the window's height.
+  const far = Math.cos(radians) / (1 + (Math.sin(radians) * aspect) / TILT.perspective);
+  return (1 - far) * aspect * 100;
 }

@@ -16,7 +16,22 @@ button { font: inherit; }
 .card { display: flex; flex-direction: column; gap: 6px; }
 .card h2 { margin: 0; font-size: 13px; letter-spacing: .14em; text-transform: uppercase; color: #fcd34d; }
 .card h2 span { color: #a8a29e; letter-spacing: 0; text-transform: none; font-weight: 400; margin-left: 8px; }
-.card svg { display: block; width: 100%; height: auto; border-radius: 10px; border: 1px solid #292524; }
+/* The lab has no Tailwind, so the handful of utilities the map itself uses are spelled out. */
+.relative { position: relative; } .absolute { position: absolute; } .inset-0 { inset: 0; }
+.h-full { height: 100%; } .w-full { width: 100%; } .touch-none { touch-action: none; } .select-none { user-select: none; }
+.card svg[role="img"] { display: block; border-radius: 10px; border: 1px solid #292524; background: #0c0a09; }
+.card svg[role="img"] * { -webkit-tap-highlight-color: transparent; }
+[data-map-control] { display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; padding: 0; border-radius: 6px; border: 1px solid #57534e; background: rgba(12, 10, 9, .85); color: #e7e5e4; cursor: pointer; }
+[data-map-control]:hover { color: #fde68a; }
+[data-map-control] svg { width: 16px; height: 16px; }
+.right-2 { right: .5rem; } .flex { display: flex; } .flex-col { flex-direction: column; } .gap-1\.5 { gap: .375rem; }
+@media (max-width: 767px) {
+  .max-md\:h-\[62dvh\] { height: 62dvh; }
+  .max-md\:h-\[calc\(100dvh-6rem\)\] { height: calc(100dvh - 6rem); }
+  [data-map-control] { width: 44px; height: 44px; }
+  [data-map-control] svg { width: 20px; height: 20px; }
+  .lab { padding-inline: 12px; }
+}
 .animate-pulse { animation: pulse 2s cubic-bezier(.4, 0, .6, 1) infinite; }
 @keyframes pulse { 50% { opacity: .5; } }
 @keyframes ping { 75%, 100% { transform: scale(2); opacity: 0; } }

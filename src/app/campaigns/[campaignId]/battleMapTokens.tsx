@@ -104,6 +104,7 @@ export function TokenBody({
   ring,
   hidden,
   emphasis,
+  figure = false,
 }: {
   style: PaintedStyle;
   uid: string;
@@ -116,6 +117,8 @@ export function TokenBody({
   hidden: boolean;
   // The piece whose turn it is, or the one being held.
   emphasis: boolean;
+  // A miniature is drawn over this, so only the base is painted.
+  figure?: boolean;
 }) {
   const skin = SKINS[style];
   const rim = down ? "#57534e" : (ring ?? skin.rim[kind]);
@@ -124,7 +127,19 @@ export function TokenBody({
   return (
     <>
       {skin.halo ? <circle cx={cx} cy={cy} r={17} fill={skin.halo} opacity={0.8} /> : null}
-      {emphasis ? (
+      {emphasis && figure ? (
+        <ellipse
+          cx={cx}
+          cy={cy + 10}
+          rx={17.5}
+          ry={7.5}
+          fill="none"
+          stroke="#fbbf24"
+          strokeWidth={2}
+          strokeOpacity={0.95}
+          className={cn("animate-pulse")}
+        />
+      ) : emphasis ? (
         <circle
           cx={cx}
           cy={cy}
@@ -136,7 +151,14 @@ export function TokenBody({
           className={cn("animate-pulse")}
         />
       ) : null}
-      {skin.stand && kind === "prop" ? (
+      {skin.stand && figure ? (
+        <>
+          {/* The plinth a miniature stands on. */}
+          <ellipse cx={cx} cy={cy + 11.6} rx={14.5} ry={5.2} fill={shade(rim, -75)} />
+          <ellipse cx={cx} cy={cy + 10} rx={14.5} ry={5.2} fill={rim} stroke={skin.edge} strokeOpacity={0.6} strokeDasharray={dash} />
+          <ellipse cx={cx} cy={cy + 9.6} rx={11.5} ry={3.7} fill={face} />
+        </>
+      ) : skin.stand && kind === "prop" ? (
         <>
           {/* A crate seen from the front and above: lid, then the front. */}
           <rect x={cx - 11} y={cy - 10} width={22} height={22} rx={3} fill="#000" opacity={0.3} />

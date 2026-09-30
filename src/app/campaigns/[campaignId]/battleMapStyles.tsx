@@ -491,6 +491,9 @@ function stoneLayers(c: Ctx, theme: MapTheme, mode: "flagstone" | "relief" | "to
 
   const darkness = torch ? (c.view.ambient === "dark" ? 0.6 : c.view.ambient === "dim" ? 0.36 : 0.12) * (c.view.fullVision ? 0.6 : 1) : 0;
 
+  const glow = lightsLayer(c, "torch", calm);
+  const fogNode = fogLayer(c, { fog: "#040406", halo: "#000", haloOpacity: 0.65, dim: "#06081a", dimOpacity: torch ? 0.42 : 0.5 });
+  const reachNode = reachLayer(c, { fill: "#f59e0b", fillOpacity: 0.2, stroke: "#fcd34d" });
   const cells = (
     <g pointerEvents="none">
       <path d={exploredD} fill={`url(#${uid}-floor)`} />
@@ -599,9 +602,9 @@ function stoneLayers(c: Ctx, theme: MapTheme, mode: "flagstone" | "relief" | "to
           <rect width={c.W} height={c.H} fill="#080d22" opacity={darkness} mask={`url(#${uid}-dark)`} />
         </>
       ) : null}
-      {lightsLayer(c, "torch", calm)}
-      {fogLayer(c, { fog: "#040406", halo: "#000", haloOpacity: 0.65, dim: "#06081a", dimOpacity: torch ? 0.42 : 0.5 })}
-      <g pointerEvents="auto">{reachLayer(c, { fill: "#f59e0b", fillOpacity: 0.2, stroke: "#fcd34d" })}</g>
+      {glow}
+      {fogNode}
+      <g pointerEvents="auto">{reachNode}</g>
     </g>
   );
   return { defs, cells };
@@ -712,6 +715,9 @@ function parchmentLayers(c: Ctx, theme: MapTheme, calm: boolean): PaintedLayers 
     </>
   );
 
+  const glow = lightsLayer(c, "ink", calm);
+  const fogNode = fogLayer(c, { fog: "#1c150e", halo: "#4a3416", haloOpacity: 0.6, dim: "#5b4020", dimOpacity: 0.4 });
+  const reachNode = reachLayer(c, { fill: "#3730a3", fillOpacity: 0.18, stroke: "#4338ca" });
   const cells = (
     <g pointerEvents="none">
       <path d={exploredD} fill="#ecdfbd" />
@@ -757,9 +763,9 @@ function parchmentLayers(c: Ctx, theme: MapTheme, calm: boolean): PaintedLayers 
         </>
       ) : null}
       {doors}
-      {lightsLayer(c, "ink", calm)}
-      {fogLayer(c, { fog: "#1c150e", halo: "#4a3416", haloOpacity: 0.6, dim: "#5b4020", dimOpacity: 0.4 })}
-      <g pointerEvents="auto">{reachLayer(c, { fill: "#3730a3", fillOpacity: 0.18, stroke: "#4338ca" })}</g>
+      {glow}
+      {fogNode}
+      <g pointerEvents="auto">{reachNode}</g>
     </g>
   );
   return { defs, cells };
@@ -805,6 +811,9 @@ function blueprintLayers(c: Ctx, calm: boolean): PaintedLayers {
       {tokenDefs(uid, "blueprint")}
     </>
   );
+  const glow = lightsLayer(c, "marker", calm);
+  const fogNode = fogLayer(c, { fog: "#050b13", halo: "#02060c", haloOpacity: 0.6, dim: "#031019", dimOpacity: 0.5 });
+  const reachNode = reachLayer(c, { fill: "#22d3ee", fillOpacity: 0.16, stroke: "#67e8f9" });
   const cells = (
     <g pointerEvents="none">
       <path d={exploredD} fill="#0d2740" />
@@ -842,9 +851,9 @@ function blueprintLayers(c: Ctx, calm: boolean): PaintedLayers {
         </>
       ) : null}
       {doors ? <path d={doors} fill="none" stroke="#fbbf24" strokeWidth={5} strokeLinecap="round" /> : null}
-      {lightsLayer(c, "marker", calm)}
-      {fogLayer(c, { fog: "#050b13", halo: "#02060c", haloOpacity: 0.6, dim: "#031019", dimOpacity: 0.5 })}
-      <g pointerEvents="auto">{reachLayer(c, { fill: "#22d3ee", fillOpacity: 0.16, stroke: "#67e8f9" })}</g>
+      {glow}
+      {fogNode}
+      <g pointerEvents="auto">{reachNode}</g>
     </g>
   );
   return { defs, cells };
@@ -892,6 +901,7 @@ function artLayers(c: Ctx, palette: Palette, style: PaintedStyle, calm: boolean)
       {tokenDefs(uid, style)}
     </>
   );
+  const glow = lightsLayer(c, style === "parchment" ? "ink" : style === "blueprint" ? "marker" : "torch", calm);
   const cells = (
     <g>
       <g pointerEvents="none">
@@ -899,7 +909,7 @@ function artLayers(c: Ctx, palette: Palette, style: PaintedStyle, calm: boolean)
         {openD ? (
           <path d={gridPath(w, h, TILE)} fill="none" stroke={style === "blueprint" ? "#7dc8ff" : "#000"} strokeOpacity={style === "blueprint" ? 0.22 : 0.2} strokeWidth={1} clipPath={`url(#${uid}-open)`} />
         ) : null}
-        {lightsLayer(c, style === "parchment" ? "ink" : style === "blueprint" ? "marker" : "torch", calm)}
+        {glow}
         {fogLayer(c, fog)}
       </g>
       {reachLayer(c, reach)}
