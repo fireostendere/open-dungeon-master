@@ -15,6 +15,7 @@ import { coverBetween, hasLineOfSight } from "@/lib/battlemap/los";
 import { bestFiringPosition } from "@/lib/battlemap/tactics";
 import { occupiedTiles } from "@/lib/battlemap/view";
 import { chebyshev, tileIndex, type BattleToken } from "@/lib/battlemap/types";
+import { nearestOpenTile } from "@/lib/battlemap/paint";
 import { getCurrentLocation } from "@/lib/db/locations";
 import { publishEphemeral } from "@/lib/events";
 import { resolveSheetRef } from "@/lib/dm/rolls";
@@ -52,6 +53,7 @@ export function createBattleMapForEncounter(
   enemies: EncounterEnemy[],
   sheets: CharacterSheet[],
   battlefield: string | undefined,
+  engaged = false,
 ): BattleMap | null {
   const location = getCurrentLocation(campaign.id);
   const generated = generateBattleMap({
@@ -74,6 +76,18 @@ export function createBattleMapForEncounter(
     lights: generated.lights,
     seed: fnv1a(encounter.id),
   });
+  // A fight that breaks out mid-scuffle starts in melee: each enemy takes the open tile
+  // nearest a hero instead of the far edge, which cost rounds of walking and a string
+  // of "out of reach" refusals before anyone could swing.
+  const taken = new Set(generated.pcSpawns.map((spot) => tileIndex(generated.width, spot.x, spot.y)));
+  const enemySpots = engaged && generated.pcSpawns.length
+    ? enemies.map((_, index) => {
+        const hero = generated.pcSpawns[index % generated.pcSpawns.length];
+        const spot = nearestOpenTile(generated.terrain, generated.width, generated.height, hero, taken);
+        taken.add(tileIndex(generated.width, spot.x, spot.y));
+        return spot;
+      })
+    : generated.enemySpawns;
   placeTokens(map.id, campaign.id, [
     ...sheets.map((sheet, index) => ({
       kind: "pc" as const,
@@ -86,7 +100,7 @@ export function createBattleMapForEncounter(
       kind: "enemy" as const,
       refId: enemy.id,
       name: enemy.displayName,
-      spot: generated.enemySpawns[index] ?? generated.enemySpawns[0],
+      spot: enemySpots[index] ?? enemySpots[0],
     })),
   ]);
   publishBattleMapUpdate(campaign.id);

@@ -118,7 +118,7 @@ test('host rejects a tampered patch and keeps its previous baseline',async()=>{
         campaignId,timelineEpoch:epoch,principal:dm,projection:'live',
         knownStateRevision:params.knownStateRevision,cache:serverCache,
       });
-      if(!result.stateDelta.full)result.stateDelta.patch.entities.sheets.upsert[0].hp=1;
+      if(!result.stateDelta.full)result.stateDelta.patch.entities.sheets.update.hero.set.hp=1;
       return result;
     },
   };

@@ -290,6 +290,8 @@ const startArgsSchema = z.object({
   surprised: z.enum(["none", "enemies", "party"]).optional(),
   battlefield: z.string().max(300).optional(),
   roomId: z.string().optional(),
+  rollInitiative: z.boolean().optional(),
+  engaged: z.boolean().optional(),
 });
 
 // Accepts the documented {enemies:[...]} shape, or flat monster/name/count
@@ -405,7 +407,7 @@ function handleStartEncounter(
   if (encounter.surprisedIds.length) {
     saveEncounter(encounter);
   }
-  createBattleMapForEncounter(campaign, encounter, enemies, participants, args.battlefield);
+  createBattleMapForEncounter(campaign, encounter, enemies, participants, args.battlefield, args.engaged === true);
   publishEncounter(campaign.id);
 
   // Initiative is starting: the room's music changes, and the harder the
@@ -417,6 +419,8 @@ function handleStartEncounter(
     evaluation.verdict === "deadly" || evaluation.verdict === "beyond_deadly",
   );
 
+  // Opt-in: roll every hero's initiative digitally now instead of one request_roll per hero.
+  const rolledAll = args.rollInitiative === true && ensureInitiativeProgress(campaign) !== null;
   const rollList = participants
     .map((sheet) => `${sheet.name} (characterId=${sheet.id})`)
     .join(", ");
@@ -439,7 +443,9 @@ function handleStartEncounter(
           surprise: `${args.surprised === "party" ? "The party is" : "The enemies are"} surprised: the server skips their turns for the first round. Narrate the ambush landing.`,
         }
       : {}),
-    next: `Now call request_roll with kind=initiative for EACH character: ${rollList}. Combat begins once every initiative is in.`,
+    next: rolledAll || getActiveEncounter(campaign.id)?.orderReady
+      ? "Initiative is rolled for every combatant; the order and the current actor are in GAME STATE."
+      : `Now call request_roll with kind=initiative for EACH character: ${rollList}. Combat begins once every initiative is in.`,
   };
 }
 

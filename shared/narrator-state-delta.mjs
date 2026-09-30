@@ -77,14 +77,21 @@ function entityPatch(before, after) {
   if (new Set(beforeIds).size !== beforeIds.length || new Set(afterIds).size !== afterIds.length) return null;
   const previous = new Map(before.map(item => [entityId(item), item]));
   const current = new Map(after.map(item => [entityId(item), item]));
-  const upsert = [];
+  const upsert = [], update = {};
   for (const [id, item] of current) {
-    if (!previous.has(id) || itemDigest(previous.get(id)) !== itemDigest(item)) upsert.push(clone(item));
+    if (!previous.has(id)) { upsert.push(clone(item)); continue; }
+    if (itemDigest(previous.get(id)) === itemDigest(item)) continue;
+    // A changed entity carries only its changed fields (one HP tick must not resend a
+    // whole character sheet), plus its name so an LLM reader knows whose fields these are.
+    const fields = deepPatch(previous.get(id), item);
+    if (typeof item.name === 'string' && !fields.set?.name) fields.set = { ...fields.set, name: item.name };
+    if (JSON.stringify(fields).length < JSON.stringify(item).length) update[id] = fields;
+    else upsert.push(clone(item));
   }
   const remove = [...previous.keys()].filter(id => !current.has(id));
   const beforeOrder = beforeIds, afterOrder = afterIds;
   const order = JSON.stringify(beforeOrder) === JSON.stringify(afterOrder) ? undefined : afterOrder;
-  return { upsert, remove, ...(order ? { order } : {}) };
+  return { upsert, remove, ...(Object.keys(update).length ? { update } : {}), ...(order ? { order } : {}) };
 }
 
 function deepPatch(before, after) {
@@ -146,6 +153,10 @@ function applyEntityPatch(before, change) {
     const id = entityId(item);
     if (id === null) throw new Error('Narrator entity patch has no stable id.');
     items.set(id, clone(item));
+  }
+  for (const [id, fields] of Object.entries(change.update ?? {})) {
+    if (!items.has(id)) throw new Error('Narrator entity update references a missing id.');
+    items.set(id, applyDeepPatch(items.get(id), fields));
   }
   const order = change.order ?? [...items.keys()];
   if (!Array.isArray(order) || order.length !== items.size || new Set(order.map(String)).size !== items.size)

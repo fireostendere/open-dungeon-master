@@ -53,6 +53,8 @@ export const COMBAT_ADJUDICATIONS: CatalogEntry[] = [
         ],
       },
       { name: "battlefield", label: "Battlefield", kind: "text" },
+      { name: "rollInitiative", label: "Roll everyone's initiative", kind: "boolean", help: "Roll every hero's initiative now (digital dice) instead of one request_roll each." },
+      { name: "engaged", label: "Already in melee", kind: "boolean", help: "The fight breaks out at arm's length: enemies start next to the heroes instead of across the map." },
       { name: "roomId", label: "Spatial room ID", kind: "text", help: "Required when location mode is enabled; use the current room's ID." },
     ],
   },

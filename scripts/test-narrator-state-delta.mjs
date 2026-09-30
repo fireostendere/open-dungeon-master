@@ -34,17 +34,30 @@ const changed={
   ],
 };
 
-test('entity patch sends only changed entities and reconstructs the authoritative state',()=>{
+test('entity patch sends only the changed fields of changed entities and reconstructs the authoritative state',()=>{
   const before=extractNarratorState(baseline),after=extractNarratorState(changed);
   const patch=createNarratorStatePatch(before,after);
-  assert.equal(patch.entities.sheets.upsert.length,1);
-  assert.equal(patch.entities.sheets.upsert[0].id,'hero-a');
-  assert.equal(patch.entities.sheets.upsert[0].hp,12);
+  assert.deepEqual(patch.entities.sheets.upsert,[]);
+  assert.deepEqual(patch.entities.sheets.update,{'hero-a':{set:{hp:12,name:'A'}}},'only hp changed; the name labels whose field it is');
   assert.deepEqual(patch.entities.sheets.remove,[]);
   assert.equal(patch.set,undefined);
   const rebuilt=applyNarratorStatePatch(before,patch);
   assert.deepEqual(rebuilt,after);
   assert.equal(narratorStateRevision(scope,rebuilt),narratorStateRevision(scope,after));
+});
+
+test('a sheet with one changed field does not resend the rest of the sheet',()=>{
+  const sheet={id:'hero-a',name:'A',hp:17,ac:16,backstory:'x'.repeat(2000),features:[{id:'f1',text:'y'.repeat(1500)}]};
+  const before=extractNarratorState({...baseline,sheets:[sheet]});
+  const after=extractNarratorState({...baseline,sheets:[{...sheet,hp:5}]});
+  const patch=createNarratorStatePatch(before,after);
+  assert.ok(JSON.stringify(patch).length<200,'one HP tick stays tiny');
+  assert.deepEqual(applyNarratorStatePatch(before,patch),after);
+  const rewritten=extractNarratorState({...baseline,sheets:[{id:'hero-a',name:'Z',hp:1,ac:1,backstory:'n',features:[]}]});
+  const whole=createNarratorStatePatch(before,rewritten);
+  assert.equal(whole.entities.sheets.upsert.length,1,'a patch bigger than the entity falls back to the entity');
+  assert.deepEqual(applyNarratorStatePatch(before,whole),rewritten);
+  assert.throws(()=>applyNarratorStatePatch(before,{...patch,entities:{sheets:{upsert:[],remove:[],update:{ghost:{set:{hp:1}}}}}}),/missing id/);
 });
 
 test('entity deletion is represented as a tombstone instead of resending the array',()=>{
@@ -94,9 +107,7 @@ test('nested encounter entities patch one enemy without resending encounter meta
   assert.equal(patch.set,undefined);
   assert.equal(patch.objects.encounter.set,undefined);
   assert.equal(patch.objects.encounter.objects,undefined);
-  assert.equal(patch.objects.encounter.entities.enemies.upsert.length,1);
-  assert.equal(patch.objects.encounter.entities.enemies.upsert[0].id,'goblin-a');
-  assert.equal(patch.objects.encounter.entities.enemies.upsert[0].hp,3);
+  assert.deepEqual(patch.objects.encounter.entities.enemies.update,{'goblin-a':{set:{hp:3,name:'Goblin A'}}});
   assert.deepEqual(applyNarratorStatePatch(before,patch),after);
 });
 
@@ -124,8 +135,7 @@ test('server cache negotiates full snapshot, compact patch and self-healing full
   assert.equal(delta.stateDelta.full,false);
   assert.equal(delta.sheets,undefined);
   assert.equal(delta.location,undefined);
-  assert.equal(delta.stateDelta.patch.entities.sheets.upsert.length,1);
-  assert.equal(delta.stateDelta.patch.entities.sheets.upsert[0].hp,12);
+  assert.equal(delta.stateDelta.patch.entities.sheets.update['hero-a'].set.hp,12);
 
   const reconstructed=applyNarratorStatePatch(extractNarratorState(full),delta.stateDelta.patch);
   assert.equal(narratorStateRevision(scope,reconstructed),delta.stateDelta.checksum);

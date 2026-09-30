@@ -144,7 +144,7 @@ timeline, narrator principal and projection.
 Changed entity arrays use stable-ID patches:
 
 ```json
-{"stateDelta":{"format":"odm.state.delta.v1","baseRevision":"...","revision":"...","patch":{"entities":{"sheets":{"upsert":[{"id":"...","hp":12}],"remove":[]}}}}}
+{"stateDelta":{"format":"odm.state.delta.v1","baseRevision":"...","revision":"...","patch":{"entities":{"sheets":{"upsert":[],"remove":[],"update":{"<sheet id>":{"set":{"currentHp":12,"name":"..."}}}}}}}}
 ```
 
 Deletions travel as `remove` tombstones; reordered entity arrays carry an

@@ -130,6 +130,15 @@ function catalog(options: CatalogOptions = {}) {
   if (options.summaryOnly) return groups.map(group => ({ category: group.category, label: group.label, actions: group.entries.map(entry => ({ name: entry.name, label: entry.label })) }));
   return groups;
 }
+// A resolved roll as the narrator uses it; ids, audit fields and dice terms stay in storage.
+function liveRoll(payload: unknown) {
+  const roll = (payload as { roll?: Record<string, unknown> } | null)?.roll;
+  if (!roll || typeof roll !== "object") return payload;
+  const { id, characterId, targetEnemyId, kind, detail, expression, advantage, dc, total, success } = roll;
+  const natural = (roll.breakdown as { natural?: unknown } | undefined)?.natural;
+  return { roll: Object.fromEntries(Object.entries({ id, characterId, targetEnemyId, kind, detail, expression, advantage, dc, total, success, natural })
+    .filter(([, value]) => value !== null && value !== undefined && value !== "none")) };
+}
 function read(raw: unknown) {
   const p = readSchema.safeParse(raw);
   if (!p.success) throw new McpNarratorControlError(z.prettifyError(p.error));
@@ -199,6 +208,11 @@ function read(raw: unknown) {
     : { items: [], nextCursor: p.data.afterAskSeq, hasMore: false };
   const live = p.data.projection === "live";
   const delta = Boolean(p.data.delta), stateDelta = Boolean(p.data.stateDelta);
+  // The live narrator reads who spoke by name (a bare characterId made it swap two
+  // players' declarations) and never needs per-row constants or timestamps.
+  const characterNames = live && messages.some(msg => msg.characterId) ? new Map(listSheets(campaign.id).map(sheet => [sheet.id, sheet.name])) : null;
+  const liveMessages = live ? messages.map(({ campaignId: _campaign, createdAt: _created, ...msg }) =>
+    msg.characterId && characterNames ? { ...msg, character: characterNames.get(msg.characterId) ?? null } : msg) : messages;
   const baselineSeq = p.data.knownSeq ?? (delta ? p.data.afterSeq : 0);
   // Cheap, transactional source revisions precede mapping and content hashing.
   // User authorization, room audiences and current mechanics are never cached.
@@ -221,6 +235,9 @@ function read(raw: unknown) {
   const state = {
     campaignId: campaign.id, campaign: safeCampaign(campaign), currentSeq, timelineEpoch, cursor: p.data.afterSeq, nextCursor, hasMore,
     events: events.filter(event => event.type === "message_updated" || isNarratorEvent(event)).map(event =>
+      event.type === "roll_result" && live
+        ? { seq: event.seq, type: event.type, payload: liveRoll(event.payload) }
+        :
       event.type === "roll_result" ||
       event.type === "global_turn_ready" ||
       event.type === "global_turn_narrator_trigger" ||
@@ -234,7 +251,7 @@ function read(raw: unknown) {
             : { seq: event.seq, type: event.type, payload: { messageId: (event.payload as { message?: { id?: string } })?.message?.id, removed: true } }
         : { seq: event.seq, type: event.type },
     ),
-    messages, spatial: spatial ? { enabled: true, instructions: SPATIAL_GUIDANCE } : { enabled: false }, spatialRooms: spatial?.rooms ?? [], spatialGrants: spatial?.grants ?? [],
+    messages: liveMessages, spatial: spatial ? { enabled: true, instructions: SPATIAL_GUIDANCE } : { enabled: false }, spatialRooms: spatial?.rooms ?? [], spatialGrants: spatial?.grants ?? [],
     commands: delta && baselineSeq > 0 ? receipts.filter(receipt => receipt.committedSeq > baselineSeq) : receipts,
     // Legacy story_summary was produced by the retired hosted compaction path.
     // Keep it available in explicit full reads, but the live narrator uses its

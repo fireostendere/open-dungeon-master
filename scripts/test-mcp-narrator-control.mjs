@@ -22,6 +22,7 @@ const { insertAsk } = await import("../src/lib/db/asks.ts");
 const { getCampaignMessage, insertCampaignMessage } = await import("../src/lib/db/messages.ts");
 const { createEncounter, saveEncounter } = await import("../src/lib/db/encounters.ts");
 const { getRoll, insertRoll, setRollSeq } = await import("../src/lib/db/rolls.ts");
+const { applyNarratorStatePatch } = await import("../shared/narrator-state-delta.mjs");
 const { getDatabase } = await import("../src/lib/db/core.ts");
 const { publishWithSeq } = await import("../src/lib/events.ts");
 const { getDmStatus } = await import("../src/lib/dm/status.ts");
@@ -548,9 +549,14 @@ const entityDelta = await executeMcpNarratorControl("narrator.read", {
 });
 assert.equal(entityDelta.result.stateDelta.full, false);
 assert.equal(Object.hasOwn(entityDelta.result, "sheets"), false, "entity delta must not resend the whole sheets array");
-assert.equal(entityDelta.result.stateDelta.patch.entities.sheets.upsert.length, 1);
-assert.equal(entityDelta.result.stateDelta.patch.entities.sheets.upsert[0].id, liveSheet.id);
-assert.equal(entityDelta.result.stateDelta.patch.entities.sheets.upsert[0].resources.test_resource.current, 0);
+assert.deepEqual(entityDelta.result.stateDelta.patch.entities.sheets.upsert, []);
+{
+  const liveSheetBefore = stateDeltaBaseline.result.sheets.find((sheet) => sheet.id === liveSheet.id);
+  const sheetPatch = entityDelta.result.stateDelta.patch.entities.sheets.update[liveSheet.id];
+  const rebuilt = applyNarratorStatePatch({ sheets: [liveSheetBefore] }, { format: "odm.state.patch.v1", entities: { sheets: entityDelta.result.stateDelta.patch.entities.sheets } }).sheets[0];
+  assert.equal(rebuilt.resources.test_resource.current, 0, "the changed field arrives as a field patch");
+  assert.ok(JSON.stringify(sheetPatch).length < JSON.stringify(liveSheetBefore).length / 2, "a one-field change does not resend the sheet");
+}
 assert.ok(Buffer.byteLength(JSON.stringify(entityDelta.result)) < stateDeltaBaselineBytes, "entity delta must shrink the wire payload");
 await assert.rejects(
   () => executeMcpNarratorControl("narrator.read", {
