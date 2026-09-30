@@ -30,7 +30,7 @@ export function MapStyleMenu({
       styles: {
         classic: ["Classic", "Flat tiles"],
         flagstone: ["Flagstone", "Textured stone, shadows"],
-        relief: ["Relief", "Walls with height, standing pieces"],
+        relief: ["Relief", "Walls with height, standing tokens"],
         torchlit: ["Torchlit", "Dark, with living fire"],
         parchment: ["Parchment", "Ink on old paper"],
         blueprint: ["Blueprint", "Flat, light, easy to read"],
@@ -43,7 +43,7 @@ export function MapStyleMenu({
       styles: {
         classic: ["Классика", "Плоские плитки"],
         flagstone: ["Каменные плиты", "Текстуры и тени"],
-        relief: ["Объём", "Стены с высотой, фигурки стоят"],
+        relief: ["Объём", "Стены с высотой, жетоны стоят"],
         torchlit: ["Свет факелов", "Тёмный, с живым огнём"],
         parchment: ["Пергамент", "Чернила на старой бумаге"],
         blueprint: ["Чертёж", "Плоский, лёгкий, читаемый"],

@@ -12,7 +12,6 @@ import {
 } from "@/app/campaigns/[campaignId]/battleMapCells";
 import { buildPaintedCells } from "@/app/campaigns/[campaignId]/battleMapStyles";
 import { TokenBody } from "@/app/campaigns/[campaignId]/battleMapTokens";
-import { useFigures } from "@/app/campaigns/[campaignId]/useFigures";
 import { MapControls, useMapCamera } from "@/app/campaigns/[campaignId]/useMapCamera";
 import { DEFAULT_MAP_STYLE, MAP_TILT_HOST_STYLE, mapTiltBand, mapTiltStyle, type MapStyle } from "@/lib/battlemap/map-style";
 import { useFxSettings } from "@/lib/fx/prefs";
@@ -119,8 +118,6 @@ export const BattleMapGrid = memo(
     // resolve in the visible one.
     const uid = `bm${useId().replace(/[^a-zA-Z0-9_-]/g, "")}`;
     const { reducedMotion: calm, compact } = useFxSettings();
-    // Miniatures stand in for enemies and NPCs in the style that has height.
-    const figureFor = useFigures(view.tokens, mapStyle === "relief");
 
     // The window onto the board: zoom, and pan with a finger. It starts on the
     // player's own piece, or on whoever's turn it is.
@@ -376,11 +373,6 @@ export const BattleMapGrid = memo(
                 ? "#fbbf24"
                 : RING_BY_KIND[token.kind];
           const hp = view.tokenHp?.[token.id];
-          const figure = figureFor(token);
-          // Where the miniature stands and how big it draws: its feet on the base.
-          const figureSize = figure ? TILE * 1.7 * figure.scale : 0;
-          // Hit points sit under the plinth of a miniature, not across it.
-          const hpY = figure ? cy + 14 : cy + TILE / 2 - 6;
           return (
             <g
               key={token.id}
@@ -413,7 +405,6 @@ export const BattleMapGrid = memo(
                   ring={held || token.mine ? "#fbbf24" : null}
                   hidden={token.hidden}
                   emphasis={isCurrent || held}
-                  figure={Boolean(figure)}
                 />
               ) : token.kind === "prop" ? (
                 // A prop is a thing, not a person, so it is not a circle.
@@ -440,22 +431,7 @@ export const BattleMapGrid = memo(
                   className={cn((isCurrent || held) && "animate-pulse")}
                 />
               )}
-              {figure ? (
-                <>
-                  {/* The whole tile is the target; the picture is only paint. */}
-                  <circle cx={cx} cy={cy} r={TILE / 2} fill="transparent" />
-                  <image
-                    href={figure.url}
-                    x={cx - figureSize / 2}
-                    y={cy + 10.5 - figureSize * 0.95}
-                    width={figureSize}
-                    height={figureSize}
-                    preserveAspectRatio="xMidYMax meet"
-                    pointerEvents="none"
-                    opacity={token.down ? 0.45 : 1}
-                  />
-                </>
-              ) : portrait ? (
+              {portrait ? (
                 <image
                   href={portrait}
                   x={token.x * TILE + 4}
@@ -498,7 +474,7 @@ export const BattleMapGrid = memo(
                 <g pointerEvents="none">
                   <rect
                     x={cx - TILE / 2 + 4}
-                    y={hpY}
+                    y={cy + TILE / 2 - 6}
                     width={TILE - 8}
                     height={3}
                     rx={1.5}
@@ -507,7 +483,7 @@ export const BattleMapGrid = memo(
                   />
                   <rect
                     x={cx - TILE / 2 + 4}
-                    y={hpY}
+                    y={cy + TILE / 2 - 6}
                     width={Math.max(0, Math.min(1, hp.current / hp.max)) * (TILE - 8)}
                     height={3}
                     rx={1.5}
