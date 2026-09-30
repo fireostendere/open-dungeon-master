@@ -1,0 +1,21 @@
+{
+  "creatureId": "alabaster-tree",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-09-30",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy celestial creature avatar, tactile painted realism with magical woodland light, serene bark-face clearly legible at 512 pixels, no text, border, watermark or collage. Alabaster Tree from Creature Codex: a HUGE actual living TREE with exaggerated proportions and a peaceful face formed naturally in its trunk bark. Its foliage shines with brilliant WHITE celestial light; birds and woodland animals can nest in branches/roots. The trunk is steel-HARD WOOD, not metal or marble. No humanoid treant body, separate head, human limbs, armor, legs or stone statue. Genuine rooted tree architecture, face subtle but readable in broad trunk, branches/canopy frame portrait. Different supported oak, willow and pine forms may vary across portraits; same calm celestial essence and white luminous foliage. Original anatomy-based interpretation, no copied publisher art. YOLO absurd 04. An impossibly solemn celestial oak-form tree has become the world's most overqualified Christmas tree: squirrels are frantically installing a crooked little golden star among its already brilliantly white-glowing leaves, and wildly mismatched baubles hang from real branches. The huge peaceful bark-face now raises one subtle wooden eyebrow in weary tolerance, a nest full of tangled ribbon on a branch beside it. Actual rooted tree, no human hands or body, white radiant foliage plus tiny colored ornaments, dark-fantasy woodland humor, no words.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/alabaster-tree/",
+      "note": "Creature Codex Huge celestial: exaggerated oak/pine/willow, placid bark face, brilliant white luminous foliage, exceptionally hard trunk and nesting animals. Actual tree, not marble/metal humanoid."
+    },
+    {
+      "url": "https://www.robinloft.com/monsters/alabaster-tree/creature-codex",
+      "note": "Independent rules corroboration; artwork unverified, face/wood colors/scenes original."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

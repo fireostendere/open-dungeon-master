@@ -1,0 +1,21 @@
+{
+  "creatureId": "alabroza-bloodfiend",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-09-30",
+  "prompt": "Use case: stylized-concept. One original square dark-fantasy monster avatar, cinematic tactile painted realism, clear face and anatomy at 512 pixels, no frame, lettering, watermark or collage. Alabroza BLOODFIEND from Tome of Beasts 3 in TRUE FORM: Small fiend retaining compact bird-like body and head covered in JET-BLACK FEATHERS, LONG THIN STRAIGHT PIERCING BEAK, two sharp taloned bird feet, and ONE PAIR OF BLACK BAT WINGS from its back. Wings are leathery MEMBRANES on finger struts, no feathered wing pair, no furry bat body or bat face, no horns or extra limbs. Bloodfiend-specific cues: a long FORKED TONGUE can flick from its slightly opened beak, hypnotic supernatural eyes (violet-red glow an original palette choice), transformation mist trailing around it. Keep true black-feathered avian body intact and recognizable, no human disguise. No graphic blood, wounds or victims. Original interpretation based on written anatomy, never copy publisher art. YOLO absurd 04. Same small black-feathered bird bloodfiend, needle beak and leathery bat wings intact, wears a tiny blue sleep mask pushed up on its forehead and attempts to HYPNOTIZE a stubborn old twin-bell alarm clock. Its glowing violet-red eyes stare furiously at the clock while the long forked tongue sticks out in offended concentration; the alarm's bells visibly shudder. Talons grip table edge, mist curls round a pillow, one pair of membrane wings half-spread, blank unnumbered clock dial, dark-fantasy comedic lighting, no words or humans.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/alabroza-bloodfiend/",
+      "note": "ToB3 Small fiend: retains black-feathered avian body, piercing beak/talons and bat wings; long forked tongue, hypnotic eyes, humanoid/mist shapechange. True form chosen; no new wings/horns/size invented."
+    },
+    {
+      "url": "https://koboldpress.com/kpstore/product/tome-of-beasts-3-pawns/",
+      "note": "Official publisher lists Alabroza and Bloodfiend separately. Specific art unverified; glow color and scenes original."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

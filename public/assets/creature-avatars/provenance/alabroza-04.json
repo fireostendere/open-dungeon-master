@@ -1,0 +1,17 @@
+{
+  "creatureId": "alabroza",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-09-30",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy monster portrait, cinematic tactile painted realism, sharply readable head and wing anatomy at 512 pixels, no lettering, border, watermark or collage. Alabroza from Tome of Beasts 3: SMALL monstrosity with a compact BIRD-LIKE BODY covered in JET-BLACK FEATHERS, a LONG THIN STRAIGHT PIERCING BEAK like a black needle, two sharp taloned bird feet, and ONE PAIR OF BLACK BAT WINGS emerging from its back. Wing surfaces must be leathery MEMBRANES stretched between elongated finger bones, NOT feathered bird wings. Body/head feathered, wings membranous, no fur or bat face, no additional feathered wing pair, no humanoid arms, no horns. Predatory intelligent-looking avian face with ordinary dark amber eyes, not bright magical hypnotic eyes. It likes fresh milk and blood; show no graphic blood or injury. Original consistent biological interpretation from text, no copied publisher art. Face and part-open bat wing frame the square. YOLO absurd 04. Same black-feathered, thin-beaked bat-winged bird monster is caught running a ridiculous tiny milkshake stall. Its absurdly long thin beak is dipped into a tall foamy milkshake like an overqualified stirring stick, a little whipped-cream blob on the beak, and the creature looks indignantly professional. Taloned feet grip counter edge; one pair of leathery bat wings spreads behind for balance, no hands. A tiny paper soda-jerk cap sits on feathered head, two unlabeled milk bottles and cherries on counter, dark-fantasy painterly detail, no words or logos.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/alabroza/",
+      "note": "ToB3 Small monstrosity explicitly black feathered bird body, long thin piercing beak, sharp talons and black BAT wings; milk/blood feeding. No ordinary feathered wings or furry bat body. Exact art unverified; design original."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

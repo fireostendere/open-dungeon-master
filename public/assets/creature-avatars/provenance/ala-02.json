@@ -1,0 +1,21 @@
+{
+  "creatureId": "ala",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-09-30",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy fey creature avatar, tactile dramatic painted realism, expressive monstrous face clearly legible at 512 pixels, no frame, text, watermark or collage. Ala from Tome of Beasts: Medium storm-fey with a hideous HAG-LIKE UPPER BODY, windblown long hair, smoky black rags, and a notably ENORMOUS MOUTH. In this true battle form a dark AIR VORTEX replaces hips and legs. Not a sand genie: no sand body; wind, storm mist and leaves. Original consistent design: gaunt aged crone face, pale storm-gray creased skin, black hair streaked silver streaming around her, yellow-green malicious eyes, unusually wide jaw with uneven teeth, long clawed hands; body modestly covered by tattered smoky rags. No wings, broom, horns, conventional legs, or six-fingered anatomy. Head and shoulders prominent, hint of wind funnel below. Original interpretation from text, not copied publisher art. Serious normal 02. Nearly frontal storm-lit head-and-upper-body portrait suspended above a dark air funnel. Enormous jaw stretched in an unsettling toothy laugh, pale wrinkled face, sharp yellow-green eyes, black and silver hair spirals together with rag strips around the face without hiding it. Violet lightning far behind and translucent blue-gray wind ribbons, no sand or fire body, no wings.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/ala-3pp-2",
+      "note": "Licensed ToB/ToB2023: hag upper body, huge mouth, windblown hair, smoky rags, vortex replacing hips/legs in flight/battle; storm/tree association. Six-fingered sestaci are observers, not ala anatomy."
+    },
+    {
+      "url": "https://koboldpress.com/kpstore/product/errata-for-2nd-printing-pdf/",
+      "note": "Publisher confirms official ala art exists but art was not inspected. Color/facial/accessory choices original."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}
