@@ -17,7 +17,8 @@ const link = /\[[^\]]+\]\(([^)]+)\)/g;
 const catalogLinks = new Set([...catalogText.matchAll(link)].map((match) => match[1].split("#", 1)[0]));
 for (const id of expected) assert(catalogLinks.has(`../.opencode/skills/${id}/SKILL.md`), `catalog must link ${id}`);
 const names = new Set();
-const markdownFiles = [...files, catalog, path.join(root, "skills", "README.md"), path.join(root, "prompts", "README.md"), path.join(root, "AGENTS.md"), path.join(root, "docs", "README.md")];
+const skillMarkdown = readdirSync(skillsRoot, { recursive: true }).filter((file) => file.endsWith(".md")).map((file) => path.join(skillsRoot, file));
+const markdownFiles = [...skillMarkdown, catalog, path.join(root, "skills", "README.md"), path.join(root, "prompts", "README.md"), path.join(root, "AGENTS.md"), path.join(root, "docs", "README.md")];
 for (const file of files) {
   const text = readFileSync(file, "utf8").replace(/\r\n/g, "\n");
   const match = text.match(/^---\nname: ([a-z0-9-]+)\ndescription: "([^"\n]+)"\n---\n/);

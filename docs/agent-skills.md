@@ -82,13 +82,13 @@ retry после read; private Ask/whisper не анонсируется пуб�
 | [odm-development](../.opencode/skills/odm-development/SKILL.md) | Код, баг, QA; отдельный операторский контекст | «Почему не сохраняется лист?» |
 | [odm-server](../.opencode/skills/odm-server/SKILL.md) | Управляемый сервер | «Проверь готовность перед обновлением» |
 | [odm-backup](../.opencode/skills/odm-backup/SKILL.md) | Снимки и восстановление | «Проведи проверку восстановления» |
-| [odm-mcp](../.opencode/skills/odm-mcp/SKILL.md) | Подтверждённое операторское управление | «После подтверждения добавь участника» |
+| [odm-mcp](../.opencode/skills/odm-mcp/SKILL.md) | Быстрое создание стола и состава; операторское управление | «Создай кампанию и добавь этих героев» |
 | [odm-narrator](../.opencode/skills/odm-narrator/SKILL.md) | Внешний ведущий после глобальной политики | «Веди кампанию через MCP» |
 | [odm-content](../.opencode/skills/odm-content/SKILL.md) | Мастерская и миры | «Проверь импорт и права» |
-| [odm-assets](../.opencode/skills/odm-assets/SKILL.md) | Карты, портреты, Asset MCP | «Подготовь арт персонажа» |
+| [odm-assets](../.opencode/skills/odm-assets/SKILL.md) | Готовые обложки/портреты, карты, Asset MCP | «Прикрепи эту картинку к кампании» |
 | [dnd-session-zero](../.opencode/skills/dnd-session-zero/SKILL.md) | Договор стола | «Подготовь нулевую сессию» |
 | [dnd-campaign](../.opencode/skills/dnd-campaign/SKILL.md) | Сюжет/арка/тайна | «Набросай ваншот» |
-| [dnd-characters](../.opencode/skills/dnd-characters/SKILL.md) | Герой/build/level-up | «Сделай следопыта 2024» |
+| [dnd-characters](../.opencode/skills/dnd-characters/SKILL.md) | Создание героя, библиотека → кампания, build/level-up | «Создай героя или добавь моего существующего» |
 | [dnd-npcs-factions](../.opencode/skills/dnd-npcs-factions/SKILL.md) | NPC и фракции | «Создай соперничающую гильдию» |
 | [dnd-encounters](../.opencode/skills/dnd-encounters/SKILL.md) | Сцены и встречи | «Спроектируй погоню» |
 | [dnd-locations](../.opencode/skills/dnd-locations/SKILL.md) | Мир, подземелье, карта | «Опиши портовый квартал» |
@@ -100,7 +100,13 @@ retry после read; private Ask/whisper не анонсируется пуб�
 
 ## Последовательности
 
-Новая игра: session-zero → characters → campaign → locations/encounters → session.
+Подготовка новой игры: session-zero → characters → campaign → locations/encounters → session.
+Прямой запрос «создай стол/кампанию с героями»: **odm-mcp →
+[быстрый сценарий](../.opencode/skills/odm-mcp/references/fast-creation.md)**;
+characters нужен для нового/изменяемого билда, campaign — для разработки сюжета,
+assets — только если дан файл или нужен арт. Общий контракт, capabilities и
+схемы загружайте один раз за пакет. Нулевая сессия и запуск ведущего не блокируют
+создание лобби; уже согласованные решения повторно не спрашивайте.
 Внешняя игровая сессия: **odm-dm-policy → odm-narrator → нужный D&D-навык**.
 Операторский импорт черновика: odm-content → odm-mcp, с проверкой ID и согласия.
 Эксплуатация: odm-server → odm-backup в отдельном контексте. Модель внешнего

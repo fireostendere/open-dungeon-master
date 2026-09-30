@@ -120,6 +120,27 @@ function runSubprocess(code, { preload = true, env = {} } = {}) {
       process.exit(8);
     }
 
+    // Keep the skill's copyable fast-path payloads compatible with real schemas.
+    const { readFileSync } = await import("node:fs");
+    const { register } = await import("node:module");
+    register("./scripts/lib/register-alias.mjs", import.meta.url);
+    const { createSheetSchema } = await import("./src/lib/schemas/sheet.ts");
+    const { gameSettingsSchema } = await import("./src/lib/schemas/game-settings.ts");
+    const { acBreakdownFor } = await import("./src/lib/srd/index.ts");
+    const recipe = readFileSync(".opencode/skills/odm-mcp/references/fast-creation.md", "utf8");
+    const examples = [...recipe.matchAll(/\x60\x60\x60json\\s*([\\s\\S]*?)\x60\x60\x60/g)].map(match => JSON.parse(match[1]));
+    if (examples.length !== 3) throw new Error("Expected campaign, instantiation and new-character examples");
+    for (const { tool, arguments: args } of examples) {
+      server._registeredTools[tool].config.inputSchema.parse(args);
+      if (args.gameSettings) gameSettingsSchema.partial().parse(args.gameSettings);
+      if (args.sheet) {
+        const sheet = createSheetSchema.parse(args.sheet);
+        if (sheet.acOverride !== false || acBreakdownFor({ ...sheet, level: args.level }).ac !== sheet.ac) {
+          throw new Error("New-character example must have valid engine-derived AC");
+        }
+      }
+    }
+
     const validEpoch = "a".repeat(64);
     const narratorSchema = narratorTool.config.inputSchema;
     const parsedNarrator = narratorSchema.safeParse({
