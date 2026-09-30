@@ -2,8 +2,7 @@
 
 The manifest preserves all **2,308** creature IDs from the supplied bestiary.
 Target: **3 normal + 1 YOLO avatar per creature = 9,232 images**.
-The first two batches contain **8 distinct Goblin and Skeleton portraits**. The remaining
-2,306 creatures are explicitly pending. An empty variants array is not an
+See manifest.coverage for the current completed and pending counts. An empty variants array is not an
 image and must not be treated as completed coverage.
 
 ## Integration

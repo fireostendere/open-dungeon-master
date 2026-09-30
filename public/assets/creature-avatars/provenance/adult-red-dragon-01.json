@@ -1,0 +1,11 @@
+{
+  "creatureId": "adult-red-dragon",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-09-30",
+  "prompt": "Use case: stylized-concept. Asset type: square dark-fantasy bestiary creature avatar. Original portrait of an ADULT RED DRAGON, normal variant01. Fully mature massive muscular western dragon, scarlet-red overlapping reptilian scales with blackened edges, long powerful neck, elongated horned head, two swept-back dark horns, serrated jaw frills, burning golden slit-pupil eyes, sharp ivory fangs. Suggest large folded leathery red batlike wings behind shoulders, four-legged dragon anatomy rather than wyvern. Left-facing three-quarter head-neck portrait above its mountain hoard, distant glowing volcanic cavern softly defocused, faint hot breath at nostrils. Menacing intelligent arrogance, rich crimson and charcoal palette, warm lava bounce light and cool rim light, polished highly realistic painterly dark-fantasy quality. Compose head/horns safely inside square avatar with generous margins, clear scale at thumbnail. Exactly one adult dragon, not hatchling, no humans, no text/letters/logo/watermark/grid/border, no gore, original interpretation no named artist.",
+  "license": "generated-output; no third-party artwork license asserted"
+}
