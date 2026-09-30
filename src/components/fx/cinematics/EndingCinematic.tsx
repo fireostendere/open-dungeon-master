@@ -6,7 +6,7 @@
 // cracks, the title splits in two, rain and ash; YOLO tables get the sad
 // trombone and the mud.
 
-import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import { useI18n } from "@/lib/i18n";
 import { Bursts, FIREWORK_COLORS, type FxCanvas } from "@/lib/fx/particles";
 import * as sfx from "@/lib/fx/sound";
@@ -83,6 +83,27 @@ function Laurel({ defeat }: { defeat: boolean }) {
   );
 }
 
+// A wisecrack pill. It lands around x% of the screen but is shifted as far as
+// needed to keep the whole phrase on screen: on a phone a long one would
+// otherwise hang off the edge. Measured before paint, so it never jumps.
+function FxJoke({ joke, defeat }: { joke: Joke; defeat: boolean }) {
+  const ref = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const el = ref.current;
+    const layer = el?.parentElement;
+    if (!el || !layer) return;
+    const half = el.offsetWidth / 2;
+    const room = 12 + half * 0.06; // the pop-in overshoots to 1.06x
+    const center = (joke.x / 100) * layer.clientWidth;
+    el.style.left = `${Math.min(Math.max(center, room + half), layer.clientWidth - room - half)}px`;
+  }, [joke.x, joke.text]);
+  return (
+    <div ref={ref} className={`fx-joke ${defeat ? "fx-joke--defeat" : ""}`} style={{ left: `${joke.x}%`, top: `${joke.y}%` }}>
+      {joke.text}
+    </div>
+  );
+}
+
 export function EndingCinematic({
   active,
   onClose,
@@ -142,7 +163,9 @@ export function EndingCinematic({
       id: ++jokeId.current,
       text: p[Math.floor(Math.random() * p.length)],
       x: left ? 14 + Math.random() * 14 : 72 + Math.random() * 14,
-      y: 16 + Math.random() * 40,
+      // Above the title block (which starts at 46-50% of the height), so a
+      // wisecrack never sits on top of the big word.
+      y: 14 + Math.random() * 28,
     };
     setJokes((js) => [...js.slice(-3), joke]);
     window.setTimeout(() => setJokes((js) => js.filter((j) => j.id !== joke.id)), 2700);
@@ -256,20 +279,13 @@ export function EndingCinematic({
   return (
     <div className="fx-layer" style={{ zIndex: 72 }} role="dialog" aria-modal="true" aria-label={defeat ? titles.defeat : titles.victory}>
       {defeat ? <div className="fx-desaturate" /> : null}
-      <div
-        className="fx-backdrop"
-        style={
-          defeat
-            ? { background: "radial-gradient(ellipse at 50% 40%, rgba(40, 8, 14, 0.35), rgba(4, 2, 8, 0.88) 75%)" }
-            : { background: "radial-gradient(ellipse at 50% 35%, rgba(120, 80, 20, 0.35), rgba(8, 5, 20, 0.85) 70%)" }
-        }
-      />
+      <div className={`fx-backdrop ${defeat ? "fx-backdrop--defeat" : "fx-backdrop--victory"}`} />
       {defeat ? <div className="fx-vignette fx-vignette--blood" /> : <div className="fx-rays" />}
       <Laurel key={mode} defeat={defeat} />
       <HeroDie key={`${mode}-die`} throwSpec={heroThrow} box={{ x: 0.38, y: 0.12, w: 0.24, h: 0.3 }} reducedMotion={reducedMotion} onLanded={onHeroLanded} />
       <canvas ref={canvasRef} className="fx-canvas" />
 
-      <div className="fx-center" style={{ justifyContent: "flex-start", paddingTop: "50vh" }}>
+      <div className="fx-center fx-center--ending">
         {defeat ? (
           <div className="fx-split" key="defeat-title">
             <FxTitle as="div" text={titles.defeat} tone="crimson" variant="drop" delayMs={500} className="fx-bigtitle fx-split__top" />
@@ -291,9 +307,7 @@ export function EndingCinematic({
       </div>
 
       {jokes.map((j) => (
-        <div key={j.id} className={`fx-joke ${defeat ? "fx-joke--defeat" : ""}`} style={{ left: `${j.x}%`, top: `${j.y}%` }}>
-          {j.text}
-        </div>
+        <FxJoke key={j.id} joke={j} defeat={defeat} />
       ))}
 
       <div className="fx-bar">
@@ -322,8 +336,14 @@ export function EndingCinematic({
         <button type="button" className="fx-button fx-button--ghost" onClick={() => setMuted(!muted)} aria-label={muted ? copy.audioOff : copy.audioOn} title={muted ? copy.audioOff : copy.audioOn}>
           {muted ? "🔇" : "🔊"}
         </button>
-        <button type="button" className="fx-button fx-button--ghost" onClick={() => switchMode(defeat ? "victory" : "defeat")} title={defeat ? copy.switchToVictory : copy.switchToDefeat}>
-          {defeat ? "✨" : "💀"} {defeat ? copy.switchToVictory : copy.switchToDefeat}
+        <button
+          type="button"
+          className="fx-button fx-button--ghost"
+          onClick={() => switchMode(defeat ? "victory" : "defeat")}
+          aria-label={defeat ? copy.switchToVictory : copy.switchToDefeat}
+          title={defeat ? copy.switchToVictory : copy.switchToDefeat}
+        >
+          {defeat ? "✨" : "💀"} <span className="fx-hide-phone">{defeat ? copy.switchToVictory : copy.switchToDefeat}</span>
         </button>
         <button type="button" className="fx-button fx-button--ghost" onClick={onClose} aria-label={copy.close} title={copy.close}>
           ✕

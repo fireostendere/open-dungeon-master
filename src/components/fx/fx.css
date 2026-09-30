@@ -55,6 +55,18 @@
   animation: fx-fade-in 420ms ease-out both;
 }
 
+/* The finale is a scene of its own, not a glow over the live table: the dark
+   base keeps the page's buttons and chat from showing through behind the
+   title. (Victory was a bare gold tint, so they did.) */
+.fx-backdrop--victory {
+  background:
+    radial-gradient(ellipse at 50% 35%, rgba(150, 100, 30, 0.4), transparent 62%),
+    radial-gradient(ellipse at 50% 45%, rgba(10, 6, 24, 0.8), rgba(6, 4, 16, 0.94) 72%);
+}
+.fx-backdrop--defeat {
+  background: radial-gradient(ellipse at 50% 40%, rgba(40, 8, 14, 0.35), rgba(4, 2, 8, 0.88) 75%);
+}
+
 .fx-leaving {
   animation: fx-fade-out 320ms ease-in both;
 }
@@ -900,6 +912,18 @@
   .fx-plate__target .fx-plate__name {
     font-size: 14px;
   }
+  /* A long weapon or monster name takes a second line instead of being cut
+     short ("Длинный …"); only a third line is truncated. */
+  .fx-plate__name,
+  .fx-plate__what {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    line-height: 1.15;
+  }
   .fx-plate__kind,
   .fx-plate__sub,
   .fx-owner,
@@ -947,6 +971,18 @@
 .fx-rest-center--short {
   padding-top: 30vh;
   padding-top: 30svh;
+}
+/* The finale's title block sits under the wreath. */
+.fx-center--ending {
+  justify-content: flex-start;
+  padding-top: 50vh;
+}
+/* A short phone has less room between the wreath and the button bar. */
+@media (max-width: 560px) and (max-height: 700px) {
+  .fx-center--ending {
+    padding-top: 46vh;
+    gap: 8px;
+  }
 }
 
 /* A dark pool behind moments that play over the live table, so their
@@ -1010,11 +1046,14 @@
   animation-delay: var(--d, 0ms);
 }
 
+/* A title word never breaks, so the size follows the screen width down to a
+   small floor: the longest word ("ПОРАЖЕНИЕ", 9 letters at about 0.9em each)
+   must still fit a 320px phone with room for the letters' own motion. */
 .fx-bigtitle {
-  font-size: clamp(44px, 11vw, 112px);
+  font-size: clamp(28px, 10vw, 112px);
 }
 .fx-midtitle {
-  font-size: clamp(32px, 6.5vw, 72px);
+  font-size: clamp(26px, 6.5vw, 72px);
 }
 
 .fx-bar {
@@ -1030,6 +1069,15 @@
   max-width: calc(100vw - 32px);
   pointer-events: auto;
   animation: fx-rise-in 600ms var(--fx-ease) 1.6s both;
+}
+
+/* On a phone the bar would stack into four rows and ride over the title, so
+   the long labels of secondary buttons give way to their icons (the buttons
+   keep an aria-label and a tooltip). */
+@media (max-width: 560px) {
+  .fx-hide-phone {
+    display: none;
+  }
 }
 
 .fx-scroll {
@@ -1097,12 +1145,19 @@
 .fx-joke {
   position: absolute;
   padding: 8px 16px;
-  border-radius: 999px;
+  border-radius: 22px;
   font-family: var(--fx-display);
   font-weight: 900;
   font-size: clamp(14px, 2.4vw, 22px);
   letter-spacing: 0.04em;
-  white-space: nowrap;
+  /* Never wider than the screen: a long phrase wraps instead of hanging off
+     the edge. width:max-content keeps short ones on one line wherever they
+     sit (an absolute box would otherwise shrink to the room right of left). */
+  width: max-content;
+  max-width: calc(100% - 24px);
+  text-align: center;
+  text-wrap: balance;
+  overflow-wrap: anywhere;
   color: #fff;
   background: rgba(20, 10, 30, 0.72);
   border: 1px solid rgba(255, 210, 120, 0.55);
