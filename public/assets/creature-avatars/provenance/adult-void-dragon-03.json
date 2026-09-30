@@ -1,0 +1,25 @@
+{
+  "creatureId": "adult-void-dragon",
+  "variantId": "03",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-09-30",
+  "prompt": "Use case: stylized-concept. One original square dark-fantasy painted creature avatar with refined realistic tactile surfaces and cinematic light, face sharply readable at 512-pixel thumbnail, no text, frame, watermark or collage. An ADULT Void Dragon from Kobold Press Tome of Beasts, a living cosmic dragon whose dark blue-black body seems formed of the night sky, tiny stars visible within its scales and wing membranes, two brilliant WHITE STAR eyes, not green eyes. Long slender dragon neck and tail, narrow crested horned reptilian head, four clawed limbs, separate large membrane wings with subtle smoky energy along the outer edges. Strong coherent dragon shape rather than a formless nebula, believable scales with stars within, knowledge-hoarding ancient-minded presence but adult size, not an ancient exaggerated wing proportion. No spacesuit, robot plating, tentacles, or copied illustration. Serious normal variant 03. Tight three-quarter head portrait, cosmic dragon lowering its nose over an open forbidden codex on a stone lectern. Tiny motes of page dust hang suspended in gravity, folded starfield wing frames one cheek. Sharp white star eyes illuminate the unreadable blank aged pages, dragon face dominates, bronze library fittings and deep abyssal blues; worn tactile scales with tiny embedded constellations, contemplative, no letters or symbols rendered.",
+  "designReferences": [
+    {
+      "url": "https://www.dndbeyond.com/posts/1698-void-dragons-when-you-gaze-into-the-void-the-void",
+      "note": "Licensed ToB2023 article: cosmic starfield identity, white-star eyes, gravity, stellar cold/fire. Distinguished from unrelated Legendary Games Void Dragon."
+    },
+    {
+      "url": "https://www.dndbeyond.com/attachments/11/279/04-051-ancient-void-dragon-compressed.jpg",
+      "note": "Licensed ANCIENT art inspected only for broad non-copied anatomy: long neck/tail, four claws and separate starfield wings. Adult proportions not copied from ancient."
+    },
+    {
+      "url": "https://koboldpress.com/kpstore/product-category/monsters/",
+      "note": "Primary publisher cosmic Void Dragon description and monster products."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}
