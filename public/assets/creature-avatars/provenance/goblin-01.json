@@ -1,0 +1,11 @@
+{
+  "creatureId": "goblin",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-09-30",
+  "prompt": "Use case: stylized-concept. Asset type: square tabletop fantasy creature avatar for a bestiary. Create one original, highly polished dark-fantasy painted portrait of a GOBLIN scout, variant 01. Recognizably a small goblin: green-olive skin, very large pointed ears, prominent hooked nose, yellow alert eyes, uneven sharp teeth. Weathered leather hood pushed back, simple patched leather armor, narrow shoulders. Three-quarter head-and-shoulders view facing left, sly watchful expression, a mossy cave softly blurred behind. Dramatic cool rim light, warm muted face light; realistic painterly textures, restrained rich colors, readable silhouette at thumbnail size. Center subject with safe margins for square and circular avatar display. Exactly one goblin and one image, no grid, no text, no letters, no border, no logo or watermark. Do not emulate any specific artist or existing artwork.",
+  "license": "generated-output; no third-party artwork license asserted"
+}

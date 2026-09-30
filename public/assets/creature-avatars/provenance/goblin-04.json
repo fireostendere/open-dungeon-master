@@ -1,0 +1,11 @@
+{
+  "creatureId": "goblin",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-09-30",
+  "prompt": "Use case: stylized-concept. Asset type: square tabletop dark-fantasy creature avatar, YOLO absurd comedy variant. Create one original highly polished portrait of a recognizably small green GOBLIN with huge pointed ears, hooked nose, sharp uneven teeth and glowing amber eyes. A delusionally majestic goblin champion proudly wears a dented upside-down kitchen colander as a crown, with tiny mismatched chicken feathers stuck through the holes; ragged stolen velvet curtain as royal cloak, a bent giant soup spoon raised like a legendary scepter, and a dried fish dangling as a ridiculous medal. Dead-serious heroic facial expression, chest puffed up, intensely self-important despite his pathetic homemade royal gear. Darkly comic absurdity, a grim wet dungeon softly blurred behind, epic chiaroscuro lighting treats this idiot like a conqueror. Realistic painterly dark-fantasy quality, restrained cinematic colors, strong readable silhouette, centered bust with safe square margins. Funny ridiculous details, no gore. Exactly one goblin, one portrait, no grid, no text/letters/captions, no logos or watermark, no specific artist style.",
+  "license": "generated-output; no third-party artwork license asserted"
+}

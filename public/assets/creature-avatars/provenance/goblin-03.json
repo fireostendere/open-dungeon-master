@@ -1,0 +1,11 @@
+{
+  "creatureId": "goblin",
+  "variantId": "03",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-09-30",
+  "prompt": "Use case: stylized-concept. Asset type: square tabletop fantasy creature avatar for a bestiary. One original dark-fantasy creature portrait: GOBLIN cunning scavenger, variant 03, unmistakably different individual from a leather-hood scout or headband raider. Small elderly wiry goblin with moss-green skin, huge drooping pointed ears with tiny bronze rings, narrow long hooked nose, pale gold eyes, wizened face and protruding uneven lower fangs, sparse gray wisps of hair. Ragged charcoal wool mantle fastened with a copper pin; carries a little bundle of scavenged keys partially visible near chest. Right-facing three-quarter bust in a moonlit ruined forest, scheming contemplative expression, cool blue-green haze behind, warm subtle reflected light on face. Polished realistic painterly dark fantasy rendering, rich restrained colors, clear silhouette at thumbnail scale. Square format, subject centered with generous safe margins. Exactly one creature, no text, no lettering, no logo or watermark, no borders or grid. Original interpretation, no copied publisher image or named artist style.",
+  "license": "generated-output; no third-party artwork license asserted"
+}
