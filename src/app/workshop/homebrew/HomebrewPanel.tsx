@@ -10,6 +10,8 @@ import { Sheet } from "@/components/ui/Sheet";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { useTourPrepare } from "@/lib/tours/prepare";
 import { HomebrewEditor } from "@/app/workshop/homebrew/HomebrewEditor";
+import { HomebrewPlate } from "@/app/workshop/homebrew/CatalogStart";
+import { GameIcon } from "@/components/ui/GameIcon";
 import { useI18n } from "@/lib/i18n/context";
 import { localeText } from "@/lib/i18n/locale-text";
 import { blankDraft, type HomebrewDraft } from "@/app/workshop/homebrew/draft";
@@ -230,14 +232,17 @@ export function HomebrewPanel({
               onClick={() => open(entry)}
               className={cn(
                 ui.cardHover,
-                "flex h-full w-full flex-col gap-1 p-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/40",
+                "flex h-full w-full items-start gap-3 p-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/40",
               )}
             >
-              <span className="font-display tracking-wide text-amber-50">{entry.name}</span>
-              <span className="line-clamp-1 text-[11px] text-stone-400">{describeHomebrew(entry.kind, entry.data)}</span>
-              {entry.data.desc ? (
-                <span className="line-clamp-1 text-sm text-stone-300">{String(entry.data.desc)}</span>
-              ) : null}
+              <HomebrewPlate kind={entry.kind} name={entry.name} data={entry.data} />
+              <span className="flex min-w-0 flex-1 flex-col gap-1">
+                <span className="font-display tracking-wide text-amber-50">{entry.name}</span>
+                <span className="line-clamp-1 text-[11px] text-stone-400">{describeHomebrew(entry.kind, entry.data)}</span>
+                {entry.data.desc ? (
+                  <span className="line-clamp-1 text-sm text-stone-300">{String(entry.data.desc)}</span>
+                ) : null}
+              </span>
             </button>
           </li>
         ))}
@@ -254,8 +259,9 @@ export function HomebrewPanel({
               "flex h-full w-full items-center gap-3 border-dashed p-3 text-left text-stone-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/40",
             )}
           >
-            <span className="flex size-9 shrink-0 items-center justify-center rounded-full border border-dashed border-stone-600">
-              <Plus className="size-4" />
+            <span className="relative shrink-0">
+              <GameIcon icon={{ kind: "glyph", key: "system-homebrew" }} size="size-10" />
+              <Plus className="absolute -bottom-1 -right-1 size-4 rounded-full bg-stone-900 text-amber-300" aria-hidden="true" />
             </span>
             <span className="font-display tracking-wide">{copy.newKind[kind]}</span>
           </button>

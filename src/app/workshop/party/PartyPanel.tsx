@@ -1,7 +1,8 @@
 "use client";
 
 import { useInlineText } from "@/lib/i18n/inline-text";
-import { Loader2, Plus, UserRound, X } from "lucide-react";
+import { Loader2, Plus, X } from "lucide-react";
+import { GameIcon } from "@/components/ui/GameIcon";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/cn";
@@ -130,8 +131,13 @@ export function PartyPanel({
             const offLevel = character.level !== targetParty.level;
             return (
               <li key={character.id} className={cn(ui.card, "flex items-start gap-3 p-3")}>
-                <span className="flex size-9 shrink-0 items-center justify-center rounded-full border border-stone-700 text-stone-400">
-                  <UserRound className="size-4" />
+                {/* The class painting sits over the party glyph, so a class
+                    with no painting of its own still has a face. */}
+                <span className="relative grid size-12 shrink-0 place-items-center rounded-lg border border-amber-500/25 bg-stone-950/70">
+                  <GameIcon icon={{ kind: "glyph", key: "system-party" }} size="size-9" />
+                  {character.class ? (
+                    <GameIcon icon={{ kind: "family", key: `class-${character.class}` }} size="size-9" className="absolute" />
+                  ) : null}
                 </span>
                 <span className="min-w-0 flex-1">
                   <Link

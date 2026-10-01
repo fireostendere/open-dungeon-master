@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown, ChevronRight, Dices } from "lucide-react";
+import { ChevronDown, ChevronRight } from "lucide-react";
+import { GameIcon } from "@/components/ui/GameIcon";
 import { MonsterTile, ui } from "@/lib/ui";
 import { useI18n } from "@/lib/i18n/context";
 import { localeText } from "@/lib/i18n/locale-text";
@@ -149,7 +150,7 @@ export function StatblockFinder({
           aria-expanded={open}
           className="flex w-full items-center gap-2 text-left font-display text-sm tracking-wide text-amber-100"
         >
-          <Dices className="size-4 text-amber-300" />
+          <GameIcon icon={{ kind: "glyph", key: "system-bestiary" }} size="size-6" />
           {copy.lookup}
           {open ? (
             <ChevronDown className="ml-auto size-4 text-stone-500" />
@@ -165,7 +166,7 @@ export function StatblockFinder({
   return (
     <section className="rounded-lg border border-stone-800 bg-stone-950/60 px-2.5 py-2">
       <p className="mb-1.5 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-stone-500">
-        <Dices className="size-3.5" />
+        <GameIcon icon={{ kind: "glyph", key: "system-bestiary" }} size="size-5" />
         {copy.lookup}
       </p>
       {controls}
