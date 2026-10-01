@@ -2,7 +2,8 @@
 
 import { useInlineText } from "@/lib/i18n/inline-text";
 import { useState } from "react";
-import { Calculator, ChevronDown, ChevronRight, Loader2 } from "lucide-react";
+import { ChevronDown, ChevronRight, Loader2 } from "lucide-react";
+import { GameIcon } from "@/components/ui/GameIcon";
 import { cn } from "@/lib/cn";
 import { ui } from "@/lib/ui";
 import type { WorkbenchPart, WorkbenchReadout } from "@/lib/dm/encounter-workbench";
@@ -122,7 +123,7 @@ export function DmWorkbenchPanel({
       <div className="flex flex-col gap-2 rounded-lg border border-stone-800 bg-stone-900/40 p-3">
         {collapsible ? null : (
           <h3 className="flex items-center gap-1.5 text-sm text-amber-100">
-            <Calculator className="size-4" /> {copy.weigh}
+            <GameIcon icon={{ kind: "glyph", key: "system-encounters" }} size="size-6" /> {copy.weigh}
           </h3>
         )}
         {/* The same search the prepared-encounter form has: pick from what
@@ -173,7 +174,7 @@ export function DmWorkbenchPanel({
             onClick={() => void run()}
             className="inline-flex items-center gap-1.5 rounded-md border border-amber-500/40 px-3 py-1 text-xs text-amber-100 hover:bg-stone-800 disabled:opacity-40"
           >
-            {busy ? <Loader2 className="size-3.5 animate-spin" /> : null}
+            {busy ? <Loader2 className="size-3.5 animate-spin" /> : <GameIcon icon={{ kind: "glyph", key: "die-d20" }} size="size-4" />}
             {copy.run}
           </button>
         </div>
@@ -245,7 +246,7 @@ export function DmWorkbenchPanel({
         data-tour="encounters-workbench"
         className="flex w-full items-center gap-2 text-left font-display text-sm tracking-wide text-amber-100"
       >
-        <Calculator className="size-4 text-amber-300" />
+        <GameIcon icon={{ kind: "glyph", key: "system-encounters" }} size="size-6" />
         {copy.hard}
         {open ? (
           <ChevronDown className="ml-auto size-4 text-stone-500" />

@@ -1,7 +1,8 @@
 "use client";
 
 import * as Dialog from "@radix-ui/react-dialog";
-import { Loader2, Pencil, StickyNote, Trash2, X, Check } from "lucide-react";
+import { Loader2, Pencil, Trash2, X, Check } from "lucide-react";
+import { GameIcon } from "@/components/ui/GameIcon";
 import { useState } from "react";
 import { cn } from "@/lib/cn";
 import { useI18n } from "@/lib/i18n";
@@ -206,7 +207,7 @@ export function CharacterNotesDialog({
         >
           <div className="mb-3 flex items-center justify-between">
             <Dialog.Title className="flex items-center gap-2 font-display text-lg tracking-wide text-amber-50">
-              <StickyNote className="size-4 text-amber-300" /> {copy.notesOn(sheet.name)}
+              <GameIcon icon={{ kind: "glyph", key: "tab-notes" }} size="size-7" /> {copy.notesOn(sheet.name)}
             </Dialog.Title>
             <Dialog.Close className="text-stone-500 hover:text-stone-300">
               <X className="size-4" />

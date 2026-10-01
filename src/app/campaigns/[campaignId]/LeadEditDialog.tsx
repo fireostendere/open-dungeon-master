@@ -2,7 +2,8 @@
 
 import { useInlineText } from "@/lib/i18n/inline-text";
 import * as Dialog from "@radix-ui/react-dialog";
-import { Loader2, Trash2, Wrench, X } from "lucide-react";
+import { Loader2, Trash2, X } from "lucide-react";
+import { GameIcon } from "@/components/ui/GameIcon";
 import { useState } from "react";
 import { cn } from "@/lib/cn";
 import { ui } from "@/lib/ui";
@@ -285,7 +286,7 @@ export function LeadEditDialog({
         >
           <div className="mb-3 flex items-center justify-between">
             <Dialog.Title className="flex items-center gap-2 font-display text-lg tracking-wide text-amber-50">
-              <Wrench className="size-4 text-amber-300" /> {copy.adjust.replace("{name}", sheet.name)}
+              <GameIcon icon={{ kind: "glyph", key: "tab-lead" }} size="size-7" /> {copy.adjust.replace("{name}", sheet.name)}
             </Dialog.Title>
             <Dialog.Close className="text-stone-500 hover:text-stone-300">
               <X className="size-4" />
@@ -297,16 +298,18 @@ export function LeadEditDialog({
           <div className="grid grid-cols-3 gap-2 text-xs">
             {(
               [
-                [copy.hp, currentHp, setCurrentHp],
-                [copy.tempHp, tempHp, setTempHp],
-                [copy.maxHp, maxHp, setMaxHp],
-                [copy.ac, ac, setAc],
-                [copy.gold, gold, setGold],
-                [copy.xp, xp, setXp],
-              ] as Array<[string, string, (value: string) => void]>
-            ).map(([label, value, setter]) => (
+                [copy.hp, currentHp, setCurrentHp, "rest-hp"],
+                [copy.tempHp, tempHp, setTempHp, "rest-temp-hp"],
+                [copy.maxHp, maxHp, setMaxHp, "rest-hp"],
+                [copy.ac, ac, setAc, "rest-ac"],
+                [copy.gold, gold, setGold, "coin-gp"],
+                [copy.xp, xp, setXp, "rest-xp"],
+              ] as Array<[string, string, (value: string) => void, string]>
+            ).map(([label, value, setter, glyph]) => (
               <label key={label} className="space-y-1">
-                <span className="text-stone-500">{label}</span>
+                <span className="flex items-center gap-1 text-stone-500">
+                  <GameIcon icon={{ kind: "glyph", key: glyph }} size="size-4" /> {label}
+                </span>
                 <input
                   type="number"
                   value={value}
@@ -352,6 +355,7 @@ export function LeadEditDialog({
             <span className="text-stone-500">{copy.items}</span>
             {items.map((row, index) => (
               <div key={index} className="flex items-center gap-2">
+                <GameIcon icon={{ kind: "item", key: row.name, family: "item-gear" }} size="size-6" />
                 {row.slug ? (
                   <span className={cn(field, "truncate")}>{row.name}</span>
                 ) : (

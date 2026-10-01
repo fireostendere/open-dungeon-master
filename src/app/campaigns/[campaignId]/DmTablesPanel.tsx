@@ -2,7 +2,8 @@
 
 import { useInlineText } from "@/lib/i18n/inline-text";
 import { useCallback, useEffect, useState } from "react";
-import { Copy, Dices, Loader2, Plus, Sparkles, Trash2 } from "lucide-react";
+import { Copy, Loader2, Plus, Sparkles, Trash2 } from "lucide-react";
+import { GameIcon } from "@/components/ui/GameIcon";
 import { cn } from "@/lib/cn";
 import {
   dieForTable,
@@ -24,6 +25,12 @@ import {
 import { TableRows, type RollResult } from "@/app/workshop/tables/TableRows";
 import { useI18n } from "@/lib/i18n/context";
 import { localeText } from "@/lib/i18n/locale-text";
+
+// The painted die a table rolls on, where the kit has one that size.
+const PAINTED_DICE = new Set([4, 6, 8, 10, 12, 20, 100]);
+function dieGlyph(sides: number): string {
+  return PAINTED_DICE.has(sides) ? `die-d${sides}` : "die-d20";
+}
 
 // The DM's random tables, and the monster lookup beside them. Both are the
 // DM's own reference: rolling a table writes an ordinary roll everyone can
@@ -453,7 +460,7 @@ export function DmTablesPanel({
     <div className="space-y-3">
       <section className="rounded-lg border border-stone-800 bg-stone-950/60 px-2.5 py-2">
         <p className="mb-1.5 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-stone-500">
-          <Dices className="size-3.5" />
+          <GameIcon icon={{ kind: "glyph", key: "system-tables" }} size="size-5" />
           {uiText("Your tables")}
         </p>
         {tables.length ? (
@@ -464,9 +471,10 @@ export function DmTablesPanel({
                 className="rounded-lg border border-stone-800 bg-stone-950/40 px-2.5 py-2"
               >
                 <div className="flex items-center justify-between gap-2">
-                  <span className="min-w-0 truncate text-sm text-stone-200">
-                    {table.name}
-                    <span className="ml-1.5 text-[11px] text-stone-500">
+                  <span className="flex min-w-0 items-center gap-2 text-sm text-stone-200">
+                    <GameIcon icon={{ kind: "glyph", key: dieGlyph(dieForTable(table.entries)) }} size="size-6" />
+                    <span className="min-w-0 truncate">{table.name}</span>
+                    <span className="shrink-0 text-[11px] text-stone-500">
                       d{dieForTable(table.entries)}
                     </span>
                   </span>

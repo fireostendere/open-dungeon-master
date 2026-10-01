@@ -2,6 +2,7 @@
 
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { ChevronDown, FileCode, FileDown, FileText, FileType, type LucideIcon } from "lucide-react";
+import { GameIcon } from "@/components/ui/GameIcon";
 import { cn } from "@/lib/cn";
 import { ui } from "@/lib/ui";
 import { useI18n } from "@/lib/i18n/context";
@@ -51,7 +52,7 @@ export function ExportMenu({
           </button>
         ) : (
           <button type="button" className={cn(ui.btnSmall, "w-full justify-center")}>
-             <FileDown className="size-3.5" /> {copy.export} <ChevronDown className="size-3" />
+             <GameIcon icon={{ kind: "glyph", key: "tab-story" }} size="size-5" /> {copy.export} <ChevronDown className="size-3" />
           </button>
         )}
       </DropdownMenu.Trigger>

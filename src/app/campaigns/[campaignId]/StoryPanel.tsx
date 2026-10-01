@@ -2,7 +2,8 @@
 
 import { useInlineText } from "@/lib/i18n/inline-text";
 import * as AlertDialog from "@radix-ui/react-alert-dialog";
-import { ArrowDown, ArrowUp, BookOpen, Check, ChevronDown, ChevronRight, Compass, Crosshair, Loader2, Pencil, Plus, Rewind, Scissors, SkipForward, Users, X } from "lucide-react";
+import { ArrowDown, ArrowUp, Check, ChevronDown, ChevronRight, Crosshair, Loader2, Pencil, Plus, Rewind, Scissors, SkipForward, X } from "lucide-react";
+import { GameIcon } from "@/components/ui/GameIcon";
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/cn";
 import { ui } from "@/lib/ui";
@@ -233,7 +234,7 @@ function NpcReviewCard({ campaignId }: { campaignId: string }) {
           <ChevronRight className="mt-0.5 size-3.5 shrink-0 text-stone-500" />
         )}
         <span className="flex items-center gap-1.5 text-xs font-medium text-amber-200">
-          <Users className="size-3.5 text-amber-600" /> {uiText("NPC roster")}
+          <GameIcon icon={{ kind: "glyph", key: "system-cast" }} size="size-6" /> {uiText("NPC roster")}
         </span>
       </button>
       {expanded ? (
@@ -365,7 +366,7 @@ function ArcCard({ campaignId }: { campaignId: string }) {
           <ChevronRight className="mt-0.5 size-3.5 shrink-0 text-stone-500" />
         )}
         <span className="flex items-center gap-1.5 text-xs font-medium text-amber-200">
-          <Compass className="size-3.5 text-amber-600" /> {copy.arc}
+          <GameIcon icon={{ kind: "glyph", key: "system-storyboard" }} size="size-6" /> {copy.arc}
         </span>
       </button>
       {expanded ? (
@@ -780,7 +781,7 @@ export function StoryPanel({
       <ExportMenu campaignId={campaignId} />
       <div className="rounded-lg border border-dashed border-stone-800 p-2.5">
         <p className="flex items-center gap-1.5 text-xs text-stone-400">
-          <BookOpen className="size-3.5 text-amber-600" />
+          <GameIcon icon={{ kind: "glyph", key: "tab-story" }} size="size-5" />
           {copy.progress.replace("{chapter}", String(open?.index ?? closed.length + 1))}
         </p>
         {steersStory ? (

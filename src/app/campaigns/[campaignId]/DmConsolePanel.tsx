@@ -2,7 +2,8 @@
 
 import { useInlineText } from "@/lib/i18n/inline-text";
 import { useMemo, useState } from "react";
-import { Inbox, Megaphone } from "lucide-react";
+import { GameIcon } from "@/components/ui/GameIcon";
+import { adjudicationGlyph } from "@/app/campaigns/[campaignId]/SessionGlyph";
 import { cn } from "@/lib/cn";
 import { Ribbon } from "@/components/ui/Ribbon";
 import { consoleAdjudications, type AdjudicationCategory } from "@/lib/dm/invoke-catalog";
@@ -62,11 +63,12 @@ function FloorControl({
   return (
     <section className="rounded-lg border border-stone-800 bg-stone-950/60 px-2.5 py-2">
       <p className="mb-1.5 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-stone-500">
-        <Megaphone className="size-3.5" />
+        <GameIcon icon={{ kind: "glyph", key: "tab-session" }} size="size-5" />
         {uiText("The floor")}
       </p>
       {mode === "initiative" ? (
-        <p className="text-xs text-stone-500">
+        <p className="flex items-center gap-1.5 text-xs text-stone-500">
+          <GameIcon icon={{ kind: "glyph", key: "rest-initiative" }} size="size-5" />
           {uiText("The initiative order has it while the fight runs.")}
         </p>
       ) : (
@@ -78,17 +80,19 @@ function FloorControl({
               disabled={busy || mode === option}
               onClick={() => set(option)}
               className={cn(
-                "rounded-md border px-2 py-1 text-xs disabled:opacity-40",
+                "inline-flex items-center gap-1 rounded-md border py-1 pl-1 pr-2 text-xs disabled:opacity-40",
                 mode === option
                   ? "border-amber-700 bg-amber-950/50 text-amber-100"
                   : "border-stone-700 text-stone-400 hover:text-stone-200",
               )}
             >
+              <GameIcon icon={{ kind: "glyph", key: option === "open" ? "tab-chat" : "cue-bell" }} size="size-4" />
               {option === "open" ? uiText("Anyone may act") : uiText("Hold everyone")}
             </button>
           ))}
           {mode === "spotlight" ? (
-            <span className="rounded-md border border-amber-700 bg-amber-950/50 px-2 py-1 text-xs text-amber-100">
+            <span className="inline-flex items-center gap-1 rounded-md border border-amber-700 bg-amber-950/50 py-1 pl-1 pr-2 text-xs text-amber-100">
+              <GameIcon icon={{ kind: "glyph", key: "tab-lead" }} size="size-4" />
               {uiText("Spotlight")}
             </span>
           ) : (
@@ -108,6 +112,22 @@ function FloorControl({
 // a map is built before the table sees it and a fight is written down before
 // it happens.
 type ConsoleTab = AdjudicationCategory | "assist" | "tables" | "maps" | "cast" | "bestiary" | "storyboard";
+
+// The painted glyph each console tab wears (upstream's TAB_GLYPH).
+const TAB_GLYPH: Record<ConsoleTab, string> = {
+  assist: "tab-dm",
+  combat: "tab-battle",
+  party: "tab-party",
+  world: "tab-map",
+  social: "tab-chat",
+  story: "tab-story",
+  table: "tab-dice",
+  maps: "system-maps",
+  cast: "system-cast",
+  bestiary: "system-bestiary",
+  storyboard: "system-storyboard",
+  tables: "system-tables",
+};
 
 export function DmConsolePanel({
   campaignId,
@@ -193,7 +213,7 @@ export function DmConsolePanel({
 
       <section data-tour="dm-queue">
         <h3 className="mb-1.5 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-stone-500">
-          <Inbox className="size-3.5" />
+          <GameIcon icon={{ kind: "glyph", key: "tab-log" }} size="size-5" />
           {uiText("Waiting on you")}
           {queue.length ? (
             <span className="rounded-full bg-amber-900/60 px-1.5 text-[10px] text-amber-200">
@@ -217,8 +237,9 @@ export function DmConsolePanel({
                     setCategory("assist");
                     setOpenAction("");
                   }}
-                  className="mt-1 text-[11px] text-stone-500 hover:text-amber-200"
+                  className="mt-1 inline-flex items-center gap-1 text-[11px] text-stone-500 hover:text-amber-200"
                 >
+                  <GameIcon icon={{ kind: "glyph", key: "die-d20" }} size="size-4" />
                   {uiText("What should I press?")}
                 </button>
               </li>
@@ -250,12 +271,13 @@ export function DmConsolePanel({
                 setOpenAction("");
               }}
               className={cn(
-                "rounded-md border px-2 py-1 text-xs",
+                "inline-flex items-center gap-1 rounded-md border py-1 pl-1 pr-2 text-xs",
                 tab === category
                   ? "border-amber-700 bg-amber-950/50 text-amber-100"
                   : "border-stone-700 text-stone-400 hover:text-stone-200",
               )}
             >
+              <GameIcon icon={{ kind: "glyph", key: TAB_GLYPH[tab] }} size="size-5" />
               {label}
             </button>
           ))}
@@ -298,6 +320,7 @@ export function DmConsolePanel({
                     entry={entry}
                     sheets={sheets}
                     encounter={encounter}
+                    glyph={adjudicationGlyph(entry.name, TAB_GLYPH[category])}
                   />
                   <button
                     type="button"
@@ -311,10 +334,13 @@ export function DmConsolePanel({
                 <button
                   type="button"
                   onClick={() => setOpenAction(entry.name)}
-                  className="w-full rounded-lg border border-stone-800 bg-stone-950/40 px-2.5 py-2 text-left hover:border-stone-700"
+                  className="flex w-full items-center gap-2.5 rounded-lg border border-stone-800 bg-stone-950/40 px-2.5 py-2 text-left hover:border-stone-700"
                 >
-                  <span className="block text-sm text-stone-200">{entry.label}</span>
-                  <span className="block text-xs text-stone-500">{entry.summary}</span>
+                  <GameIcon icon={{ kind: "glyph", key: adjudicationGlyph(entry.name, TAB_GLYPH[category]) }} size="size-7" />
+                  <span className="min-w-0 grow">
+                    <span className="block text-sm text-stone-200">{entry.label}</span>
+                    <span className="block text-xs text-stone-500">{entry.summary}</span>
+                  </span>
                 </button>
               )}
             </li>

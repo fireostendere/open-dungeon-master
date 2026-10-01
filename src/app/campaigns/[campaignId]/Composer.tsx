@@ -1,6 +1,8 @@
 "use client";
 
 import { ChevronDown, Clock, Eye, EyeOff, Loader2, Send, SkipForward, Swords } from "lucide-react";
+import { GameIcon } from "@/components/ui/GameIcon";
+import { MODE_GLYPHS } from "@/app/campaigns/[campaignId]/SessionGlyph";
 import { memo, useEffect, useRef, useState } from "react";
 import type { Dispatch, FormEvent, RefObject, SetStateAction } from "react";
 import { cn } from "@/lib/cn";
@@ -456,7 +458,7 @@ function ComposerInner({
                 onClick={() => onKindChange(option)}
                 data-tour={option === "ask" ? "ask-dm" : undefined}
                 className={cn(
-                  "rounded-full px-3.5 py-2 text-xs font-medium transition-all duration-150 ease-snap active:scale-95 sm:px-3 sm:py-1",
+                  "inline-flex items-center gap-1.5 rounded-full py-2 pl-2 pr-3.5 text-xs font-medium transition-all duration-150 ease-snap active:scale-95 sm:py-1 sm:pl-1.5 sm:pr-3",
                   kind === option
                     ? option === "lead"
                       ? "bg-gradient-to-b from-ember-400 to-ember-600 text-stone-950 shadow-glow-ember"
@@ -465,6 +467,7 @@ function ComposerInner({
                   globalTurnEnabled && !isDm && option === "do" && heroResponded && "opacity-60",
                 )}
               >
+                <GameIcon icon={{ kind: "glyph", key: MODE_GLYPHS[option] }} size="size-4" />
                 {optionLabel(option)}
               </button>
             </Tooltip>
