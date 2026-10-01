@@ -187,8 +187,10 @@ export function mergedBackgroundOptions(rows: ContentRow[]): BackgroundOption[] 
 }
 
 // Loads race/class/background options from the Open5e content pack with the
-// bundled SRD data as fallback (and as the shape contract).
-export function useBuilderOptions() {
+// bundled SRD data as fallback (and as the shape contract). `keepRaceId` is
+// the race of the character being edited, kept in the list even when the
+// pack no longer offers it on its own (a bare Dwarf).
+export function useBuilderOptions(keepRaceId?: string) {
   const [races, setRaces] = useState<RaceOption[]>(srdRaceOptions);
   const [classes, setClasses] = useState<ClassOption[]>(srdClassOptions);
   const [backgrounds, setBackgrounds] = useState<BackgroundOption[]>(srdBackgroundOptions);
@@ -219,7 +221,7 @@ export function useBuilderOptions() {
         if (raceRows.length) {
           // Bundled races the pack lacks (our own Loxodon) still join the
           // list; the pack's copy of a bundled race stands for it.
-          const packRaces = packRaceOptions(raceRows);
+          const packRaces = packRaceOptions(raceRows, keepRaceId ? [keepRaceId] : []);
           const packIds = new Set(packRaces.map((race) => canonicalRaceId(race.id)));
           setRaces([
             ...packRaces,
@@ -262,7 +264,7 @@ export function useBuilderOptions() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [keepRaceId]);
 
   return useMemo(
     () => ({ races, classes, backgrounds, packInstalled }),

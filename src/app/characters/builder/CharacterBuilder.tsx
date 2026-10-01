@@ -88,7 +88,7 @@ export default function CharacterBuilder({
     classes: rawClasses,
     backgrounds: rawBackgrounds,
     packInstalled,
-  } = useBuilderOptions();
+  } = useBuilderOptions(initial?.race);
   const pack = useWorldPack(worldPackId);
   // Display overlay only. applyIdReskins rewrites `name`, never `id`, so
   // race.asi, classFeaturesFor(klass.id), spellClassFor(klass.id) and the
