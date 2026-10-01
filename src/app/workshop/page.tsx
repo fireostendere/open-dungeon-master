@@ -1,10 +1,11 @@
 "use client";
 
-import { CircleHelp, Copy, Hammer, Loader2, Plus, Trash2 } from "lucide-react";
+import { CircleHelp, Copy, Loader2, Plus, Trash2 } from "lucide-react";
+import { GameIcon } from "@/components/ui/GameIcon";
 import Link from "next/link";
 import { type FormEvent, useEffect, useState } from "react";
 import { cn } from "@/lib/cn";
-import { IconChip, ui } from "@/lib/ui";
+import { ui } from "@/lib/ui";
 import { workshopPlaceholder } from "@/lib/placeholders";
 import { AppHeader } from "@/components/AppHeader";
 import { DEFAULT_TARGET_PARTY } from "@/lib/workshop/kind";
@@ -138,7 +139,7 @@ export default function WorkshopListPage() {
       <AppHeader />
       <header className="mb-6">
         <div className="flex min-w-0 items-start gap-3">
-          <IconChip icon={Hammer} size="size-10" iconSize="size-5" />
+          <GameIcon icon={{ kind: "glyph", key: "system-homebrew" }} size="size-12" />
           <div className="min-w-0">
             <h1 className="font-display text-xl tracking-wide text-amber-50">{copy.title}</h1>
             <p className="text-sm text-stone-500">
@@ -303,7 +304,7 @@ export default function WorkshopListPage() {
         </ul>
       ) : (
         <div className={`${ui.card} ornate p-8 text-center`}>
-          <IconChip icon={Hammer} className="mx-auto mb-3" />
+          <GameIcon icon={{ kind: "glyph", key: "system-homebrew" }} size="size-12" className="mb-3" />
           <p className="font-display tracking-wide text-amber-50">{copy.empty}</p>
           <p className="mt-1 text-sm text-stone-500">
             {copy.emptyHint}

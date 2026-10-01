@@ -2,6 +2,7 @@
 
 import { useInlineText } from "@/lib/i18n/inline-text";
 import { Loader2 } from "lucide-react";
+import { GameIcon } from "@/components/ui/GameIcon";
 import Link from "next/link";
 import { use, useCallback, useEffect, useState } from "react";
 import { CampaignCover } from "@/components/CampaignCover";
@@ -111,10 +112,20 @@ export default function JoinPage({ params }: { params: Promise<{ code: string }>
               {preview?.title ?? t("campaign.takeYourSeat")}
             </h1>
             {preview ? (
-              <p className="mt-1 text-xs text-stone-400">
-                {preview.playerCount}/{preview.maxPlayers} {t("campaign.players")} · {preview.genre} · {t("campaign.level")}{" "}
-                {preview.startingLevel}
-                {preview.seatOpen ? "" : uiText(" · not taking new players right now")}
+              <p className="mt-1 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-xs text-stone-400">
+                <span className="inline-flex items-center gap-1">
+                  <GameIcon icon={{ kind: "glyph", key: "tab-party" }} size="size-5" />
+                  {preview.playerCount}/{preview.maxPlayers} {t("campaign.players")}
+                </span>
+                <span className="inline-flex items-center gap-1">
+                  <GameIcon icon={{ kind: "glyph", key: "tab-campaigns" }} size="size-5" />
+                  {preview.genre}
+                </span>
+                <span className="inline-flex items-center gap-1">
+                  <GameIcon icon={{ kind: "glyph", key: "rest-level-up" }} size="size-5" />
+                  {t("campaign.level")} {preview.startingLevel}
+                </span>
+                {preview.seatOpen ? null : <span>{uiText(" · not taking new players right now")}</span>}
               </p>
             ) : null}
             <p className="mt-2 text-sm text-stone-500">

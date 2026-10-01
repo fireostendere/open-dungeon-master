@@ -3,6 +3,7 @@
 import { Bell } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/cn";
+import { GameIcon } from "@/components/ui/GameIcon";
 import { useI18n, type Locale } from "@/lib/i18n";
 
 const COPY = {
@@ -41,6 +42,17 @@ type BellNotification = {
   createdAt: string;
   readAt: string | null;
 };
+
+// The painted glyph for a notification, from its kind (friend_request,
+// session_cancelled, ...); a kind it does not know gets the journal.
+function glyphFor(kind: string): string {
+  if (/friend|invite/.test(kind)) return "tab-friends";
+  if (/remind|soon|starts/.test(kind)) return "daypart-dusk";
+  if (/cancel|called_off|absent|cant/.test(kind)) return "quest-failed";
+  if (/session|schedule|moved|planned|rsvp/.test(kind)) return "tab-session";
+  if (/idle|nudge|turn/.test(kind)) return "cue-turn";
+  return "tab-journal";
+}
 
 function ago(iso: string, locale: Locale): string {
   const copy = COPY[locale];
@@ -224,12 +236,15 @@ export function NotificationBell() {
                 <li
                   key={item.id}
                   className={cn(
-                    "rounded-lg p-2 text-sm text-stone-300",
+                    "flex items-start gap-2 rounded-lg p-2 text-sm text-stone-300",
                     !item.readAt && "bg-stone-900/80",
                   )}
                 >
-                  <p>{item.body}</p>
-                  <p className="text-xs text-stone-600">{ago(item.createdAt, locale)}</p>
+                  <GameIcon icon={{ kind: "glyph", key: glyphFor(item.kind) }} size="size-8" />
+                  <span className="min-w-0">
+                    <span className="block">{item.body}</span>
+                    <span className="block text-xs text-stone-600">{ago(item.createdAt, locale)}</span>
+                  </span>
                 </li>
               ))}
             </ul>

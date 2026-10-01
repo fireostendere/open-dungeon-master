@@ -1,6 +1,7 @@
 "use client";
 
 import { Check, HeartHandshake, Loader2, UserRound, X } from "lucide-react";
+import { GameIcon } from "@/components/ui/GameIcon";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { cn } from "@/lib/cn";
@@ -210,19 +211,23 @@ export default function FriendsPage() {
   return (
     <PageShell
       icon={PIXEL_ICONS.chats}
+      glyph="tab-friends"
       title={copy.title}
       blurb={copy.blurb}
     >
-      <PageSection heading={copy.addFriend}>
+      <PageSection heading={copy.addFriend} glyph="tab-friends">
         <form onSubmit={add} className="flex gap-2">
-          <input
-            value={name}
-            onChange={(event) => setName(event.target.value)}
-            placeholder={copy.placeholder}
-            maxLength={64}
-            aria-label={copy.username}
-            className={ui.input}
-          />
+          <span className="relative min-w-0 flex-1">
+            <GameIcon icon={{ kind: "glyph", key: "tab-characters" }} size="size-7" className="pointer-events-none absolute left-1.5 top-1/2 -translate-y-1/2" />
+            <input
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+              placeholder={copy.placeholder}
+              maxLength={64}
+              aria-label={copy.username}
+              className={cn(ui.input, "pl-10")}
+            />
+          </span>
           <button type="submit" disabled={sending || !name.trim()} className={ui.btnPrimary}>
             {sending ? <Loader2 className="size-4 animate-spin" /> : null} {copy.add}
           </button>
@@ -235,7 +240,7 @@ export default function FriendsPage() {
       </PageSection>
 
       {data.incoming.length > 0 ? (
-        <PageSection heading={copy.requests} ribbon={copy.waitingOnYou} padded={false}>
+        <PageSection heading={copy.requests} glyph="cue-bell" ribbon={copy.waitingOnYou} padded={false}>
           <ul className="divide-y divide-stone-800/70">
             {data.incoming.map((request) => (
               <li key={request.userId} className={ROW}>
@@ -266,7 +271,7 @@ export default function FriendsPage() {
         </PageSection>
       ) : null}
 
-      <PageSection heading={copy.title} padded={data.friends.length === 0}>
+      <PageSection heading={copy.title} glyph="tab-party" padded={data.friends.length === 0}>
         {data.friends.length === 0 ? (
           <div className="flex flex-col items-center gap-4 px-6 py-8 text-center">
             <IconChip icon={HeartHandshake} size="size-12" iconSize="size-5" />
@@ -334,13 +339,15 @@ export default function FriendsPage() {
       </PageSection>
 
       {data.outgoing.length > 0 ? (
-        <PageSection heading={copy.sent} padded={false}>
+        <PageSection heading={copy.sent} glyph="tab-handout" padded={false}>
           <ul className="divide-y divide-stone-800/70 pb-2">
             {data.outgoing.map((request) => (
               <li key={request.userId} className={ROW}>
                 <Avatar friend={request} />
                 <span className="min-w-0 flex-1 truncate text-stone-300">{request.username}</span>
-                <span className="text-xs text-stone-500">{copy.waiting}</span>
+                <span className="inline-flex items-center gap-1 text-xs text-stone-500">
+                  <GameIcon icon={{ kind: "glyph", key: "rest-short" }} size="size-5" /> {copy.waiting}
+                </span>
                 <button
                   type="button"
                   onClick={() => respond(request.userId, false)}

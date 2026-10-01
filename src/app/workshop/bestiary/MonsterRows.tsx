@@ -3,6 +3,7 @@
 import { Copy, Trash2 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { MonsterTile, ui } from "@/lib/ui";
+import { GameIcon } from "@/components/ui/GameIcon";
 import { crLabel } from "@/lib/bestiary/derive-cr";
 import { RatingLine } from "@/app/campaigns/[campaignId]/MonsterFields";
 import type { Monster } from "@/app/workshop/bestiary/types";
@@ -75,8 +76,13 @@ export function MonsterRows({
                   CR {crLabel(stats.cr)}
                 </span>
               </div>
-              <p className="mt-1 text-sm text-stone-300">
-                AC {stats.ac} · {stats.maxHp} {copy.hp}
+              <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-stone-300">
+                <span className="inline-flex items-center gap-1">
+                  <GameIcon icon={{ kind: "glyph", key: "rest-ac" }} size="size-5" /> AC {stats.ac}
+                </span>
+                <span className="inline-flex items-center gap-1">
+                  <GameIcon icon={{ kind: "glyph", key: "rest-hp" }} size="size-5" /> {stats.maxHp} {copy.hp}
+                </span>
               </p>
               <p className="text-xs text-stone-500">
                 {swings} {swings === 1 ? copy.swing : copy.swings} {copy.turn} · {copy.dex} {signed(stats.dexMod)}

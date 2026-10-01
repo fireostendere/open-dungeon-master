@@ -1,5 +1,6 @@
 import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
+import { GameIcon } from "@/components/ui/GameIcon";
 import { cn } from "@/lib/cn";
 import { IconChip, ui } from "@/lib/ui";
 
@@ -15,8 +16,12 @@ export function QuickTile({
   onClick,
   disabled = false,
   className,
+  glyph,
 }: {
   icon: LucideIcon;
+  // A painted glyph (public/assets/icons/glyph) that stands over the line
+  // icon; the line icon stays underneath as the fallback.
+  glyph?: string;
   label: string;
   href?: string;
   onClick?: () => void;
@@ -32,7 +37,14 @@ export function QuickTile({
   );
   const body = (
     <>
-      <IconChip icon={icon} size="size-10" iconSize="size-5" />
+      {glyph ? (
+        <span className="relative flex size-14 items-center justify-center">
+          <IconChip icon={icon} size="size-10" iconSize="size-5" className="absolute" />
+          <GameIcon icon={{ kind: "glyph", key: glyph }} size="size-14" className="relative" />
+        </span>
+      ) : (
+        <IconChip icon={icon} size="size-10" iconSize="size-5" />
+      )}
       <span className="font-display text-[13px] font-semibold uppercase tracking-[0.12em] text-stone-200">
         {label}
       </span>

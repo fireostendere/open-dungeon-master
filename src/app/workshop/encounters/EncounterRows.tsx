@@ -1,6 +1,7 @@
 "use client";
 
-import { Copy, Map as MapIcon, Plus, Swords, Trash2 } from "lucide-react";
+import { Copy, Plus, Swords, Trash2 } from "lucide-react";
+import { GameIcon } from "@/components/ui/GameIcon";
 import { cn } from "@/lib/cn";
 import { ui } from "@/lib/ui";
 import { formatRoster } from "@/lib/dm/encounter-template-logic";
@@ -193,7 +194,7 @@ export function EncounterRows({
                  <p className="truncate text-xs text-stone-500">{copy.on} {encounter.battlefield}</p>
               ) : null}
               <p className="flex items-center gap-1 truncate text-[11px] text-stone-500">
-                <MapIcon className="size-3 shrink-0" aria-hidden="true" />
+                <GameIcon icon={{ kind: "glyph", key: "system-maps" }} size="size-4" />
                 {mapName(encounter)}
               </p>
             </button>
@@ -237,8 +238,9 @@ export function EncounterRows({
               "flex h-full w-full items-center gap-3 border-dashed p-3 text-left text-stone-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/40",
             )}
           >
-            <span className="flex size-9 shrink-0 items-center justify-center rounded-full border border-dashed border-stone-600">
-              <Plus className="size-4" />
+            <span className="relative shrink-0">
+              <GameIcon icon={{ kind: "glyph", key: "system-encounters" }} size="size-10" />
+              <Plus className="absolute -bottom-1 -right-1 size-4 rounded-full bg-stone-900 text-amber-300" aria-hidden="true" />
             </span>
             <span className="font-display tracking-wide">{copy.new}</span>
           </button>

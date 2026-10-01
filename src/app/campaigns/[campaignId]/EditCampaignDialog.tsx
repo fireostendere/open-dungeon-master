@@ -2,6 +2,7 @@
 
 import * as Dialog from "@radix-ui/react-dialog";
 import { Loader2, X } from "lucide-react";
+import { GameIcon } from "@/components/ui/GameIcon";
 import { type FormEvent, type ReactNode, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { cn } from "@/lib/cn";
 import { ui } from "@/lib/ui";
@@ -64,10 +65,13 @@ function AutoTextarea({ value, onChange, minRows, maxLength }: { value: string; 
   );
 }
 
-function Section({ title, children }: { title: string; children: ReactNode }) {
+function Section({ title, glyph, children }: { title: string; glyph: string; children: ReactNode }) {
   return (
     <section className="space-y-3 py-5 first:pt-0 last:pb-0">
-      <h3 className={ui.sectionEyebrow}>{title}</h3>
+      <h3 className={cn(ui.sectionEyebrow, "flex items-center gap-2")}>
+        <GameIcon icon={{ kind: "glyph", key: glyph }} size="size-6" />
+        {title}
+      </h3>
       {children}
     </section>
   );
@@ -276,7 +280,7 @@ export function EditCampaignDialog({
 
           <form onSubmit={submit} className="flex min-h-0 flex-1 flex-col text-sm">
             <div className="min-h-0 flex-1 divide-y divide-stone-800/60 overflow-y-auto overscroll-contain px-5 py-5 sm:px-6">
-              <Section title={copy.basics}>
+              <Section glyph="tab-story" title={copy.basics}>
                 <Field label={copy.name} hint={`${title.length}/80`}>
                   <input value={title} onChange={(event) => setTitle(event.target.value)} required maxLength={80} className={inputClass} />
                 </Field>
@@ -288,7 +292,7 @@ export function EditCampaignDialog({
                 </Field>
               </Section>
 
-              <Section title={copy.table}>
+              <Section glyph="tab-party" title={copy.table}>
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                   <Field label={copy.players}>
                     <input
@@ -328,7 +332,7 @@ export function EditCampaignDialog({
                 </div>
               </Section>
 
-              <Section title={copy.cover}>
+              <Section glyph="tab-handout" title={copy.cover}>
                 <CampaignCover cover={cover} title={title || campaign.title} genre={campaign.genre} seed={campaign.id} status={coverStatus} />
                 <input
                   ref={fileInput}
@@ -364,7 +368,7 @@ export function EditCampaignDialog({
               </Section>
 
               {campaign.status === "active" || campaign.status === "ended" ? (
-                <Section title={copy.status}>
+                <Section glyph="tab-settings" title={copy.status}>
                   <div className="flex gap-2">
                     <button type="button" aria-pressed={status === "active"} onClick={() => setStatus("active")} className={segment(status === "active")}>
                       {copy.active}

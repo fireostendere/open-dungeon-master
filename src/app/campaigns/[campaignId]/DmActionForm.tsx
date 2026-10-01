@@ -3,6 +3,7 @@
 import { useInlineText } from "@/lib/i18n/inline-text";
 import { useMemo, useState } from "react";
 import { Loader2, Play } from "lucide-react";
+import { GameIcon } from "@/components/ui/GameIcon";
 import { cn } from "@/lib/cn";
 import type { CatalogEntry, CatalogField } from "@/lib/dm/invoke-catalog";
 import type { PublicEncounter } from "@/lib/db/encounter-view";
@@ -61,6 +62,7 @@ export function DmActionForm({
   encounter,
   initialArgs,
   onRan,
+  glyph,
 }: {
   campaignId: string;
   entry: CatalogEntry;
@@ -70,6 +72,8 @@ export function DmActionForm({
   // the button, and anything that does not fit its field is left blank.
   initialArgs?: Record<string, unknown>;
   onRan?: () => void;
+  // The painting that leads the form (SessionGlyph adjudicationGlyph).
+  glyph?: string;
 }) {
   const uiText = useInlineText();
   const [values, setValues] = useState<Record<string, Value>>(() =>
@@ -135,13 +139,17 @@ export function DmActionForm({
 
   return (
     <div className="space-y-2 rounded-lg border border-stone-800 bg-stone-950/60 p-3">
-      <div>
-        <p className="text-sm font-medium text-amber-100">{entry.label}</p>
-        <p className="text-xs text-stone-500">{entry.summary}</p>
+      <div className="flex items-start gap-2.5">
+        {glyph ? <GameIcon icon={{ kind: "glyph", key: glyph }} size="size-8" /> : null}
+        <div className="min-w-0">
+          <p className="text-sm font-medium text-amber-100">{entry.label}</p>
+          <p className="text-xs text-stone-500">{entry.summary}</p>
+        </div>
       </div>
 
       {blocked ? (
-        <p className="rounded-md border border-stone-800 bg-stone-900/60 px-2 py-1.5 text-xs text-stone-400">
+        <p className="flex items-center gap-2 rounded-md border border-stone-800 bg-stone-900/60 px-2 py-1.5 text-xs text-stone-400">
+          <GameIcon icon={{ kind: "glyph", key: "tab-battle" }} size="size-5" />
           {uiText("Needs a fight running. Start one first.")}
         </p>
       ) : null}

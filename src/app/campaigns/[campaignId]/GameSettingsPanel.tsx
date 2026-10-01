@@ -1,16 +1,6 @@
 "use client";
 
-import {
-  Bot,
-  Dices,
-  Globe,
-  Hand,
-  Heart,
-  Music,
-  PackageCheck,
-  Sparkles,
-  UserPlus,
-} from "lucide-react";
+import { GameIcon } from "@/components/ui/GameIcon";
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/cn";
 import { useI18n } from "@/lib/i18n";
@@ -425,47 +415,47 @@ export function GameSettingsPanel({
         <h2 className="mb-2 text-sm font-medium text-stone-300">{copy.gameSettings}</h2>
         <div className="flex flex-wrap gap-x-5 gap-y-1.5 text-xs text-stone-400">
           <span className="flex items-center gap-1.5">
-            <Sparkles className="size-3.5 text-amber-200" />
+            <GameIcon icon={{ kind: "glyph", key: "system-region" }} size="size-5" />
             {selectedPack?.name ?? genreText.name}
             {` · ${copy.humanDm}`}
             {` · ${copy.lengths[settings.campaignLength].split(" (")[0]} ${copy.campaignWord}`}
           </span>
           <span className="flex items-center gap-1.5">
-            <Dices className="size-3.5 text-amber-200" />
+            <GameIcon icon={{ kind: "glyph", key: "tab-dice" }} size="size-5" />
             {settings.dicePolicy === "real_allowed" ? copy.diceReal : copy.diceDigital}
           </span>
           <span className="flex items-center gap-1.5">
-            <Hand className="size-3.5 text-amber-200" />
+            <GameIcon icon={{ kind: "glyph", key: "rest-proficiency" }} size="size-5" />
             {copy.dmDifficulty} {settings.dmDifficulty}/10
           </span>
           <span className="flex items-center gap-1.5">
-            <Music className="size-3.5 text-amber-200" />
+            <GameIcon icon={{ kind: "glyph", key: "tab-ambience" }} size="size-5" />
             {settings.ambienceEnabled
               ? `${copy.ambienceOn}${settings.ambienceAuto ? ` (${copy.ambienceFollows})` : ""}`
               : copy.ambienceOff}
           </span>
           <span className="flex items-center gap-1.5">
-            <Dices className="size-3.5 text-amber-200" />
+            <GameIcon icon={{ kind: "glyph", key: "rest-level-up" }} size="size-5" />
             {settings.multiclassingEnabled ? copy.multiclassOn : copy.multiclassOff}
           </span>
           <span className="flex items-center gap-1.5">
-            <UserPlus className="size-3.5 text-amber-200" />
+            <GameIcon icon={{ kind: "glyph", key: "tab-friends" }} size="size-5" />
             {settings.midGameJoinOpen ? copy.joiningOpen : copy.joiningClosed}
           </span>
           <span className="flex items-center gap-1.5">
-            <Hand className="size-3.5 text-amber-200" />
+            <GameIcon icon={{ kind: "glyph", key: "rest-initiative" }} size="size-5" />
             {settings.holdSubmissions ? copy.held : copy.responsesOpen}
           </span>
           <span className="flex items-center gap-1.5">
-            <Globe className="size-3.5 text-amber-200" />
+            <GameIcon icon={{ kind: "glyph", key: "system-storyboard" }} size="size-5" />
             {settings.worldSimulation ? copy.worldOn : copy.worldOff}
           </span>
           <span className="flex items-center gap-1.5">
-            <PackageCheck className="size-3.5 text-amber-200" />
+            <GameIcon icon={{ kind: "glyph", key: "tab-loot" }} size="size-5" />
             {settings.inventoryApprovals ? copy.itemsApproval : copy.itemsAuto}
           </span>
           <span className="flex items-center gap-1.5">
-            <Heart className="size-3.5 text-amber-200" />
+            <GameIcon icon={{ kind: "glyph", key: "tab-bonds" }} size="size-5" />
             {settings.relationships === "off"
               ? copy.bondsOff
               : settings.romance !== "off"
@@ -473,7 +463,7 @@ export function GameSettingsPanel({
                 : copy.bondsOnly}
           </span>
           <span className="flex items-center gap-1.5">
-            <Bot className="size-3.5 text-amber-200" />
+            <GameIcon icon={{ kind: "glyph", key: "system-party" }} size="size-5" />
             {copy.companionsPrefix}: {copy.companions[settings.companions]}
           </span>
         </div>

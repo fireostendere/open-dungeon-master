@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Copy, Loader2, Plus, Search, Trash2 } from "lucide-react";
+import { GameIcon } from "@/components/ui/GameIcon";
 import { cn } from "@/lib/cn";
 import { ui } from "@/lib/ui";
 import { dieForTable, tableGaps, type RollTableEntry } from "@/lib/dm/roll-table-logic";
@@ -203,8 +204,9 @@ export function TableRows({
               "flex h-full w-full items-center gap-3 border-dashed p-3 text-left text-stone-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/40",
             )}
           >
-            <span className="flex size-9 shrink-0 items-center justify-center rounded-full border border-dashed border-stone-600">
-              <Plus className="size-4" />
+            <span className="relative shrink-0">
+              <GameIcon icon={{ kind: "glyph", key: "system-tables" }} size="size-10" />
+              <Plus className="absolute -bottom-1 -right-1 size-4 rounded-full bg-stone-900 text-amber-300" aria-hidden="true" />
             </span>
              <span className="font-display tracking-wide">{copy.new}</span>
           </button>

@@ -58,7 +58,7 @@ export function BlockedPlayersSection() {
   }
 
   return (
-    <PageSection heading={copy.heading} intro={copy.intro}>
+    <PageSection heading={copy.heading} glyph="attitude-hostile" intro={copy.intro}>
       {blocked === null ? (
         <Loader2 className="size-4 animate-spin text-stone-500" />
       ) : blocked.length === 0 ? (

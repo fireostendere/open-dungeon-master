@@ -1,6 +1,7 @@
 "use client";
 
 import { Loader2, Plus, UserRound } from "lucide-react";
+import { GameIcon } from "@/components/ui/GameIcon";
 import { useSearchParams } from "next/navigation";
 import { Suspense, use, useEffect, useState } from "react";
 import { Ribbon } from "@/components/ui/Ribbon";
@@ -191,7 +192,8 @@ function CampaignCharacterPageInner({ campaignId }: { campaignId: string }) {
                     ) : (
                       <IconChip icon={UserRound} size="size-8" iconSize="size-4" />
                     )}
-                    <span className="font-medium text-stone-100">{character.name}</span>
+                    <span className="min-w-0 truncate font-medium text-stone-100">{character.name}</span>
+                    <GameIcon icon={{ kind: "family", key: `class-${character.class.toLowerCase()}` }} size="size-7" className="ml-auto" />
                     {character.id === currentLibraryId ? (
                       <span className="rounded-full border border-amber-500/30 bg-amber-400/10 px-2 py-0.5 text-[11px] text-amber-200">
                         {copy.current}

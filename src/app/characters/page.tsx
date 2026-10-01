@@ -4,11 +4,9 @@ import {
   Camera,
   Copy,
   FileUp,
-  Hammer,
   Loader2,
   Pencil,
   Plus,
-  Swords,
   Trash2,
   UserRound,
 } from "lucide-react";
@@ -18,7 +16,8 @@ import { AvatarCropDialog } from "@/app/settings/AvatarCropDialog";
 import { AppHeader } from "@/components/AppHeader";
 import { Ribbon } from "@/components/ui/Ribbon";
 import { cn } from "@/lib/cn";
-import { CharacterPortrait, IconChip, PIXEL_ICONS, PixelTile, ui } from "@/lib/ui";
+import { CharacterPortrait, IconChip, ui } from "@/lib/ui";
+import { GameIcon } from "@/components/ui/GameIcon";
 import { useI18n } from "@/lib/i18n";
 import { localeText } from "@/lib/i18n/locale-text";
 import { characterDisplay } from "@/lib/i18n/character-display";
@@ -210,7 +209,7 @@ export default function CharactersPage() {
       <AppHeader />
       <header className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
-          <PixelTile src={PIXEL_ICONS.characters} />
+          <GameIcon icon={{ kind: "glyph", key: "tab-characters" }} size="size-12" className="border-amber-400/50 shadow-glow-gold-strong" />
           <div>
             <h1 className="font-display text-xl tracking-wide text-amber-50">{copy.title}</h1>
             <p className="text-sm text-stone-500">{copy.subtitle}</p>
@@ -337,6 +336,7 @@ function CharacterCard({
     <li className={cn("group relative", ui.cardHover, "p-4")}>
       <a href={`/characters/${character.id}`} className="block">
         <div className="flex items-center gap-3">
+          <span className="relative shrink-0">
           {character.sheet?.portrait?.url ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -361,6 +361,12 @@ function CharacterCard({
               />
             </span>
           )}
+            <GameIcon
+              icon={{ kind: "family", key: `class-${character.class.toLowerCase()}` }}
+              size="size-6"
+              className="pointer-events-none absolute -bottom-1.5 -right-1.5"
+            />
+          </span>
           <div className="min-w-0 pr-8">
             <span className="block truncate font-display text-base tracking-wide text-amber-50">
               {character.name}
@@ -382,13 +388,12 @@ function CharacterCard({
             <Link
               key={assignment.campaignId}
               href={assignment.kind === "workshop" ? `/workshop/${assignment.campaignId}` : `/campaigns/${assignment.campaignId}`}
-              className="inline-flex max-w-full items-center gap-1 rounded-full border border-stone-600/60 bg-stone-900/60 px-2 py-0.5 text-[11px] text-stone-300 transition-colors hover:border-amber-500/40 hover:text-amber-100"
+              className="inline-flex max-w-full items-center gap-1 rounded-full border border-stone-600/60 bg-stone-900/60 py-0.5 pl-0.5 pr-2 text-[11px] text-stone-300 transition-colors hover:border-amber-500/40 hover:text-amber-100"
             >
-              {assignment.kind === "workshop" ? (
-                <Hammer className="size-3 shrink-0 text-amber-300/70" />
-              ) : (
-                <Swords className="size-3 shrink-0 text-amber-300/70" />
-              )}
+              <GameIcon
+                icon={{ kind: "glyph", key: assignment.kind === "workshop" ? "system-storyboard" : "tab-campaigns" }}
+                size="size-5"
+              />
               <span className="truncate">{assignment.title}</span>
             </Link>
           ))}

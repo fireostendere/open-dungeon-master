@@ -3,7 +3,9 @@
 import { useInlineText } from "@/lib/i18n/inline-text";
 import { useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
-import { FileDown, Heart, Minus, Plus, PawPrint, Pencil, Shield, Wrench, X } from "lucide-react";
+import { FileDown, Minus, Plus, PawPrint, Pencil, Wrench, X } from "lucide-react";
+import { GameIcon } from "@/components/ui/GameIcon";
+import { conditionIconKey } from "@/lib/icons";
 import { cn } from "@/lib/cn";
 import { CharacterPortrait, ui } from "@/lib/ui";
 import { downloadCharacterSheetPdf } from "@/lib/pdf/download";
@@ -231,7 +233,7 @@ export function CharacterSheetDialog({
 
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-stone-300">
             <span className="flex items-center gap-1">
-              <Heart className="size-4 text-red-400" />
+              <GameIcon icon={{ kind: "glyph", key: "rest-hp" }} size="size-5" />
               {sheet.currentHp}
               {sheet.tempHp ? `+${sheet.tempHp}` : ""}/{sheet.maxHp} HP
             </span>
@@ -243,10 +245,13 @@ export function CharacterSheetDialog({
                   : armor.parts.join(" + ")
               }
             >
-              <Shield className="size-4 text-stone-400" />{" "}
+              <GameIcon icon={{ kind: "glyph", key: "rest-ac" }} size="size-5" />
               <GameTerm id="armor_class">AC</GameTerm> {sheet.ac}
             </span>
-            <span title={speedNote}>{t("sheet.speed")} {formatSpeed(speed)}</span>
+            <span className="flex items-center gap-1" title={speedNote}>
+              <GameIcon icon={{ kind: "glyph", key: "rest-speed" }} size="size-5" />
+              {t("sheet.speed")} {formatSpeed(speed)}
+            </span>
             <span
               className={cn(
                 encumbranceRule && load.tier !== "unencumbered" && "text-amber-300",
@@ -260,15 +265,24 @@ export function CharacterSheetDialog({
               {formatWeight(load.carriedLb)}
               {load.unweighed ? "+" : ""}/{formatWeight(load.capacityLb)}
             </span>
-            <span title={explainParts(derived.parts.initiative)}>
+            <span className="flex items-center gap-1" title={explainParts(derived.parts.initiative)}>
+              <GameIcon icon={{ kind: "glyph", key: "rest-initiative" }} size="size-5" />
               <GameTerm id="initiative">{copy.initiative}</GameTerm> {formatModifier(derived.initiative)}
             </span>
-            <span title={explainParts(derived.parts.passivePerception)}>
+            <span className="flex items-center gap-1" title={explainParts(derived.parts.passivePerception)}>
+              <GameIcon icon={{ kind: "glyph", key: "sense-passive-perception" }} size="size-5" />
               <GameTerm id="passive_perception">{copy.passivePerception}</GameTerm> {derived.passivePerception}
             </span>
-            <span>{copy.proficiencyBonus} {formatModifier(derived.proficiencyBonus)}</span>
-            <span>{sheet.gold} {copy.gold}</span>
-            <span>
+            <span className="flex items-center gap-1">
+              <GameIcon icon={{ kind: "glyph", key: "rest-proficiency" }} size="size-5" />
+              {copy.proficiencyBonus} {formatModifier(derived.proficiencyBonus)}
+            </span>
+            <span className="flex items-center gap-1">
+              <GameIcon icon={{ kind: "glyph", key: "coin-gp" }} size="size-5" />
+              {sheet.gold} {copy.gold}
+            </span>
+            <span className="flex items-center gap-1">
+              <GameIcon icon={{ kind: "glyph", key: "rest-xp" }} size="size-5" />
               {sheet.xp} {copy.xpHitDice} {sheet.hitDice.total - sheet.hitDice.spent}/
               {sheet.hitDice.total}
               {sheet.hitDice.die}
@@ -299,8 +313,9 @@ export function CharacterSheetDialog({
               {sheet.conditions.map((condition) => (
                 <span
                   key={condition}
-                  className="rounded-full bg-red-950 px-2 py-0.5 text-xs text-red-300"
+                  className="inline-flex items-center gap-1 rounded-full bg-red-950 py-0.5 pl-1 pr-2 text-xs text-red-300"
                 >
+                  <GameIcon icon={{ kind: "condition", key: conditionIconKey(condition) }} size="size-4" className="border-red-800/60" />
                   {condition}
                   {sheet.conditionMeta?.[condition]?.rounds
                     ? ` (${describeConditionDuration(sheet.conditionMeta[condition].rounds, locale)})`
@@ -313,7 +328,10 @@ export function CharacterSheetDialog({
           <div className="mt-4 grid grid-cols-3 gap-2 text-center sm:grid-cols-6">
             {ABILITIES.map((ability) => (
               <div key={ability} className="rounded-lg border border-stone-800 p-2">
-                <p className="text-xs uppercase font-bold text-amber-300/80">{t(`sheet.abilities.${ability}`)}</p>
+                <p className="flex items-center justify-center gap-1 text-xs uppercase font-bold text-amber-300/80">
+                  <GameIcon icon={{ kind: "glyph", key: `ability-${ability}` }} size="size-5" />
+                  {t(`sheet.abilities.${ability}`)}
+                </p>
                 <p className="text-lg text-stone-100">{sheet.abilities[ability]}</p>
                 <p className="text-xs text-stone-400">
                   {formatModifier(derived.abilityMods[ability])}
@@ -380,7 +398,8 @@ export function CharacterSheetDialog({
               </h3>
               {Object.keys(sheet.spellcasting.slots).length ? (
                 <div className="flex flex-wrap items-center gap-1.5 text-xs text-stone-400">
-                  <span>
+                  <span className="flex items-center gap-1">
+                    <GameIcon icon={{ kind: "glyph", key: "rest-spell-slot" }} size="size-5" />
                     <GameTerm id="spell_slot">{copy.slots}</GameTerm>:
                   </span>
                   {Object.entries(sheet.spellcasting.slots).map(([slotLevel, slot]) => (
@@ -424,6 +443,7 @@ export function CharacterSheetDialog({
                       ...new Set([...sheet.spellcasting.known, ...sheet.spellcasting.prepared]),
                     ].map((spell) => ({
                       name: localizedContentName("spells", spell, locale),
+                      icon: { kind: "spell" as const, key: spell },
                       reference: { kind: "spells", slug: contentSlug(spell), name: spell },
                     }))}
                   />
@@ -526,6 +546,7 @@ export function CharacterSheetDialog({
               </h3>
               <InfoChipList
                 items={sheet.equipment.map((item) => ({
+                  icon: { kind: "item" as const, key: item.name, family: "item-gear" },
                   name: item.qty > 1 ? `${item.name} x${item.qty}` : item.name,
                   reference: { kind: "items", slug: contentSlug(item.name), name: item.name },
                 }))}
@@ -556,6 +577,7 @@ export function CharacterSheetDialog({
                     const worn = item.equipped ?? !anyEquipped;
                     return (
                       <div key={item.name} className="flex items-center gap-2 text-xs text-stone-300">
+                        <GameIcon icon={{ kind: "item", key: item.name, family: "item-gear" }} size="size-5" />
                         <span className="grow truncate">{item.name}</span>
                         {isArmor ? (
                           <button
@@ -609,6 +631,11 @@ export function CharacterSheetDialog({
                     : localizedFeatureName(sheet.class, sheet.subclass, feature.name, locale) === feature.name
                       ? characterDisplay(feature.name, locale)
                       : localizedFeatureName(sheet.class, sheet.subclass, feature.name, locale),
+                  icon: {
+                    kind: "feature" as const,
+                    key: feature.name,
+                    family: feature.source === "race" ? null : `class-${sheet.class.toLowerCase()}`,
+                  },
                   note: feature.source === "story" ? copy.story : undefined,
                   meta: feature.level ? `${copy.level} ${feature.level}` : undefined,
                   text: feature.source === "race"
@@ -627,6 +654,7 @@ export function CharacterSheetDialog({
               <InfoChipList
                 items={sheet.feats.map((feat) => ({
                   name: localizedContentName("feats", feat, locale),
+                  icon: { kind: "feat" as const, key: feat },
                   text: describeFeature(sheet.class, sheet.subclass, feat, locale),
                   reference: { kind: "feats", slug: contentSlug(feat), name: feat },
                 }))}

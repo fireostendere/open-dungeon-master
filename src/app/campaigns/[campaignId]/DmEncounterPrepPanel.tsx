@@ -2,7 +2,8 @@
 
 import { useInlineText } from "@/lib/i18n/inline-text";
 import { useCallback, useEffect, useState } from "react";
-import { Copy, Swords, Trash2 } from "lucide-react";
+import { Copy, Trash2 } from "lucide-react";
+import { GameIcon } from "@/components/ui/GameIcon";
 import { cn } from "@/lib/cn";
 import { formatRoster, TEMPLATE_NAME_MAX } from "@/lib/dm/encounter-template-logic";
 import { thresholdsForParty } from "@/lib/srd/encounter-math";
@@ -305,7 +306,7 @@ export function DmEncounterPrepPanel({
     <div className="space-y-3">
       <section>
         <h3 className="mb-1.5 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-stone-500">
-          <Swords className="size-3.5" /> {copy.prepared}
+          <GameIcon icon={{ kind: "glyph", key: "system-encounters" }} size="size-5" /> {copy.prepared}
         </h3>
         {templates.length ? (
           <ul className="space-y-1.5">
@@ -315,7 +316,8 @@ export function DmEncounterPrepPanel({
                 className="rounded-lg border border-stone-800 bg-stone-950/40 px-2.5 py-2"
               >
                 <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
+                  <GameIcon icon={{ kind: "glyph", key: "system-encounters" }} size="size-7" className="mt-0.5" />
+                  <div className="min-w-0 flex-1">
                     <p className="text-sm text-stone-200">{template.name}</p>
                     <p className="truncate text-xs text-stone-400">
                       {formatRoster(template.enemies).replace(/\n/g, ", ")}

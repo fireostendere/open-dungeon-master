@@ -1,7 +1,8 @@
 "use client";
 
 import { cn } from "@/lib/cn";
-import { IconChip, ui } from "@/lib/ui";
+import { ui } from "@/lib/ui";
+import { GameIcon } from "@/components/ui/GameIcon";
 import { miscPlaceholder, workshopPlaceholder } from "@/lib/placeholders";
 import { Ribbon } from "@/components/ui/Ribbon";
 import {
@@ -75,7 +76,7 @@ export function SystemCards({
                 )}
               >
                 <div className="flex items-start justify-between gap-2">
-                  <IconChip icon={system.icon} size="size-9" iconSize="size-4" />
+                  <GameIcon icon={{ kind: "glyph", key: `system-${system.id}` }} size="size-10" />
                   {count.figure !== null ? (
                     <span
                       className={cn(

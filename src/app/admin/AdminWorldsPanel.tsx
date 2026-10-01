@@ -2,6 +2,7 @@
 
 import { useInlineText } from "@/lib/i18n/inline-text";
 import { Download, Loader2, Trash2, Upload } from "lucide-react";
+import { GameIcon } from "@/components/ui/GameIcon";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/cn";
 import { ui } from "@/lib/ui";
@@ -291,7 +292,10 @@ export function AdminWorldsPanel() {
             {available.map((entry) => (
               <li key={entry.id} className="rounded-lg border border-stone-800 p-3">
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
-                  <span className="text-stone-100">{entry.name}</span>
+                  <span className="flex min-w-0 items-center gap-2 text-stone-100">
+                    <GameIcon icon={{ kind: "glyph", key: "system-plugin" }} size="size-6" />
+                    {entry.name}
+                  </span>
                   <span className="text-[11px] text-stone-500">
                     v{entry.version}
                     {entry.author ? ` · ${entry.author}` : ""}
@@ -349,7 +353,10 @@ export function AdminWorldsPanel() {
                     />
                   ) : null}
                   <div className="flex flex-wrap items-baseline justify-between gap-2">
-                    <span className="text-stone-100">{pack.name}</span>
+                    <span className="flex min-w-0 items-center gap-2 text-stone-100">
+                      <GameIcon icon={{ kind: "glyph", key: "system-plugin" }} size="size-6" />
+                      {pack.name}
+                    </span>
                     <span className="text-[11px] text-stone-500">
                       v{pack.version}
                       {pack.author ? ` · ${pack.author}` : ""}

@@ -1,6 +1,7 @@
 "use client";
 
 import { Bot, Crown, Trash2, UserPlus, Users, Volume2, VolumeX } from "lucide-react";
+import { GameIcon } from "@/components/ui/GameIcon";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/cn";
 import { Tooltip } from "@/components/ui/Tooltip";
@@ -103,7 +104,8 @@ export function LobbyParty({
     <>
       {showParty ? (
       <section className="mb-6">
-        <h2 className={cn(ui.sectionEyebrow, "mb-1")}>
+        <h2 className={cn(ui.sectionEyebrow, "mb-1 flex items-center gap-2")}>
+          <GameIcon icon={{ kind: "glyph", key: "tab-party" }} size="size-6" />
           {localeText(locale, { en: `Party · ${members.length}/${campaign.maxPlayers}`, ru: `Отряд · ${members.length}/${campaign.maxPlayers}` })}
         </h2>
         <p className="mb-3 text-xs text-stone-400">
@@ -118,7 +120,16 @@ export function LobbyParty({
                 className={cn(ui.card, "flex flex-wrap items-center justify-between gap-3 px-4 py-3")}
               >
                 <div className="flex min-w-0 items-center gap-3">
-                  <UserAvatar url={member.avatar?.url} userId={member.userId} size="size-12" />
+                  <span className="relative shrink-0">
+                    <UserAvatar url={member.avatar?.url} userId={member.userId} size="size-12" />
+                    {sheet ? (
+                      <GameIcon
+                        icon={{ kind: "family", key: `class-${sheet.class.toLowerCase()}` }}
+                        size="size-6"
+                        className="absolute -bottom-1 -right-1"
+                      />
+                    ) : null}
+                  </span>
                   <div className="min-w-0">
                     <p className="flex flex-wrap items-center gap-1.5 font-medium text-stone-100">
                       <span className="truncate">{member.username}</span>

@@ -5,20 +5,17 @@ import {
   AppWindow,
   BookOpenText,
   CircleHelp,
-  DoorOpen,
   Globe,
   LogOut,
   Ruler,
-  Settings,
-  ShieldCheck,
   UserRound,
-  Users,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useSyncExternalStore } from "react";
 import type { ReactNode } from "react";
 import { HelpDialog } from "@/components/HelpDialog";
+import { GameIcon } from "@/components/ui/GameIcon";
 import { Tooltip } from "@/components/ui/Tooltip";
 import { headerButtonClass } from "@/app/campaigns/[campaignId]/headerButton";
 import { cn } from "@/lib/cn";
@@ -181,13 +178,13 @@ export function AccountMenu({
             {pathname !== "/" ? (
               <DropdownMenu.Item asChild>
                 <Link href="/" className={itemClass}>
-                  <DoorOpen className="size-4" /> {t("nav.campaigns")}
+                  <GameIcon icon={{ kind: "glyph", key: "tab-campaigns" }} size="size-5" /> {t("nav.campaigns")}
                 </Link>
               </DropdownMenu.Item>
             ) : null}
             <DropdownMenu.Item asChild>
               <Link href="/characters" className={itemClass}>
-                <Users className="size-4" /> {t("nav.characters")}
+                <GameIcon icon={{ kind: "glyph", key: "tab-characters" }} size="size-5" /> {t("nav.characters")}
               </Link>
             </DropdownMenu.Item>
             <DropdownMenu.Item asChild>
@@ -197,13 +194,13 @@ export function AccountMenu({
             </DropdownMenu.Item>
             <DropdownMenu.Item asChild>
               <Link href="/settings" className={itemClass}>
-                <Settings className="size-4" /> {t("nav.settings")}
+                <GameIcon icon={{ kind: "glyph", key: "tab-settings" }} size="size-5" /> {t("nav.settings")}
               </Link>
             </DropdownMenu.Item>
             {user.isAdmin ? (
               <DropdownMenu.Item asChild>
                 <Link href="/admin" className={itemClass}>
-                  <ShieldCheck className="size-4" /> {t("nav.admin")}
+                  <GameIcon icon={{ kind: "glyph", key: "tab-admin" }} size="size-5" /> {t("nav.admin")}
                 </Link>
               </DropdownMenu.Item>
             ) : null}

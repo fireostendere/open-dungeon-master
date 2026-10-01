@@ -1,6 +1,7 @@
 "use client";
 
 import { Check, Copy, Link as LinkIcon, QrCode } from "lucide-react";
+import { GameIcon } from "@/components/ui/GameIcon";
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/cn";
 import { copyText } from "@/lib/clipboard";
@@ -81,7 +82,10 @@ export function LobbyRoomCode({
     <section className={cn(ui.card, "ornate mb-6 border-amber-400/30 px-5 py-4 shadow-glow-gold")}>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className={ui.sectionEyebrow}>{t("campaign.roomCode")}</p>
+          <p className={cn(ui.sectionEyebrow, "flex items-center gap-1.5")}>
+            <GameIcon icon={{ kind: "glyph", key: "tab-friends" }} size="size-5" />
+            {t("campaign.roomCode")}
+          </p>
           <p className="font-mono text-xl tracking-[0.3em] text-amber-100">{inviteCode}</p>
         </div>
         <div className="flex items-center gap-2">

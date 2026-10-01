@@ -1,20 +1,6 @@
 "use client";
 
-import {
-  BookOpen,
-  Crown,
-  Gavel,
-  Map as MapIcon,
-  MessageSquareText,
-  MessagesSquare,
-  MoreHorizontal,
-  Gauge,
-  Settings2,
-  StickyNote,
-  Swords,
-  Users,
-  type LucideIcon,
-} from "lucide-react";
+import { MoreHorizontal, type LucideIcon } from "lucide-react";
 import { memo, useState } from "react";
 import { cn } from "@/lib/cn";
 import { ui } from "@/lib/ui";
@@ -28,6 +14,8 @@ import type { Locale } from "@/lib/i18n";
 import { useI18n } from "@/lib/i18n";
 import { localeText } from "@/lib/i18n/locale-text";
 import { Sheet } from "@/components/ui/Sheet";
+import { GameIcon } from "@/components/ui/GameIcon";
+import { SUBTAB_GLYPHS, TABLE_GLYPH, TAB_GLYPHS, paintedRailIcon } from "@/app/campaigns/[campaignId]/SessionGlyph";
 
 // The id list is owned by src/lib/dm/table-tabs.ts, where the visibility
 // rules are testable without React; this alias keeps the name the rest of
@@ -72,7 +60,13 @@ export function SubTabs<T extends string>({
               : "border-stone-700 text-stone-400 hover:text-stone-200",
           )}
         >
-          <Icon className="size-3" />
+          {/* A painting where the section has one; otherwise the line icon
+              the panel passed. */}
+          {SUBTAB_GLYPHS[option] ? (
+            <GameIcon icon={{ kind: "glyph", key: SUBTAB_GLYPHS[option] }} size="size-5" className="-my-0.5 -ml-1" />
+          ) : (
+            <Icon className="size-3" />
+          )}
           {label}
         </button>
       ))}
@@ -84,72 +78,79 @@ export function SubTabs<T extends string>({
 // desktop both render side by side and this state has no visual effect.
 export type MobileView = "chat" | "panel";
 
+// One painted rail icon per tab, built once at module scope so each keeps a
+// stable component identity across renders.
+const RAIL_ICONS = Object.fromEntries(
+  Object.entries(TAB_GLYPHS).map(([tab, glyph]) => [tab, paintedRailIcon(glyph)]),
+) as Record<PanelTab, LucideIcon>;
+const TableIcon = paintedRailIcon(TABLE_GLYPH);
+
 // Label, icon and rail tooltip per tab. Presentation only: which of these
 // a given viewer sees, and in what order, is visiblePanelTabs's decision.
 const TAB_PRESENTATION: Record<Locale, Record<PanelTab, [string, LucideIcon, string]>> = {
   en: {
     dm: [
       "DM",
-      Gavel,
+      RAIL_ICONS.dm,
       "Everything waiting on you, and every ruling the engine can make on your say-so.",
     ],
     lead: [
       "Lead",
-      Crown,
+      RAIL_ICONS.lead,
       "Steer the table: the floor, notes waiting on you, invites and the lead seat.",
     ],
     party: [
       "Party",
-      Users,
+      RAIL_ICONS.party,
       "Character sheets, HP and conditions for the whole party, and their bonds with the people they have met.",
     ],
-    battle: ["Battle", Swords, "Combat overview, your turn, enemy roster and combat log."],
-    map: ["Map", MapIcon, "The scene map and discovered locations."],
+    battle: ["Battle", RAIL_ICONS.battle, "Combat overview, your turn, enemy roster and combat log."],
+    map: ["Map", RAIL_ICONS.map, "The scene map and discovered locations."],
     story: [
       "Story",
-      BookOpen,
+      RAIL_ICONS.story,
       "Chapters and the tale so far, the world-state record, and the audited log of rolls and stat changes.",
     ],
-    notes: ["Notes", StickyNote, "Suggest story notes; the party lead approves them."],
-    chat: ["Chat", MessagesSquare, "Side chat between players. The DM does not see it."],
+    notes: ["Notes", RAIL_ICONS.notes, "Suggest story notes; the party lead approves them."],
+    chat: ["Chat", RAIL_ICONS.chat, "Side chat between players. The DM does not see it."],
     context: [
       "Context",
-      Gauge,
+      RAIL_ICONS.context,
       "What the DM was actually sent last turn, and anything the budget cut.",
     ],
-    settings: ["Setup", Settings2, "Campaign settings, invites and game toggles."],
+    settings: ["Setup", RAIL_ICONS.settings, "Campaign settings, invites and game toggles."],
   },
   ru: {
     dm: [
       "Мастер",
-      Gavel,
+      RAIL_ICONS.dm,
       "Всё, что ждет ваших решений, и возможности движка.",
     ],
     lead: [
       "Лидер",
-      Crown,
+      RAIL_ICONS.lead,
       "Управление столом: право слова, заметки, приглашения и место лидера.",
     ],
     party: [
       "Отряд",
-      Users,
+      RAIL_ICONS.party,
       "Листы персонажей, HP и состояния отряда, а также связи с NPC.",
     ],
-    battle: ["Бой", Swords, "Управление боем, ваш ход, список врагов и журнал боя."],
-    map: ["Карта", MapIcon, "Карта сцены и открытые локации."],
+    battle: ["Бой", RAIL_ICONS.battle, "Управление боем, ваш ход, список врагов и журнал боя."],
+    map: ["Карта", RAIL_ICONS.map, "Карта сцены и открытые локации."],
     story: [
       "Сюжет",
-      BookOpen,
+      RAIL_ICONS.story,
       "Главы и история, состояние мира и журнал бросков.",
     ],
-    notes: ["Заметки", StickyNote, "Предлагайте сюжетные заметки; лидер отряда утверждает их."],
-    chat: ["Чат", MessagesSquare, "Шёпот между игроками. Мастер его не видит."],
+    notes: ["Заметки", RAIL_ICONS.notes, "Предлагайте сюжетные заметки; лидер отряда утверждает их."],
+    chat: ["Чат", RAIL_ICONS.chat, "Шёпот между игроками. Мастер его не видит."],
     context: [
       "Контекст",
-      Gauge,
+      RAIL_ICONS.context,
       "Что было отправлено Мастеру на прошлом ходу.",
     ],
-    settings: ["Настройки", Settings2, "Настройки кампании, приглашения и переключатели."],
+    settings: ["Настройки", RAIL_ICONS.settings, "Настройки кампании, приглашения и переключатели."],
   },
 };
 
@@ -321,7 +322,7 @@ function BottomTabBarInner({
         aria-current={mobileView === "chat" ? "page" : undefined}
         className={cn(ui.railCell, barCellClass, mobileView === "chat" && ui.railCellActive)}
       >
-        <MessageSquareText className="size-5 shrink-0" />
+        <TableIcon className="shrink-0" />
         <span className={barLabelClass}>{copy.table}</span>
       </button>
       {bar.map(([value, label, Icon]) => {

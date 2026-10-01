@@ -5,6 +5,7 @@ import type { AccountMenuUser } from "@/components/AccountMenu";
 import { AppHeader } from "@/components/AppHeader";
 import { LocalizedLoader } from "@/components/LocalizedLoader";
 import { Ribbon } from "@/components/ui/Ribbon";
+import { GameIcon } from "@/components/ui/GameIcon";
 
 // The shared frame for the flat signed-in pages (settings, admin, friends,
 // reference, the legal pages): AppHeader on top, one centred column, a page
@@ -48,6 +49,7 @@ export function PageShell({
   user,
   width = "wide",
   icon,
+  glyph,
   title,
   blurb,
   actions,
@@ -60,6 +62,9 @@ export function PageShell({
   width?: PageWidth;
   // A PIXEL_ICONS path for the tile beside the title.
   icon: string;
+  // A painted glyph (a file under public/assets/icons/glyph) that takes the
+  // tile's place when given; pages that never chose one keep the tile.
+  glyph?: string;
   title: ReactNode;
   blurb?: ReactNode;
   // Right-side controls on the header row (a shortcut link, a back link).
@@ -72,7 +77,11 @@ export function PageShell({
       <AppHeader user={user} />
       <header className="mb-6 flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
         <div className="flex min-w-0 items-center gap-3">
-          <PixelTile src={icon} />
+          {glyph ? (
+            <GameIcon icon={{ kind: "glyph", key: glyph }} size="size-12" className="border-amber-400/50 shadow-glow-gold-strong" />
+          ) : (
+            <PixelTile src={icon} />
+          )}
           <div className="min-w-0">
             <h1 className="text-balance break-words font-display text-2xl leading-tight tracking-wide text-amber-50">
               {title}
@@ -92,6 +101,7 @@ export function PageShell({
 // tone="danger" reddens the frame for destructive sections.
 export function PageSection({
   heading,
+  glyph,
   ribbon,
   ribbonTone = "gold",
   tone = "default",
@@ -103,6 +113,8 @@ export function PageSection({
   children,
 }: {
   heading?: ReactNode;
+  // The painted glyph (public/assets/icons/glyph) that leads the heading.
+  glyph?: string;
   ribbon?: ReactNode;
   ribbonTone?: "gold" | "ember";
   tone?: "default" | "danger";
@@ -133,7 +145,10 @@ export function PageSection({
           <div className="min-w-0 space-y-1.5">
             {ribbon ? <Ribbon tone={ribbonTone}>{ribbon}</Ribbon> : null}
             {heading ? (
-              <h2 className={cn(ui.sectionEyebrow, danger && "text-red-300/80")}>{heading}</h2>
+              <h2 className={cn(ui.sectionEyebrow, "flex items-center gap-2", danger && "text-red-300/80")}>
+                {glyph ? <GameIcon icon={{ kind: "glyph", key: glyph }} size="size-6" /> : null}
+                {heading}
+              </h2>
             ) : null}
           </div>
           {actions ? <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:shrink-0">{actions}</div> : null}

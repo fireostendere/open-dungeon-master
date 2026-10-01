@@ -558,3 +558,28 @@ optgroup {
     display: none;
   }
 }
+
+/* Painted tab glyphs in the session rail and the phone's bottom bar
+   (SessionGlyph.tsx paintedRailIcon): a touch muted until hovered or chosen,
+   then full colour with a gold ring, so the active tab still reads at a
+   glance. Unlayered so the size beats GameIcon's utilities. */
+.rail-glyph {
+  width: 1.75rem;
+  height: 1.75rem;
+  filter: saturate(0.7);
+  opacity: 0.82;
+  transition:
+    filter 150ms var(--ease-snap),
+    opacity 150ms var(--ease-snap),
+    box-shadow 150ms var(--ease-snap);
+}
+button:hover > .rail-glyph,
+[aria-current="page"] > .rail-glyph {
+  filter: none;
+  opacity: 1;
+}
+[aria-current="page"] > .rail-glyph {
+  box-shadow:
+    0 0 0 1px rgba(212, 171, 58, 0.65),
+    0 0 12px rgba(212, 171, 58, 0.35);
+}

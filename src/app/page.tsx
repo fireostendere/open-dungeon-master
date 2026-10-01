@@ -1,6 +1,7 @@
 "use client";
 
-import { Loader2, ScrollText } from "lucide-react";
+import { Loader2 } from "lucide-react";
+import { GameIcon } from "@/components/ui/GameIcon";
 import { useEffect, useState } from "react";
 import { PIXEL_ICONS, PixelTile } from "@/lib/ui";
 import type { SessionUser } from "@/lib/campaign-types";
@@ -120,7 +121,7 @@ function AuthScreen({ onAuthed }: { onAuthed: (user: SessionUser) => void }) {
             onClick={() => setHowToOpen(true)}
             className="inline-flex items-center gap-1.5 text-xs text-stone-500 transition-colors hover:text-amber-200"
           >
-            <ScrollText className="size-3.5" /> {t("nav.howToPlay")}
+            <GameIcon icon={{ kind: "glyph", key: "tab-story" }} size="size-5" /> {t("nav.howToPlay")}
           </button>
         </div>
 

@@ -1,6 +1,7 @@
 "use client";
 
-import { EyeOff, MessageCircleQuestion, Users } from "lucide-react";
+import { EyeOff, Users } from "lucide-react";
+import { GameIcon } from "@/components/ui/GameIcon";
 import { cn } from "@/lib/cn";
 import { Tooltip } from "@/components/ui/Tooltip";
 import type { CampaignAsk } from "@/lib/db/asks";
@@ -42,15 +43,19 @@ const COPY = {
   },
 } as const;
 
+// The painted glyph for what a question is about.
+const SCOPE_GLYPHS: Record<string, string> = { auto: "tab-reference", story: "tab-story", rules: "system-rules", sheet: "tab-characters" };
+
 export function AskChatEntry({ ask, askerName }: { ask: CampaignAsk; askerName: string }) {
   const { locale } = useI18n();
   const copy = COPY[locale];
   return (
     <article className="mx-auto max-w-xl rounded-xl border border-amber-900/40 bg-stone-950/50 p-3">
       <header className="mb-2 flex flex-wrap items-center gap-1.5 text-[10px] uppercase tracking-wide text-stone-500">
-        <MessageCircleQuestion className="size-3.5 text-amber-300/70" />
+        <GameIcon icon={{ kind: "glyph", key: "tab-reference" }} size="size-5" />
         <span>{askerName}</span>
-        <span className="rounded bg-stone-800 px-1 text-stone-400">
+        <span className="inline-flex items-center gap-1 rounded bg-stone-800 px-1 text-stone-400">
+          <GameIcon icon={{ kind: "glyph", key: SCOPE_GLYPHS[ask.scope] ?? "tab-reference" }} size="size-3.5" />
           {copy.scopes[ask.scope]}
         </span>
         {ask.visibility === "table" ? (
@@ -109,9 +114,10 @@ export function AskOptions({
       <span>{copy.about}</span>
       {(["auto", "story", "rules", "sheet"] as const).map((option) => (
         <button key={option} type="button" aria-pressed={scope === option} onClick={() => onScopeChange(option)}
-          className={cn("rounded-full border px-2 py-1 transition-colors sm:py-0.5", scope === option
+          className={cn("inline-flex items-center gap-1 rounded-full border py-1 pl-1 pr-2 transition-colors sm:py-0.5", scope === option
             ? "border-amber-700 bg-amber-950/40 text-amber-200"
             : "border-stone-700 text-stone-400 hover:text-stone-200")}>
+          <GameIcon icon={{ kind: "glyph", key: SCOPE_GLYPHS[option] }} size="size-4" />
           {copy.pickerScopes[option]}
         </button>
       ))}

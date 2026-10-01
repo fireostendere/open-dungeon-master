@@ -4,7 +4,6 @@ import Link from "next/link";
 import {
   BookOpen,
   Brain,
-  CircleHelp,
   Compass,
   Footprints,
   Crown,
@@ -22,6 +21,7 @@ import {
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { Dialog } from "@/components/ui/Dialog";
+import { GameIcon } from "@/components/ui/GameIcon";
 import { useI18n } from "@/lib/i18n";
 import { ui } from "@/lib/ui";
 
@@ -351,7 +351,7 @@ export function HelpDialog({
       open={open}
       onOpenChange={onOpenChange}
       title={copy.title}
-      icon={<CircleHelp className="size-5 text-amber-500/80" />}
+      icon={<GameIcon icon={{ kind: "glyph", key: "tab-story" }} size="size-7" />}
       width="w-[min(94vw,44rem)]"
     >
       {tours && tours.length ? (

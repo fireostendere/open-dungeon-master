@@ -2,7 +2,7 @@
 
 import { useInlineText } from "@/lib/i18n/inline-text";
 import { useState } from "react";
-import { NotebookPen } from "lucide-react";
+import { GameIcon } from "@/components/ui/GameIcon";
 import { cn } from "@/lib/cn";
 import { PushToTalk } from "@/app/campaigns/[campaignId]/PushToTalk";
 import {
@@ -61,7 +61,7 @@ export function DmBeatComposer({
   return (
     <section className="rounded-lg border border-stone-800 bg-stone-950/60 px-2.5 py-2">
       <p className="mb-1.5 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-stone-500">
-        <NotebookPen className="size-3.5" />
+        <GameIcon icon={{ kind: "glyph", key: "tab-journal" }} size="size-5" />
         {uiText("Write down what happened")}
       </p>
       <p className="mb-2 text-[11px] leading-snug text-stone-500">

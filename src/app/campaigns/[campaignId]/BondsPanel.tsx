@@ -1,6 +1,7 @@
 "use client";
 
 import { Heart, HeartCrack, Loader2, Users } from "lucide-react";
+import { GameIcon } from "@/components/ui/GameIcon";
 import { useCallback, useEffect, useState } from "react";
 import { cn } from "@/lib/cn";
 import { useI18n } from "@/lib/i18n";
@@ -24,6 +25,18 @@ type RelationshipView = {
   apartChapters: number;
   history: string[];
   approval?: number;
+};
+
+// Eight tiers, five painted faces: each tier borrows the nearest one.
+const TIER_GLYPH: Record<FriendshipTier, string> = {
+  hostile: "attitude-hostile",
+  disliked: "attitude-hostile",
+  wary: "attitude-wary",
+  neutral: "attitude-neutral",
+  cordial: "attitude-friendly",
+  friendly: "attitude-friendly",
+  close: "attitude-allied",
+  devoted: "attitude-allied",
 };
 
 const TIER_STYLES: Record<FriendshipTier, string> = {
@@ -107,6 +120,7 @@ function BondRow({ bond }: { bond: RelationshipView }) {
   return (
     <li className="rounded-md border border-stone-800 bg-stone-950/40 px-2.5 py-1.5">
       <div className="flex items-start gap-2">
+        <GameIcon icon={{ kind: "glyph", key: TIER_GLYPH[bond.tier] }} size="size-6" />
         <span className="min-w-0 flex-1 text-xs text-stone-300">
           {bond.subjectName}
           <span className="ml-1.5 text-[10px] uppercase tracking-wide text-stone-600">
