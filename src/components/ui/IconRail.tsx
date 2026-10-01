@@ -82,7 +82,7 @@ export function IconRail<T extends string>({
             )}
           >
             <Icon className="size-4" aria-hidden="true" />
-            <span className="eyebrow max-w-full break-words text-[9px] leading-tight tracking-normal">{item.label}</span>
+            <span className="eyebrow max-w-full whitespace-nowrap text-[9px] leading-tight tracking-normal">{item.label}</span>
             {item.dot ? (
               <span
                 className={cn(

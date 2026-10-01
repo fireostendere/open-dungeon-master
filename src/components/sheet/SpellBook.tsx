@@ -100,10 +100,8 @@ export function SpellBook({
       : key === "other"
         ? uiText("Other spells (level unknown)")
         : uiText("Level {level} spells", { level: ROMAN[Number(key)] ?? key });
-  // Spell levels read as roman numerals, the way a spell book would number
-  // its chapters; cantrips and homebrew with no known level keep a word.
-  const tabLabel = (key: string) =>
-    key === "0" ? uiText("Cantrips") : key === "other" ? uiText("Other") : (ROMAN[Number(key)] ?? key);
+  // A tab names what it holds ("Level I spells"), not just the numeral.
+  const tabLabel = (key: string) => (key === "other" ? uiText("Other") : levelLabel(key));
   const nameOf = (tile: SpellTile) => tile.label ?? localizedContentName("spells", tile.name, locale);
   const describe = (tile: SpellTile) =>
     tile.data ? describeContentEntry(tile.data, locale, { kind: "spells", name: tile.name }) : undefined;
@@ -216,13 +214,17 @@ export function SpellBook({
           onChange={(event) => setFilter(event.target.value)}
           placeholder={uiText("Find a spell...")}
           aria-label={uiText("Find a spell")}
-          className="ml-auto w-36 rounded-md border border-stone-700/70 bg-stone-950 px-2 py-1 text-xs text-stone-200 outline-none focus:border-amber-400/60"
+          className="ml-auto min-w-40 flex-1 rounded-md border border-stone-700/70 sm:max-w-56 bg-stone-950 px-2 py-1 text-xs text-stone-200 outline-none focus:border-amber-400/60"
         />
       </div>
 
-      <p className="eyebrow mt-2 mb-1.5 text-[10px] text-stone-500">
-        {needle ? uiText("Matching “{query}”", { query: filter.trim() }) : levelLabel(active)}
-      </p>
+      {needle ? (
+        <p className="eyebrow mt-2 mb-1.5 text-[10px] text-stone-500">
+          {uiText("Matching “{query}”", { query: filter.trim() })}
+        </p>
+      ) : (
+        <div className="mt-2" />
+      )}
       {ordered.length ? (
         <ul className="grid grid-cols-2 gap-1.5 min-[480px]:grid-cols-3">
           {ordered.map((tile) => {

@@ -56,17 +56,24 @@ export function GuidedTour({
   // opens, once the table has laid itself out; before that the page may
   // still be settling and every anchor would look absent. The state lands
   // inside the timeout, which is the shape the effect lint asks for.
+  // Only opening the tour starts it over: hosts build `steps` inline, so a
+  // new array arrives on every re-render of a live table, and keying on it
+  // threw the reader back to step one every few seconds.
+  const stepsRef = useRef(steps);
+  useEffect(() => {
+    stepsRef.current = steps;
+  }, [steps]);
   useEffect(() => {
     if (!open) return;
     const timer = window.setTimeout(() => {
-      setResolved(resolveSteps(steps, (anchor) => findAnchor(anchor) !== null));
+      setResolved(resolveSteps(stepsRef.current, (anchor) => findAnchor(anchor) !== null));
       setIndex(0);
     }, 150);
     return () => {
       clearTimeout(timer);
       setResolved(null);
     };
-  }, [open, steps]);
+  }, [open]);
 
   const current = open && resolved ? resolved[index] : undefined;
   const total = resolved?.length ?? 0;
