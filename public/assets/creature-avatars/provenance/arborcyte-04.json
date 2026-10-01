@@ -1,0 +1,17 @@
+{
+  "creatureId": "arborcyte",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy creature avatar, tactile painterly realism, cinematic woodland light, clearly readable central skull-and-vine cluster at 512 pixels. Arborcyte from Creature Codex: a Large asymmetrical MOUND OF THORNY VINES surrounding a core of many bleached bones and several SKULLS. Empty skull sockets glow with a restrained eerie pale green light. Numerous flexible woody tendrils, dense thorn spines, wet dark bark, small leaves and acidic sap droplets. NO fixed single head, humanoid torso, arms, legs or wings, not a standing tree person; the writhing tangled plant mass itself is the creature. Several clean old skulls and bones remain visibly embedded throughout the core, without flesh, wounds, blood or victims. Original vine arrangement, glow color and scenes, no copied art. No text, signature, logo, watermark or frame. YOLO absurd 04. The terrifying vine-and-skull mound has inexplicably won a village flower show: a huge blue rosette ribbon with a completely BLANK center is pinned to its brambles, three visible embedded skulls wear tiny straw gardening hats, and one thorny tendril delicately holds miniature pruning shears. A single absurd pink rose blooms from the top while all the rest remains menacing black vines and old bones. No humanoid body, cheerful show bench and blurred bunting behind, seriously rendered fantasy horticulture, no text or numbers.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/arborcyte/",
+      "note": "Creature Codex Large plant formed of thorny vines around many bleached bones/skulls, glowing sockets, acidic sap and independently moving shed tendrils. Original mound structures, light color and scenes."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

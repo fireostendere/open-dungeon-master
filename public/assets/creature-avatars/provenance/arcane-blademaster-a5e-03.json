@@ -1,0 +1,17 @@
+{
+  "creatureId": "arcane-blademaster-a5e",
+  "variantId": "03",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy character avatar, tactile painterly realism, dramatic cinematic light, face and weapon clearly readable at 512 pixels. Arcane Blademaster: an exceptionally skilled ADULT humanoid warrior-wizard, entirely living flesh beneath engraved FULL PLATE armor, using a LONGSWORD and medium SHIELD; a composite longbow may be slung behind the shoulder. Exactly two arms and two hands, one head; normal humanoid anatomy. Original individual designs because the archetype has no fixed ancestry, gender or face. Sophisticated magical effects support swordsmanship. No lettering, signature, watermark, logo or border. Normal 03. A bald older human blademaster with dark skin and a close white beard stands in an austere training hall, gleaming practical full plate scarred by many duels. Both hands are occupied correctly: right hand grips a longsword diagonally across the foreground, left arm bears a battered medium shield. Fine pale-gold lightning threads curl around the blade itself, eyes calm and focused. Warm window shafts through dusty air, tightly framed original martial portrait.",
+  "designReferences": [
+    {
+      "url": "https://a5e.tools/node/1861",
+      "note": "Official A5E Arcane Blademaster: Medium humanoid combining exceptional martial and magical training; full plate, medium shield, longsword and longbow. Ancestry, appearance and scenes are original character interpretations."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

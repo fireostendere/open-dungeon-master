@@ -1,0 +1,17 @@
+{
+  "creatureId": "arcane-blademaster-a5e",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy character avatar, tactile painterly realism, dramatic cinematic light, face and weapon clearly readable at 512 pixels. Arcane Blademaster: an exceptionally skilled ADULT humanoid warrior-wizard, entirely living flesh beneath engraved FULL PLATE armor, using a LONGSWORD and medium SHIELD; a composite longbow may be slung behind the shoulder. Exactly two arms and two hands, one head; normal humanoid anatomy. Original individual designs because the archetype has no fixed ancestry, gender or face. Sophisticated magical effects support swordsmanship. No lettering, signature, watermark, logo or border. YOLO 04. A formidable adult human woman arcane blademaster in immaculate full plate and a ridiculously small floral party hat solemnly cuts an impossibly tall wobbling wedding cake with her glowing longsword. Her other arm still carries her medium shield, now covered in splattered pink frosting. Dead-serious warrior face, tiny wooden garden-gnome bride and groom decorations on the cake, ornate castle banquet backdrop. Exactly two arms and two hands; sword in one hand, shield on the other arm; no text.",
+  "designReferences": [
+    {
+      "url": "https://a5e.tools/node/1861",
+      "note": "Official A5E Arcane Blademaster: Medium humanoid combining exceptional martial and magical training; full plate, medium shield, longsword and longbow. Ancestry, appearance and scenes are original character interpretations."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

@@ -1,0 +1,17 @@
+{
+  "creatureId": "arcamag",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy creature avatar, tactile painterly realism with macro detail, luminous translucent facets, strong creature silhouette readable at 512 pixels. Arcamag true form: a TINY TICK made entirely of jagged CLEAR CRYSTAL fragments, broad flattened oval crystalline body, small frontal mouthparts with barbed mandible hooks, EIGHT short jointed crystalline legs in four pairs. No wings, no antennae, no tail, no humanoid limbs or face. Can hover by magic without wings and disguise itself as a small magical object. Original tick design, lighting and scene, no copied art. No letters, signature, watermark, logo or border. Normal 01. Macro three-quarter portrait of the clear crystal tick perched on the clasp of a worn leather spellbook. Eight short hooked legs surround its faceted transparent body; tiny barbed mandibles project forward. Pale blue inner refractions catch warm candlelight, dusty wizard-study background with blurred stacked books. The tick fills most of the image and is sharply readable; no written text.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/arcamag/",
+      "note": "Creature Codex Tiny magic-feeding shapechanger: jagged clear crystalline tick with barbed mandibular hooks, wingless hover and small object disguises. Eight legs are an original tick-anatomy interpretation; original scenes."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

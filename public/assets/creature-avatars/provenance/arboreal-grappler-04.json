@@ -1,0 +1,21 @@
+{
+  "creatureId": "arboreal-grappler",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy creature avatar, tactile painterly realism, cinematic jungle light, strong central silhouette readable at 512 pixels. Arboreal Grappler: a Medium shaggy red-orange STRIPED APE with a dark gray simian face and chest and a broad fanged mouth. FOUR limbs total: TWO extremely elongated muscular serpentine forearms covered in shaggy reddish fur, each ending in a small dark primate clawed HAND; TWO flexible elongated lower limbs ending in small dark feet. Pale gray oval bare pads along the inner curves of the long arms. Arms bend fluidly and coil around branches like furred constrictors, unlike normal ape arms. No extra limbs, no octopus suckers, no tail, no wings. Original character, pose and setting. No text, signature, logo, watermark or border. YOLO 04. The shaggy red-striped tentacle-armed ape has appointed itself jungle yoga instructor, perched on a small rolled straw exercise mat balanced on a broad tree branch. Its TWO impossibly flexible long arms have each tied themselves into separate loose pretzel loops and still end in visible small dark hands making serene meditation gestures; TWO lower limbs crossed comfortably. Ridiculously serious gray ape face, sweatband and tiny lotus flower tucked in fur, leaf-filled golden jungle background. Keep exactly four limbs, no duplicate hands; visual joke without lettering.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/arboreal-grappler-3pp/",
+      "note": "Shaggy striped red-furred ape with long muscular tentacular limbs, canopy brachiation; two grappling forelimbs. Original compositions."
+    },
+    {
+      "url": "https://d1vzi28wh99zvq.cloudfront.net/pdf_previews/224812-sample.pdf",
+      "note": "Licensed Tome of Beasts preview art shows small primate hands at long forearm tips, dark simian face/chest and oval inner-arm pads; anatomy reference only, not copied art."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

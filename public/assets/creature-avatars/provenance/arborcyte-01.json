@@ -1,0 +1,17 @@
+{
+  "creatureId": "arborcyte",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy creature avatar, tactile painterly realism, cinematic woodland light, clearly readable central skull-and-vine cluster at 512 pixels. Arborcyte from Creature Codex: a Large asymmetrical MOUND OF THORNY VINES surrounding a core of many bleached bones and several SKULLS. Empty skull sockets glow with a restrained eerie pale green light. Numerous flexible woody tendrils, dense thorn spines, wet dark bark, small leaves and acidic sap droplets. NO fixed single head, humanoid torso, arms, legs or wings, not a standing tree person; the writhing tangled plant mass itself is the creature. Several clean old skulls and bones remain visibly embedded throughout the core, without flesh, wounds, blood or victims. Original vine arrangement, glow color and scenes, no copied art. No text, signature, logo, watermark or frame. Normal 01. Close three-quarter portrait of the thorn mound rearing up in a blighted forest glade, a cluster of ivory skulls peering from different angles through dense black-brown brambles. Pale green socket lights glow within the tangled core, several long thorn-covered vines curl around the lower frame, damp moss and deep forest blue light. The mass is irregular and ground-hugging, not humanoid, ominous corrupted vegetation.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/arborcyte/",
+      "note": "Creature Codex Large plant formed of thorny vines around many bleached bones/skulls, glowing sockets, acidic sap and independently moving shed tendrils. Original mound structures, light color and scenes."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}
