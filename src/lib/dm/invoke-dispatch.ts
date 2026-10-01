@@ -44,6 +44,7 @@ import {
 } from "@/lib/dm/basic-adjudications";
 import { handleRequestRoll } from "@/lib/dm/invoke-roll";
 import { handleSplitDamage } from "@/lib/dm/split-damage";
+import { tickWaypointsFromCall } from "@/lib/dm/waypoint-tick";
 import type { Campaign } from "@/lib/db/campaigns";
 import type { DmTurn } from "@/lib/db/dm-turns";
 import type { CharacterSheet } from "@/lib/schemas/sheet";
@@ -73,6 +74,22 @@ export async function dispatchAdjudication(name: string, rawArguments: string, c
 }
 
 export function dispatchSynchronousAdjudication(
+  name: string,
+  rawArguments: string,
+  context: DispatchContext,
+): Record<string, unknown> {
+  const result = dispatchSynchronous(name, rawArguments, context);
+  // The [NOW] beat's waypoints tick from the tools that name a place, a
+  // person or an item, so complete_beat opens once the party has really
+  // been there (waypoint-tick.ts). Fights tick where every encounter ends.
+  if (result && typeof result === "object" && !("error" in result)) {
+    const ticked = tickWaypointsFromCall(context.campaign.id, name, rawArguments, result);
+    if (ticked.length) result.waypointsTicked = ticked;
+  }
+  return result;
+}
+
+function dispatchSynchronous(
   name: string,
   rawArguments: string,
   context: DispatchContext,

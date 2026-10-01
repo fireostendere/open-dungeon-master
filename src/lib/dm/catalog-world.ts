@@ -464,7 +464,7 @@ export const STORY_ADJUDICATIONS: CatalogEntry[] = [
     name: "complete_beat",
     label: "Beat achieved",
     category: "story",
-    summary: "Marks the arc's current beat done. When it is the last beat of its act, the act ends and the table is told: pass the act's spoiler-free name and recap for the players.",
+    summary: "Marks the arc's current beat done. Refused while the beat has open place, person, item or fight waypoints; those tick from the tools that make them happen. When it is the last beat of its act, the act ends and the table is told: pass the act's spoiler-free name and recap for the players.",
     fields: [
       { name: "beat", label: "Beat number", kind: "number", min: 1, max: 99 },
       { name: "actTitle", label: "Act name, if this ends the act", kind: "text", help: "Two to five evocative, spoiler-free words for the players' card." },

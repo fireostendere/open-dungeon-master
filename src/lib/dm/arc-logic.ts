@@ -30,7 +30,21 @@ export type ArcBeat = {
   act: number;
   // Accreted from play: what the table actually did around this beat.
   detail?: string;
+  // The steps the party must take before this beat can land: written with
+  // the beat, ticked by the server from the narrator's own tool calls
+  // (waypoint-tick.ts) or by the lead by hand. A beat without them is gated
+  // by nothing and completes the old way.
+  waypoints?: Waypoint[];
 };
+
+// What kind of thing a waypoint waits for, which decides which tool call
+// can tick it: a place reached (move_party, update_location), a person
+// spoken with (set_npc, npc_reaction, social_check), a thing obtained
+// (grant_item, purchase), a foe beaten (the encounter ending), or a quest
+// objective / anything else, which the narrator judges itself.
+export const WAYPOINT_KINDS = ["place", "npc", "item", "objective", "fight", "narrative"] as const;
+export type WaypointKind = (typeof WAYPOINT_KINDS)[number];
+export type Waypoint = { kind: WaypointKind; text: string; done: boolean };
 
 export type SubArc = {
   // Server-allocated ("sa1", "sa2", ...); the refresh delta targets these.
@@ -298,6 +312,36 @@ function str(value: unknown, cap = FIELD_CAP): string {
   return String(value ?? "").trim().slice(0, cap);
 }
 
+export const MAX_WAYPOINTS_PER_BEAT = 4;
+const WAYPOINT_CAP = 120;
+
+// A bare string is a narrative step; an unknown kind reads as narrative.
+export function normalizeWaypoints(raw: unknown): Waypoint[] {
+  const out: Waypoint[] = [];
+  for (const entry of Array.isArray(raw) ? raw : []) {
+    const fields =
+      typeof entry === "string"
+        ? { text: entry }
+        : typeof entry === "object" && entry !== null
+          ? (entry as Record<string, unknown>)
+          : null;
+    const text = str(fields?.text, WAYPOINT_CAP);
+    if (!text) {
+      continue;
+    }
+    const kind = String(fields?.kind ?? "").trim().toLowerCase();
+    out.push({
+      kind: (WAYPOINT_KINDS as readonly string[]).includes(kind) ? (kind as WaypointKind) : "narrative",
+      text,
+      done: fields?.done === true,
+    });
+    if (out.length >= MAX_WAYPOINTS_PER_BEAT) {
+      break;
+    }
+  }
+  return out;
+}
+
 function strList(value: unknown, max: number, cap = FIELD_CAP): string[] {
   return Array.isArray(value)
     ? value.map((entry) => str(entry, cap)).filter(Boolean).slice(0, max)
@@ -520,6 +564,10 @@ export function normalizeStoryArc(raw: unknown): StoryArc | null {
     const detail = str(fields?.detail, DETAIL_CAP);
     if (detail) {
       beat.detail = detail;
+    }
+    const waypoints = normalizeWaypoints(fields?.waypoints);
+    if (waypoints.length) {
+      beat.waypoints = waypoints;
     }
     beats.push(beat);
   }
@@ -1298,7 +1346,10 @@ function cloneSaga(saga: Saga | null): Saga | null {
 function cloneArc(arc: StoryArc): StoryArc {
   return {
     ...arc,
-    beats: arc.beats.map((beat) => ({ ...beat })),
+    beats: arc.beats.map((beat) => ({
+      ...beat,
+      ...(beat.waypoints ? { waypoints: beat.waypoints.map((waypoint) => ({ ...waypoint })) } : {}),
+    })),
     cast: arc.cast.map((npc) => ({ ...npc })),
     events: arc.events.map((event) => ({ ...event })),
     subArcs: arc.subArcs.map((subArc) => ({ ...subArc })),

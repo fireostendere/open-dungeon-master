@@ -14,6 +14,7 @@ import {
   sagaIndexOf,
   type StoryArc,
 } from "@/lib/dm/arc-logic";
+import { gatingWaypoints } from "@/lib/dm/waypoint-logic";
 
 export function handleCompleteBeat(
   campaignId: string,
@@ -29,6 +30,19 @@ export function handleCompleteBeat(
   const requested = Number(args.beat);
   const beatNumber = Number.isInteger(requested) && requested >= 1 ? requested : active;
   if (beatNumber === null) return { result: { error: "Every beat of the arc is already finished." }, completed: false };
+  // The checklist is the gate: a beat whose place, person, item or fight
+  // steps are still open is refused with the steps named, so a beat cannot
+  // land in the reply that merely reaches its door.
+  const gate = gatingWaypoints(campaign.storyArc.beats[beatNumber - 1]).map((waypoint) => waypoint.text);
+  if (gate.length) {
+    return {
+      result: {
+        error: `Beat ${beatNumber} still has open waypoints: ${gate.join("; ")}. Steer the party through them first. They tick from your own tools when they happen, matched by name: move_party when the party arrives somewhere, set_npc / npc_reaction / social_check when it meets someone, grant_item or a purchase when it gains a thing, and a won fight against the named foe. The party lead can also tick a step by hand in the arc card.`,
+        openWaypoints: gate,
+      },
+      completed: false,
+    };
+  }
   const advanced = completeBeat(campaign.storyArc, beatNumber);
   if (!advanced) return { result: { error: `Beat ${beatNumber} is not an open beat.`, ...(active === null ? {} : { activeBeat: active }) }, completed: false };
   commitStoryArc(campaignId, advanced.arc, {

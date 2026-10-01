@@ -277,8 +277,8 @@ function ArcCard({ campaignId }: { campaignId: string }) {
   const uiText = useInlineText();
   const { locale } = useI18n();
   const copy = localeText(locale, {
-    en: { editFailed: "That edit did not go through.", arc: "DM story arc (secret)", loading: "Loading...", saga: "Saga", sequel: "sequel", act: "act", of: "of", stakes: "Stakes:", antagonist: "Antagonist:", now: "(now)", skipped: "(skipped)", play: "Make this the beat in play", up: "Move up", down: "Move down", reword: "Reword this beat", skip: "Skip this beat", happens: "What happens in this beat", ahead: "Acts ahead (sketches)", cast: "Recurring cast", wants: "wants:", events: "Planned events (may never fire)", when: "when", threads: "Open threads", previous: "Previous sagas", emptyPlot: "No story arc yet. It is written when the adventure begins, or generate one now.", empty: "No story arc yet.", regenerateTitle: "Discard the current arc and have the DM plot a fresh one from the premise", plotting: "Plotting a new arc...", regenerate: "Generate story arc" },
-    ru: { editFailed: "Не удалось изменить этот этап.", arc: "Арка истории мастера (секрет)", loading: "Загрузка...", saga: "Сага", sequel: "продолжение", act: "акт", of: "из", stakes: "Ставки:", antagonist: "Антагонист:", now: "(сейчас)", skipped: "(пропущено)", play: "Сделать текущим этапом", up: "Переместить выше", down: "Переместить ниже", reword: "Изменить формулировку этапа", skip: "Пропустить этап", happens: "Что происходит на этом этапе", ahead: "Будущие акты (наброски)", cast: "Постоянные NPC", wants: "хочет:", events: "Запланированные события (могут не произойти)", when: "когда", threads: "Открытые нити", previous: "Предыдущие саги", emptyPlot: "Арки истории пока нет. Она будет написана с началом приключения или сгенерирована сейчас.", empty: "Арки истории пока нет.", regenerateTitle: "Отбросить текущую арку и поручить мастеру построить новую из завязки", plotting: "Строим новую арку...", regenerate: "Создать арку истории" },
+    en: { editFailed: "That edit did not go through.", arc: "DM story arc (secret)", loading: "Loading...", saga: "Saga", sequel: "sequel", act: "act", of: "of", stakes: "Stakes:", antagonist: "Antagonist:", now: "(now)", skipped: "(skipped)", play: "Make this the beat in play", up: "Move up", down: "Move down", reword: "Reword this beat", skip: "Skip this beat", happens: "What happens in this beat", ahead: "Acts ahead (sketches)", cast: "Recurring cast", wants: "wants:", events: "Planned events (may never fire)", when: "when", threads: "Open threads", previous: "Previous sagas", emptyPlot: "No story arc yet. It is written when the adventure begins, or generate one now.", empty: "No story arc yet.", regenerateTitle: "Discard the current arc and have the DM plot a fresh one from the premise", plotting: "Plotting a new arc...", regenerate: "Generate story arc", waypoint: "Waypoint: {text}", kinds: { place: "place", npc: "person", item: "item", objective: "objective", fight: "fight", narrative: "story" } },
+    ru: { editFailed: "Не удалось изменить этот этап.", arc: "Арка истории мастера (секрет)", loading: "Загрузка...", saga: "Сага", sequel: "продолжение", act: "акт", of: "из", stakes: "Ставки:", antagonist: "Антагонист:", now: "(сейчас)", skipped: "(пропущено)", play: "Сделать текущим этапом", up: "Переместить выше", down: "Переместить ниже", reword: "Изменить формулировку этапа", skip: "Пропустить этап", happens: "Что происходит на этом этапе", ahead: "Будущие акты (наброски)", cast: "Постоянные NPC", wants: "хочет:", events: "Запланированные события (могут не произойти)", when: "когда", threads: "Открытые нити", previous: "Предыдущие саги", emptyPlot: "Арки истории пока нет. Она будет написана с началом приключения или сгенерирована сейчас.", empty: "Арки истории пока нет.", regenerateTitle: "Отбросить текущую арку и поручить мастеру построить новую из завязки", plotting: "Строим новую арку...", regenerate: "Создать арку истории", waypoint: "Шаг: {text}", kinds: { place: "место", npc: "персонаж", item: "предмет", objective: "цель", fight: "бой", narrative: "сюжет" } },
   });
   const [expanded, setExpanded] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -478,6 +478,30 @@ function ArcCard({ campaignId }: { campaignId: string }) {
                             {beat.text}
                             {beat.detail ? (
                               <span className="text-stone-500"> [{beat.detail}]</span>
+                            ) : null}
+                            {/* The beat's checklist: the server ticks place, person, item and fight steps from the narrator's tools; the lead corrects it by hand. */}
+                            {!settled && beat.waypoints?.length ? (
+                              <ul className="mt-1 space-y-0.5">
+                                {beat.waypoints.map((waypoint, at) => (
+                                  <li key={at}>
+                                    <label className="flex cursor-pointer items-start gap-1.5 text-[11px] leading-4 text-stone-400">
+                                      <input
+                                        type="checkbox"
+                                        className="mt-0.5 size-3 shrink-0 accent-amber-400"
+                                        checked={waypoint.done}
+                                        disabled={beatBusy}
+                                        aria-label={copy.waypoint.replace("{text}", waypoint.text)}
+                                        onChange={(event) =>
+                                          void editBeat({ op: "waypoint", beat: number, index: at, done: event.target.checked })
+                                        }
+                                      />
+                                      <span className={waypoint.done ? "text-stone-600 line-through" : ""}>
+                                        {waypoint.text} <span className="text-stone-600">({copy.kinds[waypoint.kind]})</span>
+                                      </span>
+                                    </label>
+                                  </li>
+                                ))}
+                              </ul>
                             ) : null}
                           </span>
                           {settled ? null : (
