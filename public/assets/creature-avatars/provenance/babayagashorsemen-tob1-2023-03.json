@@ -1,0 +1,21 @@
+{
+  "creatureId": "babayagashorsemen-tob1-2023",
+  "variantId": "03",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy bestiary portrait, painterly realism, cinematic natural light, authentic armor and horse anatomy, strong readable subject at 512 pixels. Baba Yaga's Horsemen are powerful HUMAN-APPEARING ADULT MALE FEY KNIGHTS in lacquered PLATE ARMOR with a SHIELD, LANCE and sheathed LONGSWORD, riding powerful magical horses colored to match their aspect. Living human faces, two arms and two legs, no skull masks or skeletal body. One normal horse anatomy: four legs, one head, two ears, no wings or horns. Original individual identities, engraved armor patterns and equestrian trappings. No blood, injury, signature, logo, writing, watermark, frame or grid. Normal 03: BLACK NIGHT / BLACK HORSEMAN. One older human-looking man with a scarred weathered face, dark eyes, long black-gray beard and grim frown, open-faced midnight-black helmet, BLACK lacquered plate armor and heavy black cloak, black shield and dark lance upright. He sits on a powerful BLACK horse with black mane and black-and-silver trappings. Close rider-and-horse portrait at a frost-covered forest gate at night, cool blue moonlight, faint cold mist at the sword hilt, no other riders.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/baba-yagas-horsemen-3pp/",
+      "note": "2023 shared statblock covers three living human-form male fey knights: youthful adult White/Bright Day, prime-age Red Sun, older scarred bearded Black Night, each wearing matching lacquered armor and riding a matching magical horse. Plate, shield, lance and longsword. Normal variants deliberately represent the three distinct aspects of this plural catalog entry; YOLO group is inside the Dancing Hut's fenced yard, where coexistence is allowed. Original faces, armor and tea-party interpretation."
+    },
+    {
+      "url": "https://koboldpress.com/midgard-icons-baba-yaga/",
+      "note": "Publisher corroborates the three named horsemen as Baba Yaga's emissaries and her chicken-legged hut. Original artwork; no publisher illustrations copied."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}
