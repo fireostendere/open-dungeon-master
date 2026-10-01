@@ -1,0 +1,25 @@
+{
+  "creatureId": "animal-lord-mammoth-queen",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy creature avatar, richly tactile painterly realism, cinematic light and a crisp face readable at 512 pixels. The Queen of Mammoths, a Huge fey animal lord from Tome of Beasts 3: immensely powerful mature ELEPHANT-HEADED WOMAN with leathery pale gray skin, one long flexible trunk, a pair of grand polished GOLDEN TUSKS curving upward, deep HONEY-AMBER EYES and broad elephant ears. Upright powerful humanoid body, two strong arms and two legs, thick elephantlike hands and feet, no extra trunk or limbs. Proud wise compassionate ruler with formidable muscle, original bronze-gold armor over dark red and charcoal garments, practical northern cloak, battleaxes. This named character keeps the same gray elephant head, golden tusks and amber eyes across variants. Original clothing details and scene; do not copy publisher pose or armor pattern. No lettering, signature, watermark, logo or frame. Normal 02. Three-quarter left-facing head-and-shoulder portrait on a windy hill overlooking a cold golden grassland. Her long trunk curves beside the nearer golden tusk, amber eye narrowed in thoughtful appraisal, elephant skin richly creased, heavy original plated shoulder armor and dark wool cloak. A broad iron-and-gold battleaxe held by one thick-fingered hand rests upright beside the frame, distant mountains and storm light, queenly authority.",
+  "designReferences": [
+    {
+      "url": "https://koboldpress.com/wp-content/uploads/2022/11/Queen-of-Mammoths.png",
+      "note": "Official publisher anatomy art directly inspected: gray elephant-headed powerful woman, long trunk, golden curved tusks, two humanoid arms/legs and battleaxes. Original portrait poses, armor details and scenes; no copied image."
+    },
+    {
+      "url": "https://anyflip.com/plzy/jxhb/basic",
+      "note": "Indexed ToB3 page 32 text confirms elephant-headed woman, golden tusks, honey-colored eyes, immense strength and tundra/mammoth association. Only factual identity details used."
+    },
+    {
+      "url": "https://koboldpress.com/tools/kobold-press-monsters/",
+      "note": "Primary publisher confirms Queen of Mammoths, Huge fey shapechanger, Tome of Beasts 3."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

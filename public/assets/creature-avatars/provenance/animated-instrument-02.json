@@ -1,0 +1,17 @@
+{
+  "creatureId": "animated-instrument",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy creature avatar, tactile painterly realism, cinematic magical atmosphere, one strong musical object silhouette readable at 512 pixels. Animated Instrument from Tome of Beasts 3, Tiny construct: a SINGLE real physical musical instrument hovering and playing by enchantment with no musician. No person, hands, face, eyes, mouth, wings or humanoid limbs added to the object. Recognizable functional instrument craftsmanship with subtle sound-pressure ripples and floating dust, no literal written musical notes. Original design, no text, signature, logo, watermark or border. Normal 02. One dark walnut medieval shawm hovers in a ruined castle corridor, a double-reed woodwind with a narrow reed and pirouette at the upper end, a straight conical wooden tube with a single row of finger holes and a flared bell at the lower end. Brass collars and simple geometric carving, violet air vibrations pulse from its bell, ominous side lighting, close diagonal composition, no other instruments.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/animated-instrument/",
+      "note": "ToB3 Tiny hovering construct can be a flute, shawm or tambourine, without a performer. Distinct instrument designs, magical visual effects and comedic scene are original."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

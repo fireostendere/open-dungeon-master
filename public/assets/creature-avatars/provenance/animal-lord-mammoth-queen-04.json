@@ -1,0 +1,25 @@
+{
+  "creatureId": "animal-lord-mammoth-queen",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy creature avatar, richly tactile painterly realism, cinematic light and a crisp face readable at 512 pixels. The Queen of Mammoths, a Huge fey animal lord from Tome of Beasts 3: immensely powerful mature ELEPHANT-HEADED WOMAN with leathery pale gray skin, one long flexible trunk, a pair of grand polished GOLDEN TUSKS curving upward, deep HONEY-AMBER EYES and broad elephant ears. Upright powerful humanoid body, two strong arms and two legs, thick elephantlike hands and feet, no extra trunk or limbs. Proud wise compassionate ruler with formidable muscle, original bronze-gold armor over dark red and charcoal garments, practical northern cloak, battleaxes. This named character keeps the same gray elephant head, golden tusks and amber eyes across variants. Original clothing details and scene; do not copy publisher pose or armor pattern. No lettering, signature, watermark, logo or frame. YOLO absurd 04. This colossal armored elephant-headed queen is trying to keep a straight royal face while a tiny fearless mouse has settled comfortably on the curve of one of her golden tusks, wearing a ridiculously small paper crown. Her honey eyes angle toward the tiny self-appointed monarch, and her trunk curls up delicately with one enormous peanut as if negotiating a treaty. Close head-and-chest portrait, original red-and-bronze armor, snowbound camp and distant mammoths, serious glorious fantasy realism, absurd scale contrast, no writing or extra limbs. Targeted follow-up edit: Make a targeted anatomy correction to this original fantasy portrait. Preserve the elephant-headed queen, expression, amber eyes, single trunk holding a peanut, armor, mouse with tiny crown, lighting and background. She must have exactly TWO GOLDEN TUSKS, one on each side, and neither tusk may branch. On the viewer's right, remove the small extra inner tusk spur directly under the mouse. Preserve the main large outer curved right tusk and move the mouse onto its natural upper curve, sitting securely on that one unbranched tusk. Keep the left tusk unchanged. Exactly two tusks total, no third tusk, no forked tusk. No new text, signature or watermark.",
+  "designReferences": [
+    {
+      "url": "https://koboldpress.com/wp-content/uploads/2022/11/Queen-of-Mammoths.png",
+      "note": "Official publisher anatomy art directly inspected: gray elephant-headed powerful woman, long trunk, golden curved tusks, two humanoid arms/legs and battleaxes. Original portrait poses, armor details and scenes; no copied image."
+    },
+    {
+      "url": "https://anyflip.com/plzy/jxhb/basic",
+      "note": "Indexed ToB3 page 32 text confirms elephant-headed woman, golden tusks, honey-colored eyes, immense strength and tundra/mammoth association. Only factual identity details used."
+    },
+    {
+      "url": "https://koboldpress.com/tools/kobold-press-monsters/",
+      "note": "Primary publisher confirms Queen of Mammoths, Huge fey shapechanger, Tome of Beasts 3."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

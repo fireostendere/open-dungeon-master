@@ -1,0 +1,17 @@
+{
+  "creatureId": "animated-bearskin-rug",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy creature avatar in tactile painterly realism, cinematic light, clear silhouette legible at 512 pixels. Animated Bearskin Rug: a magically animated old shaggy bear PELT carpet. A FLAT EMPTY flexible skin with no living bear body or filled torso, no bones or gore; a preserved bear head with snapping jaws and glassy eyes is attached to a broad thin furry rug, exactly four flat pelt leg flaps with claws. Its magic lifts and folds it like a billowing sheet. Show the thin curled edges and plain leather underside clearly so it reads as a rug rather than a live bear. One head, four pelt paws, no humanoid limbs. Original composition, no words, signature, watermark, logo or frame. Normal 02. Three-quarter side view of a huge black bearskin carpet leaping from a stone floor in a curved wave, its flat rectangular-ish spread hide fills the composition, snarling taxidermy bear head at its leading edge. Four spread-out flat clawed paw flaps visible, pale suede underside along one curling margin, no bulky chest or abdomen. Moonlit ruined inn, drifting dust, sleek threatening silhouette with face near center.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/animated-bearskin-rug/",
+      "note": "ToB2 animated flat bearskin rug with snapping jaws, claws and enveloping sheet-like motion; original scenes and surface designs."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

@@ -1,0 +1,17 @@
+{
+  "creatureId": "animated-bearskin-rug",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy creature avatar in tactile painterly realism, cinematic light, clear silhouette legible at 512 pixels. Animated Bearskin Rug: a magically animated old shaggy bear PELT carpet. A FLAT EMPTY flexible skin with no living bear body or filled torso, no bones or gore; a preserved bear head with snapping jaws and glassy eyes is attached to a broad thin furry rug, exactly four flat pelt leg flaps with claws. Its magic lifts and folds it like a billowing sheet. Show the thin curled edges and plain leather underside clearly so it reads as a rug rather than a live bear. One head, four pelt paws, no humanoid limbs. Original composition, no words, signature, watermark, logo or frame. YOLO absurd 04. A fearsome brown animated bearskin rug is trying to rise from the tavern floor but a tiny orange kitten has fallen asleep directly on its flat furry back. The rug has folded into a low hammock to avoid disturbing the kitten, its preserved bear head turned toward the viewer with a helpless irritated snarl. Four thin clawed paw flaps spread on the floor, visibly empty flat carpet body, no living bear torso. A toy mouse sits beside the kitten, cozy hearth glow, ridiculous situation rendered with serious fantasy craftsmanship. Targeted follow-up edit: Edit only the anatomy error in this existing animated bear rug image. Keep the orange kitten asleep, bear expression, four true floor-level paws and entire composition. Remove the extra claws and small paw shape perched on the TOP of the tall curled leather fold in the upper-left part of the rug, at roughly x=170 y=330. Make that curled top an ordinary smooth fur-and-leather edge with absolutely no claws or toes. The four genuine paw flaps remain on the floor at the lower-left foreground, lower-right beside the head, far left behind the tall fold, and far right rear. Exactly four paws total. Keep cozy fireplace, toy mouse, thin empty rug, colors and texture. No text or signature.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/animated-bearskin-rug/",
+      "note": "ToB2 animated flat bearskin rug with snapping jaws, claws and enveloping sheet-like motion; original scenes and surface designs."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

@@ -1,0 +1,17 @@
+{
+  "creatureId": "animated-instrument",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy creature avatar, tactile painterly realism, cinematic magical atmosphere, one strong musical object silhouette readable at 512 pixels. Animated Instrument from Tome of Beasts 3, Tiny construct: a SINGLE real physical musical instrument hovering and playing by enchantment with no musician. No person, hands, face, eyes, mouth, wings or humanoid limbs added to the object. Recognizable functional instrument craftsmanship with subtle sound-pressure ripples and floating dust, no literal written musical notes. Original design, no text, signature, logo, watermark or border. YOLO absurd 04. A single enchanted walnut shawm has somehow blown an enormous iridescent soap bubble from its flared bell. The bubble contains one tiny rubber duck wearing a miniature royal crown, completely suspended, while the proud hovering shawm wears a tiny crooked felt top hat near its narrow reed end. Clearly a single recognizable wooden wind instrument with no face or limbs, absurd tavern performance in warm candlelight, close readable composition, seriously rendered fantasy materials.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/animated-instrument/",
+      "note": "ToB3 Tiny hovering construct can be a flute, shawm or tambourine, without a performer. Distinct instrument designs, magical visual effects and comedic scene are original."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}
