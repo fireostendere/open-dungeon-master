@@ -1,0 +1,17 @@
+{
+  "creatureId": "ancient-light-dragon",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. One original square dark-fantasy bestiary avatar, cinematic painterly realism, luminous textures with controlled exposure, a single ANCIENT LIGHT DRAGON from Creature Codex, gargantuan radiant star-traveling elder. Its living body is only partly physical: softly translucent outer contours and luminous pale ivory-pearl scales, long elegant neck, broad wise aged reptilian face with readable warm gold eyes and delicate backward head spines. Original family palette warm coral-pink membranous wings and ivory body. Four clawed legs, exactly TWO separate wings, one tail. Not undead, no skull or ghost skeleton, no angel feathers. Radiant glow must leave clear facial details and shadows; no overexposed white blob. Immense elder presence and subtle age ridges. No text, signature, logo, watermark, border, gore or copied art. Absurd YOLO 04. The ancient light dragon is trying to read a tiny closed book in bed but has become its own impossibly bright bedside lamp. Luminous ivory reptilian head, backward spines, warm gold eyes wearing a tiny dark sleep mask pushed onto forehead, a ridiculous floral lampshade perched on top of its head without covering the face. One pair of folded coral wings behind, enormous claws cup a miniature mug beside a tiny bed, its soft radiant glow lights the cavern while dozens of little moths circle the lampshade. Deeply sleepy offended expression, controlled warm light with clear detail, absurd fantasy humor, no writing.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/dragon-light-ancient/",
+      "note": "Creature Codex ancient light dragon: luminous partly incorporeal living form, explicit wings, radiant breath and travel along solar winds between stars. Ivory/coral color palette and swept head spines continue original adult family interpretation."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

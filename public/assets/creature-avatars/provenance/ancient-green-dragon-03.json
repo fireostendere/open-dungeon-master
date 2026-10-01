@@ -1,0 +1,21 @@
+{
+  "creatureId": "ancient-green-dragon",
+  "variantId": "03",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. One original square dark-fantasy bestiary avatar, cinematic painted realism, organic reptilian texture, one gargantuan ancient dragon with dominant clear head and forebody readable at 512 pixels. ANCIENT GREEN DRAGON: opaque deep forest-green scales with old dark olive mottling, NOT crystal or shiny gemstones. Slender cunning muzzle, heavy weathered elder brow, amber eyes, prominent tall CREST beginning near eyes, highest just behind skull, continuing down long spine. Original modest swept-back horn pair, no huge nasal spike. FOUR clawed legs, exactly TWO membrane wings: one on each side behind shoulders, no additional folded wing flap. One tail. Amphibious forest predator, poison gas rather than sonic rings or flame, intensely calculating expression. No text, signature, logo, border, watermark, gore, victims or copied artwork. Serious normal 03. Ancient green dragon crouched on a mossy forest hill above a ruined tower, close right-facing profile with sly closed-mouth expression, deep organic green scales and weathered dark-edged crest high just behind skull. Four-limbed forebody anchored on roots, one pair of low folded wings, tiny distant trees and ruined balconies show ancient bulk, amber sunset glows through cool blue foliage, composed manipulator. Targeted follow-up edit: Use case: precise-object-edit. Correct only the surplus wing anatomy in the provided ancient green dragon image. Preserve the large upright wing at the upper-left and the far wing visible just behind the neck on image-right: these are the dragon's TWO wings. Remove the extra low triangular folded wing flap on image-left directly behind the near shoulder, between the upper-left wing and the near foreleg, whose rounded joint is around x390 y470. Fill its former area naturally with the dragon's continuous dark-green shoulder/back scales and matching forest background. Keep exactly TWO wings total. Preserve face, high neck crest, horns, eyes, forelegs, tail, ruins, trees, colors and framing. No text, signature or new props.",
+  "designReferences": [
+    {
+      "url": "https://www.dndbeyond.com/monsters/16781-ancient-green-dragon",
+      "note": "Core Gargantuan ancient green dragon, amphibious forest predator and poison identity. Tall post-skull crest continues established family silhouette; organic opaque scales, aging details and scenes original."
+    },
+    {
+      "url": "https://www.dndbeyond.com/monsters/16770-adult-green-dragon",
+      "note": "Classic green dragon crest starts near eyes, highest behind skull and runs down spine; earlier adult family anatomy research."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

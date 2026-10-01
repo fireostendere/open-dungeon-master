@@ -1,0 +1,17 @@
+{
+  "creatureId": "ancient-imperial-dragon",
+  "variantId": "03",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy bestiary avatar, refined cinematic painterly realism, one gargantuan ANCIENT IMPERIAL DRAGON from Tome of Beasts 2. Long sinuous SERPENTINE body and neck, four short clawed legs along body, completely WINGLESS: no wings, membranes or wing roots anywhere. Lustrous OPALESCENT scales shimmer with subtle rainbow color shifts, not solid metallic gold. Ancient majestic reptilian face with expressive amber eyes, short swept-back horn pair and fine flowing chin filaments as original family choices. Heavier weathered brow and enormous elderly presence, continuous flexible snake-like body with one tail. Wind, water and lightning magic; skull organ remains internal, no forehead jewel. Head large and readable at 512 pixels, body curves through background. No text, glyphs, signature, watermark, logo, border, gore or copied art. Serious normal 03. Ancient JADE opalescent imperial dragon coils within a flooded stone library, huge head inclined toward viewer with age-weathered brow, small backward horns and fine flowing chin filaments, iridescent jade scales shift pearl and lavender in light. Long wingless snake-like neck and body curl around distant columns, tiny sealed scroll jars on high dry shelves, luminous blue-green reflections and warm gold doorway, quiet old wisdom.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/imperial-dragon-ancient/",
+      "note": "Licensed ToB2 ancient imperial dragon: wingless serpentine opalescent body, variable golden-yellow/azure/jade palette, wind/water/lightning and coral palaces; rabbit-ear partial transformation explicitly supported. Horns and filaments are original family details."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}
