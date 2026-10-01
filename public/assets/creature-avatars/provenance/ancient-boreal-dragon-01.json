@@ -1,0 +1,21 @@
+{
+  "creatureId": "ancient-boreal-dragon",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. One original square dark-fantasy bestiary avatar, cinematic painterly realism with tactile fur and hard scales, one dragon with dominant clear head and upper body readable at 512 pixels. ANCIENT BOREAL DRAGON from Tome of Beasts 2: gargantuan ancient arctic dragon with hard BLUE-WHITE SCALES alternating with unmistakable patches of SILVERY-BLUE FUR, shaggy cheek fur and very thick neck mane, vivid AMBER eyes. Huge weathered head, broad powerful muzzle, heavily muscled elder neck, old healed scars in scale patches. Original family horn choice: TWO stout swept-back dark horns. Four clawed legs, TWO separate membranous wings and one tail. Cinder breath is SUPERHEATED AIR with burning BLUE-WHITE EMBERS, not frost breath; wingbeats scatter hot sparks. Fire-resistant fur intact. No text, letters, signature, watermark, logo, border, gore or copied artwork. Serious normal 01. Ancient boreal dragon in low three-quarter portrait standing over the snow-covered ruins of a fire giant outpost, massive blue-white scaled head and shaggy silver-blue cheek mane, amber eyes narrowed, two thick swept-back dark horns with age ridges. White-hot embers glimmer between teeth and drift beside two folded wing roots, tiny giant-made pillars below enormous chest, cold arctic dawn meeting warm geothermal mist.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/boreal-dragon-ancient/",
+      "note": "Licensed Tome of Beasts 2 Gargantuan elder: blue-white cinder heat, ember wreath, arctic geothermal lairs."
+    },
+    {
+      "url": "https://www.5esrd.com/database/creature/boreal-dragon-adult/",
+      "note": "Shared boreal family description: blue-white scales alternating with silvery-blue fur and amber eyes. Horn silhouette and age details are original choices consistent with existing portraits."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

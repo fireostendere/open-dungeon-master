@@ -1,0 +1,17 @@
+{
+  "creatureId": "ancient-brass-dragon",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. One original square dark-fantasy bestiary avatar, cinematic painted realism, clear dominant dragon face and upper body readable at 512 pixels. ANCIENT BRASS DRAGON: gargantuan elderly desert dragon with warm yellow-brass metallic scales, a very BROAD SHIELD-LIKE PROTECTIVE FOREHEAD PLATE expanding sideways and backward from the forehead, small chin spikes, long continuous neck frill. No paired crown horns and no nasal horn. Wing and neck-frill edges mottled deep green, age-worn scale edges, EYES LIKE MOLTEN BRASS ORBS with almost invisible pupils. Very old broad muzzle and long strong neck, four clawed legs, one pair of two tapering membranous wings and one tail. Intelligent gregarious elder, curious talkative scholar. No text, lettering, signatures, logo, border, watermark, gore or copied artwork. Serious normal 02. Close frontal portrait of an ancient brass dragon resting in a sheltered sandstone canyon, expansive shield-like forehead plate surrounds brow without horns, old metal scales burnished by sand, molten golden eyes, chin spikes and continuous green-edged neck frill. A huge foreclaw rests beside stacked closed weathered books without readable lettering, deep cool shade against copper evening light, patient endless storyteller.",
+  "designReferences": [
+    {
+      "url": "https://shop.wizkids.com/products/pre-order-d-d-icons-of-the-realms-adult-brass-dragon",
+      "note": "Licensed family description: broad protective forehead plate, chin spikes, neck frill, green-mottled wing/frill margins darkening with age and aging eyes becoming molten-metal orbs. Original elder compositions, no miniature/art copy."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}
