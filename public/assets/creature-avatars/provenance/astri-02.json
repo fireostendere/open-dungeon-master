@@ -1,0 +1,21 @@
+{
+  "creatureId": "astri",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy bestiary avatar with luminous hopeful atmosphere, tactile painterly realism, clear creature silhouette readable at 512 pixels. Astri is a small celestial quadruped: a RACCOON HEAD and compact furred mammalian body, vivid BLUE EYES, ONE bushy black-and-gray BANDED TAIL, and exactly FOUR SHORT LEGS, each ending in a distinct HUMAN HAND with five fingers including thumb rather than an ordinary animal paw. Four short hand-ended legs total, no additional arms, no wings, no horns. Original gray raccoon fur and black facial mask interpretation, warm intelligent expression. Desert helper that makes water and heals; subtle golden celestial light. No text, signature, watermark, logo or frame. Normal 02. The raccoon-headed celestial emerges from a burrow beside an old stone well in a dusty frontier village at blue twilight. All four short legs end in HUMAN HANDS, front fingers rest on loose sand; one striped bushy tail trails from the rear. Vivid blue eyes and soft silver-gray fur, a bowl of fresh water by the well, understated warm blessing light and cool starry desert sky.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/astri/",
+      "note": "Tome of Beasts 2 Small celestial with raccoon head, vivid blue eyes, banded tail and human hands at the ends of all four short legs; a desert helper and burrower. Original raccoon body/fur interpretation, no wings or added arms."
+    },
+    {
+      "url": "https://github.com/open5e/open5e-api/blob/staging/data/v1/tob2/Monster.json",
+      "note": "Licensed Open5e description checked independently for four short human-hand-ended legs, raccoon head, banded tail and vivid blue eyes."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

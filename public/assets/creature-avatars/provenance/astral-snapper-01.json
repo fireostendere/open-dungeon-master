@@ -1,0 +1,17 @@
+{
+  "creatureId": "astral-snapper",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy creature portrait, tactile painterly realism, sharp face, striking restrained supernatural lighting, readable at 512 pixels. Astral Snapper from Creature Codex: an adult pale HUMAN-shaped aberration with YELLOW EYES and narrow VERTICAL PUPILS, an unnaturally wide grin revealing neat triangular SHARK TEETH, and long claw-tipped fingers. One head, two arms, two hands, two legs, no wings or tail, no animal head, no turtle shell. Fully clothed original adult individual in practical fantasy garments. Present this creature alone as a character portrait; no victim, feeding, injury or gore. No text, logo, signature, watermark or border. Normal 01. A gaunt pale adult man with short jet-black hair stands under a broken stone arch near a softly glowing silver astral portal. Midnight-blue high-collared coat, worn leather belt, hands visibly clawed at his sides, yellow vertical-pupil eyes and an unsettling shark-toothed grin. Close waist-up three-quarter view, cold starlight catches cheekbones and finger claws, ruined courtyard in shadow.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/astral-snapper/",
+      "note": "Creature Codex Medium aberration described as a pale human-shaped creature with yellow vertical-pupil eyes, wide shark-toothed grin and claws. Original adult identities, clothing and locations; no turtle interpretation or feeding depiction."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

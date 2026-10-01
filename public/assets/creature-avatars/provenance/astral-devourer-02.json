@@ -1,0 +1,21 @@
+{
+  "creatureId": "astral-devourer",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy creature avatar, rich painterly realism, detailed charcoal-gray scales and eerie pearly eyes, readable at 512 pixels. Astral Devourer is ONE collective swarm made of many separate tiny FACeless gray serpents hovering through air as if swimming. Each slender wingless snake has a circular iris-like mouth at its FRONT, with small pointed teeth arranged within the opening, and a row of milky unblinking eyes ALONG EACH SIDE of its snake body. No ordinary snake face or paired front eyes. The creature is a swarm of little snakes, not one giant snake, not a humanoid and not a spherical beholder. No arms, legs, fins or wings. Original number and knot arrangement of individual bodies. No people being eaten, injury or gore. No text, signature, watermark, logo or frame. Normal 02. A dense comet-shaped school of tiny gray eye-lined snakes drifts over wind-sculpted desert ruins at violet dusk. Individual serpents swim forward in a curved stream, a few front circular iris mouths clearly visible, long tapering bodies and milky eyes on their flanks. Golden dust suspended in air, ancient sandstone arch behind, sharp foreground creatures and softly receding school.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/astral-devourer/",
+      "note": "Tome of Beasts 2 swarm of Tiny gray snake-like aberrations: faceless front iris mouths lined with teeth, milky eyes along sides, wingless hovering and hive-mind swarm. Original number, coils and scenes."
+    },
+    {
+      "url": "https://github.com/open5e/open5e-api/blob/staging/data/v1/tob2/Monster.json",
+      "note": "Licensed Open5e Tome of Beasts 2 description independently checked for faceless gray snakes with circular front mouths and side eyes; no copied publisher artwork."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}
