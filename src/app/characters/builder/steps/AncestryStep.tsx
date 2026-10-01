@@ -15,7 +15,7 @@ import { localeText } from "@/lib/i18n/locale-text";
 function languageHelp(
   race: RaceOption,
   background: BackgroundOption | undefined,
-  copy: { speaks: string; and: string; plus: string; choice: string; more: string; fromBackground: string; oneOf: string },
+  copy: { speaks: string; and: string; plus: string; choice: string; more: string; fromBackground: string; oneOf: string; knownFrom: string },
   raceName: string,
 ): string {
   const parts = [`${raceName} ${copy.speaks} ${race.languages.join(` ${copy.and} `)}`];
@@ -28,6 +28,11 @@ function languageHelp(
   }
   if (open > 0) {
     parts.push(`${choice ? copy.and : copy.plus} ${open} ${copy.choice}`);
+  }
+  if (background?.knownLanguages?.length) {
+    parts.push(
+      `${copy.and} ${copy.knownFrom.replace("{languages}", background.knownLanguages.join(` ${copy.and} `)).replace("{name}", background.name)}`,
+    );
   }
   if (background?.languages) {
     parts.push(
@@ -52,8 +57,8 @@ export function AncestryStep({
 }) {
   const { locale } = useI18n();
   const copy = localeText(locale, {
-    en: { title: "Where are they from?", race: "Race", bonus: "Bonus", language: "language", languages: "languages", languageInfo: "A language you know is one you can speak, read and write. It decides who your character can talk to without help, and it comes up more than new players expect: half the trouble in a dungeon is written on a wall.\n\nCommon is the trade tongue everyone shares. The rest are the tongues of particular peoples: Dwarvish, Elvish, Orc, Draconic and so on. Pick whatever fits where your character grew up, or whoever you expect to be negotiating with.", aria: "Bonus language", choose: "Choose a language...", speaks: "speaks", and: "and", plus: "plus", choice: "of your choice", more: "more from your", fromBackground: "background", oneOf: "{count} of" },
-    ru: { title: "Откуда он родом?", race: "Раса", bonus: "Дополнительный", language: "язык", languages: "языки", languageInfo: "Известный язык — это язык, на котором персонаж говорит, читает и пишет. Он определяет, с кем можно общаться без помощи, и встречается чаще, чем ожидают новички: половина неприятностей в подземелье написана на стене.\n\nВсеобщий — общий торговый язык. Остальные принадлежат определённым народам: дворфийский, эльфийский, орочий, драконий и другие. Выберите то, что подходит месту, где вырос персонаж, или тем, с кем он будет вести переговоры.", aria: "Дополнительный язык", choose: "Выберите язык...", speaks: "знает", and: "и", plus: "плюс", choice: "на выбор", more: "дополнительно от происхождения", fromBackground: "", oneOf: "{count} на выбор из:" },
+    en: { title: "Where are they from?", race: "Race", bonus: "Bonus", language: "language", languages: "languages", languageInfo: "A language you know is one you can speak, read and write. It decides who your character can talk to without help, and it comes up more than new players expect: half the trouble in a dungeon is written on a wall.\n\nCommon is the trade tongue everyone shares. The rest are the tongues of particular peoples: Dwarvish, Elvish, Orc, Draconic and so on. Pick whatever fits where your character grew up, or whoever you expect to be negotiating with.", aria: "Bonus language", choose: "Choose a language...", speaks: "speaks", and: "and", plus: "plus", choice: "of your choice", more: "more from your", fromBackground: "background", oneOf: "{count} of", knownFrom: "{languages} from your {name} background" },
+    ru: { title: "Откуда он родом?", race: "Раса", bonus: "Дополнительный", language: "язык", languages: "языки", languageInfo: "Известный язык — это язык, на котором персонаж говорит, читает и пишет. Он определяет, с кем можно общаться без помощи, и встречается чаще, чем ожидают новички: половина неприятностей в подземелье написана на стене.\n\nВсеобщий — общий торговый язык. Остальные принадлежат определённым народам: дворфийский, эльфийский, орочий, драконий и другие. Выберите то, что подходит месту, где вырос персонаж, или тем, с кем он будет вести переговоры.", aria: "Дополнительный язык", choose: "Выберите язык...", speaks: "знает", and: "и", plus: "плюс", choice: "на выбор", more: "дополнительно от происхождения", fromBackground: "", oneOf: "{count} на выбор из:", knownFrom: "{languages} от предыстории «{name}»" },
   });
   // The race's bonus languages plus the background's (an acolyte or a sage
   // learns two more), which used to be loaded and never asked for.
@@ -118,6 +123,7 @@ export function AncestryStep({
                 ).filter(
                   (language) =>
                     !race.languages.includes(language) &&
+                    !(background?.knownLanguages ?? []).includes(language) &&
                     (state.bonusLanguages[index] === language ||
                       !state.bonusLanguages.includes(language)),
                 ).map((language) => (
@@ -135,6 +141,7 @@ export function AncestryStep({
           grantedSkills={[
             ...state.chosenSkills,
             ...(background?.skills ?? []),
+            ...state.backgroundSkills,
             ...(race.skills ?? []),
           ]}
           asi={state.racialAsi}

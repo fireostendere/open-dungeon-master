@@ -10,7 +10,7 @@ import {
   acBreakdownFor,
   computeSheetDerived,
   spellSlotsFor,
-  suggestedStartingHp,
+  startingHpFor,
 } from "@/lib/srd";
 import { ASI_LEVELS, applyAsiChoices } from "@/lib/srd/asi";
 import { defaultArmor, suggestArmor } from "@/lib/srd/armor";
@@ -41,7 +41,7 @@ export function useBuilderDerived({
 }) {
   const {
     level, scores, racialAsi, asiChoices, chosenSkills, expertisePicks, bonusLanguages,
-    racialSkills, racialTool, hpOverride, acOverride, equipment, removedAutoNames,
+    racialSkills, racialTool, backgroundSkills, hpOverride, acOverride, equipment, removedAutoNames,
     subclass, optionPicks, spells, cantrips, bookPrepared,
   } = state;
 
@@ -85,13 +85,15 @@ export function useBuilderDerived({
     if (!abilities || !race || !klass || !background) {
       return null;
     }
-    // Skills come from four places, not two: the class picks, the
-    // background, the race's fixed grants (high elf Perception, half-orc
-    // Intimidation) and the race's choice grants (half-elf).
+    // Skills come from five places, not two: the class picks, the
+    // background's fixed grants and its picks, the race's fixed grants (high
+    // elf Perception, half-orc Intimidation) and the race's choice grants
+    // (half-elf).
     const skills = [
       ...new Set([
         ...chosenSkills,
         ...background.skills,
+        ...backgroundSkills.filter(Boolean),
         ...(race.skills ?? []),
         ...racialSkills.filter(Boolean),
       ]),
@@ -107,6 +109,7 @@ export function useBuilderDerived({
       languages: [
         ...new Set([
           ...race.languages,
+          ...(background.knownLanguages ?? []),
           ...bonusLanguages.filter(Boolean),
           ...(klass.languages ?? []),
         ]),
@@ -134,10 +137,11 @@ export function useBuilderDerived({
         ? { ability: klass.spellAbility, slots: {}, prepared: [], known: [], cantrips: [] }
         : null,
     });
-    const maxHp =
-      hpOverride ?? suggestedStartingHp(klass.id, race.id, abilities.con, effectiveLevel);
+    // The class option's own hit die, so a content-pack class (which
+    // suggestedStartingHp cannot find) gets its d10, not a flat 8.
+    const maxHp = hpOverride ?? startingHpFor(klass.hitDie, race.id, abilities.con, effectiveLevel);
     return { proficiencies, derived, maxHp };
-  }, [abilities, race, klass, background, chosenSkills, expertisePicks, bonusLanguages, racialSkills, racialTool, effectiveLevel, hpOverride]);
+  }, [abilities, race, klass, background, chosenSkills, backgroundSkills, expertisePicks, bonusLanguages, racialSkills, racialTool, effectiveLevel, hpOverride]);
 
   // Class-appropriate starting weapons ride along automatically (removable
   // chips) so no character begins the adventure unarmed. Weapons AND armor:
@@ -326,7 +330,7 @@ export function builderActions(
 ) {
   // A skill the background or race grants outright is not a class pick;
   // taking it again would spend a slot on nothing.
-  const granted = new Set([...(background?.skills ?? []), ...(race?.skills ?? [])]);
+  const granted = new Set([...(background?.skills ?? []), ...state.backgroundSkills, ...(race?.skills ?? [])]);
   return {
     addEquipmentItem(entry: {
       name: string;

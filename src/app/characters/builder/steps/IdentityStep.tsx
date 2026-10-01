@@ -2,6 +2,7 @@
 
 import { useInlineText } from "@/lib/i18n/inline-text";
 import { UnofficialPackNotice } from "@/components/UnofficialPackNotice";
+import { GameTerm } from "@/components/ui/GameTerm";
 import { InfoButton } from "@/components/ui/InfoDialog";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { describeSkill } from "@/lib/help";
@@ -194,6 +195,9 @@ export function IdentityStep({
                 />
               </span>
             ) : null}
+            {background?.skillChoice ? (
+              <BackgroundSkillChoice state={state} background={background} choice={background.skillChoice} />
+            ) : null}
           </Field>
           <Field
             label={
@@ -212,6 +216,66 @@ export function IdentityStep({
           </Field>
         </div>
       </StepPanel>
+    </div>
+  );
+}
+
+function skillName(skillId: string) {
+  return SRD_SKILLS.find((skill) => skill.id === skillId)?.name ?? skillId;
+}
+
+// The skills a content-pack background leaves to the player ("Persuasion,
+// and either Insight or History"), one select per pick, the way the race's
+// skill choices are asked on the ancestry step.
+function BackgroundSkillChoice({
+  state,
+  background,
+  choice,
+}: {
+  state: BuilderState;
+  background: BackgroundOption;
+  choice: NonNullable<BackgroundOption["skillChoice"]>;
+}) {
+  const uiText = useInlineText();
+  const picks = state.backgroundSkills;
+  const taken = new Set([...background.skills, ...state.chosenSkills, ...state.racialSkills]);
+  return (
+    <div className="mt-2">
+      <span className="mb-1 flex flex-wrap items-center gap-1 text-xs text-stone-400">
+        <GameTerm id="skill">{uiText("Skill proficiencies")}</GameTerm>{" "}
+        {uiText("({count} of your choice)", { count: choice.count })}
+      </span>
+      <div className="grid grid-cols-1 gap-2">
+        {Array.from({ length: choice.count }, (_, index) => (
+          <span key={index} className="flex items-center gap-1">
+            <select
+              value={picks[index] ?? ""}
+              onChange={(event) => {
+                const next = event.target.value;
+                state.setBackgroundSkills((current) => {
+                  const updated = [...current];
+                  updated[index] = next;
+                  return updated;
+                });
+              }}
+              className={inputClass}
+              aria-label={uiText("Background skill {index}", { index: index + 1 })}
+            >
+              <option value="">{uiText("Choose a skill...")}</option>
+              {choice.from
+                .filter((skill) => picks[index] === skill || (!picks.includes(skill) && !taken.has(skill)))
+                .map((skill) => (
+                  <option key={skill} value={skill}>
+                    {skillName(skill)}
+                  </option>
+                ))}
+            </select>
+            {picks[index] ? (
+              <InfoButton label={skillName(picks[index])} text={describeSkill(picks[index])} />
+            ) : null}
+          </span>
+        ))}
+      </div>
     </div>
   );
 }

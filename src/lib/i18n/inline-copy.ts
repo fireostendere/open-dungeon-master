@@ -799,6 +799,10 @@ export const INLINE_COPY_RU: Record<string, string> = {
   "Counts follow the {list} list this class borrows.": "Количество заклинаний — как в списке класса «{list}», который заимствует этот класс.",
   "Feature": "Умение",
   "Feature:": "Умение:",
+  "Skill proficiencies": "Владение навыками",
+  "({count} of your choice)": "({count} на выбор)",
+  "Background skill {index}": "Навык предыстории {index}",
+  "Choose a skill...": "Выберите навык...",
 };
 
 export const INLINE_COPY_ALLOWLIST = new Set([

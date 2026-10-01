@@ -2,7 +2,7 @@ import { backgroundFeatureFor } from "@/lib/backgrounds";
 import type { Locale } from "@/lib/i18n/translations";
 import type { Ability, AsiChoice, CreateSheetInput } from "@/lib/schemas/sheet";
 import { SRD_CLASSES, spellSlotsFor } from "@/lib/srd";
-import { expertiseSlotsFor, subclassLevelFor, subclassSpellsFor } from "@/lib/srd/features";
+import { expertiseSlotsFor, racialTraitsFor, subclassLevelFor, subclassSpellsFor } from "@/lib/srd/features";
 import { fightingStyleFeatureName } from "@/lib/srd/feature-effects";
 import { reconcilePicks } from "./reconcile";
 import type { BackgroundOption, ClassOption, RaceOption } from "./useBuilderOptions";
@@ -24,8 +24,20 @@ type SubmitInput = {
 // Everything the wizard's per-step Continue buttons gate on, so a player
 // cannot reach the end with a hole the final check would reject. Each
 // returns the message the old single-page form showed at submit.
-export function identityBlocker(state: BuilderState): string | null {
-  return state.name.trim() ? null : "Give your character a name.";
+export function identityBlocker(
+  state: BuilderState,
+  background?: BackgroundOption,
+  locale: Locale = "en",
+): string | null {
+  if (!state.name.trim()) {
+    return locale === "ru" ? "Дайте персонажу имя." : "Give your character a name.";
+  }
+  if (background?.skillChoice && state.backgroundSkills.filter(Boolean).length < background.skillChoice.count) {
+    return locale === "ru"
+      ? `Сначала выберите навыки предыстории «${background.name}».`
+      : `Pick your ${background.name} skill proficiencies first.`;
+  }
+  return null;
 }
 
 // Languages the player chooses: the race's bonus ones plus the background's
@@ -199,7 +211,7 @@ export function validateBuilder(
     return { kind: "error", message: "Assign all six ability scores first." };
   }
   const message =
-    identityBlocker(state) ??
+    identityBlocker(state, background, input.locale) ??
     abilitiesBlocker(derived) ??
     ancestryBlocker(state, race, background) ??
     callingBlocker(klass, state, derived) ??
@@ -269,6 +281,11 @@ export function buildBuilderResult(input: SubmitInput): BuilderResult {
     background.feature && !backgroundFeatureFor(background.id)
       ? [{ name: `${background.feature} (${background.name})`.slice(0, 80), source: "background" as const }]
       : [];
+  // Likewise a content-pack race's traits: the server grants the bundled
+  // races' (racialTraitsFor) and has no other copy of a Catfolk's.
+  const packRaceTraits = racialTraitsFor(race.id).length
+    ? []
+    : race.traitNames.map((traitName) => ({ name: traitName.slice(0, 80), source: "race" as const }));
 
   return {
     level: effectiveLevel,
@@ -308,6 +325,7 @@ export function buildBuilderResult(input: SubmitInput): BuilderResult {
       // no other home, like a non-caster's racial cantrip.
       features: [
         ...racialFeatures,
+        ...packRaceTraits,
         ...packBackgroundFeature,
         ...picks.stylePicks.map((id) => ({ name: fightingStyleFeatureName(id), source: "choice" as const })),
         // Invocations, maneuvers, metamagic and the rest ride along as
@@ -322,6 +340,7 @@ export function buildBuilderResult(input: SubmitInput): BuilderResult {
         cantrip: racialCantrip,
         tool: picks.racialTool,
       },
+      backgroundChoices: { skills: picks.backgroundSkills.filter(Boolean) },
       spellcasting: klass.spellAbility
         ? {
             ability: klass.spellAbility,
