@@ -1,0 +1,25 @@
+{
+  "creatureId": "aridni",
+  "variantId": "03",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy fey avatar, tactile painterly realism, fine dusty moth-wing texture and clear adult face at 512 pixels. Aridni: a SMALL 2-to-3-foot-tall ADULT slender humanoid fey, ash-gray skin, sharply pointed ears, dark tousled hair, TWO arms with hands and TWO legs with feet, and broad GREY MOTH WINGS behind the shoulders. Four moth wing lobes interpreted as two forewing/hindwing pairs, dark subtle eyespots and scalloped margins, no feathered/bat wings, antennae or insect abdomen. Fitted weathered woodland clothing, small SHORTBOW and quiver, enchanted arrowheads may glow green. Adult face and proportions, not a child. Original individuals and scenes, no copied art. No text, signature, logo, watermark or border. Normal 03. A mature ash-gray aridni with black swept-back hair and pointed ears sits atop a covered caravan at violet dusk, counting a single stolen gold coin held between two fingers while the other hand rests on a little wooden bow. Broad grey moth wings fold around the back like patterned fans, fitted brown traveling leathers and tarnished silver buckles, amused suspicious adult face, lantern-lit road blurred below.",
+  "designReferences": [
+    {
+      "url": "https://koboldpress.com/races-of-midgard-aridni/",
+      "note": "Official Kobold description: small thin ash-grey fey, grey moth wings, 2\u20133 feet tall; original adult individual designs."
+    },
+    {
+      "url": "https://koboldpress.com/wp-content/uploads/2018/06/aridni.jpg",
+      "note": "Publisher art anatomy reference: two humanoid arms and legs, pointed ears, dark hair, small bow and forewing/hindwing lobes. Four wing lobes are an original anatomy interpretation, not copied composition."
+    },
+    {
+      "url": "https://www.5esrd.com/database/creature/aridni-3pp/",
+      "note": "Licensed Tome of Beasts2023 entry supports small winged fey archer and green-glowing magical arrows; original scenes."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

@@ -1,0 +1,17 @@
+{
+  "creatureId": "ascetic-grandmaster-a5e",
+  "variantId": "03",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy martial-artist avatar, tactile painterly realism, expressive mature face and precise bodily balance, readable at 512 pixels. Ascetic Grandmaster from A5E: an ADULT living humanoid master of unarmed martial arts, calm and outwardly unassuming, simple travel or monastic robes, NO ARMOR and no weapon. Exactly TWO arms, TWO hands, TWO legs and one head; realistic normal human proportions, no duplicated limbs or magical fists. Original adult individuals, no existing named character or real religious leader. No text, signature, watermark, logo or border. Normal 03. A mature human grandmaster with pale freckled skin and long gray hair tied in a plain knot practices slow hand forms beside a waterfall. Weathered indigo tunic and loose trousers, simple cloth belt, two arms framing the torso with open natural hands, two legs in a low balanced stance. Close three-quarter adult face portrait, cool spray and mossy stone, restrained motion in sleeves.",
+  "designReferences": [
+    {
+      "url": "https://www.a5e.tools/node/1833",
+      "note": "Official A5E Ascetic Grandmaster is an unarmored humanoid master of unarmed combat, exceptional speed and balance, often unassuming. Original mature individual faces, clothes, poses and scenes."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

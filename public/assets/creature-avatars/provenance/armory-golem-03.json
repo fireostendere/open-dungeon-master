@@ -1,0 +1,21 @@
+{
+  "creatureId": "armory-golem",
+  "variantId": "03",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy construct avatar, tactile painterly realism, richly layered metal and wood, readable central silhouette at 512 pixels. Armory Golem: a LARGE ROUGHLY HUMANOID ANIMATED MASS OF LOOSE WEAPONS AND ARMOR. Its torso and limbs are physically composed of overlapping old shields, swords, spear shafts, breastplates, gauntlets, crossbow parts and helmets held together by magic; visible gaps reveal MORE equipment, never flesh or a smooth robot chassis. Original two-arm/two-leg silhouette as a design interpretation, small head mass made of an empty battered helmet. One luminous weapon or armor piece in chest is the magical focus. Rearranges its equipment, not a person wearing armor. No blood, victims, text, signature, watermark, logo or border. Normal 03. Close view of the construct kneeling inside a ruined barracks, carefully presenting a replacement longsword from one of its two weapon-cluster arms. A mosaic of brass bucklers, spearheads, mail and battered plates visibly forms the entire body, spare crossbow across one shoulder, helmet head empty. Warm campfire light and cool dawn through broken roof, calm guardian pose, no injured people.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/golem-armory/",
+      "note": "Creature Codex Large construct assembled from loose weapons and armor in a roughly humanoid mass, with central magical focus and rearrangeable equipment. Two-arm/two-leg silhouette and helmet head are original interpretations, not prescribed counts."
+    },
+    {
+      "url": "https://koboldpress.com/encounters-to-challenge-pcs-of-any-level-in-the-wasted-west-part-1-of-2-2/",
+      "note": "Publisher encounter describes armory golem incorporating swords into its body; original armor assemblages and scenes."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

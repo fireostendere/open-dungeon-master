@@ -1,0 +1,21 @@
+{
+  "creatureId": "arx-tob1-2023",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy fiend avatar, tactile painterly realism, hard spined chitin and elastic membrane material, readable central upper-body silhouette at 512 pixels. Arx from Tome of Beasts2023: a LARGE SPINY INSECTOID FIEND with clawed grasping appendages and a long SPEAR gripped by TWO visible front limbs. Its back has EXACTLY TWO HARDENED ELYTRA wing-case panels that can expand into TWO square defensive walls, connected to the body and each other by elastic PINK MEMBRANE. In deployed state the two panels form a perpendicular corner. Flight wings remain folded and largely concealed underneath the shell covers. Original beetle-mantis-like upper-body interpretation, angular chitin head with two amber compound eyes, dense short spines, no human face or generic horned devil. Frame upper body and shell panels; lower limbs may be naturally concealed, since total limb count is unspecified. No readable text, signature, watermark, logo or border. Normal 02. An Arx lookout peers from a defensive corner formed by its TWO enormous square hardened elytra panels deployed perpendicular to one another behind its spiny insectoid body. Clearly visible elastic pink connecting membranes run from the panels back to the creature. Two visible front claws hold the same spear upright; angular dark reddish chitin, two amber compound eyes, low framing keeps lower body behind foreground rubble. Misty crimson battlefield at dusk, no victims.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/arx/",
+      "note": "Licensed Tome of Beasts2023 Arx description: spiny insectoid fiend, spear grasped with two limbs, two elytra expanding into square panels joined by pink elastic material and forming a corner. Total limb/eye counts not specified; beetle-mantis-like head and concealed lower-body arrangement are original interpretations."
+    },
+    {
+      "url": "https://koboldpress.com/tome-of-beasts-1-what-changed/",
+      "note": "Publisher confirms Arx is a new2023 Tome of Beasts creature. Original scenes and art, not an older similarly named monster."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}
