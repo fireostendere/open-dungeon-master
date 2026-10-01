@@ -1,6 +1,7 @@
 "use client";
 
-import { Calculator, Columns3, Loader2, MessageCircleQuestion, Search } from "lucide-react";
+import Link from "next/link";
+import { BookOpenText, Calculator, Columns3, Loader2, MessageCircleQuestion, Search } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { cn } from "@/lib/cn";
 import { PIXEL_ICONS, ui } from "@/lib/ui";
@@ -79,8 +80,8 @@ function comparableKind(kind: Kind): CompareKind | null {
 export default function ReferencePage() {
   const { locale } = useI18n();
   const copy = localeText(locale, {
-    en: { basics: "Basics", spells: "Spells", feats: "Feats", items: "Items", conditions: "Conditions", races: "Lineages", backgrounds: "Backgrounds", monsters: "Monsters", rulings: "House rules", browse: "Browse", compare: "Compare", calculators: "Calculators", ask: "Ask", title: "Rules reference", blurb: "Look something up, line things up side by side, run the numbers, or ask.", mode: "Reference mode", intro: "New to this? Start with Basics, which explains the terms the game leans on constantly. The other tabs search everything the app knows about, including your own homebrew and the house rules on your rulesets.", category: "Category", search: "Search", searchBasics: "Search the basics", searchRulings: "Search your house rules", compareHint: "Select up to {count} to line them up side by side in Compare.", noMatch: "Nothing matches that.", noRulingMatch: "None of your house rules mention that.", noRulings: "No house rules yet. Rulesets in your library are where they live.", unavailable: "The content pack is not installed, so there is nothing to browse here yet.", noDescription: "No description available for this entry.", compareItem: "Compare {name}", cantrip: "cantrip", level: "level {level}" },
-    ru: { basics: "Основы", spells: "Заклинания", feats: "Черты", items: "Предметы", conditions: "Состояния", races: "Происхождения", backgrounds: "Предыстории", monsters: "Монстры", rulings: "Домашние правила", browse: "Обзор", compare: "Сравнение", calculators: "Калькуляторы", ask: "Спросить", title: "Справочник правил", blurb: "Найдите правило, сравните варианты, посчитайте значения или задайте вопрос.", mode: "Режим справочника", intro: "Начните с «Основ»: здесь объясняются постоянно встречающиеся игровые термины. Другие вкладки ищут по всему, что знает приложение, включая ваш homebrew и домашние правила наборов правил.", category: "Категория", search: "Поиск", searchBasics: "Поиск по основам", searchRulings: "Поиск по домашним правилам", compareHint: "Выберите до {count} записей, чтобы сравнить их рядом во вкладке «Сравнение».", noMatch: "Ничего не найдено.", noRulingMatch: "Ни одно из ваших домашних правил этого не упоминает.", noRulings: "Домашних правил пока нет. Они хранятся в наборах правил вашей библиотеки.", unavailable: "Пакет контента не установлен, поэтому здесь пока нечего просматривать.", noDescription: "Для этой записи нет описания.", compareItem: "Сравнить: {name}", cantrip: "заговор", level: "уровень {level}" },
+    en: { basics: "Basics", spells: "Spells", feats: "Feats", items: "Items", conditions: "Conditions", races: "Lineages", backgrounds: "Backgrounds", monsters: "Monsters", rulings: "House rules", browse: "Browse", compare: "Compare", calculators: "Calculators", ask: "Ask", title: "Rules reference", blurb: "Look something up, line things up side by side, run the numbers, or ask.", mode: "Reference mode", intro: "New to this? Start with Basics, which explains the terms the game leans on constantly. The other tabs search everything the app knows about, including your own homebrew and the house rules on your rulesets.", category: "Category", search: "Search", searchBasics: "Search the basics", searchRulings: "Search your house rules", compareHint: "Select up to {count} to line them up side by side in Compare.", noMatch: "Nothing matches that.", noRulingMatch: "None of your house rules mention that.", noRulings: "No house rules yet. Rulesets in your library are where they live.", unavailable: "The content pack is not installed, so there is nothing to browse here yet.", noDescription: "No description available for this entry.", compareItem: "Compare {name}", cantrip: "cantrip", level: "level {level}", rulebook: "Read the rulebook" },
+    ru: { basics: "Основы", spells: "Заклинания", feats: "Черты", items: "Предметы", conditions: "Состояния", races: "Происхождения", backgrounds: "Предыстории", monsters: "Монстры", rulings: "Домашние правила", browse: "Обзор", compare: "Сравнение", calculators: "Калькуляторы", ask: "Спросить", title: "Справочник правил", blurb: "Найдите правило, сравните варианты, посчитайте значения или задайте вопрос.", mode: "Режим справочника", intro: "Начните с «Основ»: здесь объясняются постоянно встречающиеся игровые термины. Другие вкладки ищут по всему, что знает приложение, включая ваш homebrew и домашние правила наборов правил.", category: "Категория", search: "Поиск", searchBasics: "Поиск по основам", searchRulings: "Поиск по домашним правилам", compareHint: "Выберите до {count} записей, чтобы сравнить их рядом во вкладке «Сравнение».", noMatch: "Ничего не найдено.", noRulingMatch: "Ни одно из ваших домашних правил этого не упоминает.", noRulings: "Домашних правил пока нет. Они хранятся в наборах правил вашей библиотеки.", unavailable: "Пакет контента не установлен, поэтому здесь пока нечего просматривать.", noDescription: "Для этой записи нет описания.", compareItem: "Сравнить: {name}", cantrip: "заговор", level: "уровень {level}", rulebook: "Открыть книгу правил" },
   });
   const tabs = TABS.map((tab) => ({ ...tab, label: tab.kind === "glossary" ? copy.basics : copy[tab.kind] }));
   const [mode, setMode] = useState<Mode>("browse");
@@ -215,6 +216,11 @@ export default function ReferencePage() {
       icon={PIXEL_ICONS.support}
       title={copy.title}
       blurb={copy.blurb}
+      actions={
+        <Link href="/rulebook" className={ui.btnSmall}>
+          <BookOpenText className="size-4" /> {copy.rulebook}
+        </Link>
+      }
     >
       <SegmentedControl
         options={modes}

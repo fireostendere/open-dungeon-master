@@ -426,6 +426,7 @@ export default function SettingsPage() {
           <p className="text-sm text-stone-500">{t("common.appName")}</p>
         )}
         <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2">
+          <Link href="/rulebook" className="text-xs text-stone-500 hover:text-amber-200">{t("nav.rulebook")}</Link>
           <Link href="/reference" className="text-xs text-stone-500 hover:text-amber-200">{copy.rulesReference}</Link>
           <Link href="/terms" className="text-xs text-stone-500 hover:text-amber-200">{t("auth.termsOfService")}</Link>
           <Link href="/privacy" className="text-xs text-stone-500 hover:text-amber-200">{t("auth.privacyPolicy")}</Link>

@@ -3,6 +3,7 @@
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import {
   AppWindow,
+  BookOpenText,
   CircleHelp,
   DoorOpen,
   Globe,
@@ -187,6 +188,11 @@ export function AccountMenu({
             <DropdownMenu.Item asChild>
               <Link href="/characters" className={itemClass}>
                 <Users className="size-4" /> {t("nav.characters")}
+              </Link>
+            </DropdownMenu.Item>
+            <DropdownMenu.Item asChild>
+              <Link href="/rulebook" className={itemClass}>
+                <BookOpenText className="size-4" /> {t("nav.rulebook")}
               </Link>
             </DropdownMenu.Item>
             <DropdownMenu.Item asChild>
