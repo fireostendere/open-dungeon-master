@@ -1,0 +1,17 @@
+{
+  "creatureId": "awakened-shrub",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy living-plant avatar, tactile painterly realism, beautiful small leaves, twigs and roots, readable at 512 pixels. An Awakened Shrub is a SMALL ordinary woody BUSH magically given intelligence and mobility. Keep the full plant structure: a low dense leafy canopy, several woody stems and flexible roots that let it shuffle, branching twigs used to gesture. It is not a humanoid, large tree or plant-covered human. A subtle expressive pair of bark knots and a small bark crease suggest a face only while active; no human skin, fleshy lips, eyeballs or animal anatomy. Botanical species and exact root/branch arrangement are original interpretations. No text, logo, signature, watermark or frame. Normal 01. A small awakened wild rose shrub shuffles along an ancient mossy garden path on several curled roots. Its dense thorny twigs carry dark green leaves and a few deep red roses, two warm amber-lit bark knots peek from inside the low central stems. One twig bends inquisitively toward a firefly. Rain beads and cool moonlight, ruined stone arch softly behind, close entire living-bush view. Correction: Edit this original generated fantasy illustration only to remove the tiny accidental pale scribble/signature-like mark at the extreme BOTTOM RIGHT corner. Replace the mark with a seamless continuation of the existing dark wet stone and blue bokeh in that exact corner. Preserve the entire awakened rose shrub, flowers, roots, expression, firefly, lighting, colors and square composition. No writing, no watermark, no signature or new marks anywhere.",
+  "designReferences": [
+    {
+      "url": "https://5thsrd.org/gamemaster_rules/monsters/awakened_shrub/",
+      "note": "SRD5.1 Small plant: an ordinary shrub given sentience and mobility by awaken or similar magic, with False Appearance and Rake. Plant species, subtle bark-knot expression, flexible roots and twig gestures are original visual interpretations."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

@@ -1,0 +1,17 @@
+{
+  "creatureId": "awakened-shrub",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy living-plant avatar, tactile painterly realism, beautiful small leaves, twigs and roots, readable at 512 pixels. An Awakened Shrub is a SMALL ordinary woody BUSH magically given intelligence and mobility. Keep the full plant structure: a low dense leafy canopy, several woody stems and flexible roots that let it shuffle, branching twigs used to gesture. It is not a humanoid, large tree or plant-covered human. A subtle expressive pair of bark knots and a small bark crease suggest a face only while active; no human skin, fleshy lips, eyeballs or animal anatomy. Botanical species and exact root/branch arrangement are original interpretations. No text, logo, signature, watermark or frame. Normal 02. A compact round boxwood shrub pauses on a crumbling cloister wall, its tangled roots gripping the stone like many little wooden toes. Glossy tiny green leaves form a dense natural bush, subtle bark-knot expression half-hidden within, a pair of branching sprigs extended slightly. Early golden sunlight and pale mist, realistic woody texture, no human torso or animal limbs.",
+  "designReferences": [
+    {
+      "url": "https://5thsrd.org/gamemaster_rules/monsters/awakened_shrub/",
+      "note": "SRD5.1 Small plant: an ordinary shrub given sentience and mobility by awaken or similar magic, with False Appearance and Rake. Plant species, subtle bark-knot expression, flexible roots and twig gestures are original visual interpretations."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

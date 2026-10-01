@@ -1,0 +1,21 @@
+{
+  "creatureId": "avestruzii-champion",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy character portrait, tactile painterly realism with detailed feathers and SCALE MAIL, clear face readable at 512 pixels. Avestruzii Champion is a mature powerful Medium FLIGHTLESS BIRDLIKE HUMANOID: a beaked bird head on a long feathered neck, dense protective feathers, tall upright torso, TWO feathered arms ending in clawed grasping hands and TWO exceptionally long powerful bird legs. No separate flying wings, no human face. Original ratite-like appearance with short broad beak and strong clawed bird feet; exact bird species, toe count and colors are original choices. Veteran martial bearing, heavier decorated SCALE MAIL, a large two-handed GREATAXE and a SHORTBOW. One head, two arms, two legs, no victims or attack injuries. No text, signature, watermark, logo or border. YOLO 04. A mighty long-legged avestruzii champion in ornate scale mail solemnly judges a tabletop egg-and-spoon race, balancing an ENORMOUS polished stone egg on a ridiculously TINY wooden spoon held delicately in one clawed hand. Its other hand steadies a great axe planted beside it like a judge's staff; long bird neck craned in extreme concentration, little reading spectacles on the beak, two huge bird legs in fluffy house slippers. A tiny ribbon rosette on the egg, overturned teacups and a miniature obstacle course on a tavern table, no lettering or other characters.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/avestruzii-champion/",
+      "note": "Tome of Beasts 3 Avestruzii Champion: Medium flightless bird humanoid with long legs and thick feathers, scale mail, greataxe and shortbow. Original veteran identities, ratite-inspired head/neck, two-arm arrangement, toe count, colors and decorations."
+    },
+    {
+      "url": "https://www.5esrd.com/database/creature/avestruzii/",
+      "note": "Shared species description establishes long-legged flightless birdfolk from the Elemental Plane of Earth. Champion distinguished by greataxe and veteran styling rather than altered species anatomy."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

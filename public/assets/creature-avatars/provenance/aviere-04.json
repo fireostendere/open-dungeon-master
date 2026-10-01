@@ -1,0 +1,21 @@
+{
+  "creatureId": "aviere",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy celestial familiar portrait, delicate painterly realism with crisp feather detail and luminous warm fire, readable tiny creature at 512 pixels. Aviere is a TINY DIVINE SONGBIRD with a FIERY BELLY that gives off gentle golden light. Small ordinary bird proportions, short singing beak, two feathered WINGS and two small clawed FEET, one modest feather tail. Fire glows among the belly feathers without harming the bird. Original robin/canary-sized songbird interpretation, no eagle proportions, human face, extra wings, hands or oversized phoenix tail. Kind alert expression, sacred temple context, original plumage. No text, musical notation, signature, watermark, logo or border. YOLO 04. A tiny solemn aviere has accidentally used its fiery belly to turn a golden temple CHALICE into a ridiculous POPCORN MACHINE. The little songbird sits on its rim wearing a minuscule crooked chef hat, belly flame glowing, short beak wide in surprise as a huge mountain of popcorn erupts around it and spills over the altar. Two ordinary wings half raised, two little bird feet, no human arms. Popped kernels frozen midair, grand candlelit cathedral behind, absurdly oversized ceremonial cooking disaster with no lettering.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/aviere/",
+      "note": "Tome of Beasts 2 Tiny celestial songbird with fiery belly, illumination, divine song and temple/scribe-helper role. Ordinary two-wing/two-leg songbird anatomy, size comparison and plumage colors are original conservative choices."
+    },
+    {
+      "url": "https://github.com/open5e/open5e-api/blob/staging/data/v1/tob2/Monster.json",
+      "note": "Licensed Open5e description independently checked for small fiery-bellied songbird form and religious teaching/healing role. Newly generated artwork."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

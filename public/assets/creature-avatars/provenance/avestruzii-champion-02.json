@@ -1,0 +1,21 @@
+{
+  "creatureId": "avestruzii-champion",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy character portrait, tactile painterly realism with detailed feathers and SCALE MAIL, clear face readable at 512 pixels. Avestruzii Champion is a mature powerful Medium FLIGHTLESS BIRDLIKE HUMANOID: a beaked bird head on a long feathered neck, dense protective feathers, tall upright torso, TWO feathered arms ending in clawed grasping hands and TWO exceptionally long powerful bird legs. No separate flying wings, no human face. Original ratite-like appearance with short broad beak and strong clawed bird feet; exact bird species, toe count and colors are original choices. Veteran martial bearing, heavier decorated SCALE MAIL, a large two-handed GREATAXE and a SHORTBOW. One head, two arms, two legs, no victims or attack injuries. No text, signature, watermark, logo or border. Normal 02. A silver-gray avestruzii veteran with weathered feather tips rests beside a standing stone on a windswept plateau. Its long bird neck bends slightly toward the viewer; decorated bronze scale mail, deep green cloak, one clawed hand holds the great axe upright while the other grips a leather belt. Shortbow and quiver on its back, two long bird legs clearly visible, storm clouds and dusty golden grass, restrained authoritative portrait.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/avestruzii-champion/",
+      "note": "Tome of Beasts 3 Avestruzii Champion: Medium flightless bird humanoid with long legs and thick feathers, scale mail, greataxe and shortbow. Original veteran identities, ratite-inspired head/neck, two-arm arrangement, toe count, colors and decorations."
+    },
+    {
+      "url": "https://www.5esrd.com/database/creature/avestruzii/",
+      "note": "Shared species description establishes long-legged flightless birdfolk from the Elemental Plane of Earth. Champion distinguished by greataxe and veteran styling rather than altered species anatomy."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

@@ -1,0 +1,21 @@
+{
+  "creatureId": "avestruzii",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy character avatar, tactile painterly realism with rich feather texture, clear face and readable silhouette at 512 pixels. Avestruzii are Medium FLIGHTLESS BIRDLIKE HUMANOIDS from the Elemental Plane of Earth, dense protective feathers, exceptionally LONG powerful bird legs, upright torso, feathered arms ending in grasping clawed hands, one beaked bird head. Exactly TWO arms and TWO legs, no separate flying wings. Original ostrich-like flightless bird interpretation: long neck, small alert head with a broad short beak, shaggy neck down and strong two-toed feet. SCALE MAIL armor over the feathered torso, practical belt, BATTLEAXE and SHORTBOW equipment. Original adult warrior identity, no human face or extra limbs, no victim or injury. No text, signature, watermark, logo or border. Normal 01. A tall black-and-white feathered avestruzii sentinel stands on a wind-carved sandstone ridge. Long bird neck and watchful dark eyes, battered bronze scale mail, dark scarf, two clawed hands rest on a battleaxe haft planted safely on the ground; a shortbow is slung across its back. Its two powerful bare bird legs are visible beneath the armor, dust blowing across the elemental desert, golden dusk.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/avestruzii/",
+      "note": "Tome of Beasts 3 Medium flightless bird humanoid with long running legs, thick feathers, scale mail, battleaxe and shortbow. Ratite-inspired head, neck, feet and two-arm arrangement are original interpretations; source text does not specify an exact bird species or toe count."
+    },
+    {
+      "url": "https://koboldpress.com/tools/kobold-press-monsters/",
+      "note": "Publisher index confirms Avestruzii as Medium humanoid from Tome of Beasts 3, grassland/planar habitat. Newly generated original warrior designs."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

@@ -1,0 +1,17 @@
+{
+  "creatureId": "awakened-shrub",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy living-plant avatar, tactile painterly realism, beautiful small leaves, twigs and roots, readable at 512 pixels. An Awakened Shrub is a SMALL ordinary woody BUSH magically given intelligence and mobility. Keep the full plant structure: a low dense leafy canopy, several woody stems and flexible roots that let it shuffle, branching twigs used to gesture. It is not a humanoid, large tree or plant-covered human. A subtle expressive pair of bark knots and a small bark crease suggest a face only while active; no human skin, fleshy lips, eyeballs or animal anatomy. Botanical species and exact root/branch arrangement are original interpretations. No text, logo, signature, watermark or frame. YOLO 04. A small awakened shrub stares into an ornate hand mirror after attempting its own TOPIARY HAIRCUT: its foliage has become a ridiculous enormous green pompadour with one disastrous bald twig patch on the side. Two flexible twig branches hold tiny garden shears and the mirror; many root feet brace on a barber stool, small bark-knot expression clearly dismayed. Leaf clippings everywhere, striped barber cape tied around woody stems, no human body or flesh. Cozy medieval barber shop, absurd botanical vanity, no lettering.",
+  "designReferences": [
+    {
+      "url": "https://5thsrd.org/gamemaster_rules/monsters/awakened_shrub/",
+      "note": "SRD5.1 Small plant: an ordinary shrub given sentience and mobility by awaken or similar magic, with False Appearance and Rake. Plant species, subtle bark-knot expression, flexible roots and twig gestures are original visual interpretations."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}
