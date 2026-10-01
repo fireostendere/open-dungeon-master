@@ -1,0 +1,17 @@
+{
+  "creatureId": "apau-perape",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy creature avatar, tactile painterly realism, cinematic lighting, strong gorilla face silhouette readable at 512 pixels. Apau Perape: a Large gorilla-like DEMON with dense midnight-black fur, broad immensely muscular ape torso, exactly TWO very long powerful arms reaching the ground and TWO shorter hind legs. No tail, wings, horns, extra limbs or human anatomy. Broad simian nose and heavy ape muzzle, deep-set glowing RED eyes when enraged, large tooth-filled mouth with formidable canines, sharply curved black claws at the ends of its ape fingers. Coarse charcoal-black fur and dark leathery face and knuckles, imposing demonic strength, no injury or gore. Original details and composition, not copied publisher art. No words, signature, logo, watermark or frame. Normal 01. Low-angle close head, shoulders and knuckles portrait of the enormous midnight-furred gorilla demon in a scorched jungle. It leans forward on its two long arms, immense dark shoulders framing a heavy gorilla face, red eyes staring directly ahead, lips curled just enough to show long canines. One clawed knuckle on an ash-coated root in the foreground, ember-orange rim light against a smoky blue-black canopy, terrifying grounded ape anatomy.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/demon-apau-perape-3pp/",
+      "note": "Licensed ToB description identifies a gorilla demon with midnight fur, long muscular arms, curved claws, large teeth and red eyes in rage. Original ape anatomy detailing and compositions."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

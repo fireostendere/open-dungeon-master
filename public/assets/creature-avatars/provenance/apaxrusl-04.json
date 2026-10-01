@@ -1,0 +1,21 @@
+{
+  "creatureId": "apaxrusl",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy creature avatar, tactile painterly realism, dramatic desert lighting, skull-and-shroud silhouette readable at 512 pixels. Apaxrusl from Tome of Beasts 2: a Medium magical construct made from a dried humanoid CORPSE merged with sand and small stones. Hunched humanoid form, one exposed pale skull-like face with empty dark eye sockets and open bony jaws, weathered blue-gray cloth wrapped over head and neck, two elongated skeletal arms ending in long bony hands. Ochre sand crust and embedded grit cover the ragged body and shoulders; lower body and torn cloth partly crumble into flowing sand. Two arms and two lower limbs or their dissolving sandy forms, no wings or extra limbs. Dry archaeological remains, no blood, wounds, wet organs or graphic decay. Preserve a visible skull-and-cloth corpse foundation, not a faceless golem or jackal elemental. Original face detail, garments, pose and scenes, no copied publisher composition. No words, signature, watermark, logo or frame. YOLO absurd 04. The hooded sand corpse is trying to enjoy a beach holiday: enormous silly round sunglasses sit over its empty skull eye sockets, tiny pink inflatable water wings wrap both bony upper arms, and one long skeletal hand delicately holds a little yellow sandcastle bucket. A striped beach towel is wrapped over its ragged torso while its own lower body is already a pile of sand beside a tiny perfect sandcastle. Dry pale skull, blue-gray headwrap, two arms only, comically resigned posture. Warm seaside sunset, tasteful deadpan fantasy realism, no blood or writing.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/apaxrusl/",
+      "note": "ToB2 Medium sand-and-corpse construct with a fluid sandy body and hot-sand abilities."
+    },
+    {
+      "url": "https://koboldpress.com/tome-unbound-apaxrusl/",
+      "note": "Publisher article and official illustration establish skull face, head cloth, long skeletal arms and sand-encrusted corpse silhouette. Original poses, garment details and compositions; source artwork not reused."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

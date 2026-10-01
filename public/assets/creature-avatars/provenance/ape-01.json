@@ -1,0 +1,17 @@
+{
+  "creatureId": "ape",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy bestiary avatar, tactile natural history painterly realism, cinematic forest light, expressive animal face readable at 512 pixels. Core DnD Ape, Medium beast: an ordinary natural gorilla-like great ape at realistic human-to-gorilla scale, not a giant monster or demon. Robust torso, broad flat simian nose, brown intelligent eyes without magical glow, dense charcoal-black or dark brown fur, bare dark leathery face, exactly two long arms and two shorter legs, NO TAIL. Five natural primate digits with short flat nails, no hooked monster claws, no horns, wings, armor or extra limbs. Original individual face and fur pattern, realistic nonhuman ape anatomy. No text, signature, logo, watermark or frame. Normal 01. Three-quarter close head and shoulders portrait of a mature gorilla-like ape in dense mossy woodland, calm watchful brown eyes, broad dark nose, thick black fur with a few silver hairs on the shoulders. One large natural hand grips a root near its chest with clearly short flat nails. Cool green mist and warm dappled morning light, grounded animal presence, no aggression or magic.",
+  "designReferences": [
+    {
+      "url": "https://www.dndbeyond.com/monsters/16788-ape",
+      "note": "Official core Medium forest beast with climbing, fists and rock throwing. Original natural great-ape interpretation, distinct from giant ape and demonic ape entries."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

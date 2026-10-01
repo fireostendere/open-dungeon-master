@@ -1,0 +1,17 @@
+{
+  "creatureId": "anubian",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy creature avatar, tactile painterly realism, cinematic light, jackal face and sand silhouette readable at 512 pixels. Anubian from Tome of Beasts: a Medium living SAND ELEMENTAL whose swirling grains form a muscular humanoid with one JACKAL HEAD, two long pointed ears, long narrow canine muzzle and eerie bright BLUE glowing eyes. Its ENTIRE body, face, claws and limbs are made of loose moving sand and dust, not flesh, fur, bandages, carved stone or metal. Two arms and two legs may dissolve gradually into a swirling sand base below the waist; no extra limbs or wings. Sandy teeth and claw shapes, strong wind-sculpted grain texture, occasional wisps peeling off the silhouette. A summoned tomb guardian, no deity costume or pharaoh headdress, no Egyptian writing. Original design and composition, no copied art. No words, signature, logo, watermark or frame. Normal 01. Frontal three-quarter close head and shoulders portrait of a golden-brown sand jackal guardian reforming inside a ruined desert tomb. Long ears rise from shifting grains, narrow muzzle snarls, cobalt-blue eye light shines through airborne dust, one sandy claw raised near the chest. Grain streams peel away around muscular shoulders, amber torchlight against a dark doorway, ancient menace and clearly granular elemental body.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/anubian-3pp",
+      "note": "ToB anubian is a summoned sand elemental forming a muscular jackal-headed humanoid with blue glowing eyes, vulnerable to water. All granular surfaces, poses and comedic props are original."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}
