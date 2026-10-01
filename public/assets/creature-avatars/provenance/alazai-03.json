@@ -1,0 +1,21 @@
+{
+  "creatureId": "alazai",
+  "variantId": "03",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. One original square dark-fantasy elemental avatar, cinematic painterly realism with physically evocative heat refraction, eyes and vague head silhouette centered and readable at 512 pixels, no words, border, watermark or collage. Alazai from Tome of Beasts 3: LARGE fire elemental that is naturally INVISIBLE, its only bodily impression a VAGUE HUMANOID SHAPE of intense HEAT SHIMMER with BURNING EYES. Background remains visible through its head and shoulders, bent and warped by hot air. Cold conditions outline its body in STEAM; darkness reveals its fiery eyes. No solid skin, armor, horns, wings, hair, clothes or opaque fire-giant body. Not a glass statue: only air distortion, thin vapor edges and two burning eye-flares, no hard reflective glass surface. Close portrait of implied head/shoulders, avoid defined biological facial anatomy or exact limbs. Original interpretation from textual visibility rules, no copied publisher art. Serious normal 03. Tight frontal upper-silhouette portrait at a ruined iron gateway in cold darkness. Nearby iron bars glow dull red from its heat while the alazai itself is transparent air, two bright burning eyes and faint steam outlining brow and shoulders. Gate pattern visible warped behind its body, dark stone and ash-blue cold air, minimal orange reflected glow, no armor, no hands engulfed in opaque flames.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/alazai/",
+      "note": "ToB3 Large fire elemental, naturally invisible even attacking; vague humanoid heat refraction with burning eyes, cold under 50F reveals steam outline. No solid armored anatomy established."
+    },
+    {
+      "url": "https://koboldpress.com/tools/kobold-press-monsters/",
+      "note": "Primary taxonomy confirms Alazai. Exact species art unverified; steam/mirage scenes are original interpretations."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

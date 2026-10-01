@@ -1,0 +1,17 @@
+{
+  "creatureId": "alchemical-apprentice",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. One original square dark-fantasy creature avatar, cinematic tactile painterly realism, strong central creature silhouette readable at 512 pixels, no words, frame, logo, watermark or collage. Alchemical Apprentice from Creature Codex: a SMALL INTELLIGENT AMORPHOUS OOZE originating in laboratory chemical waste, color-changing and extending temporary PSEUDOPODS, able to absorb substances and produce potions. It is not a humanoid apprentice, wizard, child, robot or animal. No permanent eyes, mouth, head, hands, feet, skeleton or clothes. A compact soft translucent iridescent mass, central broad lobe and purposeful curved pseudopod gestures convey intelligence without a fixed face. Teal, violet and amber flowing through gel and small bubbles are original palette/texture choices. All projections remain rounded gelatin, not human fingers. Creature dominates foreground, background a blurred evocative alchemical laboratory, no copied art. Serious normal 02. Low close portrait of a color-changing gelatinous creature swelling up from discarded reagent powder and shattered pottery in a shaded laboratory cellar. Iridescent amber and green-violet folds rise as a broad central lobe, a curious pseudopod arches toward a stoppered bottle, no fixed head or eyes. Chalk dust and old tiles visible through translucent margins, eerie blue cellar light with a gold streak, clearly one living ooze.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/ooze-alchemical-apprentice/",
+      "note": "Creature Codex Small amorphous color-changing ooze from lab waste; pseudopods, absorption and potion production, intelligent assistant. No fixed facial/humanoid anatomy. Translucency/bubbles/palette original, official art unverified."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}
