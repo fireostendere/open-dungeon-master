@@ -1,0 +1,21 @@
+{
+  "creatureId": "ammut",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy bestiary creature avatar, cinematic painterly realism with tactile crocodile scales, tawny fur and hippo skin, diagnostic head and mixed body anatomy readable at 512 pixels. AMMUT from Creature Codex: a LARGE four-legged celestial beast with the HEAD OF A CROCODILE (long tapered reptilian muzzle and conical teeth), LION BODY AND FRONT LEGS with tawny fur and big feline paws, and bulky gray HIPPOPOTAMUS HINDQUARTERS and two sturdy hippo hind legs with broad toes. One coherent quadruped body, crocodile scales blend into tawny shoulders then smooth thick hippo rump, short hippo tail. No humanoid torso/hands, no extra heads/legs, wings or horns. A solemn desert judge of souls, subtle warm radiant aura, animal rather than armored deity. No victims, gore, blood, text, hieroglyphs, logo, border, collage or watermark. Serious normal 01. Close three-quarter ammut portrait guarding a sandstone gateway at sunrise, crocodile head raised with a stern golden eye, long tapered snout and natural teeth, tawny lion shoulders and powerful feline forepaws, huge smooth gray hippo hindquarters behind. Sand drifting around four feet, warm white-gold radiant halo in dust, aged stone and desert dunes blurred, majestic guardian.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/ammut/",
+      "note": "Correct Creature Codex Large celestial: crocodile head, lion body/forequarters and hippopotamus hindquarters, desert soul-judging guardian. Not alternate Huge evil monstrosity variants."
+    },
+    {
+      "url": "https://koboldpress.com/tools/kobold-press-monsters/",
+      "note": "Publisher confirms Large celestial, desert/badlands, Creature Codex."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

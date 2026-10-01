@@ -1,0 +1,21 @@
+{
+  "creatureId": "ancient-amethyst-dragon-a5e",
+  "variantId": "03",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. One original square dark-fantasy bestiary avatar, cinematic realistic painterly art, rich tactile gemstone scales and very clear dragon face at 512 pixels. ANCIENT A5E AMETHYST DRAGON: a GARGANTUAN elderly psionic true dragon, immense thick neck and monumental shoulders, angular lustrous multicolored scales in violet, amethyst and indigo, sparkling gem eyes. Original consistent family design: two ATTACHED swept-back faceted crystal horns and a low crystalline cranial ridge, all physically attached to the skull, no floating horn fragments. Old weathered scale edges, heavier facial ridges and large majestic muzzle convey age. Exactly four legs, one pair of TWO batlike wings and one tail; only relevant body parts in the portrait, no duplicate wings. Intelligent composed negotiator and psychic manipulator, force breath and telepathy illustrated as translucent pressure ripples, NOT fire. No text, glyphs, logo, border, watermark or gore. Serious normal 03. A monumental old amethyst dragon extends its long head toward a broken underground bridge, head dominant at slight right three-quarter angle, enormous lustrous violet scales, intelligent gemstone eye, weathered facial ridges and two attached swept horns. A translucent concussive breath wave distorts air and levitates pebbles without flame. One pair of wings partly unfurled behind shoulders, distant cavern balconies establish gargantuan scale, warm copper rim over cool indigo depths.",
+  "designReferences": [
+    {
+      "url": "https://a5e.tools/node/1562",
+      "note": "Official Gargantuan ancient A5E amethyst dragon, telekinetic force breath, distant psychic observation and diplomatic manipulation. Scale palette, attached horns and aging details are original family design choices."
+    },
+    {
+      "url": "https://a5e.tools/rules/gem-dragons",
+      "note": "Official A5E gem dragon lustrous multicolored scales, gemstone eyes and psionic powers; elder meditative subterranean setting."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

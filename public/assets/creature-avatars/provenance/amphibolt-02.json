@@ -1,0 +1,17 @@
+{
+  "creatureId": "amphibolt",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy bestiary avatar, cinematic painterly realism, one clearly readable creature, subject fills frame with room around silhouette, detailed face and tactile material readable at 512 pixels. AMPHIBOLT: a LARGE frog-like amphibian with a broad squat frog body, two front legs and two powerful folded hind legs, webbed toes, huge frog mouth, two eyes, no tail. Its skin is dark gray rocky amphibole stone, with TWO prominent lengthwise ridges of green quartz crystals on its back. Storm-green lightning crackles across the rock skin and crystals; long electric frog tongue when shown. It remains anatomically a frog under its stony hide, not a lizard, dragon or mechanical creature. No extra legs, wings, horns, text, border, logo, watermark or gore. Serious normal 02. Side three-quarter action portrait of an amphibolt leaping from a wet ruined causeway, powerful rear legs extended and two forelegs reaching forward, one broad frog mouth partly open, TWO dorsal rows of jagged green quartz catching light. Green lightning trailing from its dark gray rock hide, suspended droplets, distant murky mangroves, dynamic silhouette with all four limbs coherent.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/amphibolt/",
+      "note": "Tome of Beasts 3 licensed description: large frog-like amphibian, dark gray amphibole skin, two prominent dorsal green quartz ridges, green lightning and electric tongue. Original compositions; no publisher artwork copied."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

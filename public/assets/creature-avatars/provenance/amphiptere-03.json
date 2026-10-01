@@ -1,0 +1,21 @@
+{
+  "creatureId": "amphiptere",
+  "variantId": "03",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy bestiary avatar, cinematic painterly realism, tactile scales and feathers, one creature dominant with head clearly readable at 512 pixels. AMPHIPTERE from Tome of Beasts: a medium-sized gold-crested WINGED SERPENT. Long slender green scaly snake body with NO LEGS, NO FEET, NO ARMS; ONE pair of bat-shaped membranous wings sprouting greenish-yellow feathers along the wing forearms and edges. Gold crest above reptilian snake face, two alert eyes and small natural fangs, long flexible tail ending in a single sharp wyvern-like stinger. Show the paired wing membranes and feathers together, not pure bird wings. No extra wings or disconnected tail, no humanoid, no text, logo, border, watermark or gore. Serious normal 03. Close three-quarter amphiptere portrait emerging from broad wet leaves at twilight, narrow reptilian face and raised gold crest, coiled continuous emerald snake body behind it, two wings folded backward showing green-yellow feathers over leathery membranes. One barbed tail tip hooked over a branch in the foreground. Cool jade mist, warm last sun on crest, cunning serpentine gaze.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/amphiptere-3pp-2/",
+      "note": "Licensed Tome of Beasts anatomy: gold-crested winged serpent, scaly reptilian body, batlike wings sprouting greenish-yellow feathers, wyvernlike tail stinger."
+    },
+    {
+      "url": "https://koboldpress.com/tools/kobold-press-monsters/",
+      "note": "Publisher catalog confirms Medium beast, forest/hills, Tome of Beasts 1."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}
