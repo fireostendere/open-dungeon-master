@@ -1,0 +1,21 @@
+{
+  "creatureId": "ancient-flame-dragon",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy bestiary avatar, polished realistic painterly art, tactile charcoal scales and heat, one ancient dragon with dominant head and forebody readable at 512 pixels. ANCIENT FLAME DRAGON from Tome of Beasts: gargantuan elder dragon with CHARRED BLACK scale surfaces and dull RED inner light glowing ONLY BETWEEN scales. When roaring, seams ignite orange from neck toward mouth. Mostly black body, never uniformly red scales. Two broad blunt swept-back charcoal horns as original consistent family choice, glowing amber eyes, low obsidian dorsal ridges, thick ancient neck and monumental weathered skull. FOUR legs, exactly TWO separate functional membranous wings and ONE tail, mostly beyond portrait. Living elemental heat, fierce intelligence, no exposed skeleton. No text, letters, signature, logo, border, watermark, gore or copied artwork. Absurd YOLO 04. This ancient flame dragon is desperately trying to blow out a tiny birthday cake, but one gentle puff has turned the cake into a comically black smoking lump while the few candle wicks remain stubbornly lit. Huge charred-black face with red seams, amber eyes widened in offended disbelief, two blunt swept-back horns with a tiny lopsided party hat wedged between them. Its immense foreclaws delicately hold the tiny plate, exactly two folded wings behind, volcanic banquet nook and scattered pastel confetti, deadpan dark-fantasy realism, harmless slapstick, no numbers or letters.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/dragon-flame-ancient-3pp/",
+      "note": "Licensed ancient flame dragon, Gargantuan fiery dragon with functional wings and elemental heat. Original elder staging."
+    },
+    {
+      "url": "https://www.5esrd.com/database/creature/dragon-flame-adult-3pp/",
+      "note": "Shared flame family description: charred-black scale surfaces with red interior glow, orange ignition toward mouth; horn shape and amber eyes are original consistent family choices."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

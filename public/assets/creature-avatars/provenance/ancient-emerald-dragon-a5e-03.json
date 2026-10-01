@@ -1,0 +1,21 @@
+{
+  "creatureId": "ancient-emerald-dragon-a5e",
+  "variantId": "03",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy bestiary avatar, cinematic realistic painterly art, one gargantuan elder dragon with dominant head and forebody clearly readable at 512 pixels. ANCIENT A5E EMERALD DRAGON: lustrous multicolored scales with original emerald-dominant faceted surfaces, shifting teal and pale gold highlights, scintillating gemstone eyes. Attached compact angular crystalline horn crown, aged broader face and massive thick neck, worn scale edges and deep facial ridges. FOUR legs, ONE PAIR of TWO separate membranous wings and ONE tail, most body outside portrait crop. Psychic gemstone dragon, living scaled reptile, not wholly transparent sculpture or ordinary forest green dragon. Defensive suspicious intelligence; SONIC and PSIONIC scream visualized as clear pressure waves and vibrating dust, no poison cloud or fire. No text, signature, logos, watermark, border, gore or copied artwork. Serious normal 03. Ancient emerald dragon in quiet psychic trance beneath the vaults of an abandoned underground reservoir, enormous low head near water, gemstone eyes glowing jade, broad worn facial plates and compact attached angular horns. Soft teal and green reflections ripple over multicolor lustrous scales, massive foreclaws beside ruined stone arches, two folded wings and long body fading into dark, thin transparent pressure distortion around its brow, concealed calculating presence.",
+  "designReferences": [
+    {
+      "url": "https://a5e.tools/node/1566",
+      "note": "Official Gargantuan A5E ancient emerald dragon: psionic powers, thunder/psychic scream and red eye flash during legendary resistance. Original elder design details and compositions."
+    },
+    {
+      "url": "https://a5e.tools/rules/gem-dragons",
+      "note": "Gem-family lustrous multicolored scales and gemstone eyes; emerald palette and attached angular horn crown are original consistent family design choices."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

@@ -1,0 +1,17 @@
+{
+  "creatureId": "ancientcavedragon-tob1-2023",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. One original square dark-fantasy bestiary avatar, cinematic painterly realism, one immense ancient cave dragon with dominant head and forebody readable at 512 pixels. ANCIENT CAVE DRAGON, Tome of Beasts 1 2023, gargantuan elder burrowing predator: entirely EYELESS head, uninterrupted leathery skin where eyes would be, NO eyes, eyelids, sockets or glowing eye marks. Very long narrow probing snout and large toothed mouth, slick eel-like hide mottled dark brown and black rather than armored reptile scales. Long thin black sensory spikes and feelers form a ruff around head and neck. Four strong clawed legs; vestigial wings are only two small fingerlike sensory appendages without flight membranes, NO functional bat wings. Heavy elongated body and one long tail. Dense age mottling and scarred hide, ancient hunger and subterranean silence. Black poisonous gas and subtle aura of darkness, not flame. No text, signature, logo, watermark, border, gore or victims. Serious normal 02. Ancient cave dragon clinging across a vertical cavern wall with broad foreclaws, eyeless elongated head turning down toward viewer, head-and-neck ruff of needlelike tactile spikes flared. Brown-black mottled soft eel hide rather than scales, uninterrupted skin at absent-eye areas. Inky poisonous vapor curls from narrow toothy jaws, tiny distant cave columns establish size, moody green mineral reflections and deep violet shadows.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/cave-dragon-ancient/",
+      "note": "Licensed 2023 ancient cave dragon: eyeless narrow-snouted head, eel-like brown/black aging hide, sensory spikes, stunted feeler-like wings and no adult flight; poison and darkness abilities. Original compositions."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

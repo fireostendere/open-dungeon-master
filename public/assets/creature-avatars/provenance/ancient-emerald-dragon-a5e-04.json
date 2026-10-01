@@ -1,0 +1,21 @@
+{
+  "creatureId": "ancient-emerald-dragon-a5e",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy bestiary avatar, cinematic realistic painterly art, one gargantuan elder dragon with dominant head and forebody clearly readable at 512 pixels. ANCIENT A5E EMERALD DRAGON: lustrous multicolored scales with original emerald-dominant faceted surfaces, shifting teal and pale gold highlights, scintillating gemstone eyes. Attached compact angular crystalline horn crown, aged broader face and massive thick neck, worn scale edges and deep facial ridges. FOUR legs, ONE PAIR of TWO separate membranous wings and ONE tail, most body outside portrait crop. Psychic gemstone dragon, living scaled reptile, not wholly transparent sculpture or ordinary forest green dragon. Defensive suspicious intelligence; SONIC and PSIONIC scream visualized as clear pressure waves and vibrating dust, no poison cloud or fire. No text, signature, logos, watermark, border, gore or copied artwork. Absurd YOLO 04. An ancient emerald dragon is practicing outrageously dramatic opera into a tiny wooden hairbrush as if it were a microphone. Monumental emerald-scaled reptilian face, compact attached crystal horn crown, jewel eyes and open singing jaws, ridiculously small curled white opera wig perched on head and oversized fluffy pink earmuffs over ear regions. It holds the hairbrush delicately in one foreclaw while its sonic note sends harmless empty crystal goblets vibrating and popping into glittering fragments on a tiny table. TWO folded wings behind, lavish gloomy cavern dressing room, absurd diva confidence, no people, injuries, lettering or signature.",
+  "designReferences": [
+    {
+      "url": "https://a5e.tools/node/1566",
+      "note": "Official Gargantuan A5E ancient emerald dragon: psionic powers, thunder/psychic scream and red eye flash during legendary resistance. Original elder design details and compositions."
+    },
+    {
+      "url": "https://a5e.tools/rules/gem-dragons",
+      "note": "Gem-family lustrous multicolored scales and gemstone eyes; emerald palette and attached angular horn crown are original consistent family design choices."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}
