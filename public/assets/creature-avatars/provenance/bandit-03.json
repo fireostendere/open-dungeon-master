@@ -1,0 +1,17 @@
+{
+  "creatureId": "bandit",
+  "variantId": "03",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy character avatar, realistic painterly face, weathered cloth and LEATHER ARMOR, readable at 512 pixels. One clearly ADULT BANDIT, a Medium humanoid outlaw, equipped with a curved SCIMITAR and a LIGHT CROSSBOW. Original personal identity and clothing; practical fully clothed adventuring gear, one head, two arms and two legs. Realistic hands and purposeful expression. No victims, injuries, blood, text, signature, watermark, logo or border. Normal 03. An adult wood-elf bandit with pointed ears, copper-brown hair tied back and a weathered serious face leans beside a mossy oak. Patched charcoal leather armor over an olive tunic, scimitar at the hip and a compact light crossbow held low, no extra weapons or limbs. Close portrait with both hands clearly placed on crossbow and belt respectively, silver dawn through woodland.",
+  "designReferences": [
+    {
+      "url": "https://5thsrd.org/gamemaster_rules/monsters/bandit/",
+      "note": "SRD5.1 Medium humanoid of any ancestry; leather armor, scimitar and light crossbow. Personal appearance, gender, ancestry choices, clothing colors and goose mishap are original interpretations. Outlaws are not universally evil in the source; no copied artwork."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

@@ -1,0 +1,21 @@
+{
+  "creatureId": "balor",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy legendary-demon avatar, rich realistic painterly anatomy, glowing heat and dramatic light, strong readable silhouette at 512 pixels. One BALOR, a HUGE muscular humanoid fiend about twice adult-human height, with RED-HOT GLOWING SKIN, exactly TWO large horns, TWO ragged leathery BATLIKE WINGS, TWO arms and TWO legs. Source weapons: one LONGSWORD whose blade crackles with bright LIGHTNING and one WHIP MADE OF LIVING FIRE, one weapon in each hand. Original dark horn curvature, clawed feet, ember-cracked skin texture and a modest blackened metal waistguard covering hips/groin; no tail as an original conservative choice. No extra arms, extra wings or horns, no victims, wounds, blood, gore, text, signature, watermark, logo or frame. YOLO 04. The terrifying huge balor is trying to host a polite tea party but its living-fire WHIP has accidentally toasted every tiny sandwich on a tiered cake stand into harmless black crumbs. It wears an absurd little pink frilly apron over its black waistguard, two horns and two dark wings remain visible. One hand still grips its blue lightning longsword, the other holds the slack fire whip away from the table; its molten face looks profoundly embarrassed. A tiny porcelain teacup beside the ruined snacks establishes scale, warm infernal dining room, no people or injuries, no writing. Correction: Correct ONLY the demon's arm anatomy. The image currently has THREE hands: one on the viewer's left holding a fire whip, one covering its face, and a detached hand on the viewer's right holding the lightning sword. The balor must have exactly TWO ARMS and TWO HANDS. Keep the viewer-left whip arm unchanged. REMOVE the entire face-covering hand and the bent forearm leading to that hand. Redraw the viewer-right arm as ONE natural muscular arm descending outward from the right shoulder, connecting through one elbow and wrist to the existing sword-holding hand on the far right. That sword hand must clearly belong to the single right arm. Restore the demon's face underneath the removed hand, maintaining an embarrassed frustrated expression. Keep both horns, two wings, fiery red skin, lightning sword, flame whip, pink apron, table, ruined sandwiches, teacups, lighting and all composition otherwise unchanged. No third arm, no floating hand, no extra limb, no text.",
+  "designReferences": [
+    {
+      "url": "https://a5e.tools/node/1498",
+      "note": "Official A5E Balor description: about twice human height, two horns, ragged wings and internally red-hot skin; lightning longsword and living-fire whip. Two arms/two legs follow humanoid form. Horn shape, clawed feet, protective waistguard, exact colors and scenes are original design choices; no publisher art copied."
+    },
+    {
+      "url": "https://5thsrd.org/gamemaster_rules/monsters/balor/",
+      "note": "SRD5.1 Huge fiend with longsword, whip, flight and fire aura provides shared catalog identity anchors."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

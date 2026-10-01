@@ -1,0 +1,21 @@
+{
+  "creatureId": "balor-general-a5e",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy demon-general avatar, realistic painterly fire, bone-dark horns and ceremonial metal, strong face at 512 pixels. One BALOR GENERAL, a HUGE humanoid fiend commander with the SAME BODY PLAN as a balor: glowing RED-HOT skin, exactly TWO horns, TWO ragged batlike membrane wings, TWO arms and TWO legs with clawed feet. A LIGHTNING LONGSWORD and a WHIP OF LIVING FIRE remain its weapons. Original command-rank costume consists of limited blackened-gold shoulder ornaments, a charred military mantle between the wings, and a modest black waistguard covering hips/groin; these rank ornaments are artistic choices, not special anatomy. No extra horns, crown horns, arms or wings, no tail, no victims, wounds, blood, gore, text, signature, watermark or border. Normal 02. Close three-quarter portrait of a balor general forming a magical ward with its longsword. Its two-horned head and red-hot muscular torso dominate the frame, two ragged dark wings behind; one clawed hand holds a temporarily dark sword blade diagonally across the body while abstract blue lightning rings arc outward around it, the other hand keeps a short fiery whip coil low. Original dark gold shoulder metal and waistguard, cold blue ward light against red molten skin, no readable runes.",
+  "designReferences": [
+    {
+      "url": "https://a5e.tools/node/1499",
+      "note": "Official A5E Balor General: powerful balor army commander with lightning sword, fire whip and sword-based Warding. General has no separately specified body-plan change; rank ornaments, mantle, command scenes and toy-duck war council are original visual choices."
+    },
+    {
+      "url": "https://a5e.tools/node/1498",
+      "note": "Inherited base appearance: twice human height, pair of horns, ragged wings and red-hot skin. Normal Warding scene interprets the sword's temporarily extinguished lightning as surrounding defensive blue light; no extra limbs or horns asserted."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}
