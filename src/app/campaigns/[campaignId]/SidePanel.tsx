@@ -121,7 +121,7 @@ function SidePanelInner({
       <div
         className={cn(
           "hidden shrink-0 flex-col items-stretch gap-1 overflow-y-auto border-l border-stone-700/40 py-2 [scrollbar-width:none] lg:flex lg:transition-[width] lg:duration-200",
-          collapsed ? "w-14 px-1" : "w-24 px-1.5",
+          collapsed ? "w-14 px-1" : "w-28 px-1.5",
         )}
       >
         <Tooltip content={collapsed ? copy.expand : copy.collapse} side="left">

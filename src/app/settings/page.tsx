@@ -280,6 +280,7 @@ export default function SettingsPage() {
       user={me}
       width="narrow"
       icon={PIXEL_ICONS.characters}
+      glyph="tab-settings"
       title={copy.accountSettings}
       blurb={`${copy.signedInAs} ${me.username}`}
       actions={
@@ -290,7 +291,7 @@ export default function SettingsPage() {
         ) : null
       }
     >
-      <PageSection heading={copy.profilePicture}>
+      <PageSection heading={copy.profilePicture} glyph="tab-characters">
         <div className="flex items-center gap-5">
           {me.avatar ? (
             <ImageLightbox
@@ -340,7 +341,7 @@ export default function SettingsPage() {
           )}
         </PageSection>
       ) : (
-        <PageSection heading={me.hasPassword === false ? copy.setPasswordHeading : copy.passwordHeading}>
+        <PageSection heading={me.hasPassword === false ? copy.setPasswordHeading : copy.passwordHeading} glyph="tab-admin">
           {me.hasPassword === false ? (
             <>
               <p className="mb-3 text-sm text-stone-400">{copy.passwordDiscordHelp}</p>
@@ -366,7 +367,7 @@ export default function SettingsPage() {
       )}
 
       {me.discordAvailable || me.discordLinked ? (
-        <PageSection heading="Discord">
+        <PageSection heading="Discord" glyph="system-share">
           {me.discordLinked ? (
             <p className="text-sm text-stone-400">
               <Check className="mr-1 inline size-4 text-emerald-400" /> {copy.discordLinked}
@@ -385,6 +386,7 @@ export default function SettingsPage() {
       {me.deletionDueAt ? (
         <PageSection
           heading={copy.deletionScheduled}
+          glyph="quest-failed"
           ribbon={copy.pending}
           ribbonTone="ember"
           tone="danger"
@@ -398,6 +400,7 @@ export default function SettingsPage() {
       ) : (
         <PageSection
           heading={copy.deleteAccount}
+          glyph="quest-failed"
           ribbon={copy.irreversible}
           ribbonTone="ember"
           tone="danger"
@@ -417,7 +420,7 @@ export default function SettingsPage() {
         </PageSection>
       )}
 
-      <PageSection heading={copy.about}>
+      <PageSection heading={copy.about} glyph="system-lore">
         {about ? (
           <p className="text-sm text-stone-300">
             {about.serverName} <span className="text-stone-500">v{about.version}</span>
@@ -426,6 +429,7 @@ export default function SettingsPage() {
           <p className="text-sm text-stone-500">{t("common.appName")}</p>
         )}
         <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2">
+          <Link href="/rulebook" className="text-xs text-stone-500 hover:text-amber-200">{t("nav.rulebook")}</Link>
           <Link href="/reference" className="text-xs text-stone-500 hover:text-amber-200">{copy.rulesReference}</Link>
           <Link href="/terms" className="text-xs text-stone-500 hover:text-amber-200">{t("auth.termsOfService")}</Link>
           <Link href="/privacy" className="text-xs text-stone-500 hover:text-amber-200">{t("auth.privacyPolicy")}</Link>

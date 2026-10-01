@@ -8,6 +8,7 @@ import {
   type CharacterRole,
 } from "@/lib/db/characters";
 import { createSheetSchema } from "@/lib/schemas/sheet";
+import { spellListProblems } from "@/lib/srd/spell-prep";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -54,6 +55,10 @@ export async function POST(request: Request) {
       { error: parsed.error.issues[0]?.message || "Invalid character." },
       { status: 400 },
     );
+  }
+  const [problem] = spellListProblems({ ...parsed.data.sheet, level: parsed.data.level });
+  if (problem) {
+    return Response.json({ error: problem }, { status: 400 });
   }
   const character = createCharacter(
     user.id,

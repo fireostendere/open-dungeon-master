@@ -1,6 +1,8 @@
 "use client";
 
 import { ChevronDown, ChevronRight, Skull, Swords, Wind } from "lucide-react";
+import { GameIcon } from "@/components/ui/GameIcon";
+import { conditionIconKey } from "@/lib/icons";
 import { useMemo, useState } from "react";
 import { cn } from "@/lib/cn";
 import { MonsterTile } from "@/lib/ui";
@@ -9,6 +11,7 @@ import { DmInitiativePanel } from "@/app/campaigns/[campaignId]/DmInitiativePane
 import type { PublicEncounter } from "@/lib/db/encounter-view";
 import { useI18n } from "@/lib/i18n/context";
 import { localeText } from "@/lib/i18n/locale-text";
+import { characterDisplay } from "@/lib/i18n/character-display";
 
 function crLabel(cr: number): string {
   if (cr === 0.125) return "1/8";
@@ -220,9 +223,10 @@ export function EncounterPanel({
                   {enemy.conditions.map((condition) => (
                     <span
                       key={condition}
-                      className="rounded-full border border-amber-900/60 bg-amber-950/30 px-1.5 py-px text-[10px] capitalize text-amber-300"
+                      className="inline-flex items-center gap-1 rounded-full border border-amber-900/60 bg-amber-950/30 py-px pl-0.5 pr-1.5 text-[10px] capitalize text-amber-300"
                     >
-                      {condition}
+                      <GameIcon icon={{ kind: "condition", key: conditionIconKey(condition) }} size="size-5" />
+                      {characterDisplay(condition, locale)}
                       {enemy.conditionRounds?.[condition]
                          ? ` (${enemy.conditionRounds[condition]} ${copy.rounds})`
                         : ""}

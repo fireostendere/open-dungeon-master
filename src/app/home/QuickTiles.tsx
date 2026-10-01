@@ -1,8 +1,8 @@
 "use client";
 
-import { BookOpen, Hammer, KeyRound, Plus, Users } from "lucide-react";
+import { BookOpen, BookOpenText, Hammer, KeyRound, Plus, Users } from "lucide-react";
 import { cn } from "@/lib/cn";
-import { QuickTile } from "@/components/ui/QuickTile";
+import { QuickTile, longestWord } from "@/components/ui/QuickTile";
 import { useI18n } from "@/lib/i18n";
 import { localeText } from "@/lib/i18n/locale-text";
 
@@ -22,18 +22,22 @@ export function QuickTiles({
     en: { newCampaign: "New campaign", solo: "Solo adventure", join: "Join with a code" },
     ru: { newCampaign: "Новая кампания", solo: "Соло-приключение", join: "Войти по коду" },
   });
+  const labels = [copy.newCampaign, showSolo ? copy.solo : "", t("nav.characters"), t("nav.workshop"), t("nav.rulebook"), copy.join];
+  // One label size for the row, set by its longest word.
+  const fitLetters = Math.max(...labels.map(longestWord));
   return (
     <div
       className={cn(
         "grid grid-cols-2 gap-3 sm:grid-cols-3",
-        showSolo ? "md:grid-cols-5" : "md:grid-cols-4",
+        showSolo ? "lg:grid-cols-6" : "md:grid-cols-5",
       )}
     >
-      <QuickTile icon={Plus} label={copy.newCampaign} onClick={onNewCampaign} />
-      {showSolo ? <QuickTile icon={BookOpen} label={copy.solo} onClick={onSolo} /> : null}
-      <QuickTile icon={Users} label={t("nav.characters")} href="/characters" />
-      <QuickTile icon={Hammer} label={t("nav.workshop")} href="/workshop" />
-      <QuickTile icon={KeyRound} label={copy.join} onClick={onJoin} />
+      <QuickTile icon={Plus} glyph="tab-campaigns" label={copy.newCampaign} onClick={onNewCampaign} fitLetters={fitLetters} />
+      {showSolo ? <QuickTile icon={BookOpen} glyph="tab-story" label={copy.solo} onClick={onSolo} fitLetters={fitLetters} /> : null}
+      <QuickTile icon={Users} glyph="tab-characters" label={t("nav.characters")} href="/characters" fitLetters={fitLetters} />
+      <QuickTile icon={Hammer} glyph="system-homebrew" label={t("nav.workshop")} href="/workshop" fitLetters={fitLetters} />
+      <QuickTile icon={BookOpenText} glyph="system-rules" label={t("nav.rulebook")} href="/rulebook" fitLetters={fitLetters} />
+      <QuickTile icon={KeyRound} glyph="tab-handout" label={copy.join} onClick={onJoin} fitLetters={fitLetters} />
     </div>
   );
 }

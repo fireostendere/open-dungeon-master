@@ -17,6 +17,7 @@ import { applyDmMutation } from "@/lib/dm/mutations";
 import { publishBattleMapUpdate } from "@/lib/dm/map-tools";
 import { dismissGuestCompanions } from "@/lib/dm/companion-tools";
 import { followCombatAmbience } from "@/lib/dm/ambience-tools";
+import { tickWaypointsFrom } from "@/lib/dm/waypoint-tick";
 import type { CharacterSheet } from "@/lib/schemas/sheet";
 
 // The single server-side path for damage landing on an enemy. Used by the
@@ -66,6 +67,13 @@ export function finishEncounter(
     }
   }
   endEncounter(encounter.id, outcome);
+  // A fight the party won (or routed) ticks the [NOW] beat's fight waypoint
+  // naming these foes; every ending comes through here, the automatic
+  // victory on the last kill included.
+  const waypointsTicked =
+    outcome === "victory" || outcome === "enemies_fled"
+      ? tickWaypointsFrom(campaign.id, { kind: "fight", names: enemies.map((enemy) => enemy.displayName) })
+      : [];
 
   // Half the ammunition spent in the fight is recovered from the field
   // (PHB). Only ever non-empty when the `ammunition` variant rule is on, so
@@ -144,6 +152,7 @@ export function finishEncounter(
         }
       : {}),
     ...(xpEach > 0 ? { xpAwarded: `${xpEach} XP each` } : {}),
+    ...(waypointsTicked.length ? { waypointsTicked } : {}),
     ...(typeof xpResult.levelUpAvailable !== "undefined"
       ? { levelUpAvailable: xpResult.levelUpAvailable }
       : {}),

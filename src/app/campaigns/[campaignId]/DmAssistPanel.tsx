@@ -2,7 +2,9 @@
 
 import { useInlineText } from "@/lib/i18n/inline-text";
 import { useMemo, useState } from "react";
-import { BookOpen, Loader2, Scale, Sparkles, Swords } from "lucide-react";
+import { Loader2, Sparkles } from "lucide-react";
+import { GameIcon } from "@/components/ui/GameIcon";
+import { adjudicationGlyph } from "@/app/campaigns/[campaignId]/SessionGlyph";
 import { cn } from "@/lib/cn";
 import { DmActionForm } from "@/app/campaigns/[campaignId]/DmActionForm";
 import { ADJUDICATIONS } from "@/lib/dm/invoke-catalog";
@@ -49,18 +51,18 @@ const inputClass =
   "w-full rounded-md border border-stone-700 bg-stone-950 px-2 py-1.5 text-sm text-stone-100 placeholder:text-stone-600 focus:border-amber-700 focus:outline-none";
 
 function Section({
-  icon: Icon,
+  glyph,
   title,
   children,
 }: {
-  icon: typeof Scale;
+  glyph: string;
   title: string;
   children: React.ReactNode;
 }) {
   return (
     <section className="rounded-lg border border-stone-800 bg-stone-950/60 px-2.5 py-2">
       <p className="mb-1.5 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-stone-500">
-        <Icon className="size-3.5" />
+        <GameIcon icon={{ kind: "glyph", key: glyph }} size="size-5" />
         {title}
       </p>
       {children}
@@ -130,7 +132,7 @@ function IntentSuggest({
   const openEntry = open ? findAdjudication(ADJUDICATIONS, open.name) : null;
 
   return (
-    <Section icon={Sparkles} title={uiText("What should I press?")}>
+    <Section glyph="die-d20" title={uiText("What should I press?")}>
       <textarea
         value={intent}
         onChange={(event) => onIntentChange(event.target.value.slice(0, 1000))}
@@ -163,6 +165,7 @@ function IntentSuggest({
                     sheets={sheets}
                     encounter={encounter}
                     initialArgs={suggestion.args}
+                    glyph={adjudicationGlyph(suggestion.name, "tab-dm")}
                   />
                   <button
                     type="button"
@@ -176,8 +179,10 @@ function IntentSuggest({
                 <button
                   type="button"
                   onClick={() => setOpen(suggestion)}
-                  className="w-full rounded-lg border border-stone-800 bg-stone-950/40 px-2.5 py-2 text-left hover:border-stone-700"
+                  className="flex w-full items-center gap-2.5 rounded-lg border border-stone-800 bg-stone-950/40 px-2.5 py-2 text-left hover:border-stone-700"
                 >
+                  <GameIcon icon={{ kind: "glyph", key: adjudicationGlyph(suggestion.name, "tab-dm") }} size="size-7" />
+                  <span className="min-w-0 grow">
                   <span className="block text-sm text-stone-200">
                     {suggestion.label}
                     {suggestion.args ? (
@@ -188,6 +193,7 @@ function IntentSuggest({
                   </span>
                   <span className="block text-xs text-stone-500">
                     {suggestion.why || suggestion.summary}
+                  </span>
                   </span>
                 </button>
               )}
@@ -203,7 +209,7 @@ function IntentSuggest({
 function DcLadder() {
   const uiText = useInlineText();
   return (
-    <Section icon={Scale} title={uiText("What should this cost?")}>
+    <Section glyph="rest-proficiency" title={uiText("What should this cost?")}>
       <div className="flex flex-wrap gap-1">
         {DIFFICULTY_TIERS.map((tier) => (
           <span
@@ -246,7 +252,7 @@ function EncounterBudget({
 
   if (!evaluation) {
     return (
-      <Section icon={Swords} title={uiText("How hard is this fight?")}>
+      <Section glyph="system-encounters" title={uiText("How hard is this fight?")}>
         <p className="text-xs text-stone-500">
           {uiText("Nothing on the board yet. Add enemies and this reads the budget as they land.")}
         </p>
@@ -254,8 +260,9 @@ function EncounterBudget({
     );
   }
   return (
-    <Section icon={Swords} title={uiText("How hard is this fight?")}>
-      <p className={cn("text-sm font-medium", VERDICT_TONE[evaluation.verdict])}>
+    <Section glyph="system-encounters" title={uiText("How hard is this fight?")}>
+      <p className={cn("flex items-center gap-1.5 text-sm font-medium", VERDICT_TONE[evaluation.verdict])}>
+        <GameIcon icon={{ kind: "glyph", key: "tab-battle" }} size="size-5" />
         {VERDICT_LABELS[evaluation.verdict]}
       </p>
       <p className="mt-0.5 text-[11px] leading-snug text-stone-500">
@@ -318,7 +325,7 @@ function RulesLookup({ campaignId }: { campaignId: string }) {
   }
 
   return (
-    <Section icon={BookOpen} title={uiText("Look up a rule")}>
+    <Section glyph="system-rules" title={uiText("Look up a rule")}>
       <div className="flex gap-1.5">
         <input
           value={question}

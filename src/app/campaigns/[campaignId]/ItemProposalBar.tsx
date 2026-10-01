@@ -1,6 +1,7 @@
 "use client";
 
-import { Check, Loader2, Package, X } from "lucide-react";
+import { Check, Loader2, X } from "lucide-react";
+import { GameIcon } from "@/components/ui/GameIcon";
 import { useState } from "react";
 import { cn } from "@/lib/cn";
 import type { ItemProposal } from "@/app/campaigns/[campaignId]/useCampaignStream";
@@ -72,7 +73,7 @@ export function ItemProposalBar({
                 : "border-stone-800 bg-stone-950/60 text-stone-400",
             )}
           >
-            <Package className="size-3.5 shrink-0 text-amber-400" />
+            <GameIcon icon={{ kind: "glyph", key: "tab-loot" }} size="size-6" />
             <span className="min-w-0 flex-1">
               {proposal.summary}
               {proposal.reason ? (

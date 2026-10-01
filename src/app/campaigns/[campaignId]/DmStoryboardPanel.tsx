@@ -3,6 +3,7 @@
 import { useInlineText } from "@/lib/i18n/inline-text";
 import { useCallback, useEffect, useState } from "react";
 import { Lightbulb, Loader2, Plus, Trash2 } from "lucide-react";
+import { GameIcon } from "@/components/ui/GameIcon";
 import { cn } from "@/lib/cn";
 import { ui } from "@/lib/ui";
 import {
@@ -53,6 +54,17 @@ type Payload = {
   inventory: BoardInventory;
   suggestions: Suggestion[];
   compiled: CompiledBoard & { summary: CompileSummary };
+};
+
+// The painted face of each kind of card, on the list and the suggestions.
+const KIND_GLYPH: Record<BeatKind, string> = {
+  setting: "system-region",
+  backstory: "system-lore",
+  event: "tab-timeline",
+  encounter: "system-encounters",
+  hook: "quest-active",
+  secret: "quest-hidden",
+  npc_moment: "system-cast",
 };
 
 export function DmStoryboardPanel({
@@ -337,8 +349,9 @@ export function DmStoryboardPanel({
                 type="button"
                 disabled={busy}
                 onClick={() => void add(suggestion.kind, suggestion.title)}
-                className="rounded-md border border-stone-700 px-1.5 py-0.5 text-[10px] text-stone-400 hover:text-amber-100 disabled:opacity-40"
+                className="inline-flex items-center gap-1 rounded-md border border-stone-700 py-0.5 pl-0.5 pr-1.5 text-[10px] text-stone-400 hover:text-amber-100 disabled:opacity-40"
               >
+                <GameIcon icon={{ kind: "glyph", key: KIND_GLYPH[suggestion.kind] }} size="size-5" />
                 + {BEAT_LABELS[suggestion.kind]}
               </button>
             </div>
@@ -366,6 +379,7 @@ export function DmStoryboardPanel({
               )}
             >
               <div className="flex items-center gap-2 p-2">
+                <GameIcon icon={{ kind: "glyph", key: KIND_GLYPH[node.kind] }} size="size-7" />
                 <button
                   type="button"
                   onClick={() => {

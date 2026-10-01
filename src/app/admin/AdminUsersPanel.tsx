@@ -3,6 +3,7 @@
 import { useInlineText } from "@/lib/i18n/inline-text";
 import * as AlertDialog from "@radix-ui/react-alert-dialog";
 import { Copy, KeyRound, Loader2, Shield, ShieldOff, Trash2, Undo2, UserRound } from "lucide-react";
+import { GameIcon } from "@/components/ui/GameIcon";
 import { useCallback, useEffect, useState } from "react";
 import { cn } from "@/lib/cn";
 import { ui } from "@/lib/ui";
@@ -165,7 +166,8 @@ export function AdminUsersPanel({ meId }: { meId: string }) {
                   {user.username}
                   {user.id === meId ? <span className="text-xs text-stone-500">{uiText("(you)")}</span> : null}
                   {user.isAdmin ? (
-                    <span className="rounded border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-amber-300">
+                    <span className="inline-flex items-center gap-1 rounded border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-amber-300">
+                      <GameIcon icon={{ kind: "glyph", key: "tab-admin" }} size="size-5" />
                       {uiText("Admin")}
                     </span>
                   ) : null}

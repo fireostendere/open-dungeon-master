@@ -1,5 +1,6 @@
-import { getCampaignById, listMembers } from "@/lib/db/campaigns";
-import { listChapters } from "@/lib/db/chapters";
+import { getCampaignById, listMembers, type Campaign } from "@/lib/db/campaigns";
+import { listChapters, type Chapter } from "@/lib/db/chapters";
+import { actRecapFor, actTitle, romanNumeral, sagaIndexOf } from "@/lib/dm/arc-logic";
 import { listAllMessages } from "@/lib/db/messages";
 import { listSheets } from "@/lib/db/sheets";
 import { isOocMessage } from "@/lib/campaign-types";
@@ -16,6 +17,11 @@ export type TranscriptLine = {
 
 export type StoryChapter = {
   index: number;
+  // Set on the first chapter of each act: "Act II: The Drowned Road" and the
+  // spoiler-free recap recorded when that act ended, so the document carries
+  // the saga's shape, not a flat run of chapters.
+  actHeading?: string;
+  actRecap?: string;
   // Full heading text, e.g. "Chapter 1: The Sunless Road" or the in-progress
   // label for the open chapter.
   heading: string;
@@ -54,6 +60,7 @@ export function buildStoryDocument(campaignId: string): StoryDocument | null {
   const memberNames = new Map(listMembers(campaignId).map((m) => [m.userId, m.username]));
   const sheetNames = new Map(listSheets(campaignId).map((s) => [s.id, s.name]));
 
+  const acts = actHeadings(campaign, chapters);
   const storyChapters: StoryChapter[] = chapters.map((chapter) => {
     const seqEnd = chapter.seqEnd ?? Number.MAX_SAFE_INTEGER;
     const transcript: TranscriptLine[] = messages
@@ -84,6 +91,7 @@ export function buildStoryDocument(campaignId: string): StoryDocument | null {
 
     return {
       index: chapter.index,
+      ...acts.get(chapter.id),
       heading,
       status: chapter.status,
       summary: chapter.summary ?? "",
@@ -105,6 +113,34 @@ export function buildStoryDocument(campaignId: string): StoryDocument | null {
     questLog: campaign.questLog ?? [],
     chapters: storyChapters,
   };
+}
+
+// The act heading for the first chapter of each act, keyed by chapter id.
+// Player-safe: the names the table was shown and the recaps it heard, never
+// the DM's milestones. The word follows the table's language.
+export function actHeadings(
+  campaign: Campaign,
+  chapters: Chapter[],
+): Map<string, { actHeading: string; actRecap?: string }> {
+  const arc = campaign.storyArc;
+  const word = campaign.gameSettings.language === "en" ? "Act" : "Акт";
+  const out = new Map<string, { actHeading: string; actRecap?: string }>();
+  let lastKey = "";
+  for (const chapter of chapters) {
+    const act = chapter.act;
+    const saga = chapter.saga ?? 1;
+    if (!act || `${saga}:${act}` === lastKey) {
+      continue;
+    }
+    lastKey = `${saga}:${act}`;
+    const recap = arc ? actRecapFor(arc, act, saga) : null;
+    const title = recap?.title || (arc && saga === sagaIndexOf(arc) ? actTitle(arc, act) : "");
+    out.set(chapter.id, {
+      actHeading: `${word} ${romanNumeral(act)}${title ? `: ${title}` : ""}`,
+      ...(recap?.recap ? { actRecap: recap.recap } : {}),
+    });
+  }
+  return out;
 }
 
 // A url/filename-safe slug of the campaign title.

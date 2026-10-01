@@ -2,7 +2,8 @@
 
 import { useInlineText } from "@/lib/i18n/inline-text";
 import * as Dialog from "@radix-ui/react-dialog";
-import { Check, Loader2, ShieldQuestion, X } from "lucide-react";
+import { Check, Loader2, X } from "lucide-react";
+import { GameIcon } from "@/components/ui/GameIcon";
 import { useState } from "react";
 import { cn } from "@/lib/cn";
 import { ui } from "@/lib/ui";
@@ -127,7 +128,7 @@ export function LoreCheckDialog({
         >
           <div className="mb-3 flex items-center justify-between">
             <Dialog.Title className="flex items-center gap-2 font-display text-lg tracking-wide text-amber-50">
-              <ShieldQuestion className="size-4 text-amber-300" /> {uiText("Lore check")}
+              <GameIcon icon={{ kind: "glyph", key: "system-lore" }} size="size-7" /> {uiText("Lore check")}
             </Dialog.Title>
             <Dialog.Close className="text-stone-500 hover:text-stone-300">
               <X className="size-4" />

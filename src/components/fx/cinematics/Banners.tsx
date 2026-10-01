@@ -28,17 +28,20 @@ export function TurnBanner({
   title,
   subtitle,
   tone = "gold",
+  holdMs = 2500,
   onDone,
 }: {
   active: boolean;
   title?: string;
   subtitle?: string;
   tone?: "gold" | "crimson" | "emerald";
+  // An act's end or beginning holds longer so its name can be read.
+  holdMs?: number;
   onDone: () => void;
 }) {
   const { locale } = useI18n();
   const text = title ?? (locale === "ru" ? "Ваш ход" : "Your turn");
-  useAutoDone(active, 2500, onDone);
+  useAutoDone(active, holdMs, onDone);
   useEffect(() => {
     if (!active) return;
     sfx.sfxWhoosh(0.35);

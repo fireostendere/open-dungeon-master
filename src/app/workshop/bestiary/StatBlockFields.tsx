@@ -17,6 +17,7 @@ import type { EnemyStats, SaveAbility } from "@/lib/bestiary/statblock";
 import { LANGUAGES, appendTerm } from "@/lib/workshop/pickers";
 import { AddFromList } from "@/components/ui/AddFromList";
 import { ContentPick } from "@/components/ui/ContentPick";
+import { GameIcon } from "@/components/ui/GameIcon";
 import { OptionGlossary } from "@/components/ui/OptionGlossary";
 import { describeSkill } from "@/lib/help";
 import type { GlossaryEntry } from "@/lib/help/terms";
@@ -24,6 +25,14 @@ import { ALIGNMENT_LABELS } from "@/app/characters/builder/usePickerGroups";
 import { input } from "@/app/workshop/bestiary/types";
 import { useI18n } from "@/lib/i18n/context";
 import { localeText } from "@/lib/i18n/locale-text";
+
+// The painted glyph for a sense; the names are the engine's keys.
+const SENSE_GLYPHS: Record<string, string> = {
+  blindsight: "sense-blindsight",
+  darkvision: "sense-darkvision",
+  tremorsense: "sense-tremorsense",
+  truesight: "sense-truesight",
+};
 
 // The printed half of a stat block (docs/workshop-parity-audit.md phase
 // 12): ability scores, skills, senses, languages and alignment, the spells
@@ -117,7 +126,8 @@ export function AbilityScores({ draft, onChange }: { draft: MonsterDraft; onChan
       <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-6">
         {ABILITY_ORDER.map((ability) => (
           <label key={ability} className="flex flex-col gap-0.5">
-            <span className="text-[10px] uppercase text-stone-500">
+            <span className="flex items-center gap-1 text-[10px] uppercase text-stone-500">
+              <GameIcon icon={{ kind: "glyph", key: `ability-${ability}` }} size="size-5" />
               {ability}
               {typeof scores[ability] === "number" ? (
                 <span className="ml-1 text-stone-600">{signed(abilityMod(scores[ability] as number))}</span>
@@ -180,12 +190,13 @@ export function SkillsAndSenses({ draft, onChange }: { draft: MonsterDraft; onCh
                     set({ skills: Object.keys(next).length ? next : undefined });
                   }}
                   className={cn(
-                    "rounded-l-md border px-1.5 py-0.5 text-[11px] capitalize",
+                    "inline-flex items-center gap-1 rounded-l-md border py-0.5 pl-1 pr-1.5 text-[11px] capitalize",
                     on
                       ? "border-amber-700 bg-amber-950/50 text-amber-100"
                       : "rounded-r-md border-stone-700 text-stone-400 hover:text-stone-200",
                   )}
                 >
+                  <GameIcon icon={{ kind: "glyph", key: `skill-${name}` }} size="size-5" />
                   {name}
                 </button>
                 {on ? (
@@ -207,7 +218,10 @@ export function SkillsAndSenses({ draft, onChange }: { draft: MonsterDraft; onCh
       <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-5">
         {SENSE_NAMES.map((name) => (
           <label key={name} className="flex flex-col gap-0.5">
-            <span className="text-[10px] uppercase tracking-wide text-stone-500">{copy.senses[name]} (ft)</span>
+            <span className="flex items-center gap-1 text-[10px] uppercase tracking-wide text-stone-500">
+              {SENSE_GLYPHS[name] ? <GameIcon icon={{ kind: "glyph", key: SENSE_GLYPHS[name] }} size="size-5" /> : null}
+              {copy.senses[name]} (ft)
+            </span>
             <input
               type="number"
               min={0}
@@ -221,7 +235,10 @@ export function SkillsAndSenses({ draft, onChange }: { draft: MonsterDraft; onCh
           </label>
         ))}
         <label className="flex flex-col gap-0.5">
-          <span className="text-[10px] uppercase tracking-wide text-stone-500">{copy.passive}</span>
+          <span className="flex items-center gap-1 text-[10px] uppercase tracking-wide text-stone-500">
+            <GameIcon icon={{ kind: "glyph", key: "sense-passive-perception" }} size="size-5" />
+            {copy.passive}
+          </span>
           <input
             type="number"
             min={1}

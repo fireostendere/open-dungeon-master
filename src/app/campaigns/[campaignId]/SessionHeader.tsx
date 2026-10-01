@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import {
+  BookOpenText,
   ChevronDown,
   CircleHelp,
   DoorOpen,
@@ -14,6 +15,7 @@ import {
 import { useRef, useState, type ComponentProps } from "react";
 import { AccountMenu, AppHomeButton, AppHomeLogo, type AccountMenuUser } from "@/components/AccountMenu";
 import { Tooltip } from "@/components/ui/Tooltip";
+import { GameIcon } from "@/components/ui/GameIcon";
 import { Sheet } from "@/components/ui/Sheet";
 import { headerButtonClass } from "@/app/campaigns/[campaignId]/headerButton";
 import { NarratorLamp, NarratorLampRow } from "@/app/campaigns/[campaignId]/NarratorLamp";
@@ -22,6 +24,7 @@ import { VoiceDock } from "@/app/campaigns/[campaignId]/VoiceDock";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import type { AmbienceAudio } from "@/app/campaigns/[campaignId]/useAmbienceAudio";
 import { FxSettingsPanel } from "@/components/fx/FxSettingsPanel";
+import { RulebookDialog } from "@/components/rulebook/RulebookDialog";
 import { useI18n } from "@/lib/i18n";
 import { localeText } from "@/lib/i18n/locale-text";
 import { useFxSettings } from "@/lib/fx/prefs";
@@ -108,6 +111,7 @@ export function SessionHeader({
   const [toolsOpen, setToolsOpen] = useState(false);
   const [fxOpen, setFxOpen] = useState(false);
   const [fxSectionOpen, setFxSectionOpen] = useState(false);
+  const [rulebookOpen, setRulebookOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const fxTriggerRef = useRef<HTMLButtonElement>(null);
   const fx = useFxSettings();
@@ -122,6 +126,8 @@ export function SessionHeader({
       scene: "The adventure unfolds",
       help: "Help",
       helpTip: "How everything works, and the guided tours",
+      rulebook: "Rulebook",
+      rulebookTip: "The rulebook: every rule, spell and monster",
       campaigns: "All campaigns",
       tools: "Table tools",
       account: "Your account",
@@ -140,6 +146,8 @@ export function SessionHeader({
       scene: "Приключение начинается",
       help: "Помощь",
       helpTip: "Как всё устроено и как пройти обучение",
+      rulebook: "Книга правил",
+      rulebookTip: "Книга правил: все правила, заклинания и монстры (SRD 5.1 на английском)",
       campaigns: "Все кампании",
       tools: "Инструменты стола",
       account: "Ваш аккаунт",
@@ -222,6 +230,19 @@ export function SessionHeader({
             />
           ) : null}
 
+          <Tooltip content={copy.rulebookTip} side="bottom">
+            <button
+              type="button"
+              onClick={() => setRulebookOpen(true)}
+              aria-label={copy.rulebook}
+              aria-haspopup="dialog"
+              className={headerButtonClass(rulebookOpen)}
+            >
+              <BookOpenText className="size-4" />
+              <span className="hidden xl:inline">{copy.rulebook}</span>
+            </button>
+          </Tooltip>
+
           <Tooltip content={copy.helpTip} side="bottom">
             <button
               type="button"
@@ -231,6 +252,7 @@ export function SessionHeader({
               className={headerButtonClass(false)}
             >
               <CircleHelp className="size-4" />
+              <span className="hidden xl:inline">{copy.help}</span>
             </button>
           </Tooltip>
 
@@ -254,10 +276,10 @@ export function SessionHeader({
               aria-haspopup="dialog"
               aria-expanded={fxOpen}
               data-tour="header-dice"
-              className={headerButtonClass(fxLit, "flex items-center gap-1.5")}
+              className={headerButtonClass(fxLit)}
             >
               <Sparkles className="size-4" />
-              <span className="hidden text-xs xl:inline">{copy.animations}</span>
+              <span className="hidden xl:inline">{copy.animations}</span>
             </button>
           </Tooltip>
 
@@ -331,6 +353,18 @@ export function SessionHeader({
 
           <button
             type="button"
+            onClick={() => {
+              changeTools(false);
+              setRulebookOpen(true);
+            }}
+            className="flex min-h-12 w-full items-center gap-3 rounded-xl bg-stone-900 px-3 py-2 text-left text-sm text-stone-200"
+          >
+            <GameIcon icon={{ kind: "glyph", key: "system-rules" }} size="size-6" />
+            <span>{copy.rulebook}</span>
+          </button>
+
+          <button
+            type="button"
             data-tour="header-help"
             onClick={() => {
               changeTools(false);
@@ -338,7 +372,7 @@ export function SessionHeader({
             }}
             className="flex min-h-12 w-full items-center gap-3 rounded-xl bg-stone-900 px-3 py-2 text-left text-sm text-stone-200"
           >
-            <CircleHelp className="size-5" />
+            <GameIcon icon={{ kind: "glyph", key: "tab-story" }} size="size-6" />
             <span>{copy.help}</span>
           </button>
 
@@ -361,6 +395,8 @@ export function SessionHeader({
           </Link>
         </div>
       </Sheet>
+
+      <RulebookDialog open={rulebookOpen} onOpenChange={setRulebookOpen} />
     </header>
   );
 }

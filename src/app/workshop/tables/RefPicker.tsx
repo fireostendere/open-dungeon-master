@@ -2,7 +2,7 @@
 
 import { useInlineText } from "@/lib/i18n/inline-text";
 import { useEffect, useState } from "react";
-import { Link2 } from "lucide-react";
+import { GameIcon } from "@/components/ui/GameIcon";
 import { cn } from "@/lib/cn";
 import { ROLL_REF_KINDS, type RollRefKind } from "@/lib/dm/roll-table-logic";
 import type { RollTable } from "@/lib/db/roll-tables";
@@ -17,6 +17,16 @@ import { localeText } from "@/lib/i18n/locale-text";
 // itself from what this world actually holds (its tables, the DM's own
 // monsters and the catalogue's, the content pack's items, the cast, the
 // lore), and the row lands in the body.
+
+// The painted glyph for the kind of thing a row points at. The native select
+// cannot carry pictures, so the chosen kind's glyph leads the picker.
+const KIND_GLYPHS: Record<RollRefKind, string> = {
+  table: "system-tables",
+  monster: "system-bestiary",
+  item: "tab-loot",
+  npc: "system-cast",
+  lore: "system-lore",
+};
 
 const KIND_LABELS: Record<RollRefKind, string> = {
   table: "Another table",
@@ -107,7 +117,7 @@ export function RefPicker({
 
   return (
     <div className="flex flex-wrap items-center gap-1.5" data-tour="tables-ref">
-      <Link2 className="size-3.5 text-stone-500" aria-hidden="true" />
+      <GameIcon icon={{ kind: "glyph", key: KIND_GLYPHS[kind] }} size="size-6" />
       <select
         value={kind}
         aria-label={copy.kind}

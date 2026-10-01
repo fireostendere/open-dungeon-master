@@ -3,6 +3,7 @@
 import { useInlineText } from "@/lib/i18n/inline-text";
 import { useState } from "react";
 import { EyeOff, Image as ImageIcon, Pin, Plus, Search } from "lucide-react";
+import { GameIcon } from "@/components/ui/GameIcon";
 import { cn } from "@/lib/cn";
 import { ui } from "@/lib/ui";
 import { CATEGORY_LABELS, type LoreEntryView } from "@/app/workshop/lore/types";
@@ -77,6 +78,7 @@ export function LoreRows({
                 )}
               >
                 <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                  <GameIcon icon={{ kind: "glyph", key: entry.visibility === "dm" ? "quest-hidden" : "system-lore" }} size="size-6" />
                   {entry.pinned ? (
                     <Pin
                       className="size-3.5 shrink-0 text-amber-400"
@@ -125,8 +127,9 @@ export function LoreRows({
                 "flex h-full w-full items-center gap-3 border-dashed p-3 text-left text-stone-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/40",
               )}
             >
-              <span className="flex size-9 shrink-0 items-center justify-center rounded-full border border-dashed border-stone-600">
-                <Plus className="size-4" />
+              <span className="relative shrink-0">
+                <GameIcon icon={{ kind: "glyph", key: "system-lore" }} size="size-10" />
+                <Plus className="absolute -bottom-1 -right-1 size-4 rounded-full bg-stone-900 text-amber-300" aria-hidden="true" />
               </span>
               <span className="font-display tracking-wide">{copy.entry}</span>
             </button>

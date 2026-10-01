@@ -1,6 +1,7 @@
 "use client";
 
-import { Check, Loader2, Users } from "lucide-react";
+import { Check, Loader2 } from "lucide-react";
+import { GameIcon } from "@/components/ui/GameIcon";
 import { useState } from "react";
 import { ui } from "@/lib/ui";
 import { thresholdsForParty } from "@/lib/srd/encounter-math";
@@ -73,7 +74,7 @@ export function TargetPartyBar({
   return (
     <div className={`${ui.card} p-3`}>
       <div className="flex flex-wrap items-center gap-x-2 gap-y-2">
-        <Users className="size-4 shrink-0 text-amber-200/70" />
+        <GameIcon icon={{ kind: "glyph", key: "system-party" }} size="size-7" />
         <span className="text-sm text-stone-400">{copy.building}</span>
         <select
           value={size}

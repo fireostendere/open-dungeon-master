@@ -1,9 +1,12 @@
 "use client";
 
+import Link from "next/link";
 import { Calculator, Columns3, Loader2, MessageCircleQuestion, Search } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { cn } from "@/lib/cn";
 import { PIXEL_ICONS, ui } from "@/lib/ui";
+import { GameIcon } from "@/components/ui/GameIcon";
+import { iconCandidates, type IconKind, type IconRef } from "@/lib/icons";
 import { PageSection, PageShell } from "@/components/PageShell";
 import { InfoDialog } from "@/components/ui/InfoDialog";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
@@ -46,19 +49,38 @@ type Ruling = {
   origin: string;
 };
 
+// `glyph` is the category's painting (public/assets/icons/glyph).
 const TABS = [
-  { kind: "glossary", label: "Basics" },
-  { kind: "spells", label: "Spells" },
-  { kind: "feats", label: "Feats" },
-  { kind: "items", label: "Items" },
-  { kind: "conditions", label: "Conditions" },
-  { kind: "races", label: "Lineages" },
-  { kind: "backgrounds", label: "Backgrounds" },
-  { kind: "monsters", label: "Monsters" },
-  { kind: "rulings", label: "House rules" },
+  { kind: "glossary", label: "Basics", glyph: "system-lore" },
+  { kind: "spells", label: "Spells", glyph: "cue-arcane" },
+  { kind: "feats", label: "Feats", glyph: "rest-proficiency" },
+  { kind: "items", label: "Items", glyph: "tab-loot" },
+  { kind: "conditions", label: "Conditions", glyph: "rest-concentration-break" },
+  { kind: "races", label: "Lineages", glyph: "tab-characters" },
+  { kind: "backgrounds", label: "Backgrounds", glyph: "tab-journal" },
+  { kind: "monsters", label: "Monsters", glyph: "system-bestiary" },
+  { kind: "rulings", label: "House rules", glyph: "system-rules" },
 ] as const;
 
 type Kind = (typeof TABS)[number]["kind"];
+
+// Which painted icon set a category's own entries draw from.
+const REFERENCE_ICON_KIND: Partial<Record<Kind, IconKind>> = {
+  spells: "spell",
+  feats: "feat",
+  items: "item",
+  conditions: "condition",
+};
+
+// The plate at the head of a result: the entry's own painting when there is
+// one, else its category's glyph, so a homebrew spell still has a lead.
+function resultIcon(kind: Kind, name: string): IconRef {
+  const own = REFERENCE_ICON_KIND[kind];
+  const ref: IconRef | null = own ? { kind: own, key: name, family: kind === "items" ? "item-gear" : null } : null;
+  return ref && iconCandidates(ref).length
+    ? ref
+    : { kind: "glyph", key: TABS.find((tab) => tab.kind === kind)?.glyph ?? "tab-reference" };
+}
 
 type Mode = "browse" | "compare" | "calculators" | "ask";
 
@@ -79,8 +101,8 @@ function comparableKind(kind: Kind): CompareKind | null {
 export default function ReferencePage() {
   const { locale } = useI18n();
   const copy = localeText(locale, {
-    en: { basics: "Basics", spells: "Spells", feats: "Feats", items: "Items", conditions: "Conditions", races: "Lineages", backgrounds: "Backgrounds", monsters: "Monsters", rulings: "House rules", browse: "Browse", compare: "Compare", calculators: "Calculators", ask: "Ask", title: "Rules reference", blurb: "Look something up, line things up side by side, run the numbers, or ask.", mode: "Reference mode", intro: "New to this? Start with Basics, which explains the terms the game leans on constantly. The other tabs search everything the app knows about, including your own homebrew and the house rules on your rulesets.", category: "Category", search: "Search", searchBasics: "Search the basics", searchRulings: "Search your house rules", compareHint: "Select up to {count} to line them up side by side in Compare.", noMatch: "Nothing matches that.", noRulingMatch: "None of your house rules mention that.", noRulings: "No house rules yet. Rulesets in your library are where they live.", unavailable: "The content pack is not installed, so there is nothing to browse here yet.", noDescription: "No description available for this entry.", compareItem: "Compare {name}", cantrip: "cantrip", level: "level {level}" },
-    ru: { basics: "Основы", spells: "Заклинания", feats: "Черты", items: "Предметы", conditions: "Состояния", races: "Происхождения", backgrounds: "Предыстории", monsters: "Монстры", rulings: "Домашние правила", browse: "Обзор", compare: "Сравнение", calculators: "Калькуляторы", ask: "Спросить", title: "Справочник правил", blurb: "Найдите правило, сравните варианты, посчитайте значения или задайте вопрос.", mode: "Режим справочника", intro: "Начните с «Основ»: здесь объясняются постоянно встречающиеся игровые термины. Другие вкладки ищут по всему, что знает приложение, включая ваш homebrew и домашние правила наборов правил.", category: "Категория", search: "Поиск", searchBasics: "Поиск по основам", searchRulings: "Поиск по домашним правилам", compareHint: "Выберите до {count} записей, чтобы сравнить их рядом во вкладке «Сравнение».", noMatch: "Ничего не найдено.", noRulingMatch: "Ни одно из ваших домашних правил этого не упоминает.", noRulings: "Домашних правил пока нет. Они хранятся в наборах правил вашей библиотеки.", unavailable: "Пакет контента не установлен, поэтому здесь пока нечего просматривать.", noDescription: "Для этой записи нет описания.", compareItem: "Сравнить: {name}", cantrip: "заговор", level: "уровень {level}" },
+    en: { basics: "Basics", spells: "Spells", feats: "Feats", items: "Items", conditions: "Conditions", races: "Lineages", backgrounds: "Backgrounds", monsters: "Monsters", rulings: "House rules", browse: "Browse", compare: "Compare", calculators: "Calculators", ask: "Ask", title: "Rules reference", blurb: "Look something up, line things up side by side, run the numbers, or ask.", mode: "Reference mode", intro: "New to this? Start with Basics, which explains the terms the game leans on constantly. The other tabs search everything the app knows about, including your own homebrew and the house rules on your rulesets.", category: "Category", search: "Search", searchBasics: "Search the basics", searchRulings: "Search your house rules", compareHint: "Select up to {count} to line them up side by side in Compare.", noMatch: "Nothing matches that.", noRulingMatch: "None of your house rules mention that.", noRulings: "No house rules yet. Rulesets in your library are where they live.", unavailable: "The content pack is not installed, so there is nothing to browse here yet.", noDescription: "No description available for this entry.", compareItem: "Compare {name}", cantrip: "cantrip", level: "level {level}", rulebook: "Read the rulebook" },
+    ru: { basics: "Основы", spells: "Заклинания", feats: "Черты", items: "Предметы", conditions: "Состояния", races: "Происхождения", backgrounds: "Предыстории", monsters: "Монстры", rulings: "Домашние правила", browse: "Обзор", compare: "Сравнение", calculators: "Калькуляторы", ask: "Спросить", title: "Справочник правил", blurb: "Найдите правило, сравните варианты, посчитайте значения или задайте вопрос.", mode: "Режим справочника", intro: "Начните с «Основ»: здесь объясняются постоянно встречающиеся игровые термины. Другие вкладки ищут по всему, что знает приложение, включая ваш homebrew и домашние правила наборов правил.", category: "Категория", search: "Поиск", searchBasics: "Поиск по основам", searchRulings: "Поиск по домашним правилам", compareHint: "Выберите до {count} записей, чтобы сравнить их рядом во вкладке «Сравнение».", noMatch: "Ничего не найдено.", noRulingMatch: "Ни одно из ваших домашних правил этого не упоминает.", noRulings: "Домашних правил пока нет. Они хранятся в наборах правил вашей библиотеки.", unavailable: "Пакет контента не установлен, поэтому здесь пока нечего просматривать.", noDescription: "Для этой записи нет описания.", compareItem: "Сравнить: {name}", cantrip: "заговор", level: "уровень {level}", rulebook: "Открыть книгу правил" },
   });
   const tabs = TABS.map((tab) => ({ ...tab, label: tab.kind === "glossary" ? copy.basics : copy[tab.kind] }));
   const [mode, setMode] = useState<Mode>("browse");
@@ -90,7 +112,7 @@ export default function ReferencePage() {
   const [rulings, setRulings] = useState<Ruling[]>([]);
   const [loading, setLoading] = useState(false);
   const [unavailable, setUnavailable] = useState(false);
-  const [open, setOpen] = useState<{ title: string; meta?: string; text: string } | null>(null);
+  const [open, setOpen] = useState<{ title: string; meta?: string; text: string; icon?: IconRef } | null>(null);
   const [selection, setSelection] = useState<CompareSelection | null>(null);
 
   const terms = glossaryTerms();
@@ -161,6 +183,7 @@ export default function ReferencePage() {
 
   function openRow(row: Row) {
     setOpen({
+      icon: resultIcon(kind, row.name),
       title: localizedContentName(kind, row.name, locale),
       meta: kind === "spells" ? spellSummary(row.data) : undefined,
       text: describeContentEntry(row.data, locale, { kind, name: row.name, slug: row.slug }) ?? copy.noDescription,
@@ -213,8 +236,14 @@ export default function ReferencePage() {
   return (
     <PageShell
       icon={PIXEL_ICONS.support}
+      glyph="tab-reference"
       title={copy.title}
       blurb={copy.blurb}
+      actions={
+        <Link href="/rulebook" className={ui.btnSmall}>
+          <GameIcon icon={{ kind: "glyph", key: "system-rules" }} size="size-5" /> {copy.rulebook}
+        </Link>
+      }
     >
       <SegmentedControl
         options={modes}
@@ -254,8 +283,9 @@ export default function ReferencePage() {
                 role="tab"
                 aria-selected={kind === tab.kind}
                 onClick={() => setKind(tab.kind)}
-                className={cn(CHIP, kind === tab.kind ? CHIP_ACTIVE : CHIP_IDLE)}
+                className={cn(CHIP, "inline-flex items-center gap-1.5 pl-1.5", kind === tab.kind ? CHIP_ACTIVE : CHIP_IDLE)}
               >
+                <GameIcon icon={{ kind: "glyph", key: tab.glyph }} size="size-5" />
                 {tab.label}
               </button>
             ))}
@@ -346,10 +376,11 @@ export default function ReferencePage() {
                     <span className="flex items-center justify-between gap-2">
                       <span
                         className={cn(
-                          "text-sm",
+                          "flex min-w-0 items-center gap-2 text-sm",
                           row.source === "homebrew" ? "text-amber-300" : "text-stone-200",
                         )}
                       >
+                        <GameIcon icon={resultIcon(kind, row.name)} size="size-7" />
                         {row.name}
                       </span>
                       {kind === "spells" ? (
@@ -379,6 +410,7 @@ export default function ReferencePage() {
         title={open?.title ?? ""}
         meta={open?.meta}
         text={open?.text}
+        icon={open?.icon}
       />
     </PageShell>
   );

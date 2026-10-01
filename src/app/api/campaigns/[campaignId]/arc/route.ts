@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { isErrorResponse, requireStoryAuthority } from "@/lib/campaign-api";
-import { getCampaignById, setStoryArc } from "@/lib/db/campaigns";
+import { getCampaignById } from "@/lib/db/campaigns";
+import { commitStoryArc } from "@/lib/dm/arc";
 import { enqueueDmJob } from "@/lib/dm/queue";
 import {
   MAX_BEAT_TEXT,
@@ -67,6 +68,12 @@ const editSchema = z.discriminatedUnion("op", [
   z.object({ op: z.literal("skip"), beat: z.number().int().positive() }),
   z.object({ op: z.literal("setNow"), beat: z.number().int().positive() }),
   z.object({
+    op: z.literal("waypoint"),
+    beat: z.number().int().positive(),
+    index: z.number().int().min(0).max(7),
+    done: z.boolean(),
+  }),
+  z.object({
     op: z.literal("add"),
     act: z.number().int().positive(),
     text: z.string().trim().min(1).max(MAX_BEAT_TEXT),
@@ -109,7 +116,8 @@ export async function PATCH(
     const edited = applyBeatEdit(current, parsed.data as BeatEdit);
     result = edited;
     if (!isEditError(edited)) {
-      setStoryArc(campaignId, edited.arc);
+      // A skipped last beat ends its act like a completed one would.
+      result = { arc: commitStoryArc(campaignId, edited.arc) };
     }
   });
 

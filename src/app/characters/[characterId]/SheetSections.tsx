@@ -2,8 +2,10 @@
 
 import { BookOpen } from "lucide-react";
 import type { ReactNode } from "react";
+import { GameIcon } from "@/components/ui/GameIcon";
 import { GameTerm } from "@/components/ui/GameTerm";
 import { InfoChipList } from "@/components/ui/InfoDialog";
+import { SheetSpells } from "@/components/sheet/SheetSpells";
 import { Ribbon } from "@/components/ui/Ribbon";
 import { cn } from "@/lib/cn";
 import {
@@ -61,11 +63,11 @@ function SheetPanel({
 // The six scores, the vitals line, and the lists a library sheet carries:
 // spells, equipment, features, feats, backstory. Read-only; editing happens
 // through the builder in a campaign lobby.
-export function SheetSections({ sheet }: { sheet: CreateSheetInput }) {
-  const { locale } = useI18n();
+export function SheetSections({ sheet, level = 1 }: { sheet: CreateSheetInput; level?: number }) {
+  const { locale, formatDistance } = useI18n();
   const copy = localeText(locale, {
-    en: { abilities: "Abilities", speed: "Speed", gold: "Gold", spells: "Spells", equipment: "Equipment", features: "Features and traits", feats: "Feats", backstory: "Backstory", none: "None chosen.", story: "(story)", level: "Level", feet: "ft" },
-    ru: { abilities: "Характеристики", speed: "Скорость", gold: "Золото", spells: "Заклинания", equipment: "Снаряжение", features: "Черты и особенности", feats: "Черты", backstory: "Предыстория", none: "Ничего не выбрано.", story: "(сюжет)", level: "Уровень", feet: "фт" },
+    en: { abilities: "Abilities", speed: "Speed", gold: "Gold", spells: "Spells", equipment: "Equipment", features: "Features and traits", feats: "Feats", backstory: "Backstory", none: "None chosen.", story: "(story)", level: "Level" },
+    ru: { abilities: "Характеристики", speed: "Скорость", gold: "Золото", spells: "Заклинания", equipment: "Снаряжение", features: "Черты и особенности", feats: "Черты", backstory: "Предыстория", none: "Ничего не выбрано.", story: "(сюжет)", level: "Уровень" },
   });
   const abilities = sheet.abilities;
   return (
@@ -77,45 +79,50 @@ export function SheetSections({ sheet }: { sheet: CreateSheetInput }) {
               key={ability}
               className="rounded-lg border border-stone-700/60 bg-stone-950/60 p-2 shadow-[0_2px_6px_rgba(4,2,12,0.45)_inset]"
             >
-               <p className="eyebrow text-[10px] text-stone-500">{characterDisplay(ability, locale)}</p>
+              <p className="eyebrow flex items-center justify-center gap-1 text-[10px] text-stone-500">
+                <GameIcon icon={{ kind: "glyph", key: `ability-${ability}` }} size="size-5" />
+                {characterDisplay(ability, locale)}
+              </p>
               <p className="font-display text-xl text-amber-50">{score}</p>
               <p className="text-xs text-amber-200/80">{formatModifier(abilityMod(score))}</p>
             </div>
           ))}
         </div>
         <div className="mt-3 grid grid-cols-2 gap-x-6 gap-y-1 text-sm text-stone-300 sm:grid-cols-4">
-          <span>
+          <span className="flex items-center gap-1.5">
+            <GameIcon icon={{ kind: "glyph", key: "rest-hp" }} size="size-5" />
             <GameTerm id="hit_points">HP</GameTerm> {sheet.maxHp}
           </span>
-          <span>
+          <span className="flex items-center gap-1.5">
+            <GameIcon icon={{ kind: "glyph", key: "rest-ac" }} size="size-5" />
             <GameTerm id="armor_class">AC</GameTerm> {sheet.ac}
           </span>
-           <span>{copy.speed} {sheet.speed} {copy.feet}</span>
-           <span>{copy.gold} {sheet.gold}</span>
+          <span className="flex items-center gap-1.5">
+            <GameIcon icon={{ kind: "glyph", key: "rest-speed" }} size="size-5" />
+            {copy.speed} {formatDistance(sheet.speed)}
+          </span>
+          <span className="flex items-center gap-1.5">
+            <GameIcon icon={{ kind: "glyph", key: "coin-gp" }} size="size-5" />
+            {copy.gold} {sheet.gold}
+          </span>
         </div>
       </SheetPanel>
 
       {sheet.spellcasting ? (
          <SheetPanel title={copy.spells}>
-          <InfoChipList
-            items={[
-              ...new Set([...sheet.spellcasting.known, ...sheet.spellcasting.prepared]),
-            ].map((spell) => ({
-              name: localizedContentName("spells", spell, locale),
-              reference: { kind: "spells", slug: contentSlug(spell), name: spell },
-            }))}
-             emptyText={copy.none}
-          />
+          <SheetSpells sheet={{ ...sheet, level }} />
         </SheetPanel>
       ) : null}
 
       {sheet.equipment.length ? (
          <SheetPanel title={copy.equipment}>
-          <p className="text-sm text-stone-400">
-            {sheet.equipment
-              .map((item) => (item.qty > 1 ? `${item.name} x${item.qty}` : item.name))
-              .join(", ")}
-          </p>
+          <InfoChipList
+            items={sheet.equipment.map((item) => ({
+              icon: { kind: "item" as const, key: item.name, family: "item-gear" },
+              name: item.qty > 1 ? `${item.name} x${item.qty}` : item.name,
+              reference: { kind: "items", slug: contentSlug(item.name), name: item.name },
+            }))}
+          />
         </SheetPanel>
       ) : null}
 
@@ -128,6 +135,11 @@ export function SheetSections({ sheet }: { sheet: CreateSheetInput }) {
                 : localizedFeatureName(sheet.class, sheet.subclass, feature.name, locale) === feature.name
                   ? characterDisplay(feature.name, locale)
                   : localizedFeatureName(sheet.class, sheet.subclass, feature.name, locale),
+              icon: {
+                kind: "feature" as const,
+                key: feature.name,
+                family: feature.source === "race" ? null : `class-${sheet.class.toLowerCase()}`,
+              },
                note: feature.source === "story" ? copy.story : undefined,
                meta: feature.level ? `${copy.level} ${feature.level}` : undefined,
               text: feature.source === "race"
@@ -143,6 +155,7 @@ export function SheetSections({ sheet }: { sheet: CreateSheetInput }) {
           <InfoChipList
             items={sheet.feats.map((feat) => ({
               name: localizedContentName("feats", feat, locale),
+              icon: { kind: "feat" as const, key: feat },
               text: describeFeature(sheet.class, sheet.subclass, feat, locale),
               reference: { kind: "feats", slug: contentSlug(feat), name: feat },
             }))}

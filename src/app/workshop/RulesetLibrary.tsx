@@ -5,6 +5,8 @@ import { BookmarkPlus, Check, Loader2, Scale, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { cn } from "@/lib/cn";
 import { ui } from "@/lib/ui";
+import { GameIcon } from "@/components/ui/GameIcon";
+import { KIND_GLYPHS } from "@/app/workshop/homebrew/CatalogStart";
 import { useI18n } from "@/lib/i18n/context";
 import { localeText } from "@/lib/i18n/locale-text";
 import {
@@ -271,12 +273,13 @@ export function RulesetLibrary({
                                 aria-pressed={on}
                                 onClick={() => void toggleHomebrew(ruleset, entry.id)}
                                 className={cn(
-                                  "rounded-md border px-2 py-0.5 text-[11px]",
+                                  "inline-flex items-center gap-1 rounded-md border py-0.5 pl-1 pr-2 text-[11px]",
                                   on
                                     ? "border-amber-700 bg-amber-950/50 text-amber-100"
                                     : "border-stone-700 text-stone-400 hover:text-stone-200",
                                 )}
                               >
+                                <GameIcon icon={{ kind: "glyph", key: KIND_GLYPHS[entry.kind as keyof typeof KIND_GLYPHS] ?? "system-homebrew" }} size="size-5" />
                                 {entry.name}
                                 <span className="ml-1 text-stone-500">{entry.kind}</span>
                               </button>

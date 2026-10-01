@@ -45,6 +45,7 @@ import { SessionChatColumn } from "@/app/campaigns/[campaignId]/SessionChatColum
 import { SessionHeader } from "@/app/campaigns/[campaignId]/SessionHeader";
 import { narratorLamp } from "@/app/campaigns/[campaignId]/narratorLampState";
 import { SidePanel } from "@/app/campaigns/[campaignId]/SidePanel";
+import { levelForXp } from "@/lib/srd";
 import { useI18n } from "@/lib/i18n";
 import { useChatChime } from "@/app/campaigns/[campaignId]/useChatChime";
 import { useTableAudio } from "@/app/campaigns/[campaignId]/useTableAudio";
@@ -127,6 +128,8 @@ export function SessionView({
   const [dismissedLevelUp, setDismissedLevelUp] = useState("");
   // The level-up cinematic plays once per notice, then hands over to the dialog.
   const [levelUpIntroDone, setLevelUpIntroDone] = useState("");
+  // The party card's Level up button opened the dialog by hand.
+  const [levelUpByHand, setLevelUpByHand] = useState(false);
   const [dismissedJoinNotice, setDismissedJoinNotice] = useState("");
   // "Message" on a party card: SidePanel switches to the chat tab and opens
   // the 1:1 thread with this user.
@@ -190,6 +193,7 @@ export function SessionView({
     return "victory";
   }, [campaign?.outcome, sheets, closingDmMessage?.content]);
 
+  const openLevelUp = useCallback(() => setLevelUpByHand(true), []);
   const openClosingMessage = useCallback(
     (mode?: "victory" | "defeat") => {
       setCelebrationActive(false);
@@ -241,7 +245,20 @@ export function SessionView({
   // values handed to the memoized panels are stabilized with useMemo and
   // useCallback. All hooks must stay above the null guard further down.
   const mySheet = useMemo(() => sheets.find((sheet) => sheet.userId === me?.id), [sheets, me?.id]);
-  const myLevelUp = mySheet ? levelUps.find((notice) => notice.characterId === mySheet.id) : undefined;
+  // The server's notice opens the level-up once, when the experience lands.
+  // Closing the dialog only puts it off: the sheet's experience still earns
+  // the level, so the party card offers a Level up button until it is done.
+  const noticeLevel = mySheet
+    ? (levelUps.find((notice) => notice.characterId === mySheet.id)?.level ?? 0)
+    : 0;
+  const earnedLevel = mySheet && !mySheet.isCompanion ? Math.min(20, levelForXp(mySheet.xp)) : 0;
+  const noticeKey = mySheet && noticeLevel > mySheet.level ? `${mySheet.id}:${noticeLevel}` : "";
+  const myLevelUp =
+    mySheet && Math.max(noticeLevel, earnedLevel) > mySheet.level
+      ? { characterId: mySheet.id, level: Math.max(noticeLevel, earnedLevel) }
+      : undefined;
+  const levelUpShown =
+    Boolean(myLevelUp) && (levelUpByHand || (Boolean(noticeKey) && dismissedLevelUp !== noticeKey));
   // Memoized so the open-floor fallback object keeps a stable identity and
   // does not invalidate the memos below on every render.
   const floor = useMemo(() => campaign?.floor ?? { mode: "open" as const }, [campaign?.floor]);
@@ -601,6 +618,8 @@ export function SessionView({
         </SessionChatColumn>
 
         <SidePanel
+          levelUpLevel={myLevelUp && !levelUpShown ? myLevelUp.level : null}
+          onLevelUp={openLevelUp}
           pinsVersion={pinsVersion}
           campaignId={campaign.id}
           sheets={sheets}
@@ -737,7 +756,7 @@ export function SessionView({
         />
       ) : null}
 
-      {myLevelUp && mySheet && dismissedLevelUp !== `${myLevelUp.characterId}:${myLevelUp.level}` && levelUpIntroDone !== `${myLevelUp.characterId}:${myLevelUp.level}` ? (
+      {myLevelUp && mySheet && levelUpShown && !levelUpByHand && levelUpIntroDone !== `${myLevelUp.characterId}:${myLevelUp.level}` ? (
         <LevelUpCinematic
           active
           name={mySheet.name}
@@ -748,14 +767,17 @@ export function SessionView({
         />
       ) : null}
 
-      {myLevelUp && mySheet && dismissedLevelUp !== `${myLevelUp.characterId}:${myLevelUp.level}` && levelUpIntroDone === `${myLevelUp.characterId}:${myLevelUp.level}` ? (
+      {myLevelUp && mySheet && levelUpShown && (levelUpByHand || levelUpIntroDone === `${myLevelUp.characterId}:${myLevelUp.level}`) ? (
         <Suspense fallback={null}>
           <LevelUpDialog
             campaignId={campaign.id}
             sheet={mySheet}
             targetLevel={myLevelUp.level}
             multiclassAllowed={campaign.gameSettings?.multiclassingEnabled ?? true}
-            onDone={() => setDismissedLevelUp(`${myLevelUp.characterId}:${myLevelUp.level}`)}
+            onDone={() => {
+              setDismissedLevelUp(noticeKey);
+              setLevelUpByHand(false);
+            }}
           />
         </Suspense>
       ) : null}
@@ -781,6 +803,7 @@ export function SessionView({
         sheets={state.sheets}
         meId={me?.id}
         auditLog={state.auditLog}
+        actCard={state.actCard}
       />
 
       <EndingCinematic

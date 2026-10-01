@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { ChevronDown, ChevronRight, Lightbulb } from "lucide-react";
+import { ChevronDown, ChevronRight } from "lucide-react";
+import { GameIcon } from "@/components/ui/GameIcon";
 import { cn } from "@/lib/cn";
 import { ui } from "@/lib/ui";
 import { BEAT_LABELS, type BeatKind, type Suggestion } from "@/lib/workshop/board";
@@ -67,7 +68,7 @@ export function SuggestionsCard({
     return null;
   }
   return (
-    <AsideCard title={copy.missing} icon={<Lightbulb className="size-4" />} tour="storyboard-missing">
+    <AsideCard title={copy.missing} icon={<GameIcon icon={{ kind: "glyph", key: "rest-inspiration" }} size="size-6" />} tour="storyboard-missing">
       <p className="text-[10px] text-stone-600">
         {copy.counted}
       </p>
@@ -92,7 +93,7 @@ export function CompileCard({ summary }: { summary: CompileSummary }) {
   const { locale } = useI18n();
   const copy = localeText(locale, { en: { title: "What this becomes", becomes: "Imported into a campaign, this board becomes", empty: "Nothing yet. Cards become lore, quests, prepared fights, DM notes and the story arc." }, ru: { title: "Чем это станет", becomes: "При импорте в кампанию эта доска станет", empty: "Пока ничем. Карточки превратятся в лор, задания, подготовленные встречи, заметки DM и сюжетную арку." } });
   return (
-    <AsideCard title={copy.title} tour="storyboard-compile">
+    <AsideCard title={copy.title} icon={<GameIcon icon={{ kind: "glyph", key: "tab-campaigns" }} size="size-6" />} tour="storyboard-compile">
       <p className="text-[11px] text-stone-500">
         {summary.lines.length
           ? `${copy.becomes} ${summary.lines.join(", ")}.`

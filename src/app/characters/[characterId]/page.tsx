@@ -1,18 +1,8 @@
 "use client";
 
 import { useInlineText } from "@/lib/i18n/inline-text";
-import {
-  Camera,
-  Copy,
-  FileDown,
-  FileJson,
-  Hammer,
-  ImageOff,
-  Loader2,
-  Pencil,
-  Sparkles,
-  Swords,
-} from "lucide-react";
+import { Loader2, Pencil } from "lucide-react";
+import { GameIcon } from "@/components/ui/GameIcon";
 import Link from "next/link";
 import { use, useEffect, useRef, useState } from "react";
 import { AvatarCropDialog } from "@/app/settings/AvatarCropDialog";
@@ -263,6 +253,7 @@ export default function CharacterDetailPage({
           &larr; {copy.back}
         </Link>
         <div className="mt-3 flex items-start gap-4">
+          <span className="relative shrink-0">
           {sheet.portrait?.url ? (
             <ImageLightbox
               src={sheet.portrait.url}
@@ -286,12 +277,19 @@ export default function CharacterDetailPage({
               className="border-amber-500/30 shadow-glow-gold"
             />
           )}
+            <GameIcon
+              icon={{ kind: "family", key: `class-${character.class.toLowerCase()}` }}
+              size="size-8"
+              className="pointer-events-none absolute -bottom-2 -right-2"
+            />
+          </span>
           <div className="min-w-0 flex-1">
             <h1 className="font-display text-2xl tracking-wide text-amber-50 sm:text-3xl">
               {character.name}
             </h1>
             <p className="mt-1 text-sm text-stone-400">
-              <span className="mr-1.5 inline-flex rounded-full border border-amber-500/30 bg-amber-400/10 px-2 py-0.5 text-[11px] text-amber-200">
+              <span className="mr-1.5 inline-flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-400/10 py-0.5 pl-0.5 pr-2 text-[11px] text-amber-200">
+                <GameIcon icon={{ kind: "glyph", key: "rest-level-up" }} size="size-5" />
                  {copy.level} {character.level}
               </span>
                {characterDisplay(character.race, locale)} {characterDisplay(character.class, locale)}
@@ -314,13 +312,12 @@ export default function CharacterDetailPage({
                         ? `/workshop/${assignment.campaignId}`
                         : `/campaigns/${assignment.campaignId}`
                     }
-                    className="inline-flex max-w-full items-center gap-1 rounded-full border border-stone-600/60 bg-stone-900/60 px-2.5 py-1 text-xs text-stone-300 transition-colors hover:border-amber-500/40 hover:text-amber-100"
+                    className="inline-flex max-w-full items-center gap-1 rounded-full border border-stone-600/60 bg-stone-900/60 py-0.5 pl-1 pr-2.5 text-xs text-stone-300 transition-colors hover:border-amber-500/40 hover:text-amber-100"
                   >
-                    {assignment.kind === "workshop" ? (
-                      <Hammer className="size-3.5 shrink-0 text-amber-300/70" />
-                    ) : (
-                      <Swords className="size-3.5 shrink-0 text-amber-300/70" />
-                    )}
+                    <GameIcon
+                      icon={{ kind: "glyph", key: assignment.kind === "workshop" ? "system-storyboard" : "tab-campaigns" }}
+                      size="size-6"
+                    />
                     <span className="truncate">{assignment.title}</span>
                   </Link>
                 ))
@@ -345,7 +342,7 @@ export default function CharacterDetailPage({
             className={ui.btnSmall}
             title={uiText("Download this character sheet as a fillable PDF")}
           >
-            <FileDown className="size-4 shrink-0" /> {pdfBusy ? copy.preparing : copy.download}
+            <GameIcon icon={{ kind: "glyph", key: "tab-journal" }} size="size-5" /> {pdfBusy ? copy.preparing : copy.download}
           </button>
           <button
             type="button"
@@ -354,7 +351,7 @@ export default function CharacterDetailPage({
             className={ui.btnSmall}
             title={uiText("Save this character as a file you can import on another device or server")}
           >
-            <FileJson className="size-4 shrink-0" /> {exporting ? copy.exporting : copy.export}
+            <GameIcon icon={{ kind: "glyph", key: "system-share" }} size="size-5" /> {exporting ? copy.exporting : copy.export}
           </button>
           <button
             type="button"
@@ -363,7 +360,7 @@ export default function CharacterDetailPage({
             className={ui.btnSmall}
             title={uiText("Save a second copy of this character to your library")}
           >
-            <Copy className="size-4 shrink-0" /> {cloning ? copy.copying : copy.duplicate}
+            <GameIcon icon={{ kind: "glyph", key: "tab-notes" }} size="size-5" /> {cloning ? copy.copying : copy.duplicate}
           </button>
           <button
             type="button"
@@ -371,7 +368,7 @@ export default function CharacterDetailPage({
             className={ui.btnSmall}
             title={sheet.portrait ? uiText("Replace the portrait with a photo") : uiText("Upload a portrait")}
           >
-            <Camera className="size-4 shrink-0" /> {sheet.portrait ? copy.replacePortrait : copy.uploadPortrait}
+            <GameIcon icon={{ kind: "glyph", key: "tab-handout" }} size="size-5" /> {sheet.portrait ? copy.replacePortrait : copy.uploadPortrait}
           </button>
           {canPaint ? (
             <button
@@ -381,7 +378,7 @@ export default function CharacterDetailPage({
               className={ui.btnSmall}
               title={uiText("Paint a new portrait on this server's image model")}
             >
-              <Sparkles className="size-4 shrink-0" /> {portraitPending ? copy.painting : copy.paint}
+              <GameIcon icon={{ kind: "glyph", key: "sense-truesight" }} size="size-5" /> {portraitPending ? copy.painting : copy.paint}
             </button>
           ) : null}
           {sheet.portrait ? (
@@ -391,7 +388,7 @@ export default function CharacterDetailPage({
               className={ui.btnSmall}
               title={uiText("Take the picture away and show the stand-in for this class or race")}
             >
-              <ImageOff className="size-4 shrink-0" /> {copy.placeholder}
+              <GameIcon icon={{ kind: "glyph", key: "quest-hidden" }} size="size-5" /> {copy.placeholder}
             </button>
           ) : null}
         </div>
@@ -399,7 +396,7 @@ export default function CharacterDetailPage({
         {portraitError ? <p className="mt-2 text-sm text-red-400">{portraitError}</p> : null}
       </header>
 
-      <SheetSections sheet={sheet} />
+      <SheetSections sheet={sheet} level={character.level} />
       <div className="mt-4">
         <StorySoFar events={events} />
       </div>

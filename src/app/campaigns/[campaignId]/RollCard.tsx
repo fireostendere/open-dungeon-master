@@ -1,6 +1,6 @@
 "use client";
 
-import { Dices } from "lucide-react";
+import { GameIcon } from "@/components/ui/GameIcon";
 import { cn } from "@/lib/cn";
 import type { StoredRoll } from "@/lib/db/rolls";
 import type { DiceTerm } from "@/lib/dice";
@@ -29,7 +29,7 @@ export function RollCard({
       <div className={cn(
         standalone ? "flex w-full max-w-2xl animate-fade-up flex-wrap items-center gap-2 rounded-xl border border-stone-700/70 bg-stone-900/70 px-4 py-3 text-sm text-stone-400 shadow-elev-1" : "inline-flex animate-fade-up items-center gap-2 rounded-lg border border-stone-700/70 bg-stone-900/70 px-3 py-2 text-sm text-stone-400 shadow-elev-1",
       )}>
-        <Dices className="size-4 text-stone-500" />
+        <GameIcon icon={{ kind: "glyph", key: "die-d20" }} size="size-6" className="opacity-80" />
         {standalone ? <span className="eyebrow text-[10px] text-stone-500">{copy.result}</span> : null}
         <span>
           {characterName ? `${characterName} · ` : ""}
@@ -62,7 +62,7 @@ export function RollCard({
     >
       {standalone ? <span className="eyebrow basis-full text-[10px] text-amber-300/80">{copy.result}</span> : null}
       <span className="flex items-center gap-1.5 text-stone-300">
-        <Dices className="size-4 text-amber-300" />
+        <GameIcon icon={{ kind: "glyph", key: "die-d20" }} size="size-6" />
         {characterName ? `${characterName} · ` : ""}
         {label}
         {detail ? ` (${detail})` : ""}

@@ -1,6 +1,7 @@
 "use client";
 
-import { CalendarClock, Check, CircleHelp, Plus, X } from "lucide-react";
+import { Check, CircleHelp, Plus, X } from "lucide-react";
+import { GameIcon } from "@/components/ui/GameIcon";
 import { useCallback, useEffect, useState } from "react";
 import { cn } from "@/lib/cn";
 import { useI18n, type Locale } from "@/lib/i18n";
@@ -66,6 +67,19 @@ type ScheduleCopy = (typeof COPY)[Locale];
 // The out-of-game calendar: when the humans meet next. Lives in the lobby
 // beside the party list. The lead plans and cancels; everyone RSVPs. The
 // schedule_updated stream nudge bumps `version` and this refetches.
+
+// The painted time of day beside a session's date (glyph/daypart-*).
+function daypartOf(startsAt: string): string {
+  const hour = new Date(startsAt).getHours();
+  if (hour < 5) return "night";
+  if (hour < 8) return "dawn";
+  if (hour < 12) return "morning";
+  if (hour < 17) return "day";
+  // The evening painting is near black at this size, so dusk stands for the
+  // whole stretch from late afternoon to bedtime.
+  if (hour < 22) return "dusk";
+  return "night";
+}
 
 function whenLabel(startsAt: string, locale: Locale): string {
   return new Date(startsAt).toLocaleString(locale, {
@@ -243,8 +257,8 @@ export function ScheduleSection({
   return (
     <section className="mb-6">
       <div className="mb-3 flex items-center justify-between">
-        <h2 className="eyebrow text-sm text-amber-200/90">
-          <CalendarClock className="mr-1.5 inline size-4" />
+        <h2 className="eyebrow flex items-center gap-1.5 text-sm text-amber-200/90">
+          <GameIcon icon={{ kind: "glyph", key: "tab-session" }} size="size-7" />
           {copy.nextSession}
         </h2>
         {isLead ? (
@@ -335,6 +349,11 @@ export function ScheduleSection({
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div>
                     <p className="text-sm text-amber-100">
+                      <GameIcon
+                        icon={{ kind: "glyph", key: `daypart-${daypartOf(session.startsAt)}` }}
+                        size="size-6"
+                        className="mr-1.5 align-middle"
+                      />
                       {whenLabel(session.startsAt, locale)}
                       <span className="ml-2 text-stone-400">
                         {session.title || copy.defaultSession(Math.round(session.durationMin / 60))}

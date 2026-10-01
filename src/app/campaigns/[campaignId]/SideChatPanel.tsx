@@ -1,6 +1,7 @@
 "use client";
 
-import { ArrowLeft, Bell, BellOff, Loader2, MessagesSquare, Plus, Send, UserRound, Users } from "lucide-react";
+import { ArrowLeft, Bell, BellOff, Loader2, Plus, Send } from "lucide-react";
+import { GameIcon } from "@/components/ui/GameIcon";
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import { cn } from "@/lib/cn";
 import { ui } from "@/lib/ui";
@@ -137,7 +138,7 @@ export function SideChatPanel({
 
       {threads.length === 0 ? (
         <div className="flex flex-col items-center gap-2 py-8 text-center">
-          <MessagesSquare className="size-6 text-stone-700" />
+          <GameIcon icon={{ kind: "glyph", key: "tab-chat" }} size="size-10" className="opacity-60 grayscale" />
           <p className="text-xs text-stone-600">
             {copy.empty}
           </p>
@@ -151,11 +152,7 @@ export function SideChatPanel({
                 onClick={() => setOpenThreadId(thread.id)}
                 className="flex w-full items-center gap-2 rounded-lg border border-stone-800 bg-stone-950/40 px-3 py-2 text-left transition-colors hover:border-amber-500/40"
               >
-                {thread.kind === "dm" ? (
-                  <UserRound className="size-4 shrink-0 text-stone-500" />
-                ) : (
-                  <Users className="size-4 shrink-0 text-stone-500" />
-                )}
+                <GameIcon icon={{ kind: "glyph", key: thread.kind === "dm" ? "tab-chat" : "tab-party" }} size="size-6" />
                 <span className="min-w-0 flex-1 truncate text-sm text-stone-200">
                   {threadLabel(thread)}
                 </span>
@@ -407,6 +404,7 @@ function ThreadView({
         >
           <ArrowLeft className="size-4" />
         </button>
+        <GameIcon icon={{ kind: "glyph", key: thread.kind === "dm" ? "tab-chat" : "tab-party" }} size="size-6" />
         <span className="min-w-0 flex-1 truncate text-sm font-medium text-stone-200">{label}</span>
       </div>
       {thread.kind === "group" ? (

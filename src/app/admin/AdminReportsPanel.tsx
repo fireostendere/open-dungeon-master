@@ -1,7 +1,8 @@
 "use client";
 
 import { useInlineText } from "@/lib/i18n/inline-text";
-import { Check, Flag, Loader2, Undo2 } from "lucide-react";
+import { Check, Loader2, Undo2 } from "lucide-react";
+import { GameIcon } from "@/components/ui/GameIcon";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { cn } from "@/lib/cn";
@@ -107,12 +108,7 @@ export function AdminReportsPanel() {
             {reports.map((report) => (
               <li key={report.id} className="space-y-2 p-4">
                 <div className="flex flex-wrap items-center gap-2 text-sm text-stone-100">
-                  <Flag
-                    className={cn(
-                      "size-3.5",
-                      report.status === "open" ? "text-amber-300" : "text-stone-600",
-                    )}
-                  />
+                  <GameIcon icon={{ kind: "glyph", key: report.status === "open" ? "quest-active" : "quest-done" }} size="size-6" />
                   <span className="rounded border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-amber-300">
                     {REASON_LABEL[report.reason] ?? report.reason}
                   </span>

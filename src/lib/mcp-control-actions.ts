@@ -16,7 +16,6 @@ import {
   setDmOutline,
   setPartyLead,
   setQuestLog,
-  setStoryArc,
   updateCampaignInfo,
   updateGameSettings,
   updateStorySettings,
@@ -34,6 +33,7 @@ import { closeCampaignNow } from "@/lib/dm/campaign-ending";
 import { maskStorySettings } from "@/lib/db/settings";
 import { getSheetById, listSheets, patchSheet } from "@/lib/db/sheets";
 import { getUserById, getUserByUsername, listUsers, type User } from "@/lib/db/users";
+import { commitStoryArc } from "@/lib/dm/arc";
 import { normalizeStoryArc } from "@/lib/dm/arc-logic";
 import { resetGlobalTurnGate } from "@/lib/dm/global-turn-logic";
 import { listEventsSince, publishPersisted } from "@/lib/events";
@@ -479,7 +479,8 @@ export async function executeMcpControl(action: string, rawParams: unknown): Pro
       campaignOr404(params.campaignId);
       const arc = normalizeStoryArc(params.arc);
       if (!arc) throw new McpControlError("Invalid story arc.");
-      setStoryArc(params.campaignId, arc);
+      // Act ends and beginnings in the new arc are announced to the table.
+      commitStoryArc(params.campaignId, arc);
       publishPersisted(params.campaignId, "mcp_control", { action: "story_arc_changed" });
       return { storyArc: campaignOr404(params.campaignId).storyArc };
     }

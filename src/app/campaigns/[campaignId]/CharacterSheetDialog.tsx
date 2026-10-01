@@ -3,7 +3,9 @@
 import { useInlineText } from "@/lib/i18n/inline-text";
 import { useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
-import { FileDown, Heart, Minus, Plus, PawPrint, Pencil, Shield, Wrench, X } from "lucide-react";
+import { FileDown, Minus, Plus, PawPrint, Pencil, Wrench, X } from "lucide-react";
+import { GameIcon } from "@/components/ui/GameIcon";
+import { conditionIconKey } from "@/lib/icons";
 import { cn } from "@/lib/cn";
 import { CharacterPortrait, ui } from "@/lib/ui";
 import { downloadCharacterSheetPdf } from "@/lib/pdf/download";
@@ -37,7 +39,9 @@ import {
 } from "@/lib/help";
 import { useI18n } from "@/lib/i18n";
 import { localeText } from "@/lib/i18n/locale-text";
+import { describeConditionDuration } from "@/lib/dm/condition-logic";
 import { characterDisplay } from "@/lib/i18n/character-display";
+import { SheetSpells } from "@/components/sheet/SheetSpells";
 
 function titleCase(value: string) {
   return value.replace(/[-_]/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
@@ -61,6 +65,77 @@ const stepButton =
 // +7 came from without this file knowing a single rule.
 function explainParts(parts: DerivedPart[]): string {
   return parts.map((part) => `${formatModifier(part.value)} ${part.label}`).join(", ");
+}
+
+const ROMAN = ["", "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX"];
+
+// One spell slot level: a mark per slot, filled while it is still there.
+function SlotRow({
+  label,
+  left,
+  max,
+  editable,
+  busy,
+  inCombat,
+  onSpend,
+  onRecover,
+}: {
+  label: string;
+  left: number;
+  max: number;
+  editable: boolean;
+  busy: boolean;
+  inCombat: boolean;
+  onSpend?: () => void;
+  onRecover?: () => void;
+}) {
+  const uiText = useInlineText();
+  const leftOf = uiText("{left} of {max} left", { left, max });
+  return (
+    <span
+      className="flex items-center gap-1.5 rounded-lg border border-stone-800 px-2 py-1"
+      title={`${label}: ${leftOf}`}
+    >
+      <span className="font-display text-[11px] tracking-wide text-stone-400">{label}</span>
+      <span className="flex gap-0.5" aria-label={leftOf}>
+        {Array.from({ length: max }, (_, index) => (
+          <span
+            key={index}
+            className={cn(
+              "size-2.5 rounded-full border",
+              index < left
+                ? "border-amber-400 bg-amber-400/80 shadow-[0_0_6px_rgba(212,171,58,0.5)]"
+                : "border-stone-600",
+            )}
+          />
+        ))}
+      </span>
+      {editable ? (
+        <>
+          <button
+            type="button"
+            className={stepButton}
+            disabled={busy || left <= 0}
+            title={uiText("Spend a slot")}
+            aria-label={`${uiText("Spend a slot")}: ${label}`}
+            onClick={onSpend}
+          >
+            <Minus className="size-3" />
+          </button>
+          <button
+            type="button"
+            className={stepButton}
+            disabled={busy || inCombat || left >= max}
+            title={inCombat ? uiText("Slots recover at rests, not mid-combat") : uiText("Recover a slot")}
+            aria-label={`${uiText("Recover a slot")}: ${label}`}
+            onClick={onRecover}
+          >
+            <Plus className="size-3" />
+          </button>
+        </>
+      ) : null}
+    </span>
+  );
 }
 
 export function CharacterSheetDialog({
@@ -230,7 +305,7 @@ export function CharacterSheetDialog({
 
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-stone-300">
             <span className="flex items-center gap-1">
-              <Heart className="size-4 text-red-400" />
+              <GameIcon icon={{ kind: "glyph", key: "rest-hp" }} size="size-5" />
               {sheet.currentHp}
               {sheet.tempHp ? `+${sheet.tempHp}` : ""}/{sheet.maxHp} HP
             </span>
@@ -242,10 +317,13 @@ export function CharacterSheetDialog({
                   : armor.parts.join(" + ")
               }
             >
-              <Shield className="size-4 text-stone-400" />{" "}
+              <GameIcon icon={{ kind: "glyph", key: "rest-ac" }} size="size-5" />
               <GameTerm id="armor_class">AC</GameTerm> {sheet.ac}
             </span>
-            <span title={speedNote}>{t("sheet.speed")} {formatSpeed(speed)}</span>
+            <span className="flex items-center gap-1" title={speedNote}>
+              <GameIcon icon={{ kind: "glyph", key: "rest-speed" }} size="size-5" />
+              {t("sheet.speed")} {formatSpeed(speed)}
+            </span>
             <span
               className={cn(
                 encumbranceRule && load.tier !== "unencumbered" && "text-amber-300",
@@ -259,15 +337,24 @@ export function CharacterSheetDialog({
               {formatWeight(load.carriedLb)}
               {load.unweighed ? "+" : ""}/{formatWeight(load.capacityLb)}
             </span>
-            <span title={explainParts(derived.parts.initiative)}>
+            <span className="flex items-center gap-1" title={explainParts(derived.parts.initiative)}>
+              <GameIcon icon={{ kind: "glyph", key: "rest-initiative" }} size="size-5" />
               <GameTerm id="initiative">{copy.initiative}</GameTerm> {formatModifier(derived.initiative)}
             </span>
-            <span title={explainParts(derived.parts.passivePerception)}>
+            <span className="flex items-center gap-1" title={explainParts(derived.parts.passivePerception)}>
+              <GameIcon icon={{ kind: "glyph", key: "sense-passive-perception" }} size="size-5" />
               <GameTerm id="passive_perception">{copy.passivePerception}</GameTerm> {derived.passivePerception}
             </span>
-            <span>{copy.proficiencyBonus} {formatModifier(derived.proficiencyBonus)}</span>
-            <span>{sheet.gold} {copy.gold}</span>
-            <span>
+            <span className="flex items-center gap-1">
+              <GameIcon icon={{ kind: "glyph", key: "rest-proficiency" }} size="size-5" />
+              {copy.proficiencyBonus} {formatModifier(derived.proficiencyBonus)}
+            </span>
+            <span className="flex items-center gap-1">
+              <GameIcon icon={{ kind: "glyph", key: "coin-gp" }} size="size-5" />
+              {sheet.gold} {copy.gold}
+            </span>
+            <span className="flex items-center gap-1">
+              <GameIcon icon={{ kind: "glyph", key: "rest-xp" }} size="size-5" />
               {sheet.xp} {copy.xpHitDice} {sheet.hitDice.total - sheet.hitDice.spent}/
               {sheet.hitDice.total}
               {sheet.hitDice.die}
@@ -298,11 +385,12 @@ export function CharacterSheetDialog({
               {sheet.conditions.map((condition) => (
                 <span
                   key={condition}
-                  className="rounded-full bg-red-950 px-2 py-0.5 text-xs text-red-300"
+                  className="inline-flex items-center gap-1 rounded-full bg-red-950 py-0.5 pl-1 pr-2 text-xs text-red-300"
                 >
-                  {condition}
+                  <GameIcon icon={{ kind: "condition", key: conditionIconKey(condition) }} size="size-5" className="border-red-800/60" />
+                  {characterDisplay(condition, locale)}
                   {sheet.conditionMeta?.[condition]?.rounds
-                    ? ` (${sheet.conditionMeta[condition].rounds} rd)`
+                    ? ` (${describeConditionDuration(sheet.conditionMeta[condition].rounds, locale)})`
                     : ""}
                 </span>
               ))}
@@ -312,7 +400,10 @@ export function CharacterSheetDialog({
           <div className="mt-4 grid grid-cols-3 gap-2 text-center sm:grid-cols-6">
             {ABILITIES.map((ability) => (
               <div key={ability} className="rounded-lg border border-stone-800 p-2">
-                <p className="text-xs uppercase font-bold text-amber-300/80">{t(`sheet.abilities.${ability}`)}</p>
+                <p className="flex items-center justify-center gap-1 text-xs uppercase font-bold text-amber-300/80">
+                  <GameIcon icon={{ kind: "glyph", key: `ability-${ability}` }} size="size-5" />
+                  {t(`sheet.abilities.${ability}`)}
+                </p>
                 <p className="text-lg text-stone-100">{sheet.abilities[ability]}</p>
                 <p className="text-xs text-stone-400">
                   {formatModifier(derived.abilityMods[ability])}
@@ -377,57 +468,52 @@ export function CharacterSheetDialog({
                   : ""}
                 )
               </h3>
-              {Object.keys(sheet.spellcasting.slots).length ? (
-                <div className="flex flex-wrap items-center gap-1.5 text-xs text-stone-400">
-                  <span>
-                    <GameTerm id="spell_slot">{copy.slots}</GameTerm>:
-                  </span>
-                  {Object.entries(sheet.spellcasting.slots).map(([slotLevel, slot]) => (
-                    <span
-                      key={slotLevel}
-                      className="flex items-center gap-1 rounded border border-stone-800 px-1.5 py-0.5"
-                    >
-                      {mine ? (
-                        <button
-                          type="button"
-                          className={stepButton}
-                          disabled={busy || slot.used >= slot.max}
-                          title={copy.spendSlot}
-                          onClick={() => adjustUsage({ slots: { [slotLevel]: slot.used + 1 } })}
-                        >
-                          <Minus className="size-3" />
-                        </button>
-                      ) : null}
-                      <span>
-                        L{slotLevel} {slot.max - slot.used}/{slot.max}
-                      </span>
-                      {mine ? (
-                        <button
-                          type="button"
-                          className={stepButton}
-                          disabled={busy || inCombat || slot.used <= 0}
-                          title={inCombat ? uiText("Slots recover at rests, not mid-combat") : uiText("Recover a slot")}
-                          onClick={() => adjustUsage({ slots: { [slotLevel]: slot.used - 1 } })}
-                        >
-                          <Plus className="size-3" />
-                        </button>
-                      ) : null}
-                    </span>
-                  ))}
+              {Object.keys(sheet.spellcasting.slots).length || sheet.spellcasting.pact ? (
+                <div className="space-y-1.5 text-xs text-stone-300">
+                  <p className="flex items-center gap-1 text-stone-400">
+                    <GameIcon icon={{ kind: "glyph", key: "rest-spell-slot" }} size="size-5" />
+                    <GameTerm id="spell_slot">{copy.slots}</GameTerm>
+                    <span className="text-stone-500">: {uiText("the magic left today")}</span>
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {Object.entries(sheet.spellcasting.slots).map(([slotLevel, slot]) => (
+                      <SlotRow
+                        key={slotLevel}
+                        label={uiText("Slot level {level}", { level: ROMAN[Number(slotLevel)] ?? slotLevel })}
+                        left={slot.max - slot.used}
+                        max={slot.max}
+                        editable={mine}
+                        busy={busy}
+                        inCombat={inCombat}
+                        onSpend={() => adjustUsage({ slots: { [slotLevel]: slot.used + 1 } })}
+                        onRecover={() => adjustUsage({ slots: { [slotLevel]: slot.used - 1 } })}
+                      />
+                    ))}
+                    {sheet.spellcasting.pact ? (
+                      <SlotRow
+                        label={uiText("Pact, level {level}", {
+                          level: ROMAN[sheet.spellcasting.pact.level] ?? sheet.spellcasting.pact.level,
+                        })}
+                        left={sheet.spellcasting.pact.max - sheet.spellcasting.pact.used}
+                        max={sheet.spellcasting.pact.max}
+                        editable={false}
+                        busy={busy}
+                        inCombat={inCombat}
+                      />
+                    ) : null}
+                  </div>
+                  <p className="text-[11px] leading-snug text-stone-500">
+                    {uiText("Casting a spell of level I or higher uses up one slot of that level (or a higher one, to cast it stronger); cantrips never use one. Filled marks are slots still available, empty ones are spent. They all come back after a long rest.")}
+                    {sheet.class === "warlock" || sheet.spellcasting.pact
+                      ? ` ${uiText("A warlock's pact slots come back after a short rest too.")}`
+                      : ""}
+                    {mine ? ` ${uiText("The DM marks them as you cast; the buttons are only for fixing the count.")}` : ""}
+                  </p>
                 </div>
               ) : null}
-              {[...sheet.spellcasting.known, ...sheet.spellcasting.prepared].length ? (
-                <div className="mt-1">
-                  <InfoChipList
-                    items={[
-                      ...new Set([...sheet.spellcasting.known, ...sheet.spellcasting.prepared]),
-                    ].map((spell) => ({
-                      name: localizedContentName("spells", spell, locale),
-                      reference: { kind: "spells", slug: contentSlug(spell), name: spell },
-                    }))}
-                  />
-                </div>
-              ) : null}
+              <div className="mt-3">
+                <SheetSpells sheet={sheet} editable={mine} />
+              </div>
             </section>
           ) : null}
 
@@ -523,11 +609,13 @@ export function CharacterSheetDialog({
               <h3 className="mb-1.5 text-xs font-medium uppercase tracking-wide text-stone-500">
                 {uiText("Equipment")}
               </h3>
-              <p className="text-xs text-stone-300">
-                {sheet.equipment
-                  .map((item) => (item.qty > 1 ? `${item.name} x${item.qty}` : item.name))
-                  .join(", ")}
-              </p>
+              <InfoChipList
+                items={sheet.equipment.map((item) => ({
+                  icon: { kind: "item" as const, key: item.name, family: "item-gear" },
+                  name: item.qty > 1 ? `${item.name} x${item.qty}` : item.name,
+                  reference: { kind: "items", slug: contentSlug(item.name), name: item.name },
+                }))}
+              />
               {mine && wearable.length ? (
                 <div className="mt-2 space-y-1">
                   <p className="text-[11px] text-stone-500">
@@ -554,6 +642,7 @@ export function CharacterSheetDialog({
                     const worn = item.equipped ?? !anyEquipped;
                     return (
                       <div key={item.name} className="flex items-center gap-2 text-xs text-stone-300">
+                        <GameIcon icon={{ kind: "item", key: item.name, family: "item-gear" }} size="size-5" />
                         <span className="grow truncate">{item.name}</span>
                         {isArmor ? (
                           <button
@@ -607,6 +696,11 @@ export function CharacterSheetDialog({
                     : localizedFeatureName(sheet.class, sheet.subclass, feature.name, locale) === feature.name
                       ? characterDisplay(feature.name, locale)
                       : localizedFeatureName(sheet.class, sheet.subclass, feature.name, locale),
+                  icon: {
+                    kind: "feature" as const,
+                    key: feature.name,
+                    family: feature.source === "race" ? null : `class-${sheet.class.toLowerCase()}`,
+                  },
                   note: feature.source === "story" ? copy.story : undefined,
                   meta: feature.level ? `${copy.level} ${feature.level}` : undefined,
                   text: feature.source === "race"
@@ -625,6 +719,7 @@ export function CharacterSheetDialog({
               <InfoChipList
                 items={sheet.feats.map((feat) => ({
                   name: localizedContentName("feats", feat, locale),
+                  icon: { kind: "feat" as const, key: feat },
                   text: describeFeature(sheet.class, sheet.subclass, feat, locale),
                   reference: { kind: "feats", slug: contentSlug(feat), name: feat },
                 }))}

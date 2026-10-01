@@ -9,10 +9,13 @@ import {
   localizedFeatureName,
   localizedSubclassName,
 } from "@/lib/help";
+import { firstSentence } from "@/lib/help/rules-text";
 import { SRD_SKILLS } from "@/lib/srd";
+import { subclassBlurb } from "@/lib/srd/features";
 import { displayName } from "@/lib/worlds/reskin-logic";
 import type { WorldPack } from "@/lib/worlds/types";
 import OptionPicker, { type PickerGroup } from "../OptionPicker";
+import { classInfoText } from "../usePickerGroups";
 import type { ArchetypeOption, BackgroundOption, ClassOption } from "../useBuilderOptions";
 import type { BuilderActions, BuilderDerived } from "../useBuilderDerived";
 import type { BuilderState } from "../useBuilderState";
@@ -54,6 +57,11 @@ export function CallingStep({
     ru: { choose: "Выберите класс", class: "Класс", hitDie: "кость хитов", saves: "спасброски", caster: "заклинатель", flavored: "заклинания в стиле", subclass: "Подкласс", none: "Пока нет", specialization: "Специализация внутри вашего класса.", still: "Ещё нужно выбрать.", subclassHelp: "Подкласс — главный выбор, определяющий стиль игры персонажа. Нажмите значок информации возле варианта, чтобы прочитать описание перед выбором.", gain: "Что вы получаете на уровне", gainHelp: "Нажмите на название, чтобы прочитать описание. Расовые черты и преимущества предыстории добавятся при сохранении персонажа.", level: "Уровень", skills: "Навыки класса", pick: "выберите", stillChoose: "ещё нужно выбрать.", skillHelp: "Владение навыком добавляет бонус мастерства к броскам с ним. Нажмите ⓘ, чтобы узнать, от какой характеристики зависит навык.", background: "(предыстория)" },
   });
   const { subclass } = state;
+  // The subclass write-up: the Russian help when there is one, else the
+  // pack's full row, else the bundled line, so no subclass is a bare name.
+  const subclassText =
+    describeSubclass(klass?.id ?? "", subclass, locale) ??
+    (chosenArchetype?.desc || subclassBlurb(klass?.id ?? "", subclass) || undefined);
   const { effectiveLevel, grantedFeatures } = derived;
   return (
     <div className="space-y-4">
@@ -80,7 +88,7 @@ export function CallingStep({
               ) : null}
               <InfoButton
                 label={characterDisplay(klass.name, locale)}
-                text={klass.blurb || klass.desc}
+                text={classInfoText(klass)}
                 reference={{ kind: "classes", slug: klass.id }}
               />
             </span>
@@ -93,19 +101,17 @@ export function CallingStep({
               groups={subclassGroups}
                placeholder={copy.none}
               className={inputClass}
-              onChange={state.setSubclass}
+              onChange={state.changeSubclass}
             />
             <span className="mt-1 flex items-start gap-1 text-xs text-stone-500">
               {subclass ? (
                 <>
                   <span className="grow">
-                    {chosenArchetype?.desc
-                      ? chosenArchetype.desc.split("\n")[0]
-                       : copy.specialization}
+                    {firstSentence(subclassText) ?? copy.specialization}
                   </span>
                   <InfoButton
                     label={localizedSubclassName(klass?.id ?? "", subclass, locale)}
-                    text={describeSubclass(klass?.id ?? "", subclass, locale) ?? chosenArchetype?.desc}
+                    text={subclassText}
                     reference={
                       chosenArchetype ? { kind: "archetypes", slug: chosenArchetype.id } : undefined
                     }
@@ -164,7 +170,8 @@ export function CallingStep({
           <div className="flex flex-wrap gap-2">
             {klass.skillChoices.from.map((skillId) => {
               const skill = SRD_SKILLS.find((entry) => entry.id === skillId);
-              const fromBackground = background?.skills.includes(skillId) ?? false;
+              const fromBackground =
+                (background?.skills.includes(skillId) ?? false) || state.backgroundSkills.includes(skillId);
               return (
                 <PickPill
                   key={skillId}

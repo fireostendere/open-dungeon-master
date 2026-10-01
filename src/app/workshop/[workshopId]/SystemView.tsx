@@ -2,6 +2,7 @@
 
 import { ArrowLeft, CircleHelp } from "lucide-react";
 import { IconRail, type IconRailItem } from "@/components/ui/IconRail";
+import { GameIcon } from "@/components/ui/GameIcon";
 import { DmMapLibraryPanel } from "@/app/campaigns/[campaignId]/DmMapLibraryPanel";
 import { DmNpcForgePanel } from "@/app/campaigns/[campaignId]/DmNpcForgePanel";
 import { DmEncounterPrepPanel } from "@/app/campaigns/[campaignId]/DmEncounterPrepPanel";
@@ -85,6 +86,7 @@ export function SystemView({
         <ArrowLeft className="size-4" /> {workshop.title}
       </button>
       <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1">
+        <GameIcon icon={{ kind: "glyph", key: `system-${current.id}` }} size="size-9" />
         <h2 className="font-display text-xl tracking-wide text-amber-50">{workshopSystemText(locale, current.id).label}</h2>
         <span className="text-sm text-stone-500">{count.phrase}</span>
         <button

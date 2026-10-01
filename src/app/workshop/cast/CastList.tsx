@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Search, UserPlus, Users } from "lucide-react";
+import { Search, UserPlus } from "lucide-react";
+import { GameIcon } from "@/components/ui/GameIcon";
 import { cn } from "@/lib/cn";
 import { ui } from "@/lib/ui";
 import { npcPlaceholder, npcRoleLabel } from "@/lib/placeholders";
@@ -46,7 +47,7 @@ export function CastChips({ npcs, selectedId, onOpen }: ListProps) {
   return (
     <section className="space-y-2 rounded-lg border border-stone-800 bg-stone-950/40 px-2.5 py-2">
       <p className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-stone-500">
-        <Users className="size-3.5" />
+        <GameIcon icon={{ kind: "glyph", key: "system-cast" }} size="size-5" />
           {copy.cast}
       </p>
       <div className="flex flex-wrap gap-1">
@@ -94,6 +95,14 @@ export function CastChips({ npcs, selectedId, onOpen }: ListProps) {
     </section>
   );
 }
+
+// The painted face of an attitude; "indifferent" is the engine's word for
+// what the glyph set calls neutral.
+const ATTITUDE_GLYPH: Record<string, string> = {
+  friendly: "attitude-friendly",
+  hostile: "attitude-hostile",
+  indifferent: "attitude-neutral",
+};
 
 const ATTITUDE_TAG: Record<string, string> = {
   friendly: "border-emerald-500/40 bg-emerald-500/10 text-emerald-300",
@@ -164,10 +173,11 @@ export function CastRows({ npcs, onOpen }: Omit<ListProps, "selectedId">) {
                     ) : null}
                     <span
                       className={cn(
-                        "rounded-sm border px-1.5 py-0.5 text-[10px] uppercase tracking-wider",
+                        "inline-flex items-center gap-1 rounded-sm border py-0.5 pl-0.5 pr-1.5 text-[10px] uppercase tracking-wider",
                         ATTITUDE_TAG[npc.attitude] ?? ATTITUDE_TAG.indifferent,
                       )}
                     >
+                      <GameIcon icon={{ kind: "glyph", key: ATTITUDE_GLYPH[npc.attitude] ?? "attitude-neutral" }} size="size-5" />
                       {npc.attitude}
                     </span>
                     {npc.archived ? (
@@ -201,8 +211,9 @@ export function CastRows({ npcs, onOpen }: Omit<ListProps, "selectedId">) {
               "flex w-full items-center gap-3 border-dashed p-3 text-left text-stone-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/40",
             )}
           >
-            <span className="flex size-11 shrink-0 items-center justify-center rounded-full border border-dashed border-stone-600">
-              <UserPlus className="size-4" />
+            <span className="relative shrink-0">
+              <GameIcon icon={{ kind: "glyph", key: "system-cast" }} size="size-11" />
+              <UserPlus className="absolute -bottom-1 -right-1 size-4 rounded-full bg-stone-900 p-0.5 text-amber-300" aria-hidden="true" />
             </span>
             <span className="font-display tracking-wide">{copy.new}</span>
           </button>

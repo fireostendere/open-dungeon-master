@@ -2,12 +2,13 @@
 
 import { useInlineText } from "@/lib/i18n/inline-text";
 import * as AlertDialog from "@radix-ui/react-alert-dialog";
-import { ArrowDown, ArrowUp, BookOpen, Check, ChevronDown, ChevronRight, Compass, Crosshair, Loader2, Pencil, Plus, Rewind, Scissors, SkipForward, Users, X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { ArrowDown, ArrowUp, Check, ChevronDown, ChevronRight, Crosshair, Loader2, Pencil, Plus, Rewind, Scissors, SkipForward, X } from "lucide-react";
+import { GameIcon } from "@/components/ui/GameIcon";
+import { Fragment, useEffect, useState } from "react";
 import { cn } from "@/lib/cn";
 import { ui } from "@/lib/ui";
 import type { Chapter } from "@/lib/db/chapters";
-import type { StoryArc } from "@/lib/dm/arc-logic";
+import { romanNumeral, type PublicAct, type StoryArc } from "@/lib/dm/arc-logic";
 import { MAX_BEAT_TEXT, type BeatEdit } from "@/lib/dm/arc-edit-logic";
 import { ExportMenu } from "./ExportMenu";
 import { NpcReviewPanel } from "./NpcReviewPanel";
@@ -67,6 +68,27 @@ function ConfirmRewindDialog({
         </AlertDialog.Content>
       </AlertDialog.Portal>
     </AlertDialog.Root>
+  );
+}
+
+// The rule between acts in the chapter list: the act's number on a gold
+// hairline, the name the table was shown, and the recap it heard when the
+// act ended.
+function ActHeading({ act, title, recap }: { act: number; title: string; recap: string }) {
+  const { locale } = useI18n();
+  const copy = localeText(locale, { en: { act: "Act {act}" }, ru: { act: "Акт {act}" } });
+  return (
+    <li className="pt-2">
+      <div className="flex items-center gap-2">
+        <span className="h-px flex-1 bg-gradient-to-r from-transparent to-amber-500/60" aria-hidden="true" />
+        <span className="font-display text-[11px] uppercase tracking-[0.22em] text-amber-300">
+          {copy.act.replace("{act}", romanNumeral(act))}
+        </span>
+        <span className="h-px flex-1 bg-gradient-to-l from-transparent to-amber-500/60" aria-hidden="true" />
+      </div>
+      {title ? <p className="mt-1 text-center font-display text-sm text-amber-100">{title}</p> : null}
+      {recap ? <p className="mt-1 text-center text-[11px] leading-4 text-stone-400">{recap}</p> : null}
+    </li>
   );
 }
 
@@ -233,7 +255,7 @@ function NpcReviewCard({ campaignId }: { campaignId: string }) {
           <ChevronRight className="mt-0.5 size-3.5 shrink-0 text-stone-500" />
         )}
         <span className="flex items-center gap-1.5 text-xs font-medium text-amber-200">
-          <Users className="size-3.5 text-amber-600" /> {uiText("NPC roster")}
+          <GameIcon icon={{ kind: "glyph", key: "system-cast" }} size="size-6" /> {uiText("NPC roster")}
         </span>
       </button>
       {expanded ? (
@@ -256,8 +278,8 @@ function ArcCard({ campaignId }: { campaignId: string }) {
   const uiText = useInlineText();
   const { locale } = useI18n();
   const copy = localeText(locale, {
-    en: { editFailed: "That edit did not go through.", arc: "DM story arc (secret)", loading: "Loading...", saga: "Saga", sequel: "sequel", act: "act", of: "of", stakes: "Stakes:", antagonist: "Antagonist:", now: "(now)", skipped: "(skipped)", play: "Make this the beat in play", up: "Move up", down: "Move down", reword: "Reword this beat", skip: "Skip this beat", happens: "What happens in this beat", ahead: "Acts ahead (sketches)", cast: "Recurring cast", wants: "wants:", events: "Planned events (may never fire)", when: "when", threads: "Open threads", previous: "Previous sagas", emptyPlot: "No story arc yet. It is written when the adventure begins, or generate one now.", empty: "No story arc yet.", regenerateTitle: "Discard the current arc and have the DM plot a fresh one from the premise", plotting: "Plotting a new arc...", regenerate: "Generate story arc" },
-    ru: { editFailed: "Не удалось изменить этот этап.", arc: "Арка истории мастера (секрет)", loading: "Загрузка...", saga: "Сага", sequel: "продолжение", act: "акт", of: "из", stakes: "Ставки:", antagonist: "Антагонист:", now: "(сейчас)", skipped: "(пропущено)", play: "Сделать текущим этапом", up: "Переместить выше", down: "Переместить ниже", reword: "Изменить формулировку этапа", skip: "Пропустить этап", happens: "Что происходит на этом этапе", ahead: "Будущие акты (наброски)", cast: "Постоянные NPC", wants: "хочет:", events: "Запланированные события (могут не произойти)", when: "когда", threads: "Открытые нити", previous: "Предыдущие саги", emptyPlot: "Арки истории пока нет. Она будет написана с началом приключения или сгенерирована сейчас.", empty: "Арки истории пока нет.", regenerateTitle: "Отбросить текущую арку и поручить мастеру построить новую из завязки", plotting: "Строим новую арку...", regenerate: "Создать арку истории" },
+    en: { editFailed: "That edit did not go through.", arc: "DM story arc (secret)", loading: "Loading...", saga: "Saga", sequel: "sequel", act: "act", of: "of", stakes: "Stakes:", antagonist: "Antagonist:", now: "(now)", skipped: "(skipped)", play: "Make this the beat in play", up: "Move up", down: "Move down", reword: "Reword this beat", skip: "Skip this beat", happens: "What happens in this beat", ahead: "Acts ahead (sketches)", cast: "Recurring cast", wants: "wants:", events: "Planned events (may never fire)", when: "when", threads: "Open threads", previous: "Previous sagas", emptyPlot: "No story arc yet. It is written when the adventure begins, or generate one now.", empty: "No story arc yet.", regenerateTitle: "Discard the current arc and have the DM plot a fresh one from the premise", plotting: "Plotting a new arc...", regenerate: "Generate story arc", waypoint: "Waypoint: {text}", kinds: { place: "place", npc: "person", item: "item", objective: "objective", fight: "fight", narrative: "story" } },
+    ru: { editFailed: "Не удалось изменить этот этап.", arc: "Арка истории мастера (секрет)", loading: "Загрузка...", saga: "Сага", sequel: "продолжение", act: "акт", of: "из", stakes: "Ставки:", antagonist: "Антагонист:", now: "(сейчас)", skipped: "(пропущено)", play: "Сделать текущим этапом", up: "Переместить выше", down: "Переместить ниже", reword: "Изменить формулировку этапа", skip: "Пропустить этап", happens: "Что происходит на этом этапе", ahead: "Будущие акты (наброски)", cast: "Постоянные NPC", wants: "хочет:", events: "Запланированные события (могут не произойти)", when: "когда", threads: "Открытые нити", previous: "Предыдущие саги", emptyPlot: "Арки истории пока нет. Она будет написана с началом приключения или сгенерирована сейчас.", empty: "Арки истории пока нет.", regenerateTitle: "Отбросить текущую арку и поручить мастеру построить новую из завязки", plotting: "Строим новую арку...", regenerate: "Создать арку истории", waypoint: "Шаг: {text}", kinds: { place: "место", npc: "персонаж", item: "предмет", objective: "цель", fight: "бой", narrative: "сюжет" } },
   });
   const [expanded, setExpanded] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -365,7 +387,7 @@ function ArcCard({ campaignId }: { campaignId: string }) {
           <ChevronRight className="mt-0.5 size-3.5 shrink-0 text-stone-500" />
         )}
         <span className="flex items-center gap-1.5 text-xs font-medium text-amber-200">
-          <Compass className="size-3.5 text-amber-600" /> {copy.arc}
+          <GameIcon icon={{ kind: "glyph", key: "system-storyboard" }} size="size-6" /> {copy.arc}
         </span>
       </button>
       {expanded ? (
@@ -457,6 +479,30 @@ function ArcCard({ campaignId }: { campaignId: string }) {
                             {beat.text}
                             {beat.detail ? (
                               <span className="text-stone-500"> [{beat.detail}]</span>
+                            ) : null}
+                            {/* The beat's checklist: the server ticks place, person, item and fight steps from the narrator's tools; the lead corrects it by hand. */}
+                            {!settled && beat.waypoints?.length ? (
+                              <ul className="mt-1 space-y-0.5">
+                                {beat.waypoints.map((waypoint, at) => (
+                                  <li key={at}>
+                                    <label className="flex cursor-pointer items-start gap-1.5 text-[11px] leading-4 text-stone-400">
+                                      <input
+                                        type="checkbox"
+                                        className="mt-0.5 size-3 shrink-0 accent-amber-400"
+                                        checked={waypoint.done}
+                                        disabled={beatBusy}
+                                        aria-label={copy.waypoint.replace("{text}", waypoint.text)}
+                                        onChange={(event) =>
+                                          void editBeat({ op: "waypoint", beat: number, index: at, done: event.target.checked })
+                                        }
+                                      />
+                                      <span className={waypoint.done ? "text-stone-600 line-through" : ""}>
+                                        {waypoint.text} <span className="text-stone-600">({copy.kinds[waypoint.kind]})</span>
+                                      </span>
+                                    </label>
+                                  </li>
+                                ))}
+                              </ul>
                             ) : null}
                           </span>
                           {settled ? null : (
@@ -694,8 +740,8 @@ export function StoryPanel({
 }) {
   const { locale } = useI18n();
   const copy = localeText(locale, {
-    en: { notBegun: "The story has not begun. Chapters appear here as the adventure unfolds.", progress: "Chapter {chapter} in progress", seal: "Seal this chapter; the DM writes its title and summary", writing: "Writing the chapter...", close: "Close chapter", restartTitle: "Discard this chapter's progress and return to how it began", restart: "Restart this chapter" },
-    ru: { notBegun: "История ещё не началась. Главы появятся здесь по мере развития приключения.", progress: "Глава {chapter} в процессе", seal: "Завершить главу; мастер напишет её название и итог", writing: "Мастер пишет главу...", close: "Завершить главу", restartTitle: "Отменить прогресс этой главы и вернуться к её началу", restart: "Начать эту главу заново" },
+    en: { notBegun: "The story has not begun. Chapters appear here as the adventure unfolds.", progress: "Chapter {chapter} in progress", actProgress: "Act {act}, chapter {chapter} in progress", seal: "Seal this chapter; the DM writes its title and summary", writing: "Writing the chapter...", close: "Close chapter", restartTitle: "Discard this chapter's progress and return to how it began", restart: "Restart this chapter" },
+    ru: { notBegun: "История ещё не началась. Главы появятся здесь по мере развития приключения.", progress: "Глава {chapter} в процессе", actProgress: "Акт {act}, глава {chapter} в процессе", seal: "Завершить главу; мастер напишет её название и итог", writing: "Мастер пишет главу...", close: "Завершить главу", restartTitle: "Отменить прогресс этой главы и вернуться к её началу", restart: "Начать эту главу заново" },
   });
   const [closing, setClosing] = useState(false);
   const [rewindable, setRewindable] = useState<number[]>([]);
@@ -704,19 +750,26 @@ export function StoryPanel({
     warnings: string[];
   } | null>(null);
   const [rewindBusy, setRewindBusy] = useState(false);
+  // The acts the table has been told about: names and recaps for the
+  // headings between chapters. Player-safe by construction (publicActs).
+  const [acts, setActs] = useState<PublicAct[]>([]);
   const closed = chapters.filter((chapter) => chapter.status === "closed");
   const open = chapters.find((chapter) => chapter.status === "open");
 
-  // Which chapters have a boundary snapshot to rewind to; lead-only UI.
+  // The acts for everyone; which chapters have a boundary snapshot to
+  // rewind to is lead-only UI.
   useEffect(() => {
-    if (!steersStory) {
-      return;
-    }
     let cancelled = false;
     fetch(`/api/campaigns/${campaignId}/chapters`)
       .then((response) => (response.ok ? response.json() : null))
       .then((data) => {
-        if (!cancelled && data && Array.isArray(data.rewindableChapters)) {
+        if (cancelled || !data) {
+          return;
+        }
+        if (Array.isArray(data.acts)) {
+          setActs(data.acts as PublicAct[]);
+        }
+        if (steersStory && Array.isArray(data.rewindableChapters)) {
           setRewindable(data.rewindableChapters as number[]);
         }
       })
@@ -780,8 +833,11 @@ export function StoryPanel({
       <ExportMenu campaignId={campaignId} />
       <div className="rounded-lg border border-dashed border-stone-800 p-2.5">
         <p className="flex items-center gap-1.5 text-xs text-stone-400">
-          <BookOpen className="size-3.5 text-amber-600" />
-          {copy.progress.replace("{chapter}", String(open?.index ?? closed.length + 1))}
+          <GameIcon icon={{ kind: "glyph", key: "tab-story" }} size="size-5" />
+          {(open?.act ? copy.actProgress.replace("{act}", romanNumeral(open.act)) : copy.progress).replace(
+            "{chapter}",
+            String(open?.index ?? closed.length + 1),
+          )}
         </p>
         {steersStory ? (
           <button
@@ -815,19 +871,35 @@ export function StoryPanel({
         ) : null}
       </div>
       <ol className="space-y-2">
-        {[...closed].reverse().map((chapter) => (
-          <ChapterCard
-            key={chapter.id}
-            campaignId={campaignId}
-            chapter={chapter}
-            steersStory={steersStory}
-            onRewind={
-              steersStory && rewindable.includes(chapter.index)
-                ? () => void postRewind(chapter.index, false)
-                : undefined
-            }
-          />
-        ))}
+        {[...closed].reverse().map((chapter, index, list) => {
+          // Newest first, so an act's heading sits above the newest chapter
+          // of that act. Chapters sealed before acts were stamped have none
+          // and run on without a heading.
+          const previous = index > 0 ? list[index - 1] : null;
+          const boundary =
+            chapter.act !== null &&
+            (!previous || previous.act !== chapter.act || (previous.saga ?? 1) !== (chapter.saga ?? 1));
+          const act = boundary
+            ? acts.find((entry) => entry.act === chapter.act && entry.sagaIndex === (chapter.saga ?? 1))
+            : undefined;
+          return (
+            <Fragment key={chapter.id}>
+              {boundary && chapter.act !== null ? (
+                <ActHeading act={chapter.act} title={act?.title ?? ""} recap={act?.recap ?? ""} />
+              ) : null}
+              <ChapterCard
+                campaignId={campaignId}
+                chapter={chapter}
+                steersStory={steersStory}
+                onRewind={
+                  steersStory && rewindable.includes(chapter.index)
+                    ? () => void postRewind(chapter.index, false)
+                    : undefined
+                }
+              />
+            </Fragment>
+          );
+        })}
       </ol>
       {rewindTarget ? (
         <ConfirmRewindDialog

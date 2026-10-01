@@ -9,17 +9,22 @@ import { publishPersisted, publishWithSeq } from "@/lib/events";
 import { computeSheetDerived } from "@/lib/srd";
 import { saveModFor } from "@/lib/bestiary/statblock";
 import { allySaveAura } from "@/lib/dm/aura";
-import { tickConditions } from "@/lib/dm/condition-logic";
+import { ROUNDS_PER_MINUTE, tickConditions } from "@/lib/dm/condition-logic";
 import { hasBrave, hasLoxodonSerenity } from "@/lib/srd/feature-effects";
 import { tickEffectRound } from "@/lib/db/active-effects";
-import { publishEncounter } from "@/lib/dm/enemy-damage";
+import { activePublicEncounter } from "@/lib/db/encounter-view";
 
-// Round-wrap condition upkeep: timed conditions count down and expire,
-// save-ends conditions get their re-save rolled server-side (enemy saves
-// from stat blocks, character saves from real sheet modifiers with a
-// published dice card). Called from advancePointer when the initiative
-// order wraps; must not import encounter-tools (the import points the
-// other way).
+// Condition upkeep: timed conditions count down and expire, save-ends
+// conditions get their re-save rolled server-side (enemy saves from stat
+// blocks, character saves from real sheet modifiers with a published dice
+// card). Two clocks drive it. In combat, advancePointer calls
+// tickEncounterConditions when the initiative order wraps, one round at a
+// time. Outside combat the in-world clock calls tickClockConditions from
+// advanceClock (src/lib/db/clock.ts) with the minutes that passed, so a
+// poison that outlasted the fight, or was never in one, still wears off on
+// the road or over a night's rest. Must not import encounter-tools or
+// enemy-damage (the imports point the other way, and the clock path would
+// close a cycle through them).
 
 export function tickEncounterConditions(campaign: Campaign, encounter: Encounter) {
   const lines: string[] = [];
@@ -31,11 +36,39 @@ export function tickEncounterConditions(campaign: Campaign, encounter: Encounter
     lines.push(`${expired.name} wears off.`);
   }
 
+  tickEnemyConditions(encounter, 1, lines);
+  tickSheetConditions(campaign, 1, lines);
+
+  if (lines.length) {
+    publishPersisted(campaign.id, "encounter_updated", { encounter: activePublicEncounter(campaign.id) });
+    noteAtTable(campaign.id, lines);
+  }
+}
+
+// In-world minutes passing with no fight running. Minute-based active
+// effects are already expired by advanceClock; enemies only exist inside
+// encounters, so only the party's sheets tick. A save-ends condition gets
+// one save per passage of time rather than one per elapsed round: ten
+// minutes of walking is not a hundred saving throws.
+export function tickClockConditions(campaign: Campaign, minutes: number) {
+  const rounds = Math.floor(Math.max(0, minutes) * ROUNDS_PER_MINUTE);
+  if (rounds <= 0) {
+    return;
+  }
+  const lines: string[] = [];
+  tickSheetConditions(campaign, rounds, lines);
+  if (lines.length) {
+    noteAtTable(campaign.id, lines);
+  }
+}
+
+function tickEnemyConditions(encounter: Encounter, by: number, lines: string[]) {
+  const tickBy = (conditions: string[], meta: Parameters<typeof tickConditions>[1]) => tickConditions(conditions, meta, by);
   for (const enemy of listEnemies(encounter.id)) {
     if (enemy.status !== "alive" || !enemy.conditions.length) {
       continue;
     }
-    const tick = tickSourcedConditions(enemy.conditions, enemy.conditionMeta, tickConditions);
+    const tick = tickSourcedConditions(enemy.conditions, enemy.conditionMeta, tickBy);
     let conditions = tick.conditions;
     let meta = tick.meta;
     for (const name of tick.expired) {
@@ -66,13 +99,16 @@ export function tickEncounterConditions(campaign: Campaign, encounter: Encounter
       patchEnemyConditions(enemy.id, conditions, meta);
     }
   }
+}
 
+function tickSheetConditions(campaign: Campaign, by: number, lines: string[]) {
+  const tickBy = (conditions: string[], meta: Parameters<typeof tickConditions>[1]) => tickConditions(conditions, meta, by);
   for (const stale of listSheets(campaign.id)) {
     const sheet = getSheetById(stale.id) ?? stale;
     if (!sheet.conditions.length || !Object.keys(sheet.conditionMeta).length) {
       continue;
     }
-    const tick = tickSourcedConditions(sheet.conditions, sheet.conditionMeta, tickConditions);
+    const tick = tickSourcedConditions(sheet.conditions, sheet.conditionMeta, tickBy);
     let conditions = tick.conditions;
     let meta = tick.meta;
     for (const name of tick.expired) {
@@ -143,16 +179,10 @@ export function tickEncounterConditions(campaign: Campaign, encounter: Encounter
       }
     }
   }
+}
 
-  if (lines.length) {
-    publishEncounter(campaign.id);
-    const seq = allocateSeq(campaign.id);
-    const message = insertCampaignMessage({
-      campaignId: campaign.id,
-      seq,
-      authorType: "system",
-      content: lines.join(" "),
-    });
-    publishWithSeq(campaign.id, seq, "message_added", { message });
-  }
+function noteAtTable(campaignId: string, lines: string[]) {
+  const seq = allocateSeq(campaignId);
+  const message = insertCampaignMessage({ campaignId, seq, authorType: "system", content: lines.join(" ") });
+  publishWithSeq(campaignId, seq, "message_added", { message });
 }

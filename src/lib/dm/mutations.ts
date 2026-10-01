@@ -42,7 +42,9 @@ import { applyDamageDeathHook, healDeathHook } from "@/lib/dm/death";
 import { isMassiveDamage, stabilizeDeathTrack } from "@/lib/dm/death-logic";
 import { autoLevelCompanion } from "@/lib/dm/companion-tools";
 import {
+  conditionRoundsFrom,
   damageAdjust,
+  describeConditionDuration,
   describeExhaustion,
   pcResistances,
   pruneMeta,
@@ -71,6 +73,9 @@ import { spellClassFor } from "@/lib/classes";
 import { insertRoll } from "@/lib/db/rolls";
 import { rollExpression } from "@/lib/dice";
 import { publishWithSeq } from "@/lib/events";
+import { allSpellNames, checklistClassSpell, isCantripName, spellsAgainstLimit } from "@/lib/srd/spell-lists";
+import { casterViewsOf, notReadyReason, spellbookOf, withCasterViews } from "@/lib/srd/spell-prep";
+import { subclassSpellsFor } from "@/lib/srd/features";
 
 // DM stat authority: the model changes sheets ONLY through these tools.
 // Every mutation is server-clamped, audit-logged, and published live.
@@ -215,13 +220,25 @@ export const mutationTools: ToolDef[] = [
     revealedName: { type: "string", description: "What it truly is, e.g. 'Ring of Protection'." },
   }, ["name"]),
   ...resourceTools,
-  tool("set_condition", "Apply a condition. Use the exact 5e name when one fits: blinded, charmed, deafened, frightened, grappled, incapacitated, invisible, paralyzed, petrified, poisoned, prone, restrained, stunned, unconscious, exhaustion. Custom names are allowed for story effects. Timed effects expire automatically: pass rounds, or saveAbility + saveDc for save-ends effects the server re-rolls each round.", {
+  tool("set_condition", "Apply a condition. Use the exact 5e name when one fits: blinded, charmed, deafened, frightened, grappled, incapacitated, invisible, paralyzed, petrified, poisoned, prone, restrained, stunned, unconscious, exhaustion. Custom names are allowed for story effects. Always give a duration when the fiction has one, because only timed conditions ever expire on their own: pass rounds for combat-scale effects, minutes or hours for longer ones (a poison, a curse, a potion), or saveAbility + saveDc for save-ends effects the server re-rolls. In combat the countdown runs by round; outside it the in-world clock runs it down as the party travels, rests, or passes time.", {
     condition: { type: "string" },
     rounds: {
       type: "integer",
       minimum: 1,
       maximum: 100,
       description: "Rounds until the condition ends on its own.",
+    },
+    minutes: {
+      type: "integer",
+      minimum: 1,
+      maximum: 1440,
+      description: "In-world minutes until the condition ends (10 rounds per minute).",
+    },
+    hours: {
+      type: "integer",
+      minimum: 1,
+      maximum: 24,
+      description: "In-world hours until the condition ends.",
     },
     saveAbility: {
       type: "string",
@@ -249,7 +266,7 @@ export const mutationTools: ToolDef[] = [
   }, ["level", "spell"]),
   tool(
     "learn_spell",
-    "Permanently add or remove ONE spell on a character's spell list, only when the story genuinely teaches or strips it: a scroll copied into a spellbook, a mentor's training, a granted boon, a curse. Never use this to let a character cast something in the moment; casting requires the spell to already be on their sheet.",
+    "Permanently add or remove ONE spell on a character's spell list, only when the story genuinely teaches or strips it: a scroll copied into a spellbook, a mentor's training, a granted boon, a curse. For a wizard the spell is written in the spellbook and can be prepared after a long rest. Players choose their own prepared spells from their sheet; never use this to swap what is prepared. Never use this to let a character cast something in the moment; casting requires the spell to already be on their sheet.",
     {
       action: { type: "string", enum: ["add", "remove"] },
       spell: { type: "string", description: "Exact spell name." },
@@ -366,8 +383,11 @@ const argsSchema = z.object({
   // use_resource: the chosen option of a feature with variants.
   variant: z.string().optional(),
   condition: z.string().optional(),
-  // set_condition durations.
+  // set_condition durations: rounds for combat-scale effects, minutes or
+  // hours for the ones the in-world clock runs down (all stored as rounds).
   rounds: z.coerce.number().int().min(1).max(100).optional(),
+  minutes: z.coerce.number().int().min(1).max(1440).optional(),
+  hours: z.coerce.number().int().min(1).max(24).optional(),
   saveAbility: z.preprocess(
     normalizeAbility,
     z.enum(["str", "dex", "con", "int", "wis", "cha"]).optional(),
@@ -1189,8 +1209,12 @@ export function applyDmMutation(
           },
         };
       }
+      // Timed conditions tick down at round wrap in combat and against the
+      // in-world clock outside it (condition-tick.ts); minutes and hours
+      // become rounds so there is one unit to count down.
+      const rounds = conditionRoundsFrom(args);
       const timing = {
-        ...(args.rounds ? { rounds: args.rounds } : {}),
+        ...(rounds ? { rounds } : {}),
         ...(args.saveAbility && args.saveDc ? { saveEnds: { ability: args.saveAbility, dc: args.saveDc } } : {}),
       };
       if (!args.conditionSource && Boolean(args.casterId) !== Boolean(args.spell)) {
@@ -1228,10 +1252,10 @@ export function applyDmMutation(
         result: {
           ok: true,
           condition: normalized,
-          ...(args.rounds ? { duration: `${args.rounds} rounds, expires automatically` } : {}),
+          ...(rounds ? { duration: `${describeConditionDuration(rounds)}, expires automatically` } : {}),
           ...(args.saveAbility && args.saveDc
             ? {
-                duration: `until they succeed on a ${args.saveAbility.toUpperCase()} save (DC ${args.saveDc}), re-rolled automatically each round`,
+                duration: `until they succeed on a ${args.saveAbility.toUpperCase()} save (DC ${args.saveDc}), re-rolled automatically each round in combat and each time the clock moves outside it`,
               }
             : {}),
         },
@@ -1377,12 +1401,14 @@ export function applyDmMutation(
         }
       }
       if (spell && sheet.spellcasting) {
-        const spellList = [...sheet.spellcasting.known, ...sheet.spellcasting.prepared];
+        const spellList = allSpellNames(sheet.spellcasting);
         const knows = spellList.some((entry) => entry.trim().toLowerCase() === spell.toLowerCase());
         if (!knows) {
           return {
             result: {
-              error: `${sheet.name} cannot cast "${spell}". Their spells: ${spellList.join(", ") || "none"}.`,
+              error:
+                notReadyReason(sheet.spellcasting, spell) ??
+                `${sheet.name} cannot cast "${spell}". Their spells: ${spellList.join(", ") || "none"}.`,
             },
           };
         }
@@ -1475,7 +1501,7 @@ export function applyDmMutation(
         !spell ||
         Boolean(
           warlockEntry &&
-            [...warlockEntry.known, ...warlockEntry.prepared].some(
+            allSpellNames(warlockEntry).some(
               (entry) => entry.trim().toLowerCase() === spell.toLowerCase(),
             ),
         );
@@ -1552,9 +1578,12 @@ export function applyDmMutation(
       }
       const known = sheet.spellcasting.known;
       const prepared = sheet.spellcasting.prepared;
+      const cantrips = sheet.spellcasting.cantrips ?? [];
+      const book = sheet.spellcasting.spellbook ?? [];
+      const pending = sheet.spellcasting.pending ?? [];
       const matches = (entry: string) => entry.trim().toLowerCase() === spell.toLowerCase();
       if (action === "add") {
-        if (known.some(matches) || prepared.some(matches)) {
+        if (known.some(matches) || prepared.some(matches) || cantrips.some(matches) || book.some(matches) || pending.some(matches)) {
           return { result: { ok: true, note: `${sheet.name} already knows ${spell}.` } };
         }
         // Known-casters track spells in `known`; prepared casters keep the
@@ -1568,10 +1597,82 @@ export function applyDmMutation(
         // Multiclass: the spell joins a caster entry with allowance headroom
         // at ITS class level (the first that has room); the legacy fields
         // stay the union mirror.
-        const spellLevel = searchSpells({ q: spell, userId: sheet.userId, limit: 10 }).find(
-          (entry) => spellNameMatches(entry, spell),
-        )?.level;
+        const packRow = searchSpells({ q: spell, userId: sheet.userId, limit: 10 }).find((entry) =>
+          spellNameMatches(entry, spell),
+        );
+        const spellLevel = packRow?.level;
         const casters = sheet.spellcasting.casters ?? [];
+        // Cantrips have their own list and never touch the spell allowance.
+        if (spellLevel === 0 || (spellLevel === undefined && isCantripName(spell))) {
+          if (cantrips.length >= 40) {
+            return { result: { error: `${sheet.name}'s cantrip list is full.` } };
+          }
+          const nextSpellcasting = {
+            ...sheet.spellcasting,
+            cantrips: [...cantrips, spell],
+            ...(casters.length
+              ? {
+                  casters: casters.map((caster, index) =>
+                    index === 0 ? { ...caster, cantrips: [...(caster.cantrips ?? []), spell] } : caster,
+                  ),
+                }
+              : {}),
+          };
+          patchSheet(sheet.id, { spellcasting: nextSpellcasting });
+          audit(campaign, turnId, sheet, "learn_spell", { action, spell }, reason, {
+            spellcasting: nextSpellcasting,
+          });
+          publishSheet(campaign, sheet.id);
+          insertCharacterEvent({
+            libraryCharacterId: sheet.libraryCharacterId,
+            campaignCharacterId: sheet.id,
+            campaignId: campaign.id,
+            seq: allocateSeq(campaign.id),
+            kind: "achievement",
+            summary: `Learned the cantrip ${spell}.`,
+          });
+          return { result: { ok: true, learned: spell, cantrip: true } };
+        }
+        // A wizard copies a new spell into the spellbook: no ceiling, and it
+        // is prepared like any other, after a long rest (spell-prep.ts). On a
+        // multiclass sheet the book takes only spells on the wizard list;
+        // a cleric spell taught by the story joins the cleric's list below.
+        const views = casterViewsOf(sheet);
+        const onWizardList =
+          views.length < 2 ||
+          (packRow
+            ? packRow.classes.some((entry) => entry.toLowerCase() === "wizard")
+            : checklistClassSpell(spell, "wizard", 9) !== null);
+        const bookView = onWizardList ? views.find((view) => view.style === "spellbook") : undefined;
+        if (bookView) {
+          const nextSpellcasting = withCasterViews(
+            sheet.spellcasting,
+            views.map((view) =>
+              view === bookView ? { ...view, spellbook: [...spellbookOf(view), spell] } : view,
+            ),
+          );
+          patchSheet(sheet.id, { spellcasting: nextSpellcasting });
+          audit(campaign, turnId, sheet, "learn_spell", { action, spell }, reason, {
+            spellcasting: nextSpellcasting,
+          });
+          publishSheet(campaign, sheet.id);
+          insertCharacterEvent({
+            libraryCharacterId: sheet.libraryCharacterId,
+            campaignCharacterId: sheet.id,
+            campaignId: campaign.id,
+            seq: allocateSeq(campaign.id),
+            kind: "achievement",
+            summary: `Copied ${spell} into the spellbook.`,
+          });
+          return {
+            result: {
+              ok: true,
+              learned: spell,
+              spellbook: true,
+              note: `${spell} is written in the spellbook. ${sheet.name} can prepare it after a long rest.`,
+            },
+          };
+        }
         let targetCaster: (typeof casters)[number] | null = null;
         if (casters.length) {
           const classLevels = Object.fromEntries(
@@ -1584,8 +1685,14 @@ export function applyDmMutation(
               level,
               abilityMod(sheet.abilities[caster.ability]),
             );
-            const held = (caster.known.length ? caster.known : caster.prepared).length;
-            if (!cap || spellLevel === 0 || held < cap.count) {
+            const classEntry = (sheet.classes ?? []).find(
+              (entry) => entry.id.toLowerCase() === caster.classId.toLowerCase(),
+            );
+            const held = spellsAgainstLimit(
+              caster.known.length ? caster.known : caster.prepared,
+              subclassSpellsFor(caster.classId, classEntry?.subclass ?? "", level),
+            );
+            if (!cap || held < cap.count) {
               targetCaster = caster;
               break;
             }
@@ -1603,8 +1710,11 @@ export function applyDmMutation(
             sheet.level,
             abilityMod(sheet.abilities[sheet.spellcasting.ability]),
           );
-          const current = intoKnown ? known.length : prepared.length;
-          if (ceiling && spellLevel !== 0 && current >= ceiling.count) {
+          const current = spellsAgainstLimit(
+            intoKnown ? known : prepared,
+            subclassSpellsFor(sheet.class, sheet.subclass, sheet.level),
+          );
+          if (ceiling && current >= ceiling.count) {
             return {
               result: {
                 error: `${sheet.name} already has ${current} ${ceiling.label}, the most a level ${sheet.level} ${sheet.class} may hold. They must give one up first: call learn_spell with action=remove for the spell they drop.`,
@@ -1643,13 +1753,16 @@ export function applyDmMutation(
         });
         return { result: { ok: true, learned: spell } };
       }
-      if (!known.some(matches) && !prepared.some(matches)) {
+      if (!known.some(matches) && !prepared.some(matches) && !cantrips.some(matches) && !book.some(matches) && !pending.some(matches)) {
         return { result: { error: `${sheet.name} does not know "${spell}".` } };
       }
       const nextSpellcasting = {
         ...sheet.spellcasting,
         known: known.filter((entry) => !matches(entry)),
         prepared: prepared.filter((entry) => !matches(entry)),
+        cantrips: cantrips.filter((entry) => !matches(entry)),
+        ...(sheet.spellcasting.spellbook ? { spellbook: book.filter((entry) => !matches(entry)) } : {}),
+        ...(sheet.spellcasting.pending ? { pending: pending.filter((entry) => !matches(entry)) } : {}),
         // A removal comes off every caster entry that lists it, keeping the
         // per-class lists and the union mirror agreeing.
         ...(sheet.spellcasting.casters?.length
@@ -1658,6 +1771,9 @@ export function applyDmMutation(
                 ...caster,
                 known: caster.known.filter((entry) => !matches(entry)),
                 prepared: caster.prepared.filter((entry) => !matches(entry)),
+                cantrips: (caster.cantrips ?? []).filter((entry) => !matches(entry)),
+                ...(caster.spellbook ? { spellbook: caster.spellbook.filter((entry) => !matches(entry)) } : {}),
+                ...(caster.pending ? { pending: caster.pending.filter((entry) => !matches(entry)) } : {}),
               })),
             }
           : {}),
