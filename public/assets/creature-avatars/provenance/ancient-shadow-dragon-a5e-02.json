@@ -1,0 +1,21 @@
+{
+  "creatureId": "ancient-shadow-dragon-a5e",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy bestiary avatar, cinematic painterly realism, dominant clear dragon face and upper body readable at 512 pixels. ANCIENT A5E SHADOW DRAGON: gargantuan corrupted essence dragon, gaunt violet-black body partly INSUBSTANTIAL with translucent shadow edges, long curled neck, narrow spiky predatory dragon head, bright violet eyes. Four clawed limbs, ONE pair of TWO ragged batlike wings and one long tail; most anatomy outside close portrait crop. Subtle pale rib and vertebral arcs may show THROUGH the shadowy torso but this is not a bare skeleton or zombie. Extremely old gaunt form tied to a blighted land, coherent dragon silhouette, face sharply solid while body fades. No starfield scales, no fire, no bloody wounds, sores, gore, text, signature, watermark, logo, border or copied artwork. Serious normal 02. Close frontal portrait of an ancient shadow dragon rising above a silent black quagmire, narrow spiked head and hollow aged cheeks, clear violet eyes. Four-limbed forebody barely hinted under translucent dark hide, exactly two ragged wings frame shoulders as shadow silhouettes. Tendrils of darkness curl upward from the ground under its command, no extra anatomical limbs, dim ruined chapel and dead reeds, ghostly slate light.",
+  "designReferences": [
+    {
+      "url": "https://a5e.tools/node/1558",
+      "note": "Official A5E ancient shadow dragon: Gargantuan corrupted essence dragon, incorporeal movement and command of shadows."
+    },
+    {
+      "url": "https://a5e.tools/rules/shadow-dragon",
+      "note": "Blighted-land origin and gaunt insubstantial appearance. Violet coloration and subtle pale rib arcs continue original interpretation based on publisher family anatomy; no copied composition."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

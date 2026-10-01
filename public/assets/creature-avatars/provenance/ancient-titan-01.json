@@ -1,0 +1,17 @@
+{
+  "creatureId": "ancient-titan",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy creature avatar, painterly tactile realism, strong cinematic light, face clearly readable at 512 pixels. No lettering, signature, watermark or frame. Ancient Titan of Tome of Beasts: a sixty-foot-tall living celestial humanoid with immense divine presence, powerfully built human anatomy, sharply angular features like a sculpture, long glossy hair. This is an immortal primordial god's descendant, not a dragon, undead, stone golem or elderly frail human. Two arms and two legs, ordinary five-finger human hands. Worn ancient breastplate, original archaic ornament without readable symbols. Monumental scale through tiny architecture in background, portrait focuses on head and torso. No borrowed publisher composition. Normal 01. Stern mature masculine titan with warm gray skin and long lustrous black hair, no beard, a square jaw and intensely clear gold eyes. Frontal upper-body portrait standing waist-deep in the storm sea beside a ruined coastal temple, dark bronze breastplate crusted with salt, one greatsword hilt near frame edge. Cold spray and golden rim light, godlike controlled power.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/titan-ancient-3pp/",
+      "note": "Licensed Tome of Beasts 2023 entry: gargantuan celestial humanoid, angular features, long black/red/silver hair, sixty-foot stature, breastplate, greatsword, amphibious nature and reality-shaping speech. Skin colors and portrait situations are original choices."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

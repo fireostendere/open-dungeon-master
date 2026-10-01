@@ -1,0 +1,21 @@
+{
+  "creatureId": "ancient-void-dragon",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy creature avatar, exquisite tactile painted realism, cinematic light, a sharp face legible at 512 pixels. No text, signature, watermark, frame or collage. Ancient Void Dragon from Kobold Press Tome of Beasts: gargantuan living cosmic dragon with blue-black scales like deep night containing tiny white stars, two brilliant WHITE STAR eyes, a narrow crested horned reptilian face, very long elegant neck, one long tail, four clawed legs and exactly two enormous broad star-speckled membrane wings. Smoldering wispy edges, but a coherent living dragon with solid readable anatomy rather than a formless cloud, skeleton or tentacled creature. Ancient expanded crown ridges and deeply weathered face, vast intelligence, cosmic gravity and frozen starlight. Original composition, no copied publisher illustration. Normal 01. Frontal close head and upper neck emerging from a deep black gap between shattered floating observatory pillars. Head tipped slightly downward, bright white eyes fixed on viewer, layered narrow crescent horns and long spiny cheek ridges outlined by a dim golden eclipsed star far behind. Body below crop, only two broad wing edges framing top sides. Dark midnight indigo scale field with pinprick stars, solemn cosmic horror, large crisp face.",
+  "designReferences": [
+    {
+      "url": "https://www.dndbeyond.com/posts/1698-void-dragons-when-you-gaze-into-the-void-the-void",
+      "note": "Licensed ToB2023 description: starfield body, white stellar eyes, gravity, extreme cold and stellar fire; ancient form confirmed. Biscuit orbit is original humor."
+    },
+    {
+      "url": "https://www.dndbeyond.com/attachments/11/279/04-051-ancient-void-dragon-compressed.jpg",
+      "note": "Official licensed ancient anatomy inspected earlier: long neck/tail, four legs and two large membrane wings. Original head details, pose and composition."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}
