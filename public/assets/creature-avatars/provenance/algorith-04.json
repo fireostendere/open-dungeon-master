@@ -1,0 +1,25 @@
+{
+  "creatureId": "algorith",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy construct avatar, refined cinematic tactile painted realism, face and formula-marked skin sharply legible at 512 pixels. Algorith from Tome of Beasts: Medium humanoid construct embodying mathematical order, FORMULAS ETCHED INTO ITS SKIN, conjuring force blades called logic razors. Original anatomy/design: solid muscular sculpted gray humanoid, smooth severe gender-neutral face, glowing yellow eyes, no hair, fine bands of tiny abstract mathematical etching across brow, cheeks, neck and shoulders. Etching is subtle geometric formula-like marks, not readable essay or labels. Two ordinary humanoid arms, simplified hands, one or two conjured pale-blue luminous force blades when visible. No gears, steampunk armor, feathers, wings, extra limbs, or floating shard body. The nickname folding angel does not mean wings or origami. Number five is cultural, not anatomy. Original interpretation, no copied art, no frame, logos or watermark. YOLO absurd 04. Same deadpan gray formula-etched mathematical construct uses a glowing logic razor to divide a tiny birthday cake into FIVE absurdly exact equal portions, with a huge drafting compass and ruler lying beside it like surgical instruments. Five neat wedges slightly separated on a round platter, while one tiny candle leans crookedly and receives the construct's stern yellow-eyed disapproval. Close face and etched shoulders dominate, normal two hands, no wings or extra limbs, dark-fantasy dessert-table humor, no written labels.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/algorith-3pp-2/",
+      "note": "2023 Medium mathematical-order construct; etched formulas and force logic razors. Five culturally significant, not body-part count. Folding angel nickname does not establish wings/origami."
+    },
+    {
+      "url": "https://forums.giantitp.com/showsinglepost.php?p=21305338&postcount=20",
+      "note": "Secondary contemporary art commentary describes muscular gray humanoid, yellow eyes and character bands. Official art not directly inspected; solid gray silhouette and blade geometry original interpretation."
+    },
+    {
+      "url": "https://5ecompendium.github.io/bestiary/creature/algorith",
+      "note": "2016 comparison: attack count changes do not imply anatomical change."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

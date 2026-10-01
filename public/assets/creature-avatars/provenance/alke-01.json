@@ -1,0 +1,25 @@
+{
+  "creatureId": "alke",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy monster avatar, cinematic tactile painted realism with sharp feathers and fur, creature face and diagnostic shoulders legible at 512 pixels, no text, border, watermark or collage. Alke from Tome of Beasts 3: LARGE WINGLESS GRIFFON, eagle head with hooked BLACK BEAK and amber eyes, white-and-brown feathered neck/chest, bird taloned FORELEGS, tawny LION HINDQUARTERS and long tufted lion tail. Where wings would be, hardened POINTED FEATHER-SPIKES radiate backward over shoulders and upper back, an overlapping armored spine fan rather than flight surfaces. Absolutely NO WINGS, no feathered or membrane flight wings, no elk/deer antlers, no extra legs. Coherent eagle/lion quadruped, proud alert predator, mane-like feather-spikes are stiff and distinct. Original anatomy-based design, no copying publisher art pose. Serious normal 01. Close three-quarter eagle face and shoulder portrait of a wingless alke guarding a windswept stony hill. Hooked black beak, bright amber eye, white feathered brow and brown neck feathering sharply textured; hardened long feather-spikes fan backward from shoulders, no wings. One taloned forepaw on rock, tawny lion flank softly behind, cold gray sky and warm late sun rim, noble fierce sentinel.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/alke/",
+      "note": "ToB3 wingless griffon with hardened feather-spikes in wing region, not elk or antlered animal."
+    },
+    {
+      "url": "https://koboldpress.com/wp-content/uploads/2022/11/Alke-1536x1209.png",
+      "note": "Official art inspected: eagle head/black beak/amber eyes, white-brown feathers, backward shoulder spikes, taloned forequarters, tawny lion hindquarters and tufted tail. Original composition."
+    },
+    {
+      "url": "https://koboldpress.com/monster-weaknesses-for-tome-of-beasts-3-part-3/",
+      "note": "Publisher context; optional blog weakness is not treated as baseline anatomy/mechanics."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

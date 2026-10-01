@@ -1,0 +1,21 @@
+{
+  "creatureId": "alehouse-drake",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy painted tiny dragon avatar, tactile realistic scales and cinematic tavern light, expressive face prominent at 512 pixels, no text, watermark, border or collage. Alehouse Drake from Tome of Beasts: TINY adult drake roughly one to two feet long, about eighteen pounds, round PLUMP BELLY, fanged grin and slightly dazed yet knowing eyes. Deep AMBER scales with CREAM/WHITE belly and facial highlights, glittering PALE eyes, small head/back spines, long tapered tail, clawed limbs. One pair of small BATLIKE MEMBRANE WINGS on back is depicted, not feathers; remaining limb arrangement partly occluded by close pose, no arbitrary extra appendages. Not a giant battle dragon or hatchling, sociable tavern rumor-listener with mischievous mature personality. Warm worn inn setting, original design and composition not copied publisher art. Serious normal 01. Eye-level close three-quarter face and plump upper body of an amber drake perched on a barrel in a dim tavern, head cocked with a wary knowing gaze as it listens to distant conversation. Pale glittering eyes, cream throat and amber fine scales, one little claw rests on a stave, small folded membrane wing behind shoulder and tail curls softly out of frame. Dark chestnut wood, brass lamp rim light, mature roguish creature, no foam joke.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/drake-alehouse-3pp/",
+      "note": "2023 licensed text: Tiny 1-2ft/~18lb plump drake, fanged grin/dazed eyes, deep amber scales with cream/white, pale eyes. 2016/2023 mechanics differ without visual identity change."
+    },
+    {
+      "url": "https://koboldpress.com/wp-content/uploads/2023/01/alehouse-drake.jpg",
+      "note": "Official publisher art inspected: squat plump dragon beside tankard, paired membrane wings, tapered tail, small spines and claw. Green-gold artwork palette differs from amber prose; choose prose palette, do not copy pose; total legs obscured."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

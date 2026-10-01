@@ -1,0 +1,25 @@
+{
+  "creatureId": "alke",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy monster avatar, cinematic tactile painted realism with sharp feathers and fur, creature face and diagnostic shoulders legible at 512 pixels, no text, border, watermark or collage. Alke from Tome of Beasts 3: LARGE WINGLESS GRIFFON, eagle head with hooked BLACK BEAK and amber eyes, white-and-brown feathered neck/chest, bird taloned FORELEGS, tawny LION HINDQUARTERS and long tufted lion tail. Where wings would be, hardened POINTED FEATHER-SPIKES radiate backward over shoulders and upper back, an overlapping armored spine fan rather than flight surfaces. Absolutely NO WINGS, no feathered or membrane flight wings, no elk/deer antlers, no extra legs. Coherent eagle/lion quadruped, proud alert predator, mane-like feather-spikes are stiff and distinct. Original anatomy-based design, no copying publisher art pose. YOLO absurd 04. Same fierce wingless eagle-lion alke has been given a ludicrously cheerful bouquet of party balloons, but its hardened shoulder feather-spikes have instantly POPPED almost all of them. Colorful limp balloon scraps hang from a few spike tips, one remaining tiny yellow balloon floats nervously just out of reach; a huge pink gift ribbon is looped loosely around its neck. Its amber-eyed eagle face looks magnificently unimpressed, black beak and wingless spike fan obvious, natural quadruped pose, dark-fantasy courtyard humor, no people or writing.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/alke/",
+      "note": "ToB3 wingless griffon with hardened feather-spikes in wing region, not elk or antlered animal."
+    },
+    {
+      "url": "https://koboldpress.com/wp-content/uploads/2022/11/Alke-1536x1209.png",
+      "note": "Official art inspected: eagle head/black beak/amber eyes, white-brown feathers, backward shoulder spikes, taloned forequarters, tawny lion hindquarters and tufted tail. Original composition."
+    },
+    {
+      "url": "https://koboldpress.com/monster-weaknesses-for-tome-of-beasts-3-part-3/",
+      "note": "Publisher context; optional blog weakness is not treated as baseline anatomy/mechanics."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}
