@@ -713,6 +713,10 @@ export const INLINE_COPY_RU: Record<string, string> = {
   "Medium armour lets this much DEX through.": "Средний доспех позволяет добавить к КД этот бонус Ловкости.",
   "One trait per line. The builder shows the first sentence of each.": "Каждую особенность указывайте с новой строки. Конструктор покажет её первое предложение.",
   "The builder offers it under this class.": "Конструктор предложит это умение для указанного класса.",
+  // upstream port: spell book and rules-following character creator
+  "That is every cantrip you know at this level. Remove one to choose {name}.": "Это все заговоры, доступные на этом уровне. Уберите один, чтобы выбрать «{name}».",
+  "That is every spell you can have at this level. Remove one to choose {name}.": "Это все заклинания, доступные на этом уровне. Уберите одно, чтобы выбрать «{name}».",
+  "Granted by your subclass (free)": "Даёт подкласс (бесплатно)",
 };
 
 export const INLINE_COPY_ALLOWLIST = new Set([

@@ -18,6 +18,7 @@ import { incapacitatedBy } from "@/lib/dm/condition-logic";
 import { critDamageExpression } from "@/lib/dm/encounter-logic";
 import { listOpenPendingRolls } from "@/lib/db/dm-turns";
 import { isValidExpression } from "@/lib/dice";
+import { allSpellNames } from "@/lib/srd/spell-lists";
 
 // The creatures bound to a character: familiars (Find Familiar, Pact of the
 // Chain), the Beast Master's companion, the Drakewarden's drake, and story
@@ -189,7 +190,7 @@ function featureNames(sheet: CharacterSheet): string[] {
 
 function knowsFindFamiliar(sheet: CharacterSheet): boolean {
   const spellList = sheet.spellcasting
-    ? [...sheet.spellcasting.known, ...sheet.spellcasting.prepared]
+    ? allSpellNames(sheet.spellcasting)
     : [];
   return (
     spellList.some((entry) => entry.toLowerCase().includes("find familiar")) ||

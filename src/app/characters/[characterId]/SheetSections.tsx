@@ -99,7 +99,7 @@ export function SheetSections({ sheet }: { sheet: CreateSheetInput }) {
          <SheetPanel title={copy.spells}>
           <InfoChipList
             items={[
-              ...new Set([...sheet.spellcasting.known, ...sheet.spellcasting.prepared]),
+              ...new Set([...sheet.spellcasting.cantrips, ...sheet.spellcasting.known, ...sheet.spellcasting.prepared]),
             ].map((spell) => ({
               name: localizedContentName("spells", spell, locale),
               reference: { kind: "spells", slug: contentSlug(spell), name: spell },

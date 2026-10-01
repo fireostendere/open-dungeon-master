@@ -74,8 +74,8 @@ export type CombatSpellDescriptor = { type: "spell"; name: string; level: number
 
 export function combatSpellNames(sheet: CombatIntentSheet): string[] {
   const casting = sheet.spellcasting;
-  return [...new Set([...(casting?.known ?? []), ...(casting?.prepared ?? []),
-    ...(casting?.casters ?? []).flatMap(caster => [...caster.known, ...caster.prepared])])];
+  return [...new Set([...(casting?.cantrips ?? []), ...(casting?.known ?? []), ...(casting?.prepared ?? []),
+    ...(casting?.casters ?? []).flatMap(caster => [...(caster.cantrips ?? []), ...caster.known, ...caster.prepared])])];
 }
 
 export function combatSpellSlots(sheet: CombatIntentSheet, level: number): Array<{ level: number; left: number }> {

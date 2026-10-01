@@ -57,6 +57,7 @@ import {
 } from "@/lib/dm/action-tools";
 import { attacksLeft, claimOncePerTurn, spendAction, spendAttack } from "@/lib/dm/action-budget";
 import { resolveSheetRef } from "@/lib/dm/rolls";
+import { allSpellNames } from "@/lib/srd/spell-lists";
 import type { CharacterSheet } from "@/lib/schemas/sheet";
 
 // The pc_attack engine: full server resolution of player attacks. The
@@ -238,7 +239,7 @@ export function handlePcAttack(
   // not an improvised weapon. Preserve explicitly carried/granted weapons.
   if (!args.spell && args.weapon && !sheet.equipment.some(item => item.name.toLowerCase() === args.weapon!.toLowerCase()) &&
       !grantedAttackFor(sheet.conditions, args.weapon) &&
-      [...(sheet.spellcasting?.known ?? []), ...(sheet.spellcasting?.prepared ?? [])].some(name => name.toLowerCase() === args.weapon!.toLowerCase())) {
+      allSpellNames(sheet.spellcasting).some(name => name.toLowerCase() === args.weapon!.toLowerCase())) {
     args.spell = args.weapon;
     delete args.weapon;
   }
@@ -308,7 +309,7 @@ export function handlePcAttack(
       return { error: redirect };
     }
     const mechDamageType = resolvedMech?.mech.damageType;
-    const spellList = [...sheet.spellcasting.known, ...sheet.spellcasting.prepared];
+    const spellList = allSpellNames(sheet.spellcasting);
     const onList = spellList.some(
       (entry) => entry.toLowerCase().includes(spellName.toLowerCase()) ||
         spellName.toLowerCase().includes(entry.toLowerCase()),

@@ -1,7 +1,7 @@
 "use client";
 
 import { useInlineText } from "@/lib/i18n/inline-text";
-import { useEffect } from "react";
+import { useState } from "react";
 import { GameTerm } from "@/components/ui/GameTerm";
 import { InfoButton } from "@/components/ui/InfoDialog";
 import { cn } from "@/lib/cn";
@@ -14,6 +14,7 @@ import EquipmentSection from "../EquipmentSection";
 import type { ClassOption } from "../useBuilderOptions";
 import type { BuilderActions, BuilderDerived } from "../useBuilderDerived";
 import type { BuilderState } from "../useBuilderState";
+import { srdClass } from "../submit";
 import type { PickerEntry } from "../useContentSearch";
 import { Chip, StepPanel, inputClass } from "./shared";
 
@@ -64,56 +65,79 @@ function SpellsSection({
   pack: WorldPack | null;
 }) {
   const uiText = useInlineText();
-  const { spells, setSpells, setCantripNames } = state;
+  const { spells, setSpells, cantrips, setCantrips } = state;
   const {
     spellAdvice,
     cantripAdvice,
     chosenCantrips,
+    chosenSpells,
     maxSpellLevel,
     starters,
     subclassSpells,
     spellSearchClass,
   } = derived;
-  const levelled = Math.max(0, spells.length - chosenCantrips.length);
+  // SRD classes hold to the 5e tables; setting classes keep their counts as
+  // advice, the way the rest of the builder treats them.
+  const enforce = srdClass(klass);
+  const cantripCap = enforce ? cantripAdvice : null;
+  const spellCap = enforce ? (spellAdvice?.count ?? null) : null;
   const cantripsLeft = Math.max(0, (cantripAdvice ?? 0) - chosenCantrips.length);
-  const spellsLeft = Math.max(0, (spellAdvice?.count ?? 0) - levelled);
+  const spellsLeft = Math.max(0, (spellAdvice?.count ?? 0) - chosenSpells.length);
+  const [limitNote, setLimitNote] = useState("");
 
-  // Which names are cantrips is only known from the pack. Load the class's
-  // cantrip list once so picks from the recommended tier, and the spells of a
-  // sheet that arrived for editing, are counted as cantrips rather than as
-  // levelled spells (which read as "Cantrips 0/3, spells 8/4").
-  useEffect(() => {
-    if (!spellSearchClass) {
-      return;
-    }
-    const controller = new AbortController();
-    const params = new URLSearchParams({ class: spellSearchClass, level: "0", limit: "200" });
-    fetch(`/api/content/spells?${params}`, { signal: controller.signal })
-      .then((response) => (response.ok ? response.json() : null))
-      .then((data: { results?: PickerEntry[] } | null) => {
-        const names = (data?.results ?? [])
-          .filter((entry) => entry.level === 0)
-          .map((entry) => entry.name);
-        if (names.length) {
-          setCantripNames((current) => [...new Set([...current, ...names])]);
-        }
-      })
-      .catch(() => undefined);
-    return () => controller.abort();
-  }, [spellSearchClass, setCantripNames]);
+  const lower = (name: string) => name.toLowerCase();
+  const isGranted = (name: string) => subclassSpells.some((spell) => lower(spell) === lower(name));
+  const has = (list: string[], name: string) => list.some((entry) => lower(entry) === lower(name));
 
   const pick = (entry: PickerEntry) => {
     if (entry.level === 0) {
-      setCantripNames((current) =>
-        current.includes(entry.name) ? current : [...current, entry.name],
-      );
+      if (has(cantrips, entry.name)) {
+        return;
+      }
+      if (cantripCap !== null && cantrips.length >= cantripCap) {
+        setLimitNote(uiText("That is every cantrip you know at this level. Remove one to choose {name}.", { name: entry.name }));
+        return;
+      }
+      setLimitNote("");
+      setCantrips((current) => [...current, entry.name]);
+      return;
     }
-    setSpells((current) => (current.includes(entry.name) ? current : [...current, entry.name]));
+    // Subclass spells are granted on top of the allowance; nothing to pick.
+    if (isGranted(entry.name) || has(spells, entry.name)) {
+      return;
+    }
+    if (spellCap !== null && chosenSpells.length >= spellCap) {
+      setLimitNote(uiText("That is every spell you can have at this level. Remove one to choose {name}.", { name: entry.name }));
+      return;
+    }
+    setLimitNote("");
+    setSpells((current) => [...current, entry.name]);
   };
-  const unpick = (spellName: string) =>
-    setSpells((current) =>
-      current.filter((entry) => entry.toLowerCase() !== spellName.toLowerCase()),
-    );
+  const unpick = (spellName: string) => {
+    setLimitNote("");
+    setCantrips((current) => current.filter((entry) => lower(entry) !== lower(spellName)));
+    setSpells((current) => current.filter((entry) => lower(entry) !== lower(spellName)));
+  };
+
+  // Fills whatever room is left, recommended cantrips and spells in order.
+  const addAllRecommended = () => {
+    if (!starters) {
+      return;
+    }
+    const cantripRoom = cantripCap === null ? Infinity : cantripCap - cantrips.length;
+    const newCantrips = starters.cantrips
+      .map((entry) => entry.n)
+      .filter((name) => !has(cantrips, name))
+      .slice(0, Math.max(0, cantripRoom));
+    const spellRoom = spellCap === null ? Infinity : spellCap - chosenSpells.length;
+    const newSpells = starters.spells
+      .map((entry) => entry.n)
+      .filter((name) => !has(spells, name) && !isGranted(name))
+      .slice(0, Math.max(0, spellRoom));
+    setLimitNote("");
+    setCantrips((current) => [...current, ...newCantrips]);
+    setSpells((current) => [...current, ...newSpells]);
+  };
 
   // The recommended tier: the class's starter picks, then whatever the
   // subclass grants for free (domain, circle, oath, patron spells).
@@ -127,6 +151,14 @@ function SpellsSection({
       )
       .map((spellName) => ({ name: spellName, note: "always prepared, free" })),
   ];
+  // Granted spells read as chosen, so nobody spends a pick on one.
+  const selectedNames = [...cantrips, ...spells, ...subclassSpells];
+  const levelledChips = spells.filter((spell) => !isGranted(spell));
+  const chipGroups = [
+    { key: "cantrips", label: uiText("Cantrips"), names: cantrips, removable: true },
+    { key: "spells", label: spellAdvice?.label ?? uiText("Spells"), names: levelledChips, removable: true },
+    { key: "granted", label: uiText("Granted by your subclass (free)"), names: subclassSpells, removable: false },
+  ];
 
   return (
     <StepPanel
@@ -138,9 +170,8 @@ function SpellsSection({
         </>
       }
     >
-      {/* Counts, so nobody leaves picks unspent without noticing. The picker
-          knows each spell's level, so chosen cantrips are counted separately
-          from levelled spells. */}
+      {/* Counts, so nobody leaves picks unspent without noticing. Cantrips
+          and levelled spells are separate lists with separate limits. */}
       <div className="mb-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
         {cantripAdvice ? (
           <span className={cn(cantripsLeft === 0 ? "text-stone-500" : "text-amber-300")}>
@@ -150,7 +181,7 @@ function SpellsSection({
         ) : null}
         {spellAdvice ? (
           <span className={cn(spellsLeft === 0 ? "text-stone-500" : "text-amber-300")}>
-            {spellAdvice.label} {levelled}/{spellAdvice.count}
+            {spellAdvice.label} {chosenSpells.length}/{spellAdvice.count}
             {spellsLeft > 0 ? ` (${spellsLeft} ${uiText("still to choose")})` : ""}
           </span>
         ) : null}
@@ -158,13 +189,18 @@ function SpellsSection({
           {uiText("Up to level")} {maxSpellLevel}.{klass.genres ? ` ${uiText("Suggestions, not limits; homebrew varies.")}` : ""}
         </span>
       </div>
+      {limitNote ? (
+        <p role="status" className="mb-2 text-xs text-amber-300">
+          {limitNote}
+        </p>
+      ) : null}
       {starters ? (
         <div className="mb-3 rounded-lg border border-stone-700/60 bg-stone-950/60 p-3">
           <p className="text-xs text-stone-400">{starters.why}</p>
           <p className="eyebrow mt-2 mb-1.5 text-[10px] text-amber-400/80">{uiText("Good picks if you are new")}</p>
           <div className="flex flex-wrap gap-1.5">
             {[...starters.cantrips, ...starters.spells].map((entry) => {
-              const chosen = spells.some((spell) => spell.toLowerCase() === entry.n.toLowerCase());
+              const chosen = selectedNames.some((spell) => lower(spell) === lower(entry.n));
               const isCantrip = starters.cantrips.some((cantrip) => cantrip.n === entry.n);
               return (
                 <span key={entry.n} className="flex items-center">
@@ -206,20 +242,7 @@ function SpellsSection({
           </div>
           <button
             type="button"
-            onClick={() => {
-              setCantripNames((current) => [
-                ...new Set([...current, ...starters.cantrips.map((entry) => entry.n)]),
-              ]);
-              setSpells((current) => [
-                ...current,
-                ...[...starters.cantrips, ...starters.spells]
-                  .map((entry) => entry.n)
-                  .filter(
-                    (spellName) =>
-                      !current.some((entry) => entry.toLowerCase() === spellName.toLowerCase()),
-                  ),
-              ]);
-            }}
+            onClick={addAllRecommended}
             className="mt-2 text-xs text-amber-300 underline-offset-2 hover:underline"
           >
             {uiText("Add all recommended")}
@@ -235,7 +258,7 @@ function SpellsSection({
         buttonLabel={`Every ${klass.name.toLowerCase()} spell you can take`}
         defaultOpen
         openSections={[`spells:${spellSearchClass}:${maxSpellLevel}`]}
-        selectedNames={spells}
+        selectedNames={selectedNames}
         onPick={pick}
         onUnpick={unpick}
         recommended={
@@ -269,19 +292,26 @@ function SpellsSection({
         onPick={pick}
         renderMeta={(entry) => (entry.level === 0 ? "cantrip" : `level ${entry.level}`)}
       />
-      <div className="mt-2 flex flex-wrap gap-1.5">
-        {/* The chip shows the world's name; the value in state stays the
-            canonical one the sheet and the rules engine need. The ⓘ reads the
-            canonical name, which is what the pack rows are filed under. */}
-        {spells.map((spell) => (
-          <Chip
-            key={spell}
-            label={displayName(pack, "spells", spell)}
-            info={{ reference: { kind: "spells", slug: contentSlug(spell), name: spell } }}
-            onRemove={() => unpick(spell)}
-          />
-        ))}
-      </div>
+      {/* The chip shows the world's name; the value in state stays the
+          canonical one the sheet and the rules engine need. The ⓘ reads the
+          canonical name, which is what the pack rows are filed under. */}
+      {chipGroups.map((group) =>
+        group.names.length ? (
+          <div key={group.key} className="mt-2">
+            <p className="mb-1 text-[10px] uppercase tracking-wide text-stone-500">{group.label}</p>
+            <div className="flex flex-wrap gap-1.5">
+              {group.names.map((spell) => (
+                <Chip
+                  key={spell}
+                  label={displayName(pack, "spells", spell)}
+                  info={{ reference: { kind: "spells", slug: contentSlug(spell), name: spell } }}
+                  {...(group.removable ? { onRemove: () => unpick(spell) } : {})}
+                />
+              ))}
+            </div>
+          </div>
+        ) : null,
+      )}
     </StepPanel>
   );
 }

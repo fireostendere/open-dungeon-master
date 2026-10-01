@@ -85,6 +85,8 @@ export function LeadEditDialog({
       spells: "Spells",
       known: "Known",
       prepared: "Prepared",
+      cantrips: "Cantrips",
+      searchCantrips: "Search cantrips to add",
       searchKnown: "Search spells to add as known",
       searchPrepared: "Search spells to add as prepared",
       searchItems: "Search items to add",
@@ -116,6 +118,8 @@ export function LeadEditDialog({
       spells: "Заклинания",
       known: "Известные",
       prepared: "Подготовленные",
+      cantrips: "Заговоры",
+      searchCantrips: "Найти заговоры для добавления",
       searchKnown: "Найти заклинания (известные)",
       searchPrepared: "Найти заклинания (подготовленные)",
       searchItems: "Найти предметы для добавления",
@@ -153,6 +157,17 @@ export function LeadEditDialog({
   );
   const [prepared, setPrepared] = useState<string[]>(sheet.spellcasting?.prepared ?? []);
   const [known, setKnown] = useState<string[]>(sheet.spellcasting?.known ?? []);
+  const [cantrips, setCantrips] = useState<string[]>(sheet.spellcasting?.cantrips ?? []);
+  // A cantrip picked from the known or prepared search still lands in the
+  // cantrip list; those two lists hold levelled spells only.
+  const addCantrips = (entries: Array<{ name: string; level?: number }>) => {
+    const picked = entries.filter((entry) => entry.level === 0).map((entry) => entry.name);
+    if (picked.length) {
+      setCantrips((list) => [...list, ...picked.filter((name) => !list.includes(name))]);
+    }
+  };
+  const spellNamesOf = (entries: Array<{ name: string; level?: number }>) =>
+    entries.filter((entry) => entry.level !== 0).map((entry) => entry.name);
   const [slots, setSlots] = useState<Record<string, { max: string; used: string }>>(() =>
     Object.fromEntries(
       Object.entries(sheet.spellcasting?.slots ?? {}).map(([level, slot]) => [
@@ -230,6 +245,7 @@ export function LeadEditDialog({
     }
     if (sheet.spellcasting) {
       const nextSpellcasting = {
+        ...sheet.spellcasting,
         ability: sheet.spellcasting.ability,
         slots: Object.fromEntries(
           Object.entries(sheet.spellcasting.slots).map(([level, slot]) => {
@@ -241,6 +257,7 @@ export function LeadEditDialog({
         ),
         prepared,
         known,
+        cantrips,
       };
       if (JSON.stringify(nextSpellcasting) !== JSON.stringify(sheet.spellcasting)) {
         patch.spellcasting = nextSpellcasting;
@@ -405,6 +422,23 @@ export function LeadEditDialog({
             <div className="mt-3 space-y-2 text-xs">
               <span className="text-stone-500">{copy.spells}</span>
               <div className="space-y-1">
+                <span className="text-stone-600">{copy.cantrips}</span>
+                <ChipList
+                  values={cantrips}
+                  onRemove={(value) =>
+                    setCantrips((list) => list.filter((entry) => entry !== value))
+                  }
+                />
+                <MultiContentPicker
+                  kind="spells"
+                  extraParams={{ class: spellClassFor(sheet.class), level: "0" }}
+                  placeholder={copy.searchCantrips}
+                  selectedNames={cantrips}
+                  onAdd={(entries) => addCantrips(entries)}
+                  renderMeta={() => copy.cantrip}
+                />
+              </div>
+              <div className="space-y-1">
                 <span className="text-stone-600">{copy.known}</span>
                 <ChipList
                   values={known}
@@ -418,9 +452,10 @@ export function LeadEditDialog({
                   }}
                   placeholder={copy.searchKnown}
                   selectedNames={known}
-                  onAdd={(entries) =>
-                    setKnown((list) => [...list, ...entries.map((entry) => entry.name)])
-                  }
+                  onAdd={(entries) => {
+                    addCantrips(entries);
+                    setKnown((list) => [...list, ...spellNamesOf(entries)]);
+                  }}
                   renderMeta={(entry) =>
                     entry.level !== undefined
                       ? entry.level === 0
@@ -446,9 +481,10 @@ export function LeadEditDialog({
                   }}
                   placeholder={copy.searchPrepared}
                   selectedNames={prepared}
-                  onAdd={(entries) =>
-                    setPrepared((list) => [...list, ...entries.map((entry) => entry.name)])
-                  }
+                  onAdd={(entries) => {
+                    addCantrips(entries);
+                    setPrepared((list) => [...list, ...spellNamesOf(entries)]);
+                  }}
                   renderMeta={(entry) =>
                     entry.level !== undefined
                       ? entry.level === 0

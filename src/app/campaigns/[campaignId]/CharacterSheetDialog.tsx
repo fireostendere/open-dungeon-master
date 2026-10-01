@@ -416,11 +416,11 @@ export function CharacterSheetDialog({
                   ))}
                 </div>
               ) : null}
-              {[...sheet.spellcasting.known, ...sheet.spellcasting.prepared].length ? (
+              {[...sheet.spellcasting.cantrips, ...sheet.spellcasting.known, ...sheet.spellcasting.prepared].length ? (
                 <div className="mt-1">
                   <InfoChipList
                     items={[
-                      ...new Set([...sheet.spellcasting.known, ...sheet.spellcasting.prepared]),
+                      ...new Set([...sheet.spellcasting.cantrips, ...sheet.spellcasting.known, ...sheet.spellcasting.prepared]),
                     ].map((spell) => ({
                       name: localizedContentName("spells", spell, locale),
                       reference: { kind: "spells", slug: contentSlug(spell), name: spell },

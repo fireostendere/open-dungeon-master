@@ -71,6 +71,8 @@ import { spellClassFor } from "@/lib/classes";
 import { insertRoll } from "@/lib/db/rolls";
 import { rollExpression } from "@/lib/dice";
 import { publishWithSeq } from "@/lib/events";
+import { allSpellNames, isCantripName, spellsAgainstLimit } from "@/lib/srd/spell-lists";
+import { subclassSpellsFor } from "@/lib/srd/features";
 
 // DM stat authority: the model changes sheets ONLY through these tools.
 // Every mutation is server-clamped, audit-logged, and published live.
@@ -1377,7 +1379,7 @@ export function applyDmMutation(
         }
       }
       if (spell && sheet.spellcasting) {
-        const spellList = [...sheet.spellcasting.known, ...sheet.spellcasting.prepared];
+        const spellList = allSpellNames(sheet.spellcasting);
         const knows = spellList.some((entry) => entry.trim().toLowerCase() === spell.toLowerCase());
         if (!knows) {
           return {
@@ -1475,7 +1477,7 @@ export function applyDmMutation(
         !spell ||
         Boolean(
           warlockEntry &&
-            [...warlockEntry.known, ...warlockEntry.prepared].some(
+            allSpellNames(warlockEntry).some(
               (entry) => entry.trim().toLowerCase() === spell.toLowerCase(),
             ),
         );
@@ -1552,9 +1554,10 @@ export function applyDmMutation(
       }
       const known = sheet.spellcasting.known;
       const prepared = sheet.spellcasting.prepared;
+      const cantrips = sheet.spellcasting.cantrips ?? [];
       const matches = (entry: string) => entry.trim().toLowerCase() === spell.toLowerCase();
       if (action === "add") {
-        if (known.some(matches) || prepared.some(matches)) {
+        if (known.some(matches) || prepared.some(matches) || cantrips.some(matches)) {
           return { result: { ok: true, note: `${sheet.name} already knows ${spell}.` } };
         }
         // Known-casters track spells in `known`; prepared casters keep the
@@ -1572,6 +1575,37 @@ export function applyDmMutation(
           (entry) => spellNameMatches(entry, spell),
         )?.level;
         const casters = sheet.spellcasting.casters ?? [];
+        // Cantrips have their own list and never touch the spell allowance.
+        if (spellLevel === 0 || (spellLevel === undefined && isCantripName(spell))) {
+          if (cantrips.length >= 40) {
+            return { result: { error: `${sheet.name}'s cantrip list is full.` } };
+          }
+          const nextSpellcasting = {
+            ...sheet.spellcasting,
+            cantrips: [...cantrips, spell],
+            ...(casters.length
+              ? {
+                  casters: casters.map((caster, index) =>
+                    index === 0 ? { ...caster, cantrips: [...(caster.cantrips ?? []), spell] } : caster,
+                  ),
+                }
+              : {}),
+          };
+          patchSheet(sheet.id, { spellcasting: nextSpellcasting });
+          audit(campaign, turnId, sheet, "learn_spell", { action, spell }, reason, {
+            spellcasting: nextSpellcasting,
+          });
+          publishSheet(campaign, sheet.id);
+          insertCharacterEvent({
+            libraryCharacterId: sheet.libraryCharacterId,
+            campaignCharacterId: sheet.id,
+            campaignId: campaign.id,
+            seq: allocateSeq(campaign.id),
+            kind: "achievement",
+            summary: `Learned the cantrip ${spell}.`,
+          });
+          return { result: { ok: true, learned: spell, cantrip: true } };
+        }
         let targetCaster: (typeof casters)[number] | null = null;
         if (casters.length) {
           const classLevels = Object.fromEntries(
@@ -1584,8 +1618,14 @@ export function applyDmMutation(
               level,
               abilityMod(sheet.abilities[caster.ability]),
             );
-            const held = (caster.known.length ? caster.known : caster.prepared).length;
-            if (!cap || spellLevel === 0 || held < cap.count) {
+            const classEntry = (sheet.classes ?? []).find(
+              (entry) => entry.id.toLowerCase() === caster.classId.toLowerCase(),
+            );
+            const held = spellsAgainstLimit(
+              caster.known.length ? caster.known : caster.prepared,
+              subclassSpellsFor(caster.classId, classEntry?.subclass ?? "", level),
+            );
+            if (!cap || held < cap.count) {
               targetCaster = caster;
               break;
             }
@@ -1603,8 +1643,11 @@ export function applyDmMutation(
             sheet.level,
             abilityMod(sheet.abilities[sheet.spellcasting.ability]),
           );
-          const current = intoKnown ? known.length : prepared.length;
-          if (ceiling && spellLevel !== 0 && current >= ceiling.count) {
+          const current = spellsAgainstLimit(
+            intoKnown ? known : prepared,
+            subclassSpellsFor(sheet.class, sheet.subclass, sheet.level),
+          );
+          if (ceiling && current >= ceiling.count) {
             return {
               result: {
                 error: `${sheet.name} already has ${current} ${ceiling.label}, the most a level ${sheet.level} ${sheet.class} may hold. They must give one up first: call learn_spell with action=remove for the spell they drop.`,
@@ -1643,13 +1686,14 @@ export function applyDmMutation(
         });
         return { result: { ok: true, learned: spell } };
       }
-      if (!known.some(matches) && !prepared.some(matches)) {
+      if (!known.some(matches) && !prepared.some(matches) && !cantrips.some(matches)) {
         return { result: { error: `${sheet.name} does not know "${spell}".` } };
       }
       const nextSpellcasting = {
         ...sheet.spellcasting,
         known: known.filter((entry) => !matches(entry)),
         prepared: prepared.filter((entry) => !matches(entry)),
+        cantrips: cantrips.filter((entry) => !matches(entry)),
         // A removal comes off every caster entry that lists it, keeping the
         // per-class lists and the union mirror agreeing.
         ...(sheet.spellcasting.casters?.length
@@ -1658,6 +1702,7 @@ export function applyDmMutation(
                 ...caster,
                 known: caster.known.filter((entry) => !matches(entry)),
                 prepared: caster.prepared.filter((entry) => !matches(entry)),
+                cantrips: (caster.cantrips ?? []).filter((entry) => !matches(entry)),
               })),
             }
           : {}),
