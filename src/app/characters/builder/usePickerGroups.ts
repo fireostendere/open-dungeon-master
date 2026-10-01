@@ -13,7 +13,7 @@ import { characterDisplay } from "@/lib/i18n/character-display";
 import { useI18n } from "@/lib/i18n";
 import type { Genre } from "@/lib/schemas/game-settings";
 import { SRD_SKILLS } from "@/lib/srd";
-import { subclassLevelFor, subclassNamesFor } from "@/lib/srd/features";
+import { subclassBlurb, subclassLevelFor, subclassNamesFor } from "@/lib/srd/features";
 import { packRecommends, type Reskinned } from "@/lib/worlds/reskin-logic";
 import type { WorldPack } from "@/lib/worlds/types";
 import type { PickerGroup, PickerOption } from "./OptionPicker";
@@ -137,6 +137,32 @@ function tier<T extends { id: string }>(
 // Rows for the race/class/subclass/background dropdowns, each carrying the
 // info wiring for its InfoButton so any option can be read before choosing,
 // the same way the spell picker works.
+// The write-up behind a class or background card's "?": the setting's own
+// blurb, then the bundled line, then the content pack's full entry, and for
+// a background what its feature does. Joined so a short line and a long
+// rules text both show rather than one hiding the other.
+export function classInfoText(entry: { packBlurb?: string; blurb?: string; desc?: string }): string | undefined {
+  const parts = [entry.packBlurb || entry.blurb, entry.desc].filter(Boolean);
+  return parts.length ? parts.join("\n\n") : undefined;
+}
+
+export function backgroundInfoText(
+  entry: {
+    packBlurb?: string;
+    blurb?: string;
+    desc?: string;
+    feature?: string;
+    featureDesc?: string;
+  },
+  featureLabel = "Feature",
+): string | undefined {
+  const feature = entry.feature
+    ? `**${featureLabel}: ${entry.feature}.**${entry.featureDesc ? ` ${entry.featureDesc}` : ""}`
+    : "";
+  const parts = [entry.packBlurb || entry.blurb, feature, entry.desc].filter(Boolean);
+  return parts.length ? parts.join("\n\n") : undefined;
+}
+
 export function usePickerGroups({
   races,
   rawRaces,
@@ -226,11 +252,14 @@ export function usePickerGroups({
       // Under a reskin the canonical name goes in the meta column, so a
       // player always knows which SRD race they are actually taking.
       meta: entry.packName ? canonicalName(rawRaces, entry.id) : undefined,
+      // A pack-only lineage has no bundled lines; leaving the text empty
+      // lets the dialog fetch the row's full trait write-up instead of
+      // showing the card's clipped summary.
       infoText:
         (locale === "ru" ? describeRace(entry.id, locale) : null) ||
         entry.packBlurb ||
         describeRace(entry.id, locale) ||
-        entry.note,
+        undefined,
       reference: { kind: "races", slug: entry.id, name: entry.name },
     });
     if (raceTier.recommended.length) {
@@ -251,7 +280,7 @@ export function usePickerGroups({
         : entry.spellAbility
           ? `d${entry.hitDie} · caster`
           : `d${entry.hitDie}`,
-      infoText: entry.packBlurb || entry.blurb || entry.desc,
+      infoText: classInfoText(entry),
       reference: { kind: "classes", slug: entry.id, name: entry.name },
     });
     if (classTier.recommended.length) {
@@ -316,7 +345,11 @@ export function usePickerGroups({
           return {
             id: subclassName,
             name: localizedSubclassName(klass?.id ?? "", subclassName, locale),
-            infoText: describeSubclass(klass?.id ?? "", subclassName, locale) ?? match?.desc,
+            // The Russian help, else the pack's full write-up when it has the
+            // row, else the bundled line, so no subclass is a bare name.
+            infoText:
+              describeSubclass(klass?.id ?? "", subclassName, locale) ??
+              (match?.desc || subclassBlurb(klass?.id ?? "", subclassName) || undefined),
             reference: match
               ? { kind: "archetypes", slug: match.id, name: subclassName }
               : undefined,
@@ -345,7 +378,7 @@ export function usePickerGroups({
       meta: entry.skills
         .map((skillId) => SRD_SKILLS.find((skill) => skill.id === skillId)?.name ?? skillId)
         .join(", "),
-      infoText: entry.packBlurb || entry.blurb || entry.desc,
+      infoText: backgroundInfoText(entry, locale === "ru" ? "Умение" : "Feature"),
       reference: { kind: "backgrounds", slug: entry.id, name: entry.name },
     });
     if (backgroundTier.recommended.length) {
@@ -371,7 +404,7 @@ export function usePickerGroups({
       ];
     }
     return [{ label: null, options: backgroundTier.other.map(toOption) }];
-  }, [backgroundTier, pack]);
+  }, [backgroundTier, pack, locale]);
 
   return {
     alignmentGroups,

@@ -10,8 +10,10 @@ import type {
 import { removeAsiChoices } from "@/lib/srd/asi";
 import { findOptionByFeatureName } from "@/lib/srd/options";
 import type { FightingStyleId } from "@/lib/srd/feature-effects";
+import { canonicalRaceId } from "@/lib/content/race-options";
 import type { AbilityMethod, AbilityState } from "./AbilityEditor";
-import type { BackgroundOption, RaceOption } from "./useBuilderOptions";
+import { reconcilePicks, type BuilderPicks } from "./reconcile";
+import type { BackgroundOption, ClassOption, RaceOption } from "./useBuilderOptions";
 
 export type EquipmentItem = { name: string; qty: number; slug?: string };
 
@@ -24,12 +26,14 @@ export function useBuilderState({
   initialLevel,
   fixedLevel,
   races,
+  classes,
   backgrounds,
 }: {
   initial?: CreateSheetInput;
   initialLevel?: number;
   fixedLevel?: number;
   races: RaceOption[];
+  classes: ClassOption[];
   backgrounds: BackgroundOption[];
 }) {
   const [name, setName] = useState(initial?.name ?? "");
@@ -127,78 +131,158 @@ export function useBuilderState({
   const [acOverride, setAcOverride] = useState<number | null>(initial?.ac ?? null);
   const [localError, setLocalError] = useState("");
 
+  // The picks that depend on an earlier choice, gathered so one call can
+  // check them all against the current race, class, background and level
+  // (reconcile.ts). Read from the render's values: every caller is an event
+  // handler or an effect of this render.
+  const picks: BuilderPicks = {
+    chosenSkills, racialSkills, racialAsi, racialCantrip, racialTool, bonusLanguages,
+    subclass, expertisePicks, stylePicks, optionPicks, spells, bookPrepared, cantrips,
+  };
+  function applyPicks(next: BuilderPicks) {
+    setChosenSkills(next.chosenSkills);
+    setRacialSkills(next.racialSkills);
+    setRacialAsi(next.racialAsi);
+    setRacialCantrip(next.racialCantrip);
+    setRacialTool(next.racialTool);
+    setBonusLanguages(next.bonusLanguages);
+    setSubclass(next.subclass);
+    setExpertisePicks(next.expertisePicks);
+    setStylePicks(next.stylePicks);
+    setOptionPicks(next.optionPicks);
+    setSpells(next.spells);
+    setBookPrepared(next.bookPrepared);
+    setCantrips(next.cantrips);
+  }
+  type Selection = { raceId: string; classId: string; backgroundId: string; level: number };
+  const selection: Selection = { raceId, classId, backgroundId, level };
+  // The rows the builder shows for these ids: until the player picks, each
+  // list's first row stands in (CharacterBuilder.tsx does the same), and
+  // the picks have to be checked against what is shown, or an unpicked
+  // background's language slots would be trimmed away by the next change.
+  function reconciled(next: Partial<Selection>, current: BuilderPicks): BuilderPicks {
+    const ids = { ...selection, ...next };
+    return reconcilePicks(current, {
+      race: findRace(races, ids.raceId) ?? races[0],
+      klass: classes.find((entry) => entry.id === ids.classId) ?? classes[0],
+      background: backgrounds.find((entry) => entry.id === ids.backgroundId) ?? backgrounds[0],
+      level: fixedLevel ?? ids.level,
+    }).picks;
+  }
+
   // Prefill pieces that need the async option lists: base ability scores
   // (final scores minus ASI picks minus racial bonuses; slightly lossy for
   // scores that hit the 20 cap), skill picks minus the background's fixed
-  // skills, and bonus languages beyond the race's own.
+  // skills, and bonus languages beyond the race's own. Runs again whenever
+  // the option rows change (the content pack arriving after the SRD
+  // fallback), because a pick that was valid against one catalog may not be
+  // against the other.
   const hydratedInitial = useRef(false);
   useEffect(() => {
-    if (!initial || hydratedInitial.current || !races.length || !backgrounds.length) {
+    if (!races.length || !classes.length || !backgrounds.length) {
       return;
     }
-    hydratedInitial.current = true;
-    const initialRace = races.find((entry) => entry.id === initial.race);
-    const initialBackground = backgrounds.find((entry) => entry.id === initial.background);
-    const withoutAsi = removeAsiChoices(initial.abilities, initial.asiChoices ?? []);
-    const base: Record<Ability, number> = { ...withoutAsi };
-    for (const [ability, bonus] of Object.entries(initialRace?.asi ?? {})) {
-      base[ability as Ability] -= bonus ?? 0;
-    }
-    // Racial bumps of the player's choice were baked in the same way.
-    if (initialRace?.asiChoice) {
-      for (const ability of initial.racialChoices?.asi ?? []) {
-        base[ability] -= initialRace.asiChoice.amount;
+    const ids = { ...selection };
+    if (initial && !hydratedInitial.current) {
+      hydratedInitial.current = true;
+      const initialRace = findRace(races, ids.raceId) ?? races[0];
+      const initialBackground = backgrounds.find((entry) => entry.id === initial.background) ?? backgrounds[0];
+      const withoutAsi = removeAsiChoices(initial.abilities, initial.asiChoices ?? []);
+      const base: Record<Ability, number> = { ...withoutAsi };
+      for (const [ability, bonus] of Object.entries(initialRace?.asi ?? {})) {
+        base[ability as Ability] -= bonus ?? 0;
       }
+      // Racial bumps of the player's choice were baked in the same way.
+      if (initialRace?.asiChoice) {
+        for (const ability of initial.racialChoices?.asi ?? []) {
+          base[ability] -= initialRace.asiChoice.amount;
+        }
+      }
+      setScores(base);
+      // Skills granted by background or race are not class picks; the racial
+      // ones are restored from racialChoices instead.
+      const grantedSkills = new Set([
+        ...(initialBackground?.skills ?? []),
+        ...(initialRace?.skills ?? []),
+        ...(initial.racialChoices?.skills ?? []),
+      ]);
+      const initialClass = classes.find((entry) => entry.id === initial.class);
+      // A class's own tongue (Druidic, Thieves' Cant) is not a pick either.
+      const spoken = new Set([...(initialRace?.languages ?? []), ...(initialClass?.languages ?? [])]);
+      applyPicks(
+        reconciled(ids, {
+          ...picks,
+          chosenSkills: initial.proficiencies.skills.filter((skill) => !grantedSkills.has(skill)),
+          expertisePicks: initial.proficiencies.expertise ?? [],
+          bonusLanguages: initial.proficiencies.languages.filter((language) => !spoken.has(language)),
+        }),
+      );
+      return;
     }
-    setScores(base);
-    // Skills granted by background or race are not class picks; the racial
-    // ones are restored from racialChoices instead.
-    const grantedSkills = new Set([
-      ...(initialBackground?.skills ?? []),
-      ...(initialRace?.skills ?? []),
-      ...(initial.racialChoices?.skills ?? []),
-    ]);
-    setChosenSkills(initial.proficiencies.skills.filter((skill) => !grantedSkills.has(skill)));
-    setExpertisePicks(initial.proficiencies.expertise ?? []);
-    setBonusLanguages(
-      initial.proficiencies.languages.filter(
-        (language) => !(initialRace?.languages ?? []).includes(language),
-      ),
-    );
-  }, [initial, races, backgrounds]);
+    applyPicks(reconciled(ids, picks));
+    // Runs when the option rows change; the picks it reads are this render's.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initial, races, classes, backgrounds]);
 
   // Choosing a different race throws away every race-specific pick, since
-  // none of them make sense for the new one.
+  // none of them make sense for the new one, and re-checks the rest (a class
+  // skill the new race grants outright, a language it already speaks).
   function changeRace(id: string) {
     setRaceId(id);
-    setBonusLanguages([]);
-    setRacialAsi([]);
-    setRacialSkills([]);
-    setRacialCantrip("");
-    setRacialTool("");
+    applyPicks(
+      reconciled(
+        { raceId: id },
+        { ...picks, racialAsi: [], racialSkills: [], racialCantrip: "", racialTool: "" },
+      ),
+    );
   }
 
   // Same for the class: skills, subclass, spells, loadout edits and the
   // class option picks all belong to the old class.
   function changeClass(id: string) {
     setClassId(id);
-    setChosenSkills([]);
-    setSubclass("");
-    setSpells([]);
-    setBookPrepared([]);
-    setCantrips([]);
     setRemovedAutoNames([]);
-    setOptionPicks([]);
+    applyPicks(
+      reconciled(
+        { classId: id },
+        {
+          ...picks,
+          chosenSkills: [],
+          subclass: "",
+          spells: [],
+          bookPrepared: [],
+          cantrips: [],
+          optionPicks: [],
+          stylePicks: [],
+          expertisePicks: [],
+        },
+      ),
+    );
+  }
+
+  // A background, subclass or level change keeps every pick that still
+  // fits and drops the rest: an acolyte's second language under a criminal,
+  // Battle Master maneuvers under a Champion, a 3rd-level spell at level 1.
+  function changeBackground(id: string) {
+    setBackgroundId(id);
+    applyPicks(reconciled({ backgroundId: id }, picks));
+  }
+  function changeSubclass(name: string) {
+    applyPicks(reconciled({}, { ...picks, subclass: name }));
+  }
+  function changeLevel(next: number) {
+    setLevel(next);
+    applyPicks(reconciled({ level: next }, picks));
   }
 
   return {
     name, setName,
     alignment, setAlignment,
-    level, setLevel,
+    level, changeLevel,
     raceId, changeRace,
     classId, changeClass,
-    subclass, setSubclass,
-    backgroundId, setBackgroundId,
+    subclass, changeSubclass,
+    backgroundId, changeBackground,
     method, setMethod,
     scores, setScores,
     chosenSkills, setChosenSkills,
@@ -230,3 +314,17 @@ export function useBuilderState({
 }
 
 export type BuilderState = ReturnType<typeof useBuilderState>;
+
+// The row for a race id, or for the same lineage under another spelling: a
+// sheet built from the bundled list holds "hill_dwarf" while the content
+// pack, once it arrives, offers "hill-dwarf" and "odm-hill-dwarf". Matching
+// the lineage keeps an edit on its race instead of the list's first row.
+export function findRace(races: RaceOption[], raceId: string): RaceOption | undefined {
+  if (!raceId) {
+    return undefined;
+  }
+  return (
+    races.find((entry) => entry.id === raceId) ??
+    races.find((entry) => canonicalRaceId(entry.id) === canonicalRaceId(raceId))
+  );
+}

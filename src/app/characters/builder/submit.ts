@@ -1,7 +1,10 @@
+import { backgroundFeatureFor } from "@/lib/backgrounds";
+import type { Locale } from "@/lib/i18n/translations";
 import type { Ability, AsiChoice, CreateSheetInput } from "@/lib/schemas/sheet";
 import { SRD_CLASSES, spellSlotsFor } from "@/lib/srd";
 import { expertiseSlotsFor, subclassLevelFor, subclassSpellsFor } from "@/lib/srd/features";
 import { fightingStyleFeatureName } from "@/lib/srd/feature-effects";
+import { reconcilePicks } from "./reconcile";
 import type { BackgroundOption, ClassOption, RaceOption } from "./useBuilderOptions";
 import type { BuilderDerived } from "./useBuilderDerived";
 import type { BuilderState } from "./useBuilderState";
@@ -14,6 +17,8 @@ type SubmitInput = {
   race: RaceOption | undefined;
   klass: ClassOption | undefined;
   background: BackgroundOption | undefined;
+  // The language the spell-step messages are worded in.
+  locale?: Locale;
 };
 
 // Everything the wizard's per-step Continue buttons gate on, so a player
@@ -115,25 +120,34 @@ export function spellsBlocker(
   state: BuilderState,
   derived: BuilderDerived,
   klass: ClassOption | undefined,
+  locale: Locale = "en",
 ): string | null {
   if (!klass || !derived.casts) {
     return null;
   }
   const cantripsLeft = (derived.cantripAdvice ?? 0) - derived.chosenCantrips.length;
   if (cantripsLeft > 0) {
-    return `Pick ${cantripsLeft} more ${cantripsLeft === 1 ? "cantrip" : "cantrips"}.`;
+    return locale === "ru"
+      ? `Выберите ещё заговоры: ${cantripsLeft}.`
+      : `Pick ${cantripsLeft} more ${cantripsLeft === 1 ? "cantrip" : "cantrips"}.`;
   }
   if (derived.cantripAdvice !== null && cantripsLeft < 0) {
-    return `Remove ${-cantripsLeft} ${cantripsLeft === -1 ? "cantrip" : "cantrips"}: a ${klass.name.toLowerCase()} knows ${derived.cantripAdvice ?? 0} at this level.`;
+    return locale === "ru"
+      ? `Уберите лишние заговоры (${-cantripsLeft}): на этом уровне класс знает ${derived.cantripAdvice ?? 0}.`
+      : `Remove ${-cantripsLeft} ${cantripsLeft === -1 ? "cantrip" : "cantrips"}: a ${klass.name.toLowerCase()} knows ${derived.cantripAdvice ?? 0} at this level.`;
   }
   if (derived.spellbookAdvice !== null) {
     // A wizard fills the book first, then prepares from it.
     const bookLeft = derived.spellbookAdvice - derived.chosenSpells.length;
     if (bookLeft > 0) {
-      return `Write ${bookLeft} more ${bookLeft === 1 ? "spell" : "spells"} in your spellbook.`;
+      return locale === "ru"
+        ? `Запишите в книгу заклинаний ещё: ${bookLeft}.`
+        : `Write ${bookLeft} more ${bookLeft === 1 ? "spell" : "spells"} in your spellbook.`;
     }
     if (bookLeft < 0) {
-      return `Remove ${-bookLeft} ${bookLeft === -1 ? "spell" : "spells"} from your spellbook: a level ${derived.effectiveLevel} wizard starts with ${derived.spellbookAdvice}.`;
+      return locale === "ru"
+        ? `Уберите из книги заклинаний лишние (${-bookLeft}): волшебник ${derived.effectiveLevel}-го уровня начинает с ${derived.spellbookAdvice}.`
+        : `Remove ${-bookLeft} ${bookLeft === -1 ? "spell" : "spells"} from your spellbook: a level ${derived.effectiveLevel} wizard starts with ${derived.spellbookAdvice}.`;
     }
   }
   if (derived.spellAdvice) {
@@ -144,12 +158,19 @@ export function spellsBlocker(
         : derived.spellAdvice.count;
     const spellsLeft = target - derived.chosenPrepared.length;
     if (spellsLeft > 0) {
+      if (locale === "ru") {
+        return derived.spellbookAdvice !== null
+          ? `Подготовьте из книги заклинаний ещё: ${spellsLeft}.`
+          : `Выберите ещё заклинания: ${spellsLeft}.`;
+      }
       return derived.spellbookAdvice !== null
         ? `Prepare ${spellsLeft} more ${spellsLeft === 1 ? "spell" : "spells"} from your spellbook.`
         : `Pick ${spellsLeft} more ${spellsLeft === 1 ? "spell" : "spells"} (${derived.spellAdvice.label}).`;
     }
     if (spellsLeft < 0) {
-      return `Remove ${-spellsLeft} ${spellsLeft === -1 ? "spell" : "spells"}: the limit is ${derived.spellAdvice.count} ${derived.spellAdvice.label}.`;
+      return locale === "ru"
+        ? `Уберите лишние заклинания (${-spellsLeft}): предел — ${derived.spellAdvice.count}.`
+        : `Remove ${-spellsLeft} ${spellsLeft === -1 ? "spell" : "spells"}: the limit is ${derived.spellAdvice.count} ${derived.spellAdvice.label}.`;
     }
   }
   return null;
@@ -182,7 +203,7 @@ export function validateBuilder(
     abilitiesBlocker(derived) ??
     ancestryBlocker(state, race, background) ??
     callingBlocker(klass, state, derived) ??
-    spellsBlocker(state, derived, klass);
+    spellsBlocker(state, derived, klass, input.locale);
   if (message) {
     return { kind: "error", message };
   }
@@ -222,21 +243,31 @@ export function buildBuilderResult(input: SubmitInput): BuilderResult {
   );
   const isKnownCaster = derived.spellStyle === "known";
   const isWizard = derived.spellStyle === "spellbook";
+  // The picks were checked against every change as it was made; checked
+  // once more here so the sheet can never carry what the rules do not allow.
+  const { picks } = reconcilePicks(state, { race, klass, background, level: effectiveLevel });
   // A racial cantrip (high elf) joins the cantrip list for casters. A
   // non-caster has nowhere to put it, so it rides along as a feature
   // instead, which populateFeatures keeps and the DM prompt can see.
-  const { spells, cantrips, racialCantrip } = state;
+  const { spells, cantrips, racialCantrip } = picks;
   const finalCantrips =
     racialCantrip && !cantrips.includes(racialCantrip) ? [...cantrips, racialCantrip] : cantrips;
   // Domain, circle, oath and patron spells are always prepared and free:
   // they ride onto the list on top of whatever the player picked.
-  const grantedSpells = subclassSpellsFor(klass.id, state.subclass, effectiveLevel).filter(
+  const grantedSpells = subclassSpellsFor(klass.id, picks.subclass, effectiveLevel).filter(
     (spell) => !spells.some((entry) => entry.toLowerCase() === spell.toLowerCase()),
   );
   const finalSpells = klass.spellAbility ? [...spells, ...grantedSpells] : spells;
   const racialFeatures =
     racialCantrip && !klass.spellAbility
       ? [{ name: `Racial cantrip: ${racialCantrip}`, source: "story" as const }]
+      : [];
+  // The server grants the feature of every bundled background itself
+  // (db/sheets.ts withBackgroundFeature); a content-pack background's is
+  // known only here, so it rides along the same way.
+  const packBackgroundFeature =
+    background.feature && !backgroundFeatureFor(background.id)
+      ? [{ name: `${background.feature} (${background.name})`.slice(0, 80), source: "background" as const }]
       : [];
 
   return {
@@ -245,7 +276,7 @@ export function buildBuilderResult(input: SubmitInput): BuilderResult {
       name: state.name.trim(),
       race: race.id,
       class: klass.id,
-      subclass: state.subclass,
+      subclass: picks.subclass,
       background: background.id,
       alignment: state.alignment,
       gender: state.gender,
@@ -277,26 +308,25 @@ export function buildBuilderResult(input: SubmitInput): BuilderResult {
       // no other home, like a non-caster's racial cantrip.
       features: [
         ...racialFeatures,
-        ...state.stylePicks
-          .slice(0, derived.styleSlots)
-          .map((id) => ({ name: fightingStyleFeatureName(id), source: "choice" as const })),
+        ...packBackgroundFeature,
+        ...picks.stylePicks.map((id) => ({ name: fightingStyleFeatureName(id), source: "choice" as const })),
         // Invocations, maneuvers, metamagic and the rest ride along as
         // "choice" features, the same shape as a fighting style, so the
         // level-up regrant preserves them.
-        ...state.optionPicks.map((optionName) => ({ name: optionName, source: "choice" as const })),
+        ...picks.optionPicks.map((optionName) => ({ name: optionName, source: "choice" as const })),
       ],
       asiChoices: resolvedAsiChoices,
       racialChoices: {
-        asi: state.racialAsi.filter((ability): ability is Ability => Boolean(ability)),
-        skills: state.racialSkills.filter(Boolean),
+        asi: picks.racialAsi.filter((ability): ability is Ability => Boolean(ability)),
+        skills: picks.racialSkills.filter(Boolean),
         cantrip: racialCantrip,
-        tool: state.racialTool,
+        tool: picks.racialTool,
       },
       spellcasting: klass.spellAbility
         ? {
             ability: klass.spellAbility,
             slots,
-            prepared: isKnownCaster ? [] : isWizard ? derived.chosenPrepared : finalSpells,
+            prepared: isKnownCaster ? [] : isWizard ? picks.bookPrepared : finalSpells,
             known: isKnownCaster ? finalSpells : [],
             cantrips: finalCantrips,
             ...(isWizard ? { spellbook: finalSpells } : {}),

@@ -30,7 +30,7 @@ import { spellClassFor } from "@/lib/classes";
 import { abilityMod, findClass, findSkill } from "@/lib/srd";
 import { populateFeaturesForClasses, subclassSpellsFor } from "@/lib/srd/features";
 import { allSpellNames, isCantripName, spellLevelOf, spellsAgainstLimit } from "@/lib/srd/spell-lists";
-import { spellStyleFor, spellbookAllowance } from "@/lib/srd/spell-prep";
+import { spellListProblems, spellStyleFor, spellbookAllowance } from "@/lib/srd/spell-prep";
 import { findSpellByName } from "@/lib/content";
 import {
   canMulticlassInto,
@@ -450,6 +450,10 @@ export async function POST(
     );
   }
 
+  const [problem] = spellListProblems({ ...parsed.data, level: context.campaign.startingLevel });
+  if (problem) {
+    return Response.json({ error: problem }, { status: 400 });
+  }
   const libraryCharacter = createCharacter(
     context.user.id,
     context.campaign.startingLevel,
@@ -537,6 +541,10 @@ export async function PUT(
     if (!character) {
       return Response.json({ error: "Character not found in your library." }, { status: 404 });
     }
+    const [editProblem] = spellListProblems({ ...edit.data.sheet, level: context.campaign.startingLevel });
+    if (editProblem) {
+      return Response.json({ error: editProblem }, { status: 400 });
+    }
     const updated = updateCharacter(
       context.user.id,
       character.id,
@@ -572,6 +580,10 @@ export async function PUT(
       { error: parsed.error.issues[0]?.message || "Invalid character sheet." },
       { status: 400 },
     );
+  }
+  const [replaceProblem] = spellListProblems({ ...parsed.data, level: context.campaign.startingLevel });
+  if (replaceProblem) {
+    return Response.json({ error: replaceProblem }, { status: 400 });
   }
   deleteSheetForUser(campaignId, context.user.id);
   const libraryCharacter = createCharacter(
@@ -759,6 +771,22 @@ export async function PATCH(
           { status: 400 },
         );
       }
+    }
+  }
+
+  // The same tables, whole: cantrips known and the counts per caster class,
+  // which the block above does not cover for cantrips or a second class.
+  if (parsed.data.spellcasting) {
+    const [problem] = spellListProblems(
+      {
+        ...sheet,
+        ...parsed.data,
+        spellcasting: parsed.data.spellcasting,
+      },
+      { bookAllowance: false },
+    );
+    if (problem) {
+      return Response.json({ error: problem }, { status: 400 });
     }
   }
 
