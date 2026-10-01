@@ -1,0 +1,21 @@
+{
+  "creatureId": "angel-zirnitran",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy creature avatar, exquisite tactile painterly realism, dramatic celestial light, sharply legible draconic face at 512 pixels. Zirnitran angel from Tome of Beasts 3, a huge DRACONIC CELESTIAL with iridescent scales shifting through the colors of dragonkind, an intelligent reptilian dragon face and eyes glowing like partially eclipsed SUNS. Exactly SIX BLACK FEATHERED WINGS arranged as THREE PAIRS on its back, not membrane wings and not twelve wings. Upright draconic humanoid guardian with two clawed arms, two legs and one tail, belt with rolled parchment scrolls and abstract sacred geometric ornament, no readable writing. Scholarly divine majesty, cosmic knowledge and holy fire. Original head ridges, horn shape, attire and composition, no copied publisher art. No text, signature, logo, watermark or frame. Normal 02. Three-quarter left-facing head and chest portrait of a graceful narrow-faced zirnitran whose scales blend pearl-silver, violet and ruby hues. Six black feather wings folded in three layered pairs behind the shoulders, one carefully drawn clawed hand raises a small glowing orb of holy fire. Scroll cylinders hang from the belt near bottom edge, quiet star-lit library vault, pensive ancient reptilian expression, eyes smoldering gold under heavy lids. Targeted follow-up edit: Make one precise anatomy repair. Preserve the draconic angel's face, horns, iridescent scales, glowing orb, hands, robes, jewelry, scrolls, library, lighting and square composition. This celestial must have exactly SIX black feathered wings: three on the left and three on the right. The source has an extra seventh wing low on the viewer's right, a rounded folded feather mass behind the near upper arm, roughly in the lower-right third. Remove ONLY that lowest extra right-side wing and reconstruct the distant library background where it was. Preserve the three clearly spread higher right wings and all three left wings. Do not remove the near arm or change its sleeve. No new objects, text, signature or watermark.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/angel-zirnitran/",
+      "note": "Licensed ToB3 anatomy: draconic angel with SIX black-feathered wings, color-shifting scales, sunlike eyes, scroll-bearing belt and anointed claws; sacred fire and magical scholarship. Upright anatomy, individual horns and palettes are original interpretations."
+    },
+    {
+      "url": "https://koboldpress.com/tools/kobold-press-monsters/",
+      "note": "Primary publisher index confirms Huge Zirnitran celestial from Tome of Beasts 3."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

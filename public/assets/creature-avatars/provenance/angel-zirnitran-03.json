@@ -1,0 +1,21 @@
+{
+  "creatureId": "angel-zirnitran",
+  "variantId": "03",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy creature avatar, exquisite tactile painterly realism, dramatic celestial light, sharply legible draconic face at 512 pixels. Zirnitran angel from Tome of Beasts 3, a huge DRACONIC CELESTIAL with iridescent scales shifting through the colors of dragonkind, an intelligent reptilian dragon face and eyes glowing like partially eclipsed SUNS. Exactly SIX BLACK FEATHERED WINGS arranged as THREE PAIRS on its back, not membrane wings and not twelve wings. Upright draconic humanoid guardian with two clawed arms, two legs and one tail, belt with rolled parchment scrolls and abstract sacred geometric ornament, no readable writing. Scholarly divine majesty, cosmic knowledge and holy fire. Original head ridges, horn shape, attire and composition, no copied publisher art. No text, signature, logo, watermark or frame. Normal 03. Low-angle close head and shoulders, powerful dark teal, bronze and blue draconic face with small crown ridges and two swept ivory horns, eyes flare in the shape of solar eclipses. Mouth slightly open with a contained golden holy flame, six black feather wings spread behind, three left and three right, layered clear roots. Wind lifts a black ceremonial mantle, high mountain sanctuary and storm-lit sky, radiant scholarly authority.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/angel-zirnitran/",
+      "note": "Licensed ToB3 anatomy: draconic angel with SIX black-feathered wings, color-shifting scales, sunlike eyes, scroll-bearing belt and anointed claws; sacred fire and magical scholarship. Upright anatomy, individual horns and palettes are original interpretations."
+    },
+    {
+      "url": "https://koboldpress.com/tools/kobold-press-monsters/",
+      "note": "Primary publisher index confirms Huge Zirnitran celestial from Tome of Beasts 3."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

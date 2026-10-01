@@ -1,0 +1,17 @@
+{
+  "creatureId": "angel-psychopomp",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy creature avatar with refined tactile painted realism, atmospheric cinematic light, large expressive face legible at 512 pixels. Psychopomp angel from Tome of Beasts 3, a medium adult celestial guide of souls wearing a flowing GRAY CLOAK with two GRAY FEATHERED WINGS. It carries a LANTERN FLAIL: a small luminous metal lantern hanging by a short chain from a sturdy handle, not a scythe. Grim and thoughtful, a patient clever protector rather than an evil undead. Two arms and two legs, coherent humanoid proportions, no extra limbs. Original design and scene, no copied publisher art. No text, signature, logo, watermark or frame. Normal 02. Bestial death-deity aspect explicitly allowed for this creature: a dignified BLACK JACKAL HEAD with tall natural ears and amber eyes on an adult humanoid celestial body, gray cloak and two ash-gray feathered wings. Three-quarter head-and-shoulder portrait, bronze lantern flail near frame edge casting warm light on short sleek jackal fur, pale mist and ancient dark door behind. No Egyptian crown or copied deity costume, understated original silver clasp, attentive intelligent expression.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/angel-psychopomp/",
+      "note": "Licensed ToB3 entry: gray cloak and wings, skeletal in shadow and pale flesh in light, lantern flail, soul escort. Bestial jackal/owl/raven forms explicitly allowed. Individual palettes, clothing and humor are original."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

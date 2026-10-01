@@ -1,0 +1,17 @@
+{
+  "creatureId": "angel-shrouded",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy creature avatar, tactile painterly realism, dramatic chiaroscuro and crisp face readable at 512 pixels. Shrouded Angel from Tome of Beasts 3: medium adult humanoid celestial in a GRAY HOODED CLOAK, two large feathered wings, eyes burning with BLUE FIRE, wielding a long GOLDEN BLADE. A stealthy relentless divine justiciar, noble but unnerving, calm precise movement, two arms and two legs with coherent humanoid anatomy. Gray hood frames a mature living face, practical dark light armor beneath cloak, no chains, no horns, no skeletal corpse. Golden blade has a subtle radiant sheen, not an ordinary steel sword. Original face, clothing and composition, no copied publisher art. No text, signature, watermark, logo or frame. Normal 02. Three-quarter right-facing portrait of a mature dark-brown-skinned masculine angel with a sharp jaw and cropped hair mostly hidden by a charcoal-gray hood, blue-fire eyes focused on a distant target. Two dark-gray feathered wings folded tight behind shoulders, narrow gold sword angled along lower foreground, worn leather straps and layered gray cloak. Dense city rooftops at dusk, copper lantern bokeh and cold sapphire eye light, vigilant assassin-like celestial.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/angel-shrouded/",
+      "note": "Licensed ToB3 description: winged gray-cloaked figure, blue-fire eyes and long golden blade, stealthy divine justice. Faces, armor details, feather palettes and bell humor are original interpretations."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

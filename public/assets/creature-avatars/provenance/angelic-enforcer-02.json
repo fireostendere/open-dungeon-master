@@ -1,0 +1,25 @@
+{
+  "creatureId": "angelic-enforcer",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy creature avatar, refined tactile painterly realism, cinematic light and a sharply readable large face at 512 pixels. Angelic Enforcer from Tome of Beasts 2: a LARGE upright humanoid CELestial with a true LION HEAD, rich GOLDEN FUR, proud lion mane and two broad WHITE FEATHERED WINGS. Two powerful humanoid arms with clawed hands and two legs, not a quadrupedal sphinx, not a human face, no extra limbs. Stern celestial hunter of rogue angels, wearing original practical gold-and-ivory armor and carrying a FLAMING GREATSWORD. Golden leonine muzzle, feline nose, natural lion ears, strong whiskers and intelligent amber eyes. Original individual design and composition, no copied art. No lettering, signature, watermark, logo or frame. Normal 02. Three-quarter left-facing head and torso portrait of a tawny-gold lion-headed enforcer with a black-edged mane, a small healed brow scar and pale amber eyes. Hammered ivory-and-gold shoulder armor, one white feathered wing visible along the nearer flank and the other behind, greatsword held over shoulder with restrained holy flames. Storm-lit cathedral rooftop, drifting sparks and rain, strong predatory vigilance.",
+  "designReferences": [
+    {
+      "url": "https://github.com/open5e/open5e-api/blob/staging/data/v1/tob2/Monster.json",
+      "note": "Licensed ToB2 description from verified blob 525bb80e5e7b8490fffe58b374150e8274abe258: gold fur, lion head, white wings, flaming greatsword, pursuit of rogue angels. Original individual armor and faces."
+    },
+    {
+      "url": "https://www.5esrd.com/database/creature/angelic-enforcer/",
+      "note": "Use stat block identity/actions only. ABOUT line is incorrectly copied from Mead Archon and was excluded; correct lion-headed anatomy verified in Open5e source."
+    },
+    {
+      "url": "https://koboldpress.com/kpstore/product/tome-of-beasts-2-for-5th-edition-hardcover/",
+      "note": "Primary publisher ToB2 includes angelic enforcers."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}
