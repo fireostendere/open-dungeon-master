@@ -1,7 +1,7 @@
 "use client";
 
 import { BookOpen, Check, Hourglass, Lock, Star } from "lucide-react";
-import { useMemo, useState, type ReactNode } from "react";
+import { useMemo, useState, useSyncExternalStore, type ReactNode } from "react";
 import { InfoButton } from "@/components/ui/InfoDialog";
 import { cn } from "@/lib/cn";
 import { contentSlug, describeContentEntry, localizedContentName, spellSummary } from "@/lib/help";
@@ -48,6 +48,7 @@ export type SpellCounter = { label: string; value: number; max?: number | null; 
 const STATES: SpellTileState[] = ["ready", "pending", "granted", "inBook", "available"];
 const ROMAN = ["", "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX"];
 const levelKey = (level: number | null) => (level === null ? "other" : String(level));
+const noSubscribe = () => () => {};
 
 export function SpellBook({
   tiles,
@@ -77,6 +78,10 @@ export function SpellBook({
   const { locale } = useI18n();
   const [filter, setFilter] = useState("");
   const needle = filter.trim().toLowerCase();
+  // aria-selected is announced only once mounted: the builder renders the
+  // book on the server inside a hidden step, and a chosen tab in server
+  // markup must not disagree with the hydrated one.
+  const mounted = useSyncExternalStore(noSubscribe, () => true, () => false);
 
   const stateText = (state: SpellTileState) =>
     state === "ready"
@@ -182,7 +187,7 @@ export function SpellBook({
                 key={key}
                 type="button"
                 role="tab"
-                aria-selected={selected}
+                aria-selected={mounted && selected}
                 title={levelLabel(key)}
                 onClick={() => {
                   setTab(key);
