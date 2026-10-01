@@ -121,3 +121,33 @@ export function conditionIconKey(condition: string): string {
   }
   return text;
 }
+
+// A plain system line in the chat carries no type, only its words, so its
+// painting is picked from them (upstream's sessionGlyphs.ts, with Russian
+// words beside the English). A die is matched after a count too ("2d6").
+// The first match wins; the bell is the catch-all.
+const SYSTEM_LINE_RULES: Array<[RegExp, string]> = [
+  [/(?<![a-z])d100\b|\bpercentile\b/i, "die-d100"],
+  [/(?<![a-z])d12\b/i, "die-d12"],
+  [/(?<![a-z])d10\b/i, "die-d10"],
+  [/(?<![a-z])d8\b/i, "die-d8"],
+  [/(?<![a-z])d6\b/i, "die-d6"],
+  [/(?<![a-z])d4\b/i, "die-d4"],
+  [/(?<![a-z])d20\b|\b(rolls?|rolled|rerolls?|dice|saving throw|check)\b|бросок|бросил|бросает|кубик|кост[иья]|спасбросок|проверк/i, "die-d20"],
+  [/\blevel(s|ed)? up\b|\breach(es|ed)? level\b|нов(ый|ого) уров|уровень повышен|достиг(ает|ла|ли)? \d+ уров/i, "rest-level-up"],
+  [/\blong rest\b|долг(ий|ого|им) отдых/i, "rest-long"],
+  [/\bshort rest\b|\brests?\b|коротк(ий|ого|им) отдых|отдых/i, "rest-short"],
+  [/\b(dies|died|death|slain|falls unconscious|fallen)\b|погиб|умер|смерт|теряет сознание/i, "cue-death"],
+  [/\b(heals?|healed|recovers?|stabili[sz]ed?)\b|исцел|лечени|восстанавлива|стабилиз/i, "cue-heal"],
+  [/\b(combat|initiative|encounter|battle|ambush|fight)\b|бой|боя|инициатив|сражени|засад/i, "cue-battle"],
+  [/\b(gold|coins?|gp|sp|cp|paid|buys?|sells?|sold|bought)\b|золот|монет|купил|продал|заплатил/i, "cue-coin"],
+  [/\b(travel(s|led)?|arrives?|arrived|journey|sets? out|departs?)\b|путешеств|прибы|отправля|в путь/i, "cue-travel"],
+  [/\b(x-card|paused|pause)\b|пауза|приостанов/i, "cue-calm"],
+];
+
+export function systemLineGlyph(content: string): string {
+  for (const [pattern, glyph] of SYSTEM_LINE_RULES) {
+    if (pattern.test(content)) return glyph;
+  }
+  return "cue-bell";
+}

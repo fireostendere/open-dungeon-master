@@ -6,7 +6,6 @@ import {
   FastForward,
   Pencil,
   ChevronRight,
-  Crown,
   EyeOff,
   Flag,
   ImageOff,
@@ -16,8 +15,9 @@ import {
   RefreshCw,
   ShieldQuestion,
   Sparkles,
-  UserPlus,
 } from "lucide-react";
+import { GameIcon } from "@/components/ui/GameIcon";
+import { systemLineGlyph } from "@/lib/icons";
 import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { cn } from "@/lib/cn";
 import { ui } from "@/lib/ui";
@@ -356,7 +356,7 @@ const MessageItem = memo(function MessageItem({
       return (
         <div className="mx-auto max-w-xl rounded-lg border border-amber-900/60 bg-amber-950/30 px-4 py-2.5">
           <p className="mb-0.5 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-amber-300">
-             <Crown className="size-3.5" /> {messageText(locale, "Party Lead")}
+             <GameIcon icon={{ kind: "glyph", key: "tab-lead" }} size="size-5" /> {messageText(locale, "Party Lead")}
           </p>
           <p className="text-sm text-amber-100/90">
             {message.content.slice(LEAD_NOTE_PREFIX.length)}
@@ -367,14 +367,15 @@ const MessageItem = memo(function MessageItem({
     if (message.content.startsWith(JOIN_NOTE_PREFIX)) {
       return (
         <p className="mx-auto flex max-w-xl items-center justify-center gap-1.5 text-center font-serif text-sm italic text-stone-500">
-          <UserPlus className="size-3.5 shrink-0" />
+          <GameIcon icon={{ kind: "glyph", key: "system-party" }} size="size-5" />
           {message.content.slice(JOIN_NOTE_PREFIX.length)}
         </p>
       );
     }
     return (
-      <p className="mx-auto max-w-xl text-center font-serif text-sm italic text-stone-500">
-         {displaySystemText(message.content, locale)}
+      <p className="mx-auto flex max-w-xl items-center justify-center gap-1.5 text-center font-serif text-sm italic text-stone-500">
+        <GameIcon icon={{ kind: "glyph", key: systemLineGlyph(message.content) }} size="size-5" />
+        <span className="min-w-0">{displaySystemText(message.content, locale)}</span>
       </p>
     );
   }

@@ -13,7 +13,7 @@ import { register } from "node:module";
 
 register("./lib/register-alias.mjs", import.meta.url);
 
-const { iconSlug, iconPath, familyIconPath, iconCandidates, markIconFailed, conditionIconKey } = await import("../src/lib/icons.ts");
+const { iconSlug, iconPath, familyIconPath, iconCandidates, markIconFailed, conditionIconKey, systemLineGlyph } = await import("../src/lib/icons.ts");
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const ICONS = path.join(ROOT, "public", "assets", "icons");
@@ -79,6 +79,16 @@ test("free-text conditions find their painting, Russian ones by stem", () => {
   assert.equal(conditionIconKey("ошеломлён"), "stunned");
   assert.equal(conditionIconKey("без сознания"), "unconscious");
   assert.deepEqual(iconCandidates({ kind: "condition", key: conditionIconKey("Сломлен духом") }), [], "an unknown one draws nothing");
+});
+
+test("a chat system line takes the painting its words call for", () => {
+  assert.equal(systemLineGlyph("Kael rolls 2d6 for damage"), "die-d6");
+  assert.equal(systemLineGlyph("Mira makes a saving throw"), "die-d20");
+  assert.equal(systemLineGlyph("The party takes a long rest"), "rest-long");
+  assert.equal(systemLineGlyph("Отряд устраивает короткий отдых"), "rest-short");
+  assert.equal(systemLineGlyph("Начинается бой"), "cue-battle");
+  assert.equal(systemLineGlyph("Сигалис достигает 5 уровня"), "rest-level-up");
+  assert.equal(systemLineGlyph("Something happened"), "cue-bell");
 });
 
 test("the painted index lists exactly the files in every folder", () => {
