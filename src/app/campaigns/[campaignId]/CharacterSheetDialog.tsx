@@ -523,11 +523,12 @@ export function CharacterSheetDialog({
               <h3 className="mb-1.5 text-xs font-medium uppercase tracking-wide text-stone-500">
                 {uiText("Equipment")}
               </h3>
-              <p className="text-xs text-stone-300">
-                {sheet.equipment
-                  .map((item) => (item.qty > 1 ? `${item.name} x${item.qty}` : item.name))
-                  .join(", ")}
-              </p>
+              <InfoChipList
+                items={sheet.equipment.map((item) => ({
+                  name: item.qty > 1 ? `${item.name} x${item.qty}` : item.name,
+                  reference: { kind: "items", slug: contentSlug(item.name), name: item.name },
+                }))}
+              />
               {mine && wearable.length ? (
                 <div className="mt-2 space-y-1">
                   <p className="text-[11px] text-stone-500">

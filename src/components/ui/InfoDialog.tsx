@@ -6,6 +6,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { cn } from "@/lib/cn";
 import { Dialog } from "@/components/ui/Dialog";
 import { useI18n } from "@/lib/i18n";
+import type { ItemSheet } from "@/lib/help/item-sheet";
 
 // The "what does this do?" affordance, used everywhere a game term appears.
 //
@@ -187,6 +188,206 @@ function ContentBody({ reference }: { reference: ContentRef }) {
   return <>{renderRules(state.text)}</>;
 }
 
+function StatTile({ label, value, note }: { label: string; value: string | null; note?: string | null }) {
+  return (
+    <div className="rounded-md border border-stone-800 bg-stone-900/60 px-2.5 py-2">
+      <p className="text-[10px] uppercase tracking-wider text-stone-500">{label}</p>
+      <p className={cn("font-display text-base leading-tight", value ? "text-amber-100" : "text-stone-600")}>
+        {value ?? "—"}
+      </p>
+      {note ? <p className="text-[11px] leading-tight text-stone-400">{note}</p> : null}
+    </div>
+  );
+}
+
+function ItemSection({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <section className="space-y-1.5">
+      <p className="text-xs font-medium uppercase tracking-wide text-amber-200/80">{title}</p>
+      {children}
+    </section>
+  );
+}
+
+function RuleList({ rows }: { rows: Array<{ label: string; text: string | null }> }) {
+  return (
+    <dl className="space-y-1.5">
+      {rows.map((row) => (
+        <div key={row.label} className="flex flex-col gap-0.5 sm:flex-row sm:gap-2">
+          <dt className="shrink-0 font-medium text-stone-200 sm:w-32">{row.label}</dt>
+          <dd className="text-stone-400">{row.text ?? ""}</dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
+
+// The item card: what it is, weight and value always on show, then the
+// armour or weapon stats, then the long text when there is any. The facts
+// come from every row that shares the name plus the bundled SRD tables
+// (src/lib/help/item-sheet.ts), so a v1 table row with no prose, a v2 gear
+// row with no stats and a genre item the pack lacks all get a full card.
+function ItemBody({ reference }: { reference: ContentRef }) {
+  const uiText = useInlineText();
+  const { locale } = useI18n();
+  const [state, setState] = useState<{ sheet: ItemSheet | null; loading: boolean }>({
+    sheet: null,
+    loading: true,
+  });
+
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      const name = (reference.name ?? reference.slug).trim();
+      const wanted = name.toLowerCase();
+      const readJson = async (response: Response) => (response.ok ? response.json() : null);
+      try {
+        const [{ buildItemSheet }, direct, search] = await Promise.all([
+          import("@/lib/help/item-sheet"),
+          fetch(`/api/content/items/${encodeURIComponent(reference.slug)}`).then(readJson).catch(() => null),
+          fetch(`/api/content/items?q=${encodeURIComponent(wanted)}&limit=20`).then(readJson).catch(() => null),
+        ]);
+        const hits = ((search?.results ?? []) as Array<{ name: string; data?: Record<string, unknown> }>)
+          .filter((entry) => entry.name.trim().toLowerCase() === wanted)
+          .map((entry) => entry.data);
+        const sheet = buildItemSheet(name, [direct?.entry?.data, ...hits], locale);
+        if (!cancelled) {
+          setState({ sheet, loading: false });
+        }
+      } catch {
+        if (!cancelled) {
+          setState({ sheet: null, loading: false });
+        }
+      }
+    }
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [reference.slug, reference.name, locale]);
+
+  if (state.loading) {
+    return (
+      <p className="flex items-center gap-2 text-sm text-stone-500">
+        <Loader2 className="size-4 animate-spin" /> {uiText("Looking it up...")}
+      </p>
+    );
+  }
+  const sheet = state.sheet;
+  if (!sheet) {
+    return (
+      <p className="text-sm text-stone-500">
+        {uiText("No details available. The content pack may not be installed, or this item was added by hand.")}
+      </p>
+    );
+  }
+
+  const tags = [
+    sheet.rarity,
+    sheet.attunement ? uiText("Requires attunement") : null,
+    sheet.bonus ? uiText("+{bonus} magic", { bonus: sheet.bonus }) : null,
+  ].filter((tag): tag is string => Boolean(tag));
+  const tiles: Array<{ label: string; value: string | null; note?: string | null }> = [
+    { label: uiText("Weight"), value: sheet.weight },
+    { label: uiText("Value"), value: sheet.cost },
+  ];
+  if (sheet.armor) {
+    tiles.push({ label: sheet.armor.shield ? uiText("AC bonus") : uiText("Armor class"), value: sheet.armor.ac });
+  }
+  if (sheet.weapon) {
+    tiles.push({
+      label: uiText("Damage"),
+      value: sheet.weapon.damage ?? uiText("None"),
+      note: sheet.weapon.damageType,
+    });
+    if (sheet.weapon.range) {
+      tiles.push({ label: uiText("Range"), value: sheet.weapon.range });
+    }
+  }
+
+  const armorRows: Array<{ label: string; text: string | null }> = [];
+  if (sheet.armor) {
+    if (sheet.armor.shield) {
+      armorRows.push({ label: uiText("Shield"), text: uiText("Carried in one hand; only one shield counts at a time.") });
+    }
+    if (sheet.armor.dex) {
+      armorRows.push({ label: uiText("Dexterity"), text: sheet.armor.dex });
+    }
+    armorRows.push({
+      label: uiText("Strength"),
+      text: sheet.armor.strength
+        ? uiText("Needs {strength}; below that, your speed drops by 10 feet while wearing it.", { strength: sheet.armor.strength })
+        : uiText("No minimum."),
+    });
+    armorRows.push({
+      label: uiText("Stealth"),
+      text: sheet.armor.stealthDisadvantage
+        ? uiText("Disadvantage on Dexterity (Stealth) checks while wearing it.")
+        : uiText("No penalty."),
+    });
+  }
+  const weaponRows: Array<{ label: string; text: string | null }> = [];
+  if (sheet.weapon) {
+    if (sheet.bonus) {
+      weaponRows.push({
+        label: uiText("+{bonus} weapon", { bonus: sheet.bonus }),
+        text: uiText("Adds {bonus} to attack and damage rolls.", { bonus: sheet.bonus }),
+      });
+    }
+    for (const property of sheet.weapon.properties) {
+      weaponRows.push({ label: property.name, text: property.blurb });
+    }
+    if (sheet.weapon.damageType && sheet.weapon.damageBlurb) {
+      weaponRows.push({ label: capitalize(sheet.weapon.damageType), text: sheet.weapon.damageBlurb });
+    }
+    if (!sheet.weapon.damage) {
+      weaponRows.push({ label: uiText("No damage"), text: uiText("It does not hurt on its own; its special rules say what it does.") });
+    }
+  }
+
+  return (
+    <div className="space-y-4">
+      {sheet.type || tags.length ? (
+        <div className="flex flex-wrap items-center gap-1.5">
+          {sheet.type ? <span className="text-sm font-medium text-stone-200">{sheet.type}</span> : null}
+          {tags.map((tag) => (
+            <span
+              key={tag}
+              className="rounded-full border border-amber-200/20 bg-amber-200/5 px-2 py-0.5 text-[10px] uppercase tracking-wider text-amber-200/80"
+            >
+              {tag}
+            </span>
+          ))}
+        </div>
+      ) : null}
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-[repeat(auto-fit,minmax(6.5rem,1fr))]">
+        {tiles.map((tile) => (
+          <StatTile key={tile.label} {...tile} />
+        ))}
+      </div>
+      {armorRows.length ? (
+        <ItemSection title={uiText("Armor")}>
+          <RuleList rows={armorRows} />
+        </ItemSection>
+      ) : null}
+      {weaponRows.length ? (
+        <ItemSection title={uiText("Weapon")}>
+          <RuleList rows={weaponRows} />
+        </ItemSection>
+      ) : null}
+      {sheet.description ? (
+        <ItemSection title={uiText("Description")}>
+          <div className="space-y-2 border-t border-stone-800 pt-2">{renderRules(sheet.description)}</div>
+        </ItemSection>
+      ) : null}
+    </div>
+  );
+}
+
+function capitalize(text: string): string {
+  return text ? text[0].toUpperCase() + text.slice(1) : text;
+}
+
 // The ⓘ button plus its dialog. `label` names the thing; `text` is its
 // description, or omit it and pass `reference` to fetch one.
 export function InfoButton({
@@ -302,7 +503,13 @@ export function InfoDialog({
         <p className="mb-3 text-xs uppercase tracking-wide text-amber-200/70">{meta}</p>
       ) : null}
       <div className="space-y-2 text-sm leading-relaxed text-stone-400">
-        {text?.trim() ? renderRules(text) : reference ? <ContentBody reference={reference} /> : null}
+        {text?.trim() ? (
+          renderRules(text)
+        ) : reference?.kind === "items" ? (
+          <ItemBody reference={reference} />
+        ) : reference ? (
+          <ContentBody reference={reference} />
+        ) : null}
         {children}
       </div>
     </Dialog>

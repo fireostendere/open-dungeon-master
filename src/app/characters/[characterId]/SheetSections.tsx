@@ -111,11 +111,12 @@ export function SheetSections({ sheet }: { sheet: CreateSheetInput }) {
 
       {sheet.equipment.length ? (
          <SheetPanel title={copy.equipment}>
-          <p className="text-sm text-stone-400">
-            {sheet.equipment
-              .map((item) => (item.qty > 1 ? `${item.name} x${item.qty}` : item.name))
-              .join(", ")}
-          </p>
+          <InfoChipList
+            items={sheet.equipment.map((item) => ({
+              name: item.qty > 1 ? `${item.name} x${item.qty}` : item.name,
+              reference: { kind: "items", slug: contentSlug(item.name), name: item.name },
+            }))}
+          />
         </SheetPanel>
       ) : null}
 
