@@ -1,0 +1,17 @@
+{
+  "creatureId": "alliumite-rapscallion",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy avatar, painterly cinematic realism with tactile papery plant texture, sharply readable face and silhouette at 512 pixels. ALLIUMITE RAPSCALLION: SMALL nimble onion-person swashbuckler, layered yellow/ivory onion-bulb head with expressive mischievous eyes and mouth, green sprout hair, two lean fibrous plant arms and two rootlike legs, jaunty dark-green KALE-FROND HAT, fitted leaf-and-husk adventurer clothing, slim agile body. THORN-TIPPED RAPIER and flexible VINE WHIP, not heavy club or shield. Dapper confident vegetable rogue, entirely plant tissue, not human in onion helmet, not mushroom, not rotund husker. Original anatomy-based design. No lettering, text, border, collage or watermark. Serious normal 02. Ivory onion rapscallion halfway through an agile swing from a vine hooked over a wooden beam in a moonlit market alley. One hand firmly grasps the single vine, other hand holds a thorn rapier away from body, wiry root feet curled below, kale-frond hat and short russet husk cape. Face large enough for avatar, action silhouette clear with exactly two arms and two legs, dim closed stalls blurred behind.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/alliumite-rapscallion/",
+      "note": "ToB3 Small onion swashbuckler: kale-frond hat, thorn rapier, grappling vine whip, agile adventurous personality and cutting quips. Original text-based character design."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

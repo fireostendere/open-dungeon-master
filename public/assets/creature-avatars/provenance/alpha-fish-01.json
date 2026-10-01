@@ -1,0 +1,21 @@
+{
+  "creatureId": "alpha-fish",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy bestiary aquatic avatar, cinematic painted realism, translucent fin rays, detailed iridescent scales, readable fish face and silhouette at 512 pixels. ALPHA FISH from Tome of Beasts 2: a LARGE ROWBOAT-SIZED magnificent ornamental FISH with a strong rounded head, alert fish eyes, scaled body and very long flowing colorful display fins; a BETTA-LIKE artistic interpretation of the textual anatomy. Broad fan-shaped tail, rippling dorsal and anal fin sheets, paired small pectoral fins and long trailing ventral fins, all anatomically attached. Territorial and beautiful, not shark, eel, dragon, humanoid or piranha; no arms, legs, horns, tentacles, huge fangs or extra eyes. Always fully aquatic underwater. Original composition, no text, border, collage or watermark. Serious normal 01. Close three-quarter portrait of a cobalt-and-crimson alpha fish suspended beside drowned roots in a deep river pool, rounded fierce face foreground, richly iridescent blue scales, long red-violet fins trailing and gently unfurling behind it. Broad tail visible in a graceful curve, filtered silver surface light and dark teal water, fine drifting particles, regal restrained menace.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/alpha-fish/",
+      "note": "ToB2 Large ornamental fish, shimmering scales and long flowing display fins, territorial headbutting aggression; design interprets these traits with a betta-like silhouette rather than an invented shark."
+    },
+    {
+      "url": "https://github.com/open5e/open5e-api/blob/staging/data/v1/tob2/Monster.json",
+      "note": "Licensed ToB2 description cross-checked locally: rowboat-sized solitary fish with iridescent scales and dramatic fin flare."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

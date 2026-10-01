@@ -1,0 +1,21 @@
+{
+  "creatureId": "alnaar",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy bestiary demon avatar, realistic painted volcanic textures and cinematic lighting, large legible serpent face at 512 pixels. ALNAAR from Creature Codex: a LARGE single-headed demonic ASP, entirely serpentine and LIMBLESS, thick long muscular snake body with dark blackened overlapping scales separated by molten orange fissures, broad gray-black ventral scutes, smoldering smoke, WHITE-HOT serpentine eyes and glowing fiery fangs. It can slither through air without wings. One head, one continuous body, one tapering tail; no arms, legs, wings, cobra hood, dragon horns or humanoid torso. Coils must connect anatomically, no disconnected loops. Superheated demon predator, no gore. No text, logo, border, collage or watermark. Serious normal 01. Close three-quarter alnaar head and raised neck above a broken basalt altar in a smoke-filled subterranean shrine, mouth slightly open revealing fiery fangs, glaring white-hot eyes, black plates fractured by subdued molten orange heat. Body descends into one coherent coil across stone, ash drifting and cool blue darkness framing hot face.",
+  "designReferences": [
+    {
+      "url": "https://koboldpress.com/creature-codex-alnaar-demon/",
+      "note": "Publisher description: Large demonic asp, smoldering dark skin, white-hot eyes, air-slithering without wings, forge heat and great appetite."
+    },
+    {
+      "url": "https://koboldpress.com/wp-content/uploads/2018/11/alnaar.jpg",
+      "note": "Official art inspected only for morphology: limbless single-headed snake, overlapping black plates with orange heat seams, pale ventral scutes; no hood/wings/arms. Original poses and environments."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

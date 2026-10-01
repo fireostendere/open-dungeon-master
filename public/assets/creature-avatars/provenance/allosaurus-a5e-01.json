@@ -1,0 +1,21 @@
+{
+  "creatureId": "allosaurus-a5e",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy bestiary dinosaur portrait, cinematic painted realism with natural textured skin and sharp eye/head details legible at 512 pixels. Subject ALLOSAURUS for A5E: Huge carnivorous theropod dinosaur, long relatively narrow deep skull with two modest bony crests above/in front of eyes, sharp recurved teeth, athletic horizontal body balanced by long muscular tail, two powerful hind legs, TWO forearms with THREE clawed fingers each. Hands face inward, not flat palms down. Arms clearly longer and more substantial than Tyrannosaurus arms; no two-finger T-rex hands, no massive carnotaurus bull horns, no wings, sail, spikes or fantasy dragon appendages. Restrained scaly reconstruction, colors are artistic choices. No text, logo, watermark, border or collage. Serious normal 01. Close three-quarter portrait of a moss-olive allosaurus watching from a humid fern forest at misty dawn, small rust-colored paired brow crests, amber alert eye, long skull and partly open jaws, well-formed serrated teeth, muscular neck and near three-fingered forearm visible below. Warm sunlight across dark foliage, ancient patient predator, no prey or gore.",
+  "designReferences": [
+    {
+      "url": "https://a5e.tools/monster-terrains/swamp",
+      "note": "Official A5E roster lists Allosaurus; existing project roster identifies Huge beast, Monstrous Menagerie. Detail page could not be retrieved."
+    },
+    {
+      "url": "https://www.nhm.ac.uk/discover/dino-directory/allosaurus.html",
+      "note": "Museum anatomy reference: bipedal theropod, three fingers, small paired crests above eyes and serrated teeth. Skin coloration is an artistic reconstruction, not a claimed fossil fact."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

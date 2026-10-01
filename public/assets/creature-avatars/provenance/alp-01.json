@@ -1,0 +1,17 @@
+{
+  "creatureId": "alp",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy monster avatar, cinematic painterly realism, rough cloth and skin detail, clear face readable at 512 pixels. ALP from Creature Codex in its TRUE FORM: a SMALL hirsute unpleasant little ADULT man-like fey, stocky wiry body, very hairy forearms and cheeks, bushy brows over BLOODSHOT EYES, crooked adult face with a contemptuous sneer, worn BURLAP TUNIC and a TINY WHITE CLOTH CAP. A sinister night-dwelling trickster, looks mature/old, never a child. Two arms/two legs, natural hands, no horns, wings, animal ears or goblin-green skin. The cap is essential and white; not a redcap, garden gnome or Santa. No victim, violence, sexual content or gore. No text, watermark, collage or border. Serious normal 01. Close three-quarter portrait of an alp crouched at the edge of an empty old wooden bed in a moonlit cottage, long shaggy brown sideburns, bloodshot stare beneath huge brows, dirty burlap tunic, tiny white cap perched on messy hair. One gnarled hand grips carved bedpost, predatory knowing sneer, dim cold light and long ominous shadows.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/alp/",
+      "note": "Creature Codex true form: Small hairy unpleasant adult man-like fey, bloodshot eyes, bushy brows, burlap tunic, tiny white cap; nightmare tormentor and shapechanger. True form depicted throughout."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}
