@@ -1,0 +1,21 @@
+{
+  "creatureId": "alliumite-husker",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy bestiary portrait, lush painterly realism with tactile layered vegetable skin, powerful silhouette and face legible at 512 pixels. ALLIUMITE HUSKER from Tome of Beasts 3: a MEDIUM, very WIDE ROTUND stocky onion plant person, red-purple layered papery ONION flesh, broad bulb-shaped head merging into massive rounded onion torso, two short thick plant arms, two stout rootlike legs. Sturdy as a dwarf but entirely VEGETABLE, not a dwarf in costume. Small green onion shoots atop crown, capricious tough grin, round shoulders and huge belly, thick purple husks form natural protective layers. Wields a gnarled TUBER CLUB and plain natural bark shield. Distinct from the slender small base alliumite: heavy tough garden protector, not slim, not mushroom/corn/pumpkin. No human skin, extra limbs, text, logo, watermark, border or collage. Serious normal 01. Three-quarter close portrait of a broad purple onion husker blocking a garden gate at overcast dawn, one thick plant fist gripping a knobbly root club rested by shoulder, other arm behind a simple circular bark shield, deep violet papery layers peeling to magenta highlights. Squinting bold eyes and confident mischievous grin, lush wild herb beds behind, warm rim through fog.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/alliumite-husker/",
+      "note": "ToB3 identity: Medium broad rotund red/purple onion person, stout protective fighter with gnarly tuber club and shield; stronger and slower than base alliumite; taunting demeanor."
+    },
+    {
+      "url": "https://comicbook.com/gaming/news/dungeons-dragons-tome-of-beasts-3-kickstarter-preview-live/",
+      "note": "Publisher-supplied preview confirms robust red/purple onion warrior design and taunts. Text consulted; preview image was not retrieved, so no claim of exact art match."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

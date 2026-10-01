@@ -1,0 +1,21 @@
+{
+  "creatureId": "alligator",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy bestiary animal portrait, cinematic painterly realism, natural reptilian proportions, wet textured scutes and expressive alert eyes, legible head at 512 pixels. Subject: ALLIGATOR, a Medium-sized swamp beast, broad rounded U-shaped snout, wide heavy upper jaw, nostrils and eyes on top of head, dark charcoal-olive armored scales, four short sturdy legs, long muscular flattened tail. A true alligator, NOT narrow pointed crocodile snout, NOT lizardman, no horns, wings or supernatural extra limbs. Mouth closed unless scene says open; with mouth closed prominent lower fourth teeth must remain concealed. Real animal anatomy in dark fantasy setting; original composition, no copied wildlife photo. No text, border, collage or watermark. Absurd YOLO 04. A deadpan authentic alligator sprawled in a ridiculously undersized wooden washbasin like a spa guest, broad head in the foreground wearing tiny round cucumber slices balanced above its eyes and a rolled white towel perched between them, tail overflowing the tub, one clawed forefoot dangling over rim. Bubble foam against real charcoal scutes, medieval bathhouse candlelight, bowl of cucumber nearby, natural four-legged animal anatomy. Silly luxurious spa dignity, no human hands, no lettering.",
+  "designReferences": [
+    {
+      "url": "https://koboldpress.com/tools/kobold-press-monsters/",
+      "note": "Publisher roster: Medium beast, swamp, Tome of Beasts 2."
+    },
+    {
+      "url": "https://nationalzoo.si.edu/animals/american-alligator",
+      "note": "Anatomy reference: broad rounded snout, armored low body, four short legs, muscular tail; lower fourth tooth concealed with closed mouth. Zoological traits only, original fantasy scene."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

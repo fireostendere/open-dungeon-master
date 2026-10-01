@@ -1,0 +1,17 @@
+{
+  "creatureId": "alliumite",
+  "variantId": "03",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy creature avatar, intricate painterly realism, dramatic natural lighting, crisp central face and silhouette legible at 512 pixels. Subject ALLIUMITE from Creature Codex: a SMALL sentient ONION plant person, slim nimble plant-bodied humanoid with two wiry plant arms and two rootlike legs, a tapered ONION-BULB head with expressive eyes and mouth set in pale layered onion flesh, papery peeling tan/ivory skin and a crown of fresh GREEN ONION SPROUTS instead of hair. Lean sprightly gardener-duelist, not round hulking husker, not corn, carrot, mushroom or human wearing an onion hat. Torso/limbs made of flexible fibrous vegetable tissue, curved blade of GRASS as scimitar, organic natural plant equipment. Original anatomy-based interpretation. No text, watermark, border or collage. Serious normal 03. A lean ivory-and-pink onion alliumite in a dynamic defensive stance on a fallen branch beside wild garlic, holding a single curved grass scimitar with both slender plant hands, bright green sprouts fanning from crown, determined frown carved naturally in bulb layers. Moonlight catches the blade edge and peeling skin, rough soil and fern silhouettes, protectiveness rather than cartoon cuteness.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/alliumite/",
+      "note": "Creature Codex Small nimble onion-person: layered peeling bulb skin, green sprout hair, rootlike humanoid limbs; grass scimitar and thorn darts; garden guardian. Original interpretation from licensed text, no publisher-art copying."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

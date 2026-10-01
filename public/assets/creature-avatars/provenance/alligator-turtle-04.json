@@ -1,0 +1,25 @@
+{
+  "creatureId": "alligator-turtle",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy bestiary animal portrait, painterly realism, fine wet reptile texture and cinematic moody light, head prominent and silhouette legible at 512 pixels. ALLIGATOR TURTLE from Tome of Beasts 2, a Medium snapping-turtle beast: heavy rugged turtle head, hard hooked toothless BEAK jaws, thick long flexible wrinkled neck, broad dark-brown shell with THREE longitudinal knobby ridges, four sturdy clawed turtle legs, one muscular tapering tail, tubercles on neck and limbs. Authentic snapping turtle enhanced only by its unusually flexible neck, NOT an alligator head attached to a tortoise, no crocodilian snout, no teeth, no tusks, no humanoid posture, no extra limbs or horns. No text, watermark, collage or border. Absurd YOLO 04. An extremely grumpy alligator turtle at a medieval garden race finish, with an absurdly small golden trophy cup balanced on its rugged three-ridged shell and a loose celebratory red ribbon around its shell, a tiny snail quietly crossing the plain ribbon on the ground well ahead. The turtle stretches its long neck forward indignantly, hooked toothless beak, one forefoot raised a little. Deadpan humiliating slow race, cinematic realism, no words, numbers or logos on trophy or scenery.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/alligator-turtle/",
+      "note": "ToB2 Medium swamp beast; unusually flexible long neck and beak jaws. Portrayed as a snapping turtle, not a literal alligator/turtle hybrid."
+    },
+    {
+      "url": "https://www.nationalzoo.si.edu/animals/alligator-snapping-turtle",
+      "note": "Supporting real snapping-turtle morphology: heavy head, hooked beak, ridged carapace and algae camouflage; original image."
+    },
+    {
+      "url": "https://mdc.mo.gov/discover-nature/field-guide/western-alligator-snapping-turtle",
+      "note": "Supporting anatomical detail: three dorsal shell ridges, tubercled skin, four clawed feet and muscular tail."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}
