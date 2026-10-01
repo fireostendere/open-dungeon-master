@@ -91,10 +91,12 @@ const fixtures = {
   '@/lib/schemas/sheet': { fullPatchSheetSchema: schema, concentrationSourceSchema:schema },
   '@/lib/srd/currency': { addCopper: unused('addCopper'), COPPER_PER_GOLD: 100, formatCopper: unused('formatCopper'), formatPurse: unused('formatPurse'), parseCoins: unused('parseCoins') },
   '@/lib/dm/companion-tools': { autoLevelCompanion: unused('autoLevelCompanion') },
-  '@/lib/dm/condition-logic': { incapacitatedBy: () => null, removeConditions, tickConditions: (conditions,meta)=>{
+  '@/lib/dm/condition-logic': { incapacitatedBy: () => null, removeConditions, ROUNDS_PER_MINUTE: 10,
+    conditionRoundsFrom: ({ rounds = 0, minutes = 0, hours = 0 }) => rounds + minutes * 10 + hours * 600 || undefined,
+    describeConditionDuration: rounds => `${rounds} rounds`, tickConditions: (conditions,meta,by=1)=>{
     const nextMeta={},expired=[],savesDue=[];
     for(const name of conditions){const entry=meta?.[name];if(!entry)continue;
-      if(typeof entry.rounds==='number'){const left=entry.rounds-1;if(left<=0){expired.push(name);continue;}nextMeta[name]={...entry,rounds:left};}else nextMeta[name]=entry;
+      if(typeof entry.rounds==='number'){const left=entry.rounds-by;if(left<=0){expired.push(name);continue;}nextMeta[name]={...entry,rounds:left};}else nextMeta[name]=entry;
       if(entry.saveEnds)savesDue.push({name,ability:entry.saveEnds.ability,dc:entry.saveEnds.dc});
     }
     return {conditions:conditions.filter(n=>!expired.includes(n)),meta:nextMeta,expired,savesDue};
@@ -123,6 +125,7 @@ Object.assign(fixtures,{
   '@/lib/dm/encounter-logic':{enemyDamageMath:(hp,d)=>({currentHp:Math.max(0,hp-d),dropped:d>=hp})},
   '@/lib/dm/map-tools':{publishBattleMapUpdate:()=>{}},
   '@/lib/dm/ambience-tools':{followCombatAmbience:()=>{}},
+  '@/lib/dm/waypoint-tick':{tickWaypointsFrom:()=>[]},
 });
 const real = new Set(['mutations', 'mutation-math', 'death', 'death-logic', 'concentration','condition-sources','cast-tools','condition-tick','enemy-damage']);
 const cache = new Map();
