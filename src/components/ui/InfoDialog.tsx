@@ -5,6 +5,8 @@ import { Info, Loader2 } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { cn } from "@/lib/cn";
 import { Dialog } from "@/components/ui/Dialog";
+import { GameIcon } from "@/components/ui/GameIcon";
+import type { IconRef } from "@/lib/icons";
 import { useI18n } from "@/lib/i18n";
 
 // The "what does this do?" affordance, used everywhere a game term appears.
@@ -194,12 +196,15 @@ export function InfoButton({
   text,
   reference,
   meta,
+  icon,
   className,
   size = "sm",
 }: {
   label: string;
   text?: string | null;
   reference?: ContentRef;
+  // The painted icon shown beside the dialog's title.
+  icon?: IconRef;
   // A short line under the title: spell level and school, feature level, and
   // so on.
   meta?: string;
@@ -237,6 +242,7 @@ export function InfoButton({
         meta={meta}
         text={text}
         reference={reference}
+        icon={icon}
       />
     </>
   );
@@ -255,6 +261,8 @@ export function InfoChipList({
     reference?: ContentRef;
     // Rendered after the name, e.g. "(story)" for a feature the DM granted.
     note?: string;
+    // The painted icon that leads the chip, when the thing has one.
+    icon?: IconRef;
   }>;
   emptyText?: string;
 }) {
@@ -265,6 +273,7 @@ export function InfoChipList({
     <div className="flex flex-wrap gap-x-3 gap-y-1">
       {items.map((item) => (
         <span key={item.name} className="flex items-center gap-1 text-xs text-stone-300">
+          {item.icon ? <GameIcon icon={item.icon} size="size-6" /> : null}
           {item.name}
           {item.note ? <span className="text-stone-500">{item.note}</span> : null}
           <InfoButton
@@ -272,6 +281,7 @@ export function InfoChipList({
             meta={item.meta}
             text={item.text}
             reference={item.reference}
+            icon={item.icon}
           />
         </span>
       ))}
@@ -286,6 +296,7 @@ export function InfoDialog({
   meta,
   text,
   reference,
+  icon,
   children,
 }: {
   open: boolean;
@@ -294,10 +305,17 @@ export function InfoDialog({
   meta?: string;
   text?: string | null;
   reference?: ContentRef;
+  icon?: IconRef;
   children?: ReactNode;
 }) {
   return (
-    <Dialog open={open} onOpenChange={onOpenChange} title={title} width="w-[min(92vw,32rem)]">
+    <Dialog
+      open={open}
+      onOpenChange={onOpenChange}
+      title={title}
+      icon={icon ? <GameIcon icon={icon} size="size-10" /> : undefined}
+      width="w-[min(92vw,32rem)]"
+    >
       {meta ? (
         <p className="mb-3 text-xs uppercase tracking-wide text-amber-200/70">{meta}</p>
       ) : null}

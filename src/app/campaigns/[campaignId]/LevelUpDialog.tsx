@@ -573,6 +573,7 @@ export function LevelUpDialog({
                   <InfoChipList
                     items={newFeatureNames.map((name) => ({
                       name: localizedFeatureName(classChoice, effectiveSubclass, name, locale),
+                      icon: { kind: "feature" as const, key: name, family: `class-${classChoice.toLowerCase()}` },
                       text: describeFeature(classChoice, effectiveSubclass, name, locale),
                     }))}
                   />

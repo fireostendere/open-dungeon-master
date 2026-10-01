@@ -18,6 +18,7 @@ import { useFxSettings } from "@/lib/fx/prefs";
 import { backdropRect } from "@/lib/battlemap/backdrop";
 import type { PlayerMapView } from "@/lib/battlemap/view";
 import type { CharacterSheet } from "@/lib/schemas/sheet";
+import { conditionIconKey, iconCandidates } from "@/lib/icons";
 
 // Pure SVG renderer for a player's fogged battle-map view, themed by the
 // environment the generator picked. All game rules live server-side; this
@@ -52,6 +53,13 @@ export type MapOverlay = {
 // streamed narration token), and rebuilding width*height SVG cells each
 // time is Firefox's slowest path. The click handler routes through a ref so
 // the parent's inline closure never invalidates the memo.
+// The painted condition badges a token wears: the first two distinct
+// paintings among its conditions, so a tile never fills with badges.
+function conditionBadges(conditions: string[] | undefined): string[] {
+  const paths = (conditions ?? []).flatMap((condition) => iconCandidates({ kind: "condition", key: conditionIconKey(condition) }));
+  return [...new Set(paths)].slice(0, 2);
+}
+
 export const BattleMapGrid = memo(
   function BattleMapGrid({
     view,
@@ -64,9 +72,14 @@ export const BattleMapGrid = memo(
     mapStyle = DEFAULT_MAP_STYLE,
     tilt = false,
     expanded = false,
+    conditions,
   }: {
     view: PlayerMapView;
     sheets: CharacterSheet[];
+    // Conditions by token refId (a sheet or an enemy id), as the viewer was
+    // already sent them on the party and encounter panels. Painted as small
+    // badges on the token; a condition with no painting gets none.
+    conditions?: Map<string, string[]>;
     onTileClick?: (x: number, y: number) => void;
     onTileHover?: (x: number, y: number | null) => void;
     onTokenClick?: (tokenId: string) => void;
@@ -270,6 +283,11 @@ export const BattleMapGrid = memo(
             <stop offset="100%" stopColor="#000" stopOpacity={0.45} />
           </radialGradient>
           {layers.defs}
+          {/* Condition badges: the painting is scaled up inside a disc, as
+              GameIcon does, so its wide margin is cropped away. */}
+          <clipPath id={`${uid}-badge`} clipPathUnits="objectBoundingBox">
+            <circle cx={0.5} cy={0.5} r={0.3} />
+          </clipPath>
           {/* The terrain stops at the board's edge: its glows and soft shadows must
               not spill into the empty space a zoomed-out window shows round it. */}
           <clipPath id={`${uid}-map`}>
@@ -491,6 +509,16 @@ export const BattleMapGrid = memo(
                   />
                 </g>
               ) : null}
+              {conditionBadges(conditions?.get(token.refId)).map((src, index) => {
+                const bx = cx - TILE / 2 + 6 + index * 12;
+                const by = cy - TILE / 2 + 6;
+                return (
+                  <g key={src} pointerEvents="none">
+                    <circle cx={bx} cy={by} r={6.5} fill="#1d1712" stroke="#b45309" strokeWidth={0.75} />
+                    <image href={src} x={bx - 10} y={by - 10} width={20} height={20} clipPath={`url(#${uid}-badge)`} />
+                  </g>
+                );
+              })}
               {token.hidden ? (
                 <text
                   x={cx + TILE / 2 - 5}

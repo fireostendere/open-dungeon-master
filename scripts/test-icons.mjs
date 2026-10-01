@@ -104,7 +104,7 @@ test("every glyph and family the code names literally is on disk", () => {
         // Glyph maps (tab -> "tab-party"): any glyph-shaped string in a file
         // that paints glyphs.
         if (!/GameIcon|paintedRailIcon|Glyph\b/.test(source)) continue;
-        for (const match of source.matchAll(/"((?:tab|system|rest|die|cue|quest|coin|skill|ability|sense|daypart|attitude|pace|sky|climate|mount)-[a-z0-9-]+)"/g)) {
+        for (const match of source.matchAll(/(?<!data-tour=)"((?:tab|system|rest|die|cue|quest|coin|skill|ability|sense|daypart|attitude|pace|sky|climate|mount)-[a-z0-9-]+)"/g)) {
           if (!existsSync(path.join(ICONS, "glyph", `${match[1]}.webp`))) missing.push(`${path.relative(ROOT, full)}: glyph/${match[1]}`);
         }
       }

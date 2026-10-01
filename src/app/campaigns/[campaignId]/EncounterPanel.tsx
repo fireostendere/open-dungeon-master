@@ -1,6 +1,8 @@
 "use client";
 
 import { ChevronDown, ChevronRight, Skull, Swords, Wind } from "lucide-react";
+import { GameIcon } from "@/components/ui/GameIcon";
+import { conditionIconKey } from "@/lib/icons";
 import { useMemo, useState } from "react";
 import { cn } from "@/lib/cn";
 import { MonsterTile } from "@/lib/ui";
@@ -220,8 +222,9 @@ export function EncounterPanel({
                   {enemy.conditions.map((condition) => (
                     <span
                       key={condition}
-                      className="rounded-full border border-amber-900/60 bg-amber-950/30 px-1.5 py-px text-[10px] capitalize text-amber-300"
+                      className="inline-flex items-center gap-1 rounded-full border border-amber-900/60 bg-amber-950/30 py-px pl-0.5 pr-1.5 text-[10px] capitalize text-amber-300"
                     >
+                      <GameIcon icon={{ kind: "condition", key: conditionIconKey(condition) }} size="size-3.5" />
                       {condition}
                       {enemy.conditionRounds?.[condition]
                          ? ` (${enemy.conditionRounds[condition]} ${copy.rounds})`

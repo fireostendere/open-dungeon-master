@@ -170,6 +170,19 @@ export function BattleMapPanel({
     return false;
   }
 
+  // What each piece is suffering, from the sheets and the encounter the
+  // viewer already holds (the server filters enemy conditions to what the
+  // table may see, src/lib/db/encounter-view.ts).
+  const tokenConditions = useMemo(() => {
+    const byRef = new Map<string, string[]>();
+    for (const sheet of sheets) {
+      if (sheet.conditions.length) byRef.set(sheet.id, sheet.conditions);
+    }
+    for (const enemy of encounter?.enemies ?? []) {
+      if (enemy.conditions.length) byRef.set(enemy.id, enemy.conditions);
+    }
+    return byRef;
+  }, [sheets, encounter]);
   const tokensById = useMemo(
     () => new Map(view.tokens.map((token) => [token.id, token])),
     [view.tokens],
@@ -325,6 +338,7 @@ export function BattleMapPanel({
     <BattleMapGrid
       view={view}
       sheets={sheets}
+      conditions={tokenConditions}
       onTileClick={canDirect || canMove || pointing ? handleTile : undefined}
       onTileHover={
         canMove || held
