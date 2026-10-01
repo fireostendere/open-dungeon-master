@@ -1,0 +1,21 @@
+{
+  "creatureId": "androsphinx",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy creature avatar with richly tactile painted realism, cinematic light and a crisp expressive face readable at 512 pixels. Androsphinx, a large majestic living guardian with a mature masculine HUMAN FACE blended naturally into an abundant dark-golden lion mane, powerful tawny LION BODY, four feline legs ending in broad lion paws, exactly two separate great eagle-feather wings, one long tufted lion tail. Human brow, nose, mouth and contemplative deep-set eyes with subtle leonine strength, no bird beak and no separate human torso or human hands. Divine temple guardian, regal and inscrutable, not an Egyptian stone statue, not a manticore, no scorpion tail. Original mane, face and ornamental design, not copied publisher art. No lettering, logo, watermark, signature or frame. Normal 02. Three-quarter left-facing portrait of a silver-streaked russet-maned androsphinx with a mature dark-brown masculine human face, long straight nose and gray beard merging into mane. Resting on broad lion forepaws beside a sealed ancient bronze vault door. One brown-and-ivory eagle wing folded along flank, far wing hidden. Green oxidized bronze, warm lamplight and suspended dust, contemplative profound age, face fills center.",
+  "designReferences": [
+    {
+      "url": "https://www.dndbeyond.com/monsters/16785-androsphinx",
+      "note": "Official core Androsphinx: large flying guardian, magical roar and temple/vault lair."
+    },
+    {
+      "url": "https://www.5esrd.com/database/creature/sphinx-androsphinx/",
+      "note": "Licensed SRD entry describes human-headed, bird-winged lion; original individual faces, mane, jewelry and scenes rather than publisher artwork."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

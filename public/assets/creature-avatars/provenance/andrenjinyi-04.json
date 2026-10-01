@@ -1,0 +1,21 @@
+{
+  "creatureId": "andrenjinyi",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. One original square dark-fantasy creature avatar, exquisite tactile painterly realism and cinematic natural light, head large and sharply legible at 512 pixels. Andrenjinyi from Tome of Beasts: a gargantuan living celestial snake over sixty feet long, glossy jet-black SNAKE HEAD clearly separated from a thick muscular serpentine body patterned in brilliant multicolored scales, red, turquoise, green, gold and violet. Ageless primeval river spirit with imposing intelligence, two amber eyes and ordinary snake facial anatomy. A single continuous limbless, wingless snake body and one tapering tail, no horns, no dragon legs, no crest or cobra hood, no human arms. Rich wet natural scales and broadly curved muscular coils. Original interpretation of specified colors and serpent anatomy, no copied art. No text, signature, logo, watermark or frame. YOLO absurd 04. The vast multicolored celestial snake is taking an extremely undignified bubble bath in its river pool, wearing a tiny frilly pink shower cap perched on top of its black head. Its imposing amber eyes glare sideways at two tiny yellow rubber ducks bobbing near its snout like unwelcome bath attendants. One huge rainbow body coil rises through white soap bubbles behind the head, single continuous limbless anatomy and no hands. Rainforest pool, glorious cinematic realistic paint, absurd bath accessories and utterly deadpan majestic expression, no text.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/andrenjinyi-3pp/",
+      "note": "Licensed Tome of Beasts creature text: immense black-headed snake, brilliant multicolored body, ageless celestial freshwater nature spirit. Snake anatomy and individual color patterns are original interpretations."
+    },
+    {
+      "url": "https://koboldpress.com/tools/kobold-press-monsters/",
+      "note": "Primary publisher index confirms Andrenjinyi, gargantuan celestial, Tome of Beasts."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

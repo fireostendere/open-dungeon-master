@@ -1,0 +1,21 @@
+{
+  "creatureId": "androsphinx",
+  "variantId": "03",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy creature avatar with richly tactile painted realism, cinematic light and a crisp expressive face readable at 512 pixels. Androsphinx, a large majestic living guardian with a mature masculine HUMAN FACE blended naturally into an abundant dark-golden lion mane, powerful tawny LION BODY, four feline legs ending in broad lion paws, exactly two separate great eagle-feather wings, one long tufted lion tail. Human brow, nose, mouth and contemplative deep-set eyes with subtle leonine strength, no bird beak and no separate human torso or human hands. Divine temple guardian, regal and inscrutable, not an Egyptian stone statue, not a manticore, no scorpion tail. Original mane, face and ornamental design, not copied publisher art. No lettering, logo, watermark, signature or frame. Normal 03. Low-angle close portrait of a black-maned androsphinx, powerful tan-brown masculine human features, furrowed brow, short squared beard and fierce golden eyes, lifting his face to emit a resonant magical roar. Human mouth visible within abundant mane, subtle concentric pressure waves in sand, two ocher feathered wings raised behind shoulders. Ruined desert columns at sunrise, tawny lion chest and two front paws below, noble intimidating presence, correct quadruped anatomy.",
+  "designReferences": [
+    {
+      "url": "https://www.dndbeyond.com/monsters/16785-androsphinx",
+      "note": "Official core Androsphinx: large flying guardian, magical roar and temple/vault lair."
+    },
+    {
+      "url": "https://www.5esrd.com/database/creature/sphinx-androsphinx/",
+      "note": "Licensed SRD entry describes human-headed, bird-winged lion; original individual faces, mane, jewelry and scenes rather than publisher artwork."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}
