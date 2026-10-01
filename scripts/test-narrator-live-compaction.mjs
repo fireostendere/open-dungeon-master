@@ -100,7 +100,16 @@ try {
     const rolled = (await write({ name: "request_roll", characterId: hero.id, args: { kind: "ability_check", ability: "str", dc: 10, reason: "Цепь" } })).result;
     assert.ok(rolled.result.ok, "a top-level characterId is folded into args");
   }
-  console.log("Live narrator compaction passed: speaker names, compact rolls, no own-write echo, one-call initiative, one scene per resolution, lenient invoke");
+  {
+    // A sealed round lists every declaration by name, even ones read on earlier wakes.
+    const startedAt = new Date(Date.now() - 60_000).toISOString();
+    const ready = allocateSeq(campaign.id);
+    publishWithSeq(campaign.id, ready, "global_turn_ready", { roundNumber: 2, startedAt, message: "Раунд собран." });
+    const sealed = (await executeMcpNarratorControl("narrator.read", { campaignId: campaign.id, afterSeq: ready - 1, projection: "live" })).result;
+    const declarations = sealed.events.find(event => event.type === "global_turn_ready").payload.declarations;
+    assert.deepEqual(declarations.map(item => [item.character, item.content]), [["Грог", "Рублю цепь."], ["Грог", "Бью гоблина."]]);
+  }
+  console.log("Live narrator compaction passed: speaker names, compact rolls, no own-write echo, one-call initiative, one scene per resolution, lenient invoke, named round declarations");
 } finally {
   removeTempDir(dir);
 }
