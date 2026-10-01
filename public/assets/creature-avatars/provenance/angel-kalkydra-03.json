@@ -1,0 +1,21 @@
+{
+  "creatureId": "angel-kalkydra",
+  "variantId": "03",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. One original square dark-fantasy creature avatar, refined tactile painted realism, dramatic heavenly lighting and a crisp face readable at 512 pixels. Kalkydra from Tome of Beasts 3: a huge celestial SERPENT with gleaming copper scales, vivid EMERALD GREEN eyes, exactly SIX PAIRS of pearlescent WHITE FEATHERED WINGS growing along its long coiling back, twelve wings total. One snake head, one continuous limbless snake body and one tapering tail; no legs, arms, horns, dragon crest or human face. Solar emissary whose song heralds dawn, noble intelligent snake expression, radiant copper and pearl material contrast. Wings are anatomically separate paired appendages, not two wings or random feathers. Use original anatomy details and composition, no copied publisher illustration. No text, symbols, signature, watermark or frame. Normal 03. Tight head-and-upper-neck portrait from a low angle, copper-scaled serpent looking down toward viewer with a grave emerald-eyed gaze, faint solar nimbus bathing the scales in orange and white light. Pearlescent feathers of its multiple paired wings form a layered soft halo behind, wing roots and remaining twelve-winged body beyond the crop. Dusk sky, dark cloud bank and last sunlight, peaceful but formidable divinity.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/kalkydra/",
+      "note": "Licensed ToB3 ABOUT anatomy: copper serpent, emerald eyes and SIX PAIRS of pearlescent feather wings, twelve total. Solar song identity. Erroneous pasted Iilari'jil lair text excluded."
+    },
+    {
+      "url": "https://koboldpress.com/tools/kobold-press-monsters/",
+      "note": "Primary publisher index confirms Huge Kalkydra celestial from Tome of Beasts 3."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

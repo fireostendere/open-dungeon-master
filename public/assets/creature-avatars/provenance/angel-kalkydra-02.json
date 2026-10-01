@@ -1,0 +1,21 @@
+{
+  "creatureId": "angel-kalkydra",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. One original square dark-fantasy creature avatar, refined tactile painted realism, dramatic heavenly lighting and a crisp face readable at 512 pixels. Kalkydra from Tome of Beasts 3: a huge celestial SERPENT with gleaming copper scales, vivid EMERALD GREEN eyes, exactly SIX PAIRS of pearlescent WHITE FEATHERED WINGS growing along its long coiling back, twelve wings total. One snake head, one continuous limbless snake body and one tapering tail; no legs, arms, horns, dragon crest or human face. Solar emissary whose song heralds dawn, noble intelligent snake expression, radiant copper and pearl material contrast. Wings are anatomically separate paired appendages, not two wings or random feathers. Use original anatomy details and composition, no copied publisher illustration. No text, symbols, signature, watermark or frame. Normal 02. Close left-facing three-quarter head and S-curved upper body beside a high mountain shrine at sunrise. Gleaming overlapping copper scales and brilliant emerald iris fill the foreground, lips barely open in serene song, golden light surrounding the mouth. The twelve feathered wings lie folded in layered paired rows along the body receding out of frame, not all tips visible in this close crop. Pink clouds and dark slate pillars, refined painterly textures.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/kalkydra/",
+      "note": "Licensed ToB3 ABOUT anatomy: copper serpent, emerald eyes and SIX PAIRS of pearlescent feather wings, twelve total. Solar song identity. Erroneous pasted Iilari'jil lair text excluded."
+    },
+    {
+      "url": "https://koboldpress.com/tools/kobold-press-monsters/",
+      "note": "Primary publisher index confirms Huge Kalkydra celestial from Tome of Beasts 3."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

@@ -1,0 +1,25 @@
+{
+  "creatureId": "angel-haladron",
+  "variantId": "03",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy creature avatar with beautifully tactile painted realism, cinematic light and a clear central eye legible at 512 pixels. Haladron from Tome of Beasts 3: a TINY hovering celestial servitor shaped like one thick toothed metal COG, one unblinking STEEL EYE set in the center, exactly one pair of articulated STEEL WINGS extending from opposite sides of the gear. No humanoid head or torso, no arms, no legs, no additional eyes, no stone obelisk. Silver-gray steel surfaces, subtle original brass inlay accents, mechanical featherlike blade segments in the wings, divine pale-blue light at the eye. Alive and intelligent although mechanical in appearance, helper of inventors, body roughly hand-sized shown through workshop objects. Original details and pose, no copied publisher art. No writing, numbers, logos, signature, watermark or border. Normal 03. Dramatic low-angle portrait of one tiny haladron in flight beside a broken tower clock mechanism with no numbered clock face. Central steel eye radiant white-blue, circular toothed body and two articulated steel wings fully readable, one wing raised and the other angled outward. A contained thin bolt of pale celestial energy projects from the central eye into empty foreground, sparks and dusky quartz structures behind, silver and charcoal palette, mechanical angel not robot humanoid.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/haladron/",
+      "note": "Licensed ToB3 entry: tiny hovering celestial, immutable form, Bolt of Law and repair ability."
+    },
+    {
+      "url": "https://anyflip.com/plzy/jxhb/basic/",
+      "note": "Indexed ToB3 page 22 Mechanical Servitors paragraph identifies a toothed cog, central steel eye and one pair of steel wings. Used only for short factual anatomy; original decorative details and composition."
+    },
+    {
+      "url": "https://koboldpress.com/tools/kobold-press-monsters/",
+      "note": "Primary publisher index confirms Haladron as tiny celestial servitor of Hala'ath. Distinguished from the archangel's own obelisk body."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

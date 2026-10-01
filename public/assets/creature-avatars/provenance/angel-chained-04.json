@@ -1,0 +1,17 @@
+{
+  "creatureId": "angel-chained",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy creature avatar, tactile painterly realism and cinematic light, sharp expressive face readable at 512 pixels. Chained Angel from Tome of Beasts: adult humanoid celestial corrupted by fiendish captivity, a dark tarnished halo above the head, soulless rage-filled eyes, scarred pallid skin with old red marks, two large damaged feathered wings. Heavy black iron chains and obvious wrist manacles bind its armored shoulders and torso, but arms can move. Two arms, two legs, no extra limbs. Scorched layered robes over practical battered armor; severe tragic menace with a hint of the noble celestial it once was. Imply past torment through scars and chains, no exposed muscle, no open wounds, no gore. Original face, armor, composition and details, not copied publisher art. No text, signature, watermark or frame. YOLO absurd 04. Close upper-body portrait of a pale silver-haired chained angel who is furious because the endless heavy iron chains around its armor have become tangled around a ridiculous small pink folding chair. It holds the folded chair awkwardly across its chest with both proper gloved hands, trying to untangle one chain loop while a cheap squeaky yellow rubber chicken is caught in the chair hinge. Dark halo, burning angry amber eyes and two ragged white wings still unmistakable. Ruined infernal waiting room, deadpan dark-fantasy realism, no text, no exposed wounds.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/angel-chained-3pp-2/",
+      "note": "Licensed ToB2023 Chained Angel entry: corrupted captive celestial with dark halo, rage-filled eyes, chains/manacles and fiery greatsword. Source torment is interpreted with healed scars and damaged clothing; individual faces, wing wear and humor are original."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}
