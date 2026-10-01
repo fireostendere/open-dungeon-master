@@ -59,6 +59,10 @@ import type { CharacterSheet } from "@/lib/schemas/sheet";
 // props (the tab list, badges, the mobile switch) on top of these.
 export type SidePanelRouterProps = {
   campaignId: string;
+  // A level-up the sheet's experience has earned while its dialog is not
+  // open: the level it reaches, and how the party card opens it.
+  levelUpLevel?: number | null;
+  onLevelUp?: () => void;
   sheets: CharacterSheet[];
   members: CampaignMember[];
   meUserId: string;
@@ -143,6 +147,8 @@ export type SidePanelRouterProps = {
 // route will only ever answer 403.
 export function SidePanelRouter({
   campaignId,
+  levelUpLevel = null,
+  onLevelUp,
   sheets,
   members,
   meUserId,
@@ -325,6 +331,8 @@ export function SidePanelRouter({
               inCombat={Boolean(encounter)}
               campaignId={campaignId}
               worldPack={campaign?.gameSettings?.worldPack ?? ""}
+              levelUpLevel={levelUpLevel}
+              onLevelUp={onLevelUp}
               companionsAvailable={
                 campaign?.gameSettings
                   ? companionSlotsFree(
