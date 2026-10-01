@@ -323,6 +323,7 @@ test('actual resource mutation spends shared action economy before any effect or
     '@/lib/dm/arg-coerce': { normalizeAbility: value => value, normalizeListAction: value => value },
     '@/lib/dm/concentration': {}, '@/lib/dm/resource-tools': { resourceTools: [], computeUseItem: compute, computeUseResource: compute },
     '@/lib/content/mechanics': {}, '@/lib/classes': {}, '@/lib/db/rolls': {}, '@/lib/dice': {},
+    '@/lib/srd/spell-lists': {}, '@/lib/srd/spell-prep': {}, '@/lib/srd/features': {},
   });
   const invoke = (name, args) => mutation.applyDmMutation({ id: 'c1' }, 'turn', name, JSON.stringify({ characterId: heroId, ...args }), [sheet], new Map([[heroId, sheet]])).result;
   assert.equal(invoke('use_resource', { resource: 'second_wind' }).ok, true);

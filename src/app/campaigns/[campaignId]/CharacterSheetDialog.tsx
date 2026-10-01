@@ -459,7 +459,7 @@ export function CharacterSheetDialog({
                     {Object.entries(sheet.spellcasting.slots).map(([slotLevel, slot]) => (
                       <SlotRow
                         key={slotLevel}
-                        label={uiText("Level {level}", { level: ROMAN[Number(slotLevel)] ?? slotLevel })}
+                        label={uiText("Slot level {level}", { level: ROMAN[Number(slotLevel)] ?? slotLevel })}
                         left={slot.max - slot.used}
                         max={slot.max}
                         editable={mine}

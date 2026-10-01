@@ -173,13 +173,15 @@ function writeLists<T extends CasterLists>(target: T, view: CasterView): T {
 }
 
 // The list that holds a caster's levelled spells: `known` for a known
-// caster, `prepared` otherwise (older sheets sometimes filed a known caster's
-// spells under prepared; the non-empty one wins, as everywhere else).
+// caster, `prepared` otherwise. Either can sit in the other list (older
+// sheets filed a known caster's spells under prepared; a companion the
+// narrator creates gets its spells as `known` whatever its class), so the
+// non-empty one wins, as everywhere else.
 export function heldSpells(view: CasterView): string[] {
   if (view.style === "known") {
     return view.known.length ? view.known : view.prepared;
   }
-  return view.prepared;
+  return view.prepared.length ? view.prepared : view.known;
 }
 
 // Every spell in a wizard's book. What they have prepared is always in it,

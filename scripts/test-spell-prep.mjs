@@ -9,6 +9,7 @@ register("./lib/register-alias.mjs", import.meta.url);
 const {
   casterViewsOf,
   changePreparation,
+  heldSpells,
   preparedCount,
   settlePreparation,
   spellStyleFor,
@@ -224,6 +225,11 @@ test("multiclass views write back to casters and keep the union mirror", () => {
   assert.deepEqual(casting.prepared, ["Bless", "Magic Missile"]);
   const rested = settlePreparation(casting);
   assert.deepEqual(rested.casters[1].prepared, ["Magic Missile", "Sleep"]);
+});
+
+test("a prepared caster whose spells sit in known still shows them", () => {
+  const [view] = casterViewsOf(cleric({ known: ["Bless", "Shield of Faith"], prepared: [] }));
+  assert.deepEqual(heldSpells(view), ["Bless", "Shield of Faith"]);
 });
 
 test("the checklist knows spell levels and class lists", () => {

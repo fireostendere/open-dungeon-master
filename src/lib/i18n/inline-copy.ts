@@ -803,6 +803,7 @@ export const INLINE_COPY_RU: Record<string, string> = {
   "({count} of your choice)": "({count} на выбор)",
   "Background skill {index}": "Навык предыстории {index}",
   "Choose a skill...": "Выберите навык...",
+  "Slot level {level}": "Круг {level}",
 };
 
 export const INLINE_COPY_ALLOWLIST = new Set([
