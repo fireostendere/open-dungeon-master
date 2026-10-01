@@ -582,7 +582,7 @@ questions, private whispers, DM outlines or other DM secrets to the table.
         quests: z.array(z.string().trim().min(1).max(500)).max(20).optional(),
         outline: z.string().max(8_000).optional(),
         arc: z.unknown().optional().describe(
-          "set_arc: the whole story arc JSON (it replaces the stored one). saga.sketches[].title is the act's short, spoiler-free name the players see on its card. Act endings and beginnings are announced to the table; recaps of ended acts are kept even if omitted here.",
+          "set_arc: the whole story arc JSON (it replaces the stored one). Each main beat is a turning point that takes a stretch of play to reach: a different place, confrontation or discovery from the beat before it, never the next small step of the same scene (fold \"reach the village\" and \"speak to its elder\" into one beat). saga.sketches[].title is the act's short, spoiler-free name the players see on its card. Act endings and beginnings are announced to the table; recaps of ended acts are kept even if omitted here.",
         ),
         afterSeq: z.number().int().min(0).optional(),
         limit: z.number().int().min(1).max(500).optional(),
