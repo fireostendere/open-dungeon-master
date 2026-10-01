@@ -1,0 +1,17 @@
+{
+  "creatureId": "apprentice-mage-a5e",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy humanoid character avatar, tactile painterly realism, cinematic practical lighting and expressive face readable at 512 pixels. Apprentice Mage from Level Up A5E: a clearly ADULT novice wizard, learning modest arcane spells rather than an all-powerful archmage. Fully clothed practical worn robes, belt pouches and simple magical tools, one humanoid head, two arms and natural five-fingered hands. Small controlled magical effects such as light, fire spark or a faint shield; no enormous battlefield destruction. Original character identities, clothing and compositions, not any real person or copied publisher art. No readable book text, letters, signature, logo, watermark or frame. Normal 01. Head-and-chest portrait of a 27-year-old human male apprentice with pale freckled skin, unruly auburn hair, a small neat beard and focused hazel eyes. Worn indigo wool robes over a plain linen shirt, one hand holds a simple wooden wand with a tiny warm fire spark, other hand cradles a CLOSED leather spellbook. Cluttered old tower workbench, cool window light and amber candle glow, nervous determined expression, restrained believable magic.",
+  "designReferences": [
+    {
+      "url": "https://a5e.tools/node/1860",
+      "note": "Official A5E apprentice mage is a novice wizard or older hedge wizard with limited spells including light, fire bolt, magic missile and shield. Original adult character appearances and scenes."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

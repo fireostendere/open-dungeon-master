@@ -1,0 +1,17 @@
+{
+  "creatureId": "aphasian-abomination",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy creature avatar, luminous tactile painterly realism, dramatic contrast and a coherent cloud silhouette readable at 512 pixels. Aphasian Abomination from Tome of Beasts 3: a Large AMORPHOUS hovering cloud of orange-yellow magical energy. Dozens of GREEN glowing eyes and mouths appear, swirl and dissolve across its vaporous surface, distributed over the mass rather than one central face. It has NO fixed head, humanoid torso, arms, legs, wings, eye stalks, tentacles or mechanical parts. Entire body is luminous magic and dense amber vapor, not skin, meat or slime. Eyes and mouths are ghostly green energy shapes, no wounds or gore; some mouths form thin spectral teeth-like light without flesh. An ancient mage-hunting magical construct with deliberate intent. Original cloud structure and scenes, no copied art. No words, letters, readable runes, signature, logo, watermark or frame. Normal 02. A lateral vortex of deep amber and sulfur-yellow magical vapor moves through a narrow ruined doorway, many emerald eyes and mouths emerging along its curved flowing surface. A few ghostly mouths stretch into green rings as the cloud folds inward, without solid biological jaws. Broken glass orbs and old brass magical instruments lie untouched below, shadowy laboratory, directional sweeping energy, no humanoid outline.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/aphasian-abomination/",
+      "note": "ToB3 Large hovering construct made of orange-yellow magical energy with numerous green eyes and mouths. No fixed anatomy; original cloud arrangements and scenes."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}
