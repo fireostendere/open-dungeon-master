@@ -135,6 +135,10 @@ const COPY = {
     referenceLabel: "rules reference",
     referenceAfter:
       " collects the basics in plain language and lets you search every spell, feat, item and condition the app knows about.",
+    rulebookBefore: "The ",
+    rulebookLabel: "rulebook",
+    rulebookAfter:
+      " is the whole fifth edition reference document (SRD 5.1), searchable, for the moment a rule needs checking word for word; at the table it opens from the book button in the header.",
     aboutTitle: "About",
     aboutBefore:
       "Open Dungeon Master is a self-hosted multiplayer Dungeons & Dragons 5e platform run by an AI Dungeon Master. Server admins manage users, models, images, voice and campaign plugins from the Admin panel. Game content comes from the SRD 5.1 and Open5e; see ",
@@ -250,6 +254,10 @@ const COPY = {
     referenceLabel: "справочнике правил",
     referenceAfter:
       " основные механики объяснены простым языком; там же можно найти любое известное приложению заклинание, черту, предмет или состояние.",
+    rulebookBefore: "",
+    rulebookLabel: "Книга правил",
+    rulebookAfter:
+      " — полный текст справочного документа пятой редакции (SRD 5.1, на английском) с поиском: для случаев, когда правило нужно сверить дословно. За столом она открывается кнопкой с книгой в шапке.",
     aboutTitle: "О проекте",
     aboutBefore:
       "Open Dungeon Master — самостоятельно размещаемая многопользовательская платформа Dungeons & Dragons 5e с ИИ-Мастером. Администратор сервера управляет пользователями, моделями, изображениями, голосом и плагинами кампаний через панель администратора. Игровой контент основан на SRD 5.1 и Open5e; см. ",
@@ -438,6 +446,13 @@ export function HelpDialog({
             {copy.referenceLabel}
           </Link>
           {copy.referenceAfter}
+        </p>
+        <p>
+          {copy.rulebookBefore}
+          <Link href="/rulebook" className="text-amber-300 underline-offset-2 hover:underline">
+            {copy.rulebookLabel}
+          </Link>
+          {copy.rulebookAfter}
         </p>
       </Section>
 
