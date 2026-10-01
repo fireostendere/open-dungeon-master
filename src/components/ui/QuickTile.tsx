@@ -56,9 +56,17 @@ export function QuickTile({
       )}
       <span
         style={{ fontSize: fit }}
-        className="max-w-full text-balance break-normal px-1 text-center font-display font-semibold uppercase leading-tight tracking-[0.06em] text-stone-200"
+        className="flex w-full flex-wrap justify-center gap-x-[0.3em] px-1 text-center font-display font-semibold uppercase leading-tight tracking-[0.06em] text-stone-200"
       >
-        {label}
+        {/* One box per word, centred as flex items: a word that still does
+            not fit (a browser minimum font size) spills evenly over both
+            edges instead of running off the right. A hyphenated word is
+            two boxes, the first pulling the gap shut, so it can wrap. */}
+        {label.split(/\s+/).flatMap((word) => word.split(/(?<=-)/)).map((piece, index) => (
+          <span key={index} className={piece.endsWith("-") ? "-mr-[0.3em]" : undefined}>
+            {piece}
+          </span>
+        ))}
       </span>
     </>
   );
