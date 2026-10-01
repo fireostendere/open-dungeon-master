@@ -9,6 +9,7 @@ import { GameIcon } from "@/components/ui/GameIcon";
 import type { IconRef } from "@/lib/icons";
 import { useI18n } from "@/lib/i18n";
 import type { ItemSheet } from "@/lib/help/item-sheet";
+import { parseRulesBlocks } from "@/lib/help/rules-text";
 
 // The "what does this do?" affordance, used everywhere a game term appears.
 //
@@ -31,7 +32,7 @@ export type ContentRef = { kind: string; slug: string; name?: string };
 // showing raw asterisks. Table rows keep their pipes inside a monospace block.
 function renderInline(text: string, keyPrefix: string): ReactNode[] {
   const out: ReactNode[] = [];
-  const pattern = /(\*\*[^*]+\*\*|\*[^*]+\*|_[^_]+_)/g;
+  const pattern = /(\*\*[^*]+\*\*|\*[^*\s][^*]*\*|(?<![\w])_[^_\n]+_(?![\w]))/g;
   let last = 0;
   let match: RegExpExecArray | null;
   let index = 0;
@@ -64,48 +65,38 @@ function renderInline(text: string, keyPrefix: string): ReactNode[] {
 }
 
 export function renderRules(text: string): ReactNode {
-  const blocks = text.replace(/\r\n/g, "\n").split(/\n{2,}/);
-  return blocks.map((block, blockIndex) => {
-    const trimmed = block.trim();
-    if (!trimmed) {
-      return null;
-    }
-    // Tables: keep the alignment by rendering the raw rows in a scroll box.
-    if (trimmed.split("\n").every((line) => line.trim().startsWith("|"))) {
-      return (
-        <pre
-          key={blockIndex}
-          className="overflow-x-auto rounded-md bg-stone-900/60 p-2 text-[11px] leading-relaxed text-stone-400"
-        >
-          {trimmed}
-        </pre>
-      );
-    }
-    const lines = trimmed.split("\n");
-    if (lines.every((line) => /^\s*[-*+]\s+/.test(line))) {
-      return (
-        <ul key={blockIndex} className="list-disc space-y-1 pl-4">
-          {lines.map((line, lineIndex) => (
-            <li key={lineIndex}>
-              {renderInline(line.replace(/^\s*[-*+]\s+/, ""), `${blockIndex}-${lineIndex}`)}
-            </li>
-          ))}
-        </ul>
-      );
-    }
-    // A heading line becomes a small label rather than showing its hashes.
-    const heading = /^#{1,6}\s+(.*)$/.exec(lines[0]);
-    const body = heading ? lines.slice(1).join("\n") : trimmed;
-    return (
-      <div key={blockIndex}>
-        {heading ? (
-          <p className="mb-1 text-xs font-medium uppercase tracking-wide text-amber-200/80">
-            {heading[1]}
+  // Block structure (headings, lists, captioned tables) comes from
+  // src/lib/help/rules-text.ts, which knows the content pack's quirks.
+  return parseRulesBlocks(text).map((block, blockIndex) => {
+    switch (block.kind) {
+      case "table":
+        // Keep the alignment by rendering the raw rows in a scroll box.
+        return (
+          <pre
+            key={blockIndex}
+            className="overflow-x-auto rounded-md bg-stone-900/60 p-2 text-[11px] leading-relaxed text-stone-400"
+          >
+            {block.rows.join("\n")}
+          </pre>
+        );
+      case "list":
+        return (
+          <ul key={blockIndex} className="list-disc space-y-1 pl-4">
+            {block.items.map((item, itemIndex) => (
+              <li key={itemIndex}>{renderInline(item, `${blockIndex}-${itemIndex}`)}</li>
+            ))}
+          </ul>
+        );
+      case "heading":
+        // A heading line becomes a small label rather than showing its hashes.
+        return (
+          <p key={blockIndex} className="mb-1 text-xs font-medium uppercase tracking-wide text-amber-200/80">
+            {block.text}
           </p>
-        ) : null}
-        {body.trim() ? <p>{renderInline(body, String(blockIndex))}</p> : null}
-      </div>
-    );
+        );
+      default:
+        return <p key={blockIndex}>{renderInline(block.text, String(blockIndex))}</p>;
+    }
   });
 }
 

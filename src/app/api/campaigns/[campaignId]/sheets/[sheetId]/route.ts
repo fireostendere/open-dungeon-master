@@ -28,6 +28,12 @@ export async function PATCH(
 
   const raw = await request.json().catch(() => ({}));
   const reason = typeof raw?.reason === "string" ? raw.reason.slice(0, 300) : "";
+  // The spell lists an edit leaves out keep their stored value: a client
+  // built before the cantrip, pending and spellbook lists (or the per-class
+  // casters) sends only prepared and known, and must not wipe the rest.
+  if (raw && typeof raw === "object" && raw.spellcasting && typeof raw.spellcasting === "object") {
+    raw.spellcasting = { ...(sheet.spellcasting ?? {}), ...raw.spellcasting };
+  }
   const parsed = fullPatchSheetSchema.safeParse(raw);
   if (!parsed.success) {
     return Response.json(

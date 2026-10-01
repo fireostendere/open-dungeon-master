@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { GameIcon } from "@/components/ui/GameIcon";
 import { GameTerm } from "@/components/ui/GameTerm";
 import { InfoChipList } from "@/components/ui/InfoDialog";
+import { SheetSpells } from "@/components/sheet/SheetSpells";
 import { Ribbon } from "@/components/ui/Ribbon";
 import { cn } from "@/lib/cn";
 import {
@@ -62,7 +63,7 @@ function SheetPanel({
 // The six scores, the vitals line, and the lists a library sheet carries:
 // spells, equipment, features, feats, backstory. Read-only; editing happens
 // through the builder in a campaign lobby.
-export function SheetSections({ sheet }: { sheet: CreateSheetInput }) {
+export function SheetSections({ sheet, level = 1 }: { sheet: CreateSheetInput; level?: number }) {
   const { locale } = useI18n();
   const copy = localeText(locale, {
     en: { abilities: "Abilities", speed: "Speed", gold: "Gold", spells: "Spells", equipment: "Equipment", features: "Features and traits", feats: "Feats", backstory: "Backstory", none: "None chosen.", story: "(story)", level: "Level", feet: "ft" },
@@ -109,16 +110,7 @@ export function SheetSections({ sheet }: { sheet: CreateSheetInput }) {
 
       {sheet.spellcasting ? (
          <SheetPanel title={copy.spells}>
-          <InfoChipList
-            items={[
-              ...new Set([...sheet.spellcasting.known, ...sheet.spellcasting.prepared]),
-            ].map((spell) => ({
-              name: localizedContentName("spells", spell, locale),
-              icon: { kind: "spell" as const, key: spell },
-              reference: { kind: "spells", slug: contentSlug(spell), name: spell },
-            }))}
-             emptyText={copy.none}
-          />
+          <SheetSpells sheet={{ ...sheet, level }} />
         </SheetPanel>
       ) : null}
 

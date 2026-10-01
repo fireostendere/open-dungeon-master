@@ -396,7 +396,7 @@ export default function CharacterDetailPage({
         {portraitError ? <p className="mt-2 text-sm text-red-400">{portraitError}</p> : null}
       </header>
 
-      <SheetSections sheet={sheet} />
+      <SheetSections sheet={sheet} level={character.level} />
       <div className="mt-4">
         <StorySoFar events={events} />
       </div>

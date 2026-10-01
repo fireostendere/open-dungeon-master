@@ -28,7 +28,7 @@ import {
 } from "./submit";
 import { builderActions, useBuilderDerived } from "./useBuilderDerived";
 import { useArchetypes, useBuilderOptions, useWorldPack } from "./useBuilderOptions";
-import { useBuilderState } from "./useBuilderState";
+import { findRace, useBuilderState } from "./useBuilderState";
 import { usePickerGroups } from "./usePickerGroups";
 import { useI18n } from "@/lib/i18n";
 import { localeText } from "@/lib/i18n/locale-text";
@@ -88,7 +88,7 @@ export default function CharacterBuilder({
     classes: rawClasses,
     backgrounds: rawBackgrounds,
     packInstalled,
-  } = useBuilderOptions();
+  } = useBuilderOptions(initial?.race);
   const pack = useWorldPack(worldPackId);
   // Display overlay only. applyIdReskins rewrites `name`, never `id`, so
   // race.asi, classFeaturesFor(klass.id), spellClassFor(klass.id) and the
@@ -100,15 +100,15 @@ export default function CharacterBuilder({
     [rawBackgrounds, pack],
   );
 
-  const state = useBuilderState({ initial, initialLevel, fixedLevel, races, backgrounds });
-  const race = races.find((entry) => entry.id === state.raceId) ?? races[0];
+  const state = useBuilderState({ initial, initialLevel, fixedLevel, races, classes, backgrounds });
+  const race = findRace(races, state.raceId) ?? races[0];
   const klass = classes.find((entry) => entry.id === state.classId) ?? classes[0];
   const background =
     backgrounds.find((entry) => entry.id === state.backgroundId) ?? backgrounds[0];
   const archetypes = useArchetypes(klass?.id ?? "");
 
   const derived = useBuilderDerived({ state, race, klass, background, fixedLevel });
-  const actions = builderActions(state, klass);
+  const actions = builderActions(state, klass, race, background);
   const pickers = usePickerGroups({
     races,
     rawRaces,
@@ -127,7 +127,7 @@ export default function CharacterBuilder({
   const [cropping, setCropping] = useState(false);
 
   function submit() {
-    const input = { state, derived, race, klass, background };
+    const input = { state, derived, race, klass, background, locale };
     const problem = validateBuilder(input);
     if (problem) {
       if (problem.kind === "spellWarning") {
@@ -151,11 +151,11 @@ export default function CharacterBuilder({
   // Each gate mirrors a rule the final check enforces, so a player learns
   // about a missing pick on the step where they can fix it.
   const blockers = {
-    identity: identityBlocker(state),
+    identity: identityBlocker(state, background, locale),
     ancestry: ancestryBlocker(state, race, background),
     calling: callingBlocker(klass, state, derived),
     abilities: abilitiesBlocker(derived),
-    spells: spellsBlocker(state, derived, klass),
+    spells: spellsBlocker(state, derived, klass, locale),
   };
   const casts = derived.casts;
 

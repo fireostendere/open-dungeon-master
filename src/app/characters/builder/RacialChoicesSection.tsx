@@ -58,8 +58,8 @@ export function RacialChoicesSection({
 }) {
   const { locale } = useI18n();
   const copy = localeText(locale, {
-    en: { choices: "choices", ability: "Ability", increases: "increases", abilitiesChoice: "abilities of your choice", abilityIncrease: "Ability increase", chooseAbility: "Choose an ability...", what: "what is this?", skill: "Skill", proficiencies: "proficiencies", choice: "of your choice", skillProficiency: "Skill proficiency", chooseSkill: "Choose a skill...", tool: "Tool proficiency", chooseTool: "Choose a tool...", bonus: "Bonus", one: "one", cantrip: "cantrip", cantripHelp: "A cantrip is a small spell you can cast as often as you like, forever. Pick one from the list below (tap ⓘ to read what each does), or search by name if you already have one in mind.", change: "Change", every: "Every", orSearch: "Or search by name:", searchCantrips: "Search cantrips (e.g. fire bolt)" },
-    ru: { choices: "выборы", ability: "Характеристика", increases: "увеличения", abilitiesChoice: "характеристик на выбор", abilityIncrease: "Увеличение характеристики", chooseAbility: "Выберите характеристику...", what: "что это?", skill: "Навык", proficiencies: "владения", choice: "на выбор", skillProficiency: "Владение навыком", chooseSkill: "Выберите навык...", tool: "Владение инструментом", chooseTool: "Выберите инструмент...", bonus: "Дополнительный", one: "один", cantrip: "заговор", cantripHelp: "Заговор — это небольшое заклинание, которое можно накладывать сколько угодно раз. Выберите его из списка ниже (нажмите ⓘ, чтобы прочитать описание) или найдите по названию.", change: "Изменить", every: "Все", orSearch: "Или найдите по названию:", searchCantrips: "Искать заговоры (например: огненный снаряд)" },
+    en: { choices: "choices", ability: "Ability", increases: "increases", abilitiesChoice: "abilities of your choice", or: "or", abilityIncrease: "Ability increase", chooseAbility: "Choose an ability...", what: "what is this?", skill: "Skill", proficiencies: "proficiencies", choice: "of your choice", skillProficiency: "Skill proficiency", chooseSkill: "Choose a skill...", tool: "Tool proficiency", chooseTool: "Choose a tool...", bonus: "Bonus", one: "one", cantrip: "cantrip", cantripHelp: "A cantrip is a small spell you can cast as often as you like, forever. Pick one from the list below (tap ⓘ to read what each does), or search by name if you already have one in mind.", change: "Change", every: "Every", orSearch: "Or search by name:", searchCantrips: "Search cantrips (e.g. fire bolt)" },
+    ru: { choices: "выборы", ability: "Характеристика", increases: "увеличения", abilitiesChoice: "характеристик на выбор", or: "или", abilityIncrease: "Увеличение характеристики", chooseAbility: "Выберите характеристику...", what: "что это?", skill: "Навык", proficiencies: "владения", choice: "на выбор", skillProficiency: "Владение навыком", chooseSkill: "Выберите навык...", tool: "Владение инструментом", chooseTool: "Выберите инструмент...", bonus: "Дополнительный", one: "один", cantrip: "заговор", cantripHelp: "Заговор — это небольшое заклинание, которое можно накладывать сколько угодно раз. Выберите его из списка ниже (нажмите ⓘ, чтобы прочитать описание) или найдите по названию.", change: "Изменить", every: "Все", orSearch: "Или найдите по названию:", searchCantrips: "Искать заговоры (например: огненный снаряд)" },
   });
   const abilityNames = localeText(locale, { en: ABILITY_NAMES, ru: { str: "Сила", dex: "Ловкость", con: "Телосложение", int: "Интеллект", wis: "Мудрость", cha: "Харизма" } });
   const hasChoices = Boolean(
@@ -72,6 +72,8 @@ export function RacialChoicesSection({
   // A half-elf's +1s go to abilities other than the one the race already
   // raises, per the SRD.
   const fixedAbilities = new Set(Object.keys(race.asi) as Ability[]);
+  // An either-or increase ("Strength or Dexterity") offers only its two.
+  const asiFrom = race.asiChoice?.from;
 
   return (
     <div className="space-y-3 rounded-lg border border-amber-900/40 bg-amber-950/10 p-3">
@@ -80,7 +82,11 @@ export function RacialChoicesSection({
       {race.asiChoice ? (
         <div>
           <span className="mb-1 flex flex-wrap items-center gap-1 text-stone-400">
-             <GameTerm id="ability_score">{copy.ability}</GameTerm> {copy.increases} (+{race.asiChoice.amount} {copy.abilitiesChoice}: {race.asiChoice.count})
+             <GameTerm id="ability_score">{copy.ability}</GameTerm> {copy.increases} (+{race.asiChoice.amount}{" "}
+             {asiFrom
+               ? asiFrom.map((ability) => abilityNames[ability]).join(` ${copy.or} `)
+               : `${copy.abilitiesChoice}: ${race.asiChoice.count}`}
+             )
           </span>
           <div className="grid grid-cols-2 gap-2">
             {Array.from({ length: race.asiChoice.count }, (_, index) => (
@@ -95,6 +101,7 @@ export function RacialChoicesSection({
                   {ABILITIES.filter(
                     (ability) =>
                       !fixedAbilities.has(ability) &&
+                      (!asiFrom || asiFrom.includes(ability)) &&
                       (asi[index] === ability || !asi.includes(ability)),
                   ).map((ability) => (
                     <option key={ability} value={ability}>

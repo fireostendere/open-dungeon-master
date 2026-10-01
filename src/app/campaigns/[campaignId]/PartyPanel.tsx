@@ -1,7 +1,7 @@
 "use client";
 
 import { useInlineText } from "@/lib/i18n/inline-text";
-import { Bot, Check, Crown, Heart, ImagePlus, PawPrint, Pencil, Save, UserPlus } from "lucide-react";
+import { Bot, Check, Crown, Heart, ImagePlus, PawPrint, Pencil, Save, Sparkles, UserPlus } from "lucide-react";
 import { GameIcon } from "@/components/ui/GameIcon";
 import { conditionIconKey } from "@/lib/icons";
 import { useEffect, useState } from "react";
@@ -183,9 +183,15 @@ export function PartyPanel({
   companionGenre,
   companionLevel = 1,
   worldPack = "",
+  levelUpLevel = null,
+  onLevelUp,
 }: {
   sheets: CharacterSheet[];
   meUserId: string;
+  // A level-up the experience has earned and nobody has taken yet: the
+  // owner's card offers it.
+  levelUpLevel?: number | null;
+  onLevelUp?: () => void;
   // The table's optional encumbrance rule; the sheet only warns about a
   // heavy pack when the rule that penalizes it is actually on.
   encumbranceRule?: boolean;
@@ -619,6 +625,17 @@ export function PartyPanel({
                   </span>
                 ) : null}
               </div>
+            ) : null}
+
+            {mine && !sheet.isCompanion && levelUpLevel && onLevelUp && levelUpLevel > sheet.level ? (
+              <button
+                type="button"
+                onClick={onLevelUp}
+                title={uiText("You have the experience for a new level")}
+                className="mt-2 flex w-full items-center justify-center gap-1 rounded border border-amber-500/60 bg-amber-400/10 py-1 text-xs text-amber-200 hover:bg-amber-400/20"
+              >
+                <Sparkles className="size-3" /> {uiText("Level up to {level}", { level: levelUpLevel })}
+              </button>
             ) : null}
 
             {setsPortrait ? (

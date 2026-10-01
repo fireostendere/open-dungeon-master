@@ -126,6 +126,10 @@ Object.assign(fixtures,{
   '@/lib/dm/map-tools':{publishBattleMapUpdate:()=>{}},
   '@/lib/dm/ambience-tools':{followCombatAmbience:()=>{}},
   '@/lib/dm/waypoint-tick':{tickWaypointsFrom:()=>[]},
+  '@/lib/srd/spell-lists': { allSpellNames: lists => lists ? [...(lists.cantrips ?? []), ...lists.known, ...lists.prepared] : [],
+    checklistClassSpell: () => null, isCantripName: () => false, spellsAgainstLimit: names => names.length },
+  '@/lib/srd/spell-prep': { casterViewsOf: () => [], notReadyReason: () => null, spellbookOf: unused('spellbookOf'), withCasterViews: unused('withCasterViews') },
+  '@/lib/srd/features': { subclassSpellsFor: () => [] },
 });
 const real = new Set(['mutations', 'mutation-math', 'death', 'death-logic', 'concentration','condition-sources','cast-tools','condition-tick','enemy-damage']);
 const cache = new Map();

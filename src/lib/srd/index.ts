@@ -9,6 +9,8 @@ import { conditionAcRiders } from "@/lib/srd/condition-effects";
 import { combatRiders, defenseRiders, halfProficiencyCovers } from "@/lib/srd/feature-effects";
 import { effectiveAbilities, magicItemRiders } from "@/lib/srd/magic-items";
 import { encumbranceFor } from "@/lib/srd/encumbrance";
+import { allSpellNames } from "@/lib/srd/spell-lists";
+import { hpBonusPerLevel } from "@/lib/srd/race-id";
 import type {
   Ability,
   AbilityScores,
@@ -33,6 +35,9 @@ export type SrdClass = {
   // Thieves' Cant. These are granted on top of the race's languages.
   languages?: string[];
   skillChoices: { count: number; from: string[] };
+  // One line for the class picker, so a new player can tell a warlock from
+  // a wizard before opening the full write-up.
+  blurb?: string;
 };
 export type SrdRace = {
   id: string;
@@ -75,6 +80,9 @@ export type SrdBackground = {
   tools?: string[];
   languages?: number;
   equipment?: string[];
+  // One line for the picker, and what the named feature does.
+  blurb?: string;
+  featureDesc?: string;
 };
 
 export const SRD_SKILLS = skillsJson.skills as SrdSkill[];
@@ -510,7 +518,7 @@ function casterEntryForSpell(
   }
   return (
     spellcasting.casters.find((caster) =>
-      [...caster.known, ...caster.prepared].some(
+      allSpellNames(caster).some(
         (entry) => entry.trim().toLowerCase() === wanted,
       ),
     ) ?? null
@@ -571,13 +579,15 @@ export function levelForXp(xp: number): number {
 // Suggested starting HP: max hit die + CON mod (+1/level for hill dwarves).
 export function suggestedStartingHp(classId: string, raceId: string, con: number, level: number) {
   const klass = findClass(classId);
-  if (!klass) {
-    return 8;
-  }
+  return klass ? startingHpFor(klass.hitDie, raceId, con, level) : 8;
+}
+
+// The same arithmetic on a hit die the caller already has (a content-pack
+// class the SRD table does not list).
+export function startingHpFor(hitDie: number, raceId: string, con: number, level: number) {
   const conMod = abilityMod(con);
-  const perLevelBonus = raceId === "hill_dwarf" ? 1 : 0;
-  const firstLevel = klass.hitDie + conMod + perLevelBonus;
-  const laterLevels =
-    (level - 1) * (Math.floor(klass.hitDie / 2) + 1 + conMod + perLevelBonus);
+  const perLevelBonus = hpBonusPerLevel(raceId);
+  const firstLevel = hitDie + conMod + perLevelBonus;
+  const laterLevels = (level - 1) * (Math.floor(hitDie / 2) + 1 + conMod + perLevelBonus);
   return Math.max(1, firstLevel + Math.max(0, laterLevels));
 }

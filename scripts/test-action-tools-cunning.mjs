@@ -24,6 +24,7 @@ const actionTools = loadSource('src/lib/dm/action-tools.ts', {
   '@/lib/dm/mutations': { applyDmMutation: () => ({}) },
   '@/lib/dm/rolls': { resolveSheetRef: (_ref, _sheets, sheetsById) => sheetsById.get(id) },
   '@/lib/dm/condition-logic': { DODGING: 'dodging', incapacitatedBy: () => null },
+  '@/lib/srd/spell-lists': { allSpellNames: lists => lists ? [...(lists.cantrips ?? []), ...lists.known, ...lists.prepared] : [] },
 });
 
 function takeAction(args) {
