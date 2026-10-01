@@ -33,6 +33,7 @@ export function SheetSpells({
   editable = false,
 }: {
   sheet: Pick<CharacterSheet, "class" | "level" | "subclass" | "classes" | "abilities" | "spellcasting"> & {
+    id?: string;
     campaignId?: string;
   };
   // The owner, in a campaign: may change prepared spells.
@@ -154,7 +155,7 @@ function CasterBook({
       const response = await fetch(`/api/campaigns/${sheet.campaignId}/sheet/spells`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action, spell: tile.name, classId: view.classId }),
+        body: JSON.stringify({ action, spell: tile.name, classId: view.classId, sheetId: sheet.id }),
       });
       const data = (await response.json().catch(() => ({}))) as {
         error?: string;
