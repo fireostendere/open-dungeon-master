@@ -164,6 +164,10 @@ export type CampaignState = {
   // is only true while it is happening, so it is never replayed and the
   // player hook drops it once it has sounded.
   ambienceSting: { cue: string; at: number } | null;
+  // The last act announcement (src/lib/dm/arc.ts commitStoryArc): an act
+  // ended or began. Ephemeral like a sting, so a reload never replays it;
+  // the cinematic layer (FxDirector) plays it once.
+  actCard: { id: string; kind: "end" | "begin"; act: number; title: string } | null;
   latestRoll: { roll: StoredRoll; source: string; seq: number } | null;
   lastSeq: number;
   dmStatus: DmStatus;
@@ -261,6 +265,7 @@ export const initialCampaignState: CampaignState = {
   mapPing: null,
   ambience: EMPTY_AMBIENCE,
   ambienceSting: null,
+  actCard: null,
   latestRoll: null,
   lastSeq: 0,
   dmStatus: "idle",
@@ -515,6 +520,14 @@ export function campaignStreamReducer(state: CampaignState, action: Action): Cam
           next.ambienceSting = {
             cue: String(payload.cue ?? ""),
             at: Number(payload.at ?? Date.now()),
+          };
+          return next;
+        case "act_card":
+          next.actCard = {
+            id: String(payload.id ?? Date.now()),
+            kind: payload.kind === "begin" ? "begin" : "end",
+            act: Number(payload.act ?? 0),
+            title: String(payload.title ?? ""),
           };
           return next;
         case "location_map_ready":
@@ -847,6 +860,8 @@ const EPHEMERAL_EVENTS = [
   "map_ping",
   // One sound, once. Worthless after the fact, so never replayed.
   "ambience_sting",
+  // An act ended or began: one cinematic, once.
+  "act_card",
   // Who is on the call right now. Worthless after the fact, so it is never
   // replayed to a reconnecting client.
   "voice_roster",

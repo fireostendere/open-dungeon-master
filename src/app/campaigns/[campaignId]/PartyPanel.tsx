@@ -21,6 +21,7 @@ import { computeSheetDerived, formatModifier } from "@/lib/srd";
 import { usePackArt } from "@/lib/worlds/use-pack-art";
 import { useI18n } from "@/lib/i18n";
 import { localeText } from "@/lib/i18n/locale-text";
+import { describeConditionDuration } from "@/lib/dm/condition-logic";
 import { characterDisplay } from "@/lib/i18n/character-display";
 import { localizedRaceName } from "@/lib/help";
 
@@ -597,7 +598,7 @@ export function PartyPanel({
                   >
                     {condition}
                     {sheet.conditionMeta?.[condition]?.rounds
-                      ? ` (${sheet.conditionMeta[condition].rounds} rd)`
+                      ? ` (${describeConditionDuration(sheet.conditionMeta[condition].rounds, locale)})`
                       : ""}
                   </span>
                 ))}

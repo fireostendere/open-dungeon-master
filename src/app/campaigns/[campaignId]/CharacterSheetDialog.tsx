@@ -37,6 +37,7 @@ import {
 } from "@/lib/help";
 import { useI18n } from "@/lib/i18n";
 import { localeText } from "@/lib/i18n/locale-text";
+import { describeConditionDuration } from "@/lib/dm/condition-logic";
 import { characterDisplay } from "@/lib/i18n/character-display";
 
 function titleCase(value: string) {
@@ -302,7 +303,7 @@ export function CharacterSheetDialog({
                 >
                   {condition}
                   {sheet.conditionMeta?.[condition]?.rounds
-                    ? ` (${sheet.conditionMeta[condition].rounds} rd)`
+                    ? ` (${describeConditionDuration(sheet.conditionMeta[condition].rounds, locale)})`
                     : ""}
                 </span>
               ))}

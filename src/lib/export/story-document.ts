@@ -1,6 +1,7 @@
 export * from '@/lib/export/legacy-story-document';
 import * as legacy from '@/lib/export/legacy-story-document';
 import type { StoryDocument, StoryChapter, TranscriptLine } from '@/lib/export/legacy-story-document';
+import { actHeadings } from '@/lib/export/legacy-story-document';
 import { getCampaignById, listMembers } from '@/lib/db/campaigns';
 import { listAllMessages } from '@/lib/db/messages';
 import { listChaptersVisibleTo } from '@/lib/db/chapters';
@@ -17,8 +18,11 @@ export function buildStoryDocument(campaignId: string, viewerUserId?: string): S
   if (!view.enabled) throw new DomainError('Location mode changed. Retry the export.', 409);
   const names = new Map(listMembers(campaignId).map(member => [member.userId, member.username]));
   const oldMessages = listAllMessages(campaignId).filter(message => message.seq < view.startSeq);
-  const chapters: StoryChapter[] = listChaptersVisibleTo(campaignId, viewerUserId).map((chapter, index) => ({
+  const visible = listChaptersVisibleTo(campaignId, viewerUserId);
+  const acts = actHeadings(campaign, visible);
+  const chapters: StoryChapter[] = visible.map((chapter, index) => ({
     index: index + 1,
+    ...acts.get(chapter.id),
     heading: chapter.title || `Chapter ${chapter.index}`,
     status: chapter.status,
     summary: chapter.summary,

@@ -15,6 +15,12 @@ export function closeChapterRow(...args: Parameters<typeof raw.closeChapterRow>)
     return result;
   })();
 }
+export function setChapterAct(...args: Parameters<typeof raw.setChapterAct>) {
+  return getDatabase().transaction(() => {
+    const result = raw.setChapterAct(...args);
+    return result ? publishEntity('chapter', result) : null;
+  })();
+}
 export function updateChapter(...args: Parameters<typeof raw.updateChapter>) {
   return getDatabase().transaction(() => {
     const result = raw.updateChapter(...args);

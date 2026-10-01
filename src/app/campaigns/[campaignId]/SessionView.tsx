@@ -781,6 +781,7 @@ export function SessionView({
         sheets={state.sheets}
         meId={me?.id}
         auditLog={state.auditLog}
+        actCard={state.actCard}
       />
 
       <EndingCinematic
