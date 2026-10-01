@@ -796,6 +796,7 @@ export const INLINE_COPY_RU: Record<string, string> = {
   "Fill with the suggested spells": "Заполнить рекомендуемыми",
   "Nothing in your spellbook at this level.": "В вашей книге нет заклинаний этого круга.",
   "No spells at this level.": "Заклинаний этого круга нет.",
+  "Counts follow the {list} list this class borrows.": "Количество заклинаний — как в списке класса «{list}», который заимствует этот класс.",
 };
 
 export const INLINE_COPY_ALLOWLIST = new Set([
