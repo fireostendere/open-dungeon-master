@@ -64,7 +64,7 @@ function SheetPanel({
 // spells, equipment, features, feats, backstory. Read-only; editing happens
 // through the builder in a campaign lobby.
 export function SheetSections({ sheet, level = 1 }: { sheet: CreateSheetInput; level?: number }) {
-  const { locale, formatSpeed } = useI18n();
+  const { locale, formatDistance } = useI18n();
   const copy = localeText(locale, {
     en: { abilities: "Abilities", speed: "Speed", gold: "Gold", spells: "Spells", equipment: "Equipment", features: "Features and traits", feats: "Feats", backstory: "Backstory", none: "None chosen.", story: "(story)", level: "Level" },
     ru: { abilities: "Характеристики", speed: "Скорость", gold: "Золото", spells: "Заклинания", equipment: "Снаряжение", features: "Черты и особенности", feats: "Черты", backstory: "Предыстория", none: "Ничего не выбрано.", story: "(сюжет)", level: "Уровень" },
@@ -99,7 +99,7 @@ export function SheetSections({ sheet, level = 1 }: { sheet: CreateSheetInput; l
           </span>
           <span className="flex items-center gap-1.5">
             <GameIcon icon={{ kind: "glyph", key: "rest-speed" }} size="size-5" />
-            {copy.speed} {formatSpeed(sheet.speed)}
+            {copy.speed} {formatDistance(sheet.speed)}
           </span>
           <span className="flex items-center gap-1.5">
             <GameIcon icon={{ kind: "glyph", key: "coin-gp" }} size="size-5" />
