@@ -3,8 +3,6 @@
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import {
   AppWindow,
-  BookOpenText,
-  CircleHelp,
   Globe,
   LogOut,
   Ruler,
@@ -189,7 +187,7 @@ export function AccountMenu({
             </DropdownMenu.Item>
             <DropdownMenu.Item asChild>
               <Link href="/rulebook" className={itemClass}>
-                <BookOpenText className="size-4" /> {t("nav.rulebook")}
+                <GameIcon icon={{ kind: "glyph", key: "system-rules" }} size="size-5" /> {t("nav.rulebook")}
               </Link>
             </DropdownMenu.Item>
             <DropdownMenu.Item asChild>
@@ -208,7 +206,7 @@ export function AccountMenu({
               onSelect={() => (onHelp ? onHelp() : setHelpOpen(true))}
               className={itemClass}
             >
-              <CircleHelp className="size-4" /> {t("nav.help")}
+              <GameIcon icon={{ kind: "glyph", key: "tab-story" }} size="size-5" /> {t("nav.help")}
             </DropdownMenu.Item>
 
             <DropdownMenu.Separator className="my-1 h-px bg-stone-800" />

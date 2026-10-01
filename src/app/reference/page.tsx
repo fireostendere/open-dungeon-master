@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { BookOpenText, Calculator, Columns3, Loader2, MessageCircleQuestion, Search } from "lucide-react";
+import { Calculator, Columns3, Loader2, MessageCircleQuestion, Search } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { cn } from "@/lib/cn";
 import { PIXEL_ICONS, ui } from "@/lib/ui";
@@ -241,7 +241,7 @@ export default function ReferencePage() {
       blurb={copy.blurb}
       actions={
         <Link href="/rulebook" className={ui.btnSmall}>
-          <BookOpenText className="size-4" /> {copy.rulebook}
+          <GameIcon icon={{ kind: "glyph", key: "system-rules" }} size="size-5" /> {copy.rulebook}
         </Link>
       }
     >

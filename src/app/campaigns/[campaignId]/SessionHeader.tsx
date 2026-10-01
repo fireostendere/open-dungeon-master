@@ -15,6 +15,7 @@ import {
 import { useRef, useState, type ComponentProps } from "react";
 import { AccountMenu, AppHomeButton, AppHomeLogo, type AccountMenuUser } from "@/components/AccountMenu";
 import { Tooltip } from "@/components/ui/Tooltip";
+import { GameIcon } from "@/components/ui/GameIcon";
 import { Sheet } from "@/components/ui/Sheet";
 import { headerButtonClass } from "@/app/campaigns/[campaignId]/headerButton";
 import { NarratorLamp, NarratorLampRow } from "@/app/campaigns/[campaignId]/NarratorLamp";
@@ -358,7 +359,7 @@ export function SessionHeader({
             }}
             className="flex min-h-12 w-full items-center gap-3 rounded-xl bg-stone-900 px-3 py-2 text-left text-sm text-stone-200"
           >
-            <BookOpenText className="size-5" />
+            <GameIcon icon={{ kind: "glyph", key: "system-rules" }} size="size-6" />
             <span>{copy.rulebook}</span>
           </button>
 
@@ -371,7 +372,7 @@ export function SessionHeader({
             }}
             className="flex min-h-12 w-full items-center gap-3 rounded-xl bg-stone-900 px-3 py-2 text-left text-sm text-stone-200"
           >
-            <CircleHelp className="size-5" />
+            <GameIcon icon={{ kind: "glyph", key: "tab-story" }} size="size-6" />
             <span>{copy.help}</span>
           </button>
 
