@@ -3,11 +3,11 @@
 import { useInlineText } from "@/lib/i18n/inline-text";
 import * as AlertDialog from "@radix-ui/react-alert-dialog";
 import { ArrowDown, ArrowUp, BookOpen, Check, ChevronDown, ChevronRight, Compass, Crosshair, Loader2, Pencil, Plus, Rewind, Scissors, SkipForward, Users, X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { cn } from "@/lib/cn";
 import { ui } from "@/lib/ui";
 import type { Chapter } from "@/lib/db/chapters";
-import type { StoryArc } from "@/lib/dm/arc-logic";
+import { romanNumeral, type PublicAct, type StoryArc } from "@/lib/dm/arc-logic";
 import { MAX_BEAT_TEXT, type BeatEdit } from "@/lib/dm/arc-edit-logic";
 import { ExportMenu } from "./ExportMenu";
 import { NpcReviewPanel } from "./NpcReviewPanel";
@@ -67,6 +67,27 @@ function ConfirmRewindDialog({
         </AlertDialog.Content>
       </AlertDialog.Portal>
     </AlertDialog.Root>
+  );
+}
+
+// The rule between acts in the chapter list: the act's number on a gold
+// hairline, the name the table was shown, and the recap it heard when the
+// act ended.
+function ActHeading({ act, title, recap }: { act: number; title: string; recap: string }) {
+  const { locale } = useI18n();
+  const copy = localeText(locale, { en: { act: "Act {act}" }, ru: { act: "Акт {act}" } });
+  return (
+    <li className="pt-2">
+      <div className="flex items-center gap-2">
+        <span className="h-px flex-1 bg-gradient-to-r from-transparent to-amber-500/60" aria-hidden="true" />
+        <span className="font-display text-[11px] uppercase tracking-[0.22em] text-amber-300">
+          {copy.act.replace("{act}", romanNumeral(act))}
+        </span>
+        <span className="h-px flex-1 bg-gradient-to-l from-transparent to-amber-500/60" aria-hidden="true" />
+      </div>
+      {title ? <p className="mt-1 text-center font-display text-sm text-amber-100">{title}</p> : null}
+      {recap ? <p className="mt-1 text-center text-[11px] leading-4 text-stone-400">{recap}</p> : null}
+    </li>
   );
 }
 
@@ -694,8 +715,8 @@ export function StoryPanel({
 }) {
   const { locale } = useI18n();
   const copy = localeText(locale, {
-    en: { notBegun: "The story has not begun. Chapters appear here as the adventure unfolds.", progress: "Chapter {chapter} in progress", seal: "Seal this chapter; the DM writes its title and summary", writing: "Writing the chapter...", close: "Close chapter", restartTitle: "Discard this chapter's progress and return to how it began", restart: "Restart this chapter" },
-    ru: { notBegun: "История ещё не началась. Главы появятся здесь по мере развития приключения.", progress: "Глава {chapter} в процессе", seal: "Завершить главу; мастер напишет её название и итог", writing: "Мастер пишет главу...", close: "Завершить главу", restartTitle: "Отменить прогресс этой главы и вернуться к её началу", restart: "Начать эту главу заново" },
+    en: { notBegun: "The story has not begun. Chapters appear here as the adventure unfolds.", progress: "Chapter {chapter} in progress", actProgress: "Act {act}, chapter {chapter} in progress", seal: "Seal this chapter; the DM writes its title and summary", writing: "Writing the chapter...", close: "Close chapter", restartTitle: "Discard this chapter's progress and return to how it began", restart: "Restart this chapter" },
+    ru: { notBegun: "История ещё не началась. Главы появятся здесь по мере развития приключения.", progress: "Глава {chapter} в процессе", actProgress: "Акт {act}, глава {chapter} в процессе", seal: "Завершить главу; мастер напишет её название и итог", writing: "Мастер пишет главу...", close: "Завершить главу", restartTitle: "Отменить прогресс этой главы и вернуться к её началу", restart: "Начать эту главу заново" },
   });
   const [closing, setClosing] = useState(false);
   const [rewindable, setRewindable] = useState<number[]>([]);
@@ -704,19 +725,26 @@ export function StoryPanel({
     warnings: string[];
   } | null>(null);
   const [rewindBusy, setRewindBusy] = useState(false);
+  // The acts the table has been told about: names and recaps for the
+  // headings between chapters. Player-safe by construction (publicActs).
+  const [acts, setActs] = useState<PublicAct[]>([]);
   const closed = chapters.filter((chapter) => chapter.status === "closed");
   const open = chapters.find((chapter) => chapter.status === "open");
 
-  // Which chapters have a boundary snapshot to rewind to; lead-only UI.
+  // The acts for everyone; which chapters have a boundary snapshot to
+  // rewind to is lead-only UI.
   useEffect(() => {
-    if (!steersStory) {
-      return;
-    }
     let cancelled = false;
     fetch(`/api/campaigns/${campaignId}/chapters`)
       .then((response) => (response.ok ? response.json() : null))
       .then((data) => {
-        if (!cancelled && data && Array.isArray(data.rewindableChapters)) {
+        if (cancelled || !data) {
+          return;
+        }
+        if (Array.isArray(data.acts)) {
+          setActs(data.acts as PublicAct[]);
+        }
+        if (steersStory && Array.isArray(data.rewindableChapters)) {
           setRewindable(data.rewindableChapters as number[]);
         }
       })
@@ -781,7 +809,10 @@ export function StoryPanel({
       <div className="rounded-lg border border-dashed border-stone-800 p-2.5">
         <p className="flex items-center gap-1.5 text-xs text-stone-400">
           <BookOpen className="size-3.5 text-amber-600" />
-          {copy.progress.replace("{chapter}", String(open?.index ?? closed.length + 1))}
+          {(open?.act ? copy.actProgress.replace("{act}", romanNumeral(open.act)) : copy.progress).replace(
+            "{chapter}",
+            String(open?.index ?? closed.length + 1),
+          )}
         </p>
         {steersStory ? (
           <button
@@ -815,19 +846,35 @@ export function StoryPanel({
         ) : null}
       </div>
       <ol className="space-y-2">
-        {[...closed].reverse().map((chapter) => (
-          <ChapterCard
-            key={chapter.id}
-            campaignId={campaignId}
-            chapter={chapter}
-            steersStory={steersStory}
-            onRewind={
-              steersStory && rewindable.includes(chapter.index)
-                ? () => void postRewind(chapter.index, false)
-                : undefined
-            }
-          />
-        ))}
+        {[...closed].reverse().map((chapter, index, list) => {
+          // Newest first, so an act's heading sits above the newest chapter
+          // of that act. Chapters sealed before acts were stamped have none
+          // and run on without a heading.
+          const previous = index > 0 ? list[index - 1] : null;
+          const boundary =
+            chapter.act !== null &&
+            (!previous || previous.act !== chapter.act || (previous.saga ?? 1) !== (chapter.saga ?? 1));
+          const act = boundary
+            ? acts.find((entry) => entry.act === chapter.act && entry.sagaIndex === (chapter.saga ?? 1))
+            : undefined;
+          return (
+            <Fragment key={chapter.id}>
+              {boundary && chapter.act !== null ? (
+                <ActHeading act={chapter.act} title={act?.title ?? ""} recap={act?.recap ?? ""} />
+              ) : null}
+              <ChapterCard
+                campaignId={campaignId}
+                chapter={chapter}
+                steersStory={steersStory}
+                onRewind={
+                  steersStory && rewindable.includes(chapter.index)
+                    ? () => void postRewind(chapter.index, false)
+                    : undefined
+                }
+              />
+            </Fragment>
+          );
+        })}
       </ol>
       {rewindTarget ? (
         <ConfirmRewindDialog

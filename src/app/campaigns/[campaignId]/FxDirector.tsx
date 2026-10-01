@@ -2,7 +2,7 @@
 
 // Watches the campaign state for big moments and plays their cinematics one
 // at a time: combat start, your turn, an enemy slain, combat won, a hero at
-// 0 HP or dead, loot in your hands, a rest.
+// 0 HP or dead, loot in your hands, a rest, an act ending or beginning.
 //
 // The stream only hands us reduced state (and rebuilds it from a snapshot
 // every few seconds), so every trigger is a change between the previous and
@@ -15,7 +15,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { PublicEncounter } from "@/lib/db/encounter-view";
 import type { CharacterSheet } from "@/lib/schemas/sheet";
-import type { AuditEntry } from "@/app/campaigns/[campaignId]/useCampaignStream";
+import type { AuditEntry, CampaignState } from "@/app/campaigns/[campaignId]/useCampaignStream";
+import { romanNumeral } from "@/lib/dm/arc-logic";
 import { useI18n } from "@/lib/i18n";
 import { useFxSettings } from "@/lib/fx/prefs";
 import { fightEnding } from "@/lib/fx/moments";
@@ -33,7 +34,8 @@ type Item =
   | { id: number; kind: "won" }
   | { id: number; kind: "fallen"; name: string; mine: boolean; dead: boolean; successes: number; failures: number }
   | { id: number; kind: "loot"; item: string; qty: number }
-  | { id: number; kind: "rest"; rest: "long" | "short" };
+  | { id: number; kind: "rest"; rest: "long" | "short" }
+  | { id: number; kind: "act"; end: boolean; act: number; title: string };
 
 type NewItem = Item extends infer T ? (T extends Item ? Omit<T, "id"> : never) : never;
 
@@ -61,6 +63,7 @@ type FxDirectorProps = {
   sheets: CharacterSheet[];
   meId: string | undefined;
   auditLog: AuditEntry[];
+  actCard: CampaignState["actCard"];
 };
 
 /** A crash in a cinematic hides the layer instead of the table; a new fight retries. */
@@ -72,12 +75,12 @@ export function FxDirector(props: FxDirectorProps) {
   );
 }
 
-function FxDirectorInner({ encounter, ownCombatTurn, sheets, meId, auditLog }: FxDirectorProps) {
+function FxDirectorInner({ encounter, ownCombatTurn, sheets, meId, auditLog, actCard }: FxDirectorProps) {
   const { locale } = useI18n();
   const copy =
     locale === "ru"
-      ? { round: "Раунд", won: "Бой выигран", wonSub: "Все враги повержены" }
-      : { round: "Round", won: "Victory", wonSub: "Every foe has fallen" };
+      ? { round: "Раунд", won: "Бой выигран", wonSub: "Все враги повержены", actEnd: "Конец акта {act}", act: "Акт {act}" }
+      : { round: "Round", won: "Victory", wonSub: "Every foe has fallen", actEnd: "End of Act {act}", act: "Act {act}" };
   const [queue, setQueue] = useState<Item[]>([]);
   const nextId = useRef(1);
   const { cinematics } = useFxSettings();
@@ -229,6 +232,16 @@ function FxDirectorInner({ encounter, ownCombatTurn, sheets, meId, auditLog }: F
     }
   }, [auditLog, mySheet, push]);
 
+  // --- an act ends or begins ---
+  // The card is ephemeral, but a remount (a new fight resets the error
+  // boundary) would see the last one again: baseline on first sight.
+  const playedAct = useRef(actCard?.id ?? null);
+  useEffect(() => {
+    if (!actCard || actCard.id === playedAct.current) return;
+    playedAct.current = actCard.id;
+    push({ kind: "act", end: actCard.kind === "end", act: actCard.act, title: actCard.title });
+  }, [actCard, push]);
+
   const current = queue[0];
   if (!current) return null;
   switch (current.kind) {
@@ -266,5 +279,16 @@ function FxDirectorInner({ encounter, ownCombatTurn, sheets, meId, auditLog }: F
       return <LootReveal key={current.id} active item={current.item} qty={current.qty} rarity={lootRarity(current.item)} icon={lootIcon(current.item)} onDone={done} />;
     case "rest":
       return <RestCinematic key={current.id} active kind={current.rest} onDone={done} />;
+    case "act":
+      return (
+        <TurnBanner
+          key={current.id}
+          active
+          title={(current.end ? copy.actEnd : copy.act).replace("{act}", romanNumeral(current.act))}
+          subtitle={current.title || undefined}
+          holdMs={4000}
+          onDone={done}
+        />
+      );
   }
 }

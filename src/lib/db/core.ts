@@ -1612,6 +1612,14 @@ function ensureSchema(db: SqliteDatabase) {
     ["embedding", `BLOB`],
   ]);
 
+  addColumns("chapters", [
+    // The act (and the saga it counts from) a chapter belongs to, stamped
+    // from the story arc so the story tab and exports can group chapters
+    // under acts. NULL on chapters closed before acts were tracked.
+    ["act", `INTEGER`],
+    ["saga", `INTEGER`],
+  ]);
+
   addColumns("world_facts", [
     // Tracked NPC names present when this fact was established
     // (src/lib/dm/witness-logic.ts). known_by scopes which PLAYERS may read

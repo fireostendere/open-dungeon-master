@@ -581,7 +581,9 @@ questions, private whispers, DM outlines or other DM secrets to the table.
         scene: z.string().max(2_000).optional(),
         quests: z.array(z.string().trim().min(1).max(500)).max(20).optional(),
         outline: z.string().max(8_000).optional(),
-        arc: z.unknown().optional(),
+        arc: z.unknown().optional().describe(
+          "set_arc: the whole story arc JSON (it replaces the stored one). saga.sketches[].title is the act's short, spoiler-free name the players see on its card. Act endings and beginnings are announced to the table; recaps of ended acts are kept even if omitted here.",
+        ),
         afterSeq: z.number().int().min(0).optional(),
         limit: z.number().int().min(1).max(500).optional(),
         message: z.string().trim().min(1).max(1_000).optional(),

@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { isErrorResponse, requireStoryAuthority } from "@/lib/campaign-api";
-import { getCampaignById, setStoryArc } from "@/lib/db/campaigns";
+import { getCampaignById } from "@/lib/db/campaigns";
+import { commitStoryArc } from "@/lib/dm/arc";
 import { enqueueDmJob } from "@/lib/dm/queue";
 import {
   MAX_BEAT_TEXT,
@@ -109,7 +110,8 @@ export async function PATCH(
     const edited = applyBeatEdit(current, parsed.data as BeatEdit);
     result = edited;
     if (!isEditError(edited)) {
-      setStoryArc(campaignId, edited.arc);
+      // A skipped last beat ends its act like a completed one would.
+      result = { arc: commitStoryArc(campaignId, edited.arc) };
     }
   });
 

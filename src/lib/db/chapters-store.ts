@@ -14,6 +14,11 @@ export type Chapter = {
   seqStart: number;
   seqEnd: number | null;
   status: "open" | "closed";
+  // The story act this chapter belongs to and the saga it counts from,
+  // stamped from the arc at close (the open chapter once its act is known).
+  // null before acts were tracked and on campaigns with no arc.
+  act: number | null;
+  saga: number | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -28,6 +33,8 @@ type ChapterRow = {
   seq_start: number;
   seq_end: number | null;
   status: "open" | "closed";
+  act: number | null;
+  saga: number | null;
   created_at: string;
   updated_at: string;
 };
@@ -35,7 +42,7 @@ type ChapterRow = {
 // Explicit column list so the embedding BLOB never rides along on ordinary
 // chapter reads (listChapters runs every DM turn).
 const CHAPTER_COLUMNS =
-  "id, campaign_id, chapter_index, title, summary, highlights_json, seq_start, seq_end, status, created_at, updated_at";
+  "id, campaign_id, chapter_index, title, summary, highlights_json, seq_start, seq_end, status, act, saga, created_at, updated_at";
 
 function mapChapter(row: ChapterRow): Chapter {
   return {
@@ -48,6 +55,8 @@ function mapChapter(row: ChapterRow): Chapter {
     seqStart: row.seq_start,
     seqEnd: row.seq_end,
     status: row.status,
+    act: row.act ?? null,
+    saga: row.saga ?? null,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -104,7 +113,14 @@ export function ensureOpenChapter(campaignId: string): Chapter {
 // opens the next one, atomically.
 export function closeChapterRow(
   chapterId: string,
-  input: { title: string; summary: string; highlights: string[]; seqEnd: number },
+  input: {
+    title: string;
+    summary: string;
+    highlights: string[];
+    seqEnd: number;
+    act?: number | null;
+    saga?: number | null;
+  },
 ): { closed: Chapter; opened: Chapter } | null {
   const db = getDatabase();
   const chapter = getChapter(chapterId);
@@ -118,7 +134,7 @@ export function closeChapterRow(
       `
         UPDATE chapters
         SET status = 'closed', title = ?, summary = ?, highlights_json = ?,
-            seq_end = ?, updated_at = ?
+            seq_end = ?, act = ?, saga = ?, updated_at = ?
         WHERE id = ? AND status = 'open'
       `,
     ).run(
@@ -126,6 +142,8 @@ export function closeChapterRow(
       input.summary.slice(0, 8_000),
       JSON.stringify(input.highlights.slice(0, 6).map((entry) => entry.slice(0, 300))),
       input.seqEnd,
+      input.act ?? null,
+      input.saga ?? null,
       now,
       chapterId,
     );
@@ -139,6 +157,16 @@ export function closeChapterRow(
     ).run(nextId, chapter.campaignId, chapter.index + 1, input.seqEnd + 1, now, now);
   })();
   return { closed: getChapter(chapterId)!, opened: getChapter(nextId)! };
+}
+
+// The act a chapter is in, stamped on the open chapter once the arc says
+// which act it is in (the chapters route after a close, arc.ts when an act
+// begins mid-chapter).
+export function setChapterAct(chapterId: string, act: number | null, saga: number | null): Chapter | null {
+  getDatabase()
+    .prepare(`UPDATE chapters SET act = ?, saga = ?, updated_at = ? WHERE id = ?`)
+    .run(act, saga, nowIso(), chapterId);
+  return getChapter(chapterId);
 }
 
 // Semantic-index support: the chapter summary's MiniLM embedding, used for

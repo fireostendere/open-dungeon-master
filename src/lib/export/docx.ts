@@ -85,6 +85,14 @@ export async function renderStoryDocx(doc: StoryDocument): Promise<Uint8Array> {
   }
 
   for (const chapter of doc.chapters) {
+    if (chapter.actHeading) {
+      children.push(
+        new Paragraph({ heading: HeadingLevel.HEADING_1, children: [new TextRun(chapter.actHeading)] }),
+      );
+      for (const paragraph of textParagraphs(chapter.actRecap ?? "")) {
+        children.push(paragraph);
+      }
+    }
     children.push(
       new Paragraph({ heading: HeadingLevel.HEADING_1, children: [new TextRun(chapter.heading)] }),
     );
