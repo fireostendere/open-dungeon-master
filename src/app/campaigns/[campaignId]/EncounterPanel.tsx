@@ -11,6 +11,7 @@ import { DmInitiativePanel } from "@/app/campaigns/[campaignId]/DmInitiativePane
 import type { PublicEncounter } from "@/lib/db/encounter-view";
 import { useI18n } from "@/lib/i18n/context";
 import { localeText } from "@/lib/i18n/locale-text";
+import { characterDisplay } from "@/lib/i18n/character-display";
 
 function crLabel(cr: number): string {
   if (cr === 0.125) return "1/8";
@@ -224,8 +225,8 @@ export function EncounterPanel({
                       key={condition}
                       className="inline-flex items-center gap-1 rounded-full border border-amber-900/60 bg-amber-950/30 py-px pl-0.5 pr-1.5 text-[10px] capitalize text-amber-300"
                     >
-                      <GameIcon icon={{ kind: "condition", key: conditionIconKey(condition) }} size="size-3.5" />
-                      {condition}
+                      <GameIcon icon={{ kind: "condition", key: conditionIconKey(condition) }} size="size-5" />
+                      {characterDisplay(condition, locale)}
                       {enemy.conditionRounds?.[condition]
                          ? ` (${enemy.conditionRounds[condition]} ${copy.rounds})`
                         : ""}

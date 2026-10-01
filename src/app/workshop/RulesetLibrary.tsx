@@ -279,7 +279,7 @@ export function RulesetLibrary({
                                     : "border-stone-700 text-stone-400 hover:text-stone-200",
                                 )}
                               >
-                                <GameIcon icon={{ kind: "glyph", key: KIND_GLYPHS[entry.kind as keyof typeof KIND_GLYPHS] ?? "system-homebrew" }} size="size-4" />
+                                <GameIcon icon={{ kind: "glyph", key: KIND_GLYPHS[entry.kind as keyof typeof KIND_GLYPHS] ?? "system-homebrew" }} size="size-5" />
                                 {entry.name}
                                 <span className="ml-1 text-stone-500">{entry.kind}</span>
                               </button>

@@ -73,7 +73,7 @@ function RealDiceToggle({
           : "border-stone-700 text-stone-400 hover:bg-stone-900",
       )}
     >
-      <GameIcon icon={{ kind: "glyph", key: "die-d20" }} size="size-4" />
+      <GameIcon icon={{ kind: "glyph", key: "die-d20" }} size="size-5" />
        {member.useRealDice ? copy.on : copy.off}
     </button>
   );
@@ -380,7 +380,7 @@ export function PartyPanel({
                   title={uiText("{count} public notes for {name}", { count: publicNoteCount, name: sheet.name })}
                   className="flex shrink-0 items-center gap-0.5 rounded-full border border-stone-800 px-1.5 py-0.5 text-[10px] text-stone-500 hover:text-amber-300"
                 >
-                  <GameIcon icon={{ kind: "glyph", key: "tab-notes" }} size="size-4" /> {publicNoteCount}
+                  <GameIcon icon={{ kind: "glyph", key: "tab-notes" }} size="size-5" /> {publicNoteCount}
                 </button>
               ) : null}
               {mine ? (
@@ -553,7 +553,7 @@ export function PartyPanel({
                 <span
                   key={statLabel}
                   className={cn(
-                    "rounded-md border border-stone-700/50 bg-stone-950/60 py-1 shadow-[0_1px_2px_rgba(4,2,12,0.5)_inset]",
+                    "flex items-center justify-center gap-1.5 rounded-md border border-stone-700/50 bg-stone-950/60 py-1 shadow-[0_1px_2px_rgba(4,2,12,0.5)_inset]",
                     shape && statLabel === "AC" && "border-lime-800/60 text-lime-300",
                   )}
                   title={
@@ -565,15 +565,14 @@ export function PartyPanel({
                       : undefined
                   }
                 >
-                  <span className="eyebrow block text-[8px] text-stone-500">
-                    <GameIcon
-                      icon={{ kind: "glyph", key: statLabel === "AC" ? "rest-ac" : statLabel === "PP" ? "sense-passive-perception" : "rest-initiative" }}
-                      size="size-3.5"
-                      className="mr-0.5 inline-flex -translate-y-px align-middle"
-                    />
-                    {statLabel}
+                  <GameIcon
+                    icon={{ kind: "glyph", key: statLabel === "AC" ? "rest-ac" : statLabel === "PP" ? "sense-passive-perception" : "rest-initiative" }}
+                    size="size-6"
+                  />
+                  <span className="flex flex-col items-start leading-tight">
+                    <span className="eyebrow text-[8px] text-stone-500">{statLabel}</span>
+                    <span className="font-mono text-xs text-stone-200">{statValue}</span>
                   </span>
-                  <span className="font-mono text-xs text-stone-200">{statValue}</span>
                 </span>
               ))}
             </div>
@@ -599,7 +598,7 @@ export function PartyPanel({
                     className="inline-flex items-center gap-1 rounded-full bg-orange-950 py-0.5 pl-1 pr-2 text-xs text-orange-300"
                     title={copy.exhaustionTitle}
                   >
-                    <GameIcon icon={{ kind: "glyph", key: "rest-exhaustion" }} size="size-4" />
+                    <GameIcon icon={{ kind: "glyph", key: "rest-exhaustion" }} size="size-5" />
                     {copy.exhaustion.replace("{level}", String(sheet.exhaustion))}
                   </span>
                 ) : null}
@@ -608,8 +607,8 @@ export function PartyPanel({
                     key={condition}
                     className="inline-flex items-center gap-1 rounded-full bg-red-950 py-0.5 pl-1 pr-2 text-xs text-red-300"
                   >
-                    <GameIcon icon={{ kind: "condition", key: conditionIconKey(condition) }} size="size-4" className="border-red-800/60" />
-                    {condition}
+                    <GameIcon icon={{ kind: "condition", key: conditionIconKey(condition) }} size="size-5" className="border-red-800/60" />
+                    {characterDisplay(condition, locale)}
                     {sheet.conditionMeta?.[condition]?.rounds
                       ? ` (${describeConditionDuration(sheet.conditionMeta[condition].rounds, locale)})`
                       : ""}
@@ -620,7 +619,7 @@ export function PartyPanel({
                     className="inline-flex items-center gap-1 rounded-full bg-sky-950 py-0.5 pl-1 pr-2 text-xs text-sky-300"
                     title={copy.concentrating}
                   >
-                    <GameIcon icon={{ kind: "condition", key: "concentrating" }} size="size-4" />
+                    <GameIcon icon={{ kind: "condition", key: "concentrating" }} size="size-5" />
                     {sheet.concentratingOn}
                   </span>
                 ) : null}

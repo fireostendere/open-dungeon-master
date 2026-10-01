@@ -409,7 +409,7 @@ export function LeadEditDialog({
             ).map(([label, value, setter, glyph]) => (
               <label key={label} className="space-y-1">
                 <span className="flex items-center gap-1 text-stone-500">
-                  <GameIcon icon={{ kind: "glyph", key: glyph }} size="size-4" /> {label}
+                  <GameIcon icon={{ kind: "glyph", key: glyph }} size="size-5" /> {label}
                 </span>
                 <input
                   type="number"

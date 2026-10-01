@@ -174,7 +174,7 @@ export function DmWorkbenchPanel({
             onClick={() => void run()}
             className="inline-flex items-center gap-1.5 rounded-md border border-amber-500/40 px-3 py-1 text-xs text-amber-100 hover:bg-stone-800 disabled:opacity-40"
           >
-            {busy ? <Loader2 className="size-3.5 animate-spin" /> : <GameIcon icon={{ kind: "glyph", key: "die-d20" }} size="size-4" />}
+            {busy ? <Loader2 className="size-3.5 animate-spin" /> : <GameIcon icon={{ kind: "glyph", key: "die-d20" }} size="size-5" />}
             {copy.run}
           </button>
         </div>

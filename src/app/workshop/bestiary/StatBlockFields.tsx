@@ -127,7 +127,7 @@ export function AbilityScores({ draft, onChange }: { draft: MonsterDraft; onChan
         {ABILITY_ORDER.map((ability) => (
           <label key={ability} className="flex flex-col gap-0.5">
             <span className="flex items-center gap-1 text-[10px] uppercase text-stone-500">
-              <GameIcon icon={{ kind: "glyph", key: `ability-${ability}` }} size="size-4" />
+              <GameIcon icon={{ kind: "glyph", key: `ability-${ability}` }} size="size-5" />
               {ability}
               {typeof scores[ability] === "number" ? (
                 <span className="ml-1 text-stone-600">{signed(abilityMod(scores[ability] as number))}</span>
@@ -196,7 +196,7 @@ export function SkillsAndSenses({ draft, onChange }: { draft: MonsterDraft; onCh
                       : "rounded-r-md border-stone-700 text-stone-400 hover:text-stone-200",
                   )}
                 >
-                  <GameIcon icon={{ kind: "glyph", key: `skill-${name}` }} size="size-3.5" />
+                  <GameIcon icon={{ kind: "glyph", key: `skill-${name}` }} size="size-5" />
                   {name}
                 </button>
                 {on ? (
@@ -219,7 +219,7 @@ export function SkillsAndSenses({ draft, onChange }: { draft: MonsterDraft; onCh
         {SENSE_NAMES.map((name) => (
           <label key={name} className="flex flex-col gap-0.5">
             <span className="flex items-center gap-1 text-[10px] uppercase tracking-wide text-stone-500">
-              {SENSE_GLYPHS[name] ? <GameIcon icon={{ kind: "glyph", key: SENSE_GLYPHS[name] }} size="size-4" /> : null}
+              {SENSE_GLYPHS[name] ? <GameIcon icon={{ kind: "glyph", key: SENSE_GLYPHS[name] }} size="size-5" /> : null}
               {copy.senses[name]} (ft)
             </span>
             <input
@@ -236,7 +236,7 @@ export function SkillsAndSenses({ draft, onChange }: { draft: MonsterDraft; onCh
         ))}
         <label className="flex flex-col gap-0.5">
           <span className="flex items-center gap-1 text-[10px] uppercase tracking-wide text-stone-500">
-            <GameIcon icon={{ kind: "glyph", key: "sense-passive-perception" }} size="size-4" />
+            <GameIcon icon={{ kind: "glyph", key: "sense-passive-perception" }} size="size-5" />
             {copy.passive}
           </span>
           <input

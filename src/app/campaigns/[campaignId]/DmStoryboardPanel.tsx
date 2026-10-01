@@ -351,7 +351,7 @@ export function DmStoryboardPanel({
                 onClick={() => void add(suggestion.kind, suggestion.title)}
                 className="inline-flex items-center gap-1 rounded-md border border-stone-700 py-0.5 pl-0.5 pr-1.5 text-[10px] text-stone-400 hover:text-amber-100 disabled:opacity-40"
               >
-                <GameIcon icon={{ kind: "glyph", key: KIND_GLYPH[suggestion.kind] }} size="size-4" />
+                <GameIcon icon={{ kind: "glyph", key: KIND_GLYPH[suggestion.kind] }} size="size-5" />
                 + {BEAT_LABELS[suggestion.kind]}
               </button>
             </div>

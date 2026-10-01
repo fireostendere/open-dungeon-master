@@ -6,7 +6,8 @@ import { cn } from "@/lib/cn";
 // so neither has to import the other.
 export function headerButtonClass(lit: boolean, className?: string) {
   return cn(
-    "rounded-lg border p-2.5 transition-colors sm:p-1.5",
+    // The same 34 px plate as the header's text buttons, icon-only or not.
+    "flex items-center justify-center gap-1.5 rounded-lg border p-2.5 text-sm transition-colors sm:h-[34px] sm:px-2.5 sm:py-0",
     lit
       ? "border-amber-500/40 bg-amber-400/10 text-amber-300 shadow-glow-gold"
       : "border-stone-700/70 text-stone-500 hover:border-stone-600 hover:text-stone-300",

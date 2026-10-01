@@ -104,7 +104,7 @@ export function BeatBoard({
                       key={link.field}
                       className="inline-flex items-center gap-1 rounded-md border border-stone-700 px-1.5 py-0.5 text-[10px] text-stone-400"
                     >
-                      <GameIcon icon={{ kind: "glyph", key: LINK_GLYPH[link.field] }} size="size-4" />
+                      <GameIcon icon={{ kind: "glyph", key: LINK_GLYPH[link.field] }} size="size-5" />
                       <span className="text-stone-600">{link.short} </span>
                       {link.name}
                     </span>

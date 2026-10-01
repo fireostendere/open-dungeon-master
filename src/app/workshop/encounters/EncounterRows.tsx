@@ -194,7 +194,7 @@ export function EncounterRows({
                  <p className="truncate text-xs text-stone-500">{copy.on} {encounter.battlefield}</p>
               ) : null}
               <p className="flex items-center gap-1 truncate text-[11px] text-stone-500">
-                <GameIcon icon={{ kind: "glyph", key: "system-maps" }} size="size-4" />
+                <GameIcon icon={{ kind: "glyph", key: "system-maps" }} size="size-5" />
                 {mapName(encounter)}
               </p>
             </button>

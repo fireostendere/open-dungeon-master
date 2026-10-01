@@ -167,7 +167,7 @@ export function AdminUsersPanel({ meId }: { meId: string }) {
                   {user.id === meId ? <span className="text-xs text-stone-500">{uiText("(you)")}</span> : null}
                   {user.isAdmin ? (
                     <span className="inline-flex items-center gap-1 rounded border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-amber-300">
-                      <GameIcon icon={{ kind: "glyph", key: "tab-admin" }} size="size-4" />
+                      <GameIcon icon={{ kind: "glyph", key: "tab-admin" }} size="size-5" />
                       {uiText("Admin")}
                     </span>
                   ) : null}

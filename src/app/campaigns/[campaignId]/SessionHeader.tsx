@@ -238,6 +238,7 @@ export function SessionHeader({
               className={headerButtonClass(rulebookOpen)}
             >
               <BookOpenText className="size-4" />
+              <span className="hidden xl:inline">{copy.rulebook}</span>
             </button>
           </Tooltip>
 
@@ -250,6 +251,7 @@ export function SessionHeader({
               className={headerButtonClass(false)}
             >
               <CircleHelp className="size-4" />
+              <span className="hidden xl:inline">{copy.help}</span>
             </button>
           </Tooltip>
 
@@ -273,10 +275,10 @@ export function SessionHeader({
               aria-haspopup="dialog"
               aria-expanded={fxOpen}
               data-tour="header-dice"
-              className={headerButtonClass(fxLit, "flex items-center gap-1.5")}
+              className={headerButtonClass(fxLit)}
             >
               <Sparkles className="size-4" />
-              <span className="hidden text-xs xl:inline">{copy.animations}</span>
+              <span className="hidden xl:inline">{copy.animations}</span>
             </button>
           </Tooltip>
 

@@ -269,7 +269,7 @@ export function MapPanel({
           ) : null}
           {shown.connections.length ? (
             <p className="mt-1 flex items-start gap-1 text-xs text-stone-500">
-              <GameIcon icon={{ kind: "glyph", key: "pace-normal" }} size="size-4" />
+              <GameIcon icon={{ kind: "glyph", key: "pace-normal" }} size="size-5" />
               <span>{copy.routes} {shown.connections.join(", ")}</span>
             </p>
           ) : null}
@@ -296,7 +296,7 @@ export function MapPanel({
                       : "text-stone-400 hover:bg-stone-900",
                   )}
                 >
-                  <GameIcon icon={{ kind: "glyph", key: location.mapImage ? "tab-map" : "quest-hidden" }} size="size-4" />
+                  <GameIcon icon={{ kind: "glyph", key: location.mapImage ? "tab-map" : "quest-hidden" }} size="size-5" />
                   {location.name}
                   {location.isCurrent ? ` (${copy.here})` : ""}
                   {location.mapImage ? "" : ` · ${copy.unmappedShort}`}

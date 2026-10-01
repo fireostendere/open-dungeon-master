@@ -467,7 +467,7 @@ function ComposerInner({
                   globalTurnEnabled && !isDm && option === "do" && heroResponded && "opacity-60",
                 )}
               >
-                <GameIcon icon={{ kind: "glyph", key: MODE_GLYPHS[option] }} size="size-4" />
+                <GameIcon icon={{ kind: "glyph", key: MODE_GLYPHS[option] }} size="size-5" />
                 {optionLabel(option)}
               </button>
             </Tooltip>

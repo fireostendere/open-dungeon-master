@@ -387,8 +387,8 @@ export function CharacterSheetDialog({
                   key={condition}
                   className="inline-flex items-center gap-1 rounded-full bg-red-950 py-0.5 pl-1 pr-2 text-xs text-red-300"
                 >
-                  <GameIcon icon={{ kind: "condition", key: conditionIconKey(condition) }} size="size-4" className="border-red-800/60" />
-                  {condition}
+                  <GameIcon icon={{ kind: "condition", key: conditionIconKey(condition) }} size="size-5" className="border-red-800/60" />
+                  {characterDisplay(condition, locale)}
                   {sheet.conditionMeta?.[condition]?.rounds
                     ? ` (${describeConditionDuration(sheet.conditionMeta[condition].rounds, locale)})`
                     : ""}

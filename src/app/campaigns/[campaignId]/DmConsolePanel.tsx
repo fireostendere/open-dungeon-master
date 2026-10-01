@@ -86,13 +86,13 @@ function FloorControl({
                   : "border-stone-700 text-stone-400 hover:text-stone-200",
               )}
             >
-              <GameIcon icon={{ kind: "glyph", key: option === "open" ? "tab-chat" : "cue-bell" }} size="size-4" />
+              <GameIcon icon={{ kind: "glyph", key: option === "open" ? "tab-chat" : "cue-bell" }} size="size-5" />
               {option === "open" ? uiText("Anyone may act") : uiText("Hold everyone")}
             </button>
           ))}
           {mode === "spotlight" ? (
             <span className="inline-flex items-center gap-1 rounded-md border border-amber-700 bg-amber-950/50 py-1 pl-1 pr-2 text-xs text-amber-100">
-              <GameIcon icon={{ kind: "glyph", key: "tab-lead" }} size="size-4" />
+              <GameIcon icon={{ kind: "glyph", key: "tab-lead" }} size="size-5" />
               {uiText("Spotlight")}
             </span>
           ) : (
@@ -239,7 +239,7 @@ export function DmConsolePanel({
                   }}
                   className="mt-1 inline-flex items-center gap-1 text-[11px] text-stone-500 hover:text-amber-200"
                 >
-                  <GameIcon icon={{ kind: "glyph", key: "die-d20" }} size="size-4" />
+                  <GameIcon icon={{ kind: "glyph", key: "die-d20" }} size="size-5" />
                   {uiText("What should I press?")}
                 </button>
               </li>

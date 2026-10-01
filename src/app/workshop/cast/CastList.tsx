@@ -177,7 +177,7 @@ export function CastRows({ npcs, onOpen }: Omit<ListProps, "selectedId">) {
                         ATTITUDE_TAG[npc.attitude] ?? ATTITUDE_TAG.indifferent,
                       )}
                     >
-                      <GameIcon icon={{ kind: "glyph", key: ATTITUDE_GLYPH[npc.attitude] ?? "attitude-neutral" }} size="size-3.5" />
+                      <GameIcon icon={{ kind: "glyph", key: ATTITUDE_GLYPH[npc.attitude] ?? "attitude-neutral" }} size="size-5" />
                       {npc.attitude}
                     </span>
                     {npc.archived ? (
