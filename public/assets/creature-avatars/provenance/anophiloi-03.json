@@ -1,0 +1,17 @@
+{
+  "creatureId": "anophiloi",
+  "variantId": "03",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy creature avatar, tactile painterly realism, atmospheric cinematic lighting, crisp insect silhouette readable at 512 pixels. Anophiloi from Creature Codex: a large-dog-sized intelligent MONSTROUS MOSQUITO, Small monstrosity. One small insect head with two dark compound eyes, one long straight needle-like PROBOSCIS, two fine antennae, humped dark thorax, elongated segmented abdomen, exactly SIX long thin jointed legs with hooked tips and exactly TWO transparent veined mosquito wings attached to the upper thorax. No humanoid body, hands, additional wings, bird beak, stinger or mammal features. Fine charcoal chitin and sparse bristles, muted reddish abdomen suggests feeding without blood or wounds. The creature is alone, no victims or feeding injury. Original markings, poses and scenarios, no copied source art. No text, signature, logo, watermark or frame. Normal 03. Close portrait of a lean gray-black anophiloi just roused from seasonal dormancy, perched under the bark of a swamp tree. Its thin dried abdomen is dark and narrow, stick-like legs grip the bark, one long needle snout and two antennae extend from the compact head. Two delicate translucent wings begin to unfold behind it, six legs total. Condensed droplets and first warm dawn light through humid mist, unsettling brittle insect anatomy, no frozen injury.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/anophiloi/",
+      "note": "Creature Codex intelligent mosquito-like monstrosity, dog-sized, long needle snout, flying wings and seasonal cold dormancy. Original mosquito anatomy detailing, color patterns and scenes, no victims or injury depiction."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

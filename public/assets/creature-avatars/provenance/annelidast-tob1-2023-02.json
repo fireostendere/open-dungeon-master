@@ -1,0 +1,17 @@
+{
+  "creatureId": "annelidast-tob1-2023",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy creature avatar, tactile painterly realism with dramatic subterranean lighting, clear huge worm silhouette readable at 512 pixels. Annelidast from Tome of Beasts 1 2023: a gigantic burrowing WORM whose annulated flexible body is protected by dull LEAD-GRAY overlapping carapace plates. No legs, arms, wings, eyes, antennae, horns or dragon head. One broad terminal scoop-like mouth contains fine close-set BALEEN-LIKE FILTER COMBS, thin pale flexible bristles forming a filtering fringe instead of big stabbing teeth. Heavy gray metal-mineral armor with scuffs and mineral deposits surrounds the circular-to-oval mouth and repeats along the body, but it is an organic creature, not a machine. Very faint primordial gold-green magic clings to shell seams, deep-earth ancient presence, no victims or gore. Mouth shape and armor pattern are original interpretation of the filter-feeding worm description. No text, signature, logo, watermark or frame. Normal 02. Side-angle close portrait of the eyeless worm head gliding through a rootless underground stone tunnel. A wide rounded scoop-mouth slightly open reveals densely packed cream-colored baleen comb strips hanging inside, no spikes or fangs. Matte charcoal lead plates with scratched silver edges flex around thick body segments; a subtle green-gold aura glints along fissures in the rock. Warm mineral light, cold shell highlights, heavy quiet ancient motion.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/annelidast/",
+      "note": "ToB1 2023 gigantic deep-earth worm with lead-plated carapace, baleen-like filtering teeth and primordial magic aura. Eyeless armored mouth and plate layout are original anatomical interpretation; no copied art."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

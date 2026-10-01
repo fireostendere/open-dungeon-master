@@ -1,0 +1,21 @@
+{
+  "creatureId": "ankylosaurus-a5e",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy creature avatar, cinematic natural history painterly realism, tactile pebbled skin and bone armor, head and silhouette legible at 512 pixels. Ankylosaurus from Level Up A5E: a Huge living herbivorous armored dinosaur. Very broad low barrel-shaped body, short thick neck, wide blunt beaked head, small alert eyes, rear-pointing bony corner horns behind the eyes and cheek horns, exactly FOUR short sturdy legs beneath its body. Rows of low irregular bony osteoderms embedded across back and neck; NOT a turtle shell and NOT tall stegosaurus plates. One long stiff tail with a single broad heavy blunt BONY CLUB at the end, never tail spikes. No wings, extra tails, armor harness, mammal fur or meat-eater fangs. Earthy original color patterns; armor arrangement and colors are artistic interpretation. No text, signature, watermark, logo or frame. YOLO absurd 04. A massive armored ankylosaurus plays very dignified lawn croquet using its single blunt bony tail club as the mallet, about to tap one tiny pink croquet ball through a wooden hoop beside its flank. It wears a comically small bowler hat on its broad low head and a monocle beside one eye, while keeping all four stout dinosaur feet planted. No hands, no second tail, no manufactured mallet. Close enough to read the beaked face, with the continuous tail and club visible at the side. Overly fancy medieval garden, deadpan serious dinosaur realism, no text.",
+  "designReferences": [
+    {
+      "url": "https://a5e.tools/node/1489",
+      "note": "Official A5E Huge herbivore with armored back and heavy clubbed tail."
+    },
+    {
+      "url": "https://www.nhm.ac.uk/discover/dino-directory/ankylosaurus.html",
+      "note": "Museum anatomy reference: broad armored quadrupedal herbivore, beaked mouth, bony body plates and blunt tail club. Exact armor layout and colors are interpreted."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

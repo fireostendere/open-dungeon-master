@@ -1,0 +1,17 @@
+{
+  "creatureId": "anophiloi",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy creature avatar, tactile painterly realism, atmospheric cinematic lighting, crisp insect silhouette readable at 512 pixels. Anophiloi from Creature Codex: a large-dog-sized intelligent MONSTROUS MOSQUITO, Small monstrosity. One small insect head with two dark compound eyes, one long straight needle-like PROBOSCIS, two fine antennae, humped dark thorax, elongated segmented abdomen, exactly SIX long thin jointed legs with hooked tips and exactly TWO transparent veined mosquito wings attached to the upper thorax. No humanoid body, hands, additional wings, bird beak, stinger or mammal features. Fine charcoal chitin and sparse bristles, muted reddish abdomen suggests feeding without blood or wounds. The creature is alone, no victims or feeding injury. Original markings, poses and scenarios, no copied source art. No text, signature, logo, watermark or frame. Normal 02. Side view of the entire dog-sized mosquito hovering in a humid jungle clearing, head and needle proboscis prominent at the front, streamlined russet segmented abdomen trailing behind. Exactly two translucent wings raised in one pair, the far wing naturally partly overlapping the near one, six long thin clawed legs hanging in a loose coherent basket beneath. Sunlight glows through fine wing veins, dark lush foliage, restrained crimson abdomen and charcoal thorax, ominous biological realism.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/anophiloi/",
+      "note": "Creature Codex intelligent mosquito-like monstrosity, dog-sized, long needle snout, flying wings and seasonal cold dormancy. Original mosquito anatomy detailing, color patterns and scenes, no victims or injury depiction."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

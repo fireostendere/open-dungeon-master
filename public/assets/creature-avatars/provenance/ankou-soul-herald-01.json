@@ -1,0 +1,17 @@
+{
+  "creatureId": "ankou-soul-herald",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy creature avatar, tactile painterly realism, dramatic cinematic light and striking skull silhouette readable at 512 pixels. Ankou Soul Herald from Creature Codex: a GARGANTUAN spectral dragon that escorts souls for the gods of death. Its true form has clean bleached ivory-white DRAGON BONES surrounded by an inky-black fluttering cloak of supernatural shadows. One long draconic skull with horn-like backward bone projections and hollow eye sockets, segmented bony neck, rib cage, exactly four skeletal clawed legs, exactly TWO skeletal dragon wings with shadow membranes, and one long bony tail. No flesh, gore, armor, human skull or undead corruption. It is a solemn ancient celestial psychopomp opposed to necromancy, calm and methodical rather than mindlessly evil. Restrained cold silver-blue light in the sockets and radiant edges, not green toxic glow. Original anatomy detailing and compositions; no copied publisher art. No text, signature, watermark, logo or frame. Normal 01. Monumental frontal three-quarter skull and upper neck portrait, broad crown-like natural ivory horn ridges behind the long narrow dragon skull, its massive clean teeth slightly parted. A swirling black shadow mantle frames the skull and rib cage while a single pair of wing shoulders arches behind, ancient grave architecture tiny below establishes colossal scale. Cold moonlike backlight, dark silver atmosphere, serene implacable authority.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/ankou-soul-herald/",
+      "note": "Creature Codex Gargantuan dragon and death-god emissary, bleached dragon skeleton cloaked in shadows. Herald leads soul seekers and opposes necromancy. Skull/wing details and all scenes are original."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

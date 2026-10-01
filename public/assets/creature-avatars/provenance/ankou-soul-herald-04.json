@@ -1,0 +1,17 @@
+{
+  "creatureId": "ankou-soul-herald",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy creature avatar, tactile painterly realism, dramatic cinematic light and striking skull silhouette readable at 512 pixels. Ankou Soul Herald from Creature Codex: a GARGANTUAN spectral dragon that escorts souls for the gods of death. Its true form has clean bleached ivory-white DRAGON BONES surrounded by an inky-black fluttering cloak of supernatural shadows. One long draconic skull with horn-like backward bone projections and hollow eye sockets, segmented bony neck, rib cage, exactly four skeletal clawed legs, exactly TWO skeletal dragon wings with shadow membranes, and one long bony tail. No flesh, gore, armor, human skull or undead corruption. It is a solemn ancient celestial psychopomp opposed to necromancy, calm and methodical rather than mindlessly evil. Restrained cold silver-blue light in the sockets and radiant edges, not green toxic glow. Original anatomy detailing and compositions; no copied publisher art. No text, signature, watermark, logo or frame. YOLO absurd 04. The gigantic skeletal dragon soul herald is having an absurd bureaucratic day: a tiny pair of round brass reading glasses balances on its dragon skull, and one enormous bone claw delicately holds a minuscule wooden ticket dispenser with a long BLANK paper strip. A queue of three tiny featureless glowing ghost blobs waits politely beside a ridiculously small velvet rope. Its inky shadow cloak and monumental ivory bones remain majestic, deadpan patience, dim afterlife reception hall, absolutely no letters, numbers, stamps or written symbols.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/ankou-soul-herald/",
+      "note": "Creature Codex Gargantuan dragon and death-god emissary, bleached dragon skeleton cloaked in shadows. Herald leads soul seekers and opposes necromancy. Skull/wing details and all scenes are original."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

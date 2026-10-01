@@ -1,0 +1,17 @@
+{
+  "creatureId": "anophiloi",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy creature avatar, tactile painterly realism, atmospheric cinematic lighting, crisp insect silhouette readable at 512 pixels. Anophiloi from Creature Codex: a large-dog-sized intelligent MONSTROUS MOSQUITO, Small monstrosity. One small insect head with two dark compound eyes, one long straight needle-like PROBOSCIS, two fine antennae, humped dark thorax, elongated segmented abdomen, exactly SIX long thin jointed legs with hooked tips and exactly TWO transparent veined mosquito wings attached to the upper thorax. No humanoid body, hands, additional wings, bird beak, stinger or mammal features. Fine charcoal chitin and sparse bristles, muted reddish abdomen suggests feeding without blood or wounds. The creature is alone, no victims or feeding injury. Original markings, poses and scenarios, no copied source art. No text, signature, logo, watermark or frame. YOLO absurd 04. The enormous mosquito hates the cold and has dressed in a ridiculous tiny knitted scarf and wool earmuffs over the sides of its insect head. It clutches a comically small mug of hot cocoa between the hooked tips of its front two insect legs while its single long needle proboscis has become embarrassingly plugged by one oversized white marshmallow. Four remaining legs brace on a wooden windowsill, exactly two transparent wings folded along its slim segmented abdomen. Snow visible outside, warm tavern interior, no human hands, deadpan realistic fantasy insect, no words on the mug. Targeted follow-up edit: Correct only the surplus-leg anatomy in this existing giant mosquito with cocoa image. It must have exactly SIX legs total: keep the two forelegs holding the cocoa mug, and exactly four supporting legs. Preserve the strong supporting leg ending at x=247 y=940 on the left windowsill, the strong central foreground leg ending at x=640 y=1140, the strong right foreground leg ending at x=1150 y=1150, and the far-right rear leg ending at x=1170 y=1035. Remove the TWO extra thinner intermediate legs: the one running down from beneath the scarf to the middle-left sill at x=466 y=890, and the one behind the abdomen that ends near x=880 y=1010. Restore the warm room background where those two surplus legs were. Keep all other anatomy, two wings, scarf, earmuffs, marshmallow on the single proboscis, cocoa mug, snowy window and composition unchanged. No text or signature.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/anophiloi/",
+      "note": "Creature Codex intelligent mosquito-like monstrosity, dog-sized, long needle snout, flying wings and seasonal cold dormancy. Original mosquito anatomy detailing, color patterns and scenes, no victims or injury depiction."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}
