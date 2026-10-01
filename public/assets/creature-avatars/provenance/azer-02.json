@@ -1,0 +1,21 @@
+{
+  "creatureId": "azer",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy elemental character portrait, tactile painterly realism, gleaming worked bronze and bright living flames, sharp adult face readable at 512 pixels. Azer is a Medium elemental with a stocky DWARF-LIKE BODY MADE OF SOLID BRONZE, animated by inner fire. Metal skin is visibly bronze, not ordinary human skin or orange painted flesh. Exactly two arms, two hands, two legs, one head. Crown of flame as hair and optional flame beard are original fire-elemental styling; no horns, wings or tail. Carries a WARHAMMER and SHIELD, practical smith's apron or metal belt, original individual identity. No victims, injury, blood, text, signature, watermark, logo or border. Normal 02. A mature female-shaped bronze azer with a stern sculpted metal face and short blue-orange flame hair guards an obsidian bridge over lava. Stocky powerful dwarflike build, no flesh, two arms and two legs, engraved bronze breastplate and work belt, warhammer held low and square shield raised casually at her side. Cool mineral light contrasts with bright volcanic glow, original close three-quarter portrait.",
+  "designReferences": [
+    {
+      "url": "https://5thsrd.org/gamemaster_rules/monsters/azer/",
+      "note": "SRD5.1 Medium elemental with heated body, illumination, warhammer and shield. Original smith portraits."
+    },
+    {
+      "url": "https://a5e.tools/node/1433",
+      "note": "Publisher's description of the shared Azer form confirms living flame inside dwarflike bronze bodies. Used only for appearance reference; SRD5.1 equipment retained. Flame hair/beard shapes, gender presentation and surface decoration are original choices."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

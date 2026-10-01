@@ -1,0 +1,17 @@
+{
+  "creatureId": "axe-beak",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy beast portrait, rich painterly realism, crisp feathers and heavy keratin beak, readable at 512 pixels. Axe Beak is a LARGE tall FLIGHTLESS BIRD with powerful long running legs and a very HEAVY WEDGE-SHAPED BEAK with a sharp cutting lower edge. The beak is part of its living bird head, made of dark horn-like KERATIN, never a metal axe attached to a face. One head on a sturdy long neck, two strong clawed legs, two SMALL vestigial feathered wings held close to its body, short feather tail. Original terror-bird-like proportions and plumage, alert fierce disposition, no human arms, tools held in hands, extra limbs or flyable wings. No victims, blood, signature, text, watermark, logo or border. YOLO 04. A furious axe beak wearing a ludicrously tiny lumberjack hardhat has wedged the TIP of its huge natural wedge-shaped beak into a chopping-block LOG and is trying to pull free. Most of the heavy keratin beak remains visible, two strong bird feet brace on either side of the log, small wings flap uselessly close to its body. A red plaid scarf and piles of perfectly split firewood make the bird's chosen career obvious. No injury, no metal axe-beak, no human hands, deadpan fantasy logging-camp mishap.",
+  "designReferences": [
+    {
+      "url": "https://5thsrd.org/gamemaster_rules/monsters/axe_beak/",
+      "note": "SRD5.1 Large flightless bird with strong legs and heavy wedge-shaped beak. Original terror-bird proportions, keratin coloring, feather patterns and small vestigial wings; no literal metal axe attached to the animal."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

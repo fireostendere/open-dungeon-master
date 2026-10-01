@@ -1,0 +1,17 @@
+{
+  "creatureId": "azeban",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy fey character portrait, rich painterly realism, detailed fur and clever yellow eyes readable at 512 pixels. Azeban is a Medium RACCOON-LIKE HUMANOID trickster spirit with gray-brown FUR, natural dark DOMINO-MASK facial markings, glowing YELLOW EYES, sharp climbing CLAWS, and one bushy RINGED TAIL. Upright nimble bipedal body with exactly TWO arms and TWO legs, clawed animal hands and feet, one raccoon head, no wings or horns. Adult fey presence, original faces and modest practical fantasy clothing, not an ordinary small quadruped raccoon and not a named franchise character. No text, signature, watermark, logo or border. YOLO 04. A self-important raccoon-humanoid azeban in a fancy little waistcoat has decided to WASH an enormous pink COTTON-CANDY cloud in a tiny basin, only to watch it dissolve into a pathetic sticky thread. Its glowing yellow eyes widen in catastrophic disbelief above the natural black mask, two clawed hands freeze over the water, striped tail fluffed out in outrage. A bare candy stick and one surviving pink tuft, ornate tea table by a forest stream, highly expressive nonverbal comedy, no writing.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/azeban/",
+      "note": "Creature Codex Medium raccoon-like humanoid fey with gray-brown fur, ringed tail, climbing claws, dark mask markings and glowing yellow eyes; forest illusionist that washes food. Original adult identities, clothing and scenes; cotton-candy washing joke extends the sourced habit."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}
