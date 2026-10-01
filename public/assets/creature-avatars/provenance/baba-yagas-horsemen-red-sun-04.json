@@ -1,0 +1,25 @@
+{
+  "creatureId": "baba-yagas-horsemen-red-sun",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy bestiary avatar, detailed realistic painterly illustration, cinematic lighting and highly readable face at 512 pixels. An ADULT male human-appearing fey knight in his prime, strong weathered face and short mature beard. RED lacquered plate armor, RED cloak and RED shield with bronze or gold decorative motifs. Red Sun has fire and blazing sunlight magic. His powerful magical horse is rich RED-CHESTNUT with a copper-red mane and matching red trappings. Living human and natural-looking horse, no skeletal body or wings. A single human-form knight with exactly two arms and two legs; one horse with one head and normal four-legged equine anatomy. Plate armor, shield, lance or longsword as described. Original adult identity and compositions distinct from all previous artwork. No gore, injuries, victims, text, signature, logo, watermark, frame or grid. YOLO 04. The mighty fire-immune red knight attempts breakfast beside his red-chestnut horse but has charred a single slice of toast into a ridiculous jet-black square. In full polished RED plate and a small ruffled kitchen apron, he holds the smoking toast delicately on a very long roasting fork and regards it with profound military shame. The red horse leans in and makes a hilariously disgusted face. Medieval camp kettle and rustic breakfast table, bright warm morning, no fire spreading, no injuries, no text.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/baba-yagas-horsemen-3pp/",
+      "note": "Shared visual identity of Baba Yaga's three horsemen: living male human-form fey knights with matching armor and magical horses. This legacy catalog entry depicts only RED SUN. Current SRD corroborates identity and plate/shield/lance/longsword equipment; original faces, armor ornament and scenes, no copied publisher art."
+    },
+    {
+      "url": "https://koboldpress.com/midgard-icons-baba-yaga/",
+      "note": "Publisher corroborates Bright Day, Red Sun and Black Night as Baba Yaga's named servants. Only the specified aspect appears here."
+    },
+    {
+      "url": "https://github.com/open5e/open5e-api/blob/staging/data/v1/tob/Monster.json",
+      "note": "Licensed legacy Tome of Beasts dataset independently verifies this named aspect, lance/longsword and a phantom steed in the matching color. Black Night ray of frost, Bright Day daylight/sacred flame, and Red Sun fire spells corroborate the visual themes."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

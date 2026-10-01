@@ -1,0 +1,17 @@
+{
+  "creatureId": "baboon",
+  "variantId": "03",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy wildlife bestiary avatar, richly detailed realistic painterly rendering, natural mammal anatomy and readable animal face at 512 pixels. One ordinary B A B O O N, a Papio monkey with a long dog-like muzzle, close-set brown eyes, rounded ears, long strong forelimbs, shorter hindlimbs, grasping hands and feet and ONE long natural tail. Exactly four limbs. Clearly a real BABOON, not a chimpanzee, mandrill, gorilla or human; no bright blue-and-red mandrill facial ridges. Small beast relative to the landscape. Natural fur and skin, no human body. No injuries, blood, text, signature, watermark, logo, border or grid. Normal 03. A mature male hamadryas-type baboon sits regally on a rocky escarpment under gray storm clouds, a broad SILVER-GRAY CAPE OF FUR over the shoulders, long pinkish bare muzzle, dark brown eyes, natural hands resting on stone, two hindfeet tucked beneath, one long tail curving alongside. Correct real baboon anatomy and four limbs, close head and body portrait, dramatic side lighting, no clothes or fantasy horns.",
+  "designReferences": [
+    {
+      "url": "https://5thsrd.org/gamemaster_rules/monsters/baboon/",
+      "note": "SRD5.1 ordinary Small baboon beast, climbing, bite and pack tactics. Original Papio-type animal depictions, olive/yellow/hamadryas-inspired fur variation, elongated muzzle and one tail; source does not select a particular real-world baboon species. YOLO props are original absurdity, retaining animal anatomy."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

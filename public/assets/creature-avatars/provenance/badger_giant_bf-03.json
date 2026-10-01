@@ -1,0 +1,21 @@
+{
+  "creatureId": "badger_giant_bf",
+  "variantId": "03",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy giant-animal bestiary avatar, detailed realistic painterly fur and claws, readable at 512 pixels. One GIANT BADGER from Black Flag SRD, a MEDIUM beast: original roughly mastiff-sized enlargement of a normal European-type badger, not a colossal monster. Low heavy muscular badger body, grizzled gray fur, white elongated head with two broad BLACK stripes over its eyes to its little rounded ears, pointed black nose, exactly FOUR sturdy short clawed legs and ONE SHORT tail. Natural quadruped anatomy, no human torso, no raccoon tail or skunk pattern. Nearby ordinary objects establish its much larger size than a normal badger. No blood, injury, victims, text, signature, watermark, logo or grid. Normal 03. Close low-angle portrait of a giant badger crossing a cobbled forest path beside a broken standard wagon wheel. Its gray muscular body is comparable to a large mastiff, with a broad wedge-shaped striped face, rounded ears and blunt digging claws. Four grounded feet, short tail, moonlit blue mist and mossy oak roots, no equipment worn.",
+  "designReferences": [
+    {
+      "url": "https://github.com/open5e/open5e-api/blob/staging/data/v2/kobold-press/bfrd/Creature.json",
+      "note": "Licensed Black Flag Reference Document creature entry bfrd_badger-giant is a Medium burrowing beast. Original mastiff-sized enlargement and European-badger fur pattern communicate the stated size; exact real-world dimensions and body colors are artistic interpretation. Four-legged quadruped, short tail, no copied artwork."
+    },
+    {
+      "url": "https://5thsrd.org/gamemaster_rules/monsters/badger/",
+      "note": "Ordinary badger identity and burrowing behavior provide baseline anatomy; giant entry remains separately illustrated with scale objects."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

@@ -1,0 +1,21 @@
+{
+  "creatureId": "backup-holler-spider",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy tiny-monster avatar, detailed realistic painterly macro illustration, clear body silhouette at 512 pixels. One BACKUP HOLLER SPIDER, a Tiny beast with a natural SPIDER body: one compact cephalothorax and one rounded abdomen, EXACTLY EIGHT LONG WALKING LEGS in FOUR PAIRS, four legs on each side, tiny clustered dark eyes and small mouthparts. No arms, wings, antennae or human face. Its defining feature is ONE HOLLOW HORN-LIKE PROTRUSION grown naturally from the dorsal chitin, curving up and forward to a flared opening for loud hooting. The horn is ORGANIC ridged CHITIN continuous with the shell, NOT brass, metal or an attached musical instrument. Original horn placement/curve and shell colors; keep all eight leg roots and tips understandable. Tiny relative to leaves and ordinary objects. No prey, violence, injury, blood, text, signature, watermark, frame or grid. Normal 02. An iridescent blue-black holler spider clings to a rough wooden gate beside one enormous iron hinge. Three-quarter top view, eight slender dark segmented legs visibly grip the wood, one natural dark chitin horn with a pale blue ridged rim rises from its back. Its tiny clustered eyes watch the path beyond, silver moonlight and amber lantern bokeh, no mechanized body or metal horn.",
+  "designReferences": [
+    {
+      "url": "https://github.com/open5e/open5e-api/blob/staging/data/v1/tob2/Monster.json",
+      "note": "Licensed Tome of Beasts 2 dataset contains both Backup Holler Spider and Holler Spider entries with shared Tiny beast anatomy and hooting sound actions. Separate supplied catalog IDs are retained with distinct original art; backup is not assigned an invented humanoid or mechanical form."
+    },
+    {
+      "url": "https://www.5esrd.com/database/creature/holler-spider/",
+      "note": "Natural chitinous horn-like protrusion releases hoots/trumpets; tameable sentry and musical animal. Eight-leg spider anatomy, horn count/placement/curve, shell colors and cork joke are original visual interpretations; no publisher art copied."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}
