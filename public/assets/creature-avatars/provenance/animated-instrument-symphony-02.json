@@ -1,0 +1,17 @@
+{
+  "creatureId": "animated-instrument-symphony",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy creature avatar, richly textured painterly realism, cinematic contrast, coherent focal silhouette legible at 512 pixels. Animated Symphony from Tome of Beasts 3: a gargantuan magical SWARM of many separate Small musical instruments hovering and playing together with hive-mind intent. Dozens of recognizable violins, small lutes, hand drums, trumpets and woodwinds suspended in a dense coordinated spiral. NO musicians, humanoid body, giant face, limbs, wings or fused instrument robot. Individual complete instruments remain separate with readable gaps, about five prominent foreground instruments against many smaller receding ones, so the swarm itself is the monster. Ghostly sound-pressure ripples and dust, no literal written musical notes or sheet music. Original instrument designs and composition. No words, signature, watermark, logo or border. Normal 02. A dense wave of rosewood lutes, bronze trumpets, walnut shawms and pale frame drums floats over an abandoned royal ballroom. Lead with several highly readable instruments converging at center, many more spiral backward in a crescent instead of a humanoid form. Deep burgundy velvet balconies and green-gold candlelit atmosphere, amber rhythmic pressure ripples, sweeping movement and commanding musical sentience.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/animated-symphony/",
+      "note": "ToB3 gargantuan swarm of Small musical constructs with shared musical personality and magical sound attacks. Original ensemble combinations, vortex compositions and comedic details."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

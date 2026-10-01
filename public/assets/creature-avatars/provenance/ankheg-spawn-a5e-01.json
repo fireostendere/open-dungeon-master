@@ -1,0 +1,17 @@
+{
+  "creatureId": "ankheg-spawn-a5e",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy creature avatar, tactile painterly realism, cinematic light, sharply readable insect face at 512 pixels. Ankheg Spawn from Level Up A5E: a Medium young ankheg, larger than a mastiff but much smaller and more lightly built than the adult queen. A fully formed burrowing insect, NOT a worm larva: one head with large compound eyes, exactly two delicate jointed antennae, paired serrated mandibles, segmented thorax and compact abdomen, exactly SIX jointed insect legs including a strong front digging pair. Amber-brown chitin shell with lighter honey-ochre underside, narrower less ridged plates than an adult, poised energetic silhouette. No wings, stinger, human hands or mammal face. No gore or victims. Original design and composition, no words, signature, logo, watermark or frame. Normal 01. Close frontal three-quarter portrait of an alert juvenile ankheg peering out of its small root tunnel, oversized amber compound eyes and narrow serrated jaws held open, small bright green acid bead at the mouth. Delicate paired antennae stretch forward, two front hook-like claws brace on dirt, the other four legs recede behind. Warm honey-brown fresh chitin and pale underside, sunbeam filtering through roots, nimble dangerous young insect.",
+  "designReferences": [
+    {
+      "url": "https://a5e.tools/node/1439",
+      "note": "Official A5E Medium ankheg spawn: young burrowing insects with claws, biting mandibles and acid spit, larger than mastiffs. Lighter shell and juvenile proportions are original interpretation."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

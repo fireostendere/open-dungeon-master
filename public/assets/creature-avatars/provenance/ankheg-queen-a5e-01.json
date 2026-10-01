@@ -1,0 +1,21 @@
+{
+  "creatureId": "ankheg-queen-a5e",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy creature avatar, painterly tactile realism, cinematic light, large insect face and imposing silhouette legible at 512 pixels. Ankheg Queen from Level Up A5E: a HUGE mature female burrowing insect, substantially bulkier than an ordinary ankheg, guardian of a clutch of eggs. One broad armored insect head, two large compound eyes, two jointed antennae, one matching pair of enormous serrated mandibles, long segmented thorax and broad heavy abdomen. Exactly SIX jointed insect limbs: one powerful front digging/grappling pair and two supporting pairs. Deep crimson-brown chitin armor over a pale ochre segmented underside, no wings, stinger, mammal muzzle or human anatomy. Queen-specific broad shell ridges and increased abdomen bulk are an original visual interpretation, not a literal crown. No copied publisher art. No text, signature, logo, watermark or frame. Normal 01. Frontal low close view of the enormous queen head and raised thorax looming over a few intact ivory oval eggs in a dark earthen nest. Two foreclaws planted protectively on either side of the clutch, heavy maroon chitin ridges with amber worn edges, compound eyes reflecting small golden highlights. Two antennae arc high, enormous jaws slightly open with subtle acid sheen, rear legs and broad abdomen recede naturally into cave shadow. Deep blue cave light and warm shafts from the entrance.",
+  "designReferences": [
+    {
+      "url": "https://a5e.tools/node/1463",
+      "note": "Official A5E Huge ankheg queen, burrowing insect with claws, strong mandibles, acid spray and a nest of eggs. Broad mature shell and abdomen proportions are original interpretation."
+    },
+    {
+      "url": "https://a5e.tools/node/1438",
+      "note": "Publisher describes the ankheg as a giant armored burrowing insect; original composition and anatomy detailing."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

@@ -1,0 +1,17 @@
+{
+  "creatureId": "animated-instrument-symphony",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy creature avatar, richly textured painterly realism, cinematic contrast, coherent focal silhouette legible at 512 pixels. Animated Symphony from Tome of Beasts 3: a gargantuan magical SWARM of many separate Small musical instruments hovering and playing together with hive-mind intent. Dozens of recognizable violins, small lutes, hand drums, trumpets and woodwinds suspended in a dense coordinated spiral. NO musicians, humanoid body, giant face, limbs, wings or fused instrument robot. Individual complete instruments remain separate with readable gaps, about five prominent foreground instruments against many smaller receding ones, so the swarm itself is the monster. Ghostly sound-pressure ripples and dust, no literal written musical notes or sheet music. Original instrument designs and composition. No words, signature, watermark, logo or border. YOLO absurd 04. The enormous hovering orchestra swarm is taking itself extremely seriously while ALL its leading instruments wear tiny crooked party hats. One huge iridescent soap bubble drifts at the center containing a bored yellow rubber duck with a miniature conductor baton tucked under a wing. No human conductor. Around it, dozens of actual animated violins, trumpets, hand drums and flutes circle in a majestic chaotic crescendo, popcorn spilling from a tipped wooden bowl at the bottom. Warm grand tavern concert hall, elaborate serious fantasy realism and ridiculous musical disaster, no letters or music notation. Targeted follow-up edit: Make one narrow correction to this existing animated orchestra image: remove every small black gloved hand or finger gripping the bows or instruments. In particular remove the black glove at the lower-left end of the large foreground violin bow (near x=215 y=700), and the little black glove below the smaller violin farther down-left (near x=360 y=810). Restore the unobstructed bow sticks and surrounding warm background; let all bows, mallets and instruments hover unsupported by magic. No humans, arms, gloves, hands or faces on instruments. Preserve the instruments, party hats, bored rubber duck and baton inside its soap bubble, swirling orchestra, popcorn, composition, colors and painterly realism exactly. No text or signature.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/animated-symphony/",
+      "note": "ToB3 gargantuan swarm of Small musical constructs with shared musical personality and magical sound attacks. Original ensemble combinations, vortex compositions and comedic details."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}
