@@ -1,0 +1,21 @@
+{
+  "creatureId": "ashen-custodian",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy fey avatar, tactile painterly realism, expressive clearly ADULT face and subtle supernatural material, readable at 512 pixels. Ashen Custodian from Tome of Beasts 2: a WOMAN-SHAPED FEY with ASH-GRAY SKIN, HAIR MADE OF LIVING FIRE, and a long CLOAK OF SOOT that curls and disperses at its edges. One head, two arms with normal hands, two walking legs; no wings, horns, hooves, tail or bark skin. Humanlike ears and features as an original conservative interpretation. She balances woodland fire and renewal, calm rather than destructive rage. Fully clothed in layered charcoal robes beneath the soot cloak, not a naked burning elemental. Original individual faces and scenes. No text, signature, watermark, logo or border. Normal 01. An adult ash-gray fey woman with deep-set amber eyes and flowing orange-red flame hair gently touches an old dead tree with one hand, a small controlled ember spreading only across its dry bark. Green saplings stand clearly safe nearby. Her other hand gathers the edge of a billowing black soot cloak over dark woven robes. Quiet dawn forest, warm hairlight on a calm solemn face, waist-up three-quarter portrait.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/ashen-custodian/",
+      "note": "Licensed Tome of Beasts 2 describes a woman-shaped fey with ashen skin, fiery hair and cloak of soot who maintains woodland renewal through controlled fire. Original humanlike anatomy, faces, clothing and scenes."
+    },
+    {
+      "url": "https://koboldpress.com/dungeon-tables-random-encounters-and-monsters-by-terrain/",
+      "note": "Publisher encounter supports controlled woodland burning and a forest drake companion; no wings or animal anatomy asserted."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

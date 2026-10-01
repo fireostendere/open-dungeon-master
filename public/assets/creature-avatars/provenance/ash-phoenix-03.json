@@ -1,0 +1,17 @@
+{
+  "creatureId": "ash-phoenix",
+  "variantId": "03",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy undead creature avatar, tactile painterly realism, smoky ash particles and clear avian silhouette at 512 pixels. Ash Phoenix from Tome of Beasts2: a LARGE RAPTOR MADE OF ASH AND SHADOW, with one bird-of-prey head, hooked beak, two glowing coal-like eyes, TWO powerful feather-shaped wings, TWO taloned bird legs and one avian tail as a conventional raptor-anatomy interpretation. Body is dark layered ash and smoky shadow, not a bright fire elemental, no dragon limbs or extra wings. Coal-red glow in eyes and talons, fine ash breaks away from feather edges, strong coherent bird shape emerging from drifting smoke. Original plumage patterns and scenes. No text, signature, watermark, logo or border. Normal 03. The ash phoenix beats its two powerful wings above ruined stone cremation platforms, sending a low curling wave of gray ash across the empty ground. Side-three-quarter view shows one raptor head with ember eyes, two taloned legs and a smoky tail, layered black ash feathers with pale edges. Dawn light struggles through a storm-dark sky, dark spectral avian anatomy remains crisp. Targeted follow-up edits: Use case: precise-object-edit. Remove only the tiny accidental pale signature-like scribble in the extreme bottom-left corner of this original generated ash-phoenix illustration. Replace that small mark with matching dark rubble and ash texture. Preserve the entire bird, two wings, two taloned legs, tail, face, smoke, lighting, ruins, composition and all other pixels as closely as possible. No signature, text, watermark or other new marks. Use case: precise-object-edit. Repaint the small rectangular region in the extreme lower-left corner, approximately x0\u2013100 and y1200\u20131254 of this square image, as a close foreground dark charcoal stone with rough natural texture. That corner currently contains an unwanted tiny pale squiggle resembling a signature right at the bottom edge; completely cover and eliminate every trace of it. Do not preserve the tiny mark. The new corner must contain ONLY natural unmarked rock, no letters, symbols or linework. Change nothing outside this small corner region. Keep the ash phoenix, ruins, lighting, colors and composition unchanged.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/ash-phoenix/",
+      "note": "Licensed Tome of Beasts2 Ash Phoenix is a massive raptor of ash and shadow with coal-like eyes, wings, beak and talons. Exact two-wing/two-leg silhouette and feather structure are conventional raptor interpretations; original scenes."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

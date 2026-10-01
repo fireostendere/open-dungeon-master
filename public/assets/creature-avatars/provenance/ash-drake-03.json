@@ -1,0 +1,21 @@
+{
+  "creatureId": "ash-drake",
+  "variantId": "03",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy creature avatar, tactile painterly realism, fine soot and dull scale texture, clear creature silhouette at 512 pixels. Ash Drake: a SMALL extremely lean dragon, body about three feet long with one longer four-foot tapering TAIL THAT TRAILS INTO SMOKE, light and wiry rather than bulky. Dull charcoal-gray scales, craggy horned reptilian head, small claws, TWO membranous wings and FOUR slender legs as an original conventional dragon-body interpretation. Six limbs total including wings, one tail, no feathers or extra heads. Ash and soot billow softly from its nostrils and wingbeats; breath is hot choking ASH, not a bright fireball. Original horn pattern and body arrangement, no copied publisher artwork. No text, signature, watermark, logo or border. Normal 03. Close side portrait of the thin gray drake on black pumice overlooking a volcanic plateau. Four slender legs support its little body, two broad membranous wings spread against a reddish dawn; long skinny tail extends well behind then becomes smoke. Its angular horned head exhales a stream of dark ash, soot-coated ridges and ragged wing edges, scale cues from small nearby pebbles and scrub.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/drake-ash-3pp/",
+      "note": "Licensed Tome of Beasts 2023 Ash Drake: slender small body about 3 feet plus 4-foot smoke-trailing tail, dull scales, wings/claws/jaws and hot ash breath. Four legs and two wings are original conventional dragon interpretation because text does not enumerate limbs."
+    },
+    {
+      "url": "https://marketplace.roll20.net/browse/set/12759/monsters-dragons-and-drakes",
+      "note": "Licensed Kobold token portrait inspected for charcoal craggy horned head, smoky face and membranous wing material. Crop cannot establish complete limb count; original full-body designs."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

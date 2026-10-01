@@ -1,0 +1,17 @@
+{
+  "creatureId": "asp-vine",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy plant-creature avatar, tactile painterly realism, wet woody vines and sharply readable green foliage at 512 pixels. Asp Vine: a MEDIUM CLUSTER OF THICK GROUND CREEPERS with bundles of HEART-SHAPED GREEN LEAVES. Under the leaves are thin CURVED POISONOUS THORNS shaped like snake fangs. Many flexible twining woody vines and fine mobile roots, no fixed limb count. Entire creature is a tangled creeping plant, no humanoid trunk, arms or legs, NO FACE, EYES, MOUTH, skulls, animal heads or actual snakes. The fanglike objects are THORNS along the vines, not teeth in jaws. Original plant arrangement and scenes. No text, signature, watermark, logo or frame. Normal 01. Close three-quarter view of a thick asp-vine cluster uncoiling over a mossy dungeon threshold, glossy heart-shaped leaves parting to reveal pale curved fanglike thorns along four prominent looping creepers among many thinner vines. Dew glints on green leaves and dark brown bark, a few abandoned dull coins half-hidden below, cool emerald forest light, no animal face.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/asp-vine/",
+      "note": "Licensed Kobold Asp Vine description in Warlock Grimoire 3: cluster of thick creepers with heart-shaped leaves concealing curved fanglike poisonous thorns, capable of uprooting. Roster source is Tome of Beasts 3; this anatomy reference is the licensed Asp Vine description. No actual snake heads or fixed limb count; original botanical arrangements and scenes."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

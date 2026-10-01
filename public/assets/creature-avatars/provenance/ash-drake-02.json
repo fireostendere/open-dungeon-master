@@ -1,0 +1,21 @@
+{
+  "creatureId": "ash-drake",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy creature avatar, tactile painterly realism, fine soot and dull scale texture, clear creature silhouette at 512 pixels. Ash Drake: a SMALL extremely lean dragon, body about three feet long with one longer four-foot tapering TAIL THAT TRAILS INTO SMOKE, light and wiry rather than bulky. Dull charcoal-gray scales, craggy horned reptilian head, small claws, TWO membranous wings and FOUR slender legs as an original conventional dragon-body interpretation. Six limbs total including wings, one tail, no feathers or extra heads. Ash and soot billow softly from its nostrils and wingbeats; breath is hot choking ASH, not a bright fireball. Original horn pattern and body arrangement, no copied publisher artwork. No text, signature, watermark, logo or border. Normal 02. A small wiry ash drake rolls playfully through a cold ash pile beside a blacksmith's forge, one shoulder lowered and four slender clawed legs clearly accounted for. Two folded membrane wings lift slightly, fine soot scatters through orange forge light, one long tapering tail trails into gray smoke behind. Narrow horned face with bright alert eyes, detailed dull charcoal scales, original compact dragon anatomy. Targeted follow-up edit: Use case: precise-object-edit. Correct only the limb count in this original ash-drake image. Remove the ONE surplus raised leg in the middle foreground, the small upward-pointing clawed limb centered around x550,y740 between the two hind legs on the left and the two forelegs near the head on the right. Reconstruct continuous ash-coated belly scales and surrounding ash where that extra limb was. Keep exactly FOUR legs: the far rear raised leg near x450,y540, the leftmost rear leg near x230,y680, and the two existing forelegs near x805,y845 and x925,y1010. Preserve the TWO membranous wings, face, horns, smoky long tail, rolling pose, original textures, forge light, composition and all other details unchanged. Do not add limbs or text.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/drake-ash-3pp/",
+      "note": "Licensed Tome of Beasts 2023 Ash Drake: slender small body about 3 feet plus 4-foot smoke-trailing tail, dull scales, wings/claws/jaws and hot ash breath. Four legs and two wings are original conventional dragon interpretation because text does not enumerate limbs."
+    },
+    {
+      "url": "https://marketplace.roll20.net/browse/set/12759/monsters-dragons-and-drakes",
+      "note": "Licensed Kobold token portrait inspected for charcoal craggy horned head, smoky face and membranous wing material. Crop cannot establish complete limb count; original full-body designs."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}
