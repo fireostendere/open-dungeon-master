@@ -1,0 +1,17 @@
+{
+  "creatureId": "archon-ursan",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy celestial creature avatar, tactile painterly realism with dense white fur, powerful clear silhouette at 512 pixels. Ursan Archon from Tome of Beasts3: a LARGE UPRIGHT POLAR-BEAR celestial with a full bear head, long polar-bear muzzle, small rounded ears, black nose and eyes, TWO furred arms with clawed bear paws, TWO strong hind legs standing upright, and TWO large snowy-white WINGS attached behind its shoulders. Wings interpreted as feathered angelic wings, not specified structurally by source. Thick natural white fur serves as protection; simple harness and limited ceremonial ornaments, no heavy full plate. Wields one substantial GREATAxe with a long wooden haft. Not a human head or werewolf, no extra limbs or wings. Original individual details and scenes, no text, signature, watermark, logo or border. Normal 01. Upright white polar-bear archon blocks a snowy mountain pass, holding a massive single greataxe across its chest with BOTH clawed forepaws on the haft. Two white feathered wings partly spread behind, two thick hind legs grounded, true elongated polar-bear muzzle and rounded ears prominent. A plain blue woven sash and silver clasp, pale dawn light on fur, distant tiny travelers safely beyond the pass.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/ursan-archon/",
+      "note": "Licensed Tome of Beasts3 Large celestial: bipedal polar-bear body, white wings, greataxe, natural armor and rallying roar. Feather structure, clothing and original scenes are visual interpretations."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

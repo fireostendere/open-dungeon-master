@@ -1,0 +1,21 @@
+{
+  "creatureId": "archon-word",
+  "variantId": "03",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy celestial avatar, tactile painterly realism, clear iconic silhouette readable at 512 pixels. Word Archon from Tome of Beasts3: a TINY HOLLOW STEEL GREAT HELM that flies by TWO feathered WINGS attached directly to the helmet's LEFT AND RIGHT SIDES. The helmet itself is the ENTIRE BODY. Golden light shines from narrow eye slots and the empty open neck hole. Faceless steel faceplate, no wearer, no skin, no torso, no neck, no arms, hands, legs or feet. Two wings only, feathers gold near roots transitioning to deep blue-violet tips as an original palette variation. Small red plume crest on helmet optional. Do not add a human face or body. Original engraved metal ornament, composition and scenes. No text, letters, signature, watermark, logo or frame. Normal 03. Close slightly low-angle view of the airborne steel great helm tilting inquisitively amid glowing floating geometric motes in a quiet marble corridor. Exactly two blue-and-gold feathered side-wings curve in opposite directions, reflective faceless visor with gold light in its eye slots, visibly empty neck aperture below. Subtle sacred sun ornament, candles and soft violet twilight, expressive attitude through tilt only.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/word-archon/",
+      "note": "Tome of Beasts3 Tiny celestial is a floating steel great helm emitting golden light through eye and neck openings, with wings on its sides; no humanoid body. Original scenes."
+    },
+    {
+      "url": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/2210470/ss_a79e160fd27187f1da53fc3634dcde28c1b68e49.1920x1080.jpg?t=1669731245",
+      "note": "Licensed Fantasy Grounds publisher artwork inspected for two feathered side-wings, hollow helm and red crest; color and ornament adapted into original compositions, no copied artwork."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}
