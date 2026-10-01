@@ -14,6 +14,7 @@ assert.equal(characterDisplay("custom_origin", "pl"), "custom_origin");
 assert.equal(characterDisplay("__proto__", "ru"), "__proto__");
 assert.equal(displaySystemText("The DM ran into a problem: This world has no AI storyteller configured.", "ru"), "Мастер столкнулся с проблемой: Для этого мира не настроен ИИ-ведущий.");
 assert.equal(displaySystemText("Player-authored diagnostic", "ru"), "Player-authored diagnostic");
+assert.equal(displaySystemText("Грог is no longer poisoned (the effect ran its course). Шёпот stays frightened (WIS save 9 vs DC 13).", "ru"), "Грог: состояние «Отравлен» закончилось. Шёпот: состояние «Испуган» держится (спасбросок МДР 9 против СЛ 13).");
 assert.equal(displaySystemText("__proto__", "ru"), "__proto__");
 assert.equal(displaySystemText("constructor", "en"), "constructor");
 assert.equal(interpolateWorkshop("Delete {name}?", { name: "$&" }), "Delete $&?");

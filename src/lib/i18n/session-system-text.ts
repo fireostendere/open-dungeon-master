@@ -1,5 +1,6 @@
 import type { Locale } from "./translations";
 import { GAME_TEXT, gameText, type GameTextKey } from "./game-text";
+import { characterDisplay } from "./character-display";
 
 const KNOWN: Record<string, Record<Locale, string>> = {
   "This world has no AI storyteller configured.": {
@@ -40,5 +41,14 @@ export function displaySystemText(value: string, locale: Locale): string {
   if (end) return gameText(locale, "endTurn", { name: end[1] }) + (end[2] ? " " + gameText(locale, "nextTurnShort", { name: end[2] }) : "");
   const skip = /^The party lead skipped (.+?)'s turn\.(?: It is now (.+)'s turn\.)?$/.exec(value);
   if (skip) return gameText(locale, "skipTurn", { name: skip[1] }) + (skip[2] ? " " + gameText(locale, "nextTurnShort", { name: skip[2] }) : "");
+  // Timed conditions running out, several sentences to one notice.
+  if (locale !== "en" && / \(the effect ran its course\)\.| save \d+ vs DC \d+\)\./.test(value)) {
+    const condition = (name: string) => characterDisplay(name, locale);
+    return value
+      .replace(/(\s*)([^.]+?) is no longer ([\w -]+?) \(the effect ran its course\)\./g, (_, space, name, cond) =>
+        space + gameText(locale, "conditionEnded", { name, condition: condition(cond) }))
+      .replace(/(\s*)([^.]+?) stays ([\w -]+?) \((\w+) save (\d+) vs DC (\d+)\)\./g, (_, space, name, cond, ability, total, dc) =>
+        space + gameText(locale, "conditionStays", { name, condition: condition(cond), ability: characterDisplay(ability.toLowerCase(), locale), total, dc }));
+  }
   return value;
 }

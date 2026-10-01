@@ -4,7 +4,8 @@ import {fileURLToPath} from 'node:url';
 import {loadReviewModule} from './lib/review-module.mjs';
 const root = fileURLToPath(new URL('../src/lib/i18n/',import.meta.url));
 const game = loadReviewModule(root+'game-text.ts');
-const {displaySystemText} = loadReviewModule(root+'session-system-text.ts',{'./game-text':game});
+const display = loadReviewModule(root+'character-display.ts');
+const {displaySystemText} = loadReviewModule(root+'session-system-text.ts',{'./game-text':game,'./character-display':display});
 for (const language of ['ru','en']) {
   test(`system text catalog and placeholders: ${language}`,()=>{
     assert.deepEqual(Object.keys(game.GAME_TEXT[language]),Object.keys(game.GAME_TEXT.en));

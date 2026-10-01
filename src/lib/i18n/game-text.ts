@@ -16,6 +16,8 @@ const en = {
   endTurn: "{name} ends their turn.",
   skipTurn: "The party lead skipped {name}'s turn.",
   skipTurns: "*{name} skips a turn (remaining: {count}).*",
+  conditionEnded: "{name} is no longer {condition} (the effect ran its course).",
+  conditionStays: "{name} stays {condition} ({ability} save {total} vs DC {dc}).",
 } as const;
 export type GameTextKey = keyof typeof en;
 export const GAME_TEXT: Record<GameLanguage, Record<GameTextKey, string>> = {
@@ -36,6 +38,8 @@ export const GAME_TEXT: Record<GameLanguage, Record<GameTextKey, string>> = {
     endTurn: "{name} завершает свой ход.",
     skipTurn: "Лидер отряда пропустил ход персонажа {name}.",
     skipTurns: "*{name} пропускает ход (осталось: {count}).*",
+    conditionEnded: "{name}: состояние «{condition}» закончилось.",
+    conditionStays: "{name}: состояние «{condition}» держится (спасбросок {ability} {total} против СЛ {dc}).",
   },
 };
 
