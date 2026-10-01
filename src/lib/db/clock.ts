@@ -1,4 +1,7 @@
 import { tickEffectMinutes } from "@/lib/db/active-effects";
+import { getCampaignById } from "@/lib/db/campaigns";
+import { listActiveEncounters } from "@/lib/db/encounters";
+import { tickClockConditions } from "@/lib/dm/condition-tick";
 import { getDatabase, parseJson } from "@/lib/db/core";
 import {
   advance,
@@ -50,6 +53,16 @@ export function advanceClock(
   // rather than in each caller means travel, a rest and pass_time all expire
   // the same things, which is the point of having one clock.
   tickEffectMinutes(campaignId, moved.minutes);
+  // Timed conditions run on the same clock outside combat: a poison that
+  // outlasted the fight wears off on the road or over a night's rest. While
+  // any fight runs the round wrap owns them (condition-tick.ts), so a DM
+  // nudging the clock mid-fight does not count the same time twice.
+  if (!listActiveEncounters(campaignId).some((encounter) => encounter.kind === "fight")) {
+    const campaign = getCampaignById(campaignId);
+    if (campaign) {
+      tickClockConditions(campaign, moved.minutes);
+    }
+  }
   return { clock, minutes: moved.minutes };
 }
 

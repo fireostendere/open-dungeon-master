@@ -42,7 +42,9 @@ import { applyDamageDeathHook, healDeathHook } from "@/lib/dm/death";
 import { isMassiveDamage, stabilizeDeathTrack } from "@/lib/dm/death-logic";
 import { autoLevelCompanion } from "@/lib/dm/companion-tools";
 import {
+  conditionRoundsFrom,
   damageAdjust,
+  describeConditionDuration,
   describeExhaustion,
   pcResistances,
   pruneMeta,
@@ -215,13 +217,25 @@ export const mutationTools: ToolDef[] = [
     revealedName: { type: "string", description: "What it truly is, e.g. 'Ring of Protection'." },
   }, ["name"]),
   ...resourceTools,
-  tool("set_condition", "Apply a condition. Use the exact 5e name when one fits: blinded, charmed, deafened, frightened, grappled, incapacitated, invisible, paralyzed, petrified, poisoned, prone, restrained, stunned, unconscious, exhaustion. Custom names are allowed for story effects. Timed effects expire automatically: pass rounds, or saveAbility + saveDc for save-ends effects the server re-rolls each round.", {
+  tool("set_condition", "Apply a condition. Use the exact 5e name when one fits: blinded, charmed, deafened, frightened, grappled, incapacitated, invisible, paralyzed, petrified, poisoned, prone, restrained, stunned, unconscious, exhaustion. Custom names are allowed for story effects. Always give a duration when the fiction has one, because only timed conditions ever expire on their own: pass rounds for combat-scale effects, minutes or hours for longer ones (a poison, a curse, a potion), or saveAbility + saveDc for save-ends effects the server re-rolls. In combat the countdown runs by round; outside it the in-world clock runs it down as the party travels, rests, or passes time.", {
     condition: { type: "string" },
     rounds: {
       type: "integer",
       minimum: 1,
       maximum: 100,
       description: "Rounds until the condition ends on its own.",
+    },
+    minutes: {
+      type: "integer",
+      minimum: 1,
+      maximum: 1440,
+      description: "In-world minutes until the condition ends (10 rounds per minute).",
+    },
+    hours: {
+      type: "integer",
+      minimum: 1,
+      maximum: 24,
+      description: "In-world hours until the condition ends.",
     },
     saveAbility: {
       type: "string",
@@ -366,8 +380,11 @@ const argsSchema = z.object({
   // use_resource: the chosen option of a feature with variants.
   variant: z.string().optional(),
   condition: z.string().optional(),
-  // set_condition durations.
+  // set_condition durations: rounds for combat-scale effects, minutes or
+  // hours for the ones the in-world clock runs down (all stored as rounds).
   rounds: z.coerce.number().int().min(1).max(100).optional(),
+  minutes: z.coerce.number().int().min(1).max(1440).optional(),
+  hours: z.coerce.number().int().min(1).max(24).optional(),
   saveAbility: z.preprocess(
     normalizeAbility,
     z.enum(["str", "dex", "con", "int", "wis", "cha"]).optional(),
@@ -1189,8 +1206,12 @@ export function applyDmMutation(
           },
         };
       }
+      // Timed conditions tick down at round wrap in combat and against the
+      // in-world clock outside it (condition-tick.ts); minutes and hours
+      // become rounds so there is one unit to count down.
+      const rounds = conditionRoundsFrom(args);
       const timing = {
-        ...(args.rounds ? { rounds: args.rounds } : {}),
+        ...(rounds ? { rounds } : {}),
         ...(args.saveAbility && args.saveDc ? { saveEnds: { ability: args.saveAbility, dc: args.saveDc } } : {}),
       };
       if (!args.conditionSource && Boolean(args.casterId) !== Boolean(args.spell)) {
@@ -1228,10 +1249,10 @@ export function applyDmMutation(
         result: {
           ok: true,
           condition: normalized,
-          ...(args.rounds ? { duration: `${args.rounds} rounds, expires automatically` } : {}),
+          ...(rounds ? { duration: `${describeConditionDuration(rounds)}, expires automatically` } : {}),
           ...(args.saveAbility && args.saveDc
             ? {
-                duration: `until they succeed on a ${args.saveAbility.toUpperCase()} save (DC ${args.saveDc}), re-rolled automatically each round`,
+                duration: `until they succeed on a ${args.saveAbility.toUpperCase()} save (DC ${args.saveDc}), re-rolled automatically each round in combat and each time the clock moves outside it`,
               }
             : {}),
         },
