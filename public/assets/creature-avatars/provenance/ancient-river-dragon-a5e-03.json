@@ -1,0 +1,21 @@
+{
+  "creatureId": "ancient-river-dragon-a5e",
+  "variantId": "03",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. One original square dark-fantasy bestiary avatar, cinematic painterly realism with wet shimmering scales, one gargantuan ANCIENT A5E RIVER DRAGON. Completely WINGLESS elongated aquatic dragon, four clawed legs, very long tapering tail, sleek long neck, low dorsal fins/spines and streamlined reptilian head with two alert eyes. No wing membranes even while magically flying. Original blue-green iridescent scale palette, low cranial ridges rather than towering horns, no whisker beard. Ancient broad weathered head and long massive body with subtle old healed scars, freshwater sovereign. Water breath and whirlpool/maelstrom magic, not fire or lightning. Head large and readable at 512 pixels. No text, signature, logo, watermark, border, gore, victims or copied source pose. Serious normal 03. The ancient river dragon moves winglessly above its winding river amid a localized maelstrom, head dominant at left three-quarter angle, long sleek blue-green neck and continuous sinuous body, four clawed legs tucked close, one trailing tail and low fins. Spiraling rain and wind surround it, reflective shimmering scales remain readable, small riverside towers and steep grassy banks below, dramatic overcast silver light.",
+  "designReferences": [
+    {
+      "url": "https://a5e.tools/node/1554",
+      "note": "Official ancient A5E river dragon: Gargantuan shimmering-scale freshwater essence dragon, water breath and maelstrom. Wingless four-limbed streamlined morphology follows publisher family illustration; palette and aging details original."
+    },
+    {
+      "url": "https://a5e.tools/sites/default/files/monsters/Dragon%2C%20river%20-%20Gui%20Sommer.png",
+      "note": "Publisher illustration inspected during earlier adult research for winglessness, four legs, long tail and low dorsal ridge; no source pose copied."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

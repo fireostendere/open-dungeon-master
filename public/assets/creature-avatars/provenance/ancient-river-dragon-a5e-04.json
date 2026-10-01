@@ -1,0 +1,21 @@
+{
+  "creatureId": "ancient-river-dragon-a5e",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. One original square dark-fantasy bestiary avatar, cinematic painterly realism with wet shimmering scales, one gargantuan ANCIENT A5E RIVER DRAGON. Completely WINGLESS elongated aquatic dragon, four clawed legs, very long tapering tail, sleek long neck, low dorsal fins/spines and streamlined reptilian head with two alert eyes. No wing membranes even while magically flying. Original blue-green iridescent scale palette, low cranial ridges rather than towering horns, no whisker beard. Ancient broad weathered head and long massive body with subtle old healed scars, freshwater sovereign. Water breath and whirlpool/maelstrom magic, not fire or lightning. Head large and readable at 512 pixels. No text, signature, logo, watermark, border, gore, victims or copied source pose. Absurd YOLO 04. The ancient river dragon is trying to fill a tiny teacup from its mouth and creates an absurd miniature waterspout instead. Huge streamlined blue-green head with low crest and no tall horns, eyes focused with unreasonable concentration, authentic wingless long body, four limbs. One foreclaw holds the tiny porcelain cup as a narrow swirling jet overfills it and spins a single biscuit above the rim, another foreclaw rests on riverbank. A tiny checked picnic cloth lies beneath, gigantic river guardian doing domestic chores, deadpan realistic fantasy humor, no text.",
+  "designReferences": [
+    {
+      "url": "https://a5e.tools/node/1554",
+      "note": "Official ancient A5E river dragon: Gargantuan shimmering-scale freshwater essence dragon, water breath and maelstrom. Wingless four-limbed streamlined morphology follows publisher family illustration; palette and aging details original."
+    },
+    {
+      "url": "https://a5e.tools/sites/default/files/monsters/Dragon%2C%20river%20-%20Gui%20Sommer.png",
+      "note": "Publisher illustration inspected during earlier adult research for winglessness, four legs, long tail and low dorsal ridge; no source pose copied."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

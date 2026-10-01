@@ -1,0 +1,21 @@
+{
+  "creatureId": "ancient-mithral-dragon",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy bestiary avatar, cinematic realistic painterly craft, clear slender dragon head and upper body readable at 512 pixels. ANCIENT MITHRAL DRAGON from Tome of Beasts: gargantuan in length but IMPOSSIBLY THIN, elegant lightly built frame, extremely long fine neck, NARROW pointed dragon head with SMALL SLIT-SHAPED EYES and slit nostrils, glossy SILVER-WHITE metallic scales. No broad bulky muzzle or heavy chest. Four slim clawed legs and one long curling tail. Exactly TWO unusually SMALL delicate translucent wings that unfold like PLEATED FANS and lie flush against body; never huge bat wings. Minimal small cranial ridges, no giant horn crown. Old wise face with subtle fine age etching, calm diplomatic intelligence. No text, lettering, signature, logo, border, watermark, gore or copied artwork. Serious normal 01. Ancient mithral dragon in frontal portrait before the high narrow window of an ancient stone tower, exceedingly thin long neck and slender silver-white head, tiny slit eyes and nostrils, subtle aged metallic scale etching. Two tiny diaphanous pleated wing fans fold along delicate shoulders. Immense length implied by its fine body curving around distant tower pillars, cool neutral silver light and dark slate background, precise serene arbitrator.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/dragon-mithral-ancient-3pp/",
+      "note": "Correct ToB/ToB2023 ancient mithral: extremely thin silver-white body, narrow slit-eyed head, tiny translucent fan-folding wings, diplomat and metallic shard breath. Not alternate Colossal radiant mithral from another publisher."
+    },
+    {
+      "url": "https://koboldpress.com/wp-content/uploads/2016/07/Tome-of-Beasts-Mithral-Dragon.pdf",
+      "note": "Official publisher preview confirms narrow head, slender frame and tiny fan wings; original poses and elderly details."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}
