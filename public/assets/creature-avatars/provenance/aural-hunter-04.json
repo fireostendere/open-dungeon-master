@@ -1,0 +1,21 @@
+{
+  "creatureId": "aural-hunter",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy creature illustration, tactile painterly realism, detailed leathery hide and translucent membranes, clear silhouette at 512 pixels. Aural Hunter is a Large EYELESS and JAWLESS alien aberration with exactly SIX gangly clawed locomotor limbs, three on each side of one lean elongated body. A smooth featureless head with no eyes, mouth or human face. Several thin stretched listening MEMBRANES rise on bony protrusions along its BACK like tall organic acoustic sails. Small hooked bony spikes project outward over its RIBCAGE, natural anatomical hooks, no exposed injury. Original pale slate-gray hide and lean hexapod arrangement. Not a spider with eight legs, not a rabbit and not a winged creature: the dorsal membranes are upright back sails, not wings. No victim, feeding, blood, gore, text, signature, watermark or frame. YOLO 04. A six-legged eyeless jawless aural hunter sits beside a huge antique gramophone, wearing absurd fluffy earmuffs clamped around its tallest dorsal listening sails. Its six long clawed legs fold around an empty velvet armchair, several bright wool socks slipped over clawed feet; natural rib hooks remain visible. The gramophone bell is stuffed with a pillow. Deadpan supernatural noise complaint, cozy medieval study, smooth featureless head, no added face, eyes, mouth, human arms or text.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/aural-hunter/",
+      "note": "Tome of Beasts 3 description: eyeless, jawless creature on six gangly limbs, thin membranes across bony back protrusions and hooks over the ribcage; feeds on sonic vibrations. Original hide color, hexapod proportions and membrane count/shape; no invented eyes or jaw."
+    },
+    {
+      "url": "https://koboldpress.com/monster-weaknesses-for-tome-of-beasts-3/",
+      "note": "Publisher independently confirms six-legged aberration, sonic navigation and sensitivity. Original art avoids copied published imagery."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

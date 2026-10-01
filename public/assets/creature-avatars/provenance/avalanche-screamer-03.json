@@ -1,0 +1,21 @@
+{
+  "creatureId": "avalanche-screamer",
+  "variantId": "03",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy monster avatar, cold painterly realism, brilliant translucent ice detail and clear silhouette at 512 pixels. Avalanche Screamer is a LARGE primordial aberration composed largely of a jagged irregular icy body supported on MANY thin ICICLE-LIKE LEGS. Original arrangement of eight long angular ice legs supports a low asymmetrical crystalline mass, no humanoid torso. Plates of ice part in THREE separate places on the body to reveal dark TOOTHY MAWS; teeth are sharp pale icy spines, no gore or organs. No conventional animal face, no eyes required, no wings, fur or tail. The creature senses vibrations, belongs to high mountains and polar glaciers. Original eight-leg/three-mouth layout is an interpretation, not a fixed canonical count. No people, injury, blood, text, signature, logo, watermark or border. Normal 03. A broad jagged ice mass rises halfway from powder snow beside an abandoned alpine watchtower, many icicle legs planted around it, three separate black ice-toothed mouths open in the shell. Concentric ripples in loose snow suggest vibration, cold morning light refracts through clear crystal spikes, a looming avalanche slope in the distance. Central close creature portrait, no victims, no humanoid anatomy.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/avalanche-screamer/",
+      "note": "Tome of Beasts 2 Large aberration: icy body, many icicle-like legs, several toothy maws revealed between ice plates, mountain/polar habitat and vibration sense. Eight legs, three maws, eyeless silhouette and ice colors are original choices because the source gives no fixed counts."
+    },
+    {
+      "url": "https://github.com/open5e/open5e-api/blob/staging/data/v1/tob2/Monster.json",
+      "note": "Licensed Open5e description checked for ice-bodied multiple-maw anatomy and icicle-like legs. Original artwork, no copied illustration."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}
