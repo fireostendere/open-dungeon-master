@@ -1,0 +1,17 @@
+{
+  "creatureId": "alpha-werewolf-a5e",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy bestiary portrait, cinematic painted realism with rich fur texture and sharply defined muzzle/eyes at 512 pixels. ALPHA WEREWOLF from A5E, shown in adult WOLF-HUMANOID HYBRID FORM: human-sized but powerfully built bipedal wolf monster, long natural lupine muzzle, pointed wolf ears, alert amber eyes, dense shaggy fur, broad shoulders, two long humanoid arms ending in clawed hands, two digitigrade hind legs. Intelligent disciplined pack leader, not mindless beast, not four-legged ordinary wolf, bear, hyena or dog mascot. Worn torn trousers and modest leather straps, optional primitive greatclub, no modern military gear, horns or wings. No extra limbs, graphic injury, prey, text, logo, border or collage. Absurd YOLO 04. An imposing charcoal-furred alpha werewolf sits upright on a rough stone throne, looking mortally embarrassed while wearing an absurdly tiny pink knitted sweater stretched across its huge hybrid shoulders. A squeaky bone-shaped pink dog toy is delicately pinched between two big claws; its huge wooden greatclub leans beside the throne. Sharp intelligent wolf face, amber eyes and real shaggy fur, medieval torch-lit lair, deadpan contrast between pack-leader dignity and precious pet accessories, no labels or text.",
+  "designReferences": [
+    {
+      "url": "https://a5e.tools/node/1721",
+      "note": "Official A5E Medium alpha werewolf: mastered lycanthrope leading lesser werewolves, human/wolf/hybrid forms, greatclub and cursed claws. Hybrid form selected for clear avatar identity; color and clothing are artistic choices."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

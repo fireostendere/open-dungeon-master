@@ -1,0 +1,21 @@
+{
+  "creatureId": "alpha-yek",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy bestiary portrait, cinematic painted realism with tactile coarse fur and bone, face and diagnostic silhouette readable at 512 pixels. ALPHA YEK from Creature Codex: MEDIUM gaunt fiendish pack leader with flattened LUPINE face and short compressed wolf muzzle, large predatory pointed ears, taut skin over a skeletal wiry frame, patchy DARK RED FUR, pronounced elbows and shoulders, and a row of long BLACK SPIKES growing from its SPINE. Two long clawed arms and two powerful lean hind legs, hunched bipedal demon anatomy. Wears dry clean bone trinkets and leather cords; carries sharpened bone shards. No fresh remains, entrails, blood or graphic wounds. Distinct from a bulky werewolf: unnaturally lean, flattened face, red coat and black spinal spines. No horns on head, wings, extra limbs, human face, text, border, collage or watermark. Serious normal 02. A rangy rusty-red alpha yek crouches beside a ruined arch under rain, short flattened lupine muzzle with sharp teeth visible, long thin forearms braced on stone, black spine spines bristling down curved back, bone-shard bundle tied at waist. Tight low camera on face and shoulders, wet charcoal ruins with faint ember highlights, focused malicious intelligence.",
+  "designReferences": [
+    {
+      "url": "https://kpogl.wikidot.com/monster%3Ayek",
+      "note": "Creature Codex family description: gaunt red-furred wolf-faced fiend with taut skin, black spinal spikes and bone trophies. Alpha uses same family anatomy at Medium size; non-graphic dry-bone rendering."
+    },
+    {
+      "url": "https://kpogl.wikidot.com/publication%3Acreature-codex",
+      "note": "Codex index lists distinct Alpha Yek. Project roster confirms Medium fiend; leadership and bone-shard equipment distinguish this original portrayal."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

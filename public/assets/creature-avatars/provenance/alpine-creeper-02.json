@@ -1,0 +1,21 @@
+{
+  "creatureId": "alpine-creeper",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy bestiary avatar of a non-humanoid plant creature, cinematic painterly realism with exquisite lichen texture, subject fills frame and reads as one distinct mobile mat at 512 pixels. ALPINE CREEPER from Tome of Beasts 3: a HUGE living CARPET OF LICHEN creeping over mountain stones and fallen logs, pale gray-green and ochre branching/crustose lichen mixed with dense mossy pads, thick irregular connected mat with soft rippling lifted leading edges, drifting fine sleep-inducing spores. It has NO FACE, no eyes, mouth, head, arms, legs, tentacles, humanoid trunk or flowers. Its menace is a quietly moving living blanket, not tree monster or moss golem. Some old coins and rusty gear can be half swallowed by the mat, no flesh, victims or gore. Show the main mass clearly as subject, not just a generic landscape. No text, watermark, border or collage. Serious normal 02. An ochre-and-gray lichen carpet spills across a fallen pine trunk and broken alpine shrine steps in a snowy pass, broad thick folded mat dominates the center, intricate branching lichen tufts and wet moss fronds, green-gold spores drifting through falling snow. A snapped old walking staff trapped along edge, dramatic deep blue overcast light, no face, no limbs.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/alpine-creeper/",
+      "note": "ToB3 Huge creeping lichen carpet over mountain rocks/logs, sleep spores and remnants caught in mat. Unrelated alseid text incorrectly interleaved on the page is excluded. No humanoid anatomy or invented face."
+    },
+    {
+      "url": "https://koboldpress.com/monster-weaknesses-for-tome-of-beasts-3-part-5/",
+      "note": "Official supplementary post confirms the creeper's relationship with beasts; optional variant mechanics are not treated as core visual anatomy."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

@@ -1,0 +1,17 @@
+{
+  "creatureId": "alpha-werewolf-a5e",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy bestiary portrait, cinematic painted realism with rich fur texture and sharply defined muzzle/eyes at 512 pixels. ALPHA WEREWOLF from A5E, shown in adult WOLF-HUMANOID HYBRID FORM: human-sized but powerfully built bipedal wolf monster, long natural lupine muzzle, pointed wolf ears, alert amber eyes, dense shaggy fur, broad shoulders, two long humanoid arms ending in clawed hands, two digitigrade hind legs. Intelligent disciplined pack leader, not mindless beast, not four-legged ordinary wolf, bear, hyena or dog mascot. Worn torn trousers and modest leather straps, optional primitive greatclub, no modern military gear, horns or wings. No extra limbs, graphic injury, prey, text, logo, border or collage. Serious normal 01. Close three-quarter portrait of a charcoal-gray alpha werewolf standing beneath a moonlit pine canopy, muzzle calm with fangs barely bared, one old healed pale scar through brow fur, proud broad shoulders, torn dark trousers and weathered leather shoulder strap. One massive clawed hand rests on a rough wooden greatclub, silver moon rim and deep blue forest haze, controlled leadership menace.",
+  "designReferences": [
+    {
+      "url": "https://a5e.tools/node/1721",
+      "note": "Official A5E Medium alpha werewolf: mastered lycanthrope leading lesser werewolves, human/wolf/hybrid forms, greatclub and cursed claws. Hybrid form selected for clear avatar identity; color and clothing are artistic choices."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}
