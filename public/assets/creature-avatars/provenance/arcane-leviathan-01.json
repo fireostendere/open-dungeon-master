@@ -1,0 +1,17 @@
+{
+  "creatureId": "arcane-leviathan",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy creature avatar, tactile painterly realism, monumental readable creature silhouette at 512 pixels. Arcane Leviathan from Tome of Beasts 3: a GARGANTUAN CRUSTACEAN-SHAPED AQUATIC CONSTRUCT of thick glazed CERAMIC armor, two enormous articulated grasping pincers, several jointed armored walking legs, a broad domed carapace bearing eroded religious relief carvings and abstract worn grooves, NOT readable writing. Back armor panels part to expose tall crystalline pylons charged with blue lightning. Enormous arcane weapon housings integrated into abdomen. Ancient undersea temple guardian, no flesh, no whale/serpent/dragon anatomy, no wings, no human torso. Original crablike arrangement and colors, no copied art; exact walking-leg count is a design choice. No text, signature, watermark, logo or frame. Normal 01. Towering ancient ceramic crab construct breaches harbor surf under storm clouds. Low waterline three-quarter close view dominated by its chipped ivory and cobalt-blue carapace and TWO enormous pincers; dorsal crystal pillars extend upward between opened back plates, electric light shining through rain and sheets of seawater. Tiny distant sailing boats convey scale, guardian itself fills most of frame, no people in danger.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/arcane-leviathan/",
+      "note": "Tome of Beasts 3 Gargantuan aquatic crustacean construct with ceramic armor, two claws, religious reliefs, deployable dorsal crystal pylons and abdominal arcane weapons. Original crablike arrangement, palette and scenes; unspecified walking-leg count is a design interpretation."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

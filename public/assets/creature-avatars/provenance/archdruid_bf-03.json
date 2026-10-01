@@ -1,0 +1,21 @@
+{
+  "creatureId": "archdruid_bf",
+  "variantId": "03",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy character avatar, tactile painterly realism, natural woodland materials and expressive adult face, readable at 512 pixels. Archdruid: a powerful ADULT humanoid master of nature magic, original individual appearance for an any-lineage NPC. Two arms, two hands, two legs, normal living humanoid body; no animal-human hybrid anatomy. Layered woven robes, weathered hide and carved wooden talismans, a gnarled wooden staff, botanical regalia and subtle primal magic. Original design, not an existing named character. No writing, signature, watermark, logo or border. Normal 03. A mature elven archdruid with pointed ears, olive skin and long black hair braided with fern fronds kneels beside a moonlit woodland spring. Deep blue-green layered robes and silver birch-bark shoulder mantle, one hand rests on a twisted staff and the other guides a small ribbon of clean water between hovering leaves. Calm ageless adult features, luminous mushrooms in background, subtle rather than overwhelming magic.",
+  "designReferences": [
+    {
+      "url": "https://bfrd.net/classes/druid",
+      "note": "Black Flag nature-magic and druid archetype reference; roster identifies Archdruid as Medium any-lineage humanoid NPC. Clothing, faces, lineage choices, regalia and scenes are original interpretations, not fixed canonical anatomy."
+    },
+    {
+      "url": "https://bfrd.net/rules/monsters/humanoids",
+      "note": "Black Flag reference identifies humanoids as varied bipedal lineages; original adult individual character designs."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

@@ -1,0 +1,17 @@
+{
+  "creatureId": "arcane-scavenger",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy creature avatar, tactile painterly realism, alien clockwork detail, clearly readable at 512 pixels. Arcane Scavenger: a Large HOVERING METALLIC OCTOPUS construct. A single spherical armor-plated body, ONE central luminous lens EYE on the front, and EXACTLY EIGHT long flexible segmented METAL ARMS attached around the lower sphere. Each arm ends in one small grasping IRON CLAW, not a human hand. Eight arms total, no legs, wings, extra eyes or organic suckers. Armor bears abstract luminous geometric arcane inlays, not readable writing. Concealed salvage compartment in body. Original alien mechanism, poses and palettes, not copied art. No text, watermark, signature, logo or frame. YOLO 04. The alien spherical metal octopus has opened a ridiculous miniature espresso bar in a dungeon. Exactly EIGHT long metal arms, four clearly separated on each side of its ONE central amber eye: one claw holds a tiny cup, one a milk pitcher, one a portafilter, one a spoon, one a pastry plate, one a kettle, one a coffee bag with NO LABEL and one a cleaning cloth. Tiny barista apron on the lower armored sphere; grumpy single lens expression suggested only through angle, no mouth. Antique brass coffee machine and frothy cups, warm cozy lighting, all eight arm tips visible, no writing.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/arcane-scavenger/",
+      "note": "Tome of Beasts 3 Large hovering metal octopus: spherical armored body, single central eye, eight flexible claw-tipped arms and hidden salvage compartment. Original mechanism, colors and scenes; unrelated misplaced Leviathan mechanics on source page not used."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}
