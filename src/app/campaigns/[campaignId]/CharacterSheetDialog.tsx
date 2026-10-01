@@ -368,11 +368,9 @@ export function CharacterSheetDialog({
                     key={skill.id}
                     title={explainParts(derived.parts.skills[skill.id])}
                     className={cn(
-                      "flex min-w-0 items-center gap-1",
                       sheet.proficiencies.skills.includes(skill.id) && "text-amber-200",
                     )}
                   >
-                    <GameIcon icon={{ kind: "glyph", key: `skill-${skill.id}` }} size="size-4" />
                     {skill.name} {formatModifier(derived.skills[skill.id])}
                   </span>
                 ))}
