@@ -582,6 +582,8 @@ button:hover > .rail-glyph,
   box-shadow:
     0 0 0 1px rgba(212, 171, 58, 0.65),
     0 0 12px rgba(212, 171, 58, 0.35);
+}
+
 /* ---- spell book (src/components/sheet/SpellBook.tsx) ----
    One tile per spell; its state reads from the frame: gold and lit when
    ready, dashed sky blue while it waits for a long rest, a quiet ember lock
