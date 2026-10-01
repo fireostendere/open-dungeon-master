@@ -1,6 +1,9 @@
 import { z } from "zod";
 import { isErrorResponse, isLead, requireMember, steersStory } from "@/lib/campaign-api";
-import { setMemberAutopilot } from "@/lib/db/campaigns";
+import { getFloor, getGlobalTurnState, setMemberAutopilot } from "@/lib/db/campaigns";
+import { listSheets } from "@/lib/db/sheets";
+import { getActiveEncounter } from "@/lib/db/encounters";
+import { globalTurnSubmitted } from "@/lib/campaign-types";
 import { publishPersisted } from "@/lib/events";
 import { mayChangeAutopilot } from "@/lib/autopilot-policy";
 
@@ -55,5 +58,34 @@ export async function POST(
   }
 
   publishPersisted(campaignId, "member_updated", { member });
+
+  if (parsed.data.autopilot && !member.muted && member.skipTurnsCount === 0 && !getActiveEncounter(campaignId)) {
+    const campaign = context.campaign;
+    if (campaign.gameSettings?.globalTurn?.enabled) {
+      const turn = getGlobalTurnState(campaignId);
+      if (turn.phase === "active" || turn.phase === "quorum_delay") {
+        const sheet = listSheets(campaignId).find((s) => s.userId === targetUserId && !s.isCompanion);
+        if (sheet && !globalTurnSubmitted(turn.actionsByCharacter[sheet.id])) {
+          publishPersisted(campaignId, "autopilot_action_requested", {
+            characterId: sheet.id,
+            userId: targetUserId,
+            roundNumber: turn.roundNumber,
+          });
+        }
+      }
+    } else {
+      const floor = getFloor(campaignId);
+      if (floor.mode === "spotlight" && floor.userIds.includes(targetUserId) && !floor.respondedUserIds.includes(targetUserId)) {
+        const sheet = listSheets(campaignId).find((s) => s.userId === targetUserId && !s.isCompanion);
+        if (sheet) {
+          publishPersisted(campaignId, "autopilot_action_requested", {
+            characterId: sheet.id,
+            userId: targetUserId,
+          });
+        }
+      }
+    }
+  }
+
   return Response.json({ ok: true, member });
 }

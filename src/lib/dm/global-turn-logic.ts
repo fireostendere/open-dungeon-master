@@ -110,9 +110,23 @@ export function startGlobalTurn(
     reason,
   });
 
+  const members = listMembers(campaignId);
+  const eligibleSheets = listSheets(campaignId).filter((sheet) => {
+    if (sheet.isCompanion || sheet.userId === campaign.dmUserId) return false;
+    const member = members.find((m) => m.userId === sheet.userId);
+    return Boolean(member?.autopilot && !member.muted && member.skipTurnsCount === 0);
+  });
+  for (const sheet of eligibleSheets) {
+    publishPersisted(campaignId, "autopilot_action_requested", {
+      characterId: sheet.id,
+      userId: sheet.userId,
+      roundNumber: activeState.roundNumber,
+    });
+  }
+
   // A player may have pre-selected "skip N turns" while the table was locked.
   // That preference becomes a response only now, after the start trigger.
-  if (listMembers(campaignId).some((member) => member.skipTurnsCount > 0)) {
+  if (members.some((member) => member.skipTurnsCount > 0)) {
     const readiness = refreshGlobalTurnReadiness(campaignId);
     if (readiness.shouldResolve) {
       const timer = setTimeout(() => {

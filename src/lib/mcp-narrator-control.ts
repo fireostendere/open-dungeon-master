@@ -256,7 +256,8 @@ function read(raw: unknown) {
       event.type === "global_turn_narrator_trigger" ||
       event.type === "message_deleted" ||
       event.type === "lead_response_requested" ||
-      event.type === "spotlight_ready"
+      event.type === "spotlight_ready" ||
+      event.type === "autopilot_action_requested"
         ? { seq: event.seq, type: event.type, payload: event.payload }
         : event.type === "message_updated"
           ? isNarratorEvent(event)
@@ -907,6 +908,20 @@ async function setNarratorFloor(raw: unknown) {
     } else floor = p.data.mode === "hold" ? { mode: "hold", next: { mode: "open" } } : { mode: "open" };
     setFloor(campaign.id, floor);
     publishPersisted(campaign.id, "floor_changed", { floor });
+    if (floor.mode === "spotlight") {
+      const members = listMembers(campaign.id);
+      const selected = new Set(p.data.characterIds ?? []);
+      const sheets = listSheets(campaign.id).filter(sheet => selected.has(sheet.id) && !sheet.isCompanion && sheet.userId !== campaign.dmUserId);
+      for (const sheet of sheets) {
+        const member = members.find(m => m.userId === sheet.userId);
+        if (member?.autopilot && !member.muted && member.skipTurnsCount === 0) {
+          publishPersisted(campaign.id, "autopilot_action_requested", {
+            characterId: sheet.id,
+            userId: sheet.userId,
+          });
+        }
+      }
+    }
     if (current.mode === "spotlight" && current.respondedUserIds.length && !campaign.gameSettings.globalTurn?.enabled) {
       publishPersisted(campaign.id, "spotlight_ready", { releasedEarly: true });
     }

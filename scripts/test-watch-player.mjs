@@ -56,3 +56,26 @@ test('watcher wakes for an unresolved pending roll', () => {
   assert.equal(result.status, 0);
   assert.match(result.stdout, /PENDING_ROLL \[roll-1\]/);
 });
+
+test('watcher wakes for an autopilot_action_requested event', () => {
+  const result = runWatcher({ ok: true, result: {
+    currentSeq: 55, messages: [], asks: [], pendingRolls: [],
+    events: [{ seq: 55, type: 'autopilot_action_requested' }],
+  } });
+  assert.equal(result.status, 0);
+  assert.match(result.stdout, /autopilot_action_requested/);
+});
+
+test('watcher wakes when an active round has an eligible autopilot member who has not acted', () => {
+  const result = runWatcher({ ok: true, result: {
+    currentSeq: 60, messages: [], asks: [], pendingRolls: [], events: [],
+    members: [{ userId: 'u1', autopilot: true }],
+    sheets: [{ id: 'c1', userId: 'u1' }],
+    campaign: {
+      gameSettings: { globalTurn: { enabled: true } },
+      globalTurnState: { phase: 'active', roundNumber: 2, actionsByCharacter: {} },
+    },
+  } });
+  assert.equal(result.status, 0);
+  assert.match(result.stdout, /AUTOPILOT_ACTION_NEEDED \[c1\] round=2/);
+});
