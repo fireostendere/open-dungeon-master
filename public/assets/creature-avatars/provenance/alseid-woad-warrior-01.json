@@ -1,0 +1,25 @@
+{
+  "creatureId": "alseid-woad-warrior",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy character avatar, crisp painterly realism with cinematic light and vivid pigment texture, face and anatomy legible at 512 pixels. ALSEID WOAD WARRIOR: adult male elf upper torso, pointed ears and branching deer antlers, joined at waist to full horizontal DEER BODY with FOUR cloven-hoofed legs and short white-underneath tail. Two humanoid arms only. Brown deer fur; elven face/arms/shoulders decorated with bold COBALT BLUE WOAD spiral and sweeping abstract ritual bodypaint, never readable glyphs or letters. Practical sleeveless leather woodland armor, paint kit with pigment pouches and small bowls, GREAT SWORD or shortbow, confident fierce guardian. Paint is the key identity; not the robe-wearing grovekeeper, not horse-centaur, faun or blue-skinned elf. No human legs, extra limbs, gore, text, watermark, collage or border. Serious normal 01. A bronze-skinned adult woad warrior with black braided hair and antlers stands on a mossy boulder at dawn, vivid blue sweeping paint across cheeks and exposed muscular arms, sleeveless dark leather cuirass. Both hands hold the hilt of a simple greatsword planted tip-down beside deer forelegs. Full brown deer body with four hooves clear, paint pouches at waist, misty green woodland and warm rim light.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/alseid-woad-warrior/",
+      "note": "ToB3 elf/deer guardian with antlers, bold ritual paint, leather armor, greatsword/shortbow and dye bombs. Unrelated alpine-creeper bonus-action text on this page is excluded."
+    },
+    {
+      "url": "https://www.5esrd.com/database/creature/alpine-creeper/",
+      "note": "Adjacent woad-warrior description is visibly misfiled here; factual dye-crafting detail confirms blue woad pigment and paint kit. Creeper anatomy is excluded."
+    },
+    {
+      "url": "https://www.5esrd.com/database/race/alseid/",
+      "note": "Four-legged deer lower body cross-check."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

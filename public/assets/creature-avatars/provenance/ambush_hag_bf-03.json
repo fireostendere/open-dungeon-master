@@ -1,0 +1,21 @@
+{
+  "creatureId": "ambush_hag_bf",
+  "variantId": "03",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy bestiary hag portrait, cinematic painterly realism, detailed rough skin and cloth, striking face legible at 512 pixels. AMBUSH HAG from Black Flag SRD, original interpretation of its rough-skinned humanoid fey form: an ancient adult woman-like monstrous HAG with gaunt wiry build, coarse bark-gray/earthy skin, predatory cunning eyes, crooked nose and teeth, tangled hair, long clawed fingers, TWO ARMS and TWO LEGS only. Wears ragged opaque layered forest garments, nonsexual. A stealthy wall-climbing illusionist with subtle poisonous green sheen at claws, not a spider-bodied drider, no extra arms, abdomen, wings or giant horns. Lurking ambush behavior is key. No victims, gore, text, logo, watermark, border or collage. Serious normal 03. An ancient umber-skinned ambush hag crouches atop a broken cottage beam above the doorway, gaunt shoulder silhouette and long dark-gray hair, hooked fingers resting on wood, predatory attentive expression. Closed opaque patchwork robes blend with dry leaves; a small mist of green poison curls near fingertips, softly shimmering blurred background suggests illusion. Tight low-angle face portrait, rain outside and dim warm candlelight, no person below.",
+  "designReferences": [
+    {
+      "url": "https://koboldpress.com/wp-content/uploads/2025/07/Black-Flag-Roleplaying-v04_2025_07_01.pdf",
+      "note": "Official Black Flag SRD, Monsters p322: Medium fey hag, rough humanoid flesh, claws, poison, mimicry, illusions and spider climbing. Exact appearance not specified in this stat block; age, palette, hair and attire below are original visual interpretation, not a claimed art match."
+    },
+    {
+      "url": "https://koboldpress.com/kpstore/product/tales-of-the-valiant-monster-vault-pawns/",
+      "note": "Publisher pawn catalog confirms Ambush Hag is Medium."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

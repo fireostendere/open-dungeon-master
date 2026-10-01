@@ -1,0 +1,21 @@
+{
+  "creatureId": "altar-flame-golem",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy bestiary construct avatar, cinematic painted realism with detailed scorched masonry and luminous fire, large head/torso silhouette legible at 512 pixels. ALTAR FLAME GOLEM from Creature Codex: a LARGE rough HUMANOID BODY assembled from durable BRICK OR STONE ALTAR masonry, heavy rectangular torso, two massive blocky arms with stone fists, two sturdy stone legs. Its DEMONIC FACE AND HEAD ARE MADE OF LIVING FLAME rising from the top of its shoulders, expressive eyes/mouth shaped in fire, NOT a carved stone face, metal mask or human head. Eternal sacred altar fire, worn ceremonial carved geometric patterns without lettering, glowing seams and soot. Definitely heavy masonry construct rather than all-fire elemental, not metal robot or lava-skinned man. No wings, extra limbs, text, logo, border, watermark or collage. Absurd YOLO 04. A massive brick-bodied altar flame golem stands nervously at the edge of an absurdly shallow washbasin, wearing a comically huge yellow duck-shaped swim ring around its stone waist and holding a tiny pink umbrella in one massive masonry hand. Living-flame demonic face peers down in exaggerated concern at a few harmless bath bubbles. Stone legs stay on dry temple floor, little towels stacked nearby, rich realistic stone/fire and deadpan bath-time cowardice, no humans, no lettering.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/golem-altar-flame/",
+      "note": "Creature Codex Large construct: rough brick/stone humanoid body, demonic face formed from flame, disguised altar with eternal fire. Water aversion informs humorous variant. No copied source artwork."
+    },
+    {
+      "url": "https://koboldpress.com/creature-codex-pocket-edition/",
+      "note": "Publisher confirms the altar flame golem among Creature Codex constructs."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}
