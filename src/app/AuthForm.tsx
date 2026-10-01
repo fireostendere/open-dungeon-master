@@ -1,12 +1,13 @@
 "use client";
 
 import { Loader2 } from "lucide-react";
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { cn } from "@/lib/cn";
 import { ui } from "@/lib/ui";
 import type { SessionUser } from "@/lib/campaign-types";
 import { ChangePasswordForm } from "@/app/ChangePasswordForm";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
+import { GameIcon } from "@/components/ui/GameIcon";
 import { currentPathname, currentQuery, replaceAddress } from "@/lib/navigation";
 import { useI18n } from "@/lib/i18n";
 import type { Locale } from "@/lib/i18n/translations";
@@ -79,6 +80,16 @@ function authCopy(locale: Locale) {
 }
 
 const FIELD = cn(ui.input, "h-11");
+
+// A field led by a painted glyph inside its left edge (the input gets pl-11).
+function GlyphField({ glyph, children }: { glyph: string; children: ReactNode }) {
+  return (
+    <span className="relative block">
+      <GameIcon icon={{ kind: "glyph", key: glyph }} size="size-7" className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2" />
+      {children}
+    </span>
+  );
+}
 const DISCORD_BTN =
   "inline-flex h-11 w-full items-center justify-center gap-2.5 rounded-lg border border-indigo-400/30 bg-[#5865f2]/15 px-4 text-sm text-indigo-100 transition-all duration-150 ease-snap hover:bg-[#5865f2]/25 hover:text-white active:scale-[0.98]";
 function discordStartHref(inviteCode: string, joinCode?: string): string {
@@ -253,6 +264,7 @@ export default function AuthForm({
       <form onSubmit={submit} className="space-y-3.5">
         <label className="block">
           <span className="mb-1.5 block text-xs text-stone-400">{t("auth.username")}</span>
+          <GlyphField glyph="tab-characters">
           <input
             value={username}
             onChange={(event) => setUsername(event.target.value)}
@@ -261,8 +273,9 @@ export default function AuthForm({
             minLength={3}
             maxLength={24}
             placeholder={seatJoin ? copy.tableName : mode === "register" ? t("auth.chooseUsername") : undefined}
-            className={FIELD}
+            className={cn(FIELD, "pl-11")}
           />
+          </GlyphField>
         </label>
         {seatJoin && seatKeyRequested ? (
           <label className="block">
@@ -283,6 +296,7 @@ export default function AuthForm({
         {seatJoin ? null : (
           <label className="block">
             <span className="mb-1.5 block text-xs text-stone-400">{t("auth.password")}</span>
+            <GlyphField glyph="tab-admin">
             <input
               type="password"
               value={password}
@@ -292,13 +306,15 @@ export default function AuthForm({
               minLength={mode === "register" ? 8 : 1}
               maxLength={100}
               placeholder={t("auth.enterPassword")}
-              className={FIELD}
+              className={cn(FIELD, "pl-11")}
             />
+            </GlyphField>
           </label>
         )}
         {effectiveMode === "register" && signupMode === "invite" && !seatJoin ? (
           <label className="block">
             <span className="mb-1.5 block text-xs text-stone-400">{t("auth.inviteCode")}</span>
+            <GlyphField glyph="tab-handout">
             <input
               value={inviteCode}
               onChange={(event) => setInviteCode(event.target.value)}
@@ -306,8 +322,9 @@ export default function AuthForm({
               readOnly={Boolean(urlInvite)}
               maxLength={40}
               placeholder={t("auth.inviteCodePlaceholder")}
-              className={cn(FIELD, "font-mono uppercase tracking-wider", urlInvite && "text-amber-200")}
+              className={cn(FIELD, "pl-11 font-mono uppercase tracking-wider", urlInvite && "text-amber-200")}
             />
+            </GlyphField>
             <span className="mt-1.5 block text-xs text-stone-500">
               {urlInvite ? t("auth.inviteCodeFromLink") : t("auth.inviteCodeHelp")}
             </span>

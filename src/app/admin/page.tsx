@@ -56,7 +56,7 @@ export default function AdminPage() {
   }, []);
   if (loading) return <PageLoading />;
   if (!me?.isAdmin) return <PageNotice user={me ?? null}>{copy.adminsOnly}{" "}<Link href="/" className="text-amber-200 hover:text-amber-400">{copy.back}</Link></PageNotice>;
-  return <PageShell user={me} icon={PIXEL_ICONS.localData} title={copy.title} blurb={copy.signedInAs(me.username)}>
+  return <PageShell user={me} icon={PIXEL_ICONS.localData} glyph="tab-admin" title={copy.title} blurb={copy.signedInAs(me.username)}>
     <SegmentedControl options={tabs} value={tab} onChange={setTab} label={copy.section} className="w-full sm:w-auto" />
     {tab === "settings" ? <AdminSettingsPanel /> : tab === "worlds" ? <AdminWorldsPanel /> : tab === "reports" ? <AdminReportsPanel /> : <AdminUsersPanel meId={me.id} />}
   </PageShell>;

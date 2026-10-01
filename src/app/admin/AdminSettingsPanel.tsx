@@ -106,7 +106,7 @@ export function AdminSettingsPanel() {
 
   const input = ui.input;
   return <div className="space-y-5">
-    <PageSection heading={uiText("Server")} intro={uiText("Identity and public access settings. AI providers are intentionally not hosted by this server.")}>
+    <PageSection heading={uiText("Server")} glyph="tab-settings" intro={uiText("Identity and public access settings. AI providers are intentionally not hosted by this server.")}>
       <div className="grid gap-4 md:grid-cols-2">
         <Field label={uiText("Server name")}><input className={input} value={draft.serverName} onChange={(e) => setDraft({ ...draft, serverName: e.target.value })} /></Field>
         <Field label={uiText("Public URL")} hint={data.envDefaults.publicUrl ? uiText("Environment: {value}", { value: data.envDefaults.publicUrl }) : undefined}>
@@ -122,7 +122,7 @@ export function AdminSettingsPanel() {
     </PageSection>
 
     {!data.deviceWorld ? <>
-      <PageSection heading={uiText("Accounts")} intro={uiText("Choose who may create an account on this server.")}>
+      <PageSection heading={uiText("Accounts")} glyph="tab-characters" intro={uiText("Choose who may create an account on this server.")}>
         <Field label={uiText("Signup policy")}>
           <select className={input} value={draft.signupMode} onChange={(e) => setDraft({ ...draft, signupMode: e.target.value as Config["signupMode"] })}>
             <option value="open">{uiText("Open")}</option><option value="invite">{uiText("Invite only")}</option><option value="closed">{uiText("Closed")}</option>
@@ -131,7 +131,7 @@ export function AdminSettingsPanel() {
       </PageSection>
       {draft.signupMode === "invite" ? <AdminInvitesSection /> : null}
 
-      <PageSection heading={uiText("Voice chat")} intro={uiText("Browser-to-browser mesh or the built-in mediasoup SFU. This is ordinary WebRTC voice, not speech AI.")}>
+      <PageSection heading={uiText("Voice chat")} glyph="cue-horn" intro={uiText("Browser-to-browser mesh or the built-in mediasoup SFU. This is ordinary WebRTC voice, not speech AI.")}>
         <div className="grid gap-4 md:grid-cols-2">
           <Field label={uiText("Enabled")}><select className={input} value={draft.voiceChat.enabled} onChange={(e) => setDraft({ ...draft, voiceChat: { ...draft.voiceChat, enabled: e.target.value as Config["voiceChat"]["enabled"] } })}><option value="">{uiText("Environment/default")}</option><option value="on">On</option><option value="off">{uiText("Off")}</option></select></Field>
           <Field label={uiText("Mode")}><select className={input} value={draft.voiceChat.mode} onChange={(e) => setDraft({ ...draft, voiceChat: { ...draft.voiceChat, mode: e.target.value as Config["voiceChat"]["mode"] } })}><option value="">{uiText("Default")}</option><option value="mesh">{uiText("Mesh")}</option><option value="sfu">SFU</option></select></Field>
@@ -142,7 +142,7 @@ export function AdminSettingsPanel() {
         {data.voiceAnnounceUnroutable ? <p className="mt-3 text-xs text-amber-400">{uiText("The SFU is announcing an address remote browsers cannot route to.")}</p> : null}
       </PageSection>
 
-      <PageSection heading={uiText("Discord sign-in")}>
+      <PageSection heading={uiText("Discord sign-in")} glyph="system-share">
         <div className="grid gap-4 md:grid-cols-2">
           <Field label={uiText("Client ID")}><input className={input} value={draft.discord.clientId} onChange={(e) => setDraft({ ...draft, discord: { ...draft.discord, clientId: e.target.value } })} placeholder={data.envDefaults.discordClientId} /></Field>
           <Field label={uiText("Client secret")} hint={draft.discord.hasClientSecret || data.envDefaults.hasDiscordClientSecret ? uiText("A secret is already configured; leave blank to keep it.") : undefined}>
