@@ -1,0 +1,17 @@
+{
+  "creatureId": "bagiennik",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy swamp-creature avatar, tactile realistic painterly mud, wet skin and water, expressive face clear at 512 pixels. One B A G I E N N I K, a Medium amphibious aberration covered in thick mud and muck. Defining features: WEBBED CLAWED hands and feet, large BULBOUS eyes, and TWO distinct NOSTRIL SLITS that ooze glossy BLACK OIL. Original hunched semi-humanoid amphibian body interpretation with one broad blunt head, TWO arms, TWO legs, smooth olive-gray skin beneath mud and no tail or wings. Original nostril placement high on the blunt nose between the eyes; no human nose shape or human skin. Large frog-like fingers with obvious webbing and claws, big wet eyes and broad expressive mouth. Oil is a natural dark secretion, not blood; no wounds, sick victims, gore, violence, text, signature, watermark or border. YOLO 04. The muddy amphibian has staged a ludicrous luxury SPA in a rotten wooden wash tub in the middle of a swamp. It wears a fluffy pink towel turban, one cucumber slice rests over one bulbous eye while the other huge eye glares in annoyance; its two nostril slits visibly leak shiny black oil into an absurd tiny porcelain beauty bowl held in one webbed clawed hand. The other webbed hand holds a little cosmetic brush. A yellow rubber duck floats in the mud bath, two clawed feet rest on the tub edge, lotus flowers and candles on safe distant stones, original ridiculous spa vanity, no lettering.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/bagiennik-3pp/",
+      "note": "Tome of Beasts 2023 Medium amphibious aberration described with webbed claws, bulbous eyes, two nostril slits producing black oil, and a thick muddy coating; bathes in waterways and sifts sediment. Hunched four-limbed body, nose placement, colors and facial proportions are original interpretations because the checked text does not specify them. No copied publisher art."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

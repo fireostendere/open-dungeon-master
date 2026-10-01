@@ -1,0 +1,17 @@
+{
+  "creatureId": "balloon-spider",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy airborne-spider avatar, detailed realistic painterly chitin and delicate silk, readable at 512 pixels. One BALLOON SPIDER, a MEDIUM natural-looking spider levitating on BLUE WEB STRANDS held aloft by electromagnetic fields. Ordinary spider body segmentation: one cephalothorax, one oval ABDOMEN that is NOT inflated, EXACTLY EIGHT long segmented walking legs, FOUR pairs, and tiny mouth palps. Its TWO front MANDIBLES have small blue electrical sparks between them. The supporting BLUE SILK strands fan and drift above/around it like gossamer threads, NOT solid wings or a gas balloon. No humanoid body, hands, feathered wings, horn or instrument. Original shell colors, eye cluster and web arrangement. No prey, injuries, blood, text, signature, watermark, logo or frame. YOLO 04. A serious floating balloon spider has become entangled in THREE ridiculous bright PINK PARTY BALLOONS, clearly separate latex props tied into its own BLUE gossamer web strands. Its true body remains a normal oval-abdomen spider with exactly eight legs, four on each side, blue-sparking mandibles and no wings. A tiny conical paper party hat sits crookedly on its thorax, one balloon presses awkwardly against the silk above it, its many tiny eyes and pose look thoroughly offended. Abandoned medieval banquet hall, tasteful confetti, no people, no writing, no extra spider bodies. Correction: Correct only the spider's walking-leg count in this original party illustration. Remove the ONE EXTRA small long-leg shape hanging BEHIND the large front-left foreground leg, in the lower-left side of the spider body: this extra leg starts around 43% across and 44% down, angles down-left under the body and ends in a pointed tip around 43% across and 59% down. Remove its whole extra jointed limb and fill naturally with the blue webbing and distant hall. Preserve the FOUR other viewer-left legs: the upraised rear-left leg, two spreading left legs, and the big foremost leg ending near 47% across and 73% down. Preserve the four right-side walking legs. Keep the two short mouth palps and sparking mandibles, ordinary abdomen, party hat, three separate pink balloons, blue webs, colors and composition unchanged. Final anatomy exactly EIGHT long walking legs total, no ninth leg, no added text.",
+  "designReferences": [
+    {
+      "url": "https://github.com/open5e/open5e-api/blob/staging/data/v1/tob2/Monster.json",
+      "note": "Licensed Tome of Beasts 2, record balloon-spider: Medium spider floating on electromagnetically suspended web strands, electrified mandibles and blue webbing. Ballooning refers to silk-assisted flight, not an inflated abdomen. Eight walking legs and ordinary segmentation are spider-anatomy inference; body color, silk arrangement and separate YOLO party balloons are original choices."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

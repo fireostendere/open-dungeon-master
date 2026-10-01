@@ -1,0 +1,21 @@
+{
+  "creatureId": "baleful-miasma",
+  "variantId": "03",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy elemental avatar, richly detailed painterly volumetric smoke and atmospheric light, strong readable silhouette at 512 pixels. One BALEFUL MIASMA, a MEDIUM AIR ELEMENTAL made entirely of DARK POISONOUS SMOKE, hovering just above the ground. Its cloud resembles a ragged hanging SHROUD with a DEEP COWL; TWO small DULL RED GLOWING POINTS look like eyes within the dark hood-shaped vapor. ALL of the shroud and hood are smoke, translucent wispy edges and billowing vapor, NOT actual cloth. No solid skin, skull, bones, face, limbs, hands, armor, scythe or weapon. It is not an undead grim reaper. Original smoke contours and backdrop, no injured creatures or visible gas victims, no text, signature, watermark, logo, border or grid. Normal 03. Three-quarter view of a compact whirling baleful miasma above cracked alchemical floor tiles, its hood-shaped smoke curls sharply toward the viewer and its ragged shroud spreads into an asymmetric spiral. Two dim red points remain visible inside the cowl, empty space can be seen through the outer vapor. Violet laboratory glow behind glass bottles, silver rim light, smoke only, no skeleton or actual robe.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/baleful-miasma/",
+      "note": "Tome of Beasts 3 Medium elemental of poisonous air: dark smoky hovering mass resembling a ragged shroud and deep cowl, dull red eye-like glows. Not an undead skeleton or physical robe. Exact vapor shape, extra lighting colors and fan joke are original."
+    },
+    {
+      "url": "https://koboldpress.com/monster-weaknesses-for-tome-of-beasts-3-part-5/",
+      "note": "Publisher corroborates baleful miasma and strong-wind sensitivity. Original images, no publisher illustration copied."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}
