@@ -729,11 +729,21 @@ export async function PATCH(
     return Response.json({ sheet: leveled });
   }
 
+  // Only a patch that adds a spell answers to the 5e tables below: spells the
+  // table granted past them in play (a DM's gift, a copied scroll) never
+  // block a level-up or a prepared-list change that adds nothing.
+  const heldNames = (lists: { spellbook?: string[]; pending?: string[] } & Parameters<typeof allSpellNames>[0]) =>
+    [...allSpellNames(lists), ...(lists?.spellbook ?? []), ...(lists?.pending ?? [])].map((name) => name.toLowerCase());
+  const heldBefore = new Set(sheet.spellcasting ? heldNames(sheet.spellcasting) : []);
+  const addsSpells = Boolean(
+    parsed.data.spellcasting && heldNames(parsed.data.spellcasting).some((name) => !heldBefore.has(name)),
+  );
+
   // A level-up may not hand out more spells than the class's 5e table
   // allows. The builder shows the allowance and the picker blocks past it;
   // this is the server saying the same thing, so a crafted request cannot
   // walk away with a full spellbook.
-  if (parsed.data.spellcasting && sheet.spellcasting) {
+  if (parsed.data.spellcasting && sheet.spellcasting && addsSpells) {
     const ability = parsed.data.spellcasting.ability ?? sheet.spellcasting.ability;
     const allowance = suggestedSpellCount(
       spellClassFor(sheet.class),
@@ -776,7 +786,7 @@ export async function PATCH(
 
   // The same tables, whole: cantrips known and the counts per caster class,
   // which the block above does not cover for cantrips or a second class.
-  if (parsed.data.spellcasting) {
+  if (addsSpells && parsed.data.spellcasting) {
     const [problem] = spellListProblems(
       {
         ...sheet,
