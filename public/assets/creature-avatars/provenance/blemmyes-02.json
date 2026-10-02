@@ -1,0 +1,17 @@
+{
+  "creatureId": "blemmyes",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BLEMMYES avatar, Tome of Beasts 2016/2023. One LARGE naturally HEADLESS GIANT-SHAPED MONSTROSITY, powerful humanoid torso, TWO ARMS and TWO LEGS. The shoulder top is a smooth intact continuous plateau with NO HEAD OR NECK, no cut or wound. Its FACE is on its CHEST: ONE LARGE MOUTH centered in the chest, with EXACTLY TWO BULGING EYES FLANKING THE MOUTH, one to its left and one to its right at roughly the same height. No eyes above the mouth, extra head, navel mouth or extra face. Original earthy skin and opaque lower garments. Natural uninjured fantastical anatomy, heavy strong limbs, may hold a rock, no required weapon or armor. Realistic painterly skin and rocks, chest-face fully readable at 512 pixels. No victims, blood, wounds, exposed organs, gore, nudity, writing, signature, watermark, logo or frame. Normal 02. Waist-up frontal portrait of a broad headless brute, intact smooth shoulder plateau, one expressive chest mouth with two bulging dark eyes positioned beside it, no head or neck. Dusty ochre skin, natural folds and rough texture, one powerful hand rests on a stone ledge, other arm relaxed. Dark cave background and warm reflected torchlight, chest-face centered.",
+  "designReferences": [
+    {
+      "url": "https://github.com/open5e/open5e-api/blob/staging/data/v1/tob/Monster.json",
+      "note": "ToB2016 supplies headless giant-like body, chest mouth with eyes on either side; 2023 retains identity but lacks appearance prose. Two arms/two legs, smooth shoulder plateau, skin/clothes and misplaced-cup gag are original choices. No bloody neck stump or head above shoulders."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

@@ -1,0 +1,17 @@
+{
+  "creatureId": "blink-dog",
+  "variantId": "03",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BLINK DOG fey avatar, Core/A5E/BlackFlag. One MEDIUM clearly CANINE fey, ONE head with two eyes and two ears, FOUR natural dog legs, ONE tail. A lean golden or sable hound interpretation, fur length, eye color and ear shape are original choices because the source does not fix breed or coat. Alert ears, keen nose and intelligent gaze. Short-range TELEPORTATION may be suggested by subtle shimmering edges or an empty arrival ripple; never duplicate the dog, head or limbs. Solid dog body when visible, no wings, armor, saddle or humanoid hands. Realistic painterly fur, forest atmosphere and subtle magic, face readable at 512 pixels. No victims, blood, injury, gore, writing, signature, watermark, logo or frame. Normal 03. One golden-brown blink dog is caught just after a teleporting arrival above a fallen tree trunk, four paws in a natural mid-bound pose, one tail stretched behind, ears pricked and face focused. An EMPTY ring of fading blue sparkles surrounds the paws, no duplicate animal or afterimage body. Wet ferns, moonlit forest and realistic fur motion.",
+  "designReferences": [
+    {
+      "url": "https://a5e.tools/node/1915",
+      "note": "Core/A5E/BlackFlag Medium canine fey with bite, keen senses and short-range teleportation; appearance does not fix breed or color. Hound coats, ordinary canine anatomy, arrival shimmer and empty-cone escape gag are original choices. No duplicate creature required."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}
