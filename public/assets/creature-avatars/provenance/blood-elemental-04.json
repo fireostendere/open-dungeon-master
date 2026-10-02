@@ -1,0 +1,17 @@
+{
+  "creatureId": "blood-elemental",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BLOOD ELEMENTAL avatar, Creature Codex. One LARGE AMORPHOUS CHURNING GLOB OF MAGICAL BLOOD, dense crimson liquid with a BUBBLING SWIRLING SURFACE, rolling or lurching contours and temporary fluid protrusions. No fixed head, face, eyes, mouth, torso, skeleton or permanent limb count. This is a self-contained fantastical liquid creature, not spilled blood from a victim: no bodies, injuries, organs, wounds or feeding. Original opaque burgundy/crimson shades and glossy highlights. Keep on dry or damp stone, not submerged in water. Realistic painterly viscous liquid and atmospheric ruins, coherent shapeless silhouette at 512 pixels. No gore, writing, signature, watermark, logo or frame. YOLO 04. A faceless crimson liquid elemental has accidentally styled itself as a giant fancy MOCKTAIL: a ridiculously oversized striped drinking straw and a huge paper cocktail umbrella stand upright in its bubbling red mass, with an enormous orange slice balanced on one fluid fold. It heaves in a shapeless mound on an ornate stone drinks tray, no glass prison, no face or body parts. Festive absurdity in a dark dungeon bar, no text or victims.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/elemental-blood/",
+      "note": "Creature Codex: Large mobile amorphous bubbling blood glob, liquid body, changing size and temporary protrusions; no fixed humanoid form. Shade/opacity/contour and mocktail gag original. Whole creature shown without victims or injury; full water submersion is destructive, so scenes keep it on stone."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

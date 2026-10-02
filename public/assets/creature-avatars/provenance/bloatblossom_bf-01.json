@@ -1,0 +1,21 @@
+{
+  "creatureId": "bloatblossom_bf",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BLOATBLOSSOM avatar, Black Flag v0.2 roster with explicitly labeled earlier official sporeborn appearance guidance. One MEDIUM BULKY HUMANOID PLANT HOST heavily overgrown with DENSE FUNGUS, protective fibrous layers and numerous rounded TOXIN NODULES. One original humanoid head, two arms and two legs remain discernible beneath awkward thick fungal growth. Varied oyster-like brackets, stalks and nodules are original fungal choices, not a fixed count. Face may be partly visible but no missing eyes required. Opaque fibrous fungus and remnants of rough clothing cover the body. No free-standing flower body, extra limbs, weapon or armor required. Realistic painterly mushroom texture, fibrous layers and damp woodland light, readable head silhouette at 512 pixels. No victims, wounds, blood, exposed organs, injury, gore, writing, signature, watermark, logo or frame. Normal 01. A broad awkward fungal humanoid stands among damp tree roots, two thick arms hanging and two short heavy legs planted. Dense ochre and cream fungal brackets coat the shoulders and torso, many round nodules protrude from fibrous layers, a partly obscured mature face peers between stalks. Ragged opaque cloth under growth, wet moss and warm filtered forest light.",
+  "designReferences": [
+    {
+      "url": "https://koboldpress.com/wp-content/uploads/2024/05/Black-Flag-Roleplaying.pdf#page=339",
+      "note": "Roster BlackFlag0.2: Medium plant, bulky fungal humanoid host with protective growth and detachable toxin nodules, bite/slam. No exact nodule count."
+    },
+    {
+      "url": "https://koboldpress.com/wp-content/uploads/2023/10/Black-Flag-Roleplaying-v0.1_101123.pdf#page=125",
+      "note": "Earlier official v0.1 sporeborn appearance prose informs compatible v0.2 interpretation; not presented as v0.2 prose. Exact fungi/colors/remaining face and snail-race gag original."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}
