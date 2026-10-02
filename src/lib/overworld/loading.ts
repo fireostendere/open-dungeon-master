@@ -8,6 +8,8 @@ export function slowMapConnection(connection?: Connection, responseMs = 0) {
 }
 
 const cacheName = `odm-map-art-${process.env.NEXT_PUBLIC_MAP_ART_VERSION ?? "dev"}`;
+const RELIEF_PATH = "/__odm-relief/";
+const RELIEFS_KEPT = 6;
 let storage: Promise<Cache | null> | undefined;
 function artCache() {
   return storage ??= (async () => {
@@ -70,4 +72,35 @@ export async function loadAtlasMaterials(kinds: TerrainMaterial[], allowNetwork:
   const result = await value;
   if (!result && materialSet?.value === value) materialSet = undefined;
   return result;
+}
+
+// The finished relief, not just its textures: rebuilding it is a pixel loop
+// over the whole region, seconds on a phone. `source` names everything it was
+// drawn from, so another viewer's projection or a repainted map never matches.
+async function reliefUrl(source: string) {
+  const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(`${process.env.NEXT_PUBLIC_MAP_RELIEF_VERSION ?? "dev"}|${source}`)));
+  return RELIEF_PATH + [...digest].map(byte => byte.toString(16).padStart(2, "0")).join("");
+}
+
+export async function cachedRelief(source: string): Promise<ImageBitmap | null> {
+  try {
+    const cache = await artCache();
+    const url = await reliefUrl(source);
+    const response = await cache?.match(url);
+    if (!response) return null;
+    return await createImageBitmap(await response.blob()).catch(async () => { await cache?.delete(url); return null; });
+  } catch { return null; }
+}
+
+export async function storeRelief(source: string, canvas: HTMLCanvasElement) {
+  try {
+    const cache = await artCache();
+    if (!cache) return;
+    const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, "image/webp", 0.9));
+    if (!blob) return;
+    await cache.put(await reliefUrl(source), new Response(blob, { headers: { "Content-Type": blob.type } }));
+    // Keys come back oldest first; keep the newest few maps.
+    const reliefs = (await cache.keys()).filter(request => new URL(request.url).pathname.startsWith(RELIEF_PATH));
+    for (const old of reliefs.slice(0, -RELIEFS_KEPT)) await cache.delete(old);
+  } catch { /* storage full or blocked: the next visit renders again */ }
 }

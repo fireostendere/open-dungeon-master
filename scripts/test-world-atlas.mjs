@@ -133,6 +133,34 @@ try {
   setQuestLog(campaign.id, []);
   assert.equal(overworldView(campaign.id, false, first.id).quests.length, 0, "completed quests leave the atlas");
 
+  // The narrator moves part of the party; the rest stays where it stands.
+  const invoke = (name, args) => executeMcpNarratorControl("narrator.invoke", { campaignId: campaign.id, expectedSeq: latestSeq(campaign.id), commandId: randomUUID(), name, args });
+  const seqBeforeTypo = latestSeq(campaign.id);
+  await assert.rejects(() => invoke("move_party", { name: "Forest edge", characterIds: ["no-such-hero"] }), /Unknown characterIds no-such-hero.*Scout/);
+  assert.equal(latestSeq(campaign.id), seqBeforeTypo, "a wrong character id must move nobody");
+  const scouting = await invoke("move_party", { name: "Forest edge", characterIds: [scout.id] });
+  assert.equal(scouting.result.result.result.positions, "Torin: Old keep; Scout: Forest edge");
+  const forest = overworldView(campaign.id, true, dm.id).locations.find(location => location.name === "Forest edge");
+  assert.deepEqual(forest.connections, ["Old keep"], "the route the scout took is recorded");
+  for (const viewer of [first, second]) {
+    const party = overworldView(campaign.id, false, viewer.id).party;
+    assert.equal(party.find(character => character.id === hero.id).locationId, target.id, "those not named stay put");
+    assert.equal(party.find(character => character.id === scout.id).locationId, forest.id);
+  }
+  assert.equal(overworldView(campaign.id, false, second.id).locations.find(location => location.isCurrent).id, forest.id, "each player's own place is theirs");
+  const splitRead = await executeMcpNarratorControl("narrator.read", { campaignId: campaign.id, projection: "live", afterSeq: 0, maxBytes: 131072 });
+  assert.deepEqual(splitRead.result.partyPositions.map(position => [position.name, position.locationName]), [["Torin", "Old keep"], ["Scout", "Forest edge"]]);
+  await invoke("move_party", { name: "Old keep", characterIds: ["scout"] });
+  assert.ok(overworldView(campaign.id, false, first.id).party.every(character => character.locationId === target.id), "a regrouped party is whole again");
+  assert.equal(overworldView(campaign.id, false, first.id).locations.filter(location => location.isCurrent).length, 1);
+  const longName = `Old keep ${"long ".repeat(18)}`;
+  upsertCurrentLocation({ campaignId: campaign.id, name: longName });
+  upsertCurrentLocation({ campaignId: campaign.id, name: longName });
+  assert.equal(overworldView(campaign.id, true, dm.id).locations.filter(location => location.name.startsWith("Old keep long")).length, 1, "a long place name must not duplicate on every move");
+  upsertCurrentLocation({ campaignId: campaign.id, name: "Old keep" });
+  const together = await executeMcpNarratorControl("narrator.read", { campaignId: campaign.id, projection: "live", afterSeq: 0, maxBytes: 131072 });
+  assert.deepEqual(together.result.partyPositions.map(position => position.locationId), [target.id, target.id], "the narrator sees every hero's place, not only after a split");
+
   const store = spatialStore(), { actor } = spatialContext(campaign.id, dm.id);
   const command = (operation, args) => store.command(actor, randomUUID(), operation, args);
   const room = command("enable", { name: "Public road" }).roomId;
@@ -191,6 +219,15 @@ try {
   assert.equal(moved.party.find(character => character.id === hero.id).locationId, exit);
   assert.equal(moved.party.find(character => character.id === scout.id).locationId, room, "previously visited places must keep their party markers");
   assert.equal(moved.locations.find(location => location.isCurrent).id, exit);
+  // With rooms on, a legacy move would change nothing the table sees.
+  await assert.rejects(() => invoke("move_party", { name: "Old keep", roomId: room }), /location_move/);
+  await invoke("location_move", { roomId: exit, characterIds: [scout.id] });
+  assert.equal(store.getUserRoom(campaign.id, second.id), exit, "location_move takes the narrator's character ids");
+  const roomRead = await executeMcpNarratorControl("narrator.read", { campaignId: campaign.id, projection: "live", afterSeq: 0, maxBytes: 131072 });
+  assert.equal(roomRead.result.location, null, "the stale pre-rooms place is not the narrator's current location");
+  assert.deepEqual(roomRead.result.partyPositions.map(position => [position.name, position.locationName]), [["Torin", "Known exit"], ["Scout", "Known exit"]]);
+  await invoke("location_move", { roomId: room, characterIds: ["Scout"] });
+  assert.equal(store.getUserRoom(campaign.id, second.id), room);
   const anchorsBeforeDisable = getOverworld(campaign.id).anchors;
   const disable = { operation: "disable", requestId: randomUUID(), preserveMapPositions: true };
   assert.throws(() => runSpatialCommand(campaign.id, first.id, disable), error => error.status === 403);

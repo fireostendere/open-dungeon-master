@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { CatalogEntry, CatalogField } from "@/lib/dm/invoke-catalog";
 import { NarratorCommandError } from "@/lib/dm/narrator-command";
+import { listSheets } from "@/lib/db/sheets";
 import { runSpatialCommand, spatialContext, spatialStore, SpatialError } from "@/lib/spatial/service";
 
 export const SPATIAL_NARRATOR_OPERATIONS: Readonly<Record<string, string>> = Object.freeze({
@@ -18,13 +19,15 @@ const field = (name: string, help: string, kind: CatalogField["kind"] = "text", 
 const room = field("roomId", "Exact location UUID from spatialRooms, not the legacy map location ID.");
 const content = field("content", "Only prose intended for the specified recipients.", "longtext");
 const users = field("userIds", "JSON array of PLAYER USER UUIDs from members; not character-sheet UUIDs.");
+const movers = [field("characterIds", "JSON array of character ids from partyPositions (the server finds their players). Use this or userIds.", "text", false),
+  { ...users, required: false }];
 const passages = [field("walkable", "Players may traverse this boundary.", "boolean", false), field("sound", "Sound-permeable boundary; speech still needs an observation grant.", "boolean", false), field("sight", "A separately narrated visible incident can cross this boundary.", "boolean", false)];
 export const SPATIAL_NARRATOR_CATALOG: CatalogEntry[] = [
   { name: "location_enable", label: "Enable location chats", category: "world", summary: "Opt in and place the current players in a starting room. No automatic historical disclosure.", fields: [field("name", "Starting room name, 1–80 characters.")] },
   { name: "location_disable", label: "Disable location chats", category: "world", summary: "Remove room/privacy state and return the campaign to the shared chat. Story, sheets and ordinary history stay intact.", fields: [field("preserveMapPositions", "Keep occupied place names and character positions on the shared map, without private room messages. Defaults to false.", "boolean", false)] },
   { name: "location_create_room", label: "Create a room", category: "world", summary: "Add a separate scene; optionally connect it to a known room.", fields: [field("name", "Room name, 1–80 characters."), field("connectTo", "Optional neighboring room UUID.", "text", false), ...passages] },
   { name: "location_link", label: "Connect rooms", category: "world", summary: "Set a symmetric walking / sound / sight boundary. Closing sound revokes physical eavesdropping across it.", fields: [field("sourceId", "Source room UUID."), field("targetId", "Destination room UUID."), ...passages] },
-  { name: "location_move", label: "Move a subgroup", category: "world", summary: "Move specified players without granting old history. Adjudicate combat movement before calling this.", fields: [room, users] },
+  { name: "location_move", label: "Move a subgroup", category: "world", summary: "Move specified players without granting old history. Call it whenever the story moves a character to another room; the map shows only recorded positions. Adjudicate combat movement before calling this.", fields: [room, ...movers] },
   { name: "location_narrate", label: "Narrate in a room", category: "story", summary: "Narrate only to the room's current occupants and authorized magical observers.", fields: [room, content] },
   { name: "location_observe", label: "Grant perception", category: "world", summary: "Future speech or future magical scene, never old history. Resolve checks and resources first.", fields: [room, field("userId", "Listening player USER UUID."), field("mode", "speech (sound-linked rooms) or scry (DM-adjudicated magic)."), field("seconds", "Real-time duration, 1–3600 seconds.", "number"), field("reason", "Recorded adjudication, 1–500 characters.")] },
   { name: "location_revoke", label: "Revoke perception", category: "world", summary: "Stop future reception; already perceived information remains in the player's archive.", fields: [field("grantId", "Exact observation UUID from spatialGrants.")] },
@@ -43,11 +46,26 @@ export function readSpatialForNarrator(campaignId: string, dmUserId: string, aft
   return store.narratorRead(actor, { afterSeq, limit });
 }
 
+// Presence is per player; the narrator thinks in characters. Translate here so
+// a wrong id fails loudly instead of moving somebody else's player.
+function withMoverUserIds(campaignId: string, args: Record<string, unknown>) {
+  const { characterIds, ...rest } = args;
+  const sheets = listSheets(campaignId);
+  const refs = Array.isArray(characterIds) ? characterIds.map(String) : [];
+  const found = refs.map(ref => sheets.find(sheet => sheet.id === ref || sheet.name.toLowerCase() === ref.trim().toLowerCase()));
+  if (!refs.length || found.some(sheet => !sheet)) {
+    throw new NarratorCommandError(`Unknown characterIds ${refs.filter((_, index) => !found[index]).join(", ")}; use: ${sheets.map(sheet => `${sheet.id} (${sheet.name})`).join(", ")}.`, 400);
+  }
+  const userIds = Array.isArray(rest.userIds) ? rest.userIds.map(String) : [];
+  return { ...rest, userIds: [...new Set([...userIds, ...found.map(sheet => sheet!.userId)])] };
+}
+
 // Invoked INSIDE executeNarratorCommand's existing serialized CAS transaction.
 // No new public action family or broader narrator credential is introduced.
 export function invokeSpatialForNarrator(campaignId: string, dmUserId: string, name: string, args: Record<string, unknown>, commandId?: string) {
   const operation = Object.hasOwn(SPATIAL_NARRATOR_OPERATIONS, name) ? SPATIAL_NARRATOR_OPERATIONS[name] : undefined;
   if (!operation) throw new NarratorCommandError("Unknown location action.", 403);
+  if (name === "location_move" && args.characterIds !== undefined) args = withMoverUserIds(campaignId, args);
   try {
     const result = runSpatialCommand(campaignId, dmUserId, { ...args, operation, requestId: commandId ?? randomUUID(),
       ...(name === "location_narrate" ? { kind: "narration" } : {}) });

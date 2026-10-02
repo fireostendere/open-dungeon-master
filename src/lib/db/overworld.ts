@@ -1,5 +1,5 @@
 import { getDatabase, nowIso, parseJson } from "@/lib/db/core";
-import { insertKnownLocation, listLocations, type CampaignLocation } from "@/lib/db/locations";
+import { getCurrentLocation, insertKnownLocation, listLocations, type CampaignLocation } from "@/lib/db/locations";
 import { getCampaignById } from "@/lib/db/campaigns";
 import { listSheets } from "@/lib/db/sheets";
 import { activeQuestLines } from "@/lib/dm/arc-logic";
@@ -301,15 +301,48 @@ export function preserveSpatialMapPositions(campaignId: string, rooms: SpatialRo
     .run(JSON.stringify(anchors), JSON.stringify(partyLocations), nowIso(), campaignId);
 }
 
+// Where each character stands, by sheet id: the split map when the party is
+// split, otherwise everyone at the one current location. Location-chat rooms
+// keep their own presence in the spatial store instead.
+export function partyStanding(campaignId: string, sheets = listSheets(campaignId)): Record<string, string> {
+  const split = readRow(campaignId)?.partyLocations ?? {};
+  if (Object.keys(split).length) return split;
+  const current = getCurrentLocation(campaignId);
+  return current ? Object.fromEntries(sheets.map(sheet => [sheet.id, current.id])) : {};
+}
+
+// Part of the party stays behind: positions for every placed character. One
+// place for all of them is a whole party again (current location, no split).
+export function setPartyStanding(campaignId: string, positions: Record<string, string>) {
+  if (new Set(Object.values(positions)).size <= 1) return false;
+  getOverworld(campaignId);
+  const db = getDatabase();
+  db.prepare("UPDATE locations SET is_current=0 WHERE campaign_id=?").run(campaignId);
+  db.prepare("UPDATE overworld_maps SET party_locations_json=?, party_xy_json='', updated_at=? WHERE campaign_id=?")
+    .run(JSON.stringify(positions), nowIso(), campaignId);
+  return true;
+}
+
+// The narrator's record of who stands where: every character, an unplaced one
+// with nulls. With location chat on, locationId/locationName are the room's.
 export function getOverworldPartyPositions(campaignId: string) {
-  if (spatialEnabled(campaignId)) return [];
-  const positions = readRow(campaignId)?.partyLocations ?? {};
-  if (!Object.keys(positions).length) return [];
-  const locations = new Map(listLocations(campaignId).map(location => [location.id, location.name]));
-  return listSheets(campaignId).flatMap(sheet => {
-    const locationId = positions[sheet.id];
-    const locationName = locations.get(locationId);
-    return locationName ? [{ characterId: sheet.id, name: sheet.name, locationId, locationName }] : [];
+  const sheets = listSheets(campaignId);
+  let standing: (sheet: (typeof sheets)[number]) => string | null;
+  let names: Map<string, string>;
+  if (spatialEnabled(campaignId)) {
+    const store = spatialStore();
+    standing = sheet => store.getUserRoom(campaignId, sheet.userId);
+    names = new Map((getDatabase().prepare("SELECT id, name FROM spatial_rooms WHERE campaign_id=?").all(campaignId) as Array<{ id: string; name: string }>)
+      .map(room => [room.id, room.name]));
+  } else {
+    const positions = partyStanding(campaignId, sheets);
+    standing = sheet => positions[sheet.id] ?? null;
+    names = new Map(listLocations(campaignId).map(location => [location.id, location.name]));
+  }
+  return sheets.map(sheet => {
+    const locationId = standing(sheet);
+    const locationName = locationId ? names.get(locationId) ?? null : null;
+    return { characterId: sheet.id, name: sheet.name, locationId: locationName ? locationId : null, locationName };
   });
 }
 

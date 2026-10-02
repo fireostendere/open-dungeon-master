@@ -6,6 +6,11 @@ const mapArtHash = createHash("sha256");
 for (const name of readdirSync("public/assets/maps").filter(name => name.endsWith(".webp")).sort()) {
   mapArtHash.update(name).update(readFileSync(`public/assets/maps/${name}`));
 }
+// Cached relief renders go stale when the art or the code that paints them changes.
+const reliefHash = createHash("sha256").update(mapArtHash.copy().digest());
+for (const file of ["src/app/campaigns/[campaignId]/overworldDraw.ts", "src/lib/overworld/logic.ts", "src/lib/overworld/cartography.ts"]) {
+  reliefHash.update(readFileSync(file));
+}
 
 // Extra hostnames/IPs allowed to reach the dev server (e.g. a phone on your
 // tailnet). Comma-separated, set in .env.local: ALLOWED_DEV_ORIGINS=ip1,host2
@@ -21,7 +26,10 @@ const extraDevOrigins = (process.env.ALLOWED_DEV_ORIGINS || "")
 const dockerBuild = process.env.DOCKER_BUILD === "1";
 
 const nextConfig: NextConfig = {
-  env: { NEXT_PUBLIC_MAP_ART_VERSION: mapArtHash.digest("hex").slice(0, 16) },
+  env: {
+    NEXT_PUBLIC_MAP_ART_VERSION: mapArtHash.digest("hex").slice(0, 16),
+    NEXT_PUBLIC_MAP_RELIEF_VERSION: reliefHash.digest("hex").slice(0, 16),
+  },
   allowedDevOrigins: ["localhost", "127.0.0.1", ...extraDevOrigins],
   devIndicators: false,
   // mediasoup spawns a native worker binary and resolves it by path, so

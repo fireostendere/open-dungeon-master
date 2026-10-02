@@ -1,9 +1,12 @@
 import type { Campaign } from "@/lib/db/campaigns";
+import { getDatabase, nowIso } from "@/lib/db/core";
 import { allocateSeq, getFloor, setCampaignScene, setFloor } from "@/lib/db/campaigns";
 import { getActiveEncounter } from "@/lib/db/encounters";
 import { listOpenPendingRolls } from "@/lib/db/dm-turns";
 import { hasRecentIdenticalEvent, insertCharacterEvent, CHARACTER_EVENT_KINDS, type CharacterEventKind } from "@/lib/db/character-events";
-import { getCurrentLocation, updateCurrentLocationDetails, upsertCurrentLocation } from "@/lib/db/locations";
+import { getLocation, updateCurrentLocationDetails, upsertCurrentLocation } from "@/lib/db/locations";
+import { getOverworldPartyPositions, partyStanding, setPartyStanding } from "@/lib/db/overworld";
+import { spatialEnabled } from "@/lib/spatial/service";
 import { publishPersisted } from "@/lib/events";
 import { normalizeEventKind } from "@/lib/dm/arg-coerce";
 import { resolveSheetRef } from "@/lib/dm/rolls";
@@ -65,27 +68,60 @@ export function handleRecordEvent(campaign: Campaign, rawArguments: string, shee
   return { ok: true };
 }
 
-export function handleLocationCall(campaign: Campaign, toolName: string, rawArguments: string): Record<string, unknown> {
-  let args: { name?: unknown; layoutDescription?: unknown; connections?: unknown; visionClear?: unknown };
+// "Олег, Как: Лес; Левик: Костёр", what the map now shows, so the narrator
+// sees the recorded positions in the same receipt as the move.
+function whereabouts(campaignId: string) {
+  const groups = new Map<string, string[]>();
+  for (const position of getOverworldPartyPositions(campaignId)) {
+    const place = position.locationName ?? "not placed";
+    groups.set(place, [...groups.get(place) ?? [], position.name]);
+  }
+  return [...groups].map(([place, names]) => `${names.join(", ")}: ${place}`).join("; ");
+}
+
+export function handleLocationCall(campaign: Campaign, toolName: string, rawArguments: string, sheets: CharacterSheet[], sheetsById: Map<string, CharacterSheet>): Record<string, unknown> {
+  let args: { name?: unknown; layoutDescription?: unknown; connections?: unknown; visionClear?: unknown; characterIds?: unknown };
   try { args = JSON.parse(rawArguments || "{}"); } catch { return { error: "Invalid arguments." }; }
+  // Location chat tracks who is in which room itself; a legacy move here would
+  // change nothing the table sees, so it must not look like it succeeded.
+  if (spatialEnabled(campaign.id)) {
+    return { error: `Location chat is on: move players between rooms with location_move {roomId, characterIds}; ${toolName} does not move anyone there.` };
+  }
   const layoutDescription = typeof args.layoutDescription === "string" ? args.layoutDescription : undefined;
   const connections = Array.isArray(args.connections) ? args.connections.map(String).slice(0, 12) : undefined;
   let location;
+  let split = false;
   if (toolName === "move_party") {
     const name = typeof args.name === "string" ? args.name.trim() : "";
     if (!name) return { error: "move_party needs a location name." };
-    const previous = getCurrentLocation(campaign.id);
-    location = upsertCurrentLocation({ campaignId: campaign.id, name, layoutDescription, connections });
-    if (previous && previous.id !== location.id) {
-      const merged = [...new Set([...location.connections, previous.name])];
-      if (merged.length !== location.connections.length) location = updateCurrentLocationDetails(campaign.id, { connections: merged }) ?? location;
+    const requested = Array.isArray(args.characterIds) ? args.characterIds.map(String) : [];
+    const movers = requested.map(ref => resolveSheetRef(ref, sheets, sheetsById));
+    if (movers.some(sheet => !sheet)) {
+      return { error: `Unknown characterIds ${requested.filter((_, index) => !movers[index]).join(", ")}; use: ${sheets.map(sheet => `${sheet.id} (${sheet.name})`).join(", ")}.` };
     }
-    setCampaignScene(campaign.id, location.name);
+    const moving = new Set(movers.map(sheet => sheet!.id));
+    const before = partyStanding(campaign.id, sheets);
+    location = upsertCurrentLocation({ campaignId: campaign.id, name, layoutDescription, connections });
+    const target = location.id;
+    // Everyone not named stays where they stood; nobody named means everyone.
+    const after = Object.fromEntries(sheets.flatMap(sheet => {
+      const at = !moving.size || moving.has(sheet.id) ? target : before[sheet.id];
+      return at ? [[sheet.id, at]] : [];
+    }));
+    split = setPartyStanding(campaign.id, after);
+    const leftFrom = [...new Set(sheets.filter(sheet => !moving.size || moving.has(sheet.id)).map(sheet => before[sheet.id]))]
+      .filter(id => id && id !== target).map(id => getLocation(id)?.name).filter((place): place is string => Boolean(place));
+    const merged = [...new Set([...location.connections, ...leftFrom])];
+    if (merged.length !== location.connections.length) {
+      getDatabase().prepare("UPDATE locations SET connections_json=?, updated_at=? WHERE id=?").run(JSON.stringify(merged), nowIso(), target);
+      location = getLocation(target) ?? location;
+    }
+    if (!split) setCampaignScene(campaign.id, location.name);
   } else {
     location = updateCurrentLocationDetails(campaign.id, { layoutDescription, connections });
-    if (!location) return { error: "No current location; call move_party first." };
+    if (!location) return { error: "No current location: the party is split or not placed. Record a place's layout with move_party {name, layoutDescription, characterIds of who is there}." };
   }
   publishPersisted(campaign.id, "location_updated", { location });
   followSceneAmbience(campaign, `${location.name} ${location.layoutDescription}`);
-  return { ok: true, location: location.name, note: "Recorded. Continue the scene." };
+  return { ok: true, location: location.name, positions: whereabouts(campaign.id), note: "Recorded. Continue the scene." };
 }
