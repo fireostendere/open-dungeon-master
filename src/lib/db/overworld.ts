@@ -1,5 +1,10 @@
 import { getDatabase, nowIso, parseJson } from "@/lib/db/core";
 import { listLocations, type CampaignLocation } from "@/lib/db/locations";
+import { getCampaignById } from "@/lib/db/campaigns";
+import { listSheets } from "@/lib/db/sheets";
+import { activeQuestLines } from "@/lib/dm/arc-logic";
+import { spatialContext, spatialEnabled, spatialStore } from "@/lib/spatial/service";
+import type { AtlasCharacter, AtlasLocation } from "@/lib/overworld/atlas";
 import {
   DEFAULT_OVERWORLD_PARAMS,
   OVERWORLD_HEIGHT,
@@ -247,7 +252,19 @@ function reconcileAnchors(map: OverworldMap, locations: CampaignLocation[]): Ove
 export function getOverworld(campaignId: string): OverworldMap {
   const map =
     readRow(campaignId) ?? createMap(campaignId, (Math.random() * 0xffffffff) >>> 0);
-  return reconcileAnchors(map, listLocations(campaignId));
+  const locations = listLocations(campaignId);
+  if (spatialEnabled(campaignId)) {
+    // Canonical anchors cover all rooms; only an authenticated spatial view
+    // below may expose them. Room IDs and legacy location IDs stay distinct.
+    const rooms = getDatabase().prepare("SELECT id, name, rowid AS ordinal FROM spatial_rooms WHERE campaign_id=? ORDER BY rowid")
+      .all(campaignId) as Array<{ id: string; name: string; ordinal: number }>;
+    locations.push(...rooms.map(room => ({
+      id: room.id, campaignId, name: room.name, layoutDescription: "", connections: [],
+      visited: false, isCurrent: false, mapImage: null,
+      createdAt: `~${String(room.ordinal).padStart(16, "0")}`, updatedAt: "",
+    })));
+  }
+  return reconcileAnchors(map, locations);
 }
 
 // Lead reroll: new seed and terrain, at the same size or a new one; every
@@ -430,30 +447,65 @@ export function setOverworldBackdrop(campaignId: string, path: string): Overworl
 // location state (visited/current names), lead pins, the party marker, the
 // lines and words over the map, and the DM's own notes only for whoever
 // holds the story's secrets (src/lib/dm/viewer.ts).
-export function overworldView(campaignId: string, secrets: boolean) {
+export function overworldView(campaignId: string, secrets: boolean, viewerUserId?: string) {
   const map = getOverworld(campaignId);
-  const locations = listLocations(campaignId).map((location) => ({
+  const campaign = getCampaignById(campaignId);
+  const spatial = spatialEnabled(campaignId);
+  const actor = spatial && viewerUserId ? spatialContext(campaignId, viewerUserId).actor : null;
+  const roomView = actor ? spatialStore().view(actor) : null;
+  const privateMap = spatial && !actor?.isDm;
+  const locations: AtlasLocation[] = privateMap ? [] : listLocations(campaignId).map((location) => ({
     id: location.id,
     name: location.name,
+    layoutDescription: location.layoutDescription,
     visited: location.visited,
-    isCurrent: location.isCurrent,
+    isCurrent: !spatial && location.isCurrent,
     connections: location.connections,
     anchor: map.anchors[location.id] ?? null,
   }));
+  const roomByUser = new Map<string, string>();
+  if (roomView?.enabled) {
+    const known = new Map(roomView.rooms.map(room => [room.id, { ...room, visited: true }]));
+    for (const exit of roomView.exits) {
+      if (!known.has(exit.id)) known.set(exit.id, { ...exit, active: false, occupants: [], visited: false });
+    }
+    for (const room of known.values()) {
+      for (const userId of room.occupants) roomByUser.set(userId, room.id);
+      const links = actor?.isDm
+        ? getDatabase().prepare("SELECT r.name FROM spatial_links l JOIN spatial_rooms r ON r.id=l.target_id WHERE l.campaign_id=? AND l.source_id=? AND l.walkable=1")
+          .all(campaignId, room.id) as Array<{ name: string }>
+        : room.active ? roomView.exits : [];
+      locations.push({ id: room.id, name: room.name, visited: room.visited, isCurrent: room.active,
+        connections: links.map(link => link.name), anchor: map.anchors[room.id] ?? null });
+    }
+  }
+  const current = locations.find(location => location.isCurrent);
+  const party: AtlasCharacter[] = listSheets(campaignId)
+    .filter(sheet => !spatial || roomByUser.has(sheet.userId))
+    .map(sheet => ({ id: sheet.id, name: sheet.name, class: sheet.class,
+      portraitUrl: sheet.portrait?.url ?? null,
+      locationId: spatial ? roomByUser.get(sheet.userId)! : current?.id ?? null }));
+  // Use the established public journal. Planned beats, hooks and private
+  // room objectives are never a map projection for an ordinary player.
+  const quests = privateMap ? [] : campaign?.questLog.length ? campaign.questLog
+    : campaign?.storyArc ? activeQuestLines(campaign.storyArc) : [];
   return {
     map: {
       seed: map.seed,
       width: map.width,
       height: map.height,
       terrain: map.terrain,
-      pins: map.pins,
-      partyXy: map.partyXy,
+      pins: privateMap ? [] : map.pins,
+      partyXy: spatial ? null : map.partyXy,
       params: map.params,
-      paths: map.paths,
-      labels: map.labels,
-      backdropPath: map.backdropPath,
-      ...(secrets ? { notes: map.notes } : {}),
+      paths: privateMap ? [] : map.paths,
+      labels: privateMap ? [] : map.labels,
+      backdropPath: privateMap ? "" : map.backdropPath,
+      ...(secrets && !privateMap ? { notes: map.notes } : {}),
     },
     locations,
+    party,
+    quests,
+    scope: spatial ? "spatial" : "party",
   };
 }

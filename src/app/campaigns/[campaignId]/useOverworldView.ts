@@ -9,9 +9,9 @@ import { useCallback, useEffect, useRef, useState, type PointerEvent, type RefOb
 
 export type MapView = { x: number; y: number; zoom: number };
 
-const ZOOM = { min: 0.4, max: 4 };
+const ZOOM = { min: 0.08, max: 4 };
 
-export function useOverworldView(canvasRef: RefObject<HTMLCanvasElement | null>, ready: boolean) {
+export function useOverworldView(canvasRef: RefObject<HTMLElement | null>, ready: boolean, surface?: HTMLElement | null) {
   const [view, setView] = useState<MapView>({ x: 0, y: 0, zoom: 1 });
   const dragRef = useRef<{ x: number; y: number; startX: number; startY: number } | null>(null);
   // Active pointers by id, for two-finger pinch zoom on touch screens.
@@ -46,32 +46,35 @@ export function useOverworldView(canvasRef: RefObject<HTMLCanvasElement | null>,
     };
     canvas.addEventListener("wheel", handleWheel, { passive: false });
     return () => canvas.removeEventListener("wheel", handleWheel);
-  }, [canvasRef, ready]);
+  }, [canvasRef, ready, surface]);
 
   // Fits the whole map into the canvas: on the first draw, and again when
   // the map changed size under the view (a reroll at another size, an
   // import), because a view fitted to the old grid shows a corner of the
   // new one.
   const fit = useCallback(
-    (canvas: HTMLCanvasElement, mapWidth: number, mapHeight: number, force = false) => {
+    (canvas: HTMLElement, mapWidth: number, mapHeight: number, force = false) => {
+      // Dialogs briefly mount at zero size. Never turn that transition into
+      // a zero zoom and infinite coordinates on the next zoom gesture.
+      if (!canvas.clientWidth || !canvas.clientHeight || mapWidth <= 0 || mapHeight <= 0) return;
       setView((current) => {
         if (!force && (current.x || current.y)) {
           return current;
         }
-        const zoom = Math.min(canvas.width / mapWidth, canvas.height / mapHeight);
+        const zoom = Math.min(canvas.clientWidth / mapWidth, canvas.clientHeight / mapHeight);
         return {
           zoom,
-          x: (canvas.width - mapWidth * zoom) / 2,
-          y: (canvas.height - mapHeight * zoom) / 2,
+          x: (canvas.clientWidth - mapWidth * zoom) / 2,
+          y: (canvas.clientHeight - mapHeight * zoom) / 2,
         };
       });
     },
     [],
   );
 
-  function down(event: PointerEvent<HTMLCanvasElement>) {
+  function down(event: PointerEvent<HTMLElement>) {
     pointersRef.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
-    (event.target as HTMLElement).setPointerCapture(event.pointerId);
+    event.currentTarget.setPointerCapture(event.pointerId);
     if (pointersRef.current.size === 2) {
       // Second finger down: the drag becomes a pinch.
       dragRef.current = null;
@@ -85,7 +88,7 @@ export function useOverworldView(canvasRef: RefObject<HTMLCanvasElement | null>,
     }
   }
 
-  function move(event: PointerEvent<HTMLCanvasElement>) {
+  function move(event: PointerEvent<HTMLElement>) {
     if (!pointersRef.current.has(event.pointerId)) {
       return;
     }
@@ -126,7 +129,7 @@ export function useOverworldView(canvasRef: RefObject<HTMLCanvasElement | null>,
     }
   }
 
-  function up(event: PointerEvent<HTMLCanvasElement>) {
+  function up(event: PointerEvent<HTMLElement>) {
     pointersRef.current.delete(event.pointerId);
     if (pointersRef.current.size < 2) {
       pinchRef.current = null;
@@ -134,5 +137,26 @@ export function useOverworldView(canvasRef: RefObject<HTMLCanvasElement | null>,
     dragRef.current = null;
   }
 
-  return { view, fit, down, move, up };
+  const zoomBy = useCallback((ratio: number) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const x = canvas.clientWidth / 2, y = canvas.clientHeight / 2;
+    setView(current => {
+      const zoom = Math.min(ZOOM.max, Math.max(ZOOM.min, current.zoom * ratio));
+      const scale = zoom / current.zoom;
+      return { zoom, x: x - (x - current.x) * scale, y: y - (y - current.y) * scale };
+    });
+  }, [canvasRef]);
+
+  const focus = useCallback((x: number, y: number) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    setView(current => ({ ...current, x: canvas.clientWidth / 2 - x * current.zoom, y: canvas.clientHeight / 2 - y * current.zoom }));
+  }, [canvasRef]);
+
+  const pan = useCallback((x: number, y: number) => {
+    setView(current => ({ ...current, x: current.x + x, y: current.y + y }));
+  }, []);
+
+  return { view, fit, down, move, up, zoomBy, focus, pan };
 }

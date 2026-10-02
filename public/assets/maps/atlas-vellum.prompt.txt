@@ -1,0 +1,9 @@
+Generated with the built-in imagegen tool, 2026-10-02.
+
+Use case: stylized-concept
+Asset type: landscape texture for a live Dungeons & Dragons regional map interface.
+Primary request: a premium, finely detailed empty cartographer's vellum surface with the brooding atmosphere of a northern fantasy RPG atlas.
+Style/medium: realistic aged charcoal-grey parchment with muted taupe and old brass undertones, worn hand-made paper grain, subtle engraved scratch marks and fine fibers, slight smoke staining around edges.
+Composition/framing: wide rectangular seamless-looking surface, even texture throughout the center, restrained dark edges.
+Lighting/mood: soft diffused candlelight, mysterious expedition atmosphere, quiet and sophisticated.
+Constraints: ONLY the material surface. No geographic land masses, coastlines, roads, mountains, trees, labels, symbols, frame, compass or characters; actual geography and markers are drawn from game data by the application. No text, no watermark. Subtle contrast so UI labels and terrain are readable.

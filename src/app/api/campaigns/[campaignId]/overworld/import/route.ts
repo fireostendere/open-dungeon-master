@@ -4,6 +4,7 @@ import { insertKnownLocation } from "@/lib/db/locations";
 import { overworldView, replaceOverworldTerrain, setOverworldAnchor } from "@/lib/db/overworld";
 import { AZGAAR_LIMITS, importAzgaar } from "@/lib/overworld/azgaar";
 import { getOverworld } from "@/lib/db/overworld";
+import { notifySpatialChange } from "@/lib/spatial/updates.mjs";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -62,8 +63,9 @@ export async function POST(
       places += 1;
     }
   }
+  notifySpatialChange(campaignId);
   return Response.json({
-    ...overworldView(campaignId, true),
+    ...overworldView(campaignId, true, context.user.id),
     summary: { ...read.summary, places },
   });
 }

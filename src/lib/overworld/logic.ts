@@ -36,7 +36,7 @@ export function mulberry32(seed: number): () => number {
 }
 
 // Coarse random lattice + bilinear interpolation = smooth value noise.
-function noiseField(
+export function noiseField(
   seed: number,
   width: number,
   height: number,
