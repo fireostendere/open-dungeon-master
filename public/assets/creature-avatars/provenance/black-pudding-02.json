@@ -1,0 +1,17 @@
+{
+  "creatureId": "black-pudding",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BLACK PUDDING ooze avatar, Core/A5E/Black Flag. One LARGE AMORPHOUS rolling mass of dense BLACK TAR-LIKE or OIL-LIKE FLUID, with thick viscous folds and temporary PSEUDOPODS. No head, face, eyes, teeth, skeleton or fixed permanent limbs. It flows over floors and adheres to walls and ceilings, corroding wood and metal; exact contour and gloss are original choices. No Black Patch rainbow spirals or restriction to water. Realistic painterly thick liquid, wet reflections and dungeon stone, clear silhouette at 512 pixels. No victims, bodies, blood, injury, gore, writing, signature, watermark, logo or frame. Normal 02. A glossy black ooze clings to the ceiling of a ruined chamber, hanging in heavy rounded folds with one thick drooping pseudopod reaching down. Entire body is one continuous shapeless tar mass, no skull or eyes. Cool blue light from a broken arch, subtle viscous threads between folds, no victims or objects being consumed.",
+  "designReferences": [
+    {
+      "url": "https://a5e.tools/node/1752",
+      "note": "A5E appearance: shapeless rolling black tar/oil-like ooze or pooled shadow, pseudopods and adhesion. Core/BlackFlag share Large amorphous corrosive anatomy; no fixed face/limbs. Gloss and dessert-mold gag original, no Black Patch internal rainbow colors."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

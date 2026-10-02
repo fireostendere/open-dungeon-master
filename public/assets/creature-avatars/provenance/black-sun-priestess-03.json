@@ -1,0 +1,17 @@
+{
+  "creatureId": "black-sun-priestess",
+  "variantId": "03",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BLACK SUN PRIESTESS avatar, Creature Codex. One ADULT FEMALE living ORC priest with WHITE-PAINTED FACE, very pale underlying skin as a shared-people inference, ordinary one-head/two-arm/two-leg humanoid anatomy. HIDE ARMOR and a heavy GREATCLUB. Subdued dry BURGUNDY DEVOTIONAL MARKINGS across the upper chest above modest armor neckline; these represent the source's old ceremonial blood markings without fresh blood, wounds or exposed anatomy. White face paint remains clear; exact abstract symbols, hair, tusks and ornaments original. A modest pair of lower tusks and pointed ears as original orc interpretation. Fierce clerical conviction, dark cave setting, no glowing eyes or undead skull anatomy. No staff, shield, plate, wings or horns. Realistic painterly face paint, worn leather and wood, readable face at 512 pixels. No active ritual, victims, sacrifice, injury, gore, nudity, writing, signature, watermark, logo or frame. Normal 03. An adult white-faced orc priestess kneels on one knee beside a simple stone altar with no offering or victim, holding her greatclub upright with both hands. Pale skin, long black braid, opaque layered hide armor, small dry burgundy symbols across upper chest. Serious meditative bearing, limestone hall and cold reflected mineral light.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/orc-black-sun-priestess/",
+      "note": "Creature Codex: living female orc, white-painted face, old blood devotional chest markings, hide armor and greatclub. Pale base skin inferred from Black Sun orcs; abstract dry burgundy marks convey description without injury. Exact ornaments/face/tusks and ceremonial-stamp gag original."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

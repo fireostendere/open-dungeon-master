@@ -1,0 +1,17 @@
+{
+  "creatureId": "blackguard-a5e",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BLACKGUARD NPC avatar from ADVANCED 5e. One living ADULT MEDIUM HUMANOID warrior in complete FULL PLATE, a GREATSWORD and a HEAVY CROSSBOW. One head, two arms and two legs, coherent gauntlets and weapons. No lance unless mounted; these portraits are on foot. No required shield, skull face, horns, wings or supernatural body transformation. Original blackened or dark steel, ancestry, gender, age, heraldry and expression. Threatening knightly presence, realistic painterly metal, cloth, face and worn leather, readable character at 512 pixels. No victims, blood, injury, gore, writing, signature, watermark, logo or frame. YOLO 04. A terrifying blackguard in complete dark full plate and an absurdly frilly FLORAL APRON is using a gigantic GREATSWORD as a BUTTER KNIFE to spread a tiny dab of strawberry jam onto one little slice of toast on a wooden board. One gauntlet controls the sword at a careful low angle, the other steadies the board, heavy crossbow rests safely behind. Open visor reveals intense culinary concentration, hopelessly disproportionate weapon and breakfast, no writing or injury.",
+  "designReferences": [
+    {
+      "url": "https://a5e.tools/node/1854",
+      "note": "A5E Blackguard NPC: Medium living humanoid in explicit full plate, greatsword and heavy crossbow; lance only while mounted. Exact individual appearance, armor colors and toast-preparation gag original; no required skull/horn/wings."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

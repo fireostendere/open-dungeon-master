@@ -1,0 +1,17 @@
+{
+  "creatureId": "black-sun-orc",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BLACK SUN ORC avatar, Creature Codex. One ADULT MEDIUM living ORC humanoid with very PALE FISH-BELLY-WHITE SKIN, powerful build, one head, two arms and two legs. Rough HIDE ARMOR, heavy GREATCLUB and a SLING tucked at the belt are the stated equipment. Original conventional orc face with a modest pair of lower tusks, pointed ears and dark eyes; hair and personal details vary. Underground nocturnal people, dark rocky settings without bright moonlight. Skin is pale flesh, not literal stone and not green or black. No plate, sword, axe, wings, horns or required sun emblem. Realistic painterly pale skin, leather and cave stone, face readable at 512 pixels. No victims, blood, injury, gore, writing, signature, watermark, logo or frame. Normal 02. Close three-quarter portrait of an adult female pale orc scout, white skin with subtle gray undertones, short black hair, pointed ears and two small lower tusks. Thick hide shoulder armor and leather straps, heavy greatclub carried over one shoulder with a single gripping hand, sling at belt edge. Quiet intense eyes, deep cave shadows and faint blue reflected water.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/gamemastering/monsters-foes/monsters-by-type/humanoids/orc/orc-black-sun/",
+      "note": "Creature Codex: powerful orc with fish-belly-pale skin, hide armor, greatclub and sling, nocturnal rocky camouflage. Face/tusks/hair and club-as-back-scratcher gag original; no black skin or required sun symbol."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}
