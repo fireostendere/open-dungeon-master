@@ -1,0 +1,11 @@
+{
+  "creatureId": "goblin",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-09-30",
+  "prompt": "Use case: stylized-concept. Asset type: square tabletop fantasy creature avatar for a bestiary. Create one original dark-fantasy painted portrait of a GOBLIN raider, variant 02, visually distinct individual and composition. A small wiry goblin with sage-green skin, broad large pointed ears, a short crooked nose, amber eyes, chipped sharp teeth, a dark-red tied cloth headband and a tuft of black hair. Wears battered scavenged leather shoulder armor, no human proportions. Front-facing head-and-shoulders portrait, fierce toothy grin, smoky torchlit ruined stone corridor in soft background. Polished realistic painterly texture, cinematic lighting, subdued colors, readable thumbnail silhouette, generous safe margins around head. Exactly one creature, one square portrait, no grid, no text, no letters, no border or watermark. Original interpretation, not copied publisher art, no specific artist style.",
+  "license": "generated-output; no third-party artwork license asserted"
+}

@@ -1,0 +1,21 @@
+{
+  "creatureId": "arbeyach",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy archdevil avatar, tactile painterly realism, cinematic unsettling light and expressive gaunt face readable at 512 pixels. Arbeyach, Prince of Swarms, from the ORIGINAL Tome of Beasts: a nearly eight-foot-tall extremely thin OLD MAN-shaped devil with a sallow yellow-ochre complexion, stringy gray hair, sunken cheeks, dark tired eyes, ragged trousers and a tattered long coat. Exactly two humanoid arms with long claw-like nails and two legs, no horns, wings, insect head or giant scorpion body. His body hosts countless crawling insects; convey this through small flies, locusts and beetles emerging from torn CLOTHING folds and sleeve openings, and papery weathered skin, without exposed innards, wounds, blood or graphic decay. Preserve the shabby old-man silhouette, grim rigid authority and swarming insects. Original facial identity and scenes, not a real person or copied publisher art. No words, signature, logo, watermark or frame. Normal 01. Close frontal head-and-shoulders portrait of the towering gaunt devil, pale ochre skin deeply weathered, stringy silver-gray hair hanging over ragged coat lapels, narrow severe eyes and a tense thin mouth. A few black locusts crawl along his collar and long clawed hand, tiny flies escape the dark openings of the coat. Sickly amber side light and deep green-black shadow, ruined infernal hive chamber, restrained horror with no injuries.",
+  "designReferences": [
+    {
+      "url": "https://www.worldanvil.com/w/ouroboros-unknownplayer25/a/arbeyach-article",
+      "note": "Secondary transcription of legacy ToB appearance: towering gaunt old man, sallow skin, gray hair, ragged clothing and insect-filled body. Original restrained visualization omits graphic wounds."
+    },
+    {
+      "url": "https://koboldpress.com/monday-monster-ia%E2%80%99affrat-the-insatiable/",
+      "note": "Publisher corroborates Arbeyach as unkempt rigid Prince of Swarms and distinguishes him from his wasp-cloud emissary. Wingless humanoid staging is conservative interpretation, not a claim of canonical wing count."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

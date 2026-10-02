@@ -1,0 +1,17 @@
+{
+  "creatureId": "boloti",
+  "variantId": "03",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BOLOTI avatar, Tome of Beasts 2016/2023. One TINY GRAY SWAMP FEY combining a leering FROG-LIKE FACE with a damp, bedraggled SCARECROW-LIKE HUMANOID silhouette. Original two arms/two legs, small TENDRILS at extremities and a PAIR OF SOFT GELATINOUS JELLYFISH-LIKE WATER WINGS. These are aquatic paddling wings, not bird feathers or flying insect wings; depict water or a wet bank, no aerial flight. Carries a DAGGER. Exact limbs/wings/tendrils count, translucency, eyes and opaque rough wraps are original interpretations. No literal straw stuffing, required hat or armor. Realistic painterly gray amphibian skin, gelatinous fins and wet textures, adult-looking fey face readable at 512 pixels. No victims, injury, blood, gore, nudity, writing, signature, watermark, logo or frame. Normal 03. A tiny boloti swims just beneath a swamp's surface using two translucent jelly-like water wings, original two arms and two legs trailing naturally, fine gray tendrils fluttering from extremities. Frog-scarecrow face looks toward viewer, dagger secured at a simple belt, opaque damp scraps of clothing. Large submerged roots establish tiny scale, silver ripples above.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/boloti-3pp/",
+      "note": "ToB2016/2023: Tiny gray frog/scarecrow swamp spirit, extremity tendrils, jellyfish-like water wings and dagger; swimming, not verified flight. Two arms/legs and paired aquatic wings are original counts. Boot-boat gag original; no simultaneous separate vortex body."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

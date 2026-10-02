@@ -1,0 +1,21 @@
+{
+  "creatureId": "amphiptere",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy bestiary avatar, cinematic painterly realism, tactile scales and feathers, one creature dominant with head clearly readable at 512 pixels. AMPHIPTERE from Tome of Beasts: a medium-sized gold-crested WINGED SERPENT. Long slender green scaly snake body with NO LEGS, NO FEET, NO ARMS; ONE pair of bat-shaped membranous wings sprouting greenish-yellow feathers along the wing forearms and edges. Gold crest above reptilian snake face, two alert eyes and small natural fangs, long flexible tail ending in a single sharp wyvern-like stinger. Show the paired wing membranes and feathers together, not pure bird wings. No extra wings or disconnected tail, no humanoid, no text, logo, border, watermark or gore. Absurd YOLO 04. This authentic legless winged serpent has become hopelessly tangled in a clothesline of enormous medieval socks between two trees. Its ONE pair of green-yellow feather-fringed bat wings spreads awkwardly, golden-crested snake head pokes from a floppy sock like an offended burglar, uninterrupted scaly serpent body loops loosely around the line, tail stinger caught through the handle of a small empty wicker laundry basket. One tiny clothespin on the crest, deadpan humiliated expression, woodland laundry clearing at sunset, absurd fantasy slapstick rendered with serious painterly texture, no lettering.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/amphiptere-3pp-2/",
+      "note": "Licensed Tome of Beasts anatomy: gold-crested winged serpent, scaly reptilian body, batlike wings sprouting greenish-yellow feathers, wyvernlike tail stinger."
+    },
+    {
+      "url": "https://koboldpress.com/tools/kobold-press-monsters/",
+      "note": "Publisher catalog confirms Medium beast, forest/hills, Tome of Beasts 1."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

@@ -1,0 +1,21 @@
+{
+  "creatureId": "archon-siege",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy celestial avatar, tactile painterly realism, monumental readable silhouette at 512 pixels. Siege Archon from Tome of Beasts 3: a HUGE QUADRUPEDAL ELEPHANT celestial, exactly FOUR elephant legs, TWO ivory tusks with steel tips, ONE long elephant trunk ending in a massive STEEL HAMMERHEAD integrated at its tip, and TWO immense eagle-shaped WINGS composed of overlapping STEEL FEATHERS attached to the back. Living gray elephant skin beneath gleaming steel armor on head, flanks and feet. The hammer is at the TRUNK TIP, never a separate handheld weapon. No humanoid arms/hands, no extra trunks, tusks or wings. Original armor ornament and scenes, not copied art. No text, signature, logo, watermark or border. YOLO 04. The huge steel-armored winged elephant attempts miniature golf with deadly solemn concentration. Its ONE long trunk ends in a rectangular steel hammerhead and uses that built-in maul to nudge a tiny white golf ball toward a ridiculous little windmill obstacle. Four armored elephant feet planted carefully outside the green, two metallic feathered wings folded neatly behind, two capped tusks, a tiny checked golfing cap balanced on head armor. Serene celestial garden, no hands, no separate golf club, no writing.",
+  "designReferences": [
+    {
+      "url": "https://koboldpress.com/monstrous-crits-one-better-part-6/",
+      "note": "Publisher describes siege archon's elephant form with steel armor, steel eagle wings and trunk ending in a massive maul. Original poses and ornament."
+    },
+    {
+      "url": "https://www.5esrd.com/database/creature/siege-archon/",
+      "note": "Licensed Tome of Beasts3 Huge celestial description supports elephant forelegs, steel-tipped tusks, plated feet and hammer-tipped trunk; original quadrupedal anatomy interpretation."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

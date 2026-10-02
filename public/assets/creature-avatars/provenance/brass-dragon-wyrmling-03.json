@@ -1,0 +1,17 @@
+{
+  "creatureId": "brass-dragon-wyrmling",
+  "variantId": "03",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BRASS DRAGON WYRMLING creature avatar. One MEDIUM juvenile brass dragon wyrmling, compact young proportions with a large alert head and small body, matte brown scales mottled ochre with subtle early brass sheen. One head, EXACTLY FOUR legs, TWO separate batlike wings and ONE long tail; two short swept-back horns and amber eyes are original design choices. Wings are separate from walking legs. Dry desert habitat, natural scaled covering, no armor, extra heads or mature giant dragon proportions. Realistic painterly fantasy material detail, strong readable silhouette at 512 pixels, one composition with no panels. No gore, writing, signature, watermark, logo or frame. Normal 3. A5E interpretation: the juvenile dragon braces on four legs and expels a SHORT STREAM OF GLOWING MOLTEN GLASS onto empty stone, the cooling glass forming a translucent amber patch. Two wings partly raised, no target or injury, twilight desert, glass is distinct from a fire cloud.",
+  "designReferences": [
+    {
+      "url": "https://a5e.tools/node/1577",
+      "note": "Core SRD5.1, A5E2021 and Black Flag0.2: Medium juvenile flight/burrowing dragon with bite and sleep breath; Core/BF fire versus A5E molten glass. Four legs, two wings, one tail and exact horns/eye color are original conventional anatomy. Brown/ochre juvenile palette supported by later official textual description, not claimed as SRD prose. Variant03 intentionally A5E molten-glass interpretation."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

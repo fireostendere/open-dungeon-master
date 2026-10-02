@@ -1,0 +1,17 @@
+{
+  "creatureId": "balloon-spider",
+  "variantId": "03",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy airborne-spider avatar, detailed realistic painterly chitin and delicate silk, readable at 512 pixels. One BALLOON SPIDER, a MEDIUM natural-looking spider levitating on BLUE WEB STRANDS held aloft by electromagnetic fields. Ordinary spider body segmentation: one cephalothorax, one oval ABDOMEN that is NOT inflated, EXACTLY EIGHT long segmented walking legs, FOUR pairs, and tiny mouth palps. Its TWO front MANDIBLES have small blue electrical sparks between them. The supporting BLUE SILK strands fan and drift above/around it like gossamer threads, NOT solid wings or a gas balloon. No humanoid body, hands, feathered wings, horn or instrument. Original shell colors, eye cluster and web arrangement. No prey, injuries, blood, text, signature, watermark, logo or frame. Normal 03. Frontal slightly elevated portrait of a rust-red and silver-gray balloon spider hovering inside a derelict observatory, exactly eight elegant jointed legs fanned four to each side, oval abdomen behind the thorax and two small electrified mandibles. Blue silk filaments drift upward like loose aurora ribbons but remain thin actual spider silk, no membranes. Violet twilight through broken dome windows, detailed natural chitin and minute hairs. Correction: Correct only the spider's walking-leg count in this illustration. It currently has TEN long legs. Remove the TWO EXTRA thin rear legs projecting almost straight upward behind the abdomen: on the viewer's LEFT the narrow limb from around 40% across, 42% down rising to around 36% across, 20% down; on the viewer's RIGHT the matching thin limb from around 59% across, 42% down rising to around 63% across, 20% down. Fill these two removed limbs with the existing observatory background and blue web threads. Preserve the EIGHT other large fanned walking legs, four per side, and the two SHORT mouth palps and electric mandibles. Keep the rounded abdomen, tiny eyes, ordinary body, all blue silk webbing, colors, lighting and composition unchanged. Exactly eight walking legs in the final, not ten. No new limbs or text.",
+  "designReferences": [
+    {
+      "url": "https://github.com/open5e/open5e-api/blob/staging/data/v1/tob2/Monster.json",
+      "note": "Licensed Tome of Beasts 2, record balloon-spider: Medium spider floating on electromagnetically suspended web strands, electrified mandibles and blue webbing. Ballooning refers to silk-assisted flight, not an inflated abdomen. Eight walking legs and ordinary segmentation are spider-anatomy inference; body color, silk arrangement and separate YOLO party balloons are original choices."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

@@ -1,0 +1,17 @@
+{
+  "creatureId": "belu",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BELU giant avatar, Tome of Beasts 3. One HUGE ADULT HUMANOID GIANT, two arms and two legs, slightly bulging eyes and two large CURLED TUSKS rising from its LOWER JAW. Skin within pale emerald, burnt orange or deep mauve; bare tattooed chest, shoulders, arms and face, opaque practical woven lower garments. A gentle tropical-wetland gardener and healer, not a winged fairy. Original tattoo patterns, hair, ears and tusk count are artistic choices; no horns or wings. Realistic painterly skin, plants and fabric, clear face and silhouette at 512px. No victims, blood, injury, gore, writing, signature, watermark, logo or frame. Normal 01. An immense pale-emerald adult male-looking belu stands knee-deep in a tropical lotus pond, heavy lower tusks curled upward, slightly protruding amber eyes, broad peaceful face, dark hair in a loose knot. One hand gently holds a lotus blossom and the other rests at its side. Rich dark tattoos sweep across the bare chest and shoulders, woven ochre sarong, tiny palms establish giant scale, misty dawn.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/belu/",
+      "note": "ToB3: Huge giant healer/gardener, curled lower tusks, slightly bulging eyes, skin pale emerald/burnt orange/deep mauve, tattooed bare upper body. Conventional two arms/two legs, exact tusk pair, hair, tattoos, clothing and fruit mishap are original choices."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

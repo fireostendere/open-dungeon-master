@@ -1,0 +1,21 @@
+{
+  "creatureId": "barbed-devil",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy BARBED DEVIL creature avatar. One Medium upright infernal fiend with exactly TWO ARMS, TWO LEGS, ONE HEAD and ONE long attached piercing TAIL. Dense NEEDLE-LIKE SPINES cover its head, back, shoulders, arms and tail; natural scaled hide, long clawed fingers and toes, restless eyes glowing like little flames. No wings, no manufactured weapon, no required horns; use the body's spines as its identifying crown. A modest worn leather waist wrap covers hips. Original precise facial anatomy, colors and spine arrangements. Rich realistic painterly textures, strong readable face and silhouette at 512 pixels. No blood, wounds, victims, gore, text, logo, signature, watermark or frame. Normal 01. A bronze-black barbed devil stands sentinel in an ancient basalt doorway. Jagged ivory-gray needles rise from its shoulders and head, clawed hands hang ready at either side, one clearly attached long spiked tail curves across the wet stone floor. Alert suspicious expression, ember eyes, vertical three-quarter full figure, cold dark fortress with orange furnace glow. Correction: Use case: precise-object-edit. Reframe this exact barbed devil artwork into a true SQUARE 1:1 canvas, equal width and height. Expand the environment sideways with more of the same basalt doorway and infernal fortress so the entire existing devil from crown spines to feet and its full attached tail remains visible. Keep the creature's anatomy, proportions, bronze-black scales, spines, glowing eyes, pose, waist wrap, feet, tail and lighting unchanged. Do NOT compress, stretch, squash, crop off any part of the creature, add extra limbs, or add any text. The final image must be square, not portrait orientation.",
+  "designReferences": [
+    {
+      "url": "https://a5e.tools/node/1511",
+      "note": "Official A5E description establishes needle spines and restless fiery-looking eyes; Medium devil with claws, piercing tail, barbed hide and flame throwing. Upright two-arm/two-leg anatomy is a conservative illustration inference. Skin colors, spines, waist wrap, settings and plush-toy joke are original choices; no wings inferred."
+    },
+    {
+      "url": "https://github.com/open5e/open5e-api/blob/staging/data/v1/wotc-srd/Monster.json",
+      "note": "SRD5.1 barbed-devil record corroborates shared catalog identity: Medium fiend, barbed hide, claws, tail and hurl flame."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

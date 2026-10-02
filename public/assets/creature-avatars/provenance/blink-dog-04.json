@@ -1,0 +1,17 @@
+{
+  "creatureId": "blink-dog",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BLINK DOG fey avatar, Core/A5E/BlackFlag. One MEDIUM clearly CANINE fey, ONE head with two eyes and two ears, FOUR natural dog legs, ONE tail. A lean golden or sable hound interpretation, fur length, eye color and ear shape are original choices because the source does not fix breed or coat. Alert ears, keen nose and intelligent gaze. Short-range TELEPORTATION may be suggested by subtle shimmering edges or an empty arrival ripple; never duplicate the dog, head or limbs. Solid dog body when visible, no wings, armor, saddle or humanoid hands. Realistic painterly fur, forest atmosphere and subtle magic, face readable at 512 pixels. No victims, blood, injury, gore, writing, signature, watermark, logo or frame. YOLO 04. A very smug blink dog has escaped its ridiculous veterinary CONE OF SHAME by teleporting: the EMPTY giant translucent plastic cone sits upright on the ground at one side, while ONE intact golden hound reappears beside it amid faint fading blue sparkles. Four paws, one head and one tail, no duplicate dog. The dog looks back at the empty cone with absurd triumphant satisfaction, one front paw lifted, harmless magical escape in a forest campsite, no text.",
+  "designReferences": [
+    {
+      "url": "https://a5e.tools/node/1915",
+      "note": "Core/A5E/BlackFlag Medium canine fey with bite, keen senses and short-range teleportation; appearance does not fix breed or color. Hound coats, ordinary canine anatomy, arrival shimmer and empty-cone escape gag are original choices. No duplicate creature required."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

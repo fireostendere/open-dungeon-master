@@ -1,0 +1,21 @@
+{
+  "creatureId": "a-mi-kuk",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-09-30",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy bestiary A-MI-KUK avatar, using its Tome of Beasts 2 identity rather than a generic folklore sea monster. A huge ungainly pale amphibianlike aberration with an oversized bulbous head, pinpoint obsidian eyes, a narrow jaw crowded with little sharp teeth, heavy smooth folds of skin and two enormous grasping foreclaws. Its pallid hide is glazed with thick ruby-red freezing mucus, clearly slime rather than blood or wounds. Heavy upper body and claws dominate the portrait, no horns, fur, tentacles, human face or extra eyes. Polished realistic painterly fantasy with tactile slick skin, cinematic arctic lighting, readable centered square composition with margins. Exactly one creature, no victims, no gore, no text/letters/logos/watermark/grid/border, no copied illustration or artist style. Normal variant02. Front-facing looming upper body under a glacier overhang, broad lumpy head lowered toward viewer, both massive foreclaws visible, tiny eyes dark and menacing. Snowstorm beyond, silver-blue ice light, distinct pale gray individual.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/a-mi-kuk/",
+      "use": "Identity facts only; no descriptive prose or artwork copied"
+    },
+    {
+      "url": "https://koboldpress.com/tools/kobold-press-monsters/",
+      "use": "Creature source, size and Arctic habitat verified"
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

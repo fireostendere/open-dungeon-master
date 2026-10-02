@@ -449,17 +449,25 @@ export function SidePanelRouter({
     return (
       <div className="space-y-3">
         <OverworldPanel
+          key={`${campaignId}:${meUserId}:${steersStory}`}
           campaignId={campaignId}
           genre={campaign?.gameSettings?.genre ?? "high_fantasy"}
           steersStory={steersStory}
+          title={campaign?.title}
+          viewerUserId={meUserId}
         />
-        <MapPanel
-          campaignId={campaignId}
-          locations={locations}
-          steersStory={steersStory}
-          mediaStatus={mediaStatus}
-          genre={campaign?.gameSettings?.genre}
-        />
+        <details className="rounded-lg border border-stone-800/60 p-3">
+          <summary className="cursor-pointer text-xs text-stone-400">{locale === "ru" ? "План текущей локации" : "Current location plan"}</summary>
+          <div className="pt-3">
+            <MapPanel
+              campaignId={campaignId}
+              locations={locations}
+              steersStory={steersStory}
+              mediaStatus={mediaStatus}
+              genre={campaign?.gameSettings?.genre}
+            />
+          </div>
+        </details>
       </div>
     );
   }

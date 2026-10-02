@@ -1,0 +1,11 @@
+{
+  "creatureId": "skeleton",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-09-30",
+  "prompt": "Use case: stylized-concept. Asset type: square dark-fantasy bestiary avatar, YOLO absurd dark comedy. One recognizable animated HUMAN SKELETON, bare skull, empty sockets with blue ghost lights, fully exposed bones no flesh. This pathetic undead night watchman has fallen asleep on duty: a crooked dented saucepan helmet over his skull, a tiny limp feather, completely serious weary posture; he solemnly holds a cheap broom as a mighty polearm while a cobweb connects his jaw to the broom. A fat tiny spider sits proudly in one empty eye socket without hiding it. A comically elaborate huge key ring hangs from his bare ribs and ragged guard tabard. Three-quarter bust, ancient damp dungeon checkpoint in background, doom-laden epic lighting absurdly glorifying this incompetent custodian. Polished realistic painterly dark-fantasy rendering, cinematic blue-and-amber light, highly legible skull and ridiculous gear, no extra skeletons. Center subject and entire helmet with safe square-avatar margins. No text, letters, logo, border, watermark, grid or gore. Original imagery, no specific artist style.",
+  "license": "generated-output; no third-party artwork license asserted"
+}

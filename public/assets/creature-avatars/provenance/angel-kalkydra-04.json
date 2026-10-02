@@ -1,0 +1,21 @@
+{
+  "creatureId": "angel-kalkydra",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. One original square dark-fantasy creature avatar, refined tactile painted realism, dramatic heavenly lighting and a crisp face readable at 512 pixels. Kalkydra from Tome of Beasts 3: a huge celestial SERPENT with gleaming copper scales, vivid EMERALD GREEN eyes, exactly SIX PAIRS of pearlescent WHITE FEATHERED WINGS growing along its long coiling back, twelve wings total. One snake head, one continuous limbless snake body and one tapering tail; no legs, arms, horns, dragon crest or human face. Solar emissary whose song heralds dawn, noble intelligent snake expression, radiant copper and pearl material contrast. Wings are anatomically separate paired appendages, not two wings or random feathers. Use original anatomy details and composition, no copied publisher illustration. No text, symbols, signature, watermark or frame. YOLO absurd 04. This magnificent copper celestial serpent has replaced its solemn dawn song with an absurdly cheap bright-pink party blowout horn held between its snake lips; the long paper tube has unfurled and droops pathetically with a tiny puff of confetti. Emerald-green eyes stare with regal deadpan disappointment. Six pairs of pearl-white feather wings fan behind its upright copper body in distinct layered tiers, twelve total, no arms or legs. Glorious sunrise over a marble altar, serious high-detail fantasy painting, silly tiny party prop, no printed markings. Targeted follow-up edit: Make one targeted anatomy correction to this original fantasy illustration. Preserve the copper serpent, emerald eyes, pink party blowout, coiled body, sunrise, architecture, colors, rendering style and square composition. Correct ONLY the white feather wing arrangement: the creature must have SIX CLEARLY SEPARATED PAIRS of wings, twelve total, arranged as six staggered rows down its back. Each row has exactly one wing pointing to the left and one to the right. The current fan visually reads as five main pairs; revise the spacing and add the missing sixth pair near the lower back, above the coil, so all twelve wings can be counted as six left and six right. Keep the head large, maintain natural connected wing roots, no extra limbs, no arms or legs. No writing, signature or watermark.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/kalkydra/",
+      "note": "Licensed ToB3 ABOUT anatomy: copper serpent, emerald eyes and SIX PAIRS of pearlescent feather wings, twelve total. Solar song identity. Erroneous pasted Iilari'jil lair text excluded."
+    },
+    {
+      "url": "https://koboldpress.com/tools/kobold-press-monsters/",
+      "note": "Primary publisher index confirms Huge Kalkydra celestial from Tome of Beasts 3."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

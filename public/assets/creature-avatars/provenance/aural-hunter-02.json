@@ -1,0 +1,21 @@
+{
+  "creatureId": "aural-hunter",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy creature illustration, tactile painterly realism, detailed leathery hide and translucent membranes, clear silhouette at 512 pixels. Aural Hunter is a Large EYELESS and JAWLESS alien aberration with exactly SIX gangly clawed locomotor limbs, three on each side of one lean elongated body. A smooth featureless head with no eyes, mouth or human face. Several thin stretched listening MEMBRANES rise on bony protrusions along its BACK like tall organic acoustic sails. Small hooked bony spikes project outward over its RIBCAGE, natural anatomical hooks, no exposed injury. Original pale slate-gray hide and lean hexapod arrangement. Not a spider with eight legs, not a rabbit and not a winged creature: the dorsal membranes are upright back sails, not wings. No victim, feeding, blood, gore, text, signature, watermark or frame. Normal 02. The eyeless jawless six-limbed creature climbs an angled ruined stone pillar under pale moonlight in an empty mountain pass. Three pairs of long jointed legs grip the stone with claws, smooth dark head and rib hooks sharply outlined. Several thin amber listening membranes supported by bones stand upright along its back, subtly vibrating in the wind. Original long lean silhouette, cold fog and weathered arches. Correction: Correct only limb count in this original fantasy creature illustration. The eyeless jawless creature must have exactly SIX separate legs, three pairs. There is an extra seventh hind leg tucked behind the large near-side middle leg in the left half of the image: a narrow almost vertical leg starting under the rear belly around 35% across, 53% down, dropping behind the diagonal foreground shin and ending in a small doubled foot around 38% across, 76% down. Remove that extra tucked-behind leg and its duplicated ankle/foot completely, fill naturally with the distant ruins and stone surface. Preserve the six other long legs and their claws, the smooth eyeless jawless head, back membranes, rib hooks, pose, lighting, composition and all environment. Do not add new limbs, wings, eyes or text.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/aural-hunter/",
+      "note": "Tome of Beasts 3 description: eyeless, jawless creature on six gangly limbs, thin membranes across bony back protrusions and hooks over the ribcage; feeds on sonic vibrations. Original hide color, hexapod proportions and membrane count/shape; no invented eyes or jaw."
+    },
+    {
+      "url": "https://koboldpress.com/monster-weaknesses-for-tome-of-beasts-3/",
+      "note": "Publisher independently confirms six-legged aberration, sonic navigation and sensitivity. Original art avoids copied published imagery."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

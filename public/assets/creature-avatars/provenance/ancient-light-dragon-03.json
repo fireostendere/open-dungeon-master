@@ -1,0 +1,17 @@
+{
+  "creatureId": "ancient-light-dragon",
+  "variantId": "03",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. One original square dark-fantasy bestiary avatar, cinematic painterly realism, luminous textures with controlled exposure, a single ANCIENT LIGHT DRAGON from Creature Codex, gargantuan radiant star-traveling elder. Its living body is only partly physical: softly translucent outer contours and luminous pale ivory-pearl scales, long elegant neck, broad wise aged reptilian face with readable warm gold eyes and delicate backward head spines. Original family palette warm coral-pink membranous wings and ivory body. Four clawed legs, exactly TWO separate wings, one tail. Not undead, no skull or ghost skeleton, no angel feathers. Radiant glow must leave clear facial details and shadows; no overexposed white blob. Immense elder presence and subtle age ridges. No text, signature, logo, watermark, border, gore or copied art. Serious normal 03. The ancient light dragon slowly passes through a shattered stone arch in a desert ruin, incorporeal shoulder contours gently dissolve into light where they meet stone, living pale head remains sharply readable, delicate swept spines and alert warm eyes. Exactly one pair of folded coral wings visible behind long neck, immense foreclaws hovering over sand, dusk sky and luminous dust, no destruction or skeletal form.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/dragon-light-ancient/",
+      "note": "Creature Codex ancient light dragon: luminous partly incorporeal living form, explicit wings, radiant breath and travel along solar winds between stars. Ivory/coral color palette and swept head spines continue original adult family interpretation."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

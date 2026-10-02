@@ -1,0 +1,17 @@
+{
+  "creatureId": "blood-flurry",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BLOOD FLURRY avatar, Tome of Beasts 3. One MEDIUM-SIZED SWARM made of MANY SEPARATE TINY CRYSTALLINE ABERRATIONS resembling delicate snowflakes, each with sharp irregular jagged limbs. Medium is the cloud's collective size, not one creature. Loose airborne colony with readable individual flakes and open gaps, no solid central body, humanoid, face or fixed limb count. Crystal geometry is original and need not be exactly sixfold. Unfed flakes may be pale; some crimson-tinted ones can show a fed state without illustrating feeding. Realistic painterly translucent crystal, cold air and sparkling edges, swarm readable at 512 pixels. No victims, injury, blood splashes, gore, writing, signature, watermark, logo or frame. Normal 01. A loose cloud of dozens of pale crystalline snowflake-creatures drifts between dark pine trees, each flake irregularly branched with tiny sharp jagged limbs. Foreground individuals large enough to distinguish from ordinary snow, farther ones fade into mist. No central face or solid body, cold moonlight and dark blue air, delicate menacing swarm.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/blood-flurry/",
+      "note": "ToB3 Medium swarm of Tiny jagged crystalline snowflake-like aberrations, pale before feeding and reddish afterward; no fixed sixfold limb count, eyes or central body. Exact crystal design and snow-globe gag original. No feeding shown."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

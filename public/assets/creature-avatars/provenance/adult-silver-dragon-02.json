@@ -1,0 +1,25 @@
+{
+  "creatureId": "adult-silver-dragon",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-09-30",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy creature avatar with refined tactile painted realism, cinematic light and crisp face that reads at 512 pixels, no frame, text, logo or watermark. Adult Silver Dragon, large powerful but elegant winged quadrupedal dragon with bright polished metallic silver scales, high-set intelligent eyes, a tall spiny dorsal frill sweeping from the crown down its long neck, wide cheek frills and thin stiff chin spines/barbels forming a beardlike silhouette, never a furry beard. Four clawed legs, a separate pair of broad iridescent silver membrane wings and a long tail; anatomically coherent, adult not hatchling. Cold fog hints at icy breath. Silver dragon identity rather than a white dragon or albino generic reptile. Original composition, no copied publisher art. Serious normal 02. Side profile facing left with curved neck emerging from a dim ancient mountain archive; one bent foreclaw gently rests beside a worn bronze historical crown on a stone pedestal. Large polished silver face looks contemplatively at the relic, central dorsal frill rises behind head, thin chin spines catch soft light. Icy exhalation around snout, parchment shelves blurred and high window rim light, realistic dragon identity, not wearing human clothes.",
+  "designReferences": [
+    {
+      "url": "https://a5e.tools/node/1592",
+      "note": "A5E adult Silver Dragon; cold breath, clawed winged dragon. A5E cloud dissipation is not asserted universal."
+    },
+    {
+      "url": "https://www.dndbeyond.com/monsters/16772-adult-silver-dragon",
+      "note": "Core adult Silver Dragon identity and frost/paralysis breath."
+    },
+    {
+      "url": "https://a5e.tools/sites/default/files/monsters/dragon-silver%20-%20Gui%20Sommer.png",
+      "note": "Official art inspected: metallic silver, sagittal crest, cheek frill, chin barbels/spines, broad wings, quadruped. Original design/composition; no fur beard."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

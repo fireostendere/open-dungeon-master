@@ -1,0 +1,17 @@
+{
+  "creatureId": "bugbear",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BUGBEAR creature avatar. One Medium adult BUGBEAR goblinoid humanoid, hairy and rangy with coarse brown fur, long powerful arms, one head, TWO arms and TWO legs. Original goblinoid design: broad flat nose, long pointed ears, amber eyes and modest protruding lower teeth, not a literal bear or insect head. Weathered leather wraps and exact face are original choices. Use only the edition-specific equipment described in this scene; no extra arms, wings or horns. Realistic painterly fantasy material detail, readable at 512 pixels, one composition without panels. No gore, writing, signature, watermark, logo or frame. YOLO A5E loadout: the huge hairy bugbear attempts to crack one tiny walnut with an absurdly massive two-handed MAUL on a chopping stump, both hands hold the handle and the stump has split instead while the walnut remains intact. No injury or victim, deadpan bewilderment, two arms and two legs only.",
+  "designReferences": [
+    {
+      "url": "https://a5e.tools/node/1445",
+      "note": "Core SRD5.1/A5E2021/Black Flag0.2: Medium humanoid goblinoid. Coarse brown fur and rangy build directly supported by A5E; facial details and two-arm/two-leg anatomy conservative original interpretation. Loadouts intentionally edition-specific: 01 SRD hide/shield/morningstar, 02 and04 A5E maul, 03 BF hide/spiked club."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

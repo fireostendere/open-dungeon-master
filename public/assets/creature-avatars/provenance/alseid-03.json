@@ -1,0 +1,21 @@
+{
+  "creatureId": "alseid",
+  "variantId": "03",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy character avatar, refined painterly realism, detailed elven face, branching antlers and deer fur clear at 512 pixels. ALSEID from Tome of Beasts: graceful adult woodland DEER-CENTAUR, slender adult ELF UPPER BODY with two arms and pointed ears, smoothly joined at waist to the full horizontal body of a DEER with FOUR slender hoofed legs, brown deer coat and short WHITE-UNDERSIDE TAIL. Branching natural deer ANTLERS grow from forehead; no deer animal head. Upper torso clothed in practical fitted leather woodland armor and cloth, nonsexual. Medium overall creature, elegant forest guardian with spear or shortbow. No horse body, no two-legged faun anatomy, no human legs, no extra limbs, no wings, no text, watermark, border or collage. Serious normal 03. An adult androgynous alseid with long black hair, fine bronze-toned elven features and modest elegant antlers pauses on a fallen tree bridge, head turned back toward viewer. Two humanoid arms, layered leather shoulder armor and cloth chest covering, full deer body and four cloven-hoofed legs balanced naturally along the trunk, small white tail raised. Blue dusk fog, fireflies and deep forest shadows, poised mysterious guide.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/alseid-3pp-2/",
+      "note": "ToB2023 alseid: adult elven upper torso joined to deer lower body, forehead antlers, white tail, leather armor, spear/shortbow. Original visual variants; antlers are status ornaments."
+    },
+    {
+      "url": "https://www.5esrd.com/database/race/alseid/",
+      "note": "Quadruped description cross-checks four-legged deer body; not a two-legged faun or horse-centaur."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

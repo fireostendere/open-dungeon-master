@@ -1,0 +1,21 @@
+{
+  "creatureId": "archdruid_bf",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy character avatar, tactile painterly realism, natural woodland materials and expressive adult face, readable at 512 pixels. Archdruid: a powerful ADULT humanoid master of nature magic, original individual appearance for an any-lineage NPC. Two arms, two hands, two legs, normal living humanoid body; no animal-human hybrid anatomy. Layered woven robes, weathered hide and carved wooden talismans, a gnarled wooden staff, botanical regalia and subtle primal magic. Original design, not an existing named character. No writing, signature, watermark, logo or border. YOLO 04. An extremely dignified elderly human archdruid in grand mossy robes and a twig crown is losing a furious argument with one tiny potted cactus on a stone altar. The druid holds a comically elaborate watering can in one hand and a gnarled staff in the other, cheeks puffed in offended concentration; the cactus has sprouted a single ridiculous flower shaped like a tiny crown. Several neatly pruned shrubs surround this dramatic council, garden gloves tucked into belt, no text or extra arms.",
+  "designReferences": [
+    {
+      "url": "https://bfrd.net/classes/druid",
+      "note": "Black Flag nature-magic and druid archetype reference; roster identifies Archdruid as Medium any-lineage humanoid NPC. Clothing, faces, lineage choices, regalia and scenes are original interpretations, not fixed canonical anatomy."
+    },
+    {
+      "url": "https://bfrd.net/rules/monsters/humanoids",
+      "note": "Black Flag reference identifies humanoids as varied bipedal lineages; original adult individual character designs."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

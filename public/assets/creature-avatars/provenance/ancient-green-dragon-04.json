@@ -1,0 +1,21 @@
+{
+  "creatureId": "ancient-green-dragon",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. One original square dark-fantasy bestiary avatar, cinematic painted realism, organic reptilian texture, one gargantuan ancient dragon with dominant clear head and forebody readable at 512 pixels. ANCIENT GREEN DRAGON: opaque deep forest-green scales with old dark olive mottling, NOT crystal or shiny gemstones. Slender cunning muzzle, heavy weathered elder brow, amber eyes, prominent tall CREST beginning near eyes, highest just behind skull, continuing down long spine. Original modest swept-back horn pair, no huge nasal spike. FOUR clawed legs, exactly TWO membrane wings: one on each side behind shoulders, no additional folded wing flap. One tail. Amphibious forest predator, poison gas rather than sonic rings or flame, intensely calculating expression. No text, signature, logo, border, watermark, gore, victims or copied artwork. Absurd YOLO 04. The ancient green dragon is hosting a disastrously pompous wine tasting, swirling a ludicrously tiny crystal goblet of harmless grape juice delicately between enormous claws. Opaque dark-green face with tall post-skull crest, sly amber eyes, small swept horns and a tiny velvet sommelier beret; it sniffs so hard its own little poison cloud makes the corks pop out of the nearby bottles simultaneously. Comically offended judgmental face, three airborne corks, two folded wings behind, mossy woodland banquet table, no people or harm, polished dark-fantasy absurdity, bottles blank and no text.",
+  "designReferences": [
+    {
+      "url": "https://www.dndbeyond.com/monsters/16781-ancient-green-dragon",
+      "note": "Core Gargantuan ancient green dragon, amphibious forest predator and poison identity. Tall post-skull crest continues established family silhouette; organic opaque scales, aging details and scenes original."
+    },
+    {
+      "url": "https://www.dndbeyond.com/monsters/16770-adult-green-dragon",
+      "note": "Classic green dragon crest starts near eyes, highest behind skull and runs down spine; earlier adult family anatomy research."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

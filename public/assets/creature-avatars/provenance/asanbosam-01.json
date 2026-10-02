@@ -1,0 +1,21 @@
+{
+  "creatureId": "asanbosam",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy creature avatar, tactile painterly realism, dense coarse hair and aged iron textures, clear anatomy at 512 pixels. Asanbosam: a LARGE tree-dwelling aberration, heavy shaggy OGRE-LIKE UPPER BODY, TWO muscular arms with grasping hands, and exactly TWO EXCEPTIONALLY LONG flexible muscular LEGS ending in grasping FEET WITH IRON HOOKED TALONS. No extra legs, wings or tail. Dark blue-black coarse body hair, warm brown leathery face and hands, prominent ears, protruding bloodshot eyes and visible IRON FANGS; the iron hooks and fangs may have rusty edges in older individuals. Ragged waist covering and simple forest tokens, no nudity. Long legs clearly distinct from arms, feet remain taloned feet rather than solid pirate hooks. Original design and scenes, no blood, injuries, victims, text, signature, watermark or border. Normal 01. A mature asanbosam crouches high in the fork of an ancient mossy tree, heavy ogre torso hunched forward, two arms braced on branches. One extremely long muscular leg hangs far below with rusty iron hooked foot-talons visible in foreground; the other equally long leg folds upward to hook securely around the trunk. Protruding red-rimmed eyes and dull iron fangs catch moonlight through shaggy dark hair, ominous forest mist.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/asanbosam-3pp",
+      "note": "Licensed Tome of Beasts2023 description: hairy ogre-like upper body, unusually long flexible legs, iron hooked foot-talons and iron fangs that age/rust; protruding bloodshot eyes. Original compositions and attire."
+    },
+    {
+      "url": "https://d1vzi28wh99zvq.cloudfront.net/pdf_previews/224812-sample.pdf",
+      "note": "Licensed Deck of Beasts preview publisher art inspected: two arms and two exceptionally long legs, hooked taloned feet, no visible wings/tail. Original anatomy composition and scenes, no copied art."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

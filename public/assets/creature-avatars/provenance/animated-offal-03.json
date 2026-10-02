@@ -1,0 +1,17 @@
+{
+  "creatureId": "animated-offal",
+  "variantId": "03",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy bestiary avatar, tactile painterly illustration, ominous cinematic light, clear central monster silhouette at 512 pixels. Animated Offal from Tome of Beasts 3: a HUGE amorphous crawling organic OOZE created accidentally by residual healing magic. It is a congealed maroon, plum and dark red jelly mass with irregular soft tissue-like folds, a few small ivory bone fragments and two or three scattered cloudy pearl-like eyeballs embedded irregularly in its surface. The details are stylized and subdued, not clinical gore: no wounds, victims, organs, severed limbs or blood spray. NO humanoid head, fixed face, skeleton body, legs or teeth; its temporary pseudopods are rounded lobes of the same viscous mass. It seeks glowing healing potions, with faint warm healing sparks in its dark organic gel. Distinct from a clear gelatinous cube or green slime. Original design and composition, no text, signature, watermark, logo or border. Normal 03. Slightly low view of the massive maroon ooze rolling across an old alchemical chamber floor, broad sheet-like base and three rounded rising lobes, dark congealed textures mixed with smoky translucent edges and small ivory specks. Scattered cloudy eye-like pearls give an unsettling sense of perception without forming a face. Faint green-blue lamp reflections and a soft gold pulse from a half-submerged healing vial, restrained painted body-horror creature portrait.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/animated-offal/",
+      "note": "ToB3 Huge amorphous organic ooze animated by healing magic, with embedded organic debris and scattered eyes, attracted to healing potions. Deliberately restrained non-graphic original visualization; no victims or injury scene."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

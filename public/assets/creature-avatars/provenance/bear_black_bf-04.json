@@ -1,0 +1,21 @@
+{
+  "creatureId": "bear_black_bf",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BLACK BEAR creature avatar for Black Flag SRD. One Medium natural BEAST, using realistic American black bear anatomy as an illustration reference: compact furry ursine body, relatively straight muzzle profile, prominent rounded ears, no pronounced grizzly shoulder hump, four clawed paws, one head and one very short tail. Glossy BLACK FUR chosen for clear catalog identity, dark eyes and brownish muzzle. No humanoid torso or human hands, horns, wings or supernatural body parts. Realistic painterly wildlife detail, atmospheric fantasy wilderness, clear readable silhouette at 512 pixels. No blood, injuries, victims, text, signature, watermark, logo or frame. YOLO 04. A bulky black bear is attempting a ludicrous stealth disguise by hiding behind ONE RIDICULOUSLY THIN SAPLING that conceals almost none of its enormous body. All four paws planted on the forest ground, a little leafy twig balances on its head as camouflage. A stolen wicker picnic basket full of bright berry pies sits openly beside it, purple berry jam on its muzzle, eyes looking sideways with absurd innocent guilt. Clearly an ordinary four-legged black bear, no human hands. Epic dark-forest lighting treats this obviously failed disguise as a serious spy operation, no people or writing.",
+  "designReferences": [
+    {
+      "url": "https://github.com/open5e/open5e-api/blob/staging/data/v1/blackflag/Monster.json",
+      "note": "Black Flag SRD v0.2 bear_black_bf: Medium natural beast with bite, claws, heightened smell and climbing. No source-specific coloration or anatomy paragraph."
+    },
+    {
+      "url": "https://www.nps.gov/articles/bear-identification.htm",
+      "note": "Biological illustration reference, not extra game canon: black bear lacks pronounced brown-bear shoulder hump, has straighter face, prominent ears and shorter curved claws. Black coat, exact poses, scenery and failed sapling camouflage/picnic gag are original choices."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

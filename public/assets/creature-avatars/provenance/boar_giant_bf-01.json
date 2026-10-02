@@ -1,0 +1,17 @@
+{
+  "creatureId": "boar_giant_bf",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy GIANT BOAR avatar, specifically Black Flag v0.2. One LARGE massively enlarged adult WILD BOAR, natural piglike quadruped with FOUR sturdy HOOFED LEGS, huge tusked jaw, coarse bristly coat, two ears and one short tail. Its size and bulk distinguish it from ordinary Medium boar; exact giant dimensions, darker fur, mane and larger tusks are original choices. No horns, metal armor, glowing eyes, extra legs or mutant anatomy. Natural armor means hide. Realistic painterly thick bristles, tusks, soil and imposing forest scale, clear face at 512 pixels. No victims, injury, blood, gore, writing, signature, watermark, logo or frame. Normal 01. A gigantic charcoal wild boar towers beside low woodland shrubs, four heavy hooves planted, huge tusks curling beside an elongated pig snout, coarse bristly mane and thick massive shoulders. Breath fogs in cold air as it snorts, ordinary natural eyes, ancient forest and low dramatic dawn angle.",
+  "designReferences": [
+    {
+      "url": "https://github.com/open5e/open5e-api/blob/staging/data/v1/blackflag/Monster.json",
+      "note": "BlackFlag0.2 Giant Boar: Large natural beast, charge/tusks, snorting and stamping challenge; repeated tusk attacks do not add tusks. Exact enlarged proportions/coat and roller-skate gag original."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

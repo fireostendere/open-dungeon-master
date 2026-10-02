@@ -1,0 +1,21 @@
+{
+  "creatureId": "behir-magus-a5e",
+  "variantId": "03",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BEHIR MAGUS avatar, Advanced 5e. One extraordinarily ANCIENT HUGE BEHIR: a long BLUE-SCALED REPTILIAN SERPENT with exactly TWELVE short sturdy reptilian legs in SIX LEFT-RIGHT PAIRS, six on each side, one predatory reptile head and one tapering tail. No wings, humanoid body, human hands or separate wizard companion. Age and retained anti-dragon magic distinguish this species variant, not new anatomy. Original weathered sapphire scales, pale belly plates, two short swept-back horns and subtle arcane light; no required robe, staff, crown or book in normal variants. Distinct round abstract magic motifs may glow without letters. Realistic painterly ancient scales and monumental ruins, readable head and silhouette at 512 pixels. No victims, blood, wounds, gore, text, signature, watermark, logo or frame. Normal 03. A long indigo behir magus winds across a high stone stair, twelve short clawed legs organized as six matching pairs along an elongated body, no extra limbs or wings. Ancient head turns toward the viewer with deliberate intelligence, old sapphire scales rimmed with silver. A thin halo of geometric circles without writing surrounds one forepaw to suggest powerful remembered magic. Broad high three-quarter view, storm clouds and ruined temple arches, one creature. Correction: Use case: precise-object-edit. Edit only the leg anatomy of this original blue Behir Magus portrait. Preserve the single creature's face, horns, neck, blue and silver scale texture, long curved body, exact composition, stone stair, magical circle, lighting and square frame. Its species has exactly SIX LEFT-RIGHT LEG PAIRS, twelve legs total, with far-side legs naturally hidden behind the thick body. KEEP the six large near-facing legs whose feet in this 1254-square image are centered approximately at (975,1050), (650,945), (475,860), (365,735), (250,655), (135,590), and keep the front far-side leg by the glowing circle. Correct the excess posterior limbs: REMOVE completely the extra near-side leg ending around (45,520), the tiny rear-left foot around (25,475), and BOTH legs/feet of the extra pair on the rear bend around (300,440) and (365,435). After the sixth kept pair, the long rear body must become one uninterrupted LEGLESS serpentine tail all the way to its curled tip. Fill removed legs with matching blue scales, pale belly and the stone staircase where appropriate. Remove their entire roots, ankles, claws and detached remnants, leave no stumps. Do not add replacement legs, do not reveal or multiply hidden far legs. Keep all six retained near legs anatomically intact. No wings, text, signature or frame.",
+  "designReferences": [
+    {
+      "url": "https://a5e.tools/node/1465",
+      "note": "A5E-only Behir Magus is an extraordinarily ancient behir retaining anti-dragon magical knowledge, not a humanoid wizard. No required new body plan or equipment. Age texture, abstract magic effects, glasses/hat/book gag are original choices."
+    },
+    {
+      "url": "https://a5e.tools/node/1442",
+      "note": "Inherited base anatomy: Huge blue-scaled serpentine body with twelve legs, lightning breath, climbing and constriction. Six leg pairs retained; original horn pair and belly coloring are artistic choices."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

@@ -1,0 +1,21 @@
+{
+  "creatureId": "august-rooster",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy creature illustration with elaborate feather texture and believable avian anatomy, painterly realism, readable silhouette at 512 pixels. August Rooster is a nearly human-sized CHIMERIC BIRD combining a PHEASANT HEAD with ornamental feather crest, a powerful hooked PARROT BEAK, rounded PERCHING-DUCK BODY, TWO long narrow pointed SWALLOW WINGS, TWO slender long HERON LEGS with taloned bird feet, and ONE lavish PEACOCK TAIL train with iridescent eyespots. Exactly two wings and two legs, no human hands or extra heads. Proud selfish bearing, original plumage colors, richly detailed feathers. No text, logo, signature, watermark or frame. YOLO 04. An outrageously pompous august rooster sits on an ornate golden porcelain TOILET as if it were a royal throne, under a tiny velvet canopy in a medieval castle bathroom. A crooked jeweled crown rests on its pheasant crest, parrot beak lifted in smug pride, two long heron legs wear enormous fluffy pink slippers, two folded swallow wings remain wings. Peacock tail spreads behind the toilet like a royal fan; a hovering translucent magical hand presents a golden corn cob on a cushion. Rolls of parchment-like toilet paper stacked as tribute. Absurd non-explicit royal vanity, no bodily waste, no lettering.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/august-rooster/",
+      "note": "Tome of Beasts 2 chimeric bird: pheasant head, perching-duck body, peacock tail, heron legs, parrot beak, swallow wings. Original plumage colors and compositions; ordinary paired wings and legs. Self-serving temperament and mage-hand ability inform the absurd variant."
+    },
+    {
+      "url": "https://github.com/open5e/open5e-api/blob/staging/data/v1/tob2/Monster.json",
+      "note": "Licensed Open5e description confirms the multi-bird anatomy and nearly human-sized body. No existing artwork copied."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

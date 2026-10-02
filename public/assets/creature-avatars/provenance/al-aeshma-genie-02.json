@@ -1,0 +1,25 @@
+{
+  "creatureId": "al-aeshma-genie",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-09-30",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy painted elemental avatar, cinematic tactile realism, face dominant and readable at 512 pixels, no border, text, logo, watermark or collage. Al-Aeshma Genie from Tome of Beasts: Large humanoid djinni upper body with supernatural PITCH-BLACK skin, lower body made of SCORCHING WIND AND DESERT SAND, a dense tapered dusty whirlwind visibly connected to ground. Sand grains swirl and rebuild its form, not flames or generic smoke. Original design: bald stern mature masculine head, strong craggy face, pale amber eyes, simple weathered bronze bracers and torn ochre cloth sash, dark stone-like skin with fine desert grit; these adornments are original choices. Two normal humanoid arms, no wings, horns, ordinary legs or lamp. May carry a worn curved scimitar. Face, shoulders and visible transition into sandy vortex remain clear; elemental genie not a fire demon. Original anatomy-based illustration, do not copy publisher art. Serious normal 02. Three-quarter face and torso portrait, worn curved scimitar held diagonally across foreground in one strong hand, not obscuring the face. Black djinni upper body emerging from a dense ground-connected dusty whirlwind, sand spirals behind its jaw and bracer. Warm late-afternoon sidelight against blue storm distance, weathered ochre sash, stern predatory focus, no fire or horns.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/genie-al-aeshma-3pp/",
+      "note": "Licensed ToB2023: pitch-black humanoid djinni upper body, lower scorching wind/desert sand, regeneration in sand, scimitar."
+    },
+    {
+      "url": "https://dr-eigenvalue.github.io/bestiary/creature/al-aeshma-genie",
+      "note": "Older version requires ground contact; ground-connected vortex works across editions. Hair/ornaments are original, no specific art inspected."
+    },
+    {
+      "url": "https://koboldpress.com/tools/kobold-press-monsters/",
+      "note": "Primary publisher index confirms Al-Aeshma Genie and elemental type."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

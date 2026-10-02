@@ -1,0 +1,17 @@
+{
+  "creatureId": "archmage",
+  "variantId": "03",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy wizard avatar, tactile painterly realism, expressive ADULT face and elegant arcane magic, readable at 512 pixels. Archmage is a living humanoid master of wizardry, original individual identity for an any-ancestry NPC. Exactly two arms, two hands and one head; layered scholarly robes, arcane jewelry, staff or spellbook, no armor replacing flesh, no wings or horns. Complex geometric spell effects without readable letters. No signature, watermark, text, logo or border. Normal 03. A middle-aged human archmage with pale freckled skin and dark curly hair streaked gray raises a carved crystal staff in a wind-torn ruined tower. Charcoal and teal layered robes, stern clean-shaven face, a thin translucent magical barrier catches snowflakes before the face. The free hand open at chest height, exactly two hands, dramatic cool storm light and warm amber magic.",
+  "designReferences": [
+    {
+      "url": "https://www.a5e.tools/node/1862",
+      "note": "Official A5E Archmage describes living humanoid masters of wizardry and arcane experimentation; combined roster also includes Core and Black Flag sources. Original faces, ancestry, dress and scenes, no fixed canonical appearance asserted."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

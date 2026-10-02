@@ -1,0 +1,17 @@
+{
+  "creatureId": "bandit-captain",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy BANDIT CAPTAIN character portrait, realistic painterly face, rich weathered STUDDED LEATHER ARMOR and practical clothing, clear identity at 512 pixels. One clearly ADULT Medium humanoid outlaw commander of an original chosen ancestry, with a curved SCIMITAR and a DAGGER. Confident experienced gang leader, not a giant; two arms, two legs, one head and natural hands. Personal ancestry, gender, face, adornments and colors are original options. No victims, injuries, blood, text, signature, watermark, logo or frame. Normal 02. An adult human pirate-style bandit captain with deep brown skin, short curled beard, dark braided hair and a burgundy bandana leans at a ship's rail. Fine but worn studded leather coat, small brass rings, a curved scimitar sheathed prominently at his belt and a dagger held safely downward. His other hand rests on the rail, salty wind and a stormy harbor background, mature charming confidence.",
+  "designReferences": [
+    {
+      "url": "https://5thsrd.org/gamemaster_rules/monsters/bandit_captain/",
+      "note": "SRD5.1 Medium humanoid of any ancestry, studded leather, scimitar and dagger, parrying and leadership personality. Pirate captain is an allowed variation. Adult identities, gender, half-orc ancestry, clothing, setting and bucket-boots joke are original choices."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

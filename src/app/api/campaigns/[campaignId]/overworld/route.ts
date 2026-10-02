@@ -1,4 +1,6 @@
 import { z } from "zod";
+import { createHash } from "node:crypto";
+import { notifySpatialChange, subscribeSpatialChanges, waitForPrivateUpdate } from "@/lib/spatial/updates.mjs";
 import {
   capsFor,
   isErrorResponse,
@@ -33,15 +35,36 @@ export const dynamic = "force-dynamic";
 // The overworld view lives in the rim (overworldView) so the Azgaar import
 // route can answer with the same shape.
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ campaignId: string }> },
 ) {
   const { campaignId } = await params;
-  const context = await requireMember(campaignId);
-  if (isErrorResponse(context)) {
-    return context;
+  const wait = Number(new URL(request.url).searchParams.get("waitMs") ?? 0);
+  if (!Number.isSafeInteger(wait) || wait < 0 || wait > 20_000) {
+    return Response.json({ error: "Invalid waitMs." }, { status: 400 });
   }
-  return Response.json(overworldView(campaignId, capsFor(context).steersStory));
+  const load = async () => {
+    // A map stays open while people move or lose access. Re-authorize every
+    // wakeup, and compare only this viewer's freshly scoped projection.
+    const context = await requireMember(campaignId);
+    if (isErrorResponse(context)) return context;
+    if (request.headers.has("x-odm-expected-user") && request.headers.get("x-odm-expected-user") !== context.user.id) {
+      return Response.json({ error: "The signed-in account changed. Reload before continuing." }, { status: 409 });
+    }
+    const body = JSON.stringify(overworldView(campaignId, capsFor(context).steersStory, context.user.id));
+    const etag = `"${createHash("sha256").update(body).digest("base64url")}"`;
+    const headers = { ETag: etag, "Cache-Control": "private, no-store", Vary: "Cookie, X-ODM-Expected-User", "Content-Type": "application/json" };
+    return request.headers.get("if-none-match") === etag
+      ? new Response(null, { status: 304, headers }) : new Response(body, { headers });
+  };
+  try {
+    return await waitForPrivateUpdate({ load, signal: request.signal,
+      waitMs: request.headers.has("if-none-match") ? wait : 0,
+      subscribe: (listener: () => void) => subscribeSpatialChanges(campaignId, listener) });
+  } catch (error) {
+    if (request.signal.aborted) return new Response(null, { status: 499 });
+    throw error;
+  }
 }
 
 const xySchema = z.object({ x: z.number(), y: z.number() });
@@ -180,5 +203,6 @@ export async function PATCH(
   // `stranded` names the places the paint left standing in sea or on a peak.
   // Reported, never moved: setOverworldAnchor accepts both on the grounds
   // that a DM who puts a lighthouse on a reef means it.
-  return Response.json({ ...overworldView(campaignId, true), stranded });
+  notifySpatialChange(campaignId);
+  return Response.json({ ...overworldView(campaignId, true, context.user.id), stranded });
 }

@@ -1,0 +1,17 @@
+{
+  "creatureId": "bereginyas",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BEREGINYAS avatar. One TINY WINGED FAIRY made of GRAY MIST, with small CLAWED HANDS and semi-solid gaseous limbs. Clearly adult-looking androgynous fey face, no child proportions. One head, two arms and two misty legs as original illustration choices; original two delicate fog-wings. Its normal body consists of swirling gray vapor with airy gaps and fog-wisp edges, not solid pale flesh or ice. Soft layered mist contours conceal any nudity. No clothing or weapon is required. Realistic painterly vapor and rocky mountain light, clear facial silhouette at 512 pixels. No victims, blood, injury, gore, writing, signature, watermark, logo or frame. YOLO 04. A tiny gray-mist fairy is holding a portable electric FAN in both small clawed hands, accidentally aimed directly at its own face. The fan blows its vapor hair, mist cheeks and smoky wings dramatically backward into a long streaming plume, while its tiny adult face looks intensely offended. A bright red scarf streams horizontally with the mist, original costume gag. Fairy remains one continuous gaseous creature, no injury, bleak mountain fog and absurd determined expression.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/bereginyas-3pp/",
+      "note": "Shared ToB2016/2023 appearance: Tiny winged gray-mist fairy with claws and gaseous tendrils. Footer source attribution is inconsistent, checked against Open5e ToB records. Face, wing shape/count and adult humanoid silhouette are original choices, as is the fan gag."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

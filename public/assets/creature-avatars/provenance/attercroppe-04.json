@@ -1,0 +1,21 @@
+{
+  "creatureId": "attercroppe",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy miniature creature portrait, beautifully detailed painterly realism, crisp face and hands at 512 pixels. Attercroppe: a TINY foot-long serpentine fey, slender pale GREEN snake-shaped BODY AND TAIL, exactly TWO small HUMANLIKE ARMS with five-fingered hands near the front, a wide LIZARD-LIKE MOUTH curled in a wicked grin, and two vivid BLOOD-RED EYES. A compact reptilian head continuous with the serpent body; no human face, no humanoid legs, no wings, no extra arms or horns. Smooth subtly textured skin, original scales and earless silhouette. Associated with wells and ponds, faint unnatural green ripples are magical ambience only. No victims, harm, gore, text, signature, watermark or border. YOLO 04. A tiny pale-green snake-bodied attercroppe has turned a chipped porcelain teacup into a luxury spa, wearing cucumber slices pushed above its red eyes and a ridiculous folded towel on its lizard head. Its two humanlike hands hold a tiny cocktail umbrella and a miniature scrub brush, its long legless tail coils over the cup rim. Bath bubbles, one rubber duck bigger than its head, lavish candlelit medieval washroom. Smug wicked grin, no legs, no wings, no lettering.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/attercroppe/",
+      "note": "Tome of Beasts 2 Tiny serpentine fey no more than a foot long, pale-green skin, red eyes, human arms and wide lizard-like mouth. Original pair of arms and legless serpent interpretation, original surface detail and scenes."
+    },
+    {
+      "url": "https://github.com/open5e/open5e-api/blob/staging/data/v1/tob2/Monster.json",
+      "note": "Licensed Open5e description checked for snake-like shape with human arms, lizard mouth, green skin and red eyes. Water settings follow aquatic abilities; no publisher art copied."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

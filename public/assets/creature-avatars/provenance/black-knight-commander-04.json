@@ -1,0 +1,17 @@
+{
+  "creatureId": "black-knight-commander",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BLACK KNIGHT COMMANDER avatar, Tome of Beasts 2016/2023. One living ADULT MEDIUM HUMANOID commander in FULL PLATE with a long LANCE and a MACE as secondary weapon. Mounted on or beside an ordinary WARHORSE wearing custom BARDING and a secure saddle, led by the 2023 mounted identity. Rider has one head, two arms and two legs; separate horse has one head, four legs and one tail. No centaur fusion, undead anatomy, horns, wings, nightmare flames or required shield. Original blackened steel, subdued gold fittings, face, ancestry, gender, helmet and horse color. Realistic painterly metal, leather and horse anatomy, clear head and commanding silhouette at 512 pixels. No victims, blood, injury, gore, writing, signature, watermark, logo or frame. YOLO 04. A fully armored black knight commander is using an absurdly LONG JOUSTING LANCE to toast ONE TINY MARSHMALLOW over a comically tiny campfire. The mounted knight leans forward in intense culinary concentration, one hand controls the lance and the other holds reins; mace stays secured at saddle. His huge barded warhorse watches the microscopic snack with a deeply unimpressed sideways look. The lance is one continuous straight shaft, marshmallow visible at its tip, harmless cozy campsite, no text.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/black-knight-commander-3pp/",
+      "note": "ToB2016/2023: living Medium humanoid commander, plate, lance and mace; 2023 explicitly barded warhorse and secure saddle. Blackened armor, rider identities, heraldic colors and marshmallow gag original. Ordinary separate mount, not undead or centaur."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

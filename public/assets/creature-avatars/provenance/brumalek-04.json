@@ -1,0 +1,17 @@
+{
+  "creatureId": "brumalek",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BRUMALEK creature avatar. One SMALL white-furred weasel-like BRUMALEK with a long flexible mammalian body, BROAD sturdy skull, intelligent dark eyes, a BROAD furry balancing tail and ONE inflatable frog-like THROAT SAC beneath its chin. Four mammalian limbs total, two small forepaws and two hind feet, one head and one broad tail. Original small rounded ears, black nose and pale translucent blue-gray throat sac. No horns, wings, second throat sac, armor or weapons. Realistic painterly fantasy material detail, readable at 512 pixels, one composition without panels. No gore, writing, signature, watermark, logo or frame. YOLO: the solemn white brumalek with hugely inflated natural throat sac has a tiny red PARTY BLOWER in its mouth, the paper coil stretched absurdly far by its powerful breath. Four limbs, broad tail and wide skull preserved, one small crooked party hat between its ears, no writing or extra balloons.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/brumalek/",
+      "note": "ToB3: Small white-furred weasel-like beast, broad ramming skull, intelligent eyes, broad balancing tail and one inflatable frog-like throat sac for howling. Four-limb mammal form inferred, ear/paw/eye/sac colors original. Inflated and relaxed sac are one creature state."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

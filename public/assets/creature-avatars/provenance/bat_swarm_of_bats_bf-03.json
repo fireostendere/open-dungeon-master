@@ -1,0 +1,21 @@
+{
+  "creatureId": "bat_swarm_of_bats_bf",
+  "variantId": "03",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy SWARM OF BATS avatar, Black Flag SRD. A MEDIUM-SIZED COLLECTIVE of numerous distinct TINY BATS, not one giant bat or a fused monster. Every visible bat is a furry mammal with one head, two ears, TWO MEMBRANOUS HAND-WINGS and TWO small HIND FEET; no separate arms, extra wings, horns or feathers. Several crisp individual faces and wing silhouettes in foreground, other separate bats receding behind. Realistic painterly fur and membranes, dramatic atmospheric light, readable group silhouette at 512 pixels. No blood, injuries, people being bitten, text, signature, watermark, logo or frame. Normal 03. A noisy swarm of small tawny bats circles between two close crypt columns, several open their mouths as if chattering. Three foreground bats in different flight angles, a ring of at least nine more separate bats behind. Each individual has exactly two hand-wings, furry torso and two little hind feet. Warm lantern light outlines membranes against violet-black stone, medium-sized group rather than huge sky-wide army.",
+  "designReferences": [
+    {
+      "url": "https://github.com/open5e/open5e-api/blob/staging/data/v1/blackflag/Monster.json",
+      "note": "Black Flag SRD v0.2 bat_swarm_of_bats_bf: Medium collective of Tiny bats, flight, bite, echolocation and Cacophonous Swarm. Separate individual bats retained; flock count, colors, scenes and empty-bloomers laundry gag are original choices."
+    },
+    {
+      "url": "https://www.batcon.org/bats-vs-birds/",
+      "note": "Generic bat anatomy: furry mammal, forelimbs are membranous wings, two hind feet; no extra arms."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

@@ -1,0 +1,21 @@
+{
+  "creatureId": "ancient-wasteland-dragon",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy creature avatar, cinematic painterly realism with tactile rough scales and a crisp face readable at 512 pixels. No text, signature, watermark or frame. Ancient Wasteland Dragon from Creature Codex: a gargantuan living dragon warped by old magical catastrophe, heavy scale armor in dull rust and soil colors, rust-brown wing membranes, dry withered gray horns and crests. Broad powerful reptilian head, severe intelligent amber eyes, massively muscled long neck, four clawed legs, two separate membrane wings and one long tail. Elder weight, weather-beaten features and gray crown spines, alive and intact, not undead. Warped force magic breath is represented in an original pale violet-white palette, no ordinary orange fire. Original composition and anatomy choices, no copied publisher art. Normal 02. Three-quarter right-facing head, neck and one shoulder portrait perched over a ruined city's dry stone cistern. One folded rust membrane wing behind shoulder, far wing completely hidden. Gray crest chipped and withered, broad square jaw slightly open with a soft pale violet arcane glow reflected along teeth, predatory eyes. Cold blue dusty twilight, old domes distant and small, elder dragon looks enormous.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/wasteland-dragon-ancient/",
+      "note": "Attributed Creature Codex ancient entry: gargantuan living dragon, dull rust/soil scales, rust wings, withered gray crests/horns, arcane force breath and ruined-city lairs. Horn count, light palette and humor are original choices."
+    },
+    {
+      "url": "https://koboldpress.com/tools/kobold-press-monsters/",
+      "note": "Primary publisher index confirms Ancient Wasteland Dragon, Creature Codex."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

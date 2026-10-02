@@ -1,0 +1,21 @@
+{
+  "creatureId": "alazai",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-09-30",
+  "prompt": "Use case: stylized-concept. One original square dark-fantasy elemental avatar, cinematic painterly realism with physically evocative heat refraction, eyes and vague head silhouette centered and readable at 512 pixels, no words, border, watermark or collage. Alazai from Tome of Beasts 3: LARGE fire elemental that is naturally INVISIBLE, its only bodily impression a VAGUE HUMANOID SHAPE of intense HEAT SHIMMER with BURNING EYES. Background remains visible through its head and shoulders, bent and warped by hot air. Cold conditions outline its body in STEAM; darkness reveals its fiery eyes. No solid skin, armor, horns, wings, hair, clothes or opaque fire-giant body. Not a glass statue: only air distortion, thin vapor edges and two burning eye-flares, no hard reflective glass surface. Close portrait of implied head/shoulders, avoid defined biological facial anatomy or exact limbs. Original interpretation from textual visibility rules, no copied publisher art. Serious normal 02. Close three-quarter mirage-face in a sunlit sandstone canyon, two small fierce burning eyes embedded in severe rippling heat-haze. The canyon strata remain visible distorted through empty humanoid head and shoulder contours, no solid body or glass. Very faint vapor at one edge only, warm orange-red sandstone and crisp blue sliver of sky, supernatural presence expressed through displaced light, not a humanoid made of lava.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/alazai/",
+      "note": "ToB3 Large fire elemental, naturally invisible even attacking; vague humanoid heat refraction with burning eyes, cold under 50F reveals steam outline. No solid armored anatomy established."
+    },
+    {
+      "url": "https://koboldpress.com/tools/kobold-press-monsters/",
+      "note": "Primary taxonomy confirms Alazai. Exact species art unverified; steam/mirage scenes are original interpretations."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

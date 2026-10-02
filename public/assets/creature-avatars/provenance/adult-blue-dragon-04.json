@@ -1,0 +1,25 @@
+{
+  "creatureId": "adult-blue-dragon",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-09-30",
+  "prompt": "Use case: stylized-concept. Asset type: one original square bestiary avatar. Polished dark-fantasy realistic painterly art, rich tactile scales, dramatic cinematic lighting. One adult dragon only, head and upper body dominate square frame, facial anatomy clear. Conventional body plan of four legs, two separate wings and one tail, mostly outside crop. No text, letters, logo, watermark, border, collage, copied source artwork or artist imitation. Subject: an adult Blue Dragon in the classic 2014-style silhouette: rich cobalt and azure scales, broad blunt dragon snout, exactly ONE dominant large ridged nasal horn rising from the snout, broad lateral frilled ears and small jaw/brow spikes, strong muscular neck, lightning-breathing desert predator. Do not replace nasal horn with a pair of large side horns. Chosen ochre wing membranes at shoulder edges, electric sparks across charged scales. YOLO04: a huge blue dragon solemnly uses its enormous nasal horn as a charging dock for a ridiculously tiny modern smartphone hanging from an absurdly short cable. Screen has only a simple bright green battery pictogram, no words or numbers. Electrical sparks dance harmlessly around the cable; dragon looks severely inconvenienced. Broad ear frills, cobalt scales and single main nasal horn clearly preserved, dark desert fantasy background.",
+  "designReferences": [
+    {
+      "url": "https://a5e.tools/node/1532",
+      "use": "Official adult blue dragon desert, burrowing and lightning identity"
+    },
+    {
+      "url": "https://www.dndbeyond.com/monsters/16765-adult-blue-dragon",
+      "use": "Core adult blue dragon identity"
+    },
+    {
+      "url": "https://forgottenrealms.fandom.com/wiki/Blue_dragon",
+      "use": "Supplementary classic dominant nasal horn and ear-frill anatomy"
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

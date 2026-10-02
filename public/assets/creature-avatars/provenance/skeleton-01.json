@@ -1,0 +1,11 @@
+{
+  "creatureId": "skeleton",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-09-30",
+  "prompt": "Use case: stylized-concept. Asset type: square dark-fantasy bestiary avatar. One original portrait of a SKELETON undead warrior, normal variant01. Anatomically recognizable human skeleton with bare ivory skull, empty black eye sockets lit faintly by cold blue necromantic embers, visible jaw teeth and cervical vertebrae, no skin or living flesh. Wears battered rusted medieval chainmail scraps hanging around bony shoulders, cracked leather straps. Left-facing three-quarter head-and-upper-ribcage composition in a damp ancient crypt with softly blurred stone arches. Solemn eerie threat, cinematic cold rim lighting and subtle amber candle fill, polished realistic painterly dark fantasy, crisp bone textures. Skull fully visible with generous margins, strong readable small-avatar silhouette. Exactly one skeleton and one square portrait, no grid, no text/letters, no logo/watermark, no gore, no named artist style or copied art.",
+  "license": "generated-output; no third-party artwork license asserted"
+}

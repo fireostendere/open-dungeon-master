@@ -1,0 +1,17 @@
+{
+  "creatureId": "bloated-ghoul",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BLOATED GHOUL avatar, Tome of Beasts 2. One MEDIUM ADULT CORPOREAL GHOUL with an ENORMOUSLY DISTENDED POT BELLY, clawed hands and a hungry sharp-toothed normal face. One head, two arms and two legs, heavy slow-moving humanoid body. Swollen belly is intact beneath stretched opaque garments or smooth intact skin, no exposed organs or wounds. No second belly mouth, protruding limbs, horns, fungal growth or giant stature. Original gray corpse-like skin, hair, clothing and exact teeth/claw counts. Natural armor does not mean metal plate. Realistic painterly swollen silhouette, leathery skin and old cloth, readable face at 512 pixels. No victims, active feeding, blood, injury, decay wounds, gore, nudity, writing, signature, watermark, logo or frame. Normal 01. A heavy bloated ghoul shuffles through an empty crypt passage, enormous round abdomen straining a tattered but opaque dark tunic, long clawed hands hanging at either side, two thick legs beneath. Gray intact leathery skin, gaunt adult face contrasting with swollen belly, sharp teeth visible between parted lips, sparse dark hair. Cold tomb light, no blood or remains.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/ghoul-bloated/",
+      "note": "ToB2: Medium corporeal ghoul with grossly distended abdomen from feeding, claws, bite and potential abdominal fumes. Intact clothing/skin communicates identity without exposed contents. Exact face/skin/clothing and belt gag original; no abdominal mouth or added limbs."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

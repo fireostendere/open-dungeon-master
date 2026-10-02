@@ -1,0 +1,17 @@
+{
+  "creatureId": "animated-armor",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy creature avatar, tactile painterly realism, cinematic light and a strong helmet silhouette readable at 512 pixels. Animated Armor from core DnD: a magically moving EMPTY suit of plate armor, medium humanoid scale, hollow helmet and hollow articulated metal limbs. No human occupant, face, skin, skeleton or ghost inside. Two metal arms and gauntlets, two armored legs, one helmet and breastplate held together by invisible magic. Worn believable metal craftsmanship, dark gaps show EMPTY space. Subtle magical rim light may hint at animation, but do not add glowing eyeballs or a robot screen. Original armor design and composition, no copied publisher art. No words, signature, logo, watermark or frame. Normal 01. Frontal close helmet and breastplate portrait of an old fluted dark steel suit, closed narrow-slit visor completely black within. Dented ridged helmet, layered asymmetrical pauldrons, one iron gauntlet slightly raised as if waking from centuries of stillness. A crumbling castle armory, cold blue moonbeam and warm candle reflections on scratched metal, ominous living object.",
+  "designReferences": [
+    {
+      "url": "https://www.dndbeyond.com/monsters/16786-animated-armor",
+      "note": "Official core animated plate armor, construct with false appearance and slam attacks. Empty suit interpretation and individual plate designs/scenes are original."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

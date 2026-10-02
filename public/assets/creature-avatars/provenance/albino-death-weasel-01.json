@@ -1,0 +1,25 @@
+{
+  "creatureId": "albino-death-weasel",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy beast avatar, cinematic tactile painterly realism and crisp fur, face legible at 512 pixels, no words, frame, watermark or collage. Albino Death Weasel from Creature Codex: LARGE living mustelid predator, NOT undead. Four short powerful clawed legs, long flexible low weasel trunk with arched rump, long raised furry tail, rounded ears, short tapered mustelid snout with whiskers, RED albino eyes and pink nose/ear interiors. Dense white to creamy-white fur, sharp prominent canines, ravenous dangerous presence. Not a white wolf, long-legged dog, biped, skeleton or humanoid; smooth continuous long weasel body, no extra limbs. Face and forequarters prominent with a hint of elongated body/tail to establish identity. No blood or graphic injury. Original composition from written description and publisher anatomy, do not copy art pose. Serious normal 01. Low snow-level close head portrait emerging from a dark earthen den opening. White weasel muzzle and rounded ears sharply lit, intense red eyes and pink nose, long whiskers iced at tips, mouth closed. A short clawed forepaw pushes loose snow aside, elongated white body and raised tail curve softly blurred in darkness behind. Cold azure snow rim versus warm den shadow, stalking predator.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/weasel-albino-death",
+      "note": "Creature Codex Large pale ravenous living weasel, white fur, not undead."
+    },
+    {
+      "url": "https://koboldpress.com/expanding-codex-albino-death-weasel/",
+      "note": "Primary publisher species article."
+    },
+    {
+      "url": "https://koboldpress.com/wp-content/uploads/2019/08/weasel-albino-death.jpg",
+      "note": "Official art inspected: four short legs, long flexible mustelid body/tail, rounded ears, red eyes, pink nose and white coat. Dark tail tip is optional artwork marking; bloody muzzle omitted, pose original."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

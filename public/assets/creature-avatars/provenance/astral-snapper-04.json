@@ -1,0 +1,17 @@
+{
+  "creatureId": "astral-snapper",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy creature portrait, tactile painterly realism, sharp face, striking restrained supernatural lighting, readable at 512 pixels. Astral Snapper from Creature Codex: an adult pale HUMAN-shaped aberration with YELLOW EYES and narrow VERTICAL PUPILS, an unnaturally wide grin revealing neat triangular SHARK TEETH, and long claw-tipped fingers. One head, two arms, two hands, two legs, no wings or tail, no animal head, no turtle shell. Fully clothed original adult individual in practical fantasy garments. Present this creature alone as a character portrait; no victim, feeding, injury or gore. No text, logo, signature, watermark or border. YOLO 04. A pale bald adult astral snapper in a luxurious purple dressing gown examines its ridiculously wide triangular shark-tooth grin in a small hand mirror, struggling with an enormous pink toothbrush and a tiny teacup of rinse on a medieval washstand. Yellow slit-pupil eyes squint in concentration, clawed fingers grip the brush handle, foam only around the lips, intact teeth. Deadpan gothic self-care comedy, candlelit stone bathroom, no writing.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/astral-snapper/",
+      "note": "Creature Codex Medium aberration described as a pale human-shaped creature with yellow vertical-pupil eyes, wide shark-toothed grin and claws. Original adult identities, clothing and locations; no turtle interpretation or feeding depiction."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

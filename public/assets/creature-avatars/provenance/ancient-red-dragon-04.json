@@ -1,0 +1,17 @@
+{
+  "creatureId": "ancient-red-dragon",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. One original square dark-fantasy bestiary avatar, cinematic realistic painterly art, one gargantuan ANCIENT RED DRAGON, head and upper body dominant and readable at 512 pixels. Enormous muscular elderly western dragon with actual SCARLET and CRIMSON reptilian scale surfaces, blackened old scale edges, massive aged beaked snout venting faint smoke, thick powerful neck, two swept-back dark horns and serrated spinal frill. Golden fiery slit eyes, ivory fangs, old healed scars and heavy weathered brow. Exactly FOUR legs and TWO separate leathery crimson wings, one on either side behind shoulders, ONE tail. Proud terrifying intelligence, mountain/volcanic hoard monarch, fire breath. Do not make body uniformly black with glowing cracks, not a flame dragon. No text, letters, signature, logo, watermark, border, gore, victims or copied artwork. Absurd YOLO 04. The ancient red dragon is losing a staring contest with a tiny squeaky rubber chicken standing on its treasure hoard. Massive genuine crimson-scaled face, two dark swept-back horns, beaked smoking snout, golden eyes squinting furiously at the ridiculous yellow chicken. An absurdly tiny jeweled crown is balanced crookedly on the dragon's head; one huge foreclaw holds a magnifying glass to inspect its enemy, the other rests on coins. Exactly two folded wings behind, dramatic lava-lit throne room, overblown tyrannical dignity against toy stupidity, no lettering or signature.",
+  "designReferences": [
+    {
+      "url": "https://www.dndbeyond.com/monsters/16782-ancient-red-dragon",
+      "note": "Official core ancient red dragon: Gargantuan fire-breathing mountain dragon with swept-back horns, spinal frill and smoky beaked snout. Original red scale palette, aged details and compositions."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

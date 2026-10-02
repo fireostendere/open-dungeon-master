@@ -1,0 +1,25 @@
+{
+  "creatureId": "adult-black-dragon",
+  "variantId": "03",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-09-30",
+  "prompt": "Use case: stylized-concept. Asset type: one original square bestiary avatar. Polished dark-fantasy realistic painterly art, rich tactile scales, dramatic cinematic lighting. One adult dragon only, head and upper body dominate square frame, facial anatomy clear. Conventional body plan of four legs, two separate wings and one tail, mostly outside crop. No text, letters, logo, watermark, border, collage, copied source artwork or artist imitation. Subject: an adult Black Dragon with wet ebony-black scales, a lean skull-shaped bony face, deeply recessed amber eyes, long narrow predatory muzzle and exactly TWO main side horns curving outward then forward around the sides of its face. Horns do not form a nasal spike. Ragged cloak-like black wing membranes frame shoulders. Amphibious acid-breathing swamp dragon; sickly green acid is an original color choice. Living creature with black scales covering bone, not undead. Normal03: acid threat, right side-three-quarter close portrait with jaw slightly open and a few green acid droplets hanging from teeth, strong bony cheek contours, two forward-curving side horns, rain streaming down black scales and long neck, storm-dark marsh background.",
+  "designReferences": [
+    {
+      "url": "https://a5e.tools/node/1527",
+      "use": "Official A5E skull-like face, ragged wings and amphibious acid-breathing identity"
+    },
+    {
+      "url": "https://www.dndbeyond.com/monsters/16764-adult-black-dragon",
+      "use": "Core adult black dragon identity"
+    },
+    {
+      "url": "https://forgottenrealms.fandom.com/wiki/Black_dragon",
+      "use": "Supplementary classic forward-curving paired side-horn anatomy"
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

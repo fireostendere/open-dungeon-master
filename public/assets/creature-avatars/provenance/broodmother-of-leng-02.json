@@ -1,0 +1,17 @@
+{
+  "creatureId": "broodmother-of-leng",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BROODMOTHER OF LENG creature avatar. One HUGE BLOATED PURPLE SPIDER adorned with GOLD and JEWELS, carrying several clearly separate tiny spider young on its swollen purple abdomen. Coherent arachnid body with a cephalothorax and a large abdomen, EXACTLY EIGHT main walking legs attached to the cephalothorax, four on each side, with natural occlusion allowed. Small spider mouthparts only; NO human face, torso or arms. Original eye arrangement is a compact cluster of small dark jewel-like eyes. Natural purple chitin and hairs, gold chains and gemstones, no gore or prey. Realistic painterly fantasy material detail, readable at 512 pixels, one composition without panels. No gore, writing, signature, watermark, logo or frame. Normal 2. Close three-quarter arachnid head and front-body portrait, purple chitin, compact cluster of dark eyes, natural small mouthparts, gold and gemstones draped over the body, bloated abdomen and tiny spider young visible behind, no humanoid anatomy.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/broodmother-of-leng/",
+      "note": "ToB2: Huge bloated purple spider, castle-gate scale, adorned with gold/jewels and carrying young. Conventional eight legs chosen from spider identity, not explicit numerical prose; eye arrangement/jewelry and young count artistic. No human torso/face or imported other-game Spider of Leng anatomy."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

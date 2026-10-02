@@ -1,0 +1,17 @@
+{
+  "creatureId": "azza-gremlin",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy bestiary avatar, tactile painterly realism and detailed skin, clear readable silhouette at 512 pixels. One AZZA GREMLIN, a very small adult fey 12–18 inches tall: completely HAIRLESS, very slim wiry build, extremely LONG POINTED EARS with blue-white STATIC LIGHTNING arcing BETWEEN the ears. WINGLESS magnetic levitation, absolutely no wings. Original mature wrinkled impish face with a long nose, two arms, two legs, five long fingers per hand, modest rough cloth vest and trousers. Original slate-lilac skin and amber eyes; no horns, tail or fur. Tiny relative to ordinary objects, lively intelligent mischievous expression. No injuries, victims, blood, text, signature, watermark, logo, frame or grid. Normal 01. The wingless gremlin hovers upright beside a huge iron lightning rod on an ancient tower roof during a thunderstorm, long bare ears angled upward and a visible arc crackling between their tips. It clasps a small storm-glass crystal in its two hands, legs dangling freely. Full individual figure with distinct two arms and two legs, wet black stone, distant storm clouds, cool rim light and warm window glow. Correction: Precise correction to this original fantasy gremlin illustration: make the creature genuinely hairless, with entirely bare smooth wrinkled skin on its scalp, cheeks and ears. Remove all wispy white head hair, sideburn tufts, whiskers, ear fuzz and eyebrow hairs; retain natural bare eyebrow ridges and skin wrinkles. Preserve the two extremely long pointed ears, the blue-white lightning arc between their tips, the face and amber eyes, pose, exactly two arms and two legs, held storm-glass vial, clothing, tower, lighting and composition. No new hair, fur, wings, limbs, text or signature.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/gremlin-azza-3pp/",
+      "note": "Tome of Beasts 2023 Small hairless, very slender fey with long ears and electric arcs between them. Wingless electromagnetic flight, 12–18 inches tall, associated with storm clouds and lightning machinery. Skin colors, face, clothing, two-arm/two-leg humanoid arrangement and kitchen mishap are original visual interpretations."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

@@ -1,0 +1,21 @@
+{
+  "creatureId": "alseid-grovekeeper",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy bestiary character avatar, rich painterly realism and cinematic forest light, expressive adult face, antlers and deer silhouette readable at 512 pixels. ALSEID GROVEKEEPER, elder woodland druid variant: adult elven UPPER TORSO with two arms, pointed ears and noble mature clean-shaven face, joined at waist to full horizontal DEER BODY with FOUR slender cloven-hoofed legs, warm brown coat and short WHITE-UNDERSIDE TAIL. Natural branching deer ANTLERS from forehead, druidic bark/leaf mantle and modest woven robe layers cover humanoid torso, robes open around deer body. Carries living WOODEN STAFF with thorns, leaves or a green seed-crystal; subtle natural magic. Mature male elf faces for these elder guardians, no beard. Not horse-centaur, faun, ordinary elf, treant or woad warrior; no human lower legs, no blue bodypaint, no extra arms/legs, wings, text, watermark, border or collage. Serious normal 01. A silver-haired grovekeeper with warm dark skin stands before a colossal ancient oak, broad finely branched antlers decorated sparingly with acorns, calm mature elven eyes, bark mantle and moss-green woven chest robes. One hand grasps a thorned ashwood staff, other palm holds a small glow like germinating seeds. Brown deer body and four fine hoofed legs beneath, three-quarter portrait, dawn gold and forest mist.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/alseid-3pp-2/",
+      "note": "Alseid anatomy and grovekeeper variant: elven upper body/deer lower body, antlers and white tail; druidic guardian with staff/nature spells. Visual role distinct from spear/bow base alseid; original woodland mage attire."
+    },
+    {
+      "url": "https://www.5esrd.com/database/race/alseid/",
+      "note": "Four-legged deer body cross-check. Groves and natural magic inform original environment."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

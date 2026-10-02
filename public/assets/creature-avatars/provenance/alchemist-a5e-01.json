@@ -1,0 +1,21 @@
+{
+  "creatureId": "alchemist-a5e",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy painted NPC avatar, cinematic tactile realism, expressive ADULT humanoid face and hands-on alchemical craft legible at 512 pixels, no words, labels, logos, watermark or border. Generic A5E Alchemist profession: Medium humanoid in practical CLOTH workwear, alchemist supplies, portable glass reagents and potions, sometimes a sheathed small dagger and wrapped fantasy alchemical bombs. Not a kobold alchemist, not the ooze Alchemical Apprentice. Ancestry/gender/face can differ between variants because this is a profession, not a named single individual. Goggles, aprons and potion colors are original visual choices. No modern laboratory brands, no technical instructions or labeled formulas, no guns, no heavy plate armor. Original character designs, do not copy official illustration or real people. Serious normal 01. Mature human male alchemist with warm light-brown skin, silver-streaked curly beard and intent tired eyes, rolled cream sleeves, russet cloth vest and stained leather apron. Close three-quarter face at a reagent-lit bench, one ordinary hand carefully raises a luminous green round glass vial while the other steadies a blank old notebook. Copper vessel and soft amber lamp behind, dark teal shadows, professional calm and tactile skin, no readable page text.",
+  "designReferences": [
+    {
+      "url": "https://a5e.tools/node/1834",
+      "note": "Primary A5E Medium generic humanoid alchemist profession, cloth armor, supplies/potions/reagent bombs/dagger; no fixed ancestry/gender. ToB2023 Small kobold alchemist is a different creature and not used."
+    },
+    {
+      "url": "https://a5e.tools/sites/default/files/monsters/Alchemist%20-%20Egil%20Thompson.jpg",
+      "note": "Official art inspected as profession reference only: cloth workwear, green potion, copper vessel. Individual faces/ancestries/genders and compositions original, not copying pictured older pointed-eared man."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

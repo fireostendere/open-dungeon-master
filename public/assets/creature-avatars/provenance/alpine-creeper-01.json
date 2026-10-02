@@ -1,0 +1,21 @@
+{
+  "creatureId": "alpine-creeper",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy bestiary avatar of a non-humanoid plant creature, cinematic painterly realism with exquisite lichen texture, subject fills frame and reads as one distinct mobile mat at 512 pixels. ALPINE CREEPER from Tome of Beasts 3: a HUGE living CARPET OF LICHEN creeping over mountain stones and fallen logs, pale gray-green and ochre branching/crustose lichen mixed with dense mossy pads, thick irregular connected mat with soft rippling lifted leading edges, drifting fine sleep-inducing spores. It has NO FACE, no eyes, mouth, head, arms, legs, tentacles, humanoid trunk or flowers. Its menace is a quietly moving living blanket, not tree monster or moss golem. Some old coins and rusty gear can be half swallowed by the mat, no flesh, victims or gore. Show the main mass clearly as subject, not just a generic landscape. No text, watermark, border or collage. Serious normal 01. Low close view of a massive cohesive silver-green alpine creeper flowing like a thick lichen blanket over a dark mountain boulder, one curled leading edge lifts slightly to reveal damp fibrous underside, pale gold spore dust rises in cold dawn light. Rusted empty helmet and a few ancient coins partly buried in the mat give scale, snow peaks soft in background, eerie stillness.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/alpine-creeper/",
+      "note": "ToB3 Huge creeping lichen carpet over mountain rocks/logs, sleep spores and remnants caught in mat. Unrelated alseid text incorrectly interleaved on the page is excluded. No humanoid anatomy or invented face."
+    },
+    {
+      "url": "https://koboldpress.com/monster-weaknesses-for-tome-of-beasts-3-part-5/",
+      "note": "Official supplementary post confirms the creeper's relationship with beasts; optional variant mechanics are not treated as core visual anatomy."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

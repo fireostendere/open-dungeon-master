@@ -1,0 +1,17 @@
+{
+  "creatureId": "caldera-kite",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy CALDERA KITE creature avatar. One LARGE CALDERA KITE, a long-bodied FLOATING INSECTOID with a long flexible PROBOSCIS, soot-coated body and wings, surrounded by fine glittering sulfurous haze. It explicitly has NO FEET. Original body interpretation: elongated charcoal-brown segmented body, TWO broad translucent insect wings, two small antennae, two compound eyes, NO walking legs or external gas balloons. Buoyancy organs are internal. No bird head, beak, feathers, human limbs or victims. Realistic painterly fantasy material detail, readable at 512 pixels, one composition without panels. No gore, writing, signature, watermark, logo or frame. YOLO: the giant legless hovering insect uses its natural long proboscis as a straw to sip from a comically tiny pink BUBBLE-TEA CUP sitting on a basalt ledge. Two broad wings and soot-covered body, absurd dignified cafe break above a volcano, no added hands or feet and no writing.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/caldera-kite/",
+      "note": "ToB3: Large long-bodied insectoid, wings, long feeding proboscis, explicitly no feet; internal gas bladders sustain hover, soot and sulfurous haze. Wing/eye/antenna count and color unspecified. Chosen limbless walking-body with two broad insect wings is original, not a bird."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

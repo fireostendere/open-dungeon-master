@@ -1,0 +1,17 @@
+{
+  "creatureId": "bukavac",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BUKAVAC creature avatar. One LARGE very heavy squat TOADLIKE BUKAVAC with EXACTLY SIX clawed legs arranged as THREE PAIRS and exactly TWO gnarled horns on its broad head. One enormous toadlike mouth, no separate arms, wings or tail. Original swamp-olive warty hide, pale ivory twisted horns, amber eyes and four toes per foot. The bulky body is low to the ground. Keep all six leg origins anatomically coherent; never add an extra pair. Realistic painterly fantasy material detail, readable at 512 pixels, one composition without panels. No gore, writing, signature, watermark, logo or frame. YOLO: the enormous squat horned toad monster is trying to balance on exactly SIX tiny bright-red ROLLER SKATES, one skate on each of its six feet, three pairs clearly spaced. Two gnarled horns and olive warty body preserved, horrified wide-eyed expression, a smooth empty stone path, no extra arms or legs.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/bukavac-3pp/",
+      "note": "ToB2016/2023 both explicitly prescribe Large heavy toadlike body, SIX legs, TWO gnarled horns, sharp claws, lake/pond ambush and thunderous croaking. Three bilateral leg pairs; no extra arms. Skin/eyes/digits are artistic; no tail established."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

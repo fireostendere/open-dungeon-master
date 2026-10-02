@@ -1,0 +1,17 @@
+{
+  "creatureId": "brumalek",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BRUMALEK creature avatar. One SMALL white-furred weasel-like BRUMALEK with a long flexible mammalian body, BROAD sturdy skull, intelligent dark eyes, a BROAD furry balancing tail and ONE inflatable frog-like THROAT SAC beneath its chin. Four mammalian limbs total, two small forepaws and two hind feet, one head and one broad tail. Original small rounded ears, black nose and pale translucent blue-gray throat sac. No horns, wings, second throat sac, armor or weapons. Realistic painterly fantasy material detail, readable at 512 pixels, one composition without panels. No gore, writing, signature, watermark, logo or frame. Normal 1. The white weasel-like brumalek stands upright on its hind feet on snowy rock, two small forepaws tucked before its chest, broad furry tail rests behind for balance, wide skull and a modest relaxed throat sac under the jaw, clear arctic dawn.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/brumalek/",
+      "note": "ToB3: Small white-furred weasel-like beast, broad ramming skull, intelligent eyes, broad balancing tail and one inflatable frog-like throat sac for howling. Four-limb mammal form inferred, ear/paw/eye/sac colors original. Inflated and relaxed sac are one creature state."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

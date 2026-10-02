@@ -1,0 +1,21 @@
+{
+  "creatureId": "aboleth",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-09-30",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy bestiary avatar of an ABOLETH. Anatomy is crucial: a huge alien fishlike amphibious monster, elongated broad head continuous with a heavy eel-fish body and a finned tail, slick olive-teal skin covered in clear slime. On the FRONT of the head are EXACTLY THREE large reddish slit eyes arranged in ONE VERTICAL COLUMN: one eye above another above another, not a normal pair and not three across. Four long fleshy tentacles emerge from its flanks behind its head; all four curl visibly around its fishlike body. Broad lipless toothy fish mouth below the bottom eye, no octopus beak, no arms/legs/wings or humanoid torso. Front-facing head-and-forward-body portrait with three eyes clear and all four curling tentacles framing it, deep underwater black-stone ruins softly blurred behind, cold cyan shafts and eerie amber eyes. Ancient cold intelligence, unsettling majestic presence. Polished realistic painterly dark fantasy, richly textured wet skin and underwater atmosphere. Entire main head fits square with safe margins. One creature only, no text/logo/watermark/grid/border, no gore, original interpretation no copied illustration or named artist style.",
+  "license": "generated-output; no third-party artwork license asserted",
+  "designReferences": [
+    {
+      "url": "https://a5e.tools/node/1432",
+      "use": "Creature identity facts only; no publisher artwork or descriptive prose copied"
+    },
+    {
+      "url": "https://www.dndbeyond.com/monsters/5194867-aboleth",
+      "use": "Four-tentacle identity check"
+    }
+  ]
+}

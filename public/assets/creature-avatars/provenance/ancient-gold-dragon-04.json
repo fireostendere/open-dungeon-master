@@ -1,0 +1,17 @@
+{
+  "creatureId": "ancient-gold-dragon",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. One original square dark-fantasy bestiary avatar, cinematic painterly realism, dominant clear head and upper body readable at 512 pixels. ANCIENT GOLD DRAGON: gargantuan elder with luminous reflective metallic GOLD scales, sagacious aged reptilian face, flexible whisker-like facial spines and TWO long prominent flowing mouth barbels plus finer chin filaments. Two main horns sweep backward from brow, TWO long neck frills, ONE PAIR of TWO sail-like wings starting at shoulders and extending far along body. Four clawed legs and one tail. Eyes like pools of MOLTEN GOLD with pupils nearly absent, immense old neck and weathered facial ridges, wise patient calm. Warm reflective metal, not opalescent scales or translucent crystals. No text, letters, signature, watermark, logo, border, gore or copied artwork. Absurd YOLO 04. The ancient gold dragon is taking an absurdly overcautious swimming lesson: a bright pink inflatable flamingo ring is wedged around its enormous long neck, tiny swim goggles perch on the noble gold brow, and an absurd little blue nose clip squeezes the tip of its muzzle. Two long golden barbels hang outside the float, swept horns, twin neck frills and exactly two folded sail wings remain visible. Immense foreclaws gingerly test a knee-deep pond, wise molten-gold eyes convey wounded dignity, tiny towel on rock, cinematic fantasy realism and harmless ridiculous props, no words or signature.",
+  "designReferences": [
+    {
+      "url": "https://wizkids.com/dd-icons-of-the-realms-adult-gold-dragon/",
+      "note": "Licensed gold-family anatomy: whiskerlike flexible spines, swept-back horns, twin neck frills and long sail wings; aged eyes resemble molten gold. Original elder portraits and props, no publisher art copied."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

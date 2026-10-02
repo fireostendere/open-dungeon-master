@@ -1,0 +1,21 @@
+{
+  "creatureId": "accursed-spirit-naga-a5e",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-09-30",
+  "prompt": "Use case: stylized-concept. Asset type: one original square bestiary avatar. Polished dark-fantasy realistic painterly art, cinematic lighting, rich material textures, clear silhouette and face readable at small size. One creature only, no text, letters, logos, watermark, border, collage or copied source artwork. Subject: an Accursed Spirit Naga, a living Large magical snake with an adult humanoid face integrated into its scaled snake head, long sinuous snake neck, heavy serpent coils and venomous fangs. Flesh-and-scale creature, NOT translucent, not undead, not skeletal. NO human torso, arms, legs, wings or extra heads. Sinister arcane intelligence, hypnotic gaze, lightning and blight magic, infernal revenge pact. Normal01: oblique close portrait of a pale adult feminine humanoid face atop glossy black-violet serpent coils; hypnotic prismatic rings subtly reflected in two eyes, ruined library behind, cold purple light, obsessive intelligent expression.",
+  "designReferences": [
+    {
+      "url": "https://a5e.tools/node/1745",
+      "use": "Official accursed spirit living naga, vampiric bite, arcane magic and infernal revenge pact"
+    },
+    {
+      "url": "https://a5e.tools/node/1743",
+      "use": "Base spirit naga humanoid face and serpent anatomy"
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

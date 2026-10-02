@@ -1,0 +1,25 @@
+Tool: image_gen.imagegen
+Generated: 2026-10-02
+
+Use case: stylized-concept
+Asset type: an RGBA sprite sheet of twelve DISTINCT fantasy map landmark miniatures for a Dungeons & Dragons world atlas.
+Primary request: a coherent set of highly legible tiny realistic painted fantasy diorama landmarks. Camera is fixed high overhead with a gentle isometric tilt, consistent soft light from upper left, exquisite architecture and terrain detail, restrained northern fantasy colours and antique atlas style. Transparent background.
+Composition: a WIDE 4-column by 3-row sheet, twelve identical rectangular cells in a precise regular grid, aspect ratio 4:3. Each isolated landmark sits centred completely inside its own cell with generous empty transparent space around it, never touching a neighbour. No drawn grid. Each landmark has only a very small natural irregular ground base and soft subtle shadow; everything else is transparent. Keep all twelve miniatures at a consistent size and camera angle.
+The exact cells from left to right, top to bottom:
+Row 1, column 1: a natural rocky cave mouth on a small stone outcrop.
+Row 1, column 2: a timber-framed mine entrance with rails and a tiny ore cart.
+Row 1, column 3: a heavy carved dungeon entrance with steps descending into darkness.
+Row 1, column 4: an ancient stone ruin of broken columns and fallen arches.
+Row 2, column 1: an ancient desert pyramid with a dark entrance.
+Row 2, column 2: a mysterious tall wizard tower with an ornate pointed roof.
+Row 2, column 3: a dormant volcanic cone with a small faint warm glow in its crater, no explosive eruption.
+Row 2, column 4: a beautiful short waterfall falling from a rocky ledge into a tiny pool.
+Row 3, column 1: a forest travellers camp with three tents and an unlit campfire.
+Row 3, column 2: a weathered graveyard with small tombstones and a crypt.
+Row 3, column 3: an arched medieval stone bridge.
+Row 3, column 4: a mysterious vertical magical portal arch with restrained teal light inside.
+Constraints: no words, letters, captions, numbers, labels, UI frames, symbols, borders or watermarks. No opaque background or checkerboard image. No huge terrain base connecting cells. No people or characters. Every cell contains exactly one complete distinct landmark; none are cut off. Crisp readable silhouettes, not cartoon, not pixel art.
+
+Edit tool: image_gen.imagegen
+Final edit prompt:
+Repair and repack this existing transparent sprite sheet without changing the 12 subjects, their left-to-right row-major order, or their coherent realistic painted fantasy miniature style. Exactly 4 columns and 3 rows; a 4:3 image divided conceptually into 12 EQUAL SQUARE CELLS. Each complete miniature including its tallest spire, every shadow and the entire small ground base must fit inside the CENTER 72 PERCENT of its own square cell. Give generous completely transparent padding on EVERY side of EVERY object, especially the wizard tower finial; no part may cross a cell boundary or touch another object. Remove ALL red, yellow, white or grey mask/fringing artifacts along the transparency edges: clean natural alpha cutouts only. Preserve detailed stone, timber, roof, foliage and terrain colours, overhead slightly isometric miniature view, light upper left. No captions, labels, text, numbers, border or visible grid. This is an actual production game atlas sprite sheet, not a poster. The volcano (second row third column) is quiescent: no smoke plume, eruption, falling lava, or fire jets; at most a small subdued ember glow visible only inside the crater. The campsite (third row first column) has an UNLIT dark campfire with no flames. Keep all other objects. Subjects in exact row-major order: a natural rocky cave mouth on a small stone outcrop; a timber-framed mine entrance with rails and a tiny ore cart; a heavy carved dungeon entrance with steps descending into darkness; an ancient stone ruin of broken columns and fallen arches; an ancient desert pyramid with a dark entrance; a mysterious tall wizard tower with an ornate pointed roof; a dormant volcanic cone with a small faint warm glow in its crater, no explosive eruption; a beautiful short waterfall falling from a rocky ledge into a tiny pool; a forest travellers camp with three tents and an unlit campfire; a weathered graveyard with small tombstones and a crypt; an arched medieval stone bridge; a mysterious vertical magical portal arch with restrained teal light inside.

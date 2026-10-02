@@ -1,0 +1,21 @@
+{
+  "creatureId": "adult-bronze-dragon",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-09-30",
+  "prompt": "Use case: stylized-concept. One original square dark-fantasy bestiary portrait. Polished realistic painterly fantasy, cinematic light, tactile materials, one adult dragon, head and upper body dominate the frame, readable at small avatar size. No text, logos, watermark, borders, collage, source artwork copies or artist imitation. An adult BRONZE DRAGON with smooth rich dark bronze scales, a RIBBED FLUTED CRANIAL CREST bearing curved horns, smaller jaw and chin spines. Original horn arrangement: symmetrical pairs growing from crest ridges, not a blue-dragon nasal horn or brass forehead shield. Coastal amphibious dragon with intelligent green eyes. Conventional four limbs and two wings; if forefeet are visible show webbing between clawed digits. Normal01: harbor sentinel, proud frontal bust rising above blue sea mist, fluted ribbed crest frames head, rich smooth bronze face, quiet green eyes, pale sunrise across water behind.",
+  "designReferences": [
+    {
+      "url": "https://shop.wizkids.com/products/pre-order-d-d-icons-of-the-realms-adult-bronze-dragon",
+      "use": "Licensed anatomy: ribbed cranial crest, curved horns, jaw spines and webbed feet"
+    },
+    {
+      "url": "https://a5e.tools/node/1579",
+      "use": "Official A5E adult bronze coastal amphibious identity"
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

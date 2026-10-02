@@ -1,0 +1,17 @@
+{
+  "creatureId": "brownie-mystic",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BROWNIE MYSTIC creature avatar. One TINY ELDER ADULT brownie mystic, miniature human form with subtly elven features and pointed ears, ACORN HELMET, moss-and-leaf robe and a distinct MYSTIC STAFF made of a twisted twig. Original appearance: elderly brown-skinned woman with silver braids, lined face and amber eyes; one head, two arms and two legs, no wings or tail. Green spell light is an artistic choice. No wizard hat replacing the acorn helmet and no mount. Realistic painterly fantasy material detail, readable at 512 pixels, one composition without panels. No gore, writing, signature, watermark, logo or frame. YOLO: the tiny elder brownie uses grand theatrical staff magic to try opening an enormous stubborn PICKLE JAR lid taller than herself. Acorn helmet and moss robe, one hand points at the lid while the other holds the staff, little green sparks doing absolutely nothing, comically serious concentration, no text on jar.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/brownie-mystic/",
+      "note": "ToB3: Tiny elder brownie, miniature human/elven features, pointed ears and shared acorn helmet. Mystic Staff is subtype equipment; no mount required. White hair/wrinkles, moss robe, staff design and spell color are original elder interpretation."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

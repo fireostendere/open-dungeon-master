@@ -1,0 +1,21 @@
+{
+  "creatureId": "avulzor",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy aberration portrait, tactile painterly realism, clear anatomical identity at 512 pixels. Avulzor: a tall biped with cracked leathery gray-brown skin, exactly TWO long arms and TWO long legs ending in long curved TALONS. Its THREE unblinking PURPLE EYES are set directly in its UPPER CHEST, arranged as a clear triangle. Instead of one ordinary head, its neck ends in a nest of FIVE short flexible LAMPREY-LIKE HEADS, each eyeless with a round toothed sucker mouth. There are NO eyes in the lamprey heads and no human face. A kilt of clean weathered dry bones covers its hips. Original five-head count and chest-eye arrangement; source specifies a nest of heads but no exact head count. No victims, blood, injuries or gore. No text, signature, watermark, logo or border. Normal 01. The tall gray leathery avulzor stands alone among basalt pillars in a dim necromantic library. Five short lamprey neck-heads fan from the top of its torso, their round tooth-lined mouths turned at different angles, all THREE violet chest eyes clearly visible. Two long taloned hands hang near its dry bone kilt, two lean taloned legs below. Cool purple candlelight and worn unlettered books, original three-quarter full-body portrait.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/avulzor/",
+      "note": "Tome of Beasts 2 Large bipedal aberration with cracked leathery skin, long taloned arms/legs, exactly three purple chest eyes, nest of lamprey-like heads and bone kilt. Five neck-heads, triangular eye arrangement, skin colors and original scenes are artistic choices; no head count specified."
+    },
+    {
+      "url": "https://github.com/open5e/open5e-api/blob/staging/data/v1/tob2/Monster.json",
+      "note": "Licensed Open5e description independently checked for three chest eyes, multiple lamprey heads and bone garment. Newly generated non-graphic portraits."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

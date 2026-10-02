@@ -1,0 +1,25 @@
+{
+  "creatureId": "algorith",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy construct avatar, refined cinematic tactile painted realism, face and formula-marked skin sharply legible at 512 pixels. Algorith from Tome of Beasts: Medium humanoid construct embodying mathematical order, FORMULAS ETCHED INTO ITS SKIN, conjuring force blades called logic razors. Original anatomy/design: solid muscular sculpted gray humanoid, smooth severe gender-neutral face, glowing yellow eyes, no hair, fine bands of tiny abstract mathematical etching across brow, cheeks, neck and shoulders. Etching is subtle geometric formula-like marks, not readable essay or labels. Two ordinary humanoid arms, simplified hands, one or two conjured pale-blue luminous force blades when visible. No gears, steampunk armor, feathers, wings, extra limbs, or floating shard body. The nickname folding angel does not mean wings or origami. Number five is cultural, not anatomy. Original interpretation, no copied art, no frame, logos or watermark. Serious normal 02. Left-facing close profile and inscribed shoulder lit strongly by a conjured logic razor held near the face. Narrow pale-blue force blade has crisp geometric edges and no physical metal hilt requirement; yellow eye glints, gray facial plane and tiny engraved formula bands sharply textured. Dark planar archive blurred behind, violet shadows and white-blue edge light, controlled intelligent construct, no machinery or wings.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/algorith-3pp-2/",
+      "note": "2023 Medium mathematical-order construct; etched formulas and force logic razors. Five culturally significant, not body-part count. Folding angel nickname does not establish wings/origami."
+    },
+    {
+      "url": "https://forums.giantitp.com/showsinglepost.php?p=21305338&postcount=20",
+      "note": "Secondary contemporary art commentary describes muscular gray humanoid, yellow eyes and character bands. Official art not directly inspected; solid gray silhouette and blade geometry original interpretation."
+    },
+    {
+      "url": "https://5ecompendium.github.io/bestiary/creature/algorith",
+      "note": "2016 comparison: attack count changes do not imply anatomical change."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

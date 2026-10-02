@@ -1,0 +1,11 @@
+{
+  "creatureId": "treant",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-09-30",
+  "prompt": "Use case: stylized-concept. Square dark-fantasy bestiary avatar, one original TREANT: massive living walking tree with humanoid face emerging naturally from bark, deep intelligent eyes, branch arms, rootlike hands, trunk torso and leafy crown. Recognizable tree creature, not a human in costume. Polished realistic painterly fantasy, cinematic light, rich bark/moss/leaf texture, readable centered portrait with safe margins around crown. One creature only, no text/letters/logo/watermark/grid/border, no blood or gore, no named artist imitation. YOLO absurd dark-comedy variant04. Enormous ancient oak treant utterly offended by a tiny cheerful woodpecker sitting on his bark nose, eyes crossed trying to glare at it. He wears a ridiculous gardening sunhat too small for his leafy crown and delicately holds a tiny potted bonsai like a treasured pet. Stern menacing forest-guardian face undercuts absurd gardener situation. Moonlit ruined garden, epic lighting treats this silliness seriously. Distinct polished original illustration.",
+  "license": "generated-output; no third-party artwork license asserted"
+}

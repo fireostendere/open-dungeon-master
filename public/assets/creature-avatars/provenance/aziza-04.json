@@ -1,0 +1,17 @@
+{
+  "creatureId": "aziza",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy rainforest fey avatar, tactile painterly realism with beautiful leaves and delicate gear, sharp clearly ADULT face at 512 pixels. Aziza are TINY ADULT rainforest fey, just over ONE FOOT tall, with DARK BROWN SKIN, slim adult builds, pointed ears and abundant voluminous natural hair. Mature adult facial proportions, fully clothed in modest practical leaf-toned LEATHER woodland garments. One head, two arms, two legs. FEMALE aziza have delicate iridescent BUTTERFLY WINGS; MALE aziza are completely WINGLESS and often ride gliding frogs. Small thorn dagger and shortbow, gentle protective forest-magic atmosphere. Original identities and attire. No childlike proportions, nudity, human-scale sizing, text, signature, watermark, logo or border. YOLO 04. A tiny wingless ADULT male aziza has packed for a ridiculous luxury holiday on the back of a GLIDING FROG: absurd miniature trunks, rolled carpets and a parasol are stacked high behind his small saddle. He wears immaculate tiny leather travel clothes and an enormous straw sunhat, dark brown skin and voluminous curls, pointed ears and mature face, confidently holding a tiny teacup. The large green frog gives a deeply unimpressed sideways look while sitting comfortably on a broad jungle branch, four frog limbs with webbed feet, no wings. Comical overpacking and species-faithful transport, no lettering.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/aziza/",
+      "note": "Tome of Beasts 3 Tiny rainforest fey just over one foot tall, dark-brown skin, slim build, pointed ears and big hair. Females have iridescent butterfly wings; males wingless and use gliding frogs. Leather, thorn dagger and shortbow. All depicted as adults; original attire/identities and four-lobed wing interpretation."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

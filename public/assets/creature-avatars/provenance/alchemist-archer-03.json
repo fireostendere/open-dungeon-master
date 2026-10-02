@@ -1,0 +1,21 @@
+{
+  "creatureId": "alchemist-archer",
+  "variantId": "03",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy painted NPC avatar, tactile realistic cinematic lighting, ADULT elf face and diagnostic equipment readable at 512 pixels, no text, border, logo, watermark or collage. Alchemist Archer from Creature Codex is specifically an ELF: pointed ears, Medium humanoid archer, camouflaged STUDDED LEATHER armor, leather vial bandolier across chest, LONGBOW and arrow with a small fictional alchemical glass tube fastened to shaft, quiver, sheathed scimitar sidearm if visible. Gender, hair, complexion and face may vary because profession, not named individual. No human round ears, guns, heavy plate armor, modern chemistry labels, or magical staff instead of bow. Original sensible bow anatomy: one longbow, one continuous bowstring, one featured arrow, normal two hands. Exact chemicals are fantasy colored light, no technical diagram or instructions. Do not copy publisher art or real people. Serious normal 03. Mature elf woman with warm olive skin, short silver hair and sharp hazel eyes, mottled brown-and-green studded leather and practical bracers. Close side portrait in a concealed forest hide, concentrating on attaching a small violet fantasy reagent tube to an arrow shaft, longbow leaning visibly nearby. Pointed ear and bandolier crisp, fingers and single arrow clear, leafy teal shade and sliver of amber sunlight, no readable diagrams.",
+  "designReferences": [
+    {
+      "url": "https://koboldpress.com/creature-codex-alchemist-archer-elf/",
+      "note": "Primary Creature Codex text explicitly elf ancestry, studded leather/camouflage, vial bandolier, longbow/alchemy-tube arrows, scimitar. Gender/appearance variable."
+    },
+    {
+      "url": "https://koboldpress.com/wp-content/uploads/2018/10/alchemist-archer-elf.jpg",
+      "note": "Official art inspected for equipment: elf ears, green cloth, brown mantle/bracers, purple vials, quiver. Original varied adult elf individuals and scenes, not copying blonde pictured individual."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

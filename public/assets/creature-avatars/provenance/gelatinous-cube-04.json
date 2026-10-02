@@ -1,0 +1,11 @@
+{
+  "creatureId": "gelatinous-cube",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-09-30",
+  "prompt": "Use case: stylized-concept. One original square dark-fantasy bestiary portrait of a GELATINOUS CUBE: huge almost-transparent cube of clear jelly occupying a dungeon corridor, rounded but visibly cubic edges, rippling glossy gelatin surface, tiny bubbles, a few suspended old metal objects inside. No face, eyes, mouth, limbs or humanoid anatomy. Whole cube remains clearly visible in a centered square composition with margins. Realistic painterly dark-fantasy rendering, cinematic atmospheric light, physically convincing translucent refraction, richly textured dungeon. One cube only, no people, blood, gore, text, letters, watermark, logos, borders or grid. Original artwork, no named artist style. YOLO absurd dark-comedy variant04. Imposing transparent dungeon cube has accidentally become the world's worst janitor: a ridiculous little yellow rubber duck floats perfectly upright near its top, a broom and a bucket hang suspended inside, and a tiny black bow tie adheres to the front jelly surface, without adding a face. Epic gloomy dungeon lighting treats the disgusting cleaning service as legendary menace. Props readable and cube still clearly transparent and cubic.",
+  "license": "generated-output; no third-party artwork license asserted"
+}

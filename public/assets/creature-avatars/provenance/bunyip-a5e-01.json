@@ -1,0 +1,17 @@
+{
+  "creatureId": "bunyip-a5e",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BUNYIP A5E creature avatar. One HUGE semiaquatic BUNYIP beast in an ORIGINAL artistic interpretation because its exact A5E source does not prescribe body shape: a massive low mammalian body with thick dark gray-brown pebbled hide, one broad heavy toothed head, two small round ears, amber eyes, FOUR powerful legs ending in broad webbed feet and ONE short thick tail. A little coarse wet hair runs along the neck. Coherent animal anatomy, no extra heads, horns, wings, fins, seal flippers or shark tail. Large biting mouth, no victims or injury. This is a substantial freshwater animal, not a humanoid. Realistic painterly fantasy material detail, readable at 512 pixels, one composition without panels. No gore, writing, signature, watermark, logo or frame. Normal 1. The enormous four-legged semiaquatic beast emerges from a misty freshwater lake, broad toothed head and round ears above dark water, four webbed feet step onto mud, thick pebbled hide and short tail, distant reeds establish Huge scale.",
+  "designReferences": [
+    {
+      "url": "https://a5e.tools/node/1919",
+      "note": "A5E exact source only establishes Huge semiaquatic beast, natural armor, bite/slam, keen hearing/smell, long breath holding and frightening howl. Publisher page and official SRD have no physical-description prose. This is an expressly ORIGINAL visual interpretation, not verified A5E or Pathfinder seal/shark anatomy: broad semi-aquatic mammal body with four webbed feet, short tail and pebbled hide."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

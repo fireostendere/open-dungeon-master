@@ -1,0 +1,17 @@
+{
+  "creatureId": "arcamag",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy creature avatar, tactile painterly realism with macro detail, luminous translucent facets, strong creature silhouette readable at 512 pixels. Arcamag true form: a TINY TICK made entirely of jagged CLEAR CRYSTAL fragments, broad flattened oval crystalline body, small frontal mouthparts with barbed mandible hooks, EIGHT short jointed crystalline legs in four pairs. No wings, no antennae, no tail, no humanoid limbs or face. Can hover by magic without wings and disguise itself as a small magical object. Original tick design, lighting and scene, no copied art. No letters, signature, watermark, logo or border. YOLO 04. The tiny transparent crystal tick sits triumphantly on a plush velvet jewelry pedestal, wearing an absurdly huge fake diamond engagement ring around its middle as though it is an elegant waist hoop. It has attached a miniature red satin bow above its crystal mandibles, all EIGHT short crystalline legs visible, and is dramatically posing as the most expensive item in a shabby goblin pawnshop. Tiny brass price tag is completely BLANK. Warm theatrical lamplight, ludicrous luxury product portrait, no text.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/arcamag/",
+      "note": "Creature Codex Tiny magic-feeding shapechanger: jagged clear crystalline tick with barbed mandibular hooks, wingless hover and small object disguises. Eight legs are an original tick-anatomy interpretation; original scenes."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

@@ -1,0 +1,21 @@
+{
+  "creatureId": "bat",
+  "variantId": "03",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BAT creature avatar. One ordinary TINY BAT, a furry mammal with visible eyes, two external ears, teeth, TWO MEMBRANOUS WINGS that ARE its modified front limbs, and TWO small clawed HIND FEET. Each wing membrane spans long finger bones with a small clawed thumb at the wrist. No additional arms or front legs, no horns, feathers or demonic face. Naturalistic original species-like proportions, detailed realistic painterly fur and translucent wing membranes, strong readable subject at 512 pixels. No blood, wounds, victims, text, signature, watermark, logo or frame. Normal 03. A pale tawny tiny bat rests on an old tree branch with wings neatly folded along its body, the small wing-thumb claws and two hind feet bracing naturally on the bark. Long pointed ears, fine golden-brown fur, dark curious eyes and a short mouse-like muzzle. Tight three-quarter naturalistic portrait, twilight forest and a few fireflies, warm rim light, no accessories.",
+  "designReferences": [
+    {
+      "url": "https://github.com/open5e/open5e-api/blob/staging/data/v1/wotc-srd/Monster.json",
+      "note": "SRD5.1 bat, also merged with A5E and Black Flag ordinary bats: Tiny beast with flight, bite, echolocation and enhanced hearing. No fixed species or coloration."
+    },
+    {
+      "url": "https://www.batcon.org/bats-vs-birds/",
+      "note": "Generic bat biology: furry mammal, wing membranes supported by elongated forelimb fingers; two wings and two hind feet, no extra arms. Natural species-like features, scenery and teacup-waiter gag are original choices."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

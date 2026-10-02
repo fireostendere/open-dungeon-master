@@ -1,0 +1,17 @@
+{
+  "creatureId": "ash-phoenix",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy undead creature avatar, tactile painterly realism, smoky ash particles and clear avian silhouette at 512 pixels. Ash Phoenix from Tome of Beasts2: a LARGE RAPTOR MADE OF ASH AND SHADOW, with one bird-of-prey head, hooked beak, two glowing coal-like eyes, TWO powerful feather-shaped wings, TWO taloned bird legs and one avian tail as a conventional raptor-anatomy interpretation. Body is dark layered ash and smoky shadow, not a bright fire elemental, no dragon limbs or extra wings. Coal-red glow in eyes and talons, fine ash breaks away from feather edges, strong coherent bird shape emerging from drifting smoke. Original plumage patterns and scenes. No text, signature, watermark, logo or border. Normal 02. A massive spectral bird gradually emerges from a dense moonlit ash cloud, one hooked-beak head and two coal-red eyes sharply defined. Two wide feather-shaped wings stretch behind in smoky arcs, two taloned feet tucked beneath the ash torso, long avian tail dissolving into dark wisps. Silver-blue night sky and blackened tree silhouettes, restrained eerie undead presence.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/ash-phoenix/",
+      "note": "Licensed Tome of Beasts2 Ash Phoenix is a massive raptor of ash and shadow with coal-like eyes, wings, beak and talons. Exact two-wing/two-leg silhouette and feather structure are conventional raptor interpretations; original scenes."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

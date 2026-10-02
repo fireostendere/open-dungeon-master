@@ -1,0 +1,17 @@
+{
+  "creatureId": "blaspheming-hand",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BLASPHEMING HAND fiend avatar, Tome of Beasts 3. One LARGE HORSE-SIZED CRIMSON GIANT HAND as a complete magical creature, with FOUR MAIN FINGERS AND ONE THUMB as an original humanoid-hand interpretation, plus NUMEROUS SMALL RUDIMENTARY FINGERS growing in a crowded cluster around its WRIST END. The wrist ends in a smooth closed healed magical surface, no open cut, visible bone, blood or injury. Small dark occult trinkets embedded flush in its crimson skin are construction details; no readable inscriptions. It crawls on the main fingers or levitates palm-up, needs no legs or wings. No head, eyes, mouth, forearm, tentacles or rider required. Realistic painterly crimson skin, nails, metal trinkets and stone, clear unusual hand silhouette at 512 pixels. No victims, gore, wounds, writing, signature, watermark, logo or frame. YOLO 04. A gigantic crimson hand-fiend is outrageously proud of its MANICURE: all five main nails are enormous glossy HOT-PINK FALSE NAILS with tiny white flower patterns, while its many little wrist fingers each wear miniature pink nail tips. The creature levitates palm-up like a luxurious salon display, one gaudy oversized gemstone ring on a main finger and a tiny tipped-over nail-polish bottle on the stone below. No face, head, arms, blood or injury, ridiculous beauty treatment on an ominous magical hand.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/blaspheming-hand/",
+      "note": "ToB3: Large crimson detached giant-hand fiend with numerous extra rudimentary fingers at wrist and embedded cursed objects; crawls or hovers palm-up. Four main fingers+thumb is ordinary-hand inference, no fixed total digit count; smooth closed wrist and manicure gag are original non-graphic depictions."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

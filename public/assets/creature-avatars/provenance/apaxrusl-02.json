@@ -1,0 +1,21 @@
+{
+  "creatureId": "apaxrusl",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy creature avatar, tactile painterly realism, dramatic desert lighting, skull-and-shroud silhouette readable at 512 pixels. Apaxrusl from Tome of Beasts 2: a Medium magical construct made from a dried humanoid CORPSE merged with sand and small stones. Hunched humanoid form, one exposed pale skull-like face with empty dark eye sockets and open bony jaws, weathered blue-gray cloth wrapped over head and neck, two elongated skeletal arms ending in long bony hands. Ochre sand crust and embedded grit cover the ragged body and shoulders; lower body and torn cloth partly crumble into flowing sand. Two arms and two lower limbs or their dissolving sandy forms, no wings or extra limbs. Dry archaeological remains, no blood, wounds, wet organs or graphic decay. Preserve a visible skull-and-cloth corpse foundation, not a faceless golem or jackal elemental. Original face detail, garments, pose and scenes, no copied publisher composition. No words, signature, watermark, logo or frame. Normal 02. Side-angle close skull, chest and elongated forearm of the apaxrusl stalking between ruined sandstone pillars. Head and neck bound in fraying charcoal-blue cloth, skull tilted forward, grain-encrusted thin torso covered by ragged ochre wrappings. One long bony hand extends toward the viewer, a ripple of fine sand trails behind its lower body, hard sunset light and deep temple shadow, no injury or gore.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/apaxrusl/",
+      "note": "ToB2 Medium sand-and-corpse construct with a fluid sandy body and hot-sand abilities."
+    },
+    {
+      "url": "https://koboldpress.com/tome-unbound-apaxrusl/",
+      "note": "Publisher article and official illustration establish skull face, head cloth, long skeletal arms and sand-encrusted corpse silhouette. Original poses, garment details and compositions; source artwork not reused."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

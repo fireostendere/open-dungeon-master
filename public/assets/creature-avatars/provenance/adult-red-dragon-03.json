@@ -1,0 +1,11 @@
+{
+  "creatureId": "adult-red-dragon",
+  "variantId": "03",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-09-30",
+  "prompt": "Use case: stylized-concept. Asset type: square dark-fantasy bestiary avatar. Create one original portrait of an ADULT RED DRAGON, normal variant03. A huge fully mature western dragon with crimson-copper scales, thick serpentine neck, elongated angular muzzle, two dark backward-sweeping horns, neck-spine crest, strong cheek frills, golden slit eyes and ivory fangs, muscular and battle-hardened, no cute juvenile proportions. Right-facing three-quarter dragon head and neck, mouth closed with contemptuous clever expression; one large red folded wing gives scale. Background blurred ancient burned forest under smoky purple sunset, tiny ember sparks floating in air. Smoldering red-gold edge light, cool deep shadows, masterful realistic painterly dark-fantasy textures. Wide enough within the square portrait to retain the full head and horns with breathing room. One dragon only, no people, no text/letters/logo/watermark/grid/border, no gore, original art no named artist style.",
+  "license": "generated-output; no third-party artwork license asserted"
+}

@@ -1,0 +1,25 @@
+{
+  "creatureId": "adult-white-dragon",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-09-30",
+  "prompt": "Use case: stylized-concept. One original square dark-fantasy creature portrait with tactile painterly realism and cinematic light, readable face in a 512-pixel avatar. Adult White Dragon: heavy low quadruped torso, FOUR strong clawed legs plus TWO separate broad leathery membrane wings, long tapering armored tail. Matte ivory-white to icy-blue reptilian scales, thick neck and broad powerful predatory wedge-shaped jaws; backward-swept broad high central head crest, cheek crest and spined throat dewlap, dorsal ridge. NOT shiny metallic silver, no chin beard of long silver needles, no fur. Frost breath and cruel animal intelligence. Face should dominate, anatomy coherent. No text, frame, watermark, logos or collage. Original composition, never copy publisher art. YOLO absurd 04. Same frightening adult white dragon has set up a tiny lemonade stall in an ice cave, but every little glass of lemonade has instantly frozen into a ridiculous solid cube because of its breath. The huge matte ivory face glares resentfully at the line of frozen lemon cubes, one real claw poking a straw stuck rigidly in a cube. A comically tiny lemon-pattern apron is tied loosely around its massive neck, full dragon head crest and wing behind still clear. Include a whole lemon and small blank wooden stall front, no humans, no words, no writing; polished absurd dark fantasy rather than chibi.",
+  "designReferences": [
+    {
+      "url": "https://www.dndbeyond.com/monsters/16773-adult-white-dragon",
+      "note": "Official core adult White Dragon: Huge, cold breath, claws, tail, wings, burrowing/ice climbing."
+    },
+    {
+      "url": "https://a5e.tools/node/1547",
+      "note": "Official A5E adult White Dragon confirms cold identity; edition-specific extra effects not claimed universal."
+    },
+    {
+      "url": "https://www.dndbeyond.com/avatars/thumbnails/30782/433/1000/1000/638061962219215658.png",
+      "note": "Official 2014 art directly inspected: four legs and separate two wings, heavy torso, wedge head, swept crest, throat spines and matte ivory/blue scales. No copied pose."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

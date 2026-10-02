@@ -1,0 +1,21 @@
+{
+  "creatureId": "barong",
+  "variantId": "03",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BARONG creature avatar: a LARGE CELESTIAL LION with thick WHITE FUR and a full white mane, wearing a clearly separate carved RED MASK and polished GILDED ARMOR. True feline quadruped: exactly four lion legs and paws, one lion head, rounded lion ears, one long tufted lion tail. No wings, horns, humanoid torso or hands. Red ceremonial mask is designed for the lion's own face with eye openings and a visible feline muzzle, not a human face. Gold armor plates fitted around shoulders, chest and back permit natural movement. Original mask carving and ornamentation, regal protective presence, detailed realistic painterly fur and metal, clear identity at 512 pixels. No injuries, victims, blood, text, logo, signature, watermark or frame. Normal 03. A white-furred barong reclines beside a moonlit forest sanctuary, both front paws crossed naturally and two hind legs tucked against its body. A red mask with angular carved feline cheek panels and smooth polished gold armor gleam in silver light. One tufted tail lies along the stone terrace, protective watchful lion face, luminous fireflies, rich dark foliage, full creature three-quarter view.",
+  "designReferences": [
+    {
+      "url": "https://github.com/open5e/open5e-api/blob/staging/data/v1/cc/Monster.json",
+      "note": "Licensed Creature Codex barong record establishes Large celestial, lion-associated bite/claws/roar and supernatural protection. Flight does not imply wings."
+    },
+    {
+      "url": "https://kpogl.wikidot.com/monster%3Abarong",
+      "note": "Community OGL text mirror of Creature Codex appearance: thick white-furred lion, red mask, polished gilded armor. Appearance confidence is lower than publisher text; no publisher art inspected or copied. Feline proportions, mask carvings, armor ornaments, scenery and flower-cone gag are original choices."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

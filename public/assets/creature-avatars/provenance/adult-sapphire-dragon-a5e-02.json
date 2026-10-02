@@ -1,0 +1,25 @@
+{
+  "creatureId": "adult-sapphire-dragon-a5e",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-09-30",
+  "prompt": "Use case: stylized-concept. Original square bestiary avatar, polished dark-fantasy realistic painterly illustration, cinematic lighting, tactile detail, one clear main creature. Face and upper body dominate the composition unless whole-body framing is specified. No text, lettering, logos, watermark, border, collage, copied publisher artwork or artist imitation. Adult A5E SAPPHIRE DRAGON, multicolored lustrous scales with an original deep-sapphire-blue, violet and teal palette, bright faceted GEMSTONE EYES, actual broad membranous wings, clawed limbs and long tail. Original compact swept-back horn pair and spiky head/neck ridge, no enormous nasal horn. Psychic perception, foresight and mind-affecting breath, NOT blue-dragon lightning or another edition's thunder breath. Two ordinary eye positions, no extra eyes. Normal02: Future in Profile, angular right three-quarter face looks past viewer, soft crystalline eyes, one broad wing membrane edge, translucent concentric REFLECTIONS behind head suggest foresight without extra eyes, blue-violet mineral light, no lightning.",
+  "designReferences": [
+    {
+      "url": "https://a5e.tools/node/1571",
+      "use": "Official A5E psychic foresight and mind-affecting adult sapphire identity"
+    },
+    {
+      "url": "https://a5e.tools/rules/gem-dragons",
+      "use": "Official multicolored scales and gemstone eyes"
+    },
+    {
+      "url": "https://a5e.tools/sites/default/files/monsters/dragon%2C%20saphire%20-%20Gui%20Sommer.png",
+      "use": "Official illustration inspected for broad separate wings, clawed legs and spiky silhouette; original composition"
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

@@ -1,0 +1,17 @@
+{
+  "creatureId": "bone-collective",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BONE COLLECTIVE avatar, Tome of Beasts 2016/2023. One SMALL HUMANOID-SHAPED AGGREGATE built from THOUSANDS OF TINY BONES AND MINIATURE SKELETAL UNITS, not one ordinary full-size skeleton. Original practical silhouette has one dominant composite head, two grasping arms and two legs, with LONG HOOKED FINGER BONES and FANGS stained RED BY VENOM. Tiny component skulls and bones remain visible across the figure. A loose cloak or robe commonly disguises it; colors and assembly details original. A few small bones may detach at edges to convey the swarm, but preserve one main aggregate. No required weapon or zombie mount. Realistic painterly dry bone, fabric and ancient stone, readable at 512 pixels. No bodies, victims, blood, injury, gore, writing, signature, watermark, logo or frame. Normal 02. Close three-quarter portrait of a bone collective beneath a weathered brown hood, facial shape made from densely interlocking tiny bones and miniature skulls, uneven venom-red fangs, dark gaps instead of required glowing eyes. One long hooked hand rises near its cheek, every finger visibly composed of small skeletal pieces. Soft silver crypt light, dry clean bones.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/bone-collective-3pp/",
+      "note": "ToB2016/2023 Small aggregate/swarm of many tiny bones or skeletons, humanoid-shaped and shapeless forms, long hooked fingers and venom-red fangs, often cloaked. Exact outer limb/head assembly and oversized-toothbrush gag original; not a single ordinary skeleton."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

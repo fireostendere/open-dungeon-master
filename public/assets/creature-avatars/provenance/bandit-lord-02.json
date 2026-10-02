@@ -1,0 +1,17 @@
+{
+  "creatureId": "bandit-lord",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy BANDIT LORD character avatar, richly detailed realistic painterly rendering, commanding face and readable silhouette at 512 pixels. One clearly adult Medium humanoid outlaw warlord, wearing a metal BREASTPLATE and carrying a LONGSWORD and DAGGER. Two arms, two legs, one head, natural hands. Individual ancestry, face, gender, adornments and setting are original creative choices. No blood, injuries, victims, text, watermark, logo, signature or frame. Normal 02. A broad adult dwarf man with ruddy skin, weathered nose and a thick dark beard braided with plain bronze rings stands in a rain-swept forest tollgate. Hammered bronze breastplate, moss-green cloak, long sword in its scabbard at the hip and dagger held low in one hand, other hand gripping his belt. Close three-quarter portrait, a calculating expression, wet textures and deep emerald background.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/bandit-lord-3pp/",
+      "note": "Tome of Beasts 1 (2023) Medium humanoid of any ancestry, breastplate, longsword, dagger, Leadership and Pack Tactics. No fixed ancestry or physical description. Adult identities, armor decoration, settings and tiny-stool/soup-spoon crown joke are original choices."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

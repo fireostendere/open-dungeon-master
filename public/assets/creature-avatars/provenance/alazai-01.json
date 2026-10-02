@@ -1,0 +1,21 @@
+{
+  "creatureId": "alazai",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-09-30",
+  "prompt": "Use case: stylized-concept. One original square dark-fantasy elemental avatar, cinematic painterly realism with physically evocative heat refraction, eyes and vague head silhouette centered and readable at 512 pixels, no words, border, watermark or collage. Alazai from Tome of Beasts 3: LARGE fire elemental that is naturally INVISIBLE, its only bodily impression a VAGUE HUMANOID SHAPE of intense HEAT SHIMMER with BURNING EYES. Background remains visible through its head and shoulders, bent and warped by hot air. Cold conditions outline its body in STEAM; darkness reveals its fiery eyes. No solid skin, armor, horns, wings, hair, clothes or opaque fire-giant body. Not a glass statue: only air distortion, thin vapor edges and two burning eye-flares, no hard reflective glass surface. Close portrait of implied head/shoulders, avoid defined biological facial anatomy or exact limbs. Original interpretation from textual visibility rules, no copied publisher art. Serious normal 01. Bitterly cold desert night. Two burning orange eyes stare from the center of an almost invisible humanoid head and broad shoulders, outlined only by thin curling WHITE STEAM against black dunes and a deep blue star sky. Background stars and dune edge bend through its transparent body, face suggested by hot-air turbulence rather than skin. Cold moon rim and ember eyes, eerie intimidating stillness, portrait large.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/alazai/",
+      "note": "ToB3 Large fire elemental, naturally invisible even attacking; vague humanoid heat refraction with burning eyes, cold under 50F reveals steam outline. No solid armored anatomy established."
+    },
+    {
+      "url": "https://koboldpress.com/tools/kobold-press-monsters/",
+      "note": "Primary taxonomy confirms Alazai. Exact species art unverified; steam/mirage scenes are original interpretations."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

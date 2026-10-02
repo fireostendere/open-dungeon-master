@@ -1,0 +1,21 @@
+{
+  "creatureId": "accursed-guardian-naga-a5e",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-09-30",
+  "prompt": "Use case: stylized-concept. Asset type: one original square bestiary avatar. Polished dark-fantasy realistic painterly art, cinematic lighting, rich material textures, clear silhouette and face readable at small size. One creature only, no text, letters, logos, watermark, border, collage or copied source artwork. Subject: an Accursed Guardian Naga, a living Large magical serpent with an adult humanoid face integrated into a broad scaled snake head and long powerful snake neck, venomous fangs and massive coiled serpent body. NO human torso, NO arms, NO legs, no wings, not a skeleton or ghost. A former divine guardian bound by an infernal revenge bargain, still embodying sacred warding and fire magic. YOLO04: absurd dark comedy. The imposing living humanoid-faced serpent guardian coils protectively around ONE tiny biscuit on a ridiculous miniature stone altar. A tiny security-guard cap sits crooked above its stern face. It stares at the viewer with absolute divine wrath, magical fire forming an overdramatic halo around the biscuit. No humanoid arms or torso, no written labels.",
+  "designReferences": [
+    {
+      "url": "https://a5e.tools/node/1744",
+      "use": "Official accursed guardian identity, living serpent anatomy, divine magic and infernal bargain"
+    },
+    {
+      "url": "https://a5e.tools/node/1742",
+      "use": "Base guardian naga humanoid face and serpent body"
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

@@ -1,0 +1,17 @@
+{
+  "creatureId": "animated-instrument-quartet",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy creature avatar, detailed tactile painterly realism, cinematic atmosphere, readable at 512 pixels. Animated Instrument Quartet: a magical construct consisting of EXACTLY FOUR separate musical instruments hovering close together in coordinated formation with one shared intent. The instruments play themselves with no musicians, hands, faces, eyes or humanoid bodies. They are four recognizable physical instruments, not fused into a robot, and no extra background instruments. A single close unified composition, not a grid. Beautiful old craftsmanship, subtle soundwave magic without written music notation. No words, signature, logo, watermark or frame. YOLO absurd 04. Exactly four sentient musical instruments, one violin, one small hand drum, one brass trumpet and one silver flute, hover tightly together wearing ridiculous tiny powdered court wigs and miniature crooked bow ties. They have somehow formed a very serious barbershop quartet with no faces, no hands, no musicians and no bodies. A single large rotten tomato has splattered harmlessly onto the drumhead while the others remain impeccably dignified at rakish angles. Warm rowdy medieval tavern background, no other instruments, deadpan realistic fantasy textures, no text.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/animated-quartet/",
+      "note": "ToB3 Large construct of exactly four nearby hovering musical instruments acting together. Horns and drums are common; particular ensembles, finishes and scenes are original."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

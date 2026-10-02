@@ -1,0 +1,17 @@
+{
+  "creatureId": "ape_giant_bf",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy bestiary avatar, tactile natural history painterly realism, cinematic light, expressive enormous ape face readable at 512 pixels. Giant Ape from Black Flag Reference Document: a HUGE natural great ape with gorilla-like anatomy, broad immensely powerful torso, long massive arms, shorter sturdy hind legs, exactly four limbs, and NO TAIL. Natural dark brown eyes, broad flat simian nose, dark leathery face and hands, dense dark charcoal-brown fur with silver shoulder hairs. Natural primate hands with five fingers and short flat nails, no demonic claws, glowing eyes, horns, wings or armor. Scale clearly far larger than an ordinary ape through tiny ruins, branches or landscape elements near it. Original anatomy details, poses and compositions, no copied art. No words, signature, logo, watermark or frame. YOLO absurd 04. The enormous giant ape is painstakingly folding one tiny paper boat between the very tips of its huge natural fingers, wearing ridiculously small round reading glasses balanced on its broad gorilla nose. It sits beside a river with a look of intense concentration, one finished minuscule paper boat floats proudly near an enormous hand. Natural animal anatomy, four limbs and no tail, no clothes except the glasses. Giant shoulders and face dominate the close frame, tiny trees and ruined bridge below, deadpan painterly fantasy realism, all paper completely blank.",
+  "designReferences": [
+    {
+      "url": "https://bfrd.net/rules/monsters/beasts",
+      "note": "Official Black Flag reference lists Giant Ape as Huge Beast. Original enormous natural great-ape interpretation, with environmental scale cues and flat nails rather than demon claws."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

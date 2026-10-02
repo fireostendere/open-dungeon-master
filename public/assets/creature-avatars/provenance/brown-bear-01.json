@@ -1,0 +1,17 @@
+{
+  "creatureId": "brown-bear",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BROWN BEAR creature avatar. One Large ordinary adult BROWN BEAR with natural ursine anatomy: one head, FOUR legs, two short round ears, a short tail, prominent shoulder hump, lower rump, slightly concave facial profile, long pale claws and dense brown fur. No horns, wings, extra limbs, armor or magical aura. Heavy realistic bear proportions, species-appropriate paws and muzzle; no wounds or prey. Realistic painterly fantasy material detail, readable at 512 pixels, one composition without panels. No gore, writing, signature, watermark, logo or frame. Normal 1. The brown bear stands on all four legs in a misty alpine meadow, shoulder hump clearly above its rump, thick warm-brown coat and rounded ears, early light across wet grass and distant pines.",
+  "designReferences": [
+    {
+      "url": "https://www.nps.gov/subjects/bears/brown-bears.htm",
+      "note": "Core SRD5.1 and A5E2021 ordinary Large brown bear. Natural-animal supplement NPS: shoulder hump, concave facial profile, round ears and long claws. Four legs/short tail ordinary biological body plan; fur tones and harmless YOLO props original."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

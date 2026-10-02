@@ -1,0 +1,11 @@
+{
+  "creatureId": "mimic",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-09-30",
+  "prompt": "Use case: stylized-concept. Asset type: square dark-fantasy bestiary avatar. Original MIMIC monster, normal variant02, distinct from a plain brown dungeon chest. An ornate old sea captain's treasure coffer of dark green painted wood and tarnished brass corner plates has become predatory living flesh: its lid yawns open as giant mouth, irregular needlelike teeth grow from upper and lower rims, a thick dark burgundy tongue coils inside, glistening saliva, two subtle golden eyes embedded among brass fittings. Chest shape remains obvious; no legs or humanoid features. Front-facing low viewpoint in a flooded ruined ship hold with bluish water reflections and soft lantern glow, barnacles and salt crust on wood. Polished realistic painterly dark fantasy, strong readable avatar silhouette, tactile weathering and biological detail, entire coffer fits square with safe margins. Exactly one mimic, no humans, no text/letters/grid/border/logo/watermark, no blood/gore, original art no specific artist style.",
+  "license": "generated-output; no third-party artwork license asserted"
+}

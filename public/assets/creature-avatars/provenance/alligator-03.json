@@ -1,0 +1,21 @@
+{
+  "creatureId": "alligator",
+  "variantId": "03",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy bestiary animal portrait, cinematic painterly realism, natural reptilian proportions, wet textured scutes and expressive alert eyes, legible head at 512 pixels. Subject: ALLIGATOR, a Medium-sized swamp beast, broad rounded U-shaped snout, wide heavy upper jaw, nostrils and eyes on top of head, dark charcoal-olive armored scales, four short sturdy legs, long muscular flattened tail. A true alligator, NOT narrow pointed crocodile snout, NOT lizardman, no horns, wings or supernatural extra limbs. Mouth closed unless scene says open; with mouth closed prominent lower fourth teeth must remain concealed. Real animal anatomy in dark fantasy setting; original composition, no copied wildlife photo. No text, border, collage or watermark. Serious normal 03. Rainy midnight swamp, an alligator climbing from dark water onto a muddy bank, strong forequarters in low frontal three-quarter close view, broad snout slick with rain, closed mouth, small amber eye, prominent rows of bony back scutes, four coherent short legs with far-side limbs naturally partly occluded, tail curved back into water. Cold blue moon through fog and a distant blurred lantern.",
+  "designReferences": [
+    {
+      "url": "https://koboldpress.com/tools/kobold-press-monsters/",
+      "note": "Publisher roster: Medium beast, swamp, Tome of Beasts 2."
+    },
+    {
+      "url": "https://nationalzoo.si.edu/animals/american-alligator",
+      "note": "Anatomy reference: broad rounded snout, armored low body, four short legs, muscular tail; lower fourth tooth concealed with closed mouth. Zoological traits only, original fantasy scene."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

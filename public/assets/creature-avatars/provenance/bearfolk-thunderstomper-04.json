@@ -1,0 +1,21 @@
+{
+  "creatureId": "bearfolk-thunderstomper",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BEARFOLK THUNDERSTOMPER avatar. One ADULT upright BEAR-HEADED HUMANOID bard with a muscular furred torso, two arms, two legs, clawed ursine hands, natural bear muzzle and ears. MEDIUM game-size category. Wears a CHAIN SHIRT and carries one WAR FLUTE, here originally designed as a sturdy thick wooden flute with finger holes, capable of serving as a club. Its identity is rhythmic stomping, chanting, dance and thunder magic, not a generic axe warrior. Fur color and bright bard garments are original choices; supplementary related-source prose supports gaudy dress. Detailed realistic painterly fur, metal and fabric, clear face and rhythmic pose at 512 pixels. No blood, injuries, victims, text, signature, watermark, logo or frame. YOLO 04. A massive dark-furred bearfolk thunderstomper has dressed for the most violently enthusiastic ballet recital ever: a ridiculous fluffy PINK TUTU over its chain shirt, tiny pink ballet slippers stretched over its huge feet. Exactly two arms: one hand holds its heavy war flute like a dainty dance prop, the other makes an elegant ballet gesture. One huge foot stamps on the wooden stage, sending harmless confetti and a little dust upward; the other leg bends in a ludicrously earnest ballet pose. Serious artistic concentration on its bear face, theatrical warm spotlight, no audience or injuries, no writing.",
+  "designReferences": [
+    {
+      "url": "https://github.com/open5e/open5e-api/blob/staging/data/v1/tob3/Monster.json",
+      "note": "Exact Tome of Beasts 3 bearfolk-thunderstomper record: Medium bearfolk, chain shirt, War Flute, bite, stomping/chanting/dancing thunder identity. Fur, flute material/design and dress are original."
+    },
+    {
+      "url": "https://www.5esrd.com/database/creature/bearfolk-thunderstomper/",
+      "note": "Supplementary appearance only: this page attributes gaudy dress/boisterous bard to Book of Ebon Tides, not the catalog's Tome of Beasts 3. Bright garments and ballet gag are original interpretations."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

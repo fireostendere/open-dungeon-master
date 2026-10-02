@@ -1,0 +1,17 @@
+{
+  "creatureId": "bearfolk",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BEARFOLK avatar. One massive muscular ADULT BEAR-HEADED HUMANOID with DARK SHAGGY FUR, heavy ursine jaws and sharp teeth, exactly TWO ARMS and TWO LEGS, large CLAWED hands that grip weapons. Medium game-size category though taller and heavier than an ordinary human. Permanent upright humanoid body, not a quadrupedal bear or a transformation. Wears rugged HIDE ARMOR and carries a BATTLEAXE in one hand and a WARHAMMER in the other, one of each. Original individual features and weapon ornamentation; no crown or shield. Realistic painterly fur, leather and metal, clear face and silhouette at 512 pixels. No fresh wounds, blood, gore, victims, text, signature, watermark, logo or frame. YOLO 04. An enormous dark-furred bearfolk warrior has volunteered to cut a tiny pink birthday cake with its absurdly oversized BATTLEAXE. It wears a ridiculously small frilly apron over its hide armor and a tiny crooked chef's hat. Exactly two hands: one grips the axe poised harmlessly above the cake, the other holds its WARHAMMER decorated with a festive pink bow. Pink frosting is already smeared across its bear muzzle; it looks solemnly proud of being helpful. Cake on a wooden stump, rustic hall, no people or injuries, no candles with writing, rich dramatic fantasy lighting.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/bearfolk-3pp/",
+      "note": "Tome of Beasts 2016/2023 shared anatomy: Medium massively muscular upright bear humanoid with dark shaggy fur, heavy jaws, teeth and clawed weapon-gripping hands; hide armor, battleaxe and warhammer. Original faces, healed scars, armor construction, scenes and cake-cutting apron joke."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

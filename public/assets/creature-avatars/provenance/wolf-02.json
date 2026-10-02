@@ -1,0 +1,11 @@
+{
+  "creatureId": "wolf",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-09-30",
+  "prompt": "Use case: stylized-concept. Asset type: square dark fantasy tabletop bestiary avatar. One original portrait of a natural adult WOLF, normal variant02. Distinct front-facing wild wolf with pale silver-gray and cream fur, amber-brown eyes, long narrow natural canine muzzle, triangular ears, black nose and powerful shoulders. Alert slightly open mouth showing natural teeth, condensation of breath. No monstrous magical traits, not dire wolf or werewolf, no clothing or collar. Snow-dusted rocky mountain pass blurred behind, pale winter dawn and subtle soft warm rimlight. Polished realistic painterly dark-fantasy treatment, realistic beautiful fur and natural proportions, emotionally intense readable gaze. Pull back enough that both ears and head have ample space inside square composition. One wolf only, no letters/text/logos/watermark/grid/border, no blood/gore, original art no artist imitation.",
+  "license": "generated-output; no third-party artwork license asserted"
+}

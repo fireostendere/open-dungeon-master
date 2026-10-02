@@ -1,0 +1,17 @@
+{
+  "creatureId": "bone-golem",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BONE GOLEM avatar, Creature Codex. One MEDIUM GANGLY CONSTRUCT assembled from ASSORTED MISMATCHED BONES to resemble an ordinary humanoid skeleton. Original practical arrangement: one skull-like head, TWO ARMS, TWO LEGS, long CLAWED EXTREMITIES. It is a construct disguised as a skeleton, not a swarm of thousands of tiny skeletons and not a four-armed other-game golem. Mixed bone lengths and awkward assembly yet poised graceful motion, clean dry bones, no flesh or wounds. No manufactured weapon or armor required; a loose bone shard can be held as original attack presentation. Realistic painterly bone texture, joinery and crypt light, readable at 512 pixels. No victims, blood, gore, writing, signature, watermark, logo or frame. Normal 01. A gangly bone golem stands in a dim workshop, one skull-like head atop an awkwardly assembled ribcage, two long arms ending in curved bone claws and two uneven but coherent legs. Assorted pale bones visibly differ in size and age, tiny metal-free binding seams as original design, no robe or weapon. Cool window light and empty stone floor.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/golem-bone/",
+      "note": "Creature Codex Medium gangly mixed-bone construct, skeleton disguise, claws and bone-shard attack. Conventional two-arm/two-leg layout, joins/eyes and bone-flute gag original; no confirmed extra arms, swords or shard cannon."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

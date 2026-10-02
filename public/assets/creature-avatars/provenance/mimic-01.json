@@ -1,0 +1,11 @@
+{
+  "creatureId": "mimic",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-09-30",
+  "prompt": "Use case: stylized-concept. Asset type: square dark-fantasy bestiary creature avatar. Create one original MIMIC monster, normal variant01. A squat heavy medieval oak treasure chest transformed into a living predatory creature: open hinged lid and lower box form a giant mouth, rows of irregular ivory fangs along BOTH wooden rims, thick purple muscular tongue curling outward, sticky glistening saliva, dark leathery flesh visible between cracked planks, small sinister amber eyes embedded near iron hinges. Rusted iron bands, chunky lock, recognizable chest silhouette. Three-quarter front-left composition in damp torchlit dungeon, full chest dominant in frame, stone floor and shadows softly blurred. Polished realistic painterly dark-fantasy rendering, cinematic blue-and-amber light, rich tactile wood/metal/wet tongue textures, menacing not cute. Whole subject fits square avatar with margins. Exactly one mimic, no humanoids, no text/letters/logos/watermarks/grid/border, no blood or gore, original art no named artist style.",
+  "license": "generated-output; no third-party artwork license asserted"
+}

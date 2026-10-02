@@ -1,0 +1,17 @@
+{
+  "creatureId": "black-sun-orc",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BLACK SUN ORC avatar, Creature Codex. One ADULT MEDIUM living ORC humanoid with very PALE FISH-BELLY-WHITE SKIN, powerful build, one head, two arms and two legs. Rough HIDE ARMOR, heavy GREATCLUB and a SLING tucked at the belt are the stated equipment. Original conventional orc face with a modest pair of lower tusks, pointed ears and dark eyes; hair and personal details vary. Underground nocturnal people, dark rocky settings without bright moonlight. Skin is pale flesh, not literal stone and not green or black. No plate, sword, axe, wings, horns or required sun emblem. Realistic painterly pale skin, leather and cave stone, face readable at 512 pixels. No victims, blood, injury, gore, writing, signature, watermark, logo or frame. YOLO 04. A massive pale Black Sun orc has repurposed its terrifying GREATCLUB as a hopelessly oversized BACK SCRATCHER, awkwardly reaching it over one shoulder with one arm while the other hand tries to guide the club behind its back. Huge relieved grimace, modest lower tusks, pale white skin and rumpled hide armor, sling still at belt. Only two arms, one continuous club shaft, tiny unreachable itch causing epic concentration, cave campsite, no text.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/gamemastering/monsters-foes/monsters-by-type/humanoids/orc/orc-black-sun/",
+      "note": "Creature Codex: powerful orc with fish-belly-pale skin, hide armor, greatclub and sling, nocturnal rocky camouflage. Face/tusks/hair and club-as-back-scratcher gag original; no black skin or required sun symbol."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

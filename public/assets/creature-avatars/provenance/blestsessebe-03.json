@@ -1,0 +1,17 @@
+{
+  "creatureId": "blestsessebe",
+  "variantId": "03",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BLESTSESSEBE celestial avatar, Tome of Beasts 3. One LARGE ANTELOPE-SHAPED CELESTIAL with four slender HOOFED LEGS, one head, two ears and one short tail. A PAIR of RIDGED GOLDEN HORNS rises from its head and glows with warm celestial light. Exact two-horn count, elegant swept-back lyre curvature and coat are original antelope-based choices; use horns with ringed ridges, not branched deer antlers. Graceful powerful running animal, no wings, unicorn horn, human torso, extra legs, armor or harness required. Realistic painterly fur, luminous gold, grasses and sky, clear horns and face at 512 pixels. No victims, blood, injury, gore, writing, signature, watermark, logo or frame. Normal 03. A tawny antelope-shaped celestial leaps gracefully over a shallow stream, all four hoofed legs organized in a natural bounding gait, one short tail, two luminous ridged golden horns sweeping back. A subtle shimmer follows its outline to suggest great speed without duplicating limbs or the animal. Verdant upland landscape, dark clouds and a bright sunbeam.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/blestsessebe/",
+      "note": "Licensed ToB3 prose: Large antelope-like celestial with luminous ridged golden horns and swift hoofed movement. Exact horn pair/curve, coat and lampshade gag are original antelope inferences; no specified branching, wings or unicorn anatomy."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

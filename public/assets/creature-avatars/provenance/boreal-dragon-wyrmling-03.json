@@ -1,0 +1,17 @@
+{
+  "creatureId": "boreal-dragon-wyrmling",
+  "variantId": "03",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BOREAL DRAGON WYRMLING avatar, Tome of Beasts 2. One MEDIUM JUVENILE WINGED DRAGON with hard BLUE-WHITE SCALES, patches of SILVERY-BLUE FUR and AMBER EYES. Breath is INTENSELY HOT AIR AND WHITE-HOT CINDERS despite Arctic surroundings, never icy breath. Original conventional one head, FOUR LEGS, TWO SEPARATE WINGS and ONE tail, compact young proportions, two small curved horns and pale leathery wing membranes are artistic choices, not prescribed counts. Fur patches leave plenty of scales visible. Realistic painterly frost, fur, scales and warm embers, clear face at 512 pixels. No victims, targets, injury, blood, gore, writing, signature, watermark, logo or frame. Normal 03. A juvenile boreal dragon stands partly in shallow icy water, four legs naturally positioned and two separate wings folded above its fur-patched blue-white back, one tail bending behind. It exhales a small cloud of HOT AIR with white-orange embers toward empty dark rock, a little steam rises, no target. Arctic moonlight and contrasting warm sparks.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/boreal-dragon-wyrmling/",
+      "note": "ToB2 Medium juvenile boreal dragon: blue-white scales with silvery-blue fur patches, amber eyes, wings, swimming and HOT cinder breath. Four legs/two wings/one tail, horn details and fur placement are original choices. Birthday-candle gag original; no icy breath substitution."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

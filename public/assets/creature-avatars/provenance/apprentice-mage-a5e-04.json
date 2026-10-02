@@ -1,0 +1,17 @@
+{
+  "creatureId": "apprentice-mage-a5e",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy humanoid character avatar, tactile painterly realism, cinematic practical lighting and expressive face readable at 512 pixels. Apprentice Mage from Level Up A5E: a clearly ADULT novice wizard, learning modest arcane spells rather than an all-powerful archmage. Fully clothed practical worn robes, belt pouches and simple magical tools, one humanoid head, two arms and natural five-fingered hands. Small controlled magical effects such as light, fire spark or a faint shield; no enormous battlefield destruction. Original character identities, clothing and compositions, not any real person or copied publisher art. No readable book text, letters, signature, logo, watermark or frame. YOLO absurd 04. A clearly adult 35-year-old human apprentice with messy dark hair and tired blue eyes has disastrously miscast magic missile: exactly THREE ordinary potatoes now orbit his head with tiny pale-blue magical trails. He wears oversized crooked purple novice robes and a floppy hat, holding a simple wand in one hand and a CLOSED spellbook upside down in the other, utterly baffled. No extra hands or faces, no letters on book. Chaotic but harmless tower study, warm candlelight, deadpan serious fantasy realism and spectacularly underwhelming magic.",
+  "designReferences": [
+    {
+      "url": "https://a5e.tools/node/1860",
+      "note": "Official A5E apprentice mage is a novice wizard or older hedge wizard with limited spells including light, fire bolt, magic missile and shield. Original adult character appearances and scenes."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

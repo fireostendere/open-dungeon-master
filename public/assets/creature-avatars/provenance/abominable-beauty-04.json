@@ -1,0 +1,21 @@
+{
+  "creatureId": "abominable-beauty",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-09-30",
+  "prompt": "Use case: stylized-concept. Asset type: one original square bestiary avatar. Polished dark-fantasy realistic painterly illustration, cinematic light, rich tactile textures, readable at small size. Subject: an adult Abominable Beauty, a dangerously beautiful humanoid fey whose supernatural radiance blinds, whose singing overwhelms, and whose touch burns. Uncannily perfect adult face, luminous piercing eyes, palpable cruel vanity, faint searing fire magic around hands. One adult fey only, head and upper body dominate square composition, features clear and unobscured. Original art; no source artwork copied, no artist imitation, no text, lettering, logos, watermark, border or collage. YOLO variant04, absurd dark comedy: a vain adult fey beauty-pageant queen with huge pink hair rollers, a ludicrous tiny cheap golden crown crooked on top, brilliant glowing eyes and a spectacular fully clothed purple ruffled gown. She smiles with dead-serious arrogant triumph while holding a tiny gold beauty trophy using comically huge quilted oven mitts; her magical heat has melted the trophy into a pathetic sagging golden puddle between the mitts. Soot stains on mitts, cheap crown visibly warped, radiant supernatural attractiveness intact. Rich cinematic dark-fantasy painting, close centered portrait, ruined dressing room background; the joke is clear without any words, no lettering on sash or objects.",
+  "designReferences": [
+    {
+      "url": "https://www.kassoon.com/dnd/monster-stat-block/543/abominable-beauty/",
+      "use": "Factual humanoid fey identity, blinding beauty, overwhelming voice and burning touch; original design and no source artwork copied"
+    },
+    {
+      "url": "https://koboldpress.com/tools/kobold-press-monsters/",
+      "use": "Fey type and Tome of Beasts source identity"
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

@@ -1,0 +1,21 @@
+{
+  "creatureId": "barbed-devil",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy BARBED DEVIL creature avatar. One Medium upright infernal fiend with exactly TWO ARMS, TWO LEGS, ONE HEAD and ONE long attached piercing TAIL. Dense NEEDLE-LIKE SPINES cover its head, back, shoulders, arms and tail; natural scaled hide, long clawed fingers and toes, restless eyes glowing like little flames. No wings, no manufactured weapon, no required horns; use the body's spines as its identifying crown. A modest worn leather waist wrap covers hips. Original precise facial anatomy, colors and spine arrangements. Rich realistic painterly textures, strong readable face and silhouette at 512 pixels. No blood, wounds, victims, gore, text, logo, signature, watermark or frame. YOLO 04. A terrifying spiny barbed devil has tried to cuddle an enormous cheap pink TEDDY BEAR and now looks deeply offended because white toy stuffing is snagged on dozens of its body needles. Exactly two arms: one holds the intact main plush bear awkwardly against its chest, the other claw delicately plucks one fluff tuft from a shoulder spine. A tiny paper party hat perches between head spines; single spiked tail curls below. No real animal or person, harmless damaged plush toy, no blood. Richly painted dark infernal nursery, dramatic warm light treating this ridiculous plush disaster seriously, face and tail readable.",
+  "designReferences": [
+    {
+      "url": "https://a5e.tools/node/1511",
+      "note": "Official A5E description establishes needle spines and restless fiery-looking eyes; Medium devil with claws, piercing tail, barbed hide and flame throwing. Upright two-arm/two-leg anatomy is a conservative illustration inference. Skin colors, spines, waist wrap, settings and plush-toy joke are original choices; no wings inferred."
+    },
+    {
+      "url": "https://github.com/open5e/open5e-api/blob/staging/data/v1/wotc-srd/Monster.json",
+      "note": "SRD5.1 barbed-devil record corroborates shared catalog identity: Medium fiend, barbed hide, claws, tail and hurl flame."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

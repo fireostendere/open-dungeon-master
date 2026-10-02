@@ -1,0 +1,17 @@
+{
+  "creatureId": "angel-chained",
+  "variantId": "03",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy creature avatar, tactile painterly realism and cinematic light, sharp expressive face readable at 512 pixels. Chained Angel from Tome of Beasts: adult humanoid celestial corrupted by fiendish captivity, a dark tarnished halo above the head, soulless rage-filled eyes, scarred pallid skin with old red marks, two large damaged feathered wings. Heavy black iron chains and obvious wrist manacles bind its armored shoulders and torso, but arms can move. Two arms, two legs, no extra limbs. Scorched layered robes over practical battered armor; severe tragic menace with a hint of the noble celestial it once was. Imply past torment through scars and chains, no exposed muscle, no open wounds, no gore. Original face, armor, composition and details, not copied publisher art. No text, signature, watermark or frame. Normal 03. Close head-and-shoulders portrait of a mature feminine angel with ash-gray skin, long white hair caught in chains and an unlit charcoal halo, vacant violet-white eyes and stern clenched mouth. Dark layered robes and tarnished silver armor, huge iron manacle around wrist resting near chest, broken stone arch in heavy rain. Ragged feathered wing edges catch icy moonlight, old fine red facial scars without fresh injury, tragic commanding presence.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/angel-chained-3pp-2/",
+      "note": "Licensed ToB2023 Chained Angel entry: corrupted captive celestial with dark halo, rage-filled eyes, chains/manacles and fiery greatsword. Source torment is interpreted with healed scars and damaged clothing; individual faces, wing wear and humor are original."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

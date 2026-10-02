@@ -1,0 +1,25 @@
+{
+  "creatureId": "adult-wind-dragon",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-09-30",
+  "prompt": "Use case: stylized-concept. One original square dark-fantasy painted creature portrait, refined tactile painterly realism with dynamic atmospheric light, face crisp and legible at 512 pixels. Adult Wind Dragon from Tome of Beasts: slim elegant long-necked dragon, long whiplike tail, four slender clawed legs plus two separate very broad manta/batlike membrane wings held aloft by the wind. Narrow angular head, tall pronged crown crest, large fanlike cheek/head fins, subtle dorsal shoulder sail. Ivory and gray scales with gray-teal and muted violet zebra-like banding across neck, wing membranes and tail, an anatomy-based original interpretation. No feathers or fur; no massive stocky white-dragon build, not a wingless cloud serpent. Wind billows membrane wings rather than flapping them. Proud dangerous intelligence, coherent limbs. No text, logo, watermark, frame, or collage; do not copy existing publisher artwork or pose. YOLO absurd variant 04. Same proud slim ivory-and-gray striped wind dragon delicately holds a ridiculously tiny colorful paper pinwheel in one real foreclaw. Its own uncontrollable gale has stretched the pinwheel into a long spiraling ribbon twisting around its pronged crown, while the dragon stares at the ruined toy with offended aristocratic dignity. Cheek-fins and broad banded membrane wings billow behind, colorful paper is separate from dragon anatomy. Dark-fantasy painterly detail, face dominant, playful physical absurdity, no words.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/gamemastering/monsters-foes/monsters-by-type/dragons/dragon-wind/",
+      "note": "ToB2016 description: white/gray scales and wings filled/supported by wind."
+    },
+    {
+      "url": "https://www.5esrd.com/database/creature/dragon-wind-adult-3pp/",
+      "note": "ToB2023 adult entry; no color fixed by newer description. No limb count inferred from attacks."
+    },
+    {
+      "url": "https://nerdarchy.com/the-dungeons-and-the-dragons-of-dungeons-dragons-wind-dragon-lairs/",
+      "note": "Publisher artwork reproduced with attribution and visually inspected: slim long neck/tail, four legs, two separate broad wings, crown/cheek fins, pale gray-teal/violet banding. Original composition."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

@@ -1,0 +1,17 @@
+{
+  "creatureId": "black-crier",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BLACK CRIER avatar, Tome of Beasts 2. One MEDIUM ADULT SKELETAL TOWN CRIER with exposed dry pale skull, bony hands, one head, two arms and two legs under formal town-crier clothing. Carries an ELABORATE SILVER HANDBELL. Mute and solemn, communicates through warning gestures rather than speech; a herald of danger, not inherently malicious. Dark coat, hat, trim and tailoring are original choices. Bone-only fantasy undead with no wounds or soft tissue. No armor, scythe, crown, wings or magical eye flames. Realistic painterly bone, tarnished silver and old cloth, strong silhouette at 512 pixels. No victims, blood, gore, writing, signature, watermark, logo or frame. YOLO 04. A skeletal town crier stares in baffled disappointment at its beautiful SILVER HANDBELL because someone has replaced the clapper with a bright YELLOW BANANA dangling from a little cord under the bell rim. One bony hand holds the bell up, the other points accusingly at the banana. Formal charcoal coat and absurdly dignified tricorn hat, tilted pale skull with empty sockets, tiny harmless visual prank, no writing or extra character.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/black-crier/",
+      "note": "ToB2: Medium mute skeletal town crier, pale skull and bony hands, ornate silver handbell, formal town-crier attire; can hover. Costume details and banana-clapper gag original, not an inherently malicious reaper."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

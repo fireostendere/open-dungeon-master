@@ -1,0 +1,21 @@
+{
+  "creatureId": "bat_giant_bf",
+  "variantId": "03",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy GIANT BAT avatar for Black Flag SRD. One LARGE BEAST with furry mammalian body, two prominent ears, visible eyes, toothed bat muzzle, exactly TWO MEMBRANOUS HAND-WINGS and TWO CLAWED HIND LEGS. The two wings ARE its forelimbs, supported by elongated finger bones and one small thumb claw each; no separate arms, extra legs, horns, bird feathers, saddle or rider. Original natural species-like features; its size is emphasized by nearby masonry or forest objects, not specified exact measurements. Rich realistic painterly fur and leathery membranes, clear face and silhouette at 512 pixels. No blood, gore, victims, text, signature, watermark, logo or frame. Normal 03. Close three-quarter portrait of a massive tawny giant bat opening its toothy mouth in its distinctive dizzying screech, ears upright and alert, natural dark eyes rather than demonic glow. Its wing shoulders and partly folded membranes frame the furry head and upper body; no separate hands. Rain-darkened limestone grotto, cool mist and amber rim light, natural animal tension.",
+  "designReferences": [
+    {
+      "url": "https://github.com/open5e/open5e-api/blob/staging/data/v1/blackflag/Monster.json",
+      "note": "Black Flag SRD v0.2 bat_giant_bf: Large beast with flight, bite, echolocation, heightened hearing and Dizzying Screech. No required species, exact wingspan, saddle or clothing."
+    },
+    {
+      "url": "https://www.batcon.org/bats-vs-birds/",
+      "note": "Generic mammalian bat anatomy: membranous forelimb wings and two hind feet. Fur, muzzle, ears, settings and nightcap/plush bedtime joke are original choices."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

@@ -1,0 +1,17 @@
+{
+  "creatureId": "alchemical-golem",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy construct avatar, cinematic tactile painted realism, metal humanoid face and signature tanks readable at 512 pixels, no text, frame, logo, watermark or collage. Creature Codex ALCHEMICAL GOLEM: twelve-foot-tall SILVER HUMANOID construct, powerful solid metallic body containing animating alchemical slurry. EXACTLY THREE substantial chemical TANKS embedded in its BACK, not two or four. Each of the THREE tanks has one dark adamantine syringe/probe angled toward the METAL NECK. Show all THREE separate tank tops clearly behind/above shoulders: left, middle, right, with coherent connections; no extra reservoir. Silver face with simple stern geometric features, dark inset artificial eyes and metal mouth seam are original design. No human flesh, brain under glass, bottle-shaped torso, syringe fingers or steampunk humanoid costume. Original Creature Codex identity, not Pathfinder alchemical golem. Tanks' amber/teal/violet inspection glass is a creative choice, shell remains metallic silver. YOLO absurd 04. Same immense SILVER humanoid golem, exactly THREE chemical tanks clearly visible on its back, is trying to be an absurdly delicate gardener. A ludicrously tiny straw gardening hat perches on its metal head, one huge normal metal hand holds a minute watering can over a tiny potted cactus that has accidentally become extravagantly encrusted with sparkling salt crystals. Stern geometric face tilted in solemn concern, three tank probes at neck intact, dark-fantasy greenhouse, no flesh, no words, no extra reservoirs.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/golem-alchemical/",
+      "note": "Creature Codex twelve-foot silver humanoid with EXACTLY THREE large back tanks, each adamantine syringe toward neck, slurry animation; infusions quicksilver skin/salt crystals/fumes. Avoid unrelated Pathfinder glass-brain design. Exact source art unverified, tank colors and facial details original."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

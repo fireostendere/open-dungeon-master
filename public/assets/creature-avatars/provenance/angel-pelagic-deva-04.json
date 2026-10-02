@@ -1,0 +1,21 @@
+{
+  "creatureId": "angel-pelagic-deva",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy creature avatar with exquisite tactile painted realism, underwater cinematic light and a sharply readable face at 512 pixels. Pelagic Deva from Tome of Beasts 3: an androgynous adult humanoid celestial of the deep sea, beautiful strong humanoid face and two humanlike arms, body covered in very fine vivid striped scales, a SINGLE large-finned FISH TAIL below the waist instead of legs. Colorful LIVING CORAL ARMOR protects torso and head, coherent coral branches form a crown and shoulder guards, no additional heads or eyes. Wields a radiant trident. No feather wings, no feet, no fish head, no octopus body. Pleasant intelligent guardian of deep-water communities, commanding when threatened. Original individual colors, face, coral patterns and composition, no copied art. No text, signature, watermark, frame or logos. YOLO absurd 04. A majestic turquoise-striped pelagic deva wears ridiculous bright-yellow inflatable swimming armbands over both arms, a little pair of pink swimming goggles pushed onto the coral crown, and looks deeply unimpressed because it already has a magnificent fish tail. Close face and upper torso underwater; vivid red living coral armor, both correct humanlike hands resting on the floating trident shaft, broad blue fish tail fin visible behind shoulder. A tiny seahorse inspects an armband. Serious polished dark-fantasy realism, no words or brand markings, no legs or feather wings.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/pelagic-deva/",
+      "note": "Licensed ToB3 anatomy: androgynous humanoid, large-finned fish tail, brightly striped fine scales and living coral armor on torso/head; radiant trident and aquatic guardian. Individual palettes and portraits are original."
+    },
+    {
+      "url": "https://koboldpress.com/tools/kobold-press-monsters/",
+      "note": "Primary publisher index confirms Medium Pelagic Deva celestial from Tome of Beasts 3."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

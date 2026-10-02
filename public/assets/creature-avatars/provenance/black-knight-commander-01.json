@@ -1,0 +1,17 @@
+{
+  "creatureId": "black-knight-commander",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BLACK KNIGHT COMMANDER avatar, Tome of Beasts 2016/2023. One living ADULT MEDIUM HUMANOID commander in FULL PLATE with a long LANCE and a MACE as secondary weapon. Mounted on or beside an ordinary WARHORSE wearing custom BARDING and a secure saddle, led by the 2023 mounted identity. Rider has one head, two arms and two legs; separate horse has one head, four legs and one tail. No centaur fusion, undead anatomy, horns, wings, nightmare flames or required shield. Original blackened steel, subdued gold fittings, face, ancestry, gender, helmet and horse color. Realistic painterly metal, leather and horse anatomy, clear head and commanding silhouette at 512 pixels. No victims, blood, injury, gore, writing, signature, watermark, logo or frame. Normal 01. An imposing adult male human commander in blackened full plate sits firmly in the saddle of a heavy dark-bay barded warhorse. Raised visor reveals a weathered stern face, one hand holds a single straight lance upright and the other manages reins, mace secured at saddle. Three-quarter mounted portrait, horse's head and upper body clearly visible, misty fortress gate and cold dawn.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/black-knight-commander-3pp/",
+      "note": "ToB2016/2023: living Medium humanoid commander, plate, lance and mace; 2023 explicitly barded warhorse and secure saddle. Blackened armor, rider identities, heraldic colors and marshmallow gag original. Ordinary separate mount, not undead or centaur."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

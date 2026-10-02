@@ -1,0 +1,21 @@
+{
+  "creatureId": "berserker",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BERSERKER avatar. One ADULT MEDIUM HUMANOID warrior, one head, two arms, two legs, coherent hands and equipment. A combat role of any lineage, with a prominent GREATAXE and forceful determined bearing. Core SRD and Black Flag versions wear hide armor; Advanced 5e version uses Unarmored Defense and has an additional handaxe. Individual age, gender, ancestry, hairstyle, skin tone and garments are original choices. No supernatural transformation, glowing eyes, wings or horns. Realistic painterly face, worn leather, cloth and iron, readable character at 512 pixels. No victims, blood, injury, gore, writing, signature, watermark, logo or frame. Normal 01. A muscular middle-aged human man with weathered dark skin and a short black beard stands braced on a windswept ridge, wearing rough layered hide armor and wool trousers. Both hands grip one massive iron greataxe with a single straight wooden haft, held diagonally across his body. Fierce concentration, no wound, stormy sky and amber rim light.",
+  "designReferences": [
+    {
+      "url": "https://github.com/open5e/open5e-api/blob/staging/data/v1/wotc-srd/Monster.json",
+      "note": "Core Berserker: Medium humanoid of any race, hide armor and greataxe; appearance and jar-opening gag original."
+    },
+    {
+      "url": "https://a5e.tools/node/1896",
+      "note": "Variant03 deliberately uses A5E NPC equipment: Unarmored Defense, greataxe and handaxe. No required lineage or supernatural anatomy."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

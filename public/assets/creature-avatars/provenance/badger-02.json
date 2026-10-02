@@ -1,0 +1,17 @@
+{
+  "creatureId": "badger",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy wildlife avatar, tactile realistic painterly fur, clearly readable animal face at 512 pixels. One ordinary small Eurasian-type BADGER: low squat muscular body, coarse grizzled gray fur, a white elongated head with TWO BOLD BLACK STRIPES running through the eyes toward the small round ears, pointed black nose, four short sturdy clawed legs and one SHORT furry tail. Natural mustelid anatomy, not a raccoon, skunk, bear or dog. Source category Tiny beast; European-badger coloration is an original species interpretation. No injuries, blood, human body, extra limbs, text, signature, watermark or grid. Normal 02. Side three-quarter close portrait of a stocky badger digging beside a mossy ruined wall in a misty medieval woodland. Four short legs, front claws pushing loose soil, grizzled coat and clear black facial stripes, short rounded ears and wet black nose. Dark ferns and dew, natural focused animal expression, no equipment or clothes.",
+  "designReferences": [
+    {
+      "url": "https://5thsrd.org/gamemaster_rules/monsters/badger/",
+      "note": "SRD5.1 Tiny ordinary badger with burrowing, keen smell and bite. Original Eurasian-type badger anatomy and black-white facial stripes; source does not specify a real-world subspecies. YOLO cake scene preserves ordinary animal anatomy."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

@@ -1,0 +1,21 @@
+{
+  "creatureId": "balara_bf",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy bestiary illustration, realistic painterly weathered bone and spectral light, powerful readable silhouette at 512 pixels. BALARA, a LARGE UNDEAD creature whose defining known feature is a visibly GLOWING RIBCAGE, plus a biting jaw and clawed limbs. This is explicitly an ORIGINAL VISUAL INTERPRETATION of the sparse statblock, not a reproduction of official artwork. Depict one imposing bestial skeletal creature with an elongated nonspecific animal-like skull, one lower jaw, four clawed locomotor limbs, a short bony spine extension behind, and a deep broad ribcage lit from within by cold ghostly light. Dry old intact bones only, no flesh, organs, blood, wounds, recent violence or victims. Skull shape, four-limb arrangement and light color are artistic choices; no horns or wings. Do not depict a human corpse. One creature, no text, signature, watermark, logos, border or grid. Normal 02. Close frontal-upper-body portrait of the Balara in a deep abandoned crypt: a dry angular animal-like skull with old pointed teeth, broad glowing ribcage filling the lower frame and two large clawed forelimbs framing the body. Soft pale violet light pulses inside the ribs, the rear of the skeletal body fades into atmospheric shadow. Original weathered bone shapes, heavy stone arches, no exposed flesh or human remains.",
+  "designReferences": [
+    {
+      "url": "https://bfrd.net/monsters/balara",
+      "note": "Black Flag Reference Document confirms Large undead, glowing ribcage, bite and claws. Accessible text does not establish skull species, stance, horns, limb count or composite anatomy. The bestial skull, four-legged skeletal body, short spine extension and light color shown here are explicitly original interpretations, not asserted canonical anatomy."
+    },
+    {
+      "url": "https://koboldpress.com/wp-content/uploads/2025/07/Black-Flag-Roleplaying-v04_2025_07_01.pdf",
+      "note": "Publisher's BFRD independently confirms luminous ribs and undead combat traits; original illustrations use no publisher art or copied descriptive prose."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

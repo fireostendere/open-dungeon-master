@@ -1,0 +1,21 @@
+{
+  "creatureId": "ancient-aboleth-a5e",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy bestiary avatar, cinematic painterly realism, readable alien face at 512 pixels. ANCIENT ABOLETH, an immense elder A5E amphibious aberration living in drowned cities. Huge heavy eel-fish body, massive elongated broad head continuous with trunk, fleshy olive-charcoal skin under clear slime, a dorsal fin and one finned fish tail; FOUR long thick fleshy tentacles emerge from flanks behind the head. No legs, hands, wings or humanoid torso. On the FRONT of the head EXACTLY THREE luminous slit eyes in ONE VERTICAL COLUMN, one above another above another, all three clear; no normal eye pair. Broad lipless fish mouth below lowest eye, small uneven teeth, no octopus beak. Ancient weathered ridges and pale old healed scars convey age; alive and calculating, not undead, no exposed skull. Face fills central frame, tentacles frame it. No text, logo, border, watermark, gore or victims. Absurd YOLO 04. An ancient three-eyed aboleth has become the world's most offended underwater accountant. Exactly THREE eyes stacked vertically on its frontal head, a ridiculous custom tiny three-lens spectacle frame vertically fitted over the three eyes. Four long tentacles: two manipulating an oversized ancient abacus, one clutching an empty ceramic mug, one lazily curled. Huge slimy eel-fish body and dorsal fin behind, drowned palace office, floating blank parchment rolls tied shut and a tiny rubber duck drifting overhead. Deadpan exhausted expression, dramatic teal and warm gold lighting, high-quality dark-fantasy absurdity, no letters or readable numbers.",
+  "designReferences": [
+    {
+      "url": "https://a5e.tools/node/1459",
+      "note": "Official A5E Huge ancient aboleth, exactly three eyes, tentacles, amphibious psychic elder haunting drowned cities. Four-tentacle piscine morphology and vertical eye arrangement follow established aboleth visual anatomy; palettes, scars, settings and props are original interpretation."
+    },
+    {
+      "url": "https://a5e.tools/node/1432",
+      "note": "Official A5E aboleth family lore: amphibious ancient intelligences in underwater black-stone cities."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

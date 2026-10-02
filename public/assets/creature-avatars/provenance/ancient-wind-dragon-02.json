@@ -1,0 +1,25 @@
+{
+  "creatureId": "ancient-wind-dragon",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. One original square dark-fantasy creature avatar with refined tactile painted realism, cinematic atmospheric light and expressive sharp face readable at 512 pixels. Ancient Wind Dragon from Tome of Beasts, a gargantuan yet slim elegant living dragon, exceptionally long neck and whiplike tail, four slender clawed legs and exactly two vast manta/batlike membrane wings supported and billowed by wind. Narrow angular reptilian face, tall pronged crown, broad fanlike cheek fins, subtle neck sail. Ivory-gray scales crossed with gray-teal and muted violet zebra-like bands, matching striped wing membranes; original interpretation of the family anatomy. Elder weathered crests and ancient arrogant eyes, no feathers, no fur, no ice armor, no wingless serpent. Wings remain clearly distinct from limbs and neck fins. No text, signature, watermark or border, original composition. Normal 02. Left-facing three-quarter portrait over one slim shoulder, head raised proudly at the edge of an impossible high cliff. One broad striped membrane wing billows behind neck, far wing occluded. Pronged crown and cheek fins, long snout and very old ridged brows in strong focus, blue-gray striped scales. Tiny ruined mountain tower far beneath, clouds stream sideways like rivers, peach sunset reflected along narrow face.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/dragon-wind-ancient-3pp/",
+      "note": "Licensed ToB2023 ancient entry: gargantuan aerial dragon, wind-supported wings, storm breath, exposed heights and arrogance."
+    },
+    {
+      "url": "https://www.5esrd.com/gamemastering/monsters-foes/monsters-by-type/dragons/dragon-wind/",
+      "note": "ToB2016 family text establishes white/gray scale palette."
+    },
+    {
+      "url": "https://nerdarchy.com/the-dungeons-and-the-dragons-of-dungeons-dragons-wind-dragon-lairs/",
+      "note": "Attributed publisher artwork inspected earlier for slim frame, long neck and tail, four legs, two wings, crown and cheek fins, pale banding. Original ancient proportions and composition."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

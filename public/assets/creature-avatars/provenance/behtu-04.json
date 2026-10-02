@@ -1,0 +1,21 @@
+{
+  "creatureId": "behtu",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BEHTU avatar. One SMALL ADULT APE-HUMAN HUMANOID with a MANDRILL-LIKE FACE and two prominent curved BOAR TUSKS, short strong simian build, one head, TWO ARMS and TWO LEGS, grasping simian hands. Adult warrior proportions, not a child and not a giant demon lord. Original dark fur, blue-red facial pigmentation, modest practical clothing and abstract demonic tattoo motifs without lettering; no horns or visible tail required. Carries a SPEAR appropriate to the selected source edition; small infusion vial is optional. Detailed realistic painterly fur, face and jungle textures, readable at 512 pixels. No blood, wounds, victims, gore, text, signature, watermark, logo or frame. YOLO 04, 2023 EQUIPMENT INTERPRETATION. A ferocious small adult behtu has discovered a humiliating new use for its enormous boar tusks: a little CLOTHESLINE stretches between their tips with TWO RIDICULOUSLY STRIPED WET SOCKS pegged on it, dangling below its mandrill muzzle. Its eyes glare in offended disbelief over the socks. Exactly two arms: one hand holds its spear, the other holds a tiny wooden clothespin. Natural tough hide, simple jungle waist wrap and abstract tattoos, no extra limbs or armor. Rich dramatic tropical light treats this absurd laundry face as an epic warrior portrait, no words.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/behtu-3pp",
+      "note": "Shared 2016/2023 Behtu identity: Small ape-human humanoid with mandrill face and boar tusks, bite/climb/fire breath, demonic tattoos and infusions. Variants 01,02,04 use 2023 natural armor and spear; 03 deliberately uses 2016 hide armor/shortspear. Fur/pigmentation, tattoo designs, clothing details, scenes and tusk clothesline joke are original choices."
+    },
+    {
+      "url": "https://github.com/open5e/open5e-api/blob/staging/data/v1/tob/Monster.json",
+      "note": "Licensed 2016 behtu record verifies hide armor and shortspear, contrasting the 2023 equipment treatment."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

@@ -1,0 +1,17 @@
+{
+  "creatureId": "bone-crab",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BONE CRAB avatar, Tome of Beasts 2016/2023. One SMALL LIVING HERMIT-CRAB-LIKE CRUSTACEAN using ONE DISCARDED SKULL AS ITS BORROWED SHELL, with SPINY IVORY-WHITE LEGS and a PAIR OF SKULL-CRACKING PINCERS protruding below. The crab is alive; the skull shelter is not its own animated head. Original practical appendage layout uses paired pincers and four prominent walking legs, smaller rear limbs tucked inside the skull; exact exposed count is not fixed fantasy canon. Small crab eye stalks may show beneath the skull as an original naturalistic choice. Dry empty skull, no tissue or wounds, no independently moving skull jaws or ghost glow. Realistic painterly ivory chitin, weathered skull and shore, clear silhouette at 512 pixels. No victims, feeding, blood, injury, gore, writing, signature, watermark, logo or frame. YOLO 04. A living bone crab has upgraded its borrowed skull shelter into a ludicrously fancy disguise: a delicate enormous FLORAL TEACUP sits upside-down OVER THE SKULL like a ridiculous porcelain helmet, skull's lower edge still visible beneath. Two ivory pincers and four spiny walking legs remain natural, one claw proudly holds a tiny matching teaspoon. Sandy beach, absurd aristocratic crustacean, no text or extra limbs.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/bone-crab-3pp/",
+      "note": "ToB2016/2023 Small living crab with borrowed skull shelter, ivory spiny legs and paired crushing pincers. Exact exposed legs unspecified; four prominent walking legs plus two pincers and tucked rear limbs is original hermit-crab interpretation. Skull species/eyes and fancy-teacup shelter gag original."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

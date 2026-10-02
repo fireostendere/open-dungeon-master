@@ -1,0 +1,11 @@
+{
+  "creatureId": "treant",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-09-30",
+  "prompt": "Use case: stylized-concept. Square dark-fantasy bestiary avatar, one original TREANT: massive living walking tree with humanoid face emerging naturally from bark, deep intelligent eyes, branch arms, rootlike hands, trunk torso and leafy crown. Recognizable tree creature, not a human in costume. Polished realistic painterly fantasy, cinematic light, rich bark/moss/leaf texture, readable centered portrait with safe margins around crown. One creature only, no text/letters/logo/watermark/grid/border, no blood or gore, no named artist imitation. Normal variant01. Ancient oak treant, rugged dark bark, heavy mossy brow, amber eyes, twisted branch beard, lush dark green oak leaves. Left-facing three-quarter upper-trunk portrait in misty moonlit old-growth forest, cool blue rimlight and soft amber face light, solemn guardian.",
+  "license": "generated-output; no third-party artwork license asserted"
+}

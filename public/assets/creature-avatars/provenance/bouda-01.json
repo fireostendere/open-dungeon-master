@@ -1,0 +1,17 @@
+{
+  "creatureId": "bouda",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BOUDA creature avatar. One Medium bulky hyena-headed humanoid fiend, one head, two arms and two legs. Enlarged heavily SCARRED but healed hyena muzzle, both EYES AND TEETH glow yellow, small gnats and fleas around its forearms. Clawed hands, heavy spotted gray-brown fur, short mane and a plain ragged linen waist wrap are original design choices. No fresh injury, split jaw, extra mouth, weapons or armor. Realistic painterly fantasy material detail, strong readable silhouette at 512 pixels, one composition with no panels. No gore, writing, signature, watermark, logo or frame. Normal 1. Full creature standing beneath a dead acacia in dry dusk grassland, hunched powerful shoulders, both clawed arms lowered and unobstructed, yellow eyes and visible yellow teeth, distant storm and dust.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/bouda-3pp/",
+      "note": "ToB 2016 and 2023: Medium hyena-headed bulky humanoid, enlarged scarred muzzle, yellow shining eyes AND teeth, vermin around arms. Exact fur, mane, tail, digits, clothing and two-arm/two-leg count are original conservative choices; no split jaw implied."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

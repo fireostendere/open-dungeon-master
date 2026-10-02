@@ -1,0 +1,17 @@
+{
+  "creatureId": "bathhouse-drake",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BATHHOUSE DRAKE avatar. A compact MEDIUM DRAGON approximately the size of a LARGE MASTIFF, with a draconic scaly head, sharp teeth and clawed feet; do not give it dog fur or a canine head. Steam curls from its nostrils and wet scales glisten with soap. This original artistic body plan uses exactly FOUR CLAWED LEGS, TWO small leathery WINGS attached to the back and ONE tapering reptilian TAIL, one head with two short swept-back horns. Exact limb/wing/horn configuration is an original interpretation, not a claimed canonical detail. Proud self-possessed bathhouse proprietor demeanor. Rich realistic painterly scales, water, steam and marble, clear subject at 512 pixels. No people being hurt, blood, nudity, text, signature, watermark, logo or frame. YOLO 04. A stern jade-green bathhouse drake has squeezed its round body into an absurd yellow RUBBER-DUCK SWIMMING RING, the ring's big duck head jutting in front of its chest. It wears a frilly pink shower cap over its short horns and has a magnificent curled mustache made entirely of white soap foam. Exactly four clawed feet stand on the wet marble floor, two small wings stick out above the ring, one tail trails behind. Deeply offended proprietor expression, steaming fancy bathhouse, dramatic ceremonial lighting, no other creatures or writing.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/drake-bathhouse/",
+      "note": "Creature Codex Medium dragon about large-mastiff size, assertive gaze, steam, claws, bite, slippery/soapy body, amphibiousness and flight. Text does not specify exact leg, wing, horn or tail configuration; four legs/two small wings/two horns/tail are explicitly original design interpretation. Colors, bath props and duck-ring/foam-mustache joke are invented."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

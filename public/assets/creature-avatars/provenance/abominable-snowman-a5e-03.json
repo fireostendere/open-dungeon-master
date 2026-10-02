@@ -1,0 +1,17 @@
+{
+  "creatureId": "abominable-snowman-a5e",
+  "variantId": "03",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-09-30",
+  "prompt": "Use case: stylized-concept. Asset type: one original square bestiary avatar. Subject: an Abominable Snowman, the elite immense yeti of A5E: a massive white-furred bipedal primate with hugely muscular shoulders, long powerful arms, thick winter fur, broad expressive ape-like face, two eyes with a supernatural freezing gaze, large clawed hands. Clearly a terrifying intelligent mountain yeti, not a literal snow sculpture, human, bear or ordinary gorilla. One creature only. Polished dark-fantasy realistic painterly illustration, rich fur and ice detail, dramatic cinematic lighting, head and upper body dominate frame while preserving readable anatomy. No text, lettering, logo, watermark, frame or collage, original art, no source artwork copied or artist imitation. Normal03: older immense mountain yeti at dusk, silver-white fur with long frost-bearded jaw and broad dark weathered face. Three-quarter close portrait looking back across shoulder with wary cunning and subtly luminous blue eyes. One hand curled against thick furry chest; jagged alpine skyline, faint red-orange distant campfire reflected along edge of fur while main light is violet snow. Noble wild menace, quiet rather than roaring.",
+  "designReferences": [
+    {
+      "url": "https://www.a5e.tools/node/1826",
+      "use": "Official A5E immense yeti identity, primate body, claws, chilling gaze, freezing breath, blizzard and fire fear; original art"
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

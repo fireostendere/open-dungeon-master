@@ -1,0 +1,21 @@
+{
+  "creatureId": "acid-ant",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-09-30",
+  "prompt": "Use case: stylized-concept. Asset type: one original square bestiary avatar. Polished dark-fantasy realistic painterly art, cinematic lighting, rich material textures, clear silhouette and face readable at small size. One creature only, no text, letters, logos, watermark, border, collage or copied source artwork. Subject: a housecat-sized fantasy Acid Ant. Correct ant anatomy: one head with two dark compound eyes, exactly TWO elbowed antennae and paired large mandibles; one thorax with exactly SIX jointed legs, three each side; narrow constricted waist; large conspicuous rounded glowing GREEN abdomen. Acid droplets glisten on mandibles. It is an ant, not a spider or beetle, no wings, no extra legs or antennae. Show its entire six-legged silhouette and green abdomen in square macro portrait. YOLO04: absurd dark comedy. The acid ant wears a tiny clean white chef's toque on its head and proudly stands beside a sandwich it has accidentally dissolved into a smoking green puddle. Two antennae remain unobscured, six ant legs clearly visible, glowing green abdomen prominent. Dead-serious tiny chef energy, rich fantasy macro painting, no human arms or hands.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/acid-ant/",
+      "use": "Open identity facts: cat-sized ant, pulsating green abdomen and acidic mandibles"
+    },
+    {
+      "url": "https://worldbuilderblog.me/2018/09/20/creature-codex-preview-acid-ant/",
+      "use": "Designer preview and creature identity"
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

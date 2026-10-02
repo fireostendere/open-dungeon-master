@@ -1,0 +1,21 @@
+{
+  "creatureId": "alchemical-skunk",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. One original square dark-fantasy creature portrait with realistic tactile fur and cinematic alchemical lighting, face and distinctive stripe readable at 512 pixels, no text, border, watermark or collage. Alchemical Skunk from Tome of Beasts 2: SMALL monstrosity retaining familiar ordinary quadrupedal SKUNK anatomy, merely enlarged: low stocky body, four short clawed legs, pointed muzzle, small rounded ears, big bushy tail carried high. Predominantly black fur, distinctive stripes along back/tail CHANGE COLOR due to alchemy; different magical spray colors may be visible as mist around it. No mechanical parts, attached bottles/pipes, extra limbs, human arms or upright human posture. Anatomically normal natural animal except colored stripes and magical spray. It scavenges potions/lab waste, curious mischievous eyes. Face prominent and raised tail/back in view, original design based on text, no copied art. YOLO absurd 04. Same natural four-legged alchemical skunk accidentally becomes the star of a ludicrous luxury perfume launch, standing proudly on a tiny plum-velvet display cushion. Black fur and glowing orange-yellow back/tail stripes, huge raised fluffy tail releases sparkling ORANGE laughing-gas mist into an otherwise immaculate fancy display. Unlabeled ornate perfume bottles and a toppled little presentation chair surround it, skunk looks blissfully self-satisfied. No clothes, human limbs or machinery on its body; richly painted dark fantasy fashion absurdity, no logos or words.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/alchemical-skunk/",
+      "note": "ToB2 Small enlarged normal skunk with color-changing back stripes, potion/lab-waste scavenger, multiple colored magical sprays. Familiar four-legged anatomy retained; matching stripe/spray color is original choice, not a canonical key."
+    },
+    {
+      "url": "https://koboldpress.com/tools/kobold-press-monsters/",
+      "note": "Primary taxonomy corroborates species. Official art not verified; no bottles/pipes or mechanical anatomy inferred."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

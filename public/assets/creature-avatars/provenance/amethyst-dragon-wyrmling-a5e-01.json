@@ -1,0 +1,21 @@
+{
+  "creatureId": "amethyst-dragon-wyrmling-a5e",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy dragon avatar, refined painted realism with tactile gemstone scales, head prominent and readable at 512 pixels. A5E AMETHYST DRAGON WYRMLING, a Medium compact young dragon, visibly juvenile with relatively large alert gemstone eyes, shorter neck and rounded youthful muzzle compared with adult. Lustrous faceted scales blend violet, lavender, indigo and subtle multicolor iridescence. FOUR clawed legs, TWO separate membranous wings on back and ONE tapering tail. Two small attached swept-back crystalline horn buds and low faceted head ridge, original design; NO floating disconnected head plates. Intelligent restrained psychic creature, never humanoid, no adult bulk, no feather wings or extra legs. Subtle psionic pressure distortions, no fire breath. No text, logo, border, watermark or collage. Serious normal 01. A young violet amethyst wyrmling crouches on a low quartz ledge in a dim crystal cavern, close three-quarter head and front paws, short attached crystal horn buds, huge intelligent pale-lilac gemstone eyes. Compact four-legged body and two folded wing roots behind shoulders, small single tail curled around rock. Soft amber reflected light and indigo cavern, inquisitive thoughtful expression, realistic rather than cartoon.\n\nTargeted final edit: Precise-object-edit on this existing amethyst dragon wyrmling image. Correct only the wing count: REMOVE the surplus third wing tip and narrow wing membrane that rises in the upper middle-left background between the large foreground left wing and the dragon's head (roughly x 285\u2013510, y 210\u2013480 in the 1254px image). Replace that surplus wing region with matching softly lit cavern background. Preserve the large foreground wing entering from the left edge, and preserve the single wing visible on the right behind the dragon's neck. Final dragon has exactly TWO wings attached to its back. Keep its face, eyes, crystalline purple scales, horns, four legs, paws, tail, ledge, colors, lighting, framing and every other detail unchanged. No new appendages, no text.",
+  "designReferences": [
+    {
+      "url": "https://a5e.tools/node/1565",
+      "note": "Official A5E Medium amethyst wyrmling, psionic concussive breath and gem-dragon traits. Depicted as compact juvenile quadruped with wings; not Fizban's alternate design."
+    },
+    {
+      "url": "https://a5e.tools/rules/gem-dragons",
+      "note": "A5E multicolored lustrous scales and gemstone eyes. Violet palette and attached faceted horn buds are original art choices consistent with this library's adult A5E amethyst dragon."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

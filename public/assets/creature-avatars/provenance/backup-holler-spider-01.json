@@ -1,0 +1,21 @@
+{
+  "creatureId": "backup-holler-spider",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy tiny-monster avatar, detailed realistic painterly macro illustration, clear body silhouette at 512 pixels. One BACKUP HOLLER SPIDER, a Tiny beast with a natural SPIDER body: one compact cephalothorax and one rounded abdomen, EXACTLY EIGHT LONG WALKING LEGS in FOUR PAIRS, four legs on each side, tiny clustered dark eyes and small mouthparts. No arms, wings, antennae or human face. Its defining feature is ONE HOLLOW HORN-LIKE PROTRUSION grown naturally from the dorsal chitin, curving up and forward to a flared opening for loud hooting. The horn is ORGANIC ridged CHITIN continuous with the shell, NOT brass, metal or an attached musical instrument. Original horn placement/curve and shell colors; keep all eight leg roots and tips understandable. Tiny relative to leaves and ordinary objects. No prey, violence, injury, blood, text, signature, watermark, frame or grid. Normal 01. A small chestnut-brown holler spider stands on a mossy twig over a softly blurred enchanted forest floor, in a three-quarter overhead view that clearly separates four jointed legs on each side. A single amber-brown organic horn curls upward from its back, flared dark opening facing forward above the eye cluster. Dew on fine body hairs and hard chitin, cool dawn mist and one warm sunbeam, alert sentry posture. Correction: Clarify only the eight-legged spider anatomy in this original horned-spider picture. The walking legs are difficult to count because a rear leg is hidden. Make EXACTLY EIGHT long walking legs plainly visible, FOUR on the viewer's left and FOUR on the viewer's right, separated with clear joints and distinct tips. On the viewer's left retain the three existing visible legs and expose the missing or occluded rear-left walking leg behind them, reaching diagonally toward the upper-left part of the mossy branch. Preserve the four right-side legs, and preserve the TWO SHORT hairy mouth palps near the mouth; these palps are not extra walking legs. Do not add a ninth leg. Keep the natural brown chitin trumpet horn, tiny eyes, rounded abdomen, mossy twig, dew, forest background, light and composition. No text.",
+  "designReferences": [
+    {
+      "url": "https://github.com/open5e/open5e-api/blob/staging/data/v1/tob2/Monster.json",
+      "note": "Licensed Tome of Beasts 2 dataset contains both Backup Holler Spider and Holler Spider entries with shared Tiny beast anatomy and hooting sound actions. Separate supplied catalog IDs are retained with distinct original art; backup is not assigned an invented humanoid or mechanical form."
+    },
+    {
+      "url": "https://www.5esrd.com/database/creature/holler-spider/",
+      "note": "Natural chitinous horn-like protrusion releases hoots/trumpets; tameable sentry and musical animal. Eight-leg spider anatomy, horn count/placement/curve, shell colors and cork joke are original visual interpretations; no publisher art copied."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

@@ -1,0 +1,17 @@
+{
+  "creatureId": "blood-ooze",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BLOOD OOZE avatar, Creature Codex. One LARGE AMORPHOUS HEAP OF THICK STICKY CRIMSON SLUDGE, heavy viscous body that can flatten into a red slick or extend a temporary pseudopod. Texture is dense gluey sludge rather than the freely bubbling Blood Elemental. No fixed head, face, eyes, mouth, bones, organs, torso or permanent limbs. A self-contained fantasy ooze shown without victims, feeding or injury. It may adhere to walls/ceilings and squeeze through cracks. Original deep-red shades, contour and gloss. Realistic painterly viscosity and dungeon lighting, mass readable at 512 pixels. No blood splashes from people, gore, writing, signature, watermark, logo or frame. Normal 02. Close low-angle portrait of a deep-red ooze clinging to a rough stone wall, heavy layered sludge folds sagging under their own weight while remaining attached. Broad viscous surfaces, sticky threads and glossy highlights, no internal bones or humanoid shape. Shadowed cellar, subtle warm light at one edge.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/ooze-blood/",
+      "note": "Correct Creature Codex Blood Ooze: Large thick sticky crimson sludge mound, flattening slick, pseudopod, adhesion. No fixed anatomy, bubbles or bones required. Exact contour and jam-jar gag original; unrelated GrimHollow same-name entry excluded."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

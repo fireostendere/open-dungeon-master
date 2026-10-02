@@ -1,0 +1,17 @@
+{
+  "creatureId": "black-crier",
+  "variantId": "03",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BLACK CRIER avatar, Tome of Beasts 2. One MEDIUM ADULT SKELETAL TOWN CRIER with exposed dry pale skull, bony hands, one head, two arms and two legs under formal town-crier clothing. Carries an ELABORATE SILVER HANDBELL. Mute and solemn, communicates through warning gestures rather than speech; a herald of danger, not inherently malicious. Dark coat, hat, trim and tailoring are original choices. Bone-only fantasy undead with no wounds or soft tissue. No armor, scythe, crown, wings or magical eye flames. Realistic painterly bone, tarnished silver and old cloth, strong silhouette at 512 pixels. No victims, blood, gore, writing, signature, watermark, logo or frame. Normal 03. A formal skeletal crier hovers only a handspan above an empty stone bridge, both booted legs clearly intact beneath a long dark-blue coat. One arm holds an ornate silver bell low, the other points toward gathering storm clouds, pale dry skull turned to the viewer. Original black feather in hat, windy moonlight, solemn rather than attacking.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/black-crier/",
+      "note": "ToB2: Medium mute skeletal town crier, pale skull and bony hands, ornate silver handbell, formal town-crier attire; can hover. Costume details and banana-clapper gag original, not an inherently malicious reaper."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

@@ -1,0 +1,21 @@
+{
+  "creatureId": "ahuizotl",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-09-30",
+  "prompt": "Use case: stylized-concept. One original square dark-fantasy painted monster avatar, refined realistic tactile skin and hair with cinematic lighting, face sharp and readable at 512 pixels, no text, frame, watermark or collage. Ahuizotl from Creature Codex: SMALL amphibious monstrosity, compact low aquatic mammal-like quadruped, four short clawed legs, black rubbery hide and dark hair clustered into sharp defensive spikes, biting muzzle. Original otter/dog-like face interpretation, no giant beast. Its distinctive LONG TAIL ENDS IN A SINGLE CLAWED GRASPING HAND, organically continuous with the tail, clearly visible curling up beside its head. Tail hand is separate from the four normal paws; it is not a tentacle or human arm. Wet glossy black skin between spike-like hair clusters, shrewd yellow eyes, long powerful tapering tail, no wings or horns. Anatomy grounded in written entry, no copied artwork. Keep face and unique tail-hand prominent together. YOLO absurd 04. Same small black spiky amphibious creature sits on a dry towel at a ridiculous woodland spa. Its ordinary front paws rest innocently on the towel, while its long clearly connected tail curls up and the terminal clawed hand expertly aims a tiny hairdryer at its own head. The blast has puffed its naturally spiky dark hair into an absurd enormous unruly halo; eyes narrowed with smug satisfaction. Rubber-black muzzle and tail-hand remain unmistakable, a cucumber slice balanced foolishly on nose, no words or logos, dark-fantasy painterly comedy.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/ahuizotl/",
+      "note": "Use only opening Creature Codex description and Small statblock: black rubbery hide, dark hair clustered into defensive spikes, long tail with clawed hand, amphibious. Ignore unrelated appended giant-size/mimicry prose."
+    },
+    {
+      "url": "https://forum.rpg.net/index.php?threads%2Flets-read-kobold-presss-creature-codex.839349%2F=",
+      "note": "Contemporary secondary book review describes four-legged body. Otter/dog-like proportions are original interpretation, not claimed fixed publisher morphology."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

@@ -1,0 +1,17 @@
+{
+  "creatureId": "berstuc",
+  "variantId": "03",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BERSTUC fiend avatar. One LARGE broad muscular ADULT MALE HUMANOID with a slight stoop, enormous shoulders, profuse green MOSS around the head, a heavy MUSTACHE and a LONG THICK BEARD almost to its waist. One head, two arms and two legs. It looks fashioned from an ancient forest but remains a bearded humanoid rather than a generic tree. Deceptively serene reassuring expression, natural armor without manufactured weapons. Original earthy skin texture, eyes, beard coloration and opaque moss-covered lower clothing. No horns, antlers, hooves, wings, trunk-mouth or extra limbs. Realistic painterly moss, facial hair and forest light, clear face at 512 pixels. No victims, blood, injury, gore, writing, signature, watermark, logo or frame. Normal 03. A muscular moss-covered berstuc leans forward under a stone-and-root arch, two broad forearms resting naturally on a mossy boulder, long thick beard spilling down its chest toward the waist. Calm watchful adult male face, massive slightly hunched shoulders, earthy gray-brown skin visible between moss. Wet blue twilight, subtle menace without aggression or victims.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/demon-berstuc-3pp/",
+      "note": "ToB2016/2023 shared appearance: Large massively shouldered slightly stooped male humanoid, moss around head, heavy mustache and beard nearly to waist, deceptively comforting presence. Fine skin/clothing/eye details and grooming gag original; no canonical horns or tree-trunk mouth. 2023 moss enclosure ability need not be illustrated."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

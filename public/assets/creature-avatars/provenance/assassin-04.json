@@ -1,0 +1,17 @@
+{
+  "creatureId": "assassin",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy character avatar, tactile painterly realism, sharp ADULT face and stealthy dramatic lighting, readable at 512 pixels. Assassin NPC: a living Medium humanoid expert infiltrator in worn STUDDED LEATHER armor, practical dark travel clothing, a SHORTSWORD and compact LIGHT CROSSBOW. Normal two-arm/two-hand/two-leg anatomy, one head, original adult individual identity, no existing franchise character. No victim, attack injury, blood or written orders. No text, signature, watermark, logo or border. YOLO 04. A deadly serious adult assassin in professional black studded leather attempts to sneak through a castle hallway while wearing gigantic fluffy pink rabbit slippers. One slipper has just stepped on a bright yellow squeaky rubber duck, and the assassin freezes with an outraged expression, sheathed shortsword at belt and compact light crossbow on back. Exactly two arms and two legs, cloak caught awkwardly on a suit-of-armor stand, more toy ducks scattered across the floor, moonlit comic disaster without text.",
+  "designReferences": [
+    {
+      "url": "https://5thsrd.org/gamemaster_rules/monsters/assassin/",
+      "note": "SRD5.1 Assassin is a Medium any-race humanoid using studded leather, shortsword and light crossbow. Original adult faces, clothing details and scenes; no fixed lineage or named character."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

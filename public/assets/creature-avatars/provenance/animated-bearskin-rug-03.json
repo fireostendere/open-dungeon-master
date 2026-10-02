@@ -1,0 +1,17 @@
+{
+  "creatureId": "animated-bearskin-rug",
+  "variantId": "03",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy creature avatar in tactile painterly realism, cinematic light, clear silhouette legible at 512 pixels. Animated Bearskin Rug: a magically animated old shaggy bear PELT carpet. A FLAT EMPTY flexible skin with no living bear body or filled torso, no bones or gore; a preserved bear head with snapping jaws and glassy eyes is attached to a broad thin furry rug, exactly four flat pelt leg flaps with claws. Its magic lifts and folds it like a billowing sheet. Show the thin curled edges and plain leather underside clearly so it reads as a rug rather than a live bear. One head, four pelt paws, no humanoid limbs. Original composition, no words, signature, watermark, logo or frame. Normal 03. Slightly overhead close view of a pale ash-brown bear pelt rug curling into a defensive crescent on a dark oak floor, bear head lifted and jaws opening in a supernatural roar. Its four skin paw flaps spread away from its thin fur sheet, one corner folded back to reveal a completely empty leather underside. Greenish lantern light and warm brass reflections, antique hunting lodge guardian, elegant horror without wounds. Targeted follow-up edit: Edit only the anatomy error in this existing animated bear rug image. It currently has five clawed paw extensions. Remove the extra fifth paw extension that sticks toward the top center of the image, behind the middle of the rug, including all claws at its tip. Replace that extension with a short rounded, un-clawed fur edge and the exposed wooden floor beyond, so the carpet has exactly FOUR paws: lower left foreground, right next to the bear head, far left background, and far right background. Keep those four existing paws, the snarling bear head, the flat empty leather-and-fur rug, curled edge, lantern lighting, framing and painted texture otherwise unchanged. No text or signature.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/animated-bearskin-rug/",
+      "note": "ToB2 animated flat bearskin rug with snapping jaws, claws and enveloping sheet-like motion; original scenes and surface designs."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

@@ -1,0 +1,21 @@
+{
+  "creatureId": "behir",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BEHIR avatar. One HUGE blue-scaled REPTILIAN SERPENT with exactly TWELVE SHORT STURDY REPTILIAN LEGS arranged in SIX LEFT-RIGHT PAIRS along its long winding body: six legs on each side. One powerful toothed reptile head, one long tapering tail, no wings, feathers, humanoid hands or extra heads. Blue armored scales and optional pale gold belly, two short swept-back horns are original decorative choices. It is a twelve-legged serpent, not a four-legged dragon, not a basilisk with eight legs, not an insect. Optional small electric sparks at the mouth express lightning breath without harming anyone. Detailed realistic painterly scales and colossal rocky surroundings, readable head and body at 512 pixels. No prey, blood, injuries, gore, text, logo, signature, watermark or frame. Normal 02. Close three-quarter portrait of an immense sapphire-blue behir's long predatory head and forward serpentine body, broad toothed mouth partly open around harmless electric sparks. Two short swept-back horns, intense amber eyes, thick overlapping scales, pale throat plates. Foremost leg pairs visible below the neck; the rest of its twelve-legged body winds into shadow behind and naturally exits the crop. Huge ruined stone arches establish scale, blue and gold dramatic light.",
+  "designReferences": [
+    {
+      "url": "https://a5e.tools/node/1442",
+      "note": "Official A5E Behir prose: Huge blue-scaled serpentine creature with twelve legs; bite, constriction and lightning breath. Shared catalog identity also includes core/Black Flag. Six limb pairs retained; horn pair, belly shade, precise scales, scenes and twelve-slipper/nightcap joke are original design choices. No wings."
+    },
+    {
+      "url": "https://github.com/open5e/open5e-api/blob/staging/data/v1/wotc-srd/Monster.json",
+      "note": "SRD5.1 behir corroborates Huge monstrosity, climbing, bite/constriction and lightning breath. No publisher artwork copied."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

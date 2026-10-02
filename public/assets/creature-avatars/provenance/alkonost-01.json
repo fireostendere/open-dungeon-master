@@ -1,0 +1,21 @@
+{
+  "creatureId": "alkonost",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy bestiary avatar, rich painterly realism, cinematic natural light, tactile feathers, sharp face and silhouette readable at 512 pixels. Alkonost from Creature Codex: a SMALL graceful storm-bird with the beautiful FACE OF AN ADULT HUMAN, gray avian body, two feathered wings, two bird feet and one feathered tail. Adult human facial features merge naturally into head feathers, NO BEAK, no human torso, no human arms, no breasts, no harpy body, no extra limbs. Storm-gray plumage; elder birds may have subtle green/violet iridescence. A supernatural storm singer, not angel or ordinary owl. Original anatomy-based design, no copied art. No text, watermark, lettering, collage or border. Serious normal 01. Close three-quarter portrait of an adult feminine-faced alkonost perched on wind-carved seaside rock before an approaching squall, face framed by fine pale ash feathers, charcoal wings folded, both bird feet gripping stone, billowing dark clouds, distant white spray, restrained silver rim light. Eyes thoughtful and uncanny, mouth softly open in song.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/alkonost",
+      "note": "Creature Codex identity: Small bird with an adult human face, gray storm-colored plumage, older individuals shimmer green or violet; storm song. Not the differently designed Jet Pack 7 creature."
+    },
+    {
+      "url": "https://koboldpress.com/tools/kobold-press-monsters/",
+      "note": "Publisher catalog confirms Small monstrosity, Creature Codex; coastal/mountain habitat."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

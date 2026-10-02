@@ -1,5 +1,7 @@
-import { skinForGenre, tileJitter, type OverworldTile, type XY } from "@/lib/overworld/logic";
+import { noiseField, skinForGenre, type XY } from "@/lib/overworld/logic";
 import type { OverworldLabel, OverworldPath, PathKind } from "@/lib/overworld/features";
+import { atlasQuests, isQuestPin, type AtlasCharacter, type AtlasLocation } from "@/lib/overworld/atlas";
+import { atlasTerrain, BIOME_MATERIALS, materialAt, type TerrainMaterial } from "@/lib/overworld/cartography";
 
 // Canvas drawing for the region map, lifted out of OverworldPanel so the
 // panel has room for the DM's authoring controls. Nothing here touches
@@ -8,14 +10,8 @@ import type { OverworldLabel, OverworldPath, PathKind } from "@/lib/overworld/fe
 
 export const OVERWORLD_TILE = 16;
 
-export type OverworldLocation = {
-  id: string;
-  name: string;
-  visited: boolean;
-  isCurrent: boolean;
-  connections: string[];
-  anchor: { x: number; y: number } | null;
-};
+export type OverworldLocation = AtlasLocation;
+export type AtlasMaterials = Partial<Record<TerrainMaterial, HTMLImageElement>>;
 
 export type OverworldData = {
   map: {
@@ -23,6 +19,8 @@ export type OverworldData = {
     width: number;
     height: number;
     terrain: string;
+    materialGrid?: string;
+    terrainConflicts?: string[];
     pins: Array<{ id: string; x: number; y: number; label: string }>;
     partyXy: { x: number; y: number } | null;
     params: Record<string, number>;
@@ -32,6 +30,9 @@ export type OverworldData = {
     notes?: string;
   };
   locations: OverworldLocation[];
+  party?: AtlasCharacter[];
+  quests?: string[];
+  scope?: "spatial" | "party";
 };
 
 export type DrawOptions = {
@@ -42,7 +43,128 @@ export type DrawOptions = {
   backdrop?: HTMLImageElement | null;
   // A road, river or border still being drawn: its points so far.
   pending?: { kind: PathKind; points: XY[] } | null;
+  // Accessible DOM markers sit over the screen canvas; exports draw them.
+  markers?: boolean;
+  materials?: AtlasMaterials | null;
 };
+
+// ponytail: one region cache; a gallery can use an LRU if multiple maps ever
+// share a screen. Position/journal updates must reuse the unchanged relief.
+let terrainCache: { seed: number; width: number; height: number; terrain: string; materialGrid?: string; genre: string; materials?: AtlasMaterials | null; canvas: HTMLCanvasElement } | undefined;
+const materialCache = new WeakMap<HTMLImageElement, ImageData>();
+const MATERIAL_COLOURS: Partial<Record<TerrainMaterial, number[]>> = {
+  broadleaf: [72, 99, 54], autumn: [128, 91, 42], jungle: [34, 72, 40], deadwood: [77, 72, 62], enchanted: [42, 81, 71],
+  desert: [172, 143, 83], tundra: [113, 120, 103], snow: [188, 199, 202], canyon: [137, 94, 63],
+  volcanic: [53, 49, 46], shallows: [53, 118, 123], ice: [150, 183, 196], lava: [178, 70, 18],
+};
+
+// Relief is derived from the stored biome grid, including hand-painted
+// changes. A generated illustration must never replace the world's facts.
+function reliefTerrain(map: OverworldData["map"], genre: string, materials?: AtlasMaterials | null) {
+  const cached = terrainCache;
+  if (cached && cached.seed === map.seed && cached.width === map.width && cached.height === map.height && cached.terrain === map.terrain && cached.materialGrid === map.materialGrid && cached.genre === genre && cached.materials === materials) return cached.canvas;
+  const canvas = document.createElement("canvas");
+  const resolution = 16;
+  canvas.width = map.width * resolution;
+  canvas.height = map.height * resolution;
+  const context = canvas.getContext("2d")!;
+  const image = context.createImageData(canvas.width, canvas.height);
+  const surfaces: Record<string, ImageData> = {};
+  for (const [kind, bitmap] of Object.entries(materials ?? {})) {
+    if (!usable(bitmap)) continue;
+    const cachedMaterial = materialCache.get(bitmap);
+    if (cachedMaterial) { surfaces[kind] = cachedMaterial; continue; }
+    const plate = document.createElement("canvas");
+    plate.width = bitmap.naturalWidth; plate.height = bitmap.naturalHeight;
+    const plateContext = plate.getContext("2d")!;
+    plateContext.drawImage(bitmap, 0, 0);
+    const pixels = plateContext.getImageData(0, 0, plate.width, plate.height);
+    materialCache.set(bitmap, pixels);
+    surfaces[kind] = pixels;
+  }
+  const skin = skinForGenre(genre);
+  const colours = Object.fromEntries(Object.entries(skin).map(([kind, entry]) => {
+    const n = parseInt(entry.fill.slice(1), 16);
+    const rgb = [n >> 16, (n >> 8) & 255, n & 255];
+    const gray = rgb[0] * 0.3 + rgb[1] * 0.55 + rgb[2] * 0.15;
+    return [kind, rgb.map(channel => channel * 0.58 + gray * 0.42)];
+  })) as Record<string, number[]>;
+  const heights: Record<string, number> = { w: 0, s: 0.18, p: 0.28, f: 0.38, h: 0.68, m: 1 };
+  const tile = (x: number, y: number) => map.terrain[Math.max(0, Math.min(map.height - 1, y)) * map.width + Math.max(0, Math.min(map.width - 1, x))] ?? "w";
+  const texture = (x: number, y: number) => map.materialGrid ? materialAt(map.materialGrid, Math.max(0, Math.min(map.height - 1, y)) * map.width + Math.max(0, Math.min(map.width - 1, x))) : BIOME_MATERIALS[tile(x, y) as keyof typeof BIOME_MATERIALS];
+  const field = (x: number, y: number) => {
+    let height = 0;
+    for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+      height += (texture(x + dx, y + dy) === "lava" ? 0.12 : heights[tile(x + dx, y + dy)] ?? 0) * (dx === 0 ? 2 : 1) * (dy === 0 ? 2 : 1);
+    }
+    return height / 16;
+  };
+  const elevation = Array.from({ length: map.width * map.height }, (_, i) => field(i % map.width, Math.floor(i / map.width)));
+  const at = (x: number, y: number) => elevation[Math.max(0, Math.min(map.height - 1, y)) * map.width + Math.max(0, Math.min(map.width - 1, x))];
+  const broad = noiseField(map.seed ^ 0x51ed270b, map.width, map.height, 1.8);
+  const fine = noiseField(map.seed ^ 0x2545f491, map.width, map.height, 0.45);
+  const detail = (x: number, y: number) => (1 - Math.abs(broad(x, y) * 2 - 1)) * 0.7 + fine(x, y) * 0.3;
+  const phase = (map.seed % 1000) / 37;
+  for (let y = 0; y < canvas.height; y++) for (let x = 0; x < canvas.width; x++) {
+    const gx = x / resolution, gy = y / resolution, ix = Math.floor(gx), iy = Math.floor(gy);
+    const tx = gx - ix, ty = gy - iy;
+    const kinds = [tile(ix, iy), tile(ix + 1, iy), tile(ix, iy + 1), tile(ix + 1, iy + 1)];
+    const textures = [texture(ix, iy), texture(ix + 1, iy), texture(ix, iy + 1), texture(ix + 1, iy + 1)];
+    const weights = [(1 - tx) * (1 - ty), tx * (1 - ty), (1 - tx) * ty, tx * ty];
+    const height = at(ix, iy) * weights[0] + at(ix + 1, iy) * weights[1] + at(ix, iy + 1) * weights[2] + at(ix + 1, iy + 1) * weights[3];
+    const dx = (at(ix + 1, iy) - at(ix, iy)) * (1 - ty) + (at(ix + 1, iy + 1) - at(ix, iy + 1)) * ty;
+    const dy = (at(ix, iy + 1) - at(ix, iy)) * (1 - tx) + (at(ix + 1, iy + 1) - at(ix + 1, iy)) * tx;
+    const rock = Math.max(0, height - 0.4);
+    const slope = -dx * 1.1 - dy * 1.3 + (detail(gx - 0.1, gy - 0.1) - detail(gx + 0.1, gy + 0.1)) * rock * 2.2;
+    const grain = Math.sin(x * 12.9898 + y * 78.233 + phase) * 0.018;
+    const light = 0.96 + slope + (detail(gx, gy) - 0.5) * rock * 0.24 + grain;
+    const index = (y * canvas.width + x) * 4;
+    for (let channel = 0; channel < 3; channel++) {
+      let value = 0;
+      for (let corner = 0; corner < 4; corner++) {
+        const kind = kinds[corner];
+        const surface = textures[corner];
+        const material = surfaces[surface];
+        let colour = (MATERIAL_COLOURS[surface] ?? colours[kind] ?? colours.w)[channel];
+        if (material) {
+          const mx = Math.floor(((gx + phase) / 18 % 1) * material.width);
+          const my = Math.floor(((gy + phase) / 18 % 1) * material.height);
+          const materialIndex = (my * material.width + mx) * 4 + channel;
+          colour = material.data[materialIndex] * 0.86 + colour * 0.14;
+        }
+        value += colour * weights[corner];
+      }
+      const snow = textures.some(value => value === "lava" || value === "volcanic") ? 0 : Math.max(0, height - 0.7) * (surfaces.mountains ? 60 : 150);
+      image.data[index + channel] = Math.min(255, Math.max(0, value * light + snow));
+    }
+    image.data[index + 3] = 255;
+  }
+  context.putImageData(image, 0, 0);
+  // Fine contour lines follow the actual elevation, like an engraved atlas.
+  context.strokeStyle = "rgba(235,224,194,0.12)";
+  context.lineWidth = 0.55;
+  for (const level of [0.22, 0.42, 0.6, 0.78]) {
+    context.beginPath();
+    for (let y = 0; y < map.height - 1; y++) for (let x = 0; x < map.width - 1; x++) {
+      const corners = [at(x, y), at(x + 1, y), at(x + 1, y + 1), at(x, y + 1)];
+      const points = [[x, y], [x + 1, y], [x + 1, y + 1], [x, y + 1]];
+      const crossings: number[][] = [];
+      for (let edge = 0; edge < 4; edge++) {
+        const next = (edge + 1) % 4;
+        if ((corners[edge] < level) === (corners[next] < level)) continue;
+        const t = (level - corners[edge]) / (corners[next] - corners[edge]);
+        crossings.push([points[edge][0] + (points[next][0] - points[edge][0]) * t, points[edge][1] + (points[next][1] - points[edge][1]) * t]);
+      }
+      for (let i = 1; i < crossings.length; i += 2) {
+        context.moveTo(crossings[i - 1][0] * resolution, crossings[i - 1][1] * resolution);
+        context.lineTo(crossings[i][0] * resolution, crossings[i][1] * resolution);
+      }
+    }
+    context.stroke();
+  }
+  terrainCache = { seed: map.seed, width: map.width, height: map.height, terrain: map.terrain, materialGrid: map.materialGrid, genre, materials, canvas };
+  return canvas;
+}
 
 const PATH_STYLES: Record<PathKind, { stroke: string; width: number; dash: number[] }> = {
   road: { stroke: "rgba(214, 178, 110, 0.95)", width: 1.8, dash: [] },
@@ -116,37 +238,23 @@ function usable(image: HTMLImageElement | null | undefined): image is HTMLImageE
   return Boolean(image && image.complete && image.naturalWidth > 0);
 }
 
-// Shades a hex fill by a small factor (deterministic per tile).
-function shade(hex: string, factor: number): string {
-  const value = parseInt(hex.slice(1), 16);
-  const channel = (offset: number) => {
-    const raw = (value >> offset) & 0xff;
-    return Math.min(255, Math.max(0, Math.round(raw * (1 + factor))));
-  };
-  return `rgb(${channel(16)}, ${channel(8)}, ${channel(0)})`;
-}
-
 export function drawOverworld(
   context: CanvasRenderingContext2D,
   data: OverworldData,
   options: DrawOptions,
 ) {
-  const skin = skinForGenre(options.genre);
   const tile = OVERWORLD_TILE;
-  const { width, height, terrain } = data.map;
+  const { width, height } = data.map;
 
   if (usable(options.backdrop)) {
     // The picture stands in for the tiles, stretched to the grid so a tap
     // lands on the same tile whichever of the two is showing.
     context.drawImage(options.backdrop, 0, 0, width * tile, height * tile);
   } else {
-    for (let y = 0; y < height; y += 1) {
-      for (let x = 0; x < width; x += 1) {
-        const kind = (terrain[y * width + x] ?? "w") as OverworldTile;
-        context.fillStyle = shade(skin[kind].fill, tileJitter(x, y));
-        context.fillRect(x * tile, y * tile, tile, tile);
-      }
-    }
+    context.imageSmoothingEnabled = true;
+    context.imageSmoothingQuality = "high";
+    const map = data.map.materialGrid ? data.map : { ...data.map, ...atlasTerrain(data.map, data.locations) };
+    context.drawImage(reliefTerrain(map, options.genre, options.materials), 0, 0, width * tile, height * tile);
   }
 
   // Borders under rivers under roads: a road crossing a river reads as a
@@ -205,8 +313,12 @@ export function drawOverworld(
   }
   context.setLineDash([]);
 
+  drawLabels(context, data.map.labels ?? [], tile);
+  if (options.markers === false) return;
+
   // Lead pins under the location markers.
   for (const pin of data.map.pins) {
+    if (isQuestPin(pin)) continue;
     const pinX = pin.x * tile + tile / 2;
     const pinY = pin.y * tile + tile / 2;
     context.fillStyle = "rgba(190, 120, 240, 0.9)";
@@ -261,7 +373,30 @@ export function drawOverworld(
     context.fillText(location.name, markerX + 8, markerY - 6);
   }
 
-  drawLabels(context, data.map.labels ?? [], tile);
+  for (const quest of atlasQuests(data.quests ?? [], data.locations, data.map.pins)) {
+    if (!quest.anchor) continue;
+    const x = quest.anchor.x * tile + tile / 2, y = quest.anchor.y * tile - 14;
+    context.fillStyle = "#f4d48f";
+    context.beginPath();
+    context.moveTo(x, y - 7); context.lineTo(x + 5, y); context.lineTo(x, y + 7); context.lineTo(x - 5, y);
+    context.closePath(); context.fill();
+    context.font = "600 11px sans-serif";
+    context.fillText(quest.text, x + 10, y + 4);
+  }
+  for (const character of data.party ?? []) {
+    const location = data.locations.find(entry => entry.id === character.locationId);
+    const anchor = location?.anchor ?? data.map.partyXy;
+    if (!anchor) continue;
+    const siblings = (data.party ?? []).filter(entry => entry.locationId === character.locationId);
+    const offset = (siblings.findIndex(entry => entry.id === character.id) - (siblings.length - 1) / 2) * 20;
+    const x = anchor.x * tile + tile / 2 + offset, y = anchor.y * tile + 34;
+    context.fillStyle = "#192b2b";
+    context.strokeStyle = "#89cfbf";
+    context.beginPath(); context.arc(x, y, 9, 0, Math.PI * 2); context.fill(); context.stroke();
+    context.font = "700 9px sans-serif"; context.textAlign = "center"; context.fillStyle = "#d4f4e9";
+    context.fillText(character.name.slice(0, 1), x, y + 3);
+    context.textAlign = "start";
+  }
 
   // The party marker, on top of everything: a party between two places has no
   // current location, which is exactly when the table most wants to see it.
@@ -286,7 +421,7 @@ export function drawOverworld(
 // scratch on its own canvas so the view's pan and zoom do not crop it.
 export function renderOverworldPng(
   data: OverworldData,
-  options: Pick<DrawOptions, "genre" | "backdrop">,
+  options: Pick<DrawOptions, "genre" | "backdrop" | "materials">,
 ): Promise<Blob | null> {
   const canvas = document.createElement("canvas");
   canvas.width = data.map.width * OVERWORLD_TILE;
@@ -303,7 +438,7 @@ export function renderOverworldPng(
 // wrong, or null.
 export async function saveOverworldPng(
   data: OverworldData,
-  options: Pick<DrawOptions, "genre" | "backdrop">,
+  options: Pick<DrawOptions, "genre" | "backdrop" | "materials">,
 ): Promise<string | null> {
   const blob = await renderOverworldPng(data, options);
   if (!blob) {

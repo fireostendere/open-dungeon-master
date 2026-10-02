@@ -1,0 +1,17 @@
+{
+  "creatureId": "akanka",
+  "variantId": "03",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-09-30",
+  "prompt": "Use case: stylized-concept. One original square dark-fantasy creature avatar, detailed tactile painterly realism and dramatic prismatic light, legible at 512 pixels, no frame, text, logo, watermark or collage. Akanka from Tome of Beasts 3: a Medium arachnid-like fey, low jewel-armored spiderlike body, hard reflective carapace encrusted with luminous gems, jointed articulated legs, web silk, deceptive oracle intelligence. Its reflective shell can produce a faint identical illusory afterimage, not a second real creature. Original face interpretation: a compact arachnid front/cephalothorax with glossy dark eye-like facets and small biting mouthparts framed by gem-plated forelegs, no human torso. Do not claim a fixed species eye or leg count; frame close upper body and forelegs, other legs partly hidden by pose, consistent coherent arachnid anatomy. Emerald, garnet and violet jewel hues are original palette choices. Do not copy any publisher artwork. Serious normal 03. Eye-level close portrait emerging from the narrow gap beside a cracked treasure chest lid. A thin warm sunbeam ignites emerald/garnet jewels on its rounded hard carapace; glossy faceted eye cluster and compact arachnid mouthparts peer slyly forward between two visible forelegs, other limbs hidden behind body. Dust, ancient coins blurred, cool black chitin, dangerous false-oracle intelligence.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/akanka-2/",
+      "note": "Edition-specific ToB3 Medium arachnid-like fey; jeweled reflective carapace, identical afterimage, web/ceiling movement and false oracle. Exact face/eye/leg count not fixed by accessible prose; original arachnid-front rendering. Human-faced fan claims and inaccessible art not treated as confirmed."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

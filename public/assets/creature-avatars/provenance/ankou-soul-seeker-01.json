@@ -1,0 +1,21 @@
+{
+  "creatureId": "ankou-soul-seeker",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy creature avatar, tactile painterly realism, cinematic restraint, skull face and shadow silhouette readable at 512 pixels. Ankou Soul Seeker from Creature Codex: a Large spectral dragon and celestial guide of departed souls. Clean bleached ivory dragon skeleton enveloped in a flowing inky-black cloak of supernatural shadows. One narrow draconic skull with two main backward-swept bone horns, a long flexible vertebral neck, slender rib cage, exactly four skeletal clawed legs, exactly TWO skeletal dragon wings with wispy shadow membranes, one long bony tail. Slender agile field emissary, much smaller and less monumental than its soul-herald master. Calm searching demeanor and cold silver-blue light within hollow sockets; no flesh, gore, human skull, armor or green decay glow. Original skeletal details and composition, no copied publisher art. No text, signature, watermark, logo or frame. Normal 01. Close three-quarter head and shoulders portrait of the slender skeletal dragon searching along a misty cemetery path at night. Its ivory skull is gently lowered, long bone horns swept back, black shadow cloak drifting around its vertebral neck and upper rib cage, only two folded wing shoulders behind. A few tiny featureless pearl soul lights drift near its muzzle, soft moonlight through yew branches, thoughtful mysterious guide.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/ankou-soul-seeker/",
+      "note": "Creature Codex Large dragon/celestial with shadow cloak, cold-flame breath and soul-transporting role. Original slender emissary depiction."
+    },
+    {
+      "url": "https://www.5esrd.com/database/creature/ankou-soul-herald/",
+      "note": "Shared ankou lore describes bleached dragon bones wrapped in inky shadows; seekers bring souls to the herald. Original scenes and skeletal styling."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

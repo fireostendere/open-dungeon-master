@@ -1,0 +1,25 @@
+{
+  "creatureId": "ahu-nixta",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-09-30",
+  "prompt": "Use case: stylized-concept. Create one original square dark-fantasy creature avatar, tactile cinematic painted realism mixing eldritch biology and antique intricate clockwork, crisp readable identity at 512 pixels. An Ahu-Nixta from Creature Codex, a Large shapeless pulpy living aberration piloting a tall ovoid/egg-shaped brass-and-silver clockwork shell. The shell has glass-covered viewing ports with unsettling organic eyes behind them, a frontal opening showing a fleshy toothy maw with several reddish-violet organic grasping tendrils. Radial articulated mechanical manipulators have mismatched clamp/saw/drill/blade tool ends; long flexible segmented cable-limbs with claw tips hang below. NOT a humanoid knight, not a robot species, not an octopus in a diving helmet, not a person in a suit. Its flesh is an amorphous pilot inside the shell, no human face or brain in a jar, no wings. Avoid asserting exact number of eyes or tools; show coherent attached clockwork mechanisms. Upper shell, glass eye ports and living maw dominate frame; original design and composition, do not copy publisher artwork. No text, logos, frame or watermark. Serious normal 02. Frontal close portrait of the ovoid clockwork casing as the living toothy maw unfolds just beyond an opened central iris hatch. Organic reddish-purple tendrils reach toward a floating faceted void relic held securely by two separate mechanical tool manipulators, another viewing port shows an organic watchful eye. Dark bronze and old silver shell with rivets/gears, slate stone chamber, violet reflected relic light, clear biological-mechanical separation, no blood.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/ahu-nixta/",
+      "note": "Creature Codex: Large pulpy shapeless aberration in clockwork shell; forms eyes/mouths/appendages, glass ports, manipulators. Attack count is not limb count."
+    },
+    {
+      "url": "https://koboldpress.com/warlocks-apprentice-ahu-nixta-hivemind-of-the-concordant-chronosphere/",
+      "note": "Primary publisher context and species illustration. CC clockwork identity kept distinct from later fleshcrafted-vessel variations."
+    },
+    {
+      "url": "https://koboldpress.com/wp-content/uploads/2021/12/ahu-nixta.jpg",
+      "note": "Official art directly inspected for non-copied anatomy: ovoid shell, fleshy toothy maw/tendrils, radial tools and long segmented cable-limbs. Original scene and layout."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

@@ -1,0 +1,17 @@
+{
+  "creatureId": "beach-weird",
+  "variantId": "03",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BEACH WEIRD elemental avatar. One LARGE long EEL-SHAPED SERPENTINE COLUMN OF CHURNING WATER rising from beach sand beside a tide pool. The body consists of transparent turbulent seawater containing suspended SAND, KELP/SEAWEED and pieces of DRIFTWOOD. No solid fish flesh, no humanoid torso, no arms or legs, no ordinary eel scales or required fins. Its head is an eel-like crest formed entirely by flowing water and foam, not a human face; any eye-like impressions are only original sand eddies in the water. One coherent sinuous water body, base merging into wet sand and surf. Rich realistic painterly fluid motion, suspended debris and light refraction, clear silhouette at 512 pixels. No victims, blood, gore, text, signature, watermark, logo or frame. Normal 03. A broad loop of storm-gray water rises from a windswept beach and curves into a threatening eel-like posture. One continuous limbless serpentine water body, abundant pale sand spiraling inside, long torn kelp ribbons and several small driftwood pieces caught in the flow. White foam and droplets outline the shape, heavy dark clouds and rough sea, dramatic subdued realism.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/beach-weird/",
+      "note": "Tome of Beasts 3 Large elemental: eel-like turbulent water form rising from sand, with suspended seaweed/kelp, driftwood and abundant sand; shoreline and tide-pool bound. No prescribed eyes, arms, legs or flesh. Water colors, sand-eddy facial suggestion, poses and trapped beach-ball/bucket joke are original choices."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

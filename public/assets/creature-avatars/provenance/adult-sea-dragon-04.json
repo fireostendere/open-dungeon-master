@@ -1,0 +1,25 @@
+{
+  "creatureId": "adult-sea-dragon",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-09-30",
+  "prompt": "Use case: stylized-concept. One original square dark-fantasy creature avatar, elaborate tactile painterly realism, cinematic lighting, highly legible at 512-pixel thumbnail, no frame, typography, watermark or collage. Adult Sea Dragon of Tome of Beasts: streamlined aquamarine sea serpent with a clearly sharklike head and toothy wide shark jaw, sleek elongated eel-like neck/body, a pair of huge ribbed fin-wings emerging behind the neck, dorsal fins and finned serpentine tail. Aquatic shark-and-eel silhouette, not a bulky horned land dragon. Head can bear small swept thornlike projections but no antlers; no legs, paws, humanoid arms, turtle shell or seahorse snout. Face and eye take center stage, keep the neck and a wing-fin visible for identity. Original image from written creature traits, no copied illustration or sculpture composition. YOLO absurd variant 04. Same immense aquamarine shark-headed sea serpent with fin-wings, in a ruined harbor, proudly balancing a ludicrously tiny colorful wooden toy sailboat across the tip of its blunt snout. Its eye looks cross-eyed down at the toy with smug concentration; a few wet seaweed strands dangle like an accidental ceremonial mustache. A genuinely wrecked ship is softly blurred behind, one vast fin-wing rising like a sail. The toy boat is a toy, not real people; face large and comedic dignity, dark fantasy rich textures, no hands, no text.",
+  "designReferences": [
+    {
+      "url": "https://koboldpress.com/kpstore/product/tome-of-beasts-1-2023-pawns/",
+      "note": "Primary publisher listing confirms Sea Dragon in ToB2023."
+    },
+    {
+      "url": "https://www.fantasygrounds.com/library/dnd5e/npcs/dragon-sea-adult/",
+      "note": "Licensed ToB2023 adult entry; edition-specific identity distinguished."
+    },
+    {
+      "url": "https://mz4250.com/posts/sea-dragon-is-83064103",
+      "note": "Creator's ToB anatomical interpretation inspected: long legless body, sharklike head, paired large fin-wings. Not official publisher art; no exact horn or fin-ray count treated as mandatory."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

@@ -1,0 +1,21 @@
+{
+  "creatureId": "adult-boreal-dragon",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-09-30",
+  "prompt": "Use case: stylized-concept. Asset type: one original square bestiary avatar. Polished dark-fantasy realistic painterly art, rich tactile scales, dramatic cinematic lighting. One adult dragon only, head and upper body dominate square frame, facial anatomy clear. Conventional body plan of four legs, two separate wings and one tail, mostly outside crop. No text, letters, logo, watermark, border, collage, copied source artwork or artist imitation. Subject: an adult Boreal Dragon from Tome of Beasts2, a combative arctic dragon with hard BLUE-WHITE scales alternating with patches of SILVERY-BLUE FUR, unmistakable shaggy cheek and neck fur, AMBER eyes. Its breath is superheated air with WHITE-HOT EMBERS, not cold breath; wings shed burning sparks. Original design choice: thick powerful neck and two compact swept-back dark horns. Preserve mixed fur and scales, not an ordinary white dragon. Normal01: alpine bruiser, frontal broad-necked bust, icy blue-white facial scales, shaggy silvery-blue cheek and neck fur, piercing amber stare, faint orange-white ember light inside slightly parted jaws. Thick muscular presence, snowy mountains behind, two compact swept horns.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/boreal-dragon-adult/",
+      "use": "Licensed identity text: blue-white scales, silvery-blue fur, amber eyes, hot ember breath and sparking wings"
+    },
+    {
+      "url": "https://koboldpress.com/tools/kobold-press-monsters/",
+      "use": "Tome of Beasts2 source identity"
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

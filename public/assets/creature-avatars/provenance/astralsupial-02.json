@@ -1,0 +1,17 @@
+{
+  "creatureId": "astralsupial",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy creature illustration, beautifully tactile painterly realism, crisp readable animal anatomy at 512 pixels. Astralsupial: an oversized OPOSSUM-like magical beast, shaggy thick PATCHY gray fur, long pointed snout and rounded naked pink ears, fleshy five-digit hands with opposable thumbs at the ends of its four mammalian limbs, long strong naked PREHENSILE TAIL. A mischievously charming grin with broad FLAT MOLARS, no sharp carnivore fangs. An extradimensional belly pouch holds improbable trinkets. Four limbs and one tail total, no wings or horns. Original opossum proportions and fur pattern, not a kangaroo, koala or raccoon. No text, signature, watermark or frame. Normal 02. A huge shaggy opossum stands on all four hand-like paws atop broken limestone in a windswept highland ruin. Its long bare tail coils to the side, yellowed flat molars show in a charming uncanny smile, one pink five-fingered front hand is lifted inquisitively. A spoon and glass bauble peek out of its belly pouch; faint astral sparkle in the dusk, warm last sunlight highlights sparse fur patches.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/astralsupial/",
+      "note": "Tome of Beasts 3 oversized opossum with thick patchy fur, powerful prehensile tail, fleshy five-digit hands with opposable thumbs, flat molars and extradimensional pouch. Four-limb opossum body proportions, colors and scenes are original conservative interpretation."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

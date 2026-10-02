@@ -1,0 +1,17 @@
+{
+  "creatureId": "awakened-tree",
+  "variantId": "03",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy living-tree avatar, cinematic painterly realism, detailed bark and foliage, huge readable silhouette at 512 pixels. An Awakened Tree is a HUGE ordinary TREE magically given sentience and mobility. Retain a real tree's massive trunk, spreading crown, many natural branches and flexible uprooted roots that move like heavy feet. A subtle pair of deep bark knots and a crease in the trunk suggest an expressive face while active; all features remain bark and wood, no human skin, flesh or eyeballs. Some long branches bend to gesture, but this is an actual tree rather than a muscular humanoid wearing bark. Tree species and exact root/branch layout are original interpretations. No text, signature, watermark, logo or frame. Normal 03. A huge old birch awakens on a snowy hillside, pale peeling bark and dark natural knot features on its broad trunk, thick roots rising from the snow as it turns. Many slender branches hold sparse copper leaves and frost, an especially long branch arcs outward like a slow greeting. Abandoned stone chapel far below emphasizes its height, cold winter dawn, restrained earthy magical realism.",
+  "designReferences": [
+    {
+      "url": "https://5thsrd.org/gamemaster_rules/monsters/awakened_tree/",
+      "note": "SRD5.1 Huge plant: an ordinary tree granted sentience and mobility by awaken or similar magic, with False Appearance and Slam. Oak, willow and birch forms, expressive bark knots and root locomotion are original visual interpretations."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

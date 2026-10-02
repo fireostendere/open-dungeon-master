@@ -1,0 +1,21 @@
+{
+  "creatureId": "azer-forgemaster-a5e",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy elemental master-smith portrait, tactile painterly realism, richly worked bronze and living fire, readable adult face at 512 pixels. Azer Forgemaster from Level Up A5E: a powerful stocky DWARF-LIKE BODY MADE OF BRONZE containing living flame, exactly two arms, two hands, two legs, one head. Carries a finely forged RETURNING HAMMER and a small round BUCKLER shield. An accomplished veteran smith with original elaborate metalwork, ember-glowing eyes and crown of fire as hair; optional flame beard is original styling. Can stand within bonfires and step between flames, no harm to its metal body. No wings, horns, tail, ordinary human flesh, victims, injuries, text, signature, watermark, logo or border. Normal 01. A venerable bronze forgemaster stands inside a controlled circle of bright forge fire in a vast vaulted workshop. Long flowing orange flame beard and sculpted bronze brow, returning hammer held in one hand at chest height, buckler strapped to the other forearm. Intricate brass smith's apron plates and sturdy bronze legs, glowing furnace doors and fine sparks, proud close three-quarter elemental portrait.",
+  "designReferences": [
+    {
+      "url": "https://a5e.tools/node/1434",
+      "note": "A5E Monstrous Menagerie Azer Forgemaster: Medium bronze-and-fire elemental smith leader, returning hammer, buckler, Bonfire and Fire Step. Original individuals, surface ornament and scenes."
+    },
+    {
+      "url": "https://a5e.tools/node/1433",
+      "note": "Publisher Azer description establishes living flame inside dwarflike bronze bodies. Flame hairstyles and beards are original artistic styling, no published art copied."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

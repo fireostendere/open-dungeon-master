@@ -1,0 +1,21 @@
+{
+  "creatureId": "aatxe",
+  "variantId": "03",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-09-30",
+  "prompt": "Use case: stylized-concept. One original square dark-fantasy bestiary avatar of an AATXE, the celestial guardian in Creature Codex. Its true form is a GREAT CRIMSON BULL: powerful adult bovine anatomy on four legs, massive red-furred head and shoulders, curved dark horns, broad dark muzzle, fierce intelligent golden eyes. NOT a minotaur or humanoid, no wings, no demonic spikes. Subtle warm celestial radiance suggests a protective guardian without changing its bull identity. Polished realistic painterly fantasy, cinematic dramatic lighting, rich natural fur and horn texture, head and horns fit centered square with margins. One bull only, no people, blood, gore, text/letters/logos/watermark/grid/border. Original art no artist imitation. Normal variant03. Right-facing noble red bull with burnished russet-crimson coat, weathered horn ridges and broad muscular neck, standing beside old mossy temple wall after rain. Moody green-blue forest light and warm sacred rimlight, watchful calm expression.",
+  "designReferences": [
+    {
+      "url": "https://d1vzi28wh99zvq.cloudfront.net/pdf_previews/252157-sample.pdf",
+      "use": "Publisher sample: red bull guardian identity, no prose or art copied"
+    },
+    {
+      "url": "https://koboldpress.com/tools/kobold-press-monsters/",
+      "use": "Celestial type and source identity"
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

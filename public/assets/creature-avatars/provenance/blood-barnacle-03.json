@@ -1,0 +1,17 @@
+{
+  "creatureId": "blood-barnacle",
+  "variantId": "03",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BLOOD BARNACLE avatar, Tome of Beasts 3. One TINY individual BARNACLE BEAST with a compact ROCKLIKE DEEP-RED SHELL, a RED-AND-BLACK BEAK OPENING and small fine mobile TENDRILS emerging through that opening. Shell plates, beak-valve shapes and tendril count are original choices, not a fixed anatomical count. No crab legs, pincers, human mouth, humanoid hands or added face. Stony encrusting silhouette, marine reef or wet wood setting. Original creature portrait without attachment to a victim. Realistic painterly shell, seawater and delicate tendrils, close enough to read clearly at 512 pixels. No victims, biting injury, blood splashes, gore, writing, signature, watermark, logo or frame. Normal 03. One deep-red barnacle moves slowly over a smooth pale underwater stone, fine tendrils from its open dark beak probing the surface while the rocklike shell remains compact. Clear distinction between stationary shell plates and thin tendrils, scattered sand grains establish tiny scale, dim blue-green reef water.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/blood-barnacle/",
+      "note": "ToB3 Tiny individual beast, rocklike shell, red/black beak revealing fine mobile tendrils, deeper red than ordinary barnacles. Exact plates/tendril count and cocktail-umbrella gag original; no crab or human anatomy."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

@@ -1,0 +1,25 @@
+{
+  "creatureId": "adult-shadow-dragon-a5e",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-09-30",
+  "prompt": "Use case: stylized-concept. Create one original square dark-fantasy painted creature avatar, refined tactile realistic scale textures and cinematic painterly lighting, no frame, no typography, no watermark, not a collage. Subject is an adult Shadow Dragon from Level Up Advanced 5e: a once-living essence dragon made partly insubstantial by a blighted land, dark violet-black body with partly translucent shadow edges, long curled neck, narrow predatory spiky dragon head, bright violet eyes. Four clawed legs and a separate pair of ragged batlike wings are the depicted anatomy, long tail; keep limb anatomy coherent. Pale rib and vertebral arcs may show subtly through the shadowy torso, but it is not a bare skeleton or zombie. This is a dragon portrait, not a human, not a generic winged smoke face. Face and expressive eyes dominate and remain legible at small 512-pixel avatar size. Original anatomy-based interpretation, do not reproduce any published artwork or layout. Serious normal variant 01. Close three-quarter head and long neck emerging through a cracked stone abbey wall; the front of the face is solid and sharply defined while the rear neck softly phases into the stone. Spiky head against a sliver of cold moonlight, deep violet shadow and slate-blue masonry, ominous quiet, no props or joke, no wounds.",
+  "designReferences": [
+    {
+      "url": "https://a5e.tools/node/1559",
+      "note": "Primary A5E adult statblock; insubstantial body, anguish breath and shadow tendrils."
+    },
+    {
+      "url": "https://a5e.tools/rules/shadow-dragon",
+      "note": "Corrupted essence dragon; gaunt/wounded/decaying appearance depends on the land's blight."
+    },
+    {
+      "url": "https://a5e.tools/sites/default/files/monsters/Dragon%2C%20shadow%20-%20Gui%20Sommer.png",
+      "note": "Official artwork inspected for non-copied anatomy: four legs, separate ragged wings, curled neck/tail, translucent violet body and pale rib arcs. Composition is original."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

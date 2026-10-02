@@ -1,0 +1,21 @@
+{
+  "creatureId": "ancient-silver-dragon",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy creature avatar, refined tactile painted realism, cinematic lighting and crisp expressive face legible at 512 pixels. No text, signature, logo, watermark or frame. Ancient Silver Dragon, a colossal living metallic dragon of immense age: brilliant polished silver scales with subtle worn edges, an enormous tall central spiny crown frill continuing down the long neck, wide cheek frills, thin stiff silver chin spines making a beardlike silhouette, no hair or fur. High-set intelligent silver eyes. Four clawed legs, two separate broad iridescent membrane wings, one long tail; anatomically coherent. Ancient dignified heavy features, not a hatchling. Cold breath creates fine frost mist. Original anatomy design and composition, no copied publisher art. YOLO absurd 04. Close head-and-one-foreclaw portrait. An impossibly ancient silver dragon with all the same majestic features looks deeply affronted at a tiny teacup frozen solid into a block of ice on a stone ledge. Its own faint icy breath is still curling toward the cup. One enormous real claw delicately holds a ridiculously tiny teaspoon bent into a question-mark curve, no printed symbols. One dignified arched brow, frost stuck on chin spines, mountain-palace balcony, exquisite serious dark-fantasy painting with deadpan absurd humor. Crop other limbs and wings out; correct one visible claw.",
+  "designReferences": [
+    {
+      "url": "https://www.dndbeyond.com/monsters/16783-ancient-silver-dragon",
+      "note": "Core ancient Silver Dragon: gargantuan, clawed and winged; cold breath and mountain citadel lairs. Original ancient-age details."
+    },
+    {
+      "url": "https://a5e.tools/sites/default/files/monsters/dragon-silver%20-%20Gui%20Sommer.png",
+      "note": "Silver-family anatomy reference previously inspected: metallic scales, central spiny crown and neck frill, broad cheek frills, stiff chin spines and broad wings. No copied composition."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

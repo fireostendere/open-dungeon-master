@@ -1,0 +1,21 @@
+{
+  "creatureId": "black-dragon-wyrmling",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BLACK DRAGON WYRMLING avatar, Core/A5E/BlackFlag catalog. One living MEDIUM JUVENILE true dragon with glossy BLACK SCALES, a skull-like CROCODILIAN FACE, dark membranous WINGS and a long tapering tail. Conventional FOUR LEGS plus TWO SEPARATE WINGS, one head, one tail; no wyvern anatomy or extra legs. Clearly young proportions: compact body, relatively large alert head, small developing horns. Original pair of short forward-curved horns and amber eyes, optional pale gray-white acid pitting on scales. Its breath is ACID, not fire; it is amphibious. Skull-like face is living reptilian flesh and scales, not exposed bones. Realistic painterly wet scales, leathery wings and swamp light, readable face at 512 pixels. No victims, blood, injury, gore, writing, signature, watermark, logo or frame. Normal 01. A compact young black dragon crouches on a half-submerged fallen log in a misty swamp, four short reptilian legs grip the wood, two separate leathery black wings half-open, long tail curled naturally behind. Large living skull-like crocodilian head, short forward-curved horn pair, alert amber eyes, a single clear acid droplet at the mouth. Moss, reeds and dim green dawn.",
+  "designReferences": [
+    {
+      "url": "https://a5e.tools/node/1529",
+      "note": "A5E black dragon: skull-like living face and ragged-cloak black wings; Medium amphibious wyrmling uses acid breath. Conventional four legs/two wings, juvenile proportions, horn details and eye color original illustration choices."
+    },
+    {
+      "url": "https://blackflagsrd.opengamingnetwork.com/database/creature/dragon-black-wyrmling/",
+      "note": "BlackFlag0.2: glossy black scales with gray-white acid pits, crocodilian jaw and acid; specific face/tail/tea gag original. No adult-size or undead redesign."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

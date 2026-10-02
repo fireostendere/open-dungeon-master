@@ -1,0 +1,17 @@
+{
+  "creatureId": "blaspheming-hand",
+  "variantId": "03",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BLASPHEMING HAND fiend avatar, Tome of Beasts 3. One LARGE HORSE-SIZED CRIMSON GIANT HAND as a complete magical creature, with FOUR MAIN FINGERS AND ONE THUMB as an original humanoid-hand interpretation, plus NUMEROUS SMALL RUDIMENTARY FINGERS growing in a crowded cluster around its WRIST END. The wrist ends in a smooth closed healed magical surface, no open cut, visible bone, blood or injury. Small dark occult trinkets embedded flush in its crimson skin are construction details; no readable inscriptions. It crawls on the main fingers or levitates palm-up, needs no legs or wings. No head, eyes, mouth, forearm, tentacles or rider required. Realistic painterly crimson skin, nails, metal trinkets and stone, clear unusual hand silhouette at 512 pixels. No victims, gore, wounds, writing, signature, watermark, logo or frame. Normal 03. A giant crimson hand rests on the fingertips of four main fingers in a threatening arched pose, one thick thumb visible at side, closed wrist lifted high and ringed with many small wriggling rudimentary fingers. Faint gold-black embedded charms and intact red skin, long natural nails, no wrist wound or separate arm. Moonlit ruined courtyard, dramatic side angle.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/blaspheming-hand/",
+      "note": "ToB3: Large crimson detached giant-hand fiend with numerous extra rudimentary fingers at wrist and embedded cursed objects; crawls or hovers palm-up. Four main fingers+thumb is ordinary-hand inference, no fixed total digit count; smooth closed wrist and manicure gag are original non-graphic depictions."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

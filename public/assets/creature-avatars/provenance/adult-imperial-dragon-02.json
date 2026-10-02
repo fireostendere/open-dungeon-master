@@ -1,0 +1,17 @@
+{
+  "creatureId": "adult-imperial-dragon",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-09-30",
+  "prompt": "Use case: stylized-concept. One original square dark-fantasy bestiary avatar, polished realistic painterly illustration, cinematic light, rich tactile detail. One adult dragon, face and head-and-neck dominate the square and remain readable at small size. No text, lettering, logo, watermark, border, collage, copied publisher art or artist imitation. An adult IMPERIAL DRAGON from Tome of Beasts2: a LONG SERPENTINE body and sinuous neck with OPALESCENT scales, strictly WINGLESS, no wing membranes anywhere. Typical golden-yellow scales may shift to azure or jade in distinct variants. Original design choice: short swept-back horn pair, expressive amber eyes, a few fine flowing chin filaments; no required antler crown. Controls wind, water and lightning. No exposed skull gem. Normal02: azure storm listener, narrow wingless neck coils behind a close three-quarter dragon head, azure opal scales flash violet and silver, restrained lightning at lips, storm-gray ocean behind, short swept horns, composed intensity.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/imperial-dragon-adult/",
+      "use": "Licensed wingless serpentine body, opalescent variable colors, wind/water/lightning and partial rabbit-ear transformation; horn details are original choices"
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

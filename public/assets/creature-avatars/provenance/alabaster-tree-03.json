@@ -1,0 +1,21 @@
+{
+  "creatureId": "alabaster-tree",
+  "variantId": "03",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-09-30",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy celestial creature avatar, tactile painted realism with magical woodland light, serene bark-face clearly legible at 512 pixels, no text, border, watermark or collage. Alabaster Tree from Creature Codex: a HUGE actual living TREE with exaggerated proportions and a peaceful face formed naturally in its trunk bark. Its foliage shines with brilliant WHITE celestial light; birds and woodland animals can nest in branches/roots. The trunk is steel-HARD WOOD, not metal or marble. No humanoid treant body, separate head, human limbs, armor, legs or stone statue. Genuine rooted tree architecture, face subtle but readable in broad trunk, branches/canopy frame portrait. Different supported oak, willow and pine forms may vary across portraits; same calm celestial essence and white luminous foliage. Original anatomy-based interpretation, no copied publisher art. Serious normal 03. Low upward-looking pine-form portrait in a shadowy overgrown shrine, placid face emerging from broad reddish-brown grooved trunk. Radiant WHITE needle clusters and sweeping high branches overhead provide celestial halo-like light without a literal halo object. Background mossy stone arch and a tiny squirrel in branch fork, normal rooted tree proportions exaggerated large, woody bark textures, no robot/treant arms.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/alabaster-tree/",
+      "note": "Creature Codex Huge celestial: exaggerated oak/pine/willow, placid bark face, brilliant white luminous foliage, exceptionally hard trunk and nesting animals. Actual tree, not marble/metal humanoid."
+    },
+    {
+      "url": "https://www.robinloft.com/monsters/alabaster-tree/creature-codex",
+      "note": "Independent rules corroboration; artwork unverified, face/wood colors/scenes original."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

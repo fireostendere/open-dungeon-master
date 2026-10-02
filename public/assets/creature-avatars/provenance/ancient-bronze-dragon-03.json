@@ -1,0 +1,17 @@
+{
+  "creatureId": "ancient-bronze-dragon",
+  "variantId": "03",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. One original square dark-fantasy bestiary avatar, cinematic painterly realism, clear dominant dragon head and upper body readable at 512 pixels. ANCIENT BRONZE DRAGON, gargantuan elderly coastal amphibious dragon with smooth dark rich bronze scales and restrained blue-green patina in old seams. Its head is defined by a RIBBED FLUTED CRANIAL CREST with curving horns extending from its ridges, smaller matching spines under jaw and chin. Original consistent horn arrangement: two symmetrical pairs of curved horns rising from crest ridges. No blue-dragon nose spike, no broad brass forehead shield. EYES are glowing GREEN ORBS with faded nearly invisible pupils, old weathered face and heavy majestic neck. Exactly four legs with WEBBED clawed feet, TWO separate membranous wings and ONE tail. Intelligent vigilant sea guardian, lightning and repulsion breath rather than fire. No text, letters, signature, watermark, logo, border, gore or copied artwork. Serious normal 03. Three-quarter side portrait of an ancient bronze dragon on a rain-lashed sea cliff, monumental bronze head with fluted horn-bearing crest, green orb eye fixed on horizon. Mouth partly open with a faint white-blue electrical arc among natural teeth, exactly two wings folded low behind shoulder, broad webbed foreclaw on rock, towering storm sea and small distant ruined fort, noble battle-worn vigilance.",
+  "designReferences": [
+    {
+      "url": "https://shop.wizkids.com/products/pre-order-d-d-icons-of-the-realms-adult-bronze-dragon",
+      "note": "Licensed bronze family anatomy: ribbed/fluted horn-bearing crest, jaw/chin spines, smooth rich bronze scales and webbed feet; eyes become glowing green orbs with age. Original elder compositions, no publisher artwork copied."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

@@ -1,0 +1,17 @@
+{
+  "creatureId": "arachnocrat",
+  "variantId": "03",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy character avatar, tactile painterly realism, rich aristocratic fabrics and moody cinematic light, face readable at 512 pixels. Arachnocrat from Tome of Beasts 2: a Medium spider-faced DEVIL that resembles a portly extravagant humanoid aristocrat, with a rounded belly, slender arms and legs, clawed hands concealed when desired by gloves, and an unmistakably arachnid head. Conservative biped design: exactly two arms, two legs, one head, NO spider abdomen replacing the lower body, no extra limbs and no wings. The face is dark polished segmented chitin with several small glossy eyes and short paired mouth-fangs; exact eye layout is an original interpretation because the text does not specify a count. Fine clothing, masks, scarves and jewelry help it pass among nobles. No copied publisher art, no words, signature, watermark, logo or frame. Normal 03. Frontal seated upper-body portrait of a corpulent spider-faced devil in emerald velvet with excessive gold rings, a jeweled masquerade mask resting on a small side table. Its bare arachnid face is framed by a white lace collar, many small eyes catch candlelight, paired fangs subtly visible. Slender arms rest on a chair, one ordinary small spider on its sleeve, warm wine cellar and dark green shadows, sophisticated predatory menace.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/arachnocrat/",
+      "note": "ToB2 portly aristocrat-like devil with slender limbs, clawed hands, spider face and concealing fine clothing. Eye layout and conservative two-arm biped anatomy are original interpretation; no drider body."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

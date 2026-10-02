@@ -1,0 +1,21 @@
+{
+  "creatureId": "alseid",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy character avatar, refined painterly realism, detailed elven face, branching antlers and deer fur clear at 512 pixels. ALSEID from Tome of Beasts: graceful adult woodland DEER-CENTAUR, slender adult ELF UPPER BODY with two arms and pointed ears, smoothly joined at waist to the full horizontal body of a DEER with FOUR slender hoofed legs, brown deer coat and short WHITE-UNDERSIDE TAIL. Branching natural deer ANTLERS grow from forehead; no deer animal head. Upper torso clothed in practical fitted leather woodland armor and cloth, nonsexual. Medium overall creature, elegant forest guardian with spear or shortbow. No horse body, no two-legged faun anatomy, no human legs, no extra limbs, no wings, no text, watermark, border or collage. Serious normal 02. Adult feminine alseid archer beside a dark woodland stream, silver-blond hair braided between branching antlers, pale freckled elven face and green eyes, fitted dark-green leather armor covering torso. One hand holds a relaxed unstrung-looking shortbow at side, quiver on back; graceful spotted brown deer body, four slender deer legs with far-side legs partly naturally occluded. Cool fern shade and golden reflections, alert patient sentinel.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/alseid-3pp-2/",
+      "note": "ToB2023 alseid: adult elven upper torso joined to deer lower body, forehead antlers, white tail, leather armor, spear/shortbow. Original visual variants; antlers are status ornaments."
+    },
+    {
+      "url": "https://www.5esrd.com/database/race/alseid/",
+      "note": "Quadruped description cross-checks four-legged deer body; not a two-legged faun or horse-centaur."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

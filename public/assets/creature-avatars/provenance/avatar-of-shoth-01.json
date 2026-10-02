@@ -1,0 +1,21 @@
+{
+  "creatureId": "avatar-of-shoth",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy cosmic creature avatar, tactile painterly realism, beautifully translucent slime and readable large forms at 512 pixels. Avatar of Shoth is a GARGANTUAN AMORPHOUS OOZE mound, with a huge pulsing magical SPHERE artifact called a ZOM embedded prominently at the center of its body. TWO smaller companion ooze mounds, droths, flank the central mass and are physically CONNECTED TO IT by thick viscous appendages. All three masses form a coherent connected assembly; the central avatar is by far the largest. Flexible oozing tentacles and pseudopods, no fixed humanoid limbs, eyes, mouth, bones or wings. Original translucent deep teal and gray-violet gel, sphere pulses crimson and white without written glyphs. Ancient cosmic grandeur and calm alien intelligence, no victims or dissolution scene. No text, signature, watermark, logo or border. Normal 01. The immense central ooze avatar rests in a cathedral-sized chamber of an interplanar vessel made of wet dark metal plates. A huge crimson-white zom sphere glows within its central translucent teal mound, two smaller low droth mounds connected by thick slime bridges visibly flank it left and right. Several gentle tentacles curve over the floor, black metallic arches and stars beyond a high opening, low close three-quarter view.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/avatar-of-shoth/",
+      "note": "Creature Codex Gargantuan amorphous ooze avatar with massive central pulsing zom sphere, connected to two droths by viscous appendages; oozing tentacles, interplanar vessel. Original gel colors, faceless silhouette and scenes. Two companion masses are intentional sourced anatomy."
+    },
+    {
+      "url": "https://koboldpress.com/ratatosk-world-tree-encounter-tables/",
+      "note": "Publisher identifies avatar of Shoth and its oth summoners in Creature Codex context; no art copied."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

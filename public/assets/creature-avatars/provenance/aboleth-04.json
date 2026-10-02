@@ -1,0 +1,21 @@
+{
+  "creatureId": "aboleth",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-09-30",
+  "prompt": "Use case: stylized-concept. One original square dark-fantasy bestiary ABOLETH portrait. Crucial anatomy: alien fishlike amphibious monster with elongated broad head continuous with thick eel-fish body and finned tail, slick slimy skin. EXACTLY THREE large reddish slit eyes in ONE VERTICAL COLUMN on the front of head, one above another above another, NOT three across and NOT a pair. FOUR long fleshy tentacles emerge from flanks behind the head and curl visibly around fish body. Toothy fish mouth below the lowest eye, no octopus beak, no humanoid arms/legs/wings. Ancient cold intelligence, intimidating aquatic aberration, polished realistic painterly dark fantasy, rich wet skin and atmospheric light. Head and vertical eyes dominate centered square with safe margins, all four tentacles distinguishable. One creature only, no text/letters/logo/watermark/grid/border, no gore, original art no artist imitation. YOLO absurd dark-comedy variant04. Ancient terrifying three-eyed aboleth is on a deeply unwanted vacation: ridiculous floral swimming cap on top of its fish head without hiding any of its three vertical eyes, huge bright yellow inflatable swim ring around body, one of its four tentacles holds a tiny cocktail parasol. All three eyes glare with cosmic contempt. Dark underground lake and ruined eldritch columns, epic lighting treats tacky pool accessories with solemn grandeur. Preserve fish body, exactly three vertical eyes and four tentacles; no humanoid posture.",
+  "license": "generated-output; no third-party artwork license asserted",
+  "designReferences": [
+    {
+      "url": "https://a5e.tools/node/1432",
+      "use": "Creature identity facts only; no publisher artwork or descriptive prose copied"
+    },
+    {
+      "url": "https://www.dndbeyond.com/monsters/5194867-aboleth",
+      "use": "Four-tentacle identity check"
+    }
+  ]
+}

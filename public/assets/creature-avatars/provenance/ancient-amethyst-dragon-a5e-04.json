@@ -1,0 +1,21 @@
+{
+  "creatureId": "ancient-amethyst-dragon-a5e",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. One original square dark-fantasy bestiary avatar, cinematic realistic painterly art, rich tactile gemstone scales and very clear dragon face at 512 pixels. ANCIENT A5E AMETHYST DRAGON: a GARGANTUAN elderly psionic true dragon, immense thick neck and monumental shoulders, angular lustrous multicolored scales in violet, amethyst and indigo, sparkling gem eyes. Original consistent family design: two ATTACHED swept-back faceted crystal horns and a low crystalline cranial ridge, all physically attached to the skull, no floating horn fragments. Old weathered scale edges, heavier facial ridges and large majestic muzzle convey age. Exactly four legs, one pair of TWO batlike wings and one tail; only relevant body parts in the portrait, no duplicate wings. Intelligent composed negotiator and psychic manipulator, force breath and telepathy illustrated as translucent pressure ripples, NOT fire. No text, glyphs, logo, border, watermark or gore. Absurd YOLO 04. The ancient amethyst dragon is holding a ludicrously tiny elegant tea party in its grand crystal lair. Colossal violet gemstone-scaled head and two attached crystal horns, severe calculating gemstone eyes, one tiny white lace doily perched like a formal hat between the horns. A dainty porcelain teacup floats telekinetically up to the huge reptilian muzzle while an absurd tower of biscuits orbits the cup in a precise circle. Two enormous foreclaws rest politely beside a minuscule table, single pair of folded wings behind. Deadpan aristocratic patience, rich lavender and warm amber lighting, serious painterly fantasy with absurd scale humor, no lettering. Targeted follow-up edit: Use case: precise-object-edit. Edit the supplied generated ancient amethyst dragon tea-party image. Remove ONLY the small pale signature-like scribble at the extreme bottom-right corner, replacing it seamlessly with the same reflective stone floor texture and warm purple-gold reflections. Preserve the dragon, face, scales, horns, wings, paws, lace hat, levitating cup and biscuits, tiny table, architecture, framing, lighting and colors exactly. Do not add any marks, text, logos or signature anywhere. This is a very localized cleanup; all other pixels and composition should stay unchanged.",
+  "designReferences": [
+    {
+      "url": "https://a5e.tools/node/1562",
+      "note": "Official Gargantuan ancient A5E amethyst dragon, telekinetic force breath, distant psychic observation and diplomatic manipulation. Scale palette, attached horns and aging details are original family design choices."
+    },
+    {
+      "url": "https://a5e.tools/rules/gem-dragons",
+      "note": "Official A5E gem dragon lustrous multicolored scales, gemstone eyes and psionic powers; elder meditative subterranean setting."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

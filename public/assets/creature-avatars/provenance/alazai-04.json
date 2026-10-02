@@ -1,0 +1,21 @@
+{
+  "creatureId": "alazai",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. One original square dark-fantasy elemental avatar, cinematic painterly realism with physically evocative heat refraction, eyes and vague head silhouette centered and readable at 512 pixels, no words, border, watermark or collage. Alazai from Tome of Beasts 3: LARGE fire elemental that is naturally INVISIBLE, its only bodily impression a VAGUE HUMANOID SHAPE of intense HEAT SHIMMER with BURNING EYES. Background remains visible through its head and shoulders, bent and warped by hot air. Cold conditions outline its body in STEAM; darkness reveals its fiery eyes. No solid skin, armor, horns, wings, hair, clothes or opaque fire-giant body. Not a glass statue: only air distortion, thin vapor edges and two burning eye-flares, no hard reflective glass surface. Close portrait of implied head/shoulders, avoid defined biological facial anatomy or exact limbs. Original interpretation from textual visibility rules, no copied publisher art. YOLO absurd 04. Same nearly invisible heat-shimmer humanoid at a tiny ice-cream cart on a cold desert night. An implied hand visible only as steam curls tries to hold an ice-cream cone which has already melted into a ridiculous puddle, and its burning eyes look indignant at the empty cone. Refrigerated vapor from the cart outlines the transparent face and shoulders, stacked spare cones slump comically nearby. Pure hot-air body, no flesh or glass, painterly dark-fantasy comedy, cart unlabeled, no writing.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/alazai/",
+      "note": "ToB3 Large fire elemental, naturally invisible even attacking; vague humanoid heat refraction with burning eyes, cold under 50F reveals steam outline. No solid armored anatomy established."
+    },
+    {
+      "url": "https://koboldpress.com/tools/kobold-press-monsters/",
+      "note": "Primary taxonomy confirms Alazai. Exact species art unverified; steam/mirage scenes are original interpretations."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

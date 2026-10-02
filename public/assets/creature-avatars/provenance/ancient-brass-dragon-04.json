@@ -1,0 +1,17 @@
+{
+  "creatureId": "ancient-brass-dragon",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. One original square dark-fantasy bestiary avatar, cinematic painted realism, clear dominant dragon face and upper body readable at 512 pixels. ANCIENT BRASS DRAGON: gargantuan elderly desert dragon with warm yellow-brass metallic scales, a very BROAD SHIELD-LIKE PROTECTIVE FOREHEAD PLATE expanding sideways and backward from the forehead, small chin spikes, long continuous neck frill. No paired crown horns and no nasal horn. Wing and neck-frill edges mottled deep green, age-worn scale edges, EYES LIKE MOLTEN BRASS ORBS with almost invisible pupils. Very old broad muzzle and long strong neck, four clawed legs, one pair of two tapering membranous wings and one tail. Intelligent gregarious elder, curious talkative scholar. No text, lettering, signatures, logo, border, watermark, gore or copied artwork. Absurd YOLO 04. The ancient brass dragon is giving an interminably serious lecture to a completely indifferent potted cactus. Gargantuan brass head with BROAD forehead shield, molten brass eyes, chin spines, green-edged neck frill; tiny pince-nez spectacles perched absurdly low on its broad muzzle. One foreclaw gestures politely above a tiny wooden lectern holding a shut book with blank cover, another cups its chin thoughtfully; cactus in a chipped clay pot sits opposite like its only student. Folded wings behind, candlelit desert study, dry deadpan fantasy humor, no letters anywhere.",
+  "designReferences": [
+    {
+      "url": "https://shop.wizkids.com/products/pre-order-d-d-icons-of-the-realms-adult-brass-dragon",
+      "note": "Licensed family description: broad protective forehead plate, chin spikes, neck frill, green-mottled wing/frill margins darkening with age and aging eyes becoming molten-metal orbs. Original elder compositions, no miniature/art copy."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

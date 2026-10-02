@@ -1,0 +1,17 @@
+{
+  "creatureId": "banshee-a5e",
+  "variantId": "03",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy BANSHEE avatar based on the A5E spirit: a thin insubstantial ANDROGYNOUS ADULT HUMANOID suggestion, glowing faintly like moonlight, wearing MULTIPLE LAYERS OF RAGS. One face, one head, two arms, two hands; rag-covered lower body trails into translucent spectral wisps. Ethereal rather than a physical corpse, no visible wounds or gore. Original face and rag arrangement, luminous atmospheric painterly detail and recognizable silhouette at 512 pixels. No text, signature, watermark, logo or frame. Normal 03. A calm but unnerving adult androgynous banshee with close-cropped spectral hair and a narrow long face hovers in a ruined forest shrine. Face and two hands softly translucent, eyes turned directly toward viewer. Several loose tattered hoods and overlapping strips of linen frame the head and shoulders, no crown or armor. One hand rises in an ominous pointing gesture while the other gathers the rags at chest level. Green-black woodland shadow and pearly moonlight, close portrait.",
+  "designReferences": [
+    {
+      "url": "https://a5e.tools/node/1440",
+      "note": "A5E Monstrous Menagerie describes a wispy faintly moonlit androgynous humanoid in layers of rags, incorporeal movement and a supernatural wail. Original faces, hair, rag colors, settings and karaoke funnel/ear-defender joke; not restricted to female elves."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

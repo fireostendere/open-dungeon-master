@@ -1,0 +1,17 @@
+{
+  "creatureId": "bone-lord",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BONE LORD avatar, Tome of Beasts 3. One HUGE COMPOSITE GOAT-LIKE SKELETON with a HUMANOID RIBCAGE/TORSO bearing EXACTLY FOUR ARMS AND FOUR DISTINCT CLAWED HANDS. Four arms are mandatory: two upper and two lower shoulder stations, separated clearly. One original caprine skull with a pair of curved goat horns, TWO bipedal goat-like skeletal legs and ONE LONG BONY TAIL are explicitly artistic interpretations of unspecified lower-body/head details. Empty eye sockets glow RED. Body is assembled from many individuals' dry bones, not a single ordinary skeleton. No wings, crown, armor or manufactured weapon required. Realistic painterly clean bone and monumental ruins, four-arm silhouette readable at 512 pixels. No victims, grasped people, injury, blood, gore, writing, signature, watermark, logo or frame. Normal 02. Three-quarter waist-up portrait of a four-armed bone lord, one goat-like skull with curved horns and red-lit sockets, dense composite ribcage. Two upper clawed hands raised beside the head and two lower clawed hands held separately below the ribs, FOUR hands visible. Clean dry ivory bones, tail base at frame edge, ruined temple shadows.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/bone-lord-2/",
+      "note": "Correct ToB3 Huge goat-like composite skeleton, humanoid torso with exactly four arms/claws, red empty sockets and striking tail. One caprine skull, variable horn configurations, bipedal two-leg lower body and exact tail design are original choices; lower-body geometry not settled by text. Multi-cup tea gag original."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

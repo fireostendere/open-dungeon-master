@@ -1,0 +1,17 @@
+{
+  "creatureId": "arcane-scavenger",
+  "variantId": "03",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy creature avatar, tactile painterly realism, alien clockwork detail, clearly readable at 512 pixels. Arcane Scavenger: a Large HOVERING METALLIC OCTOPUS construct. A single spherical armor-plated body, ONE central luminous lens EYE on the front, and EXACTLY EIGHT long flexible segmented METAL ARMS attached around the lower sphere. Each arm ends in one small grasping IRON CLAW, not a human hand. Eight arms total, no legs, wings, extra eyes or organic suckers. Armor bears abstract luminous geometric arcane inlays, not readable writing. Concealed salvage compartment in body. Original alien mechanism, poses and palettes, not copied art. No text, watermark, signature, logo or frame. Normal 03. Three-quarter close view of a scarred dark-copper spherical scavenger opening a small hinged salvage hatch below its one glowing emerald eye. A single claw from one of its EIGHT segmented arms lowers a battered enchanted coin into the compartment; the remaining seven arms curl in distinct separated arcs below and to the sides. Violet geometric inlays, candlelit collapsed vault, intricate material weathering.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/arcane-scavenger/",
+      "note": "Tome of Beasts 3 Large hovering metal octopus: spherical armored body, single central eye, eight flexible claw-tipped arms and hidden salvage compartment. Original mechanism, colors and scenes; unrelated misplaced Leviathan mechanics on source page not used."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

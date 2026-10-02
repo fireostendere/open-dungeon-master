@@ -1,0 +1,17 @@
+{
+  "creatureId": "bulette",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BULETTE creature avatar. One LARGE BULETTE land-shark monstrosity, a low powerful animal covered in interlocking hard armorlike scales and carapace plates, enormous SERRATED JAWS and small protected eyes. Original conventional body plan: one wedge-shaped armored head, FOUR short robust digging legs with heavy claws, ONE thick tapered tail and a low dorsal ridge. Slate-gray and muted blue scales are natural hide, not literal metal machinery. No wings, horns, extra legs, equipment or gills required. Realistic painterly fantasy material detail, readable at 512 pixels, one composition without panels. No gore, writing, signature, watermark, logo or frame. Normal 2. Close three-quarter head portrait of the bulette, overlapping slate-blue carapace plates, small guarded eyes, powerful closed-to-partly-open serrated jaws and one heavy digging foreleg low in frame, rocky burrow mouth behind.",
+  "designReferences": [
+    {
+      "url": "https://a5e.tools/node/1447",
+      "note": "Core SRD5.1/A5E2021/BF0.2: Large armored burrowing land shark, huge serrated jaws, hard carapace, eyes, feet and leaping. Four short digging legs, pointed armored snout, dorsal ridge/tail and slate palette are conventional original choices, not enumerated source facts."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

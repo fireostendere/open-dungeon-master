@@ -1,0 +1,25 @@
+{
+  "creatureId": "angelic-enforcer",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy creature avatar, refined tactile painterly realism, cinematic light and a sharply readable large face at 512 pixels. Angelic Enforcer from Tome of Beasts 2: a LARGE upright humanoid CELestial with a true LION HEAD, rich GOLDEN FUR, proud lion mane and two broad WHITE FEATHERED WINGS. Two powerful humanoid arms with clawed hands and two legs, not a quadrupedal sphinx, not a human face, no extra limbs. Stern celestial hunter of rogue angels, wearing original practical gold-and-ivory armor and carrying a FLAMING GREATSWORD. Golden leonine muzzle, feline nose, natural lion ears, strong whiskers and intelligent amber eyes. Original individual design and composition, no copied art. No lettering, signature, watermark, logo or frame. YOLO absurd 04. A stern lion-headed celestial enforcer is trying to look fearsome while a tiny red laser-like magical dot on the floor has completely hijacked its attention. Close lion face and upper torso looking intensely downward, golden mane, wide fixated feline pupils, one armored clawed hand reaching toward the little dot while the other holds the flaming greatsword safely upright at the side. Two white feather wings, glorious divine armor and ridiculous catlike concentration. Dark temple floor visible at bottom, serious beautifully painted fantasy realism, no laser device or writing.",
+  "designReferences": [
+    {
+      "url": "https://github.com/open5e/open5e-api/blob/staging/data/v1/tob2/Monster.json",
+      "note": "Licensed ToB2 description from verified blob 525bb80e5e7b8490fffe58b374150e8274abe258: gold fur, lion head, white wings, flaming greatsword, pursuit of rogue angels. Original individual armor and faces."
+    },
+    {
+      "url": "https://www.5esrd.com/database/creature/angelic-enforcer/",
+      "note": "Use stat block identity/actions only. ABOUT line is incorrectly copied from Mead Archon and was excluded; correct lion-headed anatomy verified in Open5e source."
+    },
+    {
+      "url": "https://koboldpress.com/kpstore/product/tome-of-beasts-2-for-5th-edition-hardcover/",
+      "note": "Primary publisher ToB2 includes angelic enforcers."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

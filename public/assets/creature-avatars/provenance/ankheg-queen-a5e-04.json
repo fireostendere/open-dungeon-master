@@ -1,0 +1,21 @@
+{
+  "creatureId": "ankheg-queen-a5e",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy creature avatar, painterly tactile realism, cinematic light, large insect face and imposing silhouette legible at 512 pixels. Ankheg Queen from Level Up A5E: a HUGE mature female burrowing insect, substantially bulkier than an ordinary ankheg, guardian of a clutch of eggs. One broad armored insect head, two large compound eyes, two jointed antennae, one matching pair of enormous serrated mandibles, long segmented thorax and broad heavy abdomen. Exactly SIX jointed insect limbs: one powerful front digging/grappling pair and two supporting pairs. Deep crimson-brown chitin armor over a pale ochre segmented underside, no wings, stinger, mammal muzzle or human anatomy. Queen-specific broad shell ridges and increased abdomen bulk are an original visual interpretation, not a literal crown. No copied publisher art. No text, signature, logo, watermark or frame. YOLO absurd 04. The vast crimson-brown ankheg queen has arranged her ivory eggs on tiny embroidered cushions as if they were royal courtiers, every egg wears one absurd miniature crown. The queen herself wears an undersized velvet bonnet between her two antennae and gently fans the nearest egg with a lace fan caught in one insect foreclaw, no human hands. Close powerful mandibles and compound eyes with comically solemn posture, brooding chamber decorated with tiny pink bunting without letters, deadpan realistic fantasy materials.",
+  "designReferences": [
+    {
+      "url": "https://a5e.tools/node/1463",
+      "note": "Official A5E Huge ankheg queen, burrowing insect with claws, strong mandibles, acid spray and a nest of eggs. Broad mature shell and abdomen proportions are original interpretation."
+    },
+    {
+      "url": "https://a5e.tools/node/1438",
+      "note": "Publisher describes the ankheg as a giant armored burrowing insect; original composition and anatomy detailing."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

@@ -1,0 +1,17 @@
+{
+  "creatureId": "birgemon-seal",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BIRGEMON SEAL avatar, Tome of Beasts 3. One MEDIUM otherwise ordinary SEAL with large glossy eyes, intact normal seal HEAD AND MOUTH, paired foreflippers and paired rear flippers. Its distinctive fantasy anatomy is a SEPARATE naturally formed TOOTHY MAW ON ITS BACK, framed by smooth BONE PLATES opening like hinged shells. EXACTLY THREE distinct flexible tentacles emerge from this dorsal mouth. The back maw is intact fantastical anatomy, not a torn wound: dry clean pale teeth, no blood or tissue damage. Normal face stays separate and readable, no face tentacles, belly maw, walrus tusks or humanoid body. Original slate-gray coat and markings, tentacle color and smooth bone design. Realistic painterly wet hide, ice and ocean light, clear readable silhouette at 512 pixels. No prey, victims, injury, gore, writing, signature, watermark, logo or frame. YOLO 04. A solemn gray birgemon seal sits on an ice floe while the EXACTLY THREE tentacles from its separate dorsal maw each proudly hold ONE enormous colorful ICE-CREAM CONE. Three tentacles, three cones, three clearly separated arcs above its back. The seal's intact normal whiskered face turns backward with outraged jealousy because its own mouth gets none. Pale hinged bony plates and clean dorsal teeth remain visible below the tentacles, cheerful sprinkles, absurd arctic dessert scene, no extra creature or text.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/birgemon-seal/",
+      "note": "ToB3: otherwise ordinary seal with glossy eyes, separate parasite-made dorsal maw exposed by opening bony growths, exactly three tentacles. Normal face remains. Coat, tentacle color, precise bone shape and ice-cream gag original; conventional paired flippers inferred from seal anatomy."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

@@ -1,0 +1,25 @@
+{
+  "creatureId": "archaeopteryx",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy bestiary avatar of an Archaeopteryx, tactile painterly naturalism, detailed feathers, clear silhouette at 512 pixels. Small magpie-sized feathered dinosaur: ONE slender head with a long narrow toothed jaw, TWO feathered forelimb WINGS with small exposed clawed fingers at their leading wrists, TWO scaly hind legs with clawed toes, and ONE long straight bony tail bearing paired feathers along its length. Four limbs total, not a four-winged Microraptor, no extra separate arms, no pterosaur membrane, no modern toothless beak, no oversized raptor sickle claws. Original plumage colors are artistic interpretations. No text, signature, watermark, logo or border. Normal 01. Alert charcoal-black Archaeopteryx with subtle bronze feather sheen perches sideways on a mossy fallen branch in a misty ancient fern forest. Two wings half-folded show small clawed digits at the leading edge, two feet gripping bark, one long feather-fringed bony tail extends diagonally behind. Its narrow jaw is slightly open showing tiny conical teeth. Close three-quarter natural portrait, warm amber dawn rim light.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/archaeopteryx/",
+      "note": "Creature Codex Tiny feathered dinosaur beast; original fantasy avatar scenes."
+    },
+    {
+      "url": "https://www.nhm.ac.uk/discover/dino-directory/archaeopteryx.html",
+      "note": "Natural History Museum anatomy: small feathered dinosaur, toothed jaws, long bony tail and broad feathered wings. Original plumage palette."
+    },
+    {
+      "url": "https://www.nhm.ac.uk/discover/what-were-the-first-birds-like.html",
+      "note": "Natural History Museum describes Archaeopteryx hand claws, feathers and dinosaur-like teeth/tail; claws remain part of wing forelimbs."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

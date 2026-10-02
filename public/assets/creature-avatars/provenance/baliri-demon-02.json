@@ -1,0 +1,17 @@
+{
+  "creatureId": "baliri-demon",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy demon avatar, realistic painterly skin, fur and chitin, expressive face and clear silhouette at 512 pixels. One BALIRI DEMON: a powerfully MUSCULAR HUMANOID body with GRAY-BLACK skin and an OVERSIZED DONKEY HEAD, long upright donkey ears, short coarse mane, bulging unfocused rolling eyes and a loose pink tongue lolling from its mouth. Each of its TWO arms ends in ONE LARGE CRIMSON CRAB-LIKE PINCER instead of a hand: exactly TWO red pincers, no human fingers or hands. Exactly TWO strong humanoid legs with broad dark feet; no hooves, horns, tail or wings as original restraint. A modest rough dark waist wrap covers its hips and groin. Living fantastical demon, no wounds, blood, organs, victims, text, signature, watermark, logo or frame. Original pincer texture, clothing and scenery. Normal 02. Waist-up portrait of a muscular baliri demon in a moonlit stone courtyard, oversized charcoal donkey head with long ears and bristly mane, bulging gold-brown eyes pointing slightly apart and tongue hanging loosely. One crimson crab pincer is lifted defensively in front of its broad gray chest, the other remains lower and clearly separate. Detailed hard red chitin with natural ridges, ragged dark sash, cool blue rim light, no extra arms.",
+  "designReferences": [
+    {
+      "url": "https://github.com/open5e/open5e-api/blob/staging/data/v1/tob2/Monster.json",
+      "note": "Licensed Tome of Beasts 2 description, record baliri-demon: muscular gray-black humanoid with oversized donkey head, lolling eyes and tongue, and crimson crab-like pincers replacing hands. Ear angle, waist wrap, feet, chitin surface and knitting mishap are original choices. No publisher artwork copied."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

@@ -1,0 +1,21 @@
+{
+  "creatureId": "ammut",
+  "variantId": "03",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy bestiary creature avatar, cinematic painterly realism with tactile crocodile scales, tawny fur and hippo skin, diagnostic head and mixed body anatomy readable at 512 pixels. AMMUT from Creature Codex: a LARGE four-legged celestial beast with the HEAD OF A CROCODILE (long tapered reptilian muzzle and conical teeth), LION BODY AND FRONT LEGS with tawny fur and big feline paws, and bulky gray HIPPOPOTAMUS HINDQUARTERS and two sturdy hippo hind legs with broad toes. One coherent quadruped body, crocodile scales blend into tawny shoulders then smooth thick hippo rump, short hippo tail. No humanoid torso/hands, no extra heads/legs, wings or horns. A solemn desert judge of souls, subtle warm radiant aura, animal rather than armored deity. No victims, gore, blood, text, hieroglyphs, logo, border, collage or watermark. Serious normal 03. An ammut steps from a reed-lined desert oasis at dusk, long crocodile muzzle slick with water, tawny fur across lion forequarters, bulky rounded hippo back and hind legs visible, four-limbed mixed anatomy clear. One feline paw on wet rock, wary amber eye and subtle radiant breath curling like warm mist, copper sky and cool blue water, grave ancient presence.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/ammut/",
+      "note": "Correct Creature Codex Large celestial: crocodile head, lion body/forequarters and hippopotamus hindquarters, desert soul-judging guardian. Not alternate Huge evil monstrosity variants."
+    },
+    {
+      "url": "https://koboldpress.com/tools/kobold-press-monsters/",
+      "note": "Publisher confirms Large celestial, desert/badlands, Creature Codex."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

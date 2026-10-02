@@ -1,0 +1,17 @@
+{
+  "creatureId": "boar",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BOAR wildlife avatar, Core/A5E/Black Flag. One ordinary MEDIUM ADULT WILD BOAR with a stocky piglike body, FOUR HOOFED LEGS, long snout, projecting JAW TUSKS, coarse bristly coat, two ears and one short tail. Dark charcoal/brown fur, tusk curves and mane height are naturalistic original choices, not fixed source details. No humanoid limbs, extra tusks, horns, armor, harness or magical body. Realistic painterly coarse hair, hooves, earth and forest light, readable face at 512 pixels. No prey, victims, injury, blood, gore, writing, signature, watermark, logo or frame. YOLO 04. A solemn wild boar has dressed as a deeply unconvincing UNICORN: one huge bright ORANGE CARROT is tied to its forehead with an obviously visible pink ribbon, while its real jaw tusks and pig snout remain unchanged. It stands proudly on four hooves amid muddy forest flowers, carrot clearly a costume prop rather than a biological horn, coarse dark fur and absurd dignity, no text.",
+  "designReferences": [
+    {
+      "url": "https://github.com/open5e/open5e-api/blob/staging/data/v1/wotc-srd/Monster.json",
+      "note": "Core/A5E/BlackFlag Medium ordinary boar, tusks and charging; natural bristly quadruped anatomy, colors and carrot-unicorn costume gag are original zoological interpretations."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

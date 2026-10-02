@@ -1,0 +1,17 @@
+{
+  "creatureId": "bilwis",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BILWIS air-elemental avatar, Creature Codex. One MEDIUM wavering vaguely PERSON-SHAPED WIND SPIRIT outlined by suspended GRASS, WEEDS and crop debris, with flowing pale CORN-SILK HAIR. Its interior has visible airy gaps and flickering mirage-like distortion, not solid flesh, a stuffed scarecrow, an armored ghost or a tree person. A faint adult face and two arm-like vortices are original choices. It HOVERS without weight-bearing solid feet; lower body tapers into streaming vegetation and wind. No weapon, armor, skull, wings or folkloric sickle feet. Realistic painterly dry grasses, airy motion and countryside light, clear silhouette at 512 pixels. No victims, blood, injury, gore, writing, signature, watermark, logo or frame. Normal 02. Close three-quarter portrait of a wind spirit whose mature face is suggested by swirling grasses and patches of empty transparent air, corn-silk hair streaming sideways in silver ribbons. Fine seeds and weeds orbit shoulders, eyes are dark gaps rather than glowing jewels, one airy arm curls near its chest. Cool moonlit meadow, fragile yet unsettling elemental texture.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/bilwis/",
+      "note": "Creature Codex: Medium hovering air elemental, wavering person-like outline made visible by windblown grass/weeds, streaming corn-silk hair, airy mirage-like appearance. Exact face/limbs and goat comedy are original choices; no solid scarecrow, armored ghost or folkloric sickle feet."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

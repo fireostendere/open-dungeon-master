@@ -1,0 +1,17 @@
+{
+  "creatureId": "bone-swarm",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BONE SWARM avatar, Tome of Beasts 2016/2023. One LARGE FLYING SHIFTING AGGREGATE of MANY LOOSE HUMANOID AND ANIMAL BONES, broken skeletal fragments, claws and optional skulls/jaws. Airborne billowing sheet or vortex with visible gaps, no fixed solid humanoid body, permanent head, limb count or wings. Bones themselves form the creature, not a dust aura around one skeleton. Dry clean weathered remains, no flesh, victims or injury. Exact bone/skull counts, contour and glow are original choices. Realistic painterly bone texture, suspended motion and haunted atmosphere, swarm readable at 512 pixels. No blood, gore, writing, signature, watermark, logo or frame. YOLO 04. A terrifying bone swarm has accidentally organized itself into an absurdly polite WIND CHIME: many loose dry bones hang and hover in neat parallel rows around one tiny brass bell, tinkling above a cheerful little garden flowerpot. The majority remain visibly free-floating supernatural bone fragments, not a solid skeleton or actual hanging people. A ridiculous attempt at home decor in a grim ruined courtyard, no text.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/bone-swarm-3pp/",
+      "note": "ToB2016/2023 Large flying shifting mixed humanoid/animal bone swarm, optional jaws, no fixed body counts. Licensed2023 preserves fly60/walk20 despite registry reversal. Exact whirlwind design and wind-chime gag original, no victims."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

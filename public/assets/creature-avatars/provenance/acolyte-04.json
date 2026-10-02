@@ -1,0 +1,21 @@
+{
+  "creatureId": "acolyte",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-09-30",
+  "prompt": "Use case: stylized-concept. Asset type: one original square bestiary avatar. Polished dark-fantasy realistic painterly art, cinematic lighting, rich material textures, clear silhouette and face readable at small size. One creature only, no text, letters, logos, watermark, border, collage or copied source artwork. Subject: an adult humanoid acolyte, a modest temple novice or shrine attendant with simple religious vestments, an original abstract holy pendant and a small restrained divine light. Clear face and upper body, believable practical cloth. Not a heavily armored high priest or grand archmage. No real-world religious logos or famous fictional emblems, no text. YOLO04: absurd dark comedy. An extremely earnest adult robed novice tries to bless one towering plate of pancakes in front of them. Their tiny divine spark has accidentally lit a ridiculously excessive pile of candles surrounding the pancakes; novice looks horrified and determined to pretend it was intentional. Fully clothed, clear expressive face, harmless small flames, polished dark-fantasy rendering.",
+  "designReferences": [
+    {
+      "url": "https://www.dndbeyond.com/monsters/16763-acolyte",
+      "use": "Core humanoid religious novice identity and modest divine magic"
+    },
+    {
+      "url": "https://a5e.tools/node/1871",
+      "use": "Official A5E clergy assistant and shrine caretaker identity"
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

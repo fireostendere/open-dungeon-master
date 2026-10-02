@@ -1,0 +1,17 @@
+{
+  "creatureId": "blood-hag",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BLOOD HAG avatar, Tome of Beasts 2016/2023. One MEDIUM elderly female HUMANOID FEY with a STOOPED BACK, unusually LONG LEATHERY ARMS, large CLAWED HANDS, knotted irregular old face and a BULBOUS NOSE. Her HAIR consists of MANY LIVING SEGMENTED WORMS forming writhing ringlets, clearly soft annelid-like worms rather than snakes or ordinary hair. One head, two arms, two legs, exact worm count/colors and clothes original. Opaque worn layered robes, no trophies or required weapons. Realistic painterly leathery skin, segmented worm hair and old cloth, readable face at 512 pixels. No victims, feeding, stolen faces, blood, injury, gore, nudity, writing, signature, watermark, logo or frame. Normal 02. Close three-quarter portrait of a weathered crone with an irregular bulbous nose, deep facial folds, narrow watchful brown eyes and worm-ringlet hair. Several soft segmented worms curl visibly beside her ears and forehead; none have snake heads. One long clawed hand touches a worn scarf at her neck, layered dark clothing, misty wooded background.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/hag-blood-3pp/",
+      "note": "ToB2016/2023 share stooped crone, long leathery arms, clawed hands, knotted face/bulbous nose and living worm hair. Exact worm color/count, eyes and garments original; no compulsory face trophies, wings or snake hair. Tiny worm party hats are an original gag."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

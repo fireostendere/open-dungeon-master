@@ -1,0 +1,21 @@
+{
+  "creatureId": "alseid",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy character avatar, refined painterly realism, detailed elven face, branching antlers and deer fur clear at 512 pixels. ALSEID from Tome of Beasts: graceful adult woodland DEER-CENTAUR, slender adult ELF UPPER BODY with two arms and pointed ears, smoothly joined at waist to the full horizontal body of a DEER with FOUR slender hoofed legs, brown deer coat and short WHITE-UNDERSIDE TAIL. Branching natural deer ANTLERS grow from forehead; no deer animal head. Upper torso clothed in practical fitted leather woodland armor and cloth, nonsexual. Medium overall creature, elegant forest guardian with spear or shortbow. No horse body, no two-legged faun anatomy, no human legs, no extra limbs, no wings, no text, watermark, border or collage. Serious normal 01. An adult masculine alseid with auburn braided hair and warm brown skin stands quietly on a mossy forest path, medium branching antlers framed by morning fog, calm wary elven face, leaf-embossed brown leather armor. Two arms hold a plain ashwood spear upright, full slender deer forequarters and four coherent hoofed legs visible beneath horizontal body, rich russet coat and white tail tip. Three-quarter portrait with softly blurred ancient oaks.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/alseid-3pp-2/",
+      "note": "ToB2023 alseid: adult elven upper torso joined to deer lower body, forehead antlers, white tail, leather armor, spear/shortbow. Original visual variants; antlers are status ornaments."
+    },
+    {
+      "url": "https://www.5esrd.com/database/race/alseid/",
+      "note": "Quadruped description cross-checks four-legged deer body; not a two-legged faun or horse-centaur."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

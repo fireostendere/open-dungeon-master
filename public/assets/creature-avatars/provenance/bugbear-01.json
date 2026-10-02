@@ -1,0 +1,21 @@
+{
+  "creatureId": "bugbear",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BUGBEAR creature avatar. One Medium adult BUGBEAR goblinoid humanoid, hairy and rangy with coarse brown fur, long powerful arms, one head, TWO arms and TWO legs. Original goblinoid design: broad flat nose, long pointed ears, amber eyes and modest protruding lower teeth, not a literal bear or insect head. Weathered leather wraps and exact face are original choices. Use only the edition-specific equipment described in this scene; no extra arms, wings or horns. Realistic painterly fantasy material detail, readable at 512 pixels, one composition without panels. No gore, writing, signature, watermark, logo or frame. Normal 1. SRD5.1 loadout: the bugbear stands at a forest ambush ruin wearing hide armor, a round wooden shield in one hand and a MORNINGSTAR in the other, a javelin stowed on its back. Coarse brown fur and lanky powerful silhouette, low mist and dusk light, no victim.",
+  "designReferences": [
+    {
+      "url": "https://a5e.tools/node/1445",
+      "note": "Core SRD5.1/A5E2021/Black Flag0.2: Medium humanoid goblinoid. Coarse brown fur and rangy build directly supported by A5E; facial details and two-arm/two-leg anatomy conservative original interpretation. Loadouts intentionally edition-specific: 01 SRD hide/shield/morningstar, 02 and04 A5E maul, 03 BF hide/spiked club."
+    },
+    {
+      "url": "https://github.com/open5e/open5e-api/blob/staging/data/v1/wotc-srd/Monster.json",
+      "note": "Exact SRD5.1 bugbear record establishes hide armor, shield, morningstar and javelin for variant01."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

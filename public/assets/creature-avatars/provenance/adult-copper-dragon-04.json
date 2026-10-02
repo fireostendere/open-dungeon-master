@@ -1,0 +1,21 @@
+{
+  "creatureId": "adult-copper-dragon",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-09-30",
+  "prompt": "Use case: stylized-concept. One original square dark-fantasy bestiary portrait. Polished realistic painterly fantasy, cinematic light, tactile materials, one adult dragon, head and upper body dominate the frame, readable at small avatar size. No text, logos, watermark, borders, collage, source artwork copies or artist imitation. An adult COPPER DRAGON with warm penny-copper metallic sheen, broad PROJECTING BROW PLATES that continue backward into LONG OVERLAPPING SEGMENTED HORNS, swept cheek ridges and lower-jaw frills. Restrained green patina in scale recesses, sly mischievous intelligence, rocky canyon and cliff habitat. Original details within classic layered swept-back horn silhouette; conventional four legs and two wings mostly outside crop. YOLO04: deadpan copper dragon wearing enormous novelty disguise glasses with attached fake bulbous nose and thick black moustache. Its obvious projecting brow and long layered backward horns remain uncovered, expression utterly convinced this is a perfect disguise. Dark canyon background, no text, no extra face.",
+  "designReferences": [
+    {
+      "url": "https://srd.dndtools.org/srd/monsters/monsters/core/monstersDrtoDw.html",
+      "use": "Classic core anatomy transcription: brow plates, overlapping backward horns, cheek ridges and jaw frills"
+    },
+    {
+      "url": "https://a5e.tools/node/1583",
+      "use": "Official A5E adult copper identity"
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

@@ -1,0 +1,17 @@
+{
+  "creatureId": "ancient-mandriano",
+  "variantId": "03",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. One original square dark-fantasy bestiary avatar, cinematic painterly realism, tactile ancient wood and shadow-leaves, dominant face and upper body readable at 512 pixels. ANCIENT MANDRIANO from Creature Codex: a HUGE ancient twisted gnarled TREE-MAN, living plant, gray DRIFTWOOD body and pale wooden face lit by TWO BLUE-FLAME EYES. Its immense body is shrouded in a billowing cloak stitched from LEAVES OF DARKNESS, a cape made of shadow-black leaf shapes rather than ordinary cloth. Very long branch arms and long rootlike fingers emerge from cloak; rootlike legs below. Face is visibly pale carved wood with knots and age cracks, not human skin, skull or metal. Old crooked trunk posture, silent calculating menace, undead shepherd identity. No dragon features, wings, horns, flesh wounds, gore, text, signature, logos, watermark, border or copied artwork. Serious normal 03. Ancient mandriano in close left-facing profile walking through an abandoned cemetery, gray driftwood cheek with deep age rings and cracks, two blue-flame eyes suggested by near eye and faint far glow, angular rootlike nose and wooden mouth. Immense long branch arm reaches across frame to lift a fallen broken iron gate, shadow-leaf cloak billows outward like a storm of dark leaves, no corpses or gore, pale fog and cold dawn.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/mandriano-ancient/",
+      "note": "Licensed Creature Codex Huge ancient mandriano: twisted gnarled tree-man, driftwood-gray body, pale face and blue-flame eyes; cloak stitched from darkness leaves, long arms and undead-shepherd identity. Original compositions and harmless toy props."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

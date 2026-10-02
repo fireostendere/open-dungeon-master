@@ -1,0 +1,17 @@
+{
+  "creatureId": "blood-elemental",
+  "variantId": "03",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BLOOD ELEMENTAL avatar, Creature Codex. One LARGE AMORPHOUS CHURNING GLOB OF MAGICAL BLOOD, dense crimson liquid with a BUBBLING SWIRLING SURFACE, rolling or lurching contours and temporary fluid protrusions. No fixed head, face, eyes, mouth, torso, skeleton or permanent limb count. This is a self-contained fantastical liquid creature, not spilled blood from a victim: no bodies, injuries, organs, wounds or feeding. Original opaque burgundy/crimson shades and glossy highlights. Keep on dry or damp stone, not submerged in water. Realistic painterly viscous liquid and atmospheric ruins, coherent shapeless silhouette at 512 pixels. No gore, writing, signature, watermark, logo or frame. Normal 03. A large bubbling blood elemental squeezes between two ruined stone pillars, its amorphous red mass flowing as one continuous thick ribbon then collecting in a broad glob on the ground. Temporary fluid bulges, no humanoid torso or permanent limbs, empty crypt architecture, dim silver torchlight.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/elemental-blood/",
+      "note": "Creature Codex: Large mobile amorphous bubbling blood glob, liquid body, changing size and temporary protrusions; no fixed humanoid form. Shade/opacity/contour and mocktail gag original. Whole creature shown without victims or injury; full water submersion is destructive, so scenes keep it on stone."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

@@ -1,0 +1,17 @@
+{
+  "creatureId": "bone-devil",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BONE DEVIL avatar, Core/A5E/Black Flag. One LARGE GAUNT FLYING FIEND with CLAWED HANDS, delicate INSECTILE WINGS and a segmented SCORPION-LIKE TAIL ending in a poisonous STINGER. This original body uses two arms, two legs, one pair of translucent veined insect wings and one scorpion tail; counts and bone-ivory thin hide/skull-like face are artistic choices, not an undead skeleton classification. No bat membranes or feather wings. A5E barbed spear may appear deliberately; other variants can be unarmed. Realistic painterly gaunt anatomy, ivory hide, wing veins and tail plates, readable at 512 pixels. No victims, injury, blood, wounds, gore, writing, signature, watermark, logo or frame. Normal 02. Close three-quarter portrait of a gaunt bone devil's elongated skull-like face, ivory thin hide over angular features, sharp teeth and dark calculating eyes. Fine transparent insect-wing veins visible behind its shoulders, curved segmented tail and stinger at the edge, one clawed hand raised. No wounds or exposed organs, deep shadow and moonlike rim light.",
+  "designReferences": [
+    {
+      "url": "https://a5e.tools/node/1513",
+      "note": "A5E explicitly supplies gaunt build, delicate insectile wings, scorpion tail and optional barbed spear; Core/BlackFlag share Large fiend, claws, flight/sting. Two arms/legs, paired wings, ivory hide and coat-check gag original. Not undead or feather/bat wing substitution. Selected artwork uses two insect-wing pairs as an original interpretation; source wing count is unspecified."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

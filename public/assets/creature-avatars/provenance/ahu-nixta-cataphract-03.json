@@ -1,0 +1,25 @@
+{
+  "creatureId": "ahu-nixta-cataphract",
+  "variantId": "03",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-09-30",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy painted creature avatar, tactile refined cinematic realism, creature identity sharp at small 512-pixel size, no text, frame, logo or watermark. Ahu-Nixta Cataphract from Tome of Beasts 2: Large pulpy shapeless living aberration piloting heavily reinforced clockwork armor. Its broad ovoid brass-and-dark-iron shell has thick overlapping military plates and round armored glass viewing ports, organic alien eyes peering from the pulpy pilot within. A frontal mouth hatch reveals dark reddish-violet soft tissue, sharp teeth and short organic tendrils. Several articulated mechanical manipulators with blade/scepter/blunt-rod tools, segmented flexible mechanical cable-limbs below. An integrated fantastical arcane cannon projects force magic, represented by a bulky rune-coil muzzle mounted to the shell, not real-world modern firearm. Original design interpretation of enhanced armor/cannon, no exact barrel count claimed canonical; depict one clear cannon and coherent attachment. NOT humanoid knight, not a horse, not a robot person, not an empty construct. No wings, no copied publisher art or composition. Close upper armored shell and eye ports dominate. Serious normal 03. Left-angled upper-shell portrait of a battle-worn reinforced egg-shaped clockwork war shell moving through ash rain. The large eye behind a partly scratched glass viewport looks sharply toward viewer; purple organic tendril curls from a narrow front hatch, still living and intact. Blackened iron plate layers, old silver rivets and brass edges, silent uncharged arcane cannon angled away, segmented cable-limb curl at lower edge, cold gray dawn and fine ash, no gore.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/ahu-nixta-cataphract/",
+      "note": "ToB2: enhanced military ahu-nixta with tougher clockwork armor and Arcane Cannon force attacks. Attack count does not establish barrel count."
+    },
+    {
+      "url": "https://koboldpress.com/warlocks-apprentice-ahu-nixta-hivemind-of-the-concordant-chronosphere/",
+      "note": "Primary species context; retains pulpy organism in clockwork shell, ports and manipulators."
+    },
+    {
+      "url": "https://koboldpress.com/wp-content/uploads/2021/12/ahu-nixta.jpg",
+      "note": "STANDARD ahu-nixta art inspected for broad ovoid shell/ports/organic tendrils/tools. Cataphract-specific publisher silhouette unverified; reinforced plating and cannon arrangement are original interpretations."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

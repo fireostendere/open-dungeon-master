@@ -1,0 +1,21 @@
+{
+  "creatureId": "amber-ooze",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy bestiary ooze avatar, luminous cinematic painted realism with detailed translucent resin, refraction, trapped bubbles and glossy amber surface, entire creature shape legible at 512 pixels. AMBER OOZE from Tome of Beasts 2: a LARGE amorphous ORANGE-GOLD mass of ancient magical TREE SAP, thick rounded lobes and flexible blunt pseudopods, capable of creeping over roots and up bark. Clear amber depths preserve small intact woodland specimens and dead leaves like fossils. NO FACE, eyes, mouth, humanoid form, bones for anatomy, rigid cube shape or tentacle suckers. Not an ale mug mimic or tiny mead puddle. One coherent translucent sap body in a forest, no blood, mutilation, distressed animals or active predation. No text, watermark, border or collage. Serious normal 01. A large honey-amber ooze flows over mossy roots at the base of an ancient tree, one rounded leading pseudopod raised gently, golden light shining through translucent depths. A tiny intact songbird silhouette, pine needles and autumn leaves suspended perfectly still inside the resin like natural amber inclusions, no distress. Dark cool woodland backdrop and warm sunbeam, glossy tactile creature dominates frame.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/ooze-amber-2/",
+      "note": "Correct ToB2 Large sap ooze: orange amorphous mass from magical trees, preserves small animals and consumes dead plants, pseudopods and arboreal movement. Not the unrelated Tiny ale-disguised Amber Ooze."
+    },
+    {
+      "url": "https://koboldpress.com/tools/kobold-press-monsters/",
+      "note": "Publisher catalog confirms Large forest ooze, Tome of Beasts 2."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

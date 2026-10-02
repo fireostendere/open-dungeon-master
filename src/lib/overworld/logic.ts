@@ -3,6 +3,7 @@
 // and deterministic anchor placement for locations. No DB access and no
 // "@/" imports so scripts/test-overworld-generate.mjs can load it directly;
 // the impure rim is src/lib/db/overworld.ts.
+import { environmentForLocation } from "./cartography.ts";
 
 // Sized for long campaigns: anchors hop 4-7 tiles apart, so this grid
 // comfortably holds a couple hundred discovered locations before crowding.
@@ -36,7 +37,7 @@ export function mulberry32(seed: number): () => number {
 }
 
 // Coarse random lattice + bilinear interpolation = smooth value noise.
-function noiseField(
+export function noiseField(
   seed: number,
   width: number,
   height: number,
@@ -243,8 +244,8 @@ const UNANCHORABLE = new Set(["w", "m"]);
 
 // Deterministic placement for a location's map anchor: 4-7 tiles from its
 // connected anchor in a direction hashed from the name (map center for the
-// first location), then an outward spiral to the nearest tile that is not
-// water or mountain and not already taken.
+// first location), then an outward spiral to the nearest compatible biome
+// or shore that is not already taken. Unknown places prefer dry ground.
 export function placeAnchor(input: {
   terrain: string;
   width: number;
@@ -252,6 +253,7 @@ export function placeAnchor(input: {
   existing: XY[];
   connected: XY | null;
   name: string;
+  layoutDescription?: string;
 }): XY {
   const { terrain, width, height, existing, connected, name } = input;
   const hash = fnv1a(name.toLowerCase());
@@ -280,27 +282,35 @@ export function placeAnchor(input: {
   });
   const taken = (point: XY) =>
     existing.some((anchor) => Math.abs(anchor.x - point.x) <= 1 && Math.abs(anchor.y - point.y) <= 1);
-  const usable = (point: XY) =>
-    !UNANCHORABLE.has(tileAt(terrain, width, point.x, point.y)) && !taken(point);
+  const environment = environmentForLocation(input);
+  const preferred = (point: XY) => {
+    if (taken(point)) return false;
+    const tile = tileAt(terrain, width, point.x, point.y);
+    if (!environment) return !UNANCHORABLE.has(tile);
+    if (environment.water === "coast") return !UNANCHORABLE.has(tile) && [-1, 0, 1].some(dx => [-1, 0, 1].some(dy =>
+      point.x + dx >= 0 && point.x + dx < width && point.y + dy >= 0 && point.y + dy < height && tileAt(terrain, width, point.x + dx, point.y + dy) === "w"));
+    return tile === environment.ground;
+  };
 
-  let candidate = clamp(start);
-  if (usable(candidate)) {
-    return candidate;
-  }
-  // Outward ring search; radius is bounded by the map, so this terminates.
-  for (let radius = 1; radius < Math.max(width, height); radius += 1) {
-    for (let dy = -radius; dy <= radius; dy += 1) {
-      for (let dx = -radius; dx <= radius; dx += 1) {
-        if (Math.max(Math.abs(dx), Math.abs(dy)) !== radius) {
-          continue;
-        }
-        candidate = clamp({ x: start.x + dx, y: start.y + dy });
-        if (usable(candidate)) {
-          return candidate;
+  // Prefer the real biome, then free dry ground, then any free cell on an
+  // imported all-water/all-mountain map. Never pile new places on a taken
+  // anchor merely because their required biome is absent.
+  for (const usable of [preferred, (point: XY) => !taken(point) && !UNANCHORABLE.has(tileAt(terrain, width, point.x, point.y)), (point: XY) => !taken(point)]) {
+    let candidate = clamp(start);
+    if (usable(candidate)) return candidate;
+    // Outward ring search; radius is bounded by the map.
+    for (let radius = 1; radius < Math.max(width, height); radius += 1) {
+      for (let dy = -radius; dy <= radius; dy += 1) {
+        for (let dx = -radius; dx <= radius; dx += 1) {
+          if (Math.max(Math.abs(dx), Math.abs(dy)) !== radius) continue;
+          candidate = clamp({ x: start.x + dx, y: start.y + dy });
+          if (usable(candidate)) return candidate;
         }
       }
     }
   }
+  // Saturated map: the caller can enlarge it; the group marker keeps every
+  // co-located place accessible in the meantime.
   return clamp(start);
 }
 

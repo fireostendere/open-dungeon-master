@@ -1,0 +1,25 @@
+{
+  "creatureId": "adult-wasteland-dragon",
+  "variantId": "03",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-09-30",
+  "prompt": "Use case: stylized-concept. One original square dark-fantasy painted creature avatar, cinematic painterly realism with tactile rough surfaces, face sharp and large enough to read at 512 pixels, no frame, text, logo, watermark or collage. Adult Wasteland Dragon from Creature Codex: a living dragon changed by magical catastrophe, dull scales in muted rust and soil colors, rust-colored wing membranes, withered gray horns and crest. Not an undead dragon or corpse. Broad powerful reptilian head, intelligent predatory eyes, a long neck, four strong clawed limbs and a separate pair of membrane wings, long tail. Ruined-city survivor and hoarder. Arcane energy from jaws is warped magical force rather than ordinary orange fire; violet-white light is our original creative palette, not a canon claim. Use coherent anatomy, no extra eyes or tentacles. No copied publisher image. Serious normal 03. Close left-facing side portrait of a wary wasteland dragon peering between petrified ruin columns. Long neck and wing-root within frame; sand-polished brown and rusty scales, dry gray horns swept backward and withered crest, intelligent tired eye bright and sharply focused. A buried broken relic below gives a faint turquoise glow, distant dead city and blown ash out of focus, dark expressive brushwork, no flames or comic props.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/wasteland-dragon-adult/",
+      "note": "Attributed Creature Codex text: rust/soil scales, rust wings, withered gray crests/horns, warped arcane breath. No universal horn count or extra mutation inferred."
+    },
+    {
+      "url": "https://koboldpress.com/tools/kobold-press-monsters/",
+      "note": "Primary publisher monster index confirms Adult Wasteland Dragon, Huge, CR17, Creature Codex."
+    },
+    {
+      "url": "https://koboldpress.com/kpstore/product/creature-codex-for-5th-edition-dnd/",
+      "note": "Primary Creature Codex book source. Freely accessible species anatomy artwork was not verified; original anatomy choices are interpretations."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

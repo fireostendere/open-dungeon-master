@@ -1,0 +1,17 @@
+{
+  "creatureId": "boneshard-wraith",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BONESHARD WRAITH avatar, Tome of Beasts 2. One MEDIUM INCORPOREAL BROKEN GHOST with a vague distorted HUMANOID OUTLINE unevenly assembled from MISMATCHED BONES AND FRAGMENTS, hazy amid grave dust. Broken eye sockets emit COLD BLACK LUMINESCENCE, interpreted as deep dark centers with a restrained icy rim, never red eyes. Original approximate one damaged skull and two spectral claw arms; missing/disconnected bones and dissolving legs are deliberate ghost anatomy, not ordinary skeletal continuity. Hovers without wings; no required robe, hood, scythe, chains or armor. Realistic painterly dry shards, translucent shadow and cold light, recognizable wraith at 512 pixels. No victims, injury scene, flesh, blood, gore, writing, signature, watermark, logo or frame. Normal 01. A fractured bone wraith hovers in an abandoned graveyard chapel, damaged skull and mismatched ribs suspended with gaps inside a hazy humanoid shadow, two long spectral claw shapes reach downward. Broken sockets are black voids rimmed with faint icy light, lower limbs dissolve into dust, no robe or wings. Cold moonbeams and scattered dry shards.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/boneshard-wraith/",
+      "note": "ToB2 Medium fragmented contorted humanoid ghost from mismatched bones/dust, broken sockets with cold black glow, spectral claws, hovering/incorporeality. Exact partial skeleton and cool-rim treatment of black luminescence original; no required hood/scythe or permanent cyclone. Dustpan gag original."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

@@ -1,0 +1,17 @@
+{
+  "creatureId": "boggard-a5e",
+  "variantId": "03",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BOGGARD avatar, Advanced 5e. One MEDIUM FROG-HEADED HUMANOID with GANGLY LANKY LIMBS, TWO ARMS with grasping hands, TWO LEGS with WEBBED FEET, upright stance and a broad frog mouth. Carries a SPEAR. Skin palette, markings, wartiness, finger count and opaque practical wraps are original choices. Amphibious swimmer and leaper, no giant-frog mount required. No horns, hair, wings, tail or humanoid human face. Base Boggard does not require the Bravo's long weaponized tongue. Realistic painterly damp amphibian skin, wood and marsh light, face readable at 512 pixels. No victims, injury, blood, gore, nudity, writing, signature, watermark, logo or frame. Normal 03. A lean brown-green frog humanoid crouches in a poised leaping stance atop a fallen log, two long legs folded with webbed feet gripping bark, two arms holding a spear across its body. Wide alert amphibian face, opaque reed wraps, misty flooded forest and soft amber sunrise.",
+  "designReferences": [
+    {
+      "url": "https://a5e.tools/node/1443",
+      "note": "Official A5E prose: Medium frog-headed humanoid, gangly limbs, upright webbed tracks, spear, swimming/leaping. Exact skin, hands/clothing and swimming-armband gag original; long grasping tongue specifically belongs to Bravo."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

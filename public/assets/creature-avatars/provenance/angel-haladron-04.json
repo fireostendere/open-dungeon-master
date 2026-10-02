@@ -1,0 +1,25 @@
+{
+  "creatureId": "angel-haladron",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy creature avatar with beautifully tactile painted realism, cinematic light and a clear central eye legible at 512 pixels. Haladron from Tome of Beasts 3: a TINY hovering celestial servitor shaped like one thick toothed metal COG, one unblinking STEEL EYE set in the center, exactly one pair of articulated STEEL WINGS extending from opposite sides of the gear. No humanoid head or torso, no arms, no legs, no additional eyes, no stone obelisk. Silver-gray steel surfaces, subtle original brass inlay accents, mechanical featherlike blade segments in the wings, divine pale-blue light at the eye. Alive and intelligent although mechanical in appearance, helper of inventors, body roughly hand-sized shown through workshop objects. Original details and pose, no copied publisher art. No writing, numbers, logos, signature, watermark or border. YOLO absurd 04. A very offended tiny winged gear-angel has been enlisted for baking: each of its two steel wings has a ridiculous pink oven mitt stuck over the outer tip, while the central metal eye stares with maximum deadpan disapproval through a smear of flour on the surrounding cog rim. Its silver cog body hovers above a comically overinflated little bread loaf on a battered tray; one tiny chef hat sits crookedly on the top gear tooth. Real metal wing roots remain visible, no arms, no mouth, exactly one eye. Dark candlelit fantasy workshop temporarily turned into a bakery, serious painterly realism, no text.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/haladron/",
+      "note": "Licensed ToB3 entry: tiny hovering celestial, immutable form, Bolt of Law and repair ability."
+    },
+    {
+      "url": "https://anyflip.com/plzy/jxhb/basic/",
+      "note": "Indexed ToB3 page 22 Mechanical Servitors paragraph identifies a toothed cog, central steel eye and one pair of steel wings. Used only for short factual anatomy; original decorative details and composition."
+    },
+    {
+      "url": "https://koboldpress.com/tools/kobold-press-monsters/",
+      "note": "Primary publisher index confirms Haladron as tiny celestial servitor of Hala'ath. Distinguished from the archangel's own obelisk body."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

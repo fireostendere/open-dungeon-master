@@ -1,0 +1,17 @@
+{
+  "creatureId": "black-shuck",
+  "variantId": "03",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BLACK SHUCK fiend avatar, Tome of Beasts 3. One LARGE HORSE-SIZED WOLF-LIKE HOUND with shaggy BLACK FUR and EXACTLY ONE LARGE FACIAL EYE shining like MOLTEN IRON. The ONE eye is centered above its long canine muzzle as an original placement choice; there are NO second eye, side eyes or empty paired sockets. Four ordinary wolf legs, two pointed ears and one bushy tail as natural-anatomy choices. Massive toothed jaws, powerful shaggy silhouette, walks across water and hides in fog. Not a horse, Cerberus, skeletal dog, two-eyed hellhound or flaming beast. Realistic painterly fur, wet nose and fog, clear single eye at 512 pixels. No victims, blood, injury, gore, writing, signature, watermark, logo or frame. Normal 03. A horse-sized black shuck moves over the surface of a moonlit river without sinking, four canine paws touching small ripples, one long shaggy tail, head turned three-quarters toward viewer so its single central molten-iron eye stays visible. Dense black fur, living wolf anatomy, low silver fog and ruined bridge behind, no flames or extra eyes.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/black-shuck/",
+      "note": "ToB3: horse-sized shaggy black wolf-like fiend with exactly one eye glowing like molten iron. Four legs, ear/tail shape and central eye placement are original ordinary-wolf interpretations. Toy-fright gag original; no multiple heads or flame body."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

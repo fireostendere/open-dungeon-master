@@ -1,0 +1,17 @@
+{
+  "creatureId": "cackling-skeleton",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy CACKLING SKELETON creature avatar. One Medium animated HUMANOID SKELETON with one skull, TWO arms, TWO legs and an empty ribcage/abdominal space of clean weathered bones. Its jaw hangs open in CACKLING LAUGHTER, posture bent with one hand clutching the empty belly area and the other pointing when composition permits. Optional garish worn accessories are original choices. No flesh, exposed organs, blood, wounds, extra skulls, scythe or required weapon. Realistic painterly fantasy material detail, readable at 512 pixels, one composition without panels. No gore, writing, signature, watermark, logo or frame. YOLO: the cackling skeleton performs stand-up comedy into a squeaky RUBBER CHICKEN held like a microphone, one hand still clutching its empty belly, a tiny red clown nose attached to the skull and an enormous yellow polka-dot bow tie. Two arms and two legs only, no additional skulls, theatrical crypt spotlight, no text.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/skeleton-cackling/",
+      "note": "ToB2: animated humanoid skeleton, open jaw and bent laughing pose, one arm clutching empty abdomen and other pointing. Optional garish lifetime possessions; no weapon required. Ordinary one-skull/two-arm/two-leg skeleton inferred; costume and bone hue original, no flesh injury."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

@@ -1,0 +1,11 @@
+{
+  "creatureId": "mimic",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-09-30",
+  "prompt": "Use case: stylized-concept. Asset type: square dark-fantasy bestiary avatar, YOLO absurd dark comedy. One recognizably living treasure-chest MIMIC monster, oak planks, iron bands, huge open lid mouth with many wet irregular fangs and thick purple tongue, cunning golden eyes by the hinges. It is attempting the world's most unconvincing innocent disguise: an enormous ridiculous satin gift bow perched on lid, a tiny dainty lace bib under lower jaw, and its giant tongue carefully presenting ONE cheap copper coin like irresistible priceless bait. Monster's eyes look desperately hopeful yet shifty. A rusty empty bear trap lies harmlessly behind, emphasizing incompetent ambush, no victim. Damp stone dungeon with epic ominous blue-and-amber lighting; high-quality realistic painterly fantasy makes the absurd lethal gift box feel believable. Full creature fills square with breathing room, tongue and one coin clear. Exactly one mimic, no people, no text/letters/captions/logos/watermarks/borders/grids, no blood/gore, original art no artist imitation.",
+  "license": "generated-output; no third-party artwork license asserted"
+}

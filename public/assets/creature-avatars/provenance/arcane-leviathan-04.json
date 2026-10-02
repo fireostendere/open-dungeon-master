@@ -1,0 +1,17 @@
+{
+  "creatureId": "arcane-leviathan",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy creature avatar, tactile painterly realism, monumental readable creature silhouette at 512 pixels. Arcane Leviathan from Tome of Beasts 3: a GARGANTUAN CRUSTACEAN-SHAPED AQUATIC CONSTRUCT of thick glazed CERAMIC armor, two enormous articulated grasping pincers, several jointed armored walking legs, a broad domed carapace bearing eroded religious relief carvings and abstract worn grooves, NOT readable writing. Back armor panels part to expose tall crystalline pylons charged with blue lightning. Enormous arcane weapon housings integrated into abdomen. Ancient undersea temple guardian, no flesh, no whale/serpent/dragon anatomy, no wings, no human torso. Original crablike arrangement and colors, no copied art; exact walking-leg count is a design choice. No text, signature, watermark, logo or frame. YOLO 04. The colossal ceramic crab guardian has become an absurdly serious pastry chef on a harbor quay. A huge white chef's toque sits between its dormant dorsal crystal pylons while its TWO immense pincers delicately hold a piping bag and a tiny silver cake spatula, applying pink frosting to an elaborate lighthouse-sized wedding cake. Chips of blue-and-ivory ceramic armor, decorative sea-god reliefs and bulky walking legs remain clear. Toy-sized bakery carts below, sunny medieval harbor, no writing or extra claws.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/arcane-leviathan/",
+      "note": "Tome of Beasts 3 Gargantuan aquatic crustacean construct with ceramic armor, two claws, religious reliefs, deployable dorsal crystal pylons and abdominal arcane weapons. Original crablike arrangement, palette and scenes; unspecified walking-leg count is a design interpretation."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

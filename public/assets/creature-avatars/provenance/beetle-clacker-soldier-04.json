@@ -1,0 +1,21 @@
+{
+  "creatureId": "beetle-clacker-soldier",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy CLACKER BEETLE SOLDIER avatar. ONE SMALL golden BEETLE, not a swarm. Compact insect body with head, thorax and hard GOLDEN wing covers held closed; exactly SIX jointed legs, three on each side, two thin antennae, compound eyes. Defining feature: TWO UNEQUAL MANDIBLES, one conspicuously OVERSIZED curved jaw opposed by one much SMALLER jaw, designed to clap together. These are mouthparts, not extra legs or crab forearms. Standard six-legged beetle anatomy is the original conservative insect interpretation. No extended flight wings, horns, human hands, armor or carried weapons in normal variants. Realistic painterly chitin and rock textures, strong silhouette at 512 pixels. No blood, victims, injuries, text, signature, watermark, logo or frame. YOLO 04. A single golden clacker beetle has appointed itself a pompous classical orchestra conductor. It wears an absurdly huge WHITE POWDERED WIG and a tiny red velvet shoulder cape, while its two thin antennae poke clearly through the wig. Its oversized mandible delicately pinches ONE TINY CONDUCTOR BATON against the much smaller opposing jaw. All SIX insect legs stand on a little wooden conductor podium, three on each side; no human arms or hands. Empty grand concert hall, theatrical warm spotlight, the beetle's organic golden shell and unequal jaws remain unmistakable, no writing.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/clacker-beetle-soldier-2/",
+      "note": "Tome of Beasts 3 Small clacker soldier, walking/climbing beetle with sound-producing mandibles. One individual, not the swarm."
+    },
+    {
+      "url": "https://www.5esrd.com/database/creature/swarm-of-clacker-beetles-2/",
+      "note": "Shared species appearance describes golden coloration with one small mandible opposed to one oversized jaw. Six legs, antennae and closed elytra are conservative beetle anatomy inference. Exact chitin pattern, poses, cave settings and powdered-wig conductor joke are original choices."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

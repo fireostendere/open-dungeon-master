@@ -1,0 +1,17 @@
+{
+  "creatureId": "cadaver-sprite",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy CADAVER SPRITE creature avatar. One TINY CADAVER SPRITE undead: a miniature clean dry HUMANOID SKELETON with one skull, two arms, two legs, small sharp teeth and RED PINPRICK lights in empty eye sockets. A pair of skeletal wing struts with NO membranes or feathers extends from its back. These ruined bony wings CANNOT FLY. Weathered ivory bones and a few ragged leaf-cloth scraps are original choices. No flesh, wounds, blood, extra skulls or victims. A tiny SHORTBOW is its source-grounded weapon. Realistic painterly fantasy material detail, readable at 512 pixels, one composition without panels. No gore, writing, signature, watermark, logo or frame. Normal 2. Close three-quarter miniature skull portrait, small sharp teeth and red lights in empty sockets, dry delicate bones, skeletal wing struts visible at the shoulders and shortbow low in frame, dark fern background.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/cadaver-sprite/",
+      "note": "ToB2: Tiny skeletal humanoid, red pinprick eyes, sharp little teeth, wings reduced to bone and unable to fly; shortbow. One skull/two arms/two legs/one bony wing pair is selected ordinary anatomy, not an enumerated wing count. Keep grounded."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

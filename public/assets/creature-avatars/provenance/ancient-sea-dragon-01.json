@@ -1,0 +1,21 @@
+{
+  "creatureId": "ancient-sea-dragon",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. One original square dark-fantasy bestiary avatar, cinematic painterly realism, dominant clear sharklike head and upper body readable at 512 pixels. ANCIENT SEA DRAGON from Tome of Beasts, gargantuan ocean elder: AQUAMARINE shark head with broad toothy shark jaw and small watchful eyes, tapering into a long sleek EEL-LIKE body and finned serpentine tail. Exactly TWO huge ribbed fin-wings emerge behind neck, large aquatic fins that also serve as wings. Low dorsal fins/spines; no legs, paws, humanoid arms or hands, no bulky western-dragon chest, antlers, turtle shell or seahorse snout. Small swept head projections are original details only. Old scarred shark skin and weathered fin margins convey age, not injury. Amphibious, crushing frigid seawater breath, no fire. No text, lettering, signature, watermark, logo, border, gore or copied art. Serious normal 01. Ancient sea dragon's immense sharklike head rises from a storm-dark ocean, close waterline three-quarter portrait, aquamarine skin and rows of shark teeth visible in slightly open jaw, narrow pale-green eye, old scars on brow. Long eel-like neck and one pair of huge ribbed fin-wings arc behind, tiny abandoned shipwreck hull beside distant reef for scale, driving rain and cold pewter waves, regal sea predator.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/dragon-sea-ancient-3pp/",
+      "note": "Licensed Gargantuan ancient sea dragon, amphibious sea identity and frigid tidal breath."
+    },
+    {
+      "url": "https://www.5esrd.com/database/creature/dragon-sea-adult-3pp/",
+      "note": "Licensed ToB2023 family description explicitly confirms aquamarine shark head, sleek eel-like body, large fins doubling as wings and shipwreck art hoards; original age details and compositions."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

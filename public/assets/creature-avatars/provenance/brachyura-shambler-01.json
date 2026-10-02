@@ -1,0 +1,17 @@
+{
+  "creatureId": "brachyura-shambler",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BRACHYURA SHAMBLER creature avatar. One Medium vaguely humanoid crustacean monster with deep RED-BLACK chitin almost black, one ELONGATED HEAD, exactly TWO deep-set BLACK EYES and TWO antennae, paired grasping mandibles. Original consistent body plan: two claw-bearing arms and two walking legs, four limbs total. Its piercing claws are natural body parts. No eyestalks, wings, human face, weapons or manufactured armor. Realistic painterly fantasy material detail, strong readable silhouette at 512 pixels, one composition with no panels. No gore, writing, signature, watermark, logo or frame. Normal 1. Full figure emerging from a misty mangrove pool at dawn, two strong walking legs and two claw arms clearly separate, elongated head tilted toward viewer, two antennae silhouetted, wet dark red shell with cold highlights.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/brachyura-shambler/",
+      "note": "ToB2: Medium roughly humanoid crustacean, red-black chitin, elongated head, exactly two deep-set black eyes and two antennae, mandibles and piercing claws. Two claw-bearing arms and two legs are an original conservative humanoid interpretation; no eyestalks."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

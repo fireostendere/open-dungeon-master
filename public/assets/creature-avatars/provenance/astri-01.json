@@ -1,0 +1,21 @@
+{
+  "creatureId": "astri",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy bestiary avatar with luminous hopeful atmosphere, tactile painterly realism, clear creature silhouette readable at 512 pixels. Astri is a small celestial quadruped: a RACCOON HEAD and compact furred mammalian body, vivid BLUE EYES, ONE bushy black-and-gray BANDED TAIL, and exactly FOUR SHORT LEGS, each ending in a distinct HUMAN HAND with five fingers including thumb rather than an ordinary animal paw. Four short hand-ended legs total, no additional arms, no wings, no horns. Original gray raccoon fur and black facial mask interpretation, warm intelligent expression. Desert helper that makes water and heals; subtle golden celestial light. No text, signature, watermark, logo or frame. Normal 01. A small astri stands on all four hand-ended short legs atop a sandstone ledge above a desert oasis at dawn. Its four humanlike hands spread on the rock, blue eyes gleam under a raccoon facial mask, banded tail curls behind its compact furry body. A tiny spring of clean water glints beside its front hands, distant palms and rose-gold cliffs, detailed close three-quarter creature view.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/astri/",
+      "note": "Tome of Beasts 2 Small celestial with raccoon head, vivid blue eyes, banded tail and human hands at the ends of all four short legs; a desert helper and burrower. Original raccoon body/fur interpretation, no wings or added arms."
+    },
+    {
+      "url": "https://github.com/open5e/open5e-api/blob/staging/data/v1/tob2/Monster.json",
+      "note": "Licensed Open5e description checked independently for four short human-hand-ended legs, raccoon head, banded tail and vivid blue eyes."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

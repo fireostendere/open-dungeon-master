@@ -1,0 +1,17 @@
+{
+  "creatureId": "alliumite-rapscallion",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy avatar, painterly cinematic realism with tactile papery plant texture, sharply readable face and silhouette at 512 pixels. ALLIUMITE RAPSCALLION: SMALL nimble onion-person swashbuckler, layered yellow/ivory onion-bulb head with expressive mischievous eyes and mouth, green sprout hair, two lean fibrous plant arms and two rootlike legs, jaunty dark-green KALE-FROND HAT, fitted leaf-and-husk adventurer clothing, slim agile body. THORN-TIPPED RAPIER and flexible VINE WHIP, not heavy club or shield. Dapper confident vegetable rogue, entirely plant tissue, not human in onion helmet, not mushroom, not rotund husker. Original anatomy-based design. No lettering, text, border, collage or watermark. Absurd YOLO 04. A tiny proud onion rapscallion commands a ridiculous pirate vessel made from a soup ladle floating in a kitchen washbasin. Kale-frond captain hat, dapper leaf coat, thorn rapier held upright like an admiral's sword, one root foot on the ladle rim. A folded cabbage-leaf sail on a twig and a whole ordinary carrot lashed like an absurd cannon, no projectile. Stern grandiose expression despite tiny scale, warm medieval kitchen light, all vegetable anatomy coherent, no text or flag lettering.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/alliumite-rapscallion/",
+      "note": "ToB3 Small onion swashbuckler: kale-frond hat, thorn rapier, grappling vine whip, agile adventurous personality and cutting quips. Original text-based character design."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

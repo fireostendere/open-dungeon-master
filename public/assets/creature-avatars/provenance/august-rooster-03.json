@@ -1,0 +1,21 @@
+{
+  "creatureId": "august-rooster",
+  "variantId": "03",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy creature illustration with elaborate feather texture and believable avian anatomy, painterly realism, readable silhouette at 512 pixels. August Rooster is a nearly human-sized CHIMERIC BIRD combining a PHEASANT HEAD with ornamental feather crest, a powerful hooked PARROT BEAK, rounded PERCHING-DUCK BODY, TWO long narrow pointed SWALLOW WINGS, TWO slender long HERON LEGS with taloned bird feet, and ONE lavish PEACOCK TAIL train with iridescent eyespots. Exactly two wings and two legs, no human hands or extra heads. Proud selfish bearing, original plumage colors, richly detailed feathers. No text, logo, signature, watermark or frame. Normal 03. A nearly human-sized hybrid rooster struts across ancient marble steps in a dim temple courtyard. Crimson-and-bronze pheasant head and crest, ivory hooked parrot beak, glossy rounded perching-duck torso, two narrow black swallow wings half folded, two long tawny heron legs and sharply defined feet. Its elaborate emerald peacock train curves across the steps, bronze lanterns and moonlit ivy, close full-body portrait.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/august-rooster/",
+      "note": "Tome of Beasts 2 chimeric bird: pheasant head, perching-duck body, peacock tail, heron legs, parrot beak, swallow wings. Original plumage colors and compositions; ordinary paired wings and legs. Self-serving temperament and mage-hand ability inform the absurd variant."
+    },
+    {
+      "url": "https://github.com/open5e/open5e-api/blob/staging/data/v1/tob2/Monster.json",
+      "note": "Licensed Open5e description confirms the multi-bird anatomy and nearly human-sized body. No existing artwork copied."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

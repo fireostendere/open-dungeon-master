@@ -1,0 +1,21 @@
+{
+  "creatureId": "adult-light-dragon",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-09-30",
+  "prompt": "Use case: stylized-concept. Original square bestiary avatar, polished dark-fantasy realistic painterly illustration, cinematic lighting, tactile detail, one clear main creature. Face and upper body dominate the composition unless whole-body framing is specified. No text, lettering, logos, watermark, border, collage, copied publisher artwork or artist imitation. Adult LIGHT DRAGON from Creature Codex, a luminous partly immaterial living dragon with a long neck, readable alert eyes, clawed forelimbs and actual separate dragon wings. Pale body with softly translucent outer contours; original color treatment ivory/pearl with warm coral wing membranes and delicate backward head spines. Not a skeleton or undead ghost. Head and upper chest visible, avoid overexposure washing out facial details. Normal02: Astral Pilgrim, elegant right three-quarter profile, layered partly transparent cheek and neck edges let faint distant stars show through only the outer silhouette. Cool blue-white palette, restrained violet highlights, distinct eyes and solid readable muzzle, wing edge behind shoulder.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/dragon-light-adult/",
+      "use": "Licensed adult light dragon, luminous incorporeal nature and explicit wings"
+    },
+    {
+      "url": "https://marketplace.roll20.net/browse/set/12759/monsters-dragons-and-drakes",
+      "use": "Official publisher adult token color family inspected; original pose and details"
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

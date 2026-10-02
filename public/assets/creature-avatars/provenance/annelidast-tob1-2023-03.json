@@ -1,0 +1,17 @@
+{
+  "creatureId": "annelidast-tob1-2023",
+  "variantId": "03",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy creature avatar, tactile painterly realism with dramatic subterranean lighting, clear huge worm silhouette readable at 512 pixels. Annelidast from Tome of Beasts 1 2023: a gigantic burrowing WORM whose annulated flexible body is protected by dull LEAD-GRAY overlapping carapace plates. No legs, arms, wings, eyes, antennae, horns or dragon head. One broad terminal scoop-like mouth contains fine close-set BALEEN-LIKE FILTER COMBS, thin pale flexible bristles forming a filtering fringe instead of big stabbing teeth. Heavy gray metal-mineral armor with scuffs and mineral deposits surrounds the circular-to-oval mouth and repeats along the body, but it is an organic creature, not a machine. Very faint primordial gold-green magic clings to shell seams, deep-earth ancient presence, no victims or gore. Mouth shape and armor pattern are original interpretation of the filter-feeding worm description. No text, signature, logo, watermark or frame. Normal 03. A gigantic lead-armored annelidast curls through a volcanic cavern, its front body lifted into a low arch with the broad filtering mouth angled toward the camera. Baleen fringe catches pale light, segmented gray shell darkened by ash, mineral encrustations and a subtle primordial shimmer. Rear body trails into a vast rubble field with tiny stone pillars for scale, cool smoke and distant orange lava glow, no mechanical parts.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/annelidast/",
+      "note": "ToB1 2023 gigantic deep-earth worm with lead-plated carapace, baleen-like filtering teeth and primordial magic aura. Eyeless armored mouth and plate layout are original anatomical interpretation; no copied art."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

@@ -1,0 +1,21 @@
+{
+  "creatureId": "ancient-copper-dragon",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy bestiary avatar, polished realistic painterly art, one ancient dragon, head and upper body dominant and readable at 512 pixels. ANCIENT COPPER DRAGON: gargantuan elder with warm penny-copper metallic sheen and age-darkened green patina in scale recesses, expressive broad PROJECTING BROW PLATES continuing backward into long overlapping SEGMENTED HORNS, layered swept-back head silhouette, swept cheek ridges and lower-jaw frills. No blue dragon nose horn and no brass forehead shield. Heavy age-weathered muzzle, luminous turquoise-green eyes, sly mischievous intelligence. Four legs, exactly TWO separate membranous wings, ONE tail. Rocky hills and canyons, acid and slowing breath rather than fire. No text, letters, signature, logo, border, watermark, gore or source artwork copied. Serious normal 02. Close frontal portrait of ancient copper dragon resting inside a stone amphitheater carved into a canyon, broad layered brow plates and long swept-back segmented horns clear, lower jaw frills and weathered copper cheek ridges. Huge foreclaws overlap on stone, turquoise eyes sparkling with restrained amusement, two wing roots behind shoulders, amber reflected stage light and deep cool shadows, no audience or lettering.",
+  "designReferences": [
+    {
+      "url": "https://www.dndbeyond.com/monsters/16779-ancient-copper-dragon",
+      "note": "Core ancient copper dragon, Gargantuan rocky-hill and canyon identity; acid/slowing breath. Original aging, patina and compositions."
+    },
+    {
+      "url": "https://srd.dndtools.org/srd/monsters/monsters/core/monstersDrtoDw.html",
+      "note": "Classic SRD anatomy transcription used for projecting brow plates, long overlapping segmented backward horns, cheek ridges and lower-jaw frills; consistent with prior adult family portraits."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

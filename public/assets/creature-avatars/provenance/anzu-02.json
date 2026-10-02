@@ -1,0 +1,21 @@
+{
+  "creatureId": "anzu",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy creature avatar, tactile painterly realism, cinematic storm light, large avian face and strong silhouette readable at 512 pixels. Anzu from Tome of Beasts 2: a Large giant RAPTOR BIRD tied to the south wind, lightning, fire and water. This original visual interpretation uses a fierce eagle-like hooked beak and sharp amber eyes, a powerful feathered bird torso, exactly TWO feathered wings, exactly TWO scaled legs with curved talons, and one fan-shaped feather tail. No lion face, humanoid arms, four-legged griffin body or dinosaur anatomy. Dense dark bronze, storm-gray and cream plumage threaded with subtle electric-blue lightning sparks. It can breathe fire or a powerful wave of water, shown as separate effects where requested. Original head and feather design inferred from the licensed raptor description, not a reproduction of publisher art. No text, signature, logo, watermark or frame. Normal 02. Side-angle close head and upper body of the giant raptor with its hooked beak opened to release one controlled plume of orange fire into empty air. Ash-gray and tawny feathers with subtle blue lightning along the shoulders, two powerful wings partially unfurled behind, no extra limbs. Dry grassland and dark storm clouds, orange fire reflection in its amber eye, fiercely territorial elemental bird, no targets or victims.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/anzu/",
+      "note": "ToB2 Large giant raptor species with feathered wings, talons, lightning and separate fire/water breaths. Eagle-like head, colors and feather structure are original interpretation of the text; precise publisher artwork was not used."
+    },
+    {
+      "url": "https://koboldpress.com/tools/kobold-press-monsters/",
+      "note": "Publisher index confirms ToB2 Anzu identity, distinct from A5E named Anzu celestial and the dinosaur."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

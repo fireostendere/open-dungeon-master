@@ -1,0 +1,21 @@
+{
+  "creatureId": "ancient-white-dragon",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy creature avatar, tactile painterly realism and cinematic light, crisp prominent face at 512 pixels. Ancient White Dragon, gargantuan heavy quadrupedal living dragon, matte ivory-white and icy-blue scales, thick muscular neck and broad wedge-shaped predatory jaws, huge backward-swept central head crest, cheek crests and spined throat dewlap. Four clawed legs, exactly two broad leathery membrane wings and one long tail. Rugged ancient weathered armor, frost around mouth, glacial cold breath and savage cunning. Nonmetallic scales, no silver mirror finish, no needle beard, no fur. Anatomically coherent creature, not a skeleton. No words, signature, watermark or border, no copied publisher art. Normal 01. Very close frontal portrait of head and upper neck bursting out from the shadow of a blue glacier cave, jaws closed in predatory concentration, yellow-green eyes glaring beneath massive brow ridges. Broad swept central crest rises against a dark wall of ice, throat dewlap edged in little frozen droplets. Matte white scale armor cracked and scarred with great age, pale cold rim light and deep navy shadows, face filling square.",
+  "designReferences": [
+    {
+      "url": "https://www.dndbeyond.com/monsters/16784-ancient-white-dragon",
+      "note": "Official core ancient White Dragon: gargantuan, cold breath, claws and wings; glacial environment."
+    },
+    {
+      "url": "https://www.dndbeyond.com/avatars/thumbnails/30782/433/1000/1000/638061962219215658.png",
+      "note": "Official adult family art inspected earlier for broad anatomy: heavy torso, wedge head, swept central crest, throat spines, matte ivory/blue scales. Ancient proportions, scenes and humor are original."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

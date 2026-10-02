@@ -1,0 +1,17 @@
+{
+  "creatureId": "blood-imp",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BLOOD IMP avatar, Tome of Beasts 2. One TINY CRIMSON DEVIL with an ADULT imp-like face and small dark-red stains at its lips, no wounds or victims. This original silhouette uses one head, two arms, two legs, a pair of small horns, TWO BATLIKE WINGS and ONE slender barbed stinging tail; wings/horns/tail are explicitly artistic choices because source flight/sting does not specify them. Small wiry adult devil proportions, opaque dark waistcloth and little belt. No baby or child proportions, no weapon required. Realistic painterly crimson skin, leathery wings and miniature scale, face readable at 512 pixels. No feeding, blood splashes, injury, gore, nudity, writing, signature, watermark, logo or frame. Normal 01. A tiny wiry crimson imp crouches on the rim of an enormous iron goblet, adult mischievous face, two small swept horns, folded batlike wings and one thin barbed tail curling behind. Two clawed hands grip the rim and two feet balance naturally, subtle dark-red lip stains, opaque dark waistcloth. Candlelit stone study, dramatic miniature scale.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/devil-blood-imp/",
+      "note": "ToB2: Tiny crimson devil with blood at lips, flight, sting and blood-spitting. Exact humanoid body, horn pair, two batlike wings and single stinging tail are original conventional-imp choices, not fixed source anatomy. Tomato-juice gag original, no feeding shown."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

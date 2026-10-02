@@ -1,0 +1,17 @@
+{
+  "creatureId": "bagiennik",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy swamp-creature avatar, tactile realistic painterly mud, wet skin and water, expressive face clear at 512 pixels. One B A G I E N N I K, a Medium amphibious aberration covered in thick mud and muck. Defining features: WEBBED CLAWED hands and feet, large BULBOUS eyes, and TWO distinct NOSTRIL SLITS that ooze glossy BLACK OIL. Original hunched semi-humanoid amphibian body interpretation with one broad blunt head, TWO arms, TWO legs, smooth olive-gray skin beneath mud and no tail or wings. Original nostril placement high on the blunt nose between the eyes; no human nose shape or human skin. Large frog-like fingers with obvious webbing and claws, big wet eyes and broad expressive mouth. Oil is a natural dark secretion, not blood; no wounds, sick victims, gore, violence, text, signature, watermark or border. Normal 01. The mud-covered bagiennik crouches knee-deep in a misty marsh among reeds, its two webbed clawed hands resting on a mossy fallen log. Bulbous amber eyes look warily toward the viewer, two narrow nostril slits glisten with little trails of black oil, broad damp muzzle and heavy mud-coated shoulders. Green reflected water light, cool dawn mist, single creature, two legs partly submerged.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/bagiennik-3pp/",
+      "note": "Tome of Beasts 2023 Medium amphibious aberration described with webbed claws, bulbous eyes, two nostril slits producing black oil, and a thick muddy coating; bathes in waterways and sifts sediment. Hunched four-limbed body, nose placement, colors and facial proportions are original interpretations because the checked text does not specify them. No copied publisher art."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

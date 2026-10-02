@@ -1,0 +1,17 @@
+{
+  "creatureId": "aziza",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy rainforest fey avatar, tactile painterly realism with beautiful leaves and delicate gear, sharp clearly ADULT face at 512 pixels. Aziza are TINY ADULT rainforest fey, just over ONE FOOT tall, with DARK BROWN SKIN, slim adult builds, pointed ears and abundant voluminous natural hair. Mature adult facial proportions, fully clothed in modest practical leaf-toned LEATHER woodland garments. One head, two arms, two legs. FEMALE aziza have delicate iridescent BUTTERFLY WINGS; MALE aziza are completely WINGLESS and often ride gliding frogs. Small thorn dagger and shortbow, gentle protective forest-magic atmosphere. Original identities and attire. No childlike proportions, nudity, human-scale sizing, text, signature, watermark, logo or border. Normal 02. A tiny ADULT male aziza with dark brown skin, pointed ears and thick high coiled hair rides astride a large green GLIDING FROG on a mossy branch. The man has NO wings, two arms and two legs, fitted brown leather forest clothing and a small shortbow on his back. Frog has four ordinary frog limbs with broad webbed feet, no feathered wings. Thoughtful mature face, tropical flowers and pale morning mist, close rider-and-mount portrait.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/aziza/",
+      "note": "Tome of Beasts 3 Tiny rainforest fey just over one foot tall, dark-brown skin, slim build, pointed ears and big hair. Females have iridescent butterfly wings; males wingless and use gliding frogs. Leather, thorn dagger and shortbow. All depicted as adults; original attire/identities and four-lobed wing interpretation."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

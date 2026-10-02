@@ -1,0 +1,17 @@
+{
+  "creatureId": "bleakheart",
+  "variantId": "03",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BLEAKHEART avatar, Tome of Beasts 2. One MEDIUM ADULT HUMANOID UNDEAD whose body and clothing appear in INDISTINCT DESATURATED GRAY TONES with a persistently UNNATURALLY OUT-OF-FOCUS OUTLINE. One head, two arms and two ordinary walking legs, no missing parts. It resembles a neglected drifter near theaters and taverns. Keep the central face readable enough for an avatar while bodily edges softly blur; environment and props are crisp so the supernatural blur is intentional. Partly lit threshold makes it visible despite shadow invisibility. Original individual identity and worn clothing, no weapon or exposed heart required. Painterly gray figure against atmospheric colored light, no translucent ghost-tail, wings, skeleton, injury, blood, gore, writing, signature, watermark, logo or frame. Normal 03. An androgynous adult gray humanoid sits slumped on a wooden step outside a closed tavern at dawn, two hands resting on knees and two ordinary boots on the street. Patched coat, faint haunted eyes, the figure's outline smeared gently out of focus against sharply painted cobblestones, empty lantern and blue morning light. Corporeal drifter, no floating lower body.",
+  "designReferences": [
+    {
+      "url": "https://github.com/open5e/open5e-api/blob/staging/data/v1/tob2/Monster.json",
+      "note": "ToB2: Medium gray humanoid undead with persistently blurred outline, disguises and invisibility in dim light/darkness, often drifter-like near entertainment venues. Personal appearance, clothes and magnifying-glass gag original; no exposed heart or ghost tail."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

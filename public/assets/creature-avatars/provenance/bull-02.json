@@ -1,0 +1,17 @@
+{
+  "creatureId": "bull",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BULL creature avatar. One LARGE ordinary adult BULL with natural cattle anatomy: one broad head, TWO curved horns, two ears, FOUR sturdy legs ending in cloven hooves, and ONE tail with a tuft. Heavy muscular shoulders, broad chest and dewlap. Original dark reddish-brown coat with a small pale forehead patch, ivory horns with dark tips. No humanoid torso, armor, wings, extra limbs, rider or nose ring required. Realistic painterly fantasy material detail, readable at 512 pixels, one composition without panels. No gore, writing, signature, watermark, logo or frame. Normal 2. Close three-quarter bull portrait, broad dark muzzle, two ivory horns, small pale forehead patch, alert brown eyes and rough reddish coat, shadowy barn doorway and warm sidelight.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/bull-2/",
+      "note": "Matching ToB2 source /bull-2/: Large bulky quadruped with horns, hooves, charge and gore. Ordinary cattle form gives two horns, four cloven hooves, two ears and one tail; breed/coat/horn curve original. Not a minotaur or armored gorgon."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

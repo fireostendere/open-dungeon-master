@@ -1,0 +1,25 @@
+{
+  "creatureId": "adult-wasteland-dragon",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-09-30",
+  "prompt": "Use case: stylized-concept. One original square dark-fantasy painted creature avatar, cinematic painterly realism with tactile rough surfaces, face sharp and large enough to read at 512 pixels, no frame, text, logo, watermark or collage. Adult Wasteland Dragon from Creature Codex: a living dragon changed by magical catastrophe, dull scales in muted rust and soil colors, rust-colored wing membranes, withered gray horns and crest. Not an undead dragon or corpse. Broad powerful reptilian head, intelligent predatory eyes, a long neck, four strong clawed limbs and a separate pair of membrane wings, long tail. Ruined-city survivor and hoarder. Arcane energy from jaws is warped magical force rather than ordinary orange fire; violet-white light is our original creative palette, not a canon claim. Use coherent anatomy, no extra eyes or tentacles. No copied publisher image. YOLO absurd 04. Same fearsome rust-and-soil dragon is painstakingly trying to sweep an entire cursed treasure heap using an absurdly tiny household brush pinched in one huge claw. A dented little metal dustpan sits upside-down between its withered gray horns like an accidental hat. It looks extremely irritated because one magical glowing coin keeps hopping just beyond the brush. Huge readable face and rust membrane wing dominate, dust clouds around the tiny brush, ruined palace hoard backdrop, richly painted absurd dark fantasy; no text, no human hands.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/wasteland-dragon-adult/",
+      "note": "Attributed Creature Codex text: rust/soil scales, rust wings, withered gray crests/horns, warped arcane breath. No universal horn count or extra mutation inferred."
+    },
+    {
+      "url": "https://koboldpress.com/tools/kobold-press-monsters/",
+      "note": "Primary publisher monster index confirms Adult Wasteland Dragon, Huge, CR17, Creature Codex."
+    },
+    {
+      "url": "https://koboldpress.com/kpstore/product/creature-codex-for-5th-edition-dnd/",
+      "note": "Primary Creature Codex book source. Freely accessible species anatomy artwork was not verified; original anatomy choices are interpretations."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

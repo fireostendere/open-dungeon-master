@@ -1,0 +1,17 @@
+{
+  "creatureId": "berberoka",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BERBEROKA avatar from TOME OF BEASTS 3. One hulking wetland GIANT covered in thick green MOSS, wet MARSH PLANTS, mud and dripping water. A conventional adult humanoid silhouette with one head, two arms and two legs is an original anatomical interpretation; thick moss and leaves conceal the body. Large in ordinary form; becomes Huge and swollen when saturated with absorbed water. Water is stored inside the fleshy giant and expelled through its mouth, not a body made entirely of water. No armor, manufactured weapons, horns, wings or shell. Do not use the unrelated Tome of Horrors scaled ogre. Realistic painterly wet vegetation, moss and earthy skin, readable head at512px. No victims, blood, injury, gore, writing, signature, watermark, logo or frame. YOLO 04. A huge swollen moss-covered berberoka is wearing an absurd bright PINK FLAMINGO SWIMMING RING around its round waist. It tries with pompous concentration to fill a comically tiny porcelain teacup held delicately in one enormous hand, but its mouth spits a far-too-powerful jet of clear water that splashes and overflows the cup. Other hand holds a tiny matching saucer, no extra arms. Wet reeds sprout from its mossy head like bad hair, tranquil swamp background, no text.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/berberoka-2/",
+      "note": "Correct ToB3 Berberoka: Large moss-and-marsh-plant-covered giant; absorbs water, grows Huge when saturated and spits water. Exact humanoid body plan, muddy skin, plant species, facial features and swimming-ring gag are original choices. Not the unrelated ToH creature at /berberoka/."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

@@ -1,0 +1,17 @@
+{
+  "creatureId": "ankou-soul-herald",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy creature avatar, tactile painterly realism, dramatic cinematic light and striking skull silhouette readable at 512 pixels. Ankou Soul Herald from Creature Codex: a GARGANTUAN spectral dragon that escorts souls for the gods of death. Its true form has clean bleached ivory-white DRAGON BONES surrounded by an inky-black fluttering cloak of supernatural shadows. One long draconic skull with horn-like backward bone projections and hollow eye sockets, segmented bony neck, rib cage, exactly four skeletal clawed legs, exactly TWO skeletal dragon wings with shadow membranes, and one long bony tail. No flesh, gore, armor, human skull or undead corruption. It is a solemn ancient celestial psychopomp opposed to necromancy, calm and methodical rather than mindlessly evil. Restrained cold silver-blue light in the sockets and radiant edges, not green toxic glow. Original anatomy detailing and compositions; no copied publisher art. No text, signature, watermark, logo or frame. Normal 02. Side-profile close head and winding bony neck of the soul herald in an immense silent extraplanar hall. Clean aged ivory skull, long backward bony horns, wisps of black shadow flowing like a cloak from the vertebrae, a few small featureless pale soul lights drifting toward it. Very faint cold flame at its mouth, two wing silhouettes far behind in the shadows, deep midnight blue and pearl light, dignified cosmic guide. Targeted follow-up edit: Correct only one anatomical error in this existing spectral dragon portrait. Keep the two large upper wings: the wing in the upper-left corner and the wing in the upper-right behind the skull. Remove the extra THIRD small skeletal wing rising behind the lower neck in the center-bottom area, whose elbow is around x=725 y=685. Remove that small lower wing's bony struts and membrane completely, replacing it with the distant misty cathedral architecture and flowing ordinary black shadow wisps, with no wing outline. The dragon must have exactly two wings total. Keep the white skull, horns, neck, rib cage, flowing shadow cloak, tiny soul lights, composition and colors unchanged. No text, signature or watermark.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/ankou-soul-herald/",
+      "note": "Creature Codex Gargantuan dragon and death-god emissary, bleached dragon skeleton cloaked in shadows. Herald leads soul seekers and opposes necromancy. Skull/wing details and all scenes are original."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

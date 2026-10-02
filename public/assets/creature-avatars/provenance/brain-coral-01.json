@@ -1,0 +1,17 @@
+{
+  "creatureId": "brain-coral",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BRAIN CORAL creature avatar. A single colonial Brain Coral creature underwater: ONE towering HUGE PINK CORAL SPIRE with convoluted brainlike coral ridges, accompanied by EXACTLY THREE separate SMALL pink satellite coral clusters. Four coral components total, the spire dominant. All have natural porous coral texture, not exposed human brains. No faces, eyes, mouths, humanoid limbs, skulls or blood. Soft marine particles, underwater lighting, clearly readable component silhouettes. Realistic painterly fantasy material detail, strong readable silhouette at 512 pixels, one composition with no panels. No gore, writing, signature, watermark, logo or frame. Normal 1. The huge central pink brain-ridged spire rises from a deep ocean reef, three small detached clusters spaced left, right and above it, blue shafts of sunlight, tiny fish far away establish immense scale. No other pink coral clusters.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/brain-coral/",
+      "note": "ToB3: Huge pink brain-ridged central coral spire and three Small satellite clusters by default (up to five only through regeneration). Colonial shared mind, swimming and flexible pseudopods. No eyes, mouth or humanoid anatomy prescribed; exact silhouettes and comedy props original."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

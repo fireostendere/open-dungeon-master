@@ -1,0 +1,21 @@
+{
+  "creatureId": "ankheg",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy monster avatar, tactile painterly realism with cinematic earthbound atmosphere, face and mandibles clearly readable at 512 pixels. Ankheg: a horse-sized monstrous burrowing INSECT, elongated segmented body with a tough rust-brown chitin exoskeleton, softer pale ochre plated underside, one broad insect head, two glossy compound eyes, exactly TWO long jointed antennae, and one matching pair of huge serrated mandibles at the mouth. Exactly SIX jointed legs: a powerful front digging pair and two supporting pairs farther back. Front legs end in insect digging hooks, never human hands. Wingless, no scorpion stinger, no reptilian face. Slight translucent acid moisture between mandibles, no injury or victims. Original chitin design, pose and composition, no copied publisher art. No words, signature, logo, watermark or frame. Normal 01. Frontal three-quarter close portrait of the armored head and rising front thorax breaking out of a muddy forest burrow, both massive serrated mandibles open, clods of earth tumble from copper-brown chitin ridges. Two antennae arc backward, two glossy dark green compound eyes, front digging claws bracket the lower frame with rear legs naturally hidden in the soil. Cold woodland light and warm late sun, formidable insect predator.",
+  "designReferences": [
+    {
+      "url": "https://www.dndbeyond.com/monsters/16787-ankheg",
+      "note": "Official core Large burrowing ankheg with acid spray and grasping bite."
+    },
+    {
+      "url": "https://a5e.tools/node/1438",
+      "note": "Publisher describes a giant burrowing insect with strong mandibles, hard exoskeleton and vulnerable underside. Original coloring, chitin surface and scenes; not a copy of source art."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

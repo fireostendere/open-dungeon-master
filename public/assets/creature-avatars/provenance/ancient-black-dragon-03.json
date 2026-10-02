@@ -1,0 +1,25 @@
+{
+  "creatureId": "ancient-black-dragon",
+  "variantId": "03",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. One original square dark-fantasy bestiary avatar, cinematic painted realism, tactile wet scales, dominant clear head and upper body readable at 512 pixels. ANCIENT BLACK DRAGON, gargantuan elder with long lean skull-shaped face, deeply recessed amber eyes and broad nasal openings, narrow toothy muzzle covered in living ebony scales. Exactly TWO massive side horns grow sideways from behind the cheeks, curve OUTWARD AND THEN FORWARD like hooked tusks framing the face, their aged ridges twisted and weathered. No nose horn, no generic backward crown horns. Long sinewy neck, immense shoulders, four clawed legs, exactly TWO ragged black membranous wings and one tail; mostly portrait crop. Ancient cruel intelligence, old pale scars and bony facial ridges; alive, not undead or skeleton. Acid-breathing amphibious swamp dragon, subtle green acid coloration is original choice. No text, lettering, signature, watermark, border, logo or gore. Serious normal 03. Ancient black dragon stalking through a grove of dead colossal cypress trees, close side three-quarter head turning toward viewer, head-horns form large forward curving loops along both cheeks rather than a crown. Narrow living skull-like face and ribbed neck scales, two foreclaws planted in dark mud, ragged folded wings behind, tiny ruins beneath enormous chest establish scale, low amber sunset through opaque swamp mist.",
+  "designReferences": [
+    {
+      "url": "https://www.dndbeyond.com/monsters/16775-ancient-black-dragon",
+      "note": "Core Gargantuan ancient black dragon, amphibious swamp habitat and acid breath; original portrait compositions."
+    },
+    {
+      "url": "https://www.a5e.tools/node/1525",
+      "note": "A5E ancient black dragon family identity; classic skull-like face and paired forward-curving side horns retained from established avatar family."
+    },
+    {
+      "url": "https://media.dndbeyond.com/compendium-images/phb/DnD-Dragon-Art-Book.pdf",
+      "note": "Official dragon art-book search excerpt notes black dragon horns grow throughout life into imposing twisted shapes; no artwork copied."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

@@ -1,0 +1,17 @@
+{
+  "creatureId": "boreas-chosen",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BOREAS' CHOSEN humanoid avatar, Tome of Beasts 2. One ADULT MEDIUM HUMANOID WARRIOR with PIERCING BLUE EYES, WINTRY RUNIC MARKS ON EXPOSED SKIN, LEATHER ARMOR, one SHIELD and one FROST-RIMED SPEAR. One head, two arms, two legs for chosen human/elf/orc representatives. If shield is held, spear occupies the OTHER hand, no third hand. Frozen blood is an internal magical trait, not an entirely ice-carved body. Individual ancestry, gender, skin/hair, rune design, fur trim and cloak original; runes must be abstract marks rather than readable language. Realistic painterly leather, frost, face and winter light, readable at 512 pixels. No victims, injury, blood, gore, nudity, writing, signature, watermark, logo or frame. Normal 01. A weathered adult human woman with dark skin and piercing icy-blue eyes stands on a snowy ridge in leather armor with restrained fur trim. Abstract frost-colored runic marks cross her exposed forehead and forearms, one hand holds a rimed spear upright and the other a round shield. Practical cloak, living skin, cold dawn and wind.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/boreas-chosen/",
+      "note": "ToB2 Medium any-race warrior, blue eyes, flesh runes, frozen blood, leather armor, shield and frosted spear, optional cold breath. Individual identities/rune pattern and frozen-soup gag original. Not Boreas himself or an ice statue; shield and spear use two hands."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

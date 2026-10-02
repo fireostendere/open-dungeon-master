@@ -1,0 +1,17 @@
+{
+  "creatureId": "bastet-temple-cat",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BASTET TEMPLE CAT creature avatar. One SMALL MONSTROSITY: a slim elegant feline conspicuously larger than an ordinary house cat, with GLOSSY BLACK FUR and GOLDEN EYES. Natural cat quadruped anatomy, four paws, two ears, one feline head and one tail. No humanoid body, wings or extra limbs. Temple guardian with intelligent alert expression; jewelry, props and magic are optional original choices. Rich realistic painterly fur, clear golden eyes and readable silhouette at 512 pixels. No blood, injuries, text, signature, watermark, logo or frame. YOLO 04. The dignified glossy black temple guardian has wedged itself into an outrageously tiny golden offering bowl, with its black cat body spilling over the rim, two front paws draped outside and its one long tail curled around the bowl. It wears a lopsided huge paper pharaoh headdress as an absurd costume; no lettering or symbols that resemble writing. Golden eyes stare with absolute royal entitlement. Several untouched expensive cushions sit nearby, ignored. Luxurious temple lighting, natural four-legged feline anatomy with hind paws tucked inside bowl, comic ordinary-cat behavior, no people.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/bastet-temple-cat-3pp/",
+      "note": "Tome of Beasts 1 (2023) Small monstrosity; slim cat larger than an ordinary house cat, glossy black fur, golden eyes, feline body/tail, magically bred temple guardian. Jewelry, settings, magical lighting and tiny-offering-bowl/headdress joke are original choices."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

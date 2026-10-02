@@ -1,0 +1,21 @@
+{
+  "creatureId": "ancient-sapphire-dragon-a5e",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy bestiary avatar, cinematic painterly realism, a tight head-and-shoulders portrait of one gargantuan ANCIENT A5E SAPPHIRE DRAGON. Multicolored lustrous scales in an original deep sapphire-blue, violet and teal palette, two brilliant FACETED GEMSTONE EYES in ordinary eye positions, compact swept-back horn pair and spiky head/neck ridge, no large nasal horn. Very old wise heavy brow, age-worn faceted scales, long powerful neck. Four clawed legs, two broad membranous wings, one tail, most body outside tight portrait crop. Psychic precognition and mind-affecting breath, NOT lightning or thunder breath. No extra eyes, no crystal statue body. No text, symbols, signature, logo, watermark, border, gore or copied artwork. Absurd YOLO 04. The ancient sapphire dragon has spent centuries predicting the future and is now gravely consulting a tiny snow globe containing a rubber duck. Tight portrait of immense sapphire-blue faceted face with two gem eyes and compact swept horns, tiny square reading spectacles perched low on muzzle. One huge foreclaw delicately holds the snow globe and the other pinches an ordinary missing sock like crucial evidence, expression of cosmic disappointment. A few tiny hourglasses on stone table at bottom, dark observatory, dramatic psychic glimmer and ridiculous mundane problem, no writing or numbers.",
+  "designReferences": [
+    {
+      "url": "https://a5e.tools/node/1570",
+      "note": "Official A5E ancient sapphire dragon: Gargantuan psychic precognition, discognitive psychic breath, hidden observatories/libraries. No blue-dragon lightning or other-edition sonic breath."
+    },
+    {
+      "url": "https://a5e.tools/rules/gem-dragons",
+      "note": "Official gem-family multicolored scales and gemstone eyes; blue/violet/teal palette and compact horn pair continue original adult family design."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

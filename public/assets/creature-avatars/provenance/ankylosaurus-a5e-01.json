@@ -1,0 +1,21 @@
+{
+  "creatureId": "ankylosaurus-a5e",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy creature avatar, cinematic natural history painterly realism, tactile pebbled skin and bone armor, head and silhouette legible at 512 pixels. Ankylosaurus from Level Up A5E: a Huge living herbivorous armored dinosaur. Very broad low barrel-shaped body, short thick neck, wide blunt beaked head, small alert eyes, rear-pointing bony corner horns behind the eyes and cheek horns, exactly FOUR short sturdy legs beneath its body. Rows of low irregular bony osteoderms embedded across back and neck; NOT a turtle shell and NOT tall stegosaurus plates. One long stiff tail with a single broad heavy blunt BONY CLUB at the end, never tail spikes. No wings, extra tails, armor harness, mammal fur or meat-eater fangs. Earthy original color patterns; armor arrangement and colors are artistic interpretation. No text, signature, watermark, logo or frame. Normal 01. Close three-quarter head and forequarters portrait of an olive-brown ankylosaurus pushing through rain-wet ferns. Broad flat armored skull, small dark amber eyes, blunt plant-eating beak and horned cheeks, thick pebbled skin with gray-brown osteoderms. Its broad plated back fades behind the head, one heavy clubbed tail glimpsed far behind beside the body. Misty ancient conifer forest, cool teal shadow and pale morning shafts, powerful grounded herbivore.",
+  "designReferences": [
+    {
+      "url": "https://a5e.tools/node/1489",
+      "note": "Official A5E Huge herbivore with armored back and heavy clubbed tail."
+    },
+    {
+      "url": "https://www.nhm.ac.uk/discover/dino-directory/ankylosaurus.html",
+      "note": "Museum anatomy reference: broad armored quadrupedal herbivore, beaked mouth, bony body plates and blunt tail club. Exact armor layout and colors are interpreted."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

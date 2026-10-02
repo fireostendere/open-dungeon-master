@@ -1,0 +1,17 @@
+{
+  "creatureId": "bandit",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy character avatar, realistic painterly face, weathered cloth and LEATHER ARMOR, readable at 512 pixels. One clearly ADULT BANDIT, a Medium humanoid outlaw, equipped with a curved SCIMITAR and a LIGHT CROSSBOW. Original personal identity and clothing; practical fully clothed adventuring gear, one head, two arms and two legs. Realistic hands and purposeful expression. No victims, injuries, blood, text, signature, watermark, logo or border. YOLO 04. A swaggering adult human bandit in battered leather armor has been utterly outplayed by ONE ordinary WHITE GOOSE, which stands on a barrel clutching the bandit's bulging coin pouch in its beak. The bandit recoils with both empty hands raised in comical surrender, scimitar safely sheathed and light crossbow strapped on his back. Ridiculous pompous feather in his hat, ashamed adult face, a few coins scattered harmlessly on the road, realistic goose anatomy, cheerful humiliating dark-fantasy roadside scene, no injury or lettering.",
+  "designReferences": [
+    {
+      "url": "https://5thsrd.org/gamemaster_rules/monsters/bandit/",
+      "note": "SRD5.1 Medium humanoid of any ancestry; leather armor, scimitar and light crossbow. Personal appearance, gender, ancestry choices, clothing colors and goose mishap are original interpretations. Outlaws are not universally evil in the source; no copied artwork."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

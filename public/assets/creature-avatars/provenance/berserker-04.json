@@ -1,0 +1,21 @@
+{
+  "creatureId": "berserker",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BERSERKER avatar. One ADULT MEDIUM HUMANOID warrior, one head, two arms, two legs, coherent hands and equipment. A combat role of any lineage, with a prominent GREATAXE and forceful determined bearing. Core SRD and Black Flag versions wear hide armor; Advanced 5e version uses Unarmored Defense and has an additional handaxe. Individual age, gender, ancestry, hairstyle, skin tone and garments are original choices. No supernatural transformation, glowing eyes, wings or horns. Realistic painterly face, worn leather, cloth and iron, readable character at 512 pixels. No victims, blood, injury, gore, writing, signature, watermark, logo or frame. YOLO 04. An enormous-looking but ordinary adult human berserker in fur-trimmed hide armor is losing an epic battle against a TINY SEALED PICKLE JAR. Both muscular hands twist the stubborn lid, face crimson with exaggerated frustrated effort, jar intact and full of green pickles. His huge greataxe leans visibly unused against a rock beside him, one coherent shaft. Comically serious full focus, a few locks of hair standing up, rustic camp table, no text or bystanders.",
+  "designReferences": [
+    {
+      "url": "https://github.com/open5e/open5e-api/blob/staging/data/v1/wotc-srd/Monster.json",
+      "note": "Core Berserker: Medium humanoid of any race, hide armor and greataxe; appearance and jar-opening gag original."
+    },
+    {
+      "url": "https://a5e.tools/node/1896",
+      "note": "Variant03 deliberately uses A5E NPC equipment: Unarmored Defense, greataxe and handaxe. No required lineage or supernatural anatomy."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

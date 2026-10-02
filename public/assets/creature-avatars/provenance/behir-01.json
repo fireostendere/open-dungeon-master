@@ -1,0 +1,21 @@
+{
+  "creatureId": "behir",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BEHIR avatar. One HUGE blue-scaled REPTILIAN SERPENT with exactly TWELVE SHORT STURDY REPTILIAN LEGS arranged in SIX LEFT-RIGHT PAIRS along its long winding body: six legs on each side. One powerful toothed reptile head, one long tapering tail, no wings, feathers, humanoid hands or extra heads. Blue armored scales and optional pale gold belly, two short swept-back horns are original decorative choices. It is a twelve-legged serpent, not a four-legged dragon, not a basilisk with eight legs, not an insect. Optional small electric sparks at the mouth express lightning breath without harming anyone. Detailed realistic painterly scales and colossal rocky surroundings, readable head and body at 512 pixels. No prey, blood, injuries, gore, text, logo, signature, watermark or frame. Normal 01. A cobalt-blue behir lies in a gentle S curve across a broad cavern ledge, viewed from a high three-quarter angle. Long body clearly stretches from the head at front-left to the tail at back-right. Exactly SIX leg pairs spaced along the torso; show six separate clawed legs on each side wherever perspective allows, with no extra limb. Its broad head lifts toward the viewer, amber eyes and faint white-blue lightning at the lips. Cold cave light and warm mineral reflections, complete creature. Correction: Use case: precise-object-edit. Correct ONLY the behir's leg anatomy from thirteen visible legs to TWELVE. Remove the single most posterior INNER-BEND leg near the TOP-RIGHT of the picture: its root is around (1050,190) and its clawed paw around (1025,235) in the 1254-square image. This is the small blue leg on the INSIDE of the highest rear curve, just below the long tapering tail. Remove that entire limb and restore the rock and underside scales it covered. Keep the other TWELVE leg chains, with coherent six left-right pairs along the remaining torso and no extra leg. Preserve the exact head, two horns, blue scales, gold belly, S-shaped body, lightning, tail, cave ledge, lighting and square framing. No new limb or text.",
+  "designReferences": [
+    {
+      "url": "https://a5e.tools/node/1442",
+      "note": "Official A5E Behir prose: Huge blue-scaled serpentine creature with twelve legs; bite, constriction and lightning breath. Shared catalog identity also includes core/Black Flag. Six limb pairs retained; horn pair, belly shade, precise scales, scenes and twelve-slipper/nightcap joke are original design choices. No wings."
+    },
+    {
+      "url": "https://github.com/open5e/open5e-api/blob/staging/data/v1/wotc-srd/Monster.json",
+      "note": "SRD5.1 behir corroborates Huge monstrosity, climbing, bite/constriction and lightning breath. No publisher artwork copied."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

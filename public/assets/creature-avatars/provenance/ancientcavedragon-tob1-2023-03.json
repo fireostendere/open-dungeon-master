@@ -1,0 +1,17 @@
+{
+  "creatureId": "ancientcavedragon-tob1-2023",
+  "variantId": "03",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. One original square dark-fantasy bestiary avatar, cinematic painterly realism, one immense ancient cave dragon with dominant head and forebody readable at 512 pixels. ANCIENT CAVE DRAGON, Tome of Beasts 1 2023, gargantuan elder burrowing predator: entirely EYELESS head, uninterrupted leathery skin where eyes would be, NO eyes, eyelids, sockets or glowing eye marks. Very long narrow probing snout and large toothed mouth, slick eel-like hide mottled dark brown and black rather than armored reptile scales. Long thin black sensory spikes and feelers form a ruff around head and neck. Four strong clawed legs; vestigial wings are only two small fingerlike sensory appendages without flight membranes, NO functional bat wings. Heavy elongated body and one long tail. Dense age mottling and scarred hide, ancient hunger and subterranean silence. Black poisonous gas and subtle aura of darkness, not flame. No text, signature, logo, watermark, border, gore or victims. Serious normal 03. A gigantic ancient cave dragon rests beside a subterranean river, low frontal head with perfectly eyeless smooth brow and long narrow snout, long black ruff spikes fan across shoulders, slick age-mottled eel hide. Four-limbed heavy body curled into a narrow shaft with only small feeler-like wing remnants, no membranes. A long tongue tests damp air above stone, cool silver water reflection and warm distant mushroom light, tense primordial hunger.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/cave-dragon-ancient/",
+      "note": "Licensed 2023 ancient cave dragon: eyeless narrow-snouted head, eel-like brown/black aging hide, sensory spikes, stunted feeler-like wings and no adult flight; poison and darkness abilities. Original compositions."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

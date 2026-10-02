@@ -1,0 +1,21 @@
+{
+  "creatureId": "archfey-a5e",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy character avatar with luminous faerie beauty, tactile painterly realism and intricate botanical regalia, face clearly readable at 512 pixels. A5E Archfey: an ADULT luminous ELFIN FAERIE SOVEREIGN, pointed ears, elegant humanoid body with exactly TWO arms and TWO legs, and delicate translucent INSECT WINGS attached behind the shoulders. Four wing lobes arranged as two paired butterfly or dragonfly wings, not feathered angel or bat wings. Fine mithral scale armor beneath courtly botanical attire, a curved scimitar or longbow as appropriate. Original faces, wing patterns and regalia; not any existing named character. No antlers or animal head. No writing, signature, watermark, logo or border. Normal 02. An adult elfin archfey king with pale lavender skin, long midnight-blue hair and a slender moonstone circlet hovers above a still woodland pool. Four narrow transparent dragonfly wings shimmer behind him, two arms and two legs clearly humanlike; silver scale armor and flowing dark-blue embroidered robes. One hand lifts gently to cast starry light, the other holds a slender longbow. Moonlit face, luminous reflections and cool mist, serene authority.",
+  "designReferences": [
+    {
+      "url": "https://a5e.tools/node/1606",
+      "note": "Official A5E Archfey: Medium fey sovereign, magical size change to Tiny or Large, mithral scale, scimitar and longbow. Original adult individuals and scenes."
+    },
+    {
+      "url": "https://a5e.tools/rules/faeries",
+      "note": "Official A5E faerie family describes luminous elfin bodies and delicate butterfly or dragonfly wings. Original paired insect-wing patterns and palettes."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

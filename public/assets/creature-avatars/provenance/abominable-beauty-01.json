@@ -1,0 +1,21 @@
+{
+  "creatureId": "abominable-beauty",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-09-30",
+  "prompt": "Use case: stylized-concept. Asset type: one original square bestiary avatar. Polished dark-fantasy realistic painterly illustration, cinematic light, rich tactile textures, readable at small size. Subject: an adult Abominable Beauty, a dangerously beautiful humanoid fey whose supernatural radiance blinds, whose singing overwhelms, and whose touch burns. Uncannily perfect adult face, luminous piercing eyes, palpable cruel vanity, faint searing fire magic around hands. One adult fey only, head and upper body dominate square composition, features clear and unobscured. Original art; no source artwork copied, no artist imitation, no text, lettering, logos, watermark, border or collage. Normal variant01: tall adult elven-looking woman with long copper hair, pointed ears and bronze skin, a high-collared dark emerald brocade robe fully covering her chest, gold vine jewelry. She looks directly at viewer with cold contempt, white-gold eyes burning intensely; one relaxed hand glows like an ember near shoulder. Nighttime overgrown palace garden, mossy marble and pale mist, intimate three-quarter portrait, beautiful and terrifying.",
+  "designReferences": [
+    {
+      "url": "https://www.kassoon.com/dnd/monster-stat-block/543/abominable-beauty/",
+      "use": "Factual humanoid fey identity, blinding beauty, overwhelming voice and burning touch; original design and no source artwork copied"
+    },
+    {
+      "url": "https://koboldpress.com/tools/kobold-press-monsters/",
+      "use": "Fey type and Tome of Beasts source identity"
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

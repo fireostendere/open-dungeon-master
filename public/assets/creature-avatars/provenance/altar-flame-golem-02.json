@@ -1,0 +1,21 @@
+{
+  "creatureId": "altar-flame-golem",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy bestiary construct avatar, cinematic painted realism with detailed scorched masonry and luminous fire, large head/torso silhouette legible at 512 pixels. ALTAR FLAME GOLEM from Creature Codex: a LARGE rough HUMANOID BODY assembled from durable BRICK OR STONE ALTAR masonry, heavy rectangular torso, two massive blocky arms with stone fists, two sturdy stone legs. Its DEMONIC FACE AND HEAD ARE MADE OF LIVING FLAME rising from the top of its shoulders, expressive eyes/mouth shaped in fire, NOT a carved stone face, metal mask or human head. Eternal sacred altar fire, worn ceremonial carved geometric patterns without lettering, glowing seams and soot. Definitely heavy masonry construct rather than all-fire elemental, not metal robot or lava-skinned man. No wings, extra limbs, text, logo, border, watermark or collage. Serious normal 02. A pale limestone altar golem emerges from a broken shrine doorway in cool dusk, broad chipped stone shoulders, chest carved with simple sun-like geometry, heavy block hands braced at sides. Above neckless shoulders a white-yellow living flame forms an angry demonic face, curling fire horns made only of flame, ash and sparks. Tight low-angle character portrait, masonry substantial and believable.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/golem-altar-flame/",
+      "note": "Creature Codex Large construct: rough brick/stone humanoid body, demonic face formed from flame, disguised altar with eternal fire. Water aversion informs humorous variant. No copied source artwork."
+    },
+    {
+      "url": "https://koboldpress.com/creature-codex-pocket-edition/",
+      "note": "Publisher confirms the altar flame golem among Creature Codex constructs."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

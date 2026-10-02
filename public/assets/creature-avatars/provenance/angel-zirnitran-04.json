@@ -1,0 +1,21 @@
+{
+  "creatureId": "angel-zirnitran",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy creature avatar, exquisite tactile painterly realism, dramatic celestial light, sharply legible draconic face at 512 pixels. Zirnitran angel from Tome of Beasts 3, a huge DRACONIC CELESTIAL with iridescent scales shifting through the colors of dragonkind, an intelligent reptilian dragon face and eyes glowing like partially eclipsed SUNS. Exactly SIX BLACK FEATHERED WINGS arranged as THREE PAIRS on its back, not membrane wings and not twelve wings. Upright draconic humanoid guardian with two clawed arms, two legs and one tail, belt with rolled parchment scrolls and abstract sacred geometric ornament, no readable writing. Scholarly divine majesty, cosmic knowledge and holy fire. Original head ridges, horn shape, attire and composition, no copied publisher art. No text, signature, logo, watermark or frame. YOLO absurd 04. The mighty six-black-winged draconic scholar is trying to read an absurdly tiny parchment using delicate round reading glasses balanced on its reptilian snout. Its own sun-hot stare has burned a perfectly round hole through the tiny blank scroll, and the angel looks deeply offended by this inconvenience. One correct clawed hand holds the singed scroll away from its face, the other pinches the tiny spectacles; no active flames, only a curl of smoke. Shifting emerald-copper-sapphire scales, six black feather wings folded in three pairs behind, grand dark archive, serious painterly realism and deadpan humor, no letters.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/angel-zirnitran/",
+      "note": "Licensed ToB3 anatomy: draconic angel with SIX black-feathered wings, color-shifting scales, sunlike eyes, scroll-bearing belt and anointed claws; sacred fire and magical scholarship. Upright anatomy, individual horns and palettes are original interpretations."
+    },
+    {
+      "url": "https://koboldpress.com/tools/kobold-press-monsters/",
+      "note": "Primary publisher index confirms Huge Zirnitran celestial from Tome of Beasts 3."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

@@ -1,0 +1,17 @@
+{
+  "creatureId": "brownie-beastrider",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BROWNIE BEASTRIDER creature avatar. One TINY ADULT brownie beastrider with subtly elven humanlike face, pointed ears, an ACORN HELMET, leaf-and-moss clothes and a SHARPENED BRANCH SPEAR. Original features: warm brown skin, short auburn curls, adult athletic proportions; one head, two arms and two legs, no wings or tail. Normal variants ride a separate anatomically ordinary gray WOLF with four legs, two ears and one tail; rider and wolf remain distinct beings. Plain moss saddle and cord reins are original equipment choices. Realistic painterly fantasy material detail, readable at 512 pixels, one composition without panels. No gore, writing, signature, watermark, logo or frame. Normal 1. The tiny acorn-helmeted rider sits astride a gray wolf on a fern-lined woodland path, branch spear upright in one hand and reins in the other, the wolf's four legs planted coherently, shafts of morning sunlight and huge nearby mushrooms establish rider scale.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/brownie-beastrider/",
+      "note": "ToB3: Tiny humanlike/elven-featured fey, pointed ears, acorn helmet, branch spear, mounted champion. Mount species, saddle and reins unspecified; normal variants choose an ordinary gray wolf as an instance, not mandatory species anatomy. Two arms/two legs conventional; no wings or fused mount."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

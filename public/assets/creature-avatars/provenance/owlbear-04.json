@@ -1,0 +1,11 @@
+{
+  "creatureId": "owlbear",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-09-30",
+  "prompt": "Use case: stylized-concept. Asset type: square dark-fantasy bestiary avatar, YOLO absurd dark comedy. One unmistakable huge OWLBEAR: owl facial disk, bright amber owl eyes, pointed feather tufts and heavy curved black beak, neck feathers blend into enormous shaggy brown muscular bear torso and bear paws with deadly claws, no wings. This terrifying woodland predator has solemnly appointed itself an aristocratic tea connoisseur: a ludicrous tiny frilly white lace bonnet sits between its tufts, and one enormous clawed paw delicately holds an absurdly tiny porcelain teacup with one claw through the handle. Dead-serious deeply judgmental owl stare at viewer; shredded elegant cloth napkin drapes over chest. A cracked abandoned tea table barely visible among dark forest ruins behind, no people. Epic moody moon-and-candlelight makes this catastrophic tea party look like a royal portrait. Polished realistic painterly dark fantasy, exquisite fur and feather detail, clear absurd props but creature remains recognizably owlbear. Centered upper body, head and teacup fit inside square with margins. One creature, no text/letters/logo/watermark/grid/border, no gore, original art no artist imitation.",
+  "license": "generated-output; no third-party artwork license asserted"
+}

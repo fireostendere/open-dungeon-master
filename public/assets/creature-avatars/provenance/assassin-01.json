@@ -1,0 +1,17 @@
+{
+  "creatureId": "assassin",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy character avatar, tactile painterly realism, sharp ADULT face and stealthy dramatic lighting, readable at 512 pixels. Assassin NPC: a living Medium humanoid expert infiltrator in worn STUDDED LEATHER armor, practical dark travel clothing, a SHORTSWORD and compact LIGHT CROSSBOW. Normal two-arm/two-hand/two-leg anatomy, one head, original adult individual identity, no existing franchise character. No victim, attack injury, blood or written orders. No text, signature, watermark, logo or border. Normal 01. A mature human woman with warm tan skin, straight black hair tied close and watchful dark eyes crouches on a rain-slick roof above a medieval city. Charcoal studded leather, dark hood pushed back to reveal her adult face, one hand rests on a sheathed shortsword while the other steadies a roof tile. Compact light crossbow slung at her hip, cold moonlight and distant amber windows, quiet poised portrait.",
+  "designReferences": [
+    {
+      "url": "https://5thsrd.org/gamemaster_rules/monsters/assassin/",
+      "note": "SRD5.1 Assassin is a Medium any-race humanoid using studded leather, shortsword and light crossbow. Original adult faces, clothing details and scenes; no fixed lineage or named character."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

@@ -1,0 +1,17 @@
+{
+  "creatureId": "barometz",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BAROMETZ creature avatar. One LARGE PLANT CREATURE shaped like a horned GOAT, its entire coat made of thick living GREEN MOSS. Four hooved legs, one goat head with two horns, two ears, horizontal goat pupils and one short tail. Crucial identity: a thick living VINE attaches to the small udder on the underside of its belly and trails along the ground toward a nearby FRUIT TREE; the vine is not a fifth leg or a cord from its back. It is a living plant goat, no fruits erupting from its body. Realistic painterly moss, bark, horn and hoof textures, atmospheric fantasy woodland, clear subject at 512 pixels. No blood, injuries, gore, humanoid hands, text, signature, watermark, logo or frame. Normal 02. Close three-quarter portrait of a large barometz lowering its broad horned goat head toward the viewer. Thick shaggy green moss drapes neck and shoulders, curved dark horns and amber horizontal pupils stand out. Front hooves rest on a mossy stone ledge; the four-legged body recedes behind, with the underside vine visible curling down and away toward a fruit-tree trunk at the edge. Rain-beaded foliage, cool teal forest with soft silver light.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/barometz/",
+      "note": "Tome of Beasts 2 Large plant: horned goat covered in thick green moss, hooves, thick vine running from udder to parent fruit tree. Living specimens do not require fruits sprouting from their body. Horn shapes, moss textures, tree species, settings and undersized flowerpot disguise are original choices."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

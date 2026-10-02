@@ -1,0 +1,17 @@
+{
+  "creatureId": "ahu-nixta-mechanon",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-09-30",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy painted creature avatar with detailed tactile antique clockwork and cinematic lighting, crisp recognizable silhouette at 512 pixels, no text, watermark, logo or border. Ahu-Nixta Mechanon from Tome of Beasts 3: Medium CONSTRUCT, a spherical clockwork automaton standing on EXACTLY THREE articulated mechanical legs in a stable tripod, not two and not four. ONE interchangeable utility arm projects from its spherical body, distinct from the three weight-bearing legs. Powered by a glowing jewel heart containing a soul, seen through a central faceted crystal aperture; jewel light cyan-teal is original palette choice. Brass and weathered steel orb with riveted plates, no human face, NO organic eyes, NO fleshy pilot, NO living maw or tentacles. Not a Drudge or Cataphract, no wing, no cannon, no humanoid torso. Compose orb large with all THREE legs separately readable and ONE tool arm, avoid extra duplicate appendages. Original design based on written mechanics, do not copy publisher art. Serious normal 02. Close repair-bay portrait, spherical automaton tilted attentively toward a broken gear mechanism on a low bench, its one grabbing utility arm aligning a bolt. Three distinct tripod legs brace on the stone floor, central jewel core shines through faceted blue-green glass, no organic eye. Warm worklamp reflections in worn brass, dark workshop tools blurred behind, strong readable circular silhouette and practical construct focus.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/ahu-nixta-mechanon/",
+      "note": "ToB3 Medium Construct: spherical automaton, explicitly three mechanical legs, interchangeable utility appendage, glowing soul-containing gem heart. No fleshy ahu-nixta pilot. Exact aperture/metal palette is original design."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

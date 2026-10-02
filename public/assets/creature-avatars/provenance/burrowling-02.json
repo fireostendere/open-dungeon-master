@@ -1,0 +1,17 @@
+{
+  "creatureId": "burrowling",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BURROWLING creature avatar. One SMALL light-brown-furred mammalian BURROWLING humanoid, alert inquisitive face, sharp little teeth and strong digging claws. Original design: compact biped, one head, two arms and two legs, short rounded ears, broad short muzzle, dark eyes and a small short furry tail. Simple rough cloth vest and belt, a crude leather SLING at the belt or in one hand. No wings, horns, extra limbs or mandatory prairie-dog likeness. Realistic painterly fantasy material detail, readable at 512 pixels, one composition without panels. No gore, writing, signature, watermark, logo or frame. Normal 2. Close three-quarter portrait of the burrowling's compact furry face, short rounded ears, dark alert eyes and small sharp teeth, one broad digging-clawed hand resting on the burrow rim, warm earth textures and soft daylight.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/burrowling-3pp/",
+      "note": "ToB2016/2023: Small light-brown-furred humanoid, sharp teeth and digging claws, alert/inquisitive, crude sling. Two arms/two legs inferred; compact mammalian face, rounded ears, short tail and clothing original. Domesticated prairie dogs do not establish identical species anatomy."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

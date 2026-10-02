@@ -1,0 +1,17 @@
+{
+  "creatureId": "blood-barnacle",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BLOOD BARNACLE avatar, Tome of Beasts 3. One TINY individual BARNACLE BEAST with a compact ROCKLIKE DEEP-RED SHELL, a RED-AND-BLACK BEAK OPENING and small fine mobile TENDRILS emerging through that opening. Shell plates, beak-valve shapes and tendril count are original choices, not a fixed anatomical count. No crab legs, pincers, human mouth, humanoid hands or added face. Stony encrusting silhouette, marine reef or wet wood setting. Original creature portrait without attachment to a victim. Realistic painterly shell, seawater and delicate tendrils, close enough to read clearly at 512 pixels. No victims, biting injury, blood splashes, gore, writing, signature, watermark, logo or frame. YOLO 04. A tiny sinister red barnacle has made itself a luxury BEACH RESORT: several of its fine tendrils hold one absurdly oversized bright STRIPED COCKTAIL UMBRELLA over its stony crimson shell, while another tendril cradles a comically miniature coconut cup. Its red-and-black beak opening remains visible, no human face or limbs. Wet reef rock and sparkling sea, ridiculous holiday dignity for a barnacle, no text.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/blood-barnacle/",
+      "note": "ToB3 Tiny individual beast, rocklike shell, red/black beak revealing fine mobile tendrils, deeper red than ordinary barnacles. Exact plates/tendril count and cocktail-umbrella gag original; no crab or human anatomy."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

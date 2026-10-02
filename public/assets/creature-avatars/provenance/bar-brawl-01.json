@@ -1,0 +1,17 @@
+{
+  "creatureId": "bar-brawl",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy BAR BRAWL creature avatar. This creature is a HUGE SWARM OF MEDIUM HUMANOIDS: depict a compact crowd of several clearly separate ADULT tavern patrons, each ordinary humanoid size, with distinct heads, torsos and correctly connected arms. It is a mob, never one giant or a fused multiheaded creature. Worn leather vests and practical medieval clothing, overturned stools, spilled ale and angry faces establish the brawl. Rich realistic painterly tavern textures, expressive faces readable at 512 pixels. No visible impacts on bodies, injuries, blood, gore, children, text, watermark, signature, logo or frame. Normal 01. Four adult brawlers crowd around an overturned tavern table in a tense shouting confrontation. Center-left a red-bearded human man raises a wooden stool overhead with both hands; center-right a brown-skinned human woman in a leather vest points accusingly with one hand and holds a tankard low in the other. Behind them stand two separate burly human men shouting, their shoulders and faces visible but hands occluded. Four distinct faces, no fused bodies. Warm smoky amber tavern light, dynamic chest-up group composition.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/bar-brawl/",
+      "note": "Creature Codex Huge swarm of Medium humanoids, leather armor, stools/bottles/darts and drinking resilience. The avatar represents the mob through four separate adult foreground patrons; original identities, clothing, scene arrangements and pillow-fight/cooking-pot joke. No publisher art copied."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

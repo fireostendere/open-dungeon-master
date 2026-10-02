@@ -1,0 +1,17 @@
+{
+  "creatureId": "bearfolk",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BEARFOLK avatar. One massive muscular ADULT BEAR-HEADED HUMANOID with DARK SHAGGY FUR, heavy ursine jaws and sharp teeth, exactly TWO ARMS and TWO LEGS, large CLAWED hands that grip weapons. Medium game-size category though taller and heavier than an ordinary human. Permanent upright humanoid body, not a quadrupedal bear or a transformation. Wears rugged HIDE ARMOR and carries a BATTLEAXE in one hand and a WARHAMMER in the other, one of each. Original individual features and weapon ornamentation; no crown or shield. Realistic painterly fur, leather and metal, clear face and silhouette at 512 pixels. No fresh wounds, blood, gore, victims, text, signature, watermark, logo or frame. Normal 02. Close waist-up portrait of a black-furred bearfolk veteran with a small old healed scar across one eyebrow, a broad shaggy bear muzzle and stern intelligent eyes. Thick hide cuirass, simple bronze fastenings, one axe head visible beside a shoulder and one warhammer head beside the opposite hip, each connected to the shaft in its own hand. Cold mountain pass, gray-blue light and silver fur rim.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/bearfolk-3pp/",
+      "note": "Tome of Beasts 2016/2023 shared anatomy: Medium massively muscular upright bear humanoid with dark shaggy fur, heavy jaws, teeth and clawed weapon-gripping hands; hide armor, battleaxe and warhammer. Original faces, healed scars, armor construction, scenes and cake-cutting apron joke."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

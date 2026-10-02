@@ -1,0 +1,21 @@
+{
+  "creatureId": "beetle-clacker-soldier",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy CLACKER BEETLE SOLDIER avatar. ONE SMALL golden BEETLE, not a swarm. Compact insect body with head, thorax and hard GOLDEN wing covers held closed; exactly SIX jointed legs, three on each side, two thin antennae, compound eyes. Defining feature: TWO UNEQUAL MANDIBLES, one conspicuously OVERSIZED curved jaw opposed by one much SMALLER jaw, designed to clap together. These are mouthparts, not extra legs or crab forearms. Standard six-legged beetle anatomy is the original conservative insect interpretation. No extended flight wings, horns, human hands, armor or carried weapons in normal variants. Realistic painterly chitin and rock textures, strong silhouette at 512 pixels. No blood, victims, injuries, text, signature, watermark, logo or frame. Normal 01. A golden clacker soldier beetle stands on a dark cavern stone, viewed from a high front three-quarter angle so all SIX legs are countable: three left, three right. Burnished gold wing covers with fine natural ridges, dark bronze thorax and black compound eyes. One enormous hooked mandible curves out prominently beside a much smaller opposing jaw. Two slender antennae rise from the head, cold blue cave light and warm mineral reflections, whole insect. Correction: Use case: precise-object-edit. Correct ONLY the leg count from SEVEN to SIX. Remove the EXTRA FOREMOST NEAR-SIDE LEG: the golden leg that starts immediately beneath the head near image center, angles downward toward the viewer, and ends in the long claw at the very bottom-center/right. Remove that entire leg from its body attachment through all joints to its bottom claw, and replace its footprint/shadow with the same wet cavern rock. Keep the other SIX legs unchanged: three on the near/lower-left side and three on the far/upper-right side. Do not remove the mouth mandibles or either antenna. Preserve the exact golden beetle body, closed wing covers, compound eyes, one oversized mandible and one small mandible, colors, lighting, pose and square composition. Exactly six insect legs, no new leg, no text.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/clacker-beetle-soldier-2/",
+      "note": "Tome of Beasts 3 Small clacker soldier, walking/climbing beetle with sound-producing mandibles. One individual, not the swarm."
+    },
+    {
+      "url": "https://www.5esrd.com/database/creature/swarm-of-clacker-beetles-2/",
+      "note": "Shared species appearance describes golden coloration with one small mandible opposed to one oversized jaw. Six legs, antennae and closed elytra are conservative beetle anatomy inference. Exact chitin pattern, poses, cave settings and powdered-wig conductor joke are original choices."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

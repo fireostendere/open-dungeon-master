@@ -1,0 +1,17 @@
+{
+  "creatureId": "arcanaphage",
+  "variantId": "03",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy creature avatar, tactile painterly realism, iridescent organic material, clean silhouette readable at 512 pixels. Arcanaphage from Creature Codex: a floating soft-bodied dog-sized creature with smooth colorful iridescent skin and many ropy feeding tentacles growing along the LENGTH OF ITS BACK. An original elongated nudibranch-like body interpretation, gently tapered at both ends with no distinct head. NO MOUTH, teeth, eyes, face, wings, legs, hands or hard shell. Many separate supple dorsal tendrils gently ripple, glowing while absorbing ambient magic. Entire creature hovers by innate magic, not aquatic swimming. Original body silhouette and palette, not copied publisher art. No text, symbols resembling letters, signature, logo, watermark or frame. Normal 03. Close three-quarter view of a threatened arcanaphage flaring its many dorsal rope-like tentacles into a luminous halo of green and lilac curves. The long smooth featureless soft body remains clearly below the tentacles, iridescent pink-violet skin with subtle pulsing light. Ambient spell sparks collapse into the tendrils. Storm-dark ruined observatory, no eyes or mouth.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/arcanaphage/",
+      "note": "Creature Codex soft iridescent floating magivore with no mouth and ropy tentacles along its back/body length. Dog-sized normally; exact silhouette and palette are original nudibranch-like interpretations, with no added eyes or limbs."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

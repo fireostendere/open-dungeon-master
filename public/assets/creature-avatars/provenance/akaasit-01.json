@@ -1,0 +1,21 @@
+{
+  "creatureId": "akaasit",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-09-30",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy painted construct avatar, refined cinematic realism with eerie temporal distortion, central silhouette sharp and readable at 512 pixels. An Akaasit from Tome of Beasts 2: a Medium time-flickering construct made of MANY SEPARATE FLAT GRAY TRIANGLES floating in a vaguely praying-mantis-like arrangement. Essential: the flat thin triangular shards DO NOT TOUCH; large clear gaps reveal the background through its head, neck, chest and arms. No underlying solid robot body, no joined armor or organic flesh, not a chrome insect statue. TWO arm blades, each assembled from aligned floating flat triangles, frame the upper body in mantis posture. Angular triangular head-form made of separated plates, no required biological eyes or wings. Subtle displaced echoes suggest fractions of past/present/future but do not create multiple complete monsters or extra real blade arms. Crop mainly upper body to avoid inventing exact leg counts. Matte gray polygon plates with pale cold edge light, original composition not copied publisher art. No words, border, logo, watermark or collage. Serious normal 01. Three-quarter close upper-body portrait in an abandoned chronomancer laboratory, mantis-like head leaning forward, one of exactly two blade-arms advanced toward viewer and the other folded beside chest. Every flat gray triangle floats apart with plainly visible empty space between pieces; bronze astrolabe and stone wall visible through the open body. A few softly displaced afterimages around plate edges, cool cyan rim against muted warm lamplight, no dense solid torso.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/akaasit/",
+      "note": "ToB2 construct made of unconnected flat gray triangles in vaguely mantis-like silhouette, temporal flicker; two arm blades explicitly supported by destruction text."
+    },
+    {
+      "url": "https://willobrien.artstation.com/projects/68rWOW",
+      "note": "Original artist/gallery attribution located but artwork blocked by security check, not visually inspected. Exact leg/eye/wing count not asserted; original upper-body design emphasizes textual gaps and triangles."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

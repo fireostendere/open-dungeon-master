@@ -1,0 +1,17 @@
+{
+  "creatureId": "aphasian-abomination",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy creature avatar, luminous tactile painterly realism, dramatic contrast and a coherent cloud silhouette readable at 512 pixels. Aphasian Abomination from Tome of Beasts 3: a Large AMORPHOUS hovering cloud of orange-yellow magical energy. Dozens of GREEN glowing eyes and mouths appear, swirl and dissolve across its vaporous surface, distributed over the mass rather than one central face. It has NO fixed head, humanoid torso, arms, legs, wings, eye stalks, tentacles or mechanical parts. Entire body is luminous magic and dense amber vapor, not skin, meat or slime. Eyes and mouths are ghostly green energy shapes, no wounds or gore; some mouths form thin spectral teeth-like light without flesh. An ancient mage-hunting magical construct with deliberate intent. Original cloud structure and scenes, no copied art. No words, letters, readable runes, signature, logo, watermark or frame. YOLO absurd 04. The orange-yellow many-eyed magical cloud is performing catastrophically enthusiastic karaoke in a tiny medieval tavern. Three different green spectral mouths lean toward three separate microphones on floor stands, all mouths disagreeing about the song, with dozens of other green eyes rolling in different directions. A tiny purple sequined bow tie floats awkwardly on the front of the cloud, no arms, legs or body added. An empty music stand holds plain blank paper, warm tavern lanterns and absurd stage seriousness, no letters or song lyrics.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/aphasian-abomination/",
+      "note": "ToB3 Large hovering construct made of orange-yellow magical energy with numerous green eyes and mouths. No fixed anatomy; original cloud arrangements and scenes."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

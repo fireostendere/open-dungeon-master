@@ -1,0 +1,17 @@
+{
+  "creatureId": "beli",
+  "variantId": "03",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BELI winter-fairy avatar. One SMALL but clearly ADULT PALE-SKINNED FAIRY with little BLACK EYES and delicate TRANSLUCENT WINGS. Adult face and proportions, one head, two arms, two legs; original pointed ears, white/silver hair and a single pair of translucent membranous wings are artistic choices, not claimed fixed source anatomy. Carries an ICE DAGGER and ICY SHORTBOW, one may be safely sheathed or slung. Pale flesh, not a body made entirely of ice; black eyes, not glowing blue eyes. Opaque practical white winter tunic and leggings with modest original fur trim. Detailed realistic painterly frost, skin and wings, clear face at 512 pixels. No victims, blood, injury, nudity, text, signature, watermark, logo or frame. Normal 03. An androgynous adult beli perches on a frost-covered ruined arch, pale skin, swept-back silver hair and watchful black eyes. Two natural arms hold a small icy bow across the lap, ice dagger in its sheath, two legs tucked naturally against the stone. Delicate translucent wings partly folded behind, white layered winter garments, dim blue-green aurora and fine snowflakes, realistic ethereal character portrait.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/beli-3pp/",
+      "note": "Tome of Beasts 2016/2023 shared appearance: Small pale winter fairy with translucent wings and black eyes, ice dagger and icy shortbow, flight/invisibility/freezing regeneration. Adult identities, exact wing design/pair count, hair, ears, winter clothing and tongue-stuck-to-bow slapstick are original choices; no entirely ice body or blue glowing eyes."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

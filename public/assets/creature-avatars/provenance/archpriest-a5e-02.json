@@ -1,0 +1,17 @@
+{
+  "creatureId": "archpriest-a5e",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy character avatar, tactile painterly realism, expressive ADULT face with dignified spiritual authority, readable at 512 pixels. A5E Archpriest: powerful living Medium humanoid religious leader, FULL PLATE ARMOR with a HEAVY SHIELD and MACE, ceremonial vestments over the armor, restrained radiant divine magic. Exactly TWO arms and TWO hands, no wings, extra limbs or supernatural species anatomy. Original identities and fictional fantasy faith symbols, no actual named religious figure. No writing, signature, watermark, logo or border. Normal 02. An elderly human woman with pale freckled skin and tightly braided auburn-gray hair leads a dawn blessing outside a mountain temple. Deep blue vestments over practical engraved full plate, heavy steel shield braced on her left arm, mace hanging securely at belt so her right hand can lift in blessing. Cool mist, gold divine light around her raised palm, scarred but serene adult face, no third arm.",
+  "designReferences": [
+    {
+      "url": "https://a5e.tools/node/1872",
+      "note": "Official A5E Archpriest is a Medium humanoid religious leader using full plate, heavy shield, mace and potent divine magic. Original adult individuals, fictional regalia, faith symbols and scenes."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

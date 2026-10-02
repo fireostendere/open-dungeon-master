@@ -1,0 +1,17 @@
+{
+  "creatureId": "ancient-blue-dragon",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy bestiary avatar, cinematic painterly realism, tactile ancient scales, head and upper body dominant and readable at 512 pixels. ANCIENT BLUE DRAGON, gargantuan elder desert tyrant with thick cobalt and deep azure scales, massive blunt dragon snout, exactly ONE dominant enormous ridged NASAL HORN rising from the snout, broad lateral ribbed ear frills and small jaw/brow spikes. No pair of large side horns. Heavy powerful neck, scarred centuries-old scales, calculating proud eyes, four legs, ONE pair of TWO broad membranous wings with original ochre-gold membranes, one tail. Lightning breath, no fire. Elder proportions and weathering, alive not undead. No text, letters, signature, logo, watermark, border or gore. Serious normal 02. The ancient blue dragon bursts slowly from a dune of windblown sand, head frontal and nose horn prominent, immense foreclaws pushing sand outward, fine grains lodged between cobalt scales. TWO low wing roots behind heavy shoulders, a thread of white-blue lightning crackles from mouth to an empty glassy stone, black storm front above pale desert, forceful grounded anatomy.",
+  "designReferences": [
+    {
+      "url": "https://www.dndbeyond.com/monsters/16776-ancient-blue-dragon",
+      "note": "Core ancient blue dragon: Gargantuan lightning-breathing desert burrower. Classic prominent nasal horn and ear-frill silhouette follows established blue dragon anatomy; weathering, wing palette and scenes are original choices."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

@@ -1,0 +1,21 @@
+{
+  "creatureId": "adult-brass-dragon",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-09-30",
+  "prompt": "Use case: stylized-concept. One original square dark-fantasy bestiary portrait. Polished realistic painterly fantasy, cinematic light, tactile materials, one adult dragon, head and upper body dominate the frame, readable at small avatar size. No text, logos, watermark, borders, collage, source artwork copies or artist imitation. An adult BRASS DRAGON with warm brass scales, an unmistakably BROAD SHIELD-LIKE FOREHEAD PLATE instead of ordinary paired crown horns, chin spikes, a continuous neck frill with green mottling at edges. Intelligent talkative scholar temperament, desert-adapted. Conventional four-legged dragon with two separate wings mostly outside crop. Normal02: library sage, frontal head and shoulders above a large CLOSED plain leather book, broad brass head shield, dignified chin spikes, softened warm metallic highlights against a cool ruined library alcove, patient curious eyes.",
+  "designReferences": [
+    {
+      "url": "https://shop.wizkids.com/products/pre-order-d-d-icons-of-the-realms-adult-brass-dragon",
+      "use": "Licensed brass anatomy: broad head shield, chin spikes and frill"
+    },
+    {
+      "url": "https://a5e.tools/node/1575",
+      "use": "Official A5E adult brass dragon and scholarly temperament"
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

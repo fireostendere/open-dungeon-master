@@ -1,0 +1,21 @@
+{
+  "creatureId": "alchemist-archer",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy painted NPC avatar, tactile realistic cinematic lighting, ADULT elf face and diagnostic equipment readable at 512 pixels, no text, border, logo, watermark or collage. Alchemist Archer from Creature Codex is specifically an ELF: pointed ears, Medium humanoid archer, camouflaged STUDDED LEATHER armor, leather vial bandolier across chest, LONGBOW and arrow with a small fictional alchemical glass tube fastened to shaft, quiver, sheathed scimitar sidearm if visible. Gender, hair, complexion and face may vary because profession, not named individual. No human round ears, guns, heavy plate armor, modern chemistry labels, or magical staff instead of bow. Original sensible bow anatomy: one longbow, one continuous bowstring, one featured arrow, normal two hands. Exact chemicals are fantasy colored light, no technical diagram or instructions. Do not copy publisher art or real people. YOLO absurd 04. Deadpan adult pointed-eared elf archer in camouflaged studded leather aims a tiny alchemical arrow toward a single apple perched atop an absurdly enormous wobbling jelly dessert. The elf's face, longbow grip and vial bandolier dominate foreground; the jelly is at the side behind the arrow and already listing dramatically, apple precariously sliding. One continuous bowstring and one arrow only, no human target. Goggles pushed crookedly above brows, dark-fantasy banquet courtyard, physical ridiculous precision, no writing.",
+  "designReferences": [
+    {
+      "url": "https://koboldpress.com/creature-codex-alchemist-archer-elf/",
+      "note": "Primary Creature Codex text explicitly elf ancestry, studded leather/camouflage, vial bandolier, longbow/alchemy-tube arrows, scimitar. Gender/appearance variable."
+    },
+    {
+      "url": "https://koboldpress.com/wp-content/uploads/2018/10/alchemist-archer-elf.jpg",
+      "note": "Official art inspected for equipment: elf ears, green cloth, brown mantle/bracers, purple vials, quiver. Original varied adult elf individuals and scenes, not copying blonde pictured individual."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

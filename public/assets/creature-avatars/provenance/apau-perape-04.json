@@ -1,0 +1,17 @@
+{
+  "creatureId": "apau-perape",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy creature avatar, tactile painterly realism, cinematic lighting, strong gorilla face silhouette readable at 512 pixels. Apau Perape: a Large gorilla-like DEMON with dense midnight-black fur, broad immensely muscular ape torso, exactly TWO very long powerful arms reaching the ground and TWO shorter hind legs. No tail, wings, horns, extra limbs or human anatomy. Broad simian nose and heavy ape muzzle, deep-set glowing RED eyes when enraged, large tooth-filled mouth with formidable canines, sharply curved black claws at the ends of its ape fingers. Coarse charcoal-black fur and dark leathery face and knuckles, imposing demonic strength, no injury or gore. Original details and composition, not copied publisher art. No words, signature, logo, watermark or frame. YOLO absurd 04. The enormous black gorilla demon is delicately flamb\u00e9ing exactly one tiny banana in an absurdly small frying pan, holding the pan handle between the tips of two enormous curved claws. It wears a ridiculous small white chef toque perched on its gorilla crown, red eyes narrowed with utmost culinary seriousness, one little controlled flame over the banana. Other enormous arm rests on the counter, no horns or tail, midnight fur and giant simian face. Warm medieval kitchen, exaggerated scale contrast, serious realistic fantasy craftsmanship, no text.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/demon-apau-perape-3pp/",
+      "note": "Licensed ToB description identifies a gorilla demon with midnight fur, long muscular arms, curved claws, large teeth and red eyes in rage. Original ape anatomy detailing and compositions."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

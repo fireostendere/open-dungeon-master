@@ -1,0 +1,21 @@
+{
+  "creatureId": "bear_black_bf",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BLACK BEAR creature avatar for Black Flag SRD. One Medium natural BEAST, using realistic American black bear anatomy as an illustration reference: compact furry ursine body, relatively straight muzzle profile, prominent rounded ears, no pronounced grizzly shoulder hump, four clawed paws, one head and one very short tail. Glossy BLACK FUR chosen for clear catalog identity, dark eyes and brownish muzzle. No humanoid torso or human hands, horns, wings or supernatural body parts. Realistic painterly wildlife detail, atmospheric fantasy wilderness, clear readable silhouette at 512 pixels. No blood, injuries, victims, text, signature, watermark, logo or frame. Normal 02. One adult black bear climbs a thick leaning tree trunk, both front paws gripping the bark and both hind paws braced farther down, natural four-limbed animal posture. Head turns sideways toward viewer with calm wary eyes, prominent ears, no shoulder hump, dense black fur and tan muzzle. Dramatic diagonal composition, rainy forest and cool moonlight, no costume.",
+  "designReferences": [
+    {
+      "url": "https://github.com/open5e/open5e-api/blob/staging/data/v1/blackflag/Monster.json",
+      "note": "Black Flag SRD v0.2 bear_black_bf: Medium natural beast with bite, claws, heightened smell and climbing. No source-specific coloration or anatomy paragraph."
+    },
+    {
+      "url": "https://www.nps.gov/articles/bear-identification.htm",
+      "note": "Biological illustration reference, not extra game canon: black bear lacks pronounced brown-bear shoulder hump, has straighter face, prominent ears and shorter curved claws. Black coat, exact poses, scenery and failed sapling camouflage/picnic gag are original choices."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

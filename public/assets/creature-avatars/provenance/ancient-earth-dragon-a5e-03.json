@@ -1,0 +1,17 @@
+{
+  "creatureId": "ancient-earth-dragon-a5e",
+  "variantId": "03",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. One original square dark-fantasy bestiary avatar, polished realistic painterly fantasy, tactile geology and living reptilian anatomy, dominant head and forebody readable at 512 pixels. ANCIENT A5E EARTH DRAGON, gargantuan elder that resembles a natural rocky outcrop: very broad powerful dragon head, compact thick neck, low massive body, stout muscular clawed forelimbs, heavy dorsal stone-like plates and one long armored tail mostly beyond crop. Two NORMAL living amber eyes, never eyeless. Scales match local geology, sharp craggy scales in mountains or smoother serpent-like scales in desert forms. Very old weathered mineral seams, sparse natural moss and lichen in cracks, still a living dragon rather than assembled golem. Frame head and forebody without visible membrane wings. Sand-and-stone scouring breath, earth magic, no fire. Horn and brow shapes are original rock-outcrop forms. No text, letters, signature, watermark, logo, border, gore or copied art. Serious normal 03. Ancient earth dragon's dark basalt head and muscular forequarters rise beside a mountain ravine, low broad reptilian face with amber eyes, sharp black-gray rocky scales threaded with pale quartz veins, green lichen only in old crevices. Its immense foreclaw gently rests beside newly raised natural stone spires, no wings within portrait crop, distant terraced village on another peak gives scale, rain-wet stone and silver stormlight.",
+  "designReferences": [
+    {
+      "url": "https://a5e.tools/node/1550",
+      "note": "Official Gargantuan ancient earth dragon: rocky-outcrop camouflage, mountain sharp scales or desert serpentlike scales, earth glide, sand-and-stone breath and geological domain. Original geology palettes, head ridges and elder details; portrait crop omits wings rather than asserting lack of flight."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

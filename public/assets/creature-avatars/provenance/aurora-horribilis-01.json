@@ -1,0 +1,21 @@
+{
+  "creatureId": "aurora-horribilis",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy bestiary avatar, luminous painterly realism, beautiful supernatural light, one clear central entity readable at 512 pixels. Aurora Horribilis is a Large INCORPOREAL ABERRATION whose entire visible body is a hovering flowing RIBBON OF COLORED LIGHT, flickering in and out of physical space. It is not a humanoid, dragon, jellyfish, ghost face or winged animal. NO eyes, mouth, head, limbs, bones or solid body. One coherent long translucent light ribbon curls in three-dimensional space, with fine auroral vertical strands and spectral trailing edges; original green, cyan, violet and pink colors. It hovers close above ground and quietly sings, represented only by delicate ripples of light. No text, musical notation, signature, watermark, logo or border. Normal 01. One luminous aurora creature coils upright just above a frozen arctic lake like an immense floating silk ribbon, emerald and violet light woven through translucent pleats. Its shape fills most of the square frame, frost and stars visible THROUGH the light, a narrow reflection on black ice beneath. Distant mountains and faint natural polar lights form a quiet background; sharp detailed ribbon edges, eerie cosmic presence without any face.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/aurora-horribilis/",
+      "note": "Tome of Beasts 2 Large incorporeal aberration described as a low-flying flickering ribbon of light that sings, often among polar lights. No face or anatomy specified; colors, ribbon folds and scenes are original interpretations."
+    },
+    {
+      "url": "https://github.com/open5e/open5e-api/blob/staging/data/v1/tob2/Monster.json",
+      "note": "Licensed Open5e description confirms ribbon-of-light form, polar-light habitat and unearthly song. Artwork is newly generated rather than publisher art."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

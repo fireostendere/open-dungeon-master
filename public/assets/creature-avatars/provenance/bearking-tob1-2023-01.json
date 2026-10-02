@@ -1,0 +1,17 @@
+{
+  "creatureId": "bearking-tob1-2023",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BEAR KING avatar, Tome of Beasts 1 (2023). Named fey ruler Mesikammen, Old Honey Paws. Source regalia: HOLLY-LEAF CROWN, HUNTING LEATHERS, heavy BEARSKIN CLOAK, BLACKENED MAUL and an ornate CLAY HONEY POT. Golden magical honey can coat his hands/paws and weapon. His default true form is a MEDIUM BEARDED HUMANOID-LOOKING FEY; he can alternatively assume a LARGE BROWN BEAR form. Choose one coherent form in the variant, no accidental extra heads or limbs. Original face, hairstyle and equipment decoration. Rich realistic painterly woodland royalty, readable face and regalia at 512 pixels. No injuries, victims, blood, gore, text, signature, watermark, logo or frame. Normal 01, DEFAULT FEY TRUE FORM. A rugged broad-shouldered adult king with a full dark-brown beard streaked with silver, long dark hair and weathered face stands under an ancient forest arch. Medium humanoid proportions, one head, two arms and two legs. Crown of holly leaves and berries, brown hunting leathers, heavy bearskin mantle over both shoulders. One gloved hand grips a blackened maul resting upright beside him, the other hangs relaxed. Ornate clay honey pot secured at his hip, a few golden honey drops on the maul, misty green forest and warm dawn.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/bear-king-3pp/",
+      "note": "Tome of Beasts 1 (2023) Bear King Mesikammen: Medium fey true form, bearded ruler in hunting leathers, bearskin cloak, holly crown, blackened maul and ornate clay honey pot. Alternate Large brown bear/hybrid forms; equipment does not transform. Variants 01-03 depict true form; 04 deliberately depicts brown-bear alternate form. Face, clothing decoration, scenes and stuck honey-pot gag are original choices."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

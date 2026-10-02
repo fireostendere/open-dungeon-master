@@ -1,0 +1,11 @@
+{
+  "creatureId": "adult-red-dragon",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-09-30",
+  "prompt": "Use case: stylized-concept. Asset type: square dark-fantasy bestiary avatar, YOLO absurd dark comedy. One recognizable massive ADULT RED DRAGON, mature crimson scales, huge horned reptilian skull, swept-back horns, golden slit eyes, muscular long neck, leathery red wing shoulders. This terrifying legendary dragon is ludicrously protective of a single tiny battered wooden piggy-bank substitute: a small ceramic pink pig coin bank clutched carefully in one enormous claw near its chest, while wearing absurd tiny round spectacles perched far down its huge snout, glaring like an offended accountant. A ridiculously tiny crooked gold crown balances between horns. Backdrop is an immense epic treasure hoard, yet the dragon obsessively guards this pathetic little pig. Dark comic contrast of apocalyptic menace and petty miserliness, polished realistic painterly dark fantasy, cinematic lava-and-cool-rim lighting, clear tiny props and unmistakably adult dragon anatomy. Portrait pullback enough to see entire horns/head and claw with pig bank, centered square with margins. No text/numbers/lettering/logo/watermark/grid/border, no gore or humans, one dragon only, original artwork no artist imitation.",
+  "license": "generated-output; no third-party artwork license asserted"
+}

@@ -1,0 +1,11 @@
+{
+  "creatureId": "minotaur",
+  "variantId": "03",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-09-30",
+  "prompt": "Use case: stylized-concept. One original square dark-fantasy bestiary avatar of a MINOTAUR: huge muscular bipedal humanoid torso with unmistakable large bull head, broad bovine muzzle, two powerful curved horns, thick furred neck, deep animal eyes, broad shoulders and heavy hands. No human face, no deer antlers, no extra horns. Realistic painterly dark fantasy, cinematic lighting, rich fur/hide/metal texture, clear center-framed bust with horns inside safe square margins. One creature only, no text/letters/logo/watermark/grid/border, no gore, original art no artist imitation. Normal variant03. Gray-furred scarred minotaur with dark curving horns, one brass nose ring, thick braided leather straps and torn burgundy cloak. Right-facing three-quarter bust in mountain fortress doorway under cold rainy dusk, charcoal fur gleams in rimlight, proud weary expression.",
+  "license": "generated-output; no third-party artwork license asserted"
+}

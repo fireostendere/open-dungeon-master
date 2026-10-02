@@ -1,0 +1,25 @@
+{
+  "creatureId": "angel-of-judgment",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. One original square dark-fantasy creature portrait, refined tactile painted realism and cinematic light, large crisp expressive faces legible at 512 pixels. Angel of Judgment from Tome of Beasts 2: a huge immortal cosmic arbiter of balance with two opposed humanoid aspects joined back to back as one supernatural being, a dispassionate angelic judge and a severe fiendish judge. Tight upper-body portrait emphasizes two heads facing opposite directions; one active aspect has luminous open eyes, the other rests with eyes closed. Angelic aspect has beautiful austere mature features and pale luminous skin; fiendish aspect has dark bronze-red skin, angular features and two short curved horns. Not a lion-headed angelic enforcer. Original interpretation of the dual aspects, no copied illustration. Dark ceremonial robes and weathered gold-and-black armor, one immense greataxe partially in frame; no wings visible within the close crop. No text, logos, signature, watermark or frame. Normal 01. The active angelic face turns toward viewer in three-quarter view with serene silver-white eyes, long silver hair and a stern neutral mouth. Behind its right shoulder the second horned fiendish head faces away in side profile, eyes closed, the opposed shoulders meeting naturally beneath shared ceremonial drapery. Gray tribunal pillars stand in mist, gold dawn highlights on worn armor, tall greataxe shaft at left edge, immense still authority.",
+  "designReferences": [
+    {
+      "url": "https://github.com/open5e/open5e-api/blob/staging/data/v1/tob2/Monster.json",
+      "note": "Licensed ToB2 description read from verified blob 525bb80e5e7b8490fffe58b374150e8274abe258: dual angelic and fiendish aspects, cosmic balance and arbitration. Facial colors, opposed portrait arrangement and costume are original interpretations."
+    },
+    {
+      "url": "https://www.5esrd.com/database/creature/angel-of-judgment/",
+      "note": "Use stat block only: huge celestial, change-face trait with one aspect active, penance gaze and greataxe. ABOUT prose is erroneously copied from Angelic Enforcer and was excluded."
+    },
+    {
+      "url": "https://koboldpress.com/saints-of-midgard-st-authketill-the-twice-slain/",
+      "note": "Primary publisher compares a two-headed celestial to an angel of judgment, supporting dual-headed interpretation; not depicting the named saint."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

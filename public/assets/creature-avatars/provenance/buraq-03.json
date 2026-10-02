@@ -1,0 +1,17 @@
+{
+  "creatureId": "buraq",
+  "variantId": "03",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BURAQ creature avatar. One Medium BURAQ celestial: a WHITE EQUINE BODY, one handsome adult HUMAN HEAD with a beard on the equine neck, FOUR hoofed equine legs, TWO SHORT STRONG FEATHERED WINGS, one equine tail and a simple GILDED BAND at the neck. No separate human torso or arms, no horse head, horns, peacock tail or extra limbs. Smaller than a mule, restrained celestial glow. Exact human facial features, feather whiteness and band pattern are original. Realistic painterly fantasy material detail, readable at 512 pixels, one composition without panels. No gore, writing, signature, watermark, logo or frame. Normal 3. The white equine celestial flies over a desert canyon using two short broad feathered wings, four hoofed legs tucked beneath its horse-shaped body, one adult human head with dusty-tan beard and mane, tan equine tail and gold neck band, amber cloud light.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/buraq-3pp/",
+      "note": "ToB2016/2023: Medium white equine body, handsome human head, short strong feathered wings, gilded head/neck band; hair/beard/mane/tail may be silver, dusty tan, dark brown or black. Four equine legs, two wings and one tail inferred from body plan; no human torso, peacock tail, horn or unrelated folklore ornament."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

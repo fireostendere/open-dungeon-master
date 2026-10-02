@@ -1,0 +1,11 @@
+{
+  "creatureId": "adult-red-dragon",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-09-30",
+  "prompt": "Use case: stylized-concept. Asset type: square dark fantasy bestiary avatar. Original portrait of an ADULT RED DRAGON, normal variant02, distinct from a left-facing lava-cave dragon. Front-facing head and powerful upper neck of a mature crimson-scaled western dragon, broad imposing horned skull, long swept-back dark horns, small battle scars across burgundy scales, orange golden slit eyes, bristling cheek spines, jaws slightly parted revealing ivory fangs and orange heat deep in throat. Two red leathery folded wing shoulders establish western dragon silhouette. Defocused cold mountain fortress under storm clouds behind. Mature intelligent arrogance and menace. Cinematic cool silver rain-light contrasts warm red scales; polished realistic painterly dark fantasy texture. Pull back enough to leave visible space around BOTH horns and complete head within square; strong readable center composition for small avatar. One adult dragon only, no people, no text/letters/border/grid/logo/watermark, no gore or named-artist style, original imagery.",
+  "license": "generated-output; no third-party artwork license asserted"
+}

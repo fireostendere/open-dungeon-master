@@ -1,0 +1,17 @@
+{
+  "creatureId": "angatra",
+  "variantId": "03",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy creature avatar with tactile painterly realism, cinematic chiaroscuro, sharp large face readable at 512 pixels. Angatra from Tome of Beasts: a medium humanoid undead animated by a wrathful ancestor spirit, desiccated gaunt body with hard leathery skin, glowing eyes deep in the withered HUMAN face, extremely long rough scabrous fingernail claws. Wrapped in torn weathered lamba burial cloth from head to foot, tattered hood formed from the cloth, old dark stains on fabric but no gore or exposed organs. Supernaturally agile rather than shambling, two arms and two legs, five fingers per hand with long nails, no extra limbs, no horns or fangs. Not an Egyptian royal mummy: no pharaoh crown, no scarab ornaments. Original character design and composition, no copied art. No writing, logo, signature, watermark or frame. Normal 03. Low-angle close face and chest portrait, pale-gray desiccated humanoid face half concealed by shredded cream and rust-red burial cloth, two greenish-gold glowing eyes fixing the viewer with a painful supernatural stare. Both long-clawed hands near chest, fingers separated naturally. Torn cloth ripples in a night wind among dark roots, damp stone arch blurred behind, beautiful restrained horror and strong silhouette, no bloody wounds.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/angatra-3pp-2/",
+      "note": "Licensed Tome of Beasts entry: withered humanoid undead, leathery skin, glowing agonizing eyes, rough nail claws, torn lamba burial cloth and hood, supernatural agility. Eye palettes, clothing details and knitting humor are original."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

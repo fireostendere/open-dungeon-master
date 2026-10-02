@@ -1,0 +1,21 @@
+{
+  "creatureId": "andrenjinyi",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. One original square dark-fantasy creature avatar, exquisite tactile painterly realism and cinematic natural light, head large and sharply legible at 512 pixels. Andrenjinyi from Tome of Beasts: a gargantuan living celestial snake over sixty feet long, glossy jet-black SNAKE HEAD clearly separated from a thick muscular serpentine body patterned in brilliant multicolored scales, red, turquoise, green, gold and violet. Ageless primeval river spirit with imposing intelligence, two amber eyes and ordinary snake facial anatomy. A single continuous limbless, wingless snake body and one tapering tail, no horns, no dragon legs, no crest or cobra hood, no human arms. Rich wet natural scales and broadly curved muscular coils. Original interpretation of specified colors and serpent anatomy, no copied art. No text, signature, logo, watermark or frame. Normal 01. Head-and-upper-coil portrait facing nearly forward at water level in a deep freshwater pool after a desert thunderstorm. Broad glossy black head raised above turquoise water, calm dangerous amber eyes, red and gold scales begin immediately behind the head and continue around one huge rainbow coil. A faint real rainbow and wet red sandstone gorge behind, beads of water, warm sun through deep gray clouds, quiet majestic menace.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/andrenjinyi-3pp/",
+      "note": "Licensed Tome of Beasts creature text: immense black-headed snake, brilliant multicolored body, ageless celestial freshwater nature spirit. Snake anatomy and individual color patterns are original interpretations."
+    },
+    {
+      "url": "https://koboldpress.com/tools/kobold-press-monsters/",
+      "note": "Primary publisher index confirms Andrenjinyi, gargantuan celestial, Tome of Beasts."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

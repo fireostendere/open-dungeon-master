@@ -1,0 +1,17 @@
+{
+  "creatureId": "bearing-golem",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BEARING GOLEM avatar. One MEDIUM CONSTRUCT whose entire body is assembled from THOUSANDS OF SMALL SPHERICAL METAL BALL BEARINGS. Each visible surface, head, torso, limb and hand is made of distinct round metal pellets held together magically, with tiny dark gaps between them. Original readable humanoid silhouette, one head, two arms and two legs when assembled; it can scatter and reform, so loose spheres near its feet are natural. No solid metal plating, robot panels, gears, rings, cubes, spikes, caltrops or flesh. Face is suggested only by shallow arrangements of spheres and dark eye-like gaps, not a human skin face. Realistic painterly metallic reflections and magical assembly, strong silhouette at 512 pixels. No blood, victims, text, signature, watermark, logo or frame. Normal 01. A fully assembled humanoid bearing golem stands motionless in the archway of a ruined arcane workshop. Dense small polished steel spheres form every part of its broad torso, head, two arms, hands and two legs. A few individual loose bearings rest on the stone at its feet. Subtle dark eye depressions face the viewer, blue window light and amber forge reflections, full three-quarter figure.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/golem-bearing/",
+      "note": "Tome of Beasts 2 Medium construct: shifting humanoid assembled from thousands of spherical metal ball bearings, capable of scattering and reassembly; slam/steel-shot uses own material. No fixed face, metal color or proportions. Original humanoid poses, sphere-face suggestion, settings and hopeless janitor joke; not the separate caltrop variant."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

@@ -1,0 +1,17 @@
+{
+  "creatureId": "ancient-bronze-dragon",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. One original square dark-fantasy bestiary avatar, cinematic painterly realism, clear dominant dragon head and upper body readable at 512 pixels. ANCIENT BRONZE DRAGON, gargantuan elderly coastal amphibious dragon with smooth dark rich bronze scales and restrained blue-green patina in old seams. Its head is defined by a RIBBED FLUTED CRANIAL CREST with curving horns extending from its ridges, smaller matching spines under jaw and chin. Original consistent horn arrangement: two symmetrical pairs of curved horns rising from crest ridges. No blue-dragon nose spike, no broad brass forehead shield. EYES are glowing GREEN ORBS with faded nearly invisible pupils, old weathered face and heavy majestic neck. Exactly four legs with WEBBED clawed feet, TWO separate membranous wings and ONE tail. Intelligent vigilant sea guardian, lightning and repulsion breath rather than fire. No text, letters, signature, watermark, logo, border, gore or copied artwork. Absurd YOLO 04. A gargantuan ancient bronze dragon has been elected reluctant captain of a ridiculous miniature bathtub fleet. Authentic ribbed fluted crest with paired curved horns, glowing green eyes, dark bronze scales and tiny crooked white sailor cap; stern head bends over dozens of tiny paper boats and one yellow rubber duck in a shallow tide pool. One enormous WEBBED foreclaw delicately holds a tiny wooden boat upright, the other rests on a rock. TWO folded wings behind, salty coastal dawn, deadpan naval seriousness and absurd scale, no lettering or emblems. Targeted follow-up edit: Use case: precise-object-edit. Correct ONLY the wing anatomy in this generated ancient bronze dragon playing with toy boats. There are three separate wing shapes on the image-left: two upright wing tips behind the neck at the top-left, and a surplus low folded wing over the near shoulder at the far-left middle. Remove ONLY that surplus low folded wing, the triangular leathery flap protruding from the far-left edge beside the near shoulder roughly one-third down the image. Replace it seamlessly with natural continuous bronze shoulder/back scales. Keep the TWO upright background wings unchanged. Preserve the head, horn crest, green eyes, tiny sailor hat, both WEBBED foreclaws (their finger membranes must remain), toy sailboat, paper boats, rubber duck, rocks, framing and light exactly. End with one pair of two wings total. No text or new marks.",
+  "designReferences": [
+    {
+      "url": "https://shop.wizkids.com/products/pre-order-d-d-icons-of-the-realms-adult-bronze-dragon",
+      "note": "Licensed bronze family anatomy: ribbed/fluted horn-bearing crest, jaw/chin spines, smooth rich bronze scales and webbed feet; eyes become glowing green orbs with age. Original elder compositions, no publisher artwork copied."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

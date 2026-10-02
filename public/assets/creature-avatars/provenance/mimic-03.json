@@ -1,0 +1,11 @@
+{
+  "creatureId": "mimic",
+  "variantId": "03",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-09-30",
+  "prompt": "Use case: stylized-concept. Asset type: square dark-fantasy bestiary avatar. Original MIMIC monster, normal variant03. A squat travel trunk of pale scarred ash wood wrapped in black iron bands that has opened into a hungry monster: lid and box act as muscular upper/lower jaws, jagged yellow-white fangs along both rims, curling thick midnight-purple tongue, wet dark gumlike flesh between splintered wood, one small cunning amber eye near each lid corner. Different compact angular trunk shape, old iron handles, dull scattered coins beneath. Three-quarter right-facing chest at entrance of overgrown ancient stone vault in rainy autumn forest, moss and wet leaves, muted jade light and orange dusk edges. Polished realistic painterly dark-fantasy style, rich woodgrain, corroded iron and saliva details, clear entire monstrous chest silhouette with square margins. Exactly one mimic, no humanoids, no text/letters/logo/watermark/grid/border, no blood/gore, original imagery no artist imitation.",
+  "license": "generated-output; no third-party artwork license asserted"
+}

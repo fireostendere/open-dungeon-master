@@ -1,0 +1,17 @@
+{
+  "creatureId": "ancient-earth-dragon-a5e",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. One original square dark-fantasy bestiary avatar, polished realistic painterly fantasy, tactile geology and living reptilian anatomy, dominant head and forebody readable at 512 pixels. ANCIENT A5E EARTH DRAGON, gargantuan elder that resembles a natural rocky outcrop: very broad powerful dragon head, compact thick neck, low massive body, stout muscular clawed forelimbs, heavy dorsal stone-like plates and one long armored tail mostly beyond crop. Two NORMAL living amber eyes, never eyeless. Scales match local geology, sharp craggy scales in mountains or smoother serpent-like scales in desert forms. Very old weathered mineral seams, sparse natural moss and lichen in cracks, still a living dragon rather than assembled golem. Frame head and forebody without visible membrane wings. Sand-and-stone scouring breath, earth magic, no fire. Horn and brow shapes are original rock-outcrop forms. No text, letters, signature, watermark, logo, border, gore or copied art. Serious normal 01. A mountain-sized ancient earth dragon slowly lifts its broad granite-gray head from a matching alpine rock shelf, sharp stone-like scales and low jagged dorsal plates, huge living amber eyes opening under weathered crag brows, dust and tiny loose pebbles falling. Thick forelimbs emerge from stone, a distant ruined watchtower tiny beside shoulder, cold morning mist and pale high-altitude sun, monumental patience.",
+  "designReferences": [
+    {
+      "url": "https://a5e.tools/node/1550",
+      "note": "Official Gargantuan ancient earth dragon: rocky-outcrop camouflage, mountain sharp scales or desert serpentlike scales, earth glide, sand-and-stone breath and geological domain. Original geology palettes, head ridges and elder details; portrait crop omits wings rather than asserting lack of flight."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

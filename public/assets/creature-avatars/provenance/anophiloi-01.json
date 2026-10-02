@@ -1,0 +1,17 @@
+{
+  "creatureId": "anophiloi",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy creature avatar, tactile painterly realism, atmospheric cinematic lighting, crisp insect silhouette readable at 512 pixels. Anophiloi from Creature Codex: a large-dog-sized intelligent MONSTROUS MOSQUITO, Small monstrosity. One small insect head with two dark compound eyes, one long straight needle-like PROBOSCIS, two fine antennae, humped dark thorax, elongated segmented abdomen, exactly SIX long thin jointed legs with hooked tips and exactly TWO transparent veined mosquito wings attached to the upper thorax. No humanoid body, hands, additional wings, bird beak, stinger or mammal features. Fine charcoal chitin and sparse bristles, muted reddish abdomen suggests feeding without blood or wounds. The creature is alone, no victims or feeding injury. Original markings, poses and scenarios, no copied source art. No text, signature, logo, watermark or frame. Normal 01. Three-quarter close insect head and thorax portrait of the enormous mosquito perched on a wet mangrove root, long fine needle snout angled toward the viewer, two black compound eyes gleaming, narrow antennae feeling forward. Its six delicate legs brace on the root, two long clear veined wings folded neatly over a dusky red-brown segmented abdomen. Mossy tropical swamp, cool teal mist and one shaft of pale green light, eerie calculating predator. Targeted follow-up edit: Correct only the extra-wing error in this existing giant mosquito portrait. Keep the TWO long transparent wings extending to the right side of the image, one nearly horizontal and one diagonal downward. Remove the small extra THIRD wing protruding above and behind the top of the thorax near x=610 y=185. Replace that little upper wing with the uninterrupted softly blurred swamp background, retaining the thorax bristles. Exactly two mosquito wings total. Preserve the head, single proboscis, antennae, legs, body, composition and all lighting. No text, signature or watermark.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/anophiloi/",
+      "note": "Creature Codex intelligent mosquito-like monstrosity, dog-sized, long needle snout, flying wings and seasonal cold dormancy. Original mosquito anatomy detailing, color patterns and scenes, no victims or injury depiction."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

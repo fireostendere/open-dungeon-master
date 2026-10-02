@@ -1,0 +1,21 @@
+{
+  "creatureId": "basilisk",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BASILISK creature avatar. A Medium heavy-bodied venomous REPTILE with exactly EIGHT short sturdy reptilian LEGS, arranged as FOUR LEFT-RIGHT PAIRS along one low elongated lizard torso; one broad toothed reptile head and one tapering tail. Coarse armored scales, clear penetrating eyes, no wings, feathers, snake-only body, humanoid limbs or extra heads. Eight legs are mandatory, not four or six. Original scale colors, dorsal ridges and face proportions. Realistic painterly creature anatomy, readable silhouette and eyes at 512 pixels. No wounded prey, blood, gore, text, signature, watermark, logo or frame. YOLO 04. An eight-legged basilisk is attempting to roller-skate, looking completely bewildered. Its single long low body is supported by exactly EIGHT small colorful roller skates, one on each of its eight reptilian feet, four skates clearly arranged along each side. High three-quarter view, all eight legs and skates visible and countable, tail lifted slightly behind. One absurd tiny yellow safety helmet strapped gently over its broad reptile head, wide baffled eyes. Polished abandoned palace floor, dramatic fantasy lighting, no people or crashes, no injury or writing.",
+  "designReferences": [
+    {
+      "url": "https://a5e.tools/node/1441",
+      "note": "Official A5E Monstrous Menagerie explicitly establishes an eight-legged venomous reptile with petrifying gaze. Eight limbs retained across every variant; colors, ridges, subtle eye glow, settings and roller-skate joke are original choices."
+    },
+    {
+      "url": "https://github.com/open5e/open5e-api/blob/staging/data/v1/wotc-srd/Monster.json",
+      "note": "SRD5.1 basilisk record corroborates Medium monstrosity with natural armor, bite and petrifying gaze. No publisher artwork copied."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

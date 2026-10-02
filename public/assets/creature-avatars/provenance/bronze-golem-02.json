@@ -1,0 +1,17 @@
+{
+  "creatureId": "bronze-golem",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BRONZE GOLEM creature avatar. One Large construct shaped as a SHINING BRONZE MAN, stern sculpted humanlike head, one head, TWO arms ending in enormous fists and TWO legs. Steam vents along the chest and jawline, a clearly outlined hinged boiler door in the chest. Substantial statue-like bronze mass with coherent mechanical joints, no bull head, horns, weapons, shield or lava body. Exact joint design and modest green patina in crevices are original choices. Realistic painterly fantasy material detail, readable at 512 pixels, one composition without panels. No gore, writing, signature, watermark, logo or frame. Normal 2. Tight three-quarter portrait of the stern sculpted bronze face, oversized shoulders, steam escaping neatly spaced jaw vents, green patina in creases and warm glowing boiler seams below, cool workshop shadow.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/golem-bronze/",
+      "note": "Creature Codex2018: Large shining bronze humanoid, enormous fists, stern sculpted head, steam vents along chest/jaw and chest boiler behind opening plate. Ordinary two-arm/two-leg form and exact vents/joints/patina are chosen interpretation; no bull head implied by action name."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

@@ -1,0 +1,11 @@
+{
+  "creatureId": "skeleton",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-09-30",
+  "prompt": "Use case: stylized-concept. Asset type: square dark-fantasy bestiary avatar. Create one original portrait of a SKELETON undead archer, normal variant02. Bare weathered human skull, hollow sockets with faint green necromantic light, prominent cracked teeth and cheekbones, exposed bony neck and skeletal ribcage; absolutely no living skin or flesh. Wears faded ragged dark brown hood pulled back from entire skull, torn cloth shoulder wrap, old quiver with black-feather arrows visible over shoulder and wooden bow edge at one side. Front-facing bust with skull tilted slightly down, a haunted ruined woodland shrine blurred behind. Moonlit mist, atmospheric green-blue rim lighting, nuanced bone texture, polished realistic painterly dark-fantasy illustration. Strong readable silhouette, full skull within generous square/circular avatar safe margins. Exactly one skeleton, single square image, no grid, no lettering/text/border/logo/watermark, no gore, original artwork not copied, no named artist style.",
+  "license": "generated-output; no third-party artwork license asserted"
+}

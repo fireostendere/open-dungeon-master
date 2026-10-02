@@ -1,0 +1,17 @@
+{
+  "creatureId": "bronze-dragon-wyrmling",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BRONZE DRAGON WYRMLING creature avatar. One Medium juvenile bronze dragon wyrmling with compact young proportions and an alert large head. Original design choices: muted green-bronze scales with warm metallic edges, sea-green eyes, two short swept-back horns, a small dorsal fin ridge, one head, FOUR walking legs, TWO separate membranous wings and ONE tail. Keep wings distinct from legs, no wyvern anatomy, no equipment in normal variants, no fire breath. Realistic painterly fantasy material detail, readable at 512 pixels, one composition without panels. No gore, writing, signature, watermark, logo or frame. Normal 1. The juvenile dragon stands on a wet coastal rock, four feet coherently planted, two wings folded and one tail curved around a tide pool. Muted green-bronze scales, ocean spray and sunrise, small seabirds far away establish modest size.",
+  "designReferences": [
+    {
+      "url": "https://a5e.tools/node/1581",
+      "note": "Core SRD5.1, A5E2021, Black Flag0.2: Medium juvenile dragon, flight, swimming, amphibious breathing, lightning breath. Four legs/two wings/one tail and green-bronze palette/horns/eyes are original conventional visual choices, not exact-edition enumerated facts. Variant03 uses shared lightning, not A5E-specific water torrent."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

@@ -1,0 +1,21 @@
+{
+  "creatureId": "ankylosaurus-a5e",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy creature avatar, cinematic natural history painterly realism, tactile pebbled skin and bone armor, head and silhouette legible at 512 pixels. Ankylosaurus from Level Up A5E: a Huge living herbivorous armored dinosaur. Very broad low barrel-shaped body, short thick neck, wide blunt beaked head, small alert eyes, rear-pointing bony corner horns behind the eyes and cheek horns, exactly FOUR short sturdy legs beneath its body. Rows of low irregular bony osteoderms embedded across back and neck; NOT a turtle shell and NOT tall stegosaurus plates. One long stiff tail with a single broad heavy blunt BONY CLUB at the end, never tail spikes. No wings, extra tails, armor harness, mammal fur or meat-eater fangs. Earthy original color patterns; armor arrangement and colors are artistic interpretation. No text, signature, watermark, logo or frame. Normal 02. Low side angle of the head, shoulders and armored flank of a dusty ochre ankylosaurus in rocky open grassland. It lowers its blunt beak to sniff sparse shrubs, short heavy legs and broad low belly, irregular matte bone shields across the back, short rearward skull horns. Its single tail extends horizontally behind with an obvious rounded two-lobed bony club. Brooding storm clouds, amber rim light, calm formidable animal.",
+  "designReferences": [
+    {
+      "url": "https://a5e.tools/node/1489",
+      "note": "Official A5E Huge herbivore with armored back and heavy clubbed tail."
+    },
+    {
+      "url": "https://www.nhm.ac.uk/discover/dino-directory/ankylosaurus.html",
+      "note": "Museum anatomy reference: broad armored quadrupedal herbivore, beaked mouth, bony body plates and blunt tail club. Exact armor layout and colors are interpreted."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

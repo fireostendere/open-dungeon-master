@@ -1,0 +1,21 @@
+{
+  "creatureId": "brimstone-locusthound",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BRIMSTONE LOCUSTHOUND creature avatar. One Medium wolf-locust hybrid with ONE coherent CANINE TORSO covered in coarse charcoal-gray fur, ONE LOCUST HEAD bordered by a fur ruff, long angular insect legs and smoke exhaled from its mouth. The head is genuinely insectlike with two compound eyes, paired antennae and mandibles, NOT a wolf muzzle. Original fixed limb interpretation: FOUR long insect legs and TWO translucent folded insect wings, one short furry tail. No extra wolf head, horns, flame-covered skin or lava cracks. Realistic painterly fantasy material detail, strong readable silhouette at 512 pixels, one composition with no panels. No gore, writing, signature, watermark, logo or frame. Normal 2. Close three-quarter locust head portrait with glossy dark copper chitin, two compound eyes, two antennae and biting mandibles surrounded by gray wolf fur, wisps of smoke and a shadowy ravine background. No canine muzzle or extra head. Correction: Edit this exact image, preserving the locust head, compound eyes, two antennae, smoky mouth, gray furry canine torso, insect wings, tail, lighting and square framing. REMOVE ONLY the extra furry canine front leg and paw that extends from the chest down toward the lower center-right edge. This furry leg is an unwanted fifth limb. Keep the existing FOUR long armored INSECT legs and their feet, two forelegs and two hindlegs, with no additional furry walking legs. Fill the removed limb region with matching background rock and distant scenery. No other changes.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/brimstone-locusthound/",
+      "note": "ToB2: Medium canine torso, locust head surrounded by fur, long insect legs and exhaled smoke; can fly. Leg/wing counts and all colors unspecified. Chosen original plan is four insect legs, two translucent wings, two antennae and two compound eyes; no fire anatomy or second canine head."
+    },
+    {
+      "url": "https://www.5esrd.com/database/creature/brimstone-locusthound/",
+      "note": "QA clarification: four walking legs are the selected artistic body plan, not a canonical numerical claim. Folded wing membranes differ between individuals; source does not prescribe wing count. No publisher art was used."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

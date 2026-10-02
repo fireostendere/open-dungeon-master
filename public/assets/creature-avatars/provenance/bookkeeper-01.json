@@ -1,0 +1,17 @@
+{
+  "creatureId": "bookkeeper",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BOOKKEEPER construct avatar, Creature Codex. One TINY ANIMATED INK CREATURE bound to exactly ONE BOOK. Outside the book it is a liquid INK BLOB with temporary fluid extensions and no fixed head, face, eyes, limb or tentacle count. It can merge into page markings; magical FLIGHT is shown only when the ink is INSIDE its book, never a separately flying blob. Book binding, dark ink color and expression-like contours are original choices. No biological wings or humanoid body. Any page marks must be abstract unreadable ink patterns, no actual letters. Realistic painterly glossy ink, worn paper and leather, readable at 512 pixels. No victims, injury, gore, writing, signature, watermark, logo or frame. Normal 01. One worn open leather tome rests on a stone lectern, a Tiny glossy black ink creature emerges from its pages as a low fluid blob with two temporary curling ink tendrils, still close to its single bound book. Abstract ink swirls stain the pages without readable letters, warm candlelight and an empty library, no face or wings.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/bookkeeper/",
+      "note": "Creature Codex base: Tiny living ink construct linked to one book, blob outside/pages inside; flight only inside bound book. Exact ink contours, book binding and accountant-visor gag original; expanded variants excluded."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

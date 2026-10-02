@@ -1,0 +1,25 @@
+{
+  "creatureId": "adult-blue-dragon",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-09-30",
+  "prompt": "Use case: stylized-concept. Asset type: one original square bestiary avatar. Polished dark-fantasy realistic painterly art, rich tactile scales, dramatic cinematic lighting. One adult dragon only, head and upper body dominate square frame, facial anatomy clear. Conventional body plan of four legs, two separate wings and one tail, mostly outside crop. No text, letters, logo, watermark, border, collage, copied source artwork or artist imitation. Subject: an adult Blue Dragon in the classic 2014-style silhouette: rich cobalt and azure scales, broad blunt dragon snout, exactly ONE dominant large ridged nasal horn rising from the snout, broad lateral frilled ears and small jaw/brow spikes, strong muscular neck, lightning-breathing desert predator. Do not replace nasal horn with a pair of large side horns. Chosen ochre wing membranes at shoulder edges, electric sparks across charged scales. Normal02: storm charge, powerful frontal bust, single large nasal horn rises in central silhouette, narrow blue-white electric arcs cross brow and tiny jaw spikes, broad ear frills symmetrically spread, heavy indigo storm shadows and pale lightning behind.",
+  "designReferences": [
+    {
+      "url": "https://a5e.tools/node/1532",
+      "use": "Official adult blue dragon desert, burrowing and lightning identity"
+    },
+    {
+      "url": "https://www.dndbeyond.com/monsters/16765-adult-blue-dragon",
+      "use": "Core adult blue dragon identity"
+    },
+    {
+      "url": "https://forgottenrealms.fandom.com/wiki/Blue_dragon",
+      "use": "Supplementary classic dominant nasal horn and ear-frill anatomy"
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

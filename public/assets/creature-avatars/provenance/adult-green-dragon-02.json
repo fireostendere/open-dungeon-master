@@ -1,0 +1,21 @@
+{
+  "creatureId": "adult-green-dragon",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-09-30",
+  "prompt": "Use case: stylized-concept. One original square dark-fantasy bestiary avatar, polished realistic painterly illustration, cinematic light, rich tactile detail. One adult dragon, face and head-and-neck dominate the square and remain readable at small size. No text, lettering, logo, watermark, border, collage, copied publisher art or artist imitation. An adult GREEN DRAGON with OPAQUE organic deep-green reptilian scales, not crystal or gemstones. A prominent CREST starts near the eyes, rises highest just behind the skull and continues down the spine. Slender cunning dragon muzzle, original small swept horn pair, amber eyes, functional wings and clawed limbs partly outside crop. Amphibious forest predator using POISON gas, not sonic pressure rings or psychic gemstone effects. Normal02: poison hush, clear side-three-quarter profile with high crest silhouetted behind skull and along neck. Thin yellow-green poison wisp slips between sharp teeth, damp forest darkness, amber eye gleaming with manipulative intelligence; no crystalline facets.",
+  "designReferences": [
+    {
+      "url": "https://www.dndbeyond.com/monsters/16770-adult-green-dragon",
+      "use": "Core post-skull crest continuing down spine and forest poison identity"
+    },
+    {
+      "url": "https://a5e.tools/node/1537",
+      "use": "Official A5E adult green dragon; opaque living green scales"
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

@@ -1,0 +1,17 @@
+{
+  "creatureId": "animated-armor",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy creature avatar, tactile painterly realism, cinematic light and a strong helmet silhouette readable at 512 pixels. Animated Armor from core DnD: a magically moving EMPTY suit of plate armor, medium humanoid scale, hollow helmet and hollow articulated metal limbs. No human occupant, face, skin, skeleton or ghost inside. Two metal arms and gauntlets, two armored legs, one helmet and breastplate held together by invisible magic. Worn believable metal craftsmanship, dark gaps show EMPTY space. Subtle magical rim light may hint at animation, but do not add glowing eyeballs or a robot screen. Original armor design and composition, no copied publisher art. No words, signature, logo, watermark or frame. YOLO absurd 04. An empty animated suit of steel plate armor has attempted to eat soup: one articulated gauntlet lifts a tiny spoon toward the open hollow visor while a small stream of soup drains out through the neck gap into a bowl held beneath by the other gauntlet. No face or human body inside, empty dark helmet visibly baffled through a slight head tilt. A ridiculous pink napkin is tucked under the gorget. Close helmet and chest composition, warm medieval dining hall, seriously rendered fantasy realism, no text.",
+  "designReferences": [
+    {
+      "url": "https://www.dndbeyond.com/monsters/16786-animated-armor",
+      "note": "Official core animated plate armor, construct with false appearance and slam attacks. Empty suit interpretation and individual plate designs/scenes are original."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

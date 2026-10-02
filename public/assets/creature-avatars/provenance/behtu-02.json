@@ -1,0 +1,21 @@
+{
+  "creatureId": "behtu",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BEHTU avatar. One SMALL ADULT APE-HUMAN HUMANOID with a MANDRILL-LIKE FACE and two prominent curved BOAR TUSKS, short strong simian build, one head, TWO ARMS and TWO LEGS, grasping simian hands. Adult warrior proportions, not a child and not a giant demon lord. Original dark fur, blue-red facial pigmentation, modest practical clothing and abstract demonic tattoo motifs without lettering; no horns or visible tail required. Carries a SPEAR appropriate to the selected source edition; small infusion vial is optional. Detailed realistic painterly fur, face and jungle textures, readable at 512 pixels. No blood, wounds, victims, gore, text, signature, watermark, logo or frame. Normal 02, 2023 EQUIPMENT INTERPRETATION. Close waist-up portrait of a gray-furred behtu with a strongly ridged mandrill face, red nose stripe, blue cheeks and two sweeping boar tusks. Natural armored hide, simple woven chest sash, abstract geometric tattoos on one exposed forearm. One hand grips a spear shaft along the frame edge, the other holds a small stoppered amber infusion vial. Dense green rainforest shadow and gold sunlight, calculating adult expression.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/behtu-3pp",
+      "note": "Shared 2016/2023 Behtu identity: Small ape-human humanoid with mandrill face and boar tusks, bite/climb/fire breath, demonic tattoos and infusions. Variants 01,02,04 use 2023 natural armor and spear; 03 deliberately uses 2016 hide armor/shortspear. Fur/pigmentation, tattoo designs, clothing details, scenes and tusk clothesline joke are original choices."
+    },
+    {
+      "url": "https://github.com/open5e/open5e-api/blob/staging/data/v1/tob/Monster.json",
+      "note": "Licensed 2016 behtu record verifies hide armor and shortspear, contrasting the 2023 equipment treatment."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

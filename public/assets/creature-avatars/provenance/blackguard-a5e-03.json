@@ -1,0 +1,17 @@
+{
+  "creatureId": "blackguard-a5e",
+  "variantId": "03",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BLACKGUARD NPC avatar from ADVANCED 5e. One living ADULT MEDIUM HUMANOID warrior in complete FULL PLATE, a GREATSWORD and a HEAVY CROSSBOW. One head, two arms and two legs, coherent gauntlets and weapons. No lance unless mounted; these portraits are on foot. No required shield, skull face, horns, wings or supernatural body transformation. Original blackened or dark steel, ancestry, gender, age, heraldry and expression. Threatening knightly presence, realistic painterly metal, cloth, face and worn leather, readable character at 512 pixels. No victims, blood, injury, gore, writing, signature, watermark, logo or frame. Normal 03. An adult half-elf blackguard in dark blue-black full plate braces a heavy crossbow across both gauntleted hands, its transverse bow arms, single stock and bolt channel mechanically coherent. A sheathed greatsword is secured along the back, open helmet reveals a severe mature face. Broken courtyard steps and storm clouds, powerful controlled stance, no firing or target.",
+  "designReferences": [
+    {
+      "url": "https://a5e.tools/node/1854",
+      "note": "A5E Blackguard NPC: Medium living humanoid in explicit full plate, greatsword and heavy crossbow; lance only while mounted. Exact individual appearance, armor colors and toast-preparation gag original; no required skull/horn/wings."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

@@ -1,0 +1,21 @@
+{
+  "creatureId": "angler-worm",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy creature avatar, tactile painterly realism, moody cavern lighting, distinctive worm head large and readable at 512 pixels. Angler Worm from Tome of Beasts: a HUGE cave-dwelling predatory worm with one long thick flexible limbless body, wet mucus-slick skin and soft annular segments, a broad tooth-lined mouth at the front, no limbs, wings, horns or tail stinger. It clings to cavern ceilings and coils around rock, setting nearly transparent sticky SILK SNARES and conjuring a separate faint BLUE LIGHT ORB to lure prey. The orb floats freely nearby, not on an anglerfish stalk. Original anatomical interpretation: pale gray-lilac worm skin and an eyeless tactile head, natural fleshy ringed body, no armored purple-worm spikes. No gore or prey injury, no copied publisher art. No text, signature, watermark, frame or logos. Normal 02. Side portrait of the worm's broad blunt head emerging around a moss-dark stalactite, single massive segmented body coiled naturally around the stone. Translucent pearl-gray skin with violet shadows, mouth slightly parted, faint mucus sheen and short fine sensory bristles as original detail, no eyes or legs. A free-floating cold-blue lure orb glimmers beyond a web of long clear silk snares, warm mineral reflections deep behind, subterranean atmosphere.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/angler-worm-3pp",
+      "note": "Licensed ToB2023 identity: huge ceiling-climbing/coiling worm, sticky transparent silk snares, bite and separate magical blue lure orb. Pale annulated eyeless tactile anatomy is an original interpretation, not a claim copied from publisher art."
+    },
+    {
+      "url": "https://koboldpress.com/tools/kobold-press-monsters/",
+      "note": "Primary publisher index confirms Angler Worm, Huge monstrosity, Tome of Beasts; distinguished from unrelated CR10 angler worm and purple worm."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

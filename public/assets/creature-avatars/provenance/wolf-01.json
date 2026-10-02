@@ -1,0 +1,11 @@
+{
+  "creatureId": "wolf",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-09-30",
+  "prompt": "Use case: stylized-concept. Asset type: square dark fantasy tabletop bestiary avatar. One original portrait of a WOLF, normal variant01. A natural adult gray wolf, realistic canine anatomy, thick mottled charcoal-gray fur, alert triangular ears, long muzzle, amber eyes, muscular shoulders; not a werewolf, not a dire wolf or magical hybrid. Left-facing three-quarter head-and-shoulders, watchful calm threatening gaze in a misty pine forest, dew on fur, blurred cold forest behind. Polished realistic painterly dark-fantasy aesthetic with cinematic cool moonlight and subtle warm face light, beautifully detailed natural fur, strong silhouette at thumbnail size. Entire ears and head within centered square safe margins. Exactly one wolf, no collar/clothing/armor, no text/grid/border/logo/watermark, no gore, original art no named artist style.",
+  "license": "generated-output; no third-party artwork license asserted"
+}
