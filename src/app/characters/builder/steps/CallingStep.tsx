@@ -179,7 +179,7 @@ export function CallingStep({
                   selected={state.chosenSkills.includes(skillId)}
                   disabled={fromBackground}
                   onClick={() => actions.toggleSkill(skillId)}
-                  info={{ text: describeSkill(skillId) }}
+                  info={{ text: describeSkill(skillId, locale) }}
                 >
                   {skill?.name ?? skillId}
                    {fromBackground ? ` ${copy.background}` : ""}

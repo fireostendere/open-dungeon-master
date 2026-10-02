@@ -1,0 +1,570 @@
+{
+  "item.1": {
+    "en": "Add your full Dexterity modifier.",
+    "ru": "Добавьте модификатор Ловкости полностью."
+  },
+  "item.2": {
+    "en": "Dexterity does not add to it.",
+    "ru": "Ловкость не добавляется."
+  },
+  "item.3": {
+    "en": "Light armor",
+    "ru": "Лёгкий доспех"
+  },
+  "item.4": {
+    "en": "Medium armor",
+    "ru": "Средний доспех"
+  },
+  "item.5": {
+    "en": "Heavy armor",
+    "ru": "Тяжёлый доспех"
+  },
+  "item.6": {
+    "en": "Simple melee weapon",
+    "ru": "Простое рукопашное оружие"
+  },
+  "item.7": {
+    "en": "Simple ranged weapon",
+    "ru": "Простое дальнобойное оружие"
+  },
+  "item.8": {
+    "en": "Martial melee weapon",
+    "ru": "Воинское рукопашное оружие"
+  },
+  "item.9": {
+    "en": "Martial ranged weapon",
+    "ru": "Воинское дальнобойное оружие"
+  },
+  "item.10": {
+    "en": "Wondrous item",
+    "ru": "Чудесный предмет"
+  },
+  "item.11": {
+    "en": "Adventuring gear",
+    "ru": "Снаряжение искателя приключений"
+  },
+  "item.12": {
+    "en": "Magic item",
+    "ru": "Магический предмет"
+  },
+  "item.13": {
+    "en": "Ring",
+    "ru": "Кольцо"
+  },
+  "item.14": {
+    "en": "Potion",
+    "ru": "Зелье"
+  },
+  "item.15": {
+    "en": "Wand",
+    "ru": "Волшебная палочка"
+  },
+  "item.16": {
+    "en": "Rod",
+    "ru": "Жезл"
+  },
+  "item.17": {
+    "en": "Staff",
+    "ru": "Посох"
+  },
+  "item.18": {
+    "en": "Scroll",
+    "ru": "Свиток"
+  },
+  "item.19": {
+    "en": "Tools",
+    "ru": "Инструменты"
+  },
+  "item.20": {
+    "en": "Needs arrows, bolts or stones to attack at range; the ammunition is spent as it is fired.",
+    "ru": "Для дальней атаки нужны стрелы, болты или камни; боеприпас тратится при выстреле."
+  },
+  "item.21": {
+    "en": "A weapon with a striking end at each side; the second end can make the extra light-weapon attack, doing the die in brackets.",
+    "ru": "У оружия ударная часть с обеих сторон; вторым концом можно сделать дополнительную атаку, как лёгким оружием, кость урона указана в скобках."
+  },
+  "item.22": {
+    "en": "Attack and damage may use Dexterity instead of Strength, whichever is better.",
+    "ru": "Для атаки и урона можно использовать Ловкость вместо Силы — что лучше."
+  },
+  "item.23": {
+    "en": "Fires with black powder, which it consumes along with the shot; wet or missing powder means it cannot fire.",
+    "ru": "Стреляет чёрным порохом, который тратится вместе с выстрелом; без сухого пороха не выстрелит."
+  },
+  "item.24": {
+    "en": "Too big for Small creatures to use well: they attack with disadvantage.",
+    "ru": "Слишком большое для Маленьких существ: они атакуют им с помехой."
+  },
+  "item.25": {
+    "en": "Small enough to fight with one in each hand (two-weapon fighting).",
+    "ru": "Достаточно лёгкое, чтобы сражаться двумя сразу, по одному в каждой руке."
+  },
+  "item.26": {
+    "en": "Slow to reload: only one shot per action, bonus action or reaction, however many attacks you have.",
+    "ru": "Долго перезаряжается: один выстрел за действие, бонусное действие или реакцию, сколько бы атак у вас ни было."
+  },
+  "item.27": {
+    "en": "Holds the number of shots in brackets; once they are spent, an action reloads it.",
+    "ru": "Вмещает число выстрелов в скобках; когда они кончатся, перезарядка занимает действие."
+  },
+  "item.28": {
+    "en": "Strikes 5 feet further than usual, so 10 feet away instead of 5.",
+    "ru": "Бьёт на 1,5 м дальше обычного: на 3 м вместо 1,5 м."
+  },
+  "item.29": {
+    "en": "Has its own rules beyond the usual attack; the DM applies them when it is used.",
+    "ru": "У оружия свои особые правила; Мастер применяет их, когда оно используется."
+  },
+  "item.30": {
+    "en": "Can be thrown to make a ranged attack, using the same ability as a melee swing with it.",
+    "ru": "Его можно метнуть для дальней атаки с той же характеристикой, что и в ближнем бою."
+  },
+  "item.31": {
+    "en": "Needs both hands to attack with, so no shield or second weapon.",
+    "ru": "Для атаки нужны обе руки, так что ни щита, ни второго оружия."
+  },
+  "item.32": {
+    "en": "Usable in one hand or two; the two-handed grip does the larger damage die in brackets.",
+    "ru": "Можно держать одной или двумя руками; двумя оно наносит урон костью в скобках."
+  },
+  "item.33": {
+    "en": "Corrosive: sprays, oozes and dissolving breath.",
+    "ru": "Разъедающий: брызги, слизь и растворяющее дыхание."
+  },
+  "item.34": {
+    "en": "Blunt force: clubs, hammers, fists, falling.",
+    "ru": "Тупой удар: дубины, молоты, кулаки, падение."
+  },
+  "item.35": {
+    "en": "Freezing: ice breath, rays of frost, winter magic.",
+    "ru": "Леденящий: ледяное дыхание, лучи мороза, зимняя магия."
+  },
+  "item.36": {
+    "en": "Burning: dragon fire, fireballs, torches.",
+    "ru": "Обжигающий: драконье пламя, огненные шары, факелы."
+  },
+  "item.37": {
+    "en": "Pure magical energy; almost nothing resists it (magic missile, eldritch blast).",
+    "ru": "Чистая магическая энергия; ей почти ничто не сопротивляется (волшебная стрела, мистический заряд)."
+  },
+  "item.38": {
+    "en": "Electricity: bolts, blue dragons, storm magic.",
+    "ru": "Электричество: молнии, синие драконы, магия бури."
+  },
+  "item.39": {
+    "en": "Withering life force: undead touches, life drain, most death magic.",
+    "ru": "Иссушает жизненную силу: касания нежити, похищение жизни, почти вся магия смерти."
+  },
+  "item.40": {
+    "en": "Puncture: arrows, spears, fangs.",
+    "ru": "Прокол: стрелы, копья, клыки."
+  },
+  "item.41": {
+    "en": "Venom and toxins: stings, poisoned blades, poison breath.",
+    "ru": "Яды и токсины: жала, отравленные клинки, ядовитое дыхание."
+  },
+  "item.42": {
+    "en": "Mental assault: mind flayers, some enchantments, telepathic damage.",
+    "ru": "Удар по разуму: иллитиды, некоторые очарования, телепатический урон."
+  },
+  "item.43": {
+    "en": "Holy light and searing brilliance: celestials, clerics' spells, the sun.",
+    "ru": "Святой свет и жгучее сияние: небожители, заклинания жрецов, солнце."
+  },
+  "item.44": {
+    "en": "Cutting: swords, axes, claws.",
+    "ru": "Режущий: мечи, топоры, когти."
+  },
+  "item.45": {
+    "en": "Concussive sound: thunderwave, shatter, a giant's shout.",
+    "ru": "Оглушающий звук: волна грома, дребезги, крик великана."
+  },
+  "condition_blurbs.blinded": {
+    "en": "Cannot see. Fails any check that needs sight; attacks against it have advantage, its own attacks have disadvantage.",
+    "ru": "Не видит. Автоматически проваливает проверки, требующие зрения; атаки по нему с преимуществом, его атаки с помехой."
+  },
+  "condition_blurbs.charmed": {
+    "en": "Cannot attack the charmer or target them with harmful effects; the charmer has advantage on social checks against it.",
+    "ru": "Не может атаковать очаровавшего или выбирать его целью вредоносных эффектов. Очаровавший имеет преимущество на социальные проверки против него."
+  },
+  "condition_blurbs.deafened": {
+    "en": "Cannot hear. Fails any check that needs hearing.",
+    "ru": "Не слышит. Автоматически проваливает проверки, требующие слуха."
+  },
+  "condition_blurbs.exhaustion": {
+    "en": "Six worsening levels, from disadvantage on checks to death. Usually one level clears per long rest.",
+    "ru": "Шесть ухудшающихся уровней, от помехи на проверки до смерти. Обычно один уровень снимается за продолжительный отдых."
+  },
+  "condition_blurbs.frightened": {
+    "en": "Disadvantage on checks and attacks while the source of fear is in sight, and cannot willingly move closer to it.",
+    "ru": "Помеха на проверки и атаки, пока источник страха виден; нельзя добровольно приближаться к нему."
+  },
+  "condition_blurbs.grappled": {
+    "en": "Speed becomes 0. Ends if the grappler is incapacitated or the two are forced apart.",
+    "ru": "Скорость становится 0. Заканчивается при недееспособности захватившего или принудительном разделении существ."
+  },
+  "condition_blurbs.incapacitated": {
+    "en": "Cannot take actions or reactions.",
+    "ru": "Не может совершать действия и реакции."
+  },
+  "condition_blurbs.invisible": {
+    "en": "Cannot be seen without magic or a special sense. Attacks against it have disadvantage, its attacks have advantage.",
+    "ru": "Нельзя увидеть без магии или особого чувства. Атаки по нему с помехой, его атаки с преимуществом."
+  },
+  "condition_blurbs.paralyzed": {
+    "en": "Incapacitated and cannot move or speak. Auto-fails Strength and Dexterity saves; attacks against it have advantage and hit within 5 feet are critical.",
+    "ru": "Недееспособен, не может двигаться и говорить. Автоматически проваливает спасброски Силы и Ловкости. Атаки по нему с преимуществом, попадания с дистанции 1,5 м критические."
+  },
+  "condition_blurbs.petrified": {
+    "en": "Turned to stone: incapacitated, unaware, weighs ten times as much, resists all damage, immune to poison and disease.",
+    "ru": "Превращён в камень: недееспособен, не осознаёт происходящего, весит в десять раз больше, сопротивляется любому урону и невосприимчив к яду и болезням."
+  },
+  "condition_blurbs.poisoned": {
+    "en": "Disadvantage on attack rolls and ability checks.",
+    "ru": "Помеха на броски атаки и проверки характеристик."
+  },
+  "condition_blurbs.prone": {
+    "en": "Must crawl or spend half its movement to stand. Disadvantage on attacks; melee attacks against it have advantage, ranged ones disadvantage.",
+    "ru": "Может ползти или потратить половину скорости, чтобы встать. Помеха на атаки; ближние атаки по нему с преимуществом, дальние с помехой."
+  },
+  "condition_blurbs.restrained": {
+    "en": "Speed 0. Attacks against it have advantage, its attacks have disadvantage, and it has disadvantage on Dexterity saves.",
+    "ru": "Скорость 0. Атаки по нему с преимуществом, его атаки с помехой. Помеха на спасброски Ловкости."
+  },
+  "condition_blurbs.stunned": {
+    "en": "Incapacitated, cannot move, speaks falteringly. Auto-fails Strength and Dexterity saves; attacks against it have advantage.",
+    "ru": "Недееспособен, не может двигаться, говорит сбивчиво. Автоматически проваливает спасброски Силы и Ловкости. Атаки по нему с преимуществом."
+  },
+  "condition_blurbs.unconscious": {
+    "en": "Incapacitated, unaware, drops what it holds and falls prone. Auto-fails Strength and Dexterity saves; attacks have advantage and hit within 5 feet are critical.",
+    "ru": "Недееспособен, не осознаёт происходящего, роняет удерживаемое и падает ничком. Автоматически проваливает спасброски Силы и Ловкости. Атаки по нему с преимуществом; попадания с дистанции 1,5 м критические."
+  },
+  "spell_school_blurbs.abjuration": {
+    "en": "Protection and banishment: wards, shields, dispelling, and sending things back where they came from.",
+    "ru": "Защита и изгнание: обереги, щиты, рассеивание магии и возвращение существ туда, откуда они пришли."
+  },
+  "spell_school_blurbs.conjuration": {
+    "en": "Bringing things into being or across distance: summoned creatures, conjured objects, teleportation.",
+    "ru": "Создание и перемещение: призванные существа, созданные предметы и телепортация."
+  },
+  "spell_school_blurbs.divination": {
+    "en": "Knowing: seeing far, reading thoughts, finding what is hidden, glimpsing what is to come.",
+    "ru": "Познание: дальнее наблюдение, чтение мыслей, поиск скрытого и предвидение."
+  },
+  "spell_school_blurbs.enchantment": {
+    "en": "Influencing minds: charm, fear, sleep, suggestion, and commands the target cannot refuse.",
+    "ru": "Воздействие на разум: очарование, страх, сон, внушение и неотразимые команды."
+  },
+  "spell_school_blurbs.evocation": {
+    "en": "Raw energy: fire, lightning, cold and force, most of the blasting spells and the healing ones.",
+    "ru": "Чистая энергия: огонь, электричество, холод и силовой урон; большинство разрушительных и лечебных заклинаний."
+  },
+  "spell_school_blurbs.illusion": {
+    "en": "Deceiving the senses: images, sounds, disguises and phantasms that are not really there.",
+    "ru": "Обман чувств: изображения, звуки, маскировки и несуществующие образы."
+  },
+  "spell_school_blurbs.necromancy": {
+    "en": "Life and death: draining vitality, raising the dead, speaking with them, and undoing death.",
+    "ru": "Жизнь и смерть: похищение жизненной силы, поднятие мёртвых, разговор с ними и воскрешение."
+  },
+  "spell_school_blurbs.transmutation": {
+    "en": "Changing what is: shape, size, substance or speed of creatures and things.",
+    "ru": "Изменение формы, размера, вещества или скорости существ и предметов."
+  },
+  "size_blurbs.tiny": {
+    "en": "About the size of a cat or smaller; occupies a 2.5 foot square.",
+    "ru": "Размером с кошку или меньше; занимает квадрат со стороной 0,75 м."
+  },
+  "size_blurbs.small": {
+    "en": "Halfling-sized; fills a 5 foot square but wields heavy weapons badly.",
+    "ru": "Размером с полурослика; занимает квадрат со стороной 1,5 м, плохо обращается с тяжёлым оружием."
+  },
+  "size_blurbs.medium": {
+    "en": "Human-sized; the default 5 foot square.",
+    "ru": "Размером с человека; стандартный квадрат со стороной 1,5 м."
+  },
+  "size_blurbs.large": {
+    "en": "Horse or ogre sized; fills a 10 foot square.",
+    "ru": "Размером с лошадь или огра; квадрат со стороной 3 м."
+  },
+  "size_blurbs.huge": {
+    "en": "Giant or young dragon sized; fills a 15 foot square.",
+    "ru": "Размером с великана или молодого дракона; квадрат со стороной 4,5 м."
+  },
+  "size_blurbs.gargantuan": {
+    "en": "Ancient dragons, krakens; 20 feet or more on a side.",
+    "ru": "Древние драконы и кракены; сторона занятого пространства от 6 м."
+  },
+  "fightingStyle.archery": {
+    "en": "+2 to attack rolls with ranged weapons.",
+    "ru": "+2 к броскам атаки дальнобойным оружием."
+  },
+  "fightingStyle.defense": {
+    "en": "+1 AC while wearing armor.",
+    "ru": "+1 к КД, пока вы носите доспех."
+  },
+  "fightingStyle.dueling": {
+    "en": "+2 damage with a one-handed melee weapon and no other weapon in hand.",
+    "ru": "+2 к урону одноручным рукопашным оружием, если в другой руке нет оружия."
+  },
+  "fightingStyle.greatWeaponFighting": {
+    "en": "Reroll 1s and 2s on damage with a two-handed or versatile melee weapon.",
+    "ru": "Перебрасывайте 1 и 2 на костях урона двуручного или универсального рукопашного оружия."
+  },
+  "fightingStyle.protection": {
+    "en": "Reaction: impose disadvantage on an attack against an ally within 5 ft, using your shield.",
+    "ru": "Реакция: используя щит, наложите помеху на атаку против союзника в пределах 1,5 м."
+  },
+  "fightingStyle.twoWeaponFighting": {
+    "en": "Add your ability modifier to the damage of your off-hand attack.",
+    "ru": "Добавляйте модификатор характеристики к урону атаки оружием в другой руке."
+  },
+  "background.acolyte.name": {
+    "en": "Acolyte",
+    "ru": "Прислужник"
+  },
+  "background.acolyte.feature": {
+    "en": "Shelter of the Faithful",
+    "ru": "Приют для верующих"
+  },
+  "background.acolyte.blurb": {
+    "en": "You served in a temple, learning its rites and its politics, and the faithful still owe you shelter.",
+    "ru": "Вы служили в храме, изучали его обряды и внутреннюю жизнь; единоверцы по-прежнему готовы дать вам приют."
+  },
+  "background.acolyte.featureDesc": {
+    "en": "As a servant of your faith, you and your companions can expect free healing and care at any temple, shrine or other establishment of your religion, though you must provide the material components for spells. Its priests will support you in ways that do not risk their lives, and you may have ties to one temple in particular.",
+    "ru": "Как служитель своей веры, вы и ваши спутники можете рассчитывать на бесплатное лечение и уход в храмах, святилищах и других учреждениях своей религии, но материальные компоненты заклинаний предоставляете сами. Жрецы помогут вам, если это не угрожает их жизни. Вы можете быть связаны с конкретным храмом."
+  },
+  "background.charlatan.name": {
+    "en": "Charlatan",
+    "ru": "Шарлатан"
+  },
+  "background.charlatan.feature": {
+    "en": "False Identity",
+    "ru": "Поддельная личность"
+  },
+  "background.charlatan.blurb": {
+    "en": "You lived by your wits and a hundred false faces, and you always have another identity ready.",
+    "ru": "Вы жили благодаря хитрости и сотне чужих лиц; у вас всегда есть запасная личность."
+  },
+  "background.charlatan.featureDesc": {
+    "en": "You have a second identity with documents, established acquaintances and disguises to match. You can also forge documents, including official papers and personal letters, as long as you have seen an example of the kind you are trying to copy.",
+    "ru": "У вас есть вторая личность с документами, знакомыми и соответствующими маскировками. Вы также можете подделывать документы, включая официальные бумаги и личные письма, если видели образец документа нужного вида."
+  },
+  "background.criminal.name": {
+    "en": "Criminal",
+    "ru": "Преступник"
+  },
+  "background.criminal.feature": {
+    "en": "Criminal Contact",
+    "ru": "Криминальные связи"
+  },
+  "background.criminal.blurb": {
+    "en": "You made your living breaking the law, and you still know who to call in the underworld.",
+    "ru": "Вы зарабатывали нарушением закона и до сих пор знаете, к кому обратиться в преступном мире."
+  },
+  "background.criminal.featureDesc": {
+    "en": "You have a reliable and trustworthy contact in the criminal underworld. You know how to get messages to and from them, even over great distances, through the local messengers, corrupt caravan masters and seedy sailors who carry them.",
+    "ru": "У вас есть надёжный, заслуживающий доверия связной в преступном мире. Вы знаете, как передавать ему сообщения и получать ответы даже на больших расстояниях через местных гонцов, продажных караванщиков и сомнительных моряков."
+  },
+  "background.entertainer.name": {
+    "en": "Entertainer",
+    "ru": "Артист"
+  },
+  "background.entertainer.feature": {
+    "en": "By Popular Demand",
+    "ru": "По требованию публики"
+  },
+  "background.entertainer.blurb": {
+    "en": "You performed for crowds and courts, and any tavern will trade a bed for a show.",
+    "ru": "Вы выступали перед толпами и при дворах; любой трактир обменяет ночлег на представление."
+  },
+  "background.entertainer.featureDesc": {
+    "en": "You can always find a place to perform, usually an inn or tavern but sometimes a circus, a theater or a noble's court. In return you receive free lodging and food of a modest standard for as long as you perform each night, and your performance makes you a local figure whom strangers tend to like.",
+    "ru": "Вы всегда можете найти место для выступления: обычно гостиницу или трактир, иногда цирк, театр или двор знатного господина. Пока вы выступаете каждый вечер, вам бесплатно предоставляют скромные питание и ночлег. Благодаря выступлениям вы становитесь местной знаменитостью, к которой незнакомцы обычно относятся хорошо."
+  },
+  "background.folk_hero.name": {
+    "en": "Folk Hero",
+    "ru": "Народный герой"
+  },
+  "background.folk_hero.feature": {
+    "en": "Rustic Hospitality",
+    "ru": "Деревенское гостеприимство"
+  },
+  "background.folk_hero.blurb": {
+    "en": "You stood up for the common folk when it mattered, and they remember.",
+    "ru": "Вы заступились за простых людей в трудную минуту, и они это помнят."
+  },
+  "background.folk_hero.featureDesc": {
+    "en": "Since you come from the ranks of the common folk, you fit in among them with ease. You can find a place to hide, rest or recuperate among other commoners unless you have shown yourself to be a danger to them. They will shield you from the law or anyone else searching for you, though they will not risk their lives for you.",
+    "ru": "Вы вышли из простого народа и легко находите с ним общий язык. Среди простолюдинов можно укрыться, отдохнуть или восстановить силы, если вы не представляете для них опасности. Они укроют вас от закона и преследователей, но не станут ради вас рисковать жизнью."
+  },
+  "background.guild_artisan.name": {
+    "en": "Guild Artisan",
+    "ru": "Гильдейский ремесленник"
+  },
+  "background.guild_artisan.feature": {
+    "en": "Guild Membership",
+    "ru": "Членство в гильдии"
+  },
+  "background.guild_artisan.blurb": {
+    "en": "You are a member in good standing of a craft guild, with its workshops and its lawyers behind you.",
+    "ru": "Вы состоите в ремесленной гильдии с хорошей репутацией; её мастерские и правовая защита доступны вам."
+  },
+  "background.guild_artisan.featureDesc": {
+    "en": "Your guild will provide you with lodging and food if necessary and pay for your funeral if needed. In some cities a guildhall offers a central place to meet other members. Guilds wield political power: if you are accused of a crime, your guild will support you if a good case can be made, and it can help you gain access to powerful people. Membership costs 5 gp a month in dues.",
+    "ru": "При необходимости гильдия предоставит вам питание и ночлег и оплатит ваши похороны. В некоторых городах в гильдейском доме можно встретить других членов. Гильдии обладают политическим влиянием: если вас обвинят в преступлении, гильдия поддержит вас при наличии убедительных оснований и поможет получить доступ к влиятельным людям. Членские взносы составляют 5 зм в месяц."
+  },
+  "background.hermit.name": {
+    "en": "Hermit",
+    "ru": "Отшельник"
+  },
+  "background.hermit.feature": {
+    "en": "Discovery",
+    "ru": "Открытие"
+  },
+  "background.hermit.blurb": {
+    "en": "You lived apart from the world in seclusion, and came back with a discovery.",
+    "ru": "Вы жили в уединении вдали от мира и вернулись с открытием."
+  },
+  "background.hermit.featureDesc": {
+    "en": "The quiet seclusion of your hermitage gave you access to a unique and powerful discovery: a great truth, a hidden site, a lost fact, or a secret whose reveal could shake the powerful. Work with the DM to determine what it is and what it means for the campaign.",
+    "ru": "Тихая жизнь отшельника позволила вам совершить уникальное и значимое открытие: узнать великую истину, найти скрытое место, забытый факт или тайну, способную потрясти власть имущих. Вместе с ведущим определите, что это за открытие и какое значение оно имеет для кампании."
+  },
+  "background.noble.name": {
+    "en": "Noble",
+    "ru": "Благородный"
+  },
+  "background.noble.feature": {
+    "en": "Position of Privilege",
+    "ru": "Привилегированное положение"
+  },
+  "background.noble.blurb": {
+    "en": "You were born to rank and privilege, and doors open for you that stay shut to others.",
+    "ru": "Вы родились в знатной семье; перед вами открываются двери, закрытые для других."
+  },
+  "background.noble.featureDesc": {
+    "en": "Thanks to your noble birth, people are inclined to think the best of you. You are welcome in high society, and people assume you have the right to be wherever you are. The common folk make every effort to accommodate you, other people of high birth treat you as a member of the same social sphere, and you can secure an audience with a local noble if you need to.",
+    "ru": "Благодаря вашему происхождению люди склонны думать о вас хорошо. Вас принимают в высшем обществе и предполагают, что вы вправе находиться там, где находитесь. Простолюдины стараются угодить вам, другие дворяне считают вас равным, а при необходимости вы можете добиться аудиенции у местного знатного лица."
+  },
+  "background.outlander.name": {
+    "en": "Outlander",
+    "ru": "Чужеземец"
+  },
+  "background.outlander.feature": {
+    "en": "Wanderer",
+    "ru": "Странник"
+  },
+  "background.outlander.blurb": {
+    "en": "You grew up in the wilds far from civilization, and the land still feeds you.",
+    "ru": "Вы выросли в дикой местности вдали от цивилизации, и земля по-прежнему кормит вас."
+  },
+  "background.outlander.featureDesc": {
+    "en": "You have an excellent memory for maps and geography, and you can always recall the general layout of terrain, settlements and other features around you. In addition, you can find food and fresh water for yourself and up to five other people each day, provided the land offers berries, small game, water and so forth.",
+    "ru": "У вас отличная память на карты и географию: вы всегда помните общее расположение местности, поселений и других объектов вокруг. Кроме того, ежедневно вы можете найти пищу и свежую воду для себя и ещё пяти человек, если местность предлагает ягоды, мелкую дичь, воду и тому подобное."
+  },
+  "background.sage.name": {
+    "en": "Sage",
+    "ru": "Мудрец"
+  },
+  "background.sage.feature": {
+    "en": "Researcher",
+    "ru": "Исследователь"
+  },
+  "background.sage.blurb": {
+    "en": "You spent years among books and scholars, and you know where every answer is kept.",
+    "ru": "Вы провели годы среди книг и учёных и знаете, где искать ответы."
+  },
+  "background.sage.featureDesc": {
+    "en": "When you attempt to learn or recall a piece of lore, if you do not know it, you often know where and from whom you can obtain it: a library, scriptorium, university, a sage or another learned person or creature. The DM might rule that the knowledge is secret or found only in a hard to reach place.",
+    "ru": "Если вы пытаетесь узнать или вспомнить сведения, которых не знаете, то часто знаете, где и у кого их получить: в библиотеке, скриптории, университете, у мудреца или другого учёного человека либо существа. Ведущий может решить, что знание засекречено или находится только в труднодоступном месте."
+  },
+  "background.sailor.name": {
+    "en": "Sailor",
+    "ru": "Моряк"
+  },
+  "background.sailor.feature": {
+    "en": "Ship's Passage",
+    "ru": "Морской проезд"
+  },
+  "background.sailor.blurb": {
+    "en": "You worked the decks of a ship, and captains will take you and your friends aboard for a hand's work.",
+    "ru": "Вы работали на корабле; капитаны возьмут вас и ваших друзей на борт в обмен на помощь."
+  },
+  "background.sailor.featureDesc": {
+    "en": "When you need to, you can secure free passage on a sailing ship for yourself and your companions. You might sail on the ship you served on or another you have good relations with. Because you are calling in a favor, the ship's schedule and route cannot be guaranteed, and you and your companions are expected to help the crew during the voyage.",
+    "ru": "При необходимости вы можете обеспечить себе и спутникам бесплатный проезд на парусном корабле: том, где вы служили, или другом, с которым поддерживаете хорошие отношения. Это одолжение, поэтому расписание и маршрут не гарантированы; во время путешествия вы и спутники должны помогать команде."
+  },
+  "background.soldier.name": {
+    "en": "Soldier",
+    "ru": "Солдат"
+  },
+  "background.soldier.feature": {
+    "en": "Military Rank",
+    "ru": "Воинское звание"
+  },
+  "background.soldier.blurb": {
+    "en": "You served in an army, and those who served with you still recognize your rank.",
+    "ru": "Вы служили в армии, и ваши бывшие сослуживцы по-прежнему признают ваше звание."
+  },
+  "background.soldier.featureDesc": {
+    "en": "You have a military rank from your career as a soldier. Soldiers loyal to your former organization still recognize your authority and influence, and they defer to you if they are of a lower rank. You can invoke your rank to exert influence over other soldiers and requisition simple equipment or horses for temporary use, and you can usually gain access to friendly military encampments and fortresses where your rank is recognized.",
+    "ru": "У вас есть воинское звание, полученное во время службы. Солдаты, верные вашей прежней организации, признают ваш авторитет и влияние; младшие по званию подчиняются вам. Ссылаясь на звание, вы можете влиять на других солдат и получать простое снаряжение или лошадей во временное пользование. Обычно вам доступен вход в дружественные военные лагеря и крепости, где признают ваше звание."
+  },
+  "background.urchin.name": {
+    "en": "Urchin",
+    "ru": "Беспризорник"
+  },
+  "background.urchin.feature": {
+    "en": "City Secrets",
+    "ru": "Городские тайны"
+  },
+  "background.urchin.blurb": {
+    "en": "You grew up alone on the streets, and you know the city's hidden ways better than anyone.",
+    "ru": "Вы выросли в одиночестве на улицах и лучше других знаете скрытые пути города."
+  },
+  "background.urchin.featureDesc": {
+    "en": "You know the secret patterns and flow to cities and can find passages through the urban sprawl that others would miss. When you are not in combat, you and companions you lead can travel between any two locations in a city twice as fast as your speed would normally allow.",
+    "ru": "Вы знаете тайные закономерности городской жизни и находите проходы в городской застройке, которые другие пропускают. Вне боя вы и ведомые вами спутники можете перемещаться между любыми двумя точками города вдвое быстрее обычного."
+  },
+  "alignment.LG.blurb": {
+    "en": "Does the right thing, by the rules. Keeps promises, protects the weak, trusts institutions to be worth defending. The paladin's default.",
+    "ru": "Поступает правильно и соблюдает правила. Держит обещания, защищает слабых и считает, что общественные институты заслуживают защиты. Типичное мировоззрение паладина."
+  },
+  "alignment.NG.blurb": {
+    "en": "Does the most good available, law or no law. Helps whoever is in front of them without much regard for who is owed what.",
+    "ru": "Приносит как можно больше добра независимо от закона. Помогает тем, кто рядом, не слишком заботясь о том, кто кому обязан."
+  },
+  "alignment.CG.blurb": {
+    "en": "Does the right thing, and breaks whatever rule is in the way. Rebels, smugglers with a conscience, people who free prisoners first and ask later.",
+    "ru": "Поступает правильно и нарушает мешающие правила. Бунтарь, контрабандист с совестью: сначала освобождает пленников, потом задаёт вопросы."
+  },
+  "alignment.LN.blurb": {
+    "en": "Order for its own sake. The judge, the soldier, the monk: the code matters more than any one outcome it produces.",
+    "ru": "Ценит порядок сам по себе. Судья, солдат, монах: кодекс важнее отдельного результата его применения."
+  },
+  "alignment.N.blurb": {
+    "en": "No strong pull either way. Gets on with life, takes a side when a side has to be taken. The commonest alignment for ordinary people.",
+    "ru": "Не испытывает сильной склонности ни к одной стороне. Живёт своей жизнью и выбирает сторону, когда это необходимо. Самое частое мировоззрение обычных людей."
+  },
+  "alignment.CN.blurb": {
+    "en": "Freedom above all, their own most of all. Unpredictable but not cruel. Easy to play badly; check with your table before choosing it.",
+    "ru": "Свобода превыше всего, особенно собственная. Непредсказуем, но не жесток. Такое мировоззрение легко отыграть неудачно; перед выбором обсудите его с участниками игры."
+  },
+  "alignment.LE.blurb": {
+    "en": "Takes what they want, within a system they respect and use. Tyrants, corrupt officials, devils. Keeps their word, which makes them worse.",
+    "ru": "Берёт желаемое в рамках системы, которую уважает и использует. Тираны, продажные чиновники, дьяволы. Держит слово, что делает его ещё опаснее."
+  },
+  "alignment.NE.blurb": {
+    "en": "Takes what they want and feels no need to dress it up. Loyal to nobody but themselves.",
+    "ru": "Берёт желаемое и не считает нужным искать оправдания. Верен только себе."
+  },
+  "alignment.CE.blurb": {
+    "en": "Destruction for its own sake. Almost always an NPC alignment; a party rarely survives one.",
+    "ru": "Разрушает ради разрушения. Почти всегда подходит неигровому персонажу; отряд редко переживает такого союзника."
+  },
+  "alignment.info": {
+    "en": "Alignment is a two-word shorthand for how your character treats rules (lawful, neutral, chaotic) and other people (good, neutral, evil). It binds nothing: it is a note to yourself and to the DM about how this person tends to act, and characters drift over a campaign. Pick the one that sounds most like them and stop worrying about it.",
+    "ru": "Мировоззрение кратко описывает отношение персонажа к правилам (законопослушное, нейтральное, хаотичное) и другим людям (доброе, нейтральное, злое). Оно ничего не навязывает: это заметка для вас и ведущего о типичном поведении героя. В ходе кампании мировоззрение может меняться. Выберите наиболее подходящее и не тревожьтесь об этом."
+  }
+}

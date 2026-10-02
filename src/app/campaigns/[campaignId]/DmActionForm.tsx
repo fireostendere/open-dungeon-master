@@ -150,7 +150,7 @@ export function DmActionForm({
       {blocked ? (
         <p className="flex items-center gap-2 rounded-md border border-stone-800 bg-stone-900/60 px-2 py-1.5 text-xs text-stone-400">
           <GameIcon icon={{ kind: "glyph", key: "tab-battle" }} size="size-5" />
-          {uiText("Needs a fight running. Start one first.")}
+          {uiText("needsAFightRunningStartOneFirst")}
         </p>
       ) : null}
 
@@ -184,7 +184,7 @@ export function DmActionForm({
           )}
         >
           {busy ? <Loader2 className="size-3.5 animate-spin" /> : <Play className="size-3.5" />}
-          {uiText("Run")}
+          {uiText("run")}
         </button>
         {error ? <span className="text-xs text-red-300">{error}</span> : null}
         {outcome ? <span className="text-xs text-emerald-300">{outcome}</span> : null}
@@ -242,7 +242,7 @@ function FieldInput({
           onChange={(event) => onChange(event.target.value)}
           className={inputClass}
         >
-          <option value="">{uiText("Pick a character")}</option>
+          <option value="">{uiText("pickACharacter")}</option>
           {sheets.map((sheet) => (
             <option key={sheet.id} value={sheet.id}>
               {sheet.name}
@@ -275,7 +275,7 @@ function FieldInput({
             );
           })}
           {sheets.length === 0 ? (
-            <span className="text-xs text-stone-600">{uiText("Nobody has a character yet.")}</span>
+            <span className="text-xs text-stone-600">{uiText("nobodyHasACharacterYet")}</span>
           ) : null}
         </div>
       );
@@ -287,7 +287,7 @@ function FieldInput({
           onChange={(event) => onChange(event.target.value)}
           className={inputClass}
         >
-          <option value="">{uiText("Pick an enemy")}</option>
+          <option value="">{uiText("pickAnEnemy")}</option>
           {enemies.map((enemy) => (
             <option key={enemy.id} value={enemy.id}>
               {enemy.name}
@@ -303,7 +303,7 @@ function FieldInput({
           onChange={(event) => onChange(event.target.value)}
           className={inputClass}
         >
-          <option value="">{uiText("Not set")}</option>
+          <option value="">{uiText("notSet")}</option>
           {(field.options ?? []).map((option) => (
             <option key={option.value} value={option.value}>
               {option.label}

@@ -263,7 +263,7 @@ export default function CharacterDetailPage({
             />
           ) : portraitPending ? (
             <span
-              title={uiText("Painting portrait...")}
+              title={uiText("paintingPortrait")}
               className="flex size-20 shrink-0 items-center justify-center rounded-xl border border-amber-500/30 bg-stone-900 sm:size-24"
             >
               <Loader2 className="size-5 animate-spin text-amber-200" />
@@ -340,7 +340,7 @@ export default function CharacterDetailPage({
             onClick={handleDownloadPdf}
             disabled={pdfBusy}
             className={ui.btnSmall}
-            title={uiText("Download this character sheet as a fillable PDF")}
+            title={uiText("downloadThisCharacterSheetAsAFillablePdf")}
           >
             <GameIcon icon={{ kind: "glyph", key: "tab-journal" }} size="size-5" /> {pdfBusy ? copy.preparing : copy.download}
           </button>
@@ -349,7 +349,7 @@ export default function CharacterDetailPage({
             onClick={handleExport}
             disabled={exporting}
             className={ui.btnSmall}
-            title={uiText("Save this character as a file you can import on another device or server")}
+            title={uiText("saveThisCharacterAsAFileYouCan")}
           >
             <GameIcon icon={{ kind: "glyph", key: "system-share" }} size="size-5" /> {exporting ? copy.exporting : copy.export}
           </button>
@@ -358,7 +358,7 @@ export default function CharacterDetailPage({
             onClick={handleDuplicate}
             disabled={cloning}
             className={ui.btnSmall}
-            title={uiText("Save a second copy of this character to your library")}
+            title={uiText("saveASecondCopyOfThisCharacterTo")}
           >
             <GameIcon icon={{ kind: "glyph", key: "tab-notes" }} size="size-5" /> {cloning ? copy.copying : copy.duplicate}
           </button>
@@ -366,7 +366,7 @@ export default function CharacterDetailPage({
             type="button"
             onClick={() => setCropping(true)}
             className={ui.btnSmall}
-            title={sheet.portrait ? uiText("Replace the portrait with a photo") : uiText("Upload a portrait")}
+            title={sheet.portrait ? uiText("replaceThePortraitWithAPhoto") : uiText("uploadAPortrait")}
           >
             <GameIcon icon={{ kind: "glyph", key: "tab-handout" }} size="size-5" /> {sheet.portrait ? copy.replacePortrait : copy.uploadPortrait}
           </button>
@@ -376,7 +376,7 @@ export default function CharacterDetailPage({
               onClick={() => void paintPortrait()}
               disabled={painting || portraitPending}
               className={ui.btnSmall}
-              title={uiText("Paint a new portrait on this server's image model")}
+              title={uiText("paintANewPortraitOnThisServerS")}
             >
               <GameIcon icon={{ kind: "glyph", key: "sense-truesight" }} size="size-5" /> {portraitPending ? copy.painting : copy.paint}
             </button>
@@ -386,7 +386,7 @@ export default function CharacterDetailPage({
               type="button"
               onClick={() => void clearToPlaceholder()}
               className={ui.btnSmall}
-              title={uiText("Take the picture away and show the stand-in for this class or race")}
+              title={uiText("takeThePictureAwayAndShowTheStand")}
             >
               <GameIcon icon={{ kind: "glyph", key: "quest-hidden" }} size="size-5" /> {copy.placeholder}
             </button>
@@ -403,7 +403,7 @@ export default function CharacterDetailPage({
 
       {cropping ? (
         <AvatarCropDialog
-          title={uiText("Portrait for {name}", { name: character.name })}
+          title={uiText("portraitForName", { name: character.name })}
           onUploaded={(image) => void handlePortraitUploaded(image)}
           onClose={() => setCropping(false)}
         />

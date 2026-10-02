@@ -99,7 +99,7 @@ export function DmWhisperPanel({
         )}
         <Sparkles className="size-4 shrink-0 text-amber-400" />
         <span className="min-w-0 flex-1 truncate text-sm font-medium text-amber-200">
-          {uiText("Private line to the DM")}
+          {uiText("privateLineToTheDm")}
         </span>
         {unread > 0 ? (
           <span className="rounded-full bg-gradient-to-b from-amber-300 to-amber-500 px-1.5 text-[10px] font-semibold text-amber-950 shadow-glow-gold">
@@ -110,7 +110,7 @@ export function DmWhisperPanel({
       {open ? (
         <div className="space-y-2 border-t border-amber-600/20 px-3 py-2">
           <p className="text-[11px] leading-4 text-amber-500/70">
-            {uiText("Only you and the DM can see this. Whisper here to act in secret; the DM answers privately and the table only sees what their characters could.")}
+            {uiText("onlyYouAndTheDmCanSeeThis")}
           </p>
           {whispers.length ? (
             <ul className="space-y-2">
@@ -127,7 +127,7 @@ export function DmWhisperPanel({
                       <p className="mt-1 text-[10px] text-stone-500">
                         {formatWhen(whisper.createdAt)}
                         {" | "}
-                        {whisper.answered ? uiText("Seen by the DM") : uiText("Waiting on the DM")}
+                        {whisper.answered ? uiText("seenByTheDm") : uiText("waitingOnTheDm")}
                       </p>
                     </li>
                   );
@@ -146,7 +146,7 @@ export function DmWhisperPanel({
                     </p>
                     <p className="mt-1 text-[10px] text-stone-500">
                       {formatWhen(whisper.createdAt)}
-                      {others.length ? ` ${uiText("· also sent to {names}", { names: others.join(", ") })}` : ""}
+                      {others.length ? ` ${uiText("alsoSentToNames", { names: others.join(", ") })}` : ""}
                     </p>
                   </li>
                 );
@@ -169,8 +169,8 @@ export function DmWhisperPanel({
                 disabled={capped || sending}
                 placeholder={
                   capped
-                    ? uiText("Wait for the DM to answer your last whispers.")
-                    : uiText("Whisper to the DM...")
+                    ? uiText("waitForTheDmToAnswerYourLast")
+                    : uiText("whisperToTheDm")
                 }
                 className="min-h-[3rem] flex-1 resize-none rounded-lg border border-stone-700 bg-stone-950/80 px-2.5 py-1.5 text-sm text-stone-200 placeholder:text-stone-600 focus:border-amber-500/60 focus:outline-none disabled:opacity-60"
               />
@@ -179,7 +179,7 @@ export function DmWhisperPanel({
                 onClick={() => void sendWhisper()}
                 disabled={!draft.trim() || capped || sending}
                 className="rounded-lg border border-amber-600/40 bg-amber-950/40 p-2 text-amber-300 transition hover:bg-amber-900/40 disabled:opacity-40"
-                aria-label={uiText("Send private message to the DM")}
+                aria-label={uiText("sendPrivateMessageToTheDm")}
               >
                 <Send className="size-4" />
               </button>

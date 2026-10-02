@@ -76,7 +76,7 @@ export function HomebrewEditor({
         label={copy.name}
         value={draft.name}
         onChange={(name) => onDraft({ ...draft, name: name.slice(0, 80) })}
-        placeholder={uiText("What this is called")}
+        placeholder={uiText("whatThisIsCalled")}
         maxLength={80}
       />
 
@@ -93,10 +93,10 @@ export function HomebrewEditor({
         rows={draft.kind === "spell" ? 5 : 3}
         placeholder={
           draft.kind === "spell"
-            ? uiText("Each creature in a 15-foot cone must make a Dexterity saving throw, taking 3d6 fire damage on a failed save, or half as much on a successful one.")
-            : uiText("What it is, in the words the players will read.")
+            ? uiText("eachCreatureInA15FootConeMust")
+            : uiText("whatItIsInTheWordsThePlayers")
         }
-        hint={draft.kind === "spell" ? uiText("The engine reads the damage, the save and the damage type out of this.") : undefined}
+        hint={draft.kind === "spell" ? uiText("theEngineReadsTheDamageTheSaveAnd") : undefined}
       />
 
       {findings.length ? (

@@ -101,13 +101,13 @@ export function PlaceTokenForm({
         value={name}
         onChange={(event) => onName(event.target.value)}
         maxLength={ADHOC_NAME_MAX}
-        placeholder={kind === "npc" ? uiText("Marla the smith") : uiText("Overturned cart")}
+        placeholder={kind === "npc" ? uiText("marlaTheSmith") : uiText("overturnedCart")}
         className="w-full rounded-md border border-stone-700 bg-stone-950 px-2 py-1 text-xs text-stone-200 placeholder:text-stone-600"
       />
       <p className="text-[11px] text-stone-500">
         {name.trim()
-          ? uiText("Now tap the tile it stands on.")
-          : uiText("Name it first. An unlabelled circle is a puzzle for the whole table.")}
+          ? uiText("nowTapTheTileItStandsOn")
+          : uiText("nameItFirstAnUnlabelledCircleIsA")}
       </p>
     </div>
   );
@@ -165,11 +165,11 @@ export function MeasureControls({
         <span className="w-12 text-right tabular-nums text-stone-300">{sizeFeet} ft</span>
       </label>
       <p className="text-[11px] leading-4 text-stone-500">
-        {uiText("Tap where it starts, then tap where it points. Nobody else sees it.")}
+        {uiText("tapWhereItStartsThenTapWhereIt")}
       </p>
       {caught.length ? (
         <p className="text-[11px] leading-4 text-amber-300">
-          {uiText("Caught:")} {caught.map((entry) => entry.name).join(", ")}
+          {uiText("caught")} {caught.map((entry) => entry.name).join(", ")}
         </p>
       ) : null}
       <div className="flex flex-wrap gap-1">
@@ -178,7 +178,7 @@ export function MeasureControls({
           onClick={onClear}
           className="rounded-md border border-stone-700 px-2 py-1 text-xs text-stone-400 hover:text-stone-200"
         >
-          {uiText("Clear the measure")}
+          {uiText("clearTheMeasure")}
         </button>
         {/* The console's Area of effect takes enemy ids as comma-separated
             text, so measuring and resolving are two steps rather than one
@@ -190,7 +190,7 @@ export function MeasureControls({
             title={enemyIds}
             className="rounded-md border border-stone-700 px-2 py-1 text-xs text-stone-400 hover:text-stone-200"
           >
-            {uiText("Copy the enemy ids")}
+            {uiText("copyTheEnemyIds")}
           </button>
         ) : null}
       </div>
@@ -230,17 +230,17 @@ export function TokenCard({
           onClick={onClose}
           className="text-[11px] text-stone-500 hover:text-stone-300"
         >
-          {uiText("Close")}
+          {uiText("close")}
         </button>
       </div>
       <p className="text-[11px] text-stone-500">
         {token.kind === "pc"
-          ? uiText("Player character")
+          ? uiText("playerCharacter")
           : token.kind === "enemy"
-            ? uiText("Enemy")
+            ? uiText("enemy")
             : ADHOC_LABELS[token.kind as AdhocTokenKind]}
         {hp ? ` · ${hp.current} / ${hp.max} HP` : ""}
-        {token.hidden ? uiText(" · hidden from the party") : ""}
+        {token.hidden ? uiText("hiddenFromTheParty") : ""}
       </p>
       <div className="flex flex-wrap gap-1">
         <button
@@ -255,7 +255,7 @@ export function TokenCard({
           )}
         >
           <Hand className="size-3.5" />
-          {held ? uiText("Put it back down") : uiText("Pick it up")}
+          {held ? uiText("putItBackDown") : uiText("pickItUp")}
         </button>
         {token.kind === "pc" ? null : (
           <button
@@ -265,7 +265,7 @@ export function TokenCard({
             className="flex items-center gap-1 rounded-md border border-stone-700 px-2 py-1 text-xs text-stone-400 hover:text-stone-200 disabled:opacity-40"
           >
             {token.hidden ? <Eye className="size-3.5" /> : <EyeOff className="size-3.5" />}
-            {token.hidden ? uiText("Reveal") : uiText("Hide")}
+            {token.hidden ? uiText("reveal") : uiText("hide")}
           </button>
         )}
         {adhoc ? (
@@ -276,14 +276,14 @@ export function TokenCard({
             className="flex items-center gap-1 rounded-md border border-red-900/60 px-2 py-1 text-xs text-red-300 hover:bg-red-950/40 disabled:opacity-40"
           >
             <Trash2 className="size-3.5" />
-            {uiText("Take off")}
+            {uiText("takeOff")}
           </button>
         ) : null}
       </div>
       {token.kind !== "pc" && !adhoc ? (
         <p className="flex items-center gap-1 text-[11px] text-stone-600">
           <UserPlus className="size-3" />
-          {uiText("Enemies leave the board when they die.")}
+          {uiText("enemiesLeaveTheBoardWhenTheyDie")}
         </p>
       ) : null}
     </div>

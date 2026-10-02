@@ -128,7 +128,7 @@ export function LoreCheckDialog({
         >
           <div className="mb-3 flex items-center justify-between">
             <Dialog.Title className="flex items-center gap-2 font-display text-lg tracking-wide text-amber-50">
-              <GameIcon icon={{ kind: "glyph", key: "system-lore" }} size="size-7" /> {uiText("Lore check")}
+              <GameIcon icon={{ kind: "glyph", key: "system-lore" }} size="size-7" /> {uiText("loreCheck")}
             </Dialog.Title>
             <Dialog.Close className="text-stone-500 hover:text-stone-300">
               <X className="size-4" />
@@ -143,7 +143,7 @@ export function LoreCheckDialog({
           {!result ? (
             <div className="space-y-2">
               <p className="text-xs text-stone-400">
-                {uiText("What seems off? The server checks the passage against everything on record: facts, chapter archives, past scenes, and NPC states.")}
+                {uiText("whatSeemsOffTheServerChecksThePassage")}
               </p>
               <div className="flex flex-wrap gap-1.5">
                 {LORE_CHECK_CATEGORIES.map((value) => (
@@ -166,7 +166,7 @@ export function LoreCheckDialog({
               {running ? (
                 <p className="flex items-center gap-2 text-xs text-stone-500">
                   <Loader2 className="size-3.5 animate-spin" />
-                  {uiText("Cross-referencing the record (queued behind the DM)...")}
+                  {uiText("crossReferencingTheRecordQueuedBehindTheDm")}
                 </p>
               ) : null}
             </div>
@@ -186,7 +186,7 @@ export function LoreCheckDialog({
               {result.citations.length ? (
                 <div className="space-y-1">
                   <p className="text-[10px] font-medium uppercase tracking-wide text-stone-500">
-                    {uiText("Evidence")}
+                    {uiText("evidence")}
                   </p>
                   {result.citations.map((citation, index) => (
                     <p
@@ -205,14 +205,14 @@ export function LoreCheckDialog({
               {result.rewrite ? (
                 <div className="space-y-1.5">
                   <p className="text-[10px] font-medium uppercase tracking-wide text-stone-500">
-                    {uiText("Suggested rewrite")}
+                    {uiText("suggestedRewrite")}
                   </p>
                   <p className="whitespace-pre-wrap rounded-lg border border-stone-800 bg-stone-950/40 p-2.5 font-serif text-xs leading-5 text-stone-200">
                     {result.rewrite}
                   </p>
                   {accepted ? (
                     <p className="flex items-center gap-1.5 text-xs text-emerald-400">
-                      <Check className="size-3.5" /> {uiText("Applied; the message has been updated.")}
+                      <Check className="size-3.5" /> {uiText("appliedTheMessageHasBeenUpdated")}
                     </p>
                   ) : steersStory && message.authorType === "dm" ? (
                     <button
@@ -226,13 +226,13 @@ export function LoreCheckDialog({
                       ) : (
                         <Check className="size-3.5" />
                       )}
-                      {uiText("Accept rewrite")}
+                      {uiText("acceptRewrite")}
                     </button>
                   ) : (
                     <p className="text-[11px] text-stone-600">
                       {message.authorType === "dm"
-                        ? uiText("The party lead can accept this rewrite.")
-                        : uiText("Only DM narration can be rewritten.")}
+                        ? uiText("thePartyLeadCanAcceptThisRewrite")
+                        : uiText("onlyDmNarrationCanBeRewritten")}
                     </p>
                   )}
                 </div>
@@ -246,7 +246,7 @@ export function LoreCheckDialog({
                 }}
                 className="text-[11px] text-stone-500 hover:text-stone-300"
               >
-                {uiText("Check a different category")}
+                {uiText("checkADifferentCategory")}
               </button>
             </div>
           )}

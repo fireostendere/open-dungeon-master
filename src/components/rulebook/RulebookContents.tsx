@@ -110,18 +110,18 @@ export function RulebookContents({
   const { locale } = useI18n();
   // The labels of QUICK_LINKS (src/lib/rulebook/book.ts).
   const quickLabel: Record<string, string> = {
-    Conditions: uiText("Conditions"),
-    "Actions in combat": uiText("Actions in combat"),
-    "Opportunity attacks": uiText("Opportunity attacks"),
-    Grappling: uiText("Grappling"),
-    Cover: uiText("Cover"),
-    "Death saves": uiText("Death saves"),
-    Advantage: uiText("Advantage"),
-    Hiding: uiText("Hiding"),
-    Concentration: uiText("Concentration"),
-    Resting: uiText("Resting"),
-    Exhaustion: uiText("Exhaustion"),
-    "Travel pace": uiText("Travel pace"),
+    Conditions: uiText("conditions"),
+    "Actions in combat": uiText("actionsInCombat"),
+    "Opportunity attacks": uiText("opportunityAttacks"),
+    Grappling: uiText("grappling"),
+    Cover: uiText("cover"),
+    "Death saves": uiText("deathSaves"),
+    Advantage: uiText("advantage"),
+    Hiding: uiText("hiding"),
+    Concentration: uiText("concentration"),
+    Resting: uiText("resting"),
+    Exhaustion: uiText("exhaustion"),
+    "Travel pace": uiText("travelPace"),
   };
   const [query, setQuery] = useState("");
   const [result, setResult] = useState<{ query: string; hits: SearchHit[]; terms: string[] } | null>(null);
@@ -183,8 +183,8 @@ export function RulebookContents({
     <div className="rb-contents">
       <header className="rb-contents-head">
         <p className="rb-running">Open Dungeon Master</p>
-        <h2 className="rb-book-title">{uiText("The Rulebook")}</h2>
-        <p className="rb-book-sub">{uiText("Fifth Edition · System Reference Document 5.1")}</p>
+        <h2 className="rb-book-title">{uiText("theRulebook")}</h2>
+        <p className="rb-book-sub">{uiText("fifthEditionSystemReferenceDocument51")}</p>
       </header>
 
       <label className="rb-search">
@@ -203,8 +203,8 @@ export function RulebookContents({
               onOpen(hit.page, hit.at, shown.terms);
             }
           }}
-          placeholder={uiText("Seek a rule, a spell, a monster")}
-          aria-label={uiText("Search the rulebook")}
+          placeholder={uiText("seekARuleASpellAMonster")}
+          aria-label={uiText("searchTheRulebook")}
           spellCheck={false}
           enterKeyHint="search"
         />
@@ -212,7 +212,7 @@ export function RulebookContents({
           // eslint-disable-next-line @next/next/no-img-element
           <img src="/assets/ui/quill.webp" alt="" className="rb-quill" />
         ) : query ? (
-          <button type="button" className="rb-search-clear" aria-label={uiText("Clear the search")} onClick={() => setQuery("")}>
+          <button type="button" className="rb-search-clear" aria-label={uiText("clearTheSearch")} onClick={() => setQuery("")}>
             <X className="size-3.5" />
           </button>
         ) : null}
@@ -225,12 +225,12 @@ export function RulebookContents({
             <>
               <p className="rb-results-count">
                 {shown.hits.length === 0
-                  ? uiText("Nothing in the book matches that.")
+                  ? uiText("nothingInTheBookMatchesThat")
                   : shown.hits.length === 40
-                    ? uiText("The first 40 passages found")
+                    ? uiText("theFirst40PassagesFound")
                     : shown.hits.length === 1
-                      ? uiText("1 passage found")
-                      : uiText("{count} passages found", { count: shown.hits.length })}
+                      ? uiText("text1PassageFound")
+                      : uiText("countPassagesFound", { count: shown.hits.length })}
               </p>
               <ol className="rb-hits" key={shown.query}>
                 {shown.hits.map((hit, index) => (
@@ -259,15 +259,15 @@ export function RulebookContents({
               </ol>
             </>
           ) : (
-            <p className="rb-results-count">{uiText("Turning the pages…")}</p>
+            <p className="rb-results-count">{uiText("turningThePages")}</p>
           )}
         </section>
       ) : (
         <div className="rb-contents-body">
           {contents ? (
             <>
-              <section className="rb-quick" aria-label={uiText("At the table")}>
-                <p className="rb-section-label">{uiText("At the table")}</p>
+              <section className="rb-quick" aria-label={uiText("atTheTable")}>
+                <p className="rb-section-label">{uiText("atTheTable")}</p>
                 <div className="rb-chips">
                   {contents.quick.map((link) => (
                     <button key={link.label} type="button" className="rb-chip" onClick={() => onOpen(link.page, link.at)}>
@@ -278,9 +278,9 @@ export function RulebookContents({
               </section>
 
               {marks.length ? (
-                <section className="rb-marks" aria-label={uiText("Bookmarks")}>
+                <section className="rb-marks" aria-label={uiText("bookmarks")}>
                   <p className="rb-section-label">
-                    <Bookmark className="size-3.5" aria-hidden="true" /> {uiText("Bookmarks")}
+                    <Bookmark className="size-3.5" aria-hidden="true" /> {uiText("bookmarks")}
                   </p>
                   {marks.map((entry) => (
                     <EntryRow key={entry.id} entry={entry} current={entry.id === current} onOpen={(id) => onOpen(id)} />
@@ -288,8 +288,8 @@ export function RulebookContents({
                 </section>
               ) : null}
 
-              <nav aria-label={uiText("Contents")}>
-                <p className="rb-section-label">{uiText("Contents")}</p>
+              <nav aria-label={uiText("contents")}>
+                <p className="rb-section-label">{uiText("contents")}</p>
                 <ol className="rb-chapters">
                   {contents.chapters.map((chapter, index) => {
                     const isOpen = open.has(chapter.id);
@@ -316,18 +316,18 @@ export function RulebookContents({
               </nav>
 
               <p className="rb-legal">
-                {uiText("This work includes material taken from the System Reference Document 5.1 (“SRD 5.1”) by Wizards of the Coast LLC, licensed under")}{" "}
+                {uiText("thisWorkIncludesMaterialTakenFromTheSystem")}{" "}
                 <a href={contents.source.licenseUrl} target="_blank" rel="noreferrer">
                   CC-BY-4.0
                 </a>
                 .{" "}
                 <button type="button" className="rb-xref" onClick={() => onOpen("legal-information")}>
-                  {uiText("Legal information")}
+                  {uiText("legalInformation")}
                 </button>
               </p>
             </>
           ) : (
-            <p className="rb-results-count">{uiText("Opening the book…")}</p>
+            <p className="rb-results-count">{uiText("openingTheBook")}</p>
           )}
         </div>
       )}

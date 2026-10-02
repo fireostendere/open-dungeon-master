@@ -134,7 +134,7 @@ export function RefPicker({
         <ContentPick
           kind="items"
           label={copy.item}
-          placeholder={uiText("Potion of Healing")}
+          placeholder={uiText("potionOfHealing")}
           onPick={(entry) => insert(entry.name)}
           className="min-w-44 flex-1"
         />

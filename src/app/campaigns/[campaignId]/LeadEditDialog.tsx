@@ -46,7 +46,7 @@ function ChipList({ values, onRemove }: { values: string[]; onRemove: (value: st
           <button
             type="button"
             onClick={() => onRemove(value)}
-            aria-label={uiText("Remove {value}", { value })}
+            aria-label={uiText("removeValue", { value })}
             className="text-stone-500 hover:text-red-400"
           >
             <X className="size-3" />
@@ -447,7 +447,7 @@ export function LeadEditDialog({
             <input
               value={conditions}
               onChange={(event) => setConditions(event.target.value)}
-              placeholder={uiText("poisoned, prone")}
+              placeholder={uiText("poisonedProne")}
               className={field}
             />
           </label>
@@ -478,7 +478,7 @@ export function LeadEditDialog({
                   type="button"
                   onClick={() => setItems((rows) => rows.filter((_, i) => i !== index))}
                   className="shrink-0 text-stone-500 hover:text-red-400"
-                  aria-label={uiText("Remove item")}
+                  aria-label={uiText("removeItem")}
                 >
                   <Trash2 className="size-4" />
                 </button>

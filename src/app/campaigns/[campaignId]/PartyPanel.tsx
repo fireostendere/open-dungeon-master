@@ -63,8 +63,8 @@ function RealDiceToggle({
       disabled={busy}
       title={
         member.useRealDice
-          ? uiText("The game pauses on your rolls and asks for your real dice results. Click to switch back to automatic digital rolls.")
-          : uiText("Roll your own physical dice: the game will tell you what to roll and wait for your result. Click to opt in.")
+          ? uiText("theGamePausesOnYourRollsAndAsks")
+          : uiText("rollYourOwnPhysicalDiceTheGameWill")
       }
       className={cn(
         "flex w-full items-center justify-center gap-1 rounded border py-1 text-xs disabled:opacity-50",
@@ -108,7 +108,7 @@ function RequestCompanionButton({ campaignId }: { campaignId: string }) {
       type="button"
       onClick={request}
       disabled={state !== "idle"}
-      title={uiText("Ask the DM to write an ally with a real character sheet into the story")}
+      title={uiText("askTheDmToWriteAnAllyWith")}
       className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-dashed border-stone-700 py-2 text-xs text-stone-400 hover:bg-stone-900 hover:text-sky-200 disabled:opacity-60"
     >
       <GameIcon icon={{ kind: "glyph", key: "system-party" }} size="size-5" />
@@ -144,7 +144,7 @@ function SaveToLibraryButton({ campaignId }: { campaignId: string }) {
       type="button"
       onClick={save}
       disabled={state === "saving"}
-      title={uiText("Save level, gear, and spells back to your character library")}
+      title={uiText("saveLevelGearAndSpellsBackToYour")}
       className="flex w-full items-center justify-center gap-1 rounded border border-stone-700 py-1 text-xs text-stone-400 hover:bg-stone-900 disabled:opacity-50"
     >
       {state === "saved" ? (
@@ -319,7 +319,7 @@ export function PartyPanel({
               <button
                 type="button"
                 onClick={() => setViewingSheetId(sheet.id)}
-                title={uiText("View full character sheet")}
+                title={uiText("viewFullCharacterSheet")}
                 className="flex min-w-0 flex-1 items-center gap-2.5 text-left"
               >
               <CharacterPortrait
@@ -335,25 +335,25 @@ export function PartyPanel({
                   <span className="truncate">{sheet.name}</span>
                   {!sheet.isCompanion && onlineUserIds.includes(sheet.userId) ? (
                     <span
-                      title={uiText("Online now")}
+                      title={uiText("onlineNow")}
                       className="size-2 shrink-0 rounded-full bg-emerald-400 shadow-[0_0_4px_rgba(52,211,153,0.7)]"
                     />
                   ) : null}
                   {sheet.userId === leadUserId ? (
-                    <Crown className="size-3.5 shrink-0 text-amber-300" aria-label={uiText("Party lead")} />
+                    <Crown className="size-3.5 shrink-0 text-amber-300" aria-label={uiText("partyLead")} />
                   ) : null}
                   {sheet.isCompanion ? (
                     <Bot
                       className="size-3.5 shrink-0 text-sky-300"
-                      aria-label={uiText("AI companion")}
+                      aria-label={uiText("aiCompanion")}
                     />
                   ) : null}
                   {!sheet.isCompanion && members.find((m) => m.userId === sheet.userId)?.autopilot ? (
                     <span
-                      title={uiText("External MCP autopilot enabled")}
+                      title={uiText("externalMcpAutopilotEnabled")}
                       className="rounded border border-sky-700/60 bg-sky-950/80 px-1 py-0.2 text-[10px] text-sky-300"
                     >
-                      {uiText("🤖 MCP")}
+                      {uiText("mcp")}
                     </span>
                   ) : null}
                   {!sheet.isCompanion && (members.find((m) => m.userId === sheet.userId)?.skipTurnsCount ?? 0) > 0 ? (
@@ -377,7 +377,7 @@ export function PartyPanel({
                 <button
                   type="button"
                   onClick={() => setNotesSheetId(sheet.id)}
-                  title={uiText("{count} public notes for {name}", { count: publicNoteCount, name: sheet.name })}
+                  title={uiText("countPublicNotesForName", { count: publicNoteCount, name: sheet.name })}
                   className="flex shrink-0 items-center gap-0.5 rounded-full border border-stone-800 px-1.5 py-0.5 text-[10px] text-stone-500 hover:text-amber-300"
                 >
                   <GameIcon icon={{ kind: "glyph", key: "tab-notes" }} size="size-5" /> {publicNoteCount}
@@ -423,7 +423,7 @@ export function PartyPanel({
             {shape ? (
               <div
                 className="mt-2 flex items-center gap-1.5 rounded-md border border-lime-800/60 bg-lime-950/40 px-2 py-1 text-xs text-lime-300"
-                title={uiText("Wild Shaped: damage hits the beast's hit points first. {name}'s own {current}/{max} waits for them when the form breaks.", {
+                title={uiText("wildShapedDamageHitsTheBeastSHit", {
                   name: sheet.name,
                   current: sheet.currentHp,
                   max: sheet.maxHp,
@@ -454,7 +454,7 @@ export function PartyPanel({
               {shape ? (
                 <span
                   className="font-mono text-xs text-lime-300"
-                  title={uiText("Beast form hit points. {name}'s own: {current}/{max}", {
+                  title={uiText("beastFormHitPointsNameSOwnCurrent", {
                     name: sheet.name,
                     current: sheet.currentHp,
                     max: sheet.maxHp,
@@ -507,10 +507,10 @@ export function PartyPanel({
                         : "border-red-700 bg-red-950/50 text-red-300",
                   )}
                 >
-                  {sheet.deathSaves.dead ? uiText("Dead") : sheet.deathSaves.stable ? uiText("Stable") : uiText("Dying")}
+                  {sheet.deathSaves.dead ? uiText("dead") : sheet.deathSaves.stable ? uiText("stable") : uiText("dying")}
                 </span>
                 {!sheet.deathSaves.dead && !sheet.deathSaves.stable ? (
-                  <span className="flex items-center gap-1.5" title={uiText("Death saves: successes and failures")}>
+                  <span className="flex items-center gap-1.5" title={uiText("deathSavesSuccessesAndFailures")}>
                     <span className="flex gap-0.5">
                       {[0, 1, 2].map((pip) => (
                         <span
@@ -558,7 +558,7 @@ export function PartyPanel({
                   )}
                   title={
                     shape && statLabel === "AC"
-                      ? uiText("The beast form's armor class; {name}'s own is {ac}.", {
+                      ? uiText("theBeastFormSArmorClassNameS", {
                           name: sheet.name,
                           ac: sheet.ac,
                         })
@@ -630,10 +630,10 @@ export function PartyPanel({
               <button
                 type="button"
                 onClick={onLevelUp}
-                title={uiText("You have the experience for a new level")}
+                title={uiText("youHaveTheExperienceForANewLevel")}
                 className="mt-2 flex w-full items-center justify-center gap-1 rounded border border-amber-500/60 bg-amber-400/10 py-1 text-xs text-amber-200 hover:bg-amber-400/20"
               >
-                <Sparkles className="size-3" /> {uiText("Level up to {level}", { level: levelUpLevel })}
+                <Sparkles className="size-3" /> {uiText("levelUpToLevel", { level: levelUpLevel })}
               </button>
             ) : null}
 
@@ -673,7 +673,7 @@ export function PartyPanel({
             <button
               type="button"
               onClick={() => setBuildingCompanion(true)}
-              title={uiText("Build a companion yourself with the character creator")}
+              title={uiText("buildACompanionYourselfWithTheCharacterCreator")}
               className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-dashed border-stone-700 py-2 text-xs text-stone-400 hover:bg-stone-900 hover:text-sky-200"
             >
               <UserPlus className="size-3.5" />
@@ -736,7 +736,7 @@ export function PartyPanel({
 
       {croppingSheet ? (
         <AvatarCropDialog
-          title={uiText("{name}'s portrait", { name: croppingSheet.name })}
+          title={uiText("nameSPortrait", { name: croppingSheet.name })}
           onUploaded={(image) => setPortrait(croppingSheet, image.url)}
           onClose={() => setCroppingSheetId("")}
         />

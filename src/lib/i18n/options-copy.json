@@ -1,0 +1,1352 @@
+{
+  "invocation.agonizing-blast": {
+    "en": {
+      "title": "Agonizing Blast",
+      "text": "Add your Charisma modifier to the damage of each Eldritch Blast beam. Usually the first invocation a warlock takes.",
+      "requirement": "Eldritch Blast cantrip"
+    },
+    "ru": {
+      "title": "Мучительный взрыв",
+      "text": "Добавляйте модификатор Харизмы к урону каждого луча «Мистического заряда». Часто это первое воззвание колдуна.",
+      "requirement": "заговор «Мистический заряд»"
+    }
+  },
+  "invocation.armor-of-shadows": {
+    "en": {
+      "title": "Armor of Shadows",
+      "text": "Cast mage armor on yourself at will, without a spell slot."
+    },
+    "ru": {
+      "title": "Доспех теней",
+      "text": "Накладывайте «Доспехи мага» на себя неограниченно, без ячейки заклинания."
+    }
+  },
+  "invocation.ascendant-step": {
+    "en": {
+      "title": "Ascendant Step",
+      "text": "Cast levitate on yourself at will, without a spell slot.",
+      "requirement": "level 9"
+    },
+    "ru": {
+      "title": "Восходящий шаг",
+      "text": "Накладывайте «Левитацию» на себя неограниченно, без ячейки заклинания.",
+      "requirement": "9-й уровень"
+    }
+  },
+  "invocation.aspect-of-the-moon": {
+    "en": {
+      "title": "Aspect of the Moon",
+      "text": "You no longer need to sleep and cannot be forced to. You keep watch through the whole night.",
+      "requirement": "Pact of the Tome"
+    },
+    "ru": {
+      "title": "Аспект луны",
+      "text": "Вам больше не нужен сон, и вас нельзя заставить уснуть. Вы можете сторожить всю ночь.",
+      "requirement": "Договор гримуара"
+    }
+  },
+  "invocation.beast-speech": {
+    "en": {
+      "title": "Beast Speech",
+      "text": "Cast speak with animals at will, without a spell slot."
+    },
+    "ru": {
+      "title": "Речь зверей",
+      "text": "Накладывайте «Разговор с животными» неограниченно, без ячейки заклинания."
+    }
+  },
+  "invocation.beguiling-influence": {
+    "en": {
+      "title": "Beguiling Influence",
+      "text": "You gain proficiency in Deception and Persuasion."
+    },
+    "ru": {
+      "title": "Обольстительное влияние",
+      "text": "Вы получаете владение Обманом и Убеждением."
+    }
+  },
+  "invocation.bewitching-whispers": {
+    "en": {
+      "title": "Bewitching Whispers",
+      "text": "Cast compulsion once per long rest using a warlock spell slot.",
+      "requirement": "level 7"
+    },
+    "ru": {
+      "title": "Завораживающий шёпот",
+      "text": "Один раз за продолжительный отдых накладывайте «Принуждение», используя ячейку колдуна.",
+      "requirement": "7-й уровень"
+    }
+  },
+  "invocation.book-of-ancient-secrets": {
+    "en": {
+      "title": "Book of Ancient Secrets",
+      "text": "Inscribe two 1st-level rituals in your Book of Shadows and cast them as rituals. You can add more rituals you find.",
+      "requirement": "Pact of the Tome"
+    },
+    "ru": {
+      "title": "Книга древних секретов",
+      "text": "Запишите два ритуала 1-го уровня в Книгу теней и накладывайте их как ритуалы. Можно добавлять найденные ритуалы.",
+      "requirement": "Договор гримуара"
+    }
+  },
+  "invocation.chains-of-carceri": {
+    "en": {
+      "title": "Chains of Carceri",
+      "text": "Cast hold monster at will on a celestial, fiend or elemental, without a slot, once per creature per long rest.",
+      "requirement": "level 15, Pact of the Chain"
+    },
+    "ru": {
+      "title": "Цепи Карцери",
+      "text": "Накладывайте «Удержание чудовища» на небожителя, исчадие или элементаля без ячейки: один раз на каждое существо за продолжительный отдых.",
+      "requirement": "15-й уровень, Договор цепи"
+    }
+  },
+  "invocation.cloak-of-flies": {
+    "en": {
+      "title": "Cloak of Flies",
+      "text": "A bonus action wraps you in buzzing flies for a minute: advantage on Intimidation, disadvantage on other Charisma checks, and poison damage to creatures that end their turn within 5 feet.",
+      "requirement": "level 5"
+    },
+    "ru": {
+      "title": "Плащ мух",
+      "text": "Бонусным действием окружите себя мухами на минуту: преимущество на Запугивание, помеха на другие проверки Харизмы и урон ядом существам, заканчивающим ход в пределах 1,5 м.",
+      "requirement": "5-й уровень"
+    }
+  },
+  "invocation.devil-s-sight": {
+    "en": {
+      "title": "Devil's Sight",
+      "text": "You see normally in darkness, magical and nonmagical, out to 120 feet. Pairs famously with casting darkness on yourself."
+    },
+    "ru": {
+      "title": "Дьявольское зрение",
+      "text": "Вы видите в обычной и магической тьме на 36 м. Хорошо сочетается с заклинанием «Тьма» на себе."
+    }
+  },
+  "invocation.dreadful-word": {
+    "en": {
+      "title": "Dreadful Word",
+      "text": "Cast confusion once per long rest using a warlock spell slot.",
+      "requirement": "level 7"
+    },
+    "ru": {
+      "title": "Ужасающее слово",
+      "text": "Один раз за продолжительный отдых накладывайте «Смятение», используя ячейку колдуна.",
+      "requirement": "7-й уровень"
+    }
+  },
+  "invocation.eldritch-mind": {
+    "en": {
+      "title": "Eldritch Mind",
+      "text": "You have advantage on Constitution saving throws to maintain concentration on a spell."
+    },
+    "ru": {
+      "title": "Мистический разум",
+      "text": "Вы совершаете с преимуществом спасброски Телосложения для поддержания концентрации на заклинании."
+    }
+  },
+  "invocation.eldritch-sight": {
+    "en": {
+      "title": "Eldritch Sight",
+      "text": "Cast detect magic at will, without a spell slot."
+    },
+    "ru": {
+      "title": "Мистическое зрение",
+      "text": "Накладывайте «Обнаружение магии» неограниченно, без ячейки заклинания."
+    }
+  },
+  "invocation.eldritch-spear": {
+    "en": {
+      "title": "Eldritch Spear",
+      "text": "Your Eldritch Blast reaches 300 feet instead of 120.",
+      "requirement": "Eldritch Blast cantrip"
+    },
+    "ru": {
+      "title": "Мистическое копьё",
+      "text": "Дальность «Мистического заряда» увеличивается с 36 до 90 м.",
+      "requirement": "заговор «Мистический заряд»"
+    }
+  },
+  "invocation.eyes-of-the-rune-keeper": {
+    "en": {
+      "title": "Eyes of the Rune Keeper",
+      "text": "You can read all writing."
+    },
+    "ru": {
+      "title": "Глаза хранителя рун",
+      "text": "Вы можете читать любые письмена."
+    }
+  },
+  "invocation.fiendish-vigor": {
+    "en": {
+      "title": "Fiendish Vigor",
+      "text": "Cast false life on yourself at will as a 1st-level spell, without a slot."
+    },
+    "ru": {
+      "title": "Дьявольская выносливость",
+      "text": "Накладывайте «Псевдожизнь» на себя как заклинание 1-го уровня неограниченно, без ячейки."
+    }
+  },
+  "invocation.gaze-of-two-minds": {
+    "en": {
+      "title": "Gaze of Two Minds",
+      "text": "Touch a willing humanoid and perceive through its senses until the end of your next turn, extendable each turn."
+    },
+    "ru": {
+      "title": "Взгляд двух умов",
+      "text": "Коснитесь согласного гуманоида и воспринимайте мир его чувствами до конца вашего следующего хода. Эффект можно продлевать каждый ход."
+    }
+  },
+  "invocation.ghostly-gaze": {
+    "en": {
+      "title": "Ghostly Gaze",
+      "text": "As an action, see through solid objects out to 30 feet for a minute, once per short or long rest.",
+      "requirement": "level 7"
+    },
+    "ru": {
+      "title": "Призрачный взгляд",
+      "text": "Действием смотрите сквозь твёрдые предметы на 9 м в течение минуты; один раз за короткий или продолжительный отдых.",
+      "requirement": "7-й уровень"
+    }
+  },
+  "invocation.gift-of-the-depths": {
+    "en": {
+      "title": "Gift of the Depths",
+      "text": "You can breathe underwater, gain a swimming speed equal to your walking speed, and cast water breathing once per long rest without a slot.",
+      "requirement": "level 5"
+    },
+    "ru": {
+      "title": "Дар глубин",
+      "text": "Вы дышите под водой, получаете скорость плавания, равную скорости ходьбы, и накладываете «Подводное дыхание» раз за продолжительный отдых без ячейки.",
+      "requirement": "5-й уровень"
+    }
+  },
+  "invocation.gift-of-the-ever-living-ones": {
+    "en": {
+      "title": "Gift of the Ever-Living Ones",
+      "text": "Whenever you regain hit points while your familiar is within 100 feet, you regain the maximum possible.",
+      "requirement": "Pact of the Chain"
+    },
+    "ru": {
+      "title": "Дар вечноживых",
+      "text": "Когда фамильяр находится в пределах 30 м, вы восстанавливаете максимально возможное число хитов при лечении.",
+      "requirement": "Договор цепи"
+    }
+  },
+  "invocation.grasp-of-hadar": {
+    "en": {
+      "title": "Grasp of Hadar",
+      "text": "Once per turn when Eldritch Blast hits, you can pull the target 10 feet toward you.",
+      "requirement": "Eldritch Blast cantrip"
+    },
+    "ru": {
+      "title": "Хватка Хадара",
+      "text": "Раз за ход при попадании «Мистическим зарядом» можно притянуть цель на 3 м к себе.",
+      "requirement": "заговор «Мистический заряд»"
+    }
+  },
+  "invocation.improved-pact-weapon": {
+    "en": {
+      "title": "Improved Pact Weapon",
+      "text": "Your pact weapon counts as magical, gives +1 to attack and damage, and can serve as your spellcasting focus. You can also make a bow or crossbow your pact weapon.",
+      "requirement": "Pact of the Blade"
+    },
+    "ru": {
+      "title": "Улучшенное оружие договора",
+      "text": "Оружие договора считается магическим, получает +1 к атаке и урону и служит заклинательной фокусировкой. Оружием договора может стать лук или арбалет.",
+      "requirement": "Договор клинка"
+    }
+  },
+  "invocation.investment-of-the-chain-master": {
+    "en": {
+      "title": "Investment of the Chain Master",
+      "text": "Your familiar gains a flying or swimming speed, its attacks count as magical, it can be commanded as a bonus action, and it can impose your spell save DC on its effects.",
+      "requirement": "Pact of the Chain"
+    },
+    "ru": {
+      "title": "Вложение мастера цепей",
+      "text": "Фамильяр получает скорость полёта или плавания, магические атаки и команды бонусным действием. Его эффекты могут использовать Сл спасброска ваших заклинаний.",
+      "requirement": "Договор цепи"
+    }
+  },
+  "invocation.lifedrinker": {
+    "en": {
+      "title": "Lifedrinker",
+      "text": "Your pact weapon deals extra necrotic damage equal to your Charisma modifier on a hit.",
+      "requirement": "level 12, Pact of the Blade"
+    },
+    "ru": {
+      "title": "Пожиратель жизни",
+      "text": "При попадании оружие договора наносит дополнительный некротический урон, равный модификатору Харизмы.",
+      "requirement": "12-й уровень, Договор клинка"
+    }
+  },
+  "invocation.maddening-hex": {
+    "en": {
+      "title": "Maddening Hex",
+      "text": "A bonus action deals psychic damage equal to your Charisma modifier to your hex target and every creature within 5 feet of it.",
+      "requirement": "level 5, hex or a curse feature"
+    },
+    "ru": {
+      "title": "Сводящий с ума сглаз",
+      "text": "Бонусным действием нанесите психический урон, равный модификатору Харизмы, цели вашего сглаза и всем существам в пределах 1,5 м от неё.",
+      "requirement": "5-й уровень, «Сглаз» или умение проклятия"
+    }
+  },
+  "invocation.mask-of-many-faces": {
+    "en": {
+      "title": "Mask of Many Faces",
+      "text": "Cast disguise self at will, without a spell slot."
+    },
+    "ru": {
+      "title": "Маска многих лиц",
+      "text": "Накладывайте «Маскировку» неограниченно, без ячейки заклинания."
+    }
+  },
+  "invocation.master-of-myriad-forms": {
+    "en": {
+      "title": "Master of Myriad Forms",
+      "text": "Cast alter self at will, without a spell slot.",
+      "requirement": "level 15"
+    },
+    "ru": {
+      "title": "Мастер множества форм",
+      "text": "Накладывайте «Изменение внешности» неограниченно, без ячейки заклинания.",
+      "requirement": "15-й уровень"
+    }
+  },
+  "invocation.minions-of-chaos": {
+    "en": {
+      "title": "Minions of Chaos",
+      "text": "Cast conjure elemental once per long rest using a warlock spell slot.",
+      "requirement": "level 9"
+    },
+    "ru": {
+      "title": "Прислужники хаоса",
+      "text": "Один раз за продолжительный отдых накладывайте «Призыв элементаля», используя ячейку колдуна.",
+      "requirement": "9-й уровень"
+    }
+  },
+  "invocation.mire-the-mind": {
+    "en": {
+      "title": "Mire the Mind",
+      "text": "Cast slow once per long rest using a warlock spell slot.",
+      "requirement": "level 5"
+    },
+    "ru": {
+      "title": "Топь разума",
+      "text": "Один раз за продолжительный отдых накладывайте «Замедление», используя ячейку колдуна.",
+      "requirement": "5-й уровень"
+    }
+  },
+  "invocation.misty-visions": {
+    "en": {
+      "title": "Misty Visions",
+      "text": "Cast silent image at will, without a spell slot."
+    },
+    "ru": {
+      "title": "Туманные видения",
+      "text": "Накладывайте «Безмолвный образ» неограниченно, без ячейки заклинания."
+    }
+  },
+  "invocation.one-with-shadows": {
+    "en": {
+      "title": "One with Shadows",
+      "text": "In dim light or darkness, become invisible as an action until you move or act.",
+      "requirement": "level 5"
+    },
+    "ru": {
+      "title": "Единение с тенями",
+      "text": "Действием станьте невидимым в тусклом свете или тьме, пока не начнёте двигаться или действовать.",
+      "requirement": "5-й уровень"
+    }
+  },
+  "invocation.otherworldly-leap": {
+    "en": {
+      "title": "Otherworldly Leap",
+      "text": "Cast jump on yourself at will, without a spell slot.",
+      "requirement": "level 9"
+    },
+    "ru": {
+      "title": "Потусторонний прыжок",
+      "text": "Накладывайте «Прыжок» на себя неограниченно, без ячейки заклинания.",
+      "requirement": "9-й уровень"
+    }
+  },
+  "invocation.protection-of-the-talisman": {
+    "en": {
+      "title": "Protection of the Talisman",
+      "text": "The wearer of your talisman can add a d4 to a failed saving throw, a proficiency-bonus number of times per long rest.",
+      "requirement": "level 7, Pact of the Talisman"
+    },
+    "ru": {
+      "title": "Защита талисмана",
+      "text": "Носитель талисмана может добавить к4 к проваленному спасброску. Число использований за продолжительный отдых равно бонусу мастерства.",
+      "requirement": "7-й уровень, Договор талисмана"
+    }
+  },
+  "invocation.rebuke-of-the-talisman": {
+    "en": {
+      "title": "Rebuke of the Talisman",
+      "text": "When the wearer of your talisman is hit, you can use a reaction to deal psychic damage equal to your proficiency bonus and push the attacker 10 feet.",
+      "requirement": "Pact of the Talisman"
+    },
+    "ru": {
+      "title": "Возмездие талисмана",
+      "text": "При попадании по носителю талисмана реакцией нанесите атакующему психический урон, равный бонусу мастерства, и оттолкните его на 3 м.",
+      "requirement": "Договор талисмана"
+    }
+  },
+  "invocation.relentless-hex": {
+    "en": {
+      "title": "Relentless Hex",
+      "text": "A bonus action teleports you up to 30 feet to a space near your cursed target.",
+      "requirement": "level 7, hex or a curse feature"
+    },
+    "ru": {
+      "title": "Неотступный сглаз",
+      "text": "Бонусным действием телепортируйтесь на расстояние до 9 м в пространство рядом с проклятой целью.",
+      "requirement": "7-й уровень, «Сглаз» или умение проклятия"
+    }
+  },
+  "invocation.repelling-blast": {
+    "en": {
+      "title": "Repelling Blast",
+      "text": "Once per turn when Eldritch Blast hits, you can push the target 10 feet away. Excellent battlefield control.",
+      "requirement": "Eldritch Blast cantrip"
+    },
+    "ru": {
+      "title": "Отталкивающий заряд",
+      "text": "Раз за ход при попадании «Мистическим зарядом» можно оттолкнуть цель на 3 м. Полезно для контроля поля боя.",
+      "requirement": "заговор «Мистический заряд»"
+    }
+  },
+  "invocation.sculptor-of-flesh": {
+    "en": {
+      "title": "Sculptor of Flesh",
+      "text": "Cast polymorph once per long rest using a warlock spell slot.",
+      "requirement": "level 7"
+    },
+    "ru": {
+      "title": "Скульптор плоти",
+      "text": "Один раз за продолжительный отдых накладывайте «Превращение», используя ячейку колдуна.",
+      "requirement": "7-й уровень"
+    }
+  },
+  "invocation.shroud-of-shadow": {
+    "en": {
+      "title": "Shroud of Shadow",
+      "text": "Cast invisibility at will, without a spell slot.",
+      "requirement": "level 15"
+    },
+    "ru": {
+      "title": "Покров теней",
+      "text": "Накладывайте «Невидимость» неограниченно, без ячейки заклинания.",
+      "requirement": "15-й уровень"
+    }
+  },
+  "invocation.sign-of-ill-omen": {
+    "en": {
+      "title": "Sign of Ill Omen",
+      "text": "Cast bestow curse once per long rest using a warlock spell slot.",
+      "requirement": "level 5"
+    },
+    "ru": {
+      "title": "Знак дурного предзнаменования",
+      "text": "Один раз за продолжительный отдых накладывайте «Проклятие», используя ячейку колдуна.",
+      "requirement": "5-й уровень"
+    }
+  },
+  "invocation.thief-of-five-fates": {
+    "en": {
+      "title": "Thief of Five Fates",
+      "text": "Cast bane once per long rest using a warlock spell slot."
+    },
+    "ru": {
+      "title": "Похититель пяти судеб",
+      "text": "Один раз за продолжительный отдых накладывайте «Порчу», используя ячейку колдуна."
+    }
+  },
+  "invocation.thirsting-blade": {
+    "en": {
+      "title": "Thirsting Blade",
+      "text": "You attack twice with your pact weapon whenever you take the Attack action.",
+      "requirement": "level 5, Pact of the Blade"
+    },
+    "ru": {
+      "title": "Жаждущий клинок",
+      "text": "Совершая действие «Атака», вы атакуете оружием договора дважды.",
+      "requirement": "5-й уровень, Договор клинка"
+    }
+  },
+  "invocation.tomb-of-levistus": {
+    "en": {
+      "title": "Tomb of Levistus",
+      "text": "As a reaction on taking damage, encase yourself in ice for temporary hit points, at the cost of being restrained and taking cold damage; once per short or long rest.",
+      "requirement": "level 5"
+    },
+    "ru": {
+      "title": "Гробница Левистуса",
+      "text": "Реакцией при получении урона заключите себя в лёд и получите временные хиты, но становитесь опутанным и получаете урон холодом. Раз за короткий или продолжительный отдых.",
+      "requirement": "5-й уровень"
+    }
+  },
+  "invocation.trickster-s-escape": {
+    "en": {
+      "title": "Trickster's Escape",
+      "text": "Cast freedom of movement on yourself once per long rest, without a slot.",
+      "requirement": "level 7"
+    },
+    "ru": {
+      "title": "Побег обманщика",
+      "text": "Раз за продолжительный отдых накладывайте «Свободу перемещения» на себя без ячейки.",
+      "requirement": "7-й уровень"
+    }
+  },
+  "invocation.visions-of-distant-realms": {
+    "en": {
+      "title": "Visions of Distant Realms",
+      "text": "Cast arcane eye at will, without a spell slot.",
+      "requirement": "level 15"
+    },
+    "ru": {
+      "title": "Видения далёких миров",
+      "text": "Накладывайте «Магический глаз» неограниченно, без ячейки заклинания.",
+      "requirement": "15-й уровень"
+    }
+  },
+  "invocation.voice-of-the-chain-master": {
+    "en": {
+      "title": "Voice of the Chain Master",
+      "text": "You can speak through your familiar, perceive through its senses, and communicate with it at any distance on the same plane.",
+      "requirement": "Pact of the Chain"
+    },
+    "ru": {
+      "title": "Голос мастера цепей",
+      "text": "Говорите через фамильяра, воспринимайте мир его чувствами и общайтесь с ним на любом расстоянии в пределах одного плана.",
+      "requirement": "Договор цепи"
+    }
+  },
+  "invocation.whispers-of-the-grave": {
+    "en": {
+      "title": "Whispers of the Grave",
+      "text": "Cast speak with dead at will, without a spell slot.",
+      "requirement": "level 9"
+    },
+    "ru": {
+      "title": "Шёпот могилы",
+      "text": "Накладывайте «Разговор с мёртвыми» неограниченно, без ячейки заклинания.",
+      "requirement": "9-й уровень"
+    }
+  },
+  "invocation.witch-sight": {
+    "en": {
+      "title": "Witch Sight",
+      "text": "You see the true form of any shapechanger or creature concealed by illusion within 30 feet.",
+      "requirement": "level 15"
+    },
+    "ru": {
+      "title": "Ведьминское зрение",
+      "text": "Вы видите истинную форму перевёртышей и существ, скрытых иллюзией, в пределах 9 м.",
+      "requirement": "15-й уровень"
+    }
+  },
+  "pact_boon.pact-of-the-blade": {
+    "en": {
+      "title": "Pact of the Blade",
+      "text": "You can conjure a magical weapon of any kind as an action, and it counts as magical. This is the melee warlock's pact."
+    },
+    "ru": {
+      "title": "Договор клинка",
+      "text": "Действием создавайте оружие любого вида, считающееся магическим. Подходит колдуну ближнего боя."
+    }
+  },
+  "pact_boon.pact-of-the-chain": {
+    "en": {
+      "title": "Pact of the Chain",
+      "text": "You learn find familiar and can take special forms such as an imp, quasit, pseudodragon or sprite, and your familiar can attack with its own reaction."
+    },
+    "ru": {
+      "title": "Договор цепи",
+      "text": "Вы изучаете «Поиск фамильяра» и можете выбрать импа, квазита, псевдодракона или спрайта. Фамильяр может атаковать своей реакцией."
+    }
+  },
+  "pact_boon.pact-of-the-tome": {
+    "en": {
+      "title": "Pact of the Tome",
+      "text": "You gain a Book of Shadows holding three cantrips from any class's list, which you can cast at will."
+    },
+    "ru": {
+      "title": "Договор гримуара",
+      "text": "Вы получаете Книгу теней с тремя заговорами из списков любых классов, которые можно накладывать неограниченно."
+    }
+  },
+  "pact_boon.pact-of-the-talisman": {
+    "en": {
+      "title": "Pact of the Talisman",
+      "text": "You gain an amulet that lets its wearer add a d4 to a failed ability check, a proficiency-bonus number of times per long rest."
+    },
+    "ru": {
+      "title": "Договор талисмана",
+      "text": "Амулет позволяет носителю добавить к4 к проваленной проверке характеристики. Число использований за продолжительный отдых равно бонусу мастерства."
+    }
+  },
+  "maneuver.ambush": {
+    "en": {
+      "title": "Ambush",
+      "text": "Spend a die to add it to a Stealth check or an initiative roll."
+    },
+    "ru": {
+      "title": "Засада",
+      "text": "Потратьте кость превосходства, чтобы добавить её к проверке Скрытности или броску инициативы."
+    }
+  },
+  "maneuver.bait-and-switch": {
+    "en": {
+      "title": "Bait and Switch",
+      "text": "Spend a die to swap places with a willing ally within 5 feet, and one of you adds the die to your AC until your next turn."
+    },
+    "ru": {
+      "title": "Подмена",
+      "text": "Потратьте кость, чтобы поменяться местами с согласным союзником в пределах 1,5 м. Один из вас добавляет кость к КД до вашего следующего хода."
+    }
+  },
+  "maneuver.brace": {
+    "en": {
+      "title": "Brace",
+      "text": "As a reaction when a creature moves into your reach, spend a die to attack it and add the die to the damage."
+    },
+    "ru": {
+      "title": "Встречающий удар",
+      "text": "Когда существо входит в вашу досягаемость, реакцией потратьте кость, атакуйте его и добавьте кость к урону."
+    }
+  },
+  "maneuver.commander-s-strike": {
+    "en": {
+      "title": "Commander's Strike",
+      "text": "Give up one of your attacks and spend a die to let an ally use their reaction to attack, adding the die to their damage."
+    },
+    "ru": {
+      "title": "Удар командующего",
+      "text": "Откажитесь от одной атаки и потратьте кость, чтобы союзник реакцией атаковал, добавляя кость к урону."
+    }
+  },
+  "maneuver.commanding-presence": {
+    "en": {
+      "title": "Commanding Presence",
+      "text": "Spend a die to add it to an Intimidation, Performance or Persuasion check."
+    },
+    "ru": {
+      "title": "Командирское присутствие",
+      "text": "Потратьте кость, чтобы добавить её к проверке Запугивания, Выступления или Убеждения."
+    }
+  },
+  "maneuver.disarming-attack": {
+    "en": {
+      "title": "Disarming Attack",
+      "text": "Spend a die to add it to the damage and force a Strength save, dropping one item the target is holding."
+    },
+    "ru": {
+      "title": "Обезоруживающая атака",
+      "text": "Потратьте кость, добавьте её к урону и заставьте цель совершить спасбросок Силы; при провале она роняет один удерживаемый предмет."
+    }
+  },
+  "maneuver.distracting-strike": {
+    "en": {
+      "title": "Distracting Strike",
+      "text": "Spend a die to add it to the damage and give the next attacker advantage against the target."
+    },
+    "ru": {
+      "title": "Отвлекающий удар",
+      "text": "Потратьте кость, добавьте её к урону и предоставьте следующему атакующему преимущество против цели."
+    }
+  },
+  "maneuver.evasive-footwork": {
+    "en": {
+      "title": "Evasive Footwork",
+      "text": "Spend a die and add it to your AC while you move."
+    },
+    "ru": {
+      "title": "Уклоняющийся шаг",
+      "text": "Потратьте кость и добавляйте её к КД во время перемещения."
+    }
+  },
+  "maneuver.feinting-attack": {
+    "en": {
+      "title": "Feinting Attack",
+      "text": "A bonus action feints at a creature within 5 feet, giving you advantage on your next attack against it and adding the die to the damage."
+    },
+    "ru": {
+      "title": "Финт",
+      "text": "Бонусным действием сделайте финт против существа в пределах 1,5 м: преимущество на следующую атаку по нему и кость к урону."
+    }
+  },
+  "maneuver.goading-attack": {
+    "en": {
+      "title": "Goading Attack",
+      "text": "Spend a die to add it to the damage and force a Wisdom save, giving the target disadvantage on attacks against anyone but you."
+    },
+    "ru": {
+      "title": "Провоцирующая атака",
+      "text": "Потратьте кость, добавьте её к урону и заставьте цель совершить спасбросок Мудрости. При провале она атакует всех, кроме вас, с помехой."
+    }
+  },
+  "maneuver.grappling-strike": {
+    "en": {
+      "title": "Grappling Strike",
+      "text": "After hitting, spend a die as a bonus action to attempt a grapple, adding the die to your check."
+    },
+    "ru": {
+      "title": "Захватывающий удар",
+      "text": "После попадания бонусным действием потратьте кость для попытки захвата, добавив её к проверке."
+    }
+  },
+  "maneuver.lunging-attack": {
+    "en": {
+      "title": "Lunging Attack",
+      "text": "Spend a die to reach 5 feet further with a melee attack and add the die to the damage."
+    },
+    "ru": {
+      "title": "Выпад",
+      "text": "Потратьте кость, чтобы увеличить досягаемость рукопашной атаки на 1,5 м и добавить кость к урону."
+    }
+  },
+  "maneuver.maneuvering-attack": {
+    "en": {
+      "title": "Maneuvering Attack",
+      "text": "Spend a die to add it to the damage and let an ally move half their speed without provoking from the target."
+    },
+    "ru": {
+      "title": "Маневрирующая атака",
+      "text": "Потратьте кость, добавьте её к урону и дайте союзнику переместиться на половину скорости, не провоцируя цель."
+    }
+  },
+  "maneuver.menacing-attack": {
+    "en": {
+      "title": "Menacing Attack",
+      "text": "Spend a die to add it to the damage and frighten the target on a failed Wisdom save."
+    },
+    "ru": {
+      "title": "Угрожающая атака",
+      "text": "Потратьте кость, добавьте её к урону и испугайте цель при провале спасброска Мудрости."
+    }
+  },
+  "maneuver.parry": {
+    "en": {
+      "title": "Parry",
+      "text": "As a reaction, spend a die to reduce melee damage to you by the die plus your Dexterity modifier."
+    },
+    "ru": {
+      "title": "Парирование",
+      "text": "Реакцией потратьте кость, чтобы уменьшить рукопашный урон по вам на результат кости плюс модификатор Ловкости."
+    }
+  },
+  "maneuver.precision-attack": {
+    "en": {
+      "title": "Precision Attack",
+      "text": "Spend a die to add it to an attack roll, before or after seeing whether it hits."
+    },
+    "ru": {
+      "title": "Точная атака",
+      "text": "Потратьте кость, чтобы добавить её к броску атаки до или после определения попадания."
+    }
+  },
+  "maneuver.pushing-attack": {
+    "en": {
+      "title": "Pushing Attack",
+      "text": "Spend a die to add it to the damage and push a Large or smaller target 15 feet on a failed Strength save."
+    },
+    "ru": {
+      "title": "Толкающая атака",
+      "text": "Потратьте кость, добавьте её к урону и оттолкните Большую или меньшую цель на 4,5 м при провале спасброска Силы."
+    }
+  },
+  "maneuver.quick-toss": {
+    "en": {
+      "title": "Quick Toss",
+      "text": "A bonus action draws and throws a weapon, spending a die to add it to the damage."
+    },
+    "ru": {
+      "title": "Быстрый бросок",
+      "text": "Бонусным действием извлеките и бросьте оружие, потратив кость для добавления к урону."
+    }
+  },
+  "maneuver.rally": {
+    "en": {
+      "title": "Rally",
+      "text": "A bonus action grants an ally temporary hit points equal to the die plus your Charisma modifier."
+    },
+    "ru": {
+      "title": "Сплочение",
+      "text": "Бонусным действием дайте союзнику временные хиты, равные кости плюс модификатор Харизмы."
+    }
+  },
+  "maneuver.riposte": {
+    "en": {
+      "title": "Riposte",
+      "text": "As a reaction when a creature misses you in melee, spend a die to attack it and add the die to the damage."
+    },
+    "ru": {
+      "title": "Ответный удар",
+      "text": "Если существо промахнулось по вам в ближнем бою, реакцией потратьте кость, атакуйте его и добавьте кость к урону."
+    }
+  },
+  "maneuver.sweeping-attack": {
+    "en": {
+      "title": "Sweeping Attack",
+      "text": "After hitting, spend a die to deal that much damage to a second creature within 5 feet of the first."
+    },
+    "ru": {
+      "title": "Размашистая атака",
+      "text": "После попадания потратьте кость, чтобы нанести столько же урона второму существу в пределах 1,5 м от первого."
+    }
+  },
+  "maneuver.tactical-assessment": {
+    "en": {
+      "title": "Tactical Assessment",
+      "text": "Spend a die to add it to a History, Insight or Investigation check."
+    },
+    "ru": {
+      "title": "Тактическая оценка",
+      "text": "Потратьте кость, чтобы добавить её к проверке Истории, Проницательности или Анализа."
+    }
+  },
+  "maneuver.trip-attack": {
+    "en": {
+      "title": "Trip Attack",
+      "text": "Spend a die to add it to the damage and knock a Large or smaller target prone on a failed Strength save."
+    },
+    "ru": {
+      "title": "Опрокидывающая атака",
+      "text": "Потратьте кость, добавьте её к урону и сбейте Большую или меньшую цель с ног при провале спасброска Силы."
+    }
+  },
+  "metamagic.careful-spell": {
+    "en": {
+      "title": "Careful Spell",
+      "text": "Spend 1 sorcery point to let a number of creatures equal to your Charisma modifier automatically succeed on the spell's saving throw."
+    },
+    "ru": {
+      "title": "Аккуратное заклинание",
+      "text": "Потратьте 1 единицу чародейства: число существ, равное модификатору Харизмы, автоматически преуспевает в спасброске от заклинания."
+    }
+  },
+  "metamagic.distant-spell": {
+    "en": {
+      "title": "Distant Spell",
+      "text": "Spend 1 sorcery point to double a spell's range, or give a touch spell 30 feet of reach."
+    },
+    "ru": {
+      "title": "Далёкое заклинание",
+      "text": "Потратьте 1 единицу чародейства, чтобы удвоить дальность заклинания или дать заклинанию с касанием дальность 9 м."
+    }
+  },
+  "metamagic.empowered-spell": {
+    "en": {
+      "title": "Empowered Spell",
+      "text": "Spend 1 sorcery point to reroll damage dice equal to your Charisma modifier."
+    },
+    "ru": {
+      "title": "Усиленное заклинание",
+      "text": "Потратьте 1 единицу чародейства, чтобы перебросить кости урона в количестве, равном модификатору Харизмы."
+    }
+  },
+  "metamagic.extended-spell": {
+    "en": {
+      "title": "Extended Spell",
+      "text": "Spend 1 sorcery point to double a spell's duration, up to 24 hours."
+    },
+    "ru": {
+      "title": "Продлённое заклинание",
+      "text": "Потратьте 1 единицу чародейства, чтобы удвоить длительность заклинания, максимум до 24 часов."
+    }
+  },
+  "metamagic.heightened-spell": {
+    "en": {
+      "title": "Heightened Spell",
+      "text": "Spend 3 sorcery points to give one target disadvantage on its first saving throw against the spell."
+    },
+    "ru": {
+      "title": "Обострённое заклинание",
+      "text": "Потратьте 3 единицы чародейства, чтобы одна цель совершила первый спасбросок от заклинания с помехой."
+    }
+  },
+  "metamagic.quickened-spell": {
+    "en": {
+      "title": "Quickened Spell",
+      "text": "Spend 2 sorcery points to cast a one-action spell as a bonus action instead."
+    },
+    "ru": {
+      "title": "Ускоренное заклинание",
+      "text": "Потратьте 2 единицы чародейства, чтобы наложить заклинание со временем в одно действие бонусным действием."
+    }
+  },
+  "metamagic.seeking-spell": {
+    "en": {
+      "title": "Seeking Spell",
+      "text": "Spend 2 sorcery points to reroll a missed attack roll for a spell."
+    },
+    "ru": {
+      "title": "Ищущее заклинание",
+      "text": "Потратьте 2 единицы чародейства, чтобы перебросить промахнувшийся бросок атаки заклинанием."
+    }
+  },
+  "metamagic.subtle-spell": {
+    "en": {
+      "title": "Subtle Spell",
+      "text": "Spend 1 sorcery point to cast without verbal or somatic components, which no one can see or hear you do."
+    },
+    "ru": {
+      "title": "Неуловимое заклинание",
+      "text": "Потратьте 1 единицу чародейства, чтобы наложить заклинание без вербальных и соматических компонентов: никто не видит и не слышит их."
+    }
+  },
+  "metamagic.transmuted-spell": {
+    "en": {
+      "title": "Transmuted Spell",
+      "text": "Spend 1 sorcery point to change a spell's damage type among acid, cold, fire, lightning, poison and thunder."
+    },
+    "ru": {
+      "title": "Преобразованное заклинание",
+      "text": "Потратьте 1 единицу чародейства, чтобы изменить тип урона заклинания на кислоту, холод, огонь, электричество, яд или звук."
+    }
+  },
+  "metamagic.twinned-spell": {
+    "en": {
+      "title": "Twinned Spell",
+      "text": "Spend sorcery points equal to the spell's level to have a single-target spell hit a second creature."
+    },
+    "ru": {
+      "title": "Удвоенное заклинание",
+      "text": "Потратьте единицы чародейства в количестве, равном уровню заклинания, чтобы заклинание с одной целью воздействовало на второе существо."
+    }
+  },
+  "infusion.arcane-propulsion-armor": {
+    "en": {
+      "title": "Arcane Propulsion Armor",
+      "text": "Armor that raises the wearer's speed by 5 feet, grants a returning gauntlet attack, and replaces missing limbs.",
+      "requirement": "level 14"
+    },
+    "ru": {
+      "title": "Доспех магического привода",
+      "text": "Доспех увеличивает скорость на 1,5 м, даёт атаку возвращающейся перчаткой и заменяет отсутствующие конечности.",
+      "requirement": "14-й уровень"
+    }
+  },
+  "infusion.armor-of-magical-strength": {
+    "en": {
+      "title": "Armor of Magical Strength",
+      "text": "Armor that lets the wearer use Intelligence for Strength checks and saves, and spend charges to add to a save or avoid being knocked prone.",
+      "requirement": "level 6"
+    },
+    "ru": {
+      "title": "Доспех магической силы",
+      "text": "Доспех позволяет использовать Интеллект вместо Силы в проверках и спасбросках; заряды дают бонус к спасброску или предотвращают падение ничком.",
+      "requirement": "6-й уровень"
+    }
+  },
+  "infusion.boots-of-the-winding-path": {
+    "en": {
+      "title": "Boots of the Winding Path",
+      "text": "Boots that let the wearer teleport back to a space they occupied earlier in the turn.",
+      "requirement": "level 6"
+    },
+    "ru": {
+      "title": "Сапоги извилистого пути",
+      "text": "Позволяют телепортироваться в пространство, которое вы занимали ранее в этом ходу.",
+      "requirement": "6-й уровень"
+    }
+  },
+  "infusion.enhanced-arcane-focus": {
+    "en": {
+      "title": "Enhanced Arcane Focus",
+      "text": "A focus granting +1 to spell attack rolls and letting spells ignore half cover."
+    },
+    "ru": {
+      "title": "Улучшенная магическая фокусировка",
+      "text": "Фокусировка даёт +1 к атакам заклинаниями и позволяет игнорировать укрытие наполовину."
+    }
+  },
+  "infusion.enhanced-defense": {
+    "en": {
+      "title": "Enhanced Defense",
+      "text": "Armor or a shield with a +1 bonus to AC, rising to +2 at higher levels."
+    },
+    "ru": {
+      "title": "Улучшенная защита",
+      "text": "Доспех или щит получает +1 к КД; на более высоких уровнях бонус увеличивается до +2."
+    }
+  },
+  "infusion.enhanced-weapon": {
+    "en": {
+      "title": "Enhanced Weapon",
+      "text": "A weapon with a +1 bonus to attack and damage, rising to +2 at higher levels."
+    },
+    "ru": {
+      "title": "Улучшенное оружие",
+      "text": "Оружие получает +1 к атаке и урону; на более высоких уровнях бонус увеличивается до +2."
+    }
+  },
+  "infusion.helm-of-awareness": {
+    "en": {
+      "title": "Helm of Awareness",
+      "text": "A helm granting advantage on initiative rolls.",
+      "requirement": "level 10"
+    },
+    "ru": {
+      "title": "Шлем бдительности",
+      "text": "Шлем даёт преимущество на броски инициативы.",
+      "requirement": "10-й уровень"
+    }
+  },
+  "infusion.homunculus-servant": {
+    "en": {
+      "title": "Homunculus Servant",
+      "text": "A tiny construct companion that acts on your turn, scouts, and channels your spells."
+    },
+    "ru": {
+      "title": "Слуга-гомункул",
+      "text": "Крошечный спутник-конструкт действует в ваш ход, разведывает и проводит ваши заклинания."
+    }
+  },
+  "infusion.mind-sharpener": {
+    "en": {
+      "title": "Mind Sharpener",
+      "text": "A garment with charges that turn a failed concentration save into a success."
+    },
+    "ru": {
+      "title": "Обостритель разума",
+      "text": "Одежда с зарядами, превращающими проваленный спасбросок концентрации в успех."
+    }
+  },
+  "infusion.radiant-weapon": {
+    "en": {
+      "title": "Radiant Weapon",
+      "text": "A weapon that sheds light, grants +1 to attack and damage, and can blind an attacker as a reaction.",
+      "requirement": "level 6"
+    },
+    "ru": {
+      "title": "Сияющее оружие",
+      "text": "Оружие светится, даёт +1 к атаке и урону и может реакцией ослепить атакующего.",
+      "requirement": "6-й уровень"
+    }
+  },
+  "infusion.repeating-shot": {
+    "en": {
+      "title": "Repeating Shot",
+      "text": "A ranged weapon with +1 to attack and damage that produces its own ammunition."
+    },
+    "ru": {
+      "title": "Повторяющийся выстрел",
+      "text": "Дальнобойное оружие получает +1 к атаке и урону и само создаёт боеприпасы."
+    }
+  },
+  "infusion.replicate-magic-item": {
+    "en": {
+      "title": "Replicate Magic Item",
+      "text": "Reproduce a common magic item from the artificer's replicable list; the list grows with your level."
+    },
+    "ru": {
+      "title": "Воспроизведение магического предмета",
+      "text": "Создавайте обычный магический предмет из списка изобретателя. Список расширяется с уровнем."
+    }
+  },
+  "infusion.repulsion-shield": {
+    "en": {
+      "title": "Repulsion Shield",
+      "text": "A shield with +1 AC and charges that push an attacker 15 feet away.",
+      "requirement": "level 6"
+    },
+    "ru": {
+      "title": "Отталкивающий щит",
+      "text": "Щит получает +1 к КД; заряды позволяют оттолкнуть атакующего на 4,5 м.",
+      "requirement": "6-й уровень"
+    }
+  },
+  "infusion.resistant-armor": {
+    "en": {
+      "title": "Resistant Armor",
+      "text": "Armor granting resistance to one damage type of your choice.",
+      "requirement": "level 6"
+    },
+    "ru": {
+      "title": "Доспех сопротивления",
+      "text": "Доспех даёт сопротивление одному выбранному типу урона.",
+      "requirement": "6-й уровень"
+    }
+  },
+  "infusion.returning-weapon": {
+    "en": {
+      "title": "Returning Weapon",
+      "text": "A thrown weapon with +1 to attack and damage that flies back to the wielder's hand."
+    },
+    "ru": {
+      "title": "Возвращающееся оружие",
+      "text": "Метательное оружие получает +1 к атаке и урону и возвращается в руку владельца."
+    }
+  },
+  "infusion.spell-refueling-ring": {
+    "en": {
+      "title": "Spell-Refueling Ring",
+      "text": "A ring that restores one expended spell slot of 3rd level or lower once per day.",
+      "requirement": "level 6"
+    },
+    "ru": {
+      "title": "Кольцо восполнения заклинаний",
+      "text": "Раз в день кольцо восстанавливает одну потраченную ячейку не выше 3-го уровня.",
+      "requirement": "6-й уровень"
+    }
+  },
+  "rune.cloud-rune": {
+    "en": {
+      "title": "Cloud Rune",
+      "text": "Advantage on Sleight of Hand and Deception. Invoke it as a reaction to redirect an attack from one creature to another within 30 feet."
+    },
+    "ru": {
+      "title": "Руна облака",
+      "text": "Преимущество на Ловкость рук и Обман. Реакцией перенаправьте атаку на другое существо в пределах 9 м."
+    }
+  },
+  "rune.fire-rune": {
+    "en": {
+      "title": "Fire Rune",
+      "text": "Doubled proficiency on tool checks. Invoke it on a hit for extra fire damage and to bind the target in fiery chains, restraining it."
+    },
+    "ru": {
+      "title": "Руна огня",
+      "text": "Удвоенный бонус мастерства к проверкам инструментов. При попадании активируйте руну для дополнительного огненного урона и опутывания цели огненными цепями."
+    }
+  },
+  "rune.frost-rune": {
+    "en": {
+      "title": "Frost Rune",
+      "text": "Advantage on Animal Handling and Intimidation. Invoke it for a bonus to Strength and Constitution checks and saves for 10 minutes."
+    },
+    "ru": {
+      "title": "Руна льда",
+      "text": "Преимущество на Уход за животными и Запугивание. Активируйте для бонуса к проверкам и спасброскам Силы и Телосложения на 10 минут."
+    }
+  },
+  "rune.hill-rune": {
+    "en": {
+      "title": "Hill Rune",
+      "text": "Advantage on saving throws against poison and resistance to poison damage. Invoke it to gain resistance to bludgeoning, piercing and slashing damage for a minute.",
+      "requirement": "level 7"
+    },
+    "ru": {
+      "title": "Руна холма",
+      "text": "Преимущество на спасброски от яда и сопротивление урону ядом. Активация даёт сопротивление дробящему, колющему и рубящему урону на минуту.",
+      "requirement": "7-й уровень"
+    }
+  },
+  "rune.stone-rune": {
+    "en": {
+      "title": "Stone Rune",
+      "text": "Advantage on Insight and darkvision to 120 feet. Invoke it as a reaction to charm a creature within 30 feet that fails a Wisdom save."
+    },
+    "ru": {
+      "title": "Руна камня",
+      "text": "Преимущество на Проницательность и тёмное зрение на 36 м. Реакцией очаруйте существо в пределах 9 м при провале спасброска Мудрости."
+    }
+  },
+  "rune.storm-rune": {
+    "en": {
+      "title": "Storm Rune",
+      "text": "Advantage on Arcana and you cannot be surprised while conscious. Invoke it to see glimpses of the future, granting advantage or imposing disadvantage on rolls near you.",
+      "requirement": "level 7"
+    },
+    "ru": {
+      "title": "Руна бури",
+      "text": "Преимущество на Магию; вас нельзя застать врасплох в сознании. Активация даёт видения будущего, позволяя давать преимущество или помеху на броски поблизости.",
+      "requirement": "7-й уровень"
+    }
+  },
+  "discipline.breath-of-winter": {
+    "en": {
+      "title": "Breath of Winter",
+      "text": "Spend 6 ki to cast cone of cold.",
+      "requirement": "level 17"
+    },
+    "ru": {
+      "title": "Дыхание зимы",
+      "text": "Потратьте 6 ци, чтобы наложить «Конус холода».",
+      "requirement": "17-й уровень"
+    }
+  },
+  "discipline.clench-of-the-north-wind": {
+    "en": {
+      "title": "Clench of the North Wind",
+      "text": "Spend 3 ki to cast hold person.",
+      "requirement": "level 6"
+    },
+    "ru": {
+      "title": "Хватка северного ветра",
+      "text": "Потратьте 3 ци, чтобы наложить «Удержание личности».",
+      "requirement": "6-й уровень"
+    }
+  },
+  "discipline.elemental-attunement": {
+    "en": {
+      "title": "Elemental Attunement",
+      "text": "A minor elemental trick: snuff or light a flame, chill or warm an object, or shape a Medium mass of earth, fire, water or mist for a moment."
+    },
+    "ru": {
+      "title": "Настройка стихий",
+      "text": "Небольшой трюк: погасить или зажечь пламя, охладить или нагреть предмет либо ненадолго изменить форму Среднего объёма земли, огня, воды или тумана."
+    }
+  },
+  "discipline.eternal-mountain-defense": {
+    "en": {
+      "title": "Eternal Mountain Defense",
+      "text": "Spend 5 ki to cast stoneskin on yourself.",
+      "requirement": "level 17"
+    },
+    "ru": {
+      "title": "Защита вечной горы",
+      "text": "Потратьте 5 ци, чтобы наложить «Каменную кожу» на себя.",
+      "requirement": "17-й уровень"
+    }
+  },
+  "discipline.fangs-of-the-fire-snake": {
+    "en": {
+      "title": "Fangs of the Fire Snake",
+      "text": "Spend 1 ki when you take the Attack action to add 10 feet of reach and fire damage to your unarmed strikes."
+    },
+    "ru": {
+      "title": "Клыки огненного змея",
+      "text": "Потратьте 1 ци при действии «Атака», чтобы добавить 3 м досягаемости и огненный урон безоружным ударам."
+    }
+  },
+  "discipline.fist-of-four-thunders": {
+    "en": {
+      "title": "Fist of Four Thunders",
+      "text": "Spend 2 ki to cast thunderwave."
+    },
+    "ru": {
+      "title": "Кулак четырёх громов",
+      "text": "Потратьте 2 ци, чтобы наложить «Волну грома»."
+    }
+  },
+  "discipline.fist-of-unbroken-air": {
+    "en": {
+      "title": "Fist of Unbroken Air",
+      "text": "Spend 2 ki to strike a creature within 30 feet for 3d10 bludgeoning damage, pushing and knocking it prone on a failed Strength save."
+    },
+    "ru": {
+      "title": "Кулак несокрушимого воздуха",
+      "text": "Потратьте 2 ци: существо в пределах 9 м получает 3к10 дробящего урона, отталкивается и падает ничком при провале спасброска Силы."
+    }
+  },
+  "discipline.flames-of-the-phoenix": {
+    "en": {
+      "title": "Flames of the Phoenix",
+      "text": "Spend 4 ki to cast fireball.",
+      "requirement": "level 11"
+    },
+    "ru": {
+      "title": "Пламя феникса",
+      "text": "Потратьте 4 ци, чтобы наложить «Огненный шар».",
+      "requirement": "11-й уровень"
+    }
+  },
+  "discipline.gong-of-the-summit": {
+    "en": {
+      "title": "Gong of the Summit",
+      "text": "Spend 3 ki to cast shatter.",
+      "requirement": "level 6"
+    },
+    "ru": {
+      "title": "Гонг вершины",
+      "text": "Потратьте 3 ци, чтобы наложить «Дребезги».",
+      "requirement": "6-й уровень"
+    }
+  },
+  "discipline.mist-stance": {
+    "en": {
+      "title": "Mist Stance",
+      "text": "Spend 4 ki to cast gaseous form on yourself.",
+      "requirement": "level 11"
+    },
+    "ru": {
+      "title": "Туманная стойка",
+      "text": "Потратьте 4 ци, чтобы наложить «Газообразную форму» на себя.",
+      "requirement": "11-й уровень"
+    }
+  },
+  "discipline.ride-the-wind": {
+    "en": {
+      "title": "Ride the Wind",
+      "text": "Spend 4 ki to cast fly on yourself.",
+      "requirement": "level 11"
+    },
+    "ru": {
+      "title": "Оседлать ветер",
+      "text": "Потратьте 4 ци, чтобы наложить «Полёт» на себя.",
+      "requirement": "11-й уровень"
+    }
+  },
+  "discipline.river-of-hungry-flame": {
+    "en": {
+      "title": "River of Hungry Flame",
+      "text": "Spend 5 ki to cast wall of fire.",
+      "requirement": "level 17"
+    },
+    "ru": {
+      "title": "Река голодного пламени",
+      "text": "Потратьте 5 ци, чтобы наложить «Огненную стену».",
+      "requirement": "17-й уровень"
+    }
+  },
+  "discipline.rush-of-the-gale-spirits": {
+    "en": {
+      "title": "Rush of the Gale Spirits",
+      "text": "Spend 2 ki to cast gust of wind."
+    },
+    "ru": {
+      "title": "Порыв духов ветра",
+      "text": "Потратьте 2 ци, чтобы наложить «Порыв ветра»."
+    }
+  },
+  "discipline.shape-the-flowing-river": {
+    "en": {
+      "title": "Shape the Flowing River",
+      "text": "Spend 1 ki to freeze, thaw or reshape a 30-foot area of water or ice."
+    },
+    "ru": {
+      "title": "Форма текущей реки",
+      "text": "Потратьте 1 ци, чтобы заморозить, растопить или изменить форму воды или льда в области размером 9 м."
+    }
+  },
+  "discipline.sweeping-cinder-strike": {
+    "en": {
+      "title": "Sweeping Cinder Strike",
+      "text": "Spend 2 ki to cast burning hands."
+    },
+    "ru": {
+      "title": "Размашистый удар угля",
+      "text": "Потратьте 2 ци, чтобы наложить «Огненные ладони»."
+    }
+  },
+  "discipline.water-whip": {
+    "en": {
+      "title": "Water Whip",
+      "text": "Spend 2 ki to lash a creature within 30 feet for 3d10 bludgeoning damage, then pull it 25 feet or knock it prone on a failed Dexterity save."
+    },
+    "ru": {
+      "title": "Водяной кнут",
+      "text": "Потратьте 2 ци: существо в пределах 9 м получает 3к10 дробящего урона. При провале спасброска Ловкости притяните его на 7,5 м или сбейте с ног."
+    }
+  },
+  "discipline.wave-of-rolling-earth": {
+    "en": {
+      "title": "Wave of Rolling Earth",
+      "text": "Spend 6 ki to cast wall of stone.",
+      "requirement": "level 17"
+    },
+    "ru": {
+      "title": "Волна катящейся земли",
+      "text": "Потратьте 6 ци, чтобы наложить «Каменную стену».",
+      "requirement": "17-й уровень"
+    }
+  }
+}

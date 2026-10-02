@@ -97,10 +97,10 @@ export default function JoinPage({ params }: { params: Promise<{ code: string }>
       </div>
 
       <div className="w-full max-w-sm animate-fade-up-slow">
-        <section className="mb-5" aria-label={uiText("Campaign invite")}>
+        <section className="mb-5" aria-label={uiText("campaignInvite")}>
           <CampaignCover
             cover={preview?.cover ? { id: "", url: preview.cover.url } : null}
-            title={preview?.title ?? uiText("Room {code}", { code: roomCode })}
+            title={preview?.title ?? uiText("roomCode", { code: roomCode })}
             genre={preview?.genre}
             seed={roomCode}
           />
@@ -125,7 +125,7 @@ export default function JoinPage({ params }: { params: Promise<{ code: string }>
                   <GameIcon icon={{ kind: "glyph", key: "rest-level-up" }} size="size-5" />
                   {t("campaign.level")} {preview.startingLevel}
                 </span>
-                {preview.seatOpen ? null : <span>{uiText(" · not taking new players right now")}</span>}
+                {preview.seatOpen ? null : <span>{uiText("notTakingNewPlayersRightNow")}</span>}
               </p>
             ) : null}
             <p className="mt-2 text-sm text-stone-500">

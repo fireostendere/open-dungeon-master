@@ -361,15 +361,15 @@ export function BattleMapPanel({
           {scene ? (
             <>
               <Footprints className="size-4 text-amber-400" />
-              {uiText("Exploring")}
+              {uiText("exploring")}
             </>
           ) : (
             <>
               <Swords className="size-4 text-red-400" />
-              {uiText("Round")} {view.round}
+              {uiText("round")} {view.round}
               {view.currentTurnName ? (
                 <span className="text-xs font-normal text-stone-400">
-                  {view.currentTurnName}{uiText("&apos;s turn")}
+                  {view.currentTurnName}{uiText("aposSTurn")}
                 </span>
               ) : null}
             </>

@@ -95,7 +95,7 @@ function FeatFields({ data, set }: { data: Data; set: (patch: Data) => void }) {
       label={copy.prerequisite}
       value={String(data.prerequisite ?? "")}
       onChange={(prerequisite) => set({ prerequisite })}
-      placeholder={uiText("Strength 13 or higher")}
+      placeholder={uiText("strength13OrHigher")}
       maxLength={200}
       hint={copy.prerequisiteHint}
       suggestions={PREREQUISITE_SUGGESTIONS}
@@ -113,17 +113,17 @@ function BackgroundFields({ data, set }: { data: Data; set: (patch: Data) => voi
         label={copy.skills}
         value={String(data.skill_proficiencies ?? "")}
         onChange={(skill_proficiencies) => set({ skill_proficiencies })}
-        placeholder={uiText("Insight, Persuasion")}
+        placeholder={uiText("insightPersuasion")}
         hint={copy.builderGrants}
         options={SKILL_LABELS}
         prompt={copy.addSkill}
-        glossary={{ title: "Skills", entries: SKILL_GLOSSARY }}
+        glossary={{ title: uiText("skills"), entries: SKILL_GLOSSARY }}
       />
       <ListField
         label={copy.tools}
         value={String(data.tool_proficiencies ?? "")}
         onChange={(tool_proficiencies) => set({ tool_proficiencies })}
-        placeholder={uiText("One type of gaming set")}
+        placeholder={uiText("oneTypeOfGamingSet")}
         hint={copy.toolHint}
         options={TOOL_PROFICIENCIES}
         prompt={copy.addTool}
@@ -132,7 +132,7 @@ function BackgroundFields({ data, set }: { data: Data; set: (patch: Data) => voi
         label={copy.languages}
         value={String(data.languages ?? "")}
         onChange={(languages) => set({ languages })}
-        placeholder={uiText("Two of your choice")}
+        placeholder={uiText("twoOfYourChoice")}
         options={LANGUAGES}
         prompt={copy.addLanguage}
       />
@@ -141,7 +141,7 @@ function BackgroundFields({ data, set }: { data: Data; set: (patch: Data) => voi
           <input
             value={String(data.equipment ?? "")}
             maxLength={500}
-            placeholder={uiText("A set of fine clothes, 15 gp")}
+            placeholder={uiText("aSetOfFineClothes15Gp")}
             aria-label={copy.equipment}
             onChange={(event) => set({ equipment: event.target.value })}
             className={`${input} min-w-32 flex-1`}
@@ -154,7 +154,7 @@ function BackgroundFields({ data, set }: { data: Data; set: (patch: Data) => voi
           />
         </div>
       </Field>
-      <TextField label={copy.feature} value={String(data.feature ?? "")} onChange={(feature) => set({ feature })} placeholder={uiText("Salt Lore")} maxLength={80} />
+      <TextField label={copy.feature} value={String(data.feature ?? "")} onChange={(feature) => set({ feature })} placeholder={uiText("saltLore")} maxLength={80} />
       <TextField label={copy.featureDoes} value={String(data.feature_desc ?? "")} onChange={(feature_desc) => set({ feature_desc })} maxLength={2000} />
     </div>
   );
@@ -169,36 +169,36 @@ function RaceFields({ data, set }: { data: Data; set: (patch: Data) => void }) {
     <div className="space-y-2">
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
         <SelectField
-          label={uiText("Size")}
+          label={uiText("size")}
           value={String(data.size ?? "Medium")}
           options={["Tiny", "Small", "Medium", "Large"].map((value) => ({ value, label: value }))}
           onChange={(size) => set({ size })}
         />
-        <NumberField label={uiText("Speed (ft)")} value={speed} min={5} max={120} step={5} onChange={(walk) => set({ speed: { walk: walk === "" ? 30 : walk } })} />
+        <NumberField label={uiText("speedFt")} value={speed} min={5} max={120} step={5} onChange={(walk) => set({ speed: { walk: walk === "" ? 30 : walk } })} />
         <TextField
-          label={uiText("Vision")}
+          label={uiText("vision")}
           value={String(data.vision ?? "")}
           onChange={(vision) => set({ vision })}
-          placeholder={uiText("Darkvision 60 ft")}
+          placeholder={uiText("darkvision60Ft")}
           maxLength={120}
           suggestions={VISION_SUGGESTIONS}
         />
         <ListField
-          label={uiText("Languages")}
+          label={uiText("languages")}
           value={String(data.languages ?? "")}
           onChange={(languages) => set({ languages })}
-          placeholder={uiText("Common and Sylvan")}
+          placeholder={uiText("commonAndSylvan")}
           options={LANGUAGES}
           prompt="Add a language"
         />
       </div>
       <div className="space-y-1">
-        <span className="text-[10px] uppercase tracking-wide text-stone-500">{uiText("Ability score increases")}</span>
+        <span className="text-[10px] uppercase tracking-wide text-stone-500">{uiText("abilityScoreIncreases")}</span>
         {asi.map((row, index) => (
           <div key={index} className="flex flex-wrap items-center gap-1.5">
             <select
               value={row.attributes[0] ?? "Strength"}
-              aria-label={uiText("Ability")}
+              aria-label={uiText("ability")}
               onChange={(event) =>
                 updateAsi(asi.map((entry, at) => (at === index ? { ...entry, attributes: [event.target.value] } : entry)))
               }
@@ -212,7 +212,7 @@ function RaceFields({ data, set }: { data: Data; set: (patch: Data) => void }) {
             </select>
             <input
               type="number"
-              aria-label={uiText("Increase")}
+              aria-label={uiText("increase")}
               value={row.value}
               min={-2}
               max={3}
@@ -223,7 +223,7 @@ function RaceFields({ data, set }: { data: Data; set: (patch: Data) => void }) {
             />
             <button
               type="button"
-              aria-label={uiText("Remove increase")}
+              aria-label={uiText("removeIncrease")}
               onClick={() => updateAsi(asi.filter((_, at) => at !== index))}
               className="rounded-md border border-stone-700 p-1 text-stone-500 hover:text-red-300"
             >
@@ -237,18 +237,18 @@ function RaceFields({ data, set }: { data: Data; set: (patch: Data) => void }) {
             onClick={() => updateAsi([...asi, { attributes: ["Dexterity"], value: 1 }])}
             className="flex items-center gap-1 rounded-md border border-stone-700 px-2 py-1 text-[11px] text-stone-300 hover:bg-stone-900"
           >
-            <Plus className="size-3" /> {uiText("Add an increase")}
+            <Plus className="size-3" /> {uiText("addAnIncrease")}
           </button>
         ) : null}
       </div>
       <TextArea
-        label={uiText("Traits")}
+        label={uiText("traits")}
         value={String(data.traits ?? "")}
         onChange={(traits) => set({ traits })}
-        placeholder={uiText("**Marsh Stride.** Difficult terrain in wetlands costs you no extra movement.\n**Reed Sight.** You have advantage on Perception checks in tall grass.")}
+        placeholder={uiText("marshStrideDifficultTerrainInWetlandsCostsYou")}
         rows={5}
         maxLength={4000}
-        hint={uiText("One trait per line. The builder shows the first sentence of each.")}
+        hint={uiText("oneTraitPerLineTheBuilderShowsThe")}
       />
     </div>
   );
@@ -274,7 +274,7 @@ function ArchetypeFields({ data, set }: { data: Data; set: (patch: Data) => void
   return (
     <div className="space-y-2">
       <SelectField
-        label={uiText("Class")}
+        label={uiText("class")}
         value={String(data.classSlug ?? "fighter")}
         options={CLASS_IDS.map((value) => ({
           value,
@@ -282,15 +282,15 @@ function ArchetypeFields({ data, set }: { data: Data; set: (patch: Data) => void
         }))}
         onChange={(classSlug) => set({ classSlug })}
         className="w-48"
-        hint={uiText("The builder offers it under this class.")}
+        hint={uiText("theBuilderOffersItUnderThisClass")}
       />
       <div className="space-y-1">
-        <span className="text-[10px] uppercase tracking-wide text-stone-500">{uiText("Features by level")}</span>
+        <span className="text-[10px] uppercase tracking-wide text-stone-500">{uiText("featuresByLevel")}</span>
         {flat.map((row, index) => (
           <div key={index} className="flex flex-wrap items-center gap-1.5">
             <input
               type="number"
-              aria-label={uiText("Level")}
+              aria-label={uiText("level")}
               value={row.level}
               min={1}
               max={20}
@@ -301,8 +301,8 @@ function ArchetypeFields({ data, set }: { data: Data; set: (patch: Data) => void
             />
             <input
               value={row.feature.n}
-              aria-label={uiText("Feature name")}
-              placeholder={uiText("Reed Walker")}
+              aria-label={uiText("featureName")}
+              placeholder={uiText("reedWalker")}
               maxLength={80}
               onChange={(event) =>
                 write(flat.map((entry, at) => (at === index ? { ...entry, feature: { ...entry.feature, n: event.target.value } } : entry)))
@@ -311,8 +311,8 @@ function ArchetypeFields({ data, set }: { data: Data; set: (patch: Data) => void
             />
             <input
               value={row.feature.d}
-              aria-label={uiText("What it does")}
-              placeholder={uiText("Marsh terrain costs no extra movement.")}
+              aria-label={uiText("whatItDoes")}
+              placeholder={uiText("marshTerrainCostsNoExtraMovement")}
               maxLength={500}
               onChange={(event) =>
                 write(flat.map((entry, at) => (at === index ? { ...entry, feature: { ...entry.feature, d: event.target.value } } : entry)))
@@ -321,7 +321,7 @@ function ArchetypeFields({ data, set }: { data: Data; set: (patch: Data) => void
             />
             <button
               type="button"
-              aria-label={uiText("Remove feature")}
+              aria-label={uiText("removeFeature")}
               onClick={() => write(flat.filter((_, at) => at !== index))}
               className="rounded-md border border-stone-700 p-1 text-stone-500 hover:text-red-300"
             >
@@ -334,10 +334,10 @@ function ArchetypeFields({ data, set }: { data: Data; set: (patch: Data) => void
           onClick={() => write([...flat, { level: flat.length ? Math.min(20, flat[flat.length - 1].level + 3) : 3, feature: { n: "", d: "" } }])}
           className="flex items-center gap-1 rounded-md border border-stone-700 px-2 py-1 text-[11px] text-stone-300 hover:bg-stone-900"
         >
-          <Plus className="size-3" /> {uiText("Add a feature")}
+          <Plus className="size-3" /> {uiText("addAFeature")}
         </button>
         <p className="text-[10px] text-stone-600">
-          {uiText("The DM prompt reads each line as rules text. Features are granted by name when a character takes this subclass.")}
+          {uiText("theDmPromptReadsEachLineAsRules")}
         </p>
       </div>
     </div>

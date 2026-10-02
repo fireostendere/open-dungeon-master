@@ -59,7 +59,7 @@ export function PersonalitySliders({
         </label>
       ))}
       <p className="text-[10px] text-stone-600">
-        {uiText("These drift on their own as the party treats them well or badly. Neither is a real answer, and most people are unremarkable on most of it.")}
+        {uiText("theseDriftOnTheirOwnAsTheParty")}
       </p>
     </>
   );
@@ -176,13 +176,13 @@ export function RelationEditor({
               className="min-w-20 flex-1 rounded-md border border-stone-700 bg-stone-950 px-1.5 py-0.5 text-[11px] text-stone-400"
             />
             {edge?.dangling ? (
-              <span className="text-[10px] text-amber-300/80">{uiText("nobody by that name yet")}</span>
+              <span className="text-[10px] text-amber-300/80">{uiText("nobodyByThatNameYet")}</span>
             ) : edge?.mutual ? (
               <span className="text-[10px] text-stone-600">
-                {uiText("they say")} {describeRelation(theirScore)}
+                {uiText("theySay")} {describeRelation(theirScore)}
               </span>
             ) : (
-              <span className="text-[10px] text-stone-600">{uiText("one-sided")}</span>
+              <span className="text-[10px] text-stone-600">{uiText("oneSided")}</span>
             )}
             <button
               type="button"

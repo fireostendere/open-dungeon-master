@@ -1,12 +1,14 @@
 "use client";
 
+import { useI18n } from "@/lib/i18n";
+import { characterDisplay } from "@/lib/i18n/character-display";
+import { helpText } from "@/lib/i18n/help-copy";
 import { useInlineText } from "@/lib/i18n/inline-text";
 import { UnofficialPackNotice } from "@/components/UnofficialPackNotice";
 import { GameTerm } from "@/components/ui/GameTerm";
 import { InfoButton } from "@/components/ui/InfoDialog";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { describeSkill } from "@/lib/help";
-import { SRD_SKILLS } from "@/lib/srd";
 import type { WorldPack } from "@/lib/worlds/types";
 import OptionPicker, { type PickerGroup } from "../OptionPicker";
 import { backgroundInfoText } from "../usePickerGroups";
@@ -45,12 +47,13 @@ export function IdentityStep({
   background: BackgroundOption | undefined;
 }) {
   const uiText = useInlineText();
+  const { locale } = useI18n();
   return (
     <div className="space-y-4">
       {!packInstalled ? (
         <p className="rounded-lg border border-stone-700/60 bg-stone-900/60 p-3 text-xs text-stone-400">
-          {uiText("Content pack not installed; showing SRD 5.1 basics only. Run")}
-          <span className="font-mono"> node scripts/import-open5e.mjs</span> {uiText("on the server for the full Open5e catalog.")}
+          {uiText("contentPackNotInstalledShowingSrd51")}
+          <span className="font-mono"> node scripts/import-open5e.mjs</span> {uiText("onTheServerForTheFullOpen5eCatalog")}
         </p>
       ) : null}
       {pack ? (
@@ -59,7 +62,7 @@ export function IdentityStep({
             <span className="font-medium">{pack.name}</span> · {pack.blurb}
           </p>
           <p className="mt-1 text-[11px] text-stone-400">
-            {uiText("Names only. Every race, class, spell and item below plays by the same 5e rules.")}
+            {uiText("namesOnlyEveryRaceClassSpellAndItem")}
           </p>
           <UnofficialPackNotice
             rightsHolder={pack.rightsHolder}
@@ -70,15 +73,15 @@ export function IdentityStep({
         </div>
       ) : null}
 
-      <StepPanel title={uiText("Name your hero")} ornate>
+      <StepPanel title={uiText("nameYourHero")} ornate>
         <input
           value={state.name}
           onChange={(event) => state.setName(event.target.value)}
           required
           maxLength={60}
-          placeholder={pack?.nameHints || uiText("Thornwick Ashvale")}
+          placeholder={pack?.nameHints || uiText("thornwickAshvale")}
           className={inputClass}
-          aria-label={uiText("Name")}
+          aria-label={uiText("name")}
         />
         {pack?.nameSeeds.people.length ? (
           <span className="mt-2 flex flex-wrap gap-1">
@@ -96,44 +99,44 @@ export function IdentityStep({
         ) : null}
         {role ? (
           <div className="mt-4">
-            <span className="mb-1.5 block text-xs text-stone-400">{uiText("Their place at the table")}</span>
+            <span className="mb-1.5 block text-xs text-stone-400">{uiText("theirPlaceAtTheTable")}</span>
             <SegmentedControl
-              label={uiText("Role")}
+              label={uiText("role")}
               value={role.value}
               onChange={role.onChange}
               options={[
-                { value: "pc", label: "A character I play" },
-                { value: "companion", label: "An ally the DM plays" },
+                { value: "pc", label: uiText("characterIPlay") },
+                { value: "companion", label: uiText("allyDmPlays") },
               ]}
               className="w-full"
             />
             <p className="mt-1.5 text-xs text-stone-500">
               {role.value === "companion"
-                ? uiText("Companions are offered when a party adds one, at whatever level that table plays at. Nobody has to roll them up again.")
-                : uiText("Joins a campaign as yours to control.")}
+                ? uiText("companionsAreOfferedWhenAPartyAddsOne")
+                : uiText("joinsACampaignAsYoursToControl")}
             </p>
           </div>
         ) : null}
       </StepPanel>
 
-      <StepPanel title={uiText("Details")}>
+      <StepPanel title={uiText("details")}>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <Field label={uiText("Gender")}>
+          <Field label={uiText("gender")}>
             <select
               value={state.gender}
               onChange={(event) => state.setGender(event.target.value)}
               className={inputClass}
             >
-              <option value="">{uiText("Unspecified")}</option>
+              <option value="">{uiText("unspecified")}</option>
               {GENDERS.map((value) => (
-                <option key={value} value={value}>{value}</option>
+                <option key={value} value={value}>{typeof value === "string" ? characterDisplay(value, locale) : value}</option>
               ))}
             </select>
           </Field>
-          <Field label={uiText("Level")}>
+          <Field label={uiText("level")}>
             {fixedLevel ? (
               <span className="block rounded-lg border border-stone-700/70 bg-stone-950/60 px-3 py-2 text-sm text-stone-400">
-                {fixedLevel} {uiText("(campaign)")}
+                {fixedLevel} {uiText("campaigncbd40a")}
               </span>
             ) : (
               <select
@@ -142,12 +145,12 @@ export function IdentityStep({
                 className={inputClass}
               >
                 {Array.from({ length: 20 }, (_, index) => index + 1).map((value) => (
-                  <option key={value} value={value}>{value}</option>
+                  <option key={value} value={value}>{typeof value === "string" ? characterDisplay(value, locale) : value}</option>
                 ))}
               </select>
             )}
           </Field>
-          <Field label={uiText("Background")}>
+          <Field label={uiText("background")}>
             <OptionPicker
               value={background?.id ?? ""}
               groups={backgroundGroups}
@@ -157,11 +160,11 @@ export function IdentityStep({
             {background ? (
               <span className="mt-1 flex items-start gap-1 text-xs text-stone-500">
                 <span className="grow">
-                  {background.skills.length ? uiText("Grants ") : null}
+                  {background.skills.length ? uiText("grants") : null}
                   {background.skills.length
                     ? background.skills.map((skillId, index) => {
                         const name =
-                          SRD_SKILLS.find((skill) => skill.id === skillId)?.name ?? skillId;
+                          characterDisplay(skillId, locale);
                         return (
                           <span key={skillId} className="whitespace-nowrap">
                             {index ? ", " : null}
@@ -169,18 +172,18 @@ export function IdentityStep({
                             {/* Each granted skill says what it is, so
                                 "Grants Deception, Sleight of Hand" is a
                                 sentence a new player can read. */}
-                            <InfoButton label={name} text={describeSkill(skillId)} />
+                            <InfoButton label={name} text={describeSkill(skillId, locale)} />
                           </span>
                         );
                       })
-                    : uiText("What your character did before adventuring.")}
+                    : uiText("whatYourCharacterDidBeforeAdventuring")}
                   {background.feature ? (
                     <span className="whitespace-nowrap">
                       {background.skills.length ? " · " : " "}
-                      {uiText("Feature:")} {background.feature}
+                      {uiText("featurebee317")} {helpText(background.feature, locale)}
                       <InfoButton
-                        label={background.feature}
-                        text={background.featureDesc || undefined}
+                        label={helpText(background.feature, locale)}
+                        text={background.featureDesc ? helpText(background.featureDesc, locale) : undefined}
                         reference={
                           background.featureDesc ? undefined : { kind: "backgrounds", slug: background.id }
                         }
@@ -190,7 +193,7 @@ export function IdentityStep({
                 </span>
                 <InfoButton
                   label={background.name}
-                  text={backgroundInfoText(background, uiText("Feature"))}
+                  text={backgroundInfoText(background, uiText("feature"), locale)}
                   reference={{ kind: "backgrounds", slug: background.id }}
                 />
               </span>
@@ -202,8 +205,8 @@ export function IdentityStep({
           <Field
             label={
               <span className="flex items-center gap-1">
-                {uiText("Alignment")}
-                <InfoButton label={uiText("Alignment")} text={alignmentInfo} />
+                {uiText("alignment")}
+                <InfoButton label={uiText("alignment")} text={alignmentInfo} />
               </span>
             }
           >
@@ -220,8 +223,8 @@ export function IdentityStep({
   );
 }
 
-function skillName(skillId: string) {
-  return SRD_SKILLS.find((skill) => skill.id === skillId)?.name ?? skillId;
+function skillName(skillId: string, locale: "ru" | "en") {
+  return characterDisplay(skillId, locale);
 }
 
 // The skills a content-pack background leaves to the player ("Persuasion,
@@ -237,13 +240,14 @@ function BackgroundSkillChoice({
   choice: NonNullable<BackgroundOption["skillChoice"]>;
 }) {
   const uiText = useInlineText();
+  const { locale } = useI18n();
   const picks = state.backgroundSkills;
   const taken = new Set([...background.skills, ...state.chosenSkills, ...state.racialSkills]);
   return (
     <div className="mt-2">
       <span className="mb-1 flex flex-wrap items-center gap-1 text-xs text-stone-400">
-        <GameTerm id="skill">{uiText("Skill proficiencies")}</GameTerm>{" "}
-        {uiText("({count} of your choice)", { count: choice.count })}
+        <GameTerm id="skill">{uiText("skillProficiencies")}</GameTerm>{" "}
+        {uiText("countOfYourChoice", { count: choice.count })}
       </span>
       <div className="grid grid-cols-1 gap-2">
         {Array.from({ length: choice.count }, (_, index) => (
@@ -259,19 +263,19 @@ function BackgroundSkillChoice({
                 });
               }}
               className={inputClass}
-              aria-label={uiText("Background skill {index}", { index: index + 1 })}
+              aria-label={uiText("backgroundSkillIndex", { index: index + 1 })}
             >
-              <option value="">{uiText("Choose a skill...")}</option>
+              <option value="">{uiText("chooseASkill")}</option>
               {choice.from
                 .filter((skill) => picks[index] === skill || (!picks.includes(skill) && !taken.has(skill)))
                 .map((skill) => (
                   <option key={skill} value={skill}>
-                    {skillName(skill)}
+                    {skillName(skill, locale)}
                   </option>
                 ))}
             </select>
             {picks[index] ? (
-              <InfoButton label={skillName(picks[index])} text={describeSkill(picks[index])} />
+              <InfoButton label={skillName(picks[index], locale)} text={describeSkill(picks[index], locale)} />
             ) : null}
           </span>
         ))}

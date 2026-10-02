@@ -28,7 +28,7 @@ type HomebrewRow = { id: string; name: string; kind: string };
 function ChangeList({ changes }: { changes: RulesetChange[] }) {
   const uiText = useInlineText();
   if (!changes.length) {
-    return <p className="text-xs text-stone-500">{uiText("Nothing would change.")}</p>;
+    return <p className="text-xs text-stone-500">{uiText("nothingWouldChange")}</p>;
   }
   return (
     <ul className="space-y-0.5 text-xs text-stone-400">
@@ -38,19 +38,19 @@ function ChangeList({ changes }: { changes: RulesetChange[] }) {
             <>
               {change.label}:{" "}
               <span className="text-stone-500">
-                {typeof change.from === "boolean" ? (change.from ? "on" : uiText("off")) : change.from}
+                {typeof change.from === "boolean" ? (change.from ? "on" : uiText("offda7a68")) : change.from}
               </span>{" "}
               to{" "}
               <span className="text-amber-200">
-                {typeof change.to === "boolean" ? (change.to ? "on" : uiText("off")) : change.to}
+                {typeof change.to === "boolean" ? (change.to ? "on" : uiText("offda7a68")) : change.to}
               </span>
             </>
           ) : (
             <>
-              {uiText("House rules:")} {change.to} {uiText("ruling")}{change.to === 1 ? "" : "s"}
+              {uiText("houseRules")} {change.to} {uiText("ruling")}{change.to === 1 ? "" : "s"}
               {change.replaces ? (
                 <span className="text-amber-300/90">
-                  {uiText(" (replaces the current ruling)")}
+                  {uiText("replacesTheCurrentRuling")}
                 </span>
               ) : null}
             </>
@@ -213,7 +213,7 @@ export function RulesetLibrary({
         <Scale className="size-3.5" /> {copy.library}
       </h2>
       <p className="mb-3 text-xs text-stone-500">
-        {uiText("A ruleset is your table&apos;s variant rules and house rulings kept as one thing, reusable across campaigns. Applying one copies it here; editing it later never reaches back.")}
+        {uiText("aRulesetIsYourTableAposSVariant")}
       </p>
 
       {loading ? (
@@ -289,11 +289,11 @@ export function RulesetLibrary({
                       </ul>
                     ) : (
                       <p className="text-xs text-stone-500">
-                        {uiText("Nothing homebrewed yet. Entries made in the Homebrew tool appear here.")}
+                        {uiText("nothingHomebrewedYetEntriesMadeInTheHomebrew")}
                       </p>
                     )}
                     <p className="mt-1 text-[10px] text-stone-600">
-                      {uiText("Ticked entries are canon wherever this ruleset is applied; prepared monsters that lean on anything else get flagged.")}
+                      {uiText("tickedEntriesAreCanonWhereverThisRulesetIs")}
                     </p>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">

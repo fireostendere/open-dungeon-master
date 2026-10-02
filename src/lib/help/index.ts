@@ -10,7 +10,13 @@
 // Pure data and pure functions with no server imports, so client components
 // can import it directly, exactly like src/lib/srd/features.ts.
 
+import { uiCopy } from "@/lib/i18n/inline-copy";
+import { helpText } from "@/lib/i18n/help-copy";
+import { equipmentCopy } from "@/lib/i18n/equipment-copy";
+import { optionFeatureCopy } from "@/lib/i18n/option-copy";
 import glossaryJson from "@/lib/help/glossary.json";
+import glossaryCopy from "@/lib/i18n/glossary-copy.json";
+import { characterDisplay } from "@/lib/i18n/character-display";
 import raceHelpRuJson from "@/lib/help/race-help.ru.json";
 import featureHelpRuJson from "@/lib/help/feature-help.ru.json";
 import srdRulesRuJson from "@/lib/help/srd-rules.ru.json";
@@ -25,7 +31,7 @@ import { classFeatureDescription, spellClassFor } from "@/lib/classes";
 import { canonicalRaceId, srdRaceFor } from "@/lib/content/race-options";
 import { normalizeRulesText } from "@/lib/help/rules-text";
 import { matchResource } from "@/lib/srd/class-resources";
-import { guidanceFor } from "@/lib/srd/feature-effects";
+import { FIGHTING_STYLES, guidanceFor } from "@/lib/srd/feature-effects";
 import { subclassFeatureDescription } from "@/lib/srd/features";
 import { findOptionByFeatureName } from "@/lib/srd/options";
 import type { Locale } from "@/lib/i18n/translations";
@@ -146,12 +152,13 @@ function expandedSubclassByName(subclass: string): ExpandedHelpEntry | null {
   return null;
 }
 
-export function glossaryTerms(): GlossaryTerm[] {
-  return TERMS;
+export function glossaryTerms(locale: Locale = "en"): GlossaryTerm[] {
+  return locale === "en" ? TERMS : TERMS.map((entry) => ({ ...entry, ...glossaryCopy[entry.id as keyof typeof glossaryCopy][locale] }));
 }
 
-export function glossaryTerm(id: string): GlossaryTerm | null {
-  return TERMS_BY_ID.get(id) ?? null;
+export function glossaryTerm(id: string, locale: Locale = "en"): GlossaryTerm | null {
+  const entry = TERMS_BY_ID.get(id);
+  return entry ? { ...entry, ...glossaryCopy[id as keyof typeof glossaryCopy][locale] } : null;
 }
 
 // Numbered SRD variants ("Indomitable (2 uses)", "Extra Attack (2)") are
@@ -199,6 +206,13 @@ export function describeFeature(
   name: string,
   locale: Locale = "en",
 ): string | null {
+  if (name.startsWith("Fighting Style: ")) {
+    const style = name.slice(16);
+    const descriptions = FIGHTING_STYLES.find((entry) => entry.name === style);
+    if (descriptions) return helpText(descriptions.description, locale);
+  }
+  const choice = optionFeatureCopy(name, locale);
+  if (choice) return choice.text + (choice.requirement ? ` (${choice.requirement})` : "");
   if (locale === "ru") {
     const key = name.trim();
     const classKey = classId.trim().toLowerCase();
@@ -229,7 +243,7 @@ export function describeFeature(
     matchResource(name)?.guidance ??
     guidanceFor({ class: classId, features: [], feature: name }) ??
     looseSrdText(classId, name);
-  return stripLeadingLabel(found, name);
+  return stripLeadingLabel(found ? helpText(found, locale) : found, name);
 }
 
 const RACES = (racesJson as { races: Array<{ id: string; name: string; traits: string[] }> }).races;
@@ -277,6 +291,10 @@ export function localizedFeatureName(
   featureName: string,
   locale: Locale = "en",
 ): string {
+  if (locale === "en") return featureName;
+  if (featureName.startsWith("Fighting Style: ")) return `${uiCopy(locale, "fightingStyle")}: ${characterDisplay(featureName.slice(16), locale)}`;
+  const choice = optionFeatureCopy(featureName, locale);
+  if (choice) return choice.title;
   if (locale !== "ru") return featureName;
   const classKey = classId.trim().toLowerCase();
   const subclassKey = `${classKey}::${subclass.trim().toLowerCase()}`;
@@ -288,7 +306,9 @@ export function localizedFeatureName(
       baseName(featureName).replace(/\s+\d+\s*(?:ft|feet)\.?$/i, "").trim()
     ]?.title;
   if (exact) return exact;
-  return FEATURE_NAME_RU[featureName] ?? featureName;
+  const backgroundSuffix = /^(.*) \(([^()]+)\)$/.exec(featureName);
+  if (backgroundSuffix && helpText(backgroundSuffix[1], locale) !== backgroundSuffix[1]) return `${helpText(backgroundSuffix[1], locale)} (${helpText(backgroundSuffix[2], locale)})`;
+  return FEATURE_NAME_RU[featureName] ?? helpText(featureName, locale);
 }
 
 export function localizedSubclassName(
@@ -330,12 +350,13 @@ const SKILLS = (skillsJson as { skills: Array<{ id: string; name: string; abilit
   .skills;
 
 // A skill's line: which ability it uses, plus the glossary note on skills.
-export function describeSkill(skillId: string): string | null {
+export function describeSkill(skillId: string, locale: Locale = "en"): string | null {
   const skill = SKILLS.find((entry) => entry.id === skillId.trim().toLowerCase());
   if (!skill) {
     return null;
   }
-  const ability = glossaryTerm(skill.ability);
+  const ability = glossaryTerm(skill.ability, locale);
+  if (locale === "ru") return `${characterDisplay(skillId, locale)} — ${ability?.term ?? skill.ability}. ${ability?.short ?? ""}`;
   return `${skill.name} uses ${ability?.term ?? skill.ability.toUpperCase()}. ${
     ability?.short ?? ""
   }`.trim();
@@ -387,6 +408,8 @@ export function describeContentEntry(
       const subclass = expandedSubclassByName(name);
       if (subclass?.text) return subclass.text;
     }
+    const gear = kind === "item" ? equipmentCopy(name, locale) : null;
+    if (gear?.text) return gear.text;
     const translated = contentKind ? SRD_RULES_RU[contentKind]?.[contentSlug(name)] : null;
     if (translated?.text) return translated.text;
     for (const key of ["desc_ru", "description_ru", "traits_ru", "benefits_ru", "descRu", "descriptionRu"]) {
@@ -401,6 +424,9 @@ export function describeContentEntry(
       }
     }
   }
+  if ((hint?.kind ?? "").replace(/s$/, "") === "background" && typeof data.featureDesc === "string") {
+    return [typeof data.blurb === "string" ? helpText(data.blurb, locale) : "", helpText(data.featureDesc, locale)].filter(Boolean).join("\n\n");
+  }
   const parts: string[] = [];
   for (const key of ["desc", "description", "traits", "benefits"]) {
     const text = textOf(data[key]);
@@ -414,7 +440,7 @@ export function describeContentEntry(
   const effects = textOf(data.effects_desc);
   if (effects.trim()) {
     const prerequisite = typeof data.prerequisite === "string" && data.prerequisite.trim()
-      ? `*Prerequisite: ${data.prerequisite.trim()}*\n\n`
+      ? `*${uiCopy(locale, "prerequisite")}: ${data.prerequisite.trim()}*\n\n`
       : "";
     parts.push(
       `${prerequisite}${effects
@@ -427,9 +453,9 @@ export function describeContentEntry(
   const feature = typeof data.feature === "string" ? data.feature.trim() : "";
   const featureText = textOf(data.feature_desc).trim();
   if (feature && featureText) {
-    parts.push(`**Feature: ${feature}.** ${featureText}`);
+    parts.push(`**${uiCopy(locale, "feature")}: ${helpText(feature, locale)}.** ${helpText(featureText, locale)}`);
   } else if (feature) {
-    parts.push(`**Feature: ${feature}.**`);
+    parts.push(`**${uiCopy(locale, "feature")}: ${helpText(feature, locale)}.**`);
   }
   const joined = normalizeRulesText(parts.join("\n\n"));
   return joined ? joined : null;
@@ -438,6 +464,11 @@ export function describeContentEntry(
 export function localizedContentName(kind: string, name: string, locale: Locale = "en"): string {
   if (locale !== "ru") return name;
   const normalizedKind = kind.toLowerCase().replace(/s$/, "");
+  if (normalizedKind === "background") return helpText(name, locale);
+  if (normalizedKind === "item") {
+    const gear = equipmentCopy(name, locale);
+    if (gear) return gear.title;
+  }
   if (normalizedKind === "archetype") return expandedSubclassByName(name)?.title ?? name;
   const entries = normalizedKind === "spell"
     ? SRD_RULES_RU.spells
@@ -492,20 +523,33 @@ export function contentSlug(name: string): string {
 
 // The one-line summary shown under a spell's name in a picker: level, school
 // and the flags that change how it is cast.
-export function spellSummary(data: Record<string, unknown> | undefined): string {
+export function spellSummary(data: Record<string, unknown> | undefined, locale: Locale = "en"): string {
   if (!data) {
     return "";
+  }
+  if (locale === "ru") {
+    const translated = typeof data.name === "string" ? SRD_RULES_RU.spells[contentSlug(data.name)] : null;
+    if (translated) {
+      const text = translated.text;
+      return [
+        text.split("\n")[0].replace(/\*/g, "").replace(/\s*\([^)]*\)/g, ""),
+        /\*\*Время накладывания:\*\*\s*([^\n]+)/.exec(text)?.[1],
+        /\*\*Дистанция:\*\*\s*([^\n]+)/.exec(text)?.[1],
+        data.concentration ? uiCopy(locale, "concentration") : "",
+        data.ritual ? uiCopy(locale, "ritual") : "",
+      ].filter(Boolean).join(" · ");
+    }
   }
   const level = Number(data.level_int ?? data.level ?? 0);
   const school = String(
     (data.school as { name?: string })?.name ?? data.school ?? "",
   ).toLowerCase();
   const parts = [
-    level === 0 ? `${school} cantrip` : `level ${level} ${school}`.trim(),
+    locale === "ru" ? `${level === 0 ? uiCopy(locale, "cantrip") : `${uiCopy(locale, "level")} ${level}`} ${characterDisplay(school, locale)}`.trim() : level === 0 ? `${school} cantrip` : `level ${level} ${school}`.trim(),
     String(data.casting_time ?? ""),
     String(data.range ?? ""),
-    data.concentration ? "concentration" : "",
-    data.ritual ? "ritual" : "",
+    data.concentration ? (locale === "ru" ? "концентрация" : "concentration") : "",
+    data.ritual ? (locale === "ru" ? "ритуал" : "ritual") : "",
   ].filter(Boolean);
   return parts.join(" · ");
 }

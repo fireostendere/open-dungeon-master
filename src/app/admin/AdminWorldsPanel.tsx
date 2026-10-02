@@ -186,12 +186,12 @@ export function AdminWorldsPanel() {
   return (
     <div className="space-y-6 text-sm">
       <section className={cn(ui.card, "texture-noise p-5")}>
-        <h2 className={ui.sectionEyebrow}>{uiText("Campaign plugins")}</h2>
+        <h2 className={ui.sectionEyebrow}>{uiText("campaignPlugins")}</h2>
         <p className="mt-2 text-xs leading-5 text-stone-400">
-          {uiText("A world pack renames the rules into a setting: its own races, classes, spells, gear, monsters, factions and lore, plus a brief telling the DM how that world sounds. Every mechanic stays 5e, so a character built in one still works anywhere.")}
+          {uiText("aWorldPackRenamesTheRulesIntoA")}
         </p>
         <p className="mt-2 text-xs leading-5 text-stone-500">
-          {uiText("Packs based on an existing universe are community works. They are not distributed with Open Dungeon Master, are not covered by its MIT license, and are not endorsed by the rights holders of the settings they reference. Installing one is your decision as the operator of this server.")}
+          {uiText("packsBasedOnAnExistingUniverseAreCommunity")}
         </p>
       </section>
 
@@ -201,7 +201,7 @@ export function AdminWorldsPanel() {
       <section>
         <div className="mb-2 flex items-center justify-between gap-2">
           <h3 className="text-xs font-medium uppercase tracking-wide text-stone-400">
-            {uiText("Install from a file")}
+            {uiText("installFromAFile")}
           </h3>
         </div>
         <input
@@ -229,23 +229,23 @@ export function AdminWorldsPanel() {
           ) : (
             <Upload className="size-3.5" />
           )}
-          {uiText("Choose a pack file")}
+          {uiText("chooseAPackFile")}
         </button>
         <p className="mt-1 text-[11px] text-stone-500">
-          {uiText("A single .json manifest. It is validated before anything is written, and lands in this server&apos;s data directory.")}
+          {uiText("aSingleJsonManifestItIsValidatedBefore")}
         </p>
       </section>
 
       <section>
         <h3 className="mb-2 text-xs font-medium uppercase tracking-wide text-stone-400">
-          {uiText("Registry")}
+          {uiText("registry")}
         </h3>
         <div className="flex flex-wrap items-center gap-2">
           <input
             key={state.url ?? ""}
             ref={registryInput}
             defaultValue={state.url ?? ""}
-            placeholder={uiText("Blank uses the built-in registry")}
+            placeholder={uiText("blankUsesTheBuiltInRegistry")}
             className={cn(ui.input, "min-w-0 flex-1 text-xs")}
           />
           <button
@@ -255,25 +255,25 @@ export function AdminWorldsPanel() {
             className={cn(ui.btnSmall, "text-xs")}
           >
             {busyId === "registry" ? <Loader2 className="size-3.5 animate-spin" /> : null}
-            {uiText("Save")}
+            {uiText("save")}
           </button>
         </div>
         <p className="mt-1 text-[11px] leading-4 text-stone-500">
-          {uiText("A JSON index of downloadable campaigns over HTTPS. If the field is blank, the app uses the environment variable")}
+          {uiText("aJsonIndexOfDownloadableCampaignsOverHttps9abd4b")}
           <span className="font-mono"> WORLD_REGISTRY_URL </span>
-          {uiText(", then the registry built into this app. Use your own registry, or set the value to")}
-          <span className="font-mono">{uiText("off")}</span>{" "}
-          {uiText("to turn off browsing. Listed worlds are third-party content this project neither ships nor vets; nothing installs until you choose to install it.")}
+          {uiText("thenTheRegistryBuiltIntoThisAppUse")}
+          <span className="font-mono">{uiText("offda7a68")}</span>{" "}
+          {uiText("toTurnOffBrowsingListedWorldsAreThird")}
         </p>
       </section>
 
       <section>
         <h3 className="mb-2 text-xs font-medium uppercase tracking-wide text-stone-400">
-          {uiText("Available to download")}
+          {uiText("availableToDownload")}
         </h3>
         {!state.configured ? (
           <p className="rounded-md border border-stone-800 p-3 text-xs leading-5 text-stone-500">
-            {uiText("This server&apos;s registry is turned off. Clear the field above to go back to the built-in one, point it at your own, or install a pack from a file.")}
+            {uiText("thisServerAposSRegistryIsTurnedOff")}
           </p>
         ) : state.error ? (
           <p className="rounded-md border border-stone-800 p-3 text-xs text-red-400">
@@ -281,11 +281,11 @@ export function AdminWorldsPanel() {
           </p>
         ) : !state.packs.length ? (
           <p className="rounded-md border border-stone-800 p-3 text-xs text-stone-500">
-            {uiText("That registry lists no campaigns.")}
+            {uiText("thatRegistryListsNoCampaigns")}
           </p>
         ) : !available.length ? (
           <p className="rounded-md border border-stone-800 p-3 text-xs text-stone-500">
-            {uiText("Everything this registry offers is already installed.")}
+            {uiText("everythingThisRegistryOffersIsAlreadyInstalled")}
           </p>
         ) : (
           <ul className="space-y-2">
@@ -320,7 +320,7 @@ export function AdminWorldsPanel() {
                     ) : (
                       <Download className="size-3.5" />
                     )}
-                    {uiText("Install")}
+                    {uiText("install")}
                   </button>
                 </div>
               </li>
@@ -331,11 +331,11 @@ export function AdminWorldsPanel() {
 
       <section>
         <h3 className="mb-2 text-xs font-medium uppercase tracking-wide text-stone-400">
-          {uiText("Installed")}
+          {uiText("installed")}
         </h3>
         {!state.installed.length ? (
           <p className="rounded-md border border-stone-800 p-3 text-xs text-stone-500">
-            {uiText("No world packs yet. Campaigns run on the built-in settings.")}
+            {uiText("noWorldPacksYetCampaignsRunOnThe")}
           </p>
         ) : (
           <ul className="space-y-2">
@@ -383,7 +383,7 @@ export function AdminWorldsPanel() {
                         ) : (
                           <Download className="size-3.5" />
                         )}
-                        {uiText("Update to v")}{update?.version}
+                        {uiText("updateToV")}{update?.version}
                       </button>
                     ) : null}
                     {pack.source === "installed" ? (
@@ -398,11 +398,11 @@ export function AdminWorldsPanel() {
                         ) : (
                           <Trash2 className="size-3.5" />
                         )}
-                        {uiText("Remove")}
+                        {uiText("remove")}
                       </button>
                     ) : outdated ? null : (
                       <p className="text-[11px] text-stone-600">
-                        {uiText("Ships with the app and cannot be removed.")}
+                        {uiText("shipsWithTheAppAndCannotBeRemoved")}
                       </p>
                     )}
                   </div>

@@ -192,14 +192,14 @@ export function OverworldAuthoring({
               type="button"
               disabled={busy}
               onClick={() => void patch({ regenerate: true, params, ...size })}
-              title={uiText("Reroll the terrain under these dials, at this size. Places, pins, lines and notes stay.")}
+              title={uiText("rerollTheTerrainUnderTheseDialsAtThis")}
               className="rounded-md border border-amber-700 bg-amber-950/50 px-2 py-1 text-xs text-amber-100 disabled:opacity-40"
             >
               {copy.roll}
             </button>
             <select
               value={sizeId}
-              aria-label={uiText("Size of the next roll")}
+              aria-label={uiText("sizeOfTheNextRoll")}
               onChange={(event) => {
                 const preset = OVERWORLD_SIZES.find((entry) => entry.id === event.target.value);
                 if (preset) {

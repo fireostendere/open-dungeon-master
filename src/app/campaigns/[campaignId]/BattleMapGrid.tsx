@@ -154,9 +154,9 @@ export const BattleMapGrid = memo(
     const tilted = tilt && !compact;
     const band = tilted && camera.box.w > 0 ? mapTiltBand(camera.box.h / camera.box.w) : 0;
     const controlLabels = {
-      zoomIn: uiText("Zoom in"),
-      zoomOut: uiText("Zoom out"),
-      fit: uiText("Fit the whole map"),
+      zoomIn: uiText("zoomIn"),
+      zoomOut: uiText("zoomOut"),
+      fit: uiText("fitTheWholeMap"),
       locate: locale === "ru" ? "К моей фигуре" : "Centre on my piece",
     };
 
@@ -269,7 +269,7 @@ export const BattleMapGrid = memo(
         // map over whatever sits above it. The clip does, and keeps the corners.
         style={{ clipPath: "inset(0 round 0.5rem)", ...(tilted ? mapTiltStyle() : {}) }}
         role="img"
-        aria-label={uiText("Battle map")}
+        aria-label={uiText("battleMap")}
         onClick={handleSvgClick}
         onPointerDown={(event) => {
           pointerTypeRef.current = event.pointerType;

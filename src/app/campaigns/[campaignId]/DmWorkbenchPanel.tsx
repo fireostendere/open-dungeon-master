@@ -133,7 +133,7 @@ export function DmWorkbenchPanel({
           value={enemies}
           onChange={(event) => setEnemies(event.target.value)}
           rows={3}
-          placeholder={uiText("goblin x4\nhobgoblin")}
+          placeholder={uiText("goblinX4Hobgoblin")}
           data-tour="encounters-workbench-roster"
           className={cn(input, "w-full resize-y font-mono")}
         />

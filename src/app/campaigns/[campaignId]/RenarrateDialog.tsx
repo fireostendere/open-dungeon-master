@@ -78,7 +78,7 @@ export function RenarrateDialog({
         >
           <div className="mb-3 flex items-center justify-between">
             <Dialog.Title className="flex items-center gap-2 font-display text-lg tracking-wide text-amber-50">
-              <GameIcon icon={{ kind: "glyph", key: "die-d20" }} size="size-7" /> {uiText("Reroll the narration")}
+              <GameIcon icon={{ kind: "glyph", key: "die-d20" }} size="size-7" /> {uiText("rerollTheNarration")}
             </Dialog.Title>
             <Dialog.Close className="text-stone-500 hover:text-stone-300">
               <X className="size-4" />
@@ -86,14 +86,14 @@ export function RenarrateDialog({
           </div>
 
           <p className="mb-3 text-xs leading-5 text-stone-400">
-            {uiText("The DM retells the same moment in different words. Nothing else moves: the same rolls, damage and outcome. Take {taken} of {total}.", {
+            {uiText("theDmRetellsTheSameMomentInDifferent", {
               taken,
               total: MAX_VARIANTS,
-            })}{capped ? ` ${uiText("All variants are ready; browse them and choose one.")}` : ""}
+            })}{capped ? ` ${uiText("allVariantsAreReadyBrowseThemAndChoose")}` : ""}
           </p>
 
           <label className="mb-1 flex items-center justify-between text-[10px] font-medium uppercase tracking-wide text-stone-500">
-            <span>{uiText("Variation")}</span>
+            <span>{uiText("variation")}</span>
             <span className="font-mono normal-case tracking-normal text-stone-400">
               +{tempOffset.toFixed(2)}
             </span>
@@ -107,18 +107,18 @@ export function RenarrateDialog({
             disabled={running}
             onChange={(event) => setTempOffset(Number(event.target.value))}
             className="mb-3 w-full accent-amber-500"
-            aria-label={uiText("How far this take may drift from the last")}
+            aria-label={uiText("howFarThisTakeMayDriftFromThe")}
           />
 
           <label className="mb-1 block text-[10px] font-medium uppercase tracking-wide text-stone-500">
-            {uiText("Guidance for this take (optional)")}
+            {uiText("guidanceForThisTakeOptional")}
           </label>
           <input
             value={guidance}
             onChange={(event) => setGuidance(event.target.value)}
             maxLength={MAX_GUIDANCE_LENGTH}
             disabled={running}
-            placeholder={uiText("darker, more dialogue, shorter...")}
+            placeholder={uiText("darkerMoreDialogueShorter")}
             className={ui.input}
           />
           <div className="mt-2 flex flex-wrap gap-1.5">
@@ -144,7 +144,7 @@ export function RenarrateDialog({
 
           <div className="mt-4 flex justify-end gap-2">
             <button type="button" onClick={onClose} disabled={running} className={ui.btnSmall}>
-              {uiText("Cancel")}
+              {uiText("cancel")}
             </button>
             <button
               type="button"
@@ -154,10 +154,10 @@ export function RenarrateDialog({
             >
               {running ? (
                 <>
-                  <Loader2 className="size-4 animate-spin" /> {uiText("Writing...")}
+                  <Loader2 className="size-4 animate-spin" /> {uiText("writing")}
                 </>
               ) : (
-                uiText("Reroll")
+                uiText("reroll")
               )}
             </button>
           </div>

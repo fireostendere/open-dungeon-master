@@ -43,7 +43,7 @@ export function ImageLightbox({
       <Dialog.Trigger asChild>
         <button
           type="button"
-          aria-label={uiText("Enlarge image: {label}", { label })}
+          aria-label={uiText("enlargeImageLabel", { label })}
           className="block cursor-zoom-in transition-opacity hover:opacity-90"
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -67,7 +67,7 @@ export function ImageLightbox({
             <a
               href={src}
               download={downloadName(src, label)}
-              aria-label={uiText("Download image")}
+              aria-label={uiText("downloadImage")}
               className={cn(
                 "rounded-md border border-stone-700 bg-stone-950/80 p-2",
                 "text-stone-400 hover:text-stone-100",
@@ -76,7 +76,7 @@ export function ImageLightbox({
               <Download className="size-4" />
             </a>
             <Dialog.Close
-              aria-label={uiText("Close image")}
+              aria-label={uiText("closeImage")}
               className={cn(
                 "rounded-md border border-stone-700 bg-stone-950/80 p-2",
                 "text-stone-400 hover:text-stone-100",

@@ -82,7 +82,7 @@ export function LoreRows({
                   {entry.pinned ? (
                     <Pin
                       className="size-3.5 shrink-0 text-amber-400"
-                      aria-label={uiText("Pinned: included in every DM turn")}
+                      aria-label={uiText("pinnedIncludedInEveryDmTurn")}
                     />
                   ) : null}
                   <span className="font-display tracking-wide text-amber-50">{entry.title}</span>
@@ -141,7 +141,7 @@ export function LoreRows({
         <p className="text-[11px] italic text-stone-600">
           {steersStory
             ? copy.empty
-            : uiText("The party lead has not written any world lore yet.")}
+            : uiText("thePartyLeadHasNotWrittenAnyWorld")}
         </p>
       ) : shown.length === 0 ? (
         <p className="text-[11px] text-stone-500">{copy.noMatch}</p>

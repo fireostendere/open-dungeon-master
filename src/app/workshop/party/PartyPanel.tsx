@@ -153,7 +153,7 @@ export function PartyPanel({
                     ) : null}
                     {offLevel ? (
                       <span className={cn(chip, "border-amber-800 text-amber-300/90")}>
-                        {uiText("Level")} {character.level}{uiText(", the party is built for")} {targetParty.level}
+                        {uiText("level")} {character.level}{uiText("thePartyIsBuiltFor")} {targetParty.level}
                       </span>
                     ) : null}
                   </span>
@@ -162,7 +162,7 @@ export function PartyPanel({
                   type="button"
                   disabled={busy}
                   onClick={() => void change("DELETE", character.id)}
-                  title={uiText("Take it off the roster. It stays in your library.")}
+                  title={uiText("takeItOffTheRosterItStaysIn")}
                   className="rounded-md border border-stone-700 p-1 text-stone-400 hover:bg-stone-900 disabled:opacity-50"
                 >
                   <X className="size-3.5" />
@@ -191,7 +191,7 @@ export function PartyPanel({
             {available.map((character) => (
               <option key={character.id} value={character.id}>
                 {character.name}, {describe(character, copy.level).toLowerCase()}
-                {character.workshopId && character.workshopId !== workshopId ? uiText(" (in another workshop)") : ""}
+                {character.workshopId && character.workshopId !== workshopId ? uiText("inAnotherWorkshop") : ""}
               </option>
             ))}
           </select>
@@ -208,7 +208,7 @@ export function PartyPanel({
           </Link>
         </div>
         {available.length === 0 && library.length > 0 ? (
-          <p className="text-[11px] text-stone-500">{uiText("Every character in your library is already on the roster.")}</p>
+          <p className="text-[11px] text-stone-500">{uiText("everyCharacterInYourLibraryIsAlreadyOn")}</p>
         ) : null}
         {error ? <p className="text-[11px] text-red-400">{error}</p> : null}
       </div>

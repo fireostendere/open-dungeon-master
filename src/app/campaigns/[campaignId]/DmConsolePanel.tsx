@@ -64,12 +64,12 @@ function FloorControl({
     <section className="rounded-lg border border-stone-800 bg-stone-950/60 px-2.5 py-2">
       <p className="mb-1.5 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-stone-500">
         <GameIcon icon={{ kind: "glyph", key: "tab-session" }} size="size-5" />
-        {uiText("The floor")}
+        {uiText("theFloor")}
       </p>
       {mode === "initiative" ? (
         <p className="flex items-center gap-1.5 text-xs text-stone-500">
           <GameIcon icon={{ kind: "glyph", key: "rest-initiative" }} size="size-5" />
-          {uiText("The initiative order has it while the fight runs.")}
+          {uiText("theInitiativeOrderHasItWhileTheFight")}
         </p>
       ) : (
         <div className="flex flex-wrap gap-1">
@@ -87,17 +87,17 @@ function FloorControl({
               )}
             >
               <GameIcon icon={{ kind: "glyph", key: option === "open" ? "tab-chat" : "cue-bell" }} size="size-5" />
-              {option === "open" ? uiText("Anyone may act") : uiText("Hold everyone")}
+              {option === "open" ? uiText("anyoneMayAct") : uiText("holdEveryone")}
             </button>
           ))}
           {mode === "spotlight" ? (
             <span className="inline-flex items-center gap-1 rounded-md border border-amber-700 bg-amber-950/50 py-1 pl-1 pr-2 text-xs text-amber-100">
               <GameIcon icon={{ kind: "glyph", key: "tab-lead" }} size="size-5" />
-              {uiText("Spotlight")}
+              {uiText("spotlight")}
             </span>
           ) : (
             <span className="self-center text-[11px] text-stone-600">
-              {uiText("Give the floor to named players with Give the floor, under Story.")}
+              {uiText("giveTheFloorToNamedPlayersWithGive")}
             </span>
           )}
         </div>
@@ -199,7 +199,7 @@ export function DmConsolePanel({
     <div className="space-y-4">
       {/* Gold, the DM's colour: nobody else at the table has this tab, and
           the lead's desk wears ember so the two seats never blur. */}
-      <Ribbon tone="gold">{uiText("Only you")}</Ribbon>
+      <Ribbon tone="gold">{uiText("onlyYou")}</Ribbon>
 
       <div data-tour="dm-floor">
         <FloorControl campaignId={campaignId} mode={floorMode} />
@@ -214,7 +214,7 @@ export function DmConsolePanel({
       <section data-tour="dm-queue">
         <h3 className="mb-1.5 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-stone-500">
           <GameIcon icon={{ kind: "glyph", key: "tab-log" }} size="size-5" />
-          {uiText("Waiting on you")}
+          {uiText("waitingOnYou")}
           {queue.length ? (
             <span className="rounded-full bg-amber-900/60 px-1.5 text-[10px] text-amber-200">
               {queue.length}
@@ -240,14 +240,14 @@ export function DmConsolePanel({
                   className="mt-1 inline-flex items-center gap-1 text-[11px] text-stone-500 hover:text-amber-200"
                 >
                   <GameIcon icon={{ kind: "glyph", key: "die-d20" }} size="size-5" />
-                  {uiText("What should I press?")}
+                  {uiText("whatShouldIPress")}
                 </button>
               </li>
             ))}
           </ul>
         ) : (
           <p className="rounded-lg border border-stone-800 bg-stone-950/40 px-2.5 py-2 text-xs text-stone-500">
-            {uiText("Nothing waiting. Everything the party has said has been answered.")}
+            {uiText("nothingWaitingEverythingThePartyHasSaidHas")}
           </p>
         )}
       </section>
@@ -327,7 +327,7 @@ export function DmConsolePanel({
                     onClick={() => setOpenAction("")}
                     className="text-[11px] text-stone-500 hover:text-stone-300"
                   >
-                    {uiText("Close")}
+                    {uiText("close")}
                   </button>
                 </div>
               ) : (

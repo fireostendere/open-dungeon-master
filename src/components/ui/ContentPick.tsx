@@ -77,7 +77,7 @@ export function ContentPick({
       </div>
       {open && !results.length && query.trim() && !loading ? (
         <p className="mt-1 rounded-lg border border-stone-800 bg-stone-950/60 px-3 py-1.5 text-[11px] text-stone-500">
-          {uiText("Nothing matched &quot;")}{query.trim()}{uiText("&quot;. Try fewer letters.")}
+          {uiText("nothingMatchedQuot")}{query.trim()}{uiText("quotTryFewerLetters")}
         </p>
       ) : null}
       {open && results.length ? (
@@ -97,12 +97,12 @@ export function ContentPick({
                   {localizedContentName(kind, entry.name, locale)}
                 </span>
                 <span className="text-[11px] text-stone-500">
-                  {entry.level !== undefined ? uiText("Level {level}", { level: entry.level }) : entry.rarity || entry.kind || ""}
+                  {entry.level !== undefined ? uiText("levelLevel", { level: entry.level }) : entry.rarity || entry.kind || ""}
                 </span>
               </button>
               <InfoButton
                 label={localizedContentName(kind, entry.name, locale)}
-                meta={kind === "spells" ? spellSummary(entry.data) : undefined}
+                meta={kind === "spells" ? spellSummary(entry.data, locale) : undefined}
                 text={describeContentEntry(entry.data, locale, { kind, name: entry.name, slug: entry.slug })}
                 reference={
                   entry.source === "homebrew" ? undefined : { kind, slug: entry.slug, name: entry.name }

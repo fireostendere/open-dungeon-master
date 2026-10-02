@@ -106,7 +106,7 @@ export function MonsterRosterPicker({
         <input
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          placeholder={uiText("Search monsters to add: goblin, owlbear, the boss you built...")}
+          placeholder={uiText("searchMonstersToAddGoblinOwlbearTheBoss")}
           className={cn(input, "w-full pl-7")}
         />
         {loading ? (

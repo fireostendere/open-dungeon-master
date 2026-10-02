@@ -44,13 +44,13 @@ export function FinishStep({
   const keptSaved = Boolean(initial?.portrait && portrait?.url === initial.portrait.url);
   return (
     <div className="space-y-4">
-      <StepPanel title={uiText("Portrait (optional)")} ornate>
+      <StepPanel title={uiText("portraitOptional")} ornate>
         <div className="flex items-center gap-3">
           {portrait?.url ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={portrait.url}
-              alt={uiText("Character portrait")}
+              alt={uiText("characterPortrait")}
               className="size-16 shrink-0 rounded-lg border border-amber-500/30 object-cover"
             />
           ) : (
@@ -64,71 +64,71 @@ export function FinishStep({
                   exists: a photo is always a way to give a hero a face. */}
               <button type="button" onClick={onUploadPortrait} className={ui.btnSmall}>
                 <Camera className="size-3.5" />
-                {portrait ? uiText("Replace photo") : uiText("Upload a photo")}
+                {portrait ? uiText("replacePhoto") : uiText("uploadAPhoto")}
               </button>
               {/* Clearing the saved portrait means "paint me a new one", which
                   only makes sense where a painter exists. A freshly uploaded
                   photo can always be taken back. */}
               {portrait && (paintsPortraits || !keptSaved) ? (
                 <button type="button" onClick={() => setPortrait(null)} className={ui.btnSmall}>
-                  {keptSaved ? uiText("Regenerate portrait") : uiText("Remove photo")}
+                  {keptSaved ? uiText("regeneratePortrait") : uiText("removePhoto")}
                 </button>
               ) : null}
             </div>
             <p className="mt-1.5 text-xs text-stone-500">
               {portrait
                 ? paintsPortraits
-                  ? uiText("This photo is used as-is; no portrait is painted for you.")
-                  : uiText("This photo is used as-is.")
+                  ? uiText("thisPhotoIsUsedAsIsNoPortrait")
+                  : uiText("thisPhotoIsUsedAsIs")
                 : paintsPortraits
-                  ? uiText("Add art, or let the AI paint one after you save.")
-                  : uiText("Upload a photo to give your character a face.")}
+                  ? uiText("addArtOrLetTheAiPaintOne")
+                  : uiText("uploadAPhotoToGiveYourCharacterA")}
             </p>
           </div>
         </div>
-        <Field label={uiText("Appearance")} className="mt-4">
+        <Field label={uiText("appearance")} className="mt-4">
           <p className="mb-2 text-xs text-stone-500">
             {paintsPortraits
-              ? uiText("Used to paint your character's portrait if you don't upload a photo.")
-              : uiText("How your character looks, for the party and the DM to picture.")}
+              ? uiText("usedToPaintYourCharacterSPortraitIf")
+              : uiText("howYourCharacterLooksForThePartyAnd")}
           </p>
           <textarea
             value={state.appearance}
             onChange={(event) => state.setAppearance(event.target.value)}
             rows={2}
             maxLength={500}
-            placeholder={uiText("Silver hair, weathered face, a scar across one eye...")}
+            placeholder={uiText("silverHairWeatheredFaceAScarAcrossOne")}
             className={cn(inputClass, "resize-y")}
           />
         </Field>
       </StepPanel>
 
       <StepPanel
-        title={uiText("Backstory (optional)")}
-        help={uiText("Who were they before the adventure? The party can read this, and the DM weaves it into the story.")}
+        title={uiText("backstoryOptional")}
+        help={uiText("whoWereTheyBeforeTheAdventureTheParty")}
       >
         <textarea
           value={state.backstory}
           onChange={(event) => state.setBackstory(event.target.value)}
           rows={4}
           maxLength={2000}
-          placeholder={uiText("A disgraced temple guard looking for a second chance...")}
+          placeholder={uiText("aDisgracedTempleGuardLookingForASecond")}
           className={cn(inputClass, "resize-y")}
-          aria-label={uiText("Backstory")}
+          aria-label={uiText("backstory")}
         />
       </StepPanel>
 
       <StepPanel
-        title={uiText("Additional feats (optional)")}
+        title={uiText("additionalFeatsOptional")}
         help={
           asiSlotLevels.length
-            ? uiText("Beyond the ability score improvement picks on the Abilities step; racial or homebrew feats go here.")
+            ? uiText("beyondTheAbilityScoreImprovementPicksOnThe")
             : undefined
         }
       >
         <ContentPicker
           kind="feats"
-          placeholder={uiText("Search feats (e.g. alert, tough)")}
+          placeholder={uiText("searchFeatsEGAlertTough")}
           onPick={(entry) =>
             state.setFeats((current) =>
               current.includes(entry.name) ? current : [...current, entry.name],
@@ -164,9 +164,9 @@ export function FinishStep({
       </StepPanel>
 
       {preview && race ? (
-        <StepPanel title={uiText("Derived stats")} ornate className="border-amber-500/30">
+        <StepPanel title={uiText("derivedStats")} ornate className="border-amber-500/30">
           <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm text-stone-300 sm:grid-cols-4">
-            <Field label={uiText("Max HP")}>
+            <Field label={uiText("maxHp")}>
               <input
                 type="number"
                 min={1}
@@ -176,7 +176,7 @@ export function FinishStep({
                 className={cn(inputClass, "w-20")}
               />
             </Field>
-            <Field label={`AC${acOverride === null ? "" : uiText(" (pinned)")}`}>
+            <Field label={`AC${acOverride === null ? "" : uiText("pinned")}`}>
               <input
                 type="number"
                 min={1}
@@ -188,7 +188,7 @@ export function FinishStep({
               <span className="mt-1 block text-[11px] text-stone-500">
                 {acOverride === null
                   ? (acInfo?.parts.join(" + ") ?? "")
-                  : uiText("typed by hand; armor no longer changes it")}
+                  : uiText("typedByHandArmorNoLongerChangesIt")}
               </span>
               {acOverride === null ? null : (
                 <button
@@ -196,17 +196,17 @@ export function FinishStep({
                   onClick={() => setAcOverride(null)}
                   className="mt-1 text-[11px] text-amber-300/80 underline"
                 >
-                  {uiText("use my armor instead")}
+                  {uiText("useMyArmorInstead")}
                 </button>
               )}
             </Field>
-            <span className="self-end">{uiText("Speed")} {formatSpeed(race.speed)}</span>
-            <span className="self-end">{uiText("Prof")} {formatModifier(proficiencyBonus(effectiveLevel))}</span>
-            <span>{uiText("Initiative")} {formatModifier(preview.derived.initiative)}</span>
-            <span>{uiText("Passive Perception")} {preview.derived.passivePerception}</span>
-            {preview.derived.spellSaveDc ? <span>{uiText("Spell DC")} {preview.derived.spellSaveDc}</span> : null}
+            <span className="self-end">{uiText("speed")} {formatSpeed(race.speed)}</span>
+            <span className="self-end">{uiText("prof")} {formatModifier(proficiencyBonus(effectiveLevel))}</span>
+            <span>{uiText("initiative")} {formatModifier(preview.derived.initiative)}</span>
+            <span>{uiText("passivePerception")} {preview.derived.passivePerception}</span>
+            {preview.derived.spellSaveDc ? <span>{uiText("spellDc")} {preview.derived.spellSaveDc}</span> : null}
             {preview.derived.spellAttack !== null ? (
-              <span>{uiText("Spell attack")} {formatModifier(preview.derived.spellAttack)}</span>
+              <span>{uiText("spellAttack")} {formatModifier(preview.derived.spellAttack)}</span>
             ) : null}
           </div>
         </StepPanel>

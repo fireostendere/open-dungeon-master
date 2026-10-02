@@ -310,7 +310,7 @@ export function LorePanel({
           value={draft.title}
           onChange={(event) => setDraft((current) => ({ ...current, title: event.target.value }))}
           maxLength={120}
-          placeholder={uiText("Title (The Ashen League, The Sundering...)")}
+          placeholder={uiText("titleTheAshenLeagueTheSundering")}
           className="flex-1 rounded border border-stone-700 bg-stone-900 px-2 py-1 text-[11px] outline-none focus:border-amber-600"
         />
       </div>
@@ -320,14 +320,14 @@ export function LorePanel({
         onChange={(event) => setDraft((current) => ({ ...current, body: event.target.value }))}
         rows={rows ? 8 : 4}
         maxLength={4000}
-        placeholder={uiText("What is established about it...\n\n# Headings, **bold**, - lists, and [[The Mill]] to link another entry.")}
+        placeholder={uiText("whatIsEstablishedAboutItHeadingsBoldLists")}
         data-tour="lore-body"
         className="w-full rounded border border-stone-700 bg-stone-900 px-2 py-1 text-[11px] leading-4 outline-none focus:border-amber-600"
       />
       {linkable.length ? (
         <div className="flex flex-wrap items-center gap-1.5" data-tour="lore-link">
           <AddFromList prompt="Link another entry" options={linkable} onPick={insertLink} />
-          <span className="text-[10px] text-stone-600">{uiText("Drops a [[link]] where the cursor is.")}</span>
+          <span className="text-[10px] text-stone-600">{uiText("dropsALinkWhereTheCursorIs")}</span>
         </div>
       ) : null}
       <VisibilitySelect
@@ -342,7 +342,7 @@ export function LorePanel({
         <input
           value={draft.tags}
           onChange={(event) => setDraft((current) => ({ ...current, tags: event.target.value }))}
-          placeholder={uiText("Tags, comma separated (optional)")}
+          placeholder={uiText("tagsCommaSeparatedOptional")}
           className="min-w-40 flex-1 rounded border border-stone-700 bg-stone-900 px-2 py-1 text-[11px] outline-none focus:border-amber-600"
         />
         <AddFromList
@@ -359,7 +359,7 @@ export function LorePanel({
           className="flex items-center gap-1 rounded border border-stone-700 px-2 py-0.5 text-[11px] text-stone-300 hover:bg-stone-900 disabled:opacity-50"
         >
           {busy ? <Loader2 className="size-3 animate-spin" /> : null}
-          {editingId ? uiText("Save") : uiText("Add")}
+          {editingId ? uiText("save") : uiText("add")}
         </button>
         <button
           type="button"
@@ -369,7 +369,7 @@ export function LorePanel({
           }}
           className="flex items-center gap-1 rounded border border-stone-700 px-2 py-0.5 text-[11px] text-stone-500 hover:bg-stone-900"
         >
-          <X className="size-3" /> {uiText("Cancel")}
+          <X className="size-3" /> {uiText("cancel")}
         </button>
       </div>
     </>
@@ -382,7 +382,7 @@ export function LorePanel({
       <div className="space-y-3">
         {loading ? (
           <p className="flex items-center gap-1 text-[11px] text-stone-500">
-            <Loader2 className="size-3 animate-spin" /> {uiText("Loading...")}
+            <Loader2 className="size-3 animate-spin" /> {uiText("loadingb04ba4")}
           </p>
         ) : (
           <LoreRows

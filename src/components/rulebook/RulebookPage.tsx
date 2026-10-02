@@ -269,7 +269,7 @@ export function RulebookPage({
     <article className="rb-page" data-kind={page.kind}>
       <header className="rb-head">
         <p className="rb-running">
-          <span aria-hidden="true">{"❦"}</span> {uiText("Chapter")} {chapter.numeral} <span className="rb-dot">&middot;</span>{" "}
+          <span aria-hidden="true">{"❦"}</span> {uiText("chapter")} {chapter.numeral} <span className="rb-dot">&middot;</span>{" "}
           <Digits text={chapter.title} />{" "}
           <span aria-hidden="true">{"❦"}</span>
         </p>
@@ -296,7 +296,7 @@ export function RulebookPage({
         ) : (
           <span />
         )}
-        <span className="rb-folio" aria-label={uiText("Page {folio}", { folio: page.folio })}>
+        <span className="rb-folio" aria-label={uiText("pageFolio", { folio: page.folio })}>
           {page.folio}
         </span>
         {next ? (

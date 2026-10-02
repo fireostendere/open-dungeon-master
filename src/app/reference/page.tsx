@@ -115,7 +115,7 @@ export default function ReferencePage() {
   const [open, setOpen] = useState<{ title: string; meta?: string; text: string; icon?: IconRef } | null>(null);
   const [selection, setSelection] = useState<CompareSelection | null>(null);
 
-  const terms = glossaryTerms();
+  const terms = glossaryTerms(locale);
   const filteredTerms = useMemo(() => {
     const needle = query.trim().toLowerCase();
     if (!needle) {
@@ -185,7 +185,7 @@ export default function ReferencePage() {
     setOpen({
       icon: resultIcon(kind, row.name),
       title: localizedContentName(kind, row.name, locale),
-      meta: kind === "spells" ? spellSummary(row.data) : undefined,
+      meta: kind === "spells" ? spellSummary(row.data, locale) : undefined,
       text: describeContentEntry(row.data, locale, { kind, name: row.name, slug: row.slug }) ?? copy.noDescription,
     });
   }

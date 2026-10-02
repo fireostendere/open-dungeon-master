@@ -349,13 +349,13 @@ function Reader({ startAt, startAnchor, cover = false, embedded = false, onPageC
         data-view={view}
         data-enter={enter ?? undefined}
       >
-        <section className="rb-leaf rb-left" aria-label={uiText("Contents and search")}>
+        <section className="rb-leaf rb-left" aria-label={uiText("contentsAndSearch")}>
           <div className="rb-leaf-scroll">
             {contentsFailed ? (
               <div className="rb-trouble">
-                <p>{uiText("The rulebook could not be opened just now.")}</p>
+                <p>{uiText("theRulebookCouldNotBeOpenedJustNow")}</p>
                 <button type="button" className="rb-chip" onClick={() => void loadContents()}>
-                  {uiText("Try again")}
+                  {uiText("tryAgain")}
                 </button>
               </div>
             ) : (
@@ -368,7 +368,7 @@ function Reader({ startAt, startAnchor, cover = false, embedded = false, onPageC
 
         <section
           className="rb-leaf rb-right"
-          aria-label={shown ? shown.data.page.title : uiText("The Rulebook")}
+          aria-label={shown ? shown.data.page.title : uiText("theRulebook")}
           onTouchStart={(event) => {
             const point = event.touches[0];
             touch.current = point ? { x: point.clientX, y: point.clientY } : null;
@@ -385,13 +385,13 @@ function Reader({ startAt, startAnchor, cover = false, embedded = false, onPageC
         >
           <div className="rb-toolbar">
             <button type="button" className="rb-tool rb-tool-contents" onClick={goContents}>
-              <List className="size-4" aria-hidden="true" /> {uiText("Contents")}
+              <List className="size-4" aria-hidden="true" /> {uiText("contents")}
             </button>
             <span className="rb-toolbar-space" />
             <button
               type="button"
               className="rb-tool rb-tool-step"
-              aria-label={uiText("Previous page")}
+              aria-label={uiText("previousPage")}
               disabled={!shown?.data.prev}
               onClick={() => step("back")}
             >
@@ -400,7 +400,7 @@ function Reader({ startAt, startAnchor, cover = false, embedded = false, onPageC
             <button
               type="button"
               className="rb-tool rb-tool-step"
-              aria-label={uiText("Next page")}
+              aria-label={uiText("nextPage")}
               disabled={!shown?.data.next}
               onClick={() => step("forward")}
             >
@@ -411,8 +411,8 @@ function Reader({ startAt, startAnchor, cover = false, embedded = false, onPageC
                 type="button"
                 className="rb-tool rb-tool-mark"
                 aria-pressed={marked}
-                aria-label={marked ? uiText("Remove the bookmark") : uiText("Bookmark this page")}
-                title={marked ? uiText("Remove the bookmark") : uiText("Bookmark this page")}
+                aria-label={marked ? uiText("removeTheBookmark") : uiText("bookmarkThisPage")}
+                title={marked ? uiText("removeTheBookmark") : uiText("bookmarkThisPage")}
                 onClick={toggleMark}
               >
                 <Bookmark className="size-4" fill={marked ? "currentColor" : "none"} />
@@ -423,7 +423,7 @@ function Reader({ startAt, startAnchor, cover = false, embedded = false, onPageC
           <div ref={leafRef} className="rb-leaf-scroll">
             {pageFailed && !shown ? (
               <div className="rb-trouble">
-                <p>{uiText("That page could not be found in the book.")}</p>
+                <p>{uiText("thatPageCouldNotBeFoundInThe")}</p>
               </div>
             ) : shown ? (
               <div key={shown.data.page.id} className="rb-page-in">
@@ -457,15 +457,15 @@ function Reader({ startAt, startAnchor, cover = false, embedded = false, onPageC
         <button
           type="button"
           className="rb-cover"
-          aria-label={uiText("Open the book")}
+          aria-label={uiText("openTheBook")}
           onClick={(event) => event.currentTarget.classList.add("rb-cover-now")}
           onAnimationEnd={(event) => {
             if (event.animationName === "rb-cover-open") setCoverOn(false);
           }}
         >
           <span className="rb-cover-frame" aria-hidden="true" />
-          <span className="rb-cover-title">{uiText("The Rulebook")}</span>
-          <span className="rb-cover-sub">{uiText("Fifth Edition")}</span>
+          <span className="rb-cover-title">{uiText("theRulebook")}</span>
+          <span className="rb-cover-sub">{uiText("fifthEdition")}</span>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/assets/ui/wax-seal-gold.webp" alt="" className="rb-cover-seal" />
         </button>
@@ -479,22 +479,22 @@ function Frontispiece({ onBegin }: { onBegin: () => void }) {
   return (
     <div className="rb-frontis">
       <p className="rb-running">Open Dungeon Master</p>
-      <h1 className="rb-frontis-title">{uiText("The Rulebook")}</h1>
-      <p className="rb-frontis-sub">{uiText("Fifth Edition · System Reference Document 5.1")}</p>
+      <h1 className="rb-frontis-title">{uiText("theRulebook")}</h1>
+      <p className="rb-frontis-sub">{uiText("fifthEditionSystemReferenceDocument51")}</p>
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src="/assets/ui/divider-rule.webp" alt="" width={512} height={33} className="rb-divider" />
       <p className="rb-frontis-text">
         {uiText(
-          "Every rule of the game in one volume: the races and classes, equipment, how to use ability scores, adventuring, combat, spellcasting, every spell, magic item and monster, and the conditions they inflict.",
+          "everyRuleOfTheGameInOneVolume",
         )}
       </p>
       <p className="rb-frontis-text">
         {uiText(
-          "Search from the contents page, or open a chapter. The arrow keys turn the pages, and a bookmark keeps a page one tap away.",
+          "searchFromTheContentsPageOrOpenA",
         )}
       </p>
       <button type="button" className="rb-chip rb-begin" onClick={onBegin}>
-        {uiText("Begin at chapter I")}
+        {uiText("beginAtChapterI")}
       </button>
     </div>
   );

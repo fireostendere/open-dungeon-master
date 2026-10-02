@@ -114,8 +114,8 @@ export function PushToTalk({
         onPointerUp={stop}
         onPointerLeave={stop}
         onContextMenu={(event) => event.preventDefault()}
-        title={uiText("Hold to talk")}
-        aria-label={uiText("Hold to talk")}
+        title={uiText("holdToTalk")}
+        aria-label={uiText("holdToTalk")}
         data-tour="composer-talk"
         className={cn(
           "rounded-md border p-2.5 transition-colors select-none touch-none",

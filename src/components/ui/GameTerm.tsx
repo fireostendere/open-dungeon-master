@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { cn } from "@/lib/cn";
 import { InfoDialog } from "@/components/ui/InfoDialog";
+import { useI18n } from "@/lib/i18n";
 import { glossaryTerm } from "@/lib/help";
 
 // An inline rules word a new player can tap: "Armor Class", "Saving throws",
@@ -23,7 +24,8 @@ export function GameTerm({
   className?: string;
 }) {
   const [open, setOpen] = useState(false);
-  const entry = glossaryTerm(id);
+  const { locale } = useI18n();
+  const entry = glossaryTerm(id, locale);
   if (!entry) {
     return <>{children}</>;
   }

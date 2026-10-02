@@ -2,6 +2,7 @@
 
 import { Check, ChevronDown } from "lucide-react";
 import { Fragment, useEffect, useRef, useState } from "react";
+import { useInlineText } from "@/lib/i18n/inline-text";
 import { cn } from "@/lib/cn";
 import { InfoButton, type ContentRef } from "@/components/ui/InfoDialog";
 
@@ -31,7 +32,7 @@ export default function OptionPicker({
   value,
   groups,
   onChange,
-  placeholder = "Choose...",
+  placeholder,
   className,
 }: {
   value: string;
@@ -40,6 +41,7 @@ export default function OptionPicker({
   placeholder?: string;
   className?: string;
 }) {
+  const uiText = useInlineText();
   const [open, setOpen] = useState(false);
   const container = useRef<HTMLDivElement>(null);
   const selectedRow = useRef<HTMLLIElement>(null);
@@ -81,7 +83,7 @@ export default function OptionPicker({
         className={cn(className, "flex items-center justify-between gap-2 text-left")}
       >
         <span className={cn("truncate", !selected?.name && "text-stone-500")}>
-          {selected?.name || placeholder}
+          {selected?.name || placeholder || uiText("choose")}
         </span>
         <ChevronDown className="size-4 shrink-0 text-stone-500" />
       </button>

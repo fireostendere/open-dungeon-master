@@ -110,9 +110,9 @@ export function DirectorArmedBanner({
       />
       <span className="min-w-0 flex-1 truncate">
         {state.absoluteCommand
-          ? uiText("Direction armed: \"{command}\"", { command: state.absoluteCommand })
-          : uiText("{event} armed for the next turn", {
-              event: state.oneShot ? oneShotLabel(state.oneShot) : uiText("Event"),
+          ? uiText("directionArmedCommand", { command: state.absoluteCommand })
+          : uiText("eventArmedForTheNextTurn", {
+              event: state.oneShot ? oneShotLabel(state.oneShot) : uiText("event"),
             })}
       </span>
       {steersStory ? (
@@ -132,7 +132,7 @@ export function DirectorArmedBanner({
               .finally(() => setBusy(false));
           }}
           className={cn(ui.iconAction, "-my-1 shrink-0 disabled:opacity-50")}
-          aria-label={uiText("Disarm")}
+          aria-label={uiText("disarm")}
         >
           <X className="size-3.5" />
         </button>

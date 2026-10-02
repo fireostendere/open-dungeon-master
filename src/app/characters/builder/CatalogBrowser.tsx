@@ -244,7 +244,7 @@ export default function CatalogBrowser({
               ) : null}
               <ul>
                 {recommended.entries
-                  .filter((entry) => !needle || entry.name.toLowerCase().includes(needle))
+                  .filter((entry) => !needle || (entry.name.toLowerCase().includes(needle) || localizedContentName(kind, entry.name, locale).toLowerCase().includes(needle)))
                   .map((entry) => {
                     const on = selected.has(entry.name.trim().toLowerCase());
                     return (
@@ -271,14 +271,14 @@ export default function CatalogBrowser({
                             ) : (
                               <Plus className="size-3.5 shrink-0 text-stone-600" />
                             )}
-                            <span className={cn(on && "text-amber-200")}>{entry.name}</span>
+                            <span className={cn(on && "text-amber-200")}>{localizedContentName(kind, entry.name, locale)}</span>
                           </span>
                           <span className="shrink-0 text-[11px] text-stone-500">
                             {entry.note ?? ""}
                           </span>
                         </button>
                         <InfoButton
-                          label={entry.name}
+                          label={localizedContentName(kind, entry.name, locale)}
                           reference={{ kind, slug: contentSlug(entry.name), name: entry.name }}
                         />
                       </li>
@@ -293,7 +293,7 @@ export default function CatalogBrowser({
             const isLoading = loading.includes(section.key);
             const rows = loaded[section.key]?.rows ?? [];
             const visible = needle
-              ? rows.filter((entry) => entry.name.toLowerCase().includes(needle))
+              ? rows.filter((entry) => (entry.name.toLowerCase().includes(needle) || localizedContentName(kind, entry.name, locale).toLowerCase().includes(needle)))
               : rows;
             return (
               <div key={section.key} className="border-t border-stone-800/80 first:border-t-0">
@@ -373,7 +373,7 @@ export default function CatalogBrowser({
                                       reading it before adding costs nothing. */}
                                   <InfoButton
                                     label={localizedContentName(kind, entry.name, locale)}
-                                    meta={kind === "spells" ? spellSummary(entry.data) : undefined}
+                                    meta={kind === "spells" ? spellSummary(entry.data, locale) : undefined}
                                     text={describeContentEntry(entry.data, locale, { kind, name: entry.name, slug: entry.slug })}
                                     reference={
                                       entry.source === "homebrew"

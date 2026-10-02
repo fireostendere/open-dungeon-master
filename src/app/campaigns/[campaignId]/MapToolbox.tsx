@@ -267,8 +267,8 @@ export function MapToolbox({
             <button
               type="button"
               disabled={!undo.canUndo}
-              aria-label={uiText("Undo")}
-              title={uiText("Undo (Ctrl+Z)")}
+              aria-label={uiText("undo")}
+              title={uiText("undoCtrlZ")}
               onClick={undo.onUndo}
               className="rounded-md border border-stone-700 p-1 text-stone-300 hover:text-amber-200 disabled:opacity-40"
             >
@@ -277,8 +277,8 @@ export function MapToolbox({
             <button
               type="button"
               disabled={!undo.canRedo}
-              aria-label={uiText("Redo")}
-              title={uiText("Redo (Ctrl+Shift+Z)")}
+              aria-label={uiText("redo")}
+              title={uiText("redoCtrlShiftZ")}
               onClick={undo.onRedo}
               className="rounded-md border border-stone-700 p-1 text-stone-300 hover:text-amber-200 disabled:opacity-40"
             >
@@ -309,7 +309,7 @@ export function MapToolbox({
       {tools.mode === "light" && caps.lights ? (
         <div className="space-y-1">
           <p className="flex items-center gap-1.5 text-[11px] uppercase tracking-wide text-stone-500">
-            <Flame className="size-3.5" /> {uiText("Light a tile")}
+            <Flame className="size-3.5" /> {uiText("lightATile")}
           </p>
           <div className="flex flex-wrap gap-1">
             {LIGHT_PRESETS.map((preset) => {
@@ -336,7 +336,7 @@ export function MapToolbox({
           <div className="flex flex-wrap items-center gap-2 text-[11px] text-stone-500">
             {(["brightRadius", "dimRadius"] as const).map((side) => (
               <label key={side} className="flex items-center gap-1">
-                {side === "brightRadius" ? uiText("Bright") : uiText("Dim")}
+                {side === "brightRadius" ? uiText("bright") : uiText("dim")}
                 <input
                   type="range"
                   min={LIGHT_LIMITS.minRadius}
@@ -361,12 +361,12 @@ export function MapToolbox({
                 onClick={onClearLights}
                 className="rounded-md border border-stone-700 px-2 py-0.5 text-stone-400 hover:text-red-300"
               >
-                {uiText("Put out all")} {counts.lights}
+                {uiText("putOutAll")} {counts.lights}
               </button>
             ) : null}
           </div>
           <p className="text-[10px] text-stone-600">
-            {uiText("Tap a tile to light it; tap a lit tile to put it out. Up to")} {LIGHT_LIMITS.max} {uiText("on a map.")}
+            {uiText("tapATileToLightItTapA")} {LIGHT_LIMITS.max} {uiText("onAMap")}
           </p>
         </div>
       ) : null}
@@ -383,14 +383,14 @@ export function MapToolbox({
       ) : null}
 
       {tools.mode === "pick" ? (
-        <p className="text-[10px] text-stone-600">{uiText("Tap a tile to pick up whatever brush painted it.")}</p>
+        <p className="text-[10px] text-stone-600">{uiText("tapATileToPickUpWhateverBrush")}</p>
       ) : null}
       {tools.mode === "pan" ? (
-        <p className="text-[10px] text-stone-600">{uiText("Drag to move. Pinch or scroll to zoom; the corner buttons do the same.")}</p>
+        <p className="text-[10px] text-stone-600">{uiText("dragToMovePinchOrScrollToZoom")}</p>
       ) : null}
       {!tools.mode ? (
         <p className="text-[10px] text-stone-600">
-          {uiText("Pick a tool. Keys 1 to 5 pick a brush, Escape puts the tool down, Ctrl+Z takes back the last edit.")}
+          {uiText("pickAToolKeys1To5Pick")}
         </p>
       ) : null}
     </div>

@@ -86,22 +86,22 @@ export function SpellBook({
 
   const stateText = (state: SpellTileState) =>
     state === "ready"
-      ? uiText("Ready")
+      ? uiText("ready")
       : state === "pending"
-        ? uiText("At long rest")
+        ? uiText("atLongRest")
         : state === "granted"
-          ? uiText("Always prepared")
+          ? uiText("alwaysPrepared")
           : state === "inBook"
-            ? uiText("In spellbook")
-            : uiText("Available");
+            ? uiText("inSpellbook")
+            : uiText("available");
   const levelLabel = (key: string) =>
     key === "0"
-      ? uiText("Cantrips")
+      ? uiText("cantrips")
       : key === "other"
-        ? uiText("Other spells (level unknown)")
-        : uiText("Level {level} spells", { level: ROMAN[Number(key)] ?? key });
+        ? uiText("otherSpellsLevelUnknown")
+        : uiText("levelLevelSpells", { level: ROMAN[Number(key)] ?? key });
   // A tab names what it holds ("Level I spells"), not just the numeral.
-  const tabLabel = (key: string) => (key === "other" ? uiText("Other") : levelLabel(key));
+  const tabLabel = (key: string) => (key === "other" ? uiText("other") : levelLabel(key));
   const nameOf = (tile: SpellTile) => tile.label ?? localizedContentName("spells", tile.name, locale);
   const describe = (tile: SpellTile) =>
     tile.data ? describeContentEntry(tile.data, locale, { kind: "spells", name: tile.name }) : undefined;
@@ -177,7 +177,7 @@ export function SpellBook({
       ) : null}
 
       <div className="flex flex-wrap items-center gap-2">
-        <div role="tablist" aria-label={uiText("Spell level")} className="flex flex-wrap gap-1">
+        <div role="tablist" aria-label={uiText("spellLevel")} className="flex flex-wrap gap-1">
           {keys.map((key) => {
             const count = chosenIn(key);
             const selected = !needle && key === active;
@@ -212,15 +212,15 @@ export function SpellBook({
         <input
           value={filter}
           onChange={(event) => setFilter(event.target.value)}
-          placeholder={uiText("Find a spell...")}
-          aria-label={uiText("Find a spell")}
+          placeholder={uiText("findASpell")}
+          aria-label={uiText("findASpell253560")}
           className="ml-auto min-w-40 flex-1 rounded-md border border-stone-700/70 sm:max-w-56 bg-stone-950 px-2 py-1 text-xs text-stone-200 outline-none focus:border-amber-400/60"
         />
       </div>
 
       {needle ? (
         <p className="eyebrow mt-2 mb-1.5 text-[10px] text-stone-500">
-          {uiText("Matching “{query}”", { query: filter.trim() })}
+          {uiText("matchingQuery", { query: filter.trim() })}
         </p>
       ) : (
         <div className="mt-2" />
@@ -229,7 +229,7 @@ export function SpellBook({
         <ul className="grid grid-cols-2 gap-1.5 min-[480px]:grid-cols-3">
           {ordered.map((tile) => {
             const clickable = toggles(tile) && !busy;
-            const summary = tile.data ? spellSummary(tile.data) : undefined;
+            const summary = tile.data ? spellSummary(tile.data, locale) : undefined;
             const name = nameOf(tile);
             const line = tile.note ?? stateText(tile.state);
             return (
@@ -252,7 +252,7 @@ export function SpellBook({
                       {tile.suggested ? (
                         <Star
                           className="ml-1 inline size-3 fill-amber-300 text-amber-300"
-                          aria-label={uiText("Suggested")}
+                          aria-label={uiText("suggested")}
                         />
                       ) : null}
                     </span>
@@ -279,7 +279,7 @@ export function SpellBook({
         </ul>
       ) : (
         <p className="py-2 text-xs text-stone-500">
-          {needle ? uiText("No spell matches.") : (emptyText ?? uiText("No spells yet."))}
+          {needle ? uiText("noSpellMatches") : (emptyText ?? uiText("noSpellsYet"))}
         </p>
       )}
 
@@ -292,7 +292,7 @@ export function SpellBook({
         ))}
         {tiles.some((tile) => tile.suggested) ? (
           <span className="flex items-center gap-1">
-            <Star className="size-3 fill-amber-300 text-amber-300" aria-hidden="true" /> {uiText("Suggested")}
+            <Star className="size-3 fill-amber-300 text-amber-300" aria-hidden="true" /> {uiText("suggested")}
           </span>
         ) : null}
       </div>

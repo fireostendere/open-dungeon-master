@@ -96,7 +96,7 @@ export function Chip({
           type="button"
           onClick={onRemove}
           className="text-stone-500 hover:text-red-400"
-          aria-label={uiText("Remove {value}", { value: label })}
+          aria-label={uiText("removeValue", { value: label })}
         >
           <X className="size-3" />
         </button>

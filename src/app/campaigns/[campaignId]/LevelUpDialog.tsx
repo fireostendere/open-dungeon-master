@@ -1,5 +1,6 @@
 "use client";
 
+import { optionCopy } from "@/lib/i18n/option-copy";
 import { useInlineText } from "@/lib/i18n/inline-text";
 import { optionKindLabel } from "@/lib/i18n/option-kind";
 import * as Dialog from "@radix-ui/react-dialog";
@@ -416,7 +417,7 @@ export function LevelUpDialog({
         name: spell.name,
         level: spell.level,
         state: granted ? ("granted" as const) : picked ? ("ready" as const) : ("available" as const),
-        note: granted ? uiText("Free with your subclass") : picked ? uiText("New") : undefined,
+        note: granted ? uiText("freeWithYourSubclass") : picked ? uiText("new6403f2") : undefined,
         data: spell.data,
         slug: spell.slug,
         homebrew: spell.source === "homebrew",
@@ -779,7 +780,7 @@ export function LevelUpDialog({
                         {copy.multiclass}
                       </p>
                       <p className="text-xs text-stone-500">
-                        {uiText("A new class starts at level 1 with SOME of its training: no saving throws, and only the proficiencies the multiclass rules grant.")}
+                        {uiText("aNewClassStartsAtLevel1With")}
                       </p>
                       <div className="max-h-48 space-y-1.5 overflow-y-auto pr-1">
                         {newClassOptions.map(({ option, check }) => {
@@ -824,7 +825,7 @@ export function LevelUpDialog({
                   {needsSkillPick ? (
                     <>
                       <p className="text-stone-300">
-                        {chosenKlass?.name ?? classChoice} {uiText("grants one new skill. Pick it:")}
+                        {chosenKlass?.name ?? classChoice} {uiText("grantsOneNewSkillPickIt")}
                       </p>
                       <div className="flex flex-wrap gap-1.5">
                         {skillOptions.map((skillId) => {
@@ -847,7 +848,7 @@ export function LevelUpDialog({
                               >
                                 {name}
                               </button>
-                              <InfoButton label={name} text={describeSkill(skillId)} />
+                              <InfoButton label={name} text={describeSkill(skillId, locale)} />
                             </span>
                           );
                         })}
@@ -909,7 +910,7 @@ export function LevelUpDialog({
                           >
                             {name}
                           </button>
-                          <InfoButton label={name} text={describeSkill(skillId)} />
+                          <InfoButton label={name} text={describeSkill(skillId, locale)} />
                         </span>
                       );
                     })}
@@ -933,6 +934,7 @@ export function LevelUpDialog({
                         </p>
                         <div className="max-h-56 space-y-1.5 overflow-y-auto pr-1">
                           {slot.options.map((option) => {
+                            const translated = optionCopy(option, locale);
                             const picked = slot.chosen.some(
                               (name) => name.toLowerCase() === option.n.toLowerCase(),
                             );
@@ -956,17 +958,17 @@ export function LevelUpDialog({
                                   onClick={() => toggleOption(slot, option.n)}
                                   className="grow text-left"
                                 >
-                                  <span className="block">{option.n}</span>
+                                  <span className="block">{translated.title}</span>
                                   <span className="block text-[11px] text-stone-500">
                                     {already ? copy.known : ""}
-                                    {option.req ? (locale === "ru" ? `Требование: ${option.req}. ` : `Requires ${option.req}. `) : ""}
-                                    {option.d}
+                                    {option.req ? (locale === "ru" ? `Требование: ${translated.requirement}. ` : `Requires ${translated.requirement}. `) : ""}
+                                    {translated.text}
                                   </span>
                                 </button>
                                 <InfoButton
-                                  label={option.n}
-                                  meta={option.req ? (locale === "ru" ? `Требование: ${option.req}` : `Requires ${option.req}`) : undefined}
-                                  text={option.d}
+                                  label={translated.title}
+                                  meta={option.req ? (locale === "ru" ? `Требование: ${translated.requirement}` : `Requires ${translated.requirement}`) : undefined}
+                                  text={translated.text}
                                 />
                               </div>
                             );
@@ -1069,7 +1071,7 @@ export function LevelUpDialog({
                     })}
                     {!subclassOptions.length ? (
                       <p className="text-xs text-stone-500">
-                        {uiText("No known specializations for this class; the party lead can set one on the sheet later.")}
+                        {uiText("noKnownSpecializationsForThisClassTheParty")}
                       </p>
                     ) : null}
                   </div>
@@ -1079,37 +1081,37 @@ export function LevelUpDialog({
               {step === "spells" ? (
                 <>
                   <p className="text-stone-300">
-                    {uiText("New spells for {name} at level {level}:", { name: sheet.name, level: classLevelAfter })}
+                    {uiText("newSpellsForNameAtLevelLevel", { name: sheet.name, level: classLevelAfter })}
                   </p>
                   <ul className="space-y-1 text-xs text-stone-400">
                     {remainingCantrips ? (
                       <li>
-                        <span className="text-amber-200">{uiText("Cantrips: choose {count}.", { count: remainingCantrips })}</span>{" "}
-                        {uiText("Small spells you know for good and cast as often as you like.")}
+                        <span className="text-amber-200">{uiText("cantripsChooseCount", { count: remainingCantrips })}</span>{" "}
+                        {uiText("smallSpellsYouKnowForGoodAndCast")}
                       </li>
                     ) : null}
                     {remainingPicks ? (
                       <li>
                         {bookGain !== null ? (
                           <>
-                            <span className="text-amber-200">{uiText("Spellbook: write {count} new spells.", { count: remainingPicks })}</span>{" "}
-                            {uiText("They are prepared right away while your limit has room; the rest you prepare from your sheet, ready after a long rest.")}
+                            <span className="text-amber-200">{uiText("spellbookWriteCountNewSpells", { count: remainingPicks })}</span>{" "}
+                            {uiText("theyArePreparedRightAwayWhileYourLimit")}
                           </>
                         ) : levelStyle === "known" ? (
                           <>
-                            <span className="text-amber-200">{uiText("Spells known: choose up to {count}.", { count: remainingPicks })}</span>{" "}
-                            {uiText("You keep them for good and always have them ready.")}
+                            <span className="text-amber-200">{uiText("spellsKnownChooseUpToCount", { count: remainingPicks })}</span>{" "}
+                            {uiText("youKeepThemForGoodAndAlwaysHave")}
                           </>
                         ) : (
                           <>
-                            <span className="text-amber-200">{uiText("Prepared spells: prepare up to {count} more.", { count: remainingPicks })}</span>{" "}
-                            {uiText("They are ready now; after any long rest you can swap them from your sheet.")}
+                            <span className="text-amber-200">{uiText("preparedSpellsPrepareUpToCountMore", { count: remainingPicks })}</span>{" "}
+                            {uiText("theyAreReadyNowAfterAnyLongRest")}
                           </>
                         )}
                       </li>
                     ) : null}
                     {!remainingCantrips && !remainingPicks ? (
-                      <li>{uiText("Nothing new to choose at this level: your spells stay as they are.")}</li>
+                      <li>{uiText("nothingNewToChooseAtThisLevelYour")}</li>
                     ) : null}
                   </ul>
                   {spellNote ? (
@@ -1122,17 +1124,17 @@ export function LevelUpDialog({
                     maxLevel={maxCastable ?? 0}
                     counters={[
                       ...(remainingCantrips
-                        ? [{ label: uiText("Cantrips"), value: cantripPicks.length, max: remainingCantrips }]
+                        ? [{ label: uiText("cantrips"), value: cantripPicks.length, max: remainingCantrips }]
                         : []),
                       ...(remainingPicks !== 0
                         ? [
                             {
                               label:
                                 bookGain !== null
-                                  ? uiText("Spellbook")
+                                  ? uiText("spellbook")
                                   : levelStyle === "known"
-                                    ? uiText("Known")
-                                    : uiText("Prepared"),
+                                    ? uiText("known")
+                                    : uiText("prepared"),
                               value: spellPicks.length,
                               max: remainingPicks,
                             },
@@ -1152,15 +1154,15 @@ export function LevelUpDialog({
                           const name = spellLabel(tile.name);
                           setSpellNote(
                             tile.level === 0
-                              ? uiText("That is every new cantrip for this level. Untick one to choose {name}.", { name })
-                              : uiText("That is every new spell for this level. Untick one to choose {name}.", { name }),
+                              ? uiText("thatIsEveryNewCantripForThisLevel", { name })
+                              : uiText("thatIsEveryNewSpellForThisLevel", { name }),
                           );
                           return;
                         }
                       }
                       toggleSpell(tile.name, tile.level ?? undefined);
                     }}
-                    emptyText={poolLoading ? uiText("Loading the spell list...") : uiText("No new spells at this level.")}
+                    emptyText={poolLoading ? uiText("loadingTheSpellList") : uiText("noNewSpellsAtThisLevel")}
                   />
                   {spellPicks.length || cantripPicks.length ? (
                     <p className="text-xs text-stone-400">
@@ -1183,7 +1185,7 @@ export function LevelUpDialog({
                   onClick={() => setStepIndex(Math.max(0, stepIndex - 1))}
                   className="rounded-md border border-stone-700 px-4 py-2.5 text-sm text-stone-300 hover:bg-stone-900 disabled:opacity-50"
                 >
-                  {uiText("Back")}
+                  {uiText("back")}
                 </button>
                 <button
                   type="button"

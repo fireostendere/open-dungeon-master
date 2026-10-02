@@ -125,9 +125,15 @@ try {
     }
   });
 
-  await test("every quick link has a translated label in the contents", () => {
+
+  await test("every quick link has a named EN/RU translation", async () => {
+    const { UI_COPY } = await import("../src/lib/i18n/inline-copy.ts");
     const source = fs.readFileSync(new URL("../src/components/rulebook/RulebookContents.tsx", import.meta.url), "utf8");
-    for (const link of QUICK_LINKS) assert.ok(source.includes(`uiText(${JSON.stringify(link.label)})`), `${link.label}: no uiText label`);
+    for (const link of QUICK_LINKS) {
+      const pair = Object.entries(UI_COPY).find(([, copy]) => copy.en === link.label);
+      assert.ok(pair?.[1].ru, `${link.label}: no Russian label`);
+      assert.ok(source.includes(`uiText(${JSON.stringify(pair[0])})`), `${link.label}: no named label`);
+    }
   });
 
   await test("links between pages point at pages that exist", () => {

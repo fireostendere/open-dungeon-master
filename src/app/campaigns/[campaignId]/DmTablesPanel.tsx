@@ -341,14 +341,14 @@ export function DmTablesPanel({
           <input
             value={prompt}
             onChange={(event) => setPrompt(event.target.value.slice(0, 300))}
-            placeholder={uiText("what the dockhands are whispering about")}
+            placeholder={uiText("whatTheDockhandsAreWhisperingAbout")}
             className={inputClass}
           />
           <button
             type="button"
             onClick={draft}
             disabled={busy === "draft" || !prompt.trim()}
-            title={uiText("Drafts rows for you to edit. Nothing is saved until you save it.")}
+            title={uiText("draftsRowsForYouToEditNothingIs")}
             className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-stone-700 px-2 py-1 text-xs text-stone-300 hover:bg-stone-900 disabled:opacity-40"
           >
             {busy === "draft" ? (
@@ -356,7 +356,7 @@ export function DmTablesPanel({
             ) : (
               <Sparkles className="size-3.5" />
             )}
-            {uiText("Draft")}
+            {uiText("draft")}
           </button>
         </div>
       ) : null}
@@ -365,7 +365,7 @@ export function DmTablesPanel({
         onChange={(event) => setText(event.target.value)}
         rows={rows ? 10 : 5}
         placeholder={
-          uiText("1-3 A press gang is working the taproom.\n4. The harbourmaster has not been seen in a week.\nOr just paste a table straight out of a book.")
+          uiText("text13APressGangIsWorkingThe")
         }
         data-tour="tables-body"
         className={cn(inputClass, "mt-1.5 resize-y font-mono text-xs")}
@@ -461,7 +461,7 @@ export function DmTablesPanel({
       <section className="rounded-lg border border-stone-800 bg-stone-950/60 px-2.5 py-2">
         <p className="mb-1.5 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-stone-500">
           <GameIcon icon={{ kind: "glyph", key: "system-tables" }} size="size-5" />
-          {uiText("Your tables")}
+          {uiText("yourTables")}
         </p>
         {tables.length ? (
           <ul className="space-y-1.5">
@@ -537,7 +537,7 @@ export function DmTablesPanel({
       <section className="rounded-lg border border-stone-800 bg-stone-950/60 px-2.5 py-2">
         <p className="mb-1.5 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-stone-500">
           <Plus className="size-3.5" />
-          {uiText("New table")}
+          {uiText("newTable")}
         </p>
         {editor}
       </section>

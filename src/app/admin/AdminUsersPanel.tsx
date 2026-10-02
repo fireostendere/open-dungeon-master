@@ -116,7 +116,7 @@ export function AdminUsersPanel({ meId }: { meId: string }) {
       {tempPassword ? (
         <div className="panel rounded-xl border-amber-500/40 p-4">
           <p className="text-sm text-stone-200">
-            {uiText("Temporary password for")} <span className="text-amber-200">{tempPassword.username}</span>{uiText(". It is shown only once; they must change it at next login.")}
+            {uiText("temporaryPasswordFor")} <span className="text-amber-200">{tempPassword.username}</span>{uiText("itIsShownOnlyOnceTheyMustChange")}
           </p>
           <div className="mt-2 flex flex-wrap items-center gap-2">
             <code className="rounded-lg border border-stone-700 bg-stone-950/80 px-3 py-1.5 font-mono text-sm text-amber-100">
@@ -130,14 +130,14 @@ export function AdminUsersPanel({ meId }: { meId: string }) {
                 setCopied(true);
               }}
             >
-              <Copy className="size-3.5" /> {copied ? uiText("Copied") : uiText("Copy")}
+              <Copy className="size-3.5" /> {copied ? uiText("copied") : uiText("copy")}
             </button>
             <button
               type="button"
               className="text-xs text-stone-500 hover:text-stone-300"
               onClick={() => setTempPassword(null)}
             >
-              {uiText("Dismiss")}
+              {uiText("dismiss")}
             </button>
           </div>
         </div>
@@ -164,11 +164,11 @@ export function AdminUsersPanel({ meId }: { meId: string }) {
               <div className="min-w-0 flex-1">
                 <p className="flex flex-wrap items-center gap-2 text-sm text-stone-100">
                   {user.username}
-                  {user.id === meId ? <span className="text-xs text-stone-500">{uiText("(you)")}</span> : null}
+                  {user.id === meId ? <span className="text-xs text-stone-500">{uiText("you")}</span> : null}
                   {user.isAdmin ? (
                     <span className="inline-flex items-center gap-1 rounded border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-amber-300">
                       <GameIcon icon={{ kind: "glyph", key: "tab-admin" }} size="size-5" />
-                      {uiText("Admin")}
+                      {uiText("admin")}
                     </span>
                   ) : null}
                   {user.hasDiscord ? (
@@ -178,59 +178,59 @@ export function AdminUsersPanel({ meId }: { meId: string }) {
                   ) : null}
                   {user.mustChangePassword ? (
                     <span className="rounded border border-orange-500/40 bg-orange-500/10 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-orange-300">
-                      {uiText("Reset pending")}
+                      {uiText("resetPending")}
                     </span>
                   ) : null}
                   {user.deletionDueAt ? (
                     <span
-                      title={uiText("Asked to delete their account; erased on {date}", {
+                      title={uiText("askedToDeleteTheirAccountErasedOnDate", {
                         date: new Date(user.deletionDueAt).toLocaleString(),
                       })}
                       className="rounded border border-red-500/40 bg-red-500/10 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-red-300"
                     >
-                      {uiText("Deletion")} {new Date(user.deletionDueAt).toLocaleDateString()}
+                      {uiText("deletion")} {new Date(user.deletionDueAt).toLocaleDateString()}
                     </span>
                   ) : null}
                 </p>
                 <p className="text-xs text-stone-500">
-                  {uiText("Campaigns: {count}", { count: user.campaignCount })} {uiText("· joined")}{" "}
+                  {uiText("campaignsCount", { count: user.campaignCount })} {uiText("joined")}{" "}
                   {new Date(user.createdAt).toLocaleDateString()}
                 </p>
               </div>
               <div className="flex w-full flex-wrap items-center justify-end gap-1.5 sm:w-auto">
                 <button
                   type="button"
-                  title={user.isAdmin ? uiText("Remove admin") : uiText("Make admin")}
+                  title={user.isAdmin ? uiText("removeAdmin") : uiText("makeAdmin")}
                   disabled={busyId === user.id}
                   onClick={() => toggleAdmin(user)}
                   className={ui.btnSmall}
                 >
                   {user.isAdmin ? <ShieldOff className="size-3.5" /> : <Shield className="size-3.5" />}
-                  {user.isAdmin ? uiText("Demote") : uiText("Admin")}
+                  {user.isAdmin ? uiText("demote") : uiText("admin")}
                 </button>
                 <button
                   type="button"
-                  title={uiText("Reset password")}
+                  title={uiText("resetPassword")}
                   disabled={busyId === user.id}
                   onClick={() => resetPassword(user)}
                   className={ui.btnSmall}
                 >
-                  <KeyRound className="size-3.5" /> {uiText("Reset")}
+                  <KeyRound className="size-3.5" /> {uiText("reset")}
                 </button>
                 {user.deletionDueAt ? (
                   <button
                     type="button"
-                    title={uiText("Call off the scheduled deletion")}
+                    title={uiText("callOffTheScheduledDeletion")}
                     disabled={busyId === user.id}
                     onClick={() => keepAccount(user)}
                     className={ui.btnSmall}
                   >
-                    <Undo2 className="size-3.5" /> {uiText("Keep")}
+                    <Undo2 className="size-3.5" /> {uiText("keep")}
                   </button>
                 ) : null}
                 <button
                   type="button"
-                  title={user.deletionDueAt ? uiText("Erase now instead of waiting") : uiText("Delete user")}
+                  title={user.deletionDueAt ? uiText("eraseNowInsteadOfWaiting") : uiText("deleteUser")}
                   disabled={busyId === user.id || user.id === meId}
                   onClick={() => setDeleting(user)}
                   className={cn(ui.btnSmall, "hover:border-red-500/50 hover:text-red-400")}
@@ -254,13 +254,13 @@ export function AdminUsersPanel({ meId }: { meId: string }) {
               )}
             >
               <AlertDialog.Title className="font-display text-lg tracking-wide text-amber-50">
-                {uiText("Delete")} {deleting.username}?
+                {uiText("delete")} {deleting.username}?
               </AlertDialog.Title>
               <AlertDialog.Description className="mt-2 text-xs text-stone-400">
-                {uiText("Their account, campaigns they own, characters, pictures and private chats are erased right now, with no grace period. Messages they wrote in other people&apos;s campaigns stay in those transcripts without their name.")}
+                {uiText("theirAccountCampaignsTheyOwnCharactersPicturesAnd")}
               </AlertDialog.Description>
               <div className="mt-4 flex justify-end gap-2">
-                <AlertDialog.Cancel className={ui.btnSmall}>{uiText("Cancel")}</AlertDialog.Cancel>
+                <AlertDialog.Cancel className={ui.btnSmall}>{uiText("cancel")}</AlertDialog.Cancel>
                 <button
                   type="button"
                   onClick={() => deleteUser(deleting)}
@@ -268,7 +268,7 @@ export function AdminUsersPanel({ meId }: { meId: string }) {
                   className={cn(ui.btnPrimary, "from-red-200 via-red-300 to-red-500 text-red-950")}
                 >
                   {busyId === deleting.id ? <Loader2 className="size-4 animate-spin" /> : null}
-                  {uiText("Delete forever")}
+                  {uiText("deleteForever")}
                 </button>
               </div>
             </AlertDialog.Content>

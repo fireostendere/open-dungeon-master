@@ -23,8 +23,8 @@ export function WorldPackGallery({ packId }: { packId: string }) {
   }
   return (
     <div className="space-y-2">
-      {places.length ? <Strip label={uiText("Places")} entries={places} wide /> : null}
-      {factions.length ? <Strip label={uiText("Factions")} entries={factions} /> : null}
+      {places.length ? <Strip label={uiText("places")} entries={places} wide /> : null}
+      {factions.length ? <Strip label={uiText("factions")} entries={factions} /> : null}
     </div>
   );
 }

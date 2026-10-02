@@ -95,51 +95,51 @@ function CasterBook({
   const tiles = buildTiles(view, [...lookups.values(), ...(editing ? pool : [])], editing);
   const cap = spellCapOf(view, sheet.abilities);
   const counters = [
-    ...(view.cantrips.length ? [{ label: uiText("Cantrips"), value: view.cantrips.length }] : []),
+    ...(view.cantrips.length ? [{ label: uiText("cantrips"), value: view.cantrips.length }] : []),
     view.style === "known"
       ? {
-          label: uiText("Known"),
+          label: uiText("known"),
           value: heldSpells(view).filter((name) => !isGranted(view, name)).length,
           max: cap?.count,
         }
       : {
-          label: uiText("Prepared"),
+          label: uiText("prepared"),
           value: preparedCount(view),
           max: cap?.count,
           extra: view.pending.length
-            ? uiText("({count} at long rest)", { count: view.pending.length })
+            ? uiText("countAtLongRest", { count: view.pending.length })
             : undefined,
         },
-    ...(view.style === "spellbook" ? [{ label: uiText("Spellbook"), value: spellbookOf(view).length }] : []),
+    ...(view.style === "spellbook" ? [{ label: uiText("spellbook"), value: spellbookOf(view).length }] : []),
   ];
 
   // The server words its answers in English for the narrator and the API;
   // the sheet says the same thing in the player's language.
   function successNote(action: PrepAction, spell: string) {
     return action === "prepare"
-      ? uiText("{spell} will be prepared after the next long rest.", { spell })
+      ? uiText("spellWillBePreparedAfterTheNextLong", { spell })
       : action === "unprepare"
-        ? uiText("{spell} is no longer prepared. Preparing it again takes a long rest.", { spell })
-        : uiText("{spell} will not be prepared.", { spell });
+        ? uiText("spellIsNoLongerPreparedPreparingItAgain", { spell })
+        : uiText("spellWillNotBePrepared", { spell });
   }
   function errorText(code: PrepErrorCode | undefined, spell: string, limit?: number): string | null {
     switch (code) {
       case "known_caster":
-        return uiText("A caster who knows their spells always has them ready. They swap one for another when they gain a level, not at a rest.");
+        return uiText("aCasterWhoKnowsTheirSpellsAlwaysHas");
       case "cantrip":
-        return uiText("{spell} is a cantrip: always ready, never prepared.", { spell });
+        return uiText("spellIsACantripAlwaysReadyNeverPrepared", { spell });
       case "granted":
-        return uiText("{spell} comes with the subclass and is always prepared.", { spell });
+        return uiText("spellComesWithTheSubclassAndIsAlways", { spell });
       case "not_in_book":
-        return uiText("{spell} is not in the spellbook. A wizard prepares only spells written in it.", { spell });
+        return uiText("spellIsNotInTheSpellbookAWizard", { spell });
       case "not_on_list":
-        return uiText("{spell} is not on the list this class can prepare at its level.", { spell });
+        return uiText("spellIsNotOnTheListThisClass", { spell });
       case "full":
-        return uiText("Already {count} prepared, counting the ones waiting for the long rest. Unprepare one first.", { count: limit ?? cap?.count ?? 0 });
+        return uiText("alreadyCountPreparedCountingTheOnesWaitingFor", { count: limit ?? cap?.count ?? 0 });
       case "already_prepared":
-        return uiText("{spell} is already prepared.", { spell });
+        return uiText("spellIsAlreadyPrepared", { spell });
       case "already_pending":
-        return uiText("{spell} is already waiting for the next long rest.", { spell });
+        return uiText("spellIsAlreadyWaitingForTheNextLong", { spell });
       default:
         return null;
     }
@@ -172,12 +172,12 @@ function CasterBook({
               text:
                 errorText(data.code, spell, data.limit) ??
                 (response.status === 404
-                  ? uiText("The server does not know how to change prepared spells yet. Update the server this table runs on.")
-                  : (data.error ?? uiText("Could not change that spell."))),
+                  ? uiText("theServerDoesNotKnowHowToChange")
+                  : (data.error ?? uiText("couldNotChangeThatSpell"))),
             },
       );
     } catch {
-      setMessage({ tone: "error", text: uiText("Could not reach the server.") });
+      setMessage({ tone: "error", text: uiText("couldNotReachTheServer") });
     } finally {
       setBusy(false);
     }
@@ -198,9 +198,9 @@ function CasterBook({
         emptyText={
           editing
             ? loading
-              ? uiText("Loading the class list...")
-              : uiText("Nothing to prepare at this level.")
-            : uiText("Nothing prepared at this level.")
+              ? uiText("loadingTheClassList")
+              : uiText("nothingToPrepareAtThisLevel")
+            : uiText("nothingPreparedAtThisLevel")
         }
         header={
           canPrepare ? (
@@ -217,10 +217,10 @@ function CasterBook({
               }
             >
               {editing
-                ? uiText("Done")
+                ? uiText("done")
                 : view.style === "spellbook"
-                  ? uiText("Prepare from spellbook")
-                  : uiText("Change prepared spells")}
+                  ? uiText("prepareFromSpellbook")
+                  : uiText("changePreparedSpells")}
             </button>
           ) : null
         }
@@ -228,11 +228,11 @@ function CasterBook({
           <>
             {editing ? (
               <p className="mt-2 text-[11px] text-stone-500">
-                {uiText("Tap a spell to prepare it: it becomes ready after your next long rest. Tapping a ready spell unprepares it at once. Cantrips and subclass spells never change.")}
+                {uiText("tapASpellToPrepareItItBecomes")}
               </p>
             ) : view.style === "known" && editable ? (
               <p className="mt-2 text-[11px] text-stone-500">
-                {uiText("You know these spells and always have them ready. You can swap one when you level up.")}
+                {uiText("youKnowTheseSpellsAndAlwaysHaveThem")}
               </p>
             ) : null}
             {message ? (

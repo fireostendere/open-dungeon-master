@@ -49,14 +49,14 @@ export function CampaignCover({
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={url}
-        alt={cover ? uiText("{title} cover art", { title }) : ""}
-        aria-label={cover ? undefined : uiText("{title} has no cover art yet", { title })}
+        alt={cover ? uiText("titleCoverArt", { title }) : ""}
+        aria-label={cover ? undefined : uiText("titleHasNoCoverArtYet", { title })}
         className={cn("size-full object-cover", !cover && pending && "opacity-40")}
         loading="lazy"
       />
       {pending ? (
         <div className="absolute inset-0 flex items-center justify-center bg-black/40">
-          <Loader2 className="size-6 animate-spin text-amber-200" aria-label={uiText("Painting the cover")} />
+          <Loader2 className="size-6 animate-spin text-amber-200" aria-label={uiText("paintingTheCover")} />
         </div>
       ) : null}
     </div>

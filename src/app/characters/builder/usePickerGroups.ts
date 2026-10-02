@@ -1,9 +1,13 @@
 "use client";
 
+import { uiCopy } from "@/lib/i18n/inline-copy";
+import { helpText } from "@/lib/i18n/help-copy";
+import type { Locale } from "@/lib/i18n/translations";
 import { useMemo } from "react";
 import { classGenres } from "@/lib/classes";
 import { GENRE_PRESETS } from "@/lib/genres";
 import {
+  localizedContentName,
   describeRace,
   describeSubclass,
   localizedRaceName,
@@ -12,7 +16,6 @@ import {
 import { characterDisplay } from "@/lib/i18n/character-display";
 import { useI18n } from "@/lib/i18n";
 import type { Genre } from "@/lib/schemas/game-settings";
-import { SRD_SKILLS } from "@/lib/srd";
 import { subclassBlurb, subclassLevelFor, subclassNamesFor } from "@/lib/srd/features";
 import { packRecommends, type Reskinned } from "@/lib/worlds/reskin-logic";
 import type { WorldPack } from "@/lib/worlds/types";
@@ -81,8 +84,8 @@ const ALIGNMENT_INFO =
 
 // A pack's own heading for its recommended tier ("Peoples of Middle-earth"),
 // so the group reads like the world rather than like a filter.
-function packGroupLabel(pack: WorldPack | null, prefix: string): string {
-  return pack ? `${prefix} ${pack.name}` : "Recommended for this setting";
+function packGroupLabel(pack: WorldPack | null, prefix: "settingCommon" | "settingPeoples" | "settingCallings" | "settingLives", locale: Locale): string {
+  return pack ? uiCopy(locale, prefix, { name: pack.name }) : uiCopy(locale, "recommendedSetting");
 }
 
 // The canonical name behind a reskin, shown in the option's meta column so a
@@ -155,11 +158,12 @@ export function backgroundInfoText(
     featureDesc?: string;
   },
   featureLabel = "Feature",
+  locale: Locale = "en",
 ): string | undefined {
   const feature = entry.feature
-    ? `**${featureLabel}: ${entry.feature}.**${entry.featureDesc ? ` ${entry.featureDesc}` : ""}`
+    ? `**${featureLabel}: ${helpText(entry.feature, locale)}.**${entry.featureDesc ? ` ${helpText(entry.featureDesc, locale)}` : ""}`
     : "";
-  const parts = [entry.packBlurb || entry.blurb, feature, entry.desc].filter(Boolean);
+  const parts = [entry.packBlurb || (entry.blurb ? helpText(entry.blurb, locale) : undefined), feature, entry.desc].filter(Boolean);
   return parts.length ? parts.join("\n\n") : undefined;
 }
 
@@ -229,21 +233,21 @@ export function usePickerGroups({
   const alignmentGroups = useMemo<PickerGroup[]>(() => {
     const toOption = (code: string): PickerOption => ({
       id: code,
-      name: `${code}: ${ALIGNMENT_LABELS[code]?.name ?? code}`,
-      infoText: ALIGNMENT_LABELS[code]?.blurb ?? ALIGNMENT_INFO,
+      name: `${code}: ${characterDisplay(ALIGNMENT_LABELS[code]?.name ?? code, locale)}`,
+      infoText: helpText(ALIGNMENT_LABELS[code]?.blurb ?? ALIGNMENT_INFO, locale),
     });
     const preferred = (pack?.alignments ?? []).filter((code) => ALIGNMENTS.includes(code));
     if (!preferred.length) {
       return [{ label: null, options: ALIGNMENTS.map(toOption) }];
     }
     return [
-      { label: packGroupLabel(pack, "Common in"), options: preferred.map(toOption) },
+      { label: packGroupLabel(pack, "settingCommon", locale), options: preferred.map(toOption) },
       {
-        label: "All alignments",
+        label: uiCopy(locale, "allAlignments"),
         options: ALIGNMENTS.filter((code) => !preferred.includes(code)).map(toOption),
       },
     ];
-  }, [pack]);
+  }, [pack, locale]);
 
   const raceGroups = useMemo<PickerGroup[]>(() => {
     const toOption = (entry: Reskinned<RaceOption>): PickerOption => ({
@@ -264,8 +268,8 @@ export function usePickerGroups({
     });
     if (raceTier.recommended.length) {
       return [
-        { label: packGroupLabel(pack, "Peoples of"), options: raceTier.recommended.map(toOption) },
-        { label: "All races", options: raceTier.other.map(toOption) },
+        { label: packGroupLabel(pack, "settingPeoples", locale), options: raceTier.recommended.map(toOption) },
+        { label: uiCopy(locale, "allRaces"), options: raceTier.other.map(toOption) },
       ];
     }
     return [{ label: null, options: races.map(toOption) }];
@@ -278,7 +282,7 @@ export function usePickerGroups({
       meta: entry.packName
         ? `d${entry.hitDie} · ${canonicalName(rawClasses, entry.id)}`
         : entry.spellAbility
-          ? `d${entry.hitDie} · caster`
+          ? `d${entry.hitDie} · ${uiCopy(locale, "caster")}`
           : `d${entry.hitDie}`,
       infoText: classInfoText(entry),
       reference: { kind: "classes", slug: entry.id, name: entry.name },
@@ -286,10 +290,10 @@ export function usePickerGroups({
     if (classTier.recommended.length) {
       return [
         {
-          label: pack ? packGroupLabel(pack, "Callings of") : "Recommended for this setting",
+          label: pack ? packGroupLabel(pack, "settingCallings", locale) : uiCopy(locale, "recommendedSetting"),
           options: classTier.recommended.map(toOption),
         },
-        { label: "All classes", options: classTier.other.map(toOption) },
+        { label: uiCopy(locale, "allClasses"), options: classTier.other.map(toOption) },
       ];
     }
     // With no recommended tier, the other settings' entries separate out
@@ -297,9 +301,9 @@ export function usePickerGroups({
     const bySource = groupBySourceSetting(classTier.other);
     if (bySource.packs.length) {
       return [
-        { label: "Standard classes (high fantasy)", options: bySource.standard.map(toOption) },
+        { label: uiCopy(locale, "standardClasses"), options: bySource.standard.map(toOption) },
         ...bySource.packs.map((source) => ({
-          label: `From the ${source.label} setting`,
+          label: uiCopy(locale, "settingFrom", { name: source.label }),
           options: source.options.map(toOption),
         })),
       ];
@@ -334,10 +338,10 @@ export function usePickerGroups({
   );
 
   const subclassGroups = useMemo<PickerGroup[]>(() => {
-    const groups: PickerGroup[] = [{ label: null, options: [{ id: "", name: "None yet" }] }];
+    const groups: PickerGroup[] = [{ label: null, options: [{ id: "", name: uiCopy(locale, "noneYet") }] }];
     if (builtInSubclasses.length) {
       groups.push({
-        label: "Full features",
+        label: uiCopy(locale, "fullFeatures"),
         options: builtInSubclasses.map((subclassName) => {
           const match = archetypes.find(
             (entry) => entry.name.toLowerCase() === subclassName.toLowerCase(),
@@ -359,7 +363,7 @@ export function usePickerGroups({
     }
     if (packOnlyArchetypes.length) {
       groups.push({
-        label: "From the content pack",
+        label: uiCopy(locale, "fromContentPack"),
         options: packOnlyArchetypes.map((entry) => ({
           id: entry.name,
           name: entry.name,
@@ -374,31 +378,31 @@ export function usePickerGroups({
   const backgroundGroups = useMemo<PickerGroup[]>(() => {
     const toOption = (entry: Reskinned<BackgroundOption>): PickerOption => ({
       id: entry.id,
-      name: entry.name,
+      name: localizedContentName("background", entry.name, locale),
       meta: entry.skills
-        .map((skillId) => SRD_SKILLS.find((skill) => skill.id === skillId)?.name ?? skillId)
+        .map((skillId) => characterDisplay(skillId, locale))
         .join(", "),
-      infoText: backgroundInfoText(entry, locale === "ru" ? "Умение" : "Feature"),
+      infoText: backgroundInfoText(entry, uiCopy(locale, "feature"), locale),
       reference: { kind: "backgrounds", slug: entry.id, name: entry.name },
     });
     if (backgroundTier.recommended.length) {
       return [
         {
-          label: pack ? packGroupLabel(pack, "Lives in") : "Recommended for this setting",
+          label: pack ? packGroupLabel(pack, "settingLives", locale) : uiCopy(locale, "recommendedSetting"),
           options: backgroundTier.recommended.map(toOption),
         },
-        { label: "All backgrounds", options: backgroundTier.other.map(toOption) },
+        { label: uiCopy(locale, "allBackgrounds"), options: backgroundTier.other.map(toOption) },
       ];
     }
     const bySource = groupBySourceSetting(backgroundTier.other);
     if (bySource.packs.length) {
       return [
         {
-          label: "Standard backgrounds (high fantasy)",
+          label: uiCopy(locale, "standardBackgrounds"),
           options: bySource.standard.map(toOption),
         },
         ...bySource.packs.map((source) => ({
-          label: `From the ${source.label} setting`,
+          label: uiCopy(locale, "settingFrom", { name: source.label }),
           options: source.options.map(toOption),
         })),
       ];
@@ -408,7 +412,7 @@ export function usePickerGroups({
 
   return {
     alignmentGroups,
-    alignmentInfo: ALIGNMENT_INFO,
+    alignmentInfo: helpText(ALIGNMENT_INFO, locale),
     raceGroups,
     classGroups,
     subclassGroups,

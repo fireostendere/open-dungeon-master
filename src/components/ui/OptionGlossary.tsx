@@ -1,5 +1,9 @@
 "use client";
 
+import { useI18n } from "@/lib/i18n";
+import { characterDisplay } from "@/lib/i18n/character-display";
+import { helpText } from "@/lib/i18n/help-copy";
+import { describeSkill } from "@/lib/help";
 import { InfoButton } from "@/components/ui/InfoDialog";
 import { glossaryText, type GlossaryEntry } from "@/lib/help/terms";
 
@@ -16,6 +20,11 @@ export function OptionGlossary({
   entries: readonly GlossaryEntry[];
   className?: string;
 }) {
+  const { locale } = useI18n();
+  const translated = entries.map((entry) => ({
+    name: characterDisplay(entry.name, locale),
+    blurb: describeSkill(entry.name.toLowerCase().replace(/ /g, "_"), locale) ?? helpText(entry.blurb, locale),
+  }));
   if (!entries.length) return null;
-  return <InfoButton label={title} text={glossaryText(entries)} className={className} />;
+  return <InfoButton label={characterDisplay(title, locale)} text={glossaryText(translated)} className={className} />;
 }

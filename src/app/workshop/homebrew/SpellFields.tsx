@@ -171,7 +171,7 @@ export function SpellFields({ data, onChange }: { data: Data; onChange: (next: D
                 </div>
               </>
             ) : null}
-            {[uiText("attack"), uiText("save"), uiText("auto")].includes(block.resolution) ? (
+            {["attack", "save", "auto"].includes(block.resolution) ? (
               <SelectField
                 label={copy.damageType}
                 value={String(mech.damageType ?? "")}
@@ -179,7 +179,7 @@ export function SpellFields({ data, onChange }: { data: Data; onChange: (next: D
                 onChange={(damageType) => setMech({ damageType: damageType || undefined })}
               />
             ) : null}
-            {[uiText("attack"), uiText("save"), uiText("auto")].includes(block.resolution) ? (
+            {["attack", "save", "auto"].includes(block.resolution) ? (
               <>
                 <TextField
                   label={copy.condition}
@@ -188,7 +188,7 @@ export function SpellFields({ data, onChange }: { data: Data; onChange: (next: D
                   placeholder={uiText("frightened")}
                   maxLength={40}
                   suggestions={CONDITIONS}
-                  glossary={{ title: "Conditions", entries: glossaryFor(CONDITIONS, CONDITION_BLURBS) }}
+                  glossary={{ title: uiText("conditions"), entries: glossaryFor(CONDITIONS, CONDITION_BLURBS) }}
                 />
                 {condition.name ? (
                   <NumberField

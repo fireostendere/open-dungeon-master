@@ -83,7 +83,7 @@ export function AdminReportsPanel() {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-sm text-stone-400">
-          {uiText("Players flag Dungeon Master passages, messages and other players from the table. Reports come to this server only; there is no central moderation behind the app.")}
+          {uiText("playersFlagDungeonMasterPassagesMessagesAndOther")}
         </p>
         <label className="flex items-center gap-2 text-xs text-stone-400">
           <input
@@ -92,7 +92,7 @@ export function AdminReportsPanel() {
             onChange={(event) => setShowAll(event.target.checked)}
             className="accent-amber-400"
           />
-          {uiText("Show resolved")}
+          {uiText("showResolved")}
         </label>
       </div>
 
@@ -100,7 +100,7 @@ export function AdminReportsPanel() {
 
       {reports.length === 0 ? (
         <p className="text-sm text-stone-500">
-          {showAll ? uiText("No reports yet.") : uiText("Nothing waiting. Open reports show up here.")}
+          {showAll ? uiText("noReportsYet") : uiText("nothingWaitingOpenReportsShowUpHere")}
         </p>
       ) : (
         <section className={cn(ui.card, "texture-noise")}>
@@ -114,20 +114,20 @@ export function AdminReportsPanel() {
                   </span>
                   <span>
                     {report.authorType === "dm"
-                      ? uiText("Dungeon Master passage")
+                      ? uiText("dungeonMasterPassage")
                       : report.reportedUsername
-                        ? `${uiText("Player")} ${report.reportedUsername}`
-                        : uiText("Player (account deleted)")}
+                        ? `${uiText("player")} ${report.reportedUsername}`
+                        : uiText("playerAccountDeleted")}
                   </span>
                   <span className="text-xs text-stone-500">
-                    {uiText("Campaign:")} {" "}
+                    {uiText("campaigndfe630")} {" "}
                     <Link
                       href={`/campaigns/${report.campaignId}`}
                       className="text-amber-200 hover:text-amber-100"
                     >
                       {report.campaignName}
                     </Link>
-                    {" "}{uiText("· reported by")} {report.reporterUsername} ·{" "}
+                    {" "}{uiText("reportedBy5049b9")} {report.reporterUsername} ·{" "}
                     {new Date(report.createdAt).toLocaleString()}
                   </span>
                 </div>
@@ -138,7 +138,7 @@ export function AdminReportsPanel() {
                 ) : null}
                 {report.details ? (
                   <p className="text-sm text-stone-400">
-                    <span className="text-stone-500">{uiText("Reporter says:")}</span> {report.details}
+                    <span className="text-stone-500">{uiText("reporterSays")}</span> {report.details}
                   </p>
                 ) : null}
                 <div className="flex flex-wrap items-center justify-end gap-1.5">
@@ -149,7 +149,7 @@ export function AdminReportsPanel() {
                       onClick={() => setStatus(report, "resolved")}
                       className={ui.btnSmall}
                     >
-                      <Check className="size-3.5" /> {uiText("Mark resolved")}
+                      <Check className="size-3.5" /> {uiText("markResolved")}
                     </button>
                   ) : (
                     <button
@@ -158,7 +158,7 @@ export function AdminReportsPanel() {
                       onClick={() => setStatus(report, "open")}
                       className={ui.btnSmall}
                     >
-                      <Undo2 className="size-3.5" /> {uiText("Reopen")}
+                      <Undo2 className="size-3.5" /> {uiText("reopen")}
                     </button>
                   )}
                 </div>

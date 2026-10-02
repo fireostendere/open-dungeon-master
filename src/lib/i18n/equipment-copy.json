@@ -1,0 +1,3002 @@
+{
+  "coin": {
+    "en": {
+      "title": "Coin"
+    },
+    "ru": {
+      "title": "Монета"
+    }
+  },
+  "copper-cp": {
+    "en": {
+      "title": "Copper (cp)"
+    },
+    "ru": {
+      "title": "Медная (мм)"
+    }
+  },
+  "silver-sp": {
+    "en": {
+      "title": "Silver (sp)"
+    },
+    "ru": {
+      "title": "Серебряная (см)"
+    }
+  },
+  "electrum-ep": {
+    "en": {
+      "title": "Electrum (ep)"
+    },
+    "ru": {
+      "title": "Электрумовая (эм)"
+    }
+  },
+  "gold-gp": {
+    "en": {
+      "title": "Gold (gp)"
+    },
+    "ru": {
+      "title": "Золотая (зм)"
+    }
+  },
+  "platinum-pp": {
+    "en": {
+      "title": "Platinum (pp)"
+    },
+    "ru": {
+      "title": "Платиновая (пм)"
+    }
+  },
+  "lifestyle": {
+    "en": {
+      "title": "Lifestyle"
+    },
+    "ru": {
+      "title": "Образ жизни"
+    }
+  },
+  "wretched": {
+    "en": {
+      "title": "Wretched",
+      "text": "You live in inhumane conditions. With no place to call home, you shelter wherever you can, sneaking into barns, huddling in old crates, and relying on the good graces of people better off than you. A wretched lifestyle presents abundant dangers. Violence, disease, and hunger follow you wherever you go. Other wretched people covet your armor, weapons, and adventuring gear, which represent a fortune by their standards. You are beneath the notice of most people."
+    },
+    "ru": {
+      "title": "Нищий",
+      "text": "Вы живёте в нечеловеческих условиях. Без места, которое можно назвать домом, вы находите приют где можете, пробираясь в амбары, прячась в старых ящиках и полагаясь на милость людей, живущих лучше вас. Нищий образ жизни сопряжён с множеством опасностей. Насилие, болезни и голод преследуют вас повсюду. Другие нищие завидуют вашим доспехам, оружию и снаряжению для приключений, которые по их меркам представляют целое состояние. Вы находитесь ниже внимания большинства людей."
+    }
+  },
+  "squalid": {
+    "en": {
+      "title": "Squalid",
+      "text": "You live in a leaky stable, a mud-floored hut just outside town, or a vermin-infested boarding house in the worst part of town. You have shelter from the elements, but you live in a desperate and often violent environment, in places rife with disease, hunger, and misfortune. You are beneath the notice of most people, and you have few legal protections. Most people at this lifestyle level have suffered some terrible setback. They might be disturbed, marked as exiles, or suffer from disease."
+    },
+    "ru": {
+      "title": "Убогий",
+      "text": "Вы живёте в дырявом хлеву, хижине с земляным полом сразу за городом или в кишащем паразитами ночлежном доме в худшей части города. У вас есть крыша над головой, но вы живёте в отчаянной и зачастую жестокой среде, в местах, где царят болезни, голод и несчастья. Вы находитесь ниже внимания большинства людей, и у вас мало правовой защиты. Большинство людей на этом уровне жизни перенесли какой-то ужасный удар судьбы. Они могут быть безумны, заклеймены как изгнанники или страдать от болезней."
+    }
+  },
+  "poor": {
+    "en": {
+      "title": "Poor",
+      "text": "A poor lifestyle means going without the comforts available in a stable community. Simple food and lodgings, threadbare clothing, and unpredictable conditions result in a sufficient, though probably unpleasant, experience. Your accommodations might be a room in a flophouse or in the common room above a tavern. You benefit from some legal protections, but you still have to contend with violence, crime, and disease. People at this lifestyle level tend to be unskilled laborers, costermongers, peddlers, thieves, mercenaries, and other disreputable types."
+    },
+    "ru": {
+      "title": "Бедный",
+      "text": "Бедный образ жизни означает отсутствие удобств, доступных в стабильном сообществе. Простая еда и ночлег, поношенная одежда и непредсказуемые условия обеспечивают достаточное, хотя, вероятно, неприятное существование. Вашим жильём может быть комната в ночлежке или общий зал над таверной. Вы пользуетесь некоторой правовой защитой, но всё же вынуждены бороться с насилием, преступностью и болезнями. Люди на этом уровне жизни, как правило, являются неквалифицированными чернорабочими, уличными торговцами, разносчиками, ворами, наёмниками и другими сомнительными типами."
+    }
+  },
+  "modest": {
+    "en": {
+      "title": "Modest",
+      "text": "A modest lifestyle keeps you out of the slums and ensures that you can maintain your equipment. You live in an older part of town, renting a room in a boarding house, inn, or temple. You don't go hungry or thirsty, and your living conditions are clean, if simple. Ordinary people living modest lifestyles include soldiers with families, laborers, students, priests, hedge wizards, and the like."
+    },
+    "ru": {
+      "title": "Скромный",
+      "text": "Скромный образ жизни позволяет вам избежать трущоб и обеспечивает содержание вашего снаряжения. Вы живёте в старой части города, снимая комнату в пансионе, таверне или храме. Вы не голодаете и не испытываете жажды, а ваши условия жизни чисты, пусть и просты. Обычные люди, живущие скромно, включают солдат с семьями, чернорабочих, студентов, жрецов, самоучек-волшебников и тому подобных."
+    }
+  },
+  "comfortable": {
+    "en": {
+      "title": "Comfortable",
+      "text": "Choosing a comfortable lifestyle means that you can afford nicer clothing and can easily maintain your equipment. You live in a small cottage in a middle-class neighborhood or in a private room at a fine inn. You associate with merchants, skilled tradespeople, and military officers."
+    },
+    "ru": {
+      "title": "Комфортный",
+      "text": "Выбор комфортного образа жизни означает, что вы можете позволить себе хорошую одежду и легко содержите своё снаряжение. Вы живёте в небольшом коттедже в районе среднего класса или в отдельной комнате в хорошей таверне. Вы общаетесь с торговцами, искусными ремесленниками и военными офицерами."
+    }
+  },
+  "wealthy": {
+    "en": {
+      "title": "Wealthy",
+      "text": "Choosing a wealthy lifestyle means living a life of luxury, though you might not have achieved the social status associated with the old money of nobility or royalty. You live a lifestyle comparable to that of a highly successful merchant, a favored servant of the royalty, or the owner of a few small businesses. You have respectable lodgings, usually a spacious home in a good part of town or a comfortable suite at a fine inn. You likely have a small staff of servants."
+    },
+    "ru": {
+      "title": "Богатый",
+      "text": "Выбор богатого образа жизни означает жизнь в роскоши, хотя вы, возможно, не достигли социального статуса, связанного со старыми деньгами знати или королевской семьи. Вы ведёте образ жизни, сравнимый с жизнью весьма успешного торговца, приближённого слуги королевской семьи или владельца нескольких небольших предприятий. У вас достойное жильё, обычно просторный дом в хорошей части города или удобные апартаменты в хорошей таверне. Скорее всего, у вас есть небольшой штат прислуги."
+    }
+  },
+  "aristocratic": {
+    "en": {
+      "title": "Aristocratic",
+      "text": "You live a life of plenty and comfort. You move in circles populated by the most powerful people in the community. You have excellent lodgings, perhaps a townhouse in the nicest part of town or rooms in the finest inn. You dine at the best restaurants, retain the most skilled and fashionable tailor, and have servants attending to your every need. You receive invitations to the social gatherings of the rich and powerful, and spend evenings in the company of politicians, guild leaders, high priests, and nobility. You must also contend with the highest levels of deceit and treachery. The wealthier you are, the greater the chance you will be drawn into political intrigue as a pawn or participant."
+    },
+    "ru": {
+      "title": "Аристократический",
+      "text": "Вы живёте в изобилии и комфорте. Вы вращаетесь в кругах, в которых находятся самые влиятельные люди общества. У вас превосходное жильё, возможно, городской дом в лучшей части города или покои в лучшей таверне. Вы обедаете в лучших ресторанах, пользуетесь услугами самого искусного и модного портного, а слуги удовлетворяют любые ваши потребности. Вы получаете приглашения на светские мероприятия богатых и влиятельных и проводите вечера в компании политиков, глав гильдий, верховных жрецов и аристократов. Вам также приходится иметь дело с высочайшим уровнем обмана и предательства. Чем вы богаче, тем больше вероятность того, что вас втянут в политические интриги в качестве пешки или участника."
+    }
+  },
+  "item": {
+    "en": {
+      "title": "Item"
+    },
+    "ru": {
+      "title": "Судно"
+    }
+  },
+  "ale": {
+    "en": {
+      "title": "Ale"
+    },
+    "ru": {
+      "title": "Эль"
+    }
+  },
+  "gallon": {
+    "en": {
+      "title": "Gallon"
+    },
+    "ru": {
+      "title": "Галлон"
+    }
+  },
+  "mug": {
+    "en": {
+      "title": "Mug"
+    },
+    "ru": {
+      "title": "Кружка"
+    }
+  },
+  "banquet-per-person": {
+    "en": {
+      "title": "Banquet (per person)"
+    },
+    "ru": {
+      "title": "Банкет (с человека)"
+    }
+  },
+  "bread-loaf": {
+    "en": {
+      "title": "Bread, loaf"
+    },
+    "ru": {
+      "title": "Хлеб, буханка"
+    }
+  },
+  "cheese-hunk": {
+    "en": {
+      "title": "Cheese, hunk"
+    },
+    "ru": {
+      "title": "Сыр, кусок"
+    }
+  },
+  "inn-stay-per-day": {
+    "en": {
+      "title": "Inn stay (per day)"
+    },
+    "ru": {
+      "title": "Ночлег (за день)"
+    }
+  },
+  "meals-per-day": {
+    "en": {
+      "title": "Meals (per day)"
+    },
+    "ru": {
+      "title": "Питание (за день)"
+    }
+  },
+  "meat-chunk": {
+    "en": {
+      "title": "Meat, chunk"
+    },
+    "ru": {
+      "title": "Мясо, кусок"
+    }
+  },
+  "wine": {
+    "en": {
+      "title": "Wine"
+    },
+    "ru": {
+      "title": "Вино"
+    }
+  },
+  "common-pitcher": {
+    "en": {
+      "title": "Common (pitcher)"
+    },
+    "ru": {
+      "title": "Столовое (кувшин)"
+    }
+  },
+  "fine-bottle": {
+    "en": {
+      "title": "Fine (bottle)"
+    },
+    "ru": {
+      "title": "Изысканное (бутылка)"
+    }
+  },
+  "service-pay": {
+    "en": {
+      "title": "Service Pay"
+    },
+    "ru": {
+      "title": "Услуга"
+    }
+  },
+  "coach-cab": {
+    "en": {
+      "title": "Coach cab"
+    },
+    "ru": {
+      "title": "Экипаж"
+    }
+  },
+  "between-towns": {
+    "en": {
+      "title": "Between towns"
+    },
+    "ru": {
+      "title": "Между городами"
+    }
+  },
+  "within-a-city": {
+    "en": {
+      "title": "Within a city"
+    },
+    "ru": {
+      "title": "В пределах города"
+    }
+  },
+  "hireling": {
+    "en": {
+      "title": "Hireling"
+    },
+    "ru": {
+      "title": "Наёмник"
+    }
+  },
+  "skilled": {
+    "en": {
+      "title": "Skilled"
+    },
+    "ru": {
+      "title": "Квалифицированный"
+    }
+  },
+  "untrained": {
+    "en": {
+      "title": "Untrained"
+    },
+    "ru": {
+      "title": "Неквалифицированный"
+    }
+  },
+  "messenger": {
+    "en": {
+      "title": "Messenger"
+    },
+    "ru": {
+      "title": "Посыльный"
+    }
+  },
+  "road-or-gate-toll": {
+    "en": {
+      "title": "Road or gate toll"
+    },
+    "ru": {
+      "title": "Пошлина за дорогу/ворота"
+    }
+  },
+  "ships-passage": {
+    "en": {
+      "title": "Ship's passage"
+    },
+    "ru": {
+      "title": "Проезд на корабле"
+    }
+  },
+  "armor": {
+    "en": {
+      "title": "Armor"
+    },
+    "ru": {
+      "title": "Доспех"
+    }
+  },
+  "light-armor": {
+    "en": {
+      "title": "Light Armor"
+    },
+    "ru": {
+      "title": "Лёгкие доспехи"
+    }
+  },
+  "padded": {
+    "en": {
+      "title": "Padded",
+      "text": "Padded armor consists of quilted layers of cloth and batting."
+    },
+    "ru": {
+      "title": "Стёганый",
+      "text": "Стёганый доспех состоит из простёганных слоёв ткани и набивки."
+    }
+  },
+  "leather": {
+    "en": {
+      "title": "Leather",
+      "text": "The breastplate and shoulder protectors of this armor are made of leather that has been stiffened by being boiled in oil. The rest of the armor is made of softer and more flexible materials."
+    },
+    "ru": {
+      "title": "Кожаный",
+      "text": "Нагрудник и наплечники этого доспеха изготовлены из кожи, закалённой кипячением в масле. Остальные части доспеха изготовлены из более мягких и гибких материалов."
+    }
+  },
+  "studded-leather": {
+    "en": {
+      "title": "Studded Leather",
+      "text": "Made from tough but flexible leather, studded leather is reinforced with close-set rivets or spikes."
+    },
+    "ru": {
+      "title": "Проклёпанный кожаный",
+      "text": "Изготовленный из прочной, но гибкой кожи, проклёпанный кожаный доспех усилен плотно расположенными заклёпками или шипами."
+    }
+  },
+  "medium-armor": {
+    "en": {
+      "title": "Medium Armor"
+    },
+    "ru": {
+      "title": "Средние доспехи"
+    }
+  },
+  "hide": {
+    "en": {
+      "title": "Hide",
+      "text": "This crude armor consists of thick furs and pelts. It is commonly worn by barbarian tribes, evil humanoids, and other folk who lack access to the tools and materials needed to create better armor."
+    },
+    "ru": {
+      "title": "Шкурный",
+      "text": "Этот грубый доспех состоит из толстых мехов и шкур. Его обычно носят варварские племена, злые гуманоиды и другие народы, не имеющие доступа к инструментам и материалам, необходимым для создания лучших доспехов."
+    }
+  },
+  "chain-shirt": {
+    "en": {
+      "title": "Chain Shirt",
+      "text": "Made of interlocking metal rings, a chain shirt is worn between layers of clothing or leather. This armor offers modest protection to the wearer's upper body and allows the sound of the rings rubbing against one another to be muffled by outer layers."
+    },
+    "ru": {
+      "title": "Кольчужная рубаха",
+      "text": "Сплетённая из переплетённых металлических колец, кольчужная рубаха носится между слоями одежды или кожи. Этот доспех обеспечивает скромную защиту верхней части тела носителя и позволяет приглушить звук колец, трущихся друг о друга, внешними слоями."
+    }
+  },
+  "scale-mail": {
+    "en": {
+      "title": "Scale Mail",
+      "text": "This armor consists of a coat and leggings (and perhaps a separate skirt) of leather covered with overlapping pieces of metal, much like the scales of a fish. The suit includes gauntlets."
+    },
+    "ru": {
+      "title": "Чешуйчатый",
+      "text": "Этот доспех состоит из куртки и поножей (а возможно, и отдельной юбки) из кожи, покрытой перекрывающимися кусочками металла, подобно чешуе рыбы. В комплект входят латные рукавицы."
+    }
+  },
+  "breastplate": {
+    "en": {
+      "title": "Breastplate",
+      "text": "This armor consists of a fitted metal chest piece worn with supple leather. Although it leaves the legs and arms relatively unprotected, this armor provides good protection for the wearer's vital organs while leaving the wearer relatively unencumbered."
+    },
+    "ru": {
+      "title": "Кираса",
+      "text": "Этот доспех состоит из подогнанного металлического нагрудника, носимого с мягкой кожей. Хотя ноги и руки остаются относительно незащищёнными, этот доспех обеспечивает хорошую защиту жизненно важных органов носителя, оставляя его относительно свободным в движениях."
+    }
+  },
+  "half-plate": {
+    "en": {
+      "title": "Half Plate",
+      "text": "Half plate consists of shaped metal plates that cover most of the wearer's body. It does not include leg protection beyond simple greaves that are attached with leather straps."
+    },
+    "ru": {
+      "title": "Полулаты",
+      "text": "Полулаты состоят из формованных металлических пластин, покрывающих большую часть тела носителя. Они не включают защиту ног, помимо простых наголенников, закреплённых кожаными ремнями."
+    }
+  },
+  "heavy-armor": {
+    "en": {
+      "title": "Heavy Armor",
+      "text": "Heavier armor interferes with the wearer's ability to move quickly, stealthily, and freely. If the Armor table shows \"Str 13\" or \"Str 15\" in the Strength column for an armor type, the armor reduces the wearer's speed by 10 feet unless the wearer has a Strength score equal to or higher than the listed score."
+    },
+    "ru": {
+      "title": "Тяжёлые доспехи",
+      "text": "Более тяжёлые доспехи мешают носителю двигаться быстро, бесшумно и свободно. Если в таблице «Доспехи» в столбце «Сила» для типа доспеха указано «Сил 13» или «Сил 15», доспех снижает скорость носителя на 3 м, если у носителя значение Силы ниже указанного."
+    }
+  },
+  "ring-mail": {
+    "en": {
+      "title": "Ring Mail",
+      "text": "This armor is leather armor with heavy rings sewn into it. The rings help reinforce the armor against blows from swords and axes. Ring mail is inferior to chain mail, and it's usually worn only by those who can't afford better armor."
+    },
+    "ru": {
+      "title": "Колечный",
+      "text": "Этот доспех представляет собой кожаный доспех с тяжёлыми кольцами, нашитыми на него. Кольца помогают укрепить доспех против ударов мечей и топоров. Колечный доспех уступает кольчуге, и его обычно носят лишь те, кто не может позволить себе лучший доспех."
+    }
+  },
+  "chain-mail": {
+    "en": {
+      "title": "Chain Mail",
+      "text": "Made of interlocking metal rings, chain mail includes a layer of quilted fabric worn underneath the mail to prevent chafing and to cushion the impact of blows. The suit includes gauntlets."
+    },
+    "ru": {
+      "title": "Кольчуга",
+      "text": "Сплетённая из переплетённых металлических колец, кольчуга включает слой простёганной ткани, надеваемый под ней для предотвращения натирания и смягчения ударов. В комплект входят латные рукавицы."
+    }
+  },
+  "splint": {
+    "en": {
+      "title": "Splint",
+      "text": "This armor is made of narrow vertical strips of metal riveted to a backing of leather that is worn over cloth padding. Flexible chain mail protects the joints."
+    },
+    "ru": {
+      "title": "Наборный",
+      "text": "Этот доспех изготовлен из узких вертикальных полос металла, приклёпанных к подкладке из кожи, которая надевается поверх тканевой набивки. Гибкая кольчуга защищает суставы."
+    }
+  },
+  "plate": {
+    "en": {
+      "title": "Plate",
+      "text": "Plate consists of shaped, interlocking metal plates to cover the entire body. A suit of plate includes gauntlets, heavy leather boots, a visored helmet, and thick layers of padding underneath the armor. Buckles and straps distribute the weight over the body."
+    },
+    "ru": {
+      "title": "Латы",
+      "text": "Латы состоят из формованных, сочленённых металлических пластин, покрывающих всё тело. Комплект лат включает латные рукавицы, тяжёлые кожаные сапоги, шлем с забралом и толстые слои набивки под доспехом. Пряжки и ремни распределяют вес по телу."
+    }
+  },
+  "shield": {
+    "en": {
+      "title": "Shield"
+    },
+    "ru": {
+      "title": "Щит"
+    }
+  },
+  "category": {
+    "en": {
+      "title": "Category"
+    },
+    "ru": {
+      "title": "Категория"
+    }
+  },
+  "name": {
+    "en": {
+      "title": "Name"
+    },
+    "ru": {
+      "title": "Название"
+    }
+  },
+  "simple-melee-weapons": {
+    "en": {
+      "title": "Simple Melee Weapons"
+    },
+    "ru": {
+      "title": "Простое рукопашное оружие"
+    }
+  },
+  "club": {
+    "en": {
+      "title": "Club"
+    },
+    "ru": {
+      "title": "Дубинка"
+    }
+  },
+  "dagger": {
+    "en": {
+      "title": "Dagger"
+    },
+    "ru": {
+      "title": "Кинжал"
+    }
+  },
+  "greatclub": {
+    "en": {
+      "title": "Greatclub"
+    },
+    "ru": {
+      "title": "Большая дубина"
+    }
+  },
+  "handaxe": {
+    "en": {
+      "title": "Handaxe"
+    },
+    "ru": {
+      "title": "Ручной топорик"
+    }
+  },
+  "javelin": {
+    "en": {
+      "title": "Javelin"
+    },
+    "ru": {
+      "title": "Копьё метательное"
+    }
+  },
+  "light-hammer": {
+    "en": {
+      "title": "Light hammer"
+    },
+    "ru": {
+      "title": "Лёгкий молот"
+    }
+  },
+  "mace": {
+    "en": {
+      "title": "Mace"
+    },
+    "ru": {
+      "title": "Булава"
+    }
+  },
+  "quarterstaff": {
+    "en": {
+      "title": "Quarterstaff"
+    },
+    "ru": {
+      "title": "Боевой посох"
+    }
+  },
+  "sickle": {
+    "en": {
+      "title": "Sickle"
+    },
+    "ru": {
+      "title": "Серп"
+    }
+  },
+  "spear": {
+    "en": {
+      "title": "Spear"
+    },
+    "ru": {
+      "title": "Копьё"
+    }
+  },
+  "simple-ranged-weapons": {
+    "en": {
+      "title": "Simple Ranged Weapons"
+    },
+    "ru": {
+      "title": "Простое дальнобойное оружие"
+    }
+  },
+  "crossbow-light": {
+    "en": {
+      "title": "Crossbow, light"
+    },
+    "ru": {
+      "title": "Арбалет лёгкий"
+    }
+  },
+  "dart": {
+    "en": {
+      "title": "Dart"
+    },
+    "ru": {
+      "title": "Дротик"
+    }
+  },
+  "shortbow": {
+    "en": {
+      "title": "Shortbow"
+    },
+    "ru": {
+      "title": "Короткий лук"
+    }
+  },
+  "sling": {
+    "en": {
+      "title": "Sling"
+    },
+    "ru": {
+      "title": "Праща"
+    }
+  },
+  "martial-melee-weapons": {
+    "en": {
+      "title": "Martial Melee Weapons"
+    },
+    "ru": {
+      "title": "Воинское рукопашное оружие"
+    }
+  },
+  "battleaxe": {
+    "en": {
+      "title": "Battleaxe"
+    },
+    "ru": {
+      "title": "Боевой топор"
+    }
+  },
+  "flail": {
+    "en": {
+      "title": "Flail"
+    },
+    "ru": {
+      "title": "Цеп"
+    }
+  },
+  "glaive": {
+    "en": {
+      "title": "Glaive"
+    },
+    "ru": {
+      "title": "Глефа"
+    }
+  },
+  "greataxe": {
+    "en": {
+      "title": "Greataxe"
+    },
+    "ru": {
+      "title": "Секира"
+    }
+  },
+  "greatsword": {
+    "en": {
+      "title": "Greatsword"
+    },
+    "ru": {
+      "title": "Двуручный меч"
+    }
+  },
+  "halberd": {
+    "en": {
+      "title": "Halberd"
+    },
+    "ru": {
+      "title": "Алебарда"
+    }
+  },
+  "lance": {
+    "en": {
+      "title": "Lance",
+      "text": "You have disadvantage when you use a lance to attack a target within 5 feet of you. Also, a lance requires two hands to wield when you aren't mounted."
+    },
+    "ru": {
+      "title": "Пика",
+      "text": "Вы получаете помеху, когда используете пику для атаки цели в пределах 1,5 м от вас. Кроме того, пика требует двух рук для использования, когда вы не находитесь верхом."
+    }
+  },
+  "longsword": {
+    "en": {
+      "title": "Longsword"
+    },
+    "ru": {
+      "title": "Длинный меч"
+    }
+  },
+  "maul": {
+    "en": {
+      "title": "Maul"
+    },
+    "ru": {
+      "title": "Кувалда"
+    }
+  },
+  "morningstar": {
+    "en": {
+      "title": "Morningstar"
+    },
+    "ru": {
+      "title": "Моргенштерн"
+    }
+  },
+  "pike": {
+    "en": {
+      "title": "Pike"
+    },
+    "ru": {
+      "title": "Протазан"
+    }
+  },
+  "rapier": {
+    "en": {
+      "title": "Rapier"
+    },
+    "ru": {
+      "title": "Рапира"
+    }
+  },
+  "scimitar": {
+    "en": {
+      "title": "Scimitar"
+    },
+    "ru": {
+      "title": "Ятаган"
+    }
+  },
+  "shortsword": {
+    "en": {
+      "title": "Shortsword"
+    },
+    "ru": {
+      "title": "Короткий меч"
+    }
+  },
+  "trident": {
+    "en": {
+      "title": "Trident"
+    },
+    "ru": {
+      "title": "Трезубец"
+    }
+  },
+  "war-pick": {
+    "en": {
+      "title": "War pick"
+    },
+    "ru": {
+      "title": "Боевая кирка"
+    }
+  },
+  "warhammer": {
+    "en": {
+      "title": "Warhammer"
+    },
+    "ru": {
+      "title": "Боевой молот"
+    }
+  },
+  "whip": {
+    "en": {
+      "title": "Whip"
+    },
+    "ru": {
+      "title": "Кнут"
+    }
+  },
+  "martial-ranged-weapons": {
+    "en": {
+      "title": "Martial Ranged Weapons"
+    },
+    "ru": {
+      "title": "Воинское дальнобойное оружие"
+    }
+  },
+  "blowgun": {
+    "en": {
+      "title": "Blowgun"
+    },
+    "ru": {
+      "title": "Духовая трубка"
+    }
+  },
+  "crossbow-hand": {
+    "en": {
+      "title": "Crossbow, hand"
+    },
+    "ru": {
+      "title": "Ручной арбалет"
+    }
+  },
+  "crossbow-heavy": {
+    "en": {
+      "title": "Crossbow, heavy"
+    },
+    "ru": {
+      "title": "Тяжёлый арбалет"
+    }
+  },
+  "longbow": {
+    "en": {
+      "title": "Longbow"
+    },
+    "ru": {
+      "title": "Длинный лук"
+    }
+  },
+  "net": {
+    "en": {
+      "title": "Net",
+      "text": "A Large or smaller creature hit by a net is restrained until it is freed. A net has no effect on creatures that are formless, or creatures that are Huge or larger. A creature can use its action to make a DC 10 Strength check, freeing itself or another creature within its reach on a success. Dealing 5 slashing damage to the net (AC 10) also frees the creature without harming it, ending the effect and destroying the net.\n\nWhen you use an action, bonus action, or reaction to attack with a net, you can make only one attack regardless of the number of attacks you can normally make."
+    },
+    "ru": {
+      "title": "Сеть",
+      "text": "Большое или меньшее существо, поражённое сетью, становится опутанным до освобождения. Сеть не действует на существ, не имеющих формы, или существ размера Огромный или больше. Существо может использовать своё действие для проверки Силы СЛ 10, освобождая себя или другое существо в пределах досягаемости при успехе. Нанесение 5 рубящего урона сети (КД 10) также освобождает существо, не причиняя ему вреда, прекращая эффект и уничтожая сеть.\n\nКогда вы используете действие, бонусное действие или реакцию для атаки сетью, вы можете совершить только одну атаку, независимо от количества атак, которые вы обычно можете совершить."
+    }
+  },
+  "abacus": {
+    "en": {
+      "title": "Abacus"
+    },
+    "ru": {
+      "title": "Счёты"
+    }
+  },
+  "acid-vial": {
+    "en": {
+      "title": "Acid (vial)"
+    },
+    "ru": {
+      "title": "Кислота (флакон)"
+    }
+  },
+  "alchemists-fire-flask": {
+    "en": {
+      "title": "Alchemist's fire (flask)"
+    },
+    "ru": {
+      "title": "Алхимический огонь (фляжка)"
+    }
+  },
+  "ammunition": {
+    "en": {
+      "title": "Ammunition",
+      "text": "You can use a weapon that has the ammunition property to make a ranged attack only if you have ammunition to fire from the weapon. Each time you attack with the weapon, you expend one piece of ammunition. Drawing the ammunition from a quiver, case, or other container is part of the attack (you need a free hand to load a one-handed weapon). At the end of the battle, you can recover half your expended ammunition by taking a minute to search the battlefield.\n\nIf you use a weapon that has the ammunition property to make a melee attack, you treat the weapon as an improvised weapon (see \"Improvised Weapons\" later in the section). A sling must be loaded to deal any damage when used in this way."
+    },
+    "ru": {
+      "title": "Боеприпас",
+      "text": "Вы можете использовать оружие со свойством «боеприпас» для дальнобойной атаки, только если у вас есть боеприпасы для стрельбы из этого оружия. Каждый раз при атаке этим оружием вы расходуете один боеприпас. Извлечение боеприпаса из колчана, футляра или другого контейнера является частью атаки (вам нужна свободная рука для зарядки одноручного оружия). По окончании битвы вы можете вернуть половину израсходованных боеприпасов, потратив минуту на обыск поля боя.\n\nЕсли вы используете оружие со свойством «боеприпас» для рукопашной атаки, вы считаете оружие импровизированным (см. «Импровизированное оружие» далее в этом разделе). Праща должна быть заряжена, чтобы наносить урон при таком использовании."
+    }
+  },
+  "arrows-20": {
+    "en": {
+      "title": "Arrows (20)"
+    },
+    "ru": {
+      "title": "Стрелы (20)"
+    }
+  },
+  "blowgun-needles-50": {
+    "en": {
+      "title": "Blowgun needles (50)"
+    },
+    "ru": {
+      "title": "Иглы для духовой трубки (50)"
+    }
+  },
+  "crossbow-bolts-20": {
+    "en": {
+      "title": "Crossbow bolts (20)"
+    },
+    "ru": {
+      "title": "Арбалетные болты (20)"
+    }
+  },
+  "sling-bullets-20": {
+    "en": {
+      "title": "Sling bullets (20)"
+    },
+    "ru": {
+      "title": "Снаряды для пращи (20)"
+    }
+  },
+  "antitoxin-vial": {
+    "en": {
+      "title": "Antitoxin (vial)"
+    },
+    "ru": {
+      "title": "Противоядие (флакон)"
+    }
+  },
+  "arcane-focus": {
+    "en": {
+      "title": "Arcane Focus",
+      "text": "An arcane focus is a special item—an orb, a crystal, a rod, a specially constructed staff, a wand-like length of wood, or some similar item—designed to channel the power of arcane spells. A sorcerer, warlock, or wizard can use such an item as a spellcasting focus."
+    },
+    "ru": {
+      "title": "Магическая фокусировка",
+      "text": "Магическая фокусировка - это особый предмет (сфера, кристалл, жезл, специально изготовленный посох, палочкообразный кусок дерева или подобный предмет), предназначенный для проведения силы тайных заклинаний. Чародей, колдун или волшебник может использовать такой предмет как фокусировку для заклинаний."
+    }
+  },
+  "crystal": {
+    "en": {
+      "title": "Crystal"
+    },
+    "ru": {
+      "title": "Кристалл"
+    }
+  },
+  "orb": {
+    "en": {
+      "title": "Orb"
+    },
+    "ru": {
+      "title": "Сфера"
+    }
+  },
+  "rod": {
+    "en": {
+      "title": "Rod"
+    },
+    "ru": {
+      "title": "Жезл"
+    }
+  },
+  "staff": {
+    "en": {
+      "title": "Staff"
+    },
+    "ru": {
+      "title": "Посох"
+    }
+  },
+  "wand": {
+    "en": {
+      "title": "Wand"
+    },
+    "ru": {
+      "title": "Палочка"
+    }
+  },
+  "backpack": {
+    "en": {
+      "title": "Backpack"
+    },
+    "ru": {
+      "title": "Рюкзак"
+    }
+  },
+  "ball-bearings-bag-of-1-000": {
+    "en": {
+      "title": "Ball bearings (bag of 1,000)"
+    },
+    "ru": {
+      "title": "Металлические шарики (мешок, 1 000)"
+    }
+  },
+  "barrel": {
+    "en": {
+      "title": "Barrel"
+    },
+    "ru": {
+      "title": "Бочка"
+    }
+  },
+  "basket": {
+    "en": {
+      "title": "Basket"
+    },
+    "ru": {
+      "title": "Корзина"
+    }
+  },
+  "bedroll": {
+    "en": {
+      "title": "Bedroll"
+    },
+    "ru": {
+      "title": "Спальный мешок"
+    }
+  },
+  "bell": {
+    "en": {
+      "title": "Bell"
+    },
+    "ru": {
+      "title": "Колокольчик"
+    }
+  },
+  "blanket": {
+    "en": {
+      "title": "Blanket"
+    },
+    "ru": {
+      "title": "Одеяло"
+    }
+  },
+  "block-and-tackle": {
+    "en": {
+      "title": "Block and Tackle",
+      "text": "A set of pulleys with a cable threaded through them and a hook to attach to objects, a block and tackle allows you to hoist up to four times the weight you can normally lift."
+    },
+    "ru": {
+      "title": "Блок с лебёдкой",
+      "text": "Набор блоков с продёрнутым через них тросом и крюком для крепления к предметам, блок с лебёдкой позволяет поднимать вес, в четыре раза превышающий тот, что вы можете поднять обычно."
+    }
+  },
+  "book": {
+    "en": {
+      "title": "Book",
+      "text": "A book might contain poetry, historical accounts, information pertaining to a particular field of lore, diagrams and notes on gnomish contraptions, or just about anything else that can be represented using text or pictures. A book of spells is a spellbook (described later in this section)."
+    },
+    "ru": {
+      "title": "Книга",
+      "text": "Книга может содержать поэзию, исторические хроники, сведения по определённой области знаний, чертежи и заметки о гномьих изобретениях, или практически всё, что может быть представлено в виде текста или иллюстраций. Книга заклинаний - это книга заклинаний (описана далее в этом разделе)."
+    }
+  },
+  "bottle-glass": {
+    "en": {
+      "title": "Bottle, glass"
+    },
+    "ru": {
+      "title": "Бутылка стеклянная"
+    }
+  },
+  "bucket": {
+    "en": {
+      "title": "Bucket"
+    },
+    "ru": {
+      "title": "Ведро"
+    }
+  },
+  "caltrops-bag-of-20": {
+    "en": {
+      "title": "Caltrops (bag of 20)"
+    },
+    "ru": {
+      "title": "Калтропы (мешок, 20 шт.)"
+    }
+  },
+  "candle": {
+    "en": {
+      "title": "Candle",
+      "text": "For 1 hour, a candle sheds bright light in a 5-foot radius and dim light for an additional 5 feet."
+    },
+    "ru": {
+      "title": "Свеча",
+      "text": "В течение 1 часа свеча испускает яркий свет в радиусе 1,5 м и тусклый свет ещё на 1,5 м."
+    }
+  },
+  "case-crossbow-bolt": {
+    "en": {
+      "title": "Case, Crossbow Bolt",
+      "text": "This wooden case can hold up to twenty crossbow bolts."
+    },
+    "ru": {
+      "title": "Футляр для арбалетных болтов",
+      "text": "Этот деревянный футляр может вместить до двадцати арбалетных болтов."
+    }
+  },
+  "case-map-or-scroll": {
+    "en": {
+      "title": "Case, Map or Scroll",
+      "text": "This cylindrical leather case can hold up to ten rolled-up sheets of paper or five rolled-up sheets of parchment."
+    },
+    "ru": {
+      "title": "Футляр для карт или свитков",
+      "text": "Этот цилиндрический кожаный футляр может вместить до десяти свёрнутых листов бумаги или пяти свёрнутых листов пергамента."
+    }
+  },
+  "chain-10-feet": {
+    "en": {
+      "title": "Chain (10 feet)"
+    },
+    "ru": {
+      "title": "Цепь (3 м)"
+    }
+  },
+  "chalk-1-piece": {
+    "en": {
+      "title": "Chalk (1 piece)"
+    },
+    "ru": {
+      "title": "Мел (1 кусок)"
+    }
+  },
+  "chest": {
+    "en": {
+      "title": "Chest"
+    },
+    "ru": {
+      "title": "Сундук"
+    }
+  },
+  "climbers-kit": {
+    "en": {
+      "title": "Climber's Kit",
+      "text": "A climber's kit includes special pitons, boot tips, gloves, and a harness. You can use the climber's kit as an action to anchor yourself; when you do, you can't fall more than 25 feet from the point where you anchored yourself, and you can't climb more than 25 feet away from that point without undoing the anchor."
+    },
+    "ru": {
+      "title": "Набор скалолаза",
+      "text": "Набор скалолаза включает специальные крючья, накладки на обувь, перчатки и обвязку. Вы можете использовать набор скалолаза действием, чтобы закрепиться; после этого вы не можете упасть более чем на 7,5 м от точки, где вы закрепились, и не можете забраться более чем на 7,5 м от этой точки, не сняв крепление."
+    }
+  },
+  "clothes-common": {
+    "en": {
+      "title": "Clothes, common"
+    },
+    "ru": {
+      "title": "Одежда, обычная"
+    }
+  },
+  "clothes-costume": {
+    "en": {
+      "title": "Clothes, costume"
+    },
+    "ru": {
+      "title": "Одежда, костюм"
+    }
+  },
+  "clothes-fine": {
+    "en": {
+      "title": "Clothes, fine"
+    },
+    "ru": {
+      "title": "Одежда, хорошая"
+    }
+  },
+  "clothes-travelers": {
+    "en": {
+      "title": "Clothes, traveler's"
+    },
+    "ru": {
+      "title": "Одежда, дорожная"
+    }
+  },
+  "component-pouch": {
+    "en": {
+      "title": "Component Pouch",
+      "text": "A component pouch is a small, watertight leather belt pouch that has compartments to hold all the material components and other special items you need to cast your spells, except for those components that have a specific cost (as indicated in a spell's description)."
+    },
+    "ru": {
+      "title": "Мешочек с компонентами",
+      "text": "Мешочек с компонентами - это маленький водонепроницаемый кожаный поясной мешочек с отделениями для хранения всех материальных компонентов и других особых предметов, необходимых для сотворения заклинаний, за исключением тех компонентов, которые имеют указанную стоимость (как указано в описании заклинания)."
+    }
+  },
+  "crowbar": {
+    "en": {
+      "title": "Crowbar",
+      "text": "Using a crowbar grants advantage to Strength checks where the crowbar's leverage can be applied."
+    },
+    "ru": {
+      "title": "Лом",
+      "text": "Использование лома даёт преимущество на проверки Силы, где можно применить рычаг лома."
+    }
+  },
+  "druidic-focus": {
+    "en": {
+      "title": "Druidic Focus",
+      "text": "A druidic focus might be a sprig of mistletoe or holly, a wand or scepter made of yew or another special wood, a staff drawn whole out of a living tree, or a totem object incorporating feathers, fur, bones, and teeth from sacred animals. A druid can use such an object as a spellcasting focus."
+    },
+    "ru": {
+      "title": "Фокусировка друида",
+      "text": "Фокусировка друида может быть веточкой омелы или остролиста, палочкой или скипетром из тиса или другого особого дерева, посохом, вырезанным целиком из живого дерева, или тотемным предметом, включающим перья, мех, кости и зубы священных животных. Друид может использовать такой предмет как фокусировку для заклинаний."
+    }
+  },
+  "sprig-of-mistletoe": {
+    "en": {
+      "title": "Sprig of mistletoe"
+    },
+    "ru": {
+      "title": "Веточка омелы"
+    }
+  },
+  "totem": {
+    "en": {
+      "title": "Totem"
+    },
+    "ru": {
+      "title": "Тотем"
+    }
+  },
+  "wooden-staff": {
+    "en": {
+      "title": "Wooden staff"
+    },
+    "ru": {
+      "title": "Деревянный посох"
+    }
+  },
+  "yew-wand": {
+    "en": {
+      "title": "Yew wand"
+    },
+    "ru": {
+      "title": "Тисовая палочка"
+    }
+  },
+  "fishing-tackle": {
+    "en": {
+      "title": "Fishing Tackle",
+      "text": "This kit includes a wooden rod, silken line, corkwood bobbers, steel hooks, lead sinkers, velvet lures, and narrow netting. Healer's Kit. This kit is a leather pouch containing bandages, salves, and splints. The kit has ten uses. As an action, you can expend one use of the kit to stabilize a creature that has 0 hit points, without needing to make a Wisdom (Medicine) check."
+    },
+    "ru": {
+      "title": "Набор для рыбной ловли",
+      "text": "Этот набор включает деревянное удилище, шёлковую леску, пробковые поплавки, стальные крючки, свинцовые грузила, бархатные приманки и узкую сеть. Набор целителя. Этот набор представляет собой кожаный мешочек, содержащий бинты, мази и шины. Набор рассчитан на десять использований. Действием вы можете израсходовать одно использование набора, чтобы стабилизировать существо с 0 хитов, без необходимости проверки Мудрости (Медицина)."
+    }
+  },
+  "flask-or-tankard": {
+    "en": {
+      "title": "Flask or tankard"
+    },
+    "ru": {
+      "title": "Фляжка или кружка"
+    }
+  },
+  "grappling-hook": {
+    "en": {
+      "title": "Grappling hook"
+    },
+    "ru": {
+      "title": "Крюк-кошка"
+    }
+  },
+  "hammer": {
+    "en": {
+      "title": "Hammer"
+    },
+    "ru": {
+      "title": "Молоток"
+    }
+  },
+  "hammer-sledge": {
+    "en": {
+      "title": "Hammer, sledge"
+    },
+    "ru": {
+      "title": "Кувалда"
+    }
+  },
+  "healers-kit": {
+    "en": {
+      "title": "Healer's kit"
+    },
+    "ru": {
+      "title": "Набор целителя"
+    }
+  },
+  "holy-symbol": {
+    "en": {
+      "title": "Holy Symbol",
+      "text": "A holy symbol is a representation of a god or pantheon. It might be an amulet depicting a symbol representing a deity, the same symbol carefully engraved or inlaid as an emblem on a shield, or a tiny box holding a fragment of a sacred relic. Appendix PH-B \"Fantasy-Historical Pantheons\" lists the symbols commonly associated with many gods in the multiverse. A cleric or paladin can use a holy symbol as a spellcasting focus. To use the symbol in this way, the caster must hold it in hand, wear it visibly, or bear it on a shield."
+    },
+    "ru": {
+      "title": "Священный символ",
+      "text": "Священный символ - это изображение бога или пантеона. Это может быть амулет с символом божества, тот же символ, тщательно выгравированный или инкрустированный в качестве эмблемы на щите, или крошечная шкатулка, хранящая фрагмент священной реликвии. Приложение PH-B «Историко-фантазийные пантеоны» перечисляет символы, обычно связанные со многими богами мультивселенной. Жрец или паладин может использовать священный символ как фокусировку для заклинаний. Для этого заклинатель должен держать его в руке, носить на виду или нести на щите."
+    }
+  },
+  "amulet": {
+    "en": {
+      "title": "Amulet"
+    },
+    "ru": {
+      "title": "Амулет"
+    }
+  },
+  "emblem": {
+    "en": {
+      "title": "Emblem"
+    },
+    "ru": {
+      "title": "Эмблема"
+    }
+  },
+  "reliquary": {
+    "en": {
+      "title": "Reliquary"
+    },
+    "ru": {
+      "title": "Реликварий"
+    }
+  },
+  "holy-water-flask": {
+    "en": {
+      "title": "Holy water (flask)"
+    },
+    "ru": {
+      "title": "Святая вода (фляжка)"
+    }
+  },
+  "hourglass": {
+    "en": {
+      "title": "Hourglass"
+    },
+    "ru": {
+      "title": "Песочные часы"
+    }
+  },
+  "hunting-trap": {
+    "en": {
+      "title": "Hunting Trap",
+      "text": "When you use your action to set it, this trap forms a saw-toothed steel ring that snaps shut when a creature steps on a pressure plate in the center. The trap is affixed by a heavy chain to an immobile object, such as a tree or a spike driven into the ground. A creature that steps on the plate must succeed on a DC 13 Dexterity saving throw or take 1d4 piercing damage and stop moving. Thereafter, until the creature breaks free of the trap, its movement is limited by the length of the chain (typically 3 feet long). A creature can use its action to make a DC 13 Strength check, freeing itself or another creature within its reach on a success. Each failed check deals 1 piercing damage to the trapped creature."
+    },
+    "ru": {
+      "title": "Охотничий капкан",
+      "text": "Когда вы используете действие для его установки, этот капкан образует зубчатое стальное кольцо, которое захлопывается, когда существо наступает на нажимную пластину в центре. Капкан прикреплён тяжёлой цепью к неподвижному предмету, такому как дерево или вбитый в землю кол. Существо, наступившее на пластину, должно преуспеть в спасброске Ловкости СЛ 13, иначе получает 1к4 колющего урона и прекращает перемещение. После этого, пока существо не освободится от капкана, его перемещение ограничено длиной цепи (обычно 0,9 м). Существо может использовать действие для проверки Силы СЛ 13, освобождая себя или другое существо в пределах досягаемости при успехе. Каждая неудачная проверка наносит 1 колющий урон пойманному существу."
+    }
+  },
+  "ink-1-ounce-bottle": {
+    "en": {
+      "title": "Ink (1 ounce bottle)"
+    },
+    "ru": {
+      "title": "Чернила (бутылочка, 28,4 г)"
+    }
+  },
+  "ink-pen": {
+    "en": {
+      "title": "Ink pen"
+    },
+    "ru": {
+      "title": "Перо для письма"
+    }
+  },
+  "jug-or-pitcher": {
+    "en": {
+      "title": "Jug or pitcher"
+    },
+    "ru": {
+      "title": "Кувшин или графин"
+    }
+  },
+  "ladder-10-foot": {
+    "en": {
+      "title": "Ladder (10-foot)"
+    },
+    "ru": {
+      "title": "Лестница (3 м)"
+    }
+  },
+  "lamp": {
+    "en": {
+      "title": "Lamp",
+      "text": "A lamp casts bright light in a 15-foot radius and dim light for an additional 30 feet. Once lit, it burns for 6 hours on a flask (1 pint) of oil. Lantern, Bullseye. A bullseye lantern casts bright light in a 60-foot cone and dim light for an additional 60 feet. Once lit, it burns for 6 hours on a flask (1 pint) of oil. Lantern, Hooded. A hooded lantern casts bright light in a 30-foot radius and dim light for an additional 30 feet. Once lit, it burns for 6 hours on a flask (1 pint) of oil. As an action, you can lower the hood, reducing the light to dim light in a 5-foot radius."
+    },
+    "ru": {
+      "title": "Лампа",
+      "text": "Лампа испускает яркий свет в радиусе 4,5 м и тусклый свет ещё на 9 м. Зажжённая, она горит 6 часов на фляжке (1 пинта) масла. Фонарь направленный. Направленный фонарь испускает яркий свет 18-метровым конусом и тусклый свет ещё на 18 м. Зажжённый, он горит 6 часов на фляжке (1 пинта) масла. Фонарь закрытый. Закрытый фонарь испускает яркий свет в радиусе 9 м и тусклый свет ещё на 9 м. Зажжённый, он горит 6 часов на фляжке (1 пинта) масла. Действием вы можете опустить крышку, уменьшив свет до тусклого в радиусе 1,5 м."
+    }
+  },
+  "lantern-bullseye": {
+    "en": {
+      "title": "Lantern, bullseye"
+    },
+    "ru": {
+      "title": "Фонарь направленный"
+    }
+  },
+  "lantern-hooded": {
+    "en": {
+      "title": "Lantern, hooded"
+    },
+    "ru": {
+      "title": "Фонарь закрытый"
+    }
+  },
+  "lock": {
+    "en": {
+      "title": "Lock",
+      "text": "A key is provided with the lock. Without the key, a creature proficient with thieves' tools can pick this lock with a successful DC 15 Dexterity check. Your GM may decide that better locks are available for higher prices."
+    },
+    "ru": {
+      "title": "Замок",
+      "text": "К замку прилагается ключ. Без ключа существо, владеющее воровскими инструментами, может вскрыть этот замок успешной проверкой Ловкости СЛ 15. Ваш МИ может решить, что более качественные замки доступны по более высоким ценам."
+    }
+  },
+  "magnifying-glass": {
+    "en": {
+      "title": "Magnifying Glass",
+      "text": "This lens allows a closer look at small objects. It is also useful as a substitute for flint and steel when starting fires. Lighting a fire with a magnifying glass requires light as bright as sunlight to focus, tinder to ignite, and about 5 minutes for the fire to ignite. A magnifying glass grants advantage on any ability check made to appraise or inspect an item that is small or highly detailed."
+    },
+    "ru": {
+      "title": "Увеличительное стекло",
+      "text": "Эта линза позволяет рассмотреть мелкие предметы вблизи. Она также полезна как замена кремня и огнива для разведения огня. Для разведения огня с помощью увеличительного стекла требуется свет яркостью не менее солнечного, трут для воспламенения и около 5 минут для разгорания огня. Увеличительное стекло даёт преимущество на любую проверку характеристики, совершаемую для оценки или осмотра мелкого или высокодетализированного предмета."
+    }
+  },
+  "manacles": {
+    "en": {
+      "title": "Manacles",
+      "text": "These metal restraints can bind a Small or Medium creature. Escaping the manacles requires a successful DC 20 Dexterity check. Breaking them requires a successful DC 20 Strength check. Each set of manacles comes with one key. Without the key, a creature proficient with thieves' tools can pick the manacles' lock with a successful DC 15 Dexterity check. Manacles have 15 hit points."
+    },
+    "ru": {
+      "title": "Кандалы",
+      "text": "Эти металлические оковы могут сковать Маленькое или Среднее существо. Для освобождения из кандалов требуется успешная проверка Ловкости СЛ 20. Для их разрыва требуется успешная проверка Силы СЛ 20. Каждый комплект кандалов поставляется с одним ключом. Без ключа существо, владеющее воровскими инструментами, может вскрыть замок кандалов успешной проверкой Ловкости СЛ 15. Кандалы имеют 15 хитов."
+    }
+  },
+  "mess-kit": {
+    "en": {
+      "title": "Mess Kit",
+      "text": "This tin box contains a cup and simple cutlery. The box clamps together, and one side can be used as a cooking pan and the other as a plate or shallow bowl."
+    },
+    "ru": {
+      "title": "Столовый набор",
+      "text": "Эта жестяная коробка содержит чашку и простые столовые приборы. Коробка складывается, и одна сторона может использоваться как сковорода, а другая - как тарелка или мелкая миска."
+    }
+  },
+  "mirror-steel": {
+    "en": {
+      "title": "Mirror, steel"
+    },
+    "ru": {
+      "title": "Зеркало стальное"
+    }
+  },
+  "oil-flask": {
+    "en": {
+      "title": "Oil (flask)"
+    },
+    "ru": {
+      "title": "Масло (фляжка)"
+    }
+  },
+  "paper-one-sheet": {
+    "en": {
+      "title": "Paper (one sheet)"
+    },
+    "ru": {
+      "title": "Бумага (один лист)"
+    }
+  },
+  "parchment-one-sheet": {
+    "en": {
+      "title": "Parchment (one sheet)"
+    },
+    "ru": {
+      "title": "Пергамент (один лист)"
+    }
+  },
+  "perfume-vial": {
+    "en": {
+      "title": "Perfume (vial)"
+    },
+    "ru": {
+      "title": "Духи (флакон)"
+    }
+  },
+  "pick-miners": {
+    "en": {
+      "title": "Pick, miner's"
+    },
+    "ru": {
+      "title": "Кирка шахтёрская"
+    }
+  },
+  "piton": {
+    "en": {
+      "title": "Piton"
+    },
+    "ru": {
+      "title": "Крюк"
+    }
+  },
+  "poison-basic-vial": {
+    "en": {
+      "title": "Poison, basic (vial)"
+    },
+    "ru": {
+      "title": "Яд, простой (флакон)"
+    }
+  },
+  "pole-10-foot": {
+    "en": {
+      "title": "Pole (10-foot)"
+    },
+    "ru": {
+      "title": "Шест (3 м)"
+    }
+  },
+  "pot-iron": {
+    "en": {
+      "title": "Pot, iron"
+    },
+    "ru": {
+      "title": "Котелок чугунный"
+    }
+  },
+  "potion-of-healing-5": {
+    "en": {
+      "title": "Potion of healing 5"
+    },
+    "ru": {
+      "title": "Зелье лечения"
+    }
+  },
+  "pouch": {
+    "en": {
+      "title": "Pouch",
+      "text": "A cloth or leather pouch can hold up to 20 sling bullets or 50 blowgun needles, among other things. A compartmentalized pouch for holding spell components is called a component pouch (described earlier in this section). Quiver. A quiver can hold up to 20 arrows. Ram, Portable. You can use a portable ram to break down doors. When doing so, you gain a +4 bonus on the Strength check. One other character can help you use the ram, giving you advantage on this check."
+    },
+    "ru": {
+      "title": "Мешочек",
+      "text": "Матерчатый или кожаный мешочек может вместить до 20 снарядов для пращи или 50 игл для духовой трубки, а также другие предметы. Мешочек с отделениями для хранения компонентов заклинаний называется мешочком с компонентами (описан ранее в этом разделе). Колчан. Колчан может вместить до 20 стрел. Таран переносной. Вы можете использовать переносной таран для выбивания дверей. При этом вы получаете бонус +4 к проверке Силы. Другой персонаж может помогать вам использовать таран, давая вам преимущество на эту проверку."
+    }
+  },
+  "quiver": {
+    "en": {
+      "title": "Quiver"
+    },
+    "ru": {
+      "title": "Колчан"
+    }
+  },
+  "ram-portable": {
+    "en": {
+      "title": "Ram, portable"
+    },
+    "ru": {
+      "title": "Таран переносной"
+    }
+  },
+  "rations-1-day": {
+    "en": {
+      "title": "Rations (1 day)"
+    },
+    "ru": {
+      "title": "Рационы (1 день)"
+    }
+  },
+  "robes": {
+    "en": {
+      "title": "Robes"
+    },
+    "ru": {
+      "title": "Мантия"
+    }
+  },
+  "rope-hempen-50-feet": {
+    "en": {
+      "title": "Rope, hempen (50 feet)"
+    },
+    "ru": {
+      "title": "Верёвка пеньковая (15 м)"
+    }
+  },
+  "rope-silk-50-feet": {
+    "en": {
+      "title": "Rope, silk (50 feet)"
+    },
+    "ru": {
+      "title": "Верёвка шёлковая (15 м)"
+    }
+  },
+  "sack": {
+    "en": {
+      "title": "Sack"
+    },
+    "ru": {
+      "title": "Мешок"
+    }
+  },
+  "scale-merchants": {
+    "en": {
+      "title": "Scale, Merchant's",
+      "text": "A scale includes a small balance, pans, and a suitable assortment of weights up to 2 pounds. With it, you can measure the exact weight of small objects, such as raw precious metals or trade goods, to help determine their worth."
+    },
+    "ru": {
+      "title": "Весы торговые",
+      "text": "Весы включают небольшое коромысло, чаши и подходящий набор гирь до 0,9 кг. С их помощью вы можете точно определить вес мелких предметов, таких как необработанные драгоценные металлы или торговые товары, чтобы определить их стоимость."
+    }
+  },
+  "sealing-wax": {
+    "en": {
+      "title": "Sealing wax"
+    },
+    "ru": {
+      "title": "Сургуч"
+    }
+  },
+  "shovel": {
+    "en": {
+      "title": "Shovel"
+    },
+    "ru": {
+      "title": "Лопата"
+    }
+  },
+  "signal-whistle": {
+    "en": {
+      "title": "Signal whistle"
+    },
+    "ru": {
+      "title": "Сигнальный свисток"
+    }
+  },
+  "signet-ring": {
+    "en": {
+      "title": "Signet ring"
+    },
+    "ru": {
+      "title": "Перстень-печатка"
+    }
+  },
+  "soap": {
+    "en": {
+      "title": "Soap"
+    },
+    "ru": {
+      "title": "Мыло"
+    }
+  },
+  "spellbook": {
+    "en": {
+      "title": "Spellbook",
+      "text": "Essential for wizards, a spellbook is a leather-bound tome with 100 blank vellum pages suitable for recording spells."
+    },
+    "ru": {
+      "title": "Книга заклинаний",
+      "text": "Необходимая для волшебников книга заклинаний - это фолиант в кожаном переплёте со 100 чистыми велленевыми страницами, пригодными для записи заклинаний."
+    }
+  },
+  "spikes-iron-10": {
+    "en": {
+      "title": "Spikes, iron (10)"
+    },
+    "ru": {
+      "title": "Шипы железные (10)"
+    }
+  },
+  "spyglass": {
+    "en": {
+      "title": "Spyglass",
+      "text": "Objects viewed through a spyglass are magnified to twice their size."
+    },
+    "ru": {
+      "title": "Подзорная труба",
+      "text": "Предметы, рассматриваемые через подзорную трубу, увеличиваются вдвое."
+    }
+  },
+  "tent-two-person": {
+    "en": {
+      "title": "Tent, two-person"
+    },
+    "ru": {
+      "title": "Палатка двухместная"
+    }
+  },
+  "tinderbox": {
+    "en": {
+      "title": "Tinderbox",
+      "text": "This small container holds flint, fire steel, and tinder (usually dry cloth soaked in light oil) used to kindle a fire. Using it to light a torch-or anything else with abundant, exposed fuel-takes an action. Lighting any other fire takes 1 minute."
+    },
+    "ru": {
+      "title": "Трутница",
+      "text": "Этот маленький контейнер содержит кремень, огниво и трут (обычно сухую ткань, пропитанную лёгким маслом), используемые для разведения огня. Использование трутницы для зажигания факела или чего-либо с обильным открытым топливом занимает одно действие. Разведение любого другого огня занимает 1 минуту."
+    }
+  },
+  "torch": {
+    "en": {
+      "title": "Torch",
+      "text": "A torch burns for 1 hour, providing bright light in a 20-foot radius and dim light for an additional 20 feet. If you make a melee attack with a burning torch and hit, it deals 1 fire damage.\n\n**Equipment Packs**\n\nThe starting equipment you get from your class includes a collection of useful adventuring gear, put together in a pack. The contents of these packs are listed here. If you are buying your starting equipment, you can purchase a pack for the price shown, which might be cheaper than buying the items individually."
+    },
+    "ru": {
+      "title": "Факел",
+      "text": "Факел горит 1 час, испуская яркий свет в радиусе 6 м и тусклый свет ещё на 6 м. Если вы совершаете рукопашную атаку горящим факелом и попадаете, он наносит 1 урон огнём.\n\n**Наборы снаряжения**\n\nНачальное снаряжение, которое вы получаете от класса, включает набор полезного снаряжения для приключений, собранного в один комплект. Содержимое этих наборов перечислено здесь. Если вы покупаете начальное снаряжение, вы можете приобрести набор по указанной цене, что может быть дешевле, чем покупка предметов по отдельности."
+    }
+  },
+  "vial": {
+    "en": {
+      "title": "Vial"
+    },
+    "ru": {
+      "title": "Флакон"
+    }
+  },
+  "waterskin": {
+    "en": {
+      "title": "Waterskin"
+    },
+    "ru": {
+      "title": "Бурдюк"
+    }
+  },
+  "whetstone": {
+    "en": {
+      "title": "Whetstone"
+    },
+    "ru": {
+      "title": "Точильный камень"
+    }
+  },
+  "container": {
+    "en": {
+      "title": "Container"
+    },
+    "ru": {
+      "title": "Контейнер"
+    }
+  },
+  "bottle": {
+    "en": {
+      "title": "Bottle"
+    },
+    "ru": {
+      "title": "Бутылка"
+    }
+  },
+  "artisans-tools": {
+    "en": {
+      "title": "Artisan's Tools",
+      "text": "These special tools include the items needed to pursue a craft or trade. The table shows examples of the most common types of tools, each providing items related to a single craft. Proficiency with a set of artisan's tools lets you add your proficiency bonus to any ability checks you make using the tools in your craft. Each type of artisan's tools requires a separate proficiency."
+    },
+    "ru": {
+      "title": "Инструменты ремесленника",
+      "text": "Эти специальные инструменты включают предметы, необходимые для занятия ремеслом или торговлей. В таблице приведены примеры наиболее распространённых типов инструментов, каждый из которых содержит предметы, относящиеся к одному ремеслу. Владение набором инструментов ремесленника позволяет добавлять бонус мастерства к любым проверкам характеристик, совершаемым при использовании этих инструментов в вашем ремесле. Каждый тип инструментов ремесленника требует отдельного владения."
+    }
+  },
+  "alchemists-supplies": {
+    "en": {
+      "title": "Alchemist's supplies"
+    },
+    "ru": {
+      "title": "Инструменты алхимика"
+    }
+  },
+  "brewers-supplies": {
+    "en": {
+      "title": "Brewer's supplies"
+    },
+    "ru": {
+      "title": "Инструменты пивовара"
+    }
+  },
+  "calligraphers-supplies": {
+    "en": {
+      "title": "Calligrapher's supplies"
+    },
+    "ru": {
+      "title": "Инструменты каллиграфа"
+    }
+  },
+  "carpenters-tools": {
+    "en": {
+      "title": "Carpenter's tools"
+    },
+    "ru": {
+      "title": "Инструменты плотника"
+    }
+  },
+  "cartographers-tools": {
+    "en": {
+      "title": "Cartographer's tools"
+    },
+    "ru": {
+      "title": "Инструменты картографа"
+    }
+  },
+  "cobblers-tools": {
+    "en": {
+      "title": "Cobbler's tools"
+    },
+    "ru": {
+      "title": "Инструменты сапожника"
+    }
+  },
+  "cooks-utensils": {
+    "en": {
+      "title": "Cook's utensils"
+    },
+    "ru": {
+      "title": "Поварская утварь"
+    }
+  },
+  "glassblowers-tools": {
+    "en": {
+      "title": "Glassblower's tools"
+    },
+    "ru": {
+      "title": "Инструменты стеклодува"
+    }
+  },
+  "jewelers-tools": {
+    "en": {
+      "title": "Jeweler's tools"
+    },
+    "ru": {
+      "title": "Инструменты ювелира"
+    }
+  },
+  "leatherworkers-tools": {
+    "en": {
+      "title": "Leatherworker's tools"
+    },
+    "ru": {
+      "title": "Инструменты кожевника"
+    }
+  },
+  "masons-tools": {
+    "en": {
+      "title": "Mason's tools"
+    },
+    "ru": {
+      "title": "Инструменты каменщика"
+    }
+  },
+  "painters-supplies": {
+    "en": {
+      "title": "Painter's supplies"
+    },
+    "ru": {
+      "title": "Инструменты художника"
+    }
+  },
+  "potters-tools": {
+    "en": {
+      "title": "Potter's tools"
+    },
+    "ru": {
+      "title": "Инструменты гончара"
+    }
+  },
+  "smiths-tools": {
+    "en": {
+      "title": "Smith's tools"
+    },
+    "ru": {
+      "title": "Инструменты кузнеца"
+    }
+  },
+  "tinkers-tools": {
+    "en": {
+      "title": "Tinker's tools"
+    },
+    "ru": {
+      "title": "Инструменты жестянщика"
+    }
+  },
+  "weavers-tools": {
+    "en": {
+      "title": "Weaver's tools"
+    },
+    "ru": {
+      "title": "Инструменты ткача"
+    }
+  },
+  "woodcarvers-tools": {
+    "en": {
+      "title": "Woodcarver's tools"
+    },
+    "ru": {
+      "title": "Инструменты резчика по дереву"
+    }
+  },
+  "disguise-kit": {
+    "en": {
+      "title": "Disguise Kit",
+      "text": "This pouch of cosmetics, hair dye, and small props lets you create disguises that change your physical appearance. Proficiency with this kit lets you add your proficiency bonus to any ability checks you make to create a visual disguise."
+    },
+    "ru": {
+      "title": "Набор для грима",
+      "text": "Этот мешочек с косметикой, краской для волос и мелким реквизитом позволяет создавать маскировку, меняющую вашу внешность. Владение этим набором позволяет добавлять бонус мастерства к любым проверкам характеристик, совершаемым для создания визуальной маскировки."
+    }
+  },
+  "forgery-kit": {
+    "en": {
+      "title": "Forgery Kit",
+      "text": "This small box contains a variety of papers and parchments, pens and inks, seals and sealing wax, gold and silver leaf, and other supplies necessary to create convincing forgeries of physical documents. Proficiency with this kit lets you add your proficiency bonus to any ability checks you make to create a physical forgery of a document."
+    },
+    "ru": {
+      "title": "Набор для подделки",
+      "text": "Эта маленькая шкатулка содержит разнообразные бумаги и пергаменты, перья и чернила, печати и сургуч, золотую и серебряную фольгу и другие материалы, необходимые для создания убедительных подделок физических документов. Владение этим набором позволяет добавлять бонус мастерства к любым проверкам характеристик, совершаемым для создания физической подделки документа."
+    }
+  },
+  "gaming-set": {
+    "en": {
+      "title": "Gaming Set",
+      "text": "This item encompasses a wide range of game pieces, including dice and decks of cards (for games such as Three-Dragon Ante). A few common examples appear on the Tools table, but other kinds of gaming sets exist. If you are proficient with a gaming set, you can add your proficiency bonus to ability checks you make to play a game with that set. Each type of gaming set requires a separate proficiency."
+    },
+    "ru": {
+      "title": "Игровой набор",
+      "text": "Этот предмет охватывает широкий спектр игровых принадлежностей, включая кости и карточные колоды (для таких игр, как «Три дракона»). Несколько распространённых примеров приведены в таблице «Инструменты», но существуют и другие виды игровых наборов. Если вы владеете игровым набором, вы можете добавлять бонус мастерства к проверкам характеристик при игре с этим набором. Каждый тип игрового набора требует отдельного владения."
+    }
+  },
+  "dice-set": {
+    "en": {
+      "title": "Dice set"
+    },
+    "ru": {
+      "title": "Набор костей"
+    }
+  },
+  "playing-card-set": {
+    "en": {
+      "title": "Playing card set"
+    },
+    "ru": {
+      "title": "Набор карт"
+    }
+  },
+  "herbalism-kit": {
+    "en": {
+      "title": "Herbalism Kit",
+      "text": "This kit contains a variety of instruments such as clippers, mortar and pestle, and pouches and vials used by herbalists to create remedies and potions. Proficiency with this kit lets you add your proficiency bonus to any ability checks you make to identify or apply herbs. Also, proficiency with this kit is required to create antitoxin and potions of healing."
+    },
+    "ru": {
+      "title": "Набор травника",
+      "text": "Этот набор содержит различные инструменты, такие как секатор, ступку с пестиком, мешочки и флаконы, используемые травниками для создания лекарств и зелий. Владение этим набором позволяет добавлять бонус мастерства к любым проверкам характеристик, совершаемым для определения или применения трав. Кроме того, владение этим набором необходимо для создания противоядия и зелий лечения."
+    }
+  },
+  "musical-instrument": {
+    "en": {
+      "title": "Musical Instrument",
+      "text": "Several of the most common types of musical instruments are shown on the table as examples. If you have proficiency with a given musical instrument, you can add your proficiency bonus to any ability checks you make to play music with the instrument. A bard can use a musical instrument as a spellcasting focus. Each type of musical instrument requires a separate proficiency."
+    },
+    "ru": {
+      "title": "Музыкальный инструмент",
+      "text": "В таблице приведены примеры нескольких наиболее распространённых типов музыкальных инструментов. Если вы владеете данным музыкальным инструментом, вы можете добавлять бонус мастерства к любым проверкам характеристик, совершаемым при игре на нём. Бард может использовать музыкальный инструмент как фокусировку для заклинаний. Каждый тип музыкального инструмента требует отдельного владения."
+    }
+  },
+  "bagpipes": {
+    "en": {
+      "title": "Bagpipes"
+    },
+    "ru": {
+      "title": "Волынка"
+    }
+  },
+  "drum": {
+    "en": {
+      "title": "Drum"
+    },
+    "ru": {
+      "title": "Барабан"
+    }
+  },
+  "dulcimer": {
+    "en": {
+      "title": "Dulcimer"
+    },
+    "ru": {
+      "title": "Цимбалы"
+    }
+  },
+  "flute": {
+    "en": {
+      "title": "Flute"
+    },
+    "ru": {
+      "title": "Флейта"
+    }
+  },
+  "lute": {
+    "en": {
+      "title": "Lute"
+    },
+    "ru": {
+      "title": "Лютня"
+    }
+  },
+  "lyre": {
+    "en": {
+      "title": "Lyre"
+    },
+    "ru": {
+      "title": "Лира"
+    }
+  },
+  "horn": {
+    "en": {
+      "title": "Horn"
+    },
+    "ru": {
+      "title": "Рожок"
+    }
+  },
+  "pan-flute": {
+    "en": {
+      "title": "Pan flute"
+    },
+    "ru": {
+      "title": "Свирель"
+    }
+  },
+  "shawm": {
+    "en": {
+      "title": "Shawm"
+    },
+    "ru": {
+      "title": "Шалмей"
+    }
+  },
+  "viol": {
+    "en": {
+      "title": "Viol"
+    },
+    "ru": {
+      "title": "Виола"
+    }
+  },
+  "navigators-tools": {
+    "en": {
+      "title": "Navigator's Tools",
+      "text": "This set of instruments is used for navigation at sea. Proficiency with navigator's tools lets you chart a ship's course and follow navigation charts. In addition, these tools allow you to add your proficiency bonus to any ability check you make to avoid getting lost at sea."
+    },
+    "ru": {
+      "title": "Навигационные инструменты",
+      "text": "Этот набор инструментов используется для навигации на море. Владение навигационными инструментами позволяет прокладывать курс корабля и пользоваться навигационными картами. Кроме того, эти инструменты позволяют добавлять бонус мастерства к любой проверке характеристики, совершаемой для того, чтобы не заблудиться в море."
+    }
+  },
+  "poisoners-kit": {
+    "en": {
+      "title": "Poisoner's Kit",
+      "text": "A poisoner's kit includes the vials, chemicals, and other equipment necessary for the creation of poisons. Proficiency with this kit lets you add your proficiency bonus to any ability checks you make to craft or use poisons."
+    },
+    "ru": {
+      "title": "Набор отравителя",
+      "text": "Набор отравителя включает флаконы, химикаты и другое оборудование, необходимое для создания ядов. Владение этим набором позволяет добавлять бонус мастерства к любым проверкам характеристик, совершаемым для изготовления или применения ядов."
+    }
+  },
+  "thieves-tools": {
+    "en": {
+      "title": "Thieves' Tools",
+      "text": "This set of tools includes a small file, a set of lock picks, a small mirror mounted on a metal handle, a set of narrow-bladed scissors, and a pair of pliers. Proficiency with these tools lets you add your proficiency bonus to any ability checks you make to disarm traps or open locks."
+    },
+    "ru": {
+      "title": "Воровские инструменты",
+      "text": "Этот набор инструментов включает маленький напильник, набор отмычек, маленькое зеркало на металлической рукоятке, набор узких ножниц и пару плоскогубцев. Владение этими инструментами позволяет добавлять бонус мастерства к любым проверкам характеристик, совершаемым для обезвреживания ловушек или вскрытия замков."
+    }
+  },
+  "vehicles-land-or-water": {
+    "en": {
+      "title": "Vehicles (land or water)"
+    },
+    "ru": {
+      "title": "Транспорт (наземный или водный)"
+    }
+  },
+  "cost": {
+    "en": {
+      "title": "Cost"
+    },
+    "ru": {
+      "title": "Стоимость"
+    }
+  },
+  "1-cp": {
+    "en": {
+      "title": "1 cp"
+    },
+    "ru": {
+      "title": "1 мм"
+    }
+  },
+  "2-cp": {
+    "en": {
+      "title": "2 cp"
+    },
+    "ru": {
+      "title": "2 мм"
+    }
+  },
+  "5-cp": {
+    "en": {
+      "title": "5 cp"
+    },
+    "ru": {
+      "title": "5 мм"
+    }
+  },
+  "1-sp": {
+    "en": {
+      "title": "1 sp"
+    },
+    "ru": {
+      "title": "1 см"
+    }
+  },
+  "5-sp": {
+    "en": {
+      "title": "5 sp"
+    },
+    "ru": {
+      "title": "5 см"
+    }
+  },
+  "1-gp": {
+    "en": {
+      "title": "1 gp"
+    },
+    "ru": {
+      "title": "1 зм"
+    }
+  },
+  "2-gp": {
+    "en": {
+      "title": "2 gp"
+    },
+    "ru": {
+      "title": "2 зм"
+    }
+  },
+  "3-gp": {
+    "en": {
+      "title": "3 gp"
+    },
+    "ru": {
+      "title": "3 зм"
+    }
+  },
+  "5-gp": {
+    "en": {
+      "title": "5 gp"
+    },
+    "ru": {
+      "title": "5 зм"
+    }
+  },
+  "10-gp": {
+    "en": {
+      "title": "10 gp"
+    },
+    "ru": {
+      "title": "10 зм"
+    }
+  },
+  "15-gp": {
+    "en": {
+      "title": "15 gp"
+    },
+    "ru": {
+      "title": "15 зм"
+    }
+  },
+  "50-gp": {
+    "en": {
+      "title": "50 gp"
+    },
+    "ru": {
+      "title": "50 зм"
+    }
+  },
+  "500-gp": {
+    "en": {
+      "title": "500 gp"
+    },
+    "ru": {
+      "title": "500 зм"
+    }
+  },
+  "camel": {
+    "en": {
+      "title": "Camel"
+    },
+    "ru": {
+      "title": "Верблюд"
+    }
+  },
+  "donkey-or-mule": {
+    "en": {
+      "title": "Donkey or mule"
+    },
+    "ru": {
+      "title": "Осёл или мул"
+    }
+  },
+  "elephant": {
+    "en": {
+      "title": "Elephant"
+    },
+    "ru": {
+      "title": "Слон"
+    }
+  },
+  "horse-draft": {
+    "en": {
+      "title": "Horse, draft"
+    },
+    "ru": {
+      "title": "Лошадь тягловая"
+    }
+  },
+  "horse-riding": {
+    "en": {
+      "title": "Horse, riding"
+    },
+    "ru": {
+      "title": "Лошадь верховая"
+    }
+  },
+  "mastiff": {
+    "en": {
+      "title": "Mastiff"
+    },
+    "ru": {
+      "title": "Мастиф"
+    }
+  },
+  "pony": {
+    "en": {
+      "title": "Pony"
+    },
+    "ru": {
+      "title": "Пони"
+    }
+  },
+  "warhorse": {
+    "en": {
+      "title": "Warhorse"
+    },
+    "ru": {
+      "title": "Боевой конь"
+    }
+  },
+  "barding": {
+    "en": {
+      "title": "Barding",
+      "text": "Barding is armor designed to protect an animal's head, neck, chest, and body. Any type of armor shown on the Armor table can be purchased as barding. The cost is four times the equivalent armor made for humanoids, and it weighs twice as much."
+    },
+    "ru": {
+      "title": "Бардинг",
+      "text": "Бардинг - это доспех, предназначенный для защиты головы, шеи, груди и тела животного. Любой тип доспеха, показанный в таблице «Доспехи», может быть приобретён как бардинг. Стоимость в четыре раза выше эквивалентного доспеха для гуманоидов, а вес вдвое больше."
+    }
+  },
+  "bit-and-bridle": {
+    "en": {
+      "title": "Bit and bridle"
+    },
+    "ru": {
+      "title": "Удила и уздечка"
+    }
+  },
+  "carriage": {
+    "en": {
+      "title": "Carriage"
+    },
+    "ru": {
+      "title": "Карета"
+    }
+  },
+  "cart": {
+    "en": {
+      "title": "Cart"
+    },
+    "ru": {
+      "title": "Телега"
+    }
+  },
+  "chariot": {
+    "en": {
+      "title": "Chariot"
+    },
+    "ru": {
+      "title": "Колесница"
+    }
+  },
+  "feed-per-day": {
+    "en": {
+      "title": "Feed (per day)"
+    },
+    "ru": {
+      "title": "Корм (за день)"
+    }
+  },
+  "saddle": {
+    "en": {
+      "title": "Saddle"
+    },
+    "ru": {
+      "title": "Седло"
+    }
+  },
+  "exotic": {
+    "en": {
+      "title": "Exotic"
+    },
+    "ru": {
+      "title": "Экзотическое"
+    }
+  },
+  "military": {
+    "en": {
+      "title": "Military"
+    },
+    "ru": {
+      "title": "Военное"
+    }
+  },
+  "pack": {
+    "en": {
+      "title": "Pack"
+    },
+    "ru": {
+      "title": "Вьючное"
+    }
+  },
+  "riding": {
+    "en": {
+      "title": "Riding"
+    },
+    "ru": {
+      "title": "Верховое"
+    }
+  },
+  "saddlebags": {
+    "en": {
+      "title": "Saddlebags"
+    },
+    "ru": {
+      "title": "Перемётные сумки"
+    }
+  },
+  "sled": {
+    "en": {
+      "title": "Sled"
+    },
+    "ru": {
+      "title": "Сани"
+    }
+  },
+  "stabling-per-day": {
+    "en": {
+      "title": "Stabling (per day)"
+    },
+    "ru": {
+      "title": "Стойло (за день)"
+    }
+  },
+  "wagon": {
+    "en": {
+      "title": "Wagon"
+    },
+    "ru": {
+      "title": "Фургон"
+    }
+  },
+  "galley": {
+    "en": {
+      "title": "Galley"
+    },
+    "ru": {
+      "title": "Галера"
+    }
+  },
+  "keelboat": {
+    "en": {
+      "title": "Keelboat"
+    },
+    "ru": {
+      "title": "Шлюп"
+    }
+  },
+  "longship": {
+    "en": {
+      "title": "Longship"
+    },
+    "ru": {
+      "title": "Драккар"
+    }
+  },
+  "rowboat": {
+    "en": {
+      "title": "Rowboat"
+    },
+    "ru": {
+      "title": "Лодка"
+    }
+  },
+  "sailing-ship": {
+    "en": {
+      "title": "Sailing ship"
+    },
+    "ru": {
+      "title": "Парусник"
+    }
+  },
+  "warship": {
+    "en": {
+      "title": "Warship"
+    },
+    "ru": {
+      "title": "Боевой корабль"
+    }
+  },
+  "armor-proficiency": {
+    "en": {
+      "title": "Armor Proficiency",
+      "text": "Anyone can put on a suit of armor or strap a shield to an arm. Only those proficient in the armor's use know how to wear it effectively, however. Your class gives you proficiency with certain types of armor. If you wear armor that you lack proficiency with, you have disadvantage on any ability check, saving throw, or attack roll that involves Strength or Dexterity, and you can't cast spells."
+    },
+    "ru": {
+      "title": "Владение доспехами",
+      "text": "Любой может надеть доспех или закрепить щит на руке. Однако лишь те, кто владеет данным типом доспеха, знают, как носить его эффективно. Ваш класс даёт вам владение определёнными типами доспехов. Если вы носите доспех, которым не владеете, вы получаете помеху на любую проверку характеристики, спасбросок или бросок атаки, использующие Силу или Ловкость, и вы не можете сотворять заклинания."
+    }
+  },
+  "armor-class-ac": {
+    "en": {
+      "title": "Armor Class (AC)",
+      "text": "Armor protects its wearer from attacks. The armor (and shield) you wear determines your base Armor Class."
+    },
+    "ru": {
+      "title": "Класс Доспеха (КД)",
+      "text": "Доспех защищает носителя от атак. Доспех (и щит), который вы носите, определяет ваш базовый Класс Доспеха."
+    }
+  },
+  "stealth": {
+    "en": {
+      "title": "Stealth",
+      "text": "If the Armor table shows \"Disadvantage\" in the Stealth column, the wearer has disadvantage on Dexterity (Stealth) checks."
+    },
+    "ru": {
+      "title": "Скрытность",
+      "text": "Если в таблице «Доспехи» в столбце «Скрытность» указано «Помеха», носитель получает помеху на проверки Ловкости (Скрытность)."
+    }
+  },
+  "shields": {
+    "en": {
+      "title": "Shields",
+      "text": "A shield is made from wood or metal and is carried in one hand. Wielding a shield increases your Armor Class by 2. You can benefit from only one shield at a time."
+    },
+    "ru": {
+      "title": "Щиты",
+      "text": "Щит изготавливается из дерева или металла и удерживается одной рукой. Использование щита увеличивает ваш Класс Доспеха на 2. Вы можете использовать только один щит одновременно."
+    }
+  },
+  "don": {
+    "en": {
+      "title": "Don",
+      "text": "This is the time it takes to put on armor. You benefit from the armor's AC only if you take the full time to don the suit of armor."
+    },
+    "ru": {
+      "title": "Надеть",
+      "text": "Это время, необходимое для надевания доспеха. Вы получаете преимущества КД доспеха, только если потратите полное время на его надевание."
+    }
+  },
+  "doff": {
+    "en": {
+      "title": "Doff",
+      "text": "This is the time it takes to take off armor. If you have help, reduce this time by half."
+    },
+    "ru": {
+      "title": "Снять",
+      "text": "Это время, необходимое для снятия доспеха. Если вам помогают, это время сокращается вдвое."
+    }
+  },
+  "finesse": {
+    "en": {
+      "title": "Finesse",
+      "text": "When making an attack with a finesse weapon, you use your choice of your Strength or Dexterity modifier for the attack and damage rolls. You must use the same modifier for both rolls."
+    },
+    "ru": {
+      "title": "Фехтовальное",
+      "text": "При совершении атаки фехтовальным оружием вы используете на выбор модификатор Силы или Ловкости для бросков атаки и урона. Вы должны использовать один и тот же модификатор для обоих бросков."
+    }
+  },
+  "heavy": {
+    "en": {
+      "title": "Heavy",
+      "text": "Small creatures have disadvantage on attack rolls with heavy weapons. A heavy weapon's size and bulk make it too large for a Small creature to use effectively."
+    },
+    "ru": {
+      "title": "Тяжёлое",
+      "text": "Маленькие существа получают помеху на броски атаки тяжёлым оружием. Размер и громоздкость тяжёлого оружия делают его слишком большим для эффективного использования Маленьким существом."
+    }
+  },
+  "light": {
+    "en": {
+      "title": "Light",
+      "text": "A light weapon is small and easy to handle, making it ideal for use when fighting with two weapons."
+    },
+    "ru": {
+      "title": "Лёгкое",
+      "text": "Лёгкое оружие мало и удобно в обращении, что делает его идеальным для сражения двумя оружиями."
+    }
+  },
+  "loading": {
+    "en": {
+      "title": "Loading",
+      "text": "Because of the time required to load this weapon, you can fire only one piece of ammunition from it when you use an action, bonus action, or reaction to fire it, regardless of the number of attacks you can normally make."
+    },
+    "ru": {
+      "title": "Перезарядка",
+      "text": "Из-за времени, необходимого для зарядки этого оружия, вы можете выстрелить только одним боеприпасом, когда используете действие, бонусное действие или реакцию для стрельбы, независимо от количества атак, которые вы обычно можете совершить."
+    }
+  },
+  "range": {
+    "en": {
+      "title": "Range",
+      "text": "A weapon that can be used to make a ranged attack has a range in parentheses after the ammunition or thrown property. The range lists two numbers. The first is the weapon's normal range in feet, and the second indicates the weapon's long range. When attacking a target beyond normal range, you have disadvantage on the attack roll. You can't attack a target beyond the weapon's long range."
+    },
+    "ru": {
+      "title": "Дистанция",
+      "text": "Оружие, которое можно использовать для дальнобойной атаки, имеет дистанцию в скобках после свойства «боеприпас» или «метательное». Дистанция указывается двумя числами. Первое - нормальная дистанция оружия в футах, а второе - максимальная дистанция. При атаке цели за пределами нормальной дистанции вы получаете помеху на бросок атаки. Вы не можете атаковать цель за пределами максимальной дистанции оружия."
+    }
+  },
+  "reach": {
+    "en": {
+      "title": "Reach",
+      "text": "This weapon adds 5 feet to your reach when you attack with it, as well as when determining your reach for opportunity attacks with it."
+    },
+    "ru": {
+      "title": "Досягаемость",
+      "text": "Это оружие увеличивает вашу досягаемость на 1,5 м при атаке, а также при определении досягаемости для провоцированных атак."
+    }
+  },
+  "special": {
+    "en": {
+      "title": "Special",
+      "text": "A weapon with the special property has unusual rules governing its use, explained in the weapon's description (see \"Special Weapons\" later in this section)."
+    },
+    "ru": {
+      "title": "Особое",
+      "text": "Оружие со свойством «особое» имеет необычные правила использования, описанные в описании оружия (см. «Особое оружие» далее в этом разделе)."
+    }
+  },
+  "thrown": {
+    "en": {
+      "title": "Thrown",
+      "text": "If a weapon has the thrown property, you can throw the weapon to make a ranged attack. If the weapon is a melee weapon, you use the same ability modifier for that attack roll and damage roll that you would use for a melee attack with the weapon. For example, if you throw a handaxe, you use your Strength, but if you throw a dagger, you can use either your Strength or your Dexterity, since the dagger has the finesse property."
+    },
+    "ru": {
+      "title": "Метательное",
+      "text": "Если оружие обладает свойством «метательное», вы можете бросить его для совершения дальнобойной атаки. Если оружие является рукопашным, вы используете тот же модификатор характеристики для бросков атаки и урона, что и для рукопашной атаки этим оружием. Например, если вы бросаете ручной топорик, вы используете Силу, но если вы бросаете кинжал, вы можете использовать Силу или Ловкость, поскольку кинжал обладает свойством «фехтовальное»."
+    }
+  },
+  "two-handed": {
+    "en": {
+      "title": "Two-Handed",
+      "text": "This weapon requires two hands when you attack with it."
+    },
+    "ru": {
+      "title": "Двуручное",
+      "text": "Это оружие требует двух рук при атаке."
+    }
+  },
+  "versatile": {
+    "en": {
+      "title": "Versatile",
+      "text": "This weapon can be used with one or two hands. A damage value in parentheses appears with the property-the damage when the weapon is used with two hands to make a melee attack."
+    },
+    "ru": {
+      "title": "Универсальное",
+      "text": "Это оружие можно использовать одной или двумя руками. Значение урона в скобках указывается вместе со свойством - это урон при использовании оружия двумя руками для рукопашной атаки."
+    }
+  },
+  "acid": {
+    "en": {
+      "title": "Acid",
+      "text": "As an action, you can splash the contents of this vial onto a creature within 5 feet of you or throw the vial up to 20 feet, shattering it on impact. In either case, make a ranged attack against a creature or object, treating the acid as an improvised weapon. On a hit, the target takes 2d6 acid damage."
+    },
+    "ru": {
+      "title": "Кислота",
+      "text": "Действием вы можете выплеснуть содержимое этого флакона на существо в пределах 1,5 м от вас или бросить флакон на расстояние до 6 м, разбив его при ударе. В любом случае совершите дальнобойную атаку по существу или предмету, считая кислоту импровизированным оружием. При попадании цель получает 2к6 урона кислотой."
+    }
+  },
+  "alchemists-fire": {
+    "en": {
+      "title": "Alchemist's Fire",
+      "text": "This sticky, adhesive fluid ignites when exposed to air. As an action, you can throw this flask up to 20 feet, shattering it on impact. Make a ranged attack against a creature or object, treating the alchemist's fire as an improvised weapon. On a hit, the target takes 1d4 fire damage at the start of each of its turns. A creature can end this damage by using its action to make a DC 10 Dexterity check to extinguish the flames."
+    },
+    "ru": {
+      "title": "Алхимический огонь",
+      "text": "Эта липкая, клейкая жидкость воспламеняется при контакте с воздухом. Действием вы можете бросить эту фляжку на расстояние до 6 м, разбив её при ударе. Совершите дальнобойную атаку по существу или предмету, считая алхимический огонь импровизированным оружием. При попадании цель получает 1к4 урона огнём в начале каждого своего хода. Существо может прекратить этот урон, использовав своё действие для проверки Ловкости СЛ 10, чтобы потушить пламя."
+    }
+  },
+  "antitoxin": {
+    "en": {
+      "title": "Antitoxin",
+      "text": "A creature that drinks this vial of liquid gains advantage on saving throws against poison for 1 hour. It confers no benefit to undead or constructs."
+    },
+    "ru": {
+      "title": "Противоядие",
+      "text": "Существо, выпившее этот флакон жидкости, получает преимущество на спасброски от яда на 1 час. Оно не приносит пользы нежити или конструктам."
+    }
+  },
+  "ball-bearings": {
+    "en": {
+      "title": "Ball Bearings",
+      "text": "As an action, you can spill these tiny metal balls from their pouch to cover a level, square area that is 10 feet on a side. A creature moving across the covered area must succeed on a DC 10 Dexterity saving throw or fall prone. A creature moving through the area at half speed doesn't need to make the save."
+    },
+    "ru": {
+      "title": "Металлические шарики",
+      "text": "Действием вы можете высыпать эти крошечные металлические шарики из мешочка, чтобы покрыть ровный квадратный участок со стороной 3 м. Существо, передвигающееся по покрытой области, должно преуспеть в спасброске Ловкости СЛ 10 или получить состояние «лежащий». Существо, передвигающееся по области с половинной скоростью, не должно совершать спасбросок."
+    }
+  },
+  "caltrops": {
+    "en": {
+      "title": "Caltrops",
+      "text": "As an action, you can spread a bag of caltrops to cover a square area that is 5 feet on a side. Any creature that enters the area must succeed on a DC 15 Dexterity saving throw or stop moving this turn and take 1 piercing damage. Taking this damage reduces the creature's walking speed by 10 feet until the creature regains at least 1 hit point. A creature moving through the area at half speed doesn't need to make the save."
+    },
+    "ru": {
+      "title": "Калтропы",
+      "text": "Действием вы можете рассыпать мешок калтропов, чтобы покрыть квадратный участок со стороной 1,5 м. Любое существо, входящее в эту область, должно преуспеть в спасброске Ловкости СЛ 15, иначе оно прекращает перемещение в этот ход и получает 1 колющий урон. Получение этого урона снижает скорость ходьбы существа на 3 м, пока оно не восстановит хотя бы 1 хит. Существо, передвигающееся по области с половинной скоростью, не должно совершать спасбросок."
+    }
+  },
+  "chain": {
+    "en": {
+      "title": "Chain",
+      "text": "A chain has 10 hit points. It can be burst with a successful DC 20 Strength check."
+    },
+    "ru": {
+      "title": "Цепь",
+      "text": "Цепь имеет 10 хитов. Её можно разорвать успешной проверкой Силы СЛ 20."
+    }
+  },
+  "holy-water": {
+    "en": {
+      "title": "Holy Water",
+      "text": "As an action, you can splash the contents of this flask onto a creature within 5 feet of you or throw it up to 20 feet, shattering it on impact. In either case, make a ranged attack against a target creature, treating the holy water as an improvised weapon. If the target is a fiend or undead, it takes 2d6 radiant damage. A cleric or paladin may create holy water by performing a special ritual. The ritual takes 1 hour to perform, uses 25 gp worth of powdered silver, and requires the caster to expend a 1st-level spell slot."
+    },
+    "ru": {
+      "title": "Святая вода",
+      "text": "Действием вы можете выплеснуть содержимое этой фляжки на существо в пределах 1,5 м от вас или бросить её на расстояние до 6 м, разбив при ударе. В любом случае совершите дальнобойную атаку по цели, считая святую воду импровизированным оружием. Если цель - исчадие или нежить, она получает 2к6 урона излучением. Жрец или паладин может создать святую воду, совершив особый ритуал. Ритуал занимает 1 час, требует серебряного порошка на 25 зм и расходует ячейку заклинания 1-го уровня."
+    }
+  },
+  "oil": {
+    "en": {
+      "title": "Oil",
+      "text": "Oil usually comes in a clay flask that holds 1 pint. As an action, you can splash the oil in this flask onto a creature within 5 feet of you or throw it up to 20 feet, shattering it on impact. Make a ranged attack against a target creature or object, treating the oil as an improvised weapon. On a hit, the target is covered in oil. If the target takes any fire damage before the oil dries (after 1 minute), the target takes an additional 5 fire damage from the burning oil. You can also pour a flask of oil on the ground to cover a 5-foot square area, provided that the surface is level. If lit, the oil burns for 2 rounds and deals 5 fire damage to any creature that enters the area or ends its turn in the area. A creature can take this damage only once per turn."
+    },
+    "ru": {
+      "title": "Масло",
+      "text": "Масло обычно поставляется в глиняной фляжке, вмещающей 1 пинту. Действием вы можете выплеснуть масло из этой фляжки на существо в пределах 1,5 м от вас или бросить её на расстояние до 6 м, разбив при ударе. Совершите дальнобойную атаку по цели, считая масло импровизированным оружием. При попадании цель покрывается маслом. Если цель получает любой урон огнём до высыхания масла (через 1 минуту), цель получает дополнительно 5 урона огнём от горящего масла. Вы также можете вылить фляжку масла на землю, чтобы покрыть квадратный участок со стороной 1,5 м, при условии, что поверхность ровная. При поджигании масло горит 2 раунда и наносит 5 урона огнём любому существу, входящему в область или заканчивающему в ней свой ход. Существо может получить этот урон не более одного раза за ход."
+    }
+  },
+  "poison-basic": {
+    "en": {
+      "title": "Poison, Basic",
+      "text": "You can use the poison in this vial to coat one slashing or piercing weapon or up to three pieces of ammunition. Applying the poison takes an action. A creature hit by the poisoned weapon or ammunition must make a DC 10 Constitution saving throw or take 1d4 poison damage. Once applied, the poison retains potency for 1 minute before drying."
+    },
+    "ru": {
+      "title": "Яд, простой",
+      "text": "Вы можете использовать яд из этого флакона, чтобы покрыть одно рубящее или колющее оружие или до трёх единиц боеприпасов. Нанесение яда занимает одно действие. Существо, поражённое отравленным оружием или боеприпасом, должно совершить спасбросок Телосложения СЛ 10 или получить 1к4 урона ядом. После нанесения яд сохраняет силу 1 минуту, после чего высыхает."
+    }
+  },
+  "potion-of-healing": {
+    "en": {
+      "title": "Potion of Healing",
+      "text": "A character who drinks the magical red fluid in this vial regains 2d4 + 2 hit points. Drinking or administering a potion takes an action."
+    },
+    "ru": {
+      "title": "Зелье лечения",
+      "text": "Персонаж, выпивший магическую красную жидкость из этого флакона, восстанавливает 2к4 + 2 хитов. Питьё или применение зелья занимает одно действие."
+    }
+  },
+  "rations": {
+    "en": {
+      "title": "Rations",
+      "text": "Rations consist of dry foods suitable for extended travel, including jerky, dried fruit, hardtack, and nuts."
+    },
+    "ru": {
+      "title": "Рационы",
+      "text": "Рационы состоят из сухих продуктов, подходящих для длительных путешествий, включая вяленое мясо, сухофрукты, сухари и орехи."
+    }
+  },
+  "rope": {
+    "en": {
+      "title": "Rope",
+      "text": "Rope, whether made of hemp or silk, has 2 hit points and can be burst with a DC 17 Strength check."
+    },
+    "ru": {
+      "title": "Верёвка",
+      "text": "Верёвка, будь то пеньковая или шёлковая, имеет 2 хита и может быть разорвана проверкой Силы СЛ 17."
+    }
+  },
+  "tent": {
+    "en": {
+      "title": "Tent",
+      "text": "A simple and portable canvas shelter, a tent sleeps two."
+    },
+    "ru": {
+      "title": "Палатка",
+      "text": "Простое и переносное брезентовое укрытие, палатка рассчитана на двоих."
+    }
+  },
+  "burglars-pack": {
+    "en": {
+      "title": "Burglar's Pack",
+      "text": "Includes a backpack, a bag of 1,000 ball bearings, 10 feet of string, a bell, 5 candles, a crowbar, a hammer, 10 pitons, a hooded lantern, 2 flasks of oil, 5 days rations, a tinderbox, and a waterskin. The pack also has 50 feet of hempen rope strapped to the side of it."
+    },
+    "ru": {
+      "title": "Набор взломщика",
+      "text": "Включает рюкзак, мешок с 1 000 металлических шариков, 3 м бечёвки, колокольчик, 5 свечей, лом, молоток, 10 крючьев, закрытый фонарь, 2 фляжки масла, рационы на 5 дней, трутницу и бурдюк. К набору также прилагается 15 м пеньковой верёвки, привязанной сбоку."
+    }
+  },
+  "diplomats-pack": {
+    "en": {
+      "title": "Diplomat's Pack",
+      "text": "Includes a chest, 2 cases for maps and scrolls, a set of fine clothes, a bottle of ink, an ink pen, a lamp, 2 flasks of oil, 5 sheets of paper, a vial of perfume, sealing wax, and soap."
+    },
+    "ru": {
+      "title": "Набор дипломата",
+      "text": "Включает сундук, 0,6 м для карт и свитков, комплект хорошей одежды, бутылочку чернил, перо для письма, лампу, 2 фляжки масла, 5 листов бумаги, флакон духов, сургуч и мыло."
+    }
+  },
+  "dungeoneers-pack": {
+    "en": {
+      "title": "Dungeoneer's Pack",
+      "text": "Includes a backpack, a crowbar, a hammer, 10 pitons, 10 torches, a tinderbox, 10 days of rations, and a waterskin. The pack also has 50 feet of hempen rope strapped to the side of it."
+    },
+    "ru": {
+      "title": "Набор исследователя подземелий",
+      "text": "Включает рюкзак, лом, молоток, 10 крючьев, 10 факелов, трутницу, рационы на 10 дней и бурдюк. К набору также прилагается 15 м пеньковой верёвки, привязанной сбоку."
+    }
+  },
+  "entertainers-pack": {
+    "en": {
+      "title": "Entertainer's Pack",
+      "text": "Includes a backpack, a bedroll, 2 costumes, 5 candles, 5 days of rations, a waterskin, and a disguise kit."
+    },
+    "ru": {
+      "title": "Набор артиста",
+      "text": "Включает рюкзак, спальный мешок, 2 костюма, 5 свечей, рационы на 5 дней, бурдюк и набор для грима."
+    }
+  },
+  "explorers-pack": {
+    "en": {
+      "title": "Explorer's Pack",
+      "text": "Includes a backpack, a bedroll, a mess kit, a tinderbox, 10 torches, 10 days of rations, and a waterskin. The pack also has 50 feet of hempen rope strapped to the side of it."
+    },
+    "ru": {
+      "title": "Набор путешественника",
+      "text": "Включает рюкзак, спальный мешок, столовый набор, трутницу, 10 факелов, рационы на 10 дней и бурдюк. К набору также прилагается 15 м пеньковой верёвки, привязанной сбоку."
+    }
+  },
+  "priests-pack": {
+    "en": {
+      "title": "Priest's Pack",
+      "text": "Includes a backpack, a blanket, 10 candles, a tinderbox, an alms box, 2 blocks of incense, a censer, vestments, 2 days of rations, and a waterskin."
+    },
+    "ru": {
+      "title": "Набор священника",
+      "text": "Включает рюкзак, одеяло, 10 свечей, трутницу, коробку для пожертвований, 2 кусочка благовоний, кадило, облачение, рационы на 2 дня и бурдюк."
+    }
+  },
+  "scholars-pack": {
+    "en": {
+      "title": "Scholar's Pack",
+      "text": "Includes a backpack, a book of lore, a bottle of ink, an ink pen, 10 sheets of parchment, a little bag of sand, and a small knife."
+    },
+    "ru": {
+      "title": "Набор учёного",
+      "text": "Включает рюкзак, книгу знаний, бутылочку чернил, перо для письма, 10 листов пергамента, мешочек с песком и маленький нож."
+    }
+  },
+  "saddles": {
+    "en": {
+      "title": "Saddles",
+      "text": "A military saddle braces the rider, helping you keep your seat on an active mount in battle. It gives you advantage on any check you make to remain mounted. An exotic saddle is required for riding any aquatic or flying mount."
+    },
+    "ru": {
+      "title": "Сёдла",
+      "text": "Военное седло удерживает всадника, помогая вам сохранять посадку на активном ездовом животном в бою. Оно даёт вам преимущество на любую проверку, совершаемую для удержания в седле. Экзотическое седло требуется для верховой езды на любом водном или летающем ездовом животном."
+    }
+  },
+  "vehicle-proficiency": {
+    "en": {
+      "title": "Vehicle Proficiency",
+      "text": "If you have proficiency with a certain kind of vehicle (land or water), you can add your proficiency bonus to any check you make to control that kind of vehicle in difficult circumstances."
+    },
+    "ru": {
+      "title": "Владение транспортом",
+      "text": "Если вы владеете определённым видом транспорта (наземным или водным), вы можете добавлять бонус мастерства к любой проверке, совершаемой для управления этим видом транспорта в сложных обстоятельствах."
+    }
+  },
+  "rowed-vessels": {
+    "en": {
+      "title": "Rowed Vessels",
+      "text": "Keelboats and rowboats are used on lakes and rivers. If going downstream, add the speed of the current (typically 3 miles per hour) to the speed of the vehicle. These vehicles can't be rowed against any significant current, but they can be pulled upstream by draft animals on the shores. A rowboat weighs 100 pounds, in case adventurers carry it over land."
+    },
+    "ru": {
+      "title": "Гребные суда",
+      "text": "Шлюпы и лодки используются на озёрах и реках. При движении по течению добавьте скорость течения (обычно 3 мили в час) к скорости судна. Эти суда невозможно грести против сильного течения, но их можно тянуть вверх по течению тягловыми животными на берегу. Лодка весит 45 кг, на случай если искатели приключений понесут её по суше."
+    }
+  },
+  "arms-armor-and-other-equipment": {
+    "en": {
+      "title": "Arms, Armor, and Other Equipment",
+      "text": "As a general rule, undamaged weapons, armor, and other equipment fetch half their cost when sold in a market. Weapons and armor used by monsters are rarely in good enough condition to sell."
+    },
+    "ru": {
+      "title": "Оружие, доспехи и прочее снаряжение",
+      "text": "Как правило, неповреждённые оружие, доспехи и прочее снаряжение продаются за половину своей стоимости на рынке. Оружие и доспехи, использовавшиеся монстрами, редко находятся в достаточно хорошем состоянии для продажи."
+    }
+  },
+  "magic-items": {
+    "en": {
+      "title": "Magic Items",
+      "text": "Selling magic items is problematic. Finding someone to buy a potion or a scroll isn't too hard, but other items are out of the realm of most but the wealthiest nobles. Likewise, aside from a few common magic items, you won't normally come across magic items or spells to purchase. The value of magic is far beyond simple gold and should always be treated as such."
+    },
+    "ru": {
+      "title": "Магические предметы",
+      "text": "Продажа магических предметов проблематична. Найти покупателя на зелье или свиток несложно, но остальные предметы выходят за рамки возможностей всех, кроме самых богатых аристократов. Аналогично, за исключением нескольких обычных магических предметов, вы обычно не встретите магические предметы или заклинания для покупки. Ценность магии далеко выходит за рамки простого золота и всегда должна рассматриваться как таковая."
+    }
+  },
+  "gems-jewelry-and-art-objects": {
+    "en": {
+      "title": "Gems, Jewelry, and Art Objects",
+      "text": "These items retain their full value in the marketplace, and you can either trade them in for coin or use them as currency for other transactions. For exceptionally valuable treasures, the GM might require you to find a buyer in a large town or larger community first."
+    },
+    "ru": {
+      "title": "Самоцветы, драгоценности и предметы искусства",
+      "text": "Эти предметы сохраняют свою полную стоимость на рынке, и вы можете либо обменять их на монеты, либо использовать как валюту для других сделок. Для исключительно ценных сокровищ МИ может потребовать, чтобы вы сначала нашли покупателя в крупном городе или более крупном поселении."
+    }
+  },
+  "trade-goods": {
+    "en": {
+      "title": "Trade Goods",
+      "text": "On the borderlands, many people conduct transactions through barter. Like gems and art objects, trade goods-bars of iron, bags of salt, livestock, and so on-retain their full value in the market and can be used as currency."
+    },
+    "ru": {
+      "title": "Торговые товары",
+      "text": "На приграничных территориях многие ведут дела посредством бартера. Как и самоцветы и предметы искусства, торговые товары (железные слитки, мешки соли, скот и тому подобное) сохраняют свою полную стоимость на рынке и могут использоваться как валюта."
+    }
+  },
+  "pistol": {
+    "en": {
+      "title": "Pistol"
+    },
+    "ru": {
+      "title": "Пистолет"
+    }
+  },
+  "revolver": {
+    "en": {
+      "title": "Revolver"
+    },
+    "ru": {
+      "title": "Револьвер"
+    }
+  },
+  "sawed-off-scattergun": {
+    "en": {
+      "title": "Sawed-off Scattergun"
+    },
+    "ru": {
+      "title": "Обрез дробовика"
+    }
+  },
+  "hunting-rifle": {
+    "en": {
+      "title": "Hunting Rifle"
+    },
+    "ru": {
+      "title": "Охотничья винтовка"
+    }
+  },
+  "musket": {
+    "en": {
+      "title": "Musket"
+    },
+    "ru": {
+      "title": "Мушкет"
+    }
+  },
+  "hand-cannon": {
+    "en": {
+      "title": "Hand Cannon"
+    },
+    "ru": {
+      "title": "Ручная пушка"
+    }
+  },
+  "monoblade": {
+    "en": {
+      "title": "Monoblade"
+    },
+    "ru": {
+      "title": "Моноклинок"
+    }
+  },
+  "chainblade": {
+    "en": {
+      "title": "Chainblade"
+    },
+    "ru": {
+      "title": "Цепной клинок"
+    }
+  },
+  "shock-baton": {
+    "en": {
+      "title": "Shock Baton"
+    },
+    "ru": {
+      "title": "Электрошоковая дубинка"
+    }
+  },
+  "vibroknife": {
+    "en": {
+      "title": "Vibroknife"
+    },
+    "ru": {
+      "title": "Вибронож"
+    }
+  },
+  "ripper-gauntlet": {
+    "en": {
+      "title": "Ripper Gauntlet"
+    },
+    "ru": {
+      "title": "Разрывающая перчатка"
+    }
+  },
+  "heavy-spanner": {
+    "en": {
+      "title": "Heavy Spanner"
+    },
+    "ru": {
+      "title": "Тяжёлый гаечный ключ"
+    }
+  },
+  "sword-cane": {
+    "en": {
+      "title": "Sword Cane"
+    },
+    "ru": {
+      "title": "Трость-меч"
+    }
+  },
+  "machete": {
+    "en": {
+      "title": "Machete"
+    },
+    "ru": {
+      "title": "Мачете"
+    }
+  },
+  "silvered-stake": {
+    "en": {
+      "title": "Silvered Stake"
+    },
+    "ru": {
+      "title": "Посеребрённый кол"
+    }
+  },
+  "censer-mace": {
+    "en": {
+      "title": "Censer Mace"
+    },
+    "ru": {
+      "title": "Булава-кадило"
+    }
+  },
+  "hurled-vial": {
+    "en": {
+      "title": "Hurled Vial"
+    },
+    "ru": {
+      "title": "Метательный флакон"
+    }
+  },
+  "armorweave-vest": {
+    "en": {
+      "title": "Armorweave Vest"
+    },
+    "ru": {
+      "title": "Жилет из бронеткани"
+    }
+  },
+  "kevlar-vest": {
+    "en": {
+      "title": "Kevlar Vest"
+    },
+    "ru": {
+      "title": "Кевларовый жилет"
+    }
+  },
+  "riot-plating": {
+    "en": {
+      "title": "Riot Plating"
+    },
+    "ru": {
+      "title": "Штурмовой доспех"
+    }
+  },
+  "brass-carapace": {
+    "en": {
+      "title": "Brass Carapace"
+    },
+    "ru": {
+      "title": "Латунный панцирь"
+    }
+  },
+  "scrap-plate": {
+    "en": {
+      "title": "Scrap Plate"
+    },
+    "ru": {
+      "title": "Латы из металлолома"
+    }
+  },
+  "ballistic-shield": {
+    "en": {
+      "title": "Ballistic Shield"
+    },
+    "ru": {
+      "title": "Баллистический щит"
+    }
+  }
+}

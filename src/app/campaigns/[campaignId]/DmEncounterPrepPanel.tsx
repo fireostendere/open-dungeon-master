@@ -43,18 +43,18 @@ function DifficultyLine({ readout }: { readout: TemplateReadout }) {
   if (readout.unknownMonster) {
     return (
       <p className="text-[11px] text-red-400">
-        {uiText("No creature named “{name}” exists in this world.", { name: readout.unknownMonster })}
+        {uiText("noCreatureNamedNameExistsInThisWorld", { name: readout.unknownMonster })}
       </p>
     );
   }
   return (
     <p className={cn("text-[11px]", readout.tooDeadly ? "text-red-400" : "text-stone-500")}>
-      {uiText("Creature count: {count}; {verdict} ({xp} XP against a ceiling of {ceiling}){refusal}", {
+      {uiText("creatureCountCountVerdictXpXpAgainstA", {
         count: readout.count,
         verdict: readout.verdict,
         xp: readout.adjustedXp,
         ceiling: readout.ceiling,
-        refusal: readout.tooDeadly ? uiText(" · the engine will reject it as written.") : "",
+        refusal: readout.tooDeadly ? uiText("theEngineWillRejectItAsWritten") : "",
       })}
     </p>
   );

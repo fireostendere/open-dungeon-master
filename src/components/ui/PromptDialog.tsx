@@ -65,7 +65,7 @@ function PromptForm({
       </label>
       <div className="flex justify-end gap-2">
         <button type="button" onClick={onClose} className={ui.btnSecondary}>
-          {uiText("Cancel")}
+          {uiText("cancel")}
         </button>
         <button type="submit" disabled={!canSubmit} className={ui.btnPrimary}>
           {submitLabel}

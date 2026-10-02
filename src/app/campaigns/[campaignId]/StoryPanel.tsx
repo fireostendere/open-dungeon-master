@@ -216,7 +216,7 @@ function ChapterCard({
               className="flex items-center gap-1 rounded border border-stone-700 px-2 py-0.5 text-[11px] text-stone-300 hover:bg-stone-900"
             >
               {busy ? <Loader2 className="size-3 animate-spin" /> : <Check className="size-3" />}
-              {uiText("Save")}
+              {uiText("save")}
             </button>
             <button
               type="button"
@@ -227,7 +227,7 @@ function ChapterCard({
               }}
               className="flex items-center gap-1 rounded border border-stone-700 px-2 py-0.5 text-[11px] text-stone-500 hover:bg-stone-900"
             >
-              <X className="size-3" /> {uiText("Cancel")}
+              <X className="size-3" /> {uiText("cancel")}
             </button>
           </div>
         </div>
@@ -255,7 +255,7 @@ function NpcReviewCard({ campaignId }: { campaignId: string }) {
           <ChevronRight className="mt-0.5 size-3.5 shrink-0 text-stone-500" />
         )}
         <span className="flex items-center gap-1.5 text-xs font-medium text-amber-200">
-          <GameIcon icon={{ kind: "glyph", key: "system-cast" }} size="size-6" /> {uiText("NPC roster")}
+          <GameIcon icon={{ kind: "glyph", key: "system-cast" }} size="size-6" /> {uiText("npcRoster")}
         </span>
       </button>
       {expanded ? (
@@ -417,7 +417,7 @@ function ArcCard({ campaignId }: { campaignId: string }) {
               ) : null}
               {actGroups.map((act) => (
                 <div key={act}>
-                  <p className="text-[11px] font-medium text-stone-400">{uiText("Act")} {act}</p>
+                  <p className="text-[11px] font-medium text-stone-400">{uiText("act")} {act}</p>
                   <ol className="mt-0.5 space-y-0.5">
                     {arc.beats.map((beat, index) => {
                       if (beat.act !== act) {
@@ -449,14 +449,14 @@ function ArcCard({ campaignId }: { campaignId: string }) {
                                 disabled={beatBusy || !draft.trim()}
                                 className={cn(ui.btnSmall, "px-2 py-0.5 text-[11px]")}
                               >
-                                <Check className="size-3" /> {uiText("Save")}
+                                <Check className="size-3" /> {uiText("save")}
                               </button>
                               <button
                                 type="button"
                                 onClick={closeEditor}
                                 className={cn(ui.btnSmall, "px-2 py-0.5 text-[11px]")}
                               >
-                                {uiText("Cancel")}
+                                {uiText("cancel")}
                               </button>
                             </div>
                           </li>
@@ -597,14 +597,14 @@ function ArcCard({ campaignId }: { campaignId: string }) {
                           disabled={beatBusy || !draft.trim()}
                           className={cn(ui.btnSmall, "px-2 py-0.5 text-[11px]")}
                         >
-                          <Check className="size-3" /> {uiText("Add")}
+                          <Check className="size-3" /> {uiText("add")}
                         </button>
                         <button
                           type="button"
                           onClick={closeEditor}
                           className={cn(ui.btnSmall, "px-2 py-0.5 text-[11px]")}
                         >
-                          {uiText("Cancel")}
+                          {uiText("cancel")}
                         </button>
                       </div>
                     </div>
@@ -617,7 +617,7 @@ function ArcCard({ campaignId }: { campaignId: string }) {
                       }}
                       className="mt-0.5 inline-flex items-center gap-1 text-[11px] text-stone-600 hover:text-amber-200"
                     >
-                      <Plus className="size-3" /> {uiText("Add a beat")}
+                      <Plus className="size-3" /> {uiText("addABeat")}
                     </button>
                   )}
                 </div>
@@ -629,14 +629,14 @@ function ArcCard({ campaignId }: { campaignId: string }) {
                   <ul className="mt-0.5 space-y-0.5">
                     {aheadSketches.map((sketch) => (
                       <li key={sketch.act} className="list-none text-[11px] leading-4 text-stone-500">
-                        {uiText("Act")} {sketch.act}: {sketch.milestone}
+                        {uiText("act")} {sketch.act}: {sketch.milestone}
                         {sketch.boss ? (
-                          <span className="text-stone-600"> {uiText("&middot; boss:")} {sketch.boss.name}</span>
+                          <span className="text-stone-600"> {uiText("middotBoss")} {sketch.boss.name}</span>
                         ) : null}
                         {sketch.allies.length ? (
                           <span className="text-stone-600">
                             {" "}
-                            &middot; {uiText("Allies planned: {count}", { count: sketch.allies.length })}
+                            &middot; {uiText("alliesPlannedCount", { count: sketch.allies.length })}
                           </span>
                         ) : null}
                       </li>
@@ -646,11 +646,11 @@ function ArcCard({ campaignId }: { campaignId: string }) {
               ) : null}
               {arc.finale ? (
                 <p className="text-[11px] leading-4 text-stone-400">
-                  {uiText("Finale:")} {arc.finale}
+                  {uiText("finale")} {arc.finale}
                   {arc.saga?.finaleBoss ? (
                     <span className="text-stone-500">
                       {" "}
-                      {uiText("&middot; final boss:")} {arc.saga.finaleBoss.name}
+                      {uiText("middotFinalBoss")} {arc.saga.finaleBoss.name}
                     </span>
                   ) : null}
                 </p>

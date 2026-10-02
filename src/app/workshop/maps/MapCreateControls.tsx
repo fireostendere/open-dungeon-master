@@ -115,7 +115,7 @@ export function MapCreateControls({
             type="button"
             disabled={busy || !newName.trim()}
             title={
-              blank === "rock" ? uiText("Solid rock to carve rooms out of") : uiText("Open ground to put things on")
+              blank === "rock" ? uiText("solidRockToCarveRoomsOutOf") : uiText("openGroundToPutThingsOn")
             }
             onClick={() => void create({ do: "create", ...size, blank })}
             className="rounded-md border border-stone-700 px-2 py-1 text-xs text-stone-300 hover:bg-stone-900 disabled:opacity-50"
@@ -139,7 +139,7 @@ export function MapCreateControls({
         <button
           type="button"
           disabled={busy}
-          title={uiText("A Universal VTT export from Dungeondraft and its neighbours")}
+          title={uiText("aUniversalVttExportFromDungeondraftAndIts")}
           onClick={() => fileRef.current?.click()}
           className="flex items-center gap-1 rounded-md border border-stone-700 px-2 py-1 text-xs text-stone-300 hover:bg-stone-900 disabled:opacity-50"
         >
@@ -149,7 +149,7 @@ export function MapCreateControls({
           <button
             type="button"
             disabled={busy || !newName.trim()}
-            title={uiText("Save the map that is on the table right now")}
+            title={uiText("saveTheMapThatIsOnTheTable")}
             onClick={() => void create({ do: "capture" })}
             className="flex items-center gap-1 rounded-md border border-stone-700 px-2 py-1 text-xs text-stone-300 hover:bg-stone-900 disabled:opacity-50"
           >

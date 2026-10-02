@@ -6,6 +6,7 @@ import { ActionPreviewDialog } from "@/app/campaigns/[campaignId]/ActionPreviewD
 import { combatChoiceDescriptors, combatChoiceLabel, combatIntentBudget, combatSpellSlots, validateCombatTurnIntent, type CombatChoice, type CombatSpellDescriptor, type CombatTurnIntent } from "@/lib/dm/combat-turn-intent";
 import { freshBudget } from "@/lib/dm/action-budget";
 import { petCommandCost } from "@/lib/dm/pet-combat";
+import { localizedContentName } from "@/lib/help";
 import { useI18n } from "@/lib/i18n";
 import { combatRiders, hasCunningAction } from "@/lib/srd/feature-effects";
 import { conditionExtraActions } from "@/lib/srd/condition-effects";
@@ -102,7 +103,7 @@ export function CombatTurnHud({
   const canQueue = (choice: CombatChoice) => validate([...choices, choice]).ok;
   const actionNames = { dash: copy.dash, disengage: copy.disengage, hide: copy.hide, help: copy.help, grapple: copy.grapple, shove: copy.shove };
   // Nested so the i18n checker sees the Cyrillic label only under locale === "ru".
-  const names = (name: string) => name === "Unarmed strike" ? (locale === "ru" ? "Безоружный удар" : name) : name;
+  const names = (name: string) => name === "Unarmed strike" ? (locale === "ru" ? "Безоружный удар" : name) : localizedContentName("item", name, locale);
   const options: WizardOption[] = [];
 
   if (enemies.length) {
@@ -143,7 +144,7 @@ export function CombatTurnHud({
 
   for (const item of items) {
     if (allies.some((ally) => canQueue({ type: "item", item: item.name, targetCharacterId: ally.id }))) {
-      options.push({ key: `item:${item.name}`, kind: "item", label: `${copy.item}: ${item.name}`, cost: "action", item: item.name });
+      options.push({ key: `item:${item.name}`, kind: "item", label: `${copy.item}: ${localizedContentName("item", item.name, locale)}`, cost: "action", item: item.name });
     }
   }
 
@@ -158,7 +159,7 @@ export function CombatTurnHud({
       type: "spell", spell: spell.name, targetId: id,
       ...(level > 0 && slots[0] ? { slotLevel: slots[0].level } : {}),
     }))) continue;
-    options.push({ key: `spell:${spell.name}`, kind: "spell", label: `${copy.spell}: ${spell.name}`, cost: spell.cost, spell });
+    options.push({ key: `spell:${spell.name}`, kind: "spell", label: `${copy.spell}: ${localizedContentName("spell", spell.name, locale)}`, cost: spell.cost, spell });
   }
 
   for (const pet of sheet.pets ?? []) {

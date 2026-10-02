@@ -36,9 +36,9 @@ export function RulebookDialog({
             (event.currentTarget as HTMLElement | null)?.focus();
           }}
         >
-          <RadixDialog.Title className="sr-only">{uiText("The Rulebook")}</RadixDialog.Title>
+          <RadixDialog.Title className="sr-only">{uiText("theRulebook")}</RadixDialog.Title>
           <RulebookReader embedded startAt={startAt} startAnchor={startAnchor} />
-          <RadixDialog.Close aria-label={uiText("Close the rulebook")} className="rb-dialog-close">
+          <RadixDialog.Close aria-label={uiText("closeTheRulebook")} className="rb-dialog-close">
             <X className="size-5" />
           </RadixDialog.Close>
         </RadixDialog.Content>

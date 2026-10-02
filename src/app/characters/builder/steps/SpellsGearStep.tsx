@@ -121,7 +121,7 @@ function SpellsSection({
     }
     if (cantripCap !== null && cantrips.length >= cantripCap) {
       setLimitNote(
-        uiText("That is every cantrip you know at this level. Remove one to choose {name}.", { name: spellName(name) }),
+        uiText("thatIsEveryCantripYouKnowAtThis", { name: spellName(name) }),
       );
       return;
     }
@@ -137,8 +137,8 @@ function SpellsSection({
     if (cap !== null && chosenSpells.length >= cap) {
       setLimitNote(
         wizard
-          ? uiText("Your spellbook starts with {count} spells. Remove one to write in {name}.", { count: cap, name: spellName(name) })
-          : uiText("That is every spell you can have at this level. Remove one to choose {name}.", { name: spellName(name) }),
+          ? uiText("yourSpellbookStartsWithCountSpellsRemoveOne", { count: cap, name: spellName(name) })
+          : uiText("thatIsEverySpellYouCanHaveAt", { name: spellName(name) }),
       );
       return;
     }
@@ -151,7 +151,7 @@ function SpellsSection({
     }
     if (spellCap !== null && chosenPrepared.length >= spellCap) {
       setLimitNote(
-        uiText("You can prepare {count} spells. Unprepare one to prepare {name}.", { count: spellCap, name: spellName(name) }),
+        uiText("youCanPrepareCountSpellsUnprepareOneTo", { count: spellCap, name: spellName(name) }),
       );
       return;
     }
@@ -246,15 +246,15 @@ function SpellsSection({
 
   const counters = [
     ...(cantripAdvice !== null
-      ? [{ label: uiText("Cantrips"), value: chosenCantrips.length, max: cantripAdvice }]
+      ? [{ label: uiText("cantrips"), value: chosenCantrips.length, max: cantripAdvice }]
       : []),
     ...(wizard && spellbookAdvice !== null
-      ? [{ label: uiText("Spellbook"), value: chosenSpells.length, max: spellbookAdvice }]
+      ? [{ label: uiText("spellbook"), value: chosenSpells.length, max: spellbookAdvice }]
       : []),
     ...(spellAdvice
       ? [
           {
-            label: spellStyle === "known" ? uiText("Known") : uiText("Prepared"),
+            label: spellStyle === "known" ? uiText("known") : uiText("prepared"),
             value: wizard ? chosenPrepared.length : chosenSpells.length,
             max: spellAdvice.count,
           },
@@ -265,27 +265,27 @@ function SpellsSection({
   const className = characterDisplay(klass.id, locale) === klass.id ? klass.name : characterDisplay(klass.id, locale);
   return (
     <StepPanel
-      title={uiText("Spells")}
+      title={uiText("spells")}
       ornate
       help={
         <>
-          <GameTerm id="cantrip">{uiText("Cantrips")}</GameTerm>{" "}
-          {uiText("are small spells you know for good and cast as often as you like.")}{" "}
+          <GameTerm id="cantrip">{uiText("cantrips")}</GameTerm>{" "}
+          {uiText("areSmallSpellsYouKnowForGoodAnd")}{" "}
           {spellStyle === "known"
-            ? uiText("This class ({name}) knows a fixed set of spells, always ready to cast with a spell slot. You can swap one each time you level up.", { name: className })
+            ? uiText("thisClassNameKnowsAFixedSetOf", { name: className })
             : wizard
-              ? uiText("A wizard writes spells in a spellbook, then prepares some of them to cast. Fill the book first, then choose what is prepared. In play you change what is prepared after a long rest.")
-              : uiText("This class ({name}) can prepare any spell on its list. Choose what you start with prepared; in play you change them after a long rest.", { name: className })}{" "}
-          {uiText("Tap a spell to choose it; ⓘ reads it first.")}
+              ? uiText("aWizardWritesSpellsInASpellbookThen")
+              : uiText("thisClassNameCanPrepareAnySpellOn", { name: className })}{" "}
+          {uiText("tapASpellToChooseItReadsIt")}
         </>
       }
     >
       {wizard ? (
-        <div role="tablist" aria-label={uiText("Spellbook step")} className="mb-3 grid grid-cols-2 gap-1.5">
+        <div role="tablist" aria-label={uiText("spellbookStep")} className="mb-3 grid grid-cols-2 gap-1.5">
           {(
             [
-              ["book", uiText("1. Write your spellbook"), `${chosenSpells.length}/${spellbookAdvice ?? "?"}`],
-              ["prepare", uiText("2. Prepare from it"), `${chosenPrepared.length}/${spellAdvice?.count ?? "?"}`],
+              ["book", uiText("text1WriteYourSpellbook"), `${chosenSpells.length}/${spellbookAdvice ?? "?"}`],
+              ["prepare", uiText("text2PrepareFromIt"), `${chosenPrepared.length}/${spellAdvice?.count ?? "?"}`],
             ] as const
           ).map(([key, label, count]) => (
             <button
@@ -319,7 +319,7 @@ function SpellsSection({
             onClick={addSuggested}
             className="text-amber-300 underline-offset-2 hover:underline"
           >
-            {uiText("Fill with the suggested spells")}
+            {uiText("fillWithTheSuggestedSpells")}
           </button>
         </p>
       ) : null}
@@ -335,15 +335,15 @@ function SpellsSection({
         onTile={onTile}
         emptyText={
           loading
-            ? uiText("Loading the spell list...")
+            ? uiText("loadingTheSpellList")
             : wizard && phase === "prepare"
-              ? uiText("Nothing in your spellbook at this level.")
-              : uiText("No spells at this level.")
+              ? uiText("nothingInYourSpellbookAtThisLevel")
+              : uiText("noSpellsAtThisLevel")
         }
         header={
           klass.genres ? (
             <span className="text-stone-500">
-              {uiText("Counts follow the {list} list this class borrows.", { list: characterDisplay(spellSearchClass, locale) })}
+              {uiText("countsFollowTheListListThisClassBorrows", { list: characterDisplay(spellSearchClass, locale) })}
             </span>
           ) : null
         }

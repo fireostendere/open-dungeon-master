@@ -135,7 +135,7 @@ export function Markdown({
           const size = block.level === 1 ? "text-base" : block.level === 2 ? "text-sm" : "text-[13px]";
           return (
             <p key={index} className={cn("font-display tracking-wide text-amber-50", size)}>
-              {inline(block.text, targets, uiText("Nothing by this name yet"), onLink)}
+              {inline(block.text, targets, uiText("nothingByThisNameYet"), onLink)}
             </p>
           );
         }
@@ -144,12 +144,12 @@ export function Markdown({
           return (
             <Tag key={index} className={cn("space-y-0.5 pl-5", block.ordered ? "list-decimal" : "list-disc")}>
               {block.items.map((item, at) => (
-                <li key={at}>{inline(item, targets, uiText("Nothing by this name yet"), onLink)}</li>
+                <li key={at}>{inline(item, targets, uiText("nothingByThisNameYet"), onLink)}</li>
               ))}
             </Tag>
           );
         }
-        return <p key={index}>{inline(block.text, targets, uiText("Nothing by this name yet"), onLink)}</p>;
+        return <p key={index}>{inline(block.text, targets, uiText("nothingByThisNameYet"), onLink)}</p>;
       })}
     </div>
   );

@@ -200,7 +200,7 @@ export function ImportBundleButton({
                 ? copy.empty
                 : kinds.length === kindsOf(preview).length
                   ? copy.import
-                : uiText("Import {count} of {total} kinds", { count: kinds.length, total: kindsOf(preview).length })}
+                : uiText("importCountOfTotalKinds", { count: kinds.length, total: kindsOf(preview).length })}
             </button>
             <button
               type="button"

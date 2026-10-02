@@ -166,7 +166,7 @@ export function CatalogStart({
               </button>
               <InfoButton
                 label={localizedContentName(CONTENT_KIND[kind], entry.name, locale)}
-                meta={kind === "spell" ? spellSummary(entry.data) : undefined}
+                meta={kind === "spell" ? spellSummary(entry.data, locale) : undefined}
                 text={describeContentEntry(entry.data, locale, {
                   kind: CONTENT_KIND[kind],
                   name: entry.name,

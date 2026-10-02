@@ -148,7 +148,7 @@ export function RacialChoicesSection({
                 {skills[index] ? (
                   <InfoButton
                     label={skillName(skills[index])}
-                    text={describeSkill(skills[index])}
+                    text={describeSkill(skills[index], locale)}
                   />
                 ) : null}
               </span>

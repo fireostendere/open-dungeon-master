@@ -1,7 +1,7 @@
 "use client";
 
 import { InfoButton } from "@/components/ui/InfoDialog";
-import { contentSlug } from "@/lib/help";
+import { contentSlug, localizedContentName } from "@/lib/help";
 import { gearFromHomebrewData, type HomebrewGear } from "@/lib/homebrew/gear";
 import CatalogBrowser from "./CatalogBrowser";
 import ContentPicker from "./ContentPicker";
@@ -72,11 +72,11 @@ export default function EquipmentSection({
                   onClick={() => onAdd({ name: entry.name })}
                   className="py-1 hover:text-amber-100"
                 >
-                  + {entry.name}
+                  + {localizedContentName("items", entry.name, locale)}
                   <span className="ml-1 text-amber-200/50">{entry.note}</span>
                 </button>
                 <InfoButton
-                  label={entry.name}
+                  label={localizedContentName("items", entry.name, locale)}
                   reference={{ kind: "items", slug: contentSlug(entry.name), name: entry.name }}
                 />
               </span>
@@ -163,7 +163,7 @@ export default function EquipmentSection({
         {equipment.map((item) => (
           <Chip
             key={item.name}
-            label={item.qty > 1 ? `${item.name} x${item.qty}` : item.name}
+            label={item.qty > 1 ? `${localizedContentName("items", item.name, locale)} ×${item.qty}` : localizedContentName("items", item.name, locale)}
             homebrew={item.slug?.startsWith("homebrew:") ?? false}
             info={
               item.slug?.startsWith("homebrew:")

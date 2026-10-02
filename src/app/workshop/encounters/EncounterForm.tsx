@@ -55,7 +55,7 @@ export function EncounterForm({
         value={value.name}
         maxLength={TEMPLATE_NAME_MAX}
         onChange={(event) => set({ name: event.target.value })}
-        placeholder={uiText("Ambush at the ford")}
+        placeholder={uiText("ambushAtTheFord")}
         aria-label={copy.name}
         className={field}
       />
@@ -70,7 +70,7 @@ export function EncounterForm({
         value={value.enemies}
         onChange={(event) => set({ enemies: event.target.value })}
         rows={3}
-        placeholder={uiText("goblin x4\nhobgoblin")}
+        placeholder={uiText("goblinX4Hobgoblin")}
         aria-label={copy.roster}
         className={field}
       />
@@ -80,7 +80,7 @@ export function EncounterForm({
       <input
         value={value.battlefield}
         onChange={(event) => set({ battlefield: event.target.value })}
-        placeholder={uiText("a rope bridge over a gorge")}
+        placeholder={uiText("aRopeBridgeOverAGorge")}
         aria-label={copy.battle}
         className={field}
       />
@@ -110,7 +110,7 @@ export function EncounterForm({
         value={value.notes}
         onChange={(event) => set({ notes: event.target.value })}
         rows={2}
-        placeholder={uiText("Tactics, what they want, when they run.")}
+        placeholder={uiText("tacticsWhatTheyWantWhenTheyRun")}
         aria-label={copy.notes}
         className={field}
       />

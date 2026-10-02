@@ -106,56 +106,56 @@ export function AdminSettingsPanel() {
 
   const input = ui.input;
   return <div className="space-y-5">
-    <PageSection heading={uiText("Server")} glyph="tab-settings" intro={uiText("Identity and public access settings. AI providers are intentionally not hosted by this server.")}>
+    <PageSection heading={uiText("server")} glyph="tab-settings" intro={uiText("identityAndPublicAccessSettingsAiProvidersAre")}>
       <div className="grid gap-4 md:grid-cols-2">
-        <Field label={uiText("Server name")}><input className={input} value={draft.serverName} onChange={(e) => setDraft({ ...draft, serverName: e.target.value })} /></Field>
-        <Field label={uiText("Public URL")} hint={data.envDefaults.publicUrl ? uiText("Environment: {value}", { value: data.envDefaults.publicUrl }) : undefined}>
-          <input className={input} value={draft.publicUrl} onChange={(e) => setDraft({ ...draft, publicUrl: e.target.value })} placeholder={uiText("https://dungeon.example.org")} />
+        <Field label={uiText("serverName")}><input className={input} value={draft.serverName} onChange={(e) => setDraft({ ...draft, serverName: e.target.value })} /></Field>
+        <Field label={uiText("publicUrl")} hint={data.envDefaults.publicUrl ? uiText("environmentValue", { value: data.envDefaults.publicUrl }) : undefined}>
+          <input className={input} value={draft.publicUrl} onChange={(e) => setDraft({ ...draft, publicUrl: e.target.value })} placeholder={uiText("httpsDungeonExampleOrg")} />
         </Field>
-        <Field label={uiText("World registry URL")} hint={data.envDefaults.worldRegistryUrl ? uiText("Environment: {value}", { value: data.envDefaults.worldRegistryUrl }) : uiText("Blank keeps community packs manual-only.")}>
+        <Field label={uiText("worldRegistryUrl")} hint={data.envDefaults.worldRegistryUrl ? uiText("environmentValue", { value: data.envDefaults.worldRegistryUrl }) : uiText("blankKeepsCommunityPacksManualOnly")}>
           <input className={input} value={draft.worldRegistryUrl} onChange={(e) => setDraft({ ...draft, worldRegistryUrl: e.target.value })} />
         </Field>
-        <Field label={uiText("Account deletion grace days")}>
+        <Field label={uiText("accountDeletionGraceDays")}>
           <input className={input} type="number" min={0} max={90} value={draft.accountDeletionGraceDays} onChange={(e) => setDraft({ ...draft, accountDeletionGraceDays: Number(e.target.value) || 0 })} />
         </Field>
       </div>
     </PageSection>
 
     {!data.deviceWorld ? <>
-      <PageSection heading={uiText("Accounts")} glyph="tab-characters" intro={uiText("Choose who may create an account on this server.")}>
-        <Field label={uiText("Signup policy")}>
+      <PageSection heading={uiText("accounts")} glyph="tab-characters" intro={uiText("chooseWhoMayCreateAnAccountOnThis")}>
+        <Field label={uiText("signupPolicy")}>
           <select className={input} value={draft.signupMode} onChange={(e) => setDraft({ ...draft, signupMode: e.target.value as Config["signupMode"] })}>
-            <option value="open">{uiText("Open")}</option><option value="invite">{uiText("Invite only")}</option><option value="closed">{uiText("Closed")}</option>
+            <option value="open">{uiText("open")}</option><option value="invite">{uiText("inviteOnly")}</option><option value="closed">{uiText("closed")}</option>
           </select>
         </Field>
       </PageSection>
       {draft.signupMode === "invite" ? <AdminInvitesSection /> : null}
 
-      <PageSection heading={uiText("Voice chat")} glyph="cue-horn" intro={uiText("Browser-to-browser mesh or the built-in mediasoup SFU. This is ordinary WebRTC voice, not speech AI.")}>
+      <PageSection heading={uiText("voiceChat")} glyph="cue-horn" intro={uiText("browserToBrowserMeshOrTheBuiltIn")}>
         <div className="grid gap-4 md:grid-cols-2">
-          <Field label={uiText("Enabled")}><select className={input} value={draft.voiceChat.enabled} onChange={(e) => setDraft({ ...draft, voiceChat: { ...draft.voiceChat, enabled: e.target.value as Config["voiceChat"]["enabled"] } })}><option value="">{uiText("Environment/default")}</option><option value="on">On</option><option value="off">{uiText("Off")}</option></select></Field>
-          <Field label={uiText("Mode")}><select className={input} value={draft.voiceChat.mode} onChange={(e) => setDraft({ ...draft, voiceChat: { ...draft.voiceChat, mode: e.target.value as Config["voiceChat"]["mode"] } })}><option value="">{uiText("Default")}</option><option value="mesh">{uiText("Mesh")}</option><option value="sfu">SFU</option></select></Field>
-          <Field label={uiText("Announced IP")}><input className={input} value={draft.voiceChat.announcedIp} onChange={(e) => setDraft({ ...draft, voiceChat: { ...draft.voiceChat, announcedIp: e.target.value } })} /></Field>
-          <Field label={uiText("Domain")}><input className={input} value={draft.voiceChat.domain} onChange={(e) => setDraft({ ...draft, voiceChat: { ...draft.voiceChat, domain: e.target.value } })} /></Field>
-          <Field label={uiText("RTC port")}><input className={input} value={draft.voiceChat.rtcPort} onChange={(e) => setDraft({ ...draft, voiceChat: { ...draft.voiceChat, rtcPort: e.target.value } })} placeholder={data.envDefaults.voiceRtcPort} /></Field>
+          <Field label={uiText("enabled")}><select className={input} value={draft.voiceChat.enabled} onChange={(e) => setDraft({ ...draft, voiceChat: { ...draft.voiceChat, enabled: e.target.value as Config["voiceChat"]["enabled"] } })}><option value="">{uiText("environmentDefault")}</option><option value="on">On</option><option value="off">{uiText("off")}</option></select></Field>
+          <Field label={uiText("mode")}><select className={input} value={draft.voiceChat.mode} onChange={(e) => setDraft({ ...draft, voiceChat: { ...draft.voiceChat, mode: e.target.value as Config["voiceChat"]["mode"] } })}><option value="">{uiText("default")}</option><option value="mesh">{uiText("mesh")}</option><option value="sfu">SFU</option></select></Field>
+          <Field label={uiText("announcedIp")}><input className={input} value={draft.voiceChat.announcedIp} onChange={(e) => setDraft({ ...draft, voiceChat: { ...draft.voiceChat, announcedIp: e.target.value } })} /></Field>
+          <Field label={uiText("domain")}><input className={input} value={draft.voiceChat.domain} onChange={(e) => setDraft({ ...draft, voiceChat: { ...draft.voiceChat, domain: e.target.value } })} /></Field>
+          <Field label={uiText("rtcPort")}><input className={input} value={draft.voiceChat.rtcPort} onChange={(e) => setDraft({ ...draft, voiceChat: { ...draft.voiceChat, rtcPort: e.target.value } })} placeholder={data.envDefaults.voiceRtcPort} /></Field>
         </div>
-        {data.voiceAnnounceUnroutable ? <p className="mt-3 text-xs text-amber-400">{uiText("The SFU is announcing an address remote browsers cannot route to.")}</p> : null}
+        {data.voiceAnnounceUnroutable ? <p className="mt-3 text-xs text-amber-400">{uiText("theSfuIsAnnouncingAnAddressRemoteBrowsers")}</p> : null}
       </PageSection>
 
-      <PageSection heading={uiText("Discord sign-in")} glyph="system-share">
+      <PageSection heading={uiText("discordSignIn")} glyph="system-share">
         <div className="grid gap-4 md:grid-cols-2">
-          <Field label={uiText("Client ID")}><input className={input} value={draft.discord.clientId} onChange={(e) => setDraft({ ...draft, discord: { ...draft.discord, clientId: e.target.value } })} placeholder={data.envDefaults.discordClientId} /></Field>
-          <Field label={uiText("Client secret")} hint={draft.discord.hasClientSecret || data.envDefaults.hasDiscordClientSecret ? uiText("A secret is already configured; leave blank to keep it.") : undefined}>
+          <Field label={uiText("clientId")}><input className={input} value={draft.discord.clientId} onChange={(e) => setDraft({ ...draft, discord: { ...draft.discord, clientId: e.target.value } })} placeholder={data.envDefaults.discordClientId} /></Field>
+          <Field label={uiText("clientSecret")} hint={draft.discord.hasClientSecret || data.envDefaults.hasDiscordClientSecret ? uiText("aSecretIsAlreadyConfiguredLeaveBlankTo") : undefined}>
             <input className={input} type="password" value={discordSecret} onChange={(e) => setDiscordSecret(e.target.value)} />
           </Field>
         </div>
       </PageSection>
-    </> : <PageSection heading={uiText("Device-hosted world")} intro={uiText("Signup, transport and account-provider settings are owned by the desktop/mobile host.")} />}
+    </> : <PageSection heading={uiText("deviceHostedWorld")} intro={uiText("signupTransportAndAccountProviderSettingsAreOwned")} />}
 
     {error ? <p className="text-sm text-red-400">{error}</p> : null}
     <button className={ui.btnPrimary} disabled={saving} onClick={() => void save()}>
       {saving ? <Loader2 className="size-4 animate-spin" /> : saved ? <Check className="size-4" /> : null}
-      {saving ? uiText("Saving…") : saved ? uiText("Saved") : uiText("Save settings")}
+      {saving ? uiText("saving") : saved ? uiText("saved") : uiText("saveSettings")}
     </button>
   </div>;
 }

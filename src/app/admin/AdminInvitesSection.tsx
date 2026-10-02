@@ -83,17 +83,17 @@ export function AdminInvitesSection() {
     <div className="mt-3 space-y-3 border-t border-stone-800 pt-3">
       <div className="flex flex-wrap items-end gap-2">
         <label className="min-w-40 flex-1 text-sm">
-          <span className="mb-1 block text-xs font-medium text-stone-400">{uiText("Note (optional)")}</span>
+          <span className="mb-1 block text-xs font-medium text-stone-400">{uiText("noteOptional")}</span>
           <input
             className={ui.input}
             value={note}
             maxLength={200}
             onChange={(event) => setNote(event.target.value)}
-            placeholder={uiText("Who this invite is for")}
+            placeholder={uiText("whoThisInviteIsFor")}
           />
         </label>
         <label className="w-24 text-sm">
-          <span className="mb-1 block text-xs font-medium text-stone-400">{uiText("Uses")}</span>
+          <span className="mb-1 block text-xs font-medium text-stone-400">{uiText("uses")}</span>
           <input
             type="number"
             min={1}
@@ -107,13 +107,13 @@ export function AdminInvitesSection() {
         </label>
         <button type="button" onClick={create} disabled={creating} className={ui.btnSmall}>
           {creating ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />}
-          {uiText("New invite")}
+          {uiText("newInvite")}
         </button>
       </div>
       {error ? <p className="text-sm text-red-400">{error}</p> : null}
       {invites.length === 0 ? (
         <p className="text-xs text-stone-500">
-          {uiText("No invite codes yet. Nobody can register until you create one.")}
+          {uiText("noInviteCodesYetNobodyCanRegisterUntil")}
         </p>
       ) : (
         <ul className="space-y-1.5">
@@ -127,7 +127,7 @@ export function AdminInvitesSection() {
                 <button
                   type="button"
                   onClick={() => copy(invite.code)}
-                  title={uiText("Copy the invite code")}
+                  title={uiText("copyTheInviteCode")}
                   className="inline-flex items-center gap-1.5 font-mono text-sm text-amber-200 hover:text-amber-100"
                 >
                   {copiedCode === invite.code ? (
@@ -146,7 +146,7 @@ export function AdminInvitesSection() {
                 <button
                   type="button"
                   onClick={() => remove(invite.code)}
-                  title={uiText("Revoke this invite")}
+                  title={uiText("revokeThisInvite")}
                   className="ml-auto rounded-md p-1 text-stone-600 hover:text-red-400"
                 >
                   <Trash2 className="size-3.5" />

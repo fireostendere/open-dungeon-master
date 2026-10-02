@@ -75,7 +75,7 @@ export function MonsterBuildControls({
           <input
             value={newName}
             onChange={(event) => setNewName(event.target.value.slice(0, MONSTER_NAME_MAX))}
-            placeholder={uiText("Bone Tyrant")}
+            placeholder={uiText("boneTyrant")}
             className={cn(input, "w-48")}
           />
         </label>

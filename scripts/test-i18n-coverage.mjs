@@ -115,19 +115,22 @@ function loadInlineCopy() {
       if (ts.isIdentifier(declaration.name)) declarations.set(declaration.name.text, unwrap(declaration.initializer));
     }
   }
-  const copyNode = declarations.get("INLINE_COPY_RU");
+  const copyNode = declarations.get("UI_COPY");
   const allowNode = declarations.get("INLINE_COPY_ALLOWLIST");
-  assert(copyNode && ts.isObjectLiteralExpression(copyNode), "INLINE_COPY_RU must be a static object");
+  assert(copyNode && ts.isObjectLiteralExpression(copyNode), "UI_COPY must be a static object");
   assert(allowNode && ts.isNewExpression(allowNode) && ts.isArrayLiteralExpression(allowNode.arguments[0]), "INLINE_COPY_ALLOWLIST must be a static Set");
   const copy = new Map();
   for (const property of copyNode.properties) {
     assert(ts.isPropertyAssignment(property), "inline Russian copy must use plain properties");
     const key = propertyName(property.name);
-    const value = stringValue(property.initializer);
+    const english = stringValue(propertyInitializer(property.initializer, "en"));
+    const value = stringValue(propertyInitializer(property.initializer, "ru"));
+    assert(english?.trim(), `UI key ${key} has no English translation`);
+    assert.deepEqual(placeholders(value), placeholders(english), `UI placeholder mismatch: ${key}`);
     assert(key && value?.trim(), `inline Russian copy ${key || "<unnamed>"} must be a nonempty string`);
     assert(!CYRILLIC.test(key), `inline Russian copy key contains Cyrillic: ${key}`);
     assert(!copy.has(key), `duplicate inline Russian copy key: ${key}`);
-    assert.notEqual(value, key, `inline Russian copy ${key} is identical to English`);
+    if (!declarations.get("INLINE_COPY_ALLOWLIST").arguments[0].elements.map(stringValue).includes(english)) assert.notEqual(value, english, `UI key ${key} is identical in both languages`);
     copy.set(key, value);
   }
   const allow = new Set(allowNode.arguments[0].elements.map(stringValue));
@@ -330,12 +333,13 @@ function visibleJsxContext(node) {
   while (current.parent) {
     const parent = current.parent;
     if (ts.isJsxAttribute(parent)) {
-      return VISIBLE_JSX_ATTRIBUTES.test(parent.name.getText());
+      return VISIBLE_JSX_ATTRIBUTES.test(parent.name.getText()) ||
+        (ts.isPropertyAssignment(node.parent) && VISIBLE_JSX_ATTRIBUTES.test(propertyName(node.parent.name)));
     }
     if (
       ts.isCallExpression(parent) &&
       ts.isIdentifier(parent.expression) &&
-      ["uiText", "t", "localeText", "sessionText", "messageText", "characterDisplay", "localizeReason", "displayName", "suggest", "deviceList", "cueOptions"].includes(parent.expression.text)
+      ["uiText", "uiCopy", "t", "localeText", "sessionText", "messageText", "characterDisplay", "localizedContentName", "localizedFeatureName", "helpText", "optionCopy", "localizeReason", "displayName", "suggest", "deviceList", "cueOptions"].includes(parent.expression.text)
     ) return false;
     if (ts.isTypeNode(parent)) return false;
     if (ts.isElementAccessExpression(parent) && contains(parent.argumentExpression, node)) return false;
@@ -403,7 +407,7 @@ function auditUiFile(file, englishCatalog, usedKeys, inlineCopy, inlineUsed) {
     if (ts.isCallExpression(node) && ts.isIdentifier(node.expression) && node.expression.text === "uiText") {
       const sourceText = node.arguments[0] ? stringValue(node.arguments[0]) : null;
       assert(sourceText, `${relative}: uiText() source must be a string literal`);
-      const key = sourceText.trim().replace(/\s+/g, " ");
+      const key = sourceText;
       if (!inlineCopy.copy.has(key) && !inlineCopy.allow.has(key)) {
         missingInline.push(`${relative}: missing Russian inline copy ${JSON.stringify(key)}`);
       }

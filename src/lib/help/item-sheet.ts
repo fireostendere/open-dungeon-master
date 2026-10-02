@@ -1,3 +1,4 @@
+import { helpText } from "@/lib/i18n/help-copy";
 import { describeContentEntry } from "@/lib/help";
 import { DAMAGE_TYPE_BLURBS, WEAPON_PROPERTY_BLURBS } from "@/lib/help/terms";
 import { magicItemBonus, matchArmor, type SrdArmor } from "@/lib/srd/armor";
@@ -315,53 +316,6 @@ export function buildItemSheet(
 
 // The card's own English (types, the Dexterity rule, property and damage
 // blurbs) in Russian. Anything missing here stays English.
-const RU_TEXT: Record<string, string> = {
-  "Add your full Dexterity modifier.": "Добавьте модификатор Ловкости полностью.",
-  "Dexterity does not add to it.": "Ловкость не добавляется.",
-  "Light armor": "Лёгкий доспех",
-  "Medium armor": "Средний доспех",
-  "Heavy armor": "Тяжёлый доспех",
-  "Simple melee weapon": "Простое рукопашное оружие",
-  "Simple ranged weapon": "Простое дальнобойное оружие",
-  "Martial melee weapon": "Воинское рукопашное оружие",
-  "Martial ranged weapon": "Воинское дальнобойное оружие",
-  "Wondrous item": "Чудесный предмет",
-  "Adventuring gear": "Снаряжение искателя приключений",
-  "Magic item": "Магический предмет",
-  Ring: "Кольцо",
-  Potion: "Зелье",
-  Wand: "Волшебная палочка",
-  Rod: "Жезл",
-  Staff: "Посох",
-  Scroll: "Свиток",
-  Tools: "Инструменты",
-  "Needs arrows, bolts or stones to attack at range; the ammunition is spent as it is fired.": "Для дальней атаки нужны стрелы, болты или камни; боеприпас тратится при выстреле.",
-  "A weapon with a striking end at each side; the second end can make the extra light-weapon attack, doing the die in brackets.": "У оружия ударная часть с обеих сторон; вторым концом можно сделать дополнительную атаку, как лёгким оружием, кость урона указана в скобках.",
-  "Attack and damage may use Dexterity instead of Strength, whichever is better.": "Для атаки и урона можно использовать Ловкость вместо Силы — что лучше.",
-  "Fires with black powder, which it consumes along with the shot; wet or missing powder means it cannot fire.": "Стреляет чёрным порохом, который тратится вместе с выстрелом; без сухого пороха не выстрелит.",
-  "Too big for Small creatures to use well: they attack with disadvantage.": "Слишком большое для Маленьких существ: они атакуют им с помехой.",
-  "Small enough to fight with one in each hand (two-weapon fighting).": "Достаточно лёгкое, чтобы сражаться двумя сразу, по одному в каждой руке.",
-  "Slow to reload: only one shot per action, bonus action or reaction, however many attacks you have.": "Долго перезаряжается: один выстрел за действие, бонусное действие или реакцию, сколько бы атак у вас ни было.",
-  "Holds the number of shots in brackets; once they are spent, an action reloads it.": "Вмещает число выстрелов в скобках; когда они кончатся, перезарядка занимает действие.",
-  "Strikes 5 feet further than usual, so 10 feet away instead of 5.": "Бьёт на 1,5 м дальше обычного: на 3 м вместо 1,5 м.",
-  "Has its own rules beyond the usual attack; the DM applies them when it is used.": "У оружия свои особые правила; Мастер применяет их, когда оно используется.",
-  "Can be thrown to make a ranged attack, using the same ability as a melee swing with it.": "Его можно метнуть для дальней атаки с той же характеристикой, что и в ближнем бою.",
-  "Needs both hands to attack with, so no shield or second weapon.": "Для атаки нужны обе руки, так что ни щита, ни второго оружия.",
-  "Usable in one hand or two; the two-handed grip does the larger damage die in brackets.": "Можно держать одной или двумя руками; двумя оно наносит урон костью в скобках.",
-  "Corrosive: sprays, oozes and dissolving breath.": "Разъедающий: брызги, слизь и растворяющее дыхание.",
-  "Blunt force: clubs, hammers, fists, falling.": "Тупой удар: дубины, молоты, кулаки, падение.",
-  "Freezing: ice breath, rays of frost, winter magic.": "Леденящий: ледяное дыхание, лучи мороза, зимняя магия.",
-  "Burning: dragon fire, fireballs, torches.": "Обжигающий: драконье пламя, огненные шары, факелы.",
-  "Pure magical energy; almost nothing resists it (magic missile, eldritch blast).": "Чистая магическая энергия; ей почти ничто не сопротивляется (волшебная стрела, мистический заряд).",
-  "Electricity: bolts, blue dragons, storm magic.": "Электричество: молнии, синие драконы, магия бури.",
-  "Withering life force: undead touches, life drain, most death magic.": "Иссушает жизненную силу: касания нежити, похищение жизни, почти вся магия смерти.",
-  "Puncture: arrows, spears, fangs.": "Прокол: стрелы, копья, клыки.",
-  "Venom and toxins: stings, poisoned blades, poison breath.": "Яды и токсины: жала, отравленные клинки, ядовитое дыхание.",
-  "Mental assault: mind flayers, some enchantments, telepathic damage.": "Удар по разуму: иллитиды, некоторые очарования, телепатический урон.",
-  "Holy light and searing brilliance: celestials, clerics' spells, the sun.": "Святой свет и жгучее сияние: небожители, заклинания жрецов, солнце.",
-  "Cutting: swords, axes, claws.": "Режущий: мечи, топоры, когти.",
-  "Concussive sound: thunderwave, shatter, a giant's shout.": "Оглушающий звук: волна грома, дребезги, крик великана.",
-};
 
 const metres = (feet: string) => String(Math.round(feetToMeters(Number(feet)) * 10) / 10);
 const RU_ABILITY: Record<string, string> = { Dex: "ЛОВ", Con: "ТЕЛ", Wis: "МДР" };
@@ -380,7 +334,7 @@ export function itemFigureRu(text: string): string {
     .replace(/\bmax\b/g, "макс.");
 }
 
-const ru = (text: string | null) => (text ? (RU_TEXT[text] ?? text) : text);
+const ru = (text: string | null) => (text ? helpText(text, "ru") : text);
 const ruFigure = (text: string | null) => (text ? itemFigureRu(text) : text);
 
 function itemSheetRu(sheet: ItemSheet): ItemSheet {

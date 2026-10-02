@@ -1,5 +1,8 @@
 "use client";
 
+import { characterDisplay } from "@/lib/i18n/character-display";
+import { helpText } from "@/lib/i18n/help-copy";
+import { optionCopy } from "@/lib/i18n/option-copy";
 import { useInlineText } from "@/lib/i18n/inline-text";
 import { useI18n } from "@/lib/i18n";
 import { optionKindLabel } from "@/lib/i18n/option-kind";
@@ -45,16 +48,16 @@ export function ClassChoices({
     <>
       {klass && expertiseSlots > 0 && preview ? (
         <StepPanel
-          title={uiText("Expertise (pick {count})", { count: expertiseSlots })}
+          title={uiText("expertisePickCount", { count: expertiseSlots })}
           help={
             <>
               {expertiseSlots - state.expertisePicks.length > 0 ? (
                 <span className="text-amber-300">
-                  {expertiseSlots - state.expertisePicks.length} {uiText("still to choose.")}{" "}
+                  {expertiseSlots - state.expertisePicks.length} {uiText("stillToChoose")}{" "}
                 </span>
               ) : null}
-              <GameTerm id="expertise">{uiText("Expertise")}</GameTerm> {uiText("doubles your")}{" "}
-              <GameTerm id="proficiency_bonus">{uiText("proficiency bonus")}</GameTerm> {uiText("on the chosen skills.")}
+              <GameTerm id="expertise">{uiText("expertise")}</GameTerm> {uiText("doublesYour")}{" "}
+              <GameTerm id="proficiency_bonus">{uiText("proficiencyBonus")}</GameTerm> {uiText("onTheChosenSkills")}
             </>
           }
         >
@@ -67,7 +70,7 @@ export function ClassChoices({
                   key={skillId}
                   label={skill?.name ?? skillId}
                   selected={selected}
-                  info={{ text: describeSkill(skillId) }}
+                  info={{ text: describeSkill(skillId, locale) }}
                   onClick={() =>
                     state.setExpertisePicks((current) =>
                       selected
@@ -88,11 +91,11 @@ export function ClassChoices({
 
       {styleSlots > 0 ? (
         <StepPanel
-          title={uiText("Fighting style (pick {count})", { count: styleSlots })}
+          title={uiText("fightingStylePickCount", { count: styleSlots })}
           help={
             styleSlots - state.stylePicks.length > 0 ? (
               <span className="text-amber-300">
-                {styleSlots - state.stylePicks.length} {uiText("still to choose. A fighting style is a permanent edge with one kind of weapon or armour; read each card before picking.")}
+                {styleSlots - state.stylePicks.length} {uiText("stillToChooseAFightingStyleIsA")}
               </span>
             ) : undefined
           }
@@ -116,8 +119,8 @@ export function ClassChoices({
                   }
                   className={optionCard(selected)}
                 >
-                  <span className="block text-xs">{style.name}</span>
-                  <span className="block text-[11px] text-stone-500">{style.description}</span>
+                  <span className="block text-xs">{characterDisplay(style.name, locale)}</span>
+                  <span className="block text-[11px] text-stone-500">{helpText(style.description, locale)}</span>
                 </button>
               );
             })}
@@ -128,18 +131,19 @@ export function ClassChoices({
       {optionSlots.map((slot) => (
         <StepPanel
           key={slot.kind}
-          title={uiText("Choose {count}: {kind}", { count: slot.total, kind: optionKindLabel(slot.kind, locale) })}
+          title={uiText("chooseCountKind", { count: slot.total, kind: optionKindLabel(slot.kind, locale) })}
           help={
             <>
               {slot.remaining > 0 ? (
-                <span className="text-amber-300">{slot.remaining} {uiText("still to choose.")} </span>
+                <span className="text-amber-300">{slot.remaining} {uiText("stillToChoose")} </span>
               ) : null}
-              {uiText("These are real abilities your character gets. Tap the info button on any one to read what it does.")}
+              {uiText("theseAreRealAbilitiesYourCharacterGetsTap")}
             </>
           }
         >
           <div className="grid gap-1.5 sm:grid-cols-2">
             {slot.options.map((option) => {
+              const translated = optionCopy(option, locale);
               const selected = slot.chosen.some(
                 (chosenName) => chosenName.toLowerCase() === option.n.toLowerCase(),
               );
@@ -151,16 +155,16 @@ export function ClassChoices({
                     onClick={() => actions.toggleOption(slot, option.n)}
                     className="grow text-left"
                   >
-                    <span className="block text-xs">{option.n}</span>
+                    <span className="block text-xs">{translated.title}</span>
                     <span className="block text-[11px] text-stone-500">
-                      {option.req ? `${uiText("Requires {requirement}.", { requirement: option.req })} ` : ""}
-                      {option.d}
+                      {option.req ? `${uiText("requiresRequirement", { requirement: translated.requirement ?? "" })} ` : ""}
+                      {translated.text}
                     </span>
                   </button>
                   <InfoButton
-                    label={option.n}
-                    meta={option.req ? uiText("Requires {requirement}", { requirement: option.req }) : undefined}
-                    text={option.d}
+                    label={translated.title}
+                    meta={option.req ? uiText("requiresRequirementf07904", { requirement: translated.requirement ?? "" }) : undefined}
+                    text={translated.text}
                   />
                 </div>
               );

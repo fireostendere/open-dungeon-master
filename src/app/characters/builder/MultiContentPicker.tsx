@@ -147,7 +147,7 @@ export default function MultiContentPicker({
                 </button>
                 <InfoButton
                   label={localizedContentName(kind, entry.name, locale)}
-                  meta={kind === "spells" ? spellSummary(entry.data) : undefined}
+                  meta={kind === "spells" ? spellSummary(entry.data, locale) : undefined}
                   text={describeContentEntry(entry.data, locale, { kind, name: entry.name, slug: entry.slug })}
                   reference={entry.source === "homebrew" ? undefined : { kind, slug: entry.slug }}
                 />

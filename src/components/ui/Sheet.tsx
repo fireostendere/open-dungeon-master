@@ -82,7 +82,7 @@ export function Sheet({
                 "rounded-md p-1 text-stone-400 transition-colors hover:bg-stone-800 hover:text-stone-200",
                 hideTitle && "absolute right-3 top-3 lg:right-4 lg:top-4",
               )}
-              aria-label={uiText("Close")}
+              aria-label={uiText("close")}
             >
               <X className="size-4" />
             </RadixDialog.Close>

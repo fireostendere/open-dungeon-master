@@ -246,28 +246,28 @@ export function DmMapStudioPanel({ campaignId }: { campaignId: string }) {
       <section className="rounded-lg border border-stone-800 bg-stone-950/60 px-2.5 py-2">
         <p className="mb-1.5 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-stone-500">
           <MapPinned className="size-3.5" />
-          {uiText("The board")}
+          {uiText("theBoard")}
         </p>
         <p className="text-xs text-stone-400">
           {state.board === "fight"
-            ? uiText("Creatures in this fight: {count}", { count: state.enemyCount })
+            ? uiText("creaturesInThisFightCount", { count: state.enemyCount })
             : state.board === "scene"
-              ? uiText("An exploration scene is on the table. The party can walk it freely.")
-              : uiText("Nothing is on the table. Open a scene to put the party on a map without a fight.")}
+              ? uiText("anExplorationSceneIsOnTheTableThe")
+              : uiText("nothingIsOnTheTableOpenAScene")}
         </p>
       </section>
 
       <section className="space-y-2 rounded-lg border border-stone-800 bg-stone-950/40 px-2.5 py-2">
         <label className="block">
-          <span className="text-[11px] uppercase tracking-wide text-stone-500">{uiText("The place")}</span>
+          <span className="text-[11px] uppercase tracking-wide text-stone-500">{uiText("thePlace")}</span>
           <input
             value={settings.hint}
             onChange={(event) => setSettings({ ...settings, hint: event.target.value })}
-            placeholder={uiText("a flooded crypt, torchlit")}
+            placeholder={uiText("aFloodedCryptTorchlit")}
             className="mt-0.5 w-full rounded-md border border-stone-700 bg-stone-950 px-2 py-1 text-sm text-stone-200"
           />
           <span className="text-[10px] text-stone-600">
-            {uiText("The generator reads this for terrain and light. The two pickers below overrule it.")}
+            {uiText("theGeneratorReadsThisForTerrainAndLight")}
           </span>
         </label>
 
@@ -279,7 +279,7 @@ export function DmMapStudioPanel({ campaignId }: { campaignId: string }) {
             }
             className="rounded-md border border-stone-700 bg-stone-950 px-1.5 py-1 text-xs text-stone-300"
           >
-            <option value="">{uiText("Terrain from the words")}</option>
+            <option value="">{uiText("terrainFromTheWords")}</option>
             {MAP_THEMES.map((theme) => (
               <option key={theme} value={theme}>
                 {THEME_LABELS[theme]}
@@ -293,15 +293,15 @@ export function DmMapStudioPanel({ campaignId }: { campaignId: string }) {
             }
             className="rounded-md border border-stone-700 bg-stone-950 px-1.5 py-1 text-xs text-stone-300"
           >
-            <option value="">{uiText("Light from the words")}</option>
+            <option value="">{uiText("lightFromTheWords")}</option>
             {AMBIENTS.map((ambient) => (
               <option key={ambient} value={ambient}>
-                {ambient === "bright" ? uiText("Daylight") : ambient === "dim" ? uiText("Dim") : uiText("Dark")}
+                {ambient === "bright" ? uiText("daylight") : ambient === "dim" ? uiText("dim") : uiText("dark")}
               </option>
             ))}
           </select>
           <label className="flex items-center gap-1 text-[11px] text-stone-500">
-            {uiText("Size")}
+            {uiText("size")}
             <input
               type="number"
               min={MAP_SIZE.minWidth}
@@ -334,7 +334,7 @@ export function DmMapStudioPanel({ campaignId }: { campaignId: string }) {
             className="flex items-center gap-1 rounded-md border border-stone-700 px-2 py-1 text-xs text-stone-300 hover:bg-stone-900 disabled:opacity-50"
           >
             {busy ? <Loader2 className="size-3 animate-spin" /> : <Dices className="size-3" />}
-            {preview ? uiText("Roll another") : uiText("Roll a map")}
+            {preview ? uiText("rollAnother") : uiText("rollAMap")}
           </button>
           {preview ? (
             <>
@@ -343,26 +343,26 @@ export function DmMapStudioPanel({ campaignId }: { campaignId: string }) {
                 disabled={busy || !state.board}
                 title={
                   state.board
-                    ? uiText("Replace the board's ground with this map")
-                    : uiText("Nothing is on the table yet")
+                    ? uiText("replaceTheBoardSGroundWithThisMap")
+                    : uiText("nothingIsOnTheTableYet")
                 }
                 onClick={() => void apply()}
                 className="rounded-md border border-amber-700 bg-amber-950/50 px-2 py-1 text-xs text-amber-100 disabled:opacity-40"
               >
-                {uiText("Put it on the table")}
+                {uiText("putItOnTheTable")}
               </button>
               <button
                 type="button"
                 disabled={busy || state.board !== null}
                 title={
                   state.board
-                    ? uiText("Something is already on the table")
-                    : uiText("Put the party on this map with nobody to fight")
+                    ? uiText("somethingIsAlreadyOnTheTable")
+                    : uiText("putThePartyOnThisMapWithNobody")
                 }
                 onClick={() => void scene(true)}
                 className="flex items-center gap-1 rounded-md border border-stone-700 px-2 py-1 text-xs text-stone-300 hover:bg-stone-900 disabled:opacity-40"
               >
-                <Play className="size-3" /> {uiText("Open it as a scene")}
+                <Play className="size-3" /> {uiText("openItAsAScene")}
               </button>
             </>
           ) : null}
@@ -373,13 +373,13 @@ export function DmMapStudioPanel({ campaignId }: { campaignId: string }) {
               onClick={() => void scene(false)}
               className="flex items-center gap-1 rounded-md border border-stone-700 px-2 py-1 text-xs text-stone-400 hover:bg-stone-900 disabled:opacity-50"
             >
-              <Square className="size-3" /> {uiText("Close the scene")}
+              <Square className="size-3" /> {uiText("closeTheScene")}
             </button>
           ) : null}
         </div>
         {preview ? (
           <p className="text-[10px] text-stone-600">
-            {uiText("Seed")} {preview.seed}{uiText(". Nobody else can see this yet.")}
+            {uiText("seed")} {preview.seed}{uiText("nobodyElseCanSeeThisYeta5e5c2")}
           </p>
         ) : null}
       </section>

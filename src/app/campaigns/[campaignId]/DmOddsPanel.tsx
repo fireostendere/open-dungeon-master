@@ -144,7 +144,7 @@ export function OddsCalculator({
             className={inputClass}
           />
         </label>
-        <label className="text-[11px] text-stone-500" title={uiText("Brutal Critical, Savage Attacks.")}>
+        <label className="text-[11px] text-stone-500" title={uiText("brutalCriticalSavageAttacks")}>
           {copy.extra}
           <input
             type="number"

@@ -196,7 +196,7 @@ export function PendingRollCard({
       <div className="mb-2 flex items-center justify-between rounded-md border border-amber-900/60 bg-amber-950/20 px-3 py-2 text-xs text-amber-200/90">
         <span className="flex items-center gap-2">
           <Dices className="size-4 animate-pulse text-amber-200" />
-          {uiText("Waiting for")} {character?.name ?? uiText("a player")} {uiText("to roll")} {pending.expression} {uiText("with real dice")}
+          {uiText("waitingFor")} {character?.name ?? uiText("aPlayer")} {uiText("toRoll")} {pending.expression} {uiText("withRealDice")}
         </span>
         {steersStory && stale ? (
           <button
@@ -205,7 +205,7 @@ export function PendingRollCard({
             onClick={() => submit({ fallback: "digital" })}
             className="shrink-0 text-amber-200 hover:text-amber-300 disabled:opacity-50"
           >
-            {uiText("Roll digitally")}
+            {uiText("rollDigitally")}
           </button>
         ) : null}
       </div>
@@ -217,7 +217,7 @@ export function PendingRollCard({
       <div className="flex items-center justify-between text-sm">
         <span className="flex items-center gap-2 text-amber-100">
           <Dices className="size-4 text-amber-200" />
-          {uiText("Your roll:")} {label}
+          {uiText("yourRoll")} {label}
         </span>
         <span className="font-mono text-xs text-amber-400">{pending.expression}</span>
       </div>
@@ -228,7 +228,7 @@ export function PendingRollCard({
         <p className="mt-1 text-xs text-amber-100">
           {fullyAutomatic
             ? `${copy.roll} ${diceSummary}. ${copy.assigned}`
-            : uiText("Roll {dice} at your table and enter each die below.{modifier} The game waits for your result.", {
+            : uiText("rollDiceAtYourTableAndEnterEach", {
                 dice: diceSummary,
                 modifier: modifierNote ? ` ${modifierNote}` : "",
               })}

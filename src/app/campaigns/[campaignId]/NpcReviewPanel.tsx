@@ -97,7 +97,7 @@ export function NpcReviewPanel({ campaignId }: { campaignId: string }) {
   if (!loaded) {
     return (
       <p className="flex items-center gap-1 text-[11px] text-stone-500">
-        <Loader2 className="size-3 animate-spin" /> {uiText("Loading...")}
+        <Loader2 className="size-3 animate-spin" /> {uiText("loadingb04ba4")}
       </p>
     );
   }
@@ -108,7 +108,7 @@ export function NpcReviewPanel({ campaignId }: { campaignId: string }) {
     <div className="space-y-3">
       {/* No heading: the card that owns this panel already titles it. */}
       <p className="text-[11px] leading-4 text-stone-500">
-        {uiText("The DM rarely spells a name the same way twice over fifty turns. Close matches are flagged here rather than merged for you, because two similar names are often two people. Merging keeps the old spelling as an alias, so nothing already written stops resolving.")}
+        {uiText("theDmRarelySpellsANameTheSame")}
       </p>
 
       {error ? <p className="text-[11px] text-red-400">{error}</p> : null}
@@ -116,7 +116,7 @@ export function NpcReviewPanel({ campaignId }: { campaignId: string }) {
       {suggestions.length ? (
         <div className="space-y-1.5">
           <p className="text-[10px] font-medium uppercase tracking-wide text-stone-600">
-            {uiText("Possible duplicates")}
+            {uiText("possibleDuplicates")}
           </p>
           {suggestions.map((suggestion) => {
             const left = byName(suggestion.name);
@@ -132,7 +132,7 @@ export function NpcReviewPanel({ campaignId }: { campaignId: string }) {
                   <span className="font-medium">{suggestion.matches}</span>
                 </p>
                 <p className="mt-0.5 text-[11px] text-stone-500">
-                  {uiText("Keep one and fold the other into it, or dismiss if they are two people.")}
+                  {uiText("keepOneAndFoldTheOtherIntoIt")}
                 </p>
                 <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
                   {left && right ? (
@@ -145,7 +145,7 @@ export function NpcReviewPanel({ campaignId }: { campaignId: string }) {
                         }
                         className={cn(ui.btnSmall, "px-2 py-1 text-[11px]")}
                       >
-                        <Merge className="size-3" /> {uiText("Keep &ldquo;")}{left.name}&rdquo;
+                        <Merge className="size-3" /> {uiText("keepLdquo")}{left.name}&rdquo;
                       </button>
                       <button
                         type="button"
@@ -155,7 +155,7 @@ export function NpcReviewPanel({ campaignId }: { campaignId: string }) {
                         }
                         className={cn(ui.btnSmall, "px-2 py-1 text-[11px]")}
                       >
-                        <Merge className="size-3" /> {uiText("Keep &ldquo;")}{right.name}&rdquo;
+                        <Merge className="size-3" /> {uiText("keepLdquo")}{right.name}&rdquo;
                       </button>
                     </>
                   ) : null}
@@ -171,7 +171,7 @@ export function NpcReviewPanel({ campaignId }: { campaignId: string }) {
                     }
                     className={cn(ui.btnSmall, "px-2 py-1 text-[11px]")}
                   >
-                    <X className="size-3" /> {uiText("Different people")}
+                    <X className="size-3" /> {uiText("differentPeople")}
                   </button>
                 </div>
               </div>
@@ -180,16 +180,16 @@ export function NpcReviewPanel({ campaignId }: { campaignId: string }) {
         </div>
       ) : (
         <p className="text-[11px] leading-4 text-stone-600">
-          {uiText("No close matches to review. New ones appear here as the DM names people.")}
+          {uiText("noCloseMatchesToReviewNewOnesAppear")}
         </p>
       )}
 
       <div className="space-y-1">
         <p className="text-[10px] font-medium uppercase tracking-wide text-stone-600">
-          {uiText("Everyone the campaign is tracking")}
+          {uiText("everyoneTheCampaignIsTracking")}
         </p>
         {!npcs.length ? (
-          <p className="text-[11px] text-stone-600">{uiText("Nobody yet.")}</p>
+          <p className="text-[11px] text-stone-600">{uiText("nobodyYet")}</p>
         ) : (
           <ul className="space-y-1">
             {npcs.map((npc) => (
@@ -220,14 +220,14 @@ export function NpcReviewPanel({ campaignId }: { campaignId: string }) {
                         onClick={() => void submitRename(npc.id)}
                         className={cn(ui.btnSmall, "px-2 py-0.5 text-[11px]")}
                       >
-                        <Check className="size-3" /> {uiText("Save")}
+                        <Check className="size-3" /> {uiText("save")}
                       </button>
                       <button
                         type="button"
                         onClick={() => setRenaming(null)}
                         className={cn(ui.btnSmall, "px-2 py-0.5 text-[11px]")}
                       >
-                        {uiText("Cancel")}
+                        {uiText("cancel")}
                       </button>
                     </div>
                   </div>
@@ -237,7 +237,7 @@ export function NpcReviewPanel({ campaignId }: { campaignId: string }) {
                       <p className="text-[11px] leading-4 text-stone-200">
                         {npc.name}
                         {npc.archived ? (
-                          <span className="ml-1 text-stone-600">{uiText("(archived)")}</span>
+                          <span className="ml-1 text-stone-600">{uiText("archived")}</span>
                         ) : null}
                       </p>
                       <p className="text-[11px] leading-4 text-stone-500">
@@ -246,7 +246,7 @@ export function NpcReviewPanel({ campaignId }: { campaignId: string }) {
                       </p>
                       {npc.aliases.length ? (
                         <p className="mt-0.5 text-[11px] leading-4 text-stone-600">
-                          {uiText("also called")} {npc.aliases.join(", ")}
+                          {uiText("alsoCalled")} {npc.aliases.join(", ")}
                         </p>
                       ) : null}
                     </div>
@@ -259,8 +259,8 @@ export function NpcReviewPanel({ campaignId }: { campaignId: string }) {
                         setError("");
                       }}
                       className={cn(ui.iconAction, "p-1")}
-                      title={uiText("Rename")}
-                      aria-label={uiText("Rename {name}", { name: npc.name })}
+                      title={uiText("rename")}
+                      aria-label={uiText("renameName", { name: npc.name })}
                     >
                       <Pencil className="size-3" />
                     </button>

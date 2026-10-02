@@ -290,7 +290,7 @@ export default function CharacterBuilder({
       />
       {cropping ? (
         <AvatarCropDialog
-          title={uiText("Portrait for {name}", { name: state.name.trim() || copy.yourCharacter })}
+          title={uiText("portraitForName", { name: state.name.trim() || copy.yourCharacter })}
           onUploaded={(image) => {
             setCropping(false);
             state.setPortrait({ id: image.id, name: image.name, type: image.type, url: image.url });

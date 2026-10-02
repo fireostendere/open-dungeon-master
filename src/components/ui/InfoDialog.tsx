@@ -7,6 +7,7 @@ import { cn } from "@/lib/cn";
 import { Dialog } from "@/components/ui/Dialog";
 import { GameIcon } from "@/components/ui/GameIcon";
 import type { IconRef } from "@/lib/icons";
+import { localizedContentName } from "@/lib/help";
 import { useI18n } from "@/lib/i18n";
 import type { ItemSheet } from "@/lib/help/item-sheet";
 import { parseRulesBlocks } from "@/lib/help/rules-text";
@@ -167,14 +168,14 @@ function ContentBody({ reference }: { reference: ContentRef }) {
   if (state.loading) {
     return (
       <p className="flex items-center gap-2 text-sm text-stone-500">
-        <Loader2 className="size-4 animate-spin" /> {uiText("Looking it up...")}
+        <Loader2 className="size-4 animate-spin" /> {uiText("lookingItUp")}
       </p>
     );
   }
   if (!state.text) {
     return (
       <p className="text-sm text-stone-500">
-        {uiText("No description available. The content pack may not be installed, or this entry was added by hand.")}
+        {uiText("noDescriptionAvailableTheContentPackMayNot")}
       </p>
     );
   }
@@ -262,7 +263,7 @@ function ItemBody({ reference }: { reference: ContentRef }) {
   if (state.loading) {
     return (
       <p className="flex items-center gap-2 text-sm text-stone-500">
-        <Loader2 className="size-4 animate-spin" /> {uiText("Looking it up...")}
+        <Loader2 className="size-4 animate-spin" /> {uiText("lookingItUp")}
       </p>
     );
   }
@@ -270,61 +271,61 @@ function ItemBody({ reference }: { reference: ContentRef }) {
   if (!sheet) {
     return (
       <p className="text-sm text-stone-500">
-        {uiText("No details available. The content pack may not be installed, or this item was added by hand.")}
+        {uiText("noDetailsAvailableTheContentPackMayNot")}
       </p>
     );
   }
 
   const tags = [
     sheet.rarity,
-    sheet.attunement ? uiText("Requires attunement") : null,
-    sheet.bonus ? uiText("+{bonus} magic", { bonus: sheet.bonus }) : null,
+    sheet.attunement ? uiText("requiresAttunement") : null,
+    sheet.bonus ? uiText("bonusMagic", { bonus: sheet.bonus }) : null,
   ].filter((tag): tag is string => Boolean(tag));
   const tiles: Array<{ label: string; value: string | null; note?: string | null }> = [
-    { label: uiText("Weight"), value: sheet.weight },
-    { label: uiText("Value"), value: sheet.cost },
+    { label: uiText("weight"), value: sheet.weight },
+    { label: uiText("value"), value: sheet.cost },
   ];
   if (sheet.armor) {
-    tiles.push({ label: sheet.armor.shield ? uiText("AC bonus") : uiText("Armor class"), value: sheet.armor.ac });
+    tiles.push({ label: sheet.armor.shield ? uiText("acBonus") : uiText("armorClass"), value: sheet.armor.ac });
   }
   if (sheet.weapon) {
     tiles.push({
-      label: uiText("Damage"),
-      value: sheet.weapon.damage ?? uiText("None"),
+      label: uiText("damage"),
+      value: sheet.weapon.damage ?? uiText("none"),
       note: sheet.weapon.damageType,
     });
     if (sheet.weapon.range) {
-      tiles.push({ label: uiText("Range"), value: sheet.weapon.range });
+      tiles.push({ label: uiText("range"), value: sheet.weapon.range });
     }
   }
 
   const armorRows: Array<{ label: string; text: string | null }> = [];
   if (sheet.armor) {
     if (sheet.armor.shield) {
-      armorRows.push({ label: uiText("Shield"), text: uiText("Carried in one hand; only one shield counts at a time.") });
+      armorRows.push({ label: uiText("shield"), text: uiText("carriedInOneHandOnlyOneShieldCounts") });
     }
     if (sheet.armor.dex) {
-      armorRows.push({ label: uiText("Dexterity"), text: sheet.armor.dex });
+      armorRows.push({ label: uiText("dexterity"), text: sheet.armor.dex });
     }
     armorRows.push({
-      label: uiText("Strength"),
+      label: uiText("strength"),
       text: sheet.armor.strength
-        ? uiText("Needs {strength}; below that, your speed drops by 10 feet while wearing it.", { strength: sheet.armor.strength })
-        : uiText("No minimum."),
+        ? uiText("needsStrengthBelowThatYourSpeedDropsBy", { strength: sheet.armor.strength })
+        : uiText("noMinimum"),
     });
     armorRows.push({
-      label: uiText("Stealth"),
+      label: uiText("stealth"),
       text: sheet.armor.stealthDisadvantage
-        ? uiText("Disadvantage on Dexterity (Stealth) checks while wearing it.")
-        : uiText("No penalty."),
+        ? uiText("disadvantageOnDexterityStealthChecksWhileWearingIt")
+        : uiText("noPenalty"),
     });
   }
   const weaponRows: Array<{ label: string; text: string | null }> = [];
   if (sheet.weapon) {
     if (sheet.bonus) {
       weaponRows.push({
-        label: uiText("+{bonus} weapon", { bonus: sheet.bonus }),
-        text: uiText("Adds {bonus} to attack and damage rolls.", { bonus: sheet.bonus }),
+        label: uiText("bonusWeapon", { bonus: sheet.bonus }),
+        text: uiText("addsBonusToAttackAndDamageRolls", { bonus: sheet.bonus }),
       });
     }
     for (const property of sheet.weapon.properties) {
@@ -334,7 +335,7 @@ function ItemBody({ reference }: { reference: ContentRef }) {
       weaponRows.push({ label: capitalize(sheet.weapon.damageType), text: sheet.weapon.damageBlurb });
     }
     if (!sheet.weapon.damage) {
-      weaponRows.push({ label: uiText("No damage"), text: uiText("It does not hurt on its own; its special rules say what it does.") });
+      weaponRows.push({ label: uiText("noDamage"), text: uiText("itDoesNotHurtOnItsOwnIts") });
     }
   }
 
@@ -359,17 +360,17 @@ function ItemBody({ reference }: { reference: ContentRef }) {
         ))}
       </div>
       {armorRows.length ? (
-        <ItemSection title={uiText("Armor")}>
+        <ItemSection title={uiText("armor")}>
           <RuleList rows={armorRows} />
         </ItemSection>
       ) : null}
       {weaponRows.length ? (
-        <ItemSection title={uiText("Weapon")}>
+        <ItemSection title={uiText("weapon")}>
           <RuleList rows={weaponRows} />
         </ItemSection>
       ) : null}
       {sheet.description ? (
-        <ItemSection title={uiText("Description")}>
+        <ItemSection title={uiText("description")}>
           <div className="space-y-2 border-t border-stone-800 pt-2">{renderRules(sheet.description)}</div>
         </ItemSection>
       ) : null}
@@ -404,6 +405,8 @@ export function InfoButton({
   size?: "sm" | "md";
 }) {
   const uiText = useInlineText();
+  const { locale } = useI18n();
+  const displayLabel = reference ? localizedContentName(reference.kind, label, locale) : label;
   const [open, setOpen] = useState(false);
   // Nothing to say and nothing to look up: render no control at all rather
   // than a button that opens an empty box.
@@ -419,7 +422,7 @@ export function InfoButton({
           event.stopPropagation();
           setOpen(true);
         }}
-        aria-label={uiText("What is {label}?", { label })}
+        aria-label={uiText("whatIsLabel", { label: displayLabel })}
         className={cn(
           "inline-flex shrink-0 items-center justify-center rounded-full text-stone-500 transition-colors hover:text-amber-200",
           className,
@@ -430,7 +433,7 @@ export function InfoButton({
       <InfoDialog
         open={open}
         onOpenChange={setOpen}
-        title={label}
+        title={displayLabel}
         meta={meta}
         text={text}
         reference={reference}
@@ -458,6 +461,7 @@ export function InfoChipList({
   }>;
   emptyText?: string;
 }) {
+  const { locale } = useI18n();
   if (!items.length) {
     return emptyText ? <p className="text-xs text-stone-500">{emptyText}</p> : null;
   }
@@ -466,10 +470,10 @@ export function InfoChipList({
       {items.map((item) => (
         <span key={item.name} className="flex items-center gap-1 text-xs text-stone-300">
           {item.icon ? <GameIcon icon={item.icon} size="size-6" /> : null}
-          {item.name}
+          {item.reference ? localizedContentName(item.reference.kind, item.name, locale) : item.name}
           {item.note ? <span className="text-stone-500">{item.note}</span> : null}
           <InfoButton
-            label={item.name}
+            label={item.reference ? localizedContentName(item.reference.kind, item.name, locale) : item.name}
             meta={item.meta}
             text={item.text}
             reference={item.reference}

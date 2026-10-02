@@ -132,12 +132,12 @@ function IntentSuggest({
   const openEntry = open ? findAdjudication(ADJUDICATIONS, open.name) : null;
 
   return (
-    <Section glyph="die-d20" title={uiText("What should I press?")}>
+    <Section glyph="die-d20" title={uiText("whatShouldIPress")}>
       <textarea
         value={intent}
         onChange={(event) => onIntentChange(event.target.value.slice(0, 1000))}
         rows={2}
-        placeholder={uiText("I try to talk the guard into letting us through.")}
+        placeholder={uiText("iTryToTalkTheGuardIntoLetting")}
         className={cn(inputClass, "resize-y")}
       />
       <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
@@ -148,7 +148,7 @@ function IntentSuggest({
           className="inline-flex items-center gap-1.5 rounded-md border border-amber-700 bg-amber-950/50 px-2 py-1 text-xs text-amber-100 hover:bg-amber-900/50 disabled:opacity-40"
         >
           {busy ? <Loader2 className="size-3.5 animate-spin" /> : <Sparkles className="size-3.5" />}
-          {uiText("Suggest")}
+          {uiText("suggest")}
         </button>
       </div>
       {error ? <p className="mt-1.5 text-xs text-red-400">{error}</p> : null}
@@ -172,7 +172,7 @@ function IntentSuggest({
                     onClick={() => setOpen(null)}
                     className="text-[11px] text-stone-500 hover:text-stone-300"
                   >
-                    {uiText("Close")}
+                    {uiText("close")}
                   </button>
                 </div>
               ) : (
@@ -187,7 +187,7 @@ function IntentSuggest({
                     {suggestion.label}
                     {suggestion.args ? (
                       <span className="ml-1.5 text-[10px] uppercase tracking-wide text-amber-300/80">
-                        {uiText("filled in")}
+                        {uiText("filledIn")}
                       </span>
                     ) : null}
                   </span>
@@ -209,7 +209,7 @@ function IntentSuggest({
 function DcLadder() {
   const uiText = useInlineText();
   return (
-    <Section glyph="rest-proficiency" title={uiText("What should this cost?")}>
+    <Section glyph="rest-proficiency" title={uiText("whatShouldThisCost")}>
       <div className="flex flex-wrap gap-1">
         {DIFFICULTY_TIERS.map((tier) => (
           <span
@@ -224,7 +224,7 @@ function DcLadder() {
         ))}
       </div>
       <p className="mt-1.5 text-[11px] text-stone-500">
-        {uiText("Naming the tier rather than the number is what keeps a hard lock the same difficulty in chapter one and chapter nine.")}
+        {uiText("namingTheTierRatherThanTheNumberIs")}
       </p>
     </Section>
   );
@@ -252,21 +252,21 @@ function EncounterBudget({
 
   if (!evaluation) {
     return (
-      <Section glyph="system-encounters" title={uiText("How hard is this fight?")}>
+      <Section glyph="system-encounters" title={uiText("howHardIsThisFight")}>
         <p className="text-xs text-stone-500">
-          {uiText("Nothing on the board yet. Add enemies and this reads the budget as they land.")}
+          {uiText("nothingOnTheBoardYetAddEnemiesAnd")}
         </p>
       </Section>
     );
   }
   return (
-    <Section glyph="system-encounters" title={uiText("How hard is this fight?")}>
+    <Section glyph="system-encounters" title={uiText("howHardIsThisFight")}>
       <p className={cn("flex items-center gap-1.5 text-sm font-medium", VERDICT_TONE[evaluation.verdict])}>
         <GameIcon icon={{ kind: "glyph", key: "tab-battle" }} size="size-5" />
         {VERDICT_LABELS[evaluation.verdict]}
       </p>
       <p className="mt-0.5 text-[11px] leading-snug text-stone-500">
-        {uiText("{adjusted} adjusted XP against thresholds: easy {easy}, medium {medium}, hard {hard}, deadly {deadly}. Raw XP: {total}; the rest is the many-enemies multiplier.", {
+        {uiText("adjustedAdjustedXpAgainstThresholdsEasyEasyMedium", {
           adjusted: evaluation.adjustedXp.toLocaleString(),
           easy: evaluation.thresholds.easy.toLocaleString(),
           medium: evaluation.thresholds.medium.toLocaleString(),
@@ -325,7 +325,7 @@ function RulesLookup({ campaignId }: { campaignId: string }) {
   }
 
   return (
-    <Section glyph="system-rules" title={uiText("Look up a rule")}>
+    <Section glyph="system-rules" title={uiText("lookUpARule")}>
       <div className="flex gap-1.5">
         <input
           value={question}
@@ -335,7 +335,7 @@ function RulesLookup({ campaignId }: { campaignId: string }) {
               void look();
             }
           }}
-          placeholder={uiText("Can you cast a spell and use a bonus action?")}
+          placeholder={uiText("canYouCastASpellAndUseA")}
           className={inputClass}
         />
         <button
@@ -344,7 +344,7 @@ function RulesLookup({ campaignId }: { campaignId: string }) {
           disabled={busy || !question.trim()}
           className="shrink-0 rounded-md border border-stone-700 px-2 py-1 text-xs text-stone-300 hover:bg-stone-900 disabled:opacity-40"
         >
-          {busy ? <Loader2 className="size-3.5 animate-spin" /> : uiText("Ask")}
+          {busy ? <Loader2 className="size-3.5 animate-spin" /> : uiText("ask")}
         </button>
       </div>
       {error ? <p className="mt-1.5 text-xs text-red-400">{error}</p> : null}

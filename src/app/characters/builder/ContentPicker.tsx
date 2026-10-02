@@ -113,7 +113,7 @@ export default function ContentPicker({
                   before adding it costs no extra request. */}
               <InfoButton
                 label={localizedContentName(kind, entry.name, locale)}
-                meta={kind === "spells" ? spellSummary(entry.data) : undefined}
+                meta={kind === "spells" ? spellSummary(entry.data, locale) : undefined}
                 text={describeContentEntry(entry.data, locale, { kind, name: entry.name, slug: entry.slug })}
                 reference={
                   entry.source === "homebrew" ? undefined : { kind, slug: entry.slug }

@@ -97,11 +97,11 @@ export function AttackEditor({
                 ),
               )
             }
-            placeholder={uiText("Bite")}
+            placeholder={uiText("bite")}
             className={cn(input, "w-28")}
           />
           <label className="flex items-center gap-1 text-[10px] text-stone-500">
-            {uiText("to hit")}
+            {uiText("toHit")}
             <input
               type="number"
               min={-5}
@@ -149,7 +149,7 @@ export function AttackEditor({
             type="button"
             onClick={() => setAttacks(attacks.filter((_, at) => at !== index))}
             className="text-stone-600 hover:text-red-300"
-            aria-label={uiText("Remove {value}", { value: attack.name || uiText("attack") })}
+            aria-label={uiText("removeValue", { value: attack.name || uiText("attacka6d816") })}
           >
             <Trash2 className="size-3.5" />
           </button>
@@ -163,11 +163,11 @@ export function AttackEditor({
           }
           className="inline-flex w-fit items-center gap-1 rounded-md border border-stone-700 px-2 py-0.5 text-[11px] text-stone-400 hover:text-amber-100"
         >
-          <Plus className="size-3" /> {uiText("Attack")}
+          <Plus className="size-3" /> {uiText("attack")}
         </button>
       ) : null}
       <p className="text-[10px] text-stone-600">
-        {uiText("The engine picks one attack and swings it as many times as the multiattack allows, capped at three. Damage has to be something the dice roller can read.")}
+        {uiText("theEnginePicksOneAttackAndSwingsIt")}
       </p>
     </div>
   );
@@ -234,14 +234,14 @@ export function TraitEditor({
             onChange={(event) =>
               setTraits(traits.map((row, at) => (at === index ? event.target.value : row)))
             }
-            placeholder={uiText("Fire Breath (Recharge 5-6): DC 15 Dex save, 6d6 fire, half on a success")}
+            placeholder={uiText("fireBreathRecharge56Dc15Dex")}
             className={cn(input, "flex-1")}
           />
           <button
             type="button"
             onClick={() => setTraits(traits.filter((_, at) => at !== index))}
             className="text-stone-600 hover:text-red-300"
-            aria-label={uiText("Remove trait")}
+            aria-label={uiText("removeTrait")}
           >
             <Trash2 className="size-3.5" />
           </button>
@@ -253,7 +253,7 @@ export function TraitEditor({
           onClick={() => setTraits([...traits, ""])}
           className="inline-flex w-fit items-center gap-1 rounded-md border border-stone-700 px-2 py-0.5 text-[11px] text-stone-400 hover:text-amber-100"
         >
-          <Plus className="size-3" /> {uiText("Trait, legendary action or lair action")}
+          <Plus className="size-3" /> {uiText("traitLegendaryActionOrLairAction")}
         </button>
       ) : null}
     </div>
@@ -275,7 +275,7 @@ export function SizeAndDefences({
     <div className="flex flex-col gap-2.5">
       <div className="flex flex-wrap items-end gap-3">
         <label className="flex flex-col gap-0.5">
-          <span className="text-[10px] uppercase tracking-wide text-stone-500">{uiText("Size")}</span>
+          <span className="text-[10px] uppercase tracking-wide text-stone-500">{uiText("size")}</span>
           <select
             value={draft.stats.size ?? "Medium"}
             onChange={(event) => set({ size: event.target.value })}
@@ -292,7 +292,7 @@ export function SizeAndDefences({
             thumbnail: every list the monster appears in draws the plate for
             its type until somebody paints it a portrait. */}
         <label className="flex flex-col gap-0.5">
-          <span className="text-[10px] uppercase tracking-wide text-stone-500">{uiText("Type")}</span>
+          <span className="text-[10px] uppercase tracking-wide text-stone-500">{uiText("type")}</span>
           <select
             value={creatureTypeOf(draft.stats)}
             onChange={(event) => set({ type: event.target.value })}
@@ -314,10 +314,10 @@ export function SizeAndDefences({
           will hold every answer. */}
       {(
         [
-          ["resist", uiText("Resistant to"), DAMAGE_TYPES],
-          ["immune", uiText("Immune to"), DAMAGE_TYPES],
-          ["vulnerable", uiText("Vulnerable to"), DAMAGE_TYPES],
-          ["conditionImmune", uiText("Condition immunities"), CONDITIONS],
+          ["resist", uiText("resistantTo"), DAMAGE_TYPES],
+          ["immune", uiText("immuneTo"), DAMAGE_TYPES],
+          ["vulnerable", uiText("vulnerableTo"), DAMAGE_TYPES],
+          ["conditionImmune", uiText("conditionImmunities"), CONDITIONS],
         ] as const
       ).map(([field, label, known]) => (
         <TermPicker
@@ -363,8 +363,8 @@ export function RatingLine({ readout }: { readout: MonsterReadout }) {
   return (
     <p className={cn("text-[11px]", readout.agrees ? "text-stone-500" : "text-amber-300/80")}>
       {readout.agrees
-        ? uiText("The numbers agree: CR {cr}.", { cr: crLabel(readout.statedCr) })
-        : uiText("Written as CR {stated}; the numbers say CR {derived}.", {
+        ? uiText("theNumbersAgreeCrCr", { cr: crLabel(readout.statedCr) })
+        : uiText("writtenAsCrStatedTheNumbersSayCr", {
             stated: crLabel(readout.statedCr),
             derived: crLabel(readout.derived.cr),
           })}
