@@ -106,7 +106,9 @@ export function OverworldAuthoring({
       return;
     }
     const language = locale === "ru" ? 0 : 1;
-    const blurb = [placeType ? `${locale === "ru" ? "Тип места" : "Place type"}: ${LANDMARK_NAMES[placeType][language]}.` : "", placeBiome ? `${locale === "ru" ? "Окружение" : "Environment"}: ${TERRAIN_NAMES[placeBiome][language]}.` : "", placeBlurb.trim()].filter(Boolean).join(" ").slice(0, 300);
+    const typeLabel = locale === "ru" ? "Тип места" : "Place type";
+    const environmentLabel = locale === "ru" ? "Окружение" : "Environment";
+    const blurb = [placeType ? `${typeLabel}: ${LANDMARK_NAMES[placeType][language]}.` : "", placeBiome ? `${environmentLabel}: ${TERRAIN_NAMES[placeBiome][language]}.` : "", placeBlurb.trim()].filter(Boolean).join(" ").slice(0, 300);
     if (await patch({ places: [{ name, blurb }] })) {
       setPlaceName("");
       setPlaceBlurb("");
