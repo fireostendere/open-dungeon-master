@@ -78,7 +78,7 @@ function fixture(t) {
     '@/lib/db/dm-turns':{listOpenPendingRolls:()=>[]},
     '@/lib/db/dm-whispers':{listRecentWhispersForPrompt:()=>[],listPendingPlayerWhispers:()=>[]},
     '@/lib/db/encounters':{getActiveEncounter:()=>null,listEnemies:()=>[]},
-    '@/lib/db/facts':{listActiveFacts:()=>[]},'@/lib/db/locations':{getCurrentLocation:()=>null},
+    '@/lib/db/facts':{listActiveFacts:()=>[]},'@/lib/db/locations':{getCurrentLocation:()=>null},'@/lib/db/overworld':{getOverworldPartyPositions:()=>[]},
     '@/lib/db/messages':{listMessagesInSeqRange:(id,low,high)=>savedMessages(id).filter(x=>x.seq>=low&&x.seq<=high),listRecentMessages:savedMessages},
     '@/lib/db/notes':{listPublicCampaignNotes:()=>[]},'@/lib/db/rolls':{listRecentRolls:()=>[]},
     '@/lib/db/scene-tracker':{getSceneTracker:()=>null},'@/lib/db/sheets':{listSheets:()=>[]},
