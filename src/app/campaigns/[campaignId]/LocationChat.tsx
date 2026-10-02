@@ -246,7 +246,7 @@ export function LocationChat({
       onClick={async () => { if (await chat.command({ operation: "move", roomId: exit.id, expectedRevision: view.current?.revision })) chat.select(exit.id); }}>{t.travel}: {exit.name}</button>)}</div> : null}
     {chat.error ? <p role="alert" className="text-sm text-red-300">{chat.error}</p> : null}
     {chat.pending ? <button type="button" className={button} disabled={chat.busy} onClick={() => void chat.retry()}>{t.retry}</button> : null}
-    <div ref={scrollRef} onScroll={event => { const el = event.currentTarget; nearBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 120; }} className="min-h-36 flex-1 space-y-3 overflow-y-auto rounded border border-stone-800 p-3" aria-label={selected?.name ?? t.ooc}>
+    <div ref={scrollRef} onScroll={event => { const el = event.currentTarget; nearBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 120; }} className="min-h-36 max-h-[40dvh] flex-1 space-y-3 overflow-y-auto rounded border border-stone-800 p-3" aria-label={selected?.name ?? t.ooc}>
       <div className="flex gap-2">{chat.page.nextBefore ? <button type="button" className={button} onClick={chat.older}>{t.older}</button> : null}
         {chat.showingOlder ? <button type="button" className={button} onClick={chat.newest}>{t.newest}</button> : null}</div>
       {!timeline.length ? <p className="text-sm text-stone-500">{t.empty}</p> : null}

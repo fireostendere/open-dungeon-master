@@ -26,6 +26,14 @@ export async function assertLocationLayout(page) {
   const room = page.getByTestId("location-chat");
   const notes = page.getByTestId("location-notes");
   const history = room.locator("..").locator("details").filter({ has: page.getByTestId("campaign-messages") });
+  const thread = room.locator(".overflow-y-auto");
+  // Stress the actual rendered scroll area without writing game messages.
+  await thread.evaluate(element => {
+    const passage = document.createElement("p");
+    passage.dataset.layoutStress = "true";
+    passage.textContent = "A long location conversation. ".repeat(2000);
+    element.append(passage);
+  });
   for (const [notesOpen, historyOpen] of [[false, false], [false, true], [true, true], [false, false]]) {
     for (const [details, open] of [[notes, notesOpen], [history, historyOpen]]) {
       if (await details.evaluate(element => element.open) !== open) await details.locator("summary").first().click();
@@ -34,15 +42,18 @@ export async function assertLocationLayout(page) {
       const rect = element.getBoundingClientRect();
       const children = [...element.children].map(child => child.getBoundingClientRect());
       const siblings = [...element.parentElement.children].map(child => child.getBoundingClientRect());
+      const thread = element.querySelector(".overflow-y-auto");
       return {
         contained: children.every(child => child.top >= rect.top && child.bottom <= rect.bottom + 1),
         separated: siblings.every((child, index) => !index || child.top >= siblings[index - 1].bottom - 1),
         width: document.documentElement.scrollWidth, viewport: window.innerWidth,
+        threadBounded: thread.clientHeight <= window.innerHeight,
       };
     });
     assert.ok(layout.contained, "Room controls overflow their collapsed section.");
     assert.ok(layout.separated, "Room chat, notes and history overlap.");
     assert.ok(layout.width <= layout.viewport, "Location chat overflows the phone width.");
+    assert.ok(layout.threadBounded, "Long conversations push the composer below the entire transcript.");
     // A geometric check alone misses a transparent sibling stealing taps.
     const draft = room.locator("textarea");
     if (await draft.isEnabled()) {
@@ -50,6 +61,7 @@ export async function assertLocationLayout(page) {
       assert.equal(await draft.evaluate(element => element === document.activeElement), true);
     }
   }
+  await thread.locator("[data-layout-stress]").evaluate(element => element.remove());
 }
 
 // This is deliberately named a prepared-fixture smoke, NOT complete R11
