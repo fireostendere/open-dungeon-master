@@ -465,14 +465,12 @@ export function overworldView(campaignId: string, secrets: boolean, viewerUserId
     connections: location.connections,
     anchor: map.anchors[location.id] ?? null,
   }));
-  const roomByUser = new Map<string, string>();
   if (roomView?.enabled) {
     const known = new Map(roomView.rooms.map(room => [room.id, { ...room, visited: true }]));
     for (const exit of roomView.exits) {
       if (!known.has(exit.id)) known.set(exit.id, { ...exit, active: false, occupants: [], visited: false });
     }
     for (const room of known.values()) {
-      for (const userId of room.occupants) roomByUser.set(userId, room.id);
       const links = actor?.isDm
         ? getDatabase().prepare("SELECT r.name FROM spatial_links l JOIN spatial_rooms r ON r.id=l.target_id WHERE l.campaign_id=? AND l.source_id=? AND l.walkable=1")
           .all(campaignId, room.id) as Array<{ name: string }>
@@ -482,11 +480,23 @@ export function overworldView(campaignId: string, secrets: boolean, viewerUserId
     }
   }
   const current = locations.find(location => location.isCurrent);
+  const knownRoomIds = new Set(locations.map(location => location.id));
+  const store = spatialStore();
+  // The atlas tracks the party in known places; chat occupants remain local.
+  // Never reveal a private destination or an undetected concealed character.
   const party: AtlasCharacter[] = listSheets(campaignId)
-    .filter(sheet => !spatial || roomByUser.has(sheet.userId))
-    .map(sheet => ({ id: sheet.id, name: sheet.name, class: sheet.class,
-      portraitUrl: sheet.portrait?.url ?? null,
-      locationId: spatial ? roomByUser.get(sheet.userId)! : current?.id ?? null }));
+    .flatMap(sheet => {
+      let locationId = current?.id ?? null;
+      if (spatial) {
+        if (!actor || !roomView?.enabled || !actor.playerIds.includes(sheet.userId)) return [];
+        locationId = store.getUserRoom(campaignId, sheet.userId);
+        if (!locationId || !knownRoomIds.has(locationId)) return [];
+        if (!actor.isDm && sheet.userId !== actor.userId &&
+          store.isUnseen(campaignId, sheet.id, [actor.userId, actor.characterId ?? actor.userId], locationId)) return [];
+      }
+      return [{ id: sheet.id, name: sheet.name, class: sheet.class,
+        portraitUrl: sheet.portrait?.url ?? null, locationId }];
+    });
   // Use the established public journal. Planned beats, hooks and private
   // room objectives are never a map projection for an ordinary player.
   const quests = privateMap ? [] : campaign?.questLog.length ? campaign.questLog

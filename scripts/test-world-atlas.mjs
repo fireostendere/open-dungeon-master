@@ -13,7 +13,7 @@ process.chdir(directory);
 register("./lib/register-alias.mjs", import.meta.url);
 const { createUser } = await import("../src/lib/db/users.ts");
 const { createCampaign, joinByInviteCode, setQuestLog } = await import("../src/lib/db/campaigns.ts");
-const { createSheet } = await import("../src/lib/db/sheets.ts");
+const { createSheet, patchSheet } = await import("../src/lib/db/sheets.ts");
 const { createSheetSchema } = await import("../src/lib/schemas/sheet.ts");
 const { upsertCurrentLocation, insertKnownLocation } = await import("../src/lib/db/locations.ts");
 const { getOverworld, overworldView, regenerateOverworld, setOverworldAnchor, setOverworldPins, setOverworldNotes, setOverworldLabels } = await import("../src/lib/db/overworld.ts");
@@ -143,7 +143,7 @@ try {
   assert.ok(![...privateView.map.materialGrid].some((_, index) => ["volcanic", "lava"].includes(materialAt(privateView.map.materialGrid, index))), "hidden volcano materials must not load in a player's projection");
   assert.ok(privateView.locations.some(location => location.id === room));
   assert.equal(privateView.party.find(character => character.id === hero.id).locationId, room);
-  assert.ok(!privateView.party.some(character => character.id === scout.id), "split-party positions are private");
+  assert.ok(!privateView.party.some(character => character.id === scout.id), "unknown rooms must not reveal party positions");
   for (const secret of ["SECRET_ROOM_MARKER", "SECRET_NOTE_MARKER", "SECRET_LABEL_MARKER", "SECRET_JOURNAL_MARKER"]) {
     assert.ok(!JSON.stringify(privateView).includes(secret), `leaked ${secret}`);
   }
@@ -153,17 +153,41 @@ try {
   assert.equal(known.locations.find(location => location.id === exit).visited, false, "a known exit is not yet visited");
   assert.deepEqual(atlasRoute(known.locations, room, exit), [room, exit]);
 
-  const before = JSON.stringify(known);
+  command("move", { roomId: exit, userIds: [second.id] });
+  const split = overworldView(campaign.id, false, first.id);
+  assert.equal(split.party.find(character => character.id === scout.id)?.locationId, exit, "a hero in a known place must stay on the map after splitting the party");
+  assert.equal(split.party.find(character => character.id === hero.id)?.locationId, room);
+  const firstActor = spatialContext(campaign.id, first.id).actor;
+  assert.deepEqual(store.view(firstActor).rooms.find(location => location.id === exit)?.occupants ?? [], [], "map positions must not expand room chat membership");
+  for (const condition of ["invisible", "hidden"]) {
+    patchSheet(scout.id, { conditions: [condition] });
+    assert.ok(!overworldView(campaign.id, false, first.id).party.some(character => character.id === scout.id), `${condition} heroes must not appear on the map`);
+    assert.equal(overworldView(campaign.id, true, dm.id).party.find(character => character.id === scout.id)?.locationId, exit);
+  }
+  patchSheet(scout.id, { conditions: [] });
+  const secondActor = spatialContext(campaign.id, second.id).actor;
+  store.command(secondActor, randomUUID(), "send", { roomId: exit, expectedRevision: store.getUserPosition(campaign.id, second.id).revision,
+    kind: "do", characterId: scout.id, content: "PRIVATE_MAP_ACTION", stealth: true });
+  assert.ok(!overworldView(campaign.id, false, first.id).party.some(character => character.id === scout.id), "pending stealth must not reveal a map position");
+  store.reveal(campaign.id, scout.id);
+  assert.equal(overworldView(campaign.id, false, first.id).party.find(character => character.id === scout.id)?.locationId, exit, "revealed heroes must reappear at their current place");
+
+  const before = JSON.stringify(overworldView(campaign.id, false, first.id));
   const polling = waitForPrivateUpdate({ waitMs: 1000, recheckMs: 20, subscribe: listener => subscribeSpatialChanges(campaign.id, listener),
     load: async () => {
       const body = JSON.stringify(overworldView(campaign.id, false, first.id));
       return body === before ? new Response(null, { status: 304 }) : new Response(body);
     } });
-  command("move", { roomId: exit, userIds: [first.id] });
+  command("move", { roomId: room, userIds: [second.id] });
   notifySpatialChange(campaign.id);
   const response = await polling;
   assert.equal(response.status, 200);
-  assert.equal((await response.json()).party.find(character => character.id === hero.id).locationId, exit, "an open atlas must update without reopening");
+  assert.equal((await response.json()).party.find(character => character.id === scout.id).locationId, room, "an open atlas must update another hero's move without reopening");
+  command("move", { roomId: exit, userIds: [first.id] });
+  const moved = overworldView(campaign.id, false, first.id);
+  assert.equal(moved.party.find(character => character.id === hero.id).locationId, exit);
+  assert.equal(moved.party.find(character => character.id === scout.id).locationId, room, "previously visited places must keep their party markers");
+  assert.equal(moved.locations.find(location => location.isCurrent).id, exit);
   console.log("test-world-atlas: 44 artworks, ecology, camera/label geometry, journal, movement, privacy and live updates passed");
 } finally {
   process.chdir(cwd);
