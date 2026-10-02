@@ -206,12 +206,12 @@ export const mutationTools: ToolDef[] = [
     delta: { type: "integer", minimum: -100000, maximum: 100000 },
     coins: { type: "string", description: "Amount in denominations, e.g. '340 silver'. Overrides delta's size; delta's sign still says gain or spend." },
   }, ["delta"]),
-  tool("grant_item", "Give a character an item (loot, purchase, gift). Only for items the fiction actually put in their hands. Set unidentified when the party cannot tell what it is yet: then `name` is the description they would use ('an ornate silver ring'), never the true name, and reveal_item names it later.", {
+  tool("grant_item", "Give a character a newly received item (loot, gift). This does not debit another owner: for a handover confirm remove_item from the sender first, then grant only the removed quantity. Use purchase for gold trades. Set unidentified when the party cannot tell what it is yet: then `name` is the description they would use ('an ornate silver ring'), never the true name, and reveal_item names it later.", {
     unidentified: { type: "boolean", description: "True when the party does not yet know what this is." },
     name: { type: "string" },
     qty: { type: "integer", minimum: 1, maximum: 99 },
   }, ["name"]),
-  tool("remove_item", "Take an item from a character (lost, stolen, destroyed). For consumables being USED, call use_item instead; for sales, call purchase.", {
+  tool("remove_item", "Take a carried item from a character (given away, accepted barter, lost, stolen, destroyed), using its exact sheet name. Narration alone never removes inventory. Confirm the removed quantity before granting it to another character. For consumables being USED, call use_item instead; for gold trades, call purchase.", {
     name: { type: "string" },
     qty: { type: "integer", minimum: 1, maximum: 99 },
   }, ["name"]),

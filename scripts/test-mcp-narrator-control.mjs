@@ -16,6 +16,7 @@ register("./lib/register-alias.mjs", import.meta.url);
 const { createUser } = await import("../src/lib/db/users.ts");
 const { allocateSeq, createCampaign, getCampaignById, getFloor, getGlobalTurnState, joinByInviteCode, setCampaignStatus, setFloor, setMemberAutopilot, latestSeq, updateStorySettings } = await import("../src/lib/db/campaigns.ts");
 const { createCharacter, instantiateIntoCampaign } = await import("../src/lib/db/characters.ts");
+const { patchSheet } = await import("../src/lib/db/sheets.ts");
 const { createSheetSchema } = await import("../src/lib/schemas/sheet.ts");
 const { createDmTurn, createPendingRoll, resolvePendingRoll, saveDmTurn } = await import("../src/lib/db/dm-turns.ts");
 const { insertAsk } = await import("../src/lib/db/asks.ts");
@@ -778,6 +779,37 @@ for (const patch of [
   const updatedChapter = getDatabase().prepare("SELECT payload_json FROM campaign_events WHERE campaign_id = ? AND seq > ? AND type = 'chapter_updated' ORDER BY seq DESC LIMIT 1").get(storyCampaign.id, beforeEditSeq);
   assert.equal(JSON.parse(updatedChapter.payload_json).chapter.id, edited.result.state.chapters[1].id, "arc-only edits must emit the existing public refresh signal");
 }
+
+// An accepted barter must debit the exact carried item and recover its receipt
+// without removing the other frog or changing an unrelated waiting round.
+const inventoryCampaign = createCampaign(dm.id, {
+  title: "Barter", description: "", theme: "", maxPlayers: 4, startingLevel: 1, difficulty: "normal",
+  gameSettings: { dmMode: "human", ttsEnabled: false, mapsEnabled: false,
+    inventoryApprovals: false, globalTurn: { enabled: true } },
+});
+setCampaignStatus(inventoryCampaign.id, "active");
+const inventorySheet = instantiateIntoCampaign(libraryCharacter.id, inventoryCampaign.id, dm.id, 1);
+const otherItems = [{ name: "Another frog", qty: 1 }, { name: "Mystery herbs", qty: 1 }];
+patchSheet(inventorySheet.id, { equipment: [{ name: "Frog", qty: 1 }, ...otherItems] });
+const inventoryRead = await executeMcpNarratorControl("narrator.read", { campaignId: inventoryCampaign.id, afterSeq: 0, limit: 100 });
+const inventoryRequest = { campaignId: inventoryCampaign.id, expectedSeq: inventoryRead.result.currentSeq,
+  commandId: randomUUID(), timelineEpoch: inventoryRead.result.timelineEpoch,
+  name: "remove_item", args: { characterId: inventorySheet.id, name: "Frog", qty: 1, reason: "Bartered for a meal." },
+  readAfter: { projection: "live", maxBytes: 131072 } };
+const roundBeforeBarter = getGlobalTurnState(inventoryCampaign.id);
+const barter = await executeMcpNarratorControl("narrator.invoke", inventoryRequest);
+assert.equal(barter.result.result.result.qty, 1);
+assert.deepEqual(barter.result.state.sheets.find(sheet => sheet.id === inventorySheet.id).equipment, otherItems);
+assert.deepEqual(getGlobalTurnState(inventoryCampaign.id), roundBeforeBarter);
+const barterSeq = barter.result.currentSeq;
+const recoveredBarter = await executeMcpNarratorControl("narrator.invoke", inventoryRequest);
+assert.equal(recoveredBarter.result.replayed, true);
+assert.equal(latestSeq(inventoryCampaign.id), barterSeq, "receipt recovery must not debit again");
+assert.deepEqual(recoveredBarter.result.state.sheets.find(sheet => sheet.id === inventorySheet.id).equipment, otherItems);
+await assert.rejects(() => executeMcpNarratorControl("narrator.invoke", {
+  ...inventoryRequest, commandId: randomUUID(), expectedSeq: barterSeq,
+}), /does not carry/);
+assert.equal(latestSeq(inventoryCampaign.id), barterSeq, "absent item must fail without a mutation");
 
 assert.equal(fetchCalls, 0, "no server provider/network call may be attempted");
 

@@ -287,6 +287,20 @@ writes the host uses an internal no-prose finalizer before unlocking. That final
 committed write advances the counter and opens the next round.
 Consume the attached state after a write; drain missing pages/events with read.
 
+## Inventory and trade
+Narration never changes inventory. Even a guaranteed handover needs an engine
+action before the final prose. Resolve the owner from message.characterId and
+use the exact equipment name and available quantity from the current sheet.
+An offer or promised reward is not a completed transfer. Use remove_item for
+an item given to an NPC, accepted barter, loss or destruction; grant_item only
+adds to the recipient. Between characters, confirm removal first, then grant
+only the removed quantity with the same name and identification status. If the
+second step fails, recover only that step; never repeat the debit. Use purchase
+for gold trades, use_item for consumed items and party_stash for shared storage;
+these already move inventory, so do not duplicate their effects. Check the
+actual result and readAfter sheets before claiming the deal is complete.
+ok:true with proposed under inventoryApprovals is an offer awaiting acceptance.
+
 ## Combat turn handoff
 A submitted combat Do holds the table: campaign.turnLock is "resolving" until
 end_turn (or completeTurn / combat_turn) records the resolution, then
