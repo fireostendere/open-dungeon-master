@@ -1464,6 +1464,9 @@ function ensureSchema(db: SqliteDatabase) {
   addColumns("encounters", [
     // Room in a spatially separated campaign where this combat or scene lives.
     ["room_id", `TEXT`],
+    // Without rooms: the recorded place (locations.id) the fight is at. Only
+    // characters standing there take part (src/lib/dm/fight-presence.ts).
+    ["location_id", `TEXT`],
     // The action economy of whichever combatant is currently acting: action,
     // bonus action, reaction, attacks made, and movement spent. Rebuilt from
     // scratch whenever the initiative pointer moves, so it never needs a

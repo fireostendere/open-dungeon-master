@@ -66,7 +66,7 @@ export async function astraHarness(t){
    requireVoice:async id=>muted?Response.json({error:'Muted'},{status:403}):contextFor(id),
    capsFor:context=>campaigns.capsFor(context.campaign,context.user.id),steersStory:context=>campaigns.capsFor(context.campaign,context.user.id).role==='dm'},
   '@/lib/embeddings':{embed:async input=>{embeddingCalls.push(input);return [];},vectorToBuffer:()=>null},
-  '@/lib/ingress-budget':{enforcePlayerIngress:()=>null},zod:{z:schema},
+  '@/lib/ingress-budget':{enforcePlayerIngress:()=>null},zod:{z:schema},'@/lib/dm/encounter-tools':{syncFightRosters:()=>[]},
  };
  const aliases={notesRoute:'src/app/api/campaigns/[campaignId]/notes/route.ts',detailRoute:'src/app/api/campaigns/[campaignId]/notes/[noteId]/route.ts',eventRoute:'src/app/api/campaigns/[campaignId]/events/route.ts',locationRoute:'src/app/api/campaigns/[campaignId]/location-chat/route.ts'};
  const context=vm.createContext({console,Buffer,URL,Request,Response,TextEncoder,TextDecoder,ReadableStream,AbortController,AbortSignal,structuredClone,crypto:crypto.webcrypto,performance,setTimeout,clearTimeout,setInterval,clearInterval});

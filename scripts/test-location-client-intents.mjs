@@ -200,6 +200,7 @@ test('R13: actual HTTP route refuses a stale expected-user header before any rea
     zod: { z: chain },
     '@/lib/campaign-api': { isErrorResponse: value => value instanceof Response, requireMember: async () => ({ user: { id: 'B' } }), requireVoice: async () => ({ user: { id: 'B' } }) },
     '@/lib/ingress-budget': { enforcePlayerIngress: () => { limited++; return null; } },
+    '@/lib/dm/encounter-tools': { syncFightRosters: () => [] },
     '@/lib/spatial/service': { SpatialError, runSpatialCommand: () => { writes++; return { ok: true }; }, spatialContext: () => ({ actor: {} }), spatialStore: () => ({ view: () => { reads++; return { enabled: false }; } }) },
   });
   const route = await load('../src/app/api/campaigns/[campaignId]/location-chat/route.ts');

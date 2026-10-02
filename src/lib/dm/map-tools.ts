@@ -16,7 +16,7 @@ import { bestFiringPosition } from "@/lib/battlemap/tactics";
 import { occupiedTiles } from "@/lib/battlemap/view";
 import { chebyshev, tileIndex, type BattleToken } from "@/lib/battlemap/types";
 import { nearestOpenTile } from "@/lib/battlemap/paint";
-import { getCurrentLocation } from "@/lib/db/locations";
+import { getCurrentLocation, getLocation } from "@/lib/db/locations";
 import { publishEphemeral } from "@/lib/events";
 import { resolveSheetRef } from "@/lib/dm/rolls";
 import { resolvePcOpportunityAttacks } from "@/lib/dm/opportunity";
@@ -55,7 +55,7 @@ export function createBattleMapForEncounter(
   battlefield: string | undefined,
   engaged = false,
 ): BattleMap | null {
-  const location = getCurrentLocation(campaign.id);
+  const location = (encounter.locationId ? getLocation(encounter.locationId) : null) ?? getCurrentLocation(campaign.id);
   const generated = generateBattleMap({
     seed: fnv1a(encounter.id),
     genre: campaign.gameSettings.genre,

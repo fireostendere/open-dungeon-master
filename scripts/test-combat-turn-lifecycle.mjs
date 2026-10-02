@@ -262,7 +262,7 @@ test('Skip N queues one normal turn per arrival, never advances enemies or decre
     let wakes = 0;
     const encounter = { id: encounterId, round: 1, turnIndex: 0, orderReady: true, order: [{ kind: 'pc', characterId: heroId, userId: 'u1', name: 'First' }] };
     const tools = loadSource('src/lib/dm/encounter-tools.ts', {
-      zod: { z }, '@/lib/spatial/service': { spatialEnabled: () => false }, '@/lib/db/campaigns': { ...f.campaigns,
+      zod: { z }, '@/lib/spatial/service': { spatialEnabled: () => false }, '@/lib/dm/fight-presence': { atFight: () => true, joinFight() {}, placeArrivingHero() {}, syncFightBoards: () => ({ notes: [], leftOnTheirTurn: [] }), fightCrossing: () => null }, '@/lib/db/overworld': { partyStanding: () => ({}), getOverworldPartyPositions: () => [] }, '@/lib/db/campaigns': { ...f.campaigns,
         getCampaignById: () => f.campaign, allocateSeq: f.campaigns.allocateSeq,
         getMember: () => ({ userId: 'u1', skipTurnsCount: remaining }),
         setMemberSkipTurns: (_c, _u, count) => { remaining = count; return { userId: 'u1', skipTurnsCount: count }; },

@@ -44,6 +44,8 @@ export type Encounter = {
   id: string;
   campaignId: string;
   roomId: string | null;
+  // Without rooms, the place the fight is at; null when nobody was placed.
+  locationId: string | null;
   status: EncounterStatus;
   kind: EncounterKind;
   round: number;
@@ -98,6 +100,7 @@ type EncounterRow = {
   id: string;
   campaign_id: string;
   room_id: string | null;
+  location_id: string | null;
   status: EncounterStatus;
   kind: EncounterKind;
   round: number;
@@ -141,6 +144,7 @@ function mapEncounter(row: EncounterRow): Encounter {
     id: row.id,
     campaignId: row.campaign_id,
     roomId: row.room_id ?? null,
+    locationId: row.location_id ?? null,
     status: row.status,
     kind: row.kind === "scene" ? "scene" : "fight",
     round: row.round,
@@ -200,6 +204,7 @@ export function createEncounter(
   summary: string,
   kind: EncounterKind = "fight",
   roomId: string | null = null,
+  locationId: string | null = null,
 ): Encounter | null {
   // One board at a time per room, and the fight always wins it. A fight breaking out
   // on an exploration map closes the scene here rather than in each caller,
@@ -220,10 +225,10 @@ export function createEncounter(
   const now = nowIso();
   getDatabase()
     .prepare(
-      `INSERT INTO encounters (id, campaign_id, room_id, status, kind, summary, created_at, updated_at)
-       VALUES (?, ?, ?, 'active', ?, ?, ?, ?)`,
+      `INSERT INTO encounters (id, campaign_id, room_id, location_id, status, kind, summary, created_at, updated_at)
+       VALUES (?, ?, ?, ?, 'active', ?, ?, ?, ?)`,
     )
-    .run(id, campaignId, roomId ?? null, kind, summary.slice(0, 300), now, now);
+    .run(id, campaignId, roomId ?? null, locationId, kind, summary.slice(0, 300), now, now);
   return getEncounter(id);
 }
 
