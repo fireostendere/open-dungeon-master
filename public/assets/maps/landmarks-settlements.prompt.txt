@@ -1,0 +1,25 @@
+Tool: image_gen.imagegen
+Generated: 2026-10-02
+
+Use case: stylized-concept
+Asset type: an RGBA sprite sheet of twelve DISTINCT fantasy map landmark miniatures for a Dungeons & Dragons world atlas.
+Primary request: a coherent set of highly legible tiny realistic painted fantasy diorama landmarks. Camera is fixed high overhead with a gentle isometric tilt, consistent soft light from upper left, exquisite architecture and terrain detail, restrained northern fantasy colours and antique atlas style. Transparent background.
+Composition: a WIDE 4-column by 3-row sheet, twelve identical rectangular cells in a precise regular grid, aspect ratio 4:3. Each isolated landmark sits centred completely inside its own cell with generous empty transparent space around it, never touching a neighbour. No drawn grid. Each landmark has only a very small natural irregular ground base and soft subtle shadow; everything else is transparent. Keep all twelve miniatures at a consistent size and camera angle.
+The exact cells from left to right, top to bottom:
+Row 1, column 1: a tiny timber and thatch village of six cottages.
+Row 1, column 2: a small busy medieval market town with timber roofs and a market square.
+Row 1, column 3: a substantial walled stone fantasy city with clustered roofs and towers.
+Row 1, column 4: a graceful elven tree city with delicate pale curved towers and living trees.
+Row 2, column 1: a dwarven mountain stronghold with monumental carved stone gate and dark metal roofs.
+Row 2, column 2: a proud intact stone castle with defensive walls and four towers.
+Row 2, column 3: a ruined medieval castle with broken towers and cracked stone walls.
+Row 2, column 4: a lonely tall stone watchtower.
+Row 3, column 1: a grand fantasy stone temple with steps and an ornate roof.
+Row 3, column 2: a small ancient woodland shrine with standing stones.
+Row 3, column 3: a secluded medieval monastery with courtyard and bell tower.
+Row 3, column 4: a busy small harbour settlement with docks and moored tiny wooden boats.
+Constraints: no words, letters, captions, numbers, labels, UI frames, symbols, borders or watermarks. No opaque background or checkerboard image. No huge terrain base connecting cells. No people or characters. Every cell contains exactly one complete distinct landmark; none are cut off. Crisp readable silhouettes, not cartoon, not pixel art.
+
+Edit tool: image_gen.imagegen
+Final edit prompt:
+Repair and repack this existing transparent sprite sheet without changing the 12 subjects, their left-to-right row-major order, or their coherent realistic painted fantasy miniature style. Exactly 4 columns and 3 rows; a 4:3 image divided conceptually into 12 EQUAL SQUARE CELLS. Each complete miniature including its tallest spire, every shadow and the entire small ground base must fit inside the CENTER 72 PERCENT of its own square cell. Give generous completely transparent padding on EVERY side of EVERY object, especially the wizard tower finial; no part may cross a cell boundary or touch another object. Remove ALL red, yellow, white or grey mask/fringing artifacts along the transparency edges: clean natural alpha cutouts only. Preserve detailed stone, timber, roof, foliage and terrain colours, overhead slightly isometric miniature view, light upper left. No captions, labels, text, numbers, border or visible grid. This is an actual production game atlas sprite sheet, not a poster. Keep every settlement and building as in the reference. Subjects in exact row-major order: a tiny timber and thatch village of six cottages; a small busy medieval market town with timber roofs and a market square; a substantial walled stone fantasy city with clustered roofs and towers; a graceful elven tree city with delicate pale curved towers and living trees; a dwarven mountain stronghold with monumental carved stone gate and dark metal roofs; a proud intact stone castle with defensive walls and four towers; a ruined medieval castle with broken towers and cracked stone walls; a lonely tall stone watchtower; a grand fantasy stone temple with steps and an ornate roof; a small ancient woodland shrine with standing stones; a secluded medieval monastery with courtyard and bell tower; a busy small harbour settlement with docks and moored tiny wooden boats.

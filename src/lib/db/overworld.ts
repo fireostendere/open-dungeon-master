@@ -5,6 +5,7 @@ import { listSheets } from "@/lib/db/sheets";
 import { activeQuestLines } from "@/lib/dm/arc-logic";
 import { spatialContext, spatialEnabled, spatialStore } from "@/lib/spatial/service";
 import type { AtlasCharacter, AtlasLocation } from "@/lib/overworld/atlas";
+import { atlasTerrain } from "@/lib/overworld/cartography";
 import {
   DEFAULT_OVERWORLD_PARAMS,
   OVERWORLD_HEIGHT,
@@ -154,9 +155,9 @@ function createMap(
 }
 
 // After the ground has been replaced: everything the DM wrote on the old
-// map, re-validated against the new one. Anchors and the party marker keep
-// their spots where the new ground allows (not water, not mountain, not
-// past the edge); pins, paths and labels are fitted to the new size; the
+// map, re-validated against the new size. Recorded locations keep their
+// coordinates: the cartography layer fits terrain to the place's type.
+// Pins, paths and labels are fitted to the new size; the
 // notes and the backdrop are kept as they were.
 function carryAuthoring(
   campaignId: string,
@@ -175,7 +176,7 @@ function carryAuthoring(
     !["w", "m"].includes(tileAt(fresh.terrain, fresh.width, at.x, at.y));
   const carried: Record<string, XY> = {};
   for (const [locationId, anchor] of Object.entries(previous.anchors)) {
-    if (onLand(anchor)) {
+    if (anchor.x >= 0 && anchor.y >= 0 && anchor.x < fresh.width && anchor.y < fresh.height) {
       carried[locationId] = anchor;
     }
   }
@@ -229,6 +230,7 @@ function reconcileAnchors(map: OverworldMap, locations: CampaignLocation[]): Ove
       existing: Object.values(anchorsByLocationId),
       connected,
       name: location.name,
+      layoutDescription: location.layoutDescription,
     });
     changed = true;
   }
@@ -267,9 +269,9 @@ export function getOverworld(campaignId: string): OverworldMap {
   return reconcileAnchors(map, locations);
 }
 
-// Lead reroll: new seed and terrain, at the same size or a new one; every
-// anchor is re-validated against the new ground (anything now on water or
-// mountain, or past a smaller edge, is re-placed). A seed may be named,
+// Lead reroll: new seed and terrain, at the same size or a new one. Recorded
+// anchors remain stable; only anchors outside a smaller map are re-placed.
+// A seed may be named,
 // which is what makes the studio's preview and the map the table ends up
 // with the same map.
 export function regenerateOverworld(
@@ -489,12 +491,17 @@ export function overworldView(campaignId: string, secrets: boolean, viewerUserId
   // room objectives are never a map projection for an ordinary player.
   const quests = privateMap ? [] : campaign?.questLog.length ? campaign.questLog
     : campaign?.storyArc ? activeQuestLines(campaign.storyArc) : [];
+  // Hidden rooms must not leave a volcano/coast signature in a player's
+  // terrain. Compose AFTER the established visibility projection above.
+  const landscape = atlasTerrain(map, locations);
   return {
     map: {
       seed: map.seed,
       width: map.width,
       height: map.height,
-      terrain: map.terrain,
+      terrain: landscape.terrain,
+      materialGrid: landscape.materialGrid,
+      terrainConflicts: landscape.conflicts,
       pins: privateMap ? [] : map.pins,
       partyXy: spatial ? null : map.partyXy,
       params: map.params,

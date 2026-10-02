@@ -1,0 +1,8 @@
+Generated with the built-in imagegen tool, 2026-10-02.
+
+Use case: stylized-concept
+Asset type: seamless square full-bleed biome material for an interactive Dungeons & Dragons world atlas.
+Primary request: marsh wetland with dark shallow pools, reed islands, low mossy hummocks and scattered twisted small trees, a richly detailed, realistic painted fantasy cartography texture, viewed strictly vertically from overhead. A premium northern fantasy RPG map aesthetic. This is one continuous terrain material, not a complete world map.
+Style: finely painted realistic aerial miniature terrain, clear crisp microdetail, natural soft relief and cinematic restrained mineral colour. dark olive green, brown peat, muted green black water. Gentle coherent light from upper left. Match a dark forest-green and antique-brass atlas.
+Composition: square 1024 by 1024 tile, evenly distributed terrain fills the entire image, no central focal object. Make opposite edges join seamlessly as a repeating material. Natural varied texture without obvious repeating geometric shapes.
+Constraints: no text, labels, roads, buildings, characters, map markers, icons, coastline, borders, gutters, UI, compass, or typography. Do not depict a geographical map outline. Preserve the subject biome across the whole image. No grid. No pixel art.

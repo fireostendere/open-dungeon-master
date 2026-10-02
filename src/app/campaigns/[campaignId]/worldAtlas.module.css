@@ -32,28 +32,43 @@
 .mist { inset: -35%; background: radial-gradient(ellipse at 12% 35%, #d7e2d027, transparent 35%), radial-gradient(ellipse at 78% 60%, #e2e5d82c, transparent 30%); filter: blur(22px); animation: drift 32s ease-in-out infinite alternate; }
 .vignette { box-shadow: inset 0 0 65px 14px #081212a6; background: linear-gradient(#10201e55, transparent 25%, transparent 75%, #0b1718aa); }
 .markers, .route { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.callouts { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.callouts line { stroke: #dbd0a74a; stroke-width: 1; }
 .route { overflow: visible; }
 .route polyline { fill: none; stroke: #f4d38a; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; stroke-dasharray: 5 8; filter: drop-shadow(0 0 4px #f6c45c88); animation: route 6s linear infinite; }
-.placeMarker, .questMarker, .characterMarker, .pin { position: absolute; transform: translate(-50%, -50%); }
-.placeMarker { width: 130px; display: flex; align-items: center; flex-direction: column; color: #d5d5bd; border: 0; background: none; opacity: .58; padding: 0; z-index: 2; }
+.placeMarker, .characterMarker, .partyMore, .pin { position: absolute; transform: translate(-50%, -50%); }
+.placeMarker { width: 46px; height: 46px; display: grid; place-items: center; color: #d5d5bd; border: 0; background: none; opacity: .65; padding: 0; z-index: 2; }
 .placeBadge { display: grid; place-items: center; width: 33px; height: 33px; background: #15231ed9; border: 1px solid #e0dbc652; border-radius: 5px; box-shadow: 0 2px 10px #0008; transition: background .15s, border-color .15s, transform .15s; }
-.placeName { position: absolute; top: 37px; max-width: 180px; font: 500 12px/1.2 Georgia, serif; white-space: nowrap; text-shadow: 0 1px 3px #000, 0 0 6px #000, 0 0 12px #000; pointer-events: none; }
+.placeName { position: absolute; transform: translate(-50%, -50%); display: flex; flex-direction: column; justify-content: center; font: 500 12px/1.2 Georgia, serif; text-shadow: 0 1px 3px #000, 0 0 6px #000, 0 0 12px #000; pointer-events: none; }
+.placeName > span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.placeName small { margin-top: 4px; font: 8px/1.2 system-ui, sans-serif; letter-spacing: .1em; color: #bfe1be; text-transform: uppercase; }
+.illustrated { position: relative; width: 46px; height: 46px; background: #14231a66; border-color: #c7caa830; border-radius: 50%; }
+.landmarkArt { position: absolute; width: 50px; height: 50px; filter: drop-shadow(0 3px 3px #0009); }
+.illustrated > svg { position: absolute; right: -4px; bottom: -3px; border-radius: 3px; background: #15251bee; padding: 1px; box-sizing: content-box; }
+.clusterCount { position: absolute; top: -3px; right: -5px; min-width: 22px; padding: 2px 4px; border: 1px solid #c6b06b; border-radius: 9px; color: #f3dfaf; background: #242b1d; font: 10px/1.1 system-ui, sans-serif; }
+.partyCount { position: absolute; top: 33px; display: flex; align-items: center; gap: 4px; border: 1px solid #a6cba7; border-radius: 9px; padding: 2px 7px; color: #ddf3de; background: #12362d; font: 9px/1 system-ui, sans-serif; }
+.questBadge { position: absolute; top: -5px; left: -7px; color: #ffe09b; display: grid; place-items: center; filter: drop-shadow(0 1px 2px #000); }
+.questBadge b { position: absolute; font: 9px Georgia, serif; }
 .discovered { opacity: 1; color: #f4edd6; }
 .selected { z-index: 3; }
 .selected .placeBadge { border-color: #ecd198; background: #393b28; box-shadow: 0 0 14px #e9c67433, 0 2px 6px #000; }
 .current .placeBadge::after { content: ''; position: absolute; width: 43px; height: 43px; border: 1px solid #cce8b175; border-radius: 50%; animation: pulse 3s ease-out infinite; }
 .placeMarker:hover .placeBadge { transform: translateY(-2px); background: #424634; border-color: #f9e4b6; }
-.questMarker { width: 28px; height: 28px; display: grid; place-items: center; border: 0; background: none; color: #f1d291; padding: 0; filter: drop-shadow(0 1px 3px #000); z-index: 5; }
-.questMarker span { position: absolute; font: bold 12px Georgia, serif; }
 .tracked { color: #ffe2a0; filter: drop-shadow(0 0 7px #ffe2a078); animation: beacon 2.5s ease-in-out infinite alternate; }
 .characterMarker { z-index: 4; width: 29px; height: 29px; border-radius: 50%; padding: 2px; background: #123530; border: 1px solid #9ac7b1; color: #d6f0df; box-shadow: 0 2px 7px #000c; transition: left .65s ease, top .65s ease, transform .15s; }
 .characterMarker:hover { transform: translate(-50%, -50%) scale(1.18); z-index: 6; }
 .characterMarker img, .partyPortrait img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
 .characterMarker span { font: 600 14px Georgia, serif; }
+.partyMore { z-index: 4; width: 25px; height: 25px; padding: 0; border: 1px solid #a6cba7; border-radius: 50%; color: #ddf3de; background: #12362d; font-size: 9px; pointer-events: auto; }
 .pin { display: flex; align-items: center; gap: 5px; color: #d3b3e3; text-shadow: 0 1px 5px #000; font-size: 10px; }
-.hud { position: absolute; top: 24px; left: 24px; max-width: calc(100% - 110px); pointer-events: none; color: #f1e4c9; text-shadow: 0 2px 8px #000; }
-.hud span { display: block; color: #e3c88e; text-transform: uppercase; font-size: 8px; letter-spacing: .22em; margin-bottom: 4px; }
-.hud strong { font: 400 20px/1.25 Georgia, serif; }
+.pin > span { max-width: 120px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hud { position: absolute; top: 20px; left: 20px; width: 230px; max-width: calc(100% - 110px); pointer-events: none; color: #f1e4c9; text-shadow: 0 2px 8px #000; }
+.hud > span { display: block; color: #e3c88e; text-transform: uppercase; font-size: 8px; letter-spacing: .22em; margin-bottom: 4px; }
+.hud strong { display: block; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font: 400 20px/1.25 Georgia, serif; }
+.partyLocator { display: flex; align-items: center; gap: 6px; max-width: 100%; pointer-events: auto; margin-top: 9px; padding: 6px 8px; color: #cee8c9; background: #14261ee6; border: 1px solid #a8c3a755; border-radius: 4px; font-size: 10px; text-align: left; }
+.partyLocator > svg { flex-shrink: 0; }
+.partyLocator > span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hud, .compass, .mapControls, .live { z-index: 8; }
 .compass { position: absolute; top: 17px; right: 18px; display: flex; flex-direction: column; align-items: center; color: #d1c6a4a6; pointer-events: none; }
 .compass > span { font: 10px Georgia, serif; letter-spacing: .1em; margin-bottom: -3px; }
 .mapControls { position: absolute; left: 15px; bottom: 17px; display: flex; align-items: center; gap: 2px; background: #0e1919e6; border: 1px solid #b5a47455; border-radius: 6px; padding: 3px; box-shadow: 0 4px 16px #0007; }

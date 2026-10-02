@@ -1,6 +1,7 @@
 import { noiseField, skinForGenre, type XY } from "@/lib/overworld/logic";
 import type { OverworldLabel, OverworldPath, PathKind } from "@/lib/overworld/features";
 import { atlasQuests, isQuestPin, type AtlasCharacter, type AtlasLocation } from "@/lib/overworld/atlas";
+import { atlasTerrain, BIOME_MATERIALS, materialAt, type TerrainMaterial } from "@/lib/overworld/cartography";
 
 // Canvas drawing for the region map, lifted out of OverworldPanel so the
 // panel has room for the DM's authoring controls. Nothing here touches
@@ -10,6 +11,7 @@ import { atlasQuests, isQuestPin, type AtlasCharacter, type AtlasLocation } from
 export const OVERWORLD_TILE = 16;
 
 export type OverworldLocation = AtlasLocation;
+export type AtlasMaterials = Partial<Record<TerrainMaterial, HTMLImageElement>>;
 
 export type OverworldData = {
   map: {
@@ -17,6 +19,8 @@ export type OverworldData = {
     width: number;
     height: number;
     terrain: string;
+    materialGrid?: string;
+    terrainConflicts?: string[];
     pins: Array<{ id: string; x: number; y: number; label: string }>;
     partyXy: { x: number; y: number } | null;
     params: Record<string, number>;
@@ -41,33 +45,42 @@ export type DrawOptions = {
   pending?: { kind: PathKind; points: XY[] } | null;
   // Accessible DOM markers sit over the screen canvas; exports draw them.
   markers?: boolean;
-  materials?: HTMLImageElement | null;
+  materials?: AtlasMaterials | null;
 };
 
 // ponytail: one region cache; a gallery can use an LRU if multiple maps ever
 // share a screen. Position/journal updates must reuse the unchanged relief.
-let terrainCache: { seed: number; width: number; height: number; terrain: string; genre: string; materials?: HTMLImageElement | null; canvas: HTMLCanvasElement } | undefined;
+let terrainCache: { seed: number; width: number; height: number; terrain: string; materialGrid?: string; genre: string; materials?: AtlasMaterials | null; canvas: HTMLCanvasElement } | undefined;
 const materialCache = new WeakMap<HTMLImageElement, ImageData>();
+const MATERIAL_COLOURS: Partial<Record<TerrainMaterial, number[]>> = {
+  broadleaf: [72, 99, 54], autumn: [128, 91, 42], jungle: [34, 72, 40], deadwood: [77, 72, 62], enchanted: [42, 81, 71],
+  desert: [172, 143, 83], tundra: [113, 120, 103], snow: [188, 199, 202], canyon: [137, 94, 63],
+  volcanic: [53, 49, 46], shallows: [53, 118, 123], ice: [150, 183, 196], lava: [178, 70, 18],
+};
 
 // Relief is derived from the stored biome grid, including hand-painted
 // changes. A generated illustration must never replace the world's facts.
-function reliefTerrain(map: OverworldData["map"], genre: string, materials?: HTMLImageElement | null) {
+function reliefTerrain(map: OverworldData["map"], genre: string, materials?: AtlasMaterials | null) {
   const cached = terrainCache;
-  if (cached && cached.seed === map.seed && cached.width === map.width && cached.height === map.height && cached.terrain === map.terrain && cached.genre === genre && cached.materials === materials) return cached.canvas;
+  if (cached && cached.seed === map.seed && cached.width === map.width && cached.height === map.height && cached.terrain === map.terrain && cached.materialGrid === map.materialGrid && cached.genre === genre && cached.materials === materials) return cached.canvas;
   const canvas = document.createElement("canvas");
-  const resolution = 10;
+  const resolution = 16;
   canvas.width = map.width * resolution;
   canvas.height = map.height * resolution;
   const context = canvas.getContext("2d")!;
   const image = context.createImageData(canvas.width, canvas.height);
-  let material = materials ? materialCache.get(materials) : undefined;
-  if (materials && usable(materials) && !material) {
+  const surfaces: Record<string, ImageData> = {};
+  for (const [kind, bitmap] of Object.entries(materials ?? {})) {
+    if (!usable(bitmap)) continue;
+    const cachedMaterial = materialCache.get(bitmap);
+    if (cachedMaterial) { surfaces[kind] = cachedMaterial; continue; }
     const plate = document.createElement("canvas");
-    plate.width = materials.naturalWidth; plate.height = materials.naturalHeight;
+    plate.width = bitmap.naturalWidth; plate.height = bitmap.naturalHeight;
     const plateContext = plate.getContext("2d")!;
-    plateContext.drawImage(materials, 0, 0);
-    material = plateContext.getImageData(0, 0, plate.width, plate.height);
-    materialCache.set(materials, material);
+    plateContext.drawImage(bitmap, 0, 0);
+    const pixels = plateContext.getImageData(0, 0, plate.width, plate.height);
+    materialCache.set(bitmap, pixels);
+    surfaces[kind] = pixels;
   }
   const skin = skinForGenre(genre);
   const colours = Object.fromEntries(Object.entries(skin).map(([kind, entry]) => {
@@ -78,10 +91,11 @@ function reliefTerrain(map: OverworldData["map"], genre: string, materials?: HTM
   })) as Record<string, number[]>;
   const heights: Record<string, number> = { w: 0, s: 0.18, p: 0.28, f: 0.38, h: 0.68, m: 1 };
   const tile = (x: number, y: number) => map.terrain[Math.max(0, Math.min(map.height - 1, y)) * map.width + Math.max(0, Math.min(map.width - 1, x))] ?? "w";
+  const texture = (x: number, y: number) => map.materialGrid ? materialAt(map.materialGrid, Math.max(0, Math.min(map.height - 1, y)) * map.width + Math.max(0, Math.min(map.width - 1, x))) : BIOME_MATERIALS[tile(x, y) as keyof typeof BIOME_MATERIALS];
   const field = (x: number, y: number) => {
     let height = 0;
     for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
-      height += (heights[tile(x + dx, y + dy)] ?? 0) * (dx === 0 ? 2 : 1) * (dy === 0 ? 2 : 1);
+      height += (texture(x + dx, y + dy) === "lava" ? 0.12 : heights[tile(x + dx, y + dy)] ?? 0) * (dx === 0 ? 2 : 1) * (dy === 0 ? 2 : 1);
     }
     return height / 16;
   };
@@ -95,6 +109,7 @@ function reliefTerrain(map: OverworldData["map"], genre: string, materials?: HTM
     const gx = x / resolution, gy = y / resolution, ix = Math.floor(gx), iy = Math.floor(gy);
     const tx = gx - ix, ty = gy - iy;
     const kinds = [tile(ix, iy), tile(ix + 1, iy), tile(ix, iy + 1), tile(ix + 1, iy + 1)];
+    const textures = [texture(ix, iy), texture(ix + 1, iy), texture(ix, iy + 1), texture(ix + 1, iy + 1)];
     const weights = [(1 - tx) * (1 - ty), tx * (1 - ty), (1 - tx) * ty, tx * ty];
     const height = at(ix, iy) * weights[0] + at(ix + 1, iy) * weights[1] + at(ix, iy + 1) * weights[2] + at(ix + 1, iy + 1) * weights[3];
     const dx = (at(ix + 1, iy) - at(ix, iy)) * (1 - ty) + (at(ix + 1, iy + 1) - at(ix, iy + 1)) * ty;
@@ -108,17 +123,18 @@ function reliefTerrain(map: OverworldData["map"], genre: string, materials?: HTM
       let value = 0;
       for (let corner = 0; corner < 4; corner++) {
         const kind = kinds[corner];
-        let colour = (colours[kind] ?? colours.w)[channel];
+        const surface = textures[corner];
+        const material = surfaces[surface];
+        let colour = (MATERIAL_COLOURS[surface] ?? colours[kind] ?? colours.w)[channel];
         if (material) {
-          const halfW = Math.floor(material.width / 2), halfH = Math.floor(material.height / 2);
-          const mx = Math.floor((gx / 14 % 1) * halfW) + (["f", "s", "w"].includes(kind) ? halfW : 0);
-          const my = Math.floor((gy / 14 % 1) * halfH) + (["p", "w"].includes(kind) ? halfH : 0);
+          const mx = Math.floor(((gx + phase) / 18 % 1) * material.width);
+          const my = Math.floor(((gy + phase) / 18 % 1) * material.height);
           const materialIndex = (my * material.width + mx) * 4 + channel;
-          colour = material.data[materialIndex] * 0.75 + colour * 0.25;
+          colour = material.data[materialIndex] * 0.86 + colour * 0.14;
         }
         value += colour * weights[corner];
       }
-      const snow = Math.max(0, height - 0.7) * (material ? 60 : 150);
+      const snow = textures.some(value => value === "lava" || value === "volcanic") ? 0 : Math.max(0, height - 0.7) * (surfaces.mountains ? 60 : 150);
       image.data[index + channel] = Math.min(255, Math.max(0, value * light + snow));
     }
     image.data[index + 3] = 255;
@@ -146,7 +162,7 @@ function reliefTerrain(map: OverworldData["map"], genre: string, materials?: HTM
     }
     context.stroke();
   }
-  terrainCache = { seed: map.seed, width: map.width, height: map.height, terrain: map.terrain, genre, materials, canvas };
+  terrainCache = { seed: map.seed, width: map.width, height: map.height, terrain: map.terrain, materialGrid: map.materialGrid, genre, materials, canvas };
   return canvas;
 }
 
@@ -237,7 +253,8 @@ export function drawOverworld(
   } else {
     context.imageSmoothingEnabled = true;
     context.imageSmoothingQuality = "high";
-    context.drawImage(reliefTerrain(data.map, options.genre, options.materials), 0, 0, width * tile, height * tile);
+    const map = data.map.materialGrid ? data.map : { ...data.map, ...atlasTerrain(data.map, data.locations) };
+    context.drawImage(reliefTerrain(map, options.genre, options.materials), 0, 0, width * tile, height * tile);
   }
 
   // Borders under rivers under roads: a road crossing a river reads as a

@@ -14,14 +14,14 @@ import type { OverworldData } from "@/app/campaigns/[campaignId]/overworldDraw";
 import { offersStoryModel, useCapabilities } from "@/lib/use-capabilities";
 import { useI18n } from "@/lib/i18n/context";
 import { localeText } from "@/lib/i18n/locale-text";
+import { LANDMARK_NAMES, TERRAIN_NAMES, type LandmarkAsset, type TerrainMaterial } from "@/lib/overworld/cartography";
 
 // Authoring the region: describe it, roll seeds against it, name what you
 // see, and write down what only you know.
 //
 // The order matters and is deliberate. Terrain is seeded value noise, so a
-// description cannot become tiles; it becomes the five dials below, and then
-// the DM rerolls seeds until the coastline falls somewhere they like. That
-// is why "Roll another" sits next to the description rather than under it.
+// description sets the regional dials. Recorded places and their stated
+// environments then constrain the local terrain in cartography.ts.
 //
 // The description box is the one step that needs a text model. Without one
 // the dials, the reroll, the places and the notes all remain; only the
@@ -57,13 +57,15 @@ export function OverworldAuthoring({
   const [notes, setNotes] = useState(data.map.notes ?? "");
   // The size the next roll is made at. Resizing IS a reroll: the noise
   // field has no edges to extend, so the ground is rolled again and the
-  // places keep their spots where the new ground allows.
+  // places keep their coordinates while the landscape fits their type.
   const [size, setSize] = useState<OverworldSize>({ width: data.map.width, height: data.map.height });
   const sizeId =
     OVERWORLD_SIZES.find((entry) => entry.width === size.width && entry.height === size.height)?.id ??
     "custom";
   const [placeName, setPlaceName] = useState("");
   const [placeBlurb, setPlaceBlurb] = useState("");
+  const [placeType, setPlaceType] = useState<LandmarkAsset | "">("");
+  const [placeBiome, setPlaceBiome] = useState<TerrainMaterial | "">("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const canDescribe = offersStoryModel(useCapabilities());
@@ -86,6 +88,9 @@ export function OverworldAuthoring({
       }
       onData(payload as OverworldData);
       return true;
+    } catch {
+      setError(copy.error);
+      return false;
     } finally {
       setBusy(false);
     }
@@ -100,9 +105,12 @@ export function OverworldAuthoring({
     if (!name) {
       return;
     }
-    if (await patch({ places: [{ name, blurb: placeBlurb.trim() }] })) {
+    const language = locale === "ru" ? 0 : 1;
+    const blurb = [placeType ? `${locale === "ru" ? "Тип места" : "Place type"}: ${LANDMARK_NAMES[placeType][language]}.` : "", placeBiome ? `${locale === "ru" ? "Окружение" : "Environment"}: ${TERRAIN_NAMES[placeBiome][language]}.` : "", placeBlurb.trim()].filter(Boolean).join(" ").slice(0, 300);
+    if (await patch({ places: [{ name, blurb }] })) {
       setPlaceName("");
       setPlaceBlurb("");
+      setPlaceType(""); setPlaceBiome("");
     }
   }
 
@@ -256,6 +264,21 @@ export function OverworldAuthoring({
               placeholder={copy.blurb}
               className="w-full rounded-md border border-stone-700 bg-stone-950 px-2 py-1 text-sm text-stone-200"
             />
+            <label className="flex items-center gap-2 text-[11px] text-stone-400">
+              <span>{locale === "ru" ? "Тип места" : "Place type"}</span>
+              <select aria-label={locale === "ru" ? "Тип места" : "Place type"} value={placeType} onChange={event => setPlaceType(event.target.value as LandmarkAsset | "")} className="min-w-0 flex-1 rounded border border-stone-700 bg-stone-950 px-2 py-1">
+                <option value="">{locale === "ru" ? "По названию и описанию" : "From name and description"}</option>
+                {(Object.keys(LANDMARK_NAMES) as LandmarkAsset[]).map(id => <option key={id} value={id}>{LANDMARK_NAMES[id][locale === "ru" ? 0 : 1]}</option>)}
+              </select>
+            </label>
+            <label className="flex items-center gap-2 text-[11px] text-stone-400">
+              <span>{locale === "ru" ? "Окружение" : "Environment"}</span>
+              <select aria-label={locale === "ru" ? "Окружение" : "Environment"} value={placeBiome} onChange={event => setPlaceBiome(event.target.value as TerrainMaterial | "")} className="min-w-0 flex-1 rounded border border-stone-700 bg-stone-950 px-2 py-1">
+                <option value="">{locale === "ru" ? "По названию и описанию" : "From name and description"}</option>
+                {(Object.keys(TERRAIN_NAMES) as TerrainMaterial[]).map(id => <option key={id} value={id}>{TERRAIN_NAMES[id][locale === "ru" ? 0 : 1]}</option>)}
+              </select>
+            </label>
+            <p className="text-[10px] text-stone-500">{locale === "ru" ? "Берег, рельеф и рисунок места появятся из этих сведений. Герои перемещаются по ходу игры." : "These details shape the shore, terrain and landmark. Characters move as play progresses."}</p>
             <button
               type="button"
               disabled={busy || !placeName.trim()}

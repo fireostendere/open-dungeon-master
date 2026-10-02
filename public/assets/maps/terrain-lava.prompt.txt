@@ -1,0 +1,4 @@
+Tool: image_gen.imagegen
+Generated: 2026-10-02
+
+Generate a seamless-looking square full-bleed overhead terrain texture for a premium dark brass fantasy world atlas inspired by painted Dungeons & Dragons cartography. Subject: a pool of molten lava viewed vertically from above, branching hot amber and red flowing molten surface with dark charcoal cooled lava plates floating in it, very fine realistic relief and light from upper-left. Restrained burnt orange and warm amber glow, dramatic but not neon, no fireballs, no volcano cone, no sky, no characters, no buildings, no labels, no lettering, no border, no map markers. Uniform continuous material without a central composition, every edge filled. Compatible with realistic miniature satellite-style world map terrain. Crisp fine details, 1024x1024 square.

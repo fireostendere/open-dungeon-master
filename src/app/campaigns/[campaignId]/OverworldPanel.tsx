@@ -33,15 +33,17 @@ import {
   drawOverworld,
   saveOverworldPng,
   OVERWORLD_TILE as TILE,
+  type AtlasMaterials,
   type OverworldData,
 } from "@/app/campaigns/[campaignId]/overworldDraw";
 import { useOverworldView } from "@/app/campaigns/[campaignId]/useOverworldView";
 import { useI18n } from "@/lib/i18n/context";
 import { localeText } from "@/lib/i18n/locale-text";
-import { atlasQuests, atlasRoute, isQuestPin, locationKind } from "@/lib/overworld/atlas";
+import { atlasQuests, atlasRoute, isQuestPin, layoutAtlasMarkers, locationKind } from "@/lib/overworld/atlas";
+import { atlasTerrain, BIOME_MATERIALS, landmarkForLocation, landmarkSprite, materialAt, TERRAIN_ASSETS } from "@/lib/overworld/cartography";
 import styles from "./worldAtlas.module.css";
 
-const PLACE_ICONS = { settlement: House, dungeon: Mountain, fort: Castle, ruin: Landmark, shrine: Church, mountain: Mountain, forest: Trees, camp: Tent, port: Anchor };
+const PLACE_ICONS = { settlement: House, dungeon: Mountain, fort: Castle, ruin: Landmark, shrine: Church, mountain: Mountain, forest: Trees, camp: Tent, port: Anchor, neutral: MapPin };
 
 // The overworld region map: seeded terrain canvas (or a picture in its
 // place), known locations as anchors with routes from the connections
@@ -101,7 +103,7 @@ export function OverworldPanel({
   // The backdrop image, keyed by the path it was loaded from, so a picture
   // taken away or replaced never draws for a frame under the wrong path.
   const [backdrop, setBackdrop] = useState<{ path: string; image: HTMLImageElement } | null>(null);
-  const [materials, setMaterials] = useState<HTMLImageElement | null>(null);
+  const [materials, setMaterials] = useState<AtlasMaterials | null>(null);
   const [exporting, setExporting] = useState(false);
   const [importing, setImporting] = useState(false);
   const [importNote, setImportNote] = useState("");
@@ -169,13 +171,20 @@ export function OverworldPanel({
     };
   }, [backdropPath]);
   const backdropImage = backdrop && backdrop.path === backdropPath ? backdrop.image : null;
+  const materialGrid = data?.map.materialGrid ?? (data ? atlasTerrain(data.map, data.locations).materialGrid : "");
+  const materialKey = [...new Set([...Object.values(BIOME_MATERIALS), ...[...materialGrid].map((_, index) => materialAt(materialGrid, index))])].sort().join(",");
   useEffect(() => {
-    const image = new Image();
     let cancelled = false;
-    image.onload = () => { if (!cancelled) setMaterials(image); };
-    image.src = "/assets/maps/atlas-materials.webp";
+    const loaded: AtlasMaterials = {};
+    void Promise.all(materialKey.split(",").map(name => new Promise<void>(resolve => {
+      const kind = name as keyof AtlasMaterials;
+      const image = new Image();
+      image.onload = () => { loaded[kind] = image; resolve(); };
+      image.onerror = () => resolve();
+      image.src = TERRAIN_ASSETS[kind];
+    }))).then(() => { if (!cancelled) setMaterials(loaded); });
     return () => { cancelled = true; };
-  }, []);
+  }, [materialKey]);
 
   // Terrain redraws only with map or camera changes. CSS animates markers.
   const draw = useCallback(() => {
@@ -236,11 +245,13 @@ export function OverworldPanel({
   }, [mapWidth, mapHeight, expanded, surface, fit, zoomBy]);
 
   const current = data?.locations.find(location => location.isCurrent);
-  const partyAnchor = current?.anchor ?? data?.locations.find(location => location.id === data.party?.[0]?.locationId)?.anchor ?? data?.map.partyXy ?? null;
+  const partyPlaces = [...new Set(data?.party?.map(character => character.locationId).filter((id): id is string => Boolean(id)))];
+  const originId = current?.id ?? (partyPlaces.length === 1 ? partyPlaces[0] : null);
+  const partyAnchor = data?.locations.find(location => location.id === originId)?.anchor ?? (partyPlaces.length <= 1 ? data?.map.partyXy : null) ?? null;
   const partyX = partyAnchor?.x, partyY = partyAnchor?.y;
   useEffect(() => {
     if (followParty && partyX !== undefined && partyY !== undefined && canvasSize.width) focus((partyX + 0.5) * TILE, (partyY + 0.5) * TILE);
-  }, [followParty, partyX, partyY, canvasSize.width, canvasSize.height, focus]);
+  }, [followParty, partyX, partyY, canvasSize.width, canvasSize.height, view.zoom, focus]);
 
   // Returns the payload as well as storing it, because a paint answers with
   // more than the new map: it names the places it left in the sea.
@@ -449,18 +460,47 @@ export function OverworldPanel({
   const quests = data ? atlasQuests(data.quests ?? [], data.locations, data.map.pins) : [];
   const activeQuest = quests.find(quest => quest.id === tracked);
   const chosen = data?.locations.find(location => location.id === selected) ?? current;
-  const partyPlaces = [...new Set(data?.party?.map(character => character.locationId).filter((id): id is string => Boolean(id)))];
-  const originId = current?.id ?? (partyPlaces.length === 1 ? partyPlaces[0] : null);
   const route = data ? atlasRoute(data.locations, originId ?? null, activeQuest?.locationId ?? null) : [];
   const places = data?.locations.filter(location => location.name.toLowerCase().includes(search.toLowerCase())) ?? [];
   const point = (at: XY) => ({ x: view.x + (at.x + 0.5) * TILE * view.zoom, y: view.y + (at.y + 0.5) * TILE * view.zoom });
   const routePoints = route.map(id => data?.locations.find(location => location.id === id)?.anchor).filter((at): at is XY => Boolean(at)).map(point);
+  const detailed = view.zoom >= 0.8;
+  const labelBounds = (data?.map.labels ?? []).map(label => {
+    const at = point(label), size = label.size === "large" ? 20 : 11;
+    const width = label.text.length * size * 0.7 * view.zoom, height = size * 1.5 * view.zoom;
+    return { x: at.x - width / 2, y: at.y - height, width, height };
+  });
+  for (const path of data?.map.paths ?? []) if (path.label && path.points.length) {
+    const at = point(path.points[Math.floor(path.points.length / 2)]);
+    labelBounds.push({ x: at.x, y: at.y - 18 * view.zoom, width: path.label.length * 7 * view.zoom, height: 18 * view.zoom });
+  }
+  for (const pin of data?.map.pins.filter(pin => !isQuestPin(pin)) ?? []) {
+    const at = point(pin), width = Math.min(120, pin.label.length * 6) + 24;
+    labelBounds.push({ x: at.x - width / 2, y: at.y - 13, width, height: 26 });
+  }
+  if (data?.map.partyXy) {
+    const at = point(data.map.partyXy);
+    labelBounds.push({ x: at.x - 70, y: at.y - 13, width: 140, height: 26 });
+  }
+  const groups = layoutAtlasMarkers((data?.locations ?? []).filter(location => location.anchor).map(location => {
+    const partyCount = (data?.party ?? []).filter(character => character.locationId === location.id).length;
+    return { ...point(location.anchor!), id: location.id, name: location.name, partyCount,
+      priority: location.isCurrent ? 1000 : partyCount ? 800 : activeQuest?.locationId === location.id ? 600 : chosen?.id === location.id ? 550 : location.visited ? 200 : 100 };
+  }), canvasSize.width, canvasSize.height, detailed, labelBounds);
+  const partyLocation = current ?? data?.locations.find(location => location.id === originId);
+
+  function showParty() {
+    setFollowParty(true);
+    if (view.zoom < 0.9) zoomBy(0.9 / view.zoom);
+    if (partyAnchor) focus((partyAnchor.x + 0.5) * TILE, (partyAnchor.y + 0.5) * TILE);
+  }
 
   function showLocation(id: string) {
     const location = data?.locations.find(entry => entry.id === id);
     setSelected(id);
     if (location?.anchor) {
       setFollowParty(false);
+      if (view.zoom < 0.9) zoomBy(0.9 / view.zoom);
       focus((location.anchor.x + 0.5) * TILE, (location.anchor.y + 0.5) * TILE);
     }
   }
@@ -504,56 +544,74 @@ export function OverworldPanel({
             <div className={styles.mist} aria-hidden="true" />
             <div className={styles.vignette} aria-hidden="true" />
             {routePoints.length > 1 ? <svg className={styles.route} aria-hidden="true"><polyline points={routePoints.map(at => `${at.x},${at.y}`).join(" ")} /></svg> : null}
+            <svg className={styles.callouts} aria-hidden="true">{groups.filter(group => group.label).map(group => {
+              const { marker, label } = group;
+              return <line key={marker.id} x1={marker.x} y1={marker.y} x2={marker.x + label!.x} y2={marker.y + label!.y} />;
+            })}</svg>
             <div className={styles.markers}>
-              {places.map(location => {
-                if (!location.anchor) return null;
-                const at = point(location.anchor), Icon = PLACE_ICONS[locationKind(location)];
+              {groups.map(group => {
+                const location = data!.locations.find(entry => entry.id === group.marker.id)!;
+                const at = group.marker, Icon = PLACE_ICONS[locationKind(location)];
+                const asset = detailed && group.members.length === 1 ? landmarkForLocation(location) : null;
+                const groupQuests = quests.filter(quest => group.members.some(member => member.id === quest.locationId));
+                const groupParty = group.members.reduce((sum, member) => sum + member.partyCount, 0);
+                const names = group.members.map(member => member.name).join(" · ");
                 return <button key={location.id} type="button" className={cn(styles.placeMarker, location.visited && styles.discovered, chosen?.id === location.id && styles.selected, location.isCurrent && styles.current)}
                   style={{ left: at.x, top: at.y, pointerEvents: mode === "look" || mode === "place" ? "auto" : "none" }}
-                  aria-label={`${location.name} · ${location.isCurrent ? copy.here : location.visited ? copy.visited : copy.known}`}
-                  title={location.name} onPointerDown={event => event.stopPropagation()}
-                  onClick={() => mode === "place" ? setHeld(location.id) : setSelected(location.id)}>
-                  <span className={styles.placeBadge}><Icon size={20} strokeWidth={1.5} /></span><span className={styles.placeName}>{location.name}</span>
+                  aria-label={`${names} · ${location.isCurrent ? copy.here : location.visited ? copy.visited : copy.known}${groupParty ? ` · ${copy.party}: ${groupParty}` : ""}`}
+                  title={names} onPointerDown={event => event.stopPropagation()}
+                  onClick={() => {
+                    if (mode === "place") { setHeld(location.id); return; }
+                    setSelected(location.id);
+                    if (group.members.length > 1) { setFollowParty(false); zoomBy(Math.max(1.7, 0.9 / view.zoom)); focus((location.anchor!.x + 0.5) * TILE, (location.anchor!.y + 0.5) * TILE); setSection("places"); setSearch(""); }
+                  }}>
+                  <span className={cn(styles.placeBadge, asset && styles.illustrated)}>
+                    {asset ? <span className={styles.landmarkArt} style={landmarkSprite(asset)} aria-hidden="true" /> : null}
+                    <Icon size={asset ? 12 : 20} strokeWidth={1.5} />
+                  </span>
+                  {group.members.length > 1 ? <span className={styles.clusterCount}>+{group.members.length - 1}</span> : null}
+                  {groupParty && (!detailed || group.members.length > 1) ? <span className={styles.partyCount}><Users size={12} />{groupParty}</span> : null}
+                  {groupQuests.length ? <span className={cn(styles.questBadge, groupQuests.some(quest => quest.id === tracked) && styles.tracked)} title={groupQuests.map(quest => quest.text).join(" · ")}><Diamond size={18} /><b>{groupQuests.length > 1 ? groupQuests.length : "!"}</b></span> : null}
+                  {group.label ? <span className={styles.placeName} style={{ left: `calc(50% + ${group.label.x}px)`, top: `calc(50% + ${group.label.y}px)`, width: group.label.width, height: group.label.height }}>
+                    <span>{location.name}</span>{location.isCurrent ? <small>{copy.here}</small> : groupParty ? <small>{copy.party} · {groupParty}</small> : null}
+                  </span> : null}
                 </button>;
               })}
-              {quests.map(quest => {
-                if (!quest.anchor) return null;
-                const at = point(quest.anchor);
-                const siblings = quests.filter(entry => entry.locationId === quest.locationId && entry.anchor);
-                const offset = (siblings.findIndex(entry => entry.id === quest.id) - (siblings.length - 1) / 2) * 26;
-                return <button type="button" key={quest.id} className={cn(styles.questMarker, tracked === quest.id && styles.tracked)}
-                  style={{ left: at.x + offset, top: at.y - 40, pointerEvents: mode === "look" ? "auto" : "none" }}
-                  title={quest.text} aria-label={`${copy.target}: ${quest.text}`} aria-pressed={tracked === quest.id}
-                  onPointerDown={event => event.stopPropagation()} onClick={() => { setTracked(tracked === quest.id ? null : quest.id); setSection("objectives"); setSelected(quest.locationId); }}>
-                  <Diamond size={23} strokeWidth={1.5} /><span>!</span>
-                </button>;
-              })}
-              {(data?.party ?? []).map(character => {
+              {detailed ? (data?.party ?? []).map(character => {
                 const location = data?.locations.find(entry => entry.id === character.locationId);
+                const group = groups.find(entry => entry.marker.id === location?.id && entry.members.length === 1);
+                if (!group) return null;
                 const anchor = location?.anchor ?? (data?.scope !== "spatial" ? data?.map.partyXy : null);
                 if (!anchor) return null;
-                const at = point(anchor), siblings = data?.party?.filter(entry => entry.locationId === character.locationId) ?? [];
+                const at = point(anchor), siblings = data?.party?.filter(entry => entry.locationId === character.locationId).slice(0, 3) ?? [];
+                if (!siblings.some(entry => entry.id === character.id)) return null;
                 const offset = (siblings.findIndex(entry => entry.id === character.id) - (siblings.length - 1) / 2) * 31;
-                return <button type="button" key={character.id} className={styles.characterMarker} style={{ left: at.x + offset, top: at.y + 59, pointerEvents: mode === "look" ? "auto" : "none" }}
+                return <button type="button" key={character.id} className={styles.characterMarker} style={{ left: at.x + offset, top: at.y + 47, pointerEvents: mode === "look" ? "auto" : "none" }}
                   aria-label={`${character.name} · ${location?.name ?? copy.partyUnknown}`} title={character.name}
                   onPointerDown={event => event.stopPropagation()} onClick={() => { setSection("party"); setSelected(character.locationId); }}>
                   {character.portraitUrl ? <img src={character.portraitUrl} alt="" /> : <span>{character.name.slice(0, 1)}</span>}
                 </button>;
-              })}
+              }) : null}
+              {detailed ? groups.filter(group => group.members.length === 1 && group.marker.partyCount > 3).map(group => <button key={`party:${group.marker.id}`} type="button" className={styles.partyMore} style={{ left: group.marker.x + 60, top: group.marker.y + 47 }}
+                aria-label={`${copy.party} · ${group.marker.partyCount}`} title={`${copy.party} · ${group.marker.partyCount}`} onPointerDown={event => event.stopPropagation()} onClick={() => setSection("party")}>+{group.marker.partyCount - 3}</button>) : null}
               {data?.map.pins.filter(pin => !isQuestPin(pin)).map(pin => {
                 const at = point(pin);
                 return <span key={pin.id} className={styles.pin} style={{ left: at.x, top: at.y }}><Flag size={18} /><span>{pin.label}</span></span>;
               })}
-              {data?.map.partyXy ? <span className={styles.pin} style={{ left: point(data.map.partyXy).x, top: point(data.map.partyXy).y }} title={copy.party}><Users size={20} /><span>{copy.party}</span></span> : null}
+              {data?.map.partyXy ? <span className={styles.pin} style={{ left: point(data.map.partyXy).x, top: point(data.map.partyXy).y }} title={locale === "ru" ? "Метка отряда" : "Party annotation"}><Users size={20} /><span>{locale === "ru" ? "Метка отряда" : "Party annotation"}</span></span> : null}
             </div>
-            <div className={styles.hud} aria-hidden="true"><span>{activeQuest ? copy.target : current ? copy.here : copy.explore}</span><strong>{activeQuest?.text.split(":")[0] ?? current?.name ?? title ?? copy.atlas}</strong></div>
+            <div className={styles.hud}><span>{activeQuest ? copy.target : copy.explore}</span><strong>{activeQuest?.text.split(":")[0] ?? title ?? copy.atlas}</strong>
+              <button type="button" className={styles.partyLocator} onPointerDown={event => event.stopPropagation()} onClick={() => { setSection("party"); showParty(); }} title={copy.back}>
+                <LocateFixed size={14} /><span>{copy.party} · {partyLocation?.name ?? (partyPlaces.length > 1 ? locale === "ru" ? "В разных местах" : "Split party" : copy.partyUnknown)}</span>
+              </button>
+            </div>
             <div className={styles.compass} aria-hidden="true"><span>{copy.north}</span><Compass size={56} strokeWidth={0.7} /></div>
             <div className={styles.mapControls} onPointerDown={event => event.stopPropagation()}>
               <button type="button" onClick={() => zoomBy(1.3)} aria-label={copy.zoomIn} title={copy.zoomIn}><Plus size={18} /></button>
               <button type="button" onClick={() => zoomBy(1 / 1.3)} aria-label={copy.zoomOut} title={copy.zoomOut}><Minus size={18} /></button>
               <i />
               <button type="button" onClick={() => { setFollowParty(false); if (containerRef.current && data) fit(containerRef.current, data.map.width * TILE, data.map.height * TILE, true); }} aria-label={copy.fit} title={copy.fit}><Focus size={18} /></button>
-              <button type="button" onClick={() => setFollowParty(true)} aria-pressed={followParty} disabled={!partyAnchor} aria-label={copy.follow} title={copy.follow}><LocateFixed size={18} /></button>
+              <button type="button" onClick={showParty} aria-pressed={followParty} disabled={!partyAnchor} aria-label={copy.follow} title={copy.follow}><LocateFixed size={18} /></button>
             </div>
             <div className={styles.live} role="status"><i data-connected={connected} />{connected ? copy.live : loading ? copy.loading : copy.reconnecting}</div>
             {loading || !data?.locations.length ? <div className={styles.empty}>
@@ -609,6 +667,7 @@ export function OverworldPanel({
       {error ? <p className={styles.error} role="alert">{error}</p> : null}
       {steersStory && studio && data ? <div className={styles.studio}>
           <h4><Pencil size={15} />{copy.tools}</h4><p>{copy.studioHint}</p>
+          {data.map.terrainConflicts?.length ? <p role="status">{locale === "ru" ? "Проверьте совмещённые места и берег: " : "Check overlapping places and shores: "}{data.map.terrainConflicts.map(id => data.locations.find(location => location.id === id)?.name).filter(Boolean).join(", ")}</p> : null}
           {skin && !backdropImage ? <TileLegend skin={skin} /> : null}
           <ModeBar
             mode={mode}

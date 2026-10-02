@@ -1,0 +1,8 @@
+Tool: image_gen.imagegen
+Generated: 2026-10-02
+
+Use case: stylized-concept
+Asset type: a seamless square full-bleed biome material for a premium interactive Dungeons & Dragons atlas.
+Primary request: a frozen lake surface with subtle blue ice fissures, frosty surface patterns and restrained patches of snow, no land. One continuous terrain material viewed strictly vertically from overhead. Richly detailed realistic painted aerial miniature terrain with crisp microdetail, coherent gentle light from the upper left and restrained natural mineral colours. Palette: cold pale blue gray, ivory frost, muted slate.
+Composition: square tile, evenly distributed terrain without a central focal object, exactly edge to edge. Make opposite edges join seamlessly in a repeating material. Match a sophisticated northern fantasy RPG map, dark forest green and antique brass interface. Natural irregular forms, no conspicuous geometric repetition.
+Constraints: no text, labels, landmarks, roads, buildings, characters, icons, compass, border, gutters, coast outline, horizon or UI. No grid or pixel art. The software determines the true map outline and terrain masks.
