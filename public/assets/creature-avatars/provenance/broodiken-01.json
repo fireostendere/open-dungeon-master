@@ -1,0 +1,17 @@
+{
+  "creatureId": "broodiken",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BROODIKEN creature avatar. One TINY one-foot-tall BROODIKEN magical construct, an exaggerated miniature of its chosen HUMAN ADULT wizard creator. It has a disproportionately LARGE HEAD, wrinkled elderly adult face, bald crown with white side hair, oversized mouth crowded with sharp small fangs, two arms and two legs inherited from its human creator. Dusty purple miniature robe and bare clawless humanlike hands are original choices. No horns, wings, extra limbs, dagger limbs, child features, wounds or victims. Realistic painterly fantasy material detail, readable at 512 pixels, one composition without panels. No gore, writing, signature, watermark, logo or frame. Normal 1. The tiny fanged miniature elderly wizard construct stands on a cluttered alchemist workbench beside a normal-sized ink bottle, huge head and small robed body, two arms and two legs visible, candlelit glassware behind.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/broodiken-3pp/",
+      "note": "ToB2016/2023: Tiny one-foot construct, exaggerated miniature of humanoid creator, large head and fanged mouth; inherits creator limb count/basic features. Selected human-created adult-looking example has two arms/two legs, no horns/wings. Exact clothing/skin/hair are original; not a child or generic goblin."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

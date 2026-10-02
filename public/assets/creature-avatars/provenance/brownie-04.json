@@ -1,0 +1,17 @@
+{
+  "creatureId": "brownie",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BROWNIE creature avatar. One TINY adult BROWNIE fey, miniature human body with subtly elven facial features and two POINTED EARS, wearing an ACORN HELMET and simple leaf-and-moss clothing. One head, two arms and two legs, no wings or tail. Signature spear is a SHARPENED FALLEN BRANCH, not a metal blade or wizard staff. Original choice: brown skin, dark curly hair, bright hazel eyes and sturdy tiny boots. Adult proportions and face, natural woodland textures. Realistic painterly fantasy material detail, readable at 512 pixels, one composition without panels. No gore, writing, signature, watermark, logo or frame. YOLO: the tiny brownie in its acorn helmet solemnly faces an enormous square chocolate brownie dessert like a rival monster, poking the harmless cake with its sharpened branch spear. Leaf clothing, two arms and two legs only, serious heroic stance on a dinner plate, ridiculous namesake duel, no writing.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/brownie-3/",
+      "note": "ToB3 exact entry /brownie-3/: Tiny miniature human with subtly elven features, pointed ears, acorn helmet and sharpened fallen-branch spear. Leaf/moss clothing explicitly allowed. Adult appearance, colors/gender/leaf species and two-arm/two-leg body count conventional choices; no wings or mounted subclass gear."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}
