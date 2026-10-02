@@ -1,0 +1,17 @@
+{
+  "creatureId": "bolt-thrower-a5e",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BOLT-THROWER CLOCKWORK CONSTRUCT avatar, Advanced 5e. One SMALL COMPACT MOBILE CLOCKWORK GUARDIAN carrying TWO DISTINCT CROSSBOWS: ONE LIGHT CROSSBOW and ONE visibly LARGER HEAVY CROSSBOW. Each is mechanically coherent with one straight stock, transverse bow limbs and a string, not a rifle. This original chassis uses FOUR short articulated metal LEGS with clawed anchoring feet, brass/iron housing and exposed gears; chassis/leg count/materials are artistic choices not specified canon. Show bracing/anchors when the heavy crossbow is aimed, no firing unbraced. No biological face or eyes required. Realistic painterly metal, wood, gears and old stone, clear two-crossbow silhouette at 512 pixels. No targets, victims, injury, gore, writing, signature, watermark, logo or frame. Normal 01. A compact brass-and-black-iron clockwork guardian stands firmly braced on four articulated clawed metal feet on a stone floor. Two separate crossbows sit on its chassis: a larger heavy bow centered high and a smaller light bow offset to one side, both stocks and transverse limbs clearly distinct. Exposed gears, worn wooden bow stocks and dark workshop light, no target or firing.",
+  "designReferences": [
+    {
+      "url": "https://www.a5e.tools/node/1452",
+      "note": "A5E Small clockwork guardian with separate light and heavy crossbows, climbing and anchoring; heavy crossbow fires only anchored. Four-legged brass/iron chassis, mounting arrangement and marshmallow-skewer gag are original engineering choices, not fixed anatomy."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

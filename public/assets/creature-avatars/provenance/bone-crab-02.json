@@ -1,0 +1,17 @@
+{
+  "creatureId": "bone-crab",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BONE CRAB avatar, Tome of Beasts 2016/2023. One SMALL LIVING HERMIT-CRAB-LIKE CRUSTACEAN using ONE DISCARDED SKULL AS ITS BORROWED SHELL, with SPINY IVORY-WHITE LEGS and a PAIR OF SKULL-CRACKING PINCERS protruding below. The crab is alive; the skull shelter is not its own animated head. Original practical appendage layout uses paired pincers and four prominent walking legs, smaller rear limbs tucked inside the skull; exact exposed count is not fixed fantasy canon. Small crab eye stalks may show beneath the skull as an original naturalistic choice. Dry empty skull, no tissue or wounds, no independently moving skull jaws or ghost glow. Realistic painterly ivory chitin, weathered skull and shore, clear silhouette at 512 pixels. No victims, feeding, blood, injury, gore, writing, signature, watermark, logo or frame. Normal 02. Close three-quarter portrait of a bone crab under a large weathered fish skull shelter, ivory spiny chitin, two unequal robust pincers and natural little crab eyes beneath the bone. Four walking legs partly visible around the sides, no undead glow or moving skull jaw. Driftwood and pale sand, warm sunset highlights.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/bone-crab-3pp/",
+      "note": "ToB2016/2023 Small living crab with borrowed skull shelter, ivory spiny legs and paired crushing pincers. Exact exposed legs unspecified; four prominent walking legs plus two pincers and tucked rear limbs is original hermit-crab interpretation. Skull species/eyes and fancy-teacup shelter gag original."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

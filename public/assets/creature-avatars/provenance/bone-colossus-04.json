@@ -1,0 +1,17 @@
+{
+  "creatureId": "bone-colossus",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BONE COLOSSUS avatar, Tome of Beasts 2 version. One GARGANTUAN COMPOSITE UNDEAD TITAN assembled from THOUSANDS OF TINY SKELETAL CREATURES called posthumes. Its massive surface clearly consists of many little skulls, ribs, hands and bones interlocked into a giant, not one enlarged ordinary human skeleton. Original outer silhouette uses two massive arms, two weight-bearing legs and one dominant composite head; exact outer limb/head counts are not fixed source anatomy. Dry clean old bones, no flesh, corpses or gore. Can split into four swarms but these portraits show one assembled titan, not four bodies. No required weapon, armor or other-game design. Realistic painterly tiny bone texture, monumental scale and ruins, readable silhouette at 512 pixels. No victims, injury, blood, writing, signature, watermark, logo or frame. YOLO 04. A Gargantuan bone colossus is delicately trying to build an absurdly TINY HOUSE OF COLORFUL TOY BLOCKS, one huge composite hand pinching a minuscule red block while the other steadies a table far too small for it. Thousands of little skulls across its great face seem collectively focused, dry skeletal titan crouched carefully, no crushed objects or people. Ridiculous precision hobby, no letters or branding on blocks.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/bone-colossus/",
+      "note": "ToB2 CR13 Gargantuan composite of tiny posthumes with collective mind, heavy slams and exactly four resulting swarms on division. Two-arm/two-leg outer titan shape and toy-block gag original, not fixed anatomical counts; do not substitute CR14 precursor or other-game design."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

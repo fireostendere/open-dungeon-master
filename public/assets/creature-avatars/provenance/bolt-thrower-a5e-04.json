@@ -1,0 +1,17 @@
+{
+  "creatureId": "bolt-thrower-a5e",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BOLT-THROWER CLOCKWORK CONSTRUCT avatar, Advanced 5e. One SMALL COMPACT MOBILE CLOCKWORK GUARDIAN carrying TWO DISTINCT CROSSBOWS: ONE LIGHT CROSSBOW and ONE visibly LARGER HEAVY CROSSBOW. Each is mechanically coherent with one straight stock, transverse bow limbs and a string, not a rifle. This original chassis uses FOUR short articulated metal LEGS with clawed anchoring feet, brass/iron housing and exposed gears; chassis/leg count/materials are artistic choices not specified canon. Show bracing/anchors when the heavy crossbow is aimed, no firing unbraced. No biological face or eyes required. Realistic painterly metal, wood, gears and old stone, clear two-crossbow silhouette at 512 pixels. No targets, victims, injury, gore, writing, signature, watermark, logo or frame. YOLO 04. A serious little clockwork bolt-thrower has been reassigned to PICNIC DUTY: its two unequal crossbows each have a harmless blunt wooden skewer in place of a combat bolt, loaded with oversized pink and white MARSHMALLOWS. Four articulated legs brace on a picnic blanket beside a tiny campfire, brass gears look absurdly overengineered for snacks. No firing or people, clear heavy and light crossbows, no text.",
+  "designReferences": [
+    {
+      "url": "https://www.a5e.tools/node/1452",
+      "note": "A5E Small clockwork guardian with separate light and heavy crossbows, climbing and anchoring; heavy crossbow fires only anchored. Four-legged brass/iron chassis, mounting arrangement and marshmallow-skewer gag are original engineering choices, not fixed anatomy."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

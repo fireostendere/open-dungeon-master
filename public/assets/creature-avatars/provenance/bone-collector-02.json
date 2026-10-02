@@ -1,0 +1,17 @@
+{
+  "creatureId": "bone-collector",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BONE COLLECTOR avatar, Tome of Beasts 3. One SMALL UNDEAD VULTURE with a decayed but coherent bird body, TWO WINGS, TWO TALONED LEGS, one neck/head and one feathered tail. Its HOOKED BEAK OPENS TO REVEAL ONE LARGE EYE INSIDE ITS THROAT. The throat eye is visibly inside the open mouth behind the beak, not an external eye stalk, belly eye or extra head. Ordinary head eyes may remain as an original choice; source does not establish total eye count. Restrained dry ragged feathers and weathered skin show decay without wounds, viscera or fresh gore. A small dry bone may be held as a collecting prop. Realistic painterly feathers, bone and dark ruins, throat-eye anatomy readable at 512 pixels. No victims, feeding, blood, injury, writing, signature, watermark, logo or frame. Normal 02. Close three-quarter portrait of an undead vulture's bald weathered head and upper neck, hooked upper and lower beak opened wide enough to clearly frame a single large glossy violet-gray eye INSIDE the throat. No extra head or outside eye stalk, small regular side eye at its normal position, dry ragged feather collar, cool crypt light.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/bone-collector/",
+      "note": "ToB3 Small animated decaying vulture with large eye inside throat revealed by open beak, talons and bone-collecting role. Ordinary paired wings/legs inferred from vulture; retained ordinary eyes, dry decay and monocle gag original. Not a humanoid collector or one-eye-total claim."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}
