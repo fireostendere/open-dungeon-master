@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { getDatabase } from "@/lib/db/core";
+import { getOverworldPartyPositions, preserveSpatialMapPositions } from "@/lib/db/overworld";
 import { afterCommit } from "@/lib/db/commit-effects";
 import { notifySpatialChange } from "@/lib/spatial/updates.mjs";
 import { allocateSeq, campaignSeats, capsFor, getCampaignForUser, getGlobalTurnState, listMembers, touchCampaign, canAct, getFloor, normalizeFloor, setFloor, type Floor } from "@/lib/db/campaigns";
@@ -55,7 +56,7 @@ const passage = { walkable: z.boolean().optional(), sound: z.boolean().optional(
 const revision = z.number().int().min(1).optional();
 export const spatialCommandSchema = z.discriminatedUnion("operation", [
   z.object({ ...base, operation: z.literal("enable"), name: z.string().trim().min(1).max(80) }).strict(),
-  z.object({ ...base, operation: z.literal("disable") }).strict(),
+  z.object({ ...base, operation: z.literal("disable"), preserveMapPositions: z.boolean().optional() }).strict(),
   z.object({ ...base, operation: z.literal("create_room"), name: z.string().trim().min(1).max(80), connectTo: id.optional(), ...passage }).strict(),
   z.object({ ...base, operation: z.literal("link"), sourceId: id, targetId: id, ...passage }).strict(),
   z.object({ ...base, operation: z.literal("move"), roomId: id, userIds: z.array(id).min(1).max(20).optional(), expectedRevision: revision }).strict(),
@@ -112,6 +113,15 @@ export function runSpatialCommand(campaignId: string, userId: string, raw: unkno
       // This callback is deliberately fresh-command-only. Rechecking the
       // current round/position for an old receipt would break idempotency.
       let normalized = rawInput;
+      if (operation === "disable" && previouslyEnabled) {
+        if (!actor.isDm) throw new SpatialError("Only the DM can disable location chat.", 403);
+        if (rawInput.preserveMapPositions) {
+          const view = store.view(actor);
+          if (view.enabled) preserveSpatialMapPositions(campaignId, view.rooms);
+        } else {
+          getDatabase().prepare("UPDATE overworld_maps SET party_locations_json='{}' WHERE campaign_id=?").run(campaignId);
+        }
+      }
       if (!actor.isDm && !ooc) {
         const sheet = getSheetForUser(campaignId, userId);
         if (!sheet) throw new SpatialError("You need a character to act.", 409);
@@ -163,6 +173,9 @@ export function runSpatialCommand(campaignId: string, userId: string, raw: unkno
         : normalized;
     }, (commandResult, normalized) => {
       applied = true;
+      if (operation === "disable" && normalized.preserveMapPositions && previouslyEnabled) {
+        commandResult.preservedMapPositions = getOverworldPartyPositions(campaignId);
+      }
       if (operation === "send" && command.kind === "ooc") {
         const message = (commandResult as { message: { id: string; content: string; createdAt: string } }).message;
         oocMessage = {

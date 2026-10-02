@@ -1668,6 +1668,7 @@ function ensureSchema(db: SqliteDatabase) {
     // until a DM places them: locations.is_current has always been the proxy,
     // and it still is, because a party between two places has no location.
     ["party_xy_json", `TEXT NOT NULL DEFAULT ''`],
+    ["party_locations_json", `TEXT NOT NULL DEFAULT '{}'`],
     // The five dials the terrain was generated under
     // (src/lib/overworld/logic.ts). Empty means the defaults, which is why
     // every map made before this column keeps rerolling the way it did.

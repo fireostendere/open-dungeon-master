@@ -219,6 +219,11 @@ function compactLocation(value) {
       layout: clip(location.layoutDescription, 600),
       connections: array(location.connections).slice(0, 8).map(item => clip(item, 100)).filter(Boolean),
     }) : null,
+    ...(array(wrapper.partyPositions).length ? { partyPositions: array(wrapper.partyPositions).slice(0, 20).map(raw => {
+      const position = object(raw);
+      return { characterId: clip(position.characterId, 80), name: clip(position.name, 100),
+        locationId: clip(position.locationId, 80), locationName: clip(position.locationName, 100) };
+    }) } : {}),
     ...(Object.keys(sceneTracker).length ? { sceneTracker } : {}),
   };
 }

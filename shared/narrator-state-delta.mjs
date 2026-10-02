@@ -22,6 +22,7 @@ export const NARRATOR_PATCHABLE_KEYS = Object.freeze([
   'recentDmWhispers',
   'chapters',
   'location',
+  'partyPositions',
   'sceneTracker',
   'encounter',
 ]);

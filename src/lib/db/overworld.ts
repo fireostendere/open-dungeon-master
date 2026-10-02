@@ -1,9 +1,10 @@
 import { getDatabase, nowIso, parseJson } from "@/lib/db/core";
-import { listLocations, type CampaignLocation } from "@/lib/db/locations";
+import { insertKnownLocation, listLocations, type CampaignLocation } from "@/lib/db/locations";
 import { getCampaignById } from "@/lib/db/campaigns";
 import { listSheets } from "@/lib/db/sheets";
 import { activeQuestLines } from "@/lib/dm/arc-logic";
 import { spatialContext, spatialEnabled, spatialStore } from "@/lib/spatial/service";
+import { SpatialError, type SpatialRoom } from "@/lib/spatial/store.mjs";
 import type { AtlasCharacter, AtlasLocation } from "@/lib/overworld/atlas";
 import { atlasTerrain } from "@/lib/overworld/cartography";
 import {
@@ -54,6 +55,7 @@ export type OverworldMap = {
   // Where the party is standing, when a DM has placed them. Null otherwise:
   // the current location has always been the proxy and still is.
   partyXy: XY | null;
+  partyLocations: Record<string, string>;
   // The DM's notes on the region. Never leaves the DM's own projection.
   notes: string;
   // Roads, rivers, borders and the words over the map
@@ -77,6 +79,7 @@ type OverworldRow = {
   pins_json: string;
   params_json: string | null;
   party_xy_json: string | null;
+  party_locations_json: string | null;
   notes: string | null;
   paths_json: string | null;
   labels_json: string | null;
@@ -98,6 +101,7 @@ function mapRow(row: OverworldRow): OverworldMap {
       parseJson<OverworldParams>(row.params_json, DEFAULT_OVERWORLD_PARAMS),
     ),
     partyXy: parseJson<XY | null>(row.party_xy_json, null),
+    partyLocations: parseJson<Record<string, string>>(row.party_locations_json ?? "{}", {}),
     notes: row.notes ?? "",
     paths: normalizePaths(parseJson<unknown>(row.paths_json ?? "[]", []), row.width, row.height),
     labels: normalizeLabels(parseJson<unknown>(row.labels_json ?? "[]", []), row.width, row.height),
@@ -188,13 +192,14 @@ function carryAuthoring(
   getDatabase()
     .prepare(
       `UPDATE overworld_maps
-         SET pins_json = ?, party_xy_json = ?, notes = ?, paths_json = ?, labels_json = ?,
+         SET pins_json = ?, party_xy_json = ?, party_locations_json = ?, notes = ?, paths_json = ?, labels_json = ?,
              backdrop_path = ?, updated_at = ?
        WHERE campaign_id = ?`,
     )
     .run(
       JSON.stringify(pins),
       party ? JSON.stringify(party) : "",
+      JSON.stringify(previous.partyLocations),
       previous.notes,
       JSON.stringify(normalizePaths(paths, fresh.width, fresh.height)),
       JSON.stringify(normalizeLabels(previous.labels, fresh.width, fresh.height)),
@@ -267,6 +272,45 @@ export function getOverworld(campaignId: string): OverworldMap {
     })));
   }
   return reconcileAnchors(map, locations);
+}
+
+// Called inside the DM's disable transaction, before private room state is
+// removed. Only occupied place names and map positions become shared facts.
+export function preserveSpatialMapPositions(campaignId: string, rooms: SpatialRoom[]) {
+  const map = getOverworld(campaignId);
+  const sheets = listSheets(campaignId);
+  const occupied = rooms.filter(room => sheets.some(sheet => room.occupants.includes(sheet.userId)));
+  if (new Set(occupied.map(room => room.name)).size !== occupied.length) {
+    throw new SpatialError("Rename duplicate occupied locations before preserving map positions.", 409);
+  }
+  const anchors = { ...map.anchors };
+  const partyLocations: Record<string, string> = {};
+  const db = getDatabase();
+  db.prepare("UPDATE locations SET is_current=0 WHERE campaign_id=?").run(campaignId);
+  for (const room of occupied) {
+    const links = db.prepare("SELECT target_id FROM spatial_links WHERE campaign_id=? AND source_id=? AND walkable=1")
+      .all(campaignId, room.id) as Array<{ target_id: string }>;
+    const connections = occupied.filter(target => links.some(link => link.target_id === target.id)).map(target => target.name);
+    const location = insertKnownLocation({ campaignId, name: room.name, connections })!;
+    db.prepare("UPDATE locations SET visited=1, is_current=?, connections_json=?, updated_at=? WHERE id=?")
+      .run(occupied.length === 1 ? 1 : 0, JSON.stringify([...new Set([...location.connections, ...connections])]), nowIso(), location.id);
+    if (map.anchors[room.id]) anchors[location.id] = map.anchors[room.id];
+    for (const sheet of sheets) if (room.occupants.includes(sheet.userId)) partyLocations[sheet.id] = location.id;
+  }
+  db.prepare("UPDATE overworld_maps SET anchors_json=?, party_locations_json=?, party_xy_json='', updated_at=? WHERE campaign_id=?")
+    .run(JSON.stringify(anchors), JSON.stringify(partyLocations), nowIso(), campaignId);
+}
+
+export function getOverworldPartyPositions(campaignId: string) {
+  if (spatialEnabled(campaignId)) return [];
+  const positions = readRow(campaignId)?.partyLocations ?? {};
+  if (!Object.keys(positions).length) return [];
+  const locations = new Map(listLocations(campaignId).map(location => [location.id, location.name]));
+  return listSheets(campaignId).flatMap(sheet => {
+    const locationId = positions[sheet.id];
+    const locationName = locations.get(locationId);
+    return locationName ? [{ characterId: sheet.id, name: sheet.name, locationId, locationName }] : [];
+  });
 }
 
 // Lead reroll: new seed and terrain, at the same size or a new one. Recorded
@@ -456,12 +500,15 @@ export function overworldView(campaignId: string, secrets: boolean, viewerUserId
   const actor = spatial && viewerUserId ? spatialContext(campaignId, viewerUserId).actor : null;
   const roomView = actor ? spatialStore().view(actor) : null;
   const privateMap = spatial && !actor?.isDm;
+  const sheets = listSheets(campaignId);
+  const splitParty = !spatial && Object.keys(map.partyLocations).length > 0;
+  const viewerLocation = splitParty ? map.partyLocations[sheets.find(sheet => sheet.userId === viewerUserId)?.id ?? ""] : null;
   const locations: AtlasLocation[] = privateMap ? [] : listLocations(campaignId).map((location) => ({
     id: location.id,
     name: location.name,
     layoutDescription: location.layoutDescription,
     visited: location.visited,
-    isCurrent: !spatial && location.isCurrent,
+    isCurrent: !spatial && (splitParty ? location.id === viewerLocation : location.isCurrent),
     connections: location.connections,
     anchor: map.anchors[location.id] ?? null,
   }));
@@ -484,9 +531,11 @@ export function overworldView(campaignId: string, secrets: boolean, viewerUserId
   const store = spatialStore();
   // The atlas tracks the party in known places; chat occupants remain local.
   // Never reveal a private destination or an undetected concealed character.
-  const party: AtlasCharacter[] = listSheets(campaignId)
+  const party: AtlasCharacter[] = sheets
     .flatMap(sheet => {
-      let locationId = current?.id ?? null;
+      let locationId = splitParty ? map.partyLocations[sheet.id] ?? null : current?.id ?? null;
+      if (splitParty && !secrets && sheet.userId !== viewerUserId &&
+        store.isUnseen(campaignId, sheet.id, [viewerUserId ?? ""], locationId)) return [];
       if (spatial) {
         if (!actor || !roomView?.enabled || !actor.playerIds.includes(sheet.userId)) return [];
         locationId = store.getUserRoom(campaignId, sheet.userId);

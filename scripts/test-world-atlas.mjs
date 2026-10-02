@@ -12,7 +12,7 @@ const cwd = process.cwd();
 process.chdir(directory);
 register("./lib/register-alias.mjs", import.meta.url);
 const { createUser } = await import("../src/lib/db/users.ts");
-const { createCampaign, joinByInviteCode, setQuestLog } = await import("../src/lib/db/campaigns.ts");
+const { createCampaign, joinByInviteCode, latestSeq, setCampaignStatus, setQuestLog } = await import("../src/lib/db/campaigns.ts");
 const { createSheet, patchSheet } = await import("../src/lib/db/sheets.ts");
 const { createSheetSchema } = await import("../src/lib/schemas/sheet.ts");
 const { upsertCurrentLocation, insertKnownLocation } = await import("../src/lib/db/locations.ts");
@@ -20,7 +20,8 @@ const { getOverworld, overworldView, regenerateOverworld, setOverworldAnchor, se
 const { atlasQuests, atlasRoute, questId, locationKind, constrainAtlasView, layoutAtlasMarkers } = await import("../src/lib/overworld/atlas.ts");
 const { atlasTerrain, environmentForLocation, landmarkForLocation, landmarkSprite, LANDMARK_ASSETS, LANDMARK_NAMES, TERRAIN_NAMES, TERRAIN_ASSETS, materialAt } = await import("../src/lib/overworld/cartography.ts");
 const { placeAnchor } = await import("../src/lib/overworld/logic.ts");
-const { spatialContext, spatialStore } = await import("../src/lib/spatial/service.ts");
+const { runSpatialCommand, spatialContext, spatialStore } = await import("../src/lib/spatial/service.ts");
+const { executeMcpNarratorControl } = await import("../src/lib/mcp-narrator-control.ts");
 const { notifySpatialChange, subscribeSpatialChanges, waitForPrivateUpdate } = await import("../src/lib/spatial/updates.mjs");
 try {
   assert.equal(Object.keys(TERRAIN_ASSETS).length, 19);
@@ -93,9 +94,11 @@ try {
   const dm = createUser(`atlas-dm-${randomUUID()}`, "hash");
   const first = createUser(`atlas-one-${randomUUID()}`, "hash");
   const second = createUser(`atlas-two-${randomUUID()}`, "hash");
-  const campaign = createCampaign(dm.id, { title: "Atlas check", description: "", theme: "", maxPlayers: 4, startingLevel: 1, difficulty: "normal" });
+  const campaign = createCampaign(dm.id, { title: "Atlas check", description: "", theme: "", maxPlayers: 4, startingLevel: 1, difficulty: "normal",
+    gameSettings: { dmMode: "human", ttsEnabled: false, mapsEnabled: false } });
   assert.ok(joinByInviteCode(first.id, campaign.inviteCode).campaign);
   assert.ok(joinByInviteCode(second.id, campaign.inviteCode).campaign);
+  setCampaignStatus(campaign.id, "active");
   const sheet = name => createSheetSchema.parse({ name, race: "human", class: "fighter", abilities: { str: 14, dex: 12, con: 12, int: 10, wis: 10, cha: 10 },
     maxHp: 12, ac: 12, hitDice: { die: "d10", total: 1, spent: 0 }, proficiencies: { saves: [], skills: [], expertise: [], languages: [], tools: [], armor: [], weapons: [] } });
   const hero = createSheet(campaign.id, first.id, 1, sheet("Torin"));
@@ -188,6 +191,42 @@ try {
   assert.equal(moved.party.find(character => character.id === hero.id).locationId, exit);
   assert.equal(moved.party.find(character => character.id === scout.id).locationId, room, "previously visited places must keep their party markers");
   assert.equal(moved.locations.find(location => location.isCurrent).id, exit);
+  const anchorsBeforeDisable = getOverworld(campaign.id).anchors;
+  const disable = { operation: "disable", requestId: randomUUID(), preserveMapPositions: true };
+  assert.throws(() => runSpatialCommand(campaign.id, first.id, disable), error => error.status === 403);
+  assert.ok(store.enabled(campaign.id), "a player cannot disable rooms or expose their map positions");
+  const receipt = await executeMcpNarratorControl("narrator.invoke", { campaignId: campaign.id, expectedSeq: latestSeq(campaign.id),
+    commandId: disable.requestId, name: "location_disable", args: { preserveMapPositions: true }, readAfter: true });
+  const disabled = receipt.result.result;
+  assert.equal(disabled.disabled, true);
+  assert.deepEqual(runSpatialCommand(campaign.id, dm.id, disable), disabled, "retry must preserve the same committed map positions");
+  const ordinary = overworldView(campaign.id, false, first.id);
+  const road = ordinary.locations.find(location => location.name === "Public road");
+  const outside = ordinary.locations.find(location => location.name === "Known exit");
+  assert.equal(ordinary.scope, "party");
+  assert.equal(store.view(firstActor).enabled, false);
+  assert.equal(ordinary.party.find(character => character.id === hero.id).locationId, outside.id);
+  assert.equal(ordinary.party.find(character => character.id === scout.id).locationId, road.id);
+  assert.equal(ordinary.locations.find(location => location.isCurrent).id, outside.id);
+  assert.equal(overworldView(campaign.id, false, second.id).locations.find(location => location.isCurrent).id, road.id);
+  assert.deepEqual(outside.anchor, anchorsBeforeDisable[exit]);
+  assert.deepEqual(road.anchor, anchorsBeforeDisable[room]);
+  assert.deepEqual(road.connections, [outside.name]);
+  assert.ok(!JSON.stringify(ordinary.locations).includes("SECRET_ROOM_MARKER"), "empty private rooms must not become shared locations");
+  const readDisabled = await executeMcpNarratorControl("narrator.read", { campaignId: campaign.id, projection: "live", afterSeq: 0, maxBytes: 131072 });
+  assert.equal(readDisabled.result.spatial.enabled, false);
+  assert.deepEqual(readDisabled.result.partyPositions, disabled.preservedMapPositions);
+  assert.ok(!JSON.stringify(readDisabled.result.messages).includes("PRIVATE_MAP_ACTION"), "room messages must not move into shared history");
+  const snapshot = await executeMcpNarratorControl("narrator.snapshot", { campaignId: campaign.id, sections: ["location"] });
+  assert.deepEqual(snapshot.result.location.partyPositions, disabled.preservedMapPositions);
+  regenerateOverworld(campaign.id, { seed: 19 });
+  assert.equal(overworldView(campaign.id, false, first.id).party.find(character => character.id === scout.id).locationId, road.id);
+  patchSheet(scout.id, { conditions: ["invisible"] });
+  assert.ok(!overworldView(campaign.id, false, first.id).party.some(character => character.id === scout.id));
+  assert.ok(overworldView(campaign.id, true, dm.id).party.some(character => character.id === scout.id));
+  patchSheet(scout.id, { conditions: [] });
+  upsertCurrentLocation({ campaignId: campaign.id, name: "Village" });
+  assert.ok(overworldView(campaign.id, false, first.id).party.every(character => character.locationId === start.id), "a later whole-party move must replace preserved positions");
   console.log("test-world-atlas: 44 artworks, ecology, camera/label geometry, journal, movement, privacy and live updates passed");
 } finally {
   process.chdir(cwd);

@@ -23,6 +23,7 @@ import { listRecentWhispersForPrompt, listPendingPlayerWhispers } from "@/lib/db
 import { getActiveEncounter, listActiveEncounters, listEnemies } from "@/lib/db/encounters";
 import { listActiveFacts } from "@/lib/db/facts";
 import { getCurrentLocation } from "@/lib/db/locations";
+import { getOverworldPartyPositions } from "@/lib/db/overworld";
 import { deleteCampaignMessage, getCampaignMessage, insertCampaignMessage, listMessagesBefore, listMessagesInSeqRange, listRecentMessages, setMessageVariants, updateMessageContent } from "@/lib/db/messages";
 import { MAX_EDITED_LENGTH, checkEdit, replaceSelectedTake } from "@/lib/dm/message-edit-logic";
 import { resolveVariantIndex, seedVariants } from "@/lib/dm/renarrate-logic";
@@ -275,7 +276,7 @@ function read(raw: unknown) {
     directorDirective: buildDirectorBlock(getDirectorArm(campaign.id)),
     playerWhispers: listPendingPlayerWhispers(campaign.id), recentDmWhispers: live ? [] : listRecentWhispersForPrompt(campaign.id),
     omittedSections, asks: askPage.items, askQueue: { nextCursor: askPage.nextCursor, hasMore: askPage.hasMore, pending: askMeta.pending },
-    ...sections, sectionVersions, location: getCurrentLocation(campaign.id), sceneTracker: getSceneTracker(campaign.id),
+    ...sections, sectionVersions, location: getCurrentLocation(campaign.id), partyPositions: getOverworldPartyPositions(campaign.id), sceneTracker: getSceneTracker(campaign.id),
     encounter: (() => { const encounter = getActiveEncounter(campaign.id); return encounter ? { encounter, enemies: listEnemies(encounter.id) } : null; })(),
     ...(delta ? { deltaState: { enabled: true, baselineSeq, pruned: ["sheets", "facts", "notes", "npcs"].every(key => omittedSections.includes(key)) } } : {}),
   };
@@ -341,7 +342,7 @@ function orchestrationSnapshot(raw: unknown) {
           .map(encounter => ({ encounter, enemies: listEnemies(encounter.id) }))
       : undefined,
     location: sections.has("location")
-      ? { location: getCurrentLocation(campaign.id), sceneTracker: getSceneTracker(campaign.id) }
+      ? { location: getCurrentLocation(campaign.id), partyPositions: getOverworldPartyPositions(campaign.id), sceneTracker: getSceneTracker(campaign.id) }
       : undefined,
     recent: sections.has("recent")
       ? {
