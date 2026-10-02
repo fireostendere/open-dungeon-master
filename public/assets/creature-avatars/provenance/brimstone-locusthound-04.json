@@ -1,0 +1,21 @@
+{
+  "creatureId": "brimstone-locusthound",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BRIMSTONE LOCUSTHOUND creature avatar. One Medium wolf-locust hybrid with ONE coherent CANINE TORSO covered in coarse charcoal-gray fur, ONE LOCUST HEAD bordered by a fur ruff, long angular insect legs and smoke exhaled from its mouth. The head is genuinely insectlike with two compound eyes, paired antennae and mandibles, NOT a wolf muzzle. Original fixed limb interpretation: FOUR long insect legs and TWO translucent folded insect wings, one short furry tail. No extra wolf head, horns, flame-covered skin or lava cracks. Realistic painterly fantasy material detail, strong readable silhouette at 512 pixels, one composition with no panels. No gore, writing, signature, watermark, logo or frame. YOLO: the smoky locust-headed hound solemnly wears an enormous pink dog cone around its fur ruff, its long antennae poking above the cone and smoke getting comically trapped inside. Four insect legs, canine torso, two folded wings, one small metal food bowl on ground; humiliating veterinary accessory without any injury.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/brimstone-locusthound/",
+      "note": "ToB2: Medium canine torso, locust head surrounded by fur, long insect legs and exhaled smoke; can fly. Leg/wing counts and all colors unspecified. Chosen original plan is four insect legs, two translucent wings, two antennae and two compound eyes; no fire anatomy or second canine head."
+    },
+    {
+      "url": "https://www.5esrd.com/database/creature/brimstone-locusthound/",
+      "note": "QA clarification: four walking legs are the selected artistic body plan, not a canonical numerical claim. Folded wing membranes differ between individuals; source does not prescribe wing count. No publisher art was used."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

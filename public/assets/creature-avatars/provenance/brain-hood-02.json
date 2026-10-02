@@ -1,0 +1,17 @@
+{
+  "creatureId": "brain-hood",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BRAIN HOOD creature avatar. One Tiny Brain Hood parasite, a slick BLACK living cap-like substance with oily highlights and a soft clinging edge. Its body is its own substance, not fabric or a manufactured hat. The source does not define its free anatomy: portray a simple smooth organic hood without eyes, mouth, exposed brain, tentacles, wings or humanoid limbs. If shown on a host, the host is a separate anatomically ordinary beast with intact skin; non-graphic depiction. Realistic painterly fantasy material detail, strong readable silhouette at 512 pixels, one composition with no panels. No gore, writing, signature, watermark, logo or frame. Normal 2. A close portrait of an ordinary adult brown bear head with one distinct smooth slick black living hood clinging across the crown above its natural eyes. Parasite clearly separated in texture from brown fur, no wounds, no second head or altered bear anatomy; ominous forest backdrop.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/brain-hood/",
+      "note": "ToB2: Tiny slick black parasitic covering on a beast head; can move and hover independently. Bear and dire-wolf hosts are described. Free cap-like outline is an interpretation; no canonical eyes, visible brain, wings, tentacles or mouth. Host remains separate normal beast."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}
