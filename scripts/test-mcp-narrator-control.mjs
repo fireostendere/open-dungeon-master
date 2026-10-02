@@ -659,6 +659,119 @@ await assert.rejects(() => executeMcpNarratorControl("narrator.set_floor", {
 }), error => error instanceof McpNarratorControlError && error.status === 409);
 assert.equal(latestSeq(seatCampaign.id), globalSeq, "manual floor control must not corrupt global-turn pacing");
 
+// External narration must feed the story tab and retain its canonical plan.
+const storyCampaign = createCampaign(dm.id, {
+  title: "Story continuity", description: "", theme: "", maxPlayers: 4, startingLevel: 1,
+  difficulty: "normal", gameSettings: { dmMode: "human", ttsEnabled: false, mapsEnabled: false },
+});
+await executeMcpControl("campaigns.set_outline", { campaignId: storyCampaign.id, outline: "The mayor secretly serves the dragon." });
+setCampaignStatus(storyCampaign.id, "active");
+const storyArc = {
+  premise: "Recover the missing bell.",
+  cast: [{ name: "Mayor", role: "Patron", agenda: "Protect the dragon.", status: "gone" }],
+  events: [{ kind: "discovery", name: "Dragon tracks", detail: "The party found dragon tracks.", trigger: "After arriving", status: "fired" }],
+  subArcs: [{ name: "Lost child", goal: "Find the child.", status: "resolved", resolution: "The child returned home." }],
+  saga: { title: "The missing bell", sketches: [{ act: 1, milestone: "Recover the bell.", status: "detailed" }], sagaIndex: 2,
+    priorSagas: [{ title: "The old tower", resolution: "The party rescued the tower keeper." }] },
+  beats: [
+  { text: "Find the bell tower", detail: "The party identified the tower.", waypoints: [{ kind: "place", text: "Bell tower", done: false }] },
+  { text: "Confront the bell thief" },
+] };
+const arcOnlyStory = await executeMcpNarratorControl("narrator.invoke", {
+  campaignId: storyCampaign.id, expectedSeq: latestSeq(storyCampaign.id), commandId: randomUUID(), name: "update_story",
+  args: { arc: storyArc }, readAfter: { projection: "live", maxBytes: 131072 },
+});
+assert.equal(arcOnlyStory.result.state.chapters.length, 1, "arc-only authoring must initialize the story tab's chapter");
+assert.equal(arcOnlyStory.result.state.chapters[0].summary, "");
+const storyCommand = {
+  campaignId: storyCampaign.id, expectedSeq: latestSeq(storyCampaign.id), commandId: randomUUID(),
+  name: "update_story", args: { arc: storyArc, chapterTitle: "The silent village", chapterSummary: "The party learned the bell was stolen.",
+    chapterHighlights: ["The villagers asked for help."], scene: "The village square.", quests: ["Recover the bell."] },
+  readAfter: { projection: "live", maxBytes: 131072 },
+};
+const savedStory = await executeMcpNarratorControl("narrator.invoke", storyCommand);
+assert.equal(savedStory.result.readRequired, false);
+assert.equal(savedStory.result.state.campaign.dmOutline, "The mayor secretly serves the dragon.");
+assert.equal(savedStory.result.state.campaign.storyArc.beats[0].status, "active");
+assert.equal(savedStory.result.state.chapters[0].summary, storyCommand.args.chapterSummary);
+assert.equal(getCampaignById(storyCampaign.id).questLog[0], "Recover the bell.");
+const savedStorySeq = latestSeq(storyCampaign.id);
+assert.equal((await executeMcpNarratorControl("narrator.invoke", storyCommand)).result.replayed, true);
+assert.equal(latestSeq(storyCampaign.id), savedStorySeq, "a replay must not write another story update");
+await assert.rejects(() => executeMcpNarratorControl("narrator.invoke", { ...storyCommand, commandId: randomUUID() }), error => error.status === 409);
+for (const args of [
+  { arc: { premise: "Invalid" } },
+  { arc: { ...getCampaignById(storyCampaign.id).storyArc, beats: [
+    { ...getCampaignById(storyCampaign.id).storyArc.beats[0], status: "done" },
+    { ...getCampaignById(storyCampaign.id).storyArc.beats[1], status: "active" },
+  ] } },
+  { arc: { ...getCampaignById(storyCampaign.id).storyArc, beats: [
+    { ...getCampaignById(storyCampaign.id).storyArc.beats[0], waypoints: [] },
+    getCampaignById(storyCampaign.id).storyArc.beats[1],
+  ] } },
+  { chapterSummary: "request_roll returned currentSeq 100" },
+  { dmOutline: "Erase the canonical plan" },
+]) {
+  await assert.rejects(() => executeMcpNarratorControl("narrator.invoke", {
+    campaignId: storyCampaign.id, expectedSeq: savedStorySeq, commandId: randomUUID(), name: "update_story", args,
+  }));
+  assert.equal(latestSeq(storyCampaign.id), savedStorySeq, "invalid story edits must leave the cursor unchanged");
+}
+const closedStory = await executeMcpNarratorControl("narrator.invoke", {
+  campaignId: storyCampaign.id, expectedSeq: savedStorySeq, commandId: randomUUID(), name: "update_story",
+  args: { closeChapter: true }, readAfter: { projection: "live", maxBytes: 131072 },
+});
+assert.equal(closedStory.result.state.chapters.length, 2);
+assert.equal(closedStory.result.state.chapters[0].status, "closed");
+assert.equal(closedStory.result.state.chapters[0].summary, storyCommand.args.chapterSummary);
+assert.equal(closedStory.result.state.chapters[1].status, "open");
+assert.equal(getCampaignById(storyCampaign.id).dmOutline, "The mayor secretly serves the dragon.");
+await assert.rejects(() => executeMcpNarratorControl("narrator.invoke", {
+  campaignId: storyCampaign.id, expectedSeq: latestSeq(storyCampaign.id), commandId: randomUUID(),
+  name: "complete_beat", args: {},
+}), /open waypoints/);
+await executeMcpNarratorControl("narrator.invoke", {
+  campaignId: storyCampaign.id, expectedSeq: latestSeq(storyCampaign.id), commandId: randomUUID(),
+  name: "move_party", args: { name: "Bell tower" },
+});
+await executeMcpNarratorControl("narrator.invoke", {
+  campaignId: storyCampaign.id, expectedSeq: latestSeq(storyCampaign.id), commandId: randomUUID(),
+  name: "complete_beat", args: {},
+});
+const progressedArc = getCampaignById(storyCampaign.id).storyArc;
+assert.equal(progressedArc.beats[0].status, "done");
+const progressedSeq = latestSeq(storyCampaign.id);
+await assert.rejects(() => executeMcpNarratorControl("narrator.invoke", {
+  campaignId: storyCampaign.id, expectedSeq: progressedSeq, commandId: randomUUID(),
+  name: "update_story", args: { arc: storyArc },
+}), /Preserve existing beat/);
+assert.equal(latestSeq(storyCampaign.id), progressedSeq);
+await executeMcpNarratorControl("narrator.invoke", {
+  campaignId: storyCampaign.id, expectedSeq: progressedSeq, commandId: randomUUID(), name: "update_story",
+  args: { arc: { premise: progressedArc.premise, beats: progressedArc.beats } },
+});
+assert.equal(getCampaignById(storyCampaign.id).storyArc.cast[0].agenda, "Protect the dragon.", "omitted arc layers must retain canon");
+assert.equal(getCampaignById(storyCampaign.id).storyArc.beats[0].status, "done");
+const canon = getCampaignById(storyCampaign.id).storyArc;
+for (const patch of [
+  { cast: [], events: [], subArcs: [], saga: null },
+  { cast: canon.cast.map(npc => ({ ...npc, status: "active" })), events: canon.events.map(event => ({ ...event, status: "pending" })),
+    subArcs: canon.subArcs.map(thread => ({ ...thread, status: "pending", resolution: "" })), saga: { ...canon.saga, priorSagas: [] } },
+]) {
+  const beforeEditSeq = latestSeq(storyCampaign.id);
+  const edited = await executeMcpNarratorControl("narrator.invoke", {
+    campaignId: storyCampaign.id, expectedSeq: beforeEditSeq, commandId: randomUUID(), name: "update_story",
+    args: { arc: { ...canon, ...patch, beats: canon.beats.map((beat, index) => index === 0 ? { ...beat, detail: "Invented replacement history." } : beat) } },
+    readAfter: { projection: "live", maxBytes: 131072 },
+  });
+  const afterEditArc = getCampaignById(storyCampaign.id).storyArc;
+  for (const key of ["cast", "events", "subArcs", "saga", "worldArcs", "actRecaps"]) assert.deepEqual(afterEditArc[key], canon[key]);
+  assert.equal(afterEditArc.beats[0].detail, canon.beats[0].detail, "settled beat details must retain actual history");
+  assert.equal(edited.result.state.chapters[1].summary, "", "arc-only refresh must leave the public recap unchanged");
+  const updatedChapter = getDatabase().prepare("SELECT payload_json FROM campaign_events WHERE campaign_id = ? AND seq > ? AND type = 'chapter_updated' ORDER BY seq DESC LIMIT 1").get(storyCampaign.id, beforeEditSeq);
+  assert.equal(JSON.parse(updatedChapter.payload_json).chapter.id, edited.result.state.chapters[1].id, "arc-only edits must emit the existing public refresh signal");
+}
+
 assert.equal(fetchCalls, 0, "no server provider/network call may be attempted");
 
 globalThis.fetch = nativeFetch;

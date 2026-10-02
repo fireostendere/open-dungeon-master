@@ -118,10 +118,10 @@ test('section negotiation avoids loading/decoding unchanged data and keeps histo
   const db=database();try{
     let loads=0;const loaders=Object.fromEntries(['sheets','facts','notes','npcs','recentMessages','recentRolls','chapters'].map(key=>[key,()=>{loads++;return [{id:key}];}]));
     const options={db,campaignId:'c',timelineEpoch:'e',principal:'dm',live:true,delta:true,loaders};
-    const a=readNarratorSections(options);assert.equal(loads,4);
-    const b=readNarratorSections({...options,knownSections:a.sectionVersions});assert.equal(loads,4);assert.equal(b.sections.sheets.length,0);assert.ok(b.omittedSections.includes('sheets'));
+    const a=readNarratorSections(options);assert.equal(loads,5);assert.equal(a.sections.chapters.length,1);assert.ok(!a.omittedSections.includes('chapters'),'live reads retain durable campaign history');
+    const b=readNarratorSections({...options,knownSections:a.sectionVersions});assert.equal(loads,6);assert.equal(b.sections.sheets.length,0);assert.ok(b.omittedSections.includes('sheets'));assert.ok(b.omittedSections.includes('chapters'),'unchanged chapter history can still use a delta');
     assert.equal(b.sectionVersions.sheets,a.sectionVersions.sheets);
-    const c=readNarratorSections({...options,live:false});assert.equal(loads,7);assert.equal(c.sections.recentMessages.length,1);
+    const c=readNarratorSections({...options,live:false});assert.equal(loads,9);assert.equal(c.sections.recentMessages.length,1);
   }finally{db.close();}
 });
 

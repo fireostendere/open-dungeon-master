@@ -63,7 +63,7 @@ test('role packet drops transport metadata and duplicate actor context', () => {
   const referee = compactRolePacket('referee', {
     campaign: {
       gameSettings: { language: 'ru', unitSystem: 'metric', ttsEnabled: true },
-      dmOutline: 'LEGACY_OUTLINE_SHOULD_NOT_DUPLICATE_STRUCTURED_ARC',
+      dmOutline: `${'Canonical plan. '.repeat(300)}THE_FINAL_SECRET`,
       storyArc: {
         version: 3,
         premise: 'Premise',
@@ -152,7 +152,7 @@ test('role packet drops transport metadata and duplicate actor context', () => {
   assert.ok(referee.campaign.storyArc.events.length <= 4);
   assert.ok(referee.campaign.storyArc.subArcs.length <= 4);
   assert.ok(referee.campaign.storyArc.saga.sketches.length <= 3);
-  assert.equal(Object.hasOwn(referee.campaign, 'dmOutline'), false);
+  assert.equal(referee.campaign.dmOutline, `${'Canonical plan. '.repeat(300)}THE_FINAL_SECRET`);
   assert.equal(referee.state.sheets[0].equipment[0].name, 'FOCUSED_ITEM');
   assert.equal(Object.hasOwn(referee.state.sheets[0].equipment[0], 'weight'), false);
   assert.equal(referee.state.sheets[0].backstory, undefined);

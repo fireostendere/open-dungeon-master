@@ -274,7 +274,7 @@ function NpcReviewCard({ campaignId }: { campaignId: string }) {
 // Beats that already played are deliberately not editable. They are a record
 // of what happened at the table rather than a plan, and the server refuses
 // those edits regardless; the UI just does not offer them.
-function ArcCard({ campaignId }: { campaignId: string }) {
+function ArcCard({ campaignId, storyRevision }: { campaignId: string; storyRevision: string }) {
   const uiText = useInlineText();
   const { locale } = useI18n();
   const copy = localeText(locale, {
@@ -337,26 +337,25 @@ function ArcCard({ campaignId }: { campaignId: string }) {
     }
   }
 
-  async function load() {
-    setLoading(true);
-    try {
-      const response = await fetch(`/api/campaigns/${campaignId}/arc`);
-      if (response.ok) {
-        const data = (await response.json()) as { arc: StoryArc | null; dmOutline: string };
+  useEffect(() => {
+    if (!expanded) return;
+    let cancelled = false;
+    fetch(`/api/campaigns/${campaignId}/arc`)
+      .then((response) => response.ok ? response.json() : null)
+      .then((data: { arc: StoryArc | null; dmOutline: string } | null) => {
+        if (cancelled || !data) return;
         setArc(data.arc);
         setOutline(data.dmOutline);
-      }
-    } finally {
-      setLoading(false);
-    }
-  }
+      })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [expanded, campaignId, storyRevision]);
 
   function toggle() {
     const next = !expanded;
     setExpanded(next);
-    if (next) {
-      void load();
-    }
+    if (next) setLoading(true);
   }
 
   const openThreads = arc?.subArcs.filter(
@@ -755,6 +754,7 @@ export function StoryPanel({
   const [acts, setActs] = useState<PublicAct[]>([]);
   const closed = chapters.filter((chapter) => chapter.status === "closed");
   const open = chapters.find((chapter) => chapter.status === "open");
+  const storyRevision = chapters.map((chapter) => chapter.updatedAt).join(",");
 
   // The acts for everyone; which chapters have a boundary snapshot to
   // rewind to is lead-only UI.
@@ -817,7 +817,7 @@ export function StoryPanel({
   if (!closed.length && !open) {
     return (
       <div className="space-y-2">
-        {steersStory ? <ArcCard campaignId={campaignId} /> : null}
+        {steersStory ? <ArcCard campaignId={campaignId} storyRevision={storyRevision} /> : null}
         {steersStory ? <NpcReviewCard campaignId={campaignId} /> : null}
         <p className="px-1 py-6 text-center text-xs text-stone-600">
           {copy.notBegun}
@@ -828,7 +828,7 @@ export function StoryPanel({
 
   return (
     <div className="space-y-2">
-      {steersStory ? <ArcCard campaignId={campaignId} /> : null}
+      {steersStory ? <ArcCard campaignId={campaignId} storyRevision={storyRevision} /> : null}
       {steersStory ? <NpcReviewCard campaignId={campaignId} /> : null}
       <ExportMenu campaignId={campaignId} />
       <div className="rounded-lg border border-dashed border-stone-800 p-2.5">
@@ -839,6 +839,13 @@ export function StoryPanel({
             String(open?.index ?? closed.length + 1),
           )}
         </p>
+        {open?.title ? <p className="mt-2 text-sm font-medium text-stone-300">{open.title}</p> : null}
+        {open?.summary ? <p className="mt-1 whitespace-pre-wrap text-xs leading-5 text-stone-400">{open.summary}</p> : null}
+        {open?.highlights.length ? (
+          <ul className="mt-2 list-disc space-y-1 pl-4 text-xs text-stone-400">
+            {open.highlights.map((highlight, index) => <li key={index}>{highlight}</li>)}
+          </ul>
+        ) : null}
         {steersStory ? (
           <button
             type="button"
