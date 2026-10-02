@@ -1,0 +1,17 @@
+{
+  "creatureId": "bulbous-violet",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BULBOUS VIOLET creature avatar. One Medium carnivorous plant with ONE oversized DEEP-PURPLE FLOWER atop a vine-supported body. Exactly TWO long strong grasping tendrils extend left and right, clearly distinct from several thin supporting rootlike vines beneath. Swollen BLACK SACS on the vines contain GREEN ACID, rendered intact except where specifically stated. Original dark-green leaves and golden floral center, soft petal edges. No face, eyes, animal mouth, teeth, humanoid limbs or mushroom cap. Realistic painterly fantasy material detail, readable at 512 pixels, one composition without panels. No gore, writing, signature, watermark, logo or frame. YOLO: the giant purple flower earnestly tries to water itself with a tiny pink watering can held by ONE thick tendril while its SECOND thick tendril steadies a comically undersized flowerpot. Supporting vines spill everywhere around the pot, black sacs remain intact, no eyes or added hands, absurd gardening scene.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/bulbous-violet/",
+      "note": "ToB2: Medium oversized deep-purple flower moves on vines; black swollen vine sacs contain green acid. Exactly TWO strong grappling tendrils; subordinate support-vine count and petals unspecified. No toothed mouth or eyes established; exact leaf/stem colors original."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

@@ -1,0 +1,17 @@
+{
+  "creatureId": "bugbear-chief-a5e",
+  "variantId": "03",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BUGBEAR CHIEF A5E creature avatar. One Medium elderly muscular BUGBEAR CHIEF with a SILVER PELT, a rangy hairy goblinoid body, one head, TWO arms and TWO legs. Original facial design: broad flat nose, pointed ears, amber eyes and modest lower tusks. Wears substantial weathered LEATHER ARMOR and carries a large two-handed MAUL, with javelins optionally stowed. No shield, chain shirt, crown, bear head, horns or extra limbs. Realistic painterly fantasy material detail, readable at 512 pixels, one composition without panels. No gore, writing, signature, watermark, logo or frame. Normal 3. The silver-pelted chief strides forward over a rocky slope with the maul held diagonally in two hands, leather armor and windswept fur, two arms and two legs, stormy valley backdrop without opponents.",
+  "designReferences": [
+    {
+      "url": "https://a5e.tools/node/1446",
+      "note": "A5E chief-specific prose supports muscular silver-pelted elders, maul and javelins. Publisher page calls armor padded leather; official SRD calls it leather brigandine, so exact leather armor styling is interpretive. Two-arm/two-leg humanoid form conventional, no BF champion shield/chainshirt loadout."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

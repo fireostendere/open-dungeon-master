@@ -1,0 +1,17 @@
+{
+  "creatureId": "bukavac",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BUKAVAC creature avatar. One LARGE very heavy squat TOADLIKE BUKAVAC with EXACTLY SIX clawed legs arranged as THREE PAIRS and exactly TWO gnarled horns on its broad head. One enormous toadlike mouth, no separate arms, wings or tail. Original swamp-olive warty hide, pale ivory twisted horns, amber eyes and four toes per foot. The bulky body is low to the ground. Keep all six leg origins anatomically coherent; never add an extra pair. Realistic painterly fantasy material detail, readable at 512 pixels, one composition without panels. No gore, writing, signature, watermark, logo or frame. Normal 1. A low three-quarter side view of the massive six-legged toad monster on a muddy lakeshore, THREE clearly separated near-side clawed legs and THREE far-side legs naturally offset, two gnarled horns, broad squat body and wet olive hide, misty dawn.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/bukavac-3pp/",
+      "note": "ToB2016/2023 both explicitly prescribe Large heavy toadlike body, SIX legs, TWO gnarled horns, sharp claws, lake/pond ambush and thunderous croaking. Three bilateral leg pairs; no extra arms. Skin/eyes/digits are artistic; no tail established."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}
