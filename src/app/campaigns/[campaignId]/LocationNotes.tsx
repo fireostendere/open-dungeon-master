@@ -67,7 +67,7 @@ export function LocationNotes({ campaignId, userId, roomId, active, isDm }: {
     }
   }
   const button = "rounded border border-stone-700 px-2 py-1 text-xs disabled:opacity-40";
-  return <details data-testid="location-notes" className="m-3 rounded border border-stone-800 p-3 text-sm text-stone-300">
+  return <details data-testid="location-notes" className="m-3 shrink-0 rounded border border-stone-800 p-3 text-sm text-stone-300">
     <summary>{t.title}</summary>
     {!active && !isDm ? <p className="my-2 text-xs">{t.archive}</p> : null}
     {error ? <p role="alert">{error} <button type="button" className={button} onClick={refresh}>{t.refresh}</button></p> : null}

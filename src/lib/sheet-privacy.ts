@@ -25,7 +25,9 @@ export function projectSheetForViewer(
 export function projectSheetsForViewer(
   sheets: CharacterSheet[],
   viewerUserId: string | null | undefined,
-  options: { adjudicates?: boolean } = {},
+  options: { adjudicates?: boolean; visibleUserIds?: string[] } = {},
 ): CharacterSheet[] {
-  return sheets.map(sheet => projectSheetForViewer(sheet, viewerUserId, options));
+  return sheets.filter(sheet => options.adjudicates || !options.visibleUserIds
+    || sheet.userId === viewerUserId || options.visibleUserIds.includes(sheet.userId))
+    .map(sheet => projectSheetForViewer(sheet, viewerUserId, options));
 }

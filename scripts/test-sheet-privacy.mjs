@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { register } from "node:module";
 register("./lib/register-alias.mjs", import.meta.url);
-const { projectSheetForViewer } = await import("../src/lib/sheet-privacy.ts");
+const { projectSheetForViewer, projectSheetsForViewer } = await import("../src/lib/sheet-privacy.ts");
 
 const base = {
   id: "sheet", campaignId: "c", userId: "owner", libraryCharacterId: null,
@@ -31,4 +31,15 @@ test("companion personality is DM-only", () => {
   const companion = { ...base, userId: "bot", isCompanion: true, companionKind: "party", personality: "DM_ONLY_MOTIVE" };
   assert.equal(projectSheetForViewer(companion, "player").personality, "");
   assert.equal(projectSheetForViewer(companion, "dm", { adjudicates: true }).personality, "DM_ONLY_MOTIVE");
+});
+
+test("location roster includes visible roommates and updates on departure without revealing private notes", () => {
+  const sheets = [base, ...["ally", "other-room", "concealed"].map(userId => ({ ...base, id: userId, userId }))];
+  const visible = projectSheetsForViewer(sheets, "owner", { visibleUserIds: ["owner", "ally"] });
+  assert.deepEqual(visible.map(sheet => sheet.userId), ["owner", "ally"]);
+  assert.equal(visible[0].notes, "OWNER_PRIVATE_NOTE");
+  assert.equal(visible[1].notes, "");
+  assert.deepEqual(projectSheetsForViewer(sheets, "owner", { visibleUserIds: [] }).map(sheet => sheet.userId), ["owner"]);
+  assert.equal(projectSheetsForViewer(sheets, "dm", { adjudicates: true, visibleUserIds: [] }).length, 4);
+  assert.equal(projectSheetsForViewer(sheets, "owner").length, 4);
 });

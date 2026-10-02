@@ -23,7 +23,7 @@ export function SessionChatColumn(props: ComponentProps<typeof LegacySessionChat
     en: { enable: "Enable location chats", start: "Starting location", loading: "Loading location permissions…", retry: "Retry", history: "Shared mechanics and earlier story", note: "Text scenes for a human DM or external MCP narrator. Messages stay with their witnesses. Hidden and invisible actions go to their author and the DM; others receive only perceived consequences." },
     ru: { enable: "Включить чаты локаций", start: "Начальная локация", loading: "Загрузка доступа к локациям…", retry: "Повторить", history: "Общие механики и прежняя история", note: "Текстовые сцены для ведущего или внешнего MCP-рассказчика. Сообщения видят только свидетели. Скрытые и невидимые действия доступны автору и мастеру; остальные получают только воспринятые последствия." },
   });
-  if (chat.loading) return <div className="flex-1 p-4 text-sm text-stone-400"><p>{chat.error || t.loading}</p>
+  if (chat.loading) return <div className={cn("min-w-0 flex-1 p-4 text-sm text-stone-400", props.visible ? "block" : "hidden lg:block")}><p>{chat.error || t.loading}</p>
     {chat.error ? <button type="button" onClick={chat.refresh}>{t.retry}</button> : null}</div>;
   const view = chat.view;
   if (view?.enabled) return <div className={cn("min-h-0 min-w-0 flex-1 flex-col overflow-y-auto", props.visible ? "flex" : "hidden lg:flex")}>
@@ -51,9 +51,11 @@ export function SessionChatColumn(props: ComponentProps<typeof LegacySessionChat
       key={`${props.campaignId}:${props.meUserId}:${chat.selected}`}
       campaignId={props.campaignId} userId={props.meUserId} roomId={chat.selected}
       active={view.current?.roomId === chat.selected} isDm={view.isDm} /> : null}
-    <details className="m-3 min-h-0 rounded border border-stone-800 p-2 text-sm text-stone-400"><summary>{t.history}</summary>
+    <details className="m-3 shrink-0 rounded border border-stone-800 p-2 text-sm text-stone-400"><summary>{t.history}</summary>
       <p className="my-2 text-xs">{t.note}</p>
-      <LegacySessionChatColumn {...props} showAsks={false} showOoc={false}>{null}</LegacySessionChatColumn>
+      <div className="flex h-[min(32rem,70dvh)] min-h-48 flex-col">
+        <LegacySessionChatColumn {...props} showAsks={false} showOoc={false}>{null}</LegacySessionChatColumn>
+      </div>
     </details>
   </div>;
   const mayEnable = props.state.caps?.role === "dm" && props.state.campaign?.gameSettings.dmMode === "human" && props.state.campaign.status === "active";

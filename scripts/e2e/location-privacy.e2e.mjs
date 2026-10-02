@@ -20,6 +20,38 @@ export function assertLocalTarget(baseUrl) {
   return url.origin;
 }
 
+// Exercise the real flex layout: expanded history used to collapse the room
+// to its padding and paint narration and the composer over the accordions.
+export async function assertLocationLayout(page) {
+  const room = page.getByTestId("location-chat");
+  const notes = page.getByTestId("location-notes");
+  const history = room.locator("..").locator("details").filter({ has: page.getByTestId("campaign-messages") });
+  for (const [notesOpen, historyOpen] of [[false, false], [false, true], [true, true], [false, false]]) {
+    for (const [details, open] of [[notes, notesOpen], [history, historyOpen]]) {
+      if (await details.evaluate(element => element.open) !== open) await details.locator("summary").first().click();
+    }
+    const layout = await room.evaluate(element => {
+      const rect = element.getBoundingClientRect();
+      const children = [...element.children].map(child => child.getBoundingClientRect());
+      const siblings = [...element.parentElement.children].map(child => child.getBoundingClientRect());
+      return {
+        contained: children.every(child => child.top >= rect.top && child.bottom <= rect.bottom + 1),
+        separated: siblings.every((child, index) => !index || child.top >= siblings[index - 1].bottom - 1),
+        width: document.documentElement.scrollWidth, viewport: window.innerWidth,
+      };
+    });
+    assert.ok(layout.contained, "Room controls overflow their collapsed section.");
+    assert.ok(layout.separated, "Room chat, notes and history overlap.");
+    assert.ok(layout.width <= layout.viewport, "Location chat overflows the phone width.");
+    // A geometric check alone misses a transparent sibling stealing taps.
+    const draft = room.locator("textarea");
+    if (await draft.isEnabled()) {
+      await draft.click();
+      assert.equal(await draft.evaluate(element => element === document.activeElement), true);
+    }
+  }
+}
+
 // This is deliberately named a prepared-fixture smoke, NOT complete R11
 // acceptance. It proves the selected read paths and native page tool, not
 // independent combat, v1/v2 maps, the MCP transport, rewind or all UI actions.
@@ -62,6 +94,16 @@ export async function runPreparedLocationSmoke({ browser, baseUrl, campaignId, m
     assert.equal((await bHistory.text()).includes(marker), false, "B's history contains an unwitnessed marker.");
     assert.equal((await (await get("B")).text()).includes(marker), false, "B's campaign snapshot contains a private marker.");
     checks.push("correct history endpoint with positive and negative controls");
+
+    const layoutPage = await contexts.get("A").newPage();
+    await layoutPage.addInitScript(() => localStorage.setItem("odm:tour:table-player", "done"));
+    await layoutPage.goto(`${base}/campaigns/${encodeURIComponent(campaignId)}`);
+    await layoutPage.getByTestId("location-chat").waitFor({ state: "visible" });
+    for (const viewport of [{ width: 1392, height: 1039 }, { width: 384, height: 760 }, { width: 320, height: 568 }, { width: 760, height: 384 }]) {
+      await layoutPage.setViewportSize(viewport);
+      await assertLocationLayout(layoutPage);
+    }
+    checks.push("room, notes and archive layout on desktop and phone");
 
     if (requireNativeWebMcp) {
       const page = await contexts.get("A").newPage();

@@ -75,11 +75,11 @@ export async function GET(
   const ownedCharacterIds = sheets
     .filter((sheet) => sheet.userId === user.id)
     .map((sheet) => sheet.id);
-  const scopedSheets = spatial && !caps.adjudicates
-    ? sheets.filter((sheet) => sheet.userId === user.id)
-    : sheets;
-  const visibleSheets = projectSheetsForViewer(scopedSheets, user.id, {
+  const visibleSheets = projectSheetsForViewer(sheets, user.id, {
     adjudicates: caps.adjudicates,
+    // Presence already accounts for location, stealth and invisibility.
+    ...(spatial ? { visibleUserIds: spatialView?.enabled
+      ? spatialView.rooms.filter(room => room.active).flatMap(room => room.occupants) : [] } : {}),
   });
   const legacyPolicy = spatialLegacyPolicy({ campaignId, userId: user.id, adjudicates: caps.adjudicates, ownedCharacterIds });
   const visibleRolls = projectSpatialRolls(legacyPolicy, listRollsVisibleTo(campaignId, caps, ownedCharacterIds, 20));

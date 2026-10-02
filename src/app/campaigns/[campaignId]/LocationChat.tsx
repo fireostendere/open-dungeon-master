@@ -98,7 +98,8 @@ export function LocationChat({
       ["waiting", "ready", "resolving"].includes(globalTurnState.phase),
   );
   const canSend = kind === "ask" ? !view.isDm : !globalTurnLocked && (ooc || Boolean(selected && (view.isDm || active)));
-  const memberName = (id: string | null) => members.find(member => member.userId === id)?.username ?? "—";
+  const memberName = (id: string | null) => sheets.find(sheet => sheet.userId === id && !sheet.isCompanion)?.name
+    ?? members.find(member => member.userId === id)?.username ?? "—";
   const portraitFor = (id: string | null) => {
     if (!id) return undefined;
     const sheet = sheets.find(entry => entry.userId === id && !entry.isCompanion);
@@ -218,7 +219,7 @@ export function LocationChat({
     disabled={sendBlocked || chat.selected !== preview.roomId}
     onEdit={() => { setPreview(null); window.setTimeout(() => textareaRef.current?.focus(), 0); }}
     onSend={() => { if (chat.selected !== preview.roomId) return; const draft = preview.text; setPreview(null); void send(null, draft); }}
-  /> : null}<section data-testid="location-chat" className="flex min-h-0 flex-1 flex-col gap-2 p-3 text-stone-200" aria-label={t.title}>
+  /> : null}<section data-testid="location-chat" className="flex min-h-min flex-1 flex-col gap-2 p-3 text-stone-200" aria-label={t.title}>
     <nav className="flex flex-wrap gap-2" aria-label={t.title}>
       <button type="button" className={cn(button, ooc && "border-amber-500/50 bg-amber-500/15 text-amber-100")} aria-pressed={ooc} onClick={() => { chat.select("ooc"); setKind("ooc"); }}>{t.ooc}</button>
       {view.rooms.map(room => <button data-testid={`location-room-${room.id}`} type="button" key={room.id} className={cn(button, chat.selected === room.id && "border-amber-500/50 bg-amber-500/15 text-amber-100")} aria-pressed={chat.selected === room.id}
@@ -312,7 +313,7 @@ export function LocationChat({
         </div> : null}
         {["move", "observe", "perceive", "stealth_resolve"].includes(operation) ? <label className="flex flex-col text-xs">{operation === "stealth_resolve" ? t.detectingPlayers : t.players}
           <select className={field} multiple={operation !== "observe"} value={operation === "observe" ? targets[0] ?? "" : targets} onChange={event => setTargets(Array.from(event.target.selectedOptions, option => option.value))} required={operation !== "stealth_resolve"}>
-            {members.filter(member => member.userId !== dmUserId).map(member => <option key={member.userId} value={member.userId}>{member.username}</option>)}
+            {members.filter(member => member.userId !== dmUserId).map(member => <option key={member.userId} value={member.userId}>{memberName(member.userId)}</option>)}
           </select></label> : null}
         {operation === "observe" ? <>
           <select className={field} value={mode} onChange={event => setMode(event.target.value)} aria-label={t.observe}><option value="speech">{t.speech}</option><option value="scry">{t.scry}</option></select>
