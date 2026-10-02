@@ -1,0 +1,17 @@
+{
+  "creatureId": "butatsch",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BUTATSCH creature avatar. One GARGANTUAN BUTATSCH, a complete intact amorphous lake monster shaped as a huge low folded leathery SAC-LIKE MASS. Its entire outer hide is densely covered with MANY HUNDREDS OF VISIBLE SMALL EYES, with thousands implied by finer eye patterns across the distant surface. Restrained warm flame glows in the eyes. Original neutral khaki-brown hide with broad soft folds, no humanoid torso, single central eye, legs, tentacles or huge toothed mouth. This is the creature's own intact external body, with no open wounds, blood, removed organs, injury or victims. Realistic painterly fantasy material detail, readable at 512 pixels, one composition without panels. No gore, writing, signature, watermark, logo or frame. Normal 1. The immense many-eyed folded creature rests at the edge of a dark alpine lake, dense small amber-glowing eyes covering its broad khaki-brown hide, distant trees and boulders emphasize Gargantuan scale, cold dawn mist and wet leathery folds.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/butatsch/",
+      "note": "ToB2: Gargantuan amorphous many-eyed lake monster, complete body compared to a deflated bovine stomach. Thousands of eyes with fiery properties; no fixed limbs/mouth count. Intact folded leathery sac-like mass and neutral brown palette are original interpretation, not injury/exposed-organ imagery. No publisher art used."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}
