@@ -1,0 +1,17 @@
+{
+  "creatureId": "bugbear",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BUGBEAR creature avatar. One Medium adult BUGBEAR goblinoid humanoid, hairy and rangy with coarse brown fur, long powerful arms, one head, TWO arms and TWO legs. Original goblinoid design: broad flat nose, long pointed ears, amber eyes and modest protruding lower teeth, not a literal bear or insect head. Weathered leather wraps and exact face are original choices. Use only the edition-specific equipment described in this scene; no extra arms, wings or horns. Realistic painterly fantasy material detail, readable at 512 pixels, one composition without panels. No gore, writing, signature, watermark, logo or frame. Normal 2. A5E loadout: close three-quarter portrait of the brown-furred rangy bugbear, a heavy two-handed MAUL rests across one shoulder, plain leather chest wraps without shield, amber eyes and long pointed ears, dim cavern entrance.",
+  "designReferences": [
+    {
+      "url": "https://a5e.tools/node/1445",
+      "note": "Core SRD5.1/A5E2021/Black Flag0.2: Medium humanoid goblinoid. Coarse brown fur and rangy build directly supported by A5E; facial details and two-arm/two-leg anatomy conservative original interpretation. Loadouts intentionally edition-specific: 01 SRD hide/shield/morningstar, 02 and04 A5E maul, 03 BF hide/spiked club."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

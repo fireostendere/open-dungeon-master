@@ -1,0 +1,17 @@
+{
+  "creatureId": "bucca",
+  "variantId": "03",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BUCCA creature avatar. One TINY adult BUCCA subterranean fey with living OBSIDIAN-DARK SKIN, a leathery humanoid face, sharp small fangs and a PURPLE FORKED TONGUE. Original body choice: one head, two arms, two legs and one separate pair of batlike membranous wings; no horns, tail or extra limbs. Original amber eyes, pointed ears and dark ragged mushroom-fiber tunic. Carries one small dagger; poison is not visibly dripping and no victim or injury is shown. Realistic painterly fantasy material detail, readable at 512 pixels, one composition without panels. No gore, writing, signature, watermark, logo or frame. Normal 3. The bucca flies through a cavern on two batlike wings, two small legs tucked under its dark-clothed body, one hand holds a dagger while the other reaches toward a ledge, purple forked tongue peeking between fangs, pale crystals behind.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/bucca-3pp/",
+      "note": "ToB2016/2023: Tiny subterranean fey, obsidian-dark skin, leathery face, batlike wings, sharp fangs, purple forked tongue and dagger. Two arms/two legs/one wing pair conservative design, not enumerated; no required tail/horns. Skin is living skin, not stone."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

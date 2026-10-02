@@ -1,0 +1,17 @@
+{
+  "creatureId": "bugbear_champion_bf",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BUGBEAR_CHAMPION_BF creature avatar. One Medium adult BUGBEAR CHAMPION, goblinoid humanoid with one head, TWO arms and TWO legs. Original continuity design: coarse dark-brown fur, strong rangy body, broad flat nose, pointed ears, amber eyes and modest tusks. The specific Black Flag0.2 loadout is a CHAIN SHIRT, SHIELD and SPIKED CLUB, with optional stowed javelins. Chain links clearly visible; no full plate, crown, extra arms, wings or literal bear head. Realistic painterly fantasy material detail, readable at 512 pixels, one composition without panels. No gore, writing, signature, watermark, logo or frame. Normal 1. The bugbear champion stands guard at a ruined fort gate in a clearly visible chain shirt, spiked club in one hand and sturdy round shield in the other, two javelins stowed on its back, imposing rangy silhouette and stormy torchlight.",
+  "designReferences": [
+    {
+      "url": "https://koboldpress.com/wp-content/uploads/2024/05/Black-Flag-Roleplaying.pdf#page=297",
+      "note": "Black Flag Reference Documentv0.2 page297: Medium goblin-family humanoid, chain shirt, shield, spiked club and javelins. Hairy brown goblinoid form is continuity interpretation, not detailed v0.2 prose. Two arms/two legs ordinary humanoid choice; no crown/fullplate required."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}
