@@ -16,7 +16,7 @@ register("./lib/register-alias.mjs", import.meta.url);
 const { createUser } = await import("../src/lib/db/users.ts");
 const { allocateSeq, createCampaign, getCampaignById, getFloor, getGlobalTurnState, joinByInviteCode, setCampaignStatus, setFloor, setMemberAutopilot, latestSeq, updateStorySettings } = await import("../src/lib/db/campaigns.ts");
 const { createCharacter, instantiateIntoCampaign } = await import("../src/lib/db/characters.ts");
-const { patchSheet } = await import("../src/lib/db/sheets.ts");
+const { getSheetById, patchSheet } = await import("../src/lib/db/sheets.ts");
 const { createSheetSchema } = await import("../src/lib/schemas/sheet.ts");
 const { createDmTurn, createPendingRoll, resolvePendingRoll, saveDmTurn } = await import("../src/lib/db/dm-turns.ts");
 const { insertAsk } = await import("../src/lib/db/asks.ts");
@@ -796,6 +796,16 @@ const inventoryRequest = { campaignId: inventoryCampaign.id, expectedSeq: invent
   commandId: randomUUID(), timelineEpoch: inventoryRead.result.timelineEpoch,
   name: "remove_item", args: { characterId: inventorySheet.id, name: "Frog", qty: 1, reason: "Bartered for a meal." },
   readAfter: { projection: "live", maxBytes: 131072 } };
+// A refused character reference must identify the campaign sheet, not invite
+// guesses at the item name or leak another campaign's characters.
+for (const characterId of [undefined, dm.id, libraryCharacter.id, randomUUID(), liveSheet.id]) {
+  await assert.rejects(() => executeMcpNarratorControl("narrator.invoke", {
+    ...inventoryRequest, commandId: randomUUID(), args: { ...inventoryRequest.args, characterId },
+  }), error => error.message.includes("sheets[].id") && error.message.includes(inventorySheet.id) &&
+    !error.message.includes(liveSheet.id));
+  assert.equal(latestSeq(inventoryCampaign.id), inventoryRequest.expectedSeq, "invalid character must not consume a cursor");
+  assert.deepEqual(getSheetById(inventorySheet.id).equipment, [{ name: "Frog", qty: 1 }, ...otherItems]);
+}
 const roundBeforeBarter = getGlobalTurnState(inventoryCampaign.id);
 const barter = await executeMcpNarratorControl("narrator.invoke", inventoryRequest);
 assert.equal(barter.result.result.result.qty, 1);

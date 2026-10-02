@@ -29,6 +29,16 @@ description: "Внешний ведущий ODM: D&D-игра через MCP с 
   используйте его вместо отдельного `snapshot`/`read`. `readRequired:true`
   означает: запись прошла, перечитайте, эффект не повторяйте. При ambiguous
   outcome — не более одного повтора идентичного payload с тем же `commandId`.
+- `characterId`/`targetCharacterId` в `invoke.args` — точный `sheets[].id`
+  текущей кампании, не `userId`, `members[].userId` или `libraryCharacterId`.
+  Копируйте UUID целиком; не восстанавливайте его по памяти и не склеивайте
+  части ID разных героев.
+  При `Unknown characterId` сначала получите полный baseline `read` без
+  `knownStateRevision`/`knownSections`, дочитайте страницы и сопоставьте заявку
+  с листом. Явный отказ без commit допускает один исправленный вызов с новым
+  `commandId` и свежими `expectedSeq`/`timelineEpoch`; при неоднозначном ответе
+  меняйте только способ чтения, не payload/commandId. Название предмета не
+  исправляет неизвестного владельца; не перебирайте ID и не выбирайте героя наугад.
 - Обычный ход: один `read` входа → `combat_turn` (или одно действие) с
   readAfter → `narrate` (в бою последний — с `passTurn:true`, см. «Бой»). `catalog` — только с `action` для ещё не
   известной схемы; полный catalog не нужен. `snapshot` после успешной

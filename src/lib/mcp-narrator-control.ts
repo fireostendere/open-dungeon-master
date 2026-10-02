@@ -409,7 +409,13 @@ async function invoke(raw: unknown) {
     if (Object.hasOwn(SPATIAL_NARRATOR_OPERATIONS, p.data.name)) return invokeSpatialForNarrator(campaign.id, campaign.dmUserId!, p.data.name, p.data.args, p.data.commandId);
     const scoped = scopeBattleMapInvocation(campaign.id, campaign.dmUserId!, p.data.name, p.data.args);
     const outcome = invokeEngineSynchronous(campaign, { kind: "human", userId: campaign.dmUserId! }, { name: p.data.name, args: scoped.args });
-    if (!outcome.ok) throw new McpNarratorControlError(outcome.error);
+    if (!outcome.ok) {
+      if (/Unknown (?:characterId|targetCharacterId|casterId)|needs [^\n]*\((?:characterId|targetCharacterId|casterId)\)/i.test(outcome.error)) {
+        const characters = listSheets(campaign.id).map(({ id, name }) => ({ id, name }));
+        throw new McpNarratorControlError(`${outcome.error} Use the matching campaign sheets[].id inside args; userId and libraryCharacterId are different identifiers. Reread before correcting the refused command. Available campaign characters: ${JSON.stringify(characters)}`);
+      }
+      throw new McpNarratorControlError(outcome.error);
+    }
     if (scoped.roomId) bindActiveBattleMapToRoom(campaign.id, campaign.dmUserId!, scoped.roomId);
 
     // A global round that transitioned into initiative stays armed in

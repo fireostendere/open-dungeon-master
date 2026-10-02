@@ -35,7 +35,7 @@ export const narratorInputSchema = z.object({
   timelineEpoch: z.string().regex(/^[a-f0-9]{64}$/).optional(),
   expectedSeq: seq().optional(), expectedVersion: seq().optional(),
   name: z.string().trim().min(1).max(100).optional().describe('invoke only: exact engine action name from catalog, e.g. request_roll. Do not use action for invoke.'),
-  args: z.record(z.string(), z.unknown()).optional(),
+  args: z.record(z.string(), z.unknown()).optional().describe('invoke only: exact action fields from catalog. characterId/targetCharacterId use the current campaign sheets[].id, not userId or libraryCharacterId; inventory actions use equipment[].name and qty.'),
   content: z.string().trim().min(1).max(24000).optional().describe('Narration, edit_message or autopilot_action text; each operation applies its own tighter limit. Shown verbatim to players: in-world prose and short mechanics lines only, never IDs, seq numbers, tool names, JSON, (ooc) status notes or anything addressed to the operator.'),
   characterId: uuid().optional().describe('autopilot_action only; invoke engine characterId belongs inside args.'),
   messageId: uuid().optional().describe('store_audio only: the DM narration message to attach the generated WAV to.'),
