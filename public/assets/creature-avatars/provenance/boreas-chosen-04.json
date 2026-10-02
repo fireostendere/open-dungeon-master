@@ -1,0 +1,17 @@
+{
+  "creatureId": "boreas-chosen",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BOREAS' CHOSEN humanoid avatar, Tome of Beasts 2. One ADULT MEDIUM HUMANOID WARRIOR with PIERCING BLUE EYES, WINTRY RUNIC MARKS ON EXPOSED SKIN, LEATHER ARMOR, one SHIELD and one FROST-RIMED SPEAR. One head, two arms, two legs for chosen human/elf/orc representatives. If shield is held, spear occupies the OTHER hand, no third hand. Frozen blood is an internal magical trait, not an entirely ice-carved body. Individual ancestry, gender, skin/hair, rune design, fur trim and cloak original; runes must be abstract marks rather than readable language. Realistic painterly leather, frost, face and winter light, readable at 512 pixels. No victims, injury, blood, gore, nudity, writing, signature, watermark, logo or frame. YOLO 04. A stern winter warrior with blue eyes and abstract frost runes is trying to eat a tiny bowl of SOUP, but it has frozen solid into a neat ice block with the spoon stuck upright. The warrior holds the bowl in one hand and pokes the spoon with the other, while the required frost-rimed spear and shield rest visibly against a rock beside them. Leather armor and a ridiculous fluffy scarf, deeply offended expression, snowy camp, no text.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/boreas-chosen/",
+      "note": "ToB2 Medium any-race warrior, blue eyes, flesh runes, frozen blood, leather armor, shield and frosted spear, optional cold breath. Individual identities/rune pattern and frozen-soup gag original. Not Boreas himself or an ice statue; shield and spear use two hands."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}
