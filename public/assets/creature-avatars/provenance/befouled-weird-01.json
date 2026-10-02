@@ -1,0 +1,17 @@
+{
+  "creatureId": "befouled-weird",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BEFOULED WEIRD avatar. One MEDIUM ELEMENTAL: a rising SERPENTINE COLUMN OF FILTHY WATER, with suspended ALGAE, SMALL WORMS and ORGANIC DEBRIS visible inside its turbid green-brown body. Liquid anatomy, one coherent coiling water body merging into a stagnant marsh pool; no flesh, scales, normal snake skin, humanoid arms or legs. Head is only a flowing water crest; subtle eye-like eddies are an original visual suggestion, not solid eyeballs or a human face. Microscopic parasites are not giant organs. Rich realistic painterly fluid refraction, algae and swamp texture, readable silhouette at 512 pixels. No people, victims, blood, wounds, gore, text, signature, watermark, logo or frame. Normal 01. A tall S-shaped befouled weird rises from a warm stagnant marsh pool between reeds. Muddy olive water churns around tangled algae, a few tiny pale threadlike worms and broken leaf fragments; the crest bends watchfully toward viewer. One fluid serpentine body, base dissolves into ripples and slime, amber sunset through dark cypress trees, unsettling natural detail.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/befouled-weird/",
+      "note": "Tome of Beasts 2 Medium elemental: serpentine filthy water containing algae, worms and debris, inhabited by aquatic parasites in stagnant marsh water. No prescribed eyes/face/limbs; eddy-face suggestion, green-brown palette, settings and clothespin/air-freshener joke are original choices. Microscopic parasites are not depicted as giant organs."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

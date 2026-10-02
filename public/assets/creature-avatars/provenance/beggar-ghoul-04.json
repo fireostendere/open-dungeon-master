@@ -1,0 +1,17 @@
+{
+  "creatureId": "beggar-ghoul",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BEGGAR GHOUL avatar. One MEDIUM ADULT HUMANOID UNDEAD, severely emaciated with intact dry GRAY SKIN stretched over a bony frame, CLAWED HANDS, a toothed biting mouth and small eyes glowing like EMBERS. It crouches very low, almost crawling, in RAGGED CLOTHING. One head, TWO ARMS and TWO LEGS, no extra limbs. Skin remains intact: no exposed organs, exposed bone, torn flesh, fresh wounds or gore. Not a bare skeleton or armored knight. Original hair, face, ears and rags. Realistic painterly eerie anatomy and cloth textures, readable face at 512 pixels. No victim, feeding scene, blood, text, signature, watermark, logo or frame. YOLO 04. A scrawny gray beggar ghoul has dressed for a hopelessly fancy restaurant meal: a huge spotless WHITE DINNER BIB tied over its rags and a tiny crooked black top hat. It crouches at a low makeshift table, exactly two clawed hands: one grips an oversized silver fork, the other lifts a polished serving cloche to reveal ONE MISERABLE GREEN PEA on an otherwise empty grand plate. Ember eyes stare in outraged disbelief, bony gray skin intact, no gore. Luxurious candlelight in a crumbling dungeon, ridiculous hunger etiquette, no people or writing.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/ghoul-beggar/",
+      "note": "Tome of Beasts 2023 appearance: Medium emaciated gray-skinned humanoid undead in rags, very low crouch, emberlike eyes, bite and claws; shared with the catalog's 2016 natural attacks. Intact non-graphic anatomy, individual faces/hair, settings and one-pea fancy-dinner joke are original illustration choices."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

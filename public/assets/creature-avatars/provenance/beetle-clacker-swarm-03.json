@@ -1,0 +1,17 @@
+{
+  "creatureId": "beetle-clacker-swarm",
+  "variantId": "03",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy CLACKER BEETLE SWARM avatar. A MEDIUM COLLECTIVE of MANY SEPARATE TINY GOLDEN BEETLES, workers and young beetles rather than one large soldier. Each clearly resolved individual has a compact head/thorax/closed-wing-cover body, SIX jointed insect legs in three pairs, two thin antennae, dark compound eyes and TWO UNEQUAL MANDIBLES: one oversized jaw opposed by one smaller jaw. No single giant central beetle, fused monster, human hands, extra legs or flight wings. Foreground individuals sharply readable, distant legs may overlap naturally. Rich realistic painterly golden chitin and dark stone, clear swarm composition at 512 pixels. No victims, blood, injuries, text, signature, watermark, logo or frame. Normal 03. A noisy cluster of small golden clacker worker beetles crawls around broken roots and damp stones on a cavern floor. Three foreground individuals face different directions, their one large and one small mandible clearly visible, while many smaller separate beetles gather behind. Fine gold shell ridges, dark compound eyes, six legs per resolved beetle, soft green mushroom glow and copper lantern light.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/swarm-of-clacker-beetles-2/",
+      "note": "Tome of Beasts 3 Medium swarm of Tiny workers/immatures; shared appearance gives golden beetles with one small mandible opposite an oversized jaw. Six legs and antennae are conservative insect inference. Counts, poses, lighting and novelty-chattering-teeth parade are original choices; not one Small soldier."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

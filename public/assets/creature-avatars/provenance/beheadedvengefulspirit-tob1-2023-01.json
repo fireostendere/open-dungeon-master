@@ -1,0 +1,17 @@
+{
+  "creatureId": "beheadedvengefulspirit-tob1-2023",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BEHEADED VENGEFUL SPIRIT avatar, Tome of Beasts 2023. One MEDIUM INCORPOREAL ADULT HUMANOID GHOST whose ONE DETACHED HEAD FLOATS A FEW INCHES ABOVE ITS OWN NECK/COLLAR, vertically aligned with the body. A clearly visible band of EMPTY AIR separates the head from the high empty robe collar; no neck or cloth bridges that gap. The spectral neck base dissolves softly into mist inside the collar, no exposed tissue or gore. One ghost body, TWO ARMS, TWO HANDS, long robes fading below into vapor; no extra head, no head carried in the hands. Angry supernatural presence, hovering above ground. Former lineage, gender, face, clothing and ghost hue are original choices. Detailed painterly moonlit translucency, strong face/gap readability at 512 pixels. No blood, wound detail, victim, execution scene, text, logo, signature, watermark or frame. Normal 01. An adult male-looking spectral mage with stern angular face and long silver hair hovers in a ruined courtyard. His head floats visibly four inches above the EMPTY high collar of dark blue tattered robes, aligned over the shoulders with clear background visible through the air gap. One translucent hand makes a flat cutting gesture at shoulder level, the other extends down with an open palm. Cold blue moonlight, misty stone arches, waist-up three-quarter portrait.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/vengeful-spirit-beheaded/",
+      "note": "Tome of Beasts 2023 beheaded variant: incorporeal humanoid with head hovering a few inches above its neck, flying with hover, magical cutting gesture. No required axe, armor, gender or costume. Ghostly non-graphic mist gap, original adult faces/robes/colors and misplaced-umbrella joke preserve the aligned detached-head identity; not a head carried under an arm."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}
