@@ -1,0 +1,17 @@
+{
+  "creatureId": "cacus-giant",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy CACUS GIANT creature avatar. One HUGE CACUS GIANT with a broad grinning adult humanoid face and smoke issuing from both nostrils and mouth. One head, TWO arms and TWO legs. Original appearance: weathered warm-gray skin, dark coarse hair, broad muscular build and simple rough linen-and-leather clothing. Carries a massive GREATCLUB or has it nearby; rocks are optional props. No horns, lava skin, flame body, extra heads or mandatory metal armor. Realistic painterly fantasy material detail, readable at 512 pixels, one composition without panels. No gore, writing, signature, watermark, logo or frame. Normal 1. The huge grinning giant stands at a rocky cave entrance with a massive rough greatclub in one hand, other hand relaxed, smoke drifting from nostrils and mouth, simple leather-and-linen clothing, tiny distant trees establish Huge scale, dusk light.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/giant-cacus/",
+      "note": "Creature Codex matching /giant-cacus/: Huge grinning giant, smoke from nostrils/mouth, greatclub/rocks/fire breath. One head/two arms/two legs conventional, skin/hair/clothes original. Do not import Ancient Adventures /giant-cacus-2/ orange hair, blackened halfplate or other unsupported design."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

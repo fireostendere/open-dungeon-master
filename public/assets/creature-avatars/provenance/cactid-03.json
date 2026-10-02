@@ -1,0 +1,17 @@
+{
+  "creatureId": "cactid",
+  "variantId": "03",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy CACTID creature avatar. One LARGE mobile CACTID plant with a ribbed GREEN or brown-green CACTUS BODY covered in dense natural needles and exactly TWO strong ROOTLIKE GRASPING TENDRILS emerging from its base. Cactus branches, if present, are fixed cactus growth and distinct from the two flexible root tendrils. No humanoid legs, face, eyes, toothed mouth or extra grasping tendrils. Flowers and fruit are optional; exact branch count and flower colors are original choices. Realistic painterly fantasy material detail, readable at 512 pixels, one composition without panels. No gore, writing, signature, watermark, logo or frame. Normal 3. A rounded CLUSTER-form cactid shifts across pale sand using exactly two strong rootlike tendrils, multiple rounded cactus lobes remain one plant, brown-green ribs and red fruit, cold moonlight and distant dunes, no animal face.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/cactid-3pp/",
+      "note": "ToB2016/2023: Large mobile ribbed needle-covered cactus; barrel, rounded cluster and saguaro forms explicitly supported. Exactly TWO grasping root tendrils at base; cactus branch count unspecified and distinct from roots. Green/brown body with optional flowers/fruit, no prescribed face or humanoid legs."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

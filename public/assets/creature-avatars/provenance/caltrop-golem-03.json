@@ -1,0 +1,17 @@
+{
+  "creatureId": "caltrop-golem",
+  "variantId": "03",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy CALTROP GOLEM creature avatar. One Medium CALTROP GOLEM, a cohesive shifting humanoid figure built entirely from THOUSANDS OF SMALL SHARP METAL CALTROPS. The nearest pieces visibly have four pointed prongs; distant pieces form a dense spiky iron texture. Original chosen geometry: one featureless head, two arms and two legs, articulated by swirling caltrops, not a solid armor suit or biological body. No separate weapon, smooth ball-bearing body, flesh, exposed machinery or mandatory glowing eyes. Realistic painterly fantasy material detail, readable at 512 pixels, one composition without panels. No gore, writing, signature, watermark, logo or frame. Normal 3. The humanoid caltrop golem steps across a ruined corridor while one forearm partially disperses into a short stream of individual caltrops toward EMPTY stone, one continuous body with two arms and two legs, no target or injury.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/golem-bearing/",
+      "note": "ToB2 Caltrop Golem variant: thousands of metal caltrops aggregate into shifting forms, often humanoid; can scatter and reform. Selected one-head/two-arm/two-leg silhouette is original. Use sharp caltrops, not smooth bearing balls despite copied trait names."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}
