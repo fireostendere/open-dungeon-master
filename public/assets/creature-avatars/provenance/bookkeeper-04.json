@@ -1,0 +1,17 @@
+{
+  "creatureId": "bookkeeper",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BOOKKEEPER construct avatar, Creature Codex. One TINY ANIMATED INK CREATURE bound to exactly ONE BOOK. Outside the book it is a liquid INK BLOB with temporary fluid extensions and no fixed head, face, eyes, limb or tentacle count. It can merge into page markings; magical FLIGHT is shown only when the ink is INSIDE its book, never a separately flying blob. Book binding, dark ink color and expression-like contours are original choices. No biological wings or humanoid body. Any page marks must be abstract unreadable ink patterns, no actual letters. Realistic painterly glossy ink, worn paper and leather, readable at 512 pixels. No victims, injury, gore, writing, signature, watermark, logo or frame. YOLO 04. A tiny faceless ink blob sitting on the open pages of its ONE book has become an absurdly serious ACCOUNTANT: a miniature green eyeshade visor rests on the fluid mass, and one temporary ink tendril grips a huge quill that keeps dripping ink back into its own body. An abacus beside the book is comically enormous, pages have only messy abstract smudges, no letters or numbers, not flying.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/bookkeeper/",
+      "note": "Creature Codex base: Tiny living ink construct linked to one book, blob outside/pages inside; flight only inside bound book. Exact ink contours, book binding and accountant-visor gag original; expanded variants excluded."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

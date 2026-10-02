@@ -1,0 +1,17 @@
+{
+  "creatureId": "bonespitter",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BONESPITTER avatar, Tome of Beasts 2. One GARGANTUAN FLESH-BEARING WORM with an elongated LIMBLESS BODY and many UNEVEN DRY BONE SPIKES incorporated through its outer hide. One large swallowing mouth; exact circular mouth shape, segmentation, colors and eyes are original choices. Bone spikes are part of its fantastical body covering, rendered without fresh puncture wounds, blood or injury; no victims, feeding or exposed organs. It burrows in soft grassland soil and can spit dry bone fragments. No legs, wings, horns, scorpion sting or extra jaws. Realistic painterly tough worm hide, dry embedded bones, earth and atmospheric scale, readable at 512 pixels. No gore, writing, signature, watermark, logo or frame. YOLO 04. A Gargantuan bonespitter has discovered an absurdly ENORMOUS TOOTHBRUSH planted upright in the ground and is rubbing its huge mouth rim against the pink bristles like a dog scratching on a post. Long limbless bone-spiked worm body curves behind, no added hands or legs, dry bone spikes and intact hide. A comically tiny plain toothpaste tube lies nearby for scale, harmless dental absurdity, no text.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/bonespitter/",
+      "note": "ToB2 Gargantuan flesh-bearing worm with prey bones incorporated as exterior spikes and oral bone-projectile stores, burrowing/swallowing. Exact mouth/eyes/segmentation/colors and giant-toothbrush gag original; show intact creature without injury/feeding."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

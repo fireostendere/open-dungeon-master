@@ -1,0 +1,17 @@
+{
+  "creatureId": "boot-grabber",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BOOT GRABBER avatar, Creature Codex. One SMALL TRANSPARENT AMORPHOUS PUDDLE-LIKE ABERRATION with EXACTLY TWO POWERFUL HAND-SHAPED FLUID APPENDAGES rising from the same low body. Transparent sticky liquid, broad fluid connections rather than human arm muscles. Original five digits per hand is a design choice, but TWO HANDS is a mandatory source fact. No head, face, eyes, mouth, human torso, legs or extra hands. May resemble dirty water or wet rock; any boot is a separate EMPTY object, never part of its anatomy. Realistic painterly transparent gel, reflections and damp stone, paired hands readable at 512 pixels. No people, victims, crushed feet, injury, blood, gore, writing, signature, watermark, logo or frame. Normal 02. Close low-angle portrait of a transparent boot grabber, one clear adhesive hand in the foreground and the second distinct hand farther back, both emerging from a single shallow shimmering puddle. No third hand or human arms, subtle dirt trapped in gel, damp cave rock and warm rim reflections.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/boot-grabber/",
+      "note": "Creature Codex Small transparent puddle aberration with exactly a pair of grasping hand-shaped appendages, adhesive fluid body. Five fingers and empty footwear props are original choices; no fixed head/face/legs. Bunny-slipper gag original, no victim shown."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

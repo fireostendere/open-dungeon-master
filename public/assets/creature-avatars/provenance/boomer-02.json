@@ -1,0 +1,17 @@
+{
+  "creatureId": "boomer",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BOOMER fungus avatar, Tome of Beasts 2. One MEDIUM HUMAN-SIZED IMMOBILE MUSHROOM, an ordinary-looking shrieker-related fungus with a STALK that swells with air to release explosive SOUND. Original conservative shape uses ONE CAP and ONE STALK rooted in place. The STALK inflates, not the cap. Cap shape, gills, colors and texture are original choices; no face, eyes, human mouth, arms or legs. Sound may be indicated with subtle air ripples, no added vocal anatomy or unestablished spore cloud. Realistic painterly fungi, damp stone and natural organic textures, clear silhouette at 512 pixels. No victims, injury, gore, writing, signature, watermark, logo or frame. Normal 02. Close low-angle portrait of a dark-violet boomer mushroom, broad single cap held above a visibly SWOLLEN PALE STALK, cap itself unchanged. Fine gill ridges, moist fibrous texture and a faint shimmer of compressed air around the stalk, no mouth or eyes. Shadowed cavern and silver highlights.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/boomer/",
+      "note": "ToB2 Medium immobile mushroom with an air-inflating stalk and sound bursts; cap/shape/colors not fixed. One cap/stalk is original conservative choice; no required face/limbs, spores or glow. Noise-cancelling-headphones gag original."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}
