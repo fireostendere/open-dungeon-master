@@ -1,0 +1,21 @@
+{
+  "creatureId": "behir-magus-a5e",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BEHIR MAGUS avatar, Advanced 5e. One extraordinarily ANCIENT HUGE BEHIR: a long BLUE-SCALED REPTILIAN SERPENT with exactly TWELVE short sturdy reptilian legs in SIX LEFT-RIGHT PAIRS, six on each side, one predatory reptile head and one tapering tail. No wings, humanoid body, human hands or separate wizard companion. Age and retained anti-dragon magic distinguish this species variant, not new anatomy. Original weathered sapphire scales, pale belly plates, two short swept-back horns and subtle arcane light; no required robe, staff, crown or book in normal variants. Distinct round abstract magic motifs may glow without letters. Realistic painterly ancient scales and monumental ruins, readable head and silhouette at 512 pixels. No victims, blood, wounds, gore, text, signature, watermark, logo or frame. YOLO 04. The ancient twelve-legged blue behir magus has decided that more reading glasses must mean more wisdom: THREE PAIRS OF OVERSIZED ROUND SPECTACLES are stacked awkwardly along its long reptile snout. It peers with offended concentration at a comically tiny open book on a stone lectern, one of its twelve reptilian forefeet delicately holding a blank page flat while the other eleven legs support or rest beneath its long curved body. Six leg pairs total, no humanoid hands or wizard body. A tiny floppy star-patterned hat between its horns is an original costume. Warm dusty library light, blank pages or simple abstract diagrams only, no letters.",
+  "designReferences": [
+    {
+      "url": "https://a5e.tools/node/1465",
+      "note": "A5E-only Behir Magus is an extraordinarily ancient behir retaining anti-dragon magical knowledge, not a humanoid wizard. No required new body plan or equipment. Age texture, abstract magic effects, glasses/hat/book gag are original choices."
+    },
+    {
+      "url": "https://a5e.tools/node/1442",
+      "note": "Inherited base anatomy: Huge blue-scaled serpentine body with twelve legs, lightning breath, climbing and constriction. Six leg pairs retained; original horn pair and belly coloring are artistic choices."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

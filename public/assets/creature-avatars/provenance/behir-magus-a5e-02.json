@@ -1,0 +1,21 @@
+{
+  "creatureId": "behir-magus-a5e",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BEHIR MAGUS avatar, Advanced 5e. One extraordinarily ANCIENT HUGE BEHIR: a long BLUE-SCALED REPTILIAN SERPENT with exactly TWELVE short sturdy reptilian legs in SIX LEFT-RIGHT PAIRS, six on each side, one predatory reptile head and one tapering tail. No wings, humanoid body, human hands or separate wizard companion. Age and retained anti-dragon magic distinguish this species variant, not new anatomy. Original weathered sapphire scales, pale belly plates, two short swept-back horns and subtle arcane light; no required robe, staff, crown or book in normal variants. Distinct round abstract magic motifs may glow without letters. Realistic painterly ancient scales and monumental ruins, readable head and silhouette at 512 pixels. No victims, blood, wounds, gore, text, signature, watermark, logo or frame. Normal 02. Close three-quarter head-and-shoulders portrait of an immensely old blue behir magus, narrow calculating reptile eyes and fine age-worn scale texture, two short blunted horns, pale throat plates. Its long twelve-legged serpentine body recedes through a dark library ruin behind, only the nearest leg pairs clearly visible. Faint violet-white electric light between closed teeth and soft abstract magical rings reflect on the scales, no staff, robe or required books carried.",
+  "designReferences": [
+    {
+      "url": "https://a5e.tools/node/1465",
+      "note": "A5E-only Behir Magus is an extraordinarily ancient behir retaining anti-dragon magical knowledge, not a humanoid wizard. No required new body plan or equipment. Age texture, abstract magic effects, glasses/hat/book gag are original choices."
+    },
+    {
+      "url": "https://a5e.tools/node/1442",
+      "note": "Inherited base anatomy: Huge blue-scaled serpentine body with twelve legs, lightning breath, climbing and constriction. Six leg pairs retained; original horn pair and belly coloring are artistic choices."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}
