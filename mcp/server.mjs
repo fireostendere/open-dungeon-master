@@ -296,6 +296,12 @@ the whole party; move_party {name, characterIds} moves only those characters
 and leaves the rest where they stand. With location chat on use location_move
 {roomId, characterIds} instead; move_party is refused there. Check the receipt's
 positions; never describe someone in a place partyPositions does not show.
+A fight belongs to one place (its room, or without rooms the locationId
+start_encounter takes when the party is split). Only characters standing there
+roll initiative, take turns, act and can be hit; the engine refuses anything
+that reaches someone elsewhere. To join, a character moves there and then
+request_roll kind=initiative; one who leaves drops out (on their own turn it
+passes on). The receipt's fight notes say who left or arrived.
 
 ## Inventory and trade
 Narration never changes inventory. Even a guaranteed handover needs an engine

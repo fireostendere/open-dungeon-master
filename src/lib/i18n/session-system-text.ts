@@ -41,6 +41,8 @@ export function displaySystemText(value: string, locale: Locale): string {
   if (end) return gameText(locale, "endTurn", { name: end[1] }) + (end[2] ? " " + gameText(locale, "nextTurnShort", { name: end[2] }) : "");
   const skip = /^The party lead skipped (.+?)'s turn\.(?: It is now (.+)'s turn\.)?$/.exec(value);
   if (skip) return gameText(locale, "skipTurn", { name: skip[1] }) + (skip[2] ? " " + gameText(locale, "nextTurnShort", { name: skip[2] }) : "");
+  const left = /^(.+?) left the fight\.(?: It is now (.+)'s turn\.)?$/.exec(value);
+  if (left) return gameText(locale, "leftFight", { name: left[1] }) + (left[2] ? " " + gameText(locale, "nextTurnShort", { name: left[2] }) : "");
   // Timed conditions running out, several sentences to one notice.
   if (locale !== "en" && / \(the effect ran its course\)\.| save \d+ vs DC \d+\)\./.test(value)) {
     const condition = (name: string) => characterDisplay(name, locale);

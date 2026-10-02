@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import type { CatalogEntry, CatalogField } from "@/lib/dm/invoke-catalog";
 import { NarratorCommandError } from "@/lib/dm/narrator-command";
 import { listSheets } from "@/lib/db/sheets";
+import { syncFightRosters } from "@/lib/dm/encounter-tools";
 import { runSpatialCommand, spatialContext, spatialStore, SpatialError } from "@/lib/spatial/service";
 
 export const SPATIAL_NARRATOR_OPERATIONS: Readonly<Record<string, string>> = Object.freeze({
@@ -76,6 +77,10 @@ export function invokeSpatialForNarrator(campaignId: string, dmUserId: string, n
       return { messageId: message.id, roomId: message.roomId, seq: message.seq };
     }
     if (Array.isArray(result.messages)) return { messageIds: result.messages.map((message: { id: string }) => message.id) };
+    if (operation === "move") {
+      const fight = syncFightRosters(campaignId);
+      if (fight.length) return { ...result, fight };
+    }
     return result;
   } catch (error) {
     if (error instanceof SpatialError) throw new NarratorCommandError(error.message, error.status);

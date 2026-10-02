@@ -7,6 +7,7 @@ import { hasRecentIdenticalEvent, insertCharacterEvent, CHARACTER_EVENT_KINDS, t
 import { getLocation, updateCurrentLocationDetails, upsertCurrentLocation } from "@/lib/db/locations";
 import { getOverworldPartyPositions, partyStanding, setPartyStanding } from "@/lib/db/overworld";
 import { spatialEnabled } from "@/lib/spatial/service";
+import { syncFightRosters } from "@/lib/dm/encounter-tools";
 import { publishPersisted } from "@/lib/events";
 import { normalizeEventKind } from "@/lib/dm/arg-coerce";
 import { resolveSheetRef } from "@/lib/dm/rolls";
@@ -123,5 +124,6 @@ export function handleLocationCall(campaign: Campaign, toolName: string, rawArgu
   }
   publishPersisted(campaign.id, "location_updated", { location });
   followSceneAmbience(campaign, `${location.name} ${location.layoutDescription}`);
-  return { ok: true, location: location.name, positions: whereabouts(campaign.id), note: "Recorded. Continue the scene." };
+  const fight = syncFightRosters(campaign.id);
+  return { ok: true, location: location.name, positions: whereabouts(campaign.id), ...(fight.length ? { fight } : {}), note: "Recorded. Continue the scene." };
 }

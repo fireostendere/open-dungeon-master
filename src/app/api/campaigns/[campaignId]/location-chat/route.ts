@@ -4,6 +4,7 @@ import { isErrorResponse, requireMember, requireVoice } from "@/lib/campaign-api
 import { enforcePlayerIngress } from "@/lib/ingress-budget";
 import { runSpatialCommand, spatialContext, spatialStore, SpatialError } from "@/lib/spatial/service";
 import { subscribeSpatialChanges, waitForPrivateUpdate } from "@/lib/spatial/updates.mjs";
+import { syncFightRosters } from "@/lib/dm/encounter-tools";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 const headers = { "Cache-Control": "private, no-store, max-age=0", Vary: "Cookie, X-ODM-Expected-User, X-ODM-Actor", "X-ODM-Long-Poll": "1" };
@@ -78,6 +79,9 @@ export async function POST(request: Request, { params }: { params: Promise<{ cam
     const changed = identityConflict(request,current.user.id);
     if (changed) return changed;
     if (current.user.id !== context.user.id) return Response.json({error:"The signed-in account changed.",code:"identity_changed"},{status:409,headers});
-    return Response.json(runSpatialCommand(campaignId,current.user.id,body),{headers});
+    const result = runSpatialCommand(campaignId,current.user.id,body);
+    // The DM moved someone: boards and turns follow who is at each fight.
+    if (body && typeof body === "object" && (body as { operation?: unknown }).operation === "move") syncFightRosters(campaignId);
+    return Response.json(result,{headers});
   } catch (error) { return errorResponse(error); }
 }

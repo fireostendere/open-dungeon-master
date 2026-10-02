@@ -1,4 +1,5 @@
 import { withEncounterRoom, currentEncounterRoom } from "@/lib/spatial/publication-scope.mjs";
+import { fightCrossing } from "@/lib/dm/fight-presence";
 import { spatialEnabled, spatialStore, spatialContext } from "@/lib/spatial/service";
 import { getSheetById } from "@/lib/db/sheets";
 // The adjudication façade: one entry point into the rules engine, for both
@@ -234,6 +235,9 @@ function invokeInRoom(campaign: Campaign, actor: Actor, call: Adjudication): Inv
       }
       const turn = actor.kind === "ai" ? getDmTurn(actor.turnId) : humanTurnFor(campaign.id);
       if (!turn || turn.campaignId !== campaign.id) return { ok: false, error: "That DM turn no longer exists in this campaign." };
+      // A fight never reaches a character standing somewhere else.
+      const crossing = fightCrossing(campaign.id, getActiveEncounter(campaign.id), entry, args);
+      if (crossing) return { ok: false, error: crossing };
       const activeRoom = currentEncounterRoom(campaign.id);
         const sheets = listSheets(campaign.id).filter(sheet => !activeRoom || spatialStore().getUserRoom(campaign.id, sheet.userId) === activeRoom);
       const sheetsById = new Map(sheets.map((sheet) => [sheet.id, sheet]));

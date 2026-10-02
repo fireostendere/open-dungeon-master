@@ -166,6 +166,10 @@ const startEncounterTool: ToolDef = {
           description:
             "One line describing the fighting ground, used to shape the tactical battle map, e.g. 'a torchlit crypt with a flooded channel'.",
         },
+        locationId: {
+          type: "string",
+          description: "When the party is split: the place the fight is at (locationId from partyPositions). Only characters standing there fight.",
+        },
       },
       required: ["enemies"],
     },
@@ -281,6 +285,9 @@ function crLabel(cr: number): string {
 }
 
 import { spatialEnabled, spatialStore } from "@/lib/spatial/service";
+import { getOverworldPartyPositions, partyStanding } from "@/lib/db/overworld";
+import { atFight, joinFight, placeArrivingHero, syncFightBoards } from "@/lib/dm/fight-presence";
+import { withEncounterRoom } from "@/lib/spatial/publication-scope.mjs";
 
 // ---- start_encounter ----
 
@@ -290,6 +297,7 @@ const startArgsSchema = z.object({
   surprised: z.enum(["none", "enemies", "party"]).optional(),
   battlefield: z.string().max(300).optional(),
   roomId: z.string().optional(),
+  locationId: z.string().optional(),
   rollInitiative: z.boolean().optional(),
   engaged: z.boolean().optional(),
 });
@@ -308,7 +316,7 @@ function parseStartArgs(rawArguments: string): z.infer<typeof startArgsSchema> |
     return nested.data;
   }
   const flat = enemyRequestSchema
-    .extend({ summary: z.string().optional(), battlefield: z.string().max(300).optional(), roomId: z.string().optional() })
+    .extend({ summary: z.string().optional(), battlefield: z.string().max(300).optional(), roomId: z.string().optional(), locationId: z.string().optional() })
     .safeParse(raw);
   if (flat.success) {
     return {
@@ -316,6 +324,7 @@ function parseStartArgs(rawArguments: string): z.infer<typeof startArgsSchema> |
       summary: flat.data.summary,
       battlefield: flat.data.battlefield,
       roomId: flat.data.roomId,
+      locationId: flat.data.locationId,
     };
   }
   return null;
@@ -353,6 +362,23 @@ function handleStartEncounter(
     );
     participants = roomSheets;
   }
+  // Without rooms the fight is at one recorded place; a split party says which.
+  let fightLocationId: string | null = null;
+  if (!spatialEnabled(campaign.id)) {
+    const standing = partyStanding(campaign.id, sheets);
+    const places = [...new Set(sheets.map((sheet) => standing[sheet.id]).filter(Boolean))];
+    const where = () => getOverworldPartyPositions(campaign.id)
+      .filter((position) => position.locationId)
+      .map((position) => `${position.name}: ${position.locationName} (locationId=${position.locationId})`).join("; ");
+    if (args.locationId && !places.includes(args.locationId)) {
+      return { error: `Nobody stands at that locationId. Where the party is: ${where()}.` };
+    }
+    if (!args.locationId && places.length > 1) {
+      return { error: `The party is split; pass locationId of the place the fight is at. Only characters standing there fight. Where the party is: ${where()}.` };
+    }
+    fightLocationId = args.locationId ?? places[0] ?? null;
+    if (fightLocationId) participants = sheets.filter((sheet) => standing[sheet.id] === fightLocationId);
+  }
   if (!participants.length) {
     return { error: "No party characters to fight." };
   }
@@ -383,7 +409,7 @@ function handleStartEncounter(
     };
   }
 
-  const encounter = createEncounter(campaign.id, args.summary ?? "", "fight", args.roomId);
+  const encounter = createEncounter(campaign.id, args.summary ?? "", "fight", args.roomId, fightLocationId);
   if (!encounter) {
     return { error: "An encounter is already active." };
   }
@@ -458,10 +484,11 @@ function handleStartEncounter(
 // incapacitated. A stunned or paralyzed PC's turn is skipped exactly like a
 // downed one; the condition ticks away at round wrap. Enemies stay in the
 // passed list either way (enemy_attack refuses the incapacitated ones).
-function entryAlive(entry: OrderEntry, enemiesById: Map<string, EncounterEnemy>): boolean {
+function entryAlive(entry: OrderEntry, enemiesById: Map<string, EncounterEnemy>, here?: (sheet: CharacterSheet) => boolean): boolean {
   if (entry.kind === "pc") {
     const sheet = getSheetById(entry.characterId);
-    return (sheet?.currentHp ?? 0) > 0 && !isIncapacitated(sheet?.conditions ?? []);
+    // A hero who left the fight's place is passed over until they return.
+    return (sheet?.currentHp ?? 0) > 0 && !isIncapacitated(sheet?.conditions ?? []) && (!sheet || !here || here(sheet));
   }
   if (entry.kind === "enemy") {
     return enemiesById.get(entry.enemyId)?.status === "alive";
@@ -480,8 +507,9 @@ function entryActs(
   entry: OrderEntry,
   enemiesById: Map<string, EncounterEnemy>,
   surprisedIds: string[],
+  here?: (sheet: CharacterSheet) => boolean,
 ): boolean {
-  return entryAlive(entry, enemiesById) && !surprisedIds.includes(entryId(entry));
+  return entryAlive(entry, enemiesById, here) && !surprisedIds.includes(entryId(entry));
 }
 
 // A character's Armor Class with every active effect folded in
@@ -551,24 +579,20 @@ export function recordInitiativeRoll(
   const sheet = getSheetById(characterId);
   const userRoom = sheet && spatialEnabled(campaignId) ? spatialStore().getUserRoom(campaignId, sheet.userId) : null;
   const encounter = (userRoom ? getActiveEncounter(campaignId, userRoom) : null) ?? getActiveEncounter(campaignId);
-  if (!encounter || encounter.orderReady) {
+  if (!encounter || !sheet || !atFight(campaignId, encounter, sheet) ||
+    encounter.order.some((entry) => entry.kind === "pc" && entry.characterId === characterId)) {
     return null;
   }
-  if (!sheet || encounter.order.some((entry) => entry.kind === "pc" && entry.characterId === characterId)) {
-    return null;
+  const entry = { kind: "pc" as const, characterId: sheet.id, userId: sheet.userId, name: sheet.name, initiative: total };
+  if (encounter.orderReady) {
+    joinFight(encounter, entry);
+    placeArrivingHero(campaignId, encounter, sheet);
+    publishEncounter(campaignId);
+    return `${sheet.name} joins the fight at initiative ${total}.`;
   }
-  encounter.order.push({
-    kind: "pc",
-    characterId: sheet.id,
-    userId: sheet.userId,
-    name: sheet.name,
-    initiative: total,
-  });
+  encounter.order.push(entry);
 
-  const allSheets = listSheets(campaignId);
-  const relevantSheets = encounter.roomId && spatialEnabled(campaignId)
-    ? allSheets.filter((s) => spatialStore().getUserRoom(campaignId, s.userId) === encounter.roomId)
-    : allSheets;
+  const relevantSheets = listSheets(campaignId).filter((s) => atFight(campaignId, encounter, s));
   const staged = encounter.order.filter(
     (entry): entry is Extract<OrderEntry, { kind: "pc" }> => entry.kind === "pc",
   );
@@ -589,7 +613,7 @@ export function recordInitiativeRoll(
   );
   const enemiesById = new Map(enemies.map((enemy) => [enemy.id, enemy]));
   const first = advanceOrder(encounter.order, -1, (entry) =>
-    entryActs(entry, enemiesById, encounter.surprisedIds),
+    entryActs(entry, enemiesById, encounter.surprisedIds, (sheet) => atFight(campaignId, encounter, sheet)),
   );
   if (!first) {
     saveEncounter(encounter);
@@ -634,10 +658,7 @@ export function ensureInitiativeProgress(campaign: Campaign): string | null {
       .filter((entry): entry is Extract<OrderEntry, { kind: "pc" }> => entry.kind === "pc")
       .map((entry) => entry.characterId),
   );
-  const allSheets = listSheets(campaign.id);
-  const relevantSheets = encounter.roomId && spatialEnabled(campaign.id)
-    ? allSheets.filter((s) => spatialStore().getUserRoom(campaign.id, s.userId) === encounter.roomId)
-    : allSheets;
+  const relevantSheets = listSheets(campaign.id).filter((s) => atFight(campaign.id, encounter, s));
   const missing = relevantSheets.filter((sheet) => !staged.has(sheet.id));
   if (!missing.length) {
     return null;
@@ -1135,7 +1156,7 @@ function advancePointer(
 ): { enemiesPassed: string[] } | null {
   const enemiesById = new Map(listEnemies(encounter.id).map((enemy) => [enemy.id, enemy]));
   const next = advanceOrder(encounter.order, encounter.turnIndex, (entry) =>
-    entryActs(entry, enemiesById, encounter.surprisedIds),
+    entryActs(entry, enemiesById, encounter.surprisedIds, (sheet) => atFight(campaign.id, encounter, sheet)),
   );
   if (!next) {
     return null;
@@ -1199,6 +1220,7 @@ function autoActSkippedEnemies(
       continue;
     }
     const living = sheets.filter((sheet) => {
+      if (!atFight(campaign.id, encounter, sheet)) return false;
       if (isJrpgCombat(campaign) && !encounter.order.some(entry => entry.kind === "pc" && entry.characterId === sheet.id)) return false;
       const fresh = getSheetById(sheet.id);
       return (fresh?.currentHp ?? 0) > 0;
@@ -1309,8 +1331,7 @@ export function advanceAfterTurn(campaign: Campaign, turn?: DmTurn, options?: { 
   }
   const advanced = advancePointer(campaign, encounter, options);
   if (advanced && turn) {
-    const sheets = listSheets(campaign.id).filter(sheet => !encounter.roomId ||
-      spatialStore().getUserRoom(campaign.id, sheet.userId) === encounter.roomId);
+    const sheets = listSheets(campaign.id).filter(sheet => atFight(campaign.id, encounter, sheet));
     const sheetsById = new Map(sheets.map((sheet) => [sheet.id, sheet]));
     autoActSkippedEnemies(
       campaign,
@@ -1463,10 +1484,25 @@ export function queueSkippedCombatTurn(campaignId: string): void {
   if (floor.mode === "initiative" && floor.userIds[0] && skipOwnTurn(campaignId, floor.userIds[0])) wakeDm(campaignId);
 }
 
+// Call after any move. Boards follow who is at each fight; a hero who walks
+// out on their own turn hands it on (the DM then plays enemies passed).
+export function syncFightRosters(campaignId: string): string[] {
+  const { notes, leftOnTheirTurn } = syncFightBoards(campaignId);
+  for (const encounter of leftOnTheirTurn) {
+    const leaving = encounter.order[encounter.turnIndex]?.name;
+    const pass = () => skipCurrentTurn(campaignId, "left");
+    // Without rooms there is one fight, the campaign's own.
+    if (!(encounter.roomId ? withEncounterRoom(campaignId, encounter.roomId, pass) : pass())) continue;
+    const after = getActiveEncounter(campaignId, encounter.roomId);
+    notes.push(`It was ${leaving}'s turn; it passed to ${after?.order[after.turnIndex]?.name ?? "the next combatant"}. Play any enemies before them.`);
+  }
+  return notes;
+}
+
 // Lead escape hatch: advance past an absent player's turn. Inserts a table
 // note; the caller wakes the DM so intervening enemies still act (kept out
 // of this module to avoid an import cycle with the turn loop).
-export function skipCurrentTurn(campaignId: string): boolean {
+export function skipCurrentTurn(campaignId: string, reason: "lead" | "left" = "lead"): boolean {
   const campaign = getCampaignById(campaignId);
   const encounter = getActiveEncounter(campaignId);
   if (!campaign || !encounter || !encounter.orderReady) {
@@ -1482,7 +1518,7 @@ export function skipCurrentTurn(campaignId: string): boolean {
     campaignId,
     seq,
     authorType: "system",
-    content: `The party lead skipped ${skipped?.name ?? "the current"}'s turn.${
+    content: `${reason === "left" ? `${skipped?.name ?? "Someone"} left the fight.` : `The party lead skipped ${skipped?.name ?? "the current"}'s turn.`}${
       next ? ` It is now ${next.name}'s turn.` : ""
     }`,
   });
