@@ -228,6 +228,8 @@ export function MapPanel({
               <img
                 src={shown.mapImage.url}
                 alt={`${copy.mapOf} ${shown.name}`}
+                loading="lazy"
+                decoding="async"
                 className="w-full rounded-md border border-stone-800"
               />
             </button>

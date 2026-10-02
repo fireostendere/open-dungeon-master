@@ -46,6 +46,7 @@ export type DrawOptions = {
   // Accessible DOM markers sit over the screen canvas; exports draw them.
   markers?: boolean;
   materials?: AtlasMaterials | null;
+  lowPoly?: boolean;
 };
 
 // ponytail: one region cache; a gallery can use an LRU if multiple maps ever
@@ -245,15 +246,29 @@ export function drawOverworld(
 ) {
   const tile = OVERWORLD_TILE;
   const { width, height } = data.map;
+  const map = data.map.materialGrid ? data.map : { ...data.map, ...atlasTerrain(data.map, data.locations) };
 
-  if (usable(options.backdrop)) {
+  if (options.lowPoly) {
+    const skin = skinForGenre(options.genre);
+    for (let y = 0; y < height; y++) for (let x = 0; x < width; x++) {
+      const kind = map.terrain[y * width + x] as keyof typeof skin;
+      const fill = skin[kind]?.fill ?? skin.w.fill;
+      context.fillStyle = fill;
+      context.fillRect(x * tile, y * tile, tile, tile);
+      context.fillStyle = "rgba(0,0,0,0.08)";
+      context.beginPath();
+      context.moveTo(x * tile, y * tile);
+      context.lineTo((x + 1) * tile, y * tile);
+      context.lineTo(x * tile, (y + 1) * tile);
+      context.fill();
+    }
+  } else if (usable(options.backdrop)) {
     // The picture stands in for the tiles, stretched to the grid so a tap
     // lands on the same tile whichever of the two is showing.
     context.drawImage(options.backdrop, 0, 0, width * tile, height * tile);
   } else {
     context.imageSmoothingEnabled = true;
     context.imageSmoothingQuality = "high";
-    const map = data.map.materialGrid ? data.map : { ...data.map, ...atlasTerrain(data.map, data.locations) };
     context.drawImage(reliefTerrain(map, options.genre, options.materials), 0, 0, width * tile, height * tile);
   }
 

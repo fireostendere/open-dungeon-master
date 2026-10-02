@@ -10,6 +10,7 @@
   font-family: inherit;
 }
 .atlas button { cursor: pointer; }
+.lowPoly .mist { display: none; }
 .atlas button:disabled { cursor: default; opacity: .45; }
 .atlas button:focus-visible, .atlas input:focus-visible, .atlas select:focus-visible, .viewport:focus-visible { outline: 2px solid #ddc38c; outline-offset: -2px; }
 .header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px; border-bottom: 1px solid #b59b6225; background: linear-gradient(110deg, #242b25, #111a1a); }

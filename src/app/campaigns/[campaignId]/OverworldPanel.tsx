@@ -40,7 +40,8 @@ import { useOverworldView } from "@/app/campaigns/[campaignId]/useOverworldView"
 import { useI18n } from "@/lib/i18n/context";
 import { localeText } from "@/lib/i18n/locale-text";
 import { atlasQuests, atlasRoute, isQuestPin, layoutAtlasMarkers, locationKind } from "@/lib/overworld/atlas";
-import { atlasTerrain, BIOME_MATERIALS, landmarkForLocation, landmarkSprite, materialAt, TERRAIN_ASSETS } from "@/lib/overworld/cartography";
+import { atlasTerrain, landmarkForLocation, landmarkSprite, materialAt, type TerrainMaterial } from "@/lib/overworld/cartography";
+import { loadAtlasMaterials, slowMapConnection } from "@/lib/overworld/loading";
 import styles from "./worldAtlas.module.css";
 
 const PLACE_ICONS = { settlement: House, dungeon: Mountain, fort: Castle, ruin: Landmark, shrine: Church, mountain: Mountain, forest: Trees, camp: Tent, port: Anchor, neutral: MapPin };
@@ -104,6 +105,9 @@ export function OverworldPanel({
   // taken away or replaced never draws for a frame under the wrong path.
   const [backdrop, setBackdrop] = useState<{ path: string; image: HTMLImageElement } | null>(null);
   const [materials, setMaterials] = useState<AtlasMaterials | null>(null);
+  const [lowPoly, setLowPoly] = useState(true);
+  const [slowConnection, setSlowConnection] = useState(false);
+  const [forceDetails, setForceDetails] = useState(0);
   const [exporting, setExporting] = useState(false);
   const [importing, setImporting] = useState(false);
   const [importNote, setImportNote] = useState("");
@@ -117,6 +121,7 @@ export function OverworldPanel({
   const [followParty, setFollowParty] = useState(true);
   const [connected, setConnected] = useState(false);
   const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0, dpr: 1 });
+  const fittedMap = useRef("");
   const { view, fit, down, move, up, zoomBy, focus, pan } = useOverworldView(containerRef, !loading, surface);
 
   useEffect(() => {
@@ -125,6 +130,7 @@ export function OverworldPanel({
       let etag = "";
       while (!controller.signal.aborted) {
         try {
+          const started = performance.now();
           const response = await fetch(`/api/campaigns/${campaignId}/overworld?waitMs=20000`, {
             signal: controller.signal, cache: "no-store",
             headers: { ...(etag ? { "If-None-Match": etag } : {}), ...(viewerUserId ? { "X-ODM-Expected-User": viewerUserId } : {}) },
@@ -138,6 +144,10 @@ export function OverworldPanel({
           }
           const payload = await response.json() as OverworldData;
           if (controller.signal.aborted) return;
+          if (!etag) {
+            const connection = (navigator as Navigator & { connection?: Parameters<typeof slowMapConnection>[0] }).connection;
+            setSlowConnection(slowMapConnection(connection, performance.now() - started));
+          }
           etag = response.headers.get("etag") ?? "";
           setData(payload); setLoading(false); setConnected(true); setError("");
           // A proxy without ETags must not turn this into a busy loop.
@@ -155,7 +165,7 @@ export function OverworldPanel({
 
   const backdropPath = data?.map.backdropPath ?? "";
   useEffect(() => {
-    if (!backdropPath) {
+    if (!backdropPath || lowPoly) {
       return;
     }
     let cancelled = false;
@@ -169,22 +179,21 @@ export function OverworldPanel({
     return () => {
       cancelled = true;
     };
-  }, [backdropPath]);
-  const backdropImage = backdrop && backdrop.path === backdropPath ? backdrop.image : null;
+  }, [backdropPath, lowPoly]);
+  const backdropImage = !lowPoly && backdrop && backdrop.path === backdropPath ? backdrop.image : null;
   const materialGrid = data?.map.materialGrid ?? (data ? atlasTerrain(data.map, data.locations).materialGrid : "");
-  const materialKey = [...new Set([...Object.values(BIOME_MATERIALS), ...[...materialGrid].map((_, index) => materialAt(materialGrid, index))])].sort().join(",");
+  const materialKey = [...new Set([...materialGrid].map((_, index) => materialAt(materialGrid, index)))].sort().join(",");
   useEffect(() => {
+    if (!materialKey) return;
     let cancelled = false;
-    const loaded: AtlasMaterials = {};
-    void Promise.all(materialKey.split(",").map(name => new Promise<void>(resolve => {
-      const kind = name as keyof AtlasMaterials;
-      const image = new Image();
-      image.onload = () => { loaded[kind] = image; resolve(); };
-      image.onerror = () => resolve();
-      image.src = TERRAIN_ASSETS[kind];
-    }))).then(() => { if (!cancelled) setMaterials(loaded); });
-    return () => { cancelled = true; };
-  }, [materialKey]);
+    // Paint the cheap geometry first; artwork never blocks the first frame.
+    const timer = setTimeout(() => {
+      void loadAtlasMaterials(materialKey.split(",") as TerrainMaterial[], forceDetails > 0 || !slowConnection).then(loaded => {
+        if (!cancelled) { setMaterials(loaded); setLowPoly(!loaded); }
+      });
+    }, 0);
+    return () => { cancelled = true; clearTimeout(timer); };
+  }, [materialKey, slowConnection, forceDetails]);
 
   // Terrain redraws only with map or camera changes. CSS animates markers.
   const draw = useCallback(() => {
@@ -211,9 +220,10 @@ export function OverworldPanel({
       pending: pending.length ? { kind: pathKind, points: pending } : null,
       markers: false,
       materials: ["high_fantasy", "dark_fantasy", "horror"].includes(genre) ? materials : null,
+      lowPoly,
     });
     context.restore();
-  }, [backdropImage, canvasSize.dpr, data, genre, held, materials, pathKind, pending, view]);
+  }, [backdropImage, canvasSize.dpr, data, genre, held, materials, lowPoly, pathKind, pending, view]);
 
   useEffect(() => {
     draw();
@@ -235,14 +245,18 @@ export function OverworldPanel({
       canvas.width = Math.round(width * dpr);
       canvas.height = Math.round(height * dpr);
       setCanvasSize({ width, height, dpr });
-      fit(container, mapWidth * TILE, mapHeight * TILE, true);
-      if (!expanded) zoomBy(2.4);
+      const sizeKey = `${mapWidth}:${mapHeight}:${expanded}`;
+      if (fittedMap.current !== sizeKey) {
+        fit(container, mapWidth * TILE, mapHeight * TILE, true);
+        if (!expanded) zoomBy(2.4);
+        fittedMap.current = sizeKey;
+      } else pan(0, 0);
     };
     resize();
     const observer = new ResizeObserver(resize);
     observer.observe(container);
     return () => observer.disconnect();
-  }, [mapWidth, mapHeight, expanded, surface, fit, zoomBy]);
+  }, [mapWidth, mapHeight, expanded, surface, fit, zoomBy, pan]);
 
   const current = data?.locations.find(location => location.isCurrent);
   const partyPlaces = [...new Set(data?.party?.map(character => character.locationId).filter((id): id is string => Boolean(id)))];
@@ -516,10 +530,11 @@ export function OverworldPanel({
   }
 
   const content = (
-    <section className={cn(styles.atlas, expanded && styles.expanded)} aria-label={copy.atlas}>
+    <section className={cn(styles.atlas, expanded && styles.expanded, lowPoly && styles.lowPoly)} aria-label={copy.atlas}>
       <header className={styles.header}>
         <div className={styles.title}><Compass size={22} aria-hidden="true" /><div><span>{copy.atlas}</span><h3>{title || copy.explore}</h3></div></div>
         <div className={styles.actions}>
+          {lowPoly ? <button type="button" onClick={() => setForceDetails(value => value + 1)} title={locale === "ru" ? "Загрузить детальную карту" : "Load detailed map"} aria-label={locale === "ru" ? "Загрузить детальную карту" : "Load detailed map"}><Mountain size={16} /></button> : null}
           {steersStory ? <button type="button" onClick={() => { setStudio(value => !value); changeMode("look"); }} aria-label={copy.tools} title={copy.tools} aria-pressed={studio}><Pencil size={16} /></button> : null}
           <button type="button" onClick={() => setExpanded(value => !value)} aria-label={expanded ? copy.close : copy.expand} title={expanded ? copy.close : copy.expand}>{expanded ? <X size={18} /> : <Maximize2 size={17} />}</button>
         </div>
@@ -540,7 +555,7 @@ export function OverworldPanel({
               setFollowParty(false); down(event);
             }} onPointerMove={move} onPointerUp={up} onPointerCancel={up}>
             <canvas ref={canvasRef} className={styles.canvas} aria-hidden="true" />
-            <div className={styles.paper} aria-hidden="true" />
+            {!lowPoly ? <div className={styles.paper} aria-hidden="true" /> : null}
             <div className={styles.mist} aria-hidden="true" />
             <div className={styles.vignette} aria-hidden="true" />
             {routePoints.length > 1 ? <svg className={styles.route} aria-hidden="true"><polyline points={routePoints.map(at => `${at.x},${at.y}`).join(" ")} /></svg> : null}
@@ -552,7 +567,7 @@ export function OverworldPanel({
               {groups.map(group => {
                 const location = data!.locations.find(entry => entry.id === group.marker.id)!;
                 const at = group.marker, Icon = PLACE_ICONS[locationKind(location)];
-                const asset = detailed && group.members.length === 1 ? landmarkForLocation(location) : null;
+                const asset = !lowPoly && detailed && group.members.length === 1 ? landmarkForLocation(location) : null;
                 const groupQuests = quests.filter(quest => group.members.some(member => member.id === quest.locationId));
                 const groupParty = group.members.reduce((sum, member) => sum + member.partyCount, 0);
                 const names = group.members.map(member => member.name).join(" · ");
@@ -589,7 +604,7 @@ export function OverworldPanel({
                 return <button type="button" key={character.id} className={styles.characterMarker} style={{ left: at.x + offset, top: at.y + 47, pointerEvents: mode === "look" ? "auto" : "none" }}
                   aria-label={`${character.name} · ${location?.name ?? copy.partyUnknown}`} title={character.name}
                   onPointerDown={event => event.stopPropagation()} onClick={() => { setSection("party"); setSelected(character.locationId); }}>
-                  {character.portraitUrl ? <img src={character.portraitUrl} alt="" /> : <span>{character.name.slice(0, 1)}</span>}
+                  {!lowPoly && character.portraitUrl ? <img src={character.portraitUrl} alt="" loading="lazy" decoding="async" /> : <span>{character.name.slice(0, 1)}</span>}
                 </button>;
               }) : null}
               {detailed ? groups.filter(group => group.members.length === 1 && group.marker.partyCount > 3).map(group => <button key={`party:${group.marker.id}`} type="button" className={styles.partyMore} style={{ left: group.marker.x + 60, top: group.marker.y + 47 }}
@@ -659,7 +674,7 @@ export function OverworldPanel({
           </div> : <div className={styles.entries}>{(data?.party ?? []).map(character => {
             const location = data?.locations.find(entry => entry.id === character.locationId);
             return <button type="button" key={character.id} className={styles.partyEntry} onClick={() => { if (character.locationId) showLocation(character.locationId); }} disabled={!location?.anchor}>
-              <span className={styles.partyPortrait}>{character.portraitUrl ? <img src={character.portraitUrl} alt="" /> : character.name.slice(0, 1)}</span><div><strong>{character.name}</strong><span>{location?.name ?? copy.partyUnknown}</span></div><MapPin size={14} />
+              <span className={styles.partyPortrait}>{!lowPoly && character.portraitUrl ? <img src={character.portraitUrl} alt="" loading="lazy" decoding="async" /> : character.name.slice(0, 1)}</span><div><strong>{character.name}</strong><span>{location?.name ?? copy.partyUnknown}</span></div><MapPin size={14} />
             </button>;
           })}</div>}
         </aside>

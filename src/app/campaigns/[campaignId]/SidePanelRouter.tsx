@@ -1,7 +1,8 @@
 "use client";
 
 import { BookMarked, BookOpen, Heart, ScrollText, Users } from "lucide-react";
-import { useEffect, useState } from "react";
+import { Activity, useEffect, useState } from "react";
+import dynamic from "next/dynamic";
 import { DmConsolePanel } from "@/app/campaigns/[campaignId]/DmConsolePanel";
 import { LeadPanel } from "@/app/campaigns/[campaignId]/LeadPanel";
 import type { CampaignMessage } from "@/lib/db/messages";
@@ -18,9 +19,7 @@ import { EventLog } from "@/app/campaigns/[campaignId]/EventLog";
 import { BondsPanel } from "@/app/campaigns/[campaignId]/BondsPanel";
 import { FactsPanel } from "@/app/campaigns/[campaignId]/FactsPanel";
 import { LorePanel } from "@/app/campaigns/[campaignId]/LorePanel";
-import { MapPanel } from "@/app/campaigns/[campaignId]/MapPanel";
 import { NotesPanel } from "@/app/campaigns/[campaignId]/NotesPanel";
-import { OverworldPanel } from "@/app/campaigns/[campaignId]/OverworldPanel";
 import { PartyPanel } from "@/app/campaigns/[campaignId]/PartyPanel";
 import { ContextPanel } from "@/app/campaigns/[campaignId]/ContextPanel";
 import { PinsPanel } from "@/app/campaigns/[campaignId]/PinsPanel";
@@ -145,7 +144,31 @@ export type SidePanelRouterProps = {
 // the guards on dm, lead, battle and context are belt and braces over
 // buildPanelTabs, so a stale selection never lands a player on a panel whose
 // route will only ever answer 403.
-export function SidePanelRouter({
+const OverworldPanel = dynamic(() => import("./OverworldPanel").then(module => module.OverworldPanel), { ssr: false });
+const MapPanel = dynamic(() => import("./MapPanel").then(module => module.MapPanel), { ssr: false });
+
+export function SidePanelRouter(props: SidePanelRouterProps) {
+  const { locale } = useI18n();
+  const [mapOpened, setMapOpened] = useState(false);
+  const [planOpened, setPlanOpened] = useState(false);
+  if (props.tab === "map" && !mapOpened) setMapOpened(true);
+  return <>
+    {mapOpened ? <Activity mode={props.tab === "map" ? "visible" : "hidden"}>
+      <div className="space-y-3" key={`${props.campaignId}:${props.meUserId}:${props.steersStory}`}>
+        <OverworldPanel campaignId={props.campaignId} genre={props.campaign?.gameSettings?.genre ?? "high_fantasy"}
+          steersStory={props.steersStory} title={props.campaign?.title} viewerUserId={props.meUserId} />
+        <details className="rounded-lg border border-stone-800/60 p-3" onToggle={event => setPlanOpened(event.currentTarget.open)}>
+          <summary className="cursor-pointer text-xs text-stone-400">{locale === "ru" ? "План текущей локации" : "Current location plan"}</summary>
+          {planOpened ? <div className="pt-3"><MapPanel campaignId={props.campaignId} locations={props.locations}
+            steersStory={props.steersStory} mediaStatus={props.mediaStatus} genre={props.campaign?.gameSettings?.genre} /></div> : null}
+        </details>
+      </div>
+    </Activity> : null}
+    <SidePanelContent {...props} />
+  </>;
+}
+
+function SidePanelContent({
   campaignId,
   levelUpLevel = null,
   onLevelUp,
@@ -159,7 +182,6 @@ export function SidePanelRouter({
   spotlightUserIds,
   onlineUserIds,
   auditLog,
-  locations,
   chapters,
   notes,
   facts,
@@ -175,7 +197,6 @@ export function SidePanelRouter({
   chatTarget,
   onChatTargetHandled,
   onMessageUser,
-  mediaStatus,
   inviteCode,
   midGameJoinOpen,
   campaign,
@@ -447,30 +468,7 @@ export function SidePanelRouter({
     );
   }
   if (tab === "map") {
-    return (
-      <div className="space-y-3">
-        <OverworldPanel
-          key={`${campaignId}:${meUserId}:${steersStory}`}
-          campaignId={campaignId}
-          genre={campaign?.gameSettings?.genre ?? "high_fantasy"}
-          steersStory={steersStory}
-          title={campaign?.title}
-          viewerUserId={meUserId}
-        />
-        <details className="rounded-lg border border-stone-800/60 p-3">
-          <summary className="cursor-pointer text-xs text-stone-400">{locale === "ru" ? "План текущей локации" : "Current location plan"}</summary>
-          <div className="pt-3">
-            <MapPanel
-              campaignId={campaignId}
-              locations={locations}
-              steersStory={steersStory}
-              mediaStatus={mediaStatus}
-              genre={campaign?.gameSettings?.genre}
-            />
-          </div>
-        </details>
-      </div>
-    );
+    return null;
   }
   if (tab === "story") {
     return (
