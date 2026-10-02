@@ -1,0 +1,21 @@
+{
+  "creatureId": "blood-hawk",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BLOOD HAWK avatar, Core SRD5.1 and A5E. One SMALL ordinary hawk-like BIRD with CRIMSON PLUMAGE and a sharply pointed STABBING RAPTOR BEAK. One head, two eyes, TWO FEATHERED WINGS, TWO TALONED LEGS and one feathered tail as ordinary raptor anatomy. Exact red feather markings, eye color and beak color original. Keen alert predatory posture, no supernatural liquid body or blood-draining mouth. Realistic painterly feathers, natural avian joints and atmosphere, sharp readable face at 512 pixels. No prey, victims, feeding, blood, injury, gore, writing, signature, watermark, logo or frame. YOLO 04. A fierce little crimson hawk is trying to look like a legendary hunter while proudly clutching one enormous bright YELLOW RUBBER CHICKEN in its two taloned feet. It perches awkwardly on a branch, both feathered wings half-open for balance, the harmless squeaky toy dangling far below and looking bigger than the bird. Intensely smug raptor face, crimson plumage, no prey, injury or blood, absurd trophy, no text.",
+  "designReferences": [
+    {
+      "url": "https://github.com/open5e/open5e-api/blob/staging/data/v1/wotc-srd/Monster.json",
+      "note": "Core explicitly supplies crimson hawk plumage and stabbing beak; Small beast with keen sight and flock tactics. Ordinary two-wing/two-leg anatomy, feather patterns, eye color and rubber-chicken gag original."
+    },
+    {
+      "url": "https://a5e.tools/node/1916",
+      "note": "A5E Bloodhawk retains bird identity/size/beak, no documented alternate anatomy; source does not require magical blood body."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

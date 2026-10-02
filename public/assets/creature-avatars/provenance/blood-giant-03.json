@@ -1,0 +1,17 @@
+{
+  "creatureId": "blood-giant",
+  "variantId": "03",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BLOOD GIANT avatar, Creature Codex. One HUGE GIANT with a towering exposed BONE SKELETON framework entwined in many CRIMSON MAGICAL BLOOD VESSELS that can freeze into glossy ICE-LIKE RED STRANDS. One skull, two arms, two legs as ordinary giant-body inference. The creature has no ordinary muscular flesh; show clean pale bones and frozen dark ruby vessel strands as its complete fantastical anatomy, without torn tissue, wounds, organs, dripping gore or victims. Carries a SPEAR MADE OF HARDENED CRIMSON BLOOD, like opaque red ice. Exact vessel paths, bone proportions and spear shape original. No tree bark or wooden anatomy. Realistic painterly bone, ruby ice-like material and monumental ruins, imposing readable silhouette at 512 pixels. No injury, dismemberment scene, writing, signature, watermark, logo or frame. Normal 03. A huge skeletal blood giant strides slowly across a frozen ruined courtyard, two legs in a coherent walking pose, both hands holding one long red ice-like spear diagonally. Branching crimson vessels wrap the entire bone frame like a magical vascular lattice, pale ribs and skull clearly visible, no flowing splatter. Subtle red mist and silver snowlight.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/giant-blood/",
+      "note": "Creature Codex: Huge giant skeleton wrapped in flowing/frozen crimson blood vessels, hardened-blood spear and red mist. Exact vessel layout, bone proportions and knitting gag original; non-graphic whole creature with clean bone and frozen vessels, not a fleshy red giant."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

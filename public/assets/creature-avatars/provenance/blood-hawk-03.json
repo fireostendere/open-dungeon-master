@@ -1,0 +1,21 @@
+{
+  "creatureId": "blood-hawk",
+  "variantId": "03",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BLOOD HAWK avatar, Core SRD5.1 and A5E. One SMALL ordinary hawk-like BIRD with CRIMSON PLUMAGE and a sharply pointed STABBING RAPTOR BEAK. One head, two eyes, TWO FEATHERED WINGS, TWO TALONED LEGS and one feathered tail as ordinary raptor anatomy. Exact red feather markings, eye color and beak color original. Keen alert predatory posture, no supernatural liquid body or blood-draining mouth. Realistic painterly feathers, natural avian joints and atmosphere, sharp readable face at 512 pixels. No prey, victims, feeding, blood, injury, gore, writing, signature, watermark, logo or frame. Normal 03. One crimson hawk banks in flight above rocky highlands, exactly TWO fully spread feathered wings, two natural feet tucked beneath the body and one fanned tail. Red feathers catch dramatic golden sunbeams, pointed beak and alert head turned toward viewer, no extra wings or duplicate birds.",
+  "designReferences": [
+    {
+      "url": "https://github.com/open5e/open5e-api/blob/staging/data/v1/wotc-srd/Monster.json",
+      "note": "Core explicitly supplies crimson hawk plumage and stabbing beak; Small beast with keen sight and flock tactics. Ordinary two-wing/two-leg anatomy, feather patterns, eye color and rubber-chicken gag original."
+    },
+    {
+      "url": "https://a5e.tools/node/1916",
+      "note": "A5E Bloodhawk retains bird identity/size/beak, no documented alternate anatomy; source does not require magical blood body."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}
