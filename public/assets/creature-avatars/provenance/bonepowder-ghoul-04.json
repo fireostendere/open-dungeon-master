@@ -1,0 +1,17 @@
+{
+  "creatureId": "bonepowder-ghoul",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BONEPOWDER GHOUL avatar, Tome of Beasts 2016/2023. One SMALL undead whose DEFAULT FORM is DRY DUST, BONE FRAGMENTS and ONE COMPLETE SET OF TEETH. The teeth are essential and visible within the low dusty mass; no permanent intact skull, fleshy ghoul, mummy or fixed humanoid anatomy in dust form. It may temporarily COALESCE into a Small semi-transparent ghoul-shaped body; depict this only where explicitly requested below, not simultaneous duplicate bodies. Exact dust color, tooth arrangement and partial jaw support are original choices. Dry old material, no victims or feeding. Realistic painterly powder, bones and dark ruins, readable teeth at 512 pixels. No blood, injury, gore, writing, signature, watermark, logo or frame. YOLO 04. A Small bonepowder ghoul has accidentally put its ONE complete tooth set into an absurdly pristine CLEAR DENTURE-SOAKING GLASS, while the rest of its dry dusty body swirls indignantly around the glass on a little bedside table. Teeth clearly visible through clean water, powder remains outside rather than becoming liquid, no skull or added eyes. Tiny folded nightcap beside the glass, ridiculous undead bedtime routine, no text.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/ghoul-bonepowder-3pp/",
+      "note": "ToB2016/2023 Small dust/bone-fragment/complete-teeth undead, with separate temporary coalesced ghoul form. 2016 supplies semi-transparency. Exact tooth/dust arrangement and denture-glass gag original; default is not an intact ghoul or whole skull."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}
