@@ -49,6 +49,26 @@ test('page cache expires, evicts, bounds memory and does not expose mutable refe
   assert.equal(new NarratorSnapshotCache({ maxBytes: 10 }).remember(original, params), false);
 });
 
+test('fresh identical reads and authorized continuations renew the inactivity deadline', () => {
+  let now = 0; const cache = new NarratorSnapshotCache({ now: () => now, ttlMs: 10 });
+  const original = state(), pages = [budgetRead(original, params)];
+  cache.remember(original, params);
+  now = 9; cache.remember(original, params);
+  assert.equal(cache.entries.size, 1);
+  while (pages.at(-1).nextPage) {
+    now += 9;
+    const query = { ...params, pageCursor: pages.at(-1).nextPage };
+    const frozen = cache.restore('campaign-a', original.timelineEpoch, query);
+    assert.ok(frozen, 'active pages outlive the first read deadline');
+    pages.push(budgetRead(frozen, query));
+  }
+  assert.deepEqual(assembleReadPages(pages), original);
+  const query = { ...params, pageCursor: pages[0].nextPage };
+  now += 9; assert.equal(cache.restore('campaign-a', original.timelineEpoch, { ...query, dmUserId: 'other-dm' }), null);
+  now += 2; assert.equal(cache.restore('campaign-a', original.timelineEpoch, query), null);
+  assert.equal(cache.bytes, 0, 'unauthorized reads do not renew the deadline');
+});
+
 test('post-write read returns committed receipt and state with one read', async () => {
   let calls = 0; const receipt = { commandId: 'saved-id', committedSeq: 9, result: { total: 17 } }, query = { afterSeq: 8 };
   const result = await attachPostWriteRead(receipt, query, async value => { calls++; assert.deepEqual(value, query); return { currentSeq: 9, hasMore: false }; });
