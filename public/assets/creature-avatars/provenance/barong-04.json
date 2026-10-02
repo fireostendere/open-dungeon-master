@@ -1,0 +1,21 @@
+{
+  "creatureId": "barong",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BARONG creature avatar: a LARGE CELESTIAL LION with thick WHITE FUR and a full white mane, wearing a clearly separate carved RED MASK and polished GILDED ARMOR. True feline quadruped: exactly four lion legs and paws, one lion head, rounded lion ears, one long tufted lion tail. No wings, horns, humanoid torso or hands. Red ceremonial mask is designed for the lion's own face with eye openings and a visible feline muzzle, not a human face. Gold armor plates fitted around shoulders, chest and back permit natural movement. Original mask carving and ornamentation, regal protective presence, detailed realistic painterly fur and metal, clear identity at 512 pixels. No injuries, victims, blood, text, logo, signature, watermark or frame. YOLO 04. The magnificent white celestial lion, still wearing its red mask and polished gold armor, is wearing an outrageously oversized PINK FLOWER-SHAPED PET RECOVERY CONE around its neck. Each stiff pink petal sticks outward around the white mane like a ridiculous giant daisy. Its masked face and white muzzle remain clearly visible inside the cone with a profoundly offended expression. Exactly four paws on the floor, one white tufted tail, a tiny felt mouse toy sits ignored beside one front paw. Regal temple lighting treats this humiliating outfit as royal ceremonial dress, full creature, no people or writing.",
+  "designReferences": [
+    {
+      "url": "https://github.com/open5e/open5e-api/blob/staging/data/v1/cc/Monster.json",
+      "note": "Licensed Creature Codex barong record establishes Large celestial, lion-associated bite/claws/roar and supernatural protection. Flight does not imply wings."
+    },
+    {
+      "url": "https://kpogl.wikidot.com/monster%3Abarong",
+      "note": "Community OGL text mirror of Creature Codex appearance: thick white-furred lion, red mask, polished gilded armor. Appearance confidence is lower than publisher text; no publisher art inspected or copied. Feline proportions, mask carvings, armor ornaments, scenery and flower-cone gag are original choices."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

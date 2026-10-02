@@ -1,0 +1,21 @@
+{
+  "creatureId": "basilisk",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BASILISK creature avatar. A Medium heavy-bodied venomous REPTILE with exactly EIGHT short sturdy reptilian LEGS, arranged as FOUR LEFT-RIGHT PAIRS along one low elongated lizard torso; one broad toothed reptile head and one tapering tail. Coarse armored scales, clear penetrating eyes, no wings, feathers, snake-only body, humanoid limbs or extra heads. Eight legs are mandatory, not four or six. Original scale colors, dorsal ridges and face proportions. Realistic painterly creature anatomy, readable silhouette and eyes at 512 pixels. No wounded prey, blood, gore, text, signature, watermark, logo or frame. Normal 02. Close low three-quarter portrait of a slate-blue basilisk's broad heavy head and upper elongated body. Rough small scales surround amber eyes, thick jaws slightly part to show short teeth and a trace of harmless luminous venom. The low reptilian body extends into the background with its four pairs of short legs partly occluded naturally by perspective, no wings or horns. Wet ruined stone temple, strong eye detail, cold cyan atmosphere with a warm rim light.",
+  "designReferences": [
+    {
+      "url": "https://a5e.tools/node/1441",
+      "note": "Official A5E Monstrous Menagerie explicitly establishes an eight-legged venomous reptile with petrifying gaze. Eight limbs retained across every variant; colors, ridges, subtle eye glow, settings and roller-skate joke are original choices."
+    },
+    {
+      "url": "https://github.com/open5e/open5e-api/blob/staging/data/v1/wotc-srd/Monster.json",
+      "note": "SRD5.1 basilisk record corroborates Medium monstrosity with natural armor, bite and petrifying gaze. No publisher artwork copied."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

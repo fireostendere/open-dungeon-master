@@ -1,0 +1,17 @@
+{
+  "creatureId": "barometz",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BAROMETZ creature avatar. One LARGE PLANT CREATURE shaped like a horned GOAT, its entire coat made of thick living GREEN MOSS. Four hooved legs, one goat head with two horns, two ears, horizontal goat pupils and one short tail. Crucial identity: a thick living VINE attaches to the small udder on the underside of its belly and trails along the ground toward a nearby FRUIT TREE; the vine is not a fifth leg or a cord from its back. It is a living plant goat, no fruits erupting from its body. Realistic painterly moss, bark, horn and hoof textures, atmospheric fantasy woodland, clear subject at 512 pixels. No blood, injuries, gore, humanoid hands, text, signature, watermark, logo or frame. YOLO 04. A huge mossy barometz has attempted to disguise itself as an ordinary potted houseplant. It stands with all four hooves comically crowded into one absurdly undersized terracotta flowerpot, its enormous horned goat body towering above it, looking sternly innocent. A giant floppy pink ribbon is tied in a bow between its horns, but no writing. Its thick belly-attached vine drapes over the pot rim and trails to the parent fruit tree behind. Full creature and pot visible, mossy coat and goat anatomy intact, richly painted moonlit enchanted greenhouse, no people.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/barometz/",
+      "note": "Tome of Beasts 2 Large plant: horned goat covered in thick green moss, hooves, thick vine running from udder to parent fruit tree. Living specimens do not require fruits sprouting from their body. Horn shapes, moss textures, tree species, settings and undersized flowerpot disguise are original choices."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

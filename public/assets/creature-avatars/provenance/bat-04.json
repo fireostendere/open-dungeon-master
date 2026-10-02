@@ -1,0 +1,21 @@
+{
+  "creatureId": "bat",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BAT creature avatar. One ordinary TINY BAT, a furry mammal with visible eyes, two external ears, teeth, TWO MEMBRANOUS WINGS that ARE its modified front limbs, and TWO small clawed HIND FEET. Each wing membrane spans long finger bones with a small clawed thumb at the wrist. No additional arms or front legs, no horns, feathers or demonic face. Naturalistic original species-like proportions, detailed realistic painterly fur and translucent wing membranes, strong readable subject at 512 pixels. No blood, wounds, victims, text, signature, watermark, logo or frame. YOLO 04. A tiny bat has decided to become an absurdly fancy flying waiter. Its two membranous wings are fully spread in flight; its TWO HIND FEET clutch the handle of a ridiculously oversized porcelain teacup dangling underneath, full of harmless fluffy cream. The teacup is almost as big as its whole furry body, making the bat's wide-eyed determined expression ridiculous. A crooked miniature blue top hat and a tiny red bow tie are its only costume. Two wings, two feet, no separate hands or extra arms. Candlelit medieval tea room, comically earnest, no writing or spills on people.",
+  "designReferences": [
+    {
+      "url": "https://github.com/open5e/open5e-api/blob/staging/data/v1/wotc-srd/Monster.json",
+      "note": "SRD5.1 bat, also merged with A5E and Black Flag ordinary bats: Tiny beast with flight, bite, echolocation and enhanced hearing. No fixed species or coloration."
+    },
+    {
+      "url": "https://www.batcon.org/bats-vs-birds/",
+      "note": "Generic bat biology: furry mammal, wing membranes supported by elongated forelimb fingers; two wings and two hind feet, no extra arms. Natural species-like features, scenery and teacup-waiter gag are original choices."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}
