@@ -1,0 +1,17 @@
+{
+  "creatureId": "bearfolk-chieftain",
+  "variantId": "03",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BEARFOLK CHIEFTAIN avatar, Creature Codex. One powerful upright BEAR-HEADED HUMANOID with WHITE FUR, an experienced scarred ursine face, muscular torso, exactly TWO ARMS and TWO LEGS, large clawed weapon-gripping hands. Medium game-size category, not a quadrupedal polar bear or the separate Bear King fey. Wears a CHAIN SHIRT and carries one sturdy BATTLEAXE as token of rulership and one SHIELD. Proud old HEALED scars, no open wounds. White coat, chain links, shield and leadership axe are defining identity anchors. Original armor trim, shield motif and face. Detailed realistic painterly fur and metal, readable at 512 pixels. No blood, victims, gore, text, signature, watermark, logo or frame. Normal 03. A battle-worn white bearfolk chieftain sits upright on a large carved wooden command chair in a woodland council hall. Its two clawed hands each hold one item: battleaxe with the head resting on the floor beside its right knee, sturdy shield upright beside the left knee. Chain shirt, dark leather belt, white shaggy bear head with healed scars, two humanoid legs, reflective thoughtful gaze. Amber hearth glow and cool window light.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/bearfolk-chieftain/",
+      "note": "Creature Codex Medium bearfolk chieftain: white fur, proudly displayed battle scars, chain shirt, shield and battleaxe as rulership token. Upright bearfolk body inherited conservatively. Individual faces, healed-scar placement, shield motifs, poses and tiny-rocking-horse charge are original choices; not the separate Bear King."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

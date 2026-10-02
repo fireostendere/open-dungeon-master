@@ -1,0 +1,17 @@
+{
+  "creatureId": "bearing-golem",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BEARING GOLEM avatar. One MEDIUM CONSTRUCT whose entire body is assembled from THOUSANDS OF SMALL SPHERICAL METAL BALL BEARINGS. Each visible surface, head, torso, limb and hand is made of distinct round metal pellets held together magically, with tiny dark gaps between them. Original readable humanoid silhouette, one head, two arms and two legs when assembled; it can scatter and reform, so loose spheres near its feet are natural. No solid metal plating, robot panels, gears, rings, cubes, spikes, caltrops or flesh. Face is suggested only by shallow arrangements of spheres and dark eye-like gaps, not a human skin face. Realistic painterly metallic reflections and magical assembly, strong silhouette at 512 pixels. No blood, victims, text, signature, watermark, logo or frame. Normal 02. A bearing golem is reassembling from a scattered pile of small iron spheres on a dungeon floor: its upper humanoid torso, head and two arms are clearly formed while streams of separate balls spiral upward to finish the two lower legs. Every part remains a mass of distinct spherical bearings rather than liquid metal. Dramatic low angle, rust-flecked gray metal, cold teal magical light and dark stone vault, one coherent creature.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/golem-bearing/",
+      "note": "Tome of Beasts 2 Medium construct: shifting humanoid assembled from thousands of spherical metal ball bearings, capable of scattering and reassembly; slam/steel-shot uses own material. No fixed face, metal color or proportions. Original humanoid poses, sphere-face suggestion, settings and hopeless janitor joke; not the separate caltrop variant."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

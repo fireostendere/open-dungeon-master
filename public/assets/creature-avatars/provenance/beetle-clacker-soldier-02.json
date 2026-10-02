@@ -1,0 +1,21 @@
+{
+  "creatureId": "beetle-clacker-soldier",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy CLACKER BEETLE SOLDIER avatar. ONE SMALL golden BEETLE, not a swarm. Compact insect body with head, thorax and hard GOLDEN wing covers held closed; exactly SIX jointed legs, three on each side, two thin antennae, compound eyes. Defining feature: TWO UNEQUAL MANDIBLES, one conspicuously OVERSIZED curved jaw opposed by one much SMALLER jaw, designed to clap together. These are mouthparts, not extra legs or crab forearms. Standard six-legged beetle anatomy is the original conservative insect interpretation. No extended flight wings, horns, human hands, armor or carried weapons in normal variants. Realistic painterly chitin and rock textures, strong silhouette at 512 pixels. No blood, victims, injuries, text, signature, watermark, logo or frame. Normal 02. Close low three-quarter portrait of the clacker soldier's golden head, thorax and front of its closed wing covers. Unequal mouth mandibles are clear: one thick oversized curved clacking jaw and one short pointed jaw. Two antennae, dark compound eyes, six legs on the receding body with rear legs naturally occluded by perspective. Amber underground light, wet charcoal rock, metallic-looking but organic golden chitin.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/clacker-beetle-soldier-2/",
+      "note": "Tome of Beasts 3 Small clacker soldier, walking/climbing beetle with sound-producing mandibles. One individual, not the swarm."
+    },
+    {
+      "url": "https://www.5esrd.com/database/creature/swarm-of-clacker-beetles-2/",
+      "note": "Shared species appearance describes golden coloration with one small mandible opposed to one oversized jaw. Six legs, antennae and closed elytra are conservative beetle anatomy inference. Exact chitin pattern, poses, cave settings and powdered-wig conductor joke are original choices."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

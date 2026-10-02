@@ -1,0 +1,17 @@
+{
+  "creatureId": "bearfolk-chieftain",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BEARFOLK CHIEFTAIN avatar, Creature Codex. One powerful upright BEAR-HEADED HUMANOID with WHITE FUR, an experienced scarred ursine face, muscular torso, exactly TWO ARMS and TWO LEGS, large clawed weapon-gripping hands. Medium game-size category, not a quadrupedal polar bear or the separate Bear King fey. Wears a CHAIN SHIRT and carries one sturdy BATTLEAXE as token of rulership and one SHIELD. Proud old HEALED scars, no open wounds. White coat, chain links, shield and leadership axe are defining identity anchors. Original armor trim, shield motif and face. Detailed realistic painterly fur and metal, readable at 512 pixels. No blood, victims, gore, text, signature, watermark, logo or frame. YOLO 04. The fearsome white-furred bearfolk chieftain is solemnly leading an imaginary cavalry charge while STRADDLING A RIDICULOUSLY TINY PINK WOODEN ROCKING HORSE. The toy has a painted cheerful face and curved wooden rocker rails, unmistakably inanimate and far too small. The chieftain still wears its chain shirt and holds exactly one battleaxe in one clawed hand and its shield in the other; its two huge booted feet rest on the floor on either side of the toy. Proud battle-scarred face utterly serious, grand timber hall, dramatic heroic light, no other people or writing.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/bearfolk-chieftain/",
+      "note": "Creature Codex Medium bearfolk chieftain: white fur, proudly displayed battle scars, chain shirt, shield and battleaxe as rulership token. Upright bearfolk body inherited conservatively. Individual faces, healed-scar placement, shield motifs, poses and tiny-rocking-horse charge are original choices; not the separate Bear King."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

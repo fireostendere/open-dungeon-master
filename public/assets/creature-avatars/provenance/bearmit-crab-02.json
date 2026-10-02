@@ -1,0 +1,17 @@
+{
+  "creatureId": "bearmit-crab",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BEARMIT CRAB avatar. One LARGE MONSTROSITY with a low BEAR-LIKE furry body and ursine head, powerful furry forearms ending in exactly TWO GIANT CRAB PINCERS, one on each forearm. A huge irregular homemade ROCK-PILE SHELL covers its back and rear: many rough stones stuck together with visible amber PROPOLIS resin seams. It is NOT a smooth spiral shell, turtle shell or normal crab with a detached bear head. Rear anatomy is naturally obscured beneath the heavy rock shell because the source does not define it. One bear head with black nose, rounded ears, heavy muzzle and natural eyes; exactly two pincer forelimbs. Original fur, chitin and rock colors. Realistic painterly fur, wet stone, resin and crab shell, readable at 512 pixels. No victims, blood, injuries, text, signature, watermark, logo or frame. Normal 02. Close three-quarter portrait of the bearmit crab's dark shaggy bear head between its two enormous blue-black crustacean pincers. Furry muscular forearms visibly connect both pincers to the bear-like body. Behind the head rises a jagged shell of rough gray rocks with sticky golden resin seams, no spiral. Damp coastal cave, green reflected water light and amber highlights, watchful animal expression.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/bearmit-crab/",
+      "note": "Creature Codex Large monstrosity: bear-like creature with two giant pincers at powerful forearms and homemade rock-pile shell glued with propolis; bites and camouflages as rocks. Posterior anatomy is unspecified and mostly concealed; any visible rear paw is an original mammalian interpretation. Fur/chitin colors, stone arrangement, settings and miniature-cottage shell renovation are original choices."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}
