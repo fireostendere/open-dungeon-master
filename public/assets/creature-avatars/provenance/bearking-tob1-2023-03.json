@@ -1,0 +1,17 @@
+{
+  "creatureId": "bearking-tob1-2023",
+  "variantId": "03",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BEAR KING avatar, Tome of Beasts 1 (2023). Named fey ruler Mesikammen, Old Honey Paws. Source regalia: HOLLY-LEAF CROWN, HUNTING LEATHERS, heavy BEARSKIN CLOAK, BLACKENED MAUL and an ornate CLAY HONEY POT. Golden magical honey can coat his hands/paws and weapon. His default true form is a MEDIUM BEARDED HUMANOID-LOOKING FEY; he can alternatively assume a LARGE BROWN BEAR form. Choose one coherent form in the variant, no accidental extra heads or limbs. Original face, hairstyle and equipment decoration. Rich realistic painterly woodland royalty, readable face and regalia at 512 pixels. No injuries, victims, blood, gore, text, signature, watermark, logo or frame. Normal 03, DEFAULT FEY TRUE FORM. The mature bearded fey king sits on a broad throne carved from an ancient tree stump. Holly crown, heavy bearskin cloak, hunting leathers, two humanlike arms and two legs. His blackened maul rests across his knees and both hands rest on its shaft; the ornate honey pot hangs visibly from his belt. Silver-streaked brown beard, thoughtful woodland ruler expression, moonlit grove with small warm fireflies, full three-quarter seated figure.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/bear-king-3pp/",
+      "note": "Tome of Beasts 1 (2023) Bear King Mesikammen: Medium fey true form, bearded ruler in hunting leathers, bearskin cloak, holly crown, blackened maul and ornate clay honey pot. Alternate Large brown bear/hybrid forms; equipment does not transform. Variants 01-03 depict true form; 04 deliberately depicts brown-bear alternate form. Face, clothing decoration, scenes and stuck honey-pot gag are original choices."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

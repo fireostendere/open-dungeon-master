@@ -1,0 +1,17 @@
+{
+  "creatureId": "bathhouse-drake",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BATHHOUSE DRAKE avatar. A compact MEDIUM DRAGON approximately the size of a LARGE MASTIFF, with a draconic scaly head, sharp teeth and clawed feet; do not give it dog fur or a canine head. Steam curls from its nostrils and wet scales glisten with soap. This original artistic body plan uses exactly FOUR CLAWED LEGS, TWO small leathery WINGS attached to the back and ONE tapering reptilian TAIL, one head with two short swept-back horns. Exact limb/wing/horn configuration is an original interpretation, not a claimed canonical detail. Proud self-possessed bathhouse proprietor demeanor. Rich realistic painterly scales, water, steam and marble, clear subject at 512 pixels. No people being hurt, blood, nudity, text, signature, watermark, logo or frame. Normal 01. A jade-green bathhouse drake stands on four clawed feet beside a steaming marble pool, its two small leathery wings partly folded and its single tail curved neatly behind. Bronze belly scales and short dark horns, intelligent amber eyes with an assertive expression. Wisps of steam escape its nostrils, a few soap bubbles cling to its shoulders. Full three-quarter figure, elegant ancient bathhouse, warm lanterns and teal water.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/drake-bathhouse/",
+      "note": "Creature Codex Medium dragon about large-mastiff size, assertive gaze, steam, claws, bite, slippery/soapy body, amphibiousness and flight. Text does not specify exact leg, wing, horn or tail configuration; four legs/two small wings/two horns/tail are explicitly original design interpretation. Colors, bath props and duck-ring/foam-mustache joke are invented."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

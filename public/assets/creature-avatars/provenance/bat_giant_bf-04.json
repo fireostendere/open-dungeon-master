@@ -1,0 +1,21 @@
+{
+  "creatureId": "bat_giant_bf",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy GIANT BAT avatar for Black Flag SRD. One LARGE BEAST with furry mammalian body, two prominent ears, visible eyes, toothed bat muzzle, exactly TWO MEMBRANOUS HAND-WINGS and TWO CLAWED HIND LEGS. The two wings ARE its forelimbs, supported by elongated finger bones and one small thumb claw each; no separate arms, extra legs, horns, bird feathers, saddle or rider. Original natural species-like features; its size is emphasized by nearby masonry or forest objects, not specified exact measurements. Rich realistic painterly fur and leathery membranes, clear face and silhouette at 512 pixels. No blood, gore, victims, text, signature, watermark, logo or frame. YOLO 04. An enormous giant bat hangs upside down by its two hind feet from a heavy wooden ceiling beam in an abandoned inn, wearing a ludicrously long striped knitted NIGHTCAP that dangles almost to the floor. Its two leathery wings are folded around its furry body like a cozy blanket, leaving its grumpy sleepy bat face visible. A comically tiny plush rabbit is tucked harmlessly in the folded membrane against its chest, not held by extra hands. The furniture below is ordinary human scale. Warm bedside-candle mood in a gothic ruin, enormous bat trying to look like a sleepy baby, no writing.",
+  "designReferences": [
+    {
+      "url": "https://github.com/open5e/open5e-api/blob/staging/data/v1/blackflag/Monster.json",
+      "note": "Black Flag SRD v0.2 bat_giant_bf: Large beast with flight, bite, echolocation, heightened hearing and Dizzying Screech. No required species, exact wingspan, saddle or clothing."
+    },
+    {
+      "url": "https://www.batcon.org/bats-vs-birds/",
+      "note": "Generic mammalian bat anatomy: membranous forelimb wings and two hind feet. Fur, muzzle, ears, settings and nightcap/plush bedtime joke are original choices."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

@@ -1,0 +1,17 @@
+{
+  "creatureId": "beach-weird",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BEACH WEIRD elemental avatar. One LARGE long EEL-SHAPED SERPENTINE COLUMN OF CHURNING WATER rising from beach sand beside a tide pool. The body consists of transparent turbulent seawater containing suspended SAND, KELP/SEAWEED and pieces of DRIFTWOOD. No solid fish flesh, no humanoid torso, no arms or legs, no ordinary eel scales or required fins. Its head is an eel-like crest formed entirely by flowing water and foam, not a human face; any eye-like impressions are only original sand eddies in the water. One coherent sinuous water body, base merging into wet sand and surf. Rich realistic painterly fluid motion, suspended debris and light refraction, clear silhouette at 512 pixels. No victims, blood, gore, text, signature, watermark, logo or frame. YOLO 04. The eel-shaped beach weird has accidentally trapped an enormous STRIPED INFLATABLE BEACH BALL inside the middle of its transparent watery body, making a ridiculous round bulge below its otherwise long sinuous neck. A little pink plastic sand bucket sits crookedly on its foam crest like a crown; two dark sand eddies suggest a deeply offended stare. Seaweed and driftwood still swirl visibly around the intact ball. One continuous water body rooted in beach sand, no arms or legs, sunny seaside scene rendered with absurd epic dramatic lighting, no people or writing.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/beach-weird/",
+      "note": "Tome of Beasts 3 Large elemental: eel-like turbulent water form rising from sand, with suspended seaweed/kelp, driftwood and abundant sand; shoreline and tide-pool bound. No prescribed eyes, arms, legs or flesh. Water colors, sand-eddy facial suggestion, poses and trapped beach-ball/bucket joke are original choices."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}
