@@ -1,0 +1,17 @@
+{
+  "creatureId": "bard_bf",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original SQUARE 1:1 dark-fantasy BARD character avatar for Black Flag SRD. One clearly ADULT Medium humanoid performer or artist of an originally chosen lineage. Wears practical STUDDED LEATHER armor, with a slender RAPIER and compact HAND CROSSBOW safely sheathed or holstered at the belt. Exactly one head, two arms and two hands with coherent natural anatomy. Expressive face, worn artistic equipment, rich painterly realism, cinematic light and clear subject at 512 pixels. Fully clothed, no injuries, blood, text, letters, signature, watermark, logo or frame. Normal 02. An experienced adult human woman with deep brown skin, gray-flecked curly hair and sharp observant eyes stands at an easel in a ruined castle gallery. Ochre studded leather tunic beneath a practical paint-spattered apron, sheathed rapier and compact holstered hand crossbow. One hand holds a single fine brush, the other a small wooden palette. Partial unfinished landscape painting at the edge contains no letters. Close waist-up character portrait, vivid colored pigment and storm light.",
+  "designReferences": [
+    {
+      "url": "https://github.com/open5e/open5e-api/blob/staging/data/v1/blackflag/Monster.json",
+      "note": "Black Flag SRD v0.2 bard_bf NPC: Medium humanoid any lineage, studded leather armor, rapier, hand crossbow, Artistic Expression through music, poetry, dance, painting or other art. Original adult identities, disciplines, outfits, instruments and rubber-chicken violin joke."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

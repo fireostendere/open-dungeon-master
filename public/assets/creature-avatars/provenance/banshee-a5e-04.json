@@ -1,0 +1,17 @@
+{
+  "creatureId": "banshee-a5e",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy BANSHEE avatar based on the A5E spirit: a thin insubstantial ANDROGYNOUS ADULT HUMANOID suggestion, glowing faintly like moonlight, wearing MULTIPLE LAYERS OF RAGS. One face, one head, two arms, two hands; rag-covered lower body trails into translucent spectral wisps. Ethereal rather than a physical corpse, no visible wounds or gore. Original face and rag arrangement, luminous atmospheric painterly detail and recognizable silhouette at 512 pixels. No text, signature, watermark, logo or frame. YOLO 04. An absurd banshee karaoke diva with an androgynous adult face is belting a ludicrously dramatic high note into a battered copper funnel held like a microphone. Thin translucent moonlit body, many floating rag layers like an improvised stage gown, exactly two spectral arms: one holds the funnel to its mouth, the other hand dramatically raised overhead. Comically enormous homemade ear defenders made of two padded wool pot-holders tied around its own head. No audience. Ruined tomb becomes a shabby stage, a simple shaft of moonlight acts as spotlight; richly painted, silly, clear face and pose, no words.",
+  "designReferences": [
+    {
+      "url": "https://a5e.tools/node/1440",
+      "note": "A5E Monstrous Menagerie describes a wispy faintly moonlit androgynous humanoid in layers of rags, incorporeal movement and a supernatural wail. Original faces, hair, rag colors, settings and karaoke funnel/ear-defender joke; not restricted to female elves."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

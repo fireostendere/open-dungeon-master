@@ -1,0 +1,17 @@
+{
+  "creatureId": "bannik",
+  "variantId": "03",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy BANNIK creature avatar. A Medium bathhouse FEY resembling a very old wrinkled man with an OVERSIZED HEAD, conspicuously LARGE BARE FEET and CLAWED HANDS. One head, two arms, two legs; humanoid skin, not bark. Weathered face, expressive deep-set eyes, sparse wet gray hair. Modestly dressed in an opaque linen bathrobe or securely tied bath wrap. Steam and hot water are magical atmosphere; no injuries, victims, blood, nudity, text, signature, watermark, logo or frame. Detailed realistic painterly style, strong readable subject at 512 pixels. Normal 03. An elderly bathhouse fey with a craggy dark-brown face, huge wrinkled head, wide ears and wispy gray hair crouches on a broad stone step beside a misty indoor pool. His conspicuously large feet rest on the step in foreground, blue linen robe fully covers his torso and hips. Two clawed hands support a giant wooden ladle horizontally across his knees. Quiet watchful expression, teal water glow and warm candlelight, full figure clear.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/bannik/",
+      "note": "Tome of Beasts 3 bathhouse fey resembles an elderly wrinkled man, large head and feet, clawed hands; commands water, uses bound-fir wand and magical giant ladle. Disregards erroneously appended Beach Weird actions. Skin, clothing, beard, lighting and towel-crown/slippers gag are original choices."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

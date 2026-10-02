@@ -1,0 +1,17 @@
+{
+  "creatureId": "bard_bf",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original SQUARE 1:1 dark-fantasy BARD character avatar for Black Flag SRD. One clearly ADULT Medium humanoid performer or artist of an originally chosen lineage. Wears practical STUDDED LEATHER armor, with a slender RAPIER and compact HAND CROSSBOW safely sheathed or holstered at the belt. Exactly one head, two arms and two hands with coherent natural anatomy. Expressive face, worn artistic equipment, rich painterly realism, cinematic light and clear subject at 512 pixels. Fully clothed, no injuries, blood, text, letters, signature, watermark, logo or frame. Normal 01. A graceful adult elven man with bronze skin, long pointed ears and dark hair loosely tied back plays a beautifully worn wooden violin in a candlelit stone hall. Dark burgundy studded leather doublet, rapier and small hand crossbow holstered at opposite hips. One hand holds the violin neck, the other moves one bow across the strings. Focused bittersweet expression, waist-up three-quarter portrait, warm gold light and deep blue shadows.",
+  "designReferences": [
+    {
+      "url": "https://github.com/open5e/open5e-api/blob/staging/data/v1/blackflag/Monster.json",
+      "note": "Black Flag SRD v0.2 bard_bf NPC: Medium humanoid any lineage, studded leather armor, rapier, hand crossbow, Artistic Expression through music, poetry, dance, painting or other art. Original adult identities, disciplines, outfits, instruments and rubber-chicken violin joke."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

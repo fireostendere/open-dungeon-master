@@ -1,0 +1,17 @@
+{
+  "creatureId": "bannik",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy BANNIK creature avatar. A Medium bathhouse FEY resembling a very old wrinkled man with an OVERSIZED HEAD, conspicuously LARGE BARE FEET and CLAWED HANDS. One head, two arms, two legs; humanoid skin, not bark. Weathered face, expressive deep-set eyes, sparse wet gray hair. Modestly dressed in an opaque linen bathrobe or securely tied bath wrap. Steam and hot water are magical atmosphere; no injuries, victims, blood, nudity, text, signature, watermark, logo or frame. Detailed realistic painterly style, strong readable subject at 512 pixels. YOLO 04. The huge-headed wrinkly bannik is conducting an outrageously serious bathhouse inspection while wearing an enormous precarious stack of folded white towels as a tall crown. Fully closed linen bathrobe, two comically oversized bare feet in fuzzy pink rabbit slippers much too small to fit; toes visibly protrude over the soles. He holds a giant wooden ladle like a royal scepter in one clawed hand and plants the other on his hip. Furious bureaucratic expression, regal portrait lighting in a steamy shabby bathhouse. Single full figure, clear funny silhouette, no writing. Correction: Use case: precise-object-edit. Remove ONLY the tiny pale signature-like glyphs at the extreme bottom-right corner, replacing them with the continuation of the existing wet stone floor texture. Preserve this exact bannik's face, oversized head and feet, towel crown, bathrobe, pink rabbit slippers, wooden ladle, hands, body, steam, colors, lighting and composition unchanged. No text, signature, watermark or logo anywhere.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/bannik/",
+      "note": "Tome of Beasts 3 bathhouse fey resembles an elderly wrinkled man, large head and feet, clawed hands; commands water, uses bound-fir wand and magical giant ladle. Disregards erroneously appended Beach Weird actions. Skin, clothing, beard, lighting and towel-crown/slippers gag are original choices."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

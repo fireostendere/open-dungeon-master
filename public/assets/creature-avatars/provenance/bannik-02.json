@@ -1,0 +1,17 @@
+{
+  "creatureId": "bannik",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy BANNIK creature avatar. A Medium bathhouse FEY resembling a very old wrinkled man with an OVERSIZED HEAD, conspicuously LARGE BARE FEET and CLAWED HANDS. One head, two arms, two legs; humanoid skin, not bark. Weathered face, expressive deep-set eyes, sparse wet gray hair. Modestly dressed in an opaque linen bathrobe or securely tied bath wrap. Steam and hot water are magical atmosphere; no injuries, victims, blood, nudity, text, signature, watermark, logo or frame. Detailed realistic painterly style, strong readable subject at 512 pixels. Normal 02. A stern bannik with a bald domed oversized head and long white beard stands beside steaming hot stones. Thick pale linen wrap tied securely from chest to knees, very large bare feet on wet stone floor. One clawed hand raised beside his face as he commands a spiraling ribbon of water, the other hand held low with a fir-bundle wand. Cool twilight from a window, fiery copper reflections, three-quarter full figure. Correction: Use case: precise-object-edit. Correct ONLY the plant bundle held in the lowered hand on the viewer's left. Replace its broad oval leaves with a bound bundle of slender evergreen FIR SPRIGS bearing short flat green needles along thin woody branches. Keep the same overall small wand/bath-switch placement and the existing hand grip. The needles should unmistakably be conifer needles, not broad leaves. Preserve this exact bannik, oversized head and feet, both arms and hands, raised water magic, white wrap, hot stones, lighting, background, composition and every other detail. No lettering, signatures or watermark.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/bannik/",
+      "note": "Tome of Beasts 3 bathhouse fey resembles an elderly wrinkled man, large head and feet, clawed hands; commands water, uses bound-fir wand and magical giant ladle. Disregards erroneously appended Beach Weird actions. Skin, clothing, beard, lighting and towel-crown/slippers gag are original choices."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

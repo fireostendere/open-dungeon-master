@@ -1,0 +1,17 @@
+{
+  "creatureId": "bar-brawl",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-01",
+  "prompt": "Use case: stylized-concept. Original square dark-fantasy BAR BRAWL creature avatar. This creature is a HUGE SWARM OF MEDIUM HUMANOIDS: depict a compact crowd of several clearly separate ADULT tavern patrons, each ordinary humanoid size, with distinct heads, torsos and correctly connected arms. It is a mob, never one giant or a fused multiheaded creature. Worn leather vests and practical medieval clothing, overturned stools, spilled ale and angry faces establish the brawl. Rich realistic painterly tavern textures, expressive faces readable at 512 pixels. No visible impacts on bodies, injuries, blood, gore, children, text, watermark, signature, logo or frame. YOLO 04. Four angry adult tavern toughs have somehow turned their fearsome bar brawl into an absurd PILLOW FIGHT, each wearing a different battered cooking pot as a helmet. Front-left an enormous bearded adult human man in leather clutches a tiny frilly pink cushion in both hands; front-right a stern adult human woman in leather swings one large white pillow with both hands. Two separate adult onlookers behind them duck behind their own distinct cooking-pot helmets with hands hidden. Four distinct faces and bodies, a cloud of white feathers and spilled ale, dramatic heroic tavern lighting, foolishly serious expressions, no actual injuries or text.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/bar-brawl/",
+      "note": "Creature Codex Huge swarm of Medium humanoids, leather armor, stools/bottles/darts and drinking resilience. The avatar represents the mob through four separate adult foreground patrons; original identities, clothing, scene arrangements and pillow-fight/cooking-pot joke. No publisher art copied."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}
