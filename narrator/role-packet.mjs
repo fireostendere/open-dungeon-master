@@ -467,8 +467,6 @@ export function compactRolePacket(role, packet) {
         ? { storyArc: compactStoryArc(packet.campaign.storyArc) }
         : {}),
     };
-    if (packet.campaign?.storyArc) delete campaign.dmOutline;
-    else if (typeof campaign.dmOutline === 'string') campaign.dmOutline = campaign.dmOutline.slice(0, 4000);
     result = { ...result, campaign };
   }
   const sheets = packet.state?.sheets;

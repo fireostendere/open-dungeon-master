@@ -461,6 +461,21 @@ export const STORY_ADJUDICATIONS: CatalogEntry[] = [
     ],
   },
   {
+    name: "update_story",
+    label: "Save story and chapter",
+    category: "story",
+    summary: "Persist the secret story arc and public chapter recap. Create the arc from the campaign's existing outline, quests and played events, then maintain it without restarting the campaign. Existing beat order, statuses, waypoints and settled text must remain unchanged; complete_beat advances progress. Existing cast, events, threads, saga and world clocks are retained in full; arc updates revise unplayed beat text/detail and append future beats. Public summaries contain only confirmed events the party witnessed, never private Ask, whispers or future plans. Close a chapter only at a meaningful story break after its summary is saved. Omitted fields remain unchanged.",
+    fields: [
+      { name: "arc", label: "Secret story arc JSON", kind: "longtext", help: "Object or JSON. Required shape: {premise, beats:[{text,status,act,waypoints?},...]}; at least two beats. Preserve the stored beat order/progress on updates. New beats are unplayed. The canonical DM outline is retained separately." },
+      { name: "chapterTitle", label: "Public chapter title", kind: "text" },
+      { name: "chapterSummary", label: "Public chapter recap", kind: "longtext" },
+      { name: "chapterHighlights", label: "Public highlights JSON", kind: "longtext", help: "Array of up to six short strings; confirmed public events only." },
+      { name: "closeChapter", label: "Close this chapter", kind: "boolean" },
+      { name: "scene", label: "Current public scene", kind: "longtext" },
+      { name: "quests", label: "Public quest log JSON", kind: "longtext", help: "Array of up to twenty public objectives; omit to keep existing quests." },
+    ],
+  },
+  {
     name: "complete_beat",
     label: "Beat achieved",
     category: "story",

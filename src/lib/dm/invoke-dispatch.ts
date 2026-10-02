@@ -2,7 +2,7 @@
 //
 // One deterministic rules engine serves human and external MCP narrators.
 // The caller may change; adjudication semantics do not.
-import { handleCompleteBeat } from "@/lib/dm/arc";
+import { handleCompleteBeat, handleUpdateStory } from "@/lib/dm/arc";
 import { handleCastBuff } from "@/lib/dm/cast-tools";
 import { handleCheckNotice, handleGroupCheck } from "@/lib/dm/check-tools";
 import { handleAddCompanion, handleDismissCompanion } from "@/lib/dm/companion-tools";
@@ -196,6 +196,8 @@ function dispatchSynchronous(
       return handleRecordEvent(campaign, rawArguments, sheets, sheetsById);
     case "complete_beat":
       return handleCompleteBeat(campaign.id, rawArguments, false).result;
+    case "update_story":
+      return handleUpdateStory(campaign, rawArguments);
     case "write_campaign_note":
       return handleWriteCampaignNote(campaign, rawArguments);
     case "send_whisper":

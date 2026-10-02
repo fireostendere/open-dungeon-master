@@ -6,7 +6,7 @@ import { emitLatency, latencyEnabled } from '../../mcp/latency-trace.mjs';
  */
 export function readNarratorSections({ db, campaignId, timelineEpoch, principal, live, delta, knownSections = {}, loaders }) {
   const timing=latencyEnabled(), started=timing?performance.now():0;
-  const omittedSections = live ? ['recentRolls','recentDmWhispers','recentMessages','chapters'] : [];
+  const omittedSections = live ? ['recentRolls','recentDmWhispers','recentMessages'] : [];
   const sections = {}, sectionVersions = {}, cache = narratorSectionCache(db);
   const before={...cache.stats};
   for (const [section, load] of Object.entries(loaders)) {

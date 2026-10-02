@@ -1,5 +1,7 @@
-import { allocateSeq, getCampaignById, setStoryArc } from "@/lib/db/campaigns";
-import { getOpenChapter, listChapters, setChapterAct } from "@/lib/db/chapters";
+import { z } from "zod";
+import { allocateSeq, getCampaignById, latestSeq, setCampaignScene, setQuestLog, setStoryArc, type Campaign } from "@/lib/db/campaigns";
+import { closeChapterRow, ensureOpenChapter, getOpenChapter, listChapters, setChapterAct, updateChapter } from "@/lib/db/chapters";
+import { captureBoundarySnapshot } from "@/lib/db/snapshots-store";
 import { insertCampaignMessage } from "@/lib/db/messages";
 import { publishEphemeral, publishPersisted, publishWithSeq } from "@/lib/events";
 import {
@@ -9,12 +11,109 @@ import {
   completeBeat,
   currentAct,
   nextSketchAct,
+  normalizeStoryArc,
   recordActRecap,
   romanNumeral,
   sagaIndexOf,
   type StoryArc,
 } from "@/lib/dm/arc-logic";
 import { gatingWaypoints } from "@/lib/dm/waypoint-logic";
+import { assertPlayerFacingText } from "@/lib/dm/narration-guard";
+
+const storyUpdateSchema = z.object({
+  arc: z.unknown().optional(),
+  scene: z.string().trim().min(1).max(2000).optional(),
+  quests: z.array(z.string().trim().min(1).max(500)).max(20).optional(),
+  chapterTitle: z.string().trim().min(1).max(120).optional(),
+  chapterSummary: z.string().trim().min(1).max(8000).optional(),
+  chapterHighlights: z.array(z.string().trim().min(1).max(300)).max(6).optional(),
+  closeChapter: z.boolean().optional(),
+}).strict().refine((args) => Object.keys(args).length > 0, "Provide a story update.");
+
+// The external DM authors the plan and public recap; dice and beat advancement
+// still use the ordinary engine actions. This runs inside invoke's transaction.
+export function handleUpdateStory(campaign: Campaign, rawArguments: string): Record<string, unknown> {
+  let raw: Record<string, unknown>;
+  try {
+    raw = JSON.parse(rawArguments || "{}");
+    for (const field of ["arc", "quests", "chapterHighlights"]) {
+      if (typeof raw[field] === "string") raw[field] = JSON.parse(raw[field] as string);
+    }
+  } catch { return { error: "Story updates need valid JSON." }; }
+  const parsed = storyUpdateSchema.safeParse(raw);
+  if (!parsed.success) return { error: z.prettifyError(parsed.error) };
+  const args = parsed.data;
+  const arc = args.arc === undefined ? null : normalizeStoryArc(args.arc);
+  if (args.arc !== undefined && !arc) return { error: "Invalid story arc; provide a premise and at least two beats." };
+  if (arc) {
+    const before = campaign.storyArc;
+    if (before) {
+      for (const field of ["stakes", "antagonist", "finale"] as const) {
+        if (!Object.hasOwn(args.arc as object, field)) Object.assign(arc, { [field]: before[field] });
+      }
+      // Referee packets compact these layers, so even an explicit partial array
+      // cannot replace their full persisted canon or reopen settled history.
+      arc.saga = before.saga;
+      arc.cast = before.cast;
+      arc.events = before.events;
+      arc.subArcs = before.subArcs;
+    }
+    if (before && (sagaIndexOf(before) !== sagaIndexOf(arc) || before.beats.some((beat, index) => {
+      const next = arc.beats[index];
+      if (next && (beat.status === "done" || beat.status === "skipped")) next.detail = beat.detail;
+      return !next || next.status !== beat.status || next.act !== beat.act ||
+        ((beat.status === "done" || beat.status === "skipped") && next.text !== beat.text) ||
+        JSON.stringify(next.waypoints ?? []) !== JSON.stringify(beat.waypoints ?? []);
+    }))) return { error: "Preserve existing beat order, completed history, statuses and waypoints; use complete_beat to advance play." };
+    if (arc.beats.slice(before?.beats.length ?? 0).some((beat) => beat.status === "done" || beat.status === "skipped") ||
+      arc.beats.filter((beat) => beat.status === "active").length > 1) {
+      return { error: "New beats must remain unplayed, with at most one active beat." };
+    }
+    if (before) {
+      // Reauthoring plans must not reset the engine's world clocks or recaps.
+      arc.worldArcs = before.worldArcs;
+      arc.actRecaps = before.actRecaps;
+    }
+  }
+  try {
+    for (const text of [args.scene, args.chapterTitle, args.chapterSummary, ...(args.quests ?? []), ...(args.chapterHighlights ?? [])]) {
+      assertPlayerFacingText(text, "story recap");
+    }
+  } catch (error) { return { error: error instanceof Error ? error.message : "Invalid public story text." }; }
+  const chapter = arc || args.chapterTitle || args.chapterSummary || args.chapterHighlights || args.closeChapter
+    ? ensureOpenChapter(campaign.id) : null;
+  if (args.closeChapter && !(args.chapterSummary || chapter?.summary)) return { error: "Write a public chapter summary before closing it." };
+  if (arc) commitStoryArc(campaign.id, arc);
+  if (args.scene !== undefined) setCampaignScene(campaign.id, args.scene);
+  if (args.quests !== undefined) setQuestLog(campaign.id, args.quests);
+  if (chapter) {
+    const updated = updateChapter(chapter.id, {
+      title: args.chapterTitle, summary: args.chapterSummary, highlights: args.chapterHighlights,
+    })!;
+    const activeArc = arc ?? campaign.storyArc;
+    const act = activeArc ? currentAct(activeArc) : null;
+    const saga = activeArc ? sagaIndexOf(activeArc) : null;
+    if (args.closeChapter) {
+      const seqEnd = latestSeq(campaign.id);
+      const closed = closeChapterRow(updated.id, { ...updated, seqEnd, act, saga })!;
+      const opened = setChapterAct(closed.opened.id, act, saga)!;
+      publishPersisted(campaign.id, "chapter_closed", { chapter: closed.closed, opened });
+      captureBoundarySnapshot(campaign.id, opened.index, seqEnd);
+    } else {
+      const stamped = setChapterAct(updated.id, act, saga)!;
+      publishPersisted(campaign.id, "chapter_updated", { chapter: stamped });
+    }
+  }
+  // Only the fact of an update reaches the public event stream, never DM plans.
+  if (args.scene !== undefined || args.quests !== undefined) {
+    publishPersisted(campaign.id, "campaign_updated", {
+      ...(args.scene === undefined ? {} : { scene: args.scene }),
+      ...(args.quests === undefined ? {} : { questLog: args.quests }),
+    });
+  }
+  publishPersisted(campaign.id, "mcp_control", { action: "story_updated" });
+  return { ok: true, arcUpdated: Boolean(arc), chapterUpdated: Boolean(chapter), chapterClosed: Boolean(args.closeChapter) };
+}
 
 export function handleCompleteBeat(
   campaignId: string,
