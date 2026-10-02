@@ -1,0 +1,21 @@
+{
+  "creatureId": "bear_polar_bf",
+  "variantId": "03",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy POLAR BEAR avatar for Black Flag SRD. One LARGE natural BEAST with realistic polar-bear anatomy: elongated heavy ursine body, LONG NECK, relatively NARROW HEAD and muzzle, small rounded ears, thick WHITE-TO-CREAM FUR, four broad clawed paws, one head and one short tail. Black nose and dark eyes, not magical glowing eyes. No humanoid torso or hands, ice spikes, crystal armor, horns, wings or breath weapon. Rich realistic painterly fur and cold coastal atmosphere, clear readable subject at 512 pixels. No blood, injuries, victims, text, signature, watermark, logo or frame. Normal 03. Close three-quarter head-and-shoulders portrait of an adult polar bear resting beside a snow-covered rock. Long slender muzzle and small rounded ears distinguish it from a brown bear, dense warm-white fur with frost on whiskers, black nose and quiet dark eyes. Pale pink dawn over a frozen coastline, subtle blue shadows, no supernatural details.",
+  "designReferences": [
+    {
+      "url": "https://github.com/open5e/open5e-api/blob/staging/data/v1/blackflag/Monster.json",
+      "note": "Black Flag SRD v0.2 bear_polar_bf: Large natural beast with bite/claws, heightened smell, swimming and cold resistance. Cold resistance does not imply elemental anatomy."
+    },
+    {
+      "url": "https://www.canada.ca/en/environment-climate-change/services/species-risk-public-registry/recovery-strategies/polar-bear-ontario-2011.html",
+      "note": "Biological illustration reference, not extra game canon: polar bear has elongated body and neck, narrow head/muzzle, small ears and white-to-cream coat. Poses, lighting and tiny-ice-floe tropical vacation gag are original choices."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

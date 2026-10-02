@@ -1,0 +1,21 @@
+{
+  "creatureId": "bearded-devil",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BEARDED DEVIL avatar. One MEDIUM infernal soldier, upright original humanoid-like interpretation with one head, TWO ARMS, TWO LEGS, no wings or extra limbs. Defining feature is a thick mane of FLESHY FLEXIBLE TENDRILS around its chin and cheeks, with some subtly pointed or spined tips: a living tendril BEARD, not ordinary hair. Veteran face bears old HEALED scars, no fresh wounds. Carries one GLAIVE, a long polearm with a single cutting blade at its top. Original skin color, precise tendril arrangement and modest leather soldier wrap; no required horns or tail, omit them here. Rich realistic painterly scales/skin and metal, clear face and beard at 512 pixels. No blood, gore, victims, text, signature, watermark, logo or frame. Normal 01. A brick-red bearded devil stands guard beside an iron fortress gate, stern narrow eyes and healed pale scars across its brow. Numerous dark crimson fleshy beard tendrils curl independently around its jaw and chest. One hand grips a tall black-iron glaive upright beside its shoulder, the other rests on a plain leather belt. Waist-up three-quarter portrait, ash-gray sky and orange furnace rim light, soldierly restraint.",
+  "designReferences": [
+    {
+      "url": "https://a5e.tools/node/1512",
+      "note": "Official A5E description: facial mane of fleshy tendrils and numerous battle scars. Medium infernal soldier with beard attack and wielded glaive. Upright two-arm/two-leg form is a conservative illustration inference; no required horns/tail/wings established."
+    },
+    {
+      "url": "https://github.com/open5e/open5e-api/blob/staging/data/v1/blackflag/Monster.json",
+      "note": "Black Flag bearded_devil_bf corroborates Medium devil, Beard Spines and Glaive. Skin colors, exact tendrils, healed-scar placement, clothing, scenes and salon-roller joke are original choices."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

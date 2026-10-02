@@ -1,0 +1,21 @@
+{
+  "creatureId": "bearded-devil",
+  "variantId": "03",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BEARDED DEVIL avatar. One MEDIUM infernal soldier, upright original humanoid-like interpretation with one head, TWO ARMS, TWO LEGS, no wings or extra limbs. Defining feature is a thick mane of FLESHY FLEXIBLE TENDRILS around its chin and cheeks, with some subtly pointed or spined tips: a living tendril BEARD, not ordinary hair. Veteran face bears old HEALED scars, no fresh wounds. Carries one GLAIVE, a long polearm with a single cutting blade at its top. Original skin color, precise tendril arrangement and modest leather soldier wrap; no required horns or tail, omit them here. Rich realistic painterly scales/skin and metal, clear face and beard at 512 pixels. No blood, gore, victims, text, signature, watermark, logo or frame. Normal 03. A charcoal-blue bearded devil crouches on a broad basalt stair, one polearm held diagonally with both hands, its glaive blade fully distinct from the beard. Pale gray fleshy tendrils coil from its chin and cheeks, old healed brow scars and a focused suspicious gaze. Two arms and two legs, fully practical leather lower-body covering, no horns or wings. Full three-quarter figure, dim red banners and moonlit stone. Correction: Use case: precise-object-edit. Correct ONLY the glaive's broken geometry. The devil currently holds a straight shaft diagonally from upper-left to lower-right, but a disconnected blade and second shaft incorrectly protrude from behind its right shoulder toward the upper-right. REMOVE that entire upper-right blade and its rear shaft, restoring the sky and castle behind. Keep the existing diagonal shaft and both hands in their current positions. Extend that held shaft naturally toward the UPPER-LEFT and attach ONE clearly visible glaive cutting blade to that upper-left end, in a continuous straight line through the two existing grips down to the lower-right butt. There must be exactly ONE polearm, ONE straight shaft and ONE blade, with no bend, X-crossing, spare staff or disconnected weapon. Preserve the exact devil, pale fleshy beard tendrils, face, scars, two arms, two legs, clothing, crouching pose, steps, banners, lighting and square composition otherwise unchanged. No text or watermark.",
+  "designReferences": [
+    {
+      "url": "https://a5e.tools/node/1512",
+      "note": "Official A5E description: facial mane of fleshy tendrils and numerous battle scars. Medium infernal soldier with beard attack and wielded glaive. Upright two-arm/two-leg form is a conservative illustration inference; no required horns/tail/wings established."
+    },
+    {
+      "url": "https://github.com/open5e/open5e-api/blob/staging/data/v1/blackflag/Monster.json",
+      "note": "Black Flag bearded_devil_bf corroborates Medium devil, Beard Spines and Glaive. Skin colors, exact tendrils, healed-scar placement, clothing, scenes and salon-roller joke are original choices."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

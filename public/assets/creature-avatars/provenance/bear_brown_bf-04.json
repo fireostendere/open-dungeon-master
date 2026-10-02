@@ -1,0 +1,21 @@
+{
+  "creatureId": "bear_brown_bf",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BROWN BEAR avatar for Black Flag SRD. One LARGE natural BEAST, illustrated with realistic brown-bear/grizzly anatomy: bulky ursine body, a pronounced MUSCULAR SHOULDER HUMP, broad head with a slightly DISHED facial profile, small rounded ears, long natural front claws, FOUR PAWS, one head and one short tail. Dense brown or grizzled fur, dark animal eyes. No humanoid torso, human hands, armor, horns, wings or magical body parts. Rich realistic painterly wildlife detail in atmospheric fantasy wilderness, strong readable face and silhouette at 512 pixels. No blood, injuries, victims, text, signature, watermark, logo or frame. YOLO 04. A huge brown bear has attempted to go fishing and caught ONE battered OLD LEATHER BOOT instead of a fish. The bear sits naturally on its haunches with both broad front paws on the ground, a ridiculously tiny bamboo fishing rod clamped gently sideways in its mouth, the line dangling an empty boot beside its face. A crooked miniature fisherman's hat perches between its small ears. Deeply disappointed animal eyes, strong shoulder hump and four natural bear limbs, riverbank in dramatic sunset light. No hooks in the bear or other animals, no injury, no people, no writing.",
+  "designReferences": [
+    {
+      "url": "https://github.com/open5e/open5e-api/blob/staging/data/v1/blackflag/Monster.json",
+      "note": "Black Flag SRD v0.2 bear_brown_bf: Large natural beast with bite/claws, heightened smell and walking/climbing. No fixed subspecies or coat shade."
+    },
+    {
+      "url": "https://www.nps.gov/articles/bear-identification.htm",
+      "note": "Biological illustration reference, not extra game canon: brown bear muscular shoulder hump, concave facial profile, small rounded ears and longer front claws. Fur shades, scenes, poses and failed boot-fishing joke are original choices."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}
