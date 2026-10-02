@@ -1,0 +1,17 @@
+{
+  "creatureId": "boggard-bravo-a5e",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BOGGARD BRAVO avatar, Advanced 5e. One MEDIUM athletic FROG-HEADED HUMANOID champion with long gangly limbs, TWO ARMS, TWO LEGS, WEBBED FEET, a SPEAR and a distinctive LONG MANIPULATORY TONGUE. One frog head with two bulbous eyes and wide mouth, no human face, hair, wings, tail or horns. Tongue can curl and grip; exact length, color, tip and adhesion are original choices, not a mandatory 15-foot depiction. Stronger build and simple champion ornaments are original choices, no required armor. Opaque practical reed/leather wraps. Realistic painterly amphibian skin, tongue and marsh, readable at 512 pixels. No victims, tongue attack on others, injury, blood, gore, nudity, writing, signature, watermark, logo or frame. YOLO 04. A boastful boggard bravo is cheating outrageously at dessert: its ridiculously long tongue curls around THREE ICE-CREAM CONES at once while its two hands remain innocently occupied holding its spear upright. One continuous tongue with separate coils supporting the three cones, wide smug frog eyes, webbed feet and reed waistwrap. Colorful harmless ice cream, muddy market stall with no people or text.",
+  "designReferences": [
+    {
+      "url": "https://a5e.tools/node/1466",
+      "note": "A5E Bravo: Medium champion with shared frog head/gangly/webbed humanoid anatomy, spear and long grasping tongue used to pull/trip/disarm. Exact tongue design, champion adornments and ice-cream gag original; not Large Sovereign."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

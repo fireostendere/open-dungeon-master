@@ -1,0 +1,17 @@
+{
+  "creatureId": "boggard-sovereign-a5e",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BOGGARD SOVEREIGN avatar, Advanced 5e. One LARGE magically enlarged FROG-HEADED HUMANOID ruler, TWO ARMS and TWO LEGS with WEBBED FEET, broad amphibian head and wide mouth. Natural armor is its own thick skin. Bigger than ordinary boggards; exact bulk, skin colors, vocal sac and regalia are original choices. Crown, silver scepter and jewelry are optional supported encounter props, no required spear or Bravo tongue. No extra frog guardians unless separately requested; one main creature only. Opaque practical royal wraps or cloak, realistic painterly wet skin, metal and marsh light, readable face at 512 pixels. No human face, horns, hair, wings, tail, victims, injury, blood, gore, nudity, writing, signature, watermark, logo or frame. Normal 01. A massive emerald-green frog humanoid ruler stands on a stone dais above a swamp, broad amphibian head, two large golden eyes, thick limbs and wide webbed feet. A modest old gold crown and heavy shell necklace are optional royal ornaments, one hand holds a silver scepter, other relaxed. Opaque dark reed-cloth wrap, grand misty marsh background.",
+  "designReferences": [
+    {
+      "url": "https://a5e.tools/node/1444",
+      "note": "A5E Large magically enlarged boggard ruler, shared frog-headed/webbed humanoid body, natural armor, poisonous bite and thunderous croak; no spear/tongue attack. Crown/scepter/jewelry optional treasure. Exact bulk/vocal sac and tiny-lawn-chair throne gag original."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}
