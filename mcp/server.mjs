@@ -287,6 +287,16 @@ writes the host uses an internal no-prose finalizer before unlocking. That final
 committed write advances the counter and opens the next round.
 Consume the attached state after a write; drain missing pages/events with read.
 
+## Where everyone is
+Narration never moves anyone. partyPositions in every read is the record the
+players' map shows: each character with the place (or, with location chat on,
+the room) they are in, null when not placed. Whenever your scene takes a
+character somewhere else, record it before the prose: move_party {name} moves
+the whole party; move_party {name, characterIds} moves only those characters
+and leaves the rest where they stand. With location chat on use location_move
+{roomId, characterIds} instead; move_party is refused there. Check the receipt's
+positions; never describe someone in a place partyPositions does not show.
+
 ## Inventory and trade
 Narration never changes inventory. Even a guaranteed handover needs an engine
 action before the final prose. Resolve the owner from message.characterId and

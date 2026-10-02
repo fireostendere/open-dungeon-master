@@ -45,7 +45,9 @@ export type DrawOptions = {
   pending?: { kind: PathKind; points: XY[] } | null;
   // Accessible DOM markers sit over the screen canvas; exports draw them.
   markers?: boolean;
-  materials?: AtlasMaterials | null;
+  // The finished relief (reliefTerrain, or its cached copy). Without it and
+  // without a backdrop the ground is the cheap low-poly grid, or bare.
+  relief?: CanvasImageSource | null;
   lowPoly?: boolean;
 };
 
@@ -61,7 +63,7 @@ const MATERIAL_COLOURS: Partial<Record<TerrainMaterial, number[]>> = {
 
 // Relief is derived from the stored biome grid, including hand-painted
 // changes. A generated illustration must never replace the world's facts.
-function reliefTerrain(map: OverworldData["map"], genre: string, materials?: AtlasMaterials | null) {
+export function reliefTerrain(map: Pick<OverworldData["map"], "seed" | "width" | "height" | "terrain" | "materialGrid">, genre: string, materials?: AtlasMaterials | null) {
   const cached = terrainCache;
   if (cached && cached.seed === map.seed && cached.width === map.width && cached.height === map.height && cached.terrain === map.terrain && cached.materialGrid === map.materialGrid && cached.genre === genre && cached.materials === materials) return cached.canvas;
   const canvas = document.createElement("canvas");
@@ -246,10 +248,18 @@ export function drawOverworld(
 ) {
   const tile = OVERWORLD_TILE;
   const { width, height } = data.map;
-  const map = data.map.materialGrid ? data.map : { ...data.map, ...atlasTerrain(data.map, data.locations) };
 
-  if (options.lowPoly) {
+  if (usable(options.backdrop)) {
+    // The picture stands in for the tiles, stretched to the grid so a tap
+    // lands on the same tile whichever of the two is showing.
+    context.drawImage(options.backdrop, 0, 0, width * tile, height * tile);
+  } else if (options.relief) {
+    context.imageSmoothingEnabled = true;
+    context.imageSmoothingQuality = "high";
+    context.drawImage(options.relief, 0, 0, width * tile, height * tile);
+  } else if (options.lowPoly) {
     const skin = skinForGenre(options.genre);
+    const map = data.map.materialGrid ? data.map : { ...data.map, ...atlasTerrain(data.map, data.locations) };
     for (let y = 0; y < height; y++) for (let x = 0; x < width; x++) {
       const kind = map.terrain[y * width + x] as keyof typeof skin;
       const fill = skin[kind]?.fill ?? skin.w.fill;
@@ -262,14 +272,6 @@ export function drawOverworld(
       context.lineTo(x * tile, (y + 1) * tile);
       context.fill();
     }
-  } else if (usable(options.backdrop)) {
-    // The picture stands in for the tiles, stretched to the grid so a tap
-    // lands on the same tile whichever of the two is showing.
-    context.drawImage(options.backdrop, 0, 0, width * tile, height * tile);
-  } else {
-    context.imageSmoothingEnabled = true;
-    context.imageSmoothingQuality = "high";
-    context.drawImage(reliefTerrain(map, options.genre, options.materials), 0, 0, width * tile, height * tile);
   }
 
   // Borders under rivers under roads: a road crossing a river reads as a
@@ -436,7 +438,7 @@ export function drawOverworld(
 // scratch on its own canvas so the view's pan and zoom do not crop it.
 export function renderOverworldPng(
   data: OverworldData,
-  options: Pick<DrawOptions, "genre" | "backdrop" | "materials">,
+  options: Pick<DrawOptions, "genre" | "backdrop" | "relief" | "lowPoly">,
 ): Promise<Blob | null> {
   const canvas = document.createElement("canvas");
   canvas.width = data.map.width * OVERWORLD_TILE;
@@ -453,7 +455,7 @@ export function renderOverworldPng(
 // wrong, or null.
 export async function saveOverworldPng(
   data: OverworldData,
-  options: Pick<DrawOptions, "genre" | "backdrop" | "materials">,
+  options: Pick<DrawOptions, "genre" | "backdrop" | "relief" | "lowPoly">,
 ): Promise<string | null> {
   const blob = await renderOverworldPng(data, options);
   if (!blob) {

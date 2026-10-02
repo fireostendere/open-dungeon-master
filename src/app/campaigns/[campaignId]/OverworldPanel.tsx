@@ -5,7 +5,7 @@
 
 import * as Dialog from "@radix-ui/react-dialog";
 import { Anchor, Castle, Church, Compass, Diamond, Flag, Focus, House, Landmark, Loader2, LocateFixed, MapPin, Maximize2, Minus, Mountain, Pencil, Plus, Search, ScrollText, Tent, Trees, Users, X } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "@/lib/cn";
 import { skinForGenre, type XY } from "@/lib/overworld/logic";
 import type { OverworldBrush } from "@/lib/overworld/paint";
@@ -31,9 +31,9 @@ import {
 } from "@/app/campaigns/[campaignId]/OverworldTools";
 import {
   drawOverworld,
+  reliefTerrain,
   saveOverworldPng,
   OVERWORLD_TILE as TILE,
-  type AtlasMaterials,
   type OverworldData,
 } from "@/app/campaigns/[campaignId]/overworldDraw";
 import { useOverworldView } from "@/app/campaigns/[campaignId]/useOverworldView";
@@ -41,7 +41,7 @@ import { useI18n } from "@/lib/i18n/context";
 import { localeText } from "@/lib/i18n/locale-text";
 import { atlasQuests, atlasRoute, isQuestPin, layoutAtlasMarkers, locationKind } from "@/lib/overworld/atlas";
 import { atlasTerrain, landmarkForLocation, landmarkSprite, materialAt, type TerrainMaterial } from "@/lib/overworld/cartography";
-import { loadAtlasMaterials, slowMapConnection } from "@/lib/overworld/loading";
+import { cachedRelief, loadAtlasMaterials, slowMapConnection, storeRelief } from "@/lib/overworld/loading";
 import styles from "./worldAtlas.module.css";
 
 const PLACE_ICONS = { settlement: House, dungeon: Mountain, fort: Castle, ruin: Landmark, shrine: Church, mountain: Mountain, forest: Trees, camp: Tent, port: Anchor, neutral: MapPin };
@@ -104,8 +104,10 @@ export function OverworldPanel({
   // The backdrop image, keyed by the path it was loaded from, so a picture
   // taken away or replaced never draws for a frame under the wrong path.
   const [backdrop, setBackdrop] = useState<{ path: string; image: HTMLImageElement } | null>(null);
-  const [materials, setMaterials] = useState<AtlasMaterials | null>(null);
-  const [lowPoly, setLowPoly] = useState(true);
+  // The last finished relief stays up while a changed map renders, so the
+  // low-poly grid only ever shows before the very first one exists.
+  const [relief, setRelief] = useState<CanvasImageSource | null>(null);
+  const [reliefMissing, setReliefMissing] = useState(false);
   const [slowConnection, setSlowConnection] = useState(false);
   const [forceDetails, setForceDetails] = useState(0);
   const [exporting, setExporting] = useState(false);
@@ -165,7 +167,7 @@ export function OverworldPanel({
 
   const backdropPath = data?.map.backdropPath ?? "";
   useEffect(() => {
-    if (!backdropPath || lowPoly) {
+    if (!backdropPath) {
       return;
     }
     let cancelled = false;
@@ -179,21 +181,39 @@ export function OverworldPanel({
     return () => {
       cancelled = true;
     };
-  }, [backdropPath, lowPoly]);
-  const backdropImage = !lowPoly && backdrop && backdrop.path === backdropPath ? backdrop.image : null;
-  const materialGrid = data?.map.materialGrid ?? (data ? atlasTerrain(data.map, data.locations).materialGrid : "");
-  const materialKey = [...new Set([...materialGrid].map((_, index) => materialAt(materialGrid, index)))].sort().join(",");
+  }, [backdropPath]);
+  const backdropImage = backdrop && backdrop.path === backdropPath ? backdrop.image : null;
+  const lowPoly = reliefMissing && !relief && !backdropImage;
+  // Everything the relief is painted from, as one string: the cache key, and
+  // what the effect below reads back, so a position-only update changes nothing.
+  const reliefSource = useMemo(() => {
+    if (!data) return "";
+    const map = data.map.materialGrid ? data.map : { ...data.map, ...atlasTerrain(data.map, data.locations) };
+    return JSON.stringify([genre, map.seed, map.width, map.height, map.terrain, map.materialGrid ?? ""]);
+  }, [data, genre]);
   useEffect(() => {
-    if (!materialKey) return;
+    if (!reliefSource) return;
     let cancelled = false;
-    // Paint the cheap geometry first; artwork never blocks the first frame.
-    const timer = setTimeout(() => {
-      void loadAtlasMaterials(materialKey.split(",") as TerrainMaterial[], forceDetails > 0 || !slowConnection).then(loaded => {
-        if (!cancelled) { setMaterials(loaded); setLowPoly(!loaded); }
-      });
-    }, 0);
-    return () => { cancelled = true; clearTimeout(timer); };
-  }, [materialKey, slowConnection, forceDetails]);
+    void (async () => {
+      const stored = await cachedRelief(reliefSource);
+      if (cancelled) return;
+      if (stored) { setRelief(stored); setReliefMissing(false); return; }
+      setReliefMissing(true);
+      const [mapGenre, seed, width, height, terrain, materialGrid] = JSON.parse(reliefSource) as [string, number, number, number, string, string];
+      const textured = ["high_fantasy", "dark_fantasy", "horror"].includes(mapGenre);
+      const kinds = [...new Set([...materialGrid].map((_, index) => materialAt(materialGrid, index)))] as TerrainMaterial[];
+      const materials = textured ? await loadAtlasMaterials(kinds, forceDetails > 0 || !slowConnection) : null;
+      // Without its artwork a textured map stays low-poly until the art arrives.
+      if (cancelled || (textured && !materials)) return;
+      // Let the low-poly frame paint before the pixel loop takes the thread.
+      await new Promise(resolve => requestAnimationFrame(() => setTimeout(resolve, 0)));
+      if (cancelled) return;
+      const canvas = reliefTerrain({ seed, width, height, terrain, materialGrid: materialGrid || undefined }, mapGenre, materials);
+      setRelief(canvas); setReliefMissing(false);
+      void storeRelief(reliefSource, canvas);
+    })();
+    return () => { cancelled = true; };
+  }, [reliefSource, slowConnection, forceDetails]);
 
   // Terrain redraws only with map or camera changes. CSS animates markers.
   const draw = useCallback(() => {
@@ -219,11 +239,11 @@ export function OverworldPanel({
       backdrop: backdropImage,
       pending: pending.length ? { kind: pathKind, points: pending } : null,
       markers: false,
-      materials: ["high_fantasy", "dark_fantasy", "horror"].includes(genre) ? materials : null,
+      relief,
       lowPoly,
     });
     context.restore();
-  }, [backdropImage, canvasSize.dpr, data, genre, held, materials, lowPoly, pathKind, pending, view]);
+  }, [backdropImage, canvasSize.dpr, data, genre, held, relief, lowPoly, pathKind, pending, view]);
 
   useEffect(() => {
     draw();
@@ -442,7 +462,7 @@ export function OverworldPanel({
     }
     setExporting(true);
     try {
-      const failure = await saveOverworldPng(data, { genre, backdrop: backdropImage, materials: ["high_fantasy", "dark_fantasy", "horror"].includes(genre) ? materials : null });
+      const failure = await saveOverworldPng(data, { genre, backdrop: backdropImage, relief, lowPoly: !relief });
       if (failure) {
         setError(failure);
       }

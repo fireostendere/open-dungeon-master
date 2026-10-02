@@ -276,7 +276,9 @@ function read(raw: unknown) {
     directorDirective: buildDirectorBlock(getDirectorArm(campaign.id)),
     playerWhispers: listPendingPlayerWhispers(campaign.id), recentDmWhispers: live ? [] : listRecentWhispersForPrompt(campaign.id),
     omittedSections, asks: askPage.items, askQueue: { nextCursor: askPage.nextCursor, hasMore: askPage.hasMore, pending: askMeta.pending },
-    ...sections, sectionVersions, location: getCurrentLocation(campaign.id), partyPositions: getOverworldPartyPositions(campaign.id), sceneTracker: getSceneTracker(campaign.id),
+    ...sections, sectionVersions,
+    // With location chat on, rooms are where people are; the legacy place is stale.
+    location: spatial ? null : getCurrentLocation(campaign.id), partyPositions: getOverworldPartyPositions(campaign.id), sceneTracker: getSceneTracker(campaign.id),
     encounter: (() => { const encounter = getActiveEncounter(campaign.id); return encounter ? { encounter, enemies: listEnemies(encounter.id) } : null; })(),
     ...(delta ? { deltaState: { enabled: true, baselineSeq, pruned: ["sheets", "facts", "notes", "npcs"].every(key => omittedSections.includes(key)) } } : {}),
   };
@@ -342,7 +344,7 @@ function orchestrationSnapshot(raw: unknown) {
           .map(encounter => ({ encounter, enemies: listEnemies(encounter.id) }))
       : undefined,
     location: sections.has("location")
-      ? { location: getCurrentLocation(campaign.id), partyPositions: getOverworldPartyPositions(campaign.id), sceneTracker: getSceneTracker(campaign.id) }
+      ? { location: spatial ? null : getCurrentLocation(campaign.id), partyPositions: getOverworldPartyPositions(campaign.id), sceneTracker: getSceneTracker(campaign.id) }
       : undefined,
     recent: sections.has("recent")
       ? {

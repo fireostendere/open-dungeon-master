@@ -183,7 +183,7 @@ function dispatchSynchronous(
       return handleDismissCompanion(campaign, rawArguments, sheets);
     case "move_party":
     case "update_location": {
-      const result = handleLocationCall(campaign, name, rawArguments);
+      const result = handleLocationCall(campaign, name, rawArguments, sheets, sheetsById);
       // Internal location bookkeeping is not part of the public adjudication result.
       delete result.movedToNewLocation;
       delete result._locationId;

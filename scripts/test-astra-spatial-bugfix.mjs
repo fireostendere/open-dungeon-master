@@ -69,6 +69,7 @@ const dependencies = {
   zod:{z},
   '@/lib/db/core':{getDatabase:() => db},
   '@/lib/db/commit-effects':{afterCommit},
+  '@/lib/db/overworld':{getOverworldPartyPositions:()=>[],preserveSpatialMapPositions:()=>{}},
   '@/lib/spatial/updates.mjs':{notifySpatialChange:() => notifications++},
   '@/lib/db/campaigns':{
     allocateSeq,campaignSeats:() => ({dm}),capsFor:(_,id) => ({role:id===dm?'dm':'player'}),
