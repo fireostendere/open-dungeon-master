@@ -28,6 +28,7 @@ export type TableTabInput = {
   hasBattleMap: boolean;
   // An encounter is active, so the combat overview, turn and log have something to show.
   inCombat?: boolean;
+  // Image generation setting; the live atlas remains available without it.
   mapsEnabled: boolean;
   // The campaign has loaded; Setup (and Context) render from it.
   hasSettings: boolean;
@@ -54,7 +55,6 @@ export type TableTabInput = {
 export function visiblePanelTabs({
   hasBattleMap,
   inCombat = false,
-  mapsEnabled,
   hasSettings,
   secretStory,
   adjudicates,
@@ -71,9 +71,7 @@ export function visiblePanelTabs({
   if (hasBattleMap || inCombat) {
     tabs.push("battle");
   }
-  if (mapsEnabled) {
-    tabs.push("map");
-  }
+  tabs.push("map");
   tabs.push("story", "notes", "chat");
   if (hasSettings && secretStory) {
     tabs.push("context");

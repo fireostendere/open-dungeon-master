@@ -239,7 +239,7 @@ export function useSessionTabs({
 // six readable cells; past that the least-used tabs move into a "More" sheet
 // (the open tab always keeps its place in the bar).
 const MAX_BAR_CELLS = 6;
-const BAR_PRIORITY: PanelTab[] = ["battle", "dm", "lead", "party", "chat", "story", "map", "notes", "context", "settings"];
+const BAR_PRIORITY: PanelTab[] = ["battle", "dm", "lead", "party", "map", "chat", "story", "notes", "context", "settings"];
 
 function barCells(tabs: PanelTabDef[], active: PanelTab | null): { bar: PanelTabDef[]; more: PanelTabDef[] } {
   if (tabs.length + 1 <= MAX_BAR_CELLS) return { bar: tabs, more: [] };

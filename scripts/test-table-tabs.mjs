@@ -70,13 +70,17 @@ test("the battle tab exists while a map is live or in combat", () => {
   assert.equal(visiblePanelTabs({ ...base, inCombat: true }).includes("battle"), true);
 });
 
-test("maps off drops the map tab and nothing else", () => {
-  const withMaps = visiblePanelTabs(base);
-  const without = visiblePanelTabs({ ...base, mapsEnabled: false });
-  assert.deepEqual(
-    without,
-    withMaps.filter((tab) => tab !== "map"),
-  );
+test("the world atlas remains available with image generation disabled for every seat", () => {
+  for (const seat of [
+    { adjudicates: false, isLead: false, secretStory: false },
+    { adjudicates: false, isLead: true, secretStory: true },
+    { adjudicates: true, isLead: false, secretStory: true },
+  ]) {
+    const withMaps = visiblePanelTabs({ ...base, ...seat });
+    const without = visiblePanelTabs({ ...base, ...seat, mapsEnabled: false });
+    assert.deepEqual(without, withMaps);
+    assert.equal(without.includes("map"), true);
+  }
 });
 
 test("the full ordering with every tab on", () => {
