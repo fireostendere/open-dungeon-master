@@ -64,10 +64,10 @@
   },
   "coverage": {
     "locationTypes": 288,
-    "complete": 0,
-    "partial": 0,
-    "pending": 288,
-    "verifiedAssets": 0,
+    "complete": 1,
+    "partial": 5,
+    "pending": 282,
+    "verifiedAssets": 20,
     "targetAssets": 1367,
     "targetByStyle": {
       "normal": 898,
@@ -87,8 +87,339 @@
         "interior",
         "social"
       ],
-      "status": "pending",
-      "variants": [],
+      "status": "partial",
+      "variants": [
+        {
+          "id": "normal-01",
+          "style": "normal",
+          "description": "A cozy rustic tavern with heavy timber beams, a wooden balcony, an open stone hearth, a wooden bar and sturdy tables, lit by warm evening firelight.",
+          "tags": [
+            "rustic",
+            "village",
+            "hearth",
+            "timber",
+            "cozy",
+            "evening"
+          ],
+          "lighting": "Warm evening firelight and candles",
+          "mood": "Welcoming and intimate",
+          "path": "tavern/normal-01.webp",
+          "mime": "image/webp",
+          "width": 1536,
+          "height": 864,
+          "bytes": 332750,
+          "sha256": "59ae45e4e261eed8b6b537ae95ad9ced7078535d8f20d4520582039e10e34559",
+          "provenance": {
+            "type": "generated",
+            "provider": "OpenAI",
+            "tool": "image_gen",
+            "generatedAt": "2026-10-02T11:41:39.797347+00:00",
+            "prompt": "Use case: stylized-concept.\nAsset type: original panoramic environment illustration for a D&D-style fantasy location library.\nComposition: ONE cohesive wide establishing scene, landscape 16:9, render at 1536 x 864 pixels. Environment is the primary subject, clear large forms readable at smaller display sizes. Keep all key objects safely within the composition.\nStyle: cinematic hand-painted fantasy concept art, convincing materials, rich atmospheric depth, detailed but coherent. No collage, panels, frames, writing, readable lettering, labels, watermark, logo, UI, tactical map, grid or isometric map.\nScene: A cozy rustic village tavern with low timber beams, an open stone hearth, a wooden bar and sturdy tables, lit by warm evening firelight.\nLighting: Warm evening firelight and candles. Mood: Welcoming and intimate.\nConstraints: grounded atmospheric fantasy environment; no prominent people, creatures or specific adventuring party.",
+            "originalSha256": "122de6d67c9039148359cb87669d3027e9bf52d7aa3816d2b4b42ff3aef0606a",
+            "license": "generated-output; no third-party artwork license asserted"
+          },
+          "processing": {
+            "originalWidth": 1672,
+            "originalHeight": 941,
+            "resize": "1536x864 Lanczos; no crop",
+            "encoding": "WebP quality88 method6",
+            "originalRetained": true
+          },
+          "review": {
+            "file": "passed",
+            "visual": "passed"
+          }
+        },
+        {
+          "id": "normal-02",
+          "style": "normal",
+          "description": "A spacious urban merchant tavern with carved oak booths, chandeliers, a long polished bar and tall windows admitting soft afternoon light.",
+          "tags": [
+            "city",
+            "merchant",
+            "oak",
+            "chandeliers",
+            "afternoon",
+            "refined"
+          ],
+          "lighting": "Soft afternoon window light",
+          "mood": "Refined and sociable",
+          "path": "tavern/normal-02.webp",
+          "mime": "image/webp",
+          "width": 1536,
+          "height": 864,
+          "bytes": 321992,
+          "sha256": "5c4dc723c05693bf830ac561c351be8ba819b6fdc90b8924b722db800eda4391",
+          "provenance": {
+            "type": "generated",
+            "provider": "OpenAI",
+            "tool": "image_gen",
+            "generatedAt": "2026-10-02T11:41:40.329617+00:00",
+            "prompt": "Use case: stylized-concept.\nAsset type: original panoramic environment illustration for a D&D-style fantasy location library.\nComposition: ONE cohesive wide establishing scene, landscape 16:9, render at 1536 x 864 pixels. Environment is the primary subject, clear large forms readable at smaller display sizes. Keep all key objects safely within the composition.\nStyle: cinematic hand-painted fantasy concept art, convincing materials, rich atmospheric depth, detailed but coherent. No collage, panels, frames, writing, readable lettering, labels, watermark, logo, UI, tactical map, grid or isometric map.\nScene: A spacious urban merchant tavern with carved oak booths, brass chandeliers, a long polished bar and tall windows admitting soft afternoon light.\nLighting: Soft afternoon window light. Mood: Refined and sociable.\nConstraints: grounded atmospheric fantasy environment; no prominent people, creatures or specific adventuring party.",
+            "originalSha256": "21b3fea32cfb3db2f09331c178800aa944db3979a2b105e78e903d9c25d914a3",
+            "license": "generated-output; no third-party artwork license asserted"
+          },
+          "processing": {
+            "originalWidth": 1672,
+            "originalHeight": 941,
+            "resize": "1536x864 Lanczos; no crop",
+            "encoding": "WebP quality88 method6",
+            "originalRetained": true
+          },
+          "review": {
+            "file": "passed",
+            "visual": "passed"
+          }
+        },
+        {
+          "id": "normal-03",
+          "style": "normal",
+          "description": "A rough harbor tavern with weathered ship timbers, rope decorations, sea-facing windows, ale barrels and oil lamps glowing on a rainy night.",
+          "tags": [
+            "harbor",
+            "nautical",
+            "rain",
+            "oil lamps",
+            "night",
+            "weathered"
+          ],
+          "lighting": "Amber oil lamps against cool rainy window light",
+          "mood": "Rugged and atmospheric",
+          "path": "tavern/normal-03.webp",
+          "mime": "image/webp",
+          "width": 1536,
+          "height": 864,
+          "bytes": 344796,
+          "sha256": "ef6556719d763a48d4b26538b8282a77b57bdd3d6f839e530438614f9db65443",
+          "provenance": {
+            "type": "generated",
+            "provider": "OpenAI",
+            "tool": "image_gen",
+            "generatedAt": "2026-10-02T11:41:40.867796+00:00",
+            "prompt": "Use case: stylized-concept.\nAsset type: original panoramic environment illustration for a D&D-style fantasy location library.\nComposition: ONE cohesive wide establishing scene, landscape 16:9, render at 1536 x 864 pixels. Environment is the primary subject, clear large forms readable at smaller display sizes. Keep all key objects safely within the composition.\nStyle: cinematic hand-painted fantasy concept art, convincing materials, rich atmospheric depth, detailed but coherent. No collage, panels, frames, writing, readable lettering, labels, watermark, logo, UI, tactical map, grid or isometric map.\nScene: A rough harbor tavern with weathered ship timbers, rope decorations, sea-facing windows, ale barrels and oil lamps glowing on a rainy night.\nLighting: Amber oil lamps against cool rainy window light. Mood: Rugged and atmospheric.\nConstraints: grounded atmospheric fantasy environment; no prominent people, creatures or specific adventuring party.",
+            "originalSha256": "9c218ed611f82e6ee0f7541c929b7ad17ae890f56154e986d0191fd8d5494e4a",
+            "license": "generated-output; no third-party artwork license asserted"
+          },
+          "processing": {
+            "originalWidth": 1672,
+            "originalHeight": 941,
+            "resize": "1536x864 Lanczos; no crop",
+            "encoding": "WebP quality88 method6",
+            "originalRetained": true
+          },
+          "review": {
+            "file": "passed",
+            "visual": "passed"
+          }
+        },
+        {
+          "id": "normal-04",
+          "style": "normal",
+          "description": "A dwarven mountain tavern carved into stone, with vaulted rock arches, heavy stone tables, copper ale tanks and a bright forge-like central hearth.",
+          "tags": [
+            "dwarven",
+            "mountain",
+            "stone",
+            "copper",
+            "vaulted",
+            "hearth"
+          ],
+          "lighting": "Strong central hearth light and warm wall lanterns",
+          "mood": "Sturdy and convivial",
+          "path": "tavern/normal-04.webp",
+          "mime": "image/webp",
+          "width": 1536,
+          "height": 864,
+          "bytes": 333276,
+          "sha256": "fe9031238388ae7aaee1a2de9defdc252c004f4b4f8567590c6206f29e5fa94f",
+          "provenance": {
+            "type": "generated",
+            "provider": "OpenAI",
+            "tool": "image_gen",
+            "generatedAt": "2026-10-02T11:41:41.369773+00:00",
+            "prompt": "Use case: stylized-concept.\nAsset type: original panoramic environment illustration for a D&D-style fantasy location library.\nComposition: ONE cohesive wide establishing scene, landscape 16:9, render at 1536 x 864 pixels. Environment is the primary subject, clear large forms readable at smaller display sizes. Keep all key objects safely within the composition.\nStyle: cinematic hand-painted fantasy concept art, convincing materials, rich atmospheric depth, detailed but coherent. No collage, panels, frames, writing, readable lettering, labels, watermark, logo, UI, tactical map, grid or isometric map.\nScene: A dwarven mountain tavern carved into stone, with vaulted rock arches, heavy stone tables, copper ale tanks and a bright forge-like central hearth.\nLighting: Strong central hearth light and warm wall lanterns. Mood: Sturdy and convivial.\nConstraints: grounded atmospheric fantasy environment; no prominent people, creatures or specific adventuring party.",
+            "originalSha256": "b0849abd485ed47789b2d73759fce4fe08fdac8e02da57a517ac84b38dc33e63",
+            "license": "generated-output; no third-party artwork license asserted"
+          },
+          "processing": {
+            "originalWidth": 1672,
+            "originalHeight": 941,
+            "resize": "1536x864 Lanczos; no crop",
+            "encoding": "WebP quality88 method6",
+            "originalRetained": true
+          },
+          "review": {
+            "file": "passed",
+            "visual": "passed"
+          }
+        },
+        {
+          "id": "normal-05",
+          "style": "normal",
+          "description": "An elven woodland tavern grown around living trees, with curved wooden balconies, leaf-shaped furniture and green-gold daylight filtering through an open canopy.",
+          "tags": [
+            "elven",
+            "woodland",
+            "living trees",
+            "balconies",
+            "daylight",
+            "airy"
+          ],
+          "lighting": "Dappled green-gold daylight",
+          "mood": "Graceful and tranquil",
+          "path": "tavern/normal-05.webp",
+          "mime": "image/webp",
+          "width": 1536,
+          "height": 864,
+          "bytes": 409256,
+          "sha256": "b96a6dc3b578d2d2bd078077344772b73a12f5505f44360f7dcb35a88b60da0b",
+          "provenance": {
+            "type": "generated",
+            "provider": "OpenAI",
+            "tool": "image_gen",
+            "generatedAt": "2026-10-02T11:44:49.332753+00:00",
+            "prompt": "Use case: stylized-concept.\nAsset type: original panoramic environment illustration for a D&D-style fantasy location library.\nComposition: ONE cohesive wide establishing scene, landscape 16:9, render at 1536 x 864 pixels. Environment is the primary subject, clear large forms readable at smaller display sizes. Keep all key objects safely within the composition.\nStyle: cinematic hand-painted fantasy concept art, convincing materials, rich atmospheric depth, detailed but coherent. No collage, panels, frames, writing, readable lettering, labels, watermark, logo, UI, tactical map, grid or isometric map.\nScene: An elven woodland tavern grown around living trees, with curved wooden balconies, leaf-shaped furniture and green-gold daylight filtering through an open canopy.\nLighting: Dappled green-gold daylight. Mood: Graceful and tranquil.\nConstraints: grounded atmospheric fantasy environment; no prominent people, creatures or specific adventuring party.",
+            "originalSha256": "38f907eabc1f3af4418db19b12a2f562321b6c9c8a5080ce04361eac6895793c",
+            "license": "generated-output; no third-party artwork license asserted"
+          },
+          "processing": {
+            "originalWidth": 1672,
+            "originalHeight": 941,
+            "resize": "1536x864 Lanczos; no crop",
+            "encoding": "WebP quality88 method6",
+            "originalRetained": true
+          },
+          "review": {
+            "file": "passed",
+            "visual": "passed"
+          }
+        },
+        {
+          "id": "normal-06",
+          "style": "normal",
+          "description": "A smoky underground tavern in a poor city district, with low brick vaults, mismatched stools, worn tables and a small candlelit bar.",
+          "tags": [
+            "underground",
+            "poor district",
+            "brick",
+            "smoke",
+            "candlelight",
+            "low ceiling"
+          ],
+          "lighting": "Dim candles and a small smoky fireplace",
+          "mood": "Secretive and worn",
+          "path": "tavern/normal-06.webp",
+          "mime": "image/webp",
+          "width": 1536,
+          "height": 864,
+          "bytes": 240636,
+          "sha256": "a7ceb16b6ddc55430435ba67e9a4c26c1f9dfde4b1779bc10b142866cec875d4",
+          "provenance": {
+            "type": "generated",
+            "provider": "OpenAI",
+            "tool": "image_gen",
+            "generatedAt": "2026-10-02T11:44:49.839645+00:00",
+            "prompt": "Use case: stylized-concept.\nAsset type: original panoramic environment illustration for a D&D-style fantasy location library.\nComposition: ONE cohesive wide establishing scene, landscape 16:9, render at 1536 x 864 pixels. Environment is the primary subject, clear large forms readable at smaller display sizes. Keep all key objects safely within the composition.\nStyle: cinematic hand-painted fantasy concept art, convincing materials, rich atmospheric depth, detailed but coherent. No collage, panels, frames, writing, readable lettering, labels, watermark, logo, UI, tactical map, grid or isometric map.\nScene: A smoky underground tavern in a poor city district, with low brick vaults, mismatched stools, worn tables and a small candlelit bar.\nLighting: Dim candles and a small smoky fireplace. Mood: Secretive and worn.\nConstraints: grounded atmospheric fantasy environment; no prominent people, creatures or specific adventuring party.",
+            "originalSha256": "616d471f0bbc4a32e979621e8ffc49222fd0560c9c237652eaad96e2f53b6e42",
+            "license": "generated-output; no third-party artwork license asserted"
+          },
+          "processing": {
+            "originalWidth": 1672,
+            "originalHeight": 941,
+            "resize": "1536x864 Lanczos; no crop",
+            "encoding": "WebP quality88 method6",
+            "originalRetained": true
+          },
+          "review": {
+            "file": "passed",
+            "visual": "passed"
+          }
+        },
+        {
+          "id": "yolo-01",
+          "style": "yolo",
+          "description": "An exterior view of a fantasy tavern built inside a colossal open mimic chest, where enormous teeth frame the entrance and a pink tongue forms the ramp into a warmly lit drinking hall.",
+          "tags": [
+            "mimic tavern",
+            "giant chest",
+            "teeth",
+            "tongue carpet",
+            "absurd",
+            "dark comedy",
+            "exterior entrance",
+            "moonlight"
+          ],
+          "lighting": "Warm inn lanterns against cool moonlight",
+          "mood": "Absurd hospitality and dark comedy",
+          "path": "tavern/yolo-01.webp",
+          "mime": "image/webp",
+          "width": 1536,
+          "height": 864,
+          "bytes": 291444,
+          "sha256": "c92efd4d4ed8874416cb6d97c6b6415d9de293dbe5d05c02062fa68347b398de",
+          "provenance": {
+            "type": "generated",
+            "provider": "OpenAI",
+            "tool": "image_gen",
+            "generatedAt": "2026-10-02T11:44:50.333598+00:00",
+            "prompt": "Use case: stylized-concept.\nAsset type: original panoramic environment illustration for a D&D-style fantasy location library.\nComposition: ONE cohesive wide establishing scene, landscape 16:9, render at 1536 x 864 pixels. Environment is the primary subject, clear large forms readable at smaller display sizes. Keep all key objects safely within the composition.\nStyle: cinematic hand-painted fantasy concept art, convincing materials, rich atmospheric depth, detailed but coherent. No collage, panels, frames, writing, readable lettering, labels, watermark, logo, UI, tactical map, grid or isometric map.\nScene: A fantasy tavern built inside a colossal open mimic chest, where enormous teeth form the doorway and the pink tongue serves as a carpet between ordinary tables.\nLighting: Warm inn lanterns against an ominous dark exterior. Mood: Absurd hospitality and dark comedy.\nConstraints: original absurd dark fantasy comedy; make the described visual joke clear through the scene itself, without text or gore.",
+            "originalSha256": "492b30ccf210531628e73ff3b6e78d380ec935e35327cb1c6d22866057a71109",
+            "license": "generated-output; no third-party artwork license asserted"
+          },
+          "processing": {
+            "originalWidth": 1672,
+            "originalHeight": 941,
+            "resize": "1536x864 Lanczos; no crop",
+            "encoding": "WebP quality88 method6",
+            "originalRetained": true
+          },
+          "review": {
+            "file": "passed",
+            "visual": "passed"
+          }
+        },
+        {
+          "id": "yolo-02",
+          "style": "yolo",
+          "description": "A cozy tavern during a chaotic furniture revolt: tiny wooden stools have sprouted legs and queued at the bar while a large armchair serves tankards like a bartender.",
+          "tags": [
+            "animated furniture",
+            "stool queue",
+            "armchair bartender",
+            "cozy",
+            "absurd",
+            "dark comedy"
+          ],
+          "lighting": "Warm hearth and candlelight",
+          "mood": "Playful absurdity",
+          "path": "tavern/yolo-02.webp",
+          "mime": "image/webp",
+          "width": 1536,
+          "height": 864,
+          "bytes": 259978,
+          "sha256": "d73ee91226b4a5092d11bc548a93bd83c99f71423b07009ec25169b3da4d75c3",
+          "provenance": {
+            "type": "generated",
+            "provider": "OpenAI",
+            "tool": "image_gen",
+            "generatedAt": "2026-10-02T11:44:50.762275+00:00",
+            "prompt": "Use case: stylized-concept.\nAsset type: original panoramic environment illustration for a D&D-style fantasy location library.\nComposition: ONE cohesive wide establishing scene, landscape 16:9, render at 1536 x 864 pixels. Environment is the primary subject, clear large forms readable at smaller display sizes. Keep all key objects safely within the composition.\nStyle: cinematic hand-painted fantasy concept art, convincing materials, rich atmospheric depth, detailed but coherent. No collage, panels, frames, writing, readable lettering, labels, watermark, logo, UI, tactical map, grid or isometric map.\nScene: A cozy tavern during a chaotic furniture revolt: tiny wooden stools have sprouted legs and queued at the bar while a large armchair serves tankards like a bartender.\nLighting: Warm hearth and candlelight. Mood: Playful absurdity.\nConstraints: original absurd dark fantasy comedy; make the described visual joke clear through the scene itself, without text or gore.",
+            "originalSha256": "43b2ddccb782c24092dbebc4477b3bbc04d960770cbbd9317d56b05d44c61208",
+            "license": "generated-output; no third-party artwork license asserted"
+          },
+          "processing": {
+            "originalWidth": 1672,
+            "originalHeight": 941,
+            "resize": "1536x864 Lanczos; no crop",
+            "encoding": "WebP quality88 method6",
+            "originalRetained": true
+          },
+          "review": {
+            "file": "passed",
+            "visual": "passed"
+          }
+        }
+      ],
       "targetVariants": {
         "normal": 10,
         "yolo": 4
@@ -303,8 +634,93 @@
         "vendors",
         "outdoor"
       ],
-      "status": "pending",
-      "variants": [],
+      "status": "partial",
+      "variants": [
+        {
+          "id": "normal-01",
+          "style": "normal",
+          "description": "A sunlit medieval city market square with colorful canvas awnings, produce stalls, trade goods and timber-framed buildings around a central stone fountain, with a hilltop city rising beyond.",
+          "tags": [
+            "market square",
+            "awnings",
+            "produce",
+            "trade goods",
+            "cobbled",
+            "daylight",
+            "fountain",
+            "hilltop city"
+          ],
+          "lighting": "Bright soft midday sunlight",
+          "mood": "Lively and inviting",
+          "path": "city-market/normal-01.webp",
+          "mime": "image/webp",
+          "width": 1536,
+          "height": 864,
+          "bytes": 443270,
+          "sha256": "50057ee3b74a02182659e1ea0fec62c46598928bdd555530e09b83866a371c21",
+          "provenance": {
+            "type": "generated",
+            "provider": "OpenAI",
+            "tool": "image_gen",
+            "generatedAt": "2026-10-02T11:54:33.347296+00:00",
+            "prompt": "Use case: stylized-concept.\nAsset type: original panoramic environment illustration for a D&D-style fantasy location library.\nComposition: ONE cohesive wide establishing scene, landscape 16:9, render at 1536 x 864 pixels. Environment is the primary subject, clear large forms readable at smaller display sizes. Keep all key objects safely within the composition.\nStyle: cinematic hand-painted fantasy concept art, convincing materials, rich atmospheric depth, detailed but coherent. No collage, panels, frames, writing, readable lettering, labels, watermark, logo, UI, tactical map, grid or isometric map.\nScene: A sunlit medieval city market square with colorful canvas awnings, produce stalls, stacked trade goods and timber-framed buildings around open cobbled walkways.\nLighting: Bright soft midday sunlight. Mood: Lively and inviting.\nConstraints: grounded atmospheric fantasy environment; no prominent people, creatures or specific adventuring party.",
+            "originalSha256": "7ca7f0f562b90c53de15d68bf5bdf7f7c7e0820fe01c936f2cbe91930ec8d19a",
+            "license": "generated-output; no third-party artwork license asserted"
+          },
+          "processing": {
+            "originalWidth": 1672,
+            "originalHeight": 941,
+            "resize": "1536x864 Lanczos; no crop",
+            "encoding": "WebP quality88 method6",
+            "originalRetained": true
+          },
+          "review": {
+            "file": "passed",
+            "visual": "passed"
+          }
+        },
+        {
+          "id": "yolo-01",
+          "style": "yolo",
+          "description": "A medieval market where huge walking cabbages browse ordinary vegetable stalls, while tiny crates of miniature armor are offered at a cobbled corner stall.",
+          "tags": [
+            "walking cabbages",
+            "vegetable market",
+            "miniature armor",
+            "absurd",
+            "dark comedy",
+            "daylight"
+          ],
+          "lighting": "Cheerful afternoon sunlight",
+          "mood": "Surreal marketplace comedy",
+          "path": "city-market/yolo-01.webp",
+          "mime": "image/webp",
+          "width": 1536,
+          "height": 864,
+          "bytes": 377366,
+          "sha256": "fcb3e4dadaaed716167eeedf53aadab81c24dee2c200af41839868299f271552",
+          "provenance": {
+            "type": "generated",
+            "provider": "OpenAI",
+            "tool": "image_gen",
+            "generatedAt": "2026-10-02T11:54:33.927969+00:00",
+            "prompt": "Use case: stylized-concept.\nAsset type: original panoramic environment illustration for a D&D-style fantasy location library.\nComposition: ONE cohesive wide establishing scene, landscape 16:9, render at 1536 x 864 pixels. Environment is the primary subject, clear large forms readable at smaller display sizes. Keep all key objects safely within the composition.\nStyle: cinematic hand-painted fantasy concept art, convincing materials, rich atmospheric depth, detailed but coherent. No collage, panels, frames, writing, readable lettering, labels, watermark, logo, UI, tactical map, grid or isometric map.\nScene: A medieval market where huge walking cabbages browse ordinary vegetable stalls, while tiny crates of miniature armor are offered at a cobbled corner stall.\nLighting: Cheerful afternoon sunlight. Mood: Surreal marketplace comedy.\nConstraints: original absurd dark fantasy comedy; make the described visual joke clear through the scene itself, without text or gore.",
+            "originalSha256": "4911fa73f13bf7ef23c74d316ccd7e8c4a23019fff4008d0250d1c6b51ac38cf",
+            "license": "generated-output; no third-party artwork license asserted"
+          },
+          "processing": {
+            "originalWidth": 1672,
+            "originalHeight": 941,
+            "resize": "1536x864 Lanczos; no crop",
+            "encoding": "WebP quality88 method6",
+            "originalRetained": true
+          },
+          "review": {
+            "file": "passed",
+            "visual": "passed"
+          }
+        }
+      ],
       "targetVariants": {
         "normal": 10,
         "yolo": 4
@@ -1977,8 +2393,173 @@
         "graves",
         "outdoor"
       ],
-      "status": "pending",
-      "variants": [],
+      "status": "partial",
+      "variants": [
+        {
+          "id": "normal-01",
+          "style": "normal",
+          "description": "An old rural churchyard with mossy gravestones, a small stone chapel, an iron gate and autumn leaves under a low pale mist at dawn.",
+          "tags": [
+            "rural",
+            "churchyard",
+            "chapel",
+            "autumn",
+            "mist",
+            "dawn"
+          ],
+          "lighting": "Pale diffuse dawn light",
+          "mood": "Quiet and melancholy",
+          "path": "cemetery/normal-01.webp",
+          "mime": "image/webp",
+          "width": 1536,
+          "height": 864,
+          "bytes": 360100,
+          "sha256": "bd2f3c6e131de3bf8c549f14f46f6371e737798b9c1be93d99db2c8b76ccfd62",
+          "provenance": {
+            "type": "generated",
+            "provider": "OpenAI",
+            "tool": "image_gen",
+            "generatedAt": "2026-10-02T11:47:53.520456+00:00",
+            "prompt": "Use case: stylized-concept.\nAsset type: original panoramic environment illustration for a D&D-style fantasy location library.\nComposition: ONE cohesive wide establishing scene, landscape 16:9, render at 1536 x 864 pixels. Environment is the primary subject, clear large forms readable at smaller display sizes. Keep all key objects safely within the composition.\nStyle: cinematic hand-painted fantasy concept art, convincing materials, rich atmospheric depth, detailed but coherent. No collage, panels, frames, writing, readable lettering, labels, watermark, logo, UI, tactical map, grid or isometric map.\nScene: An old rural churchyard with mossy gravestones, a small stone chapel, an iron gate and autumn leaves under a low pale mist at dawn.\nLighting: Pale diffuse dawn light. Mood: Quiet and melancholy.\nConstraints: grounded atmospheric fantasy environment; no prominent people, creatures or specific adventuring party.",
+            "originalSha256": "6098959fa41b8600a031837af873d9cb425275a0ab1e5d8c037c4c2630bde1fa",
+            "license": "generated-output; no third-party artwork license asserted"
+          },
+          "processing": {
+            "originalWidth": 1672,
+            "originalHeight": 941,
+            "resize": "1536x864 Lanczos; no crop",
+            "encoding": "WebP quality88 method6",
+            "originalRetained": true
+          },
+          "review": {
+            "file": "passed",
+            "visual": "passed"
+          }
+        },
+        {
+          "id": "normal-02",
+          "style": "normal",
+          "description": "A walled city cemetery with carefully aligned headstones, ornate family mausoleums, stone paths and tall dark cypress trees under clear moonlight.",
+          "tags": [
+            "city",
+            "walled",
+            "mausoleums",
+            "cypress",
+            "moonlight",
+            "night"
+          ],
+          "lighting": "Cool clear moonlight with deep shadows",
+          "mood": "Solemn and eerie",
+          "path": "cemetery/normal-02.webp",
+          "mime": "image/webp",
+          "width": 1536,
+          "height": 864,
+          "bytes": 270736,
+          "sha256": "e9200d96ed2f709939ed927c61c043908c5969ae57d73ade7e7d9ff787452a2a",
+          "provenance": {
+            "type": "generated",
+            "provider": "OpenAI",
+            "tool": "image_gen",
+            "generatedAt": "2026-10-02T11:47:54.090511+00:00",
+            "prompt": "Use case: stylized-concept.\nAsset type: original panoramic environment illustration for a D&D-style fantasy location library.\nComposition: ONE cohesive wide establishing scene, landscape 16:9, render at 1536 x 864 pixels. Environment is the primary subject, clear large forms readable at smaller display sizes. Keep all key objects safely within the composition.\nStyle: cinematic hand-painted fantasy concept art, convincing materials, rich atmospheric depth, detailed but coherent. No collage, panels, frames, writing, readable lettering, labels, watermark, logo, UI, tactical map, grid or isometric map.\nScene: A walled city cemetery with carefully aligned headstones, ornate family mausoleums, stone paths and tall dark cypress trees under clear moonlight.\nLighting: Cool clear moonlight with deep shadows. Mood: Solemn and eerie.\nConstraints: grounded atmospheric fantasy environment; no prominent people, creatures or specific adventuring party.",
+            "originalSha256": "86c861b46faf80129fc64e62792358ee8c744e17b0e7e9246f88b59fc3582a04",
+            "license": "generated-output; no third-party artwork license asserted"
+          },
+          "processing": {
+            "originalWidth": 1672,
+            "originalHeight": 941,
+            "resize": "1536x864 Lanczos; no crop",
+            "encoding": "WebP quality88 method6",
+            "originalRetained": true
+          },
+          "review": {
+            "file": "passed",
+            "visual": "passed"
+          }
+        },
+        {
+          "id": "normal-03",
+          "style": "normal",
+          "description": "A forgotten forest graveyard with crooked weathered headstones, encroaching roots, broken fencing and ferns beneath a dense green canopy.",
+          "tags": [
+            "forest",
+            "forgotten",
+            "roots",
+            "overgrown",
+            "ferns",
+            "daylight"
+          ],
+          "lighting": "Muted green daylight through dense leaves",
+          "mood": "Secluded and abandoned",
+          "path": "cemetery/normal-03.webp",
+          "mime": "image/webp",
+          "width": 1536,
+          "height": 864,
+          "bytes": 436888,
+          "sha256": "d424c84155964e21b5b8724a73828fc4955db7b7ccd0fef39040428316c0fefe",
+          "provenance": {
+            "type": "generated",
+            "provider": "OpenAI",
+            "tool": "image_gen",
+            "generatedAt": "2026-10-02T11:47:54.814557+00:00",
+            "prompt": "Use case: stylized-concept.\nAsset type: original panoramic environment illustration for a D&D-style fantasy location library.\nComposition: ONE cohesive wide establishing scene, landscape 16:9, render at 1536 x 864 pixels. Environment is the primary subject, clear large forms readable at smaller display sizes. Keep all key objects safely within the composition.\nStyle: cinematic hand-painted fantasy concept art, convincing materials, rich atmospheric depth, detailed but coherent. No collage, panels, frames, writing, readable lettering, labels, watermark, logo, UI, tactical map, grid or isometric map.\nScene: A forgotten forest graveyard with crooked weathered headstones, encroaching roots, broken fencing and ferns beneath a dense green canopy.\nLighting: Muted green daylight through dense leaves. Mood: Secluded and abandoned.\nConstraints: grounded atmospheric fantasy environment; no prominent people, creatures or specific adventuring party.",
+            "originalSha256": "ec6a2836f037e81bf6df3f33b57cf514cf4c16357083367439fe94a4bf82a07f",
+            "license": "generated-output; no third-party artwork license asserted"
+          },
+          "processing": {
+            "originalWidth": 1672,
+            "originalHeight": 941,
+            "resize": "1536x864 Lanczos; no crop",
+            "encoding": "WebP quality88 method6",
+            "originalRetained": true
+          },
+          "review": {
+            "file": "passed",
+            "visual": "passed"
+          }
+        },
+        {
+          "id": "yolo-01",
+          "style": "yolo",
+          "description": "An autumn graveyard where harmless skeleton caretakers rake fallen leaves into absurdly perfect piles, while one skeleton waters a flowerbed planted inside its own rib cage.",
+          "tags": [
+            "skeleton gardeners",
+            "autumn",
+            "rake",
+            "rib cage flowers",
+            "absurd",
+            "dark comedy"
+          ],
+          "lighting": "Soft amber late-afternoon sunlight",
+          "mood": "Macabre domestic comedy",
+          "path": "cemetery/yolo-01.webp",
+          "mime": "image/webp",
+          "width": 1536,
+          "height": 864,
+          "bytes": 375728,
+          "sha256": "4e5fb6a14ef54fe3fbb3761098d329a681c684208de7afad5489c33938af787f",
+          "provenance": {
+            "type": "generated",
+            "provider": "OpenAI",
+            "tool": "image_gen",
+            "generatedAt": "2026-10-02T11:47:55.478651+00:00",
+            "prompt": "Use case: stylized-concept.\nAsset type: original panoramic environment illustration for a D&D-style fantasy location library.\nComposition: ONE cohesive wide establishing scene, landscape 16:9, render at 1536 x 864 pixels. Environment is the primary subject, clear large forms readable at smaller display sizes. Keep all key objects safely within the composition.\nStyle: cinematic hand-painted fantasy concept art, convincing materials, rich atmospheric depth, detailed but coherent. No collage, panels, frames, writing, readable lettering, labels, watermark, logo, UI, tactical map, grid or isometric map.\nScene: An autumn graveyard where harmless skeleton caretakers rake fallen leaves into absurdly perfect piles, while one skeleton waters a flowerbed planted inside its own rib cage.\nLighting: Soft amber late-afternoon sunlight. Mood: Macabre domestic comedy.\nConstraints: original absurd dark fantasy comedy; make the described visual joke clear through the scene itself, without text or gore.",
+            "originalSha256": "3ce07248b4bde368dd4a5847b1f70f26fe20242d1585260895aa59ae856d9f94",
+            "license": "generated-output; no third-party artwork license asserted"
+          },
+          "processing": {
+            "originalWidth": 1672,
+            "originalHeight": 941,
+            "resize": "1536x864 Lanczos; no crop",
+            "encoding": "WebP quality88 method6",
+            "originalRetained": true
+          },
+          "review": {
+            "file": "passed",
+            "visual": "passed"
+          }
+        }
+      ],
       "targetVariants": {
         "normal": 4,
         "yolo": 2
@@ -2078,7 +2659,7 @@
       "name": "Necromancer lair",
       "category": "sacred_burial",
       "frequency": "regular",
-      "description": "A death-magic practitioner’s workshop with funerary relics, sealed specimens and arcane apparatus; use for necromancy research and sinister magical quarters.",
+      "description": "A death-magic practitioner\u2019s workshop with funerary relics, sealed specimens and arcane apparatus; use for necromancy research and sinister magical quarters.",
       "tags": [
         "death mage",
         "necromancy",
@@ -2175,8 +2756,91 @@
         "underground room",
         "interior"
       ],
-      "status": "pending",
-      "variants": [],
+      "status": "partial",
+      "variants": [
+        {
+          "id": "normal-01",
+          "style": "normal",
+          "description": "An ancient worked-stone dungeon chamber with heavy pillars, worn flagstones, three dark doorways, scattered rubble and a few glowing wall torches.",
+          "tags": [
+            "stone room",
+            "pillars",
+            "doorways",
+            "rubble",
+            "torches",
+            "underground"
+          ],
+          "lighting": "Sparse warm torchlight and deep cool shadows",
+          "mood": "Tense and mysterious",
+          "path": "dungeon-chamber/normal-01.webp",
+          "mime": "image/webp",
+          "width": 1536,
+          "height": 864,
+          "bytes": 234262,
+          "sha256": "fd7c1c56e85a47321578bde40d097379ccdbe0b605942dea2c4ff5ed507f51f6",
+          "provenance": {
+            "type": "generated",
+            "provider": "OpenAI",
+            "tool": "image_gen",
+            "generatedAt": "2026-10-02T11:54:32.195156+00:00",
+            "prompt": "Use case: stylized-concept.\nAsset type: original panoramic environment illustration for a D&D-style fantasy location library.\nComposition: ONE cohesive wide establishing scene, landscape 16:9, render at 1536 x 864 pixels. Environment is the primary subject, clear large forms readable at smaller display sizes. Keep all key objects safely within the composition.\nStyle: cinematic hand-painted fantasy concept art, convincing materials, rich atmospheric depth, detailed but coherent. No collage, panels, frames, writing, readable lettering, labels, watermark, logo, UI, tactical map, grid or isometric map.\nScene: An ancient worked-stone dungeon chamber with heavy pillars, worn flagstones, three dark doorways, scattered rubble and a few glowing wall torches.\nLighting: Sparse warm torchlight and deep cool shadows. Mood: Tense and mysterious.\nConstraints: grounded atmospheric fantasy environment; no prominent people, creatures or specific adventuring party.",
+            "originalSha256": "502989d6d089956042657a575397a146f3aa26a6568d26ab6132573aa4c59f2d",
+            "license": "generated-output; no third-party artwork license asserted"
+          },
+          "processing": {
+            "originalWidth": 1672,
+            "originalHeight": 941,
+            "resize": "1536x864 Lanczos; no crop",
+            "encoding": "WebP quality88 method6",
+            "originalRetained": true
+          },
+          "review": {
+            "file": "passed",
+            "visual": "passed"
+          }
+        },
+        {
+          "id": "yolo-01",
+          "style": "yolo",
+          "description": "A grim stone dungeon chamber awkwardly furnished as a luxury lounge, with a plush crimson sofa, crystal chandelier and tea service surrounded by skull-shaped architectural carvings.",
+          "tags": [
+            "luxury dungeon",
+            "crimson sofa",
+            "chandelier",
+            "tea service",
+            "absurd",
+            "dark comedy"
+          ],
+          "lighting": "Warm sparkling chandelier light in dark stone surroundings",
+          "mood": "Incongruous decadent comfort",
+          "path": "dungeon-chamber/yolo-01.webp",
+          "mime": "image/webp",
+          "width": 1536,
+          "height": 864,
+          "bytes": 322308,
+          "sha256": "a57de9b8760ff5ffdb9fab2965926b1f6b3f07c5ada261da64e774de3a70e14d",
+          "provenance": {
+            "type": "generated",
+            "provider": "OpenAI",
+            "tool": "image_gen",
+            "generatedAt": "2026-10-02T11:54:32.724848+00:00",
+            "prompt": "Use case: stylized-concept.\nAsset type: original panoramic environment illustration for a D&D-style fantasy location library.\nComposition: ONE cohesive wide establishing scene, landscape 16:9, render at 1536 x 864 pixels. Environment is the primary subject, clear large forms readable at smaller display sizes. Keep all key objects safely within the composition.\nStyle: cinematic hand-painted fantasy concept art, convincing materials, rich atmospheric depth, detailed but coherent. No collage, panels, frames, writing, readable lettering, labels, watermark, logo, UI, tactical map, grid or isometric map.\nScene: A grim stone dungeon chamber awkwardly furnished as a luxury lounge, with a plush crimson sofa, crystal chandelier and tiny tea service surrounded by skull-shaped architectural carvings.\nLighting: Warm sparkling chandelier light in dark stone surroundings. Mood: Incongruous decadent comfort.\nConstraints: original absurd dark fantasy comedy; make the described visual joke clear through the scene itself, without text or gore.",
+            "originalSha256": "906ec4b915d453a3b52f1ac76da7e5e9d569eec6dcfe6c711e4604ba251e4c32",
+            "license": "generated-output; no third-party artwork license asserted"
+          },
+          "processing": {
+            "originalWidth": 1672,
+            "originalHeight": 941,
+            "resize": "1536x864 Lanczos; no crop",
+            "encoding": "WebP quality88 method6",
+            "originalRetained": true
+          },
+          "review": {
+            "file": "passed",
+            "visual": "passed"
+          }
+        }
+      ],
       "targetVariants": {
         "normal": 10,
         "yolo": 4
@@ -2769,8 +3433,95 @@
         "woods",
         "outdoor"
       ],
-      "status": "pending",
-      "variants": [],
+      "status": "partial",
+      "variants": [
+        {
+          "id": "normal-01",
+          "style": "normal",
+          "description": "A winding woodland trail beneath tall trees, with mossy roots, ferns and warm morning sunbeams; a river and a distant ruined castle are visible beyond the trees.",
+          "tags": [
+            "oak",
+            "beech",
+            "trail",
+            "ferns",
+            "sunbeams",
+            "morning",
+            "river",
+            "distant ruins",
+            "open woodland"
+          ],
+          "lighting": "Warm morning sunbeams through foliage",
+          "mood": "Inviting and adventurous",
+          "path": "forest-path/normal-01.webp",
+          "mime": "image/webp",
+          "width": 1536,
+          "height": 864,
+          "bytes": 481852,
+          "sha256": "e5371e11e5155b77bfd0739ebc36838c531c85fca0cf6218fc968439112e13c1",
+          "provenance": {
+            "type": "generated",
+            "provider": "OpenAI",
+            "tool": "image_gen",
+            "generatedAt": "2026-10-02T11:50:52.990979+00:00",
+            "prompt": "Use case: stylized-concept.\nAsset type: original panoramic environment illustration for a D&D-style fantasy location library.\nComposition: ONE cohesive wide establishing scene, landscape 16:9, render at 1536 x 864 pixels. Environment is the primary subject, clear large forms readable at smaller display sizes. Keep all key objects safely within the composition.\nStyle: cinematic hand-painted fantasy concept art, convincing materials, rich atmospheric depth, detailed but coherent. No collage, panels, frames, writing, readable lettering, labels, watermark, logo, UI, tactical map, grid or isometric map.\nScene: A winding woodland trail beneath tall oak and beech trees, with mossy roots, ferns and warm morning sunbeams reaching the walkable forest floor.\nLighting: Warm morning sunbeams through foliage. Mood: Inviting and adventurous.\nConstraints: grounded atmospheric fantasy environment; no prominent people, creatures or specific adventuring party.",
+            "originalSha256": "6680241cff8bedd79352aa69d496ead04894f7ff2ed18e4d3caa9aca6b57a4bb",
+            "license": "generated-output; no third-party artwork license asserted"
+          },
+          "processing": {
+            "originalWidth": 1672,
+            "originalHeight": 941,
+            "resize": "1536x864 Lanczos; no crop",
+            "encoding": "WebP quality88 method6",
+            "originalRetained": true
+          },
+          "review": {
+            "file": "passed",
+            "visual": "passed"
+          }
+        },
+        {
+          "id": "yolo-01",
+          "style": "yolo",
+          "description": "A woodland trail blocked by an enormous sleeping tree cradling a floral pillow in its branch arms, with roots sprawled across the route and a small group of travelers waiting nearby.",
+          "tags": [
+            "sleeping tree",
+            "branch arms",
+            "root barrier",
+            "absurd",
+            "dark comedy",
+            "floral pillow",
+            "travelers"
+          ],
+          "lighting": "Dappled warm afternoon woodland light",
+          "mood": "Whimsical obstruction",
+          "path": "forest-path/yolo-01.webp",
+          "mime": "image/webp",
+          "width": 1536,
+          "height": 864,
+          "bytes": 458508,
+          "sha256": "3ba0c058fdeebdd8dc9682156ff741ce07452c08cd1bb530fa28a7b5a0cf531f",
+          "provenance": {
+            "type": "generated",
+            "provider": "OpenAI",
+            "tool": "image_gen",
+            "generatedAt": "2026-10-02T11:50:53.894300+00:00",
+            "prompt": "Use case: stylized-concept.\nAsset type: original panoramic environment illustration for a D&D-style fantasy location library.\nComposition: ONE cohesive wide establishing scene, landscape 16:9, render at 1536 x 864 pixels. Environment is the primary subject, clear large forms readable at smaller display sizes. Keep all key objects safely within the composition.\nStyle: cinematic hand-painted fantasy concept art, convincing materials, rich atmospheric depth, detailed but coherent. No collage, panels, frames, writing, readable lettering, labels, watermark, logo, UI, tactical map, grid or isometric map.\nScene: A woodland trail blocked by an enormous sleeping tree whose branch arms hold a tiny pillow, with roots curled across the path like an oversized toll barrier.\nLighting: Dappled warm afternoon woodland light. Mood: Whimsical obstruction.\nConstraints: original absurd dark fantasy comedy; make the described visual joke clear through the scene itself, without text or gore.",
+            "originalSha256": "66f389c983416ce14489e213e566679bb0fab7d4df579b3caeba7a7b71bc15c0",
+            "license": "generated-output; no third-party artwork license asserted"
+          },
+          "processing": {
+            "originalWidth": 1672,
+            "originalHeight": 941,
+            "resize": "1536x864 Lanczos; no crop",
+            "encoding": "WebP quality88 method6",
+            "originalRetained": true
+          },
+          "review": {
+            "file": "passed",
+            "visual": "passed"
+          }
+        }
+      ],
       "targetVariants": {
         "normal": 10,
         "yolo": 4
@@ -4066,8 +4817,92 @@
         "lava crater",
         "outdoor"
       ],
-      "status": "pending",
-      "variants": [],
+      "status": "complete",
+      "variants": [
+        {
+          "id": "normal-01",
+          "style": "normal",
+          "description": "The vast rim of an active volcano above a glowing lava lake, with shattered black basalt, rising smoke and distant mountains beneath a dark ash-filled sky.",
+          "tags": [
+            "volcano",
+            "lava lake",
+            "basalt",
+            "smoke",
+            "ash sky",
+            "crater rim"
+          ],
+          "lighting": "Intense orange lava glow beneath a dark sky",
+          "mood": "Dangerous and awe-inspiring",
+          "path": "volcanic-crater/normal-01.webp",
+          "mime": "image/webp",
+          "width": 1536,
+          "height": 864,
+          "bytes": 259226,
+          "sha256": "75b861504f4eb1b3a0d2a57e71aa9a2d4c9d5002dee8082536ce396039a5170c",
+          "provenance": {
+            "type": "generated",
+            "provider": "OpenAI",
+            "tool": "image_gen",
+            "generatedAt": "2026-10-02T11:50:51.516714+00:00",
+            "prompt": "Use case: stylized-concept.\nAsset type: original panoramic environment illustration for a D&D-style fantasy location library.\nComposition: ONE cohesive wide establishing scene, landscape 16:9, render at 1536 x 864 pixels. Environment is the primary subject, clear large forms readable at smaller display sizes. Keep all key objects safely within the composition.\nStyle: cinematic hand-painted fantasy concept art, convincing materials, rich atmospheric depth, detailed but coherent. No collage, panels, frames, writing, readable lettering, labels, watermark, logo, UI, tactical map, grid or isometric map.\nScene: The vast rim of an active volcano above a glowing lava lake, with shattered black basalt, rising smoke and distant mountains beneath a dark ash-filled sky.\nLighting: Intense orange lava glow beneath a dark sky. Mood: Dangerous and awe-inspiring.\nConstraints: grounded atmospheric fantasy environment; no prominent people, creatures or specific adventuring party.",
+            "originalSha256": "6520b01517f940bf1cd152d4f68cff605a24150bf1c5e1059c00d9f49fdd8d5c",
+            "license": "generated-output; no third-party artwork license asserted"
+          },
+          "processing": {
+            "originalWidth": 1672,
+            "originalHeight": 941,
+            "resize": "1536x864 Lanczos; no crop",
+            "encoding": "WebP quality88 method6",
+            "originalRetained": true
+          },
+          "review": {
+            "file": "passed",
+            "visual": "passed"
+          }
+        },
+        {
+          "id": "yolo-01",
+          "style": "yolo",
+          "description": "An active volcanic crater used as an absurd lava spa, with a colossal yellow bath duck floating in molten lava and a small bathing platform with towels and wooden rails on the basalt rim.",
+          "tags": [
+            "lava spa",
+            "giant yellow duck",
+            "volcano",
+            "absurd",
+            "dark comedy",
+            "bathing platform",
+            "towels"
+          ],
+          "lighting": "Orange lava glow against a smoky violet twilight",
+          "mood": "Deadpan absurdity",
+          "path": "volcanic-crater/yolo-01.webp",
+          "mime": "image/webp",
+          "width": 1536,
+          "height": 864,
+          "bytes": 273094,
+          "sha256": "363d47e52ebcc1c5764d271b32fca10f2671a57993ef661b75f806be806cf79e",
+          "provenance": {
+            "type": "generated",
+            "provider": "OpenAI",
+            "tool": "image_gen",
+            "generatedAt": "2026-10-02T11:50:52.210135+00:00",
+            "prompt": "Use case: stylized-concept.\nAsset type: original panoramic environment illustration for a D&D-style fantasy location library.\nComposition: ONE cohesive wide establishing scene, landscape 16:9, render at 1536 x 864 pixels. Environment is the primary subject, clear large forms readable at smaller display sizes. Keep all key objects safely within the composition.\nStyle: cinematic hand-painted fantasy concept art, convincing materials, rich atmospheric depth, detailed but coherent. No collage, panels, frames, writing, readable lettering, labels, watermark, logo, UI, tactical map, grid or isometric map.\nScene: An active volcanic crater converted into an absurd lava spa, with a colossal yellow duck floating in molten lava and a tiny wooden bathing ladder on the basalt rim.\nLighting: Orange lava glow against a smoky violet twilight. Mood: Deadpan absurdity.\nConstraints: original absurd dark fantasy comedy; make the described visual joke clear through the scene itself, without text or gore.",
+            "originalSha256": "6d212f7b1023a9804f96a2aac4d88b50984e5d563c395b1c1e43fa61a11dfc17",
+            "license": "generated-output; no third-party artwork license asserted"
+          },
+          "processing": {
+            "originalWidth": 1672,
+            "originalHeight": 941,
+            "resize": "1536x864 Lanczos; no crop",
+            "encoding": "WebP quality88 method6",
+            "originalRetained": true
+          },
+          "review": {
+            "file": "passed",
+            "visual": "passed"
+          }
+        }
+      ],
       "targetVariants": {
         "normal": 1,
         "yolo": 1
