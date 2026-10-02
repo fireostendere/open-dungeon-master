@@ -25,7 +25,7 @@ export function stem(word: string): string {
 }
 
 export function words(text: string): string[] {
-  return text.toLowerCase().match(/[a-z0-9]+(?:['’][a-z]+)?/g) ?? [];
+  return text.toLowerCase().match(/[a-zа-яё0-9]+(?:['’][a-zа-яё]+)?/g) ?? [];
 }
 
 // The query as the stems it will be matched by, stop words dropped unless
@@ -144,7 +144,7 @@ function countTerm(counts: Map<string, number>, term: string, prefix: boolean): 
 // About 200 characters around the first matching word, cut at word edges.
 export function snippetFor(text: string, terms: string[], width = 200): string {
   let first = -1;
-  const pattern = /[a-z0-9]+(?:['’][a-z]+)?/gi;
+  const pattern = /[a-zа-яё0-9]+(?:['’][a-zа-яё]+)?/gi;
   let match: RegExpExecArray | null;
   while ((match = pattern.exec(text)) !== null) {
     const key = stem(match[0]);
@@ -173,7 +173,7 @@ export function searchRulebook(index: RulebookIndex, query: string, limit = 40):
   if (!terms.length) return [];
   const phrase = query.trim().toLowerCase();
   // The last word may still be being typed.
-  const typed = /[a-z0-9]$/i.test(query.trim());
+  const typed = /[a-zа-яё0-9]$/i.test(query.trim());
   const isPrefix = (position: number) => typed && position === terms.length - 1;
   const hits: SearchHit[] = [];
 

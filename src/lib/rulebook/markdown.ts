@@ -27,7 +27,7 @@ export function anchorSlug(text: string): string {
     stripInline(text)
       .toLowerCase()
       .replace(/['’]/g, "")
-      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/[^a-zа-яё0-9]+/g, "-")
       .replace(/^-+|-+$/g, "") || "section"
   );
 }
@@ -129,8 +129,9 @@ function parseLines(lines: string[], anchors: Map<string, number>): BookBlock[] 
     const heading = HEADING.exec(line);
     if (heading) {
       flush();
-      const text = heading[2].trim();
-      out.push({ kind: "heading", level: heading[1].length, text, anchor: claimAnchor(anchors, text) });
+      const explicit = /\s+\{#([a-z0-9-]+)\}$/.exec(heading[2]);
+      const text = (explicit ? heading[2].slice(0, explicit.index) : heading[2]).trim();
+      out.push({ kind: "heading", level: heading[1].length, text, anchor: claimAnchor(anchors, explicit?.[1] ?? text) });
       index += 1;
       continue;
     }

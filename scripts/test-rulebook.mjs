@@ -138,6 +138,35 @@ try {
     }
   });
 
+  await test("Russian edition covers every page and keeps folios and links", () => {
+    const russian = rulebookPages("ru");
+    assert.deepEqual(russian.map((page) => page.id), rulebookPages().map((page) => page.id));
+    assert.equal(rulebookContents("ru").chapters[0].title, "Расы");
+    for (const page of russian) {
+      assert.match(page.title, /[А-Яа-яЁё]/, page.id);
+      assert.match(page.md, /[А-Яа-яЁё]/, page.id);
+      const text = parseBook(page.md).map(blockText).join(" ");
+      assert.ok(!/\{#|\*\*|__|\]\(/.test(text), `${page.id}: unparsed markdown`);
+      assert.equal(rulebookPage(page.id, "ru").page.folio, rulebookPage(page.id).page.folio);
+    }
+    for (const link of QUICK_LINKS) {
+      if (link.at) assert.ok(anchorsOf(parseBook(rulebookPage(link.page, "ru").page.md)).includes(link.at), `${link.label}: missing Russian anchor`);
+    }
+    assert.match(rulebookPage("legal-information", "ru").page.md, /OmnisGM/);
+    assert.equal(rulebookPage("combat", "de").page.title, "Combat");
+  });
+
+  await test("Russian search and snippets find Cyrillic titles and passages", () => {
+    assert.deepEqual(queryTerms("огненный шар"), ["огненный", "шар"]);
+    assert.equal(rulebookSearch("огненный шар", undefined, "ru").hits[0].page, "fireball");
+    assert.equal(rulebookSearch("концентрация", undefined, "ru").hits[0].at, "concentration");
+    assert.equal(rulebookSearch("захват", undefined, "ru").hits[0].page, "combat");
+    assert.ok(rulebookSearch("огнен", undefined, "ru").hits.length);
+    const text = `${"Посторонний текст. ".repeat(40)}Существо теряет концентрацию.`;
+    assert.match(snippetFor(text, ["концентрацию"]), /концентрацию/);
+    assert.equal(rulebookSearch("fireball").hits[0].title, "Fireball");
+  });
+
   // ---- the markdown ----
   await test("every page parses with no markdown left in its text", () => {
     for (const page of rulebookPages()) {
@@ -286,6 +315,16 @@ try {
     assert.equal(found.hits[0].at, "cover");
     const long = await searchRoute.GET(new Request(`http://x/api/rulebook/search?q=${"a".repeat(5000)}`));
     assert.equal(long.status, 200, "an overlong query is cut, not refused");
+  });
+
+  await test("authenticated routes serve the requested language", async () => {
+    signedIn = { id: "reader" };
+    const contents = await (await contentsRoute.GET(new Request("http://x/api/rulebook?lang=ru"))).json();
+    assert.equal(contents.chapters[0].title, "Расы");
+    const combat = await (await pageRoute.GET(new Request("http://x/api/rulebook/pages/combat?lang=ru"), params("combat"))).json();
+    assert.match(combat.page.md, /Инициатива/);
+    const search = await (await searchRoute.GET(new Request("http://x/api/rulebook/search?lang=ru&q=" + encodeURIComponent("огненный шар")))).json();
+    assert.equal(search.hits[0].page, "fireball");
   });
 
   console.log(`\n${passed} rulebook checks passed`);

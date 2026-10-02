@@ -49,7 +49,7 @@ export function Digits({ text }: { text: string }) {
 
 function marked(text: string, terms: string[], key: string, display = false): ReactNode {
   if (!terms.length && !(display && /\d/.test(text))) return text;
-  const parts = text.split(/([A-Za-z0-9]+(?:['’][A-Za-z]+)?)/);
+  const parts = text.split(/([A-Za-zА-Яа-яЁё0-9]+(?:['’][A-Za-zА-Яа-яЁё]+)?)/);
   return parts.map((part, index) => {
     if (index % 2 === 0 || !part) return part;
     const key2 = stem(part);

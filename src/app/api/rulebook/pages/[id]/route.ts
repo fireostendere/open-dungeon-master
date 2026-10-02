@@ -8,13 +8,13 @@ const PAGE_ID = /^[a-z0-9-]{1,96}$/;
 
 // GET /api/rulebook/pages/combat: one page's text, its chapter, and the
 // pages either side of it.
-export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const user = await currentUser();
   if (!user) {
     return unauthorized();
   }
   const { id } = await params;
-  const found = PAGE_ID.test(id) ? rulebookPage(id) : null;
+  const found = PAGE_ID.test(id) ? rulebookPage(id, new URL(request.url).searchParams.get("lang") ?? "en") : null;
   if (!found) {
     return Response.json({ error: "No such page in the rulebook." }, { status: 404 });
   }

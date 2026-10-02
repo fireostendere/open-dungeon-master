@@ -4,6 +4,7 @@ import { Bookmark, ChevronLeft, ChevronRight, List } from "lucide-react";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { cn } from "@/lib/cn";
 import { readFxSettings, useFxSettings } from "@/lib/fx/prefs";
+import { useI18n } from "@/lib/i18n/context";
 import { useInlineText } from "@/lib/i18n/inline-text";
 import type { RulebookContents as Contents, RulebookPageResponse } from "@/lib/rulebook/types";
 import { RulebookContents, type OpenFromContents } from "./RulebookContents";
@@ -49,13 +50,7 @@ function typing(target: EventTarget | null): boolean {
   return target instanceof HTMLElement && (target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName));
 }
 
-export function RulebookReader({
-  startAt,
-  startAnchor,
-  cover = false,
-  embedded = false,
-  onPageChange,
-}: {
+type ReaderProps = {
   // A page to open on (a deep link); otherwise the last page read.
   startAt?: string;
   startAnchor?: string;
@@ -64,7 +59,28 @@ export function RulebookReader({
   // Sized by its container (the session's overlay) rather than the viewport.
   embedded?: boolean;
   onPageChange?: (id: string, at?: string) => void;
-}) {
+};
+
+export function RulebookReader(props: ReaderProps) {
+  const { locale } = useI18n();
+  const [position, setPosition] = useState({ id: props.startAt, at: props.startAnchor });
+  return (
+    <Reader
+      {...props}
+      key={locale}
+      locale={locale}
+      cover={props.cover && !position.id}
+      startAt={position.id}
+      startAnchor={position.at}
+      onPageChange={(id, at) => {
+        setPosition({ id, at });
+        props.onPageChange?.(id, at);
+      }}
+    />
+  );
+}
+
+function Reader({ startAt, startAnchor, cover = false, embedded = false, onPageChange, locale }: ReaderProps & { locale: string }) {
   const uiText = useInlineText();
   // Mirrors Animations > Reduce motion onto <html> on /rulebook too, where
   // nothing else of the FX layer is mounted.
@@ -113,19 +129,19 @@ export function RulebookReader({
   const loadContents = useCallback(async () => {
     setContentsFailed(false);
     try {
-      const response = await fetch("/api/rulebook");
+      const response = await fetch(`/api/rulebook?lang=${locale}`);
       if (!response.ok) throw new Error(String(response.status));
       setContents(await response.json());
     } catch {
       setContentsFailed(true);
     }
-  }, []);
+  }, [locale]);
 
   const fetchPage = useCallback(async (id: string): Promise<RulebookPageResponse | null> => {
     const cached = cache.current.get(id);
     if (cached) return cached;
     try {
-      const response = await fetch(`/api/rulebook/pages/${encodeURIComponent(id)}`);
+      const response = await fetch(`/api/rulebook/pages/${encodeURIComponent(id)}?lang=${locale}`);
       if (!response.ok) return null;
       const data: RulebookPageResponse = await response.json();
       cache.current.set(id, data);
@@ -133,7 +149,7 @@ export function RulebookReader({
     } catch {
       return null;
     }
-  }, []);
+  }, [locale]);
 
   // Turns a leaf. Forward, the right-hand page itself lifts away (the leaf
   // carries its words) and the next page is already lying beneath it. Back,

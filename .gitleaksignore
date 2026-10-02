@@ -1,2 +1,5 @@
 # SRD 5.1 text (one JSON line): "wand-of-secrets" next to another page id reads as a generic API key.
 src/lib/rulebook/srd-5.1.json:generic-api-key:1
+
+# Same SRD page IDs in the Russian edition; no credentials.
+src/lib/rulebook/srd-5.1.ru.json:generic-api-key:1

@@ -44,6 +44,12 @@ chapters, drops each page's repeated title, and corrects the few conversion
 slips listed in the script's `ERRATA`. The rulebook shows the attribution on
 its contents page and ends with the SRD's legal notice as its last page.
 
+The Russian edition, `src/lib/rulebook/srd-5.1.ru.json`, uses the same
+OmnisGM Rules revision and CC-BY-4.0 attribution listed above. Rebuild it with
+`node scripts/import-russian-rulebook.mjs <OmnisGM-Rules>/src/dnd/srd-5.1`.
+The import translates chapter descriptions and class spell lists, retains
+page IDs and English heading anchors, and converts measurements to metric.
+
 ## Ambience and music
 
 **No audio ships with this project.** `src/lib/ambience/catalog.ts` names the

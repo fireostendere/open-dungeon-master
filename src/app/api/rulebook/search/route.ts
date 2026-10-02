@@ -14,5 +14,5 @@ export async function GET(request: Request) {
     return unauthorized();
   }
   const q = (new URL(request.url).searchParams.get("q") ?? "").slice(0, QUERY_MAX);
-  return Response.json(rulebookSearch(q));
+  return Response.json(rulebookSearch(q, undefined, new URL(request.url).searchParams.get("lang") ?? "en"));
 }

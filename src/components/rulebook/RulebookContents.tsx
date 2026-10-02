@@ -3,6 +3,7 @@
 import { Bookmark, ChevronRight, Search, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import { cn } from "@/lib/cn";
+import { useI18n } from "@/lib/i18n/context";
 import { useInlineText } from "@/lib/i18n/inline-text";
 import { stem } from "@/lib/rulebook/search";
 import type { ContentsChapter, ContentsEntry, RulebookContents as Contents, SearchHit } from "@/lib/rulebook/types";
@@ -17,7 +18,7 @@ import { Digits } from "./RulebookPage";
 export type OpenFromContents = (id: string, at?: string, terms?: string[]) => void;
 
 function Highlighted({ text, terms }: { text: string; terms: string[] }) {
-  const parts = text.split(/([A-Za-z0-9]+(?:['’][A-Za-z]+)?)/);
+  const parts = text.split(/([A-Za-zА-Яа-яЁё0-9]+(?:['’][A-Za-zА-Яа-яЁё]+)?)/);
   return (
     <>
       {parts.map((part, index) => {
@@ -106,7 +107,8 @@ export function RulebookContents({
   searchRef: RefObject<HTMLInputElement | null>;
 }) {
   const uiText = useInlineText();
-  // The labels of QUICK_LINKS (src/lib/rulebook/book.ts); the pages they open stay English.
+  const { locale } = useI18n();
+  // The labels of QUICK_LINKS (src/lib/rulebook/book.ts).
   const quickLabel: Record<string, string> = {
     Conditions: uiText("Conditions"),
     "Actions in combat": uiText("Actions in combat"),
@@ -149,7 +151,7 @@ export function RulebookContents({
     const timer = setTimeout(async () => {
       setSearching(true);
       try {
-        const response = await fetch(`/api/rulebook/search?q=${encodeURIComponent(q)}`);
+        const response = await fetch(`/api/rulebook/search?q=${encodeURIComponent(q)}&lang=${locale}`);
         const data = response.ok ? await response.json() : { hits: [], terms: [] };
         if (asked.current === q) setResult({ query: q, hits: data.hits ?? [], terms: data.terms ?? [] });
       } finally {
@@ -157,7 +159,7 @@ export function RulebookContents({
       }
     }, 180);
     return () => clearTimeout(timer);
-  }, [query]);
+  }, [query, locale]);
 
   const entries = useMemo(() => {
     const map = new Map<string, ContentsEntry>();
