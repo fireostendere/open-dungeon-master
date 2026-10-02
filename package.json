@@ -24,7 +24,8 @@
     "fetch-ambience": "node scripts/fetch-ambience.mjs",
     "postinstall": "node scripts/copy-dice-assets.mjs",
     "fx:lab": "node scripts/build-fx-lab.mjs",
-    "map:lab": "node scripts/build-battlemap-lab.mjs"
+    "map:lab": "node scripts/build-battlemap-lab.mjs",
+    "bestiary:3d": "node scripts/build-bestiary-3d.mjs"
   },
   "dependencies": {
     "@3d-dice/dice-box-threejs": "^0.0.12",
