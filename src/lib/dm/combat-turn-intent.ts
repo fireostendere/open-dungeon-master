@@ -14,7 +14,7 @@ export function combatIntentBudget(encounter: Pick<PublicEncounter, "currentActo
 }
 
 export type CombatChoice =
-  | { type: "attack"; targetEnemyId: string; weapon: string; sneakAttack?: boolean }
+  | { type: "attack"; targetEnemyId?: string; targetCharacterId?: string; weapon: string; sneakAttack?: boolean }
   | { type: "dodge" }
   | { type: "action"; action: "dash" | "disengage" | "hide" | "help" | "grapple" | "shove"; targetEnemyId?: string; targetCharacterId?: string; cunningAction?: boolean }
   | { type: "pet"; petName: string; attack: string; targetEnemyId: string }
@@ -35,7 +35,7 @@ export type CombatTurnIntent = {
 export function combatChoiceLabel(choice: CombatChoice, language: "ru" | "en", names: ReadonlyMap<string, string> = new Map()): string {
   const ru = language === "ru";
   const target = (id?: string) => id ? ` → ${names.get(id) ?? (ru ? "цель" : "target")}` : "";
-  if (choice.type === "attack") return `${ru ? "Атака" : "Attack"}: ${choice.weapon === "Unarmed strike" && ru ? "Безоружный удар" : choice.weapon}${target(choice.targetEnemyId)}${choice.sneakAttack ? (ru ? " · Скрытая атака" : " · Sneak Attack") : ""}`;
+  if (choice.type === "attack") return `${ru ? "Атака" : "Attack"}: ${choice.weapon === "Unarmed strike" && ru ? "Безоружный удар" : choice.weapon}${target(choice.targetEnemyId ?? choice.targetCharacterId)}${choice.sneakAttack ? (ru ? " · Скрытая атака" : " · Sneak Attack") : ""}`;
   if (choice.type === "dodge") return ru ? "Защита: уклонение" : "Defence: Dodge";
   if (choice.type === "action") {
     const labels = ru
@@ -132,7 +132,7 @@ export function validateCombatTurnIntent(
   visibleEnemyIds: Set<string>,
   allyIds: Set<string>,
   budget: TurnBudget,
-  presentation?: { language: string; names: ReadonlyMap<string, string>; spells?: CombatSpellDescriptor[] },
+  presentation?: { language: string; names: ReadonlyMap<string, string>; spells?: CombatSpellDescriptor[]; friendlyFire?: boolean },
 ): CombatIntentResult {
   let next = budget;
   const selections: string[] = [];
@@ -159,7 +159,7 @@ export function validateCombatTurnIntent(
       const spell = presentation?.spells?.find(entry => entry.name === choice.spell);
       if (!combatSpellNames(sheet).includes(choice.spell) || !spell) return { ok: false, error: "Choose a spell on your character sheet." };
       if (!spell.target || spell.cost === null || spell.cost === "reaction" || spell.level === null) return { ok: false, error: "This spell is not available in the structured combat builder." };
-      if (spell.target === "enemy" && !visibleEnemyIds.has(choice.targetId)) return { ok: false, error: "Choose a visible enemy spell target." };
+      if (spell.target === "enemy" && !visibleEnemyIds.has(choice.targetId) && !(presentation?.friendlyFire && allyIds.has(choice.targetId) && choice.targetId !== sheet.id)) return { ok: false, error: "Choose a visible enemy spell target." };
       if (spell.target === "ally" && !allyIds.has(choice.targetId)) return { ok: false, error: "Choose an ally spell target." };
       if (spell.target === "self" && choice.targetId !== sheet.id) return { ok: false, error: "This spell targets only its caster." };
       if (spell.level !== null && spell.level > 0) {
@@ -182,7 +182,10 @@ export function validateCombatTurnIntent(
       // A free-text order is an intent, never a free mechanical pet action.
       selections.push(`${ru ? "Приказ" : "Order"}: ${pet.name} — ${choice.order.trim()}; ${adjudication}`);
     } else if (choice.type === "attack") {
-      if (!visibleEnemyIds.has(choice.targetEnemyId)) return { ok: false, error: "Choose a visible living enemy." };
+      if (Boolean(choice.targetEnemyId) === Boolean(choice.targetCharacterId) ||
+        (choice.targetCharacterId ? !presentation?.friendlyFire || !allyIds.has(choice.targetCharacterId) || choice.targetCharacterId === sheet.id : !visibleEnemyIds.has(choice.targetEnemyId!))) {
+        return { ok: false, error: "Choose a visible living enemy, or a party target when friendly fire is enabled." };
+      }
       if (!knownWeapon(sheet, choice.weapon)) return { ok: false, error: "Choose a weapon on your character sheet." };
       if (choice.sneakAttack && !hasSneakAttack) return { ok: false, error: "This character has no Sneak Attack feature." };
       if (choice.sneakAttack && sneakAttackUsed) return { ok: false, error: "Sneak Attack can be declared only once per turn." };
@@ -190,7 +193,7 @@ export function validateCombatTurnIntent(
       if (!spent.ok) return spent;
       next = spent.budget;
       if (choice.sneakAttack) sneakAttackUsed = true;
-      selections.push(`${copy.attack}: ${choice.weapon}; ${copy.target}: ${name(choice.targetEnemyId)}${choice.sneakAttack ? `; ${ru ? "Скрытая атака, если соблюдены условия" : "Sneak Attack, if eligible"}` : ""}`);
+      selections.push(`${copy.attack}: ${choice.weapon}; ${copy.target}: ${name(choice.targetEnemyId ?? choice.targetCharacterId!)}${choice.sneakAttack ? `; ${ru ? "Скрытая атака, если соблюдены условия" : "Sneak Attack, if eligible"}` : ""}`);
     } else if (choice.type === "dodge") {
       const spent = spendAction(next, "action", "Dodge", sheet.name);
       if (!spent.ok) return spent;

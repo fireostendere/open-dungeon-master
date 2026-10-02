@@ -26,6 +26,7 @@ export function loadSource(relative, dependencies = {}) {
   const scopedRequire = (name) => {
     if (Object.hasOwn(dependencies, name)) return dependencies[name];
     if (name.startsWith('node:')) return nativeRequire(name);
+    if (name === '@/lib/spatial/publication-scope.mjs') return nativeRequire(resolve(root, 'src/lib/spatial/publication-scope.mjs'));
     throw new Error(`Unsubstituted dependency ${name} in ${relative}`);
   };
   const code = compiled.outputText.includes('import.meta')

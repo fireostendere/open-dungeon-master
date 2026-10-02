@@ -1,3 +1,4 @@
+import { currentEncounterRoom } from "@/lib/spatial/publication-scope.mjs";
 import { getDatabase, nowIso, parseJson } from "@/lib/db/core";
 import type { EnemyStats } from "@/lib/bestiary/statblock";
 import type { ConditionMetaMap } from "@/lib/schemas/sheet";
@@ -237,6 +238,7 @@ export function getEncounter(id: string): Encounter | null {
 // rule in the engine asks this question, and none of them should fire because
 // the party is standing on an exploration map.
 export function getActiveEncounter(campaignId: string, roomId?: string | null): Encounter | null {
+  if (roomId === undefined) roomId = currentEncounterRoom(campaignId);
   if (roomId !== undefined) {
     if (roomId === null) {
       const row = getDatabase()
@@ -266,6 +268,7 @@ export function getActiveEncounter(campaignId: string, roomId?: string | null): 
 }
 
 export function getActiveScene(campaignId: string, roomId?: string | null): Encounter | null {
+  if (roomId === undefined) roomId = currentEncounterRoom(campaignId);
   if (roomId !== undefined) {
     if (roomId === null) {
       const row = getDatabase()

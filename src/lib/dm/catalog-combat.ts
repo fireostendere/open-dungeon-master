@@ -37,9 +37,9 @@ export const COMBAT_ADJUDICATIONS: CatalogEntry[] = [
         name: "enemies",
         label: "Enemies",
         kind: "longtext",
-        required: true,
+        required: false,
         placeholder: "goblin x4\nhobgoblin",
-        help: "One per line, name or SRD slug, optional xN for a count. Stat blocks come from the content pack.",
+        help: "One per line, name or SRD slug, optional xN for a count. Stat blocks come from the content pack. With friendlyFire=true, an empty enemies array starts party-only combat.",
       },
       { name: "summary", label: "Opening", kind: "text" },
       {
@@ -87,16 +87,15 @@ export const COMBAT_ADJUDICATIONS: CatalogEntry[] = [
         name: "targetEnemyId",
         label: "Target",
         kind: "enemy",
-        required: true,
-        help: "Canonical target id. The legacy enemyId alias is accepted when an external client sends both.",
+        help: "Choose this enemy or targetCharacterId. Canonical target id. The legacy enemyId alias is accepted when an external client sends both.",
       },
       {
         name: "enemyId",
         label: "Legacy target alias",
         kind: "enemy",
-        required: true,
         help: "Compatibility field; choose the same enemy as targetEnemyId.",
       },
+      { name: "targetCharacterId", label: "Party target", kind: "character", help: "Requires friendlyFire=true. Choose exactly one enemy or character target." },
       { name: "weapon", label: "Weapon", kind: "text", help: "Blank uses what they have equipped." },
       { name: "spell", label: "Attack-roll spell", kind: "text", help: "Eldritch Blast, Fire Bolt, etc. Use spell, not weapon. The engine spends its action and any slot." },
       { name: "level", label: "Spell slot level", kind: "number", min: 0, max: 9 },
@@ -153,7 +152,8 @@ export const COMBAT_ADJUDICATIONS: CatalogEntry[] = [
     needsEncounter: true,
     fields: [
       { name: "characterId", label: "Caster", kind: "character", required: true },
-      { name: "targetEnemyId", label: "Target", kind: "enemy", required: true },
+      { name: "targetEnemyId", label: "Target", kind: "enemy" },
+      { name: "targetCharacterId", label: "Party target", kind: "character", help: "Requires friendlyFire=true; choose exactly one enemy or character target." },
       { name: "spell", label: "Spell", kind: "text", required: true },
       { name: "saveAbility", label: "Save", kind: "select", required: true, options: ABILITIES },
       { name: "level", label: "Slot level", kind: "number", min: 1, max: 9 },
@@ -195,6 +195,7 @@ export const COMBAT_ADJUDICATIONS: CatalogEntry[] = [
     category: "combat",
     summary: "One save, many targets: each rolls, and the halves and evasions resolve themselves.",
     fields: [
+      { name: "area", label: "Measured area", kind: "longtext", help: "Optional {shape: sphere|cone|line|cube, origin:{x,y}, target:{x,y}, sizeTiles:1..24}. Server includes everyone in the area. One tile is 1.5 m." },
       { name: "damage", label: "Damage", kind: "dice", required: true, placeholder: "8d6" },
       { name: "saveAbility", label: "Save", kind: "select", required: true, options: ABILITIES },
       { name: "dc", label: "DC", kind: "number", required: true, min: 1, max: 30 },
@@ -439,3 +440,7 @@ export const COMBAT_ADJUDICATIONS: CatalogEntry[] = [
     ],
   },
 ];
+
+for (const entry of COMBAT_ADJUDICATIONS) {
+  if (!entry.fields.some(field => field.name === "roomId")) entry.fields.push({ name: "roomId", label: "Room", kind: "text", help: "Spatial room UUID. Required when the active room cannot be inferred from the acting character." });
+}

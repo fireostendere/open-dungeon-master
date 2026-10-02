@@ -51,11 +51,12 @@ type WizardOption = {
 
 export function CombatTurnHud({
   encounter, sheet, sheets, locked, sending, onSubmit, choices: externalChoices, onChoicesChange, description, onDescriptionChange,
-  spellOptions = [], spellsLoading = false, spellsError = false, petPanel,
+  friendlyFire = false, spellOptions = [], spellsLoading = false, spellsError = false, petPanel,
 }: {
   encounter: PublicEncounter;
   sheet: CharacterSheet;
   sheets: CharacterSheet[];
+  friendlyFire?: boolean;
   locked: boolean;
   sending: boolean;
   onSubmit: (turn: CombatTurnIntent) => void;
@@ -86,8 +87,14 @@ export function CombatTurnHud({
   const items = descriptors.filter((entry) => entry.type === "item");
   const enemies = encounter.enemies.filter((enemy) => enemy.status === "alive");
   const combatantIds = new Set(encounter.order.filter((entry) => entry.kind === "pc").map((entry) => entry.id));
-  const allies = sheets.filter((entry) => !entry.deathSaves?.dead && (!encounter.orderReady || combatantIds.has(entry.id)));
+  const allies = [
+    ...sheets.filter((entry) => !entry.deathSaves?.dead && (!encounter.orderReady || combatantIds.has(entry.id))),
+    ...encounter.order.filter(entry => entry.kind === "pc" && !sheets.some(sheet => sheet.id === entry.id)),
+  ];
   const otherAllies = allies.filter((ally) => ally.id !== sheet.id);
+  const attackTargets = friendlyFire ? [...enemies, ...otherAllies] : enemies;
+  const attackChoice = (id: string, weapon: string): CombatChoice => ({ type: "attack", weapon,
+    ...(enemies.some(enemy => enemy.id === id) ? { targetEnemyId: id } : { targetCharacterId: id }) });
   const targetNames = new Map([...allies, ...enemies].map((entry) => [entry.id, entry.name] as const));
   const budget = combatIntentBudget(encounter, freshBudget({
     ownerId: sheet.id, round: encounter.round,
@@ -98,7 +105,7 @@ export function CombatTurnHud({
     ...(entries.length && description.trim() ? { description: description.trim() } : {}) });
   const validate = (entries: CombatChoice[]) => validateCombatTurnIntent(
     intent(entries), sheet, new Set(enemies.map((enemy) => enemy.id)), new Set(allies.map((ally) => ally.id)), budget,
-    { language: locale, names: new Map(), spells: spellOptions },
+    { language: locale, names: new Map(), spells: spellOptions, friendlyFire },
   );
   const canQueue = (choice: CombatChoice) => validate([...choices, choice]).ok;
   const actionNames = { dash: copy.dash, disengage: copy.disengage, hide: copy.hide, help: copy.help, grapple: copy.grapple, shove: copy.shove };
@@ -106,9 +113,9 @@ export function CombatTurnHud({
   const names = (name: string) => name === "Unarmed strike" ? (locale === "ru" ? "Безоружный удар" : name) : localizedContentName("item", name, locale);
   const options: WizardOption[] = [];
 
-  if (enemies.length) {
+  if (attackTargets.length) {
     for (const weapon of weapons) {
-      if (enemies.some((enemy) => canQueue({ type: "attack", targetEnemyId: enemy.id, weapon: weapon.name }))) {
+      if (attackTargets.some(target => canQueue(attackChoice(target.id, weapon.name)))) {
         options.push({ key: `attack:${weapon.name}`, kind: "attack", label: `${copy.attack}: ${names(weapon.name)}`, cost: "action", weapon: weapon.name });
       }
     }
@@ -153,7 +160,7 @@ export function CombatTurnHud({
     const level = spell.level;
     const slots = level > 0 ? combatSpellSlots(sheet, level) : [];
     if (level > 0 && !slots.length) continue;
-    const targets = spell.target === "enemy" ? enemies : spell.target === "ally" ? allies : [sheet];
+    const targets = spell.target === "enemy" ? attackTargets : spell.target === "ally" ? allies : [sheet];
     const targetIds = targets.map((target) => target.id);
     if (!targetIds.some((id) => canQueue({
       type: "spell", spell: spell.name, targetId: id,
@@ -175,10 +182,10 @@ export function CombatTurnHud({
   const selected = options.find((option) => option.key === selectedKey);
   const selectedSpell = selected?.kind === "spell" ? selected.spell : undefined;
   const spellSlots = selectedSpell?.level ? combatSpellSlots(sheet, selectedSpell.level) : [];
-  const targetOptions = selected?.kind === "attack" || (selected?.kind === "maneuver" && (selected.action === "grapple" || selected.action === "shove"))
-    ? enemies
+  const targetOptions = selected?.kind === "attack" ? attackTargets
+    : selected?.kind === "maneuver" && (selected.action === "grapple" || selected.action === "shove") ? enemies
     : selected?.kind === "maneuver" && selected.action === "help" ? otherAllies
-    : selected?.kind === "spell" && selectedSpell?.target === "enemy" ? enemies
+    : selected?.kind === "spell" && selectedSpell?.target === "enemy" ? attackTargets
     : selected?.kind === "spell" && selectedSpell?.target === "ally" ? allies
     : selected?.kind === "resource" ? (() => {
       const resource = resources.find((entry) => entry.id === selected.resource);
@@ -190,7 +197,7 @@ export function CombatTurnHud({
 
   let draftChoice: CombatChoice | null = null;
   if (selected?.kind === "attack" && selected.weapon && targetId) {
-    draftChoice = { type: "attack", weapon: selected.weapon, targetEnemyId: targetId, ...(sneakAttack ? { sneakAttack: true } : {}) };
+    draftChoice = { ...attackChoice(targetId, selected.weapon), ...(sneakAttack ? { sneakAttack: true } : {}) };
   } else if (selected?.kind === "dodge") draftChoice = { type: "dodge" };
   else if (selected?.kind === "maneuver" && selected.action) {
     if (selected.action === "help" && targetId) draftChoice = { type: "action", action: selected.action, targetCharacterId: targetId };

@@ -21,7 +21,8 @@ export function projectSpatialCampaign<T extends {
   party?: { location: string; activity: string; marchingOrder: string[] };
 }>(policy: SpatialLegacyPolicy, campaign: T): T {
   if (!policy.scoped) return campaign;
-  return { ...campaign, scene: '', questLog: [], floor: { mode: 'open' }, dmCover: null,
+  const view = spatialStore().view(policy.actor);
+  return { ...campaign, scene: '', questLog: [], floor: view.enabled ? view.floor ?? { mode: 'open' } : { mode: 'open' }, dmCover: null,
     ...(campaign.party ? { party: { ...campaign.party, location: '', activity: '', marchingOrder: [] } } : {}) } as T;
 }
 export function projectSpatialRolls<T extends { characterId: string | null }>(policy: SpatialLegacyPolicy, rolls: T[]): T[] {

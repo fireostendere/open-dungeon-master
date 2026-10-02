@@ -3,8 +3,8 @@ import { getDatabase } from "@/lib/db/core";
 import { afterCommit } from "@/lib/db/commit-effects";
 import { notifySpatialChange } from "@/lib/spatial/updates.mjs";
 import { allocateSeq, campaignSeats, capsFor, getCampaignForUser, getGlobalTurnState, listMembers, touchCampaign, canAct, getFloor, normalizeFloor, setFloor, type Floor } from "@/lib/db/campaigns";
-import { getSheetForUser } from "@/lib/db/sheets";
-import { getActiveEncounter } from "@/lib/db/encounters";
+import { getSheetForUser, getSheetById } from "@/lib/db/sheets";
+import { getActiveEncounter, getEnemy } from "@/lib/db/encounters";
 import { listOpenPendingRolls } from "@/lib/db/dm-turns";
 import { isMemberMuted } from "@/lib/db/moderation";
 import { coverInEffect } from "@/lib/dm/delegation";
@@ -23,7 +23,15 @@ export function spatialStore(): SpatialStore {
   let store = stores.get(db);
   // A first initialization can occur inside a later-rolled-back command.
   // Recheck schema existence rather than caching a rolled-back DDL state.
-  if (!store || !db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='spatial_campaigns'").get()) { store = createSpatialStore(db, { nextSeq: allocateSeq }); stores.set(db, store); }
+  if (!store || !db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='spatial_campaigns'").get()) {
+    store = createSpatialStore(db, { nextSeq: allocateSeq, characterForUser: getSheetForUser,
+      conditionsForTarget: (campaignId, targetId) => {
+        const target = getSheetById(targetId) ?? getEnemy(targetId);
+        return target?.campaignId === campaignId ? target.conditions ?? [] : [];
+      },
+    });
+    stores.set(db, store);
+  }
   return store;
 }
 export const spatialEnabled = (campaignId: string) => spatialStore().enabled(campaignId);
@@ -51,7 +59,7 @@ export const spatialCommandSchema = z.discriminatedUnion("operation", [
   z.object({ ...base, operation: z.literal("create_room"), name: z.string().trim().min(1).max(80), connectTo: id.optional(), ...passage }).strict(),
   z.object({ ...base, operation: z.literal("link"), sourceId: id, targetId: id, ...passage }).strict(),
   z.object({ ...base, operation: z.literal("move"), roomId: id, userIds: z.array(id).min(1).max(20).optional(), expectedRevision: revision }).strict(),
-  z.object({ ...base, operation: z.literal("send"), roomId: id.nullable().optional(), kind: z.enum(["do", "narration", "ooc"]), content: z.string().trim().min(1).max(8000), expectedRevision: revision, stealth: z.boolean().optional(), characterId: z.string().optional() }).strict(),
+  z.object({ ...base, operation: z.literal("send"), roomId: id.nullable().optional(), kind: z.enum(["do", "narration", "ooc"]), content: z.string().trim().min(1).max(8000), expectedRevision: revision, stealth: z.boolean().optional(), completeTurn: z.boolean().optional(), characterId: z.string().optional() }).strict(),
   z.object({ ...base, operation: z.literal("observe"), roomId: id, userId: id, mode: z.enum(["speech", "scry"]), seconds: z.number().int().min(1).max(3600), reason: z.string().trim().min(1).max(500) }).strict(),
   z.object({ ...base, operation: z.literal("revoke"), grantId: id }).strict(),
   z.object({ ...base, operation: z.literal("propagate"), roomId: id, medium: z.enum(["sound", "sight"]), content: z.string().trim().min(1).max(2000) }).strict(),
@@ -109,7 +117,7 @@ export function runSpatialCommand(campaignId: string, userId: string, raw: unkno
         if (!sheet) throw new SpatialError("You need a character to act.", 409);
         if (operation === "move") {
           const userRoom = store.getUserRoom(campaignId, userId);
-          if (userRoom && getActiveEncounter(campaignId, userRoom)) {
+          if (userRoom && (getActiveEncounter(campaignId, userRoom) || listOpenPendingRolls(campaignId).some(roll => roll.userId === userId))) {
             throw new SpatialError("Ask the DM to adjudicate movement during an encounter.", 409);
           }
         }
@@ -188,7 +196,7 @@ export function runSpatialCommand(campaignId: string, userId: string, raw: unkno
           const encounter = getActiveEncounter(campaignId, roomId)!;
           setFloor(campaignId, { mode: "hold", next: floor, combat: {
             encounterId: encounter.id, round: encounter.round, turnIndex: encounter.turnIndex,
-            characterId: sheetId, requiresEndTurn: false, mechanicsResolved: false,
+            characterId: sheetId, requiresEndTurn: Boolean(normalized.completeTurn), mechanicsResolved: false,
           } }, roomId);
         }
         // Preserve main's private RakoBot feed. This reference is committed

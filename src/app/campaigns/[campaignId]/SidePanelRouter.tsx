@@ -398,6 +398,7 @@ export function SidePanelRouter({
             <CombatTurnHud
               key={`${encounter.id}:${encounter.round}:${encounter.currentActorId}`}
               encounter={encounter}
+              friendlyFire={campaign?.gameSettings?.friendlyFire}
               sheet={mySheet}
               sheets={sheets}
               locked={Boolean(combatLocked || floor.mode === "hold")}

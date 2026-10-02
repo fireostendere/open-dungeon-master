@@ -1,5 +1,6 @@
 import { addConditionSource } from "@/lib/dm/condition-sources";
 import { z } from "zod";
+import { resolveCombatTarget } from "@/lib/dm/combat-target";
 import { allocateSeq, type Campaign } from "@/lib/db/campaigns";
 import { getActiveEncounter, patchEnemyConditions, setEnemyConcentration } from "@/lib/db/encounters";
 import { getSheetById, patchSheet } from "@/lib/db/sheets";
@@ -98,6 +99,7 @@ export const castAtEnemyTool: ToolDef = {
       properties: {
         characterId: { type: "string", description: "Exact characterId from GAME STATE." },
         targetEnemyId: { type: "string", description: "Exact enemyId from GAME STATE." },
+        targetCharacterId: { type: "string", description: "Party target for this offensive spell; requires friendlyFire. Choose exactly one target." },
         spell: { type: "string", description: "Exact spell name from the caster's list." },
         saveAbility: {
           type: "string",
@@ -132,7 +134,7 @@ export const castAtEnemyTool: ToolDef = {
         },
         reason: { type: "string", description: "Short in-fiction cause." },
       },
-      required: ["characterId", "targetEnemyId", "spell", "saveAbility"],
+      required: ["characterId", "spell", "saveAbility"],
     },
   },
 };
@@ -168,7 +170,8 @@ export function castRedirect(
 
 const castArgsSchema = z.object({
   characterId: z.string(),
-  targetEnemyId: z.string(),
+  targetEnemyId: z.string().optional(),
+  targetCharacterId: z.string().optional(),
   spell: z.string().max(80),
   saveAbility: z.preprocess(normalizeAbility, z.enum(["str", "dex", "con", "int", "wis", "cha"])),
   level: z.coerce.number().int().min(1).max(9).optional(),
@@ -215,13 +218,9 @@ export function handleCastAtEnemy(
   if (dc === null) {
     return { error: `${sheet.name} has no spell save DC.` };
   }
-  const enemy = resolveEnemyRef(encounter.id, args.targetEnemyId);
-  if (!enemy) {
-    return { error: "Unknown targetEnemyId; use one from GAME STATE." };
-  }
-  if (enemy.status !== "alive") {
-    return { error: `${enemy.displayName} is already ${enemy.status}.` };
-  }
+  const target = resolveCombatTarget(campaign, encounter, args);
+  if ("error" in target) return target;
+  const enemy = target.enemy;
   // The content pack decides how a known spell resolves; the model's
   // arguments are corrected rather than trusted. Unknown (homebrew) spells
   // keep the model-supplied fallback.
@@ -280,7 +279,7 @@ export function handleCastAtEnemy(
   const conditionRounds = mechCondition
     ? (mechCondition.saveEnds ? undefined : mechCondition.rounds)
     : args.rounds;
-  if (condition && enemy.stats.conditionImmune.toLowerCase().includes(condition)) {
+  if (condition && enemy && enemy.stats.conditionImmune.toLowerCase().includes(condition)) {
     return {
       error: `${enemy.displayName} is immune to ${condition} (immunities: ${enemy.stats.conditionImmune}); the spell cannot take hold. The slot was not spent.`,
     };
@@ -306,6 +305,18 @@ export function handleCastAtEnemy(
       return spend;
     }
   }
+
+  if (target.sheet) {
+    const applied = handleCastAtPlayer(campaign, turn, JSON.stringify({
+      characterId: target.id, casterId: sheet.id, spell: args.spell,
+      source: `${sheet.name}: ${args.spell}`, saveAbility: ability, dc,
+      damage: damageExpression, damageType, halfOnSave, condition: condition ?? undefined,
+      rounds: conditionRounds,
+    }), sheets, sheetsById, { casterId: sheet.id, autoHit });
+    return { ...applied, spell: resolvedMech?.name ?? args.spell, caster: sheet.name,
+      ...(corrections.length ? { corrected: corrections } : {}) };
+  }
+  if (!enemy) return { error: "No combat target." };
 
   // The enemy's save, rolled from its real stat block as a visible card.
   // Auto-hit spells (Magic Missile) skip the save entirely.
@@ -693,6 +704,7 @@ export function handleCastBuff(
 }
 
 const castAtPlayerSchema = z.object({
+
   characterId: z.string(),
   source: z.string().max(80).optional(),
   saveAbility: z.preprocess(normalizeAbility, z.enum(["str", "dex", "con", "int", "wis", "cha"])),
@@ -746,6 +758,7 @@ export function handleCastAtPlayer(
   rawArguments: string,
   sheets: CharacterSheet[],
   sheetsById: Map<string, CharacterSheet>,
+  sourceContext?: { casterId: string; autoHit: boolean },
 ): Record<string, unknown> {
   let args: z.infer<typeof castAtPlayerSchema>;
   try {
@@ -789,9 +802,9 @@ export function handleCastAtPlayer(
   let saved: boolean;
   let rolledTotal: number | null = null;
   const notes: string[] = [];
-  if ("autoFail" in resolved) {
+  if (sourceContext?.autoHit || "autoFail" in resolved) {
     saved = false;
-    notes.push(...resolved.notes);
+    if ("autoFail" in resolved) notes.push(...resolved.notes);
   } else {
     const outcome = rollExpression(resolved.expression);
     rolledTotal = outcome.total;
@@ -851,8 +864,10 @@ export function handleCastAtPlayer(
   const tracked = trackEnemyConcentration(campaign, args.casterEnemyId, args.spell);
   const sourceEncounter = tracked ? getActiveEncounter(campaign.id) : null;
   const sourceEnemy = sourceEncounter && args.casterEnemyId ? resolveEnemyRef(sourceEncounter.id, args.casterEnemyId) : null;
-  const conditionSource = sourceEnemy && args.spell
-    ? concentrationSourceFor(campaign, sourceEnemy.id, "enemy", sourceEnemy.concentration ?? args.spell) : undefined;
+  const conditionSource = sourceContext?.casterId && args.spell
+    ? concentrationSourceFor(campaign, sourceContext.casterId, "pc", args.spell)
+    : sourceEnemy && args.spell
+      ? concentrationSourceFor(campaign, sourceEnemy.id, "enemy", sourceEnemy.concentration ?? args.spell) : undefined;
   if (args.condition && !saved) {
     const condition = canonicalCondition(args.condition);
     const applied = applyDmMutation(
@@ -865,7 +880,7 @@ export function handleCastAtPlayer(
         ...(conditionSource ? { conditionSource } : {}),
         ...(args.rounds
           ? { rounds: args.rounds }
-          : { saveAbility: args.saveAbility, saveDc: args.dc }),
+          : condition === "prone" ? {} : { saveAbility: args.saveAbility, saveDc: args.dc }),
         reason: source,
       }),
       sheets,

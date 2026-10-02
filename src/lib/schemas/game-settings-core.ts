@@ -66,6 +66,7 @@ export const gameSettingsSchema = z.object({
   combatMode: z.enum(COMBAT_MODES).default(DEFAULT_COMBAT_MODE),
   // Player input style during combat: hybrid (both available), builder (turn builder on battle tab), or freeform (prose in chat)
   combatInputMode: z.enum(COMBAT_INPUT_MODES).default(DEFAULT_COMBAT_INPUT_MODE),
+  friendlyFire: z.boolean().default(false),
   // New campaigns may pin YOLO narration per table. Missing on older rows so
   // they keep the deployment's existing runtime-mode behavior.
   yolo21Enabled: z.boolean().optional(),

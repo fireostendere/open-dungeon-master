@@ -116,6 +116,8 @@ const COPY = {
     unitsMetric: "Metric (m, kg)",
     unitsImperial: "Imperial (ft, lb)",
     combat: "Combat",
+    friendlyFire: "Friendly fire",
+    friendlyFireTip: "Allow attacks and offensive spells against party members, including allies caught in an area effect.",
     combatTip: "Classical uses encounter position. JRPG is a campaign house-rule mode: targets in one encounter ignore distance, line of sight, cover, and opportunity-attack gates; initiative, dice, resources, HP, conditions, and privacy remain enforced.",
     combatClassical: "Classical",
     combatJrpg: "JRPG",
@@ -257,6 +259,8 @@ const COPY = {
     units: "Единицы измерения",
     unitsTip: "Система мер в повествовании, на тактической карте и в описаниях. Метрическая (метры, кг) используется по умолчанию.",
     combat: "Бой",
+    friendlyFire: "Урон союзникам",
+    friendlyFireTip: "Разрешить атаки и боевые заклинания по участникам отряда, включая союзников в области поражения.",
     combatTip: "Классический режим учитывает позиции встречи. JRPG — правило кампании: цели одной встречи игнорируют дальность, линию обзора, укрытие и провоцированные атаки; инициатива, кости, ресурсы, HP, состояния и приватность сохраняются.",
     combatClassical: "Классический",
     combatJrpg: "JRPG",
@@ -439,6 +443,9 @@ export function GameSettingsPanel({
             {settings.multiclassingEnabled ? copy.multiclassOn : copy.multiclassOff}
           </span>
           <span className="flex items-center gap-1.5">
+            {copy.friendlyFire}: {settings.friendlyFire ? "✓" : "—"}
+          </span>
+          <span className="flex items-center gap-1.5">
             <GameIcon icon={{ kind: "glyph", key: "tab-friends" }} size="size-5" />
             {settings.midGameJoinOpen ? copy.joiningOpen : copy.joiningClosed}
           </span>
@@ -609,6 +616,14 @@ export function GameSettingsPanel({
             </select>
           </Tooltip>
         </div>
+
+        <Tooltip content={copy.friendlyFireTip}>
+          <label className="flex items-center gap-2">
+            <input type="checkbox" checked={settings.friendlyFire} disabled={busy}
+              onChange={(event) => patch({ friendlyFire: event.target.checked })} />
+            {copy.friendlyFire}
+          </label>
+        </Tooltip>
 
         <div className="flex flex-wrap items-center gap-2">
           <span className="w-16 text-stone-500">{copy.enemyHp}</span>

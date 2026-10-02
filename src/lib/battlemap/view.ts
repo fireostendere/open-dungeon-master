@@ -1,5 +1,5 @@
 import { getCampaignById, getFloor } from "@/lib/db/campaigns";
-import { getActiveBoard, listEnemies, type Encounter } from "@/lib/db/encounters";
+import { getActiveBoard, listEnemies, orderEntryId, type Encounter } from "@/lib/db/encounters";
 import { getSheetForUser, listSheets } from "@/lib/db/sheets";
 import {
   getBattleMapForEncounter,
@@ -84,7 +84,7 @@ export function sheetDarkvisionTiles(sheet: CharacterSheet): number {
 // Whether this player's PC may move right now: open floor, or their own
 // slot in the initiative order.
 function canMoveNow(campaignId: string, encounter: Encounter, characterId: string): boolean {
-  const floor = getFloor(campaignId);
+  const floor = getFloor(campaignId, encounter.roomId);
   if (floor.mode === "open") {
     return true;
   }
@@ -174,13 +174,13 @@ export function buildPlayerMapView(
   const enemiesById = new Map(listEnemies(encounter.id).map((enemy) => [enemy.id, enemy]));
   const sheetsById = new Map(listSheets(campaignId).map((entry) => [entry.id, entry]));
   const isSpatial = spatialEnabled(campaignId);
-  const store = isSpatial ? spatialStore() : null;
+  const store = spatialStore();
   const shownTokens = tokens
     .filter((token) => {
       // The DM hid it, so for everyone but the DM it is not on the board at
       // all. Withholding rather than dimming is the point: a shape the
       // players can see but not identify is still a warning.
-      if (token.hidden && !fullVision) {
+      if (token.hidden && !fullVision && token.refId !== sheet?.id) {
         return false;
       }
       if (token.kind === "enemy") {
@@ -188,28 +188,14 @@ export function buildPlayerMapView(
         if (!enemy || enemy.status !== "alive") {
           return false;
         }
-        if (!fullVision && isSpatial && store) {
-          const stealth = store.getStealthState(campaignId, token.refId);
-          if (stealth && (stealth.status === "pending" || stealth.status === "confirmed")) {
-            const detected = store.isDetected(campaignId, userId, token.refId) ||
-              (sheet ? store.isDetected(campaignId, sheet.id, token.refId) : false);
-            if (!detected) return false;
-          }
-        }
+        if (!fullVision && store.isUnseen(campaignId, token.refId, [userId, sheet?.id ?? userId], encounter.roomId)) return false;
         return visible.has(tileIndex(map.width, token.x, token.y));
       }
       if (token.kind === "pc") {
         if (myToken !== null && token.id === myToken.id) {
           return true;
         }
-        if (!fullVision && isSpatial && store) {
-          const stealth = store.getStealthState(campaignId, token.refId);
-          if (stealth && (stealth.status === "pending" || stealth.status === "confirmed")) {
-            const detected = store.isDetected(campaignId, userId, token.refId) ||
-              (sheet ? store.isDetected(campaignId, sheet.id, token.refId) : false);
-            if (!detected) return false;
-          }
-        }
+        if (!fullVision && store.isUnseen(campaignId, token.refId, [userId, sheet?.id ?? userId], encounter.roomId)) return false;
         if (!fullVision && isSpatial) {
           return visible.has(tileIndex(map.width, token.x, token.y));
         }
@@ -275,7 +261,7 @@ export function buildPlayerMapView(
     budgetLeft,
     myTokenId: myToken?.id ?? null,
     round: encounter.round,
-    currentTurnName: currentEntry?.name ?? "",
+    currentTurnName: currentEntry && (fullVision || shownTokens.some(token => token.refId === orderEntryId(currentEntry))) ? currentEntry.name : "",
     board: encounter.kind,
     fullVision,
     labels: labelsFor(map.labels, map.width, { dm: fullVision, explored }),

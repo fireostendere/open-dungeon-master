@@ -88,6 +88,7 @@ function subscribeFinaleSeen(callback: () => void) {
 // from sending and why, and the seat flags every panel reads.
 export function SessionView({
   state,
+  refreshCampaign,
   loadOlderMessages,
   refreshNotes,
   refreshFacts,
@@ -97,6 +98,7 @@ export function SessionView({
   refreshBattleMap,
 }: {
   state: CampaignState;
+  refreshCampaign?: () => Promise<unknown>;
   loadOlderMessages: () => Promise<boolean>;
   refreshNotes: () => Promise<void>;
   refreshFacts: () => Promise<void>;
@@ -191,7 +193,7 @@ export function SessionView({
       return "defeat";
     }
     return "victory";
-  }, [campaign?.outcome, sheets, closingDmMessage?.content]);
+  }, [campaign, sheets, closingDmMessage?.content]);
 
   const openLevelUp = useCallback(() => setLevelUpByHand(true), []);
   const openClosingMessage = useCallback(
@@ -558,6 +560,7 @@ export function SessionView({
       <div className="flex min-h-0 flex-1">
         <SessionChatColumn
           state={state}
+          refreshCampaign={refreshCampaign}
           loadOlderMessages={loadOlderMessages}
           campaignId={campaign.id}
           meUserId={me.id}

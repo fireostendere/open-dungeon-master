@@ -175,7 +175,9 @@ const mocks = {
     createDmTurn: () => structuredClone(state.turn), getDmTurn: () => structuredClone(state.turn),
     saveDmTurn: turn => { state.turn = structuredClone(turn); }, listOpenPendingRolls: () => state.pending,
   },
-  '@/lib/db/sheets': { listSheets: () => [{ id: 'pc-a', userId: 'a' }, { id: 'pc-b', userId: 'b' }] },
+  '@/lib/db/sheets': { getSheetById: () => null, listSheets: () => [{ id: 'pc-a', userId: 'a' }, { id: 'pc-b', userId: 'b' }] },
+  '@/lib/spatial/publication-scope.mjs': { currentEncounterRoom: () => undefined, withEncounterRoom: (_id, _room, work) => work() },
+  '@/lib/spatial/service': { spatialEnabled: () => false, spatialContext: () => ({}), spatialStore: () => ({}) },
   '@/lib/db/encounters': { getActiveEncounter: () => state.encounter },
   '@/lib/db/human-adjudication-scopes': { scopedHumanTurn: () => structuredClone(state.turn) },
   '@/lib/dm/invoke-catalog': {

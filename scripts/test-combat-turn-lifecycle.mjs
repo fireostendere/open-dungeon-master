@@ -48,7 +48,7 @@ function fixture() {
     '@/lib/dm/queue': {}, '@/lib/dm/recap': {}, '@/lib/events': f.events,
     '@/lib/dm/global-turn-logic': { recordGlobalTurnAction: () => { if (encounter) throw new Error('Combat must bypass global turns'); return { allowed: true }; } },
     '@/lib/db/encounters': { getActiveEncounter: () => encounter },
-    '@/lib/db/encounter-view': { activePublicEncounter: () => ({ enemies: visibleEnemies }) },
+    '@/lib/db/encounter-view': { activePublicEncounter: () => ({ enemies: visibleEnemies, order: sheets.map(sheet => ({ kind: "pc", id: sheet.id, name: sheet.name })) }) },
     '@/lib/dm/action-tools': { attacksAllowedFor: () => 1, budgetFor: () => freshBudget({ ownerId: heroId, round: 1 }) },
     '@/lib/dm/combat-turn-intent': { combatSpellNames, validateCombatTurnIntent },
      '@/lib/content': {
@@ -305,6 +305,7 @@ test('actual resource mutation spends shared action economy before any effect or
   let effects = 0;
   const compute = () => { effects++; return { patch: {}, result: { ok: true } }; };
   const mutation = loadSource('src/lib/dm/mutations.ts', {
+    '@/lib/dm/concealment': { revealAfterAction() {} },
     zod: { z }, '@/lib/db/sheets': { getSheetById: () => sheet, patchSheet: () => sheet },
     '@/lib/db/sheet-audit': { insertSheetAudit: () => ({}) }, '@/lib/db/character-events': {},
     '@/lib/db/campaigns': { allocateSeq: () => 1 }, '@/lib/content': {}, '@/lib/srd': {},

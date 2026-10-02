@@ -18,7 +18,7 @@ import { publishPersisted, publishWithSeq } from "@/lib/events";
 import { computeSheetDerived, powerfulBuildForRace, sizeForRace, spellAttackFor } from "@/lib/srd";
 import { classLevelFor } from "@/lib/srd/multiclass";
 import { spellDamageFor, spellMechanicsFor } from "@/lib/content";
-import { castRedirect } from "@/lib/dm/cast-tools";
+import { castRedirect, handleCastAtPlayer } from "@/lib/dm/cast-tools";
 import {
   adjudicateHit,
   ragingMeleeBonus,
@@ -45,7 +45,7 @@ import {
 } from "@/lib/dm/condition-logic";
 import { critDamageExpression } from "@/lib/dm/encounter-logic";
 import { applyDmMutation } from "@/lib/dm/mutations";
-import { applyEnemyDamage, publishEncounter, resolveEnemyRef } from "@/lib/dm/enemy-damage";
+import { applyEnemyDamage, publishEncounter } from "@/lib/dm/enemy-damage";
 import { patchEnemyConditions } from "@/lib/db/encounters";
 import { saveModFor } from "@/lib/bestiary/statblock";
 import { allyAdjacentToEnemy, checkPcAttackRange, pcAttackSpatials } from "@/lib/dm/map-tools";
@@ -57,6 +57,8 @@ import {
 } from "@/lib/dm/action-tools";
 import { attacksLeft, claimOncePerTurn, spendAction, spendAttack } from "@/lib/dm/action-budget";
 import { resolveSheetRef } from "@/lib/dm/rolls";
+import { resolveCombatTarget } from "@/lib/dm/combat-target";
+import { revealAfterAction } from "@/lib/dm/concealment";
 import { allSpellNames } from "@/lib/srd/spell-lists";
 import type { CharacterSheet } from "@/lib/schemas/sheet";
 
@@ -80,13 +82,14 @@ export const pcAttackTool: ToolDef = {
   function: {
     name: "pc_attack",
     description:
-      "A player character attacks an enemy. The server derives their attack bonus and damage from their sheet, rolls to-hit against the enemy's real AC, applies damage on a hit, and reports the outcome for you to narrate. Use this for EVERY weapon attack and attack-roll spell a player makes; never adjudicate a player's attack yourself.",
+      "A player character attacks an enemy, or a party character when friendlyFire is enabled. Choose exactly one targetEnemyId or targetCharacterId. The server derives their attack bonus and damage from their sheet, rolls to-hit against the enemy's real AC, applies damage on a hit, and reports the outcome for you to narrate. Use this for EVERY weapon attack and attack-roll spell a player makes; never adjudicate a player's attack yourself.",
     parameters: {
       type: "object",
       additionalProperties: false,
       properties: {
         characterId: { type: "string", description: "Exact characterId from GAME STATE." },
         targetEnemyId: { type: "string", description: "Exact enemyId from GAME STATE." },
+        targetCharacterId: { type: "string", description: "Exact characterId of the target; requires friendlyFire=true." },
         enemyId: {
           type: "string",
           description: "Legacy compatibility alias for targetEnemyId; when supplied it must be the same enemy.",
@@ -137,14 +140,15 @@ export const pcAttackTool: ToolDef = {
             "Battle Master maneuver riding this weapon attack (e.g. 'Trip Attack', 'Precision Attack', 'Menacing Attack'). The server spends a Superiority Die, adds it to the damage (Precision: to the attack roll), and rolls the target's save against the maneuver's rider.",
         },
       },
-      required: ["characterId", "enemyId", "targetEnemyId"],
+      required: ["characterId"],
     },
   },
 };
 
 const pcAttackArgsSchema = z.object({
   characterId: z.string(),
-  targetEnemyId: z.string(),
+  targetEnemyId: z.string().optional(),
+  targetCharacterId: z.string().optional(),
   enemyId: z.string().optional(),
   weapon: z.string().max(80).optional(),
   spell: z.string().max(80).optional(),
@@ -206,7 +210,7 @@ export function handlePcAttack(
   try {
     args = pcAttackArgsSchema.parse(JSON.parse(rawArguments || "{}"));
   } catch {
-    return { error: "Invalid arguments: pc_attack needs characterId, enemyId and targetEnemyId." };
+    return { error: "Invalid arguments: pc_attack needs characterId and exactly one targetEnemyId or targetCharacterId." };
   }
   const staleSheet = resolveSheetRef(args.characterId, sheets, sheetsById);
   const sheet = staleSheet ? (getSheetById(staleSheet.id) ?? staleSheet) : null;
@@ -243,13 +247,9 @@ export function handlePcAttack(
     args.spell = args.weapon;
     delete args.weapon;
   }
-  const enemy = resolveEnemyRef(encounter.id, args.targetEnemyId);
-  if (!enemy) {
-    return { error: "Unknown targetEnemyId; use one from GAME STATE." };
-  }
-  if (enemy.status !== "alive") {
-    return { error: `${enemy.displayName} is already ${enemy.status}.` };
-  }
+  const enemy = resolveCombatTarget(campaign, encounter, args);
+  if ("error" in enemy) return enemy;
+  if (enemy.id === sheet.id) return { error: "An attack must target another combatant." };
 
   const derived = computeSheetDerived(sheet);
   // Everything the character's features add to an attack: fighting styles,
@@ -661,7 +661,7 @@ export function handlePcAttack(
     riders.sneakAttackDice > 0 &&
     profile.sneakEligible &&
     advantage !== "disadvantage" &&
-    (advantage === "advantage" || allyAdjacentToEnemy(campaign, encounter.id, sheet.id, enemy.id));
+    (advantage === "advantage" || enemy.enemy && allyAdjacentToEnemy(campaign, encounter.id, sheet.id, enemy.id));
   if (sneak) {
     profile = {
       ...profile,
@@ -695,7 +695,7 @@ export function handlePcAttack(
     // The stat block carries no creature type, so the name and content slug
     // are what there is to go on; a miss just costs the extra die.
     const undeadOrFiend = /undead|fiend|demon|devil|zombie|skeleton|ghoul|wraith|lich|vampire|specter|shadow|imp/i.test(
-      `${enemy.displayName} ${enemy.slug}`,
+      `${enemy.displayName} ${enemy.enemy?.slug ?? ""}`,
     );
     const dice = Math.min(6, 1 + args.smite) + (undeadOrFiend ? 1 : 0);
     profile = {
@@ -802,6 +802,8 @@ export function handlePcAttack(
     }
   }
 
+  revealAfterAction(campaign.id, sheet.id, true);
+
   const toHitRiderSuffix = `${attackRiders.diceSuffix}${
     maneuverInfo?.precision ? `+1${maneuverInfo.die}` : ""
   }`;
@@ -858,7 +860,7 @@ export function handlePcAttack(
       attack: {
         attacker: sheet.name,
         weapon: profile.weapon,
-        targetEnemyId: enemy.id,
+        ...(enemy.sheet ? { targetCharacterId: enemy.id } : { targetEnemyId: enemy.id }),
         targetAc: effectiveAc,
         damageExpression: profile.damageExpression,
         critDamageExpression: critExpression,
@@ -941,17 +943,13 @@ export function handlePcAttack(
   publishRoll(campaign.id, damageRoll);
   turn.rollIds.push(damageRoll.id);
 
-  const applied = applyEnemyDamage(
-    campaign,
-    turn,
-    encounter,
-    enemy,
-    Math.max(1, damageOutcome.total),
-    sheets,
-    sheetsById,
-    profile.damageType,
-    profile.magical,
-  );
+  const applied = enemy.sheet
+    ? applyDmMutation(campaign, turn.id, "apply_damage", JSON.stringify({
+      characterId: enemy.id, amount: Math.max(1, damageOutcome.total), type: profile.damageType, crit,
+      reason: `${sheet.name}: ${profile.weapon}`,
+    }), sheets, sheetsById).result
+    : applyEnemyDamage(campaign, turn, encounter, enemy.enemy!, Math.max(1, damageOutcome.total),
+      sheets, sheetsById, profile.damageType, profile.magical);
   if (!("error" in applied)) {
     markRollApplied(damageRoll.id, enemy.id);
   }
@@ -960,39 +958,45 @@ export function handlePcAttack(
   // against the enemy's real stat block once the hit lands.
   const maneuverOutcome: Record<string, unknown> = {};
   if (maneuverInfo?.rider && !applied.dead && !applied.encounterOver) {
-    const fresh = resolveEnemyRef(encounter.id, enemy.id);
-    if (fresh && fresh.status === "alive") {
+    const fresh = resolveCombatTarget(campaign, encounter, args);
+    if (!("error" in fresh) && !applied.dropped) {
       const dc =
         8 +
         derived.proficiencyBonus +
         Math.max(derived.abilityMods.str, derived.abilityMods.dex);
-      const saveOutcome = rollExpression(
-        d20Expression(saveModFor(fresh.stats, maneuverInfo.rider.save)),
-      );
-      const saveRoll = insertRoll({
-        campaignId: campaign.id,
-        characterId: null,
-        requestedBy: "dm",
-        kind: "saving_throw",
-        detail: `${fresh.displayName}: ${maneuverInfo.rider.save.toUpperCase()} save vs ${maneuverInfo.name}`,
-        dc,
-        result: saveOutcome,
-      });
-      turn.rollIds.push(saveRoll.id);
-      publishRoll(campaign.id, saveRoll);
-      if (saveOutcome.total < dc) {
-        const condition = maneuverInfo.rider.condition;
-        if (!fresh.conditions.includes(condition)) {
-          patchEnemyConditions(fresh.id, [...fresh.conditions, condition], {
-            ...fresh.conditionMeta,
-            // Prone lasts until the creature stands; the rest fade fast.
-            ...(condition === "prone" ? {} : { [condition]: { rounds: 1 } }),
-          });
-          publishEncounter(campaign.id);
-        }
-        maneuverOutcome.maneuver = `${maneuverInfo.name}: ${fresh.displayName} fails the ${maneuverInfo.rider.save.toUpperCase()} save (${saveOutcome.total} vs DC ${dc}) and is ${condition}.`;
+      if (fresh.sheet) {
+        const saved = handleCastAtPlayer(campaign, turn, JSON.stringify({
+          characterId: fresh.id, source: maneuverInfo.name, saveAbility: maneuverInfo.rider.save, dc,
+          condition: maneuverInfo.rider.condition, ...(maneuverInfo.rider.condition === "prone" ? {} : { rounds: 1 }),
+        }), sheets, sheetsById);
+        maneuverOutcome.maneuver = saved;
       } else {
-        maneuverOutcome.maneuver = `${maneuverInfo.name}: ${fresh.displayName} holds (${saveOutcome.total} vs DC ${dc}); no ${maneuverInfo.rider.condition}.`;
+        const saveOutcome = rollExpression(
+          d20Expression(saveModFor(fresh.enemy!.stats, maneuverInfo.rider.save)),
+        );
+        const saveRoll = insertRoll({
+          campaignId: campaign.id,
+          characterId: null,
+          requestedBy: "dm",
+          kind: "saving_throw",
+          detail: `${fresh.displayName}: ${maneuverInfo.rider.save.toUpperCase()} save vs ${maneuverInfo.name}`,
+          dc,
+          result: saveOutcome,
+        });
+        turn.rollIds.push(saveRoll.id);
+        publishRoll(campaign.id, saveRoll);
+        if (saveOutcome.total < dc) {
+          const condition = maneuverInfo.rider.condition;
+          if (!fresh.conditions.includes(condition)) {
+            patchEnemyConditions(fresh.id, [...fresh.conditions, condition], {
+              ...fresh.conditionMeta, ...(condition === "prone" ? {} : { [condition]: { rounds: 1 } }),
+            });
+            publishEncounter(campaign.id);
+          }
+          maneuverOutcome.maneuver = `${maneuverInfo.name}: ${fresh.displayName} fails the ${maneuverInfo.rider.save.toUpperCase()} save (${saveOutcome.total} vs DC ${dc}) and is ${condition}.`;
+        } else {
+          maneuverOutcome.maneuver = `${maneuverInfo.name}: ${fresh.displayName} holds (${saveOutcome.total} vs DC ${dc}); no ${maneuverInfo.rider.condition}.`;
+        }
       }
     }
   }
@@ -1006,7 +1010,7 @@ export function handlePcAttack(
     ...applied,
     note: applied.dead
       ? `${enemy.displayName} is slain; the server already applied this damage. Narrate the killing blow.`
-      : `The server already applied this damage to ${enemy.displayName}. Do NOT call damage_enemy for this hit; narrate from this state.`,
+      : `The server already applied this damage to ${enemy.displayName}. Do NOT apply this damage again; narrate from this state.`,
   };
 }
 
@@ -1039,8 +1043,8 @@ export function resolvePendingPcAttack(pending: PendingRoll, roll: StoredRoll): 
   // Verify the target still stands before asking for damage dice (the lead
   // may have force-ended the encounter while the roll sat parked).
   const encounter = getActiveEncounter(pending.campaignId);
-  const enemy = encounter ? resolveEnemyRef(encounter.id, context.targetEnemyId) : null;
-  if (!enemy || enemy.status !== "alive") {
+  const enemy = encounter ? resolveCombatTarget(campaign, encounter, context) : null;
+  if (!enemy || "error" in enemy) {
     return `${context.attacker}'s ${context.weapon} attack rolled ${roll.total} vs AC ${context.targetAc}: HIT, but the target is already gone; narrate around it.`;
   }
   if (pending.characterId) consumeHitConditions(pending.campaignId, pending.characterId, context.spentOnHit ?? []);
@@ -1062,9 +1066,9 @@ export function resolvePendingPcAttack(pending: PendingRoll, roll: StoredRoll): 
     advantage: "none",
     dc: null,
     reason: `${context.weapon} damage against ${enemy.displayName}`,
-    targetEnemyId: enemy.id,
+    targetEnemyId: enemy.enemy?.id ?? null,
     // Carried so the damage stage keeps the type for resistance math.
-    attack: context,
+    attack: { ...context, crit },
   });
   publishPersisted(pending.campaignId, "roll_pending", {
     pendingRoll: publicPendingRoll(damagePending),

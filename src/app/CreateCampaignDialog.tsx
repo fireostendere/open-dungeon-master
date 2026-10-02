@@ -178,6 +178,7 @@ export function CreateCampaignDialog({
       voiceChat,
       unitSystem,
       combatMode,
+      friendlyFire,
       yolo21Enabled,
       houseRules,
       loreDrafts,
@@ -221,6 +222,7 @@ export function CreateCampaignDialog({
             voice: voiceChat,
             unitSystem,
             combatMode,
+            friendlyFire,
             yolo21Enabled,
             // Runtime-only/retired settings are deliberately omitted:
             // hosted-AI assistance, hosted narration/image generation and

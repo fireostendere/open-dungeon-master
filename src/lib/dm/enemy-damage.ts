@@ -3,7 +3,7 @@ import { endEncounter, getActiveEncounter, getEnemy, listEnemies, patchEnemyHp, 
 import { activePublicEncounter } from "@/lib/db/encounter-view";
 import { getSheetById, listSheets, patchSheet } from "@/lib/db/sheets";
 import { getDmTurn, type DmTurn, type PendingRoll } from "@/lib/db/dm-turns";
-import { markRollApplied, type StoredRoll } from "@/lib/db/rolls";
+import { getRoll, markRollApplied, type StoredRoll } from "@/lib/db/rolls";
 import { getBattleMapForEncounter, removeTokenByRef } from "@/lib/db/battle-maps";
 import { publishPersisted } from "@/lib/events";
 import { healthState } from "@/lib/bestiary/health";
@@ -19,6 +19,7 @@ import { dismissGuestCompanions } from "@/lib/dm/companion-tools";
 import { followCombatAmbience } from "@/lib/dm/ambience-tools";
 import { tickWaypointsFrom } from "@/lib/dm/waypoint-tick";
 import type { CharacterSheet } from "@/lib/schemas/sheet";
+import { spatialStore } from "@/lib/spatial/service";
 
 // The single server-side path for damage landing on an enemy. Used by the
 // damage_enemy tool AND by damage rolls carrying targetEnemyId, which the
@@ -168,7 +169,7 @@ export function autoEndOnVictory(
   sheetsById: Map<string, CharacterSheet>,
 ): Record<string, unknown> {
   const enemies = listEnemies(encounter.id);
-  if (enemies.some((enemy) => enemy.status === "alive")) {
+  if (!enemies.length || enemies.some((enemy) => enemy.status === "alive")) {
     return {};
   }
   return finishEncounter(campaign, turn, encounter, "victory", sheets, sheetsById);
@@ -300,7 +301,7 @@ export function autoApplyDamageRoll(
 // submits a targeted damage roll. Returns the summary the resumed turn
 // surfaces to the model (stored in pending_rolls.combat_note).
 export function applyPendingDamageRoll(pending: PendingRoll, roll: StoredRoll): string | null {
-  if (!pending.targetEnemyId) {
+  if (!pending.targetEnemyId && !pending.attack?.targetCharacterId) {
     return null;
   }
   const campaign = getCampaignById(pending.campaignId);
@@ -310,10 +311,27 @@ export function applyPendingDamageRoll(pending: PendingRoll, roll: StoredRoll): 
   }
   const sheets = listSheets(campaign.id);
   const sheetsById = new Map(sheets.map((sheet) => [sheet.id, sheet]));
+  if (pending.attack?.targetCharacterId) {
+    const target = getSheetById(pending.attack.targetCharacterId);
+    const encounter = getActiveEncounter(campaign.id);
+    if (!campaign.gameSettings.friendlyFire || !target || target.campaignId !== campaign.id ||
+      !encounter?.order.some(entry => entry.kind === "pc" && entry.characterId === target.id) ||
+      encounter.roomId && spatialStore().getUserRoom(campaign.id, target.userId) !== encounter.roomId) {
+      return "The friendly-fire target is no longer available; no damage was applied.";
+    }
+    if (getRoll(roll.id)?.applied) return "This damage roll has already been applied.";
+    const applied = applyDmMutation(campaign, turn.id, "apply_damage", JSON.stringify({
+      characterId: target.id, amount: Math.max(1, roll.total), type: pending.attack.damageType,
+      crit: pending.attack.crit, reason: `${pending.attack.attacker}: ${pending.attack.weapon}`,
+    }), sheets, sheetsById).result;
+    if ("error" in applied) return String(applied.error);
+    markRollApplied(roll.id, target.id);
+    return `The server applied ${roll.total} damage to ${target.name} (${String(applied.hp ?? "form HP updated")}). Do NOT apply it again.`;
+  }
   const applied = autoApplyDamageRoll(
     campaign,
     turn,
-    pending.targetEnemyId,
+    pending.targetEnemyId!,
     roll,
     sheets,
     sheetsById,

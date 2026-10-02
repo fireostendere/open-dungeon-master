@@ -1,3 +1,6 @@
+import { withEncounterRoom, currentEncounterRoom } from "@/lib/spatial/publication-scope.mjs";
+import { spatialEnabled, spatialStore, spatialContext } from "@/lib/spatial/service";
+import { getSheetById } from "@/lib/db/sheets";
 // The adjudication façade: one entry point into the rules engine, for both
 // the AI DM and a person running the table.
 //
@@ -202,7 +205,7 @@ function currentPcTurnKey(campaignId: string): CombatTurnKey | null {
 /** Deterministic entry point used by external commands. No await is permitted
  * between the first mutation and commit; returned refusals roll back too.
  */
-export function invokeEngineSynchronous(campaign: Campaign, actor: Actor, call: Adjudication): InvokeOutcome {
+function invokeInRoom(campaign: Campaign, actor: Actor, call: Adjudication): InvokeOutcome {
   if (call.name === "combat_turn") return invokeCombatTurn(campaign, actor, call.args);
   const entry = adjudication(call.name);
   if (!entry) return { ok: false, error: `Unknown action "${call.name}".` };
@@ -231,7 +234,8 @@ export function invokeEngineSynchronous(campaign: Campaign, actor: Actor, call: 
       }
       const turn = actor.kind === "ai" ? getDmTurn(actor.turnId) : humanTurnFor(campaign.id);
       if (!turn || turn.campaignId !== campaign.id) return { ok: false, error: "That DM turn no longer exists in this campaign." };
-      const sheets = listSheets(campaign.id);
+      const activeRoom = currentEncounterRoom(campaign.id);
+        const sheets = listSheets(campaign.id).filter(sheet => !activeRoom || spatialStore().getUserRoom(campaign.id, sheet.userId) === activeRoom);
       const sheetsById = new Map(sheets.map((sheet) => [sheet.id, sheet]));
       return executeDmTool<InvokeOutcome>([turn, sheets, sheetsById], () => {
         if (actor.kind === "human") turn.status = "running";
@@ -417,4 +421,20 @@ export async function invokeEngineById(
     return { ok: false, error: "Campaign not found." };
   }
   return invokeEngine(campaign, actor, call);
+}
+
+export function invokeEngineSynchronous(campaign: Campaign, actor: Actor, call: Adjudication): InvokeOutcome {
+  if (!spatialEnabled(campaign.id)) return invokeInRoom(campaign, actor, call);
+  const args = call.args ?? {};
+  const character = typeof args.characterId === "string" ? getSheetById(args.characterId) : null;
+  const roomId = typeof args.roomId === "string" ? args.roomId
+    : character?.campaignId === campaign.id ? spatialStore().getUserRoom(campaign.id, character.userId)
+      : getActiveEncounter(campaign.id)?.roomId;
+  if (!roomId) return { ok: false, error: "Specify the spatial roomId for this action." };
+  const userId = actor.kind === "human" ? actor.userId : campaign.dmUserId;
+  if (!userId) return { ok: false, error: "A DM seat is required." };
+  const { actor: viewer } = spatialContext(campaign.id, userId);
+  const rooms = spatialStore().view(viewer);
+  if (!rooms.enabled || !rooms.rooms.some(room => room.id === roomId)) return { ok: false, error: "Unknown or inaccessible roomId." };
+  return withEncounterRoom(campaign.id, roomId, () => invokeInRoom(campaign, actor, call));
 }

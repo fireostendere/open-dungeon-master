@@ -131,7 +131,7 @@ const startEncounterTool: ToolDef = {
       properties: {
         enemies: {
           type: "array",
-          minItems: 1,
+          minItems: 0,
           maxItems: 8,
           items: {
             type: "object",
@@ -285,7 +285,7 @@ import { spatialEnabled, spatialStore } from "@/lib/spatial/service";
 // ---- start_encounter ----
 
 const startArgsSchema = z.object({
-  enemies: z.array(enemyRequestSchema).min(1).max(8),
+  enemies: z.array(enemyRequestSchema).max(8),
   summary: z.string().optional(),
   surprised: z.enum(["none", "enemies", "party"]).optional(),
   battlefield: z.string().max(300).optional(),
@@ -346,16 +346,19 @@ function handleStartEncounter(
     };
   }
   let participants = sheets;
+  if (spatialEnabled(campaign.id) && !args.roomId) return { error: "Location combat requires an exact roomId." };
   if (spatialEnabled(campaign.id) && args.roomId) {
     const roomSheets = sheets.filter(
       (sheet) => spatialStore().getUserRoom(campaign.id, sheet.userId) === args.roomId,
     );
-    if (roomSheets.length > 0) {
-      participants = roomSheets;
-    }
+    participants = roomSheets;
   }
   if (!participants.length) {
     return { error: "No party characters to fight." };
+  }
+
+  if (!args.enemies.length && (!campaign.gameSettings.friendlyFire || participants.filter(sheet => sheet.currentHp > 0).length < 2)) {
+    return { error: "A party-only encounter requires friendlyFire and at least two conscious characters." };
   }
 
   // Resolve every requested enemy before creating anything.
@@ -1306,7 +1309,8 @@ export function advanceAfterTurn(campaign: Campaign, turn?: DmTurn, options?: { 
   }
   const advanced = advancePointer(campaign, encounter, options);
   if (advanced && turn) {
-    const sheets = listSheets(campaign.id);
+    const sheets = listSheets(campaign.id).filter(sheet => !encounter.roomId ||
+      spatialStore().getUserRoom(campaign.id, sheet.userId) === encounter.roomId);
     const sheetsById = new Map(sheets.map((sheet) => [sheet.id, sheet]));
     autoActSkippedEnemies(
       campaign,

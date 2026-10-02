@@ -1,3 +1,4 @@
+import { currentEncounterRoom } from "@/lib/spatial/publication-scope.mjs";
 import { randomInt } from "node:crypto";
 import { getDatabase, nowIso, parseJson } from "@/lib/db/core";
 import { normalizeSettings } from "@/lib/db/settings";
@@ -844,6 +845,7 @@ export function setWorldTickJson(campaignId: string, serialized: string) {
 }
 
 export function getFloor(campaignId: string, roomId?: string | null): Floor {
+  if (roomId === undefined) roomId = currentEncounterRoom(campaignId);
   if (roomId) {
     try {
       const roomRow = getDatabase()
@@ -863,6 +865,7 @@ export function getFloor(campaignId: string, roomId?: string | null): Floor {
 }
 
 export function setFloor(campaignId: string, floor: Floor, roomId?: string | null) {
+  if (roomId === undefined) roomId = currentEncounterRoom(campaignId);
   if (roomId) {
     try {
       getDatabase()

@@ -1,6 +1,6 @@
 import { getDatabase, nowIso } from "@/lib/db/core";
 import { withCommittedEffects } from "@/lib/db/commit-effects";
-import { spatialEnabled, runSpatialCommand, SpatialError } from "@/lib/spatial/service";
+import { spatialEnabled, spatialStore, runSpatialCommand, SpatialError } from "@/lib/spatial/service";
 import { localeText } from "@/lib/i18n/locale-text";
 import { z } from "zod";
 import { enforcePlayerIngress } from "@/lib/ingress-budget";
@@ -70,7 +70,7 @@ const actionSchema = z.object({
     turnIndex: z.number().int().min(0),
     description: z.string().trim().min(1).max(2000).optional(),
     choices: z.array(z.discriminatedUnion("type", [
-      z.object({ type: z.literal("attack"), targetEnemyId: z.string().uuid(), weapon: z.string().trim().min(1).max(80), sneakAttack: z.boolean().optional() }),
+      z.object({ type: z.literal("attack"), targetEnemyId: z.string().uuid().optional(), targetCharacterId: z.string().uuid().optional(), weapon: z.string().trim().min(1).max(80), sneakAttack: z.boolean().optional() }),
       z.object({ type: z.literal("dodge") }),
       z.object({ type: z.literal("action"), action: z.enum(["dash", "disengage", "hide", "help", "grapple", "shove"]), targetEnemyId: z.string().uuid().optional(), targetCharacterId: z.string().uuid().optional(), cunningAction: z.boolean().optional() }).strict(),
       z.object({ type: z.literal("pet"), petName: z.string().trim().min(1).max(60), attack: z.string().trim().min(1).max(40), targetEnemyId: z.string().uuid() }),
@@ -146,7 +146,9 @@ export async function POST(
       { status: 409 },
     );
   }
-  const encounter = getActiveEncounter(campaignId);
+  const spatial = spatialEnabled(campaignId);
+  const roomId = spatial ? spatialStore().getUserRoom(campaignId, user.id) : undefined;
+  const encounter = getActiveEncounter(campaignId, roomId);
 
   // Global-turn collection is a hard server gate, not just a disabled UI.
   // Before global_turn_started and after global_turn_ready, no player composer
@@ -171,8 +173,7 @@ export async function POST(
     }
   }
 
-  if (spatialEnabled(campaignId)) {
-    if (kind !== "ooc") return Response.json({ error: "Choose a location and send through location-chat." }, { status: 409 });
+  if (spatial && kind === "ooc") {
     try {
       const result = runSpatialCommand(campaignId, user.id, {
         operation: "send", requestId: crypto.randomUUID(), kind: "ooc", content: parsed.data.content,
@@ -188,7 +189,7 @@ export async function POST(
   // always allowed); the floor releases once ALL of them have answered.
   // During a hold nobody may act until the lead releases. This read-modify-
   // write must stay await-free so it is atomic in Node.
-  const floor = getFloor(campaignId);
+  const floor = getFloor(campaignId, roomId);
   if (!canAct(floor, user.id, kind)) {
     if (floor.mode === "hold") {
       return Response.json(
@@ -231,7 +232,7 @@ export async function POST(
   }
   if (kind !== "ooc" && encounter) {
     const actor = encounter.order[encounter.turnIndex];
-    if (!encounter.orderReady || floor.mode !== "initiative" || actor?.kind !== "pc" || actor.characterId !== sheet.id || listOpenPendingRolls(campaignId).length) {
+    if (!encounter.orderReady || floor.mode !== "initiative" || actor?.kind !== "pc" || actor.characterId !== sheet.id || listOpenPendingRolls(campaignId).some(roll => !spatial || spatialStore().getUserRoom(campaignId, roll.userId) === roomId)) {
       return Response.json({ error: "Wait for your combat turn and pending rolls. OOC remains available." }, { status: 409 });
     }
     if (!parsed.data.combatTurn) {
@@ -252,17 +253,31 @@ export async function POST(
     }
     const budget = budgetFor(encounter, sheet.id, attacksAllowedFor(sheet), conditionExtraActions(sheet.conditions));
     if (!budget) return Response.json({ error: "This combat turn is no longer available." }, { status: 409 });
-    const publicEncounter = activePublicEncounter(campaignId);
-    const allies = listSheets(campaignId).filter((entry) => !entry.deathSaves?.dead);
+    const publicEncounter = activePublicEncounter(campaignId, { viewerUserId: user.id, roomId });
+    const visibleCharacters = new Set(publicEncounter?.order.filter(entry => entry.kind === "pc").map(entry => entry.id));
+    const allies = listSheets(campaignId).filter(entry => !entry.deathSaves?.dead && visibleCharacters.has(entry.id));
     const visibleEnemies = publicEncounter?.enemies.filter((enemy) => enemy.status === "alive") ?? [];
     const result = validateCombatTurnIntent(intent, sheet, new Set(visibleEnemies.map((enemy) => enemy.id)), new Set(allies.map((entry) => entry.id)), budget, {
       language: campaign.gameSettings.language ?? "ru",
       names: new Map([...allies, ...visibleEnemies].map((entry) => [entry.id, entry.name])),
-      spells: spellsFor(sheet),
+      spells: spellsFor(sheet), friendlyFire: campaign.gameSettings.friendlyFire,
     });
     if (!result.ok) return Response.json({ error: result.error }, { status: 400 });
     combatContent = result.content;
     combatGate = { encounterId: encounter.id, round: encounter.round, turnIndex: encounter.turnIndex, characterId: sheet.id, requiresEndTurn: true, mechanicsResolved: false };
+  }
+  if (spatial) {
+    if (!parsed.data.combatTurn) return Response.json({ error: "Choose a location and send through location-chat." }, { status: 409 });
+    try {
+      const result = runSpatialCommand(campaignId, user.id, {
+        operation: "send", requestId: crypto.randomUUID(), kind: "do", content: combatContent,
+        completeTurn: true,
+      });
+      return Response.json({ messageId: (result.message as { id: string }).id }, { status: 202 });
+    } catch (error) {
+      if (error instanceof SpatialError) return Response.json({ error: error.message }, { status: error.status });
+      throw error;
+    }
   }
   // Global turn pacing: the first Do is the hero's complete submission.
   // Initiative already has a per-combatant action budget; global collection

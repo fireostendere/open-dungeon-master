@@ -174,7 +174,7 @@ function mapMessage(row) {
   };
 }
 
-export function createSpatialStore(db, { nextSeq, now = () => new Date().toISOString(), uuid = randomUUID }) {
+export function createSpatialStore(db, { nextSeq, now = () => new Date().toISOString(), uuid = randomUUID, characterForUser = () => null, conditionsForTarget = () => [] }) {
   db.exec(SPATIAL_SCHEMA);
   const addCol = (tbl, col, ddl) => {
     try {
@@ -191,6 +191,18 @@ export function createSpatialStore(db, { nextSeq, now = () => new Date().toISOSt
   const one = (sql, ...params) => db.prepare(sql).get(...params);
   const all = (sql, ...params) => db.prepare(sql).all(...params);
   const enabled = campaignId => Boolean(one("SELECT 1 FROM spatial_campaigns WHERE campaign_id=?", campaignId));
+  function isUnseen(campaignId, targetId, observerIds, roomId = null) {
+    const conditions = conditionsForTarget(campaignId, targetId).map(name => name.toLowerCase());
+    const invisible = conditions.includes("invisible");
+    const stealth = enabled(campaignId) ? one("SELECT status,room_id FROM spatial_stealth_states WHERE campaign_id=? AND character_id=?", campaignId, targetId) : null;
+    const hidden = conditions.includes("hidden") || stealth && ["pending", "confirmed"].includes(stealth.status) && (!roomId || stealth.room_id === roomId);
+    if (!invisible && !hidden) return false;
+    return !observerIds.some(observerId => {
+      const detection = one("SELECT * FROM spatial_detections WHERE campaign_id=? AND observer_id=? AND target_id=?", campaignId, observerId, targetId);
+      return detection?.state === "detected" && (!detection.expires_at || detection.expires_at > now()) &&
+        (!detection.room_id || detection.room_id === roomId) && (!invisible || detection.sense === "special");
+    });
+  }
   function clearSpatialState(campaignId) {
     if (one("SELECT 1 FROM sqlite_master WHERE type='table' AND name='encounters'")) {
       run("UPDATE encounters SET room_id=NULL WHERE campaign_id=?", campaignId);
@@ -357,11 +369,17 @@ export function createSpatialStore(db, { nextSeq, now = () => new Date().toISOSt
           throw new SpatialError("Your location changed. Refresh before sending.", 409);
         }
       }
-      const isStealth = Boolean(input.stealth);
+      const characterId = input.characterId ?? actor.characterId ?? actor.userId;
+      const concealed = conditionsForTarget(actor.campaignId, characterId).some(name => ["invisible", "hidden"].includes(name.toLowerCase()));
+      const existingStealth = one("SELECT status FROM spatial_stealth_states WHERE campaign_id=? AND character_id=?", actor.campaignId, characterId);
+      const isStealth = Boolean(input.stealth) || kind === "do" && (concealed || ["pending", "confirmed"].includes(existingStealth?.status));
       if (isStealth) {
         if (actor.isDm || kind === "ooc" || kind === "narration") throw new SpatialError("Stealth is only available for player actions and speech.");
-        const msg = append(actor, input.roomId, kind, content, [actor.userId], { stealth: 1, stealthStatus: "pending" });
-        const charId = typeof input.characterId === "string" ? input.characterId : actor.userId;
+        const msg = append(actor, input.roomId, kind, content, [actor.userId], { stealth: 1, stealthStatus: input.stealth ? "pending" : "confirmed" });
+        // A condition already resolved by the engine must not create a second,
+        // timeless hiding state when its private action is recorded.
+        if (!input.stealth) return { message: msg };
+        const charId = characterId;
         run(`INSERT INTO spatial_stealth_states(campaign_id,character_id,user_id,room_id,status,updated_at)
           VALUES(?,?,?,?,?,?) ON CONFLICT(campaign_id,character_id) DO UPDATE SET
           status='pending',user_id=excluded.user_id,room_id=excluded.room_id,updated_at=excluded.updated_at`,
@@ -603,6 +621,9 @@ export function createSpatialStore(db, { nextSeq, now = () => new Date().toISOSt
           ...(actor.isDm ? [] : [actor.userId, actor.userId, actor.characterId ?? actor.userId, now()]),
         )) {
           if (!playerIds.has(row.user_id)) continue;
+          const character = characterForUser(actor.campaignId, row.user_id);
+          if (!actor.isDm && row.user_id !== actor.userId && character &&
+            isUnseen(actor.campaignId, character.id, [actor.userId, actor.characterId ?? actor.userId], row.room_id)) continue;
           const list = occupantMap.get(row.room_id) ?? [];
           list.push(row.user_id);
           occupantMap.set(row.room_id, list);
@@ -623,7 +644,18 @@ export function createSpatialStore(db, { nextSeq, now = () => new Date().toISOSt
       actor.campaignId, now(), ...(actor.isDm ? [] : [actor.userId]));
       const { start_seq: startSeq } = one("SELECT start_seq FROM spatial_campaigns WHERE campaign_id=?", actor.campaignId);
       const roomRow = current?.roomId ? one("SELECT floor_json FROM spatial_rooms WHERE campaign_id=? AND id=?", actor.campaignId, current.roomId) : null;
-      const floor = roomRow?.floor_json ? JSON.parse(roomRow.floor_json) : null;
+      let floor = roomRow?.floor_json ? JSON.parse(roomRow.floor_json) : null;
+      const next = floor?.mode === "hold" ? floor.next : floor;
+      if (!actor.isDm && next?.mode === "initiative") {
+        const character = characterForUser(actor.campaignId, next.userIds?.[0]);
+        if (character && !next.userIds.includes(actor.userId) &&
+          isUnseen(actor.campaignId, character.id, [actor.userId, actor.characterId ?? actor.userId], current.roomId)) {
+          floor = { mode: "hold", next: { mode: "open" } };
+        } else if (!character) {
+          const anonymous = { ...next, currentName: "" };
+          floor = floor.mode === "hold" ? { ...floor, next: anonymous } : anonymous;
+        }
+      }
       const stealthRow = current?.roomId ? one("SELECT status, updated_at FROM spatial_stealth_states WHERE campaign_id=? AND user_id=? AND room_id=?",
         actor.campaignId, actor.userId, current.roomId) : null;
       const stealth = stealthRow ? { status: stealthRow.status, updatedAt: stealthRow.updated_at } : null;
@@ -667,6 +699,10 @@ export function createSpatialStore(db, { nextSeq, now = () => new Date().toISOSt
     observeObject(actor, input) {
       authorize(actor);
       return db.transaction(() => observeObject(actor, input))();
+    },
+    isUnseen,
+    reveal(campaignId, characterId) {
+      run("UPDATE spatial_stealth_states SET status='revealed',updated_at=? WHERE campaign_id=? AND character_id=?", now(), campaignId, characterId);
     },
     isDetected(campaignId, observerId, targetId) {
       if (!campaignId || !observerId || !targetId) return false;

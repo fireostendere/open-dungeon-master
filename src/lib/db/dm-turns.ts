@@ -1,3 +1,4 @@
+import { currentEncounterRoom } from "@/lib/spatial/publication-scope.mjs";
 import { getDatabase, nowIso, parseJson } from "@/lib/db/core";
 import type { ChatMessage } from "@/lib/dm/model";
 import type { Advantage } from "@/lib/dice";
@@ -210,7 +211,9 @@ export type PendingRollStatus = "pending" | "submitted" | "fallback";
 export type PendingAttack = {
   attacker: string;
   weapon: string;
-  targetEnemyId: string;
+  targetEnemyId?: string;
+  targetCharacterId?: string;
+  crit?: boolean;
   targetAc: number;
   damageExpression: string;
   critDamageExpression: string;
@@ -373,7 +376,10 @@ export function listOpenPendingRolls(campaignId: string): PendingRoll[] {
       `SELECT * FROM pending_rolls WHERE campaign_id = ? AND status = 'pending' ORDER BY created_at ASC`,
     )
     .all(campaignId) as PendingRow[];
-  return rows.map(mapPending);
+  const roomId = currentEncounterRoom(campaignId);
+  if (!roomId) return rows.map(mapPending);
+  const occupants = new Set((getDatabase().prepare("SELECT user_id FROM spatial_presence WHERE campaign_id=? AND room_id=?").all(campaignId, roomId) as {user_id:string}[]).map(row => row.user_id));
+  return rows.filter(row => occupants.has(row.user_id)).map(mapPending);
 }
 
 export function setPendingCombatNote(id: string, note: string) {

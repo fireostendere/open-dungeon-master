@@ -55,6 +55,12 @@ const removeConditions = (conditions, meta = {}, wanted) => ({
   meta: Object.fromEntries(Object.entries(meta).filter(([name]) => !wanted.includes(name))),
 });
 const fixtures = {
+  "@/lib/dm/concealment": { revealAfterAction() {} },
+  "@/lib/dm/combat-target": { resolveCombatTarget: (_campaign, _encounter, args) => {
+    const enemy = enemies.get(args.targetEnemyId);
+    return enemy ? { ...clone(enemy), enemy: clone(enemy), sheet: null } : { error: 'Choose a living enemy.' };
+  } },
+  "@/lib/spatial/service": { spatialStore: unused('spatialStore') },
   zod: { z },
   '@/lib/db/sheets': { getSheetById, patchSheet, listSheets: () => [...sheets.values()].map(clone) },
   '@/lib/db/campaigns': { allocateSeq: () => ++seq },

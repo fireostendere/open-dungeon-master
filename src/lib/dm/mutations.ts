@@ -1,5 +1,6 @@
 import { addConditionSource, sourceMeta } from "@/lib/dm/condition-sources";
 import { z } from "zod";
+import { revealAfterAction } from "@/lib/dm/concealment";
 import { getSheetById, patchSheet } from "@/lib/db/sheets";
 import { insertSheetAudit } from "@/lib/db/sheet-audit";
 import { insertCharacterEvent } from "@/lib/db/character-events";
@@ -469,7 +470,7 @@ function publishSheet(campaign: Campaign, sheetId: string) {
 
 // Applies one mutation tool call. Returns the compact tool result the model
 // narrates from. Never throws: errors come back as {error} results.
-export function applyDmMutation(
+function applyMutation(
   campaign: Campaign,
   turnId: string,
   toolName: string,
@@ -1841,4 +1842,17 @@ export function applyDmMutation(
     default:
       return { result: { error: `Unknown mutation tool ${toolName}.` } };
   }
+}
+
+export function applyDmMutation(...args: Parameters<typeof applyMutation>): ReturnType<typeof applyMutation> {
+  const result = applyMutation(...args);
+  if (args[2] === "use_spell_slot" && result.result.ok) {
+    const input = JSON.parse(args[3] || "{}");
+    if (input.spell && !/combat wild shape/i.test(input.spell)) {
+      const ref = String(input.characterId ?? "").trim();
+      const target = args[5].get(ref) ?? args[4].find(sheet => sheet.name.toLowerCase() === ref.toLowerCase());
+      if (target) revealAfterAction(args[0].id, target.id);
+    }
+  }
+  return result;
 }

@@ -1,5 +1,5 @@
 "use client";
-import type { ComponentProps } from "react";
+import { useEffect, type ComponentProps } from "react";
 import { SessionChatColumn as LegacySessionChatColumn } from "./LegacySessionChatColumn";
 import { LocationNotes } from "./LocationNotes";
 import { LocationChat } from "./LocationChat";
@@ -10,12 +10,18 @@ import { cn } from "@/lib/cn";
 
 // Keep the established table unchanged until its DM explicitly enables the
 // location ledger. Switching is a server fact, not a local UI preference.
-export function SessionChatColumn(props: ComponentProps<typeof LegacySessionChatColumn>) {
+export function SessionChatColumn(props: ComponentProps<typeof LegacySessionChatColumn> & { refreshCampaign?: () => Promise<unknown> }) {
   const chat = useLocationChat(props.campaignId, props.meUserId, props.state.spatialEnabled);
+  const { refreshCampaign } = props;
+  const spatialState = chat.view?.enabled ? JSON.stringify([chat.view.current, chat.view.floor,
+    chat.view.rooms, chat.view.stealth, chat.page.messages.at(-1)?.seq]) : null;
+  useEffect(() => {
+    if (spatialState) void refreshCampaign?.();
+  }, [spatialState, refreshCampaign]);
   const { locale } = useI18n();
   const t = localeText(locale, {
-    en: { enable: "Enable location chats", start: "Starting location", loading: "Loading location permissions…", retry: "Retry", history: "Shared mechanics and earlier story", note: "Text scenes for a human DM or external MCP narrator. Rolls, combat, facts and other legacy game projections are still shared, not location-private." },
-    ru: { enable: "Включить чаты локаций", start: "Начальная локация", loading: "Загрузка доступа к локациям…", retry: "Повторить", history: "Общие механики и прежняя история", note: "Текстовые сцены для ведущего или внешнего MCP-рассказчика. Броски, бой, факты и другие старые игровые представления пока общие, а не приватные по локациям." },
+    en: { enable: "Enable location chats", start: "Starting location", loading: "Loading location permissions…", retry: "Retry", history: "Shared mechanics and earlier story", note: "Text scenes for a human DM or external MCP narrator. Messages stay with their witnesses. Hidden and invisible actions go to their author and the DM; others receive only perceived consequences." },
+    ru: { enable: "Включить чаты локаций", start: "Начальная локация", loading: "Загрузка доступа к локациям…", retry: "Повторить", history: "Общие механики и прежняя история", note: "Текстовые сцены для ведущего или внешнего MCP-рассказчика. Сообщения видят только свидетели. Скрытые и невидимые действия доступны автору и мастеру; остальные получают только воспринятые последствия." },
   });
   if (chat.loading) return <div className="flex-1 p-4 text-sm text-stone-400"><p>{chat.error || t.loading}</p>
     {chat.error ? <button type="button" onClick={chat.refresh}>{t.retry}</button> : null}</div>;

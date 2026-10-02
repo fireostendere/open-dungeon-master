@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { readTemplate } from "@/lib/dm/board";
 import { allocateSeq, type Campaign } from "@/lib/db/campaigns";
 import {
   getActiveEncounter,
@@ -149,6 +150,16 @@ const aoeDamageTool: ToolDef = {
           type: "array",
           items: { type: "string" },
           description: "Exact characterIds from GAME STATE caught in the effect.",
+        },
+        area: {
+          type: "object", additionalProperties: false,
+          description: "Measured map area. All creatures in it are included by the server, including invisible creatures and allies when friendlyFire is enabled. One tile is 1.5 m.",
+          properties: {
+            shape: { type: "string", enum: ["sphere", "cone", "line", "cube"] },
+            origin: { type: "object", properties: { x: { type: "integer" }, y: { type: "integer" } }, required: ["x", "y"] },
+            target: { type: "object", properties: { x: { type: "integer" }, y: { type: "integer" } }, required: ["x", "y"] },
+            sizeTiles: { type: "integer", minimum: 1, maximum: 24 },
+          }, required: ["shape", "origin", "target", "sizeTiles"],
         },
         targets: {
           type: "string",
@@ -329,7 +340,9 @@ function handleEnemyCondition(
   return { ok: true, name: enemy.displayName, cleared: removed.join(", ") };
 }
 
+const areaPoint = z.object({ x: z.number().int().min(0), y: z.number().int().min(0) }).strict();
 const aoeArgsSchema = z.object({
+  area: z.object({ shape: z.enum(["sphere", "cone", "line", "cube"]), origin: areaPoint, target: areaPoint, sizeTiles: z.number().int().min(1).max(24) }).strict().optional(),
   damage: z.union([z.string().max(30), z.number().int().min(1).max(300)]),
   type: z.string().optional(),
   saveAbility: z.preprocess(normalizeAbility, z.enum(["str", "dex", "con", "int", "wis", "cha"])),
@@ -387,6 +400,14 @@ function handleAoeDamage(
     }
     unmatched.push(ref);
   };
+  if (args.area) {
+    const measured = readTemplate(campaign, { ...args.area, sizeFeet: args.area.sizeTiles * 5 });
+    if (!measured) return { error: "A measured area requires the current encounter's battle map." };
+    for (const caught of measured.caught) {
+      if (caught.enemyId) addRef(caught.enemyId);
+      if (caught.characterId && (!args.casterId || campaign.gameSettings.friendlyFire)) addRef(caught.characterId);
+    }
+  }
   for (const ref of args.enemyIds ?? []) {
     addRef(ref);
   }
@@ -396,6 +417,12 @@ function handleAoeDamage(
   for (const ref of (args.targets ?? "").split(",").map((part) => part.trim()).filter(Boolean)) {
     addRef(ref);
   }
+  if (unmatched.length) return { error: `Unknown area targets: ${unmatched.join(", ")}.` };
+  if (pcTargets.some(target => !encounter.order.some(entry => entry.kind === "pc" && entry.characterId === target.id))) {
+    return { error: "Area targets must participate in this encounter and location." };
+  }
+  if (args.casterId && !resolveSheetRef(args.casterId, sheets, sheetsById)) return { error: "Unknown casterId." };
+  if (args.casterId && pcTargets.length && !campaign.gameSettings.friendlyFire) return { error: "Friendly fire is disabled for this campaign." };
   if (!enemyTargets.length && !pcTargets.length) {
     return {
       error:

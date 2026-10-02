@@ -62,6 +62,7 @@ export default function CampaignPage({
   ) : (
     <SessionView
       state={state}
+      refreshCampaign={refresh}
       loadOlderMessages={loadOlderMessages}
       refreshNotes={refreshNotes}
       refreshFacts={refreshFacts}

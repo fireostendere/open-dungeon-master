@@ -21,6 +21,8 @@ export type SpatialStore = {
   observeObject(actor: SpatialActor, input: { objectType: string; objectId: string; userIds: string[] }): { objectType: string; objectId: string; version: number };
   narratorRead(actor: SpatialActor, options?: { afterSeq?: number; limit?: number }): SpatialNarratorRead;
   isDetected(campaignId: string, observerId: string, targetId: string): boolean;
+  isUnseen(campaignId: string, targetId: string, observerIds: string[], roomId?: string | null): boolean;
+  reveal(campaignId: string, characterId: string): void;
   getStealthState(campaignId: string, characterId: string): { status: string; roomId: string; updatedAt: string } | null;
   getRoomFloor(campaignId: string, roomId: string): unknown;
   setRoomFloor(campaignId: string, roomId: string, floor: unknown): void;
@@ -29,4 +31,4 @@ export type SpatialStore = {
 };
 export class SpatialError extends Error { status: number; constructor(message: string, status?: number); }
 export const SPATIAL_SCHEMA: string;
-export function createSpatialStore(db: SqliteDatabase, options: { nextSeq: (campaignId: string) => number; now?: () => string; uuid?: () => string }): SpatialStore;
+export function createSpatialStore(db: SqliteDatabase, options: { nextSeq: (campaignId: string) => number; now?: () => string; uuid?: () => string; characterForUser?: (campaignId: string, userId: string) => { id: string } | null; conditionsForTarget?: (campaignId: string, targetId: string) => string[] }): SpatialStore;

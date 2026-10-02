@@ -49,6 +49,7 @@ function compactSettings(value) {
     unitSystem: settings.unitSystem === "imperial" ? "imperial" : "metric",
     combatMode: settings.combatMode === "jrpg" ? "jrpg" : "classical",
     dmMode: clip(settings.dmMode, 16),
+    friendlyFire: Boolean(settings.friendlyFire),
     relationships: clip(settings.relationships, 16),
     globalTurn: Boolean(object(settings.globalTurn).enabled),
   });

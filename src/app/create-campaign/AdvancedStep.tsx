@@ -21,6 +21,7 @@ const COPY = {
     combatClassicalHint: "Position, range, cover, and opportunity attacks apply.",
     combatJrpg: "JRPG",
     combatJrpgHint: "All targets in one encounter are in range; a campaign house rule.",
+    friendlyFire: "Friendly fire: attacks and area damage can hit party members",
   },
   ru: {
     bringPrep: "Импортировать подготовку",
@@ -34,6 +35,7 @@ const COPY = {
     combatClassicalHint: "Действуют позиция, дальность, укрытие и провоцированные атаки.",
     combatJrpg: "JRPG",
     combatJrpgHint: "Все цели одной встречи в зоне действия; правило кампании.",
+    friendlyFire: "Урон союзникам: атаки и площадные эффекты могут задеть отряд",
   },
 } as const;
 
@@ -70,6 +72,11 @@ export function AdvancedStep({ draft, patch, gates }: StepProps) {
           <ToggleCard active={draft.combatMode === "jrpg"} onClick={() => patch({ combatMode: "jrpg" })} label={copy.combatJrpg} hint={copy.combatJrpgHint} />
         </div>
       </div>
+
+      <label className="flex items-center gap-2">
+        <input type="checkbox" checked={draft.friendlyFire} onChange={event => patch({ friendlyFire: event.target.checked })} />
+        {copy.friendlyFire}
+      </label>
 
       <VariantRulesFields
         value={draft.variantRules}

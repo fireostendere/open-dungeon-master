@@ -1,3 +1,5 @@
+import { withEncounterRoom } from "@/lib/spatial/publication-scope.mjs";
+import { spatialEnabled, spatialStore } from "@/lib/spatial/service";
 import { z } from "zod";
 import { isErrorResponse, requireMember, steersStory } from "@/lib/campaign-api";
 import { allocateSeq } from "@/lib/db/campaigns";
@@ -144,6 +146,7 @@ export async function POST(
     source: isFallback || allDigital ? "digital" : "physical",
   });
 
+  const resolveCombat = () => {
   // Combat initiative submitted from a physical table: record it; the last
   // one locks the order. The note rides pending_rolls.combat_note so the
   // resumed DM turn narrates what actually happened.
@@ -160,7 +163,7 @@ export async function POST(
     if (note) {
       setPendingCombatNote(pendingRollId, note);
     }
-  } else if (pending.kind === "damage" && pending.targetEnemyId) {
+  } else if (pending.kind === "damage" && (pending.targetEnemyId || pending.attack?.targetCharacterId)) {
     // Targeted damage applies server-side the moment the dice land; the
     // enemy card updates now, not when the model gets around to it.
     const note = applyPendingDamageRoll(pending, roll);
@@ -177,6 +180,11 @@ export async function POST(
     // already authoritative and visible; close the human turn if one owns it.
     resumeHumanTurn(pending.turnId);
   }
+
+  };
+  const roomId = spatialEnabled(campaignId) ? spatialStore().getUserRoom(campaignId, pending.userId) : null;
+  if (roomId) withEncounterRoom(campaignId, roomId, resolveCombat);
+  else resolveCombat();
 
   return Response.json({ roll });
 }

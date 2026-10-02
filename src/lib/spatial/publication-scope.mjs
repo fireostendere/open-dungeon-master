@@ -9,3 +9,13 @@ export function currentPublicationScope(campaignId) {
   const value = publication.getStore();
   return value?.campaignId === campaignId ? value.scope : undefined;
 }
+
+// Mechanical room selection is independent of who receives an event.
+export function withEncounterRoom(campaignId, roomId, work) {
+  const previous = publication.getStore();
+  return publication.run({ ...(previous?.campaignId === campaignId ? previous : {}), campaignId, roomId }, work);
+}
+export function currentEncounterRoom(campaignId) {
+  const value = publication.getStore();
+  return value?.campaignId === campaignId ? value.roomId : undefined;
+}

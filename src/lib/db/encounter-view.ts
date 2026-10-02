@@ -10,7 +10,8 @@ import {
   type EncounterStatus,
   type EnemyStatus,
 } from "@/lib/db/encounters";
-import { spatialEnabled, spatialStore } from "@/lib/spatial/service";
+import { spatialStore } from "@/lib/spatial/service";
+import { getSheetForUser } from "@/lib/db/sheets";
 import { getCampaignById } from "@/lib/db/campaigns";
 import type { EnemyConditionVisibility, EnemyHpVisibility } from "@/lib/schemas/game-settings-options";
 
@@ -165,25 +166,18 @@ export function activePublicEncounter(
   }
   const map = getBattleMapForEncounter(encounter.id);
   const hidden = new Set<string>(map ? listHiddenRefIds(map.id) : []);
-  if (!options.enemyNumbers && options.viewerUserId && spatialEnabled(campaignId)) {
+  if (!options.enemyNumbers && options.viewerUserId) {
     const store = spatialStore();
+    const own = getSheetForUser(campaignId, options.viewerUserId);
+    if (own) hidden.delete(own.id);
+    const observerIds = [options.viewerUserId, own?.id ?? options.viewerUserId];
     for (const entry of encounter.order) {
       const id = orderEntryId(entry);
       if (entry.kind === "pc" && entry.userId === options.viewerUserId) continue;
-      const stealth = store.getStealthState(campaignId, id);
-      if (stealth && (stealth.status === "pending" || stealth.status === "confirmed")) {
-        if (!store.isDetected(campaignId, options.viewerUserId, id)) {
-          hidden.add(id);
-        }
-      }
+      if (store.isUnseen(campaignId, id, observerIds, encounter.roomId)) hidden.add(id);
     }
     for (const enemy of listEnemies(encounter.id)) {
-      const stealth = store.getStealthState(campaignId, enemy.id);
-      if (stealth && (stealth.status === "pending" || stealth.status === "confirmed")) {
-        if (!store.isDetected(campaignId, options.viewerUserId, enemy.id)) {
-          hidden.add(enemy.id);
-        }
-      }
+      if (store.isUnseen(campaignId, enemy.id, observerIds, encounter.roomId)) hidden.add(enemy.id);
     }
   }
   const settings = getCampaignById(campaignId)?.gameSettings;
