@@ -1,7 +1,7 @@
 import { isErrorResponse, isLead, requireMember, steersStory } from "@/lib/campaign-api";
 import { updateGameSettings } from "@/lib/db/campaigns";
 import { resetGlobalTurnGate } from "@/lib/dm/global-turn-logic";
-import { gameSettingsSchema } from "@/lib/schemas/game-settings";
+import { gameSettingsPatchSchema } from "@/lib/schemas/game-settings";
 import { publishPersisted } from "@/lib/events";
 
 export const runtime = "nodejs";
@@ -22,7 +22,7 @@ export async function PATCH(
   }
 
   const raw = await request.json().catch(() => ({}));
-  const parsed = gameSettingsSchema.partial().safeParse(raw);
+  const parsed = gameSettingsPatchSchema.safeParse(raw);
   if (!parsed.success) {
     return Response.json({ error: "Invalid game settings." }, { status: 400 });
   }

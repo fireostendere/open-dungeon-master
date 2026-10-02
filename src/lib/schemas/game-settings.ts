@@ -17,6 +17,13 @@ export const gameSettingsSchema = coreGameSettingsSchema.extend({
 
 export type GameSettings = z.infer<typeof gameSettingsSchema>;
 
+// Zod applies inner defaults even in partial schemas. A PATCH must omit
+// untouched fields rather than resetting them to creation defaults.
+export const gameSettingsPatchSchema: z.ZodType<Partial<GameSettings>> = z.object(Object.fromEntries(
+  Object.entries(gameSettingsSchema.shape).map(([key, field]) =>
+    [key, field instanceof z.ZodDefault ? field.removeDefault() : field]),
+)).partial();
+
 export function normalizeGameSettings(raw: unknown): GameSettings {
   const parsed = gameSettingsSchema.safeParse(raw ?? {});
   const normalized = parsed.success ? parsed.data : gameSettingsSchema.parse({});
