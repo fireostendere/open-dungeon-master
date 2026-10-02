@@ -12,7 +12,7 @@ import {
   PlaneGeometry, Quaternion, SphereGeometry, TubeGeometry, Vector2, Vector3, type Material, type Object3D,
 } from "three";
 import {
-  ball, box, capsule, cone, cyl, limb, makeHead, makeHorns, shard, tick, torus,
+  ball, box, capsule, cone, cyl, limb, makeHead, makeHorns, mountSurface, shard, tick, torus,
   type Chain, type Ctx,
 } from "./parts";
 import { between, chance, pick } from "./rng";
@@ -251,29 +251,30 @@ function buildOoze(ctx: Ctx): void {
       const d = new Vector3(between(rng, -0.9, 0.9), between(rng, -0.05, 0.95), between(rng, 0.15, 1)).normalize();
       const p = new Vector3(d.x * R * sx, R * sy + d.y * R * sy, d.z * R * sz);
       const holder = new Group();
-      holder.position.copy(p);
       const nrm = new Vector3(d.x / (sx * sx), d.y / (sy * sy), d.z / (sz * sz)).normalize();
-      holder.lookAt(p.clone().add(nrm));
+      const feature = new Group();
+      feature.rotation.x = -Math.PI / 2;
+      holder.add(feature);
       if (i < 8) {
-        holder.add(eyeball(ctx, between(rng, 0.045, 0.08), iris));
+        feature.add(eyeball(ctx, between(rng, 0.045, 0.08), iris));
       } else {
-        holder.add(ball(0.1, mats.dark, 1, 0.8, 0.35, 8));
+        feature.add(ball(0.1, mats.dark, 1, 0.8, 0.35, 8));
         for (let k = 0; k < 8; k += 1) {
           const a = (k / 8) * TAU;
           const tooth = cone(0.014, 0.05, mats.white, 4);
           tooth.rotation.x = Math.PI / 2;
           tooth.position.set(Math.cos(a) * 0.075, Math.sin(a) * 0.06, 0.03);
-          holder.add(tooth);
+          feature.add(tooth);
         }
       }
-      blob.add(holder);
+      mountSurface(body, holder, p, nrm, .015);
     }
   } else if (chance(rng, 0.3)) {
     for (const side of [1, -1]) {
       const e = eyeball(ctx, 0.07, mats.eye);
-      e.position.set(0.2 * side * sx, R * sy * 1.32, R * sz * 0.82);
-      e.rotation.y = side * 0.25;
-      blob.add(e);
+      e.rotation.x = -Math.PI / 2;
+      const holder = new Group(); holder.add(e);
+      mountSurface(body, holder, new Vector3(.20 * side * sx, R * sy * 1.32, R * sz * .82), new Vector3(side * .15, .15, 1), .02);
     }
   }
 
@@ -311,10 +312,9 @@ function buildMound(ctx: Ctx): void {
     const ph = rng() * TAU;
     const p = new Vector3(Math.sin(th) * Math.cos(ph) * 0.71, Math.cos(th) * 0.56, Math.sin(th) * Math.sin(ph) * 0.65);
     const l = ball(1, leaf, 0.16, 0.026, 0.09, 6);
-    l.position.set(p.x * 1.03, 0.52 + p.y * 1.03, p.z * 1.03);
-    l.quaternion.copy(surfaceUp(new Vector3(p.x / 0.5, p.y / 0.31, p.z / 0.42)));
+    l.name = "mound-leaf";
+    mountSurface(body, l, p.clone().add(new Vector3(0, .52, 0)), new Vector3(p.x / .5, p.y / .31, p.z / .42), .015);
     l.rotateY(rng() * TAU);
-    heap.add(l);
   }
 
   const vineCount = 7 + Math.floor(rng() * 3);
@@ -334,9 +334,9 @@ function buildMound(ctx: Ctx): void {
       const ph = rng() * TAU;
       const n = new Vector3(Math.sin(th) * Math.cos(ph), Math.cos(th) * 1.3, Math.sin(th) * Math.sin(ph));
       const s = cone(0.03, 0.14, mats.accent, 4);
-      s.position.set(n.x * 0.68, 0.52 + n.y * 0.5, n.z * 0.62);
-      s.quaternion.copy(surfaceUp(n));
-      heap.add(s);
+      s.geometry.translate(0, .065, 0);
+      s.name = "mound-thorn";
+      mountSurface(body, s, new Vector3(n.x * .68, .52 + n.y * .50, n.z * .62), n, .015);
     }
   }
   if (chance(rng, 0.5)) {
@@ -352,8 +352,7 @@ function buildMound(ctx: Ctx): void {
         f.add(pt);
       }
       f.add(ball(0.03, mats.dark, 1, 1, 1, 6));
-      f.position.set(Math.cos(a) * 0.3, 1.0 + rng() * 0.05, Math.sin(a) * 0.28);
-      heap.add(f);
+      mountSurface(body, f, new Vector3(Math.cos(a) * .30, .90, Math.sin(a) * .28), UPV, .02);
     }
   }
 
@@ -431,23 +430,17 @@ function buildGhost(ctx: Ctx): void {
   const headY = 0.55 + 1.4 * tall;
   const headR = 0.16;
   const head = new Group();
+  head.name = "head-focus";
+  ctx.focus = head;
   head.position.set(0, headY, 0.02);
   g.add(head);
   const skullFace = !banshee && !shadow && chance(rng, 0.3);
   if (skullFace) {
     head.add(makeHead(ctx, { r: headR, style: "skull" }));
   } else {
-    head.add(ball(headR, mats.skin, 0.92, 1.08, 1, 14));
-    for (const side of [1, -1]) {
-      const sock = ball(headR * 0.3, mats.dark, 1, 1.4, 0.6, 8);
-      sock.position.set(0.06 * side, 0.02, headR * 0.86);
-      const light = ball(headR * 0.12, mats.eye, 1, 1, 0.6, 6);
-      light.position.set(0.06 * side, 0.02, headR * 0.98);
-      head.add(sock, light);
-    }
-    const mouth = banshee ? ball(headR * 0.24, mats.dark, 1, 1.9, 0.5, 8) : ball(headR * 0.3, mats.dark, 1.6, 0.35, 0.4, 8);
-    mouth.position.set(0, -headR * 0.42, headR * 0.9);
-    head.add(mouth);
+    const visage = makeHead(ctx, { r: headR, style: "humanoid", family: "gaunt" });
+    if (banshee) visage.getObjectByName("mouth")!.scale.z = 4;
+    head.add(visage);
   }
   if (hooded) {
     const cowl = new Mesh(new SphereGeometry(headR * 1.32, 14, 10, Math.PI / 2 + 0.75, TAU - 1.5, 0, Math.PI * 0.8), mats.skin);
@@ -549,6 +542,8 @@ function buildGenie(ctx: Ctx): void {
 
   const headR = 0.15;
   const head = makeHead(ctx, { r: headR, style: "humanoid" });
+  head.name = "head-focus";
+  ctx.focus = head;
   head.position.set(0, 1.9, 0.02);
   g.add(head);
   if (t.horns === "none" && (ctx.spec.look === "flame" || chance(rng, 0.45))) head.add(makeHorns("curved", headR, mats));

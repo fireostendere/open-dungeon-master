@@ -183,6 +183,12 @@ const has = (re: RegExp, name: string) => re.test(name);
 // Order matters: the first family whose pattern matches wins. Specific
 // hybrids ("owlbear", "dragon turtle") sit above the animals they contain.
 const FAMILIES: Family[] = [
+  // Reviewed models use the anatomy and gear of their source, before loose keywords.
+  { re: /^a-mi-?kuk$/, plan: "biped", look: "hide", set: { head: "humanoid", snout: 0, arms: 2, weapon: "none", stance: "hunched" } },
+  { re: /^kobold$/, plan: "biped", look: "scale", set: { head: "beast", snout: 0.6, tail: "long", ears: "none", stance: "hunched", weapon: "dagger", horns: "straight" } },
+  { re: /^planetar$/, plan: "biped", look: "skin", set: { head: "humanoid", snout: 0, wings: "feather", weapon: "sword", glowEyes: true, aura: "motes" } },
+  { re: /medusa/, plan: "biped", look: "skin", set: { head: "humanoid", snout: 0, weapon: "bow", wings: "none", tail: "none" } },
+  { re: /nothic/, plan: "biped", look: "skin", set: { head: "humanoid", eyes: 1, stance: "hunched", weapon: "none" } },
   // --- swarms
   { re: /swarm|\bhorde of\b|\bflock of\b|\bmurder of\b|\bpack of\b/, plan: "swarm" },
   { re: /naga|nagas/, plan: "taur", look: "scale", set: { lower: "snake", head: "beast", snout: 0.3, frill: true, arms: 2 } },
@@ -242,7 +248,8 @@ const FAMILIES: Family[] = [
   { re: /chimera/, plan: "quadruped", look: "scale", set: { heads: 3, wings: "membrane", horns: "ram", tail: "long", snout: 0.4, mane: true } },
   { re: /manticore/, plan: "quadruped", look: "fur", set: { head: "humanoid", mane: true, wings: "membrane", tail: "scorpion", snout: 0.1, ears: "pointy" } },
   { re: /sphinx/, plan: "quadruped", look: "fur", set: { head: "humanoid", mane: true, wings: "feather", tail: "long", snout: 0.1 } },
-  { re: /displacer|blink dog|hell ?hound|nightmare|barghest|worg|warg|winter wolf|dire wolf|phase/, plan: "quadruped", look: "fur", set: { snout: 0.7, ears: "pointy", tail: "long", aura: "embers" } },
+  { re: /^nightmare$/, plan: "quadruped", look: "fur", set: { snout: 0.8, ears: "pointy", tail: "fluffy", longNeck: true, hooves: true, mane: true, aura: "embers" } },
+  { re: /displacer|blink dog|hell ?hound|barghest|worg|warg|winter wolf|dire wolf|phase/, plan: "quadruped", look: "fur", set: { snout: 0.7, ears: "pointy", tail: "long", aura: "embers" } },
   { re: /pegasus/, plan: "quadruped", look: "fur", set: { snout: 0.8, ears: "pointy", wings: "feather", tail: "fluffy", longNeck: true, hooves: true, mane: true } },
   { re: /unicorn|ki-rin|kirin|buraq/, plan: "quadruped", look: "fur", set: { snout: 0.8, ears: "pointy", horns: "straight", tail: "fluffy", longNeck: true, hooves: true, mane: true } },
   { re: /tarrasque/, plan: "quadruped", look: "scale", set: { horns: "curved", tail: "long", snout: 0.4, ears: "none", spikes: true, plates: true, bulk: 1.35 } },
@@ -265,7 +272,7 @@ const FAMILIES: Family[] = [
   // --- generic "-folk" people with animal heads
   { re: /werewolf|wolfman|wolf-?kin|wolfen/, plan: "biped", look: "fur", set: { head: "beast", snout: 0.75, ears: "pointy", stance: "hunched", tail: "long" } },
   { re: /wererat|ratfolk|ratling|skaven|rat-?kin|ratatosk/, plan: "biped", look: "fur", set: { head: "beast", snout: 0.6, ears: "round", stance: "hunched", tail: "long", weapon: "dagger" } },
-  { re: /weretiger|werecat|lion-?folk|leonin|catfolk|bouda/, plan: "biped", look: "fur", set: { head: "beast", snout: 0.25, ears: "round", stance: "brute", tail: "long" } },
+  { re: /weretiger|werecat|lion-?folk|leonin|catfolk|tabaxi|bouda/, plan: "biped", look: "fur", set: { head: "beast", snout: 0.25, ears: "round", stance: "brute", tail: "long" } },
   { re: /werebear|bearfolk|grolar|bear-?kin/, plan: "biped", look: "fur", set: { head: "beast", snout: 0.4, ears: "round", stance: "brute" } },
   { re: /wereboar|boarfolk|orc-?boar/, plan: "biped", look: "fur", set: { head: "beast", snout: 0.45, tusks: true, ears: "pointy", stance: "brute" } },
   { re: /gnoll/, plan: "biped", look: "fur", set: { head: "beast", snout: 0.7, ears: "round", mane: true, stance: "lanky", weapon: "spear" } },
@@ -293,18 +300,19 @@ const FAMILIES: Family[] = [
   { re: /\bapes?\b|gorilla|baboon|monkey|chimp|orangutan|yeti|bigfoot|sasquatch|abominable|kong|sloth/, plan: "biped", look: "fur", set: { head: "beast", snout: 0.3, ears: "round", stance: "brute" } },
 
   // --- goblins, orcs, trolls and other stock monsters
-  { re: /goblin|gremlin|grimlock|boggle|redcap|trollkin|brownie|derro|gnome|halfling/, plan: "biped", set: { head: "humanoid", ears: "pointy", stance: "hunched", weapon: "dagger" } },
-  { re: /bugbear/, plan: "biped", look: "fur", set: { head: "beast", snout: 0.3, ears: "round", stance: "brute", weapon: "club" } },
   { re: /hobgoblin/, plan: "biped", set: { head: "humanoid", ears: "pointy", armor: true, weapon: "sword", shield: true, crown: "helm" } },
+  { re: /gnome|halfling|dwarf|duergar|derro/, plan: "biped", set: { head: "humanoid", ears: "round", stance: "stout" } },
+  { re: /goblin|gremlin|grimlock|boggle|redcap|trollkin|brownie/, plan: "biped", set: { head: "humanoid", ears: "pointy", stance: "hunched", weapon: "dagger" } },
+  { re: /bugbear/, plan: "biped", look: "fur", set: { head: "beast", snout: 0.3, ears: "round", stance: "brute", weapon: "club" } },
   { re: /\borcs?\b|orcish|half-orc|ork\b|uruk/, plan: "biped", set: { head: "humanoid", tusks: true, ears: "pointy", stance: "brute", weapon: "axe" } },
   { re: /kobold|lizardfolk|crocodile ?folk|salamanderfolk|cockatrice folk/, plan: "biped", look: "scale", set: { head: "beast", snout: 0.6, tail: "long", ears: "none", stance: "hunched", weapon: "spear", horns: "straight" } },
   { re: /\btrolls?\b|scrag|jotun|thursir|ettin|ogre|oni\b|cyclops|hill giant|frost giant|fire giant|cloud giant|storm giant|stone giant|titan|goliath|giant\b|colossus/, plan: "biped", look: "skin", set: { head: "humanoid", stance: "brute", weapon: "club", tusks: true, bulk: 1.15 } },
   { re: /vampire|dhampir|strigoi|nosferatu/, plan: "biped", look: "flesh", set: { head: "humanoid", cape: true, stance: "upright", ears: "pointy", armor: false, aura: "smoke" } },
   { re: /\blich\b|demilich|archlich/, plan: "biped", look: "bone", set: { skeletal: true, head: "skull", robe: true, crown: "crown", weapon: "staff", glowEyes: true, aura: "smoke" } },
   { re: /skeleton|skeletal|\bbone\b|bones\b|skull|bonepowder/, plan: "biped", look: "bone", set: { skeletal: true, head: "skull", weapon: "sword" } },
-  { re: /zombie|ghoul|ghast|corpse|thrall|drowned|darakhul|mohrg|abomination|flesh|walking dead|risen/, plan: "biped", look: "flesh", set: { zombie: true, stance: "hunched" } },
-  { re: /mummy|ushabti|edjet|anubian/, plan: "biped", look: "flesh", set: { bandages: true, stance: "upright", zombie: true, crown: "crown" } },
-  { re: /wight|revenant|death knight|draugr|einherjar|dullahan|fellforged|deathless|barrow/, plan: "biped", look: "bone", set: { skeletal: false, armor: true, weapon: "sword", glowEyes: true, crown: "helm", stance: "upright", aura: "smoke" } },
+  { re: /zombie|ghoul|ghast|corpse|thrall|drowned|darakhul|mohrg|abomination|flesh|walking dead|risen/, plan: "biped", look: "flesh", set: { head: "humanoid", zombie: true, stance: "hunched" } },
+  { re: /mummy|ushabti|edjet|anubian/, plan: "biped", look: "flesh", set: { head: "humanoid", bandages: true, stance: "upright", zombie: true, crown: "crown" } },
+  { re: /wight|revenant|death knight|draugr|einherjar|dullahan|fellforged|deathless|barrow/, plan: "biped", look: "bone", set: { head: "humanoid", skeletal: false, armor: true, weapon: "sword", glowEyes: true, crown: "helm", stance: "upright", aura: "smoke" } },
   { re: /treant|\btree\b|awakened tree|\bent\b|blight|dryad|alseid|arboreal|briarwood|woodwose|wood woad|barkskin|bark\b|root\b|twig|needle/, plan: "biped", look: "bark", set: { head: "humanoid", stance: "brute", ears: "none", aura: "spores" } },
   { re: /\bhags?\b|baba yaga|annis|witch|crone|coven|yaga|nightmare hag|sea hag|green hag|night hag/, plan: "biped", set: { head: "humanoid", stance: "hunched", crown: "hat", robe: true, weapon: "staff", ears: "pointy", beard: false } },
   { re: /mephit/, plan: "biped", set: { head: "humanoid", ears: "pointy", wings: "membrane", stance: "hunched", horns: "straight", tail: "long", glowEyes: true } },
@@ -464,7 +472,7 @@ function typeFallback(type: CreatureType, size: SizeKey, rng: Rng, t: Traits): {
       return { plan: "dragon", look: "scale" };
     case "undead":
       if (chance(rng, 0.45)) { Object.assign(t, { skeletal: true, head: "skull", weapon: pick(rng, ["sword", "spear", "axe"] as const) }); return { plan: "biped", look: "bone" }; }
-      Object.assign(t, { zombie: true, stance: "hunched" });
+      Object.assign(t, { head: "humanoid", zombie: true, stance: "hunched" });
       return { plan: "biped", look: "flesh" };
     case "fiend":
       Object.assign(t, { head: "beast", snout: 0.3, horns: pick(rng, ["curved", "ram", "straight"] as const), wings: chance(rng, 0.55) ? "membrane" : "none", tail: "long", stance: "brute", aura: "embers", glowEyes: true, ears: "pointy" });
@@ -613,6 +621,7 @@ export function deriveCreatureSpec(input: CreatureInput): CreatureSpec {
     look = kind === "insect" ? "chitin" : kind === "bird" ? "feather" : kind === "fish" || kind === "snake" ? "scale" : "fur";
   }
 
+  if (/cyclops/.test(name)) traits.eyes = 1;
   // Juvenile dragons have oversized heads.
   if (/wyrmling|whelp|young|pseudo|dragonette|hatchling/.test(name)) traits.juvenile = true;
   // "Ancient" and "elder" things: spikes and horns.
@@ -625,6 +634,9 @@ export function deriveCreatureSpec(input: CreatureInput): CreatureSpec {
   if (/lightning|thunder|storm|spark|shock|tempest/.test(name) && traits.aura === "none") traits.aura = "sparks";
 
   const palette = derivePalette(type, look, plan, traits, rng, name);
+  if (name === "a-mi-kuk") Object.assign(palette, { skin: "#782839", belly: "#ad5360", eye: "#08080b", accent: "#d7bba1" });
+  if (name === "kobold") Object.assign(palette, { skin: "#a65030", belly: "#d59b62", cloth: "#423026", eye: "#edb536", accent: "#e3cfab" });
+  if (name === "planetar") Object.assign(palette, { skin: "#6caa96", belly: "#90c5ad", cloth: "#ded8c4", eye: "#fff2b9", glow: "#ffe5a0", accent: "#cba45e" });
 
   return {
     slug: input.slug,

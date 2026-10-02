@@ -7,7 +7,7 @@ import { register } from "node:module";
 register("./lib/register-alias.mjs", import.meta.url);
 
 const { deriveCreatureSpec, buildCreature, PLANS, SIZES, SIZE_CELLS, CREATURE_TYPES } = await import("../src/lib/bestiary3d/index.ts");
-const { Box3 } = await import("three");
+const { Box3, Triangle, Vector3 } = await import("three");
 
 let passed = 0;
 function test(name, fn) {
@@ -29,6 +29,21 @@ const FIXTURE = [
   ["Ancient Blue Dragon", "dragon", "gargantuan"], ["Iron Golem", "construct", "large"], ["Fire Elemental", "elemental", "large"],
 ];
 const row = ([name, type, size], i) => ({ slug: `fixture-${i}`, name, type, size, speed: { walk: 30 } });
+
+function surfaceDistance(skin, point) {
+  const p = skin.geometry.attributes.position, index = skin.geometry.index;
+  const triangle = new Triangle(), closest = new Vector3();
+  let distance = Infinity;
+  const count = index?.count ?? p.count;
+  for (let i = 0; i < count; i += 3) {
+    triangle.a.fromBufferAttribute(p, index ? index.getX(i) : i).applyMatrix4(skin.matrixWorld);
+    triangle.b.fromBufferAttribute(p, index ? index.getX(i + 1) : i + 1).applyMatrix4(skin.matrixWorld);
+    triangle.c.fromBufferAttribute(p, index ? index.getX(i + 2) : i + 2).applyMatrix4(skin.matrixWorld);
+    triangle.closestPointToPoint(point, closest);
+    distance = Math.min(distance, point.distanceTo(closest));
+  }
+  return distance;
+}
 
 test("well-known monsters get the body plan a player expects", () => {
   const expect = {
@@ -65,6 +80,132 @@ test("size drives scale and the battle-grid footprint", () => {
   for (const size of SIZES) assert.ok(SIZE_CELLS[size] > 0);
 });
 
+test("the three reviewed creatures have source-specific anatomy and equipment", () => {
+  const cases = [
+    ["A-mi-kuk", "aberration", "huge", "biped", "none", ["cranium", "grasping-claw-right", "grasping-claw-left"]],
+    ["Kobold", "humanoid", "small", "biped", "dagger", ["reptilian-jaw", "dagger", "sling"]],
+    ["Planetar", "celestial", "large", "biped", "sword", ["human-face", "greatsword", "wing-right", "wing-left"]],
+  ];
+  for (const [name, type, size, plan, weapon, parts] of cases) {
+    const spec = deriveCreatureSpec({ slug: name.toLowerCase(), name, type, size });
+    assert.equal(spec.plan, plan, name);
+    assert.equal(spec.traits.weapon, weapon, `${name}: weapon`);
+    const model = buildCreature(spec);
+    for (const part of parts) assert.ok(model.root.getObjectByName(part), `${name}: missing ${part}`);
+    const anchor = model.root.getObjectByName(name === "A-mi-kuk" ? "body-focus" : "head-focus");
+    assert.ok(anchor, `${name}: focus anchor`);
+    for (const time of [0, 1.37, 50.123]) {
+      model.update(time);
+      assert.ok(model.focus.distanceTo(anchor.getWorldPosition(new Vector3())) < 1e-6, `${name}: focus follows anatomy`);
+    }
+    model.dispose();
+  }
+});
+
+test("kobold tail scutes touch the curved skin throughout the idle pose", () => {
+  const model = buildCreature(deriveCreatureSpec({ slug: "kobold", name: "Kobold", type: "humanoid", size: "small" }));
+  const skin = model.root.getObjectByName("tail-skin");
+  assert.ok(skin, "curved tail skin");
+  const scutes = [];
+  skin.parent.traverse(o => { if (o.isMesh && o.geometry.type === "SphereGeometry") scutes.push(o); });
+  assert.equal(scutes.length, 7);
+  for (const time of [0, 1.37, 50.123]) {
+    model.update(time);
+    for (const scute of scutes) {
+      const distance = surfaceDistance(skin, scute.getWorldPosition(new Vector3()));
+      assert.ok(distance <= scute.geometry.parameters.radius * Math.min(...scute.getWorldScale(new Vector3()).toArray()) * 1.2,
+        `floating tail scute at ${time}: gap ${distance}`);
+    }
+  }
+  model.dispose();
+});
+
+test("families have distinct facial anatomy, including humanoid undead and hybrid heads", () => {
+  const families = [
+    ["Wolf", "beast", "canine"], ["Lion", "beast", "feline"], ["Giant Rat", "beast", "rodent"],
+    ["Riding Horse", "beast", "equine"], ["Boar", "beast", "porcine"], ["Brown Bear", "beast", "ursine"],
+    ["Crocodile", "beast", "crocodilian"], ["Ape", "beast", "primate"], ["Adult Red Dragon", "dragon", "draconic"],
+    ["Goblin", "humanoid", "goblin"], ["Orc", "humanoid", "orc"], ["Ogre", "giant", "brute"],
+    ["Commoner", "humanoid", "human"], ["Zombie", "undead", "gaunt"], ["Owlbear", "monstrosity", "owl"],
+  ];
+  const silhouettes = new Set();
+  for (const [name, type, family] of families) {
+    const model = buildCreature(deriveCreatureSpec({ slug: name, name, type, size: "medium" }));
+    const face = model.root.getObjectByName(`face-${family}`);
+    assert.ok(face, `${name}: expected ${family} anatomy`);
+    const bounds = new Box3().setFromObject(face).getSize(new Vector3());
+    silhouettes.add(bounds.toArray().map(n => n.toFixed(4)).join(","));
+    model.dispose();
+  }
+  assert.equal(silhouettes.size, families.length, "families must differ geometrically");
+  const chimera = buildCreature(deriveCreatureSpec({ slug: "chimera", name: "Chimera", type: "monstrosity", size: "large" }));
+  for (const family of ["feline", "caprine", "draconic"]) assert.ok(chimera.root.getObjectByName(`face-${family}`), family);
+  chimera.dispose();
+  const medusaSpec = deriveCreatureSpec({ slug: "medusa", name: "Medusa", type: "monstrosity", size: "medium" });
+  assert.equal(medusaSpec.traits.head, "humanoid");
+  assert.equal(medusaSpec.traits.wings, "none");
+  const medusa = buildCreature(medusaSpec);
+  let snakes = 0;
+  medusa.root.traverse(o => { if (o.name === "snake-hair-root") snakes++; });
+  assert.equal(snakes, 6);
+  medusa.dispose();
+  for (const name of ["Cyclops", "Nothic"]) assert.equal(deriveCreatureSpec({ slug: name, name, type: "monstrosity", size: "medium" }).traits.eyes, 1);
+});
+
+test("surface details stay rooted during breathing and mirrored poses", () => {
+  const cases = [["Adult Red Dragon", "dragon"], ["Stegosaurus", "beast"], ["Giant Turtle", "beast"], ["Shambling Mound", "plant"], ["Goblin", "humanoid"], ["Planetar", "celestial"]];
+  for (const [name, type] of cases) {
+    const spec = deriveCreatureSpec({ slug: name, name, type, size: "large" });
+    const model = buildCreature(spec), details = [];
+    model.root.traverse(o => {
+      if (/^(tail-spike|dorsal-spike|dorsal-plate|shell-scute|mound-leaf|mound-thorn|eye-socket|wing-feather-root)$/.test(o.name)) details.push(o);
+    });
+    assert.ok(details.length > 0, name);
+    for (const time of [0, 1.37, 50.123]) {
+      model.update(time);
+      for (const detail of details) {
+        assert.ok(detail.parent.isMesh, `${name}: ${detail.name} must follow the skin`);
+        const distance = surfaceDistance(detail.parent, detail.getWorldPosition(new Vector3()));
+        assert.ok(distance < .03 * spec.sizeFactor, `${name}: detached ${detail.name} at ${time}: ${distance}`);
+      }
+    }
+    model.dispose();
+  }
+});
+
+test("individual portraits are geometrically varied and deterministic", () => {
+  const portrait = name => {
+    const model = buildCreature(deriveCreatureSpec({ slug: name, name, type: "humanoid", size: "medium" }));
+    const geometry = Array.from(model.root.getObjectByName("cranium").geometry.attributes.position.array);
+    model.dispose();
+    return geometry;
+  };
+  assert.deepEqual(portrait("Commoner"), portrait("Commoner"));
+  const portraits = ["Commoner", "Bandit", "Mage", "Noble", "Veteran"].map(name => JSON.stringify(portrait(name)));
+  assert.equal(new Set(portraits).size, portraits.length);
+});
+
+test("humanoid-shaped focus follows the head instead of equipment bounds", () => {
+  for (const name of ["Commoner", "Mage", "Ogre", "Ghost", "Djinni"]) {
+    const model = buildCreature(deriveCreatureSpec({ slug: name, name, type: "humanoid", size: "medium" }));
+    const head = model.root.getObjectByName("head-focus");
+    assert.ok(head, name);
+    model.update(2);
+    assert.ok(model.focus.distanceTo(head.getWorldPosition(new Vector3())) < 1e-6, name);
+    model.dispose();
+  }
+});
+
+test("a non-humanoid's body focus is independent of its wings", () => {
+  const spec = deriveCreatureSpec({ slug: "pegasus", name: "Pegasus", type: "celestial", size: "large" });
+  const winged = buildCreature(spec);
+  const bare = buildCreature({ ...spec, traits: { ...spec.traits, wings: "none" } });
+  assert.ok(winged.focus.distanceTo(bare.focus) < 1e-6, "wings must not displace the centre of the body");
+  assert.ok(winged.root.getObjectByName("body-focus"));
+  winged.dispose();
+  bare.dispose();
+});
+
 function finiteObject(obj) {
   const { position: p, rotation: r, scale: s } = obj;
   return [p.x, p.y, p.z, r.x, r.y, r.z, s.x, s.y, s.z].every(Number.isFinite);
@@ -97,6 +238,7 @@ function checkModel(input) {
   const b = sample();
   model.update(50.123);
   sample();
+  assert.ok(model.focus.toArray().every(Number.isFinite), `${input.name}: non-finite focus`);
   assert.notEqual(a, b, `${input.name} (${spec.plan}) has no idle animation`);
   assert.ok(meshes > 0 && meshes < 600, `${input.name}: ${meshes} meshes`);
   const box = new Box3().setFromObject(model.root);
@@ -143,4 +285,4 @@ if (catalog) {
   });
 }
 
-console.log(`test-bestiary-3d: ${passed} passed`);
+console.log(`test-bestiary-3d: ${passed} passed${catalog ? ` (${catalog.length} catalog creatures)` : ""}`);

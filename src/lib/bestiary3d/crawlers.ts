@@ -10,7 +10,7 @@ import {
 } from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import {
-  aim, ball, box, chain, cone, cyl, limb, makeWings, segment, spike, tick, torus, wave,
+  aim, ball, box, chain, cone, cyl, limb, makeHead, makeWings, mountSurface, segment, spike, tick, torus, wave,
   type Ctx, type Chain,
 } from "./parts";
 import { between, chance } from "./rng";
@@ -148,57 +148,11 @@ function birdCfg(kind: BirdKind, name: string): BirdCfg {
 function birdHead(ctx: Ctx, kind: BirdKind, cfg: BirdCfg): Group {
   const { mats } = ctx;
   const r = cfg.head;
-  const g = new Group();
   const headMat = kind === "vulture" ? stdMat("#b08a84", { roughness: 0.9 }) : mats.skin;
-  g.add(ball(r, headMat, 0.85, 0.95, 1.05));
   const beakMat = stdMat(cfg.beakCol, { roughness: 0.45 });
-  if (kind === "owl") {
-    addEyesForward(ctx, g, r);
-    for (const side of [1, -1]) {
-      const disc = ball(r * 0.52, mats.belly, 1, 1.05, 0.35, 10);
-      disc.position.set(r * 0.42 * side, r * 0.05, r * 0.82);
-      g.add(disc);
-    }
-    for (const side of [1, -1]) {
-      const tuft = cone(r * 0.16, r * 0.6, mats.skin, 4);
-      tuft.position.set(r * 0.5 * side, r * 0.95, -r * 0.05);
-      tuft.rotation.z = -0.3 * side;
-      g.add(tuft);
-    }
-    const beak = cone(r * 0.2, r * 0.42, beakMat, 5);
-    beak.rotation.x = Math.PI / 2 + 0.5;
-    beak.position.set(0, -r * 0.18, r * 1.08);
-    g.add(beak);
-    return g;
-  }
-  for (const side of [1, -1]) {
-    const eye = ball(r * 0.2, mats.white, 1, 1, 0.8, 8);
-    eye.position.set(r * 0.68 * side, r * 0.2, r * 0.4);
-    const pupil = ball(r * 0.11, mats.eye, 1, 1, 0.8, 6);
-    pupil.position.set(r * 0.8 * side, r * 0.2, r * 0.45);
-    g.add(eye, pupil);
-    if (kind === "raptor" || kind === "phoenix" || kind === "vulture") {
-      const brow = box(r * 0.5, r * 0.1, r * 0.55, headMat);
-      brow.position.set(r * 0.6 * side, r * 0.42, r * 0.42);
-      brow.rotation.z = -0.35 * side;
-      g.add(brow);
-    }
-  }
+  const g = makeHead({ ...ctx, mats: { ...mats, skin: headMat, accent: beakMat } }, { r, style: "bird", snout: cfg.beak / r });
+  const skull = g.getObjectByName("cranium") as Mesh;
   const len = cfg.beak;
-  const upper = cone(r * (kind === "wader" ? 0.17 : 0.3), len, beakMat, 6);
-  upper.rotation.x = Math.PI / 2;
-  upper.position.set(0, -r * 0.02, r * 0.95 + len / 2);
-  g.add(upper);
-  if (cfg.hook) {
-    const tip = cone(r * 0.12, len * 0.35, beakMat, 5);
-    tip.rotation.x = Math.PI + 0.3;
-    tip.position.set(0, -r * 0.16, r * 0.95 + len * 0.98);
-    g.add(tip);
-  }
-  const lower = cone(r * 0.22, len * 0.8, beakMat, 5);
-  lower.rotation.x = Math.PI / 2 - 0.04;
-  lower.position.set(0, -r * 0.26, r * 0.9 + len * 0.4);
-  g.add(lower);
   if (kind === "waterfowl" && len > 0.4) {
     const pouch = ball(r * 0.42, stdMat("#e6b872", { roughness: 0.6 }), 0.9, 0.9, len / (r * 0.42) * 0.45, 8);
     pouch.position.set(0, -r * 0.5, r * 0.9 + len * 0.42);
@@ -207,9 +161,8 @@ function birdHead(ctx: Ctx, kind: BirdKind, cfg: BirdCfg): Group {
   if (kind === "poultry") {
     const red = stdMat("#c1272d", { roughness: 0.55 });
     for (let i = 0; i < 3; i += 1) {
-      const c = ball(r * (0.24 - i * 0.03), red, 0.45, 1, 1, 8);
-      c.position.set(0, r * (1.0 - i * 0.05), r * (0.4 - i * 0.35));
-      g.add(c);
+      const c = ball(.24 - i * .03, red, .45, 1, 1, 10);
+      mountSurface(skull, c, new Vector3(0, .65, .4 - i * .35), new Vector3(0, 1, 0), .04);
     }
     const wattle = ball(r * 0.22, red, 0.6, 1.3, 0.7, 8);
     wattle.position.set(0, -r * 0.55, r * 0.75);
@@ -217,23 +170,13 @@ function birdHead(ctx: Ctx, kind: BirdKind, cfg: BirdCfg): Group {
   }
   if (kind === "phoenix") {
     for (let i = 0; i < 3; i += 1) {
-      const f = cone(r * 0.2, r * (1.4 - i * 0.25), mats.glow, 5);
-      f.position.set(0, r * 1.0, -r * (0.1 + i * 0.35));
-      f.rotation.x = -0.6 - i * 0.25;
-      g.add(f);
+      const h = 1.4 - i * .25;
+      const f = cone(.20, h, mats.glow, 5);
+      f.geometry.translate(0, h * .43, 0);
+      mountSurface(skull, f, new Vector3(0, .60, -.10 - i * .25), new Vector3(0, 1, 0), .03);
     }
   }
   return g;
-}
-
-function addEyesForward(ctx: Ctx, head: Group, r: number): void {
-  for (const side of [1, -1]) {
-    const eye = ball(r * 0.34, stdMat("#f0c93c", { roughness: 0.3 }), 1, 1, 0.55, 10);
-    eye.position.set(r * 0.42 * side, r * 0.12, r * 0.92);
-    const pupil = ball(r * 0.16, ctx.mats.dark, 1, 1, 0.5, 8);
-    pupil.position.set(r * 0.42 * side, r * 0.12, r * 1.08);
-    head.add(eye, pupil);
-  }
 }
 
 function birdLegs(ctx: Ctx, cfg: BirdCfg): void {
@@ -639,34 +582,25 @@ function shuffleLegs(ctx: Ctx, legs: LegRef[], amp = 0.09, speed = 2.1): void {
 
 function bugHead(ctx: Ctx, r: number, opts: { eyes?: number; mandibles?: boolean; eyeMat?: MeshStandardMaterial } = {}): Group {
   const { mats } = ctx;
-  const g = new Group();
-  g.add(ball(r, mats.skin, 0.92, 0.9, 1, 10));
-  const er = r * (opts.eyes ?? 0.34);
-  for (const side of [1, -1]) {
-    const eye = ball(er, opts.eyeMat ?? mats.eye, 1, 1.15, 0.9, 8);
-    eye.position.set(r * 0.62 * side, r * 0.2, r * 0.5);
-    g.add(eye);
-  }
-  if (opts.mandibles !== false) {
-    for (const side of [1, -1]) {
-      const m = spike(r * 0.75, r * 0.13, 1.4 * side, mats.accent, 3, 5);
-      m.rotation.x = Math.PI / 2 + 0.3;
-      m.rotation.z = 0;
-      m.position.set(r * 0.22 * side, -r * 0.35, r * 0.85);
-      g.add(m);
-    }
+  const g = makeHead({ ...ctx, mats: { ...mats, eye: opts.eyeMat ?? mats.eye } }, { r, style: "insect" });
+  const face = g.getObjectByName("face-insect")!;
+  const skull = g.getObjectByName("cranium")!;
+  for (const o of [...face.children, ...skull.children]) {
+    if (o.name === "antenna" || opts.mandibles === false && o.name === "mandible") o.removeFromParent();
+    if (o.name === "eye-socket") o.scale.multiplyScalar((opts.eyes ?? .34) / .34);
   }
   return g;
 }
 
 function addAntennae(ctx: Ctx, head: Group, r: number, len: number, mat: MeshStandardMaterial): Group[] {
   const list: Group[] = [];
+  const skull = head.getObjectByName("cranium") as Mesh;
   for (const side of [1, -1]) {
-    const a = spike(len, r * 0.06, -0.9, mat, 4, 4);
-    a.position.set(r * 0.28 * side, r * 0.62, r * 0.7);
+    const a = spike(len / r, .06, -.9, mat, 4, 4);
     a.rotation.x = 0.9;
     a.rotation.z = -0.35 * side;
-    head.add(a);
+    const mount = new Group(); mount.add(a);
+    mountSurface(skull, mount, new Vector3(.28 * side, .42, .5), new Vector3(0, 1, 0), .045);
     list.push(a);
   }
   const baseX = list.map((a) => a.rotation.x);
@@ -1430,12 +1364,14 @@ function buildTorpedo(ctx: Ctx, c: TorpedoCfg): void {
   }
   // eyes
   for (const side of [1, -1]) {
+    const socket = new Group(), globe = new Group();
+    globe.rotation.x = -Math.PI / 2;
     const eye = ball(c.eyeR, mats.white, 1, 1, 0.7, 8);
-    eye.position.set(rx * 0.88 * side, y + ry * 0.22, rz * 0.62);
-    fishG.add(eye);
     const pupil = ball(c.eyeR * 0.55, mats.eye, 1, 1, 0.7, 8);
-    pupil.position.set(rx * 0.95 * side, y + ry * 0.22, rz * 0.66);
-    fishG.add(pupil);
+    pupil.position.z = c.eyeR * .65;
+    globe.add(eye, pupil);
+    socket.add(globe);
+    mountSurface(torso, socket, new Vector3(rx * .80 * side, y + ry * .22, rz * .62), new Vector3(side, 0, 0), c.eyeR * .3);
     if (c.orca) {
       const patch = ball(rx * 0.22, white, 0.5, 0.9, 1.4, 8);
       patch.position.set(rx * 0.86 * side, y + ry * 0.32, rz * 0.6);
@@ -1444,17 +1380,14 @@ function buildTorpedo(ctx: Ctx, c: TorpedoCfg): void {
     }
     if (c.gills) {
       for (let g = 0; g < 4; g += 1) {
-        const slit = box(0.008, ry * 0.5, 0.012, mats.dark);
-        slit.position.set(rx * 0.93 * side, y, rz * (0.42 - g * 0.06));
-        slit.rotation.z = 0.15 * side;
-        fishG.add(slit);
+        const slit = box(ry * .5, .008, .012, mats.dark);
+        mountSurface(torso, slit, new Vector3(rx * .80 * side, y, rz * (.42 - g * .06)), new Vector3(side, 0, 0), .002);
       }
     }
   }
   if (c.blowhole) {
     const bh = ball(0.05, mats.dark, 1, 0.3, 1, 8);
-    bh.position.set(0, y + ry * 0.98, rz * 0.5);
-    fishG.add(bh);
+    mountSurface(torso, bh, new Vector3(0, y, rz * .5), new Vector3(0, 1, 0), .004);
   }
   // dorsal fin
   if (c.dorsal > 0) {
@@ -1774,7 +1707,7 @@ export function buildSerpent(ctx: Ctx): void {
   const spotCol = mats.skin.color.clone().multiplyScalar(0.55);
   const spot = stdMat(`#${spotCol.getHexString()}`, { roughness: 0.6 });
   body.segs.forEach((sg, i) => {
-    const ra = profile(i / n);
+    const ra = profile((i + .5) / n);
     if (ringed && i > 0) {
       const ring = torus(ra * 1.03, Math.max(0.008, ra * 0.16), i % 2 ? mats.belly : mats.skin, Math.PI * 2, 5, 14);
       ring.position.z = -segLen * 0.5;
@@ -1782,8 +1715,7 @@ export function buildSerpent(ctx: Ctx): void {
     }
     if (darkSpots && i > 1 && i % 2 === 0) {
       const dot = ball(1, spot, ra * 0.7, ra * 0.16, segLen * 0.5, 8);
-      dot.position.set(0, ra * 0.92, -segLen * 0.5);
-      sg.add(dot);
+      mountSurface(sg.children[0] as Mesh, dot, new Vector3(0, 0, -segLen * .5), new Vector3(0, 1, 0), .004);
     }
   });
 
@@ -1939,7 +1871,7 @@ export function buildSerpent(ctx: Ctx): void {
     // snakes: cobra, python, couatl, plain
     const viper = /viper|adder|\basp\b|rattlesnake|mamba/.test(name);
     const hs = kind === "python" ? 1.25 : 1;
-    head.add(ball(hr * hs, mats.skin, 0.95, 0.6, 1.35, 12));
+    head.add(makeHead(ctx, { r: hr * hs, style: "beast", family: "reptilian" }));
     if (viper) {
       for (const side of [1, -1]) {
         const cheek = ball(hr * 0.6, mats.skin, 0.9, 0.7, 0.9, 8);
@@ -1947,19 +1879,6 @@ export function buildSerpent(ctx: Ctx): void {
         head.add(cheek);
       }
     }
-    for (const side of [1, -1]) {
-      eyeAt(side, hr * 0.7 * hs, hr * 0.22, hr * 0.5, hr * 0.17);
-      const nostril = ball(hr * 0.05, mats.dark, 1, 1, 1, 5);
-      nostril.position.set(hr * 0.16 * side, hr * 0.2, hr * 1.5 * hs);
-      head.add(nostril);
-      const fang = cone(hr * 0.06, hr * 0.32, mats.white, 4);
-      fang.rotation.x = Math.PI - 0.15;
-      fang.position.set(hr * 0.2 * side, -hr * 0.34, hr * 0.85 * hs);
-      head.add(fang);
-    }
-    const mouth = box(hr * 1.2 * hs, hr * 0.04, hr * 1.9 * hs, mats.dark);
-    mouth.position.set(0, -hr * 0.2, hr * 0.5 * hs);
-    head.add(mouth);
     // forked tongue
     for (const side of [1, -1]) {
       const tg = cone(hr * 0.04, hr * 0.9, stdMat("#c42e46", { roughness: 0.5 }), 4);
@@ -1974,9 +1893,9 @@ export function buildSerpent(ctx: Ctx): void {
       hood.position.set(0, -hr * 0.3, -hr * 0.9);
       head.add(hood);
       const mark = ball(hr * 0.7, mats.belly, 1, 1.3, 0.1, 8);
-      mark.position.set(0, -hr * 0.3, -hr * 0.9 - 0.02);
-      mark.rotation.y = Math.PI;
-      head.add(mark);
+      mark.rotation.x = -Math.PI / 2;
+      const patch = new Group(); patch.add(mark);
+      mountSurface(hood, patch, hood.position.clone(), new Vector3(0, 0, -1), .003);
     }
     if (kind === "couatl") {
       for (let i = 0; i < 4; i += 1) {

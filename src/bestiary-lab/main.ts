@@ -2,13 +2,13 @@
 // catalog, the generator, three.js) is inlined into one HTML file by
 // scripts/build-bestiary-3d.mjs, so it opens straight from disk.
 //
-// Each creature turns on a turntable: dragging rotates it around the
-// vertical axis only, the camera never tilts.
+// Damped hero-inspector orbit: the anatomy is the anchor, not equipment bounds.
 import {
   ACESFilmicToneMapping, AmbientLight, BufferGeometry, CanvasTexture, CircleGeometry, Color, DirectionalLight, Float32BufferAttribute,
   Fog, GridHelper, Group, HemisphereLight, LineBasicMaterial, LineLoop, Mesh, MeshBasicMaterial, MeshStandardMaterial,
-  PerspectiveCamera, Scene, SRGBColorSpace, WebGLRenderer, type Material,
+  PerspectiveCamera, Scene, SRGBColorSpace, Vector3, WebGLRenderer, type Material,
 } from "three";
+import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { buildCreature, deriveCreatureSpec, type CreatureInput, type CreatureModel, type CreatureSpec } from "../lib/bestiary3d";
 import "./bestiary.css";
 
@@ -61,7 +61,7 @@ class Viewer {
   readonly renderer: WebGLRenderer;
   readonly scene = new Scene();
   readonly camera = new PerspectiveCamera(30, 1, 0.05, 2000);
-  private readonly pivot = new Group();
+  private readonly controls: OrbitControls;
   private readonly fixed = new Group();
   private model: CreatureModel | null = null;
   private human: CreatureModel | null = null;
@@ -71,21 +71,15 @@ class Viewer {
   private readonly fog = new Fog(0x100e17, 10, 40);
   private readonly shadowTexture: CanvasTexture;
   private dist = 6;
-  private lookY = 1;
-  private lookX = 0;
-  private zoom = 1;
-  private yaw = 0;
-  private velocity = 0;
-  private dragging = false;
-  private lastX = 0;
-  private lastT = 0;
+  private readonly targetDelta = new Vector3();
   private time = 0;
   private last = performance.now();
   private size = { x: 1, y: 1, z: 1 };
   private footprintHalf = CELL / 2;
   private humanSpec: CreatureSpec;
   get modelHeight(): number { return this.size.y; }
-  autoRotate = false;
+  get autoRotate(): boolean { return this.controls.autoRotate; }
+  set autoRotate(on: boolean) { this.controls.autoRotate = on; }
   animate = !matchMedia("(prefers-reduced-motion: reduce)").matches;
   showHuman = false;
 
@@ -95,6 +89,17 @@ class Viewer {
     this.renderer.outputColorSpace = SRGBColorSpace;
     this.renderer.toneMapping = ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 1.05;
+    this.controls = new OrbitControls(this.camera, canvas);
+    this.controls.enableDamping = true;
+    this.controls.dampingFactor = 0.09;
+    this.controls.enablePan = false;
+    this.controls.rotateSpeed = 0.65;
+    this.controls.zoomSpeed = 0.8;
+    this.controls.minPolarAngle = Math.PI / 2 - 0.85;
+    this.controls.maxPolarAngle = Math.PI / 2 + 0.12;
+    this.controls.autoRotateSpeed = 1.5;
+    this.controls.addEventListener("start", () => canvas.classList.add("dragging"));
+    this.controls.addEventListener("end", () => canvas.classList.remove("dragging"));
 
     this.scene.fog = this.fog;
     this.scene.add(new HemisphereLight(0xdfe8ff, 0x3a3040, 1.55));
@@ -108,7 +113,7 @@ class Viewer {
 
     this.grid = new GridHelper(180, 120, 0x574f78, 0x2f2a45);
     (this.grid.material as Material).transparent = true;
-    this.scene.add(this.grid, this.fixed, this.pivot);
+    this.scene.add(this.grid, this.fixed);
 
     const c = document.createElement("canvas");
     c.width = c.height = 128;
@@ -122,40 +127,7 @@ class Viewer {
     this.shadowTexture = new CanvasTexture(c);
     this.humanSpec = deriveCreatureSpec({ slug: "ref-human", name: "Commoner", type: "humanoid", size: "medium" });
 
-    canvas.addEventListener("pointerdown", (e) => {
-      this.dragging = true;
-      this.lastX = e.clientX;
-      this.lastT = performance.now();
-      this.velocity = 0;
-      canvas.setPointerCapture(e.pointerId);
-      canvas.classList.add("dragging");
-    });
-    canvas.addEventListener("pointermove", (e) => {
-      if (!this.dragging) return;
-      const now = performance.now();
-      const dx = e.clientX - this.lastX;
-      // Only the horizontal drag matters: the model turns around its vertical axis.
-      this.yaw += dx * 0.012;
-      const dt = Math.max(1, now - this.lastT) / 1000;
-      this.velocity = this.velocity * 0.5 + ((dx * 0.012) / dt) * 0.5;
-      this.lastX = e.clientX;
-      this.lastT = now;
-    });
-    const end = (e: PointerEvent) => {
-      if (!this.dragging) return;
-      this.dragging = false;
-      if (performance.now() - this.lastT > 90) this.velocity = 0;
-      canvas.classList.remove("dragging");
-      if (canvas.hasPointerCapture(e.pointerId)) canvas.releasePointerCapture(e.pointerId);
-    };
-    canvas.addEventListener("pointerup", end);
-    canvas.addEventListener("pointercancel", end);
-    canvas.addEventListener("dblclick", () => { this.yaw = 0; this.velocity = 0; this.zoom = 1; this.place(); });
-    canvas.addEventListener("wheel", (e) => {
-      e.preventDefault();
-      this.zoom = Math.min(1.7, Math.max(0.55, this.zoom * Math.exp(e.deltaY * 0.001)));
-      this.place();
-    }, { passive: false });
+    canvas.addEventListener("dblclick", () => this.controls.reset());
 
     new ResizeObserver(() => this.resize()).observe(canvas.parentElement!);
     this.resize();
@@ -176,7 +148,7 @@ class Viewer {
   }
 
   private clearModel(): void {
-    if (this.model) { this.pivot.remove(this.model.root); this.model.dispose(); this.model = null; }
+    if (this.model) { this.scene.remove(this.model.root); this.model.dispose(); this.model = null; }
     if (this.footprint) { this.fixed.remove(this.footprint); this.footprint.geometry.dispose(); (this.footprint.material as Material).dispose(); this.footprint = null; }
     if (this.shadow) { this.fixed.remove(this.shadow); this.shadow.geometry.dispose(); (this.shadow.material as Material).dispose(); this.shadow = null; }
   }
@@ -184,7 +156,7 @@ class Viewer {
   setCreature(spec: CreatureSpec): void {
     this.clearModel();
     this.model = buildCreature(spec);
-    this.pivot.add(this.model.root);
+    this.scene.add(this.model.root);
     this.size = { x: this.model.size.x, y: this.model.size.y, z: this.model.size.z };
 
     const half = (spec.footprintCells * CELL) / 2;
@@ -251,18 +223,27 @@ class Viewer {
     // Fit the bounding sphere in the vertical field and, on wide stages, keep it inside the horizontal one too.
     const distV = framed / Math.sin(fov / 2);
     const distH = framed / Math.sin(Math.atan(Math.tan(fov / 2) * this.camera.aspect));
-    this.dist = Math.max(distV, distH) * 1.06 * this.zoom;
-    this.lookY = h * 0.46;
-    this.lookX = this.human ? -humanReach / 2 + 0.2 : 0;
+    this.dist = Math.max(distV, distH) * 1.06;
+    const target = this.model?.focus ?? new Vector3(0, h * 0.46, 0);
+    this.controls.target.copy(target);
+    this.controls.minDistance = Math.max(h * 0.18, this.dist * 0.12);
+    this.controls.maxDistance = this.dist * 2;
     // The camera sits a little to the side so the battle grid reads as a floor, not as scan lines.
     const elev = 0.3;
-    const az = 0.6;
+    const az = 0.35;
     this.camera.position.set(
-      this.lookX + Math.sin(az) * Math.cos(elev) * this.dist,
-      this.lookY + Math.sin(elev) * this.dist,
-      Math.cos(az) * Math.cos(elev) * this.dist,
+      target.x + Math.sin(az) * Math.cos(elev) * this.dist,
+      target.y + Math.sin(elev) * this.dist,
+      target.z + Math.cos(az) * Math.cos(elev) * this.dist,
     );
-    this.camera.lookAt(this.lookX, this.lookY, 0);
+    // Put the head in the upper portrait, while zoom and orbit stay head-centred.
+    // Equipment can widen the frame without shifting the anatomical target.
+    const width = this.canvas.clientWidth, height = this.canvas.clientHeight;
+    const offsetY = (target.y - h * 0.46) * Math.cos(elev) / (2 * this.dist * Math.tan(fov / 2));
+    const offsetX = this.human ? -humanReach / (4 * this.dist * Math.tan(fov / 2) * this.camera.aspect) : 0;
+    this.camera.setViewOffset(width, height, width * offsetX, height * offsetY, width, height);
+    this.controls.update();
+    this.controls.saveState();
     this.fog.near = this.dist * 1.1;
     this.fog.far = this.dist * 2.6;
   }
@@ -271,13 +252,13 @@ class Viewer {
     const dt = Math.min(0.1, (now - this.last) / 1000);
     this.last = now;
     if (this.animate) this.time += dt;
-    if (!this.dragging) {
-      this.yaw += (this.velocity + (this.autoRotate ? 0.55 : 0)) * dt;
-      this.velocity *= Math.exp(-dt * 3.2);
-      if (Math.abs(this.velocity) < 0.003) this.velocity = 0;
-    }
-    this.pivot.rotation.y = this.yaw;
     this.model?.update(this.time);
+    if (this.model) {
+      this.targetDelta.copy(this.model.focus).sub(this.controls.target);
+      this.camera.position.add(this.targetDelta);
+      this.controls.target.copy(this.model.focus);
+    }
+    this.controls.update(dt);
     this.human?.update(this.time);
     this.renderer.render(this.scene, this.camera);
     requestAnimationFrame(this.frame);
@@ -330,7 +311,7 @@ app.innerHTML = `
         <canvas id="stage" aria-label="3D-модель существа"></canvas>
         <button class="nav prev" id="prev" type="button" aria-label="Предыдущая страница">‹</button>
         <button class="nav next" id="next" type="button" aria-label="Следующая страница">›</button>
-        <div class="stage-hint" id="hint">Тяните мышью: поворот вокруг вертикальной оси · колесо: приближение · двойной клик: сброс</div>
+        <div class="stage-hint" id="hint">Тяните: поворот и наклон · колесо / щипок: приближение · двойной клик: сброс</div>
       </div>
       <section class="plate" id="plate"></section>
     </div>
@@ -523,3 +504,5 @@ $("stage").addEventListener("pointerdown", () => $("hint").classList.add("gone")
 
 // Start on the page named in the URL hash, else the first creature.
 applyFilters(decodeURIComponent(location.hash.slice(1)));
+// Following another creature link in the same open HTML does not reload it.
+window.addEventListener("hashchange", () => applyFilters(decodeURIComponent(location.hash.slice(1))));

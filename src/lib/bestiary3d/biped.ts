@@ -5,7 +5,7 @@
 
 import { Group, Mesh, MeshStandardMaterial, SphereGeometry, Vector3 } from "three";
 import {
-  addPair, ball, box, chain, cone, aim, cyl, limb, makeHead, makeWings, spike, tick, torus, wave,
+  addPair, ball, box, chain, cone, aim, cyl, loft, makeHead, makeWings, mountSurface, spike, tendon, tick, torus, wave,
   type Ctx,
 } from "./parts";
 
@@ -62,7 +62,7 @@ export function buildBiped(ctx: Ctx, opts: { lowerOnly?: boolean; noLegs?: boole
         const hip = new Vector3(0, hipY, 0);
         const knee = new Vector3(0.01 * side, hipY * 0.5, flex);
         const foot = new Vector3(0.02 * side, 0.05, 0.0);
-        g.add(limb(hip, knee, foot, r0, r0 * 0.75, r0 * 0.62, legMat, t.skeletal ? 5 : 8));
+        g.add(tendon([hip, knee, foot], [r0, r0 * .75, r0 * .62], legMat, 18, t.skeletal ? 6 : 10));
         if (t.hooves) {
           const hoof = cyl(r0 * 0.8, r0 * 0.95, 0.07, mats.dark, 6);
           hoof.position.set(foot.x, 0.035, foot.z + 0.01);
@@ -73,10 +73,8 @@ export function buildBiped(ctx: Ctx, opts: { lowerOnly?: boolean; noLegs?: boole
           g.add(boot);
           if (!dressed && !t.skeletal && !t.armor) {
             for (const i of [-1, 0, 1]) {
-              const claw = cone(0.012, 0.045, mats.accent, 4);
-              claw.rotation.x = Math.PI / 2;
-              claw.position.set(foot.x + i * 0.028, 0.035, foot.z + 0.18);
-              g.add(claw);
+              const claw = spike(.045, .012, -.15, mats.accent, 2, 5);
+              mountSurface(boot, claw, new Vector3(foot.x + i * .028, .045, foot.z + .15), new Vector3(0, 0, 1), .008);
             }
           }
         }
@@ -119,29 +117,33 @@ export function buildBiped(ctx: Ctx, opts: { lowerOnly?: boolean; noLegs?: boole
     pelv.position.y = 0.02;
     upper.add(pelv);
   } else {
-    const chest = ball(1, torsoMat, 0.2 * S.w * (t.armor ? 1.08 : 1), S.torso * 0.5, 0.125 * S.thick * (t.armor ? 1.1 : 1), 14);
-    chest.position.y = S.torso * 0.55;
+    const w = S.w * (t.armor ? 1.08 : 1), d = S.thick * (t.armor ? 1.1 : 1);
+    const chest = loft([
+      [0, .145 * w, .10 * d], [S.torso * .16, .15 * w, .105 * d],
+      [S.torso * .32, .16 * w * (bulk > 1.1 ? 1.1 : 1), .115 * d],
+      [S.torso * .62, .205 * w, .13 * d], [S.torso * .85, .225 * w, .12 * d],
+      [S.torso * .96, .16 * w, .10 * d], [S.torso + .025, .052 * S.thick, .055 * S.thick],
+    ], torsoMat, 24);
+    chest.name = "torso-skin";
     upper.add(chest);
-    const waist = ball(1, torsoMat, 0.155 * S.w, S.torso * 0.28, 0.105 * S.thick, 12);
-    waist.position.y = S.torso * 0.2;
-    upper.add(waist);
-    if (bulk > 1.1 || t.stance === "stout") {
-      const belly = ball(0.15 * S.thick, torsoMat, 1.15, 1.0, 0.95, 10);
-      belly.position.set(0, S.torso * 0.28, 0.08);
-      upper.add(belly);
-    }
     if (t.robe) {
       const sash = torus(0.16 * S.w, 0.02, mats.accent, Math.PI * 2, 6, 14);
       sash.rotation.x = Math.PI / 2;
+      sash.scale.y = .11 * d / (.16 * S.w);
       sash.position.y = S.torso * 0.28;
       upper.add(sash);
     }
     if (t.bandages) {
       for (let i = 0; i < 5; i += 1) {
-        const wrap = torus(0.16 * S.w * (1 - Math.abs(i - 2) * 0.05), 0.014, mats.accent, Math.PI * 2, 5, 14);
-        wrap.rotation.x = Math.PI / 2 + 0.2 * (i % 2 ? 1 : -1);
-        wrap.position.y = S.torso * (0.15 + i * 0.16);
-        upper.add(wrap);
+        const points: Vector3[] = [];
+        for (let j = 0; j <= 20; j++) {
+          const a = j / 20 * Math.PI * 2;
+          const detail = new Group();
+          mountSurface(chest, detail, new Vector3(0, S.torso * (.15 + i * .16) + Math.sin(a) * .012, 0), new Vector3(Math.cos(a), 0, Math.sin(a)), .003);
+          points.push(detail.position.clone());
+          chest.remove(detail);
+        }
+        chest.add(tendon(points, points.map(() => .012), mats.accent, 40, 6));
       }
     }
   }
@@ -158,11 +160,11 @@ export function buildBiped(ctx: Ctx, opts: { lowerOnly?: boolean; noLegs?: boole
     upper.add(shell);
   }
   if (t.spikes) {
+    const skin = upper.getObjectByName("torso-skin") as Mesh | undefined;
     for (let i = 0; i < 5; i += 1) {
       const s = spike(0.09 - i * 0.008, 0.02, -0.3, mats.accent, 2, 5);
-      s.rotation.x = -0.9;
-      s.position.set(0, S.torso * (0.9 - i * 0.16), -0.1);
-      upper.add(s);
+      s.name = "back-spike";
+      if (skin) mountSurface(skin, s, new Vector3(0, S.torso * (.90 - i * .16), 0), new Vector3(0, 0, -1), .008);
     }
   }
   if (t.cape) {
@@ -189,6 +191,8 @@ export function buildBiped(ctx: Ctx, opts: { lowerOnly?: boolean; noLegs?: boole
   upper.add(neck);
 
   const headGroup = new Group();
+  headGroup.name = "head-focus";
+  ctx.focus = headGroup;
   const forward = (t.stance === "hunched" ? 0.05 : t.stance === "brute" ? 0.03 : 0) + 0.03;
   headGroup.position.set(0, S.torso + 0.06 + S.head, forward);
   const counterLean = -S.lean * 0.55;
@@ -335,10 +339,11 @@ export function buildBiped(ctx: Ctx, opts: { lowerOnly?: boolean; noLegs?: boole
       const L = S.arm * scale;
       const r0 = 0.052 * S.thick * scale;
       const bendZ = t.robe ? 0.02 : 0.0;
-      const elbow = new Vector3(0.03 * side, -L * 0.5, 0.03 + bendZ);
-      const hand = new Vector3(0.03 * side, -L, 0.09);
+      const armed = pair === 0 && (side === 1 ? t.weapon !== "none" : t.shield);
+      const elbow = new Vector3((armed ? .08 : .03) * side, -L * .5, (armed ? .16 : .03) + bendZ);
+      const hand = new Vector3((armed ? .06 : .03) * side, -L * (armed ? .83 : 1), armed ? .34 : .09);
       const sleeve = t.robe ? mats.cloth : armMat;
-      const arm = limb(new Vector3(0, 0, 0), elbow, hand, r0 * (t.robe ? 1.5 : 1), r0 * 0.85 * (t.robe ? 1.9 : 1), r0 * 0.7 * (t.robe ? 1.4 : 1), sleeve, t.skeletal ? 5 : 8);
+      const arm = tendon([new Vector3(), elbow, hand], [r0 * (t.robe ? 1.5 : 1), r0 * .85 * (t.robe ? 1.9 : 1), r0 * .7 * (t.robe ? 1.4 : 1)], sleeve, 18, t.skeletal ? 6 : 10);
       shoulder.add(arm);
       const fist = ball(r0 * (t.skeletal ? 0.9 : 1.25), handMat, 1, 1, 1, 8);
       fist.position.copy(hand);
@@ -373,7 +378,7 @@ export function buildBiped(ctx: Ctx, opts: { lowerOnly?: boolean; noLegs?: boole
     const w = makeWeapon(ctx, t.weapon, gold);
     w.position.copy(holdPoint(holdR));
     w.position.y += 0.02;
-    w.rotation.x = t.zombie ? 0.2 : -0.5;
+    w.rotation.x = .18;
     holdR.add(w);
   }
   if (holdL && t.shield) {
@@ -384,8 +389,10 @@ export function buildBiped(ctx: Ctx, opts: { lowerOnly?: boolean; noLegs?: boole
     boss.rotation.x = -Math.PI / 2;
     const rim = torus(0.265, 0.02, mats.metal, Math.PI * 2, 5, 18);
     const s = new Group();
-    s.add(shield, rim, boss);
-    s.position.copy(holdPoint(holdL)).add(new Vector3(-0.03, 0.03, 0.1));
+    const handle = box(.035, .12, .06, mats.dark);
+    handle.position.z = -.03;
+    s.add(shield, rim, boss, handle);
+    s.position.copy(holdPoint(holdL)).add(new Vector3(-0.03, 0.03, 0.065));
     holdL.add(s);
   }
 
@@ -405,6 +412,7 @@ export function buildBiped(ctx: Ctx, opts: { lowerOnly?: boolean; noLegs?: boole
 function makeWeapon(ctx: Ctx, kind: string, gold: MeshStandardMaterial): Group {
   const mats = { ...ctx.mats, cloth: new MeshStandardMaterial({ color: "#6b4a2b", roughness: 0.9 }) };
   const g = new Group();
+  g.name = kind;
   switch (kind) {
     case "sword": {
       const blade = box(0.055, 0.85, 0.014, mats.metal);
@@ -470,10 +478,9 @@ function makeWeapon(ctx: Ctx, kind: string, gold: MeshStandardMaterial): Group {
     case "bow": {
       const arc = torus(0.42, 0.014, mats.cloth, Math.PI, 5, 20);
       arc.rotation.z = -Math.PI / 2;
-      arc.position.y = 0.05;
+      arc.position.set(-.42, .05, 0);
       const string = cyl(0.004, 0.004, 0.84, mats.white, 3);
-      string.position.set(-0.0, 0.05, 0);
-      string.position.x = 0.0;
+      string.position.set(-.42, .05, 0);
       g.add(arc, string);
       g.rotation.y = Math.PI / 2;
       break;

@@ -8,8 +8,10 @@
 
 import {
   BufferGeometry,
+  CatmullRomCurve3,
   CapsuleGeometry,
   ConeGeometry,
+  Color,
   CylinderGeometry,
   DoubleSide,
   Float32BufferAttribute,
@@ -18,6 +20,7 @@ import {
   MeshBasicMaterial,
   MeshStandardMaterial,
   OctahedronGeometry,
+  Raycaster,
   SphereGeometry,
   TorusGeometry,
   Vector3,
@@ -26,7 +29,7 @@ import {
   type Object3D,
 } from "three";
 import type { Rng } from "./rng";
-import { between, chance, pick } from "./rng";
+import { between, chance, makeRng, pick } from "./rng";
 import type { CreatureSpec, Traits } from "./spec";
 
 export type Tick = (t: number) => void;
@@ -52,6 +55,8 @@ export interface Ctx {
   ticks: Tick[];
   // Random phase so two creatures on one page never breathe in lockstep.
   phase: number;
+  // Authored anatomical anchor, not the bounds of a weapon, wing or aura.
+  focus?: Object3D;
 }
 
 const FLAT_LOOKS = new Set(["scale", "stone", "crystal", "metal", "chitin", "bark", "ice"]);
@@ -85,9 +90,12 @@ export function makeMaterials(spec: CreatureSpec): Mats {
   })();
 
   const glowingEyes = spec.traits.glowEyes || look === "ghost" || look === "flame";
+  const skin = std(palette.skin, lookProps), belly = std(palette.belly, lookProps);
+  skin.name = "anatomy-skin";
+  belly.name = "anatomy-belly";
   return {
-    skin: std(palette.skin, lookProps),
-    belly: std(palette.belly, lookProps),
+    skin,
+    belly,
     cloth: new MeshStandardMaterial({ color: palette.cloth, roughness: 0.95, side: DoubleSide }),
     accent: std(palette.accent, { roughness: 0.55, metalness: look === "metal" ? 0.6 : 0.05 }),
     metal: new MeshStandardMaterial({ color: "#9aa0a8", roughness: 0.35, metalness: 0.85, flatShading: true }),
@@ -142,6 +150,92 @@ export function torus(radius: number, tube: number, mat: Material, arc = Math.PI
 
 export function shard(r: number, mat: Material): Mesh {
   return new Mesh(new OctahedronGeometry(r, 0), mat);
+}
+
+export type Ring = [y: number, width: number, depth: number, z?: number, x?: number];
+
+// Continuous anatomical surfaces shared by authored and procedural models.
+export function loft(rings: Ring[], mat: Material, sides = 32): Mesh {
+  const positions: number[] = [], indices: number[] = [];
+  for (const [y, rx, rz, z = 0, x = 0] of rings) for (let j = 0; j < sides; j++) {
+    const a = j / sides * Math.PI * 2;
+    positions.push(x + Math.cos(a) * rx, y, z + Math.sin(a) * rz);
+  }
+  for (let i = 0; i < rings.length - 1; i++) for (let j = 0; j < sides; j++) {
+    const a = i * sides + j, b = i * sides + (j + 1) % sides;
+    indices.push(a, a + sides, b, b, a + sides, b + sides);
+  }
+  for (let j = 1; j < sides - 1; j++) {
+    indices.push(0, j, j + 1);
+    const top = (rings.length - 1) * sides;
+    indices.push(top, top + j + 1, top + j);
+  }
+  const geo = new BufferGeometry();
+  geo.setAttribute("position", new Float32BufferAttribute(positions, 3));
+  geo.setIndex(indices);
+  geo.computeVertexNormals();
+  return new Mesh(geo, mat);
+}
+
+export function tendon(points: Vector3[], radii: number[], mat: Material, steps = 24, sides = 10): Mesh {
+  const curve = new CatmullRomCurve3(points);
+  const frames = curve.computeFrenetFrames(steps, false);
+  const positions: number[] = [], indices: number[] = [];
+  for (let i = 0; i <= steps; i++) {
+    const u = i / steps, center = curve.getPointAt(u);
+    const k = u * (radii.length - 1), n = Math.min(radii.length - 2, Math.floor(k));
+    const r = radii[n]! + (radii[n + 1]! - radii[n]!) * (k - n);
+    for (let j = 0; j < sides; j++) {
+      const a = j / sides * Math.PI * 2;
+      const p = center.clone().addScaledVector(frames.normals[i]!, Math.cos(a) * r)
+        .addScaledVector(frames.binormals[i]!, Math.sin(a) * r);
+      positions.push(p.x, p.y, p.z);
+    }
+  }
+  for (let i = 0; i < steps; i++) for (let j = 0; j < sides; j++) {
+    const a = i * sides + j, b = i * sides + (j + 1) % sides;
+    indices.push(a, b, a + sides, b, b + sides, a + sides);
+  }
+  const geo = new BufferGeometry();
+  geo.setAttribute("position", new Float32BufferAttribute(positions, 3));
+  geo.setIndex(indices);
+  geo.computeVertexNormals();
+  return new Mesh(geo, mat);
+}
+
+const surfaceMaterial = new MeshBasicMaterial({ side: DoubleSide });
+
+// `near` and `out` are in the skin's parent frame. Embed the detail's base in
+// the actual mesh, then parent it to the skin so breathing cannot detach it.
+export function mountSurface(skin: Mesh, detail: Object3D, near: Vector3, out: Vector3, inset = 0.002): void {
+  skin.updateMatrix();
+  skin.geometry.computeBoundingSphere();
+  const radius = skin.geometry.boundingSphere!.radius * Math.max(...skin.scale.toArray().map(Math.abs));
+  const probe = new Mesh(skin.geometry, surfaceMaterial);
+  probe.matrixAutoUpdate = false;
+  probe.matrix.copy(skin.matrix);
+  probe.updateMatrixWorld(true);
+  const normal = out.clone().normalize();
+  const ray = new Raycaster(near.clone().addScaledVector(normal, radius * 2), normal.clone().negate());
+  const hit = ray.intersectObject(probe, false)[0];
+  if (!hit) throw new Error(`No skin beneath ${detail.name || "surface detail"}`);
+  detail.position.copy(hit.point).addScaledVector(normal, -inset);
+  detail.quaternion.setFromUnitVectors(UP, normal);
+  detail.applyMatrix4(skin.matrix.clone().invert());
+  skin.add(detail);
+}
+
+export function surfaceTendon(skin: Mesh, points: Vector3[], radii: number[], mat: Material, out = new Vector3(0, 0, 1), steps = 24): Mesh {
+  const projected = points.map((point, i) => {
+    const anchor = new Group();
+    mountSurface(skin, anchor, point, out, Math.min(.01, radii[i]! * .45));
+    const local = anchor.position.clone();
+    skin.remove(anchor);
+    return local;
+  });
+  const fold = tendon(projected, radii, mat, steps, 8);
+  skin.add(fold);
+  return fold;
 }
 
 // A tapered cylinder from point a (radius r0) to point b (radius r1).
@@ -273,15 +367,7 @@ export function makeHorns(kind: Traits["horns"], r: number, mats: Mats): Group {
     }
     case "bull": {
       addPair(g, (side) => {
-        const outer = new Group();
-        const a = spike(r * 1.0, r * 0.3, 0, mat, 2);
-        a.rotation.z = -1.35 * side;
-        outer.add(a);
-        const b = spike(r * 1.3, r * 0.25, 0.9, mat, 3);
-        b.position.set(-side * r * 0.95, r * 0.22, 0);
-        b.rotation.z = -0.3 * side;
-        outer.add(b);
-        return outer;
+        return tendon([new Vector3(), new Vector3(side * r * .72, r * .16, 0), new Vector3(side * r * 1.18, r * .63, -r * .05), new Vector3(side * r * 1.15, r * 1.24, -r * .12)], [r * .29, r * .25, r * .14, .0001], mat, 24, 8);
       }, r * 0.55, r * 0.55, r * 0.05);
       break;
     }
@@ -301,15 +387,11 @@ export function makeHorns(kind: Traits["horns"], r: number, mats: Mats): Group {
     case "antlers": {
       addPair(g, (side) => {
         const a = new Group();
-        const beam = spike(r * 1.6, r * 0.14, -0.9, mat, 4);
-        beam.rotation.z = -0.25 * side;
-        beam.rotation.x = -0.3;
-        a.add(beam);
+        const points = [new Vector3(), new Vector3(side * r * .17, r * .55, -r * .06), new Vector3(side * r * .30, r * 1.05, -r * .24), new Vector3(side * r * .35, r * 1.60, -r * .50)];
+        a.add(tendon(points, [r * .14, r * .12, r * .075, .0001], mat, 22, 7));
         for (let i = 0; i < 3; i += 1) {
-          const tine = spike(r * (0.55 - i * 0.08), r * 0.09, 0.4, mat, 2);
-          tine.position.set(-side * r * 0.06, r * (0.45 + i * 0.32), -r * (0.06 + i * 0.16));
-          tine.rotation.z = -0.5 * side;
-          a.add(tine);
+          const start = new CatmullRomCurve3(points).getPoint(.25 + i * .22);
+          a.add(tendon([start, start.clone().add(new Vector3(-side * r * .22, r * .30, r * .10)), start.clone().add(new Vector3(-side * r * .26, r * .60, r * .14))], [r * .075, r * .05, .0001], mat, 12, 6));
         }
         return a;
       }, r * 0.35, r * 0.75, -r * 0.05);
@@ -329,193 +411,299 @@ export interface HeadOpts {
   style?: Traits["head"];
   snout?: number;
   bulk?: number;
+  family?: FaceFamily;
 }
 
-// Origin is the cranium centre; the face points along +Z.
+export type FaceFamily =
+  | "human" | "elven" | "dwarven" | "goblin" | "orc" | "brute" | "gaunt" | "fiend" | "primate"
+  | "canine" | "feline" | "rodent" | "ursine" | "porcine" | "bovine" | "caprine" | "equine" | "cervine" | "pachyderm"
+  | "reptilian" | "crocodilian" | "draconic" | "dinosaur" | "owl" | "raptor" | "corvid" | "waterfowl" | "wader" | "bird"
+  | "skull" | "frog" | "fish" | "insect" | "construct" | "wood";
+
+function faceFamily(ctx: Ctx, style: Traits["head"]): FaceFamily {
+  const n = ctx.spec.name.toLowerCase(), { t, spec } = ctx;
+  if (style === "skull" || style === "frog" || style === "fish" || style === "insect") return style;
+  if (style === "bird" || t.beak) {
+    if (/owl/.test(n)) return "owl";
+    if (/raven|crow|kenku|corvid/.test(n)) return "corvid";
+    if (/duck|goose|geese|swan|pelican/.test(n)) return "waterfowl";
+    if (/heron|stork|crane/.test(n)) return "wader";
+    return /eagle|hawk|falcon|griff|roc\b|vrock/.test(n) ? "raptor" : "bird";
+  }
+  if (style === "humanoid") {
+    if (spec.look === "metal" || spec.look === "stone" || spec.look === "crystal") return "construct";
+    if (spec.look === "bark") return "wood";
+    if (/hobgoblin|goblin|gremlin|boggle/.test(n)) return "goblin";
+    if (/\borc|ork\b|uruk/.test(n)) return "orc";
+    if (/hag|witch|crone|troll|ghoul|zombie|vampire|wight|revenant|mummy/.test(n) || t.zombie) return "gaunt";
+    if (/dwarf|duergar|derro|gnome/.test(n)) return "dwarven";
+    if (/\belf\b|elven|drow|gith|pixie|sprite|dryad/.test(n) || spec.type === "fey") return "elven";
+    return spec.type === "giant" || /ogre|ettin|cyclops/.test(n) ? "brute" : "human";
+  }
+  if (/gorilla|baboon|monkey|chimp|orangutan|\bape\b|yeti|sasquatch|bigfoot|bugbear/.test(n)) return "primate";
+  if (/rakshasa|tabaxi|leonin|lion|tiger|panther|leopard|\bcat|cheetah|lynx|jaguar|cougar|puma|smilodon|displacer/.test(n)) return "feline";
+  if (/rat|mouse|mice|squirrel|beaver|rabbit|hare|hamster|rodent|mole|shrew/.test(n)) return "rodent";
+  if (/boar|hog|pig|swine|peccary|nalfeshnee/.test(n)) return "porcine";
+  if (/bear|panda|grolar/.test(n)) return "ursine";
+  if (/minotaur|bull|\box\b|bison|buffalo|yak|gorgon|aurochs|cow/.test(n)) return "bovine";
+  if (/goat|\bram\b|sheep|ibex|satyr|faun|krampus/.test(n)) return "caprine";
+  if (/elk|deer|stag|moose|antelope|gazelle|peryton|giraffe/.test(n)) return "cervine";
+  if (/horse|pony|mule|donkey|zebra|camel|llama|steed|pegasus|unicorn|ki-rin|buraq|nightmare/.test(n)) return "equine";
+  if (t.trunk || /rhino|hippo/.test(n)) return "pachyderm";
+  if (/crocodile|alligator|caiman|gator/.test(n)) return "crocodilian";
+  if (spec.plan === "dragon" || /dragonborn|drakkin|hydra/.test(n)) return "draconic";
+  if (spec.plan === "theropod" || /saurus|saur\b|tarrasque/.test(n)) return "dinosaur";
+  if (spec.look === "scale" || /kobold|lizard|basilisk|snake|serpent/.test(n)) return "reptilian";
+  if (/wolf|worg|warg|dog|hound|fox|jackal|hyena|gnoll|coyote|cerberus|orthrus|arcanaloth/.test(n)) return "canine";
+  if (/succubus|incubus|erinyes|cambion/.test(n)) return "human";
+  if (spec.type === "fiend") return "fiend";
+  return t.snout >= .6 ? "canine" : t.bulk >= 1.2 ? "ursine" : "reptilian";
+}
+
+// Width/height/depth, muzzle width/height/reach. No universal dog muzzle.
+const MUZZLES: Partial<Record<FaceFamily, [number, number, number, number, number, number]>> = {
+  canine: [ .80, .94, .95, .36, .28, 2.05 ], feline: [ 1.06, .86, .88, .56, .28, 1.02 ],
+  rodent: [ .70, .81, .88, .25, .22, 1.58 ], ursine: [ 1.10, 1.02, 1.02, .56, .39, 1.42 ],
+  porcine: [ .94, .83, 1.02, .45, .40, 1.82 ], bovine: [ .99, 1.05, 1.00, .66, .43, 1.50 ],
+  caprine: [ .69, 1.07, .82, .31, .36, 1.42 ], equine: [ .72, 1.24, .90, .47, .47, 2.18 ],
+  cervine: [ .62, 1.03, .79, .28, .30, 1.66 ], pachyderm: [ 1.22, 1.03, 1.04, .77, .52, 1.42 ],
+  reptilian: [ .92, .65, 1.01, .58, .23, 1.70 ], crocodilian: [ .98, .58, .93, .68, .22, 3.15 ],
+  draconic: [ .98, .92, 1.08, .58, .35, 1.95 ], dinosaur: [ .87, 1.08, 1.03, .66, .48, 2.22 ],
+};
+
+// Origin remains at the cranium; the inner face is authored at unit radius.
+// Callers can still add hair/frills in their original coordinate frame.
 export function makeHead(ctx: Ctx, opts: HeadOpts): Group {
   const { mats, t } = ctx;
-  const { r } = opts;
-  const style = opts.style ?? t.head;
-  const snout = opts.snout ?? t.snout;
-  const g = new Group();
-  const eyeMat = mats.eye;
-  const eyeR = r * (style === "insect" ? 0.3 : style === "frog" ? 0.3 : 0.16);
-  const eye = () => ball(eyeR, eyeMat, 1, 1, 0.8, 8);
+  const family = opts.family ?? faceFamily(ctx, opts.style ?? t.head);
+  const rng = makeRng((ctx.spec.seed ^ 0xfaceb00c) >>> 0);
+  const g = new Group(), face = new Group();
+  face.name = `face-${family}`;
+  face.scale.setScalar(opts.r);
+  g.add(face);
+  const v = (x: number, y: number, z: number) => new Vector3(x, y, z);
+  const add = (o: Object3D, x = 0, y = 0, z = 0) => { face.add(place(o, x, y, z)); return o; };
+  const proportions = MUZZLES[family];
+  const human = ["human", "elven", "dwarven", "goblin", "orc", "brute", "gaunt", "fiend", "primate", "construct", "wood", "skull"].includes(family);
+  let width = (proportions?.[0] ?? .85) * between(rng, .94, 1.06);
+  let height = (proportions?.[1] ?? 1.08) * between(rng, .95, 1.05);
+  let depth = proportions?.[2] ?? .84;
+  let jaw = .68, noseLength = .23, eyeSize = .16;
+  if (family === "human") {
+    const portrait = pick(rng, [[.80, 1.12, .55, .20, .14], [1.06, .96, .85, .30, .18], [.94, 1.05, .68, .24, .16], [.85, 1.20, .50, .33, .15], [1.09, .91, .88, .22, .15]] as const);
+    width *= portrait[0]; height *= portrait[1]; jaw = portrait[2]; noseLength = portrait[3]; eyeSize = portrait[4];
+  }
+  if (family === "goblin") { width *= 1.12; height *= .88; jaw = .48; noseLength = .42; eyeSize = .22; }
+  if (family === "orc" || family === "brute" || family === "primate") { width *= 1.18; height *= .94; jaw = .94; noseLength = .31; }
+  if (family === "elven" || family === "gaunt") { width *= .86; height *= 1.10; jaw = .44; noseLength = .30; eyeSize = .13; }
+  if (family === "dwarven") { width *= 1.13; height *= .92; jaw = .90; noseLength = .34; }
+  if (family === "frog") { width = 1.32; height = .59; depth = 1.05; eyeSize = .29; }
+  if (family === "insect") { width = .83; height = .82; depth = .86; eyeSize = .34; }
+  if (family === "fish") { width = .86; height = .91; depth = 1.26; eyeSize = .21; }
+  if (family === "owl") { width = 1.16; height = 1.08; depth = .88; eyeSize = .29; }
+  if (family === "raptor") { width = .80; height = .93; depth = 1.08; }
+  if (family === "corvid") { width = .75; height = .85; depth = 1.12; }
+  if (family === "waterfowl") { width = .72; height = .82; depth = 1.05; }
+  if (family === "wader") { width = .60; height = .74; depth = 1.11; }
+  const skull = loft([
+    [-height * .94, width * jaw * .60, depth * .48, .12],
+    [-height * .68, width * jaw, depth * .72, .10],
+    [-height * .25, width * .94, depth * .88, .03],
+    [height * .24, width, depth], [height * .65, width * .84, depth * .90, -.06],
+    [height * .92, width * .46, depth * .53, -.08], [height, .01, .01, -.08],
+  ], mats.skin, ctx.spec.look === "metal" ? 12 : 28);
+  skull.name = "cranium";
+  add(skull);
 
-  switch (style) {
-    case "skull": {
-      const cranium = ball(r, mats.skin, 0.92, 1.02, 1.05);
-      g.add(cranium);
-      const jaw = box(r * 0.95, r * 0.34, r * 0.8, mats.skin);
-      jaw.position.set(0, -r * 0.72, r * 0.3);
-      g.add(jaw);
-      addPair(g, () => {
-        const socket = ball(r * 0.25, mats.dark, 1, 1.15, 0.7, 8);
-        const lamp = ball(r * 0.11, mats.eye, 1, 1, 0.6, 6);
-        lamp.position.z = r * 0.06;
-        const grp = new Group();
-        grp.add(socket, lamp);
-        return grp;
-      }, r * 0.36, r * 0.1, r * 0.84);
-      const nose = cone(r * 0.12, r * 0.22, mats.dark, 3);
-      nose.position.set(0, -r * 0.22, r * 0.98);
-      nose.rotation.x = Math.PI;
-      g.add(nose);
-      const teeth = box(r * 0.8, r * 0.1, r * 0.06, mats.white);
-      teeth.position.set(0, -r * 0.5, r * 0.72);
-      g.add(teeth);
-      break;
+  // Socket, globe, iris, pupil and brow move as one surface-mounted feature.
+  const eye = (x: number, y: number, z: number, side: number, size = eyeSize) => {
+    const e = new Group();
+    e.name = "eye-socket";
+    e.add(place(ball(size * 1.18, family === "skull" ? mats.dark : mats.skin, 1.2, .38, .86, 12), 0, .025, 0));
+    e.add(place(ball(size, human && family !== "skull" ? mats.white : mats.eye, 1, .48, .75, 14), 0, .06, 0));
+    e.add(place(ball(size * .56, mats.eye, 1, .22, .92, 12), 0, .10, 0));
+    const slit = /reptilian|crocodilian|draconic|feline/.test(family);
+    e.add(place(ball(size * .30, mats.dark, slit ? .32 : .78, .18, 1, 10), 0, .122, 0));
+    if (family !== "insect" && family !== "frog") {
+      const brow = place(ball(size, mats.skin, 1.45, .38, .31, 12), 0, .06, -size * .83);
+      brow.rotation.y = side * (family === "gaunt" || family === "orc" ? .28 : .10);
+      e.add(brow);
     }
-    case "frog": {
-      g.add(ball(r, mats.skin, 1.35, 0.7, 1.1));
-      const mouth = box(r * 2.2, r * 0.06, r * 0.5, mats.dark);
-      mouth.position.set(0, -r * 0.18, r * 0.62);
-      g.add(mouth);
-      addPair(g, () => {
-        const eye = ball(r * 0.34, mats.skin, 1, 1, 1, 10);
-        const pupil = ball(r * 0.18, eyeMat, 1, 1, 0.6, 8);
-        pupil.position.set(0, 0, r * 0.26);
-        const grp = new Group();
-        grp.add(eye, pupil);
-        return grp;
-      }, r * 0.62, r * 0.55, r * 0.15);
-      break;
-    }
-    case "bird": {
-      g.add(ball(r, mats.skin, 0.85, 0.95, 1));
-      const upper = cone(r * 0.32, r * 1.0, mats.accent, 6);
-      upper.rotation.x = Math.PI / 2 + 0.12;
-      upper.position.set(0, -r * 0.02, r * 1.28);
-      const lower = cone(r * 0.24, r * 0.75, mats.accent, 6);
-      lower.rotation.x = Math.PI / 2 - 0.05;
-      lower.position.set(0, -r * 0.22, r * 1.15);
-      g.add(upper, lower);
-      addPair(g, eye, r * 0.62, r * 0.2, r * 0.5);
-      break;
-    }
-    case "insect": {
-      g.add(ball(r, mats.skin, 0.9, 0.85, 0.95, 10));
-      addPair(g, () => ball(eyeR, eyeMat, 1, 1.15, 0.9, 8), r * 0.6, r * 0.2, r * 0.45);
-      addPair(g, (side) => {
-        const m = spike(r * 0.7, r * 0.12, 1.6, mats.accent, 3);
-        m.rotation.x = Math.PI / 2;
-        m.rotation.z = side * 0.4;
-        return m;
-      }, r * 0.22, -r * 0.4, r * 0.7);
-      addPair(g, (side) => {
-        const a = spike(r * 1.3, r * 0.05, 0.8, mats.accent, 3);
-        a.rotation.x = -0.4;
-        a.rotation.z = -0.35 * side;
-        return a;
-      }, r * 0.3, r * 0.6, r * 0.5);
-      break;
-    }
-    case "fish": {
-      g.add(ball(r, mats.skin, 0.85, 0.8, 1.35));
-      const mouth = box(r * 1.1, r * 0.08, r * 0.8, mats.dark);
-      mouth.position.set(0, -r * 0.22, r * 0.95);
-      g.add(mouth);
-      addPair(g, eye, r * 0.62, r * 0.25, r * 0.8);
-      const crest = cone(r * 0.25, r * 0.9, mats.belly, 4);
-      crest.rotation.x = -0.4;
-      crest.position.set(0, r * 0.95, -r * 0.1);
-      g.add(crest);
-      break;
-    }
-    case "humanoid": {
-      g.add(ball(r, mats.skin, 0.9, 1.05, 1));
-      const nose = box(r * 0.16, r * 0.26, r * 0.28, mats.skin);
-      nose.position.set(0, -r * 0.05, r * 0.96);
-      g.add(nose);
-      const brow = box(r * 1.15, r * 0.12, r * 0.3, mats.skin);
-      brow.position.set(0, r * 0.3, r * 0.82);
-      g.add(brow);
-      const mouth = box(r * 0.5, r * 0.06, r * 0.1, mats.dark);
-      mouth.position.set(0, -r * 0.42, r * 0.9);
-      g.add(mouth);
-      if (t.eyes === 1) {
-        const e = ball(r * 0.3, mats.white, 1, 1, 0.7, 10);
-        e.position.set(0, r * 0.12, r * 0.86);
-        const pupil = ball(r * 0.16, eyeMat, 1, 1, 0.6, 8);
-        pupil.position.set(0, r * 0.12, r * 1.02);
-        g.add(e, pupil);
-      } else {
-        addPair(g, () => {
-          const grp = new Group();
-          const white = ball(r * 0.17, mats.white, 1, 0.85, 0.6, 8);
-          const pupil = ball(r * 0.09, eyeMat, 1, 1, 0.6, 8);
-          pupil.position.z = r * 0.06;
-          grp.add(white, pupil);
-          return grp;
-        }, r * 0.36, r * 0.12, r * 0.86);
+    mountSurface(skull, e, v(x, y, z), v(human || family === "owl" ? 0 : side * .55, .04, 1), .012);
+  };
+  if (t.eyes === 1) eye(0, .20, depth, 0, .30);
+  else {
+    const eyeX = family === "frog" ? .72 : human || family === "owl" ? .40 : .63;
+    for (const side of [-1, 1]) eye(side * width * eyeX, height * (family === "frog" ? .60 : .18), depth * .80, side);
+    if (t.eyes === 3) eye(0, height * .57, depth * .85, 0, .14);
+  }
+
+  if (proportions) {
+    const [, , , mw, mh, reach] = proportions;
+    const end = reach * between(rng, .94, 1.07);
+    const muzzle = loft([[.22, mw * .85, mh], [.75, mw, mh], [end - .16, mw * .82, mh * .79], [end, mw * .66, mh * .62]], mats.skin, 24);
+    muzzle.rotation.x = Math.PI / 2;
+    add(muzzle, 0, -.20, 0);
+    const lower = loft([[.25, mw * .65, mh * .48], [.8, mw * .83, mh * .46], [end - .08, mw * .66, mh * .36]], mats.belly, 24);
+    lower.rotation.x = Math.PI / 2;
+    add(lower, 0, -.20 - mh * .92, 0);
+    const mammal = !/reptilian|crocodilian|draconic|dinosaur/.test(family);
+    const nose = new Group();
+    if (mammal) {
+      const pad = ball(mw * .46, mats.dark, family === "porcine" ? 1.7 : 1.2, .42, .75, 14);
+      nose.add(pad);
+      if (family === "porcine" || family === "bovine" || family === "equine" || family === "pachyderm") {
+        pad.material = mats.belly;
+        for (const side of [-1, 1]) nose.add(place(ball(mw * .11, mats.dark, 1, .30, .75, 10), side * mw * .25, mw * .17, 0));
       }
-      break;
+      mountSurface(muzzle, nose, v(0, -.20, end), v(0, 0, 1), .012);
+    } else {
+      for (const side of [-1, 1]) {
+        const nostril = ball(.065, mats.dark, 1, .30, .65, 10);
+        mountSurface(muzzle, nostril, v(side * mw * .45, -.12, end - .18), v(0, 1, .3), .01);
+      }
     }
-    default: {
-      // "beast": cranium, muzzle, jaw, nose, eyes.
-      g.add(ball(r, mats.skin, 0.95, 0.95, 1));
-      const len = r * (0.5 + snout * 1.9);
-      const muzzle = ball(r * 0.58, mats.skin, 0.8, 0.72, len / (r * 0.58) * 0.62, 10);
-      muzzle.position.set(0, -r * 0.2, r * 0.55 + len * 0.42);
-      g.add(muzzle);
-      const nose = ball(r * 0.16, mats.dark, 1.2, 0.8, 0.9, 8);
-      nose.position.set(0, -r * 0.06, r * 0.55 + len * 1.02);
-      g.add(nose);
-      const jaw = ball(r * 0.44, mats.belly, 0.85, 0.42, len / (r * 0.44) * 0.52, 8);
-      jaw.position.set(0, -r * 0.5, r * 0.5 + len * 0.36);
-      g.add(jaw);
-      if (t.beak) {
-        const beak = cone(r * 0.42, r * 0.95, mats.accent, 6);
-        beak.rotation.x = Math.PI / 2 + 0.25;
-        beak.position.set(0, -r * 0.18, r * 1.25);
-        g.add(beak);
+      // A continuous mouth seam down each cheek; rooted teeth overlap the jaws.
+    for (const side of [-1, 1]) {
+      const seam: Vector3[] = [];
+      for (let i = 0; i < 7; i++) {
+        const z = .65 + (end - .72) * i / 6;
+        const mark = new Group();
+        mountSurface(muzzle, mark, v(side * mw * .50, -.20 - mh * .62, z), v(side, 0, 0), .008);
+        seam.push(mark.position.clone().applyMatrix4(muzzle.matrix));
+        muzzle.remove(mark);
       }
-      if (snout > 0.55 && !t.beak) {
-        const teeth = box(r * 0.5, r * 0.06, len * 0.5, mats.white);
-        teeth.position.set(0, -r * 0.38, r * 0.5 + len * 0.42);
-        g.add(teeth);
+      add(tendon(seam, seam.map(() => .012), mats.dark, 22, 6));
+      if (!mammal || family === "canine" || family === "feline") for (let i = 0; i < 5; i++) {
+        const z = .79 + (end - .85) * i / 5;
+        const tooth = spike(mh * .44, .028, -.15, mats.white, 2, 5);
+        mountSurface(muzzle, tooth, v(side * mw * .58, -.20, z), v(0, -1, 0), .012);
       }
-      if (t.eyes === 1) {
-        const e = ball(r * 0.28, mats.white, 1, 1, 0.7, 10);
-        e.position.set(0, r * 0.2, r * 0.82);
-        const pupil = ball(r * 0.15, eyeMat, 1, 1, 0.6, 8);
-        pupil.position.set(0, r * 0.2, r * 0.98);
-        g.add(e, pupil);
-      } else {
-        addPair(g, eye, r * 0.5, r * 0.3, r * 0.68);
+      if (family === "feline") add(ball(.24, mats.belly, 1, .65, .65, 12), side * .25, -.20, end - .10);
+    }
+    if (family === "rodent") for (const side of [-1, 1]) add(box(.14, .25, .09, mats.white), side * .09, -.48, end - .02);
+  } else if (human) {
+    if (family !== "skull" && family !== "construct" && family !== "wood") {
+      const bridge = loft([[-.30, .13, noseLength * .66, depth * .82], [-.13, .15, noseLength, depth * .87], [.13, .075, .12, depth * .82], [.35, .045, .05, depth * .76]], mats.skin, 16);
+      add(bridge);
+      for (const side of [-1, 1]) {
+        const cheek = ball(.17, mats.belly, 1.15, .28, .80, 12);
+        mountSurface(skull, cheek, v(side * width * .59, -.25, depth), v(0, 0, 1), .025);
+        const nostril = ball(.042, mats.dark, 1, .5, .35, 8);
+        add(nostril, side * .09, -.24, depth * .87 + noseLength * .70);
       }
-      break;
+    }
+    const lips = new Group();
+    lips.name = "mouth";
+    lips.add(box(family === "brute" || family === "orc" ? .80 : .48, .055, .05, mats.dark));
+    if (family === "skull") {
+      for (let i = 0; i < 8; i++) lips.add(place(box(.073, .09, .14, mats.white), (i - 3.5) * .085, .025, 0));
+    } else lips.add(place(ball(.22, mats.skin, 1.2, .18, .16, 12), 0, .02, .055));
+    mountSurface(skull, lips, v(0, -height * .56, depth * .75), v(0, 0, 1), .015);
+    if (family === "skull") {
+      const cavity = cone(.13, .23, mats.dark, 3);
+      cavity.rotation.x = Math.PI / 2;
+      const mount = new Group(); mount.add(cavity);
+      mountSurface(skull, mount, v(0, -.16, depth), v(0, 0, 1), .01);
+    }
+    // Stable per-name forehead/jaw/nose proportions plus close-cropped hair.
+    if ((family === "human" || family === "elven" || family === "dwarven") && ctx.spec.look !== "ghost" && t.crown === "none" && !/medusa/i.test(ctx.spec.name) && chance(rng, .85)) {
+      add(loft([[height * .50, width * .90, depth * .95, -.04], [height * .65, width * .85, depth * .91, -.06], [height * .92, width * .47, depth * .54, -.08], [height * 1.01, .01, .01, -.08]], mats.dark, 28));
+    }
+  } else if (/owl|raptor|corvid|waterfowl|wader|bird/.test(family)) {
+    const length = opts.style === "bird" && opts.snout !== undefined ? opts.snout : family === "owl" ? .65 : family === "wader" ? 3.3 : family === "corvid" ? 2.0 : 1.35;
+    if (family === "owl") for (const side of [-1, 1]) {
+      const disk = ball(.48, mats.belly, 1, .22, 1.12, 18);
+      mountSurface(skull, disk, v(side * .48, .04, .8), v(0, 0, 1), .09);
+    }
+    const bill = tendon([v(0, -.06, .65), v(0, -.06, .95 + length * .50), v(0, -.15, .92 + length), v(0, -.36, .88 + length)], [.30, .22, .075, .001], mats.accent, 24, 10);
+    if (family === "waterfowl") bill.geometry.scale(1.55, .62, 1);
+    add(bill);
+    add(tendon([v(0, -.28, .65), v(0, -.27, .95 + length * .6), v(0, -.28, .90 + length * .85)], [.17, .12, .001], mats.accent, 16, 8));
+  } else if (family === "frog" || family === "fish") {
+    const mouth = new Group();
+    mouth.add(ball(1, mats.dark, family === "frog" ? .94 : .48, .08, .09, 16));
+    mouth.add(place(ball(1, mats.belly, family === "frog" ? .95 : .49, .06, .07, 16), 0, .015, .09));
+    mountSurface(skull, mouth, v(0, -.18, depth), v(0, 0, 1), .015);
+    if (family === "fish") for (const side of [-1, 1]) for (let i = 0; i < 3; i++) {
+      const gill = ball(.17, mats.dark, .12, .16, 1, 8);
+      mountSurface(skull, gill, v(side * width * .8, -.10, -.20 + i * .15), v(side, 0, 0), .005);
+    }
+  } else if (family === "insect") {
+    for (const side of [-1, 1]) {
+      const mandible = add(tendon([v(side * .21, -.40, .58), v(side * .45, -.47, 1.08), v(side * .12, -.45, 1.22)], [.13, .08, .001], mats.accent, 18, 8));
+      mandible.name = "mandible";
+      const antenna = new Group();
+      antenna.name = "antenna";
+      antenna.add(tendon([v(0, 0, 0), v(side * .18, .45, .15), v(side * .24, 1.10, .38)], [.055, .035, .008], mats.dark, 18, 6));
+      mountSurface(skull, antenna, v(side * .26, .40, .45), UP, .045);
     }
   }
 
-  // tusks
-  if (t.tusks) {
-    addPair(g, (side) => {
-      const tusk = spike(r * 0.75, r * 0.13, 1.3, mats.white, 3);
-      tusk.rotation.z = side * 0.2;
-      return tusk;
-    }, r * 0.32, -r * 0.4, r * 0.75);
+  if (t.tusks) for (const side of [-1, 1]) {
+    const z = proportions ? proportions[5] * .75 : depth * .80;
+    const x = proportions ? proportions[3] * .75 : width * .43;
+    add(tendon([v(side * x, -.42, z), v(side * (x + .10), -.24, z + .18), v(side * (x + .12), .10, z + .10)], [.12, .075, .001], mats.white, 18, 8));
   }
-  // ears
-  if (t.ears !== "none" && style !== "skull" && style !== "bird" && style !== "fish" && style !== "insect") {
-    const earR = r * (t.ears === "long" ? 0.3 : 0.24);
-    addPair(g, (side) => {
+  if (t.ears !== "none" && !/skull|owl|raptor|corvid|waterfowl|wader|bird|fish|insect|frog/.test(family)) {
+    for (const side of [-1, 1]) {
       if (t.ears === "round") {
-        const e = ball(earR * 1.2, mats.skin, 0.45, 1, 1, 8);
-        e.rotation.z = -0.3 * side;
-        return e;
+        add(ball(.24, mats.skin, .55, 1, .80, 12), side * width * .85, height * (human ? .05 : .56), -.07);
+      } else {
+        const ear = spike(t.ears === "long" ? 1.05 : human ? .63 : .67, .20, -.12, mats.skin, 3, 8);
+        ear.scale.z = .48;
+        ear.rotation.z = -side * (human ? 1.10 : .33);
+        add(ear, side * width * (human ? .81 : .66), height * (human ? .06 : .58), -.10);
       }
-      const e = cone(earR, r * (t.ears === "long" ? 1.5 : 0.85), mats.skin, 5);
-      e.scale.z = 0.35;
-      e.rotation.z = -(t.ears === "long" ? 0.35 : 1.1) * side;
-      return e;
-    }, r * (t.ears === "round" ? 0.8 : 0.85), r * (t.ears === "round" ? 0.65 : 0.45), -r * 0.05);
+    }
   }
-  // horns
   if (t.horns !== "none") {
-    g.add(makeHorns(t.horns, r, mats));
+    const horns = makeHorns(t.horns, 1, mats);
+    for (const horn of [...horns.children]) {
+      const near = v(Math.sign(horn.position.x) * width * .52, height * .5, -.08);
+      horn.position.set(0, 0, 0);
+      const mount = new Group(); mount.add(horn);
+      mountSurface(skull, mount, near, v(0, 1, 0), .06);
+    }
+  }
+  if (/medusa/i.test(ctx.spec.name)) for (let i = 0; i < 6; i++) {
+    const a = i / 6 * Math.PI * 2;
+    const snake = chain(5, between(rng, 1.8, 2.5), .10, .045, mats.skin, 8);
+    aim(snake.root, v(Math.cos(a) * .55, .85, Math.sin(a) * .30));
+    const mount = new Group(); mount.name = "snake-hair-root"; mount.add(snake.root);
+    mountSurface(skull, mount, v(Math.cos(a) * width * .45, height * .65, Math.sin(a) * depth * .40), UP, .05);
+    snake.tip.add(place(ball(.13, mats.skin, 1, .65, 1.3, 12), 0, 0, -.045));
+    for (const side of [-1, 1]) snake.tip.add(place(ball(.025, mats.eye, 1, .7, 1, 8), side * .095, .045, -.08));
+    wave(ctx, snake, { yaw: .12, pitch: .11, speed: .9, lag: .65, phase: i });
   }
   return g;
+}
+
+// Pigmentation is part of the surface, not another layer of detached meshes.
+// Vertex colours keep the distributable self-contained, including swarms.
+export function detailSurfaces(ctx: Ctx): void {
+  const { root, mats, spec } = ctx;
+  root.updateMatrixWorld(true);
+  const point = new Vector3(), color = new Color();
+  root.traverse(o => {
+    const mesh = o as Mesh;
+    if (!mesh.isMesh || Array.isArray(mesh.material) || mesh.geometry.hasAttribute("color")) return;
+    const mat = mesh.material as MeshStandardMaterial;
+    if (mat !== mats.skin && mat !== mats.belly && mat !== mats.metal && !mat.name.startsWith("anatomy-")) return;
+    mat.vertexColors = true;
+    mat.name ||= "anatomy-surface";
+    const pos = mesh.geometry.getAttribute("position"), colors: number[] = [];
+    const rate = spec.look === "scale" || spec.look === "chitin" ? 30 : spec.look === "fur" || spec.look === "feather" ? 19 : spec.look === "bark" ? 11 : 7;
+    for (let i = 0; i < pos.count; i++) {
+      point.fromBufferAttribute(pos, i).applyMatrix4(mesh.matrixWorld);
+      const { x, y, z } = point;
+      const grain = Math.sin(x * rate + Math.sin(y * rate * .73)) * Math.sin(z * rate * .83 + y * rate * .37);
+      const shade = .91 + grain * .09;
+      color.setRGB(shade, shade, shade);
+      colors.push(color.r, color.g, color.b);
+    }
+    mesh.geometry.setAttribute("color", new Float32BufferAttribute(colors, 3));
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -539,7 +727,7 @@ export function makeWings(ctx: Ctx, span: number, chord: number, kind: Traits["w
         const len = chord * (0.62 + Math.sin(k * Math.PI * 0.85) * 0.5);
         const f = ball(1, i % 2 ? mats.skin : mats.belly, span * 0.085, span * 0.02, len * 0.5, 6);
         const x = span * (0.14 + k * 0.84);
-        f.position.set(x, 0, -len * 0.5 - chord * 0.08);
+        f.position.set(x, 0, -len * 0.5);
         f.rotation.y = -0.05 - k * 0.22;
         wing.add(f);
       }

@@ -9,8 +9,8 @@
 import { CatmullRomCurve3, CylinderGeometry, Group, Mesh, MeshStandardMaterial, SphereGeometry, TubeGeometry, Vector3, type BufferAttribute, type Material } from "three";
 import { buildBiped } from "./biped";
 import {
-  UP, ball, box, cone, cyl, makeHead, makeWings, segment, spike, tick, torus,
-  type Chain, type Ctx,
+  UP, ball, box, cone, cyl, makeHead, makeWings, mountSurface, segment, spike, tick, torus,
+  type Chain, type Ctx, type FaceFamily,
 } from "./parts";
 import type { Traits } from "./spec";
 
@@ -32,7 +32,7 @@ function chain(n: number, length: number, r0: number, r1: number, mat: Material,
     const ra = r0 + (r1 - r0) * (i / n);
     const rb = r0 + (r1 - r0) * ((i + 1) / n);
     const body = new Mesh(new CylinderGeometry(rb * 0.985, ra, seg * 1.2, radial, 1, true), mat);
-    body.rotation.x = Math.PI / 2;
+    body.rotation.x = -Math.PI / 2;
     body.position.z = -seg / 2 - seg * 0.05;
     g.add(body);
     if (i === 0) {
@@ -242,6 +242,7 @@ function makeTorso(ctx: Ctx, rig: Rig, shortChest = false): Group {
   const g = new Group();
   g.position.y = rig.y;
   const mid = ball(1, mats.skin, bw, bh, L * 0.5, 14);
+  mid.name = "torso-skin";
   const chest = ball(1, mats.skin, bw * 1.06, bh * 1.08, L * (shortChest ? 0.17 : 0.3), 14);
   chest.position.set(0, bh * 0.06, L * (shortChest ? 0.33 : 0.25));
   const hip = ball(1, mats.skin, bw * 1.02, bh * 1.02, L * 0.28, 14);
@@ -424,6 +425,7 @@ interface HeadCfg {
   skin?: MeshStandardMaterial;
   ruff?: boolean;
   sway?: number;
+  family?: FaceFamily;
 }
 
 function makeNeckHead(ctx: Ctx, parent: Group, base: Vector3, cfg: HeadCfg, rig: Rig): Group {
@@ -444,7 +446,7 @@ function makeNeckHead(ctx: Ctx, parent: Group, base: Vector3, cfg: HeadCfg, rig:
   if (t.trunk) { patch.tusks = false; patch.ears = "none"; }
   const saved = ctx.mats;
   ctx.mats = mats;
-  const head = withTraits(ctx, patch, () => makeHead(ctx, { r: cfg.r, style: patch.head ?? t.head, snout: patch.snout ?? t.snout }));
+  const head = withTraits(ctx, patch, () => makeHead(ctx, { r: cfg.r, style: patch.head ?? t.head, snout: patch.snout ?? t.snout, family: cfg.family }));
   ctx.mats = saved;
   const dir = V(Math.sin(cfg.yaw) * Math.cos(cfg.end), Math.sin(cfg.end), Math.cos(cfg.yaw) * Math.cos(cfg.end));
   head.position.copy(pts[pts.length - 1]!).addScaledVector(dir, cfg.r * 0.35);
@@ -457,12 +459,6 @@ function makeNeckHead(ctx: Ctx, parent: Group, base: Vector3, cfg: HeadCfg, rig:
     neck.rotation.x = 0.03 * s * Math.sin(time * 0.72 + cfg.phase + 1.3);
     head.rotation.x = headPitch + 0.05 * Math.sin(time * 1.3 + cfg.phase + 0.6);
   });
-  // Deep cheeks so a long muzzle reads as a skull rather than a beak.
-  if ((patch.snout ?? t.snout) >= 0.6 && (patch.head ?? t.head) === "beast" && !t.beak) {
-    const cheek = ball(cfg.r, mats.skin, 0.8, 0.66, 1.05, 10);
-    cheek.position.set(0, -cfg.r * 0.3, cfg.r * 0.35);
-    head.add(cheek);
-  }
 
   // Hair: a ruff for lions, a crest down the neck for horses.
   const maned = cfg.patch.mane ?? t.mane;
@@ -598,9 +594,9 @@ function headConfigs(ctx: Ctx, rig: Rig): HeadCfg[] {
   }
   if (/chimera/.test(n)) {
     return [
-      { ...one({ horns: "none", snout: 0.25, ears: "round", beak: false, mane: false, heads: 1 }), yaw: 0, elev: 0.5, len: 0.35, end: 0.05, r: 0.15 },
-      { ...one({ horns: "ram", snout: 0.45, ears: "pointy", beak: false, mane: false, heads: 1 }), yaw: 0.75, elev: 0.75, len: 0.55, end: 0.1, r: 0.12, phase: ctx.phase + 1.4, ruff: false },
-      { ...one({ horns: "straight", snout: 0.55, ears: "none", beak: false, mane: false, heads: 1 }), yaw: -0.65, elev: 0.85, len: 0.9, end: 0.1, r: 0.12, phase: ctx.phase + 2.6, ruff: false, skin: darker(ctx.mats.skin, 0.85) },
+      { ...one({ horns: "none", snout: 0.25, ears: "round", beak: false, mane: false, heads: 1 }), family: "feline", yaw: 0, elev: 0.5, len: 0.35, end: 0.05, r: 0.15 },
+      { ...one({ horns: "ram", snout: 0.45, ears: "pointy", beak: false, mane: false, heads: 1 }), family: "caprine", yaw: 0.75, elev: 0.75, len: 0.55, end: 0.1, r: 0.12, phase: ctx.phase + 1.4, ruff: false },
+      { ...one({ horns: "straight", snout: 0.55, ears: "none", beak: false, mane: false, heads: 1 }), family: "draconic", yaw: -0.65, elev: 0.85, len: 0.9, end: 0.1, r: 0.12, phase: ctx.phase + 2.6, ruff: false, skin: darker(ctx.mats.skin, 0.85) },
     ];
   }
   if (t.heads > 1) {
@@ -629,34 +625,40 @@ function neckBase(rig: Rig): Vector3 {
 // accents
 
 function addPlates(ctx: Ctx, parent: Group, rig: Rig): void {
+  const skin = parent.getObjectByName("torso-skin") as Mesh;
   for (let i = 0; i < 8; i += 1) {
     const k = i / 7;
     const h = 0.12 + 0.3 * Math.sin(Math.PI * (0.1 + k * 0.8));
     const plate = cone(0.11, h, ctx.mats.belly, 4);
     plate.scale.z = 0.2;
     plate.rotation.y = Math.PI / 4;
-    plate.position.set(i % 2 ? 0.05 : -0.05, rig.y + rig.bh * 0.95 + h * 0.4, rig.L * 0.36 - k * rig.L * 0.78);
-    parent.add(plate);
+    plate.geometry.translate(0, h * .44, 0);
+    plate.name = "dorsal-plate";
+    mountSurface(skin, plate, V(i % 2 ? .05 : -.05, 0, rig.L * .36 - k * rig.L * .78), UP, .012);
   }
 }
 
 function addSail(ctx: Ctx, parent: Group, rig: Rig): void {
+  const skin = parent.getObjectByName("torso-skin") as Mesh;
   for (let i = 0; i < 9; i += 1) {
     const k = i / 8;
     const h = 0.18 + 0.45 * Math.sin(Math.PI * (0.08 + k * 0.84));
     const fin = ball(1, ctx.mats.belly, 0.012, h * 0.5, rig.L * 0.045, 6);
-    fin.position.set(0, rig.y + rig.bh * 0.95 + h * 0.42, rig.L * 0.36 - k * rig.L * 0.72);
-    parent.add(fin);
+    fin.geometry.translate(0, .85, 0);
+    fin.name = "sail-root";
+    mountSurface(skin, fin, V(0, 0, rig.L * .36 - k * rig.L * .72), UP, .015);
   }
 }
 
 function addRidge(parent: Group, rig: Rig, count: number, h: number, mat: Material): void {
+  const skin = parent.getObjectByName("torso-skin") as Mesh;
   for (let i = 0; i < count; i += 1) {
     const k = i / Math.max(1, count - 1);
-    const c = cone(h * 0.32, h * (1 - Math.abs(k - 0.4) * 0.5), mat, 4);
-    c.position.set(0, rig.y + rig.bh * (0.95 - Math.abs(k - 0.5) * 0.3) + h * 0.4, rig.L * 0.36 - k * rig.L * 0.72);
-    c.rotation.x = -0.25;
-    parent.add(c);
+    const length = h * (1 - Math.abs(k - .4) * .5);
+    const c = cone(h * .32, length, mat, 4);
+    c.geometry.translate(0, length * .44, 0);
+    c.name = "dorsal-spike";
+    mountSurface(skin, c, V(0, 0, rig.L * .36 - k * rig.L * .72), UP, .01);
   }
 }
 
@@ -673,9 +675,8 @@ function addShell(ctx: Ctx, rig: Rig, parent: Group): void {
   for (let i = 0; i < ridges; i += 1) {
     const k = i / (ridges - 1);
     const plate = ball(1, turtle ? mats.belly : mats.accent, rig.bw * (turtle ? 0.35 : 0.22), rig.bh * (turtle ? 0.28 : 0.3), rig.L * 0.07, 6);
-    const h = Math.sqrt(Math.max(0, 1 - Math.pow((k - 0.5) * 2 * 0.93, 2)));
-    plate.position.set(0, rig.y + rig.bh * 0.05 + domeH * h * 0.97, (0.5 - k) * rig.L * 0.98);
-    parent.add(plate);
+    plate.name = "shell-scute";
+    mountSurface(dome, plate, V(0, 0, (.5 - k) * rig.L * .98), UP, .008);
   }
 }
 
@@ -730,9 +731,9 @@ export function buildQuadruped(ctx: Ctx): void {
     const span = /griffon|griffin|gryphon|hippogriff|peryton|pegasus/.test(n) ? 1.0 : 0.95;
     addWingsTo(ctx, body, rig.bw * 0.55, rig.y + rig.bh * 0.85, rig.L * 0.12, span, span * 0.55, 0.2, 0.5);
   }
-  if (t.plates || /stegosaurus/.test(n)) addPlates(ctx, body, rig);
-  else if (t.spikes) addRidge(body, rig, 9, 0.1, mats.accent);
-  if (/dimetrodon|spinosaurus/.test(n)) addSail(ctx, body, rig);
+  if (t.plates || /stegosaurus/.test(n)) addPlates(ctx, torso, rig);
+  else if (t.spikes) addRidge(torso, rig, 9, 0.1, mats.accent);
+  if (/dimetrodon|spinosaurus/.test(n)) addSail(ctx, torso, rig);
   if (/tiger|zebra/.test(n)) addStripes(ctx, rig, torso);
   if (rig.kind === "frog") {
     const throat = ball(rig.headR * 0.8, mats.belly, 1.1, 0.8, 1, 10);
@@ -758,6 +759,7 @@ export function buildTheropod(ctx: Ctx): void {
   torso.position.set(0, hipY + 0.14 * s, 0.05);
   torso.rotation.x = -0.05;
   const mid = ball(1, mats.skin, 0.34 * s, 0.4 * s, 0.82 * s, 14);
+  mid.name = "torso-skin";
   const chest = ball(1, mats.skin, 0.27 * s, 0.32 * s, 0.32 * s, 12);
   chest.position.set(0, 0.03, 0.5 * s);
   const belly = ball(1, mats.belly, 0.25 * s, 0.22 * s, 0.6 * s, 10);
@@ -821,13 +823,7 @@ export function buildTheropod(ctx: Ctx): void {
   sway(ctx, tail, { yaw: 0.11, pitch: 0.025, speed: 1.05, lag: 0.45 });
 
   if (/spinosaurus/.test(n)) {
-    for (let i = 0; i < 9; i += 1) {
-      const k = i / 8;
-      const h = 0.2 + 0.5 * Math.sin(Math.PI * (0.08 + k * 0.84));
-      const fin = ball(1, mats.belly, 0.012, h * 0.5, 0.05, 6);
-      fin.position.set(0, hipY + 0.42 * s + h * 0.42, 0.5 * s - k * 1.0 * s);
-      body.add(fin);
-    }
+    addSail(ctx, torso, rig);
   }
   if (raptor && !/dilophosaurus/.test(n)) {
     // A hint of feathers: a fringe on the tail tip.
@@ -952,19 +948,14 @@ export function buildDragon(ctx: Ctx): void {
 
   // Ridge along the back and down the tail.
   if (!turtle && (t.spikes || !juv)) {
-    for (let i = 0; i < 9; i += 1) {
-      const k = i / 8;
-      const h = 0.13 * (1 - Math.abs(k - 0.4) * 0.6);
-      const c = cone(h * 0.4, h * 1.5, mats.accent, 4);
-      c.position.set(0, y + bh * (0.95 - Math.abs(k - 0.5) * 0.3) + h * 0.5, L * 0.36 - k * L * 0.72);
-      c.rotation.x = -0.3;
-      holder.add(c);
-    }
+    addRidge(torso, rig, 9, .19, mats.accent);
     tail.segs.forEach((g, i) => {
       if (i < 1 || i > 7) return;
-      const c = cone(0.045, 0.16 * (1 - i / 11), mats.accent, 4);
-      c.position.set(0, rig.tailR * (1 - i / 10) + 0.05, -rig.tailLen / 10 / 2);
-      g.add(c);
+      const h = .16 * (1 - i / 11);
+      const c = cone(.045 * (1 - i / 11), h, mats.accent, 4);
+      c.geometry.translate(0, h * .44, 0);
+      c.name = "tail-spike";
+      mountSurface(g.children[0] as Mesh, c, V(0, 0, -rig.tailLen / 10 / 2), UP, .008);
     });
   }
 
