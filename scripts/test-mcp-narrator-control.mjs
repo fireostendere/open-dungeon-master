@@ -664,6 +664,13 @@ const storyCampaign = createCampaign(dm.id, {
   title: "Story continuity", description: "", theme: "", maxPlayers: 4, startingLevel: 1,
   difficulty: "normal", gameSettings: { dmMode: "human", ttsEnabled: false, mapsEnabled: false },
 });
+const settingsBeforePatch = getCampaignById(storyCampaign.id).gameSettings;
+await executeMcpControl("campaigns.update_game_settings", { campaignId: storyCampaign.id, patch: { midGameJoinOpen: true } });
+assert.deepEqual(getCampaignById(storyCampaign.id).gameSettings, { ...settingsBeforePatch, midGameJoinOpen: true },
+  "editing one setting must retain all existing game settings, including disabled media");
+await executeMcpControl("campaigns.update_game_settings", { campaignId: storyCampaign.id, patch: {} });
+assert.deepEqual(getCampaignById(storyCampaign.id).gameSettings, { ...settingsBeforePatch, midGameJoinOpen: true },
+  "an empty settings patch must not restore creation defaults");
 await executeMcpControl("campaigns.set_outline", { campaignId: storyCampaign.id, outline: "The mayor secretly serves the dragon." });
 setCampaignStatus(storyCampaign.id, "active");
 const storyArc = {

@@ -37,7 +37,7 @@ import { commitStoryArc } from "@/lib/dm/arc";
 import { normalizeStoryArc } from "@/lib/dm/arc-logic";
 import { resetGlobalTurnGate } from "@/lib/dm/global-turn-logic";
 import { listEventsSince, publishPersisted } from "@/lib/events";
-import { gameSettingsSchema } from "@/lib/schemas/game-settings";
+import { gameSettingsPatchSchema, gameSettingsSchema } from "@/lib/schemas/game-settings";
 import { createSheetSchema, fullPatchSheetSchema } from "@/lib/schemas/sheet";
 import type { StorySettings } from "@/lib/types";
 
@@ -366,7 +366,7 @@ export async function executeMcpControl(action: string, rawParams: unknown): Pro
 
     case "campaigns.update_game_settings": {
       const params = parse(
-        z.object({ campaignId: z.string().uuid(), patch: gameSettingsSchema.partial() }).strict(),
+        z.object({ campaignId: z.string().uuid(), patch: gameSettingsPatchSchema }).strict(),
         rawParams,
       );
       const campaign = campaignOr404(params.campaignId);
