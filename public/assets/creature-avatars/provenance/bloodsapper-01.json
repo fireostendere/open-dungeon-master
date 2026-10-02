@@ -1,0 +1,17 @@
+{
+  "creatureId": "bloodsapper",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BLOODSAPPER avatar, Tome of Beasts 2. One MEDIUM HAIRLESS DOG-SHAPED ABERRATION with PALE SKIN, a tapering conical head, TWO DEEPLY SET BLACK EYES, a small SHREWLIKE MOUTH and a LARGE HANGING THROAT BLADDER. Its THICK RED TONGUE ends in a HOLLOW PIERCING SPIKE made of living tissue, not metal or a carried weapon. Four natural canine-position legs with claws; small ears and a short hairless tail are original choices. No fur, wings, horns, human torso or extra legs. Intact fantastical anatomy, no victims or feeding. Realistic painterly pale hide, throat sac and natural tongue texture, clear head at 512 pixels. No injury, blood splashes, gore, writing, signature, watermark, logo or frame. Normal 01. A pale hairless dog-shaped bloodsapper stands on four clawed paws in a damp cave, narrow tapering head and two deep black eyes, conspicuous rounded throat bladder hanging below the jaw. Its small mouth is slightly open with a thick red tongue extending only a little, hollow pointed tip visible. Small folded ears and short tail, cold cave light, intact skin.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/bloodsapper/",
+      "note": "ToB2: pale hairless doglike body, conical head, two deep black eyes, shrewlike mouth, throat bladder and thick red tongue with hollow spike. Four legs inferred from dog shape; exact ears/tail and cork gag original. No feeding or injury shown."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

@@ -1,0 +1,17 @@
+{
+  "creatureId": "bloody-bones",
+  "variantId": "04",
+  "style": "yolo",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BLOODY BONES monstrosity avatar, Creature Codex. One MEDIUM PALE HUMANOID with unusually LONG LIMBS and broad round SAUCER-LIKE EYES. Its head is skinless as an intrinsic monster feature: render a restrained STYLIZED RED MUSCLE-LIKE FACE with intact contours and wide eyes, no exposed brain, torn wounds or injury scene. Thin supernatural crimson runoff from the crown trails over head, shoulders and back; the rest of the body keeps pale skin. One head, two arms with claws and two legs, no royal crown or full-body skeleton. Original eye color, opaque worn clothes and exact claw count. Realistic painterly dark-fantasy creature, coherent anatomy and readable face at 512 pixels. No victims, flaying action, exposed organs, extreme gore, nudity, writing, signature, watermark, logo or frame. YOLO 04. A long-limbed pale Bloody Bones has dressed its intrinsically red, wide-eyed head in a ludicrously TINY FLOWERY LADY'S HAT and is trying to appear respectable. One clawed hand holds an ornate hand mirror, the other adjusts the tiny hat with exaggerated delicate care. Broad saucer eyes look intensely self-conscious, opaque shabby coat and pale limbs, a few thin magical red streaks remain, no wounds, gore or text.",
+  "designReferences": [
+    {
+      "url": "https://koboldpress.com/my-monster-contest/",
+      "note": "Official Kobold Press article identifies Creature Codex Bloody Bones: pale long-limbed humanoid, skinless head, saucer eyes and blood flowing from crown. Restrained stylized red facial anatomy conveys intrinsic feature without injury scene. Clothing/eyes and fancy-hat gag original; OGN footer attribution conflict resolved by publisher."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

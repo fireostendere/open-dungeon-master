@@ -1,0 +1,17 @@
+{
+  "creatureId": "blue-dragon-wyrmling",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BLUE DRAGON WYRMLING avatar, Core/A5E/Black Flag. One MEDIUM JUVENILE BLUE-SCALED TRUE DRAGON with biting jaws and narrow LIGHTNING BREATH. Conventional original body plan: FOUR reptilian legs, TWO separate membranous wings, ONE long tail, one head. Clearly young compact proportions and relatively large alert head. Original SINGLE short NASAL HORN, small ear frills, amber eyes and sandy pale wing membranes are artistic choices not fixed by the retrieved roster text. No fire breath, extra legs, wyvern body or adult giant scale. Desert sand, ruins and storm sky suit burrowing and walking. Realistic painterly scales, leather membranes and lightning, readable face at 512 pixels. No victims, injury, gore, writing, signature, watermark, logo or frame. Normal 01. A compact young blue dragon crouches on a warm sandstone ledge, four short clawed legs planted, two pale sand-colored wings half-open and one tail curling behind. Sky-blue scales darken along the spine, one short nasal horn and small ear frills, bright amber eyes. A tiny white-blue spark glints between closed teeth, desert ruins and approaching storm.",
+  "designReferences": [
+    {
+      "url": "https://a5e.tools/node/1534",
+      "note": "A5E Medium blue wyrmling: blue scales, bite/lightning, flight/burrowing, desert adaptations; BlackFlag adds claws/pounce. Four legs/two wings, one nasal horn, frills, eyes and juvenile proportions are original conventional-dragon choices, not claimed verified head anatomy. Phone-charging gag original."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

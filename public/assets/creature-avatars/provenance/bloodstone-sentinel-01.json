@@ -1,0 +1,17 @@
+{
+  "creatureId": "bloodstone-sentinel",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BLOODSTONE SENTINEL avatar, Tome of Beasts 2. One LARGE HUMANOID STONE CONSTRUCT carved from GREEN STONE with CRIMSON VEINS and LONG HOOKED STONE CLAWS. One head, two arms and two legs. Its FACE IS OTHERWISE FEATURELESS except TWO DEEP EMPTY EYE HOLLOWS from which thin red blood tears leak as an intrinsic magical effect. No mouth, nose, visible eyeballs, horns, armor or chest cavity. Red mineral-like streaks extend through green stone, exact vein layout and claw count original. Smooth intact statue without wounds or victims. Realistic painterly jade-green stone, crimson streaks and ancient architecture, mask-like face readable at 512 pixels. No injury, gore, writing, signature, watermark, logo or frame. Normal 01. A massive green stone sentinel stands motionless beside an ancient gate, two arms ending in long hooked stone claws, two heavy legs planted. Red veins branch through polished and weathered green mineral, blank oval stone face has only two deep dark eye hollows with thin crimson tear tracks. Moonlit temple steps, monumental calm, no nose or mouth.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/bloodstone-sentinel/",
+      "note": "ToB2: Large animated green humanoid stone statue with red veins, long hooked claws, otherwise blank face with two deep blood-weeping eye sockets. Exact stone finish, claws and tissue-box gag original; no mouth, eyeballs, armor or open reservoir."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}
