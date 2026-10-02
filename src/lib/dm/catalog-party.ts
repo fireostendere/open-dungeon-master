@@ -131,7 +131,7 @@ export const PARTY_ADJUDICATIONS: CatalogEntry[] = [
     name: "grant_item",
     label: "Give an item",
     category: "party",
-    summary: "Puts an item in a character's hands, weight and all.",
+    summary: "Adds a newly received item. Does not remove it from another owner; confirm remove_item from the sender first for a handover.",
     fields: [
       { name: "characterId", label: "Character", kind: "character", required: true },
       { name: "name", label: "Item", kind: "text", required: true },
@@ -161,7 +161,7 @@ export const PARTY_ADJUDICATIONS: CatalogEntry[] = [
     name: "remove_item",
     label: "Take an item",
     category: "party",
-    summary: "Lost, stolen or destroyed. Consumables being used go through Use an item.",
+    summary: "Removes a carried item, including gifts and accepted barter with an NPC. Use the exact sheet name. Narration alone never removes it; used consumables go through use_item.",
     fields: [
       { name: "characterId", label: "Character", kind: "character", required: true },
       { name: "name", label: "Item", kind: "text", required: true },
