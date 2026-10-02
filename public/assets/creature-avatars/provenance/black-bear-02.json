@@ -1,0 +1,21 @@
+{
+  "creatureId": "black-bear",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BLACK BEAR wildlife avatar, Core SRD and A5E catalog entry. One ordinary MEDIUM adult American-black-bear interpretation: FOUR natural bear legs with clawed paws, compact black-furred body, short tail, relatively small head, prominent rounded ears and a STRAIGHT MUZZLE PROFILE. No grizzly shoulder hump, no long grizzly claws, no humanoid limbs or armor. Rich black coat and lighter brown muzzle are original individual choices within natural variation. Realistic painterly fur, forest light and believable animal anatomy, clear face at 512 pixels. No prey, victims, blood, injury, gore, writing, signature, watermark, logo or frame. Normal 02. Close head-and-shoulders portrait of a black bear in autumn woods, glossy dark fur flecked with amber leaves, small rounded ears and alert brown eyes, soft tawny straight muzzle and black nose. Mouth closed, peaceful watchfulness, blurred copper leaves and blue shadows, realistic ursine proportions.",
+  "designReferences": [
+    {
+      "url": "https://github.com/open5e/open5e-api/blob/staging/data/v1/wotc-srd/Monster.json",
+      "note": "Core/A5E Medium ordinary black bear with bites, claws, keen smell and climbing. Separate catalog identity from bear_black_bf, all four images newly generated."
+    },
+    {
+      "url": "https://www.nps.gov/articles/bear-identification.htm",
+      "note": "Supplemental zoology: prominent ears, straight profile, no grizzly shoulder hump and short curved claws. American black-bear interpretation, individual coat/composition and honey-jar gag original."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

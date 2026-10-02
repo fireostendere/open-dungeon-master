@@ -1,0 +1,17 @@
+{
+  "creatureId": "black-crier",
+  "variantId": "02",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BLACK CRIER avatar, Tome of Beasts 2. One MEDIUM ADULT SKELETAL TOWN CRIER with exposed dry pale skull, bony hands, one head, two arms and two legs under formal town-crier clothing. Carries an ELABORATE SILVER HANDBELL. Mute and solemn, communicates through warning gestures rather than speech; a herald of danger, not inherently malicious. Dark coat, hat, trim and tailoring are original choices. Bone-only fantasy undead with no wounds or soft tissue. No armor, scythe, crown, wings or magical eye flames. Realistic painterly bone, tarnished silver and old cloth, strong silhouette at 512 pixels. No victims, blood, gore, writing, signature, watermark, logo or frame. Normal 02. Close three-quarter portrait of a pale skull beneath a weathered burgundy bicorne, high-collared dark town-crier coat and silver-braided cuffs. One skeletal hand cradles a beautifully worked silver handbell near the chest; the other is held palm-out in a quiet caution gesture. Somber misty street background, subtle cool highlights on silver, no glowing eyes. Correction: Use case: precise-object-edit. Correct ONLY the silver handbell and the skeletal hand gripping its handle in this original Black Crier portrait. The current raised silver object reads like an upside-down goblet. Replace it with a clearly recognizable ornate SILVER HANDBELL held by a narrow handle ABOVE a broad flared bell body: the hollow open bell mouth points DOWNWARD, and a small metal CLAPPER hangs visibly inside the opening. Keep the existing raised arm position and adjust only the wrist/hand grip if necessary so the handle is held naturally. The bell remains one single coherent object, realistic engraved silver, no cup bowl or goblet stem below it. Preserve the entire skull, hat, clothes, other gesturing hand, skeleton anatomy, lighting, street background, framing and square composition. No text, logo or watermark.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/black-crier/",
+      "note": "ToB2: Medium mute skeletal town crier, pale skull and bony hands, ornate silver handbell, formal town-crier attire; can hover. Costume details and banana-clapper gag original, not an inherently malicious reaper."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}

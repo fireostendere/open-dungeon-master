@@ -1,0 +1,17 @@
+{
+  "creatureId": "black-patch",
+  "variantId": "01",
+  "style": "normal",
+  "sourceType": "generated",
+  "provider": "OpenAI",
+  "tool": "image_gen",
+  "generatedAt": "2026-10-02",
+  "prompt": "Use case: stylized-concept. Original square 1:1 dark-fantasy BLACK PATCH ooze avatar, Tome of Beasts 3. One LARGE WATER-BOUND FLOATING PATCH OF GLOSSY BLACK SLIME, a low shapeless sheet on the water with dark wet folds containing SWIRLING MULTICOLORED LIGHT. Permanent body has NO fixed eyes, mouth, teeth, bones, hands or humanoid silhouette. Temporary fluid pseudopods are allowed, no fixed count. Clearly visibly afloat on water in every scene; it cannot move onto dry land. Iridescent internal spirals are part of the ooze, not floating runes or magical eyes. Realistic painterly liquid gloss, black folds, jewel-like internal colors and reflections, clear mass at 512 pixels. No prey, victims, blood, injury, gore, writing, signature, watermark, logo or frame. Normal 01. A broad glossy black ooze sheet floats on a still dark forest pond, its folded slick surface forming an irregular low island. Subtle spirals of violet, emerald and amber light curl INSIDE translucent dark folds, one small fluid pseudopod rises gently from the surface. Ripples and reflected branches establish water all around, cool mist, no face or eyes.",
+  "designReferences": [
+    {
+      "url": "https://www.5esrd.com/database/creature/black-patch/",
+      "note": "ToB3: Large aquatic floating glossy black slime, spiraling multicolored light within folds, fluid pseudopods, cannot leave water. No established facial features or permanent limbs. Pool-toy gag and specific color patterns original, not Black Pudding."
+    }
+  ],
+  "license": "generated-output; no third-party artwork license asserted"
+}
