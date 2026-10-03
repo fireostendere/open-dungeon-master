@@ -5,10 +5,10 @@ description: "Подготовка, проведение и итог D&D с ав
 
 # Подготовка, игра, итог
 
-Прочитайте [общий контракт](../../../docs/agent-skills.md#общий-контракт-и-границы).
-Для player-originated MCP-контента сначала [odm-dm-policy](../odm-dm-policy/SKILL.md),
-затем при ODM [odm-narrator](../odm-narrator/SKILL.md),
-при ODM также [границы движка](../../../src/lib/dm/engine-boundary.ts).
+Если доступен репозиторий, прочитайте [общий контракт](../../../docs/agent-skills.md#общий-контракт-и-границы).
+Для player-originated MCP-контента нужны [odm-dm-policy](../odm-dm-policy/SKILL.md)
+и при ODM [odm-narrator](../odm-narrator/SKILL.md) (у ведущего они уже загружены);
+[границы движка](../../../src/lib/dm/engine-boundary.ts) — справка репозитория.
 Чистая D&D-сессия не требует сервера. Skill не создаёт фонового runtime.
 
 Подготовка — варианты сцен, намерения NPC, улики; это не канон. Игра — наблюдаемое,
