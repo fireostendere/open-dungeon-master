@@ -5,7 +5,7 @@ import { getSheetForUser } from "@/lib/db/sheets";
 import { publishPersisted } from "@/lib/events";
 import { refreshGlobalTurnReadiness, resolveGlobalTurn } from "@/lib/dm/global-turn-logic";
 import { skipOwnTurn } from "@/lib/dm/encounter-tools";
-import { getActiveEncounter } from "@/lib/db/encounters";
+import { fightOwnsTable } from "@/lib/dm/team-round";
 import { gameText, resolveGameLanguage } from "@/lib/i18n/game-text";
 
 export const runtime = "nodejs";
@@ -54,7 +54,7 @@ export async function POST(
     publishPersisted(campaignId, "member_updated", { member: updated });
     return Response.json({ ok: true, member: updated });
   }
-  if (getActiveEncounter(campaignId)) return Response.json({ ok: true, member });
+  if (fightOwnsTable(campaignId)) return Response.json({ ok: true, member });
 
   // In global-turn mode a skip is a quorum response, but it is not written as
   // a player message yet. The server materializes it exactly once when the

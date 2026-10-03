@@ -1,6 +1,6 @@
 import { isErrorResponse, requireLead } from "@/lib/campaign-api";
 import { getGlobalTurnState } from "@/lib/db/campaigns";
-import { getActiveEncounter } from "@/lib/db/encounters";
+import { fightOwnsTable } from "@/lib/dm/team-round";
 import { startGlobalTurn } from "@/lib/dm/global-turn-logic";
 
 export const runtime = "nodejs";
@@ -17,7 +17,7 @@ export async function POST(
   if (!context.campaign.gameSettings.globalTurn?.enabled) {
     return Response.json({ error: "Global-turn mode is not enabled." }, { status: 409 });
   }
-  if (getActiveEncounter(campaignId)) {
+  if (fightOwnsTable(campaignId)) {
     return Response.json(
       { error: "Initiative owns input while combat is active." },
       { status: 409 },

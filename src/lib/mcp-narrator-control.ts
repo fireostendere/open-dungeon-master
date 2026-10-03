@@ -102,7 +102,23 @@ function safeCampaign(campaign: NonNullable<ReturnType<typeof getCampaignById>>)
 // The combat hold, spelled out for the narrator: players are locked and the
 // next actor gets the floor only on the narrator's explicit handoff.
 function narratorTurnLock(campaign: NonNullable<ReturnType<typeof getCampaignById>>) {
-  const handoff = combatHandoffState(campaign.id, campaign.floor);
+  const floor = campaign.floor;
+  if (floor.mode === "hold" && floor.team) {
+    // A team round (src/lib/dm/team-round.ts): the fighter waits for the
+    // heroes elsewhere, not for the narrator's handoff.
+    const round = getGlobalTurnState(campaign.id);
+    const name = floor.next.mode === "initiative" ? floor.next.currentName : "The next hero";
+    return {
+      state: "awaiting_team",
+      globalRound: floor.team.round,
+      note: `${name} already had a turn this team round and acts again when global round ${floor.team.round} is done. ` +
+        (round.phase === "ready" || round.phase === "resolving"
+          ? `That round is sealed: resolve its batch and narrate with completeGlobalRound:${round.roundNumber}; that opens ${name}'s turn.`
+          : "The heroes outside the fight are still taking their turns in it; when it seals (global_turn_ready) resolve the batch and narrate with completeGlobalRound.") +
+        " Do not end_turn or pass this turn.",
+    };
+  }
+  const handoff = combatHandoffState(campaign.id, floor);
   if (handoff.state === "none") return null;
   return handoff.state === "ready"
     ? { state: "awaiting_pass", characterId: handoff.characterId,
@@ -584,7 +600,8 @@ async function narrate(raw: unknown) {
     let floorResult;
     if (p.data.releaseFloor) {
       const current = getFloor(campaign.id);
-      const floor = current.mode === "hold" && !current.combat ? current.next : current;
+      // A team-round hold is the global round's to open, not the narrator's.
+      const floor = current.mode === "hold" && !current.combat && !current.team ? current.next : current;
       setFloor(campaign.id, floor); publishPersisted(campaign.id, "floor_changed", { floor });
       queueSkippedCombatTurn(campaign.id);
       floorResult = { floorReleased: getFloor(campaign.id).mode !== "hold", floor: getFloor(campaign.id) };
@@ -881,6 +898,7 @@ async function releaseFloor(raw: unknown) {
     }
     const current = getFloor(campaign.id);
     if (listOpenPendingRolls(campaign.id).length) throw new McpNarratorControlError("Resolve pending physical rolls before releasing the floor.", 409);
+    if (current.mode === "hold" && current.team) throw new McpNarratorControlError("The fight waits for the rest of the party this team round; the held turn opens when the next global round starts. Resolve the round with completeGlobalRound instead.", 409);
     if (current.mode === "hold" && current.combat) {
       // The narrator is done writing about a resolved combat turn: hand it on.
       if (combatHandoffState(campaign.id, current).state !== "ready") throw new McpNarratorControlError("Combat adjudication is still in progress: call end_turn for the acting character first.", 409);

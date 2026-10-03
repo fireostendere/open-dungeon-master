@@ -133,6 +133,10 @@ export async function POST(
     return Response.json({ ok: true, floor: next });
   }
 
+  // A team-round hold opens with the next global round (src/lib/dm/team-round.ts).
+  if (floor.mode === "hold" && floor.team) {
+    return Response.json({ error: "The fight waits for the rest of the party this team round." }, { status: 409 });
+  }
   // In combat, "release" means skip the absent player's turn: the pointer
   // advances and the DM plays any intervening enemies.
   if (floor.mode === "initiative") {

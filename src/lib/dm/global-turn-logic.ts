@@ -13,6 +13,7 @@ import { listSheets } from "@/lib/db/sheets";
 import { publishPersisted, publishWithSeq } from "@/lib/events";
 import { globalTurnSubmitted, type GlobalTurnState } from "@/lib/campaign-types";
 import { getActiveEncounter } from "@/lib/db/encounters";
+import { fightersOwing, fightOwnsTable, inTeamRoundFight, releaseTeamHold, teamRoundFight } from "@/lib/dm/team-round";
 
 // In-memory timers are only a latency optimization. jobs.ts also scans
 // persisted deadlines, so process restarts cannot lose a timed round.
@@ -66,7 +67,7 @@ export function startGlobalTurn(
     !campaign ||
     campaign.status !== "active" ||
     !campaign.gameSettings.globalTurn?.enabled ||
-    getActiveEncounter(campaignId)
+    fightOwnsTable(campaignId)
   ) {
     return null;
   }
@@ -78,8 +79,9 @@ export function startGlobalTurn(
   // left behind by narration used to make the round look active while the
   // composer still refused player actions. Opening/re-opening a round repairs
   // that condition without changing the round number or erasing submissions.
+  // A fight elsewhere keeps its own initiative floor (src/lib/dm/team-round.ts).
   const floor = getFloor(campaignId);
-  if (floor.mode !== "open") {
+  if (floor.mode !== "open" && !getActiveEncounter(campaignId)) {
     setFloor(campaignId, { mode: "open" });
     publishPersisted(campaignId, "floor_changed", { floor: { mode: "open" } });
   }
@@ -88,6 +90,7 @@ export function startGlobalTurn(
   // the authoritative state so stale clients get another SSE edge to heal on.
   if (state.phase === "active" || state.phase === "quorum_delay") {
     publishPersisted(campaignId, "global_turn_updated", { globalTurnState: state });
+    releaseTeamHold(campaignId);
     return state;
   }
   if (state.phase !== "waiting") return state;
@@ -109,10 +112,15 @@ export function startGlobalTurn(
     startedAt,
     reason,
   });
+  // A fighter who had their turn last team round gets the next one now.
+  releaseTeamHold(campaignId);
 
   const members = listMembers(campaignId);
+  const fight = teamRoundFight(campaignId);
   const eligibleSheets = listSheets(campaignId).filter((sheet) => {
     if (sheet.isCompanion || sheet.userId === campaign.dmUserId) return false;
+    // Fighters act on initiative, not through autopilot's free action.
+    if (fight && inTeamRoundFight(campaignId, fight, sheet)) return false;
     const member = members.find((m) => m.userId === sheet.userId);
     return Boolean(member?.autopilot && !member.muted && member.skipTurnsCount === 0);
   });
@@ -172,7 +180,7 @@ function evaluateReadiness(
   now = Date.now(),
 ): ReadinessResult {
   const campaign = getCampaignById(campaignId);
-  if (!campaign || !campaign.gameSettings.globalTurn?.enabled || getActiveEncounter(campaignId)) {
+  if (!campaign || !campaign.gameSettings.globalTurn?.enabled || fightOwnsTable(campaignId)) {
     return { state: inputState, shouldResolve: false };
   }
 
@@ -207,6 +215,10 @@ function evaluateReadiness(
   const quorumTarget = Math.min(counts.total, settings.quorumPlayers);
   const quorumReached = counts.responded >= quorumTarget;
   const allAnswered = counts.responded >= counts.total;
+  // Quorum never closes a team round on a fighter: every hero in the fight
+  // takes their initiative turn in it first.
+  const fight = teamRoundFight(campaignId);
+  const fightDone = !fight || fightersOwing(campaignId, fight, inputState).length === 0;
   let shouldResolve = false;
 
   if (quorumReached) {
@@ -217,7 +229,7 @@ function evaluateReadiness(
     if (allAnswered || settings.quorumDelayMinutes === 0) {
       deadlineAt = new Date(now).toISOString();
       phase = "quorum_delay";
-      shouldResolve = true;
+      shouldResolve = fightDone;
     } else {
       const reachedAt = new Date(quorumReachedAt).getTime();
       const quorumDeadline = new Date(
@@ -299,7 +311,7 @@ export function recordGlobalTurnAction(
 
   const campaign = getCampaignById(campaignId);
   if (!campaign) return { allowed: false, error: "Campaign not found." };
-  if (getActiveEncounter(campaignId) || !campaign.gameSettings.globalTurn?.enabled) {
+  if (fightOwnsTable(campaignId) || !campaign.gameSettings.globalTurn?.enabled) {
     return { allowed: true };
   }
 
@@ -395,10 +407,14 @@ function resolveGlobalTurnOnce(
 
   const state = getGlobalTurnState(campaignId);
   if (expectedRound !== undefined && state.roundNumber !== expectedRound) return state;
-  if (getActiveEncounter(campaignId)) {
+  if (fightOwnsTable(campaignId)) {
     cancelGlobalTurnTimer(campaignId);
     return state;
   }
+  // A team round stays open until every fighter has had their turn; the last
+  // one seals it (recordFighterTurn).
+  const fight = teamRoundFight(campaignId);
+  if (fight && fightersOwing(campaignId, fight, state).length) return state;
   if (state.phase === "ready" || state.phase === "resolving") return state;
   // A stale timer/job must never manufacture a round before the start trigger.
   if (state.phase === "waiting") return state;
@@ -488,10 +504,36 @@ export function completeGlobalTurn(
     resolvedBy: "mcp_narrator",
   });
 
-  // If this round opened an encounter, initiative owns input now. Keep the
-  // next global round armed but locked; the post-combat MCP narration will
-  // trigger it. Otherwise the successful narration is itself the next-round
+  // If this round opened a fight for the whole party, initiative owns input
+  // now. Keep the next global round armed but locked; the post-combat MCP
+  // narration will trigger it. Otherwise (no fight, or a fight only part of
+  // the party is in) the successful narration is itself the next-round
   // trigger and opens collection atomically with this command.
-  if (getActiveEncounter(campaignId)) return waitingState;
+  if (fightOwnsTable(campaignId)) return waitingState;
   return startGlobalTurn(campaignId, "mcp_completed") ?? waitingState;
+}
+
+/**
+ * A fighter's initiative turn in a team-round fight is their action this
+ * global round (src/lib/dm/team-round.ts): count it, and seal the round when
+ * it was the last thing the round waited for. Runs inside the command that
+ * moved initiative off them.
+ */
+export function recordFighterTurn(campaignId: string, characterId: string): void {
+  const fight = teamRoundFight(campaignId);
+  if (!fight || !inTeamRoundFight(campaignId, fight, { id: characterId })) return;
+  const state = getGlobalTurnState(campaignId);
+  if (state.phase !== "active" && state.phase !== "quorum_delay") return;
+  const usage = state.actionsByCharacter[characterId];
+  if (globalTurnSubmitted(usage)) return;
+  const result = evaluateReadiness(campaignId, {
+    ...state,
+    actionsByCharacter: {
+      ...state.actionsByCharacter,
+      [characterId]: { actionsCount: (usage?.actionsCount ?? 0) + 1, lastActionKind: "do", updatedAt: new Date().toISOString() },
+    },
+  });
+  // A deadline that passed while a fighter still owed their turn seals now.
+  const overdue = result.state.deadlineAt !== null && Date.parse(result.state.deadlineAt) <= Date.now();
+  if (result.shouldResolve || overdue) resolveGlobalTurnOnce(campaignId, result.state.roundNumber);
 }

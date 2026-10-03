@@ -19,6 +19,7 @@ import { getSheetForUser, listSheets } from "@/lib/db/sheets";
 import { publishOocMessage, publishPersisted, publishWithSeq } from "@/lib/events";
 import { recordGlobalTurnAction, resolveGlobalTurn } from "@/lib/dm/global-turn-logic";
 import { getActiveEncounter } from "@/lib/db/encounters";
+import { inTeamRoundFight, teamRoundFight } from "@/lib/dm/team-round";
 import { activePublicEncounter } from "@/lib/db/encounter-view";
 import { attacksAllowedFor, budgetFor } from "@/lib/dm/action-tools";
 import { combatSpellNames, validateCombatTurnIntent, type CombatSpellDescriptor } from "@/lib/dm/combat-turn-intent";
@@ -148,7 +149,13 @@ export async function POST(
   }
   const spatial = spatialEnabled(campaignId);
   const roomId = spatial ? spatialStore().getUserRoom(campaignId, user.id) : undefined;
-  const encounter = getActiveEncounter(campaignId, roomId);
+  // A fight only part of the party is in gates only the heroes standing at
+  // it. Everyone else plays the team round as if there were no fight: their
+  // floor is open and the global turn paces them (src/lib/dm/team-round.ts).
+  const fight = getActiveEncounter(campaignId, roomId);
+  const teamFight = spatial ? null : teamRoundFight(campaignId);
+  const outsideFight = Boolean(fight && teamFight?.id === fight.id && !inTeamRoundFight(campaignId, fight, sheet));
+  const encounter = outsideFight ? null : fight;
 
   // Global-turn collection is a hard server gate, not just a disabled UI.
   // Before global_turn_started and after global_turn_ready, no player composer
@@ -189,7 +196,7 @@ export async function POST(
   // always allowed); the floor releases once ALL of them have answered.
   // During a hold nobody may act until the lead releases. This read-modify-
   // write must stay await-free so it is atomic in Node.
-  const floor = getFloor(campaignId, roomId);
+  const floor: Floor = outsideFight ? { mode: "open" } : getFloor(campaignId, roomId);
   if (!canAct(floor, user.id, kind)) {
     if (floor.mode === "hold") {
       return Response.json(

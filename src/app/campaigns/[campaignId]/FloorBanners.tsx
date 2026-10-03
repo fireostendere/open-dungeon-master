@@ -195,7 +195,18 @@ export function FloorBanners({
           ) : null}
         </div>
       ) : null}
-      {floor.mode === "hold" && !floor.combat ? (
+      {floor.mode === "hold" && floor.team ? (
+        <div className="mb-2 flex items-center rounded-md border border-red-900/60 bg-red-950/30 px-3 py-1.5 text-xs text-red-200">
+          <Swords className="mr-1.5 size-3.5 shrink-0" />
+          <span>
+            {localeText(locale, {
+              en: `Round ${floor.next.mode === "initiative" ? floor.next.round : ""}: ${floor.next.mode === "initiative" ? floor.next.currentName : "the next hero"} acts once the rest of the party has had its turn (team round ${floor.team.round}).`,
+              ru: `Раунд ${floor.next.mode === "initiative" ? floor.next.round : ""}: ${floor.next.mode === "initiative" ? floor.next.currentName : "следующий герой"} сходит, когда сходит остальная команда (раунд команды ${floor.team.round}).`,
+            })}
+          </span>
+        </div>
+      ) : null}
+      {floor.mode === "hold" && !floor.combat && !floor.team ? (
         <div className="mb-2 flex items-center justify-between rounded-md border border-amber-900/60 bg-amber-950/30 px-3 py-1.5 text-xs">
           <span className="flex items-center gap-1.5 text-amber-200">
             <Hand className="size-3.5" />
