@@ -1,5 +1,6 @@
 import { getDatabase, nowIso, parseJson } from "@/lib/db/core";
-import { getCurrentLocation, insertKnownLocation, listLocations, type CampaignLocation } from "@/lib/db/locations";
+import { partyStanding } from "@/lib/db/party-standing";
+import { insertKnownLocation, listLocations, type CampaignLocation } from "@/lib/db/locations";
 import { getCampaignById } from "@/lib/db/campaigns";
 import { listSheets } from "@/lib/db/sheets";
 import { activeQuestLines } from "@/lib/dm/arc-logic";
@@ -304,12 +305,7 @@ export function preserveSpatialMapPositions(campaignId: string, rooms: SpatialRo
 // Where each character stands, by sheet id: the split map when the party is
 // split, otherwise everyone at the one current location. Location-chat rooms
 // keep their own presence in the spatial store instead.
-export function partyStanding(campaignId: string, sheets = listSheets(campaignId)): Record<string, string> {
-  const split = readRow(campaignId)?.partyLocations ?? {};
-  if (Object.keys(split).length) return split;
-  const current = getCurrentLocation(campaignId);
-  return current ? Object.fromEntries(sheets.map(sheet => [sheet.id, current.id])) : {};
-}
+export { partyStanding };
 
 // Part of the party stays behind: positions for every placed character. One
 // place for all of them is a whole party again (current location, no split).

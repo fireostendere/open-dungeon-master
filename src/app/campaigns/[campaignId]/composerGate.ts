@@ -14,7 +14,8 @@ import type { GlobalTurnState } from "@/lib/campaign-types";
 // Pure so the reading is easy to follow in one place; SessionView memoizes
 // the lists it hands in.
 export function composerGate({
-  floor,
+  floor: tableFloor,
+  outsideFight = false,
   sheets,
   meUserId,
   kind,
@@ -26,6 +27,9 @@ export function composerGate({
   locale = "en",
 }: {
   floor: Floor;
+  // A fight only part of the party is in, and this player's hero stands
+  // elsewhere: its floor is not theirs, the team round paces them.
+  outsideFight?: boolean;
   sheets: CharacterSheet[];
   meUserId: string;
   kind: InputKind;
@@ -37,6 +41,7 @@ export function composerGate({
   globalTurnState?: GlobalTurnState | null;
   locale?: Locale;
 }) {
+  const floor: Floor = outsideFight ? { mode: "open" } : tableFloor;
   const combat = floor.mode === "initiative" || (floor.mode === "hold" && (floor.next.mode === "initiative" || !!floor.combat));
   const exempt = isFloorExempt(kind) && !(combat && kind === "lead");
   const spotlighted =
@@ -102,14 +107,16 @@ export function composerGate({
 
   const inputBlocked = floorBlocked || holdBlocked || initiativeBlocked || narrationBlocked || turnActionBlocked;
   const copy = locale === "ru"
-    ? { narrating: "Мастер задаёт сцену... (OOC доступен)", resolving: "Ход {name} у Мастера — сейчас ничей ход. Следующий откроется, когда Мастер допишет. (OOC доступен)", held: "Лидер отряда удерживает право слова... (OOC доступен)", turn: "Ход {name} в бою... (OOC доступен)", waiting: "Ожидание: {names}... (OOC доступен)", action: "Что делает или говорит {name}?", ask: "Спросите Мастера; вопрос не тратит ход", narrate: "Опишите сцену. Сервер всё равно бросает кости.", ooc: "Внеигровая заметка для стола", private: "Лично сообщите Мастеру, что делать в следующем ходу", lead: "Направьте сюжет: Мастер должен учесть это" }
-    : { narrating: "The Dungeon Master is setting the scene... (OOC still open)", resolving: "The DM is resolving {name}'s turn — it is nobody's turn until they finish. (OOC still open)", held: "The party lead has the floor held for discussion... (OOC still open)", turn: "{name}'s turn in combat... (OOC still open)", waiting: "Waiting on {names}... (OOC still open)", action: "What does {name} do or say?", ask: "Ask the DM; it does not use your turn", narrate: "Narrate the scene. The server still rolls every die.", ooc: "Out-of-character note to the table", private: "Tell the DM privately what to do with the next turn", lead: "Steer the story: a direction the DM must weave in" };
+    ? { team: "{name} уже сходил в этом раунде команды: следующий ход в бою откроется, когда сходят остальные. (OOC доступен)", narrating: "Мастер задаёт сцену... (OOC доступен)", resolving: "Ход {name} у Мастера — сейчас ничей ход. Следующий откроется, когда Мастер допишет. (OOC доступен)", held: "Лидер отряда удерживает право слова... (OOC доступен)", turn: "Ход {name} в бою... (OOC доступен)", waiting: "Ожидание: {names}... (OOC доступен)", action: "Что делает или говорит {name}?", ask: "Спросите Мастера; вопрос не тратит ход", narrate: "Опишите сцену. Сервер всё равно бросает кости.", ooc: "Внеигровая заметка для стола", private: "Лично сообщите Мастеру, что делать в следующем ходу", lead: "Направьте сюжет: Мастер должен учесть это" }
+    : { team: "{name} has had a turn this team round: the next one in the fight opens once the rest of the party has acted. (OOC still open)", narrating: "The Dungeon Master is setting the scene... (OOC still open)", resolving: "The DM is resolving {name}'s turn — it is nobody's turn until they finish. (OOC still open)", held: "The party lead has the floor held for discussion... (OOC still open)", turn: "{name}'s turn in combat... (OOC still open)", waiting: "Waiting on {names}... (OOC still open)", action: "What does {name} do or say?", ask: "Ask the DM; it does not use your turn", narrate: "Narrate the scene. The server still rolls every die.", ooc: "Out-of-character note to the table", private: "Tell the DM privately what to do with the next turn", lead: "Steer the story: a direction the DM must weave in" };
   const placeholder = turnActionBlocked
     ? turnActionReason
     : narrationBlocked
       ? copy.narrating
       : holdBlocked
-        ? floor.mode === "hold" && floor.combat
+        ? floor.mode === "hold" && floor.team
+          ? copy.team.replace("{name}", () => floor.mode === "hold" && floor.next.mode === "initiative" ? floor.next.currentName : "…")
+          : floor.mode === "hold" && floor.combat
           ? copy.resolving.replace("{name}", () => sheets.find((sheet) => floor.mode === "hold" && sheet.id === floor.combat?.characterId)?.name ?? "…")
           : copy.held
         : initiativeBlocked

@@ -301,10 +301,14 @@ export function SessionView({
   // Mid-game joiners may ask the DM before they finish creating a character.
   const needsCharacter = caps.needsCharacter && !mySheet && campaign?.status === "active";
   const composerKind = needsCharacter ? "ask" : kind;
+  // A fight part of the party is in, and my hero stands elsewhere: I watch
+  // it and play the team round (src/lib/dm/team-round.ts).
+  const outsideFight = Boolean(mySheet && state.encounter?.outsideIds?.includes(mySheet.id));
   const gate = useMemo(
     () =>
       composerGate({
         floor,
+        outsideFight,
         sheets,
         meUserId: meId,
         kind: composerKind,
@@ -315,12 +319,13 @@ export function SessionView({
         globalTurnState,
         locale,
       }),
-    [floor, sheets, meId, composerKind, myName, leadPrivate, openingNarrationPlaying, globalTurnEnabled, globalTurnState, locale],
+    [floor, outsideFight, sheets, meId, composerKind, myName, leadPrivate, openingNarrationPlaying, globalTurnEnabled, globalTurnState, locale],
   );
   // Lead prompt: a newcomer's join note the DM has not narrated past yet.
   const joinNotice = latestUnintroducedJoin(messages);
   const showJoinBanner = steersStory && joinNotice !== null && dismissedJoinNotice !== joinNotice.id;
-  const combatFloor = floor.mode === "hold" ? floor.next : floor;
+  // A turn held for the team round is not open yet.
+  const combatFloor = floor.mode === "hold" && !floor.team ? floor.next : floor;
   const initiativeFloor = combatFloor.mode === "initiative" ? combatFloor : null;
   const ownCombatTurn = Boolean(
     initiativeFloor &&

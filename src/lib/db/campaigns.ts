@@ -67,7 +67,10 @@ export type Floor =
   | InitiativeFloor
   // Held responses: nobody may act until the party lead releases; `next` is
   // the floor that takes effect on release.
-  | { mode: "hold"; next: { mode: "open" } | SpotlightFloor | InitiativeFloor; combat?: CombatSubmissionGate };
+  | { mode: "hold"; next: { mode: "open" } | SpotlightFloor | InitiativeFloor; combat?: CombatSubmissionGate;
+    // A hero's initiative turn waiting for the rest of the party to finish
+    // this team (global) round (src/lib/dm/team-round.ts).
+    team?: { round: number } };
 
 export type Campaign = CampaignSummary & {
   scene: string;
@@ -218,10 +221,12 @@ export function normalizeFloor(raw: unknown): Floor {
       Number.isInteger(combat.round) && combat.round >= 1 && Number.isInteger(combat.turnIndex) && combat.turnIndex >= 0 &&
       typeof combat.requiresEndTurn === "boolean" && typeof combat.mechanicsResolved === "boolean"
       ? combat : undefined;
+    const team = floor.team && Number.isInteger(floor.team.round) && floor.team.round >= 1 ? { round: floor.team.round } : undefined;
     return {
       mode: "hold",
       next: normalizeSpotlight(floor.next) ?? normalizeInitiative(floor.next) ?? { mode: "open" },
       ...(normalizedCombat ? { combat: normalizedCombat } : {}),
+      ...(team ? { team } : {}),
     };
   }
   return { mode: "open" };

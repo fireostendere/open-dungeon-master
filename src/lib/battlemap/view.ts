@@ -157,7 +157,16 @@ export function buildPlayerMapView(
     );
     explored = mergeExplored(map.id, sheet.id, visible, tileCount);
   } else if (sheet) {
-    explored = getExplored(map.id, sheet.id, tileCount);
+    // A hero who is not on this board (standing elsewhere while part of the
+    // party fights) watches it through the eyes of the heroes in it.
+    const party = new Map(listSheets(campaignId).map((entry) => [entry.id, entry]));
+    for (const token of tokens) {
+      const ally = token.kind === "pc" ? party.get(token.refId) : undefined;
+      if (!ally) continue;
+      const seen = visibleTiles(vision, { x: token.x, y: token.y, darkvisionTiles: sheetDarkvisionTiles(ally) }, tokens, map.lights, lit);
+      for (const tile of seen) visible.add(tile);
+    }
+    explored = new Set([...getExplored(map.id, sheet.id, tileCount), ...visible]);
   }
 
   // Terrain memory: what the character has explored, blanked elsewhere.

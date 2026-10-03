@@ -21,6 +21,10 @@ export function finishHumanAdjudication(campaign: Campaign, turn: DmTurn, action
     if (pending.length) throw new Error("Resolve pending physical rolls before ending the combat turn.");
     const before = getActiveEncounter(campaign.id);
     const floor = getFloor(campaign.id);
+    if (floor.mode === "hold" && floor.team) {
+      throw new Error("This hero's next turn waits for the rest of the party to finish team round " +
+        `${floor.team.round}; it opens when the next global round starts. Resolve the round (completeGlobalRound) instead.`);
+    }
     const initiative = floor.mode === "hold" ? floor.next : floor;
     if (!before?.orderReady || initiative.mode !== "initiative" || initiative.encounterId !== before.id) {
       throw new Error("The initiative floor no longer matches this encounter.");

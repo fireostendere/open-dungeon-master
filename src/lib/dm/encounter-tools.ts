@@ -7,6 +7,7 @@ import {
   setMemberSkipTurns,
   setFloor,
   getFloor,
+  getGlobalTurnState,
   type Campaign,
   type InitiativeFloor,
 } from "@/lib/db/campaigns";
@@ -34,6 +35,8 @@ import { enemyRequestSchema, resolveEnemyRequests } from "@/lib/dm/encounter-spa
 import { healthState } from "@/lib/bestiary/health";
 import type { EnemyAttack, EnemySaveAction } from "@/lib/bestiary/statblock";
 import { pickEnemyAction, rechargeEnemies, spendAction } from "@/lib/dm/enemy-actions";
+import { recordFighterTurn, startGlobalTurn } from "@/lib/dm/global-turn-logic";
+import { releaseTeamHold, teamFloor, teamRoundFight, turnAnnouncement } from "@/lib/dm/team-round";
 import {
   advanceOrder,
   buildOrder,
@@ -565,11 +568,13 @@ export function setInitiativeFloor(campaign: Campaign | null, encounter: Encount
     round: encounter.round,
   };
   // Pointer movement must not reopen a submitted combat turn. The narration
-  // path is the only place that releases this gate.
+  // path is the only place that releases this gate. A hero who already had
+  // their turn this team round waits for the rest of the party
+  // (src/lib/dm/team-round.ts).
   const previous = getFloor(campaign.id, encounter.roomId);
   const next = previous.mode === "hold" && previous.combat?.encounterId === encounter.id
     ? { ...previous, next: floor }
-    : floor;
+    : teamFloor(campaign.id, floor, current.characterId);
   setFloor(campaign.id, next, encounter.roomId);
   publishPersisted(campaign.id, "floor_changed", { floor: next });
 }
@@ -1316,6 +1321,11 @@ function advancePointer(
   if (!next) {
     return null;
   }
+  // The hero whose turn just ended has had their action this team round.
+  const leaving = encounter.order[encounter.turnIndex];
+  if (leaving?.kind === "pc") {
+    recordFighterTurn(campaign.id, leaving.characterId);
+  }
   encounter.turnIndex = next.turnIndex;
   // The action economy belongs to whoever was acting; the next combatant
   // starts clean (src/lib/dm/action-budget.ts).
@@ -1505,7 +1515,7 @@ export function announceCurrentTurn(campaign: Campaign): void {
     campaignId: campaign.id,
     seq,
     authorType: "system",
-    content: `It is now ${current.name}'s turn (round ${encounter.round}).`,
+    content: turnAnnouncement(campaign.id, encounter, current.name),
   });
   publishWithSeq(campaign.id, seq, "message_added", { message });
 }
@@ -1631,6 +1641,14 @@ export function queueSkippedCombatTurn(campaignId: string): void {
 // out on their own turn hands it on (the DM then plays enemies passed).
 export function syncFightRosters(campaignId: string): string[] {
   const { notes, leftOnTheirTurn } = syncFightBoards(campaignId);
+  // Part of the party walked off (or back): the team round starts for those
+  // outside, or ends because everyone is in the fight again.
+  if (teamRoundFight(campaignId) && getGlobalTurnState(campaignId).phase === "waiting") {
+    startGlobalTurn(campaignId, "mcp_trigger");
+  }
+  releaseTeamHold(campaignId);
+  // Who is in the fight and who watches it changed with the move.
+  if (getActiveEncounter(campaignId)) publishEncounter(campaignId);
   for (const encounter of leftOnTheirTurn) {
     const leaving = encounter.order[encounter.turnIndex]?.name;
     const pass = () => skipCurrentTurn(campaignId, "left");

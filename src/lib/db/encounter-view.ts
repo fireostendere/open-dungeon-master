@@ -11,7 +11,8 @@ import {
   type EnemyStatus,
 } from "@/lib/db/encounters";
 import { spatialStore } from "@/lib/spatial/service";
-import { getSheetForUser } from "@/lib/db/sheets";
+import { getSheetForUser, listSheets } from "@/lib/db/sheets";
+import { inTeamRoundFight, teamRoundFight } from "@/lib/dm/team-round";
 import { getCampaignById } from "@/lib/db/campaigns";
 import type { EnemyConditionVisibility, EnemyHpVisibility } from "@/lib/schemas/game-settings-options";
 
@@ -69,6 +70,9 @@ export type PublicEncounter = {
     ac?: number;
     initiative?: number | null;
   }>;
+  // Heroes standing away from a fight only part of the party is in. They
+  // play the team round instead and watch this fight (src/lib/dm/team-round.ts).
+  outsideIds?: string[];
 };
 
 export function publicEncounter(
@@ -181,10 +185,16 @@ export function activePublicEncounter(
     }
   }
   const settings = getCampaignById(campaignId)?.gameSettings;
-  return publicEncounter(encounter, listEnemies(encounter.id), {
+  const projection = publicEncounter(encounter, listEnemies(encounter.id), {
     ...options,
     enemyHpVisibility: options.enemyHpVisibility ?? settings?.enemyHpVisibility,
     enemyConditionVisibility: options.enemyConditionVisibility ?? settings?.enemyConditionVisibility,
     hiddenRefIds: Array.from(hidden),
   });
+  const teamFight = teamRoundFight(campaignId);
+  if (teamFight?.id !== encounter.id) return projection;
+  return {
+    ...projection,
+    outsideIds: listSheets(campaignId).filter((sheet) => !inTeamRoundFight(campaignId, encounter, sheet)).map((sheet) => sheet.id),
+  };
 }
