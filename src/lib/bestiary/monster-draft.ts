@@ -260,7 +260,9 @@ export function draftFromCr(name: string, cr: number): MonsterDraft {
 export function draftFromStats(name: string, stats: EnemyStats): MonsterDraft {
   return {
     name,
-    stats: { ...stats, size: stats.size ?? "Medium", type: creatureTypeOf(stats) },
+    // The editor holds attacks that deal damage; a web or a grab with no
+    // dice would fail checkAttack and block the whole copy.
+    stats: { ...stats, attacks: stats.attacks.filter((attack) => attack.damage), size: stats.size ?? "Medium", type: creatureTypeOf(stats) },
     extraDamagePerRound: 0,
   };
 }

@@ -273,7 +273,7 @@ test('Skip N queues one normal turn per arrival, never advances enemies or decre
       '@/lib/srd': {}, '@/lib/srd/encounter-math': {}, '@/lib/bestiary': {}, '@/lib/bestiary/synthesize': {},
       '@/lib/dm/encounter-spawn': { enemyRequestSchema: z.any() }, '@/lib/bestiary/health': {},
       '@/lib/dm/encounter-logic': {}, '@/lib/dm/mutations': {}, '@/lib/dm/ambience-tools': {},
-      '@/lib/dm/map-tools': {}, '@/lib/dm/enemy-damage': {},
+      '@/lib/dm/map-tools': {}, '@/lib/dm/enemy-damage': {}, '@/lib/dm/enemy-actions': {},
       '@/lib/dm/combat-mode': loadSource('src/lib/dm/combat-mode.ts'),
       '@/lib/dm/encounter-tools-extra': { EXTRA_ENCOUNTER_TOOL_NAMES: [], extraEncounterTools: [] },
       '@/lib/dm/pc-attack': {}, '@/lib/db/users': {}, '@/lib/dm/wake': { wakeDm: () => { wakes++; } },

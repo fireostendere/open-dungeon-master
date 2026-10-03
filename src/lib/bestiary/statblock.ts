@@ -9,13 +9,57 @@ export type EnemyAttack = {
   name: string;
   toHit: number;
   // A dice expression src/lib/dice.ts rollExpression accepts, e.g. "1d8+3"
-  // or "2d10+8+2d6" when the attack carries rider damage.
+  // or "2d10+8+2d6" when the attack carries rider damage. Empty when a hit
+  // deals no damage and only does what onHit says (a web, a grab).
   damage: string;
   type: string;
+  // Feet, from the printed block. A melee attack has reach, a ranged one
+  // range (and longRange, at disadvantage); a thrown weapon has both.
+  // Absent on synthesized and homebrew blocks: the name decides there
+  // (src/lib/dm/map-tools.ts).
+  reach?: number;
+  range?: number;
+  longRange?: number;
+  // Limited use: back on a d6 of `recharge` or more at the start of a round,
+  // or `uses` times per fight ("3/Day", "Recharges after a Short Rest").
+  recharge?: number;
+  uses?: number;
+  onHit?: EnemyHitEffect;
 };
 
 export type SaveAbility = "str" | "dex" | "con" | "int" | "wis" | "cha";
 export type EnemySaveMods = Record<SaveAbility, number>;
+
+// A saving throw the block forces: after a hit (a spider's poison, a
+// ghoul's paralysis) or as the whole action (a breath weapon).
+export type EnemySave = {
+  ability: SaveAbility;
+  dc: number;
+  damage?: string;
+  damageType?: string;
+  // Half damage on a success; otherwise a success takes nothing.
+  half?: boolean;
+  condition?: string;
+  // Absent = the target re-saves each round to end it.
+  rounds?: number;
+};
+
+// What a landed hit does beyond its damage: a condition with no save (the
+// web restrains, the jaws grapple, with the DC to break free), a save.
+export type EnemyHitEffect = {
+  condition?: string;
+  escapeDc?: number;
+  save?: EnemySave;
+};
+
+// An action that is a saving throw rather than an attack roll.
+export type EnemySaveAction = EnemySave & {
+  name: string;
+  // "30-foot cone", as printed; the narrator picks who is in it.
+  area?: string;
+  recharge?: number;
+  uses?: number;
+};
 
 export type EnemyStats = {
   ac: number;
@@ -26,6 +70,9 @@ export type EnemyStats = {
   saveMods?: EnemySaveMods;
   speed: string;
   attacks: EnemyAttack[];
+  // Save actions the engine resolves itself (breath weapons, gazes).
+  // Optional: synthesized blocks and old snapshots lack it.
+  saves?: EnemySaveAction[];
   // Non-attack actions and special abilities as one-line rules text, e.g.
   // "Fire Breath (Recharge 5-6): DC 12 Dex save, 6d6 fire, half on success".
   traits: string[];
@@ -121,6 +168,7 @@ export function parseMultiattackCount(description: string): number | null {
 }
 
 const MAX_ATTACKS = 4;
+const MAX_SAVES = 3;
 const MAX_TRAITS = 4;
 const TRAIT_CHARS = 140;
 
@@ -140,42 +188,197 @@ function asString(value: unknown): string {
   return typeof value === "string" ? value : "";
 }
 
-// "piercing damage plus 7 (2d6) fire damage" -> ["piercing", "fire"].
-function damageTypes(desc: string): string {
-  const types = [
-    ...new Set([...desc.matchAll(/\(?[\d) ]*([a-z]+) damage/gi)].map((m) => m[1].toLowerCase())),
-  ].filter((word) => word !== "extra" && word !== "of");
-  return types.join("/");
+// ---- reading the printed action ----
+//
+// The text is the source of truth. Half the pack (A5E, Black Flag, Tome of
+// Beasts 2023) has no attack_bonus or damage_dice fields at all, and where
+// the fields exist they are sometimes wrong (a vampire spawn's bite at +61)
+// or already include the rider dice the text prints again.
+
+const CONDITIONS =
+  "blinded|charmed|deafened|frightened|grappled|incapacitated|paralyzed|petrified|poisoned|prone|restrained|stunned|unconscious";
+const ATTACK_RE = /(Melee or Ranged|Melee|Ranged) (?:Weapon|Spell) Attack[:.]?\s*([+-]\s?\d+) to hit/i;
+// "DC 11 Constitution saving throw", or Black Flag's "DC 12 CON save".
+const SAVE_RE = /DC (\d+) (Str(?:ength)?|Dex(?:terity)?|Con(?:stitution)?|Int(?:elligence)?|Wis(?:dom)?|Cha(?:risma)?) sav(?:ing throw|e)\b/i;
+// "7 (1d8 + 3) piercing damage"; a few blocks drop the word "damage". The
+// word after the dice has to be a damage type (or "damage"): dice followed by
+// "hit points" or "rounds" are not damage.
+const DAMAGE_WORD = "acid|bludgeoning|cold|fire|force|lightning|necrotic|piercing|poison|psychic|radiant|slashing|thunder|damage";
+const DICE_DAMAGE_RE = new RegExp(`\\d+ \\((\\d+d\\d+(?:\\s*[+-]\\s*\\d+)?)\\) (${DAMAGE_WORD})\\b`, "i");
+const RIDER_RE = new RegExp(`plus \\d+ \\((\\d+d\\d+(?:\\s*[+-]\\s*\\d+)?)\\) (${DAMAGE_WORD})\\b`, "gi");
+// "...or be paralyzed", "On a failure, the target is frightened", within one sentence.
+const FAILED_CONDITION_RE = new RegExp(
+  `(?:\\bor|on a fail(?:ed save|ure),?)[^.]*?\\b(?:be|is|becomes?) (?:knocked )?(${CONDITIONS})\\b`,
+  "i",
+);
+// "the target is grappled (escape DC 13)", "The target is restrained by
+// webbing". Only these three: a hit that blinds or poisons outright is
+// nearly always conditional prose (swallowed, attached, "if the target is
+// paralyzed") the narrator has to read anyway.
+const HIT_CONDITION_RE = /\b(if )?(?:the )?(?:target|creature|it) is (?:also )?(?:knocked )?(grappled|restrained|prone)\b/gi;
+
+// Open5e prose comes plain or as markdown ("_Hit:_"), with the odd
+// typographic minus.
+function prose(desc: unknown): string {
+  return asString(desc).replace(/[_*]/g, "").replace(/−/g, "-").replace(/\s+/g, " ").trim();
 }
 
-// Rider damage appears only in the desc: "Hit: 7 (1d8 + 3) piercing damage
-// plus 7 (2d6) fire damage." The first parenthesized dice group is already
-// covered by damage_dice; every later one is appended to the expression.
-function riderDice(desc: string): string[] {
-  const groups = [...desc.matchAll(/plus \d+ \((\d{1,3}d\d{1,3}(?:\s*[+-]\s*\d+)?)\)/gi)];
-  return groups.map((match) => match[1].replace(/\s+/g, ""));
+function compact(expression: string): string {
+  return expression.replace(/\s+/g, "");
 }
 
-function parseAttack(action: RawAction): EnemyAttack | null {
+// "(Recharge 5-6)" -> 5; "(3/Day)" -> 3 uses; "(Recharges after a Short or
+// Long Rest)" -> once a fight.
+function limitOf(name: string): { recharge?: number; uses?: number } {
+  const recharge = /\(Recharge (\d)/i.exec(name);
+  if (recharge) {
+    return { recharge: Number(recharge[1]) };
+  }
+  const perDay = /\((\d+)\/Day/i.exec(name);
+  if (perDay) {
+    return { uses: Number(perDay[1]) };
+  }
+  return /Recharges? after/i.test(name) ? { uses: 1 } : {};
+}
+
+// How long a failed save lasts. A repeated save wins over the printed cap:
+// that is how it actually ends at the table.
+function roundsOf(text: string): number | undefined {
+  if (/repeat the saving throw/i.test(text)) {
+    return undefined;
+  }
+  if (/until the (?:end|start) of (?:its|the target's|the [a-z]+'s) next turn/i.test(text)) {
+    return 1;
+  }
+  const minutes = /for (\d+) minutes?/i.exec(text);
+  if (minutes) {
+    return Math.min(100, Number(minutes[1]) * 10);
+  }
+  return /for \d+ (?:hours?|days?)/i.test(text) ? 100 : undefined;
+}
+
+// The save in this text, with what failing it costs. Null when the text
+// names a save the engine cannot resolve (a disease, a pull, a swallow).
+function parseSave(text: string): EnemySave | null {
+  const match = SAVE_RE.exec(text);
+  if (!match) {
+    return null;
+  }
+  const rest = text.slice(match.index);
+  const damage = DICE_DAMAGE_RE.exec(rest);
+  const condition = FAILED_CONDITION_RE.exec(rest)?.[1].toLowerCase();
+  if ((!damage || !isValidExpression(compact(damage[1]))) && !condition) {
+    return null;
+  }
+  const rounds = condition && condition !== "prone" ? roundsOf(rest) : undefined;
+  return {
+    ability: match[2].slice(0, 3).toLowerCase() as SaveAbility,
+    dc: Number(match[1]),
+    ...(damage && isValidExpression(compact(damage[1]))
+      ? { damage: compact(damage[1]), ...(/^damage$/i.test(damage[2]) ? {} : { damageType: damage[2].toLowerCase() }) }
+      : {}),
+    ...(damage && /\bhalf (?:as much|damage|the damage|on a success)/i.test(rest) ? { half: true } : {}),
+    ...(condition ? { condition } : {}),
+    ...(rounds ? { rounds } : {}),
+  };
+}
+
+// Damage and effects after "Hit:". Whatever comes after the save belongs to
+// the save, so the hit's own dice are read from before it.
+function parseHit(hit: string): { damage: string; type: string; onHit?: EnemyHitEffect } {
+  const saveAt = hit.search(SAVE_RE);
+  const before = saveAt < 0 ? hit : hit.slice(0, saveAt);
+  const main = DICE_DAMAGE_RE.exec(before);
+  const flat = main ? null : new RegExp(`^\\s*(\\d+) (${DAMAGE_WORD})\\b`, "i").exec(before);
+  const riders = [...before.matchAll(RIDER_RE)];
+  const parts = [main?.[1] ?? flat?.[1], ...riders.map((rider) => rider[1])].filter(
+    (part): part is string => Boolean(part),
+  );
+  const damage = parts.map(compact).join("+");
+  const types = [...new Set([main?.[2] ?? flat?.[2], ...riders.map((rider) => rider[2])].map((type) => type?.toLowerCase()))]
+    .filter((type): type is string => Boolean(type) && type !== "damage");
+
+  const condition = [...before.matchAll(HIT_CONDITION_RE)].find((match) => !match[1])?.[2].toLowerCase();
+  const escape = /escape DC (\d+)|DC (\d+) Strength(?: \(Athletics\))? check/i.exec(hit);
+  const save = saveAt < 0 ? null : parseSave(hit.slice(saveAt));
+  const onHit: EnemyHitEffect = {
+    ...(condition ? { condition } : {}),
+    ...(condition && escape ? { escapeDc: Number(escape[1] ?? escape[2]) } : {}),
+    ...(save ? { save } : {}),
+  };
+  return {
+    damage: isValidExpression(damage) ? damage : "",
+    type: types.join("/"),
+    ...(Object.keys(onHit).length ? { onHit } : {}),
+  };
+}
+
+// The old field-only reading, for rows whose text names no attack.
+function fieldAttack(action: RawAction): EnemyAttack | null {
   const toHit = asNumber(action.attack_bonus);
-  const dice = asString(action.damage_dice).replace(/\s+/g, "");
+  const dice = compact(asString(action.damage_dice));
   if (toHit === null || toHit <= 0 || !dice) {
     return null;
   }
   const bonus = asNumber(action.damage_bonus) ?? 0;
-  const desc = asString(action.desc);
-  let damage = bonus > 0 ? `${dice}+${bonus}` : bonus < 0 ? `${dice}-${Math.abs(bonus)}` : dice;
-  for (const rider of riderDice(desc)) {
-    damage = `${damage}+${rider}`;
-  }
+  const damage = bonus > 0 ? `${dice}+${bonus}` : bonus < 0 ? `${dice}-${Math.abs(bonus)}` : dice;
   if (!isValidExpression(damage)) {
     return null;
   }
+  return { name: asString(action.name) || "Attack", toHit, damage, type: "untyped" };
+}
+
+function parseAttack(action: RawAction): EnemyAttack | null {
+  const name = asString(action.name) || "Attack";
+  const text = prose(action.desc);
+  const header = ATTACK_RE.exec(text);
+  const hitAt = text.search(/\bHit:/i);
+  if (!header && hitAt < 0) {
+    return fieldAttack(action);
+  }
+  // A block printed without "Melee Weapon Attack: +5 to hit" keeps its to-hit in the field.
+  const toHit = header ? Number(header[2].replace(/\s+/g, "")) : asNumber(action.attack_bonus);
+  if (toHit === null || (!header && toHit <= 0)) {
+    return null;
+  }
+  const head = hitAt < 0 ? text : text.slice(0, hitAt);
+  const hit = parseHit(hitAt < 0 ? text.slice(header!.index + header![0].length) : text.slice(hitAt + 4));
+  const fallback = hit.damage || hit.onHit ? null : fieldAttack(action);
+  if (!hit.damage && !hit.onHit && !fallback) {
+    return null;
+  }
+  const kind = header?.[1].toLowerCase() ?? "";
+  // Some blocks print the distance bare: "+8 to hit, 10 ft., one target".
+  const bare = /to hit, (\d+) ft/i.exec(head);
+  const reach = /reach (\d+) ft/i.exec(head) ?? (kind === "melee" ? bare : null);
+  const range = /range (\d+)(?:\/(\d+))? ft/i.exec(head) ?? (kind === "ranged" ? bare : null);
   return {
-    name: asString(action.name) || "Attack",
+    name,
     toHit,
-    damage,
-    type: damageTypes(desc) || "untyped",
+    damage: hit.damage || fallback?.damage || "",
+    type: hit.type || "untyped",
+    ...(reach ? { reach: Number(reach[1]) } : {}),
+    ...(range ? { range: Number(range[1]) } : {}),
+    ...(range?.[2] ? { longRange: Number(range[2]) } : {}),
+    ...limitOf(name),
+    ...(hit.onHit ? { onHit: hit.onHit } : {}),
+  };
+}
+
+// A breath weapon, a gaze, a frightful roar: an action that is a save.
+function parseSaveAction(action: RawAction): EnemySaveAction | null {
+  const name = asString(action.name);
+  const text = prose(action.desc);
+  const save = name ? parseSave(text) : null;
+  if (!save) {
+    return null;
+  }
+  const area = /(\d+)-foot[- ](cone|line|cube|sphere|radius|emanation)/i.exec(text);
+  return {
+    name,
+    ...save,
+    ...(area ? { area: `${area[1]}-foot ${area[2].toLowerCase()}` } : {}),
+    ...limitOf(name),
   };
 }
 
@@ -208,6 +411,7 @@ export function parseMonster(data: Record<string, unknown>, crFromRow: number): 
     : [];
 
   const attacks: EnemyAttack[] = [];
+  const saves: EnemySaveAction[] = [];
   const nonAttackActions: RawAction[] = [];
   let attacksPerTurn = 1;
   for (const action of actions) {
@@ -217,6 +421,10 @@ export function parseMonster(data: Record<string, unknown>, crFromRow: number): 
     } else if (!attack) {
       if (/multiattack/i.test(String(action.name ?? ""))) {
         attacksPerTurn = parseMultiattackCount(String(action.desc ?? "")) ?? 2;
+      }
+      const save = parseSaveAction(action);
+      if (save && saves.length < MAX_SAVES) {
+        saves.push(save);
       }
       nonAttackActions.push(action);
     }
@@ -267,6 +475,7 @@ export function parseMonster(data: Record<string, unknown>, crFromRow: number): 
     saveMods,
     speed: formatSpeed(data.speed),
     attacks,
+    ...(saves.length ? { saves } : {}),
     traits,
     resist: asString(data.damage_resistances),
     immune: asString(data.damage_immunities),

@@ -24,6 +24,7 @@ import { effectiveSpeed } from "@/lib/dm/condition-logic";
 import { isJrpgCombat } from "@/lib/dm/combat-mode";
 import { formatDistanceFeet } from "@/lib/units/narration";
 import type { CharacterSheet } from "@/lib/schemas/sheet";
+import type { EnemyAttack } from "@/lib/bestiary/statblock";
 import { z } from "zod";
 
 // Battle-map lifecycle and the move_token DM tool. Kept separate from
@@ -400,22 +401,42 @@ const RANGED_ATTACK_RE =
   /bow|crossbow|sling|dart|javelin|thrown|spit|spine|rifle|pistol|gun|blast|bolt|ray|breath|web|rock|spear of|longarm/i;
 const RANGED_TILES = 12;
 
-// Whether an enemy attack name reads as a ranged attack (shared with the
-// condition engine's melee/ranged advantage rules).
-export function isRangedAttackName(attackName: string): boolean {
-  return RANGED_ATTACK_RE.test(attackName);
+// What an enemy attack can reach, in tiles. The printed block decides; a
+// block without distances (synthesized, homebrew) is read from its name, at
+// the old flat 60 ft.
+function attackReachTiles(attack: Pick<EnemyAttack, "name" | "reach" | "range" | "longRange">) {
+  const printed = attack.reach !== undefined || attack.range !== undefined;
+  const melee = printed ? attack.reach !== undefined : !RANGED_ATTACK_RE.test(attack.name);
+  const range = printed
+    ? attack.range === undefined ? 0 : Math.max(1, Math.floor(attack.range / 5))
+    : melee ? 0 : RANGED_TILES;
+  return {
+    melee,
+    // Reach 0 (a swarm in your space) still means the next tile on a grid.
+    reach: Math.max(1, Math.floor((attack.reach ?? 5) / 5)),
+    range,
+    long: Math.max(range, Math.floor((attack.longRange ?? 0) / 5)),
+  };
 }
 
-// Melee attackers step toward their target automatically so a model that
-// never calls move_token still produces spatially coherent combat. Returns
-// null when the attack may proceed; otherwise a result explaining why not.
+// Whether an enemy attack is a ranged one when there is no board to measure
+// on (shared with the condition engine's melee/ranged advantage rules).
+export function isRangedAttack(attack: Pick<EnemyAttack, "name" | "reach" | "range" | "longRange">): boolean {
+  return !attackReachTiles(attack).melee;
+}
+
+// Attackers step toward their target automatically so a model that never
+// calls move_token still produces spatially coherent combat: into reach for
+// a melee attack, into normal range and sight for a ranged one. Null when
+// there is no board; otherwise how the attack is made (`far`: past normal
+// range, at disadvantage) or why it cannot be.
 export function approachForAttack(
   campaign: Campaign,
   encounterId: string,
   enemyId: string,
   targetCharacterId: string,
-  attackName: string,
-): { blocked?: Record<string, unknown>; movedTo?: string } | null {
+  attack: Pick<EnemyAttack, "name" | "reach" | "range" | "longRange">,
+): { blocked?: Record<string, unknown>; movedTo?: string; ranged?: boolean; far?: boolean } | null {
   if (isJrpgCombat(campaign)) {
     return null;
   }
@@ -428,9 +449,13 @@ export function approachForAttack(
   if (!attacker || !target) {
     return null;
   }
+  const units = campaign.gameSettings.unitSystem;
+  const tiles = attackReachTiles(attack);
   const distance = chebyshev(attacker.x, attacker.y, target.x, target.y);
-  const ranged = RANGED_ATTACK_RE.test(attackName);
-  if (ranged) {
+  if (tiles.melee && distance <= tiles.reach) {
+    return { ranged: false };
+  }
+  if (tiles.range) {
     const sighted = hasLineOfSight(
       map.terrain,
       map.width,
@@ -440,8 +465,8 @@ export function approachForAttack(
       target.x,
       target.y,
     );
-    if (distance <= RANGED_TILES && sighted) {
-      return null;
+    if (distance <= tiles.range && sighted) {
+      return { ranged: true };
     }
     // Out of range or sight: auto-reposition to the nearest reachable tile
     // that has both, so ranged enemies keep spatially coherent tokens the
@@ -463,26 +488,28 @@ export function approachForAttack(
             attacker,
             target,
             budget,
-            RANGED_TILES,
+            tiles.range,
           )
         : null;
     if (spot) {
       moveToken(attacker.id, spot.at.x, spot.at.y, attacker.movedThisRound + spot.cost);
       publishBattleMapUpdate(campaign.id);
-      return { movedTo: `(${spot.at.x},${spot.at.y})` };
+      return { ranged: true, movedTo: `(${spot.at.x},${spot.at.y})` };
     }
-    return {
-      blocked: {
-        error: sighted
-          ? `${attacker.name} is ${distance * 5} ft from ${target.name}, beyond this attack's ${RANGED_TILES * 5} ft range, and cannot close the gap this round. Pick another target or action.`
-          : `${attacker.name} has no line of sight to ${target.name} and cannot reach a firing position this round. Pick another target or action.`,
-      },
-    };
+    // Long range: the shot is still there, at disadvantage.
+    if (distance <= tiles.long && sighted) {
+      return { ranged: true, far: true };
+    }
+    if (!tiles.melee) {
+      return {
+        blocked: {
+          error: sighted
+            ? `${attacker.name} is ${formatDistanceFeet(distance * 5, units)} from ${target.name}, beyond ${attack.name}'s ${formatDistanceFeet(Math.max(tiles.range, tiles.long) * 5, units)} range, and cannot close the gap this round. Pick another target or action.`
+            : `${attacker.name} has no line of sight to ${target.name} and cannot reach a firing position this round. Pick another target or action.`,
+        },
+      };
+    }
   }
-  if (distance <= 1) {
-    return null;
-  }
-
   const enemy = listEnemies(encounterId).find((entry) => entry.id === enemyId);
   const budget =
     enemy && effectiveSpeed(enemy.conditions, 1) === 0
@@ -491,8 +518,9 @@ export function approachForAttack(
   const tokens = listTokens(map.id);
   const occupied = occupiedTiles(map, tokens, attacker);
   const path = findPath(map.terrain, map.width, map.height, occupied, attacker, target);
-  // Path targets the occupied tile; stop one step short of it.
-  const approach = path ? path.slice(0, -1) : null;
+  // Path targets the occupied tile; stop on the first tile within reach.
+  const inReach = path ? path.findIndex((step) => chebyshev(step.x, step.y, target.x, target.y) <= tiles.reach) : -1;
+  const approach = path ? path.slice(0, inReach >= 0 ? inReach + 1 : -1) : null;
   let landed = { x: attacker.x, y: attacker.y };
   if (approach && approach.length && budget > 0) {
     const walk = walkPathWithBudget(map.terrain, map.width, approach, budget);
@@ -503,12 +531,12 @@ export function approachForAttack(
     }
   }
   const remaining = chebyshev(landed.x, landed.y, target.x, target.y);
-  if (remaining <= 1) {
-    return { movedTo: `(${landed.x},${landed.y})` };
+  if (remaining <= tiles.reach) {
+    return { ranged: false, movedTo: `(${landed.x},${landed.y})` };
   }
   return {
     blocked: {
-      error: `${attacker.name} is ${remaining * 5} ft from ${target.name} and cannot reach them this round${
+      error: `${attacker.name} is ${formatDistanceFeet(remaining * 5, units)} from ${target.name} and cannot reach them with ${attack.name} this round${
         landed.x !== attacker.x || landed.y !== attacker.y
           ? `; it moved to (${landed.x},${landed.y})`
           : ""
