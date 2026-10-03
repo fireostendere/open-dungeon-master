@@ -4,3 +4,6 @@ export function currentPublicationScope(campaignId: string): PublicationScope | 
 
 export function withEncounterRoom<T>(campaignId: string, roomId: string, work: () => T): T;
 export function currentEncounterRoom(campaignId: string): string | undefined;
+
+export function withFight<T>(campaignId: string, encounterId: string | null, work: () => T): T;
+export function currentFight(campaignId: string): string | null | undefined;

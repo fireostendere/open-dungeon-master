@@ -214,7 +214,7 @@ test('campaign snapshot serves narratorPresence next to dmStatus', async () => {
     '@/lib/campaign-types': { CAMPAIGN_DIFFICULTIES: ['easy', 'normal', 'hard'], CAMPAIGN_OUTCOMES: ['victory', 'defeat'] },
     '@/lib/spatial/service': { spatialEnabled: () => false, spatialContext: () => ({}), spatialStore: () => ({}) },
     '@/lib/db/campaigns': Object.fromEntries(['allocateSeq', 'campaignSeats', 'deleteCampaign', 'listMembers', 'setCampaignStatus', 'updateCampaignInfo']
-      .map(name => [name, () => []]).concat([['latestSeq', () => 42], ['publicCampaign', campaign => campaign]])),
+      .map(name => [name, () => []]).concat([['latestSeq', () => 42], ['publicCampaign', campaign => campaign], ['getFightFloor', () => ({ mode: 'open' })]])),
   }, { autoStub: true });
   const { GET } = await load(route, route);
   const presence = await load('@/lib/dm/narrator-presence');

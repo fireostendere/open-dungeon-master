@@ -64,7 +64,8 @@ export function EncounterPanel({
     }
     setEnding(true);
     try {
-      await fetch(`/api/campaigns/${campaignId}/encounter`, { method: "DELETE" });
+      // Several fights can run at once: end the one on screen.
+      await fetch(`/api/campaigns/${campaignId}/encounter?encounterId=${encodeURIComponent(encounter.id)}`, { method: "DELETE" });
     } finally {
       setEnding(false);
     }

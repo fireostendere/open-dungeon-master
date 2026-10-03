@@ -8,6 +8,7 @@ import type { Campaign } from "@/lib/db/campaigns";
 import type { Chapter } from "@/lib/db/chapters";
 import type { CharacterEvent } from "@/lib/db/character-events";
 import type { PublicEncounter } from "@/lib/db/encounter-view";
+import type { FightSummary } from "@/lib/dm/team-round";
 import type { CampaignMessage } from "@/lib/db/messages";
 import type { DmBeat } from "@/lib/db/dm-beats";
 import type { Note } from "@/lib/db/notes";
@@ -147,6 +148,14 @@ export type CampaignState = {
   relationshipsVersion: number;
   characterEvents: CharacterEvent[];
   encounter: PublicEncounter | null;
+  // Without rooms several fights can run at once, one per place
+  // (src/lib/dm/team-round.ts): all of them, the one this player's hero
+  // stands in (null outside every fight; undefined with rooms, where the
+  // room decides), and the one picked to watch (null: the server's default,
+  // their own fight or the first one).
+  fights: FightSummary[];
+  ownFightId: string | null | undefined;
+  watchFightId: string | null;
   // Open DM item/gold offers (inventoryApprovals).
   itemProposals: ItemProposal[];
   // The caller's fogged battle-map projection; null outside combat.
@@ -260,6 +269,9 @@ export const initialCampaignState: CampaignState = {
   relationshipsVersion: 0,
   characterEvents: [],
   encounter: null,
+  fights: [],
+  ownFightId: undefined,
+  watchFightId: null,
   itemProposals: [],
   battleMap: null,
   mapPing: null,
@@ -295,7 +307,8 @@ type Action =
   | { type: "facts"; facts: WorldFact[] }
   | { type: "battleMap"; view: PlayerMapView | null }
   | { type: "mapPing"; ping: MapPing }
-  | { type: "encounter"; encounter: PublicEncounter | null }
+  | { type: "encounter"; encounter: PublicEncounter | null; fights?: FightSummary[]; ownFightId?: string | null; floor?: Campaign["floor"] }
+  | { type: "watchFight"; id: string | null }
   | { type: "rolls"; rolls: StoredRoll[] }
   | { type: "error"; error: string; answeredBy?: string }
   | { type: "event"; eventType: string; seq: number | null; payload: Record<string, unknown> };
@@ -389,7 +402,16 @@ export function campaignStreamReducer(state: CampaignState, action: Action): Cam
     case "sideThreads":
       return { ...state, sideThreads: action.sideThreads, sideChatLoaded: true };
     case "encounter":
-      return { ...state, encounter: action.encounter };
+      return {
+        ...state,
+        encounter: action.encounter,
+        ...(action.fights ? { fights: action.fights } : {}),
+        ...(action.ownFightId !== undefined ? { ownFightId: action.ownFightId } : {}),
+        // The server says which floor is this player's (their fight's or the table's).
+        ...(action.floor && state.campaign ? { campaign: { ...state.campaign, floor: action.floor } } : {}),
+      };
+    case "watchFight":
+      return { ...state, watchFightId: action.id };
     case "asks":
       return { ...state, asks: action.asks, asksLoaded: true };
     case "whispers":
@@ -679,6 +701,12 @@ export function campaignStreamReducer(state: CampaignState, action: Action): Cam
         }
         case "encounter_updated": {
           const shared = (payload.encounter as PublicEncounter | null) ?? null;
+          // Several fights at once: the stream carries whichever one changed.
+          // It applies only to the fight on screen; anything else (another
+          // fight, one starting or ending) is re-fetched by the handler below.
+          if (state.fights.length > 1 || payload.endedEncounterId || (shared && state.encounter && shared.id !== state.encounter.id)) {
+            return next;
+          }
           // The stream carries the player-safe projection. A DM sees real hit
           // points, so taking this payload would silently downgrade their view
           // mid-fight; they keep what they have until their own fetch lands.
@@ -697,11 +725,18 @@ export function campaignStreamReducer(state: CampaignState, action: Action): Cam
             },
           ];
           return next;
-        case "floor_changed":
+        case "floor_changed": {
+          // A fight's floor names its fight, the table's names none. Only this
+          // player's own floor applies: their fight's, or the table's when they
+          // stand outside every fight. With rooms the server already scopes it.
+          const fightId = typeof payload.encounterId === "string" ? payload.encounterId : null;
+          const mine = state.ownFightId === undefined || (fightId ? fightId === state.ownFightId : state.ownFightId === null);
+          if (!mine) return next;
           next.campaign = state.campaign
             ? { ...state.campaign, floor: payload.floor as Campaign["floor"] }
             : state.campaign;
           return next;
+        }
         case "global_turn_updated":
           next.campaign = state.campaign
             ? { ...state.campaign, globalTurnState: payload.globalTurnState as Campaign["globalTurnState"] }
@@ -902,6 +937,16 @@ export function useCampaignStream(campaignId: string) {
   useEffect(() => {
     capsRef.current = state.caps;
   }, [state.caps]);
+  // The fight picked to watch, for fetches made from the SSE handlers.
+  const watchRef = useRef<string | null>(null);
+  useEffect(() => {
+    watchRef.current = state.watchFightId;
+  }, [state.watchFightId]);
+  const watchQuery = () => (watchRef.current ? `?encounterId=${encodeURIComponent(watchRef.current)}` : "");
+  const spatialRef = useRef(state.spatialEnabled);
+  useEffect(() => {
+    spatialRef.current = state.spatialEnabled;
+  }, [state.spatialEnabled]);
 
   // Loads the snapshot and returns its latestSeq so the event stream can
   // start exactly where the snapshot left off.
@@ -954,6 +999,8 @@ export function useCampaignStream(campaignId: string) {
           battleMap: data.battleMap ?? null,
           characterEvents: data.characterEvents ?? [],
           encounter: data.encounter ?? null,
+          fights: data.fights ?? [],
+          ownFightId: data.ownFightId,
           itemProposals: data.itemProposals ?? [],
           beats: data.beats ?? [],
           dmStatus: data.dmStatus ?? "idle",
@@ -1020,7 +1067,7 @@ export function useCampaignStream(campaignId: string) {
   // ride the shared stream; the ping-and-self-fetch pattern applies.
   const refreshBattleMap = useCallback(async () => {
     try {
-      const response = await fetch(`/api/campaigns/${campaignId}/battle-map`);
+      const response = await fetch(`/api/campaigns/${campaignId}/battle-map${watchQuery()}`);
       if (!response.ok) {
         return;
       }
@@ -1035,12 +1082,13 @@ export function useCampaignStream(campaignId: string) {
   // player-safe, so the seat allowed real numbers pulls its own projection.
   const refreshEncounter = useCallback(async () => {
     try {
-      const response = await fetch(`/api/campaigns/${campaignId}/encounter`);
+      const response = await fetch(`/api/campaigns/${campaignId}/encounter${watchQuery()}`);
       if (!response.ok) {
         return;
       }
       const data = await response.json();
-      dispatch({ type: "encounter", encounter: data.encounter ?? null });
+      dispatch({ type: "encounter", encounter: data.encounter ?? null, fights: data.fights ?? [],
+        ownFightId: data.ownFightId, floor: data.floor });
     } catch {
       // transient; the next encounter_updated event retries
     }
@@ -1193,7 +1241,10 @@ export function useCampaignStream(campaignId: string) {
           }
           // Only the seats allowed real numbers need their own projection;
           // for everyone else the stream payload already applied above.
-          if (eventType === "encounter_updated" && capsRef.current.enemyNumbers) {
+          // Without rooms several fights can run at once: every change pulls
+          // this player's own view (which fights run, which is theirs, their
+          // floor). With rooms only the seats allowed real numbers need it.
+          if (eventType === "encounter_updated" && (capsRef.current.enemyNumbers || !spatialRef.current)) {
             void refreshEncounter();
           }
           if (
@@ -1232,6 +1283,15 @@ export function useCampaignStream(campaignId: string) {
     refreshRolls,
   ]);
 
+  // Watch another fight (without rooms everyone may), or null for the default:
+  // this player's own fight, else the first one.
+  const watchFight = useCallback((id: string | null) => {
+    watchRef.current = id;
+    dispatch({ type: "watchFight", id });
+    void refreshEncounter();
+    void refreshBattleMap();
+  }, [refreshEncounter, refreshBattleMap]);
+
   return {
     state,
     refresh,
@@ -1243,5 +1303,6 @@ export function useCampaignStream(campaignId: string) {
     refreshFacts,
     refreshBattleMap,
     refreshEncounter,
+    watchFight,
   };
 }

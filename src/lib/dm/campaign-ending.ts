@@ -1,4 +1,4 @@
-import { getCampaignById, getFloor, setCampaignEnding, setFloor, type Campaign } from "@/lib/db/campaigns";
+import { getCampaignById, getFightFloor, getFloor, setCampaignEnding, setFightFloor, setFloor, type Campaign } from "@/lib/db/campaigns";
 import { withCommittedEffects } from "@/lib/db/commit-effects";
 import { enqueueDmJob } from "@/lib/dm/queue";
 import type { CampaignEnding, CampaignOutcome } from "@/lib/campaign-types";
@@ -46,6 +46,12 @@ export function closeCampaign(campaign: Campaign, input: CloseCampaignInput): Cl
 
   if (!alreadyEnded) {
     for (const encounter of listActiveEncounters(campaign.id)) {
+      // A fight's own floor (src/lib/db/fight-scope.ts) opens with it.
+      if (getFightFloor(campaign.id, encounter).mode !== "open") {
+        setFightFloor(campaign.id, encounter, { mode: "open" });
+        publishPersisted(campaign.id, "floor_changed", { floor: { mode: "open" }, ...(encounter.roomId ? {} : { encounterId: encounter.id }) });
+        closed.floorReleased = true;
+      }
       endEncounter(encounter.id, input.outcome === "victory" ? "victory" : "party_defeated");
       closed.encounters++;
     }

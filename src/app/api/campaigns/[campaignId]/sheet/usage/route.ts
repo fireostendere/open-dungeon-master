@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { isErrorResponse, requireMember } from "@/lib/campaign-api";
 import { allocateSeq } from "@/lib/db/campaigns";
-import { getActiveEncounter } from "@/lib/db/encounters";
+import { userInFight } from "@/lib/dm/team-round";
 import { getSheetForUser, patchSheet } from "@/lib/db/sheets";
 import { insertSheetAudit } from "@/lib/db/sheet-audit";
 import type { FullPatchSheetInput } from "@/lib/schemas/sheet";
@@ -71,7 +71,7 @@ export async function POST(
   // 5e timing: spending is legitimate bookkeeping any time, but resources
   // only come back at rests, so mid-combat recovery is refused. The party
   // lead's Adjust dialog stays unrestricted for genuine corrections.
-  if (getActiveEncounter(campaignId)) {
+  if (userInFight(campaignId, sheet.userId)) {
     const recovers =
       Object.entries(parsed.data.slots ?? {}).some(([level, used]) => {
         const existing = sheet.spellcasting?.slots[level];

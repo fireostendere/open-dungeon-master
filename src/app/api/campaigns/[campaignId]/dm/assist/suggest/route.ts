@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { isErrorResponse, requireDm } from "@/lib/campaign-api";
-import { getActiveEncounter } from "@/lib/db/encounters";
+import { listActiveFights } from "@/lib/db/encounters";
 import { suggestAdjudication } from "@/lib/dm/assist";
 
 export const runtime = "nodejs";
@@ -28,7 +28,7 @@ export async function POST(
     return Response.json({ error: "Say what the player is trying to do." }, { status: 400 });
   }
 
-  const inEncounter = Boolean(getActiveEncounter(campaignId));
+  const inEncounter = listActiveFights(campaignId).length > 0;
   const { suggestions, picked } = await suggestAdjudication(
     context.campaign,
     parsed.data.intent,

@@ -78,6 +78,8 @@ export function sqliteFixture() {
     '@/lib/spatial/event-privacy': { captureEventAudience: () => null, ensureEventAudienceColumn() {}, projectEventForUser: (_campaign, _user, event) => event },
     '@/lib/voice/location-access': { voiceAccess: () => ({ members: [] }) },
     '@/lib/voice/location-policy': { mayShareVoice: () => true, projectVoiceRoster: () => [] },
+    // One fight or none in these fixtures: floor events name no fight.
+    '@/lib/db/fight-scope': { floorFightId: () => null },
   });
   const transactions = loadSource('src/lib/dm/tool-transaction.ts', { '@/lib/db/core': core, '@/lib/db/commit-effects': effects });
   const messages = {

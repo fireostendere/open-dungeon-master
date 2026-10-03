@@ -52,7 +52,8 @@ function fixture(t) {
   const campaigns=new Map([A,B].map(id=>[id,{id,kind:'campaign',status:'active',dmUserId:'dm',gameSettings:{dmMode:'human',ttsEnabled:false,mapsEnabled:false,language:'ru'},floor:{mode:'open'}}]));
   let seq=0,invoked=0,modelCalls=0,voiceError;
   const campaignApi={getCampaignById:id=>campaigns.get(id),getCampaignForUser:id=>campaigns.get(id),capsFor:(_campaign,userId)=>({role:userId==='dm'?'dm':'player'}),latestSeq:()=>seq,allocateSeq:()=>++seq,
-    getCampaignSummaryState:()=>({summary:''}),listMembers:()=>[{userId:'alice'},{userId:'bob'},{userId:'dm'}],setFloor:(id,value)=>{campaigns.get(id).floor=value;}};
+    getCampaignSummaryState:()=>({summary:''}),listMembers:()=>[{userId:'alice'},{userId:'bob'},{userId:'dm'}],setFloor:(id,value)=>{campaigns.get(id).floor=value;},
+    getFloor:id=>campaigns.get(id)?.floor??{mode:'open'},getFightFloor:()=>({mode:'open'})};
   globalThis.__odmEventBus=new Map();globalThis.__odmPresenceCounts=new Map();globalThis.__odmEventSubscriberUsers=new Map();
   const eventPrivacy=load('src/lib/spatial/event-privacy.ts',{'@/lib/db/core':core,'@/lib/db/campaigns':campaignApi});
   const eventPolicy={captureEventAudience(){},eventSpatialState:()=>({enabled:false,startSeq:0}),campaignEventProjector:()=>({projectEvent:event=>event,projectLive:chunk=>chunk})};
@@ -60,7 +61,8 @@ function fixture(t) {
     '@/lib/spatial/event-policy':eventPolicy,'@/lib/spatial/event-privacy':eventPrivacy,
     '@/lib/integrations/rakobot':{queueLegacyPlayerEvent(){},queuePlayerAction(){}},
     '@/lib/voice/location-access':{voiceAccess:()=>({scope:'global',members:new Set(['alice','bob','dm']),rooms:new Map()}),getVoiceScope:()=>'global',setVoiceScope(){}},
-    '@/lib/voice/location-policy':{mayShareVoice:()=>true,projectVoiceRoster:(_a,_u,p)=>p}});
+    '@/lib/voice/location-policy':{mayShareVoice:()=>true,projectVoiceRoster:(_a,_u,p)=>p},
+    '@/lib/db/fight-scope':{floorFightId:()=>null}});
   const asks=load('src/lib/db/asks.ts',{'@/lib/db/core':core});
   const savedMessages=id=>db.prepare('SELECT seq,author_type AS authorType,content FROM campaign_messages WHERE campaign_id=? ORDER BY seq').all(id);
   const narrator=load('src/lib/mcp-narrator-control.ts',{
@@ -77,7 +79,7 @@ function fixture(t) {
     '@/lib/db/director-arms':{getDirectorArm:()=>null},'@/lib/dm/director-logic':{buildDirectorBlock:()=>null},
     '@/lib/db/dm-turns':{listOpenPendingRolls:()=>[]},
     '@/lib/db/dm-whispers':{listRecentWhispersForPrompt:()=>[],listPendingPlayerWhispers:()=>[]},
-    '@/lib/db/encounters':{getActiveEncounter:()=>null,listEnemies:()=>[]},
+    '@/lib/db/encounters':{getActiveEncounter:()=>null,listEnemies:()=>[],listActiveFights:()=>[]},
     '@/lib/db/facts':{listActiveFacts:()=>[]},'@/lib/db/locations':{getCurrentLocation:()=>null},'@/lib/db/overworld':{getOverworldPartyPositions:()=>[]},
     '@/lib/db/messages':{listMessagesInSeqRange:(id,low,high)=>savedMessages(id).filter(x=>x.seq>=low&&x.seq<=high),listRecentMessages:savedMessages},
     '@/lib/db/notes':{listPublicCampaignNotes:()=>[]},'@/lib/db/rolls':{listRecentRolls:()=>[]},

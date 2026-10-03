@@ -48,6 +48,8 @@ async function fixture() {
     '@/lib/voice/location-access': { voiceAccess: () => ({ members: new Set(['A', 'B']) }) },
     '@/lib/voice/location-policy': { mayShareVoice: () => true, projectVoiceRoster: () => [] },
     '@/lib/voice/types': {},
+    // A non-fighting table: floor events name no fight.
+    '@/lib/db/fight-scope': { floorFightId: () => null },
   };
   const modules = new Map();
   async function load(name, parent) {

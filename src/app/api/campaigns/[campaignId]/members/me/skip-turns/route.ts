@@ -1,3 +1,6 @@
+import { viewerFights } from "@/lib/dm/team-round";
+import { withFight } from "@/lib/spatial/publication-scope.mjs";
+import { spatialEnabled } from "@/lib/spatial/service";
 import { z } from "zod";
 import { isErrorResponse, requireMember } from "@/lib/campaign-api";
 import { getMember, setMemberSkipTurns } from "@/lib/db/campaigns";
@@ -49,7 +52,10 @@ export async function POST(
 
   // A newly selected skip consumes the current owner's turn only. Later
   // turns remain persisted until this player reaches initiative again.
-  if (count > 0 && skipOwnTurn(campaignId, context.user.id)) {
+  // Without rooms a hero's turn is in the fight they stand in (several can run).
+  const own = spatialEnabled(campaignId) ? undefined : viewerFights(campaignId, context.user.id).own?.id ?? null;
+  const skip = () => skipOwnTurn(campaignId, context.user.id);
+  if (count > 0 && (own === undefined ? skip() : withFight(campaignId, own, skip))) {
     const updated = getMember(campaignId, context.user.id) ?? member;
     publishPersisted(campaignId, "member_updated", { member: updated });
     return Response.json({ ok: true, member: updated });

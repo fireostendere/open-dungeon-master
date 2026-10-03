@@ -1,5 +1,5 @@
-import { withEncounterRoom, currentEncounterRoom } from "@/lib/spatial/publication-scope.mjs";
-import { fightCrossing } from "@/lib/dm/fight-presence";
+import { withEncounterRoom, currentEncounterRoom, withFight } from "@/lib/spatial/publication-scope.mjs";
+import { fightCrossing, fightForCall } from "@/lib/dm/fight-presence";
 import { spatialEnabled, spatialStore, spatialContext } from "@/lib/spatial/service";
 import { getSheetById } from "@/lib/db/sheets";
 // The adjudication façade: one entry point into the rules engine, for both
@@ -428,7 +428,21 @@ export async function invokeEngineById(
 }
 
 export function invokeEngineSynchronous(campaign: Campaign, actor: Actor, call: Adjudication): InvokeOutcome {
-  if (!spatialEnabled(campaign.id)) return invokeInRoom(campaign, actor, call);
+  if (!spatialEnabled(campaign.id)) {
+    // Without rooms several fights can run at once, one per place: run the
+    // call in the fight it is about (src/lib/dm/fight-presence.ts).
+    const entry = call.name === "combat_turn" ? { name: "combat_turn", needsEncounter: true } : adjudication(call.name);
+    const scope = fightForCall(campaign.id, entry ?? { name: call.name }, call.args ?? {});
+    if ("error" in scope) return { ok: false, error: scope.error };
+    // locationId only picked the fight; a tool that takes no place never sees it.
+    const takesPlace = Boolean(entry && "fields" in entry && entry.fields.some((field) => field.name === "locationId"));
+    const scoped: Adjudication = !takesPlace && call.args && "locationId" in call.args
+      ? { ...call, args: Object.fromEntries(Object.entries(call.args).filter(([key]) => key !== "locationId")) }
+      : call;
+    return scope.fightId === undefined
+      ? invokeInRoom(campaign, actor, scoped)
+      : withFight(campaign.id, scope.fightId, () => invokeInRoom(campaign, actor, scoped));
+  }
   const args = call.args ?? {};
   const character = typeof args.characterId === "string" ? getSheetById(args.characterId) : null;
   const roomId = typeof args.roomId === "string" ? args.roomId

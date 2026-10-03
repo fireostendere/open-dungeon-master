@@ -1,7 +1,7 @@
 import { isErrorResponse, requireLead } from "@/lib/campaign-api";
 import { LEAD_NOTE_PREFIX } from "@/lib/campaign-types";
 import { allocateSeq, capsFor, getFloor, getGlobalTurnState } from "@/lib/db/campaigns";
-import { getActiveEncounter } from "@/lib/db/encounters";
+import { userInFight } from "@/lib/dm/team-round";
 import { insertCampaignMessage } from "@/lib/db/messages";
 import { publishPersisted, publishWithSeq } from "@/lib/events";
 import { sealGlobalTurnNow } from "@/lib/dm/global-turn-logic";
@@ -27,8 +27,9 @@ export async function POST(
   }
 
   const raw = await request.json().catch(() => ({}));
-  const floor = getFloor(campaignId);
-  if (!capsFor(context.campaign, context.user.id).adjudicates && (getActiveEncounter(campaignId) || (floor.mode === "hold" && floor.combat))) {
+  // The table floor: a fight elsewhere keeps its own (src/lib/db/fight-scope.ts).
+  const floor = getFloor(campaignId, null);
+  if (!capsFor(context.campaign, context.user.id).adjudicates && (userInFight(campaignId, context.user.id) || (floor.mode === "hold" && floor.combat))) {
     return Response.json({ error: "Use your combat action or OOC during combat." }, { status: 409 });
   }
   const content = typeof raw?.content === "string" ? raw.content.trim().slice(0, 1000) : "";

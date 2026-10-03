@@ -1,10 +1,12 @@
 import { capsFor, isErrorResponse, requireMember, requireStoryAuthority } from "@/lib/campaign-api";
-import { getFloor, setFloor } from "@/lib/db/campaigns";
-import { endEncounter, getActiveEncounter, listEnemies, patchEnemyHp } from "@/lib/db/encounters";
+import { getFightFloor, getFloor, setFightFloor } from "@/lib/db/campaigns";
+import { endEncounter, getActiveEncounter, listActiveFights, listEnemies, patchEnemyHp } from "@/lib/db/encounters";
 import { activePublicEncounter } from "@/lib/db/encounter-view";
 import { publishBattleMapUpdate } from "@/lib/dm/map-tools";
 import { publishPersisted } from "@/lib/events";
 import { spatialLegacyPolicy } from "@/lib/spatial/legacy-projection";
+import { fightSummaries, viewerFights } from "@/lib/dm/team-round";
+import { withFight } from "@/lib/spatial/publication-scope.mjs";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -16,7 +18,7 @@ export const dynamic = "force-dynamic";
 import { spatialStore } from "@/lib/spatial/service";
 
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ campaignId: string }> },
 ) {
   const { campaignId } = await params;
@@ -28,24 +30,36 @@ export async function GET(
   const policy = spatialLegacyPolicy({
     campaignId, userId: context.user.id, adjudicates: caps.adjudicates, ownedCharacterIds: [],
   });
+  if (policy.scoped) {
+    return Response.json({
+      encounter: activePublicEncounter(campaignId, {
+        enemyNumbers: caps.enemyNumbers,
+        viewerUserId: context.user.id,
+        roomId: spatialStore().getUserRoom(campaignId, context.user.id),
+      }),
+    });
+  }
+  // Without rooms every fight is watchable: the one asked for, else the
+  // viewer's own, else the first (src/lib/dm/team-round.ts viewerFights).
+  const { own, shown } = viewerFights(campaignId, context.user.id, new URL(request.url).searchParams.get("encounterId"));
+  const fights = fightSummaries(campaignId);
   return Response.json({
-    encounter: policy.scoped
-      ? activePublicEncounter(campaignId, {
-          enemyNumbers: caps.enemyNumbers,
-          viewerUserId: context.user.id,
-          roomId: spatialStore().getUserRoom(campaignId, context.user.id),
-        })
-      : activePublicEncounter(campaignId, {
-          enemyNumbers: caps.enemyNumbers,
-          viewerUserId: context.user.id,
-        }),
+    encounter: withFight(campaignId, shown?.id ?? null, () => activePublicEncounter(campaignId, {
+      enemyNumbers: caps.enemyNumbers,
+      viewerUserId: context.user.id,
+    })),
+    fights,
+    // The fight this player stands in, and the floor that is theirs: that
+    // fight's, or the table's when they stand outside every fight.
+    ownFightId: own?.id ?? null,
+    floor: own ? getFightFloor(campaignId, own) : getFloor(campaignId, null),
   });
 }
 
 // Lead escape hatch: force-end a wedged encounter. No XP, no outcome
 // narration; the fiction is the lead's to patch up with a direction.
 export async function DELETE(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ campaignId: string }> },
 ) {
   const { campaignId } = await params;
@@ -53,7 +67,11 @@ export async function DELETE(
   if (isErrorResponse(context)) {
     return context;
   }
-  const encounter = getActiveEncounter(campaignId);
+  // With several fights at once (no rooms) the panel says which one.
+  const requested = new URL(request.url).searchParams.get("encounterId");
+  const encounter = requested
+    ? listActiveFights(campaignId).find((fight) => fight.id === requested) ?? null
+    : getActiveEncounter(campaignId);
   if (!encounter) {
     return Response.json({ error: "No active encounter." }, { status: 404 });
   }
@@ -63,12 +81,12 @@ export async function DELETE(
     }
   }
   endEncounter(encounter.id, "aborted");
-  const floor = getFloor(campaignId);
+  const floor = getFightFloor(campaignId, encounter);
   if (floor.mode === "initiative" || (floor.mode === "hold" && floor.next.mode === "initiative")) {
-    setFloor(campaignId, { mode: "open" });
-    publishPersisted(campaignId, "floor_changed", { floor: { mode: "open" } });
+    setFightFloor(campaignId, encounter, { mode: "open" });
+    publishPersisted(campaignId, "floor_changed", { floor: { mode: "open" }, ...(encounter.roomId ? {} : { encounterId: encounter.id }) });
   }
-  publishPersisted(campaignId, "encounter_updated", { encounter: null });
+  publishPersisted(campaignId, "encounter_updated", { encounter: null, endedEncounterId: encounter.id });
   publishBattleMapUpdate(campaignId);
   return Response.json({ ok: true });
 }

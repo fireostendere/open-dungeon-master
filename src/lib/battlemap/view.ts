@@ -1,4 +1,4 @@
-import { getCampaignById, getFloor } from "@/lib/db/campaigns";
+import { getCampaignById, getFightFloor } from "@/lib/db/campaigns";
 import { getActiveBoard, listEnemies, orderEntryId, type Encounter } from "@/lib/db/encounters";
 import { getSheetForUser, listSheets } from "@/lib/db/sheets";
 import {
@@ -84,7 +84,7 @@ export function sheetDarkvisionTiles(sheet: CharacterSheet): number {
 // Whether this player's PC may move right now: open floor, or their own
 // slot in the initiative order.
 function canMoveNow(campaignId: string, encounter: Encounter, characterId: string): boolean {
-  const floor = getFloor(campaignId, encounter.roomId);
+  const floor = getFightFloor(campaignId, encounter);
   if (floor.mode === "open") {
     return true;
   }

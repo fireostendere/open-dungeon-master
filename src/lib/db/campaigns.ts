@@ -1,4 +1,6 @@
 import { currentEncounterRoom } from "@/lib/spatial/publication-scope.mjs";
+import { floorFightId } from "@/lib/db/fight-scope";
+export { floorFightId };
 import { randomInt } from "node:crypto";
 import { getDatabase, nowIso, parseJson } from "@/lib/db/core";
 import { normalizeSettings } from "@/lib/db/settings";
@@ -849,8 +851,24 @@ export function setWorldTickJson(campaignId: string, serialized: string) {
     .run(serialized, campaignId);
 }
 
+// One fight's own floor, whatever scope the caller runs in.
+export function getFightFloor(campaignId: string, encounter: { id: string; roomId: string | null }): Floor {
+  if (encounter.roomId) return getFloor(campaignId, encounter.roomId);
+  const row = getDatabase().prepare(`SELECT floor_json FROM encounters WHERE id = ?`).get(encounter.id) as { floor_json: string | null } | undefined;
+  return normalizeFloor(parseJson(row?.floor_json ?? null, null));
+}
+
+export function setFightFloor(campaignId: string, encounter: { id: string; roomId: string | null }, floor: Floor): void {
+  if (encounter.roomId) return setFloor(campaignId, floor, encounter.roomId);
+  getDatabase().prepare(`UPDATE encounters SET floor_json = ? WHERE id = ?`).run(JSON.stringify(floor), encounter.id);
+}
+
 export function getFloor(campaignId: string, roomId?: string | null): Floor {
   if (roomId === undefined) roomId = currentEncounterRoom(campaignId);
+  if (roomId === undefined) {
+    const fightId = floorFightId(campaignId);
+    if (fightId) return getFightFloor(campaignId, { id: fightId, roomId: null });
+  }
   if (roomId) {
     try {
       const roomRow = getDatabase()
@@ -869,8 +887,12 @@ export function getFloor(campaignId: string, roomId?: string | null): Floor {
   return normalizeFloor(parseJson(row?.floor_json ?? null, null));
 }
 
-export function setFloor(campaignId: string, floor: Floor, roomId?: string | null) {
+export function setFloor(campaignId: string, floor: Floor, roomId?: string | null): void {
   if (roomId === undefined) roomId = currentEncounterRoom(campaignId);
+  if (roomId === undefined) {
+    const fightId = floorFightId(campaignId);
+    if (fightId) return setFightFloor(campaignId, { id: fightId, roomId: null }, floor);
+  }
   if (roomId) {
     try {
       getDatabase()

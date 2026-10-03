@@ -1,6 +1,6 @@
 import { getDatabase } from "@/lib/db/core";
 import { getBattleMapForEncounter, getTokenByRef, listTokens, placeTokens, removeTokenByRef } from "@/lib/db/battle-maps";
-import { listActiveEncounters, saveEncounter, type Encounter } from "@/lib/db/encounters";
+import { getEnemy, listActiveEncounters, listActiveFights, saveEncounter, type Encounter } from "@/lib/db/encounters";
 import { getLocation } from "@/lib/db/locations";
 import { partyStanding } from "@/lib/db/overworld";
 import { listSheets } from "@/lib/db/sheets";
@@ -45,6 +45,55 @@ function referencedSheets(value: unknown, sheets: CharacterSheet[], found = new 
   return [...found.values()];
 }
 
+const ENEMY_KEYS = new Set(["enemyId", "targetEnemyId", "enemyIds", "casterEnemyId"]);
+function referencedEnemyFights(value: unknown, found = new Set<string>()): Set<string> {
+  if (Array.isArray(value)) for (const item of value) referencedEnemyFights(item, found);
+  else if (value && typeof value === "object") {
+    for (const [key, item] of Object.entries(value)) {
+      if (ENEMY_KEYS.has(key)) {
+        for (const ref of (Array.isArray(item) ? item : [item]).filter((entry): entry is string => typeof entry === "string")) {
+          const enemy = getEnemy(ref.trim());
+          if (enemy) found.add(enemy.encounterId);
+        }
+      } else referencedEnemyFights(item, found);
+    }
+  }
+  return found;
+}
+
+// Without rooms, which fight a narrator call is about: the one at its
+// locationId, the one its enemies are in, or the one its characters stand
+// in. undefined when the call names no fight (a lone fight is then found by
+// itself); an error when it names two, or when several fights run and a
+// fight tool does not say which.
+export function fightForCall(
+  campaignId: string,
+  tool: { name: string; needsEncounter?: boolean },
+  args: Record<string, unknown>,
+): { fightId?: string | null } | { error: string } {
+  const fights = listActiveFights(campaignId).filter((fight) => !fight.roomId);
+  // A new fight is made at the table and runs in its own scope from there.
+  if (tool.name === "start_encounter" || !fights.length) return { fightId: null };
+  const named = new Set<string>();
+  if (typeof args.locationId === "string") {
+    const at = fights.find((fight) => fight.locationId === args.locationId);
+    if (at) named.add(at.id);
+  }
+  for (const id of referencedEnemyFights(args)) if (fights.some((fight) => fight.id === id)) named.add(id);
+  if (!named.size) {
+    for (const sheet of referencedSheets(args, listSheets(campaignId))) {
+      const fight = fights.find((entry) => atFight(campaignId, entry, sheet));
+      if (fight) named.add(fight.id);
+    }
+  }
+  const places = () => fights.map((fight) => `${fightPlaceName(fight)} (locationId=${fight.locationId})`).join("; ");
+  if (named.size > 1) return { error: `This call reaches into several fights at once (${places()}); act in one fight per call.` };
+  if (named.size === 1) return { fightId: [...named][0] };
+  if (fights.length === 1) return {};
+  if (tool.needsEncounter) return { error: `Several fights are running: ${places()}. Pass locationId, or name a character or enemy of the fight you mean.` };
+  return { fightId: null };
+}
+
 // The refusal for an engine call that would reach across places, or null.
 // A fight tool needs everyone it names at the fight; any other call may name
 // people elsewhere only if it names nobody at the fight.
@@ -62,9 +111,16 @@ export function fightCrossing(campaignId: string, encounter: Encounter | null, t
 // in the order gets a token back. Returns notes for the narrator, and the
 // fights whose current hero just walked out (the engine passes those turns:
 // syncFightRosters in src/lib/dm/encounter-tools.ts).
-export function syncFightBoards(campaignId: string): { notes: string[]; leftOnTheirTurn: Encounter[] } {
+export function syncFightBoards(campaignId: string): {
+  notes: string[];
+  leftOnTheirTurn: Encounter[];
+  // Heroes standing at a running fight with no place in its order yet: they
+  // just walked in and join it (syncFightRosters rolls their initiative).
+  arrivals: Array<{ encounter: Encounter; sheet: CharacterSheet }>;
+} {
   const notes: string[] = [];
   const leftOnTheirTurn: Encounter[] = [];
+  const arrivals: Array<{ encounter: Encounter; sheet: CharacterSheet }> = [];
   const sheets = listSheets(campaignId);
   for (const encounter of listActiveEncounters(campaignId)) {
     if (encounter.kind !== "fight") continue;
@@ -81,12 +137,12 @@ export function syncFightBoards(campaignId: string): { notes: string[]; leftOnTh
       } else if (here && inOrder && !token && map) {
         placeArrivingHero(campaignId, encounter, sheet);
       } else if (here && !inOrder && encounter.orderReady) {
-        notes.push(`${sheet.name} is at the fight at ${place} but not in it: request_roll kind=initiative to bring them in.`);
+        arrivals.push({ encounter, sheet });
       }
       if (!here && encounter.orderReady && current?.kind === "pc" && current.characterId === sheet.id) leftOnTheirTurn.push(encounter);
     }
   }
-  return { notes, leftOnTheirTurn };
+  return { notes, leftOnTheirTurn, arrivals };
 }
 
 // A token for a hero who joins a fight already on the board, next to an ally.

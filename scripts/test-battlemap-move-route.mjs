@@ -39,6 +39,9 @@ const route = loadReviewModule(file, {
   "@/lib/spatial/service": { spatialEnabled: () => true, spatialStore: () => ({ getUserRoom: () => room }) },
   "@/lib/spatial/battle-map": { boundBattleMapRoom: () => bindingRoom },
   "@/lib/db/core": { getDatabase: () => ({ transaction: work => () => work() }) },
+  // Rooms decide the board here; the fight scope of the no-rooms mode stays out.
+  "@/lib/dm/team-round": { viewerFights: () => ({ own: null, shown: null }) },
+  "@/lib/spatial/publication-scope.mjs": { withFight: (_campaignId, _fightId, work) => work() },
   "@/lib/db/commit-effects": { withCommittedEffects: work => work() },
 });
 

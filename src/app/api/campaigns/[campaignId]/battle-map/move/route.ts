@@ -3,6 +3,8 @@ import { isErrorResponse, requireMember } from "@/lib/campaign-api";
 import { getFloor } from "@/lib/db/campaigns";
 import { getActiveBoard } from "@/lib/db/encounters";
 import { getSheetForUser } from "@/lib/db/sheets";
+import { viewerFights } from "@/lib/dm/team-round";
+import { withFight } from "@/lib/spatial/publication-scope.mjs";
 import {
   getBattleMapForEncounter,
   getTokenByRef,
@@ -51,8 +53,11 @@ export async function POST(
   }
 
   // The board, which is a fight or an exploration scene. Every combat rule
-  // below is written against a fight and is skipped on a scene.
-  return withCommittedEffects(() => getDatabase().transaction(() => {
+  // below is written against a fight and is skipped on a scene. Without
+  // rooms a hero moves on the board of the fight they stand in.
+  const own = spatialEnabled(campaignId) ? undefined : viewerFights(campaignId, user.id).own?.id ?? null;
+  const scoped = <T>(work: () => T): T => (own === undefined ? work() : withFight(campaignId, own, work));
+  return scoped(() => withCommittedEffects(() => getDatabase().transaction(() => {
     const roomId = spatialEnabled(campaignId) ? spatialStore().getUserRoom(campaignId, user.id) : undefined;
     const encounter = getActiveBoard(campaignId, roomId);
     const map = encounter ? getBattleMapForEncounter(encounter.id) : null;
@@ -138,5 +143,5 @@ export async function POST(
     view: buildPlayerMapView(campaignId, user.id, { encounter }),
     ...(opportunity.notes.length ? { opportunityAttacks: opportunity.notes } : {}),
     });
-  })());
+  })()));
 }

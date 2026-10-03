@@ -1,4 +1,4 @@
-import { currentEncounterRoom } from "@/lib/spatial/publication-scope.mjs";
+import { currentEncounterRoom, currentFight } from "@/lib/spatial/publication-scope.mjs";
 import { getDatabase, nowIso, parseJson } from "@/lib/db/core";
 import type { EnemyStats } from "@/lib/bestiary/statblock";
 import type { ConditionMetaMap } from "@/lib/schemas/sheet";
@@ -52,6 +52,9 @@ export type Encounter = {
   turnIndex: number;
   // False while initiative entries are still being collected in `order`.
   orderReady: boolean;
+  // The global round the current combat round belongs to when the fight
+  // runs as a team round; null when not bound (src/lib/dm/team-round.ts).
+  teamRound: number | null;
   order: OrderEntry[];
   // Campaign seq when the pointer landed on the current PC; advancement
   // requires a player message from them with a later seq.
@@ -110,6 +113,7 @@ type EncounterRow = {
   round: number;
   turn_index: number;
   order_ready: number;
+  team_round: number | null;
   order_json: string;
   waiting_seq: number;
   turn_budget_json: string | null;
@@ -155,6 +159,7 @@ function mapEncounter(row: EncounterRow): Encounter {
     round: row.round,
     turnIndex: row.turn_index,
     orderReady: Boolean(row.order_ready),
+    teamRound: row.team_round ?? null,
     order: parseJson<OrderEntry[]>(row.order_json, []),
     waitingSeq: row.waiting_seq,
     turnBudget: parseJson<TurnBudget | null>(row.turn_budget_json, null),
@@ -217,7 +222,13 @@ export function createEncounter(
   // so two active rows can never both claim to own the battle map; a scene
   // asked for while a fight is running is refused instead, because a fight
   // is not something to quietly clear off the table.
-  if (getActiveEncounter(campaignId, roomId)) {
+  // Without rooms, one fight per place: fights at two places run side by
+  // side, and a fight with no recorded place clashes with every other.
+  const clash = roomId
+    ? getActiveEncounter(campaignId, roomId)
+    : listActiveFights(campaignId).find((fight) => !fight.roomId &&
+        (locationId === null || fight.locationId === null || fight.locationId === locationId));
+  if (clash) {
     return null;
   }
   const scene = getActiveScene(campaignId, roomId);
@@ -250,6 +261,16 @@ export function getEncounter(id: string): Encounter | null {
 // the party is standing on an exploration map.
 export function getActiveEncounter(campaignId: string, roomId?: string | null): Encounter | null {
   if (roomId === undefined) roomId = currentEncounterRoom(campaignId);
+  if (roomId === undefined) {
+    // A fight scope (src/lib/spatial/publication-scope.mjs): that fight, or
+    // none at all for the table. Unscoped, a lone fight is still found below.
+    const fightId = currentFight(campaignId);
+    if (fightId === null) return null;
+    if (fightId) {
+      const fight = getEncounter(fightId);
+      return fight && fight.campaignId === campaignId && fight.status === "active" && fight.kind === "fight" ? fight : null;
+    }
+  }
   if (roomId !== undefined) {
     if (roomId === null) {
       const row = getDatabase()
@@ -361,7 +382,7 @@ export function saveEncounter(encounter: Encounter) {
     .prepare(
       `UPDATE encounters SET status = ?, round = ?, turn_index = ?, order_ready = ?,
        order_json = ?, waiting_seq = ?, turn_budget_json = ?, surprised_ids_json = ?,
-       reactions_used_json = ?, ammo_spent_json = ?, outcome = ?, updated_at = ? WHERE id = ?`,
+       reactions_used_json = ?, ammo_spent_json = ?, outcome = ?, team_round = ?, updated_at = ? WHERE id = ?`,
     )
     .run(
       encounter.status,
@@ -375,6 +396,7 @@ export function saveEncounter(encounter: Encounter) {
       JSON.stringify(encounter.reactionsUsed),
       JSON.stringify(encounter.ammoSpent),
       encounter.outcome,
+      encounter.teamRound,
       nowIso(),
       encounter.id,
     );
@@ -510,3 +532,14 @@ export function setEnemyConcentration(
     .run(spell, nowIso(), enemyId);
   return getEnemy(enemyId);
 }
+
+// Every fight running, in any room or place.
+export function listActiveFights(campaignId: string): Encounter[] {
+  return listActiveEncounters(campaignId).filter((encounter) => encounter.kind === "fight");
+}
+
+// Without rooms: the fight at this place, if one is running.
+export function activeFightAt(campaignId: string, locationId: string | null): Encounter | null {
+  return listActiveFights(campaignId).find((fight) => !fight.roomId && fight.locationId === locationId) ?? null;
+}
+

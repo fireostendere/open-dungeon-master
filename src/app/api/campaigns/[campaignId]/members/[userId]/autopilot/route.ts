@@ -2,7 +2,7 @@ import { z } from "zod";
 import { isErrorResponse, isLead, requireMember, steersStory } from "@/lib/campaign-api";
 import { getFloor, getGlobalTurnState, setMemberAutopilot } from "@/lib/db/campaigns";
 import { listSheets } from "@/lib/db/sheets";
-import { getActiveEncounter } from "@/lib/db/encounters";
+import { fightOwnsTable, userInFight } from "@/lib/dm/team-round";
 import { globalTurnSubmitted } from "@/lib/campaign-types";
 import { publishPersisted } from "@/lib/events";
 import { mayChangeAutopilot } from "@/lib/autopilot-policy";
@@ -59,7 +59,7 @@ export async function POST(
 
   publishPersisted(campaignId, "member_updated", { member });
 
-  if (parsed.data.autopilot && !member.muted && member.skipTurnsCount === 0 && !getActiveEncounter(campaignId)) {
+  if (parsed.data.autopilot && !member.muted && member.skipTurnsCount === 0 && !userInFight(campaignId, targetUserId) && !fightOwnsTable(campaignId)) {
     const campaign = context.campaign;
     if (campaign.gameSettings?.globalTurn?.enabled) {
       const turn = getGlobalTurnState(campaignId);
@@ -74,7 +74,7 @@ export async function POST(
         }
       }
     } else {
-      const floor = getFloor(campaignId);
+      const floor = getFloor(campaignId, null);
       if (floor.mode === "spotlight" && floor.userIds.includes(targetUserId) && !floor.respondedUserIds.includes(targetUserId)) {
         const sheet = listSheets(campaignId).find((s) => s.userId === targetUserId && !s.isCompanion);
         if (sheet) {

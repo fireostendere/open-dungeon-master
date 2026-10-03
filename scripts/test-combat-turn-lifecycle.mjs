@@ -20,6 +20,8 @@ function fixture() {
     '@/lib/schemas/game-settings': {}, '@/lib/workshop/kind': {}, '@/lib/uploads': {},
     '@/lib/dm/arc-logic': {}, '@/lib/dm/delegation': {}, '@/lib/dm/calendar': {},
     '@/lib/dm/party-logic': {}, '@/lib/dm/viewer': {},
+    // The fixture's single fight keeps the campaign floor, as before fights had their own.
+    '@/lib/db/fight-scope': { floorFightId: () => null },
   });
   const floorDb = { ...f.campaigns, getFloor: campaigns.getFloor, setFloor: campaigns.setFloor, canAct: campaigns.canAct, getGlobalTurnState: () => ({ phase: 'active' }), campaignSeats: () => ({}), listMembers: () => [{ userId, autopilot: false }] };
   const sheets = [
@@ -48,7 +50,8 @@ function fixture() {
     '@/lib/dm/queue': {}, '@/lib/dm/recap': {}, '@/lib/events': f.events,
     '@/lib/dm/global-turn-logic': { recordGlobalTurnAction: () => { if (encounter) throw new Error('Combat must bypass global turns'); return { allowed: true }; } },
     '@/lib/db/encounters': { getActiveEncounter: () => encounter },
-    '@/lib/dm/team-round': { teamRoundFight: () => null, inTeamRoundFight: () => true },
+    '@/lib/dm/team-round': { fightOf: () => null },
+    '@/lib/spatial/publication-scope.mjs': { withFight: (_campaignId, _fightId, work) => work() },
     '@/lib/db/encounter-view': { activePublicEncounter: () => ({ enemies: visibleEnemies, order: sheets.map(sheet => ({ kind: "pc", id: sheet.id, name: sheet.name })) }) },
     '@/lib/dm/action-tools': { attacksAllowedFor: () => 1, budgetFor: () => freshBudget({ ownerId: heroId, round: 1 }) },
     '@/lib/dm/combat-turn-intent': { combatSpellNames, validateCombatTurnIntent },
@@ -263,7 +266,7 @@ test('Skip N queues one normal turn per arrival, never advances enemies or decre
     let wakes = 0;
     const encounter = { id: encounterId, round: 1, turnIndex: 0, orderReady: true, order: [{ kind: 'pc', characterId: heroId, userId: 'u1', name: 'First' }] };
     const tools = loadSource('src/lib/dm/encounter-tools.ts', {
-      zod: { z }, '@/lib/spatial/service': { spatialEnabled: () => false }, '@/lib/dm/fight-presence': { atFight: () => true, joinFight() {}, placeArrivingHero() {}, syncFightBoards: () => ({ notes: [], leftOnTheirTurn: [] }), fightCrossing: () => null }, '@/lib/db/overworld': { partyStanding: () => ({}), getOverworldPartyPositions: () => [] }, '@/lib/db/campaigns': { ...f.campaigns,
+      zod: { z }, '@/lib/spatial/service': { spatialEnabled: () => false }, '@/lib/dm/fight-presence': { atFight: () => true, joinFight() {}, placeArrivingHero() {}, fightPlaceName: () => "here", syncFightBoards: () => ({ notes: [], leftOnTheirTurn: [], arrivals: [] }), fightCrossing: () => null }, '@/lib/db/overworld': { partyStanding: () => ({}), getOverworldPartyPositions: () => [] }, '@/lib/db/campaigns': { ...f.campaigns,
         getCampaignById: () => f.campaign, allocateSeq: f.campaigns.allocateSeq,
         getMember: () => ({ userId: 'u1', skipTurnsCount: remaining }),
         setMemberSkipTurns: (_c, _u, count) => { remaining = count; return { userId: 'u1', skipTurnsCount: count }; },
@@ -276,7 +279,8 @@ test('Skip N queues one normal turn per arrival, never advances enemies or decre
       '@/lib/dm/encounter-logic': {}, '@/lib/dm/mutations': {}, '@/lib/dm/ambience-tools': {},
       '@/lib/dm/map-tools': {}, '@/lib/dm/enemy-damage': {}, '@/lib/dm/enemy-actions': {},
       '@/lib/dm/global-turn-logic': { recordFighterTurn() {}, startGlobalTurn() {} },
-      '@/lib/dm/team-round': { teamFloor: (_campaignId, floor) => floor, teamRoundFight: () => null, releaseTeamHold: () => false,
+      '@/lib/dm/team-round': { teamFloor: (_campaignId, floor) => floor, teamRoundFights: () => [], releaseTeamHolds: () => 0,
+        isTeamRoundFight: () => false, teamLanding: () => "open",
         turnAnnouncement: (_campaignId, encounter, name) => `It is now ${name}'s turn (round ${encounter.round}).` },
       '@/lib/dm/combat-mode': loadSource('src/lib/dm/combat-mode.ts'),
       '@/lib/dm/encounter-tools-extra': { EXTRA_ENCOUNTER_TOOL_NAMES: [], extraEncounterTools: [] },

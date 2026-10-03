@@ -1,4 +1,6 @@
 import { rm } from "node:fs/promises";
+import { fightSummaries, viewerFights } from "@/lib/dm/team-round";
+import { withFight } from "@/lib/spatial/publication-scope.mjs";
 import path from "node:path";
 import { z } from "zod";
 import { capsFor, isErrorResponse, isLead, requireMember } from "@/lib/campaign-api";
@@ -8,6 +10,7 @@ import {
   allocateSeq,
   campaignSeats,
   deleteCampaign,
+  getFightFloor,
   latestSeq,
   listMembers,
   publicCampaign,
@@ -97,8 +100,17 @@ export async function GET(
     listFactsVisibleTo(campaignId, ownedCharacterIds, false),
   );
   const whispers = listWhispersForUser(campaignId, user.id);
+  // Without rooms: the fight this player stands in owns their floor, and the
+  // fight on screen is theirs or the first running (src/lib/dm/team-round.ts).
+  const fightsView = spatial ? null : viewerFights(campaignId, user.id);
+  const watch = <T>(work: () => T): T => (fightsView ? withFight(campaignId, fightsView.shown?.id ?? null, work) : work());
+  const fights = spatial ? [] : fightSummaries(campaignId);
   return Response.json({
-    campaign: projectSpatialCampaign(legacyPolicy, publicCampaign(campaign)),
+    campaign: projectSpatialCampaign(legacyPolicy, {
+      ...publicCampaign(campaign),
+      ...(fightsView?.own ? { floor: getFightFloor(campaignId, fightsView.own) } : {}),
+    }),
+    ...(fightsView ? { fights, ownFightId: fightsView.own?.id ?? null } : {}),
     me: { id: user.id, username: user.username, avatar: user.avatar },
     members: listMembers(campaignId),
     // Players this user has blocked; their table messages fold away.
@@ -129,7 +141,7 @@ export async function GET(
     whisperUnread: countUnreadWhispers(campaignId, user.id),
     asks: listAsksForUser(campaignId, user.id),
     facts: visibleFacts,
-    battleMap: spatialBattleMapView(campaignId, user.id, { fullVision: caps.fullMap }),
+    battleMap: watch(() => spatialBattleMapView(campaignId, user.id, { fullVision: caps.fullMap })),
     itemProposals: projectSpatialUserRows(
       legacyPolicy,
       listOpenItemProposals(campaignId),
@@ -140,10 +152,10 @@ export async function GET(
           viewerUserId: user.id,
           roomId: spatialStore().getUserRoom(campaignId, user.id),
         })
-      : activePublicEncounter(campaignId, {
+      : watch(() => activePublicEncounter(campaignId, {
           enemyNumbers: caps.enemyNumbers,
           viewerUserId: user.id,
-        }),
+        })),
     // Story the DM has written down. A DM tool, so only the DM seat is
     // served the list; the text itself is public either way, because a beat
     // is published as an ordinary DM passage (src/lib/dm/beats.ts).
