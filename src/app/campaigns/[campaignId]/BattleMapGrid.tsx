@@ -256,8 +256,14 @@ export const BattleMapGrid = memo(
           ref={camera.wrapRef}
           // On a phone the window is tall and the board is big inside it;
           // on a desk it is the board's own shape. Either way a finger moves
-          // it, so the page must not scroll under one.
-          className={cn("relative w-full touch-none select-none", expanded ? "max-md:h-[calc(100dvh-6rem)]" : "max-md:h-[62dvh]")}
+          // it, so the page must not scroll under one. Tilted, the window is
+          // pulled up over whatever sits above it (the header's buttons), so
+          // only the board and its controls take a press, not the empty band.
+          className={cn(
+            "relative w-full touch-none select-none",
+            expanded ? "max-md:h-[calc(100dvh-6rem)]" : "max-md:h-[62dvh]",
+            band && "pointer-events-none *:pointer-events-auto",
+          )}
           style={{ aspectRatio: `${width} / ${height}`, marginTop: band ? `${(-band).toFixed(2)}cqw` : undefined }}
           {...camera.handlers}
         >

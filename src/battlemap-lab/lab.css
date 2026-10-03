@@ -19,6 +19,7 @@ button { font: inherit; }
 /* The lab has no Tailwind, so the handful of utilities the map itself uses are spelled out. */
 .relative { position: relative; } .absolute { position: absolute; } .inset-0 { inset: 0; }
 .h-full { height: 100%; } .w-full { width: 100%; } .touch-none { touch-action: none; } .select-none { user-select: none; }
+.pointer-events-none { pointer-events: none; } .\*\:pointer-events-auto > * { pointer-events: auto; }
 .card svg[role="img"] { display: block; border-radius: 10px; border: 1px solid #292524; background: #0c0a09; }
 .card svg[role="img"] * { -webkit-tap-highlight-color: transparent; }
 [data-map-control] { display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; padding: 0; border-radius: 6px; border: 1px solid #57534e; background: rgba(12, 10, 9, .85); color: #e7e5e4; cursor: pointer; }
