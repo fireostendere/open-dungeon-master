@@ -611,7 +611,6 @@ export function SessionView({
               error={error}
               inputBlocked={(!needsCharacter && gate.inputBlocked) || muted}
                placeholder={muted ? tourCopy.mutedPlaceholder : gate.placeholder}
-              dmStatus={dmStatus}
               pendingRolls={pendingRolls}
               floor={floor}
               spotlighted={gate.spotlighted}
