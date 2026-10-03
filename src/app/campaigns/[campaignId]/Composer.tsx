@@ -7,7 +7,6 @@ import { memo, useEffect, useRef, useState } from "react";
 import type { Dispatch, FormEvent, RefObject, SetStateAction } from "react";
 import { cn } from "@/lib/cn";
 import { ui } from "@/lib/ui";
-import { D20Spinner } from "@/components/ui/D20Spinner";
 import { Tooltip } from "@/components/ui/Tooltip";
 import { FloorBanners } from "@/app/campaigns/[campaignId]/FloorBanners";
 import { NewAdventurerBanner } from "@/app/campaigns/[campaignId]/NewAdventurerBanner";
@@ -54,14 +53,6 @@ const COPY = {
     hideChat: "Hide chat",
     showChat: "Show chat",
     kinds: { do: "Do", ooc: "OOC", ask: "Ask DM", lead: "Direct", narrate: "Narrate" },
-    statuses: {
-      rolling: "DM rolling dice...",
-      awaiting_rolls: "Waiting on real dice...",
-      narrating: "DM narrating...",
-      writing_chapter: "DM writing the chapter...",
-      plotting_arc: "DM plotting the story arc...",
-      default: "DM at work...",
-    },
     privateOn: "Only the DM sees this. It steers the next turn and never enters the transcript.",
     privateOff: "The table sees this direction, and the DM acts on it now.",
     private: "Private",
@@ -81,14 +72,6 @@ const COPY = {
     hideChat: "Скрыть чат",
     showChat: "Показать чат",
     kinds: { do: "Действие", ooc: "Вне игры", ask: "Спросить Мастера", lead: "Указание", narrate: "Повествование" },
-    statuses: {
-      rolling: "Мастер бросает кости...",
-      awaiting_rolls: "Ожидание реальных бросков...",
-      narrating: "Мастер ведёт повествование...",
-      writing_chapter: "Мастер пишет главу...",
-      plotting_arc: "Мастер планирует сюжетную арку...",
-      default: "Мастер работает...",
-    },
     privateOn: "Это видит только Мастер. Указание направляет следующий ход и не попадает в стенограмму.",
     privateOff: "Указание видит весь стол, и Мастер применяет его прямо сейчас.",
     private: "Приватно",
@@ -123,7 +106,6 @@ function ComposerInner({
   error,
   inputBlocked,
   placeholder,
-  dmStatus,
   pendingRolls,
   floor,
   spotlighted,
@@ -168,7 +150,6 @@ function ComposerInner({
   error: string;
   inputBlocked: boolean;
   placeholder: string;
-  dmStatus: CampaignState["dmStatus"];
   pendingRolls: CampaignState["pendingRolls"];
   floor: Parameters<typeof FloorBanners>[0]["floor"];
   spotlighted: CampaignState["sheets"];
@@ -210,19 +191,6 @@ function ComposerInner({
     observer.observe(node, { childList: true });
     return () => observer.disconnect();
   }, []);
-
-  const dmStatusText =
-    dmStatus === "rolling"
-      ? copy.statuses.rolling
-      : dmStatus === "awaiting_rolls"
-        ? copy.statuses.awaiting_rolls
-        : dmStatus === "narrating"
-          ? copy.statuses.narrating
-          : dmStatus === "writing_chapter"
-            ? copy.statuses.writing_chapter
-            : dmStatus === "plotting_arc"
-              ? copy.statuses.plotting_arc
-              : copy.statuses.default;
 
   const mySheet = sheets.find((s) => s.userId === meUserId && !s.isCompanion);
   const myMember = members.find((m) => m.userId === meUserId);
@@ -472,12 +440,6 @@ function ComposerInner({
               </button>
             </Tooltip>
           ))}
-          {dmStatus !== "idle" ? (
-            <span role="status" aria-live="polite" className="ml-auto flex items-center gap-1.5 text-xs text-stone-500">
-              <D20Spinner className="size-3.5 shrink-0 text-amber-600" />
-              {dmStatusText}
-            </span>
-          ) : null}
         </div>
         {kind === "ask" ? (
           <div className="mb-2">
