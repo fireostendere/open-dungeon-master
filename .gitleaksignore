@@ -3,3 +3,6 @@ src/lib/rulebook/srd-5.1.json:generic-api-key:1
 
 # Same SRD page IDs in the Russian edition; no credentials.
 src/lib/rulebook/srd-5.1.ru.json:generic-api-key:1
+
+# The map lab bundles the same SRD page IDs ("wand-of-secrets"); no credentials.
+battlemap-lab.html:generic-api-key:27
