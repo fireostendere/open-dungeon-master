@@ -449,7 +449,8 @@ function handleStartEncounter(
   );
 
   // Opt-in: roll every hero's initiative digitally now instead of one request_roll per hero.
-  const rolledAll = args.rollInitiative === true && ensureInitiativeProgress(campaign) !== null;
+  // Its note says who acts first, so the model is not left guessing.
+  const begun = args.rollInitiative === true ? ensureInitiativeProgress(campaign) : null;
   const rollList = participants
     .map((sheet) => `${sheet.name} (characterId=${sheet.id})`)
     .join(", ");
@@ -472,9 +473,9 @@ function handleStartEncounter(
           surprise: `${args.surprised === "party" ? "The party is" : "The enemies are"} surprised: the server skips their turns for the first round. Narrate the ambush landing.`,
         }
       : {}),
-    next: rolledAll || getActiveEncounter(campaign.id)?.orderReady
+    next: begun ?? (getActiveEncounter(campaign.id)?.orderReady
       ? "Initiative is rolled for every combatant; the order and the current actor are in GAME STATE."
-      : `Now call request_roll with kind=initiative for EACH character: ${rollList}. Combat begins once every initiative is in.`,
+      : `Now call request_roll with kind=initiative for EACH character: ${rollList}. Combat begins once every initiative is in.`),
   };
 }
 
@@ -498,18 +499,24 @@ function entryAlive(entry: OrderEntry, enemiesById: Map<string, EncounterEnemy>,
   return true;
 }
 
-const entryId = orderEntryId;
+// Surprise costs exactly the first turn: advanceOrder walks past these
+// combatants until round 1 wraps, and startRound empties the list then.
+function surprisedIn(encounter: Encounter) {
+  return (entry: OrderEntry) => encounter.surprisedIds.includes(orderEntryId(entry));
+}
 
-// A combatant the pointer should stop on: alive, and not surprised. Surprise
-// costs exactly the first turn, and surprisedIds is emptied when round 1
-// wraps, so this narrows to entryAlive from round 2 on.
-function entryActs(
-  entry: OrderEntry,
-  enemiesById: Map<string, EncounterEnemy>,
-  surprisedIds: string[],
-  here?: (sheet: CharacterSheet) => boolean,
-): boolean {
-  return entryAlive(entry, enemiesById, here) && !surprisedIds.includes(entryId(entry));
+// A new round: surprise is spent, timed conditions tick down, save-ends
+// conditions re-save, and movement budgets refill for every token. Other
+// combatants keep their spent reactions until their own next turn.
+function startRound(campaign: Campaign, encounter: Encounter) {
+  encounter.round += 1;
+  encounter.surprisedIds = [];
+  tickEncounterConditions(campaign, encounter);
+  const map = getBattleMapForEncounter(encounter.id);
+  if (map) {
+    resetRoundBudgets(map.id, encounter.round);
+    publishBattleMapUpdate(campaign.id);
+  }
 }
 
 // A character's Armor Class with every active effect folded in
@@ -612,18 +619,26 @@ export function recordInitiativeRoll(
     })),
   );
   const enemiesById = new Map(enemies.map((enemy) => [enemy.id, enemy]));
-  const first = advanceOrder(encounter.order, -1, (entry) =>
-    entryActs(entry, enemiesById, encounter.surprisedIds, (sheet) => atFight(campaignId, encounter, sheet)),
+  const first = advanceOrder(
+    encounter.order,
+    -1,
+    (entry) => entryAlive(entry, enemiesById, (sheet) => atFight(campaignId, encounter, sheet)),
+    surprisedIn(encounter),
   );
   if (!first) {
     saveEncounter(encounter);
     return null;
   }
+  const campaign = getCampaignById(campaignId);
+  // The whole party was ambushed: round 1 was the enemies' alone, and the
+  // first hero's turn is in round 2.
+  if (first.wrapped && campaign) {
+    startRound(campaign, encounter);
+  }
   encounter.orderReady = true;
   encounter.turnIndex = first.turnIndex;
   encounter.waitingSeq = latestSeq(campaignId);
   saveEncounter(encounter);
-  const campaign = getCampaignById(campaignId);
   setInitiativeFloor(campaign, encounter);
   publishEncounter(campaignId);
   if (campaign) {
@@ -632,7 +647,8 @@ export function recordInitiativeRoll(
     }
   }
 
-  const actFirst = first.enemiesPassed
+  // An enemy above the ambushed party passes twice; it is told to act once.
+  const actFirst = [...new Set(first.enemiesPassed)]
     .map((enemyId) => enemiesById.get(enemyId)?.displayName)
     .filter(Boolean);
   const current = encounter.order[encounter.turnIndex];
@@ -1155,8 +1171,11 @@ function advancePointer(
   options?: { announce?: boolean },
 ): { enemiesPassed: string[] } | null {
   const enemiesById = new Map(listEnemies(encounter.id).map((enemy) => [enemy.id, enemy]));
-  const next = advanceOrder(encounter.order, encounter.turnIndex, (entry) =>
-    entryActs(entry, enemiesById, encounter.surprisedIds, (sheet) => atFight(campaign.id, encounter, sheet)),
+  const next = advanceOrder(
+    encounter.order,
+    encounter.turnIndex,
+    (entry) => entryAlive(entry, enemiesById, (sheet) => atFight(campaign.id, encounter, sheet)),
+    surprisedIn(encounter),
   );
   if (!next) {
     return null;
@@ -1168,19 +1187,7 @@ function advancePointer(
   const incoming = encounter.order[encounter.turnIndex];
   if (incoming) encounter.reactionsUsed = encounter.reactionsUsed.filter(id => id !== orderEntryId(incoming));
   if (next.wrapped) {
-    encounter.round += 1;
-    // Other combatants keep their spent reactions until their own next turn.
-    // Surprise costs exactly one turn, so it is spent by the time round 1
-    // has gone all the way around.
-    encounter.surprisedIds = [];
-    // New round: timed conditions tick down, save-ends conditions re-save,
-    // and movement budgets refill for every token.
-    tickEncounterConditions(campaign, encounter);
-    const map = getBattleMapForEncounter(encounter.id);
-    if (map) {
-      resetRoundBudgets(map.id, encounter.round);
-      publishBattleMapUpdate(campaign.id);
-    }
+    startRound(campaign, encounter);
   }
   encounter.waitingSeq = latestSeq(campaign.id);
   saveEncounter(encounter);

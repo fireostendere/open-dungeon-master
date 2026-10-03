@@ -78,6 +78,23 @@ test("advanceOrder reports skipped downed PCs in pcsPassed", () => {
   assert.deepEqual(clean.pcsPassed, []);
 });
 
+test("a fully surprised party gets its first turn in round 2, after the enemies", () => {
+  const order = buildOrder(pcs, enemies);
+  const next = advanceOrder(order, -1, () => true, (entry) => entry.kind === "pc");
+  assert.equal(order[next.turnIndex].name, "Kara");
+  assert.equal(next.wrapped, true);
+  assert.deepEqual(next.enemiesPassed, ["e1", "e2"]);
+  assert.deepEqual(next.pcsPassed, [], "surprise is not a downed hero");
+});
+
+test("surprise costs only round 1: past the wrap the surprised hero acts", () => {
+  const order = buildOrder(pcs, enemies);
+  // Kara was surprised; Brom (index 2) ends round 1 and round 2 opens on Kara.
+  const next = advanceOrder(order, 2, () => true, (entry) => entry.kind === "pc" && entry.characterId === "c1");
+  assert.equal(order[next.turnIndex].name, "Kara");
+  assert.equal(next.wrapped, true);
+});
+
 test("advanceOrder returns null with no living PCs", () => {
   const order = buildOrder(pcs, enemies);
   assert.equal(advanceOrder(order, 0, (entry) => entry.kind === "enemy"), null);
