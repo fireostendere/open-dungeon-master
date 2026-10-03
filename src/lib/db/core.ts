@@ -1549,6 +1549,8 @@ function ensureSchema(db: SqliteDatabase) {
     // CON save and a break clears the spell's conditions
     // (src/lib/dm/enemy-damage.ts).
     ["concentration", `TEXT`],
+    // Limited actions used this fight (src/lib/dm/enemy-actions.ts).
+    ["spent_json", `TEXT NOT NULL DEFAULT '[]'`],
   ]);
 
   addColumns("pending_rolls", [

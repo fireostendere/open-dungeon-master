@@ -30,10 +30,10 @@ import { publishPersisted, publishWithSeq } from "@/lib/events";
 import { computeSheetDerived, effectiveAcFor } from "@/lib/srd";
 import { encounterCeiling, evaluateEncounter } from "@/lib/srd/encounter-math";
 import { suggestEnemies } from "@/lib/bestiary";
-import { synthesizeStats } from "@/lib/bestiary/synthesize";
 import { enemyRequestSchema, resolveEnemyRequests } from "@/lib/dm/encounter-spawn";
 import { healthState } from "@/lib/bestiary/health";
-import type { EnemyAttack } from "@/lib/bestiary/statblock";
+import type { EnemyAttack, EnemySaveAction } from "@/lib/bestiary/statblock";
+import { pickEnemyAction, rechargeEnemies, spendAction } from "@/lib/dm/enemy-actions";
 import {
   advanceOrder,
   buildOrder,
@@ -48,7 +48,7 @@ import {
   approachForAttack,
   createBattleMapForEncounter,
   handleMoveToken,
-  isRangedAttackName,
+  isRangedAttack,
   moveTokenTool,
   publishBattleMapUpdate,
 } from "@/lib/dm/map-tools";
@@ -88,6 +88,7 @@ import {
   attackContext,
   incapacitatedBy,
   isIncapacitated,
+  mergeAdvantage,
 } from "@/lib/dm/condition-logic";
 import { tickEncounterConditions } from "@/lib/dm/condition-tick";
 import { rollDeathSave } from "@/lib/dm/death";
@@ -201,7 +202,7 @@ const enemyAttackTool: ToolDef = {
   function: {
     name: "enemy_attack",
     description:
-      "An enemy attacks a character. The server rolls to-hit from the enemy's real stat block against the target's real AC and applies real damage. Never invent an enemy's numbers or use request_roll for enemy attacks.",
+      "An enemy takes one of the actions in its stat block against a character. Attacks (stats.attacks): the server moves it into reach or range, rolls to-hit against the target's real AC, applies real damage and what the hit does (a web restrains, a bite poisons on a failed save). Save actions (stats.saves: a breath weapon, a gaze): every target rolls their own save from their sheet; list everyone caught in targetCharacterIds. Recharge and per-day actions are tracked (enemy.spent) and refused while spent. Never invent an enemy's numbers or use request_roll for enemy attacks.",
     parameters: {
       type: "object",
       additionalProperties: false,
@@ -211,9 +212,14 @@ const enemyAttackTool: ToolDef = {
           type: "string",
           description: "Exact characterId from GAME STATE.",
         },
+        targetCharacterIds: {
+          type: "array",
+          items: { type: "string" },
+          description: "Save actions only: everyone else caught in its area, exact characterIds.",
+        },
         attack: {
           type: "string",
-          description: "Attack name from the enemy's attack list; defaults to its first.",
+          description: "Action name from stats.attacks or stats.saves, e.g. \"Web\" or \"Fire Breath\". Omit for its everyday attack. An unknown name is refused, never swapped.",
         },
         advantage: { type: "string", enum: ["none", "advantage", "disadvantage"] },
       },
@@ -506,12 +512,14 @@ function surprisedIn(encounter: Encounter) {
 }
 
 // A new round: surprise is spent, timed conditions tick down, save-ends
-// conditions re-save, and movement budgets refill for every token. Other
-// combatants keep their spent reactions until their own next turn.
+// conditions re-save, spent recharge actions roll to come back, and movement
+// budgets refill for every token. Other combatants keep their spent
+// reactions until their own next turn.
 function startRound(campaign: Campaign, encounter: Encounter) {
   encounter.round += 1;
   encounter.surprisedIds = [];
   tickEncounterConditions(campaign, encounter);
+  rechargeEnemies(listEnemies(encounter.id));
   const map = getBattleMapForEncounter(encounter.id);
   if (map) {
     resetRoundBudgets(map.id, encounter.round);
@@ -768,6 +776,8 @@ function handleDamageEnemy(
 const attackArgsSchema = z.object({
   enemyId: z.string(),
   targetCharacterId: z.string(),
+  // Everyone else caught by a save action (a breath weapon's cone).
+  targetCharacterIds: z.array(z.string()).max(12).optional(),
   attack: z.string().optional(),
   advantage: z.preprocess(
     normalizeAdvantage,
@@ -775,24 +785,126 @@ const attackArgsSchema = z.object({
   ),
 });
 
-function pickAttack(enemy: EncounterEnemy, requested: string | undefined): EnemyAttack | null {
-  const attacks = enemy.stats.attacks.length
-    ? enemy.stats.attacks
-    : synthesizeStats(enemy.cr).attacks;
-  if (!attacks.length) {
-    return null;
-  }
-  const wanted = (requested ?? "").trim().toLowerCase();
-  if (wanted) {
-    const match = attacks.find(
-      (attack) =>
-        attack.name.toLowerCase() === wanted || attack.name.toLowerCase().includes(wanted),
-    );
-    if (match) {
-      return match;
+// What a landed hit does past its damage: a web's restraint and a jaw's
+// grapple land outright; a poison or a paralysis is the target's save,
+// rolled from their sheet by cast_at_player.
+function applyHitEffect(
+  campaign: Campaign,
+  turn: DmTurn,
+  enemy: EncounterEnemy,
+  attack: EnemyAttack,
+  target: CharacterSheet,
+  sheets: CharacterSheet[],
+  sheetsById: Map<string, CharacterSheet>,
+): Record<string, unknown> {
+  const effect = attack.onHit;
+  const source = `${enemy.displayName}'s ${attack.name}`;
+  const out: Record<string, unknown> = {};
+  if (effect?.condition) {
+    const applied = applyDmMutation(
+      campaign,
+      turn.id,
+      "set_condition",
+      JSON.stringify({ characterId: target.id, condition: effect.condition, reason: source }),
+      sheets,
+      sheetsById,
+    ).result;
+    if (!("error" in applied)) {
+      out.condition = effect.condition;
+      if (effect.escapeDc) {
+        out.escape = `DC ${effect.escapeDc}: on their turn ${target.name} can use an action for a Strength (Athletics) or Dexterity (Acrobatics) check (request_roll); on a success clear_condition ${effect.condition}.`;
+      }
     }
   }
-  return attacks[0];
+  if (effect?.save) {
+    const save = effect.save;
+    out.save = handleCastAtPlayer(
+      campaign,
+      turn,
+      JSON.stringify({
+        characterId: target.id,
+        source,
+        saveAbility: save.ability,
+        dc: save.dc,
+        ...(save.damage ? { damage: save.damage, damageType: save.damageType, halfOnSave: Boolean(save.half) } : {}),
+        ...(save.condition ? { condition: save.condition } : {}),
+        ...(save.rounds ? { rounds: save.rounds } : {}),
+      }),
+      sheets,
+      sheetsById,
+    );
+  }
+  return out;
+}
+
+// A save action (breath, gaze, roar): every named character rolls their own
+// save. Damage alone goes through aoe_damage so it is rolled once for the
+// whole area, as printed; a condition goes target by target.
+function resolveEnemySave(
+  campaign: Campaign,
+  turn: DmTurn,
+  encounter: Encounter,
+  enemy: EncounterEnemy,
+  save: EnemySaveAction,
+  targets: CharacterSheet[],
+  sheets: CharacterSheet[],
+  sheetsById: Map<string, CharacterSheet>,
+): Record<string, unknown> {
+  const outside = targets.filter((sheet) => !atFight(campaign.id, encounter, sheet));
+  if (outside.length) {
+    return { error: `${outside.map((sheet) => sheet.name).join(", ")} ${outside.length === 1 ? "is" : "are"} not at this fight.` };
+  }
+  const source = `${enemy.displayName}'s ${save.name}`;
+  const resolved = save.condition || !save.damage
+    ? {
+        results: targets.map((sheet) =>
+          handleCastAtPlayer(
+            campaign,
+            turn,
+            JSON.stringify({
+              characterId: sheet.id,
+              source,
+              saveAbility: save.ability,
+              dc: save.dc,
+              ...(save.damage ? { damage: save.damage, damageType: save.damageType, halfOnSave: Boolean(save.half) } : {}),
+              ...(save.condition ? { condition: save.condition } : {}),
+              ...(save.rounds ? { rounds: save.rounds } : {}),
+            }),
+            sheets,
+            sheetsById,
+          ),
+        ),
+      }
+    : applyExtraEncounterCall(
+        campaign,
+        turn,
+        "aoe_damage",
+        JSON.stringify({
+          damage: save.damage,
+          type: save.damageType,
+          saveAbility: save.ability,
+          dc: save.dc,
+          halfOnSave: Boolean(save.half),
+          characterIds: targets.map((sheet) => sheet.id),
+          casterEnemyId: enemy.id,
+          reason: source,
+        }),
+        sheets,
+        sheetsById,
+      )?.result ?? { error: "aoe_damage is unavailable." };
+  if ("error" in resolved) {
+    return resolved;
+  }
+  spendAction(enemy, save);
+  if (!turn.actedEnemyIds.includes(enemy.id)) {
+    turn.actedEnemyIds.push(enemy.id);
+  }
+  return {
+    action: save.name,
+    save: `${save.ability.toUpperCase()} DC ${save.dc}`,
+    ...(save.area ? { area: save.area } : {}),
+    ...resolved,
+  };
 }
 
 function handleEnemyAttack(
@@ -848,34 +960,45 @@ function handleEnemyAttack(
   if (isJrpgCombat(campaign) && !encounter.order.some(entry => entry.kind === "pc" && entry.characterId === target.id)) {
     return { error: "The target is not a participant in this encounter." };
   }
-  const attack = pickAttack(enemy, args.attack);
-  if (!attack) {
-    return { error: `${enemy.displayName} has no usable attacks; narrate a different action.` };
+  const picked = pickEnemyAction(enemy, args.attack);
+  if ("error" in picked) {
+    return picked;
   }
+  if ("save" in picked) {
+    const others = (args.targetCharacterIds ?? [])
+      .map((ref) => resolveSheetRef(ref, sheets, sheetsById))
+      .filter((sheet): sheet is CharacterSheet => Boolean(sheet));
+    const targets = [target, ...others].filter((sheet, index, all) => all.findIndex((entry) => entry.id === sheet.id) === index);
+    return resolveEnemySave(campaign, turn, encounter, enemy, picked.save, targets, sheets, sheetsById);
+  }
+  const attack = picked.attack;
 
   // Battle-map positions are authoritative: a melee attacker out of reach
-  // auto-approaches along a legal path, and the attack is refused when the
-  // target is still beyond range, so narration can never teleport enemies.
-  const spatial = approachForAttack(campaign, encounter.id, enemy.id, target.id, attack.name);
+  // auto-approaches along a legal path, a ranged one finds range and sight,
+  // and the attack is refused when the target is still out of reach, so
+  // narration can never teleport enemies.
+  const spatial = approachForAttack(campaign, encounter.id, enemy.id, target.id, attack);
   if (spatial?.blocked) {
     return spatial.blocked;
   }
 
   // Conditions on both sides drive advantage and auto-crits; the model's
-  // situational claim merges in as one more source.
-  const ranged = isRangedAttackName(attack.name);
+  // situational claim merges in as one more source, and so does long range.
+  const ranged = spatial?.ranged ?? isRangedAttack(attack);
   const conditionContext = attackContext({
     attackerConditions: enemy.conditions,
     targetConditions: target.conditions,
     melee: !ranged,
     adjacent: !ranged,
-    requested: args.advantage ?? "none",
+    requested: spatial?.far ? mergeAdvantage([args.advantage ?? "none", "disadvantage"]) : args.advantage ?? "none",
   });
 
   // Multiattack: the full routine executes in this ONE call, each swing its
   // own to-hit and damage dice cards, stopping early if the target drops.
   const advantage: Advantage = conditionContext.advantage;
-  const totalSwings = Math.max(1, Math.min(3, enemy.stats.attacksPerTurn ?? 1));
+  // A recharge or per-day action is its own action, never a Multiattack swing.
+  const limited = Boolean(attack.recharge || attack.uses);
+  const totalSwings = limited ? 1 : Math.max(1, Math.min(3, enemy.stats.attacksPerTurn ?? 1));
   const swings: Array<Record<string, unknown>> = [];
   let dropped = false;
   let totalDamage = 0;
@@ -911,58 +1034,69 @@ function handleEnemyAttack(
       continue;
     }
 
-    const damageExpression = crit
-      ? critDamageExpression(attack.damage, 0, {
-          powerfulCritical: campaign.gameSettings.variantRules.powerfulCritical,
-          multiplyNumeric: campaign.gameSettings.variantRules.criticalDamageMods,
-        })
-      : attack.damage;
-    const damageOutcome = rollExpression(damageExpression);
-    const damageRoll = insertRoll({
-      campaignId: campaign.id,
-      characterId: target.id,
-      requestedBy: "dm",
-      kind: "damage",
-      detail: `${enemy.displayName}: ${attack.name} damage`,
-      result: damageOutcome,
-    });
-    publishWithSeq(campaign.id, allocateSeq(campaign.id), "roll_result", {
-      roll: damageRoll,
-      source: "digital",
-    });
-    turn.rollIds.push(damageRoll.id);
-
-    // Damage lands through the standard mutation: temp HP, clamps, audit,
-    // and the live sheet_updated publish all come for free.
-    const applied = applyDmMutation(
-      campaign,
-      turn.id,
-      "apply_damage",
-      JSON.stringify({
+    const landed: Record<string, unknown> = { rolled: hitOutcome.total, hit: true, ...(crit ? { crit: true } : {}) };
+    swings.push(landed);
+    if (attack.damage) {
+      const damageExpression = crit
+        ? critDamageExpression(attack.damage, 0, {
+            powerfulCritical: campaign.gameSettings.variantRules.powerfulCritical,
+            multiplyNumeric: campaign.gameSettings.variantRules.criticalDamageMods,
+          })
+        : attack.damage;
+      const damageOutcome = rollExpression(damageExpression);
+      const damageRoll = insertRoll({
+        campaignId: campaign.id,
         characterId: target.id,
-        amount: Math.max(1, damageOutcome.total),
-        type: attack.type,
-        // Crits against a dying target count double death-save failures.
-        ...(crit ? { crit: true } : {}),
-        reason: `${enemy.displayName}'s ${attack.name}`,
-      }),
-      sheets,
-      sheetsById,
-    ).result;
-    totalDamage += damageOutcome.total;
-    if (typeof applied.hp === "string") {
-      targetHp = applied.hp;
+        requestedBy: "dm",
+        kind: "damage",
+        detail: `${enemy.displayName}: ${attack.name} damage`,
+        result: damageOutcome,
+      });
+      publishWithSeq(campaign.id, allocateSeq(campaign.id), "roll_result", {
+        roll: damageRoll,
+        source: "digital",
+      });
+      turn.rollIds.push(damageRoll.id);
+
+      // Damage lands through the standard mutation: temp HP, clamps, audit,
+      // and the live sheet_updated publish all come for free.
+      const applied = applyDmMutation(
+        campaign,
+        turn.id,
+        "apply_damage",
+        JSON.stringify({
+          characterId: target.id,
+          amount: Math.max(1, damageOutcome.total),
+          type: attack.type,
+          // Crits against a dying target count double death-save failures.
+          ...(crit ? { crit: true } : {}),
+          reason: `${enemy.displayName}'s ${attack.name}`,
+        }),
+        sheets,
+        sheetsById,
+      ).result;
+      totalDamage += damageOutcome.total;
+      if (typeof applied.hp === "string") {
+        targetHp = applied.hp;
+      }
+      if (applied.dropped) {
+        dropped = true;
+      }
+      landed.damage = damageOutcome.total;
     }
-    if (applied.dropped) {
-      dropped = true;
+    if (attack.onHit && !dropped) {
+      const effect = applyHitEffect(campaign, turn, enemy, attack, target, sheets, sheetsById);
+      Object.assign(landed, effect);
+      const saved = effect.save as Record<string, unknown> | undefined;
+      if (typeof saved?.hp === "string") {
+        targetHp = saved.hp;
+      }
+      if (saved?.dropped) {
+        dropped = true;
+      }
     }
-    swings.push({
-      rolled: hitOutcome.total,
-      hit: true,
-      ...(crit ? { crit: true } : {}),
-      damage: damageOutcome.total,
-    });
   }
+  spendAction(enemy, attack);
 
   // The auto-act fallback in advanceAfterTurn skips enemies that already
   // took their turn here.
@@ -979,6 +1113,8 @@ function handleEnemyAttack(
     hit: swings.some((entry) => entry.hit),
     ...(totalDamage > 0 ? { totalDamage, damageType: attack.type } : {}),
     ...(conditionContext.notes.length ? { conditionEffects: conditionContext.notes } : {}),
+    ...(spatial?.far ? { range: "long range: disadvantage" } : {}),
+    ...(limited ? { spent: attack.recharge ? `recharges on a d6 of ${attack.recharge}+` : "a limited use" } : {}),
     ...(targetHp ? { targetHp } : {}),
     ...(dropped ? { dropped: true, note: `${target.name} falls to 0 HP.` } : {}),
   };
@@ -1273,7 +1409,7 @@ function autoActSkippedEnemies(
     const summary = swings
       .map((swing) =>
         swing.hit
-          ? `${swing.rolled} vs AC ${result.vsAc}: HIT for ${swing.damage}${swing.crit ? " (CRIT)" : ""}`
+          ? `${swing.rolled} vs AC ${result.vsAc}: HIT${swing.damage === undefined ? "" : ` for ${swing.damage}`}${swing.crit ? " (CRIT)" : ""}${swing.condition ? `, ${swing.condition}` : ""}`
           : `${swing.rolled} vs AC ${result.vsAc}: miss`,
       )
       .join("; ");

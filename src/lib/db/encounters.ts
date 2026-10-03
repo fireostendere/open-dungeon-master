@@ -91,6 +91,10 @@ export type EncounterEnemy = {
   // Spell this enemy is concentrating on, or null. Best-effort server
   // tracking (src/lib/dm/enemy-damage.ts breaks it on damage).
   concentration: string | null;
+  // Limited actions used this fight, one entry per use ("Web (Recharge
+  // 5-6)"). A recharge roll at the top of a round takes its entry back
+  // (src/lib/dm/enemy-actions.ts).
+  spent: string[];
   stats: EnemyStats;
   createdAt: string;
   updatedAt: string;
@@ -134,6 +138,7 @@ type EnemyRow = {
   conditions_json: string;
   condition_meta_json: string | null;
   concentration: string | null;
+  spent_json: string | null;
   stat_json: string;
   created_at: string;
   updated_at: string;
@@ -180,6 +185,7 @@ function mapEnemy(row: EnemyRow): EncounterEnemy {
     conditions: parseJson<string[]>(row.conditions_json, []),
     conditionMeta: parseJson<ConditionMetaMap>(row.condition_meta_json, {}),
     concentration: row.concentration ?? null,
+    spent: parseJson<string[]>(row.spent_json, []),
     stats: parseJson<EnemyStats>(row.stat_json, {
       ac: row.ac,
       maxHp: row.max_hp,
@@ -485,6 +491,13 @@ export function patchEnemyConditions(
       .prepare(`UPDATE encounter_enemies SET conditions_json = ?, updated_at = ? WHERE id = ?`)
       .run(JSON.stringify(conditions.slice(0, 10)), nowIso(), enemyId);
   }
+  return getEnemy(enemyId);
+}
+
+export function setEnemySpent(enemyId: string, spent: string[]): EncounterEnemy | null {
+  getDatabase()
+    .prepare(`UPDATE encounter_enemies SET spent_json = ?, updated_at = ? WHERE id = ?`)
+    .run(JSON.stringify(spent.slice(0, 40)), nowIso(), enemyId);
   return getEnemy(enemyId);
 }
 

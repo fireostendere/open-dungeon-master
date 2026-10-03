@@ -96,11 +96,15 @@ export function resolveOpportunityAttacks(
     if (!token) {
       continue;
     }
-    const attack = enemy.stats.attacks[0];
+    // Its first melee attack that deals damage: a web or a bow is no
+    // opportunity attack.
+    const attack = enemy.stats.attacks.find((entry) => entry.damage && (entry.reach !== undefined || entry.range === undefined));
     if (!attack) {
       continue;
     }
-    const reach = enemyReachTiles(`${attack.name} ${enemy.stats.traits.join(" ")}`);
+    const reach = attack.reach !== undefined
+      ? Math.max(1, Math.floor(attack.reach / 5))
+      : enemyReachTiles(`${attack.name} ${enemy.stats.traits.join(" ")}`);
     const wasInReach = chebyshev(token.x, token.y, from.x, from.y) <= reach;
     const stillInReach = chebyshev(token.x, token.y, to.x, to.y) <= reach;
     if (!wasInReach || stillInReach) {
