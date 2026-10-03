@@ -12,7 +12,7 @@ import {
 } from "@/lib/db/encounters";
 import { spatialStore } from "@/lib/spatial/service";
 import { getSheetForUser, listSheets } from "@/lib/db/sheets";
-import { inTeamRoundFight, teamRoundFight } from "@/lib/dm/team-round";
+import { inTeamRoundFight, isTeamRoundFight } from "@/lib/dm/team-round";
 import { getCampaignById } from "@/lib/db/campaigns";
 import type { EnemyConditionVisibility, EnemyHpVisibility } from "@/lib/schemas/game-settings-options";
 
@@ -191,8 +191,7 @@ export function activePublicEncounter(
     enemyConditionVisibility: options.enemyConditionVisibility ?? settings?.enemyConditionVisibility,
     hiddenRefIds: Array.from(hidden),
   });
-  const teamFight = teamRoundFight(campaignId);
-  if (teamFight?.id !== encounter.id) return projection;
+  if (!isTeamRoundFight(campaignId, encounter)) return projection;
   return {
     ...projection,
     outsideIds: listSheets(campaignId).filter((sheet) => !inTeamRoundFight(campaignId, encounter, sheet)).map((sheet) => sheet.id),

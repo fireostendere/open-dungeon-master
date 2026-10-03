@@ -19,7 +19,8 @@ import { getSheetForUser, listSheets } from "@/lib/db/sheets";
 import { publishOocMessage, publishPersisted, publishWithSeq } from "@/lib/events";
 import { recordGlobalTurnAction, resolveGlobalTurn } from "@/lib/dm/global-turn-logic";
 import { getActiveEncounter } from "@/lib/db/encounters";
-import { inTeamRoundFight, teamRoundFight } from "@/lib/dm/team-round";
+import { fightOf } from "@/lib/dm/team-round";
+import { withFight } from "@/lib/spatial/publication-scope.mjs";
 import { activePublicEncounter } from "@/lib/db/encounter-view";
 import { attacksAllowedFor, budgetFor } from "@/lib/dm/action-tools";
 import { combatSpellNames, validateCombatTurnIntent, type CombatSpellDescriptor } from "@/lib/dm/combat-turn-intent";
@@ -148,221 +149,225 @@ export async function POST(
     );
   }
   const spatial = spatialEnabled(campaignId);
-  const roomId = spatial ? spatialStore().getUserRoom(campaignId, user.id) : undefined;
-  // A fight only part of the party is in gates only the heroes standing at
-  // it. Everyone else plays the team round as if there were no fight: their
-  // floor is open and the global turn paces them (src/lib/dm/team-round.ts).
-  const fight = getActiveEncounter(campaignId, roomId);
-  const teamFight = spatial ? null : teamRoundFight(campaignId);
-  const outsideFight = Boolean(fight && teamFight?.id === fight.id && !inTeamRoundFight(campaignId, fight, sheet));
-  const encounter = outsideFight ? null : fight;
+  // Without rooms a hero belongs to the fight at their place, if any: the
+  // rest of this request runs in that fight's scope (its encounter, its own
+  // floor). Everyone else runs at the table: no fight gates them, the table
+  // floor and the global round do (src/lib/dm/team-round.ts).
+  const placeFight = spatial ? null : fightOf(campaignId, sheet);
+  const submit = async (): Promise<Response> => {
+    const roomId = spatial ? spatialStore().getUserRoom(campaignId, user.id) : undefined;
+    const encounter = getActiveEncounter(campaignId, roomId);
 
-  // Global-turn collection is a hard server gate, not just a disabled UI.
-  // Before global_turn_started and after global_turn_ready, no player composer
-  // input is accepted or allowed to mutate floor/quorum state.
-  if (
-    !encounter &&
-    campaign.gameSettings?.globalTurn?.enabled &&
-    kind !== "ooc"
-  ) {
-    const globalTurn = getGlobalTurnState(campaignId);
-    if (globalTurn.phase === "waiting") {
-      return Response.json(
-        { error: "The next round has not started yet." },
-        { status: 409 },
-      );
+    // Global-turn collection is a hard server gate, not just a disabled UI.
+    // Before global_turn_started and after global_turn_ready, no player composer
+    // input is accepted or allowed to mutate floor/quorum state.
+    if (
+      !encounter &&
+      campaign.gameSettings?.globalTurn?.enabled &&
+      kind !== "ooc"
+    ) {
+      const globalTurn = getGlobalTurnState(campaignId);
+      if (globalTurn.phase === "waiting") {
+        return Response.json(
+          { error: "The next round has not started yet." },
+          { status: 409 },
+        );
+      }
+      if (globalTurn.phase === "ready" || globalTurn.phase === "resolving") {
+        return Response.json(
+          { error: "The MCP Dungeon Master is resolving this round." },
+          { status: 409 },
+        );
+      }
     }
-    if (globalTurn.phase === "ready" || globalTurn.phase === "resolving") {
-      return Response.json(
-        { error: "The MCP Dungeon Master is resolving this round." },
-        { status: 409 },
-      );
-    }
-  }
 
-  if (spatial && kind === "ooc") {
-    try {
-      const result = runSpatialCommand(campaignId, user.id, {
-        operation: "send", requestId: crypto.randomUUID(), kind: "ooc", content: parsed.data.content,
-      });
-      return Response.json({ messageId: (result.message as { id: string }).id }, { status: 202 });
-    } catch (error) {
-      if (error instanceof SpatialError) return Response.json({ error: error.message }, { status: error.status });
-      throw error;
+    if (spatial && kind === "ooc") {
+      try {
+        const result = runSpatialCommand(campaignId, user.id, {
+          operation: "send", requestId: crypto.randomUUID(), kind: "ooc", content: parsed.data.content,
+        });
+        return Response.json({ messageId: (result.message as { id: string }).id }, { status: 202 });
+      } catch (error) {
+        if (error instanceof SpatialError) return Response.json({ error: error.message }, { status: error.status });
+        throw error;
+      }
     }
-  }
 
-  // Floor control: during a spotlight only the named players may act (ooc is
-  // always allowed); the floor releases once ALL of them have answered.
-  // During a hold nobody may act until the lead releases. This read-modify-
-  // write must stay await-free so it is atomic in Node.
-  const floor: Floor = outsideFight ? { mode: "open" } : getFloor(campaignId, roomId);
-  if (!canAct(floor, user.id, kind)) {
-    if (floor.mode === "hold") {
+    // Floor control: during a spotlight only the named players may act (ooc is
+    // always allowed); the floor releases once ALL of them have answered.
+    // During a hold nobody may act until the lead releases. This read-modify-
+    // write must stay await-free so it is atomic in Node.
+    const floor = getFloor(campaignId, roomId);
+    if (!canAct(floor, user.id, kind)) {
+      if (floor.mode === "hold") {
+        return Response.json(
+          {
+            error: "The party lead has not opened responses yet. Use OOC for table talk.",
+            floor,
+          },
+          { status: 409 },
+        );
+      }
+      if (floor.mode === "initiative") {
+        return Response.json(
+          {
+            error: `It is ${floor.currentName || "another character"}'s turn in the initiative order. Use OOC for table talk.`,
+            floor,
+          },
+          { status: 409 },
+        );
+      }
+      const waitingOn =
+        floor.mode === "spotlight"
+          ? listSheets(campaignId)
+              .filter(
+                (entry) =>
+                  floor.userIds.includes(entry.userId) &&
+                  !floor.respondedUserIds.includes(entry.userId),
+              )
+              .map((entry) => entry.name)
+              .join(", ")
+          : "";
       return Response.json(
         {
-          error: "The party lead has not opened responses yet. Use OOC for table talk.",
+          error: waitingOn
+            ? `The DM is waiting on ${waitingOn}. Use OOC for table talk.`
+            : "It is not your moment to act.",
           floor,
         },
         { status: 409 },
       );
     }
-    if (floor.mode === "initiative") {
-      return Response.json(
-        {
-          error: `It is ${floor.currentName || "another character"}'s turn in the initiative order. Use OOC for table talk.`,
-          floor,
-        },
-        { status: 409 },
-      );
+    if (kind !== "ooc" && encounter) {
+      const actor = encounter.order[encounter.turnIndex];
+      if (!encounter.orderReady || floor.mode !== "initiative" || actor?.kind !== "pc" || actor.characterId !== sheet.id || listOpenPendingRolls(campaignId).some(roll => spatial
+        ? spatialStore().getUserRoom(campaignId, roll.userId) === roomId
+        : !roll.characterId || fightOf(campaignId, { id: roll.characterId })?.id === encounter.id)) {
+        return Response.json({ error: "Wait for your combat turn and pending rolls. OOC remains available." }, { status: 409 });
+      }
+      if (!parsed.data.combatTurn) {
+        return Response.json({ error: "Use the combat action builder to submit a complete turn." }, { status: 400 });
+      }
     }
-    const waitingOn =
-      floor.mode === "spotlight"
-        ? listSheets(campaignId)
-            .filter(
-              (entry) =>
-                floor.userIds.includes(entry.userId) &&
-                !floor.respondedUserIds.includes(entry.userId),
-            )
-            .map((entry) => entry.name)
-            .join(", ")
-        : "";
-    return Response.json(
-      {
-        error: waitingOn
-          ? `The DM is waiting on ${waitingOn}. Use OOC for table talk.`
-          : "It is not your moment to act.",
-        floor,
-      },
-      { status: 409 },
-    );
-  }
-  if (kind !== "ooc" && encounter) {
-    const actor = encounter.order[encounter.turnIndex];
-    if (!encounter.orderReady || floor.mode !== "initiative" || actor?.kind !== "pc" || actor.characterId !== sheet.id || listOpenPendingRolls(campaignId).some(roll => !spatial || spatialStore().getUserRoom(campaignId, roll.userId) === roomId)) {
-      return Response.json({ error: "Wait for your combat turn and pending rolls. OOC remains available." }, { status: 409 });
-    }
-    if (!parsed.data.combatTurn) {
-      return Response.json({ error: "Use the combat action builder to submit a complete turn." }, { status: 400 });
-    }
-  }
-  let combatContent: string | null = null;
-  let combatGate: Extract<Floor, { mode: "hold" }>["combat"] | undefined;
-  if (parsed.data.combatTurn) {
-    const intent = parsed.data.combatTurn;
-    if (kind !== "do" || floor.mode !== "initiative" || !encounter || !encounter.orderReady ||
-      intent.encounterId !== encounter.id || intent.round !== encounter.round || intent.turnIndex !== encounter.turnIndex) {
-      return Response.json({ error: "This combat turn is stale. Refresh the encounter." }, { status: 409 });
-    }
-    const current = encounter.order[encounter.turnIndex];
-    if (!current || current.kind !== "pc" || current.characterId !== sheet.id) {
-      return Response.json({ error: "It is not your initiative turn." }, { status: 409 });
-    }
-    const budget = budgetFor(encounter, sheet.id, attacksAllowedFor(sheet), conditionExtraActions(sheet.conditions));
-    if (!budget) return Response.json({ error: "This combat turn is no longer available." }, { status: 409 });
-    const publicEncounter = activePublicEncounter(campaignId, { viewerUserId: user.id, roomId });
-    const visibleCharacters = new Set(publicEncounter?.order.filter(entry => entry.kind === "pc").map(entry => entry.id));
-    const allies = listSheets(campaignId).filter(entry => !entry.deathSaves?.dead && visibleCharacters.has(entry.id));
-    const visibleEnemies = publicEncounter?.enemies.filter((enemy) => enemy.status === "alive") ?? [];
-    const result = validateCombatTurnIntent(intent, sheet, new Set(visibleEnemies.map((enemy) => enemy.id)), new Set(allies.map((entry) => entry.id)), budget, {
-      language: campaign.gameSettings.language ?? "ru",
-      names: new Map([...allies, ...visibleEnemies].map((entry) => [entry.id, entry.name])),
-      spells: spellsFor(sheet), friendlyFire: campaign.gameSettings.friendlyFire,
-    });
-    if (!result.ok) return Response.json({ error: result.error }, { status: 400 });
-    combatContent = result.content;
-    combatGate = { encounterId: encounter.id, round: encounter.round, turnIndex: encounter.turnIndex, characterId: sheet.id, requiresEndTurn: true, mechanicsResolved: false };
-  }
-  if (spatial) {
-    if (!parsed.data.combatTurn) return Response.json({ error: "Choose a location and send through location-chat." }, { status: 409 });
-    try {
-      const result = runSpatialCommand(campaignId, user.id, {
-        operation: "send", requestId: crypto.randomUUID(), kind: "do", content: combatContent,
-        completeTurn: true,
+    let combatContent: string | null = null;
+    let combatGate: Extract<Floor, { mode: "hold" }>["combat"] | undefined;
+    if (parsed.data.combatTurn) {
+      const intent = parsed.data.combatTurn;
+      if (kind !== "do" || floor.mode !== "initiative" || !encounter || !encounter.orderReady ||
+        intent.encounterId !== encounter.id || intent.round !== encounter.round || intent.turnIndex !== encounter.turnIndex) {
+        return Response.json({ error: "This combat turn is stale. Refresh the encounter." }, { status: 409 });
+      }
+      const current = encounter.order[encounter.turnIndex];
+      if (!current || current.kind !== "pc" || current.characterId !== sheet.id) {
+        return Response.json({ error: "It is not your initiative turn." }, { status: 409 });
+      }
+      const budget = budgetFor(encounter, sheet.id, attacksAllowedFor(sheet), conditionExtraActions(sheet.conditions));
+      if (!budget) return Response.json({ error: "This combat turn is no longer available." }, { status: 409 });
+      const publicEncounter = activePublicEncounter(campaignId, { viewerUserId: user.id, roomId });
+      const visibleCharacters = new Set(publicEncounter?.order.filter(entry => entry.kind === "pc").map(entry => entry.id));
+      const allies = listSheets(campaignId).filter(entry => !entry.deathSaves?.dead && visibleCharacters.has(entry.id));
+      const visibleEnemies = publicEncounter?.enemies.filter((enemy) => enemy.status === "alive") ?? [];
+      const result = validateCombatTurnIntent(intent, sheet, new Set(visibleEnemies.map((enemy) => enemy.id)), new Set(allies.map((entry) => entry.id)), budget, {
+        language: campaign.gameSettings.language ?? "ru",
+        names: new Map([...allies, ...visibleEnemies].map((entry) => [entry.id, entry.name])),
+        spells: spellsFor(sheet), friendlyFire: campaign.gameSettings.friendlyFire,
       });
-      return Response.json({ messageId: (result.message as { id: string }).id }, { status: 202 });
-    } catch (error) {
-      if (error instanceof SpatialError) return Response.json({ error: error.message }, { status: error.status });
-      throw error;
+      if (!result.ok) return Response.json({ error: result.error }, { status: 400 });
+      combatContent = result.content;
+      combatGate = { encounterId: encounter.id, round: encounter.round, turnIndex: encounter.turnIndex, characterId: sheet.id, requiresEndTurn: true, mechanicsResolved: false };
     }
-  }
-  // Global turn pacing: the first Do is the hero's complete submission.
-  // Initiative already has a per-combatant action budget; global collection
-  // pacing must not consume or reject combat turns.
-  const turnResult = encounter?.orderReady ? { allowed: true } : recordGlobalTurnAction(campaignId, sheet.id, user.id, kind);
-  if (!turnResult.allowed) {
-    const fallback = {
-      en: "This action is unavailable this turn.",
-      ru: "Действие недоступно в этом ходе.",
-    }[locale] ?? "This action is unavailable this turn.";
-    return Response.json({ error: turnResult.error ?? fallback }, { status: 409 });
-  }
+    if (spatial) {
+      if (!parsed.data.combatTurn) return Response.json({ error: "Choose a location and send through location-chat." }, { status: 409 });
+      try {
+        const result = runSpatialCommand(campaignId, user.id, {
+          operation: "send", requestId: crypto.randomUUID(), kind: "do", content: combatContent,
+          completeTurn: true,
+        });
+        return Response.json({ messageId: (result.message as { id: string }).id }, { status: 202 });
+      } catch (error) {
+        if (error instanceof SpatialError) return Response.json({ error: error.message }, { status: error.status });
+        throw error;
+      }
+    }
+    // Global turn pacing: the first Do is the hero's complete submission.
+    // Initiative already has a per-combatant action budget; global collection
+    // pacing must not consume or reject combat turns.
+    const turnResult = encounter?.orderReady ? { allowed: true } : recordGlobalTurnAction(campaignId, sheet.id, user.id, kind);
+    if (!turnResult.allowed) {
+      const fallback = {
+        en: "This action is unavailable this turn.",
+        ru: "Действие недоступно в этом ходе.",
+      }[locale] ?? "This action is unavailable this turn.";
+      return Response.json({ error: turnResult.error ?? fallback }, { status: 409 });
+    }
 
-  let spotlightStillWaiting = false;
-  if (kind !== "ooc" && floor.mode === "spotlight") {
-    const responded = [...floor.respondedUserIds, user.id];
-    const allAnswered = floor.userIds.every((id) => responded.includes(id));
-    const nextFloor: Floor = allAnswered ? { mode: "hold", next: { mode: "open" } } : { ...floor, respondedUserIds: responded };
-    setFloor(campaignId, nextFloor);
-    publishPersisted(campaignId, "floor_changed", { floor: nextFloor });
-    spotlightStillWaiting = !allAnswered;
-  }
+    let spotlightStillWaiting = false;
+    if (kind !== "ooc" && floor.mode === "spotlight") {
+      const responded = [...floor.respondedUserIds, user.id];
+      const allAnswered = floor.userIds.every((id) => responded.includes(id));
+      const nextFloor: Floor = allAnswered ? { mode: "hold", next: { mode: "open" } } : { ...floor, respondedUserIds: responded };
+      setFloor(campaignId, nextFloor);
+      publishPersisted(campaignId, "floor_changed", { floor: nextFloor });
+      spotlightStillWaiting = !allAnswered;
+    }
 
-  const content =
-      combatContent ?? (kind === "ooc"
-        ? `(ooc) ${parsed.data.content}`
-        : parsed.data.content!);
+    const content =
+        combatContent ?? (kind === "ooc"
+          ? `(ooc) ${parsed.data.content}`
+          : parsed.data.content!);
 
-  const message = withCommittedEffects(() => getDatabase().transaction(() => {
-    const seq = allocateSeq(campaignId);
-    const message = insertCampaignMessage({
-      campaignId,
-      seq,
-      authorType: "player",
-      userId: user.id,
-      characterId: sheet.id,
-      content,
-      combatTurn: parsed.data.combatTurn,
-    });
-    publishWithSeq(campaignId, seq, "message_added", { message });
-    return message;
-  })());
-  const seq = message.seq;
+    const message = withCommittedEffects(() => getDatabase().transaction(() => {
+      const seq = allocateSeq(campaignId);
+      const message = insertCampaignMessage({
+        campaignId,
+        seq,
+        authorType: "player",
+        userId: user.id,
+        characterId: sheet.id,
+        content,
+        combatTurn: parsed.data.combatTurn,
+      });
+      publishWithSeq(campaignId, seq, "message_added", { message });
+      return message;
+    })());
+    const seq = message.seq;
 
-  // Quorum with zero grace (or everybody answering) seals only after the
-  // triggering message is durable. From this point the round belongs to the
-  // external MCP narrator; no player/lead "finish turn" action is involved.
-  if (turnResult.shouldResolve && turnResult.state) {
-    await resolveGlobalTurn(campaignId, turnResult.state.roundNumber);
-  }
+    // Quorum with zero grace (or everybody answering) seals only after the
+    // triggering message is durable. From this point the round belongs to the
+    // external MCP narrator; no player/lead "finish turn" action is involved.
+    if (turnResult.shouldResolve && turnResult.state) {
+      await resolveGlobalTurn(campaignId, turnResult.state.roundNumber);
+    }
 
-  // Non-OOC combat input is exclusive until a DM narration completes. A
-  // bundle additionally requires explicit end_turn, so prose cannot advance
-  // initiative by guessing the player's intent.
-  if (kind !== "ooc" && floor.mode === "initiative") {
-    const gate = combatGate ?? {
-      encounterId: floor.encounterId, round: floor.round, turnIndex: encounter?.turnIndex ?? 0,
-      characterId: sheet.id, requiresEndTurn: true, mechanicsResolved: false,
-    };
-    const held: Floor = { mode: "hold", next: floor, combat: { ...gate, submissionMessageId: message.id, heldAt: new Date().toISOString() } };
-    setFloor(campaignId, held);
-    publishPersisted(campaignId, "floor_changed", { floor: held });
-  }
+    // Non-OOC combat input is exclusive until a DM narration completes. A
+    // bundle additionally requires explicit end_turn, so prose cannot advance
+    // initiative by guessing the player's intent.
+    if (kind !== "ooc" && floor.mode === "initiative") {
+      const gate = combatGate ?? {
+        encounterId: floor.encounterId, round: floor.round, turnIndex: encounter?.turnIndex ?? 0,
+        characterId: sheet.id, requiresEndTurn: true, mechanicsResolved: false,
+      };
+      const held: Floor = { mode: "hold", next: floor, combat: { ...gate, submissionMessageId: message.id, heldAt: new Date().toISOString() } };
+      setFloor(campaignId, held);
+      publishPersisted(campaignId, "floor_changed", { floor: held });
+    }
 
-  // The server never starts or calls a text model. Non-OOC player input is
-  // persisted as an intent for the human/external MCP narrator to consume.
-  const globalTurnActive = Boolean(campaign.gameSettings?.globalTurn?.enabled) && !encounter?.orderReady;
-  if (!globalTurnActive && kind !== "ooc" && !spotlightStillWaiting) {
-    publishPersisted(campaignId, "dm_intent_queued", {
-      messageId: message.id,
-      userId: user.id,
-      characterId: sheet.id,
-      seq,
-    });
-  }
-  if (!globalTurnActive && floor.mode === "spotlight" && !spotlightStillWaiting && kind !== "ooc") {
-    publishPersisted(campaignId, "spotlight_ready", { messageId: message.id, autoReleaseFloor: true });
-  }
+    // The server never starts or calls a text model. Non-OOC player input is
+    // persisted as an intent for the human/external MCP narrator to consume.
+    const globalTurnActive = Boolean(campaign.gameSettings?.globalTurn?.enabled) && !encounter?.orderReady;
+    if (!globalTurnActive && kind !== "ooc" && !spotlightStillWaiting) {
+      publishPersisted(campaignId, "dm_intent_queued", {
+        messageId: message.id,
+        userId: user.id,
+        characterId: sheet.id,
+        seq,
+      });
+    }
+    if (!globalTurnActive && floor.mode === "spotlight" && !spotlightStillWaiting && kind !== "ooc") {
+      publishPersisted(campaignId, "spotlight_ready", { messageId: message.id, autoReleaseFloor: true });
+    }
 
-  return Response.json({ messageId: message.id }, { status: 202 });
+    return Response.json({ messageId: message.id }, { status: 202 });
+  };
+  return spatial ? submit() : withFight(campaignId, placeFight?.id ?? null, submit);
 }

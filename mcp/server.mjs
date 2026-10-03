@@ -303,18 +303,26 @@ that reaches someone elsewhere. To join, a character moves there and then
 request_roll kind=initiative; one who leaves drops out (on their own turn it
 passes on). The receipt's fight notes say who left or arrived.
 
-## Team round: a fight only part of the party is in
-With global turns on, a fight in one place does not stop the heroes elsewhere:
-they keep playing the global round, and one round of the fight is one round of
-the whole team. Each hero in the fight takes one initiative turn per global
-round; after it their next turn waits (campaign.turnLock.state =
-"awaiting_team", floor hold with team) until that global round is done. The
-round seals (global_turn_ready) only after every fighter has had their turn;
-resolve the batch of the heroes outside the fight and narrate with
-completeGlobalRound, which opens the next round and the held fighter's turn.
-Enemies still act on initiative and wait for nobody. Never end_turn or
-release_floor a turn that waits for the team. When the whole party is in the
-fight, initiative owns the table as before.
+## Team round: fights only part of the party is in
+With global turns on and no location chat, a fight does not stop the rest of
+the table, and several fights can run at once, one per place. One round of a
+fight is one round of the whole team. Heroes outside every fight keep playing
+the global round. Inside a fight heroes take initiative turns as usual; a hero
+who already spent this global round (they walked in) sits the rest of that
+combat round out. When a fight's order wraps and it already had a combat
+round in this global round, it waits (campaign.turnLock.state =
+"awaiting_team"). The global round seals (global_turn_ready) only once every
+fight waits; resolve the batch of the heroes outside and narrate with
+completeGlobalRound, which opens the next round and every waiting fight.
+Enemies act on initiative and wait for nobody. Never end_turn or
+release_floor a turn that waits for the team. The whole party in one fight:
+initiative owns the table as before.
+Several fights: each has its own floor; reads list them under fights. Engine
+calls find their fight from locationId, the enemies or the characters they
+name. narrate passTurn and release_floor take locationId when more than one
+fight holds a turn (turnLock.state = "several" lists them). A hero who walks
+into a running fight joins it at once (initiative rolled; the receipt says
+so). A fight's XP goes only to the heroes who fought it.
 
 ## Inventory and trade
 Narration never changes inventory. Even a guaranteed handover needs an engine

@@ -43,6 +43,7 @@ import type { CampaignMember } from "@/lib/campaign-types";
 import type { Floor } from "@/lib/db/campaigns";
 import type { Chapter } from "@/lib/db/chapters";
 import type { PublicEncounter } from "@/lib/db/encounter-view";
+import type { FightSummary } from "@/lib/dm/team-round";
 import type { CharacterEvent } from "@/lib/db/character-events";
 import type { Note } from "@/lib/db/notes";
 import type { WorldFact } from "@/lib/db/facts";
@@ -117,6 +118,10 @@ export type SidePanelRouterProps = {
     assistantDmUserId?: string | null;
   };
   encounter?: PublicEncounter | null;
+  // Without rooms several fights can run at once: all of them, and how to
+  // watch another one (src/lib/dm/team-round.ts).
+  fights?: FightSummary[];
+  onWatchFight?: (id: string | null) => void;
   battleMap?: PlayerMapView | null;
   mapPing?: MapPing | null;
   refreshBattleMap: () => Promise<void>;
@@ -201,6 +206,8 @@ function SidePanelContent({
   midGameJoinOpen,
   campaign,
   encounter,
+  fights = [],
+  onWatchFight,
   battleMap,
   mapPing,
   refreshBattleMap,
@@ -323,6 +330,9 @@ function SidePanelContent({
           <BondsPanel campaignId={campaignId} refreshKey={relationshipsVersion} />
         ) : (
           <>
+            {fights.length > 1 && onWatchFight ? (
+              <FightSwitcher fights={fights} shownId={encounter?.id ?? null} onPick={onWatchFight} />
+            ) : null}
             {encounter ? (
               <div className="mb-3">
                 <EncounterPanel
@@ -393,6 +403,9 @@ function SidePanelContent({
   if (tab === "battle" && (encounter || battleMap)) {
     return (
       <div className="space-y-4">
+        {fights.length > 1 && onWatchFight ? (
+          <FightSwitcher fights={fights} shownId={encounter?.id ?? null} onPick={onWatchFight} />
+        ) : null}
         {encounter ? (
           <EncounterPanel
             campaignId={campaignId}
@@ -546,3 +559,29 @@ function SidePanelContent({
   // showed the wrong panel.
   return null;
 }
+
+// Without rooms several fights can run at once and everyone may watch any of
+// them: one button per fight, the one on screen lit.
+function FightSwitcher({ fights, shownId, onPick }: { fights: FightSummary[]; shownId: string | null; onPick: (id: string) => void }) {
+  const { locale } = useI18n();
+  const round = locale === "ru" ? "раунд" : "round";
+  return (
+    <div className="mb-2 flex flex-wrap gap-1 text-xs" role="tablist" aria-label={locale === "ru" ? "Бои" : "Fights"}>
+      {fights.map((fight) => (
+        <button
+          key={fight.id}
+          type="button"
+          role="tab"
+          aria-selected={fight.id === shownId}
+          onClick={() => onPick(fight.id)}
+          className={fight.id === shownId
+            ? "rounded border border-red-700 bg-red-950/40 px-2 py-0.5 text-red-100"
+            : "rounded border border-stone-700 px-2 py-0.5 text-stone-400 hover:text-stone-200"}
+        >
+          {fight.place ?? "…"} · {round} {fight.round}
+        </button>
+      ))}
+    </div>
+  );
+}
+

@@ -15,7 +15,7 @@ import {
 } from "@/lib/dm/director-logic";
 import { publishPersisted } from "@/lib/events";
 import { capsFor, getFloor } from "@/lib/db/campaigns";
-import { getActiveEncounter } from "@/lib/db/encounters";
+import { userInFight } from "@/lib/dm/team-round";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -91,8 +91,9 @@ export async function POST(
     return context;
   }
   const raw = await request.json().catch(() => ({}));
-  const floor = getFloor(campaignId);
-  if (!capsFor(context.campaign, context.user.id).adjudicates && (getActiveEncounter(campaignId) || (floor.mode === "hold" && floor.combat))) {
+  // The table floor: a fight elsewhere keeps its own (src/lib/db/fight-scope.ts).
+  const floor = getFloor(campaignId, null);
+  if (!capsFor(context.campaign, context.user.id).adjudicates && (userInFight(campaignId, context.user.id) || (floor.mode === "hold" && floor.combat))) {
     return Response.json({ error: "Use your combat action or OOC during combat." }, { status: 409 });
   }
   const parsed = armSchema.safeParse(raw);

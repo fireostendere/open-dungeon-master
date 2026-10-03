@@ -4,7 +4,7 @@ import {
   setStoryArc,
   setWorldTickJson,
 } from "@/lib/db/campaigns";
-import { getActiveEncounter } from "@/lib/db/encounters";
+import { listActiveFights } from "@/lib/db/encounters";
 import { recordExtractedFacts } from "@/lib/db/facts";
 import { publishEphemeral } from "@/lib/events";
 import { advanceNpcAgency } from "@/lib/dm/npc-agency";
@@ -87,7 +87,7 @@ export function tickWorldState(campaignId: string) {
     const result = tickWorld(
       parseTickState(getWorldTickJson(campaignId)),
       campaign.storyArc?.worldArcs ?? [],
-      { inEncounter: Boolean(getActiveEncounter(campaignId)) },
+      { inEncounter: listActiveFights(campaignId).length > 0 },
       Math.random,
       tickConfig(),
     );

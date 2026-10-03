@@ -83,6 +83,7 @@ async function modules(f) {
     capsFor: (_, id) => ({ role: id === 'dm' ? 'dm' : 'player' }),
   });
   synthetic('@/lib/db/messages', { getCampaignMessage: id => f.messages.get(id) ?? null });
+  synthetic('@/lib/db/fight-scope', { floorFightId: () => null });
   synthetic('@/lib/db/sheets', { getSheetForUser: (_, id) => f.sheets.get(id) ?? null });
   synthetic('@/lib/spatial/event-policy', { captureEventAudience: () => {}, eventSpatialState: () => ({ enabled: false }), campaignEventProjector: (_, id) => ({
     projectEvent: event => f.audiences.get(event.payload.message.id)?.includes(id)

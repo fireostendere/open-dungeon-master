@@ -176,9 +176,9 @@ const mocks = {
     saveDmTurn: turn => { state.turn = structuredClone(turn); }, listOpenPendingRolls: () => state.pending,
   },
   '@/lib/db/sheets': { getSheetById: () => null, listSheets: () => [{ id: 'pc-a', userId: 'a' }, { id: 'pc-b', userId: 'b' }] },
-  '@/lib/spatial/publication-scope.mjs': { currentEncounterRoom: () => undefined, withEncounterRoom: (_id, _room, work) => work() },
+  '@/lib/spatial/publication-scope.mjs': { currentEncounterRoom: () => undefined, withEncounterRoom: (_id, _room, work) => work(), withFight: (_id, _fight, work) => work() },
   '@/lib/spatial/service': { spatialEnabled: () => false, spatialContext: () => ({}), spatialStore: () => ({}) },
-  '@/lib/dm/fight-presence': { atFight: () => true, joinFight() {}, placeArrivingHero() {}, syncFightBoards: () => ({ notes: [], leftOnTheirTurn: [] }), fightCrossing: () => null }, '@/lib/db/overworld': { partyStanding: () => ({}), getOverworldPartyPositions: () => [] },
+  '@/lib/dm/fight-presence': { atFight: () => true, joinFight() {}, placeArrivingHero() {}, fightPlaceName: () => "here", syncFightBoards: () => ({ notes: [], leftOnTheirTurn: [], arrivals: [] }), fightCrossing: () => null, fightForCall: () => ({}) }, '@/lib/db/overworld': { partyStanding: () => ({}), getOverworldPartyPositions: () => [] },
   '@/lib/db/encounters': { getActiveEncounter: () => state.encounter },
   '@/lib/db/human-adjudication-scopes': { scopedHumanTurn: () => structuredClone(state.turn) },
   '@/lib/dm/invoke-catalog': {

@@ -198,6 +198,8 @@ test('R06: actual narrator dispatcher rejects stale epoch before command executi
     NarratorCommandError: CommandError, SPATIAL_NARRATOR_OPERATIONS: {}, SPATIAL_NARRATOR_CATALOG: [],
     executeNarratorCommand: args => { executions++; return args.work(args.loadState()); },
     consoleAdjudications: () => [], publishPersisted: () => {}, setFloor: () => {},
+    // No fights running: the handoff stays with the table.
+    listActiveFights: () => [], spatialEnabled: () => false, withFight: (_campaignId, _fightId, work) => work(),
   };
   const context = vm.createContext({ console, Buffer, crypto: (await import('node:crypto')).webcrypto });
   const sourcePath = new URL('../src/lib/mcp-narrator-control.ts', import.meta.url);

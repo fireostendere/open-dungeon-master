@@ -1492,8 +1492,27 @@ function ensureSchema(db: SqliteDatabase) {
     // the seventy-odd places that ask it. Scenes are fetched by name instead
     // (getActiveScene), so no combat rule ever sees one.
     ["kind", `TEXT NOT NULL DEFAULT 'fight'`],
+    // Without rooms each fight keeps its own floor (whose turn, the combat
+    // hold), so fights at two places run side by side and the campaign
+    // floor stays the table's (src/lib/db/campaigns.ts getFightFloor).
+    ["floor_json", `TEXT`],
+    // The global round this fight's current combat round belongs to when
+    // the fight runs as a team round (src/lib/dm/team-round.ts).
+    ["team_round", `INTEGER`],
   ]);
   db.exec("CREATE INDEX IF NOT EXISTS idx_encounters_room ON encounters(campaign_id, room_id, status)");
+  // A fight that started before fights had their own floors keeps it on the
+  // campaign row: move it onto the fight and give the table back its own.
+  const unmoved = db.prepare(
+    `SELECT e.id, c.id AS campaign_id, c.floor_json FROM encounters e JOIN campaigns c ON c.id = e.campaign_id
+     WHERE e.status = 'active' AND e.kind = 'fight' AND e.room_id IS NULL AND e.floor_json IS NULL`,
+  ).all() as Array<{ id: string; campaign_id: string; floor_json: string | null }>;
+  for (const row of unmoved) {
+    const floor = row.floor_json ?? "";
+    const owned = floor.includes(row.id);
+    db.prepare(`UPDATE encounters SET floor_json = ? WHERE id = ?`).run(owned ? floor : JSON.stringify({ mode: "open" }), row.id);
+    if (owned) db.prepare(`UPDATE campaigns SET floor_json = ? WHERE id = ?`).run(JSON.stringify({ mode: "open" }), row.campaign_id);
+  }
 
   // The binder (docs/workshop-parity-audit.md phase 14). A lore entry is
   // party-visible by default, as it always was; 'dm' keeps it as the DM's

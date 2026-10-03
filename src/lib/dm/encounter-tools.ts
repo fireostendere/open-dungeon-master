@@ -8,12 +8,16 @@ import {
   setFloor,
   getFloor,
   getGlobalTurnState,
+  getFightFloor,
+  setFightFloor,
   type Campaign,
   type InitiativeFloor,
 } from "@/lib/db/campaigns";
 import {
   createEncounter,
   getActiveEncounter,
+  getEncounter,
+  listActiveFights,
   insertEnemy,
   listEnemies,
   saveEncounter,
@@ -31,12 +35,12 @@ import { publishPersisted, publishWithSeq } from "@/lib/events";
 import { computeSheetDerived, effectiveAcFor } from "@/lib/srd";
 import { encounterCeiling, evaluateEncounter } from "@/lib/srd/encounter-math";
 import { suggestEnemies } from "@/lib/bestiary";
-import { enemyRequestSchema, resolveEnemyRequests } from "@/lib/dm/encounter-spawn";
+import { enemyRequestSchema, resolveEnemyRequests, type ResolvedEnemyRequest } from "@/lib/dm/encounter-spawn";
 import { healthState } from "@/lib/bestiary/health";
 import type { EnemyAttack, EnemySaveAction } from "@/lib/bestiary/statblock";
 import { pickEnemyAction, rechargeEnemies, spendAction } from "@/lib/dm/enemy-actions";
-import { recordFighterTurn, startGlobalTurn } from "@/lib/dm/global-turn-logic";
-import { releaseTeamHold, teamFloor, teamRoundFight, turnAnnouncement } from "@/lib/dm/team-round";
+import { recordFighterTurn, settleTeamRound, startGlobalTurn } from "@/lib/dm/global-turn-logic";
+import { isTeamRoundFight, releaseTeamHolds, teamFloor, teamLanding, teamRoundFights, turnAnnouncement } from "@/lib/dm/team-round";
 import {
   advanceOrder,
   buildOrder,
@@ -295,8 +299,8 @@ function crLabel(cr: number): string {
 
 import { spatialEnabled, spatialStore } from "@/lib/spatial/service";
 import { getOverworldPartyPositions, partyStanding } from "@/lib/db/overworld";
-import { atFight, joinFight, placeArrivingHero, syncFightBoards } from "@/lib/dm/fight-presence";
-import { withEncounterRoom } from "@/lib/spatial/publication-scope.mjs";
+import { atFight, fightPlaceName, joinFight, placeArrivingHero, syncFightBoards } from "@/lib/dm/fight-presence";
+import { withEncounterRoom, withFight } from "@/lib/spatial/publication-scope.mjs";
 
 // ---- start_encounter ----
 
@@ -420,8 +424,24 @@ function handleStartEncounter(
 
   const encounter = createEncounter(campaign.id, args.summary ?? "", "fight", args.roomId, fightLocationId);
   if (!encounter) {
-    return { error: "An encounter is already active." };
+    return { error: fightLocationId
+      ? "A fight is already running at that place. Use damage_enemy and enemy_attack there, or end_encounter first."
+      : "An encounter is already active." };
   }
+  // Everything from here belongs to the new fight: its enemies, board,
+  // initiative and its own floor, whatever else runs elsewhere.
+  const start = () => startFight(campaign, args, encounter, resolved, participants, evaluation);
+  return encounter.roomId ? start() : withFight(campaign.id, encounter.id, start);
+}
+
+function startFight(
+  campaign: Campaign,
+  args: z.infer<typeof startArgsSchema>,
+  encounter: Encounter,
+  resolved: ResolvedEnemyRequest[],
+  participants: CharacterSheet[],
+  evaluation: ReturnType<typeof evaluateEncounter>,
+): Record<string, unknown> {
 
   const names = numberDuplicates(resolved.map((entry) => entry.name));
   const enemies = resolved.map((entry, index) =>
@@ -552,7 +572,7 @@ export function enemyAcWithEffects(campaignId: string, enemy: EncounterEnemy): n
 // Exported for src/lib/dm/initiative.ts: a DM editing the order moves the
 // pointer without going through advancePointer, and the floor has to follow
 // it or the banner and the permission check disagree about whose turn it is.
-export function setInitiativeFloor(campaign: Campaign | null, encounter: Encounter) {
+export function setInitiativeFloor(campaign: Campaign | null, encounter: Encounter, waitForTeam = false) {
   if (!campaign) {
     return;
   }
@@ -571,12 +591,12 @@ export function setInitiativeFloor(campaign: Campaign | null, encounter: Encount
   // path is the only place that releases this gate. A hero who already had
   // their turn this team round waits for the rest of the party
   // (src/lib/dm/team-round.ts).
-  const previous = getFloor(campaign.id, encounter.roomId);
+  const previous = getFightFloor(campaign.id, encounter);
   const next = previous.mode === "hold" && previous.combat?.encounterId === encounter.id
     ? { ...previous, next: floor }
-    : teamFloor(campaign.id, floor, current.characterId);
-  setFloor(campaign.id, next, encounter.roomId);
-  publishPersisted(campaign.id, "floor_changed", { floor: next });
+    : teamFloor(campaign.id, floor, waitForTeam);
+  setFightFloor(campaign.id, encounter, next);
+  publishPersisted(campaign.id, "floor_changed", { floor: next, encounterId: encounter.id });
 }
 
 function describeOrder(encounter: Encounter): string {
@@ -632,33 +652,23 @@ export function recordInitiativeRoll(
     })),
   );
   const enemiesById = new Map(enemies.map((enemy) => [enemy.id, enemy]));
-  const first = advanceOrder(
-    encounter.order,
-    -1,
-    (entry) => entryAlive(entry, enemiesById, (sheet) => atFight(campaignId, encounter, sheet)),
-    surprisedIn(encounter),
-  );
-  if (!first) {
+  const campaign = getCampaignById(campaignId);
+  // A fully ambushed party: round 1 is the enemies' alone, and the first
+  // hero's turn is in round 2 (walkPointer starts that round).
+  const first = campaign ? walkPointer(campaign, encounter, -1) : null;
+  if (!first || !campaign) {
     saveEncounter(encounter);
     return null;
   }
-  const campaign = getCampaignById(campaignId);
-  // The whole party was ambushed: round 1 was the enemies' alone, and the
-  // first hero's turn is in round 2.
-  if (first.wrapped && campaign) {
-    startRound(campaign, encounter);
-  }
   encounter.orderReady = true;
-  encounter.turnIndex = first.turnIndex;
   encounter.waitingSeq = latestSeq(campaignId);
   saveEncounter(encounter);
-  setInitiativeFloor(campaign, encounter);
+  setInitiativeFloor(campaign, encounter, first.wait);
   publishEncounter(campaignId);
-  if (campaign) {
-    for (const passedCharacterId of first.pcsPassed) {
-      rollDeathSave(campaign, passedCharacterId);
-    }
+  for (const passedCharacterId of first.pcsPassed) {
+    rollDeathSave(campaign, passedCharacterId);
   }
+  if (first.wait) settleTeamRound(campaignId);
 
   // An enemy above the ambushed party passes twice; it is told to act once.
   const actFirst = [...new Set(first.enemiesPassed)]
@@ -668,7 +678,9 @@ export function recordInitiativeRoll(
   return `Combat begins. Initiative order: ${describeOrder(encounter)}.${
     actFirst.length
       ? ` ${actFirst.join(" and ")} act${actFirst.length === 1 ? "s" : ""} first: call enemy_attack for each now, then narrate and stop.`
-      : ` It is ${current?.name}'s turn; narrate the scene and stop for their action.`
+      : first.wait ? "" : ` It is ${current?.name}'s turn; narrate the scene and stop for their action.`
+  }${first.satOut.length ? ` ${first.satOut.join(", ")} already acted this team round and join from the next combat round.` : ""}${
+    first.wait ? ` The heroes' turns wait for the team round: ${current?.name} acts once the global round is resolved (completeGlobalRound).` : ""
   }`;
 }
 
@@ -694,24 +706,28 @@ export function ensureInitiativeProgress(campaign: Campaign): string | null {
   }
   let note: string | null = null;
   for (const sheet of missing) {
-    const outcome = rollExpression(
-      d20Expression(computeSheetDerived(sheet).initiative),
-    );
-    const roll = insertRoll({
-      campaignId: campaign.id,
-      characterId: sheet.id,
-      requestedBy: "dm",
-      kind: "initiative",
-      detail: "initiative",
-      result: outcome,
-    });
-    publishWithSeq(campaign.id, allocateSeq(campaign.id), "roll_result", {
-      roll,
-      source: "digital",
-    });
-    note = recordInitiativeRoll(campaign.id, sheet.id, outcome.total) ?? note;
+    note = rollInitiativeFor(campaign, sheet) ?? note;
   }
   return note;
+}
+
+// One digital initiative roll for a hero, recorded into the fight in scope:
+// staged while the order is collected, or straight into a running order.
+function rollInitiativeFor(campaign: Campaign, sheet: CharacterSheet): string | null {
+  const outcome = rollExpression(d20Expression(computeSheetDerived(sheet).initiative));
+  const roll = insertRoll({
+    campaignId: campaign.id,
+    characterId: sheet.id,
+    requestedBy: "dm",
+    kind: "initiative",
+    detail: "initiative",
+    result: outcome,
+  });
+  publishWithSeq(campaign.id, allocateSeq(campaign.id), "roll_result", {
+    roll,
+    source: "digital",
+  });
+  return recordInitiativeRoll(campaign.id, sheet.id, outcome.total);
 }
 
 // ---- damage_enemy ----
@@ -1306,48 +1322,112 @@ export function applyEncounterCall(
 
 // ---- server-driven turn advancement ----
 
+// Walks initiative from `from` to the next hero whose turn opens, passing
+// enemies and downed heroes. In a team-round fight (src/lib/dm/team-round.ts)
+// it also passes heroes who already spent this global round, and stops at a
+// round boundary the fight already crossed this global round: that hero's
+// turn then waits for the team (`wait`). Never two combat rounds in one walk.
+function walkPointer(
+  campaign: Campaign,
+  encounter: Encounter,
+  from: number,
+): { enemiesPassed: string[]; pcsPassed: string[]; satOut: string[]; wait: boolean } | null {
+  const enemiesById = new Map(listEnemies(encounter.id).map((enemy) => [enemy.id, enemy]));
+  const team = isTeamRoundFight(campaign.id, encounter);
+  const global = getGlobalTurnState(campaign.id);
+  const collecting = global.phase === "active" || global.phase === "quorum_delay";
+  const walked = { enemiesPassed: [] as string[], pcsPassed: [] as string[], satOut: [] as string[], wait: false };
+  let index = from;
+  let wrapped = false;
+  for (let step = 0; step <= encounter.order.length; step += 1) {
+    const next = advanceOrder(
+      encounter.order,
+      index,
+      (entry) => entryAlive(entry, enemiesById, (sheet) => atFight(campaign.id, encounter, sheet)),
+      surprisedIn(encounter),
+    );
+    if (!next) {
+      return step === 0 ? null : walked;
+    }
+    walked.enemiesPassed.push(...next.enemiesPassed);
+    walked.pcsPassed.push(...next.pcsPassed);
+    index = next.turnIndex;
+    encounter.turnIndex = index;
+    if (next.wrapped) {
+      if (wrapped) {
+        walked.wait = true;
+        break;
+      }
+      wrapped = true;
+      startRound(campaign, encounter);
+      if (team) {
+        // This fight already had its combat round in this global round: the
+        // new one starts with the next global round.
+        if (!collecting || encounter.teamRound === global.roundNumber) {
+          walked.wait = true;
+          break;
+        }
+        encounter.teamRound = global.roundNumber;
+      }
+    }
+    const landed = encounter.order[index];
+    if (!team || landed?.kind !== "pc") break;
+    const landing = teamLanding(campaign.id, encounter, landed.characterId);
+    if (landing === "skip") {
+      walked.satOut.push(landed.name);
+      continue;
+    }
+    if (landing === "wait") walked.wait = true;
+    else encounter.teamRound = global.roundNumber;
+    break;
+  }
+  return walked;
+}
+
 function advancePointer(
   campaign: Campaign,
   encounter: Encounter,
   options?: { announce?: boolean },
 ): { enemiesPassed: string[] } | null {
-  const enemiesById = new Map(listEnemies(encounter.id).map((enemy) => [enemy.id, enemy]));
-  const next = advanceOrder(
-    encounter.order,
-    encounter.turnIndex,
-    (entry) => entryAlive(entry, enemiesById, (sheet) => atFight(campaign.id, encounter, sheet)),
-    surprisedIn(encounter),
-  );
-  if (!next) {
-    return null;
-  }
   // The hero whose turn just ended has had their action this team round.
   const leaving = encounter.order[encounter.turnIndex];
   if (leaving?.kind === "pc") {
     recordFighterTurn(campaign.id, leaving.characterId);
   }
-  encounter.turnIndex = next.turnIndex;
+  const walked = walkPointer(campaign, encounter, encounter.turnIndex);
+  if (!walked) {
+    return null;
+  }
   // The action economy belongs to whoever was acting; the next combatant
   // starts clean (src/lib/dm/action-budget.ts).
   encounter.turnBudget = null;
   const incoming = encounter.order[encounter.turnIndex];
   if (incoming) encounter.reactionsUsed = encounter.reactionsUsed.filter(id => id !== orderEntryId(incoming));
-  if (next.wrapped) {
-    startRound(campaign, encounter);
-  }
   encounter.waitingSeq = latestSeq(campaign.id);
   saveEncounter(encounter);
-  setInitiativeFloor(campaign, encounter);
+  setInitiativeFloor(campaign, encounter, walked.wait);
   publishEncounter(campaign.id);
+  if (walked.satOut.length) {
+    const seq = allocateSeq(campaign.id);
+    const message = insertCampaignMessage({
+      campaignId: campaign.id,
+      seq,
+      authorType: "system",
+      content: `${walked.satOut.join(", ")} already acted this team round and sit out the rest of this combat round.`,
+    });
+    publishWithSeq(campaign.id, seq, "message_added", { message });
+  }
   // A held player submission publishes its result first; narration announces
   // the already-selected actor when it opens the gate.
   if (options?.announce !== false) announceCurrentTurn(campaign);
   // Downed PCs the pointer skipped make their death saves now, once per
   // pass, announced to the table as system messages and dice cards.
-  for (const characterId of next.pcsPassed) {
+  for (const characterId of walked.pcsPassed) {
     rollDeathSave(campaign, characterId);
   }
-  return { enemiesPassed: next.enemiesPassed };
+  // A fight now waiting at its boundary may be what the global round waited on.
+  if (walked.wait) settleTeamRound(campaign.id);
+  return { enemiesPassed: walked.enemiesPassed };
 }
 
 // The auto-act fallback: enemies the model skipped this turn take their
@@ -1640,23 +1720,35 @@ export function queueSkippedCombatTurn(campaignId: string): void {
 // Call after any move. Boards follow who is at each fight; a hero who walks
 // out on their own turn hands it on (the DM then plays enemies passed).
 export function syncFightRosters(campaignId: string): string[] {
-  const { notes, leftOnTheirTurn } = syncFightBoards(campaignId);
+  const { notes, leftOnTheirTurn, arrivals } = syncFightBoards(campaignId);
+  const campaign = getCampaignById(campaignId);
+  // Each fight is worked on in its own scope: rooms, or without rooms the
+  // fight itself (several can run at once, one per place).
+  const inFight = <T>(encounter: Encounter, work: () => T): T =>
+    encounter.roomId ? withEncounterRoom(campaignId, encounter.roomId, work) : withFight(campaignId, encounter.id, work);
+  // Walking into a running fight is joining it: initiative is rolled at once
+  // and the hero takes their place in the order. In a team round a hero who
+  // spent this global round on getting there sits the rest of this combat
+  // round out (src/lib/dm/team-round.ts).
+  for (const { encounter, sheet } of campaign ? arrivals : []) {
+    const joined = inFight(encounter, () => rollInitiativeFor(campaign!, sheet));
+    notes.push(joined ?? `${sheet.name} joins the fight at ${fightPlaceName(encounter)}.`);
+  }
   // Part of the party walked off (or back): the team round starts for those
   // outside, or ends because everyone is in the fight again.
-  if (teamRoundFight(campaignId) && getGlobalTurnState(campaignId).phase === "waiting") {
+  if (teamRoundFights(campaignId).length && getGlobalTurnState(campaignId).phase === "waiting") {
     startGlobalTurn(campaignId, "mcp_trigger");
   }
-  releaseTeamHold(campaignId);
-  // Who is in the fight and who watches it changed with the move.
-  if (getActiveEncounter(campaignId)) publishEncounter(campaignId);
+  releaseTeamHolds(campaignId);
+  settleTeamRound(campaignId);
   for (const encounter of leftOnTheirTurn) {
     const leaving = encounter.order[encounter.turnIndex]?.name;
-    const pass = () => skipCurrentTurn(campaignId, "left");
-    // Without rooms there is one fight, the campaign's own.
-    if (!(encounter.roomId ? withEncounterRoom(campaignId, encounter.roomId, pass) : pass())) continue;
-    const after = getActiveEncounter(campaignId, encounter.roomId);
+    if (!inFight(encounter, () => skipCurrentTurn(campaignId, "left"))) continue;
+    const after = getEncounter(encounter.id);
     notes.push(`It was ${leaving}'s turn; it passed to ${after?.order[after.turnIndex]?.name ?? "the next combatant"}. Play any enemies before them.`);
   }
+  // Who is in each fight and who watches it changed with the move.
+  for (const encounter of listActiveFights(campaignId)) inFight(encounter, () => publishEncounter(campaignId));
   return notes;
 }
 

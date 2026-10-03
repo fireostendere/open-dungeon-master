@@ -132,6 +132,7 @@ Object.assign(fixtures,{
   '@/lib/dm/map-tools':{publishBattleMapUpdate:()=>{}},
   '@/lib/dm/ambience-tools':{followCombatAmbience:()=>{}},
   '@/lib/dm/waypoint-tick':{tickWaypointsFrom:()=>[]},
+  '@/lib/dm/team-round':{isTeamRoundFight:()=>false},
   '@/lib/srd/spell-lists': { allSpellNames: lists => lists ? [...(lists.cantrips ?? []), ...lists.known, ...lists.prepared] : [],
     checklistClassSpell: () => null, isCantripName: () => false, spellsAgainstLimit: names => names.length },
   '@/lib/srd/spell-prep': { casterViewsOf: () => [], notReadyReason: () => null, spellbookOf: unused('spellbookOf'), withCasterViews: unused('withCasterViews') },

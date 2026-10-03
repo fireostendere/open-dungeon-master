@@ -96,6 +96,7 @@ export function SessionView({
   refreshWhispers,
   refreshAsks,
   refreshBattleMap,
+  watchFight,
 }: {
   state: CampaignState;
   refreshCampaign?: () => Promise<unknown>;
@@ -106,6 +107,7 @@ export function SessionView({
   refreshWhispers: () => Promise<void>;
   refreshAsks: () => Promise<void>;
   refreshBattleMap: () => Promise<void>;
+  watchFight: (id: string | null) => void;
 }) {
   const { locale } = useI18n();
   const tourCopy = localeText(locale, {
@@ -303,7 +305,11 @@ export function SessionView({
   const composerKind = needsCharacter ? "ask" : kind;
   // A fight part of the party is in, and my hero stands elsewhere: I watch
   // it and play the team round (src/lib/dm/team-round.ts).
-  const outsideFight = Boolean(mySheet && state.encounter?.outsideIds?.includes(mySheet.id));
+  // Without rooms the server says which fight is this player's own (null:
+  // outside every fight); with rooms the projection's outsideIds says it.
+  const outsideFight = state.ownFightId === undefined
+    ? Boolean(mySheet && state.encounter?.outsideIds?.includes(mySheet.id))
+    : state.ownFightId === null && Boolean(state.encounter);
   const gate = useMemo(
     () =>
       composerGate({
@@ -321,6 +327,11 @@ export function SessionView({
       }),
     [floor, outsideFight, sheets, meId, composerKind, myName, leadPrivate, openingNarrationPlaying, globalTurnEnabled, globalTurnState, locale],
   );
+  // My turn in my own fight puts that fight on screen, whatever one I was watching.
+  useEffect(() => {
+    const myTurn = floor.mode === "initiative" && floor.userIds.includes(meId);
+    if (myTurn && state.watchFightId && state.watchFightId !== state.ownFightId) watchFight(null);
+  }, [floor, meId, state.watchFightId, state.ownFightId, watchFight]);
   // Lead prompt: a newcomer's join note the DM has not narrated past yet.
   const joinNotice = latestUnintroducedJoin(messages);
   const showJoinBanner = steersStory && joinNotice !== null && dismissedJoinNotice !== joinNotice.id;
@@ -664,6 +675,8 @@ export function SessionView({
           midGameJoinOpen={campaign.gameSettings?.midGameJoinOpen ?? false}
           campaign={campaign}
           encounter={state.encounter}
+          fights={state.fights}
+          onWatchFight={watchFight}
           battleMap={state.battleMap}
           mapPing={state.mapPing}
           refreshBattleMap={refreshBattleMap}

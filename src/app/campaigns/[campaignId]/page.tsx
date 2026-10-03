@@ -31,6 +31,7 @@ export default function CampaignPage({
     refreshAsks,
     refreshFacts,
     refreshBattleMap,
+    watchFight,
   } = useCampaignStream(campaignId);
 
   if (state.loading) {
@@ -70,6 +71,7 @@ export default function CampaignPage({
       refreshWhispers={refreshWhispers}
       refreshAsks={refreshAsks}
       refreshBattleMap={refreshBattleMap}
+      watchFight={watchFight}
     />
   );
 }

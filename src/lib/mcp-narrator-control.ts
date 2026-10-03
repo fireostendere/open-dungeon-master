@@ -14,13 +14,16 @@ import { z } from "zod";
 import { queueSkippedCombatTurn } from "@/lib/dm/encounter-tools";
 import { globalTurnSubmitted, isOocMessage } from "@/lib/campaign-types";
 import { isNarratorEvent } from "@/lib/mcp-event-filter";
-import { allocateSeq, canAct, getCampaignById, getCampaignSummaryState, getFloor, getGlobalTurnState, latestSeq, listMembers, setFloor } from "@/lib/db/campaigns";
+import { allocateSeq, canAct, getCampaignById, getCampaignSummaryState, getFightFloor, getFloor, getGlobalTurnState, latestSeq, listMembers, setFloor, type Floor } from "@/lib/db/campaigns";
 import { listChapters } from "@/lib/db/chapters";
 import { getDirectorArm, takeDirectorArm } from "@/lib/db/director-arms";
 import { buildDirectorBlock } from "@/lib/dm/director-logic";
 import { getDmTurn, listOpenPendingRolls } from "@/lib/db/dm-turns";
 import { listRecentWhispersForPrompt, listPendingPlayerWhispers } from "@/lib/db/dm-whispers";
-import { getActiveEncounter, listActiveEncounters, listEnemies } from "@/lib/db/encounters";
+import { getActiveEncounter, listActiveEncounters, listActiveFights, listEnemies } from "@/lib/db/encounters";
+import { withFight } from "@/lib/spatial/publication-scope.mjs";
+import { fightPlaceName } from "@/lib/dm/fight-presence";
+import { fightOwnsTable, userInFight } from "@/lib/dm/team-round";
 import { listActiveFacts } from "@/lib/db/facts";
 import { getCurrentLocation } from "@/lib/db/locations";
 import { getOverworldPartyPositions } from "@/lib/db/overworld";
@@ -95,14 +98,28 @@ function safeCampaign(campaign: NonNullable<ReturnType<typeof getCampaignById>>)
     difficulty: campaign.difficulty, startingLevel: campaign.startingLevel, dmMode: campaign.gameSettings.dmMode, dmUserId: campaign.dmUserId, leadUserId: campaign.leadUserId,
     gameSettings: campaign.gameSettings, globalTurnState: campaign.globalTurnState,
     dmOutline: campaign.dmOutline, storyArc: campaign.storyArc,
-    floor: campaign.floor, clock: campaign.clock, party: campaign.party,
+    floor: getFloor(campaign.id), clock: campaign.clock, party: campaign.party,
     turnLock: narratorTurnLock(campaign),
   };
 }
 // The combat hold, spelled out for the narrator: players are locked and the
 // next actor gets the floor only on the narrator's explicit handoff.
 function narratorTurnLock(campaign: NonNullable<ReturnType<typeof getCampaignById>>) {
-  const floor = campaign.floor;
+  // Without rooms each fight has its own floor (src/lib/db/fight-scope.ts).
+  const fights = spatialEnabled(campaign.id) ? [] : listActiveFights(campaign.id).filter((fight) => !fight.roomId);
+  if (!fights.length) return lockFor(campaign, getFloor(campaign.id));
+  const locks = fights.flatMap((fight) => {
+    const lock = lockFor(campaign, getFightFloor(campaign.id, fight));
+    return lock ? [{ ...lock, ...(fights.length > 1 ? { locationId: fight.locationId, place: fightPlaceName(fight) } : {}) }] : [];
+  });
+  if (locks.length <= 1) return locks[0] ?? null;
+  return {
+    state: "several",
+    note: "Several fights hold or wait on a turn; each entry names its place. Pass locationId with narrate passTurn or release_floor to hand on the one you mean.",
+    fights: locks,
+  };
+}
+function lockFor(campaign: NonNullable<ReturnType<typeof getCampaignById>>, floor: Floor) {
   if (floor.mode === "hold" && floor.team) {
     // A team round (src/lib/dm/team-round.ts): the fighter waits for the
     // heroes elsewhere, not for the narrator's handoff.
@@ -111,10 +128,10 @@ function narratorTurnLock(campaign: NonNullable<ReturnType<typeof getCampaignByI
     return {
       state: "awaiting_team",
       globalRound: floor.team.round,
-      note: `${name} already had a turn this team round and acts again when global round ${floor.team.round} is done. ` +
+      note: `${name} acts in the fight's next combat round, which starts with the next global round. ` +
         (round.phase === "ready" || round.phase === "resolving"
-          ? `That round is sealed: resolve its batch and narrate with completeGlobalRound:${round.roundNumber}; that opens ${name}'s turn.`
-          : "The heroes outside the fight are still taking their turns in it; when it seals (global_turn_ready) resolve the batch and narrate with completeGlobalRound.") +
+          ? `Global round ${round.roundNumber} is sealed: resolve its batch and narrate with completeGlobalRound:${round.roundNumber}; that opens it.`
+          : "The heroes outside the fight are still taking their turns; when the round seals (global_turn_ready) resolve the batch and narrate with completeGlobalRound.") +
         " Do not end_turn or pass this turn.",
     };
   }
@@ -125,6 +142,29 @@ function narratorTurnLock(campaign: NonNullable<ReturnType<typeof getCampaignByI
       note: "Turn resolved, initiative not moved yet; players are locked. Finish the narration and send the last message with passTurn:true (or call release_floor)." }
     : { state: "resolving", characterId: handoff.characterId, pendingRolls: handoff.pendingRolls,
       note: "A player's combat turn is submitted and waits for you: resolve it (engine actions, then end_turn), narrate, and hand it over with passTurn:true." };
+}
+// Without rooms several fights can each hold a resolved combat turn: a
+// handoff is for the fight at locationId, or the only one holding a turn.
+// undefined: a lone fight (or none), worked on unscoped as always.
+function handoffFight(campaignId: string, locationId: string | undefined): string | null | undefined {
+  if (spatialEnabled(campaignId)) return undefined;
+  const fights = listActiveFights(campaignId).filter((fight) => !fight.roomId);
+  if (locationId) {
+    const at = fights.find((fight) => fight.locationId === locationId);
+    if (!at) throw new McpNarratorControlError("No fight is running at that locationId.", 409);
+    return at.id;
+  }
+  if (fights.length <= 1) return undefined;
+  const holding = fights.filter((fight) => {
+    const floor = getFightFloor(campaignId, fight);
+    return floor.mode === "hold" && Boolean(floor.combat);
+  });
+  if (holding.length === 1) return holding[0].id;
+  if (!holding.length) return null;
+  throw new McpNarratorControlError(`Several fights hold a combat turn (${holding.map((fight) => `${fightPlaceName(fight)}: locationId=${fight.locationId}`).join("; ")}); pass locationId of the one this hands on.`, 409);
+}
+function inFightScope<T>(campaignId: string, fightId: string | null | undefined, work: () => T): T {
+  return fightId === undefined ? work() : withFight(campaignId, fightId, work);
 }
 type CatalogOptions = { summaryOnly?: boolean; category?: string; action?: string };
 function catalog(options: CatalogOptions = {}) {
@@ -296,6 +336,13 @@ function read(raw: unknown) {
     // With location chat on, rooms are where people are; the legacy place is stale.
     location: spatial ? null : getCurrentLocation(campaign.id), partyPositions: getOverworldPartyPositions(campaign.id), sceneTracker: getSceneTracker(campaign.id),
     encounter: (() => { const encounter = getActiveEncounter(campaign.id); return encounter ? { encounter, enemies: listEnemies(encounter.id) } : null; })(),
+    // Several fights at once (one per place, no rooms): each with its own floor.
+    ...(() => {
+      const fights = spatial ? [] : listActiveFights(campaign.id).filter((fight) => !fight.roomId);
+      return fights.length > 1 ? { fights: fights.map((fight) => ({
+        encounter: fight, enemies: listEnemies(fight.id), place: fightPlaceName(fight), floor: getFightFloor(campaign.id, fight),
+      })) } : {};
+    })(),
     ...(delta ? { deltaState: { enabled: true, baselineSeq, pruned: ["sheets", "facts", "notes", "npcs"].every(key => omittedSections.includes(key)) } } : {}),
   };
   const projectedState = stateDelta ? projectNarratorStateDelta(state, {
@@ -340,7 +387,7 @@ function orchestrationSnapshot(raw: unknown) {
       startingLevel: campaign.startingLevel,
       gameSettings: campaign.gameSettings,
       globalTurnState: campaign.globalTurnState,
-      floor: campaign.floor,
+      floor: getFloor(campaign.id),
       clock: campaign.clock,
     },
     currentSeq,
@@ -528,6 +575,8 @@ async function narrate(raw: unknown) {
     passTurn: z.boolean().optional(),
     completeGlobalRound: z.number().int().min(1).optional(),
     startGlobalRound: z.number().int().min(1).optional(),
+    // Without rooms, several fights at once: the place whose turn this hands on.
+    locationId: z.string().trim().min(1).max(100).optional(),
   }).safeParse(raw);
   if (!p.success) throw new McpNarratorControlError(z.prettifyError(p.error));
   guardPlayerText(() => assertPlayerFacingText(p.data.content, "narration"));
@@ -544,8 +593,9 @@ async function narrate(raw: unknown) {
       ...(p.data.passTurn !== undefined ? { passTurn: p.data.passTurn } : {}),
       completeGlobalRound: p.data.completeGlobalRound,
       startGlobalRound: p.data.startGlobalRound,
+      ...(p.data.locationId ? { locationId: p.data.locationId } : {}),
     },
-    campaign => {
+    campaign => inFightScope(campaign.id, handOver || p.data.locationId ? handoffFight(campaign.id, p.data.locationId) : undefined, () => {
     if (p.data.turnId) {
       const turn = getDmTurn(p.data.turnId);
       if (!turn || turn.campaignId !== campaign.id || turn.actor !== "human_dm") throw new McpNarratorControlError("Narration turn does not belong to this human-DM campaign.", 409);
@@ -644,7 +694,7 @@ async function narrate(raw: unknown) {
       ...(globalTurnResult ?? {}),
       ...(turnHandoff ? { turnHandoff } : {}),
     };
-  },
+  }),
   );
 }
 async function finishGlobalRound(raw: unknown) {
@@ -728,8 +778,11 @@ async function autopilotAction(raw: unknown) {
       kind: p.data.kind,
       content: p.data.content,
     },
-    campaign => {
-      if (getActiveEncounter(campaign.id)) {
+    campaign => withFight(campaign.id, null, () => {
+      // A hero in a fight acts on initiative; one elsewhere plays the team
+      // round at the table even while fights run (src/lib/dm/team-round.ts).
+      const pilot = listSheets(campaign.id).find(entry => entry.id === p.data.characterId);
+      if (fightOwnsTable(campaign.id) || (pilot && userInFight(campaign.id, pilot.userId))) {
         throw new McpNarratorControlError("Autopilot does not impersonate combat initiative.", 409);
       }
 
@@ -860,7 +913,7 @@ async function autopilotAction(raw: unknown) {
         seq,
         sealed: getGlobalTurnState(campaign.id).phase === "ready",
       };
-    },
+    }),
   );
 }
 
@@ -890,9 +943,9 @@ async function endCampaign(raw: unknown) {
 }
 
 async function releaseFloor(raw: unknown) {
-  const p = writeBase.safeParse(raw);
+  const p = writeBase.extend({ locationId: z.string().trim().min(1).max(100).optional() }).safeParse(raw);
   if (!p.success) throw new McpNarratorControlError(z.prettifyError(p.error));
-  return serializedWrite(p.data, "narrator.release_floor", {}, campaign => {
+  return serializedWrite(p.data, "narrator.release_floor", p.data.locationId ? { locationId: p.data.locationId } : {}, campaign => inFightScope(campaign.id, handoffFight(campaign.id, p.data.locationId), () => {
     if (campaign.gameSettings.globalTurn?.enabled && !getActiveEncounter(campaign.id)) {
       throw new McpNarratorControlError("Global-turn pacing owns the non-combat floor; use request_response.", 409);
     }
@@ -909,7 +962,7 @@ async function releaseFloor(raw: unknown) {
     setFloor(campaign.id, floor); publishPersisted(campaign.id, "floor_changed", { floor });
     queueSkippedCombatTurn(campaign.id);
     return { floor: getFloor(campaign.id) };
-  });
+  }));
 }
 
 async function setNarratorFloor(raw: unknown) {

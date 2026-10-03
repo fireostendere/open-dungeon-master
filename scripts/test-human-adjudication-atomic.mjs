@@ -52,7 +52,7 @@ function fixture() {
     dispatchSynchronousAdjudication: (...args) => handler(...args), dispatchAdjudication: () => { throw new Error('unexpected async path'); },
   };
   const invoke = loadSource('src/lib/dm/invoke.ts', {
-    '@/lib/spatial/service': { spatialEnabled: () => false }, '@/lib/dm/fight-presence': { fightCrossing: () => null },
+    '@/lib/spatial/service': { spatialEnabled: () => false }, '@/lib/dm/fight-presence': { fightCrossing: () => null, fightForCall: () => ({}) },
     '@/lib/db/campaigns': { ...f.campaigns, getCampaignById: () => campaign, listMembers: () => [] },
     '@/lib/db/dm-turns': turns, '@/lib/db/sheets': { listSheets: () => sheets },
     '@/lib/dm/invoke-catalog': { adjudication: (name) => ({ name, fields: [] }), checkArgs: () => null },

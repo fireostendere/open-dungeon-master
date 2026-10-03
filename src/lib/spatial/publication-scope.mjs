@@ -19,3 +19,17 @@ export function currentEncounterRoom(campaignId) {
   const value = publication.getStore();
   return value?.campaignId === campaignId ? value.roomId : undefined;
 }
+
+// Without rooms, several fights can run at once, one per place. A fight
+// scope names which one the engine is working on: its encounter, its own
+// floor. null is the table itself (no fight); undefined is no scope at all,
+// where a lone fight is still found by itself (src/lib/db/encounters.ts).
+export function withFight(campaignId, encounterId, work) {
+  const previous = publication.getStore();
+  return publication.run({ ...(previous?.campaignId === campaignId ? previous : {}), campaignId, fightId: encounterId }, work);
+}
+export function currentFight(campaignId) {
+  const value = publication.getStore();
+  return value?.campaignId === campaignId && 'fightId' in value ? value.fightId : undefined;
+}
+

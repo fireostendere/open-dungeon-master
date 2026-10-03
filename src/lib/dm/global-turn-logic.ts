@@ -13,7 +13,7 @@ import { listSheets } from "@/lib/db/sheets";
 import { publishPersisted, publishWithSeq } from "@/lib/events";
 import { globalTurnSubmitted, type GlobalTurnState } from "@/lib/campaign-types";
 import { getActiveEncounter } from "@/lib/db/encounters";
-import { fightersOwing, fightOwnsTable, inTeamRoundFight, releaseTeamHold, teamRoundFight } from "@/lib/dm/team-round";
+import { fightersDoneForRound, fightOf, fightOwnsTable, fightsStillPlaying, isTeamRoundFight, releaseTeamHolds } from "@/lib/dm/team-round";
 
 // In-memory timers are only a latency optimization. jobs.ts also scans
 // persisted deadlines, so process restarts cannot lose a timed round.
@@ -39,9 +39,10 @@ function respondedCount(
 ): { responded: number; total: number } {
   const sheets = playerSheets(campaignId, dmUserId);
   const members = listMembers(campaignId);
+  const fightersDone = fightersDoneForRound(campaignId);
   const responded = sheets.filter((sheet) => {
     const usage = state.actionsByCharacter[sheet.id];
-    if (globalTurnSubmitted(usage)) return true;
+    if (globalTurnSubmitted(usage) || fightersDone.has(sheet.id)) return true;
     const member = members.find((entry) => entry.userId === sheet.userId);
     return Boolean(member && member.skipTurnsCount > 0);
   }).length;
@@ -90,7 +91,7 @@ export function startGlobalTurn(
   // the authoritative state so stale clients get another SSE edge to heal on.
   if (state.phase === "active" || state.phase === "quorum_delay") {
     publishPersisted(campaignId, "global_turn_updated", { globalTurnState: state });
-    releaseTeamHold(campaignId);
+    releaseTeamHolds(campaignId);
     return state;
   }
   if (state.phase !== "waiting") return state;
@@ -112,15 +113,15 @@ export function startGlobalTurn(
     startedAt,
     reason,
   });
-  // A fighter who had their turn last team round gets the next one now.
-  releaseTeamHold(campaignId);
+  // Every fight waiting at its round boundary plays its next combat round now.
+  releaseTeamHolds(campaignId);
 
   const members = listMembers(campaignId);
-  const fight = teamRoundFight(campaignId);
   const eligibleSheets = listSheets(campaignId).filter((sheet) => {
     if (sheet.isCompanion || sheet.userId === campaign.dmUserId) return false;
     // Fighters act on initiative, not through autopilot's free action.
-    if (fight && inTeamRoundFight(campaignId, fight, sheet)) return false;
+    const fight = fightOf(campaignId, sheet);
+    if (fight && isTeamRoundFight(campaignId, fight)) return false;
     const member = members.find((m) => m.userId === sheet.userId);
     return Boolean(member?.autopilot && !member.muted && member.skipTurnsCount === 0);
   });
@@ -215,10 +216,9 @@ function evaluateReadiness(
   const quorumTarget = Math.min(counts.total, settings.quorumPlayers);
   const quorumReached = counts.responded >= quorumTarget;
   const allAnswered = counts.responded >= counts.total;
-  // Quorum never closes a team round on a fighter: every hero in the fight
-  // takes their initiative turn in it first.
-  const fight = teamRoundFight(campaignId);
-  const fightDone = !fight || fightersOwing(campaignId, fight, inputState).length === 0;
+  // Quorum never closes a team round on a fight: every fight first plays its
+  // combat round to its boundary (src/lib/dm/team-round.ts).
+  const fightDone = fightsStillPlaying(campaignId).length === 0;
   let shouldResolve = false;
 
   if (quorumReached) {
@@ -411,10 +411,9 @@ function resolveGlobalTurnOnce(
     cancelGlobalTurnTimer(campaignId);
     return state;
   }
-  // A team round stays open until every fighter has had their turn; the last
-  // one seals it (recordFighterTurn).
-  const fight = teamRoundFight(campaignId);
-  if (fight && fightersOwing(campaignId, fight, state).length) return state;
+  // A team round stays open until every fight waits at its round boundary;
+  // the last one to get there seals it (settleTeamRound).
+  if (fightsStillPlaying(campaignId).length) return state;
   if (state.phase === "ready" || state.phase === "resolving") return state;
   // A stale timer/job must never manufacture a round before the start trigger.
   if (state.phase === "waiting") return state;
@@ -515,25 +514,39 @@ export function completeGlobalTurn(
 
 /**
  * A fighter's initiative turn in a team-round fight is their action this
- * global round (src/lib/dm/team-round.ts): count it, and seal the round when
- * it was the last thing the round waited for. Runs inside the command that
- * moved initiative off them.
+ * global round (src/lib/dm/team-round.ts): count it, so they take no free
+ * action too and quorum sees them. Only a turn the fight played inside this
+ * global round counts.
  */
 export function recordFighterTurn(campaignId: string, characterId: string): void {
-  const fight = teamRoundFight(campaignId);
-  if (!fight || !inTeamRoundFight(campaignId, fight, { id: characterId })) return;
+  const fight = fightOf(campaignId, { id: characterId });
+  if (!fight || !isTeamRoundFight(campaignId, fight)) return;
   const state = getGlobalTurnState(campaignId);
   if (state.phase !== "active" && state.phase !== "quorum_delay") return;
+  if (fight.teamRound !== state.roundNumber) return;
   const usage = state.actionsByCharacter[characterId];
   if (globalTurnSubmitted(usage)) return;
-  const result = evaluateReadiness(campaignId, {
+  const next: GlobalTurnState = {
     ...state,
     actionsByCharacter: {
       ...state.actionsByCharacter,
       [characterId]: { actionsCount: (usage?.actionsCount ?? 0) + 1, lastActionKind: "do", updatedAt: new Date().toISOString() },
     },
-  });
-  // A deadline that passed while a fighter still owed their turn seals now.
+  };
+  setGlobalTurnState(campaignId, next);
+  publishPersisted(campaignId, "global_turn_updated", { globalTurnState: next });
+}
+
+/**
+ * A fight just reached its round boundary (or the last fighter dropped): if
+ * that was what the global round waited for, seal it now, in the same command.
+ */
+export function settleTeamRound(campaignId: string): void {
+  const state = getGlobalTurnState(campaignId);
+  if (state.phase !== "active" && state.phase !== "quorum_delay") return;
+  if (fightsStillPlaying(campaignId).length) return;
+  const result = evaluateReadiness(campaignId, state);
+  // A deadline that passed while a fight was still playing seals now.
   const overdue = result.state.deadlineAt !== null && Date.parse(result.state.deadlineAt) <= Date.now();
   if (result.shouldResolve || overdue) resolveGlobalTurnOnce(campaignId, result.state.roundNumber);
 }

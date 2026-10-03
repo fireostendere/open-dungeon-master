@@ -1,4 +1,4 @@
-import { capsFor, getCampaignById, type Floor } from "@/lib/db/campaigns";
+import { capsFor, getCampaignById, getFloor, type Floor } from "@/lib/db/campaigns";
 import { publishRoster, syncProducer } from "@/lib/voice/peers";
 import { getRoom } from "@/lib/voice/room";
 import {
@@ -30,7 +30,9 @@ export async function applyVoiceFloor(campaignId: string): Promise<void> {
     return;
   }
 
-  const floor = campaign.floor;
+  // A lone fight's floor is still the one that decides who speaks
+  // (src/lib/db/fight-scope.ts); several fights leave voice to the table.
+  const floor = getFloor(campaignId);
   const mode = floor.mode as VoiceFloorMode;
   const named = floorUserIds(floor);
   const enforcement = campaign.gameSettings.voice.turnEnforcement;

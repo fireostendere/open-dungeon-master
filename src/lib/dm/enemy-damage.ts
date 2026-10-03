@@ -1,4 +1,5 @@
-import { getCampaignById, getFloor, setFloor, type Campaign } from "@/lib/db/campaigns";
+import { getCampaignById, getFightFloor, setFightFloor, setFloor, type Campaign } from "@/lib/db/campaigns";
+import { isTeamRoundFight } from "@/lib/dm/team-round";
 import { endEncounter, getActiveEncounter, getEnemy, listEnemies, patchEnemyHp, setEnemyConcentration, type Encounter, type EncounterEnemy } from "@/lib/db/encounters";
 import { activePublicEncounter } from "@/lib/db/encounter-view";
 import { getSheetById, listSheets, patchSheet } from "@/lib/db/sheets";
@@ -59,6 +60,9 @@ export function finishEncounter(
   sheetsById: Map<string, CharacterSheet>,
 ): Record<string, unknown> {
   const enemies = listEnemies(encounter.id);
+  // Asked before the fight ends: a fight elsewhere ends on its own; one the
+  // whole party was in hands its closing hold to the table (below).
+  const teamRound = !encounter.roomId && isTeamRoundFight(campaign.id, encounter);
   // Survivors scatter when the fight ends without their deaths.
   if (outcome === "enemies_fled" || outcome === "truce" || outcome === "party_fled") {
     for (const enemy of enemies) {
@@ -104,7 +108,11 @@ export function finishEncounter(
   const totalXp = enemies.reduce((sum, enemy) => sum + enemy.xp, 0);
   const share =
     outcome === "victory" ? 1 : outcome === "enemies_fled" || outcome === "truce" ? 0.5 : 0;
-  const xpEach = sheets.length ? Math.floor((totalXp * share) / sheets.length) : 0;
+  // The fight's XP goes to the heroes who fought it (everyone in its
+  // initiative order), never to the whole party: with a split party the
+  // caller's list holds heroes standing somewhere else entirely.
+  const fought = sheets.filter((sheet) => encounter.order.some((entry) => entry.kind === "pc" && entry.characterId === sheet.id));
+  const xpEach = fought.length ? Math.floor((totalXp * share) / fought.length) : 0;
   let xpResult: Record<string, unknown> = {};
   if (xpEach > 0) {
     xpResult = applyDmMutation(
@@ -112,7 +120,7 @@ export function finishEncounter(
       turn.id,
       "award_xp",
       JSON.stringify({
-        characterIds: sheets.map((sheet) => sheet.id),
+        characterIds: fought.map((sheet) => sheet.id),
         amount: xpEach,
         reason: outcome === "victory" ? "encounter victory" : `encounter ended: ${outcome}`,
       }),
@@ -121,17 +129,29 @@ export function finishEncounter(
     ).result;
   }
 
-  const floor = getFloor(campaign.id, encounter.roomId);
+  const floor = getFightFloor(campaign.id, encounter);
   if (floor.mode === "initiative" || (floor.mode === "hold" && floor.next.mode === "initiative")) {
     // Even a killing blow needs its consequence narrated before submissions
     // reopen. The completed gate releases to open through narration.
     const next = floor.mode === "hold" && floor.combat
       ? { ...floor, next: { mode: "open" as const }, combat: { ...floor.combat, mechanicsResolved: true } }
       : { mode: "open" as const };
-    setFloor(campaign.id, next, encounter.roomId);
-    publishPersisted(campaign.id, "floor_changed", { floor: next });
+    if (encounter.roomId) {
+      setFightFloor(campaign.id, encounter, next);
+      publishPersisted(campaign.id, "floor_changed", { floor: next });
+    } else {
+      // Without rooms the fight's own floor ends with it. The closing hold
+      // of a whole-party fight moves to the table, where the narration that
+      // tells the ending releases it, as it always did.
+      setFightFloor(campaign.id, encounter, { mode: "open" });
+      publishPersisted(campaign.id, "floor_changed", { floor: { mode: "open" }, encounterId: encounter.id });
+      if (next.mode === "hold" && !teamRound) {
+        setFloor(campaign.id, next, null);
+        publishPersisted(campaign.id, "floor_changed", { floor: next, encounterId: null });
+      }
+    }
   }
-  publishPersisted(campaign.id, "encounter_updated", { encounter: null });
+  publishPersisted(campaign.id, "encounter_updated", { encounter: null, endedEncounterId: encounter.id });
   // The fight is over, so the fight music is. Every way an encounter can
   // end comes through here, which is why the hook is here and not in the
   // end_encounter tool: a party wipe and a last enemy dropping are not

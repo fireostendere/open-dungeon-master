@@ -57,10 +57,10 @@ try {
   const elsewhere = await invoke("grant_item", { characterId: sigalis.id, name: "Шишка", qty: 1 });
   assert.equal(elsewhere.result.result.result.granted, "Шишка", "what happens elsewhere is not part of the fight");
 
-  // Walking in is the only way to join; rolling initiative brings them in.
+  // Walking in is the only way to join, and walking in joins: initiative is
+  // rolled at once and the hero takes their place in the order.
   const arrival = await invoke("move_party", { name: "Костёр", characterIds: [sigalis.id] });
-  assert.match(arrival.result.result.result.fight.join(" "), /Сигалис is at the fight at Костёр but not in it: request_roll kind=initiative/);
-  await invoke("request_roll", { kind: "initiative", characterId: sigalis.id });
+  assert.match(arrival.result.result.result.fight.join(" "), /Сигалис joins the fight at initiative \d+/);
   assert.deepEqual(pcs(), ["Левик", "Олег", "Сигалис"]);
   assert.ok(getTokenByRef(map.id, sigalis.id), "a late arrival gets a token next to the party");
 
@@ -109,8 +109,7 @@ try {
   await assert.rejects(() => invoke("pc_attack", { roomId: yard, characterId: sigalis.id, enemyId: roomEnemy, targetEnemyId: roomEnemy }), /Сигалис is not at the fight \(Двор\)/);
   await assert.rejects(() => invoke("enemy_attack", { roomId: yard, enemyId: roomEnemy, targetCharacterId: sigalis.id }), /not at the fight \(Двор\)/);
   const walkIn = await invoke("location_move", { roomId: yard, characterIds: [sigalis.id] });
-  assert.match(walkIn.result.result.fight.join(" "), /Сигалис is at the fight at Двор but not in it/);
-  await invoke("request_roll", { roomId: yard, kind: "initiative", characterId: sigalis.id });
+  assert.match(walkIn.result.result.fight.join(" "), /Сигалис joins the fight at initiative \d+/);
   assert.ok(getActiveEncounter(campaign.id, yard).order.some(entry => entry.kind === "pc" && entry.characterId === sigalis.id), "walking into the room and rolling joins its fight");
   console.log("test-fight-location: split-party start, roster, board, crossing refusals, late join, departure, turn skipping and room fights passed");
 } finally {
