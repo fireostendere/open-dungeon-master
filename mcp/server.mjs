@@ -299,9 +299,10 @@ positions; never describe someone in a place partyPositions does not show.
 A fight belongs to one place (its room, or without rooms the locationId
 start_encounter takes when the party is split). Only characters standing there
 roll initiative, take turns, act and can be hit; the engine refuses anything
-that reaches someone elsewhere. To join, a character moves there and then
-request_roll kind=initiative; one who leaves drops out (on their own turn it
-passes on). The receipt's fight notes say who left or arrived.
+that reaches someone elsewhere. A character who walks into a running fight
+joins it at once: the server rolls their initiative and places their token.
+One who leaves drops out (on their own turn it passes on). The receipt's fight
+notes say who left or arrived.
 
 ## Team round: fights only part of the party is in
 With global turns on and no location chat, a fight does not stop the rest of

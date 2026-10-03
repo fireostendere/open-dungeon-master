@@ -103,7 +103,7 @@ export function fightCrossing(campaignId: string, encounter: Encounter | null, t
   const named = referencedSheets(args, listSheets(campaignId));
   const away = named.filter(sheet => !atFight(campaignId, encounter, sheet));
   if (!away.length || (away.length === named.length && !tool.needsEncounter)) return null;
-  return `${away.map(sheet => sheet.name).join(", ")} ${away.length === 1 ? "is" : "are"} not at the fight (${fightPlaceName(encounter)}). Only characters standing there take part in it: move them there first (move_party with characterIds, or location_move), then request_roll kind=initiative to bring them in.`;
+  return `${away.map(sheet => sheet.name).join(", ")} ${away.length === 1 ? "is" : "are"} not at the fight (${fightPlaceName(encounter)}). Only characters standing there take part in it: move them there (move_party with characterIds, or location_move) and they join it at once.`;
 }
 
 // After anyone moves: a hero who left a fight leaves its board (and is

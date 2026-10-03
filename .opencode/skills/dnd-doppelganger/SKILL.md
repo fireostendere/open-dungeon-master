@@ -5,9 +5,9 @@ description: "Автопилот персонажа в ODM через narrator.a
 
 # Доппельгангер — MCP-автопилот
 
-Прочитайте [общий контракт](../../../docs/agent-skills.md#общий-контракт-и-границы).
-Для игрового MCP-ввода сначала загрузите [odm-dm-policy](../odm-dm-policy/SKILL.md),
-затем [odm-narrator](../odm-narrator/SKILL.md). Сервер никогда не вызывает LLM
+Если доступен репозиторий, прочитайте [общий контракт](../../../docs/agent-skills.md#общий-контракт-и-границы).
+Для игрового MCP-ввода нужны [odm-dm-policy](../odm-dm-policy/SKILL.md) и
+[odm-narrator](../odm-narrator/SKILL.md) (у ведущего они уже загружены). Сервер никогда не вызывает LLM
 сам: изолированный actor запускается доверенным narrator-host.
 
 ## Когда действие разрешено
