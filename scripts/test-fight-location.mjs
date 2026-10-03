@@ -17,7 +17,7 @@ const { createUser } = await import("../src/lib/db/users.ts");
 const { createCampaign, joinByInviteCode, latestSeq, setCampaignStatus } = await import("../src/lib/db/campaigns.ts");
 const { createSheet } = await import("../src/lib/db/sheets.ts");
 const { createSheetSchema } = await import("../src/lib/schemas/sheet.ts");
-const { upsertCurrentLocation } = await import("../src/lib/db/locations.ts");
+const { getLocationByName, upsertCurrentLocation } = await import("../src/lib/db/locations.ts");
 const { getActiveEncounter } = await import("../src/lib/db/encounters.ts");
 const { getBattleMapForEncounter, getTokenByRef } = await import("../src/lib/db/battle-maps.ts");
 const { executeMcpNarratorControl } = await import("../src/lib/mcp-narrator-control.ts");
@@ -81,8 +81,24 @@ try {
     assert.notEqual(current.characterId, leaver.id, "the pointer never rests on someone who left");
     await invoke("end_turn", { characterId: current.characterId });
   }
-  // With location chat on the fight is its room's, and the same rules hold.
   await invoke("end_encounter", { outcome: "truce" });
+
+  // An ambush on everyone there (here the lone hero in the forest) used to
+  // build the order and never lock it: every hero was surprised, so no one
+  // could take the first turn. Round 1 is the enemies'; the hero acts in round 2.
+  const forest = getLocationByName(campaign.id, "Лес");
+  const ambush = await invoke("start_encounter", { enemies: bandits, locationId: forest.id, surprised: "party", rollInitiative: true });
+  encounter = getActiveEncounter(campaign.id);
+  assert.ok(encounter.orderReady, "a fully surprised party still gets an initiative order");
+  assert.equal(encounter.round, 2);
+  assert.deepEqual(encounter.surprisedIds, []);
+  assert.equal(encounter.order[encounter.turnIndex].characterId, leaver.id);
+  assert.match(ambush.result.result.result.next, /Combat begins\. .* acts first: call enemy_attack/);
+  await invoke("end_turn", { characterId: leaver.id });
+  assert.equal(getActiveEncounter(campaign.id).order[getActiveEncounter(campaign.id).turnIndex].characterId, leaver.id, "the solo hero's turn comes round again");
+  await invoke("end_encounter", { outcome: "truce" });
+
+  // With location chat on the fight is its room's, and the same rules hold.
   const yard = (await invoke("location_enable", { name: "Двор" })).result.result.roomId;
   const barn = (await invoke("location_create_room", { name: "Сарай", connectTo: yard })).result.result.roomId;
   await invoke("location_move", { roomId: barn, characterIds: [sigalis.id] });

@@ -29,12 +29,15 @@ export function buildOrder(
 // PC. Enemies act inside the DM turn (via enemy_attack), so the pointer only
 // ever rests on PCs. Downed PCs are skipped too, but their ids come back in
 // pcsPassed so the caller can roll their death saves. wrapped is true when
-// the order looped past the top (a new round). Returns null when no living
-// PC exists.
+// the order looped past the top (a new round). Surprised combatants lose
+// only the turns before that wrap, so a fully ambushed party still gets a
+// pointer: on its first turn of round 2. Returns null when no living PC
+// exists.
 export function advanceOrder(
   order: OrderEntry[],
   fromIndex: number,
   isAlive: (entry: OrderEntry) => boolean,
+  surprised: (entry: OrderEntry) => boolean = () => false,
 ): { turnIndex: number; enemiesPassed: string[]; pcsPassed: string[]; wrapped: boolean } | null {
   if (!order.length || !order.some((entry) => entry.kind === "pc" && isAlive(entry))) {
     return null;
@@ -43,13 +46,17 @@ export function advanceOrder(
   const pcsPassed: string[] = [];
   let wrapped = false;
   let index = fromIndex;
-  for (let steps = 0; steps < order.length + 1; steps += 1) {
+  // Two laps: the rest of this round, then the next one up to a PC.
+  for (let steps = 0; steps < order.length * 2; steps += 1) {
     index += 1;
     if (index >= order.length) {
       index = 0;
       wrapped = true;
     }
     const entry = order[index];
+    if (!wrapped && surprised(entry)) {
+      continue;
+    }
     if (!isAlive(entry)) {
       if (entry.kind === "pc") {
         pcsPassed.push(entry.characterId);
