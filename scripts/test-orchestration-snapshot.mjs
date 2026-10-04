@@ -66,6 +66,26 @@ for (const secret of ["SECRET_PROVIDER_KEY", "SECRET_OUTLINE", "SECRET_ARC", "PR
   assert.equal(serialized.includes(secret), false, "compact projection leaked " + secret);
 }
 
+const shapedRaw = structuredClone(raw);
+shapedRaw.party.sheets[0].wildShape = {
+  kind: "wildshape", form: "Boar", beastHp: 7, beastMaxHp: 11, beastAc: 11,
+  secret: "SECRET_FORM_FIELD", attacks: [{ secret: "SECRET_ATTACK_FIELD" }],
+};
+const shaped = buildOrchestrationSnapshot(shapedRaw, { maxBytes: 8192 });
+assert.deepEqual(shaped.party.characters[0].wildShape, {
+  kind: "wildshape", form: "Boar", beastHp: 7, beastMaxHp: 11, beastAc: 11,
+});
+assert.equal(shaped.party.characters[0].hp, 17, "base HP must retain its meaning");
+assert.equal(shaped.party.characters[0].ac, 15, "base AC must retain its meaning");
+assert.equal(JSON.stringify(shaped).includes("SECRET_FORM_FIELD"), false);
+assert.equal(JSON.stringify(shaped).includes("SECRET_ATTACK_FIELD"), false);
+assert.notEqual(shaped.revision, snapshot.revision);
+shapedRaw.party.sheets[0].wildShape = null;
+const reverted = buildOrchestrationSnapshot(shapedRaw, { maxBytes: 8192 });
+assert.equal(Object.hasOwn(reverted.party.characters[0], "wildShape"), false);
+assert.notEqual(reverted.revision, shaped.revision);
+assert.equal(reverted.revision, snapshot.revision);
+
 const spatialRaw = structuredClone(raw);
 spatialRaw.spatial = {
   enabled: true, startSeq: 30, current: null,

@@ -13,6 +13,7 @@ import { createSafeHttpListener } from "./http-boundary.mjs";
 import { narratorInputSchema } from "./narrator-schema.mjs";
 import { DM_PLAYER_FEEDBACK_GUIDANCE } from "./dm-policy.mjs";
 import { formatToolResult } from "./tool-result.mjs";
+import { DM_MECHANICS_GUIDANCE } from "./dm-policy.mjs";
 export { formatToolResult } from "./tool-result.mjs";
 
 const VERSION = "0.1.0";
@@ -426,6 +427,8 @@ pc_attack. request_roll attack/damage/custom calls require an expression, while
 combat attacks should use pc_attack. The engine adjudicates hits and damage. Do not apply the
 same damage or reward again. Use grant_item/award_xp for an explicit new award.
 Use supported campaign controls for scene and quest-log changes.
+
+${DM_MECHANICS_GUIDANCE}
 
 A complete player Do is one turn, whether an attack, healing or a pet command.
 Resolve ALL declared parts, then end once, then publish ONE scene. Do not ask for

@@ -41,6 +41,8 @@ for (const file of markdownFiles) {
 const narrator = readFileSync(path.join(skillsRoot, "odm-narrator", "SKILL.md"), "utf8");
 const narratorContract = narrator.replace(/\s+/g, " ").toLowerCase();
 for (const phrase of ["start_encounter", "инициатив", "свежей генерации", "group_check", "finish_global_round"]) assert(narratorContract.includes(phrase), `narrator contract must mention ${phrase}`);
+for (const phrase of ['use_resource', 'resource:"wild_shape"', 'form:"boar"', 'не закрывайте глобальный раунд', 'не подменяйте заявку']) assert(narratorContract.includes(phrase), `narrator transformation contract must mention ${phrase}`);
+assert(!narratorContract.includes("возьмите ближайшее законное действие"), "technical refusal must not authorize an invented replacement action");
 const policySkill = readFileSync(path.join(skillsRoot, "odm-dm-policy", "SKILL.md"), "utf8");
 assert(policySkill.includes("fun/freeform/cinematic-success"), "policy skill must prohibit implicit fun mode");
 const autopilot = readFileSync(path.join(skillsRoot, "dnd-doppelganger", "SKILL.md"), "utf8");

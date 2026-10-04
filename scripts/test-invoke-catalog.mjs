@@ -209,6 +209,20 @@ test("combat and roll forms expose the handler's real argument names", () => {
   assert.equal(noticeFields.has("skill"), false);
 });
 
+test("resource catalog exposes Wild Shape routing and bounded resource arguments", () => {
+  const resource = adjudication("use_resource");
+  const fields = new Map(resource.fields.map(field => [field.name, field]));
+  for (const [name, min, max] of [["amount", 1, 50], ["formHp", 1, 300], ["formAc", 1, 30]]) {
+    assert.ok(fields.has(name), `use_resource missing ${name}`);
+    assert.equal(fields.get(name).min, min);
+    assert.equal(fields.get(name).max, max);
+  }
+  assert.match(fields.get("form")?.help ?? "", /boar/);
+  assert.match(resource.summary, /wild_shape/);
+  assert.match(fields.get("variant").help, /not.*Wild Shape/i);
+  assert.equal(adjudication("wild_shape"), null, "Wild Shape is not a separate engine action");
+});
+
 test("the console offers every entry exactly once", () => {
   // Not "every visible entry": nothing is hidden. If the engine can do it,
   // the person running the table can reach it.
