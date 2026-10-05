@@ -8,7 +8,7 @@ import { touchNarratorLease, NarratorLeaseConflict } from "@/lib/db/narrator-lea
 import { unrelatedRoomChat } from "@/lib/spatial/narrator-concurrency.mjs";
 import { attachPostWriteRead } from "@/lib/mcp-post-write.mjs";
 import { readNarratorSections } from "@/lib/mcp-read-sections.mjs";
-import { projectNarratorStateDelta, unchangedNarratorStateDelta } from "@/lib/mcp-state-delta-cache.mjs";
+import { projectNarratorStateDelta } from "@/lib/mcp-state-delta-cache.mjs";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import { queueSkippedCombatTurn } from "@/lib/dm/encounter-tools";
@@ -20,7 +20,9 @@ import { getDirectorArm, takeDirectorArm } from "@/lib/db/director-arms";
 import { buildDirectorBlock } from "@/lib/dm/director-logic";
 import { getDmTurn, listOpenPendingRolls } from "@/lib/db/dm-turns";
 import { listRecentWhispersForPrompt, listPendingPlayerWhispers } from "@/lib/db/dm-whispers";
-import { getActiveEncounter, listActiveEncounters, listActiveFights, listEnemies } from "@/lib/db/encounters";
+import { getActiveEncounter, listActiveEncounters, listActiveFights, listEnemies, type Encounter } from "@/lib/db/encounters";
+import { getBattleMapForEncounter, listTokens } from "@/lib/db/battle-maps";
+import { TILE_FEET } from "@/lib/battlemap/types";
 import { withFight } from "@/lib/spatial/publication-scope.mjs";
 import { fightPlaceName } from "@/lib/dm/fight-presence";
 import { fightOwnsTable, userInFight } from "@/lib/dm/team-round";
@@ -206,6 +208,15 @@ function roundDeclarations(campaignId: string, readySeq: number, startedAt: unkn
     .filter(msg => msg.authorType === "player" && msg.characterId && msg.createdAt >= startedAt)
     .map(msg => ({ seq: msg.seq, character: names.get(msg.characterId!) ?? null, characterId: msg.characterId, content: msg.content }));
 }
+// Trusted DM projection, including hidden tokens; never sent on the player stream.
+function narratorBattleMap(encounter: Encounter) {
+  const map = getBattleMapForEncounter(encounter.id);
+  return map ? {
+    id: map.id, encounterId: encounter.id, roomId: encounter.roomId, locationId: encounter.locationId,
+    kind: encounter.kind, width: map.width, height: map.height, tileSizeFeet: TILE_FEET,
+    terrain: map.terrain, tokens: listTokens(map.id),
+  } : null;
+}
 function read(raw: unknown) {
   const p = readSchema.safeParse(raw);
   if (!p.success) throw new McpNarratorControlError(z.prettifyError(p.error));
@@ -223,40 +234,7 @@ function read(raw: unknown) {
     catch (error) { if (error instanceof ReadBudgetError) throw new McpNarratorControlError(error.message, error.status); throw error; }
   }
 
-  if (
-    p.data.stateDelta &&
-    p.data.projection === "live" &&
-    p.data.afterSeq === currentSeq &&
-    p.data.knownStateRevision &&
-    (!p.data.includeAsks || !pendingAsksForCampaign(campaign.id).pending)
-  ) {
-    const unchanged = unchangedNarratorStateDelta({
-      campaignId: campaign.id,
-      timelineEpoch,
-      principal: campaign.dmUserId!,
-      projection: "live",
-      knownStateRevision: p.data.knownStateRevision,
-    });
-    if (unchanged) {
-      const state = {
-        campaignId: campaign.id,
-        currentSeq,
-        timelineEpoch,
-        cursor: currentSeq,
-        nextCursor: currentSeq,
-        hasMore: false,
-        events: [],
-        messages: [],
-        commands: [],
-        asks: [],
-        askQueue: { nextCursor: p.data.afterAskSeq, hasMore: false, pending: false },
-        ...unchanged,
-      };
-      try { return budgetRead(state, p.data); }
-      catch (error) { if (error instanceof ReadBudgetError) throw new McpNarratorControlError(error.message, error.status); throw error; }
-    }
-  }
-
+  // Token movement is ephemeral: an unchanged story seq cannot prove unchanged state.
   const fetched = p.data.afterSeq === currentSeq
     ? []
     : listEventsSince(campaign.id, p.data.afterSeq, p.data.limit + 1);
@@ -335,6 +313,7 @@ function read(raw: unknown) {
     ...sections, sectionVersions,
     // With location chat on, rooms are where people are; the legacy place is stale.
     location: spatial ? null : getCurrentLocation(campaign.id), partyPositions: getOverworldPartyPositions(campaign.id), sceneTracker: getSceneTracker(campaign.id),
+    battleMaps: listActiveEncounters(campaign.id).flatMap(encounter => { const map = narratorBattleMap(encounter); return map ? [map] : []; }),
     encounter: (() => { const encounter = getActiveEncounter(campaign.id); return encounter ? { encounter, enemies: listEnemies(encounter.id) } : null; })(),
     // Several fights at once (one per place, no rooms): each with its own floor.
     ...(() => {
@@ -404,7 +383,7 @@ function orchestrationSnapshot(raw: unknown) {
     combat: sections.has("combat")
       ? listActiveEncounters(campaign.id)
           .filter(encounter => encounter.kind === "fight")
-          .map(encounter => ({ encounter, enemies: listEnemies(encounter.id) }))
+          .map(encounter => ({ encounter, enemies: listEnemies(encounter.id), battleMap: narratorBattleMap(encounter) }))
       : undefined,
     location: sections.has("location")
       ? { location: spatial ? null : getCurrentLocation(campaign.id), partyPositions: getOverworldPartyPositions(campaign.id), sceneTracker: getSceneTracker(campaign.id) }
@@ -1046,7 +1025,7 @@ async function dispatchMcpNarratorControl(action: string, raw: unknown): Promise
       if (!p.success) throw new McpNarratorControlError(z.prettifyError(p.error));
       const campaign = campaignOrHuman(p.data.campaignId);
       const metadata = { currentSeq: latestSeq(campaign.id), timelineEpoch: campaignTimelineEpoch(campaign.id) };
-      const base = { instructions: "Read odm://narrator/playbook. Call narrator.read, drain until hasMore is false, then use its currentSeq as expectedSeq for exactly one invoke, narrate, delete_message, autopilot_action, finish_global_round, or release_floor. finish_global_round is only the no-prose spatial global-turn finalizer after all required room narrations commit. Persist a unique UUID commandId before each story write. After an ambiguous error, retry only the identical commandId, expectedSeq and payload to recover its receipt, never regenerate or modify a command. Consume the attached state delta after a confirmed write as its read, then drain any remaining pages/events. If readRequired is true, the write succeeded but its read failed: read again, never replay the effect. A player submits exactly one Do per turn, including dialogue. In combat the first accepted Do holds the table: nobody may act (campaign.turnLock) until you hand the turn over. Resolve it with engine actions, including the enemies that act before the next hero, then end_turn or completeTurn: that records the resolution but does NOT move initiative. Post every narration message for the turn and send the LAST one with passTurn:true (or call release_floor); only that moves initiative, lets the server play enemies you skipped and announces the next actor. Never announce whose turn it is yourself. In global-turn mode actionsByCharacter locks that character until round completion. For a private reply provide exact replyToWhisperIds from playerWhispers. With globalTurn enabled, the campaign starts locked: wait for global_turn_narrator_trigger, narrate the opening, and send startGlobalRound equal to its roundNumber; only that confirmed narration unlocks players. After that, collect player messages until global_turn_ready; resolve the whole batch through that event seq, exactly as its declarations list it (each by character name). Autopilot player intent is generated only by the trusted host actor role and committed with autopilot_action; the server rechecks the player's live opt-in and round eligibility and never calls an LLM itself. In ordinary chat, narrate with completeGlobalRound set to its roundNumber so the confirmed MCP write advances and opens the next round atomically. In spatial mode, narrate every affected room separately with location_narrate; the trusted host performs the internal round finalizer only after all required room narrations commit. Do not narrate individual global-turn messages before the barrier. Check the pending asks queue on every read even when the story cursor is unchanged. Page it using afterAskSeq and askQueue.nextCursor; a fresh Ask scan may start at zero. answer_ask requires the pending ask version as expectedVersion and a persisted UUID commandId; it changes no story/floor state. For bounded reads use paged:true and drain pageCursor/nextPage before advancing the story cursor. Byte pages use a bounded frozen snapshot. stateDelta:true negotiates cached entity patches: keep the returned revision, apply patches only to the matching timeline/projection, and accept a full resync when the server no longer has the baseline. Carry the returned timelineEpoch on reads and writes; reconnect and discard incompatible pending work when it changes. Combat contract v6: refresh cached action schemas. Named heal now spends its own slot and casting action; do not separately use_spell_slot. combat_turn resolves an ordered declared plan with one receipt; preserve confirmed steps on blocked/awaiting_rolls. request_player_input can reopen only the same current actor for clarification, without a budget reset.",
+      const base = { instructions: "Read odm://narrator/playbook. Call narrator.read, drain until hasMore is false, then use its currentSeq as expectedSeq for exactly one invoke, narrate, delete_message, autopilot_action, finish_global_round, or release_floor. finish_global_round is only the no-prose spatial global-turn finalizer after all required room narrations commit. Persist a unique UUID commandId before each story write. After an ambiguous error, retry only the identical commandId, expectedSeq and payload to recover its receipt, never regenerate or modify a command. Consume the attached state delta after a confirmed write as its read, then drain any remaining pages/events. If readRequired is true, the write succeeded but its read failed: read again, never replay the effect. A player submits exactly one Do per turn, including dialogue. In combat the first accepted Do holds the table: nobody may act (campaign.turnLock) until you hand the turn over. Resolve it with engine actions, including the enemies that act before the next hero, then end_turn or completeTurn: that records the resolution but does NOT move initiative. Post every narration message for the turn and send the LAST one with passTurn:true (or call release_floor); only that moves initiative, lets the server play enemies you skipped and announces the next actor. Never announce whose turn it is yourself. In global-turn mode actionsByCharacter locks that character until round completion. For a private reply provide exact replyToWhisperIds from playerWhispers. With globalTurn enabled, the campaign starts locked: wait for global_turn_narrator_trigger, narrate the opening, and send startGlobalRound equal to its roundNumber; only that confirmed narration unlocks players. After that, collect player messages until global_turn_ready; resolve the whole batch through that event seq, exactly as its declarations list it (each by character name). Autopilot player intent is generated only by the trusted host actor role and committed with autopilot_action; the server rechecks the player's live opt-in and round eligibility and never calls an LLM itself. In ordinary chat, narrate with completeGlobalRound set to its roundNumber so the confirmed MCP write advances and opens the next round atomically. In spatial mode, narrate every affected room separately with location_narrate; the trusted host performs the internal round finalizer only after all required room narrations commit. Do not narrate individual global-turn messages before the barrier. Read battleMaps for current tactical coordinates and movement spent. Token movement can change positions without advancing currentSeq; consume state deltas even at the same seq and resume only unresolved declared steps after a range refusal. Check the pending asks queue on every read even when the story cursor is unchanged. Page it using afterAskSeq and askQueue.nextCursor; a fresh Ask scan may start at zero. answer_ask requires the pending ask version as expectedVersion and a persisted UUID commandId; it changes no story/floor state. For bounded reads use paged:true and drain pageCursor/nextPage before advancing the story cursor. Byte pages use a bounded frozen snapshot. stateDelta:true negotiates cached entity patches: keep the returned revision, apply patches only to the matching timeline/projection, and accept a full resync when the server no longer has the baseline. Carry the returned timelineEpoch on reads and writes; reconnect and discard incompatible pending work when it changes. Combat contract v6: refresh cached action schemas. Named heal now spends its own slot and casting action; do not separately use_spell_slot. combat_turn resolves an ordered declared plan with one receipt; preserve confirmed steps on blocked/awaiting_rolls. request_player_input can reopen only the same current actor for clarification, without a budget reset.",
         contractVersion: 8, timelineVersion: 1,
         features: { explicitTurnHandoff: true, campaignOutcome: true, postWriteRead: true, frozenPages: true, liveDefaults: true, stateDelta: "odm.state.delta.v1", entityPatches: true, compoundCombatTurn: true, atomicHealing: true, explicitSneakAttack: true, mercyHealing2014: true } };
       return { handled: true, result: p.data.stateDelta ? { ...base, cursor: metadata } : { ...base, state: read({ projection: "full", ...p.data }) } };

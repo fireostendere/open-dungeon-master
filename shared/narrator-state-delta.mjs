@@ -25,9 +25,12 @@ export const NARRATOR_PATCHABLE_KEYS = Object.freeze([
   'partyPositions',
   'sceneTracker',
   'encounter',
+  'fights',
+  'battleMaps',
 ]);
 
 const entityArrayKeys = new Set([
+  'battleMaps',
   'pendingRolls',
   'playerWhispers',
   'sheets',

@@ -409,6 +409,11 @@ Cache action schemas and rules evidence; look up only unresolved new questions.
 Use catalog to obtain the current argument schemas. Request real skill/save/damage
 rolls through the engine and inspect pendingRolls, roll_result and recentRolls.
 Start an encounter before narrating a fight as active. Initiative controls the floor.
+Read battleMaps for tactical coordinates, terrain, and movedThisRound on every
+read. Token movement does not advance the story seq: no new events is not proof
+of unchanged positions. Apply battleMaps delta patches even at the same seq.
+After a range refusal, reread positions and resume only the unresolved declared
+steps if the target is now in reach; never replay confirmed rolls or damage.
 Move tokens through move_token; forced movement is for a justified DM override,
 not a shortcut around normal movement budgets. pc_attack uses characterId and
 both enemyId and targetEnemyId set to the same current target. cast_at_enemy is for one saving-throw

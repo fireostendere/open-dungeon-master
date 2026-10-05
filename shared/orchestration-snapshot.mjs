@@ -194,6 +194,7 @@ function compactCombat(value) {
     current: order[number(encounter.turnIndex) ?? -1],
     order,
     enemies: array(wrapper.enemies).slice(0, 12).map(compactEnemy),
+    battleMap: wrapper.battleMap ?? undefined,
     summary: clip(encounter.summary, 240),
   });
 }

@@ -69,6 +69,10 @@ try {
   await assert.rejects(() => invoke("start_encounter", { enemies: bandit, locationId: forestId, rollInitiative: true }), /already running at that place/);
   const forest = fightAt("Лес"), cave = fightAt("Пещера");
   assert.ok(forest && cave && forest.id !== cave.id, "two fights run at once");
+  const mapped = (await executeMcpNarratorControl("narrator.read", { campaignId: campaign.id, projection: "live" })).result;
+  assert.deepEqual(new Set(mapped.battleMaps.map(map => map.encounterId)), new Set([forest.id, cave.id]), "the narrator gets every fight's tactical board");
+  for (const map of mapped.battleMaps) assert.equal(map.locationId, [forest, cave].find(fight => fight.id === map.encounterId).locationId);
+
   assert.equal(getFightFloor(campaign.id, forest).mode, "initiative");
   assert.deepEqual(getFightFloor(campaign.id, forest).userIds, [users[2].id], "the forest floor is Сигалис's");
   assert.deepEqual(getFightFloor(campaign.id, cave).userIds, [users[3].id], "the cave floor is Как's");

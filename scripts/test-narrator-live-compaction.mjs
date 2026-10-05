@@ -20,7 +20,9 @@ const { createSheetSchema } = await import("../src/lib/schemas/sheet.ts");
 const { insertCampaignMessage, listMessagesInSeqRange } = await import("../src/lib/db/messages.ts");
 const { publishWithSeq } = await import("../src/lib/events.ts");
 const { executeMcpNarratorControl } = await import("../src/lib/mcp-narrator-control.ts");
-const { getBattleMapForEncounter, listTokens } = await import("../src/lib/db/battle-maps.ts");
+const { getBattleMapForEncounter, listTokens, moveToken } = await import("../src/lib/db/battle-maps.ts");
+const { publishBattleMapUpdate } = await import("../src/lib/dm/map-tools.ts");
+const { applyNarratorStatePatch, extractNarratorState } = await import("../shared/narrator-state-delta.mjs");
 
 try {
   const dm = createUser("live_dm", "hash");
@@ -67,13 +69,54 @@ try {
     campaignId: campaign.id, expectedSeq: receipt.currentSeq, timelineEpoch: live.timelineEpoch, commandId: randomUUID(),
     name: "start_encounter", args: { enemies: "goblin", summary: "Засада у причала", rollInitiative: true, engaged: true }, readAfter: false,
   })).result;
-  assert.match(fight.result.result.next, /rolled for every combatant/, "no request_roll per hero is asked for");
+  assert.equal(fight.result.ok, true, "initiative is resolved without per-hero requests");
   const order = (await executeMcpNarratorControl("narrator.read", { campaignId: campaign.id, afterSeq: 0, projection: "live" })).result.encounter.encounter;
   assert.equal(order.orderReady, true, "the fight starts with every initiative in");
   assert.ok(order.order.some(entry => entry.kind === "pc" && entry.characterId === hero.id));
   const tokens = listTokens(getBattleMapForEncounter(order.id).id);
   const [pc, foe] = ["pc", "enemy"].map(kind => tokens.find(token => token.kind === kind));
   assert.ok(Math.max(Math.abs(pc.x - foe.x), Math.abs(pc.y - foe.y)) <= 1, "an engaged fight starts at arm's length, not across the map");
+  {
+    // A browser token move changes the map without a durable event. A cached
+    // same-seq read must still carry the new coordinates and movement budget.
+    const narratorHostId = randomUUID();
+    const read = params => executeMcpNarratorControl("narrator.read", {
+      campaignId: campaign.id, projection: "live", narratorHostId, ...params,
+    }).then(response => response.result);
+    const before = await read({ afterSeq: order.waitingSeq, stateDelta: true });
+    const map = before.battleMaps.find(map => map.encounterId === order.id);
+    assert.equal(map.tokens.find(token => token.refId === hero.id).x, pc.x);
+    assert.equal(map.tileSizeFeet, 5);
+    const cached = { afterSeq: before.currentSeq, stateDelta: true, knownStateRevision: before.stateDelta.revision };
+    const idle = await read(cached);
+    assert.equal(idle.stateDelta.revision, before.stateDelta.revision);
+    moveToken(pc.id, pc.x + 1, pc.y, 1);
+    publishBattleMapUpdate(campaign.id);
+    const moved = await read(cached);
+    assert.equal(moved.currentSeq, before.currentSeq, "movement must not fabricate a story event");
+    assert.equal(moved.hasMore, false);
+    assert.deepEqual(moved.events, []);
+    assert.notEqual(moved.stateDelta.revision, before.stateDelta.revision, "same seq is not unchanged state");
+    const rebuilt = applyNarratorStatePatch(extractNarratorState(before), moved.stateDelta.patch);
+    const current = rebuilt.battleMaps.find(board => board.id === map.id).tokens.find(token => token.id === pc.id);
+    assert.equal(current.x, pc.x + 1);
+    assert.equal(current.movedThisRound, 1);
+    const full = await read({ afterSeq: before.currentSeq });
+    assert.deepEqual(full.battleMaps, rebuilt.battleMaps, "delta reconstructs the authoritative full map");
+    const snapshot = (await executeMcpNarratorControl("narrator.snapshot", {
+      campaignId: campaign.id, sections: ["combat"], maxBytes: 131072,
+    })).result;
+    assert.equal(snapshot.combat[0].battleMap.tokens.find(token => token.id === pc.id).x, pc.x + 1);
+    const paged = await read({ afterSeq: before.currentSeq, paged: true, maxBytes: 4096 });
+    let page = paged;
+    const maps = [];
+    do {
+      maps.push(...page.entries.filter(entry => entry.key === "battleMaps").map(entry => entry.value));
+      if (!page.nextPage) break;
+      page = await read({ afterSeq: before.currentSeq, paged: true, maxBytes: 4096, pageCursor: page.nextPage });
+    } while (true);
+    assert.deepEqual(maps, full.battleMaps, "frozen byte pages preserve current tactical state");
+  }
   // Resolve, start the fight, describe the clash: one scene for the players, not two DM posts.
   const narrateNow = async content => {
     const now = (await executeMcpNarratorControl("narrator.read", { campaignId: campaign.id, afterSeq: 0, projection: "live" })).result;
