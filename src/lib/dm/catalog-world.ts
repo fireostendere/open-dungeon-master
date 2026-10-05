@@ -431,10 +431,19 @@ export const STORY_ADJUDICATIONS: CatalogEntry[] = [
     name: "send_whisper",
     label: "Whisper",
     category: "story",
-    summary: "A private line to one player or several; nobody else sees it.",
+    summary: "A private line to one player or several; nobody else sees it. Use for personal rules explanations, unavailable actions and necessary clarification, even while input is locked. Plain table talk is allowed; no raw errors, IDs or tool names. Sending does not reopen input or spend/end a turn.",
     fields: [
       { name: "characterIds", label: "To", kind: "characters", required: true },
       { name: "message", label: "Message", kind: "longtext", required: true },
+    ],
+  },
+  {
+    name: "send_ooc",
+    label: "Table OOC",
+    category: "story",
+    summary: "An OOC message from the DM to the whole table, across all rooms: shared rules, logistics or a brief pause notice. Use send_whisper for personal feedback; never expose private questions, hidden information or raw errors. Works while input is locked and rolls are pending; does not advance the story, initiative or round. Like player OOC, live chat only, not the story transcript.",
+    fields: [
+      { name: "message", label: "Message", kind: "longtext", required: true, help: "Plain player-facing table explanation, maximum 2000 characters. The OOC prefix is added automatically." },
     ],
   },
   {

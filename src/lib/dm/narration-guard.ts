@@ -30,29 +30,33 @@ const RULES: Rule[] = [
 ];
 
 /** Labels of every kind of technical/meta content found in the text. */
-export function technicalLeaks(text: string): string[] {
+export function technicalLeaks(text: string, tableTalk = false): string[] {
   const found = new Set<string>();
-  for (const rule of RULES) if (rule.pattern.test(text)) found.add(rule.label);
+  for (const rule of RULES) {
+    if (tableTalk && (rule.label === "OOC status note" || rule.label === "turn bookkeeping")) continue;
+    if (rule.pattern.test(text)) found.add(rule.label);
+  }
   return [...found];
 }
 
 export class NarrationGuardError extends Error {
   readonly labels: string[];
   constructor(field: string, labels: string[]) {
-    super(`Player-visible ${field} refused before anything was written (the campaign seq is unchanged): it contains technical or meta content [${labels.join(", ")}]. Rewrite it as in-world prose; report technical problems to your operator in your own reply, never in the campaign. Then resend with the same expectedSeq.`);
+    super(`Player-visible ${field} refused before anything was written (the campaign seq is unchanged): it contains technical or meta content [${labels.join(", ")}]. Use in-world prose for narration, or plain player-facing explanations through send_whisper/send_ooc. Raw technical details belong only in your operator reply. Then resend with the same expectedSeq.`);
     this.labels = labels;
   }
 }
 
-export function assertPlayerFacingText(text: unknown, field: string): void {
+export function assertPlayerFacingText(text: unknown, field: string, tableTalk = false): void {
   if (typeof text !== "string" || !text) return;
-  const labels = technicalLeaks(text);
+  const labels = technicalLeaks(text, tableTalk);
   if (labels.length) throw new NarrationGuardError(field, labels);
 }
 
 // Engine actions whose text reaches players, and which of their fields.
 const PLAYER_FACING_ARGS: Record<string, string[]> = {
   send_whisper: ["message"],
+  send_ooc: ["message"],
   request_player_input: ["prompt"],
   request_roll: ["reason"],
   location_narrate: ["content"],
@@ -62,5 +66,5 @@ const PLAYER_FACING_ARGS: Record<string, string[]> = {
 };
 
 export function assertPlayerFacingArgs(action: string, args: Record<string, unknown>): void {
-  for (const field of PLAYER_FACING_ARGS[action] ?? []) assertPlayerFacingText(args[field], `${action}.${field}`);
+  for (const field of PLAYER_FACING_ARGS[action] ?? []) assertPlayerFacingText(args[field], `${action}.${field}`, action === "send_whisper" || action === "send_ooc");
 }

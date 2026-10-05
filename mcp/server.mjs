@@ -11,6 +11,7 @@ import { callControl, withMcpCancellation, withMcpCredential } from "./control-c
 import { createEventsProxy } from "./events-proxy.mjs";
 import { createSafeHttpListener } from "./http-boundary.mjs";
 import { narratorInputSchema } from "./narrator-schema.mjs";
+import { DM_PLAYER_FEEDBACK_GUIDANCE } from "./dm-policy.mjs";
 import { formatToolResult } from "./tool-result.mjs";
 export { formatToolResult } from "./tool-result.mjs";
 
@@ -359,9 +360,12 @@ Calling it again on an ended campaign corrects the outcome or epilogue.
 ## What players see
 narrate, edit_message, answer_ask, send_whisper, request_player_input prompts
 and request_roll reasons are shown to players verbatim. Write in-world prose and
-short mechanics lines only. Never put IDs, seq numbers, tool or operation names,
-JSON, (ooc) status notes, apologies about the engine or anything addressed to
-the operator there; technical problems go to the operator, never to the table.
+short mechanics lines for the story. send_whisper and send_ooc also permit plain
+player-facing explanations of rules, unavailable actions, logistics and pauses.
+Never put IDs, seq numbers, tool or operation names, JSON, raw errors or anything
+addressed to the operator there. Keep technical details in the operator session.
+
+${DM_PLAYER_FEEDBACK_GUIDANCE}
 
 delete_message removes the exact main-transcript messageId, including player, DM or
 system messages. It removes transcript-derived pins/beats, but it is not a gameplay
@@ -451,7 +455,7 @@ separate action; do not invent player dialogue or an additional ability.
 
 ## Dialogue and private questions
 Player speech, actions and OOC have different visual styles. OOC is absent from
-narrator message/event projections; it is still stored and visible in player chat.
+narrator story projections; send_ooc uses the same live table chat as player OOC.
 Inspect asks on EVERY read, even when the story cursor did not change. Human-mode
 submissions receive an acknowledgement; answer via answer_ask using the askId in
 this campaign and optional grounded citations. It changes no scene/floor state.
@@ -490,7 +494,7 @@ questions, private whispers, DM outlines or other DM secrets to the table.
     "odm_narrator",
     {
       title: "External campaign narrator",
-      description: "Trusted external DM lifecycle for human mode with server LLM, TTS, and automatic maps disabled. Text you write to the campaign is shown to players verbatim: in-world prose only, technical notes go to your operator. In combat a submitted turn stays locked until your LAST narration about it carries passTurn:true. end_campaign closes the campaign with outcome victory|defeat from any state. Contract v4 supports stateDelta/knownStateRevision so unchanged game state is not resent; connect can be metadata-only and readAfter can carry the authoritative post-write delta. Reread after errors; an ambiguous serialized write gets at most one immediate exact receipt-recovery retry with the same commandId, expectedSeq, timelineEpoch and arguments, never regenerated values. answer_ask also keeps exact expectedVersion. See odm://narrator/playbook.",
+      description: "Trusted external DM lifecycle for human mode with server LLM, TTS, and automatic maps disabled. Text is shown verbatim: narrate for story, invoke send_whisper for personal explanations and invoke send_ooc for rules/logistics or pause notices needed by the whole table. Raw technical details go to your operator. Neither message action advances a turn or reopens input. In combat a submitted turn stays locked until your LAST narration about it carries passTurn:true. end_campaign closes the campaign with outcome victory|defeat from any state. Contract v4 supports stateDelta/knownStateRevision so unchanged game state is not resent; connect can be metadata-only and readAfter can carry the authoritative post-write delta. Reread after errors; an ambiguous serialized write gets at most one immediate exact receipt-recovery retry with the same commandId, expectedSeq, timelineEpoch and arguments, never regenerated values. answer_ask also keeps exact expectedVersion. See odm://narrator/playbook.",
       inputSchema: narratorInputSchema,
     },
     async (args) => {

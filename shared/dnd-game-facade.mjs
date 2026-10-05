@@ -47,6 +47,7 @@ export const YOLO_ENGINE_ACTIONS = Object.freeze([
   "move_party",
   "request_roll",
   "send_whisper",
+  "send_ooc",
   "record_event",
 ]);
 

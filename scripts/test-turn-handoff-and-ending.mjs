@@ -110,7 +110,7 @@ try {
 
   seq = latestSeq(campaign.id);
   await assert.rejects(() => run("narrator.narrate", { campaignId: campaign.id, expectedSeq: seq, content: "(ooc) Ход передан, expectedSeq обновлён." }), refused(400));
-  await assert.rejects(() => run("narrator.invoke", { campaignId: campaign.id, expectedSeq: seq, name: "send_whisper", args: { characterIds: [second.id], message: "Жди, ход на удержании." } }), refused(400));
+  await assert.rejects(() => run("narrator.invoke", { campaignId: campaign.id, expectedSeq: seq, name: "send_whisper", args: { characterIds: [second.id], message: "Жди, expectedSeq обновлён." } }), refused(400));
   assert.equal(latestSeq(campaign.id), seq, "refused player-facing text writes nothing");
 
   const last = await run("narrator.narrate", { campaignId: campaign.id, expectedSeq: seq, commandId: randomUUID(), content: "Чучело покачнулось. Солома летит во все стороны.", passTurn: true });

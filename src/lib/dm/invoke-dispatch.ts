@@ -41,6 +41,7 @@ import {
   handleLocationCall,
   handleRecordEvent,
   handleRequestPlayerInput,
+  handleSendOoc,
 } from "@/lib/dm/basic-adjudications";
 import { handleRequestRoll } from "@/lib/dm/invoke-roll";
 import { handleSplitDamage } from "@/lib/dm/split-damage";
@@ -202,6 +203,8 @@ function dispatchSynchronous(
       return handleWriteCampaignNote(campaign, rawArguments);
     case "send_whisper":
       return handleSendWhisper(campaign, turn.id, rawArguments, sheets, sheetsById);
+    case "send_ooc":
+      return handleSendOoc(campaign, rawArguments);
     default:
       return { error: `The engine has no action called "${name}".` };
   }

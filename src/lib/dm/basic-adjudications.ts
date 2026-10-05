@@ -8,7 +8,8 @@ import { getLocation, updateCurrentLocationDetails, upsertCurrentLocation } from
 import { getOverworldPartyPositions, partyStanding, setPartyStanding } from "@/lib/db/overworld";
 import { spatialEnabled } from "@/lib/spatial/service";
 import { syncFightRosters } from "@/lib/dm/encounter-tools";
-import { publishPersisted } from "@/lib/events";
+import { publishOocMessage, publishPersisted } from "@/lib/events";
+import { z } from "zod";
 import { normalizeEventKind } from "@/lib/dm/arg-coerce";
 import { resolveSheetRef } from "@/lib/dm/rolls";
 import { followSceneAmbience } from "@/lib/dm/ambience-tools";
@@ -50,6 +51,25 @@ export function handleRequestPlayerInput(campaign: Campaign, rawArguments: strin
   setFloor(campaign.id, floor);
   publishPersisted(campaign.id, "floor_changed", { floor });
   return { ok: true, waitingOn: parsed.userIds.length };
+}
+
+const oocArgsSchema = z.object({
+  message: z.string().trim().max(2000).transform(text => text.replace(/^\(ooc\)\s*/i, "").trim()).pipe(z.string().min(1)),
+});
+
+export function handleSendOoc(campaign: Campaign, rawArguments: string): Record<string, unknown> {
+  if (!campaign.dmUserId) return { error: "A DM seat is required for table messages." };
+  let args: z.infer<typeof oocArgsSchema>;
+  try { args = oocArgsSchema.parse(JSON.parse(rawArguments || "{}")); }
+  catch { return { error: "send_ooc needs a nonempty message of at most 2000 characters." }; }
+  const messageId = crypto.randomUUID();
+  publishOocMessage(campaign.id, {
+    id: messageId, campaignId: campaign.id, seq: 0,
+    authorType: "dm", userId: campaign.dmUserId, characterId: null,
+    content: `(ooc) ${args.message}`, kind: "ooc", authorUserId: campaign.dmUserId,
+    roomId: null, createdAt: nowIso(),
+  });
+  return { ok: true, messageId };
 }
 
 export function handleRecordEvent(campaign: Campaign, rawArguments: string, sheets: CharacterSheet[], sheetsById: Map<string, CharacterSheet>): Record<string, unknown> {

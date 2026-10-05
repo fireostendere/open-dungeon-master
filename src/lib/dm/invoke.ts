@@ -428,6 +428,10 @@ export async function invokeEngineById(
 }
 
 export function invokeEngineSynchronous(campaign: Campaign, actor: Actor, call: Adjudication): InvokeOutcome {
+  // Messages use their recipients, never a combat/room scope or action budget.
+  if (call.name === "send_whisper" || call.name === "send_ooc") {
+    return withEncounterRoom(campaign.id, undefined, () => withFight(campaign.id, null, () => invokeInRoom(campaign, actor, call)));
+  }
   if (!spatialEnabled(campaign.id)) {
     // Without rooms several fights can run at once, one per place: run the
     // call in the fight it is about (src/lib/dm/fight-presence.ts).
