@@ -127,7 +127,8 @@
 .fx-title--letters .fx-word > span {
   padding-block: 0.4em 0.15em;
   margin-block: -0.4em -0.15em;
-  background-image: var(--fx-grad);
+  background-image: var(--fx-shine, linear-gradient(transparent, transparent)), var(--fx-grad);
+  background-size: 250% 100%, 100% 100%;
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -140,29 +141,18 @@
     color: var(--fx-solid);
     -webkit-text-fill-color: currentColor;
   }
-  .fx-shine::after {
-    display: none;
-  }
 }
 
-/* A bright band sweeps across metallic text. */
+/* Paint the shine on the same glyphs as the metal: it follows each letter's
+   entrance, Cyrillic fallback font and word wrapping without a duplicate title. */
 .fx-shine {
-  position: relative;
-}
-.fx-shine::after {
-  content: attr(data-text);
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(105deg, transparent 38%, rgba(255, 255, 255, 0.95) 50%, transparent 62%);
-  background-size: 250% 100%;
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  animation: fx-shine 2.8s ease-in-out 0.9s infinite;
-  filter: none;
+  --fx-shine: linear-gradient(105deg, transparent 38%, rgba(255, 255, 255, 0.95) 50%, transparent 62%);
 }
 
 .fx-letters {
+  --fx-letter-enter: fx-letter-rise;
+  --fx-letter-duration: 700ms;
+  --fx-letter-ease: var(--fx-ease);
   display: inline-flex;
   flex-wrap: wrap;
   justify-content: center;
@@ -174,17 +164,18 @@
 .fx-word > span {
   display: inline-block;
   white-space: pre;
-  animation: fx-letter-rise 700ms var(--fx-ease) both;
-  animation-delay: calc(var(--i, 0) * 45ms + var(--d, 0ms));
+  animation:
+    var(--fx-letter-enter) var(--fx-letter-duration) var(--fx-letter-ease) calc(var(--i, 0) * 45ms + var(--d, 0ms)) both,
+    fx-shine 2.8s ease-in-out calc(var(--i, 0) * 45ms + var(--d, 0ms) + 900ms) infinite;
 }
-.fx-letters--drop .fx-word > span {
-  animation-name: fx-letter-drop;
-  animation-duration: 620ms;
-  animation-timing-function: cubic-bezier(0.5, 0, 0.75, 0.2);
+.fx-letters--drop {
+  --fx-letter-enter: fx-letter-drop;
+  --fx-letter-duration: 620ms;
+  --fx-letter-ease: cubic-bezier(0.5, 0, 0.75, 0.2);
 }
-.fx-letters--slam .fx-word > span {
-  animation-name: fx-letter-slam;
-  animation-duration: 420ms;
+.fx-letters--slam {
+  --fx-letter-enter: fx-letter-slam;
+  --fx-letter-duration: 420ms;
 }
 
 .fx-sub {
@@ -1622,8 +1613,8 @@
   to { opacity: 1; transform: none; }
 }
 @keyframes fx-shine {
-  0% { background-position: 150% 0; }
-  45%, 100% { background-position: -50% 0; }
+  0% { background-position: 150% 0, 0 0; }
+  45%, 100% { background-position: -50% 0, 0 0; }
 }
 @keyframes fx-sweep {
   0% { transform: translateX(-120%); }
@@ -2376,7 +2367,6 @@ html[data-fx-quality="lite"] .fx-layer .fx-pillar {
 html[data-fx-quality="lite"] .fx-layer .fx-title {
   filter: drop-shadow(0 2px 0 rgba(0, 0, 0, 0.6));
 }
-html[data-fx-quality="lite"] .fx-layer .fx-shine::after,
 html[data-fx-quality="lite"] .fx-layer .fx-button::after {
   display: none;
 }
@@ -2388,6 +2378,13 @@ html[data-fx-quality="lite"] .fx-layer .fx-verdict--fumble .fx-title {
 }
 html[data-fx-quality="lite"] .fx-layer :is(.fx-verdict__rays, .fx-card__beams, .fx-rays) {
   animation: fx-fade-in 600ms ease-out both;
+}
+
+html[data-fx-quality="lite"] .fx-layer .fx-shine {
+  --fx-shine: linear-gradient(transparent, transparent);
+}
+html[data-fx-quality="lite"] .fx-layer .fx-word > span {
+  animation-name: var(--fx-letter-enter);
 }
 
 /* ------------------------------------------------------------ reduced motion */
@@ -2411,8 +2408,7 @@ html[data-fx-motion="reduce"] .fx-layer .fx-edge-flash {
   animation: fx-rm-glow 400ms ease-out both !important;
 }
 html[data-fx-motion="reduce"] .fx-layer .fx-slash,
-html[data-fx-motion="reduce"] .fx-layer .fx-ribbon::before,
-html[data-fx-motion="reduce"] .fx-layer .fx-shine::after {
+html[data-fx-motion="reduce"] .fx-layer .fx-ribbon::before {
   display: none;
 }
 
@@ -2433,8 +2429,7 @@ html[data-fx-motion="reduce"] .fx-layer .fx-shine::after {
     animation: fx-rm-glow 400ms ease-out both !important;
   }
   html:not([data-fx-motion]) .fx-layer .fx-slash,
-  html:not([data-fx-motion]) .fx-layer .fx-ribbon::before,
-  html:not([data-fx-motion]) .fx-layer .fx-shine::after {
+  html:not([data-fx-motion]) .fx-layer .fx-ribbon::before {
     display: none;
   }
 }

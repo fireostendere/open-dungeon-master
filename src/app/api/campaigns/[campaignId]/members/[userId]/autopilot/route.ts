@@ -1,9 +1,9 @@
 import { z } from "zod";
 import { isErrorResponse, isLead, requireMember, steersStory } from "@/lib/campaign-api";
-import { getFloor, getGlobalTurnState, setMemberAutopilot } from "@/lib/db/campaigns";
+import { getMember, getGlobalTurnState, setMemberAutopilot } from "@/lib/db/campaigns";
 import { listSheets } from "@/lib/db/sheets";
-import { fightOwnsTable, userInFight } from "@/lib/dm/team-round";
-import { globalTurnSubmitted } from "@/lib/campaign-types";
+import { getDatabase } from "@/lib/db/core";
+import { withCommittedEffects } from "@/lib/db/commit-effects";
 import { publishPersisted } from "@/lib/events";
 import { mayChangeAutopilot } from "@/lib/autopilot-policy";
 
@@ -32,8 +32,6 @@ export async function POST(
     return Response.json({ error: "Invalid autopilot request." }, { status: 400 });
   }
 
-  const isSelf = context.user.id === targetUserId;
-  const canModerate = isLead(context) || steersStory(context);
   // Enabling means consenting to let an isolated actor model author this
   // character's turn. That consent is personal. Lead/DM may still disable an
   // already enabled autopilot to keep the table moving or stop automation.
@@ -52,40 +50,36 @@ export async function POST(
     );
   }
 
-  const member = setMemberAutopilot(campaignId, targetUserId, parsed.data.autopilot);
-  if (!member) {
+  const previous = getMember(campaignId, targetUserId);
+  if (!previous) {
     return Response.json({ error: "Member not found." }, { status: 404 });
   }
-
-  publishPersisted(campaignId, "member_updated", { member });
-
-  if (parsed.data.autopilot && !member.muted && member.skipTurnsCount === 0 && !userInFight(campaignId, targetUserId) && !fightOwnsTable(campaignId)) {
-    const campaign = context.campaign;
-    if (campaign.gameSettings?.globalTurn?.enabled) {
-      const turn = getGlobalTurnState(campaignId);
-      if (turn.phase === "active" || turn.phase === "quorum_delay") {
-        const sheet = listSheets(campaignId).find((s) => s.userId === targetUserId && !s.isCompanion);
-        if (sheet && !globalTurnSubmitted(turn.actionsByCharacter[sheet.id])) {
-          publishPersisted(campaignId, "autopilot_action_requested", {
-            characterId: sheet.id,
-            userId: targetUserId,
-            roundNumber: turn.roundNumber,
-          });
-        }
-      }
-    } else {
-      const floor = getFloor(campaignId, null);
-      if (floor.mode === "spotlight" && floor.userIds.includes(targetUserId) && !floor.respondedUserIds.includes(targetUserId)) {
-        const sheet = listSheets(campaignId).find((s) => s.userId === targetUserId && !s.isCompanion);
-        if (sheet) {
-          publishPersisted(campaignId, "autopilot_action_requested", {
-            characterId: sheet.id,
-            userId: targetUserId,
-          });
-        }
-      }
-    }
+  const sheet = listSheets(campaignId).find(s => s.userId === targetUserId && !s.isCompanion);
+  if (parsed.data.autopilot && (!sheet || targetUserId === context.campaign.dmUserId)) {
+    return Response.json({ error: "Autopilot requires a player character." }, { status: 409 });
   }
+  if (previous.autopilot === parsed.data.autopilot) {
+    return Response.json({ ok: true, member: previous });
+  }
+
+  const member = withCommittedEffects(() => getDatabase().transaction(() => {
+    const updated = setMemberAutopilot(campaignId, targetUserId, parsed.data.autopilot)!;
+    publishPersisted(campaignId, "member_updated", { member: updated });
+    if (updated.autopilot && sheet) {
+      // Handoff wakes existing MCP/OpenCode/CLI listeners in every phase.
+      // The narrator rereads the floor/initiative before acting; this signal
+      // does not unlock input, roll dice or grant an out-of-turn action.
+      publishPersisted(campaignId, "autopilot_action_requested", {
+        characterId: sheet.id,
+        userId: targetUserId,
+        controller: "narrator",
+        reason: "autopilot_enabled",
+        ...(context.campaign.gameSettings?.globalTurn?.enabled
+          ? { roundNumber: getGlobalTurnState(campaignId).roundNumber } : {}),
+      });
+    }
+    return updated;
+  })());
 
   return Response.json({ ok: true, member });
 }
