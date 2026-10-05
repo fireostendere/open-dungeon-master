@@ -55,7 +55,8 @@ export function GlobalTurnCard({
       respondError: "Could not request a response.",
       optInSelf: "Only this player can enable autopilot",
       autopilotTitle: "Party Autopilot (Doppelganger)",
-      autopilotHint: "Players opt in for themselves; the lead may switch it off. In sequential mode, AI acts when spotlighted.",
+      autopilotError: "Could not change autopilot.",
+      autopilotHint: "Enabling hands your character to the Dungeon Master immediately. The Master acts when your turn is allowed; you or the lead can disable autopilot.",
       on: "ON",
       off: "Off",
       acted: "Acted",
@@ -92,7 +93,8 @@ export function GlobalTurnCard({
       respondError: "Не удалось запросить ответ.",
       optInSelf: "Включить автопилот может только сам игрок",
       autopilotTitle: "Автопилот игроков (Доппельгангер)",
-      autopilotHint: "Игрок включает автопилот сам; лидер может его выключить. При очередном ходе ИИ действует, когда игроку дано слово.",
+      autopilotError: "Не удалось переключить автопилот.",
+      autopilotHint: "При включении персонаж сразу передаётся Мастеру. Мастер действует в разрешённый ход; игрок или лидер может вернуть ручное управление.",
       on: "ВКЛ",
       off: "Выкл",
       acted: "Сходил",
@@ -123,6 +125,7 @@ export function GlobalTurnCard({
   }
   const { enabled, turnCollectionMinutes: collectionMins, quorumPlayers: quorum, quorumDelayMinutes: graceMins } = draft;
   const [saving, setSaving] = useState(false);
+  const [autopilotError, setAutopilotError] = useState<string | null>(null);
   const [busyUser, setBusyUser] = useState<string | null>(null);
   const [startingRound, setStartingRound] = useState(false);
   const [startRoundError, setStartRoundError] = useState<string | null>(null);
@@ -225,12 +228,19 @@ export function GlobalTurnCard({
 
   async function toggleAutopilot(userId: string, current: boolean) {
     setBusyUser(userId);
+    setAutopilotError(null);
     try {
-      await fetch(`/api/campaigns/${campaignId}/members/${userId}/autopilot`, {
+      const response = await fetch(`/api/campaigns/${campaignId}/members/${userId}/autopilot`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ autopilot: !current }),
       });
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        throw new Error(payload.error || copy.autopilotError);
+      }
+    } catch (error) {
+      setAutopilotError(error instanceof Error ? error.message : copy.autopilotError);
     } finally {
       setBusyUser(null);
     }
@@ -448,6 +458,7 @@ export function GlobalTurnCard({
                 <Bot className="size-3.5 text-sky-400" /> {copy.autopilotTitle}
               </p>
               <p className="text-[10px] text-stone-500">{copy.autopilotHint}</p>
+              {autopilotError ? <p role="alert" className="text-xs text-red-400">{autopilotError}</p> : null}
             </div>
 
             <ul className="space-y-1.5">

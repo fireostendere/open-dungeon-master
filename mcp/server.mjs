@@ -275,6 +275,10 @@ write opens collection. While collection is active, an explicitly opted-in membe
 be represented only by the host's isolated actor role using autopilot_action with the
 current characterId and roundNumber. Never invent an action for a non-opted-in player;
 the server rechecks opt-in, skip/mute/floor, round freshness and duplicate actions.
+autopilot_action_requested with reason autopilot_enabled is an immediate control
+handoff: controller=narrator identifies the opted-in character, even when a round
+is locked or another hero is acting. Read live state before acting; this event
+never grants a free action or bypasses initiative, pending rolls, skip or mute.
 Outside global-turn mode, a spotlighted opted-in player may act via autopilot_action
 without roundNumber. The lead chooses the spotlight; the host waits for the selected
 players before resolving ordinary input. A lead response request may wake the host

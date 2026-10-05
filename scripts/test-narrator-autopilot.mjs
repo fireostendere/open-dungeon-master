@@ -13,6 +13,10 @@ process.env.SQLITE_DB_PATH = path.join(dir, "test.sqlite");
 process.env.DB_ENCRYPTION_KEY = randomBytes(32).toString("hex");
 process.chdir(dir);
 register("./lib/register-alias.mjs", import.meta.url);
+register("./lab/lab-loader.mjs", import.meta.url);
+const { labRequest } = await import("./lab/next-headers-shim.mjs");
+const { mintSession } = await import("../src/lib/auth.ts");
+const autopilotRoute = await import("../src/app/api/campaigns/[campaignId]/members/[userId]/autopilot/route.ts");
 
 const { createUser } = await import("../src/lib/db/users.ts");
 const {
@@ -136,6 +140,55 @@ test("trusted MCP autopilot action requires live opt-in and seals quorum without
   });
   assert.equal(replay.result.replayed, true, "receipt recovery must not duplicate the player action");
   assert.equal(fetchCalls, 0, "server autopilot path must not call a model/provider/network");
+});
+
+test("frontend opt-in hands control to the narrator even behind a closed round gate", async () => {
+  const dm = createUser("handoff_dm", "hash");
+  const player = createUser("handoff_player", "hash");
+  const campaign = createCampaign(dm.id, {
+    title: "Handoff", description: "", theme: "", maxPlayers: 4,
+    startingLevel: 1, difficulty: "normal",
+    gameSettings: { dmMode: "human", ttsEnabled: false, mapsEnabled: false,
+      globalTurn: { enabled: true, turnCollectionMinutes: 0, quorumPlayers: 1, quorumDelayMinutes: 0 } },
+  });
+  joinByInviteCode(player.id, campaign.inviteCode);
+  const library = createCharacter(player.id, 1, characterInput("Автопилот"));
+  const sheet = instantiateIntoCampaign(library.id, campaign.id, player.id, 1);
+  setCampaignStatus(campaign.id, "active");
+  const token = mintSession(player.id).token;
+  const post = async (autopilot, session = token) => {
+    const request = new Request("http://odm.test/autopilot", {
+      method: "POST", headers: { Authorization: `Bearer ${session}` },
+      body: JSON.stringify({ autopilot }),
+    });
+    return labRequest.run(request, () => autopilotRoute.POST(request, {
+      params: Promise.resolve({ campaignId: campaign.id, userId: player.id }),
+    }));
+  };
+  const before = latestSeq(campaign.id);
+  assert.equal(getGlobalTurnState(campaign.id).phase, "waiting");
+  assert.equal((await post(true)).status, 200);
+  const read = (await executeMcpNarratorControl("narrator.read", {
+    campaignId: campaign.id, afterSeq: before, projection: "live", maxBytes: 131072,
+  })).result;
+  const requests = read.events.filter(e => e.type === "autopilot_action_requested");
+  assert.equal(requests.length, 1, "enabling must wake the narrator even while input is locked");
+  assert.equal(requests[0].payload.characterId, sheet.id);
+  assert.equal(requests[0].payload.controller, "narrator");
+  assert.equal(requests[0].payload.reason, "autopilot_enabled");
+  assert.equal(read.members.find(m => m.userId === player.id).autopilot, true);
+  assert.equal(getGlobalTurnState(campaign.id).phase, "waiting", "handoff must not open a round");
+  const enabledSeq = latestSeq(campaign.id);
+  assert.equal((await post(true)).status, 200);
+  assert.equal(latestSeq(campaign.id), enabledSeq, "repeated enable must not duplicate a wake signal");
+  assert.equal((await post(false)).status, 200);
+  const disabled = (await executeMcpNarratorControl("narrator.read", {
+    campaignId: campaign.id, afterSeq: enabledSeq, projection: "live", maxBytes: 131072,
+  })).result;
+  assert.equal(disabled.members.find(m => m.userId === player.id).autopilot, false);
+  assert.equal(disabled.events.some(e => e.type === "autopilot_action_requested"), false);
+  assert.equal((await post(true, mintSession(dm.id).token)).status, 403, "DM cannot opt in a player");
+  assert.equal(fetchCalls, 0, "handoff must never call a model/provider/network");
 });
 
 test("orchestrator uses the isolated actor role and MCP write during an active global round", async () => {

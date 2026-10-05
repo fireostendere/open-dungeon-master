@@ -32,8 +32,9 @@ const COPY = {
     adjustStats: "Adjust stats",
     makeLead: "Make party lead",
     dismissCompanion: "Dismiss companion",
-    autopilotOn: "Enable MCP autopilot",
-    autopilotOff: "Disable MCP autopilot",
+    autopilotOn: "Enable autopilot",
+    autopilotOff: "Disable autopilot",
+    autopilotError: "Could not change autopilot.",
     unmute: "Unmute player",
     mute: "Mute player",
     report: "Report player",
@@ -48,8 +49,9 @@ const COPY = {
     adjustStats: "Изменить характеристики",
     makeLead: "Сделать лидером группы",
     dismissCompanion: "Отпустить спутника",
-    autopilotOn: "Включить MCP-автопилот",
-    autopilotOff: "Отключить MCP-автопилот",
+    autopilotOn: "Включить автопилот",
+    autopilotOff: "Отключить автопилот",
+    autopilotError: "Не удалось переключить автопилот.",
     unmute: "Включить звук игрока",
     mute: "Заглушить игрока",
     report: "Пожаловаться на игрока",
@@ -94,6 +96,8 @@ export function CharacterMenu({
 }) {
   const { locale } = useI18n();
   const copy = COPY[locale];
+  const [autopilotBusy, setAutopilotBusy] = useState(false);
+  const [autopilotError, setAutopilotError] = useState<string | null>(null);
   const [reportTarget, setReportTarget] = useState<ReportTarget | null>(null);
 
   const item =
@@ -127,11 +131,24 @@ export function CharacterMenu({
   }
 
   async function toggleAutopilot() {
-    await fetch(`/api/campaigns/${sheet.campaignId}/members/${sheet.userId}/autopilot`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ autopilot: !autopilot }),
-    });
+    if (autopilotBusy) return;
+    setAutopilotBusy(true);
+    setAutopilotError(null);
+    try {
+      const response = await fetch(`/api/campaigns/${sheet.campaignId}/members/${sheet.userId}/autopilot`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ autopilot: !autopilot }),
+      });
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        throw new Error(payload.error || copy.autopilotError);
+      }
+    } catch (error) {
+      setAutopilotError(error instanceof Error ? error.message : copy.autopilotError);
+    } finally {
+      setAutopilotBusy(false);
+    }
   }
 
   const optionsLabel = copy.options(sheet.name);
@@ -187,7 +204,7 @@ export function CharacterMenu({
             </DropdownMenu.Item>
           ) : null}
           {canToggleAutopilot && !sheet.isCompanion ? (
-            <DropdownMenu.Item className={item} onSelect={toggleAutopilot}>
+            <DropdownMenu.Item className={item} disabled={autopilotBusy} onSelect={toggleAutopilot}>
               <Bot className="size-3.5 text-sky-400" />
               {autopilot ? copy.autopilotOff : copy.autopilotOn}
             </DropdownMenu.Item>
@@ -233,6 +250,7 @@ export function CharacterMenu({
           ) : null}
         </DropdownMenu.Content>
       </DropdownMenu.Portal>
+      {autopilotError ? <span role="alert" className="text-xs text-red-400">{autopilotError}</span> : null}
       {canModerate ? (
         <ReportDialog
           campaignId={sheet.campaignId}

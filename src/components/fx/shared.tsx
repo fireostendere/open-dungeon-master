@@ -59,7 +59,7 @@ export function FxTitle({
   as?: "h1" | "h2" | "h3" | "div";
 }) {
   return (
-    <Tag className={`fx-title fx-title--letters fx-shine ${tone === "gold" ? "" : `fx-title--${tone}`} ${className}`} data-text={text}>
+    <Tag className={`fx-title fx-title--letters fx-shine ${tone === "gold" ? "" : `fx-title--${tone}`} ${className}`}>
       <FxLetters text={text} variant={variant} delayMs={delayMs} />
     </Tag>
   );
