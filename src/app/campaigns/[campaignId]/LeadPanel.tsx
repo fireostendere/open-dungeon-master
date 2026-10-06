@@ -2,11 +2,14 @@
 
 import {
   Check,
+  Coffee,
   Crown,
   Link as LinkIcon,
+  Moon,
   Pencil,
   QrCode,
   StickyNote,
+  Tent,
   UserPlus,
   Wand2,
   type LucideIcon,
@@ -72,6 +75,68 @@ function Card({
       </div>
       {children}
     </div>
+  );
+}
+
+function RestCard({ campaignId, active, inCombat }: { campaignId: string; active: boolean; inCombat: boolean }) {
+  const { locale } = useI18n();
+  const copy = localeText(locale, {
+    en: {
+      title: "Party rest", short: "Short rest", long: "Long rest",
+      hint: "Ask the DM to arrange a rest for the whole party.", combat: "Rest is unavailable during combat.", inactive: "Rest is available in an active campaign.",
+      shortRequest: "The party wants to take a short rest at the current location.", longRequest: "The party wants to take a long rest at the current location.",
+      shortSent: "Short rest requested.", longSent: "Long rest requested.", failed: "Could not request a rest.", unreachable: "Could not reach the table.",
+    },
+    ru: {
+      title: "Привал отряда", short: "Короткий привал", long: "Долгий привал",
+      hint: "Отправить мастеру запрос на отдых всего отряда.", combat: "Во время боя привал недоступен.", inactive: "Привал доступен в активной кампании.",
+      shortRequest: "Отряд хочет устроить короткий привал в текущем месте.", longRequest: "Отряд хочет устроить долгий привал в текущем месте.",
+      shortSent: "Запрос на короткий привал отправлен.", longSent: "Запрос на долгий привал отправлен.", failed: "Не удалось запросить привал.", unreachable: "Не удалось связаться со столом.",
+    },
+  });
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [sent, setSent] = useState("");
+  const disabled = busy || !active || inCombat;
+
+  async function requestRest(kind: "short" | "long") {
+    if (disabled) return;
+    setBusy(true);
+    setError("");
+    setSent("");
+    try {
+      const response = await fetch(`/api/campaigns/${campaignId}/lead-note`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: kind === "short" ? copy.shortRequest : copy.longRequest }),
+      });
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        setError(data.error || copy.failed);
+      } else {
+        setSent(kind === "short" ? copy.shortSent : copy.longSent);
+      }
+    } catch {
+      setError(copy.unreachable);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Card icon={Tent} title={copy.title}>
+      <p className="mb-2 text-[11px] text-stone-500">{!active ? copy.inactive : inCombat ? copy.combat : copy.hint}</p>
+      <div className="flex flex-wrap gap-2">
+        <button type="button" disabled={disabled} onClick={() => void requestRest("short")} className="flex min-h-11 items-center gap-1.5 rounded-md border border-stone-700 px-3 py-2 text-xs text-stone-300 hover:bg-stone-900 disabled:cursor-not-allowed disabled:opacity-50">
+          <Coffee className="size-4" aria-hidden="true" /> {copy.short}
+        </button>
+        <button type="button" disabled={disabled} onClick={() => void requestRest("long")} className="flex min-h-11 items-center gap-1.5 rounded-md border border-stone-700 px-3 py-2 text-xs text-stone-300 hover:bg-stone-900 disabled:cursor-not-allowed disabled:opacity-50">
+          <Moon className="size-4" aria-hidden="true" /> {copy.long}
+        </button>
+      </div>
+      {error ? <p role="alert" className="mt-1.5 text-xs text-red-400">{error}</p> : null}
+      {sent ? <p role="status" className="mt-1.5 text-xs text-emerald-400">{sent}</p> : null}
+    </Card>
   );
 }
 
@@ -371,6 +436,14 @@ export function LeadPanel({
           floor={floor}
           sheets={sheets}
           encounter={encounter}
+        />
+      ) : null}
+
+      {isLead ? (
+        <RestCard
+          campaignId={campaignId}
+          active={campaign.status === "active"}
+          inCombat={encounter?.status === "active" || floor.mode === "initiative" || (floor.mode === "hold" && Boolean(floor.combat))}
         />
       ) : null}
 
