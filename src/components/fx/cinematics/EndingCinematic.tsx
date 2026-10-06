@@ -108,9 +108,8 @@ export function EndingCinematic({
   active,
   onClose,
   campaignTitle,
-  mode: initialMode = "victory",
+  mode = "victory",
   closingMessage,
-  onModeChange,
   isYolo = false,
 }: {
   active: boolean;
@@ -118,13 +117,11 @@ export function EndingCinematic({
   campaignTitle?: string;
   mode?: Mode;
   closingMessage?: string | null;
-  onModeChange?: (mode: Mode) => void;
   isYolo?: boolean;
 }) {
   const { locale } = useI18n();
   const copy = endingCopy(isYolo)[locale] ?? endingCopy(isYolo).en;
   const titles = locale === "ru" ? { victory: "Победа", defeat: "Поражение" } : { victory: "Victory", defeat: "Defeat" };
-  const [mode, setMode] = useState<Mode>(initialMode);
   const [showStory, setShowStory] = useState(false);
   const [jokes, setJokes] = useState<Joke[]>([]);
   const [heroKey, setHeroKey] = useState(0);
@@ -137,10 +134,9 @@ export function EndingCinematic({
 
   // A new mode from the parent restarts the scene (state adjusted in render,
   // as React recommends for props that reset state).
-  const [prevInitial, setPrevInitial] = useState(initialMode);
-  if (prevInitial !== initialMode) {
-    setPrevInitial(initialMode);
-    setMode(initialMode);
+  const [prevMode, setPrevMode] = useState(mode);
+  if (prevMode !== mode) {
+    setPrevMode(mode);
     setHeroCount(1);
     setHeroKey(0);
   }
@@ -259,14 +255,6 @@ export function EndingCinematic({
     [particlesRef, mode, reducedMotion, isYolo],
   );
 
-  const switchMode = (next: Mode) => {
-    setMode(next);
-    setHeroCount(1);
-    setHeroKey(0);
-    setShowStory(false);
-    onModeChange?.(next);
-  };
-
   if (!active) return null;
   const defeat = mode === "defeat";
   const heroThrow: HeroThrow = {
@@ -335,15 +323,6 @@ export function EndingCinematic({
         ) : null}
         <button type="button" className="fx-button fx-button--ghost" onClick={() => setMuted(!muted)} aria-label={muted ? copy.audioOff : copy.audioOn} title={muted ? copy.audioOff : copy.audioOn}>
           {muted ? "🔇" : "🔊"}
-        </button>
-        <button
-          type="button"
-          className="fx-button fx-button--ghost"
-          onClick={() => switchMode(defeat ? "victory" : "defeat")}
-          aria-label={defeat ? copy.switchToVictory : copy.switchToDefeat}
-          title={defeat ? copy.switchToVictory : copy.switchToDefeat}
-        >
-          {defeat ? "✨" : "💀"} <span className="fx-hide-phone">{defeat ? copy.switchToVictory : copy.switchToDefeat}</span>
         </button>
         <button type="button" className="fx-button fx-button--ghost" onClick={onClose} aria-label={copy.close} title={copy.close}>
           ✕

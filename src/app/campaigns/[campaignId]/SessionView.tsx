@@ -150,7 +150,6 @@ export function SessionView({
   const [helpOpen, setHelpOpen] = useState(false);
   const [closingModalOpen, setClosingModalOpen] = useState(false);
   const [celebrationActive, setCelebrationActive] = useState(false);
-  const [celebrationMode, setCelebrationMode] = useState<"victory" | "defeat">("victory");
   const hasOpenedFinale = useSyncExternalStore(
     subscribeFinaleSeen,
     () => campaignId ? window.localStorage.getItem(`odm:seen_finale_${campaignId}`) === "true" : false,
@@ -199,16 +198,15 @@ export function SessionView({
 
   const openLevelUp = useCallback(() => setLevelUpByHand(true), []);
   const openClosingMessage = useCallback(
-    (mode?: "victory" | "defeat") => {
+    () => {
       setCelebrationActive(false);
-      setCelebrationMode(mode ?? defaultCelebrationMode);
       setClosingModalOpen(true);
       if (campaignId) {
         window.localStorage.setItem(`odm:seen_finale_${campaignId}`, "true");
         window.dispatchEvent(new Event(FINALE_SEEN_EVENT));
       }
     },
-    [campaignId, defaultCelebrationMode],
+    [campaignId],
   );
 
   // The DM just closed the campaign (or it closed while this player was
@@ -810,8 +808,7 @@ export function SessionView({
         sheets={sheets}
         defaultMode={defaultCelebrationMode}
         isYolo={Boolean(campaign.gameSettings?.yolo21Enabled)}
-        onTriggerCelebration={(mode) => {
-          setCelebrationMode(mode ?? defaultCelebrationMode);
+        onTriggerCelebration={() => {
           setCelebrationActive(false);
           setTimeout(() => setCelebrationActive(true), 20);
         }}
@@ -828,11 +825,10 @@ export function SessionView({
 
       <EndingCinematic
         active={celebrationActive}
-        mode={celebrationMode}
+        mode={defaultCelebrationMode}
         onClose={() => setCelebrationActive(false)}
         campaignTitle={campaign.title}
         closingMessage={closingDmMessage?.content}
-        onModeChange={(nextMode) => setCelebrationMode(nextMode)}
         isYolo={Boolean(campaign.gameSettings?.yolo21Enabled)}
       />
     </main>

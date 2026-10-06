@@ -26,33 +26,38 @@ export function ClosingMessageModal({
   message?: CampaignMessage | null;
   sheets?: CharacterSheet[];
   defaultMode?: "victory" | "defeat";
-  onTriggerCelebration?: (mode: "victory" | "defeat") => void;
+  onTriggerCelebration?: () => void;
   isYolo?: boolean;
 }) {
   const { locale } = useI18n();
+  const isDefeat = defaultMode === "defeat";
   const copy = localeText(locale, {
     en: {
-      title: isYolo ? "Final Unhinged Words from the DM" : "Closing Message from the Dungeon Master",
-      subtitle: isYolo ? "The adventure has reached its fucking conclusion" : "The adventure has reached its grand conclusion",
-      fallbackProse: isYolo
+      title: isDefeat ? "Party defeated" : "Victory!",
+      subtitle: isDefeat ? "The Dungeon Master's final message to the defeated party" : "The Dungeon Master's final message to the victors",
+      fallbackProse: isDefeat
+        ? "The adventure ends in defeat. The Dungeon Master will recount the party's fate in the final message."
+        : isYolo
         ? "The dust settles upon the battlefield, reeking of gunpowder, blood, and vanquished foes. The madmen smashed through every obstacle, broke all the rules, and left absolute ruin in their wake. Bards will lose their minds singing this legend."
         : "The dust settles upon the battlefield, and the echoes of triumph resonate throughout the realm. The heroes have braved perils untold, forged bonds unbroken, and etched their names into legend. Their deeds shall be sung by bards for generations to come.",
       partyTitle: isYolo ? "The Badass Party" : "Heroes of the Realm",
       level: "Level",
-      replayFireworks: isYolo ? "Salute & Victory Badassery" : "Victory salute & fireworks",
-      playDefeat: isYolo ? "Total Disaster (Falling 1s & Trombone)" : "Defeat & falling 1s (Sad Trombone)",
+      replayFireworks: "Victory salute & fireworks",
+      playDefeat: "Replay defeat finale",
       close: "Close and view table",
     },
     ru: {
-      title: isYolo ? "Финальный разъёб от Мастера" : "Закрывающее послание Мастера",
-      subtitle: isYolo ? "Приключение разъёбано до самого основания" : "Приключение подошло к своему грандиозному финалу",
-      fallbackProse: isYolo
+      title: isDefeat ? "Поражение отряда" : "Победа!",
+      subtitle: isDefeat ? "Финальное послание Мастера побеждённому отряду" : "Финальное послание Мастера победителям",
+      fallbackProse: isDefeat
+        ? "Приключение завершилось поражением. Мастер расскажет о судьбе отряда в финальном послании."
+        : isYolo
         ? "Пыль битвы осела, и в воздухе стоит запах напалма и поверженных врагов. Герои разъебали всё живое, переломали кости злодеям и оставили за собой легенду. Барды охуеют это воспевать."
         : "Пыль битвы оседает, и эхо триумфа разносится по всему королевству. Герои преодолели немыслимые опасности, скрепили нерушимые узы и вписали свои имена в легенды. Их подвиги будут воспевать барды многих грядущих эпох.",
       partyTitle: isYolo ? "Бешеные ублюдки (отряд)" : "Герои королевства",
       level: "Уровень",
-      replayFireworks: isYolo ? "Салют разъёба и победы" : "Салют победы",
-      playDefeat: isYolo ? "Полный проёб (единицы в говно и тромбон)" : "Поражение и проёб (единички и тромбон)",
+      replayFireworks: "Салют победы",
+      playDefeat: "Финал поражения",
       close: "Закрыть и смотреть стол",
     },
   });
@@ -84,7 +89,7 @@ export function ClosingMessageModal({
             {/* Header */}
             <div className="text-center">
               <div className="mx-auto mb-3 flex size-12 sm:size-14 items-center justify-center rounded-2xl border border-amber-400/40 bg-gradient-to-b from-amber-400/20 to-amber-600/10 text-amber-300 shadow-[0_0_20px_rgba(245,158,11,0.2)]">
-                {defaultMode === "defeat" ? (
+                {isDefeat ? (
                   <Skull className="size-6 sm:size-7 text-red-400 animate-pulse" />
                 ) : (
                   <Trophy className="size-6 sm:size-7 animate-pulse" />
@@ -170,30 +175,18 @@ export function ClosingMessageModal({
                 type="button"
                 onClick={() => {
                   onOpenChange(false);
-                  onTriggerCelebration?.("defeat");
+                  onTriggerCelebration?.();
                 }}
                 className={cn(
-                  "inline-flex items-center justify-center gap-1.5 rounded-lg border border-red-800/60 bg-red-950/50 px-3 py-2 text-xs font-semibold text-red-200 shadow-sm transition hover:bg-red-900/60 hover:text-white w-full sm:w-auto text-center",
-                  defaultMode === "defeat" && "ring-2 ring-red-500/50 shadow-[0_0_15px_rgba(239,68,68,0.3)]",
-                )}
-              >
-                <Skull className="size-4 shrink-0 text-red-400" />
-                <span>{copy.playDefeat}</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  onOpenChange(false);
-                  onTriggerCelebration?.("victory");
-                }}
-                className={cn(
-                  ui.btnPrimary,
+                  isDefeat
+                    ? "inline-flex items-center justify-center rounded-lg border border-red-800/60 bg-red-950/50 px-3 font-semibold text-red-200 transition hover:bg-red-900/60 hover:text-white ring-2 ring-red-500/50"
+                    : ui.btnPrimary,
                   "text-xs py-2 gap-1.5 shadow-[0_0_20px_rgba(245,158,11,0.3)] w-full sm:w-auto text-center justify-center",
-                  defaultMode === "victory" && "ring-2 ring-amber-400/60",
+                  !isDefeat && "ring-2 ring-amber-400/60",
                 )}
               >
-                <Sparkles className="size-4 shrink-0 text-amber-950" />
-                <span>{copy.replayFireworks}</span>
+                {isDefeat ? <Skull className="size-4 shrink-0 text-red-400" /> : <Sparkles className="size-4 shrink-0 text-amber-950" />}
+                <span>{isDefeat ? copy.playDefeat : copy.replayFireworks}</span>
               </button>
             </div>
           </div>

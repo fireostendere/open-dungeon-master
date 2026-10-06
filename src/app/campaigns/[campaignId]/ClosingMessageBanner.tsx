@@ -22,8 +22,8 @@ export function ClosingMessageBanner({
   const { locale } = useI18n();
   const copy = localeText(locale, {
     en: {
-      concludedVictory: isYolo ? "Campaign Fucking Won!" : "Campaign Concluded",
-      concludedDefeat: isYolo ? "Campaign Concluded: Total Party Fucking Wipe" : "Campaign Concluded: Defeat",
+      concludedVictory: "Campaign Concluded: Victory!",
+      concludedDefeat: "Campaign Concluded: Defeat",
       subtitleVictory: isYolo
         ? "The Dungeon Master dropped the final victory verdict for the badasses."
         : "The Dungeon Master has delivered the final closing message for the party.",
@@ -36,17 +36,17 @@ export function ClosingMessageBanner({
       reopenCtaDefeat: isYolo ? "View Disastrous Finale & Trombone" : "View Final Message & Defeat",
     },
     ru: {
-      concludedVictory: isYolo ? "Кампания разъёбана в щепки!" : "Кампания завершена",
-      concludedDefeat: isYolo ? "Кампания завершена: Полный проёб и TPK" : "Кампания завершена: Поражение отряда",
+      concludedVictory: "Кампания завершена: Победа!",
+      concludedDefeat: "Кампания завершена: Поражение отряда",
       subtitleVictory: isYolo
         ? "Мастер выкатил финальное напутствие победителям."
         : "Мастер оставил итоговое закрывающее послание для отряда.",
       subtitleDefeat: isYolo
         ? "Все сдохли. Мастер оставил посмертное напутствие неудачникам."
         : "Отряд пал в бою. Мастер оставил финальную эпитафию.",
-      openCtaVictory: isYolo ? "Открыть финальный разъёб и салют" : "Открыть закрывающее послание и салют",
+      openCtaVictory: "Открыть послание и салют победы",
       openCtaDefeat: isYolo ? "Открыть закрывающий проёб и тромбон" : "Открыть закрывающее послание и финал",
-      reopenCtaVictory: isYolo ? "Посмотреть финальный разъёб и салют" : "Посмотреть закрывающее послание и салют",
+      reopenCtaVictory: "Посмотреть послание и салют победы",
       reopenCtaDefeat: isYolo ? "Посмотреть закрывающий проёб и тромбон" : "Посмотреть закрывающее послание и финал",
     },
   });
