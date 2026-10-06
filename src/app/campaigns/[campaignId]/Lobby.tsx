@@ -484,6 +484,7 @@ export function Lobby({ state, refresh }: { state: CampaignState; refresh: () =>
         <LobbyParty
           campaign={campaign}
           members={members}
+          partySize={partySize}
           sheets={sheets}
           canMakeLead={isLead || isOwner}
           humanDmTable={humanDmTable}

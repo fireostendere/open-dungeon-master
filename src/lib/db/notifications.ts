@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { getDatabase, nowIso } from "@/lib/db/core";
+import { afterCommit } from "@/lib/db/commit-effects";
 import { pingUsers } from "@/lib/user-events";
 
 // The inbox behind the bell. Rows are cheap prose pointers ("a session was
@@ -67,7 +68,7 @@ export function notifyUsers(
   all(userIds);
   // A contentless ping per recipient with a live bell stream; everyone else
   // catches up on their next poll.
-  pingUsers(userIds);
+  afterCommit(() => pingUsers(userIds));
 }
 
 export function listNotifications(userId: string, limit = 50): Notification[] {

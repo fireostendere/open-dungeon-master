@@ -16,7 +16,7 @@ register("./lib/register-alias.mjs", import.meta.url);
 
 const { joinPreviewFor } = await import("../src/lib/join-preview.ts");
 const { createUser } = await import("../src/lib/db/users.ts");
-const { createCampaign, findCampaignByInviteCode, setCampaignCover } = await import(
+const { createCampaign, findCampaignByInviteCode, joinByInviteCode, setCampaignCover } = await import(
   "../src/lib/db/campaigns.ts"
 );
 
@@ -42,7 +42,7 @@ test("a lobby table previews its shape and nothing private", () => {
   const preview = joinPreviewFor(campaign);
   assert.equal(preview.title, "The Sunless Citadel");
   assert.equal(preview.status, "lobby");
-  assert.equal(preview.playerCount, 1);
+  assert.equal(preview.playerCount, 0, "the creator occupies the DM seat, not a player slot");
   assert.equal(preview.maxPlayers, 5);
   assert.equal(preview.startingLevel, 3);
   assert.equal(preview.genre, "High fantasy");
@@ -56,6 +56,12 @@ test("a lobby table previews its shape and nothing private", () => {
   assert.equal("description" in preview, false);
   assert.equal("inviteCode" in preview, false);
   assert.equal("ownerUserId" in preview, false);
+});
+
+test("the preview counts an actual player joining alongside the DM", () => {
+  const player = createUser("preview-player", "password-1234");
+  assert.ok(joinByInviteCode(player.id, created.inviteCode).campaign);
+  assert.equal(joinPreviewFor(findCampaignByInviteCode(created.inviteCode)).playerCount, 1);
 });
 
 test("the cover rides along as a bare url", () => {

@@ -24,7 +24,6 @@ import { normalizeCover, type DmCover } from "@/lib/dm/delegation";
 import { normalizeClock, type CampaignClock } from "@/lib/dm/calendar";
 import { normalizeParty, type PartyState } from "@/lib/dm/party-logic";
 import {
-  partySlotCount,
   viewerCaps,
   type CampaignSeats,
   type DmMode,
@@ -336,7 +335,10 @@ function mapCampaign(row: CampaignRow): Campaign {
 const CAMPAIGN_SELECT = `
   SELECT
     c.*,
-    (SELECT COUNT(*) FROM campaign_members m WHERE m.campaign_id = c.id) AS player_count
+    (SELECT COUNT(*) FROM campaign_members m
+      WHERE m.campaign_id = c.id
+        AND m.user_id IS NOT COALESCE(c.human_dm_user_id, c.owner_user_id)
+        AND m.user_id IS NOT c.assistant_dm_user_id) AS player_count
   FROM campaigns c
 `;
 
@@ -974,14 +976,7 @@ export function setAssistantDm(campaignId: string, userId: string | null): boole
 // Members who occupy a party slot: the DM seats do not, so a five-player cap
 // still means five players even at a human-DM table.
 export function countPartySlots(campaignId: string): number {
-  const campaign = getCampaignById(campaignId);
-  if (!campaign) {
-    return 0;
-  }
-  return partySlotCount(
-    campaignSeats(campaign),
-    listMembers(campaignId).map((member) => member.userId),
-  );
+  return getCampaignById(campaignId)?.playerCount ?? 0;
 }
 
 // Transfers the party lead to another member. Returns false when the

@@ -51,6 +51,7 @@ function SeatAction({
 export function LobbyParty({
   campaign,
   members,
+  partySize,
   sheets,
   canMakeLead,
   humanDmTable,
@@ -74,6 +75,7 @@ export function LobbyParty({
     assistantDmUserId: string | null;
   };
   members: CampaignMember[];
+  partySize: number;
   sheets: CharacterSheet[];
   // The lead or the owner may hand the lead seat on.
   canMakeLead: boolean;
@@ -106,7 +108,7 @@ export function LobbyParty({
       <section className="mb-6">
         <h2 className={cn(ui.sectionEyebrow, "mb-1 flex items-center gap-2")}>
           <GameIcon icon={{ kind: "glyph", key: "tab-party" }} size="size-6" />
-          {localeText(locale, { en: `Party · ${members.length}/${campaign.maxPlayers}`, ru: `Отряд · ${members.length}/${campaign.maxPlayers}` })}
+          {localeText(locale, { en: `Party · ${partySize}/${campaign.maxPlayers}`, ru: `Отряд · ${partySize}/${campaign.maxPlayers}` })}
         </h2>
         <p className="mb-3 text-xs text-stone-400">
           {localeText(locale, { en: "The party is formed by campaign members and their assigned characters.", ru: "Отряд формируется из участников кампании и их персонажей." })}

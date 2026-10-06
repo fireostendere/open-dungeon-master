@@ -9,6 +9,7 @@ import { closeCampaignNow } from "@/lib/dm/campaign-ending";
 import {
   allocateSeq,
   campaignSeats,
+  countPartySlots,
   deleteCampaign,
   getFightFloor,
   latestSeq,
@@ -228,7 +229,7 @@ export async function PATCH(
     if (campaign.status === "ended") {
       return Response.json({ error: "The campaign has ended." }, { status: 400 });
     }
-    if (info.maxPlayers !== undefined && info.maxPlayers < listMembers(campaignId).length) {
+    if (info.maxPlayers !== undefined && info.maxPlayers < countPartySlots(campaignId)) {
       return Response.json(
         { error: "Max players cannot drop below the current party size." },
         { status: 400 },

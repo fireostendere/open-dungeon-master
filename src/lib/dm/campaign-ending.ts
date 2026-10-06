@@ -1,4 +1,4 @@
-import { getCampaignById, getFightFloor, getFloor, setCampaignEnding, setFightFloor, setFloor, type Campaign } from "@/lib/db/campaigns";
+import { campaignSeats, getCampaignById, getFightFloor, getFloor, setCampaignEnding, setFightFloor, setFloor, type Campaign } from "@/lib/db/campaigns";
 import { withCommittedEffects } from "@/lib/db/commit-effects";
 import { enqueueDmJob } from "@/lib/dm/queue";
 import type { CampaignEnding, CampaignOutcome } from "@/lib/campaign-types";
@@ -10,6 +10,9 @@ import { publicItemProposal } from "@/lib/dm/proposal-intercept";
 import { answerAsk, listPendingAsksForCampaign } from "@/lib/db/asks";
 import { clearDirectorArm } from "@/lib/db/director-arms";
 import { syncProgressToLibrary } from "@/lib/db/characters";
+import { ProgressConflictError } from "@/lib/db/progress-baseline";
+import { notifyUsers } from "@/lib/db/notifications";
+import { isDmSeat } from "@/lib/dm/viewer";
 import { publishEphemeral, publishPersisted, publishUserEphemeral } from "@/lib/events";
 import { cancelGlobalTurnTimer } from "@/lib/dm/global-turn-logic";
 import { followCombatAmbience } from "@/lib/dm/ambience-tools";
@@ -108,10 +111,25 @@ export function closeCampaign(campaign: Campaign, input: CloseCampaignInput): Cl
   setDmStatus(campaign.id, "idle");
 
   // Durable progression goes back to each player's library character
-  // (level, XP, gold, gear, spells; never HP or conditions).
+  // (level, XP, gold, gear, spells; never HP or conditions). A stale copy
+  // stays in the ended campaign for reconciliation, without overwriting
+  // its newer library version or blocking the table's closure.
   if (!alreadyEnded) {
+    const seats = campaignSeats(campaign);
     for (const sheet of listSheets(campaign.id)) {
-      if (sheet.libraryCharacterId) syncProgressToLibrary(sheet.id);
+      if (!sheet.libraryCharacterId || isDmSeat(seats, sheet.userId)) continue;
+      try {
+        syncProgressToLibrary(sheet.id);
+      } catch (error) {
+        if (!(error instanceof ProgressConflictError)) throw error;
+        notifyUsers([...new Set([sheet.userId, campaign.ownerUserId])], {
+          campaignId: campaign.id,
+          kind: "progress_conflict",
+          body: campaign.gameSettings.language === "en"
+            ? `The campaign ended. ${sheet.name}'s progress remains in the campaign but was not copied to the library because the versions conflict. Ask the DM to reconcile them.`
+            : `Кампания завершена. Прогресс «${sheet.name}» сохранён в кампании, но не перенесён в библиотеку из-за конфликта версий. Попросите мастера сверить версии.`,
+        });
+      }
     }
   }
   return { status: "ended", outcome: input.outcome, ending, closed, alreadyEnded };
