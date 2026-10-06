@@ -463,19 +463,6 @@ async function invoke(raw: unknown) {
     }
     if (scoped.roomId) bindActiveBattleMapToRoom(campaign.id, campaign.dmUserId!, scoped.roomId);
 
-    // A global round that transitioned into initiative stays armed in
-    // `waiting`. When the MCP narrator ends that encounter, emit the next
-    // narrator trigger inside the same committed command. Players remain
-    // locked until the follow-up narration starts the waiting round.
-    if (p.data.name === "end_encounter" && campaign.gameSettings.globalTurn?.enabled) {
-      const globalTurn = getGlobalTurnState(campaign.id);
-      if (globalTurn.phase === "waiting") {
-        publishPersisted(campaign.id, "global_turn_narrator_trigger", {
-          kind: "post_combat",
-          roundNumber: globalTurn.roundNumber,
-        });
-      }
-    }
     return outcome;
   }, p.data.scopeRoomId ? (campaign, currentSeq) => unrelatedRoomChat(getDatabase(), {
     campaignId: campaign.id, dmUserId: campaign.dmUserId!, roomId: p.data.scopeRoomId!, afterSeq: p.data.expectedSeq, currentSeq,
@@ -925,10 +912,11 @@ async function releaseFloor(raw: unknown) {
   const p = writeBase.extend({ locationId: z.string().trim().min(1).max(100).optional() }).safeParse(raw);
   if (!p.success) throw new McpNarratorControlError(z.prettifyError(p.error));
   return serializedWrite(p.data, "narrator.release_floor", p.data.locationId ? { locationId: p.data.locationId } : {}, campaign => inFightScope(campaign.id, handoffFight(campaign.id, p.data.locationId), () => {
-    if (campaign.gameSettings.globalTurn?.enabled && !getActiveEncounter(campaign.id)) {
+    const current = getFloor(campaign.id);
+    if (campaign.gameSettings.globalTurn?.enabled && !getActiveEncounter(campaign.id) &&
+        !(current.mode === "hold" && current.combat)) {
       throw new McpNarratorControlError("Global-turn pacing owns the non-combat floor; use request_response.", 409);
     }
-    const current = getFloor(campaign.id);
     if (listOpenPendingRolls(campaign.id).length) throw new McpNarratorControlError("Resolve pending physical rolls before releasing the floor.", 409);
     if (current.mode === "hold" && current.team) throw new McpNarratorControlError("The fight waits for the rest of the party this team round; the held turn opens when the next global round starts. Resolve the round with completeGlobalRound instead.", 409);
     if (current.mode === "hold" && current.combat) {

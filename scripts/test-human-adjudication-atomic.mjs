@@ -27,6 +27,7 @@ function fixture() {
   const encounters = {
     getActiveEncounter: () => { const row = f.db.prepare("SELECT value_json FROM encounter_test WHERE campaign_id = 'c1'").get(); return row ? JSON.parse(row.value_json) : null; },
     save: (encounter) => f.db.prepare('INSERT OR REPLACE INTO encounter_test VALUES (?, ?)').run('c1', JSON.stringify(encounter)),
+    listActiveFights: () => { const encounter = encounters.getActiveEncounter(); return encounter ? [encounter] : []; },
   };
   let advanceCalls = 0, enemyAttacks = 0;
   const encounterTools = { advanceAfterTurn: (_campaign, turn) => {
@@ -44,7 +45,7 @@ function fixture() {
   const scopes = loadSource('src/lib/db/human-adjudication-scopes.ts', { '@/lib/db/core': f.core, '@/lib/db/dm-turns': turns });
   let announcements = 0;
   Object.assign(encounterTools, { announceCurrentTurn: () => { announcements++; }, queueSkippedCombatTurn() {} });
-  const lifecycle = loadSource('src/lib/dm/human-turn-lifecycle.ts', { '@/lib/db/campaigns': f.campaigns, '@/lib/db/dm-turns': turns, '@/lib/db/encounters': encounters, '@/lib/db/human-adjudication-scopes': scopes, '@/lib/dm/encounter-tools': encounterTools, '@/lib/events': f.events });
+  const lifecycle = loadSource('src/lib/dm/human-turn-lifecycle.ts', { '@/lib/db/campaigns': f.campaigns, '@/lib/db/dm-turns': turns, '@/lib/db/encounters': encounters, '@/lib/db/human-adjudication-scopes': scopes, '@/lib/dm/encounter-tools': encounterTools, '@/lib/events': f.events, '@/lib/dm/global-turn-logic': { startGlobalTurn: () => null }, '@/lib/spatial/service': { spatialEnabled: () => false } });
   const sheets = [{ id: 'pc1', slots: 3 }];
   let handler = () => ({ success: true });
   const dispatcher = {

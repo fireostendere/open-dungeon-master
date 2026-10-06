@@ -1,9 +1,11 @@
 import { getFloor, setFloor, type Campaign, type Floor } from "@/lib/db/campaigns";
-import { getActiveEncounter } from "@/lib/db/encounters";
+import { getActiveEncounter, listActiveFights } from "@/lib/db/encounters";
 import { listOpenPendingRolls, saveDmTurn, type DmTurn } from "@/lib/db/dm-turns";
 import { scopedHumanTurn } from "@/lib/db/human-adjudication-scopes";
 import { advanceAfterTurn, announceCurrentTurn, queueSkippedCombatTurn } from "@/lib/dm/encounter-tools";
 import { publishPersisted } from "@/lib/events";
+import { startGlobalTurn } from "@/lib/dm/global-turn-logic";
+import { spatialEnabled } from "@/lib/spatial/service";
 
 /** Only synchronous state finalization, inside the caller's transaction.
  * Narration does not implicitly finish a turn. No AI finalize, model, TTS or
@@ -109,6 +111,12 @@ export function passCombatTurn(campaign: Campaign): boolean {
     // hold: open whatever the hold was going to become.
     publishPersisted(campaign.id, "floor_changed", { floor: floor.next });
     if (gate.requiresEndTurn && encounter?.orderReady && floor.next.mode === "initiative") announceCurrentTurn(campaign);
+  }
+  // The post-combat handoff is also the waiting round's start trigger.
+  // Room narration keeps its separate spatial round finalizer.
+  if (campaign.gameSettings.globalTurn?.enabled && !spatialEnabled(campaign.id) &&
+      !listActiveFights(campaign.id).length) {
+    startGlobalTurn(campaign.id, "mcp_trigger");
   }
   queueSkippedCombatTurn(campaign.id);
   return true;

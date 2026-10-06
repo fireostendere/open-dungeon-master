@@ -65,7 +65,7 @@ function fixture() {
   // The handoff moves initiative; this fixture's engine stand-in wraps the
   // one-hero order into the next round and keeps whoever the floor names.
   const lifecycle = loadSource('src/lib/dm/human-turn-lifecycle.ts', {
-    '@/lib/db/campaigns': floorDb, '@/lib/db/encounters': { getActiveEncounter: () => encounter },
+    '@/lib/db/campaigns': floorDb, '@/lib/db/encounters': { getActiveEncounter: () => encounter, listActiveFights: () => encounter ? [encounter] : [] },
     '@/lib/db/dm-turns': { ...turns, saveDmTurn() {} },
     '@/lib/db/human-adjudication-scopes': { scopedHumanTurn: () => ({ resolvedCharacterIds: [] }) },
     '@/lib/dm/encounter-tools': {
@@ -76,6 +76,8 @@ function fixture() {
       announceCurrentTurn() {}, queueSkippedCombatTurn() {},
     },
     '@/lib/events': f.events,
+    '@/lib/dm/global-turn-logic': { startGlobalTurn: () => null },
+    '@/lib/spatial/service': spatial,
   });
   const narration = loadSource('src/lib/dm/human-narration.ts', {
     '@/lib/spatial/service': spatial, '@/lib/db/campaigns': floorDb, '@/lib/db/core': f.core,

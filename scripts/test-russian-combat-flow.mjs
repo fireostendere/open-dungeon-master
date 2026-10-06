@@ -179,7 +179,8 @@ const mocks = {
   '@/lib/spatial/publication-scope.mjs': { currentEncounterRoom: () => undefined, withEncounterRoom: (_id, _room, work) => work(), withFight: (_id, _fight, work) => work() },
   '@/lib/spatial/service': { spatialEnabled: () => false, spatialContext: () => ({}), spatialStore: () => ({}) },
   '@/lib/dm/fight-presence': { atFight: () => true, joinFight() {}, placeArrivingHero() {}, fightPlaceName: () => "here", syncFightBoards: () => ({ notes: [], leftOnTheirTurn: [], arrivals: [] }), fightCrossing: () => null, fightForCall: () => ({}) }, '@/lib/db/overworld': { partyStanding: () => ({}), getOverworldPartyPositions: () => [] },
-  '@/lib/db/encounters': { getActiveEncounter: () => state.encounter },
+  '@/lib/db/encounters': { getActiveEncounter: () => state.encounter, listActiveFights: () => state.encounter ? [state.encounter] : [] },
+  '@/lib/dm/global-turn-logic': { startGlobalTurn: () => null },
   '@/lib/db/human-adjudication-scopes': { scopedHumanTurn: () => structuredClone(state.turn) },
   '@/lib/dm/invoke-catalog': {
     adjudication: name => ['pc_attack', 'cast_at_enemy', 'end_turn'].includes(name) ? { name, fields: [] } : null,

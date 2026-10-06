@@ -1,6 +1,6 @@
-import { getCampaignById, getFightFloor, setFightFloor, setFloor, type Campaign } from "@/lib/db/campaigns";
+import { getCampaignById, getFightFloor, getGlobalTurnState, setFightFloor, setFloor, type Campaign } from "@/lib/db/campaigns";
 import { isTeamRoundFight } from "@/lib/dm/team-round";
-import { endEncounter, getActiveEncounter, getEnemy, listEnemies, patchEnemyHp, setEnemyConcentration, type Encounter, type EncounterEnemy } from "@/lib/db/encounters";
+import { endEncounter, getActiveEncounter, getEnemy, listActiveFights, listEnemies, patchEnemyHp, setEnemyConcentration, type Encounter, type EncounterEnemy } from "@/lib/db/encounters";
 import { activePublicEncounter } from "@/lib/db/encounter-view";
 import { getSheetById, listSheets, patchSheet } from "@/lib/db/sheets";
 import { getDmTurn, type DmTurn, type PendingRoll } from "@/lib/db/dm-turns";
@@ -152,6 +152,17 @@ export function finishEncounter(
     }
   }
   publishPersisted(campaign.id, "encounter_updated", { encounter: null, endedEncounterId: encounter.id });
+  // Every ending, including the last killing blow, requests the post-combat
+  // scene. Its final handoff starts the waiting round, never the damage itself.
+  if (!encounter.roomId && campaign.gameSettings.globalTurn?.enabled && !listActiveFights(campaign.id).length) {
+    const globalTurn = getGlobalTurnState(campaign.id);
+    if (globalTurn.phase === "waiting") {
+      publishPersisted(campaign.id, "global_turn_narrator_trigger", {
+        kind: "post_combat",
+        roundNumber: globalTurn.roundNumber,
+      });
+    }
+  }
   // The fight is over, so the fight music is. Every way an encounter can
   // end comes through here, which is why the hook is here and not in the
   // end_encounter tool: a party wipe and a last enemy dropping are not
