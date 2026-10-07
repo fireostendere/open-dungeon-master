@@ -11,6 +11,7 @@ import type { CharacterSheet } from "@/lib/schemas/sheet";
 import { useI18n } from "@/lib/i18n";
 import { localeText } from "@/lib/i18n/locale-text";
 import { localizedRaceName } from "@/lib/help";
+import { characterDisplay } from "@/lib/i18n/character-display";
 
 // Small gold badge on a party row: DM, co-DM, party lead, owner, real dice.
 function SeatBadge({ children, tip }: { children: ReactNode; tip?: string }) {
@@ -116,6 +117,7 @@ export function LobbyParty({
         <ul className="space-y-2">
           {members.map((member) => {
             const sheet = sheets.find((entry) => entry.userId === member.userId);
+            const dmSeat = humanDmTable && (member.userId === campaign.dmUserId || member.userId === campaign.assistantDmUserId);
             return (
               <li
                 key={member.userId}
@@ -151,12 +153,20 @@ export function LobbyParty({
                     </p>
                     <p className="truncate text-sm text-stone-400">
                       {sheet
-                         ? `${sheet.name} · ${localizedRaceName(sheet.race, sheet.race, locale)} ${sheet.class} ${sheet.level}`
-                        : localeText(locale, { en: "No character yet", ru: "Персонаж ещё не создан" })}
+                        ? `${sheet.name} · ${localizedRaceName(sheet.race, sheet.race, locale)} · ${characterDisplay(sheet.class, locale)} ${sheet.level}`
+                        : dmSeat
+                          ? localeText(locale, { en: "Runs the game", ru: "Ведёт игру" })
+                          : localeText(locale, { en: "Choosing a character", ru: "Выбирает персонажа" })}
                     </p>
                   </div>
                 </div>
-                <span className="flex flex-wrap items-center gap-1.5">
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {canMakeLead || canAssignSeats || canMute ? (
+                    <details className="text-xs text-stone-400">
+                      <summary className="cursor-pointer rounded-md border border-stone-700/70 px-2 py-1">
+                        {localeText(locale, { en: "Manage", ru: "Управление" })}
+                      </summary>
+                      <div className="mt-2 flex flex-wrap gap-1.5">
                   {canMakeLead && member.userId !== campaign.leadUserId ? (
                     <SeatAction
                       tip={localeText(locale, { en: "Hand the party lead to this player", ru: "Передать лидерство этому игроку" })}
@@ -165,7 +175,7 @@ export function LobbyParty({
                       <Crown className="size-3" /> {localeText(locale, { en: "make lead", ru: "лидер" })}
                     </SeatAction>
                   ) : null}
-                  {humanDmTable && canAssignSeats && member.userId !== campaign.dmUserId ? (
+                  {humanDmTable && canAssignSeats && !sheet && member.userId !== campaign.dmUserId ? (
                     <>
                       <SeatAction
                         tip={localeText(locale, { en: "Hand this player the DM seat and the game", ru: "Передать игроку роль Мастера" })}
@@ -208,6 +218,9 @@ export function LobbyParty({
                       )}
                     </SeatAction>
                   ) : null}
+                      </div>
+                    </details>
+                  ) : null}
                   {member.muted ? (
                     <SeatBadge tip={localeText(locale, { en: "Muted by the party lead", ru: "Заглушен лидером отряда" })}>
                       <VolumeX className="size-3" /> {localeText(locale, { en: "muted", ru: "заглушен" })}
@@ -228,7 +241,7 @@ export function LobbyParty({
                   >
                     {member.ready ? localeText(locale, { en: "ready", ru: "готов" }) : localeText(locale, { en: "not ready", ru: "не готов" })}
                   </span>
-                </span>
+                </div>
               </li>
             );
           })}

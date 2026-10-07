@@ -33,10 +33,8 @@ import { useI18n } from "@/lib/i18n";
 import { localeText } from "@/lib/i18n/locale-text";
 import { campaignWizardCopy } from "@/lib/i18n/campaign-wizard";
 
-// The lobby: where the table gathers before the adventure opens. The cover
-// art and title lead, then the room code, the game's settings and prep,
-// the call, the schedule, the party and finally the block of actions that
-// belongs to this viewer's seat (LobbyActions).
+// The lobby starts with the viewer's hero/seat and party. Preparation and
+// configuration stay available without burying the steps needed to play.
 export function Lobby({ state, refresh }: { state: CampaignState; refresh: () => void }) {
   const { locale } = useI18n();
   const copy = localeText(locale, {
@@ -97,7 +95,6 @@ export function Lobby({ state, refresh }: { state: CampaignState; refresh: () =>
   // The DM runs no character, so every "create your character" prompt below
   // has to know that. The seat is on the campaign row; the mode alone is not
   // enough, because an assisted campaign can still be AI-narrated.
-  const isDm = me.id === campaign.dmUserId || me.id === campaign.assistantDmUserId;
   const isOwner = campaign.ownerUserId === me.id;
   const isLead = campaign.leadUserId === me.id;
   // A human sits in the DM seat ("human" and "assisted" alike), so the party
@@ -117,7 +114,8 @@ export function Lobby({ state, refresh }: { state: CampaignState; refresh: () =>
   // campaign, the DM once a person runs it. Decided by src/lib/dm/viewer.ts
   // rather than by comparing ids here, which is the rule that module exists
   // to enforce.
-  const { steersStory } = viewerCaps(seats, me.id);
+  const { steersStory, needsCharacter } = viewerCaps(seats, me.id);
+  const isDm = !needsCharacter;
   // One-player campaigns skip the invite/party ceremony entirely. A table with
   // a person in the DM seat is never solo, however small: the DM holds no
   // party slot, so maxPlayers 1 there still means two people who need the room
@@ -241,12 +239,25 @@ export function Lobby({ state, refresh }: { state: CampaignState; refresh: () =>
       if (!response.ok) {
         const data = await response.json().catch(() => ({}));
         setSeatError(data.error || copy.seatError);
-        return;
+        return false;
       }
       setSeatVersion((version) => version + 1);
       refresh();
+      return true;
     } catch {
       setSeatError(copy.server);
+      return false;
+    }
+  }
+
+  async function playAsCharacter(userId: string) {
+    setBusy(true);
+    try {
+      if (await assignSeat("dm", userId)) {
+        if (await setReady(false)) navigateTo(`/campaigns/${campaign!.id}/character`);
+      }
+    } finally {
+      setBusy(false);
     }
   }
 
@@ -326,8 +337,8 @@ export function Lobby({ state, refresh }: { state: CampaignState; refresh: () =>
   }
 
   return (
-    <main className="mx-auto w-full max-w-2xl flex-1 p-4 sm:p-6">
-      <header className="mb-6">
+    <main className="mx-auto w-full max-w-3xl flex-1 p-4 sm:p-6">
+      <header className="mb-4">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
           <AppHomeLogo />
           <Link
@@ -341,18 +352,18 @@ export function Lobby({ state, refresh }: { state: CampaignState; refresh: () =>
             <AccountMenu user={me} />
           </div>
         </div>
-        <div className={cn(ui.card, "ornate texture-noise flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:p-5")}>
+        <div className={cn(ui.card, "texture-noise flex items-start gap-3 p-3 sm:gap-4 sm:p-4")}>
           <CampaignCover
             cover={campaign.cover}
             title={campaign.title}
             genre={campaign.gameSettings.genre}
             seed={campaign.id}
-            className="w-full shrink-0 sm:w-44"
+            className="w-20 shrink-0 sm:w-28"
           />
           <div className="min-w-0 flex-1">
             <p className={ui.sectionEyebrow}>{copy.waiting}</p>
-            <h1 className="mt-1 flex items-center gap-2 font-display text-2xl tracking-wide text-amber-50">
-              <span className="truncate">{campaign.title}</span>
+            <h1 className="mt-1 flex items-start gap-2 font-display text-xl tracking-wide text-amber-50 sm:text-2xl">
+              <span className="min-w-0 break-words">{campaign.title}</span>
               {isLead ? (
                 <Tooltip content={copy.settings}>
                   <button
@@ -368,60 +379,126 @@ export function Lobby({ state, refresh }: { state: CampaignState; refresh: () =>
             </h1>
             <p className="mt-1 text-sm text-stone-400">
               {localeText(locale, { en: `Level ${campaign.startingLevel} start · ${difficulty}`, ru: `Уровень: ${campaign.startingLevel} · ${difficulty}` })}
-              {campaign.theme ? ` · ${campaign.theme}` : ""}
             </p>
             {campaign.description ? (
-              <p className="mt-2 text-sm text-stone-300">{campaign.description}</p>
+              <p className="mt-2 line-clamp-3 text-sm text-stone-300">{campaign.description}</p>
             ) : null}
           </div>
         </div>
       </header>
 
-      {!isSolo ? (
-        <LobbyRoomCode
-          campaignId={campaign.id}
-          campaignTitle={campaign.title}
-          inviteCode={campaign.inviteCode}
-          canRegenerate={isLead}
-          shareUrl={shareUrl}
+      <LobbyActions
+        campaign={campaign}
+        myMember={myMember}
+        mySheet={mySheet}
+        isDm={isDm}
+        isSolo={isSolo}
+        isOwner={isOwner}
+        canStart={isOwner || isPrimaryDm(seats, me.id)}
+        busy={busy}
+        error={error || seatError}
+        startBlocker={startBlocker}
+        onToggleReady={() => void setReady(!myMember?.ready)}
+        onStart={() => void activate(copy.startError)}
+        onBeginSolo={() => void beginSolo()}
+        onRemoveCharacter={() => void removeCharacter()}
+        onDelete={() => void deleteCampaign()}
+        dmCandidates={members.filter(member => member.userId !== me.id && !sheets.some(sheet => sheet.userId === member.userId))}
+        onPlayAsCharacter={canAssignSeats && isPrimaryDm(seats, me.id) ? userId => void playAsCharacter(userId) : undefined}
+      />
+
+      {!isSolo || showCompanions ? (
+        <LobbyParty
+          campaign={campaign}
+          members={members}
+          partySize={partySize}
+          sheets={sheets}
+          canMakeLead={isLead || isOwner}
+          humanDmTable={humanDmTable}
+          canAssignSeats={canAssignSeats}
+          seatError={seatError}
+          onMakeLead={makeLead}
+          onAssignSeat={assignSeat}
+          canMute={isLead || isOwner}
+          onMute={muteMember}
+          showParty={!isSolo}
+          showCompanions={showCompanions}
+          partyCompanions={partyCompanions}
+          canBuildCompanion={canBuildCompanion}
+          onBuildCompanion={() => setBuildingCompanion(true)}
+          onDismissCompanion={dismissCompanion}
         />
+      ) : null}
+
+      {campaign.description || campaign.scene || campaign.theme ? (
+        <details className={cn(ui.card, "mb-3 p-4")}>
+          <summary className="cursor-pointer text-sm font-medium text-stone-300">{localeText(locale, { en: "Adventure brief", ru: "Описание и вводная" })}</summary>
+          <div className="mt-3 space-y-3 text-sm text-stone-400">
+            {campaign.theme ? <p>{campaign.theme}</p> : null}
+            {campaign.description ? <p className="whitespace-pre-wrap">{campaign.description}</p> : null}
+            {campaign.scene ? <p className="whitespace-pre-wrap">{campaign.scene}</p> : null}
+          </div>
+        </details>
+      ) : null}
+
+      {!isSolo ? (
+        <details className={cn(ui.card, "mb-3 p-4")}>
+          <summary className="cursor-pointer text-sm font-medium text-stone-300">{localeText(locale, { en: "Invite players", ru: "Пригласить игроков" })}</summary>
+          <div className="mt-3">
+            <LobbyRoomCode
+              campaignId={campaign.id}
+              campaignTitle={campaign.title}
+              inviteCode={campaign.inviteCode}
+              canRegenerate={isLead}
+              shareUrl={shareUrl}
+            />
+          </div>
+        </details>
       ) : null}
 
       {/* Settings, rules and lore are story authority (the lead at an AI table,
           the DM once a person runs it), which is what their routes check.
           Handing them to the lead alone drew editable panels for a player-lead
           the server would refuse and read-only ones for the DM it allows. */}
-      <GameSettingsPanel
-        campaignId={campaign.id}
-        settings={campaign.gameSettings}
-        steersStory={steersStory}
-      />
+      <details className={cn(ui.card, "mb-3 p-4")}>
+        <summary className="cursor-pointer text-sm font-medium text-stone-300">{localeText(locale, { en: "Game settings and rules", ru: "Настройки игры и правила" })}</summary>
+        <div className="mt-3">
+          <GameSettingsPanel
+            campaignId={campaign.id}
+            settings={campaign.gameSettings}
+            steersStory={steersStory}
+          />
+          <RulesPanel
+            campaignId={campaign.id}
+            settings={campaign.gameSettings}
+            steersStory={steersStory}
+          />
+        </div>
+      </details>
 
-      <section className="mb-6 space-y-3">
-        <RulesPanel
-          campaignId={campaign.id}
-          settings={campaign.gameSettings}
-          steersStory={steersStory}
-        />
-        <LorePanel campaignId={campaign.id} steersStory={steersStory} />
-        {/* Prep keeps happening after session one, so the import is not only
-            a creation-time step. Gated on story authority rather than on the
-            lead, because in a human-DM campaign the lead is a player and the
-            lore, places and prepared fights are the DM's to bring in. */}
-        {steersStory ? (
-          <div className={cn(ui.card, "p-3")}>
-            <h2 className={cn(ui.sectionEyebrow, "mb-2")}>
-              {locale === "ru" ? "Материалы подготовки" : "Bring in prep"}
-            </h2>
-            <ContentImportPicker
-              campaignId={campaign.id}
-              selection={contentImport}
-              onChange={setContentImport}
-              onImported={refresh}
-            />
-          </div>
-        ) : null}
-      </section>
+      <details className={cn(ui.card, "mb-3 p-4")}>
+        <summary className="cursor-pointer text-sm font-medium text-stone-300">{localeText(locale, { en: "World lore and preparation", ru: "Лор мира и материалы" })}</summary>
+        <div className="mt-3 space-y-3">
+          <LorePanel campaignId={campaign.id} steersStory={steersStory} />
+          {/* Prep keeps happening after session one, so the import is not only
+              a creation-time step. Gated on story authority rather than on the
+              lead, because in a human-DM campaign the lead is a player and the
+              lore, places and prepared fights are the DM's to bring in. */}
+          {steersStory ? (
+            <div className={cn(ui.card, "p-3")}>
+              <h2 className={cn(ui.sectionEyebrow, "mb-2")}>
+                {locale === "ru" ? "Материалы подготовки" : "Bring in prep"}
+              </h2>
+              <ContentImportPicker
+                campaignId={campaign.id}
+                selection={contentImport}
+                onChange={setContentImport}
+                onImported={refresh}
+              />
+            </div>
+          ) : null}
+        </div>
+      </details>
 
       {campaign.gameSettings.dicePolicy === "real_allowed" && mySheet ? (
         <section className={cn(ui.card, "mb-6 flex items-center justify-between gap-3 px-4 py-3")}>
@@ -456,70 +533,37 @@ export function Lobby({ state, refresh }: { state: CampaignState; refresh: () =>
           is the same reason the party list is hidden there. No floor to
           show: the game has not started, so everyone can talk. */}
       {!isSolo ? (
-        <section className="mb-6">
-          <VoicePanel
-            campaignId={campaign.id}
-            meUserId={me.id}
-            roster={state.voiceRoster}
-            speaking={state.voiceSpeaking}
-            audibilityVersion={state.voiceAudibilityVersion}
-            meshSignal={state.voiceMeshSignal}
-            adjudicates={steersStory}
-          />
-        </section>
+        <details className={cn(ui.card, "mb-3 p-4")}>
+          <summary className="cursor-pointer text-sm font-medium text-stone-300">{localeText(locale, { en: "Voice chat", ru: "Голосовой чат" })}</summary>
+          <div className="mt-3">
+            <VoicePanel
+              campaignId={campaign.id}
+              meUserId={me.id}
+              roster={state.voiceRoster}
+              speaking={state.voiceSpeaking}
+              audibilityVersion={state.voiceAudibilityVersion}
+              meshSignal={state.voiceMeshSignal}
+              adjudicates={steersStory}
+            />
+          </div>
+        </details>
       ) : null}
 
       {/* When the humans actually meet. Solo campaigns schedule nothing. */}
       {!isSolo ? (
-        <ScheduleSection
-          campaignId={campaign.id}
-          meUserId={me.id}
-          isLead={isLead}
-          usernames={Object.fromEntries(members.map((member) => [member.userId, member.username]))}
-          version={state.scheduleVersion}
-        />
+        <details className={cn(ui.card, "mb-3 p-4")}>
+          <summary className="cursor-pointer text-sm font-medium text-stone-300">{localeText(locale, { en: "Session schedule", ru: "Расписание сессий" })}</summary>
+          <div className="mt-3">
+            <ScheduleSection
+              campaignId={campaign.id}
+              meUserId={me.id}
+              isLead={isLead}
+              usernames={Object.fromEntries(members.map((member) => [member.userId, member.username]))}
+              version={state.scheduleVersion}
+            />
+          </div>
+        </details>
       ) : null}
-
-      {!isSolo || showCompanions ? (
-        <LobbyParty
-          campaign={campaign}
-          members={members}
-          partySize={partySize}
-          sheets={sheets}
-          canMakeLead={isLead || isOwner}
-          humanDmTable={humanDmTable}
-          canAssignSeats={canAssignSeats}
-          seatError={seatError}
-          onMakeLead={makeLead}
-          onAssignSeat={assignSeat}
-          canMute={isLead || isOwner}
-          onMute={muteMember}
-          showParty={!isSolo}
-          showCompanions={showCompanions}
-          partyCompanions={partyCompanions}
-          canBuildCompanion={canBuildCompanion}
-          onBuildCompanion={() => setBuildingCompanion(true)}
-          onDismissCompanion={dismissCompanion}
-        />
-      ) : null}
-
-      <LobbyActions
-        campaign={campaign}
-        myMember={myMember}
-        mySheet={mySheet}
-        isDm={isDm}
-        isSolo={isSolo}
-        isOwner={isOwner}
-        canStart={isOwner || isPrimaryDm(seats, me.id)}
-        busy={busy}
-        error={error}
-        startBlocker={startBlocker}
-        onToggleReady={() => void setReady(!myMember?.ready)}
-        onStart={() => void activate("Could not start the campaign.")}
-        onBeginSolo={() => void beginSolo()}
-        onRemoveCharacter={() => void removeCharacter()}
-        onDelete={() => void deleteCampaign()}
-      />
 
       {editing ? (
         <EditCampaignDialog campaign={campaign} onClose={() => setEditing(false)} />

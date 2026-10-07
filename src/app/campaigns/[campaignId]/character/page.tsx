@@ -53,7 +53,7 @@ function CampaignCharacterPageInner({ campaignId }: { campaignId: string }) {
   const [worldPackId, setWorldPackId] = useState("");
   const [library, setLibrary] = useState<LibraryCharacter[]>([]);
   const [mode, setMode] = useState<"choose" | "create">(
-    flow === "edit" ? "create" : "choose",
+    flow === "edit" || requested === "create" ? "create" : "choose",
   );
   const [currentLibraryId, setCurrentLibraryId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
