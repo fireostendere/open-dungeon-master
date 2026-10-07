@@ -62,6 +62,7 @@ try {
   const playwright = await loadPlaywright();
   browser = await (playwright.default ?? playwright).chromium.launch({headless:true,channel:'chrome'});
   const context = await browser.newContext({viewport:{width:1280,height:900}});
+  await context.grantPermissions(['clipboard-read', 'clipboard-write']);
   await context.addCookies([{name:'odm_locale',value:'ru',url:base}]);
   assert.equal((await context.request.post(`${base}/api/auth/login`, {data:{username:owner.username,password}})).status(), 200);
   const page = await context.newPage();
@@ -85,7 +86,18 @@ try {
   assert.equal(snapshot.campaign.dmUserId, dm.id);
   assert.equal(snapshot.sheets.find(s=>s.userId===owner.id).name, 'First hero');
   assert.equal(snapshot.sheets.find(s=>s.userId===owner.id).level, 3);
-  for (const viewport of [{width:1280,height:900},{width:390,height:844}]) {
+  const invite = page.locator('section').filter({has:page.getByText('Код комнаты', {exact:true})});
+  await page.locator('summary').filter({hasText:'Пригласить игроков'}).click();
+  const expectedInvite = `${base}/join/${campaign.inviteCode}`;
+  await invite.getByText(expectedInvite, {exact:true}).waitFor();
+  await invite.getByRole('button', {name:'Ссылка',exact:true}).click();
+  assert.equal(await page.evaluate(()=>navigator.clipboard.readText()), expectedInvite, 'copy shares the displayed invite URL');
+  await invite.getByRole('button', {name:'Поделиться',exact:true}).click();
+  const share = page.getByRole('dialog', {name:'Пригласить игроков'});
+  await share.getByRole('button', {name:'Копировать ссылку',exact:true}).click();
+  assert.equal(await page.evaluate(()=>navigator.clipboard.readText()), expectedInvite, 'dialog shares the same invite URL');
+  await page.keyboard.press('Escape');
+  for (const viewport of [{width:1280,height:900},{width:390,height:844},{width:320,height:740}]) {
     await page.setViewportSize(viewport);
     await page.evaluate(()=>window.scrollTo(0,0));
     const change = await page.getByRole('link', {name:'Сменить',exact:true}).boundingBox();
@@ -93,6 +105,11 @@ try {
     const settings = page.locator('details').filter({has:page.locator('summary').filter({hasText:'Настройки игры и правила'})});
     assert.equal(await settings.evaluate(element=>element.open), false, 'settings start collapsed');
     assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth <= innerWidth), 'no mobile horizontal overflow');
+    const card = await invite.boundingBox();
+    for (const button of await invite.getByRole('button').all()) {
+      const box = await button.boundingBox();
+      assert.ok(box.x >= card.x && box.x + box.width <= card.x + card.width + 1, 'invite buttons stay inside their card');
+    }
     await page.screenshot({path:path.join(dir,`lobby-${viewport.width}.png`),fullPage:true});
   }
   const settings = page.locator('details').filter({has:page.locator('summary').filter({hasText:'Настройки игры и правила'})});

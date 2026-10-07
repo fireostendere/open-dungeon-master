@@ -95,10 +95,8 @@ type InviteCopy = (typeof COPY)[Locale];
 // One place to hand an invite to someone: QR for a phone camera, the link
 // for chat apps, the bare code for typing, and the OS share sheet where the
 // browser has one (that covers "share to social media" on every phone).
-// The QR, the copy button, and the share sheet all carry the /j
-// interstitial link (buildShareLinks), which knows both the server and the
-// campaign and works whether or not the recipient has the app. The direct
-// /join link stays visible as text so people can read where it leads.
+// The QR, copy button, and share sheet all use the canonical share link:
+// direct /join for self-hosted servers, /j for brokered app worlds.
 export function InviteShareDialog({
   open,
   onOpenChange,
@@ -158,9 +156,7 @@ export function InviteShareDialog({
       return;
     }
     // Dark-on-light keeps the code scannable; a stone border comes from the
-    // wrapper, not the image. The QR carries the /j interstitial so a phone
-    // camera lands on a page that can open the app or fall back to the
-    // browser.
+    // wrapper, not the image. The QR carries the same link as the copy button.
     QRCode.toDataURL(appUrl, { width: 480, margin: 2 })
       .then(setQrDataUrl)
       .catch(() => setQrDataUrl(""));

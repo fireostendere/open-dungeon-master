@@ -54,8 +54,7 @@ export function LobbyRoomCode({
     };
   }, [shareUrl]);
 
-  // The copied link is the /j interstitial: it works whether the recipient
-  // has the app or only a browser. The readable /join form stays on screen.
+  // Self-hosted links copy the visible /join URL; brokered app worlds use /j.
   const shareLinks = buildShareLinks({ publicOrigin, inviteCode });
 
   const { t, locale } = useI18n();
@@ -88,7 +87,7 @@ export function LobbyRoomCode({
           </p>
           <p className="font-mono text-xl tracking-[0.3em] text-amber-100">{inviteCode}</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex max-w-full flex-wrap items-center gap-2">
           <button type="button" onClick={copyInvite} className={ui.btnSmall}>
             {copied ? <Check className="size-4 text-emerald-400" /> : <Copy className="size-4" />}
             {copied ? t("common.copied") : copy.code}

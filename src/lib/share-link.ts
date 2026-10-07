@@ -2,7 +2,7 @@
 // (share dialog, lobby copy button, QR) builds its links here so they all
 // agree on which address and which shape to hand out.
 //
-// Two shapes exist on purpose:
+// Two shapes exist:
 //   joinUrl: `${origin}/join/CODE`. Human readable, opens this server
 //     directly in a browser. Shown as text so people can see where a link
 //     leads before they follow it.
@@ -10,7 +10,8 @@
 //     domain (workers/j-redirector, /j?s=<origin>&c=<CODE>). It carries
 //     both the server origin and the code, so a phone with the app
 //     installed gets an odm:// button while one without still gets a
-//     working browser join. Copy buttons and QR codes use this one.
+//     working browser join. Only brokered worlds use this address; a
+//     self-hosted server shares its direct joinUrl, without a third party.
 //
 // publicOrigin is the server's configured publicUrl ("" when unset); the
 // fallback is the address the current visitor used. A host playing on
@@ -62,10 +63,11 @@ export function buildShareLinks({
     return { origin, joinUrl: "", appUrl: "", roomCode: "" };
   }
   const hostCode = hostCodeFromOrigin(origin);
+  const joinUrl = `${origin}/join/${code}`;
   return {
     origin,
-    joinUrl: `${origin}/join/${code}`,
-    appUrl: `${SHARE_DOMAIN}/j?s=${encodeURIComponent(origin)}&c=${code}`,
+    joinUrl,
+    appUrl: hostCode ? `${SHARE_DOMAIN}/j?s=${encodeURIComponent(origin)}&c=${code}` : joinUrl,
     roomCode: hostCode ? `${hostCode}-${code}` : "",
   };
 }

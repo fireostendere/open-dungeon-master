@@ -201,7 +201,7 @@ function InvitesCard({
   }
 
   async function copyInviteLink() {
-    // The /j interstitial link works for both app and browser recipients.
+    // Use the same invite address as the lobby, dialog and QR.
     const links = buildShareLinks({ publicOrigin, inviteCode });
     if (await copyText(links.appUrl || links.joinUrl)) {
       setInviteCopied(true);

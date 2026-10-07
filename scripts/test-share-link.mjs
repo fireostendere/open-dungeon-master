@@ -10,6 +10,16 @@ function test(name, fn) {
   passed += 1;
 }
 
+test("self-hosted invites share the same URL that the lobby displays", () => {
+  const links = buildShareLinks({
+    publicOrigin: "https://dnd.example.com",
+    inviteCode: "WXYZ2345",
+    fallbackOrigin: "http://127.0.0.1:3005",
+  });
+  assert.equal(links.joinUrl, "https://dnd.example.com/join/WXYZ2345");
+  assert.equal(links.appUrl, links.joinUrl);
+});
+
 test("publicOrigin wins over the visitor's address", () => {
   const links = buildShareLinks({
     publicOrigin: "https://abc.trycloudflare.com",
@@ -18,10 +28,7 @@ test("publicOrigin wins over the visitor's address", () => {
   });
   assert.equal(links.origin, "https://abc.trycloudflare.com");
   assert.equal(links.joinUrl, "https://abc.trycloudflare.com/join/WXYZ2345");
-  assert.equal(
-    links.appUrl,
-    "https://opendungeonmaster.com/j?s=https%3A%2F%2Fabc.trycloudflare.com&c=WXYZ2345",
-  );
+  assert.equal(links.appUrl, links.joinUrl);
 });
 
 test("falls back to the visitor's address when publicUrl is unset", () => {
@@ -40,10 +47,7 @@ test("trailing slashes never leak into links", () => {
     fallbackOrigin: "",
   });
   assert.equal(links.joinUrl, "https://odm.example.com/join/WXYZ2345");
-  assert.equal(
-    links.appUrl,
-    "https://opendungeonmaster.com/j?s=https%3A%2F%2Fodm.example.com&c=WXYZ2345",
-  );
+  assert.equal(links.appUrl, links.joinUrl);
 });
 
 test("codes are uppercased like the redirector expects", () => {
@@ -61,16 +65,16 @@ test("no origin at all yields no links", () => {
   assert.equal(links.appUrl, "");
 });
 
-test("the /j link round-trips through the redirector's parsers", () => {
+test("a brokered /j link round-trips through the redirector's parsers", () => {
   const { appUrl } = buildShareLinks({
-    publicOrigin: "https://abc.trycloudflare.com",
+    publicOrigin: "https://play-abcd2345.opendungeonmaster.com",
     inviteCode: "wxyz2345",
     fallbackOrigin: "",
   });
   const url = new URL(appUrl);
   assert.equal(url.origin, "https://opendungeonmaster.com");
   assert.equal(url.pathname, "/j");
-  assert.equal(parseServer(url.searchParams.get("s")), "https://abc.trycloudflare.com");
+  assert.equal(parseServer(url.searchParams.get("s")), "https://play-abcd2345.opendungeonmaster.com");
   assert.equal(parseCode(url.searchParams.get("c")), "WXYZ2345");
 });
 
