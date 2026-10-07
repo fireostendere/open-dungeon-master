@@ -29,13 +29,19 @@ const { createUser } = await import('../../src/lib/db/users.ts');
 const { createCampaign, joinByInviteCode, setMemberReady } = await import('../../src/lib/db/campaigns.ts');
 const { createCharacter } = await import('../../src/lib/db/characters.ts');
 const { createSheetSchema } = await import('../../src/lib/schemas/sheet.ts');
+const { instantiateIntoCampaign } = await import('../../src/lib/db/characters.ts');
 const password = randomBytes(16).toString('hex'), salt = randomBytes(16).toString('hex');
-const owner = createUser('lobby_owner', `${salt}$${scryptSync(password, salt, 64).toString('hex')}`);
-const dm = createUser('lobby_dm', 'unloginable');
+const passwordHash = `${salt}$${scryptSync(password, salt, 64).toString('hex')}`;
+const owner = createUser('lobby_owner', passwordHash);
+const dm = createUser('lobby_dm', passwordHash);
+const player = createUser('lobby_player', passwordHash);
+const lead = createUser('lobby_lead', passwordHash);
 const campaign = createCampaign(owner.id, { title: 'Local lobby regression', description: 'Find the missing courier. '.repeat(100),
   theme: 'Dark fantasy', maxPlayers: 6, startingLevel: 3, difficulty: 'hard',
   gameSettings: { dmMode: 'human', mapsEnabled: false, ttsEnabled: false } });
 joinByInviteCode(dm.id, campaign.inviteCode);
+joinByInviteCode(player.id, campaign.inviteCode);
+joinByInviteCode(lead.id, campaign.inviteCode);
 setMemberReady(campaign.id, owner.id, true);
 const heroInput = createSheetSchema.parse({ name: 'First hero', race: 'human', class: 'fighter', maxHp: 28, ac: 18, acOverride: false,
   abilities: { str: 16, dex: 12, con: 14, int: 10, wis: 12, cha: 10 }, hitDice: { die: 'd10', total: 3, spent: 0 },
@@ -43,6 +49,9 @@ const heroInput = createSheetSchema.parse({ name: 'First hero', race: 'human', c
   equipment: [{name:'Chain Mail', qty:1, equipped:true}, {name:'Shield', qty:1, equipped:true}] });
 createCharacter(owner.id, 3, heroInput);
 createCharacter(owner.id, 3, { ...heroInput, name: 'Second hero' });
+const playerHero = createCharacter(player.id, 3, { ...heroInput, name: 'Guest hero' });
+const playerSheet = instantiateIntoCampaign(playerHero.id, campaign.id, player.id, 3);
+assert.ok(!('error' in playerSheet));
 
 let logs = '';
 const app = spawn(process.execPath, ['node_modules/next/dist/bin/next', production ? 'start' : 'dev', ...(production ? [] : ['--webpack']), '-H', '127.0.0.1', '-p', String(port)],
@@ -86,6 +95,20 @@ try {
   assert.equal(snapshot.campaign.dmUserId, dm.id);
   assert.equal(snapshot.sheets.find(s=>s.userId===owner.id).name, 'First hero');
   assert.equal(snapshot.sheets.find(s=>s.userId===owner.id).level, 3);
+  const playerContext = await browser.newContext();
+  assert.equal((await playerContext.request.post(`${base}/api/auth/login`, {data:{username:player.username,password}})).status(), 200);
+  const dmContext = await browser.newContext();
+  assert.equal((await dmContext.request.post(`${base}/api/auth/login`, {data:{username:dm.username,password}})).status(), 200);
+  const kickUrl = `${base}/api/campaigns/${campaign.id}/members/${player.id}`;
+  assert.equal((await playerContext.request.delete(`${base}/api/campaigns/${campaign.id}/members/${lead.id}`)).status(), 403, 'players cannot kick other players');
+  assert.equal((await dmContext.request.delete(kickUrl)).status(), 403, 'DM powers do not grant player admission control');
+  for (const target of [owner.id, dm.id]) {
+    assert.equal((await context.request.delete(`${base}/api/campaigns/${campaign.id}/members/${target}`)).status(), 403, 'owner and DM seats are protected');
+  }
+  const ownerRow = page.locator('li').filter({has:page.getByText(owner.username, {exact:true})});
+  assert.equal(await ownerRow.locator('summary').count(), 0, 'no empty management menu for the owner/lead with a character');
+  const playerRow = page.locator('li').filter({has:page.getByText(player.username, {exact:true})});
+  const management = playerRow.locator('summary').filter({hasText:/^Управление$/});
   const invite = page.locator('section').filter({has:page.getByText('Код комнаты', {exact:true})});
   await page.locator('summary').filter({hasText:'Пригласить игроков'}).click();
   const expectedInvite = `${base}/join/${campaign.inviteCode}`;
@@ -110,8 +133,22 @@ try {
       const box = await button.boundingBox();
       assert.ok(box.x >= card.x && box.x + box.width <= card.x + card.width + 1, 'invite buttons stay inside their card');
     }
+    await management.click();
+    await playerRow.getByRole('button', {name:'заглушить',exact:true}).waitFor({state:'visible'});
+    await playerRow.getByRole('button', {name:'лидер',exact:true}).waitFor({state:'visible'});
+    await playerRow.getByRole('button', {name:'Кикнуть игрока',exact:true}).waitFor({state:'visible'});
+    assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth <= innerWidth), 'expanded management fits mobile');
+    await management.click();
     await page.screenshot({path:path.join(dir,`lobby-${viewport.width}.png`),fullPage:true});
   }
+  await management.click();
+  await playerRow.getByRole('button', {name:'заглушить',exact:true}).click();
+  await playerRow.getByRole('button', {name:'разрешить участие',exact:true}).waitFor({state:'visible'});
+  snapshot = await context.request.get(`${base}/api/campaigns/${campaign.id}`).then(r=>r.json());
+  assert.equal(snapshot.members.find(m=>m.userId===player.id).muted, true, 'management action reaches the server');
+  await playerRow.getByRole('button', {name:'разрешить участие',exact:true}).click();
+  await playerRow.getByRole('button', {name:'заглушить',exact:true}).waitFor({state:'visible'});
+  await management.click();
   const settings = page.locator('details').filter({has:page.locator('summary').filter({hasText:'Настройки игры и правила'})});
   await settings.locator('summary').first().click();
   assert.equal(await settings.evaluate(element=>element.open), true, 'settings remain accessible');
@@ -126,8 +163,56 @@ try {
   assert.equal(snapshot.sheets.filter(s=>s.userId===owner.id).length, 1);
   assert.equal(snapshot.sheets.find(s=>s.userId===owner.id).name, 'Second hero');
   assert.equal(snapshot.members.find(m=>m.userId===owner.id).ready, false);
+  await management.click();
+  page.once('dialog', dialog=>dialog.dismiss());
+  await playerRow.getByRole('button', {name:'Кикнуть игрока',exact:true}).click();
+  assert.equal((await playerContext.request.get(`${base}/api/campaigns/${campaign.id}`)).status(), 200, 'cancelled kick keeps access');
+  page.once('dialog', dialog=>dialog.accept());
+  await playerRow.getByRole('button', {name:'Кикнуть игрока',exact:true}).click();
+  await playerRow.waitFor({state:'detached'});
+  assert.equal((await playerContext.request.get(`${base}/api/campaigns/${campaign.id}`)).status(), 404, 'lobby kick revokes access');
+  snapshot = await context.request.get(`${base}/api/campaigns/${campaign.id}`).then(r=>r.json());
+  assert.equal(snapshot.sheets.find(s=>s.id===playerSheet.id).name, 'Guest hero', 'kick preserves campaign character progress');
+  assert.equal((await playerContext.request.get(`${base}/api/characters/${playerHero.id}`)).status(), 200, 'library character is preserved');
+  // A kick removes membership; the still-valid room invitation can admit them again.
+  assert.equal((await playerContext.request.post(`${base}/api/campaigns/join`, {data:{inviteCode:campaign.inviteCode}})).status(), 200);
+  const leadContext = await browser.newContext({viewport:{width:1280,height:900}});
+  await leadContext.addCookies([{name:'odm_locale',value:'ru',url:base}]);
+  assert.equal((await leadContext.request.post(`${base}/api/auth/login`, {data:{username:lead.username,password}})).status(), 200);
+  assert.equal((await context.request.post(`${base}/api/campaigns/${campaign.id}/lead`, {data:{userId:lead.id}})).status(), 200);
+  assert.equal((await leadContext.request.delete(`${base}/api/campaigns/${campaign.id}/members/${owner.id}`)).status(), 403);
+  assert.equal((await leadContext.request.delete(`${base}/api/campaigns/${campaign.id}/members/${lead.id}`)).status(), 403);
+  for (const member of [owner, player, lead]) {
+    const memberContext = member.id === owner.id ? context : member.id === player.id ? playerContext : leadContext;
+    if (member.id === lead.id) {
+      const hero = createCharacter(lead.id, 3, { ...heroInput, name:'Lead hero' });
+      assert.equal((await memberContext.request.post(`${base}/api/campaigns/${campaign.id}/sheet`, {data:{libraryCharacterId:hero.id}})).status(), 201);
+    }
+    assert.equal((await memberContext.request.post(`${base}/api/campaigns/${campaign.id}/ready`, {data:{ready:true}})).status(), 200);
+  }
+  assert.equal((await dmContext.request.post(`${base}/api/campaigns/${campaign.id}/ready`, {data:{ready:true}})).status(), 200);
+  const activation = await context.request.patch(`${base}/api/campaigns/${campaign.id}`, {data:{status:'active'}});
+  assert.equal(activation.status(), 200, await activation.text());
+  const playerPage = await playerContext.newPage();
+  await playerPage.goto(`${base}/campaigns/${campaign.id}`);
+  await playerPage.getByRole('heading', {name:campaign.title,exact:true}).first().waitFor();
+  const leadPage = await leadContext.newPage();
+  await leadPage.goto(`${base}/campaigns/${campaign.id}`);
+  await leadPage.locator('[data-guided-tour][role="dialog"]').waitFor();
+  await leadPage.keyboard.press('Escape');
+  await leadPage.locator('[data-tour="tab-lead"]').filter({visible:true}).click();
+  const sessionPlayerRow = leadPage.locator('li').filter({has:leadPage.getByText(player.username, {exact:true})})
+    .filter({has:leadPage.getByRole('button', {name:'Кикнуть игрока',exact:true})});
+  leadPage.once('dialog', dialog=>dialog.accept());
+  await sessionPlayerRow.getByRole('button', {name:'Кикнуть игрока',exact:true}).click();
+  await sessionPlayerRow.waitFor({state:'detached'});
+  await playerPage.getByText('Campaign not found.', {exact:true}).waitFor();
+  for (const endpoint of ['', '/events', '/sheet']) {
+    assert.equal((await playerContext.request.get(`${base}/api/campaigns/${campaign.id}${endpoint}`)).status(), 404, 'active kick revokes protected endpoints');
+  }
+  assert.equal((await leadContext.request.delete(kickUrl)).status(), 404, 'repeated kick is harmless');
   assert.deepEqual(errors, []);
-  console.log(`PASS: lobby seat handoff, pre-start library choice/replacement, compact desktop/mobile layout. Screenshots: ${dir}`);
+  console.log(`PASS: lobby management, desktop/mobile layout, lobby/active kick permissions and access revocation. Screenshots: ${dir}`);
 } catch (error) {
   console.error(logs.slice(-4000));
   throw error;

@@ -143,7 +143,7 @@ export function GlobalTurnCard({
     };
   }, []);
 
-  const playerSheets = sheets.filter((s) => !s.isCompanion && s.userId !== campaign.dmUserId);
+  const playerSheets = sheets.filter((s) => !s.isCompanion && s.userId !== campaign.dmUserId && members.some(member => member.userId === s.userId));
   const maxPartySize = Math.max(1, playerSheets.length);
   const turnState = campaign.globalTurnState ?? {
     roundNumber: 1,

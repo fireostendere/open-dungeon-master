@@ -10,6 +10,7 @@ register("./lib/register-alias.mjs", import.meta.url);
 const {
   AI_CAPS,
   capsForRole,
+  canKickPlayer,
   hasHumanDm,
   isDmSeat,
   narratorIsAi,
@@ -41,6 +42,17 @@ const humanSeats = {
   dmMode: "human",
 };
 const assistedSeats = { ...humanSeats, dmMode: "assisted" };
+
+test("only the lead or owner can kick an ordinary player", () => {
+  for (const seats of [aiSeats, humanSeats, assistedSeats]) {
+    assert.equal(canKickPlayer(seats, "lead", "player"), true);
+    assert.equal(canKickPlayer(seats, "owner", "player"), true);
+    assert.equal(canKickPlayer(seats, "player", "other-player"), false);
+    assert.equal(canKickPlayer(seats, "gm", "player"), false);
+    for (const target of ["owner", "lead"]) assert.equal(canKickPlayer(seats, "lead", target), false);
+  }
+  for (const target of ["gm", "gm2"]) assert.equal(canKickPlayer(humanSeats, "lead", target), false);
+});
 
 test("an AI campaign has no DM seat, whoever you ask about", () => {
   for (const id of ["owner", "lead", "player", "gm"]) {

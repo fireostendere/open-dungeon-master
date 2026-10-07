@@ -39,6 +39,8 @@ import type { GameSettings } from "@/lib/schemas/game-settings";
 import type { CharacterSheet } from "@/lib/schemas/sheet";
 import { useI18n } from "@/lib/i18n";
 import { localeText } from "@/lib/i18n/locale-text";
+import { canKickPlayer } from "@/lib/dm/viewer";
+import { KickPlayerButton } from "./KickPlayerButton";
 
 // The lead's desk. Everything the party lead can do to the table, in one
 // tab, rather than an invite block on Party, an approval queue on Notes,
@@ -408,6 +410,9 @@ export function LeadPanel({
   const dmUserIds = [campaign.dmUserId, campaign.assistantDmUserId].filter(
     (id): id is string => typeof id === "string" && id.length > 0,
   );
+  const seats = { ownerUserId: members.find(member => member.role === "owner")?.userId ?? "", leadUserId, humanDmUserId: campaign.dmUserId ?? null,
+    assistantDmUserId: campaign.assistantDmUserId ?? null, dmMode: campaign.gameSettings?.dmMode ?? "ai" };
+  const kickablePlayers = members.filter(member => canKickPlayer(seats, meUserId, member.userId));
 
   return (
     <div className="text-sm">
@@ -502,6 +507,19 @@ export function LeadPanel({
           leadUserId={leadUserId}
           dmUserIds={dmUserIds}
         />
+      ) : null}
+
+      {kickablePlayers.length ? (
+        <Card icon={UserPlus} title={localeText(locale, { en: "Players", ru: "Игроки" })}>
+          <ul className="space-y-2">
+            {kickablePlayers.map(member => (
+              <li key={member.userId} className="flex flex-wrap items-center justify-between gap-2">
+                <span className="min-w-0 truncate text-stone-300">{member.username}</span>
+                <KickPlayerButton campaignId={campaignId} member={member} />
+              </li>
+            ))}
+          </ul>
+        </Card>
       ) : null}
 
       {isLead ? (

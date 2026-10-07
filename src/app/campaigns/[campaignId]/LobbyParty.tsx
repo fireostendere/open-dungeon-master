@@ -12,6 +12,8 @@ import { useI18n } from "@/lib/i18n";
 import { localeText } from "@/lib/i18n/locale-text";
 import { localizedRaceName } from "@/lib/help";
 import { characterDisplay } from "@/lib/i18n/character-display";
+import { canKickPlayer, type CampaignSeats } from "@/lib/dm/viewer";
+import { KickPlayerButton } from "./KickPlayerButton";
 
 // Small gold badge on a party row: DM, co-DM, party lead, owner, real dice.
 function SeatBadge({ children, tip }: { children: ReactNode; tip?: string }) {
@@ -51,6 +53,8 @@ function SeatAction({
 // for whoever steers the story, the companions prepared for the party.
 export function LobbyParty({
   campaign,
+  seats,
+  meUserId,
   members,
   partySize,
   sheets,
@@ -70,11 +74,14 @@ export function LobbyParty({
   onDismissCompanion,
 }: {
   campaign: {
+    id: string;
     maxPlayers: number;
     leadUserId: string;
     dmUserId: string | null;
     assistantDmUserId: string | null;
   };
+  seats: CampaignSeats;
+  meUserId: string;
   members: CampaignMember[];
   partySize: number;
   sheets: CharacterSheet[];
@@ -118,6 +125,10 @@ export function LobbyParty({
           {members.map((member) => {
             const sheet = sheets.find((entry) => entry.userId === member.userId);
             const dmSeat = humanDmTable && (member.userId === campaign.dmUserId || member.userId === campaign.assistantDmUserId);
+            const makeLead = canMakeLead && member.userId !== campaign.leadUserId && !dmSeat;
+            const assignSeats = humanDmTable && canAssignSeats && !sheet && member.userId !== campaign.dmUserId;
+            const mute = canMute && member.userId !== campaign.leadUserId && member.role !== "owner";
+            const kick = canKickPlayer(seats, meUserId, member.userId);
             return (
               <li
                 key={member.userId}
@@ -161,13 +172,13 @@ export function LobbyParty({
                   </div>
                 </div>
                 <div className="flex flex-wrap items-center gap-1.5">
-                  {canMakeLead || canAssignSeats || canMute ? (
+                  {makeLead || assignSeats || mute || kick ? (
                     <details className="text-xs text-stone-400">
                       <summary className="cursor-pointer rounded-md border border-stone-700/70 px-2 py-1">
                         {localeText(locale, { en: "Manage", ru: "Управление" })}
                       </summary>
                       <div className="mt-2 flex flex-wrap gap-1.5">
-                  {canMakeLead && member.userId !== campaign.leadUserId ? (
+                  {makeLead ? (
                     <SeatAction
                       tip={localeText(locale, { en: "Hand the party lead to this player", ru: "Передать лидерство этому игроку" })}
                       onClick={() => onMakeLead(member.userId)}
@@ -175,7 +186,7 @@ export function LobbyParty({
                       <Crown className="size-3" /> {localeText(locale, { en: "make lead", ru: "лидер" })}
                     </SeatAction>
                   ) : null}
-                  {humanDmTable && canAssignSeats && !sheet && member.userId !== campaign.dmUserId ? (
+                  {assignSeats ? (
                     <>
                       <SeatAction
                         tip={localeText(locale, { en: "Hand this player the DM seat and the game", ru: "Передать игроку роль Мастера" })}
@@ -200,7 +211,7 @@ export function LobbyParty({
                       )}
                     </>
                   ) : null}
-                  {canMute && member.userId !== campaign.leadUserId && member.role !== "owner" ? (
+                  {mute ? (
                     <SeatAction
                       tip={member.muted
                         ? localeText(locale, { en: "Let this player speak at the table again", ru: "Снова разрешить игроку участвовать в игре" })
@@ -218,6 +229,7 @@ export function LobbyParty({
                       )}
                     </SeatAction>
                   ) : null}
+                  {kick ? <KickPlayerButton campaignId={campaign.id} member={member} /> : null}
                       </div>
                     </details>
                   ) : null}

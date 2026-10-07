@@ -83,6 +83,14 @@ export function isDmSeat(seats: DmSeats, userId: string): boolean {
   return userId === seats.humanDmUserId || userId === seats.assistantDmUserId;
 }
 
+export function canKickPlayer(seats: CampaignSeats, actorUserId: string, targetUserId: string): boolean {
+  return (actorUserId === seats.leadUserId || actorUserId === seats.ownerUserId)
+    && targetUserId !== actorUserId
+    && targetUserId !== seats.ownerUserId
+    && targetUserId !== seats.leadUserId
+    && !isDmSeat(seats, targetUserId);
+}
+
 // The DM proper, as distinct from a co-DM. Both hold every in-game power
 // (isDmSeat counts them the same), and this is the one thing that separates
 // them: handing the game to someone else is the boss's call, not a deputy's.

@@ -19,11 +19,16 @@ const {
   createCampaign,
   getFloor,
   getGlobalTurnState,
+  joinByInviteCode,
+  kickCampaignPlayer,
   setCampaignStatus,
   setFloor,
+  setHumanDm,
 } = await import("../src/lib/db/campaigns.ts");
 const { getDatabase } = await import("../src/lib/db/core.ts");
-const { recordGlobalTurnAction, startGlobalTurn, sealGlobalTurnNow } = await import("../src/lib/dm/global-turn-logic.ts");
+const { recordGlobalTurnAction, startGlobalTurn, sealGlobalTurnNow, refreshGlobalTurnReadiness, cancelGlobalTurnTimer } = await import("../src/lib/dm/global-turn-logic.ts");
+const { createSheet, getSheetById } = await import("../src/lib/db/sheets.ts");
+const { createSheetSchema } = await import("../src/lib/schemas/sheet.ts");
 
 const scriptsDir = path.dirname(fileURLToPath(import.meta.url));
 const read = (relative) => fs.readFileSync(path.resolve(scriptsDir, relative), "utf8");
@@ -106,7 +111,26 @@ try {
   assert.match(resolveRoute, /requireLead\(campaignId\)/);
   assert.match(resolveRoute, /sealGlobalTurnNow\(campaignId, before\.roundNumber\)/);
 
-  console.log("PASS lead can recover, then seal a global round on demand");
+  const player = createUser("kicked-round-player", "hash");
+  const kickTable = createCampaign(owner.id, { title: "Kick during round", description: "", theme: "", maxPlayers: 6,
+    startingLevel: 1, difficulty: "normal", gameSettings: { globalTurn: { enabled: true, turnCollectionMinutes: 0, quorumPlayers: 6, quorumDelayMinutes: 0 } } });
+  joinByInviteCode(player.id, kickTable.inviteCode);
+  const dm = createUser("kicked-round-dm", "hash");
+  joinByInviteCode(dm.id, kickTable.inviteCode);
+  setHumanDm(kickTable.id, dm.id);
+  const input = createSheetSchema.parse({ name: "Round hero", race: "human", class: "fighter", maxHp: 12, ac: 10,
+    abilities: { str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10 }, hitDice: { die: "d10", total: 1, spent: 0 },
+    proficiencies: { saves: [], skills: [], languages: [], tools: [], armor: [], weapons: [] } });
+  const ownerSheet = createSheet(kickTable.id, owner.id, 1, input);
+  const kickedSheet = createSheet(kickTable.id, player.id, 1, input);
+  setCampaignStatus(kickTable.id, "active");
+  startGlobalTurn(kickTable.id);
+  assert.equal(recordGlobalTurnAction(kickTable.id, ownerSheet.id, owner.id, "do").shouldResolve, false);
+  assert.ok("member" in kickCampaignPlayer(kickTable.id, owner.id, player.id));
+  assert.ok(getSheetById(kickedSheet.id), "kicking retains the character");
+  assert.equal(refreshGlobalTurnReadiness(kickTable.id).shouldResolve, true, "a round cannot wait for an expelled player");
+  cancelGlobalTurnTimer(kickTable.id);
+  console.log("PASS lead round recovery and kick without waiting for expelled players");
 } finally {
   removeTempDir(dir);
 }

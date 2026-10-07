@@ -594,6 +594,11 @@ export function campaignStreamReducer(state: CampaignState, action: Action): Cam
           next.members = upsertBy(state.members, member, (entry) => entry.userId);
           return next;
         }
+        case "member_removed": {
+          next.members = state.members.filter(member => member.userId !== payload.userId);
+          next.online = state.online.filter(userId => userId !== payload.userId);
+          return next;
+        }
         case "member_updated": {
           const patch = payload.member as Partial<CampaignMember> | undefined;
           if (patch?.userId) {
@@ -845,6 +850,7 @@ const PERSISTED_EVENTS = [
   "member_joined",
   "member_ready",
   "member_updated",
+  "member_removed",
   "sheet_updated",
   "sheet_deleted",
   "sheet_audit",

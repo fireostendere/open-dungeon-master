@@ -27,8 +27,9 @@ type ReadinessResult = {
 };
 
 function playerSheets(campaignId: string, dmUserId: string | null) {
+  const members = new Set(listMembers(campaignId).map(member => member.userId));
   return listSheets(campaignId).filter(
-    (sheet) => !sheet.isCompanion && sheet.userId !== dmUserId,
+    (sheet) => !sheet.isCompanion && sheet.userId !== dmUserId && members.has(sheet.userId),
   );
 }
 

@@ -410,6 +410,8 @@ export function Lobby({ state, refresh }: { state: CampaignState; refresh: () =>
       {!isSolo || showCompanions ? (
         <LobbyParty
           campaign={campaign}
+          seats={seats}
+          meUserId={me.id}
           members={members}
           partySize={partySize}
           sheets={sheets}

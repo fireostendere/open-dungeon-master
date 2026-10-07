@@ -24,6 +24,7 @@ import { normalizeCover, type DmCover } from "@/lib/dm/delegation";
 import { normalizeClock, type CampaignClock } from "@/lib/dm/calendar";
 import { normalizeParty, type PartyState } from "@/lib/dm/party-logic";
 import {
+  canKickPlayer,
   viewerCaps,
   type CampaignSeats,
   type DmMode,
@@ -667,6 +668,22 @@ export function setMemberReady(campaignId: string, userId: string, ready: boolea
     .prepare(`UPDATE campaign_members SET ready = ? WHERE campaign_id = ? AND user_id = ?`)
     .run(ready ? 1 : 0, campaignId, userId);
   touchCampaign(campaignId);
+}
+
+// Revoke the player's seat, retaining their character and history for the DM.
+// In-flight rolls and combat are adjudicated normally, never erased by a kick.
+export function kickCampaignPlayer(campaignId: string, actorUserId: string, targetUserId: string) {
+  const campaign = getCampaignForUser(campaignId, actorUserId);
+  if (!campaign) return { error: "Campaign not found.", status: 404 } as const;
+  if (!canKickPlayer(campaignSeats(campaign), actorUserId, targetUserId)) {
+    return { error: "Only the lead or owner can kick an ordinary player.", status: 403 } as const;
+  }
+  const member = getMember(campaignId, targetUserId);
+  if (!member) return { error: "That user is not in this campaign.", status: 404 } as const;
+  getDatabase().prepare("DELETE FROM campaign_members WHERE campaign_id = ? AND user_id = ?")
+    .run(campaignId, targetUserId);
+  touchCampaign(campaignId);
+  return { member };
 }
 
 export function allMembersReady(campaignId: string) {
