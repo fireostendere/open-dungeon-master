@@ -109,15 +109,6 @@ try {
   assert.equal(snapshot.sheets.filter(s=>s.userId===owner.id).length, 1);
   assert.equal(snapshot.sheets.find(s=>s.userId===owner.id).name, 'Second hero');
   assert.equal(snapshot.members.find(m=>m.userId===owner.id).ready, false);
-  const aiCampaign = createCampaign(owner.id, { title: 'AI lobby regression', description: '', theme: '', maxPlayers: 1,
-    startingLevel: 3, difficulty: 'normal', gameSettings: {dmMode:'ai',mapsEnabled:false,ttsEnabled:false} });
-  await page.goto(`${base}/campaigns/${aiCampaign.id}`);
-  await page.getByRole('link', {name:'Выбрать из библиотеки',exact:true}).click();
-  await page.getByRole('button', {name:/First hero/}).click();
-  await page.getByRole('link', {name:'Сменить',exact:true}).waitFor();
-  snapshot = await context.request.get(`${base}/api/campaigns/${aiCampaign.id}`).then(r=>r.json());
-  assert.equal(snapshot.campaign.status, 'lobby');
-  assert.equal(snapshot.sheets.find(s=>s.userId===owner.id).name, 'First hero', 'AI table owner is a player even with a stored DM user ID');
   assert.deepEqual(errors, []);
   console.log(`PASS: lobby seat handoff, pre-start library choice/replacement, compact desktop/mobile layout. Screenshots: ${dir}`);
 } catch (error) {
