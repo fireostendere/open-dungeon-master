@@ -821,6 +821,47 @@ await assert.rejects(() => executeMcpNarratorControl("narrator.invoke", {
 }), /does not carry/);
 assert.equal(latestSeq(inventoryCampaign.id), barterSeq, "absent item must fail without a mutation");
 
+// A missing form is a no-write refusal, not a failed transformation. Correcting
+// the payload applies the persistent form once; receipt recovery cannot revert it.
+const shapeCampaign = createCampaign(dm.id, {
+  title: "Wild Shape", description: "", theme: "", maxPlayers: 4, startingLevel: 2,
+  difficulty: "normal", gameSettings: { dmMode: "human", ttsEnabled: false, mapsEnabled: false },
+});
+setCampaignStatus(shapeCampaign.id, "active");
+const shapeSheet = instantiateIntoCampaign(libraryCharacter.id, shapeCampaign.id, dm.id, 2);
+patchSheet(shapeSheet.id, { class: "druid", level: 2, resources: { wild_shape: { max: 2, used: 0 } } });
+const resourceCatalog = await executeMcpNarratorControl("narrator.catalog", { campaignId: shapeCampaign.id, action: "use_resource" });
+const resourceFields = resourceCatalog.result.groups.flatMap(group => group.entries)[0].fields;
+for (const name of ["amount", "form", "formHp", "formAc"]) {
+  assert.ok(resourceFields.some(field => field.name === name), `public resource catalog missing ${name}`);
+}
+const shapeRead = await executeMcpNarratorControl("narrator.read", { campaignId: shapeCampaign.id, afterSeq: 0 });
+const shapeRequest = {
+  campaignId: shapeCampaign.id, expectedSeq: shapeRead.result.currentSeq, timelineEpoch: shapeRead.result.timelineEpoch,
+  commandId: randomUUID(), name: "use_resource", args: { characterId: shapeSheet.id, resource: "wild_shape" },
+  readAfter: { projection: "live", maxBytes: 131072 },
+};
+for (const args of [shapeRequest.args, { ...shapeRequest.args, variant: "boar" }]) {
+  await assert.rejects(() => executeMcpNarratorControl("narrator.invoke", { ...shapeRequest, commandId: randomUUID(), args }), /pass form/);
+  assert.equal(latestSeq(shapeCampaign.id), shapeRequest.expectedSeq);
+  assert.equal(getSheetById(shapeSheet.id).resources.wild_shape.used, 0);
+  assert.equal(getSheetById(shapeSheet.id).wildShape, null);
+}
+const correctedShape = { ...shapeRequest, commandId: randomUUID(), args: { ...shapeRequest.args, form: "boar" } };
+const transformed = await executeMcpNarratorControl("narrator.invoke", correctedShape);
+const confirmedShape = transformed.result.state.sheets.find(sheet => sheet.id === shapeSheet.id);
+assert.equal(confirmedShape.wildShape.form, "Boar");
+assert.equal(confirmedShape.wildShape.beastHp, 11);
+assert.equal(confirmedShape.wildShape.beastAc, 11);
+assert.equal(confirmedShape.resources.wild_shape.used, 1);
+assert.deepEqual(confirmedShape.wildShape, getSheetById(shapeSheet.id).wildShape);
+const shapeSeq = latestSeq(shapeCampaign.id);
+const recoveredShape = await executeMcpNarratorControl("narrator.invoke", correctedShape);
+assert.equal(recoveredShape.result.replayed, true);
+assert.equal(latestSeq(shapeCampaign.id), shapeSeq);
+assert.equal(getSheetById(shapeSheet.id).resources.wild_shape.used, 1);
+assert.equal(getSheetById(shapeSheet.id).wildShape.form, "Boar");
+
 assert.equal(fetchCalls, 0, "no server provider/network call may be attempted");
 
 globalThis.fetch = nativeFetch;

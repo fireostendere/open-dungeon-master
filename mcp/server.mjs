@@ -13,6 +13,7 @@ import { createSafeHttpListener } from "./http-boundary.mjs";
 import { narratorInputSchema } from "./narrator-schema.mjs";
 import { DM_PLAYER_FEEDBACK_GUIDANCE } from "./dm-policy.mjs";
 import { formatToolResult } from "./tool-result.mjs";
+import { DM_MECHANICS_GUIDANCE } from "./dm-policy.mjs";
 export { formatToolResult } from "./tool-result.mjs";
 
 const VERSION = "0.1.0";
@@ -427,6 +428,8 @@ combat attacks should use pc_attack. The engine adjudicates hits and damage. Do 
 same damage or reward again. Use grant_item/award_xp for an explicit new award.
 Use supported campaign controls for scene and quest-log changes.
 
+${DM_MECHANICS_GUIDANCE}
+
 A complete player Do is one turn, whether an attack, healing or a pet command.
 Resolve ALL declared parts, then end once, then publish ONE scene. Do not ask for
 undeclared bonus actions. Use combat_turn(characterId,steps:[{name,args}]) for a
@@ -441,6 +444,13 @@ mechanical action. Clarify contradictions rather than invent steps. Copy
 action.cunningAction as take_action.cunningAction:true, attach attack.sneakAttack to
 that pc_attack, and resolve the declared list in one combat_turn call. A completed
 receipt already ended initiative; an argument refusal is not a fictional miss.
+parley, flee and improvise choices are not combat_turn steps but requests you
+adjudicate; their action is already paid. Call the check with request_roll (parley:
+Persuasion/Intimidation/Deception by approach; flee: Athletics or Acrobatics against
+the pursuit). A parley that works: end_encounter outcome truce, or enemy_flees for
+those who yield. A hero who gets away: move_party with characterIds; the last hero
+in the fight: end_encounter outcome party_fled first. A fight that ends drops the
+rest of the plan; otherwise hand the turn over.
 Browsing a dropdown never declares a feature. Only queued actions or clear prose
 authorize optional abilities/resources; queued actions have application priority.
 Free-text-only intent, including YOLO slang, is valid without exact ability names.

@@ -121,6 +121,7 @@ function compactSlots(value) {
 function compactSheet(value) {
   const sheet = object(value);
   const spellcasting = object(sheet.spellcasting);
+  const shape = object(sheet.wildShape);
   return withoutUndefined({
     id: clip(sheet.id, 80),
     userId: clip(sheet.userId, 80),
@@ -132,6 +133,13 @@ function compactSheet(value) {
     maxHp: number(sheet.maxHp),
     tempHp: number(sheet.tempHp),
     ac: number(sheet.ac),
+    wildShape: sheet.wildShape ? withoutUndefined({
+      kind: clip(shape.kind, 20),
+      form: clip(shape.form, 60),
+      beastHp: number(shape.beastHp),
+      beastMaxHp: number(shape.beastMaxHp),
+      beastAc: number(shape.beastAc),
+    }) : undefined,
     conditions: array(sheet.conditions).slice(0, 10).map(item => clip(item, 40)).filter(Boolean),
     exhaustion: number(sheet.exhaustion),
     concentratingOn: clip(sheet.concentratingOn, 80),

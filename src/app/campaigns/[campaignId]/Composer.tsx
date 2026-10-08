@@ -64,7 +64,7 @@ const COPY = {
     moreNotices: "{n} more above the input",
     fewerNotices: "Show only the first",
     combatTurns: {
-      builder: "Configure actions and attacks in the Battle tab",
+      builder: "Attacks, spells, parley and escape are in the Battle tab",
       queued: (n: number) => `${n} action${n === 1 ? "" : "s"} queued in the Battle tab`,
     },
   },
@@ -83,7 +83,7 @@ const COPY = {
     moreNotices: "Ещё над полем ввода: {n}",
     fewerNotices: "Показать только первое",
     combatTurns: {
-      builder: "Действия и атаки настраиваются во вкладке «Бой»",
+      builder: "Атаки, заклинания, переговоры и бегство — во вкладке «Бой»",
       queued: (n: number) => `В плане во вкладке «Бой»: ${n}`,
     },
   },

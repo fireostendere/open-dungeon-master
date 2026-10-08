@@ -12,8 +12,8 @@ import type { PublicEncounter } from "@/lib/db/encounter-view";
 import type { CharacterSheet } from "@/lib/schemas/sheet";
 
 const COPY = {
-  ru: { title: "Питомцы в бою", empty: "У участников боя пока нет питомцев в листах.", owner: "Хозяин", ac: "КД", speed: "Скорость", target: "Цель питомца", choose: "Выберите цель", command: "Приказать", cost: "Стоимость команды", action: "Действие хозяина", bonus: "Бонусное действие хозяина", attack: "Вместо одной атаки хозяина", unknown: "Стоимость задаётся правилом питомца", down: "Без сознания", noAttack: "Не атакует", waiting: "Ждёт хода хозяина", ready: "Готов к команде", queued: "Команда в плане хода", spent: "Команда уже выполнена", blocked: "Сейчас нет доступного действия", hint: "Команда добавляется в общий план. Отправьте её вместе с остальными действиями персонажа.", details: "Особенности", attackLabel: "Атаки" },
-  en: { title: "Pets in combat", empty: "Combat participants have no pets on their sheets yet.", owner: "Owner", ac: "AC", speed: "Speed", target: "Pet target", choose: "Choose a target", command: "Command", cost: "Command cost", action: "Owner's action", bonus: "Owner's bonus action", attack: "Replaces one owner's attack", unknown: "Cost requires the pet's rule", down: "Unconscious", noAttack: "Cannot attack", waiting: "Waiting for owner", ready: "Ready for a command", queued: "Command queued", spent: "Command already resolved", blocked: "No action available now", hint: "The command joins your turn plan. Submit it with your character's other actions.", details: "Traits", attackLabel: "Attacks" },
+  ru: { title: "Питомцы в бою", empty: "У участников боя пока нет питомцев в листах.", owner: "Хозяин", ac: "КД", speed: "Скорость", target: "Цель питомца", command: "Приказать", cost: "Стоимость команды", action: "Действие хозяина", bonus: "Бонусное действие хозяина", attack: "Вместо одной атаки хозяина", unknown: "Стоимость задаётся правилом питомца", down: "Без сознания", noAttack: "Не атакует", waiting: "Ждёт хода хозяина", ready: "Готов к команде", queued: "Команда в плане хода", spent: "Команда уже выполнена", blocked: "Сейчас нет доступного действия", hint: "Команда добавляется в общий план. Отправьте её вместе с остальными действиями персонажа.", details: "Особенности", attackLabel: "Атаки" },
+  en: { title: "Pets in combat", empty: "Combat participants have no pets on their sheets yet.", owner: "Owner", ac: "AC", speed: "Speed", target: "Pet target", command: "Command", cost: "Command cost", action: "Owner's action", bonus: "Owner's bonus action", attack: "Replaces one owner's attack", unknown: "Cost requires the pet's rule", down: "Unconscious", noAttack: "Cannot attack", waiting: "Waiting for owner", ready: "Ready for a command", queued: "Command queued", spent: "Command already resolved", blocked: "No action available now", hint: "The command joins your turn plan. Submit it with your character's other actions.", details: "Traits", attackLabel: "Attacks" },
 };
 
 export function CombatPetsPanel({ encounter, sheets, mySheet, canCommand, choices = [], onChoicesChange, spellOptions = [], embedded = false }: {
@@ -29,7 +29,8 @@ export function CombatPetsPanel({ encounter, sheets, mySheet, canCommand, choice
   const { locale, formatSpeed } = useI18n();
   const copy = COPY[locale];
   const orderLabel = locale === "ru" ? "Прямой приказ" : "Direct order";
-  const [targets, setTargets] = useState<Record<string, string>>({});
+  // Which attack each pet is being aimed with; a target chip then queues it.
+  const [aiming, setAiming] = useState<Record<string, string>>({});
   const [orders, setOrders] = useState<Record<string, string>>({});
   const participants = new Set(encounter.order.filter(entry => entry.kind === "pc").map(entry => entry.id));
   const owners = sheets.filter(sheet => sheet.pets?.length && (!encounter.orderReady || participants.has(sheet.id)) && (!canCommand || sheet.id === mySheet?.id));
@@ -42,14 +43,12 @@ export function CombatPetsPanel({ encounter, sheets, mySheet, canCommand, choice
   const canQueue = (owner: CharacterSheet, choice: CombatChoice) => canCommand && !!onChoicesChange &&
     owner.id === mySheet?.id && owner.currentHp > 0 && validate([...choices, choice]);
 
-  const panel = <section aria-label={copy.title} className="rounded-lg border border-violet-700/60 bg-stone-950/90 p-3 shadow-elev-1">
-    {embedded ? <h3 className="mb-3 flex items-center gap-2 font-semibold text-violet-200"><PawPrint className="size-5" aria-hidden="true" />{copy.title}</h3> : null}
+  const panel = <section aria-label={copy.title}>
     {!owners.length ? <p className="text-sm text-stone-400">{copy.empty}</p> : null}
     <div className="space-y-3">{owners.flatMap(owner => owner.pets.map(pet => {
       const key = `${owner.id}:${pet.name}`;
       const owned = owner.id === mySheet?.id;
-      const targetId = targets[key] ?? "";
-      const target = enemies.find(enemy => enemy.id === targetId);
+      const aimed = aiming[key] ?? "";
       const queued = owned && choices.some(choice => (choice.type === "pet" || choice.type === "pet_order") && choice.petName === pet.name);
       const order: CombatChoice = { type: "pet_order", petName: pet.name, order: orders[key] ?? "" };
       const spent = owned && budget?.oncePerTurn.includes(`pet:${pet.name.toLowerCase()}`);
@@ -67,17 +66,23 @@ export function CombatPetsPanel({ encounter, sheets, mySheet, canCommand, choice
         <progress aria-label={`${pet.name}: HP`} value={Math.max(0, pet.hp)} max={pet.maxHp} className="mt-2 h-2 w-full accent-violet-400" />
         <p className="mt-1 text-xs text-stone-400">{copy.cost}: {costLabel}</p>
         {pet.attacks.length ? <div className="mt-2 space-y-2">
-          {owned ? <label className="block text-xs text-stone-300">{copy.target}: {pet.name}
-            <select aria-label={`${copy.target}: ${pet.name}`} value={target?.id ?? ""} disabled={!canCommand || pet.hp <= 0 || !onChoicesChange || queued || !!spent} onChange={event => setTargets(current => ({ ...current, [key]: event.target.value }))} className="mt-1 w-full rounded border border-stone-700 bg-stone-950 p-2 text-sm disabled:opacity-50">
-              <option value="">{copy.choose}</option>{enemies.map(enemy => <option key={enemy.id} value={enemy.id}>{enemy.name}</option>)}
-            </select>
-          </label> : null}
           <div className="flex flex-wrap gap-2">{pet.attacks.map(attack => {
-            const choice: CombatChoice = { type: "pet", petName: pet.name, attack: attack.name, targetEnemyId: targetId };
             const label = `${attack.name} · ${attack.toHit >= 0 ? "+" : ""}${attack.toHit} · ${attack.damage}`;
-            return owned ? <button key={attack.name} type="button" aria-label={`${copy.command} ${pet.name}: ${attack.name}`} disabled={!target || !canQueue(owner, choice)} onClick={() => { if (target && canQueue(owner, choice)) onChoicesChange?.([...choices, choice]); }} className="rounded border border-violet-700 px-3 py-2 text-xs text-violet-100 hover:bg-violet-950/50 disabled:cursor-not-allowed disabled:opacity-40">{copy.command}: {label}{target ? ` → ${target.name}` : ""}</button>
+            const ready = enemies.some(enemy => canQueue(owner, { type: "pet", petName: pet.name, attack: attack.name, targetEnemyId: enemy.id }));
+            return owned ? <button key={attack.name} type="button" aria-label={`${copy.command} ${pet.name}: ${attack.name}`} aria-pressed={aimed === attack.name} disabled={!ready}
+              onClick={() => setAiming(current => ({ ...current, [key]: current[key] === attack.name ? "" : attack.name }))}
+              className={`rounded-lg border px-3 py-2 text-xs disabled:cursor-not-allowed disabled:opacity-40 ${aimed === attack.name ? "border-violet-400 bg-violet-900/40 text-violet-50" : "border-violet-700 text-violet-100 hover:bg-violet-950/50"}`}>{copy.command}: {label}</button>
               : <span key={attack.name} className="rounded bg-stone-800 px-2 py-1 text-xs text-stone-300">{label}</span>;
           })}</div>
+          {owned && aimed ? <div>
+            <p className="mb-1 text-[11px] text-stone-400">{copy.target}: {pet.name}</p>
+            <div className="flex flex-wrap gap-1.5">{enemies.map(enemy => {
+              const choice: CombatChoice = { type: "pet", petName: pet.name, attack: aimed, targetEnemyId: enemy.id };
+              return <button key={enemy.id} type="button" aria-label={`${copy.target}: ${pet.name}: ${enemy.name}`} disabled={!canQueue(owner, choice)}
+                onClick={() => { if (!canQueue(owner, choice)) return; onChoicesChange?.([...choices, choice]); setAiming(current => ({ ...current, [key]: "" })); }}
+                className="inline-flex min-h-9 items-center rounded-full border border-red-800/70 bg-red-950/40 px-3 py-1 text-xs text-red-100 hover:border-red-500/70 disabled:cursor-not-allowed disabled:opacity-40">{enemy.name}</button>;
+            })}</div>
+          </div> : null}
         </div> : null}
         {owned ? <div className="mt-3 border-t border-stone-700 pt-2">
           <label className="block text-xs text-violet-200">{orderLabel}: {pet.name}

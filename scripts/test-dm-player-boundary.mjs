@@ -5,7 +5,7 @@ import { createServer } from 'node:http';
 import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
-import { DM_POLICY_TEXT, DM_POLICY_VERSION, DM_POLICY_URI, DM_REFUSALS, withDmPolicy, registerDmPolicy } from '../mcp/dm-policy.mjs';
+import { DM_POLICY_TEXT, MODEL_DM_POLICY_TEXT, DM_POLICY_VERSION, DM_POLICY_URI, DM_REFUSALS, withDmPolicy, registerDmPolicy } from '../mcp/dm-policy.mjs';
 import { createOdmClient, withMcpCancellation } from '../mcp/control-client.mjs';
 import { authenticateMcp, authorizeMcpAction, narratorServiceResult, McpAccessError } from '../src/lib/mcp-access.mjs';
 
@@ -24,6 +24,15 @@ test('policy contract documents strict adjudication and bounded recovery (not LL
   }
   const fixture=JSON.parse(fs.readFileSync(new URL('./fixtures/dm-player-policy-cases.json',import.meta.url),'utf8'));
   assert.equal(fixture.policyVersion,DM_POLICY_VERSION);
+});
+
+test('full and model-core policies preserve unresolved transformations on technical refusal',()=>{
+  for (const text of [DM_POLICY_TEXT, MODEL_DM_POLICY_TEXT]) {
+    const policy=text.replace(/\s+/g,' ').toLowerCase();
+    for (const phrase of ['use_resource', 'wild_shape', 'form:"boar"', 'already-active form', 'empty catalog', 'unresolved declaration', 'do not close the global round']) {
+      assert.ok(policy.includes(phrase), `missing transformation recovery contract: ${phrase}`);
+    }
+  }
 });
 
 for(const action of ['narrator.connect','narrator.read','narrator.snapshot','narrator.catalog','narrator.invoke','narrator.narrate','narrator.delete_message','narrator.autopilot_action','narrator.finish_global_round','narrator.release_floor','narrator.answer_ask','campaigns.events']) {

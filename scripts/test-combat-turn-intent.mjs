@@ -109,4 +109,27 @@ const withDescription = validateCombatTurnIntent({ ...intent([cast]), descriptio
 assert.equal(withDescription.ok, true);
 assert.match(withDescription.content, /Описание игрока: Кричу: Берегись!/);
 assert.equal(validateCombatTurnIntent({ ...intent([]), description: 'Бью ещё раз' }, warlock, new Set(['enemy']), new Set(['hero']), budget(), { language: 'ru', names: new Map(), spells }).ok, false);
+// Parley, flee and an improvised action: requests the DM adjudicates, each
+// paid for with the action.
+const talk = { type: 'parley', approach: 'persuade', targetEnemyId: 'enemy' };
+assert.equal(check([talk]).ok, true);
+assert.equal(check([talk]).budget.actionUsed, true, 'a parley spends the action');
+assert.equal(check([{ type: 'parley', approach: 'persuade' }]).ok, true, 'a parley may address every enemy at once');
+assert.equal(check([{ type: 'parley', approach: 'bribe' }]).ok, false);
+assert.equal(check([{ ...talk, targetEnemyId: 'hidden' }]).ok, false, 'only a visible enemy can be addressed');
+assert.equal(validateCombatTurnIntent(intent([{ type: 'parley', approach: 'persuade' }]), sheet, new Set(), new Set(['hero']), budget()).ok, false, 'nobody left to talk to');
+assert.equal(check([talk, { type: 'attack', targetEnemyId: 'enemy', weapon: 'Longsword' }]).ok, false, 'a parley and an attack both need the action');
+assert.equal(check([{ type: 'flee' }]).ok, true);
+assert.equal(check([{ type: 'flee' }, { type: 'dodge' }]).ok, false);
+assert.equal(validateCombatTurnIntent(intent([{ type: 'action', action: 'disengage', cunningAction: true }, { type: 'flee' }]), cunningRogue, new Set(['enemy']), new Set(['hero']), budget()).ok, true, 'Cunning Action Disengage, then run: the rogue escape');
+assert.equal(validateCombatTurnIntent(intent([{ type: 'attack', targetEnemyId: 'enemy', weapon: 'Longsword' }, { type: 'flee' }]), sheet, new Set(['enemy']), new Set(['hero']), { ...budget(), extraActions: 1 }).ok, true, 'Haste can pay for running (a Dash or Disengage)');
+assert.equal(check([{ type: 'improvise', text: 'Рублю верёвку люстры над гоблинами' }]).ok, true);
+assert.equal(check([{ type: 'improvise', text: '   ' }]).ok, false);
+assert.equal(check([{ type: 'improvise', text: 'x'.repeat(301) }]).ok, false);
+const parleyText = validateCombatTurnIntent(intent([talk]), sheet, new Set(['enemy']), new Set(['hero']), budget(), { language: 'ru', names: new Map([['enemy', 'Гоблин-вожак']]) });
+assert.match(parleyText.content, /Переговоры \(убедить\); цель: Гоблин-вожак; заявка мастеру; исход решают правила и броски/);
+assert.match(check([{ type: 'flee' }]).content, /Flee the fight; request for DM adjudication/);
+assert.equal(combatChoiceLabel({ type: 'parley', approach: 'deceive' }, 'ru'), 'Переговоры (обмануть) → все враги');
+assert.equal(combatChoiceLabel({ type: 'flee' }, 'en'), 'Flee the fight');
+assert.equal(combatChoiceLabel({ type: 'attack', targetEnemyId: 'enemy', weapon: 'Shortsword' }, 'ru', new Map([['enemy', 'Волк']]), (kind, value) => kind === 'item' && value === 'Shortsword' ? 'Короткий меч' : value), 'Атака: Короткий меч → Волк');
 console.log('test-combat-turn-intent: passed');
