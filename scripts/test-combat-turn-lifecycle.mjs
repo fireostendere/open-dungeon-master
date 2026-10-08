@@ -10,6 +10,7 @@ import { RESOURCE_ACTIONS } from '../src/lib/dm/resource-action-cost.ts';
 register('./lib/register-alias.mjs', import.meta.url);
 const { combatSpellNames, PARLEY_APPROACHES, validateCombatTurnIntent } = await import('../src/lib/dm/combat-turn-intent.ts');
 const { BONUS_ATTACKS } = await import('../src/lib/dm/bonus-attacks.ts');
+const declarations = await import('../src/lib/dm/declarations.ts');
 
 const encounterId = '00000000-0000-4000-8000-000000000001';
 const heroId = '00000000-0000-4000-8000-000000000002';
@@ -64,6 +65,8 @@ function fixture() {
      },
     '@/lib/srd/spell-mechanics': { authoredSpellRow: () => null },
     '@/lib/srd/condition-effects': { conditionExtraActions: () => 0 }, '@/lib/db/dm-turns': turns,
+    '@/lib/dm/declarations': declarations, '@/lib/db/party-standing': { partyStanding: () => ({}) },
+    '@/lib/help': { localizedContentName: (_kind, name) => name },
   });
   // The handoff moves initiative; this fixture's engine stand-in wraps the
   // one-hero order into the next round and keeps whoever the floor names.
@@ -97,6 +100,39 @@ function fixture() {
      intent: { kind: 'do', combatTurn: { encounterId, round: 1, turnIndex: 0, choices: [] } },
   };
 }
+
+test('spell book picks outside combat reach the DM as checked canonical lines', async () => {
+  const f = fixture();
+  try {
+    const hero = f.sheets[0];
+    hero.spellcasting = { known: [], prepared: ['Hex'], cantrips: ['Eldritch Blast'], slots: { 1: { max: 2, used: 1 } } };
+    hero.resources = { second_wind: { max: 1, used: 0 } };
+    hero.equipment = [{ name: 'Potion of Healing', qty: 1 }];
+    f.encounter(null);
+    f.campaigns.setFloor('c1', { mode: 'open' });
+    const options = await (await f.options()).json();
+    assert.deepEqual(options.library.map(card => [card.name, card.level, card.target]), [['Eldritch Blast', 0, 'other'], ['Hex', 1, 'party']]);
+    assert.deepEqual(options.party.map(entry => entry.id), [hero.id, 'other']);
+    const hex = { type: 'spell', spell: 'Hex', slotLevel: 1, targetIds: [hero.id] };
+    assert.equal((await f.send({ kind: 'do', declarations: [{ ...hex, slotLevel: 2 }] })).status, 400, 'no level 2 slot');
+    assert.equal((await f.send({ kind: 'do', declarations: [hex, hex] })).status, 400, 'one level 1 slot left');
+    assert.equal((await f.send({ kind: 'do', declarations: [{ ...hex, targetIds: [] }] })).status, 400, 'a party spell needs a target');
+    assert.equal((await f.send({ kind: 'ooc', content: 'hm', declarations: [hex] })).status, 400, 'picks only ride a Do');
+    assert.equal(f.db.prepare('SELECT COUNT(*) AS n FROM campaign_messages').get().n, 0);
+    const response = await f.send({ kind: 'do', content: 'Готовлюсь к засаде', declarations: [
+      hex, { type: 'resource', resource: 'second_wind', targetIds: [] }, { type: 'item', item: 'Potion of Healing', targetIds: [] },
+    ] });
+    assert.equal(response.status, 202, await response.clone().text());
+    const { content } = f.db.prepare('SELECT content FROM campaign_messages').get();
+    assert.match(content, /^Готовлюсь к засаде\n\nВыбрано в книге заклинаний и умений/);
+    assert.match(content, /1\. Заклинание: Hex, ячейка 1 круга; цели: First/);
+    assert.match(content, /2\. Способность: Второе дыхание \[Second Wind\]/);
+    assert.match(content, /3\. Предмет: Potion of Healing; цель: на себя/);
+    assert.equal(hero.spellcasting.slots[1].used, 1, 'the narrator spends the slot, not the route');
+  } finally {
+    f.close();
+  }
+});
 
 test('warlock spell and direct pet order survive the real action route without spending resources', async () => {
   const f = fixture();

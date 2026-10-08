@@ -146,7 +146,7 @@ export type CombatChoiceDescriptor =
 
 export type CombatIntentResult = { ok: true; content: string; budget: TurnBudget } | { ok: false; error: string };
 
-const consumableName = /potion|vial|elixir|flask|draught|philter|scroll|ration|torch|зель|эликсир|свиток|рацион|факел/i;
+export const consumableName = /potion|vial|elixir|flask|draught|philter|scroll|ration|torch|зель|эликсир|свиток|рацион|факел/i;
 
 function resolvedFeatureEffects(sheet: CombatIntentSheet) {
   return effectsFor({ class: sheet.class ?? "", features: sheet.features ?? [] });

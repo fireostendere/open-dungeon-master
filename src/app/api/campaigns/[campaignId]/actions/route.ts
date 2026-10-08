@@ -31,6 +31,9 @@ import { authoredSpellRow } from "@/lib/srd/spell-mechanics";
 import type { CharacterSheet } from "@/lib/schemas/sheet";
 import { conditionExtraActions } from "@/lib/srd/condition-effects";
 import { listOpenPendingRolls } from "@/lib/db/dm-turns";
+import { MAX_DECLARATIONS, validateDeclarations, type SpellCard } from "@/lib/dm/declarations";
+import { partyStanding } from "@/lib/db/party-standing";
+import { localizedContentName } from "@/lib/help";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -55,6 +58,47 @@ function spellsFor(sheet: CharacterSheet): CombatSpellDescriptor[] {
   }).filter(spell => spell.target !== null && spell.level !== null && spell.cost !== null && spell.cost !== "reaction");
 }
 
+// Every spell the hero can cast outside combat for the spell book panel:
+// cantrips, known and prepared spells, and a wizard's unprepared spellbook
+// rituals (Ritual Casting needs no preparation).
+function spellLibraryFor(sheet: CharacterSheet): SpellCard[] {
+  const castable = new Set(combatSpellNames(sheet));
+  const casting = sheet.spellcasting;
+  const book = [...(casting?.spellbook ?? []), ...(casting?.casters ?? []).flatMap((caster) => caster.spellbook ?? [])];
+  return [...new Set([...castable, ...book])].flatMap((name): SpellCard[] => {
+    const entry = findSpellByName(name, sheet.userId);
+    const authored = authoredSpellRow(name);
+    const level = entry?.level ?? authored?.level;
+    const ritual = Boolean(entry?.ritual);
+    if (level === undefined || (!castable.has(name) && !ritual)) return [];
+    const mech = spellMechanicsFor({ spell: name, userId: sheet.userId })?.mech;
+    return [{
+      name,
+      level,
+      castingTime: String(entry?.data.casting_time ?? authored?.casting_time ?? ""),
+      ritual,
+      concentration: Boolean(entry?.concentration ?? authored?.concentration),
+      // Buffs and heals go to chosen heroes; a plain "Self" utility spell
+      // (Detect Magic) to the caster; anything else is described in words.
+      target: mech?.resolution === "buff" && mech.buff?.target === "self" ? "self"
+        : mech?.resolution === "buff" || mech?.resolution === "heal" ? "party"
+        : (!mech || mech.resolution === "utility") && /^self$/i.test(String(entry?.data.range ?? authored?.range ?? "").trim()) ? "self"
+        : "other",
+      ...(castable.has(name) ? {} : { ritualOnly: true }),
+    }];
+  }).sort((a, b) => a.level - b.level || a.name.localeCompare(b.name));
+}
+
+// Living heroes standing where this one stands (everyone, without a split).
+function partyHere(campaignId: string, sheet: CharacterSheet): Array<{ id: string; name: string }> {
+  const sheets = listSheets(campaignId);
+  const standing = partyStanding(campaignId, sheets);
+  const here = standing[sheet.id];
+  return sheets
+    .filter((entry) => !entry.deathSaves?.dead && (!here || !standing[entry.id] || standing[entry.id] === here))
+    .map(({ id, name }) => ({ id, name }));
+}
+
 // Only the member's own spell list. The POST derives the same metadata afresh;
 // neither casting times nor spell levels are accepted from the client.
 export async function GET(_request: Request, { params }: { params: Promise<{ campaignId: string }> }) {
@@ -62,8 +106,12 @@ export async function GET(_request: Request, { params }: { params: Promise<{ cam
   const context = await requireMember(campaignId);
   if (isErrorResponse(context)) return context;
   const sheet = getSheetForUser(campaignId, context.user.id);
-  return Response.json({ spells: sheet ? spellsFor(sheet) : [] });
+  return Response.json(sheet
+    ? { spells: spellsFor(sheet), library: spellLibraryFor(sheet), party: partyHere(campaignId, sheet) }
+    : { spells: [], library: [], party: [] });
 }
+
+const targetIds = z.array(z.string().uuid()).max(6);
 
 const actionSchema = z.object({
   content: z.string().trim().min(1).max(2000).optional(),
@@ -92,8 +140,15 @@ const actionSchema = z.object({
       z.object({ type: z.literal("improvise"), text: z.string().trim().min(1).max(300) }).strict(),
     ])).max(12),
   }).strict().refine(value => !value.description || value.choices.length > 0, "Choose an action before adding a description.").optional(),
+  // Out-of-combat picks from the spell book panel (src/lib/dm/declarations.ts).
+  declarations: z.array(z.discriminatedUnion("type", [
+    z.object({ type: z.literal("spell"), spell: z.string().trim().min(1).max(80), slotLevel: z.number().int().min(1).max(9).optional(), ritual: z.boolean().optional(), targetIds }).strict(),
+    z.object({ type: z.literal("resource"), resource: z.string().trim().min(1).max(80), targetIds }).strict(),
+    z.object({ type: z.literal("item"), item: z.string().trim().min(1).max(80), targetIds }).strict(),
+  ])).min(1).max(MAX_DECLARATIONS).optional(),
 }).strict()
-  .refine((value) => Boolean(value.content || value.combatTurn), "An action needs content or a combat turn.")
+  .refine((value) => Boolean(value.content || value.combatTurn || value.declarations), "An action needs content or a combat turn.")
+  .refine((value) => !value.declarations || (value.kind === "do" && !value.combatTurn), "Spell book picks go with an action outside combat.")
   .refine((value) => !value.combatTurn || value.kind === "do", "Combat turns must be actions.")
   .refine((value) => !value.combatTurn || !value.content, "Combat turns cannot contain free-form action text.");
 
@@ -298,6 +353,19 @@ export async function POST(
         throw error;
       }
     }
+    let declarationContent: string | null = null;
+    if (parsed.data.declarations) {
+      const language = campaign.gameSettings.language === "en" ? "en" : "ru";
+      const checked = validateDeclarations(parsed.data.declarations, {
+        sheet,
+        library: spellLibraryFor(sheet),
+        party: new Map(partyHere(campaignId, sheet).map((entry) => [entry.id, entry.name])),
+        language,
+        localize: (kind, name) => localizedContentName(kind, name, language),
+      });
+      if (!checked.ok) return Response.json({ error: checked.error }, { status: 400 });
+      declarationContent = checked.content;
+    }
     // Global turn pacing: the first Do is the hero's complete submission.
     // Initiative already has a per-combatant action budget; global collection
     // pacing must not consume or reject combat turns.
@@ -323,7 +391,7 @@ export async function POST(
     const content =
         combatContent ?? (kind === "ooc"
           ? `(ooc) ${parsed.data.content}`
-          : parsed.data.content!);
+          : [parsed.data.content, declarationContent].filter(Boolean).join("\n\n"));
 
     const message = withCommittedEffects(() => getDatabase().transaction(() => {
       const seq = allocateSeq(campaignId);

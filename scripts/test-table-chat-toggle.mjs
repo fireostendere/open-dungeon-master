@@ -52,14 +52,16 @@ assert.match(form.getText(file), /<PendingRollCard/);
 const composer = file.statements.find(node => ts.isFunctionDeclaration(node) && node.name?.text === "ComposerInner");
 const submitHandler = composer.body.statements.find(node => ts.isFunctionDeclaration(node) && node.name?.text === "handleSubmit");
 const handlerJs = ts.transpileModule(`(${submitHandler.getText(file)})`, { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
-for (const [kind, input, blocked, expectedPreview, expectedSubmit] of [
+for (const [kind, input, blocked, expectedPreview, expectedSubmit, picks = []] of [
   ["do", "  I draw my sword  ", false, "I draw my sword", 0],
   ["ooc", "hello", false, null, 1],
   ["do", "hello", true, null, 1],
+  // Spell book picks alone are a reviewable action too.
+  ["do", "  ", false, "", 0, [{ type: "spell", spell: "Bless", slotLevel: 1, targetIds: ["a"] }]],
 ]) {
   let preview = null, submissions = 0, prevented = 0;
   const handleSubmit = vm.runInNewContext(handlerJs, {
-    kind, input, inputBlocked: blocked, sending: false, ownCombatTurn: false, combatChoices: [],
+    kind, input, inputBlocked: blocked, sending: false, ownCombatTurn: false, combatChoices: [], picks,
     setPreview: value => { preview = value; }, onSubmit: () => { submissions += 1; },
   });
   handleSubmit({ preventDefault: () => { prevented += 1; } });
@@ -67,7 +69,7 @@ for (const [kind, input, blocked, expectedPreview, expectedSubmit] of [
   assert.equal(preview, expectedPreview);
   assert.equal(submissions, expectedSubmit);
 }
-assert.match(source, /onSubmit\(null, preview\)/, "Confirmation sends the reviewed draft");
+assert.match(source, /onSubmit\(null, preview, picks\)/, "Confirmation sends the reviewed draft and its spell book picks");
 const locationSource = await readFile(new URL("../src/app/campaigns/[campaignId]/LocationChat.tsx", import.meta.url), "utf8");
 const locationFile = ts.createSourceFile("LocationChat.tsx", locationSource, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
 const locationComponent = locationFile.statements.find(node => ts.isFunctionDeclaration(node) && node.name?.text === "LocationChat");
