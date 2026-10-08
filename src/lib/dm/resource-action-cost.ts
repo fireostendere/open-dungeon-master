@@ -1,7 +1,9 @@
 // SRD 2014 features with an unambiguous activation. Variant-dependent
 // resources stay DM-adjudicated except the explicit Ki variants below.
-export const RESOURCE_ACTIONS: Record<string, { name: string; cost: "action" | "bonus"; target: "self" | "ally" | "other" }> = {
+// "free" costs nothing and grants: Action Surge adds a full action.
+export const RESOURCE_ACTIONS: Record<string, { name: string; cost: "action" | "bonus" | "free"; target: "self" | "ally" | "other" }> = {
   second_wind: { name: "Second Wind", cost: "bonus", target: "self" },
+  action_surge: { name: "Action Surge", cost: "free", target: "self" },
   rage: { name: "Rage", cost: "bonus", target: "self" },
   bardic_inspiration: { name: "Bardic Inspiration", cost: "bonus", target: "other" },
   lay_on_hands: { name: "Lay on Hands", cost: "action", target: "ally" },

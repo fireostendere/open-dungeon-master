@@ -18,6 +18,7 @@ export function ActionPreviewDialog({
   locale,
   queuedActions,
   queuedActionLabels = [],
+  planTitle,
   note,
   onEdit,
   onSend,
@@ -29,6 +30,7 @@ export function ActionPreviewDialog({
   locale: Locale;
   queuedActions: number;
   queuedActionLabels?: string[];
+  planTitle?: string;
   note?: string;
   onEdit: () => void;
   onSend: () => void;
@@ -68,7 +70,7 @@ export function ActionPreviewDialog({
         <PlayerMessageBody content={previewText} />
       </div>
       {queuedActionLabels.length ? <div className="mt-3 rounded-lg border border-amber-800/60 bg-amber-950/30 p-3 text-sm text-amber-100">
-        <b>{copy.plan}</b>
+        <b>{planTitle ?? copy.plan}</b>
         <ol className="mt-1 list-inside list-decimal space-y-1">{queuedActionLabels.map((label, index) => <li key={`${index}:${label}`}>{label}</li>)}</ol>
       </div> : queuedActions > 0 ? <p className="mt-3 text-xs text-amber-200/80">{copy.queued}</p> : null}
       {note ? <p className="mt-3 text-xs text-amber-200/80">{note}</p> : null}

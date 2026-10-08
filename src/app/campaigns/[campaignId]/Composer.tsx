@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown, Clock, Eye, EyeOff, Loader2, Send, SkipForward, Swords } from "lucide-react";
+import { ChevronDown, Clock, Eye, EyeOff, Loader2, Send, SkipForward, Swords, X } from "lucide-react";
 import { GameIcon } from "@/components/ui/GameIcon";
 import { MODE_GLYPHS } from "@/app/campaigns/[campaignId]/SessionGlyph";
 import { memo, useEffect, useRef, useState } from "react";
@@ -16,10 +16,13 @@ import {
 } from "@/app/campaigns/[campaignId]/DirectorPanel";
 import { PendingRollCard } from "@/app/campaigns/[campaignId]/PendingRollCard";
 import { ActionPreviewDialog } from "@/app/campaigns/[campaignId]/ActionPreviewDialog";
+import { SpellBookPanel } from "@/app/campaigns/[campaignId]/SpellBookPanel";
 import { PushToTalk } from "@/app/campaigns/[campaignId]/PushToTalk";
 import { StoryNudge } from "@/app/campaigns/[campaignId]/StoryNudge";
 import { AskOptions } from "@/app/campaigns/[campaignId]/AskPanel";
 import { combatChoiceLabel, type CombatChoice } from "@/lib/dm/combat-turn-intent";
+import { declarationLabel, usableItems, usableResources, type Declaration } from "@/lib/dm/declarations";
+import { localizedContentName } from "@/lib/help";
 import type { BeatCadence } from "@/lib/dm/beat-cadence";
 import type { AskScope, AskVisibility } from "@/lib/dm/ask-logic";
 import type { CampaignState } from "@/app/campaigns/[campaignId]/useCampaignStream";
@@ -67,6 +70,8 @@ const COPY = {
       builder: "Attacks, spells, parley and escape are in the Battle tab",
       queued: (n: number) => `${n} action${n === 1 ? "" : "s"} queued in the Battle tab`,
     },
+    book: "Spells & abilities", bookTip: "Pick a spell, an ability or a consumable to use with this action, outside combat.",
+    removePick: "Remove", picksTitle: "Added to this action:",
   },
   ru: {
     hideChat: "Скрыть чат",
@@ -86,6 +91,8 @@ const COPY = {
       builder: "Атаки, заклинания, переговоры и бегство — во вкладке «Бой»",
       queued: (n: number) => `В плане во вкладке «Бой»: ${n}`,
     },
+    book: "Магия и умения", bookTip: "Выберите заклинание, способность или расходник для этого действия вне боя.",
+    removePick: "Убрать", picksTitle: "В заявку войдут:",
   },
 } as const;
 
@@ -124,6 +131,8 @@ function ComposerInner({
   globalTurnEnabled = false,
   globalTurnState = null,
   combatChoices = [],
+  declarations = [],
+  onDeclarationsChange,
   onSubmit,
   onOpenBattleTab,
   askScope,
@@ -142,6 +151,9 @@ function ComposerInner({
   globalTurnEnabled?: boolean;
   globalTurnState?: GlobalTurnState | null;
   combatChoices?: CombatChoice[];
+  // Out-of-combat picks from the spell book panel, sent with the next Do.
+  declarations?: Declaration[];
+  onDeclarationsChange?: (declarations: Declaration[]) => void;
   kind: InputKind;
   onKindChange: (kind: InputKind) => void;
   input: string;
@@ -164,7 +176,8 @@ function ComposerInner({
   storyCadence: BeatCadence;
   onCaptureStory: () => void;
   onSnoozeStory: () => void;
-  onSubmit: (event: FormEvent | null, confirmedContent?: string) => void;
+  // `picks`: the spell book picks the preview showed, sent with this Do.
+  onSubmit: (event: FormEvent | null, confirmedContent?: string, picks?: Declaration[]) => void;
   onOpenBattleTab?: () => void;
   askScope: AskScope | "auto";
   onAskScopeChange: (scope: AskScope | "auto") => void;
@@ -175,6 +188,7 @@ function ComposerInner({
   const copy = COPY[locale];
   const [chatExpanded, setChatExpanded] = useState(true);
   const [preview, setPreview] = useState<string | null>(null);
+  const [bookOpen, setBookOpen] = useState(false);
   // On a phone the cards and banners above the input collapse to the first
   // one (the most urgent) with a chip for the rest, so the input is never
   // pushed off screen (rules in globals.css). Counted from the DOM: each
@@ -238,6 +252,12 @@ function ComposerInner({
   const combatLocked = floor.mode === "hold" && Boolean(floor.combat);
   const combatNames = new Map([...sheets.map(sheet => [sheet.id, sheet.name] as const), ...(encounter?.enemies ?? []).map(enemy => [enemy.id, enemy.name] as const)]);
   const combatActionLabels = combatChoices.map(choice => combatChoiceLabel(choice, locale, combatNames));
+  const bookAvailable = Boolean(kind === "do" && !isDm && !needsCharacter && !combatActive && !combatLocked && mySheet && onDeclarationsChange &&
+    (mySheet.spellcasting || usableResources(mySheet).length || usableItems(mySheet).length));
+  const picks = bookAvailable ? declarations : [];
+  const pickLabels = picks.map((pick) => declarationLabel(pick, {
+    party: combatNames, language: locale, localize: (contentKind, name) => localizedContentName(contentKind, name, locale),
+  }));
   const composerOptions = needsCharacter
     ? (["ask"] as const)
     : isDm
@@ -273,7 +293,7 @@ function ComposerInner({
   function handleSubmit(event: FormEvent) {
     event.preventDefault();
     if (ownCombatTurn && kind === "do") return;
-    if (kind === "do" && !sending && !inputBlocked && (input.trim() || (ownCombatTurn && combatChoices.length > 0))) {
+    if (kind === "do" && !sending && !inputBlocked && (input.trim() || picks.length || (ownCombatTurn && combatChoices.length > 0))) {
       setPreview(input.trim());
       return;
     }
@@ -467,6 +487,24 @@ function ComposerInner({
             </Tooltip>
           </div>
         ) : null}
+        {bookAvailable ? <div className="mb-2 flex flex-wrap items-center gap-1.5">
+          <Tooltip content={copy.bookTip}>
+            <button type="button" aria-expanded={bookOpen} onClick={() => setBookOpen((open) => !open)}
+              className={cn("inline-flex min-h-9 items-center gap-1.5 rounded-full border py-1 pl-1.5 pr-3 text-xs font-medium transition-colors duration-150",
+                bookOpen ? "border-amber-400/80 bg-amber-400/15 text-amber-50" : "border-stone-700 bg-stone-900/70 text-stone-300 hover:border-amber-500/50 hover:text-amber-100")}>
+              <GameIcon icon={{ kind: "action", key: "cast" }} size="size-6" />{copy.book}
+            </button>
+          </Tooltip>
+          {picks.map((pick, index) => <span key={`${index}:${pickLabels[index]}`}
+            className="inline-flex min-h-9 max-w-full items-center gap-1 rounded-full border border-amber-700/60 bg-amber-950/40 py-1 pl-3 pr-1 text-xs text-amber-100">
+            <span className="truncate">{pickLabels[index]}</span>
+            <button type="button" aria-label={`${copy.removePick}: ${pickLabels[index]}`} disabled={sending}
+              onClick={() => onDeclarationsChange?.(picks.filter((_, current) => current !== index))}
+              className="rounded-full p-1 text-amber-300/80 hover:bg-amber-900/60 hover:text-amber-50"><X className="size-3.5" /></button>
+          </span>)}
+        </div> : null}
+        {bookAvailable && bookOpen && mySheet && onDeclarationsChange ? <SpellBookPanel campaignId={campaignId} sheet={mySheet} locale={locale}
+          declarations={picks} onChange={onDeclarationsChange} onClose={() => setBookOpen(false)} disabled={sending || inputBlocked} /> : null}
         {combatLocked && !isDm ? <p role="status" className="mb-2 rounded-lg border border-amber-800/50 bg-amber-950/30 p-2 text-xs text-amber-200">{copy.combatLocked}</p> : null}
         {combatActive && !isDm ? <div className="mb-2 flex flex-wrap items-center gap-2 text-xs">
           <label className="flex items-center gap-2">{copy.skipTurns}<input type="number" min={1} max={20} value={skipCount} onChange={(event) => setSkipCount(Math.min(20, Math.max(1, Number(event.target.value) || 1)))} className="w-14 rounded border border-stone-700 bg-stone-900 p-1.5" /></label>
@@ -525,7 +563,7 @@ function ComposerInner({
             type="submit"
             disabled={
               sending ||
-              (!input.trim() && !(ownCombatTurn && combatChoices && combatChoices.length > 0)) ||
+              (!input.trim() && !picks.length && !(ownCombatTurn && combatChoices && combatChoices.length > 0)) ||
               inputBlocked
             }
             className="rounded-lg bg-gradient-to-b from-amber-100 via-amber-200 to-amber-400 p-2.5 text-amber-950 shadow-[0_1px_0_rgba(253,247,231,0.6)_inset] transition-all duration-150 ease-snap hover:-translate-y-px hover:shadow-glow-gold-strong active:translate-y-0 active:scale-95 disabled:opacity-40 disabled:hover:translate-y-0 disabled:hover:shadow-none"
@@ -542,10 +580,11 @@ function ComposerInner({
         name={mySheet?.name ?? myMember?.username ?? (locale === "ru" ? "Игрок" : "Player")}
         portraitUrl={portraitUrl}
         locale={locale}
-        queuedActions={ownCombatTurn ? combatChoices.length : 0}
-        queuedActionLabels={ownCombatTurn ? combatActionLabels : []}
+        queuedActions={ownCombatTurn ? combatChoices.length : picks.length}
+        queuedActionLabels={ownCombatTurn ? combatActionLabels : pickLabels}
+        planTitle={ownCombatTurn ? undefined : copy.picksTitle}
         onEdit={editPreview}
-        onSend={() => { setPreview(null); onSubmit(null, preview); }}
+        onSend={() => { setPreview(null); onSubmit(null, preview, picks); }}
         disabled={sending || inputBlocked}
       />
     ) : null}

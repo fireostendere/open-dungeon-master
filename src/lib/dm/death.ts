@@ -29,7 +29,25 @@ function writeDeathState(
   reason: string,
   extraPatch: { currentHp?: number } = {},
 ) {
-  const patch = { deathSaves, ...extraPatch };
+  // Dying or stable at 0 HP is unconscious, and falls prone; coming back
+  // (healing, a natural 20) ends the unconsciousness and leaves them prone.
+  // The conditions carry the rules: attacks within 5 ft have advantage and
+  // crit, STR and DEX saves fail.
+  const named = (name: string) => sheet.conditions.some((entry) => entry.toLowerCase() === name);
+  const down = Boolean(deathSaves && !deathSaves.dead);
+  const conditions = down
+    ? [...sheet.conditions, ...["unconscious", "prone"].filter((name) => !named(name))]
+    : !deathSaves && named("unconscious")
+      ? sheet.conditions.filter((entry) => entry.toLowerCase() !== "unconscious")
+      : sheet.conditions;
+  const conditionMeta = Object.fromEntries(
+    Object.entries(sheet.conditionMeta).filter(([name]) => conditions.includes(name)),
+  );
+  const patch = {
+    deathSaves,
+    ...extraPatch,
+    ...(conditions !== sheet.conditions ? { conditions, conditionMeta } : {}),
+  };
   const updated = patchSheet(sheet.id, patch);
   const entry = insertSheetAudit({
     campaignId: campaign.id,

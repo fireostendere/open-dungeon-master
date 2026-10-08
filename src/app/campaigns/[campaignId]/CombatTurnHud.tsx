@@ -7,6 +7,7 @@ import { GameIcon } from "@/components/ui/GameIcon";
 import { Tooltip } from "@/components/ui/Tooltip";
 import { combatChoiceDescriptors, combatChoiceLabel, combatIntentBudget, combatSpellSlots, PARLEY_APPROACHES, validateCombatTurnIntent, type CombatChoice, type CombatSpellDescriptor, type CombatTurnIntent, type ParleyApproach } from "@/lib/dm/combat-turn-intent";
 import { freshBudget } from "@/lib/dm/action-budget";
+import { resourceLabel } from "@/lib/dm/declarations";
 import { localizedContentName } from "@/lib/help";
 import { matchWeapon, type SrdWeapon } from "@/lib/srd/weapons";
 import type { BonusAttackKind } from "@/lib/dm/bonus-attacks";
@@ -273,11 +274,8 @@ export function CombatTurnHud({
   for (const resource of descriptors.filter((entry) => entry.type === "resource")) {
     const make = (id: string): CombatChoice => ({ type: "resource", resource: resource.id, targetCharacterId: id });
     const targets = friends(resource.target === "self" ? [] : allies.filter((ally) => resource.target !== "other" || ally.id !== sheet.id));
-    const names: Record<string, string> = locale === "ru"
-      ? { second_wind: "Второе дыхание", rage: "Ярость", bardic_inspiration: "Бардовское вдохновение", lay_on_hands: "Наложение рук" }
-      : {};
     tiles.push({
-      key: `resource:${resource.id}`, group: "action", section: "ability", label: names[resource.id] ?? resource.name, bonus: resource.cost === "bonus", badge: `×${resource.left}`,
+      key: `resource:${resource.id}`, group: "action", section: "ability", label: resourceLabel(resource.id, locale), bonus: resource.cost === "bonus", badge: `×${resource.left}`,
       icon: painted({ kind: "feature", key: resource.name }, { kind: "glyph", key: "rest-proficiency" }),
       ...(resource.target === "self" ? { choice: make(sheet.id) } : { targets, make }),
       ready: resource.target === "self" ? canQueue(make(sheet.id)) : targets.some((target) => canQueue(make(target.id))),
@@ -397,7 +395,7 @@ export function CombatTurnHud({
       {pill(copy.action, !left.actionUsed)}
       {pill(copy.bonus, !left.bonusUsed)}
       {left.attacksAllowed > 1 ? pill(`${copy.attacks} ${left.attacksMade}/${left.attacksAllowed}`, attackFree) : null}
-      {left.extraActions ? pill(copy.extra, true) : null}
+      {left.extraActions || left.surgeActions ? pill(copy.extra, true) : null}
     </ul>
     {locked ? <p role="status" className="mt-2 text-xs text-amber-200">{copy.locked}</p> : null}
     {spellsLoading ? <p role="status" className="mt-2 text-xs text-stone-400">{copy.spellsLoading}</p> : null}

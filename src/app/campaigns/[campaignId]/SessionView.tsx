@@ -51,6 +51,7 @@ import { useChatChime } from "@/app/campaigns/[campaignId]/useChatChime";
 import { useTableAudio } from "@/app/campaigns/[campaignId]/useTableAudio";
 import type { CampaignState } from "@/app/campaigns/[campaignId]/useCampaignStream";
 import type { CombatChoice, CombatTurnIntent } from "@/lib/dm/combat-turn-intent";
+import type { Declaration } from "@/lib/dm/declarations";
 
 // The level-up dialog carries the class feature and resource tables of the
 // whole SRD; it loads the first time a character actually levels rather
@@ -373,6 +374,8 @@ export function SessionView({
   }, [encounterTurnKey]);
 
   const inCombat = Boolean(state.encounter && state.encounter.status === "active");
+  // Spell book picks (Composer) ride the next out-of-combat Do.
+  const [declarations, setDeclarations] = useState<Declaration[]>([]);
 
   const panelTabs = useMemo(
     () =>
@@ -398,16 +401,17 @@ export function SessionView({
   }, [campaignId]);
 
   const submit = useCallback(
-    async (event: FormEvent | null, combatTurn?: CombatTurnIntent, confirmedContent?: string) => {
+    async (event: FormEvent | null, combatTurn?: CombatTurnIntent, confirmedContent?: string, declared: Declaration[] = []) => {
       event?.preventDefault();
       const content = (confirmedContent ?? input).trim();
       const sendKind = combatTurn ? "do" : needsCharacter ? "ask" : kind;
       const resolvedCombatTurn = combatTurn;
+      const picks = sendKind === "do" && !resolvedCombatTurn ? declared : [];
       if (sendKind === "do" && ownCombatTurn && !resolvedCombatTurn) {
         setError(locale === "ru" ? "Соберите ход во вкладке «Бой»." : "Configure your turn in the Battle tab.");
         return;
       }
-      if ((!content && (sendKind === "ask" || !resolvedCombatTurn)) || sending || (!needsCharacter && gate.inputBlocked) || muted) {
+      if ((!content && (sendKind === "ask" || (!resolvedCombatTurn && !picks.length))) || sending || (!needsCharacter && gate.inputBlocked) || muted) {
         return;
       }
       setSending(true);
@@ -426,7 +430,8 @@ export function SessionView({
               ? leadPrivate
                 ? ["director", { oneShot: null, absoluteCommand: content }]
                 : ["lead-note", { content }]
-              : ["actions", resolvedCombatTurn ? { kind: "do", combatTurn: resolvedCombatTurn } : { content, kind: sendKind }];
+              : ["actions", resolvedCombatTurn ? { kind: "do", combatTurn: resolvedCombatTurn }
+                : { ...(content ? { content } : {}), kind: sendKind, ...(picks.length ? { declarations: picks } : {}) }];
         const response = await fetch(`/api/campaigns/${campaignId}/${route}`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -439,14 +444,14 @@ export function SessionView({
         }
         setInput("");
         if (sendKind === "ask") await refreshAsks();
-        else if (sendKind === "do") { setCombatChoices([]); setCombatDescription(""); }
+        else if (sendKind === "do") { setCombatChoices([]); setCombatDescription(""); setDeclarations([]); }
       } catch {
         setError("Could not reach the server.");
       } finally {
         setSending(false);
       }
     },
-    [campaignId, input, sending, gate.inputBlocked, muted, kind, needsCharacter, askScope, askVisibility, leadPrivate, ownCombatTurn, locale, setCombatChoices, setCombatDescription, refreshAsks],
+    [campaignId, input, sending, gate.inputBlocked, muted, kind, needsCharacter, askScope, askVisibility, leadPrivate, ownCombatTurn, locale, setCombatChoices, setCombatDescription, refreshAsks, setDeclarations],
   );
 
   const clearChatTarget = useCallback(() => setChatTarget(null), []);
@@ -624,7 +629,9 @@ export function SessionView({
               onCaptureStory={openStoryCapture}
               onSnoozeStory={snoozeStory}
               combatChoices={combatChoices}
-              onSubmit={(event, confirmedContent) => void submit(event, undefined, confirmedContent)}
+              declarations={declarations}
+              onDeclarationsChange={setDeclarations}
+              onSubmit={(event, confirmedContent, picks) => void submit(event, undefined, confirmedContent, picks)}
               onOpenBattleTab={() => selectPanelView("battle")}
               askScope={askScope}
               onAskScopeChange={setAskScope}

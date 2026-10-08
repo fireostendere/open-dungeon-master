@@ -16,6 +16,7 @@ import { publishWithSeq } from "@/lib/events";
 import { saveModFor, type SaveAbility } from "@/lib/bestiary/statblock";
 import { allySaveAura } from "@/lib/dm/aura";
 import { trackEnemyConcentration } from "@/lib/dm/cast-tools";
+import { enemyIncapacitationHook } from "@/lib/dm/concentration";
 import { defenseRiders } from "@/lib/srd/feature-effects";
 import { computeSheetDerived, spellSaveDcFor } from "@/lib/srd";
 import { spellDamageFor, spellMechanicsFor } from "@/lib/content";
@@ -308,11 +309,13 @@ function handleEnemyCondition(
           }
         : enemy.conditionMeta;
     patchEnemyConditions(enemy.id, [...enemy.conditions, wanted], meta);
+    const lostFocus = enemyIncapacitationHook(campaign, null, enemy.id);
     publishEncounter(campaign.id);
     return {
       ok: true,
       name: enemy.displayName,
       condition: wanted,
+      ...(lostFocus ? { concentrationBroken: lostFocus } : {}),
       ...(args.rounds ? { duration: `${args.rounds} rounds, expires automatically` } : {}),
       ...(args.saveAbility && args.saveDc
         ? {

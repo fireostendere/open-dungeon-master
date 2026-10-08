@@ -99,12 +99,15 @@ export function longRestPatch(sheet: CharacterSheet): FullPatchSheetInput {
       patch.conditionMeta = pruneMeta(patch.conditions, sheet.conditionMeta);
     }
   }
-  // A rage never survives the night, whatever its remaining rounds said.
+  // A rage never survives the night, whatever its remaining rounds said,
+  // and nobody back at full HP is still out cold from dying.
   const conditions = patch.conditions ?? sheet.conditions;
-  if (conditions.some((condition) => condition.toLowerCase() === RAGING)) {
-    const cleared = removeConditions(conditions, patch.conditionMeta ?? sheet.conditionMeta, [
-      RAGING,
-    ]);
+  const ending = [
+    ...(conditions.some((condition) => condition.toLowerCase() === RAGING) ? [RAGING] : []),
+    ...(sheet.deathSaves && conditions.includes("unconscious") ? ["unconscious"] : []),
+  ];
+  if (ending.length) {
+    const cleared = removeConditions(conditions, patch.conditionMeta ?? sheet.conditionMeta, ending);
     patch.conditions = cleared.conditions;
     patch.conditionMeta = cleared.meta;
   }

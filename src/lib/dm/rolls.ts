@@ -480,10 +480,11 @@ export function resolveRollExpression(
     sheet && derivationKind
       ? exhaustionRollState(sheet.exhaustion ?? 0, derivationKind)
       : { advantage: "none" as const, note: null };
-  // A held Help die: the ally's assistance gives advantage on the next
-  // check, and is spent by taking it (src/lib/dm/action-tools.ts).
+  // A held Help: the ally's assistance gives advantage on the next ability
+  // check (or attack, in pc_attack), never a saving throw, and is spent by
+  // taking it (src/lib/dm/action-tools.ts).
   const helped =
-    sheet && derivationKind && derivationKind !== "initiative"
+    sheet && (derivationKind === "skill_check" || derivationKind === "ability_check")
       ? sheet.conditions.find((entry) => entry.trim().toLowerCase() === "helped") ?? null
       : null;
   // Feature-driven roll riders: Danger Sense grants advantage on the save
