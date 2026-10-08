@@ -8,7 +8,7 @@ import * as actionBudget from '../src/lib/dm/action-budget.ts';
 import { RESOURCE_ACTIONS } from '../src/lib/dm/resource-action-cost.ts';
 
 register('./lib/register-alias.mjs', import.meta.url);
-const { combatSpellNames, validateCombatTurnIntent } = await import('../src/lib/dm/combat-turn-intent.ts');
+const { combatSpellNames, PARLEY_APPROACHES, validateCombatTurnIntent } = await import('../src/lib/dm/combat-turn-intent.ts');
 
 const encounterId = '00000000-0000-4000-8000-000000000001';
 const heroId = '00000000-0000-4000-8000-000000000002';
@@ -54,7 +54,7 @@ function fixture() {
     '@/lib/spatial/publication-scope.mjs': { withFight: (_campaignId, _fightId, work) => work() },
     '@/lib/db/encounter-view': { activePublicEncounter: () => ({ enemies: visibleEnemies, order: sheets.map(sheet => ({ kind: "pc", id: sheet.id, name: sheet.name })) }) },
     '@/lib/dm/action-tools': { attacksAllowedFor: () => 1, budgetFor: () => freshBudget({ ownerId: heroId, round: 1 }) },
-    '@/lib/dm/combat-turn-intent': { combatSpellNames, validateCombatTurnIntent },
+    '@/lib/dm/combat-turn-intent': { combatSpellNames, PARLEY_APPROACHES, validateCombatTurnIntent },
      '@/lib/content': {
        findSpellByName: name => name === 'Eldritch Blast' ? { level: 0, data: { casting_time: '1 action' } } : name === 'Hex' ? { level: 1, data: { casting_time: '1 bonus action' } } : null,
        spellMechanicsFor: ({ spell }) => spell === 'Eldritch Blast' ? { mech: { resolution: 'attack' } } : spell === 'Hex' ? { mech: { resolution: 'buff', buff: { target: 'ally' } } } : null,
@@ -158,6 +158,30 @@ test('optional combat description accompanies selected actions without replacing
     const event = JSON.parse(f.db.prepare("SELECT payload_json FROM campaign_events WHERE type='message_added'").get().payload_json);
     assert.deepEqual(event.message.combatTurn.choices, [choice]);
     assert.equal(event.message.combatTurn.description, 'Кричу: Держитесь!');
+  } finally { f.close(); }
+});
+
+test('parley, flee and an improvised action reach the DM as requests that spend the action', async () => {
+  const f = fixture();
+  try {
+    const enemyId = '00000000-0000-4000-8000-000000000099';
+    f.enemies([{ id: enemyId, name: 'Гоблин-вожак', status: 'alive' }]);
+    f.sheets[0].features = [{ name: 'Cunning Action' }];
+    const send = choices => f.send({ ...f.intent, combatTurn: { ...f.intent.combatTurn, choices } });
+    assert.equal((await send([{ type: 'parley', approach: 'bribe' }])).status, 400, 'unknown approach');
+    assert.equal((await send([{ type: 'parley', approach: 'persuade', targetEnemyId: '00000000-0000-4000-8000-000000000098' }])).status, 400, 'an enemy the hero cannot see');
+    assert.equal((await send([{ type: 'improvise', text: '   ' }])).status, 400);
+    assert.equal((await send([{ type: 'improvise', text: 'x'.repeat(301) }])).status, 400);
+    assert.equal((await send([{ type: 'flee', direction: 'north' }])).status, 400, 'no unvalidated fields ride along');
+    assert.equal((await send([{ type: 'parley', approach: 'persuade' }, { type: 'flee' }])).status, 400, 'both need the action');
+    assert.equal(f.db.prepare('SELECT COUNT(*) AS n FROM campaign_messages').get().n, 0);
+    assert.equal(f.campaigns.getFloor('c1').mode, 'initiative', 'refused plans never hold the turn');
+    const response = await send([{ type: 'parley', approach: 'intimidate', targetEnemyId: enemyId }, { type: 'action', action: 'disengage', cunningAction: true }]);
+    assert.equal(response.status, 202, await response.clone().text());
+    const { content } = f.db.prepare('SELECT content FROM campaign_messages').get();
+    assert.match(content, /1\. Переговоры \(запугать\); цель: Гоблин-вожак; заявка мастеру; исход решают правила и броски/);
+    assert.match(content, /2\. Хитрое действие: Отход/);
+    assert.equal(f.campaigns.getFloor('c1').mode, 'hold', 'the DM resolves it like any other submitted turn');
   } finally { f.close(); }
 });
 

@@ -23,7 +23,7 @@ import { fightOf } from "@/lib/dm/team-round";
 import { withFight } from "@/lib/spatial/publication-scope.mjs";
 import { activePublicEncounter } from "@/lib/db/encounter-view";
 import { attacksAllowedFor, budgetFor } from "@/lib/dm/action-tools";
-import { combatSpellNames, validateCombatTurnIntent, type CombatSpellDescriptor } from "@/lib/dm/combat-turn-intent";
+import { combatSpellNames, PARLEY_APPROACHES, validateCombatTurnIntent, type CombatSpellDescriptor } from "@/lib/dm/combat-turn-intent";
 import { findSpellByName, spellMechanicsFor } from "@/lib/content";
 import { authoredSpellRow } from "@/lib/srd/spell-mechanics";
 import type { CharacterSheet } from "@/lib/schemas/sheet";
@@ -81,6 +81,9 @@ const actionSchema = z.object({
       z.object({ type: z.literal("feature"), feature: z.string().trim().min(1).max(120), targetId: z.string().uuid().optional() }),
       z.object({ type: z.literal("resource"), resource: z.string().trim().min(1).max(80), targetCharacterId: z.string().uuid().optional() }),
       z.object({ type: z.literal("item"), item: z.string().trim().min(1).max(80), targetCharacterId: z.string().uuid() }),
+      z.object({ type: z.literal("parley"), approach: z.enum(PARLEY_APPROACHES), targetEnemyId: z.string().uuid().optional() }).strict(),
+      z.object({ type: z.literal("flee") }).strict(),
+      z.object({ type: z.literal("improvise"), text: z.string().trim().min(1).max(300) }).strict(),
     ])).max(12),
   }).strict().refine(value => !value.description || value.choices.length > 0, "Choose an action before adding a description.").optional(),
 }).strict()

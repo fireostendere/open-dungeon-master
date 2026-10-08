@@ -33,12 +33,16 @@ try {
   const sidePanelWidth = await page.locator('#side-panel-content').evaluate(element => element.parentElement.getBoundingClientRect().width);
   assert.ok(sidePanelWidth < 1440 * 0.8, `Desktop battle panel should not fill the viewport (${sidePanelWidth}px).`);
   assert.equal(await page.getByRole('button', { name: 'Речь', exact: true }).count(), 0);
-  const actionPicker = page.getByRole('combobox', { name: 'Выберите действие', exact: true });
+  const tab = name => hud.getByRole('group', { name: 'Что делать', exact: true }).getByRole('button', { name, exact: true });
+  const tile = name => hud.getByRole('button', { name, exact: true });
+  const longsword = hud.getByRole('button', { name: /^(Длинный меч|Longsword)$/ });
+  const targets = hud.getByRole('button', { name: /^Цель: / });
   const description = page.getByRole('textbox', { name: 'Описание хода (необязательно)', exact: true });
   assert.equal(await description.count(), 0, 'description appears only after choosing an action');
-  const availableActions = await actionPicker.locator('option').allTextContents();
-  assert.ok(availableActions.some(option => option.includes('Атака: Longsword')));
-  assert.equal(availableActions.some(option => option.includes('Cunning Action')), false, 'unowned actions are not offered');
+  await tab('Атака').click();
+  assert.equal(await longsword.count(), 1, 'the sheet weapon is offered as an attack');
+  await tab('Действия').click();
+  assert.equal(await hud.getByRole('button', { name: /хитрое/ }).count(), 0, 'unowned actions are not offered');
   // Inspect a real browser submission without committing the fixture turn.
   // Rejected submissions retain the draft; the final scenario below uses the API.
   const captured = [];
@@ -48,7 +52,7 @@ try {
     captured.push(route.request().postDataJSON());
     await route.fulfill({ status: 400, contentType: 'application/json', body: JSON.stringify({ error: 'Local draft inspection' }) });
   });
-  const plan = page.getByRole('region', { name: 'Выбрано', exact: true });
+  const plan = page.getByRole('region', { name: 'План хода', exact: true });
   const sendDraft = async expectedAction => {
     await page.getByRole('button', { name: 'Отправить ход', exact: true }).click();
     const confirmation = page.getByRole('dialog');
@@ -59,45 +63,58 @@ try {
     await response;
     await page.getByRole('button', { name: 'Отправить ход', exact: true }).waitFor();
   };
-  await actionPicker.selectOption('resource:second_wind');
-  assert.equal(await page.getByRole('button', { name: 'Добавить в план', exact: true }).isEnabled(), true);
-  await page.getByRole('button', { name: 'Добавить в план', exact: true }).click();
-  assert.equal(await plan.getByRole('listitem').count(), 1, 'a completed ability is added only after confirmation');
+  await hud.getByRole('button', { name: /^Второе дыхание/ }).click();
+  assert.equal(await plan.getByRole('listitem').count(), 1, 'a self-only ability joins the plan in one tap');
   await plan.getByRole('button', { name: 'Убрать действие 1', exact: true }).click();
-  await actionPicker.selectOption('attack:Longsword');
-  assert.equal(await page.getByRole('button', { name: 'Добавить в план', exact: true }).isDisabled(), true, 'an attack cannot be added before a target is chosen');
+  await tab('Атака').click();
+  await longsword.click();
+  assert.equal(await plan.getByRole('listitem').count(), 0, 'an attack waits for its target');
   assert.equal(await page.getByRole('button', { name: 'Отправить ход', exact: true }).count(), 0, 'an incomplete selection blocks turn submission');
   assert.equal(await hud.getByRole('button', { name: 'Пропустить ход', exact: true }).count(), 0, 'an incomplete selection cannot be bypassed by skipping the turn');
-  await page.getByRole('combobox', { name: 'Выберите цель', exact: true }).selectOption({ index: 1 });
-  await page.getByRole('button', { name: 'Добавить в план', exact: true }).click();
+  await targets.first().click();
   assert.equal(await description.count(), 1, 'description is available after choosing an action');
-  await sendDraft('Атака: Longsword → Dummy');
+  await sendDraft('Атака: (Longsword|Длинный меч) → Dummy');
   assert.equal(captured[0].combatTurn.choices.length, 1);
   assert.equal(captured[0].combatTurn.choices[0].type, 'attack');
   assert.equal(Object.hasOwn(captured[0].combatTurn, 'prose'), false, 'combat turns carry no free-form action text');
   assert.equal(Object.hasOwn(captured[0].combatTurn, 'description'), false, 'description is optional');
-  assert.match(await plan.innerText(), /Атака: Longsword/);
+  assert.match(await plan.innerText(), /Атака: (Longsword|Длинный меч)/);
   await plan.getByRole('button', { name: 'Убрать действие 1', exact: true }).click();
   assert.equal(JSON.stringify(captured[0]).includes('second_wind'), false, 'inspected ability is not silently attached to an attack');
   await page.unroute(actionsRoute);
-  await actionPicker.selectOption('maneuver:dash');
-  await page.getByRole('button', { name: 'Добавить в план', exact: true }).click();
-  assert.equal((await actionPicker.locator('option').allTextContents()).some(option => option.includes('Отход')), false, 'unavailable maneuvers are hidden after spending the action');
+  await tab('Действия').click();
+  await tile('Рывок').click();
+  assert.equal(await tile('Отход').isDisabled(), true, 'actions needing the spent action are disabled');
+  assert.equal(await tile('Сбежать').isDisabled(), true, 'fleeing needs the action too');
   await page.getByRole('button', { name: 'Убрать действие 1', exact: true }).click();
-  await actionPicker.selectOption('maneuver:grapple');
-  assert.equal(await page.getByRole('combobox', { name: 'Выберите цель', exact: true }).count(), 1, 'grapple asks only for an enemy');
-  await page.getByRole('combobox', { name: 'Выберите цель', exact: true }).selectOption({ index: 1 });
-  await page.getByRole('button', { name: 'Добавить в план', exact: true }).click();
+  await tile('Захватить').click();
+  assert.ok(await targets.count() > 0, 'grapple asks for an enemy');
+  await targets.first().click();
   assert.equal(await plan.getByRole('listitem').count(), 1);
   await page.getByRole('button', { name: 'Убрать действие 1', exact: true }).click();
-  const helpOption = actionPicker.locator('option[value="maneuver:help"]');
-  if (await helpOption.count()) {
-    await actionPicker.selectOption('maneuver:help');
-    assert.equal(await page.getByRole('combobox', { name: 'Выберите цель', exact: true }).count(), 1, 'Help asks only for an ally');
-    await page.getByRole('combobox', { name: 'Выберите цель', exact: true }).selectOption({ index: 1 });
-    await page.getByRole('button', { name: 'Добавить в план', exact: true }).click();
+  if (await tile('Помочь союзнику').count()) {
+    await tile('Помочь союзнику').click();
+    assert.ok(await targets.count() > 0, 'Help asks for an ally');
+    await targets.first().click();
     await page.getByRole('button', { name: 'Убрать действие 1', exact: true }).click();
   }
+  // Talking, running and anything improvised: requests for the DM, each paid with the action.
+  await tile('Договориться').click();
+  await tile('Запугать').click();
+  await tile('С кем: Со всеми').click();
+  assert.match(await plan.innerText(), /Переговоры \(запугать\) → все враги/);
+  await tab('Атака').click();
+  assert.equal(await longsword.isDisabled(), true, 'a parley spends the action an attack needs');
+  await tab('Действия').click();
+  await page.getByRole('button', { name: 'Убрать действие 1', exact: true }).click();
+  await tile('Сбежать').click();
+  assert.match(await plan.innerText(), /Бегство с поля боя/);
+  await page.getByRole('button', { name: 'Убрать действие 1', exact: true }).click();
+  await tile('Своё действие').click();
+  await hud.getByRole('textbox', { name: 'Что делает персонаж?', exact: true }).fill('Рублю верёвку люстры над врагом');
+  await tile('Добавить в план').click();
+  assert.match(await plan.innerText(), /Своё действие: Рублю верёвку люстры над врагом/);
+  await page.getByRole('button', { name: 'Убрать действие 1', exact: true }).click();
   await hud.getByRole('button', { name: 'Пропустить ход', exact: true }).click();
   const skipConfirmation = page.getByRole('dialog');
   await skipConfirmation.waitFor();
@@ -105,16 +122,15 @@ try {
   await skipConfirmation.getByRole('button', { name: 'Редактировать', exact: true }).click();
   await skipConfirmation.waitFor({ state: 'hidden' });
   if (process.env.ODM_E2E_PET_NAME) {
-    await actionPicker.selectOption(`pet:${process.env.ODM_E2E_PET_NAME}`);
+    await tab('Питомцы').click();
     const pets = hud.getByRole('region', { name: 'Питомцы в бою', exact: true });
     await pets.waitFor({ timeout: 10000 });
     assert.equal(await pets.count(), 1, 'pet commands are nested in the hero action tree');
-    const petTarget = pets.getByRole('combobox', { name: `Цель питомца: ${process.env.ODM_E2E_PET_NAME}`, exact: true });
-    assert.equal(await petTarget.inputValue(), '', 'pet target is independent of the hero attack target');
-    const bite = pets.getByRole('button', { name: `Приказать ${process.env.ODM_E2E_PET_NAME}: Bite`, exact: true });
-    assert.equal(await bite.isDisabled(), true);
-    await petTarget.selectOption({ index: 1 });
-    await bite.click();
+    const petTargets = pets.getByRole('button', { name: new RegExp(`^Цель питомца: ${process.env.ODM_E2E_PET_NAME}: `) });
+    assert.equal(await petTargets.count(), 0, 'pet target is independent of the hero attack target');
+    await pets.getByRole('button', { name: `Приказать ${process.env.ODM_E2E_PET_NAME}: Bite`, exact: true }).click();
+    assert.equal(await plan.getByRole('listitem').count(), 0, 'a pet attack waits for its target');
+    await petTargets.first().click();
     assert.equal(await plan.getByRole('listitem').count(), 1, 'a complete pet attack enters the shared plan');
     await page.getByRole('button', { name: 'Убрать действие 1', exact: true }).click();
   }
@@ -135,11 +151,11 @@ try {
     assert.equal(await pets.getByRole('button', { name: 'Приказать Buddy: Bite', exact: true }).isDisabled(), true, 'own pet waits for the owner turn');
     await other.close();
   }
-  await actionPicker.selectOption('attack:Longsword');
-  await page.getByRole('combobox', { name: 'Выберите цель', exact: true }).selectOption({ index: 1 });
-  await page.getByRole('button', { name: 'Добавить в план', exact: true }).click();
-  await actionPicker.selectOption('resource:second_wind');
-  await page.getByRole('button', { name: 'Добавить в план', exact: true }).click();
+  await tab('Атака').click();
+  await longsword.click();
+  await targets.first().click();
+  await tab('Действия').click();
+  await hud.getByRole('button', { name: /^Второе дыхание/ }).click();
   await description.fill('Держитесь! Прикрываю отряд.');
   await page.screenshot({ path: '/tmp/opencode/odm-combat-desktop.png', fullPage: true });
   await page.getByRole('button', { name: 'Вне игры', exact: true }).click();
@@ -157,7 +173,7 @@ try {
   const [editRect, sendRect] = await chatConfirmation.getByRole('button', { name: 'Редактировать', exact: true }).evaluate(element => [element.getBoundingClientRect().toJSON(), element.nextElementSibling.getBoundingClientRect().toJSON()]);
   assert.ok(Math.abs(editRect.y - sendRect.y) < 1 && sendRect.x > editRect.x, `mobile confirmation actions stay side by side: edit=${JSON.stringify(editRect)}, send=${JSON.stringify(sendRect)}`);
   const chatConfirmationText = await chatConfirmation.innerText();
-  assert.match(chatConfirmationText, /Атака: Longsword → Dummy/);
+  assert.match(chatConfirmationText, /Атака: (Longsword|Длинный меч) → Dummy/);
   assert.match(chatConfirmationText, /Второе дыхание/);
   assert.match(chatConfirmationText, /Держитесь! Прикрываю отряд\./);
   const response = page.waitForResponse(result => result.url().endsWith('/actions') && result.request().method() === 'POST');
@@ -174,7 +190,7 @@ try {
   await page.getByRole('button', { name: 'Вне игры', exact: true }).click();
   assert.equal(await page.locator('[data-tour="composer-input"] textarea').isEditable(), true);
   assert.deepEqual(errors, []);
-  console.log('PASS combat HUD: available-action wizard, required targets, incomplete-submit blocking, pet commands, desktop/mobile, OOC and processing lock.');
+  console.log('PASS combat HUD: action tabs, target chips, parley/flee/own action, incomplete-submit blocking, pet commands, desktop/mobile, OOC and processing lock.');
 } finally {
   await browser.close();
 }

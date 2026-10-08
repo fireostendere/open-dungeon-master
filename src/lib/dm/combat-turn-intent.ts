@@ -22,7 +22,19 @@ export type CombatChoice =
   | { type: "spell"; spell: string; slotLevel?: number; targetId: string }
   | { type: "feature"; feature: string; targetId?: string }
   | { type: "resource"; resource: string; targetCharacterId?: string }
-  | { type: "item"; item: string; targetCharacterId: string };
+  | { type: "item"; item: string; targetCharacterId: string }
+  // Requests the DM adjudicates with engine rolls (talk, run, anything
+  // improvised); each spends the action.
+  | { type: "parley"; approach: ParleyApproach; targetEnemyId?: string }
+  | { type: "flee" }
+  | { type: "improvise"; text: string };
+
+export const PARLEY_APPROACHES = ["persuade", "intimidate", "deceive"] as const;
+export type ParleyApproach = (typeof PARLEY_APPROACHES)[number];
+const PARLEY_LABELS = {
+  ru: { persuade: "убедить", intimidate: "запугать", deceive: "обмануть" },
+  en: { persuade: "persuade", intimidate: "intimidate", deceive: "deceive" },
+};
 
 export type CombatTurnIntent = {
   encounterId: string;
@@ -32,10 +44,19 @@ export type CombatTurnIntent = {
   description?: string;
 };
 
-export function combatChoiceLabel(choice: CombatChoice, language: "ru" | "en", names: ReadonlyMap<string, string> = new Map()): string {
+export function combatChoiceLabel(
+  choice: CombatChoice,
+  language: "ru" | "en",
+  names: ReadonlyMap<string, string> = new Map(),
+  // Display names for weapons, items and spells (the sheet stores SRD names).
+  localize: (kind: "item" | "spell", name: string) => string = (_kind, name) => name,
+): string {
   const ru = language === "ru";
   const target = (id?: string) => id ? ` → ${names.get(id) ?? (ru ? "цель" : "target")}` : "";
-  if (choice.type === "attack") return `${ru ? "Атака" : "Attack"}: ${choice.weapon === "Unarmed strike" && ru ? "Безоружный удар" : choice.weapon}${target(choice.targetEnemyId ?? choice.targetCharacterId)}${choice.sneakAttack ? (ru ? " · Скрытая атака" : " · Sneak Attack") : ""}`;
+  if (choice.type === "parley") return `${ru ? "Переговоры" : "Parley"} (${PARLEY_LABELS[language][choice.approach]})${choice.targetEnemyId ? target(choice.targetEnemyId) : ru ? " → все враги" : " → all enemies"}`;
+  if (choice.type === "flee") return ru ? "Бегство с поля боя" : "Flee the fight";
+  if (choice.type === "improvise") return `${ru ? "Своё действие" : "Own action"}: ${choice.text}`;
+  if (choice.type === "attack") return `${ru ? "Атака" : "Attack"}: ${choice.weapon === "Unarmed strike" && ru ? "Безоружный удар" : localize("item", choice.weapon)}${target(choice.targetEnemyId ?? choice.targetCharacterId)}${choice.sneakAttack ? (ru ? " · Скрытая атака" : " · Sneak Attack") : ""}`;
   if (choice.type === "dodge") return ru ? "Защита: уклонение" : "Defence: Dodge";
   if (choice.type === "action") {
     const labels = ru
@@ -44,7 +65,7 @@ export function combatChoiceLabel(choice: CombatChoice, language: "ru" | "en", n
     const prefix = choice.cunningAction ? (ru ? "Хитрое действие: " : "Cunning Action: ") : "";
     return `${prefix}${labels[choice.action]}${target(choice.targetEnemyId ?? choice.targetCharacterId)}`;
   }
-  if (choice.type === "spell") return `${ru ? "Заклинание" : "Spell"}: ${choice.spell}${choice.slotLevel ? ` (${ru ? "ячейка" : "slot"} ${choice.slotLevel})` : ""}${target(choice.targetId)}`;
+  if (choice.type === "spell") return `${ru ? "Заклинание" : "Spell"}: ${localize("spell", choice.spell)}${choice.slotLevel ? ` (${ru ? "ячейка" : "slot"} ${choice.slotLevel})` : ""}${target(choice.targetId)}`;
   if (choice.type === "feature") return `${choice.feature}${target(choice.targetId)}`;
   if (choice.type === "resource") {
     const labels: Record<string, string> = ru
@@ -52,7 +73,7 @@ export function combatChoiceLabel(choice: CombatChoice, language: "ru" | "en", n
       : { second_wind: "Second Wind", rage: "Rage", bardic_inspiration: "Bardic Inspiration", lay_on_hands: "Lay on Hands" };
     return `${labels[choice.resource] ?? choice.resource}${target(choice.targetCharacterId)}`;
   }
-  if (choice.type === "item") return `${ru ? "Предмет" : "Item"}: ${choice.item}${target(choice.targetCharacterId)}`;
+  if (choice.type === "item") return `${ru ? "Предмет" : "Item"}: ${localize("item", choice.item)}${target(choice.targetCharacterId)}`;
   if (choice.type === "pet") return `${choice.petName}: ${choice.attack}${target(choice.targetEnemyId)}`;
   return `${ru ? "Приказ" : "Order"}: ${choice.petName} — ${choice.order}`;
 }
@@ -145,6 +166,7 @@ export function validateCombatTurnIntent(
   let sneakAttackUsed = budget.oncePerTurn.includes("sneak_attack");
   const ru = presentation?.language === "ru";
   const adjudication = ru ? "заявка мастеру; стоимость и эффект определяются правилами" : "request for DM adjudication; rules determine cost and effect";
+  const ruling = ru ? "заявка мастеру; исход решают правила и броски" : "request for DM adjudication; rules and rolls decide the outcome";
   const copy = presentation?.language === "ru"
     ? { turn: "Боевой ход", attack: "Атака", dodge: "Защита: уклонение", resource: "Способность", item: "Предмет", target: "цель", end: "Завершаю ход после разрешения указанных действий." }
     : { turn: "Combat turn", attack: "Attack", dodge: "Defence: Dodge", resource: "Ability", item: "Item", target: "target", end: "End my turn after resolving the declared actions." };
@@ -222,6 +244,27 @@ export function validateCombatTurnIntent(
       const labels = { dash: "Рывок", disengage: "Отход", hide: "Скрыться", help: "Помощь", grapple: "Захват", shove: "Толчок" };
       const prefix = choice.cunningAction ? (ru ? "Хитрое действие: " : "Cunning Action: ") : "";
       selections.push(`${prefix}${presentation?.language === "ru" ? labels[choice.action] : choice.action}${choice.targetEnemyId || choice.targetCharacterId ? `; ${copy.target}: ${name(choice.targetEnemyId ?? choice.targetCharacterId!)}` : ""}`);
+    } else if (choice.type === "parley") {
+      if (!PARLEY_APPROACHES.includes(choice.approach) || !visibleEnemyIds.size || (choice.targetEnemyId !== undefined && !visibleEnemyIds.has(choice.targetEnemyId))) {
+        return { ok: false, error: "Choose how to talk and a visible enemy, or address them all." };
+      }
+      const spent = spendAction(next, "action", "a parley", sheet.name);
+      if (!spent.ok) return spent;
+      next = spent.budget;
+      selections.push(`${ru ? "Переговоры" : "Parley"} (${PARLEY_LABELS[ru ? "ru" : "en"][choice.approach]}); ${copy.target}: ${choice.targetEnemyId ? name(choice.targetEnemyId) : ru ? "все враги" : "all enemies"}; ${ruling}`);
+    } else if (choice.type === "flee") {
+      // Running for it is a Dash or Disengage, so Haste's extra action can pay.
+      const spent = spendAction(next, "action", "fleeing", sheet.name, true);
+      if (!spent.ok) return spent;
+      next = spent.budget;
+      selections.push(`${ru ? "Бегство с поля боя" : "Flee the fight"}; ${ruling}`);
+    } else if (choice.type === "improvise") {
+      const text = typeof choice.text === "string" ? choice.text.trim() : "";
+      if (!text || text.length > 300) return { ok: false, error: "Describe your own action in 1–300 characters." };
+      const spent = spendAction(next, "action", "an improvised action", sheet.name);
+      if (!spent.ok) return spent;
+      next = spent.budget;
+      selections.push(`${ru ? "Своё действие" : "Own action"}: ${text}; ${ruling}`);
     } else if (choice.type === "resource") {
       const state = Object.hasOwn(sheet.resources, choice.resource) ? sheet.resources[choice.resource] : undefined;
       const action = Object.hasOwn(RESOURCE_ACTIONS, choice.resource) ? RESOURCE_ACTIONS[choice.resource] : undefined;

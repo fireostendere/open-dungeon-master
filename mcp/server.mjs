@@ -441,6 +441,13 @@ mechanical action. Clarify contradictions rather than invent steps. Copy
 action.cunningAction as take_action.cunningAction:true, attach attack.sneakAttack to
 that pc_attack, and resolve the declared list in one combat_turn call. A completed
 receipt already ended initiative; an argument refusal is not a fictional miss.
+parley, flee and improvise choices are not combat_turn steps but requests you
+adjudicate; their action is already paid. Call the check with request_roll (parley:
+Persuasion/Intimidation/Deception by approach; flee: Athletics or Acrobatics against
+the pursuit). A parley that works: end_encounter outcome truce, or enemy_flees for
+those who yield. A hero who gets away: move_party with characterIds; the last hero
+in the fight: end_encounter outcome party_fled first. A fight that ends drops the
+rest of the plan; otherwise hand the turn over.
 Browsing a dropdown never declares a feature. Only queued actions or clear prose
 authorize optional abilities/resources; queued actions have application priority.
 Free-text-only intent, including YOLO slang, is valid without exact ability names.
