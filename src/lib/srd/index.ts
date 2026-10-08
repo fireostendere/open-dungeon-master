@@ -6,7 +6,8 @@ import spellSlotsJson from "@/lib/srd/spell-slots.json";
 import { CUSTOM_CLASSES } from "@/lib/classes";
 import { computeArmorClass, matchArmor, unarmoredFormulaFor, type AcBreakdown } from "@/lib/srd/armor";
 import { conditionAcRiders } from "@/lib/srd/condition-effects";
-import { combatRiders, defenseRiders, halfProficiencyCovers } from "@/lib/srd/feature-effects";
+import { combatRiders, defenseRiders, halfProficiencyCovers, hasFeat } from "@/lib/srd/feature-effects";
+import { matchWeapon, type SrdWeapon } from "@/lib/srd/weapons";
 import { effectiveAbilities, magicItemRiders } from "@/lib/srd/magic-items";
 import { encumbranceFor } from "@/lib/srd/encumbrance";
 import { allSpellNames } from "@/lib/srd/spell-lists";
@@ -174,7 +175,42 @@ export type AcSource = {
   conditions?: string[];
   // Extra flat adds on top of whatever the feature table already grants.
   bonus?: number;
+  // Feats by name: Dual Wielder's +1 reads them.
+  feats?: string[];
 };
+
+type HeldItem = {
+  name: string;
+  qty?: number;
+  equipped?: boolean;
+  gear?: { weapon?: unknown; armor?: { category?: string } };
+};
+
+// Dual Wielder: +1 AC while a separate melee weapon is held in each hand.
+// Held reads like the attack engine: the items marked equipped once any is,
+// else every carried item (legacy sheets). A shield or a two-handed weapon
+// in hand rules the pair out.
+export function wieldsTwoMeleeWeapons(equipment: HeldItem[]): boolean {
+  const carried = equipment.filter((item) => (item.qty ?? 1) > 0 && item.equipped !== false);
+  const held = carried.some((item) => item.equipped === true)
+    ? carried.filter((item) => item.equipped === true)
+    : carried;
+  let hands = 0;
+  for (const item of held) {
+    if ((item.gear?.armor?.category ?? matchArmor(item.name)?.category) === "shield") {
+      return false;
+    }
+    const weapon = (item.gear?.weapon as SrdWeapon | undefined) ?? matchWeapon(item.name);
+    if (!weapon || weapon.kind !== "melee") {
+      continue;
+    }
+    if (weapon.properties?.includes("two-handed")) {
+      return false;
+    }
+    hands += Math.max(1, item.qty ?? 1);
+  }
+  return hands >= 2;
+}
 
 // The character's armor class and how it was arrived at. The single place
 // AC is computed: db/sheets.ts writes it on every patch, the builder shows
@@ -249,8 +285,13 @@ export function acBreakdownFor(source: AcSource): AcBreakdown {
   // Bracers of Defense: only while wearing no armor and no shield.
   const unarmoredBonus =
     !armored && !resolved.shieldName ? magic.acUnarmoredBonus : 0;
+  const dualWielder =
+    hasFeat({ features: source.features, feats: source.feats }, "dual wielder") &&
+    wieldsTwoMeleeWeapons(source.equipment as HeldItem[])
+      ? 1
+      : 0;
   const bonus =
-    featureBonus + magic.acBonus + unarmoredBonus + conditionAc.bonus + (source.bonus ?? 0);
+    featureBonus + magic.acBonus + unarmoredBonus + conditionAc.bonus + dualWielder + (source.bonus ?? 0);
   let final = bonus ? computeArmorClass({ ...chosenInput, bonus }) : resolved;
   // Barkskin: the AC never sits below the floor while the condition holds.
   if (conditionAc.floor && final.ac < conditionAc.floor) {

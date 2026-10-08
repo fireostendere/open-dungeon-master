@@ -8,10 +8,12 @@ import { Tooltip } from "@/components/ui/Tooltip";
 import { combatChoiceDescriptors, combatChoiceLabel, combatIntentBudget, combatSpellSlots, PARLEY_APPROACHES, validateCombatTurnIntent, type CombatChoice, type CombatSpellDescriptor, type CombatTurnIntent, type ParleyApproach } from "@/lib/dm/combat-turn-intent";
 import { freshBudget } from "@/lib/dm/action-budget";
 import { localizedContentName } from "@/lib/help";
+import { matchWeapon, type SrdWeapon } from "@/lib/srd/weapons";
+import type { BonusAttackKind } from "@/lib/dm/bonus-attacks";
 import { iconCandidates, type IconRef } from "@/lib/icons";
 import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/cn";
-import { combatRiders, hasCunningAction } from "@/lib/srd/feature-effects";
+import { combatRiders, hasCunningAction, hasFeat, isPoleStrikeWeapon } from "@/lib/srd/feature-effects";
 import { conditionExtraActions } from "@/lib/srd/condition-effects";
 import type { PublicEncounter } from "@/lib/db/encounter-view";
 import type { CharacterSheet } from "@/lib/schemas/sheet";
@@ -21,7 +23,12 @@ const COPY = {
     title: "Конструктор боевого хода", turn: "Ход", round: "Раунд", budget: "Осталось в этом ходу",
     action: "Действие", bonus: "Бонусное", attacks: "Атаки", extra: "Доп. действие",
     groups: "Что делать", tabs: { attack: "Атака", action: "Действия", magic: "Магия", pet: "Питомцы" },
-    sections: { maneuver: "Приёмы", ability: "Умения", item: "Предметы" }, cunningBadge: "хитрое",
+    sections: { weapon: "Действие «Атака»", bonus: "Бонусным действием", maneuver: "Приёмы", ability: "Умения", item: "Предметы" }, cunningBadge: "хитрое",
+    offHand: "Вторая рука", poleStrike: "Удар древком", crossbow: "Ручной арбалет", gwm: "Добивающий удар", nearest: "Ближайший",
+    bonusHint: "Сначала атакуйте действием «Атака», потом добавьте удар бонусом.",
+    gwmHint: "Мастер большого оружия: сработает, только если в этот ход будет крит или убийство в ближнем бою; иначе ничего не тратится.",
+    power: "−5 к попаданию, +10 к урону", powerGwm: "Мастер большого оружия", powerSs: "Меткий стрелок",
+    lucky: "Удача: лишний к20, берётся лучший", luckLeft: "осталось",
     dodge: "Уклонение", dash: "Рывок", disengage: "Отход", hide: "Скрыться", help: "Помочь союзнику", grapple: "Захватить", shove: "Сбить с ног",
     cunning: "Хитрое действие", unarmed: "Безоружный удар", bonusBadge: "бонус", cantrip: "заговор", level: "ур.", noSlots: "нет ячеек",
     other: "Другой путь", parley: "Договориться", flee: "Сбежать", improvise: "Своё действие",
@@ -44,7 +51,12 @@ const COPY = {
     title: "Combat turn builder", turn: "Turn", round: "Round", budget: "Left this turn",
     action: "Action", bonus: "Bonus", attacks: "Attacks", extra: "Extra action",
     groups: "What to do", tabs: { attack: "Attack", action: "Actions", magic: "Magic", pet: "Pets" },
-    sections: { maneuver: "Maneuvers", ability: "Abilities", item: "Items" }, cunningBadge: "cunning",
+    sections: { weapon: "Attack action", bonus: "As a bonus action", maneuver: "Maneuvers", ability: "Abilities", item: "Items" }, cunningBadge: "cunning",
+    offHand: "Off-hand", poleStrike: "Butt strike", crossbow: "Hand crossbow", gwm: "Follow-up swing", nearest: "Nearest",
+    bonusHint: "Attack with the Attack action first, then add the bonus swing.",
+    gwmHint: "Great Weapon Master: only happens after a melee critical hit or kill this turn; otherwise nothing is spent.",
+    power: "-5 to hit, +10 damage", powerGwm: "Great Weapon Master", powerSs: "Sharpshooter",
+    lucky: "Lucky: an extra d20, the best counts", luckLeft: "left",
     dodge: "Dodge", dash: "Dash", disengage: "Disengage", hide: "Hide", help: "Help an ally", grapple: "Grapple", shove: "Shove prone",
     cunning: "Cunning Action", unarmed: "Unarmed strike", bonusBadge: "bonus", cantrip: "cantrip", level: "lvl", noSlots: "no slots",
     other: "Another way", parley: "Parley", flee: "Flee", improvise: "Own action",
@@ -67,7 +79,7 @@ const COPY = {
 
 type Group = "attack" | "magic" | "action" | "pet";
 // The Actions tab keeps its tiles in these runs, headed when there are several.
-type Section = "maneuver" | "ability" | "item";
+type Section = "weapon" | "bonus" | "maneuver" | "ability" | "item";
 type Target = { id: string; name: string; foe: boolean };
 // One button in the grid. It either queues its choice at once, or opens the
 // picker below to finish it: target chips (the last tap queues), a spell's
@@ -85,6 +97,9 @@ type Tile = {
   targets?: Target[];
   make?: (targetId: string) => CombatChoice;
   spell?: CombatSpellDescriptor;
+  // Weapon attacks: the weapon, and which bonus-action swing this is.
+  weapon?: string;
+  bonusKind?: BonusAttackKind;
 };
 
 const GROUP_ICONS: Record<Group, IconRef> = {
@@ -131,6 +146,8 @@ export function CombatTurnHud({
   const [selectedKey, setSelectedKey] = useState("");
   const [slotLevel, setSlotLevel] = useState<number | null>(null);
   const [sneakAttack, setSneakAttack] = useState(false);
+  const [powerAttack, setPowerAttack] = useState(false);
+  const [luckyRoll, setLuckyRoll] = useState(false);
   const [approach, setApproach] = useState<ParleyApproach>("persuade");
   const [improvised, setImprovised] = useState("");
   const [rejected, setRejected] = useState(false);
@@ -170,15 +187,58 @@ export function CombatTurnHud({
 
   const tiles: Tile[] = [];
   const sneakOpen = combatRiders(sheet).sneakAttackDice > 0 && !budget.oncePerTurn.includes("sneak_attack") && !choices.some((choice) => choice.type === "attack" && choice.sneakAttack);
-  for (const weapon of descriptors.filter((entry) => entry.type === "weapon")) {
-    if (!attackTargets.length) break;
-    const unarmed = weapon.name === "Unarmed strike";
+  // Feat options a swing can carry: the -5/+10 trade and a luck point.
+  const srdOf = (weapon: string) =>
+    (sheet.equipment.find((item) => item.name === weapon)?.gear?.weapon as SrdWeapon | undefined) ?? matchWeapon(weapon);
+  const powerFeat = (weapon: string) => {
+    const srd = srdOf(weapon);
+    return srd?.kind === "melee" && srd.properties?.includes("heavy") && hasFeat(sheet, "great weapon master") ? copy.powerGwm
+      : srd?.kind === "ranged" && hasFeat(sheet, "sharpshooter") ? copy.powerSs
+      : null;
+  };
+  const luck = sheet.resources.luck_points;
+  const luckLeft = luck ? luck.max - luck.used - choices.filter((choice) => choice.type === "attack" && choice.lucky).length : 0;
+  const withRiders = (choice: CombatChoice & { type: "attack" }): CombatChoice => ({
+    ...choice,
+    ...(sneakAttack && sneakOpen ? { sneakAttack: true } : {}),
+    ...(powerAttack && powerFeat(choice.weapon) ? { powerAttack: true } : {}),
+    ...(luckyRoll && luckLeft > 0 ? { lucky: true } : {}),
+  });
+  const weaponIcon = (weapon: string): IconRef => weapon === "Unarmed strike"
+    ? { kind: "glyph", key: "ability-str" }
+    : { kind: "item", key: weapon, family: "item-weapon" };
+  const weaponNames = descriptors.flatMap((entry) => (entry.type === "weapon" ? [entry.name] : []));
+  for (const weapon of attackTargets.length ? weaponNames : []) {
     tiles.push({
-      key: `attack:${weapon.name}`, group: "attack", label: unarmed ? copy.unarmed : contentName("item", weapon.name),
-      icon: unarmed ? { kind: "glyph", key: "ability-str" } : { kind: "item", key: weapon.name, family: "item-weapon" },
-      targets: attackTargets, make: (id) => ({ ...attackChoice(id, weapon.name), ...(sneakAttack && sneakOpen ? { sneakAttack: true } : {}) }),
-      ready: attackTargets.some((target) => canQueue(attackChoice(target.id, weapon.name))),
+      key: `attack:${weapon}`, group: "attack", section: "weapon", weapon,
+      label: weapon === "Unarmed strike" ? copy.unarmed : contentName("item", weapon), icon: weaponIcon(weapon),
+      targets: attackTargets, make: (id) => withRiders(attackChoice(id, weapon) as CombatChoice & { type: "attack" }),
+      ready: attackTargets.some((target) => canQueue(attackChoice(target.id, weapon))),
     });
+  }
+  // The bonus-action swings the character's weapons and feats allow; each
+  // lights up once an Attack-action swing they can follow is in the plan.
+  const bonusTile = (kind: BonusAttackKind, weapon: string, label: string) => {
+    const open = kind === "great_weapon_master";
+    const base = (id: string): CombatChoice & { type: "attack" } => id
+      ? { ...(attackChoice(id, weapon) as CombatChoice & { type: "attack" }), bonusAttack: kind }
+      : { type: "attack", weapon, bonusAttack: kind };
+    const targets = open ? [{ id: "", name: copy.nearest, foe: true }, ...attackTargets] : attackTargets;
+    tiles.push({
+      key: `bonus:${kind}:${weapon}`, group: "attack", section: "bonus", weapon, bonusKind: kind, bonus: true,
+      label: `${label}: ${contentName("item", weapon)}`, icon: weaponIcon(weapon),
+      targets, make: (id) => withRiders(base(id)),
+      ready: targets.some((target) => canQueue(base(target.id))),
+    });
+  };
+  for (const weapon of attackTargets.length ? weaponNames.filter((name) => name !== "Unarmed strike") : []) {
+    const srd = srdOf(weapon);
+    if (!srd) continue;
+    const oneHandedMelee = srd.kind === "melee" && !srd.properties?.includes("two-handed");
+    if (oneHandedMelee && (srd.properties?.includes("light") || hasFeat(sheet, "dual wielder"))) bonusTile("off_hand", weapon, copy.offHand);
+    if (hasFeat(sheet, "polearm master") && isPoleStrikeWeapon(srd.name)) bonusTile("pole_strike", weapon, copy.poleStrike);
+    if (hasFeat(sheet, "crossbow expert") && srd.name === "Hand Crossbow") bonusTile("crossbow_expert", weapon, copy.crossbow);
+    if (hasFeat(sheet, "great weapon master") && srd.kind === "melee") bonusTile("great_weapon_master", weapon, copy.gwm);
   }
   tiles.push({ key: "dodge", group: "action", section: "maneuver", label: copy.dodge, icon: { kind: "action", key: "dodge" }, choice: { type: "dodge" }, ready: canQueue({ type: "dodge" }) });
   for (const action of MANEUVERS) {
@@ -238,7 +298,7 @@ export function CombatTurnHud({
   const preferred: Group = FULL_CASTER.test(sheet.class) && groups.includes("magic") ? "magic" : "attack";
   const shown = tab && groups.includes(tab) ? tab : groups.includes(preferred) ? preferred : groups[0];
   const selected = tiles.find((tile) => tile.key === selectedKey);
-  const sections = (["", "maneuver", "ability", "item"] as const)
+  const sections = (["", "weapon", "bonus", "maneuver", "ability", "item"] as const)
     .map((section) => [section, tiles.filter((tile) => tile.group === shown && (tile.section ?? "") === section)] as const)
     .filter(([, run]) => run.length);
   const enemiesToTalkTo = foes.length > 0;
@@ -251,7 +311,7 @@ export function CombatTurnHud({
   const slot = slotLevel !== null && spellSlots.some((entry) => entry.level === slotLevel) ? slotLevel : spellSlots[0]?.level;
   const spellChoice = (targetId: string): CombatChoice => ({ type: "spell", spell: selected!.spell!.name, targetId, ...(slot ? { slotLevel: slot } : {}) });
 
-  const reset = () => { setSelectedKey(""); setSlotLevel(null); setSneakAttack(false); setImprovised(""); setRejected(false); };
+  const reset = () => { setSelectedKey(""); setSlotLevel(null); setSneakAttack(false); setPowerAttack(false); setLuckyRoll(false); setImprovised(""); setRejected(false); };
   const queue = (choice: CombatChoice) => {
     if (disabled || !canQueue(choice)) { setRejected(true); return; }
     setChoices([...choices, choice]);
@@ -285,6 +345,15 @@ export function CombatTurnHud({
     {selected.group === "attack" && sneakOpen ? <label className="flex items-start gap-2 text-xs text-amber-200">
       <input type="checkbox" checked={sneakAttack} onChange={(event) => setSneakAttack(event.target.checked)} disabled={disabled} className="mt-0.5" /><span>{copy.sneak}</span>
     </label> : null}
+    {selected.weapon && powerFeat(selected.weapon) ? <label className="flex items-start gap-2 text-xs text-amber-200">
+      <input type="checkbox" checked={powerAttack} onChange={(event) => setPowerAttack(event.target.checked)} disabled={disabled} className="mt-0.5" />
+      <span>{copy.power} ({powerFeat(selected.weapon)})</span>
+    </label> : null}
+    {selected.weapon && luckLeft > 0 ? <label className="flex items-start gap-2 text-xs text-amber-200">
+      <input type="checkbox" checked={luckyRoll} onChange={(event) => setLuckyRoll(event.target.checked)} disabled={disabled} className="mt-0.5" />
+      <span>{copy.lucky} ({copy.luckLeft} {luckLeft})</span>
+    </label> : null}
+    {selected.bonusKind === "great_weapon_master" ? <p className="text-[11px] text-stone-400">{copy.gwmHint}</p> : null}
     {spellSlots.length ? <div>
       <p className="mb-1 text-[11px] text-stone-400">{copy.slot}</p>
       <div className="flex flex-wrap gap-1.5">{spellSlots.map((entry) => <button key={entry.level} type="button" aria-pressed={slot === entry.level} disabled={disabled}
@@ -344,6 +413,7 @@ export function CombatTurnHud({
 
     {shown === "pet" ? <div className="mt-2.5">{petPanel}</div> : sections.map(([section, run]) => <div key={section}>
       {sections.length > 1 ? <p className="mb-1 mt-2.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500">{section ? copy.sections[section] : null}</p> : null}
+      {section === "bonus" && !run.some((tile) => tile.ready) ? <p className="mb-1.5 text-[11px] text-stone-500">{copy.bonusHint}</p> : null}
       <div className={cn("grid grid-cols-2 gap-1.5 @md:grid-cols-3 @2xl:grid-cols-4", sections.length > 1 ? "" : "mt-2.5")}>
       {run.map((tile) => <button key={tile.key} type="button" onClick={() => pick(tile.key, tile.choice)}
         disabled={disabled || !tile.ready} aria-pressed={tile.choice ? undefined : selectedKey === tile.key}

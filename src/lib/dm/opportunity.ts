@@ -15,7 +15,9 @@ import {
   weaponAttackProfile,
 } from "@/lib/dm/attack-logic";
 import { computeSheetDerived, effectiveAcFor, spellAttackFor } from "@/lib/srd";
-import { combatRiders } from "@/lib/srd/feature-effects";
+import { combatRiders, hasFeat, isPoleReachWeapon } from "@/lib/srd/feature-effects";
+import type { CharacterSheet } from "@/lib/schemas/sheet";
+import type { Encounter, EncounterEnemy } from "@/lib/db/encounters";
 import { enemyDamageMath } from "@/lib/dm/encounter-logic";
 import { patchEnemyHp } from "@/lib/db/encounters";
 import { healthState } from "@/lib/bestiary/health";
@@ -207,141 +209,255 @@ export function resolveOpportunityAttacks(
 }
 
 
-// The other side of the same rule: an enemy that walks out of a character's
-// reach eats a melee attack from them. Fires from handleMoveToken, which is
-// where every enemy step goes through, and spends the character's reaction
-// out of the same per-round list the enemy side uses.
+// ---- the characters' reactions ----
+
+// The melee weapon a character's reactions swing: their best carried melee
+// weapon, else an unarmed strike when they carry no weapon at all. A
+// character holding only a bow has no reaction swing to make.
+function reactionProfile(sheet: CharacterSheet) {
+  const derived = computeSheetDerived(sheet);
+  const riders = combatRiders(sheet);
+  const ranged = (item: CharacterSheet["equipment"][number]) => {
+    const resolved = resolveAttackWeapon([item], sheet.proficiencies.weapons, undefined);
+    return !resolved.unarmed && resolved.srd?.kind === "ranged";
+  };
+  const melee = sheet.equipment.filter((item) => !ranged(item));
+  const resolved = resolveAttackWeapon(melee, sheet.proficiencies.weapons, undefined);
+  if (resolved.unarmed && melee.length < sheet.equipment.length && sheet.equipment.some(ranged)) {
+    return null;
+  }
+  const escapedWeapon = resolved.displayName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const shillelagh = sheet.conditions.some((condition) =>
+    new RegExp(`^shillelagh \\(${escapedWeapon}\\)$`, "i").test(condition),
+  );
+  const profile = weaponAttackProfile(derived, sheet.proficiencies.weapons, resolved, {
+    riders,
+    ...(shillelagh
+      ? {
+          shillelagh: {
+            abilityMod:
+              (spellAttackFor(sheet, "Shillelagh") ?? derived.spellAttack ?? derived.proficiencyBonus) -
+              derived.proficiencyBonus,
+          },
+        }
+      : {}),
+  });
+  if (profile.ranged) {
+    return null;
+  }
+  return {
+    profile,
+    riders,
+    // Polearm Master: a creature entering this reach provokes too.
+    polearm: hasFeat(sheet, "polearm master") && isPoleReachWeapon(resolved.srd?.name),
+    sentinel: hasFeat(sheet, "sentinel"),
+  };
+}
+
+type Reactor = NonNullable<ReturnType<typeof reactionProfile>> & { sheet: CharacterSheet };
+
+// One reaction swing by a character at an enemy. The reaction is spent
+// whether it lands or not; the damage is applied straight to the enemy
+// (applyEnemyDamage owns ending the fight, which needs a DM turn this
+// trigger does not have, so a killing blow is reported and the narrator
+// ends the fight next).
+function reactionSwing(
+  campaign: Campaign,
+  encounter: Encounter,
+  reactor: Reactor,
+  enemy: EncounterEnemy,
+  trigger: string,
+): { note: string; hit: boolean; dropped: boolean } {
+  const { sheet, profile, riders } = reactor;
+  encounter.reactionsUsed = [...encounter.reactionsUsed, sheet.id];
+  saveEncounter(encounter);
+
+  const hitOutcome = rollExpression(d20Expression(profile.toHit));
+  const hitRoll = insertRoll({
+    campaignId: campaign.id,
+    characterId: sheet.id,
+    requestedBy: "dm",
+    kind: "attack",
+    detail: `${sheet.name}: reaction attack on ${enemy.displayName}`,
+    result: hitOutcome,
+  });
+  publishWithSeq(campaign.id, allocateSeq(campaign.id), "roll_result", {
+    roll: hitRoll,
+    source: "digital",
+  });
+  const adjudicated = adjudicateHit(hitOutcome.total, hitOutcome.crit, enemy.ac, {
+    natural: hitOutcome.natural,
+    critRange: riders.critRange,
+  });
+  if (!adjudicated.hit) {
+    return {
+      note: `${sheet.name} swings at ${enemy.displayName} ${trigger} and misses (${hitOutcome.total} vs AC ${enemy.ac}).`,
+      hit: false,
+      dropped: false,
+    };
+  }
+
+  const damageOutcome = rollExpression(
+    adjudicated.crit ? `${profile.damageExpression}+${profile.damageExpression.split(/[+-]/)[0]}` : profile.damageExpression,
+  );
+  const damageRoll = insertRoll({
+    campaignId: campaign.id,
+    characterId: sheet.id,
+    requestedBy: "dm",
+    kind: "damage",
+    detail: `${sheet.name}: reaction attack damage`,
+    result: damageOutcome,
+  });
+  publishWithSeq(campaign.id, allocateSeq(campaign.id), "roll_result", {
+    roll: damageRoll,
+    source: "digital",
+  });
+  const adjusted = damageAdjust(
+    Math.max(1, damageOutcome.total),
+    profile.damageType,
+    enemy.stats.resist,
+    enemy.stats.immune,
+    enemy.stats.vulnerable,
+    profile.magical,
+  );
+  const math = enemyDamageMath(enemy.currentHp, adjusted.amount);
+  patchEnemyHp(enemy.id, math.currentHp, math.dropped ? "dead" : "alive");
+  publishPersisted(campaign.id, "encounter_updated", { encounterId: encounter.id });
+  return {
+    note: `${sheet.name} catches ${enemy.displayName} ${trigger}: ${adjudicated.crit ? "a critical hit for " : ""}${adjusted.amount} damage${
+      adjusted.note ? ` (${adjusted.note})` : ""
+    }. ${math.dropped ? `${enemy.displayName} drops.` : `It is now ${healthState(math.currentHp, enemy.maxHp)}.`}`,
+    hit: true,
+    dropped: math.dropped,
+  };
+}
+
+// Every character on the board who can still react with a melee weapon.
+function reactors(campaign: Campaign, encounter: Encounter, mapId: string): Array<Reactor & { at: { x: number; y: number } }> {
+  return listSheets(campaign.id).flatMap((sheet) => {
+    if (sheet.currentHp <= 0 || isIncapacitated(sheet.conditions) || encounter.reactionsUsed.includes(sheet.id)) {
+      return [];
+    }
+    const token = getTokenByRef(mapId, sheet.id);
+    const reaction = token ? reactionProfile(sheet) : null;
+    return token && reaction ? [{ ...reaction, sheet, at: { x: token.x, y: token.y } }] : [];
+  });
+}
+
+export type PathReactions = {
+  notes: string[];
+  // Index into the walked path where the enemy ends up: the last tile, or
+  // where a Sentinel's hit or a killing blow stopped it.
+  stopIndex: number;
+  stopped: boolean;
+  dropped: boolean;
+};
+
+// The characters' side of opportunity attacks, step by step along an
+// enemy's walk (path[0] is where it started). Leaving a character's reach
+// provokes; with Polearm Master and a glaive, halberd, pike, quarterstaff or
+// spear, entering it provokes too. A Sentinel's hit drops the enemy's speed
+// to 0 where it stands, and a killing blow ends the walk. Fires from every
+// enemy step (move_token and the auto-approach before an attack) and spends
+// each character's reaction out of the same per-round list the enemies use.
+export function resolvePcReactionsAlongPath(
+  campaign: Campaign,
+  enemyId: string,
+  path: Array<{ x: number; y: number }>,
+): PathReactions {
+  const last = Math.max(0, path.length - 1);
+  const result: PathReactions = { notes: [], stopIndex: last, stopped: false, dropped: false };
+  if (isJrpgCombat(campaign) || path.length < 2) {
+    return result;
+  }
+  const encounter = getActiveEncounter(campaign.id);
+  const map = encounter ? getBattleMapForEncounter(encounter.id) : null;
+  if (!encounter || !map) {
+    return result;
+  }
+  const ready = reactors(campaign, encounter, map.id);
+  walk: for (let step = 0; step < last; step += 1) {
+    const from = path[step];
+    const to = path[step + 1];
+    for (const reactor of ready) {
+      if (encounter.reactionsUsed.includes(reactor.sheet.id)) {
+        continue;
+      }
+      const reach = reactor.profile.reachTiles;
+      const wasIn = chebyshev(reactor.at.x, reactor.at.y, from.x, from.y) <= reach;
+      const isIn = chebyshev(reactor.at.x, reactor.at.y, to.x, to.y) <= reach;
+      const leaving = wasIn && !isIn;
+      const entering = !wasIn && isIn && reactor.polearm;
+      if (!leaving && !entering) {
+        continue;
+      }
+      const enemy = listEnemies(encounter.id).find((entry) => entry.id === enemyId);
+      if (!enemy || enemy.status !== "alive") {
+        break walk;
+      }
+      const swing = reactionSwing(
+        campaign,
+        encounter,
+        reactor,
+        enemy,
+        leaving ? "as it breaks away (opportunity attack)" : "as it steps into reach (Polearm Master)",
+      );
+      result.notes.push(swing.note);
+      // Leaving: the swing lands before it goes. Entering: once it is in.
+      const at = leaving ? step : step + 1;
+      if (swing.dropped) {
+        Object.assign(result, { stopIndex: at, stopped: true, dropped: true });
+        break walk;
+      }
+      if (swing.hit && reactor.sentinel) {
+        result.notes.push(`Sentinel: ${enemy.displayName}'s speed drops to 0 for the rest of its turn; it stops there.`);
+        Object.assign(result, { stopIndex: at, stopped: true });
+        break walk;
+      }
+    }
+  }
+  for (const note of result.notes) {
+    tableNote(campaign, note);
+  }
+  return result;
+}
+
+// The endpoint form of the same rule, for a move known only by where it
+// started and ended.
 export function resolvePcOpportunityAttacks(
   campaign: Campaign,
   enemyId: string,
   from: { x: number; y: number },
   to: { x: number; y: number },
 ): string[] {
+  return resolvePcReactionsAlongPath(campaign, enemyId, [from, to]).notes;
+}
+
+// Sentinel: an enemy within 5 feet that attacks someone else (who has no
+// Sentinel of their own) takes a melee reaction attack from the sentinel.
+export function resolveSentinelGuard(campaign: Campaign, enemyId: string, targetCharacterId: string): string[] {
   if (isJrpgCombat(campaign)) {
     return [];
   }
   const encounter = getActiveEncounter(campaign.id);
-  if (!encounter) {
-    return [];
-  }
-  const map = getBattleMapForEncounter(encounter.id);
-  if (!map) {
+  const map = encounter ? getBattleMapForEncounter(encounter.id) : null;
+  const target = getSheetById(targetCharacterId);
+  const enemyToken = map ? getTokenByRef(map.id, enemyId) : null;
+  if (!encounter || !map || !enemyToken || !target || hasFeat(target, "sentinel")) {
     return [];
   }
   const notes: string[] = [];
-
-  for (const sheet of listSheets(campaign.id)) {
-    if (sheet.currentHp <= 0 || isIncapacitated(sheet.conditions)) {
+  for (const reactor of reactors(campaign, encounter, map.id)) {
+    if (!reactor.sentinel || reactor.sheet.id === targetCharacterId ||
+        chebyshev(reactor.at.x, reactor.at.y, enemyToken.x, enemyToken.y) > 1) {
       continue;
     }
-    if (encounter.reactionsUsed.includes(sheet.id)) {
-      continue;
-    }
-    const token = getTokenByRef(map.id, sheet.id);
-    if (!token) {
-      continue;
-    }
-    // Their melee weapon decides the reach; a character holding only a bow
-    // has no opportunity attack to make.
-    const derived = computeSheetDerived(sheet);
-    const riders = combatRiders(sheet);
-    const resolved = resolveAttackWeapon(sheet.equipment, sheet.proficiencies.weapons, undefined);
-    const escapedWeapon = resolved.displayName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    const shillelagh = sheet.conditions.some((condition) =>
-      new RegExp(`^shillelagh \\(${escapedWeapon}\\)$`, "i").test(condition),
-    );
-    const profile = weaponAttackProfile(derived, sheet.proficiencies.weapons, resolved, {
-      riders,
-      ...(shillelagh
-        ? {
-            shillelagh: {
-              abilityMod:
-                (spellAttackFor(sheet, "Shillelagh") ?? derived.spellAttack ?? derived.proficiencyBonus) -
-                derived.proficiencyBonus,
-            },
-          }
-        : {}),
-    });
-    if (profile.ranged) {
-      continue;
-    }
-    const wasInReach = chebyshev(token.x, token.y, from.x, from.y) <= profile.reachTiles;
-    const stillInReach = chebyshev(token.x, token.y, to.x, to.y) <= profile.reachTiles;
-    if (!wasInReach || stillInReach) {
-      continue;
-    }
-
     const enemy = listEnemies(encounter.id).find((entry) => entry.id === enemyId);
     if (!enemy || enemy.status !== "alive") {
       break;
     }
-    encounter.reactionsUsed = [...encounter.reactionsUsed, sheet.id];
-    saveEncounter(encounter);
-
-    const hitOutcome = rollExpression(d20Expression(profile.toHit));
-    const hitRoll = insertRoll({
-      campaignId: campaign.id,
-      characterId: sheet.id,
-      requestedBy: "dm",
-      kind: "attack",
-      detail: `${sheet.name}: opportunity attack on ${enemy.displayName}`,
-      result: hitOutcome,
-    });
-    publishWithSeq(campaign.id, allocateSeq(campaign.id), "roll_result", {
-      roll: hitRoll,
-      source: "digital",
-    });
-    const adjudicated = adjudicateHit(hitOutcome.total, hitOutcome.crit, enemy.ac, {
-      natural: hitOutcome.natural,
-      critRange: riders.critRange,
-    });
-    if (!adjudicated.hit) {
-      notes.push(
-        `${sheet.name} swings at ${enemy.displayName} as it breaks away and misses (${hitOutcome.total} vs AC ${enemy.ac}).`,
-      );
-      continue;
-    }
-
-    const damageOutcome = rollExpression(profile.damageExpression);
-    const damageRoll = insertRoll({
-      campaignId: campaign.id,
-      characterId: sheet.id,
-      requestedBy: "dm",
-      kind: "damage",
-      detail: `${sheet.name}: opportunity attack damage`,
-      result: damageOutcome,
-    });
-    publishWithSeq(campaign.id, allocateSeq(campaign.id), "roll_result", {
-      roll: damageRoll,
-      source: "digital",
-    });
-
-    // Applied directly rather than through applyEnemyDamage: that path owns
-    // ending the encounter and awarding XP, which needs a DM turn this
-    // trigger does not have. A killing blow here is reported and the model
-    // ends the fight on its next turn.
-    const adjusted = damageAdjust(
-      Math.max(1, damageOutcome.total),
-      profile.damageType,
-      enemy.stats.resist,
-      enemy.stats.immune,
-      enemy.stats.vulnerable,
-      profile.magical,
-    );
-    const math = enemyDamageMath(enemy.currentHp, adjusted.amount);
-    patchEnemyHp(enemy.id, math.currentHp, math.dropped ? "dead" : "alive");
-    publishPersisted(campaign.id, "encounter_updated", { encounterId: encounter.id });
-    notes.push(
-      `${sheet.name} catches ${enemy.displayName} with an opportunity attack as it breaks away: ${adjusted.amount} damage${
-        adjusted.note ? ` (${adjusted.note})` : ""
-      }. ${
-        math.dropped
-          ? `${enemy.displayName} drops.`
-          : `It is now ${healthState(math.currentHp, enemy.maxHp)}.`
-      }`,
-    );
+    notes.push(reactionSwing(campaign, encounter, reactor, enemy, `for attacking ${target.name} (Sentinel)`).note);
   }
-
   for (const note of notes) {
     tableNote(campaign, note);
   }

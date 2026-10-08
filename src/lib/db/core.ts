@@ -3,7 +3,7 @@ import { mkdirSync } from "node:fs";
 import path from "node:path";
 import { serverEnv } from "../server-env.ts";
 import { populateFeatures } from "@/lib/srd/features";
-import { populateResources } from "@/lib/srd/class-resources";
+import { featResourceNames, populateResources } from "@/lib/srd/class-resources";
 
 const dbPath =
   process.env.SQLITE_DB_PATH || path.join(process.cwd(), "data", "local-roleplay.sqlite");
@@ -2058,7 +2058,7 @@ function backfillSheetFeatures(db: SqliteDatabase) {
 function backfillSheetResources(db: SqliteDatabase) {
   const sheets = db
     .prepare(
-      `SELECT id, class, subclass, race, level, abilities_json, features_json, resources_json
+      `SELECT id, class, subclass, race, level, abilities_json, features_json, feats_json, resources_json
          FROM character_sheets`,
     )
     .all() as Array<{
@@ -2069,6 +2069,7 @@ function backfillSheetResources(db: SqliteDatabase) {
     level: number;
     abilities_json: string;
     features_json: string | null;
+    feats_json: string | null;
     resources_json: string | null;
   }>;
   if (!sheets.length) {
@@ -2099,7 +2100,15 @@ function backfillSheetResources(db: SqliteDatabase) {
         row.race,
         row.level,
       );
-      const resources = populateResources(features, row.level, mods, existingResources);
+      // Feat-granted pools (Lucky) resize with the rest, or this resync
+      // would strip them on every boot.
+      const feats = JSON.parse(row.feats_json ?? "[]") as string[];
+      const resources = populateResources(
+        [...features, ...featResourceNames(feats)],
+        row.level,
+        mods,
+        existingResources,
+      );
       const nextFeatures = JSON.stringify(features);
       const nextResources = JSON.stringify(resources);
       if (nextFeatures !== row.features_json || nextResources !== row.resources_json) {

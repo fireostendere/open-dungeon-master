@@ -15,6 +15,8 @@ const {
 } = await import("../src/lib/dm/attack-logic.ts");
 const { matchWeapon, isWeaponProficient } = await import("../src/lib/srd/weapons.ts");
 const { combatRiders } = await import("../src/lib/srd/feature-effects.ts");
+const { poleStrikeProfile } = await import("../src/lib/dm/attack-logic.ts");
+const { attackWeaponUse, bonusAttackError } = await import("../src/lib/dm/bonus-attacks.ts");
 
 const ridersFor = (klass, level, ...names) =>
   combatRiders({ class: klass, level, features: names.map((name) => ({ name })) });
@@ -375,6 +377,32 @@ test("the heavy property lands on the profile for the Small-creature rule", () =
     unarmed: false,
   });
   assert.equal(shortsword.heavy, false);
+});
+
+test("bonus-action swings follow the right Attack-action swing", () => {
+  const use = (name) => attackWeaponUse({ displayName: name, srd: matchWeapon(name) });
+  const options = { dualWielder: false, carried: 1, who: "Mira" };
+  assert.match(bonusAttackError("off_hand", use("Dagger"), [], options), /Attack action first/);
+  assert.equal(bonusAttackError("off_hand", use("Dagger"), [use("Shortsword")], options), null);
+  assert.match(bonusAttackError("off_hand", use("Rapier"), [use("Shortsword")], options), /light/);
+  assert.equal(bonusAttackError("off_hand", use("Rapier"), [use("Longsword")], { ...options, dualWielder: true }), null, "Dual Wielder pairs one-handed weapons");
+  assert.match(bonusAttackError("off_hand", use("Greatsword"), [use("Longsword")], { ...options, dualWielder: true }), /one-handed/);
+  assert.match(bonusAttackError("off_hand", use("Dagger"), [use("Dagger")], options), /second Dagger/);
+  assert.equal(bonusAttackError("off_hand", use("Dagger"), [use("Dagger")], { ...options, carried: 2 }), null);
+  assert.equal(bonusAttackError("pole_strike", use("Quarterstaff"), [use("Quarterstaff")], options), null);
+  assert.match(bonusAttackError("pole_strike", use("Quarterstaff"), [use("Longsword")], options), /follows/);
+  assert.match(bonusAttackError("pole_strike", use("Pike"), [use("Pike")], options), /glaive, halberd/);
+  assert.equal(bonusAttackError("crossbow_expert", use("Hand Crossbow"), [use("Shortsword")], options), null);
+  assert.match(bonusAttackError("crossbow_expert", use("Hand Crossbow"), [use("Greatsword")], options), /one-handed/);
+  assert.match(bonusAttackError("great_weapon_master", use("Longbow"), [], options), /melee/);
+});
+
+test("Polearm Master's butt strike keeps the weapon's numbers but rolls 1d4 bludgeoning", () => {
+  const butt = poleStrikeProfile({ weapon: "Glaive", toHit: 7, damageExpression: "1d10+4", damageType: "slashing", ranged: false, thrown: false, reachTiles: 2, rangeTiles: 1, proficient: true, improvised: false, ability: "str", magicBonus: 0, twoHanded: true, sneakEligible: false, heavy: true, riderNotes: [] });
+  assert.equal(butt.damageExpression, "1d4+4");
+  assert.equal(butt.damageType, "bludgeoning");
+  assert.equal(butt.reachTiles, 2);
+  assert.equal(butt.toHit, 7);
 });
 
 console.log(`test-attack-logic: ${passed} tests passed`);

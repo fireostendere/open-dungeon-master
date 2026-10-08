@@ -15,7 +15,7 @@ import {
 import { ASI_LEVELS, applyAsiChoices } from "@/lib/srd/asi";
 import { defaultArmor, suggestArmor } from "@/lib/srd/armor";
 import { classFeaturesFor, subclassSpellsFor } from "@/lib/srd/features";
-import { fightingStyleSlots } from "@/lib/srd/feature-effects";
+import { fightingStyleSlots, hasFeat, toughHpGain } from "@/lib/srd/feature-effects";
 import { openOptionSlots, optionFeatureName, type OptionSlot } from "@/lib/srd/options";
 import { spellStyleFor, spellbookAllowance, type SpellStyle } from "@/lib/srd/spell-prep";
 import { defaultLoadout, suggestWeapons } from "@/lib/srd/weapons";
@@ -53,6 +53,12 @@ export function useBuilderDerived({
   const activeAsiChoices = useMemo(
     () => asiSlotLevels.map((_, index) => asiChoices[index] ?? null),
     [asiSlotLevels, asiChoices],
+  );
+  // Every feat the character will have: the bonus picks and the ASI picks.
+  // Tough's hit points and Dual Wielder's AC read them.
+  const chosenFeats = useMemo(
+    () => [...state.feats, ...activeAsiChoices.flatMap((choice) => (choice?.mode === "feat" ? [choice.feat] : []))],
+    [state.feats, activeAsiChoices],
   );
 
   // Base scores after racial bonuses, before level ASIs; what the ASI cards
@@ -139,9 +145,11 @@ export function useBuilderDerived({
     });
     // The class option's own hit die, so a content-pack class (which
     // suggestedStartingHp cannot find) gets its d10, not a flat 8.
-    const maxHp = hpOverride ?? startingHpFor(klass.hitDie, race.id, abilities.con, effectiveLevel);
+    // Tough: +2 HP per level, whether picked at an ASI or as a bonus feat.
+    const tough = toughHpGain({ levelBefore: 0, levelAfter: effectiveLevel, hadTough: false, hasTough: hasFeat({ feats: chosenFeats }, "tough") });
+    const maxHp = hpOverride ?? startingHpFor(klass.hitDie, race.id, abilities.con, effectiveLevel) + tough;
     return { proficiencies, derived, maxHp };
-  }, [abilities, race, klass, background, chosenSkills, backgroundSkills, expertisePicks, bonusLanguages, racialSkills, racialTool, effectiveLevel, hpOverride]);
+  }, [abilities, race, klass, background, chosenSkills, backgroundSkills, expertisePicks, bonusLanguages, racialSkills, racialTool, effectiveLevel, hpOverride, chosenFeats]);
 
   // Class-appropriate starting weapons ride along automatically (removable
   // chips) so no character begins the adventure unarmed. Weapons AND armor:
@@ -191,8 +199,9 @@ export function useBuilderDerived({
       proficiencies: preview.proficiencies,
       equipment: fullEquipment,
       features: classFeaturesFor(klass.id, subclass, effectiveLevel),
+      feats: chosenFeats,
     });
-  }, [klass, preview, abilities, fullEquipment, subclass, effectiveLevel]);
+  }, [klass, preview, abilities, fullEquipment, subclass, effectiveLevel, chosenFeats]);
   const ac = acOverride ?? acInfo?.ac ?? 10;
 
   // What this class and subclass actually hand the character at this level.

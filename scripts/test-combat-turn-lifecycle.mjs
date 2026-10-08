@@ -9,6 +9,7 @@ import { RESOURCE_ACTIONS } from '../src/lib/dm/resource-action-cost.ts';
 
 register('./lib/register-alias.mjs', import.meta.url);
 const { combatSpellNames, PARLEY_APPROACHES, validateCombatTurnIntent } = await import('../src/lib/dm/combat-turn-intent.ts');
+const { BONUS_ATTACKS } = await import('../src/lib/dm/bonus-attacks.ts');
 
 const encounterId = '00000000-0000-4000-8000-000000000001';
 const heroId = '00000000-0000-4000-8000-000000000002';
@@ -55,6 +56,7 @@ function fixture() {
     '@/lib/db/encounter-view': { activePublicEncounter: () => ({ enemies: visibleEnemies, order: sheets.map(sheet => ({ kind: "pc", id: sheet.id, name: sheet.name })) }) },
     '@/lib/dm/action-tools': { attacksAllowedFor: () => 1, budgetFor: () => freshBudget({ ownerId: heroId, round: 1 }) },
     '@/lib/dm/combat-turn-intent': { combatSpellNames, PARLEY_APPROACHES, validateCombatTurnIntent },
+    '@/lib/dm/bonus-attacks': { BONUS_ATTACKS },
      '@/lib/content': {
        findSpellByName: name => name === 'Eldritch Blast' ? { level: 0, data: { casting_time: '1 action' } } : name === 'Hex' ? { level: 1, data: { casting_time: '1 bonus action' } } : null,
        spellMechanicsFor: ({ spell }) => spell === 'Eldritch Blast' ? { mech: { resolution: 'attack' } } : spell === 'Hex' ? { mech: { resolution: 'buff', buff: { target: 'ally' } } } : null,

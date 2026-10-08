@@ -451,6 +451,12 @@ the pursuit). A parley that works: end_encounter outcome truce, or enemy_flees f
 those who yield. A hero who gets away: move_party with characterIds; the last hero
 in the fight: end_encounter outcome party_fled first. A fight that ends drops the
 rest of the plan; otherwise hand the turn over.
+attack.bonusAttack/powerAttack/lucky map 1:1 onto pc_attack; a great_weapon_master
+swing without a target needs none (nearest enemy in reach) and is skipped, nothing
+spent, unless a melee crit or kill happened this turn. Opportunity attacks and
+Polearm Master/Sentinel reactions are rolled by the server when enemies move or
+attack: narrate them from the receipt, never pc_attack them. A player using luck on
+a check or save: use_resource luck_points before that roll.
 Browsing a dropdown never declares a feature. Only queued actions or clear prose
 authorize optional abilities/resources; queued actions have application priority.
 Free-text-only intent, including YOLO slang, is valid without exact ability names.

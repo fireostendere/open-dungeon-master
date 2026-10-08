@@ -39,6 +39,8 @@ import {
   chosenFightingStyles,
   fightingStyleFeatureName,
   fightingStyleSlots,
+  hasFeat,
+  toughHpGain,
   type FightingStyleId,
 } from "@/lib/srd/feature-effects";
 import { spellClassFor } from "@/lib/classes";
@@ -461,6 +463,14 @@ export function LevelUpDialog({
       const newFeats = choices.flatMap((choice) =>
         choice.mode === "feat" ? [choice.feat] : [],
       );
+      // Tough pays 2 HP per level: for the new levels, or for every level
+      // when the feat is taken now.
+      const hpGain = gain + toughHpGain({
+        levelBefore: sheet.level,
+        levelAfter: targetLevel,
+        hadTough: hasFeat(sheet, "tough"),
+        hasTough: hasFeat({ features: sheet.features, feats: [...sheet.feats, ...newFeats] }, "tough"),
+      });
 
       // Multiclass path: name the class taking the level and send only the
       // player's picks; the server builds the class array, hit-die pools,
@@ -471,8 +481,8 @@ export function LevelUpDialog({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             level: targetLevel,
-            maxHp: sheet.maxHp + gain,
-            currentHp: Math.min(sheet.currentHp + gain, sheet.maxHp + gain),
+            maxHp: sheet.maxHp + hpGain,
+            currentHp: Math.min(sheet.currentHp + hpGain, sheet.maxHp + hpGain),
             levelUpClass: classChoice,
             ...(skillPick ? { levelUpSkill: skillPick } : {}),
             ...(spellPicks.length || cantripPicks.length
@@ -583,8 +593,8 @@ export function LevelUpDialog({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           level: targetLevel,
-          maxHp: sheet.maxHp + gain,
-          currentHp: Math.min(sheet.currentHp + gain, sheet.maxHp + gain),
+          maxHp: sheet.maxHp + hpGain,
+          currentHp: Math.min(sheet.currentHp + hpGain, sheet.maxHp + hpGain),
           hitDice: { ...sheet.hitDice, total: targetLevel },
           features,
           ...(choices.length
@@ -693,6 +703,13 @@ export function LevelUpDialog({
                     }))}
                   />
                 </div>
+              ) : null}
+              {hasFeat(sheet, "tough") ? (
+                <p className="mb-2 text-xs text-amber-200/80">
+                  {locale === "ru"
+                    ? `Крепкий (Tough): ещё +${2 * levelsGained} ХП сверху.`
+                    : `Tough: +${2 * levelsGained} more HP on top.`}
+                </p>
               ) : null}
 
               <div className="space-y-2">

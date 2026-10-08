@@ -19,6 +19,7 @@ import { publishBattleMapUpdate } from "@/lib/dm/map-tools";
 import { dismissGuestCompanions } from "@/lib/dm/companion-tools";
 import { followCombatAmbience } from "@/lib/dm/ambience-tools";
 import { tickWaypointsFrom } from "@/lib/dm/waypoint-tick";
+import { markGwmTrigger } from "@/lib/dm/bonus-trigger";
 import type { CharacterSheet } from "@/lib/schemas/sheet";
 import { spatialStore } from "@/lib/spatial/service";
 
@@ -374,6 +375,9 @@ export function applyPendingDamageRoll(pending: PendingRoll, roll: StoredRoll): 
   }
   if ("error" in applied) {
     return null;
+  }
+  if (applied.dead && pending.attack?.gwm && pending.characterId) {
+    markGwmTrigger(campaign.id, pending.characterId);
   }
   const parts = [
     `The server already applied this ${roll.total} damage to ${String(applied.name)} (now ${

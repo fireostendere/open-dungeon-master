@@ -1,7 +1,7 @@
 import { getDatabase, nowIso, parseJson } from "@/lib/db/core";
 import { touchCampaign } from "@/lib/db/campaigns";
 import { populateFeaturesForClasses } from "@/lib/srd/features";
-import { populateResources } from "@/lib/srd/class-resources";
+import { featResourceNames, populateResources } from "@/lib/srd/class-resources";
 import { deriveAc } from "@/lib/srd";
 import { normalizeSpellcasting } from "@/lib/srd/spell-lists";
 import { ATTUNEMENT_SLOTS } from "@/lib/srd/armor";
@@ -246,7 +246,7 @@ export function createSheet(
     ]),
   );
   const resources = populateResources(
-    features,
+    [...features, ...featResourceNames(input.feats)],
     level,
     abilityMods,
     undefined,
@@ -268,6 +268,7 @@ export function createSheet(
         proficiencies: input.proficiencies,
         equipment: input.equipment,
         features,
+        feats: input.feats,
       });
 
   db.prepare(
@@ -533,10 +534,11 @@ export function patchSheet(sheetId: string, patch: FullPatchSheetInput): Charact
       patch.resources ??
       (patch.level !== undefined ||
       patch.features !== undefined ||
+      patch.feats !== undefined ||
       patch.abilities !== undefined ||
       patch.classes !== undefined
         ? populateResources(
-            patch.features ?? existing.features,
+            [...(patch.features ?? existing.features), ...featResourceNames(patch.feats ?? existing.feats)],
             usingClasses ? summedLevel : (patch.level ?? existing.level),
             Object.fromEntries(
               Object.entries(patch.abilities ?? existing.abilities).map(([ability, score]) => [
@@ -596,6 +598,7 @@ export function patchSheet(sheetId: string, patch: FullPatchSheetInput): Charact
       proficiencies: next.proficiencies,
       equipment: next.equipment,
       features: next.features,
+      feats: next.feats,
       // Effect conditions (Shield of Faith, Mage Armor, Barkskin) move the
       // stored AC while they hold; expiry recomputes it right back.
       conditions: next.conditions,
