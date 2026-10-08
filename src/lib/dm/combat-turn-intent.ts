@@ -1,4 +1,4 @@
-import { spendAction, spendAttack, spendSpell, type ActionKind, type TurnBudget } from "./action-budget.ts";
+import { grantActionSurge, spendAction, spendAttack, spendSpell, type ActionKind, type TurnBudget } from "./action-budget.ts";
 import { RESOURCE_ACTIONS } from "./resource-action-cost.ts";
 import { matchWeapon, type SrdWeapon } from "../srd/weapons.ts";
 import { spendPetCommand, type PetCombatant } from "./pet-combat.ts";
@@ -141,7 +141,7 @@ export function combatSpellSlots(sheet: CombatIntentSheet, level: number): Array
 export type CombatChoiceDescriptor =
   | { type: "weapon"; name: string }
   | { type: "feature"; name: string; description?: string }
-  | { type: "resource"; id: string; name: string; left: number; cost: "action" | "bonus"; target: "self" | "ally" | "other" }
+  | { type: "resource"; id: string; name: string; left: number; cost: "action" | "bonus" | "free"; target: "self" | "ally" | "other" }
   | { type: "item"; name: string; qty: number };
 
 export type CombatIntentResult = { ok: true; content: string; budget: TurnBudget } | { ok: false; error: string };
@@ -357,7 +357,7 @@ export function validateCombatTurnIntent(
       if (action.target === "self" && choice.targetCharacterId && choice.targetCharacterId !== sheet.id) return { ok: false, error: "This resource targets only its owner." };
       const target = action.target === "self" ? sheet.id : choice.targetCharacterId!;
       if (!allyIds.has(target) || (action.target === "other" && target === sheet.id)) return { ok: false, error: "Choose an eligible ally for that resource." };
-      const spent = spendAction(next, action.cost, action.name, sheet.name);
+      const spent = action.cost === "free" ? grantActionSurge(next, sheet.name) : spendAction(next, action.cost, action.name, sheet.name);
       if (!spent.ok) return spent;
       next = spent.budget;
       usedResources[choice.resource] = (usedResources[choice.resource] ?? 0) + 1;

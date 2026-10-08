@@ -357,6 +357,9 @@ export const conditionMetaSchema = z.record(
     concentrationSources: z.array(concentrationSourceSchema.extend(conditionDurationSchema.shape)).max(128).optional(),
     // An unrelated/manual/legacy instance must survive a caster's cleanup.
     independent: conditionDurationSchema.optional(),
+    // Ends at the start of this combatant's next turn (Dodge, Shield,
+    // Protection, Help); `rounds` is then only a backstop.
+    untilTurnOf: z.string().min(1).max(100).optional(),
   }),
 );
 export type ConditionMetaMap = z.infer<typeof conditionMetaSchema>;

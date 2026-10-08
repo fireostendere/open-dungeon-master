@@ -255,7 +255,8 @@ test('a failed save in a surviving form really breaks concentration', () => {
 });
 test('form collapse does not resurrect a removed polymorph condition via rage cleanup', () => {
   reset({ currentHp: 5, conditions: ['polymorphed', 'raging'], wildShape: { ...form(5), kind: 'polymorph' } });
-  hit(10); assert.deepEqual(sheets.get('pc').conditions, []);
+  // Dropping to 0 HP leaves them unconscious and prone, nothing else.
+  hit(10); assert.deepEqual(sheets.get('pc').conditions, ['unconscious', 'prone']);
 });
 
 

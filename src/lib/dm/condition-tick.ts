@@ -9,7 +9,7 @@ import { publishPersisted, publishWithSeq } from "@/lib/events";
 import { computeSheetDerived } from "@/lib/srd";
 import { saveModFor } from "@/lib/bestiary/statblock";
 import { allySaveAura } from "@/lib/dm/aura";
-import { ROUNDS_PER_MINUTE, tickConditions } from "@/lib/dm/condition-logic";
+import { ROUNDS_PER_MINUTE, removeConditions, tickConditions } from "@/lib/dm/condition-logic";
 import { hasBrave, hasLoxodonSerenity } from "@/lib/srd/feature-effects";
 import { tickEffectRound } from "@/lib/db/active-effects";
 import { activePublicEncounter } from "@/lib/db/encounter-view";
@@ -177,6 +177,31 @@ function tickSheetConditions(campaign: Campaign, by: number, lines: string[]) {
       if (updated) {
         publishPersisted(campaign.id, "sheet_updated", { sheet: updated });
       }
+    }
+  }
+}
+
+// Effects that last "until the start of your next turn" carry their owner
+// (ConditionMeta.untilTurnOf) and end when that owner's turn starts, on
+// whichever sheet holds them: Dodge and Shield on the owner, Protection and
+// Help on an ally. Called from advancePointer with every combatant whose
+// turn just started.
+export function expireTurnBoundConditions(campaign: Campaign, ownerIds: Set<string>): void {
+  if (!ownerIds.size) {
+    return;
+  }
+  for (const sheet of listSheets(campaign.id)) {
+    const ending = sheet.conditions.filter((name) => {
+      const owner = sheet.conditionMeta[name]?.untilTurnOf;
+      return owner !== undefined && ownerIds.has(owner);
+    });
+    if (!ending.length) {
+      continue;
+    }
+    const next = removeConditions(sheet.conditions, sheet.conditionMeta, ending);
+    const updated = patchSheet(sheet.id, { conditions: next.conditions, conditionMeta: next.meta });
+    if (updated) {
+      publishPersisted(campaign.id, "sheet_updated", { sheet: updated });
     }
   }
 }

@@ -25,14 +25,18 @@ export type ConditionMeta = {
   rounds?: number;
   // Re-save at each round wrap; success ends the condition.
   saveEnds?: { ability: SaveAbilityId; dc: number };
+  // Ends at the start of this combatant's next turn (Dodge, Shield,
+  // Protection, Help), whoever holds it; `rounds` stays as the backstop.
+  untilTurnOf?: string;
 };
 export type ConditionMetaMap = Record<string, ConditionMeta>;
 
 const INCAPACITATING = ["incapacitated", "paralyzed", "stunned", "unconscious", "petrified"];
 const SPEED_ZERO = ["grappled", "restrained", ...INCAPACITATING];
 const AUTO_FAIL_STR_DEX = ["paralyzed", "stunned", "unconscious", "petrified"];
-// Attacks against these have advantage.
-const TARGET_GRANTS_ADVANTAGE = ["restrained", "blinded", ...INCAPACITATING];
+// Attacks against these have advantage. Plain "incapacitated" is not among
+// them: it only stops actions and reactions.
+const TARGET_GRANTS_ADVANTAGE = ["restrained", "blinded", "paralyzed", "stunned", "unconscious", "petrified"];
 // Melee hits within 5 ft of these are automatic critical hits.
 const AUTO_CRIT_TARGETS = ["paralyzed", "unconscious"];
 // The attacker's own attack rolls suffer disadvantage.

@@ -23,6 +23,7 @@ import { fightOf } from "@/lib/dm/team-round";
 import { withFight } from "@/lib/spatial/publication-scope.mjs";
 import { activePublicEncounter } from "@/lib/db/encounter-view";
 import { attacksAllowedFor, budgetFor } from "@/lib/dm/action-tools";
+import { castingCost } from "@/lib/dm/action-budget";
 import { combatSpellNames, PARLEY_APPROACHES, validateCombatTurnIntent, type CombatSpellDescriptor } from "@/lib/dm/combat-turn-intent";
 import { BONUS_ATTACKS } from "@/lib/dm/bonus-attacks";
 import { findSpellByName, spellMechanicsFor } from "@/lib/content";
@@ -48,7 +49,7 @@ function spellsFor(sheet: CharacterSheet): CombatSpellDescriptor[] {
       : mechanics?.mech.resolution === "buff" && mechanics.mech.buff?.target === "self" ? "self"
       : mechanics?.mech.resolution === "buff" && mechanics.mech.buff?.target === "ally" && !mechanics.mech.buff.variants ? "ally"
       : null;
-    const cost: CombatSpellDescriptor["cost"] = /^1 bonus action/.test(time) ? "bonus" : /^1 reaction/.test(time) ? "reaction" : /^1 action/.test(time) ? "action" : null;
+    const cost: CombatSpellDescriptor["cost"] = castingCost(time);
     const targetType: CombatSpellDescriptor["target"] = target;
     return { type: "spell" as const, name, level: entry?.level ?? authored?.level ?? null, cost, target: targetType };
   }).filter(spell => spell.target !== null && spell.level !== null && spell.cost !== null && spell.cost !== "reaction");

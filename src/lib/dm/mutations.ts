@@ -10,7 +10,7 @@ import { levelForXp } from "@/lib/srd";
 import { RAGING, matchResource, spendRelentlessEndurance } from "@/lib/srd/class-resources";
 import { getActiveEncounter, saveEncounter } from "@/lib/db/encounters";
 import { listOpenPendingRolls } from "@/lib/db/dm-turns";
-import { budgetApplies, freshBudget, spendAction, spendSpell, type ActionKind } from "@/lib/dm/action-budget";
+import { budgetApplies, castingCost as castingCostOf, freshBudget, grantActionSurge, spendAction, spendSpell, type ActionKind } from "@/lib/dm/action-budget";
 import { KI_ACTIONS, RESOURCE_ACTIONS } from "@/lib/dm/resource-action-cost";
 import { combatRiders } from "@/lib/srd/feature-effects";
 import { conditionExtraActions } from "@/lib/srd/condition-effects";
@@ -650,11 +650,14 @@ function applyMutation(
       sheet.currentHp <= 0 || incapacitatedBy(sheet.conditions) || listOpenPendingRolls(campaign.id).length)) {
     return { result: { error: "Use this item or ability only on the conscious current actor's turn, with no pending roll." } };
   }
-  const resourceBudget = encounter && actor?.kind === "pc" && actor.characterId === sheet.id && cost
-    ? spendAction(budgetApplies(encounter.turnBudget, sheet.id, encounter.round) ? encounter.turnBudget : freshBudget({
-      ownerId: sheet.id, round: encounter.round, attacksAllowed: 1 + combatRiders(sheet).extraAttacks,
-      extraActions: conditionExtraActions(sheet.conditions),
-    }), cost, resourceAction?.name ?? "Use an item", sheet.name)
+  const ownBudget = encounter && (budgetApplies(encounter.turnBudget, sheet.id, encounter.round) ? encounter.turnBudget : freshBudget({
+    ownerId: sheet.id, round: encounter.round, attacksAllowed: 1 + combatRiders(sheet).extraAttacks,
+    extraActions: conditionExtraActions(sheet.conditions),
+  }));
+  const resourceBudget = ownBudget && actor?.kind === "pc" && actor.characterId === sheet.id && cost
+    ? cost === "free"
+      ? grantActionSurge(ownBudget, sheet.name)
+      : spendAction(ownBudget, cost, resourceAction?.name ?? "Use an item", sheet.name)
     : null;
   if (resourceBudget && !resourceBudget.ok) return { result: { error: resourceBudget.error } };
   if (kiAction?.cost === "bonus" && (!encounter || !budgetApplies(encounter.turnBudget, sheet.id, encounter.round) || !encounter.turnBudget.attacksMade)) {
@@ -1248,11 +1251,16 @@ function applyMutation(
         conditions: withCondition,
         conditionMeta: meta,
       });
+      // An incapacitated caster loses concentration (SRD).
+      const concentrationBroken = incapacitatedBy([normalized])
+        ? breakConcentration(campaign, turnId, sheet.id, `became ${normalized}`)
+        : null;
       publishSheet(campaign, sheet.id);
       return {
         result: {
           ok: true,
           condition: normalized,
+          ...(concentrationBroken ? { concentrationBroken: `${sheet.name} is ${normalized} and loses concentration on ${concentrationBroken}; its effects end.` } : {}),
           ...(rounds ? { duration: `${describeConditionDuration(rounds)}, expires automatically` } : {}),
           ...(args.saveAbility && args.saveDc
             ? {
@@ -1432,7 +1440,7 @@ function applyMutation(
         if (combat) {
           const source = known?.data ?? authoredSpellRow(spell);
           const time = String(source?.casting_time ?? "").toLowerCase();
-          const castingCost: ActionKind | null = /^1 bonus action/.test(time) ? "bonus" : /^1 reaction/.test(time) ? "reaction" : /^1 action/.test(time) ? "action" : null;
+          const castingCost: ActionKind | null = castingCostOf(time);
           if (args.ritual || !castingCost) return { result: { error: `Cannot resolve ${spell}'s casting time as one combat action; check its source.` } };
           const current = combat.orderReady ? combat.order[combat.turnIndex] : null;
           if (!combat.orderReady || (castingCost !== "reaction" && listOpenPendingRolls(campaign.id).length)) {

@@ -55,6 +55,7 @@ function fixture() {
     '@/lib/spatial/publication-scope.mjs': { withFight: (_campaignId, _fightId, work) => work() },
     '@/lib/db/encounter-view': { activePublicEncounter: () => ({ enemies: visibleEnemies, order: sheets.map(sheet => ({ kind: "pc", id: sheet.id, name: sheet.name })) }) },
     '@/lib/dm/action-tools': { attacksAllowedFor: () => 1, budgetFor: () => freshBudget({ ownerId: heroId, round: 1 }) },
+    '@/lib/dm/action-budget': actionBudget,
     '@/lib/dm/combat-turn-intent': { combatSpellNames, PARLEY_APPROACHES, validateCombatTurnIntent },
     '@/lib/dm/bonus-attacks': { BONUS_ATTACKS },
      '@/lib/content': {

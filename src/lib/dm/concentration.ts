@@ -3,11 +3,13 @@ import { activePublicEncounter } from "@/lib/db/encounter-view";
 import { getDatabase } from "@/lib/db/core";
 import { allocateSeq, type Campaign } from "@/lib/db/campaigns";
 import { getSheetById, listSheets, patchSheet } from "@/lib/db/sheets";
-import { getEnemy, listEnemies, patchEnemyConditions } from "@/lib/db/encounters";
+import { getEnemy, listEnemies, patchEnemyConditions, setEnemyConcentration, type EncounterEnemy } from "@/lib/db/encounters";
 import { insertSheetAudit } from "@/lib/db/sheet-audit";
 import { insertRoll } from "@/lib/db/rolls";
 import { findSpellByName } from "@/lib/content";
 import { allySaveAura } from "@/lib/dm/aura";
+import { incapacitatedBy } from "@/lib/dm/condition-logic";
+import { saveModFor } from "@/lib/bestiary/statblock";
 import { computeSheetDerived } from "@/lib/srd";
 import { conditionConcentrationFloor } from "@/lib/srd/condition-effects";
 import { hasFeat } from "@/lib/srd/feature-effects";
@@ -152,7 +154,7 @@ export function clearSpellConditionsByName(
 // to 0 HP breaks concentration without a save.
 export function concentrationDamageHook(
   campaign: Campaign,
-  turnId: string,
+  turnId: string | null,
   preSheet: CharacterSheet,
   damage: number,
 ): Record<string, unknown> {
@@ -203,4 +205,52 @@ export function concentrationDamageHook(
     breakConcentration(campaign, turnId, fresh.id, `failed the DC ${dc} CON save`);
   }
   return { concentration: { spell, dc, rolled: outcome.total, held } };
+}
+
+// Enemy concentration: damage forces the CON save (DC 10 or half the
+// damage); death breaks it outright. A break ends the spell's conditions
+// on everyone it was holding (the same cleanup a PC's break runs).
+export function enemyConcentrationDamageHook(
+  campaign: Campaign,
+  turnId: string | null,
+  enemy: EncounterEnemy,
+  damage: number,
+  dropped: boolean,
+): { concentrationBroken?: string; concentration?: string } {
+  const spell = enemy.concentration;
+  if (!spell || (!dropped && damage < 1)) {
+    return {};
+  }
+  if (dropped) {
+    endEnemyConcentration(campaign, turnId, enemy.id, spell);
+    return { concentrationBroken: `${enemy.displayName}'s ${spell} ends with its death; the spell's effects fade.` };
+  }
+  const dc = Math.max(10, Math.floor(damage / 2));
+  const outcome = rollExpression(d20Expression(saveModFor(enemy.stats, "con")));
+  const held = outcome.total >= dc;
+  if (!held) {
+    endEnemyConcentration(campaign, turnId, enemy.id, spell);
+  }
+  return {
+    concentration: held
+      ? `${enemy.displayName} keeps concentrating on ${spell} (CON save ${outcome.total} vs DC ${dc}).`
+      : `${enemy.displayName} loses concentration on ${spell} (CON save ${outcome.total} vs DC ${dc}); the spell's effects end.`,
+  };
+}
+
+// An incapacitated creature loses concentration (SRD). Called after a
+// condition lands on an enemy; returns the note when a spell ended.
+export function enemyIncapacitationHook(campaign: Campaign, turnId: string | null, enemyId: string): string | null {
+  const enemy = getEnemy(enemyId);
+  const by = enemy ? incapacitatedBy(enemy.conditions) : null;
+  if (!enemy?.concentration || !by) {
+    return null;
+  }
+  endEnemyConcentration(campaign, turnId, enemy.id, enemy.concentration);
+  return `${enemy.displayName} is ${by} and loses concentration on ${enemy.concentration}; the spell's effects end.`;
+}
+
+function endEnemyConcentration(campaign: Campaign, turnId: string | null, enemyId: string, spell: string) {
+  setEnemyConcentration(enemyId, null);
+  clearSpellConditionsByName(campaign, spell, undefined, { casterId: enemyId, casterKind: "enemy" }, turnId);
 }

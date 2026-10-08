@@ -98,7 +98,7 @@ import {
   isIncapacitated,
   mergeAdvantage,
 } from "@/lib/dm/condition-logic";
-import { tickEncounterConditions } from "@/lib/dm/condition-tick";
+import { expireTurnBoundConditions, tickEncounterConditions } from "@/lib/dm/condition-tick";
 import { rollDeathSave } from "@/lib/dm/death";
 import { getBattleMapForEncounter, getTokenByRef, resetRoundBudgets } from "@/lib/db/battle-maps";
 import type { CharacterSheet } from "@/lib/schemas/sheet";
@@ -1401,7 +1401,7 @@ function advancePointer(
   campaign: Campaign,
   encounter: Encounter,
   options?: { announce?: boolean },
-): { enemiesPassed: string[] } | null {
+): { enemiesPassed: string[]; turnsStarted: Set<string> } | null {
   // The hero whose turn just ended has had their action this team round.
   const leaving = encounter.order[encounter.turnIndex];
   if (leaving?.kind === "pc") {
@@ -1415,7 +1415,13 @@ function advancePointer(
   // starts clean (src/lib/dm/action-budget.ts).
   encounter.turnBudget = null;
   const incoming = encounter.order[encounter.turnIndex];
-  if (incoming) encounter.reactionsUsed = encounter.reactionsUsed.filter(id => id !== orderEntryId(incoming));
+  // A reaction comes back at the start of its owner's turn: every enemy the
+  // pointer walked past just had its turn (enemies act between heroes), and
+  // so does the hero it lands on. Effects that last "until the start of your
+  // next turn" (Dodge, Shield, Protection, Help) end then too, but the caller
+  // expires them once the passed enemies have attacked.
+  const turnsStarted = new Set([...walked.enemiesPassed, ...walked.pcsPassed, ...(incoming ? [orderEntryId(incoming)] : [])]);
+  encounter.reactionsUsed = encounter.reactionsUsed.filter((id) => !turnsStarted.has(id));
   encounter.waitingSeq = latestSeq(campaign.id);
   saveEncounter(encounter);
   setInitiativeFloor(campaign, encounter, walked.wait);
@@ -1440,7 +1446,7 @@ function advancePointer(
   }
   // A fight now waiting at its boundary may be what the global round waited on.
   if (walked.wait) settleTeamRound(campaign.id);
-  return { enemiesPassed: walked.enemiesPassed };
+  return { enemiesPassed: walked.enemiesPassed, turnsStarted };
 }
 
 // The auto-act fallback: enemies the model skipped this turn take their
@@ -1588,6 +1594,7 @@ export function advanceAfterTurn(campaign: Campaign, turn?: DmTurn, options?: { 
       sheetsById,
     );
   }
+  if (advanced) expireTurnBoundConditions(campaign, advanced.turnsStarted);
   // The pointer now rests on an AI companion: wake the DM so the model can
   // play their turn with real tactics; if that turn ends without resolving
   // them, the auto-act above is the safety net.
@@ -1775,9 +1782,13 @@ export function skipCurrentTurn(campaignId: string, reason: "lead" | "left" = "l
     return false;
   }
   const skipped = encounter.order[encounter.turnIndex];
-  if (!advancePointer(campaign, encounter, { announce: false })) {
+  const advanced = advancePointer(campaign, encounter, { announce: false });
+  if (!advanced) {
     return false;
   }
+  // ponytail: the woken DM plays the enemies before the next hero after this,
+  // so that hero's Dodge is already gone for them; defer if it matters.
+  expireTurnBoundConditions(campaign, advanced.turnsStarted);
   const next = encounter.order[encounter.turnIndex];
   const seq = allocateSeq(campaignId);
   const message = insertCampaignMessage({

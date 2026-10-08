@@ -506,6 +506,8 @@ export function handlePcAttack(
       sneakEligible: false,
       heavy: false,
       riderNotes: [`natural attack while transformed (${sheet.wildShape.form})`],
+      // Primal Strike: a beast form's attacks count as magical.
+      ...(riders.magicalAttacks ? { magical: true } : {}),
     };
   } else {
     const resolved = resolveAttackWeapon(sheet.equipment, sheet.proficiencies.weapons, args.weapon, {
@@ -767,14 +769,19 @@ export function handlePcAttack(
   // Effect conditions on the attacker's own roll: Bless's +1d4, Bane's
   // -1d4, True Strike's one-shot advantage.
   const attackRiders = conditionRollRiders(sheet.conditions, "attack");
+  // An ally's Help: advantage on this attack, spent by it.
+  const helped = sheet.conditions.find((entry) => entry.trim().toLowerCase() === "helped") ?? null;
+  if (helped) {
+    attackRiders.notes.push("spends the Help their ally gave them: advantage");
+  }
   conditionContext.notes.push(...attackRiders.notes, ...onHit.notes);
   for (const rider of featureRiders) {
     conditionContext.notes.push(
       `${rider.feature}: +${rider.dice}${rider.type ? ` ${rider.type}` : ""} damage`,
     );
   }
-  if (riders.magicalAttacks && !args.spell) {
-    conditionContext.notes.push("their attacks count as magical for overcoming resistance");
+  if (profile.magical && !args.spell) {
+    conditionContext.notes.push("a magical attack: overcomes resistance to nonmagical attacks");
   }
   // SRD heavy property: Small creatures swing oversized weapons at
   // disadvantage.
@@ -804,6 +811,7 @@ export function handlePcAttack(
     exhaustion.advantage,
     ...(load?.disadvantage ? ["disadvantage" as const] : []),
     ...attackRiders.advantageSources,
+    ...(helped ? ["advantage" as const] : []),
     ...(spatials.longRange ? ["disadvantage" as const] : []),
     ...(smallWithHeavy ? ["disadvantage" as const] : []),
   ]);
@@ -972,6 +980,7 @@ export function handlePcAttack(
   const spentConditions = [
     ...(sheet.conditions.some((entry) => entry.toLowerCase() === "hidden") ? ["hidden"] : []),
     ...attackRiders.spent,
+    ...(helped ? [helped] : []),
     ...(luckySpent ? ["lucky"] : []),
   ];
   if (spentConditions.length) {

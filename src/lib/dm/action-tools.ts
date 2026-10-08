@@ -217,18 +217,24 @@ function publishRoll(campaignId: string, roll: ReturnType<typeof insertRoll>) {
 }
 
 // Adds a condition to a sheet without disturbing the ones already there.
+// `untilTurnOf`: the combatant whose next turn ends it ("until the start of
+// your next turn"); the two-round counter is then only a backstop.
 function addSheetCondition(
   campaign: Campaign,
   sheet: CharacterSheet,
   condition: string,
   rounds: number,
+  untilTurnOf?: string,
 ) {
   if (sheet.conditions.some((entry) => entry.toLowerCase() === condition)) {
     return;
   }
   const updated = patchSheet(sheet.id, {
     conditions: [...sheet.conditions, condition],
-    conditionMeta: { ...sheet.conditionMeta, [condition]: { rounds } },
+    conditionMeta: {
+      ...sheet.conditionMeta,
+      [condition]: untilTurnOf ? { rounds: Math.max(2, rounds), untilTurnOf } : { rounds },
+    },
   });
   if (updated) {
     publishPersisted(campaign.id, "sheet_updated", { sheet: updated });
@@ -286,8 +292,9 @@ export function handleTakeAction(
   switch (args.action) {
     case "dodge": {
       // Until their next turn, attacks against them have disadvantage and
-      // they have advantage on DEX saves. One round covers both.
-      addSheetCondition(campaign, sheet, DODGING, 1);
+      // they have advantage on DEX saves; the condition ends when that turn
+      // starts (expireTurnBoundConditions).
+      addSheetCondition(campaign, sheet, DODGING, 1, sheet.id);
       return {
         ok: true,
         action: "Dodge",
@@ -367,11 +374,11 @@ export function handleTakeAction(
         };
       }
       const fresh = getSheetById(target.id) ?? target;
-      addSheetCondition(campaign, fresh, HELPED, 1);
+      addSheetCondition(campaign, fresh, HELPED, 1, sheet.id);
       return {
         ok: true,
         action: "Help",
-        applied: `${fresh.name} has advantage on their next ability check or attack; the server spends it on their next d20 roll.`,
+        applied: `${fresh.name} has advantage on their next ability check or attack roll before ${sheet.name}'s next turn; the server spends it on that roll.`,
       };
     }
     case "grapple":
@@ -557,7 +564,7 @@ export function handleUseReaction(
     if ("error" in spend) {
       return spend;
     }
-    addSheetCondition(campaign, sheet, "shielded", 1);
+    addSheetCondition(campaign, sheet, "shielded", 1, sheet.id);
     const updated = getSheetById(sheet.id);
     return {
       ok: true,
@@ -581,7 +588,7 @@ export function handleUseReaction(
       : null;
     const ally = allyRef ? (getSheetById(allyRef.id) ?? allyRef) : null;
     if (ally && ally.id !== sheet.id) {
-      addSheetCondition(campaign, ally, "protected", 1);
+      addSheetCondition(campaign, ally, "protected", 1, sheet.id);
       return {
         ok: true,
         reaction: args.feature,

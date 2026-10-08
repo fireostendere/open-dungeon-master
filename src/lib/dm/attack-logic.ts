@@ -238,6 +238,8 @@ export function weaponAttackProfile(
       sneakEligible: false,
       heavy: false,
       riderNotes: notes,
+      // Ki-Empowered Strikes make the fists magical.
+      ...(resolved.unarmed && riders?.magicalAttacks ? { magical: true } : {}),
     };
   }
   const properties = srd.properties ?? [];
@@ -313,7 +315,9 @@ export function weaponAttackProfile(
     sneakEligible: finesse || ranged,
     heavy: properties.includes("heavy"),
     riderNotes: notes,
-    ...(shillelagh ? { magical: true } : {}),
+    // A +N weapon, a homebrew magic weapon or an attuned one overcomes
+    // resistance to nonmagical attacks, like Shillelagh's.
+    ...(shillelagh || magicBonus > 0 || resolved.item?.gear?.magic || resolved.item?.attuned ? { magical: true } : {}),
   };
 }
 

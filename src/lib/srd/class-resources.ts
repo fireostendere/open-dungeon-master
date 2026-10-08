@@ -295,7 +295,7 @@ const SRD_RESOURCE_DEFS: ResourceDef[] = [
     recharge: "short",
     effect: { kind: "narrative" },
     guidance:
-      "One additional action this turn, on top of the regular one. Resolve the extra action with its own tool call (a second pc_attack, a cast, a Dash).",
+      "One additional action this turn, on top of the regular one; in combat the server adds it to the turn's budget. Resolve the extra action with its own tool call (a second Attack action with every Extra Attack swing, a cast, a Dash).",
   },
   {
     id: "channel_divinity",

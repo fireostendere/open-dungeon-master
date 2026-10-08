@@ -13,7 +13,7 @@ import { spellDamageFor, spellMechanicsFor, type ResolvedSpellMech } from "@/lib
 import { allySaveAura } from "@/lib/dm/aura";
 import { findBeastForm, formatCr } from "@/lib/srd/beast-forms";
 import { conditionEffectsFor } from "@/lib/srd/condition-effects";
-import { clearSpellConditionsByName, setConcentration, concentrationSourceFor } from "@/lib/dm/concentration";
+import { clearSpellConditionsByName, enemyIncapacitationHook, setConcentration, concentrationSourceFor } from "@/lib/dm/concentration";
 import { saveModFor, type SaveAbility } from "@/lib/bestiary/statblock";
 import { applyDmMutation, canonicalCondition } from "@/lib/dm/mutations";
 import { applyEnemyDamage, publishEncounter, resolveEnemyRef } from "@/lib/dm/enemy-damage";
@@ -388,6 +388,8 @@ export function handleCastAtEnemy(
         ? addConditionSource(fresh.conditions, fresh.conditionMeta, condition, conditionSource, meta)
         : { conditions: [...fresh.conditions, condition], meta: { ...fresh.conditionMeta, [condition]: meta } };
       patchEnemyConditions(fresh.id, next.conditions, next.meta);
+      const lostFocus = enemyIncapacitationHook(campaign, turn.id, fresh.id);
+      if (lostFocus) base.concentrationBroken = lostFocus;
       publishEncounter(campaign.id);
       base.conditionApplied = condition;
       const summary = conditionEffectsFor(condition)?.summary;

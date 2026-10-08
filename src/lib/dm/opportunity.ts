@@ -24,6 +24,7 @@ import { healthState } from "@/lib/bestiary/health";
 
 import { applyDamageMath } from "@/lib/dm/mutation-math";
 import { applyDamageDeathHook } from "@/lib/dm/death";
+import { concentrationDamageHook, enemyConcentrationDamageHook } from "@/lib/dm/concentration";
 import {
   DODGING,
   damageAdjust,
@@ -186,8 +187,10 @@ export function resolveOpportunityAttacks(
       patch,
     });
     publishPersisted(campaign.id, "sheet_audit", { entry, characterName: sheet.name });
-    // The death engine owns what happens at 0 HP.
+    // The death engine owns what happens at 0 HP; a hit on a caster tests
+    // their concentration like any other damage.
     applyDamageDeathHook(campaign, null, sheet, math, adjudicated.crit);
+    concentrationDamageHook(campaign, null, sheet, adjusted.amount);
     const updated = getSheetById(sheet.id);
     if (updated) {
       publishPersisted(campaign.id, "sheet_updated", { sheet: updated });
@@ -195,10 +198,11 @@ export function resolveOpportunityAttacks(
     if (math.currentHp <= 0) {
       downed = true;
     }
+    const lost = sheet.concentratingOn && !updated?.concentratingOn ? sheet.concentratingOn : null;
     notes.push(
       `${enemy.displayName} takes an opportunity attack as ${sheet.name} pulls away: ${
         adjudicated.crit ? "a critical hit for " : "hit for "
-      }${adjusted.amount} damage${adjusted.note ? ` (${adjusted.note})` : ""}.`,
+      }${adjusted.amount} damage${adjusted.note ? ` (${adjusted.note})` : ""}.${lost ? ` ${sheet.name} loses concentration on ${lost}.` : ""}`,
     );
   }
 
@@ -322,11 +326,13 @@ function reactionSwing(
   );
   const math = enemyDamageMath(enemy.currentHp, adjusted.amount);
   patchEnemyHp(enemy.id, math.currentHp, math.dropped ? "dead" : "alive");
+  const focus = enemyConcentrationDamageHook(campaign, null, enemy, adjusted.amount, math.dropped);
   publishPersisted(campaign.id, "encounter_updated", { encounterId: encounter.id });
   return {
     note: `${sheet.name} catches ${enemy.displayName} ${trigger}: ${adjudicated.crit ? "a critical hit for " : ""}${adjusted.amount} damage${
       adjusted.note ? ` (${adjusted.note})` : ""
-    }. ${math.dropped ? `${enemy.displayName} drops.` : `It is now ${healthState(math.currentHp, enemy.maxHp)}.`}`,
+    }. ${math.dropped ? `${enemy.displayName} drops.` : `It is now ${healthState(math.currentHp, enemy.maxHp)}.`}${
+      focus.concentrationBroken ?? focus.concentration ? ` ${focus.concentrationBroken ?? focus.concentration}` : ""}`,
     hit: true,
     dropped: math.dropped,
   };
