@@ -182,9 +182,9 @@ export type LobbySeat = { userId: string; ready: boolean; hasSheet: boolean };
 // and the route it calls read one function. Both do (Lobby.tsx and the
 // campaign PATCH route).
 //
-// Readiness still counts every seat, DM included: the DM readies up to say the
-// table is set, which is the whole point of their ready button.
-export function lobbyBlocker(seats: DmSeats, lobby: LobbySeat[]): string {
+// Only players ready up. An explicit start confirmation may skip readiness,
+// but never the presence of players or their character sheets.
+export function lobbyBlocker(seats: DmSeats, lobby: LobbySeat[], ignoreReadiness = false): string {
   if (!lobby.length) {
     return "The table is empty.";
   }
@@ -195,7 +195,7 @@ export function lobbyBlocker(seats: DmSeats, lobby: LobbySeat[]): string {
   if (lobby.some((seat) => !isDmSeat(seats, seat.userId) && !seat.hasSheet)) {
     return "Every player needs a character before the adventure starts.";
   }
-  if (lobby.some((seat) => !seat.ready)) {
+  if (!ignoreReadiness && lobby.some((seat) => !isDmSeat(seats, seat.userId) && !seat.ready)) {
     return "Waiting for everyone to ready up.";
   }
   return "";

@@ -82,6 +82,7 @@ try {
   await page.goto(`${base}/campaigns/${campaign.id}`);
   const handoff = page.getByRole('button', {name:'Передать роль и выбрать персонажа',exact:true});
   await handoff.waitFor();
+  assert.equal(await page.getByRole('button', {name:/^(Готов|Не готов)$/}).count(), 0, 'DM seat has no readiness toggle');
   assert.ok((await handoff.boundingBox()).y < 900, 'DM handoff is on the first screen');
   await page.getByRole('combobox', {name:'Кто будет Мастером?',exact:true}).selectOption(dm.id);
   await handoff.click();
@@ -108,6 +109,9 @@ try {
   const ownerRow = page.locator('li').filter({has:page.getByText(owner.username, {exact:true})});
   assert.equal(await ownerRow.locator('summary').count(), 0, 'no empty management menu for the owner/lead with a character');
   const playerRow = page.locator('li').filter({has:page.getByText(player.username, {exact:true})});
+  const dmRow = page.locator('li').filter({has:page.getByText(dm.username, {exact:true})});
+  assert.equal(await dmRow.getByText('не готов', {exact:true}).count(), 0, 'DM readiness does not appear in the roster');
+  assert.equal((await context.request.patch(`${base}/api/campaigns/${campaign.id}`, {data:{status:'active',ignoreReadiness:true}})).status(), 400, 'readiness override does not bypass missing characters');
   const management = playerRow.locator('summary').filter({hasText:/^Управление$/});
   const invite = page.locator('section').filter({has:page.getByText('Код комнаты', {exact:true})});
   await page.locator('summary').filter({hasText:'Пригласить игроков'}).click();
@@ -188,11 +192,28 @@ try {
       const hero = createCharacter(lead.id, 3, { ...heroInput, name:'Lead hero' });
       assert.equal((await memberContext.request.post(`${base}/api/campaigns/${campaign.id}/sheet`, {data:{libraryCharacterId:hero.id}})).status(), 201);
     }
-    assert.equal((await memberContext.request.post(`${base}/api/campaigns/${campaign.id}/ready`, {data:{ready:true}})).status(), 200);
+    if (member.id !== lead.id) assert.equal((await memberContext.request.post(`${base}/api/campaigns/${campaign.id}/ready`, {data:{ready:true}})).status(), 200);
   }
-  assert.equal((await dmContext.request.post(`${base}/api/campaigns/${campaign.id}/ready`, {data:{ready:true}})).status(), 200);
-  const activation = await context.request.patch(`${base}/api/campaigns/${campaign.id}`, {data:{status:'active'}});
-  assert.equal(activation.status(), 200, await activation.text());
+  assert.equal((await leadContext.request.patch(`${base}/api/campaigns/${campaign.id}`, {data:{status:'active',ignoreReadiness:true}})).status(), 403, 'override cannot grant start rights to a player/lead');
+  assert.equal((await context.request.patch(`${base}/api/campaigns/${campaign.id}`, {data:{status:'active',ignoreReadiness:'yes'}})).status(), 400, 'override must be an explicit boolean');
+  assert.equal((await context.request.patch(`${base}/api/campaigns/${campaign.id}`, {data:{status:'active'}})).status(), 400, 'ordinary start still checks player readiness');
+  await page.reload();
+  const start = page.getByRole('button', {name:'Начать кампанию',exact:true});
+  await start.waitFor();
+  assert.equal(await start.isEnabled(), true, 'unready players do not disable the confirmation path');
+  let prompt = '';
+  page.once('dialog', dialog=>{prompt=dialog.message();return dialog.dismiss();});
+  await start.click();
+  assert.ok(prompt.includes(lead.username), 'confirmation lists the unready player');
+  assert.ok(!prompt.includes(dm.username), 'confirmation excludes DM readiness');
+  snapshot = await context.request.get(`${base}/api/campaigns/${campaign.id}`).then(r=>r.json());
+  assert.equal(snapshot.campaign.status, 'lobby', 'cancel keeps the campaign in its lobby');
+  page.once('dialog', dialog=>dialog.accept());
+  await start.click();
+  await page.getByRole('heading', {name:campaign.title,exact:true}).first().waitFor();
+  snapshot = await context.request.get(`${base}/api/campaigns/${campaign.id}`).then(r=>r.json());
+  assert.equal(snapshot.campaign.status, 'active', 'confirmed start accepts an unready player and DM');
+  assert.equal(snapshot.members.find(m=>m.userId===lead.id).ready, false, 'forced start does not fabricate readiness');
   const playerPage = await playerContext.newPage();
   await playerPage.goto(`${base}/campaigns/${campaign.id}`);
   await playerPage.getByRole('heading', {name:campaign.title,exact:true}).first().waitFor();

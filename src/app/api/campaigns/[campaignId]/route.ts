@@ -185,6 +185,7 @@ export async function GET(
 
 const patchSchema = z.object({
   status: z.enum(["active", "ended"]).optional(),
+  ignoreReadiness: z.boolean().optional(),
   // With status "ended": how it ended. Closing with an outcome also cleans
   // up running fights, dice and Asks (src/lib/dm/campaign-ending.ts).
   outcome: z.enum(CAMPAIGN_OUTCOMES).optional(),
@@ -215,7 +216,7 @@ export async function PATCH(
     return Response.json({ error: "Invalid update." }, { status: 400 });
   }
 
-  const { status: nextStatus, outcome, epilogue, ...info } = parsed.data;
+  const { status: nextStatus, ignoreReadiness, outcome, epilogue, ...info } = parsed.data;
   const infoKeys = Object.keys(info) as Array<keyof typeof info>;
 
   // Campaign info edits: party lead only, any time before the campaign
@@ -268,6 +269,7 @@ export async function PATCH(
         ready: member.ready,
         hasSheet: lobbySheets.some((sheet) => sheet.userId === member.userId),
       })),
+      ignoreReadiness,
     );
     if (blocker) {
       return Response.json({ error: blocker }, { status: 400 });

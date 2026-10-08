@@ -243,7 +243,7 @@ export function LobbyParty({
                       {localeText(locale, { en: "real dice", ru: "живые кости" })}
                     </SeatBadge>
                   ) : null}
-                  <span
+                  {!dmSeat ? <span
                     className={cn(
                       "rounded-full px-2 py-0.5 text-[11px]",
                       member.ready
@@ -252,7 +252,7 @@ export function LobbyParty({
                     )}
                   >
                     {member.ready ? localeText(locale, { en: "ready", ru: "готов" }) : localeText(locale, { en: "not ready", ru: "не готов" })}
-                  </span>
+                  </span> : null}
                 </div>
               </li>
             );

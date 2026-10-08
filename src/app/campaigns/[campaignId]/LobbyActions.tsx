@@ -62,10 +62,8 @@ function CharacterActions({
 // it just as much: a DM who owned the table used to see a Ready button and
 // nothing else, so a human-run game could never be started from the seat that
 // was running it. `canStart` is the owner or the person in the DM seat (the
-// PATCH route allows the same two), and `blocker` is the server's own rule
-// (lobbyBlocker in src/lib/dm/viewer.ts), so this button is never offered
-// when the route would refuse it, and the reason shown is the reason the
-// server would give.
+// PATCH route allows the same two). Structural blockers disable this button;
+// unready players are handled by the caller's start confirmation.
 function StartBlock({
   canStart,
   busy,
@@ -78,7 +76,7 @@ function StartBlock({
   onStart: () => void;
 }) {
   const { t, locale } = useI18n();
-  const copy = localeText(locale, { en: { wait: "The owner or the DM starts the adventure once everyone is ready." }, ru: { wait: "Владелец или мастер стола начинает приключение, когда все готовы." } });
+  const copy = localeText(locale, { en: { wait: "The owner or the DM starts the adventure." }, ru: { wait: "Владелец или мастер стола запускает приключение." } });
   if (!canStart) {
     return (
       <p className="text-center text-sm text-stone-500">
@@ -156,7 +154,7 @@ export function LobbyActions({
             {localeText(locale, { en: "Your seat: Dungeon Master", ru: "Ваше место: Мастер" })}
           </p>
           <p className="max-w-sm text-balance text-sm text-stone-400">
-            {localeText(locale, { en: "The DM runs the game. To play a hero, hand this seat to another member first.", ru: "Мастер ведёт игру. Чтобы играть героем, сначала передайте это место другому участнику." })}
+            {localeText(locale, { en: "The DM runs the game and does not need to ready up. To play a hero, hand this seat to another member first.", ru: "Мастер ведёт игру; готовность для него не требуется. Чтобы играть героем, сначала передайте это место другому участнику." })}
           </p>
           {onPlayAsCharacter ? (
             <div className="w-full space-y-2 border-t border-stone-800 pt-3 text-left">
@@ -172,9 +170,6 @@ export function LobbyActions({
               </button>
             </div>
           ) : null}
-          <button type="button" onClick={onToggleReady} disabled={busy} className={cn(ui.btnPrimary, "mt-1 px-6")}>
-            {myMember?.ready ? t("common.notReady") : t("common.ready")}
-          </button>
         </div>
       ) : !mySheet ? (
         <div className={cn(ui.card, "flex flex-col gap-3 p-4")}>

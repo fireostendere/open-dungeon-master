@@ -21,7 +21,7 @@ import { LorePanel } from "@/app/campaigns/[campaignId]/LorePanel";
 import { RulesPanel } from "@/app/campaigns/[campaignId]/RulesPanel";
 import { VoicePanel } from "@/app/campaigns/[campaignId]/VoicePanel";
 import { resolveCompanionMode } from "@/lib/schemas/game-settings";
-import { isPrimaryDm, lobbyBlocker, partySlotCount, viewerCaps } from "@/lib/dm/viewer";
+import { isDmSeat, isPrimaryDm, lobbyBlocker, partySlotCount, viewerCaps } from "@/lib/dm/viewer";
 import {
   ContentImportPicker,
   EMPTY_SELECTION,
@@ -139,9 +139,7 @@ export function Lobby({ state, refresh }: { state: CampaignState; refresh: () =>
     resolveCompanionMode(campaign.gameSettings, partySize, humanDmTable) === "full" &&
     partyCompanions.length < campaign.gameSettings.maxCompanions;
   const showCompanions = canBuildCompanion || (steersStory && partyCompanions.length > 0);
-  // Why the adventure cannot open yet, or "" when it can. The server's PATCH
-  // asks the same function of the same seats, so the Begin button is enabled
-  // exactly when the route would accept it.
+  // Structural blockers stay hard; unready players require confirmation.
   const startBlocker = lobbyBlocker(
     seats,
     members.map((member) => ({
@@ -149,7 +147,9 @@ export function Lobby({ state, refresh }: { state: CampaignState; refresh: () =>
       ready: member.ready,
       hasSheet: sheets.some((sheet) => sheet.userId === member.userId),
     })),
+    true,
   );
+  const unreadyPlayers = members.filter(member => !member.ready && !isDmSeat(seats, member.userId));
 
   // Returns whether the server took it, so the solo flow can stop before
   // trying to start a game whose only player is not ready.
@@ -178,14 +178,14 @@ export function Lobby({ state, refresh }: { state: CampaignState; refresh: () =>
 
   // PATCHes the campaign live. Shared by the owner's Begin button and the
   // solo one-stroke start.
-  async function activate(failure: string) {
+  async function activate(failure: string, ignoreReadiness = false) {
     setBusy(true);
     setError("");
     try {
       const response = await fetch(`/api/campaigns/${campaign!.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: "active" }),
+        body: JSON.stringify({ status: "active", ignoreReadiness }),
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) {
@@ -198,6 +198,14 @@ export function Lobby({ state, refresh }: { state: CampaignState; refresh: () =>
     } finally {
       setBusy(false);
     }
+  }
+
+  async function start() {
+    if (unreadyPlayers.length && !window.confirm(localeText(locale, {
+      en: `Players not ready: ${unreadyPlayers.map(member => member.username).join(", ")}.\nStart the campaign without waiting for their readiness?`,
+      ru: `Игроки ещё не готовы: ${unreadyPlayers.map(member => member.username).join(", ")}.\nЗапустить кампанию, не дожидаясь их готовности?`,
+    }))) return;
+    await activate(copy.startError, unreadyPlayers.length > 0);
   }
 
   // Solo flow: one button readies up and starts in a single stroke.
@@ -399,7 +407,7 @@ export function Lobby({ state, refresh }: { state: CampaignState; refresh: () =>
         error={error || seatError}
         startBlocker={startBlocker}
         onToggleReady={() => void setReady(!myMember?.ready)}
-        onStart={() => void activate(copy.startError)}
+        onStart={() => void start()}
         onBeginSolo={() => void beginSolo()}
         onRemoveCharacter={() => void removeCharacter()}
         onDelete={() => void deleteCampaign()}

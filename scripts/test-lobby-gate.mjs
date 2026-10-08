@@ -55,11 +55,20 @@ test("a DM and one player can start, though the DM has no character", () => {
   assert.equal(lobbyBlocker(humanSeats, [seat("gm", true, false), seat("p1", true, true)]), "");
 });
 
-test("the DM still has to ready up", () => {
+test("the DM does not need a ready flag", () => {
   assert.equal(
     lobbyBlocker(humanSeats, [seat("gm", false, false), seat("p1", true, true)]),
-    "Waiting for everyone to ready up.",
+    "",
   );
+});
+
+test("confirmed start ignores player readiness but still requires characters", () => {
+  for (const seats of [aiSeats, humanSeats, assistedSeats]) {
+    assert.equal(lobbyBlocker(seats, [seat("p1", false, true)], true), "");
+    assert.equal(lobbyBlocker(seats, [seat("p1", false, false)], true), "Every player needs a character before the adventure starts.");
+    assert.equal(lobbyBlocker(seats, [], true), "The table is empty.");
+  }
+  assert.equal(lobbyBlocker(humanSeats, [seat("gm", false, false)], true), "Waiting for a player to join.");
 });
 
 test("the player at a human-run table still needs a character", () => {
@@ -72,8 +81,8 @@ test("the player at a human-run table still needs a character", () => {
 test("a co-DM is exempt from a character too, in assisted mode as in human", () => {
   assert.equal(
     lobbyBlocker(assistedSeats, [
-      seat("gm", true, false),
-      seat("gm2", true, false),
+      seat("gm", false, false),
+      seat("gm2", false, false),
       seat("p1", true, true),
     ]),
     "",
