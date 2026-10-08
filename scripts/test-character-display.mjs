@@ -33,6 +33,28 @@ const submitted = composerGate({
 });
 assert.equal(submitted.inputBlocked, true);
 assert.match(submitted.placeholder, /Ход уже отправлен/);
+for (const phase of ["waiting", "active", "quorum_delay", "ready", "resolving"]) {
+  const input = {
+    floor: { mode: "open" }, sheets: [{ id: "hero", userId: "test", isCompanion: false }],
+    meUserId: "test", myName: "Герой", leadPrivate: false, openingNarrationPlaying: false,
+    globalTurnEnabled: true, locale: "ru",
+    globalTurnState: { roundNumber: 3, phase, startedAt: null, firstActionAt: null, deadlineAt: null, quorumReachedAt: null,
+      actionsByCharacter: { hero: { actionsCount: 1, updatedAt: new Date().toISOString() } } },
+  };
+  assert.equal(composerGate({ ...input, kind: "do" }).inputBlocked, true, `Do stays locked in ${phase}`);
+  assert.equal(composerGate({ ...input, kind: "ask" }).inputBlocked, false, `Ask stays open in ${phase}`);
+  for (const floor of [
+    { mode: "open" },
+    { mode: "hold", next: { mode: "open" } },
+    { mode: "spotlight", userIds: ["other"], respondedUserIds: [] },
+    { mode: "initiative", userIds: ["other"], currentName: "Другой герой", round: 1 },
+    { mode: "hold", next: { mode: "initiative", userIds: ["test"] }, combat: { characterId: "hero" } },
+  ]) {
+    const ooc = composerGate({ ...input, floor, kind: "ooc", openingNarrationPlaying: true });
+    assert.equal(ooc.inputBlocked, false, `OOC stays open in ${phase} with ${floor.mode}`);
+    assert.equal(ooc.placeholder, "Внеигровая заметка для стола");
+  }
+}
 // Multi-dice terms are itemised per die in the roll overlay's tally chips.
 const diceOverlay = readFileSync(new URL("../src/app/campaigns/[campaignId]/DiceRollOverlay.tsx", import.meta.url), "utf8");
 assert.match(diceOverlay, /kept\.length > 1/, "several kept dice of one size share a chip");

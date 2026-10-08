@@ -70,13 +70,12 @@ export function composerGate({
   // exactly the kind of thing someone wants to ask while it plays.
   const narrationBlocked = openingNarrationPlaying && kind !== "ooc" && kind !== "ask";
 
-  // Global-turn gate: a player has no composer at all before the round
-  // start trigger or while MCP is resolving a sealed round. This includes OOC
-  // in the shared composer: while locked, Ask stays available because it is
-  // outside the turn. Once active, the first Do locks this character.
+  // Global-turn gate: game input waits for the round start or resolution.
+  // OOC and Ask are outside the turn and always stay available.
+  // Once active, the first Do locks this character.
   let turnActionBlocked = false;
   let turnActionReason = "";
-  if (kind !== "ask" && !combat && globalTurnEnabled && globalTurnState) {
+  if (kind !== "ooc" && kind !== "ask" && !combat && globalTurnEnabled && globalTurnState) {
     const mySheet = sheets.find((s) => s.userId === meUserId && !s.isCompanion);
     if (mySheet && globalTurnState.phase === "waiting") {
       turnActionBlocked = true;
