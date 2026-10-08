@@ -25,7 +25,7 @@ const RULES: Rule[] = [
   { label: "debug tag", pattern: /\[(?:debug|dev|trace|internal|meta|operator|оператор|отладка|dbg)\]|^\s*(?:DEBUG|TODO|FIXME)\b/im },
   { label: "OOC status note", pattern: /^\s*\(ooc\)/i },
   // What the table must never hear about the machinery.
-  { label: "engine talk", pattern: /(?<![\p{L}])(?:MCP|ODM|JSON|API)(?![\p{L}])|квитанц|сервер\s+(?:обработал|принял|вернул|отклонил|не\s+принял)|движ(?:ок|ка|ку|ком|ке)\s+(?:не\s+)?(?:применил|обработал|принял|вернул|отклонил|разрешил|позволяет|посчитал|засчитал)|\bthe\s+engine\s+(?:rejected|refused|returned|applied|resolved|processed|did\s+not)/iu },
+  { label: "engine talk", pattern: /(?<![\p{L}])(?:MCP|ODM|JSON|API)(?![\p{L}])|квитанц\p{L}*\s+(?:записи|команды)(?![\p{L}])|сервер\s+(?:обработал|принял|вернул|отклонил|не\s+принял)|движ(?:ок|ка|ку|ком|ке)\s+(?:не\s+)?(?:применил|обработал|принял|вернул|отклонил|разрешил|позволяет|посчитал|засчитал)|\bthe\s+engine\s+(?:rejected|refused|returned|applied|resolved|processed|did\s+not)/iu },
   { label: "turn bookkeeping", pattern: /(?<![\p{L}])ход\s+(?:\p{L}+\s+)?(?:передан|принят|завершён|завершен|не\s+продвинут|продвинут)(?![\p{L}])|на\s+удержании|(?<![\p{L}])turn\s+(?:passed|handed\s+off|advanced|is\s+(?:held|on\s+hold))(?![\p{L}])/iu },
 ];
 
