@@ -23,6 +23,10 @@ const {
   hasHalflingLuck,
   hasBrave,
   hasElvenAccuracy,
+  hasFeat,
+  isPoleReachWeapon,
+  isPoleStrikeWeapon,
+  toughHpGain,
 } = await import("../src/lib/srd/feature-effects.ts");
 
 let passed = 0;
@@ -317,6 +321,24 @@ test("hasElvenAccuracy detects the feat", () => {
     true,
   );
   assert.equal(hasElvenAccuracy({ features: [{ name: "Sharpshooter", source: "feat" }] }), false);
+});
+
+test("combat feats are read from sheet.feats and from feature names", () => {
+  assert.equal(hasFeat({ feats: ["Polearm Master"] }, "polearm master"), true);
+  assert.equal(hasFeat({ features: [{ name: "Feat: Sentinel" }] }, "sentinel"), true);
+  assert.equal(hasFeat({ features: [{ name: "War Caster (PHB)" }] }, "war caster"), true);
+  assert.equal(hasFeat({ feats: ["Great Weapon Fighting"] }, "great weapon master"), false);
+  assert.equal(hasElvenAccuracy({ feats: ["Elven Accuracy"] }), true, "the feat list counts, not only features");
+  assert.equal(isPoleStrikeWeapon("Glaive"), true);
+  assert.equal(isPoleStrikeWeapon("Pike"), false, "no butt strike with a pike");
+  assert.equal(isPoleReachWeapon("Pike"), true, "but a pike does take the entering-reach attack");
+});
+
+test("Tough pays 2 HP per level, retroactively when taken later", () => {
+  assert.equal(toughHpGain({ levelBefore: 0, levelAfter: 4, hadTough: false, hasTough: true }), 8);
+  assert.equal(toughHpGain({ levelBefore: 4, levelAfter: 5, hadTough: true, hasTough: true }), 2);
+  assert.equal(toughHpGain({ levelBefore: 7, levelAfter: 8, hadTough: false, hasTough: true }), 16);
+  assert.equal(toughHpGain({ levelBefore: 3, levelAfter: 4, hadTough: false, hasTough: false }), 0);
 });
 
 console.log(`test-feature-effects: ${passed} passed`);

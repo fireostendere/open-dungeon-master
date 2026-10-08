@@ -58,6 +58,7 @@ import {
   isRangedAttack,
   moveTokenTool,
   publishBattleMapUpdate,
+  resolveSentinelGuard,
 } from "@/lib/dm/map-tools";
 import { isJrpgCombat } from "@/lib/dm/combat-mode";
 import {
@@ -1000,6 +1001,11 @@ function handleEnemyAttack(
   // narration can never teleport enemies.
   const spatial = approachForAttack(campaign, encounter.id, enemy.id, target.id, attack);
   if (spatial?.blocked) {
+    // Cut short by the characters' reactions (killed or stopped on the way):
+    // its turn is spent, so the server does not play it again.
+    if (spatial.blocked.interrupted && !turn.actedEnemyIds.includes(enemy.id)) {
+      turn.actedEnemyIds.push(enemy.id);
+    }
     return spatial.blocked;
   }
 
@@ -1125,8 +1131,15 @@ function handleEnemyAttack(
     turn.actedEnemyIds.push(enemy.id);
   }
 
+  // Reactions on the way in (opportunity attacks, Polearm Master) and a
+  // Sentinel next to this enemy answering its attack on someone else.
+  const reactions = [...(spatial?.reactions ?? []), ...resolveSentinelGuard(campaign, enemy.id, target.id)];
+
   return {
     attack: attack.name,
+    ...(reactions.length
+      ? { reactions, reactionsNote: "The server already rolled and applied these reaction attacks; narrate them, and do not call pc_attack for them." }
+      : {}),
     vsAc: acWithEffects(campaign.id, target),
     target: target.name,
     ...(totalSwings > 1 ? { multiattack: `${totalSwings} attacks` } : {}),

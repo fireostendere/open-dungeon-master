@@ -226,6 +226,9 @@ export type PendingAttack = {
   // Great Weapon Fighting: reroll damage dice at or below this value.
   rerollBelow?: number;
   spentOnHit?: string[];
+  // A melee attack by a Great Weapon Master: a critical hit or a kill opens
+  // their bonus-action swing (src/lib/dm/bonus-trigger.ts).
+  gwm?: boolean;
 };
 
 export type PendingRoll = {

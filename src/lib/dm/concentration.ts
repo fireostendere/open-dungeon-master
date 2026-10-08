@@ -10,6 +10,7 @@ import { findSpellByName } from "@/lib/content";
 import { allySaveAura } from "@/lib/dm/aura";
 import { computeSheetDerived } from "@/lib/srd";
 import { conditionConcentrationFloor } from "@/lib/srd/condition-effects";
+import { hasFeat } from "@/lib/srd/feature-effects";
 import { removeConcentrationSources, sameConcentrationOwner } from "@/lib/dm/condition-sources";
 import { d20Expression, rollExpression } from "@/lib/dice";
 import { publishPersisted, publishWithSeq } from "@/lib/events";
@@ -174,7 +175,9 @@ export function concentrationDamageHook(
   // Read post-hit HP/concentration above, but preserve the incoming form stats.
   const saveSheet = preSheet.wildShape ? { ...fresh, wildShape: preSheet.wildShape } : fresh;
   const saveMod = computeSheetDerived(saveSheet).saves.con + (aura?.bonus ?? 0);
-  const outcome = rollExpression(d20Expression(saveMod));
+  // War Caster: advantage on the CON save to keep concentration.
+  const warCaster = hasFeat(fresh, "war caster");
+  const outcome = rollExpression(d20Expression(saveMod, warCaster ? "advantage" : "none"));
   // Starry Form (Dragon) and its kin floor a low concentration d20 at 10.
   const floor = conditionConcentrationFloor(fresh.conditions);
   if (floor && outcome.natural !== undefined && outcome.natural < floor) {
@@ -186,7 +189,8 @@ export function concentrationDamageHook(
     characterId: fresh.id,
     requestedBy: "dm",
     kind: "saving_throw",
-    detail: `CON save to keep concentration (${spell})`,
+    detail: `CON save to keep concentration (${spell})${warCaster ? ", War Caster: advantage" : ""}`,
+    ...(warCaster ? { advantage: "advantage" as const } : {}),
     dc,
     result: outcome,
   });

@@ -220,6 +220,13 @@ export function d20Expression(modifier: number, advantage: Advantage = "none") {
   return base;
 }
 
+// One more d20 on the leading d20 term, highest kept (a Lucky feat luck
+// point). With disadvantage the luck die may be chosen too, so it is kept
+// highest of all three. Suffixes such as r1 and f10 stay on the term.
+export function withExtraD20(expression: string): string {
+  return expression.replace(/^(\d*)d20(?:k[hl]\d+)?/, (_term, count: string) => `${(Number(count) || 1) + 1}d20kh1`);
+}
+
 export function rollD20(
   modifier: number,
   advantage: Advantage = "none",

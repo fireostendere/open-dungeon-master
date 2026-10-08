@@ -957,8 +957,61 @@ export function hasLoxodonKeenSmell(sheet: {
 // third d20 and keep the highest. The caller gates it on the attack ability.
 export function hasElvenAccuracy(sheet: {
   features?: Array<{ name: string }>;
+  feats?: string[];
 }): boolean {
-  return (sheet.features ?? []).some((feature) =>
-    feature.name.toLowerCase().includes("elven accuracy"),
-  );
+  return hasFeat(sheet, "elven accuracy");
+}
+
+// Combat feats the engines enforce (PHB 2014 wording, as in
+// authored-feats.json). A feat lives in sheet.feats by its catalogue name;
+// older sheets and imports put it among the features ("Feat: Sentinel",
+// "Polearm Master (PHB)"), so both lists are read.
+export type CombatFeat =
+  | "polearm master"
+  | "great weapon master"
+  | "sharpshooter"
+  | "crossbow expert"
+  | "sentinel"
+  | "war caster"
+  | "dual wielder"
+  | "lucky"
+  | "tough"
+  | "elven accuracy";
+
+export function hasFeat(
+  sheet: { features?: Array<{ name: string }>; feats?: string[] },
+  feat: CombatFeat,
+): boolean {
+  const names = [...(sheet.feats ?? []), ...(sheet.features ?? []).map((feature) => feature.name)];
+  return names.some((name) => {
+    const bare = name.trim().toLowerCase().replace(/^feat:\s*/, "").replace(/\s*\(.*\)$/, "");
+    return bare === feat;
+  });
+}
+
+// Polearm Master: the bonus-action strike with the opposite end takes a
+// glaive, halberd, quarterstaff or spear; the opportunity attack when a
+// creature enters reach also takes a pike.
+const POLE_STRIKE_WEAPONS = new Set(["glaive", "halberd", "quarterstaff", "spear"]);
+const POLE_REACH_WEAPONS = new Set([...POLE_STRIKE_WEAPONS, "pike"]);
+
+export function isPoleStrikeWeapon(srdName: string | undefined | null): boolean {
+  return POLE_STRIKE_WEAPONS.has((srdName ?? "").toLowerCase());
+}
+
+export function isPoleReachWeapon(srdName: string | undefined | null): boolean {
+  return POLE_REACH_WEAPONS.has((srdName ?? "").toLowerCase());
+}
+
+// Tough: the hit point maximum rises by twice the character level, and by 2
+// more at every level after. The level-up and builder math add this on top
+// of the hit dice, so taking the feat later still pays for every level.
+export function toughHpGain(input: {
+  levelBefore: number;
+  levelAfter: number;
+  hadTough: boolean;
+  hasTough: boolean;
+}): number {
+  if (!input.hasTough) return 0;
+  return input.hadTough ? 2 * Math.max(0, input.levelAfter - input.levelBefore) : 2 * input.levelAfter;
 }

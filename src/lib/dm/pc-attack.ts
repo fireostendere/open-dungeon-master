@@ -1,6 +1,8 @@
 import { z } from "zod";
 import { allocateSeq, getCampaignById, type Campaign } from "@/lib/db/campaigns";
-import { getActiveEncounter, saveEncounter } from "@/lib/db/encounters";
+import { getActiveEncounter, listEnemies, saveEncounter, type Encounter } from "@/lib/db/encounters";
+import { getBattleMapForEncounter, getTokenByRef } from "@/lib/db/battle-maps";
+import { chebyshev } from "@/lib/battlemap/types";
 import { getSheetById, listSheets, patchSheet } from "@/lib/db/sheets";
 import { encumbranceFor } from "@/lib/srd/encumbrance";
 import { spendAmmo, withAmmoCount } from "@/lib/srd/ammunition";
@@ -13,7 +15,7 @@ import {
   type DmTurn,
   type PendingRoll,
 } from "@/lib/db/dm-turns";
-import { d20Expression, isValidExpression, rollExpression, type Advantage } from "@/lib/dice";
+import { d20Expression, isValidExpression, rollExpression, withExtraD20, type Advantage } from "@/lib/dice";
 import { publishPersisted, publishWithSeq } from "@/lib/events";
 import { computeSheetDerived, powerfulBuildForRace, sizeForRace, spellAttackFor } from "@/lib/srd";
 import { classLevelFor } from "@/lib/srd/multiclass";
@@ -21,13 +23,17 @@ import { spellDamageFor, spellMechanicsFor } from "@/lib/content";
 import { castRedirect, handleCastAtPlayer } from "@/lib/dm/cast-tools";
 import {
   adjudicateHit,
+  poleStrikeProfile,
   ragingMeleeBonus,
   resolveAttackWeapon,
   spellAttackProfile,
   weaponAttackProfile,
   type AttackProfile,
 } from "@/lib/dm/attack-logic";
-import { combatRiders, hasElvenAccuracy, hasHalflingLuck } from "@/lib/srd/feature-effects";
+import { BONUS_ATTACKS, attackWeaponUse, bonusAttackError, type BonusAttackKind } from "@/lib/dm/bonus-attacks";
+import { GWM_TRIGGER, markGwmTrigger } from "@/lib/dm/bonus-trigger";
+import type { AttackWeaponUse } from "@/lib/dm/action-budget";
+import { combatRiders, hasElvenAccuracy, hasFeat, hasHalflingLuck } from "@/lib/srd/feature-effects";
 import {
   conditionExtraActions,
   conditionOnHitDice,
@@ -123,7 +129,22 @@ export const pcAttackTool: ToolDef = {
         offHand: {
           type: "boolean",
           description:
-            "This is the bonus-action second attack of two-weapon fighting with a light weapon.",
+            "Legacy alias for bonusAttack='off_hand': the bonus-action second attack of two-weapon fighting.",
+        },
+        bonusAttack: {
+          type: "string",
+          enum: [...BONUS_ATTACKS],
+          description:
+            "A bonus-action weapon attack after the Attack action: off_hand (two-weapon fighting; Dual Wielder allows non-light one-handed weapons), pole_strike (Polearm Master, 1d4 bludgeoning butt end of a glaive/halberd/quarterstaff/spear), crossbow_expert (Crossbow Expert, a held hand crossbow), great_weapon_master (only after a melee critical hit or kill this turn; otherwise it is skipped and nothing is spent; a downed or missing target switches to the nearest living enemy in reach).",
+        },
+        powerAttack: {
+          type: "boolean",
+          description:
+            "Great Weapon Master (heavy melee weapon) or Sharpshooter (ranged weapon): -5 to hit, +10 damage. Only when the player declared it.",
+        },
+        lucky: {
+          type: "boolean",
+          description: "Lucky feat: spend a luck point for an extra d20 on this attack roll (the highest counts). Only when the player declared it.",
         },
         sneakAttack: { type: "boolean", description: "Only true when the player declares Sneak Attack as a rider on a queued attack or in prose. Eligibility and once-per-turn are still checked." },
         flurry: { type: "boolean", description: "Use one remaining unarmed strike from paid Flurry of Blows; requires weapon='Unarmed strike'." },
@@ -161,6 +182,9 @@ const pcAttackArgsSchema = z.object({
   ),
   twoHanded: z.coerce.boolean().optional(),
   offHand: z.coerce.boolean().optional(),
+  bonusAttack: z.enum(BONUS_ATTACKS).optional(),
+  powerAttack: z.boolean().optional(),
+  lucky: z.boolean().optional(),
   sneakAttack: z.boolean().optional(),
   flurry: z.boolean().optional(),
   smite: z.coerce.number().int().min(1).max(9).optional(),
@@ -187,6 +211,41 @@ function publishRoll(campaignId: string, roll: StoredRoll) {
     roll,
     source: "digital",
   });
+}
+
+// What the bonus action is spent on, for the refusal text.
+const BONUS_ATTACK_LABEL: Record<BonusAttackKind, string> = {
+  off_hand: "an off-hand attack",
+  pole_strike: "a Polearm Master butt strike",
+  crossbow_expert: "a Crossbow Expert hand crossbow shot",
+  great_weapon_master: "a Great Weapon Master attack",
+};
+
+// Great Weapon Master's swing often follows a kill, so a target that is
+// down (or none named) gives way to the nearest living enemy within the
+// weapon's reach. No board: the first living enemy. Null: nobody to hit.
+function gwmTarget(
+  campaign: Campaign,
+  encounter: Encounter,
+  sheet: CharacterSheet,
+  args: { targetEnemyId?: string; weapon?: string },
+): string | null {
+  const living = listEnemies(encounter.id).filter((enemy) => enemy.status === "alive");
+  if (args.targetEnemyId && living.some((enemy) => enemy.id === args.targetEnemyId)) {
+    return args.targetEnemyId;
+  }
+  const map = getBattleMapForEncounter(encounter.id);
+  const me = map ? getTokenByRef(map.id, sheet.id) : null;
+  if (!map || !me) {
+    return living[0]?.id ?? null;
+  }
+  const weapon = resolveAttackWeapon(sheet.equipment, sheet.proficiencies.weapons, args.weapon);
+  const reach = weapon.srd?.properties?.includes("reach") ? 2 : 1;
+  const inReach = living
+    .map((enemy) => ({ enemy, token: getTokenByRef(map.id, enemy.id) }))
+    .filter((entry) => entry.token && chebyshev(me.x, me.y, entry.token.x, entry.token.y) <= reach)
+    .sort((a, b) => chebyshev(me.x, me.y, a.token!.x, a.token!.y) - chebyshev(me.x, me.y, b.token!.x, b.token!.y));
+  return inReach[0]?.enemy.id ?? null;
 }
 
 // Sentinel the turn loop checks: a parked pc_attack pushes no tool result
@@ -239,6 +298,54 @@ export function handlePcAttack(
   if (stoppedBy) {
     return { error: `${sheet.name} is ${stoppedBy} and cannot attack.` };
   }
+  // Bonus-action weapon attacks (two-weapon fighting and the feats).
+  const bonusAttack: BonusAttackKind | undefined = args.bonusAttack ?? (args.offHand ? "off_hand" : undefined);
+  if (bonusAttack && (args.spell || args.flurry || sheet.wildShape?.attacks?.length)) {
+    return { error: "A bonus-action weapon attack needs a held weapon; it cannot be a spell, a Flurry strike or a beast form's attack." };
+  }
+  const featNeeded: Partial<Record<BonusAttackKind, Parameters<typeof hasFeat>[1]>> = {
+    pole_strike: "polearm master",
+    crossbow_expert: "crossbow expert",
+    great_weapon_master: "great weapon master",
+  };
+  const requiredFeat = bonusAttack ? featNeeded[bonusAttack] : undefined;
+  if (requiredFeat && !hasFeat(sheet, requiredFeat)) {
+    return { error: `${sheet.name} does not have the ${requiredFeat.replace(/\b\w/g, (letter) => letter.toUpperCase())} feat.` };
+  }
+  if (bonusAttack === "great_weapon_master") {
+    // Only a melee critical hit or a kill this turn opens it. A queued
+    // "if it triggers" swing that did not trigger spends nothing.
+    const live = budgetFor(encounter, sheet.id, attacksAllowedFor(sheet), conditionExtraActions(sheet.conditions));
+    if (!live?.oncePerTurn.includes(GWM_TRIGGER)) {
+      return {
+        ok: true,
+        skipped: true,
+        attacker: sheet.name,
+        note: `Great Weapon Master: ${sheet.name} scored no melee critical hit or kill this turn, so the bonus-action attack does not happen. Nothing was spent; narrate nothing for it.`,
+      };
+    }
+    const retarget = gwmTarget(campaign, encounter, sheet, args);
+    if (!retarget) {
+      return {
+        ok: true,
+        skipped: true,
+        attacker: sheet.name,
+        note: `Great Weapon Master: no living enemy is within ${sheet.name}'s reach, so the bonus-action attack does not happen. Nothing was spent.`,
+      };
+    }
+    args.targetEnemyId = retarget;
+    args.enemyId = retarget;
+    delete args.targetCharacterId;
+  }
+  // Lucky: a luck point must be there before anything else is spent. A
+  // point spent earlier (use_resource) and still held covers this roll too.
+  const heldLuck = sheet.conditions.some((entry) => entry.toLowerCase() === "lucky");
+  if (args.lucky && !heldLuck) {
+    const luck = sheet.resources.luck_points;
+    if (!luck || luck.used >= luck.max) {
+      return { error: `${sheet.name} has no luck points left${luck ? "" : " (no Lucky feat)"}.` };
+    }
+  }
   // A known spell passed in the weapon field is an unambiguous caller error,
   // not an improvised weapon. Preserve explicitly carried/granted weapons.
   if (!args.spell && args.weapon && !sheet.equipment.some(item => item.name.toLowerCase() === args.weapon!.toLowerCase()) &&
@@ -256,6 +363,10 @@ export function handlePcAttack(
   // Martial Arts, Sneak Attack, crit range, Brutal Critical, Divine Smite.
   const riders = combatRiders(sheet);
   let profile: AttackProfile;
+  // What the swing is made with, for the Attack-action record and the
+  // bonus-action rules; null for spells and granted attacks.
+  let weaponUse: AttackWeaponUse | null = null;
+  let carriedCopies = 0;
   // Set when the server derived the spell's dice itself, for the notes.
   let scalingNote: string | null = null;
   // An attack option a condition grants (Starry Form's Archer, Spiritual
@@ -263,6 +374,9 @@ export function handlePcAttack(
   const grantedTerm = [args.weapon, args.spell].filter(Boolean).join(" ").trim();
   const granted = grantedTerm ? grantedAttackFor(sheet.conditions, grantedTerm) : null;
   let grantedBonusAction = false;
+  if (granted && bonusAttack) {
+    return { error: `${granted.attack.name} is not a bonus-action weapon attack of that kind.` };
+  }
   if (granted) {
     if (derived.spellAttack === null) {
       return { error: `${sheet.name} has no spell attack bonus for ${granted.attack.name}.` };
@@ -404,10 +518,14 @@ export function handlePcAttack(
     const shillelagh = sheet.conditions.some((condition) =>
       new RegExp(`^shillelagh \\(${escapedWeapon}\\)$`, "i").test(condition),
     );
+    weaponUse = attackWeaponUse(resolved);
+    carriedCopies = sheet.equipment
+      .filter((item) => (item.qty ?? 1) > 0 && item.name.toLowerCase() === resolved.displayName.toLowerCase())
+      .reduce((sum, item) => sum + Math.max(1, item.qty ?? 1), 0);
     profile = weaponAttackProfile(derived, sheet.proficiencies.weapons, resolved, {
       riders,
       twoHanded: args.twoHanded,
-      offHand: args.offHand,
+      offHand: bonusAttack === "off_hand",
       ...(shillelagh
         ? {
             shillelagh: {
@@ -418,6 +536,13 @@ export function handlePcAttack(
           }
         : {}),
     });
+    if (bonusAttack === "pole_strike") {
+      profile = poleStrikeProfile(profile);
+    }
+  }
+  if (sheet.wildShape?.attacks?.length && !args.spell && !granted) {
+    // A beast form's bite is a melee attack too (Great Weapon Master counts it).
+    weaponUse = { name: profile.weapon, melee: true, light: false, twoHanded: false, pole: false };
   }
 
   // Ammunition, when the table asked for it. This sits before every roll on
@@ -495,6 +620,25 @@ export function handlePcAttack(
     };
   }
 
+  // Great Weapon Master (heavy melee) / Sharpshooter (ranged weapon): -5 to
+  // hit for +10 damage, only when the player declared it.
+  const weaponAttack = !args.spell && !granted;
+  const sharpshooter = weaponAttack && profile.ranged && hasFeat(sheet, "sharpshooter");
+  if (args.powerAttack) {
+    const greatWeapon = weaponAttack && !profile.ranged && profile.heavy && hasFeat(sheet, "great weapon master");
+    if (!(greatWeapon || sharpshooter) || !profile.proficient) {
+      return {
+        error: `The -5/+10 option needs Great Weapon Master with a heavy melee weapon, or Sharpshooter with a ranged weapon, that ${sheet.name} is proficient with.`,
+      };
+    }
+    profile = {
+      ...profile,
+      toHit: profile.toHit - 5,
+      damageExpression: `${profile.damageExpression}+10`,
+      riderNotes: [...profile.riderNotes, `${greatWeapon ? "Great Weapon Master" : "Sharpshooter"}: -5 to hit, +10 damage`],
+    };
+  }
+
   // Battle-map positions are authoritative; players move their own tokens,
   // so an out-of-reach attack is refused rather than auto-approached.
   const rangeError = checkPcAttackRange(campaign, encounter.id, sheet.id, enemy.id, {
@@ -513,6 +657,16 @@ export function handlePcAttack(
     rangeTiles: profile.rangeTiles,
     thrown: profile.thrown,
   });
+  // Sharpshooter: long range costs no disadvantage, and half and
+  // three-quarters cover are ignored.
+  if (sharpshooter && (spatials.cover || spatials.longRange)) {
+    profile = {
+      ...profile,
+      riderNotes: [...profile.riderNotes, "Sharpshooter: ignores the cover and the long-range penalty"],
+    };
+    spatials.cover = 0;
+    spatials.longRange = false;
+  }
   const effectiveAc = enemy.ac + spatials.cover;
 
   // Conditions on both sides drive advantage and auto-crits; the model's
@@ -725,6 +879,7 @@ export function handlePcAttack(
     attacksAllowedFor(sheet),
     conditionExtraActions(sheet.conditions),
   );
+  let luckySpent = false;
   if (budget) {
     const spend = args.spell && !granted
       ? { ok: true as const, budget }
@@ -732,13 +887,40 @@ export function handlePcAttack(
       ? { ok: true as const, budget: { ...budget, flurryAttacksRemaining: budget.flurryAttacksRemaining! - 1 } }
       : grantedBonusAction
       ? spendAction(budget, "bonus", `the ${profile.weapon} attack`, sheet.name)
-      : args.offHand
-        ? spendAction(budget, "bonus", "an off-hand attack", sheet.name)
+      : bonusAttack
+        ? spendAction(budget, "bonus", BONUS_ATTACK_LABEL[bonusAttack], sheet.name)
         : spendAttack(budget, sheet.name);
+    if (bonusAttack && weaponUse) {
+      const complaint = bonusAttackError(bonusAttack, weaponUse, budget.attackWeapons ?? [], {
+        dualWielder: hasFeat(sheet, "dual wielder"),
+        carried: carriedCopies,
+        who: sheet.name,
+      });
+      if (complaint) {
+        return { error: complaint };
+      }
+    }
     if (!spend.ok) {
       return { error: spend.error };
     }
     budget = spend.budget;
+    // The Attack action's swings are remembered for the bonus attacks that
+    // may follow them this turn.
+    if (!bonusAttack && !args.flurry && !grantedBonusAction && weaponUse) {
+      budget = { ...budget, attackWeapons: [...(budget.attackWeapons ?? []), weaponUse] };
+    }
+    // Lucky: the point is spent now that the swing is certain to happen; the
+    // held "lucky" condition it grants is used up by this very roll.
+    if (args.lucky && !heldLuck) {
+      const luck = applyDmMutation(campaign, turn.id, "use_resource", JSON.stringify({
+        characterId: sheet.id, resource: "luck_points", reason: `Lucky: an extra d20 on the ${profile.weapon} attack`,
+      }), sheets, sheetsById).result;
+      if ("error" in luck) {
+        return luck;
+      }
+      luckySpent = true;
+      conditionContext.notes.push("Lucky: a luck point is spent, an extra d20 rolls and the highest counts");
+    }
     if (spend.note) {
       conditionContext.notes.push(spend.note);
     }
@@ -790,9 +972,13 @@ export function handlePcAttack(
   const spentConditions = [
     ...(sheet.conditions.some((entry) => entry.toLowerCase() === "hidden") ? ["hidden"] : []),
     ...attackRiders.spent,
+    ...(luckySpent ? ["lucky"] : []),
   ];
   if (spentConditions.length) {
-    const cleared = removeConditions(sheet.conditions, sheet.conditionMeta, spentConditions);
+    // Re-read: a luck point spent just now added its condition after this
+    // handler loaded the sheet.
+    const current = luckySpent ? (getSheetById(sheet.id) ?? sheet) : sheet;
+    const cleared = removeConditions(current.conditions, current.conditionMeta, spentConditions);
     const revealed = patchSheet(sheet.id, {
       conditions: cleared.conditions,
       conditionMeta: cleared.meta,
@@ -822,8 +1008,9 @@ export function handlePcAttack(
   if (lucky) {
     conditionContext.notes.push("Lucky: a natural 1 on the attack roll is rerolled once");
   }
-  const toHitD20 = d20Expression(profile.toHit, advantage)
-    .replace(/^2d20kh1/, elvenAccuracy ? "3d20kh1" : "2d20kh1")
+  const baseD20 = d20Expression(profile.toHit, advantage)
+    .replace(/^2d20kh1/, elvenAccuracy ? "3d20kh1" : "2d20kh1");
+  const toHitD20 = (attackRiders.extraD20 || luckySpent ? withExtraD20(baseD20) : baseD20)
     .replace(/^(\d+d20(?:k[hl]\d+)?)/, lucky ? "$1r1" : "$1");
   const toHitExpression = `${toHitD20}${toHitRiderSuffix}`;
   const detail = `${sheet.name}: ${profile.weapon} vs ${enemy.displayName}`;
@@ -841,6 +1028,10 @@ export function handlePcAttack(
     powerfulCritical: campaign.gameSettings.variantRules.powerfulCritical,
     multiplyNumeric: campaign.gameSettings.variantRules.criticalDamageMods,
   });
+
+  // Great Weapon Master: a melee critical hit or kill opens the bonus-action
+  // swing; whichever path learns the outcome marks it on the turn budget.
+  const gwmEligible = Boolean(weaponUse?.melee) && weaponAttack && !profile.ranged && hasFeat(sheet, "great weapon master");
 
   // Physical dice: park the to-hit roll for the player; the submit route
   // adjudicates it and, on a hit, parks the damage roll too.
@@ -870,6 +1061,7 @@ export function handlePcAttack(
         ...(riders.critRange < 20 ? { critRange: riders.critRange } : {}),
         ...(rerollBelow ? { rerollBelow } : {}),
         ...(onHit.spentOnHit.length ? { spentOnHit: onHit.spentOnHit } : {}),
+        ...(gwmEligible ? { gwm: true } : {}),
       },
     });
     publishPersisted(campaign.id, "roll_pending", { pendingRoll: publicPendingRoll(pending) });
@@ -899,6 +1091,7 @@ export function handlePcAttack(
   const base = {
     attacker: sheet.name,
     weapon: profile.weapon,
+    ...(bonusAttack ? { bonusAttack, bonusActionSpent: true } : {}),
     rolled: hitOutcome.total,
     vsAc: effectiveAc,
     target: enemy.displayName,
@@ -952,6 +1145,9 @@ export function handlePcAttack(
       sheets, sheetsById, profile.damageType, profile.magical);
   if (!("error" in applied)) {
     markRollApplied(damageRoll.id, enemy.id);
+  }
+  if (gwmEligible && (crit || applied.dead || applied.dropped)) {
+    markGwmTrigger(campaign.id, sheet.id);
   }
 
   // A maneuver's rider save (Trip -> prone, Menacing -> frightened) resolves
@@ -1048,6 +1244,7 @@ export function resolvePendingPcAttack(pending: PendingRoll, roll: StoredRoll): 
     return `${context.attacker}'s ${context.weapon} attack rolled ${roll.total} vs AC ${context.targetAc}: HIT, but the target is already gone; narrate around it.`;
   }
   if (pending.characterId) consumeHitConditions(pending.campaignId, pending.characterId, context.spentOnHit ?? []);
+  if (crit && context.gwm && pending.characterId) markGwmTrigger(pending.campaignId, pending.characterId);
   const expression = crit ? context.critDamageExpression : context.damageExpression;
   const sheets = listSheets(pending.campaignId);
   const sheet = sheets.find((entry) => entry.id === pending.characterId);

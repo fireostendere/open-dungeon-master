@@ -63,7 +63,10 @@ export type ConditionEffectRow = {
   initiativeDie?: string;
   // The rider is spent by its first qualifying roll; the engine clears the
   // condition afterwards (guidance, resistance, true strike, the smites).
-  consumedBy?: "attack" | "save" | "check" | "weapon_hit" | "melee_weapon_hit";
+  consumedBy?: "attack" | "save" | "check" | "weapon_hit" | "melee_weapon_hit" | "d20";
+  // One more d20 on the holder's next attack roll, ability check or saving
+  // throw, the highest kept (a spent Lucky feat luck point; consumedBy "d20").
+  extraD20?: boolean;
   // Advantage on the holder's own attack rolls (true strike).
   attackAdvantage?: boolean;
   // Damage resistances while the condition holds (blade ward, stoneskin).
@@ -101,6 +104,13 @@ export type ConditionEffectRow = {
 // read from the holder's sheet level by the consumer; the table stores the
 // steps.
 export const CONDITION_EFFECTS: ConditionEffectRow[] = [
+  {
+    id: "lucky",
+    match: ["lucky"],
+    summary: "Lucky: a luck point is spent; their next attack roll, ability check or saving throw rolls an extra d20 and the highest counts.",
+    extraD20: true,
+    consumedBy: "d20",
+  },
   {
     id: "shillelagh",
     match: ["shillelagh"],
@@ -810,6 +820,8 @@ export type ConditionRollRiders = {
   // Exact condition strings whose one-shot rider this roll spends; the
   // caller clears them (the Bardic Inspiration pattern).
   spent: string[];
+  // Roll one more d20 and keep the highest (withExtraD20 in src/lib/dice.ts).
+  extraD20?: boolean;
 };
 
 // What the holder's conditions add to one of their own d20 rolls.
@@ -869,6 +881,11 @@ export function conditionRollRiders(
         used = true;
       }
     }
+    if (row.extraD20 && kind !== "initiative" && !riders.extraD20) {
+      riders.extraD20 = true;
+      riders.notes.push(`${condition}: an extra d20, the highest counts`);
+      used = true;
+    }
     if (kind === "check" && row.checkDie) {
       riders.diceSuffix += `+${row.checkDie}`;
       riders.notes.push(`${condition}: +${row.checkDie} to the check`);
@@ -886,7 +903,7 @@ export function conditionRollRiders(
         riders.notes.push(`${condition}: disadvantage`);
       }
     }
-    if (used && row.consumedBy === kind) {
+    if (used && (row.consumedBy === kind || (row.consumedBy === "d20" && kind !== "initiative"))) {
       riders.spent.push(condition);
       riders.notes.push(`${condition} is spent by this roll`);
     }

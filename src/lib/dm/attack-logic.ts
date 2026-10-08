@@ -388,3 +388,15 @@ export function adjudicateHit(
     (options.natural !== undefined && options.natural >= critRange && critRange < 20);
   return { hit, crit: hit && inRange };
 }
+
+// Polearm Master: the opposite end hits for 1d4 bludgeoning, everything
+// else (ability, proficiency, magic, reach) as the weapon itself.
+export function poleStrikeProfile(profile: AttackProfile): AttackProfile {
+  return {
+    ...profile,
+    weapon: `${profile.weapon} (butt end)`,
+    damageExpression: profile.damageExpression.replace(/^\d+d\d+/, "1d4"),
+    damageType: "bludgeoning",
+    riderNotes: [...profile.riderNotes, "Polearm Master: the opposite end, 1d4 bludgeoning"],
+  };
+}

@@ -1,10 +1,12 @@
 import { spendAction, spendAttack, spendSpell, type ActionKind, type TurnBudget } from "./action-budget.ts";
 import { RESOURCE_ACTIONS } from "./resource-action-cost.ts";
-import { matchWeapon } from "../srd/weapons.ts";
+import { matchWeapon, type SrdWeapon } from "../srd/weapons.ts";
 import { spendPetCommand, type PetCombatant } from "./pet-combat.ts";
 import type { PublicEncounter } from "../db/encounter-view.ts";
 import type { Spellcasting } from "../schemas/sheet.ts";
-import { effectsFor, hasCunningAction } from "../srd/feature-effects.ts";
+import { effectsFor, hasCunningAction, hasFeat } from "../srd/feature-effects.ts";
+import { attackWeaponUse, bonusAttackError, type BonusAttackKind } from "./bonus-attacks.ts";
+import type { AttackWeaponUse } from "./action-budget.ts";
 
 // Both combat panels preview the same authoritative budget, never another actor's.
 export function combatIntentBudget(encounter: Pick<PublicEncounter, "currentActorId" | "turnBudget">, fresh: TurnBudget): TurnBudget {
@@ -14,7 +16,21 @@ export function combatIntentBudget(encounter: Pick<PublicEncounter, "currentActo
 }
 
 export type CombatChoice =
-  | { type: "attack"; targetEnemyId?: string; targetCharacterId?: string; weapon: string; sneakAttack?: boolean }
+  | {
+      type: "attack";
+      targetEnemyId?: string;
+      targetCharacterId?: string;
+      weapon: string;
+      sneakAttack?: boolean;
+      // A bonus-action swing after the Attack action (two-weapon fighting,
+      // Polearm Master, Crossbow Expert, Great Weapon Master). A Great
+      // Weapon Master swing may leave the target open: the nearest enemy.
+      bonusAttack?: BonusAttackKind;
+      // Great Weapon Master / Sharpshooter: -5 to hit, +10 damage.
+      powerAttack?: boolean;
+      // Lucky feat: a luck point for an extra d20 on this attack roll.
+      lucky?: boolean;
+    }
   | { type: "dodge" }
   | { type: "action"; action: "dash" | "disengage" | "hide" | "help" | "grapple" | "shove"; targetEnemyId?: string; targetCharacterId?: string; cunningAction?: boolean }
   | { type: "pet"; petName: string; attack: string; targetEnemyId: string }
@@ -34,6 +50,10 @@ export type ParleyApproach = (typeof PARLEY_APPROACHES)[number];
 const PARLEY_LABELS = {
   ru: { persuade: "убедить", intimidate: "запугать", deceive: "обмануть" },
   en: { persuade: "persuade", intimidate: "intimidate", deceive: "deceive" },
+};
+export const BONUS_ATTACK_LABELS: Record<"ru" | "en", Record<BonusAttackKind, string>> = {
+  ru: { off_hand: "вторая рука", pole_strike: "удар древком", crossbow_expert: "ручной арбалет", great_weapon_master: "Мастер большого оружия" },
+  en: { off_hand: "off-hand", pole_strike: "butt strike", crossbow_expert: "hand crossbow", great_weapon_master: "Great Weapon Master" },
 };
 
 export type CombatTurnIntent = {
@@ -56,7 +76,17 @@ export function combatChoiceLabel(
   if (choice.type === "parley") return `${ru ? "Переговоры" : "Parley"} (${PARLEY_LABELS[language][choice.approach]})${choice.targetEnemyId ? target(choice.targetEnemyId) : ru ? " → все враги" : " → all enemies"}`;
   if (choice.type === "flee") return ru ? "Бегство с поля боя" : "Flee the fight";
   if (choice.type === "improvise") return `${ru ? "Своё действие" : "Own action"}: ${choice.text}`;
-  if (choice.type === "attack") return `${ru ? "Атака" : "Attack"}: ${choice.weapon === "Unarmed strike" && ru ? "Безоружный удар" : localize("item", choice.weapon)}${target(choice.targetEnemyId ?? choice.targetCharacterId)}${choice.sneakAttack ? (ru ? " · Скрытая атака" : " · Sneak Attack") : ""}`;
+  if (choice.type === "attack") {
+    const bonus = choice.bonusAttack;
+    const gwmOpen = bonus === "great_weapon_master" && !choice.targetEnemyId && !choice.targetCharacterId;
+    return `${bonus ? `${ru ? "Бонусная атака" : "Bonus attack"} (${BONUS_ATTACK_LABELS[language][bonus]})` : ru ? "Атака" : "Attack"}: ${
+      choice.weapon === "Unarmed strike" && ru ? "Безоружный удар" : localize("item", choice.weapon)
+    }${gwmOpen ? (ru ? " → ближайший враг" : " → nearest enemy") : target(choice.targetEnemyId ?? choice.targetCharacterId)}${
+      bonus === "great_weapon_master" ? (ru ? " · если крит или убийство" : " · if a crit or kill") : ""
+    }${choice.powerAttack ? (ru ? " · −5/+10" : " · −5/+10") : ""}${choice.lucky ? (ru ? " · удача" : " · luck") : ""}${
+      choice.sneakAttack ? (ru ? " · Скрытая атака" : " · Sneak Attack") : ""
+    }`;
+  }
   if (choice.type === "dodge") return ru ? "Защита: уклонение" : "Defence: Dodge";
   if (choice.type === "action") {
     const labels = ru
@@ -82,6 +112,7 @@ export type CombatIntentSheet = {
   id: string;
   name: string;
   class?: string;
+  feats?: string[];
   proficiencies?: { languages?: string[] };
   equipment: Array<{ name: string; qty: number; equipped?: boolean; gear?: { weapon?: unknown } }>;
   resources: Record<string, { max: number; used: number }>;
@@ -147,6 +178,27 @@ function knownWeapon(sheet: CombatIntentSheet, weapon: string) {
   );
 }
 
+// The SRD row for a weapon on the sheet, and what it is for the bonus-attack
+// rules; unarmed strikes have no row.
+function weaponOn(sheet: CombatIntentSheet, weapon: string): { srd: SrdWeapon | null; use: AttackWeaponUse; carried: number } {
+  if (/^(unarmed strike|unarmed|fist|punch|kick)$/i.test(weapon)) {
+    return { srd: null, use: { name: "Unarmed strike", melee: true, light: false, twoHanded: false, pole: false }, carried: 1 };
+  }
+  const items = sheet.equipment.filter((item) => item.qty > 0 && item.name === weapon);
+  const srd = (items[0]?.gear?.weapon as SrdWeapon | undefined) ?? matchWeapon(weapon);
+  return {
+    srd,
+    use: attackWeaponUse({ displayName: weapon, srd }),
+    carried: items.reduce((sum, item) => sum + Math.max(1, item.qty), 0),
+  };
+}
+
+const BONUS_FEATS: Partial<Record<BonusAttackKind, Parameters<typeof hasFeat>[1]>> = {
+  pole_strike: "polearm master",
+  crossbow_expert: "crossbow expert",
+  great_weapon_master: "great weapon master",
+};
+
 export function validateCombatTurnIntent(
   intent: CombatTurnIntent,
   sheet: CombatIntentSheet,
@@ -164,6 +216,11 @@ export function validateCombatTurnIntent(
   const featureEffects = resolvedFeatureEffects(sheet);
   const hasSneakAttack = featureEffects.some(({ effect }) => effect.kind === "sneak_attack");
   let sneakAttackUsed = budget.oncePerTurn.includes("sneak_attack");
+  // Attack-action swings so far (made this turn, then queued in the plan),
+  // which the bonus-action attacks must follow.
+  const attackSwings: AttackWeaponUse[] = [...(budget.attackWeapons ?? [])];
+  const luck = sheet.resources.luck_points;
+  let luckLeft = luck ? luck.max - luck.used : 0;
   const ru = presentation?.language === "ru";
   const adjudication = ru ? "заявка мастеру; стоимость и эффект определяются правилами" : "request for DM adjudication; rules determine cost and effect";
   const ruling = ru ? "заявка мастеру; исход решают правила и броски" : "request for DM adjudication; rules and rolls decide the outcome";
@@ -204,18 +261,45 @@ export function validateCombatTurnIntent(
       // A free-text order is an intent, never a free mechanical pet action.
       selections.push(`${ru ? "Приказ" : "Order"}: ${pet.name} — ${choice.order.trim()}; ${adjudication}`);
     } else if (choice.type === "attack") {
-      if (Boolean(choice.targetEnemyId) === Boolean(choice.targetCharacterId) ||
-        (choice.targetCharacterId ? !presentation?.friendlyFire || !allyIds.has(choice.targetCharacterId) || choice.targetCharacterId === sheet.id : !visibleEnemyIds.has(choice.targetEnemyId!))) {
+      const bonus = choice.bonusAttack;
+      const openTarget = bonus === "great_weapon_master" && !choice.targetEnemyId && !choice.targetCharacterId;
+      if (!openTarget && (Boolean(choice.targetEnemyId) === Boolean(choice.targetCharacterId) ||
+        (choice.targetCharacterId ? !presentation?.friendlyFire || !allyIds.has(choice.targetCharacterId) || choice.targetCharacterId === sheet.id : !visibleEnemyIds.has(choice.targetEnemyId!)))) {
         return { ok: false, error: "Choose a visible living enemy, or a party target when friendly fire is enabled." };
       }
       if (!knownWeapon(sheet, choice.weapon)) return { ok: false, error: "Choose a weapon on your character sheet." };
       if (choice.sneakAttack && !hasSneakAttack) return { ok: false, error: "This character has no Sneak Attack feature." };
       if (choice.sneakAttack && sneakAttackUsed) return { ok: false, error: "Sneak Attack can be declared only once per turn." };
-      const spent = spendAttack(next, sheet.name);
+      const weapon = weaponOn(sheet, choice.weapon);
+      const neededFeat = bonus ? BONUS_FEATS[bonus] : undefined;
+      if (neededFeat && !hasFeat(sheet, neededFeat)) return { ok: false, error: "This bonus-action attack needs a feat the character does not have." };
+      if (bonus) {
+        const complaint = bonus === "great_weapon_master"
+          ? (!weapon.use.melee ? "Great Weapon Master's bonus attack is a melee weapon attack." : attackSwings.some((swing) => swing.melee) ? null : "Great Weapon Master's bonus attack follows a melee weapon attack this turn.")
+          : bonusAttackError(bonus, weapon.use, attackSwings, { dualWielder: hasFeat(sheet, "dual wielder"), carried: weapon.carried, who: sheet.name });
+        if (complaint) return { ok: false, error: complaint };
+      }
+      if (choice.powerAttack) {
+        const heavyMelee = weapon.srd?.kind === "melee" && Boolean(weapon.srd.properties?.includes("heavy")) && hasFeat(sheet, "great weapon master");
+        const rangedShot = weapon.srd?.kind === "ranged" && hasFeat(sheet, "sharpshooter");
+        if (!heavyMelee && !rangedShot) return { ok: false, error: "-5/+10 needs Great Weapon Master with a heavy melee weapon or Sharpshooter with a ranged weapon." };
+      }
+      if (choice.lucky) {
+        if (luckLeft < 1) return { ok: false, error: "No luck points left." };
+        luckLeft -= 1;
+      }
+      const spent = bonus ? spendAction(next, "bonus", "a bonus-action attack", sheet.name) : spendAttack(next, sheet.name);
       if (!spent.ok) return spent;
       next = spent.budget;
+      if (!bonus) attackSwings.push(weapon.use);
       if (choice.sneakAttack) sneakAttackUsed = true;
-      selections.push(`${copy.attack}: ${choice.weapon}; ${copy.target}: ${name(choice.targetEnemyId ?? choice.targetCharacterId!)}${choice.sneakAttack ? `; ${ru ? "Скрытая атака, если соблюдены условия" : "Sneak Attack, if eligible"}` : ""}`);
+      const riders = [
+        bonus ? `${ru ? "бонусное действие" : "bonus action"}: ${BONUS_ATTACK_LABELS[ru ? "ru" : "en"][bonus]}${bonus === "great_weapon_master" ? (ru ? ", только если в этот ход был крит или убийство в ближнем бою" : ", only after a melee critical hit or kill this turn") : ""}` : "",
+        choice.powerAttack ? (ru ? "−5 к попаданию, +10 к урону" : "-5 to hit, +10 damage") : "",
+        choice.lucky ? (ru ? "очко удачи: лишний к20" : "a luck point: an extra d20") : "",
+        choice.sneakAttack ? (ru ? "Скрытая атака, если соблюдены условия" : "Sneak Attack, if eligible") : "",
+      ].filter(Boolean);
+      selections.push(`${copy.attack}: ${choice.weapon}; ${copy.target}: ${openTarget ? (ru ? "ближайший враг в досягаемости" : "the nearest enemy in reach") : name(choice.targetEnemyId ?? choice.targetCharacterId!)}${riders.map((rider) => `; ${rider}`).join("")}`);
     } else if (choice.type === "dodge") {
       const spent = spendAction(next, "action", "Dodge", sheet.name);
       if (!spent.ok) return spent;

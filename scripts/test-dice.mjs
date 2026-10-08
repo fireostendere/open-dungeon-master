@@ -1,6 +1,6 @@
 // Assert-based tests for the dice engine. Run with: npm run test:dice
 import assert from "node:assert/strict";
-import { rollExpression, rollD20, d20Expression, isValidExpression } from "../src/lib/dice.ts";
+import { rollExpression, rollD20, d20Expression, isValidExpression, withExtraD20 } from "../src/lib/dice.ts";
 
 // Deterministic RNG: returns values from a fixed queue.
 function queueRng(values) {
@@ -182,6 +182,15 @@ test("reroll then floor stack (Lucky halfling with Reliable Talent)", () => {
 
 test("a reroll threshold at or above the die size is rejected", () => {
   assert.throws(() => rollExpression("1d20r20", queueRng([1])));
+});
+
+test("a luck point adds one more d20 to the leading term, the best kept", () => {
+  assert.equal(withExtraD20("1d20+5"), "2d20kh1+5");
+  assert.equal(withExtraD20("2d20kh1+3"), "3d20kh1+3");
+  assert.equal(withExtraD20("2d20kl1-1"), "3d20kh1-1", "with disadvantage the luck die may be chosen too");
+  assert.equal(withExtraD20("1d20r1f10+4"), "2d20kh1r1f10+4");
+  assert.equal(rollExpression(withExtraD20("1d20+2"), queueRng([3, 17])).total, 19);
+  assert.equal(rollExpression(withExtraD20("2d20kl1"), queueRng([2, 4, 15])).total, 15);
 });
 
 console.log(`\n${passed} dice tests passed`);

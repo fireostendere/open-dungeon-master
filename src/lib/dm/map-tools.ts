@@ -19,7 +19,10 @@ import { nearestOpenTile } from "@/lib/battlemap/paint";
 import { getCurrentLocation, getLocation } from "@/lib/db/locations";
 import { publishEphemeral } from "@/lib/events";
 import { resolveSheetRef } from "@/lib/dm/rolls";
-import { resolvePcOpportunityAttacks } from "@/lib/dm/opportunity";
+import { resolvePcReactionsAlongPath, resolveSentinelGuard } from "@/lib/dm/opportunity";
+
+// enemy_attack reaches the Sentinel guard through here, like the approach.
+export { resolveSentinelGuard };
 import { effectiveSpeed } from "@/lib/dm/condition-logic";
 import { isJrpgCombat } from "@/lib/dm/combat-mode";
 import { formatDistanceFeet } from "@/lib/units/narration";
@@ -226,6 +229,8 @@ export function handleMoveToken(
   let landing = { x: args.x, y: args.y };
   let spent = 0;
   let clamped = false;
+  const origin = { x: resolved.token.x, y: resolved.token.y };
+  let walked: Array<{ x: number; y: number }> = [origin, landing];
   if (resolved.kind === "enemy") {
     const budget = Math.max(0, resolved.speedTiles - resolved.token.movedThisRound);
     const walk = walkPathWithBudget(map.terrain, map.width, path, budget);
@@ -237,23 +242,33 @@ export function handleMoveToken(
     landing = walk.at;
     spent = walk.spent;
     clamped = !walk.reachedEnd;
+    walked = [origin, ...path.slice(0, path.indexOf(walk.at) + 1)];
   }
-  const origin = { x: resolved.token.x, y: resolved.token.y };
+
+  // The characters react along the way: breaking away from one provokes,
+  // and so does stepping into a Polearm Master's reach. A Sentinel's hit
+  // stops the walk there, and so does a killing blow. Forced movement (a
+  // shove, a gust of wind) provokes nothing.
+  const reactions =
+    resolved.kind === "enemy" && !args.forced
+      ? resolvePcReactionsAlongPath(campaign, resolved.token.refId, walked)
+      : null;
+  if (reactions?.stopped) {
+    landing = walked[reactions.stopIndex];
+    clamped = true;
+  }
   moveToken(
     resolved.token.id,
     landing.x,
     landing.y,
-    resolved.kind === "enemy" ? resolved.token.movedThisRound + spent : resolved.token.movedThisRound,
+    resolved.kind !== "enemy"
+      ? resolved.token.movedThisRound
+      : reactions?.stopped
+        ? resolved.speedTiles
+        : resolved.token.movedThisRound + spent,
   );
   publishBattleMapUpdate(campaign.id);
-
-  // An enemy breaking away from a character eats their opportunity attack,
-  // exactly as the reverse does when a player walks off. Forced movement
-  // (a shove, a gust of wind) provokes nothing.
-  const opportunity =
-    resolved.kind === "enemy" && !args.forced
-      ? resolvePcOpportunityAttacks(campaign, resolved.token.refId, origin, landing)
-      : [];
+  const opportunity = reactions?.notes ?? [];
   // Fresh ranges from the landing tile, so the model narrates the new
   // distances instead of remembering the pre-move map.
   const opposing = tokens.filter(
@@ -277,7 +292,11 @@ export function handleMoveToken(
       : {}),
     ...(clamped
       ? {
-          note: `Speed limited the move: ${resolved.token.name} stopped at (${landing.x},${landing.y}) short of (${args.x},${args.y}).`,
+          note: reactions?.dropped
+            ? `${resolved.token.name} fell to a reaction attack at (${landing.x},${landing.y}); it is down.`
+            : reactions?.stopped
+              ? `A Sentinel stopped ${resolved.token.name} at (${landing.x},${landing.y}); it cannot move again this round.`
+              : `Speed limited the move: ${resolved.token.name} stopped at (${landing.x},${landing.y}) short of (${args.x},${args.y}).`,
         }
       : {}),
   };
@@ -425,6 +444,19 @@ export function isRangedAttack(attack: Pick<EnemyAttack, "name" | "reach" | "ran
   return !attackReachTiles(attack).melee;
 }
 
+// A walk the characters' reactions cut short: the attack never happens.
+// Not a refusal: the narrator tells what the reactions did instead.
+function interrupted(name: string, targetName: string, reactions: { notes: string[]; dropped: boolean }): Record<string, unknown> {
+  return {
+    ok: true,
+    interrupted: true,
+    reactions: reactions.notes,
+    note: reactions.dropped
+      ? `${name} fell to a reaction attack on its way to ${targetName}; it is down and does not attack. The server already applied this; narrate it, and end the fight if it was the last enemy.`
+      : `Reaction attacks stopped ${name} short of ${targetName}; it cannot reach them this round and does not attack. The server already applied this; narrate it.`,
+  };
+}
+
 // Attackers step toward their target automatically so a model that never
 // calls move_token still produces spatially coherent combat: into reach for
 // a melee attack, into normal range and sight for a ranged one. Null when
@@ -436,7 +468,7 @@ export function approachForAttack(
   enemyId: string,
   targetCharacterId: string,
   attack: Pick<EnemyAttack, "name" | "reach" | "range" | "longRange">,
-): { blocked?: Record<string, unknown>; movedTo?: string; ranged?: boolean; far?: boolean } | null {
+): { blocked?: Record<string, unknown>; movedTo?: string; ranged?: boolean; far?: boolean; reactions?: string[] } | null {
   if (isJrpgCombat(campaign)) {
     return null;
   }
@@ -492,9 +524,16 @@ export function approachForAttack(
           )
         : null;
     if (spot) {
+      const reactions = resolvePcReactionsAlongPath(campaign, enemyId, [{ x: attacker.x, y: attacker.y }, spot.at]);
+      if (reactions.stopped) {
+        // Hit while breaking away: it never reaches the firing spot.
+        moveToken(attacker.id, attacker.x, attacker.y, speedToTiles(enemy?.stats.speed));
+        publishBattleMapUpdate(campaign.id);
+        return { blocked: interrupted(attacker.name, target.name, reactions) };
+      }
       moveToken(attacker.id, spot.at.x, spot.at.y, attacker.movedThisRound + spot.cost);
       publishBattleMapUpdate(campaign.id);
-      return { ranged: true, movedTo: `(${spot.at.x},${spot.at.y})` };
+      return { ranged: true, movedTo: `(${spot.at.x},${spot.at.y})`, ...(reactions.notes.length ? { reactions: reactions.notes } : {}) };
     }
     // Long range: the shot is still there, at disadvantage.
     if (distance <= tiles.long && sighted) {
@@ -522,17 +561,33 @@ export function approachForAttack(
   const inReach = path ? path.findIndex((step) => chebyshev(step.x, step.y, target.x, target.y) <= tiles.reach) : -1;
   const approach = path ? path.slice(0, inReach >= 0 ? inReach + 1 : -1) : null;
   let landed = { x: attacker.x, y: attacker.y };
+  let reactionNotes: string[] = [];
   if (approach && approach.length && budget > 0) {
     const walk = walkPathWithBudget(map.terrain, map.width, approach, budget);
     if (walk.at) {
-      landed = walk.at;
-      moveToken(attacker.id, walk.at.x, walk.at.y, attacker.movedThisRound + walk.spent);
+      // The characters react along the way (see resolvePcReactionsAlongPath).
+      const walked = [{ x: attacker.x, y: attacker.y }, ...approach.slice(0, approach.indexOf(walk.at) + 1)];
+      const reactions = resolvePcReactionsAlongPath(campaign, enemyId, walked);
+      reactionNotes = reactions.notes;
+      landed = walked[reactions.stopIndex];
+      moveToken(
+        attacker.id,
+        landed.x,
+        landed.y,
+        reactions.stopped ? speedToTiles(enemy?.stats.speed) : attacker.movedThisRound + walk.spent,
+      );
       publishBattleMapUpdate(campaign.id);
+      if (reactions.dropped) {
+        return { blocked: interrupted(attacker.name, target.name, reactions) };
+      }
     }
   }
   const remaining = chebyshev(landed.x, landed.y, target.x, target.y);
   if (remaining <= tiles.reach) {
-    return { ranged: false, movedTo: `(${landed.x},${landed.y})` };
+    return { ranged: false, movedTo: `(${landed.x},${landed.y})`, ...(reactionNotes.length ? { reactions: reactionNotes } : {}) };
+  }
+  if (reactionNotes.length) {
+    return { blocked: interrupted(attacker.name, target.name, { notes: reactionNotes, dropped: false }) };
   }
   return {
     blocked: {

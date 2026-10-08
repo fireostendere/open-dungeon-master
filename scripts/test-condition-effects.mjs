@@ -254,4 +254,15 @@ test("activeConditionEffects keeps the sheet's exact condition string", () => {
   assert.equal(active[0].condition, "Hunter's Mark (dire wolf)");
 });
 
+test("a held luck point rides the next attack, check or save once", () => {
+  for (const kind of ["attack", "check", "save"]) {
+    const riders = conditionRollRiders(["lucky"], kind, "dex");
+    assert.equal(riders.extraD20, true, kind);
+    assert.deepEqual(riders.spent, ["lucky"], kind);
+  }
+  const initiative = conditionRollRiders(["lucky"], "initiative");
+  assert.equal(initiative.extraD20, undefined);
+  assert.deepEqual(initiative.spent, []);
+});
+
 console.log(`test-condition-effects: ${passed} tests passed`);

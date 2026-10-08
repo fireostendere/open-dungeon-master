@@ -41,6 +41,20 @@ export type TurnBudget = {
   spellsCast?: Array<{ cost: ActionKind; level: number }>;
   // SRD 2014 Flurry: paid bonus-action unarmed strikes, separate from Attack.
   flurryAttacksRemaining?: number;
+  // What each swing of the Attack action was made with, so a bonus-action
+  // attack can check what it follows (two-weapon fighting, Polearm Master,
+  // Crossbow Expert).
+  attackWeapons?: AttackWeaponUse[];
+};
+
+export type AttackWeaponUse = {
+  name: string;
+  melee: boolean;
+  light: boolean;
+  twoHanded: boolean;
+  // A glaive, halberd, quarterstaff or spear: Polearm Master's butt strike
+  // may follow it.
+  pole: boolean;
 };
 
 export function freshBudget(input: {

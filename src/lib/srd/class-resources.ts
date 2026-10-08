@@ -515,7 +515,26 @@ export const RESOURCE_DEFS: ResourceDef[] = [
     guidance:
       "Opt-in house rule: cast Speak with Dead as an action without a spell slot, once per short or long rest. Apply the normal 2014 spell requirements: a corpse with a mouth, not undead; up to five questions over 10 minutes; only knowledge from its life, no compelled truth; the same corpse cannot be questioned again for 10 days. The DM validates the corpse before spending and supplies its answers, not invented dice results.",
   },
+  {
+    // The Lucky FEAT, fed in as "feat: lucky" (featResourceNames) so the
+    // halfling's racial Lucky trait, a different mechanic, never matches.
+    id: "luck_points",
+    match: ["feat: lucky"],
+    exact: true,
+    displayName: "Luck Points",
+    maxFor: () => 3,
+    recharge: "long",
+    effect: { kind: "condition", condition: "lucky", rounds: 100 },
+    guidance:
+      "Lucky feat: a luck point is spent and their NEXT attack roll, ability check or saving throw rolls an extra d20, the highest counts (the server applies it to that roll and clears it). Spend it only when the player asks to use their luck. Three points, regained on a long rest.",
+  },
 ];
+
+// Feats feed the resource table under a "feat: " prefix, so a feat-granted
+// pool (Lucky) cannot be confused with a same-named class or race feature.
+export function featResourceNames(feats: string[] | undefined): Array<{ name: string }> {
+  return (feats ?? []).map((name) => ({ name: `feat: ${name.trim().toLowerCase()}` }));
+}
 
 export type ResourceState = { max: number; used: number };
 export type ResourceMap = Record<string, ResourceState>;

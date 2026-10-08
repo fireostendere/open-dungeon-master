@@ -24,6 +24,7 @@ import { withFight } from "@/lib/spatial/publication-scope.mjs";
 import { activePublicEncounter } from "@/lib/db/encounter-view";
 import { attacksAllowedFor, budgetFor } from "@/lib/dm/action-tools";
 import { combatSpellNames, PARLEY_APPROACHES, validateCombatTurnIntent, type CombatSpellDescriptor } from "@/lib/dm/combat-turn-intent";
+import { BONUS_ATTACKS } from "@/lib/dm/bonus-attacks";
 import { findSpellByName, spellMechanicsFor } from "@/lib/content";
 import { authoredSpellRow } from "@/lib/srd/spell-mechanics";
 import type { CharacterSheet } from "@/lib/schemas/sheet";
@@ -72,7 +73,11 @@ const actionSchema = z.object({
     turnIndex: z.number().int().min(0),
     description: z.string().trim().min(1).max(2000).optional(),
     choices: z.array(z.discriminatedUnion("type", [
-      z.object({ type: z.literal("attack"), targetEnemyId: z.string().uuid().optional(), targetCharacterId: z.string().uuid().optional(), weapon: z.string().trim().min(1).max(80), sneakAttack: z.boolean().optional() }),
+      z.object({
+        type: z.literal("attack"), targetEnemyId: z.string().uuid().optional(), targetCharacterId: z.string().uuid().optional(),
+        weapon: z.string().trim().min(1).max(80), sneakAttack: z.boolean().optional(),
+        bonusAttack: z.enum(BONUS_ATTACKS).optional(), powerAttack: z.boolean().optional(), lucky: z.boolean().optional(),
+      }),
       z.object({ type: z.literal("dodge") }),
       z.object({ type: z.literal("action"), action: z.enum(["dash", "disengage", "hide", "help", "grapple", "shove"]), targetEnemyId: z.string().uuid().optional(), targetCharacterId: z.string().uuid().optional(), cunningAction: z.boolean().optional() }).strict(),
       z.object({ type: z.literal("pet"), petName: z.string().trim().min(1).max(60), attack: z.string().trim().min(1).max(40), targetEnemyId: z.string().uuid() }),
